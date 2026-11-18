@@ -1,4 +1,4 @@
-# C4: Add Cloudflare and Google ADK to the comparison, with a TS-parity row for all seven SDKs
+# C4: Add Cloudflare, Google ADK and Copilot to the comparison, with a TS-parity row for all eight SDKs
 
 | Field | Value |
 | --- | --- |
@@ -6,12 +6,12 @@
 | Status | `ready` |
 | Plan | [SDK comparison §4](../../plans/sdk-comparison.md#4-todos) |
 | Round / milestone | M2c (added 2026-11-18) |
-| Depends on | [S7b](../ready/S7b-google-adk-reference.md) |
+| Depends on | [C5](../ready/C5-typescript-gaps.md) |
 | Size | M |
 
 ## Goal
 
-Add Cloudflare and Google ADK to the comparison, with a TS-parity row for all seven SDKs, following the eight-step SDK process in [AGENTS.md](../../../AGENTS.md#process-for-documenting-an-sdk) and the plan's S6/S7 notes, including the language policy (TypeScript references with a parity check against the SDK's primary language).
+Add Cloudflare, Google ADK and Copilot to the comparison, with a TS-parity row for all eight SDKs, following the eight-step SDK process in [AGENTS.md](../../../AGENTS.md#process-for-documenting-an-sdk) and the plan's S6/S7 notes, including the language policy (TypeScript references with a parity check against the SDK's primary language).
 
 ## Context
 

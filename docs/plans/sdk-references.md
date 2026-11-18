@@ -1,6 +1,6 @@
 # Plan: a verified reference for every agent SDK, built with one repeatable process (Round S)
 
-- **Status:** In progress (S6 Cloudflare and S7 Google ADK added 2026-11-18)
+- **Status:** In progress (S6 Cloudflare, S7 Google ADK and S8 GitHub Copilot added 2026-11-18)
 - **Date:** 2026-11-18
 - **Asked for by:** the project owner (2026-11-18): fetch each SDK's docs, build a thorough reference, fact-check the docs, and find a way to verify the examples
 - **Builds on:**
@@ -42,7 +42,7 @@ Each SDK takes two todos. The verification todo (a) does steps 1–5 of the [pro
 | 7. Review | `/anthropic-skills:writing-review` on both documents |
 | 8. Fix and ship | Fixes applied, changed claims re-checked, `pnpm run verify` green, pushed |
 
-## 4. The seven SDKs
+## 4. The eight SDKs
 
 ### S1 Claude Agent SDK (done)
 
@@ -106,6 +106,18 @@ The owner asked whether each SDK should be documented in its primary language. T
 - **Behaviors to verify:** `LlmAgent` with function tools, sequential, parallel and loop workflow agents, the graph workflow runtime in 2.x, sessions and state, callbacks (before/after model and tool), structured output, and human-in-the-loop.
 - **Out of scope:** Python ADK beyond the parity check, Vertex AI Agent Engine deployment.
 
+### S8 GitHub Copilot SDK (added 2026-11-18)
+
+- **Packages:** `@github/copilot-sdk@1.0.28` (MIT, newest published by 2026-11-04), described as a "TypeScript SDK for programmatic control of GitHub Copilot CLI via JSON-RPC". It drives `@github/copilot` (the CLI, 1.0.105 at the cutoff), whose license is GitHub's own ("SEE LICENSE IN LICENSE.md").
+- **Shape:** like the Claude Agent SDK, the SDK spawns a CLI that owns the loop, so the harness likely mocks the model API the CLI calls, or the JSON-RPC boundary, rather than an in-process model. Find the CLI's model endpoint override first.
+- **Docs:** the `github/copilot-agent-runtime` repo (the SDK's repository field) and GitHub's docs pages. Commit the mirror only if the license allows; otherwise gitignore it, as for Claude.
+- **Language:** TypeScript first; record the other official languages, if any, in the parity section.
+- **Behaviors to verify:** sessions and resume, custom tools, permission and approval callbacks, MCP servers, streaming events, and the CLI's built-in tools and how to remove them.
+
+### TypeScript gap report (added 2026-11-18)
+
+The owner asked to document, for every SDK whose primary language isn't TypeScript, what the TypeScript SDK is missing. Todo C5 writes `docs/comparison/typescript-gaps.md`. For each SDK it lists the features in the primary-language SDK that the TypeScript package lacks, has only in a weaker form, or documents only for the primary language. Each gap cites the primary-language docs or source, at a recorded version, and the TypeScript package's `.d.ts` that shows the absence. The report covers OpenAI Agents (Python first), LangChain (Python first), Google ADK (Python first), and the Claude Agent SDK's Python package, plus Copilot if it has other official SDKs. Each reference's fact-check then gains a short parity section that links to the report.
+
 ## 5. Todos
 
 | ID | Title | Depends on |
@@ -122,6 +134,8 @@ The owner asked whether each SDK should be documented in its primary language. T
 | S6b | Cloudflare Agents: guide and fact-check, written and reviewed | S6a |
 | S7a | Google ADK: mirror, verification harness, behavioral examples and TS parity check | S6b |
 | S7b | Google ADK: guide and fact-check, written and reviewed | S7a |
+| S8a | GitHub Copilot SDK: mirror, verification harness and behavioral examples | S7b |
+| S8b | GitHub Copilot SDK: guide and fact-check, written and reviewed | S8a |
 
 ## 6. Risks
 

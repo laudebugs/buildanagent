@@ -1,4 +1,4 @@
-# K4: Cloudflare and Google ADK skills, each tested by a fresh agent
+# K4: Cloudflare, Google ADK and Copilot skills, each tested by a fresh agent
 
 | Field | Value |
 | --- | --- |
@@ -6,12 +6,12 @@
 | Status | `ready` |
 | Plan | [Agent skills §4](../../plans/agent-skills.md#4-todos) |
 | Round / milestone | M2c (added 2026-11-18) |
-| Depends on | [S7b](../ready/S7b-google-adk-reference.md) |
+| Depends on | [C4](../ready/C4-comparison-cloudflare-google.md) |
 | Size | S |
 
 ## Goal
 
-Cloudflare and Google ADK skills, each tested by a fresh agent, following the eight-step SDK process in [AGENTS.md](../../../AGENTS.md#process-for-documenting-an-sdk) and the plan's S6/S7 notes, including the language policy (TypeScript references with a parity check against the SDK's primary language).
+Cloudflare, Google ADK and Copilot skills, each tested by a fresh agent, following the eight-step SDK process in [AGENTS.md](../../../AGENTS.md#process-for-documenting-an-sdk) and the plan's S6/S7 notes, including the language policy (TypeScript references with a parity check against the SDK's primary language).
 
 ## Context
 

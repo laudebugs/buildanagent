@@ -42,7 +42,7 @@ K2 drafts each skill with `/anthropic-skills:writing` and reviews it with `/anth
 | K1 | Skills folder, `.claude/skills` symlink, and the skill format (done) | C2 |
 | K2 | Four SDK skills, written, reviewed and tested by a fresh agent (done) | K1 |
 | K3 | LangChain skill, written, reviewed and tested by a fresh agent (done) | S5b |
-| K4 | Cloudflare and Google ADK skills, each tested by a fresh agent | S7b |
+| K4 | Cloudflare, Google ADK and Copilot skills, each tested by a fresh agent | C4 |
 
 ## 5. Risks
 

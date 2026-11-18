@@ -1,6 +1,6 @@
 # Plan: compare the four SDKs on facts the references verified (Round C)
 
-- **Status:** In progress (C4 adds Cloudflare and Google ADK)
+- **Status:** In progress (C4 adds Cloudflare, Google ADK and Copilot; C5 writes the TypeScript gap report)
 - **Date:** 2026-11-18
 - **Asked for by:** the project owner (2026-11-18): a deep comparison once every SDK is done, and a table comparing their features
 - **Builds on:** the four references from [Round S](sdk-references.md), and the [research report](../research/agent-sdks-and-harness-design.md)
@@ -41,7 +41,8 @@ Both C1 and C2 go through `/anthropic-skills:writing` and `/anthropic-skills:wri
 | C1 | Feature table for the four SDKs (done) | S4b |
 | C2 | Deep comparison, and the research-report refresh (done) | C1 |
 | C3 | Add LangChain to the feature table and the deep comparison (done) | S5b |
-| C4 | Add Cloudflare and Google ADK, and a "Primary language and TS parity" row for all seven | S7b |
+| C5 | TypeScript gap report: what each TS SDK lacks against its primary-language SDK (`docs/comparison/typescript-gaps.md`), plus parity sections in the references | S8b |
+| C4 | Add Cloudflare, Google ADK and Copilot, and a "Primary language and TS parity" row, for all eight SDKs | C5 |
 
 ## 5. Risks
 
