@@ -16,8 +16,8 @@ The repo is documentation only for now. The research compares vendor agent SDKs,
 |---|---|
 | [docs/plans/](docs/plans/) | The plans and roadmap for this phase: SDK references, comparison, skills, build guides and implementation plans |
 | [docs/todos/](docs/todos/) | The todo board: every planned batch of work, by state |
-| [docs/comparison/deep-comparison.md](docs/comparison/deep-comparison.md) | The same triage agent built on all four SDKs, the design trade-offs, and lessons for our own SDK, harness and agent |
-| [docs/comparison/feature-table.md](docs/comparison/feature-table.md) | The four SDKs side by side, one row per feature, every cell linked to its verified or documented source |
+| [docs/comparison/deep-comparison.md](docs/comparison/deep-comparison.md) | The same triage agent built on all five SDKs, the design trade-offs, and lessons for our own SDK, harness and agent |
+| [docs/comparison/feature-table.md](docs/comparison/feature-table.md) | The five SDKs side by side, one row per feature, every cell linked to its verified or documented source |
 | [docs/research/agent-sdks-and-harness-design.md](docs/research/agent-sdks-and-harness-design.md) | Main report: vendor SDKs vs OSS frameworks vs building our own; 8-layer reference architecture; build-vs-buy |
 | [docs/research/harness-architectures.md](docs/research/harness-architectures.md) | Source-level teardown of Pi, Codex CLI, OpenAI Agents SDK sandbox agents and Cloudflare Agents/Think |
 | [docs/research/fact-check-2026-11-18.md](docs/research/fact-check-2026-11-18.md) | Verification log: what was confirmed, corrected or is still secondary |
