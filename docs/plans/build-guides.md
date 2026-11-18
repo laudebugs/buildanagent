@@ -82,6 +82,10 @@ The owner observed that most agents present their UI state as a chat transcript 
 
 The owner next asked about Vercel Labs' UI SDK ([ui-sdk.dev](https://ui-sdk.dev/), [vercel-labs/ui](https://github.com/vercel-labs/ui)), a headless library of UI behaviors meant for agents. U2 researched it in two parts: the library itself, and the headless libraries and agent-facing UI tooling around it. [`vercel-ui-sdk.md`](../research/agent-ui/vercel-ui-sdk.md) builds on U1, and its fact-check shares U1's log.
 
+### U4: Undo for agent edits in UIs (added 2026-11-18)
+
+The owner asked how a UI can make an agent's edits undoable. U4 researched it in three parts: UI SDK's change callbacks and history, undo in client state libraries (Yjs, Immer, TanStack Query, NgRx and signal stores), and the Keep/Undo and undo-toast patterns agent products ship. [`undo-agent-edits.md`](../research/agent-ui/undo-agent-edits.md) recommends tagging every write with its actor and turn, keeping agent writes as a real draft until a person keeps them, and reverting by inverse operations that preserve later human edits.
+
 ## 5. Todos
 
 | ID | Title | Depends on |
@@ -93,6 +97,7 @@ The owner next asked about Vercel Labs' UI SDK ([ui-sdk.dev](https://ui-sdk.dev/
 | R1 | Re-verify the "(secondary)" claims against primary sources (done) | H3 |
 | U1 | Research how agent UIs are built, and how our eight SDKs expose UI contracts (done: [agent-ui/](../research/agent-ui/)) | None |
 | U2 | Research Vercel Labs' UI SDK and the agent-facing UI tooling around it (done: [vercel-ui-sdk.md](../research/agent-ui/vercel-ui-sdk.md)) | U1 |
+| U4 | Research how a UI makes an agent's edits undoable (done: [undo-agent-edits.md](../research/agent-ui/undo-agent-edits.md)) | U2 |
 | G1b | Guide: building an agent SDK (done: [docs/guides/agent-sdk.md](../guides/agent-sdk.md)) | G1a, H3, R1 |
 | G2a | Deep research: building an agent harness (done) | G1a |
 | G2b | Guide: building an agent harness (done: [docs/guides/agent-harness.md](../guides/agent-harness.md)) | G2a, G1b, H3 |
