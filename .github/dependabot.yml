@@ -1,0 +1,18 @@
+# Dependabot security updates for our own manifests only (AGENTS.md "Versions": a vulnerable pin moves to
+# the latest fixed release). Routine version-bump PRs are off because pins follow the one-week age rule
+# by hand. The mirrored upstream docs under docs/reference/*/source/ carry their projects' example
+# manifests; they are not our dependencies, so they are excluded.
+version: 2
+updates:
+  - package-ecosystem: "npm"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+    open-pull-requests-limit: 0
+    exclude-paths:
+      - "docs/reference/**"
+  - package-ecosystem: "github-actions"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+    open-pull-requests-limit: 0
