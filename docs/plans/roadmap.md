@@ -1,6 +1,6 @@
 # Roadmap: from eight verified SDK references to reviewed plans for our own agent stack
 
-- **Status:** Phase complete (2026-11-18); M5–M7 are the next phase. On 2026-11-18 the owner made a personal cloud coding agent M7 and deferred the triage agent ([ADR 0032](../decisions/0032-personal-coding-agent-first.md))
+- **Status:** Phase complete (2026-11-18); M5–M7 are the next phase. On 2026-11-18 the owner made a personal cloud coding agent M7 and deferred the triage agent ([ADR 0032](../decisions/0032-personal-coding-agent-first.md)), and added a multi-user agent platform as M8 and M9 ([ADR 0037](../decisions/0037-multi-user-agent-platform.md))
 - **Date:** 2026-11-18
 - **Asked for by:** the project owner (2026-11-18)
 - **Plans:** [SDK references](sdk-references.md) · [SDK comparison](sdk-comparison.md) · [agent skills](agent-skills.md) · [build guides](build-guides.md) · [implementation plans](implementation-plans.md) · [CI](ci.md)
@@ -41,6 +41,15 @@ The next phase (from 2026-11-18) runs Round B, then Round N with its portability
                                   └─► N48a/b (Vercel) ───────────────────┘
 ```
 
+Round F (the agent platform, added 2026-11-18) starts its engine-free stage during Round B and joins the coding agent's engine at F12:
+
+```
+ B1 ─► F1, F3 ─► F2, F4, F13, F14 ─► F7, F8 ─► F9
+ B15 ─► F5 ─► F6 (with F3)
+ W3 ─► F10;  N43, N46b, N47b ─► F11
+ W4, W5, F6, F10, F11 ─► F12 ─► F15 ─► F16 (M8) ─► F17 (AWS), F18 (our SDK, after B20 and N45) (M9)
+```
+
 - **SDK references first.** S3 (OpenAI) and then S4 (Vercel) follow the eight-step process in [AGENTS.md](../../AGENTS.md#process-for-documenting-an-sdk). Each SDK splits into a verification todo (a) and a reference-docs todo (b).
 - **Comparison after all four references.** C1 (the feature table) and C2 (the deep comparison) need every reference's verified facts.
 - **Skills after the comparison.** K2 writes each skill from its reference and from the comparison's "when to choose" guidance.
@@ -63,6 +72,8 @@ The next phase (from 2026-11-18) runs Round B, then Round N with its portability
 | M6 Our agent harness (next phase) | N1–N40, N41–N49 (portability, added 2026-11-18) | `@agent-speak/protocol`, `harness`, `cli` and `evals`, built from [build-harness.md](build-harness.md); it starts after B1–B2 and interleaves with Round B (§6 of the plan); N38b is deferred with M7b |
 | M7 Our coding agent (next phase, added 2026-11-18) | W1–W11 | `@agent-speak/coding-agent`, a personal cloud coding agent built from [build-coding-agent.md](build-coding-agent.md): on Cloudflare first (W4–W8), then AWS (W9) and Vercel (W10); W4 needs the portability todos N46a and N46b |
 | M7b The triage agent (deferred 2026-11-18) | A1–A24, N38b | `@agent-speak/triage-agent`, built from [build-agent.md](build-agent.md) when its round resumes ([ADR 0032](../decisions/0032-personal-coding-agent-first.md)) |
+| M8 Our agent platform (next phase, added 2026-11-18) | F1–F16 | `@agent-speak/platform` and `@agent-speak/agent-safety`, built from [build-agent-platform.md](build-agent-platform.md): a multi-user platform that generates agents on Cloudflare `agents` 0.33.0 or `ai` 7.0.162, gates them, and deploys them into the user's own Cloudflare or Vercel account |
+| M9 Agent platform on AWS and our SDK (added 2026-11-18) | F17, F18 | The AWS deploy target and our SDK and harness as the default generation target, after M5 and M6 |
 
 ## How each todo is worked
 

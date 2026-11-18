@@ -4,7 +4,7 @@ Instructions for AI coding agents (Claude Code, Codex, OpenCode, Pi, etc.) worki
 
 ## Project
 
-**agent-speak** researches, and will later build, an AI agent and our own agent harness/SDK. The first agent is a personal cloud coding agent for the owner, deployed on Cloudflare first, with the SDK and harness also proved on AWS and Vercel ([coding agent plan](docs/plans/build-coding-agent.md)). The repo is mostly documentation. The only code is the per-SDK verification harnesses under `verify/`.
+**agent-speak** researches, and will later build, an AI agent and our own agent harness/SDK. The first agent is a personal cloud coding agent for the owner, deployed on Cloudflare first, with the SDK and harness also proved on AWS and Vercel ([coding agent plan](docs/plans/build-coding-agent.md)). After it comes a multi-user platform that turns a user's description into a checked agent deployed in the user's own cloud ([agent platform plan](docs/plans/build-agent-platform.md)). The repo is mostly documentation. The only code is the per-SDK verification harnesses under `verify/`.
 
 ## Layout
 
@@ -66,6 +66,8 @@ Follow the reference architecture in `docs/research/agent-sdks-and-harness-desig
 Each component should be removable so it can be ablated as models improve.
 
 The SDK and harness must run on four targets, local Node, Cloudflare, AWS and Vercel, and every implementation of a portable seam must pass one conformance suite ([ADR 0033](docs/decisions/0033-three-deployment-targets.md)). Keep the loop outside the sandbox, and keep credentials out of it ([ADR 0036](docs/decisions/0036-loop-outside-sandbox-and-pr-approval.md)).
+
+The agent platform serves other users from the start, so tenant isolation applies to every platform component: no tenant credential enters a sandbox, generated code runs only in a fresh hosted sandbox, and no deploy proceeds without a passing gate report for its commit ([ADR 0037](docs/decisions/0037-multi-user-agent-platform.md), [ADR 0039](docs/decisions/0039-check-and-deploy-gate.md), [ADR 0042](docs/decisions/0042-generated-code-isolation.md)).
 
 ## Process for documenting an SDK
 
