@@ -3,7 +3,7 @@
 | Field | Value |
 | --- | --- |
 | ID | `S3b` |
-| Status | `ready` |
+| Status | `ongoing` |
 | Plan | [SDK references §4 S3](../../plans/sdk-references.md#s3-openai-agents-sdk) |
 | Round / milestone | Round S (SDK references), M1 |
 | Depends on | [S3a](../done/S3a-openai-verify.md) |
