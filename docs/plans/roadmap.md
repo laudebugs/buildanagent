@@ -28,6 +28,8 @@ agent-speak ends this phase with four things:
                                           ├─► G2a ─► G2b ─► P2 ─┼─► P4 (review) ─► stop
                                           └─► G3a ─► G3b ─► P3 ─┘
 
+ H1 ─► H2 ─► H3 (Hacker News practitioner research, added 2026-11-18) ─► before G1b, G2b, G3b
+
  X1 (CI) can start at any time; it runs after the SDK rounds by the owner's choice.
 ```
 

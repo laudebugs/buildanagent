@@ -52,16 +52,37 @@ Each guide todo (G1b, G2b, G3b) then writes `docs/guides/<layer>.md` from that r
 - Which evals catch regressions before release, and which signals matter in production?
 - What safety gates does a deployed agent need, and how are they reviewed?
 
+## 4b. Practitioner research from Hacker News (Round H, added 2026-11-18)
+
+The owner asked to add what developers themselves report about building agents. Round H covers the 18 months from 2025-05-18 to 2026-11-18: what works for them, what fails, what they think agents should do, how documentation helps or hurts, and how they build. The vendor docs and papers behind G1a–G3a show how agents are meant to work; Hacker News threads show how they work for the people who build with them. The round runs before the guides, so G1b–G3b can weigh both.
+
+- **H1 Corpus.** A script, `scripts/hn-corpus.mjs`, queries the public HN Algolia API (`hn.algolia.com/api/v1`) with fixed search terms, such as agent, agentic, coding agent, MCP, Claude Code, Codex, Cursor, LangChain, AI SDK, "agent harness" and evals. It keeps stories above a points threshold and fetches their comment trees, writing the raw corpus to a gitignored folder. The committed output is `docs/research/practitioners/corpus.md`: each thread's id, link, title, date, points and comment count, plus the query that found it, so the corpus can be regenerated and audited. Comments are third-party writing, so the repo stores links and short quoted excerpts with attribution, never full dumps.
+- **H2 Themes.** Six themes are analysed in parallel, each into `docs/research/practitioners/notes/<theme>.md`:
+  1. what works in practice;
+  2. what fails, and the failure modes developers name;
+  3. opinions on specific harnesses and SDKs (Claude Code, Codex, Cursor, Pi, OpenAI and Vercel SDKs, LangChain and others);
+  4. documentation and developer experience;
+  5. reliability, evals, cost and context management;
+  6. security incidents and safety practice, and building your own versus adopting a framework.
+
+  Each claim cites a thread or comment link and a date. Each note separates widely shared views (many independent commenters) from single anecdotes, and records disagreement.
+- **H3 Synthesis.** `docs/research/practitioners/practitioner-research.md` sets practitioner experience against the vendor and paper evidence in G1a–G3a, and states where they agree and where they conflict. It also records how the views shifted over the 18 months. A fact-check log re-checks the quoted claims against the threads.
+
+Risks: HN skews toward coding agents and toward strong opinions. The synthesis must name that sampling bias, weigh views by how many independent commenters hold them, and never present one comment as a consensus.
+
 ## 5. Todos
 
 | ID | Title | Depends on |
 | --- | --- | --- |
 | G1a | Deep research: building an agent SDK (done) | K2 |
-| G1b | Guide: building an agent SDK | G1a |
+| H1 | Practitioner research: collect the Hacker News corpus (2025-05-18 to 2026-11-18) | None |
+| H2 | Practitioner research: analyse six themes in parallel | H1 |
+| H3 | Practitioner research: synthesis and fact-check, set against G1a–G3a | H2, G3a |
+| G1b | Guide: building an agent SDK | G1a, H3 |
 | G2a | Deep research: building an agent harness (done) | G1a |
-| G2b | Guide: building an agent harness | G2a, G1b |
+| G2b | Guide: building an agent harness | G2a, G1b, H3 |
 | G3a | Deep research: building an agent | G2a |
-| G3b | Guide: building an agent | G3a, G2b |
+| G3b | Guide: building an agent | G3a, G2b, H3 |
 
 ## 6. Risks
 

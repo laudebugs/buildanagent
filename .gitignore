@@ -6,3 +6,6 @@ verify/*/extracted/
 verify/*/.tmp/
 verify/*/.tmp-tsconfig.json
 verify/*/.tmp-*
+
+# Raw Hacker News corpus (third-party comments): regenerate with scripts/hn-corpus.mjs
+docs/research/practitioners/.raw/
