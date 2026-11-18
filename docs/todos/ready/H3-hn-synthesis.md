@@ -6,7 +6,7 @@
 | Status | `ready` |
 | Plan | [Build guides §4b](../../plans/build-guides.md#4b-practitioner-research-from-hacker-news-round-h-added-2026-11-18) |
 | Round / milestone | Round H (practitioner research), before the guides |
-| Depends on | [H2](../ready/H2-hn-themes.md), [G3a](../ongoing/G3a-research-agent.md) |
+| Depends on | [H2](../ongoing/H2-hn-themes.md), [G3a](../ongoing/G3a-research-agent.md) |
 | Size | M |
 
 ## Goal

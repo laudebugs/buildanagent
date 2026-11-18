@@ -1,17 +1,17 @@
-# H1: Practitioner research: collect the Hacker News corpus (2025-05-18 to 2026-11-18)
+# H2: Practitioner research: analyse six themes in parallel
 
 | Field | Value |
 | --- | --- |
-| ID | `H1` |
+| ID | `H2` |
 | Status | `ongoing` |
 | Plan | [Build guides §4b](../../plans/build-guides.md#4b-practitioner-research-from-hacker-news-round-h-added-2026-11-18) |
 | Round / milestone | Round H (practitioner research), before the guides |
-| Depends on | None |
-| Size | M |
+| Depends on | [H1](../done/H1-hn-corpus.md) |
+| Size | L |
 
 ## Goal
 
-Practitioner research: collect the Hacker News corpus (2025-05-18 to 2026-11-18), as the plan section describes.
+Practitioner research: analyse six themes in parallel, as the plan section describes.
 
 ## Context
 
