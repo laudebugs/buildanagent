@@ -52,7 +52,10 @@ Each SDK takes two todos. The verification todo (a) does steps 1–5 of the [pro
 
 `@earendil-works/pi-coding-agent@1.5.2`. The loop runs in-process, so the harness uses `fauxProvider()`. MIT-licensed, so the mirror is committed. Result: 334 sources type-checked, 20 run, 8 behavioral examples, five findings. See the [fact-check](../reference/pi/fact-check.md).
 
-### S3 OpenAI Agents SDK
+### S3 OpenAI Agents SDK (done)
+
+Result: `@openai/agents@0.21.0`, docs mirrored from tag `v0.21.0`. 182 sources type-checked with no API errors, 66 run on the SDK's own `ScriptedModel`, 9 behavioral examples, five findings. See the [fact-check](../reference/openai-agents-sdk/fact-check.md). The plan below is kept as written.
+
 
 - **Package:** `@openai/agents` (0.22.0 on 2026-11-18; re-check and pin at the start of S3a), with its sub-packages `@openai/agents-core` and `@openai/agents-openai`.
 - **Docs:** the MIT-licensed `openai/openai-agents-js` repo holds them under `docs/src/content/docs/`, about 129 `.md` and `.mdx` pages in an Astro site, plus a runnable `examples/` folder. Mirror both from the release tag, and commit them with the license.
@@ -76,7 +79,7 @@ Each SDK takes two todos. The verification todo (a) does steps 1–5 of the [pro
 | S1 | Claude Agent SDK reference | done |
 | S2 | Pi reference | done |
 | S3a | OpenAI Agents SDK: mirror, verification harness and behavioral examples (done) | S2 |
-| S3b | OpenAI Agents SDK: guide and fact-check, written and reviewed | S3a |
+| S3b | OpenAI Agents SDK: guide and fact-check, written and reviewed (done) | S3a |
 | S4a | Vercel AI SDK: mirror, verification harness and behavioral examples | S3b |
 | S4b | Vercel AI SDK: guide and fact-check, written and reviewed | S4a |
 

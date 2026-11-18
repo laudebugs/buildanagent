@@ -1,6 +1,6 @@
-# The OpenAI Agents SDK docs match 0.21.0, apart from two small naming errors
+# The OpenAI Agents SDK docs match 0.21.0, apart from two small errors
 
-A developer who copies an example from the OpenAI Agents SDK docs needs it to compile and run against the release npm installed. To test that promise, I checked the docs at git tag `v0.21.0` against `@openai/agents@0.21.0`, the newest release at least two weeks old. The docs are 32 English pages, plus the 178 example files they embed through `?raw` imports. Four automated tiers did the checking: type-checks, offline runs, an API-surface diff and behavioral tests. All of them live in [`verify/openai-agents-sdk/`](../../../verify/openai-agents-sdk/), with raw output in `verify/openai-agents-sdk/results/`. The docs passed: no source has an API error, all 16 agent options and the `maxTurns` default match the package, and eight of the nine behaviors we tested work as written. The ninth, the handoff tool's name, differs from the docs, and that error and one wrong "required" mark are the only inaccuracies I found; the rest are omissions.
+A developer who copies an example from the OpenAI Agents SDK docs needs it to compile and run against the release npm installed. To test that promise, I checked the docs at git tag `v0.21.0` against `@openai/agents@0.21.0`, the newest release at least two weeks old. The docs are 32 English pages, plus the 178 example files they embed through `?raw` imports. Four automated tiers did the checking: type-checks, offline runs, an API-surface diff and behavioral tests. All of them live in [`verify/openai-agents-sdk/`](../../../verify/openai-agents-sdk/), with raw output in `verify/openai-agents-sdk/results/`. The docs passed: no source has an API error, all 16 agent options and the `maxTurns` default match the package, and every behavior we tested works as written except one: the handoff tool's name. That naming error and one wrong "required" mark are the only inaccuracies I found; the rest are omissions.
 
 ## Reproduce the checks in three commands
 
@@ -50,7 +50,7 @@ A script compares the guides' option tables, event list and error list with the 
 | Run-item stream events (`streaming.mdx`) | 9 | 10 | `compaction_item_created` appears on no page |
 | Error classes (`running-agents.mdx` "Exceptions") | 8 | 11 | `InvalidToolOutputError` is documented in `tools.mdx`; `InvalidToolInputError` and `SystemError` appear on no page |
 
-## Tier 4: eight of nine documented behaviors held, and handoff naming differs
+## Tier 4: ten of eleven documented claims held, and handoff naming differs
 
 Nine programs in `verify/openai-agents-sdk/examples/` assert documented behavior on `ScriptedModel`, and all nine pass. Example 03 asserts the package's actual behavior, which differs from the docs:
 
@@ -70,11 +70,11 @@ Nine programs in `verify/openai-agents-sdk/examples/` assert documented behavior
 
 ## Five findings: two doc errors, three gaps
 
-**F1. Handoff tool names keep the agent name's case.** `handoffs.mdx:15` says that "If you hand off to an agent called `Refund Agent`, the tool name would be `transfer_to_refund_agent`." In 0.21.0, `handoff(new Agent({ name: "Refund Agent" })).toolName` is `transfer_to_Refund_Agent`: the SDK replaces spaces but keeps the capitals. Code or guardrails that match on the documented name will miss. Set `toolNameOverride` when the name matters.
+**F1. Handoff tool names keep the agent name's case.** `handoffs.mdx:15` gives an example. "If you hand off to an agent called `Refund Agent`," it says, "the tool name would be `transfer_to_refund_agent`." In 0.21.0, `handoff(new Agent({ name: "Refund Agent" })).toolName` is `transfer_to_Refund_Agent`: the SDK replaces spaces but keeps the capitals. Code or guardrails that match on the documented name will miss. Set `toolNameOverride` when the name matters.
 
 **F2. `instructions` is optional, though the docs mark it required.** The table in `agents.mdx` marks both `name` and `instructions` as required. `AgentOptions` requires only `name`, examples 02, 03 and 06 construct agents without `instructions`, and the SDK's JSDoc says only that it "strongly recommends" them.
 
-**F3. The quickstart presents tracing as a feature but never says how to turn it off.** `tracing.mdx` documents the default: tracing is on in Node.js, Deno and Bun, and each run's model calls, tool calls, handoffs and guardrails go to OpenAI's Traces dashboard. The quickstart's "View your traces" section says only that the SDK "automatically generates traces" and links the dashboard. It omits that the data leaves your process and how to disable it. Teams that handle sensitive input should decide on tracing before their first run.
+**F3. The quickstart presents tracing as a feature but never says how to turn it off.** `tracing.mdx` documents the default. Tracing is on in Node.js, Deno and Bun, and each run's model calls, tool calls, handoffs and guardrails go to OpenAI's Traces dashboard. The quickstart's "View your traces" section says only that the SDK "automatically generates traces" and links the dashboard. The section omits that the data leaves your process and how to disable it. Teams that handle sensitive input should decide on tracing before their first run.
 
 **F4. Three package items appear on no page.** The `compaction_item_created` stream event and the `InvalidToolInputError` and `SystemError` classes exist in the package but in none of the 32 pages. `outputGuardrailBlockedMessage` and `InvalidToolOutputError` are covered on other pages but missing from the option and error lists.
 

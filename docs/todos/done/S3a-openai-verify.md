@@ -4,7 +4,7 @@
 | --- | --- |
 | ID | `S3a` |
 | Status | `done` |
-| Plan | [SDK references §4 S3](../../plans/sdk-references.md#s3-openai-agents-sdk) |
+| Plan | [SDK references §4 S3](../../plans/sdk-references.md#s3-openai-agents-sdk-done) |
 | Round / milestone | Round S (SDK references), M1 |
 | Depends on | [S2](../done/S2-pi-reference.md) |
 | Size | L |

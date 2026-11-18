@@ -6,7 +6,7 @@
 | Status | `ready` |
 | Plan | [SDK references §4 S4](../../plans/sdk-references.md#s4-vercel-ai-sdk) |
 | Round / milestone | Round S (SDK references), M1 |
-| Depends on | [S3b](../ready/S3b-openai-reference.md) |
+| Depends on | [S3b](../done/S3b-openai-reference.md) |
 | Size | L |
 
 ## Goal

@@ -2,7 +2,7 @@
 
 *Version `@openai/agents@0.21.0`, TypeScript, November 2026. **[verified: NN]** marks a claim asserted by example `NN` in [`verify/openai-agents-sdk/examples/`](../../../verify/openai-agents-sdk/examples/), run offline on the SDK's own `ScriptedModel`. Other claims cite their upstream page in [`source/`](source/), mirrored from git tag `v0.21.0`; [fact-check.md](fact-check.md) rates those pages.*
 
-The OpenAI Agents SDK runs a small agent loop inside your Node.js process. It ships the most complete set of control primitives of the SDKs in this repo: handoffs, three kinds of guardrails, human approval that survives a restart, and first-party test doubles. Any model provider can drive it, yet several defaults assume OpenAI's platform. Tracing exports every run to OpenAI unless you turn it off, and hosted tools, server-side sessions and tool search work only with OpenAI's Responses API. In this guide, I show how the SDK's loop and primitives fit together, and how to build a production agent by gating risky tools with `needsApproval`, guarding input before the model runs, and deciding up front where your traces and your sessions live.
+The OpenAI Agents SDK runs a small agent loop inside your Node.js process. The SDK ships the most complete set of control primitives of the SDKs in this repo: handoffs, three kinds of guardrails, human approval that survives a restart, and first-party test doubles. Any model provider can drive it, yet several defaults assume OpenAI's platform. Tracing exports every run to OpenAI unless you turn it off, and hosted tools, server-side sessions and tool search work only with OpenAI's Responses API. In this guide, I show how the SDK's loop and primitives fit together, and how to build a production agent on them. That agent gates risky tools with `needsApproval`, guards input before the model runs, and decides up front where its traces and sessions live.
 
 ## 1. The SDK is a library loop that you run and can re-point
 
@@ -25,7 +25,7 @@ The SDK is MIT-licensed and needs only an OpenAI API key for OpenAI models (`qui
 
 ## 3. A run ends in `finalOutput` or a typed error
 
-A minimal agent needs only a name:
+A minimal agent:
 
 ```ts
 import { Agent, run } from "@openai/agents";
@@ -135,7 +135,7 @@ const { finalOutput } = await run(agent, "Safari login crashes.");   // finalOut
 
 ## 12. Sandbox agents add a managed workspace
 
-`SandboxAgent` gives the model a persistent workspace with filesystem tools, shell commands and session state. A `Manifest` declares what goes into the workspace, and a sandbox client runs it: `UnixLocalSandboxClient` for trusted local development on macOS or Linux, `DockerSandboxClient`, or a hosted client (`sandbox-agents.mdx`). The JS SDK ships sandbox agents too, not only the Python SDK. Seven sandbox doc examples ran offline in our harness, but this reference adds no behavioral test for sandboxes. Sandbox capabilities reach the model as ordinary function tools (`exec_command`, `write_stdin`, `view_image`), so a test model must deny them by name (fact-check, Tier 2).
+`SandboxAgent` gives the model a persistent workspace with filesystem tools, shell commands and session state. A `Manifest` declares what goes into the workspace, and a sandbox client runs it: `UnixLocalSandboxClient` for trusted local development on macOS or Linux, `DockerSandboxClient`, or a hosted client (`sandbox-agents.mdx`). Sandbox agents ship in the JS SDK as well as the Python SDK. Seven sandbox doc examples ran offline in our harness, but this reference adds no behavioral test for sandboxes. Sandbox capabilities reach the model as ordinary function tools (`exec_command`, `write_stdin`, `view_image`), so a test model must deny them by name (fact-check, Tier 2).
 
 ## 13. First-party test doubles make the whole loop testable offline
 
