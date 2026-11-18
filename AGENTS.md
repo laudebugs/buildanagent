@@ -19,6 +19,7 @@ Instructions for AI coding agents (Claude Code, Codex, OpenCode, Pi, etc.) worki
 - `docs/comparison/`: the SDK feature table and the deep comparison.
 - `docs/research/`: research reports.
   - `agent-sdks-and-harness-design.md`: the main report (SDK comparison, reference architecture, build-vs-buy).
+  - `agent-ui/`: how agent UIs are built (protocols, web frameworks, terminal and editor UIs, patterns beyond chat) and the UI contracts of our eight SDKs.
   - `harness-architectures.md`: source-level notes on Pi, Codex, OpenAI Agents SDK sandbox agents and Cloudflare Agents/Think.
   - `fact-check-2026-11-18.md`: verification log for the main report.
   - `notes/`: raw research notes behind the report. Treat them as working material; the report and fact-check log supersede them where they disagree.
@@ -89,7 +90,7 @@ The repo is a pnpm workspace. Run every command from the repo root unless a READ
 ## Git
 
 - **One pull request per piece of work** (changed from direct pushes to `main` on 2026-11-18). Branch from the latest `main`, named for the work (`todo/<id>-<slug>`, or `docs/<slug>` for work without a todo), push the branch, and open a pull request against `main`.
-- **Squash-merge when ready:** CI (`ci.yml`) passes, the todo's definition of done is met, and review findings are fixed. The squash commit's message is the PR title plus a summary of the change. Delete the branch after the merge.
+- **Squash-merge when ready:** CI (`ci.yml`) passes, the todo's definition of done is met, and review findings are fixed. The squash commit's message is the PR title plus a summary of the change. Delete the branch after the merge; this session's token cannot delete remote branches, so the owner deletes them or turns on the repository's "Automatically delete head branches" setting.
 - Snapshots of unfinished work go to the work's own branch, not to separate `wip/*` branches.
 - Commit messages: imperative mood, with a short summary line.
 - Never commit secrets or `.env` files.
