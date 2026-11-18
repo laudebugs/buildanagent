@@ -14,6 +14,8 @@ The repo is documentation only for now. The research compares vendor agent SDKs,
 
 | Doc | What it covers |
 |---|---|
+| [CONTRIBUTING.md](CONTRIBUTING.md) | How to contribute: pnpm setup, exact pins, one pull request per change, the document review rule and the licence of contributions |
+| [SECURITY.md](SECURITY.md) | How to report a vulnerability privately, and what is in scope |
 | [docs/plans/](docs/plans/) | The plans and roadmap for this phase: SDK references, comparison, skills, build guides and implementation plans |
 | [docs/todos/](docs/todos/) | The todo board: every planned batch of work, by state |
 | [docs/comparison/deep-comparison.md](docs/comparison/deep-comparison.md) | The same triage agent built on all eight SDKs, the design trade-offs, and lessons for our own SDK, harness and agent |
@@ -59,6 +61,10 @@ pnpm test           # run every harness's verified examples offline
 ```
 
 See [AGENTS.md](AGENTS.md#coding-standards) for the coding standards.
+
+## Licence
+
+You may use our code (scripts, the `verify/` harnesses and their examples, workflows and configs) under [Apache-2.0](LICENSE-APACHE) or [MIT](LICENSE-MIT), at your option. Our documentation is licensed under [CC BY 4.0](LICENSE-DOCS), and [LICENSE](LICENSE) says which files fall under which licence. The upstream docs mirrored under `docs/reference/*/source/` keep their own licences, listed in [THIRD-PARTY-NOTICES.md](THIRD-PARTY-NOTICES.md).
 
 ## For AI agents
 
