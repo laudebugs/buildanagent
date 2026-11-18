@@ -27,3 +27,5 @@ Skills that coding agents (Claude Code, Codex, OpenCode, Pi) load when a task ne
 | [openai-agents-sdk](openai-agents-sdk/SKILL.md) | Code imports `@openai/agents` |
 | [vercel-ai-sdk](vercel-ai-sdk/SKILL.md) | Code imports `ai` or `@ai-sdk/*` |
 | [langchain](langchain/SKILL.md) | Code imports `langchain` or `@langchain/*` |
+| [google-adk](google-adk/SKILL.md) | Code imports `@google/adk` |
+| [copilot-sdk](copilot-sdk/SKILL.md) | Code imports `@github/copilot-sdk` |
