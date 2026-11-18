@@ -26,6 +26,7 @@ Each SDK gets a reference folder under `docs/reference/<sdk>/` (guide, fact-chec
 | SDK | Pinned version | Reference | Status |
 |---|---|---|---|
 | Claude Agent SDK | `@anthropic-ai/claude-agent-sdk@0.3.327` | [docs/reference/claude-agent-sdk/](docs/reference/claude-agent-sdk/) | Done: 385 doc blocks type-checked, 87 run, 7 verified examples |
+| Pi (agent harness) | `@earendil-works/pi-coding-agent@1.5.2` | [docs/reference/pi/](docs/reference/pi/) | Done: 334 sources type-checked, 20 run, 8 verified examples |
 | OpenAI Agents SDK | `@openai/agents` | — | Next |
 | Vercel AI SDK | `ai` | — | Planned (agent-relevant core) |
 

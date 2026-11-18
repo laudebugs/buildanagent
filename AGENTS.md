@@ -9,7 +9,7 @@ Instructions for AI coding agents (Claude Code, Codex, OpenCode, Pi, etc.) worki
 ## Layout
 
 - `README.md`: project overview and doc index.
-- `docs/reference/<sdk>/`: per-SDK reference (`guide.md`, `fact-check.md`, `README.md`). `source/` holds mirrored upstream docs; the Claude mirror is gitignored because those docs are not openly licensed, so regenerate it with `pnpm run fetch-docs`.
+- `docs/reference/<sdk>/`: per-SDK reference (`guide.md`, `fact-check.md`, `README.md`). `source/` holds mirrored upstream docs. The Pi mirror is committed (MIT); the Claude mirror is gitignored because those docs are not openly licensed, so regenerate it with `pnpm run fetch-docs`.
 - `verify/<sdk>/`: per-SDK verification harness (Node, exact-pinned deps). `pnpm run verify` type-checks and runs doc examples against a mock model; `pnpm test` runs our own examples in `examples/`. Generated folders (`extracted/`, `.tmp/`) are gitignored, while `results/` is committed.
 - `docs/research/`: research reports.
   - `agent-sdks-and-harness-design.md`: the main report (SDK comparison, reference architecture, build-vs-buy).
