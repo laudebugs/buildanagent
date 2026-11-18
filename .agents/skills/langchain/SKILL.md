@@ -3,7 +3,7 @@ name: langchain
 description: Use when writing, reviewing or testing TypeScript that imports `langchain`, `@langchain/core` or `@langchain/langgraph` for agents (createAgent, tool, createMiddleware, humanInTheLoopMiddleware, Command resume, responseFormat, MemorySaver, thread_id, recursionLimit, runtime.store, fakeModel). Gives the verified 1.x setup, the interrupt-and-resume flow, the gotchas from our fact-check, and how to test offline with fakeModel().
 ---
 
-# LangChain.js (`langchain@1.6.1`, `@langchain/langgraph@1.6.0`)
+# LangChain.js (`langchain@1.6.1`, `@langchain/core@1.3.4`, `@langchain/langgraph@1.6.0`)
 
 `createAgent` compiles a two-node LangGraph graph (`model_request` → `tools`) in your process. Every feature beyond the loop is middleware; threads, interrupts and memory come from LangGraph's checkpointer and store. Full reference: [`docs/reference/langchain/guide.md`](../../../docs/reference/langchain/guide.md); verified examples: [`verify/langchain/examples/`](../../../verify/langchain/examples/).
 
@@ -70,12 +70,13 @@ if (first.__interrupt__) {
 - **`initChatModel()` returns a Promise.** Await it.
 - **The JS docs run ahead of the release** (`modelRefusalMiddleware`, `ModelRefusalError`, `executionInfo`). Compile copied examples against your pinned version.
 - **Old approval flags** (`allowAccept`, `allowEdit`) are gone; use `allowedDecisions`.
+- **A call rejected by `humanInTheLoopMiddleware` never reaches `wrapToolCall`**, so an audit built on `wrapToolCall` misses it. Audit requested calls in `afterModel` (from the model's `tool_calls`) if you need them all. The rejection reaches the model as a `ToolMessage` named after the tool.
 
 ## Test offline
 
-Use `fakeModel()` from `langchain`: `.respond(new AIMessage("…"))` queues a text turn, `.respondWithTools([{ name, args, id }])` queues a tool-call turn, `.alwaysThrow(err)` tests errors, and `model.calls[i].messages` / `model.callCount` record requests. Each call takes the next queued turn, and an unscripted call throws "no response queued". For `responseFormat`, script the final turn as `respondWithTools([{ name: "<schema title>", args: {…} }])`. Don't use core's `FakeStreamingChatModel` for agents: it replays its first response and drops tool calls. `check()`, `kind()` and `text()` helpers live in [`verify/langchain/examples/lib/check.ts`](../../../verify/langchain/examples/lib/check.ts) (import with the `.ts` extension).
+Use `fakeModel()` from `langchain`, passed straight in as `createAgent({ model: fakeModel()… })`: `.respond(new AIMessage("…"))` queues a text turn, `.respondWithTools([{ name, args, id }])` queues a tool-call turn, `.alwaysThrow(err)` tests errors, and `model.calls[i].messages` / `model.callCount` record requests. Each call takes the next queued turn, and an unscripted call throws "no response queued". For `responseFormat`, `fakeModel()` takes the tool path, so script the final turn as `respondWithTools([{ name: "<schema title>", args: {…}, id: "c3" }])` (pass an `id` on every tool call). Don't use core's `FakeStreamingChatModel` for agents: it replays its first response and drops tool calls. `check()`, `kind()` and `text()` helpers live in [`verify/langchain/examples/lib/check.ts`](../../../verify/langchain/examples/lib/check.ts) (import with the `.ts` extension).
 
-Run one new file offline, without touching committed results, from `verify/langchain`: `node scripts/run-examples.mjs <dir> --only <name>` (it prints only the outcome; run the file with tsx to see its output). Run the verified examples with:
+Run one new file offline, without touching committed results, from `verify/langchain`: `node scripts/run-examples.mjs <dir> --only <name>` (it prints only the outcome and runs through tsx without type-checking; run the file with tsx to see its output, and type-check it yourself, since `pnpm test` covers only `examples/`). Run the verified examples with:
 
 ```bash
 pnpm --filter @agent-speak/verify-langchain test
