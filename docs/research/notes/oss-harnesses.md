@@ -1,6 +1,8 @@
 # Open-Source Agent Harnesses, Harness SDKs, and Harness-Design Research (as of Nov 2026)
 
 > Method note: GitHub repo pages (github.com) were fetched directly and are treated as primary. arxiv.org, alphaxiv.org, huggingface.co, agentpatterns.ai and forums.basehub.com could not be reached from this session (DNS blocked by the session's network allowlist), so paper content comes from search-engine snippets of arXiv/aggregator pages. Treat paper numbers marked "(secondary)" as unverified until checked against the PDF. The `gh` API was also unavailable (repo access not enabled), so stars come from the rendered GitHub pages fetched on 2026-11-18.
+>
+> Re-verification (R1, November 2026): the marks below that the main report relies on were re-checked against the arXiv PDFs and repos. Confirmed items now cite the primary source; corrections are marked "R1 correction". The full log is in [fact-check-2026-11-18.md](../fact-check-2026-11-18.md#re-verification-against-primary-sources-r1).
 
 ## Per-harness architecture: what real open-source harnesses look like
 
@@ -34,12 +36,12 @@ All requested repos exist. One correction: Goose's canonical repo is now `aaif-g
 - Quick-start tools are TerminalTool, FileEditorTool and TaskTrackerTool.
 - Source: [GitHub](https://github.com/OpenHands/software-agent-sdk)
 - Paper: arXiv 2511.03690, "The OpenHands Software Agent SDK: A Composable and Extensible Foundation for Production Agents" (Nov 2025, v2 Apr 2026). It is listed in MLSys 2026 proceedings. — [arXiv](https://arxiv.org/pdf/2511.03690); [MLSys 2026](https://proceedings.mlsys.org/paper_files/paper/2026/hash/8ae9cf363ea625161f885b798c1f1f78-Abstract-Conference.html)
-- Event-sourced state (secondary):
+- Event-sourced state (R1: confirmed in the paper, §4.2):
   - It uses an immutable, append-only event log with deterministic replay and recovery to the last processed event.
   - `ConversationState` is the sole mutable component.
   - The paper presents this as a reaction to the monolithic, tightly coupled V0 design.
-  - Source: [emergentmind summary](https://www.emergentmind.com/papers/2511.03690); [Substack review](https://bhakthan.substack.com/p/the-openhands-software-agent-sdk)
-- Condenser (secondary): the default `LLMSummarizingCondenser` reportedly cuts API cost by up to 2x with no performance degradation. Summaries are stored as CondensationEvents while the log keeps full fidelity. — [emergentmind topic](https://www.emergentmind.com/topics/openhands-software-agent-sdk)
+  - Source: [arXiv 2511.03690](https://arxiv.org/abs/2511.03690), §3.2 and §4.2; earlier via [emergentmind summary](https://www.emergentmind.com/papers/2511.03690)
+- Condenser: the default `LLMSummarizingCondenser` "has been shown to reduce API costs by up to 2× with no degradation in agent performance". The paper's own source for this is a 2025 All Hands AI blog post by a co-author (Smith, 2025), so the figure is self-reported. — [arXiv 2511.03690](https://arxiv.org/abs/2511.03690), §4.6
 - Workspace abstraction (secondary): the same agent runs locally or in a remote container "with minimal code changes." — [emergentmind topic](https://www.emergentmind.com/topics/openhands-software-agent-sdk)
 - The paper compares 31 features against the OpenAI Agents SDK, Claude Agent SDK and Google ADK (secondary). — [emergentmind topic](https://www.emergentmind.com/topics/openhands-software-agent-sdk)
 
@@ -50,12 +52,12 @@ All requested repos exist. One correction: Goose's canonical repo is now `aaif-g
 - A `general` subagent is invoked with `@general`.
 - The repo layout includes `packages/`, `sdks/vscode` and `specs/v2`.
 - Source: [GitHub](https://github.com/anomalyco/opencode)
-- Architecture (secondary, third-party write-ups):
+- Architecture (third-party write-ups; R1 checked the repo at commit `723e0a9`, Nov 18 2026):
   - It is client/server. The server holds all state and logic, and the TUI, desktop and web clients are views over HTTP + SSE.
-  - The server is Hono on Bun, with SQLite via Drizzle for sessions and the Vercel AI SDK as the provider layer.
+  - The server is Hono on Bun, with SQLite via Drizzle for sessions and the Vercel AI SDK as the provider layer. **R1 correction:** at `723e0a9` the `@opencode/server` package is built on Effect's `HttpApi` (Hono appears only in the root dependency catalog), and SQLite via Drizzle is confirmed in `packages/core/src/database`.
   - LSP diagnostics are fed back into the LLM after edits.
   - It has a plugin hook system and MCP support.
-  - Compaction is a built-in hidden agent, with auto-compact and pruning.
+  - Compaction is a built-in hidden agent, with auto-compact and pruning. (R1: confirmed; `packages/core/src/session/compaction.ts` resolves a `compaction` agent and defaults to `auto: true`.)
   - Older versions used a Go TUI; newer ones reportedly use @opentui with Solid.
   - Sources: [search summary of basehub forum / cefboud deep-dive](https://hn.jakechampion.name/reader/https://cefboud.com/posts/coding-agents-internals-opencode-deepdive); [architecture map](https://ggprompts.github.io/htmlstyleguides/architecture/opencode/index.html)
 
@@ -199,12 +201,12 @@ A 70-project empirical study (arXiv 2604.18071) finds that harness decisions com
   - mini-swe-agent has pluggable environments. — [GitHub](https://github.com/SWE-agent/mini-swe-agent)
   - Codex uses OS-native Seatbelt, Landlock/bwrap and Windows ACLs. — [Vaughan blog](https://codex.danielvaughan.com/2026/05/03/codex-cli-sandbox-internals-seatbelt-bubblewrap-landlock-windows-dacl/)
 - **Condensers:**
-  - OpenHands uses LLMSummarizingCondenser, stored as events (secondary). — [emergentmind](https://www.emergentmind.com/topics/openhands-software-agent-sdk)
-  - OpenCode has a compaction agent with auto-compact and pruning (secondary). — [cefboud deep dive](https://hn.jakechampion.name/reader/https://cefboud.com/posts/coding-agents-internals-opencode-deepdive)
+  - OpenHands uses LLMSummarizingCondenser, stored as events. — [arXiv 2511.03690](https://arxiv.org/abs/2511.03690), §4.6
+  - OpenCode has a compaction agent with auto-compact. — [OpenCode](https://github.com/anomalyco/opencode) `packages/core/src/session/compaction.ts` at `723e0a9`
   - mini-swe-agent deliberately has no context management. — [GitHub](https://github.com/SWE-agent/mini-swe-agent)
 - **Session persistence:**
-  - OpenHands uses an append-only event log with replay/recovery (secondary). — [emergentmind](https://www.emergentmind.com/papers/2511.03690)
-  - OpenCode uses SQLite via Drizzle (secondary). — [architecture map](https://ggprompts.github.io/htmlstyleguides/architecture/opencode/index.html)
+  - OpenHands uses an append-only event log with replay/recovery. — [arXiv 2511.03690](https://arxiv.org/abs/2511.03690), §4.2, §5.2
+  - OpenCode uses SQLite via Drizzle. — [OpenCode](https://github.com/anomalyco/opencode) `packages/core/src/database` at `723e0a9`
   - DeepSeek Harness makes sessions and storage plugins. — [i-SCOOP](https://www.i-scoop.eu/deepseek-harness-turns-every-part-of-an-agent-runtime-into-a-swappable-plugin/)
 - **Extensions:**
   - MCP: Goose (70+ extensions), Cline and OpenCode. — [Goose](https://github.com/block/goose); [Cline](https://github.com/cline/cline)
@@ -236,28 +238,29 @@ Substantially. Reported swings from changing only the harness range from ~10–2
   - Its headline is that harness design matters as much as the model.
   - Code is at opensquilla/claw-swe-bench.
   - Source: [arXiv](https://arxiv.org/pdf/2606.12344); [opentrain summary](https://www.opentrain.ai/papers/claw-swe-bench-a-benchmark-for-evaluating-openclaw-style-agent-harnesses-on-codi--arxiv-2606.12344/)
-- Claw-SWE-Bench (secondary, unverified): OpenClaw scored ~19.1% Pass@1 with a minimal adapter vs ~73.4% with a full adapter, on the same GLM 5.1 backbone. — [besthub article](https://www.besthub.dev/articles/how-harness-design-alters-coding-agent-scores-insights-from-the-first-independent-claw-swe-bench-8db2751ea3e2)
+- Claw-SWE-Bench: OpenClaw scored ~19.1% Pass@1 with a minimal adapter vs ~73.4% with a full adapter, on the same GLM 5.1 backbone. **R1 correction:** v1 figures; [v2](https://arxiv.org/abs/2606.12344) reports 19.3% vs 71.2% (Table 1). — [besthub article](https://www.besthub.dev/articles/how-harness-design-alters-coding-agent-scores-insights-from-the-first-independent-claw-swe-bench-8db2751ea3e2)
+  - **R1 correction:** those are the v1 abstract figures (June 2026). v2 (Sept 28, 2026) reports 19.3% (bare adapter) vs 71.2% (full adapter), averaged over three runs; a harness gap of up to 24.3 pts across seven harnesses with the model fixed; and a 29.4-pt spread for OpenClaw across eleven models. — [arXiv 2606.12344v2](https://arxiv.org/abs/2606.12344), Table 1, §6.2, Appendix F.1
 - **"Beyond the Model: Harness Effects in SWE agents"** (user-supplied arXiv 2609.32459):
-  - The primary paper did not surface in search; only a secondary write-up attributed to Hu et al.
+  - The primary paper did not surface in search; only a secondary write-up attributed to Hu et al. (R1: the paper exists and was read; see below.)
   - It reports two harnesses across ten open-weight models and three benchmarks.
   - On fixed-workflow issue repair, a heavier harness compensates for weaker models and its gain shrinks as models improve. OpenHands' gain fell from ~+13.6 points (Claude 3.7 Sonnet) to ~+5.5 (Claude 4 Sonnet); SWE-agent's fell from ~+9.6 to ~+4.1. These come from matched leaderboard rows.
   - On open-ended repository generation, the trend reverses: only the newest models benefit. Task-specific subagents gave +5.91 (Qwen3.7-Max) and +4.46 (DeepSeek-V4-Pro) over the mini-swe-agent baseline.
   - Source: [agentpatterns.ai, via search snippet](https://agentpatterns.ai/patterns/agent-design/task-shape-harness-payoff/). arXiv 2609.20804 (Sept 17, 2026) appeared in the same results and may be the actual paper. — [hyper.ai](https://hyper.ai/en/papers/2609.20804)
-  - **Existence of 2609.32459 is unverified.**
+  - ~~Existence of 2609.32459 is unverified.~~ **R1:** confirmed. [arXiv 2609.32459](https://arxiv.org/abs/2609.32459) (Hu et al., Sept 26 2026) evaluates mini-SWE-agent and OpenCode with ten Qwen/DeepSeek models on SWE-bench Pro, ProgramBench and GitTaskBench. The OpenHands (+13.60 → +5.47) and SWE-agent (+9.60 → +4.07) gains are in its Table 3 (matched SWE-bench Verified leaderboard rows); the +5.91 / +4.46 task-specific-subagent gains are in its Figure 11. 2609.20804 is a different paper.
 - **"Stop Comparing LLM Agents Without Disclosing the Harness"** (arXiv 2605.23950):
   - Claude Opus 4.5 scored 45.9% under the standardized SEAL scaffold vs 55.4% under Claude Code.
   - The authors propose a locked-harness protocol or a factorial design.
   - Source: [arXiv](https://arxiv.org/html/2605.23950)
 - **Harness-Bench** (arXiv 2605.27922, Qihoo 360):
-  - 106 sandboxed offline tasks with a fixed environment, budget, timeout and evaluator, and 5,194 trajectories.
+  - 106 sandboxed offline tasks with a fixed environment, budget, timeout and evaluator, and 5,194 trajectories. **R1 correction:** those are v1 (May 2026) figures. v2 (Oct 15, 2026) has 300 tasks, seven harnesses and ten backends; no harness is best on all ten, and GLM-5.3's full-credit rate varies by 13.5 pts across harnesses. — [arXiv 2605.27922v2](https://arxiv.org/abs/2605.27922)
   - Completion, process quality, efficiency and failures vary substantially across model–harness pairs.
   - It recommends reporting per model–harness configuration and names "execution-alignment" failures.
   - Source: [arXiv](https://arxiv.org/html/2605.27922)
   - A commentary (unverified against the paper) claims 8 models x 6 harnesses, a 23.8-point swing from swapping harnesses, and variance that shrinks with stronger models. — [Cobus Greyling Substack](https://cobusgreyling.substack.com/p/agent-model-harness)
 - **"What Does a Harness Buy? Tokens, Mostly"** (arXiv 2610.04433):
   - It holds the model fixed and varies scaffolds, including bash-only mini-swe-agent.
-  - It cites that 10 reruns of one model–scaffold pair spread by 2.2–6.0 points, so 2–3 point gaps may be noise.
-  - Source: [arXiv](https://arxiv.org/pdf/2610.04433) (via search snippet)
+  - It cites that 10 reruns of one model–scaffold pair spread by 2.2–6.0 points, so 2–3 point gaps may be noise. (R1: the paper attributes this spread to Bjarnason et al., 2026, not to its own reruns; its own findings are in the main report.)
+  - Source: [arXiv 2610.04433](https://arxiv.org/abs/2610.04433), §1–2
 - Third-party benchmark monitoring reports up to 15 points of scaffold-only variation on SWE-bench Verified (secondary). — [nextgenoperator](https://nextgenoperator.beehiiv.com/p/scaffold-parity)
 
 ### Inferences
