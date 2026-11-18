@@ -1,0 +1,163 @@
+# Agent scope and workflows: start with fixed code and one tool loop, and add autonomy only where the path is unknown
+
+*Research notes for the agent layer, as of November 2026. Sources are primary vendor posts, the repo's mirrored SDK docs and our own capstones; items marked "(secondary)" come from search summaries or third-party write-ups. The network policy blocked cdn.openai.com, sierra.ai, research.google and cognition.ai during this round, so OpenAI's practical guide, the τ-bench blog, Google's scaling study and Cognition's post are cited only through secondary summaries.*
+
+The evidence points one way. Vendors that build agents for a living tell teams to start with the simplest system that works, to use fixed code paths (workflows) where the steps are known, and to use an autonomous tool loop only where the number and order of steps cannot be predicted ([Anthropic, Building effective agents](https://www.anthropic.com/engineering/building-effective-agents)). Every step up in autonomy costs tokens: a single agent uses about 4× the tokens of a chat and a multi-agent system about 15× ([Anthropic, multi-agent research system](https://www.anthropic.com/engineering/multi-agent-research-system)). Multi-agent designs pay only on parallelisable, breadth-first work, and independent studies find they hurt on sequential tasks (secondary: [arXiv 2512.08296 summary](https://huggingface.co/papers/2512.08296)). For a support-triage agent, that means deterministic code for policy, identity, limits and side effects, and the model for reading, classifying and drafting.
+
+## 1. Workflows and agents differ in who owns the control flow
+
+**Every source draws the same line: a workflow's code paths are fixed in advance, an agent chooses its own.** Anthropic defines workflows as "systems where LLMs and tools are orchestrated through predefined code paths," and agents as systems where the LLM directs its own process and tool use ([Building effective agents](https://www.anthropic.com/engineering/building-effective-agents)). LangGraph's docs repeat the split: "Workflows have predetermined code paths and are designed to operate in a certain order. Agents are dynamic and define their own processes and tool usage" (`docs/reference/langchain/source/src/oss/langgraph/workflows-agents.mdx:11-12`). LangGraph adds that agents "are used in situations where problems and solutions are unpredictable" (`workflows-agents.mdx:1150`).
+
+**The two are ends of a spectrum, and production systems mix them.** Our main report places LangGraph graphs and CrewAI Flows at the developer-controlled end, bounded loops such as Vercel's `ToolLoopAgent` and LangChain's `create_agent` in the middle, and CrewAI Crews and smolagents' CodeAgent at the LLM-controlled end; the 2026 practitioner consensus is to wrap the autonomous parts in deterministic orchestration (`docs/research/agent-sdks-and-harness-design.md:44`; practitioner quote "Flows wrap Crews" is secondary, [jahanzaib.ai](https://www.jahanzaib.ai/blog/crewai-flows-production-multi-agent-guide)). LangChain's multi-agent docs list "custom workflow" as its own pattern, "mixing deterministic logic and agentic behavior" (`docs/reference/langchain/source/src/oss/langchain/multi-agent/index.mdx:36`).
+
+**Anthropic's first recommendation is often no agent at all.** It says many applications need only a single LLM call optimised with retrieval and in-context examples, and that agentic systems "trade latency and cost for better task performance," a trade to weigh case by case ([Building effective agents](https://www.anthropic.com/engineering/building-effective-agents)). Vercel's docs give the same rule: "Start with the simplest approach that meets your needs," adding steps, then tools, then feedback loops, then multiple agents, in that order (`docs/reference/vercel-ai-sdk/source/content/docs/03-agents/03-workflows.mdx:25-30`).
+
+## 2. A decision procedure: choose the least autonomy the task's shape allows
+
+**Four questions decide the shape, and each "yes" moves one step toward autonomy.** The procedure below combines Anthropic's criteria ([Building effective agents](https://www.anthropic.com/engineering/building-effective-agents)), Vercel's four factors of flexibility, error tolerance, cost and maintenance (`03-workflows.mdx:18-23`) and OpenAI's guide (secondary, below):
+
+1. **Can one well-prompted call with retrieval do it?** If so, ship a single call; Anthropic says this is enough "for many applications" ([Building effective agents](https://www.anthropic.com/engineering/building-effective-agents)).
+2. **Are the steps known in advance?** If the task decomposes into fixed subtasks, use a workflow: chaining for a fixed sequence, routing for distinct input classes, parallelisation for independent parts (section 3).
+3. **Is the number of steps unpredictable, and does the next step depend on what the last one returned?** Then use a single tool loop (ReAct style). Anthropic reserves agents for "open-ended problems where it's difficult or impossible to predict the required number of steps" ([Building effective agents](https://www.anthropic.com/engineering/building-effective-agents)).
+4. **Is the work broad, parallel and too large for one context window, and is its value high enough to pay ~15× chat tokens?** Only then consider subagents or multi-agent (section 5).
+
+**OpenAI's guide frames the same choice by what rules cannot capture (secondary).** Summaries of "A practical guide to building agents" say it recommends agents for workflows where deterministic and rule-based approaches fall short, and that a deterministic solution may suffice otherwise; it advises maximising a single agent before splitting into several ([maginative.com summary](https://www.maginative.com/article/how-to-build-ai-agents-a-detailed-practical-guide-from-openai/); [ibl.ai summary](https://ibl.ai/blog/openai-a-practical-guide-to-building-agents)). We could not read the PDF itself ([cdn.openai.com](https://cdn.openai.com/business-guides-and-resources/a-practical-guide-to-building-agents.pdf) was blocked), so treat its specific criteria as unverified.
+
+**Error tolerance is the deciding factor when the other answers are close.** Anthropic warns that autonomy brings "higher costs, and the potential for compounding errors," and recommends extensive testing in sandboxed environments with guardrails ([Building effective agents](https://www.anthropic.com/engineering/building-effective-agents)). Its multi-agent post adds that "agents are stateful and errors compound" ([multi-agent research system](https://www.anthropic.com/engineering/multi-agent-research-system)). The more a mistake costs, the more of the path belongs in code.
+
+## 3. The five workflow patterns each fit one task shape, and their cost is a fixed number of calls
+
+**Each pattern has a documented fit, and the three vendor docs agree on it.** The table merges Anthropic's descriptions ([Building effective agents](https://www.anthropic.com/engineering/building-effective-agents)), LangGraph (`workflows-agents.mdx:171-175, 343-353, 491-493, 718-728, 980`) and Vercel (`03-workflows.mdx:38-40, 96-98, 149-151, 229-231, 303-305`):
+
+| Pattern | Fits when | Example from the docs | Cost shape |
+|---|---|---|---|
+| Prompt chaining | The task splits into fixed, verifiable subtasks | Translate a document; generate copy, then check it (`workflows-agents.mdx:173-178`; `03-workflows.mdx:47-93`) | N sequential calls; latency adds up; gates between steps are plain code |
+| Routing | Inputs fall into distinct classes that need different handling | Classify a customer query as general/refund/technical and pick prompt and model size (`03-workflows.mdx:105-146`; `workflows-agents.mdx:493`) | One classifier call plus one handler; lets cheap models take easy classes |
+| Parallelisation | Subtasks are independent (sectioning) or one task benefits from several votes | Keyword pass and formatting pass on one document; multiple scorers (`workflows-agents.mdx:345-353`) | N parallel calls; wall-clock ≈ slowest branch; tokens ≈ N× |
+| Orchestrator-workers | Subtasks cannot be predefined | Update installation docs across an unknown number of files (`workflows-agents.mdx:720-728`) | One planner call, a variable number of workers, one synthesis call |
+| Evaluator-optimiser | Clear evaluation criteria exist and feedback measurably improves output | Iterative translation (`workflows-agents.mdx:980`) | 2× calls per iteration, times the number of rounds |
+
+**Workflow cost is predictable because the code fixes the number of calls; agent cost is not.** A chain or router runs a known number of model calls per input, while an agent's token use varies with the trajectory. Anthropic found that token usage alone explained 80% of performance variance on BrowseComp ([multi-agent research system](https://www.anthropic.com/engineering/multi-agent-research-system)), so in agents, cost and quality move together and must be budgeted together.
+
+**Planning patterns lack controlled benchmarks, and practitioner estimates rank ReAct cheapest.** Our main report found no controlled comparison of planning patterns under identical models; practitioner estimates put reflection at about 2–4× a ReAct run and rank plan-and-execute as costlier up front but able to use cheaper executors (secondary; `docs/research/agent-sdks-and-harness-design.md:109`).
+
+## 3a. Multi-agent patterns map to four needs, and a single agent covers most of them
+
+**LangChain names three reasons teams reach for multi-agent: context management, distributed development and parallelisation.** It adds that the patterns help when one agent has too many tools, when tasks need long domain prompts, or when sequential constraints must unlock capabilities only after conditions are met (`docs/reference/langchain/source/src/oss/langchain/multi-agent/index.mdx:14-20`). Each reason has a cheaper single-agent alternative to try first: skills for context, tool trimming for tool overload, and code checks for sequential constraints.
+
+**Each multi-agent pattern has a documented fit:**
+
+| Pattern | Use when (docs) | Cost note | Source |
+|---|---|---|---|
+| Subagents (agents as tools) | Several distinct domains; subagents need not talk to the user; central control wanted | +1 call per request; context isolation; stateless repeats | `subagents.mdx:42`; `index.mdx:159, 215` |
+| Handoffs | Sequential constraints; agent talks to the user across states; multi-stage conversations | Cheapest on repeat turns; sequential, no parallelism | `handoffs.mdx:41`; `index.mdx:272` |
+| Skills | One agent, specialised prompts loaded on demand | Few calls; loaded context is reprocessed every call | `index.mdx:34, 258` |
+| Router | Distinct verticals; query several sources in parallel and synthesise | One routing call per request | `router.mdx:33, 168` |
+| Custom workflow | Mix deterministic logic with agentic nodes | Whatever the graph fixes | `index.mdx:36` |
+
+**LangChain's own rule separates router and supervisor by how settled the categories are.** It says to use a router "when you have clear input categories and want deterministic or lightweight classification," and a supervisor "when you need flexible, conversation-aware orchestration" (`docs/reference/langchain/source/src/oss/langchain/multi-agent/router.mdx:168`). Support tickets have clear categories, which favours the router.
+
+**OpenAI's two multi-agent patterns are manager and decentralised handoff (secondary).** Summaries of its guide describe a manager pattern in which a central LLM calls specialist agents as tools, and a decentralised pattern in which peers hand off execution ([agentic-ai.readthedocs.io](https://agentic-ai.readthedocs.io/en/latest/DesignPatterns/openai-patterns/); [maginative.com](https://www.maginative.com/article/how-to-build-ai-agents-a-detailed-practical-guide-from-openai/)). These match LangChain's subagents and handoffs.
+
+**Task shape to pattern, as the sources describe it:**
+
+| Task shape | Pattern | Evidence |
+|---|---|---|
+| Fixed pipeline (extract → transform → check) | Prompt chaining | `workflows-agents.mdx:173` |
+| Distinct input classes with different handling | Routing, then one handler or loop | `03-workflows.mdx:98`; `router.mdx:168` |
+| Independent subtasks or need for votes | Parallelisation | `workflows-agents.mdx:345-347` |
+| Unknown number of subtasks over files | Orchestrator-workers | `workflows-agents.mdx:728` |
+| Gradable output that improves with feedback | Evaluator-optimiser | `workflows-agents.mdx:980` |
+| Steps depend on tool results; one shared context | Single ReAct tool loop | [Building effective agents](https://www.anthropic.com/engineering/building-effective-agents) |
+| Broad, parallel research exceeding one context | Orchestrator with subagents (multi-agent) | [multi-agent research system](https://www.anthropic.com/engineering/multi-agent-research-system) |
+| Multi-hour build beyond the model's solo reach | Planner, generator, external evaluator, external state | [Harness design](https://www.anthropic.com/engineering/harness-design-long-running-apps); [Effective harnesses](https://www.anthropic.com/engineering/effective-harnesses-for-long-running-agents) |
+
+## 4. A well-scoped agent has one job, a checkable result and a small tool set
+
+**Scope an agent by its success criterion first, because evaluation is what makes autonomy safe.** Anthropic's appendix names two domains where agents work well, and both have checkable outcomes: customer support, where success is measured by resolutions, and coding, where automated tests verify solutions and the agent iterates on test feedback ([Building effective agents](https://www.anthropic.com/engineering/building-effective-agents)). Its evaluator-optimiser pattern likewise requires "clear evaluation criteria" (same source). An agent whose output nobody can grade should be narrowed until someone can.
+
+**Reliability across repeated trials, not single-run accuracy, is the scoping test for customer-facing agents.** τ-bench (Yao et al., [arXiv 2406.12045](https://arxiv.org/abs/2406.12045), ICLR 2025) simulates retail and airline support with domain APIs and policy documents. It introduced pass^k, the chance that an agent succeeds on all k trials of the same task. GPT-4o solved under 50% of tasks and fell below 25% pass^8 in retail (secondary: [ICLR abstract](https://proceedings.iclr.cc/paper_files/paper/2025/hash/1b126cc38b8638e07bef37e7b2bb72bf-Abstract-Conference.html) via search summary; also `docs/research/agent-sdk/notes/testability.md:97`). The repository now marks those task files outdated in favour of τ³-bench, so the numbers describe 2024 models (secondary, same search). The design lesson holds regardless: a policy the model must remember will be broken some fraction of the time, so a policy that must never be broken belongs in code.
+
+**Keep the tool set small and purpose-built, because tool quality moves results more than prompt quality.** Anthropic spent more time optimising tools than the overall prompt on SWE-bench, and requiring absolute paths eliminated a class of errors; it calls the agent–computer interface something to design with the care of a human interface and to "poka-yoke" so mistakes are hard to make ([Building effective agents](https://www.anthropic.com/engineering/building-effective-agents)). A rewritten tool description cut task time by 40% ([multi-agent research system](https://www.anthropic.com/engineering/multi-agent-research-system)). LangChain says multi-agent splits become worthwhile "when a single agent has too many tools and makes poor decisions about which to use" (`docs/reference/langchain/source/src/oss/langchain/multi-agent/index.mdx:20`), which is an argument to trim tools before adding agents. All five of our triage capstones removed or never had built-in tools (`docs/comparison/deep-comparison.md:84`).
+
+**Bound the run explicitly, because SDK defaults disagree.** Default caps range from 1 step (`generateText`) to 20 (`ToolLoopAgent`), 10 turns (OpenAI) and none (Pi) (`docs/comparison/deep-comparison.md:90`). An agent's scope includes its step cap and its spend cap.
+
+**Scope each long-running session to one unit of work with external state.** Anthropic's long-running harness failed when the agent tried "to one-shot the app" or when a later session would "declare the job done" early; the fix was an initializer that writes a JSON feature list (all failing), a progress file and git history, then coding sessions that "work on only one feature at a time" ([Effective harnesses for long-running agents](https://www.anthropic.com/engineering/effective-harnesses-for-long-running-agents)). JSON was chosen because the model is "less likely to inappropriately change or overwrite JSON files" (same source). The general rule is that the agent's job per run should be one item from a list that code owns.
+
+## 5. Planning, subagents and multi-agent each have a measured price, and pay only on matching task shapes
+
+**Multi-agent costs about 15× chat tokens and pays on breadth-first, parallel research.** Anthropic's research system (Opus 4 lead, Sonnet 4 subagents) beat single-agent Opus 4 by 90.2% on its internal research eval, and parallel subagents cut research time "by up to 90% for complex queries" ([multi-agent research system](https://www.anthropic.com/engineering/multi-agent-research-system); model pairing from `docs/research/notes/custom-harness-architecture.md:82`). The same post says the design is a poor fit for domains "that require all agents to share the same context" and that "most coding tasks involve fewer truly parallelizable tasks than research." Its prompts scale effort to the query: "Simple fact-finding requires just 1 agent with 3-10 tool calls," while complex research may use more than 10 subagents (same source).
+
+**On sequential tasks, independent evidence says multi-agent hurts (secondary).** "Towards a Science of Scaling Agent Systems" (Google Research and collaborators, [arXiv 2512.08296](https://huggingface.co/papers/2512.08296), December 2025) tested 180 configurations across four benchmarks and three model families. Summaries report that every multi-agent variant degraded performance by 39–70% on sequential planning (PlanCraft), that centralised coordination gained about 81% on parallelisable Finance-Agent tasks, and that independent agents amplified errors up to 17.2× (secondary: search summaries of the paper and of the [Google Research blog](https://research.google/blog/towards-a-science-of-scaling-agent-systems-when-and-why-agent-systems-work/), which was blocked). These numbers need checking against the paper before we cite them as fact.
+
+**Multi-agent systems fail mostly on specification and coordination, not raw capability (secondary).** Cemri et al., "Why Do Multi-Agent LLM Systems Fail?" (NeurIPS 2025, [arXiv 2503.13657](https://arxiv.org/html/2503.13657v2)), built the MAST taxonomy of 14 failure modes in three groups: specification issues, inter-agent misalignment and task verification, from 1,600+ annotated traces across 7 frameworks. Per-mode percentages and the overall failure rates (reported as 41–87%) come from secondary summaries and disagree slightly ([alphaxiv overview](https://www.alphaxiv.org/overview/2503.13657v3)).
+
+**Shared context is the constraint practitioners cite against splitting an agent (secondary).** Cognition's "Don't Build Multi-Agents" (June 2025) argues that subagents must share full traces, not just task messages, because each action carries implicit decisions, and defaults to single-threaded linear agents; its April 2026 follow-up says a narrower class now works, where several agents contribute but writes stay single-threaded (secondary: search summary of [cognition.ai](https://cognition.ai/blog/dont-build-multi-agents) and [follow-up](https://cognition.ai/blog/multi-agents-working); both blocked).
+
+**LangChain's own call counts show why subagents cost more on simple requests and less on multi-domain ones.** For a one-shot request, subagents take 4 model calls against 3 for handoffs, skills or a router; on a repeat request the stateful patterns save 40–50% of calls; on a three-domain comparison, subagents and the router use ~9K tokens against ~15K for skills, because isolation keeps each context small (`docs/reference/langchain/source/src/oss/langchain/multi-agent/index.mdx:118-123, 159, 215, 223-228, 258, 272`). LangChain says "a single agent with the right (sometimes dynamic) tools and prompt can often achieve similar results" (`index.mdx:6`) and recommends single-agent middleware over multiple subgraphs "for most handoffs use cases" (`handoffs.mdx:728`).
+
+**A planner and an external evaluator pay on long builds beyond the model's solo reach, and should be removed as models improve.** Anthropic's planner/generator/evaluator harness turned a broken 20-minute, $9 solo run into a working 6-hour, $200 build, "over 20x more expensive" ([Harness design for long-running apps](https://www.anthropic.com/engineering/harness-design-long-running-apps)). An external evaluator helped because agents "reliably skew positive when grading their own work" (same source). After the upgrade to Opus 4.6, the author "removed the sprint construct entirely" and moved the evaluator to "a single pass at the end of the run," arguing that "every component in a harness encodes an assumption about what the model can't do on its own" (same source). Harness-effect studies show the same decay: OpenHands' gain on fixed-workflow issue repair reportedly fell from +13.60 to +5.47 points between Claude 3.7 and Claude 4 Sonnet (secondary; `docs/research/agent-sdks-and-harness-design.md:9`), and swapping mature harnesses changed outcomes about as often as rerunning one, with cost the only reliable difference ([arXiv 2610.04433](https://arxiv.org/pdf/2610.04433); same file, line 9).
+
+**Summary of measured costs:**
+
+| Step up | Measured cost | Measured gain | Pays when |
+|---|---|---|---|
+| Single call → agent | ~4× chat tokens | — | Steps unpredictable |
+| Agent → multi-agent | ~15× chat tokens | +90.2% on breadth research; up to 90% less wall-clock | Parallel, separable subtasks, high-value answer |
+| Multi-agent on sequential tasks | — | −39% to −70% (secondary) | Never, per that study |
+| Solo → planner/generator/evaluator | >20× ($9 → $200) | Broken → working app | Task beyond solo model reach |
+| ReAct → reflection | ~2–4× (secondary) | Not benchmarked | Unclear |
+
+Sources: [multi-agent research system](https://www.anthropic.com/engineering/multi-agent-research-system); [arXiv 2512.08296 summary](https://huggingface.co/papers/2512.08296); [Harness design for long-running apps](https://www.anthropic.com/engineering/harness-design-long-running-apps); `docs/research/agent-sdks-and-harness-design.md:109`.
+
+## 6. Human approval belongs on state-changing actions, and the pause must survive a restart
+
+**Place a human at irreversible or high-impact actions, not at every step.** Anthropic's customer-support example has the agent take actions such as refunds, with success measured by resolutions ([Building effective agents](https://www.anthropic.com/engineering/building-effective-agents)). OpenAI's guide reportedly names high-risk actions and exceeded failure thresholds as triggers for human intervention (secondary; [maginative.com summary](https://www.maginative.com/article/how-to-build-ai-agents-a-detailed-practical-guide-from-openai/); the PDF was not readable). Our capstones encode one gate per risk level: read-only tools run freely and each state-changing tool needs a person or a policy (`docs/comparison/deep-comparison.md:85`).
+
+**The pause should be data, so a person can decide later in another process.** OpenAI, Vercel and LangChain end the run and return the pending call (a serialised `RunState`, the message array, or a checkpoint per `thread_id`), while Claude and Pi decide inside the running loop (`docs/comparison/deep-comparison.md:21`). Our harness research recommends storing pauses as `approval_requested` and `approval_resolved` log entries bound to an invocation fingerprint, because a callback dies with its process (`docs/research/agent-harness/agent-harness-research.md:32, 184`).
+
+**Resumable approvals must be signed.** Vercel warns that without a secret, "a client that crafts a valid-looking approval for a schema-conforming input can bypass the human-in-the-loop step" (`docs/research/agent-harness/agent-harness-research.md:85`, citing `03-agents/06-tool-approvals.mdx:297`).
+
+**Handoffs suit the case where a precondition must be collected before an action unlocks.** LangChain recommends handoffs "for customer support scenarios where you need to collect information in a specific sequence—for example, collecting a warranty ID before processing a refund" (`docs/reference/langchain/source/src/oss/langchain/multi-agent/handoffs.mdx:41`). A precondition like that can also be a code check inside the refund tool, which is cheaper and cannot be skipped by the model.
+
+## 7. Worked example: in the triage agent, code owns policy and side effects, and the model owns language
+
+**Our five capstones are one bounded tool loop with a gated action and a typed result, which is the right shape for triage.** Each looks up a customer, refuses or pauses a risky action and returns a typed triage record, in 58 to 87 lines per SDK (`docs/comparison/deep-comparison.md:5-19`). The Vercel version has two tools, an approval rule on `issueRefund`, a Zod output schema with `category`, `action` and `summary`, and `stopWhen: isStepCount(8)`; the test asserts exactly three model calls and no refund before approval (`verify/vercel-ai-sdk/examples/09-triage-agent.ts:13-45, 54-69`).
+
+**Split the triage job by what must be guaranteed versus what must be understood:**
+
+| Part | Owner | Why |
+|---|---|---|
+| Authenticate the customer, load account and orders | Code, before the loop | Identity is not a judgment call; preloading saves a tool step |
+| Classify category and urgency | Model, structured output (routing step) | Reading free text is the model's strength; enum schema bounds it (`09-triage-agent.ts:26-30`) |
+| Route to a handler or queue | Code, on the model's enum | Deterministic branch; Vercel's routing example does the same (`03-workflows.mdx:127-143`) |
+| Decide which lookups to run for ambiguous tickets | Model, inside a capped tool loop | Steps depend on what lookups return |
+| Refund eligibility (amount limits, order state, duplicate check) | Code, inside the refund tool | A policy the model must remember fails some fraction of runs (τ-bench pass^k, section 4) |
+| Execute refund or escalation | Code, behind an approval gate | Irreversible; signed, resumable approval (section 6) |
+| Draft the customer reply | Model | Language generation |
+| Check the reply for policy violations or promises | Code rules first, an LLM evaluator only if evals show a need | External evaluation beats self-grading, but costs extra calls ([Harness design](https://www.anthropic.com/engineering/harness-design-long-running-apps)) |
+| Step cap, spend cap, final typed record | Code | Defaults vary from 1 step to none (`deep-comparison.md:90`) |
+
+**Triage needs neither subagents nor multi-agent.** Its subtasks are few, sequential and share one context (the ticket and the account), which is the shape Anthropic calls a poor fit for multi-agent and the shape where the scaling study reports degradation ([multi-agent research system](https://www.anthropic.com/engineering/multi-agent-research-system); secondary: [arXiv 2512.08296](https://huggingface.co/papers/2512.08296)). A router in front of one loop gives most of the benefit of specialised agents at about 3 calls per request (`multi-agent/index.mdx:118-123`).
+
+## 8. Gaps in this round
+
+- OpenAI's practical guide, the τ-bench blog, Google's scaling study and Cognition's posts were read only through search summaries; their hosts were blocked.
+- No controlled benchmark compares workflow and agent implementations of the same support task with the model held fixed; the triage split above is reasoned from pattern guidance, not measured.
+- The LangChain call and token counts are illustrative scenarios from its docs, not benchmarks.
+- MAST per-mode percentages and the scaling study's exact figures need checking against the papers.
+- Anthropic's posts were read through a fetch tool that paraphrases; short quotes were returned verbatim, but longer passages should be rechecked before they enter a guide.
+- Anthropic's long-running harness post says it is "still unclear" whether one general coding agent beats specialised agents ([Effective harnesses](https://www.anthropic.com/engineering/effective-harnesses-for-long-running-agents)); no source settles this for support agents either.
+- Human-in-the-loop placement rests on vendor guidance and our capstones; we found no study measuring approval fatigue or the error rate of approvers.
+
+## Design implications for our agent
+
+1. **Build the triage product as a workflow with one bounded tool loop inside it.** Authenticate, preload and route in code; run the model loop only for the ambiguous middle. Evidence: Anthropic's "simplest solution" rule and workflow definitions ([Building effective agents](https://www.anthropic.com/engineering/building-effective-agents)); LangGraph and Vercel pattern docs (`workflows-agents.mdx:11-12`; `03-workflows.mdx:25-30`).
+2. **Put every policy that must hold on every run into tool code, not the prompt.** Evidence: τ-bench pass^8 below 25% for GPT-4o in retail (secondary; [arXiv 2406.12045](https://arxiv.org/abs/2406.12045)).
+3. **Gate each state-changing tool with a signed, resumable approval stored in the session log.** Evidence: `docs/comparison/deep-comparison.md:21, 85`; `docs/research/agent-harness/agent-harness-research.md:32, 85, 184`.
+4. **Ship with two to four purpose-built tools, an explicit step cap and a spend cap, and test tool descriptions against examples.** Evidence: tool rewrite cut task time 40% ([multi-agent research system](https://www.anthropic.com/engineering/multi-agent-research-system)); capstone caps (`verify/vercel-ai-sdk/examples/09-triage-agent.ts:44`; `deep-comparison.md:87-90`).
+5. **Return the result through a typed final record whose enums drive code branches.** Evidence: `deep-comparison.md:23, 86`; `09-triage-agent.ts:26-30, 43`.
+6. **Do not add subagents, multi-agent or a planner until an eval shows a failure that they fix, and budget ~15× chat tokens if you do.** Evidence: [multi-agent research system](https://www.anthropic.com/engineering/multi-agent-research-system); `docs/research/agent-sdks-and-harness-design.md:109, 134`; sequential-task penalty (secondary; [arXiv 2512.08296](https://huggingface.co/papers/2512.08296)).
+7. **If a quality check is needed, use a separate evaluator, not self-review, and make it removable.** Evidence: self-grading skews positive, and the evaluator was cut to one pass after a model upgrade ([Harness design for long-running apps](https://www.anthropic.com/engineering/harness-design-long-running-apps)).
+8. **Measure pass^k and cost per resolved ticket from the first eval set of about 20 real tickets.** Evidence: Anthropic started with about 20 real queries and an LLM judge ([multi-agent research system](https://www.anthropic.com/engineering/multi-agent-research-system)); pass^k from τ-bench (`docs/research/agent-sdk/notes/testability.md:97`); token use explains 80% of variance (same Anthropic post).
+9. **Make every workflow step and harness component ablatable, and re-run the ablations at each model upgrade.** Evidence: "every component in a harness encodes an assumption about what the model can't do on its own" ([Harness design](https://www.anthropic.com/engineering/harness-design-long-running-apps)); harness gains shrink as models improve (`docs/research/agent-sdks-and-harness-design.md:9`).
