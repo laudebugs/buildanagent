@@ -51,6 +51,7 @@ agent-speak ends this phase with four things:
 | X CI and dependency security (done 2026-11-18) | X1, X2 | Checks on every push, a nightly verify with drift and audit gates, and Dependabot scoped to our manifests |
 | M4 Reviewed plans | P1–P4 | Detailed implementation plans, reviewed together, ready for the build phase |
 | M5 Our agent SDK (next phase) | B1–B20 | `@agent-speak/gateway` and `@agent-speak/sdk` in `packages/`, built from [build-sdk.md](build-sdk.md) once P4 accepts it |
+| M6 Our agent harness (next phase) | N1–N39 | `@agent-speak/protocol`, `harness`, `cli` and `evals`, built from [build-harness.md](build-harness.md); it starts after B1–B2 and interleaves with Round B (§6 of the plan) |
 
 ## How each todo is worked
 

@@ -6,7 +6,7 @@
 | Status | `ready` |
 | Plan | [Implementation plans §3](../../plans/implementation-plans.md#3-the-review-p4) |
 | Round / milestone | Round P (plans), M4 |
-| Depends on | [P1](../done/P1-plan-sdk.md), [P2](../ongoing/P2-plan-harness.md), [P3](../ready/P3-plan-agent.md) |
+| Depends on | [P1](../done/P1-plan-sdk.md), [P2](../done/P2-plan-harness.md), [P3](../ready/P3-plan-agent.md) |
 | Size | M |
 
 ## Goal

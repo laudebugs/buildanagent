@@ -3,7 +3,7 @@
 | Field | Value |
 | --- | --- |
 | ID | `P2` |
-| Status | `ongoing` |
+| Status | `done` |
 | Plan | [Implementation plans §2](../../plans/implementation-plans.md#2-what-each-plan-contains) |
 | Round / milestone | Round P (plans), M4 |
 | Depends on | [G2b](../done/G2b-guide-harness.md), [P1](../done/P1-plan-sdk.md) |
@@ -31,17 +31,17 @@ Write `docs/plans/build-harness.md`, a plan detailed enough to build our agent h
 
 ## Tasks
 
-- [ ] Write goal and non-goals from the guide's reference architecture
-- [ ] Decide every open question with options, a choice and evidence; record lasting ones as ADRs in `docs/decisions/`
-- [ ] Sketch the package layout and public APIs as TypeScript signatures
-- [ ] Write rounds and todos from the template, each with tasks, acceptance criteria and tests
-- [ ] Write the test strategy, risks and sequence
-- [ ] Draft and review the prose with the writing skills, fix, and push
+- [x] Write goal and non-goals from the guide's reference architecture
+- [x] Decide every open question with options, a choice and evidence; record lasting ones as ADRs in `docs/decisions/`
+- [x] Sketch the package layout and public APIs as TypeScript signatures
+- [x] Write rounds and todos from the template, each with tasks, acceptance criteria and tests
+- [x] Write the test strategy, risks and sequence
+- [x] Draft and review the prose with the writing skills, fix, and push
 
 ## Acceptance criteria
 
-- [ ] Every guide recommendation is planned, deferred with a reason, or rejected with evidence
-- [ ] Every todo has checkable acceptance criteria
+- [x] Every guide recommendation is planned, deferred with a reason, or rejected with evidence
+- [x] Every todo has checkable acceptance criteria
 
 ## Tests
 
@@ -58,6 +58,6 @@ None.
 ## Definition of done
 
 - [x] Claimed: the first commit moved this file `ready/` → `ongoing/` (Status `ongoing`)
-- [ ] Prose drafted with `/anthropic-skills:writing` and reviewed with `/anthropic-skills:writing-review`, with the fixes applied and changed claims re-checked
-- [ ] `pnpm check`, `pnpm typecheck` and `pnpm test` pass locally; pushed after each meaningful step
-- [ ] This file moved `ongoing/` → `done/` (Status `done`), and the plan's todo table updated
+- [x] Prose drafted with `/anthropic-skills:writing` and reviewed with `/anthropic-skills:writing-review`, with the fixes applied and changed claims re-checked
+- [x] `pnpm check`, `pnpm typecheck` and `pnpm test` pass locally; pushed after each meaningful step
+- [x] This file moved `ongoing/` → `done/` (Status `done`), and the plan's todo table updated
