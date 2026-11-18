@@ -44,7 +44,7 @@ The four references each found one default that sends data or credentials somewh
 - **OpenAI:** tracing is on in Node.js and exports every run's model calls and tool calls to OpenAI's dashboard (OpenAI guide §2).
 - **Vercel:** model strings route through Vercel's AI Gateway, and an approval response is unsigned unless you set `experimental_toolApprovalSecret` (Vercel guide §2, §7).
 
-None of these defaults is a bug, and each SDK documents its own. Together they show a pattern: a convenient default for the first run becomes a leak in production. Our verification harnesses ended up with the same three defenses for all four SDKs: an allowlisted environment, a network guard and a mock model that refuses host tools by name.
+Each SDK documents its own default, so none of them is a bug. Together, though, they show a pattern: a convenient default for the first run becomes a leak in production. Our verification harnesses ended up with the same three defenses for all four SDKs: an allowlisted environment, a network guard and a mock model that refuses host tools by name.
 
 ## 3. Lessons for our SDK, harness and agent
 

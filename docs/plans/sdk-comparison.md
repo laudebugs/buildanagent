@@ -1,6 +1,6 @@
 # Plan: compare the four SDKs on facts the references verified (Round C)
 
-- **Status:** In progress
+- **Status:** Done
 - **Date:** 2026-11-18
 - **Asked for by:** the project owner (2026-11-18): a deep comparison once every SDK is done, and a table comparing their features
 - **Builds on:** the four references from [Round S](sdk-references.md), and the [research report](../research/agent-sdks-and-harness-design.md)
@@ -39,7 +39,7 @@ Both C1 and C2 go through `/anthropic-skills:writing` and `/anthropic-skills:wri
 | ID | Title | Depends on |
 | --- | --- | --- |
 | C1 | Feature table for the four SDKs (done) | S4b |
-| C2 | Deep comparison, and the research-report refresh | C1 |
+| C2 | Deep comparison, and the research-report refresh (done) | C1 |
 
 ## 5. Risks
 
