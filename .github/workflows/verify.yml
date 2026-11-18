@@ -33,7 +33,14 @@ jobs:
         run: node scripts/ci/results-drift.mjs
       - name: Show the drift
         if: failure()
-        run: git diff --stat -- verify && git diff -- verify/*/results | head -400
+        run: git diff --stat -- verify
+      # The full result files, to compare with the committed ones when the drift check fails.
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        if: failure()
+        with:
+          name: verify-results
+          path: verify/*/results/
+          retention-days: 14
       - name: No high-severity dependency alerts
         if: always()
         run: pnpm audit --audit-level high

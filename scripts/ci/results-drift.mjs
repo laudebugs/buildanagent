@@ -16,12 +16,16 @@ const verdicts = (v) =>
   Array.isArray(v) ? v.map((e) => Object.fromEntries(VERDICT.filter((k) => k in e).map((k) => [k, e[k]]))) : v;
 
 function normString(s) {
-  return s
-    .split(`${root}/`)
-    .join("<repo>/")
-    .replace(/\/home\/[^/\s"']+\/[^/\s"']+\//g, "<repo>/")
-    .replace(/\/(?:tmp|var\/folders)\/[^\s"']+/g, "<tmp>")
-    .replace(/\b\d+(?:\.\d+)?\s?ms\b/g, "<n>ms");
+  return (
+    s
+      .split(`${root}/`)
+      .join("<repo>/")
+      .replace(/\/home\/[^/\s"']+\/[^/\s"']+\//g, "<repo>/")
+      .replace(/\/(?:tmp|var\/folders)\/[^\s"']+/g, "<tmp>")
+      .replace(/\b\d+(?:\.\d+)?\s?ms\b/g, "<n>ms")
+      // Stack frames of bundled code: line and column move with the bundle, not with the result.
+      .replace(/(\.m?[jt]s):\d+:\d+/g, "$1:<l>:<c>")
+  );
 }
 
 function norm(v) {
@@ -56,7 +60,9 @@ const drifted = [];
 for (const file of changed) {
   let before;
   try {
-    before = JSON.parse(execFileSync("git", ["show", `HEAD:${file}`], { cwd: root, encoding: "utf8" }));
+    before = JSON.parse(
+      execFileSync("git", ["show", `HEAD:${file}`], { cwd: root, encoding: "utf8", maxBuffer: 256 * 1024 * 1024 }),
+    );
   } catch {
     drifted.push(`${file} (new file)`);
     continue;
