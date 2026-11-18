@@ -1,0 +1,184 @@
+# Building a Custom Agent SDK / Harness: Architecture and Engineering (as of Nov 2026)
+
+Scope note: evaluation/observability and vendor SDK comparisons are covered by other researchers. Network limits in this session: modelcontextprotocol.io, blog.modelcontextprotocol.io and en.wikipedia.org could not be fetched (host not allowed), so MCP spec details come from search-result summaries of the official changelog and secondary coverage. The non-Anthropic seed URLs (IBM, Google Cloud, philschmid, parallel.ai, atlan, mem0, planning blogs, freeCodeCamp, arXiv 2503.12687) were NOT fetched for the same reason; findings on those topics rely on search summaries and are flagged as secondary.
+
+## What are the minimal components of a harness, and what can be deferred?
+
+### Takeaway
+A harness minimally needs: (1) a loop that calls the model, executes requested tools, appends results, and stops when the model stops calling tools or a budget is hit; (2) a small set of well-designed tools (often just bash/files/code execution plus a few domain tools); (3) a durable, append-only session/event log; and (4) a sandbox with filesystem + network isolation. Compaction, sub-agents, long-term memory, MCP code-execution, durable workflow engines and multi-agent topologies can all be deferred until evals show they're needed — Anthropic's consistent advice is "do the simplest thing that works."
+
+### Cited Findings
+**Core loop and principles**
+- Anthropic distinguishes *workflows* (LLMs and tools orchestrated through predefined code paths) from *agents* (the LLM dynamically directs its own process and tool use); start with the simplest solution and add complexity only when it measurably improves outcomes; often a single optimized LLM call with retrieval and examples suffices. Published Dec 19, 2024 (Erik Schluntz, Barry Zhang). — [Anthropic: Building effective agents](https://www.anthropic.com/engineering/building-effective-agents)
+- Building block is the "augmented LLM" (LLM + retrieval + tools + memory); three core agent principles: keep design simple, make planning steps transparent, carefully craft the agent-computer interface (ACI). — [Anthropic: Building effective agents](https://www.anthropic.com/engineering/building-effective-agents)
+- Frameworks can add abstraction layers that obscure prompts/responses and complicate debugging; recommendation is to start with LLM APIs directly and understand any framework's underlying code. — [Anthropic: Building effective agents](https://www.anthropic.com/engineering/building-effective-agents)
+- Agents carry higher costs and compounding-error risk; recommend sandboxed testing and guardrails; agents may pause for human checkpoints. — [Anthropic: Building effective agents](https://www.anthropic.com/engineering/building-effective-agents)
+- The Claude Agent SDK (formerly Claude Code SDK) frames the loop as: gather context -> take action -> verify work -> repeat; guiding principle "give your agents a computer." Published Sep 29, 2025. — [Claude blog: Building agents with the Claude Agent SDK](https://claude.com/blog/building-agents-with-the-claude-agent-sdk)
+- Context gathering: start with *agentic search* (grep/tail over a filesystem; folder structure itself is context engineering); semantic/vector search is faster but less accurate, harder to maintain and less transparent — add it only if needed. — [Claude blog: Agent SDK](https://claude.com/blog/building-agents-with-the-claude-agent-sdk)
+- Verification methods, in increasing cost: rules-based checks (linting, types), visual feedback (screenshots via Playwright), LLM-as-judge (less robust, adds latency/cost). — [Claude blog: Agent SDK](https://claude.com/blog/building-agents-with-the-claude-agent-sdk)
+
+**Tool design / ACI**
+- SWE-bench lesson: Anthropic spent more time optimizing tools than the overall prompt; model made mistakes with relative paths, and requiring absolute paths fixed it completely ("poka-yoke" your tools). Choose formats the model has seen in natural text; avoid formats needing line counting or heavy escaping. — [Anthropic: Building effective agents](https://www.anthropic.com/engineering/building-effective-agents)
+- Tool principles (Sep 11, 2025): fewer, purpose-built tools rather than wrappers over every endpoint; consolidate chained steps (e.g., one scheduling tool instead of list+create); namespace by service/resource (`asana_projects_search`); return high-signal fields and resolve UUIDs to readable names (reduced hallucinations); offer a `response_format` (concise vs detailed — concise used ~1/3 the tokens in their example); paginate/filter/truncate with sensible defaults (Claude Code caps tool responses at 25,000 tokens by default); actionable error messages; unambiguous parameter names (`user_id` not `user`); iterate with evals and transcript review. — [Anthropic: Writing effective tools for agents](https://www.anthropic.com/engineering/writing-tools-for-agents)
+- Rewriting a flawed tool description (by Claude) cut task completion time 40% in Anthropic's research system. — [Anthropic: multi-agent research system](https://www.anthropic.com/engineering/multi-agent-research-system)
+- Advanced tool use (Nov 24, 2025): Tool Search Tool with `defer_loading: true` cut tool-definition context from ~77K to ~8.7K tokens (85%); MCP eval accuracy rose Opus 4 49%->74%, Opus 4.5 79.5%->88.1%. Programmatic Tool Calling (Claude writes Python in a sandbox to orchestrate tools) cut average tokens 43,588->27,297 (37%). Tool Use Examples raised complex-parameter accuracy 72%->90% (internal). — [Anthropic: Advanced tool use](https://www.anthropic.com/engineering/advanced-tool-use)
+
+**Session log / durability as a minimal component**
+- Anthropic Managed Agents (Apr 8, 2026; Lance Martin, Gabe Cemaj, Michael Cohen) virtualizes three components behind stable interfaces: **Session** (append-only event log), **Harness** (loop that calls Claude and routes tool calls), **Sandbox** (where code runs/files are edited). Analogy to OS abstractions (processes/files) that outlive hardware. — [Anthropic: Managed Agents](https://www.anthropic.com/engineering/managed-agents)
+- Interfaces named: `execute(name, input) -> string`, `provision({resources})`, `wake(sessionId)`, `getSession(id)`, `emitEvent(id, event)`, `getEvents()` with positional slices. — [Anthropic: Managed Agents](https://www.anthropic.com/engineering/managed-agents)
+
+**Streaming / stop conditions**
+- (No dedicated primary source fetched on streaming mechanics; see Gaps.) Anthropic notes parallel tool calling cut research time by up to 90% for complex queries — implying the loop should support multiple tool calls per turn executed concurrently. — [Anthropic: multi-agent research system](https://www.anthropic.com/engineering/multi-agent-research-system)
+
+### Inferences
+- Minimal viable harness (week 1): model client with streaming + retry; tool registry with JSON-schema validation; loop with stop conditions (no tool calls / `end_turn`, max turns, max tokens/cost, wall-clock timeout, explicit "done" tool); parallel tool execution; append-only event log persisted per step; a permission gate (allow/deny/ask) per tool; one sandbox backend. Everything else is deferrable.
+- Deferrable (add when evals justify): compaction and tool-result clearing; sub-agents; tool search / deferred loading (needed once tool count is large); MCP code-execution mode; long-term vector/graph memory; durable workflow engine (Temporal etc.); multi-agent topologies; evaluator agents.
+- Design the event log as the source of truth from day one — it is cheap early and expensive to retrofit; it enables resume, compaction-with-recovery, HITL pauses, and auditing.
+
+### Gaps
+- No primary Anthropic source fetched on token-level streaming protocol design (event types, partial tool-input JSON, interleaving); claude-api docs not consulted given scope.
+- Seed sources on agentic architecture (IBM, atlan, parallel.ai, aiagent.org, arXiv 2503.12687) not fetched (network blocked).
+
+## What did Anthropic publish on effective agents, long-running harnesses, code execution with MCP, and context engineering?
+
+### Takeaway
+Anthropic's engineering blog forms a coherent arc: simple composable patterns (Dec 2024) -> multi-agent research (Jun 2025) -> context engineering, tools, Agent SDK (Sep 2025) -> sandboxing (Oct 2025) -> code execution with MCP and advanced tool use (Nov 2025) -> long-running harnesses with initializer/coding agents (Nov 2025) -> planner/generator/evaluator harness (Mar 2026) -> Managed Agents' brain/hands decoupling (Apr 2026). The recurring theme: harness components encode assumptions about model weaknesses and should be stress-tested and removed as models improve.
+
+### Cited Findings
+**Building effective agents (Dec 19, 2024)**
+- Workflow patterns: prompt chaining (trade latency for accuracy, programmatic gates between steps), routing (classify and dispatch, e.g., easy queries to smaller models), parallelization (sectioning and voting), orchestrator-workers (central LLM dynamically decomposes, e.g., multi-file code changes), evaluator-optimizer (generate + critique loop; works when criteria are clear). — [Anthropic: Building effective agents](https://www.anthropic.com/engineering/building-effective-agents)
+- The page now notes tooling has evolved and points readers to Managed Agents docs. — [Anthropic: Building effective agents](https://www.anthropic.com/engineering/building-effective-agents)
+
+**Effective context engineering (Sep 29, 2025)**
+- Context engineering = curating the full set of tokens at inference; goal is "the smallest set of high-signal tokens" that maximizes desired outcome. — [Anthropic: Effective context engineering](https://www.anthropic.com/engineering/effective-context-engineering-for-ai-agents)
+- *Context rot*: recall degrades gradually as context grows, across models; context is an *attention budget*. — [same](https://www.anthropic.com/engineering/effective-context-engineering-for-ai-agents)
+- System prompts at the "right altitude" (between brittle hardcoded logic and vague guidance); start minimal, add instructions to fix observed failures; few diverse canonical examples rather than exhaustive edge cases. — [same](https://www.anthropic.com/engineering/effective-context-engineering-for-ai-agents)
+- Just-in-time retrieval: keep lightweight references (paths, queries, links) and load at runtime; slower, so hybrid preloading is common. — [same](https://www.anthropic.com/engineering/effective-context-engineering-for-ai-agents)
+- Compaction: summarize near the limit and restart a window with the summary; clearing old tool results is the lightest form; tune for recall first, then precision. Structured note-taking (to-do lists, NOTES.md; memory tool in beta). Sub-agents with clean contexts return condensed summaries (often 1,000–2,000 tokens). Choose: compaction for long back-and-forth, notes for iterative milestone work, multi-agent for parallel research. — [same](https://www.anthropic.com/engineering/effective-context-engineering-for-ai-agents)
+
+**Code execution with MCP (Nov 4, 2025; Adam Jones, Conor Kelly)**
+- Problems with direct tool calls at scale: tool definitions bloat context (hundreds of thousands of tokens with thousands of tools) and intermediate results pass through the model (a 2-hour transcript passing twice adds ~50K tokens). — [Anthropic: Code execution with MCP](https://www.anthropic.com/engineering/code-execution-with-mcp)
+- Solution: present MCP servers as code APIs (file tree of TypeScript modules); agent writes code calling only needed tools. Google Drive->Salesforce example dropped ~150,000 -> ~2,000 tokens (98.7%). Cloudflare reported similar results as "Code Mode." — [same](https://www.anthropic.com/engineering/code-execution-with-mcp)
+- Patterns: progressive disclosure (browse tool directory or `search_tools` with detail levels); filter data in code (10,000-row sheet -> model sees 5 rows); control flow in code (loops/retries without round-trips); privacy (intermediate data stays in sandbox; MCP client can tokenize PII); state persistence to files; reusable *skills* (saved code + SKILL.md). — [same](https://www.anthropic.com/engineering/code-execution-with-mcp)
+- Caveat: requires secure sandboxing, resource limits and monitoring; adds operational overhead direct tool calls avoid. — [same](https://www.anthropic.com/engineering/code-execution-with-mcp)
+
+**Effective harnesses for long-running agents (Nov 26, 2025; Justin Young)**
+- Problem: sessions start with no memory; compaction alone insufficient; even Opus 4.5 in a loop failed to build a production-quality web app from one prompt. Failure modes: trying to one-shot too much and running out of context mid-feature; later sessions seeing partial progress and declaring victory. — [Anthropic: Effective harnesses for long-running agents](https://www.anthropic.com/engineering/effective-harnesses-for-long-running-agents)
+- **Initializer agent** (first session) creates `init.sh`, a progress log (`claude-progress.txt`-style), a feature list, and initial git commit. **Coding agent** (every later session) does one feature at a time, tests, leaves code clean/mergeable with commit + progress update. Same system prompt/tools/harness, different user prompts. — [same](https://www.anthropic.com/engineering/effective-harnesses-for-long-running-agents)
+- Feature list in **JSON** (200+ features for a claude.ai clone, all initially failing; fields: category, description, steps, `passes`); agents may only flip `passes`; JSON chosen because the model is less likely to inappropriately overwrite it than Markdown. — [same](https://www.anthropic.com/engineering/effective-harnesses-for-long-running-agents)
+- Startup routine: pwd, read progress + git log, read feature list, run `init.sh`, basic end-to-end check before new work. End-to-end browser testing (Puppeteer MCP) fixed premature "done" marking; limits remain (vision, native alert modals). — [same](https://www.anthropic.com/engineering/effective-harnesses-for-long-running-agents)
+
+**Harness design for long-running apps (Mar 24, 2026; Prithvi Rajasekaran, Anthropic Labs)**
+- GAN-inspired: separate generator and evaluator; tuning a skeptical standalone evaluator was easier than making a generator self-critical. Three-agent full-stack harness: Planner (expands short prompt into product spec), Generator, Evaluator (tests the running app with Playwright, grades against hard thresholds). "Sprint contracts" negotiated via files before each sprint. — [Anthropic: Harness design for long-running apps](https://www.anthropic.com/engineering/harness-design-long-running-apps)
+- "Context anxiety": model wraps up early as it believes context limit nears (strong in Sonnet 4.5). Context *resets* (fresh agent + structured handoff) vs *compaction* (summarize in place); Opus 4.5 largely removed the anxiety, so resets were dropped for automatic compaction. — [same](https://www.anthropic.com/engineering/harness-design-long-running-apps)
+- Cost/duration: retro game maker solo run 20 min/$9 (core broken) vs full harness 6 hr/$200 (functional). DAW with Opus 4.6: ~3 hr 50 min, $124.70 (planner 4.7 min/$0.46). With Opus 4.6, sprints removed, planner kept (else under-scoping), evaluator moved to single end-of-run pass. — [same](https://www.anthropic.com/engineering/harness-design-long-running-apps)
+
+**Managed Agents (Apr 8, 2026)**
+- Originally everything in one container (a "pet"); now harness runs outside the container, sandboxes called as tools; container failure = tool error, replaced on demand. Harness crash recovery via `wake(sessionId)` + `getSession(id)`. — [Anthropic: Managed Agents](https://www.anthropic.com/engineering/managed-agents)
+- Credentials never enter the sandbox: git token used at sandbox init to configure remote; MCP OAuth tokens in a vault, accessed via proxy with session-scoped token. — [same](https://www.anthropic.com/engineering/managed-agents)
+- Session as context object outside the window; because compaction is irreversible, the log keeps a recoverable record and the harness decides transformations (including for prompt-cache efficiency). p50 TTFT dropped ~60%, p95 >90% by not waiting for container provisioning. — [same](https://www.anthropic.com/engineering/managed-agents)
+
+**Multi-agent research system (Jun 13, 2025)**
+- Opus 4 lead + Sonnet 4 subagents beat single-agent Opus 4 by 90.2% on internal research eval; token usage explained ~80% of BrowseComp variance (with tool calls and model choice ~95%). Agents use ~4x chat tokens; multi-agent ~15x. — [Anthropic: multi-agent research system](https://www.anthropic.com/engineering/multi-agent-research-system)
+- Failure modes: spawning 50 subagents for simple queries, endless searching, agents distracting each other; fixes: scale effort to query complexity with explicit rules, explicit subagent objectives/output formats/boundaries. Reliability: resume from checkpoints rather than restart, retries, rainbow deployments; synchronous subagents are a bottleneck. — [same](https://www.anthropic.com/engineering/multi-agent-research-system)
+
+### Inferences
+- Anthropic's own trajectory argues for a harness built from swappable, stateless components around a durable log, with scaffolding (sprints, resets, evaluators) treated as removable — re-run ablations when changing models.
+- "External state artifacts" (progress files, JSON feature lists, git history, init scripts) are the primary cross-session memory mechanism for long-running agents, more than vector memory.
+
+### Gaps
+- Could not verify exact author names for "Building effective agents" beyond the fetched summary (Erik S. and Barry Zhang).
+- A secondary source reported an Apr 4, 2026 "multi-agent harness" announcement; not verified against Anthropic pages.
+
+## What are the trade-offs among planning patterns (cost, latency, reliability)?
+
+### Takeaway
+Practitioner consensus (no controlled benchmarks found): ReAct is the low-cost/low-latency default; plan-and-execute adds an upfront planning call but enables cheaper executors and parallelism at the cost of brittleness on step failure; reflection/evaluator loops buy quality at ~2–4x cost; tree-of-thought is very high cost and rare in production. Orchestrator-workers and multi-agent multiply tokens (~15x chat) and pay off mainly on parallelizable, breadth-first tasks. Routing is a cost reducer.
+
+### Cited Findings
+- Anthropic: prompt chaining trades latency for accuracy; routing sends easy queries to smaller models; orchestrator-workers fit unpredictable subtasks; evaluator-optimizer works when criteria are clear and feedback measurably helps. — [Anthropic: Building effective agents](https://www.anthropic.com/engineering/building-effective-agents)
+- Multi-agent = ~15x chat tokens vs ~4x for single agents; worthwhile where value justifies cost and tasks are parallelizable; poor fit for tightly interdependent tasks like most coding (per post). — [Anthropic: multi-agent research system](https://www.anthropic.com/engineering/multi-agent-research-system)
+- Separate skeptical evaluator > self-critique; but evaluator value depends on whether task exceeds what model reliably does solo; full harness 6 hr/$200 vs solo 20 min/$9. — [Anthropic: Harness design for long-running apps](https://www.anthropic.com/engineering/harness-design-long-running-apps)
+- Ordering of cost/latency: CoT and ReAct low, plan-and-execute medium, reflection high, ToT very high (with low debuggability). — search summary of [mlflow.org guide](https://mlflow.org/articles/types-of-ai-agent-architectures-2026-developer-guide/) and [atlan.com](https://atlan.com/know/ai-agent/react-vs-plan-and-execute-agent-architecture.md) (secondary, unverified which source gave which row)
+- Reflection ~2x a comparable ReAct run; another source cites ~2.5x for two passes and ~4x for three (illustrative). — search summaries of [dev.to (gabrielanhaia)](https://dev.to/gabrielanhaia/react-plan-and-execute-or-reflection-the-three-agent-patterns-every-engineer-needs-in-2026-355p) and [generalcompute.com](https://www.generalcompute.com/blog/react-reflexion-and-chain-of-thought-the-inference-cost-of-reasoning-patterns?agent=true) (secondary)
+- ReAct's latency grows with loop steps and verbose thoughts inflate input; plan-and-execute can be faster with smaller executors/parallel branches but is harder to recover when a step fails; self-critique can talk itself out of correct answers; ToT ~5x tokens, wall-clock similar if branches parallel; ToT mostly in research, not production. — search summaries of [techademy](https://www.techademy.com/react-plan-execute-reflection-agent-patterns), [tianpan.co "planning tax"](https://tianpan.co/blog/2026/04/12/the-planning-tax-why-your-agent-spends-more-tokens-thinking-than-doing), [dev.to ljhao](https://dev.to/ljhao/5-agent-design-patterns-every-developer-needs-to-know-in-2026-17d8) (secondary)
+- A claim of reflection lifting coding accuracy 80%->91% appeared in search results but was unverified. — [dev.to ljhao](https://dev.to/ljhao/5-agent-design-patterns-every-developer-needs-to-know-in-2026-17d8) (unverified)
+- Anthropic uses extended thinking as a planning scratchpad and interleaved thinking after tool results — planning inside the ReAct loop rather than a separate planner. — [Anthropic: multi-agent research system](https://www.anthropic.com/engineering/multi-agent-research-system)
+
+### Inferences
+- With modern reasoning models, explicit planner modules are often redundant for short tasks (interleaved thinking does it); a separate planner earns its keep on long-horizon work (Anthropic kept the planner because the generator under-scoped).
+- Recommended default: ReAct loop + interleaved thinking; add a planner/spec artifact for long tasks; add routing for cost; add an external evaluator only on quality-critical or beyond-solo-capability tasks; reserve ToT/search for offline or high-value problems.
+
+### Gaps
+- No controlled, independent benchmark comparing these patterns on cost/latency/accuracy under identical models was found; numbers above are practitioner estimates. Seed planning URLs (safeguard.sh, nomadx.ae, aiagentslist, masterdexter, taskade, GitHub huangjia2019) were not fetched.
+
+## What sandboxing approaches exist (containers, microVMs like Firecracker/gVisor, E2B, Daytona, Modal, WASM)?
+
+### Takeaway
+Isolation strength roughly: OS-level process sandbox (bubblewrap/seatbelt) and plain containers < gVisor user-space kernel < Firecracker/Kata microVMs (own kernel). WASM is strong in principle but real-world Pyodide escapes in 2026 show the host-function surface is the weak point; use it only with an independent outer boundary. Regardless of isolation tech, Anthropic stresses both filesystem AND network isolation, and keeping credentials out of the sandbox via proxies.
+
+### Cited Findings
+- Claude Code sandboxing (Oct 20, 2025): filesystem isolation (read/write only in CWD) + network isolation (all traffic via Unix socket to an out-of-sandbox proxy enforcing domain allowlist, prompting for new domains); built on Linux bubblewrap and macOS seatbelt; reduced permission prompts by 84% internally. Both boundaries needed: without network isolation a compromised agent exfiltrates SSH keys; without filesystem isolation it can escape to gain network. — [Anthropic: Claude Code sandboxing](https://www.anthropic.com/engineering/claude-code-sandboxing)
+- Claude Code on the web: credentials never in the sandbox; git proxy verifies scoped credential and operation (e.g., push only to configured branch) and attaches real token. — [Anthropic: Claude Code sandboxing](https://www.anthropic.com/engineering/claude-code-sandboxing)
+- Managed Agents: vault + proxy for MCP OAuth; sandboxes are cattle, provisioned on demand. — [Anthropic: Managed Agents](https://www.anthropic.com/engineering/managed-agents)
+- Vendor landscape (secondary, figures vary): E2B, Vercel Sandbox and Fly.io use Firecracker microVMs; Modal defaults to gVisor (lighter than Firecracker, adequate for semi-trusted code), strongest for GPU; Daytona defaults to Linux containers with a VM class, open-source/self-hostable. Cold starts cited: E2B ~150ms, Daytona ~90ms (snapshot restore claims), Modal sub-second to ~3s. E2B session max cited 24h. Vercel Sandbox noted GA Jan 2026. Pricing inconsistent across sources. — search summaries of [Upstash comparison (15 providers)](https://upstash.com/blog/ai-agent-sandbox-providers-compared-2026), [alexcloudstar](https://www.alexcloudstar.com/blog/sandboxing-ai-generated-code-execution-2026/), [morphllm](https://www.morphllm.com/comparisons/daytona-alternative), [novita (vendor)](https://blogs.novita.ai/best-ai-agent-sandboxes-2026/)
+- WASM: Cyera's DEF CON 34 research found Pyodide sandbox escapes across seven products (ctypes left available, resolving Emscripten functions); Cohere Terrarium CVE-2026-61522 (CVSS 9.3), Hugging Face smolagents CVE-2026-10613 (CVSS 8.3) reported. WASM linear-memory isolation holds, but doesn't restrict host functions the embedder exposes. Recommendation: independent isolation boundary (process/container) behind WASM. — [Cyera research](https://www.cyera.com/research/sandcastles-not-sandboxes-how-one-architectural-flaw-exposed-seven-products); [eSecurity Planet](https://www.esecurityplanet.com/threats/def-con-34-one-pyodide-flaw-exposed-seven-products/) (CVE numbers not independently verified)
+- Wasmtime-style runtimes give deny-by-default I/O, fuel-bounded CPU, capped memory; risk is the host-function surface. Pyodide limited to WASM-compatible libs (no PyTorch/CUDA). — search summaries of [agentpatterns.ai](https://agentpatterns.ai/security/wasm-sandbox-agent-code-execution/), [morphllm WASM](https://www.morphllm.com/webassembly-sandbox) (secondary)
+
+### Inferences
+- Decision matrix: local dev/CLI agent -> OS sandbox (bubblewrap/seatbelt) + egress proxy; multi-tenant untrusted code -> Firecracker microVMs (E2B/Vercel/self-host Firecracker/Kata); GPU/data workloads -> Modal (gVisor); self-hosted + low latency -> Daytona (harden or use VM class); in-process lightweight snippets (e.g., MCP code-mode transforms) -> WASM inside another boundary.
+- Permissions layer is separate from isolation: per-tool allow/deny/ask rules, scoped credentials via proxy, and egress allowlists. Sandboxing reduces HITL prompts (84% figure) — isolation and HITL are complementary.
+
+### Gaps
+- No primary-source benchmarks for cold start/pricing; numbers from comparison blogs, some vendor-affiliated. The gotburnout.io seed page was not fetched.
+
+## Remaining components: MCP, memory, multi-agent, HITL, errors/durability, and reference architecture / build-vs-buy
+
+### Takeaway
+MCP is now the default integration layer; its 2026-07-28 revision made the core stateless and formalized extensions, simplifying horizontally scaled harnesses. Long-term memory products (Mem0 vector-first, Zep temporal graph) have contested benchmarks; filesystem notes and progress artifacts are the pragmatic first memory. Durability: an append-only event log with replay (Managed Agents' session, or Temporal-style event histories with LLM calls as activities). Build the loop/log/tool layer yourself (small, high-leverage); buy sandboxes and, often, durable-execution and memory infrastructure.
+
+### Cited Findings
+**MCP protocol and transports**
+- Anthropic introduced MCP Nov 2024 (seed URL https://www.anthropic.com/news/model-context-protocol, not re-fetched). Architecture per spec: hosts, clients, servers over JSON-RPC; server features tools/resources/prompts; client features sampling/roots/elicitation (standard knowledge of spec; official spec site unreachable in this session — verify).
+- 2025-11-25 revision: experimental **Tasks** (SEP-1686) for durable requests with polling/deferred results (states working, input_required, completed, failed, cancelled); Streamable HTTP clarified servers must return 403 on invalid Origin; secondary sources cite OAuth simplification via Client ID Metadata Documents and enterprise Cross App Access, plus OIDC discovery. — search summary of [MCP 2025-11-25 changelog](https://modelcontextprotocol.io/specification/2025-11-25/changelog) and [WorkOS](https://workos.com/blog/mcp-2025-11-25-spec-update)
+- 2026-07-28 revision (RC locked May 21, 2026; live per Claude announcement): stateless core — `initialize` handshake and protocol-level sessions/`Mcp-Session-Id` removed; each request carries protocol version + capabilities; new `Mcp-Method`/`Mcp-Name` headers let gateways route without parsing bodies; formal extensions process (SEP-2133) with reverse-DNS IDs, independent versioning; official extensions include MCP Apps (server-rendered UI); Tasks moved into an extension (`io.modelcontextprotocol/tasks`) with polling via `tasks/get`; authorization hardening (RFC 9207 `iss` validation) and enterprise-managed authorization extension; not fully backward compatible. — search summaries of [Claude blog: Bringing MCP 2026-07-28 to Claude](https://claude.com/fr/blog/bringing-mcp-2026-07-28-to-claude), [MCP blog RC post](https://blog.modelcontextprotocol.io/posts/2026-07-28-release-candidate/), [MLOps Community](https://home.mlops.community/public/blogs/mcp-2026-07-28-stateless-core-enterprise-authorization-and-sdk-betas), [AAIF migration guide](https://aaif.io/blog/mcp-2026-07-28-whats-changing-and-how-to-migrate) (MCP now under the Linux Foundation's Agentic AI Foundation per AAIF domain; not independently verified)
+- Code-execution-with-MCP pattern and Tool Search / Programmatic Tool Calling — see Anthropic section above. — [Anthropic: Code execution with MCP](https://www.anthropic.com/engineering/code-execution-with-mcp); [Advanced tool use](https://www.anthropic.com/engineering/advanced-tool-use)
+
+**Memory**
+- Taxonomy: working (context window), semantic (facts about users/world), episodic (past experiences/sessions), procedural (rules/learned procedures; least well-served by major tools). — search summaries of [agentic-ai readthedocs](https://agentic-ai.readthedocs.io/en/latest/AgentMemory/research-papers/), [devgenius comparison](https://blog.devgenius.io/ai-agent-memory-systems-in-2026-mem0-zep-hindsight-memvid-and-everything-in-between-compared-96e35b818da8) (secondary)
+- Mem0 paper (arXiv 2504.19413) evaluates on LOCOMO; graph variant ~2% over base. Zep (temporal knowledge graph) rebutted Mem0's benchmark, claiming corrected 75.14% vs 65.99% Mem0 reported; benchmark results contested. Other benchmarks: LongMemEval, BEAM. — [Mem0 paper](https://ar5iv.labs.arxiv.org/html/2504.19413); search summary of [devgenius](https://blog.devgenius.io/ai-agent-memory-systems-in-2026-mem0-zep-hindsight-memvid-and-everything-in-between-compared-96e35b818da8) (contested)
+- Anthropic patterns: structured notes/NOTES.md and memory tool; agentic filesystem search over vector search first; skills (saved code + SKILL.md) as procedural memory. — [Anthropic: context engineering](https://www.anthropic.com/engineering/effective-context-engineering-for-ai-agents); [Claude blog: Agent SDK](https://claude.com/blog/building-agents-with-the-claude-agent-sdk); [Code execution with MCP](https://www.anthropic.com/engineering/code-execution-with-mcp)
+
+**Multi-agent topologies**
+- Orchestrator-workers (lead + parallel subagents + citation agent); subagents return condensed results; synchronous execution bottleneck; async is future direction. — [Anthropic: multi-agent research system](https://www.anthropic.com/engineering/multi-agent-research-system)
+- Planner/generator/evaluator pipeline with file-based communication and negotiated contracts. — [Anthropic: Harness design](https://www.anthropic.com/engineering/harness-design-long-running-apps)
+- Open question from Anthropic: single general coding agent vs specialized QA/testing/cleanup agents. — [Anthropic: Effective harnesses](https://www.anthropic.com/engineering/effective-harnesses-for-long-running-agents)
+
+**Human-in-the-loop**
+- Agents may pause for human feedback at checkpoints or blockers. — [Anthropic: Building effective agents](https://www.anthropic.com/engineering/building-effective-agents)
+- Sandboxing with allowlists reduced prompts 84%; proxy prompts user for new domains. — [Anthropic: Claude Code sandboxing](https://www.anthropic.com/engineering/claude-code-sandboxing)
+- MCP Tasks' `input_required` state and elicitation support mid-task human input. — [WorkOS on 2025-11-25](https://workos.com/blog/mcp-2025-11-25-spec-update) (secondary)
+
+**Errors, retries, durability**
+- Resume from checkpoint not restart; retries; let the agent know when a tool fails and adapt; rainbow deployments to avoid breaking in-flight agents. — [Anthropic: multi-agent research system](https://www.anthropic.com/engineering/multi-agent-research-system)
+- Container failure surfaced as tool error; harness is stateless and restartable from session log. — [Anthropic: Managed Agents](https://www.anthropic.com/engineering/managed-agents)
+- Actionable tool error messages instead of tracebacks. — [Anthropic: Writing tools](https://www.anthropic.com/engineering/writing-tools-for-agents)
+- Git commits as checkpoints to revert bad changes. — [Anthropic: Effective harnesses](https://www.anthropic.com/engineering/effective-harnesses-for-long-running-agents)
+- Temporal model: event history replay skips completed steps; workflow code deterministic, LLM/tool calls in activities with automatic retries; integrations with Vercel AI SDK and OpenAI Agents SDK (GA reported Mar 23, 2026); alternatives Inngest, Trigger.dev, LangGraph PostgresSaver checkpointing. — [Temporal blog: Vercel AI SDK](https://temporal.io/blog/building-durable-agents-with-temporal-and-ai-sdk-by-vercel); search summaries of [ZenML](https://www.zenml.io/llmops-database/building-reliable-production-ai-agents-with-durable-execution-infrastructure), [dev.to Temporal guide](https://dev.to/jangwook_kim_e31e7291ad98/temporal-for-ai-agents-durable-execution-guide-2026-9hf), [tianpan.co](https://tianpan.co/blog/2026-04-23-durable-agents-async-queue-workflow-checkpoint) (mostly vendor-authored)
+
+### Inferences
+**Recommended reference architecture (layered, each behind a stable interface, following Managed Agents):**
+1. *Model gateway*: provider client, streaming, retries with backoff on 429/5xx/overload, prompt caching, token/cost accounting, model routing.
+2. *Harness (stateless loop)*: build context from log -> call model -> parse tool calls -> permission check -> execute (parallel) -> append results -> check stop conditions (end_turn, max turns/tokens/cost/time, done tool, HITL pause). Context policy hooks: tool-result clearing, compaction, just-in-time retrieval.
+3. *Session store*: append-only event log (Postgres/object store); `wake`/resume; HITL pauses are just a persisted "waiting" event.
+4. *Tool layer*: native tools + MCP client (target 2026-07-28 stateless spec); tool search/deferred loading once tools >~20; optional code-execution mode exposing MCP servers as code APIs.
+5. *Sandbox layer*: `provision`/`execute` interface over pluggable backends (local bubblewrap; remote Firecracker vendor); egress proxy + credential vault outside the sandbox.
+6. *State artifacts / memory*: workspace files (progress notes, JSON task lists, git); add vector/graph memory only for cross-user personalization needs.
+7. *Orchestration (optional)*: sub-agents as tools with isolated contexts; planner/evaluator roles for long-horizon tasks.
+- **Build vs buy**: Build the harness loop, context policy, tool definitions and session schema — they are small, differentiated, and model-specific (Anthropic repeatedly rewrote theirs as models changed). Buy/adopt: sandbox infrastructure (microVM ops is hard; WASM escapes show DIY risk), durable execution if workflows span hours with many side effects, MCP SDKs, and possibly memory services. Consider fully managed (e.g., Anthropic Managed Agents or vendor Agent SDKs) when you don't need custom loop control — vendor comparison covered by another researcher.
+- Building on the 2026-07-28 stateless MCP core makes harness horizontal scaling easier (no sticky sessions); budget migration work if you built on 2025-11-25 Tasks.
+
+### Gaps
+- Official MCP spec text (modelcontextprotocol.io) and Wikipedia were unreachable; MCP feature list and governance (Linux Foundation/AAIF donation date) not verified from primary sources here.
+- mem0.ai seed page and independent memory benchmarks not fetched; vendor memory numbers (e.g., Mem0 claiming 91.6 on LoCoMo in Apr 2026) unverified.
+- No primary source found on HITL UX patterns (approval queues, interrupt/resume semantics) beyond those noted.
