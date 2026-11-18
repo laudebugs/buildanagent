@@ -26,3 +26,4 @@ Skills that coding agents (Claude Code, Codex, OpenCode, Pi) load when a task ne
 | [pi](pi/SKILL.md) | Code imports `@earendil-works/pi-*` |
 | [openai-agents-sdk](openai-agents-sdk/SKILL.md) | Code imports `@openai/agents` |
 | [vercel-ai-sdk](vercel-ai-sdk/SKILL.md) | Code imports `ai` or `@ai-sdk/*` |
+| [langchain](langchain/SKILL.md) | Code imports `langchain` or `@langchain/*` |

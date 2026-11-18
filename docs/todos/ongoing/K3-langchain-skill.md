@@ -3,7 +3,7 @@
 | Field | Value |
 | --- | --- |
 | ID | `K3` |
-| Status | `ready` |
+| Status | `ongoing` |
 | Plan | [Agent skills §4](../../plans/agent-skills.md#4-todos) |
 | Round / milestone | Round K (skills), M2b |
 | Depends on | [S5b](../done/S5b-langchain-reference.md) |

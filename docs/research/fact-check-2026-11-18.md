@@ -90,6 +90,8 @@ The four SDK references in [`docs/reference/`](../reference/) checked the report
 | 14 | MCP 2026-07-28 removed the `initialize` handshake (search summary only) | Partly corroborated by a primary source: `@ai-sdk/mcp@2.0.90` names 2026-07-28 its latest, "stateless" protocol and probes with `server/discover` before falling back to `initialize`. The spec text remains unverified | ✏️ Corroboration added; still ⚠️ for the remaining details |
 | 15 | (new) Default behaviors that reach outside the process | Each of the four SDKs has one: Claude's inherited CLI environment (Claude fact-check F5), Pi's ambient-credential model choice, OpenAI's tracing export, Vercel's AI Gateway routing | ✏️ Added to the library-SDK section, linked to the deep comparison |
 
+| 16 | Row 15: "each of the four SDKs" has an outward-reaching default | The fifth reference, LangChain.js (added 2026-11-18), has none by default: LangSmith tracing needs `LANGSMITH_TRACING=true` ([LangChain guide §2](../reference/langchain/guide.md#2-install-then-give-every-model-id-a-provider-prefix)) | ✏️ Report now says four of five, with LangChain as the exception |
+
 Claims the references confirmed without change: the Claude Agent SDK's subprocess-per-session design, Claude-only models, local JSONL transcripts and non-replaceable compaction; the MIT label with Commercial Terms; Pi's four default tools, tree-shaped sessions and lack of a permission system; OpenAI's in-process runner, handoffs, guardrails and JS `SandboxAgent`; and the Vercel `ToolLoopAgent` as a developer-bounded loop.
 
 ## Reference architecture review
