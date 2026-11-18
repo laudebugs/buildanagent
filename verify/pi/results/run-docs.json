@@ -14,7 +14,7 @@
     "line": 521,
     "outcome": "ran-no-model",
     "exit": 0,
-    "ms": 1679,
+    "ms": 1570,
     "fauxReplies": 0,
     "tail": ""
   },
@@ -25,7 +25,7 @@
     "line": 7,
     "outcome": "ran",
     "exit": 0,
-    "ms": 1801,
+    "ms": 1712,
     "fauxReplies": 1,
     "tail": "Faux model: received the tool result, task complete."
   },
@@ -36,7 +36,7 @@
     "line": 44,
     "outcome": "ran-no-model",
     "exit": 0,
-    "ms": 1731,
+    "ms": 1890,
     "fauxReplies": 0,
     "tail": ""
   },
@@ -47,9 +47,9 @@
     "line": 1,
     "outcome": "ran",
     "exit": 0,
-    "ms": 1714,
+    "ms": 1664,
     "fauxReplies": 2,
-    "tail": "    totalTokens: 1540,\n    cost: { input: 0, output: 0, cacheRead: 0, cacheWrite: 0, total: 0 }\n  },\n  stopReason: 'stop',\n  timestamp: 1794977222428,\n  durationMs: 0,\n  thinkingLevel: 'off'\n}"
+    "tail": "    totalTokens: 1540,\n    cost: { input: 0, output: 0, cacheRead: 0, cacheWrite: 0, total: 0 }\n  },\n  stopReason: 'stop',\n  timestamp: 1794977729919,\n  durationMs: 0,\n  thinkingLevel: 'off'\n}"
   },
   {
     "id": "example_sdk_02-custom-model",
@@ -58,7 +58,7 @@
     "line": 1,
     "outcome": "ran",
     "exit": 0,
-    "ms": 1747,
+    "ms": 1990,
     "fauxReplies": 1,
     "tail": "Found model: faux/faux-1\nFound custom model: faux/faux-1\nAvailable models: [ 'faux/faux-1' ]\nFaux model: received the tool result, task complete."
   },
@@ -69,7 +69,7 @@
     "line": 1,
     "outcome": "ran",
     "exit": 0,
-    "ms": 1703,
+    "ms": 1922,
     "fauxReplies": 2,
     "tail": "=== Replace prompt ===\nFaux model: received the tool result, task complete.\n\n=== Modify prompt ===\nFaux model: received the tool result, task complete."
   },
@@ -80,7 +80,7 @@
     "line": 1,
     "outcome": "ran-no-model",
     "exit": 0,
-    "ms": 1810,
+    "ms": 1887,
     "fauxReplies": 0,
     "tail": "Discovered skills: [ 'my-skill' ]\nSession created with filtered skills"
   },
@@ -91,7 +91,7 @@
     "line": 1,
     "outcome": "ran-no-model",
     "exit": 0,
-    "ms": 1958,
+    "ms": 1737,
     "fauxReplies": 0,
     "tail": "Read-only session created\nCustom tools session created\nCustom cwd session created\nSpecific tools with custom cwd session created"
   },
@@ -102,7 +102,7 @@
     "line": 1,
     "outcome": "ran",
     "exit": 0,
-    "ms": 1609,
+    "ms": 1791,
     "fauxReplies": 1,
     "tail": "[Inline Extension] Agent starting\nFaux model: received the tool result, task complete."
   },
@@ -113,9 +113,9 @@
     "line": 1,
     "outcome": "ran-no-model",
     "exit": 0,
-    "ms": 1608,
+    "ms": 1595,
     "fauxReplies": 0,
-    "tail": "Discovered context files:\n  - /tmp/pi-ex-example_sdk_07-context-files-G2PVmb/AGENTS.md (48 chars)\n  - /virtual/AGENTS.md (103 chars)\nSession created with 3 context files"
+    "tail": "Discovered context files:\n  - /tmp/pi-ex-example_sdk_07-context-files-07Swb4/AGENTS.md (48 chars)\n  - /virtual/AGENTS.md (103 chars)\nSession created with 3 context files"
   },
   {
     "id": "example_sdk_08-prompt-templates",
@@ -124,7 +124,7 @@
     "line": 1,
     "outcome": "ran-no-model",
     "exit": 0,
-    "ms": 1669,
+    "ms": 1856,
     "fauxReplies": 0,
     "tail": "Discovered prompt templates:\n  /deploy: Deploy the application\nSession created with 2 prompt templates"
   },
@@ -135,7 +135,7 @@
     "line": 1,
     "outcome": "ran-no-model",
     "exit": 0,
-    "ms": 1699,
+    "ms": 1782,
     "fauxReplies": 0,
     "tail": "Session with default model runtime\nSession with custom auth and models locations\nSession with runtime API key override"
   },
@@ -146,7 +146,7 @@
     "line": 1,
     "outcome": "ran-no-model",
     "exit": 0,
-    "ms": 1686,
+    "ms": 1921,
     "fauxReplies": 0,
     "tail": "Current settings: {\n  \"defaultProvider\": \"faux\",\n  \"defaultModel\": \"faux-1\"\n}\nSession created with custom settings\nTest session created with in-memory settings"
   },
@@ -157,9 +157,9 @@
     "line": 1,
     "outcome": "ran-no-model",
     "exit": 0,
-    "ms": 1788,
+    "ms": 1739,
     "fauxReplies": 0,
-    "tail": "In-memory session: (none)\nNew session file: /tmp/pi-ex-example_sdk_11-sessions-jRhlBc/.pi-agent/sessions/--tmp-pi-ex-example_sdk_11-sessions-jRhlBc--/2026-11-18T04-47-07-496Z_01a1ecfa-e2e8-7479-a29f-5590d70e8b2b.jsonl\nContinued session: /tmp/pi-ex-example_sdk_11-sessions-jRhlBc/.pi-agent/sessions/--tmp-pi-ex-example_sdk_11-sessions-jRhlBc--/2026-11-18T04-47-07-518Z_01a1ecfa-e2fe-7479-a29f-55920d77e0dd.jsonl\n\nFound 0 sessions:"
+    "tail": "In-memory session: (none)\nNew session file: /tmp/pi-ex-example_sdk_11-sessions-g71TGM/.pi-agent/sessions/--tmp-pi-ex-example_sdk_11-sessions-g71TGM--/2026-11-18T04-55-35-309Z_01a1ed02-a28d-72ba-972b-9b419f14b2f3.jsonl\nContinued session: /tmp/pi-ex-example_sdk_11-sessions-g71TGM/.pi-agent/sessions/--tmp-pi-ex-example_sdk_11-sessions-g71TGM--/2026-11-18T04-55-35-333Z_01a1ed02-a2a5-72ba-972b-9b423cb5c885.jsonl\n\nFound 0 sessions:"
   },
   {
     "id": "example_sdk_12-full-control",
@@ -176,9 +176,9 @@
     "line": 1,
     "outcome": "ran-no-model",
     "exit": 0,
-    "ms": 1707,
+    "ms": 2105,
     "fauxReplies": 0,
-    "tail": "Initial session: /tmp/pi-ex-example_sdk_13-session-runtime-YgRwXk/.pi-agent/sessions/--tmp-pi-ex-example_sdk_13-session-runtime-YgRwXk--/2026-11-18T04-47-07-596Z_01a1ecfa-e34b-75b6-bc87-5ae7a68e1168.jsonl\nAfter newSession(): /tmp/pi-ex-example_sdk_13-session-runtime-YgRwXk/.pi-agent/sessions/--tmp-pi-ex-example_sdk_13-session-runtime-YgRwXk--/2026-11-18T04-47-07-646Z_01a1ecfa-e37d-75b6-bc87-5ae8e309b410.jsonl\nAfter switchSession(): /tmp/pi-ex-example_sdk_13-session-runtime-YgRwXk/.pi-agent/sessions/--tmp-pi-ex-example_sdk_13-session-runtime-YgRwXk--/2026-11-18T04-47-07-596Z_01a1ecfa-e34b-75b6-bc87-5ae7a68e1168.jsonl"
+    "tail": "Initial session: /tmp/pi-ex-example_sdk_13-session-runtime-poiOVe/.pi-agent/sessions/--tmp-pi-ex-example_sdk_13-session-runtime-poiOVe--/2026-11-18T04-55-35-676Z_01a1ed02-a3fb-745e-a2ee-e3fb0bb50c46.jsonl\nAfter newSession(): /tmp/pi-ex-example_sdk_13-session-runtime-poiOVe/.pi-agent/sessions/--tmp-pi-ex-example_sdk_13-session-runtime-poiOVe--/2026-11-18T04-55-35-728Z_01a1ed02-a430-745e-a2ee-e3fc49280161.jsonl\nAfter switchSession(): /tmp/pi-ex-example_sdk_13-session-runtime-poiOVe/.pi-agent/sessions/--tmp-pi-ex-example_sdk_13-session-runtime-poiOVe--/2026-11-18T04-55-35-676Z_01a1ed02-a3fb-745e-a2ee-e3fb0bb50c46.jsonl"
   },
   {
     "id": "example_sdk_14-codemode-mcp",
@@ -187,7 +187,7 @@
     "line": 1,
     "outcome": "ran",
     "exit": 0,
-    "ms": 2621,
+    "ms": 2977,
     "fauxReplies": 1,
     "tail": "Active tools: read, bash, edit, write, codemode, tool_search\nFaux model: received the tool result, task complete."
   },

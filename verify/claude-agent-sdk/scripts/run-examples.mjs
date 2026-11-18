@@ -144,7 +144,8 @@ await Promise.all(
 );
 results.sort((a, b) => a.id.localeCompare(b.id));
 const outFile = dir.endsWith("extracted") ? "results/run-docs.json" : "results/run-examples.json";
-await writeFile(outFile, JSON.stringify(results, null, 2));
+// A partial run (--only) must not overwrite the full results file.
+if (!only) await writeFile(outFile, JSON.stringify(results, null, 2));
 const tally = {};
 for (const r of results) tally[r.outcome] = (tally[r.outcome] ?? 0) + 1;
 console.log(`\n${results.length} examples:`, tally);
