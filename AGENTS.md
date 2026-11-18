@@ -21,7 +21,7 @@ Instructions for AI coding agents (Claude Code, Codex, OpenCode, Pi, etc.) worki
   - `agent-sdks-and-harness-design.md`: the main report (SDK comparison, reference architecture, build-vs-buy).
   - `agent-ui/`: how agent UIs are built (protocols, web frameworks, terminal and editor UIs, patterns beyond chat), the UI contracts of our eight SDKs, Vercel Labs' UI SDK (`vercel-ui-sdk.md`) undo for agent edits (`undo-agent-edits.md`) hashbrown (`hashbrown.md`) and Copilot's diff review (`copilot-diff-review.md`).
   - `reversible-actions/`: making agent actions safe to fail, retry or reverse: server-side rollback (`server-rollback.md`) sagas for multistep actions (`sagas.md`) and agent rewind versus data rollback (`rewind-vs-rollback.md`). Each report has its own `fact-check-*.md`.
-  - `external-designs/`: outside agent designs read against our own: 12-factor agents (`twelve-factor-agents.md`). Each report has its own `fact-check-*.md`.
+  - `external-designs/`: outside agent designs read against our own: 12-factor agents (`twelve-factor-agents.md`) and the Strands harness SDK (`strands-harness-sdk.md`). Each report has its own `fact-check-*.md`.
   - `harness-architectures.md`: source-level notes on Pi, Codex, OpenAI Agents SDK sandbox agents and Cloudflare Agents/Think.
   - `fact-check-2026-11-18.md`: verification log for the main report.
   - `notes/`: raw research notes behind the report. Treat them as working material; the report and fact-check log supersede them where they disagree.
