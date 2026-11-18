@@ -46,6 +46,7 @@ Once CI exists (X1), the nightly `verify.yml` also runs `pnpm audit --audit-leve
 | --- | --- | --- |
 | X2 | Dependency security: upgrade every vulnerable pin to its latest fixed release, re-verify, record accepted alerts (first pass done 2026-11-18) | None |
 | X1 | CI workflows for the checks and the scheduled verify (done) | None (scheduled after Round S by the owner) |
+| X3 | Make type-check results independent of TypeScript's spelling suggestions, which differ between the runner and our container | X1 |
 
 ## 5. Risks
 
