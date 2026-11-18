@@ -20,7 +20,7 @@ pnpm run verify         # all tiers; writes verify/langchain/results/*.json
 
 ## Upgrading the pinned version
 
-1. Bump the five packages in `verify/langchain/package.json` to exact releases at least two weeks old.
+1. Bump the five packages in `verify/langchain/package.json` to exact releases at least one week old, or to the latest fixed release if a pin has a known vulnerability.
 2. Update `COMMIT` in `scripts/fetch-docs.mjs` to the docs commit you want, then `pnpm install`, `pnpm run fetch-docs` and `pnpm run verify`.
 3. Re-check F1 (bare model ids) and F4 (`ToolRuntime.store`) against the new release, and the `ahead-of-release` list in `results/typecheck-docs.json`.
 4. Diff `results/*.json` against the previous run, then update `guide.md`, `fact-check.md` and the LangChain skill.

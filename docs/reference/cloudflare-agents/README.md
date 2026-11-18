@@ -22,6 +22,6 @@ pnpm run verify               # all tiers; writes verify/cloudflare-agents/resul
 
 ## Upgrading the pinned version
 
-1. Bump `agents`, `@cloudflare/think` and `@cloudflare/ai-chat` in `verify/cloudflare-agents/package.json` to exact releases at least two weeks old, with `miniflare`, `@cloudflare/workers-types` and `COMPAT_DATE` in `scripts/workerd.mjs` matching one workerd release.
+1. Bump `agents`, `@cloudflare/think` and `@cloudflare/ai-chat` in `verify/cloudflare-agents/package.json` to exact releases at least one week old (or the latest fixed release if a pin has a known vulnerability), with `miniflare`, `@cloudflare/workers-types` and `COMPAT_DATE` in `scripts/workerd.mjs` matching one workerd release.
 2. Update the tags in `AGENTS_TAGS` and `DOCS_COMMIT` in `scripts/fetch-docs.mjs`, then run `pnpm install`, `pnpm run fetch-docs` and `pnpm run verify`.
 3. Diff `results/*.json` against the previous run, then update `guide.md` and `fact-check.md`.

@@ -1,6 +1,6 @@
 # OpenAI Agents SDK reference
 
-TypeScript reference for the [OpenAI Agents SDK](https://github.com/openai/openai-agents-js), pinned to **`@openai/agents@0.21.0`**, the newest release at least two weeks old on 2026-11-18. Docs mirrored from git tag `v0.21.0`.
+TypeScript reference for the [OpenAI Agents SDK](https://github.com/openai/openai-agents-js), pinned to **`@openai/agents@0.21.0`**, the newest release at least one week old on 2026-11-18. Docs mirrored from git tag `v0.21.0`.
 
 | File | What it is |
 |---|---|
@@ -20,7 +20,7 @@ pnpm run verify         # all tiers; writes verify/openai-agents-sdk/results/*.j
 
 ## Upgrading the pinned version
 
-1. Bump every `@openai/agents*` version in `verify/openai-agents-sdk/package.json` to the same exact release, at least two weeks old.
+1. Bump every `@openai/agents*` version in `verify/openai-agents-sdk/package.json` to the same exact release, at least one week old.
 2. `pnpm install`, then `pnpm run fetch-docs && pnpm run verify` inside `verify/openai-agents-sdk`.
 3. Check the sandbox tool names in `scripts/scripted-model.mjs` against the new release, so the scripted model still denies them.
 4. Diff `results/*.json` against the previous run, then update `guide.md` and `fact-check.md`.

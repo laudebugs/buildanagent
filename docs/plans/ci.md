@@ -19,10 +19,23 @@ Locally on 4 CPUs with a warm install, `pnpm check` takes under 1 second, `pnpm 
 - **`ci.yml` on every push and pull request:** checkout, Node 22, pnpm through corepack, a cached `pnpm install`, then `pnpm check`, `pnpm typecheck` and `pnpm test`. No secrets.
 - **`verify.yml` nightly and on demand:** the same setup, then `pnpm run fetch-docs` for any harness whose mirror isn't committed (Claude), and `pnpm verify`. The workflow fails when a result file changes, which flags upstream drift for review.
 
+## 3b. Dependency security (X2, added 2026-11-18)
+
+The owner set the dependency policy on 2026-11-18. Pins must be at least one week old, down from two weeks. When a pinned dependency has a known vulnerability, the age rule gives way: move to the latest release that fixes it. GitHub's Dependabot flags vulnerabilities on the default branch; on 2026-11-18 it reported 19 (7 high, 9 moderate, 3 low).
+
+X2 works through every open alert, and keeps doing so as alerts arrive:
+1. **Find the package.** Map the alert to the harness in `verify/<sdk>/package.json`, or to the root `package.json`, that pulls the package in, directly or transitively.
+2. **Upgrade.** Upgrade to the latest release that fixes it. For a transitive dependency, bump the direct dependency that brings it in. Only if no such release exists, add a `pnpm.overrides` entry with a comment that names the alert.
+3. **Re-verify.** Run `pnpm check`, `pnpm typecheck`, `pnpm test` and the affected harness's `pnpm run verify`. Record any change in doc-example results in that SDK's fact-check, because the reference states its pinned version.
+4. **Record unfixable alerts.** If no fixed release exists, record the alert as accepted in the harness README, with the reason the offline harness is not exposed: mock models, no network, an allowlisted environment.
+
+Once CI exists (X1), the nightly `verify.yml` also runs `pnpm audit --audit-level high` and fails on new high alerts.
+
 ## 4. Todos
 
 | ID | Title | Depends on |
 | --- | --- | --- |
+| X2 | Dependency security: upgrade every vulnerable pin to its latest fixed release, re-verify, record accepted alerts | None |
 | X1 | CI workflows for the checks and the scheduled verify | None (scheduled after Round S by the owner) |
 
 ## 5. Risks
