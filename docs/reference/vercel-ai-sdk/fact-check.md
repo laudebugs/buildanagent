@@ -1,6 +1,6 @@
 # The Vercel AI SDK docs match `ai@7.0.162` in their API tables, but a dozen examples lag the release
 
-A developer who copies an example from the AI SDK docs needs it to compile and run against the release npm installed. To test that promise, I checked the agent-relevant pages at git tag `ai@7.0.162` against `ai@7.0.162`, the newest release at least two weeks old. The pages are 74 MDX files, the scope the owner chose: AI SDK Core, agents, harnesses, the core reference, the OpenAI and Anthropic provider pages and the Node cookbook. Four automated tiers did the checking: type-checks, offline runs, an API-surface diff and behavioral tests. All of them live in [`verify/vercel-ai-sdk/`](../../../verify/vercel-ai-sdk/), with raw output in `verify/vercel-ai-sdk/results/`. The reference tables passed cleanly: every documented option of `generateText`, `streamText`, `ToolLoopAgent` and `tool()` exists, and the 20-step default matches. The examples fared worse. Twelve of the 741 blocks fail to compile against the release, most because they use names from older majors or the wrong type, and one more compiles but throws at runtime.
+A developer who copies an example from the AI SDK docs needs it to compile and run against the release npm installed. To test that promise, I checked the agent-relevant pages at git tag `ai@7.0.162` against `ai@7.0.162`, the newest release at least two weeks old. The pages are 74 MDX files, the scope the owner chose: AI SDK Core, agents, harnesses, the core reference, the OpenAI and Anthropic provider pages and the Node cookbook. Four automated tiers did the checking: type-checks, offline runs, an API-surface diff and behavioral tests. All of them live in [`verify/vercel-ai-sdk/`](../../../verify/vercel-ai-sdk/), with raw output in `verify/vercel-ai-sdk/results/`. The reference tables passed cleanly: every documented option of `generateText`, `streamText`, `ToolLoopAgent` and `tool()` exists, and the 20-step default matches. The examples fared worse. Twelve of the 741 blocks fail to compile against the release, because they use names from older majors, omit required arguments or misuse types, and one more compiles but throws at runtime.
 
 ## Reproduce the checks in three commands
 
@@ -44,7 +44,7 @@ A script compares the reference pages' parameter tables with the options the pac
 
 | Surface | Docs | Package | Differences |
 |---|---|---|---|
-| `generateText` parameters | 51 | 60 | `experimental_toolApprovalSecret` unlisted; 8 deprecated aliases unlisted |
+| `generateText` parameters | 51 | 60 | `experimental_toolApprovalSecret` unlisted (the tool-approvals page covers it); 8 deprecated aliases unlisted |
 | `streamText` parameters | 57 | 66 | The same |
 | `ToolLoopAgent` settings | 45 | 54 | `onLanguageModelCallStart`, `onLanguageModelCallEnd`, `reasoning`, `timeout` and `experimental_toolApprovalSecret` unlisted; 4 aliases unlisted |
 | `tool()` options | 21 | 21 | None |
@@ -76,7 +76,7 @@ Nine programs in `verify/vercel-ai-sdk/examples/` assert documented behavior on 
 
 One test of my own was wrong at first. Example 05 expected `NoOutputGeneratedError` for a schema failure, but the docs say `NoObjectGeneratedError`, and the package agrees. I fixed the test and added the case the docs assign to `NoOutputGeneratedError`.
 
-## Eight findings: seven doc errors, one gap
+## Eight findings: seven doc errors, one gap in the tables
 
 **F1. Three examples read `textDelta` from stream parts.** In 7.0, a `text-delta` part carries its text in `text`, and reasoning arrives as `reasoning-delta` parts. Yet `foundations/06-provider-options.mdx:95`, `ai-sdk-core/26-reasoning.mdx:39` and `openai.mdx:498` still read `part.textDelta`, and the reasoning page tests `part.type === 'reasoning'`, a type that no longer exists. Neither condition can match, so these examples print nothing. Example 06 shows the current shape.
 
@@ -92,7 +92,7 @@ One test of my own was wrong at first. Example 05 expected `NoOutputGeneratedErr
 
 **F7. Three small example errors.** First, the reference examples for `isStepCount` and `hasToolCall`, and the metadata block at `openai.mdx:350`, call `generateText` without a prompt. Second, `openai.mdx` puts its `file_search` case on the wrong switch. The text-annotation switch at line 1994 lists `file_search`, which that union lacks, while the source-document switch at line 2129 omits it from an exhaustive `never` check. Third, the custom `Agent` sketch in `15-agent.mdx` returns partial results that don't satisfy the interface.
 
-**F8. A handful of options appear on no page.** `experimental_toolApprovalSecret` appears in no table and on no page in scope. The `ToolLoopAgent` table omits `onLanguageModelCallStart`, `onLanguageModelCallEnd`, `reasoning` and `timeout`, although the settings type accepts all four. The package still exports `stepCountIs`, the older name of `isStepCount`, which the pages no longer mention.
+**F8. A handful of options are missing from the reference tables.** `experimental_toolApprovalSecret` is missing from the `generateText`, `streamText` and `ToolLoopAgent` tables, although `agents/06-tool-approvals.mdx` documents it. The `ToolLoopAgent` table omits `onLanguageModelCallStart`, `onLanguageModelCallEnd`, `reasoning` and `timeout`, although the settings type accepts all four. The package still exports `stepCountIs`, the older name of `isStepCount`, which the pages no longer mention.
 
 ## Verdict: trust the reference tables, and compile examples before you copy them
 

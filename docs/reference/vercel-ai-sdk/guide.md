@@ -2,7 +2,7 @@
 
 *Version `ai@7.0.162`, TypeScript, November 2026. **[verified: NN]** marks a claim asserted by example `NN` in [`verify/vercel-ai-sdk/examples/`](../../../verify/vercel-ai-sdk/examples/), run offline on `MockLanguageModelV4` from `ai/test`. Other claims cite their upstream page in [`source/content/`](source/content/), mirrored from git tag `ai@7.0.162`; [fact-check.md](fact-check.md) rates those pages.*
 
-The Vercel AI SDK began as a library for calling models, and its agent support grew on top of that library rather than beside it. A single `generateText` call becomes an agent once you give it tools and a stop condition, and `ToolLoopAgent` packages those settings into a reusable object. The result is the thinnest loop of the four SDKs in this repo: no built-in tools, no session store, no tracing exporter. Two defaults still reach outside your process. Model strings such as `'openai/gpt-5'` go to Vercel's AI Gateway, and telemetry starts flowing as soon as you register an integration. In this guide, I explain how the loop, its stop conditions and its approval policy fit together, and I build a gated support-triage agent from them.
+The Vercel AI SDK began as a library for calling models, and its agent support grew on top of that library rather than beside it. A single `generateText` call becomes an agent once you give it tools and a stop condition, and `ToolLoopAgent` packages those settings into a reusable object. The result is the thinnest loop of the four SDKs in this repo: no built-in tools, no session store, no tracing exporter. Two defaults still reach outside your process. Model strings such as `'openai/gpt-5'` go to Vercel's AI Gateway, and telemetry starts flowing as soon as you register an integration. In this guide, I explain how the loop, its stop conditions and its approval policy fit together, and I build a gated support-triage agent from them, one that sets its own step limit, approval gates and model routing instead of trusting the defaults.
 
 ## 1. The SDK is a model-call library with a thin tool loop on top
 
@@ -27,7 +27,7 @@ model: anthropic("claude-sonnet-4-5");      // direct to Anthropic, reads ANTHRO
 model: "anthropic/claude-sonnet-4-5";       // through the AI Gateway, reads AI_GATEWAY_API_KEY
 ```
 
-> **Gotcha.** "The AI SDK uses AI Gateway by default for model strings" (`providers/…/05-anthropic.mdx`). A string model id sends the request, and its billing, through Vercel's gateway, not to the model's vendor. The SDK resolves strings through `globalThis.AI_SDK_DEFAULT_PROVIDER`, falling back to the gateway (`ai/dist/index.js`), so you can point strings at your own provider. The docs site also fills its examples' `__MODEL__` placeholder with a gateway string by default, so copied examples use the gateway unless you change them.
+> **Gotcha.** "The AI SDK uses AI Gateway by default for model strings" (`providers/…/05-anthropic.mdx`). A string model id sends the request through Vercel's gateway and its API key, instead of directly to the model's vendor. The SDK resolves strings through `globalThis.AI_SDK_DEFAULT_PROVIDER`, falling back to the gateway (`ai/dist/index.js`), so you can point strings at your own provider. The docs site also fills its examples' `__MODEL__` placeholder with a gateway string by default, so copied examples use the gateway unless you change them.
 
 ## 3. `generateText` returns the answer, and system prompts belong in `instructions`
 
@@ -67,7 +67,7 @@ const result = await generateText({ model, tools: { weather }, stopWhen: isStepC
 
 > **Gotcha.** `generateText` and `streamText` default to `stopWhen: isStepCount(1)` (`generateTextInternal` in `ai/dist/index.js`). With that default, the SDK still runs the step's tools, but it never calls the model again, so `result.text` is empty. **[verified: 02]** Set `stopWhen` whenever you pass tools to these functions.
 
-A tool without `execute` stops the loop and hands the call to you, which is how the cookbook's manual agent loop works (`cookbook/05-node/55-manual-agent-loop.mdx`). Provider-defined tools, such as `anthropic.tools.bash_20250124()` or `openai.tools.webSearch()`, have schemas fixed by the provider. Some run on the provider's servers, and the bash and editor tools run through an `experimental_sandbox` you supply (`providers/…/05-anthropic.mdx`).
+A tool without `execute` stops the loop and hands the call to you, which is how the cookbook's manual agent loop works (`cookbook/05-node/55-manual-agent-loop.mdx`). Provider-defined tools, such as `anthropic.tools.bash_20250124()` or `openai.tools.webSearch()`, have schemas fixed by the provider. Some run on the provider's servers, and Anthropic's bash tool runs commands through an `experimental_sandbox` you supply (`providers/…/05-anthropic.mdx`).
 
 ## 5. `ToolLoopAgent` packages the loop and stops after 20 steps by default
 
@@ -120,7 +120,11 @@ messages.push({ role: "tool", content: [{ type: "tool-approval-response", approv
 const second = await agent.generate({ messages });
 ```
 
-The tool never runs on the first call. After approval it runs exactly once, and after a denial the model sees an `execution-denied` result and can still answer. **[verified: 03]** A `'denied'` policy skips the tool without stopping the loop. **[verified: 03]** The pause state lives in the messages, so you can store them anywhere and resume later; no state object needs serialising. Deterministic rules can come from an OPA policy through `@ai-sdk/policy-opa` (`agents/06-policy-tool-approvals.mdx`).
+The tool never runs on the first call. After approval it runs exactly once, and after a denial the model sees an `execution-denied` result and can still answer. **[verified: 03]** A `'denied'` policy skips the tool without stopping the loop. **[verified: 03]** The messages are the whole pause state, so you can store them anywhere and resume later.
+
+> **Gotcha.** Approval responses arrive with the client's messages, so a client can forge one. Set `experimental_toolApprovalSecret` on the agent, or on `generateText` and `streamText`. The server then HMAC-signs each approval request and rejects a tampered or forged response before the tool runs (`agents/06-tool-approvals.mdx`).
+
+Deterministic rules can come from an OPA policy through `@ai-sdk/policy-opa` (`agents/06-policy-tool-approvals.mdx`).
 
 ## 8. `Output.object` returns typed output, and two errors mark its failures
 
@@ -138,7 +142,7 @@ The SDK asks the model for JSON with the schema's JSON Schema and name, then par
 
 ## 9. `streamText` returns at once and streams text or typed parts
 
-`streamText` takes the same options and returns immediately (`ai-sdk-core/05-generating-text.mdx`). `result.textStream` yields text chunks, `result.stream` yields typed parts (`start`, `start-step`, `text-delta`, `finish-step`, `finish` and the tool parts), and promises such as `result.text` resolve when the stream ends. **[verified: 06]** A `text-delta` part carries its text in `text`. Three pages still read `textDelta`, the property's name in older majors (F1). **[verified: 06]** Callbacks such as `onEnd` fire only once something consumes the stream, so call `result.consumeStream()` when nothing else reads it. **[verified: 06]**
+`streamText` takes the same options and returns immediately (`ai-sdk-core/05-generating-text.mdx`). `result.textStream` yields text chunks, `result.stream` yields typed parts (`start`, `start-step`, `text-delta`, `finish-step`, `finish` and the tool parts), and promises such as `result.text` resolve when the stream ends. **[verified: 06]** A `text-delta` part carries its text in `text`. **[verified: 06]** Three pages still read `textDelta`, the property's name in older majors (F1). Callbacks such as `onEnd` fire only once something consumes the stream, so call `result.consumeStream()` when nothing else reads it. **[verified: 06]**
 
 ## 10. MCP tools become ordinary tools
 
@@ -160,13 +164,13 @@ try {
 
 ## 11. Memory, durability and full harnesses live outside the core
 
-Three needs fall outside `ToolLoopAgent`, and the SDK answers each with a separate package or pattern:
+Four needs fall outside `ToolLoopAgent`, and the SDK answers each with a separate package or pattern:
 - **Memory.** There is no session store. The memory page lists three approaches: provider-defined memory tools (Anthropic's), memory providers such as Letta and Mem0, and a custom tool over your own store (`agents/06-memory.mdx`). Between calls, you keep `messages` yourself.
 - **Durability.** `WorkflowAgent` in `@ai-sdk/workflow` runs the same loop as durable workflow steps, so a run survives restarts and approvals suspend the workflow. It still honours tool-level `needsApproval` (`agents/07-workflow-agent.mdx`).
 - **Subagents.** A subagent is a tool whose `execute` calls another agent, which keeps a long subtask's context out of the parent's history (`agents/06-subagents.mdx`).
 - **Harnesses.** `HarnessAgent` in `@ai-sdk/harness` runs a complete agent runtime, such as Claude Code, Codex or Pi, behind one AI SDK interface, with its own tools, sessions and compaction (`ai-sdk-harnesses/01-overview.mdx`).
 
-This split matches the repo's reference architecture: a stateless loop in the core, with state and sandboxes behind separate interfaces. The harness has not verified these packages; only `@ai-sdk/mcp` and `@ai-sdk/harness` are installed, and only for type-checking.
+This split matches the repo's reference architecture: a stateless loop in the core, with state and sandboxes behind separate interfaces. Our examples verify none of these four; the harness installs `@ai-sdk/harness` only to type-check its pages.
 
 ## 12. `MockLanguageModelV4` makes the loop testable offline
 
@@ -181,7 +185,7 @@ Telemetry in 7.0 is integration-based: register one, such as `OpenTelemetry` fro
 Four choices keep a deployed agent safe and predictable:
 - **Routing.** Use provider instances, or point `AI_SDK_DEFAULT_PROVIDER` at your own provider, unless you intend to route model strings through the AI Gateway.
 - **Limits.** Set `stopWhen` on every call with tools and on every agent; the defaults are 1 step for `generateText` and 20 for `ToolLoopAgent`.
-- **Gates.** Put `toolApproval: 'user-approval'` on every tool that changes state, and persist `messages` so a paused run can resume.
+- **Gates.** Put `toolApproval: 'user-approval'` on every tool that changes state, set `experimental_toolApprovalSecret` so clients can't forge approvals, and persist `messages` so a paused run can resume.
 - **Telemetry.** Register an integration deliberately, and opt sensitive calls out with `isEnabled: false`.
 
 ## 15. A gated triage agent takes four settings
