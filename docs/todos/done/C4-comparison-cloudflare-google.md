@@ -3,7 +3,7 @@
 | Field | Value |
 | --- | --- |
 | ID | `C4` |
-| Status | `ongoing` |
+| Status | `done` |
 | Plan | [SDK comparison §4](../../plans/sdk-comparison.md#4-todos) |
 | Round / milestone | M2c (added 2026-11-18) |
 | Depends on | [C5](../ready/C5-typescript-gaps.md) |
@@ -30,14 +30,14 @@ Add Cloudflare, Google ADK and Copilot to the comparison, with a TS-parity row f
 
 ## Tasks
 
-- [ ] Do the work the title names, following the plan section
-- [ ] Draft any prose with `/anthropic-skills:writing` and review it with `/anthropic-skills:writing-review`
-- [ ] Run the local checks and push
+- [x] Do the work the title names, following the plan section
+- [x] Draft any prose with `/anthropic-skills:writing` and review it with `/anthropic-skills:writing-review`
+- [x] Run the local checks and push
 
 ## Acceptance criteria
 
-- [ ] The deliverables named in the plan exist and pass review
-- [ ] `pnpm check`, `pnpm typecheck` and `pnpm test` pass
+- [x] The deliverables named in the plan exist and pass review
+- [x] `pnpm check`, `pnpm typecheck` and `pnpm test` pass
 
 ## Tests
 
@@ -54,6 +54,6 @@ Cloudflare needs the Workers runtime locally (workerd); Google's TypeScript ADK 
 ## Definition of done
 
 - [x] Claimed: the first commit moved this file `ready/` → `ongoing/` (Status `ongoing`)
-- [ ] Prose drafted with `/anthropic-skills:writing` and reviewed with `/anthropic-skills:writing-review`, with the fixes applied and changed claims re-checked
-- [ ] `pnpm check`, `pnpm typecheck` and `pnpm test` pass locally; pushed after each meaningful step
-- [ ] This file moved `ongoing/` → `done/` (Status `done`), and the plan's todo table updated
+- [x] Prose drafted with `/anthropic-skills:writing` and reviewed with `/anthropic-skills:writing-review`, with the fixes applied and changed claims re-checked
+- [x] `pnpm check`, `pnpm typecheck` and `pnpm test` pass locally; pushed after each meaningful step
+- [x] This file moved `ongoing/` → `done/` (Status `done`), and the plan's todo table updated

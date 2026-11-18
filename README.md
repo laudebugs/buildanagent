@@ -16,9 +16,9 @@ The repo is documentation only for now. The research compares vendor agent SDKs,
 |---|---|
 | [docs/plans/](docs/plans/) | The plans and roadmap for this phase: SDK references, comparison, skills, build guides and implementation plans |
 | [docs/todos/](docs/todos/) | The todo board: every planned batch of work, by state |
-| [docs/comparison/deep-comparison.md](docs/comparison/deep-comparison.md) | The same triage agent built on all five SDKs, the design trade-offs, and lessons for our own SDK, harness and agent |
+| [docs/comparison/deep-comparison.md](docs/comparison/deep-comparison.md) | The same triage agent built on all eight SDKs, the design trade-offs, and lessons for our own SDK, harness and agent |
 | [docs/comparison/typescript-gaps.md](docs/comparison/typescript-gaps.md) | What each TypeScript SDK lacks, has in weaker form, or has documented only for its primary language (Python, mostly), with sources on both sides |
-| [docs/comparison/feature-table.md](docs/comparison/feature-table.md) | The five SDKs side by side, one row per feature, every cell linked to its verified or documented source |
+| [docs/comparison/feature-table.md](docs/comparison/feature-table.md) | The eight SDKs side by side, one row per feature (including primary language and TypeScript parity), every cell linked to its verified or documented source |
 | [docs/research/practitioners/practitioner-research.md](docs/research/practitioners/practitioner-research.md) | What 18 months of Hacker News threads (400 threads, 111,533 comments) say about building agents, set against the vendor and paper evidence |
 | [docs/research/agent-sdk/](docs/research/agent-sdk/), [agent-harness/](docs/research/agent-harness/), [agent/](docs/research/agent/) | Deep research on building an agent SDK, an agent harness and an agent: notes, a synthesis with design decisions, and a fact-check log each |
 | [docs/research/agent-sdks-and-harness-design.md](docs/research/agent-sdks-and-harness-design.md) | Main report: vendor SDKs vs OSS frameworks vs building our own; 8-layer reference architecture; build-vs-buy |
