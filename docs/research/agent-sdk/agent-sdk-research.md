@@ -1,0 +1,337 @@
+# One streamed loop, errors as data and a shipped test model: how to build an agent SDK
+
+- **Status:** research synthesis for todo G1a, 2026-11-18. The [build-guides plan](../../plans/build-guides.md) defines the scope; the guide G1b will be written from this
+  file.
+- **Versions checked (as of November 2026):** `@anthropic-ai/claude-agent-sdk@0.3.327`, Pi (`@earendil-works/pi-ai`, `pi-agent-core`, `pi-coding-agent`) `1.5.2`,
+  `@openai/agents-core@0.21.0`, `ai@7.0.162` with `@ai-sdk/provider@4.0.35`, and `langchain@1.6.1` with `@langchain/core@1.3.4` and `@langchain/langgraph@1.6.0`.
+- **Sources:** five research notes in [`notes/`](notes/) cite file and line ranges in `verify/<sdk>/node_modules/`. LangChain claims cite the [LangChain
+  guide](../../reference/langchain/guide.md) and [fact-check](../../reference/langchain/fact-check.md), or paths under `verify/langchain/node_modules/` that I opened for
+  this synthesis. Corrections are logged in [fact-check.md](fact-check.md).
+- **Scope:** the library layer only, as [build-guides §2](../../plans/build-guides.md) defines it. Sessions, compaction, permissions, sandboxes and interfaces belong to
+  the harness round ([`docs/research/agent-harness/`](../agent-harness/)), and this file links to that layer rather than covering it.
+
+We plan to build our own agent SDK, and the five SDKs we verified already show where the hard parts are. Their loops differ in under a page of code, yet the five disagree
+on almost every default: the turn cap ranges from one model call to none, the retry count from zero to six, and tool errors reach the model as anything from a precise
+path-level message to "Please try again". Those defaults, more than the API surface, decide whether an agent built on the SDK is safe, testable and cheap to change. This
+report answers the five G1a research questions in turn (provider abstraction, loop shapes, tools, hooks and versioning, offline testability), compares what the SDKs do,
+and turns the evidence into fourteen design decisions, the gaps behind them and the choices Round P must still make. My conclusion is that our SDK should be a single
+in-process loop written once as a pure streaming function over a versioned, stream-first model spec, that it should return every failure as data in the transcript, and
+that it should ship a strict scripted test model in a `testing` export from the first release.
+
+## 1. The model boundary works best as one versioned streaming method over a provider-neutral transcript
+
+**The five SDKs split into thin specs, a fat transcript, a runnable class and no boundary at all.** Vercel and OpenAI put a two-method, normalised model interface under a
+loop that owns retries and usage. Pi puts a normalised transcript and event stream at the boundary and prices every message. LangChain makes the model a `Runnable` class
+with an abstract `_generate`. The Claude Agent SDK exposes no provider interface, because the model layer runs inside the CLI subprocess (notes/provider-abstraction.md
+§1).
+
+| | Interface | Stream protocol | Errors | Retries (default) | Usage and cost |
+|---|---|---|---|---|---|
+| Vercel | `LanguageModelV4`: `doGenerate`, `doStream`, `specificationVersion: 'v4'` (`VP:3453-3495`) | `text/reasoning/tool-input` start, delta and end, keyed by id (`VP:3351-3418`) | streamed `error` part or thrown `APICallError` | 2 retries, 2 s initial delay, ×2 (`VAI:2325`, `2346-2375`) | four input classes, no cost in core (`VP:695-740`) |
+| Pi | `stream()` plus `streamSimple()`; `complete()` derives from the stream (`PI/types.d.ts:205-210`) | `start`, `text_*`, `thinking_*`, `toolcall_*`, then exactly one `done` or `error` (`PI/types.d.ts:577-645`) | in-band: `stopReason: "error" \| "aborted"` | vendor retries off; abortable backoff `min(0.5·2^n, 8)` s; a turn-level retry above it (notes/provider-abstraction.md §4) | `cost` on every assistant message, from a catalog (`PI/types.d.ts:306-319`) |
+| OpenAI | `Model`: `getResponse`, `getStreamedResponse`, optional `getRetryAdvice` (`OA/model.d.ts:533-556`) | thin: `response_started`, `output_text_delta`, `response_done`; tool calls arrive only in `response_done` | thrown | opt-in: "no retries occur unless `policy` returns `true`" (`OA/model.d.ts:218-232`) | tokens and per-request entries, no cost (`OA/usage.d.ts:24-94`) |
+| LangChain | `BaseChatModel`: abstract `_generate`, optional `_streamResponseChunks` (`@langchain/core/dist/language_models/chat_models.d.ts:143, 309`) | content-block events `MessageStart → ContentBlockStart/Delta/Finish → MessageFinish` (`chat_models.d.ts:150-170`) | thrown | `AsyncCaller` default `maxRetries` 6 (`@langchain/core/dist/utils/async_caller.js:182`) | `usage_metadata` with `cache_read` and `cache_creation` details (`@langchain/core/dist/messages/metadata.d.ts:46-89`) |
+| Claude | none public; `model`, `fallbackModel`, `setModel()` (`CL:2131`, `1822`, `3215`) | raw Anthropic `BetaRawMessageStreamEvent`, opt-in (`CL:6028-6034`) | result subtypes | in the CLI, reported as `SDKAPIRetryMessage` (`CL:3867-3885`) | `costUSD` per model with a `costBasis` flag (`CL:1561-1595`) |
+
+**Every stream vocabulary converges on start, delta and end per content block, with one terminal event.** Vercel keys parts by string id, Pi by `contentIndex` with a live
+`partial` message, and LangChain by block index; LangChain's docs state the only invariant as "a block's start precedes its deltas, and its deltas precede its finish"
+(`chat_models.d.ts:161-163`). Pi goes one step further and guarantees that no update arrives before `start` and that the stream ends with exactly one `done` or `error`
+(`PI/types.d.ts:579-590`). Because Pi derives its non-streaming call from the stream, every adapter implements one method instead of two (notes/provider-abstraction.md,
+implication 1). The evidence therefore favours one streaming method with a terminal-event guarantee.
+
+**Cross-provider replay needs an explicit transform pass, and Pi's is the only complete one.** Before each request, Pi's `transformMessages` drops thinking from a
+different model, because "signatures and encrypted reasoning are only valid for the model that produced them" (`PI/api/transform-messages.js:91-104`). The same pass
+strips foreign signatures, remaps tool-call ids to the target provider's charset, replaces images for text-only models, skips errored turns and gives orphaned tool calls
+a synthetic error result (`:38-213`). Vercel reaches a similar outcome through namespaced `providerOptions`, but it drops unsigned reasoning with only a warning
+(`VANT:3030-3067`). OpenAI instead routes every provider through the Responses item model and adapts others with `aisdk()` (notes/provider-abstraction.md §2). A
+transcript the SDK owns, plus one tested transform pass, is the safer design.
+
+**Retries need three layers and replay-safety rules, and the five defaults disagree.** HTTP retries before any output are safe; Pi disables vendor-SDK retries because
+"their built-in retry timers ignore the request AbortSignal" (`PI/utils/provider-retry.js:68-75`). Mid-stream retries are not safe: OpenAI refuses to replay once output
+has started, after a timeout, or on stateful requests unless a policy approves (`OA/model.d.ts:75-95, 146-200`). Above the model, Pi retries whole turns but excludes
+quota and billing errors (`PI/utils/retry.js:4-112`). The defaults run from zero (OpenAI) through two (Vercel) to six (LangChain), with Pi's layered policy in between. I
+side with a small non-zero HTTP default, because zero pushes every caller to write a policy and six multiplies the delay before a real failure surfaces.
+
+**Usage must fix one token convention and attach cost to each message.** Vercel's Anthropic adapter reports `inputTokens.total` as input plus both cache classes, while Pi
+stores uncached input alone (`VANT:2232-2273`; `PI/api/anthropic-messages.js:694-700`). LangChain splits cache reads and writes into `input_token_details`
+(`metadata.d.ts:46-52`). Only Pi and Claude compute cost, and Claude records which price table it used (`CL:1591-1594`). Prompt caching follows the same split: Pi offers
+one portable `cacheRetention` setting with automatic breakpoints on the system prompt, the last tool and the last user or tool-result block
+(`PI/api/anthropic-messages.js:1408-1432`), while Vercel makes callers place Anthropic breakpoints themselves (notes/provider-abstraction.md §5).
+
+**Only Vercel versions its provider spec, and its Proxy shims keep old providers running.** Every Vercel model carries `specificationVersion`, and `resolveLanguageModel`
+upgrades V2 and V3 models to V4 through `Proxy` adapters that rewrite only what changed (`VAI:714-998`). Pi evolves by adding optional fields, OpenAI by adding optional
+methods, and `@langchain/core` has no `specificationVersion` field at all (grep of `verify/langchain/node_modules/@langchain/core/dist`). The recommendation follows: own
+a neutral transcript, put one streaming method at the boundary, version it from day one, and run retries and caching in the gateway.
+
+## 2. The loop should be an in-process pure function whose pauses are log states
+
+**Three loop shapes exist, and they differ in who owns the loop state.** The in-process shape (Vercel, Pi, OpenAI, LangChain) keeps state in the JavaScript heap for one
+call. The subprocess shape (Claude, Codex's TypeScript SDK) keeps it in a CLI process. The durable shape (Vercel `WorkflowAgent`, Temporal adapters, Anthropic Managed
+Agents) keeps it in an external event history (notes/loop-shapes.md §1). LangChain sits between the first and third: `createAgent` compiles a two-node LangGraph graph
+that runs in your process, but a checkpointer persists its state per `thread_id` ([LangChain guide §1, §8](../../reference/langchain/guide.md)). The minimal baseline is
+small: mini-swe-agent's whole control flow is `while True: step()` (`mini/src/minisweagent/agents/default.py:88-157`, notes/loop-shapes.md §1).
+
+| | Default cap | At the cap | Pause form | Streaming and non-streaming |
+|---|---|---|---|---|
+| Vercel `generateText` | `isStepCount(1)` (`ai/dist/index.js:5199`) | stops after one model call | messages as state | two loops with duplicated stop logic (`index.js:5389` vs `10243`) |
+| Vercel `ToolLoopAgent` | 20 steps, with a warning (`index.js:10611-10626, 10675`) | returns normally | messages as state | same two loops |
+| OpenAI `run()` | `DEFAULT_MAX_TURNS = 10` (`runner/constants.js:5`) | throws `MaxTurnsExceededError` | serialised `RunState` | two paths (`run.js:540`, `1293`) |
+| Pi `agentLoop` | none | the host stops it | blocking callback | one loop, always streamed |
+| Claude | none: "the loop runs until Claude finishes" (`agent-loop.md:48`) | `error_max_turns` result | blocking callback over stdio | CLI-internal |
+| LangChain `createAgent` | 25 graph super-steps (`@langchain/core/dist/runnables/config.js:85`) | throws `GraphRecursionError` | checkpoint interrupt, resumed with `Command` | graph `streamMode`s over one graph |
+
+**The defaults diverge from a footgun to no limit.** Vercel's `generateText` default runs tools but never shows their results to the model (notes/loop-shapes.md §3). At
+the other end, Pi and Claude impose no cap. LangChain counts something else again: its recursion limit counts graph super-steps, so each model call and each tools step
+consume one, and the default of 25 allowed 13 model calls in our test ([LangChain guide §9](../../reference/langchain/guide.md), [verified: 06]). Turn accounting matters
+as much as the number. OpenAI does not charge approval resolution as a turn (`runner/turnPreparation.js:166-178`), and Claude counts the final text-only answer as a turn
+(`agent-loop.md:46`). A cap that reads in model calls, plus a spend cap, is the only unit a caller can reason about.
+
+**Pausing for approval takes four forms, and only three survive a restart.** OpenAI serialises a `RunState` with `toString()` and resumes from it
+(`runState.js:2518-2535`). Vercel treats the message array as the state: the caller appends a `tool-approval-response` and calls again, and optional HMAC signing stops a
+forged history from approving a call (`index.js:5300-5384, 5656-5662`). LangChain's `humanInTheLoopMiddleware` interrupts the graph, stores the pause in the checkpointer,
+and resumes on the same thread with `Command({ resume: { decisions } })` ([LangChain guide §6](../../reference/langchain/guide.md), [verified: 03]). Claude and Pi block
+on a callback, so the pause dies with the process (notes/loop-shapes.md §5). Pausing therefore belongs in data, as a log state that any process can resume.
+
+**One loop for both modes gives streaming parity for free.** Pi has one loop that always streams, and its non-streaming API returns the final `agent_end` messages
+(`agent-loop.js:78-80`). Vercel and OpenAI keep two implementations each, and `WorkflowAgent` documents a resulting gap: `generate()` caps at 20 steps while `stream()` is
+unbounded (`07-workflow-agent.mdx:805`). Pi's `agentLoopContinue` resumes from any context whose last message is a user or tool result (`agent-loop.js:33-47`), which
+matches Managed Agents' `wake(sessionId)` contract ([Managed Agents](https://www.anthropic.com/engineering/managed-agents)). Durability then becomes an adapter over the
+log, not a second loop (notes/loop-shapes.md §10).
+
+**Abort and steering each have a race the SDK must close.** Pi's parallel dispatch `break`s on abort, so some tool calls may get no result message
+(`agent-loop.js:455-457`). Pi and Vercel both drain steering only at step boundaries, never inside a running tool batch, and Vercel adds a delivery receipt per message
+(`index.js:4554-4597`). Claude's `interrupt()` returns a receipt listing still-queued messages, because interrupt-versus-queue races across a process boundary
+(`CL:3171-3178`). The recommendation is an in-process loop written once, a cap in model calls, pauses as resumable log states, and an abort that always leaves a
+well-formed transcript; the subprocess shape stays a deployment option for the harness round.
+
+## 3. Tools should accept Standard Schema, validate in the SDK and return every failure to the model
+
+**Four of the five SDKs accept a schema library plus raw JSON Schema; Claude accepts only Zod.** Vercel and OpenAI accept any Standard Schema that also emits JSON Schema,
+and they reject one that cannot (`provider-utils/dist/index.js:3224-3251`; `agents-core/dist/utils/tools.mjs:107-121`). Pi takes any JSON Schema object and validates it
+with its own eval-free validator (`pi-schema/package.json:4`). LangChain's tool schema type is `InteropZodType | JsonSchema7Type`
+(`@langchain/core/dist/tools/types.d.ts:42`). Claude takes a Zod raw shape, because its tools register on an in-process MCP server (`sdk.d.ts:5829-5836`).
+
+| | Schema input | Validates raw JSON Schema | Error text the model sees | Parallel by default | Serialisation control |
+|---|---|---|---|---|---|
+| Vercel | Zod, Standard Schema with JSON Schema, `jsonSchema()` | no, unless a validator is passed (`index.js:3324-3330`) | `Invalid input for tool X: <cause>` | yes (`Promise.all`) | one numeric `toolCallConcurrency` |
+| Pi | any JSON Schema | yes, with coercion (`validation.js:12, 41-48`) | each error path plus the received arguments | yes (`agent.js:147`) | per-tool `executionMode: "sequential"`; per-file queue |
+| OpenAI | Zod, Standard Schema, JSON Schema; `strict` defaults to true (`tool.mjs:694`) | no: parse plus strict-null stripping | "An error occurred while running the tool. Please try again." (`tool.js:572-574`) | yes | `maxFunctionToolConcurrency`; shell and patch in model order |
+| LangChain | Zod or JSON Schema 7 | yes (`@langchain/core/dist/tools/index.js:104-122`) | "Received tool input did not match expected schema", prettified Zod issues; other errors end "Please fix your mistakes." (`langchain/dist/agents/nodes/ToolNode.js:31-46`) | yes: `Promise.all` in graph v1 (`ToolNode.js:346`), one `Send` task per call in v2 (`ReactAgent.js:397`) | none per tool |
+| Claude | Zod raw shape | MCP SDK validation | MCP error result | read-only tools only (docs) | `readOnlyHint` |
+
+**Validation belongs in the SDK, and its failures must reach the model in detail.** Provider strict mode is not enough. Vercel's raw JSON Schema and dynamic MCP tools
+reach `execute` unvalidated, and OpenAI's raw schemas rely on constrained decoding (notes/tools.md §3). The error text decides whether the model can self-correct. Pi
+sends the dotted path of each failure and the received arguments, while OpenAI's default hides the cause behind a generic retry message (`tool.mjs:512-520`). The MCP
+specification warns that otherwise "the LLM would not be able to see that an error occurred and self-correct" (`spec.types.d.ts:1046-1060`). Anthropic's tool guide asks
+for errors that "clearly communicate specific and actionable improvements" ([Writing tools for agents](https://www.anthropic.com/engineering/writing-tools-for-agents)).
+
+**The SDKs agree that tool failures return as data, and LangChain adds one exception.** Pi never rejects for a tool failure: unknown tools, invalid arguments, blocked
+calls and exceptions all become `isError: true` results (`agent-loop.js:556-564`). Vercel produces `tool-error` parts, and OpenAI returns its default error function's
+text (notes/loop-shapes.md §4). LangChain's default handler turns tool errors into a `ToolMessage` with `status: "error"`, but an error thrown from `wrapToolCall`
+middleware bubbles up unless `handleToolErrors` is `true` (`ToolNode.js:150-153`). Truncated responses deserve the same care: Pi fails every tool call in a
+`length`-stopped message with a "re-issue" error instead of executing salvaged JSON (`agent-loop.js:164-170, 348-368`).
+
+**Parallel execution is the universal default, and safety comes from per-tool classes.** Every in-process SDK starts all calls in a step at once and appends results in
+model order (notes/loop-shapes.md §8). Only Pi lets a tool force the batch sequential, and only its file tools serialise per path, so "operations for different files
+still run in parallel" (`file-mutation-queue.d.ts:1-5`). LangChain shows a cost of durable tool dispatch: its graph v2 gives each tool call its own checkpointed task, and
+its own docs warn that checkpoint writes "can cause effective serialisation" when tools invoke sub-graphs (`langchain/dist/agents/types.d.ts:692-710`). MCP annotations
+such as `readOnlyHint` are untrusted hints, and the specification says clients "should never make tool use decisions" on them from untrusted servers
+(`spec.types.d.ts:1098-1108`).
+
+**Tool results need three channels.** Pi separates `content` for the model, `details` for the UI and log, and `structuredContent`, which is "not sent to the model"
+(`pi-agent-core/dist/types.d.ts:370-392`). Vercel maps domain values to a typed model-output union through `toModelOutput` (`provider-utils/dist/index.d.ts:380-470`). Two
+adapters lose MCP's `isError`: Vercel returns an `isError` result as a normal value (`@ai-sdk/mcp/dist/index.js:2934`) and OpenAI keeps it only for its data extractor
+(`agents-core/dist/mcp.mjs:732-760`). The recommendation is a canonical Standard Schema, validation with coercion inside the SDK, actionable errors as results, parallel
+execution with per-tool and per-resource serialisation, and a three-channel result.
+
+## 4. Callers need six typed interceptors, a layered event union and an explicit deprecation pipeline
+
+**Every SDK separates observers from interceptors, and the clean ones say so in the type.** Vercel and OpenAI keep observers fire-and-forget and give interceptors
+distinct names; Pi and Claude route both through one registry and let the result type decide (notes/hooks-events-api.md, thesis). LangChain's middleware has exactly six
+hooks: `beforeAgent`, `afterAgent`, `beforeModel`, `afterModel`, `wrapModelCall` and `wrapToolCall` (`langchain/dist/agents/middleware/types.d.ts:352-417`). Its 21
+built-in middleware factories, from summarisation to call limits and human approval, ship as middleware objects that use those six hooks ([LangChain guide
+§5](../../reference/langchain/guide.md)). The surfaces vary widely in size:
+
+| | Hook surface | Composition | Failure policy |
+|---|---|---|---|
+| Vercel | 8 stable lifecycle callbacks plus `prepareStep`, `toolApproval`, middleware (`V:4080-4206`) | middleware first-is-outermost (`wrap-language-model.ts:35-42`) | observer errors swallowed (`util/notify.ts`) |
+| Pi | 10 core `AgentEvent`s; 41 extension events, 18 able to intervene (`types.d.ts:1229-1269`) | first `block` wins; context handlers chain | tool gate fails closed (`agent-session.js:381-400`) |
+| OpenAI | 5 observe-only lifecycle events; typed options for interception (`lifecycle.d.ts:14-140`) | n/a | not traced |
+| LangChain | 6 middleware hooks; 21 built-in factories | `wrapModelCall` built "from last to first so first middleware becomes outermost" (`langchain/dist/agents/nodes/AgentNode.js:197`) | middleware errors bubble from `wrapToolCall` (`ToolNode.js:150-153`) |
+| Claude | 33 `HookEvent` names, 22 with specific output (`C:1032`, `10515-10530`) | PostToolUse hooks "run in parallel on the ORIGINAL output" (`C:2886`) | `onFailure: 'continue' \| 'block'`, default `continue` (`C:1044-1062`) |
+
+**The interceptor contract is the hard part, and four rules come out of the evidence.** First, a gate should fail closed: Pi's tool gate rethrows handler errors and
+blocks the call. Second, a hook should return a new value rather than mutate its input. Pi's `tool_call` rewrites arguments in place, while Claude's `updatedInput` and
+Pi's own `afterToolCall` return replacements, which are easier to type and audit (notes/hooks-events-api.md §1.3). Third, each hook takes one event object, because
+OpenAI's own comment calls its positional arguments a regret: "Changing the list is a breaking change" (`O lifecycle.d.ts:24-34`). Fourth, interceptors need an abort
+signal, as Pi and Claude pass one and Vercel's observers do not.
+
+**Event streams converge on a typed union with a delta layer and an item layer.** Vercel's `TextStreamPart` has 26 members (`V:3139`), Claude's `SDKMessage` has 40
+(`C:5866`), and OpenAI wraps completed `RunItem`s in 10 item event names (`O events.d.ts:23`). LangChain streams at graph level: `"updates"` yields one chunk per node,
+`"values"` the full state, `"messages"` model tokens and `"custom"` tool-written events ([LangChain guide §10](../../reference/langchain/guide.md), [verified: 08]). Pi's
+wire rule is the pattern to copy: "`message_start` provides the initial message, deltas build it, and `message_end` provides the final authoritative message" (`PX
+modes/json-event.d.ts:26-31`). Field renames inside a union break silently, as Vercel 7's rename of `textDelta` showed (`docs/reference/vercel-ai-sdk/fact-check.md:81`).
+
+**Versioning ranges from a full pipeline to breaking changes in patch releases.** Vercel runs `experimental_` → stable → removed, keeps `@deprecated` aliases (143 tags in
+`ai/dist/index.d.ts`), and ships renames as alias exports such as `isStepCount as stepCountIs` (notes/hooks-events-api.md §5). Claude negotiates capabilities at runtime:
+`interrupt()` returns a receipt only on CLIs advertising `interrupt_receipt_v1` (`C:3171-3179`). OpenAI's `agents-core` declarations carry no `@deprecated` tag at all,
+which semver permits for 0.x. Pi ships "Breaking Changes" sections inside 1.x, including in the patch releases 1.5.1 and 1.0.3 (`pi-coding-agent/CHANGELOG.md:18-29,
+491-498`). LangChain versions behaviour inside the API instead: `createAgent({ version: "v1" | "v2" })` selects how the graph dispatches tools, with `"v2"` as the default
+(`langchain/dist/agents/types.d.ts:692-710`).
+
+**Docs drift wherever docs build from a branch instead of a release.** Pi's site serves main, and six pages ran ahead of v1.5.2 (`docs/reference/pi/fact-check.md:74`).
+LangChain's docs repo has no tags that match npm releases, so our mirror pins a commit, and its pages document `modelRefusalMiddleware`, which arrived after 1.6.1
+([LangChain fact-check](../../reference/langchain/fact-check.md), intro and F3). Its built-in middleware page documents 14 of 21 exported factories (same file, Tier 3).
+The recommendation is six typed interceptors, one event object per hook, a layered event union with authoritative `*_end` items, model middleware at the gateway, and a
+written deprecation pipeline with docs built from release tags.
+
+## 5. Offline testability comes from a strict scripted model shipped with the SDK
+
+**Four of the five SDKs ship a test double, and all four converge on a queue plus a responder.** Pi has `fauxProvider`, OpenAI `ScriptedModel`, Vercel
+`MockLanguageModelV4` in `ai/test`, and LangChain `fakeModel()`, which `langchain` re-exports from `@langchain/core/testing`
+(`verify/langchain/node_modules/langchain/dist/index.d.ts:46`). The Claude Agent SDK ships none, so our harness mocks the Messages API over HTTP and had to reimplement
+the CLI's tool-search step (notes/testability.md §1).
+
+| | Fixed steps | Request-aware step | Records requests | Over-run | Under-run |
+|---|---|---|---|---|---|
+| Pi `fauxProvider` | `setResponses` | factory over context | no; `callCount` only | stream error | `getPendingResponseCount()` |
+| OpenAI `ScriptedModel` | constructor, `enqueue` | `modelResponder` | frozen, detached snapshots | throws `UnexpectedModelCallError` (`scriptedModel.mjs:226-229`) | `assertComplete()` throws |
+| Vercel `MockLanguageModelV4` | value or array | function | raw options object | array form returns `undefined` (`test/index.js:148`) | nothing |
+| LangChain `fakeModel()` | `respond`, `respondWithTools` | factory `(messages) => message` | `calls` with a shallow copy of `messages` (`@langchain/core/dist/testing/fake_model_builder.js:144-147`) | throws "no response queued" (`fake_model_builder.js:152`) | no assertion method in `fake_model_builder.d.ts` |
+| Claude | none | HTTP mock only | our mock's JSONL log | n/a | n/a |
+
+**A double is worth what it lets a test assert, and only OpenAI's covers every case.** Our examples assert call counts, recorded request contents, completeness, and
+over-run as failure (notes/testability.md §2). OpenAI's `assertComplete()` in teardown reports "an early workflow exit … even when another assertion fails first"
+(`workflowDrift.ts:37-39`). Vercel's array form and `mockValues` fail silently, so we wrapped the mock to throw `no turn N`
+(`verify/vercel-ai-sdk/examples/lib/check.ts:30-42`). LangChain's `fakeModel()` throws on over-run but offers no under-run assertion, and core's older
+`FakeStreamingChatModel` cannot drive a tool loop at all, because it replays its first response and drops its tool calls ([LangChain fact-check
+F8](../../reference/langchain/fact-check.md)). Recording also needs a detached snapshot, because a recorded array that aliases the runner's live history keeps mutating
+after the call (notes/testability.md §2).
+
+**Realistic streams and injected ids decide whether tests are deterministic.** pi-ai splits text and tool-call JSON into token-sized chunks through the production parser
+and checks abort between chunks (`faux.js:233-306`). Yet the same double uses `Date.now()` and `Math.random()` for ids and chunk sizes (`faux.js:26-33, 52, 58-60`).
+Vercel exposes `_internal: { generateId, now }`, documented as "For test use only. May change without notice" (`ai/dist/index.d.ts:5814-5820`). An append-only session log
+can be replayed and diffed only when clocks, ids and chunking are stable public options.
+
+**Five harness rules recur across all our verification runs.** Each rule came from a failure: an allowlisted environment instead of `...process.env`; no fallthrough to an
+ambient real provider, after a Pi example reached Amazon Bedrock; a network guard; a host-tool deny list matched by name, after OpenAI's `exec_command` slipped past a
+type filter; and finite scripts with SIGKILL timeouts (notes/testability.md §5). Pydantic AI's `ALLOW_MODEL_REQUESTS = False` puts the second rule into the SDK itself
+([pydantic-ai testing docs](https://github.com/pydantic/pydantic-ai/blob/main/docs/testing.md)).
+
+**Unit tests and evals answer different questions.** OpenAI's guide says "model quality, instruction following, and tool-selection quality belong in evaluations or tests
+that use a real model" (`OAI-DOC:399`). Anthropic's eval vocabulary separates tasks, trials, graders, pass@k and pass^k ([Demystifying
+evals](https://www.anthropic.com/engineering/demystifying-evals-for-ai-agents)). The eval machinery belongs to the harness round. The SDK's share is a
+base-URL-overridable gateway, which serves both our offline mock and an Inspect-style bridge (notes/testability.md §7). The recommendation is a strict scripted model in a
+`testing` export, stable determinism hooks, a mock transport per adapter, and request recording at the normalised boundary.
+
+## 6. Recommended design for our SDK
+
+Each decision names its evidence; where the five SDKs disagree, the decision states which side it takes and why.
+
+1. **One streaming model method, `stream(model, context, options)`, behind `specificationVersion: "v1"`.** Non-streaming `complete()` folds the stream. The protocol is
+   `start`, then `text|reasoning|tool_input` start, delta and end keyed by content index, then exactly one `done` or `error` (§1; Pi `PI/types.d.ts:577-590`). Old spec
+   versions upgrade through Proxy shims at resolution time (Vercel `VAI:714-998`). This sides with Pi's single method over the two methods of Vercel, OpenAI and
+   LangChain, because one method halves adapter work and removes a parity risk.
+2. **A canonical transcript the SDK owns, with opaque provider tokens in typed fields and one `transformMessages` pass before every request.** The pass drops foreign
+   reasoning, strips foreign signatures, remaps tool ids, downgrades images and repairs orphaned calls (§1; `transform-messages.js:38-213`). This rejects the
+   Responses-item model (OpenAI) and untyped namespaced bags (Vercel) as the source of truth, keeping `providerOptions` only as an escape hatch next to an `onPayload`
+   request rewrite.
+3. **Failures in-band.** A failed call returns a final assistant message with `stopReason: "error" | "aborted"`, partial content and usage; the SDK throws only for
+   programmer errors (§1; Pi `PI/types.d.ts:321, 641-645`). Vercel, OpenAI and LangChain throw, but in-band errors keep partial output in the log and let the loop
+   classify retry, overflow and fatal cases.
+4. **Retries in the gateway with replay-safety rules.** Vendor-SDK retries are off and backoff is abortable (Pi). The gateway never replays after the first output event,
+   or after a timeout on a stateful request, without explicit approval (OpenAI `OA/model.d.ts:75-95`), and it treats quota errors as final. The default is 2 HTTP retries,
+   Vercel's number, rather than OpenAI's 0 or LangChain's 6. Each retry emits a `retry` event, as Claude's `api_retry` does.
+5. **Usage and cost on every assistant message.** Usage records uncached input, cache read, cache write by TTL, output and reasoning, plus a raw snapshot. Cost carries a
+   `basis` flag, priced from a catalog with tiered rates (Pi `models.js:680-700`; Claude `CL:1591-1594`). Failed attempts count too (OpenAI `modelRetry.mjs:100-115`).
+   Caching is a portable `cacheRetention` policy with automatic breakpoints (Pi).
+6. **The loop is one pure streaming function over a context, with `continue(context)` as the resume primitive.** The non-streaming API only collects its events (§2; Pi
+   `agent-loop.js:33-47, 78-80`). This rejects the two-loop designs of Vercel and OpenAI, and it keeps durable engines as adapters over the log instead of LangChain's
+   graph runtime in the core.
+7. **A default cap of 20 model calls plus an optional USD cap, ending with a stop reason, not an exception.** The SDK counts one step per model call, does not charge
+   approval resolution, and warns when the cap fires (§2; Vercel `index.js:10611-10626`; OpenAI `turnPreparation.js:166-178`). This sides with Claude's result subtypes
+   over OpenAI's `MaxTurnsExceededError` and LangChain's `GraphRecursionError`, and with model calls over LangChain's graph super-steps, because callers reason in model
+   calls.
+8. **Pauses are log states.** When a gate returns `ask`, the run ends with `stopReason: "awaiting_approval"`, persists the pending call, and resumes when a decision event
+   is appended. Pending requests are HMAC-signed over the id, call id, tool name and canonical-input hash, then revalidated on resume (§2, §3; Vercel
+   `index.js:4918-5050`). An in-memory blocking gate stays available as a convenience for CLIs and tests. This sides with Vercel, OpenAI and LangChain over the blocking
+   callbacks of Claude and Pi, because only data survives a restart.
+9. **Tool schemas accept `StandardSchemaV1` with `StandardJSONSchemaV1`, or raw JSON Schema checked by a bundled eval-free validator.** Each provider adapter lowers the
+   canonical schema to its strict form, as OpenAI's `strictToolSchema` does, and strips the nulls it added before validation (§3; notes/tools.md §1-2). This excludes
+   Zod-only input (Claude) and unvalidated raw schemas (Vercel, OpenAI).
+10. **A fixed tool pipeline that never throws out of the loop.** The order is resolve name, coerce, validate, optional `repair`, policy gate, `execute`, then
+    `afterToolCall`. Any failure becomes an `isError` result with path-level messages and the received arguments (§3; Pi `validation.js:16-60`). A truncated response
+    fails its tool calls with a "re-issue" error. Redaction is an opt-in per tool, not OpenAI's generic default.
+11. **Parallel tool execution by default, serialised by `executionMode` per tool or by a resource key per call.** Gates run sequentially in model order, results append in
+    model order, and tools receive a sibling-cancellation signal (§3; Pi `file-mutation-queue.d.ts:1-5`; OpenAI `siblingCancellation.mjs:2-40`). `readOnlyHint` affects
+    scheduling only for first-party tools. Tool results carry `content`, `details`, `structured`, `isError` and `terminate` (Pi `types.d.ts:370-392`).
+12. **Six typed interceptors plus observers, as separate types.** The six are `beforeModelCall`, `transformContext`, `afterModelCall`, `beforeToolCall`, `afterToolCall`
+    and `shouldStop`. Each receives one event object with `runId`, `stepIndex`, `callId` and `signal`, and returns a new value; gates fail closed with an `onFailure`
+    override (§4; notes/hooks-events-api.md, implication 2). This matches LangChain's count of six but names the hooks by model and tool moment, as AGENTS.md "Planned
+    architecture" item 2 lists them; LangChain's run-level `beforeAgent` and `afterAgent` become observers. Steering is an API (`run.steer()`, `run.followUp()`) drained
+    at step boundaries with delivery receipts (Pi; Vercel `index.js:4554-4597`).
+13. **A layered event union and a written versioning policy.** Deltas are keyed by content id, and every `*_end` carries the authoritative item the session log persists
+    (Pi `json-event.d.ts:26-31`). Raw provider events are opt-in. Model middleware sits at the gateway with Vercel's three slots and first-is-outermost order, which
+    LangChain's `wrapModelCall` also uses (`AgentNode.js:197`). OTel `gen_ai.*` spans come from one built-in observer, with content attributes opt-in. Unstable surface
+    carries an `experimental_` prefix; renames ship as aliases in a minor and leave in the next major; no patch release carries a breaking change; `run_start` advertises
+    a capability list (Vercel; Claude `C:3171-3179`). Docs build from release tags (Pi, LangChain).
+14. **The core ships a model factory that never guesses; `@agent-speak/sdk/testing` ships the doubles.** The core resolves a model only from an explicit provider, never
+    from a bare model id or ambient cloud credentials (LangChain F1; Pi F4), and it makes `clock`, `idGenerator` and `random` stable run options. The `testing` export
+    holds a strict `ScriptedModel` with fixed and responder steps, frozen request snapshots, a typed over-run error and `assertComplete()`; an `autoResponder` with a
+    host-tool deny list; realistic chunked streams; scripted sandbox, approval and MCP doubles; a mock transport per adapter; and `allowModelRequests(false)` (§5;
+    notes/testability.md, implications 1-10). This sides with OpenAI's strictness over the silent exhaustion of Vercel's mock and the missing under-run check in
+    LangChain's.
+
+## 7. Gaps and unverified claims
+
+The notes record the following limits, and the decisions above inherit them:
+- **Unreachable primary sources.** `platform.openai.com` and `developers.openai.com` were unreachable, so OpenAI's caching and strict-mode semantics come from SDK types
+  only (notes/provider-abstraction.md, Gaps; notes/tools.md, Unresolved gaps). The MCP specification site and standardschema.dev were unreachable, so MCP and Standard
+  Schema claims cite the published `@modelcontextprotocol/sdk@1.32.2` and `@standard-schema/spec@1.1.0` packages. opentelemetry.io and semver.org were unreachable; OTel
+  claims come from raw GitHub markdown on `main` at Development stability (notes/hooks-events-api.md, Unresolved gaps).
+- **Secondary sources.** Temporal and DBOS durability claims come from our own earlier notes (secondary), because docs.temporal.io was blocked (notes/loop-shapes.md §10).
+  The τ-bench pass^k figures come from a search summary (secondary), as do the vcrpy `filter_headers` pairs and the list of LLM auth headers worth filtering
+  (notes/testability.md §6-7). The claim that Vercel uses changesets is inferred from its CHANGELOG format (notes/hooks-events-api.md §5).
+- **Read from compiled or minified code, or docs only.** The Claude CLI's internal loop, retry policy, cache breakpoints, parallel scheduling, truncation and tool search
+  come from docs, not code (notes/loop-shapes.md, Gaps; notes/tools.md §5).
+- **Not exercised.** The provider and hook claims are read from dist files and were not run against the mock harnesses; hook ordering and concurrency, such as whether
+  Claude's PreToolUse hooks run in parallel, rest on `.d.ts` comments (notes/provider-abstraction.md, Gaps; notes/hooks-events-api.md, Unresolved gaps). The out-of-memory
+  failure from an infinite `ScriptedModel` step iterable is inferred from `Array.from`, not reproduced (notes/testability.md, Unresolved gaps).
+- **Open questions in the code.** Nobody verified whether Pi's `normalizeContext` repairs tool calls orphaned by a parallel-batch abort, whether a throwing OpenAI
+  `RunHooks` listener aborts the run, or how OpenAI's streaming loop diverges from its non-streaming path (notes/loop-shapes.md, Gaps; notes/hooks-events-api.md,
+  Unresolved gaps). The 64-character tool-name floor is an assumption without a per-provider table, and Vercel's `strict` lowering for Anthropic and Gemini went unread
+  (notes/tools.md, Unresolved gaps).
+- **LangChain coverage.** The LangChain claims rest on its guide, its fact-check and the files cited in §1-5; no G1a note covers LangChain, and its provider adapters
+  (`@langchain/anthropic`, `@langchain/openai`) were not read for message conversion or cross-provider reasoning replay. `@langchain/mcp-adapters` is outside the pinned
+  set, so its MCP mapping is unchecked ([LangChain guide §11](../../reference/langchain/guide.md)). The guide cites docs pages rather than package paths for interrupt
+  durability.
+
+## 8. Open decisions for Round P
+
+The implementation plan must settle these questions before code starts:
+1. **Package split.** Should the gateway, loop and `testing` export ship as one package with subpath exports, or as separate packages like pi-ai and pi-agent-core? The
+   choice sets how the provider spec versions apart from the loop.
+2. **First providers.** Which wire protocols get adapters in v1: Anthropic Messages, OpenAI Responses, OpenAI-compatible Completions? Each needs a mock transport and a
+   replay-transform test.
+3. **Token convention.** Should `input` mean uncached input, as Pi stores it, or the total, as Vercel's Anthropic adapter reports it? One convention must be fixed and
+   documented (§1).
+4. **Cost catalog.** Where do price tables come from, and how often are they refreshed? Should a provider-billed total override the catalog price, as Pi's
+   `totalFromProvider` does?
+5. **Approval signing key.** Who owns the HMAC secret for pending approvals, how is it rotated, and does an unsigned resume fail closed by default?
+6. **Hook names and run-level hooks.** Do we adopt LangChain's names (`beforeModel`, `wrapToolCall`) for familiarity or our own six, and do run-level hooks stay
+   observers?
+7. **Schema dependency.** Which eval-free JSON Schema validator do we bundle, and which drafts does it support (draft-07, 2020-12)?
+8. **Versioning start.** Do we start at 0.x with a changelog that still marks breaking changes, or at 1.0 with full semver? Which CI check fails on exports missing from
+   the docs?
+9. **Boundary with the harness round.** Which pieces, such as the session log format, compaction triggers and the `transformContext` contract, does G2a own, and which
+   does the SDK define as interfaces only?
+
+## Conclusion: build the loop once, keep failures and pauses in the log, and ship the test model on day one
+
+The five SDKs run the same four-beat loop and disagree on its defaults, and those defaults decide safety and testability. Pi shows that one streamed loop with in-band
+errors gives exact parity and a clean resume point. Vercel shows how to version a provider spec without breaking old providers, OpenAI how to retry and test strictly, and
+LangChain how six hooks can carry a whole feature set. Claude shows what a closed loop costs: a mock HTTP API in place of a test model. Our SDK should combine those
+lessons in fourteen decisions: a versioned single-method gateway, a canonical transcript, a pure loop with capped steps and resumable signed pauses, a never-throwing tool
+pipeline, six typed interceptors, and a strict scripted model in a `testing` export. The next step is G1b: write the agent-SDK guide from §6, then carry the nine open
+decisions in §8 into Round P's implementation plan.
+

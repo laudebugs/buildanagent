@@ -151,7 +151,7 @@ Path abbreviations:
   `sdk.d.ts` has 39 `@alpha` and 5 `@deprecated` tags (grep count). This fits a library that drives a separately versioned binary.
 - **OpenAI: 0.x, no deprecation markers.** The `agents-core` `.d.ts` files contain no `@deprecated` tags at all (grep count, O). Under semver item 4, "Anything
   MAY change at any time" for 0.y.z (https://github.com/semver/semver/blob/master/semver.md).
-- **Pi: breaking changes inside 1.x.** The 1.5.2 patch release and the 1.5.0 minor both carry "Breaking Changes" sections (PCL:3, 29-32, 134, 143). When Pi
+- **Pi: breaking changes inside 1.x.** The 1.5.1 patch release and the 1.5.0 minor both carry "Breaking Changes" sections (PCL:18, 29-32, 134, 143). *(Corrected 2026-11-18: the first version said 1.5.2; the section at PCL:29 belongs to 1.5.1, which starts at PCL:18. Logged in [../fact-check.md](../fact-check.md).)* When Pi
   breaks something, it keeps the old field compiling as optional and deprecated (`GrepOperations.readFile`, PCL:31). Deprecated settings migrate (`queueMode` →
   `steeringMode`, docs/reference/pi/fact-check.md:48). Semver requires a major bump for incompatible changes and a minor bump for deprecations (semver items
   7-8, same URL), so Pi's practice diverges from it.
