@@ -35,7 +35,7 @@ Once CI exists (X1), the nightly `verify.yml` also runs `pnpm audit --audit-leve
 
 | ID | Title | Depends on |
 | --- | --- | --- |
-| X2 | Dependency security: upgrade every vulnerable pin to its latest fixed release, re-verify, record accepted alerts | None |
+| X2 | Dependency security: upgrade every vulnerable pin to its latest fixed release, re-verify, record accepted alerts (first pass done 2026-11-18) | None |
 | X1 | CI workflows for the checks and the scheduled verify | None (scheduled after Round S by the owner) |
 
 ## 5. Risks

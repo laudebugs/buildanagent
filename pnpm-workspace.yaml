@@ -11,3 +11,9 @@ ignoredBuiltDependencies:
   - core-js-pure
   - "@mongodb-js/zstd"
   - node-liblzma
+# Security overrides (todo X2, AGENTS.md "Versions"): used only when no parent release carries the fix.
+overrides:
+  # just-bash@3.6.1 (Think's peer) pins guarded-fetch@0.1.3, which pins undici@7.29.0: 18 advisories
+  # (6 high), fixed in undici >=7.30.1 (e.g. GHSA alerts on main, 2026-11-18). Remove once just-bash
+  # depends on guarded-fetch >=0.3.0.
+  "guarded-fetch>undici": "7.30.2"

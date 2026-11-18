@@ -51,3 +51,8 @@ Offline verification harness for the Cloudflare Agents docs and our examples, pi
 ## Why the local runtime is a miniflare beta
 
 `miniflare@5.20261103.0-beta` breaks the repo's "stable releases only" habit on purpose. The newest stable miniflare before the 2026-11-04 cutoff is 4.20260730.0, from July, which predates the `workerd` that `agents@0.33.0` needs. The newest stable wrangler, `wrangler@4.157.0` (published 2026-11-03), itself depends on `miniflare@5.20261103.0-beta`, so this harness uses the runtime that Cloudflare's own stable CLI ships.
+
+## Security alerts: one override, one accepted (2026-11-18, todo X2)
+
+- **`undici` (18 advisories, 6 high): overridden.** `just-bash@3.6.1`, Think's peer, pins `guarded-fetch@0.1.3`, which pins `undici@7.29.0`. No `just-bash` release carries a fix, so `pnpm-workspace.yaml` overrides `guarded-fetch>undici` to `7.30.2`, the latest fixed release. Doc-example outcomes were identical before and after (204 doc blocks and 19 linked examples), and all 9 behavioral examples pass. Remove the override once `just-bash` depends on `guarded-fetch >=0.3.0`, which uses `undici@7.30.1`.
+- **`picomatch@4.0.7` (GHSA-fc5q-39xc-vjpf, high, ReDoS through crafted extglob patterns): accepted.** No patched release exists, since 4.0.7 is the latest. It arrives through `agents@0.33.0` → `@rolldown/plugin-babel`, a build-time plugin whose glob patterns come from its own configuration, never from user input. The harness bundles with esbuild, offline. Revisit when picomatch publishes a fix.
