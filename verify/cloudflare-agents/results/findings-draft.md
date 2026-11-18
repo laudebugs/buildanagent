@@ -1,3 +1,5 @@
+> **Superseded.** These are the S6a draft findings. They were re-verified and renumbered in [docs/reference/cloudflare-agents/fact-check.md](../../../docs/reference/cloudflare-agents/fact-check.md), whose "Corrections to the draft findings" table records what changed. Two blocks this file and `typecheck-docs.json` label `ahead-of-release` are doc errors (fact-check F11).
+
 # S6a findings: Cloudflare Agents (agents@0.33.0, @cloudflare/think@0.23.0, @cloudflare/ai-chat@0.12.2)
 
 Checked 2026-11-18 with ai@7.0.162, workerd 1.20261103.1 (miniflare 5.20261103.0-beta), @cloudflare/workers-types 5.20261103.1 and TypeScript 7.0.2. Paths below are relative to the repo root. `source/` means `docs/reference/cloudflare-agents/source/`. `extracted/` means `verify/cloudflare-agents/extracted/` (regenerate with `pnpm run extract`).

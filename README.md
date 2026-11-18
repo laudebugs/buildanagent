@@ -34,7 +34,7 @@ Each SDK gets a reference folder under `docs/reference/<sdk>/` (guide, fact-chec
 | OpenAI Agents SDK | `@openai/agents@0.21.0` | [docs/reference/openai-agents-sdk/](docs/reference/openai-agents-sdk/) | Done: 182 sources type-checked, 66 run, 9 verified examples |
 | Vercel AI SDK | `ai@7.0.162` | [docs/reference/vercel-ai-sdk/](docs/reference/vercel-ai-sdk/) | Done: 741 doc blocks type-checked, 116 run, 9 verified examples (agent-relevant core) |
 | LangChain.js | `langchain@1.6.1` | [docs/reference/langchain/](docs/reference/langchain/) | Done: 713 doc blocks type-checked, 33 run (+12 with a provider prefix), 10 verified examples |
-| Cloudflare Agents | `agents@0.33.0` | — | Planned (S6, added 2026-11-18) |
+| Cloudflare Agents | `agents@0.33.0` | [docs/reference/cloudflare-agents/](docs/reference/cloudflare-agents/) | Done: 1,927 doc blocks type-checked, 171 run in workerd, 9 verified examples |
 | Google ADK | `@google/adk@2.4.0` | — | Planned (S7, added 2026-11-18; Python-first, with a TS parity check) |
 | GitHub Copilot SDK | `@github/copilot-sdk@1.0.28` | — | Planned (S8, added 2026-11-18) |
 
