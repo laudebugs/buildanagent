@@ -14,7 +14,7 @@ Choose it for a coding- or filesystem-shaped agent when Claude-only models are a
 ## Minimal setup
 
 ```bash
-npm install @anthropic-ai/claude-agent-sdk zod   # keep optional deps on: the CLI binary is one
+pnpm add @anthropic-ai/claude-agent-sdk zod   # keep optional deps on: the CLI binary is one; in this repo: pnpm only
 export ANTHROPIC_API_KEY=...                     # the SDK ignores .env files
 ```
 
@@ -39,7 +39,8 @@ try {
     tools: [],                                        // remove Bash, Edit, Read, …
     settingSources: [],                               // ignore ~/.claude and project settings
     mcpServers: { support },
-    allowedTools: ["mcp__support__lookup_customer"],  // auto-approve the read-only tool only
+    allowedTools: ["mcp__support__lookup_customer"],  // auto-approve the read-only tool only (emits the
+                                                      // SHADOWED warning for it; canUseTool still gates escalate)
     canUseTool: async (name, input) => name === "mcp__support__escalate"
       ? { behavior: "deny", message: "Needs a human" }
       : { behavior: "allow", updatedInput: input },
@@ -58,6 +59,14 @@ try {
 - **Permission order:** `PreToolUse` hooks → deny rules (`disallowedTools`; win even in `bypassPermissions`) → ask rules → permission mode → allow rules (`allowedTools`) → `canUseTool`. A hook's `{}` defers to the next step; a hook's `allow` doesn't skip deny rules.
 - **`tools` vs `allowedTools` vs `disallowedTools`:** `tools` decides which built-ins exist; `allowedTools` auto-approves; `disallowedTools` removes and denies.
 - **Sessions:** pass `result.session_id` as `resume` to continue with full history.
+- **`result.permission_denials`** is the authoritative record of denied calls; assert on it to prove a gate fired.
+- **To gate every call**, use a hook instead of `canUseTool`:
+
+  ```ts
+  hooks: { PreToolUse: [{ matcher: "mcp__support__escalate", hooks: [async () => ({
+    hookSpecificOutput: { hookEventName: "PreToolUse", permissionDecision: "deny", permissionDecisionReason: "Needs a human" },
+  })] }] },
+  ```
 
 ## Gotchas (from the fact-check)
 
@@ -68,12 +77,12 @@ try {
 - **`maxTurns` counts the final answer**, and `maxBudgetUsd` acts only after the response that crosses it.
 - **A missing `cwd`** fails with a misleading "native binary … failed to launch … libc" error. Check that `cwd` exists first.
 - **`interrupt()` on a finished query rejects**; inside a timer that crashes the process. Catch it.
-- **MCP tools are deferred by default** behind tool search: the model calls `ToolSearch` with `select:<name>` before the tool. A mock model must do the same (`ENABLE_TOOL_SEARCH` in `env` controls it).
+- **MCP tools can be deferred** behind tool search: the model then calls `ToolSearch` with `select:<name>` before the tool. Deferral depends on the setup; with `tools: []`, the CLI offered MCP tools upfront in our tests. A mock model must handle both (`ENABLE_TOOL_SEARCH` in `env` controls it).
 - **Sessions live on local disk** under `~/.claude/projects/`; configure a `sessionStore` for anything a user may resume.
 
 ## Test offline
 
-The SDK has no mock model. Point `ANTHROPIC_BASE_URL` at a mock Messages API: start [`verify/claude-agent-sdk/scripts/mock-anthropic.mjs`](../../../verify/claude-agent-sdk/scripts/mock-anthropic.mjs) (`startMock()`), pass `env: { PATH, HOME: <temp dir>, ANTHROPIC_API_KEY: "test", ANTHROPIC_BASE_URL: "http://127.0.0.1:<port>" }` in `options`, and drain the query with `collect()` from `verify/claude-agent-sdk/examples/lib/collect.ts`. Run the verified examples with:
+The SDK has no mock model, so tests point `ANTHROPIC_BASE_URL` at the mock Messages API in [`verify/claude-agent-sdk/scripts/mock-anthropic.mjs`](../../../verify/claude-agent-sdk/scripts/mock-anthropic.mjs). The mock calls one `mcp__` tool per query (one the prompt names, else the first offered), then answers, through `StructuredOutput` when a schema is set; test a second tool with a second query whose prompt names it. The runner `node scripts/run-examples.mjs <dir> --only <name>` (from `verify/claude-agent-sdk`) starts a mock per file, runs it in a temp cwd, and sets an allowlisted environment (`ANTHROPIC_BASE_URL`, a fake key, `HOME`, `CLAUDE_CONFIG_DIR`, `MOCK_LOG`, `NO_PROXY`, …). Inside the file, pass those through to the CLI with `env: { PATH: process.env.PATH, HOME: process.env.HOME, ANTHROPIC_BASE_URL: process.env.ANTHROPIC_BASE_URL, ANTHROPIC_API_KEY: process.env.ANTHROPIC_API_KEY, CLAUDE_CONFIG_DIR: process.env.CLAUDE_CONFIG_DIR }`. Drain the query with `collect()` (`import { collect } from "../examples/lib/collect.ts"`). The runner prints only the outcome; exit 0 is a pass. Run the verified examples with:
 
 ```bash
 pnpm --filter @agent-speak/verify-claude-agent-sdk test

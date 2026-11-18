@@ -39,7 +39,7 @@ agent-speak ends this phase with four things:
 | Milestone | Rounds | What ships |
 | --- | --- | --- |
 | M1 Four SDK references (done 2026-11-18) | S1–S4 | A guide, a fact-check, a mirror and an offline verification harness for each SDK |
-| M2 Comparison and skills | C1–C2, K1–K2 | The feature table, the deep comparison, the refreshed research report, and four agent skills |
+| M2 Comparison and skills (done 2026-11-18) | C1–C2, K1–K2 | The feature table, the deep comparison, the refreshed research report, and four agent skills |
 | M3 Build guides | G1–G3 | Researched guides to building an agent SDK, a harness and an agent |
 | M4 Reviewed plans | P1–P4 | Detailed implementation plans, reviewed together, ready for the build phase |
 

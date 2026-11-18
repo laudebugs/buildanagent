@@ -60,7 +60,7 @@ try {
 | Resources | `resourceLoader` (extensions, skills, prompt templates, themes, context files) |
 | Environment | `cwd`, `agentDir` |
 
-Without overrides, the session discovers settings, extensions, skills and `AGENTS.md` context files from `cwd` and `~/.pi/agent`. An embedded agent usually wants none of that, so pass in-memory managers and an explicit `DefaultResourceLoader`, as example 08 does.
+Without overrides, the session discovers settings, extensions, skills and `AGENTS.md` context files from `cwd` and `~/.pi/agent`. An embedded agent usually wants none of that, so pass in-memory managers and an explicit `DefaultResourceLoader`, as example 08 does. Those two still leave `ModelRuntime.create()`, which by default creates `~/.pi/agent/auth.json` and reads `~/.pi/agent/models.json`; pass `authPath` (a file you choose) and `modelsPath: null` to keep it out too (fact-check, F6). **[verified]**
 
 ## 5. Four built-in tools by default, and custom tools through `customTools`
 
@@ -195,7 +195,7 @@ The capstone [`08-triage-agent.ts`](../../../verify/pi/examples/08-triage-agent.
 2. **Lock the surface.** `noTools: "builtin"` leaves only those three tools. **[verified: 08]**
 3. **Gate by risk.** An inline extension audits every `tool_call` and blocks `escalate`; the block reason goes back to the model. **[verified: 08]**
 4. **Fix the output shape.** `submit_triage` takes a TypeBox schema and returns `terminate: true`. **[verified: 08]**
-5. **Stay self-contained.** In-memory session and settings managers, plus an explicit resource loader over a temp folder, keep `~/.pi` out of the run.
+5. **Stay self-contained.** In-memory session and settings managers, an explicit resource loader over a temp folder, and a `ModelRuntime` with its own `authPath` and `modelsPath: null` keep `~/.pi` out of the run.
 
 ```bash
 pnpm install && pnpm --filter @agent-speak/verify-pi test

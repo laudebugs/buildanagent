@@ -1,3 +1,6 @@
+import { mkdtempSync } from "node:fs";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
 // Steering and follow-up messages while a run is streaming.
 // Docs: sdk.md "Prompting", how-pi-works.md "Agent loop"
 import { fauxProvider } from "@earendil-works/pi-ai";
@@ -11,7 +14,11 @@ faux.setResponses([
   fauxAssistantMessage(fauxText("Answer to the steering message.")),
   fauxAssistantMessage(fauxText("Answer to the follow-up.")),
 ]);
-const modelRuntime = await ModelRuntime.create({ refreshOnCreate: false });
+const modelRuntime = await ModelRuntime.create({
+  refreshOnCreate: false,
+  authPath: join(mkdtempSync(join(tmpdir(), "pi-auth-")), "auth.json"),
+  modelsPath: null,
+});
 modelRuntime.registerNativeProvider(faux.provider);
 const { session } = await createAgentSession({
   modelRuntime,

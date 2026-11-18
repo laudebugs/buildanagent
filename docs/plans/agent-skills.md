@@ -1,6 +1,6 @@
 # Plan: one agent skill per SDK, so coding agents use each SDK the verified way (Round K)
 
-- **Status:** Draft
+- **Status:** Done
 - **Date:** 2026-11-18
 - **Asked for by:** the project owner (2026-11-18): a skill for each agent SDK in `.agents/skills`, symlinked to `.claude/skills`
 - **Builds on:** the four references from [Round S](sdk-references.md) and the [comparison](sdk-comparison.md)
@@ -39,8 +39,8 @@ K2 drafts each skill with `/anthropic-skills:writing` and reviews it with `/anth
 
 | ID | Title | Depends on |
 | --- | --- | --- |
-| K1 | Skills folder, `.claude/skills` symlink, and the skill format | C2 |
-| K2 | Four SDK skills, written, reviewed and tested by a fresh agent | K1 |
+| K1 | Skills folder, `.claude/skills` symlink, and the skill format (done) | C2 |
+| K2 | Four SDK skills, written, reviewed and tested by a fresh agent (done) | K1 |
 
 ## 5. Risks
 

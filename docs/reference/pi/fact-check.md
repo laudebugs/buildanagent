@@ -69,7 +69,7 @@ Eight programs in `verify/pi/examples/` assert documented behavior against the f
 | A `tool_call` handler returning `{ block: true }` stops execution (extensions) | 07, 08 | ✅ |
 | `terminate: true` ends the run without an extra model turn (examples/extensions/structured-output.ts) | 08 | ✅ |
 
-## Five findings: one site issue, one default-model gotcha and three doc gaps
+## Six findings: one site issue, two home-folder and credential defaults, and three doc gaps
 
 **F1. docs.pi.dev/latest serves the main branch, not the latest release.** Six pages on the live site already describe changes made after v1.5.2: `extensions.md`, `models-configuration.md`, `nvidia-rtx-llama-cpp.md`, `providers.md`, `rpc-commands.md` and `tui.md`. For example, the site lists four `QWEN_TOKEN_PLAN_*` variables (team and individual), while v1.5.2 documents two. A reader on the npm release can therefore follow "latest" docs into behavior their package lacks. Read the docs at the git tag that matches your installed version.
 
@@ -85,6 +85,10 @@ Eight programs in `verify/pi/examples/` assert documented behavior against the f
 **F4. An unconfigured session can pick up ambient cloud credentials.** The documented defaults combine into a surprise. `createAgentSession()` picks the model "from settings or first available" (`examples/sdk/01-minimal.ts`), and Bedrock and Vertex AI "can also use ambient cloud credentials" (`providers.md`). On our cloud host, the first harness run therefore sent an upstream example to Amazon Bedrock, where AWS rejected the token. No page warns about this combination. Production code should pass `model` and `modelRuntime` explicitly.
 
 **F5. The docs omit that extensions also get pi-ai's deprecated compat helpers.** The "Available Imports" table in `extensions.md` documents part of the difference. Inside Pi, it says, `@earendil-works/pi-ai` also exports TypeBox's `Type`, `Static` and `TSchema`, which the published package no longer re-exports. The extension view also re-exports the whole compat entry, including the deprecated `getModel()` and `complete()` (`pi-ai-extension-view.ts`). The table leaves that part out. Code that calls those helpers inside an extension works, but the same code in an SDK program fails, which is how the README errors in F2 arise.
+
+**F6. `ModelRuntime.create()` writes to `~/.pi` even when every manager is in memory.** Its `authPath` defaults to `auth.json` under the agent directory, which it creates, and its `modelsPath` defaults to `models.json` there, which it reads (`dist/core/model-runtime.d.ts`). A fresh agent building from our Pi skill found this on 2026-11-18: with in-memory session and settings managers and an explicit resource loader, `~/.pi/agent/auth.json` still appeared. Our harness never noticed, because its runner sets `PI_CODING_AGENT_DIR` to a temp folder. Pass `authPath` and `modelsPath: null` to embed Pi without touching the home folder.
+
+*Correction, 2026-11-18:* the first version of the guide said in-memory managers and an explicit resource loader "keep `~/.pi` out of the run" (§4, §14). F6 shows they don't, and both sections now name the `ModelRuntime` options. The test helper `examples/lib/faux.ts` and example 04 now pass them too.
 
 ## Verdict: trust the reference pages, and read the docs at your release tag
 

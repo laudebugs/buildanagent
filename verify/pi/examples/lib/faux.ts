@@ -1,3 +1,6 @@
+import { mkdtempSync } from "node:fs";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
 // Shared setup for the verified Pi examples: an in-memory session wired to the faux model.
 import {
   type FauxResponseStep,
@@ -20,7 +23,12 @@ export { fauxAssistantMessage, fauxText, fauxToolCall };
 export async function fauxSession(steps: FauxResponseStep[], options: Partial<CreateAgentSessionOptions> = {}) {
   const faux = fauxProvider();
   faux.setResponses(steps);
-  const modelRuntime = await ModelRuntime.create({ refreshOnCreate: false });
+  // authPath and modelsPath default to files under ~/.pi/agent; keep both out of the run.
+  const modelRuntime = await ModelRuntime.create({
+    refreshOnCreate: false,
+    authPath: join(mkdtempSync(join(tmpdir(), "pi-auth-")), "auth.json"),
+    modelsPath: null,
+  });
   modelRuntime.registerNativeProvider(faux.provider);
   const { session } = await createAgentSession({
     modelRuntime,

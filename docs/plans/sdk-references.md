@@ -50,7 +50,7 @@ Each SDK takes two todos. The verification todo (a) does steps 1–5 of the [pro
 
 ### S2 Pi (done)
 
-`@earendil-works/pi-coding-agent@1.5.2`. The loop runs in-process, so the harness uses `fauxProvider()`. MIT-licensed, so the mirror is committed. Result: 334 sources type-checked, 20 run, 8 behavioral examples, five findings. See the [fact-check](../reference/pi/fact-check.md).
+`@earendil-works/pi-coding-agent@1.5.2`. The loop runs in-process, so the harness uses `fauxProvider()`. MIT-licensed, so the mirror is committed. Result: 334 sources type-checked, 20 run, 8 behavioral examples, six findings (F6 found by the K2 skill test). See the [fact-check](../reference/pi/fact-check.md).
 
 ### S3 OpenAI Agents SDK (done)
 

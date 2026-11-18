@@ -14,7 +14,7 @@ Choose Pi to own and read the whole harness, including its tree-shaped sessions 
 ## Minimal setup
 
 ```bash
-npm install @earendil-works/pi-coding-agent typebox   # Node.js 22.19+
+pnpm add @earendil-works/pi-coding-agent typebox   # Node.js 22.19+; in this repo: pnpm only, exact pins
 ```
 
 ```ts
@@ -26,10 +26,10 @@ import {
 } from "@earendil-works/pi-coding-agent";
 import { Type } from "typebox";
 
-const modelRuntime = await ModelRuntime.create();
-const model = modelRuntime.getModel("anthropic", "claude-sonnet-4-5");   // explicit model, never "first available"
 const cwd = mkdtempSync(join(tmpdir(), "agent-"));
 const agentDir = join(cwd, ".pi-agent");
+const modelRuntime = await ModelRuntime.create({ authPath: join(agentDir, "auth.json"), modelsPath: null }); // else it writes ~/.pi/agent/auth.json
+const model = modelRuntime.getModel("anthropic", "claude-sonnet-4-5");   // explicit model, never "first available"
 
 const escalate = defineTool({
   name: "escalate", label: "Escalate", description: "Escalate to on-call",
@@ -60,7 +60,7 @@ try {
 
 - **Default tools are `read`, `bash`, `edit`, `write`.** Narrow with `tools: [...]`, `excludeTools: [...]` or `noTools: "builtin"`.
 - **The only gate is an extension's `tool_call` handler.** Returning `{ block: true, reason }` stops the call, and the reason reaches the model as an error tool result.
-- **Typed output comes from a final tool** whose parameters are the schema and whose result sets `terminate: true`; the run ends without another model turn.
+- **Typed output comes from a final tool** whose parameters are the schema. Its `execute` returns `{ content, details, terminate: true }` and stores the value itself (in a closure); the run ends without another model turn, provided every result in that tool batch sets `terminate`.
 - **Events:** `agent_start`, `turn_*`, `message_*`, `tool_execution_*`, `agent_end`, then `agent_settled` once queued work is done.
 - **Mid-run input** must say how it joins: `steer(text)` after the current turn, `followUp(text)` after the run; a bare `prompt()` mid-run rejects.
 - **Sessions are a tree.** `sessionManager.branch(id)` starts a new path and keeps the old one; compaction appends a summary entry and deletes nothing.
@@ -69,7 +69,7 @@ try {
 ## Gotchas (from the fact-check)
 
 - **Without an explicit model,** a session picks one from settings or "first available", and Bedrock or Vertex can authenticate from ambient cloud credentials. Always pass `model` and `modelRuntime`, and scrub the environment.
-- **Sessions discover settings, extensions, skills and `AGENTS.md`** from `cwd` and `~/.pi/agent`. Embedded agents should pass in-memory managers and an explicit `DefaultResourceLoader`.
+- **Sessions discover settings, extensions, skills and `AGENTS.md`** from `cwd` and `~/.pi/agent`. Embedded agents should pass in-memory managers and an explicit `DefaultResourceLoader`, and `ModelRuntime.create({ authPath, modelsPath: null })`; otherwise the runtime creates `~/.pi/agent/auth.json` (fact-check F6).
 - **Extensions get an "extension view" of `pi-ai`** with `Type` and deprecated helpers; code outside an extension imports deprecated helpers from `@earendil-works/pi-ai/compat`.
 - **docs.pi.dev/latest renders the main branch,** ahead of the npm release. Read the docs at your release tag (the mirror in `docs/reference/pi/source/`).
 - **SDK sessions start without** the CLI's `codemode`, `tool_search` and MCP extensions; add `createMcpExtension()` and friends yourself.
@@ -77,7 +77,7 @@ try {
 
 ## Test offline
 
-Use pi-ai's `fauxProvider()`: queue `fauxAssistantMessage([...])` responses with `fauxToolCall(name, args)` and `fauxText(text)`, register `faux.provider` on a `ModelRuntime.create({ refreshOnCreate: false })`, and pass `faux.getModel()` as the model. `fauxSession()` in [`verify/pi/examples/lib/faux.ts`](../../../verify/pi/examples/lib/faux.ts) wires this up. Run the verified examples with:
+Use pi-ai's `fauxProvider()`: queue `fauxAssistantMessage([...])` responses with `fauxToolCall(name, args)` and `fauxText(text)`, register it with `modelRuntime.registerNativeProvider(faux.provider)` on a `ModelRuntime.create({ refreshOnCreate: false, authPath, modelsPath: null })`, and pass `faux.getModel()` as the model. A response can also be a function `(context, options, state, model) => AssistantMessage`, which lets a test inspect what the model received; `faux.state.callCount` counts model calls, and `session.getActiveToolNames()` lists active tools. `fauxSession()` in [`verify/pi/examples/lib/faux.ts`](../../../verify/pi/examples/lib/faux.ts) wires this up. Run one new file offline, without touching committed results, from `verify/pi`: `node scripts/run-examples.mjs <dir> --only <name>` (it prints only the outcome; run the file with tsx to see its output). Run the verified examples with:
 
 ```bash
 pnpm --filter @agent-speak/verify-pi test
