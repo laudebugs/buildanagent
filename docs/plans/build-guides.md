@@ -1,6 +1,6 @@
 # Plan: research and write three guides, to building an agent SDK, a harness and an agent (Round G)
 
-- **Status:** In progress
+- **Status:** Done (2026-11-18): research rounds G1a–G3a, H and R1, and the three guides in `docs/guides/`
 - **Date:** 2026-11-18
 - **Asked for by:** the project owner (2026-11-18): very deep research into creating an SDK, a harness and an agent, then documentation for each
 - **Builds on:** the [research report](../research/agent-sdks-and-harness-design.md), the [harness teardown](../research/harness-architectures.md), the four [SDK references](sdk-references.md) and the [deep comparison](sdk-comparison.md)
@@ -87,7 +87,7 @@ The early research ran when this environment's network policy blocked many prima
 | G2a | Deep research: building an agent harness (done) | G1a |
 | G2b | Guide: building an agent harness (done: [docs/guides/agent-harness.md](../guides/agent-harness.md)) | G2a, G1b, H3 |
 | G3a | Deep research: building an agent (done) | G2a |
-| G3b | Guide: building an agent | G3a, G2b, H3 |
+| G3b | Guide: building an agent (done: [docs/guides/agent.md](../guides/agent.md)) | G3a, G2b, H3 |
 
 ## 6. Risks
 

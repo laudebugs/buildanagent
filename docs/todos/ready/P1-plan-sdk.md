@@ -6,7 +6,7 @@
 | Status | `ready` |
 | Plan | [Implementation plans §2](../../plans/implementation-plans.md#2-what-each-plan-contains) |
 | Round / milestone | Round P (plans), M4 |
-| Depends on | [G1b](../ready/G1b-guide-agent-sdk.md) |
+| Depends on | [G1b](../done/G1b-guide-agent-sdk.md) |
 | Size | L |
 
 ## Goal

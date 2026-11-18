@@ -6,7 +6,7 @@
 | Status | `ready` |
 | Plan | [Implementation plans §2](../../plans/implementation-plans.md#2-what-each-plan-contains) |
 | Round / milestone | Round P (plans), M4 |
-| Depends on | [G2b](../ready/G2b-guide-harness.md), [P1](../ready/P1-plan-sdk.md) |
+| Depends on | [G2b](../done/G2b-guide-harness.md), [P1](../ready/P1-plan-sdk.md) |
 | Size | L |
 
 ## Goal
