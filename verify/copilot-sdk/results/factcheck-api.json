@@ -1,0 +1,263 @@
+{
+  "package": "@github/copilot-sdk@1.0.31",
+  "cli": "1.0.109",
+  "checkedAt": "2026-11-18T13:45:32.908Z",
+  "checks": {
+    "exports": {
+      "documented": 31,
+      "actual": 1027,
+      "notInPackage": [
+        "ErrorOccurredHookInput",
+        "ErrorOccurredHookOutput",
+        "HookInvocation",
+        "PostToolUseHookInput",
+        "PostToolUseHookOutput",
+        "PreToolUseHookInput",
+        "PreToolUseHookOutput",
+        "SessionStartHookInput",
+        "SessionStartHookOutput",
+        "UserPromptSubmittedHookInput",
+        "UserPromptSubmittedHookOutput"
+      ]
+    },
+    "clientOptions": {
+      "documented": 15,
+      "actual": 21,
+      "undocumented": [
+        "builtinPluginDirectories",
+        "clientInfo",
+        "entra",
+        "network",
+        "onGitHubTelemetry",
+        "requestHandler"
+      ],
+      "notInPackage": []
+    },
+    "sessionConfig": {
+      "documented": 22,
+      "actual": 98,
+      "undocumented": [
+        "additionalDirectories",
+        "agent",
+        "agentDirectories",
+        "allowMultipleToolCalls",
+        "allowedModels",
+        "authClientIdMetadataUrl",
+        "autoModeRecovery",
+        "autopilot",
+        "availableTools",
+        "canvasProvider",
+        "canvases",
+        "clientName",
+        "cloud",
+        "coauthorEnabled",
+        "commands",
+        "configDirectory",
+        "contextTier",
+        "createSessionFsProvider",
+        "customAgents",
+        "customAgentsLocalOnly",
+        "defaultAgent",
+        "diagnostics",
+        "disabledMcpServers",
+        "disabledSkills",
+        "embeddingCacheStorage",
+        "enableCitations",
+        "enableConfigDiscovery",
+        "enableExperimentalMode",
+        "enableFileChangeTracking",
+        "enableFileHooks",
+        "enableHostGitOperations",
+        "enableManagedSettings",
+        "enableMcpApps",
+        "enableOnDemandInstructionDiscovery",
+        "enableSkills",
+        "enforceManagedModelDefaults",
+        "excludedBuiltinAgents",
+        "excludedManagedSettings",
+        "excludedTools",
+        "extensionInfo",
+        "extensionSdkPath",
+        "featureFlags",
+        "gitHubToken",
+        "githubMcpToolConfig",
+        "hookDirectories",
+        "imageGeneration",
+        "includeSubAgentStreamingEvents",
+        "includedBuiltinAgents",
+        "includedBuiltinSkills",
+        "instructionDirectories",
+        "largeOutput",
+        "manageScheduleEnabled",
+        "managedSettings",
+        "mcpOAuthTokenStorage",
+        "mcpServers",
+        "memory",
+        "modelCapabilities",
+        "models",
+        "name",
+        "onAutoModeSwitchRequest",
+        "onEvent",
+        "onExitPlanModeRequest",
+        "onMcpAuthRequest",
+        "organizationCustomInstructions",
+        "pluginDirectories",
+        "providers",
+        "reasoningSummary",
+        "requestCanvasRenderer",
+        "requestExtensions",
+        "sandboxConfig",
+        "sessionLimits",
+        "skillDirectories",
+        "skipCustomInstructions",
+        "skipEmbeddingRetrieval",
+        "streaming",
+        "toolSearch"
+      ],
+      "notInPackage": [],
+      "undocumentedButMentionedElsewhere": 42,
+      "neverMentioned": [
+        "allowedModels",
+        "authClientIdMetadataUrl",
+        "canvasProvider",
+        "coauthorEnabled",
+        "customAgentsLocalOnly",
+        "embeddingCacheStorage",
+        "enableExperimentalMode",
+        "enableFileChangeTracking",
+        "enableHostGitOperations",
+        "enableMcpApps",
+        "enableOnDemandInstructionDiscovery",
+        "enforceManagedModelDefaults",
+        "excludedBuiltinAgents",
+        "excludedManagedSettings",
+        "extensionInfo",
+        "extensionSdkPath",
+        "featureFlags",
+        "imageGeneration",
+        "includeSubAgentStreamingEvents",
+        "largeOutput",
+        "manageScheduleEnabled",
+        "managedSettings",
+        "mcpOAuthTokenStorage",
+        "modelCapabilities",
+        "onEvent",
+        "onExitPlanModeRequest",
+        "onMcpAuthRequest",
+        "organizationCustomInstructions",
+        "reasoningSummary",
+        "requestCanvasRenderer",
+        "requestExtensions",
+        "skipCustomInstructions",
+        "skipEmbeddingRetrieval",
+        "toolSearch"
+      ]
+    },
+    "clientMethods": {
+      "documented": 11,
+      "actual": 19,
+      "undocumented": [
+        "decisions",
+        "getAuthStatus",
+        "getLastSessionId",
+        "getSessionMetadata",
+        "getStatus",
+        "listModels",
+        "rpc",
+        "startAhpHost"
+      ],
+      "notInPackage": []
+    },
+    "sessionMethods": {
+      "documented": 13,
+      "actual": 21,
+      "undocumented": [
+        "getRawEvents",
+        "log",
+        "openCanvases",
+        "permissionModeResult",
+        "rpc",
+        "setSessionCreationHandler",
+        "transcriptRecovery",
+        "workflow"
+      ],
+      "notInPackage": []
+    },
+    "events": {
+      "documented": 50,
+      "actual": 191,
+      "undocumentedCount": 141,
+      "notInPackage": [],
+      "emittedButUntyped": [
+        "model.turn_started",
+        "model.log",
+        "model.call_start",
+        "model.model_call_started",
+        "model.call_final_result",
+        "model.model_call_success",
+        "model.message",
+        "model.response",
+        "model.turn_ended",
+        "model.messages_snapshot"
+      ]
+    },
+    "toolFields": {
+      "documented": 11,
+      "actual": 12,
+      "undocumented": [
+        "namespace"
+      ],
+      "notInPackage": []
+    },
+    "permissionResults": {
+      "documented": 7,
+      "actual": 8,
+      "undocumented": [
+        "approve-read-only-for-session"
+      ],
+      "notInPackage": [],
+      "legacyPastTenseKindsAlsoAccepted": [
+        "approved",
+        "approved-for-session",
+        "approved-for-location",
+        "cancelled",
+        "denied-by-rules",
+        "denied-no-approval-rule-and-could-not-request-from-user",
+        "denied-interactively-by-user",
+        "denied-by-content-exclusion-policy",
+        "denied-by-permission-request-hook"
+      ]
+    },
+    "permissionRequests": {
+      "documented": 8,
+      "actual": 12,
+      "undocumented": [
+        "extension-env-access",
+        "extension-management",
+        "extension-permission-access",
+        "workflow"
+      ],
+      "notInPackage": []
+    },
+    "hooks": {
+      "documented": 12,
+      "actual": 12,
+      "undocumented": [],
+      "notInPackage": []
+    },
+    "provider": {
+      "documented": 8,
+      "actual": 15,
+      "undocumented": [
+        "headers",
+        "maxOutputTokens",
+        "maxPromptTokens",
+        "modelId",
+        "modelProvider",
+        "transport",
+        "wireModel"
+      ],
+      "notInPackage": []
+    }
+  }
+}
