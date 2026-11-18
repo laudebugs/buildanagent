@@ -85,7 +85,7 @@ The early research ran when this environment's network policy blocked many prima
 | R1 | Re-verify the "(secondary)" claims against primary sources (done) | H3 |
 | G1b | Guide: building an agent SDK (done: [docs/guides/agent-sdk.md](../guides/agent-sdk.md)) | G1a, H3, R1 |
 | G2a | Deep research: building an agent harness (done) | G1a |
-| G2b | Guide: building an agent harness | G2a, G1b, H3 |
+| G2b | Guide: building an agent harness (done: [docs/guides/agent-harness.md](../guides/agent-harness.md)) | G2a, G1b, H3 |
 | G3a | Deep research: building an agent (done) | G2a |
 | G3b | Guide: building an agent | G3a, G2b, H3 |
 
