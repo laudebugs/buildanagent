@@ -1,6 +1,6 @@
 # Plan: a verified reference for every agent SDK, built with one repeatable process (Round S)
 
-- **Status:** In progress
+- **Status:** Done
 - **Date:** 2026-11-18
 - **Asked for by:** the project owner (2026-11-18): fetch each SDK's docs, build a thorough reference, fact-check the docs, and find a way to verify the examples
 - **Builds on:**
@@ -64,7 +64,10 @@ Result: `@openai/agents@0.21.0`, docs mirrored from tag `v0.21.0`. 182 sources t
 - **Behaviors to verify:** handoffs between agents, input and output guardrails that trip a run, function tools with Zod schemas, human-in-the-loop approval (`needsApproval` and resuming from `RunState`), sessions, structured output (`outputType`), `maxTurns`, and tracing hooks. Sandbox agents ship in the Python SDK; record whether the JS SDK has them.
 - **Out of scope:** the realtime and voice agents, and the Python SDK. Note them in the guide.
 
-### S4 Vercel AI SDK
+### S4 Vercel AI SDK (done)
+
+Result: `ai@7.0.162`, docs mirrored from tag `ai@7.0.162` (74 pages). 741 blocks type-checked with 12 API mismatches, all reviewed; 116 of 131 complete blocks ran on `MockLanguageModelV4`; 9 behavioral examples; eight findings. Tool approval moved to the call-level `toolApproval` in 7.0, so S4 verified that instead of `needsApproval`. See the [fact-check](../reference/vercel-ai-sdk/fact-check.md). The plan below is kept as written.
+
 
 - **Package:** `ai` (7.0.176 on 2026-11-18; re-check and pin at the start of S4a), with `@ai-sdk/anthropic` and `@ai-sdk/openai`.
 - **Docs:** the Apache-2.0 `vercel/ai` repo holds them under `content/`: 303 docs pages, 164 provider pages and 95 cookbook pages. The owner chose to cover only the agent-relevant core (2026-11-18). That core is AI SDK Core (text generation, tool calling, agents, MCP, streaming and structured output), the Anthropic and OpenAI provider pages, and the cookbook's agent recipes. Mirror and verify those pages, and commit the mirror with the license.
@@ -81,7 +84,7 @@ Result: `@openai/agents@0.21.0`, docs mirrored from tag `v0.21.0`. 182 sources t
 | S3a | OpenAI Agents SDK: mirror, verification harness and behavioral examples (done) | S2 |
 | S3b | OpenAI Agents SDK: guide and fact-check, written and reviewed (done) | S3a |
 | S4a | Vercel AI SDK: mirror, verification harness and behavioral examples (done) | S3b |
-| S4b | Vercel AI SDK: guide and fact-check, written and reviewed | S4a |
+| S4b | Vercel AI SDK: guide and fact-check, written and reviewed (done) | S4a |
 
 ## 6. Risks
 
