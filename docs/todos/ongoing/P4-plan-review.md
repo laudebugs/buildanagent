@@ -3,7 +3,7 @@
 | Field | Value |
 | --- | --- |
 | ID | `P4` |
-| Status | `ready` |
+| Status | `ongoing` |
 | Plan | [Implementation plans §3](../../plans/implementation-plans.md#3-the-review-p4) |
 | Round / milestone | Round P (plans), M4 |
 | Depends on | [P1](../done/P1-plan-sdk.md), [P2](../done/P2-plan-harness.md), [P3](../done/P3-plan-agent.md) |
@@ -56,7 +56,7 @@ The owner decides any finding left open.
 
 ## Definition of done
 
-- [ ] Claimed: the first commit moved this file `ready/` → `ongoing/` (Status `ongoing`)
+- [x] Claimed: the first commit moved this file `ready/` → `ongoing/` (Status `ongoing`)
 - [ ] Prose drafted with `/anthropic-skills:writing` and reviewed with `/anthropic-skills:writing-review`, with the fixes applied and changed claims re-checked
 - [ ] `pnpm check`, `pnpm typecheck` and `pnpm test` pass locally; pushed after each meaningful step
 - [ ] This file moved `ongoing/` → `done/` (Status `done`), and the plan's todo table updated
