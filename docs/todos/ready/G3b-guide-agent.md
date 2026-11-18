@@ -6,7 +6,7 @@
 | Status | `ready` |
 | Plan | [Build guides §3](../../plans/build-guides.md#3-how-each-research-round-works) |
 | Round / milestone | Round G (build guides), M3 |
-| Depends on | [G3a](../done/G3a-research-agent.md), [G2b](../ready/G2b-guide-harness.md) |
+| Depends on | [G3a](../done/G3a-research-agent.md), [G2b](../ongoing/G2b-guide-harness.md) |
 | Size | L |
 
 ## Goal

@@ -3,15 +3,15 @@
 | Field | Value |
 | --- | --- |
 | ID | `G2b` |
-| Status | `ready` |
+| Status | `ongoing` |
 | Plan | [Build guides §3](../../plans/build-guides.md#3-how-each-research-round-works) |
 | Round / milestone | Round G (build guides), M3 |
-| Depends on | [G2a](../done/G2a-research-harness.md), [G1b](../ready/G1b-guide-agent-sdk.md) |
+| Depends on | [G2a](../done/G2a-research-harness.md), [G1b](../done/G1b-guide-agent-sdk.md), [H3](../done/H3-hn-synthesis.md) |
 | Size | L |
 
 ## Goal
 
-Write `docs/guides/<layer>.md`, the guide to building an agent harness, from the research, ending with a reference architecture and the decisions it leaves for Round P.
+Write `docs/guides/agent-harness.md`, the guide to building an agent harness, from the research, ending with a reference architecture and the decisions it leaves for Round P.
 
 ## Context
 
@@ -54,7 +54,7 @@ None.
 
 ## Definition of done
 
-- [ ] Claimed: the first commit moved this file `ready/` → `ongoing/` (Status `ongoing`)
+- [x] Claimed: the first commit moved this file `ready/` → `ongoing/` (Status `ongoing`)
 - [ ] Prose drafted with `/anthropic-skills:writing` and reviewed with `/anthropic-skills:writing-review`, with the fixes applied and changed claims re-checked
 - [ ] `pnpm check`, `pnpm typecheck` and `pnpm test` pass locally; pushed after each meaningful step
 - [ ] This file moved `ongoing/` → `done/` (Status `done`), and the plan's todo table updated
