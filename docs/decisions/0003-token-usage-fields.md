@@ -1,6 +1,6 @@
 # 0003. Store four token classes, and name the uncached field `uncachedInput`
 
-- **Status:** Proposed
+- **Status:** Accepted (P4 review, 2026-11-18)
 - **Date:** 2026-11-18
 - **Plan:** [build-sdk.md, D3](../plans/build-sdk.md#d3-usage-stores-four-token-classes-and-the-uncached-field-says-so-in-its-name)
 

@@ -4,7 +4,7 @@
 | --- | --- |
 | ID | `B16` |
 | Status | `ready` |
-| Plan | [Build SDK §4, Stage 3](../../plans/build-sdk.md#43-stage-3-the-loop) |
+| Plan | [Build SDK §4, Stage 3](../../plans/build-sdk.md#43-stage-3-builds-the-loop-its-tools-hooks-budget-and-signed-pauses) |
 | Round / milestone | Round B (build SDK), M5 |
 | Depends on | [B11](B11-loop-core.md) |
 | Size | S |
@@ -24,7 +24,8 @@ Let a caller steer a running agent or queue a follow-up, drained only at step bo
 
 - `run.steer()` and `run.followUp()` returning receipts
 - Draining at step boundaries
-- `steer_applied` events
+- `steer_applied` events for steers and follow-ups
+- `DeliveryReceipt` with `id`, `kind`, `message` and `stepIndex`
 
 **Out of scope** (and which todo covers it)
 
@@ -40,6 +41,7 @@ Let a caller steer a running agent or queue a follow-up, drained only at step bo
 - [ ] A steer sent during a tool batch is applied after the batch, never inside it
 - [ ] A follow-up sent before `done` extends the run by one step
 - [ ] Every receipt resolves with the step index at which its message was applied
+- [ ] A steer and a follow-up each emit one `steer_applied` whose receipt carries `kind` (`"steer"` or `"follow_up"`), the message and `stepIndex` (harness need 12)
 - [ ] `pnpm check`, `pnpm typecheck` and `pnpm test` pass offline from the repo root
 
 ## Tests

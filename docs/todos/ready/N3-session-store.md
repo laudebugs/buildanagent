@@ -4,7 +4,7 @@
 | --- | --- |
 | ID | `N3` |
 | Status | `ready` |
-| Plan | [Build harness §4, Stage 1](../../plans/build-harness.md#41-stage-1-the-session-log) |
+| Plan | [Build harness §4, Stage 1](../../plans/build-harness.md#41-stage-1-builds-the-session-log-from-its-entry-union-to-rebuild-and-replay) |
 | Round / milestone | Round N (build harness), M6 |
 | Depends on | [N2](N2-session-entries-schema.md) |
 | Size | M |

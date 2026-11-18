@@ -4,7 +4,7 @@
 | --- | --- |
 | ID | `A6` |
 | Status | `ready` |
-| Plan | [Build agent §4, Stage 2](../../plans/build-agent.md#42-stage-2-policy) |
+| Plan | [Build agent §4, Stage 2](../../plans/build-agent.md#42-stage-2-compiles-the-tier-table-into-the-pipeline-and-adds-the-kill-switch-the-quorum-and-the-taint-rule) |
 | Round / milestone | Round A (build agent), M7 |
 | Depends on | [A3](A3-tool-contract-lint.md), [N12](N12-permission-pipeline.md) |
 | Size | M |
@@ -15,7 +15,7 @@ Turn the guide's T0–T5 table into data and compile it into the harness's `Perm
 
 ## Context
 
-- [AD2](../../plans/build-agent.md#ad2-the-tier-table-is-code-t5-is-never-registered-and-t4-stays-denied-until-the-owner-sets-the-caps-owner-to-confirm): the decision and its evidence
+- [AD2](../../plans/build-agent.md#ad2-the-tier-table-is-code-t5-is-never-registered-and-t4-stays-denied-until-the-owner-sets-the-caps-accepted): the decision and its evidence
 - [AD10](../../plans/build-agent.md#ad10-no-classifier-approves-any-call-and-a-classifier-may-only-raise-a-tier): no classifier approves
 - [build-agent.md §3.3](../../plans/build-agent.md#33-policy-tiers-store-quorum-and-taint): `AgentPolicy`, `compilePolicy()`
 - [ADR 0023](../../decisions/0023-tier-table-as-code.md)
@@ -38,7 +38,7 @@ Turn the guide's T0–T5 table into data and compile it into the harness's `Perm
 
 ## Tasks
 
-- [ ] Confirm with the harness that a pipeline with no allow rules is valid (need H11); record the answer.
+- [ ] Rely on N12's test that a pipeline with no allow rules is valid (AH11, covered); add one test that the compiled config constructs.
 - [ ] Write each tier's behaviour as its own test case.
 
 ## Acceptance criteria

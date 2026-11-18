@@ -2,7 +2,7 @@
 
 - **Status:** Accepted (owner, 2026-11-18)
 - **Date:** 2026-11-18
-- **Plan:** [build-sdk.md, D2](../plans/build-sdk.md#d2-anthropic-messages-and-openai-compatible-chat-completions-first-owner-to-confirm)
+- **Plan:** [build-sdk.md, D2](../plans/build-sdk.md#d2-anthropic-messages-and-openai-compatible-chat-completions-first-accepted)
 
 ## Context
 

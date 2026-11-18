@@ -4,14 +4,14 @@
 | --- | --- |
 | ID | `A7` |
 | Status | `ready` |
-| Plan | [Build agent §4, Stage 2](../../plans/build-agent.md#42-stage-2-policy) |
+| Plan | [Build agent §4, Stage 2](../../plans/build-agent.md#42-stage-2-compiles-the-tier-table-into-the-pipeline-and-adds-the-kill-switch-the-quorum-and-the-taint-rule) |
 | Round / milestone | Round A (build agent), M7 |
 | Depends on | [A6](A6-tier-table.md) |
 | Size | M |
 
 ## Goal
 
-Build the `PolicyStore` with its memory and file backends, the permission hook that denies killed or spent calls, and the interceptor that stops a running context, then measure how fast a flip reaches a running ticket.
+Build the `PolicyStore` with its memory and file backends, the permission hook that denies killed or spent calls, and the interceptor that stops a running role, then measure how fast a flip reaches a running ticket.
 
 ## Context
 
@@ -27,7 +27,7 @@ Build the `PolicyStore` with its memory and file backends, the permission hook t
 - `memoryPolicyStore()` and `filePolicyStore()` (atomic rename, watch plus 1-second polling)
 - Counters `pages_per_tenant_hour`, `replies_per_requester_hour`, `t4_value_per_tenant_day`
 - Kill scopes by tool, tier, tenant and global
-- `policyHook()` (deny only) and `killSwitchInterceptors()` (`shouldStop`)
+- `policyHook()` (deny only) and `killSwitchInterceptors()` (`shouldStop` returning `{ stop: "hook", reason: "kill_switch" }`)
 - A measurement script for read latency and flip-to-stop delay
 
 **Out of scope** (and which todo covers it)
@@ -43,6 +43,7 @@ Build the `PolicyStore` with its memory and file backends, the permission hook t
 ## Acceptance criteria
 
 - [ ] A killed tier denies its next call; a killed tenant leaves other tenants running
+- [ ] A kill during a scripted planner run ends it `stopped` with `stoppedBy: "kill_switch"`, which the workflow maps to the `kill_switch` handoff, not `done` (R4)
 - [ ] A spent daily T4 value budget denies a refund below the single-approver cap
 - [ ] A file-store flip stops a scripted planner at its next step within 2 seconds, or the README records the measured delay and ADR 0025 is updated
 - [ ] Snapshot reads do no I/O (a test stubs `fs` and counts calls)

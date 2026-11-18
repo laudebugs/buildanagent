@@ -4,26 +4,26 @@
 | --- | --- |
 | ID | `A3` |
 | Status | `ready` |
-| Plan | [Build agent §4, Stage 1](../../plans/build-agent.md#41-stage-1-the-trusted-context-and-the-tools) |
+| Plan | [Build agent §4, Stage 1](../../plans/build-agent.md#41-stage-1-builds-the-trusted-run-context-the-helpdesk-boundary-and-the-ten-tools) |
 | Round / milestone | Round A (build agent), M7 |
 | Depends on | [A2](A2-trusted-context-helpdesk.md), [B10](B10-tool-runtime.md), [N11](N11-tool-registry.md) |
 | Size | M |
 
 ## Goal
 
-Define `AgentTool` and the adapter that turns it into a harness `RegisteredTool` with the trusted context bound in the wrapper, plus `toolError()` and a lint that fails the build on a weak contract, so every tool is designed before any tool is written.
+Define `AgentTool` and the adapter that turns it into a harness `RegisteredTool` with the trusted run context bound in the wrapper, plus `toolError()` and a lint that fails the build on a weak contract, so every tool is designed before any tool is written.
 
 ## Context
 
-- [build-agent.md §3.2](../../plans/build-agent.md#32-trusted-context-helpdesk-and-tool-contracts): `AgentTool`, `defineAgentTool()`, `toRegisteredTool()`, `toolError()`, `lintTools()`
+- [build-agent.md §3.2](../../plans/build-agent.md#32-trusted-run-context-helpdesk-and-tool-contracts): `AgentTool`, `defineAgentTool()`, `toRegisteredTool()`, `toolError()`, `lintTools()`
 - [agent guide §3](../../guides/agent.md#3-tools-deserve-more-design-effort-than-the-prompt-few-workflow-shaped-tools-identity-from-trusted-context-and-errors-that-say-what-to-do-next): full contracts, errors that name the next step, output budgets, the lint
-- [build-agent.md §3.7](../../plans/build-agent.md#37-needs-from-the-sdk-and-harness-plans): needs H2 (per-turn host context) and H10 (output trust)
+- [build-agent.md §3.7](../../plans/build-agent.md#37-needs-from-the-sdk-and-harness-plans): needs AH2 (per-turn host context) and AH10 (output trust), now in harness N6 and N11
 
 ## Scope
 
 **In scope**
 
-- `AgentTool`, `defineAgentTool()`, `toRegisteredTool(tool, trusted)`
+- `AgentTool`, `defineAgentTool()`, `toRegisteredTool(tool)`, which copies `outputTrust` and sets `approvalReuse: "none"` for T2–T4
 - `toolError({ cause, next, avoid })` producing an SDK `ToolResult` with `isError: true`
 - Input examples validated at registration
 - `lintTools()`: name pattern `<service>_<verb>_<resource>`, description of three or more sentences with a "do not use" sentence, no identity-shaped field (`email`, `customerId`, `userId`, `requesterId`, `accountId`) in any input schema, tier present, output budget present
@@ -36,7 +36,7 @@ Define `AgentTool` and the adapter that turns it into a harness `RegisteredTool`
 
 ## Tasks
 
-- [ ] Bind the trusted context through a getter closure, so it works whether the harness gains per-turn host context (H2) or not.
+- [ ] Read the trusted run context from the turn's `hostContext` in the wrapper; the harness passes it per turn (N6, N11).
 - [ ] Record the Zod check's result in the package README.
 
 ## Acceptance criteria
@@ -44,6 +44,7 @@ Define `AgentTool` and the adapter that turns it into a harness `RegisteredTool`
 - [ ] A tool with a `customerId` input fails the lint, and so does one with a two-sentence description
 - [ ] An invalid input example throws at registration
 - [ ] A host-context value reaches `execute` and appears in no recorded request
+- [ ] A registered T2–T4 tool carries `approvalReuse: "none"`, and every tool carries its declared `outputTrust`
 - [ ] `toolError()` text contains the cause, the next step and the avoid line
 - [ ] `pnpm check`, `pnpm typecheck` and `pnpm test` pass offline from the repo root
 

@@ -4,7 +4,7 @@
 | --- | --- |
 | ID | `N18` |
 | Status | `ready` |
-| Plan | [Build harness §4, Stage 4](../../plans/build-harness.md#44-stage-4-sandbox-and-credentials) |
+| Plan | [Build harness §4, Stage 4](../../plans/build-harness.md#44-stage-4-adds-the-sandbox-backends-and-the-credential-proxy) |
 | Round / milestone | Round N (build harness), M6 |
 | Depends on | [N15](N15-sandbox-interface.md), [N13](N13-signed-approvals.md) |
 | Size | M |
@@ -17,7 +17,7 @@ Turn a sandbox denial into a tested, host-side state transition: under `never` t
 
 - [harness guide §6](../../guides/agent-harness.md#6-the-sandbox-and-the-credential-boundary-are-separate-components-and-the-host-not-the-model-owns-both): Codex's escalation flow; the model never widens its own sandbox
 - [build-harness.md §3.4](../../plans/build-harness.md#34-permission-approval-and-sandbox-apis): the API sketch
-- [HD5](../../plans/build-harness.md#hd5-the-harness-always-passes-hmacsigner-over-a-persistent-key-ring-owner-to-confirm-with-sdk-d5): the decision and its evidence
+- [HD5](../../plans/build-harness.md#hd5-the-harness-always-passes-hmacsigner-over-a-persistent-key-ring-accepted-with-sdk-d5): the decision and its evidence
 
 ## Scope
 

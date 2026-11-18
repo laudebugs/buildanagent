@@ -4,9 +4,9 @@
 | --- | --- |
 | ID | `B1` |
 | Status | `ready` |
-| Plan | [Build SDK §4, Stage 1](../../plans/build-sdk.md#41-stage-1-foundations) |
+| Plan | [Build SDK §4, Stage 1](../../plans/build-sdk.md#41-stage-1-builds-the-gateway-types-and-the-scripted-model-that-every-later-todo-tests-against) |
 | Round / milestone | Round B (build SDK), M5 |
-| Depends on | [P4](P4-plan-review.md) |
+| Depends on | [P4](../done/P4-plan-review.md) |
 | Size | S |
 
 ## Goal

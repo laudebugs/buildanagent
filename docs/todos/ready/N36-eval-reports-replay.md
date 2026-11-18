@@ -4,7 +4,7 @@
 | --- | --- |
 | ID | `N36` |
 | Status | `ready` |
-| Plan | [Build harness §4, Stage 7](../../plans/build-harness.md#47-stage-7-telemetry-completion-evals-and-ablation) |
+| Plan | [Build harness §4, Stage 7](../../plans/build-harness.md#47-stage-7-adds-telemetry-completion-checks-evals-and-ablation) |
 | Round / milestone | Round N (build harness), M6 |
 | Depends on | [N35](N35-harness-capstone.md) |
 | Size | M |
@@ -24,6 +24,7 @@ Build the eval machinery that runs on every commit: the report format that pairs
 **In scope**
 
 - `EvalRow`, `report()` with pass@1, pass^k (the unbiased estimator), Wilson intervals, and cost, tokens, steps, preamble size and prompts per task
+- `EvalRow.passed: boolean | null` with `unscored?: "judge_unknown" | "infra_error"` (R11), `harness: string` documenting `"ours"`, `"mini-swe-agent"` and `"single-call"`, and `tags?: string[]` for the slice and `"safety"` (agent AH13)
 - `discordance()` between two runs
 - `toMiniSweTrajectory()` in format `mini-swe-agent-1.1`
 - The offline replay suite in `pnpm test`, using N35's fixtures through `replayPairs()`
@@ -42,6 +43,8 @@ Build the eval machinery that runs on every commit: the report format that pairs
 - [ ] A converted trajectory has `instance_cost`, `api_calls` and `exit_status` filled
 - [ ] The replay suite runs offline and fails when an entry changes
 - [ ] Rows with `exit: "infra_error"` are counted apart from failures
+- [ ] A row with `passed: null` and `unscored: "judge_unknown"` is reported as unscored and counted neither as a pass nor as a fail
+- [ ] `report()` groups rows by any `harness` string, including `"single-call"`, and can filter by a tag
 - [ ] `pnpm check`, `pnpm typecheck` and `pnpm test` pass offline from the repo root
 
 ## Tests

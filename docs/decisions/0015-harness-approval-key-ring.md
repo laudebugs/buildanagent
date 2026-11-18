@@ -2,7 +2,7 @@
 
 - **Status:** Accepted (owner, 2026-11-18)
 - **Date:** 2026-11-18
-- **Plan:** [build-harness.md, HD5](../plans/build-harness.md#hd5-the-harness-always-passes-hmacsigner-over-a-persistent-key-ring-owner-to-confirm-with-sdk-d5)
+- **Plan:** [build-harness.md, HD5](../plans/build-harness.md#hd5-the-harness-always-passes-hmacsigner-over-a-persistent-key-ring-accepted-with-sdk-d5)
 
 ## Context
 
@@ -15,4 +15,5 @@ The harness keeps a key ring in a `KeyStore` outside every sandbox and outside t
 ## Consequences
 
 - The SDK's ephemeral default stays correct for library users; the owner may still make `signer` required (ADR 0005's alternative), which the harness already satisfies.
+- Outcome (2026-11-18): the owner kept the ephemeral default, so `signer` stays optional in the SDK (ADR 0005).
 - Todo N13 builds the key store and the resume path.

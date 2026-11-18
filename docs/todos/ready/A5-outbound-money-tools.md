@@ -4,7 +4,7 @@
 | --- | --- |
 | ID | `A5` |
 | Status | `ready` |
-| Plan | [Build agent §4, Stage 1](../../plans/build-agent.md#41-stage-1-the-trusted-context-and-the-tools) |
+| Plan | [Build agent §4, Stage 1](../../plans/build-agent.md#41-stage-1-builds-the-trusted-run-context-the-helpdesk-boundary-and-the-ten-tools) |
 | Round / milestone | Round A (build agent), M7 |
 | Depends on | [A4](A4-read-internal-tools.md) |
 | Size | M |
@@ -15,8 +15,8 @@ Write the three code-initiated tools (T3 reply, T4 refund and credit) with every
 
 ## Context
 
-- [AD2](../../plans/build-agent.md#ad2-the-tier-table-is-code-t5-is-never-registered-and-t4-stays-denied-until-the-owner-sets-the-caps-owner-to-confirm) and [AD8](../../plans/build-agent.md#ad8-code-appends-the-ai-label-spans-hash-identifiers-and-later-stages-need-a-retention-period-owner-to-confirm-with-hd11): T4 denied until caps; the AI label
-- [build-agent.md §3.4](../../plans/build-agent.md#34-contexts-gates-and-the-workflow): `checkReply()`
+- [AD2](../../plans/build-agent.md#ad2-the-tier-table-is-code-t5-is-never-registered-and-t4-stays-denied-until-the-owner-sets-the-caps-accepted) and [AD8](../../plans/build-agent.md#ad8-code-appends-the-ai-label-spans-hash-identifiers-and-later-stages-need-a-retention-period-accepted-with-hd11): T4 denied until caps; the AI label
+- [build-agent.md §3.4](../../plans/build-agent.md#34-roles-gates-and-the-workflow): `checkReply()`
 - [agent guide §5](../../guides/agent.md#5-safety-is-a-policy-table-and-a-context-split-tier-every-tool-by-worst-case-effect-bind-identity-and-cut-the-outbound-leg): outbound channels and egress per argument
 
 ## Scope

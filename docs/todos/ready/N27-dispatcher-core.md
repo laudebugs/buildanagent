@@ -4,7 +4,7 @@
 | --- | --- |
 | ID | `N27` |
 | Status | `ready` |
-| Plan | [Build harness §4, Stage 6](../../plans/build-harness.md#46-stage-6-protocol-and-interfaces) |
+| Plan | [Build harness §4, Stage 6](../../plans/build-harness.md#46-stage-6-puts-the-protocol-its-transports-and-the-cli-over-the-harness) |
 | Round / milestone | Round N (build harness), M6 |
 | Depends on | [N26](N26-protocol-package.md), [N7](N7-rebuild-resume-replay.md), [B16](B16-steering.md) |
 | Size | M |

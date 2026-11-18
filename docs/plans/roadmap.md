@@ -50,8 +50,8 @@ agent-speak ends this phase with four things:
 | M3 Build guides (done 2026-11-18) | G1–G3, H1–H3, R1 | Researched guides to building an agent SDK, a harness and an agent, informed by the Hacker News practitioner research and with secondary claims re-checked against primary sources |
 | X CI and dependency security (done 2026-11-18) | X1, X2 | Checks on every push, a nightly verify with drift and audit gates, and Dependabot scoped to our manifests |
 | M4 Reviewed plans | P1–P4 | Detailed implementation plans, reviewed together, ready for the build phase |
-| M5 Our agent SDK (next phase) | B1–B20 | `@agent-speak/gateway` and `@agent-speak/sdk` in `packages/`, built from [build-sdk.md](build-sdk.md) once P4 accepts it |
-| M6 Our agent harness (next phase) | N1–N39 | `@agent-speak/protocol`, `harness`, `cli` and `evals`, built from [build-harness.md](build-harness.md); it starts after B1–B2 and interleaves with Round B (§6 of the plan) |
+| M5 Our agent SDK (next phase) | B1–B20, B15b, B19b | `@agent-speak/gateway` and `@agent-speak/sdk` in `packages/`, built from [build-sdk.md](build-sdk.md) once P4 accepts it |
+| M6 Our agent harness (next phase) | N1–N40, N38b | `@agent-speak/protocol`, `harness`, `cli` and `evals`, built from [build-harness.md](build-harness.md); it starts after B1–B2 and interleaves with Round B (§6 of the plan), and N38b waits for A17 and A19 |
 | M7 Our agent (next phase) | A1–A24 | `@agent-speak/triage-agent`, built from [build-agent.md](build-agent.md); it starts after N1 and needs N35 for its capstone, with shadow, canary and release as later-phase items |
 
 ## How each todo is worked

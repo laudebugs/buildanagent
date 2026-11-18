@@ -1,10 +1,10 @@
-# A2: Trusted context, intake, the `Helpdesk` interface and `fakeHelpdesk`
+# A2: Trusted run context, intake, the `Helpdesk` interface and `fakeHelpdesk`
 
 | Field | Value |
 | --- | --- |
 | ID | `A2` |
 | Status | `ready` |
-| Plan | [Build agent §4, Stage 1](../../plans/build-agent.md#41-stage-1-the-trusted-context-and-the-tools) |
+| Plan | [Build agent §4, Stage 1](../../plans/build-agent.md#41-stage-1-builds-the-trusted-run-context-the-helpdesk-boundary-and-the-ten-tools) |
 | Round / milestone | Round A (build agent), M7 |
 | Depends on | [A1](A1-triage-agent-scaffold.md) |
 | Size | M |
@@ -15,8 +15,8 @@ Build the two foundations every other todo depends on: the host-only `TrustedCon
 
 ## Context
 
-- [AD14](../../plans/build-agent.md#ad14-one-helpdesk-interface-is-the-agents-only-way-out-with-a-fake-for-tests-a-shadow-wrapper-for-rollout-and-a-real-adapter-the-owner-names-owner-to-confirm): the helpdesk boundary
-- [build-agent.md §3.2](../../plans/build-agent.md#32-trusted-context-helpdesk-and-tool-contracts): `TrustedContext`, `intake()`, `Helpdesk`, `fakeHelpdesk()`
+- [AD14](../../plans/build-agent.md#ad14-one-helpdesk-interface-is-the-agents-only-way-out-with-a-fake-for-tests-a-shadow-wrapper-for-rollout-and-a-real-adapter-the-owner-names-accepted): the helpdesk boundary
+- [build-agent.md §3.2](../../plans/build-agent.md#32-trusted-run-context-helpdesk-and-tool-contracts): `TrustedContext`, `intake()`, `Helpdesk`, `fakeHelpdesk()`
 - [agent guide §3](../../guides/agent.md#3-tools-deserve-more-design-effort-than-the-prompt-few-workflow-shaped-tools-identity-from-trusted-context-and-errors-that-say-what-to-do-next): identity is the argument the model must never choose
 
 ## Scope
@@ -49,11 +49,11 @@ Build the two foundations every other todo depends on: the host-only `TrustedCon
 
 ## Tests
 
-`packages/triage-agent/test/context/intake.test.ts`, `test/helpdesk/fake.test.ts`.
+`packages/triage-agent/test/trusted/intake.test.ts`, `test/helpdesk/fake.test.ts`.
 
 ## Docs to update
 
-The package README's "Trusted context" section. The plan's todo table in [build-agent.md §4](../../plans/build-agent.md#4-rounds-and-todos).
+The package README's "Trusted run context" section. The plan's todo table in [build-agent.md §4](../../plans/build-agent.md#4-rounds-and-todos).
 
 ## Risks and open questions
 

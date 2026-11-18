@@ -1,6 +1,6 @@
 # 0017. Pin semconv-genai at `d28355d`, and name cost attributes in our own namespace
 
-- **Status:** Proposed
+- **Status:** Accepted (P4 review, 2026-11-18)
 - **Date:** 2026-11-18
 - **Plan:** [build-harness.md, HD7](../plans/build-harness.md#hd7-pin-semconv-genai-d28355d-and-name-cost-in-our-own-namespace-with-sdk-d3)
 
@@ -15,4 +15,4 @@ The telemetry projection pins `open-telemetry/semantic-conventions-genai` at `d2
 ## Consequences
 
 - Moving the pin is a deliberate change with a changelog entry, not a dependency bump.
-- The SDK's OTel observer should share the attribute-name module (build-harness.md §3.6, item 10).
+- The SDK's OTel observer exports `GEN_AI_ATTRIBUTES` and `SEMCONV_GENAI_COMMIT` (todo B17), and the harness projection imports them (todo N31), so the two share one module (P4, harness need 10).

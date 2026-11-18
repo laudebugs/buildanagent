@@ -4,7 +4,7 @@
 | --- | --- |
 | ID | `B6` |
 | Status | `ready` |
-| Plan | [Build SDK §4, Stage 2](../../plans/build-sdk.md#42-stage-2-providers) |
+| Plan | [Build SDK §4, Stage 2](../../plans/build-sdk.md#42-stage-2-adds-the-two-wire-adapters-and-the-replay-pass-between-them) |
 | Round / milestone | Round B (build SDK), M5 |
 | Depends on | [B3](B3-scripted-model.md) |
 | Size | M |
@@ -44,6 +44,7 @@ Make a transcript recorded on one provider replay safely on another, through one
 - [ ] The input array is deep-equal before and after the call
 - [ ] A transcript with a tool call and no result gains a synthetic `isError` result
 - [ ] Running the pass twice gives the same output as running it once
+- [ ] A trailing assistant message with `stopReason: "error"` is dropped, so a resumed call re-issues it (harness need 4)
 - [ ] `pnpm check`, `pnpm typecheck` and `pnpm test` pass offline from the repo root
 
 ## Tests

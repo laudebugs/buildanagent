@@ -4,9 +4,9 @@
 | --- | --- |
 | ID | `N7` |
 | Status | `ready` |
-| Plan | [Build harness §4, Stage 1](../../plans/build-harness.md#41-stage-1-the-session-log) |
+| Plan | [Build harness §4, Stage 1](../../plans/build-harness.md#41-stage-1-builds-the-session-log-from-its-entry-union-to-rebuild-and-replay) |
 | Round / milestone | Round N (build harness), M6 |
-| Depends on | [N6](N6-session-runner.md), [B15](B15-signed-pauses.md) |
+| Depends on | [N6](N6-session-runner.md), [B15b](B15b-continue-run.md) |
 | Size | M |
 
 ## Goal
@@ -23,7 +23,7 @@ Make the log the only state: rebuild the SDK `Context` from entries in any proce
 
 **In scope**
 
-- `Session.toContext(headId?)` that rebuilds `Context` (`system`, `messages`, `pending`) from entries
+- `Session.toContext(headId?)` that rebuilds `Context` (`system`, `messages`, `pending`) from entries, taking `system` from the latest `turn_start`
 - `Session.playback()` and a byte-identical determinism test
 - `Session.rerunFrom(entryId, options)`, which checks out the entry and starts a new turn
 - Resume after a crash mid-turn: open tool calls get an aborted error result entry
@@ -42,6 +42,7 @@ Make the log the only state: rebuild the SDK `Context` from entries in any proce
 ## Acceptance criteria
 
 - [ ] `toContext()` deep-equals the `RunResult.context` of the run that wrote the log
+- [ ] After the harness's configured system prompt changes, a rebuilt `Context.system` still matches the stored turn's prompt byte for byte (R6)
 - [ ] `continueRun` on a `toContext()` result, after a JSON round trip, finishes the scripted run
 - [ ] Playback makes zero model and tool calls (asserted with `ScriptedModel.calls`)
 - [ ] Two identical scripted sessions produce byte-identical JSONL files

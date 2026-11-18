@@ -4,7 +4,7 @@
 | --- | --- |
 | ID | `B9` |
 | Status | `ready` |
-| Plan | [Build SDK §4, Stage 2](../../plans/build-sdk.md#42-stage-2-providers) |
+| Plan | [Build SDK §4, Stage 2](../../plans/build-sdk.md#42-stage-2-adds-the-two-wire-adapters-and-the-replay-pass-between-them) |
 | Round / milestone | Round B (build SDK), M5 |
 | Depends on | [B5](B5-usage-cost-catalog.md), [B6](B6-transform-messages.md), [B7](B7-tool-name-table.md) |
 | Size | L |
@@ -15,7 +15,7 @@ Ship the `openai-chat` adapter, one of the two first wire protocols in D2, with 
 
 ## Context
 
-- [D2](../../plans/build-sdk.md#d2-anthropic-messages-and-openai-compatible-chat-completions-first-owner-to-confirm): why this protocol, and plain `fetch`
+- [D2](../../plans/build-sdk.md#d2-anthropic-messages-and-openai-compatible-chat-completions-first-accepted): why this protocol, and plain `fetch`
 - [agent-SDK guide §2](../../guides/agent-sdk.md#2-the-model-gateway-should-expose-one-versioned-streaming-method-over-a-transcript-the-sdk-owns): the stream protocol, in-band errors, caching
 - [D3](../../plans/build-sdk.md#d3-usage-stores-four-token-classes-and-the-uncached-field-says-so-in-its-name) and [D4](../../plans/build-sdk.md#d4-prices-come-from-a-versioned-catalog-and-a-provider-billed-total-overrides-it): usage mapping and billed totals
 
@@ -25,7 +25,7 @@ Ship the `openai-chat` adapter, one of the two first wire protocols in D2, with 
 
 - `openaiChat(config)` in `@agent-speak/gateway/openai-chat`, over `fetch` through `ProviderConfig.transport`
 - An SSE parser that emits `ModelEvent`s passing `assertStreamContract()`
-- Request encoding: system, messages after `transformMessages`, tools lowered to strict form with names sanitised (B7)
+- Request encoding: system, messages after `transformMessages`, tools lowered to strict form with names sanitised (B7); the nulls that strict lowering adds are stripped from the model's arguments before validation
 - Caching: per-model `compat` flags for OpenAI-compatible servers
 - Usage mapping into the four classes, with a check of whether reasoning is inside output
 - Error mapping into the B4 classes
@@ -47,6 +47,7 @@ Ship the `openai-chat` adapter, one of the two first wire protocols in D2, with 
 ## Acceptance criteria
 
 - [ ] Every fixture stream passes `assertStreamContract()`
+- [ ] A tool call whose optional field arrives as the `null` that strict lowering added reaches validation without that field (a fixture test)
 - [ ] A `length` stop yields `stopReason: "length"` with the partial tool input
 - [ ] Each error fixture maps to its B4 class and returns an in-band `error` terminal
 - [ ] `baseURL` and `transport` reach every request (a test asserts the URL and that the mock transport saw it)

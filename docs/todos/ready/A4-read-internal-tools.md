@@ -4,7 +4,7 @@
 | --- | --- |
 | ID | `A4` |
 | Status | `ready` |
-| Plan | [Build agent §4, Stage 1](../../plans/build-agent.md#41-stage-1-the-trusted-context-and-the-tools) |
+| Plan | [Build agent §4, Stage 1](../../plans/build-agent.md#41-stage-1-builds-the-trusted-run-context-the-helpdesk-boundary-and-the-ten-tools) |
 | Round / milestone | Round A (build agent), M7 |
 | Depends on | [A3](A3-tool-contract-lint.md) |
 | Size | M |
@@ -17,7 +17,7 @@ Write the planner's seven tools (four T0 reads, two T1 internal writes, one T2 e
 
 - [agent guide §3](../../guides/agent.md#3-tools-deserve-more-design-effort-than-the-prompt-few-workflow-shaped-tools-identity-from-trusted-context-and-errors-that-say-what-to-do-next): few workflow-shaped tools, high-signal outputs, errors
 - [agent guide §5](../../guides/agent.md#5-safety-is-a-policy-table-and-a-context-split-tier-every-tool-by-worst-case-effect-bind-identity-and-cut-the-outbound-leg): the tier table and each tool's identity source
-- [build-agent.md §3.2](../../plans/build-agent.md#32-trusted-context-helpdesk-and-tool-contracts): `TRIAGE_TOOLS`
+- [build-agent.md §3.2](../../plans/build-agent.md#32-trusted-run-context-helpdesk-and-tool-contracts): `TRIAGE_TOOLS`
 
 ## Scope
 
@@ -26,7 +26,7 @@ Write the planner's seven tools (four T0 reads, two T1 internal writes, one T2 e
 - T0: `support_get_ticket` (metadata only: subject, queue, attachment names; no body), `support_get_requester`, `support_list_requester_orders`, `help_search_articles` (our domains only)
 - T1: `support_set_triage`, `support_add_internal_note` (tagged `derivedFromUntrusted`)
 - T2: `support_escalate`
-- No tool takes an identity argument; each reads the requester from the trusted context
+- No tool takes an identity argument; each reads the requester from the trusted run context
 - Output budgets and `outputTrust` per tool
 
 **Out of scope** (and which todo covers it)

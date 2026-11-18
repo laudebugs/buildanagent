@@ -4,7 +4,7 @@
 | --- | --- |
 | ID | `N13` |
 | Status | `ready` |
-| Plan | [Build harness §4, Stage 3](../../plans/build-harness.md#43-stage-3-tools-and-permissions) |
+| Plan | [Build harness §4, Stage 3](../../plans/build-harness.md#43-stage-3-adds-the-registry-the-permission-pipeline-signed-approvals-and-code-initiated-calls) |
 | Round / milestone | Round N (build harness), M6 |
 | Depends on | [N12](N12-permission-pipeline.md), [N7](N7-rebuild-resume-replay.md) |
 | Size | M |
@@ -15,9 +15,9 @@ Make every approval a signed pause in the log that survives restarts and resumes
 
 ## Context
 
-- [HD5](../../plans/build-harness.md#hd5-the-harness-always-passes-hmacsigner-over-a-persistent-key-ring-owner-to-confirm-with-sdk-d5): the decision and its evidence
+- [HD5](../../plans/build-harness.md#hd5-the-harness-always-passes-hmacsigner-over-a-persistent-key-ring-accepted-with-sdk-d5): the decision and its evidence
 - [ADR 0015](../../decisions/0015-harness-approval-key-ring.md), [ADR 0005](../../decisions/0005-approval-signing.md): the decision records
-- [SDK D5](../../plans/build-sdk.md#d5-a-pluggable-signer-with-key-ids-an-ephemeral-default-and-no-unsigned-resume-owner-to-confirm-with-p2): the signer interface
+- [SDK D5](../../plans/build-sdk.md#d5-a-pluggable-signer-with-key-ids-an-ephemeral-default-and-no-unsigned-resume-accepted-with-hd5): the signer interface
 - [build-harness.md §3.6](../../plans/build-harness.md#36-needs-from-the-sdk-plan): need 7
 
 ## Scope
@@ -28,6 +28,7 @@ Make every approval a signed pause in the log that survives restarts and resumes
 - `fileKeyStore()` with `load`, `rotate`, `prune`; mode `0600`; outside the sandbox and the log
 - `hmacSigner()` passed on every `run` and `continueRun`
 - `Approvals.pending()` and `Approvals.resolve()`: append the resolution, re-run the pipeline on each allow, then `continueRun`
+- `ResolveOptions` with `budgetUsd`, `signal` and `hostContext`, passed to the resumed run like a turn's (R9)
 - `approval/list` data for the protocol (wired in N27)
 
 **Out of scope** (and which todo covers it)
@@ -47,6 +48,7 @@ Make every approval a signed pause in the log that survives restarts and resumes
 - [ ] A second process resolves it and the call runs once
 - [ ] A tampered entry signature runs nothing and re-issues the request
 - [ ] A deny rule added after the pause turns an `allow` resolution into a denial result
+- [ ] A resume whose remaining session cap is below the next call's projection ends `budget` before the call (R9)
 - [ ] `prune` keeps any key named by an unresolved request
 - [ ] No key bytes appear in any entry, event or environment passed to a sandbox
 - [ ] `pnpm check`, `pnpm typecheck` and `pnpm test` pass offline from the repo root

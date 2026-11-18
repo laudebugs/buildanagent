@@ -4,7 +4,7 @@
 | --- | --- |
 | ID | `N5` |
 | Status | `ready` |
-| Plan | [Build harness §4, Stage 1](../../plans/build-harness.md#41-stage-1-the-session-log) |
+| Plan | [Build harness §4, Stage 1](../../plans/build-harness.md#41-stage-1-builds-the-session-log-from-its-entry-union-to-rebuild-and-replay) |
 | Round / milestone | Round N (build harness), M6 |
 | Depends on | [N4](N4-writer-lock.md) |
 | Size | M |
@@ -26,6 +26,7 @@ Persist HEAD as `checkout` entries and make fork, revert and format migration wr
 - `fork(entryId)` and `revert(entryId)` writing a new file whose header names the parent prefix
 - An index file mapping session key to current file, replaced atomically (write then `rename`)
 - `migrate()` that writes, verifies and publishes a new file, rejecting unknown future versions
+- `Session.child(link)` taking `{ spawningCallId }` or `{ stepId }`, with `subagent_link` recording whichever was given (agent AH3)
 
 **Out of scope** (and which todo covers it)
 
@@ -43,6 +44,7 @@ Persist HEAD as `checkout` entries and make fork, revert and format migration wr
 - [ ] `revert` leaves the original file byte-identical
 - [ ] A fork's `path()` includes the parent prefix without copying it
 - [ ] A crash between writing a migrated file and the `rename` leaves the old pointer valid
+- [ ] `child({ stepId: "step:reader" })` writes a `subagent_link` with `stepId` and no `spawningCallId`, and `child({ spawningCallId })` the reverse
 - [ ] `pnpm check`, `pnpm typecheck` and `pnpm test` pass offline from the repo root
 
 ## Tests

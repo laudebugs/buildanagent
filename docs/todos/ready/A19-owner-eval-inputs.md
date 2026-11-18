@@ -4,20 +4,20 @@
 | --- | --- |
 | ID | `A19` |
 | Status | `ready` |
-| Plan | [Build agent §4, Stage 4](../../plans/build-agent.md#44-stage-4-evals) |
+| Plan | [Build agent §4, Stage 4](../../plans/build-agent.md#44-stage-4-builds-the-eval-suite-and-the-release-gate-then-runs-them-live-once-the-owners-inputs-arrive) |
 | Round / milestone | Round A (build agent), M7 |
 | Depends on | [A17](A17-eval-tasks-graders.md) |
 | Size | M |
 
 ## Goal
 
-Collect the inputs only the owner can supply for the real eval suite, convert them into `TriageTask`s outside the repository, and hand the 10 classification tasks to the harness seed suite (N38).
+Collect the inputs only the owner can supply for the real eval suite, de-identify the tickets and convert them into `TriageTask`s, and hand the 10 classification tasks to the harness seed suite (N38b).
 
 ## Context
 
-- [AD6](../../plans/build-agent.md#ad6-the-owner-names-the-policy-writer-and-two-labelling-leads-and-the-judge-and-simulator-run-on-the-other-provider-owner-to-confirm): eval ownership
-- [AD8](../../plans/build-agent.md#ad8-code-appends-the-ai-label-spans-hash-identifiers-and-later-stages-need-a-retention-period-owner-to-confirm-with-hd11): where real tickets live
-- [N38](N38-seed-suite-baseline.md): the harness seed suite that shares the 10 classification tasks
+- [AD6](../../plans/build-agent.md#ad6-the-owner-names-the-policy-writer-and-two-labelling-leads-and-the-judge-and-simulator-run-on-the-other-provider-accepted): eval ownership
+- [AD8](../../plans/build-agent.md#ad8-code-appends-the-ai-label-spans-hash-identifiers-and-later-stages-need-a-retention-period-accepted-with-hd11): the repo holds only synthetic and de-identified tickets; raw tickets never enter it
+- [N38b](N38b-shared-triage-tasks.md): the harness todo that adds the 10 classification tasks to its seed suite
 
 ## Scope
 
@@ -33,14 +33,16 @@ Collect the inputs only the owner can supply for the real eval suite, convert th
 
 ## Tasks
 
-- [ ] Store real tasks where AD8 says; commit only the converter and the checklist.
+- [ ] Run every ticket through the de-identification checklist, and commit only tickets that pass it, as `TriageTask`s under `packages/triage-agent/evals/real/`, with the converter and the checklist.
+- [ ] Keep raw tickets out of the repository and out of every commit; they stay in the helpdesk under its own retention.
 - [ ] Record the agreement rate between the two leads.
 
 ## Acceptance criteria
 
 - [ ] 30 real tasks exist in the agreed location, balanced across the seven slices
 - [ ] Every task has two labels that agree
-- [ ] N38 can read the 10 classification tasks
+- [ ] Every committed real task has a checklist record showing it passed, and a scan, run before each commit against the raw tickets, finds none of their email addresses, phone numbers or order ids in the repository
+- [ ] N38b can read the 10 classification tasks through `@agent-speak/triage-agent/evals`
 - [ ] `pnpm check`, `pnpm typecheck` and `pnpm test` pass offline from the repo root
 
 ## Tests

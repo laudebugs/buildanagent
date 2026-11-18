@@ -4,7 +4,7 @@
 | --- | --- |
 | ID | `N17` |
 | Status | `ready` |
-| Plan | [Build harness §4, Stage 4](../../plans/build-harness.md#44-stage-4-sandbox-and-credentials) |
+| Plan | [Build harness §4, Stage 4](../../plans/build-harness.md#44-stage-4-adds-the-sandbox-backends-and-the-credential-proxy) |
 | Round / milestone | Round N (build harness), M6 |
 | Depends on | [N15](N15-sandbox-interface.md) |
 | Size | M |
@@ -16,8 +16,8 @@ Run tools in a locked-down container as the container-tier backend for headless 
 ## Context
 
 - [harness guide §6](../../guides/agent-harness.md#6-the-sandbox-and-the-credential-boundary-are-separate-components-and-the-host-not-the-model-owns-both): Docker with `--cap-drop ALL --read-only --network none`
-- [HD4](../../plans/build-harness.md#hd4-srt-for-interactive-runs-and-docker-for-headless-runs-owner-to-confirm): the decision and its evidence
-- [HD8](../../plans/build-harness.md#hd8-a-30-task-seed-suite-from-real-failures-and-triage-tasks-at-k--5-owner-to-confirm): resource guarantees
+- [HD4](../../plans/build-harness.md#hd4-srt-for-interactive-runs-and-docker-for-headless-runs-accepted): the decision and its evidence
+- [HD8](../../plans/build-harness.md#hd8-a-30-task-seed-suite-from-real-failures-and-triage-tasks-at-k--5-accepted): resource guarantees
 
 ## Scope
 

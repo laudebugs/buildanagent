@@ -4,7 +4,7 @@
 | --- | --- |
 | ID | `N34` |
 | Status | `ready` |
-| Plan | [Build harness §4, Stage 7](../../plans/build-harness.md#47-stage-7-telemetry-completion-evals-and-ablation) |
+| Plan | [Build harness §4, Stage 7](../../plans/build-harness.md#47-stage-7-adds-telemetry-completion-checks-evals-and-ablation) |
 | Round / milestone | Round N (build harness), M6 |
 | Depends on | [N10](N10-mid-turn-overflow.md), [N14](N14-sticky-grouped-quorum.md), [N20](N20-credential-proxy.md), [N21](N21-builtin-tools.md), [N23](N23-skills-context-files.md), [N25](N25-mcp-http-background.md), [N31](N31-telemetry-projection.md), [N32](N32-completion-check.md) |
 | Size | M |
@@ -41,6 +41,7 @@ Make every removable component one flag in `AblationConfig`, stamp the configura
 - [ ] Every flag off still completes the scripted session
 - [ ] Two configurations differing in one flag have different hashes, and the hash is in `session_header`
 - [ ] With `credentialProxy: false`, a tool that needs a credential fails with an error result
+- [ ] The matrix keeps `fakeSandbox()` for every arm; the `sandbox: "none"` arm asserts only the tier stamp in `env_stamp`, and its scripted session calls no host tool (`bash`, `write`, `edit`)
 - [ ] `pnpm check`, `pnpm typecheck` and `pnpm test` pass offline from the repo root
 
 ## Tests

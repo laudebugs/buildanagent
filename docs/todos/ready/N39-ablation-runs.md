@@ -4,7 +4,7 @@
 | --- | --- |
 | ID | `N39` |
 | Status | `ready` |
-| Plan | [Build harness §4, Stage 7](../../plans/build-harness.md#47-stage-7-telemetry-completion-evals-and-ablation) |
+| Plan | [Build harness §4, Stage 7](../../plans/build-harness.md#47-stage-7-adds-telemetry-completion-checks-evals-and-ablation) |
 | Round / milestone | Round N (build harness), M6 |
 | Depends on | [N38](N38-seed-suite-baseline.md) |
 | Size | M |

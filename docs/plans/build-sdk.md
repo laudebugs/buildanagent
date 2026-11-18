@@ -1,13 +1,13 @@
-# Plan: build our agent SDK as two workspace packages, a gateway and a loop, in 20 todos tested offline against a scripted model
+# Plan: build our agent SDK as two workspace packages, a gateway and a loop, in 22 todos tested offline against a scripted model
 
-- **Status:** Draft (P1, 2026-11-18). P4 reviews it together with the harness and agent plans.
+- **Status:** Draft (P1, 2026-11-18), revised on 2026-11-18 with the fixes from the [P4 review](reviews/plan-review.md).
 - **Date:** 2026-11-18
 - **Asked for by:** the project owner (2026-11-18), through the [implementation plans](implementation-plans.md#2-what-each-plan-contains)
 - **Builds on:** the [agent-SDK guide][g] (G1b), its [reference architecture][g11] and its [twelve open decisions][g12], plus the six seams that the [harness guide §1][hg1] needs from the SDK
 - **Decision records:** [ADRs 0001–0011](../decisions/README.md)
 - **Todos:** Round B ("build SDK") on the [todo board](../todos/README.md); §4 lists them.
 
-The [agent-SDK guide][g] already settles the design: one in-process loop as a pure streaming function over a versioned single-method model gateway, every failure and pause returned to the caller as data, and a strict scripted test model shipped from the first release. The guide still left twelve decisions open, ranging from the package split to the tool-name rule ([guide §12][g12]). The harness plan (P2) will also build on this SDK through six seams, so any gap here becomes a workaround there ([harness guide §1][hg1]). This plan makes the twelve decisions and turns the reference architecture into two packages and 20 todos, each one reviewable batch with checkable acceptance criteria. It also gives the test strategy that keeps every todo offline. Nine of the decisions follow from the evidence; three need the owner, who must name the first providers, approve the signing-key model and choose when the SDK is published (§2). In one sentence: **build the gateway and the scripted test model first, then the loop, tools, hooks and pauses on top of them, and finish with a triage capstone that passes the same contract the eight reference capstones pass, so P2 can start on stable seams.**
+The [agent-SDK guide][g] already settles the design: one in-process loop as a pure streaming function over a versioned single-method model gateway, every failure and pause returned to the caller as data, and a strict scripted test model shipped from the first release. The guide still left twelve decisions open, ranging from the package split to the tool-name rule ([guide §12][g12]). The harness plan (P2) will also build on this SDK through six seams, so any gap here becomes a workaround there ([harness guide §1][hg1]). This plan makes the twelve decisions and turns the reference architecture into two packages and 22 todos, each one reviewable batch with checkable acceptance criteria. It also gives the test strategy that keeps every todo offline. Nine decisions follow from the evidence, and the owner accepted the other three, D2, D5 and D8, on 2026-11-18 (§2). In one sentence: **build the gateway and the scripted test model first, then the loop, tools, hooks and pauses on top of them, and finish with a triage capstone that passes the same contract the eight reference capstones pass, so P2 can start on stable seams.**
 
 ## 1. Goal and non-goals
 
@@ -17,14 +17,14 @@ The goal covers every recommendation in the guide's design sections, §2 to §10
 
 | Guide section | Recommendation | Todos |
 | --- | --- | --- |
-| [§2 Gateway][g2] | one versioned `stream()`, canonical transcript, in-band errors, three retry layers, usage and cost on every message, one caching policy, a full-request dump, a per-subagent model setting and no router | B2, B4, B5, B6, B8, B9 |
+| [§2 Gateway][g2] | one versioned `stream()`, canonical transcript, in-band errors, three retry layers, usage and cost on every message, one caching policy, a full-request dump, a per-subagent model setting and no router; the frozen system prompt persists in the harness's `turn_start` entry ([harness plan §3.2][har-32]) | B2, B4, B5, B6, B8, B9 |
 | [§3 Loop][g3] | one pure streaming function, `continueRun()`, a 20-call cap and a USD cap, stop reasons, progress detection, well-formed aborts, steering at step boundaries | B11, B14, B16 |
-| [§4 Tools][g4] | Standard Schema or validated JSON Schema, the fixed pipeline, errors as data with a "do not substitute a mock" line, truncation failure, parallel by default, three result channels, kinds and exposure | B7, B10, B12 |
+| [§4 Tools][g4] | Standard Schema or validated JSON Schema, the fixed pipeline, errors as data with a "do not substitute a mock" line, opt-in error redaction per tool, nulls stripped after strict lowering, truncation failure, parallel by default, three result channels, kinds and exposure | B7, B8, B9, B10, B12 |
 | [§5 Events][g5] | one closed, layered union whose `*_end` events carry the authoritative item, raw events opt-in, an emitted-against-declared check, OTel `gen_ai.*` spans with content off | B11, B17 |
 | [§6 Hooks][g6] | six typed interceptors and separate observers, one event object, fail-closed gates, gateway middleware | B4, B13 |
-| [§7 Pauses][g7] | `awaiting_approval` as a signed log state, a blocking wrapper that writes first, a documented no-handler outcome, a clarification pause | B15 |
+| [§7 Pauses][g7] | `awaiting_approval` as a signed log state, a blocking wrapper that writes first, a documented no-handler outcome, a clarification pause | B15, B15b |
 | [§8 Testing][g8] | `ScriptedModel`, `autoResponder` with a host-tool deny list, chunked streams, seam doubles, mock transports, `allowModelRequests(false)`, stable `clock`, `idGenerator` and `random`, record and replay at the normalised boundary | B3, B18 |
-| [§9 Public API][g9] | functions with options objects, an explicit provider, nothing outward by default, typed errors with `isInstance`, a readable reference loop | B4, B11, B19 |
+| [§9 Public API][g9] | functions with options objects, an explicit provider, nothing outward by default, typed errors with `isInstance`, a readable reference loop | B4, B11, B19b |
 | [§10 Versioning and docs][g10] | the four versioning rules, defaults and prompts versioned too, a defaults hash on `run_start`, docs and `llms.txt` from the release tag, compiled examples, two export diffs | B20 |
 
 **Non-goals.** These belong to other plans or to later work, each for a stated reason:
@@ -33,14 +33,15 @@ The goal covers every recommendation in the guide's design sections, §2 to §10
 - **A durable-engine adapter (Temporal and similar).** The guide keeps durable engines as adapters over the log, and the per-tool `execution` setting is the only hook they need now ([guide §3][g3]). The adapter needs the harness's log, so it waits for P2.
 - **Adapters beyond the first two wire protocols**, including OpenAI Responses. Decision D2 defers them, with a reason.
 - **An automatic per-request model router.** Practitioners report that switching models mid-session busts the cache, so the gateway offers a per-subagent model setting instead ([guide §2][g2]; [HN §4.1][hn41]).
-- **Publishing to npm.** Both packages stay `private: true` until the owner confirms D8.
+- **Publishing to npm.** Both packages stay `private: true`, as the owner accepted with D8; publishing waits for an outside consumer.
+- **A client-tool pause kind.** The harness defers the third host-tool pattern, so `ToolResult.pause` carries only `clarification` for now (§6.2).
 
 ## 2. Decisions
 
 Each decision answers one open decision in [guide §12][g12], in the same order, and lists the options, the choice and the evidence. Three statuses appear:
 - **Decided** means the evidence settles the decision, and its ADR records it as Proposed until P4 accepts it.
 - **Decided, provisional** means the choice holds until a named todo checks it.
-- **Proposed — owner to confirm** means the choice needs the owner's call, because it depends on facts outside the evidence, such as budgets, accounts or plans for outside users.
+- **Accepted (owner, 2026-11-18)** means the choice depended on facts outside the evidence, such as budgets, accounts or plans for outside users, and the owner confirmed it. No decision still waits on the owner.
 
 | # | Decision | Choice | Status | ADR |
 | --- | --- | --- | --- | --- |
@@ -54,7 +55,7 @@ Each decision answers one open decision in [guide §12][g12], in the same order,
 | D8 | Versioning start and CI checks | 0.x with a changelog that marks breaking changes; fail on undocumented exports and on documented names missing from the `.d.ts` | Accepted (owner, 2026-11-18) | [0008](../decisions/0008-versioning-and-doc-checks.md) |
 | D9 | Budget timing | Check the USD cap before each model call, against a projected cost | Decided | [0009](../decisions/0009-pre-emptive-budget.md) |
 | D10 | Run outcomes | A discriminated `RunResult` union plus a `runOrThrow()` helper | Decided | [0010](../decisions/0010-run-outcomes.md) |
-| D11 | Progress-detection defaults | Three identical failing calls end the run with `no_progress`; a depth cap of 2 | Decided, provisional (tuned after P2 records runs) | none: tunable defaults |
+| D11 | Progress-detection defaults | Three identical failing calls end the run with `no_progress`; a depth cap of 2 | Decided, provisional (N39) | none: tunable defaults |
 | D12 | Tool-name rule | A per-adapter name table, a canonical rule of `^[A-Za-z0-9_-]{1,64}$` checked at definition, and reversible sanitising per adapter | Decided, provisional (B7) | [0011](../decisions/0011-tool-name-rule.md) |
 
 ### D1. Two packages, because the gateway has consumers that never run the loop
@@ -65,7 +66,7 @@ Each decision answers one open decision in [guide §12][g12], in the same order,
 
 **Evidence.** The guide's rule is to split if any consumer needs the gateway without the loop ([guide §12, decision 1][g12]). Three planned consumers do. First, the harness's summarisation layer makes one model call with no tools ([harness guide §3][hg3]). Second, the agent's reader and drafter are model contexts with no tools ([agent guide §9][ag9]). Third, the eval bridge needs only the base-URL override ([guide §8][g8]). The provider spec must also carry its own version, as Vercel's `specificationVersion` does, so a split lets the gateway release apart from the loop ([guide §9][g9]). Option (c) multiplies packages before we have more than two adapters; subpath exports keep the adapters tree-shakable without that cost.
 
-### D2. Anthropic Messages and OpenAI-compatible Chat Completions first (owner to confirm)
+### D2. Anthropic Messages and OpenAI-compatible Chat Completions first (accepted)
 
 **Accepted by the owner on 2026-11-18.**
 
@@ -74,8 +75,6 @@ Each decision answers one open decision in [guide §12][g12], in the same order,
 **Choice: Anthropic Messages and OpenAI-compatible Chat Completions; OpenAI Responses is deferred.** Each adapter calls `fetch` through an injectable `Transport` and uses no vendor SDK.
 
 **Evidence.** The guide settles this decision with the G3 agent's provider list. The agent guide names no vendor, but it requires a judge model that differs from the agent's model, so the eval suite needs at least two providers ([agent guide §10, decision 6][ag10]). Two adapters also give the cross-provider replay pass (B6) real wire differences to test against. Anthropic Messages is the protocol our harnesses already mock: the Claude and Copilot references both run offline against a mock Messages API ([mock-anthropic.mjs](../../verify/claude-agent-sdk/scripts/mock-anthropic.mjs); [guide §8][g8]). Chat Completions is the widest-reaching second protocol, because Pi's split of `api` from `provider` lets one wire adapter serve many vendors, and Pi describes the quirks of OpenAI-compatible servers in per-model `compat` objects ([provider note §3][n-prov-3]). Responses is deferred because OpenAI's caching and strict-mode semantics come from SDK types only; its docs hosts were unreachable during the research ([SDK research §7][sr7]). Direct `fetch` matters for retries. Pi turns vendor-SDK retries off because "their built-in retry timers ignore the request AbortSignal", and a plain transport also makes the base-URL override and the mock transports trivial ([guide §2][g2]).
-
-**Why the owner decides.** The owner holds the accounts and the budget, and may prefer a different second vendor, such as Gemini. The adapter interface does not change with the choice; only B9's target does.
 
 ### D3. Usage stores four token classes, and the uncached field says so in its name
 
@@ -93,7 +92,7 @@ Each decision answers one open decision in [guide §12][g12], in the same order,
 
 **Evidence.** Cost carries a `basis` flag and comes from a catalog with tiered rates, and failed attempts count, as OpenAI's retry accounting shows ([guide §2][g2]; [SDK decision 5][sr6]). mini-swe-agent raises when it cannot price a model ([harness research §5][har5]). A budget that silently prices at zero would be the same failure in a quieter form, so a budgeted run with an unknown price fails closed. The guide asks which first providers return a billed cost. Neither D2 protocol is known to return one, but nobody has checked, so B8 and B9 check each API reference and fixture and record the answer. The provider-wins rule costs nothing to keep if neither does. Run-time fetching would make cost depend on the network, which contradicts the "nothing reaches outside by default" rule ([guide §9][g9]).
 
-### D5. A pluggable signer with key ids, an ephemeral default, and no unsigned resume (owner to confirm, with P2)
+### D5. A pluggable signer with key ids, an ephemeral default, and no unsigned resume (accepted, with HD5)
 
 **Accepted by the owner on 2026-11-18.**
 
@@ -103,7 +102,7 @@ Each decision answers one open decision in [guide §12][g12], in the same order,
 
 **Evidence.** Vercel's approval responses are unsigned unless a secret is set, and our rule is to fail closed on a missing or invalid signature ([guide §7][g7]). ADK's safe behaviour for a forged call id, which runs nothing and asks again, is the outcome our resume copies ([guide §7][g7]). The guide's settling rule ties the key to the deployment model: one process can generate a key per run, and a multi-process host needs a shared store ([guide §12, decision 5][g12]).
 
-**Why the owner decides.** The deployment model is a product decision that P2 and P3 make. If the first deployment is multi-process, the default should be a required `signer` option rather than an ephemeral key, so that a pause written by one process can never be stranded by a restart of another. The interface is the same either way.
+**Outcome.** The harness, the first multi-process host, always passes `hmacSigner()` over a persistent key ring ([harness plan, HD5][har-hd5]; [ADR 0015](../decisions/0015-harness-approval-key-ring.md)). The SDK default therefore stays `ephemeralSigner()`, which serves single-process library users, and `signer` stays optional.
 
 ### D6. Our six moment-named interceptors, with run-level hooks as observers
 
@@ -119,11 +118,11 @@ Each decision answers one open decision in [guide §12][g12], in the same order,
 
 **Choice: pi-schema 1.5.2, provisional; `@cfworker/json-schema` 4.1.6 is the fallback.** The SDK supports drafts 2020-12 and 7. Coercion is our own pipeline step, not the validator's.
 
-**Evidence.** Both packages are MIT and need no `eval`. Pi-schema "compiles once into plain closures" for drafts 2020-12 and 7, reports errors as JSON Pointer paths, never modifies a schema, and has no dependencies; its README reports 2,222 of 2,223 core tests passing in the official suite ([pi-schema 1.5.2 README](https://www.npmjs.com/package/@earendil-works/pi-schema/v/1.5.2), as of November 2026). It is the validator behind Pi's path-level error message, which the guide tells us to copy ([guide §4][g4]). `@cfworker/json-schema` supports drafts 4, 7, 2019-09 and 2020-12 and exists because Workers lack `eval` ([its 4.1.6 README](https://www.npmjs.com/package/@cfworker/json-schema/v/4.1.6)). Claude's output schemas are draft-07, so draft-07 support is required ([feature table, output][ft-out]). Pi-schema declares `node >=22.19.0` in its `package.json`; B1 checks that our Node 22 meets it.
+**Evidence.** Both packages are MIT and need no `eval`. Pi-schema "compiles once into plain closures" for drafts 2020-12 and 7, reports errors as JSON Pointer paths, never modifies a schema, and has no dependencies. Its README reports 2,222 of 2,223 core tests passing in the official suite ([pi-schema 1.5.2 README](https://www.npmjs.com/package/@earendil-works/pi-schema/v/1.5.2), as of November 2026). It is the validator behind Pi's path-level error message, which the guide tells us to copy ([guide §4][g4]). `@cfworker/json-schema` supports drafts 4, 7, 2019-09 and 2020-12 and exists because Workers lack `eval` ([its 4.1.6 README](https://www.npmjs.com/package/@cfworker/json-schema/v/4.1.6)). Claude's output schemas are draft-07, so draft-07 support is required ([feature table, output][ft-out]). Pi-schema declares `node >=22.19.0` in its `package.json`; B1 checks that our Node 22 meets it.
 
-**The provisional check.** B10 runs both candidates against the schemas both adapters accept in strict mode and against a set of Claude's draft-07 output schemas. It also compares the error paths with the guide's message format. Pi-schema stays unless it fails a schema that `@cfworker/json-schema` passes.
+**The provisional check.** B10 runs both candidates against strict-schema fixtures it writes from the Anthropic and OpenAI API references, and against a set of Claude's draft-07 output schemas. It also compares the error paths with the guide's message format. Pi-schema stays unless it fails a schema that `@cfworker/json-schema` passes.
 
-### D8. 0.x, with a changelog that marks breaking changes, and two export diffs in CI (owner to confirm)
+### D8. 0.x, with a changelog that marks breaking changes, and two export diffs in CI (accepted)
 
 **Accepted by the owner on 2026-11-18.**
 
@@ -133,15 +132,13 @@ Each decision answers one open decision in [guide §12][g12], in the same order,
 
 **Evidence.** The guide's rule is 0.x unless an external consumer will depend on the SDK before the harness ships. The only planned consumers are P2 and P3, in this workspace ([implementation plans §1](implementation-plans.md#1-goal)). Pi shipped breaking changes in the patch releases 1.5.1 and 1.0.3, which shows how a 1.x number without discipline misleads more than an honest 0.x ([guide §10][g10]). The two diffs come from our own Tier 3 method, and OpenAI's compiled `examples/docs` is the precedent for compiling every example ([guide §10][g10]).
 
-**Why the owner decides.** Whether outside users get the SDK before the harness ships, and when it is published, is the owner's call.
-
 ### D9. The USD cap is checked before each model call, against a projected cost
 
 **Options.** Check before each model call, as harness decision 18 and the HN synthesis ask, or after the crossing response, as Claude and mini-swe-agent do ([guide §12, decision 9][g12]). The decision merges with harness decision 9 and agent decision 9.
 
-**Choice: before each call.** The loop projects the next call's cost: the input estimate times the model's input rate, plus `maxOutputTokens` times the output rate. If the spend plus the projection exceeds the cap, the run ends with `stopReason: "budget"` before the call. The input estimate is the previous call's reported total input plus a character-based estimate of the messages added since. Actual cost is still recorded after each call, so any remaining overshoot shows in the result.
+**Choice: before each call.** The loop projects the next call's cost: the input estimate times the model's input rate, plus `maxOutputTokens` (the call's option, else `Model.caps.maxOutputTokens`) times the output rate. B14 exports the projection as `projectCallCost()`, so a caller that uses `Model.complete()` outside the loop, such as the harness's summary layer, applies the same formula ([harness plan, HD9][har-hd9]). If the spend plus the projection exceeds the cap, the run ends with `stopReason: "budget"` before the call. The input estimate is the previous call's reported total input plus a character-based estimate of the messages added since. Actual cost is still recorded after each call, so any remaining overshoot shows in the result.
 
-**Evidence.** Claude's `maxBudgetUsd` acts only after the response that crosses it, and harness decision 18 asks for a pre-emptive check ([guide §3][g3]). The HN synthesis makes the same change, because loops cause the runaway-cost anecdotes ([HN §4.1][hn41]). Inspect checks cost limits at each `generate()`, which matches the pre-emptive rule ([harness guide §10][hg10]). The guide's settling test measures overshoot on our longest recorded runs. We have none yet, so B14 instead asserts a bound with the scripted model: with the pre-emptive check, the overshoot is at most the error of one call's projection, and a post-response check would overshoot by a full call. P2 reruns the measurement on recorded runs.
+**Evidence.** Claude's `maxBudgetUsd` acts only after the response that crosses it, and harness decision 18 asks for a pre-emptive check ([guide §3][g3]). The HN synthesis makes the same change, because loops cause the runaway-cost anecdotes ([HN §4.1][hn41]). Inspect checks cost limits at each `generate()`, which matches the pre-emptive rule ([harness guide §10][hg10]). The guide's settling test measures overshoot on our longest recorded runs. We have none yet, so B14 instead asserts a bound with the scripted model: with the pre-emptive check, the overshoot is at most the error of one call's projection, and a post-response check would overshoot by a full call. N39 reruns the measurement on recorded runs.
 
 ### D10. A discriminated result union, plus `runOrThrow()` for callers who want exceptions
 
@@ -157,7 +154,7 @@ Each decision answers one open decision in [guide §12][g12], in the same order,
 
 **Choice, provisional.** The default `progress` policy fires `no_progress` after three consecutive tool calls with the same tool name and the same canonical input hash that each return `isError`. A tool can declare a `progressKey(input)`, for example a file path plus a line range, and five calls with the same key and no successful call between them also fire `no_progress`. The SDK cannot see "an edit" by itself, so the edit rule needs that key. `depth` and `maxDepth` (default 2) travel in `ToolContext`, and a spawning tool refuses with an error result at the cap. No ADR records these numbers, because they are tunable defaults.
 
-**Evidence.** The HN synthesis asks for this policy and a default depth cap, after loop and recursion anecdotes ([HN §4.1][hn41]). The guide's settling test replays recorded runs. None exist until the harness records them, so the numbers are a starting point that B14 makes configurable and that P2's eval round retunes. The defaults hash on `run_start` records the values in use ([guide §10][g10]).
+**Evidence.** The HN synthesis asks for this policy and a default depth cap, after loop and recursion anecdotes ([HN §4.1][hn41]). The guide's settling test replays recorded runs. None exist until the harness records them, so the numbers are a starting point that B14 makes configurable and N39 retunes. The defaults hash on `run_start` records the values in use ([guide §10][g10]).
 
 ### D12. A per-adapter name table first, then a canonical rule and reversible sanitising (provisional)
 
@@ -178,7 +175,7 @@ packages/
   gateway/                      @agent-speak/gateway
     package.json                exports: ".", "./anthropic", "./openai-chat", "./testing"
     src/
-      types.ts                  Message, ContentBlock, Context, Usage, Cost, ModelEvent
+      types.ts                  Message, ContentBlock, ModelContent, ModelContext, ModelCaps, Usage, Cost, ModelEvent
       spec.ts                   ModelAdapter (specificationVersion "v1"), spec upgrade shims
       stream-contract.ts        assertStreamContract(): the start / blocks / one-terminal rule
       complete.ts               complete(): folds stream() into one AssistantMessage
@@ -193,13 +190,13 @@ packages/
   sdk/                          @agent-speak/sdk
     package.json                exports: ".", "./otel", "./testing"
     src/
-      run.ts                    run(), continueRun(), runOrThrow(), the Run object
+      run.ts                    Context, run(), continueRun(), runOrThrow(), the Run object
       loop.ts                   the step loop: transform → before → stream → after → tools → stop
       events.ts                 the closed AgentEvent union and its runtime list
       tools/                    defineTool(), outputTool(), pipeline, scheduler, error formatter
       hooks.ts                  Interceptors, Observer, hook_error handling
-      budget.ts  progress.ts    D9 and D11
-      pauses.ts                 SignedPendingRequest, signers, resolutions, blockingApprovals()
+      budget.ts  progress.ts    D9 (with projectCallCost()) and D11
+      pauses.ts                 SignedPendingRequest, signers, createPendingRequest(), resolutions, blockingApprovals()
       errors.ts                 SdkError base with isInstance markers
       otel/                     otelObserver(): gen_ai.* spans, content off
       testing/                  ScriptedModel, autoResponder, seam doubles, record and replay
@@ -207,7 +204,7 @@ packages/
     README.md  CHANGELOG.md
 ```
 
-**Dependencies.** The gateway has no runtime dependencies, and it uses `fetch`, Web Streams and Web Crypto from Node 22. The SDK depends on the gateway (`workspace:*`), on `@earendil-works/pi-schema` 1.5.2 (D7) and on `@standard-schema/spec` 1.1.0 for types, which the lockfile already holds. The OTel observer accepts a structural `Tracer` interface, so `@opentelemetry/api` is not a runtime dependency; its tests use `@opentelemetry/sdk-trace-base` 2.12.0, a version already in the lockfile, as an exact-pinned dev dependency. Every new pin follows [AGENTS.md "Versions"](../../AGENTS.md#coding-standards): an exact version at least a week old, or the latest fixed release when an advisory applies.
+**Dependencies.** The gateway has no runtime dependencies, and it uses `fetch`, Web Streams and Web Crypto from Node 22. Nothing in the gateway names an SDK type, so the dependency runs one way: `Context`, which holds the SDK's `SignedPendingRequest`, lives in `@agent-speak/sdk`, and the gateway's own request shape is `ModelContext`. The SDK depends on the gateway (`workspace:*`), on `@earendil-works/pi-schema` 1.5.2 (D7) and on `@standard-schema/spec` 1.1.0 for types, which the lockfile already holds. The OTel observer accepts a structural `Tracer` interface, so `@opentelemetry/api` is not a runtime dependency; its tests use `@opentelemetry/sdk-trace-base` 2.12.0, a version already in the lockfile, as an exact-pinned dev dependency. Every new pin follows [AGENTS.md "Versions"](../../AGENTS.md#coding-standards): an exact version at least a week old, or the latest fixed release when an advisory applies.
 
 **Tooling.** Both packages are ESM, extend `tsconfig.base.json`, and run tests with `node:test` through tsx (`tsx --test`), so no test framework is added. Each package's `typecheck` script runs `tsc -p`, and its `test` script runs its tests, so the root `pnpm typecheck` and `pnpm test` pick them up unchanged. Biome already covers `packages/`. `noExplicitAny` stays on there, because it is off only in `verify/*/examples`.
 
@@ -222,6 +219,7 @@ type ContentBlock =
   | { type: "reasoning"; text: string; signature?: OpaqueToken }          // valid only for the model that made it
   | { type: "image"; mediaType: string; data: string }
   | { type: "tool_call"; callId: string; name: string; input: unknown };
+type ModelContent = Extract<ContentBlock, { type: "text" | "image" }>;     // what a tool result may carry
 interface OpaqueToken { api: string; provider: string; model: string; value: string }
 type Message =
   | { role: "user"; content: ContentBlock[] }
@@ -233,7 +231,6 @@ interface AssistantMessage {
   error?: { kind: "retryable" | "overflow" | "quota" | "fatal"; message: string; status?: number };
   usage: Usage; cost: Cost;
 }
-interface Context { system: string; messages: Message[]; pending?: SignedPendingRequest[] } // pending: from @agent-speak/sdk
 
 // Usage and cost (D3, D4): no field named `input`
 interface Usage {
@@ -271,8 +268,10 @@ interface StreamOptions {
 // Gateway runtime (SDK decisions 4, 13; guide §9): an explicit provider, never a bare id or ambient credentials
 type Transport = (request: Request) => Promise<Response>;   // defaults to globalThis.fetch
 interface ProviderConfig { apiKey: string; baseURL?: string; transport?: Transport; headers?: Record<string, string> }
+interface ModelCaps { contextWindow: number; maxOutputTokens: number; images: boolean; reasoning: boolean } // from catalog.json
 interface Model {
   readonly ref: ModelRef;
+  readonly caps: ModelCaps;            // Revision for P2: the window and output limit the context layers and D9 need
   stream(context: ModelContext, options?: StreamOptions): AsyncIterable<GatewayEvent>;
   complete(context: ModelContext, options?: StreamOptions): Promise<AssistantMessage>; // folds stream()
   price(usage: Usage): Cost;
@@ -308,6 +307,7 @@ declare function assertStreamContract(events: AsyncIterable<ModelEvent>): Promis
 
 ```ts
 // @agent-speak/sdk: tools (guide §4; SDK decisions 9–11; D7, D11, D12)
+interface Clock { now(): string }                    // ISO 8601; fixedClock() in testing
 interface ToolDefinition<I, S> {
   name: string;                                       // canonical rule, D12
   description: string;
@@ -321,6 +321,7 @@ interface ToolDefinition<I, S> {
   firstParty?: boolean;                               // only first-party readOnlyHint affects scheduling
   repair?(e: { input: unknown; issues: SchemaIssue[] }): Promise<unknown | undefined>;
   formatError?(e: ToolFailure): ModelContent[];       // overrides the default "do not substitute a mock" text
+  redactErrors?: boolean;                             // default false: replace a thrown error's message with a fixed line
   execute(input: I, ctx: ToolContext): Promise<ToolResult<S>>;
 }
 interface ToolContext {
@@ -335,6 +336,7 @@ interface ToolResult<S> {
 }
 declare function defineTool<I, S>(definition: ToolDefinition<I, S>): ToolDefinition<I, S>;
 declare function outputTool<S>(options: { name: string; schema: StandardSchemaV1<S> & StandardJSONSchemaV1 }): ToolDefinition<S, S>;
+// A run whose only tool is an outputTool ends "done" after one valid call; a schema failure costs one model call of maxSteps.
 declare function clarificationTool(options?: { name?: string }): ToolDefinition<{ question: string }, never>;
 
 // Loop (guide §3; SDK decisions 6–8; D9, D10)
@@ -355,7 +357,11 @@ interface RunOptions<S = unknown> {
   includeRaw?: boolean;                // raw provider events, opt-in
 }
 declare function run<S>(options: RunOptions<S> & { system: string; input: string | ContentBlock[]; history?: Message[] }): Run<S>;
+// Revision (R1): Context moved here from the gateway. It is plain JSON, so a caller may build it from its own store.
+interface Context { system: string; messages: Message[]; pending?: SignedPendingRequest[] }
 declare function continueRun<S>(context: Context, options: RunOptions<S> & { resolutions?: Resolution[] }): Run<S>;
+// A call with a verified "allow" resolution runs without calling beforeToolCall; the host re-checks policy before resolving.
+// A context whose last message is an errored assistant message drops it and re-issues the call.
 declare function runOrThrow<S>(run: Run<S>): Promise<DoneResult<S>>;   // throws RunStoppedError (D10)
 interface Run<S> extends AsyncIterable<AgentEvent> {
   readonly id: string;
@@ -365,13 +371,19 @@ interface Run<S> extends AsyncIterable<AgentEvent> {
   abort(reason?: string): void;
   on(observer: Observer): () => void;         // returns unsubscribe
 }
+interface DeliveryReceipt { id: string; kind: "steer" | "follow_up"; message: ContentBlock[]; stepIndex: number }
 interface ResultBase { messages: Message[]; context: Context; usage: Usage; cost: Cost; steps: number }
 type DoneResult<S> = ResultBase & { stopReason: "done"; output: S | undefined };
 type RunResult<S> =
   | DoneResult<S>
   | (ResultBase & { stopReason: "max_steps" | "budget" | "no_progress" | "aborted" | "error"; error?: RunError })
+  | (ResultBase & { stopReason: "stopped"; stoppedBy: string })          // a shouldStop hook ended the run; its reason
   | (ResultBase & { stopReason: "awaiting_approval" | "clarification_requested"; pending: SignedPendingRequest[] });
 // Revision: every variant carries usage, cost and a resumable context; only "done" carries output.
+interface RunError {
+  kind: "overflow" | "quota" | "retryable" | "fatal" | "unknown_price" | "hook";  // the first four copy AssistantMessage.error.kind
+  message: string; status?: number;
+}
 
 // Pauses (guide §7; SDK decision 8; D5)
 interface SignedPendingRequest {
@@ -390,19 +402,32 @@ interface ApprovalSigner {
 declare function ephemeralSigner(): ApprovalSigner;
 declare function hmacSigner(options: { keys: Record<string, Uint8Array>; current: string }): ApprovalSigner;
 declare function canonicalInputHash(input: unknown): Promise<string>;   // the hash the harness stores too
+declare function createPendingRequest(                                   // a pause built outside a run (code-initiated calls)
+  fields: { kind: "approval"; callId: string; tool: string; input: unknown; policyVersion?: string },
+  signer: ApprovalSigner,
+): Promise<SignedPendingRequest>;
 declare function blockingApprovals(resolve: (p: SignedPendingRequest) => Promise<Resolution>): Interceptors; // emits, waits, appends
 
-// Hooks (guide §6; SDK decision 12; D6). Every event carries runId, stepIndex, callId?, signal and timestamp.
+// Hooks (guide §6; SDK decision 12; D6). Every event extends HookEventBase.
+interface HookEventBase { runId: string; stepIndex: number; callId?: string; signal: AbortSignal; timestamp: string }
+interface ContextEvent extends HookEventBase { system: string; messages: readonly Message[]; model: ModelRef; lastUsage?: Usage }
+interface ModelCallEvent extends HookEventBase { context: ModelContext; options: StreamOptions }
+interface ModelResultEvent extends HookEventBase { message: AssistantMessage }
+interface ToolCallEvent extends HookEventBase { callId: string; tool: string; input: unknown }
+interface ToolResultEvent extends ToolCallEvent { result: ToolResult<unknown> }
+interface StepEvent extends HookEventBase { messages: readonly Message[]; lastMessage: AssistantMessage }
 interface Interceptors {
-  transformContext?(e: ContextEvent): Promise<Message[]>;
+  transformContext?(e: ContextEvent): Promise<Message[]>;   // this call's request only; result.messages and context keep the full history
   beforeModelCall?(e: ModelCallEvent): Promise<ModelCallPatch | void>;
   afterModelCall?(e: ModelResultEvent): Promise<{ message?: AssistantMessage } | void>;
   beforeToolCall?(e: ToolCallEvent): Promise<GateDecision>;
   afterToolCall?(e: ToolResultEvent): Promise<Partial<ToolResult<unknown>> | void>;
-  shouldStop?(e: StepEvent): Promise<boolean | { continue: string | ContentBlock[] }>;
+  shouldStop?(e: StepEvent): Promise<boolean | { continue: string | ContentBlock[] } | { stop: "no_progress" | "hook"; reason: string }>;
+  // true or { stop: "hook" } ends the run "stopped"; { stop: "no_progress" } ends it "no_progress"
   onFailure?: "fail_closed" | "continue";     // default "fail_closed" for gates
 }
 interface ModelCallPatch { system?: string; messages?: Message[]; activeTools?: string[]; model?: Model; options?: StreamOptions }
+// activeTools may name deferred tools, which are then sent; tools go out in definition order whatever the list's order.
 type GateDecision =
   | { decision: "allow"; input?: unknown; reason?: string }
   | { decision: "deny"; reason: string }
@@ -423,18 +448,29 @@ type AgentEvent = EventBase & (
   | { type: "text_end" | "reasoning_end" | "tool_input_end"; index: number; block: ContentBlock }
   | { type: "tool_call_start"; callId: string; tool: string; input: unknown }
   | { type: "tool_call_update"; callId: string; details: unknown }
-  | { type: "tool_call_end"; callId: string; result: ToolResult<unknown> }  // the authoritative item
+  | { type: "tool_call_end"; callId: string; result: ToolResult<unknown> }  // the authoritative item, after afterToolCall
   | { type: "approval_request"; request: SignedPendingRequest }          // both pause kinds
-  | { type: "steer_applied"; receipt: DeliveryReceipt }
+  | { type: "steer_applied"; receipt: DeliveryReceipt }                  // fires for steers and follow-ups
   | { type: "context_transformed"; before: number; after: number }      // Revision: "compaction" is the harness's word
   | { type: "retry"; attempt: number; delayMs: number; error: string }
   | { type: "hook_error"; hook: string; error: string }
+  | { type: "warning"; code: "max_steps"; detail: string }
   | { type: "error"; error: RunError } | { type: "abort"; reason?: string }
   | { type: "raw"; event: unknown }                                     // only with includeRaw
 );
 interface EventBase { runId: string; seq: number; stepIndex: number; timestamp: string }
 
+// Budget (D9): the projection the loop uses, exported for calls made outside it
+declare function projectCallCost(model: Model, context: ModelContext, options?: StreamOptions): Cost;
+
+// Versioning (D8; guide §10): the strings run_start.capabilities carries; the SDK README lists each one
+declare const CAPABILITIES: readonly string[];
+
 // @agent-speak/sdk/otel (guide §5)
+interface TracerLike { startSpan(name: string, options?: { attributes?: Record<string, unknown>; startTime?: number }): SpanLike }
+interface SpanLike { setAttribute(name: string, value: unknown): void; end(endTime?: number): void }
+declare const GEN_AI_ATTRIBUTES: Readonly<Record<string, string>>;     // the gen_ai.* names, shared with the harness projection
+declare const SEMCONV_GENAI_COMMIT: "d28355d";                          // the pinned convention commit (harness HD7)
 declare function otelObserver(options: { tracer: TracerLike; captureContent?: boolean }): Observer; // content off by default
 
 // @agent-speak/sdk/testing (guide §8; SDK decision 14)
@@ -463,20 +499,20 @@ The harness plan should use these names as written; P4 checks that it does ([imp
 | Context transform | `Interceptors.transformContext`, `context_transformed` | the five context layers ([harness guide §3][hg3]) |
 | Tool gate | `Interceptors.beforeToolCall` → `GateDecision` | the permission pipeline fills it ([harness guide §5][hg5]) |
 | Authoritative end events | `*_end`, `tool_call_end`, `model_call_end` with full items | session-log entries ([harness guide §2][hg2]) |
-| Resume primitive | `continueRun(context, { resolutions })`; `context` on every result | resume from a stored log in any process |
+| Resume primitive | `continueRun(context, { resolutions })`; `context` on every result; `Context` as plain JSON | resume from a stored log in any process |
 | Tool exposure | `ToolDefinition.exposure`, `ModelCallPatch.activeTools` | registry, MCP client and tool search ([harness guide §4][hg4]) |
 | Base URL and transport | `ProviderConfig.baseURL`, `ProviderConfig.transport` | the Inspect bridge and offline mocks ([harness guide §10][hg10]) |
-| Pause records | `SignedPendingRequest`, `canonicalInputHash`, `ApprovalSigner` | `approval_requested` and `approval_resolved` entries |
+| Pause records | `SignedPendingRequest`, `canonicalInputHash`, `ApprovalSigner`, `createPendingRequest()` | `approval_requested` and `approval_resolved` entries; code-initiated calls (harness N40) |
 | Header stamp | `run_start.sdkVersion`, `defaultsHash`, `capabilities` | the `session_header` entry and protocol `initialize` |
-| Usage and cost | `Usage`, `Cost`, `totalInput()` | usage entries and the telemetry projection (harness decision 7) |
-| Gateway without the loop | `Model.complete()` | the summarisation layer |
+| Usage and cost | `Usage`, `Cost`, `totalInput()`, `GEN_AI_ATTRIBUTES` | usage entries and the telemetry projection (harness decision 7) |
+| Gateway without the loop | `Model.complete()`, `Model.caps`, `projectCallCost()` | the summarisation layer and its pre-checked cost |
 | Determinism | `clock`, `idGenerator`, `random` | byte-identical playback tests |
 
 ## 4. Rounds and todos
 
-Round B runs in four stages, each ending in a state P2 could build on. Every todo has a file in [`docs/todos/ready/`](../todos/ready/), written from [the template](../todos/TEMPLATE.md). Every todo's acceptance criteria include the repo-wide gate: `pnpm check`, `pnpm typecheck` and `pnpm test` pass offline.
+Round B runs in four stages, each ending in a state the harness round could build on. Every todo has a file in [`docs/todos/ready/`](../todos/ready/), written from [the template](../todos/TEMPLATE.md). Every todo's acceptance criteria include the repo-wide gate: `pnpm check`, `pnpm typecheck` and `pnpm test` pass offline.
 
-### 4.1 Stage 1: foundations
+### 4.1 Stage 1 builds the gateway types and the scripted model that every later todo tests against
 
 The guide says to start with the gateway and the test model, because every other component depends on them ([guide §12][g12]).
 
@@ -488,7 +524,7 @@ The guide says to start with the gateway and the test model, because every other
 | [B4](../todos/ready/B4-gateway-runtime.md) | Gateway runtime: `createModel`, retries, middleware, `onPayload` and the request dump | B3 | M |
 | [B5](../todos/ready/B5-usage-cost-catalog.md) | Usage, the cost catalog and fold, and the caching policy | B4 | M |
 
-### 4.2 Stage 2: providers
+### 4.2 Stage 2 adds the two wire adapters and the replay pass between them
 
 | ID | Title | Depends on | Size |
 | --- | --- | --- | --- |
@@ -497,7 +533,7 @@ The guide says to start with the gateway and the test model, because every other
 | [B8](../todos/ready/B8-anthropic-adapter.md) | Anthropic Messages adapter and its mock transport | B5, B6, B7 | L |
 | [B9](../todos/ready/B9-openai-chat-adapter.md) | OpenAI-compatible Chat Completions adapter and its mock transport | B5, B6, B7 | L |
 
-### 4.3 Stage 3: the loop
+### 4.3 Stage 3 builds the loop, its tools, hooks, budget and signed pauses
 
 | ID | Title | Depends on | Size |
 | --- | --- | --- | --- |
@@ -506,19 +542,21 @@ The guide says to start with the gateway and the test model, because every other
 | [B12](../todos/ready/B12-parallel-tools.md) | Parallel tool scheduling, per-resource serialisation and sibling cancellation | B11 | M |
 | [B13](../todos/ready/B13-interceptors-observers.md) | The six interceptors and observers | B11 | M |
 | [B14](../todos/ready/B14-budget-progress.md) | Pre-emptive USD budget, progress detection and the depth cap | B5, B13 | M |
-| [B15](../todos/ready/B15-signed-pauses.md) | Signed approval and clarification pauses, and `continueRun` | B13 | L |
+| [B15](../todos/ready/B15-signed-pauses.md) | Signers, canonical hashing, the signed pending record and `createPendingRequest` | B13 | M |
+| [B15b](../todos/ready/B15b-continue-run.md) | `continueRun`, `blockingApprovals()` and the clarification pause | B15 | M |
 | [B16](../todos/ready/B16-steering.md) | Steering and follow-up with delivery receipts | B11 | S |
 
-### 4.4 Stage 4: the shipping surface
+### 4.4 Stage 4 ships telemetry, the testing exports, the capstone and the docs checks
 
 | ID | Title | Depends on | Size |
 | --- | --- | --- | --- |
 | [B17](../todos/ready/B17-otel-observer.md) | OTel `gen_ai.*` observer with content off | B13, B5 | M |
-| [B18](../todos/ready/B18-testing-export.md) | Complete the `testing` exports: `autoResponder`, seam doubles, record and replay, mock server | B8, B9, B15 | M |
-| [B19](../todos/ready/B19-triage-capstone.md) | Triage capstone, the conformance suite and the reference loop | B12, B14, B15, B16, B18 | L |
+| [B18](../todos/ready/B18-testing-export.md) | Complete the `testing` exports: `autoResponder`, seam doubles, record and replay, mock server | B8, B9, B15b | M |
+| [B19](../todos/ready/B19-triage-capstone.md) | Triage capstone and the conformance suite | B12, B14, B15b, B16, B18 | M |
+| [B19b](../todos/ready/B19b-reference-loop.md) | The readable reference loop, passing the capstone | B19 | M |
 | [B20](../todos/ready/B20-versioning-docs.md) | Versioning policy, defaults hash, compiled docs, `llms.txt` and the export diffs | B17, B19 | M |
 
-The longest dependency chain runs B1 → B2 → B3 → B4 → B5 → B8 → B18 → B19 → B20, nine todos. B6, B7 and B10 can run beside it.
+The longest dependency chain runs B1 → B2 → B3 → B4 → B11 → B13 → B15 → B15b → B18 → B19 → B20, eleven todos. B6, B7, B10 and B19b can run beside it. Three todos stay size L: the two adapters (B8, B9) and the loop core (B11).
 
 ## 5. Test strategy
 
@@ -561,27 +599,34 @@ Model quality and tool selection belong to evals with a real model, which the ha
 
 ## 6. Risks, open questions and sequence
 
-### 6.1 Risks
+### 6.1 Five risks remain, and each has a setting, a fixture stamp or a non-goal against it
 
-- **The interfaces could change under P2.** The harness plan is written after this one and may need a seam that §3.4 lacks. Mitigation: §3.4 lists every seam by name, P4 checks P2 against it, and the 0.x policy (D8) allows a breaking minor release with a changelog entry.
+- **The interfaces could change under the harness.** P4 found fourteen seams the harness and agent plans needed beyond §3.4, and this plan now carries them ([plan review §4][p4-4]). A later need may still appear. Mitigation: §3.4 lists every seam by name, and the 0.x policy (D8) allows a breaking minor release with a changelog entry.
 - **Adapter fixtures may drift from the live APIs.** Mock transports test our parser against our fixtures, not against the provider. Mitigation: B18 stamps every recorded pair with an SDK, provider and model version and an expiry, and replay rejects expired pairs ([guide §8][g8]). A live check against a real endpoint stays opt-in and outside `pnpm test`.
-- **The provisional defaults may be wrong.** D7, D11 and D12 rest on checks that B7, B10 and P2's recorded runs perform. Mitigation: each is a setting, each change gets a changelog entry and a setting that keeps the old value, and the defaults hash on `run_start` records which values a run used ([guide §10][g10]).
+- **The provisional defaults may be wrong.** D7, D11 and D12 rest on checks that B7, B10 and N39's recorded runs perform. Mitigation: each is a setting, each change gets a changelog entry and a setting that keeps the old value, and the defaults hash on `run_start` records which values a run used ([guide §10][g10]).
 - **Scope creep from the harness side.** Compaction, permissions and the session log are tempting to start inside the loop. Mitigation: the non-goals in §1, and the fact that every such feature lands in the SDK only as an interceptor or an event.
 - **Node version.** Pi-schema declares `node >=22.19.0`, and `.nvmrc` says `22`. B1 checks the resolved CI version and pins `.nvmrc` to a matching minor if needed.
 
-### 6.2 Open questions
+### 6.2 No question is open, and one item waits for a later round
 
-- **For the owner:** D2 (the second provider), D5 (the default signer, decided with P2's deployment model) and D8 (when to publish, and whether outside users come before the harness).
-- **For P2:** whether the harness wants `Cost.total` as `number | null` (D4), and whether `context_transformed` carries enough for its compaction entry.
-- **For P3:** whether the agent's reader and drafter call `Model.complete()` directly or run as tool-less loop runs (agent decision 1, [agent guide §10][ag10]).
+- **Answered by the owner on 2026-11-18:** D2, D5 and D8 (§2). Publishing waits for an outside consumer.
+- **Answered by P2:** the harness takes `Cost.total` as `number | null`, and `context_transformed` is enough because the harness writes its compaction entry from its own `transformContext` ([harness plan §3.6][har-36]).
+- **Answered by P3:** the reader and drafter run as tool-less loop runs, not through `Model.complete()` (agent plan, AD1).
+- **Later:** a client-tool pause kind on `ToolResult.pause`, for the third host-tool pattern the harness defers (harness need 13, dropped from Rounds B and N by [P4][p4-4]).
 
 ### 6.3 Where Round B slots into the roadmap
 
-Round B starts after P4 closes, and it is the first round of the build phase, because the [roadmap](roadmap.md) stops the current phase at the reviewed plans. A new milestone, "M5 Our agent SDK", covers B1 to B20. The harness round from P2 can start as soon as B11, B13 and B15 are done, because those three todos deliver the loop, the interceptors and the pauses that most harness seams need. B17 to B20 can then run beside the first harness todos. The roadmap graph would gain one line: `P4 ─► B1 … B20 ─► M5`, with a branch from B15 to the first harness todo.
+Round B starts after P4 closes, and it is the first round of the build phase, because the [roadmap](roadmap.md) stops the current phase at the reviewed plans. A new milestone, "M5 Our agent SDK", covers B1 to B20 with B15b and B19b. The harness round does not wait for the loop: it starts after B1 and B2, and each later harness stage waits for the SDK todos it consumes ([harness plan §6.3][har-63]). The roadmap gains one line for Round B, `P4 ─► B1 … B20 ─► M5`, and the harness plan owns the `B2 ─► N1` branch.
 
-Round B closes when the triage capstone passes on our own SDK with the contract the eight references pass, and P2 can import every seam in §3.4 by the name this plan gives it. The next step is P4's review of this plan beside P2 and P3, then B1.
+Round B closes when the triage capstone passes on our own SDK with the contract the eight references pass, and the harness can import every seam in §3.4 by the name this plan gives it. The next step is B1.
 
 [g]: ../guides/agent-sdk.md
+[p4-4]: reviews/plan-review.md#4-needs-reconciliation-24-change-upstream-3-drop-1-is-already-covered
+[har-32]: build-harness.md#32-session-log-api
+[har-36]: build-harness.md#36-needs-from-the-sdk-plan
+[har-63]: build-harness.md#63-where-round-n-slots-into-the-roadmap
+[har-hd5]: build-harness.md#hd5-the-harness-always-passes-hmacsigner-over-a-persistent-key-ring-accepted-with-sdk-d5
+[har-hd9]: build-harness.md#hd9-sdk-d9s-per-call-check-plus-a-session-cap-and-a-pre-checked-summary-call-with-sdk-d9
 [g1]: ../guides/agent-sdk.md#1-the-sdk-owns-the-loop-and-its-contracts-and-the-harness-owns-where-state-lives
 [g2]: ../guides/agent-sdk.md#2-the-model-gateway-should-expose-one-versioned-streaming-method-over-a-transcript-the-sdk-owns
 [g3]: ../guides/agent-sdk.md#3-the-loop-should-be-one-in-process-pure-function-capped-in-model-calls-that-ends-with-a-stop-reason

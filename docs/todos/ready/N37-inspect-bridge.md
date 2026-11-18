@@ -4,7 +4,7 @@
 | --- | --- |
 | ID | `N37` |
 | Status | `ready` |
-| Plan | [Build harness §4, Stage 7](../../plans/build-harness.md#47-stage-7-telemetry-completion-evals-and-ablation) |
+| Plan | [Build harness §4, Stage 7](../../plans/build-harness.md#47-stage-7-adds-telemetry-completion-checks-evals-and-ablation) |
 | Round / milestone | Round N (build harness), M6 |
 | Depends on | [N36](N36-eval-reports-replay.md), [N17](N17-docker-backend.md) |
 | Size | M |
@@ -16,7 +16,7 @@ Drive the unmodified harness from Inspect through `sandbox_agent_bridge()`, run 
 ## Context
 
 - [harness guide §10](../../guides/agent-harness.md#10-evals-should-run-on-inspect-against-mini-swe-agent-and-report-cost-per-task-beside-pass-rate): Inspect's bridge, `forward_generation_config`, isolated grader
-- [HD8](../../plans/build-harness.md#hd8-a-30-task-seed-suite-from-real-failures-and-triage-tasks-at-k--5-owner-to-confirm): the decision and its evidence
+- [HD8](../../plans/build-harness.md#hd8-a-30-task-seed-suite-from-real-failures-and-triage-tasks-at-k--5-accepted): the decision and its evidence
 - [observability note §7](../../research/agent-harness/notes/observability-and-evals.md#7-eval-design-tasks-from-real-failures-outcome-graders-clean-trials-held-fixed-comparisons): eval design
 
 ## Scope
@@ -43,6 +43,7 @@ Drive the unmodified harness from Inspect through `sandbox_agent_bridge()`, run 
 
 - [ ] One task runs end to end offline against the mock server and writes rows for both harnesses
 - [ ] The live script exits non-zero without `--budget-usd`
+- [ ] The bridge and mini-swe-agent are spawned with `spawnEnv()` plus the bridge's proxy URL and a dummy key, and no real provider key reaches either (a test records each spawn's environment)
 - [ ] A grader file written by the agent is not the one the grader reads (test)
 - [ ] `pnpm check`, `pnpm typecheck` and `pnpm test` pass offline from the repo root
 

@@ -1,31 +1,31 @@
-# A9: Context taint from origin labels and the T2+ taint rule (AD5)
+# A9: Session taint from origin labels and the T2+ taint rule (AD5)
 
 | Field | Value |
 | --- | --- |
 | ID | `A9` |
 | Status | `ready` |
-| Plan | [Build agent §4, Stage 2](../../plans/build-agent.md#42-stage-2-policy) |
+| Plan | [Build agent §4, Stage 2](../../plans/build-agent.md#42-stage-2-compiles-the-tier-table-into-the-pipeline-and-adds-the-kill-switch-the-quorum-and-the-taint-rule) |
 | Round / milestone | Round A (build agent), M7 |
 | Depends on | [A6](A6-tier-table.md), [N6](N6-session-runner.md) |
 | Size | S |
 
 ## Goal
 
-Derive each context's taint from the session's per-block origin labels and the tools' declared output trust, and deny any T2+ call a tainted context proposes, so text from the requester cannot steer a disruptive action.
+Derive each role's session taint from its per-block origin labels and the tools' declared output trust, and deny any T2+ call proposed in a tainted session, so text from the requester cannot steer a disruptive action.
 
 ## Context
 
-- [AD5](../../plans/build-agent.md#ad5-hd1s-per-block-origin-plus-a-per-context-taint-and-no-per-argument-tracking-provisional): the decision and its two rules
-- [build-agent.md §3.3](../../plans/build-agent.md#33-policy-tiers-store-quorum-and-taint): `contextTaint()`, `taintHook()`
+- [AD5](../../plans/build-agent.md#ad5-hd1s-per-block-origin-plus-a-per-session-taint-and-no-per-argument-tracking-provisional): the decision and its two rules
+- [build-agent.md §3.3](../../plans/build-agent.md#33-policy-tiers-store-quorum-and-taint): `sessionTaint()`, `taintHook()`
 - [ADR 0026](../../decisions/0026-provenance-block-origin-and-context-taint.md)
-- [build-agent.md §3.7](../../plans/build-agent.md#37-needs-from-the-sdk-and-harness-plans): need H10
+- [build-agent.md §3.7](../../plans/build-agent.md#37-needs-from-the-sdk-and-harness-plans): need AH10, now in harness N2 and N11
 
 ## Scope
 
 **In scope**
 
-- `contextTaint(entries, tools)` returning the taint and its sources
-- `taintHook()` denying T2+ calls from a tainted context
+- `sessionTaint(entries, tools)` returning the taint and its sources
+- `taintHook()` denying T2+ calls from a tainted session
 - Taint sources on every ask, for the approval card (A12)
 
 **Out of scope** (and which todo covers it)
@@ -34,12 +34,12 @@ Derive each context's taint from the session's per-block origin labels and the t
 
 ## Tasks
 
-- [ ] Until H10 lands, read output trust from the agent's tool table by tool name, and note the workaround in code.
+- [ ] Read output trust from `tool_result.trust`, so the taint survives a rebuild from the log.
 
 ## Acceptance criteria
 
-- [ ] A context with a `user`-origin block is tainted; the planner's context in a scripted run is clean
-- [ ] An escalation proposed by a tainted context is denied with rule `taint`
+- [ ] A session with a `user`-origin block is tainted; a scripted planner-style session whose input is written with `inputOrigin: "operator"` (as A11 does) is clean
+- [ ] An escalation proposed in a tainted session is denied with rule `taint`
 - [ ] `pnpm check`, `pnpm typecheck` and `pnpm test` pass offline from the repo root
 
 ## Tests

@@ -4,7 +4,7 @@
 | --- | --- |
 | ID | `B13` |
 | Status | `ready` |
-| Plan | [Build SDK §4, Stage 3](../../plans/build-sdk.md#43-stage-3-the-loop) |
+| Plan | [Build SDK §4, Stage 3](../../plans/build-sdk.md#43-stage-3-builds-the-loop-its-tools-hooks-budget-and-signed-pauses) |
 | Round / milestone | Round B (build SDK), M5 |
 | Depends on | [B11](B11-loop-core.md) |
 | Size | M |
@@ -28,10 +28,12 @@ Add the six typed interceptors and the separate observer channel, which are the 
 - `ModelCallPatch.activeTools` to activate deferred tools
 - Observers via options and `run.on()`, which returns an unsubscribe; a throwing observer becomes `hook_error`
 - `context_transformed` events
+- `ContextEvent` with `system`, `messages`, `model` and `lastUsage`
+- `shouldStop` returning `{ stop: "no_progress" | "hook"; reason }` as well as `boolean` or `{ continue }`
 
 **Out of scope** (and which todo covers it)
 
-- The `ask` pause path (B15): here `ask` is a stub that the tests do not use
+- The `ask` pause path (B15) and resume (B15b): here `ask` is a stub that the tests do not use
 
 ## Tasks
 
@@ -47,6 +49,11 @@ Add the six typed interceptors and the separate observer channel, which are the 
 - [ ] `run.on()` returns a function that stops delivery
 - [ ] A deferred tool activated through `activeTools` appears in the next request only
 - [ ] A hook that mutates its frozen input fails the test
+- [ ] A masked view returned by `transformContext` reaches only that call's request; the next step's `ContextEvent.messages` and `result.messages` keep the full history (harness need 1)
+- [ ] `ContextEvent` carries `system`, `messages`, `model` and, from the second call on, the previous call's `lastUsage` (harness need 2)
+- [ ] `tool_call_end.result` equals the result `afterToolCall` returned, not the tool's original result (harness need 5)
+- [ ] `activeTools` naming a deferred tool sends it, and a reordered `activeTools` list still sends tools in definition order (harness need 8)
+- [ ] `shouldStop` returning `{ stop: "hook", reason: "r" }` ends the run `stopped` with `stoppedBy: "r"`, and `{ stop: "no_progress", reason }` ends it `no_progress`
 - [ ] `pnpm check`, `pnpm typecheck` and `pnpm test` pass offline from the repo root
 
 ## Tests

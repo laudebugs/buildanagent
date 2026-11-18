@@ -4,7 +4,7 @@
 | --- | --- |
 | ID | `N35` |
 | Status | `ready` |
-| Plan | [Build harness §4, Stage 7](../../plans/build-harness.md#47-stage-7-telemetry-completion-evals-and-ablation) |
+| Plan | [Build harness §4, Stage 7](../../plans/build-harness.md#47-stage-7-adds-telemetry-completion-checks-evals-and-ablation) |
 | Round / milestone | Round N (build harness), M6 |
 | Depends on | [N29](N29-stdio-transport.md), [N30](N30-cli.md), [N34](N34-ablation-switches.md), [B19](B19-triage-capstone.md), [B20](B20-versioning-docs.md) |
 | Size | M |
@@ -37,7 +37,13 @@ Run the SDK's triage capstone inside the harness end to end, resume its approval
 
 ## Tasks
 
-- [ ] Write the per-delta and per-message recorders as test-only observers; keep only per-block in the package.
+- [ ] Port B19's capstone tools into `packages/harness/examples/triage-session.ts` and register them with no built-ins.
+- [ ] Run the approved, rejected and policy-changed-after-pause cases on `ScriptedModel` through `runTurn()`.
+- [ ] Resolve the pause from a second process over `agent-speak rpc`, and check the call ran once.
+- [ ] Play the session back and compare the files byte for byte.
+- [ ] Scan every entry and span for the provider key and the injected credential.
+- [ ] Write the per-delta and per-message recorders as test-only observers; keep only per-block in the package, and write the HD1 note.
+- [ ] Save the recorded sessions as N36's replay fixtures, and check `initialize` against B20's `CAPABILITIES`.
 
 ## Acceptance criteria
 

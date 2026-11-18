@@ -1,6 +1,6 @@
 # 0010. Return run outcomes as a discriminated union, and offer `runOrThrow()` for typed errors
 
-- **Status:** Proposed
+- **Status:** Accepted (P4 review, 2026-11-18)
 - **Date:** 2026-11-18
 - **Plan:** [build-sdk.md, D10](../plans/build-sdk.md#d10-a-discriminated-result-union-plus-runorthrow-for-callers-who-want-exceptions)
 

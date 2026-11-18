@@ -4,7 +4,7 @@
 | --- | --- |
 | ID | `N29` |
 | Status | `ready` |
-| Plan | [Build harness §4, Stage 6](../../plans/build-harness.md#46-stage-6-protocol-and-interfaces) |
+| Plan | [Build harness §4, Stage 6](../../plans/build-harness.md#46-stage-6-puts-the-protocol-its-transports-and-the-cli-over-the-harness) |
 | Round / milestone | Round N (build harness), M6 |
 | Depends on | [N28](N28-server-requests-backpressure.md) |
 | Size | S |

@@ -4,7 +4,7 @@
 | --- | --- |
 | ID | `B4` |
 | Status | `ready` |
-| Plan | [Build SDK §4, Stage 1](../../plans/build-sdk.md#41-stage-1-foundations) |
+| Plan | [Build SDK §4, Stage 1](../../plans/build-sdk.md#41-stage-1-builds-the-gateway-types-and-the-scripted-model-that-every-later-todo-tests-against) |
 | Round / milestone | Round B (build SDK), M5 |
 | Depends on | [B3](B3-scripted-model.md) |
 | Size | M |
@@ -24,6 +24,7 @@ Wrap any adapter in the gateway's shared behaviour (explicit model resolution, s
 **In scope**
 
 - `createModel()` that takes an adapter object, never a string
+- `Model.caps` (`contextWindow`, `maxOutputTokens`, `images`, `reasoning`), read from the catalog entry B5 fills; a model without an entry gets caps from the adapter's defaults
 - HTTP retries (default 2) before any output, abortable backoff, no replay after the first output event, quota errors final, a `retry` event per attempt
 - `ModelMiddleware` with `transformParams` and `wrapStream`, first is outermost
 - `onPayload` and the `onRequest` dump
@@ -51,6 +52,7 @@ Wrap any adapter in the gateway's shared behaviour (explicit model resolution, s
 - [ ] Aborting during backoff ends promptly with `stopReason: "aborted"`, within 50 ms of the abort in a test with a fixed clock
 - [ ] `createModel({ adapter: "claude-x" })` is a type error (a `@ts-expect-error` test)
 - [ ] Two middlewares run in documented order (a test asserts the call sequence)
+- [ ] `Model.caps` carries the `contextWindow` and `maxOutputTokens` of the model's catalog entry (a test with a fixture catalog)
 - [ ] `pnpm check`, `pnpm typecheck` and `pnpm test` pass offline from the repo root
 
 ## Tests

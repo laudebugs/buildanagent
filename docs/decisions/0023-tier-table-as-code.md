@@ -2,7 +2,7 @@
 
 - **Status:** Accepted (owner, 2026-11-18); T4 denied until the owner sets caps
 - **Date:** 2026-11-18
-- **Plan:** [build-agent.md, AD2](../plans/build-agent.md#ad2-the-tier-table-is-code-t5-is-never-registered-and-t4-stays-denied-until-the-owner-sets-the-caps-owner-to-confirm), with [AD11](../plans/build-agent.md#ad11-every-reply-needs-a-person-in-v1-and-the-template-only-path-waits-for-a-zero-leak-corpus)
+- **Plan:** [build-agent.md, AD2](../plans/build-agent.md#ad2-the-tier-table-is-code-t5-is-never-registered-and-t4-stays-denied-until-the-owner-sets-the-caps-accepted), with [AD11](../plans/build-agent.md#ad11-every-reply-needs-a-person-in-v1-and-the-template-only-path-waits-for-a-zero-leak-corpus)
 
 ## Context
 
