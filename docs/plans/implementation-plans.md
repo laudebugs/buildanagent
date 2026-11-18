@@ -1,6 +1,6 @@
 # Plan: turn the build guides into detailed, reviewed plans for our SDK, harness and agent (Round P)
 
-- **Status:** Draft
+- **Status:** In progress (P1)
 - **Date:** 2026-11-18
 - **Asked for by:** the project owner (2026-11-18): break the research into very detailed plans, and review every plan
 - **Builds on:** the three [build guides](build-guides.md) (Round G)
