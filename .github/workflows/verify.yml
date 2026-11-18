@@ -1,0 +1,39 @@
+# Nightly and on demand: regenerate every harness's results against the pinned packages and the
+# upstream docs, and fail when a result changes (upstream drift) or a high-severity alert appears.
+name: verify
+
+on:
+  schedule:
+    - cron: "17 4 * * *"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  verify:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: pnpm/action-setup@73e46992e05b19abd31f2f3c20e0e7370d762115 # v6.1.1 (version from packageManager)
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version-file: .nvmrc
+          cache: pnpm
+      - name: Allow unprivileged user namespaces
+        run: sudo sysctl -w kernel.apparmor_restrict_unprivileged_userns=0
+      - run: pnpm install --frozen-lockfile
+      # The Claude docs mirror is gitignored (license), so fetch it before verifying.
+      - run: pnpm -C verify/claude-agent-sdk run fetch-docs
+      - run: pnpm verify
+      - name: Results match the committed run
+        run: node scripts/ci/results-drift.mjs
+      - name: Show the drift
+        if: failure()
+        run: git diff --stat -- verify && git diff -- verify/*/results | head -400
+      - name: No high-severity dependency alerts
+        if: always()
+        run: pnpm audit --audit-level high

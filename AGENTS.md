@@ -11,6 +11,7 @@ Instructions for AI coding agents (Claude Code, Codex, OpenCode, Pi, etc.) worki
 - `README.md`: project overview and doc index.
 - `docs/reference/<sdk>/`: per-SDK reference (`guide.md`, `fact-check.md`, `README.md`). `source/` holds mirrored upstream docs. The Pi mirror is committed (MIT); the Claude mirror is gitignored because those docs are not openly licensed, so regenerate it with `pnpm run fetch-docs`.
 - `verify/<sdk>/`: per-SDK verification harness (Node, exact-pinned deps). `pnpm run verify` type-checks and runs doc examples against a mock model; `pnpm test` runs our own examples in `examples/`. Generated folders (`extracted/`, `.tmp/`) are gitignored, while `results/` is committed.
+- `.github/workflows/`: `ci.yml` runs `pnpm check`, `pnpm typecheck`, `pnpm test` and the results-drift check (`scripts/ci/results-drift.mjs`) on every push; `verify.yml` runs every harness's full verify and `pnpm audit` nightly.
 - `docs/plans/`: the plans and the [roadmap](docs/plans/roadmap.md); each plan starts with a status line and lists its todos.
 - `docs/todos/`: the todo board. A todo's folder (`ready/`, `ongoing/`, `done/`) is its state; new todos start from `docs/todos/TEMPLATE.md`.
 - `.agents/skills/`: agent skills, one folder per skill with a `SKILL.md` (frontmatter `name` and `description`); the format is in its README. `.claude/skills` is a relative symlink to it, so edit `.agents/skills/` only.
