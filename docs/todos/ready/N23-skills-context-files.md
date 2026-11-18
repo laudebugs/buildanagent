@@ -4,7 +4,7 @@
 | --- | --- |
 | ID | `N23` |
 | Status | `ready` |
-| Plan | [Build harness §4, Stage 5](../../plans/build-harness.md#45-stage-5-extensions-and-mcp) |
+| Plan | [Build harness §4, Stage 5](../../plans/build-harness.md#45-stage-5-adds-extensions-skills-and-the-mcp-client) |
 | Round / milestone | Round N (build harness), M6 |
 | Depends on | [N22](N22-in-process-extensions.md), [N9](N9-summary-layer.md) |
 | Size | S |

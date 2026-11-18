@@ -2,7 +2,7 @@
 
 - **Status:** Accepted (owner, 2026-11-18), with ADR 0015
 - **Date:** 2026-11-18
-- **Plan:** [build-sdk.md, D5](../plans/build-sdk.md#d5-a-pluggable-signer-with-key-ids-an-ephemeral-default-and-no-unsigned-resume-owner-to-confirm-with-p2)
+- **Plan:** [build-sdk.md, D5](../plans/build-sdk.md#d5-a-pluggable-signer-with-key-ids-an-ephemeral-default-and-no-unsigned-resume-accepted-with-hd5)
 
 ## Context
 
@@ -16,3 +16,5 @@ The SDK defines `ApprovalSigner` with a `keyId` on every signature, so verifiers
 
 - If the owner and P2 choose a multi-process deployment, `signer` becomes a required option instead of defaulting to an ephemeral key.
 - `canonicalInputHash()` is exported so the harness stores the same hash.
+- Outcome (2026-11-18): the default stays `ephemeralSigner()` and `signer` stays optional; the harness, the first multi-process host, always passes `hmacSigner()` over its key ring (ADR 0015). The first consequence's condition is therefore met by the harness, not by a required option.
+- P4 (2026-11-18) added `createPendingRequest()`, which signs the same payload outside a run for code-initiated calls (todo B15).

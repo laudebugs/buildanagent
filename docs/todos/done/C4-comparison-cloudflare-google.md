@@ -6,7 +6,7 @@
 | Status | `done` |
 | Plan | [SDK comparison §4](../../plans/sdk-comparison.md#4-todos) |
 | Round / milestone | M2c (added 2026-11-18) |
-| Depends on | [C5](../ready/C5-typescript-gaps.md) |
+| Depends on | [C5](../done/C5-typescript-gaps.md) |
 | Size | M |
 
 ## Goal

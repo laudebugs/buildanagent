@@ -146,3 +146,9 @@ Date: 2026-11-18. Most hosts blocked in the first pass (arxiv.org, modelcontextp
 | Report caveats: lead paragraph and "What this report could not verify" | [report](agent-sdks-and-harness-design.md) | Listed blocked hosts and secondary figures | ✏️ Rewritten to say R1 re-checked the figures, which were confirmed or corrected, and which remain unverified | This table |
 
 Effect on the report's conclusions: none of the corrections reverses a conclusion. The headline adapter effect shrinks slightly (19% → 71% instead of 73%) and the harness spread narrows (24.3 instead of 27.4 points). Harness-Bench v2 strengthens the claim that harness effects depend on the model. 2610.04433's finding that mature harnesses differ mainly in cost is confirmed unchanged.
+
+## Updates after the eighth reference (2026-11-18)
+
+| Claim | Was | Now | Source |
+| --- | --- | --- | --- |
+| SDKs with a default that reaches outside the process | Four of five (LangChain the exception) | Six of eight: adds Copilot (inherited environment, GitHub login, telemetry) and Cloudflare (`sendIdentityOnConnect`); LangChain and Google ADK are the exceptions | [deep comparison](../comparison/deep-comparison.md#six-of-eight-sdks-have-a-default-that-reaches-outside-your-process) |

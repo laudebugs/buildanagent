@@ -1,10 +1,10 @@
 # Plan review (P4): the three plans fit together once three interface gaps close, and 24 of the 28 cross-plan needs belong upstream
 
-- **Status:** Findings recorded (2026-11-18). Fixes and the owner's acceptance are still to come.
+- **Status:** Findings recorded and fixes applied (2026-11-18); §7 records the resolution of every finding. No finding needs the owner.
 - **Date:** 2026-11-18
-- **Todo:** [P4](../../todos/ongoing/P4-plan-review.md), against the checklist in [implementation plans §3][ip3]
+- **Todo:** [P4](../../todos/done/P4-plan-review.md), against the checklist in [implementation plans §3][ip3]
 - **Plans reviewed:** [build-sdk.md][sdk] (Round B, B1–B20), [build-harness.md][har] (Round N, N1–N39) and [build-agent.md][agt] (Round A, A1–A24), with [ADRs 0001–0031](../../decisions/README.md) and the three [guides](../../guides/)
-- **Scope:** findings only. This review changes no plan, todo or ADR.
+- **Scope:** §1–§6 record the findings as found. The fixes changed the three plans, their todos and the ADRs, and §7 lists them.
 
 The three plans pass most of the P4 checklist. Their todo graph is clean: 83 todos with unique IDs, every dependency resolves, nothing cycles, and every plan table matches its todo files. Every todo also carries checkable acceptance criteria, and every new pin already sits in the lockfile. The plans also mostly use each other's names as written: `GateDecision`, `hmacSigner({ keys, current })`, `Usage`, `Cost` with a nullable total, `SignedPendingRequest` and `continueRun` all match across the three plans. Three gaps would stop a builder, though. The gateway's `Context` names a type from the SDK package that depends on it (R1). The protocol package imports types from the harness package that depends on it (R2). And no harness todo builds the code-initiated tool call that every agent side effect runs through (R3). Ten major findings sit behind those three. The SDK lacks a hook stop reason and an error kind. The session log stores no system prompt and labels no input origin. Approval reuse can bypass the agent's always-ask rule, the resume path takes no budget, and the quorum hook has no type. The harness's 10 shared triage tasks have no scheduled source. Finally, stale "owner to confirm" text surrounds decisions the owner has accepted, and the accepted data-policy wording contradicts AD8's body. **Verdict: the SDK and harness plans are ready to build once R1, R2 and their majors are fixed, and the agent plan is ready once R3 lands upstream; 24 of the 28 needs the lower plans received should be absorbed upstream, three dropped and one is already covered.**
 
@@ -217,6 +217,18 @@ Fix coherence first, because the introduction and §6.2 are where a builder deci
 
 **Cut list.** Six "Why the owner decides" paragraphs (keep only what the owner still supplies). The "SDK and harness sides, unchanged" restatements, replaced by one link each. The §3.6 closing paragraph, which repeats answers given in AD1, AD2, AD5 and AD6. Cuts remove about 600 words (about 5%).
 
+### 5.4 After the fixes, every plan scores 4 or 5 on every C
+
+The review re-ran `/anthropic-skills:writing-review` on the three fixed plans (2026-11-18). The sentence counts come from the same scratchpad script, over prose lines with code blocks and tables excluded.
+
+| Plan | Coherence | Continuity | Clarity | Concision | Cadence | Evidence for the change |
+| --- | --- | --- | --- | --- | --- | --- |
+| SDK | 4 → 5 | 4 → 5 | 4 → 4 | 4 → 5 | 4 → 4 | The introduction now says the owner accepted D2, D5 and D8, and the three "Why the owner decides" paragraphs are gone (D5's became a one-line outcome). Stage, risk and question headings state conclusions. "P2" now means only the harness plan, and N39 carries the retuning. 9 of 248 prose sentences (4%) exceed 35 words and one exceeds 45 (the 46-word thesis, unchanged). |
+| Harness | 4 → 5 | 3 → 4 | 4 → 4 | 3 → 4 | 3 → 4 | HD4, HD8 and HD11 now read "Choice." and their status words match the table. §6.2 states that nothing is open. §3.6 groups twelve needs under three upstream heads, none longer than four items. The "SDK side, unchanged" blocks under HD5, HD7 and HD9 became one-line links. 17 of 335 sentences (5%) exceed 35 words and one exceeds 45. §1's 281-word non-goals list and HD6's twelve inline methods remain, which holds concision and cadence at 4. |
+| Agent | 3 → 4 | 3 → 4 | 4 → 4 | 3 → 4 | 3 → 4 | The introduction is two paragraphs (132 and 118 words), and the thesis is two sentences of 30 and 23 words. "Role" names the reader, planner and drafter, "context" means only the SDK's `Context`, and "session taint" replaces "context taint". The need labels are AS and AH. §3.7 groups sixteen needs under six heads of at most four items. §6.2 matches implementation plans §6. 17 of 342 sentences (5%) exceed 35 words, against 21 before, and one exceeds 45 (the guide-design sentence in the introduction). Coherence stays at 4 because the first introduction paragraph still opens on a 52-word sentence. |
+
+Fix the harness plan's §1 non-goals next if the plans are edited again: split the list into "other plans" and "later work", which would lift its concision and cadence to 5.
+
 ## 6. P4 closes after the 13 blocker and major fixes, and the owner decides R29
 
 The fixes fall into three batches, and the plans can be fixed in this order:
@@ -224,14 +236,72 @@ The fixes fall into three batches, and the plans can be fixed in this order:
 2. **Harness plan:** R2, R3 (the new N40), R6–R10, R22 (the N38 split) and the harness-side needs. R7 adds the H14 need.
 3. **All three plans and the ADRs:** R28's heading and link rename across 37 files, R29 once the owner picks the data wording, R30–R33, and the minor items.
 
-The owner needs to decide only R29. The other 38 findings have a proposed fix that stays inside the decisions the owner accepted on 2026-11-18. Once the blocker and major fixes land and the minor ones are fixed or accepted, P4 can mark the ADRs in R33, close M4 in the roadmap, and start Round B with B1.
+The owner needs to decide only R29. The other 38 findings have a proposed fix that stays inside the decisions the owner accepted on 2026-11-18. (Resolved: the owner's acceptance of AD8 already settles R29, so §7 applies the accepted wording without a new question.) Once the blocker and major fixes land and the minor ones are fixed or accepted, P4 can mark the ADRs in R33, close M4 in the roadmap, and start Round B with B1.
+
+## 7. Fixes applied: 38 findings fixed, one accepted in part, and no question left for the owner
+
+Every finding below ends fixed or accepted with a reason. "Fixed" names the files, sections and todos that changed on 2026-11-18. The owner's decisions of 2026-11-18 stayed as accepted; R29 needed no new question, because the owner's AD8 answer already fixes the wording.
+
+### 7.1 Findings R1–R39
+
+| ID | Resolution | What changed |
+| --- | --- | --- |
+| R1 | fixed | `Context` moved to `@agent-speak/sdk` (`run.ts`) in SDK §3.1–§3.3; the gateway keeps `ModelContext` and names no SDK type. B2 (scope, out of scope, a no-SDK-import criterion), B11 (scope), harness §3.2 intro, ADR 0001. |
+| R2 | fixed | The `SessionEntry` union moved into `@agent-speak/protocol` (`src/entries.ts`, re-exported by the harness); protocol declares gateway and SDK as types-only dependencies (harness HD13, §3.1, §3.2; ADR 0012). N26 now depends on N2, B11 and B15, and its criterion is "the emitted JS imports nothing outside the package" plus "no dependency on the harness". N2 writes the union in protocol. |
+| R3 | fixed | New todo [N40](../../todos/ready/N40-code-initiated-calls.md) (M; Depends on N13, N14, B15) builds `Harness.invokeTool()`, the `code_call` entry and the code-call branch of `Approvals.resolve`. Harness §3.2 (`code_call`), §3.4 (`CodeCallResult`), §3.5 (`Harness.invokeTool`), §3.7, §4.3 table, §6.3; agent §3.6, §3.7 (AH4), §4.3 table, §6.3. A12 and A13 depend on N40, and A12's workaround task is gone. |
+| R4 | fixed | `shouldStop` may return `{ stop: "no_progress" \| "hook"; reason }`, and `RunResult` gained `stopReason: "stopped"` with `stoppedBy` (SDK §3.3). B13 and B14 criteria; B11 scope; A7 maps a `stopped` result with reason `kill_switch` to the handoff; agent AD4 and §3.3. |
+| R5 | fixed | `RunError` defined in SDK §3.3 with `kind: "overflow" \| "quota" \| "retryable" \| "fatal" \| "unknown_price" \| "hook"`. B11 copies `AssistantMessage.error.kind`; B14 sets `unknown_price`. |
+| R6 | fixed | `turn_start.system` stores the frozen prompt (harness §3.2); N2 scope, N6 scope, N7 rebuilds `system` from it and tests a byte-for-byte match after a configuration change. SDK §1 table row §2 notes the harness persists it. |
+| R7 | fixed | `TurnOptions.inputOrigin?: "user" \| "operator"` (harness §3.2) with an N6 test of both values; A11 passes `"operator"`; agent §3.7 lists it as AH14; A9's clean-planner criterion now names the operator input. |
+| R8 | fixed | `RegisteredTool.approvalReuse` (harness §3.3, HD12, ADR 0019); N11 adds the field, N14 refuses sticky or grouped resolutions for `"none"` and defines grouping by canonical input hash and per-request quorum. Agent AD2: T2–T4 tools register with `"none"` (A3); A8 tests that a sticky resolution on a T3 call is refused. |
+| R9 | fixed | `ResolveOptions` with `budgetUsd`, `signal` and `hostContext` (harness §3.4); HD9 says the remainder reaches the resume; N13 tests a resume that stops with `budget`; agent AD9 and A13 pass the remainder on resume. |
+| R10 | fixed | `QuorumPolicy.evaluate()` typed in harness §3.4 and built in N14; the host fills `Resolution.by` only after authentication (harness §3.4, §3.7, N14); `ApproverDirectory.roles(principalId)` in agent §3.3 and AD3, tested in A8; ADR 0024 consequence. |
+| R11 | fixed | `EvalRow.passed: boolean \| null` with `unscored?` (harness §3.5), tested in N36; agent §3.5 notes how an unscored `Grade` maps to a row. |
+| R12 | fixed | `{ type: "warning"; code: "max_steps"; detail }` added to `AgentEvent` (SDK §3.3); B11 criterion checks it and `AGENT_EVENT_TYPES`. |
+| R13 | fixed | `TriageAgentOptions.models(ref, role)` (agent §3.4); A13 scope and a `ScriptedModel` criterion. |
+| R14 | fixed | SDK §3.2–§3.3 declare `ModelContent`, `ModelCaps`, `Clock`, `TracerLike` (with `SpanLike`), `DeliveryReceipt`, `HookEventBase`, `ContextEvent`, `ToolCallEvent` and the other hook events. |
+| R15 | fixed | SDK §6.3 now defers to the harness plan's staged list and keeps one roadmap line; roadmap M5 and M6 rows list the new todos. |
+| R16 | fixed | Agent need labels renamed AS1–AS2 and AH1–AH14 in agent §2, §3.7, §6; ADRs 0022, 0024, 0025, 0026, 0027, 0031; todos A3, A8–A14, A18, A22. |
+| R17 | fixed | `ToolDefinition.redactErrors?: boolean` (SDK §3.3, §1 table row §4); B10 scope and criterion. |
+| R18 | fixed | B8 and B9 strip the nulls strict lowering adds before validation, with a fixture criterion each; SDK §1 table row §4. |
+| R19 | fixed | Agent §1 deferred list: batch pricing for graders and capability runs waits for a gateway batch adapter; revisit after A20. |
+| R20 | fixed | `DashboardRow.guardrailFlagRate` and `sampledJudgeScore: number \| null` (agent §3.5); A22 scope and two criteria. |
+| R21 | fixed | "P2" replaced with N39 in D9, D11 (text and table row), SDK §6.1, B14 and ADR 0009. |
+| R22 | fixed | N38 keeps the 20 repository tasks and the live budget check; new todo [N38b](../../todos/ready/N38b-shared-triage-tasks.md) (M; Depends on N38, A17, A19) adds the 10 shared tasks, records how mini-swe-agent receives a ticket or scores them for our harness only, and commits only task ids and graders. Harness HD8, §4.7, §6.3; agent AD6, §6.2, §6.3; A19; N38's sign-off task replaced. |
+| R23 | fixed | B1 links `../done/P4-plan-review.md`. The link resolves once P4 moves to `done/`; until then the link checker reports it, as intended. |
+| R24 | fixed | SDK §4.4 states eleven todos (B1 → … → B15 → B15b → B18 → B19 → B20, with the B15 split); agent §4.5 states thirteen (A1 → A2 → A3 → A6 → A7 → A11 → … → A20). Harness §4.7 names the ties. |
+| R25 | fixed | B15 keeps signers, hashing, the pending record and `createPendingRequest` (now M), and new todo [B15b](../../todos/ready/B15b-continue-run.md) holds `continueRun`, `blockingApprovals()` and clarification. B15 keeps its id, so existing links stay valid. New todo [B19b](../../todos/ready/B19b-reference-loop.md) holds the reference loop, and B19 is now M. B18, B19 and N7 depend on B15b. B8, B9 and B11 stay L. |
+| R26 | fixed in part | N14, N28 and N35 now list ordered steps. Accepted for the other fifteen todos: as the finding says, their scope and criteria carry the detail, and each gains steps when it is claimed. |
+| R28 | fixed | The 13 headings now end "(accepted)" or "(accepted, with …)", and all 58 links to their anchors were rewritten (57 found by the review plus this file's own AD8 link); a repository-wide search finds no old anchor. "Choice, proposed" and "provisional" under HD4, HD8, HD11, AD6 and AD8 now read "Choice" or "Agent side". "Why the owner decides" became "What the owner still supplies" or was deleted (D2, D8, HD5), and D5's argument for a required signer became an outcome line. Each plan's §2 intro, §6.2 and closing paragraph, the SDK intro and §1 non-goal, B15's risk, N19 and N38 were updated. Agent §6.2 now matches implementation plans §6, whose P4 bullets now record the answers. |
+| R27 | fixed | B10 writes its own strict-schema fixtures from the Anthropic and OpenAI references; D7's provisional check says so. |
+| R29 | fixed | The owner's AD8 answer settles the wording: synthetic and de-identified tickets may be committed once they pass A19's checklist, and raw tickets never. Agent AD8 "Eval data" bullet, §6.1, A19 (tasks and criteria), N38b and an ADR 0027 consequence line now say this. |
+| R30 | fixed | ADR 0005 gained a dated outcome line (default stays ephemeral; the harness passes `hmacSigner()`), appended rather than rewritten; ADR 0015 records the same outcome. |
+| R31 | fixed | ADR 0009's consequences record HD9's session cap, the pre-checked summary call and N39; harness HD9's ADR cell and §6.2 close the question. |
+| R32 | fixed | The ADR index copies every title and status verbatim from its record. HD15's ADR cell points at 0020. HD4, N19 and ADR 0020 (an appended consequence) say a change after N19 is a superseding ADR. |
+| R33 | fixed | The twelve plain-Proposed ADRs (0001, 0003, 0004, 0006, 0009, 0010, 0012, 0016, 0017, 0019, 0029, 0030) are now "Accepted (P4 review, 2026-11-18)", after R1, R2 and R31 changed 0001, 0012 and 0009. The provisional ones stay Proposed for their named todos. |
+| R34 | fixed | N16 spawns `srt` with `spawnEnv()` and tests it; N37 has a criterion that the bridge and mini-swe-agent get `spawnEnv()`, the proxy URL and a dummy key. |
+| R35 | fixed | N34's matrix keeps `fakeSandbox()`; the `sandbox: "none"` arm asserts only the tier stamp and calls no host tool. |
+| R36 | fixed | The agent introduction splits after the package sentence, and the thesis is two sentences (30 and 23 words). |
+| R37 | fixed | Harness §3.6 groups the needs by upstream todo; agent §3.7 leads with the two needs that had no workaround and groups the rest by plan and purpose. |
+| R38 | fixed | Agent plan: "role" for the reader, planner and drafter; "context" only for the SDK's `Context`; "trusted run context" for `TrustedContext`; "session taint" (`SessionTaint`, `sessionTaint()`) for the taint; `RoleSettings` and the `./roles` subpath. Applied to AD1, AD5, AD9 (heading), §3–§6, todos A1–A4, A7, A9–A13, and ADRs 0022, 0025, 0026 (title) and 0030. Accepted ADR 0028's title keeps "contexts", because an accepted record is not rewritten. |
+| R39 | fixed | Every stage heading (§4.1–§4.7) and every §6.1 and §6.2 heading in the three plans now states a conclusion; links to the old anchors were rewritten. |
+
+### 7.2 Needs (§4)
+
+All 24 upstream changes landed with the exact types and criteria §4 gives. Harness needs 1, 2, 5 and 8 went to SDK §3.3 and B13; need 3 to `Model.caps` (SDK §3.2, B4, B5); need 4 to `RunError`, B6 and B15b; needs 6 and 7 to SDK §3.3 and B15b; need 9 to `projectCallCost()` (SDK §3.3, D9, B14); need 10 to B17 and N31, with the constant deleted from harness §3.5; need 11 to `CAPABILITIES` (SDK §3.3, B20); need 12 to `DeliveryReceipt` (SDK §3.3, B16). Agent AS1 went to B15, AS2 to B11, AH1 and AH2 to N6 and N11 (with `createHarness<H>()`), AH3 to N5, AH4 to N40, AH5 and AH9 to N12 and N2, AH8 and AH10 to N2 and N11, AH12 to N31 and AH13 to N36.
+
+The three drops left the needs lists with a one-line reason each: harness need 13 (the client-tool pause kind; harness §1 defers that pattern, recorded in SDK §1 and §6.2), AH6 (`policyStore` removed from harness §3.4; R4 is a `PermissionHook` reading the product's store) and AH7 (the agent shadows at its helpdesk boundary; harness §3.7 R5 says so). The covered need, AH11, is marked with its new N12 test.
+
+### 7.3 Prose fixes (§5)
+
+All twelve line-level fixes in §5.1–§5.3 were applied, as were the three cut lists (the stale owner paragraphs, the "SDK side, unchanged" restatements, the §6.2 owner and P3 bullets, and the agent §3.6 closing paragraph, now one sentence). §5.4 gives the new scores.
 
 [ip3]: ../implementation-plans.md#3-the-review-p4
 [ip6]: ../implementation-plans.md#6-open-questions
 [sdk]: ../build-sdk.md
 [sdk32]: ../build-sdk.md#32-gateway-api
 [sdk33]: ../build-sdk.md#33-sdk-api
-[sdk44]: ../build-sdk.md#44-stage-4-the-shipping-surface
+[sdk44]: ../build-sdk.md#44-stage-4-ships-telemetry-the-testing-exports-the-capstone-and-the-docs-checks
 [sdk63]: ../build-sdk.md#63-where-round-b-slots-into-the-roadmap
 [har]: ../build-harness.md
 [har32]: ../build-harness.md#32-session-log-api
@@ -242,8 +312,8 @@ The owner needs to decide only R29. The other 38 findings have a proposed fix th
 [har-hd9]: ../build-harness.md#hd9-sdk-d9s-per-call-check-plus-a-session-cap-and-a-pre-checked-summary-call-with-sdk-d9
 [har-hd12]: ../build-harness.md#hd12-three-middle-ground-modes-and-no-classifier-allow-outside-the-host-callback
 [agt]: ../build-agent.md
-[agt34]: ../build-agent.md#34-contexts-gates-and-the-workflow
+[agt34]: ../build-agent.md#34-roles-gates-and-the-workflow
 [agt35]: ../build-agent.md#35-evals-and-rollout
 [agt37]: ../build-agent.md#37-needs-from-the-sdk-and-harness-plans
-[agt62]: ../build-agent.md#62-open-questions
-[agt-ad8]: ../build-agent.md#ad8-code-appends-the-ai-label-spans-hash-identifiers-and-later-stages-need-a-retention-period-owner-to-confirm-with-hd11
+[agt62]: ../build-agent.md#62-no-question-is-open-the-owners-remaining-inputs-are-scheduled-in-todos
+[agt-ad8]: ../build-agent.md#ad8-code-appends-the-ai-label-spans-hash-identifiers-and-later-stages-need-a-retention-period-accepted-with-hd11

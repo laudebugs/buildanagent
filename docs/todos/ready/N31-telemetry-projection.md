@@ -4,7 +4,7 @@
 | --- | --- |
 | ID | `N31` |
 | Status | `ready` |
-| Plan | [Build harness §4, Stage 7](../../plans/build-harness.md#47-stage-7-telemetry-completion-evals-and-ablation) |
+| Plan | [Build harness §4, Stage 7](../../plans/build-harness.md#47-stage-7-adds-telemetry-completion-checks-evals-and-ablation) |
 | Round / milestone | Round N (build harness), M6 |
 | Depends on | [N7](N7-rebuild-resume-replay.md), [N13](N13-signed-approvals.md), [B17](B17-otel-observer.md) |
 | Size | M |
@@ -25,7 +25,8 @@ Project OTel `gen_ai.*` spans from stored entries, with an approval-wait span, c
 **In scope**
 
 - `projectSpans(entries, { tracer, content, toolArguments })`: `invoke_agent` → turn → model call → `execute_tool`, plus `approval_wait` from `approval_requested` to `approval_resolved`
-- `src/telemetry/semconv.ts` with every attribute name and `SEMCONV_GENAI_COMMIT = "d28355d"`
+- `GEN_AI_ATTRIBUTES` and `SEMCONV_GENAI_COMMIT` imported from `@agent-speak/sdk/otel` (B17), plus a module for our own `agent_speak.*` names
+- `hashAttributes: { key, names }`: HMAC-SHA-256 over each named attribute's value before export (agent AH12)
 - `gen_ai.usage.input_tokens` as `totalInput(usage)`; `agent_speak.cost.usd` omitted when `Cost.total` is `null`
 - Content levels `none` (default), `attributes`, `refs`; tool arguments gated apart
 - The session budget meter and the `budget_warning` event (HD9)
@@ -37,7 +38,7 @@ Project OTel `gen_ai.*` spans from stored entries, with an approval-wait span, c
 ## Tasks
 
 - [ ] Test with `@opentelemetry/sdk-trace-base` 2.12.0's in-memory exporter as a dev dependency.
-- [ ] Reuse the SDK's attribute module if need 10 lands; otherwise keep ours and list the duplicates.
+- [ ] Import the SDK's attribute module; define no `gen_ai.*` name in the harness.
 
 ## Acceptance criteria
 
@@ -46,6 +47,8 @@ Project OTel `gen_ai.*` spans from stored entries, with an approval-wait span, c
 - [ ] With default options no span attribute contains message or tool-argument text
 - [ ] A session with an unknown price has spans with `agent_speak.cost.basis = "unknown"` and no `agent_speak.cost.usd`
 - [ ] At 80% of a session cap the meter emits one `budget_warning`
+- [ ] With `hashAttributes` naming an attribute, every exported span carries the keyed hash of its value and never the value itself
+- [ ] No `gen_ai.*` string literal appears in `packages/harness/src/telemetry` (a test)
 - [ ] `pnpm check`, `pnpm typecheck` and `pnpm test` pass offline from the repo root
 
 ## Tests

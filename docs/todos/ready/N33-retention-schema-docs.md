@@ -4,7 +4,7 @@
 | --- | --- |
 | ID | `N33` |
 | Status | `ready` |
-| Plan | [Build harness §4, Stage 7](../../plans/build-harness.md#47-stage-7-telemetry-completion-evals-and-ablation) |
+| Plan | [Build harness §4, Stage 7](../../plans/build-harness.md#47-stage-7-adds-telemetry-completion-checks-evals-and-ablation) |
 | Round / milestone | Round N (build harness), M6 |
 | Depends on | [N5](N5-head-fork-revert.md), [N2](N2-session-entries-schema.md) |
 | Size | S |
@@ -15,7 +15,7 @@ Add the retention setting with archive and purge, and publish the transcript sch
 
 ## Context
 
-- [HD11](../../plans/build-harness.md#hd11-keep-transcripts-until-the-owner-sets-a-retention-period-and-keep-the-entry-base-stable-owner-to-confirm): the decision and its evidence
+- [HD11](../../plans/build-harness.md#hd11-keep-transcripts-until-the-owner-sets-a-retention-period-and-keep-the-entry-base-stable-accepted): the decision and its evidence
 - [ADR 0018](../../decisions/0018-retention-and-transcript-schema.md): the decision records
 - [harness guide §2](../../guides/agent-harness.md#2-the-session-log-should-be-one-append-only-tree-of-typed-entries-with-head-a-writer-lock-and-pauses-as-entries): retention instead of a silent purge; a documented schema
 

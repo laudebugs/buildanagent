@@ -2,7 +2,7 @@
 
 - **Status:** Accepted (owner, 2026-11-18)
 - **Date:** 2026-11-18
-- **Plan:** [build-agent.md, AD3](../plans/build-agent.md#ad3-a-role-based-quorum-per-tier-and-amount-band-bound-to-the-host-signed-pause-and-expiring-on-age-or-policy-change-owner-to-confirm-with-sdk-d5-and-hd5)
+- **Plan:** [build-agent.md, AD3](../plans/build-agent.md#ad3-a-role-based-quorum-per-tier-and-amount-band-bound-to-the-host-signed-pause-and-expiring-on-age-or-policy-change-accepted-with-sdk-d5-and-hd5)
 
 ## Context
 
@@ -15,5 +15,5 @@ Quorum rules are data: a tier, an optional minimum amount, one or two distinct a
 ## Consequences
 
 - The owner names the roles and who holds them; the signing keys are already settled by ADRs 0005 and 0015.
-- The harness plan should type `QuorumPolicy` with a clock and the current policy version (build-agent.md §3.7, H5).
+- The harness plan should type `QuorumPolicy` with a clock and the current policy version (build-agent.md §3.7, AH5). P4 (2026-11-18) typed it as `evaluate(request, resolutions)` in todo N14, and the agent's `ApproverDirectory` gained `roles(principalId)`.
 - Todo A8 tests every fail-closed case.

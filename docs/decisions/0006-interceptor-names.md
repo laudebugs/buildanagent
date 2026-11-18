@@ -1,6 +1,6 @@
 # 0006. Name the six interceptors by model and tool moment, and keep run-level hooks as observers
 
-- **Status:** Proposed
+- **Status:** Accepted (P4 review, 2026-11-18)
 - **Date:** 2026-11-18
 - **Plan:** [build-sdk.md, D6](../plans/build-sdk.md#d6-our-six-moment-named-interceptors-with-run-level-hooks-as-observers)
 

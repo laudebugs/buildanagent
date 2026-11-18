@@ -4,7 +4,7 @@
 | --- | --- |
 | ID | `N28` |
 | Status | `ready` |
-| Plan | [Build harness §4, Stage 6](../../plans/build-harness.md#46-stage-6-protocol-and-interfaces) |
+| Plan | [Build harness §4, Stage 6](../../plans/build-harness.md#46-stage-6-puts-the-protocol-its-transports-and-the-cli-over-the-harness) |
 | Round / milestone | Round N (build harness), M6 |
 | Depends on | [N27](N27-dispatcher-core.md), [N13](N13-signed-approvals.md) |
 | Size | M |
@@ -16,7 +16,7 @@ Finish the protocol's hard parts: approvals, clarifications and client tools as 
 ## Context
 
 - [harness guide §8](../../guides/agent-harness.md#8-one-typed-protocol-should-sit-under-the-sdk-cli-and-rpc-interfaces-with-stdio-jsonl-as-the-first-remote-transport): Pi's disposition, Claude's cancel, Codex's 128-slot queues and `-32001`
-- [HD5](../../plans/build-harness.md#hd5-the-harness-always-passes-hmacsigner-over-a-persistent-key-ring-owner-to-confirm-with-sdk-d5): the decision and its evidence
+- [HD5](../../plans/build-harness.md#hd5-the-harness-always-passes-hmacsigner-over-a-persistent-key-ring-accepted-with-sdk-d5): the decision and its evidence
 - [build-harness.md §3.5](../../plans/build-harness.md#35-extension-protocol-telemetry-eval-and-ablation-apis): the API sketch
 
 ## Scope
@@ -35,6 +35,11 @@ Finish the protocol's hard parts: approvals, clarifications and client tools as 
 
 ## Tasks
 
+- [ ] Send `approval/request` and `clarification/request` only after the `approval_requested` entry's append resolves; route each response through `Approvals.resolve()`.
+- [ ] Send `tool/call` for `client_request` tools and resolve the SDK tool call with the client's result.
+- [ ] Implement `$/cancelRequest` in both directions: a cancelled server request rejects its pending promise, and a cancelled `turn/start` aborts the run.
+- [ ] Bound the command queue at 128 and reject the overflow with `-32001`; let notifications drop under load with a gap marker, and never drop a server request.
+- [ ] Number events with `seq`, keep a replay window per session, and serve `session/open` with `fromSeq`.
 - [ ] Test a client that disconnects with a pending approval and reconnects: `initialize` re-arms it.
 
 ## Acceptance criteria

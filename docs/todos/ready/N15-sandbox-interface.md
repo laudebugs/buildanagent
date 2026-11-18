@@ -4,7 +4,7 @@
 | --- | --- |
 | ID | `N15` |
 | Status | `ready` |
-| Plan | [Build harness §4, Stage 4](../../plans/build-harness.md#44-stage-4-sandbox-and-credentials) |
+| Plan | [Build harness §4, Stage 4](../../plans/build-harness.md#44-stage-4-adds-the-sandbox-backends-and-the-credential-proxy) |
 | Round / milestone | Round N (build harness), M6 |
 | Depends on | [N1](N1-harness-workspace-scaffold.md) |
 | Size | M |
@@ -15,7 +15,7 @@ Define the pluggable sandbox client with honest tiers, ship the unsafe `none` ba
 
 ## Context
 
-- [HD4](../../plans/build-harness.md#hd4-srt-for-interactive-runs-and-docker-for-headless-runs-owner-to-confirm): the decision and its evidence
+- [HD4](../../plans/build-harness.md#hd4-srt-for-interactive-runs-and-docker-for-headless-runs-accepted): the decision and its evidence
 - [harness guide §6](../../guides/agent-harness.md#6-the-sandbox-and-the-credential-boundary-are-separate-components-and-the-host-not-the-model-owns-both): separate policies, honest tiers, fail closed, cleared env
 - [build-harness.md §3.4](../../plans/build-harness.md#34-permission-approval-and-sandbox-apis): the API sketch
 - [AGENTS.md coding standards](../../../AGENTS.md#coding-standards): allowlisted environments

@@ -4,7 +4,7 @@
 | --- | --- |
 | ID | `N20` |
 | Status | `ready` |
-| Plan | [Build harness §4, Stage 4](../../plans/build-harness.md#44-stage-4-sandbox-and-credentials) |
+| Plan | [Build harness §4, Stage 4](../../plans/build-harness.md#44-stage-4-adds-the-sandbox-backends-and-the-credential-proxy) |
 | Round / milestone | Round N (build harness), M6 |
 | Depends on | [N15](N15-sandbox-interface.md) |
 | Size | M |

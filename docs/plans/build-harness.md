@@ -1,6 +1,6 @@
-# Plan: build our agent harness as four packages around one session log, in 39 todos that start on the SDK's seams
+# Plan: build our agent harness as four packages around one session log, in 41 todos that start on the SDK's seams
 
-- **Status:** Draft (P2, 2026-11-18). P4 reviews it together with the SDK and agent plans.
+- **Status:** Draft (P2, 2026-11-18), revised on 2026-11-18 with the fixes from the [P4 review](reviews/plan-review.md).
 - **Date:** 2026-11-18
 - **Asked for by:** the project owner (2026-11-18), through the [implementation plans](implementation-plans.md#2-what-each-plan-contains)
 - **Builds on:** the [harness guide][hg] (G2b), its [reference architecture][hg12] and its [twelve open decisions][hg13], and the [SDK plan][sdk] (P1), whose [seams][sdk34] this plan consumes by name
@@ -9,7 +9,7 @@
 
 The harness is the layer that moves agent results most: with the model held fixed, Pass@1 across seven harnesses differed by up to 24.3 points, and cost among mature harnesses differed by up to 3× ([harness guide, introduction][hg]). The [harness guide][hg] settles the design in five parts. One append-only, tree-shaped session log is the only source of truth, and context layers are added from the cheapest upward. The permission pipeline, the sandbox and the credential boundary stay three components the host owns. One typed protocol sits under every interface, and evals report cost beside pass rate against mini-swe-agent.
 
-The guide left twelve decisions open, and the [SDK plan][sdk] has since fixed the loop, the event union and eleven named seams the harness must use as written ([SDK plan §3.4][sdk34]). This plan makes the twelve decisions plus three the guide did not list, lays out four packages with their public APIs, and turns the architecture into 39 todos, each one reviewable batch tested offline. Where the harness needs more than the SDK plan provides, §3.6 lists it for P4 instead of assuming it. In one sentence: **build the session log first, fill the SDK's interceptors with the context, tool and permission layers, add the sandbox, credentials and protocol, and judge every removable component by cost per task beside pass rate.**
+The guide left twelve decisions open, and the [SDK plan][sdk] has since fixed the loop, the event union and eleven named seams the harness must use as written ([SDK plan §3.4][sdk34]). This plan makes the twelve decisions plus three the guide did not list, lays out four packages with their public APIs, and turns the architecture into 41 todos, each one reviewable batch tested offline. Where the harness needed more than the SDK plan provided, §3.6 lists it, and P4 moved those needs into the SDK plan. In one sentence: **build the session log first, fill the SDK's interceptors with the context, tool and permission layers, add the sandbox, credentials and protocol, and judge every removable component by cost per task beside pass rate.**
 
 ## 1. Goal and non-goals
 
@@ -22,12 +22,12 @@ The goal covers every recommendation in the guide's design sections, §2 to §11
 | [§2 Session log][hg2] | typed JSONL tree, persisted HEAD, one writer lock, immutable files, `SessionStore`, pauses as entries, user entry first, write-time size bound, playback and re-run, documented schema and retention, search and replay CLI | N2–N7, N13, N30, N33 |
 | [§3 Context][hg3] | five removable layers, cheapest first; compaction as a visible entry with a focus hint and hooks; cache-prefix rationing; a budget below the window; a plan and progress file convention | N8–N10, N23, N39 |
 | [§4 Tools][hg4] | one registry, canonical names, per-source exposure, MCP as a removable built-in with per-server protocol eras, untrusted annotations, three host-tool patterns | N11, N24, N25 |
-| [§5 Permissions][hg5] | ordered deny-first pipeline, no-match ask or deny, shadowing as a startup error, signed approval entries re-evaluated on resume, sticky approvals without interpreter prefixes, path-based ask rules | N12–N14 |
+| [§5 Permissions][hg5] | ordered deny-first pipeline, no-match ask or deny, shadowing as a startup error, signed approval entries re-evaluated on resume, sticky approvals without interpreter prefixes, path-based ask rules, code-initiated calls through the same pipeline | N12–N14, N40 |
 | [§6 Sandbox and credentials][hg6] | separate sandbox and approval policies, escalation as a state machine, honest tiers that fail closed, launched by the host, cleared env, default-deny egress proxy with host-scoped sentinels | N15–N21 |
 | [§7 Extensions][hg7] | three tiers behind one project-trust gate, declared hook composition, skills from `.agents/skills`, content-hash pinning, native `AGENTS.md` | N22, N23 |
 | [§8 Protocol][hg8] | one typed union, JSON-RPC 2.0 with `jsonrpc`, disposition plus `turn/settled`, cancellation, bounded queues, capabilities and pending set in `initialize`, stdio JSONL first | N26–N30 |
 | [§9 Telemetry][hg9] | spans projected from the log, an approval-wait span, content off, OTLP only, a pinned convention commit, a running cost with a warning | N31 |
-| [§10 Evals][hg10] | Inspect bridge, mini-swe-agent baseline, cost beside pass^k, three suites, isolated grader, infra failures apart, completion checked in code | N32, N36–N39 |
+| [§10 Evals][hg10] | Inspect bridge, mini-swe-agent baseline, cost beside pass^k, three suites, isolated grader, infra failures apart, completion checked in code | N32, N36–N39, N38b |
 | [§11 Ablation][hg11] | every component behind an interface with a no-op, reported in the §10 format | N34, N39 |
 
 **Non-goals.** These belong to other plans or later work, each for a stated reason:
@@ -38,11 +38,11 @@ The goal covers every recommendation in the guide's design sections, §2 to §11
 - **gVisor, microVM and hosted sandbox backends.** The guide makes them adapters chosen by threat model, and the `SandboxClient` interface leaves room for them ([harness guide §6][hg6]).
 - **TLS interception in the egress proxy.** The first proxy injects credentials through a local reverse-proxy route and filters HTTPS by name through `CONNECT`, so no per-session CA is needed yet (§2, HD15).
 - **A full-screen TUI, a SQLite listing projection and branch summaries.** The CLI is line-mode; listing scans JSONL headers until session counts make that slow; branch summaries need a tree-navigation UI, which P3 or later work owns ([harness guide §2][hg2]).
-- **The third host-tool pattern,** where a tool with no executor suspends the turn into continuation state. The SDK's `ToolResult.pause` carries only `clarification`, and the first two patterns serve every planned client ([interfaces note §9][n-if-9]; §3.6, item 13).
+- **The third host-tool pattern,** where a tool with no executor suspends the turn into continuation state. The SDK's `ToolResult.pause` carries only `clarification`, and the first two patterns serve every planned client ([interfaces note §9][n-if-9]). P4 dropped the matching SDK need for Rounds B and N (§3.6).
 
 ## 2. Decisions
 
-Decisions HD1 to HD12 answer the twelve open decisions of [harness guide §13][hg13], in the same order. HD13 and HD14 are decisions the guide's sketch left implicit: the package split and the MCP client's base. HD15 records the credential proxy's first shape. The `HD` prefix keeps these apart from the SDK plan's D1–D12 and from the `H` todos. Statuses follow the SDK plan's three: **Decided**, **Decided, provisional** (a named todo checks it), and **Proposed — owner to confirm** ([SDK plan §2][sdk2]).
+Decisions HD1 to HD12 answer the twelve open decisions of [harness guide §13][hg13], in the same order. HD13 and HD14 are decisions the guide's sketch left implicit: the package split and the MCP client's base. HD15 records the credential proxy's first shape. The `HD` prefix keeps these apart from the SDK plan's D1–D12 and from the `H` todos. Statuses follow the SDK plan's three: **Decided**, **Decided, provisional** (a named todo checks it), and **Accepted (owner, 2026-11-18)** for HD4, HD5, HD8 and HD11 ([SDK plan §2][sdk2]). No decision still waits on the owner.
 
 Three decisions merge with the SDK's. For each, this plan references P1's choice and adds only the harness side: HD5 builds on SDK D5, HD7 on SDK D3 and HD9 on SDK D9.
 
@@ -56,13 +56,13 @@ Three decisions merge with the SDK's. For each, this plan references P1's choice
 | HD6 | Protocol framing | Strict JSON-RPC 2.0 with the `jsonrpc` field; v1 ships twelve methods and three server requests | Decided | [0016](../decisions/0016-protocol-json-rpc-framing.md) |
 | HD7 | Telemetry commit and cost attribute (with SDK D3) | Pin semconv-genai `d28355d`; name cost `agent_speak.cost.usd` with `agent_speak.cost.basis`; sum classes only in the projection | Decided | [0017](../decisions/0017-telemetry-convention-pin-and-cost-attributes.md) |
 | HD8 | Eval suite seed | 30 tasks: 20 recreated real failures from this repo's history and 10 triage tasks shared with P3; k = 5 | Accepted (owner, 2026-11-18) | none: eval data |
-| HD9 | Budget timing (with SDK D9) | SDK D9's check per call, plus a session cap, a pre-checked summary call and an 80% warning | Decided | none: [0009](../decisions/0009-pre-emptive-budget.md) covers it |
+| HD9 | Budget timing (with SDK D9) | SDK D9's check per call, plus a session cap, a pre-checked summary call and an 80% warning | Decided | [0009](../decisions/0009-pre-emptive-budget.md), whose consequences record the session cap |
 | HD10 | Completion check | Configured checks, else discovered `package.json` scripts, run in the sandbox after `done`; flagged diff patterns are recorded, not fatal | Decided, provisional (N38) | none: tunable defaults |
 | HD11 | Retention and transcript schema | No automatic deletion by default; opt-in archive or purge; `EntryBase` and the entry type names are stable per `formatVersion` | Accepted (owner, 2026-11-18) | [0018](../decisions/0018-retention-and-transcript-schema.md) |
 | HD12 | Approval modes | Path-based ask rules, scoped sticky allowances and grouped approvals; no classifier allows except through the host callback | Decided (harness side) | [0019](../decisions/0019-permission-pipeline-and-approval-modes.md) |
 | HD13 | Package split | Four packages: `protocol`, `harness` with subpath exports per component, `cli` and `evals` | Decided | [0012](../decisions/0012-harness-packages.md) |
 | HD14 | MCP client base | `@modelcontextprotocol/client` 2.4.0 behind our `McpConnection` interface | Decided, provisional (N24) | [0021](../decisions/0021-mcp-client-base.md) |
-| HD15 | Credential proxy shape | Default-deny egress; credentials injected on local reverse-proxy routes by sentinel; no TLS interception | Decided | none: §3.4 records the API |
+| HD15 | Credential proxy shape | Default-deny egress; credentials injected on local reverse-proxy routes by sentinel; no TLS interception | Decided | [0020](../decisions/0020-default-sandbox-backend.md), whose decision records the proxy shape |
 
 ### HD1. One entry per content block, written from the SDK's end events (provisional)
 
@@ -88,31 +88,29 @@ Three decisions merge with the SDK's. For each, this plan references P1's choice
 
 **Evidence.** The cheap layers carry most of the measured value: masking matched LLM summarization's solve rate at about half the raw agent's cost ([harness guide §3][hg3]). The gain from context management fell from 35.7 to 2.7 points as windows grew from 32K to 128K, so the mid-turn layer earns least on large windows ([harness guide §3][hg3]). Practitioners report a quality threshold of 200–300K tokens on 1M-token models, so the cap starts at the low end; Pi reserves 16,384 tokens below the window for its trigger ([harness guide §3][hg3]). The 64 KiB cap is Codex's persistence bound, and the 500-character mask and the 8-message step are Cloudflare Think's ([sessions note §5][n-sess-5]; [harness guide §3][hg3]). The layer-3 default stays on despite the decay result because a 1M-window session without it ends in an overflow error, and practitioners object to compaction they cannot see more than to compaction itself ([harness guide §3][hg3]). N39 runs the guide's settling test: each layer on and off on the seed suite, scored on cost and pass^k.
 
-### HD4. `srt` for interactive runs and Docker for headless runs (owner to confirm)
+### HD4. `srt` for interactive runs and Docker for headless runs (accepted)
 
 **Accepted by the owner on 2026-11-18.**
 
 **Options.** `srt`, Docker, or `none` with a loud warning for local use ([harness guide §13, decision 4][hg13]).
 
-**Choice, provisional.** Interactive local runs default to the OS backend over `srt`. Headless runs and every eval trial default to Docker with `--cap-drop ALL --read-only --network none`. The `none` backend runs only with an explicit `sandbox: { tier: "none", unsafe: true }`, writes the choice to `env_stamp` and prints a warning at session start. Every backend fails closed when it cannot start.
+**Choice.** Interactive local runs default to the OS backend over `srt`; N19's measurement can only change this through a superseding ADR. Headless runs and every eval trial default to Docker with `--cap-drop ALL --read-only --network none`. The `none` backend runs only with an explicit `sandbox: { tier: "none", unsafe: true }`, writes the choice to `env_stamp` and prints a warning at session start. Every backend fails closed when it cannot start.
 
-**Evidence.** `srt` is rated good with very low overhead but shares the host kernel, and Docker's strength depends on its setup ([harness guide §6][hg6]). Practitioners trust sandbox-plus-no-prompts for background runs, while about 92 say containers are too weak against malice, so we claim neither tier stops a hostile process ([harness guide §6][hg6]). Claude's settings-file sandbox runs unsandboxed with only a warning when it cannot start, which is the fail-open default we refuse ([harness guide §6][hg6]). Nobody has measured either tier's cold start on our hardware ([permissions note, unresolved gaps][n-perm-gaps]). N19 measures both and either confirms this split or moves interactive runs to Docker.
+**Evidence.** `srt` is rated good with very low overhead but shares the host kernel, and Docker's strength depends on its setup ([harness guide §6][hg6]). Practitioners trust sandbox-plus-no-prompts for background runs, while about 92 say containers are too weak against malice, so we claim neither tier stops a hostile process ([harness guide §6][hg6]). Claude's settings-file sandbox runs unsandboxed with only a warning when it cannot start, which is the fail-open default we refuse ([harness guide §6][hg6]). Nobody has measured either tier's cold start on our hardware ([permissions note, unresolved gaps][n-perm-gaps]). N19 measures both. If the numbers argue for Docker on interactive runs, N19 proposes a new ADR that supersedes 0020, because an accepted record is never rewritten.
 
-**Why the owner decides.** The threat model and the hosts we support are product calls: whether interactive runs must stop injection-driven exfiltration, and whether macOS, where `srt` uses Seatbelt, is a supported host.
+**What the owner still supplies.** A review of N19's numbers. The threat model and the supported hosts stay as accepted: neither tier is claimed to stop a hostile process, and macOS runs `srt` over Seatbelt.
 
-### HD5. The harness always passes `hmacSigner()` over a persistent key ring (owner to confirm, with SDK D5)
+### HD5. The harness always passes `hmacSigner()` over a persistent key ring (accepted, with SDK D5)
 
 **Accepted by the owner on 2026-11-18.**
 
-**SDK side, unchanged.** SDK D5 defines `ApprovalSigner` with key ids, defaults to `ephemeralSigner()` and fails closed on any missing, unknown-key or invalid signature ([SDK plan, D5][sdk-d5]).
+[SDK D5][sdk-d5] covers the SDK side: key-id signers, an `ephemeralSigner()` default and a fail-closed resume.
 
 **Harness side: the key.** The harness's deployment model is one host process per session. That process may restart between a pause and its resolution, and the resolving process may differ from the one that wrote the pause. An ephemeral key would strand every pause across a restart, so the harness never relies on the SDK default. It keeps a key ring in a `KeyStore` outside every sandbox and outside the session log, by default `$XDG_STATE_HOME/agent-speak/keys.json` with mode `0600`. It passes `hmacSigner({ keys, current })` on every `run` and `continueRun`. Rotation adds a new current key; an old key stays in the ring until no unresolved `approval_requested` entry names its `keyId`, and `keys prune` removes it then.
 
-**Harness side: the pause path.** Every `ask` ends the run in the SDK's `awaiting_approval` state: the harness writes the `SignedPendingRequest` as an `approval_requested` entry before it asks any client, and it never uses `blockingApprovals()`. On resume, the SDK verifies the signature, and then the harness re-runs its permission pipeline on each approved call and turns the approval into a denial if current policy now denies it (§3.6, item 7).
+**Harness side: the pause path.** Every `ask` ends the run in the SDK's `awaiting_approval` state: the harness writes the `SignedPendingRequest` as an `approval_requested` entry before it asks any client, and it never uses `blockingApprovals()`. On resume, the harness re-runs its permission pipeline on each approved call and turns the approval into a denial if current policy now denies it. The SDK then verifies the signature and runs the allowed call without calling `beforeToolCall` again (SDK §3.3, `continueRun`).
 
-**Evidence.** Pauses must be entries because a callback dies with its process, and approvals in production wait minutes or hours ([harness guide §2][hg2]; [agent guide §1][ag1]). LangChain's re-run predicate shows why re-evaluation must let a deny win and never skip a rejection ([harness guide §5][hg5]). The guide's settling rule ties the key to the deployment model: a multi-process host needs a shared key store ([harness guide §13, decision 5][hg13]).
-
-**Why the owner decides.** If the owner also confirms the SDK's ephemeral default for library users, nothing else changes. If the owner makes `signer` required in the SDK (SDK D5's alternative), the harness already complies.
+**Evidence.** Pauses must be entries because a callback dies with its process, and approvals in production wait minutes or hours ([harness guide §2][hg2]; [agent guide §1][ag1]). LangChain's re-run predicate shows why re-evaluation must let a deny win and never skip a rejection ([harness guide §5][hg5]). The guide's settling rule ties the key to the deployment model: a multi-process host needs a shared key store ([harness guide §13, decision 5][hg13]). The owner kept the SDK's ephemeral default for library users, so `signer` stays optional there and the harness always sets it.
 
 ### HD6. Strict JSON-RPC 2.0, with the `jsonrpc` field and twelve v1 methods
 
@@ -124,29 +122,29 @@ Three decisions merge with the SDK's. For each, this plan references P1's choice
 
 ### HD7. Pin semconv-genai `d28355d`, and name cost in our own namespace (with SDK D3)
 
-**SDK side, unchanged.** SDK D3 stores four token classes and names the uncached one `uncachedInput`; `totalInput()` sums them ([SDK plan, D3][sdk-d3]). That settles the guide's in-memory-field question.
+[SDK D3][sdk-d3] settles the guide's in-memory-field question with four token classes and `totalInput()`.
 
-**Harness side.** The telemetry projection pins `open-telemetry/semantic-conventions-genai` at commit `d28355d`, the HEAD the observability note read on 2026-11-18, and stamps it as the resource attribute `agent_speak.semconv.genai.commit`. It writes `gen_ai.usage.input_tokens` as `totalInput(usage)` and `gen_ai.usage.output_tokens` as `usage.output`. Our own attributes are `agent_speak.cost.usd` (omitted when `Cost.total` is `null`), `agent_speak.cost.basis` and `agent_speak.usage.cache_read_tokens` and `.cache_write_tokens`. They sit outside `gen_ai.*`, so a future convention cannot collide with them.
+**Harness side.** The telemetry projection pins `open-telemetry/semantic-conventions-genai` at commit `d28355d`, the HEAD the observability note read on 2026-11-18, and stamps it as the resource attribute `agent_speak.semconv.genai.commit`. The commit constant and the `gen_ai.*` names come from `@agent-speak/sdk/otel` (`SEMCONV_GENAI_COMMIT`, `GEN_AI_ATTRIBUTES`), so the live observer and the log projection share one module. It writes `gen_ai.usage.input_tokens` as `totalInput(usage)` and `gen_ai.usage.output_tokens` as `usage.output`. Our own attributes are `agent_speak.cost.usd` (omitted when `Cost.total` is `null`), `agent_speak.cost.basis` and `agent_speak.usage.cache_read_tokens` and `.cache_write_tokens`. They sit outside `gen_ai.*`, so a future convention cannot collide with them.
 
 **Evidence.** The conventions are Development-only and had no tags on 2026-11-18, so a version means a commit ([harness guide §9][hg9]; [observability note §2][n-obs-2]). OTel's `input_tokens` "SHOULD include cached tokens", and no convention names cost, so the cost attribute is ours to name ([harness guide §9][hg9]). SDK D3 already ran the guide's settling test, writing the projection and the cost fold against both conventions ([SDK plan, D3][sdk-d3]). Cost keeps its `basis`, because Claude calls its costs "client-side estimates, not authoritative billing data" ([harness guide §9][hg9]).
 
-### HD8. A 30-task seed suite from real failures and triage tasks, at k = 5 (owner to confirm)
+### HD8. A 30-task seed suite from real failures and triage tasks, at k = 5 (accepted)
 
 **Accepted by the owner on 2026-11-18.**
 
 **Options.** Which 20–50 real-failure tasks seed the capability suite, at what k, with which resource guarantees and kill limits ([harness guide §13, decision 8][hg13]).
 
-**Choice, proposed.** Thirty tasks. Twenty come from this repository's history: each is a commit that fixed a failing `pnpm run verify` or `pnpm test`, recreated at its parent commit and graded by running that same check outside the agent's writable sandbox. Ten are triage tasks shared with P3's eval suite, so agent decision 6 owns their labels. Each task runs k = 5 trials. Each trial gets a guaranteed 2 vCPUs and 4 GiB, a 30-minute kill limit and a $3 cost cap, which is mini-swe-agent's default `cost_limit`. Infra failures record `exit: "infra_error"` and are scored apart. After the first run, the discordance between two runs of the same configuration sets the size of the regression suite.
+**Choice.** Thirty tasks. Twenty come from this repository's history: each is a commit that fixed a failing `pnpm run verify` or `pnpm test`, recreated at its parent commit and graded by running that same check outside the agent's writable sandbox. N38 runs these twenty. Ten are the agent's classification-slice tasks, so agent decision 6 owns their labels. N38b adds them once the agent's task format (A17) and the owner's labelled tickets (A19) exist, so the harness baseline never waits for Round A. The suite commits task ids and graders; the ticket text stays in the agent's eval package, which holds only synthetic and de-identified tickets (agent AD8). Each task runs k = 5 trials. Each trial gets a guaranteed 2 vCPUs and 4 GiB, a 30-minute kill limit and a $3 cost cap, which is mini-swe-agent's default `cost_limit`. Infra failures record `exit: "infra_error"` and are scored apart. After the first run, the discordance between two runs of the same configuration sets the size of the regression suite.
 
 **Evidence.** Anthropic recommends 20–50 tasks drawn from real failures with outcome graders and a clean environment per trial, and practitioners add that such a suite catches only large regressions ([harness guide §10][hg10]). Public benchmarks are a weak guide, and the durable asset is our own failures ([harness guide §10][hg10]). The repository's commit history holds real failures with a ready grader, which is the check that failed. Lifting resource caps on Terminal-Bench 2.0 cut infra errors from 5.8% to 0.5%, so the guarantee is pinned and recorded ([harness guide §10][hg10]). The $3 cap is mini-swe-agent's default, which keeps the baseline comparison fair ([observability note §6][n-obs-6]). k = 5 matches the agent guide's pass^5 gate ([agent guide §10][ag10]).
 
-**Why the owner decides.** The owner pays for live runs and must accept tasks recreated from this repository as representative, or name another source.
+**What the owner still supplies.** The budget for each live run, which N37's live script refuses to start without.
 
 ### HD9. SDK D9's per-call check, plus a session cap and a pre-checked summary call (with SDK D9)
 
-**SDK side, unchanged.** The loop projects each model call's cost and stops with `stopReason: "budget"` before the call that would cross `budgetUsd` ([SDK plan, D9][sdk-d9]).
+[SDK D9][sdk-d9] covers the per-call check: the loop stops with `stopReason: "budget"` before the call that would cross `budgetUsd`.
 
-**Harness side.** A session has its own `budgetUsd`. The harness folds the `usage` entries of the session into its spend and passes `budgetUsd: sessionCap − spend` to each `run` and `continueRun`. The harness makes summary and mid-turn compaction calls with `Model.complete()`, outside the loop. It therefore projects their cost with the SDK's formula itself, and skips the layer when the projection would cross the cap, leaving the overflow layer as the fallback (§3.6, item 9). Summary calls write `usage` entries with `source: "summary"`. At 80% of the cap the harness emits a `budget_warning` protocol event, and the CLI shows the running total. A session whose spend includes a `Cost.total` of `null` refuses a budgeted turn, as SDK D4 does for a run.
+**Harness side.** A session has its own `budgetUsd`. The harness folds the `usage` entries of the session into its spend and passes `budgetUsd: sessionCap − spend` to each `run` and `continueRun`, including the resume inside `Approvals.resolve` (§3.4). The harness makes summary and mid-turn compaction calls with `Model.complete()`, outside the loop. It therefore projects their cost with the SDK's exported `projectCallCost()`, and skips the layer when the projection would cross the cap, leaving the overflow layer as the fallback. [ADR 0009](../decisions/0009-pre-emptive-budget.md) records the session cap as a consequence. Summary calls write `usage` entries with `source: "summary"`. At 80% of the cap the harness emits a `budget_warning` protocol event, and the CLI shows the running total. A session whose spend includes a `Cost.total` of `null` refuses a budgeted turn, as SDK D4 does for a run.
 
 **Evidence.** Loops cause the runaway-cost anecdotes, and practitioners want a running cost with a warning threshold, because quota opacity is the widest-supported complaint in the corpus ([harness guide §9][hg9]). Inspect checks cost limits at each `generate()`, which matches the per-call rule ([harness guide §10][hg10]). The guide's settling test, measuring a post-response check's overshoot on our longest recorded runs, runs in N39 on the runs N38 records.
 
@@ -158,17 +156,17 @@ Three decisions merge with the SDK's. For each, this plan references P1's choice
 
 **Evidence.** Agents claim success they did not achieve and game visible tests, so the harness checks completion in code and flags new mocks, stubs, placeholders and skip markers ([harness guide §10][hg10]). Tests, types and linters are the oracle practitioners trust, which makes the project's own scripts the default checks ([harness guide §5][hg5]). The guide's settling test, tuning the flags on recorded false claims, needs recorded runs, so N38 records them and tunes the patterns.
 
-### HD11. Keep transcripts until the owner sets a retention period, and keep the entry base stable (owner to confirm)
+### HD11. Keep transcripts until the owner sets a retention period, and keep the entry base stable (accepted)
 
 **Accepted by the owner on 2026-11-18.**
 
 **Options.** The default retention period, where expired entries go, and which entry fields are documented as stable ([harness guide §13, decision 11][hg13]).
 
-**Choice, proposed.** No automatic deletion by default. A `retention` setting takes `{ days, action: "archive" | "purge" }`. `archive` gzips an expired session's files into `archive/` and keeps them searchable; `purge` deletes them. The stable surface is `EntryBase` (`id`, `parentId`, `seq`, `timestamp`, `type`, `origin`), the entry type names and `formatVersion`. Every other field is documented but may change with a `formatVersion` bump, which arrives with a migration that writes a new file (HD2). N2 publishes the JSON Schema at `packages/harness/schema/session-entry.schema.json`.
+**Choice.** No automatic deletion by default. A `retention` setting takes `{ days, action: "archive" | "purge" }`. `archive` gzips an expired session's files into `archive/` and keeps them searchable; `purge` deletes them. The stable surface is `EntryBase` (`id`, `parentId`, `seq`, `timestamp`, `type`, `origin`), the entry type names and `formatVersion`. Every other field is documented but may change with a `formatVersion` bump, which arrives with a migration that writes a new file (HD2). N2 publishes the JSON Schema at `packages/protocol/schema/session-entry.schema.json`, beside the union (HD13).
 
 **Evidence.** Practitioners treat local transcripts as their system of record, and their named limit is the 30-day purge that matches Claude's `cleanupPeriodDays` default ([harness guide §2][hg2]). The HN synthesis asks for a documented schema, configurable retention and a search and replay CLI ([harness guide §2][hg2]). The guide's settling test needs a month of runs to cost disk; N33 measures the disk cost of the capstone and eval runs instead and reports a projection.
 
-**Why the owner decides.** Retention is data policy, and agent decision 8 merges with it: support and legal owners may need deletion that a developer tool does not ([agent guide §10][ag10]).
+**What the owner still supplies.** A retention period, once a product needs one. Agent AD8 makes the agent's shadow and later stages refuse to start without it ([agent guide §10][ag10]).
 
 ### HD12. Three middle-ground modes, and no classifier allow outside the host callback
 
@@ -177,7 +175,8 @@ Three decisions merge with the SDK's. For each, this plan references P1's choice
 **Choice: all three middle-ground mechanisms, with classifier allows confined to the host callback.**
 - **Path-based ask rules** ship as defaults: edits that delete, skip or weaken tests, and edits to hooks, CI config and rules files.
 - **Sticky allowances** are scoped to a run or a session, written as `approval_resolved` entries with `sticky`, and refuse interpreter prefixes (`bash -c`, `sh -lc`, `node -e`, `bun run` and similar) and any pattern containing a secret.
-- **Grouped approvals** resolve, in one decision, every pending request of one step that has the same tool and the same normalised command.
+- **Grouped approvals** resolve, in one decision, every pending request of one step that has the same tool and the same canonical input hash; for `bash`, the hash is taken over the normalised command. A group resolution counts as one approver's resolution on each request, so a quorum above one still needs further distinct approvers.
+- **Opting out.** A tool that sets `RegisteredTool.approvalReuse: "none"` takes neither sticky nor grouped resolutions, and the pipeline refuses both for it; products set this for every tool a person must see each time.
 
 The pipeline's permission modes are `default`, `accept_edits`, `read_only`, `bypass` and `shadow`. A classifier may only run as a pipeline hook, which can deny or ask but never allow, or as the host callback at the end of the pipeline, whose allows are recorded with `by: "classifier:<id>"`. Whether the agent uses a classifier, and for which tiers, is P3's agent decision 10.
 
@@ -187,7 +186,7 @@ The pipeline's permission modes are `default`, `accept_edits`, `read_only`, `byp
 
 **Options.** (a) One `@agent-speak/harness` package with everything. (b) A package per component, as many as ten. (c) A protocol package, a harness package with subpath exports per component, a CLI package and an evals package.
 
-**Choice: (c).** `@agent-speak/protocol` holds the typed union, the framing and the generated JSON Schema, with no runtime dependencies, so a client in any language can depend on its schema alone. `@agent-speak/harness` holds the session log, context policy, registry, MCP client, permissions, sandbox, credentials, extensions, telemetry and the dispatcher, each behind its own subpath. `@agent-speak/cli` is the `agent-speak` binary and a client of the in-process transport. `@agent-speak/evals` holds the report builder, the trajectory converter and the offline replay suite; the Inspect task lives beside it in Python.
+**Choice: (c).** `@agent-speak/protocol` holds the typed union, the session-entry union it carries, the framing and the generated JSON Schema. Its emitted JavaScript imports nothing at run time, so a client in any language can depend on its schema alone; it declares `@agent-speak/gateway` and `@agent-speak/sdk` as dependencies only for the transcript and pause types. `@agent-speak/harness` depends on it, never the reverse. `@agent-speak/harness` holds the session log, context policy, registry, MCP client, permissions, sandbox, credentials, extensions, telemetry and the dispatcher, each behind its own subpath. `@agent-speak/cli` is the `agent-speak` binary and a client of the in-process transport. `@agent-speak/evals` holds the report builder, the trajectory converter and the offline replay suite; the Inspect task lives beside it in Python.
 
 **Evidence.** The guide defines the protocol package first, and generates TypeScript and JSON Schema from one union, so that clients need nothing else ([harness guide §8][hg8]). The CLI must be a replaceable client, because practitioners blame UI flicker and CPU on a harness apart from its model ([harness guide §8][hg8]). Subpath exports keep each removable component importable, and ablatable, on its own without the cost of ten `package.json` files, the same trade the SDK plan made for adapters ([SDK plan, D1][sdk-d1]).
 
@@ -215,57 +214,63 @@ The SDK plan puts our code in `packages/` and expects P2 to add the harness ther
 
 ```text
 packages/
-  protocol/                     @agent-speak/protocol   (no runtime dependencies)
+  protocol/                     @agent-speak/protocol   (types from gateway and sdk; no runtime imports)
+    src/entries.ts              SessionEntry, EntryBase, Origin (the harness re-exports them from ./session)
     src/messages.ts             ClientCommand, ServerRequest, ServerNotification, Response, errors
     src/framing.ts              JsonlFramer (splits on \n only), encode(), decode()
     schema/protocol.schema.json generated from messages.ts and committed
+    schema/session-entry.schema.json generated from entries.ts and committed
   harness/                      @agent-speak/harness
     package.json                exports: ".", "./session", "./context", "./tools", "./mcp",
                                 "./permissions", "./sandbox", "./sandbox/srt", "./sandbox/docker",
                                 "./credentials", "./extensions", "./telemetry", "./server",
                                 "./ablation", "./testing"
-    src/session/                entries, SessionStore (memory, jsonl), SessionLock, runner, rebuild, replay
+    src/session/                SessionStore (memory, jsonl), SessionLock, runner, rebuild, replay
     src/context/                write cap, masking, summarizer, mid-turn, overflow retry, policy composer
     src/tools/                  ToolRegistry, tool search, built-ins (read, write, edit, bash, fetch)
     src/mcp/                    McpConnection, per-server negotiation, McpManager
-    src/permissions/            rules, PermissionPipeline, approvals, KeyStore, sticky allowances
+    src/permissions/            rules, PermissionPipeline, approvals, code-initiated calls, KeyStore, sticky allowances
     src/sandbox/                SandboxClient, none backend, spawnEnv, escalation; srt/ and docker/
     src/credentials/            EgressProxy, sentinel routes, proxiedFetch, secret scrubber
     src/extensions/             Extension, composition, TrustStore, extensions.lock.json, skills, context files
-    src/telemetry/              projectSpans(), semconv.ts (the pinned names), budget meter
+    src/telemetry/              projectSpans(), harness attribute names, budget meter
     src/completion/             completion checks and diff flags
     src/server/                 Dispatcher, inProcessTransport(), stdioTransport()
     src/ablation.ts             AblationConfig and its hash
     src/testing/                fakeSandbox(), memoryStore(), scriptedClient(), conformance suites
-    schema/session-entry.schema.json
   cli/                          @agent-speak/cli        bin: agent-speak
   evals/                        @agent-speak/evals      (private)
     src/                        reports, mini-swe-agent trajectories, offline replay suite
     inspect/                    harness_task.py, requirements.txt (Python, outside pnpm)
 ```
 
-**Dependencies.** `protocol` has none. `harness` depends on `@agent-speak/sdk`, `@agent-speak/gateway` and `@agent-speak/protocol` (`workspace:*`), and on `@modelcontextprotocol/client` 2.4.0 (HD14). The `srt` and Docker backends spawn the `srt` and `docker` binaries and add no npm dependency; N16 records which `srt` release it was tested against. `cli` depends on `harness` and, for the optional OTLP exporter, on `@opentelemetry/exporter-trace-otlp-http` 0.223.2 and `@opentelemetry/sdk-trace-base` 2.12.0, both already in the lockfile. Dev dependencies: `@modelcontextprotocol/server` 2.4.0 for MCP tests and a JSON Schema generator that N26 pins. Every new pin follows [AGENTS.md "Versions"](../../AGENTS.md#coding-standards).
+**Dependencies.** `protocol` depends on `@agent-speak/gateway` and `@agent-speak/sdk` (`workspace:*`) for types only. N26 checks that its emitted JavaScript imports neither. pnpm resolves a type import only from a declared dependency, so the dependency is declared even though nothing loads at run time ([AGENTS.md "Workspace layout"](../../AGENTS.md#coding-standards)). `harness` depends on `@agent-speak/sdk`, `@agent-speak/gateway` and `@agent-speak/protocol` (`workspace:*`), and on `@modelcontextprotocol/client` 2.4.0 (HD14). The `srt` and Docker backends spawn the `srt` and `docker` binaries and add no npm dependency; N16 records which `srt` release it was tested against. `cli` depends on `harness` and, for the optional OTLP exporter, on `@opentelemetry/exporter-trace-otlp-http` 0.223.2 and `@opentelemetry/sdk-trace-base` 2.12.0, both already in the lockfile. Dev dependencies: `@modelcontextprotocol/server` 2.4.0 for MCP tests and a JSON Schema generator that N26 pins. Every new pin follows [AGENTS.md "Versions"](../../AGENTS.md#coding-standards).
 
 **Tooling.** The same as the SDK's: ESM, `tsconfig.base.json`, `node:test` through tsx, `typecheck` and `test` scripts picked up by the root ([SDK plan §3.1][sdk31]). The Python Inspect task has its own `requirements.txt` with exact pins and runs only in the opt-in eval job.
 
 ### 3.2 Session log API
 
-Every type below uses the SDK plan's names: `ContentBlock`, `ModelContent`, `ModelRef`, `Usage`, `Cost`, `SignedPendingRequest`, `Resolution` and `Context` come from `@agent-speak/gateway` and `@agent-speak/sdk` unchanged. Revisions of the [guide's sketch][hg12] are marked.
+Every type below uses the SDK plan's names unchanged. `ContentBlock`, `ModelContent`, `ModelRef`, `Usage` and `Cost` come from `@agent-speak/gateway`, and `SignedPendingRequest`, `Resolution`, `RunResult` and `Context` from `@agent-speak/sdk`. The entry union lives in `@agent-speak/protocol` (HD13), and the harness re-exports it. Revisions of the [guide's sketch][hg12] are marked.
 
 ```ts
-// @agent-speak/harness/session (guide §2; HD1, HD2, HD11)
+// @agent-speak/protocol entries, re-exported by @agent-speak/harness/session (guide §2; HD1, HD2, HD11, HD13)
 type Origin = "user" | "operator" | "model" | "tool" | "harness";   // R3 hook (§3.7); one label per block entry
 interface EntryBase { id: string; parentId: string | null; seq: number; timestamp: string; origin: Origin }
 type SessionEntry = EntryBase & (
   | { type: "session_header"; formatVersion: 1; harnessVersion: string; sdkVersion: string;
-      defaultsHash: string; capabilities: string[]; ablationHash: string; parent?: { session: string; entryId: string } }
-  | { type: "turn_start"; runId: string; mode: "run" | "continue" }
+      defaultsHash: string; capabilities: string[]; ablationHash: string; parent?: { session: string; entryId: string };
+      product?: { name: string; version: string; bundleHash: string } }     // Revision (agent AH8): the product's stamp
+  | { type: "turn_start"; runId: string; mode: "run" | "continue"; system: string } // Revision (R6): the frozen prompt, byte for byte
   | { type: "message_block"; messageId: string; role: "user" | "assistant"; index: number; block: ContentBlock;
       delivery?: "input" | "steer" | "follow_up" }                       // Revision: one entry per block (HD1)
   | { type: "message_end"; messageId: string; model: ModelRef; stopReason: AssistantMessage["stopReason"];
       error?: AssistantMessage["error"] }
   | { type: "tool_result"; callId: string; tool: string; content: ModelContent[]; isError: boolean;
-      details?: unknown; spill?: { path: string; bytes: number } }     // Revision: tool output is ModelContent[], not a ContentBlock
+      details?: unknown; spill?: { path: string; bytes: number };
+      trust: "trusted" | "untrusted" }                                   // Revision: ModelContent[]; trust from RegisteredTool.outputTrust (agent AH10)
+  | { type: "code_call"; callId: string; tool: string; input: unknown; inputHash: string } // Revision (R3): a call code chose, no model step (N40)
+  | { type: "permission_decision"; callId: string; tool: string; decision: "allow" | "deny" | "ask";
+      rule?: string; by?: string; policyVersion: string; inputHash: string }   // Revision (agent AH9): one per decide()
   | { type: "usage"; source: "model_call" | "summary" | "judge"; usage: Usage; cost: Cost } // Revision: SDK Cost, total may be null
   | { type: "turn_end"; runId: string; stopReason: RunResult<unknown>["stopReason"]; steps: number }
   | { type: "checkout"; headId: string }                                  // persisted HEAD (guide decision 2)
@@ -280,9 +285,10 @@ type SessionEntry = EntryBase & (
   | { type: "completion_check"; checks: Array<{ command: string; exitCode: number }>; passed: boolean; flagged: string[] }
   | { type: "skill_loaded"; name: string; path: string }
   | { type: "extension_loaded"; name: string; tier: "in_process" | "mcp" | "skill"; contentHash: string }
-  | { type: "subagent_link"; childSession: string; spawningCallId: string }
+  | { type: "subagent_link"; childSession: string; spawningCallId?: string; stepId?: string } // Revision (agent AH3): one of the two
   | { type: "shadow_call"; callId: string; tool: string; inputHash: string }  // R5 hook (§3.7)
-);
+  | { type: "product_record"; name: string; data: unknown }   // Revision (agent AH8): name is namespaced ("triage.record");
+);                                                            // data sits outside HD11's stable surface
 
 interface SessionStore {                                      // guide sketch, unchanged except the CAS argument
   append(key: string, entries: SessionEntry[], options?: { expectedLastId?: string }): Promise<void>; // idempotent by id
@@ -302,7 +308,7 @@ interface Session {
   path(headId?: string): Promise<SessionEntry[]>;            // root → head, following parentId
   checkout(entryId: string): Promise<void>;                  // appends a checkout entry
   fork(entryId: string): Promise<Session>;                   // a new file whose header names the parent prefix
-  child(spawningCallId: string): Promise<Session>;           // a subagent's own log, linked by a subagent_link entry
+  child(link: { spawningCallId: string } | { stepId: string }): Promise<Session>; // Revision (agent AH3): a subagent's or a workflow step's log
   revert(entryId: string): Promise<Session>;                 // a new immutable file; moves the pointer
   toContext(headId?: string): Promise<Context>;              // rebuild the SDK Context from entries (§3.6, item 6)
   playback(): AsyncIterable<SessionEntry>;                   // no model or tool calls
@@ -314,15 +320,19 @@ declare function openSession(options: { store: SessionStore; lock: SessionLock; 
 The session runner turns SDK events into entries. It is an `Observer` that the harness passes in `RunOptions.observers`, and it appends inside the same lock:
 
 ```ts
-interface TurnOptions {
+interface TurnOptions<H = unknown> {
   input: string | ContentBlock[];
+  inputOrigin?: "user" | "operator";        // Revision (R7): origin of the input blocks; default "user"
   budgetUsd?: number;                       // session cap; the runner passes the remainder (HD9)
   signal?: AbortSignal;
+  hostContext?: H;                          // Revision (agent AH2): per turn; reaches execute, never a schema or the log
+  system?: string; tools?: string[];        // Revision (agent AH1): per-turn settings; tools is an allowlist of registered names
+  output?: ToolDefinition<any, any>; model?: Model; maxSteps?: number; modelOptions?: StreamOptions;
 }
 type TurnResult = RunResult<unknown> & { sessionKey: string; lastEntryId: string };
-declare function runTurn(session: Session, harness: Harness, options: TurnOptions): Promise<TurnResult>;
-// writes the user message_block entries durably before the first model call (guide §2),
-// then turn_start, block entries on model_call_end, tool_result on tool_call_end, usage, turn_end.
+declare function runTurn<H>(session: Session, harness: Harness<H>, options: TurnOptions<H>): Promise<TurnResult>;
+// writes the input message_block entries durably before the first model call (guide §2), labelled inputOrigin,
+// then turn_start with the system prompt, block entries on model_call_end, tool_result on tool_call_end, usage, turn_end.
 ```
 
 ### 3.3 Context policy and tool registry APIs
@@ -352,17 +362,19 @@ type HostPattern = "in_process" | "client_request";       // the third pattern i
 interface RegisteredTool {
   canonicalName: string; alias?: string; source: ToolSource; pattern: HostPattern;
   exposure: "direct" | "deferred" | "hidden";             // written to ToolDefinition.exposure
+  outputTrust?: "trusted" | "untrusted";                  // Revision (agent AH10): default "untrusted" for mcp:*, else "trusted"
+  approvalReuse?: "sticky" | "group" | "both" | "none";   // Revision (R8): default "both"; "none" refuses sticky and grouped resolutions
   definition: ToolDefinition<any, any>;
 }
 interface ToolRegistry {
   register(tool: Omit<RegisteredTool, "canonicalName"> & { name: string; override?: boolean }): RegisteredTool;
   // throws DuplicateToolError; an MCP collision gets a deterministic suffix; replacing a built-in needs override: true
   setExposure(source: ToolSource, exposure: RegisteredTool["exposure"]): void;    // MCP defaults to "deferred"
-  definitions(wrap: ToolWrapper): ToolDefinition<any, any>[];                    // for RunOptions.tools, wrapped
+  definitions<H>(wrap: ToolWrapper<H>, hostContext: H): ToolDefinition<any, any>[]; // per turn, for RunOptions.tools
   activeTools(activated: ReadonlySet<string>): string[];                         // for ModelCallPatch.activeTools
   preambleTokens(model: Model): number;                                          // printed at session start
 }
-type ToolWrapper = (tool: RegisteredTool) => ToolDefinition<any, any>; // write cap, shadow mode, sandbox binding
+type ToolWrapper<H = unknown> = (tool: RegisteredTool, hostContext: H) => ToolDefinition<any, any>; // write cap, shadow mode, sandbox binding; the turn's host context
 declare function toolSearchTool(registry: ToolRegistry): ToolDefinition<{ query: string }, { activated: string[] }>;
 declare function builtinTools(sandbox: Sandbox, proxy?: EgressProxy): RegisteredTool[];  // read, write, edit, bash, fetch
 
@@ -381,32 +393,55 @@ declare function createMcpManager(options: { servers: McpServerConfig[]; registr
 // @agent-speak/harness/permissions (guide §5; HD5, HD12)
 type PermissionMode = "default" | "accept_edits" | "read_only" | "bypass" | "shadow";
 interface Rule { tool: string | RegExp; paths?: string[]; commandPrefix?: string[]; reason?: string }
+interface ToolCall { callId: string; tool: string; input: unknown; initiator: "model" | "code" }   // Revision (agent AH5)
+interface PolicyContext {                   // Revision (agent AH5)
+  session: Session; hostContext: unknown; entries: readonly SessionEntry[]; mode: PermissionMode; policyVersion: string;
+}
+type PermissionHook = (call: ToolCall, ctx: PolicyContext) =>
+  Promise<{ decision: "deny" | "ask"; reason: string; rule?: string } | undefined>;  // cannot allow, by type
 interface PermissionConfig {
   mode: PermissionMode;
-  hooks?: PermissionHook[];                 // may deny or ask, never allow
+  hooks?: PermissionHook[];                 // may deny or ask, never allow; R4's cross-run limits live in a hook (§3.7)
   deny?: Rule[]; ask?: Rule[]; allow?: Rule[];
   hostCallback?: (call: ToolCall, ctx: PolicyContext) => Promise<Decision>;
   interactive: boolean;                     // no match: ask when true, deny when false
-  policyStore?: PolicyStore;                // R4 hook (§3.7)
   policyVersion: string;                    // signed into every ask (SDK D5 payload)
 }
 type Decision = { decision: "allow" | "deny" | "ask"; reason: string; rule?: string; by?: string };
 interface PermissionPipeline {
-  decide(call: ToolCall, ctx: PolicyContext): Promise<Decision>;
+  decide(call: ToolCall, ctx: PolicyContext): Promise<Decision>;   // writes one permission_decision entry per call
   gate(): Pick<Interceptors, "beforeToolCall">;   // maps Decision to GateDecision; "ask" carries policyVersion
 }
 declare function createPermissionPipeline(config: PermissionConfig, registry: ToolRegistry): PermissionPipeline;
-// throws PermissionConfigError when an allow rule makes hostCallback unreachable for a registered tool
+// throws PermissionConfigError only when an allow rule makes hostCallback unreachable for a registered tool;
+// deny rules, hooks and a host callback with no allow rules start cleanly
 declare const defaultAskRules: Rule[];      // test deletions and skips, hooks, CI config, rules files (HD12)
 
 interface KeyStore { load(): Promise<{ keys: Record<string, Uint8Array>; current: string }>; rotate(): Promise<string>; prune(inUse: Set<string>): Promise<string[]> }
 declare function fileKeyStore(path?: string): KeyStore;   // default $XDG_STATE_HOME/agent-speak/keys.json, mode 0600
+interface ResolveOptions<H = unknown> {   // Revision (R9): the resume path takes the same budget and signal as a turn
+  sticky?: "run" | "session"; group?: boolean;   // refused for a tool whose approvalReuse forbids it (R8)
+  budgetUsd?: number; signal?: AbortSignal; hostContext?: H;
+}
 interface Approvals {
   pending(session: Session): Promise<SignedPendingRequest[]>;                 // unresolved approval_requested entries
-  resolve(session: Session, resolutions: Resolution[], options?: { sticky?: "run" | "session"; group?: boolean }): Promise<TurnResult>;
-  // appends approval_resolved, re-runs the pipeline on each allow (deny wins), then continueRun(context, { resolutions, signer })
+  resolve(session: Session, resolutions: Resolution[], options?: ResolveOptions): Promise<TurnResult | CodeCallResult>;
+  // appends approval_resolved, re-runs the pipeline on each allow (deny wins), then continueRun(context, { resolutions,
+  // signer, budgetUsd, signal }); a request that answers a code_call entry runs the tool itself, with no model step (N40)
+  // The host fills Resolution.by only after it has authenticated the approver.
   quorum?: QuorumPolicy;                   // R1 hook (§3.7); default: one resolution decides
 }
+interface QuorumPolicy {                   // Revision (R10)
+  evaluate(request: SignedPendingRequest, resolutions: Resolution[]): Promise<"met" | "pending" | "rejected" | "expired">;
+}
+
+// Code-initiated calls (agent AH4; N40): a side effect that code chooses, through the same pipeline
+type CodeCallResult =
+  | { status: "done"; callId: string; result: ToolResult<unknown>; entryId: string }
+  | { status: "denied"; callId: string; reason: string; entryId: string }
+  | { status: "awaiting_approval"; callId: string; pending: SignedPendingRequest };
+// Harness.invokeTool(session, { tool, input, hostContext }) writes code_call, runs decide() with initiator "code",
+// then a tool_result on allow or deny, or an approval_requested entry signed with createPendingRequest() on ask.
 
 // @agent-speak/harness/sandbox (guide §6; HD4)
 interface SandboxPolicy { readRoots: string[]; writeRoots: string[]; network: { allow: string[]; deny: string[] } }
@@ -496,24 +531,33 @@ declare const ErrorCodes: { readonly QueueFull: -32001; readonly SessionLocked: 
 declare class JsonlFramer { push(chunk: Uint8Array): unknown[]; }   // \n only; never Node readline (U+2028)
 
 // @agent-speak/harness/server
-interface Harness { registry: ToolRegistry; pipeline: PermissionPipeline; context: ContextPolicy; sandbox: SandboxClient; model: Model; /* … */ }
-declare function createHarness(options: HarnessOptions): Promise<Harness>;
+interface Harness<H = unknown> {
+  registry: ToolRegistry; pipeline: PermissionPipeline; context: ContextPolicy; sandbox: SandboxClient; model: Model;
+  approvals: Approvals;
+  invokeTool(session: Session, call: { tool: string; input: unknown; hostContext?: H }): Promise<CodeCallResult>; // N40
+  /* … */
+}
+declare function createHarness<H = unknown>(options: HarnessOptions): Promise<Harness<H>>;
 declare function createDispatcher(harness: Harness, options?: { queueSize?: number }): Dispatcher;   // 128
 declare function inProcessTransport(dispatcher: Dispatcher): ClientConnection;
 declare function stdioTransport(dispatcher: Dispatcher, io: { stdin: NodeJS.ReadableStream; stdout: NodeJS.WritableStream }): Promise<void>;
 
-// @agent-speak/harness/telemetry (guide §9; HD7)
-declare const SEMCONV_GENAI_COMMIT: "d28355d";
+// @agent-speak/harness/telemetry (guide §9; HD7). SEMCONV_GENAI_COMMIT and GEN_AI_ATTRIBUTES come from @agent-speak/sdk/otel.
 declare function projectSpans(entries: AsyncIterable<SessionEntry>, options: {
   tracer: TracerLike; content?: "none" | "attributes" | "refs";      // "none" by default
   toolArguments?: boolean;                                          // gated apart from prompts; false by default
+  hashAttributes?: { key: Uint8Array; names: string[] };            // Revision (agent AH12): HMAC-SHA-256 per named attribute
 }): Promise<void>;    // invoke_agent → turn → model call → execute_tool (+ approval_wait child)
 
 // @agent-speak/evals (guide §10; HD8)
 interface EvalRow {                                    // guide sketch; Revision: costUsd may be null
-  task: string; trial: number; passed: boolean; costUsd: number | null; tokens: Usage;
+  task: string; trial: number; costUsd: number | null; tokens: Usage;
+  passed: boolean | null; unscored?: "judge_unknown" | "infra_error";   // Revision (R11): null when unscored
   steps: number; preambleTokens: number; wallMs: number; prompts: number;
-  exit: "submitted" | "limit" | "infra_error"; harness: "ours" | "mini-swe-agent"; ablation: string;
+  exit: "submitted" | "limit" | "infra_error";
+  harness: string;                                     // Revision (agent AH13): "ours", "mini-swe-agent", "single-call"
+  tags?: string[];                                     // Revision (agent AH13): the task's slice and "safety"
+  ablation: string;
 }
 declare function report(rows: EvalRow[], options: { k: number }): EvalReport; // pass@1, pass^k, Wilson CI, cost/tokens/steps per task
 declare function toMiniSweTrajectory(entries: SessionEntry[]): MiniSweTrajectoryV1_1; // format "mini-swe-agent-1.1"
@@ -549,50 +593,43 @@ The harness uses the eleven seams of [SDK plan §3.4][sdk34] under their names. 
 
 P1 left two questions for P2 ([implementation plans §6](implementation-plans.md#6-open-questions)). First, the harness accepts `Cost.total: number | null`: `usage` entries store `Cost` unchanged, session spend becomes unknown when any entry's total is `null`, and a budgeted turn then refuses, as SDK D4 does for a run. Second, `context_transformed` carries enough, because the harness writes the `compaction` entry from inside its own `transformContext` and needs the event only for display.
 
-The harness needs thirteen things the SDK plan does not yet state. Each names the SDK todo that would carry it; P4 decides whether the SDK plan absorbs it or the harness works around it.
+The harness needed thirteen things the SDK plan did not state. P4 moved twelve into the SDK plan and dropped one, so no harness todo carries a workaround ([plan review §4][p4-4]). The twelve fall into three groups, each tested in the SDK todo named:
+- **Hooks and events (B13), four needs.** `transformContext` returns a per-call view, and the loop keeps the full history (1). `ContextEvent` carries `system`, `messages`, `model` and `lastUsage` (2). `tool_call_end.result` is the result after `afterToolCall`, so the log stores what the model saw (5). `activeTools` may name deferred tools, and tools go out in definition order (8).
+- **Resume (B6, B11, B15b), three needs.** `RunError.kind` marks `"overflow"`, and `continueRun` drops a trailing errored assistant message and re-issues the call, which layer 5 needs (4). `Context` is plain JSON that a caller may build from its store (6). A verified `allow` runs without `beforeToolCall`, and the harness re-checks policy before it resolves (7, HD5).
+- **Gateway, budget, steering, telemetry and versioning, five needs.** `Model.caps` carries `contextWindow` and `maxOutputTokens` (3; B4, B5). `projectCallCost()` is exported for the summary call (9; B14). `@agent-speak/sdk/otel` exports `GEN_AI_ATTRIBUTES` and `SEMCONV_GENAI_COMMIT` (10; B17). `CAPABILITIES` lists the strings `run_start.capabilities` carries (11; B20). `DeliveryReceipt` carries `kind`, `message` and `stepIndex`, and `steer_applied` fires for both kinds (12; B16).
 
-1. **`transformContext` returns a per-call view.** The plan should state that the returned `Message[]` is the request for that call only and that the loop keeps the full history, so masking never alters what the next step sees as history. The harness assumes this. (B13)
-2. **`ContextEvent` fields.** The event should carry `system`, `messages`, `model: ModelRef` and the previous call's `usage`, so the layers can measure fill without re-counting. (B13)
-3. **The model's window.** `Model` (or its catalog entry) should expose `contextWindow` and `maxOutputTokens`; `ModelCaps` appears in `transformMessages` but not on `Model`. (B4, B5)
-4. **Overflow as a typed, resumable outcome.** `RunError` should carry the `AssistantMessage.error.kind`, so `"overflow"` is distinguishable, and `continueRun` on a context whose last message is an errored assistant message should drop it and re-issue the call. Layer 5 depends on both. (B11, B15)
-5. **`tool_call_end.result` is the post-`afterToolCall` result.** The log must store what the model saw, after the write cap. (B13)
-6. **`Context` is constructible.** The plan should document `Context` as a plain JSON structure that a caller may build from its own store. B15 should then test `continueRun` on a context built that way, as well as on one a result returned. (B15)
-7. **Resume does not re-run the gate.** The plan should state whether `continueRun` calls `beforeToolCall` for a call with an `allow` resolution. The harness assumes it does not and re-evaluates policy before passing resolutions (HD5). (B15)
-8. **`activeTools` semantics.** It should be allowed to name `deferred` tools, which are then sent, and the order sent should follow definition order whatever the list's order, so tool search does not break the cached prefix. (B11, B13)
-9. **The cost projection as an export.** A `projectCallCost(model, context, options)` export would let the summary call use D9's formula (HD9). (B14)
-10. **Shared OTel names.** `@agent-speak/sdk/otel` should export its attribute-name constants and accept the semconv commit stamp, so the log projection and the live observer use one module (HD7). (B17)
-11. **The capability list's contents.** `run_start.capabilities` feeds `initialize`, and B20 fills it; the plan should list the strings. (B20)
-12. **`DeliveryReceipt` fields.** A receipt should carry the message, the `stepIndex` where it applied and whether it was a steer or a follow-up, and `steer_applied` should fire for both, so the log records where each landed. (B16)
-13. **A client-tool pause kind (deferred).** The third host-tool pattern needs `ToolResult.pause` to accept a client-tool kind. The harness defers that pattern (§1), so this is a note for later, not a need for Round N.
+The thirteenth, a client-tool pause kind for the third host-tool pattern, was dropped for Rounds B and N because §1 defers that pattern; the SDK plan records it as a later item.
 
 ### 3.7 What the agent plan gets from the harness
 
 The agent guide places five requirements on the lower layers ([agent guide §1][ag1]). The harness provides a hook for each and leaves the policy to P3:
-- **R1, N-of-M approvals:** `Approvals.quorum` collects `approval_resolved` entries until a `QuorumPolicy` is met and rejects an approver equal to the requester; the default quorum is one (N14).
-- **R2, a trusted run context:** `HarnessOptions.hostContext` reaches tool `execute` through the registry's `ToolWrapper` closure and never enters a model-facing schema or the log (N11).
-- **R3, provenance labels:** `EntryBase.origin` labels every entry, and with HD1 that means every block (N2, N6).
-- **R4, cross-run limits:** `PermissionConfig.policyStore` is read on every `decide()` (N12).
-- **R5, shadow mode:** the `shadow` permission mode makes the registry's wrapper write a `shadow_call` entry and return a fixed result instead of executing (N12).
+- **R1, N-of-M approvals:** `Approvals.quorum` collects `approval_resolved` entries until its `QuorumPolicy.evaluate()` returns `met`, and rejects an approver equal to the requester; the default quorum is one (N14). The host fills `Resolution.by` only after it authenticates the approver.
+- **R2, a trusted run context:** `TurnOptions.hostContext`, typed by `createHarness<H>()`, reaches tool `execute` through the registry's `ToolWrapper` for that turn and never enters a model-facing schema or the log (N6, N11).
+- **R3, provenance labels:** `EntryBase.origin` labels every entry, and with HD1 that means every block; `TurnOptions.inputOrigin` labels a turn's input, and `tool_result.trust` records a tool's declared output trust (N2, N6, N11).
+- **R4, cross-run limits:** a `PermissionHook` reads the product's own store on every `decide()`; the harness defines no store type (N12).
+- **R5, shadow mode:** the `shadow` permission mode makes the registry's wrapper write a `shadow_call` entry and return a fixed result instead of executing (N12). The agent shadows at its helpdesk boundary instead (`shadowHelpdesk`, agent AD14), which keeps its reads live.
+
+The agent plan also needs two mechanisms beyond the five hooks. `Harness.invokeTool()` runs a side effect that code chose through the same pipeline and pause path (N40). And `product_record` entries with `session_header.product` keep the agent's own records in the log (N2).
 
 ## 4. Rounds and todos
 
 Round N runs in seven stages. Every todo has a file in [`docs/todos/ready/`](../todos/ready/), written from [the template](../todos/TEMPLATE.md), and every todo's acceptance criteria include the repo-wide gate: `pnpm check`, `pnpm typecheck` and `pnpm test` pass offline.
 
-### 4.1 Stage 1: the session log
+### 4.1 Stage 1 builds the session log, from its entry union to rebuild and replay
 
 The guide says to start with the log, because context layers, pauses, replay, the resume cursor and telemetry are all projections of it ([harness guide §13][hg13]).
 
 | ID | Title | Depends on | Size |
 | --- | --- | --- | --- |
 | [N1](../todos/ready/N1-harness-workspace-scaffold.md) | Scaffold `protocol`, `harness`, `cli` and `evals` packages | B1 | S |
-| [N2](../todos/ready/N2-session-entries-schema.md) | Session entry union, its JSON Schema and the stable fields | N1, B2 | M |
+| [N2](../todos/ready/N2-session-entries-schema.md) | Session entry union in `@agent-speak/protocol`, its JSON Schema and the stable fields | N1, B2 | M |
 | [N3](../todos/ready/N3-session-store.md) | `SessionStore`: memory and JSONL backends, the conformance suite and the write-time bound | N2 | M |
 | [N4](../todos/ready/N4-writer-lock.md) | Writer lock with a lease, and the crash test (HD2) | N3 | M |
 | [N5](../todos/ready/N5-head-fork-revert.md) | HEAD, checkout, fork, revert and migration by pointer | N4 | M |
 | [N6](../todos/ready/N6-session-runner.md) | Session runner: SDK events to entries, user entry first | N5, B13 | M |
-| [N7](../todos/ready/N7-rebuild-resume-replay.md) | Context rebuild, resume, playback and re-run from an entry | N6, B15 | M |
+| [N7](../todos/ready/N7-rebuild-resume-replay.md) | Context rebuild, resume, playback and re-run from an entry | N6, B15b | M |
 
-### 4.2 Stage 2: context policy
+### 4.2 Stage 2 adds the five context layers, cheapest first
 
 | ID | Title | Depends on | Size |
 | --- | --- | --- | --- |
@@ -600,7 +637,7 @@ The guide says to start with the log, because context layers, pauses, replay, th
 | [N9](../todos/ready/N9-summary-layer.md) | Layer 3: recall-first summary between turns, with hooks and a focus hint | N8, B5, B14 | M |
 | [N10](../todos/ready/N10-mid-turn-overflow.md) | Layers 4 and 5: mid-turn compaction and the overflow retry | N9, N7 | M |
 
-### 4.3 Stage 3: tools and permissions
+### 4.3 Stage 3 adds the registry, the permission pipeline, signed approvals and code-initiated calls
 
 | ID | Title | Depends on | Size |
 | --- | --- | --- | --- |
@@ -608,8 +645,9 @@ The guide says to start with the log, because context layers, pauses, replay, th
 | [N12](../todos/ready/N12-permission-pipeline.md) | Permission pipeline: order, rules, modes and the no-match default | N11, B13 | M |
 | [N13](../todos/ready/N13-signed-approvals.md) | Signed approvals in the log: key ring, pause, resume with re-evaluation | N12, N7 | M |
 | [N14](../todos/ready/N14-sticky-grouped-quorum.md) | Sticky allowances, grouped approvals and the quorum hook | N13 | M |
+| [N40](../todos/ready/N40-code-initiated-calls.md) | Code-initiated tool calls: `Harness.invokeTool()` and the `code_call` entry | N13, N14, B15 | M |
 
-### 4.4 Stage 4: sandbox and credentials
+### 4.4 Stage 4 adds the sandbox backends and the credential proxy
 
 | ID | Title | Depends on | Size |
 | --- | --- | --- | --- |
@@ -621,7 +659,7 @@ The guide says to start with the log, because context layers, pauses, replay, th
 | [N20](../todos/ready/N20-credential-proxy.md) | Credential proxy: default-deny egress, sentinel routes, gated fetch, secret scrub | N15 | M |
 | [N21](../todos/ready/N21-builtin-tools.md) | Built-in tools: `read`, `write`, `edit`, `bash` and `fetch` through the sandbox | N11, N15, N20, N8 | M |
 
-### 4.5 Stage 5: extensions and MCP
+### 4.5 Stage 5 adds extensions, skills and the MCP client
 
 | ID | Title | Depends on | Size |
 | --- | --- | --- | --- |
@@ -630,17 +668,17 @@ The guide says to start with the log, because context layers, pauses, replay, th
 | [N24](../todos/ready/N24-mcp-stdio.md) | MCP client over stdio: per-server negotiation, canonical names, deferred exposure | N11, N12 | M |
 | [N25](../todos/ready/N25-mcp-http-background.md) | MCP streamable HTTP, legacy SSE and background connect | N24 | M |
 
-### 4.6 Stage 6: protocol and interfaces
+### 4.6 Stage 6 puts the protocol, its transports and the CLI over the harness
 
 | ID | Title | Depends on | Size |
 | --- | --- | --- | --- |
-| [N26](../todos/ready/N26-protocol-package.md) | Protocol package: the typed union, framing and the generated JSON Schema | N1 | M |
+| [N26](../todos/ready/N26-protocol-package.md) | Protocol package: the typed union, framing and the generated JSON Schema | N2, B11, B15 | M |
 | [N27](../todos/ready/N27-dispatcher-core.md) | Dispatcher and in-process transport: `initialize`, turns, events, `turn/settled` | N26, N7, B16 | M |
 | [N28](../todos/ready/N28-server-requests-backpressure.md) | Server requests, cancellation, bounded queues and reconnect | N27, N13 | M |
 | [N29](../todos/ready/N29-stdio-transport.md) | stdio transport and the framing check (HD6) | N28 | S |
 | [N30](../todos/ready/N30-cli.md) | CLI: one-shot JSON mode, line-mode chat, and `sessions` list, show, search and replay | N28 | M |
 
-### 4.7 Stage 7: telemetry, completion, evals and ablation
+### 4.7 Stage 7 adds telemetry, completion checks, evals and ablation
 
 | ID | Title | Depends on | Size |
 | --- | --- | --- | --- |
@@ -651,10 +689,11 @@ The guide says to start with the log, because context layers, pauses, replay, th
 | [N35](../todos/ready/N35-harness-capstone.md) | Harness triage capstone, second-process resume and the granularity test (HD1) | N29, N30, N34, B19, B20 | M |
 | [N36](../todos/ready/N36-eval-reports-replay.md) | Eval package: reports, mini-swe-agent trajectories and the offline replay suite | N35 | M |
 | [N37](../todos/ready/N37-inspect-bridge.md) | Inspect bridge and the baseline runner (opt-in) | N36, N17 | M |
-| [N38](../todos/ready/N38-seed-suite-baseline.md) | Seed suite and the first baseline run (HD8) | N37 | M |
+| [N38](../todos/ready/N38-seed-suite-baseline.md) | Seed suite of 20 repository tasks and the first baseline run (HD8) | N37 | M |
+| [N38b](../todos/ready/N38b-shared-triage-tasks.md) | Add the 10 shared triage tasks to the seed suite (HD8) | N38, A17, A19 | M |
 | [N39](../todos/ready/N39-ablation-runs.md) | Ablation and tuning runs: HD3, HD9, HD12 and SDK D11 | N38 | M |
 
-No todo is size L. The longest dependency chain runs N1 → N2 → N3 → N4 → N5 → N6 → N7 → N13 → N28 → N29 → N35 → N36 → N37 → N38 → N39, fifteen todos. Stages 4 and 5 and N26 run beside it.
+No todo is size L. The longest dependency chain runs N1 → N2 → N3 → N4 → N5 → N6 → N7 → N13 → N28 → N29 → N35 → N36 → N37 → N38 → N39, fifteen todos. Two branches tie it: N7 → N27 → N28, and the branch that ends in N38b, which also waits for A17 and A19 from Round A. Stages 4 and 5, N26 and N40 run beside it.
 
 ## 5. Test strategy
 
@@ -704,35 +743,36 @@ N34 makes every removable component a flag in `AblationConfig` and runs the caps
 
 ## 6. Risks, open questions and sequence
 
-### 6.1 Risks
+### 6.1 Six risks remain, and each has a mitigation in a named todo or job
 
-- **The SDK plan may not absorb the thirteen needs.** Mitigation: §3.6 names each with its SDK todo, and items 1, 4 and 6 have workarounds on the harness side: the harness can rebuild its own request view, end an overflowed turn and start a new one from a rebuilt `Context`, and store its own copy of the context. P4 decides each.
+- **An SDK seam may still fall short.** P4 moved twelve of the thirteen needs into the SDK plan, each with a test in its SDK todo (§3.6). Mitigation: if one fails in practice, the harness has three fallbacks. It can rebuild its own request view, end an overflowed turn and start a new one from a rebuilt `Context`, or store its own copy of the context.
 - **Sandbox backends are unavailable in CI.** `srt` and Docker may be missing on the CI runner. Mitigation: the conformance suite runs on the fake in `pnpm test`, and the real backends run in an opt-in `test:sandbox` job that the X-round CI can add.
 - **The MCP specification moves under the client.** The 2026-07-28 revision and the legacy era coexist. Mitigation: `McpConnection` hides the base (HD14), and per-server negotiation means a slow server never drops the fleet.
-- **Evals need Python and money.** Inspect is a Python tool, and the seed suite costs real tokens. Mitigation: the Python part has its own exact-pinned `requirements.txt`, live suites are opt-in, and the owner confirms the budget (HD8).
+- **Evals need Python and money.** Inspect is a Python tool, and the seed suite costs real tokens. Mitigation: the Python part has its own exact-pinned `requirements.txt`, live suites are opt-in, and each live run needs the owner's budget flag (HD8).
 - **Scope creep from the agent side.** Quorum rules, tiers and provenance policy are tempting to build in. Mitigation: §3.7 gives each requirement a hook and no policy.
 - **Secrets in the log.** A tool result can echo a secret the host knows. Mitigation: `scrubSecrets` runs before every append (N20), and the capstone asserts no credential reaches an entry or a span.
 
-### 6.2 Open questions
+### 6.2 No question is open, and N19's measurement is the only pending input
 
-- **For the owner:** HD4 (the sandbox defaults, after N19's measurement), HD5 (with SDK D5: whether the SDK keeps its ephemeral default once the harness always passes a key ring), HD8 (the seed suite's source and budget) and HD11 (the retention default, with agent decision 8).
-- **For P3:** the quorum policy, tier table and classifier use behind the R1, R4 and R5 hooks (agent decisions 2, 3, 4 and 10); whether per-block `origin` labels are fine enough for agent decision 5; and whether the 10 triage tasks in HD8 are the same as agent decision 6's.
-- **For P4:** the thirteen needs in §3.6, and whether ADR 0009 should gain the harness consequences of HD9.
+The owner answered HD4, HD5, HD8 and HD11 on 2026-11-18. N19's measurement is the only input still to come, and a change after it is a superseding ADR (HD4). The agent plan answered P2's questions for P3. AD2, AD3, AD4 and AD10 set the policies behind the R1, R4 and R5 hooks, per-block `origin` is fine enough for AD5, and the 10 triage tasks are AD6's classification slice (N38b). P4 settled the thirteen needs (§3.6) and gave [ADR 0009](../decisions/0009-pre-emptive-budget.md) HD9's session cap. The live-run budgets HD8 needs arrive with N38 and N38b.
 
 ### 6.3 Where Round N slots into the roadmap
 
-Round N follows Round B in the build phase, and a new milestone, "M6 Our agent harness", covers N1 to N39. Most of Round N waits for the SDK's loop, but the log and the sandbox do not:
-- **After B1 and B2:** the scaffold, entries, store, lock and HEAD (N1 to N5), the sandbox interface and backends (N15 to N17, N19), the credential proxy (N20) and the protocol package (N26), which need only the workspace and the gateway's types.
+Round N follows Round B in the build phase, and a new milestone, "M6 Our agent harness", covers N1 to N40 with N38b. Most of Round N waits for the SDK's loop, but the log and the sandbox do not:
+- **After B1 and B2:** the scaffold, entries, store, lock and HEAD (N1 to N5), the sandbox interface and backends (N15 to N17, N19) and the credential proxy (N20), which need only the workspace and the gateway's types.
+- **After B11 and B15:** the protocol package (N26), whose union names `AgentEvent` and `SignedPendingRequest`.
 - **After B12 and B13:** the runner (N6), context layers 1 and 2 (N8), the registry (N11), the pipeline (N12), the built-in tools (N21), extensions (N22) and the MCP client (N24, N25).
-- **After B15 and B16:** rebuild and resume (N7), signed approvals (N13, N14), escalation (N18) and the dispatcher (N27 to N30).
+- **After B15b and B16:** rebuild and resume (N7), signed approvals (N13, N14), code-initiated calls (N40), escalation (N18) and the dispatcher (N27 to N30).
 - **After B14 and B17:** the summary layer (N9 and N10) and the telemetry projection (N31).
 - **After B19 and B20:** the harness capstone (N35), whose `initialize` capabilities need B20's list, and the eval stage.
+- **After A17 and A19:** the 10 shared triage tasks (N38b), the one harness todo that waits for Round A.
 
-The roadmap graph would gain one line, `B2 ─► N1 … N39 ─► M6`, with branches from B13 to N6 and from B15 to N7, and P3's agent round would start from N35.
+The roadmap graph gains one line, `B2 ─► N1 … N40 ─► M6`, with branches from B13 to N6, from B15b to N7 and from A19 to N38b. P3's agent round starts after N1 and needs N35 for its capstone.
 
-Round N closes when the triage capstone pauses, resumes in a second process and replays byte for byte from its log, and when the first eval report sets our harness beside mini-swe-agent on cost and pass^k. The next step is P4's review of this plan beside P1 and P3, starting with the thirteen needs in §3.6.
+Round N closes when the triage capstone pauses, resumes in a second process and replays byte for byte from its log, and when the first eval report sets our harness beside mini-swe-agent on cost and pass^k. The next step is N1, once B1 and B2 are done.
 
 [hg]: ../guides/agent-harness.md
+[p4-4]: reviews/plan-review.md#4-needs-reconciliation-24-change-upstream-3-drop-1-is-already-covered
 [hg2]: ../guides/agent-harness.md#2-the-session-log-should-be-one-append-only-tree-of-typed-entries-with-head-a-writer-lock-and-pauses-as-entries
 [hg3]: ../guides/agent-harness.md#3-context-policy-should-run-five-removable-layers-cheapest-first-and-keep-every-compaction-visible-and-reversible
 [hg4]: ../guides/agent-harness.md#4-the-tool-registry-should-name-defer-and-gate-every-tool-from-one-place-and-the-mcp-client-should-be-a-removable-extension
@@ -752,7 +792,7 @@ Round N closes when the triage capstone pauses, resumes in a second process and 
 [sdk2]: build-sdk.md#2-decisions
 [sdk-d1]: build-sdk.md#d1-two-packages-because-the-gateway-has-consumers-that-never-run-the-loop
 [sdk-d3]: build-sdk.md#d3-usage-stores-four-token-classes-and-the-uncached-field-says-so-in-its-name
-[sdk-d5]: build-sdk.md#d5-a-pluggable-signer-with-key-ids-an-ephemeral-default-and-no-unsigned-resume-owner-to-confirm-with-p2
+[sdk-d5]: build-sdk.md#d5-a-pluggable-signer-with-key-ids-an-ephemeral-default-and-no-unsigned-resume-accepted-with-hd5
 [sdk-d9]: build-sdk.md#d9-the-usd-cap-is-checked-before-each-model-call-against-a-projected-cost
 [sdk31]: build-sdk.md#31-two-packages-under-a-new-top-level-packages-directory
 [sdk34]: build-sdk.md#34-the-seams-p2-consumes

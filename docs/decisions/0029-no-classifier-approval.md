@@ -1,6 +1,6 @@
 # 0029. Let no classifier approve a triage-agent call, and let detectors only raise a tier
 
-- **Status:** Proposed
+- **Status:** Accepted (P4 review, 2026-11-18)
 - **Date:** 2026-11-18
 - **Plan:** [build-agent.md, AD10](../plans/build-agent.md#ad10-no-classifier-approves-any-call-and-a-classifier-may-only-raise-a-tier)
 

@@ -4,7 +4,7 @@
 | --- | --- |
 | ID | `B17` |
 | Status | `ready` |
-| Plan | [Build SDK §4, Stage 4](../../plans/build-sdk.md#44-stage-4-the-shipping-surface) |
+| Plan | [Build SDK §4, Stage 4](../../plans/build-sdk.md#44-stage-4-ships-telemetry-the-testing-exports-the-capstone-and-the-docs-checks) |
 | Round / milestone | Round B (build SDK), M5 |
 | Depends on | [B13](B13-interceptors-observers.md), [B5](B5-usage-cost-catalog.md) |
 | Size | M |
@@ -26,6 +26,7 @@ Project the event stream onto OTel GenAI spans through one built-in observer, wi
 - Spans for `invoke_agent`, each model call and `execute_tool`, with usage attributes summed per D3
 - Content attributes (`gen_ai.tool.call.arguments`, results, messages) only with `captureContent: true`
 - A structural `TracerLike` type, so `@opentelemetry/api` is not a runtime dependency
+- Exported `GEN_AI_ATTRIBUTES` and `SEMCONV_GENAI_COMMIT = "d28355d"`, which the harness projection imports (harness need 10; HD7)
 
 **Out of scope** (and which todo covers it)
 
@@ -34,7 +35,7 @@ Project the event stream onto OTel GenAI spans through one built-in observer, wi
 
 ## Tasks
 
-- [ ] Keep attribute names in one constants file, stamped with the conventions commit used; update it when P2 pins one.
+- [ ] Keep attribute names in one constants file, exported as `GEN_AI_ATTRIBUTES` beside `SEMCONV_GENAI_COMMIT = "d28355d"`, the commit harness HD7 pins.
 - [ ] Test with `@opentelemetry/sdk-trace-base` 2.12.0 and an in-memory exporter, as an exact-pinned dev dependency.
 
 ## Acceptance criteria
@@ -43,6 +44,7 @@ Project the event stream onto OTel GenAI spans through one built-in observer, wi
 - [ ] `gen_ai.usage.input_tokens` equals `totalInput()` for each call
 - [ ] No content attribute appears unless `captureContent` is true (a test checks every span's keys)
 - [ ] `@opentelemetry/api` is absent from `packages/sdk` runtime dependencies
+- [ ] `@agent-speak/sdk/otel` exports `GEN_AI_ATTRIBUTES` and `SEMCONV_GENAI_COMMIT`, and every span attribute name the observer writes comes from `GEN_AI_ATTRIBUTES` (a test)
 - [ ] `pnpm check`, `pnpm typecheck` and `pnpm test` pass offline from the repo root
 
 ## Tests

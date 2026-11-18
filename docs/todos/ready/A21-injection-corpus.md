@@ -4,7 +4,7 @@
 | --- | --- |
 | ID | `A21` |
 | Status | `ready` |
-| Plan | [Build agent §4, Stage 4](../../plans/build-agent.md#44-stage-4-evals) |
+| Plan | [Build agent §4, Stage 4](../../plans/build-agent.md#44-stage-4-builds-the-eval-suite-and-the-release-gate-then-runs-them-live-once-the-owners-inputs-arrive) |
 | Round / milestone | Round A (build agent), M7 |
 | Depends on | [A17](A17-eval-tasks-graders.md) |
 | Size | M |

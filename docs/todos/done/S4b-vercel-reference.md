@@ -4,7 +4,7 @@
 | --- | --- |
 | ID | `S4b` |
 | Status | `done` |
-| Plan | [SDK references §4 S4](../../plans/sdk-references.md#s4-vercel-ai-sdk) |
+| Plan | [SDK references §4 S4](../../plans/sdk-references.md#s4-vercel-ai-sdk-done) |
 | Round / milestone | Round S (SDK references), M1 |
 | Depends on | [S4a](../done/S4a-vercel-verify.md) |
 | Size | M |

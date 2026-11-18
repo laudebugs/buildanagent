@@ -1,6 +1,6 @@
 # 0019. Order the permission pipeline deny-first, offer three middle-ground approval modes, and confine classifier allows to the host callback
 
-- **Status:** Proposed
+- **Status:** Accepted (P4 review, 2026-11-18)
 - **Date:** 2026-11-18
 - **Plan:** [build-harness.md, HD12](../plans/build-harness.md#hd12-three-middle-ground-modes-and-no-classifier-allow-outside-the-host-callback)
 
@@ -16,3 +16,4 @@ The pipeline runs hooks, deny rules, ask rules, the mode, allow rules and the ho
 
 - P3's agent decision 10 decides whether the agent uses a classifier at all.
 - Todo N39 counts prompts per task under each mode.
+- A tool may set `approvalReuse: "none"` to refuse sticky and grouped resolutions, and a group counts as one approver's resolution per request (P4, R8; todo N14).

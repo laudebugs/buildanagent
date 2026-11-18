@@ -4,7 +4,7 @@
 | --- | --- |
 | ID | `A14` |
 | Status | `ready` |
-| Plan | [Build agent §4, Stage 3](../../plans/build-agent.md#43-stage-3-the-workflow) |
+| Plan | [Build agent §4, Stage 3](../../plans/build-agent.md#43-stage-3-runs-the-three-roles-as-linked-turns-and-proves-the-workflow-in-a-capstone) |
 | Round / milestone | Round A (build agent), M7 |
 | Depends on | [A13](A13-triage-workflow.md) |
 | Size | S |
@@ -16,8 +16,8 @@ Hash everything that changes the agent's behaviour into one bundle id, stamp it 
 ## Context
 
 - [agent guide §4](../../guides/agent.md#4-the-system-prompt-stays-short-and-frozen-skills-hold-procedures-and-only-code-enforces): prompts, tools and skills versioned with the model as one bundle
-- [build-agent.md §3.4](../../plans/build-agent.md#34-contexts-gates-and-the-workflow): `Bundle`, `bundleHash()`
-- [build-agent.md §3.7](../../plans/build-agent.md#37-needs-from-the-sdk-and-harness-plans): need H8
+- [build-agent.md §3.4](../../plans/build-agent.md#34-roles-gates-and-the-workflow): `Bundle`, `bundleHash()`
+- [build-agent.md §3.7](../../plans/build-agent.md#37-needs-from-the-sdk-and-harness-plans): need AH8, now in harness N2
 
 ## Scope
 
@@ -25,7 +25,7 @@ Hash everything that changes the agent's behaviour into one bundle id, stamp it 
 
 - `bundleHash()` over a canonical JSON form of models, prompts, overlays, questions, tool schemas, skills, policy version, grader versions, effort, SDK and harness versions
 - Overlays in `prompts/overlays/<model>.md`, applied by model id
-- The stamp on the session header (or the H8 workaround) and on spans
+- The stamp on `session_header.product.bundleHash` and on spans
 
 **Out of scope** (and which todo covers it)
 

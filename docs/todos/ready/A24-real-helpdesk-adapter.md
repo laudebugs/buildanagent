@@ -4,7 +4,7 @@
 | --- | --- |
 | ID | `A24` |
 | Status | `ready` |
-| Plan | [Build agent §4, Stage 5](../../plans/build-agent.md#45-stage-5-rollout-machinery) |
+| Plan | [Build agent §4, Stage 5](../../plans/build-agent.md#45-stage-5-builds-the-rollout-machinery-that-shadow-canary-and-release-will-need) |
 | Round / milestone | Round A (build agent), M7 |
 | Depends on | [A22](A22-shadow-metrics.md), [N20](N20-credential-proxy.md) |
 | Size | M |
@@ -15,8 +15,8 @@ Implement the `Helpdesk` interface against the owner's helpdesk through the harn
 
 ## Context
 
-- [AD14](../../plans/build-agent.md#ad14-one-helpdesk-interface-is-the-agents-only-way-out-with-a-fake-for-tests-a-shadow-wrapper-for-rollout-and-a-real-adapter-the-owner-names-owner-to-confirm): the boundary and what the owner supplies
-- [AD3](../../plans/build-agent.md#ad3-a-role-based-quorum-per-tier-and-amount-band-bound-to-the-host-signed-pause-and-expiring-on-age-or-policy-change-owner-to-confirm-with-sdk-d5-and-hd5): the approver directory
+- [AD14](../../plans/build-agent.md#ad14-one-helpdesk-interface-is-the-agents-only-way-out-with-a-fake-for-tests-a-shadow-wrapper-for-rollout-and-a-real-adapter-the-owner-names-accepted): the boundary and what the owner supplies
+- [AD3](../../plans/build-agent.md#ad3-a-role-based-quorum-per-tier-and-amount-band-bound-to-the-host-signed-pause-and-expiring-on-age-or-policy-change-accepted-with-sdk-d5-and-hd5): the approver directory
 - [N20](N20-credential-proxy.md): the credential proxy
 - [ADR 0031](../../decisions/0031-helpdesk-interface.md)
 

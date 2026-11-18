@@ -1,10 +1,10 @@
 # Roadmap: from eight verified SDK references to reviewed plans for our own agent stack
 
-- **Status:** In progress
+- **Status:** Phase complete (2026-11-18); M5–M7 are the next phase
 - **Date:** 2026-11-18
 - **Asked for by:** the project owner (2026-11-18)
 - **Plans:** [SDK references](sdk-references.md) · [SDK comparison](sdk-comparison.md) · [agent skills](agent-skills.md) · [build guides](build-guides.md) · [implementation plans](implementation-plans.md) · [CI](ci.md)
-- **Done so far (2026-11-18):** milestones M1–M3 and X below: eight [SDK references](../reference/), the [comparison](../comparison/), eight [skills](../../.agents/skills/), the research rounds and the three [build guides](../guides/). M4, the plans, is in progress.
+- **Done so far (2026-11-18):** this phase is complete. Milestones M1–M4 and X below: eight [SDK references](../reference/), the [comparison](../comparison/), eight [skills](../../.agents/skills/), the research rounds, the three [build guides](../guides/), and the three reviewed plans ([SDK](build-sdk.md), [harness](build-harness.md), [agent](build-agent.md)). The next phase builds M5–M7, starting at B1.
 
 ## What we are building
 
@@ -49,9 +49,9 @@ agent-speak ends this phase with four things:
 | M2c Cloudflare, Google ADK and Copilot (done 2026-11-18) | S6a–S8b, C5, C4, K4 | Sixth to eighth references, the TypeScript gap report, and a TS-parity row for all eight SDKs |
 | M3 Build guides (done 2026-11-18) | G1–G3, H1–H3, R1 | Researched guides to building an agent SDK, a harness and an agent, informed by the Hacker News practitioner research and with secondary claims re-checked against primary sources |
 | X CI and dependency security (done 2026-11-18) | X1, X2 | Checks on every push, a nightly verify with drift and audit gates, and Dependabot scoped to our manifests |
-| M4 Reviewed plans | P1–P4 | Detailed implementation plans, reviewed together, ready for the build phase |
-| M5 Our agent SDK (next phase) | B1–B20 | `@agent-speak/gateway` and `@agent-speak/sdk` in `packages/`, built from [build-sdk.md](build-sdk.md) once P4 accepts it |
-| M6 Our agent harness (next phase) | N1–N39 | `@agent-speak/protocol`, `harness`, `cli` and `evals`, built from [build-harness.md](build-harness.md); it starts after B1–B2 and interleaves with Round B (§6 of the plan) |
+| M4 Reviewed plans (done 2026-11-18) | P1–P4 | Detailed implementation plans, reviewed together, ready for the build phase |
+| M5 Our agent SDK (next phase) | B1–B20, B15b, B19b | `@agent-speak/gateway` and `@agent-speak/sdk` in `packages/`, built from [build-sdk.md](build-sdk.md) once P4 accepts it |
+| M6 Our agent harness (next phase) | N1–N40, N38b | `@agent-speak/protocol`, `harness`, `cli` and `evals`, built from [build-harness.md](build-harness.md); it starts after B1–B2 and interleaves with Round B (§6 of the plan), and N38b waits for A17 and A19 |
 | M7 Our agent (next phase) | A1–A24 | `@agent-speak/triage-agent`, built from [build-agent.md](build-agent.md); it starts after N1 and needs N35 for its capstone, with shadow, canary and release as later-phase items |
 
 ## How each todo is worked

@@ -4,7 +4,7 @@
 | --- | --- |
 | ID | `N14` |
 | Status | `ready` |
-| Plan | [Build harness §4, Stage 3](../../plans/build-harness.md#43-stage-3-tools-and-permissions) |
+| Plan | [Build harness §4, Stage 3](../../plans/build-harness.md#43-stage-3-adds-the-registry-the-permission-pipeline-signed-approvals-and-code-initiated-calls) |
 | Round / milestone | Round N (build harness), M6 |
 | Depends on | [N13](N13-signed-approvals.md) |
 | Size | M |
@@ -26,8 +26,10 @@ Cut approval fatigue without widening trust: allow sticky approvals scoped to a 
 - `sticky: "run" | "session"` on `approval_resolved`, matched by tool and `canonicalInputHash` or by a command prefix
 - A refusal list of interpreter prefixes (`bash -c`, `sh -c`, `sh -lc`, `zsh -c`, `node -e`, `python -c`, `bun run`, `npx`, `uvx`)
 - A secret check that refuses a sticky pattern containing any value the credential store knows
-- Grouped approvals: requests in one step with the same tool and normalised command share a `groupId`
-- `QuorumPolicy` with a default of one resolution, and a check that rejects an approver equal to the requester
+- Grouped approvals: requests in one step with the same tool and the same canonical input hash (for `bash`, over the normalised command) share a `groupId`; a group resolution counts as one approver's resolution on each request
+- `RegisteredTool.approvalReuse`: the pipeline refuses a `sticky` or `group` resolution on a tool whose setting forbids it (R8)
+- `QuorumPolicy` with `evaluate(request, resolutions)` returning `met`, `pending`, `rejected` or `expired`, a default of one resolution, and a check that rejects an approver equal to the requester (R10)
+- The rule that the host fills `Resolution.by` only after authenticating the approver, stated in the `Approvals` JSDoc
 
 **Out of scope** (and which todo covers it)
 
@@ -35,6 +37,11 @@ Cut approval fatigue without widening trust: allow sticky approvals scoped to a 
 
 ## Tasks
 
+- [ ] Add `sticky` matching to `Approvals.resolve()`: store the allowance on the `approval_resolved` entry, and before the next ask match it by tool and `canonicalInputHash`, or by a command prefix for `bash`.
+- [ ] Refuse a sticky pattern that starts with a listed interpreter prefix or contains a value the credential store knows, with a typed error that names the reason.
+- [ ] Refuse `sticky` and `group` for a tool whose `approvalReuse` is `"none"` (or excludes that kind) before any entry is written.
+- [ ] Compute `groupId` for the pending requests of one step from tool and input hash, and resolve a group as one resolution per request.
+- [ ] Define `QuorumPolicy` and the default one-resolution policy; reject a resolution whose `by` equals the request's requester.
 - [ ] Show grouped requests in one `approval/request` (the `group` field, wired in N28).
 
 ## Acceptance criteria
@@ -43,6 +50,9 @@ Cut approval fatigue without widening trust: allow sticky approvals scoped to a 
 - [ ] Each listed interpreter prefix is refused as a sticky pattern
 - [ ] A quorum policy of two keeps the call pending after one resolution and runs it after the second distinct approver
 - [ ] An approver equal to `requesterId` is rejected
+- [ ] A sticky or grouped resolution on a tool with `approvalReuse: "none"` is refused, and the call still asks on its next attempt (R8)
+- [ ] Two grouped `write` calls with the same input hash share a `groupId`, and two with different inputs do not
+- [ ] A custom `QuorumPolicy` returning `expired` turns the pending call into a denial result
 - [ ] `pnpm check`, `pnpm typecheck` and `pnpm test` pass offline from the repo root
 
 ## Tests
@@ -55,7 +65,7 @@ Cut approval fatigue without widening trust: allow sticky approvals scoped to a 
 
 ## Risks and open questions
 
-P3 may need quorum expiry; the policy interface takes a clock so it can add one.
+The agent's quorum expires on age and policy change (agent AD3); `evaluate()` returning `expired` covers both, and the policy keeps its own clock.
 
 ## Definition of done
 

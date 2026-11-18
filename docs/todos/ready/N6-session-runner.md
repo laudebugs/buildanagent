@@ -4,7 +4,7 @@
 | --- | --- |
 | ID | `N6` |
 | Status | `ready` |
-| Plan | [Build harness §4, Stage 1](../../plans/build-harness.md#41-stage-1-the-session-log) |
+| Plan | [Build harness §4, Stage 1](../../plans/build-harness.md#41-stage-1-builds-the-session-log-from-its-entry-union-to-rebuild-and-replay) |
 | Round / milestone | Round N (build harness), M6 |
 | Depends on | [N5](N5-head-fork-revert.md), [B13](B13-interceptors-observers.md) |
 | Size | M |
@@ -26,10 +26,13 @@ Turn one SDK run into log entries: write the user entry durably before the first
 
 - `runTurn(session, harness, options)` with an `Observer` that appends inside the lock
 - `session_header` from `run_start` (`sdkVersion`, `defaultsHash`, `capabilities`)
-- `turn_start`, `message_block` per block, `message_end`, `usage`, `tool_result`, `turn_end`
+- `turn_start` with the turn's exact system prompt, `message_block` per block, `message_end`, `usage`, `tool_result`, `turn_end`
+- `TurnOptions.inputOrigin` (default `"user"`) as the `origin` of the input blocks (R7)
+- Per-turn settings `system`, `tools` (an allowlist of registered names), `output`, `model`, `maxSteps` and `modelOptions` (agent AH1)
+- Per-turn `hostContext`, typed by `createHarness<H>()` and passed to the registry's wrapper for that turn (agent AH2)
 - Steer and follow-up messages as `message_block` with `delivery`
 - `env_stamp` at session start and `loadout` on every model, effort or tool-set change, applied only at turn boundaries
-- `Session.child(spawningCallId)` and the `subagent_link` entry
+- Running a child session's turn (the link itself is N5's)
 
 **Out of scope** (and which todo covers it)
 
@@ -48,7 +51,10 @@ Turn one SDK run into log entries: write the user entry durably before the first
 - [ ] Killing the turn before the first model call leaves the user entry in the file
 - [ ] Two parallel tool results interleave in the log with their own `callId`s
 - [ ] A model change mid-session is rejected inside a turn and applied with a `loadout` entry at the next turn
-- [ ] A child session's header names its parent and the spawning call id
+- [ ] A child session's header names its parent and the spawning call id or step id
+- [ ] With `inputOrigin: "operator"` the input blocks carry `origin: "operator"`; without it they carry `"user"`
+- [ ] Two turns on one harness with different `system`, `tools`, `output` and `maxSteps` each send only their own settings (asserted on `ScriptedModel.calls`), and `tools` naming an unregistered tool throws
+- [ ] Two concurrent turns with different `hostContext` values each see only their own value in `execute`
 - [ ] `pnpm check`, `pnpm typecheck` and `pnpm test` pass offline from the repo root
 
 ## Tests

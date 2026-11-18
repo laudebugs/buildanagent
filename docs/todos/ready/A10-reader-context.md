@@ -1,23 +1,23 @@
-# A10: The reader context, order-id validation and routing
+# A10: The reader role, order-id validation and routing
 
 | Field | Value |
 | --- | --- |
 | ID | `A10` |
 | Status | `ready` |
-| Plan | [Build agent §4, Stage 3](../../plans/build-agent.md#43-stage-3-the-workflow) |
+| Plan | [Build agent §4, Stage 3](../../plans/build-agent.md#43-stage-3-runs-the-three-roles-as-linked-turns-and-proves-the-workflow-in-a-capstone) |
 | Round / milestone | Round A (build agent), M7 |
 | Depends on | [A2](A2-trusted-context-helpdesk.md), [N7](N7-rebuild-resume-replay.md), [B19](B19-triage-capstone.md) |
 | Size | M |
 
 ## Goal
 
-Run the tool-less reader as a harness turn with an output schema, store its summary behind a reference, validate its order ids against the trusted context, and route T5 and unclassifiable tickets to a person.
+Run the tool-less reader as a harness turn with an output schema, store its summary behind a reference, validate its order ids against the trusted run context, and route T5 and unclassifiable tickets to a person.
 
 ## Context
 
 - [AD1](../../plans/build-agent.md#ad1-the-product-composes-the-workflow-from-three-linked-harness-turns-and-code-runs-every-side-effect-through-the-pipeline-provisional): the reader as a loop run with only an output tool
 - [AD12](../../plans/build-agent.md#ad12-a-missing-fact-becomes-a-templated-question-through-the-reply-gate-and-missing-authority-becomes-a-handoff-provisional): `missing` and `needsHuman`
-- [build-agent.md §3.4](../../plans/build-agent.md#34-contexts-gates-and-the-workflow): `ReaderOutput`, `ReaderResult`, `READER`
+- [build-agent.md §3.4](../../plans/build-agent.md#34-roles-gates-and-the-workflow): `ReaderOutput`, `ReaderResult`, `READER`
 - [agent guide §4](../../guides/agent.md#4-the-system-prompt-stays-short-and-frozen-skills-hold-procedures-and-only-code-enforces): a short, frozen, static-first prompt
 
 ## Scope
@@ -28,7 +28,7 @@ Run the tool-less reader as a harness turn with an output schema, store its summ
 - `READER` settings: no tools but the output tool, `maxSteps: 2`
 - The variable store for `$SUMMARY`
 - Validation: `orderIds` ⊆ `ctx.orderIds`, else handoff `invalid_order_ids`; `needsHuman` or a T5 request → handoff
-- A child session for the reader (workaround for H1 and H3 if needed)
+- A child session for the reader, opened with `Session.child({ stepId: "step:reader" })`, and the reader's settings passed per turn (harness N5, N6)
 
 **Out of scope** (and which todo covers it)
 
@@ -49,7 +49,7 @@ Run the tool-less reader as a harness turn with an output schema, store its summ
 
 ## Tests
 
-`packages/triage-agent/test/contexts/reader.test.ts`.
+`packages/triage-agent/test/roles/reader.test.ts`.
 
 ## Docs to update
 
@@ -57,7 +57,7 @@ The package README's "Workflow" section. The plan's todo table in [build-agent.m
 
 ## Risks and open questions
 
-Needs H1 and H3; the workarounds in build-agent.md §3.7 apply.
+None open. AH1 and AH3 are in harness N6 and N5, which this todo's N7 dependency covers.
 
 ## Definition of done
 

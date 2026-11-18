@@ -4,18 +4,18 @@
 | --- | --- |
 | ID | `N19` |
 | Status | `ready` |
-| Plan | [Build harness §4, Stage 4](../../plans/build-harness.md#44-stage-4-sandbox-and-credentials) |
+| Plan | [Build harness §4, Stage 4](../../plans/build-harness.md#44-stage-4-adds-the-sandbox-backends-and-the-credential-proxy) |
 | Round / milestone | Round N (build harness), M6 |
 | Depends on | [N16](N16-srt-backend.md), [N17](N17-docker-backend.md) |
 | Size | S |
 
 ## Goal
 
-Measure what the guide says nobody has measured on our hardware, so the owner can confirm or change HD4's sandbox defaults.
+Measure what the guide says nobody has measured on our hardware, so the owner's accepted HD4 defaults rest on numbers, or a superseding ADR proposes a change.
 
 ## Context
 
-- [HD4](../../plans/build-harness.md#hd4-srt-for-interactive-runs-and-docker-for-headless-runs-owner-to-confirm): the decision and its evidence
+- [HD4](../../plans/build-harness.md#hd4-srt-for-interactive-runs-and-docker-for-headless-runs-accepted): the decision and its evidence
 - [ADR 0020](../../decisions/0020-default-sandbox-backend.md): the decision records
 - [harness guide §6](../../guides/agent-harness.md#6-the-sandbox-and-the-credential-boundary-are-separate-components-and-the-host-not-the-model-owns-both): cold-start evidence is partly secondary
 
@@ -29,17 +29,17 @@ Measure what the guide says nobody has measured on our hardware, so the owner ca
 
 **Out of scope** (and which todo covers it)
 
-- Changing the default (the owner, through ADR 0020)
+- Changing the default: an accepted ADR is never rewritten, so a change is a new ADR that supersedes 0020, which the owner accepts
 
 ## Tasks
 
 - [ ] Run on at least one Linux host; add macOS if available.
-- [ ] Present the numbers to the owner with HD4's choice.
+- [ ] Present the numbers to the owner beside HD4's accepted choice; if they argue for a change, draft the superseding ADR.
 
 ## Acceptance criteria
 
 - [ ] The results note lists median and p95 for both backends on at least one host, with versions
-- [ ] ADR 0020's status line records the owner's answer or still says owner to confirm
+- [ ] The results note states whether HD4 stands; if it does not, a new ADR that supersedes 0020 exists with status Proposed
 - [ ] `pnpm check`, `pnpm typecheck` and `pnpm test` pass offline from the repo root
 
 ## Tests

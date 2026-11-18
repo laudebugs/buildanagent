@@ -1,6 +1,6 @@
 # 0016. Frame the harness protocol as strict JSON-RPC 2.0, with the `jsonrpc` field and twelve v1 client methods
 
-- **Status:** Proposed
+- **Status:** Accepted (P4 review, 2026-11-18)
 - **Date:** 2026-11-18
 - **Plan:** [build-harness.md, HD6](../plans/build-harness.md#hd6-strict-json-rpc-20-with-the-jsonrpc-field-and-twelve-v1-methods)
 

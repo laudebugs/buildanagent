@@ -14,5 +14,5 @@ A `PolicyStore` keeps an in-memory snapshot that reads synchronously with no I/O
 
 ## Consequences
 
-- The agent enforces R4 through the harness's existing permission hooks, so `PermissionConfig.policyStore` can be dropped or typed (build-agent.md §3.7, H6).
-- Todo A7 measures read latency and the delay from a flip to a stopped context; the design stays if the delay is within 2 seconds.
+- The agent enforces R4 through the harness's existing permission hooks, so P4 (2026-11-18) dropped `PermissionConfig.policyStore` from the harness (build-agent.md §3.7, AH6).
+- Todo A7 measures read latency and the delay from a flip to a stopped role; the design stays if the delay is within 2 seconds.

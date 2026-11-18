@@ -4,7 +4,7 @@
 | --- | --- |
 | ID | `B10` |
 | Status | `ready` |
-| Plan | [Build SDK §4, Stage 3](../../plans/build-sdk.md#43-stage-3-the-loop) |
+| Plan | [Build SDK §4, Stage 3](../../plans/build-sdk.md#43-stage-3-builds-the-loop-its-tools-hooks-budget-and-signed-pauses) |
 | Round / milestone | Round B (build SDK), M5 |
 | Depends on | [B3](B3-scripted-model.md), [B7](B7-tool-name-table.md) |
 | Size | M |
@@ -29,6 +29,7 @@ Build the tool runtime the loop dispatches to: definitions, schema handling and 
 - The default error formatter: path-level messages, the received arguments, and a line telling the model not to substitute a mock or invented data
 - Failing every tool call of a `length`-stopped message with a re-issue error
 - The D7 check of pi-schema against `@cfworker/json-schema`
+- `redactErrors` per tool: when true, a thrown error reaches the model as a fixed line, and the original message goes only to `details`
 
 **Out of scope** (and which todo covers it)
 
@@ -39,7 +40,8 @@ Build the tool runtime the loop dispatches to: definitions, schema handling and 
 
 - [ ] Add `@earendil-works/pi-schema` 1.5.2 to `packages/sdk` (exact pin); add `@cfworker/json-schema` 4.1.6 as a dev dependency for the check only.
 - [ ] Implement the pipeline as a function `(call, tools, ctx) => Promise<ToolResult>` that never throws for model-caused failures.
-- [ ] Write the D7 check: run both validators on the strict schemas B8 and B9 emit (or their fixtures) and on draft-07 output schemas; record results in `packages/sdk/docs/validator-check.md`.
+- [ ] Write strict-schema fixtures from the Anthropic and OpenAI API references in `packages/sdk/test/fixtures/strict-schemas/`, since B8 and B9 come later.
+- [ ] Write the D7 check: run both validators on those fixtures and on draft-07 output schemas; record results in `packages/sdk/docs/validator-check.md`.
 - [ ] If pi-schema fails a schema that the fallback passes, switch, and update ADR 0007.
 - [ ] Validate `outputTool` results and return schema failures to the model as `isError` results.
 
@@ -48,6 +50,7 @@ Build the tool runtime the loop dispatches to: definitions, schema handling and 
 - [ ] An unknown tool name, invalid input, a throwing `execute` and a `repair` that returns a fixed call each have a test, and none throws out of the pipeline
 - [ ] An invalid-input error lists each failing JSON Pointer path and the received arguments
 - [ ] The default error text contains the do-not-substitute instruction, and `formatError` overrides it
+- [ ] With `redactErrors: true`, a thrown error's message is absent from the model-facing content and present in `details`
 - [ ] A `length`-stopped message produces one re-issue error per tool call and runs no `execute`
 - [ ] `validator-check.md` lists every schema tested and the result for both validators
 - [ ] `pnpm check`, `pnpm typecheck` and `pnpm test` pass offline from the repo root

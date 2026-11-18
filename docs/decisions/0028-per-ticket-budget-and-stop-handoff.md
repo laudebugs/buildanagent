@@ -2,7 +2,7 @@
 
 - **Status:** Accepted (owner, 2026-11-18); $3 in shadow, production at the shadow p99
 - **Date:** 2026-11-18
-- **Plan:** [build-agent.md, AD9](../plans/build-agent.md#ad9-one-budget-per-ticket-across-the-three-contexts-and-every-budget-stop-hands-the-ticket-to-a-person-value-owner-to-confirm)
+- **Plan:** [build-agent.md, AD9](../plans/build-agent.md#ad9-one-budget-per-ticket-across-the-three-roles-and-every-budget-stop-hands-the-ticket-to-a-person-accepted)
 
 ## Context
 

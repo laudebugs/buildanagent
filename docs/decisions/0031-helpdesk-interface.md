@@ -2,7 +2,7 @@
 
 - **Status:** Accepted (owner, 2026-11-18); the real helpdesk is chosen at A24
 - **Date:** 2026-11-18
-- **Plan:** [build-agent.md, AD14](../plans/build-agent.md#ad14-one-helpdesk-interface-is-the-agents-only-way-out-with-a-fake-for-tests-a-shadow-wrapper-for-rollout-and-a-real-adapter-the-owner-names-owner-to-confirm)
+- **Plan:** [build-agent.md, AD14](../plans/build-agent.md#ad14-one-helpdesk-interface-is-the-agents-only-way-out-with-a-fake-for-tests-a-shadow-wrapper-for-rollout-and-a-real-adapter-the-owner-names-accepted)
 
 ## Context
 
@@ -15,4 +15,4 @@ All tools and code steps use one `Helpdesk` interface. Its reply method takes no
 ## Consequences
 
 - The owner names the helpdesk, a sandbox account, the API credential's scopes and the approval surface that authenticates approvers.
-- If the harness gains shadow mode by tool (build-agent.md §3.7, H7), the shadow wrapper can be removed.
+- If the harness gains shadow mode by tool (build-agent.md §3.7, AH7), the shadow wrapper can be removed. P4 (2026-11-18) dropped that need, so the wrapper stays.

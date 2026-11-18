@@ -6,7 +6,7 @@
 | Status | `done` |
 | Plan | [Agent skills §4](../../plans/agent-skills.md#4-todos) |
 | Round / milestone | M2c (added 2026-11-18) |
-| Depends on | [C4](../ready/C4-comparison-cloudflare-google.md) |
+| Depends on | [C4](../done/C4-comparison-cloudflare-google.md) |
 | Size | S |
 
 ## Goal

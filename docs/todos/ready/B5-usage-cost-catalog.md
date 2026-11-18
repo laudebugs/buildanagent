@@ -4,7 +4,7 @@
 | --- | --- |
 | ID | `B5` |
 | Status | `ready` |
-| Plan | [Build SDK §4, Stage 1](../../plans/build-sdk.md#41-stage-1-foundations) |
+| Plan | [Build SDK §4, Stage 1](../../plans/build-sdk.md#41-stage-1-builds-the-gateway-types-and-the-scripted-model-that-every-later-todo-tests-against) |
 | Round / milestone | Round B (build SDK), M5 |
 | Depends on | [B4](B4-gateway-runtime.md) |
 | Size | M |
@@ -22,7 +22,7 @@ Put usage and cost on every assistant message, including failed attempts, so the
 
 **In scope**
 
-- `catalog.json` with per-model tiered rates by token class, `asOf` and a source URL
+- `catalog.json` with per-model tiered rates by token class, `contextWindow`, `maxOutputTokens`, `asOf` and a source URL
 - `Model.price(usage)` and the fold onto every message, with `basis` `provider`, `catalog` or `unknown`
 - Pricing of failed attempts
 - A test that warns when an entry's `asOf` is older than 90 days
@@ -47,6 +47,7 @@ Put usage and cost on every assistant message, including failed attempts, so the
 - [ ] A model missing from the catalog yields `total: null` and `basis: "unknown"`
 - [ ] Two failed attempts and one success yield a cost that includes all three
 - [ ] The staleness test warns on an entry dated more than 90 days before the test clock
+- [ ] Every catalog entry carries `contextWindow` and `maxOutputTokens`, each with its source URL (a schema test)
 - [ ] `pnpm check`, `pnpm typecheck` and `pnpm test` pass offline from the repo root
 
 ## Tests

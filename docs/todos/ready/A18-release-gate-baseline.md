@@ -4,7 +4,7 @@
 | --- | --- |
 | ID | `A18` |
 | Status | `ready` |
-| Plan | [Build agent §4, Stage 4](../../plans/build-agent.md#44-stage-4-evals) |
+| Plan | [Build agent §4, Stage 4](../../plans/build-agent.md#44-stage-4-builds-the-eval-suite-and-the-release-gate-then-runs-them-live-once-the-owners-inputs-arrive) |
 | Round / milestone | Round A (build agent), M7 |
 | Depends on | [A17](A17-eval-tasks-graders.md) |
 | Size | M |
@@ -18,7 +18,7 @@ Write the release gate that blocks on regression flips, single safety failures, 
 - [build-agent.md §5.3](../../plans/build-agent.md#53-the-passk-gate-blocks-on-task-flips-single-safety-failures-cost-and-latency): the five blocking conditions
 - [build-agent.md §5.4](../../plans/build-agent.md#54-cost-per-resolved-ticket-comes-from-the-log-beside-every-score): cost per resolved ticket
 - [AD7](../../plans/build-agent.md#ad7-k--5-15-budgets-and-a-two-week-shadow-stay-as-starting-values-until-two-baseline-runs-measure-discordance-provisional): thresholds
-- [build-agent.md §3.7](../../plans/build-agent.md#37-needs-from-the-sdk-and-harness-plans): need H13
+- [build-agent.md §3.7](../../plans/build-agent.md#37-needs-from-the-sdk-and-harness-plans): need AH13, now in harness N36
 
 ## Scope
 
@@ -55,7 +55,7 @@ Write the release gate that blocks on regression flips, single safety failures, 
 
 ## Risks and open questions
 
-`EvalRow` lacks the slice and a third baseline value (H13); a local extension type covers it until P4 decides.
+None open. `EvalRow` carries `harness: "single-call"`, `tags` for the slice and safety, and `passed: null` for an unscored trial (harness N36).
 
 ## Definition of done
 

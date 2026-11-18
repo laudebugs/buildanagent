@@ -4,7 +4,7 @@
 | --- | --- |
 | ID | `B2` |
 | Status | `ready` |
-| Plan | [Build SDK §4, Stage 1](../../plans/build-sdk.md#41-stage-1-foundations) |
+| Plan | [Build SDK §4, Stage 1](../../plans/build-sdk.md#41-stage-1-builds-the-gateway-types-and-the-scripted-model-that-every-later-todo-tests-against) |
 | Round / milestone | Round B (build SDK), M5 |
 | Depends on | [B1](B1-sdk-workspace-scaffold.md) |
 | Size | M |
@@ -23,7 +23,7 @@ Define the provider-neutral transcript and the single-method model spec that eve
 
 **In scope**
 
-- `types.ts`: `ContentBlock`, `OpaqueToken`, `Message`, `AssistantMessage`, `Context`, `ModelContext`, `Usage`, `Cost`, `ModelRef`
+- `types.ts`: `ContentBlock`, `ModelContent`, `OpaqueToken`, `Message`, `AssistantMessage`, `ModelContext`, `ModelCaps`, `Usage`, `Cost`, `ModelRef`
 - `spec.ts`: `ModelAdapter` with `specificationVersion: "v1"` and `ModelEvent`
 - `stream-contract.ts`: `assertStreamContract()`
 - `complete.ts`: fold a stream into one `AssistantMessage`
@@ -33,6 +33,7 @@ Define the provider-neutral transcript and the single-method model spec that eve
 
 - Retries, middleware and the model factory (B4)
 - Pricing (B5)
+- `Context`, which names the SDK's `SignedPendingRequest` and so lives in `@agent-speak/sdk` (B11), keeping the gateway free of SDK types
 - Adapters (B8, B9)
 
 ## Tasks
@@ -49,6 +50,7 @@ Define the provider-neutral transcript and the single-method model spec that eve
 - [ ] `assertStreamContract()` rejects each of: a delta before `start`, a delta after its `end`, two terminals, no terminal, and an `error` with `stopReason: "stop"`, with one test each
 - [ ] `complete()` returns the `error` terminal's message, with partial content and usage, without throwing
 - [ ] No field named `input` exists on `Usage` (a type test)
+- [ ] No gateway source file imports from `@agent-speak/sdk`, and `packages/gateway/package.json` has no `dependencies` entry
 - [ ] `pnpm check`, `pnpm typecheck` and `pnpm test` pass offline from the repo root
 
 ## Tests

@@ -4,7 +4,7 @@
 | --- | --- |
 | ID | `N11` |
 | Status | `ready` |
-| Plan | [Build harness §4, Stage 3](../../plans/build-harness.md#43-stage-3-tools-and-permissions) |
+| Plan | [Build harness §4, Stage 3](../../plans/build-harness.md#43-stage-3-adds-the-registry-the-permission-pipeline-signed-approvals-and-code-initiated-calls) |
 | Round / milestone | Round N (build harness), M6 |
 | Depends on | [N1](N1-harness-workspace-scaffold.md), [B12](B12-parallel-tools.md) |
 | Size | M |
@@ -29,7 +29,9 @@ Hold every tool from every source in one registry that names it canonically, ref
 - Aliases kept apart from canonical names, so rules can match either
 - `toolSearchTool()` that activates deferred tools for the next step through `ModelCallPatch.activeTools`
 - Host patterns `in_process` and `client_request` (the latter awaits a `tool/call` server request, wired in N28)
-- `HarnessOptions.hostContext` passed to `execute` through the wrapper, never in a schema
+- The turn's `hostContext` passed to the wrapper by `definitions(wrap, hostContext)` and on to `execute`, never in a schema (agent AH2)
+- `RegisteredTool.outputTrust`, defaulting to `"untrusted"` for `mcp:*` sources and `"trusted"` otherwise, copied into `tool_result.trust` (agent AH10)
+- `RegisteredTool.approvalReuse`, default `"both"`, which N14 enforces (R8)
 
 **Out of scope** (and which todo covers it)
 
@@ -50,6 +52,7 @@ Hold every tool from every source in one registry that names it canonically, ref
 - [ ] A deferred tool is absent from requests until `tool_search` activates it, then present in the next request
 - [ ] Activation does not reorder tools already sent
 - [ ] A host-context value reaches `execute` and appears in no recorded request and no entry
+- [ ] An MCP-sourced tool's results are written with `trust: "untrusted"`, a built-in's with `"trusted"`, and a declared `outputTrust` overrides either default
 - [ ] `pnpm check`, `pnpm typecheck` and `pnpm test` pass offline from the repo root
 
 ## Tests

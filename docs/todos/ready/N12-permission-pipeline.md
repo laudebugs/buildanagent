@@ -4,7 +4,7 @@
 | --- | --- |
 | ID | `N12` |
 | Status | `ready` |
-| Plan | [Build harness §4, Stage 3](../../plans/build-harness.md#43-stage-3-tools-and-permissions) |
+| Plan | [Build harness §4, Stage 3](../../plans/build-harness.md#43-stage-3-adds-the-registry-the-permission-pipeline-signed-approvals-and-code-initiated-calls) |
 | Round / milestone | Round N (build harness), M6 |
 | Depends on | [N11](N11-tool-registry.md), [B13](B13-interceptors-observers.md) |
 | Size | M |
@@ -32,7 +32,9 @@ Decide every tool call in one ordered, deny-first pipeline that fills the SDK's 
 - `PermissionConfigError` when an allow rule makes the host callback unreachable
 - `defaultAskRules` (HD12)
 - `gate()` mapping `Decision` to `GateDecision`, with `policyVersion` on `ask`
-- `policyStore` read on every `decide()`; `shadow` mode writing `shadow_call` entries through the registry wrapper
+- `ToolCall`, `PolicyContext` and `PermissionHook` typed as in §3.4, so a hook cannot allow at the type level (agent AH5)
+- A `permission_decision` entry written on every `decide()`, allows included (agent AH9)
+- `shadow` mode writing `shadow_call` entries through the registry wrapper
 
 **Out of scope** (and which todo covers it)
 
@@ -50,6 +52,9 @@ Decide every tool call in one ordered, deny-first pipeline that fills the SDK's 
 - [ ] Headless with no matching rule denies; interactive asks
 - [ ] An allow rule covering a tool that has a host callback throws at construction
 - [ ] A hook cannot return `allow` (type error and runtime check)
+- [ ] A configuration of deny rules, hooks and a host callback, with no allow rules, constructs without `PermissionConfigError` (agent AH11)
+- [ ] Every `decide()` writes one `permission_decision` entry with `decision`, `rule`, `policyVersion` and `inputHash`, for allows as well as asks and denials
+- [ ] A hook receives `PolicyContext` with the session, the turn's host context and the session's entries
 - [ ] An edit that removes a test file asks under `defaultAskRules`
 - [ ] In `shadow` mode the tool's `execute` never runs and a `shadow_call` entry is written
 - [ ] `pnpm check`, `pnpm typecheck` and `pnpm test` pass offline from the repo root

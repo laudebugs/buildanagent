@@ -1,6 +1,6 @@
 # 0009. Check the USD budget before each model call, against a projected cost
 
-- **Status:** Proposed
+- **Status:** Accepted (P4 review, 2026-11-18)
 - **Date:** 2026-11-18
 - **Plan:** [build-sdk.md, D9](../plans/build-sdk.md#d9-the-usd-cap-is-checked-before-each-model-call-against-a-projected-cost)
 
@@ -15,4 +15,5 @@ Before each call, the loop projects the call's cost from an input estimate and `
 ## Consequences
 
 - Overshoot is bounded by one call's projection error, not a full call; todo B14 asserts the bound.
-- P2 re-measures overshoot on recorded runs.
+- Todo N39 re-measures overshoot on recorded runs.
+- The harness adds a session cap by passing the remainder to each run and resume (HD9); summary calls made outside the loop are pre-checked with the exported `projectCallCost()` (todo B14); N39 measures overshoot.

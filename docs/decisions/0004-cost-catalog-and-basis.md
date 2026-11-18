@@ -1,6 +1,6 @@
 # 0004. Price usage from a versioned catalog, let a billed total win, and block budgeted runs on unknown prices
 
-- **Status:** Proposed
+- **Status:** Accepted (P4 review, 2026-11-18)
 - **Date:** 2026-11-18
 - **Plan:** [build-sdk.md, D4](../plans/build-sdk.md#d4-prices-come-from-a-versioned-catalog-and-a-provider-billed-total-overrides-it)
 

@@ -4,7 +4,7 @@
 | --- | --- |
 | ID | `B14` |
 | Status | `ready` |
-| Plan | [Build SDK §4, Stage 3](../../plans/build-sdk.md#43-stage-3-the-loop) |
+| Plan | [Build SDK §4, Stage 3](../../plans/build-sdk.md#43-stage-3-builds-the-loop-its-tools-hooks-budget-and-signed-pauses) |
 | Round / milestone | Round B (build SDK), M5 |
 | Depends on | [B5](B5-usage-cost-catalog.md), [B13](B13-interceptors-observers.md) |
 | Size | M |
@@ -27,23 +27,25 @@ Stop runaway runs before they spend: check the USD cap before each model call, s
 - Refusal to start a budgeted run when the model's price is unknown (D4)
 - The default `progress` policy and `progressKey`
 - `depth` and `maxDepth` in `ToolContext`
+- `projectCallCost(model, context, options)`, exported from `budget.ts`; the loop's own check calls it
 
 **Out of scope** (and which todo covers it)
 
-- Retuning thresholds on recorded runs (P2)
+- Retuning thresholds on recorded runs (N39)
 
 ## Tasks
 
 - [ ] Implement the input estimate: the previous call's `totalInput` plus a character-based estimate of new messages.
 - [ ] Implement the projection with `maxOutputTokens` and the catalog's rates.
-- [ ] Implement the default `shouldStop` progress policy on canonical input hashes.
+- [ ] Implement the default progress policy on canonical input hashes as a `shouldStop` interceptor that returns `{ stop: "no_progress", reason }`.
 - [ ] Measure overshoot on a scripted 30-step run with the pre-emptive check and with a post-response check, and record both in the test output.
 
 ## Acceptance criteria
 
 - [ ] A run whose next projected call would cross the cap ends `budget` before that call (the scripted model records no extra call)
 - [ ] With the pre-emptive check, the scripted run's overshoot is at most one call's projection error; the post-response variant overshoots by at least one call
-- [ ] A budgeted run on an unknown-price model ends `error` before any call
+- [ ] A budgeted run on an unknown-price model ends `error` with `error.kind: "unknown_price"` before any call
+- [ ] `projectCallCost()` returns the same projection the loop's check uses (a test compares both on one scripted context)
 - [ ] Three identical failing calls end `no_progress`; two do not
 - [ ] Five calls with the same `progressKey` and no success between them end `no_progress`
 - [ ] A tool at `depth === maxDepth` that spawns a run gets an error result

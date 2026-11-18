@@ -2,7 +2,7 @@
 
 - **Status:** Accepted (owner, 2026-11-18); todo N19's measurements can still revise it
 - **Date:** 2026-11-18
-- **Plan:** [build-harness.md, HD4](../plans/build-harness.md#hd4-srt-for-interactive-runs-and-docker-for-headless-runs-owner-to-confirm)
+- **Plan:** [build-harness.md, HD4](../plans/build-harness.md#hd4-srt-for-interactive-runs-and-docker-for-headless-runs-accepted)
 
 ## Context
 
@@ -15,4 +15,5 @@ Interactive local runs default to `srt`; headless runs and eval trials default t
 ## Consequences
 
 - Todo N19 measures cold start and per-call overhead and may move interactive runs to Docker.
+- Clarified by P4 (2026-11-18): any change after N19 is a new ADR that supersedes this one, because an accepted record is never rewritten.
 - The owner decides the threat model and whether macOS is a supported host.

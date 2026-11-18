@@ -2,7 +2,7 @@
 
 - **Status:** Accepted (owner, 2026-11-18); synthetic and de-identified tickets only in the repo
 - **Date:** 2026-11-18
-- **Plan:** [build-agent.md, AD8](../plans/build-agent.md#ad8-code-appends-the-ai-label-spans-hash-identifiers-and-later-stages-need-a-retention-period-owner-to-confirm-with-hd11)
+- **Plan:** [build-agent.md, AD8](../plans/build-agent.md#ad8-code-appends-the-ai-label-spans-hash-identifiers-and-later-stages-need-a-retention-period-accepted-with-hd11)
 
 ## Context
 
@@ -15,4 +15,5 @@ The reply tool appends a fixed AI-written label in code after approval. Spans ca
 ## Consequences
 
 - The owner, with support and legal, sets the label wording, the retention period and where real tickets live.
-- The harness's span projection needs a keyed-hash option (build-agent.md §3.7, H12).
+- The harness's span projection needs a keyed-hash option (build-agent.md §3.7, AH12); P4 placed it in todo N31 as `hashAttributes`.
+- Clarified by P4 (2026-11-18), from the owner's acceptance: the repository holds only synthetic tickets and de-identified tickets that pass todo A19's checklist, and raw real tickets never enter it. This settles the Decision's last sentence; the owner does not need to allow anything further.

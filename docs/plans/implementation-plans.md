@@ -1,6 +1,6 @@
 # Plan: turn the build guides into detailed, reviewed plans for our SDK, harness and agent (Round P)
 
-- **Status:** In progress (P1 done: [build-sdk.md](build-sdk.md); P2 done: [build-harness.md](build-harness.md); P3 done: [build-agent.md](build-agent.md); P4 next)
+- **Status:** Done (2026-11-18). P1 done: [build-sdk.md](build-sdk.md); P2 done: [build-harness.md](build-harness.md); P3 done: [build-agent.md](build-agent.md); P4 done: [plan review](reviews/plan-review.md), 39 findings, 38 fixed and 1 fixed in part). The phase is complete; building starts from these plans.
 - **Date:** 2026-11-18
 - **Asked for by:** the project owner (2026-11-18): break the research into very detailed plans, and review every plan
 - **Builds on:** the three [build guides](build-guides.md) (Round G)
@@ -37,7 +37,7 @@ The findings and fixes go into `docs/plans/reviews/plan-review.md`. The phase en
 | P1 | Plan: our agent SDK (done: [build-sdk.md](build-sdk.md), [ADRs](../decisions/README.md), todos B1–B20) | G1b |
 | P2 | Plan: our agent harness (done: [build-harness.md](build-harness.md), ADRs 0012–0021, todos N1–N39) | G2b, P1 |
 | P3 | Plan: our agent (done: [build-agent.md](build-agent.md), ADRs 0022–0031, todos A1–A24) | G3b, P2 |
-| P4 | Review all three plans together, and fix the findings | P1, P2, P3 |
+| P4 | Review all three plans together, and fix the findings (done: [plan-review.md](reviews/plan-review.md)) | P1, P2, P3 |
 
 ## 5. Risks
 
@@ -47,6 +47,6 @@ The findings and fixes go into `docs/plans/reviews/plan-review.md`. The phase en
 
 - **Answered by the owner on 2026-11-18:** SDK D2 (Anthropic Messages and OpenAI-compatible Chat Completions first), D5 with harness HD5 (a persistent host-only key ring), D8 (0.x, `private: true`, CI export check), and harness HD4 (`srt` interactive, Docker headless, confirmed after N19), HD8 (30 tasks, k = 5, $3 cap) and HD11 (no automatic deletion). Each accepted the plan's proposal; the ADRs say Accepted.
 - **Answered by the owner on 2026-11-18, from P3:** AD2 (T4 denied until caps are set from refund history), AD3 (the proposed role table), AD6 (people named at A19), AD8 (only synthetic and de-identified tickets in the repo), AD9 ($3 in shadow, production at the shadow p99) and AD14 (helpdesk chosen at A24). The plans now hold no open owner decision; the remaining owner inputs are scheduled in todos A19, A20 and A24.
-- **For P4, from P3:** fifteen needs from the SDK and harness plans ([build-agent.md §3.7](build-agent.md)), the largest being a gated `Harness.invokeTool()` for code-initiated calls (H4) and product entries in the session log (H8); and whether N38 depends on A19 for the shared triage tasks.
-- **For P4, from P2:** thirteen needs from the SDK plan, listed in [build-harness.md §3.6](build-harness.md), such as `contextWindow` on `Model`, the overflow error kind on `RunError`, and whether `continueRun` re-runs the gate; and whether ADR 0009 takes HD9's session-level budget cap.
+- **Answered by P4, from P3:** the fifteen agent needs ([build-agent.md §3.7](build-agent.md#37-needs-from-the-sdk-and-harness-plans), relabelled AS1–AS2 and AH1–AH13) went upstream except two dropped and one already covered. `Harness.invokeTool()` became the new harness todo N40, and product entries joined N2. N38 does not depend on A19; the new N38b carries the shared triage tasks ([plan review §4](reviews/plan-review.md#4-needs-reconciliation-24-change-upstream-3-drop-1-is-already-covered)).
+- **Answered by P4, from P2:** twelve of the thirteen harness needs moved into the SDK plan, and the client-tool pause kind was dropped for Rounds B and N. `continueRun` does not re-run the gate for a verified `allow`, and ADR 0009 takes HD9's session cap ([plan review §3](reviews/plan-review.md#3-the-p4-questions-the-plans-raised-all-have-an-answer)).
 - **Answered for P2, from P1:** use the seam names in [build-sdk.md §3.4](build-sdk.md) as written; `Cost.total` is `number | null`; check whether the `context_transformed` event carries enough for a compaction log entry.

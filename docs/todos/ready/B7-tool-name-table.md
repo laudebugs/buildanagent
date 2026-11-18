@@ -4,7 +4,7 @@
 | --- | --- |
 | ID | `B7` |
 | Status | `ready` |
-| Plan | [Build SDK §4, Stage 2](../../plans/build-sdk.md#42-stage-2-providers) |
+| Plan | [Build SDK §4, Stage 2](../../plans/build-sdk.md#42-stage-2-adds-the-two-wire-adapters-and-the-replay-pass-between-them) |
 | Round / milestone | Round B (build SDK), M5 |
 | Depends on | [B1](B1-sdk-workspace-scaffold.md) |
 | Size | S |
