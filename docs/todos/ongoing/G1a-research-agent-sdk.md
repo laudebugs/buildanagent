@@ -3,10 +3,10 @@
 | Field | Value |
 | --- | --- |
 | ID | `G1a` |
-| Status | `ready` |
+| Status | `ongoing` |
 | Plan | [Build guides §4](../../plans/build-guides.md#4-research-questions) |
 | Round / milestone | Round G (build guides), M3 |
-| Depends on | [K2](../ready/K2-sdk-skills.md) |
+| Depends on | [K2](../done/K2-sdk-skills.md) |
 | Size | L |
 
 ## Goal

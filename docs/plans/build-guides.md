@@ -1,6 +1,6 @@
 # Plan: research and write three guides, to building an agent SDK, a harness and an agent (Round G)
 
-- **Status:** Draft
+- **Status:** In progress
 - **Date:** 2026-11-18
 - **Asked for by:** the project owner (2026-11-18): very deep research into creating an SDK, a harness and an agent, then documentation for each
 - **Builds on:** the [research report](../research/agent-sdks-and-harness-design.md), the [harness teardown](../research/harness-architectures.md), the four [SDK references](sdk-references.md) and the [deep comparison](sdk-comparison.md)
