@@ -1,0 +1,75 @@
+{
+  "hook-returns-null": {
+    "errors": 51,
+    "files": [
+      "docs__features__hooks__05",
+      "docs__features__hooks__06",
+      "docs__features__hooks__07",
+      "docs__features__hooks__08",
+      "docs__features__hooks__09",
+      "docs__features__hooks__11",
+      "docs__features__hooks__12",
+      "docs__features__hooks__14",
+      "docs__features__hooks__15",
+      "docs__hooks__error-handling__03",
+      "docs__hooks__error-handling__04",
+      "docs__hooks__error-handling__05",
+      "docs__hooks__error-handling__06",
+      "docs__hooks__error-handling__07",
+      "docs__hooks__error-handling__08",
+      "docs__hooks__error-handling__09",
+      "docs__hooks__error-handling__10",
+      "docs__hooks__hooks-overview__01",
+      "docs__hooks__hooks-overview__02",
+      "docs__hooks__post-tool-use__03",
+      "docs__hooks__post-tool-use__04",
+      "docs__hooks__post-tool-use__05",
+      "docs__hooks__post-tool-use__06",
+      "docs__hooks__post-tool-use__07",
+      "docs__hooks__post-tool-use__08",
+      "docs__hooks__post-tool-use__09",
+      "docs__hooks__session-lifecycle__04",
+      "docs__hooks__session-lifecycle__07",
+      "docs__hooks__session-lifecycle__08",
+      "docs__hooks__session-lifecycle__09",
+      "docs__hooks__session-lifecycle__10",
+      "docs__hooks__user-prompt-submitted__03",
+      "docs__hooks__user-prompt-submitted__05",
+      "docs__hooks__user-prompt-submitted__06",
+      "docs__hooks__user-prompt-submitted__07",
+      "docs__hooks__user-prompt-submitted__09",
+      "docs__hooks__user-prompt-submitted__10"
+    ],
+    "passes": [
+      "prelude",
+      "first"
+    ],
+    "example": "docs/features/hooks.md:583 Type '(input: SessionStartHookInput, invocation: { sessionId: string; }) => Promise<null>' is not assignable to type 'SessionStartHandler'."
+  },
+  "hook-types-not-exported": {
+    "errors": 15,
+    "files": [
+      "docs__hooks__error-handling__01",
+      "docs__hooks__post-tool-use__01",
+      "docs__hooks__pre-tool-use__01",
+      "docs__hooks__session-lifecycle__01",
+      "docs__hooks__user-prompt-submitted__01"
+    ],
+    "passes": [
+      "first"
+    ],
+    "example": "docs/hooks/error-handling.md:16 Module '\"@github/copilot-sdk\"' has no exported member 'ErrorOccurredHookInput'."
+  },
+  "tool-result-field-not-in-type": {
+    "errors": 4,
+    "files": [
+      "docs__hooks__post-tool-use__06",
+      "docs__hooks__post-tool-use__07",
+      "docs__hooks__post-tool-use__09"
+    ],
+    "passes": [
+      "prelude"
+    ],
+    "example": "docs/hooks/post-tool-use.md:444 Property 'exitCode' does not exist on type 'ToolResultObject'."
+  }
+}

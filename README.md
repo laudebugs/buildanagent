@@ -38,7 +38,7 @@ Each SDK gets a reference folder under `docs/reference/<sdk>/` (guide, fact-chec
 | LangChain.js | `langchain@1.6.1` | [docs/reference/langchain/](docs/reference/langchain/) | Done: 713 doc blocks type-checked, 33 run (+12 with a provider prefix), 10 verified examples |
 | Cloudflare Agents | `agents@0.33.0` | [docs/reference/cloudflare-agents/](docs/reference/cloudflare-agents/) | Done: 1,927 doc blocks type-checked, 171 run in workerd, 9 verified examples |
 | Google ADK | `@google/adk@2.4.0` | — | Planned (S7, added 2026-11-18; Python-first, with a TS parity check) |
-| GitHub Copilot SDK | `@github/copilot-sdk@1.0.28` | — | Planned (S8, added 2026-11-18) |
+| GitHub Copilot SDK | `@github/copilot-sdk@1.0.31` | [docs/reference/copilot-sdk/](docs/reference/copilot-sdk/) | In progress: S8a harness done (455 doc sources type-checked, 50 run against the real runtime with a mock model, 9 verified examples); guide and fact-check in S8b |
 
 ## Development
 

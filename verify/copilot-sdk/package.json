@@ -1,0 +1,20 @@
+{
+  "name": "@agent-speak/verify-copilot-sdk",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "fetch-docs": "node scripts/fetch-docs.mjs",
+    "extract": "node scripts/extract-examples.mjs",
+    "typecheck:docs": "node scripts/typecheck-examples.mjs",
+    "run:docs": "node scripts/run-examples.mjs",
+    "factcheck": "node scripts/factcheck-api.mjs",
+    "typecheck": "tsc -p tsconfig.json",
+    "test": "tsc -p tsconfig.json && node scripts/run-examples.mjs examples",
+    "verify": "pnpm run extract && pnpm run typecheck:docs && pnpm run triage:docs && pnpm run run:docs && pnpm run factcheck && pnpm test",
+    "triage:docs": "node scripts/mismatch-causes.mjs"
+  },
+  "dependencies": {
+    "@github/copilot-sdk": "1.0.31",
+    "zod": "4.6.7"
+  }
+}

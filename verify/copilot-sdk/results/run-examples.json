@@ -1,0 +1,145 @@
+[
+  {
+    "id": "00-sandbox",
+    "file": "/home/user/agent-speak/verify/copilot-sdk/examples/00-sandbox.ts",
+    "outcome": "ran-no-model-call",
+    "exit": 0,
+    "leftOpen": false,
+    "ms": 3826,
+    "modelRequests": 0,
+    "toolCalls": [],
+    "harness": [],
+    "tail": "ok - no credential or proxy variables reach the example (found: none)\nok - HOME is a temp dir, not the real home, and cwd is inside it (/tmp/cp-00-sandbox-ZIlwm0)\nok - a raw TCP connection to a public address fails (ENETUNREACH)\nok - DNS lookups fail (EAI_AGAIN)\nok - the preload rejects non-local fetch()\nok - loopback still works (the mock answers)"
+  },
+  {
+    "id": "01-hello-session",
+    "file": "/home/user/agent-speak/verify/copilot-sdk/examples/01-hello-session.ts",
+    "outcome": "ran",
+    "exit": 0,
+    "leftOpen": false,
+    "ms": 1180,
+    "modelRequests": 1,
+    "toolCalls": [],
+    "harness": [],
+    "tail": "ok - sendAndWait resolves with an assistant.message event\nok - the reply carries the model's text (got \"4\")\nok - events arrive in order: user.message → assistant.turn_start → assistant.message → assistant.turn_end → session.idle\nok - the session has an id\nok - one model request reached the mock (got 1)\nok - by default the runtime offers its built-in tools, bash included\nobserved-events: [\"session.start\",\"session.managed_settings_resolved\",\"pending_messages.modified\",\"session.skills_loaded\",\"session.title_changed\",\"session.mcp_servers_loaded\",\"session.tools_updated\",\"instruction.update\",\"user.message\",\"system.message\",\"model.turn_started\",\"assistant.turn_start\",\"session.usage_info\",\"model.log\",\"model.call_start\",\"model.model_call_started\",\"assistant.usage\",\"model.call_finished\",\"assistant.message\",\"model.call_final_result\",\"assistant.turn_end\",\"model.model_call_success\",\"model.message\",\"model.response\",\"model.turn_ended\",\"model.messages_snapshot\",\"assistant.idle\",\"session.idle\"]"
+  },
+  {
+    "id": "02-custom-tool",
+    "file": "/home/user/agent-speak/verify/copilot-sdk/examples/02-custom-tool.ts",
+    "outcome": "ran",
+    "exit": 0,
+    "leftOpen": false,
+    "ms": 1600,
+    "modelRequests": 2,
+    "toolCalls": [
+      "get_weather"
+    ],
+    "harness": [],
+    "tail": "ok - the handler ran once\nok - with parsed args\nok - the Zod schema reached the model as JSON Schema\nok - onPermissionRequest was asked once, kind custom-tool\nok - tool.execution_start and tool.execution_complete events were emitted\nok - the tool result reached the model"
+  },
+  {
+    "id": "03-permission-deny",
+    "file": "/home/user/agent-speak/verify/copilot-sdk/examples/03-permission-deny.ts",
+    "outcome": "ran",
+    "exit": 0,
+    "leftOpen": false,
+    "ms": 1350,
+    "modelRequests": 4,
+    "toolCalls": [
+      "issue_refund",
+      "issue_refund"
+    ],
+    "harness": [],
+    "tail": "ok - the tool call completed as unsuccessful\nok - the model saw the feedback string\nok - the turn still finished with a reply\ndenial text the model saw: {\"role\":\"user\",\"content\":[{\"type\":\"tool_result\",\"tool_use_id\":\"toolu_mock_1\",\"content\":\"The user rejected this tool call. User feedback: Refunds need a human.\",\"cache_control\":{\"type\":\"ephemeral\"}}]}\nok - with no handler the turn still finishes\nok - no permission.requested event was emitted and the handler never ran\nok - the model was told no one could approve the call\nok - nothing is left pending"
+  },
+  {
+    "id": "04-restrict-builtins",
+    "file": "/home/user/agent-speak/verify/copilot-sdk/examples/04-restrict-builtins.ts",
+    "outcome": "ran",
+    "exit": 0,
+    "leftOpen": false,
+    "ms": 1540,
+    "modelRequests": 11,
+    "toolCalls": [
+      "ping",
+      "ping",
+      "ping",
+      "ping",
+      "ping"
+    ],
+    "harness": [],
+    "tail": "ok - default: built-ins plus ping (20 tools)\nok - availableTools custom:* offers only ping (got ping)\nok - excludedTools removes bash, edit and create\nok - other tools stay\nok - excludedTools wins over availableTools (got ping)\nok - BuiltInTools.Isolated has no host tools (got skill,read_agent,list_agents,write_agent,task)\nok - mode empty rejects a session without availableTools\nok - and with custom:* offers only ping"
+  },
+  {
+    "id": "05-streaming",
+    "file": "/home/user/agent-speak/verify/copilot-sdk/examples/05-streaming.ts",
+    "outcome": "ran",
+    "exit": 0,
+    "leftOpen": false,
+    "ms": 1109,
+    "modelRequests": 2,
+    "toolCalls": [],
+    "harness": [],
+    "tail": "ok - streaming: true emits deltas (got 2)\nok - the deltas concatenate to the final message\nok - streaming off emits no deltas\nok - and the final message is the same"
+  },
+  {
+    "id": "06-resume-session",
+    "file": "/home/user/agent-speak/verify/copilot-sdk/examples/06-resume-session.ts",
+    "outcome": "ran",
+    "exit": 0,
+    "leftOpen": false,
+    "ms": 1145,
+    "modelRequests": 3,
+    "toolCalls": [
+      "note"
+    ],
+    "harness": [],
+    "tail": "ok - listSessions before start() throws (got \"Client not connected\")\nok - listSessions on a new client finds the stopped session\nok - resumeSession returns the same session id\nok - the resumed turn carries the first turn's messages\nok - the custom tool is gone after a resume without tools\nok - getEvents() returns both user messages"
+  },
+  {
+    "id": "07-mcp-server",
+    "file": "/home/user/agent-speak/verify/copilot-sdk/examples/07-mcp-server.ts",
+    "outcome": "ran",
+    "exit": 0,
+    "leftOpen": false,
+    "ms": 1487,
+    "modelRequests": 3,
+    "toolCalls": [
+      "orders-order_status"
+    ],
+    "harness": [],
+    "tail": "ok - the MCP tool is offered as orders-order_status (orders-order_status)\nok - onPermissionRequest was asked with kind mcp (got mcp)\nok - the MCP server's result reached the model\nok - tools: [] offers none of the server's tools"
+  },
+  {
+    "id": "08-hooks",
+    "file": "/home/user/agent-speak/verify/copilot-sdk/examples/08-hooks.ts",
+    "outcome": "ran",
+    "exit": 0,
+    "leftOpen": false,
+    "ms": 1269,
+    "modelRequests": 3,
+    "toolCalls": [
+      "close_ticket",
+      "read_ticket"
+    ],
+    "harness": [],
+    "tail": "ok - the denied tool's handler never ran\nok - the allowed tool ran\nok - onPermissionRequest was not asked for the denied tool\nok - onPreToolUse runs before onPermissionRequest\nok - the model saw the deny reason\nok - onPostToolUse replaced the result\norder: pre:close_ticket, pre:read_ticket, permission:read_ticket, post:read_ticket"
+  },
+  {
+    "id": "09-triage-agent",
+    "file": "/home/user/agent-speak/verify/copilot-sdk/examples/09-triage-agent.ts",
+    "outcome": "ran",
+    "exit": 0,
+    "leftOpen": false,
+    "ms": 1910,
+    "modelRequests": 7,
+    "toolCalls": [
+      "lookup_orders",
+      "escalate_to_human",
+      "lookup_orders",
+      "escalate_to_human"
+    ],
+    "harness": [],
+    "tail": "ok - a declined escalation never ran\nok - only the escalation reached the reviewer\nok - the typed result parsed (run 1)\nok - no built-in tools offered (lookup_orders,escalate_to_human)\nok - an approved escalation ran once\nok - the typed result parsed (run 2)\nok - a result that fails the schema throws (ZodError)\nok - no further escalation ran"
+  }
+]
