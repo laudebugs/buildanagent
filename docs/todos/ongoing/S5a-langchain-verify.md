@@ -3,7 +3,7 @@
 | Field | Value |
 | --- | --- |
 | ID | `S5a` |
-| Status | `ready` |
+| Status | `ongoing` |
 | Plan | [SDK references §4 S5](../../plans/sdk-references.md#s5-langchain-added-2026-11-18) |
 | Round / milestone | Round S (SDK references), M2b |
 | Depends on | [S4b](../done/S4b-vercel-reference.md) |

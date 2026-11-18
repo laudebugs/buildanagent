@@ -6,7 +6,7 @@
 | Status | `ready` |
 | Plan | [SDK references §4 S5](../../plans/sdk-references.md#s5-langchain-added-2026-11-18) |
 | Round / milestone | Round S (SDK references), M2b |
-| Depends on | [S5a](../ready/S5a-langchain-verify.md) |
+| Depends on | [S5a](../ongoing/S5a-langchain-verify.md) |
 | Size | M |
 
 ## Goal
