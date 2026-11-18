@@ -1,6 +1,6 @@
 # 0020. Default to `srt` for interactive runs and Docker for headless runs, and run `none` only on an explicit unsafe flag
 
-- **Status:** Proposed — owner to confirm (after todo N19)
+- **Status:** Accepted (owner, 2026-11-18); todo N19's measurements can still revise it
 - **Date:** 2026-11-18
 - **Plan:** [build-harness.md, HD4](../plans/build-harness.md#hd4-srt-for-interactive-runs-and-docker-for-headless-runs-owner-to-confirm)
 

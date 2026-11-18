@@ -45,13 +45,13 @@ Each decision answers one open decision in [guide §12][g12], in the same order,
 | # | Decision | Choice | Status | ADR |
 | --- | --- | --- | --- | --- |
 | D1 | Package split | Two packages, `@agent-speak/gateway` and `@agent-speak/sdk`, each with a `testing` subpath, under `packages/` | Decided | [0001](../decisions/0001-two-packages-gateway-and-sdk.md) |
-| D2 | First wire protocols | Anthropic Messages and OpenAI-compatible Chat Completions; adapters call `fetch` directly | Proposed — owner to confirm | [0002](../decisions/0002-first-wire-protocols.md) |
+| D2 | First wire protocols | Anthropic Messages and OpenAI-compatible Chat Completions; adapters call `fetch` directly | Accepted (owner, 2026-11-18) | [0002](../decisions/0002-first-wire-protocols.md) |
 | D3 | Token fields | Separate classes; the field is named `uncachedInput`, never `input` | Decided | [0003](../decisions/0003-token-usage-fields.md) |
 | D4 | Cost catalog | A versioned JSON catalog in the gateway, overridable; a provider-billed total wins; an unknown price blocks a budgeted run | Decided | [0004](../decisions/0004-cost-catalog-and-basis.md) |
-| D5 | Approval signing key | A pluggable `ApprovalSigner` with key ids; a per-process ephemeral key by default; an unsigned or invalid resume always fails closed | Proposed — owner to confirm (with P2) | [0005](../decisions/0005-approval-signing.md) |
+| D5 | Approval signing key | A pluggable `ApprovalSigner` with key ids; a per-process ephemeral key by default; an unsigned or invalid resume always fails closed | Accepted (owner, 2026-11-18) | [0005](../decisions/0005-approval-signing.md) |
 | D6 | Hook names | Our six moment-named interceptors; run-level hooks stay observers | Decided | [0006](../decisions/0006-interceptor-names.md) |
 | D7 | Schema validator | `@earendil-works/pi-schema` 1.5.2 (drafts 2020-12 and 7), with `@cfworker/json-schema` 4.1.6 as the fallback | Decided, provisional (B10) | [0007](../decisions/0007-json-schema-validator.md) |
-| D8 | Versioning start and CI checks | 0.x with a changelog that marks breaking changes; fail on undocumented exports and on documented names missing from the `.d.ts` | Proposed — owner to confirm | [0008](../decisions/0008-versioning-and-doc-checks.md) |
+| D8 | Versioning start and CI checks | 0.x with a changelog that marks breaking changes; fail on undocumented exports and on documented names missing from the `.d.ts` | Accepted (owner, 2026-11-18) | [0008](../decisions/0008-versioning-and-doc-checks.md) |
 | D9 | Budget timing | Check the USD cap before each model call, against a projected cost | Decided | [0009](../decisions/0009-pre-emptive-budget.md) |
 | D10 | Run outcomes | A discriminated `RunResult` union plus a `runOrThrow()` helper | Decided | [0010](../decisions/0010-run-outcomes.md) |
 | D11 | Progress-detection defaults | Three identical failing calls end the run with `no_progress`; a depth cap of 2 | Decided, provisional (tuned after P2 records runs) | none: tunable defaults |
@@ -66,6 +66,8 @@ Each decision answers one open decision in [guide §12][g12], in the same order,
 **Evidence.** The guide's rule is to split if any consumer needs the gateway without the loop ([guide §12, decision 1][g12]). Three planned consumers do. First, the harness's summarisation layer makes one model call with no tools ([harness guide §3][hg3]). Second, the agent's reader and drafter are model contexts with no tools ([agent guide §9][ag9]). Third, the eval bridge needs only the base-URL override ([guide §8][g8]). The provider spec must also carry its own version, as Vercel's `specificationVersion` does, so a split lets the gateway release apart from the loop ([guide §9][g9]). Option (c) multiplies packages before we have more than two adapters; subpath exports keep the adapters tree-shakable without that cost.
 
 ### D2. Anthropic Messages and OpenAI-compatible Chat Completions first (owner to confirm)
+
+**Accepted by the owner on 2026-11-18.**
 
 **Options.** Any subset of Anthropic Messages, OpenAI Responses and OpenAI-compatible Chat Completions ([guide §12, decision 2][g12]).
 
@@ -92,6 +94,8 @@ Each decision answers one open decision in [guide §12][g12], in the same order,
 **Evidence.** Cost carries a `basis` flag and comes from a catalog with tiered rates, and failed attempts count, as OpenAI's retry accounting shows ([guide §2][g2]; [SDK decision 5][sr6]). mini-swe-agent raises when it cannot price a model ([harness research §5][har5]). A budget that silently prices at zero would be the same failure in a quieter form, so a budgeted run with an unknown price fails closed. The guide asks which first providers return a billed cost. Neither D2 protocol is known to return one, but nobody has checked, so B8 and B9 check each API reference and fixture and record the answer. The provider-wins rule costs nothing to keep if neither does. Run-time fetching would make cost depend on the network, which contradicts the "nothing reaches outside by default" rule ([guide §9][g9]).
 
 ### D5. A pluggable signer with key ids, an ephemeral default, and no unsigned resume (owner to confirm, with P2)
+
+**Accepted by the owner on 2026-11-18.**
 
 **Options.** Who owns the HMAC secret, how it rotates, and whether an unsigned resume fails closed by default. The decision merges with harness decision 5 and agent decision 3 ([guide §12, decision 5][g12]; [harness guide §13][hg13]; [agent guide §10][ag10]).
 
@@ -120,6 +124,8 @@ Each decision answers one open decision in [guide §12][g12], in the same order,
 **The provisional check.** B10 runs both candidates against the schemas both adapters accept in strict mode and against a set of Claude's draft-07 output schemas. It also compares the error paths with the guide's message format. Pi-schema stays unless it fails a schema that `@cfworker/json-schema` passes.
 
 ### D8. 0.x, with a changelog that marks breaking changes, and two export diffs in CI (owner to confirm)
+
+**Accepted by the owner on 2026-11-18.**
 
 **Options.** 0.x with a changelog that still marks breaking changes, or 1.0 with full semver, and which CI check fails on exports missing from the docs ([guide §12, decision 8][g12]).
 

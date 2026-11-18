@@ -1,6 +1,6 @@
 # 0015. Have the harness always sign pauses with a persistent, host-only key ring, and make every approval a pause first
 
-- **Status:** Proposed — owner to confirm (with ADR 0005)
+- **Status:** Accepted (owner, 2026-11-18)
 - **Date:** 2026-11-18
 - **Plan:** [build-harness.md, HD5](../plans/build-harness.md#hd5-the-harness-always-passes-hmacsigner-over-a-persistent-key-ring-owner-to-confirm-with-sdk-d5)
 

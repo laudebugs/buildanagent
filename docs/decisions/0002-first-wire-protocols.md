@@ -1,6 +1,6 @@
 # 0002. Build Anthropic Messages and OpenAI-compatible Chat Completions adapters first, on plain `fetch`
 
-- **Status:** Proposed — owner to confirm
+- **Status:** Accepted (owner, 2026-11-18)
 - **Date:** 2026-11-18
 - **Plan:** [build-sdk.md, D2](../plans/build-sdk.md#d2-anthropic-messages-and-openai-compatible-chat-completions-first-owner-to-confirm)
 

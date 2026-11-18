@@ -1,6 +1,6 @@
 # 0008. Start at 0.x with marked breaking changes, and fail CI on undocumented exports and on stale doc names
 
-- **Status:** Proposed — owner to confirm
+- **Status:** Accepted (owner, 2026-11-18)
 - **Date:** 2026-11-18
 - **Plan:** [build-sdk.md, D8](../plans/build-sdk.md#d8-0x-with-a-changelog-that-marks-breaking-changes-and-two-export-diffs-in-ci-owner-to-confirm)
 

@@ -1,6 +1,6 @@
 # 0018. Keep transcripts until a retention period is set, and keep the entry base stable per format version
 
-- **Status:** Proposed — owner to confirm
+- **Status:** Accepted (owner, 2026-11-18)
 - **Date:** 2026-11-18
 - **Plan:** [build-harness.md, HD11](../plans/build-harness.md#hd11-keep-transcripts-until-the-owner-sets-a-retention-period-and-keep-the-entry-base-stable-owner-to-confirm)
 

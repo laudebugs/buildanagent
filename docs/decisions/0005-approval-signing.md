@@ -1,6 +1,6 @@
 # 0005. Sign pauses with a pluggable, key-id signer, default to an ephemeral key, and never accept an unsigned resume
 
-- **Status:** Proposed — owner to confirm (with P2)
+- **Status:** Accepted (owner, 2026-11-18), with ADR 0015
 - **Date:** 2026-11-18
 - **Plan:** [build-sdk.md, D5](../plans/build-sdk.md#d5-a-pluggable-signer-with-key-ids-an-ephemeral-default-and-no-unsigned-resume-owner-to-confirm-with-p2)
 

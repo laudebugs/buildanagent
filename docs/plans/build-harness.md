@@ -51,14 +51,14 @@ Three decisions merge with the SDK's. For each, this plan references P1's choice
 | HD1 | Log granularity | One entry per content block, written from the SDK's end events; deltas are never persisted | Decided, provisional (N35) | [0013](../decisions/0013-log-entry-per-content-block.md) |
 | HD2 | Lock primitive | An exclusive lock file with pid, host and a renewed lease; stale only when the lease has lapsed and the pid is gone; local disk only | Decided, provisional (N4) | [0014](../decisions/0014-session-writer-lock.md) |
 | HD3 | Default context layers and budget | Layers 1, 2, 3 and 5 on; layer 4 on only below 128K; budget `min(window − 16,384, 200,000)` | Decided, provisional (N39) | none: tunable defaults |
-| HD4 | Default sandbox backend | `srt` for interactive local runs, Docker for headless runs and evals; `none` only with an explicit unsafe flag | Proposed — owner to confirm (after N19) | [0020](../decisions/0020-default-sandbox-backend.md) |
-| HD5 | Approval signing key (with SDK D5) | The harness always passes `hmacSigner()` over a persistent, host-only key ring; every approval is a pause first | Proposed — owner to confirm (with SDK D5) | [0015](../decisions/0015-harness-approval-key-ring.md) |
+| HD4 | Default sandbox backend | `srt` for interactive local runs, Docker for headless runs and evals; `none` only with an explicit unsafe flag | Accepted (owner, 2026-11-18) | [0020](../decisions/0020-default-sandbox-backend.md) |
+| HD5 | Approval signing key (with SDK D5) | The harness always passes `hmacSigner()` over a persistent, host-only key ring; every approval is a pause first | Accepted (owner, 2026-11-18) | [0015](../decisions/0015-harness-approval-key-ring.md) |
 | HD6 | Protocol framing | Strict JSON-RPC 2.0 with the `jsonrpc` field; v1 ships twelve methods and three server requests | Decided | [0016](../decisions/0016-protocol-json-rpc-framing.md) |
 | HD7 | Telemetry commit and cost attribute (with SDK D3) | Pin semconv-genai `d28355d`; name cost `agent_speak.cost.usd` with `agent_speak.cost.basis`; sum classes only in the projection | Decided | [0017](../decisions/0017-telemetry-convention-pin-and-cost-attributes.md) |
-| HD8 | Eval suite seed | 30 tasks: 20 recreated real failures from this repo's history and 10 triage tasks shared with P3; k = 5 | Proposed — owner to confirm | none: eval data |
+| HD8 | Eval suite seed | 30 tasks: 20 recreated real failures from this repo's history and 10 triage tasks shared with P3; k = 5 | Accepted (owner, 2026-11-18) | none: eval data |
 | HD9 | Budget timing (with SDK D9) | SDK D9's check per call, plus a session cap, a pre-checked summary call and an 80% warning | Decided | none: [0009](../decisions/0009-pre-emptive-budget.md) covers it |
 | HD10 | Completion check | Configured checks, else discovered `package.json` scripts, run in the sandbox after `done`; flagged diff patterns are recorded, not fatal | Decided, provisional (N38) | none: tunable defaults |
-| HD11 | Retention and transcript schema | No automatic deletion by default; opt-in archive or purge; `EntryBase` and the entry type names are stable per `formatVersion` | Proposed — owner to confirm | [0018](../decisions/0018-retention-and-transcript-schema.md) |
+| HD11 | Retention and transcript schema | No automatic deletion by default; opt-in archive or purge; `EntryBase` and the entry type names are stable per `formatVersion` | Accepted (owner, 2026-11-18) | [0018](../decisions/0018-retention-and-transcript-schema.md) |
 | HD12 | Approval modes | Path-based ask rules, scoped sticky allowances and grouped approvals; no classifier allows except through the host callback | Decided (harness side) | [0019](../decisions/0019-permission-pipeline-and-approval-modes.md) |
 | HD13 | Package split | Four packages: `protocol`, `harness` with subpath exports per component, `cli` and `evals` | Decided | [0012](../decisions/0012-harness-packages.md) |
 | HD14 | MCP client base | `@modelcontextprotocol/client` 2.4.0 behind our `McpConnection` interface | Decided, provisional (N24) | [0021](../decisions/0021-mcp-client-base.md) |
@@ -90,6 +90,8 @@ Three decisions merge with the SDK's. For each, this plan references P1's choice
 
 ### HD4. `srt` for interactive runs and Docker for headless runs (owner to confirm)
 
+**Accepted by the owner on 2026-11-18.**
+
 **Options.** `srt`, Docker, or `none` with a loud warning for local use ([harness guide §13, decision 4][hg13]).
 
 **Choice, provisional.** Interactive local runs default to the OS backend over `srt`. Headless runs and every eval trial default to Docker with `--cap-drop ALL --read-only --network none`. The `none` backend runs only with an explicit `sandbox: { tier: "none", unsafe: true }`, writes the choice to `env_stamp` and prints a warning at session start. Every backend fails closed when it cannot start.
@@ -99,6 +101,8 @@ Three decisions merge with the SDK's. For each, this plan references P1's choice
 **Why the owner decides.** The threat model and the hosts we support are product calls: whether interactive runs must stop injection-driven exfiltration, and whether macOS, where `srt` uses Seatbelt, is a supported host.
 
 ### HD5. The harness always passes `hmacSigner()` over a persistent key ring (owner to confirm, with SDK D5)
+
+**Accepted by the owner on 2026-11-18.**
 
 **SDK side, unchanged.** SDK D5 defines `ApprovalSigner` with key ids, defaults to `ephemeralSigner()` and fails closed on any missing, unknown-key or invalid signature ([SDK plan, D5][sdk-d5]).
 
@@ -128,6 +132,8 @@ Three decisions merge with the SDK's. For each, this plan references P1's choice
 
 ### HD8. A 30-task seed suite from real failures and triage tasks, at k = 5 (owner to confirm)
 
+**Accepted by the owner on 2026-11-18.**
+
 **Options.** Which 20–50 real-failure tasks seed the capability suite, at what k, with which resource guarantees and kill limits ([harness guide §13, decision 8][hg13]).
 
 **Choice, proposed.** Thirty tasks. Twenty come from this repository's history: each is a commit that fixed a failing `pnpm run verify` or `pnpm test`, recreated at its parent commit and graded by running that same check outside the agent's writable sandbox. Ten are triage tasks shared with P3's eval suite, so agent decision 6 owns their labels. Each task runs k = 5 trials. Each trial gets a guaranteed 2 vCPUs and 4 GiB, a 30-minute kill limit and a $3 cost cap, which is mini-swe-agent's default `cost_limit`. Infra failures record `exit: "infra_error"` and are scored apart. After the first run, the discordance between two runs of the same configuration sets the size of the regression suite.
@@ -153,6 +159,8 @@ Three decisions merge with the SDK's. For each, this plan references P1's choice
 **Evidence.** Agents claim success they did not achieve and game visible tests, so the harness checks completion in code and flags new mocks, stubs, placeholders and skip markers ([harness guide §10][hg10]). Tests, types and linters are the oracle practitioners trust, which makes the project's own scripts the default checks ([harness guide §5][hg5]). The guide's settling test, tuning the flags on recorded false claims, needs recorded runs, so N38 records them and tunes the patterns.
 
 ### HD11. Keep transcripts until the owner sets a retention period, and keep the entry base stable (owner to confirm)
+
+**Accepted by the owner on 2026-11-18.**
 
 **Options.** The default retention period, where expired entries go, and which entry fields are documented as stable ([harness guide §13, decision 11][hg13]).
 
