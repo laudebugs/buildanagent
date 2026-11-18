@@ -3,7 +3,7 @@
 | Field | Value |
 | --- | --- |
 | ID | `G1b` |
-| Status | `ongoing` |
+| Status | `done` |
 | Plan | [Build guides §3](../../plans/build-guides.md#3-how-each-research-round-works) |
 | Round / milestone | Round G (build guides), M3 |
 | Depends on | [G1a](../done/G1a-research-agent-sdk.md), [H3](../done/H3-hn-synthesis.md), [R1](../done/R1-reverify-secondary.md) |
@@ -30,15 +30,15 @@ Write `docs/guides/agent-sdk.md`, the guide to building an agent SDK, from the r
 
 ## Tasks
 
-- [ ] Draft with `/anthropic-skills:writing`
-- [ ] Fact-check every claim against the research notes
-- [ ] Review with `/anthropic-skills:writing-review`, fix, and re-check changed claims
-- [ ] List the open decisions for Round P at the end
-- [ ] Push
+- [x] Draft with `/anthropic-skills:writing`
+- [x] Fact-check every claim against the research notes
+- [x] Review with `/anthropic-skills:writing-review`, fix, and re-check changed claims
+- [x] List the open decisions for Round P at the end
+- [x] Push
 
 ## Acceptance criteria
 
-- [ ] The guide exists, passes review, and ends with a reference architecture and open decisions
+- [x] The guide exists, passes review, and ends with a reference architecture and open decisions
 
 ## Tests
 
@@ -55,6 +55,6 @@ None.
 ## Definition of done
 
 - [x] Claimed: the first commit moved this file `ready/` → `ongoing/` (Status `ongoing`)
-- [ ] Prose drafted with `/anthropic-skills:writing` and reviewed with `/anthropic-skills:writing-review`, with the fixes applied and changed claims re-checked
-- [ ] `pnpm check`, `pnpm typecheck` and `pnpm test` pass locally; pushed after each meaningful step
-- [ ] This file moved `ongoing/` → `done/` (Status `done`), and the plan's todo table updated
+- [x] Prose drafted with `/anthropic-skills:writing` and reviewed with `/anthropic-skills:writing-review`, with the fixes applied and changed claims re-checked
+- [x] `pnpm check`, `pnpm typecheck` and `pnpm test` pass locally; pushed after each meaningful step
+- [x] This file moved `ongoing/` → `done/` (Status `done`), and the plan's todo table updated

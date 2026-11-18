@@ -83,7 +83,7 @@ The early research ran when this environment's network policy blocked many prima
 | H2 | Practitioner research: analyse six themes in parallel (done) | H1 |
 | H3 | Practitioner research: synthesis and fact-check, set against G1a–G3a (done) | H2, G3a |
 | R1 | Re-verify the "(secondary)" claims against primary sources (done) | H3 |
-| G1b | Guide: building an agent SDK | G1a, H3, R1 |
+| G1b | Guide: building an agent SDK (done: [docs/guides/agent-sdk.md](../guides/agent-sdk.md)) | G1a, H3, R1 |
 | G2a | Deep research: building an agent harness (done) | G1a |
 | G2b | Guide: building an agent harness | G2a, G1b, H3 |
 | G3a | Deep research: building an agent (done) | G2a |
