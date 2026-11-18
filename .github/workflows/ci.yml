@@ -2,7 +2,9 @@
 name: ci
 
 on:
+  # main only: wip/* branches hold mid-task snapshots that are not expected to pass
   push:
+    branches: [main]
   pull_request:
 
 permissions:
