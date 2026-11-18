@@ -46,7 +46,7 @@ Practitioners' answer to gaming is to enforce the loop outside the model, throug
 
 Support: ~260 authors across 128 threads mention small or atomic tasks, breaking work down, or one thing at a time. About 20 of 36 sampled mentions endorse the practice. It is widely shared and appears in every period, often framed as ordinary engineering practice rather than anything specific to agents.
 
-- "its way better suited to scoped tasks. the trick is breaking things down before you start" — maxmorrish, [HN](https://news.ycombinator.com/item?id=47677826), 2026-04-07
+- "its way better suited to scoped tasks. the trick is breaking things down before you start" — maxmorrish, [HN](https://news.ycombinator.com/item?id=47669797), 2026-04-07
 - "Claude Code failed miserably (itself thought it had done a terrific job), but doing it in smaller chunks worked out quite well." — jansan, [HN](https://news.ycombinator.com/item?id=44767962), 2025-08-02
 - "The trick is to break things into small enough pieces that you can review them." — koolba, [HN](https://news.ycombinator.com/item?id=50530221), 2026-11-17
 
@@ -109,7 +109,7 @@ Support: explicit line-by-line human review is claimed by ~65 authors across 44 
 - "It's unbelievable how incredible gpt-6.1-sol even on medium reasoning is at reviewing Opus 5.5's work" — jeffy29, [HN](https://news.ycombinator.com/item?id=50176207), 2026-10-21
 - "I focus on API interfaces, database schema changes, critical code paths" — Overdrivr, [HN](https://news.ycombinator.com/item?id=50542216), 2026-11-18
 
-Counter-views (~20 authors). Reviewer agents raise many false positives, and two models agreeing is not evidence of correctness. Developers who no longer write code may also lose the ability to review it. The [Harvard review-bottleneck thread](https://news.ycombinator.com/item?id=50538303) (2026-11-17) is split between "agents can review each other" and "it's bad code; review is salvage".
+Counter-views (~20 authors). Reviewer agents raise many false positives, and two models agreeing is not evidence of correctness. Developers who no longer write code may also lose the ability to review it. The [Harvard review-bottleneck thread](https://news.ycombinator.com/item?id=50538303) (2026-11-17) is split between those who let agents review each other and those who call the output bad code that review only salvages.
 
 - "this code critic is wrong about 60% of the time." — iambateman, [HN](https://news.ycombinator.com/item?id=45350944), 2025-09-23
 - "somehow seem to assume that if both LLMs agree, they must not be completely wrong." — palata, [HN](https://news.ycombinator.com/item?id=48721350), 2026-06-29
