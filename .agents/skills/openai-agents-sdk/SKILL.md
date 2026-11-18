@@ -14,7 +14,7 @@ Choose it for multi-agent workflows that need guardrails, handoffs and approvals
 ## Minimal setup
 
 ```bash
-npm install @openai/agents zod
+pnpm add @openai/agents zod   # in this repo: pnpm only, exact pins
 export OPENAI_AGENTS_DISABLE_TRACING=1   # unless you want runs exported to OpenAI
 ```
 
@@ -35,9 +35,9 @@ const runner = new Runner({ tracingDisabled: true });
 const first = await runner.run(agent, "Checkout fails for user@example.com");
 if (first.interruptions.length) {
   const state = await RunState.fromString(agent, JSON.stringify(first.state)); // store anywhere, resume later
-  state.reject(first.interruptions[0]);                                        // or state.approve(...)
+  state.reject(state.getInterruptions()[0]);                                   // or state.approve(...)
   const done = await runner.run(agent, state);
-  console.log(done.finalOutput);                                               // typed by outputType
+  console.log(done.finalOutput?.category);                                     // typed by outputType; T | undefined
 }
 ```
 
@@ -46,7 +46,18 @@ if (first.interruptions.length) {
 - **A run returns `finalOutput` and `lastAgent`**; `instructions` become the system instructions. Only `name` is required.
 - **`tool()` parameters are Zod-parsed** before `execute()`, and the result goes back in the next request.
 - **`needsApproval` pauses the run** with `interruptions`; `RunState` serialises to JSON; `approve()` runs the tool once, `reject()` never, and the model still finishes.
-- **Guardrails:** input guardrails run for the first agent, output guardrails for the last; tripwires throw `InputGuardrailTripwireTriggered` / `OutputGuardrailTripwireTriggered`. Set `runInParallel: false` so a tripped input guardrail stops the run before any model call.
+- **Guardrails:** input guardrails run for the first agent, output guardrails for the last; tripwires throw `InputGuardrailTripwireTriggered` / `OutputGuardrailTripwireTriggered`. Set `runInParallel: false` so a tripped input guardrail stops the run before any model call:
+
+  ```ts
+  const noInjection: InputGuardrail = {           // InputGuardrail is exported by @openai/agents
+    name: "No injection", runInParallel: false,
+    execute: async ({ input }) => ({              // input: string | ModelItem[]
+      outputInfo: null,
+      tripwireTriggered: /ignore previous instructions/i.test(JSON.stringify(input)),
+    }),
+  };
+  new Agent({ name: "Triage", inputGuardrails: [noInjection] });
+  ```
 - **Handoffs** are tools; the specialist answers and becomes `lastAgent`.
 - **`maxTurns` defaults to 10** and throws `MaxTurnsExceededError` with the run `state`.
 - **A Zod `outputType`** yields a typed `finalOutput`; invalid output throws `ModelBehaviorError`.
@@ -63,7 +74,9 @@ if (first.interruptions.length) {
 
 ## Test offline
 
-Use `ScriptedModel` from `@openai/agents/testing`: one step per model call, with `functionCall(name, args, { callId })` and `assistantMessage(text)`, then `model.assertComplete()`. Pass the model to the `Agent`, run with `new Runner({ tracingDisabled: true })`, and assert on `model.calls`. Run the verified examples with:
+Use `ScriptedModel` from `@openai/agents/testing`: `new ScriptedModel([step, step, …])`, one step per model call, each step an array of items such as `functionCall(name, args, { callId })` (the `callId` is required) or `assistantMessage(text)`. For a Zod `outputType`, script the final step as `assistantMessage(JSON.stringify({...}))`. Attach it with `new Agent({ …, model })`, run with `new Runner({ tracingDisabled: true })`, assert on `model.calls` (each has `.request.input`), and finish with `model.assertComplete()`.
+
+Run one new file offline, without touching committed results, from `verify/openai-agents-sdk`: `node scripts/run-examples.mjs <dir> --only <name>`. The runner prints only the outcome, so run the file with tsx to see its output. Run the verified examples with:
 
 ```bash
 pnpm --filter @agent-speak/verify-openai-agents-sdk test

@@ -18,8 +18,18 @@ npm install @earendil-works/pi-coding-agent typebox   # Node.js 22.19+
 ```
 
 ```ts
-import { createAgentSession, DefaultResourceLoader, defineTool, SessionManager, SettingsManager } from "@earendil-works/pi-coding-agent";
+import { mkdtempSync } from "node:fs";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
+import {
+  createAgentSession, DefaultResourceLoader, defineTool, ModelRuntime, SessionManager, SettingsManager,
+} from "@earendil-works/pi-coding-agent";
 import { Type } from "typebox";
+
+const modelRuntime = await ModelRuntime.create();
+const model = modelRuntime.getModel("anthropic", "claude-sonnet-4-5");   // explicit model, never "first available"
+const cwd = mkdtempSync(join(tmpdir(), "agent-"));
+const agentDir = join(cwd, ".pi-agent");
 
 const escalate = defineTool({
   name: "escalate", label: "Escalate", description: "Escalate to on-call",

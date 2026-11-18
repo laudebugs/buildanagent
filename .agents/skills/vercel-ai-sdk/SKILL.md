@@ -14,7 +14,7 @@ Choose it for the thinnest provider-neutral loop that you can read quickly and t
 ## Minimal setup
 
 ```bash
-npm install ai zod @ai-sdk/anthropic   # use a provider instance; model strings go to the AI Gateway
+pnpm add ai zod @ai-sdk/anthropic   # in this repo: pnpm only, exact pins. Use a provider instance; model strings go to the AI Gateway
 ```
 
 ```ts
@@ -56,6 +56,8 @@ if (ask) {
 - **`generateText` defaults to one step** (`stopWhen: isStepCount(1)`): tools run, but the model isn't called again. Set `stopWhen` whenever you pass tools.
 - **`ToolLoopAgent` defaults to 20 steps** and logs a warning when it hits them; an explicit `stopWhen` logs nothing. Helpers: `isStepCount`, `hasToolCall`, `isLoopFinished`; an array stops when any holds.
 - **`toolApproval`** is call-level: `'user-approval'` ends the call with a `tool-approval-request`; append a `tool-approval-response` and call again. `'denied'` skips the tool without asking. Per-tool `needsApproval` is deprecated (it still drives `WorkflowAgent`).
+- **Where the model calls fall.** In the first `generate()`, earlier steps run normally (lookup → a model call that requests the refund), then the loop stops. The second `generate()` runs the approved tool without a model call, then makes one model call for the answer.
+- **Signing is automatic.** With `experimental_toolApprovalSecret` set, the signature travels on the request inside `responseMessages`; push those back and send the response unsigned.
 - **Invalid tool input** never reaches `execute()`; the step records a `tool-error` and the loop continues.
 - **`prepareStep`** returns per-step `activeTools`, `toolChoice`, `model`, `instructions` or `messages`.
 - **`Output.object({ schema, name, description })`** types `result.output`. A schema failure rejects with `NoObjectGeneratedError`; reading `output` after a tool-call finish throws `NoOutputGeneratedError`.
@@ -74,7 +76,11 @@ if (ask) {
 
 ## Test offline
 
-Use `MockLanguageModelV4` from `ai/test` with `doGenerate`/`doStream`, and `simulateReadableStream` from `ai` for streams. A tool call is `{ type: "tool-call", toolCallId, toolName, input: JSON.stringify(args) }` with `finishReason: { unified: "tool-calls", raw: undefined }`. The `scripted()` helper in [`verify/vercel-ai-sdk/examples/lib/check.ts`](../../../verify/vercel-ai-sdk/examples/lib/check.ts) plays one turn per call and records each request. Run the verified examples with:
+Use `MockLanguageModelV4` from `ai/test` with `doGenerate`/`doStream`, and `simulateReadableStream` from `ai` for streams. A tool call is `{ type: "tool-call", toolCallId, toolName, input: JSON.stringify(args) }` with `finishReason: { unified: "tool-calls", raw: undefined }`. The `scripted()` helper in [`verify/vercel-ai-sdk/examples/lib/check.ts`](../../../verify/vercel-ai-sdk/examples/lib/check.ts) plays one turn per call and records each request. A turn is a string (text) or `{ tools: [{ name, input, id? }] }`; import it with the `.ts` extension, and `check(cond, msg)` asserts and narrows. For `Output.object`, script the final turn as text holding the JSON (`JSON.stringify({...})`). In tests, hard-code `experimental_toolApprovalSecret`, because the runner's allowlisted environment drops `process.env` secrets.
+
+> **TS trap in assertion tests.** After `check(count === 0)`, TypeScript narrows a `let` counter to `0`, so a later `count === 1` fails with TS2367. Read counters through a function (`() => count`).
+
+Run one new file offline, without touching committed results, from `verify/vercel-ai-sdk`: `node scripts/run-examples.mjs <dir> --only <name>`. The runner prints only the outcome, so run the file with tsx to see its `ok -` lines. Run the verified examples with:
 
 ```bash
 pnpm --filter @agent-speak/verify-vercel-ai-sdk test
