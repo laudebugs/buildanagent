@@ -1,5 +1,7 @@
 # A5: The reply, refund and credit tools, with outbound checks and eligibility in code
 
+> **Deferred (2026-11-18).** The owner chose a personal coding agent as the first agent on our stack, so this todo waits until the triage round resumes ([ADR 0032](../../decisions/0032-personal-coding-agent-first.md)). Do not start it before then.
+
 | Field | Value |
 | --- | --- |
 | ID | `A5` |

@@ -1,6 +1,6 @@
 # Plan: build the support-triage agent as one package of code-run workflow steps around three model roles, in 24 todos gated by pass^k
 
-- **Status:** Draft (P3, 2026-11-18), revised on 2026-11-18 with the fixes from the [P4 review](reviews/plan-review.md).
+- **Status:** Deferred (owner, 2026-11-18). The [personal coding agent](build-coding-agent.md) replaces this agent as the first one on our stack ([ADR 0032](../decisions/0032-personal-coding-agent-first.md)); this plan stays as written for when its round resumes. Before that: Draft (P3, 2026-11-18), revised on 2026-11-18 with the fixes from the [P4 review](reviews/plan-review.md).
 - **Date:** 2026-11-18
 - **Asked for by:** the project owner (2026-11-18), through the [implementation plans](implementation-plans.md#2-what-each-plan-contains)
 - **Builds on:** the [agent guide][ag] (G3b), its [reference architecture][ag9] and its [twelve open decisions][ag10]; the [SDK plan][sp] (P1) and the [harness plan][hp] (P2), whose APIs this plan uses as written

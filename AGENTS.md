@@ -4,7 +4,7 @@ Instructions for AI coding agents (Claude Code, Codex, OpenCode, Pi, etc.) worki
 
 ## Project
 
-**agent-speak** researches, and will later build, an AI agent and our own agent harness/SDK. The repo is mostly documentation. The only code is the per-SDK verification harnesses under `verify/`.
+**agent-speak** researches, and will later build, an AI agent and our own agent harness/SDK. The first agent is a personal cloud coding agent for the owner, deployed on Cloudflare first, with the SDK and harness also proved on AWS and Vercel ([coding agent plan](docs/plans/build-coding-agent.md)). The repo is mostly documentation. The only code is the per-SDK verification harnesses under `verify/`.
 
 ## Layout
 
@@ -64,6 +64,8 @@ Follow the reference architecture in `docs/research/agent-sdks-and-harness-desig
 8. OTel `gen_ai.*` spans and an eval suite that measures against a mini-swe-agent baseline.
 
 Each component should be removable so it can be ablated as models improve.
+
+The SDK and harness must run on four targets, local Node, Cloudflare, AWS and Vercel, and every implementation of a portable seam must pass one conformance suite ([ADR 0033](docs/decisions/0033-three-deployment-targets.md)). Keep the loop outside the sandbox, and keep credentials out of it ([ADR 0036](docs/decisions/0036-loop-outside-sandbox-and-pr-approval.md)).
 
 ## Process for documenting an SDK
 

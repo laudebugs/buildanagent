@@ -1,5 +1,7 @@
 # A18: The release gate, cost per resolved ticket and the single-call baseline
 
+> **Deferred (2026-11-18).** The owner chose a personal coding agent as the first agent on our stack, so this todo waits until the triage round resumes ([ADR 0032](../../decisions/0032-personal-coding-agent-first.md)). Do not start it before then.
+
 | Field | Value |
 | --- | --- |
 | ID | `A18` |

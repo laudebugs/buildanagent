@@ -12,5 +12,6 @@ Roadmaps and design docs for upcoming work. Name files `kebab-case.md`, and star
 | [Implementation plans](implementation-plans.md): the build guides turned into detailed, reviewed plans for our own SDK, harness and agent (Round P) | Done (P1–P4; [review](reviews/plan-review.md)) |
 | [Build our SDK](build-sdk.md): two workspace packages, a gateway and a loop, in 22 todos tested offline against a scripted model (Round B, P1's output) | Reviewed in P4; ready to build |
 | [Build our harness](build-harness.md): four packages (protocol, harness, CLI, evals) on the SDK's seams, in 41 todos (Round N, P2's output) | Reviewed in P4; ready to build |
-| [Build our agent](build-agent.md): the support-triage agent as one package on the harness, in 24 todos with an offline release gate (Round A, P3's output) | Reviewed in P4; ready to build |
+| [Build our agent](build-agent.md): the support-triage agent as one package on the harness, in 24 todos with an offline release gate (Round A, P3's output) | Deferred (owner, 2026-11-18; [ADR 0032](../decisions/0032-personal-coding-agent-first.md)) |
+| [Build the coding agent](build-coding-agent.md): a personal cloud coding agent on our SDK and harness, on Cloudflare first, with the harness made portable to AWS and Vercel, in 11 todos plus portability todos N41–N49 (Round W) | Draft (2026-11-18); M7 |
 | [CI](ci.md): lint, type-check and offline tests on every push, and a nightly full verify with drift and audit gates (Round X) | Done |

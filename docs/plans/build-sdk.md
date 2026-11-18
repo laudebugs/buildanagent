@@ -1,6 +1,6 @@
 # Plan: build our agent SDK as two workspace packages, a gateway and a loop, in 22 todos tested offline against a scripted model
 
-- **Status:** Draft (P1, 2026-11-18), revised on 2026-11-18 with the fixes from the [P4 review](reviews/plan-review.md).
+- **Status:** Draft (P1, 2026-11-18), revised on 2026-11-18 with the fixes from the [P4 review](reviews/plan-review.md), and on 2026-11-18 for three deployment targets: notes in D5 and D7, and tasks added to B10 and B17 ([ADR 0033](../decisions/0033-three-deployment-targets.md)).
 - **Date:** 2026-11-18
 - **Asked for by:** the project owner (2026-11-18), through the [implementation plans](implementation-plans.md#2-what-each-plan-contains)
 - **Builds on:** the [agent-SDK guide][g] (G1b), its [reference architecture][g11] and its [twelve open decisions][g12], plus the six seams that the [harness guide §1][hg1] needs from the SDK
@@ -104,6 +104,8 @@ Each decision answers one open decision in [guide §12][g12], in the same order,
 
 **Outcome.** The harness, the first multi-process host, always passes `hmacSigner()` over a persistent key ring ([harness plan, HD5][har-hd5]; [ADR 0015](../decisions/0015-harness-approval-key-ring.md)). The SDK default therefore stays `ephemeralSigner()`, which serves single-process library users, and `signer` stays optional.
 
+**Note (2026-11-18).** `ephemeralSigner()` cannot resume a pause on any serverless host, because an isolate or function may be recycled between the pause and its resume. The SDK's docs say so; hosts on Cloudflare, AWS or Vercel pass `hmacSigner()` over a persistent `KeyStore` ([ADR 0035](../decisions/0035-read-only-key-store.md); [portable agents report](../research/deployment/portable-agents.md#the-sdk-travels-the-harness-is-bound-to-one-host-in-six-places)).
+
 ### D6. Our six moment-named interceptors, with run-level hooks as observers
 
 **Options.** Our names (`beforeModelCall`, `transformContext`, `afterModelCall`, `beforeToolCall`, `afterToolCall`, `shouldStop`) or LangChain's (`beforeModel`, `wrapToolCall`), and whether run-level hooks stay observers ([guide §12, decision 6][g12]).
@@ -121,6 +123,8 @@ Each decision answers one open decision in [guide §12][g12], in the same order,
 **Evidence.** Both packages are MIT and need no `eval`. Pi-schema "compiles once into plain closures" for drafts 2020-12 and 7, reports errors as JSON Pointer paths, never modifies a schema, and has no dependencies. Its README reports 2,222 of 2,223 core tests passing in the official suite ([pi-schema 1.5.2 README](https://www.npmjs.com/package/@earendil-works/pi-schema/v/1.5.2), as of November 2026). It is the validator behind Pi's path-level error message, which the guide tells us to copy ([guide §4][g4]). `@cfworker/json-schema` supports drafts 4, 7, 2019-09 and 2020-12 and exists because Workers lack `eval` ([its 4.1.6 README](https://www.npmjs.com/package/@cfworker/json-schema/v/4.1.6)). Claude's output schemas are draft-07, so draft-07 support is required ([feature table, output][ft-out]). Pi-schema declares `node >=22.19.0` in its `package.json`; B1 checks that our Node 22 meets it.
 
 **The provisional check.** B10 runs both candidates against strict-schema fixtures it writes from the Anthropic and OpenAI API references, and against a set of Claude's draft-07 output schemas. It also compares the error paths with the guide's message format. Pi-schema stays unless it fails a schema that `@cfworker/json-schema` passes.
+
+**Note (2026-11-18).** B10 also loads the chosen validator inside workerd, because no one has tested pi-schema there; if it fails, `@cfworker/json-schema` becomes the choice for every target ([ADR 0033](../decisions/0033-three-deployment-targets.md)).
 
 ### D8. 0.x, with a changelog that marks breaking changes, and two export diffs in CI (accepted)
 
