@@ -106,6 +106,10 @@ The owner asked how LangGraph checkpoints and time travel, Pi session forks, Cla
 
 The owner asked whether GitHub Copilot keeps a copy of the change it is about to commit, edits that copy, and lets the user confirm or reject the diff. U8 checked the VS Code source and docs and the Copilot CLI, SDK runtime, Visual Studio, JetBrains and cloud agent. [`copilot-diff-review.md`](../research/agent-ui/copilot-diff-review.md) finds that every local Copilot surface writes first and keeps the pre-edit text for review; only the runtime's per-call `write` permission request and the cloud agent's draft pull request hold a change back.
 
+### U9: 12-factor agents (added 2026-11-18)
+
+The owner asked what in humanlayer's [12-factor agents](https://github.com/humanlayer/12-factor-agents) is relevant for us. U9 read the essay at commit `d20c728` and mapped each factor onto our guides, plans and ADRs. [`twelve-factor-agents.md`](../research/external-designs/twelve-factor-agents.md) finds that the essay, which offers no measured evidence, confirms our core design (we align with 8 factors and partly with 4) and exposes one gap: how ticket and approval events reach the agent. Its five proposed plan changes are open for the next phase. Its fact-check is [`fact-check-twelve-factor-agents.md`](../research/external-designs/fact-check-twelve-factor-agents.md).
+
 ## 5. Todos
 
 | ID | Title | Depends on |
@@ -123,6 +127,7 @@ The owner asked whether GitHub Copilot keeps a copy of the change it is about to
 | U6 | Research sagas and compensation for multistep agent actions (done: [sagas.md](../research/reversible-actions/sagas.md)) | None |
 | U7 | Research agent rewind versus data rollback, and recommend rollback for the triage agent (done: [rewind-vs-rollback.md](../research/reversible-actions/rewind-vs-rollback.md)) | U6 |
 | U8 | Research whether Copilot holds a copy of a change for confirm or reject (done: [copilot-diff-review.md](../research/agent-ui/copilot-diff-review.md)) | U4 |
+| U9 | Research 12-factor agents and what is relevant for our stack (done: [twelve-factor-agents.md](../research/external-designs/twelve-factor-agents.md)) | None |
 | G1b | Guide: building an agent SDK (done: [docs/guides/agent-sdk.md](../guides/agent-sdk.md)) | G1a, H3, R1 |
 | G2a | Deep research: building an agent harness (done) | G1a |
 | G2b | Guide: building an agent harness (done: [docs/guides/agent-harness.md](../guides/agent-harness.md)) | G2a, G1b, H3 |
