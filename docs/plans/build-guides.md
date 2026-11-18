@@ -56,7 +56,7 @@ Each guide todo (G1b, G2b, G3b) then writes `docs/guides/<layer>.md` from that r
 
 | ID | Title | Depends on |
 | --- | --- | --- |
-| G1a | Deep research: building an agent SDK | K2 |
+| G1a | Deep research: building an agent SDK (done) | K2 |
 | G1b | Guide: building an agent SDK | G1a |
 | G2a | Deep research: building an agent harness | G1a |
 | G2b | Guide: building an agent harness | G2a, G1b |
