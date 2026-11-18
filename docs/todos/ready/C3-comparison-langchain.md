@@ -6,7 +6,7 @@
 | Status | `ready` |
 | Plan | [SDK comparison §4](../../plans/sdk-comparison.md#4-todos) |
 | Round / milestone | Round C (comparison), M2b |
-| Depends on | [S5b](../ready/S5b-langchain-reference.md) |
+| Depends on | [S5b](../done/S5b-langchain-reference.md) |
 | Size | M |
 
 ## Goal

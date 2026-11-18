@@ -8,7 +8,7 @@
       "notInPackage": []
     },
     "builtInMiddleware": {
-      "documented": 15,
+      "documented": 14,
       "actual": 21,
       "undocumented": [
         "anthropicPromptCachingMiddleware",
@@ -21,8 +21,10 @@
         "toolErrorMiddleware"
       ],
       "notInPackage": [
-        "createFilesystemMiddleware",
         "modelRefusalMiddleware"
+      ],
+      "fromOtherPackages": [
+        "createFilesystemMiddleware"
       ]
     },
     "createAgentOptions": {

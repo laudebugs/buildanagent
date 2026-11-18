@@ -1,6 +1,6 @@
 # Plan: a verified reference for every agent SDK, built with one repeatable process (Round S)
 
-- **Status:** In progress (S5 LangChain added 2026-11-18)
+- **Status:** Done (S5 LangChain added and finished 2026-11-18)
 - **Date:** 2026-11-18
 - **Asked for by:** the project owner (2026-11-18): fetch each SDK's docs, build a thorough reference, fact-check the docs, and find a way to verify the examples
 - **Builds on:**
@@ -96,7 +96,7 @@ The owner asked to add LangChain after the first four were done (2026-11-18).
 | S4a | Vercel AI SDK: mirror, verification harness and behavioral examples (done) | S3b |
 | S4b | Vercel AI SDK: guide and fact-check, written and reviewed (done) | S4a |
 | S5a | LangChain: mirror, verification harness and behavioral examples (done) | S4b |
-| S5b | LangChain: guide and fact-check, written and reviewed | S5a |
+| S5b | LangChain: guide and fact-check, written and reviewed (done) | S5a |
 
 ## 6. Risks
 

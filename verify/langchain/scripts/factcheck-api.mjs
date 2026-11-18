@@ -60,7 +60,17 @@ const index = await dts("langchain/dist/index.d.ts");
   const exported = [...index.matchAll(/\b([a-z]\w*Middleware)\b/g)]
     .map((m) => m[1])
     .filter((n) => n !== "createMiddleware");
-  checks.builtInMiddleware = diff(documented, exported);
+  // Factories the page imports from other packages (e.g. deepagents) are not langchain's.
+  const foreign = [...md.matchAll(/import \{([^}]+)\} from ["'](?!langchain["'])([^"']+)["']/g)].flatMap((m) =>
+    m[1].split(",").map((x) => x.trim()),
+  );
+  checks.builtInMiddleware = {
+    ...diff(
+      documented.filter((n) => !foreign.includes(n)),
+      exported,
+    ),
+    fromOtherPackages: uniq(documented.filter((n) => foreign.includes(n))),
+  };
 }
 
 // 3. createAgent options: top-level keys used in createAgent({ … }) across the JS docs, vs the
