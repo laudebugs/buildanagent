@@ -110,6 +110,10 @@ The owner asked whether GitHub Copilot keeps a copy of the change it is about to
 
 The owner asked what in humanlayer's [12-factor agents](https://github.com/humanlayer/12-factor-agents) is relevant for us. U9 read the essay at commit `d20c728` and mapped each factor onto our guides, plans and ADRs. [`twelve-factor-agents.md`](../research/external-designs/twelve-factor-agents.md) finds that the essay, which offers no measured evidence, confirms our core design (we align with 8 factors and partly with 4) and exposes one gap: how ticket and approval events reach the agent. Its five proposed plan changes are open for the next phase. Its fact-check is [`fact-check-twelve-factor-agents.md`](../research/external-designs/fact-check-twelve-factor-agents.md).
 
+### U10: Strands harness SDK (added 2026-11-18)
+
+The owner asked whether we had looked at [strands-agents/harness-sdk](https://github.com/strands-agents/harness-sdk); we had seen Strands only through unverified summary notes. U10 read the source at commit `84d814b` and the 0.4.0 release, and compared it with our harness plan and our eight verified SDKs. [`strands-harness-sdk.md`](../research/external-designs/strands-harness-sdk.md) finds that the repo is the whole Strands monorepo and that `createHarness()` is a thin factory over the SDK's `Agent`, with good interfaces and permissive defaults. It lists what our harness should copy and avoid, and recommends Strands as a ninth verified reference pinned from 2026-11-20. Its fact-check is [`fact-check-strands-harness-sdk.md`](../research/external-designs/fact-check-strands-harness-sdk.md); the earlier Strands claims are re-checked in the main report's fact-check log.
+
 ## 5. Todos
 
 | ID | Title | Depends on |
@@ -128,6 +132,7 @@ The owner asked what in humanlayer's [12-factor agents](https://github.com/human
 | U7 | Research agent rewind versus data rollback, and recommend rollback for the triage agent (done: [rewind-vs-rollback.md](../research/reversible-actions/rewind-vs-rollback.md)) | U6 |
 | U8 | Research whether Copilot holds a copy of a change for confirm or reject (done: [copilot-diff-review.md](../research/agent-ui/copilot-diff-review.md)) | U4 |
 | U9 | Research 12-factor agents and what is relevant for our stack (done: [twelve-factor-agents.md](../research/external-designs/twelve-factor-agents.md)) | None |
+| U10 | Research the Strands harness SDK against our design (done: [strands-harness-sdk.md](../research/external-designs/strands-harness-sdk.md)) | U9 |
 | G1b | Guide: building an agent SDK (done: [docs/guides/agent-sdk.md](../guides/agent-sdk.md)) | G1a, H3, R1 |
 | G2a | Deep research: building an agent harness (done) | G1a |
 | G2b | Guide: building an agent harness (done: [docs/guides/agent-harness.md](../guides/agent-harness.md)) | G2a, G1b, H3 |
