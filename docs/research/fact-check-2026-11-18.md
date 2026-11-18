@@ -152,3 +152,11 @@ Effect on the report's conclusions: none of the corrections reverses a conclusio
 | Claim | Was | Now | Source |
 | --- | --- | --- | --- |
 | SDKs with a default that reaches outside the process | Four of five (LangChain the exception) | Six of eight: adds Copilot (inherited environment, GitHub login, telemetry) and Cloudflare (`sendIdentityOnConnect`); LangChain and Google ADK are the exceptions | [deep comparison](../comparison/deep-comparison.md#six-of-eight-sdks-have-a-default-that-reaches-outside-your-process) |
+
+## Later closures
+
+Gaps that the research notes recorded and later work closed. Each note stays as written, and the row here records the closure.
+
+| Gap | Recorded in | Closure | Source |
+| --- | --- | --- | --- |
+| HumanLayer's "12-factor agents" could not be retrieved | [oss-frameworks](notes/oss-frameworks.md) (Gaps, line 162) | ✅ Closed by U9 (2026-11-18): read in a full clone of `humanlayer/12-factor-agents` at commit `d20c728` (2025-09-21, the tip of `main`) and mapped onto our plans in [the 12-factor agents report](external-designs/twelve-factor-agents.md), with its own [fact-check log](external-designs/fact-check-twelve-factor-agents.md). The essay supports the no-framework argument with practitioner experience but no measurements | [12-factor-agents at `d20c728`](https://github.com/humanlayer/12-factor-agents/tree/d20c728368bf9c189d6d7aab704744decb6ec0cc) |
