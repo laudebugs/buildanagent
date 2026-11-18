@@ -4,12 +4,23 @@
 //     catch-all; and `new Gemini(...)`-style instances get the scripted generateContentAsync too;
 //   - any non-local fetch, http or https request is rejected;
 //   - the number of model calls is written to $MOCK_LOG on exit.
+//   - Math.random is a seeded PRNG, so doc examples that simulate flaky services (graphs/retry) give the
+//     same outcome on every machine.
 import { writeFileSync } from "node:fs";
 import http from "node:http";
 import https from "node:https";
 import { syncBuiltinESMExports } from "node:module";
 import { ApigeeLlm, ChromeBuiltInLlm, Gemini, LLMRegistry, LogLevel, setLogLevel } from "@google/adk";
 import { respond, ScriptedLlm, stats } from "./scripted-llm.mjs";
+
+// mulberry32 with a fixed seed: deterministic, uniform enough for simulated failures.
+let seed = 0x5eed1234;
+Math.random = () => {
+  seed = (seed + 0x6d2b79f5) | 0;
+  let t = Math.imul(seed ^ (seed >>> 15), 1 | seed);
+  t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t;
+  return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+};
 
 const LOCAL = new Set(["localhost", "127.0.0.1", "::1", "[::1]"]);
 const blocked = (host) => new Error(`verify harness: network disabled (blocked ${host})`);

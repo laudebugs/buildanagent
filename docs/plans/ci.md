@@ -47,6 +47,7 @@ Once CI exists (X1), the nightly `verify.yml` also runs `pnpm audit --audit-leve
 | X2 | Dependency security: upgrade every vulnerable pin to its latest fixed release, re-verify, record accepted alerts (first pass done 2026-11-18) | None |
 | X1 | CI workflows for the checks and the scheduled verify (done) | None (scheduled after Round S by the owner) |
 | X3 | Run every harness's doc type-check on the root TypeScript 7.0.2; a stale 5.9.3 shim in the Cloudflare harness caused the runner drift (done) | X1 |
+| X4 | Seed `Math.random` in the Google ADK doc preload: `graphs/retry/get_started` fails at random by design and errored on the runner (done) | X3 |
 
 ## 5. Risks
 
