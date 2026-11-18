@@ -1,5 +1,7 @@
 # A19: Owner inputs: the priority policy, 30 labelled real tickets, judge and simulator models (AD6)
 
+> **Deferred (2026-11-18).** The owner chose a personal coding agent as the first agent on our stack, so this todo waits until the triage round resumes ([ADR 0032](../../decisions/0032-personal-coding-agent-first.md)). Do not start it before then.
+
 | Field | Value |
 | --- | --- |
 | ID | `A19` |

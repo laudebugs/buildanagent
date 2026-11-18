@@ -44,6 +44,7 @@ Build the tool runtime the loop dispatches to: definitions, schema handling and 
 - [ ] Write the D7 check: run both validators on those fixtures and on draft-07 output schemas; record results in `packages/sdk/docs/validator-check.md`.
 - [ ] If pi-schema fails a schema that the fallback passes, switch, and update ADR 0007.
 - [ ] Validate `outputTool` results and return schema failures to the model as `isError` results.
+- [ ] Load the chosen validator inside workerd (Cloudflare's runtime) in a smoke test; if pi-schema fails there, switch D7 to `@cfworker/json-schema` for every target (added 2026-11-18, [ADR 0033](../../decisions/0033-three-deployment-targets.md))
 
 ## Acceptance criteria
 

@@ -1,6 +1,6 @@
 # Plan: build our agent harness as four packages around one session log, in 41 todos that start on the SDK's seams
 
-- **Status:** Draft (P2, 2026-11-18), revised on 2026-11-18 with the fixes from the [P4 review](reviews/plan-review.md).
+- **Status:** Draft (P2, 2026-11-18), revised on 2026-11-18 with the fixes from the [P4 review](reviews/plan-review.md), and on 2026-11-18 for three deployment targets ([ADR 0033](../decisions/0033-three-deployment-targets.md), [coding agent plan §4](build-coding-agent.md#4-changes-to-the-sdk-and-harness-plans)): stage 8 (§4.8) adds todos N41–N49.
 - **Date:** 2026-11-18
 - **Asked for by:** the project owner (2026-11-18), through the [implementation plans](implementation-plans.md#2-what-each-plan-contains)
 - **Builds on:** the [harness guide][hg] (G2b), its [reference architecture][hg12] and its [twelve open decisions][hg13], and the [SDK plan][sdk] (P1), whose [seams][sdk34] this plan consumes by name
@@ -33,9 +33,9 @@ The goal covers every recommendation in the guide's design sections, §2 to §11
 **Non-goals.** These belong to other plans or later work, each for a stated reason:
 - **The loop, the gateway, tool validation, interceptors, signed pauses and the scripted model.** The SDK plan builds them; the harness only fills their seams ([SDK plan §1][sdk1]).
 - **Agent-product concerns:** the tier table, N-of-M quorum policies, the trusted run context's fields, provenance rules, cross-run counters and the shadow rollout. P3 decides them. The harness provides the hook each one needs (§3.7) and no policy.
-- **A WebSocket or HTTP-with-SSE transport.** The guide makes stdio JSONL the first remote transport; a network server waits for a client that needs one ([harness guide §8][hg8]).
+- **A WebSocket or HTTP-with-SSE transport, until 2026-11-18.** It moved into scope that day: the coding agent's CLI attaches to a Durable Object over WebSocket, so N44 adds the transport ([ADR 0033](../decisions/0033-three-deployment-targets.md)). The guide made stdio JSONL the first remote transport ([harness guide §8][hg8]), and stdio stays first.
 - **An MCP-server facade.** Codex ships none, and MCP lacks steering, session trees and approval replay; a thin `run_task` facade can follow a consumer ([harness guide §8][hg8]).
-- **gVisor, microVM and hosted sandbox backends.** The guide makes them adapters chosen by threat model, and the `SandboxClient` interface leaves room for them ([harness guide §6][hg6]).
+- **gVisor and self-run microVM backends.** The guide makes them adapters chosen by threat model, and the `SandboxClient` interface leaves room for them ([harness guide §6][hg6]). Hosted backends (Cloudflare Sandbox, E2B and Vercel Sandbox) left this list on 2026-11-18 and are todos N46b, N47b and N48b ([ADR 0033](../decisions/0033-three-deployment-targets.md)).
 - **TLS interception in the egress proxy.** The first proxy injects credentials through a local reverse-proxy route and filters HTTPS by name through `CONNECT`, so no per-session CA is needed yet (§2, HD15).
 - **A full-screen TUI, a SQLite listing projection and branch summaries.** The CLI is line-mode; listing scans JSONL headers until session counts make that slow; branch summaries need a tree-navigation UI, which P3 or later work owns ([harness guide §2][hg2]).
 - **The third host-tool pattern,** where a tool with no executor suspends the turn into continuation state. The SDK's `ToolResult.pause` carries only `clarification`, and the first two patterns serve every planned client ([interfaces note §9][n-if-9]). P4 dropped the matching SDK need for Rounds B and N (§3.6).
@@ -52,7 +52,7 @@ Three decisions merge with the SDK's. For each, this plan references P1's choice
 | HD2 | Lock primitive | An exclusive lock file with pid, host and a renewed lease; stale only when the lease has lapsed and the pid is gone; local disk only | Decided, provisional (N4) | [0014](../decisions/0014-session-writer-lock.md) |
 | HD3 | Default context layers and budget | Layers 1, 2, 3 and 5 on; layer 4 on only below 128K; budget `min(window − 16,384, 200,000)` | Decided, provisional (N39) | none: tunable defaults |
 | HD4 | Default sandbox backend | `srt` for interactive local runs, Docker for headless runs and evals; `none` only with an explicit unsafe flag | Accepted (owner, 2026-11-18) | [0020](../decisions/0020-default-sandbox-backend.md) |
-| HD5 | Approval signing key (with SDK D5) | The harness always passes `hmacSigner()` over a persistent, host-only key ring; every approval is a pause first | Accepted (owner, 2026-11-18) | [0015](../decisions/0015-harness-approval-key-ring.md) |
+| HD5 | Approval signing key (with SDK D5) | The harness always passes `hmacSigner()` over a persistent, host-only key ring; every approval is a pause first | Accepted (owner, 2026-11-18); storage and rotation revised by ADR 0035 | [0015](../decisions/0015-harness-approval-key-ring.md), superseded by [0035](../decisions/0035-read-only-key-store.md) |
 | HD6 | Protocol framing | Strict JSON-RPC 2.0 with the `jsonrpc` field; v1 ships twelve methods and three server requests | Decided | [0016](../decisions/0016-protocol-json-rpc-framing.md) |
 | HD7 | Telemetry commit and cost attribute (with SDK D3) | Pin semconv-genai `d28355d`; name cost `agent_speak.cost.usd` with `agent_speak.cost.basis`; sum classes only in the projection | Decided | [0017](../decisions/0017-telemetry-convention-pin-and-cost-attributes.md) |
 | HD8 | Eval suite seed | 30 tasks: 20 recreated real failures from this repo's history and 10 triage tasks shared with P3; k = 5 | Accepted (owner, 2026-11-18) | none: eval data |
@@ -80,6 +80,8 @@ Three decisions merge with the SDK's. For each, this plan references P1's choice
 
 **Evidence.** Codex returns `WouldBlock` to a second writer, and Pi uses lock files for its settings and trust stores, though not for sessions ([sessions note §5][n-sess-5]; [sessions note §1][n-sess-1]). OpenHands' `flock` "does NOT work reliably on NFS", and Node 22's `node:fs` exposes no `flock` call, so `flock` would need a native addon ([sessions note §6][n-sess-6]; [Node 22 fs API](https://nodejs.org/docs/latest-v22.x/api/fs.html)). An actor per session suits a server, which is a non-goal (§1). The 30-second lease mirrors OpenHands' 30-second lock timeout as a starting value ([sessions note §6][n-sess-6]). N4 runs the guide's settling test: it kills a writer with `SIGKILL` mid-append, and a new writer must then recover within one lease while readers load every complete entry.
 
+**Revision (2026-11-18).** `fileLock()` stays the local implementation. [ADR 0033](../decisions/0033-three-deployment-targets.md) adds off-host `SessionLock` implementations (a Durable Object, a DynamoDB lease row and a Postgres lease row, in N46a, N47a and N48a), which treat a lapsed lease as the only staleness signal; the dead-pid check applies on the same host only. Renewal moves onto `Scheduler.wake` (N41).
+
 ### HD3. Layers 1, 2, 3 and 5 on by default, and a budget capped at 200K tokens (provisional)
 
 **Options.** Which of the five layers are on for 128K+ models, and where the default budget sits below the window ([harness guide §13, decision 3][hg13]).
@@ -102,7 +104,7 @@ Three decisions merge with the SDK's. For each, this plan references P1's choice
 
 ### HD5. The harness always passes `hmacSigner()` over a persistent key ring (accepted, with SDK D5)
 
-**Accepted by the owner on 2026-11-18.**
+**Accepted by the owner on 2026-11-18.** **Revision (2026-11-18):** [ADR 0035](../decisions/0035-read-only-key-store.md), also accepted by the owner, supersedes ADR 0015. It makes `KeyStore.rotate()` and `prune()` optional so a read-only cloud secret can back the ring; the rest of this decision stands (N42).
 
 [SDK D5][sdk-d5] covers the SDK side: key-id signers, an `ephemeralSigner()` default and a fail-closed resume.
 
@@ -335,6 +337,13 @@ declare function runTurn<H>(session: Session, harness: Harness<H>, options: Turn
 // then turn_start with the system prompt, block entries on model_call_end, tool_result on tool_call_end, usage, turn_end.
 ```
 
+**Revision (2026-11-18): `Scheduler`.** Off-host hosts cannot keep a timer alive between requests, so todo N41 adds one seam beside `SessionStore` and `SessionLock` ([storage-and-wake note](../research/deployment/storage-and-wake.md)):
+
+```ts
+interface Scheduler { wake(at: Date, sessionId: string): Promise<void>; cancel(sessionId: string): Promise<void> } // at-least-once
+declare function processScheduler(): Scheduler; // local default; DO alarms, EventBridge Scheduler and Workflow sleep in N46a–N48a
+```
+
 ### 3.3 Context policy and tool registry APIs
 
 ```ts
@@ -475,6 +484,8 @@ interface EgressProxy {
 declare function startEgressProxy(options: { allow: string[]; routes?: CredentialRoute[]; log: (r: EgressRecord) => void }): Promise<EgressProxy>;
 declare function scrubSecrets(entry: SessionEntry, secrets: readonly string[]): SessionEntry; // applied before every append
 ```
+
+**Revision (2026-11-18): remote backends.** Todo N43 extends `SandboxClient` with `resume(id)`, `snapshot` and `pause` capability flags, `stops` computed from the applied policy and a post-provision policy read-back, and replaces the proxy URL with an `EgressPolicy { allow, routes }` that each backend compiles: the HD15 proxy locally, `outboundByHost` on Cloudflare, egress Secrets on E2B and the firewall `transform` on Vercel, where `subnets.allow` is banned ([portable agents report](../research/deployment/portable-agents.md#four-hosted-sandboxes-meet-our-three-hard-rules-and-e2b-should-come-first)). N42 makes `KeyStore.rotate()` and `prune()` optional, as ADR 0035 decides.
 
 ### 3.5 Extension, protocol, telemetry, eval and ablation APIs
 
@@ -690,10 +701,29 @@ The guide says to start with the log, because context layers, pauses, replay, th
 | [N36](../todos/ready/N36-eval-reports-replay.md) | Eval package: reports, mini-swe-agent trajectories and the offline replay suite | N35 | M |
 | [N37](../todos/ready/N37-inspect-bridge.md) | Inspect bridge and the baseline runner (opt-in) | N36, N17 | M |
 | [N38](../todos/ready/N38-seed-suite-baseline.md) | Seed suite of 20 repository tasks and the first baseline run (HD8) | N37 | M |
-| [N38b](../todos/ready/N38b-shared-triage-tasks.md) | Add the 10 shared triage tasks to the seed suite (HD8) | N38, A17, A19 | M |
+| [N38b](../todos/ready/N38b-shared-triage-tasks.md) | Add the 10 shared triage tasks to the seed suite (HD8); deferred with the triage round ([ADR 0032](../decisions/0032-personal-coding-agent-first.md)) | N38, A17, A19 | M |
 | [N39](../todos/ready/N39-ablation-runs.md) | Ablation and tuning runs: HD3, HD9, HD12 and SDK D11 | N38 | M |
 
 No todo is size L. The longest dependency chain runs N1 → N2 → N3 → N4 → N5 → N6 → N7 → N13 → N28 → N29 → N35 → N36 → N37 → N38 → N39, fifteen todos. Two branches tie it: N7 → N27 → N28, and the branch that ends in N38b, which also waits for A17 and A19 from Round A. Stages 4 and 5, N26 and N40 run beside it.
+
+### 4.8 Stage 8 makes the harness portable to Cloudflare, AWS and Vercel (added 2026-11-18)
+
+[ADR 0033](../decisions/0033-three-deployment-targets.md) requires the harness to run on local Node, Cloudflare, AWS and Vercel, proved by one conformance suite. The [coding agent plan §4](build-coding-agent.md#4-changes-to-the-sdk-and-harness-plans) maps each of U11's adopted changes to a todo.
+
+| Todo | Delivers | Depends on | Size |
+| --- | --- | --- | --- |
+| [N41](../todos/ready/N41-scheduler-wake.md) | `Scheduler.wake` seam and its in-process implementation | N4 | S |
+| [N42](../todos/ready/N42-read-only-key-store.md) | Optional `rotate()` and `prune()`, and a secret-backed `KeyStore` | N13 | S |
+| [N43](../todos/ready/N43-remote-sandbox-egress-policy.md) | Remote `SandboxClient` extensions and `EgressPolicy` compiled per backend | N15, N20 | M |
+| [N44](../todos/ready/N44-web-stream-websocket-transport.md) | stdio over Web streams and a WebSocket transport | N29 | M |
+| [N45](../todos/ready/N45-portability-conformance-suite.md) | One conformance suite over the seven portable seams | N41, N42, N43, N44 | M |
+| [N46a](../todos/ready/N46a-cloudflare-state-adapters.md) | Cloudflare store, lock, scheduler, key store and workerd smoke test | N45 | M |
+| [N46b](../todos/ready/N46b-cloudflare-sandbox-backend.md) | Cloudflare Sandbox backend and `outboundByHost` egress | N45 | M |
+| [N47a](../todos/ready/N47a-aws-state-adapters.md) | DynamoDB store and lock, EventBridge Scheduler wake, Secrets Manager key store | N45 | M |
+| [N47b](../todos/ready/N47b-e2b-sandbox-backend.md) | E2B backend and egress Secrets | N45 | M |
+| [N48a](../todos/ready/N48a-vercel-state-adapters.md) | Postgres store and lock, Workflow wake, environment key store | N45 | M |
+| [N48b](../todos/ready/N48b-vercel-sandbox-backend.md) | Vercel Sandbox backend and firewall `transform` | N45 | M |
+| [N49](../todos/ready/N49-hosted-sandbox-measurement.md) | Cold start, snapshot and per-call overhead on the hosted backends | N46b, N47b, N48b, N19 | S |
 
 ## 5. Test strategy
 
