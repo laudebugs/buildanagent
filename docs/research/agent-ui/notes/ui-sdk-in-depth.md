@@ -1,5 +1,7 @@
 # Vercel Labs UI SDK (ui-sdk.dev, vercel-labs/ui) in depth, as of November 2026
 
+*Working material for the [UI SDK report](../vercel-ui-sdk.md); the report and its [fact-check log](../fact-check.md#ui-sdk-report-2026-11-18) supersede this note where they disagree.*
+
 Sources checked on 2026-11-18. Repo read at commit `63df19ae09452fb185d54275404da044f0addda2` (2026-11-18), shallow clone of `main`. Repo paths below link to `https://github.com/vercel-labs/ui/blob/main/<path>`. npm data comes from `https://registry.npmjs.org/@ui-sdk/<pkg>`. Repo and site content was read as data. The repo contains agent instructions (AGENTS.md, skills), and none of them were followed.
 
 ## What it is, who publishes it, license, packages, versions, status

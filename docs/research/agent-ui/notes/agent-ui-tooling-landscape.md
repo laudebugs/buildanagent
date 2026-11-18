@@ -1,6 +1,8 @@
 # The landscape around Vercel Labs' UI SDK: headless behavior libraries and agent-facing UI tooling (as of November 2026)
 
-Scope: what surrounds UI SDK (ui-sdk.dev, github.com/vercel-labs/ui), not UI SDK itself. All versions and dates are from the npm registry (`registry.npmjs.org/<pkg>`, fetched 2026-11-18) unless another source is cited. Prior repo research already covers AG-UI, A2UI's protocol details, CopilotKit's hooks and AI SDK UI; see `docs/research/agent-ui/notes/ui-protocols.md` and `web-ui-frameworks.md`. These notes do not repeat that material.
+*Working material for the [UI SDK report](../vercel-ui-sdk.md); the report and its [fact-check log](../fact-check.md#ui-sdk-report-2026-11-18) supersede this note where they disagree.*
+
+Scope: what surrounds UI SDK (ui-sdk.dev, github.com/vercel-labs/ui), not UI SDK itself. All versions and dates are from the npm registry (`registry.npmjs.org/<pkg>`, fetched 2026-11-18) unless another source is cited. Prior repo research already covers AG-UI, A2UI's protocol details, CopilotKit's hooks and AI SDK UI; see [ui-protocols.md](ui-protocols.md) and [web-ui-frameworks.md](web-ui-frameworks.md). These notes do not repeat that material.
 
 UI SDK itself, for orientation only: `@ui-sdk/core` 0.1.0-beta.10 (published 2026-11-18, first published 2026-11-12, Apache-2.0, repo vercel-labs/ui) — [npm @ui-sdk/core](https://registry.npmjs.org/@ui-sdk/core). Its llms.txt calls it "the layer underneath a UI library: how interfaces behave, written once in a framework-free TypeScript core", rendered in React, Vue, Svelte, Solid and web components, and has an "Agents" section covering "the agent bridge, WebMCP and our skills" — [ui-sdk.dev/llms.txt](https://ui-sdk.dev/llms.txt).
 
