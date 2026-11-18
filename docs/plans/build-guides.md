@@ -114,6 +114,10 @@ The owner asked what in humanlayer's [12-factor agents](https://github.com/human
 
 The owner asked whether we had looked at [strands-agents/harness-sdk](https://github.com/strands-agents/harness-sdk); we had seen Strands only through unverified summary notes. U10 read the source at commit `84d814b` and the 0.4.0 release, and compared it with our harness plan and our eight verified SDKs. [`strands-harness-sdk.md`](../research/external-designs/strands-harness-sdk.md) finds that the repo is the whole Strands monorepo and that `createHarness()` is a thin factory over the SDK's `Agent`, with good interfaces and permissive defaults. It lists what our harness should copy and avoid, and recommends Strands as a ninth verified reference pinned from 2026-11-20. Its fact-check is [`fact-check-strands-harness-sdk.md`](../research/external-designs/fact-check-strands-harness-sdk.md); the earlier Strands claims are re-checked in the main report's fact-check log.
 
+### U11: Portable agents and cloud coding (added 2026-11-18)
+
+The owner wants the SDK and harness to deploy anywhere (Cloudflare, AWS, GCP, Azure, Vercel) with a bring-your-own model key, asked about a cloud coding agent like Claude Code on the web, and asked whether WebContainers could host agents. U11 found that the SDK already travels and the harness is tied to one host in six places. Two of the seven seams it needs already exist as interfaces in the harness plan; the others, led by `Scheduler.wake`, are new. It ranks hosted sandboxes (E2B, then Cloudflare Sandbox, then Vercel Sandbox) against our three hard rules, describes a cloud coding agent as a control plane around a disposable VM, keeps WebContainers to a relayed interactive backend, and proposes fifteen plan changes for the owner. A companion note, [storage-and-wake.md](../research/deployment/storage-and-wake.md), defines the storage-and-wake problem behind the seams. The round also corrected R1's Daytona isolation claim in the [harness fact-check](../research/agent-harness/fact-check.md).
+
 ## 5. Todos
 
 | ID | Title | Depends on |
@@ -133,6 +137,7 @@ The owner asked whether we had looked at [strands-agents/harness-sdk](https://gi
 | U8 | Research whether Copilot holds a copy of a change for confirm or reject (done: [copilot-diff-review.md](../research/agent-ui/copilot-diff-review.md)) | U4 |
 | U9 | Research 12-factor agents and what is relevant for our stack (done: [twelve-factor-agents.md](../research/external-designs/twelve-factor-agents.md)) | None |
 | U10 | Research the Strands harness SDK against our design (done: [strands-harness-sdk.md](../research/external-designs/strands-harness-sdk.md)) | U9 |
+| U11 | Research portable deployment and cloud coding agents (done: [portable-agents.md](../research/deployment/portable-agents.md)) | U10 |
 | G1b | Guide: building an agent SDK (done: [docs/guides/agent-sdk.md](../guides/agent-sdk.md)) | G1a, H3, R1 |
 | G2a | Deep research: building an agent harness (done) | G1a |
 | G2b | Guide: building an agent harness (done: [docs/guides/agent-harness.md](../guides/agent-harness.md)) | G2a, G1b, H3 |
