@@ -100,7 +100,7 @@ The owner asked whether each SDK should be documented in its primary language. T
 
 ### S7 Google Agent Development Kit (added 2026-11-18)
 
-- **Packages:** `@google/adk` (Apache-2.0; at S7a, pin the newest release at least one week old, following the 2026-11-18 policy change), with `@google/genai` as its model layer. Python is the primary language (`google-adk` 2.14.1 on PyPI), so this reference carries the parity section.
+- **Packages:** `@google/adk@2.5.0` (Apache-2.0, published 2026-11-12). The owner chose this pin on 2026-11-18, overriding the one-week rule by one day, with `@google/genai` as its model layer. Python is the primary language (`google-adk` 2.14.1 on PyPI), so this reference carries the parity section.
 - **Docs:** `google.github.io/adk-docs` renders from `google/adk-docs` (check its license); the `google/adk-js` repo holds the TS source and samples. Mirror the TypeScript pages and samples at a recorded commit or tag.
 - **Test model:** look for a first-party fake `BaseLlm` in `@google/adk`; otherwise script one.
 - **Behaviors to verify:** `LlmAgent` with function tools, sequential, parallel and loop workflow agents, the graph workflow runtime in 2.x, sessions and state, callbacks (before/after model and tool), structured output, and human-in-the-loop.
@@ -108,7 +108,7 @@ The owner asked whether each SDK should be documented in its primary language. T
 
 ### S8 GitHub Copilot SDK (added 2026-11-18)
 
-- **Packages:** `@github/copilot-sdk` (MIT; at S8a, pin the newest release at least one week old), described as a "TypeScript SDK for programmatic control of GitHub Copilot CLI via JSON-RPC". It drives `@github/copilot` (the CLI, 1.0.105 at the cutoff), whose license is GitHub's own ("SEE LICENSE IN LICENSE.md").
+- **Packages:** `@github/copilot-sdk@1.0.31` (MIT, published 2026-11-10), with the CLI `@github/copilot@1.0.109`, described as a "TypeScript SDK for programmatic control of GitHub Copilot CLI via JSON-RPC". It drives `@github/copilot` (the CLI, 1.0.105 at the cutoff), whose license is GitHub's own ("SEE LICENSE IN LICENSE.md").
 - **Shape:** like the Claude Agent SDK, the SDK spawns a CLI that owns the loop, so the harness likely mocks the model API the CLI calls, or the JSON-RPC boundary, rather than an in-process model. Find the CLI's model endpoint override first.
 - **Docs:** the `github/copilot-agent-runtime` repo (the SDK's repository field) and GitHub's docs pages. Commit the mirror only if the license allows; otherwise gitignore it, as for Claude.
 - **Language:** TypeScript first; record the other official languages, if any, in the parity section.
