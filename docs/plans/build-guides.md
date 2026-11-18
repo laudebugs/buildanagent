@@ -102,6 +102,10 @@ The owner asked how sagas and compensation work for agent actions that span seve
 
 The owner asked how LangGraph checkpoints and time travel, Pi session forks, Claude Code checkpoints and rewind, and ADK session rewind work, why they don't undo external writes, and what our SDKs and plans expose, ending with a recommendation for the triage agent. U7 researched it in two parts and built on U4–U6. [`rewind-vs-rollback.md`](../research/reversible-actions/rewind-vs-rollback.md) finds that every rewind restores only state its framework owns and that neither the SDKs nor our plans roll back external data. It recommends undo windows for triage writes and internal notes, approval first for escalations, replies and refunds, a saga only once refunds open, and rollbacks logged as new linked entries with an outcome on every write. Its fact-check is [`fact-check-rewind.md`](../research/reversible-actions/fact-check-rewind.md); the plan changes it implies are open for the next phase.
 
+### U8: Copilot diff review and confirm (added 2026-11-18)
+
+The owner asked whether GitHub Copilot keeps a copy of the change it is about to commit, edits that copy, and lets the user confirm or reject the diff. U8 checked the VS Code source and docs and the Copilot CLI, SDK runtime, Visual Studio, JetBrains and cloud agent. [`copilot-diff-review.md`](../research/agent-ui/copilot-diff-review.md) finds that every local Copilot surface writes first and keeps the pre-edit text for review; only the runtime's per-call `write` permission request and the cloud agent's draft pull request hold a change back.
+
 ## 5. Todos
 
 | ID | Title | Depends on |
@@ -118,6 +122,7 @@ The owner asked how LangGraph checkpoints and time travel, Pi session forks, Cla
 | U5 | Research server-side rollback for agent tool calls (done: [server-rollback.md](../research/reversible-actions/server-rollback.md)) | None |
 | U6 | Research sagas and compensation for multistep agent actions (done: [sagas.md](../research/reversible-actions/sagas.md)) | None |
 | U7 | Research agent rewind versus data rollback, and recommend rollback for the triage agent (done: [rewind-vs-rollback.md](../research/reversible-actions/rewind-vs-rollback.md)) | U6 |
+| U8 | Research whether Copilot holds a copy of a change for confirm or reject (done: [copilot-diff-review.md](../research/agent-ui/copilot-diff-review.md)) | U4 |
 | G1b | Guide: building an agent SDK (done: [docs/guides/agent-sdk.md](../guides/agent-sdk.md)) | G1a, H3, R1 |
 | G2a | Deep research: building an agent harness (done) | G1a |
 | G2b | Guide: building an agent harness (done: [docs/guides/agent-harness.md](../guides/agent-harness.md)) | G2a, G1b, H3 |
