@@ -23,6 +23,7 @@ Instructions for AI coding agents (Claude Code, Codex, OpenCode, Pi, etc.) worki
   - `reversible-actions/`: making agent actions safe to fail, retry or reverse: server-side rollback (`server-rollback.md`), sagas for multistep actions (`sagas.md`) and agent rewind versus data rollback (`rewind-vs-rollback.md`). Each report has its own `fact-check-*.md`.
   - `external-designs/`: outside agent designs read against our own: 12-factor agents (`twelve-factor-agents.md`) and the Strands harness SDK (`strands-harness-sdk.md`). Each report has its own `fact-check-*.md`.
   - `deployment/`: deploying our agents anywhere: portable agents and cloud coding agents (`portable-agents.md`), the storage-and-wake problem behind its seams (`storage-and-wake.md`), and the market for agent-building platforms (`agent-building-platforms.md`). Each report has its own `fact-check-*.md`.
+  - `connectors/`: connectors for our agents and platform (`agent-connectors.md`): how platforms offer them, MCP authorization and token custody, build-or-buy infrastructure and a recommended design. It has its own `fact-check-*.md`.
   - `harness-architectures.md`: source-level notes on Pi, Codex, OpenAI Agents SDK sandbox agents and Cloudflare Agents/Think.
   - `fact-check-2026-11-18.md`: verification log for the main report.
   - `notes/`: raw research notes behind the report. Treat them as working material; the report and fact-check log supersede them where they disagree.

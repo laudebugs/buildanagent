@@ -122,6 +122,10 @@ The owner wants the SDK and harness to deploy anywhere (Cloudflare, AWS, GCP, Az
 
 The owner proposed an agent that builds agents: a platform that turns a description into an agent, tests it, and deploys it to the user's own cloud with the user's own model key. U12 mapped what vendor platforms, low-code builders, developer hosting platforms and agent-generation research offer as of November 2026. Every builder now generates agents from a description, but almost all of them emit vendor configuration for their own runtime. Code the user owns is rare, no builder deploys to Cloudflare Workers or Vercel, and no product tests a generated agent before showing it. Approvals are unsigned everywhere, and no product undoes side effects. The report recommends a first slice: one agent type with approval-gated writes, generated against the verified Cloudflare `agents` 0.33.0, checked by our verification corpus before the first deploy, and deployed into the user's Cloudflare account under their own key. Opening a plan for that slice is an owner decision.
 
+### U14: Agent connectors (added 2026-11-18)
+
+The owner asked how other agent platforms offer connectors (integrations a user adds so the agent can read and act in other apps) and whether we already have them. U14 surveyed ten platforms, the MCP 2026-07-28 authorization and security model, and the infrastructure we could buy or build on, and mapped our own plans. Our harness plans an MCP client but no connector: no catalog, no per-user OAuth, no token vault, no pinning of tool definitions. The report recommends a connector that is a catalog record for a remote MCP server with pinned tool definitions, per-user OAuth following the 2026-07-28 revision with a legacy fallback, tokens in a host-side vault that feeds the HD15 credential proxy, and write tools that ask before they act, built on open-source kits with self-hosted Nango and Arcade as fallbacks. It lists fifteen plan changes and todos for the owner to decide.
+
 ## 5. Todos
 
 | ID | Title | Depends on |
@@ -143,6 +147,7 @@ The owner proposed an agent that builds agents: a platform that turns a descript
 | U10 | Research the Strands harness SDK against our design (done: [strands-harness-sdk.md](../research/external-designs/strands-harness-sdk.md)) | U9 |
 | U11 | Research portable deployment and cloud coding agents (done: [portable-agents.md](../research/deployment/portable-agents.md)) | U10 |
 | U12 | Map the agent-building platform market (done: [agent-building-platforms.md](../research/deployment/agent-building-platforms.md)) | U11 |
+| U14 | Research connectors for our agents and platform (done: [agent-connectors.md](../research/connectors/agent-connectors.md)) | U12 |
 | G1b | Guide: building an agent SDK (done: [docs/guides/agent-sdk.md](../guides/agent-sdk.md)) | G1a, H3, R1 |
 | G2a | Deep research: building an agent harness (done) | G1a |
 | G2b | Guide: building an agent harness (done: [docs/guides/agent-harness.md](../guides/agent-harness.md)) | G2a, G1b, H3 |
