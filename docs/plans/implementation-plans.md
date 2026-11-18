@@ -1,6 +1,6 @@
 # Plan: turn the build guides into detailed, reviewed plans for our SDK, harness and agent (Round P)
 
-- **Status:** In progress (P1)
+- **Status:** In progress (P1 done: [build-sdk.md](build-sdk.md); P2 next)
 - **Date:** 2026-11-18
 - **Asked for by:** the project owner (2026-11-18): break the research into very detailed plans, and review every plan
 - **Builds on:** the three [build guides](build-guides.md) (Round G)
@@ -34,7 +34,7 @@ The findings and fixes go into `docs/plans/reviews/plan-review.md`. The phase en
 
 | ID | Title | Depends on |
 | --- | --- | --- |
-| P1 | Plan: our agent SDK | G1b |
+| P1 | Plan: our agent SDK (done: [build-sdk.md](build-sdk.md), [ADRs](../decisions/README.md), todos B1–B20) | G1b |
 | P2 | Plan: our agent harness | G2b, P1 |
 | P3 | Plan: our agent | G3b, P2 |
 | P4 | Review all three plans together, and fix the findings | P1, P2, P3 |
@@ -45,4 +45,5 @@ The findings and fixes go into `docs/plans/reviews/plan-review.md`. The phase en
 
 ## 6. Open questions
 
-- None yet; Round G will raise them.
+- **For the owner, from P1** ([build-sdk.md §2](build-sdk.md#2-decisions)): D2, the first two wire protocols (Anthropic Messages and OpenAI-compatible Chat Completions, Responses deferred); D5, the approval signing key, decided together with P2; D8, starting at 0.x with `private: true`.
+- **For P2, from P1:** use the seam names in [build-sdk.md §3.4](build-sdk.md) as written; `Cost.total` is `number | null`; check whether the `context_transformed` event carries enough for a compaction log entry.

@@ -12,4 +12,4 @@ New todos start from [`TEMPLATE.md`](TEMPLATE.md), and each plan lists its todos
 
 ## IDs
 
-`S` [SDK references](../plans/sdk-references.md), `C` [SDK comparison](../plans/sdk-comparison.md), `K` [agent skills](../plans/agent-skills.md), `G` [build guides](../plans/build-guides.md), `P` [implementation plans](../plans/implementation-plans.md), `X` [CI](../plans/ci.md). A letter suffix (`S3a`, `S3b`) splits a round into todos.
+`S` [SDK references](../plans/sdk-references.md), `C` [SDK comparison](../plans/sdk-comparison.md), `K` [agent skills](../plans/agent-skills.md), `G` [build guides](../plans/build-guides.md), `P` [implementation plans](../plans/implementation-plans.md), `H` and `R` [build guides](../plans/build-guides.md) (Hacker News research and re-verification), `X` [CI](../plans/ci.md), `B` [build our SDK](../plans/build-sdk.md). A letter suffix (`S3a`, `S3b`) splits a round into todos.

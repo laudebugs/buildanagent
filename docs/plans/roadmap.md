@@ -50,6 +50,7 @@ agent-speak ends this phase with four things:
 | M3 Build guides (done 2026-11-18) | G1–G3, H1–H3, R1 | Researched guides to building an agent SDK, a harness and an agent, informed by the Hacker News practitioner research and with secondary claims re-checked against primary sources |
 | X CI and dependency security (done 2026-11-18) | X1, X2 | Checks on every push, a nightly verify with drift and audit gates, and Dependabot scoped to our manifests |
 | M4 Reviewed plans | P1–P4 | Detailed implementation plans, reviewed together, ready for the build phase |
+| M5 Our agent SDK (next phase) | B1–B20 | `@agent-speak/gateway` and `@agent-speak/sdk` in `packages/`, built from [build-sdk.md](build-sdk.md) once P4 accepts it |
 
 ## How each todo is worked
 
