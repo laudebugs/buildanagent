@@ -1,5 +1,7 @@
 # Open protocols and vendor standards for carrying agent UI (backend to frontend), as of November 2026
 
+*Working material for the [agent UI synthesis](../agent-ui-research.md); the synthesis and its [fact-check log](../fact-check.md) supersede this note where they disagree.*
+
 Method note: every page below was fetched with curl on 2026-11-18. Package versions and dates come from the npm registry (`registry.npmjs.org/<pkg>`) and the PyPI JSON API. The GitHub REST API was not reachable from this session, so I took release dates from npm, PyPI and changelogs committed to the repos. Every claim cites a primary source unless it is marked **[secondary]**.
 
 ## AG-UI (Agent-User Interaction Protocol): events, transports, interrupts, adoption

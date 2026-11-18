@@ -60,7 +60,7 @@ A script compares the documented surface with the package's `.d.ts` files (`scri
 | `createSession` config | 22 in the README | 98 | 42 of the other 76 appear on some page, such as `availableTools`, `mcpServers` and `streaming`; 34 appear on none, such as `toolSearch`, `onEvent` and `managedSettings` (F7) |
 | Client methods | 11 | 19 | README omits 8, such as `getAuthStatus`, `listModels` and `rpc` |
 | Session methods | 13 | 21 | README omits 8, such as `getRawEvents`, `log` and `rpc` |
-| Event types | 50 | 191 typed | 141 typed events are undocumented; 10 emitted `model.*` types are not typed at all (F6) |
+| Event types | 50 | 154 in the `SessionEvent` union | Most typed events are undocumented; 10 emitted `model.*` types are not typed at all (F6). The first version said 191 typed and 141 undocumented; see the correction below |
 | Tool fields | 11 | 12 | `namespace` is undocumented |
 | Permission result kinds | 7 | 8 | `approve-read-only-for-session` is undocumented; 9 legacy past-tense kinds are also accepted |
 | Permission request kinds | 8 | 12 | `workflow` and three `extension-*` kinds are undocumented |
@@ -117,7 +117,7 @@ Example 06 also shows a behavior the docs leave out: custom tools are gone after
 
 **F4. The hook pages return `null`, which the handler types reject and the runtime accepts.** The TypeScript blocks in `docs/hooks/*.md` and `docs/features/hooks.md` contain 50 `return null` statements. Every hook handler type returns `Output | void` (for example `PreToolUseHandler`, `dist/types.d.ts:1373`), so strict TypeScript reports TS2322: 51 errors in 37 blocks across both passes. The hidden signature blocks on the same pages declare `Promise<Output | null | undefined>`, so the docs and the types disagree outright. At runtime, `null` behaves like no output: example 08 returns `null` from both hooks, and the turn completes normally. Either the types should allow `null`, or the docs should return `undefined`.
 
-**F6. The runtime emits ten `model.*` event types that `SessionEvent` doesn't include.** A plain turn delivers `model.turn_started`, `model.log`, `model.call_start`, `model.model_call_started`, `model.model_call_success`, `model.message`, `model.response`, `model.call_final_result`, `model.turn_ended` and `model.messages_snapshot` to `session.on(handler)`. None appears among the 191 typed event types in `dist/generated/session-events.d.ts`, and no doc page mentions them. A `switch (event.type)` that TypeScript treats as exhaustive therefore meets undeclared values. Example 01 prints the observed types, and `results/factcheck-api.json` lists the gap. I saw these events with the BYOK Anthropic provider and the mock; whether GitHub-hosted models produce the same set is unverified.
+**F6. The runtime emits ten `model.*` event types that `SessionEvent` doesn't include.** A plain turn delivers `model.turn_started`, `model.log`, `model.call_start`, `model.model_call_started`, `model.model_call_success`, `model.message`, `model.response`, `model.call_final_result`, `model.turn_ended` and `model.messages_snapshot` to `session.on(handler)`. None appears among the 154 members of the `SessionEvent` union in `dist/generated/session-events.d.ts`, and no doc page mentions them. A `switch (event.type)` that TypeScript treats as exhaustive therefore meets undeclared values. Example 01 prints the observed types, and `results/factcheck-api.json` lists the gap. I saw these events with the BYOK Anthropic provider and the mock; whether GitHub-hosted models produce the same set is unverified.
 
 ### Doc gaps
 
@@ -151,6 +151,8 @@ The S8a harness produced nine draft findings (`verify/copilot-sdk/results/findin
 | (new) F10 | | Hook examples match `shell`, `read_file` and other names absent from the runtime's tool list | The probe above; `grep` over the mirror |
 
 F1 and F7 needed no change. The draft numbering is kept, so F10 follows F9.
+
+**Later correction (2026-11-18, agent UI research U1).** Tier 3's event-type count was 191 typed with 141 undocumented. `scripts/factcheck-api.mjs` counted every `type: "…"` literal in `dist/generated/session-events.d.ts`, including those in nested shapes. The `SessionEvent` union itself has 154 members (`session-events.d.ts:12`), so the row now says 154, and the undocumented count, which was derived from 191, is no longer stated as a number. The finding it supports (most events are undocumented, and ten emitted `model.*` types are untyped) is unchanged. Found by the [agent UI fact-check](../../research/agent-ui/fact-check.md).
 
 ## What we could not verify
 

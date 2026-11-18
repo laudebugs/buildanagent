@@ -1,5 +1,7 @@
 # UI-facing contracts of the eight verified agent SDKs (as of November 2026)
 
+*Working material for the [agent UI synthesis](../agent-ui-research.md); the synthesis and its [fact-check log](../fact-check.md) supersede this note where they disagree.*
+
 Scope: what each SDK gives a UI to render, read from the installed type declarations and the mirrored docs at the versions pinned in `verify/<sdk>/package.json`. Pins: `@anthropic-ai/claude-agent-sdk` 0.3.327; `@earendil-works/pi-*` 1.5.2 (incl. `pi-tui` 1.5.2); `@openai/agents` 0.21.0 (+ `agents-extensions`, `agents-realtime` 0.21.0); `ai` 7.0.162; `langchain` 1.6.1 / `@langchain/langgraph` 1.6.0 (with `@langchain/langgraph-sdk` 1.12.10 and `@langchain/protocol` 0.0.20 installed transitively, not pinned by us); `agents` 0.33.0 / `@cloudflare/ai-chat` 0.12.2 / `@cloudflare/think` 0.23.0; `@google/adk` 2.5.0; `@github/copilot-sdk` 1.0.31.
 
 Citation convention: `verify/...` and `docs/...` paths are relative to the repo root `/home/user/agent-speak`; `file:line` points at the installed `.d.ts`. `node_modules/.pnpm/<pkg>` refers to the pnpm store at the repo root. Upstream doc URLs are given with the tag or commit from the mirror's `source/_manifest.json`. Nothing here was run against a real model; claims come from types and docs unless marked [verified] (backed by the repo's behavioral examples via its guides).

@@ -1,5 +1,7 @@
 # Web/React frameworks and libraries for agent and chat UIs (as of November 2026)
 
+*Working material for the [agent UI synthesis](../agent-ui-research.md); the synthesis and its [fact-check log](../fact-check.md) supersede this note where they disagree.*
+
 Scope: how each library implements its UI — client state model, wire format, tool/generative UI, human-in-the-loop (HITL), resumable streams, shared state, persistence, backends, license, version. Versions come from the npm/PyPI registries fetched on 2026-11-18. Doc pages were fetched the same day; mirrored pages cite the upstream tag/commit recorded in this repo's `docs/reference/<sdk>/source/_manifest.json`.
 
 Source note: the GitHub API was not reachable from this session (403 from the session proxy), so star counts and GitHub release lists are missing. Raw files from raw.githubusercontent.com, the npm registry, PyPI and the docs sites were reachable.
