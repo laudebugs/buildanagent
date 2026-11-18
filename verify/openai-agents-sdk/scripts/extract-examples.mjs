@@ -45,6 +45,14 @@ const manifest = [];
 
 // 1. The example files, layout preserved.
 await cp(examplesDir, join(outDir, "examples"), { recursive: true });
+// Upstream only type-checks these files; to run them, mark the copied packages as ESM, as a
+// reader's own project would be (top-level await needs it).
+for await (const f of walk(join(outDir, "examples"))) {
+  if (!f.endsWith("package.json")) continue;
+  const pkg = JSON.parse(await readFile(f, "utf8"));
+  await writeFile(f, JSON.stringify({ ...pkg, type: "module" }, null, 2));
+}
+await writeFile(join(outDir, "examples/package.json"), JSON.stringify({ private: true, type: "module" }));
 for await (const f of walk(examplesDir)) {
   if (!f.endsWith(".ts")) continue;
   const rel = relative(examplesDir, f);
