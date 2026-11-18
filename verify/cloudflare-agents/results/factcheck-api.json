@@ -1,0 +1,142 @@
+{
+  "baseMembers": {
+    "Agent": 161,
+    "AIChatAgent": 216,
+    "Think": 312,
+    "McpAgent": 184
+  },
+  "members": {
+    "usedNames": 149,
+    "notInPackage": {
+      "Agent.llm": [
+        "agents/docs/agents/callable-methods.md:223"
+      ]
+    },
+    "helpersNotShown": {
+      "Agent.callLLM": "agents/docs/agents/long-running-agents.md:165",
+      "Agent.createUser": "agents/docs/agents/routing.md:528",
+      "Agent.enrichData": "cloudflare-docs/src/content/docs/agents/agent-class/communication-channels/webhooks/index.mdx:476",
+      "Agent.executeStep": "agents/docs/agents/durable-execution.md:429",
+      "Agent.fetchAndProcess": "agents/docs/agents/retries.md:403",
+      "Agent.gatherResources": "agents/docs/agents/long-running-agents.md:225",
+      "Agent.getUserFromToken": "agents/docs/agents/http-websockets.md:455",
+      "Agent.getUsers": "agents/docs/agents/routing.md:528",
+      "Agent.handleGitHubEvent": "agents/docs/agents/long-running-agents.md:117",
+      "Agent.handleJobCallback": "agents/docs/agents/sub-agents.md:341",
+      "Agent.heavyComputation": "agents/docs/agents/queue.md:155",
+      "Agent.isValid": "cloudflare-docs/src/content/docs/agents/agent-class/communication-channels/webhooks/index.mdx:476",
+      "Agent.notificationService": "cloudflare-docs/src/content/docs/agents/agent-class/queue-tasks.mdx:224",
+      "Agent.notifyDownstream": "cloudflare-docs/src/content/docs/agents/agent-class/communication-channels/webhooks/index.mdx:476",
+      "Agent.notifyUser": "agents/docs/agents/queue.md:155",
+      "Agent.processData": "agents/docs/agents/scheduling.md:309",
+      "Agent.processItem": "agents/docs/agents/queue.md:174",
+      "Agent.processPayload": "cloudflare-docs/src/content/docs/agents/agent-class/communication-channels/webhooks/index.mdx:446",
+      "Agent.processUpdates": "agents/docs/agents/scheduling.md:572",
+      "Agent.recoverWebhookReply": "agents/docs/agents/durable-execution.md:262",
+      "Agent.runSubAgent": "agents/docs/agents/long-running-agents.md:225",
+      "Agent.sign": "agents/docs/agents/webhooks.md:482",
+      "Agent.systemPrompt": "cloudflare-docs/src/content/docs/agents/concepts/calling-llms.mdx:25",
+      "Agent.updateAnalytics": "cloudflare-docs/src/content/docs/agents/agent-class/communication-channels/webhooks/index.mdx:476",
+      "Agent.updateTask": "agents/docs/agents/long-running-agents.md:309",
+      "Agent.updateTaskStatus": "agents/docs/agents/long-running-agents.md:225",
+      "Agent.x402Client": "cloudflare-docs/src/content/docs/agents/tools/payments/x402/pay-from-agents-sdk.mdx:15",
+      "Think._refreshState": "agents/docs/think/multi-chat.md:76",
+      "Think.getReminderForThisUser": "agents/docs/think/index.md:833",
+      "Think.markImportFailed": "cloudflare-docs/src/content/docs/agents/agent-class/agent-tools.mdx:197",
+      "Think.markImportReady": "cloudflare-docs/src/content/docs/agents/agent-class/agent-tools.mdx:197"
+    },
+    "undocumentedPublicMembers": {
+      "Agent": [
+        "onAgentToolStart"
+      ],
+      "AIChatAgent": [
+        "cancelAgentToolRun",
+        "hasPendingClientInteraction",
+        "onAgentToolStart",
+        "startAgentToolRun",
+        "tailAgentToolRun"
+      ],
+      "Think": [
+        "actionLedgerRetention",
+        "actionPendingApprovalTtlMs",
+        "activeTurnMetadata",
+        "appendMessageToHistory",
+        "bindActiveDeliverySurface",
+        "cancelAgentToolRun",
+        "chatWithMessengerContext",
+        "deleteSubmission",
+        "describePausedExecution",
+        "getOnStartDegradations",
+        "hookTimeout",
+        "onAgentToolStart",
+        "startAgentToolRun",
+        "submissionRecoveryStaleMs",
+        "syncMessagesFromStorage",
+        "tailAgentToolRun",
+        "updateMessageInHistory"
+      ],
+      "McpAgent": [
+        "deleteStreamRequestIds",
+        "getEventStore",
+        "getInitializeRequest",
+        "getSessionId",
+        "getStreamForRequestId",
+        "getStreamRequestIds",
+        "getTransportType",
+        "getWebSocket",
+        "handleMcpMessage",
+        "onAgentToolStart",
+        "onSSEMcpMessage",
+        "reinitializeServer",
+        "serveSSE",
+        "setInitializeRequest",
+        "setStreamRequestIds",
+        "updateProps"
+      ]
+    }
+  },
+  "imports": {
+    "modules": 72,
+    "names": 214,
+    "missingSubpaths": {
+      "agents/experimental/memory/session": [
+        "cloudflare-docs/src/content/docs/agents/concepts/conversation-state-and-memory.mdx:33",
+        "cloudflare-docs/src/content/docs/agents/concepts/conversation-state-and-memory.mdx:79",
+        "cloudflare-docs/src/content/docs/agents/concepts/conversation-state-and-memory.mdx:165"
+      ],
+      "agents/experimental/memory/utils/compaction-helpers": [
+        "cloudflare-docs/src/content/docs/agents/concepts/conversation-state-and-memory.mdx:341"
+      ],
+      "agents/experimental/memory/utils": [
+        "cloudflare-docs/src/content/docs/agents/concepts/conversation-state-and-memory.mdx:370"
+      ]
+    },
+    "notExported": {
+      "agents#AgentWorkflow": [
+        "agents/docs/agents/human-in-the-loop.md:56",
+        "agents/packages/agents/README.md:409"
+      ],
+      "agents#AgentWorkflowEvent": [
+        "agents/docs/agents/human-in-the-loop.md:56"
+      ],
+      "agents#AgentWorkflowStep": [
+        "agents/docs/agents/human-in-the-loop.md:56"
+      ],
+      "agents#isUnauthorized": [
+        "cloudflare-docs/src/content/docs/agents/model-context-protocol/apis/client-api.mdx:1241"
+      ],
+      "agents#isTransportNotImplemented": [
+        "cloudflare-docs/src/content/docs/agents/model-context-protocol/apis/client-api.mdx:1241"
+      ],
+      "@cloudflare/think#Workspace": [
+        "agents/docs/think/multi-chat.md:76"
+      ],
+      "@cloudflare/think#defineScheduledTasks": [
+        "cloudflare-docs/src/content/docs/agents/harnesses/think/scheduled-tasks.mdx:17"
+      ],
+      "@cloudflare/think/messengers#defineMessengers": [
+        "cloudflare-docs/src/content/docs/agents/harnesses/think/messengers.mdx:29"
+      ]
+    }
+  }
+}

@@ -4,6 +4,10 @@ packages:
 # pnpm blocks dependency build scripts by default; allow only what the harnesses need.
 onlyBuiltDependencies:
   - esbuild
+  - workerd
 ignoredBuiltDependencies:
   - "@google/genai"
   - protobufjs
+  - core-js-pure
+  - "@mongodb-js/zstd"
+  - node-liblzma

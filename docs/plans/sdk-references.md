@@ -130,7 +130,7 @@ The owner asked to document, for every SDK whose primary language isn't TypeScri
 | S4b | Vercel AI SDK: guide and fact-check, written and reviewed (done) | S4a |
 | S5a | LangChain: mirror, verification harness and behavioral examples (done) | S4b |
 | S5b | LangChain: guide and fact-check, written and reviewed (done) | S5a |
-| S6a | Cloudflare Agents: mirror, verification harness and behavioral examples | S5b |
+| S6a | Cloudflare Agents: mirror, verification harness and behavioral examples (done) | S5b |
 | S6b | Cloudflare Agents: guide and fact-check, written and reviewed | S6a |
 | S7a | Google ADK: mirror, verification harness, behavioral examples and TS parity check | S6b |
 | S7b | Google ADK: guide and fact-check, written and reviewed | S7a |

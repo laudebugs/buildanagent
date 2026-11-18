@@ -1,0 +1,4198 @@
+[
+  {
+    "id": "cf__agent-class__agent-tools__01",
+    "page": "cloudflare-docs/src/content/docs/agents/agent-class/agent-tools.mdx",
+    "line": 29,
+    "durableObjects": {
+      "Researcher": "Researcher",
+      "Assistant": "Assistant"
+    },
+    "ms": 2461,
+    "modelCalls": 0,
+    "outcome": "ran-no-model",
+    "report": [
+      {
+        "name": "Researcher",
+        "className": "Researcher",
+        "agent": true,
+        "chat": false,
+        "status": 404
+      },
+      {
+        "name": "Assistant",
+        "className": "Assistant",
+        "agent": true,
+        "chat": false,
+        "status": 404
+      }
+    ],
+    "defaultFetch": null
+  },
+  {
+    "id": "cf__agent-class__callable-methods__01",
+    "page": "cloudflare-docs/src/content/docs/agents/agent-class/callable-methods.mdx",
+    "line": 21,
+    "durableObjects": {
+      "CounterAgent": "CounterAgent"
+    },
+    "ms": 1553,
+    "modelCalls": 0,
+    "outcome": "ran-no-model",
+    "report": [
+      {
+        "name": "CounterAgent",
+        "className": "CounterAgent",
+        "agent": true,
+        "chat": false,
+        "status": 404
+      }
+    ],
+    "defaultFetch": null
+  },
+  {
+    "id": "cf__agent-class__callable-methods__03",
+    "page": "cloudflare-docs/src/content/docs/agents/agent-class/callable-methods.mdx",
+    "line": 75,
+    "durableObjects": {
+      "WriterAgent": "WriterAgent"
+    },
+    "ms": 2067,
+    "modelCalls": 0,
+    "outcome": "ran-no-model",
+    "report": [
+      {
+        "name": "WriterAgent",
+        "className": "WriterAgent",
+        "agent": true,
+        "chat": false,
+        "status": 404
+      }
+    ],
+    "defaultFetch": null
+  },
+  {
+    "id": "cf__agent-class__communication-channels__chat__chat-agents__01",
+    "page": "cloudflare-docs/src/content/docs/agents/agent-class/communication-channels/chat/chat-agents.mdx",
+    "line": 49,
+    "durableObjects": {
+      "ChatAgent": "ChatAgent"
+    },
+    "ms": 1989,
+    "modelCalls": 1,
+    "outcome": "ran",
+    "report": [
+      {
+        "name": "ChatAgent",
+        "className": "ChatAgent",
+        "agent": true,
+        "chat": true,
+        "status": 404,
+        "chatStatus": "completed"
+      }
+    ],
+    "defaultFetch": null
+  },
+  {
+    "id": "cf__agent-class__communication-channels__email__01",
+    "page": "cloudflare-docs/src/content/docs/agents/agent-class/communication-channels/email.mdx",
+    "line": 34,
+    "outcome": "skipped",
+    "reason": "binding the harness does not configure"
+  },
+  {
+    "id": "cf__agent-class__communication-channels__voice__01",
+    "page": "cloudflare-docs/src/content/docs/agents/agent-class/communication-channels/voice.mdx",
+    "line": 68,
+    "outcome": "skipped",
+    "reason": "voice, payments or chat-platform integration"
+  },
+  {
+    "id": "cf__agent-class__communication-channels__voice__14",
+    "page": "cloudflare-docs/src/content/docs/agents/agent-class/communication-channels/voice.mdx",
+    "line": 591,
+    "outcome": "skipped",
+    "reason": "voice, payments or chat-platform integration"
+  },
+  {
+    "id": "cf__agent-class__communication-channels__webhooks__index__01",
+    "page": "cloudflare-docs/src/content/docs/agents/agent-class/communication-channels/webhooks/index.mdx",
+    "line": 19,
+    "outcome": "skipped",
+    "reason": "third-party credential"
+  },
+  {
+    "id": "cf__agent-class__protocol-messages__01",
+    "page": "cloudflare-docs/src/content/docs/agents/agent-class/protocol-messages.mdx",
+    "line": 19,
+    "durableObjects": {
+      "DeviceAgent": "DeviceAgent"
+    },
+    "ms": 1586,
+    "modelCalls": 0,
+    "outcome": "ran-no-model",
+    "report": [
+      {
+        "name": "DeviceAgent",
+        "className": "DeviceAgent",
+        "agent": true,
+        "chat": false,
+        "status": 404
+      }
+    ],
+    "defaultFetch": null
+  },
+  {
+    "id": "cf__agent-class__readonly-connections__01",
+    "page": "cloudflare-docs/src/content/docs/agents/agent-class/readonly-connections.mdx",
+    "line": 17,
+    "durableObjects": {
+      "DocAgent": "DocAgent"
+    },
+    "ms": 1657,
+    "modelCalls": 0,
+    "outcome": "ran-no-model",
+    "report": [
+      {
+        "name": "DocAgent",
+        "className": "DocAgent",
+        "agent": true,
+        "chat": false,
+        "status": 404
+      }
+    ],
+    "defaultFetch": null
+  },
+  {
+    "id": "cf__agent-class__retries__01",
+    "page": "cloudflare-docs/src/content/docs/agents/agent-class/retries.mdx",
+    "line": 30,
+    "durableObjects": {
+      "MyAgent": "MyAgent"
+    },
+    "ms": 1688,
+    "modelCalls": 0,
+    "outcome": "ran-no-model",
+    "report": [
+      {
+        "name": "MyAgent",
+        "className": "MyAgent",
+        "agent": true,
+        "chat": false,
+        "status": 404
+      }
+    ],
+    "defaultFetch": null
+  },
+  {
+    "id": "cf__agent-class__routing__02",
+    "page": "cloudflare-docs/src/content/docs/agents/agent-class/routing.mdx",
+    "line": 60,
+    "durableObjects": {
+      "Profile": "Profile"
+    },
+    "ms": 1866,
+    "modelCalls": 0,
+    "outcome": "ran-no-model",
+    "report": [
+      {
+        "name": "Profile",
+        "className": "Profile",
+        "agent": true,
+        "chat": false,
+        "status": 404
+      }
+    ],
+    "defaultFetch": null
+  },
+  {
+    "id": "cf__agent-class__run-workflows__02",
+    "page": "cloudflare-docs/src/content/docs/agents/agent-class/run-workflows.mdx",
+    "line": 76,
+    "durableObjects": {
+      "MY_AGENT": "MyAgent"
+    },
+    "ms": 1484,
+    "modelCalls": 0,
+    "outcome": "ran-no-model",
+    "report": [
+      {
+        "name": "MY_AGENT",
+        "className": "MyAgent",
+        "agent": true,
+        "chat": false,
+        "status": 404
+      }
+    ],
+    "defaultFetch": null
+  },
+  {
+    "id": "cf__agent-class__schedule-tasks__01",
+    "page": "cloudflare-docs/src/content/docs/agents/agent-class/schedule-tasks.mdx",
+    "line": 19,
+    "durableObjects": {
+      "ReminderAgent": "ReminderAgent"
+    },
+    "ms": 1620,
+    "modelCalls": 0,
+    "outcome": "ran-no-model",
+    "report": [
+      {
+        "name": "ReminderAgent",
+        "className": "ReminderAgent",
+        "agent": true,
+        "chat": false,
+        "status": 404
+      }
+    ],
+    "defaultFetch": null
+  },
+  {
+    "id": "cf__agent-class__schedule-tasks__02",
+    "page": "cloudflare-docs/src/content/docs/agents/agent-class/schedule-tasks.mdx",
+    "line": 66,
+    "durableObjects": {
+      "ReportAgent": "ReportAgent"
+    },
+    "ms": 1850,
+    "modelCalls": 0,
+    "outcome": "ran-no-model",
+    "report": [
+      {
+        "name": "ReportAgent",
+        "className": "ReportAgent",
+        "agent": true,
+        "chat": false,
+        "status": 404
+      }
+    ],
+    "defaultFetch": null
+  },
+  {
+    "id": "cf__agent-class__state__01",
+    "page": "cloudflare-docs/src/content/docs/agents/agent-class/state.mdx",
+    "line": 19,
+    "durableObjects": {
+      "GameAgent": "GameAgent"
+    },
+    "ms": 2044,
+    "modelCalls": 0,
+    "outcome": "ran-no-model",
+    "report": [
+      {
+        "name": "GameAgent",
+        "className": "GameAgent",
+        "agent": true,
+        "chat": false,
+        "status": 404
+      }
+    ],
+    "defaultFetch": null
+  },
+  {
+    "id": "cf__agent-class__sub-agents__01",
+    "page": "cloudflare-docs/src/content/docs/agents/agent-class/sub-agents.mdx",
+    "line": 25,
+    "durableObjects": {
+      "Orchestrator": "Orchestrator",
+      "Researcher": "Researcher"
+    },
+    "ms": 1725,
+    "modelCalls": 0,
+    "outcome": "ran-no-model",
+    "report": [
+      {
+        "name": "Orchestrator",
+        "className": "Orchestrator",
+        "agent": true,
+        "chat": false,
+        "status": 404
+      },
+      {
+        "name": "Researcher",
+        "className": "Researcher",
+        "agent": true,
+        "chat": false,
+        "status": 404
+      }
+    ],
+    "defaultFetch": null
+  },
+  {
+    "id": "cf__agent-class__sub-agents__14",
+    "page": "cloudflare-docs/src/content/docs/agents/agent-class/sub-agents.mdx",
+    "line": 349,
+    "durableObjects": {},
+    "ms": 1922,
+    "modelCalls": 0,
+    "outcome": "ran-no-model",
+    "report": [],
+    "defaultFetch": {
+      "status": 404
+    }
+  },
+  {
+    "id": "cf__agent-class__websockets__01",
+    "page": "cloudflare-docs/src/content/docs/agents/agent-class/websockets.mdx",
+    "line": 19,
+    "durableObjects": {
+      "ChatAgent": "ChatAgent"
+    },
+    "ms": 1660,
+    "modelCalls": 0,
+    "outcome": "ran-no-model",
+    "report": [
+      {
+        "name": "ChatAgent",
+        "className": "ChatAgent",
+        "agent": true,
+        "chat": false,
+        "status": 404
+      }
+    ],
+    "defaultFetch": null
+  },
+  {
+    "id": "cf__concepts__agentic-patterns__human-in-the-loop__02",
+    "page": "cloudflare-docs/src/content/docs/agents/concepts/agentic-patterns/human-in-the-loop.mdx",
+    "line": 103,
+    "durableObjects": {
+      "EXPENSE_AGENT": "ExpenseAgent"
+    },
+    "ms": 1772,
+    "modelCalls": 0,
+    "outcome": "ran-no-model",
+    "report": [
+      {
+        "name": "EXPENSE_AGENT",
+        "className": "ExpenseAgent",
+        "agent": true,
+        "chat": false,
+        "status": 404
+      }
+    ],
+    "defaultFetch": null
+  },
+  {
+    "id": "cf__concepts__agentic-patterns__human-in-the-loop__06",
+    "page": "cloudflare-docs/src/content/docs/agents/concepts/agentic-patterns/human-in-the-loop.mdx",
+    "line": 335,
+    "durableObjects": {
+      "MyAgent": "MyAgent"
+    },
+    "ms": 1917,
+    "modelCalls": 0,
+    "outcome": "ran-no-model",
+    "report": [
+      {
+        "name": "MyAgent",
+        "className": "MyAgent",
+        "agent": true,
+        "chat": false,
+        "status": 404
+      }
+    ],
+    "defaultFetch": null
+  },
+  {
+    "id": "cf__concepts__calling-llms__04",
+    "page": "cloudflare-docs/src/content/docs/agents/concepts/calling-llms.mdx",
+    "line": 128,
+    "outcome": "skipped",
+    "reason": "binding the harness does not configure"
+  },
+  {
+    "id": "cf__examples__browser-agent__05",
+    "page": "cloudflare-docs/src/content/docs/agents/examples/browser-agent.mdx",
+    "line": 151,
+    "outcome": "skipped",
+    "reason": "Browser Rendering binding"
+  },
+  {
+    "id": "cf__examples__chat-agent__01",
+    "page": "cloudflare-docs/src/content/docs/agents/examples/chat-agent.mdx",
+    "line": 76,
+    "durableObjects": {
+      "ChatAgent": "ChatAgent"
+    },
+    "ms": 1857,
+    "modelCalls": 2,
+    "outcome": "ran",
+    "report": [
+      {
+        "name": "ChatAgent",
+        "className": "ChatAgent",
+        "agent": true,
+        "chat": true,
+        "status": 404,
+        "chatStatus": "completed"
+      }
+    ],
+    "defaultFetch": {
+      "status": 404
+    }
+  },
+  {
+    "id": "cf__examples__voice-agent__01",
+    "page": "cloudflare-docs/src/content/docs/agents/examples/voice-agent.mdx",
+    "line": 88,
+    "outcome": "skipped",
+    "reason": "voice, payments or chat-platform integration"
+  },
+  {
+    "id": "cf__getting-started__add-to-existing-project__01",
+    "page": "cloudflare-docs/src/content/docs/agents/getting-started/add-to-existing-project.mdx",
+    "line": 102,
+    "durableObjects": {
+      "NOTES": "Notes"
+    },
+    "ms": 1599,
+    "modelCalls": 0,
+    "outcome": "ran-no-model",
+    "report": [
+      {
+        "name": "NOTES",
+        "className": "Notes",
+        "agent": false,
+        "chat": false,
+        "status": 200
+      }
+    ],
+    "defaultFetch": null
+  },
+  {
+    "id": "cf__getting-started__add-to-existing-project__02",
+    "page": "cloudflare-docs/src/content/docs/agents/getting-started/add-to-existing-project.mdx",
+    "line": 141,
+    "durableObjects": {
+      "NOTES": "Notes"
+    },
+    "ms": 1591,
+    "modelCalls": 0,
+    "outcome": "ran-no-model",
+    "report": [
+      {
+        "name": "NOTES",
+        "className": "Notes",
+        "agent": false,
+        "chat": false,
+        "status": "no-fetch"
+      }
+    ],
+    "defaultFetch": null
+  },
+  {
+    "id": "cf__getting-started__learn-the-runtime__01",
+    "page": "cloudflare-docs/src/content/docs/agents/getting-started/learn-the-runtime.mdx",
+    "line": 85,
+    "durableObjects": {
+      "Counter": "Counter"
+    },
+    "ms": 1538,
+    "modelCalls": 0,
+    "outcome": "ran-no-model",
+    "report": [
+      {
+        "name": "Counter",
+        "className": "Counter",
+        "agent": false,
+        "chat": false,
+        "status": "no-fetch"
+      }
+    ],
+    "defaultFetch": {
+      "status": 404
+    }
+  },
+  {
+    "id": "cf__harnesses__build-your-own__01",
+    "page": "cloudflare-docs/src/content/docs/agents/harnesses/build-your-own.mdx",
+    "line": 33,
+    "outcome": "skipped",
+    "reason": "uses placeholders declared with `declare` (undefined at run time)"
+  },
+  {
+    "id": "cf__harnesses__build-your-own__02",
+    "page": "cloudflare-docs/src/content/docs/agents/harnesses/build-your-own.mdx",
+    "line": 127,
+    "durableObjects": {
+      "RemoteAgent": "RemoteAgent"
+    },
+    "ms": 1584,
+    "modelCalls": 0,
+    "outcome": "ran-no-model",
+    "report": [
+      {
+        "name": "RemoteAgent",
+        "className": "RemoteAgent",
+        "agent": false,
+        "chat": false,
+        "status": "no-fetch"
+      }
+    ],
+    "defaultFetch": null
+  },
+  {
+    "id": "cf__harnesses__think__getting-started__02",
+    "page": "cloudflare-docs/src/content/docs/agents/harnesses/think/getting-started.mdx",
+    "line": 102,
+    "durableObjects": {
+      "MyAgent": "MyAgent"
+    },
+    "ms": 2841,
+    "modelCalls": 0,
+    "outcome": "ran-no-model",
+    "report": [
+      {
+        "name": "MyAgent",
+        "className": "MyAgent",
+        "agent": true,
+        "chat": false,
+        "status": 404
+      }
+    ],
+    "defaultFetch": {
+      "status": 404
+    }
+  },
+  {
+    "id": "cf__harnesses__think__index__01",
+    "page": "cloudflare-docs/src/content/docs/agents/harnesses/think/index.mdx",
+    "line": 45,
+    "durableObjects": {
+      "MyAgent": "MyAgent"
+    },
+    "ms": 2989,
+    "modelCalls": 0,
+    "outcome": "ran-no-model",
+    "report": [
+      {
+        "name": "MyAgent",
+        "className": "MyAgent",
+        "agent": true,
+        "chat": false,
+        "status": 404
+      }
+    ],
+    "defaultFetch": {
+      "status": 404
+    }
+  },
+  {
+    "id": "cf__harnesses__think__lifecycle-hooks__15",
+    "page": "cloudflare-docs/src/content/docs/agents/harnesses/think/lifecycle-hooks.mdx",
+    "line": 333,
+    "durableObjects": {
+      "MyAgent": "MyAgent"
+    },
+    "ms": 3339,
+    "modelCalls": 0,
+    "outcome": "ran-no-model",
+    "report": [
+      {
+        "name": "MyAgent",
+        "className": "MyAgent",
+        "agent": true,
+        "chat": false,
+        "status": 404
+      }
+    ],
+    "defaultFetch": null
+  },
+  {
+    "id": "cf__harnesses__think__lifecycle-hooks__16",
+    "page": "cloudflare-docs/src/content/docs/agents/harnesses/think/lifecycle-hooks.mdx",
+    "line": 347,
+    "durableObjects": {
+      "MyAgent": "MyAgent"
+    },
+    "ms": 3137,
+    "modelCalls": 0,
+    "outcome": "ran-no-model",
+    "report": [
+      {
+        "name": "MyAgent",
+        "className": "MyAgent",
+        "agent": true,
+        "chat": false,
+        "status": 404
+      }
+    ],
+    "defaultFetch": null
+  },
+  {
+    "id": "cf__harnesses__think__recovery__06",
+    "page": "cloudflare-docs/src/content/docs/agents/harnesses/think/recovery.mdx",
+    "line": 205,
+    "durableObjects": {
+      "MyAgent": "MyAgent"
+    },
+    "ms": 2289,
+    "modelCalls": 0,
+    "outcome": "ran-no-model",
+    "report": [
+      {
+        "name": "MyAgent",
+        "className": "MyAgent",
+        "agent": true,
+        "chat": false,
+        "status": 404
+      }
+    ],
+    "defaultFetch": null
+  },
+  {
+    "id": "cf__harnesses__think__recovery__07",
+    "page": "cloudflare-docs/src/content/docs/agents/harnesses/think/recovery.mdx",
+    "line": 223,
+    "durableObjects": {
+      "MyAgent": "MyAgent"
+    },
+    "ms": 2503,
+    "modelCalls": 0,
+    "outcome": "ran-no-model",
+    "report": [
+      {
+        "name": "MyAgent",
+        "className": "MyAgent",
+        "agent": true,
+        "chat": false,
+        "status": 404
+      }
+    ],
+    "defaultFetch": null
+  },
+  {
+    "id": "cf__model-context-protocol__apis__agent-api__01",
+    "page": "cloudflare-docs/src/content/docs/agents/model-context-protocol/apis/agent-api.mdx",
+    "line": 35,
+    "durableObjects": {
+      "MyMCP": "MyMCP",
+      "MCP_OBJECT": "MyMCP"
+    },
+    "ms": 1820,
+    "modelCalls": 0,
+    "outcome": "ran-no-model",
+    "report": [
+      {
+        "name": "MyMCP",
+        "className": "MyMCP",
+        "agent": true,
+        "chat": false,
+        "mcp": true,
+        "status": 200,
+        "mcpInitialized": true
+      },
+      {
+        "name": "MCP_OBJECT",
+        "className": "MyMCP",
+        "agent": true,
+        "chat": false,
+        "mcp": true,
+        "status": 200,
+        "mcpInitialized": true
+      }
+    ],
+    "defaultFetch": null
+  },
+  {
+    "id": "cf__model-context-protocol__apis__agent-api__02",
+    "page": "cloudflare-docs/src/content/docs/agents/model-context-protocol/apis/agent-api.mdx",
+    "line": 90,
+    "durableObjects": {
+      "MyMCP": "MyMCP",
+      "MCP_OBJECT": "MyMCP"
+    },
+    "ms": 1744,
+    "modelCalls": 0,
+    "outcome": "ran-no-model",
+    "report": [
+      {
+        "name": "MyMCP",
+        "className": "MyMCP",
+        "agent": true,
+        "chat": false,
+        "mcp": true,
+        "status": 200,
+        "mcpInitialized": true
+      },
+      {
+        "name": "MCP_OBJECT",
+        "className": "MyMCP",
+        "agent": true,
+        "chat": false,
+        "mcp": true,
+        "status": 200,
+        "mcpInitialized": true
+      }
+    ],
+    "defaultFetch": {
+      "status": 404
+    }
+  },
+  {
+    "id": "cf__model-context-protocol__apis__agent-api__07",
+    "page": "cloudflare-docs/src/content/docs/agents/model-context-protocol/apis/agent-api.mdx",
+    "line": 237,
+    "durableObjects": {
+      "MyMCP": "MyMCP",
+      "MCP_OBJECT": "MyMCP"
+    },
+    "ms": 1678,
+    "modelCalls": 0,
+    "outcome": "ran-no-model",
+    "report": [
+      {
+        "name": "MyMCP",
+        "className": "MyMCP",
+        "agent": true,
+        "chat": false,
+        "mcp": true,
+        "status": 200,
+        "mcpInitialized": true
+      },
+      {
+        "name": "MCP_OBJECT",
+        "className": "MyMCP",
+        "agent": true,
+        "chat": false,
+        "mcp": true,
+        "status": 200,
+        "mcpInitialized": true
+      }
+    ],
+    "defaultFetch": null
+  },
+  {
+    "id": "cf__model-context-protocol__apis__agent-api__10",
+    "page": "cloudflare-docs/src/content/docs/agents/model-context-protocol/apis/agent-api.mdx",
+    "line": 360,
+    "durableObjects": {
+      "MyMCP": "MyMCP",
+      "MCP_OBJECT": "MyMCP"
+    },
+    "ms": 1675,
+    "modelCalls": 0,
+    "outcome": "ran-no-model",
+    "report": [
+      {
+        "name": "MyMCP",
+        "className": "MyMCP",
+        "agent": true,
+        "chat": false,
+        "mcp": true,
+        "status": 200,
+        "mcpInitialized": true
+      },
+      {
+        "name": "MCP_OBJECT",
+        "className": "MyMCP",
+        "agent": true,
+        "chat": false,
+        "mcp": true,
+        "status": 200,
+        "mcpInitialized": true
+      }
+    ],
+    "defaultFetch": null
+  },
+  {
+    "id": "cf__model-context-protocol__apis__client-api__01",
+    "page": "cloudflare-docs/src/content/docs/agents/model-context-protocol/apis/client-api.mdx",
+    "line": 38,
+    "durableObjects": {
+      "MyAgent": "MyAgent"
+    },
+    "ms": 1706,
+    "modelCalls": 0,
+    "blockedHost": "mcp.github.com",
+    "outcome": "needs-network",
+    "report": [
+      {
+        "name": "MyAgent",
+        "className": "MyAgent",
+        "agent": true,
+        "chat": false,
+        "status": 500,
+        "error": "Error: Failed to connect to MCP server at https://mcp.github.com/mcp: Version negotiation failed: the server denied access (HTTP 403)\n    at MyAgent.addMcpServer (file:///home/user/agent-speak/verify/cloudflare-agents/.tmp/docs/cf__model-context-protocol__apis__client-api__01/worker.mjs:58883:59)\n  "
+      }
+    ],
+    "defaultFetch": null,
+    "failures": [
+      "MyAgent: Error: Failed to connect to MCP server at https://mcp.github.com/mcp: Version negotiation failed: the server denied access (HTTP 403)\n    at MyAgent.addMcpServer (file:///home/user/agent-speak/verify/cloudflare-agents/.tmp/docs/cf__model-context-protocol__apis__client-api__01/worker.mjs:58883:59)\n  "
+    ]
+  },
+  {
+    "id": "cf__model-context-protocol__apis__client-api__27",
+    "page": "cloudflare-docs/src/content/docs/agents/model-context-protocol/apis/client-api.mdx",
+    "line": 940,
+    "durableObjects": {
+      "MyAgent": "MyAgent"
+    },
+    "ms": 1735,
+    "modelCalls": 0,
+    "outcome": "ran-no-model",
+    "report": [
+      {
+        "name": "MyAgent",
+        "className": "MyAgent",
+        "agent": true,
+        "chat": false,
+        "status": 404
+      }
+    ],
+    "defaultFetch": null
+  },
+  {
+    "id": "cf__model-context-protocol__apis__handler-api__03",
+    "page": "cloudflare-docs/src/content/docs/agents/model-context-protocol/apis/handler-api.mdx",
+    "line": 64,
+    "durableObjects": {},
+    "ms": 1571,
+    "modelCalls": 0,
+    "outcome": "ran-no-model",
+    "report": [],
+    "defaultFetch": {
+      "status": 404
+    }
+  },
+  {
+    "id": "cf__model-context-protocol__apis__handler-api__04",
+    "page": "cloudflare-docs/src/content/docs/agents/model-context-protocol/apis/handler-api.mdx",
+    "line": 145,
+    "durableObjects": {},
+    "ms": 1639,
+    "modelCalls": 0,
+    "outcome": "ran-no-model",
+    "report": [],
+    "defaultFetch": {
+      "status": 404
+    }
+  },
+  {
+    "id": "cf__model-context-protocol__apis__handler-api__06",
+    "page": "cloudflare-docs/src/content/docs/agents/model-context-protocol/apis/handler-api.mdx",
+    "line": 225,
+    "durableObjects": {},
+    "ms": 1701,
+    "modelCalls": 0,
+    "outcome": "ran-no-model",
+    "report": [],
+    "defaultFetch": {
+      "status": 404
+    }
+  },
+  {
+    "id": "cf__model-context-protocol__apis__handler-api__07",
+    "page": "cloudflare-docs/src/content/docs/agents/model-context-protocol/apis/handler-api.mdx",
+    "line": 250,
+    "durableObjects": {},
+    "ms": 1595,
+    "modelCalls": 0,
+    "outcome": "ran-no-model",
+    "report": [],
+    "defaultFetch": {
+      "status": 401
+    }
+  },
+  {
+    "id": "cf__model-context-protocol__apis__handler-api__08",
+    "page": "cloudflare-docs/src/content/docs/agents/model-context-protocol/apis/handler-api.mdx",
+    "line": 307,
+    "outcome": "skipped",
+    "reason": "third-party credential"
+  },
+  {
+    "id": "cf__model-context-protocol__apis__handler-api__11",
+    "page": "cloudflare-docs/src/content/docs/agents/model-context-protocol/apis/handler-api.mdx",
+    "line": 411,
+    "durableObjects": {},
+    "ms": 1777,
+    "modelCalls": 0,
+    "outcome": "ran-no-model",
+    "report": [],
+    "defaultFetch": {
+      "status": 401
+    }
+  },
+  {
+    "id": "cf__model-context-protocol__guides__build-codemode-mcp-server__02",
+    "page": "cloudflare-docs/src/content/docs/agents/model-context-protocol/guides/build-codemode-mcp-server.mdx",
+    "line": 90,
+    "outcome": "skipped",
+    "reason": "binding the harness does not configure"
+  },
+  {
+    "id": "cf__model-context-protocol__guides__build-codemode-mcp-server__04",
+    "page": "cloudflare-docs/src/content/docs/agents/model-context-protocol/guides/build-codemode-mcp-server.mdx",
+    "line": 219,
+    "outcome": "skipped",
+    "reason": "binding the harness does not configure"
+  },
+  {
+    "id": "cf__model-context-protocol__guides__connect-mcp-client__01",
+    "page": "cloudflare-docs/src/content/docs/agents/model-context-protocol/guides/connect-mcp-client.mdx",
+    "line": 59,
+    "durableObjects": {
+      "HelloAgent": "HelloAgent"
+    },
+    "ms": 1385,
+    "modelCalls": 0,
+    "outcome": "ran-no-model",
+    "report": [
+      {
+        "name": "HelloAgent",
+        "className": "HelloAgent",
+        "agent": true,
+        "chat": false,
+        "status": 200
+      }
+    ],
+    "defaultFetch": {
+      "status": 404
+    }
+  },
+  {
+    "id": "cf__model-context-protocol__guides__migrate-to-mcp-sdk-v2__01",
+    "page": "cloudflare-docs/src/content/docs/agents/model-context-protocol/guides/migrate-to-mcp-sdk-v2.mdx",
+    "line": 94,
+    "durableObjects": {},
+    "ms": 1573,
+    "modelCalls": 0,
+    "outcome": "ran-no-model",
+    "report": [],
+    "defaultFetch": {
+      "status": 404
+    }
+  },
+  {
+    "id": "cf__model-context-protocol__guides__oauth-mcp-client__03",
+    "page": "cloudflare-docs/src/content/docs/agents/model-context-protocol/guides/oauth-mcp-client.mdx",
+    "line": 105,
+    "durableObjects": {
+      "MyAgent": "MyAgent"
+    },
+    "ms": 1593,
+    "modelCalls": 0,
+    "outcome": "ran-no-model",
+    "report": [
+      {
+        "name": "MyAgent",
+        "className": "MyAgent",
+        "agent": true,
+        "chat": false,
+        "status": 404
+      }
+    ],
+    "defaultFetch": null
+  },
+  {
+    "id": "cf__model-context-protocol__protocol__tools__01",
+    "page": "cloudflare-docs/src/content/docs/agents/model-context-protocol/protocol/tools.mdx",
+    "line": 37,
+    "durableObjects": {},
+    "ms": 1705,
+    "modelCalls": 0,
+    "outcome": "ran-no-model",
+    "report": [],
+    "defaultFetch": {
+      "status": 404
+    }
+  },
+  {
+    "id": "cf__model-context-protocol__protocol__tools__02",
+    "page": "cloudflare-docs/src/content/docs/agents/model-context-protocol/protocol/tools.mdx",
+    "line": 83,
+    "durableObjects": {},
+    "ms": 1539,
+    "modelCalls": 0,
+    "outcome": "ran-no-model",
+    "report": [],
+    "defaultFetch": {
+      "status": 404
+    }
+  },
+  {
+    "id": "cf__model-context-protocol__protocol__tools__03",
+    "page": "cloudflare-docs/src/content/docs/agents/model-context-protocol/protocol/tools.mdx",
+    "line": 144,
+    "durableObjects": {},
+    "ms": 1500,
+    "modelCalls": 0,
+    "outcome": "ran-no-model",
+    "report": [],
+    "defaultFetch": {
+      "status": 404
+    }
+  },
+  {
+    "id": "cf__model-context-protocol__protocol__tools__04",
+    "page": "cloudflare-docs/src/content/docs/agents/model-context-protocol/protocol/tools.mdx",
+    "line": 209,
+    "durableObjects": {},
+    "ms": 1516,
+    "modelCalls": 0,
+    "outcome": "ran-no-model",
+    "report": [],
+    "defaultFetch": {
+      "status": 404
+    }
+  },
+  {
+    "id": "cf__model-context-protocol__protocol__tools__05",
+    "page": "cloudflare-docs/src/content/docs/agents/model-context-protocol/protocol/tools.mdx",
+    "line": 244,
+    "outcome": "skipped",
+    "reason": "OAuth provider (needs an authorization flow)"
+  },
+  {
+    "id": "cf__model-context-protocol__protocol__transport__01",
+    "page": "cloudflare-docs/src/content/docs/agents/model-context-protocol/protocol/transport.mdx",
+    "line": 42,
+    "durableObjects": {},
+    "ms": 1706,
+    "modelCalls": 0,
+    "outcome": "ran-no-model",
+    "report": [],
+    "defaultFetch": {
+      "status": 404
+    }
+  },
+  {
+    "id": "cf__models__ai-sdk__03",
+    "page": "cloudflare-docs/src/content/docs/agents/models/ai-sdk.mdx",
+    "line": 81,
+    "durableObjects": {},
+    "ms": 1700,
+    "modelCalls": 1,
+    "outcome": "ran",
+    "report": [],
+    "defaultFetch": {
+      "status": 200
+    }
+  },
+  {
+    "id": "cf__models__ai-sdk__04",
+    "page": "cloudflare-docs/src/content/docs/agents/models/ai-sdk.mdx",
+    "line": 109,
+    "durableObjects": {},
+    "ms": 1983,
+    "modelCalls": 1,
+    "outcome": "ran",
+    "report": [],
+    "defaultFetch": {
+      "status": 200
+    }
+  },
+  {
+    "id": "cf__models__ai-sdk__06",
+    "page": "cloudflare-docs/src/content/docs/agents/models/ai-sdk.mdx",
+    "line": 159,
+    "durableObjects": {},
+    "ms": 1928,
+    "modelCalls": 2,
+    "outcome": "ran",
+    "report": [],
+    "defaultFetch": {
+      "status": 200
+    }
+  },
+  {
+    "id": "cf__models__ai-sdk__10",
+    "page": "cloudflare-docs/src/content/docs/agents/models/ai-sdk.mdx",
+    "line": 236,
+    "durableObjects": {},
+    "ms": 1850,
+    "modelCalls": 1,
+    "outcome": "ran",
+    "report": [],
+    "defaultFetch": {
+      "status": 200
+    }
+  },
+  {
+    "id": "cf__models__ai-sdk__12",
+    "page": "cloudflare-docs/src/content/docs/agents/models/ai-sdk.mdx",
+    "line": 307,
+    "durableObjects": {
+      "Assistant": "Assistant"
+    },
+    "ms": 2965,
+    "modelCalls": 0,
+    "outcome": "ran-no-model",
+    "report": [
+      {
+        "name": "Assistant",
+        "className": "Assistant",
+        "agent": true,
+        "chat": false,
+        "status": 404
+      }
+    ],
+    "defaultFetch": null
+  },
+  {
+    "id": "cf__models__index__03",
+    "page": "cloudflare-docs/src/content/docs/agents/models/index.mdx",
+    "line": 95,
+    "durableObjects": {},
+    "ms": 1799,
+    "modelCalls": 0,
+    "outcome": "ran-no-model",
+    "report": [],
+    "defaultFetch": {
+      "status": 404
+    }
+  },
+  {
+    "id": "cf__models__index__04",
+    "page": "cloudflare-docs/src/content/docs/agents/models/index.mdx",
+    "line": 118,
+    "durableObjects": {
+      "MyAgent": "MyAgent"
+    },
+    "ms": 1897,
+    "modelCalls": 0,
+    "outcome": "ran-no-model",
+    "report": [
+      {
+        "name": "MyAgent",
+        "className": "MyAgent",
+        "agent": false,
+        "chat": false,
+        "status": "no-fetch"
+      }
+    ],
+    "defaultFetch": null
+  },
+  {
+    "id": "cf__models__index__05",
+    "page": "cloudflare-docs/src/content/docs/agents/models/index.mdx",
+    "line": 153,
+    "outcome": "skipped",
+    "reason": "third-party credential"
+  },
+  {
+    "id": "cf__models__index__06",
+    "page": "cloudflare-docs/src/content/docs/agents/models/index.mdx",
+    "line": 186,
+    "durableObjects": {
+      "MyAgent": "MyAgent"
+    },
+    "ms": 1662,
+    "modelCalls": 0,
+    "outcome": "ran-no-model",
+    "report": [
+      {
+        "name": "MyAgent",
+        "className": "MyAgent",
+        "agent": false,
+        "chat": false,
+        "status": "no-fetch"
+      }
+    ],
+    "defaultFetch": null
+  },
+  {
+    "id": "cf__models__index__07",
+    "page": "cloudflare-docs/src/content/docs/agents/models/index.mdx",
+    "line": 242,
+    "durableObjects": {
+      "MyAgent": "MyAgent"
+    },
+    "ms": 1330,
+    "modelCalls": 0,
+    "outcome": "ran-no-model",
+    "report": [
+      {
+        "name": "MyAgent",
+        "className": "MyAgent",
+        "agent": false,
+        "chat": false,
+        "status": "no-fetch"
+      }
+    ],
+    "defaultFetch": null
+  },
+  {
+    "id": "cf__models__index__08",
+    "page": "cloudflare-docs/src/content/docs/agents/models/index.mdx",
+    "line": 277,
+    "durableObjects": {
+      "MyAgent": "MyAgent"
+    },
+    "ms": 1535,
+    "modelCalls": 0,
+    "outcome": "ran-no-model",
+    "report": [
+      {
+        "name": "MyAgent",
+        "className": "MyAgent",
+        "agent": false,
+        "chat": false,
+        "status": "no-fetch"
+      }
+    ],
+    "defaultFetch": null
+  },
+  {
+    "id": "cf__models__pi-ai__02",
+    "page": "cloudflare-docs/src/content/docs/agents/models/pi-ai.mdx",
+    "line": 59,
+    "durableObjects": {},
+    "ms": 2054,
+    "modelCalls": 1,
+    "outcome": "ran",
+    "report": [],
+    "defaultFetch": {
+      "status": 200
+    }
+  },
+  {
+    "id": "cf__runtime__capabilities__build-a-capability__01",
+    "page": "cloudflare-docs/src/content/docs/agents/runtime/capabilities/build-a-capability.mdx",
+    "line": 36,
+    "durableObjects": {
+      "MyAgent": "MyAgent"
+    },
+    "ms": 1444,
+    "modelCalls": 0,
+    "outcome": "ran-no-model",
+    "report": [
+      {
+        "name": "MyAgent",
+        "className": "MyAgent",
+        "agent": false,
+        "chat": false,
+        "status": "no-fetch"
+      }
+    ],
+    "defaultFetch": null
+  },
+  {
+    "id": "cf__runtime__capabilities__build-a-capability__02",
+    "page": "cloudflare-docs/src/content/docs/agents/runtime/capabilities/build-a-capability.mdx",
+    "line": 87,
+    "durableObjects": {},
+    "ms": 1452,
+    "modelCalls": 0,
+    "outcome": "loaded",
+    "report": [],
+    "defaultFetch": null
+  },
+  {
+    "id": "cf__runtime__capabilities__index__01",
+    "page": "cloudflare-docs/src/content/docs/agents/runtime/capabilities/index.mdx",
+    "line": 79,
+    "durableObjects": {
+      "MyAgent": "MyAgent"
+    },
+    "ms": 1450,
+    "modelCalls": 0,
+    "outcome": "ran-no-model",
+    "report": [
+      {
+        "name": "MyAgent",
+        "className": "MyAgent",
+        "agent": false,
+        "chat": false,
+        "status": "no-fetch"
+      }
+    ],
+    "defaultFetch": null
+  },
+  {
+    "id": "cf__runtime__capabilities__mcp-client-manager__01",
+    "page": "cloudflare-docs/src/content/docs/agents/runtime/capabilities/mcp-client-manager.mdx",
+    "line": 25,
+    "durableObjects": {
+      "ToolAgent": "ToolAgent"
+    },
+    "ms": 1474,
+    "modelCalls": 0,
+    "outcome": "ran-no-model",
+    "report": [
+      {
+        "name": "ToolAgent",
+        "className": "ToolAgent",
+        "agent": false,
+        "chat": false,
+        "status": "no-fetch"
+      }
+    ],
+    "defaultFetch": {
+      "status": 404
+    }
+  },
+  {
+    "id": "cf__runtime__capabilities__mcp-client-manager__02",
+    "page": "cloudflare-docs/src/content/docs/agents/runtime/capabilities/mcp-client-manager.mdx",
+    "line": 118,
+    "durableObjects": {
+      "ToolAgent": "ToolAgent"
+    },
+    "ms": 1501,
+    "modelCalls": 0,
+    "outcome": "ran-no-model",
+    "report": [
+      {
+        "name": "ToolAgent",
+        "className": "ToolAgent",
+        "agent": false,
+        "chat": false,
+        "status": "no-fetch"
+      }
+    ],
+    "defaultFetch": null
+  },
+  {
+    "id": "cf__runtime__capabilities__mcp-client-manager__03",
+    "page": "cloudflare-docs/src/content/docs/agents/runtime/capabilities/mcp-client-manager.mdx",
+    "line": 161,
+    "outcome": "skipped",
+    "reason": "uses placeholders declared with `declare` (undefined at run time)"
+  },
+  {
+    "id": "cf__runtime__capabilities__mcp-client-manager__04",
+    "page": "cloudflare-docs/src/content/docs/agents/runtime/capabilities/mcp-client-manager.mdx",
+    "line": 204,
+    "durableObjects": {
+      "ToolAgent": "ToolAgent"
+    },
+    "ms": 1497,
+    "modelCalls": 0,
+    "outcome": "ran-no-model",
+    "report": [
+      {
+        "name": "ToolAgent",
+        "className": "ToolAgent",
+        "agent": false,
+        "chat": false,
+        "status": "no-fetch"
+      }
+    ],
+    "defaultFetch": null
+  },
+  {
+    "id": "cf__runtime__capabilities__mcp-client-manager__05",
+    "page": "cloudflare-docs/src/content/docs/agents/runtime/capabilities/mcp-client-manager.mdx",
+    "line": 245,
+    "durableObjects": {
+      "ToolAgent": "ToolAgent"
+    },
+    "ms": 1685,
+    "modelCalls": 0,
+    "outcome": "ran-no-model",
+    "report": [
+      {
+        "name": "ToolAgent",
+        "className": "ToolAgent",
+        "agent": false,
+        "chat": false,
+        "status": "no-fetch"
+      }
+    ],
+    "defaultFetch": null
+  },
+  {
+    "id": "cf__runtime__capabilities__scheduler__01",
+    "page": "cloudflare-docs/src/content/docs/agents/runtime/capabilities/scheduler.mdx",
+    "line": 21,
+    "durableObjects": {
+      "ReminderAgent": "ReminderAgent"
+    },
+    "ms": 1508,
+    "modelCalls": 0,
+    "outcome": "ran-no-model",
+    "report": [
+      {
+        "name": "ReminderAgent",
+        "className": "ReminderAgent",
+        "agent": false,
+        "chat": false,
+        "status": "no-fetch"
+      }
+    ],
+    "defaultFetch": null
+  },
+  {
+    "id": "cf__runtime__capabilities__scheduler__03",
+    "page": "cloudflare-docs/src/content/docs/agents/runtime/capabilities/scheduler.mdx",
+    "line": 113,
+    "durableObjects": {
+      "ReminderAgent": "ReminderAgent"
+    },
+    "ms": 1470,
+    "modelCalls": 0,
+    "outcome": "ran-no-model",
+    "report": [
+      {
+        "name": "ReminderAgent",
+        "className": "ReminderAgent",
+        "agent": false,
+        "chat": false,
+        "status": "no-fetch"
+      }
+    ],
+    "defaultFetch": null
+  },
+  {
+    "id": "cf__runtime__capabilities__sessions__01",
+    "page": "cloudflare-docs/src/content/docs/agents/runtime/capabilities/sessions.mdx",
+    "line": 41,
+    "durableObjects": {
+      "ConversationAgent": "ConversationAgent"
+    },
+    "ms": 1535,
+    "modelCalls": 0,
+    "outcome": "ran-no-model",
+    "report": [
+      {
+        "name": "ConversationAgent",
+        "className": "ConversationAgent",
+        "agent": false,
+        "chat": false,
+        "status": "no-fetch"
+      }
+    ],
+    "defaultFetch": null
+  },
+  {
+    "id": "cf__runtime__capabilities__sessions__07",
+    "page": "cloudflare-docs/src/content/docs/agents/runtime/capabilities/sessions.mdx",
+    "line": 234,
+    "durableObjects": {
+      "ConversationAgent": "ConversationAgent"
+    },
+    "ms": 1741,
+    "modelCalls": 0,
+    "outcome": "ran-no-model",
+    "report": [
+      {
+        "name": "ConversationAgent",
+        "className": "ConversationAgent",
+        "agent": false,
+        "chat": false,
+        "status": "no-fetch"
+      }
+    ],
+    "defaultFetch": null
+  },
+  {
+    "id": "cf__runtime__capabilities__sessions__09",
+    "page": "cloudflare-docs/src/content/docs/agents/runtime/capabilities/sessions.mdx",
+    "line": 314,
+    "durableObjects": {
+      "ConversationAgent": "ConversationAgent"
+    },
+    "ms": 1491,
+    "modelCalls": 0,
+    "outcome": "ran-no-model",
+    "report": [
+      {
+        "name": "ConversationAgent",
+        "className": "ConversationAgent",
+        "agent": false,
+        "chat": false,
+        "status": "no-fetch"
+      }
+    ],
+    "defaultFetch": null
+  },
+  {
+    "id": "cf__runtime__capabilities__state__01",
+    "page": "cloudflare-docs/src/content/docs/agents/runtime/capabilities/state.mdx",
+    "line": 19,
+    "durableObjects": {
+      "SettingsAgent": "SettingsAgent"
+    },
+    "ms": 1404,
+    "modelCalls": 0,
+    "outcome": "ran-no-model",
+    "report": [
+      {
+        "name": "SettingsAgent",
+        "className": "SettingsAgent",
+        "agent": false,
+        "chat": false,
+        "status": "no-fetch"
+      }
+    ],
+    "defaultFetch": null
+  },
+  {
+    "id": "cf__runtime__capabilities__state__02",
+    "page": "cloudflare-docs/src/content/docs/agents/runtime/capabilities/state.mdx",
+    "line": 64,
+    "durableObjects": {
+      "DocAgent": "DocAgent"
+    },
+    "ms": 1572,
+    "modelCalls": 0,
+    "outcome": "ran-no-model",
+    "report": [
+      {
+        "name": "DocAgent",
+        "className": "DocAgent",
+        "agent": false,
+        "chat": false,
+        "status": "no-fetch"
+      }
+    ],
+    "defaultFetch": null
+  },
+  {
+    "id": "cf__runtime__capabilities__state__03",
+    "page": "cloudflare-docs/src/content/docs/agents/runtime/capabilities/state.mdx",
+    "line": 96,
+    "durableObjects": {
+      "CounterAgent": "CounterAgent"
+    },
+    "ms": 1523,
+    "modelCalls": 0,
+    "outcome": "ran-no-model",
+    "report": [
+      {
+        "name": "CounterAgent",
+        "className": "CounterAgent",
+        "agent": false,
+        "chat": false,
+        "status": "no-fetch"
+      }
+    ],
+    "defaultFetch": {
+      "status": 404
+    }
+  },
+  {
+    "id": "cf__runtime__capabilities__streams__01",
+    "page": "cloudflare-docs/src/content/docs/agents/runtime/capabilities/streams.mdx",
+    "line": 27,
+    "durableObjects": {
+      "ReportAgent": "ReportAgent"
+    },
+    "ms": 1891,
+    "modelCalls": 0,
+    "outcome": "ran-no-model",
+    "report": [
+      {
+        "name": "ReportAgent",
+        "className": "ReportAgent",
+        "agent": false,
+        "chat": false,
+        "status": "no-fetch"
+      }
+    ],
+    "defaultFetch": null
+  },
+  {
+    "id": "cf__runtime__capabilities__websockets__01",
+    "page": "cloudflare-docs/src/content/docs/agents/runtime/capabilities/websockets.mdx",
+    "line": 19,
+    "durableObjects": {
+      "RoomAgent": "RoomAgent"
+    },
+    "ms": 1733,
+    "modelCalls": 0,
+    "outcome": "ran-no-model",
+    "report": [
+      {
+        "name": "RoomAgent",
+        "className": "RoomAgent",
+        "agent": false,
+        "chat": false,
+        "status": "no-fetch"
+      }
+    ],
+    "defaultFetch": {
+      "status": 404
+    }
+  },
+  {
+    "id": "cf__runtime__capabilities__websockets__02",
+    "page": "cloudflare-docs/src/content/docs/agents/runtime/capabilities/websockets.mdx",
+    "line": 97,
+    "durableObjects": {
+      "LobbyAgent": "LobbyAgent"
+    },
+    "ms": 1551,
+    "modelCalls": 0,
+    "outcome": "ran-no-model",
+    "report": [
+      {
+        "name": "LobbyAgent",
+        "className": "LobbyAgent",
+        "agent": false,
+        "chat": false,
+        "status": "no-fetch"
+      }
+    ],
+    "defaultFetch": null
+  },
+  {
+    "id": "cf__runtime__capabilities__websockets__03",
+    "page": "cloudflare-docs/src/content/docs/agents/runtime/capabilities/websockets.mdx",
+    "line": 139,
+    "durableObjects": {
+      "ChatRoom": "ChatRoom"
+    },
+    "ms": 1565,
+    "modelCalls": 0,
+    "outcome": "ran-no-model",
+    "report": [
+      {
+        "name": "ChatRoom",
+        "className": "ChatRoom",
+        "agent": false,
+        "chat": false,
+        "status": "no-fetch"
+      }
+    ],
+    "defaultFetch": null
+  },
+  {
+    "id": "cf__runtime__capabilities__websockets__04",
+    "page": "cloudflare-docs/src/content/docs/agents/runtime/capabilities/websockets.mdx",
+    "line": 170,
+    "durableObjects": {
+      "EchoAgent": "EchoAgent"
+    },
+    "ms": 1503,
+    "modelCalls": 0,
+    "outcome": "ran-no-model",
+    "report": [
+      {
+        "name": "EchoAgent",
+        "className": "EchoAgent",
+        "agent": false,
+        "chat": false,
+        "status": "no-fetch"
+      }
+    ],
+    "defaultFetch": null
+  },
+  {
+    "id": "cf__runtime__capabilities__websockets__10",
+    "page": "cloudflare-docs/src/content/docs/agents/runtime/capabilities/websockets.mdx",
+    "line": 390,
+    "durableObjects": {
+      "Room": "Room"
+    },
+    "ms": 1781,
+    "modelCalls": 0,
+    "outcome": "ran-no-model",
+    "report": [
+      {
+        "name": "Room",
+        "className": "Room",
+        "agent": false,
+        "chat": false,
+        "status": "no-fetch"
+      }
+    ],
+    "defaultFetch": null
+  },
+  {
+    "id": "cf__runtime__capabilities__websockets__12",
+    "page": "cloudflare-docs/src/content/docs/agents/runtime/capabilities/websockets.mdx",
+    "line": 454,
+    "durableObjects": {
+      "BoardAgent": "BoardAgent"
+    },
+    "ms": 1594,
+    "modelCalls": 0,
+    "outcome": "ran-no-model",
+    "report": [
+      {
+        "name": "BoardAgent",
+        "className": "BoardAgent",
+        "agent": false,
+        "chat": false,
+        "status": "no-fetch"
+      }
+    ],
+    "defaultFetch": null
+  },
+  {
+    "id": "cf__runtime__capabilities__websockets__13",
+    "page": "cloudflare-docs/src/content/docs/agents/runtime/capabilities/websockets.mdx",
+    "line": 503,
+    "durableObjects": {
+      "PresenceAgent": "PresenceAgent"
+    },
+    "ms": 1624,
+    "modelCalls": 0,
+    "outcome": "ran-no-model",
+    "report": [
+      {
+        "name": "PresenceAgent",
+        "className": "PresenceAgent",
+        "agent": false,
+        "chat": false,
+        "status": "no-fetch"
+      }
+    ],
+    "defaultFetch": null
+  },
+  {
+    "id": "cf__runtime__index__01",
+    "page": "cloudflare-docs/src/content/docs/agents/runtime/index.mdx",
+    "line": 61,
+    "durableObjects": {
+      "MyAgent": "MyAgent"
+    },
+    "ms": 1672,
+    "modelCalls": 0,
+    "outcome": "ran-no-model",
+    "report": [
+      {
+        "name": "MyAgent",
+        "className": "MyAgent",
+        "agent": false,
+        "chat": false,
+        "status": "no-fetch"
+      }
+    ],
+    "defaultFetch": {
+      "status": 404
+    }
+  },
+  {
+    "id": "cf__runtime__lifecycle__api-reference__01",
+    "page": "cloudflare-docs/src/content/docs/agents/runtime/lifecycle/api-reference.mdx",
+    "line": 218,
+    "durableObjects": {},
+    "ms": 1559,
+    "modelCalls": 0,
+    "outcome": "loaded",
+    "report": [],
+    "defaultFetch": null
+  },
+  {
+    "id": "cf__runtime__lifecycle__get-current-agent__01",
+    "page": "cloudflare-docs/src/content/docs/agents/runtime/lifecycle/get-current-agent.mdx",
+    "line": 17,
+    "durableObjects": {
+      "MyAgent": "MyAgent"
+    },
+    "ms": 1776,
+    "modelCalls": 0,
+    "outcome": "ran-no-model",
+    "report": [
+      {
+        "name": "MyAgent",
+        "className": "MyAgent",
+        "agent": false,
+        "chat": false,
+        "status": "no-fetch"
+      }
+    ],
+    "defaultFetch": null
+  },
+  {
+    "id": "cf__runtime__lifecycle__get-current-agent__02",
+    "page": "cloudflare-docs/src/content/docs/agents/runtime/lifecycle/get-current-agent.mdx",
+    "line": 79,
+    "durableObjects": {
+      "Reminders": "Reminders"
+    },
+    "ms": 1768,
+    "modelCalls": 0,
+    "outcome": "ran-no-model",
+    "report": [
+      {
+        "name": "Reminders",
+        "className": "Reminders",
+        "agent": false,
+        "chat": false,
+        "status": "no-fetch"
+      }
+    ],
+    "defaultFetch": null
+  },
+  {
+    "id": "cf__runtime__lifecycle__index__01",
+    "page": "cloudflare-docs/src/content/docs/agents/runtime/lifecycle/index.mdx",
+    "line": 56,
+    "durableObjects": {
+      "MyAgent": "MyAgent"
+    },
+    "ms": 1557,
+    "modelCalls": 0,
+    "outcome": "ran-no-model",
+    "report": [
+      {
+        "name": "MyAgent",
+        "className": "MyAgent",
+        "agent": false,
+        "chat": false,
+        "status": "no-fetch"
+      }
+    ],
+    "defaultFetch": null
+  },
+  {
+    "id": "cf__runtime__lifecycle__index__02",
+    "page": "cloudflare-docs/src/content/docs/agents/runtime/lifecycle/index.mdx",
+    "line": 85,
+    "durableObjects": {
+      "MyAgent": "MyAgent"
+    },
+    "ms": 1672,
+    "modelCalls": 0,
+    "outcome": "ran-no-model",
+    "report": [
+      {
+        "name": "MyAgent",
+        "className": "MyAgent",
+        "agent": false,
+        "chat": false,
+        "status": "no-fetch"
+      }
+    ],
+    "defaultFetch": null
+  },
+  {
+    "id": "cf__runtime__lifecycle__index__03",
+    "page": "cloudflare-docs/src/content/docs/agents/runtime/lifecycle/index.mdx",
+    "line": 142,
+    "durableObjects": {
+      "MyAgent": "MyAgent"
+    },
+    "ms": 1581,
+    "modelCalls": 0,
+    "outcome": "ran-no-model",
+    "report": [
+      {
+        "name": "MyAgent",
+        "className": "MyAgent",
+        "agent": false,
+        "chat": false,
+        "status": "no-fetch"
+      }
+    ],
+    "defaultFetch": null
+  },
+  {
+    "id": "cf__runtime__lifecycle__index__04",
+    "page": "cloudflare-docs/src/content/docs/agents/runtime/lifecycle/index.mdx",
+    "line": 209,
+    "durableObjects": {
+      "MyAgent": "MyAgent"
+    },
+    "ms": 1515,
+    "modelCalls": 0,
+    "outcome": "ran-no-model",
+    "report": [
+      {
+        "name": "MyAgent",
+        "className": "MyAgent",
+        "agent": false,
+        "chat": false,
+        "status": "no-fetch"
+      }
+    ],
+    "defaultFetch": null
+  },
+  {
+    "id": "cf__runtime__lifecycle__index__05",
+    "page": "cloudflare-docs/src/content/docs/agents/runtime/lifecycle/index.mdx",
+    "line": 247,
+    "durableObjects": {
+      "NotesAgent": "NotesAgent"
+    },
+    "ms": 1726,
+    "modelCalls": 0,
+    "outcome": "ran-no-model",
+    "report": [
+      {
+        "name": "NotesAgent",
+        "className": "NotesAgent",
+        "agent": false,
+        "chat": false,
+        "status": "no-fetch"
+      }
+    ],
+    "defaultFetch": null
+  },
+  {
+    "id": "cf__runtime__lifecycle__index__06",
+    "page": "cloudflare-docs/src/content/docs/agents/runtime/lifecycle/index.mdx",
+    "line": 290,
+    "durableObjects": {
+      "MyAgent": "MyAgent"
+    },
+    "ms": 1733,
+    "modelCalls": 0,
+    "outcome": "ran-no-model",
+    "report": [
+      {
+        "name": "MyAgent",
+        "className": "MyAgent",
+        "agent": false,
+        "chat": false,
+        "status": "no-fetch"
+      }
+    ],
+    "defaultFetch": null
+  },
+  {
+    "id": "cf__runtime__lifecycle__job-queue__01",
+    "page": "cloudflare-docs/src/content/docs/agents/runtime/lifecycle/job-queue.mdx",
+    "line": 23,
+    "durableObjects": {
+      "CleanupAgent": "CleanupAgent"
+    },
+    "ms": 1662,
+    "modelCalls": 0,
+    "outcome": "ran-no-model",
+    "report": [
+      {
+        "name": "CleanupAgent",
+        "className": "CleanupAgent",
+        "agent": false,
+        "chat": false,
+        "status": "no-fetch"
+      }
+    ],
+    "defaultFetch": null
+  },
+  {
+    "id": "cf__runtime__lifecycle__job-queue__02",
+    "page": "cloudflare-docs/src/content/docs/agents/runtime/lifecycle/job-queue.mdx",
+    "line": 174,
+    "durableObjects": {
+      "ImportAgent": "ImportAgent"
+    },
+    "ms": 1580,
+    "modelCalls": 0,
+    "outcome": "ran-no-model",
+    "report": [
+      {
+        "name": "ImportAgent",
+        "className": "ImportAgent",
+        "agent": false,
+        "chat": false,
+        "status": "no-fetch"
+      }
+    ],
+    "defaultFetch": null
+  },
+  {
+    "id": "cf__runtime__lifecycle__job-queue__03",
+    "page": "cloudflare-docs/src/content/docs/agents/runtime/lifecycle/job-queue.mdx",
+    "line": 237,
+    "durableObjects": {
+      "MyAgent": "MyAgent"
+    },
+    "ms": 1575,
+    "modelCalls": 0,
+    "outcome": "ran-no-model",
+    "report": [
+      {
+        "name": "MyAgent",
+        "className": "MyAgent",
+        "agent": false,
+        "chat": false,
+        "status": "no-fetch"
+      }
+    ],
+    "defaultFetch": null
+  },
+  {
+    "id": "cf__runtime__observability__diagnostics-channels__04",
+    "page": "cloudflare-docs/src/content/docs/agents/runtime/observability/diagnostics-channels.mdx",
+    "line": 113,
+    "durableObjects": {
+      "Shop": "Shop"
+    },
+    "ms": 1620,
+    "modelCalls": 0,
+    "outcome": "ran-no-model",
+    "report": [
+      {
+        "name": "Shop",
+        "className": "Shop",
+        "agent": false,
+        "chat": false,
+        "status": "no-fetch"
+      }
+    ],
+    "defaultFetch": null
+  },
+  {
+    "id": "cf__runtime__observability__tracing__01",
+    "page": "cloudflare-docs/src/content/docs/agents/runtime/observability/tracing.mdx",
+    "line": 101,
+    "durableObjects": {
+      "MyAgent": "MyAgent"
+    },
+    "ms": 2527,
+    "modelCalls": 0,
+    "outcome": "ran-no-model",
+    "report": [
+      {
+        "name": "MyAgent",
+        "className": "MyAgent",
+        "agent": true,
+        "chat": false,
+        "status": 404
+      }
+    ],
+    "defaultFetch": null
+  },
+  {
+    "id": "cf__runtime__routing__authentication__01",
+    "page": "cloudflare-docs/src/content/docs/agents/runtime/routing/authentication.mdx",
+    "line": 27,
+    "durableObjects": {},
+    "ms": 1799,
+    "modelCalls": 0,
+    "outcome": "ran-no-model",
+    "report": [],
+    "defaultFetch": {
+      "status": 404
+    }
+  },
+  {
+    "id": "cf__runtime__routing__authentication__02",
+    "page": "cloudflare-docs/src/content/docs/agents/runtime/routing/authentication.mdx",
+    "line": 76,
+    "durableObjects": {},
+    "ms": 1623,
+    "modelCalls": 0,
+    "outcome": "ran-no-model",
+    "report": [],
+    "defaultFetch": {
+      "status": 404
+    }
+  },
+  {
+    "id": "cf__runtime__routing__custom-routing__03",
+    "page": "cloudflare-docs/src/content/docs/agents/runtime/routing/custom-routing.mdx",
+    "line": 63,
+    "durableObjects": {},
+    "ms": 1400,
+    "modelCalls": 0,
+    "outcome": "ran-no-model",
+    "report": [],
+    "defaultFetch": {
+      "status": 404
+    }
+  },
+  {
+    "id": "cf__runtime__routing__custom-routing__05",
+    "page": "cloudflare-docs/src/content/docs/agents/runtime/routing/custom-routing.mdx",
+    "line": 119,
+    "durableObjects": {
+      "UserAgent": "UserAgent"
+    },
+    "ms": 1469,
+    "modelCalls": 0,
+    "outcome": "ran-no-model",
+    "report": [
+      {
+        "name": "UserAgent",
+        "className": "UserAgent",
+        "agent": false,
+        "chat": false,
+        "status": "no-fetch"
+      }
+    ],
+    "defaultFetch": {
+      "status": 200
+    }
+  },
+  {
+    "id": "cf__runtime__routing__http-sse__01",
+    "page": "cloudflare-docs/src/content/docs/agents/runtime/routing/http-sse.mdx",
+    "line": 21,
+    "durableObjects": {
+      "ApiAgent": "ApiAgent"
+    },
+    "ms": 1428,
+    "modelCalls": 0,
+    "outcome": "ran-no-model",
+    "report": [
+      {
+        "name": "ApiAgent",
+        "className": "ApiAgent",
+        "agent": false,
+        "chat": false,
+        "status": "no-fetch"
+      }
+    ],
+    "defaultFetch": null
+  },
+  {
+    "id": "cf__runtime__routing__http-sse__02",
+    "page": "cloudflare-docs/src/content/docs/agents/runtime/routing/http-sse.mdx",
+    "line": 59,
+    "durableObjects": {
+      "ChatAgent": "ChatAgent"
+    },
+    "ms": 1910,
+    "modelCalls": 0,
+    "outcome": "ran-no-model",
+    "report": [
+      {
+        "name": "ChatAgent",
+        "className": "ChatAgent",
+        "agent": false,
+        "chat": false,
+        "status": "no-fetch"
+      }
+    ],
+    "defaultFetch": null
+  },
+  {
+    "id": "cf__runtime__routing__http-sse__03",
+    "page": "cloudflare-docs/src/content/docs/agents/runtime/routing/http-sse.mdx",
+    "line": 99,
+    "durableObjects": {
+      "ReportAgent": "ReportAgent"
+    },
+    "ms": 1423,
+    "modelCalls": 0,
+    "outcome": "ran-no-model",
+    "report": [
+      {
+        "name": "ReportAgent",
+        "className": "ReportAgent",
+        "agent": false,
+        "chat": false,
+        "status": "no-fetch"
+      }
+    ],
+    "defaultFetch": null
+  },
+  {
+    "id": "cf__runtime__routing__index__01",
+    "page": "cloudflare-docs/src/content/docs/agents/runtime/routing/index.mdx",
+    "line": 32,
+    "durableObjects": {
+      "MyAgent": "MyAgent"
+    },
+    "ms": 1743,
+    "modelCalls": 0,
+    "outcome": "ran-no-model",
+    "report": [
+      {
+        "name": "MyAgent",
+        "className": "MyAgent",
+        "agent": false,
+        "chat": false,
+        "status": "no-fetch"
+      }
+    ],
+    "defaultFetch": {
+      "status": 404
+    }
+  },
+  {
+    "id": "cf__runtime__routing__index__03",
+    "page": "cloudflare-docs/src/content/docs/agents/runtime/routing/index.mdx",
+    "line": 159,
+    "durableObjects": {
+      "UserProfile": "UserProfile"
+    },
+    "ms": 1764,
+    "modelCalls": 0,
+    "outcome": "ran-no-model",
+    "report": [
+      {
+        "name": "UserProfile",
+        "className": "UserProfile",
+        "agent": false,
+        "chat": false,
+        "status": "no-fetch"
+      }
+    ],
+    "defaultFetch": null
+  },
+  {
+    "id": "cf__runtime__routing__options__01",
+    "page": "cloudflare-docs/src/content/docs/agents/runtime/routing/options.mdx",
+    "line": 34,
+    "durableObjects": {},
+    "ms": 1637,
+    "modelCalls": 0,
+    "outcome": "ran-no-model",
+    "report": [],
+    "defaultFetch": {
+      "status": 404
+    }
+  },
+  {
+    "id": "cf__runtime__routing__options__02",
+    "page": "cloudflare-docs/src/content/docs/agents/runtime/routing/options.mdx",
+    "line": 65,
+    "durableObjects": {},
+    "ms": 1645,
+    "modelCalls": 0,
+    "outcome": "ran-no-model",
+    "report": [],
+    "defaultFetch": {
+      "status": 404
+    }
+  },
+  {
+    "id": "cf__runtime__routing__options__03",
+    "page": "cloudflare-docs/src/content/docs/agents/runtime/routing/options.mdx",
+    "line": 94,
+    "durableObjects": {},
+    "ms": 1789,
+    "modelCalls": 0,
+    "outcome": "ran-no-model",
+    "report": [],
+    "defaultFetch": {
+      "status": 404
+    }
+  },
+  {
+    "id": "cf__runtime__routing__options__04",
+    "page": "cloudflare-docs/src/content/docs/agents/runtime/routing/options.mdx",
+    "line": 119,
+    "durableObjects": {
+      "MyAgent": "MyAgent"
+    },
+    "ms": 1723,
+    "modelCalls": 0,
+    "outcome": "ran-no-model",
+    "report": [
+      {
+        "name": "MyAgent",
+        "className": "MyAgent",
+        "agent": false,
+        "chat": false,
+        "status": "no-fetch"
+      }
+    ],
+    "defaultFetch": {
+      "status": 404
+    }
+  },
+  {
+    "id": "cf__runtime__routing__options__05",
+    "page": "cloudflare-docs/src/content/docs/agents/runtime/routing/options.mdx",
+    "line": 170,
+    "durableObjects": {},
+    "ms": 1793,
+    "modelCalls": 0,
+    "outcome": "ran-no-model",
+    "report": [],
+    "defaultFetch": {
+      "status": 404
+    }
+  },
+  {
+    "id": "cf__skills__execution__03",
+    "page": "cloudflare-docs/src/content/docs/agents/skills/execution.mdx",
+    "line": 63,
+    "outcome": "skipped",
+    "reason": "binding the harness does not configure"
+  },
+  {
+    "id": "cf__skills__index__01",
+    "page": "cloudflare-docs/src/content/docs/agents/skills/index.mdx",
+    "line": 58,
+    "outcome": "skipped",
+    "reason": "binding the harness does not configure"
+  },
+  {
+    "id": "cf__skills__sources__code__01",
+    "page": "cloudflare-docs/src/content/docs/agents/skills/sources/code.mdx",
+    "line": 21,
+    "durableObjects": {
+      "MyAgent": "MyAgent"
+    },
+    "ms": 2735,
+    "modelCalls": 0,
+    "outcome": "ran-no-model",
+    "report": [
+      {
+        "name": "MyAgent",
+        "className": "MyAgent",
+        "agent": true,
+        "chat": false,
+        "status": 404
+      }
+    ],
+    "defaultFetch": null
+  },
+  {
+    "id": "cf__skills__sources__computer__01",
+    "page": "cloudflare-docs/src/content/docs/agents/skills/sources/computer.mdx",
+    "line": 33,
+    "durableObjects": {
+      "MyAgent": "MyAgent"
+    },
+    "ms": 2889,
+    "modelCalls": 0,
+    "outcome": "ran-no-model",
+    "report": [
+      {
+        "name": "MyAgent",
+        "className": "MyAgent",
+        "agent": true,
+        "chat": false,
+        "status": 404
+      }
+    ],
+    "defaultFetch": null
+  },
+  {
+    "id": "cf__skills__sources__computer__03",
+    "page": "cloudflare-docs/src/content/docs/agents/skills/sources/computer.mdx",
+    "line": 59,
+    "durableObjects": {
+      "MyAgent": "MyAgent"
+    },
+    "ms": 2996,
+    "modelCalls": 0,
+    "outcome": "ran-no-model",
+    "report": [
+      {
+        "name": "MyAgent",
+        "className": "MyAgent",
+        "agent": true,
+        "chat": false,
+        "status": 404
+      }
+    ],
+    "defaultFetch": null
+  },
+  {
+    "id": "cf__skills__sources__r2__01",
+    "page": "cloudflare-docs/src/content/docs/agents/skills/sources/r2.mdx",
+    "line": 50,
+    "outcome": "skipped",
+    "reason": "binding the harness does not configure"
+  },
+  {
+    "id": "cf__tools__ai-search__01",
+    "page": "cloudflare-docs/src/content/docs/agents/tools/ai-search.mdx",
+    "line": 28,
+    "durableObjects": {
+      "SearchAgent": "SearchAgent"
+    },
+    "ms": 1988,
+    "modelCalls": 0,
+    "outcome": "ran-no-model",
+    "report": [
+      {
+        "name": "SearchAgent",
+        "className": "SearchAgent",
+        "agent": true,
+        "chat": false,
+        "status": 404
+      }
+    ],
+    "defaultFetch": null
+  },
+  {
+    "id": "cf__tools__browser__11",
+    "page": "cloudflare-docs/src/content/docs/agents/tools/browser.mdx",
+    "line": 540,
+    "outcome": "skipped",
+    "reason": "Browser Rendering binding"
+  },
+  {
+    "id": "cf__tools__codemode__browser__04",
+    "page": "cloudflare-docs/src/content/docs/agents/tools/codemode/browser.mdx",
+    "line": 157,
+    "durableObjects": {
+      "BrowserCodemode": "BrowserCodemode"
+    },
+    "ms": 1473,
+    "modelCalls": 1,
+    "outcome": "ran",
+    "report": [
+      {
+        "name": "BrowserCodemode",
+        "className": "BrowserCodemode",
+        "agent": true,
+        "chat": true,
+        "status": 404,
+        "chatStatus": "completed"
+      }
+    ],
+    "defaultFetch": null
+  },
+  {
+    "id": "cf__tools__codemode__mcp__03",
+    "page": "cloudflare-docs/src/content/docs/agents/tools/codemode/mcp.mdx",
+    "line": 143,
+    "durableObjects": {
+      "Chat": "Chat"
+    },
+    "ms": 2311,
+    "modelCalls": 0,
+    "outcome": "ran-no-model",
+    "report": [
+      {
+        "name": "Chat",
+        "className": "Chat",
+        "agent": true,
+        "chat": false,
+        "status": 404
+      }
+    ],
+    "defaultFetch": null
+  },
+  {
+    "id": "cf__tools__filesystem__01",
+    "page": "cloudflare-docs/src/content/docs/agents/tools/filesystem.mdx",
+    "line": 51,
+    "durableObjects": {
+      "NotesAgent": "NotesAgent"
+    },
+    "ms": 1860,
+    "modelCalls": 0,
+    "outcome": "ran-no-model",
+    "report": [
+      {
+        "name": "NotesAgent",
+        "className": "NotesAgent",
+        "agent": false,
+        "chat": false,
+        "status": "no-fetch"
+      }
+    ],
+    "defaultFetch": {
+      "status": 200
+    }
+  },
+  {
+    "id": "cf__tools__filesystem__03",
+    "page": "cloudflare-docs/src/content/docs/agents/tools/filesystem.mdx",
+    "line": 173,
+    "durableObjects": {
+      "WriterAgent": "WriterAgent"
+    },
+    "ms": 1866,
+    "modelCalls": 0,
+    "outcome": "ran-no-model",
+    "report": [
+      {
+        "name": "WriterAgent",
+        "className": "WriterAgent",
+        "agent": false,
+        "chat": false,
+        "status": "no-fetch"
+      }
+    ],
+    "defaultFetch": null
+  },
+  {
+    "id": "cf__tools__mcp__01",
+    "page": "cloudflare-docs/src/content/docs/agents/tools/mcp.mdx",
+    "line": 30,
+    "durableObjects": {
+      "ToolAgent": "ToolAgent"
+    },
+    "ms": 1865,
+    "modelCalls": 0,
+    "blockedHost": "mcp.github.com",
+    "outcome": "needs-network",
+    "report": [
+      {
+        "name": "ToolAgent",
+        "className": "ToolAgent",
+        "agent": true,
+        "chat": false,
+        "error": "Error: Failed to connect to MCP server at https://mcp.github.com/mcp: Version negotiation failed: the server denied access (HTTP 403)"
+      }
+    ],
+    "defaultFetch": null,
+    "failures": [
+      "ToolAgent: Error: Failed to connect to MCP server at https://mcp.github.com/mcp: Version negotiation failed: the server denied access (HTTP 403)"
+    ]
+  },
+  {
+    "id": "cf__tools__payments__x402__charge-for-mcp-tools__01",
+    "page": "cloudflare-docs/src/content/docs/agents/tools/payments/x402/charge-for-mcp-tools.mdx",
+    "line": 23,
+    "outcome": "skipped",
+    "reason": "voice, payments or chat-platform integration"
+  },
+  {
+    "id": "cf__tools__sandbox__01",
+    "page": "cloudflare-docs/src/content/docs/agents/tools/sandbox.mdx",
+    "line": 38,
+    "durableObjects": {
+      "CodeAgent": "CodeAgent"
+    },
+    "ms": 2691,
+    "modelCalls": 0,
+    "outcome": "ran-no-model",
+    "report": [
+      {
+        "name": "CodeAgent",
+        "className": "CodeAgent",
+        "agent": true,
+        "chat": false,
+        "status": 404
+      }
+    ],
+    "defaultFetch": {
+      "status": 404
+    }
+  },
+  {
+    "id": "cf__tools__skills__01",
+    "page": "cloudflare-docs/src/content/docs/agents/tools/skills.mdx",
+    "line": 60,
+    "durableObjects": {
+      "MyAgent": "MyAgent"
+    },
+    "ms": 3330,
+    "modelCalls": 0,
+    "outcome": "ran-no-model",
+    "report": [
+      {
+        "name": "MyAgent",
+        "className": "MyAgent",
+        "agent": true,
+        "chat": false,
+        "status": 404
+      }
+    ],
+    "defaultFetch": null
+  },
+  {
+    "id": "example__agents-as-tools__src__server",
+    "page": "agents/examples/agents-as-tools/src/server.ts",
+    "line": 1,
+    "durableObjects": {
+      "Assistant": "Assistant",
+      "Researcher": "Researcher",
+      "Planner": "Planner"
+    },
+    "note": "wrangler bindings not configured: ai (AI is mocked)",
+    "ms": 3197,
+    "modelCalls": 0,
+    "outcome": "ran-no-model",
+    "report": [
+      {
+        "name": "Assistant",
+        "className": "Assistant",
+        "agent": true,
+        "chat": false,
+        "status": 404
+      },
+      {
+        "name": "Researcher",
+        "className": "Researcher",
+        "agent": true,
+        "chat": false,
+        "status": 404
+      },
+      {
+        "name": "Planner",
+        "className": "Planner",
+        "agent": true,
+        "chat": false,
+        "status": 404
+      }
+    ],
+    "defaultFetch": {
+      "status": 404
+    }
+  },
+  {
+    "id": "example__ai-chat__src__server",
+    "page": "agents/examples/ai-chat/src/server.ts",
+    "line": 1,
+    "durableObjects": {
+      "ChatAgent": "ChatAgent"
+    },
+    "note": "wrangler bindings not configured: ai, browser, worker_loaders (AI is mocked)",
+    "ms": 2365,
+    "modelCalls": 0,
+    "outcome": "needs-binding",
+    "report": [
+      {
+        "name": "ChatAgent",
+        "className": "ChatAgent",
+        "agent": true,
+        "chat": true,
+        "status": 404,
+        "error": "Error: Either 'browser' (Fetcher binding) or 'cdpUrl' must be provided"
+      }
+    ],
+    "defaultFetch": {
+      "status": 404
+    },
+    "failures": [
+      "ChatAgent: Error: Either 'browser' (Fetcher binding) or 'cdpUrl' must be provided"
+    ]
+  },
+  {
+    "id": "example__chat-sdk-messenger__src__index",
+    "page": "agents/examples/chat-sdk-messenger/src/index.ts",
+    "line": 1,
+    "durableObjects": {
+      "ChatIngressAgent": "ChatIngressAgent"
+    },
+    "outcome": "skipped",
+    "reason": "package outside the pinned set (@chat-adapter/telegram)"
+  },
+  {
+    "id": "example__codemode__src__server",
+    "page": "agents/examples/codemode/src/server.ts",
+    "line": 1,
+    "durableObjects": {
+      "Codemode": "Codemode"
+    },
+    "note": "wrangler bindings not configured: ai, worker_loaders (AI is mocked)",
+    "ms": 2044,
+    "modelCalls": 2,
+    "outcome": "ran",
+    "report": [
+      {
+        "name": "Codemode",
+        "className": "Codemode",
+        "agent": true,
+        "chat": true,
+        "status": 404,
+        "chatStatus": "completed"
+      }
+    ],
+    "defaultFetch": {
+      "status": 404
+    }
+  },
+  {
+    "id": "example__computer-skills__src__server",
+    "page": "agents/examples/computer-skills/src/server.ts",
+    "line": 1,
+    "durableObjects": {
+      "SkillsAgent": "SkillsAgent"
+    },
+    "note": "wrangler bindings not configured: ai, worker_loaders (AI is mocked)",
+    "ms": 2877,
+    "modelCalls": 0,
+    "outcome": "ran-no-model",
+    "report": [
+      {
+        "name": "SkillsAgent",
+        "className": "SkillsAgent",
+        "agent": true,
+        "chat": false,
+        "status": 404
+      }
+    ],
+    "defaultFetch": {
+      "status": 404
+    }
+  },
+  {
+    "id": "example__context-overflow-recovery__src__server",
+    "page": "agents/examples/context-overflow-recovery/src/server.ts",
+    "line": 1,
+    "durableObjects": {
+      "ContextOverflowAgent": "ContextOverflowAgent"
+    },
+    "note": "wrangler bindings not configured: ai (AI is mocked)",
+    "ms": 2907,
+    "modelCalls": 0,
+    "outcome": "ran-no-model",
+    "report": [
+      {
+        "name": "ContextOverflowAgent",
+        "className": "ContextOverflowAgent",
+        "agent": true,
+        "chat": false,
+        "status": 404
+      }
+    ],
+    "defaultFetch": {
+      "status": 404
+    }
+  },
+  {
+    "id": "example__dynamic-tools__src__server",
+    "page": "agents/examples/dynamic-tools/src/server.ts",
+    "line": 1,
+    "durableObjects": {
+      "DynamicToolsAgent": "DynamicToolsAgent"
+    },
+    "note": "wrangler bindings not configured: ai (AI is mocked)",
+    "ms": 2388,
+    "modelCalls": 1,
+    "outcome": "ran",
+    "report": [
+      {
+        "name": "DynamicToolsAgent",
+        "className": "DynamicToolsAgent",
+        "agent": true,
+        "chat": true,
+        "status": 404,
+        "chatStatus": "completed"
+      }
+    ],
+    "defaultFetch": {
+      "status": 404
+    }
+  },
+  {
+    "id": "example__github-webhook__src__server",
+    "page": "agents/examples/github-webhook/src/server.ts",
+    "line": 1,
+    "durableObjects": {
+      "RepoAgent": "RepoAgent"
+    },
+    "ms": 1728,
+    "modelCalls": 0,
+    "outcome": "ran-no-model",
+    "report": [
+      {
+        "name": "RepoAgent",
+        "className": "RepoAgent",
+        "agent": true,
+        "chat": false,
+        "status": 405
+      }
+    ],
+    "defaultFetch": {
+      "status": 404
+    }
+  },
+  {
+    "id": "example__mcp-client__src__server",
+    "page": "agents/examples/mcp-client/src/server.ts",
+    "line": 1,
+    "durableObjects": {
+      "MyAgent": "MyAgent"
+    },
+    "ms": 1508,
+    "modelCalls": 0,
+    "outcome": "ran-no-model",
+    "report": [
+      {
+        "name": "MyAgent",
+        "className": "MyAgent",
+        "agent": true,
+        "chat": false,
+        "status": 404
+      }
+    ],
+    "defaultFetch": {
+      "status": 404
+    }
+  },
+  {
+    "id": "example__mcp-elicitation-mrtr__src__index",
+    "page": "agents/examples/mcp-elicitation-mrtr/src/index.ts",
+    "line": 1,
+    "durableObjects": {},
+    "ms": 1349,
+    "modelCalls": 0,
+    "outcome": "needs-binding",
+    "report": [],
+    "defaultFetch": {
+      "error": "Error: MRTR_REQUEST_STATE_KEY must be configured"
+    },
+    "failures": [
+      "default fetch: Error: MRTR_REQUEST_STATE_KEY must be configured"
+    ]
+  },
+  {
+    "id": "example__mcp-worker__src__server",
+    "page": "agents/examples/mcp-worker/src/server.ts",
+    "line": 1,
+    "durableObjects": {},
+    "ms": 1967,
+    "modelCalls": 0,
+    "outcome": "ran-no-model",
+    "report": [],
+    "defaultFetch": {
+      "status": 404
+    }
+  },
+  {
+    "id": "example__mcp-worker-authenticated__src__server",
+    "page": "agents/examples/mcp-worker-authenticated/src/server.ts",
+    "line": 1,
+    "durableObjects": {},
+    "outcome": "skipped",
+    "reason": "package outside the pinned set (hono)"
+  },
+  {
+    "id": "example__multi-ai-chat__src__server",
+    "page": "agents/examples/multi-ai-chat/src/server.ts",
+    "line": 1,
+    "durableObjects": {
+      "Inbox": "Inbox",
+      "Chat": "Chat",
+      "Researcher": "Researcher"
+    },
+    "outcome": "skipped",
+    "reason": "package outside the pinned set (nanoid)"
+  },
+  {
+    "id": "example__push-notifications__src__server",
+    "page": "agents/examples/push-notifications/src/server.ts",
+    "line": 1,
+    "durableObjects": {
+      "ReminderAgent": "ReminderAgent"
+    },
+    "outcome": "skipped",
+    "reason": "package outside the pinned set (web-push)"
+  },
+  {
+    "id": "example__r2-skills__src__server",
+    "page": "agents/examples/r2-skills/src/server.ts",
+    "line": 1,
+    "durableObjects": {
+      "SkillsAgent": "SkillsAgent"
+    },
+    "note": "wrangler bindings not configured: ai, worker_loaders, r2_buckets (AI is mocked)",
+    "ms": 3163,
+    "modelCalls": 0,
+    "outcome": "needs-binding",
+    "report": [
+      {
+        "name": "SkillsAgent",
+        "className": "SkillsAgent",
+        "agent": true,
+        "chat": false,
+        "error": "TypeError: Cannot read properties of undefined (reading 'list')"
+      }
+    ],
+    "defaultFetch": {
+      "status": 404
+    },
+    "failures": [
+      "SkillsAgent: TypeError: Cannot read properties of undefined (reading 'list')"
+    ]
+  },
+  {
+    "id": "example__resumable-stream-chat__src__server",
+    "page": "agents/examples/resumable-stream-chat/src/server.ts",
+    "line": 1,
+    "durableObjects": {
+      "ResumableStreamingChat": "ResumableStreamingChat"
+    },
+    "note": "wrangler bindings not configured: ai (AI is mocked)",
+    "ms": 3387,
+    "modelCalls": 1,
+    "outcome": "ran",
+    "report": [
+      {
+        "name": "ResumableStreamingChat",
+        "className": "ResumableStreamingChat",
+        "agent": true,
+        "chat": true,
+        "status": 404,
+        "chatStatus": "completed"
+      }
+    ],
+    "defaultFetch": {
+      "status": 404
+    }
+  },
+  {
+    "id": "example__think-submissions__src__server",
+    "page": "agents/examples/think-submissions/src/server.ts",
+    "line": 1,
+    "durableObjects": {
+      "TaskAgent": "TaskAgent"
+    },
+    "note": "wrangler bindings not configured: ai (AI is mocked)",
+    "ms": 3109,
+    "modelCalls": 0,
+    "outcome": "ran-no-model",
+    "report": [
+      {
+        "name": "TaskAgent",
+        "className": "TaskAgent",
+        "agent": true,
+        "chat": false,
+        "status": 404
+      }
+    ],
+    "defaultFetch": {
+      "status": 404
+    }
+  },
+  {
+    "id": "example__webmcp__src__server",
+    "page": "agents/examples/webmcp/src/server.ts",
+    "line": 1,
+    "durableObjects": {
+      "MyMCP": "MyMCP",
+      "MCP_OBJECT": "MyMCP"
+    },
+    "ms": 2053,
+    "modelCalls": 0,
+    "outcome": "ran-no-model",
+    "report": [
+      {
+        "name": "MyMCP",
+        "className": "MyMCP",
+        "agent": true,
+        "chat": false,
+        "mcp": true,
+        "status": 200,
+        "mcpInitialized": true
+      },
+      {
+        "name": "MCP_OBJECT",
+        "className": "MyMCP",
+        "agent": true,
+        "chat": false,
+        "mcp": true,
+        "status": 200,
+        "mcpInitialized": true
+      }
+    ],
+    "defaultFetch": {
+      "status": 404
+    }
+  },
+  {
+    "id": "example__workflows__src__server",
+    "page": "agents/examples/workflows/src/server.ts",
+    "line": 1,
+    "durableObjects": {
+      "TaskAgent": "TaskAgent"
+    },
+    "note": "wrangler bindings not configured: workflows (AI is mocked)",
+    "ms": 1086,
+    "modelCalls": 0,
+    "outcome": "ran-no-model",
+    "report": [
+      {
+        "name": "TaskAgent",
+        "className": "TaskAgent",
+        "agent": true,
+        "chat": false,
+        "status": 404
+      }
+    ],
+    "defaultFetch": {
+      "status": 404
+    }
+  },
+  {
+    "id": "repo__agents__adding-to-existing-project__01",
+    "page": "agents/docs/agents/adding-to-existing-project.md",
+    "line": 34,
+    "durableObjects": {
+      "Counter": "Counter"
+    },
+    "ms": 1878,
+    "modelCalls": 0,
+    "outcome": "ran-no-model",
+    "report": [
+      {
+        "name": "Counter",
+        "className": "Counter",
+        "agent": true,
+        "chat": false,
+        "status": 404
+      }
+    ],
+    "defaultFetch": null
+  },
+  {
+    "id": "repo__agents__agent-tools__01",
+    "page": "agents/docs/agents/agent-tools.md",
+    "line": 26,
+    "durableObjects": {
+      "Researcher": "Researcher",
+      "Assistant": "Assistant"
+    },
+    "ms": 3340,
+    "modelCalls": 0,
+    "outcome": "ran-no-model",
+    "report": [
+      {
+        "name": "Researcher",
+        "className": "Researcher",
+        "agent": true,
+        "chat": false,
+        "status": 404
+      },
+      {
+        "name": "Assistant",
+        "className": "Assistant",
+        "agent": true,
+        "chat": false,
+        "status": 404
+      }
+    ],
+    "defaultFetch": null
+  },
+  {
+    "id": "repo__agents__browse-the-web__01",
+    "page": "agents/docs/agents/browse-the-web.md",
+    "line": 48,
+    "outcome": "skipped",
+    "reason": "Browser Rendering binding"
+  },
+  {
+    "id": "repo__agents__callable-methods__01",
+    "page": "agents/docs/agents/callable-methods.md",
+    "line": 7,
+    "durableObjects": {
+      "MyAgent": "MyAgent"
+    },
+    "ms": 2210,
+    "modelCalls": 0,
+    "outcome": "ran-no-model",
+    "report": [
+      {
+        "name": "MyAgent",
+        "className": "MyAgent",
+        "agent": true,
+        "chat": false,
+        "status": 404
+      }
+    ],
+    "defaultFetch": null
+  },
+  {
+    "id": "repo__agents__callable-methods__04",
+    "page": "agents/docs/agents/callable-methods.md",
+    "line": 91,
+    "durableObjects": {
+      "CounterAgent": "CounterAgent"
+    },
+    "ms": 1588,
+    "modelCalls": 0,
+    "outcome": "ran-no-model",
+    "report": [
+      {
+        "name": "CounterAgent",
+        "className": "CounterAgent",
+        "agent": true,
+        "chat": false,
+        "status": 404
+      }
+    ],
+    "defaultFetch": null
+  },
+  {
+    "id": "repo__agents__chat-agents__01",
+    "page": "agents/docs/agents/chat-agents.md",
+    "line": 33,
+    "durableObjects": {
+      "ChatAgent": "ChatAgent"
+    },
+    "ms": 2055,
+    "modelCalls": 1,
+    "outcome": "ran",
+    "report": [
+      {
+        "name": "ChatAgent",
+        "className": "ChatAgent",
+        "agent": true,
+        "chat": true,
+        "status": 404,
+        "chatStatus": "completed"
+      }
+    ],
+    "defaultFetch": null
+  },
+  {
+    "id": "repo__agents__chat-agents__14",
+    "page": "agents/docs/agents/chat-agents.md",
+    "line": 368,
+    "durableObjects": {
+      "ChatAgent": "ChatAgent"
+    },
+    "ms": 1885,
+    "modelCalls": 0,
+    "outcome": "ran-no-model",
+    "report": [
+      {
+        "name": "ChatAgent",
+        "className": "ChatAgent",
+        "agent": true,
+        "chat": true,
+        "status": 404,
+        "chatStatus": "no-onChatMessage"
+      }
+    ],
+    "defaultFetch": null
+  },
+  {
+    "id": "repo__agents__get-current-agent__02",
+    "page": "agents/docs/agents/get-current-agent.md",
+    "line": 36,
+    "durableObjects": {
+      "MyAgent": "MyAgent"
+    },
+    "ms": 2339,
+    "modelCalls": 0,
+    "outcome": "ran-no-model",
+    "report": [
+      {
+        "name": "MyAgent",
+        "className": "MyAgent",
+        "agent": true,
+        "chat": true,
+        "status": 404,
+        "chatStatus": "no-onChatMessage"
+      }
+    ],
+    "defaultFetch": null
+  },
+  {
+    "id": "repo__agents__get-current-agent__04",
+    "page": "agents/docs/agents/get-current-agent.md",
+    "line": 86,
+    "durableObjects": {
+      "MyAgent": "MyAgent"
+    },
+    "ms": 2095,
+    "modelCalls": 0,
+    "outcome": "ran-no-model",
+    "report": [
+      {
+        "name": "MyAgent",
+        "className": "MyAgent",
+        "agent": true,
+        "chat": true,
+        "status": 404,
+        "chatStatus": "no-onChatMessage"
+      }
+    ],
+    "defaultFetch": null
+  },
+  {
+    "id": "repo__agents__get-current-agent__05",
+    "page": "agents/docs/agents/get-current-agent.md",
+    "line": 109,
+    "durableObjects": {
+      "MyAgent": "MyAgent"
+    },
+    "ms": 2015,
+    "modelCalls": 0,
+    "outcome": "ran-no-model",
+    "report": [
+      {
+        "name": "MyAgent",
+        "className": "MyAgent",
+        "agent": true,
+        "chat": true,
+        "status": 404,
+        "chatStatus": "no-onChatMessage"
+      }
+    ],
+    "defaultFetch": null
+  },
+  {
+    "id": "repo__agents__get-current-agent__06",
+    "page": "agents/docs/agents/get-current-agent.md",
+    "line": 143,
+    "durableObjects": {
+      "MyAgent": "MyAgent"
+    },
+    "ms": 1730,
+    "modelCalls": 0,
+    "outcome": "ran-no-model",
+    "report": [
+      {
+        "name": "MyAgent",
+        "className": "MyAgent",
+        "agent": true,
+        "chat": false,
+        "status": 404
+      }
+    ],
+    "defaultFetch": null
+  },
+  {
+    "id": "repo__agents__get-current-agent__08",
+    "page": "agents/docs/agents/get-current-agent.md",
+    "line": 190,
+    "durableObjects": {
+      "MyAgent": "MyAgent"
+    },
+    "ms": 1874,
+    "modelCalls": 0,
+    "outcome": "ran-no-model",
+    "report": [
+      {
+        "name": "MyAgent",
+        "className": "MyAgent",
+        "agent": true,
+        "chat": true,
+        "status": 404,
+        "chatStatus": "no-onChatMessage"
+      }
+    ],
+    "defaultFetch": null
+  },
+  {
+    "id": "repo__agents__getting-started__02",
+    "page": "agents/docs/agents/getting-started.md",
+    "line": 64,
+    "durableObjects": {
+      "Counter": "Counter"
+    },
+    "ms": 1676,
+    "modelCalls": 0,
+    "outcome": "ran-no-model",
+    "report": [
+      {
+        "name": "Counter",
+        "className": "Counter",
+        "agent": true,
+        "chat": false,
+        "status": 404
+      }
+    ],
+    "defaultFetch": {
+      "status": 404
+    }
+  },
+  {
+    "id": "repo__agents__harnesses__think__01",
+    "page": "agents/docs/agents/harnesses/think.md",
+    "line": 19,
+    "durableObjects": {
+      "Assistant": "Assistant"
+    },
+    "ms": 1902,
+    "modelCalls": 0,
+    "outcome": "ran-no-model",
+    "report": [
+      {
+        "name": "Assistant",
+        "className": "Assistant",
+        "agent": false,
+        "chat": false,
+        "status": "no-fetch"
+      }
+    ],
+    "defaultFetch": null
+  },
+  {
+    "id": "repo__agents__human-in-the-loop__11",
+    "page": "agents/docs/agents/human-in-the-loop.md",
+    "line": 464,
+    "durableObjects": {},
+    "ms": 1741,
+    "modelCalls": 0,
+    "outcome": "ran-no-model",
+    "report": [],
+    "defaultFetch": {
+      "status": 404
+    }
+  },
+  {
+    "id": "repo__agents__index__01",
+    "page": "agents/docs/agents/index.md",
+    "line": 7,
+    "durableObjects": {
+      "Assistant": "Assistant"
+    },
+    "ms": 1558,
+    "modelCalls": 0,
+    "outcome": "ran-no-model",
+    "report": [
+      {
+        "name": "Assistant",
+        "className": "Assistant",
+        "agent": false,
+        "chat": false,
+        "status": "no-fetch"
+      }
+    ],
+    "defaultFetch": null
+  },
+  {
+    "id": "repo__agents__lifecycle__01",
+    "page": "agents/docs/agents/lifecycle.md",
+    "line": 12,
+    "durableObjects": {
+      "MyObject": "MyObject"
+    },
+    "ms": 1466,
+    "modelCalls": 0,
+    "outcome": "ran-no-model",
+    "report": [
+      {
+        "name": "MyObject",
+        "className": "MyObject",
+        "agent": false,
+        "chat": false,
+        "status": "no-fetch"
+      }
+    ],
+    "defaultFetch": null
+  },
+  {
+    "id": "repo__agents__lifecycle__03",
+    "page": "agents/docs/agents/lifecycle.md",
+    "line": 51,
+    "durableObjects": {},
+    "ms": 1541,
+    "modelCalls": 0,
+    "outcome": "ran-no-model",
+    "report": [],
+    "defaultFetch": {
+      "status": 404
+    }
+  },
+  {
+    "id": "repo__agents__mcp-client__01",
+    "page": "agents/docs/agents/mcp-client.md",
+    "line": 21,
+    "durableObjects": {
+      "MyObject": "MyObject"
+    },
+    "ms": 1527,
+    "modelCalls": 0,
+    "outcome": "ran-no-model",
+    "report": [
+      {
+        "name": "MyObject",
+        "className": "MyObject",
+        "agent": false,
+        "chat": false,
+        "status": "no-fetch"
+      }
+    ],
+    "defaultFetch": null
+  },
+  {
+    "id": "repo__agents__mcp-client__02",
+    "page": "agents/docs/agents/mcp-client.md",
+    "line": 68,
+    "durableObjects": {
+      "MyAgent": "MyAgent"
+    },
+    "ms": 1687,
+    "modelCalls": 0,
+    "blockedHost": "mcp.github.com",
+    "outcome": "needs-network",
+    "report": [
+      {
+        "name": "MyAgent",
+        "className": "MyAgent",
+        "agent": true,
+        "chat": false,
+        "status": 500,
+        "error": "Error: Failed to connect to MCP server at https://mcp.github.com/mcp: Version negotiation failed: the server denied access (HTTP 403)\n    at MyAgent.addMcpServer (file:///home/user/agent-speak/verify/cloudflare-agents/.tmp/docs/repo__agents__mcp-client__02/worker.mjs:58883:59)\n    at async MyAgent.o"
+      }
+    ],
+    "defaultFetch": null,
+    "failures": [
+      "MyAgent: Error: Failed to connect to MCP server at https://mcp.github.com/mcp: Version negotiation failed: the server denied access (HTTP 403)\n    at MyAgent.addMcpServer (file:///home/user/agent-speak/verify/cloudflare-agents/.tmp/docs/repo__agents__mcp-client__02/worker.mjs:58883:59)\n    at async MyAgent.o"
+    ]
+  },
+  {
+    "id": "repo__agents__mcp-servers__01",
+    "page": "agents/docs/agents/mcp-servers.md",
+    "line": 17,
+    "durableObjects": {},
+    "ms": 1728,
+    "modelCalls": 0,
+    "outcome": "ran-no-model",
+    "report": [],
+    "defaultFetch": {
+      "status": 404
+    }
+  },
+  {
+    "id": "repo__agents__mcp-servers__06",
+    "page": "agents/docs/agents/mcp-servers.md",
+    "line": 211,
+    "durableObjects": {},
+    "ms": 1613,
+    "modelCalls": 0,
+    "outcome": "ran-no-model",
+    "report": [],
+    "defaultFetch": {
+      "status": 404
+    }
+  },
+  {
+    "id": "repo__agents__models__02",
+    "page": "agents/docs/agents/models.md",
+    "line": 52,
+    "durableObjects": {},
+    "ms": 1556,
+    "modelCalls": 2,
+    "outcome": "ran",
+    "report": [],
+    "defaultFetch": {
+      "status": 200
+    }
+  },
+  {
+    "id": "repo__agents__models-pi-ai__03",
+    "page": "agents/docs/agents/models-pi-ai.md",
+    "line": 62,
+    "durableObjects": {},
+    "ms": 1897,
+    "modelCalls": 1,
+    "outcome": "ran",
+    "report": [],
+    "defaultFetch": {
+      "status": 200
+    }
+  },
+  {
+    "id": "repo__agents__queue__01",
+    "page": "agents/docs/agents/queue.md",
+    "line": 16,
+    "durableObjects": {
+      "UploadObject": "UploadObject"
+    },
+    "ms": 1711,
+    "modelCalls": 0,
+    "outcome": "ran-no-model",
+    "report": [
+      {
+        "name": "UploadObject",
+        "className": "UploadObject",
+        "agent": false,
+        "chat": false,
+        "status": "no-fetch"
+      }
+    ],
+    "defaultFetch": null
+  },
+  {
+    "id": "repo__agents__resumable-streaming__01",
+    "page": "agents/docs/agents/resumable-streaming.md",
+    "line": 21,
+    "durableObjects": {
+      "ChatAgent": "ChatAgent"
+    },
+    "ms": 1597,
+    "modelCalls": 1,
+    "outcome": "ran",
+    "report": [
+      {
+        "name": "ChatAgent",
+        "className": "ChatAgent",
+        "agent": true,
+        "chat": true,
+        "status": 404,
+        "chatStatus": "completed"
+      }
+    ],
+    "defaultFetch": null
+  },
+  {
+    "id": "repo__agents__retries__01",
+    "page": "agents/docs/agents/retries.md",
+    "line": 18,
+    "durableObjects": {
+      "MyAgent": "MyAgent"
+    },
+    "ms": 1411,
+    "modelCalls": 0,
+    "outcome": "ran-no-model",
+    "report": [
+      {
+        "name": "MyAgent",
+        "className": "MyAgent",
+        "agent": true,
+        "chat": false,
+        "status": 404
+      }
+    ],
+    "defaultFetch": null
+  },
+  {
+    "id": "repo__agents__routing__01",
+    "page": "agents/docs/agents/routing.md",
+    "line": 52,
+    "durableObjects": {},
+    "ms": 1504,
+    "modelCalls": 0,
+    "outcome": "ran-no-model",
+    "report": [],
+    "defaultFetch": {
+      "status": 404
+    }
+  },
+  {
+    "id": "repo__agents__routing__26",
+    "page": "agents/docs/agents/routing.md",
+    "line": 606,
+    "durableObjects": {
+      "ChatAgent": "ChatAgent",
+      "UserAgent": "UserAgent"
+    },
+    "ms": 1635,
+    "modelCalls": 0,
+    "outcome": "ran-no-model",
+    "report": [
+      {
+        "name": "ChatAgent",
+        "className": "ChatAgent",
+        "agent": true,
+        "chat": false,
+        "status": 404
+      },
+      {
+        "name": "UserAgent",
+        "className": "UserAgent",
+        "agent": true,
+        "chat": false,
+        "status": 404
+      }
+    ],
+    "defaultFetch": {
+      "status": 404
+    }
+  },
+  {
+    "id": "repo__agents__scheduling__01",
+    "page": "agents/docs/agents/scheduling.md",
+    "line": 23,
+    "durableObjects": {
+      "ReminderObject": "ReminderObject"
+    },
+    "ms": 1787,
+    "modelCalls": 0,
+    "outcome": "ran-no-model",
+    "report": [
+      {
+        "name": "ReminderObject",
+        "className": "ReminderObject",
+        "agent": false,
+        "chat": false,
+        "status": "no-fetch"
+      }
+    ],
+    "defaultFetch": null
+  },
+  {
+    "id": "repo__agents__scheduling__03",
+    "page": "agents/docs/agents/scheduling.md",
+    "line": 101,
+    "durableObjects": {
+      "ReminderAgent": "ReminderAgent"
+    },
+    "ms": 1683,
+    "modelCalls": 0,
+    "outcome": "ran-no-model",
+    "report": [
+      {
+        "name": "ReminderAgent",
+        "className": "ReminderAgent",
+        "agent": true,
+        "chat": false,
+        "status": 200
+      }
+    ],
+    "defaultFetch": null
+  },
+  {
+    "id": "repo__agents__sessions__01",
+    "page": "agents/docs/agents/sessions.md",
+    "line": 15,
+    "durableObjects": {
+      "ConversationObject": "ConversationObject"
+    },
+    "ms": 1703,
+    "modelCalls": 0,
+    "outcome": "ran-no-model",
+    "report": [
+      {
+        "name": "ConversationObject",
+        "className": "ConversationObject",
+        "agent": false,
+        "chat": false,
+        "status": "no-fetch"
+      }
+    ],
+    "defaultFetch": null
+  },
+  {
+    "id": "repo__agents__sessions__02",
+    "page": "agents/docs/agents/sessions.md",
+    "line": 29,
+    "durableObjects": {
+      "ConversationAgent": "ConversationAgent"
+    },
+    "ms": 1772,
+    "modelCalls": 0,
+    "outcome": "ran-no-model",
+    "report": [
+      {
+        "name": "ConversationAgent",
+        "className": "ConversationAgent",
+        "agent": true,
+        "chat": false,
+        "status": 404
+      }
+    ],
+    "defaultFetch": null
+  },
+  {
+    "id": "repo__agents__streams__01",
+    "page": "agents/docs/agents/streams.md",
+    "line": 16,
+    "durableObjects": {
+      "ReportObject": "ReportObject"
+    },
+    "ms": 1970,
+    "modelCalls": 0,
+    "outcome": "ran-no-model",
+    "report": [
+      {
+        "name": "ReportObject",
+        "className": "ReportObject",
+        "agent": false,
+        "chat": false,
+        "status": "no-fetch"
+      }
+    ],
+    "defaultFetch": null
+  },
+  {
+    "id": "repo__agents__sub-agents__01",
+    "page": "agents/docs/agents/sub-agents.md",
+    "line": 23,
+    "durableObjects": {
+      "Supervisor": "Supervisor",
+      "JobRunner": "JobRunner"
+    },
+    "ms": 1998,
+    "modelCalls": 0,
+    "outcome": "ran-no-model",
+    "report": [
+      {
+        "name": "Supervisor",
+        "className": "Supervisor",
+        "agent": true,
+        "chat": false,
+        "status": 404
+      },
+      {
+        "name": "JobRunner",
+        "className": "JobRunner",
+        "agent": true,
+        "chat": false,
+        "status": 404
+      }
+    ],
+    "defaultFetch": null
+  },
+  {
+    "id": "repo__agents__voice__01",
+    "page": "agents/docs/agents/voice.md",
+    "line": 41,
+    "outcome": "skipped",
+    "reason": "voice, payments or chat-platform integration"
+  },
+  {
+    "id": "repo__agents__webhooks__01",
+    "page": "agents/docs/agents/webhooks.md",
+    "line": 7,
+    "outcome": "skipped",
+    "reason": "third-party credential"
+  },
+  {
+    "id": "repo__agents__workflows__02",
+    "page": "agents/docs/agents/workflows.md",
+    "line": 106,
+    "durableObjects": {
+      "MY_AGENT": "MyAgent"
+    },
+    "ms": 1764,
+    "modelCalls": 0,
+    "outcome": "ran-no-model",
+    "report": [
+      {
+        "name": "MY_AGENT",
+        "className": "MyAgent",
+        "agent": true,
+        "chat": false,
+        "status": 404
+      }
+    ],
+    "defaultFetch": null
+  },
+  {
+    "id": "repo__pkg-agents__01",
+    "page": "agents/packages/agents/README.md",
+    "line": 48,
+    "durableObjects": {
+      "CounterAgent": "CounterAgent"
+    },
+    "ms": 1832,
+    "modelCalls": 0,
+    "outcome": "ran-no-model",
+    "report": [
+      {
+        "name": "CounterAgent",
+        "className": "CounterAgent",
+        "agent": true,
+        "chat": false,
+        "status": 404
+      }
+    ],
+    "defaultFetch": null
+  },
+  {
+    "id": "repo__pkg-agents__04",
+    "page": "agents/packages/agents/README.md",
+    "line": 146,
+    "durableObjects": {
+      "MyAgent": "MyAgent"
+    },
+    "ms": 1610,
+    "modelCalls": 0,
+    "outcome": "ran-no-model",
+    "report": [
+      {
+        "name": "MyAgent",
+        "className": "MyAgent",
+        "agent": true,
+        "chat": false,
+        "status": 404
+      }
+    ],
+    "defaultFetch": null
+  },
+  {
+    "id": "repo__pkg-agents__11",
+    "page": "agents/packages/agents/README.md",
+    "line": 270,
+    "durableObjects": {
+      "Researcher": "Researcher",
+      "Assistant": "Assistant"
+    },
+    "ms": 2486,
+    "modelCalls": 0,
+    "outcome": "ran-no-model",
+    "report": [
+      {
+        "name": "Researcher",
+        "className": "Researcher",
+        "agent": true,
+        "chat": false,
+        "status": 404
+      },
+      {
+        "name": "Assistant",
+        "className": "Assistant",
+        "agent": true,
+        "chat": false,
+        "status": 404
+      }
+    ],
+    "defaultFetch": null
+  },
+  {
+    "id": "repo__pkg-agents__18",
+    "page": "agents/packages/agents/README.md",
+    "line": 446,
+    "durableObjects": {
+      "ChatAgent": "ChatAgent"
+    },
+    "ms": 2127,
+    "modelCalls": 1,
+    "outcome": "ran",
+    "report": [
+      {
+        "name": "ChatAgent",
+        "className": "ChatAgent",
+        "agent": true,
+        "chat": true,
+        "status": 404,
+        "chatStatus": "completed"
+      }
+    ],
+    "defaultFetch": null
+  },
+  {
+    "id": "repo__pkg-agents__22",
+    "page": "agents/packages/agents/README.md",
+    "line": 554,
+    "durableObjects": {},
+    "ms": 1730,
+    "modelCalls": 0,
+    "outcome": "ran-no-model",
+    "report": [],
+    "defaultFetch": {
+      "status": 404
+    }
+  },
+  {
+    "id": "repo__pkg-ai-chat__01",
+    "page": "agents/packages/ai-chat/README.md",
+    "line": 21,
+    "durableObjects": {
+      "ChatAgent": "ChatAgent"
+    },
+    "ms": 1858,
+    "modelCalls": 1,
+    "outcome": "ran",
+    "report": [
+      {
+        "name": "ChatAgent",
+        "className": "ChatAgent",
+        "agent": true,
+        "chat": true,
+        "status": 404,
+        "chatStatus": "completed"
+      }
+    ],
+    "defaultFetch": null
+  },
+  {
+    "id": "repo__pkg-think__01",
+    "page": "agents/packages/think/README.md",
+    "line": 13,
+    "durableObjects": {
+      "MyAgent": "MyAgent"
+    },
+    "ms": 2700,
+    "modelCalls": 0,
+    "outcome": "ran-no-model",
+    "report": [
+      {
+        "name": "MyAgent",
+        "className": "MyAgent",
+        "agent": true,
+        "chat": false,
+        "status": 404
+      }
+    ],
+    "defaultFetch": {
+      "status": 404
+    }
+  },
+  {
+    "id": "repo__pkg-think__02",
+    "page": "agents/packages/think/README.md",
+    "line": 60,
+    "outcome": "skipped",
+    "reason": "third-party credential"
+  },
+  {
+    "id": "repo__pkg-think__03",
+    "page": "agents/packages/think/README.md",
+    "line": 141,
+    "durableObjects": {
+      "Researcher": "Researcher",
+      "Assistant": "Assistant"
+    },
+    "ms": 3279,
+    "modelCalls": 0,
+    "outcome": "ran-no-model",
+    "report": [
+      {
+        "name": "Researcher",
+        "className": "Researcher",
+        "agent": true,
+        "chat": false,
+        "status": 404
+      },
+      {
+        "name": "Assistant",
+        "className": "Assistant",
+        "agent": true,
+        "chat": false,
+        "status": 404
+      }
+    ],
+    "defaultFetch": null
+  },
+  {
+    "id": "repo__pkg-think__08",
+    "page": "agents/packages/think/README.md",
+    "line": 245,
+    "outcome": "skipped",
+    "reason": "binding the harness does not configure"
+  },
+  {
+    "id": "repo__pkg-think__12",
+    "page": "agents/packages/think/README.md",
+    "line": 450,
+    "durableObjects": {
+      "MyAgent": "MyAgent"
+    },
+    "ms": 3292,
+    "modelCalls": 0,
+    "outcome": "ran-no-model",
+    "report": [
+      {
+        "name": "MyAgent",
+        "className": "MyAgent",
+        "agent": true,
+        "chat": false,
+        "status": 404
+      }
+    ],
+    "defaultFetch": null
+  },
+  {
+    "id": "repo__pkg-think__13",
+    "page": "agents/packages/think/README.md",
+    "line": 485,
+    "outcome": "skipped",
+    "reason": "Workflows binding (not configured by the harness)"
+  },
+  {
+    "id": "repo__pkg-think__24",
+    "page": "agents/packages/think/README.md",
+    "line": 974,
+    "durableObjects": {
+      "MyAgent": "MyAgent"
+    },
+    "ms": 2997,
+    "modelCalls": 0,
+    "outcome": "ran-no-model",
+    "report": [
+      {
+        "name": "MyAgent",
+        "className": "MyAgent",
+        "agent": true,
+        "chat": false,
+        "status": 404
+      }
+    ],
+    "defaultFetch": null
+  },
+  {
+    "id": "repo__README__01",
+    "page": "agents/README.md",
+    "line": 28,
+    "durableObjects": {
+      "CounterAgent": "CounterAgent"
+    },
+    "ms": 2589,
+    "modelCalls": 0,
+    "outcome": "ran-no-model",
+    "report": [
+      {
+        "name": "CounterAgent",
+        "className": "CounterAgent",
+        "agent": true,
+        "chat": false,
+        "status": 404
+      }
+    ],
+    "defaultFetch": {
+      "status": 404
+    }
+  },
+  {
+    "id": "repo__think__getting-started__02",
+    "page": "agents/docs/think/getting-started.md",
+    "line": 81,
+    "durableObjects": {
+      "MyAgent": "MyAgent"
+    },
+    "ms": 2543,
+    "modelCalls": 0,
+    "outcome": "ran-no-model",
+    "report": [
+      {
+        "name": "MyAgent",
+        "className": "MyAgent",
+        "agent": true,
+        "chat": false,
+        "status": 404
+      }
+    ],
+    "defaultFetch": {
+      "status": 404
+    }
+  },
+  {
+    "id": "repo__think__index__01",
+    "page": "agents/docs/think/index.md",
+    "line": 41,
+    "durableObjects": {
+      "MyAgent": "MyAgent"
+    },
+    "ms": 2805,
+    "modelCalls": 0,
+    "outcome": "ran-no-model",
+    "report": [
+      {
+        "name": "MyAgent",
+        "className": "MyAgent",
+        "agent": true,
+        "chat": false,
+        "status": 404
+      }
+    ],
+    "defaultFetch": {
+      "status": 404
+    }
+  },
+  {
+    "id": "repo__think__index__02",
+    "page": "agents/docs/think/index.md",
+    "line": 79,
+    "outcome": "skipped",
+    "reason": "third-party credential"
+  },
+  {
+    "id": "repo__think__index__08",
+    "page": "agents/docs/think/index.md",
+    "line": 434,
+    "durableObjects": {
+      "SupportAgent": "SupportAgent"
+    },
+    "ms": 3372,
+    "modelCalls": 0,
+    "outcome": "ran-no-model",
+    "report": [
+      {
+        "name": "SupportAgent",
+        "className": "SupportAgent",
+        "agent": true,
+        "chat": false,
+        "status": 404
+      }
+    ],
+    "defaultFetch": null
+  },
+  {
+    "id": "repo__think__index__10",
+    "page": "agents/docs/think/index.md",
+    "line": 483,
+    "durableObjects": {
+      "MyAgent": "MyAgent"
+    },
+    "ms": 3557,
+    "modelCalls": 0,
+    "outcome": "ran-no-model",
+    "report": [
+      {
+        "name": "MyAgent",
+        "className": "MyAgent",
+        "agent": true,
+        "chat": false,
+        "status": 404
+      }
+    ],
+    "defaultFetch": null
+  },
+  {
+    "id": "repo__think__index__15",
+    "page": "agents/docs/think/index.md",
+    "line": 684,
+    "durableObjects": {
+      "MyAgent": "MyAgent"
+    },
+    "ms": 2693,
+    "modelCalls": 0,
+    "outcome": "ran-no-model",
+    "report": [
+      {
+        "name": "MyAgent",
+        "className": "MyAgent",
+        "agent": true,
+        "chat": false,
+        "status": 404
+      }
+    ],
+    "defaultFetch": null
+  },
+  {
+    "id": "repo__think__index__16",
+    "page": "agents/docs/think/index.md",
+    "line": 698,
+    "durableObjects": {
+      "MyAgent": "MyAgent"
+    },
+    "ms": 2643,
+    "modelCalls": 0,
+    "outcome": "ran-no-model",
+    "report": [
+      {
+        "name": "MyAgent",
+        "className": "MyAgent",
+        "agent": true,
+        "chat": false,
+        "status": 404
+      }
+    ],
+    "defaultFetch": null
+  },
+  {
+    "id": "repo__think__index__19",
+    "page": "agents/docs/think/index.md",
+    "line": 768,
+    "outcome": "skipped",
+    "reason": "Workflows binding (not configured by the harness)"
+  },
+  {
+    "id": "repo__think__index__24",
+    "page": "agents/docs/think/index.md",
+    "line": 1002,
+    "durableObjects": {
+      "SmallModelAgent": "SmallModelAgent"
+    },
+    "ms": 2466,
+    "modelCalls": 0,
+    "outcome": "ran-no-model",
+    "report": [
+      {
+        "name": "SmallModelAgent",
+        "className": "SmallModelAgent",
+        "agent": true,
+        "chat": false,
+        "status": 404
+      }
+    ],
+    "defaultFetch": null
+  },
+  {
+    "id": "repo__think__lifecycle-hooks__45",
+    "page": "agents/docs/think/lifecycle-hooks.md",
+    "line": 889,
+    "durableObjects": {
+      "MyAgent": "MyAgent"
+    },
+    "ms": 2786,
+    "modelCalls": 0,
+    "outcome": "ran-no-model",
+    "report": [
+      {
+        "name": "MyAgent",
+        "className": "MyAgent",
+        "agent": true,
+        "chat": false,
+        "status": 404
+      }
+    ],
+    "defaultFetch": null
+  },
+  {
+    "id": "repo__think__messengers__01",
+    "page": "agents/docs/think/messengers.md",
+    "line": 20,
+    "outcome": "skipped",
+    "reason": "third-party credential"
+  },
+  {
+    "id": "repo__think__messengers__05",
+    "page": "agents/docs/think/messengers.md",
+    "line": 178,
+    "durableObjects": {
+      "SupportAgent": "SupportAgent"
+    },
+    "ms": 2899,
+    "modelCalls": 0,
+    "outcome": "ran-no-model",
+    "report": [
+      {
+        "name": "SupportAgent",
+        "className": "SupportAgent",
+        "agent": true,
+        "chat": false,
+        "status": 404
+      }
+    ],
+    "defaultFetch": null
+  }
+]

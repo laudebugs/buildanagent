@@ -1,0 +1,152 @@
+{
+  "helper-not-shown": {
+    "errors": 12,
+    "files": [
+      "cf__concepts__calling-llms__01",
+      "cf__examples__slack-agent__01",
+      "repo__agents__callable-methods__11",
+      "repo__agents__tasks__01",
+      "repo__think__multi-chat__01"
+    ],
+    "example": "agents/docs/agents/callable-methods.md:230 Property 'llm' does not exist on type 'AIAgent'."
+  },
+  "untyped-client-or-row-state": {
+    "errors": 11,
+    "files": [
+      "cf__concepts__agentic-patterns__human-in-the-loop__08",
+      "repo__agents__client-sdk__01",
+      "repo__agents__getting-started__04",
+      "repo__agents__state__13",
+      "repo__agents__state__14",
+      "repo__agents__webhooks__08",
+      "repo__think__multi-chat__03"
+    ],
+    "example": "agents/docs/agents/client-sdk.md:41 Property 'messageCount' does not exist on type '{}'."
+  },
+  "call-shape": {
+    "errors": 11,
+    "files": [
+      "cf__agent-class__run-workflows__24",
+      "cf__concepts__agentic-patterns__human-in-the-loop__08",
+      "cf__model-context-protocol__guides__build-codemode-mcp-server__05",
+      "cf__model-context-protocol__guides__oauth-mcp-client__07",
+      "repo__agents__codemode__10",
+      "repo__agents__configuration__08",
+      "repo__agents__state__18",
+      "repo__pkg-agents__16"
+    ],
+    "example": "agents/docs/agents/codemode.md:277 Type '{ getPageTitle: { description: string; inputSchema: { type: string; properties: {}; required: never[]; }; execute: () => Promise<{ title: string; }>; }; g"
+  },
+  "wrong-import-path": {
+    "errors": 11,
+    "files": [
+      "cf__concepts__conversation-state-and-memory__01",
+      "cf__concepts__conversation-state-and-memory__03",
+      "cf__concepts__conversation-state-and-memory__06",
+      "cf__concepts__conversation-state-and-memory__10",
+      "cf__concepts__conversation-state-and-memory__11",
+      "repo__agents__codemode__12",
+      "repo__agents__human-in-the-loop__01",
+      "repo__pkg-agents__17",
+      "repo__think__multi-chat__01"
+    ],
+    "example": "agents/docs/agents/codemode.md:390 Module '\"@cloudflare/codemode\"' has no exported member 'generateTypes'."
+  },
+  "override-signature-mismatch": {
+    "errors": 9,
+    "files": [
+      "cf__agent-class__agent-tools__02",
+      "cf__agent-class__communication-channels__chat__chat-agents__03",
+      "cf__agent-class__index__04",
+      "cf__harnesses__think__channels__01",
+      "cf__tools__codemode__openapi__03",
+      "repo__agents__agent-tools__03",
+      "repo__agents__chat-agents__03",
+      "repo__pkg-ai-chat__08",
+      "repo__think__channels__01"
+    ],
+    "example": "agents/docs/agents/agent-tools.md:89 Property 'formatAgentToolInput' in type 'Summarizer' is not assignable to the same property in base type 'AIChatAgent<Env, unknown, object>'."
+  },
+  "unknown-payload": {
+    "errors": 8,
+    "files": [
+      "cf__concepts__agentic-patterns__long-running-agents__06",
+      "cf__concepts__agentic-patterns__long-running-agents__07",
+      "cf__model-context-protocol__guides__oauth-mcp-client__06",
+      "cf__tools__payments__x402__pay-with-tool-plugins__02",
+      "repo__agents__long-running-agents__06",
+      "repo__agents__long-running-agents__07",
+      "repo__agents__mcp-client__28"
+    ],
+    "example": "agents/docs/agents/long-running-agents.md:281 Property 'pipelineId' does not exist on type 'unknown'."
+  },
+  "service-worker-globals": {
+    "errors": 6,
+    "files": [
+      "cf__agent-class__communication-channels__webhooks__push-notifications__02",
+      "repo__agents__push-notifications__03"
+    ],
+    "example": "agents/docs/agents/push-notifications.md:212 Property 'registration' does not exist on type 'Window & typeof globalThis'."
+  },
+  "workflow-cascade": {
+    "errors": 4,
+    "files": [
+      "repo__agents__human-in-the-loop__01",
+      "repo__pkg-agents__17"
+    ],
+    "example": "agents/docs/agents/human-in-the-loop.md:73 Property 'reportProgress' does not exist on type 'ExpenseWorkflow'."
+  },
+  "migration-before-code": {
+    "errors": 4,
+    "files": [
+      "repo__agents__migration-to-ai-sdk-v5__02",
+      "repo__agents__migration-to-ai-sdk-v6__02"
+    ],
+    "example": "agents/docs/agents/migration-to-ai-sdk-v5.md:28 '\"ai\"' has no exported member named 'Message'. Did you mean 'UIMessage'?"
+  },
+  "ai-sdk-v3-provider-types": {
+    "errors": 3,
+    "files": [
+      "cf__agent-class__communication-channels__chat__chat-agents__51"
+    ],
+    "example": "cloudflare-docs/src/content/docs/agents/agent-class/communication-channels/chat/chat-agents.mdx:1526 Property 'specificationVersion' is missing in type '{ wrapGenerate: ({ doGenerate }: { doGenerate: () => PromiseLike<LanguageModelV3GenerateResult>; doStream: ("
+  },
+  "typed-array-generics": {
+    "errors": 2,
+    "files": [
+      "cf__agent-class__communication-channels__webhooks__push-notifications__04",
+      "repo__agents__push-notifications__05"
+    ],
+    "example": "agents/docs/agents/push-notifications.md:276 Type 'ArrayBufferLike' is not assignable to type 'string | BufferSource | null | undefined'."
+  },
+  "workers-types-request-generic": {
+    "errors": 2,
+    "files": [
+      "cf__agent-class__communication-channels__webhooks__index__12",
+      "repo__agents__webhooks__12"
+    ],
+    "example": "agents/docs/agents/webhooks.md:448 Argument of type 'Request<CfHostMetadata, Cf>' is not assignable to parameter of type 'Request<unknown, CfProperties<unknown>>'."
+  },
+  "api-not-in-any-release": {
+    "errors": 2,
+    "files": [
+      "cf__harnesses__think__messengers__01",
+      "cf__harnesses__think__scheduled-tasks__01"
+    ],
+    "example": "cloudflare-docs/src/content/docs/agents/harnesses/think/messengers.mdx:31 Module '\"@cloudflare/think/messengers\"' has no exported member 'defineMessengers'."
+  },
+  "route-handler-returns-null": {
+    "errors": 1,
+    "files": [
+      "cf__agent-class__index__05"
+    ],
+    "example": "cloudflare-docs/src/content/docs/agents/agent-class/index.mdx:199 Type '(request: Request<unknown, CfProperties<unknown>>, env: Env) => Promise<Response | null>' is not assignable to type 'ExportedHandlerFetchHandler<Env, unkn"
+  },
+  "other": {
+    "errors": 1,
+    "files": [
+      "cf__model-context-protocol__apis__client-api__28"
+    ],
+    "example": "cloudflare-docs/src/content/docs/agents/model-context-protocol/apis/client-api.mdx:984 Type '{ readonly redirectUrl: string; readonly clientMetadata: { client_id: any; client_secret: any; redirect_uris: string[]; }; clientInformation(): { client_i"
+  }
+}

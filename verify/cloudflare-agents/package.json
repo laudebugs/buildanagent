@@ -1,0 +1,36 @@
+{
+  "name": "@agent-speak/verify-cloudflare-agents",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "fetch-docs": "node scripts/fetch-docs.mjs",
+    "extract": "node scripts/extract-examples.mjs",
+    "typecheck:docs": "node scripts/typecheck-examples.mjs",
+    "run:docs": "node scripts/run-examples.mjs",
+    "factcheck": "node scripts/factcheck-api.mjs",
+    "typecheck": "tsc -p tsconfig.json",
+    "test": "tsc -p tsconfig.json && node scripts/run-examples.mjs examples",
+    "verify": "pnpm run extract && pnpm run typecheck:docs && pnpm run triage:docs && pnpm run run:docs && pnpm run factcheck && pnpm test",
+    "triage:docs": "node scripts/ahead-of-release.mjs && node scripts/mismatch-causes.mjs"
+  },
+  "dependencies": {
+    "@ai-sdk/anthropic": "4.0.96",
+    "@ai-sdk/openai": "4.0.108",
+    "@ai-sdk/provider": "4.0.35",
+    "@cloudflare/ai-chat": "0.12.2",
+    "@cloudflare/codemode": "0.5.6",
+    "@cloudflare/computer": "0.8.0",
+    "@cloudflare/think": "0.23.0",
+    "@cloudflare/workers-types": "5.20261103.1",
+    "@modelcontextprotocol/client": "2.4.0",
+    "@modelcontextprotocol/sdk": "1.32.2",
+    "@modelcontextprotocol/server": "2.4.0",
+    "agents": "0.33.0",
+    "ai": "7.0.162",
+    "esbuild": "0.28.2",
+    "just-bash": "3.6.0",
+    "miniflare": "5.20261103.0-beta",
+    "workers-ai-provider": "4.0.1",
+    "zod": "4.6.7"
+  }
+}

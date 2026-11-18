@@ -1,0 +1,89 @@
+{
+  "fetchedAt": "2026-11-18T12:35:17.882Z",
+  "sources": [
+    {
+      "repo": "https://github.com/cloudflare/agents",
+      "tag": "agents@0.33.0",
+      "commit": "5684e278e44abfb592a6ae6ef3e2f5250feacd8c",
+      "committedAt": "2026-11-03T13:10:36+00:00",
+      "paths": [
+        "LICENSE",
+        "README.md",
+        "docs/index.md",
+        "docs/agents/",
+        "packages/agents/README.md"
+      ]
+    },
+    {
+      "repo": "https://github.com/cloudflare/agents",
+      "tag": "@cloudflare/think@0.23.0",
+      "commit": "be1749221ab3efc8be4e976d8e7d8344d1446032",
+      "committedAt": "2026-10-29T18:49:01+00:00",
+      "paths": [
+        "docs/think/",
+        "packages/think/README.md"
+      ]
+    },
+    {
+      "repo": "https://github.com/cloudflare/agents",
+      "tag": "@cloudflare/ai-chat@0.12.2",
+      "commit": "fc7f59fb00e7ae0045086b094b94a22abc760206",
+      "committedAt": "2026-10-20T16:14:33+01:00",
+      "paths": [
+        "packages/ai-chat/README.md"
+      ]
+    },
+    {
+      "repo": "https://github.com/cloudflare/cloudflare-docs",
+      "branch": "production",
+      "commit": "6897a9fa0c115280ad9cea7b3a7fab9580258083",
+      "committedAt": "2026-11-18T11:31:38+00:00",
+      "paths": [
+        "LICENSE",
+        "LICENSE-CODE",
+        "src/content/docs/agents/",
+        "src/content/partials/agents/"
+      ],
+      "license": "Content CC-BY-4.0 (LICENSE), code MIT (LICENSE-CODE). © Cloudflare, Inc. and contributors.",
+      "note": "Renders developers.cloudflare.com/agents/ from a branch, not a release tag; pages may run ahead of agents@0.33.0."
+    }
+  ],
+  "examples": {
+    "present": [
+      "agents-as-tools",
+      "ai-chat",
+      "chat-sdk-messenger",
+      "codemode",
+      "computer-skills",
+      "context-overflow-recovery",
+      "dynamic-tools",
+      "github-webhook",
+      "mcp-client",
+      "mcp-elicitation-mrtr",
+      "mcp-worker",
+      "mcp-worker-authenticated",
+      "multi-ai-chat",
+      "push-notifications",
+      "r2-skills",
+      "resumable-stream-chat",
+      "think-submissions",
+      "webmcp",
+      "workflows"
+    ],
+    "missingAtTag": [
+      "assistant"
+    ],
+    "skipped": [
+      "codemode-browser",
+      "next",
+      "playground",
+      "plivo-voice-agent",
+      "telnyx-voice-agent",
+      "voice-agent",
+      "voice-input",
+      "vue-chat",
+      "x402",
+      "x402-mcp"
+    ]
+  }
+}
