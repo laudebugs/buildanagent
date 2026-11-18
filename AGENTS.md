@@ -66,7 +66,7 @@ Every SDK reference follows the same eight steps. `docs/reference/claude-agent-s
 Rules that apply throughout:
 - Pin SDK versions exactly in `verify/<sdk>/package.json`; reference docs state the version they were checked against.
 - Mark guide claims backed by a runnable example as **[verified]**, and cite the upstream page for everything else.
-- Mock models must never call tools that touch the host (shell, file edits). Read-only tools inside a temp directory are allowed.
+- Mock models must never call tools that touch the host (shell, file edits). Read-only tools inside a temp directory are allowed. Some SDKs expose host tools as ordinary function tools (OpenAI's sandbox `exec_command`), so deny them by name as well as by type.
 - When a check fails, decide whether the docs, the SDK or the harness is wrong before recording a finding. Fix harness bugs and wrong examples of our own; record only real docs or SDK issues.
 
 ## Coding standards

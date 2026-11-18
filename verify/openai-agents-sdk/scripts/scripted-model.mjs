@@ -4,8 +4,9 @@
 //   2. Else, if a function tool is offered and none has been called -> call one with arguments
 //      synthesised from its JSON Schema, preferring a tool the input names.
 //   3. Else -> answer.
-// Only function tools are ever called; hosted, computer, shell and apply-patch tools never are,
-// so running docs code cannot change the host.
+// Only function tools are ever called; hosted, computer, shell and apply-patch tools never are.
+// Sandbox agents expose their capabilities as *function* tools (exec_command, write_stdin, …),
+// so those are denied by name. Running docs code therefore cannot change the host.
 import { assistantMessage, functionCall, modelResponder, ScriptedModel } from "@openai/agents/testing";
 
 export function synth(schema = {}, depth = 0) {
@@ -33,6 +34,9 @@ export function synth(schema = {}, depth = 0) {
   }
 }
 
+// Sandbox capability tools from @openai/agents-core/dist/sandbox (0.21.0).
+const NEVER = new Set(["exec_command", "write_stdin", "apply_patch", "view_image", "load_skill"]);
+
 const answer = (request) =>
   request.outputType && request.outputType !== "text"
     ? assistantMessage(JSON.stringify(synth(request.outputType.schema)))
@@ -43,7 +47,7 @@ export function respond({ request }) {
   const items = Array.isArray(request.input) ? request.input : [];
   if (items.at(-1)?.type === "function_call_result") return [answer(request)];
   const called = items.some((i) => i.type === "function_call");
-  const tools = (request.tools ?? []).filter((t) => t.type === "function");
+  const tools = (request.tools ?? []).filter((t) => t.type === "function" && !NEVER.has(t.name));
   const text = JSON.stringify(
     typeof request.input === "string" ? request.input : items.filter((i) => i.role === "user"),
   );
