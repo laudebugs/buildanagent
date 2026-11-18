@@ -9,3 +9,7 @@ verify/*/.tmp-*
 
 # Raw Hacker News corpus (third-party comments): regenerate with scripts/hn-corpus.mjs
 docs/research/practitioners/.raw/
+
+# Deep-research working folders; the filed copies live under docs/research/<round>/
+research_notes/
+reports/
