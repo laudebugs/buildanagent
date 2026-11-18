@@ -26,7 +26,7 @@ Instructions for AI coding agents (Claude Code, Codex, OpenCode, Pi, etc.) worki
 ## Working from the plans
 
 - Pick the next todo whose **Depends on** are all in `docs/todos/done/`, following the [roadmap](docs/plans/roadmap.md).
-- Move the todo to `ongoing/` in the first commit and to `done/` in the last, and push after each meaningful step.
+- Do each todo on its own branch and pull request (see [Git](#git)). Move the todo to `ongoing/` in the first commit and to `done/` in the last, and push the branch after each meaningful step.
 
 ## Working on docs
 
@@ -88,5 +88,8 @@ The repo is a pnpm workspace. Run every command from the repo root unless a READ
 
 ## Git
 
+- **One pull request per piece of work** (changed from direct pushes to `main` on 2026-11-18). Branch from the latest `main`, named for the work (`todo/<id>-<slug>`, or `docs/<slug>` for work without a todo), push the branch, and open a pull request against `main`.
+- **Squash-merge when ready:** CI (`ci.yml`) passes, the todo's definition of done is met, and review findings are fixed. The squash commit's message is the PR title plus a summary of the change. Delete the branch after the merge.
+- Snapshots of unfinished work go to the work's own branch, not to separate `wip/*` branches.
 - Commit messages: imperative mood, with a short summary line.
 - Never commit secrets or `.env` files.
