@@ -3,7 +3,7 @@
 | Field | Value |
 | --- | --- |
 | ID | `S6a` |
-| Status | `ready` |
+| Status | `ongoing` |
 | Plan | [SDK references §4](../../plans/sdk-references.md#4-the-seven-sdks) |
 | Round / milestone | M2c (added 2026-11-18) |
 | Depends on | [ mirror, verification harness and behavioral examples](../ready/ mirror, verification harness and behavioral examples.md) |
