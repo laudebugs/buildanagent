@@ -70,6 +70,10 @@ The owner asked to add what developers themselves report about building agents. 
 
 Risks: HN skews toward coding agents and toward strong opinions. The synthesis must name that sampling bias, weigh views by how many independent commenters hold them, and never present one comment as a consensus.
 
+## 4c. Re-verify secondary claims against primary sources (R1, added 2026-11-18)
+
+The early research ran when this environment's network policy blocked many primary hosts. Those included arxiv.org, openai.github.io, developers.cloudflare.com, modelcontextprotocol.io, opentelemetry.io and OWASP, so about 127 claims across 22 files are marked "(secondary)" or "search summary". On 2026-11-18 a curl check from this session reached almost all of these hosts; openai.com and platform.openai.com still return 403. The owner asked to re-check the marked claims before the guides cite them. R1 fetches each primary source with curl, which returns the raw page rather than a summary. For each claim it confirms it, corrects it, or records that it is still unreachable. Confirmed claims lose the secondary mark and gain a primary citation. Every change gets a row in the matching fact-check log, under a section headed "Re-verification against primary sources (R1)". Superseded working notes in `docs/research/notes/` are checked only where the main report relies on them.
+
 ## 5. Todos
 
 | ID | Title | Depends on |
@@ -78,7 +82,8 @@ Risks: HN skews toward coding agents and toward strong opinions. The synthesis m
 | H1 | Practitioner research: collect the Hacker News corpus (2025-05-18 to 2026-11-18) (done) | None |
 | H2 | Practitioner research: analyse six themes in parallel (done) | H1 |
 | H3 | Practitioner research: synthesis and fact-check, set against G1a–G3a (done) | H2, G3a |
-| G1b | Guide: building an agent SDK | G1a, H3 |
+| R1 | Re-verify the "(secondary)" claims against primary sources | H3 |
+| G1b | Guide: building an agent SDK | G1a, H3, R1 |
 | G2a | Deep research: building an agent harness (done) | G1a |
 | G2b | Guide: building an agent harness | G2a, G1b, H3 |
 | G3a | Deep research: building an agent (done) | G2a |
