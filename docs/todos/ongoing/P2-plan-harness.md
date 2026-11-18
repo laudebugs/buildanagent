@@ -3,10 +3,10 @@
 | Field | Value |
 | --- | --- |
 | ID | `P2` |
-| Status | `ready` |
+| Status | `ongoing` |
 | Plan | [Implementation plans §2](../../plans/implementation-plans.md#2-what-each-plan-contains) |
 | Round / milestone | Round P (plans), M4 |
-| Depends on | [G2b](../done/G2b-guide-harness.md), [P1](../ready/P1-plan-sdk.md) |
+| Depends on | [G2b](../done/G2b-guide-harness.md), [P1](../done/P1-plan-sdk.md) |
 | Size | L |
 
 ## Goal
@@ -57,7 +57,7 @@ None.
 
 ## Definition of done
 
-- [ ] Claimed: the first commit moved this file `ready/` → `ongoing/` (Status `ongoing`)
+- [x] Claimed: the first commit moved this file `ready/` → `ongoing/` (Status `ongoing`)
 - [ ] Prose drafted with `/anthropic-skills:writing` and reviewed with `/anthropic-skills:writing-review`, with the fixes applied and changed claims re-checked
 - [ ] `pnpm check`, `pnpm typecheck` and `pnpm test` pass locally; pushed after each meaningful step
 - [ ] This file moved `ongoing/` → `done/` (Status `done`), and the plan's todo table updated
