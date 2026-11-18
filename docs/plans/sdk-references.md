@@ -133,9 +133,9 @@ The owner asked to document, for every SDK whose primary language isn't TypeScri
 | S6a | Cloudflare Agents: mirror, verification harness and behavioral examples (done) | S5b |
 | S6b | Cloudflare Agents: guide and fact-check, written and reviewed (done) | S6a |
 | S7a | Google ADK: mirror, verification harness, behavioral examples and TS parity check (done) | S6b |
-| S7b | Google ADK: guide and fact-check, written and reviewed | S7a |
+| S7b | Google ADK: guide and fact-check, written and reviewed (done) | S7a |
 | S8a | GitHub Copilot SDK: mirror, verification harness and behavioral examples (done) | S7b |
-| S8b | GitHub Copilot SDK: guide and fact-check, written and reviewed | S8a |
+| S8b | GitHub Copilot SDK: guide and fact-check, written and reviewed (done) | S8a |
 
 ## 6. Risks
 

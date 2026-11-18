@@ -4,9 +4,10 @@ TypeScript reference for the [GitHub Copilot SDK](https://github.com/github/copi
 
 | File | What it is |
 |---|---|
-| `guide.md`, `fact-check.md` | To come in S8b |
+| [guide.md](guide.md) | Our reference: the SDK and its runtime over JSON-RPC, GitHub and BYOK auth, sessions and resume, custom tools, permissions, restricting built-ins, hooks, streaming events, MCP, structured output, offline testing, production defaults, the triage-agent capstone and the other five languages |
+| [fact-check.md](fact-check.md) | How accurate the docs are: type-checks of 455 sources, offline runs of 83 complete blocks against the real runtime (50 ran), an API-surface diff, 23 behavioral claims and 10 findings |
 | [`source/`](source/) | Mirror of `github/copilot-sdk` at tag `v1.0.31` (commit `15de061`, 2026-11-10): `docs/`, the Node.js README, docs and examples, the TS/JS samples, the other languages' READMEs, and the MIT `LICENSE`. `_manifest.json` lists every file |
-| [../../../verify/copilot-sdk/](../../../verify/copilot-sdk/) | Verification harness: the real runtime against a mock model through the BYOK provider, in a network namespace, with 9 behavioral examples |
+| [../../../verify/copilot-sdk/](../../../verify/copilot-sdk/) | Verification harness: the real runtime against a mock model through the BYOK provider, in a network namespace, with 9 behavioral examples and a sandbox self-check |
 
 ## Sources and license
 
@@ -27,5 +28,5 @@ pnpm run verify         # all tiers; writes verify/copilot-sdk/results/*.json
 
 1. Bump `@github/copilot-sdk` in `verify/copilot-sdk/package.json` to an exact release at least one week old, or to the latest fixed release if the pin has a known vulnerability. The runtime version comes with it (`copilotCliVersion` in the SDK's `package.json`).
 2. Update `TAG` in `scripts/fetch-docs.mjs`, then `pnpm install`, `pnpm run fetch-docs` and `pnpm run verify`.
-3. Re-check the reviewed lists in `scripts/run-examples.mjs` (`SKIP_IDS`, `REVIEWED`) and `scripts/typecheck-examples.mjs` (`PRELUDE_CONTEXT_IDS`), and whether the runtime still ignores `COPILOT_PROVIDER_*` in SDK sessions.
-4. Diff `results/*.json` against the previous run.
+3. Re-check F1 (an omitted `onPermissionRequest` denies), F6 (untyped `model.*` events), F9 (custom tools dropped on resume) and F10 (tool names in the hook examples) against the new release. Re-check the reviewed lists in `scripts/run-examples.mjs` (`SKIP_IDS`, `REVIEWED`) and `scripts/typecheck-examples.mjs` (`PRELUDE_CONTEXT_IDS`), and whether the runtime still ignores `COPILOT_PROVIDER_*` in SDK sessions.
+4. Diff `results/*.json` against the previous run, then update `guide.md` and `fact-check.md`.
