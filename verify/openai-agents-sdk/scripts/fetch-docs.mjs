@@ -13,7 +13,14 @@ const version = process.argv[2] ?? pkg.dependencies["@openai/agents"];
 const tag = `v${version}`;
 const out = resolve("../../docs/reference/openai-agents-sdk/source");
 const work = await mkdtemp(join(tmpdir(), "oai-docs-"));
-const paths = ["/LICENSE", "/packages/agents/README.md", "/docs/src/content/docs/", "/examples/docs/"];
+// examples/basic/prompt-id.ts is the one embedded file outside examples/docs.
+const paths = [
+  "/LICENSE",
+  "/packages/agents/README.md",
+  "/docs/src/content/docs/",
+  "/examples/docs/",
+  "/examples/basic/prompt-id.ts",
+];
 const translations = ["ja", "ko", "zh"];
 
 execFileSync(

@@ -2,12 +2,13 @@
   "repo": "https://github.com/openai/openai-agents-js",
   "tag": "v0.21.0",
   "commit": "304e436185ad5d7e54d240896efa728533147cf3",
-  "fetchedAt": "2026-11-18T05:08:22.222Z",
+  "fetchedAt": "2026-11-18T05:09:12.351Z",
   "paths": [
     "/LICENSE",
     "/packages/agents/README.md",
     "/docs/src/content/docs/",
-    "/examples/docs/"
+    "/examples/docs/",
+    "/examples/basic/prompt-id.ts"
   ],
   "excluded": [
     "docs translations: ja, ko, zh",

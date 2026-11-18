@@ -1,0 +1,2378 @@
+[
+  {
+    "id": "block:extensions/cloudflare#1",
+    "file": "blocks/extensions_cloudflare__01.ts",
+    "kind": "doc-block",
+    "pages": [
+      "extensions/cloudflare.mdx"
+    ],
+    "line": 34,
+    "embedded": true,
+    "importsSdk": false,
+    "complete": false,
+    "errors": [
+      {
+        "line": 2,
+        "code": 2304,
+        "kind": "context",
+        "message": "Cannot find name 'session'."
+      }
+    ],
+    "status": "fragment"
+  },
+  {
+    "id": "block:guides/voice-agents/quickstart#1",
+    "file": "blocks/guides_voice-agents_quickstart__01.ts",
+    "kind": "doc-block",
+    "pages": [
+      "guides/voice-agents/quickstart.mdx"
+    ],
+    "line": 70,
+    "embedded": true,
+    "importsSdk": true,
+    "complete": false,
+    "errors": [],
+    "status": "pass"
+  },
+  {
+    "id": "block:guides/voice-agents/quickstart#2",
+    "file": "blocks/guides_voice-agents_quickstart__02.ts",
+    "kind": "doc-block",
+    "pages": [
+      "guides/voice-agents/quickstart.mdx"
+    ],
+    "line": 83,
+    "embedded": true,
+    "importsSdk": true,
+    "complete": false,
+    "errors": [
+      {
+        "line": 4,
+        "code": 2304,
+        "kind": "context",
+        "message": "Cannot find name 'agent'."
+      }
+    ],
+    "status": "fragment"
+  },
+  {
+    "id": "block:guides/voice-agents/quickstart#3",
+    "file": "blocks/guides_voice-agents_quickstart__03.ts",
+    "kind": "doc-block",
+    "pages": [
+      "guides/voice-agents/quickstart.mdx"
+    ],
+    "line": 97,
+    "embedded": true,
+    "importsSdk": false,
+    "complete": false,
+    "errors": [
+      {
+        "line": 2,
+        "code": 2304,
+        "kind": "context",
+        "message": "Cannot find name 'session'."
+      }
+    ],
+    "status": "fragment"
+  },
+  {
+    "id": "ex:basic/prompt-id.ts",
+    "file": "examples/basic/prompt-id.ts",
+    "kind": "example-file",
+    "pages": [
+      "guides/models.mdx"
+    ],
+    "embedded": true,
+    "importsSdk": true,
+    "complete": true,
+    "errors": [],
+    "status": "pass"
+  },
+  {
+    "id": "ex:docs/agents/agentCloning.ts",
+    "file": "examples/docs/agents/agentCloning.ts",
+    "kind": "example-file",
+    "pages": [
+      "guides/agents.mdx"
+    ],
+    "embedded": true,
+    "importsSdk": true,
+    "complete": false,
+    "errors": [],
+    "status": "pass"
+  },
+  {
+    "id": "ex:docs/agents/agentForcingToolUse.ts",
+    "file": "examples/docs/agents/agentForcingToolUse.ts",
+    "kind": "example-file",
+    "pages": [
+      "guides/agents.mdx"
+    ],
+    "embedded": true,
+    "importsSdk": true,
+    "complete": false,
+    "errors": [],
+    "status": "pass"
+  },
+  {
+    "id": "ex:docs/agents/agentsAsTools.ts",
+    "file": "examples/docs/agents/agentsAsTools.ts",
+    "kind": "example-file",
+    "pages": [
+      "guides/agents.mdx"
+    ],
+    "embedded": true,
+    "importsSdk": true,
+    "complete": false,
+    "errors": [],
+    "status": "pass"
+  },
+  {
+    "id": "ex:docs/agents/agentWithContext.ts",
+    "file": "examples/docs/agents/agentWithContext.ts",
+    "kind": "example-file",
+    "pages": [
+      "guides/agents.mdx"
+    ],
+    "embedded": true,
+    "importsSdk": true,
+    "complete": true,
+    "errors": [],
+    "status": "pass"
+  },
+  {
+    "id": "ex:docs/agents/agentWithDynamicInstructions.ts",
+    "file": "examples/docs/agents/agentWithDynamicInstructions.ts",
+    "kind": "example-file",
+    "pages": [
+      "guides/agents.mdx"
+    ],
+    "embedded": true,
+    "importsSdk": true,
+    "complete": false,
+    "errors": [],
+    "status": "pass"
+  },
+  {
+    "id": "ex:docs/agents/agentWithDynamicPrompt.ts",
+    "file": "examples/docs/agents/agentWithDynamicPrompt.ts",
+    "kind": "example-file",
+    "pages": [
+      "guides/agents.mdx"
+    ],
+    "embedded": true,
+    "importsSdk": true,
+    "complete": false,
+    "errors": [],
+    "status": "pass"
+  },
+  {
+    "id": "ex:docs/agents/agentWithHandoffs.ts",
+    "file": "examples/docs/agents/agentWithHandoffs.ts",
+    "kind": "example-file",
+    "pages": [
+      "guides/agents.mdx"
+    ],
+    "embedded": true,
+    "importsSdk": true,
+    "complete": false,
+    "errors": [],
+    "status": "pass"
+  },
+  {
+    "id": "ex:docs/agents/agentWithLifecycleHooks.ts",
+    "file": "examples/docs/agents/agentWithLifecycleHooks.ts",
+    "kind": "example-file",
+    "pages": [
+      "guides/agents.mdx"
+    ],
+    "embedded": true,
+    "importsSdk": true,
+    "complete": false,
+    "errors": [],
+    "status": "pass"
+  },
+  {
+    "id": "ex:docs/agents/agentWithTools.ts",
+    "file": "examples/docs/agents/agentWithTools.ts",
+    "kind": "example-file",
+    "pages": [
+      "guides/agents.mdx"
+    ],
+    "embedded": true,
+    "importsSdk": true,
+    "complete": false,
+    "errors": [],
+    "status": "pass"
+  },
+  {
+    "id": "ex:docs/agents/agentWithZodOutputType.ts",
+    "file": "examples/docs/agents/agentWithZodOutputType.ts",
+    "kind": "example-file",
+    "pages": [
+      "guides/agents.mdx"
+    ],
+    "embedded": true,
+    "importsSdk": true,
+    "complete": false,
+    "errors": [],
+    "status": "pass"
+  },
+  {
+    "id": "ex:docs/agents/simpleAgent.ts",
+    "file": "examples/docs/agents/simpleAgent.ts",
+    "kind": "example-file",
+    "pages": [
+      "guides/agents.mdx"
+    ],
+    "embedded": true,
+    "importsSdk": true,
+    "complete": false,
+    "errors": [],
+    "status": "pass"
+  },
+  {
+    "id": "ex:docs/agents/toolUseBehavior.ts",
+    "file": "examples/docs/agents/toolUseBehavior.ts",
+    "kind": "example-file",
+    "pages": [
+      "guides/agents.mdx"
+    ],
+    "embedded": true,
+    "importsSdk": true,
+    "complete": false,
+    "errors": [],
+    "status": "pass"
+  },
+  {
+    "id": "ex:docs/config/getLogger.ts",
+    "file": "examples/docs/config/getLogger.ts",
+    "kind": "example-file",
+    "pages": [
+      "guides/config.mdx"
+    ],
+    "embedded": true,
+    "importsSdk": true,
+    "complete": false,
+    "errors": [],
+    "status": "pass"
+  },
+  {
+    "id": "ex:docs/config/setDefaultOpenAIClient.ts",
+    "file": "examples/docs/config/setDefaultOpenAIClient.ts",
+    "kind": "example-file",
+    "pages": [
+      "guides/config.mdx"
+    ],
+    "embedded": true,
+    "importsSdk": true,
+    "complete": false,
+    "errors": [],
+    "status": "pass"
+  },
+  {
+    "id": "ex:docs/config/setDefaultOpenAIKey.ts",
+    "file": "examples/docs/config/setDefaultOpenAIKey.ts",
+    "kind": "example-file",
+    "pages": [
+      "guides/config.mdx",
+      "guides/models.mdx"
+    ],
+    "embedded": true,
+    "importsSdk": true,
+    "complete": false,
+    "errors": [],
+    "status": "pass"
+  },
+  {
+    "id": "ex:docs/config/setOpenAIAPI.ts",
+    "file": "examples/docs/config/setOpenAIAPI.ts",
+    "kind": "example-file",
+    "pages": [
+      "guides/config.mdx"
+    ],
+    "embedded": true,
+    "importsSdk": true,
+    "complete": false,
+    "errors": [],
+    "status": "pass"
+  },
+  {
+    "id": "ex:docs/config/setOpenAIResponsesTransport.ts",
+    "file": "examples/docs/config/setOpenAIResponsesTransport.ts",
+    "kind": "example-file",
+    "pages": [
+      "guides/config.mdx"
+    ],
+    "embedded": true,
+    "importsSdk": true,
+    "complete": false,
+    "errors": [],
+    "status": "pass"
+  },
+  {
+    "id": "ex:docs/config/setSensitiveDataLoggingEnabled.ts",
+    "file": "examples/docs/config/setSensitiveDataLoggingEnabled.ts",
+    "kind": "example-file",
+    "pages": [
+      "guides/config.mdx"
+    ],
+    "embedded": true,
+    "importsSdk": true,
+    "complete": false,
+    "errors": [],
+    "status": "pass"
+  },
+  {
+    "id": "ex:docs/config/setTracingDisabled.ts",
+    "file": "examples/docs/config/setTracingDisabled.ts",
+    "kind": "example-file",
+    "pages": [
+      "guides/config.mdx"
+    ],
+    "embedded": true,
+    "importsSdk": true,
+    "complete": false,
+    "errors": [],
+    "status": "pass"
+  },
+  {
+    "id": "ex:docs/config/setTracingExportApiKey.ts",
+    "file": "examples/docs/config/setTracingExportApiKey.ts",
+    "kind": "example-file",
+    "pages": [
+      "guides/config.mdx",
+      "guides/models.mdx"
+    ],
+    "embedded": true,
+    "importsSdk": true,
+    "complete": false,
+    "errors": [],
+    "status": "pass"
+  },
+  {
+    "id": "ex:docs/context/localContext.ts",
+    "file": "examples/docs/context/localContext.ts",
+    "kind": "example-file",
+    "pages": [
+      "guides/context.mdx"
+    ],
+    "embedded": true,
+    "importsSdk": true,
+    "complete": true,
+    "errors": [],
+    "status": "pass"
+  },
+  {
+    "id": "ex:docs/custom-trace.ts",
+    "file": "examples/docs/custom-trace.ts",
+    "kind": "example-file",
+    "pages": [
+      "guides/tracing.mdx"
+    ],
+    "embedded": true,
+    "importsSdk": true,
+    "complete": true,
+    "errors": [],
+    "status": "pass"
+  },
+  {
+    "id": "ex:docs/extensions/ai-sdk-imports.ts",
+    "file": "examples/docs/extensions/ai-sdk-imports.ts",
+    "kind": "example-file",
+    "pages": [
+      "extensions/ai-sdk.mdx"
+    ],
+    "embedded": true,
+    "importsSdk": true,
+    "complete": false,
+    "errors": [],
+    "status": "pass"
+  },
+  {
+    "id": "ex:docs/extensions/ai-sdk-model.ts",
+    "file": "examples/docs/extensions/ai-sdk-model.ts",
+    "kind": "example-file",
+    "pages": [
+      "extensions/ai-sdk.mdx"
+    ],
+    "embedded": true,
+    "importsSdk": true,
+    "complete": false,
+    "errors": [],
+    "status": "pass"
+  },
+  {
+    "id": "ex:docs/extensions/ai-sdk-providerData.ts",
+    "file": "examples/docs/extensions/ai-sdk-providerData.ts",
+    "kind": "example-file",
+    "pages": [
+      "extensions/ai-sdk.mdx"
+    ],
+    "embedded": true,
+    "importsSdk": false,
+    "complete": false,
+    "errors": [],
+    "status": "pass"
+  },
+  {
+    "id": "ex:docs/extensions/ai-sdk-providerMetadata.ts",
+    "file": "examples/docs/extensions/ai-sdk-providerMetadata.ts",
+    "kind": "example-file",
+    "pages": [
+      "extensions/ai-sdk.mdx"
+    ],
+    "embedded": true,
+    "importsSdk": false,
+    "complete": false,
+    "errors": [],
+    "status": "pass"
+  },
+  {
+    "id": "ex:docs/extensions/ai-sdk-setup.ts",
+    "file": "examples/docs/extensions/ai-sdk-setup.ts",
+    "kind": "example-file",
+    "pages": [
+      "extensions/ai-sdk.mdx"
+    ],
+    "embedded": true,
+    "importsSdk": true,
+    "complete": true,
+    "errors": [],
+    "status": "pass"
+  },
+  {
+    "id": "ex:docs/extensions/ai-sdk-text-stream-response.ts",
+    "file": "examples/docs/extensions/ai-sdk-text-stream-response.ts",
+    "kind": "example-file",
+    "pages": [
+      "extensions/ai-sdk.mdx"
+    ],
+    "embedded": true,
+    "importsSdk": true,
+    "complete": true,
+    "errors": [],
+    "status": "pass"
+  },
+  {
+    "id": "ex:docs/extensions/ai-sdk-transform-output-text.ts",
+    "file": "examples/docs/extensions/ai-sdk-transform-output-text.ts",
+    "kind": "example-file",
+    "pages": [
+      "extensions/ai-sdk.mdx"
+    ],
+    "embedded": true,
+    "importsSdk": true,
+    "complete": false,
+    "errors": [],
+    "status": "pass"
+  },
+  {
+    "id": "ex:docs/extensions/ai-sdk-ui-message-stream-response.ts",
+    "file": "examples/docs/extensions/ai-sdk-ui-message-stream-response.ts",
+    "kind": "example-file",
+    "pages": [
+      "extensions/ai-sdk.mdx"
+    ],
+    "embedded": true,
+    "importsSdk": true,
+    "complete": true,
+    "errors": [],
+    "status": "pass"
+  },
+  {
+    "id": "ex:docs/extensions/ai-sdk-ui-message-stream.ts",
+    "file": "examples/docs/extensions/ai-sdk-ui-message-stream.ts",
+    "kind": "example-file",
+    "pages": [
+      "extensions/ai-sdk.mdx"
+    ],
+    "embedded": true,
+    "importsSdk": true,
+    "complete": true,
+    "errors": [],
+    "status": "pass"
+  },
+  {
+    "id": "ex:docs/extensions/cloudflare-basic.ts",
+    "file": "examples/docs/extensions/cloudflare-basic.ts",
+    "kind": "example-file",
+    "pages": [
+      "extensions/cloudflare.mdx",
+      "guides/voice-agents/transport.mdx"
+    ],
+    "embedded": true,
+    "importsSdk": true,
+    "complete": false,
+    "errors": [],
+    "status": "pass"
+  },
+  {
+    "id": "ex:docs/extensions/twilio-basic.ts",
+    "file": "examples/docs/extensions/twilio-basic.ts",
+    "kind": "example-file",
+    "pages": [
+      "extensions/twilio.mdx"
+    ],
+    "embedded": true,
+    "importsSdk": true,
+    "complete": false,
+    "errors": [],
+    "status": "pass"
+  },
+  {
+    "id": "ex:docs/extensions/twilio-connect.ts",
+    "file": "examples/docs/extensions/twilio-connect.ts",
+    "kind": "example-file",
+    "pages": [
+      "extensions/twilio.mdx"
+    ],
+    "embedded": true,
+    "importsSdk": true,
+    "complete": false,
+    "errors": [],
+    "status": "pass"
+  },
+  {
+    "id": "ex:docs/guardrails/guardrails-input.ts",
+    "file": "examples/docs/guardrails/guardrails-input.ts",
+    "kind": "example-file",
+    "pages": [
+      "guides/guardrails.mdx"
+    ],
+    "embedded": true,
+    "importsSdk": true,
+    "complete": true,
+    "errors": [],
+    "status": "pass"
+  },
+  {
+    "id": "ex:docs/guardrails/guardrails-output.ts",
+    "file": "examples/docs/guardrails/guardrails-output.ts",
+    "kind": "example-file",
+    "pages": [
+      "guides/guardrails.mdx"
+    ],
+    "embedded": true,
+    "importsSdk": true,
+    "complete": true,
+    "errors": [],
+    "status": "pass"
+  },
+  {
+    "id": "ex:docs/guardrails/toolGuardrails.ts",
+    "file": "examples/docs/guardrails/toolGuardrails.ts",
+    "kind": "example-file",
+    "pages": [
+      "guides/guardrails.mdx"
+    ],
+    "embedded": true,
+    "importsSdk": true,
+    "complete": false,
+    "errors": [],
+    "status": "pass"
+  },
+  {
+    "id": "ex:docs/handoffs/basicUsage.ts",
+    "file": "examples/docs/handoffs/basicUsage.ts",
+    "kind": "example-file",
+    "pages": [
+      "guides/handoffs.mdx"
+    ],
+    "embedded": true,
+    "importsSdk": true,
+    "complete": false,
+    "errors": [],
+    "status": "pass"
+  },
+  {
+    "id": "ex:docs/handoffs/customizeHandoff.ts",
+    "file": "examples/docs/handoffs/customizeHandoff.ts",
+    "kind": "example-file",
+    "pages": [
+      "guides/handoffs.mdx"
+    ],
+    "embedded": true,
+    "importsSdk": true,
+    "complete": false,
+    "errors": [],
+    "status": "pass"
+  },
+  {
+    "id": "ex:docs/handoffs/handoffInput.ts",
+    "file": "examples/docs/handoffs/handoffInput.ts",
+    "kind": "example-file",
+    "pages": [
+      "guides/handoffs.mdx"
+    ],
+    "embedded": true,
+    "importsSdk": true,
+    "complete": false,
+    "errors": [],
+    "status": "pass"
+  },
+  {
+    "id": "ex:docs/handoffs/inputFilter.ts",
+    "file": "examples/docs/handoffs/inputFilter.ts",
+    "kind": "example-file",
+    "pages": [
+      "guides/handoffs.mdx"
+    ],
+    "embedded": true,
+    "importsSdk": true,
+    "complete": false,
+    "errors": [],
+    "status": "pass"
+  },
+  {
+    "id": "ex:docs/handoffs/recommendedPrompt.ts",
+    "file": "examples/docs/handoffs/recommendedPrompt.ts",
+    "kind": "example-file",
+    "pages": [
+      "guides/handoffs.mdx"
+    ],
+    "embedded": true,
+    "importsSdk": true,
+    "complete": false,
+    "errors": [],
+    "status": "pass"
+  },
+  {
+    "id": "ex:docs/hello-world-with-runner.ts",
+    "file": "examples/docs/hello-world-with-runner.ts",
+    "kind": "example-file",
+    "pages": [
+      "guides/running-agents.mdx"
+    ],
+    "embedded": true,
+    "importsSdk": true,
+    "complete": true,
+    "errors": [],
+    "status": "pass"
+  },
+  {
+    "id": "ex:docs/hello-world.ts",
+    "file": "examples/docs/hello-world.ts",
+    "kind": "example-file",
+    "pages": [
+      "guides/running-agents.mdx",
+      "index.mdx"
+    ],
+    "embedded": true,
+    "importsSdk": true,
+    "complete": true,
+    "errors": [],
+    "status": "pass"
+  },
+  {
+    "id": "ex:docs/human-in-the-loop/index.ts",
+    "file": "examples/docs/human-in-the-loop/index.ts",
+    "kind": "example-file",
+    "pages": [
+      "guides/human-in-the-loop.mdx"
+    ],
+    "embedded": true,
+    "importsSdk": true,
+    "complete": true,
+    "errors": [],
+    "status": "pass"
+  },
+  {
+    "id": "ex:docs/human-in-the-loop/server.ts",
+    "file": "examples/docs/human-in-the-loop/server.ts",
+    "kind": "example-file",
+    "pages": [
+      "guides/human-in-the-loop.mdx"
+    ],
+    "embedded": true,
+    "importsSdk": true,
+    "complete": true,
+    "errors": [],
+    "status": "pass"
+  },
+  {
+    "id": "ex:docs/human-in-the-loop/toolApprovalDefinition.ts",
+    "file": "examples/docs/human-in-the-loop/toolApprovalDefinition.ts",
+    "kind": "example-file",
+    "pages": [
+      "guides/human-in-the-loop.mdx"
+    ],
+    "embedded": true,
+    "importsSdk": true,
+    "complete": false,
+    "errors": [],
+    "status": "pass"
+  },
+  {
+    "id": "ex:docs/mcp/agentMcpConfig.ts",
+    "file": "examples/docs/mcp/agentMcpConfig.ts",
+    "kind": "example-file",
+    "pages": [
+      "guides/mcp.mdx"
+    ],
+    "embedded": true,
+    "importsSdk": true,
+    "complete": false,
+    "errors": [],
+    "status": "pass"
+  },
+  {
+    "id": "ex:docs/mcp/asyncDispose.ts",
+    "file": "examples/docs/mcp/asyncDispose.ts",
+    "kind": "example-file",
+    "pages": [
+      "guides/mcp.mdx"
+    ],
+    "embedded": true,
+    "importsSdk": true,
+    "complete": false,
+    "errors": [],
+    "status": "pass"
+  },
+  {
+    "id": "ex:docs/mcp/hosted.ts",
+    "file": "examples/docs/mcp/hosted.ts",
+    "kind": "example-file",
+    "pages": [
+      "guides/mcp.mdx"
+    ],
+    "embedded": true,
+    "importsSdk": true,
+    "complete": true,
+    "errors": [],
+    "status": "pass"
+  },
+  {
+    "id": "ex:docs/mcp/hostedAgent.ts",
+    "file": "examples/docs/mcp/hostedAgent.ts",
+    "kind": "example-file",
+    "pages": [
+      "guides/mcp.mdx"
+    ],
+    "embedded": true,
+    "importsSdk": true,
+    "complete": false,
+    "errors": [],
+    "status": "pass"
+  },
+  {
+    "id": "ex:docs/mcp/hostedConnector.ts",
+    "file": "examples/docs/mcp/hostedConnector.ts",
+    "kind": "example-file",
+    "pages": [
+      "guides/mcp.mdx"
+    ],
+    "embedded": true,
+    "importsSdk": true,
+    "complete": false,
+    "errors": [],
+    "status": "pass"
+  },
+  {
+    "id": "ex:docs/mcp/hostedHITL.ts",
+    "file": "examples/docs/mcp/hostedHITL.ts",
+    "kind": "example-file",
+    "pages": [
+      "guides/mcp.mdx"
+    ],
+    "embedded": true,
+    "importsSdk": true,
+    "complete": true,
+    "errors": [],
+    "status": "pass"
+  },
+  {
+    "id": "ex:docs/mcp/hostedStream.ts",
+    "file": "examples/docs/mcp/hostedStream.ts",
+    "kind": "example-file",
+    "pages": [
+      "guides/mcp.mdx"
+    ],
+    "embedded": true,
+    "importsSdk": true,
+    "complete": true,
+    "errors": [],
+    "status": "pass"
+  },
+  {
+    "id": "ex:docs/mcp/mcpServers.ts",
+    "file": "examples/docs/mcp/mcpServers.ts",
+    "kind": "example-file",
+    "pages": [
+      "guides/mcp.mdx"
+    ],
+    "embedded": true,
+    "importsSdk": true,
+    "complete": true,
+    "errors": [],
+    "status": "pass"
+  },
+  {
+    "id": "ex:docs/mcp/serverPrefixedToolNames.ts",
+    "file": "examples/docs/mcp/serverPrefixedToolNames.ts",
+    "kind": "example-file",
+    "pages": [
+      "guides/mcp.mdx"
+    ],
+    "embedded": true,
+    "importsSdk": true,
+    "complete": false,
+    "errors": [],
+    "status": "pass"
+  },
+  {
+    "id": "ex:docs/mcp/stdio.ts",
+    "file": "examples/docs/mcp/stdio.ts",
+    "kind": "example-file",
+    "pages": [
+      "guides/mcp.mdx"
+    ],
+    "embedded": true,
+    "importsSdk": true,
+    "complete": true,
+    "errors": [],
+    "status": "pass"
+  },
+  {
+    "id": "ex:docs/mcp/streamableHttp.ts",
+    "file": "examples/docs/mcp/streamableHttp.ts",
+    "kind": "example-file",
+    "pages": [
+      "guides/mcp.mdx"
+    ],
+    "embedded": true,
+    "importsSdk": true,
+    "complete": true,
+    "errors": [],
+    "status": "pass"
+  },
+  {
+    "id": "ex:docs/mcp/tool-filter.ts",
+    "file": "examples/docs/mcp/tool-filter.ts",
+    "kind": "example-file",
+    "pages": [
+      "guides/mcp.mdx"
+    ],
+    "embedded": true,
+    "importsSdk": true,
+    "complete": false,
+    "errors": [],
+    "status": "pass"
+  },
+  {
+    "id": "ex:docs/models/agentWithModel.ts",
+    "file": "examples/docs/models/agentWithModel.ts",
+    "kind": "example-file",
+    "pages": [
+      "guides/models.mdx"
+    ],
+    "embedded": true,
+    "importsSdk": true,
+    "complete": false,
+    "errors": [],
+    "status": "pass"
+  },
+  {
+    "id": "ex:docs/models/customProviders.ts",
+    "file": "examples/docs/models/customProviders.ts",
+    "kind": "example-file",
+    "pages": [
+      "guides/models.mdx"
+    ],
+    "embedded": true,
+    "importsSdk": true,
+    "complete": false,
+    "errors": [],
+    "status": "pass"
+  },
+  {
+    "id": "ex:docs/models/gpt56RequestControls.ts",
+    "file": "examples/docs/models/gpt56RequestControls.ts",
+    "kind": "example-file",
+    "pages": [
+      "guides/models.mdx"
+    ],
+    "embedded": true,
+    "importsSdk": true,
+    "complete": true,
+    "errors": [],
+    "status": "pass"
+  },
+  {
+    "id": "ex:docs/models/gpt5DefaultModelSettings.ts",
+    "file": "examples/docs/models/gpt5DefaultModelSettings.ts",
+    "kind": "example-file",
+    "pages": [
+      "guides/models.mdx"
+    ],
+    "embedded": true,
+    "importsSdk": true,
+    "complete": false,
+    "errors": [],
+    "status": "pass"
+  },
+  {
+    "id": "ex:docs/models/hostedMultiAgent.ts",
+    "file": "examples/docs/models/hostedMultiAgent.ts",
+    "kind": "example-file",
+    "pages": [
+      "guides/models.mdx"
+    ],
+    "embedded": true,
+    "importsSdk": true,
+    "complete": true,
+    "errors": [],
+    "status": "pass"
+  },
+  {
+    "id": "ex:docs/models/modelSettings.ts",
+    "file": "examples/docs/models/modelSettings.ts",
+    "kind": "example-file",
+    "pages": [
+      "guides/models.mdx"
+    ],
+    "embedded": true,
+    "importsSdk": true,
+    "complete": false,
+    "errors": [],
+    "status": "pass"
+  },
+  {
+    "id": "ex:docs/models/openaiProvider.ts",
+    "file": "examples/docs/models/openaiProvider.ts",
+    "kind": "example-file",
+    "pages": [],
+    "embedded": false,
+    "importsSdk": true,
+    "complete": true,
+    "errors": [],
+    "status": "pass"
+  },
+  {
+    "id": "ex:docs/models/retry.ts",
+    "file": "examples/docs/models/retry.ts",
+    "kind": "example-file",
+    "pages": [
+      "guides/models.mdx"
+    ],
+    "embedded": true,
+    "importsSdk": true,
+    "complete": true,
+    "errors": [],
+    "status": "pass"
+  },
+  {
+    "id": "ex:docs/models/runnerWithModel.ts",
+    "file": "examples/docs/models/runnerWithModel.ts",
+    "kind": "example-file",
+    "pages": [
+      "guides/models.mdx"
+    ],
+    "embedded": true,
+    "importsSdk": true,
+    "complete": false,
+    "errors": [],
+    "status": "pass"
+  },
+  {
+    "id": "ex:docs/models/setDefaultModelProvider.ts",
+    "file": "examples/docs/models/setDefaultModelProvider.ts",
+    "kind": "example-file",
+    "pages": [
+      "guides/models.mdx"
+    ],
+    "embedded": true,
+    "importsSdk": true,
+    "complete": false,
+    "errors": [],
+    "status": "pass"
+  },
+  {
+    "id": "ex:docs/quickstart/additionalAgents.ts",
+    "file": "examples/docs/quickstart/additionalAgents.ts",
+    "kind": "example-file",
+    "pages": [
+      "guides/quickstart.mdx"
+    ],
+    "embedded": true,
+    "importsSdk": true,
+    "complete": false,
+    "errors": [],
+    "status": "pass"
+  },
+  {
+    "id": "ex:docs/quickstart/agentWithTools.ts",
+    "file": "examples/docs/quickstart/agentWithTools.ts",
+    "kind": "example-file",
+    "pages": [
+      "guides/quickstart.mdx"
+    ],
+    "embedded": true,
+    "importsSdk": true,
+    "complete": false,
+    "errors": [],
+    "status": "pass"
+  },
+  {
+    "id": "ex:docs/quickstart/createAgent.ts",
+    "file": "examples/docs/quickstart/createAgent.ts",
+    "kind": "example-file",
+    "pages": [
+      "guides/quickstart.mdx"
+    ],
+    "embedded": true,
+    "importsSdk": true,
+    "complete": false,
+    "errors": [],
+    "status": "pass"
+  },
+  {
+    "id": "ex:docs/quickstart/defineHandoffs.ts",
+    "file": "examples/docs/quickstart/defineHandoffs.ts",
+    "kind": "example-file",
+    "pages": [
+      "guides/quickstart.mdx"
+    ],
+    "embedded": true,
+    "importsSdk": true,
+    "complete": false,
+    "errors": [],
+    "status": "pass"
+  },
+  {
+    "id": "ex:docs/quickstart/index.ts",
+    "file": "examples/docs/quickstart/index.ts",
+    "kind": "example-file",
+    "pages": [
+      "guides/quickstart.mdx"
+    ],
+    "embedded": true,
+    "importsSdk": true,
+    "complete": true,
+    "errors": [],
+    "status": "pass"
+  },
+  {
+    "id": "ex:docs/quickstart/runAgent.ts",
+    "file": "examples/docs/quickstart/runAgent.ts",
+    "kind": "example-file",
+    "pages": [
+      "guides/quickstart.mdx"
+    ],
+    "embedded": true,
+    "importsSdk": true,
+    "complete": true,
+    "errors": [],
+    "status": "pass"
+  },
+  {
+    "id": "ex:docs/quickstart/runOrchestration.ts",
+    "file": "examples/docs/quickstart/runOrchestration.ts",
+    "kind": "example-file",
+    "pages": [
+      "guides/quickstart.mdx"
+    ],
+    "embedded": true,
+    "importsSdk": true,
+    "complete": true,
+    "errors": [],
+    "status": "pass"
+  },
+  {
+    "id": "ex:docs/readme/readme-functions.ts",
+    "file": "examples/docs/readme/readme-functions.ts",
+    "kind": "example-file",
+    "pages": [],
+    "embedded": false,
+    "importsSdk": true,
+    "complete": true,
+    "errors": [],
+    "status": "pass"
+  },
+  {
+    "id": "ex:docs/readme/readme-handoffs.ts",
+    "file": "examples/docs/readme/readme-handoffs.ts",
+    "kind": "example-file",
+    "pages": [],
+    "embedded": false,
+    "importsSdk": true,
+    "complete": true,
+    "errors": [],
+    "status": "pass"
+  },
+  {
+    "id": "ex:docs/readme/readme-hello-world.ts",
+    "file": "examples/docs/readme/readme-hello-world.ts",
+    "kind": "example-file",
+    "pages": [],
+    "embedded": false,
+    "importsSdk": true,
+    "complete": true,
+    "errors": [],
+    "status": "pass"
+  },
+  {
+    "id": "ex:docs/readme/readme-voice-agent.ts",
+    "file": "examples/docs/readme/readme-voice-agent.ts",
+    "kind": "example-file",
+    "pages": [],
+    "embedded": false,
+    "importsSdk": true,
+    "complete": false,
+    "errors": [],
+    "status": "pass"
+  },
+  {
+    "id": "ex:docs/results/handoffFinalOutputTypes.ts",
+    "file": "examples/docs/results/handoffFinalOutputTypes.ts",
+    "kind": "example-file",
+    "pages": [
+      "guides/results.mdx"
+    ],
+    "embedded": true,
+    "importsSdk": true,
+    "complete": true,
+    "errors": [],
+    "status": "pass"
+  },
+  {
+    "id": "ex:docs/results/historyLoop.ts",
+    "file": "examples/docs/results/historyLoop.ts",
+    "kind": "example-file",
+    "pages": [
+      "guides/results.mdx"
+    ],
+    "embedded": true,
+    "importsSdk": true,
+    "complete": true,
+    "errors": [],
+    "status": "pass"
+  },
+  {
+    "id": "ex:docs/results/usage.ts",
+    "file": "examples/docs/results/usage.ts",
+    "kind": "example-file",
+    "pages": [
+      "guides/results.mdx"
+    ],
+    "embedded": true,
+    "importsSdk": true,
+    "complete": true,
+    "errors": [],
+    "status": "pass"
+  },
+  {
+    "id": "ex:docs/running-agents/chatLoop.ts",
+    "file": "examples/docs/running-agents/chatLoop.ts",
+    "kind": "example-file",
+    "pages": [
+      "guides/running-agents.mdx"
+    ],
+    "embedded": true,
+    "importsSdk": true,
+    "complete": true,
+    "errors": [],
+    "status": "pass"
+  },
+  {
+    "id": "ex:docs/running-agents/conversationId.ts",
+    "file": "examples/docs/running-agents/conversationId.ts",
+    "kind": "example-file",
+    "pages": [
+      "guides/running-agents.mdx"
+    ],
+    "embedded": true,
+    "importsSdk": true,
+    "complete": true,
+    "errors": [],
+    "status": "pass"
+  },
+  {
+    "id": "ex:docs/running-agents/exceptions1.ts",
+    "file": "examples/docs/running-agents/exceptions1.ts",
+    "kind": "example-file",
+    "pages": [
+      "guides/running-agents.mdx"
+    ],
+    "embedded": true,
+    "importsSdk": true,
+    "complete": true,
+    "errors": [],
+    "status": "pass"
+  },
+  {
+    "id": "ex:docs/running-agents/exceptions2.ts",
+    "file": "examples/docs/running-agents/exceptions2.ts",
+    "kind": "example-file",
+    "pages": [],
+    "embedded": false,
+    "importsSdk": true,
+    "complete": true,
+    "errors": [],
+    "status": "pass"
+  },
+  {
+    "id": "ex:docs/running-agents/modelInputIdentity.ts",
+    "file": "examples/docs/running-agents/modelInputIdentity.ts",
+    "kind": "example-file",
+    "pages": [
+      "guides/running-agents.mdx"
+    ],
+    "embedded": true,
+    "importsSdk": true,
+    "complete": false,
+    "errors": [],
+    "status": "pass"
+  },
+  {
+    "id": "ex:docs/running-agents/previousResponseId.ts",
+    "file": "examples/docs/running-agents/previousResponseId.ts",
+    "kind": "example-file",
+    "pages": [
+      "guides/running-agents.mdx"
+    ],
+    "embedded": true,
+    "importsSdk": true,
+    "complete": true,
+    "errors": [],
+    "status": "pass"
+  },
+  {
+    "id": "ex:docs/sandbox-agents/basic.ts",
+    "file": "examples/docs/sandbox-agents/basic.ts",
+    "kind": "example-file",
+    "pages": [
+      "guides/sandbox-agents.mdx",
+      "guides/sandbox-agents/concepts.mdx"
+    ],
+    "embedded": true,
+    "importsSdk": true,
+    "complete": true,
+    "errors": [],
+    "status": "pass"
+  },
+  {
+    "id": "ex:docs/sandbox-agents/conversation-identity.ts",
+    "file": "examples/docs/sandbox-agents/conversation-identity.ts",
+    "kind": "example-file",
+    "pages": [
+      "guides/sandbox-agents/memory.mdx"
+    ],
+    "embedded": true,
+    "importsSdk": true,
+    "complete": true,
+    "errors": [],
+    "status": "pass"
+  },
+  {
+    "id": "ex:docs/sandbox-agents/developer-owned-lifecycle.ts",
+    "file": "examples/docs/sandbox-agents/developer-owned-lifecycle.ts",
+    "kind": "example-file",
+    "pages": [
+      "guides/sandbox-agents/concepts.mdx"
+    ],
+    "embedded": true,
+    "importsSdk": true,
+    "complete": true,
+    "errors": [],
+    "status": "pass"
+  },
+  {
+    "id": "ex:docs/sandbox-agents/developer-owned-session.ts",
+    "file": "examples/docs/sandbox-agents/developer-owned-session.ts",
+    "kind": "example-file",
+    "pages": [
+      "guides/sandbox-agents/clients.mdx"
+    ],
+    "embedded": true,
+    "importsSdk": true,
+    "complete": true,
+    "errors": [],
+    "status": "pass"
+  },
+  {
+    "id": "ex:docs/sandbox-agents/docker-client.ts",
+    "file": "examples/docs/sandbox-agents/docker-client.ts",
+    "kind": "example-file",
+    "pages": [
+      "guides/sandbox-agents/clients.mdx"
+    ],
+    "embedded": true,
+    "importsSdk": true,
+    "complete": true,
+    "errors": [],
+    "status": "pass"
+  },
+  {
+    "id": "ex:docs/sandbox-agents/enable-memory.ts",
+    "file": "examples/docs/sandbox-agents/enable-memory.ts",
+    "kind": "example-file",
+    "pages": [
+      "guides/sandbox-agents/memory.mdx"
+    ],
+    "embedded": true,
+    "importsSdk": true,
+    "complete": false,
+    "errors": [],
+    "status": "pass"
+  },
+  {
+    "id": "ex:docs/sandbox-agents/exposed-ports.ts",
+    "file": "examples/docs/sandbox-agents/exposed-ports.ts",
+    "kind": "example-file",
+    "pages": [
+      "guides/sandbox-agents/clients.mdx"
+    ],
+    "embedded": true,
+    "importsSdk": true,
+    "complete": false,
+    "errors": [],
+    "status": "pass"
+  },
+  {
+    "id": "ex:docs/sandbox-agents/generate-memory.ts",
+    "file": "examples/docs/sandbox-agents/generate-memory.ts",
+    "kind": "example-file",
+    "pages": [
+      "guides/sandbox-agents/memory.mdx"
+    ],
+    "embedded": true,
+    "importsSdk": true,
+    "complete": false,
+    "errors": [],
+    "status": "pass"
+  },
+  {
+    "id": "ex:docs/sandbox-agents/manifest-concurrency.ts",
+    "file": "examples/docs/sandbox-agents/manifest-concurrency.ts",
+    "kind": "example-file",
+    "pages": [
+      "guides/sandbox-agents/clients.mdx"
+    ],
+    "embedded": true,
+    "importsSdk": true,
+    "complete": true,
+    "errors": [],
+    "status": "pass"
+  },
+  {
+    "id": "ex:docs/sandbox-agents/manifest.ts",
+    "file": "examples/docs/sandbox-agents/manifest.ts",
+    "kind": "example-file",
+    "pages": [
+      "guides/sandbox-agents/concepts.mdx"
+    ],
+    "embedded": true,
+    "importsSdk": true,
+    "complete": false,
+    "errors": [],
+    "status": "pass"
+  },
+  {
+    "id": "ex:docs/sandbox-agents/memory-layouts.ts",
+    "file": "examples/docs/sandbox-agents/memory-layouts.ts",
+    "kind": "example-file",
+    "pages": [
+      "guides/sandbox-agents/memory.mdx"
+    ],
+    "embedded": true,
+    "importsSdk": true,
+    "complete": false,
+    "errors": [],
+    "status": "pass"
+  },
+  {
+    "id": "ex:docs/sandbox-agents/path-grants.ts",
+    "file": "examples/docs/sandbox-agents/path-grants.ts",
+    "kind": "example-file",
+    "pages": [
+      "guides/sandbox-agents/concepts.mdx"
+    ],
+    "embedded": true,
+    "importsSdk": true,
+    "complete": false,
+    "errors": [],
+    "status": "pass"
+  },
+  {
+    "id": "ex:docs/sandbox-agents/read-only-memory.ts",
+    "file": "examples/docs/sandbox-agents/read-only-memory.ts",
+    "kind": "example-file",
+    "pages": [
+      "guides/sandbox-agents/memory.mdx"
+    ],
+    "embedded": true,
+    "importsSdk": true,
+    "complete": false,
+    "errors": [],
+    "status": "pass"
+  },
+  {
+    "id": "ex:docs/sandbox-agents/resume-session-state.ts",
+    "file": "examples/docs/sandbox-agents/resume-session-state.ts",
+    "kind": "example-file",
+    "pages": [
+      "guides/sandbox-agents/clients.mdx"
+    ],
+    "embedded": true,
+    "importsSdk": true,
+    "complete": false,
+    "errors": [],
+    "status": "pass"
+  },
+  {
+    "id": "ex:docs/sandbox-agents/sdk-owned-lifecycle.ts",
+    "file": "examples/docs/sandbox-agents/sdk-owned-lifecycle.ts",
+    "kind": "example-file",
+    "pages": [
+      "guides/sandbox-agents/concepts.mdx"
+    ],
+    "embedded": true,
+    "importsSdk": true,
+    "complete": true,
+    "errors": [],
+    "status": "pass"
+  },
+  {
+    "id": "ex:docs/sandbox-agents/select-local-client.ts",
+    "file": "examples/docs/sandbox-agents/select-local-client.ts",
+    "kind": "example-file",
+    "pages": [
+      "guides/sandbox-agents/clients.mdx"
+    ],
+    "embedded": true,
+    "importsSdk": true,
+    "complete": false,
+    "errors": [],
+    "status": "pass"
+  },
+  {
+    "id": "ex:docs/schemas/standardSchema.ts",
+    "file": "examples/docs/schemas/standardSchema.ts",
+    "kind": "example-file",
+    "pages": [
+      "guides/schemas.mdx"
+    ],
+    "embedded": true,
+    "importsSdk": true,
+    "complete": false,
+    "errors": [],
+    "status": "pass"
+  },
+  {
+    "id": "ex:docs/sessions/basicSession.ts",
+    "file": "examples/docs/sessions/basicSession.ts",
+    "kind": "example-file",
+    "pages": [
+      "guides/sessions.mdx"
+    ],
+    "embedded": true,
+    "importsSdk": true,
+    "complete": true,
+    "errors": [],
+    "status": "pass"
+  },
+  {
+    "id": "ex:docs/sessions/contextAwareSession.ts",
+    "file": "examples/docs/sessions/contextAwareSession.ts",
+    "kind": "example-file",
+    "pages": [
+      "guides/sessions.mdx"
+    ],
+    "embedded": true,
+    "importsSdk": true,
+    "complete": true,
+    "errors": [],
+    "status": "pass"
+  },
+  {
+    "id": "ex:docs/sessions/customSession.ts",
+    "file": "examples/docs/sessions/customSession.ts",
+    "kind": "example-file",
+    "pages": [
+      "guides/sessions.mdx"
+    ],
+    "embedded": true,
+    "importsSdk": true,
+    "complete": true,
+    "errors": [],
+    "status": "pass"
+  },
+  {
+    "id": "ex:docs/sessions/manageHistory.ts",
+    "file": "examples/docs/sessions/manageHistory.ts",
+    "kind": "example-file",
+    "pages": [
+      "guides/sessions.mdx"
+    ],
+    "embedded": true,
+    "importsSdk": true,
+    "complete": false,
+    "errors": [],
+    "status": "pass"
+  },
+  {
+    "id": "ex:docs/sessions/memorySession.ts",
+    "file": "examples/docs/sessions/memorySession.ts",
+    "kind": "example-file",
+    "pages": [
+      "guides/sessions.mdx"
+    ],
+    "embedded": true,
+    "importsSdk": true,
+    "complete": true,
+    "errors": [],
+    "status": "pass"
+  },
+  {
+    "id": "ex:docs/sessions/responsesCompactionManualSession.ts",
+    "file": "examples/docs/sessions/responsesCompactionManualSession.ts",
+    "kind": "example-file",
+    "pages": [
+      "guides/sessions.mdx"
+    ],
+    "embedded": true,
+    "importsSdk": true,
+    "complete": true,
+    "errors": [],
+    "status": "pass"
+  },
+  {
+    "id": "ex:docs/sessions/responsesCompactionSession.ts",
+    "file": "examples/docs/sessions/responsesCompactionSession.ts",
+    "kind": "example-file",
+    "pages": [
+      "guides/sessions.mdx"
+    ],
+    "embedded": true,
+    "importsSdk": true,
+    "complete": true,
+    "errors": [],
+    "status": "pass"
+  },
+  {
+    "id": "ex:docs/sessions/resumableRun.ts",
+    "file": "examples/docs/sessions/resumableRun.ts",
+    "kind": "example-file",
+    "pages": [
+      "guides/sessions.mdx"
+    ],
+    "embedded": true,
+    "importsSdk": true,
+    "complete": true,
+    "errors": [],
+    "status": "pass"
+  },
+  {
+    "id": "ex:docs/sessions/sessionInputCallback.ts",
+    "file": "examples/docs/sessions/sessionInputCallback.ts",
+    "kind": "example-file",
+    "pages": [
+      "guides/sessions.mdx"
+    ],
+    "embedded": true,
+    "importsSdk": true,
+    "complete": true,
+    "errors": [],
+    "status": "pass"
+  },
+  {
+    "id": "ex:docs/streaming/basicStreaming.ts",
+    "file": "examples/docs/streaming/basicStreaming.ts",
+    "kind": "example-file",
+    "pages": [
+      "guides/streaming.mdx"
+    ],
+    "embedded": true,
+    "importsSdk": true,
+    "complete": true,
+    "errors": [],
+    "status": "pass"
+  },
+  {
+    "id": "ex:docs/streaming/handleAllEvents.ts",
+    "file": "examples/docs/streaming/handleAllEvents.ts",
+    "kind": "example-file",
+    "pages": [
+      "guides/streaming.mdx"
+    ],
+    "embedded": true,
+    "importsSdk": true,
+    "complete": true,
+    "errors": [],
+    "status": "pass"
+  },
+  {
+    "id": "ex:docs/streaming/nodeTextStream.ts",
+    "file": "examples/docs/streaming/nodeTextStream.ts",
+    "kind": "example-file",
+    "pages": [
+      "guides/streaming.mdx"
+    ],
+    "embedded": true,
+    "importsSdk": true,
+    "complete": true,
+    "errors": [],
+    "status": "pass"
+  },
+  {
+    "id": "ex:docs/streaming/openaiResponsesRawModelStreamEvent.ts",
+    "file": "examples/docs/streaming/openaiResponsesRawModelStreamEvent.ts",
+    "kind": "example-file",
+    "pages": [
+      "guides/streaming.mdx"
+    ],
+    "embedded": true,
+    "importsSdk": true,
+    "complete": false,
+    "errors": [],
+    "status": "pass"
+  },
+  {
+    "id": "ex:docs/streaming/runAgentUpdatedStreamEvent.ts",
+    "file": "examples/docs/streaming/runAgentUpdatedStreamEvent.ts",
+    "kind": "example-file",
+    "pages": [
+      "guides/streaming.mdx"
+    ],
+    "embedded": true,
+    "importsSdk": true,
+    "complete": false,
+    "errors": [],
+    "status": "pass"
+  },
+  {
+    "id": "ex:docs/streaming/runItemStreamEvent.ts",
+    "file": "examples/docs/streaming/runItemStreamEvent.ts",
+    "kind": "example-file",
+    "pages": [
+      "guides/streaming.mdx"
+    ],
+    "embedded": true,
+    "importsSdk": true,
+    "complete": false,
+    "errors": [],
+    "status": "pass"
+  },
+  {
+    "id": "ex:docs/streaming/runRawModelStreamEvent.ts",
+    "file": "examples/docs/streaming/runRawModelStreamEvent.ts",
+    "kind": "example-file",
+    "pages": [
+      "guides/streaming.mdx"
+    ],
+    "embedded": true,
+    "importsSdk": true,
+    "complete": false,
+    "errors": [],
+    "status": "pass"
+  },
+  {
+    "id": "ex:docs/streaming/streamedHITL.ts",
+    "file": "examples/docs/streaming/streamedHITL.ts",
+    "kind": "example-file",
+    "pages": [
+      "guides/streaming.mdx"
+    ],
+    "embedded": true,
+    "importsSdk": true,
+    "complete": true,
+    "errors": [],
+    "status": "pass"
+  },
+  {
+    "id": "ex:docs/testing/fixedResponse.ts",
+    "file": "examples/docs/testing/fixedResponse.ts",
+    "kind": "example-file",
+    "pages": [
+      "guides/testing.mdx"
+    ],
+    "embedded": true,
+    "importsSdk": true,
+    "complete": true,
+    "errors": [],
+    "status": "pass"
+  },
+  {
+    "id": "ex:docs/testing/realtimeAgentTool.ts",
+    "file": "examples/docs/testing/realtimeAgentTool.ts",
+    "kind": "example-file",
+    "pages": [
+      "guides/testing.mdx"
+    ],
+    "embedded": true,
+    "importsSdk": true,
+    "complete": false,
+    "errors": [],
+    "status": "pass"
+  },
+  {
+    "id": "ex:docs/testing/realtimeFailure.ts",
+    "file": "examples/docs/testing/realtimeFailure.ts",
+    "kind": "example-file",
+    "pages": [
+      "guides/testing.mdx"
+    ],
+    "embedded": true,
+    "importsSdk": true,
+    "complete": false,
+    "errors": [],
+    "status": "pass"
+  },
+  {
+    "id": "ex:docs/testing/realtimeInterrupt.ts",
+    "file": "examples/docs/testing/realtimeInterrupt.ts",
+    "kind": "example-file",
+    "pages": [
+      "guides/testing.mdx"
+    ],
+    "embedded": true,
+    "importsSdk": true,
+    "complete": false,
+    "errors": [],
+    "status": "pass"
+  },
+  {
+    "id": "ex:docs/testing/realtimeScenario.ts",
+    "file": "examples/docs/testing/realtimeScenario.ts",
+    "kind": "example-file",
+    "pages": [
+      "guides/testing.mdx"
+    ],
+    "embedded": true,
+    "importsSdk": true,
+    "complete": false,
+    "errors": [],
+    "status": "pass"
+  },
+  {
+    "id": "ex:docs/testing/requestAwareResponse.ts",
+    "file": "examples/docs/testing/requestAwareResponse.ts",
+    "kind": "example-file",
+    "pages": [
+      "guides/testing.mdx"
+    ],
+    "embedded": true,
+    "importsSdk": true,
+    "complete": true,
+    "errors": [],
+    "status": "pass"
+  },
+  {
+    "id": "ex:docs/testing/sandboxWorkflow.ts",
+    "file": "examples/docs/testing/sandboxWorkflow.ts",
+    "kind": "example-file",
+    "pages": [
+      "guides/testing.mdx"
+    ],
+    "embedded": true,
+    "importsSdk": true,
+    "complete": true,
+    "errors": [],
+    "status": "pass"
+  },
+  {
+    "id": "ex:docs/testing/toolWorkflow.ts",
+    "file": "examples/docs/testing/toolWorkflow.ts",
+    "kind": "example-file",
+    "pages": [
+      "guides/testing.mdx"
+    ],
+    "embedded": true,
+    "importsSdk": true,
+    "complete": true,
+    "errors": [],
+    "status": "pass"
+  },
+  {
+    "id": "ex:docs/testing/workflowDrift.ts",
+    "file": "examples/docs/testing/workflowDrift.ts",
+    "kind": "example-file",
+    "pages": [
+      "guides/testing.mdx"
+    ],
+    "embedded": true,
+    "importsSdk": true,
+    "complete": true,
+    "errors": [],
+    "status": "pass"
+  },
+  {
+    "id": "ex:docs/tools/agentsAsTools.ts",
+    "file": "examples/docs/tools/agentsAsTools.ts",
+    "kind": "example-file",
+    "pages": [
+      "guides/tools.mdx"
+    ],
+    "embedded": true,
+    "importsSdk": true,
+    "complete": false,
+    "errors": [],
+    "status": "pass"
+  },
+  {
+    "id": "ex:docs/tools/agentsAsToolsStreaming.ts",
+    "file": "examples/docs/tools/agentsAsToolsStreaming.ts",
+    "kind": "example-file",
+    "pages": [
+      "guides/tools.mdx"
+    ],
+    "embedded": true,
+    "importsSdk": true,
+    "complete": false,
+    "errors": [],
+    "status": "pass"
+  },
+  {
+    "id": "ex:docs/tools/agentToolRunContext.ts",
+    "file": "examples/docs/tools/agentToolRunContext.ts",
+    "kind": "example-file",
+    "pages": [
+      "guides/tools.mdx"
+    ],
+    "embedded": true,
+    "importsSdk": true,
+    "complete": false,
+    "errors": [],
+    "status": "pass"
+  },
+  {
+    "id": "ex:docs/tools/codexRunContextThread.ts",
+    "file": "examples/docs/tools/codexRunContextThread.ts",
+    "kind": "example-file",
+    "pages": [
+      "guides/tools.mdx"
+    ],
+    "embedded": true,
+    "importsSdk": true,
+    "complete": true,
+    "errors": [],
+    "status": "pass"
+  },
+  {
+    "id": "ex:docs/tools/codexTool.ts",
+    "file": "examples/docs/tools/codexTool.ts",
+    "kind": "example-file",
+    "pages": [
+      "guides/tools.mdx"
+    ],
+    "embedded": true,
+    "importsSdk": true,
+    "complete": false,
+    "errors": [],
+    "status": "pass"
+  },
+  {
+    "id": "ex:docs/tools/computerSafetyChecks.ts",
+    "file": "examples/docs/tools/computerSafetyChecks.ts",
+    "kind": "example-file",
+    "pages": [
+      "guides/tools.mdx"
+    ],
+    "embedded": true,
+    "importsSdk": true,
+    "complete": false,
+    "errors": [],
+    "status": "pass"
+  },
+  {
+    "id": "ex:docs/tools/functionTools.ts",
+    "file": "examples/docs/tools/functionTools.ts",
+    "kind": "example-file",
+    "pages": [
+      "guides/tools.mdx"
+    ],
+    "embedded": true,
+    "importsSdk": true,
+    "complete": false,
+    "errors": [],
+    "status": "pass"
+  },
+  {
+    "id": "ex:docs/tools/hostedTools.ts",
+    "file": "examples/docs/tools/hostedTools.ts",
+    "kind": "example-file",
+    "pages": [
+      "guides/tools.mdx"
+    ],
+    "embedded": true,
+    "importsSdk": true,
+    "complete": false,
+    "errors": [],
+    "status": "pass"
+  },
+  {
+    "id": "ex:docs/tools/localBuiltInTools.ts",
+    "file": "examples/docs/tools/localBuiltInTools.ts",
+    "kind": "example-file",
+    "pages": [
+      "guides/tools.mdx"
+    ],
+    "embedded": true,
+    "importsSdk": true,
+    "complete": false,
+    "errors": [],
+    "status": "pass"
+  },
+  {
+    "id": "ex:docs/tools/mcpLocalServer.ts",
+    "file": "examples/docs/tools/mcpLocalServer.ts",
+    "kind": "example-file",
+    "pages": [
+      "guides/tools.mdx"
+    ],
+    "embedded": true,
+    "importsSdk": true,
+    "complete": false,
+    "errors": [],
+    "status": "pass"
+  },
+  {
+    "id": "ex:docs/tools/nonStrictSchemaTools.ts",
+    "file": "examples/docs/tools/nonStrictSchemaTools.ts",
+    "kind": "example-file",
+    "pages": [
+      "guides/tools.mdx"
+    ],
+    "embedded": true,
+    "importsSdk": true,
+    "complete": false,
+    "errors": [],
+    "status": "pass"
+  },
+  {
+    "id": "ex:docs/tools/programmaticToolCalling.ts",
+    "file": "examples/docs/tools/programmaticToolCalling.ts",
+    "kind": "example-file",
+    "pages": [
+      "guides/tools.mdx"
+    ],
+    "embedded": true,
+    "importsSdk": true,
+    "complete": false,
+    "errors": [],
+    "status": "pass"
+  },
+  {
+    "id": "ex:docs/tools/toolSearch.ts",
+    "file": "examples/docs/tools/toolSearch.ts",
+    "kind": "example-file",
+    "pages": [
+      "guides/tools.mdx"
+    ],
+    "embedded": true,
+    "importsSdk": true,
+    "complete": false,
+    "errors": [],
+    "status": "pass"
+  },
+  {
+    "id": "ex:docs/toppage/sandboxAgent.ts",
+    "file": "examples/docs/toppage/sandboxAgent.ts",
+    "kind": "example-file",
+    "pages": [
+      "index.mdx"
+    ],
+    "embedded": true,
+    "importsSdk": true,
+    "complete": true,
+    "errors": [],
+    "status": "pass"
+  },
+  {
+    "id": "ex:docs/toppage/textAgent.ts",
+    "file": "examples/docs/toppage/textAgent.ts",
+    "kind": "example-file",
+    "pages": [],
+    "embedded": false,
+    "importsSdk": true,
+    "complete": true,
+    "errors": [],
+    "status": "pass"
+  },
+  {
+    "id": "ex:docs/toppage/voiceAgent.ts",
+    "file": "examples/docs/toppage/voiceAgent.ts",
+    "kind": "example-file",
+    "pages": [],
+    "embedded": false,
+    "importsSdk": true,
+    "complete": false,
+    "errors": [],
+    "status": "pass"
+  },
+  {
+    "id": "ex:docs/tracing/cloudflareWorkers.ts",
+    "file": "examples/docs/tracing/cloudflareWorkers.ts",
+    "kind": "example-file",
+    "pages": [
+      "guides/tracing.mdx"
+    ],
+    "embedded": true,
+    "importsSdk": true,
+    "complete": false,
+    "errors": [],
+    "status": "pass"
+  },
+  {
+    "id": "ex:docs/tracing/run-with-tracing-api-key.ts",
+    "file": "examples/docs/tracing/run-with-tracing-api-key.ts",
+    "kind": "example-file",
+    "pages": [],
+    "embedded": false,
+    "importsSdk": true,
+    "complete": true,
+    "errors": [],
+    "status": "pass"
+  },
+  {
+    "id": "ex:docs/voice-agents/addImage.ts",
+    "file": "examples/docs/voice-agents/addImage.ts",
+    "kind": "example-file",
+    "pages": [
+      "guides/voice-agents/build.mdx"
+    ],
+    "embedded": true,
+    "importsSdk": true,
+    "complete": false,
+    "errors": [],
+    "status": "pass"
+  },
+  {
+    "id": "ex:docs/voice-agents/agent.ts",
+    "file": "examples/docs/voice-agents/agent.ts",
+    "kind": "example-file",
+    "pages": [],
+    "embedded": false,
+    "importsSdk": true,
+    "complete": false,
+    "errors": [],
+    "status": "pass"
+  },
+  {
+    "id": "ex:docs/voice-agents/audioInterrupted.ts",
+    "file": "examples/docs/voice-agents/audioInterrupted.ts",
+    "kind": "example-file",
+    "pages": [
+      "guides/voice-agents/build.mdx"
+    ],
+    "embedded": true,
+    "importsSdk": false,
+    "complete": false,
+    "errors": [],
+    "status": "pass"
+  },
+  {
+    "id": "ex:docs/voice-agents/configureSession.ts",
+    "file": "examples/docs/voice-agents/configureSession.ts",
+    "kind": "example-file",
+    "pages": [
+      "guides/voice-agents/build.mdx"
+    ],
+    "embedded": true,
+    "importsSdk": true,
+    "complete": false,
+    "errors": [],
+    "status": "pass"
+  },
+  {
+    "id": "ex:docs/voice-agents/createAgent.ts",
+    "file": "examples/docs/voice-agents/createAgent.ts",
+    "kind": "example-file",
+    "pages": [],
+    "embedded": false,
+    "importsSdk": true,
+    "complete": false,
+    "errors": [],
+    "status": "pass"
+  },
+  {
+    "id": "ex:docs/voice-agents/createSession.ts",
+    "file": "examples/docs/voice-agents/createSession.ts",
+    "kind": "example-file",
+    "pages": [],
+    "embedded": false,
+    "importsSdk": true,
+    "complete": false,
+    "errors": [],
+    "status": "pass"
+  },
+  {
+    "id": "ex:docs/voice-agents/customWebRTCTransport.ts",
+    "file": "examples/docs/voice-agents/customWebRTCTransport.ts",
+    "kind": "example-file",
+    "pages": [
+      "guides/voice-agents/transport.mdx"
+    ],
+    "embedded": true,
+    "importsSdk": true,
+    "complete": false,
+    "errors": [],
+    "status": "pass"
+  },
+  {
+    "id": "ex:docs/voice-agents/defineTool.ts",
+    "file": "examples/docs/voice-agents/defineTool.ts",
+    "kind": "example-file",
+    "pages": [
+      "guides/voice-agents/build.mdx"
+    ],
+    "embedded": true,
+    "importsSdk": true,
+    "complete": false,
+    "errors": [],
+    "status": "pass"
+  },
+  {
+    "id": "ex:docs/voice-agents/delegationAgent.ts",
+    "file": "examples/docs/voice-agents/delegationAgent.ts",
+    "kind": "example-file",
+    "pages": [
+      "guides/voice-agents/build.mdx"
+    ],
+    "embedded": true,
+    "importsSdk": true,
+    "complete": false,
+    "errors": [],
+    "status": "pass"
+  },
+  {
+    "id": "ex:docs/voice-agents/guardrails.ts",
+    "file": "examples/docs/voice-agents/guardrails.ts",
+    "kind": "example-file",
+    "pages": [
+      "guides/voice-agents/build.mdx"
+    ],
+    "embedded": true,
+    "importsSdk": true,
+    "complete": false,
+    "errors": [],
+    "status": "pass"
+  },
+  {
+    "id": "ex:docs/voice-agents/guardrailSettings.ts",
+    "file": "examples/docs/voice-agents/guardrailSettings.ts",
+    "kind": "example-file",
+    "pages": [
+      "guides/voice-agents/build.mdx"
+    ],
+    "embedded": true,
+    "importsSdk": true,
+    "complete": false,
+    "errors": [],
+    "status": "pass"
+  },
+  {
+    "id": "ex:docs/voice-agents/handleAudio.ts",
+    "file": "examples/docs/voice-agents/handleAudio.ts",
+    "kind": "example-file",
+    "pages": [
+      "guides/voice-agents/build.mdx"
+    ],
+    "embedded": true,
+    "importsSdk": true,
+    "complete": false,
+    "errors": [],
+    "status": "pass"
+  },
+  {
+    "id": "ex:docs/voice-agents/helloWorld.ts",
+    "file": "examples/docs/voice-agents/helloWorld.ts",
+    "kind": "example-file",
+    "pages": [
+      "guides/voice-agents/quickstart.mdx"
+    ],
+    "embedded": true,
+    "importsSdk": true,
+    "complete": false,
+    "errors": [],
+    "status": "pass"
+  },
+  {
+    "id": "ex:docs/voice-agents/historyUpdated.ts",
+    "file": "examples/docs/voice-agents/historyUpdated.ts",
+    "kind": "example-file",
+    "pages": [],
+    "embedded": false,
+    "importsSdk": false,
+    "complete": false,
+    "errors": [],
+    "status": "pass"
+  },
+  {
+    "id": "ex:docs/voice-agents/multiAgents.ts",
+    "file": "examples/docs/voice-agents/multiAgents.ts",
+    "kind": "example-file",
+    "pages": [
+      "guides/voice-agents/build.mdx"
+    ],
+    "embedded": true,
+    "importsSdk": true,
+    "complete": false,
+    "errors": [],
+    "status": "pass"
+  },
+  {
+    "id": "ex:docs/voice-agents/sendMessage.ts",
+    "file": "examples/docs/voice-agents/sendMessage.ts",
+    "kind": "example-file",
+    "pages": [
+      "guides/voice-agents/build.mdx"
+    ],
+    "embedded": true,
+    "importsSdk": true,
+    "complete": false,
+    "errors": [],
+    "status": "pass"
+  },
+  {
+    "id": "ex:docs/voice-agents/serverAgent.ts",
+    "file": "examples/docs/voice-agents/serverAgent.ts",
+    "kind": "example-file",
+    "pages": [
+      "guides/voice-agents/build.mdx"
+    ],
+    "embedded": true,
+    "importsSdk": true,
+    "complete": true,
+    "errors": [
+      {
+        "line": 2,
+        "code": 2882,
+        "kind": "context",
+        "message": "Cannot find module or type declarations for side-effect import of 'server-only'."
+      }
+    ],
+    "status": "fragment"
+  },
+  {
+    "id": "ex:docs/voice-agents/sessionHistory.ts",
+    "file": "examples/docs/voice-agents/sessionHistory.ts",
+    "kind": "example-file",
+    "pages": [],
+    "embedded": false,
+    "importsSdk": false,
+    "complete": false,
+    "errors": [],
+    "status": "pass"
+  },
+  {
+    "id": "ex:docs/voice-agents/sessionInterrupt.ts",
+    "file": "examples/docs/voice-agents/sessionInterrupt.ts",
+    "kind": "example-file",
+    "pages": [
+      "guides/voice-agents/build.mdx"
+    ],
+    "embedded": true,
+    "importsSdk": false,
+    "complete": false,
+    "errors": [],
+    "status": "pass"
+  },
+  {
+    "id": "ex:docs/voice-agents/sipTransport.ts",
+    "file": "examples/docs/voice-agents/sipTransport.ts",
+    "kind": "example-file",
+    "pages": [
+      "guides/voice-agents/transport.mdx"
+    ],
+    "embedded": true,
+    "importsSdk": true,
+    "complete": false,
+    "errors": [],
+    "status": "pass"
+  },
+  {
+    "id": "ex:docs/voice-agents/thinClient.ts",
+    "file": "examples/docs/voice-agents/thinClient.ts",
+    "kind": "example-file",
+    "pages": [
+      "guides/voice-agents/transport.mdx"
+    ],
+    "embedded": true,
+    "importsSdk": true,
+    "complete": false,
+    "errors": [],
+    "status": "pass"
+  },
+  {
+    "id": "ex:docs/voice-agents/toolApprovalEvent.ts",
+    "file": "examples/docs/voice-agents/toolApprovalEvent.ts",
+    "kind": "example-file",
+    "pages": [
+      "guides/voice-agents/build.mdx"
+    ],
+    "embedded": true,
+    "importsSdk": false,
+    "complete": false,
+    "errors": [],
+    "status": "pass"
+  },
+  {
+    "id": "ex:docs/voice-agents/toolHistory.ts",
+    "file": "examples/docs/voice-agents/toolHistory.ts",
+    "kind": "example-file",
+    "pages": [
+      "guides/voice-agents/build.mdx"
+    ],
+    "embedded": true,
+    "importsSdk": true,
+    "complete": false,
+    "errors": [],
+    "status": "pass"
+  },
+  {
+    "id": "ex:docs/voice-agents/transportEvents.ts",
+    "file": "examples/docs/voice-agents/transportEvents.ts",
+    "kind": "example-file",
+    "pages": [
+      "guides/voice-agents/build.mdx",
+      "guides/voice-agents/transport.mdx"
+    ],
+    "embedded": true,
+    "importsSdk": true,
+    "complete": false,
+    "errors": [],
+    "status": "pass"
+  },
+  {
+    "id": "ex:docs/voice-agents/turnDetection.ts",
+    "file": "examples/docs/voice-agents/turnDetection.ts",
+    "kind": "example-file",
+    "pages": [
+      "guides/voice-agents/build.mdx"
+    ],
+    "embedded": true,
+    "importsSdk": true,
+    "complete": false,
+    "errors": [],
+    "status": "pass"
+  },
+  {
+    "id": "ex:docs/voice-agents/updateHistory.ts",
+    "file": "examples/docs/voice-agents/updateHistory.ts",
+    "kind": "example-file",
+    "pages": [
+      "guides/voice-agents/build.mdx"
+    ],
+    "embedded": true,
+    "importsSdk": true,
+    "complete": false,
+    "errors": [],
+    "status": "pass"
+  },
+  {
+    "id": "ex:docs/voice-agents/websocketSession.ts",
+    "file": "examples/docs/voice-agents/websocketSession.ts",
+    "kind": "example-file",
+    "pages": [
+      "guides/voice-agents/transport.mdx"
+    ],
+    "embedded": true,
+    "importsSdk": true,
+    "complete": false,
+    "errors": [],
+    "status": "pass"
+  }
+]
