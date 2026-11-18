@@ -1,0 +1,30 @@
+agent-speak is open source under three licence terms, one for each kind of
+content in the repository.
+
+Code: Apache-2.0 OR MIT, at your option
+  Scripts (scripts/), the verification harnesses and their examples (verify/),
+  the CI workflows (.github/), the configuration files, and the code blocks in
+  the agent skills (.agents/skills/) are licensed under either of
+
+    * the Apache License, Version 2.0 (LICENSE-APACHE), or
+    * the MIT License (LICENSE-MIT).
+
+  SPDX-License-Identifier: Apache-2.0 OR MIT
+
+Documentation: CC BY 4.0
+  The documents under docs/, the READMEs, the prose of the agent skills
+  (.agents/skills/) and AGENTS.md are licensed under the Creative Commons
+  Attribution 4.0 International licence (LICENSE-DOCS).
+
+  SPDX-License-Identifier: CC-BY-4.0
+
+Mirrored third-party docs: their own licences
+  The upstream documentation mirrored under docs/reference/*/source/ is not ours.
+  Each mirror keeps its upstream licence file, and its _manifest.json records
+  the source repository and the tag or commit it was copied from.
+  THIRD-PARTY-NOTICES.md lists every mirror and its licence.
+
+Copyright (c) 2026 The agent-speak contributors.
+
+Contributions to this repository are accepted under the same terms: code
+under Apache-2.0 OR MIT, documentation under CC BY 4.0.

@@ -1,6 +1,7 @@
 {
   "name": "@agent-speak/verify-google-adk",
   "private": true,
+  "license": "Apache-2.0 OR MIT",
   "type": "module",
   "scripts": {
     "fetch-docs": "node scripts/fetch-docs.mjs",
