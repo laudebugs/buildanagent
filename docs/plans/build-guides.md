@@ -81,7 +81,7 @@ Risks: HN skews toward coding agents and toward strong opinions. The synthesis m
 | G1b | Guide: building an agent SDK | G1a, H3 |
 | G2a | Deep research: building an agent harness (done) | G1a |
 | G2b | Guide: building an agent harness | G2a, G1b, H3 |
-| G3a | Deep research: building an agent | G2a |
+| G3a | Deep research: building an agent (done) | G2a |
 | G3b | Guide: building an agent | G3a, G2b, H3 |
 
 ## 6. Risks
