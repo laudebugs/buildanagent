@@ -1,6 +1,6 @@
 # 0028. Hold one USD budget per ticket across the three contexts, and hand every budget stop to a person
 
-- **Status:** Proposed (the production value is owner to confirm after shadow)
+- **Status:** Accepted (owner, 2026-11-18); $3 in shadow, production at the shadow p99
 - **Date:** 2026-11-18
 - **Plan:** [build-agent.md, AD9](../plans/build-agent.md#ad9-one-budget-per-ticket-across-the-three-contexts-and-every-budget-stop-hands-the-ticket-to-a-person-value-owner-to-confirm)
 

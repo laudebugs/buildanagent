@@ -1,6 +1,6 @@
 # 0027. Label every reply as AI-written in code, hash identifiers in spans, and require a retention period before shadow
 
-- **Status:** Proposed — owner to confirm (builds on ADR 0018, accepted 2026-11-18)
+- **Status:** Accepted (owner, 2026-11-18); synthetic and de-identified tickets only in the repo
 - **Date:** 2026-11-18
 - **Plan:** [build-agent.md, AD8](../plans/build-agent.md#ad8-code-appends-the-ai-label-spans-hash-identifiers-and-later-stages-need-a-retention-period-owner-to-confirm-with-hd11)
 

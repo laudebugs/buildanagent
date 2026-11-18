@@ -51,19 +51,19 @@ Six decisions merge with earlier ones. For each, this plan cites the earlier cho
 | # | Decision | Choice | Status | ADR |
 | --- | --- | --- | --- | --- |
 | AD1 | Workflow host | The product composes three harness turns in child sessions of one ticket session; side effects run as code-initiated calls through the pipeline | Decided, provisional (A16) | [0022](../decisions/0022-workflow-composed-from-linked-turns.md) |
-| AD2 | Tier boundaries and caps | The T0–T5 table is code; T5 is never registered; T3 always asks; T4 is denied until the owner sets the caps | Proposed — owner to confirm (caps and sign-off) | [0023](../decisions/0023-tier-table-as-code.md) |
-| AD3 | Quorum model (with SDK D5, HD5) | A role-based quorum rule per tier and amount band, bound to the host-signed pause, expiring on age or policy change | Proposed — owner to confirm (roles; builds on accepted ADRs 0005 and 0015) | [0024](../decisions/0024-role-based-quorum.md) |
+| AD2 | Tier boundaries and caps | The T0–T5 table is code; T5 is never registered; T3 always asks; T4 is denied until the owner sets the caps | Accepted (owner, 2026-11-18) | [0023](../decisions/0023-tier-table-as-code.md) |
+| AD3 | Quorum model (with SDK D5, HD5) | A role-based quorum rule per tier and amount band, bound to the host-signed pause, expiring on age or policy change | Accepted (owner, 2026-11-18) | [0024](../decisions/0024-role-based-quorum.md) |
 | AD4 | Policy store | An in-process snapshot read synchronously by a permission hook; a file-backed store on one host; the kill-switch delay is measured | Decided, provisional (A7) | [0025](../decisions/0025-in-process-policy-store.md) |
 | AD5 | Provenance granularity (with HD1) | HD1's per-block origin plus a per-context taint; no per-argument tracking | Decided, provisional (A15, A21) | [0026](../decisions/0026-provenance-block-origin-and-context-taint.md) |
-| AD6 | Eval ownership | The owner names a policy writer and two labelling leads; the judge and simulator run on the other D2 provider | Proposed — owner to confirm | none: eval data |
+| AD6 | Eval ownership | The owner names a policy writer and two labelling leads; the judge and simulator run on the other D2 provider | Accepted (owner, 2026-11-18) | none: eval data |
 | AD7 | Gate thresholds (with HD8) | k = 5, 15% cost and latency budgets and a two-week shadow, retuned from two same-configuration runs | Decided, provisional (A20) | none: tunable defaults |
-| AD8 | Disclosure and data policy (with HD11) | Code appends the AI label; spans hash identifiers with a keyed hash; shadow and later stages refuse to start without a retention period | Proposed — owner to confirm | [0027](../decisions/0027-disclosure-and-data-policy.md) |
-| AD9 | Per-ticket budget (with SDK D9, HD9) | One budget per ticket across the three contexts; every budget stop is a handoff, never a retry | Decided; the value is owner to confirm after shadow | [0028](../decisions/0028-per-ticket-budget-and-stop-handoff.md) |
+| AD8 | Disclosure and data policy (with HD11) | Code appends the AI label; spans hash identifiers with a keyed hash; shadow and later stages refuse to start without a retention period | Accepted (owner, 2026-11-18) | [0027](../decisions/0027-disclosure-and-data-policy.md) |
+| AD9 | Per-ticket budget (with SDK D9, HD9) | One budget per ticket across the three contexts; every budget stop is a handoff, never a retry | Accepted (owner, 2026-11-18); the production value is confirmed after shadow | [0028](../decisions/0028-per-ticket-budget-and-stop-handoff.md) |
 | AD10 | Classifier approval (with HD12) | No classifier approves anything; a classifier may only raise a tier | Decided | [0029](../decisions/0029-no-classifier-approval.md) |
 | AD11 | Template-only reply path | Every reply needs a person in v1; the template path waits for a zero-leak corpus of dozens of tasks | Decided (deferral) | none: [0023](../decisions/0023-tier-table-as-code.md) covers it |
 | AD12 | Clarification versus handoff | A missing fact becomes a templated question through the reply gate; missing authority or an unclassifiable ticket becomes a handoff | Decided, provisional (shadow labels) | none: a tunable rule |
 | AD13 | Package layout | One private package, `@agent-speak/triage-agent`, with one subpath per removable component | Decided | [0030](../decisions/0030-triage-agent-package.md) |
-| AD14 | Helpdesk boundary | One `Helpdesk` interface is the only way out: a fake for tests, a shadow wrapper for rollout and a real adapter the owner names | Proposed — owner to confirm (which helpdesk) | [0031](../decisions/0031-helpdesk-interface.md) |
+| AD14 | Helpdesk boundary | One `Helpdesk` interface is the only way out: a fake for tests, a shadow wrapper for rollout and a real adapter the owner names | Accepted (owner, 2026-11-18) | [0031](../decisions/0031-helpdesk-interface.md) |
 
 ### AD1. The product composes the workflow from three linked harness turns, and code runs every side effect through the pipeline (provisional)
 
@@ -79,6 +79,8 @@ Six decisions merge with earlier ones. For each, this plan cites the earlier cho
 **The provisional check.** The guide asks for both hosts built on the scripted model and compared on code size, log shape and shadow replay ([agent guide §10, decision 1][ag10]). A16 builds a test-only `Model.complete()` variant of the reader and drafter and records the comparison; the composition stays unless the variant is simpler on all three measures. Three gaps in the harness plan affect this decision (§3.7, items H1–H3), and each has a workaround: one harness per context role, a host-context getter, and a step id passed as the spawning id.
 
 ### AD2. The tier table is code, T5 is never registered, and T4 stays denied until the owner sets the caps (owner to confirm)
+
+**Accepted by the owner on 2026-11-18: T4 stays denied until the support team's refund history exists; the owner sets the caps and the two sign-off owners before the canary stage.**
 
 **Options.** Who signs off the T0–T5 table, and which refund cap and daily value budget trigger two-person approval ([agent guide §10, decision 2][ag10]).
 
@@ -97,6 +99,8 @@ The table compiles into deny rules plus the host callback, with no allow rules, 
 **Why the owner decides.** The cap values, the daily budget and the two sign-off owners depend on the support team's refund history and approval capacity, which only the owner can supply.
 
 ### AD3. A role-based quorum per tier and amount band, bound to the host-signed pause and expiring on age or policy change (owner to confirm, with SDK D5 and HD5)
+
+**Accepted by the owner on 2026-11-18: the role table as written; real people map to roles through the `ApproverDirectory` when a helpdesk is chosen (A24).**
 
 **SDK and harness sides, unchanged and accepted by the owner on 2026-11-18.** SDK D5 signs each pause with a pluggable `ApprovalSigner` and fails closed on any bad signature. The signature covers the request id, kind, call id, tool, canonical input hash and policy version ([SDK plan, D5][sp-d5]). HD5 makes the harness sign with `hmacSigner()` over a persistent, host-only key ring and write every pause as an entry first ([harness plan, HD5][hp-hd5]). N14 adds the quorum hook, which collects resolutions, rejects an approver equal to the requester and defaults to one ([harness plan §3.7][hp37]).
 
@@ -146,6 +150,8 @@ Per-argument tracking, as CaMeL does, is rejected for v1 because the split alrea
 
 ### AD6. The owner names the policy writer and two labelling leads, and the judge and simulator run on the other provider (owner to confirm)
 
+**Accepted by the owner on 2026-11-18: the roles stand, and the owner names the priority-policy writer and the two labelling leads at A19; evals use the synthetic tickets until then.**
+
 **Options.** Who writes the priority policy, who labels the 30 tasks, and which models serve as judge and user simulator ([agent guide §10, decision 6][ag10]).
 
 **Choice, proposed.** One support lead writes the priority policy before any ticket is labelled. Two support leads label each of the 30 tickets independently against it, and a ticket they disagree on is rewritten or dropped. The judge and the simulator are dated model ids on the D2 provider the agent does not use, with fixed settings, and both ids enter the bundle hash ([SDK plan, D2][sp-d2]). The 10 classification-slice tasks are the 10 triage tasks HD8 shares with the harness seed suite ([harness plan, HD8][hp-hd8]).
@@ -164,6 +170,8 @@ Per-argument tracking, as CaMeL does, is rejected for v1 because the split alrea
 
 ### AD8. Code appends the AI label, spans hash identifiers, and later stages need a retention period (owner to confirm, with HD11)
 
+**Accepted by the owner on 2026-11-18: the repo holds only synthetic and de-identified tickets; real tickets stay outside it under the helpdesk's own retention.**
+
 **Harness side, unchanged and accepted by the owner on 2026-11-18.** HD11 keeps transcripts until a retention period is set, offers `{ days, action: "archive" | "purge" }`, and keeps the entry base stable per format version ([harness plan, HD11][hp-hd11]). Telemetry is a projection of the log with content off by default ([harness plan §3.5][hp35]).
 
 **Agent side, proposed.**
@@ -178,6 +186,8 @@ Per-argument tracking, as CaMeL does, is rejected for v1 because the split alrea
 **Why the owner decides.** The label's wording, the retention period and where real tickets live are support and legal decisions.
 
 ### AD9. One budget per ticket across the three contexts, and every budget stop hands the ticket to a person (value owner to confirm)
+
+**Accepted by the owner on 2026-11-18: a $3 ceiling per ticket in shadow; the production value is the p99 cost of resolved shadow tickets, confirmed by the owner then.**
 
 **SDK and harness sides, unchanged.** SDK D9 checks a projected cost before each model call and stops with `stopReason: "budget"` ([SDK plan, D9][sp-d9]). HD9 adds a session cap: the harness passes `budgetUsd: sessionCap − spend` to each run ([harness plan, HD9][hp-hd9]).
 
@@ -222,6 +232,8 @@ Metrics count resolutions, clarifications and handoffs apart, and a ticket resol
 **Evidence.** The harness plan ruled agent policy out of the harness ([harness plan §1][hp1]), which rules out (a). Subpath exports keep each component importable and ablatable without the cost of several `package.json` files, the trade the SDK and harness plans made ([harness plan, HD13][hp-hd13]). Only the agent will import its policy, so (c) buys nothing yet.
 
 ### AD14. One `Helpdesk` interface is the agent's only way out, with a fake for tests, a shadow wrapper for rollout and a real adapter the owner names (owner to confirm)
+
+**Accepted by the owner on 2026-11-18: build against the `Helpdesk` interface and the fake; the owner picks the real helpdesk at A24.**
 
 **Options.** Tools that call a helpdesk SDK directly, or one interface that every tool and code step uses.
 

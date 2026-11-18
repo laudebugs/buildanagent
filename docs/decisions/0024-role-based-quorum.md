@@ -1,6 +1,6 @@
 # 0024. Require a role-based quorum per tier and amount band, bound to the host-signed pause and expiring on age or policy change
 
-- **Status:** Proposed — owner to confirm (roles; builds on ADRs 0005 and 0015, accepted 2026-11-18)
+- **Status:** Accepted (owner, 2026-11-18)
 - **Date:** 2026-11-18
 - **Plan:** [build-agent.md, AD3](../plans/build-agent.md#ad3-a-role-based-quorum-per-tier-and-amount-band-bound-to-the-host-signed-pause-and-expiring-on-age-or-policy-change-owner-to-confirm-with-sdk-d5-and-hd5)
 

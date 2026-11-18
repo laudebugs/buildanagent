@@ -1,6 +1,6 @@
 # 0031. Route every read and write through one `Helpdesk` interface, with a fake for tests, a shadow wrapper for rollout and a real adapter the owner names
 
-- **Status:** Proposed — owner to confirm (which helpdesk)
+- **Status:** Accepted (owner, 2026-11-18); the real helpdesk is chosen at A24
 - **Date:** 2026-11-18
 - **Plan:** [build-agent.md, AD14](../plans/build-agent.md#ad14-one-helpdesk-interface-is-the-agents-only-way-out-with-a-fake-for-tests-a-shadow-wrapper-for-rollout-and-a-real-adapter-the-owner-names-owner-to-confirm)
 
