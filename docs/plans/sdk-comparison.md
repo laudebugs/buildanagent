@@ -1,6 +1,6 @@
 # Plan: compare the four SDKs on facts the references verified (Round C)
 
-- **Status:** Draft
+- **Status:** In progress
 - **Date:** 2026-11-18
 - **Asked for by:** the project owner (2026-11-18): a deep comparison once every SDK is done, and a table comparing their features
 - **Builds on:** the four references from [Round S](sdk-references.md), and the [research report](../research/agent-sdks-and-harness-design.md)

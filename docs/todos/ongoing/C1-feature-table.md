@@ -3,10 +3,10 @@
 | Field | Value |
 | --- | --- |
 | ID | `C1` |
-| Status | `ready` |
+| Status | `ongoing` |
 | Plan | [SDK comparison §2](../../plans/sdk-comparison.md#2-the-feature-table-c1) |
 | Round / milestone | Round C (comparison), M2 |
-| Depends on | [S4b](../ready/S4b-vercel-reference.md) |
+| Depends on | [S4b](../done/S4b-vercel-reference.md) |
 | Size | M |
 
 ## Goal
