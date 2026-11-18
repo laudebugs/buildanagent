@@ -3,7 +3,7 @@
 | Field | Value |
 | --- | --- |
 | ID | `K4` |
-| Status | `ready` |
+| Status | `ongoing` |
 | Plan | [Agent skills §4](../../plans/agent-skills.md#4-todos) |
 | Round / milestone | M2c (added 2026-11-18) |
 | Depends on | [C4](../ready/C4-comparison-cloudflare-google.md) |
@@ -11,12 +11,12 @@
 
 ## Goal
 
-Cloudflare, Google ADK and Copilot skills, each tested by a fresh agent, following the eight-step SDK process in [AGENTS.md](../../../AGENTS.md#process-for-documenting-an-sdk) and the plan's S6/S7 notes, including the language policy (TypeScript references with a parity check against the SDK's primary language).
+Write `.agents/skills/{cloudflare-agents,google-adk,copilot-sdk}/SKILL.md` in the format of [the skills plan §3](../../plans/agent-skills.md#3-what-each-skill-contains). Each is done when a fresh agent, given only the skill, builds the triage agent and passes that SDK's capstone test.
 
 ## Context
 
 - The [SDK references plan](../../plans/sdk-references.md), sections S6, S7 and the language policy
-- The five finished references as the structure to mirror
+- The five finished skills in `.agents/skills/` and the eight references
 
 ## Scope
 
@@ -26,7 +26,7 @@ Cloudflare, Google ADK and Copilot skills, each tested by a fresh agent, followi
 
 **Out of scope** (and which todo covers it)
 
-- Deployment to the vendor's platform; primary-language harnesses (the parity check reads their docs only)
+- Skills for other languages
 
 ## Tasks
 
@@ -53,7 +53,7 @@ Cloudflare needs the Workers runtime locally (workerd); Google's TypeScript ADK 
 
 ## Definition of done
 
-- [ ] Claimed: the first commit moved this file `ready/` → `ongoing/` (Status `ongoing`)
+- [x] Claimed: the first commit moved this file `ready/` → `ongoing/` (Status `ongoing`)
 - [ ] Prose drafted with `/anthropic-skills:writing` and reviewed with `/anthropic-skills:writing-review`, with the fixes applied and changed claims re-checked
 - [ ] `pnpm check`, `pnpm typecheck` and `pnpm test` pass locally; pushed after each meaningful step
 - [ ] This file moved `ongoing/` → `done/` (Status `done`), and the plan's todo table updated
