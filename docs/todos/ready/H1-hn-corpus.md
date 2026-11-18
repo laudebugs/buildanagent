@@ -1,4 +1,4 @@
-# H1: Practitioner research
+# H1: Practitioner research: collect the Hacker News corpus (2025-05-18 to 2026-11-18)
 
 | Field | Value |
 | --- | --- |
@@ -6,12 +6,12 @@
 | Status | `ready` |
 | Plan | [Build guides §4b](../../plans/build-guides.md#4b-practitioner-research-from-hacker-news-round-h-added-2026-11-18) |
 | Round / milestone | Round H (practitioner research), before the guides |
-| Depends on | [ collect the Hacker News corpus (2025-05-18 to 2026-11-18)](../ready/ collect the Hacker News corpus (2025-05-18 to 2026-11-18)-hn-themes.md) |
-| Size | None:M |
+| Depends on | None |
+| Size | M |
 
 ## Goal
 
-Practitioner research, as the plan section describes.
+Practitioner research: collect the Hacker News corpus (2025-05-18 to 2026-11-18), as the plan section describes.
 
 ## Context
 

@@ -1,4 +1,4 @@
-# H2: Practitioner research
+# H2: Practitioner research: analyse six themes in parallel
 
 | Field | Value |
 | --- | --- |
@@ -6,12 +6,12 @@
 | Status | `ready` |
 | Plan | [Build guides §4b](../../plans/build-guides.md#4b-practitioner-research-from-hacker-news-round-h-added-2026-11-18) |
 | Round / milestone | Round H (practitioner research), before the guides |
-| Depends on | [ analyse six themes in parallel](../ready/ analyse six themes in parallel-hn-themes.md) |
-| Size | H1:L |
+| Depends on | [H1](../ready/H1-hn-corpus.md) |
+| Size | L |
 
 ## Goal
 
-Practitioner research, as the plan section describes.
+Practitioner research: analyse six themes in parallel, as the plan section describes.
 
 ## Context
 

@@ -1,4 +1,4 @@
-# H3: Practitioner research
+# H3: Practitioner research: synthesis and fact-check, set against G1a–G3a
 
 | Field | Value |
 | --- | --- |
@@ -6,12 +6,12 @@
 | Status | `ready` |
 | Plan | [Build guides §4b](../../plans/build-guides.md#4b-practitioner-research-from-hacker-news-round-h-added-2026-11-18) |
 | Round / milestone | Round H (practitioner research), before the guides |
-| Depends on | [ synthesis and fact-check, set against G1a–G3a](../ready/ synthesis and fact-check, set against G1a–G3a-hn-themes.md) |
-| Size | H2:M |
+| Depends on | [H2](../ready/H2-hn-themes.md), [G3a](../ongoing/G3a-research-agent.md) |
+| Size | M |
 
 ## Goal
 
-Practitioner research, as the plan section describes.
+Practitioner research: synthesis and fact-check, set against G1a–G3a, as the plan section describes.
 
 ## Context
 
