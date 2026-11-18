@@ -1,6 +1,6 @@
 # Plan: a verified reference for every agent SDK, built with one repeatable process (Round S)
 
-- **Status:** In progress (S6 Cloudflare, S7 Google ADK and S8 GitHub Copilot added 2026-11-18)
+- **Status:** In progress (S9 Strands Agents added 2026-11-18; S1–S8 done)
 - **Date:** 2026-11-18
 - **Asked for by:** the project owner (2026-11-18): fetch each SDK's docs, build a thorough reference, fact-check the docs, and find a way to verify the examples
 - **Builds on:**
@@ -114,6 +114,17 @@ The owner asked whether each SDK should be documented in its primary language. T
 - **Language:** TypeScript first; record the other official languages, if any, in the parity section.
 - **Behaviors to verify:** sessions and resume, custom tools, permission and approval callbacks, MCP servers, streaming events, and the CLI's built-in tools and how to remove them.
 
+### S9 Strands Agents (added 2026-11-18)
+
+The owner added Strands as a ninth SDK after the [U10 report](../research/external-designs/strands-harness-sdk.md) recommended it. Its safety defaults sit with Pi's at the permissive end of the comparison, so its harness denies the host-touching tools by name from the first example.
+- **Packages:** `@strands-agents/sdk@1.25.0` and `@strands-agents/harness@0.4.0` (Apache-2.0, Beta), from the [strands-agents/harness-sdk](https://github.com/strands-agents/harness-sdk) monorepo. `createHarness()` returns a plain SDK `Agent` with eight built-in tools, context management, file-backed sessions and memory. The [U10 report](../research/external-designs/strands-harness-sdk.md) lists the 0.4.0 defaults.
+- **Start date:** 2026-11-20, when both releases are a week old. A start before then pins `@strands-agents/harness@0.3.4` and `@strands-agents/sdk@1.24.0`.
+- **Shape:** an in-process loop like Pi's, with a run snapshot and resumable interrupts like the OpenAI Agents SDK. Strands ships no public test model, so the harness writes its own `Model` subclass; an HTTP mock behind a base URL is the fallback.
+- **Safety:** the defaults run commands on the host with the full parent environment and no approval gate. The harness scrubs AWS credentials, passes an explicit sandbox, and denies the host-touching built-ins (shell, write, edit, web fetch and search, code execution, subagents) by name.
+- **Docs:** strandsagents.com renders the repo's `main`, which runs ahead of 0.4.0, so mirror from the tag `harness-typescript/v0.4.0` and record the pages where `main` differs. Apache-2.0 allows committing the mirror.
+- **Language:** TypeScript and Python are both first-party; the parity section compares them, and C6 adds Strands to the gap report.
+- **Behaviors to verify:** `createHarness()` pass-through to `Agent`, custom tools, interventions (`ask`, Cedar, the classifier) and interrupt-and-resume, the auto context manager, snapshot sessions, MCP servers, the stream event union, and how to remove the built-in tools.
+
 ### TypeScript gap report (added 2026-11-18)
 
 The owner asked to document, for every SDK whose primary language isn't TypeScript, what the TypeScript SDK is missing. Todo C5 writes `docs/comparison/typescript-gaps.md`. For each SDK it lists the features in the primary-language SDK that the TypeScript package lacks, has only in a weaker form, or documents only for the primary language. Each gap cites the primary-language docs or source, at a recorded version, and the TypeScript package's `.d.ts` that shows the absence. The report covers OpenAI Agents (Python first), LangChain (Python first), Google ADK (Python first), and the Claude Agent SDK's Python package, plus Copilot if it has other official SDKs. Each reference's fact-check then gains a short parity section that links to the report.
@@ -136,6 +147,8 @@ The owner asked to document, for every SDK whose primary language isn't TypeScri
 | S7b | Google ADK: guide and fact-check, written and reviewed (done) | S7a |
 | S8a | GitHub Copilot SDK: mirror, verification harness and behavioral examples (done) | S7b |
 | S8b | GitHub Copilot SDK: guide and fact-check, written and reviewed (done) | S8a |
+| S9a | Strands Agents: mirror, verification harness, behavioral examples and TS parity check (from 2026-11-20) | S8b, U10 |
+| S9b | Strands Agents: guide and fact-check, written and reviewed | S9a |
 
 ## 6. Risks
 

@@ -47,6 +47,7 @@ agent-speak ends this phase with four things:
 | M2 Comparison and skills (done 2026-11-18) | C1–C2, K1–K2 | The feature table, the deep comparison, the refreshed research report, and four agent skills |
 | M2b LangChain (done 2026-11-18) | S5a, S5b, C3, K3 | A fifth verified reference, folded into the comparison and the skills before the build guides |
 | M2c Cloudflare, Google ADK and Copilot (done 2026-11-18) | S6a–S8b, C5, C4, K4 | Sixth to eighth references, the TypeScript gap report, and a TS-parity row for all eight SDKs |
+| M2d Strands Agents (added 2026-11-18) | S9a, S9b, C6, K5 | A ninth verified reference, folded into the comparison, the gap report and the skills; starts 2026-11-20 |
 | M3 Build guides (done 2026-11-18) | G1–G3, H1–H3, R1 | Researched guides to building an agent SDK, a harness and an agent, informed by the Hacker News practitioner research and with secondary claims re-checked against primary sources |
 | X CI and dependency security (done 2026-11-18) | X1, X2 | Checks on every push, a nightly verify with drift and audit gates, and Dependabot scoped to our manifests |
 | M4 Reviewed plans (done 2026-11-18) | P1–P4 | Detailed implementation plans, reviewed together, ready for the build phase |

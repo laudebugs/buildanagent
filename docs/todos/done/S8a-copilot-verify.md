@@ -1,13 +1,13 @@
-# S8a: GitHub Copilot SDK
+# S8a: GitHub Copilot SDK: mirror, verification harness and behavioral examples
 
 | Field | Value |
 | --- | --- |
 | ID | `S8a` |
 | Status | `done` |
-| Plan | [L:SDK references §4](../../plans/sdk-references.md#4-the-eight-sdks) |
+| Plan | [SDK references §4](../../plans/sdk-references.md#4-the-eight-sdks) |
 | Round / milestone | M2c (added 2026-11-18) |
-| Depends on | [ mirror, verification harness and behavioral examples](../ready/ mirror, verification harness and behavioral examples.md) |
-| Size | S7b-google-adk-reference |
+| Depends on | [S7b](S7b-google-adk-reference.md) |
+| Size | L |
 
 ## Goal
 
