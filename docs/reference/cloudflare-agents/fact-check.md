@@ -19,23 +19,23 @@ I compiled every TypeScript block against the pinned packages with `tsc` 7 in st
 
 | Source | Blocks | pass | fragment | syntax | other | ahead of release | api-mismatch |
 |---|---|---|---|---|---|---|---|
-| Repo `docs/agents` (50 pages) | 736 | 76 | 498 | 135 | 5 | 0 | 22 |
+| Repo `docs/agents` (50 pages) | 736 | 76 | 498 | 134 | 5 | 0 | 23 |
 | Repo `docs/think` (12 pages) | 186 | 21 | 100 | 62 | 0 | 0 | 3 |
 | Repo and package READMEs | 71 | 15 | 39 | 14 | 0 | 0 | 3 |
-| cloudflare-docs pages | 934 | 219 | 590 | 83 | 12 | 2 | 28 |
-| **Total** | **1,927** | **331** | **1,227** | **294** | **17** | **2** | **56** |
+| cloudflare-docs pages | 934 | 219 | 591 | 83 | 10 | 2 | 29 |
+| **Total** | **1,927** | **331** | **1,228** | **293** | **15** | **2** | **58** |
 
-The 19 linked examples add 34 server-side files: 23 pass, and 11 are fragments that import packages outside the pinned set, such as `hono`, `chat` and `web-push`. The syntax blocks are deliberate snippets, such as option excerpts and bare method bodies. The 17 "other" blocks call undefined helpers, need modules outside the pin set such as `postal-mime` and `cloudflare:test`, or trip strict checks such as a missing return.
+The 19 linked examples add 34 server-side files: 23 pass, and 11 are fragments that import packages outside the pinned set, such as `hono`, `chat` and `web-push`. The syntax blocks are deliberate snippets, such as option excerpts and bare method bodies. The 15 "other" blocks call undefined helpers, need modules outside the pin set such as `postal-mime` and `cloudflare:test`, or trip strict checks such as a missing return.
 
-`scripts/ahead-of-release.mjs` marked two blocks `ahead-of-release`, because their missing names appear somewhere in main's sources. Neither holds on inspection. On main, `isUnauthorized` is still an internal helper, and `this.x402Client` is a field the block never declares, so both are doc errors (F11). The table keeps the script's counts, and the 58 in the heading counts both blocks as mismatches.
+`scripts/ahead-of-release.mjs` marked two blocks `ahead-of-release`, because their missing names appear somewhere in main's sources. Neither holds on inspection. On main, `isUnauthorized` is still an internal helper, and `this.x402Client` is a field the block never declares, so both are doc errors (F11). Two of the script's api-mismatch blocks are not doc errors either. `scheduling.md:843` is an options excerpt (`new Scheduler({ callbacks?, retry?, … })`) whose `Scheduler` resolves to the DOM global, so its "Expected 0 arguments" is a syntax snippet's side effect. In `run-workflows.mdx:622`, `MyAgent` extends an `Agent` the block never imports, so "Type 'MyAgent' is missing the following properties from type 'Agent'" cascades from that missing import. The table keeps the script's counts, and the 58 in the heading counts the two `ahead-of-release` blocks as mismatches and leaves out these two.
 
-`scripts/mismatch-causes.mjs` groups the 56 api-mismatch blocks by cause (`results/mismatch-causes.json`):
+`scripts/mismatch-causes.mjs` groups the 58 api-mismatch blocks by cause (`results/mismatch-causes.json`):
 
 | Cause | Errors | Finding |
 |---|---|---|
 | helper-not-shown | 12 | Blocks call helpers they never define |
+| call-shape | 12 | Arguments of the wrong shape in 8 blocks, including the `AgentClient` options (F11), plus the `Scheduler` options excerpt |
 | untyped-client-or-row-state | 11 | F11 |
-| call-shape | 11 | Arguments of the wrong shape in 8 blocks, including the `AgentClient` options (F11) |
 | wrong-import-path | 11 | F7, F8, F12, and the Code Mode name `generateTypes` |
 | override-signature-mismatch | 9 | Overrides whose signatures drifted from the base class, including `formatAgentToolInput` (F11) |
 | unknown-payload | 8 | Fields read from an `unknown` payload without narrowing |
@@ -46,7 +46,7 @@ The 19 linked examples add 34 server-side files: 23 pass, and 11 are fragments t
 | typed-array-generics, workers-types-request-generic | 2 each | Type-parameter slips in push and webhook pages |
 | api-not-in-any-release | 2 | F13 |
 | route-handler-returns-null | 1 | F6 |
-| other | 1 | |
+| other | 2 | An OAuth provider object literal missing required members, and the `run-workflows.mdx:622` cascade |
 
 ## Tier 2: 171 of 204 probed doc blocks ran in workerd, and none failed
 
@@ -156,7 +156,7 @@ Nine programs in `verify/cloudflare-agents/examples/` assert documented behavior
 
 ## Corrections to the draft findings
 
-The S6a harness produced 18 draft findings (`verify/cloudflare-agents/results/findings-draft.md`). I re-checked each one against its evidence before writing this page, and five changed:
+The S6a harness produced 18 draft findings (`verify/cloudflare-agents/results/findings-draft.md`). I re-checked each one against its evidence before writing this page, and five changed. The last row corrects this page's own first Tier 1 run:
 
 | Draft | Draft claim | Correction | Evidence |
 |---|---|---|---|
@@ -165,6 +165,7 @@ The S6a harness produced 18 draft findings (`verify/cloudflare-agents/results/fi
 | F15 (now F11, F15) | `isUnauthorized`, `isTransportNotImplemented` and `this.x402Client` exist only on main | None is public on main; the heuristic matched an internal helper and an unrelated `@x402/core` import. Only the tag-versus-main docs drift remains in F15 | Main's `mcp/client/errors.ts` and `mcp/client/x402.ts` at `1a450e7` |
 | F17 (now F17) | Ten `McpAgent` doc blocks initialized | Four doc blocks and one linked example initialized; the ten records are two probes per source | `results/run-docs.json`, `mcpInitialized` |
 | F12, F13 (now F11) | Two separate findings | Merged into F11 with the MCP and x402 slips, which freed F10 for the new `hibernate` finding | `AgentStaticOptions` in the agents `.d.ts` |
+| Tier 1 table (first run) | Counts from `tsc` 7 | The first run picked up a stray TypeScript 5.9.3 `tsc` left in the harness's own `node_modules/.bin`, which reports some errors with different codes. Rerun with the workspace's 7.0.2 (2026-11-18), one block moved from syntax and one from other to api-mismatch, and one from other to fragment; neither new mismatch is a doc error (Tier 1) | `results/typecheck-docs.json`; the harness now resolves the `typescript` package instead of the nearest `.bin/tsc` |
 
 ## What we could not verify
 
