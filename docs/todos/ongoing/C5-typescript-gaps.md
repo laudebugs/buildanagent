@@ -3,15 +3,15 @@
 | Field | Value |
 | --- | --- |
 | ID | `C5` |
-| Status | `ready` |
-| Plan | [M:SDK references, TypeScript gap report](../../plans/sdk-references.md#typescript-gap-report-added-2026-11-18) |
+| Status | `ongoing` |
+| Plan | [SDK references, TypeScript gap report](../../plans/sdk-references.md#typescript-gap-report-added-2026-11-18) |
 | Round / milestone | M2c (added 2026-11-18) |
-| Depends on | [ what each TypeScript SDK lacks against its primary](../ready/ what each TypeScript SDK lacks against its primary-language SDK.md) |
-| Size | S8b-copilot-reference |
+| Depends on | [S8b](../done/S8b-copilot-reference.md) |
+| Size | M |
 
 ## Goal
 
-TypeScript gap report, as the plan section describes.
+Write `docs/comparison/typescript-gaps.md`: for each SDK whose primary language isn't TypeScript, what the TypeScript package lacks, has in weaker form, or has documented only for the primary language. Add a short parity section to each affected fact-check that links to it.
 
 ## Context
 
@@ -53,7 +53,7 @@ Primary-language docs may be blocked by the network policy; ask the owner to all
 
 ## Definition of done
 
-- [ ] Claimed: the first commit moved this file `ready/` → `ongoing/` (Status `ongoing`)
+- [x] Claimed: the first commit moved this file `ready/` → `ongoing/` (Status `ongoing`)
 - [ ] Prose drafted with `/anthropic-skills:writing` and reviewed with `/anthropic-skills:writing-review`, with the fixes applied and changed claims re-checked
 - [ ] `pnpm check`, `pnpm typecheck` and `pnpm test` pass locally; pushed after each meaningful step
 - [ ] This file moved `ongoing/` → `done/` (Status `done`), and the plan's todo table updated
