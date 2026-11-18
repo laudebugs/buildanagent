@@ -78,6 +78,10 @@ The early research ran when this environment's network policy blocked many prima
 
 The owner observed that most agents present their UI state as a chat transcript that renders the UI, and asked for deep research into the approaches taken so far and how the libraries we verified implement their UIs. U1 ran the deep-research process in five parallel parts: UI protocols (AG-UI, A2UI, MCP Apps, the Apps SDK and ChatKit, A2A), web frameworks (AI SDK UI, CopilotKit, assistant-ui, LangGraph `useStream`, Cloudflare `useAgentChat`, `adk web`), the UI contracts of our eight SDKs read from their pinned `.d.ts` files, terminal and editor UIs (Claude Code, Codex, Pi, OpenCode, Gemini CLI, ACP, VS Code's Agent Host Protocol), and patterns beyond chat. The notes, the synthesis and its fact-check are in [`docs/research/agent-ui/`](../research/agent-ui/). Its conclusion for our harness (treat the session event log as the UI contract, translate it to existing UI streams, keep approvals durable) feeds the build phase; the harness and agent plans can adopt it as a follow-up.
 
+### U2: Vercel Labs' UI SDK (added 2026-11-18)
+
+The owner next asked about Vercel Labs' UI SDK ([ui-sdk.dev](https://ui-sdk.dev/), [vercel-labs/ui](https://github.com/vercel-labs/ui)), a headless library of UI behaviors meant for agents. U2 researched it in two parts: the library itself, and the headless libraries and agent-facing UI tooling around it. [`vercel-ui-sdk.md`](../research/agent-ui/vercel-ui-sdk.md) builds on U1, and its fact-check shares U1's log.
+
 ## 5. Todos
 
 | ID | Title | Depends on |
@@ -88,6 +92,7 @@ The owner observed that most agents present their UI state as a chat transcript 
 | H3 | Practitioner research: synthesis and fact-check, set against G1a–G3a (done) | H2, G3a |
 | R1 | Re-verify the "(secondary)" claims against primary sources (done) | H3 |
 | U1 | Research how agent UIs are built, and how our eight SDKs expose UI contracts (done: [agent-ui/](../research/agent-ui/)) | None |
+| U2 | Research Vercel Labs' UI SDK and the agent-facing UI tooling around it (done: [vercel-ui-sdk.md](../research/agent-ui/vercel-ui-sdk.md)) | U1 |
 | G1b | Guide: building an agent SDK (done: [docs/guides/agent-sdk.md](../guides/agent-sdk.md)) | G1a, H3, R1 |
 | G2a | Deep research: building an agent harness (done) | G1a |
 | G2b | Guide: building an agent harness (done: [docs/guides/agent-harness.md](../guides/agent-harness.md)) | G2a, G1b, H3 |

@@ -19,7 +19,7 @@ Instructions for AI coding agents (Claude Code, Codex, OpenCode, Pi, etc.) worki
 - `docs/comparison/`: the SDK feature table and the deep comparison.
 - `docs/research/`: research reports.
   - `agent-sdks-and-harness-design.md`: the main report (SDK comparison, reference architecture, build-vs-buy).
-  - `agent-ui/`: how agent UIs are built (protocols, web frameworks, terminal and editor UIs, patterns beyond chat) and the UI contracts of our eight SDKs.
+  - `agent-ui/`: how agent UIs are built (protocols, web frameworks, terminal and editor UIs, patterns beyond chat), the UI contracts of our eight SDKs, and Vercel Labs' UI SDK (`vercel-ui-sdk.md`).
   - `harness-architectures.md`: source-level notes on Pi, Codex, OpenAI Agents SDK sandbox agents and Cloudflare Agents/Think.
   - `fact-check-2026-11-18.md`: verification log for the main report.
   - `notes/`: raw research notes behind the report. Treat them as working material; the report and fact-check log supersede them where they disagree.
@@ -31,6 +31,8 @@ Instructions for AI coding agents (Claude Code, Codex, OpenCode, Pi, etc.) worki
 
 ## Working on docs
 
+- Draft and rewrite prose with `/anthropic-skills:writing`. Review the whole document with `/anthropic-skills:writing-review`, not just the changed parts (the owner's rule, 2026-11-18). Drafts from other tools, such as a research skill's report writer, go through both before they merge.
+- Fact-check every research report against its primary sources before it merges, and log the result in the round's fact-check file.
 - Cite a source for every factual claim, and prefer primary sources (official docs, repos, papers) over blogs.
 - Mark claims taken from search summaries or secondary write-ups as such.
 - When you correct a claim in a report, add a row to a fact-check log rather than silently rewriting it.
