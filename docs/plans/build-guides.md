@@ -86,6 +86,10 @@ The owner next asked about Vercel Labs' UI SDK ([ui-sdk.dev](https://ui-sdk.dev/
 
 The owner asked how a UI can make an agent's edits undoable. U4 researched it in three parts: UI SDK's change callbacks and history, undo in client state libraries (Yjs, Immer, TanStack Query, NgRx and signal stores), and the Keep/Undo and undo-toast patterns agent products ship. [`undo-agent-edits.md`](../research/agent-ui/undo-agent-edits.md) recommends tagging every write with its actor and turn, keeping agent writes as a real draft until a person keeps them, and reverting by inverse operations that preserve later human edits.
 
+### U3: hashbrown (added 2026-11-18)
+
+The owner asked how hashbrown ([hashbrown.dev](https://hashbrown.dev/), [liveloveapp/hashbrown](https://github.com/liveloveapp/hashbrown)) implements its work. U3 researched it in two parts, its source-level implementation at v0.8.3 and its usage, adapters and position among agent UI approaches. [`hashbrown.md`](../research/agent-ui/hashbrown.md) finds that it uses strict structured output over AG-UI as the generative-UI boundary: the model picks registered components and fills their props, and the browser renders only what was registered.
+
 ## 5. Todos
 
 | ID | Title | Depends on |
@@ -98,6 +102,7 @@ The owner asked how a UI can make an agent's edits undoable. U4 researched it in
 | U1 | Research how agent UIs are built, and how our eight SDKs expose UI contracts (done: [agent-ui/](../research/agent-ui/)) | None |
 | U2 | Research Vercel Labs' UI SDK and the agent-facing UI tooling around it (done: [vercel-ui-sdk.md](../research/agent-ui/vercel-ui-sdk.md)) | U1 |
 | U4 | Research how a UI makes an agent's edits undoable (done: [undo-agent-edits.md](../research/agent-ui/undo-agent-edits.md)) | U2 |
+| U3 | Research how hashbrown implements generative UI (done: [hashbrown.md](../research/agent-ui/hashbrown.md)) | U2 |
 | G1b | Guide: building an agent SDK (done: [docs/guides/agent-sdk.md](../guides/agent-sdk.md)) | G1a, H3, R1 |
 | G2a | Deep research: building an agent harness (done) | G1a |
 | G2b | Guide: building an agent harness (done: [docs/guides/agent-harness.md](../guides/agent-harness.md)) | G2a, G1b, H3 |
