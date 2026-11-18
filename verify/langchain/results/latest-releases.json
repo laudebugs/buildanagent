@@ -1,0 +1,10 @@
+{
+  "checkedAt": "2026-11-18T11:33:31.255Z",
+  "latest": {
+    "langchain": "1.6.6",
+    "@langchain/core": "1.4.1",
+    "@langchain/langgraph": "1.7.5",
+    "@langchain/anthropic": "1.6.5",
+    "@langchain/openai": "1.8.4"
+  }
+}

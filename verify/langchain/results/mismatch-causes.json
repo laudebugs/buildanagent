@@ -1,0 +1,161 @@
+{
+  "store-api": {
+    "errors": 32,
+    "files": [
+      "langchain__context-engineering__19",
+      "langchain__context-engineering__22",
+      "langchain__runtime__02",
+      "snippets__code-samples__long-term-memory-read-tool-inmemory-js__01",
+      "snippets__code-samples__long-term-memory-read-tool-inmemory-js__02",
+      "snippets__code-samples__long-term-memory-read-tool-inmemory-js__03",
+      "snippets__code-samples__long-term-memory-read-tool-inmemory-js__04",
+      "snippets__code-samples__long-term-memory-read-tool-inmemory-js__05",
+      "snippets__code-samples__long-term-memory-read-tool-inmemory-js__06",
+      "snippets__code-samples__long-term-memory-read-tool-inmemory-js__07",
+      "snippets__code-samples__long-term-memory-read-tool-postgres-js__01",
+      "snippets__code-samples__long-term-memory-read-tool-postgres-js__02",
+      "snippets__code-samples__long-term-memory-read-tool-postgres-js__03",
+      "snippets__code-samples__long-term-memory-read-tool-postgres-js__04",
+      "snippets__code-samples__long-term-memory-read-tool-postgres-js__05",
+      "snippets__code-samples__long-term-memory-read-tool-postgres-js__06",
+      "snippets__code-samples__long-term-memory-read-tool-postgres-js__07",
+      "snippets__code-samples__long-term-memory-write-tool-inmemory-js__01",
+      "snippets__code-samples__long-term-memory-write-tool-inmemory-js__02",
+      "snippets__code-samples__long-term-memory-write-tool-inmemory-js__03",
+      "snippets__code-samples__long-term-memory-write-tool-inmemory-js__04",
+      "snippets__code-samples__long-term-memory-write-tool-inmemory-js__05",
+      "snippets__code-samples__long-term-memory-write-tool-inmemory-js__06",
+      "snippets__code-samples__long-term-memory-write-tool-inmemory-js__07",
+      "snippets__code-samples__long-term-memory-write-tool-postgres-js__01",
+      "snippets__code-samples__long-term-memory-write-tool-postgres-js__02",
+      "snippets__code-samples__long-term-memory-write-tool-postgres-js__03",
+      "snippets__code-samples__long-term-memory-write-tool-postgres-js__04",
+      "snippets__code-samples__long-term-memory-write-tool-postgres-js__05",
+      "snippets__code-samples__long-term-memory-write-tool-postgres-js__06",
+      "snippets__code-samples__long-term-memory-write-tool-postgres-js__07"
+    ],
+    "example": "oss/langchain/context-engineering.mdx:1660 Property 'get' does not exist on type 'BaseStore<string, unknown>'. Did you mean 'mget'?"
+  },
+  "call-shape": {
+    "errors": 16,
+    "files": [
+      "langchain__context-engineering__17",
+      "langchain__middleware__built-in__16",
+      "langchain__structured-output__07",
+      "langchain__structured-output__11",
+      "langchain__test__unit-testing__14",
+      "langgraph__add-memory__18",
+      "langgraph__add-memory__19",
+      "langgraph__add-memory__21",
+      "langgraph__fault-tolerance__03",
+      "langgraph__fault-tolerance__10",
+      "langgraph__workflows-agents__03",
+      "langgraph__workflows-agents__08",
+      "snippets__chat-model-tabs-js__06",
+      "snippets__code-samples__long-term-memory-storage-inmemory-js__01"
+    ],
+    "example": "oss/langchain/context-engineering.mdx:1501 Expected 2-3 arguments, but got 1."
+  },
+  "message-content-not-narrowed": {
+    "errors": 11,
+    "files": [
+      "langgraph__add-memory__12",
+      "langgraph__add-memory__13",
+      "langgraph__add-memory__15",
+      "langgraph__add-memory__16",
+      "langgraph__add-memory__17",
+      "langgraph__streaming__05",
+      "langgraph__streaming__07",
+      "langgraph__streaming__09",
+      "langgraph__streaming__23"
+    ],
+    "example": "oss/langgraph/add-memory.mdx:726 Type 'string | (ContentBlock | Text)[] | undefined' is not assignable to type 'string | undefined'."
+  },
+  "interrupt-field": {
+    "errors": 8,
+    "files": [
+      "langgraph__interrupts__03",
+      "langgraph__interrupts__07",
+      "langgraph__interrupts__10",
+      "langgraph__interrupts__12",
+      "langgraph__interrupts__13",
+      "snippets__code-samples__langgraph-interrupts-validate-conditional-edge-js__01"
+    ],
+    "example": "oss/langgraph/interrupts.mdx:152 Property '__interrupt__' does not exist on type 'StateType<{ answer: LastValue<unknown>; }>'."
+  },
+  "unknown-context-or-state": {
+    "errors": 5,
+    "files": [
+      "langchain__context-engineering__06",
+      "langchain__context-engineering__08",
+      "langchain__multi-agent__subagents__04"
+    ],
+    "example": "oss/langchain/context-engineering.mdx:607 Property 'userJurisdiction' does not exist on type 'unknown'."
+  },
+  "newer-release-name": {
+    "errors": 4,
+    "files": [
+      "langchain__runtime__03",
+      "langchain__tools__04",
+      "langchain__tools__05"
+    ],
+    "example": "oss/langchain/runtime.mdx:122 Property 'executionInfo' does not exist on type 'Record<string, any> | ToolRunnableConfig | (Record<string, any> & RunnableConfig<Record<string, any>> & { ...; "
+  },
+  "init-chat-model-not-awaited": {
+    "errors": 3,
+    "files": [
+      "langchain__context-engineering__11",
+      "langchain__context-engineering__13",
+      "langchain__guardrails__04"
+    ],
+    "example": "oss/langchain/context-engineering.mdx:1009 Type 'Promise<ConfigurableModel<BaseLanguageModelInput, ConfigurableChatModelCallOptions>>' is not assignable to type 'AgentLanguageModelLike'."
+  },
+  "hitl-allow-flags": {
+    "errors": 3,
+    "files": [
+      "langchain__guardrails__02",
+      "langchain__guardrails__05"
+    ],
+    "example": "oss/langchain/guardrails.mdx:141 Object literal may only specify known properties, and 'allowAccept' does not exist in type '{ allowedDecisions: (\"approve\" | \"edit\" | \"reject\" | \"respond\")[]; d"
+  },
+  "missing-export": {
+    "errors": 3,
+    "files": [
+      "langchain__middleware__overview__02",
+      "langchain__multi-agent__subagents__04",
+      "langgraph__streaming__15"
+    ],
+    "example": "oss/langchain/middleware/overview.mdx:68 Module '\"langchain\"' has no exported member 'AgentState'."
+  },
+  "state-type": {
+    "errors": 3,
+    "files": [
+      "langgraph__streaming__22",
+      "snippets__code-samples__workflows-agents-tool-runtime-state-context-js__01"
+    ],
+    "example": "oss/langgraph/streaming.mdx:1130 Property 'topic' does not exist on type 'StateType<StateSchemaFieldsToStateDefinition<{ result: ZodString; }>>'."
+  },
+  "summarization-trigger-shape": {
+    "errors": 2,
+    "files": [
+      "langchain__middleware__built-in__29",
+      "langchain__middleware__built-in__30"
+    ],
+    "example": "oss/langchain/middleware/built-in.mdx:1510 Type 'number' has no properties in common with type '{ fraction?: number | undefined; tokens?: number | undefined; messages?: number | undefined; }'."
+  },
+  "untyped-message-narrowing": {
+    "errors": 2,
+    "files": [
+      "langgraph__streaming__23",
+      "langgraph__workflows-agents__10"
+    ],
+    "example": "oss/langgraph/streaming.mdx:1339 Property 'tool_calls' does not exist on type 'BaseMessage<MessageStructure<MessageToolSet>, MessageType>'."
+  },
+  "other": {
+    "errors": 1,
+    "files": [
+      "langchain__structured-output__11"
+    ],
+    "example": "oss/langchain/structured-output.mdx:303 Property 'structuredResponse' does not exist on type 'MergedAgentState<AgentTypeConfig<any, undefined, AnyAnnotationRoot, readonly AnyAgentMiddleware[], readonl"
+  }
+}
