@@ -98,6 +98,10 @@ The owner asked how an API backend should make each agent tool call safe to fail
 
 The owner asked how sagas and compensation work for agent actions that span several systems, such as updating an order, refunding and emailing. U6 compared Temporal (.NET and TypeScript), MassTransit, NServiceBus, Azure Durable Functions, Dapr Workflow and AWS Step Functions in three parts, plus approval placement and outcome reporting. [`sagas.md`](../research/reversible-actions/sagas.md) finds that only MassTransit's routing slips run compensation for you, puts compensable steps before the refund as the pivot and retryable steps after it, recommends one approval before the first step, and proposes a typed outcome. Its fact-check is [`fact-check-sagas.md`](../research/reversible-actions/fact-check-sagas.md).
 
+### U7: Agent rewind versus data rollback (added 2026-11-18)
+
+The owner asked how LangGraph checkpoints and time travel, Pi session forks, Claude Code checkpoints and rewind, and ADK session rewind work, why they don't undo external writes, and what our SDKs and plans expose, ending with a recommendation for the triage agent. U7 researched it in two parts and built on U4–U6. [`rewind-vs-rollback.md`](../research/reversible-actions/rewind-vs-rollback.md) finds that every rewind restores only state its framework owns and that neither the SDKs nor our plans roll back external data. It recommends undo windows for triage writes and internal notes, approval first for escalations, replies and refunds, a saga only once refunds open, and rollbacks logged as new linked entries with an outcome on every write. Its fact-check is [`fact-check-rewind.md`](../research/reversible-actions/fact-check-rewind.md); the plan changes it implies are open for the next phase.
+
 ## 5. Todos
 
 | ID | Title | Depends on |
@@ -113,6 +117,7 @@ The owner asked how sagas and compensation work for agent actions that span seve
 | U3 | Research how hashbrown implements generative UI (done: [hashbrown.md](../research/agent-ui/hashbrown.md)) | U2 |
 | U5 | Research server-side rollback for agent tool calls (done: [server-rollback.md](../research/reversible-actions/server-rollback.md)) | None |
 | U6 | Research sagas and compensation for multistep agent actions (done: [sagas.md](../research/reversible-actions/sagas.md)) | None |
+| U7 | Research agent rewind versus data rollback, and recommend rollback for the triage agent (done: [rewind-vs-rollback.md](../research/reversible-actions/rewind-vs-rollback.md)) | U6 |
 | G1b | Guide: building an agent SDK (done: [docs/guides/agent-sdk.md](../guides/agent-sdk.md)) | G1a, H3, R1 |
 | G2a | Deep research: building an agent harness (done) | G1a |
 | G2b | Guide: building an agent harness (done: [docs/guides/agent-harness.md](../guides/agent-harness.md)) | G2a, G1b, H3 |
