@@ -19,7 +19,7 @@ Instructions for AI coding agents (Claude Code, Codex, OpenCode, Pi, etc.) worki
 - `docs/comparison/`: the SDK feature table and the deep comparison.
 - `docs/research/`: research reports.
   - `agent-sdks-and-harness-design.md`: the main report (SDK comparison, reference architecture, build-vs-buy).
-  - `agent-ui/`: how agent UIs are built (protocols, web frameworks, terminal and editor UIs, patterns beyond chat) and the UI contracts of our eight SDKs.
+  - `agent-ui/`: how agent UIs are built (protocols, web frameworks, terminal and editor UIs, patterns beyond chat), the UI contracts of our eight SDKs, and Vercel Labs' UI SDK (`vercel-ui-sdk.md`).
   - `harness-architectures.md`: source-level notes on Pi, Codex, OpenAI Agents SDK sandbox agents and Cloudflare Agents/Think.
   - `fact-check-2026-11-18.md`: verification log for the main report.
   - `notes/`: raw research notes behind the report. Treat them as working material; the report and fact-check log supersede them where they disagree.
@@ -29,12 +29,22 @@ Instructions for AI coding agents (Claude Code, Codex, OpenCode, Pi, etc.) worki
 - Pick the next todo whose **Depends on** are all in `docs/todos/done/`, following the [roadmap](docs/plans/roadmap.md).
 - Do each todo on its own branch and pull request (see [Git](#git)). Move the todo to `ongoing/` in the first commit and to `done/` in the last, and push the branch after each meaningful step.
 
-## Working on docs
+## Every document is drafted, fact-checked and reviewed before it merges
 
-- Cite a source for every factual claim, and prefer primary sources (official docs, repos, papers) over blogs.
+Every document goes through the same five steps before it merges, whoever or whatever drafted it (the owner's rule, 2026-11-18). Later agents act on these documents, so a wrong version number or an unclear rule costs them real work.
+
+1. **Draft** with `/anthropic-skills:writing`. Use it for every new document and every rewrite, including fixes after a review. A draft from another tool, such as a research skill's report writer, stays unreviewed until it has been through steps 2–5.
+2. **Fact-check** every factual claim against its primary source: the repo at a recorded tag or commit, the pinned `.d.ts`, the official docs or the paper. Log each claim in the round's fact-check file as ✅ confirmed, ✏️ corrected or ⚠️ unverified, with the reason. Correct a wrong claim in place and give the correction its own row, so every change stays visible.
+3. **Review** the whole document with `/anthropic-skills:writing-review`, not just the changed parts.
+4. **Fix** every finding with `/anthropic-skills:writing`, or record why you left it.
+5. **Re-check** every claim a fix touched against its source, and confirm that every relative link and anchor resolves.
+
+Record the review's rubric scores, before and after, in the pull request description.
+
+Four rules apply to every claim in every document:
+- Cite a source for each factual claim, and prefer primary sources (official docs, repos, papers) over blogs.
 - Mark claims taken from search summaries or secondary write-ups as such.
-- When you correct a claim in a report, add a row to a fact-check log rather than silently rewriting it.
-- Dates matter in this field. Write "as of <month year>" for versions, star counts and spec status.
+- Write "as of <month year>" for versions, star counts and spec status, because they change fast.
 - Use kebab-case filenames under `docs/`.
 
 ## Planned architecture (when code starts)
