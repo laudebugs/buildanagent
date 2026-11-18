@@ -1,6 +1,6 @@
 # Plan: one agent skill per SDK, so coding agents use each SDK the verified way (Round K)
 
-- **Status:** In progress (K4 adds Cloudflare and Google ADK)
+- **Status:** Done (K1–K4, 2026-11-18): eight SDK skills
 - **Date:** 2026-11-18
 - **Asked for by:** the project owner (2026-11-18): a skill for each agent SDK in `.agents/skills`, symlinked to `.claude/skills`
 - **Builds on:** the four references from [Round S](sdk-references.md) and the [comparison](sdk-comparison.md)
@@ -42,7 +42,7 @@ K2 drafts each skill with `/anthropic-skills:writing` and reviews it with `/anth
 | K1 | Skills folder, `.claude/skills` symlink, and the skill format (done) | C2 |
 | K2 | Four SDK skills, written, reviewed and tested by a fresh agent (done) | K1 |
 | K3 | LangChain skill, written, reviewed and tested by a fresh agent (done) | S5b |
-| K4 | Cloudflare, Google ADK and Copilot skills, each tested by a fresh agent | C4 |
+| K4 | Cloudflare, Google ADK and Copilot skills, each tested by a fresh agent (done) | C4 |
 
 ## 5. Risks
 
