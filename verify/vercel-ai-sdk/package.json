@@ -1,0 +1,21 @@
+{
+  "name": "@agent-speak/verify-vercel-ai-sdk",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "fetch-docs": "node scripts/fetch-docs.mjs",
+    "extract": "node scripts/extract-examples.mjs",
+    "typecheck:docs": "node scripts/typecheck-examples.mjs",
+    "run:docs": "node scripts/run-examples.mjs",
+    "factcheck": "node scripts/factcheck-api.mjs",
+    "typecheck": "tsc -p tsconfig.json",
+    "test": "tsc -p tsconfig.json && node scripts/run-examples.mjs examples",
+    "verify": "pnpm run extract && pnpm run typecheck:docs && pnpm run run:docs && pnpm run factcheck && pnpm test"
+  },
+  "dependencies": {
+    "@ai-sdk/anthropic": "4.0.96",
+    "@ai-sdk/openai": "4.0.108",
+    "ai": "7.0.162",
+    "zod": "4.6.7"
+  }
+}
