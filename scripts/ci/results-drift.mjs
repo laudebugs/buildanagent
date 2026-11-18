@@ -1,12 +1,19 @@
 // Compares each committed verify/*/results/*.json with the working copy after a run, ignoring what
-// legitimately varies between runs: timings ("ms", "checkedAt"), the checkout path and temp dirs.
+// legitimately varies between runs: timings ("ms", "checkedAt"), raw stdout ("tail"), the checkout path
+// and temp dirs. For our own examples (run-examples.json) it compares only each example's verdict.
 // Exits 1 and lists the files whose normalized content changed, so a scheduled verify flags drift.
 import { execFileSync } from "node:child_process";
 import { readFileSync } from "node:fs";
 import path from "node:path";
 
 const root = execFileSync("git", ["rev-parse", "--show-toplevel"], { encoding: "utf8" }).trim();
-const VOLATILE = new Set(["ms", "checkedAt"]);
+// "tail" is a run's raw stdout (process ids, interleaved logs), so it is diagnostic, not a result.
+const VOLATILE = new Set(["ms", "checkedAt", "tail"]);
+// Our own examples assert their claims themselves, so for run-examples.json only the verdict counts;
+// counters such as modelRequests vary with runtime retries and are not compared.
+const VERDICT = ["file", "outcome", "exit"];
+const verdicts = (v) =>
+  Array.isArray(v) ? v.map((e) => Object.fromEntries(VERDICT.filter((k) => k in e).map((k) => [k, e[k]]))) : v;
 
 function normString(s) {
   return s
@@ -55,8 +62,9 @@ for (const file of changed) {
     continue;
   }
   const after = JSON.parse(readFileSync(path.join(root, file), "utf8"));
+  const pick = file.endsWith("/run-examples.json") ? verdicts : (v) => v;
   const diffs = [];
-  diff(norm(before), norm(after), "", diffs);
+  diff(norm(pick(before)), norm(pick(after)), "", diffs);
   if (diffs.length) {
     drifted.push(file);
     for (const d of diffs.slice(0, 12)) console.error(`  ${file}: ${d}`);
