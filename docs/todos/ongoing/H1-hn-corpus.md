@@ -3,7 +3,7 @@
 | Field | Value |
 | --- | --- |
 | ID | `H1` |
-| Status | `ready` |
+| Status | `ongoing` |
 | Plan | [Build guides §4b](../../plans/build-guides.md#4b-practitioner-research-from-hacker-news-round-h-added-2026-11-18) |
 | Round / milestone | Round H (practitioner research), before the guides |
 | Depends on | None |
