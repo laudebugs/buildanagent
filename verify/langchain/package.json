@@ -10,7 +10,8 @@
     "factcheck": "node scripts/factcheck-api.mjs",
     "typecheck": "tsc -p tsconfig.json",
     "test": "tsc -p tsconfig.json && node scripts/run-examples.mjs examples",
-    "verify": "pnpm run extract && pnpm run typecheck:docs && pnpm run run:docs && pnpm run factcheck && pnpm test"
+    "verify": "pnpm run extract && pnpm run typecheck:docs && pnpm run triage:docs && pnpm run run:docs && pnpm run factcheck && pnpm test",
+    "triage:docs": "node scripts/ahead-of-release.mjs && node scripts/mismatch-causes.mjs"
   },
   "dependencies": {
     "@langchain/anthropic": "1.6.0",

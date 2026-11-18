@@ -17,6 +17,12 @@ const dts = (root) =>
 
 const latest = {};
 let latestText = "";
+try {
+  await fetch("https://registry.npmjs.org/langchain/latest", { signal: AbortSignal.timeout(10000) });
+} catch {
+  console.warn("ahead-of-release: npm registry unreachable; leaving api-mismatch statuses unchanged");
+  process.exit(0);
+}
 for (const p of PKGS) {
   const meta = await (await fetch(`https://registry.npmjs.org/${p.replace("/", "%2F")}/latest`)).json();
   latest[p] = meta.version;

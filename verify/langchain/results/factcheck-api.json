@@ -1,0 +1,47 @@
+{
+  "package": "langchain@1.6.1",
+  "checks": {
+    "middlewareHooks": {
+      "documented": 6,
+      "actual": 6,
+      "undocumented": [],
+      "notInPackage": []
+    },
+    "builtInMiddleware": {
+      "documented": 15,
+      "actual": 21,
+      "undocumented": [
+        "anthropicPromptCachingMiddleware",
+        "bedrockPromptCachingMiddleware",
+        "dynamicSystemPromptMiddleware",
+        "openAIAutoModeMiddleware",
+        "openAIModelRouterMiddleware",
+        "openAIModerationMiddleware",
+        "piiRedactionMiddleware",
+        "toolErrorMiddleware"
+      ],
+      "notInPackage": [
+        "createFilesystemMiddleware",
+        "modelRefusalMiddleware"
+      ]
+    },
+    "createAgentOptions": {
+      "documented": 10,
+      "actual": 15,
+      "undocumented": [
+        "description",
+        "includeAgentName",
+        "signal",
+        "streamTransformers",
+        "version"
+      ],
+      "notInPackage": []
+    },
+    "recursionLimitDefault": {
+      "documented": 25,
+      "actual": 25,
+      "usedIn": true,
+      "match": true
+    }
+  }
+}
