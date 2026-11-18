@@ -76,7 +76,7 @@ Risks: HN skews toward coding agents and toward strong opinions. The synthesis m
 | --- | --- | --- |
 | G1a | Deep research: building an agent SDK (done) | K2 |
 | H1 | Practitioner research: collect the Hacker News corpus (2025-05-18 to 2026-11-18) (done) | None |
-| H2 | Practitioner research: analyse six themes in parallel | H1 |
+| H2 | Practitioner research: analyse six themes in parallel (done) | H1 |
 | H3 | Practitioner research: synthesis and fact-check, set against G1a–G3a | H2, G3a |
 | G1b | Guide: building an agent SDK | G1a, H3 |
 | G2a | Deep research: building an agent harness (done) | G1a |

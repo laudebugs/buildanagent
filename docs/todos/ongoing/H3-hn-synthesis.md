@@ -1,17 +1,17 @@
-# H2: Practitioner research: analyse six themes in parallel
+# H3: Practitioner research: synthesis and fact-check, set against G1a–G3a
 
 | Field | Value |
 | --- | --- |
-| ID | `H2` |
+| ID | `H3` |
 | Status | `ongoing` |
 | Plan | [Build guides §4b](../../plans/build-guides.md#4b-practitioner-research-from-hacker-news-round-h-added-2026-11-18) |
 | Round / milestone | Round H (practitioner research), before the guides |
-| Depends on | [H1](../done/H1-hn-corpus.md) |
-| Size | L |
+| Depends on | [H2](../done/H2-hn-themes.md), [G3a](../done/G3a-research-agent.md) |
+| Size | M |
 
 ## Goal
 
-Practitioner research: analyse six themes in parallel, as the plan section describes.
+Practitioner research: synthesis and fact-check, set against G1a–G3a, as the plan section describes.
 
 ## Context
 
