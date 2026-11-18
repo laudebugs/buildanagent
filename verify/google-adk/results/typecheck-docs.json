@@ -1,0 +1,6762 @@
+[
+  {
+    "id": "docs__2__0__index__01",
+    "kind": "block",
+    "page": "docs/2.0/index.md",
+    "line": 262,
+    "source": "docs/2.0/index.md:262",
+    "ext": "ts",
+    "title": null,
+    "file": "docs__2__0__index__01.ts",
+    "lines": 8,
+    "importsSdk": false,
+    "complete": false,
+    "probe": false,
+    "elided": false,
+    "errors": [
+      {
+        "line": 3,
+        "code": 2451,
+        "kind": "context",
+        "message": "Cannot redeclare block-scoped variable 'name'."
+      },
+      {
+        "line": 3,
+        "code": 2304,
+        "kind": "context",
+        "message": "Cannot find name 'ctx'."
+      },
+      {
+        "line": 6,
+        "code": 2451,
+        "kind": "context",
+        "message": "Cannot redeclare block-scoped variable 'name'."
+      },
+      {
+        "line": 6,
+        "code": 2304,
+        "kind": "context",
+        "message": "Cannot find name 'requireAgent'."
+      },
+      {
+        "line": 6,
+        "code": 2304,
+        "kind": "context",
+        "message": "Cannot find name 'ctx'."
+      },
+      {
+        "line": 9,
+        "code": 2451,
+        "kind": "context",
+        "message": "Cannot redeclare block-scoped variable 'name'."
+      },
+      {
+        "line": 9,
+        "code": 2304,
+        "kind": "context",
+        "message": "Cannot find name 'ctx'."
+      }
+    ],
+    "status": "fragment"
+  },
+  {
+    "id": "docs__agents__custom-agents__01",
+    "kind": "block",
+    "page": "docs/agents/custom-agents.md",
+    "line": 133,
+    "source": "docs/agents/custom-agents.md:133",
+    "ext": "ts",
+    "title": null,
+    "file": "docs__agents__custom-agents__01.ts",
+    "lines": 4,
+    "importsSdk": false,
+    "complete": false,
+    "probe": false,
+    "elided": false,
+    "errors": [
+      {
+        "line": 2,
+        "code": 2532,
+        "kind": "other",
+        "message": "Object is possibly 'undefined'."
+      },
+      {
+        "line": 2,
+        "code": 2304,
+        "kind": "context",
+        "message": "Cannot find name 'ctx'."
+      },
+      {
+        "line": 4,
+        "code": 1163,
+        "kind": "syntax",
+        "message": "A 'yield' expression is only allowed in a generator body."
+      }
+    ],
+    "status": "syntax"
+  },
+  {
+    "id": "docs__agents__custom-agents__02",
+    "kind": "block",
+    "page": "docs/agents/custom-agents.md",
+    "line": 142,
+    "source": "docs/agents/custom-agents.md:142",
+    "ext": "ts",
+    "title": null,
+    "file": "docs__agents__custom-agents__02.ts",
+    "lines": 12,
+    "importsSdk": false,
+    "complete": false,
+    "probe": false,
+    "elided": true,
+    "errors": [
+      {
+        "line": 3,
+        "code": 2304,
+        "kind": "context",
+        "message": "Cannot find name 'ctx'."
+      }
+    ],
+    "status": "fragment"
+  },
+  {
+    "id": "docs__agents__custom-agents__03",
+    "kind": "block",
+    "page": "docs/agents/custom-agents.md",
+    "line": 320,
+    "source": "docs/agents/custom-agents.md:320",
+    "ext": "ts",
+    "title": null,
+    "file": "docs__agents__custom-agents__03.ts",
+    "lines": 38,
+    "importsSdk": true,
+    "complete": false,
+    "probe": false,
+    "elided": false,
+    "errors": [
+      {
+        "line": 13,
+        "code": 1361,
+        "kind": "api",
+        "message": "'createEventActions' cannot be used as a value because it was imported using 'import type'."
+      }
+    ],
+    "status": "api-mismatch"
+  },
+  {
+    "id": "docs__agents__custom-agents__04",
+    "kind": "block",
+    "page": "docs/agents/custom-agents.md",
+    "line": 435,
+    "source": "docs/agents/custom-agents.md:435",
+    "ext": "ts",
+    "title": null,
+    "file": "docs__agents__custom-agents__04.ts",
+    "lines": 8,
+    "importsSdk": true,
+    "complete": false,
+    "probe": false,
+    "elided": false,
+    "errors": [],
+    "status": "pass"
+  },
+  {
+    "id": "docs__agents__custom-agents__05",
+    "kind": "block",
+    "page": "docs/agents/custom-agents.md",
+    "line": 498,
+    "source": "docs/agents/custom-agents.md:498",
+    "ext": "ts",
+    "title": null,
+    "file": "docs__agents__custom-agents__05.ts",
+    "lines": 9,
+    "importsSdk": true,
+    "complete": false,
+    "probe": false,
+    "elided": false,
+    "errors": [],
+    "status": "pass"
+  },
+  {
+    "id": "docs__agents__custom-agents__06",
+    "kind": "block",
+    "page": "docs/agents/custom-agents.md",
+    "line": 590,
+    "source": "docs/agents/custom-agents.md:590",
+    "ext": "ts",
+    "title": null,
+    "file": "docs__agents__custom-agents__06.ts",
+    "lines": 26,
+    "importsSdk": true,
+    "complete": false,
+    "probe": false,
+    "elided": false,
+    "errors": [
+      {
+        "line": 10,
+        "code": 2304,
+        "kind": "context",
+        "message": "Cannot find name 'createEvent'."
+      },
+      {
+        "line": 10,
+        "code": 1361,
+        "kind": "api",
+        "message": "'createEventActions' cannot be used as a value because it was imported using 'import type'."
+      }
+    ],
+    "status": "api-mismatch"
+  },
+  {
+    "id": "docs__agents__custom-agents__07",
+    "kind": "block",
+    "page": "docs/agents/custom-agents.md",
+    "line": 712,
+    "source": "docs/agents/custom-agents.md:712",
+    "ext": "ts",
+    "title": null,
+    "file": "docs__agents__custom-agents__07.ts",
+    "lines": 9,
+    "importsSdk": true,
+    "complete": false,
+    "probe": false,
+    "elided": false,
+    "errors": [],
+    "status": "pass"
+  },
+  {
+    "id": "docs__agents__custom-agents__08",
+    "kind": "block",
+    "page": "docs/agents/custom-agents.md",
+    "line": 804,
+    "source": "docs/agents/custom-agents.md:804",
+    "ext": "ts",
+    "title": null,
+    "file": "docs__agents__custom-agents__08.ts",
+    "lines": 17,
+    "importsSdk": true,
+    "complete": false,
+    "probe": false,
+    "elided": false,
+    "errors": [],
+    "status": "pass"
+  },
+  {
+    "id": "docs__agents__custom-agents__09",
+    "kind": "block",
+    "page": "docs/agents/custom-agents.md",
+    "line": 927,
+    "source": "docs/agents/custom-agents.md:927",
+    "ext": "ts",
+    "title": null,
+    "file": "docs__agents__custom-agents__09.ts",
+    "lines": 37,
+    "importsSdk": true,
+    "complete": true,
+    "probe": false,
+    "elided": true,
+    "errors": [
+      {
+        "line": 4,
+        "code": 2305,
+        "kind": "api",
+        "message": "Module '\"@google/genai\"' has no exported member 'createEvent'."
+      },
+      {
+        "line": 4,
+        "code": 2305,
+        "kind": "api",
+        "message": "Module '\"@google/genai\"' has no exported member 'Event'."
+      },
+      {
+        "line": 17,
+        "code": 1361,
+        "kind": "api",
+        "message": "'createEvent' cannot be used as a value because it was imported using 'import type'."
+      }
+    ],
+    "status": "api-mismatch"
+  },
+  {
+    "id": "docs__agents__custom-agents__10",
+    "kind": "block",
+    "page": "docs/agents/custom-agents.md",
+    "line": 1249,
+    "source": "docs/agents/custom-agents.md:1249",
+    "ext": "ts",
+    "title": null,
+    "file": "docs__agents__custom-agents__10.ts",
+    "lines": 263,
+    "importsSdk": true,
+    "complete": true,
+    "probe": false,
+    "elided": false,
+    "errors": [],
+    "status": "pass"
+  },
+  {
+    "id": "docs__agents__llm-agents__01",
+    "kind": "block",
+    "page": "docs/agents/llm-agents.md",
+    "line": 63,
+    "source": "docs/agents/llm-agents.md:63",
+    "ext": "ts",
+    "title": null,
+    "file": "docs__agents__llm-agents__01.ts",
+    "lines": 7,
+    "importsSdk": false,
+    "complete": false,
+    "probe": false,
+    "elided": false,
+    "errors": [
+      {
+        "line": 3,
+        "code": 2304,
+        "kind": "context",
+        "message": "Cannot find name 'LlmAgent'."
+      }
+    ],
+    "status": "fragment"
+  },
+  {
+    "id": "docs__agents__llm-agents__02",
+    "kind": "block",
+    "page": "docs/agents/llm-agents.md",
+    "line": 158,
+    "source": "docs/agents/llm-agents.md:158",
+    "ext": "ts",
+    "title": null,
+    "file": "docs__agents__llm-agents__02.ts",
+    "lines": 15,
+    "importsSdk": false,
+    "complete": false,
+    "probe": false,
+    "elided": false,
+    "errors": [
+      {
+        "line": 3,
+        "code": 2304,
+        "kind": "context",
+        "message": "Cannot find name 'LlmAgent'."
+      }
+    ],
+    "status": "fragment"
+  },
+  {
+    "id": "docs__agents__llm-agents__03",
+    "kind": "block",
+    "page": "docs/agents/llm-agents.md",
+    "line": 269,
+    "source": "docs/agents/llm-agents.md:269",
+    "ext": "ts",
+    "title": null,
+    "file": "docs__agents__llm-agents__03.ts",
+    "lines": 36,
+    "importsSdk": true,
+    "complete": false,
+    "probe": false,
+    "elided": false,
+    "errors": [],
+    "status": "pass"
+  },
+  {
+    "id": "docs__agents__llm-agents__04",
+    "kind": "block",
+    "page": "docs/agents/llm-agents.md",
+    "line": 398,
+    "source": "docs/agents/llm-agents.md:398",
+    "ext": "ts",
+    "title": null,
+    "file": "docs__agents__llm-agents__04.ts",
+    "lines": 11,
+    "importsSdk": false,
+    "complete": false,
+    "probe": false,
+    "elided": true,
+    "errors": [
+      {
+        "line": 9,
+        "code": 2304,
+        "kind": "context",
+        "message": "Cannot find name 'LlmAgent'."
+      }
+    ],
+    "status": "fragment"
+  },
+  {
+    "id": "docs__agents__llm-agents__05",
+    "kind": "block",
+    "page": "docs/agents/llm-agents.md",
+    "line": 566,
+    "source": "docs/agents/llm-agents.md:566",
+    "ext": "ts",
+    "title": null,
+    "file": "docs__agents__llm-agents__05.ts",
+    "lines": 23,
+    "importsSdk": false,
+    "complete": false,
+    "probe": false,
+    "elided": true,
+    "errors": [
+      {
+        "line": 18,
+        "code": 2304,
+        "kind": "context",
+        "message": "Cannot find name 'LlmAgent'."
+      }
+    ],
+    "status": "fragment"
+  },
+  {
+    "id": "docs__agents__llm-agents__06",
+    "kind": "block",
+    "page": "docs/agents/llm-agents.md",
+    "line": 670,
+    "source": "docs/agents/llm-agents.md:670",
+    "ext": "ts",
+    "title": null,
+    "file": "docs__agents__llm-agents__06.ts",
+    "lines": 4,
+    "importsSdk": false,
+    "complete": false,
+    "probe": false,
+    "elided": true,
+    "errors": [
+      {
+        "line": 2,
+        "code": 2304,
+        "kind": "context",
+        "message": "Cannot find name 'LlmAgent'."
+      }
+    ],
+    "status": "fragment"
+  },
+  {
+    "id": "docs__agents__models__anthropic__01",
+    "kind": "block",
+    "page": "docs/agents/models/anthropic.md",
+    "line": 69,
+    "source": "docs/agents/models/anthropic.md:69",
+    "ext": "ts",
+    "title": null,
+    "file": "docs__agents__models__anthropic__01.ts",
+    "lines": 8,
+    "importsSdk": true,
+    "complete": true,
+    "probe": true,
+    "elided": false,
+    "errors": [
+      {
+        "line": 3,
+        "code": 2307,
+        "kind": "context",
+        "message": "Cannot find module '@google/adk-integrations' or its corresponding type declarations."
+      }
+    ],
+    "status": "fragment"
+  },
+  {
+    "id": "docs__agents__models__anthropic__02",
+    "kind": "block",
+    "page": "docs/agents/models/anthropic.md",
+    "line": 259,
+    "source": "docs/agents/models/anthropic.md:259",
+    "ext": "ts",
+    "title": null,
+    "file": "docs__agents__models__anthropic__02.ts",
+    "lines": 10,
+    "importsSdk": true,
+    "complete": true,
+    "probe": true,
+    "elided": false,
+    "errors": [
+      {
+        "line": 3,
+        "code": 2307,
+        "kind": "context",
+        "message": "Cannot find module '@google/adk-integrations' or its corresponding type declarations."
+      }
+    ],
+    "status": "fragment"
+  },
+  {
+    "id": "docs__agents__models__google-gemini__index__01",
+    "kind": "block",
+    "page": "docs/agents/models/google-gemini/index.md",
+    "line": 38,
+    "source": "docs/agents/models/google-gemini/index.md:38",
+    "ext": "ts",
+    "title": null,
+    "file": "docs__agents__models__google-gemini__index__01.ts",
+    "lines": 9,
+    "importsSdk": true,
+    "complete": true,
+    "probe": true,
+    "elided": false,
+    "errors": [],
+    "status": "pass"
+  },
+  {
+    "id": "docs__agents__models__routing__01",
+    "kind": "block",
+    "page": "docs/agents/models/routing.md",
+    "line": 32,
+    "source": "docs/agents/models/routing.md:32",
+    "ext": "ts",
+    "title": null,
+    "file": "docs__agents__models__routing__01.ts",
+    "lines": 5,
+    "importsSdk": false,
+    "complete": false,
+    "probe": false,
+    "elided": false,
+    "errors": [
+      {
+        "line": 3,
+        "code": 2304,
+        "kind": "context",
+        "message": "Cannot find name 'BaseLlm'."
+      },
+      {
+        "line": 4,
+        "code": 2552,
+        "kind": "context",
+        "message": "Cannot find name 'LlmRequest'. Did you mean 'Request'?"
+      }
+    ],
+    "status": "fragment"
+  },
+  {
+    "id": "docs__agents__routing__01",
+    "kind": "block",
+    "page": "docs/agents/routing.md",
+    "line": 39,
+    "source": "docs/agents/routing.md:39",
+    "ext": "ts",
+    "title": null,
+    "file": "docs__agents__routing__01.ts",
+    "lines": 5,
+    "importsSdk": false,
+    "complete": false,
+    "probe": false,
+    "elided": false,
+    "errors": [
+      {
+        "line": 3,
+        "code": 2304,
+        "kind": "context",
+        "message": "Cannot find name 'BaseAgent'."
+      },
+      {
+        "line": 4,
+        "code": 2304,
+        "kind": "context",
+        "message": "Cannot find name 'InvocationContext'."
+      }
+    ],
+    "status": "fragment"
+  },
+  {
+    "id": "docs__apps__index__01",
+    "kind": "block",
+    "page": "docs/apps/index.md",
+    "line": 80,
+    "source": "docs/apps/index.md:80",
+    "ext": "ts",
+    "title": "agent.ts",
+    "file": "docs__apps__index__01.ts",
+    "lines": 15,
+    "importsSdk": true,
+    "complete": true,
+    "probe": true,
+    "elided": false,
+    "errors": [],
+    "status": "pass"
+  },
+  {
+    "id": "docs__apps__index__02",
+    "kind": "block",
+    "page": "docs/apps/index.md",
+    "line": 183,
+    "source": "docs/apps/index.md:183",
+    "ext": "ts",
+    "title": "main.ts",
+    "file": "docs__apps__index__02.ts",
+    "lines": 22,
+    "importsSdk": true,
+    "complete": true,
+    "probe": false,
+    "elided": false,
+    "errors": [
+      {
+        "line": 3,
+        "code": 2307,
+        "kind": "context",
+        "message": "Cannot find module './agent.js' or its corresponding type declarations."
+      }
+    ],
+    "status": "fragment"
+  },
+  {
+    "id": "docs__artifacts__index__01",
+    "kind": "block",
+    "page": "docs/artifacts/index.md",
+    "line": 46,
+    "source": "docs/artifacts/index.md:46",
+    "ext": "ts",
+    "title": null,
+    "file": "docs__artifacts__index__01.ts",
+    "lines": 13,
+    "importsSdk": false,
+    "complete": false,
+    "probe": false,
+    "elided": false,
+    "errors": [],
+    "status": "pass"
+  },
+  {
+    "id": "docs__artifacts__index__02",
+    "kind": "block",
+    "page": "docs/artifacts/index.md",
+    "line": 192,
+    "source": "docs/artifacts/index.md:192",
+    "ext": "ts",
+    "title": null,
+    "file": "docs__artifacts__index__02.ts",
+    "lines": 22,
+    "importsSdk": true,
+    "complete": false,
+    "probe": false,
+    "elided": false,
+    "errors": [],
+    "status": "pass"
+  },
+  {
+    "id": "docs__artifacts__index__03",
+    "kind": "block",
+    "page": "docs/artifacts/index.md",
+    "line": 292,
+    "source": "docs/artifacts/index.md:292",
+    "ext": "ts",
+    "title": null,
+    "file": "docs__artifacts__index__03.ts",
+    "lines": 12,
+    "importsSdk": false,
+    "complete": false,
+    "probe": false,
+    "elided": false,
+    "errors": [],
+    "status": "pass"
+  },
+  {
+    "id": "docs__artifacts__index__04",
+    "kind": "block",
+    "page": "docs/artifacts/index.md",
+    "line": 380,
+    "source": "docs/artifacts/index.md:380",
+    "ext": "ts",
+    "title": null,
+    "file": "docs__artifacts__index__04.ts",
+    "lines": 10,
+    "importsSdk": false,
+    "complete": false,
+    "probe": false,
+    "elided": false,
+    "errors": [],
+    "status": "pass"
+  },
+  {
+    "id": "docs__artifacts__index__05",
+    "kind": "block",
+    "page": "docs/artifacts/index.md",
+    "line": 470,
+    "source": "docs/artifacts/index.md:470",
+    "ext": "ts",
+    "title": null,
+    "file": "docs__artifacts__index__05.ts",
+    "lines": 24,
+    "importsSdk": true,
+    "complete": false,
+    "probe": false,
+    "elided": false,
+    "errors": [],
+    "status": "pass"
+  },
+  {
+    "id": "docs__artifacts__index__06",
+    "kind": "block",
+    "page": "docs/artifacts/index.md",
+    "line": 600,
+    "source": "docs/artifacts/index.md:600",
+    "ext": "ts",
+    "title": null,
+    "file": "docs__artifacts__index__06.ts",
+    "lines": 21,
+    "importsSdk": true,
+    "complete": false,
+    "probe": false,
+    "elided": false,
+    "errors": [],
+    "status": "pass"
+  },
+  {
+    "id": "docs__artifacts__index__07",
+    "kind": "block",
+    "page": "docs/artifacts/index.md",
+    "line": 725,
+    "source": "docs/artifacts/index.md:725",
+    "ext": "ts",
+    "title": null,
+    "file": "docs__artifacts__index__07.ts",
+    "lines": 25,
+    "importsSdk": true,
+    "complete": false,
+    "probe": false,
+    "elided": true,
+    "errors": [],
+    "status": "pass"
+  },
+  {
+    "id": "docs__artifacts__index__08",
+    "kind": "block",
+    "page": "docs/artifacts/index.md",
+    "line": 980,
+    "source": "docs/artifacts/index.md:980",
+    "ext": "ts",
+    "title": null,
+    "file": "docs__artifacts__index__08.ts",
+    "lines": 20,
+    "importsSdk": true,
+    "complete": false,
+    "probe": false,
+    "elided": false,
+    "errors": [],
+    "status": "pass"
+  },
+  {
+    "id": "docs__artifacts__index__09",
+    "kind": "block",
+    "page": "docs/artifacts/index.md",
+    "line": 1138,
+    "source": "docs/artifacts/index.md:1138",
+    "ext": "ts",
+    "title": null,
+    "file": "docs__artifacts__index__09.ts",
+    "lines": 10,
+    "importsSdk": true,
+    "complete": false,
+    "probe": false,
+    "elided": false,
+    "errors": [],
+    "status": "pass"
+  },
+  {
+    "id": "docs__artifacts__index__10",
+    "kind": "block",
+    "page": "docs/artifacts/index.md",
+    "line": 1229,
+    "source": "docs/artifacts/index.md:1229",
+    "ext": "ts",
+    "title": null,
+    "file": "docs__artifacts__index__10.ts",
+    "lines": 17,
+    "importsSdk": true,
+    "complete": false,
+    "probe": false,
+    "elided": false,
+    "errors": [],
+    "status": "pass"
+  },
+  {
+    "id": "docs__context__compaction__01",
+    "kind": "block",
+    "page": "docs/context/compaction.md",
+    "line": 152,
+    "source": "docs/context/compaction.md:152",
+    "ext": "ts",
+    "title": null,
+    "file": "docs__context__compaction__01.ts",
+    "lines": 15,
+    "importsSdk": true,
+    "complete": false,
+    "probe": false,
+    "elided": false,
+    "errors": [],
+    "status": "pass"
+  },
+  {
+    "id": "docs__context__compaction__02",
+    "kind": "block",
+    "page": "docs/context/compaction.md",
+    "line": 309,
+    "source": "docs/context/compaction.md:309",
+    "ext": "ts",
+    "title": null,
+    "file": "docs__context__compaction__02.ts",
+    "lines": 20,
+    "importsSdk": true,
+    "complete": false,
+    "probe": false,
+    "elided": false,
+    "errors": [],
+    "status": "pass"
+  },
+  {
+    "id": "docs__context__index__01",
+    "kind": "block",
+    "page": "docs/context/index.md",
+    "line": 53,
+    "source": "docs/context/index.md:53",
+    "ext": "ts",
+    "title": null,
+    "file": "docs__context__index__01.ts",
+    "lines": 23,
+    "importsSdk": false,
+    "complete": false,
+    "probe": false,
+    "elided": true,
+    "errors": [
+      {
+        "line": 5,
+        "code": 1109,
+        "kind": "syntax",
+        "message": "Expression expected."
+      },
+      {
+        "line": 6,
+        "code": 1109,
+        "kind": "syntax",
+        "message": "Expression expected."
+      }
+    ],
+    "status": "syntax"
+  },
+  {
+    "id": "docs__context__index__02",
+    "kind": "block",
+    "page": "docs/context/index.md",
+    "line": 163,
+    "source": "docs/context/index.md:163",
+    "ext": "ts",
+    "title": null,
+    "file": "docs__context__index__02.ts",
+    "lines": 13,
+    "importsSdk": true,
+    "complete": false,
+    "probe": false,
+    "elided": true,
+    "errors": [
+      {
+        "line": 5,
+        "code": 2515,
+        "kind": "api",
+        "message": "Non-abstract class 'MyAgent' does not implement inherited abstract member runLiveImpl from class 'BaseAgent<BaseAgentConfig>'."
+      },
+      {
+        "line": 8,
+        "code": 18048,
+        "kind": "context",
+        "message": "'ctx.agent' is possibly 'undefined'."
+      },
+      {
+        "line": 12,
+        "code": 2322,
+        "kind": "context",
+        "message": "Type 'undefined' is not assignable to type 'Event'."
+      }
+    ],
+    "status": "api-mismatch"
+  },
+  {
+    "id": "docs__context__index__03",
+    "kind": "block",
+    "page": "docs/context/index.md",
+    "line": 248,
+    "source": "docs/context/index.md:248",
+    "ext": "ts",
+    "title": null,
+    "file": "docs__context__index__03.ts",
+    "lines": 10,
+    "importsSdk": true,
+    "complete": false,
+    "probe": false,
+    "elided": false,
+    "errors": [],
+    "status": "pass"
+  },
+  {
+    "id": "docs__context__index__04",
+    "kind": "block",
+    "page": "docs/context/index.md",
+    "line": 333,
+    "source": "docs/context/index.md:333",
+    "ext": "ts",
+    "title": null,
+    "file": "docs__context__index__04.ts",
+    "lines": 14,
+    "importsSdk": true,
+    "complete": false,
+    "probe": false,
+    "elided": false,
+    "errors": [],
+    "status": "pass"
+  },
+  {
+    "id": "docs__context__index__05",
+    "kind": "block",
+    "page": "docs/context/index.md",
+    "line": 437,
+    "source": "docs/context/index.md:437",
+    "ext": "ts",
+    "title": null,
+    "file": "docs__context__index__05.ts",
+    "lines": 25,
+    "importsSdk": true,
+    "complete": false,
+    "probe": false,
+    "elided": false,
+    "errors": [],
+    "status": "pass"
+  },
+  {
+    "id": "docs__context__index__06",
+    "kind": "block",
+    "page": "docs/context/index.md",
+    "line": 551,
+    "source": "docs/context/index.md:551",
+    "ext": "ts",
+    "title": null,
+    "file": "docs__context__index__06.ts",
+    "lines": 24,
+    "importsSdk": true,
+    "complete": false,
+    "probe": false,
+    "elided": true,
+    "errors": [
+      {
+        "line": 3,
+        "code": 2300,
+        "kind": "context",
+        "message": "Duplicate identifier 'Context'."
+      },
+      {
+        "line": 9,
+        "code": 2367,
+        "kind": "api",
+        "message": "This comparison appears to be unintentional because the types '\"default_mode\" | undefined' and '\"dark_mode\"' have no overlap."
+      },
+      {
+        "line": 17,
+        "code": 2300,
+        "kind": "context",
+        "message": "Duplicate identifier 'Context'."
+      }
+    ],
+    "status": "api-mismatch"
+  },
+  {
+    "id": "docs__context__index__07",
+    "kind": "block",
+    "page": "docs/context/index.md",
+    "line": 651,
+    "source": "docs/context/index.md:651",
+    "ext": "ts",
+    "title": null,
+    "file": "docs__context__index__07.ts",
+    "lines": 10,
+    "importsSdk": true,
+    "complete": false,
+    "probe": false,
+    "elided": false,
+    "errors": [],
+    "status": "pass"
+  },
+  {
+    "id": "docs__context__index__08",
+    "kind": "block",
+    "page": "docs/context/index.md",
+    "line": 720,
+    "source": "docs/context/index.md:720",
+    "ext": "ts",
+    "title": null,
+    "file": "docs__context__index__08.ts",
+    "lines": 12,
+    "importsSdk": true,
+    "complete": false,
+    "probe": false,
+    "elided": false,
+    "errors": [],
+    "status": "pass"
+  },
+  {
+    "id": "docs__context__index__09",
+    "kind": "block",
+    "page": "docs/context/index.md",
+    "line": 807,
+    "source": "docs/context/index.md:807",
+    "ext": "ts",
+    "title": null,
+    "file": "docs__context__index__09.ts",
+    "lines": 22,
+    "importsSdk": true,
+    "complete": false,
+    "probe": false,
+    "elided": true,
+    "errors": [
+      {
+        "line": 4,
+        "code": 2307,
+        "kind": "context",
+        "message": "Cannot find module 'uuid' or its corresponding type declarations."
+      }
+    ],
+    "status": "fragment"
+  },
+  {
+    "id": "docs__context__index__10",
+    "kind": "block",
+    "page": "docs/context/index.md",
+    "line": 898,
+    "source": "docs/context/index.md:898",
+    "ext": "ts",
+    "title": null,
+    "file": "docs__context__index__10.ts",
+    "lines": 10,
+    "importsSdk": true,
+    "complete": false,
+    "probe": false,
+    "elided": false,
+    "errors": [],
+    "status": "pass"
+  },
+  {
+    "id": "docs__context__index__11",
+    "kind": "block",
+    "page": "docs/context/index.md",
+    "line": 979,
+    "source": "docs/context/index.md:979",
+    "ext": "ts",
+    "title": null,
+    "file": "docs__context__index__11.ts",
+    "lines": 20,
+    "importsSdk": true,
+    "complete": false,
+    "probe": false,
+    "elided": false,
+    "errors": [],
+    "status": "pass"
+  },
+  {
+    "id": "docs__context__index__12",
+    "kind": "block",
+    "page": "docs/context/index.md",
+    "line": 1104,
+    "source": "docs/context/index.md:1104",
+    "ext": "ts",
+    "title": null,
+    "file": "docs__context__index__12.ts",
+    "lines": 50,
+    "importsSdk": true,
+    "complete": false,
+    "probe": false,
+    "elided": false,
+    "errors": [],
+    "status": "pass"
+  },
+  {
+    "id": "docs__context__index__13",
+    "kind": "block",
+    "page": "docs/context/index.md",
+    "line": 1247,
+    "source": "docs/context/index.md:1247",
+    "ext": "ts",
+    "title": null,
+    "file": "docs__context__index__13.ts",
+    "lines": 12,
+    "importsSdk": true,
+    "complete": false,
+    "probe": false,
+    "elided": false,
+    "errors": [],
+    "status": "pass"
+  },
+  {
+    "id": "docs__context__index__14",
+    "kind": "block",
+    "page": "docs/context/index.md",
+    "line": 1359,
+    "source": "docs/context/index.md:1359",
+    "ext": "ts",
+    "title": null,
+    "file": "docs__context__index__14.ts",
+    "lines": 58,
+    "importsSdk": true,
+    "complete": false,
+    "probe": false,
+    "elided": true,
+    "errors": [],
+    "status": "pass"
+  },
+  {
+    "id": "docs__context__index__15",
+    "kind": "block",
+    "page": "docs/context/index.md",
+    "line": 1512,
+    "source": "docs/context/index.md:1512",
+    "ext": "ts",
+    "title": null,
+    "file": "docs__context__index__15.ts",
+    "lines": 19,
+    "importsSdk": true,
+    "complete": false,
+    "probe": false,
+    "elided": false,
+    "errors": [],
+    "status": "pass"
+  },
+  {
+    "id": "docs__context__index__16",
+    "kind": "block",
+    "page": "docs/context/index.md",
+    "line": 1647,
+    "source": "docs/context/index.md:1647",
+    "ext": "ts",
+    "title": null,
+    "file": "docs__context__index__16.ts",
+    "lines": 29,
+    "importsSdk": true,
+    "complete": false,
+    "probe": false,
+    "elided": true,
+    "errors": [
+      {
+        "line": 6,
+        "code": 2515,
+        "kind": "api",
+        "message": "Non-abstract class 'MyControllingAgent' does not implement inherited abstract member runLiveImpl from class 'BaseAgent<BaseAgentConfig>'."
+      },
+      {
+        "line": 28,
+        "code": 2322,
+        "kind": "context",
+        "message": "Type 'undefined' is not assignable to type 'Event'."
+      }
+    ],
+    "status": "api-mismatch"
+  },
+  {
+    "id": "docs__events__index__01",
+    "kind": "block",
+    "page": "docs/events/index.md",
+    "line": 40,
+    "source": "docs/events/index.md:40",
+    "ext": "ts",
+    "title": null,
+    "file": "docs__events__index__01.ts",
+    "lines": 28,
+    "importsSdk": false,
+    "complete": false,
+    "probe": false,
+    "elided": true,
+    "errors": [
+      {
+        "line": 7,
+        "code": 2552,
+        "kind": "context",
+        "message": "Cannot find name 'LlmResponse'. Did you mean 'Response'?"
+      },
+      {
+        "line": 15,
+        "code": 2304,
+        "kind": "context",
+        "message": "Cannot find name 'EventActions'."
+      }
+    ],
+    "status": "fragment"
+  },
+  {
+    "id": "docs__events__index__02",
+    "kind": "block",
+    "page": "docs/events/index.md",
+    "line": 206,
+    "source": "docs/events/index.md:206",
+    "ext": "ts",
+    "title": null,
+    "file": "docs__events__index__02.ts",
+    "lines": 36,
+    "importsSdk": true,
+    "complete": false,
+    "probe": false,
+    "elided": false,
+    "errors": [],
+    "status": "pass"
+  },
+  {
+    "id": "docs__events__index__03",
+    "kind": "block",
+    "page": "docs/events/index.md",
+    "line": 399,
+    "source": "docs/events/index.md:399",
+    "ext": "ts",
+    "title": null,
+    "file": "docs__events__index__03.ts",
+    "lines": 10,
+    "importsSdk": false,
+    "complete": false,
+    "probe": false,
+    "elided": false,
+    "errors": [
+      {
+        "line": 3,
+        "code": 2304,
+        "kind": "context",
+        "message": "Cannot find name 'getFunctionCalls'."
+      }
+    ],
+    "status": "fragment"
+  },
+  {
+    "id": "docs__events__index__04",
+    "kind": "block",
+    "page": "docs/events/index.md",
+    "line": 471,
+    "source": "docs/events/index.md:471",
+    "ext": "ts",
+    "title": null,
+    "file": "docs__events__index__04.ts",
+    "lines": 11,
+    "importsSdk": false,
+    "complete": false,
+    "probe": false,
+    "elided": false,
+    "errors": [
+      {
+        "line": 4,
+        "code": 2552,
+        "kind": "context",
+        "message": "Cannot find name 'getFunctionResponses'. Did you mean 'handleFunctionResponses'?"
+      }
+    ],
+    "status": "fragment"
+  },
+  {
+    "id": "docs__events__index__05",
+    "kind": "block",
+    "page": "docs/events/index.md",
+    "line": 546,
+    "source": "docs/events/index.md:546",
+    "ext": "ts",
+    "title": null,
+    "file": "docs__events__index__05.ts",
+    "lines": 6,
+    "importsSdk": false,
+    "complete": false,
+    "probe": false,
+    "elided": false,
+    "errors": [
+      {
+        "line": 3,
+        "code": 2339,
+        "kind": "context",
+        "message": "Property 'actions' does not exist on type 'Event'."
+      },
+      {
+        "line": 3,
+        "code": 2339,
+        "kind": "context",
+        "message": "Property 'actions' does not exist on type 'Event'."
+      },
+      {
+        "line": 4,
+        "code": 2339,
+        "kind": "context",
+        "message": "Property 'actions' does not exist on type 'Event'."
+      }
+    ],
+    "status": "fragment"
+  },
+  {
+    "id": "docs__events__index__06",
+    "kind": "block",
+    "page": "docs/events/index.md",
+    "line": 598,
+    "source": "docs/events/index.md:598",
+    "ext": "ts",
+    "title": null,
+    "file": "docs__events__index__06.ts",
+    "lines": 6,
+    "importsSdk": false,
+    "complete": false,
+    "probe": false,
+    "elided": false,
+    "errors": [
+      {
+        "line": 3,
+        "code": 2339,
+        "kind": "context",
+        "message": "Property 'actions' does not exist on type 'Event'."
+      },
+      {
+        "line": 3,
+        "code": 2339,
+        "kind": "context",
+        "message": "Property 'actions' does not exist on type 'Event'."
+      },
+      {
+        "line": 4,
+        "code": 2339,
+        "kind": "context",
+        "message": "Property 'actions' does not exist on type 'Event'."
+      }
+    ],
+    "status": "fragment"
+  },
+  {
+    "id": "docs__events__index__07",
+    "kind": "block",
+    "page": "docs/events/index.md",
+    "line": 664,
+    "source": "docs/events/index.md:664",
+    "ext": "ts",
+    "title": null,
+    "file": "docs__events__index__07.ts",
+    "lines": 13,
+    "importsSdk": false,
+    "complete": false,
+    "probe": false,
+    "elided": false,
+    "errors": [
+      {
+        "line": 3,
+        "code": 2339,
+        "kind": "context",
+        "message": "Property 'actions' does not exist on type 'Event'."
+      },
+      {
+        "line": 4,
+        "code": 2339,
+        "kind": "context",
+        "message": "Property 'actions' does not exist on type 'Event'."
+      },
+      {
+        "line": 5,
+        "code": 2339,
+        "kind": "context",
+        "message": "Property 'actions' does not exist on type 'Event'."
+      },
+      {
+        "line": 7,
+        "code": 2339,
+        "kind": "context",
+        "message": "Property 'actions' does not exist on type 'Event'."
+      },
+      {
+        "line": 10,
+        "code": 2339,
+        "kind": "context",
+        "message": "Property 'actions' does not exist on type 'Event'."
+      }
+    ],
+    "status": "fragment"
+  },
+  {
+    "id": "docs__events__index__08",
+    "kind": "block",
+    "page": "docs/events/index.md",
+    "line": 776,
+    "source": "docs/events/index.md:776",
+    "ext": "ts",
+    "title": null,
+    "file": "docs__events__index__08.ts",
+    "lines": 43,
+    "importsSdk": true,
+    "complete": false,
+    "probe": false,
+    "elided": false,
+    "errors": [],
+    "status": "pass"
+  },
+  {
+    "id": "docs__get-started__typescript__01",
+    "kind": "block",
+    "page": "docs/get-started/typescript.md",
+    "line": 57,
+    "source": "docs/get-started/typescript.md:57",
+    "ext": "ts",
+    "title": "my-agent/agent.ts",
+    "file": "docs__get-started__typescript__01.ts",
+    "lines": 23,
+    "importsSdk": true,
+    "complete": true,
+    "probe": true,
+    "elided": false,
+    "errors": [],
+    "status": "pass"
+  },
+  {
+    "id": "docs__graphs__routes__01",
+    "kind": "block",
+    "page": "docs/graphs/routes.md",
+    "line": 40,
+    "source": "docs/graphs/routes.md:40",
+    "ext": "ts",
+    "title": null,
+    "file": "docs__graphs__routes__01.ts",
+    "lines": 14,
+    "importsSdk": false,
+    "complete": false,
+    "probe": false,
+    "elided": false,
+    "errors": [
+      {
+        "line": 2,
+        "code": 2304,
+        "kind": "context",
+        "message": "Cannot find name 'Workflow'."
+      },
+      {
+        "line": 5,
+        "code": 2552,
+        "kind": "context",
+        "message": "Cannot find name 'processMessage'. Did you mean 'postMessage'?"
+      },
+      {
+        "line": 5,
+        "code": 2304,
+        "kind": "context",
+        "message": "Cannot find name 'router'."
+      },
+      {
+        "line": 7,
+        "code": 2304,
+        "kind": "context",
+        "message": "Cannot find name 'router'."
+      },
+      {
+        "line": 9,
+        "code": 2552,
+        "kind": "context",
+        "message": "Cannot find name 'response1'. Did you mean 'Response'?"
+      },
+      {
+        "line": 10,
+        "code": 2552,
+        "kind": "context",
+        "message": "Cannot find name 'response2'. Did you mean 'Response'?"
+      },
+      {
+        "line": 11,
+        "code": 2552,
+        "kind": "context",
+        "message": "Cannot find name 'response3'. Did you mean 'Response'?"
+      }
+    ],
+    "status": "fragment"
+  },
+  {
+    "id": "docs__graphs__routes__02",
+    "kind": "block",
+    "page": "docs/graphs/routes.md",
+    "line": 202,
+    "source": "docs/graphs/routes.md:202",
+    "ext": "ts",
+    "title": null,
+    "file": "docs__graphs__routes__02.ts",
+    "lines": 2,
+    "importsSdk": false,
+    "complete": false,
+    "probe": false,
+    "elided": false,
+    "errors": [
+      {
+        "line": 2,
+        "code": 2304,
+        "kind": "context",
+        "message": "Cannot find name 'taskANode'."
+      },
+      {
+        "line": 3,
+        "code": 2304,
+        "kind": "context",
+        "message": "Cannot find name 'taskANode'."
+      },
+      {
+        "line": 3,
+        "code": 2304,
+        "kind": "context",
+        "message": "Cannot find name 'taskBNode'."
+      },
+      {
+        "line": 3,
+        "code": 2304,
+        "kind": "context",
+        "message": "Cannot find name 'taskCNode'."
+      }
+    ],
+    "status": "fragment"
+  },
+  {
+    "id": "docs__grounding__google_search_grounding__01",
+    "kind": "block",
+    "page": "docs/grounding/google_search_grounding.md",
+    "line": 30,
+    "source": "docs/grounding/google_search_grounding.md:30",
+    "ext": "ts",
+    "title": null,
+    "file": "docs__grounding__google_search_grounding__01.ts",
+    "lines": 9,
+    "importsSdk": true,
+    "complete": false,
+    "probe": false,
+    "elided": false,
+    "errors": [],
+    "status": "pass"
+  },
+  {
+    "id": "docs__integrations__adk-connector__01",
+    "kind": "block",
+    "page": "docs/integrations/adk-connector.md",
+    "line": 140,
+    "source": "docs/integrations/adk-connector.md:140",
+    "ext": "ts",
+    "title": null,
+    "file": "docs__integrations__adk-connector__01.ts",
+    "lines": 22,
+    "importsSdk": true,
+    "complete": true,
+    "probe": true,
+    "elided": false,
+    "errors": [
+      {
+        "line": 3,
+        "code": 2307,
+        "kind": "context",
+        "message": "Cannot find module 'adk-connector-js' or its corresponding type declarations."
+      },
+      {
+        "line": 4,
+        "code": 2307,
+        "kind": "context",
+        "message": "Cannot find module 'dotenv' or its corresponding type declarations."
+      }
+    ],
+    "status": "fragment"
+  },
+  {
+    "id": "docs__integrations__adspirer__01",
+    "kind": "block",
+    "page": "docs/integrations/adspirer.md",
+    "line": 156,
+    "source": "docs/integrations/adspirer.md:156",
+    "ext": "ts",
+    "title": null,
+    "file": "docs__integrations__adspirer__01.ts",
+    "lines": 25,
+    "importsSdk": true,
+    "complete": true,
+    "probe": true,
+    "elided": false,
+    "errors": [],
+    "status": "pass"
+  },
+  {
+    "id": "docs__integrations__adspirer__02",
+    "kind": "block",
+    "page": "docs/integrations/adspirer.md",
+    "line": 189,
+    "source": "docs/integrations/adspirer.md:189",
+    "ext": "ts",
+    "title": null,
+    "file": "docs__integrations__adspirer__02.ts",
+    "lines": 27,
+    "importsSdk": true,
+    "complete": true,
+    "probe": true,
+    "elided": false,
+    "errors": [],
+    "status": "pass"
+  },
+  {
+    "id": "docs__integrations__ag-ui__01",
+    "kind": "block",
+    "page": "docs/integrations/ag-ui.md",
+    "line": 74,
+    "source": "docs/integrations/ag-ui.md:74",
+    "ext": "tsx",
+    "title": "src/app/page.tsx",
+    "file": "docs__integrations__ag-ui__01.tsx",
+    "lines": 8,
+    "importsSdk": false,
+    "complete": false,
+    "probe": false,
+    "elided": false,
+    "errors": [
+      {
+        "line": 2,
+        "code": 2875,
+        "kind": "context",
+        "message": "This JSX tag requires the module path 'react/jsx-runtime' to exist, but none could be found. Make sure you have types for the appropriate package installed."
+      },
+      {
+        "line": 2,
+        "code": 2304,
+        "kind": "context",
+        "message": "Cannot find name 'CopilotSidebar'."
+      }
+    ],
+    "status": "fragment"
+  },
+  {
+    "id": "docs__integrations__ag-ui__02",
+    "kind": "block",
+    "page": "docs/integrations/ag-ui.md",
+    "line": 93,
+    "source": "docs/integrations/ag-ui.md:93",
+    "ext": "tsx",
+    "title": "src/app/page.tsx",
+    "file": "docs__integrations__ag-ui__02.tsx",
+    "lines": 11,
+    "importsSdk": false,
+    "complete": false,
+    "probe": false,
+    "elided": false,
+    "errors": [
+      {
+        "line": 2,
+        "code": 2304,
+        "kind": "context",
+        "message": "Cannot find name 'useRenderToolCall'."
+      },
+      {
+        "line": 7,
+        "code": 7031,
+        "kind": "context",
+        "message": "Binding element 'args' implicitly has an 'any' type."
+      },
+      {
+        "line": 8,
+        "code": 2875,
+        "kind": "context",
+        "message": "This JSX tag requires the module path 'react/jsx-runtime' to exist, but none could be found. Make sure you have types for the appropriate package installed."
+      },
+      {
+        "line": 8,
+        "code": 2304,
+        "kind": "context",
+        "message": "Cannot find name 'WeatherCard'."
+      },
+      {
+        "line": 8,
+        "code": 2304,
+        "kind": "context",
+        "message": "Cannot find name 'themeColor'."
+      },
+      {
+        "line": 11,
+        "code": 2304,
+        "kind": "context",
+        "message": "Cannot find name 'themeColor'."
+      }
+    ],
+    "status": "fragment"
+  },
+  {
+    "id": "docs__integrations__ag-ui__03",
+    "kind": "block",
+    "page": "docs/integrations/ag-ui.md",
+    "line": 117,
+    "source": "docs/integrations/ag-ui.md:117",
+    "ext": "tsx",
+    "title": "src/app/page.tsx",
+    "file": "docs__integrations__ag-ui__03.tsx",
+    "lines": 8,
+    "importsSdk": false,
+    "complete": false,
+    "probe": false,
+    "elided": false,
+    "errors": [
+      {
+        "line": 2,
+        "code": 2304,
+        "kind": "context",
+        "message": "Cannot find name 'useCoAgent'."
+      },
+      {
+        "line": 2,
+        "code": 2304,
+        "kind": "context",
+        "message": "Cannot find name 'AgentState'."
+      }
+    ],
+    "status": "fragment"
+  },
+  {
+    "id": "docs__integrations__agentmail__01",
+    "kind": "block",
+    "page": "docs/integrations/agentmail.md",
+    "line": 82,
+    "source": "docs/integrations/agentmail.md:82",
+    "ext": "ts",
+    "title": null,
+    "file": "docs__integrations__agentmail__01.ts",
+    "lines": 23,
+    "importsSdk": true,
+    "complete": true,
+    "probe": true,
+    "elided": false,
+    "errors": [],
+    "status": "pass"
+  },
+  {
+    "id": "docs__integrations__agentphone__01",
+    "kind": "block",
+    "page": "docs/integrations/agentphone.md",
+    "line": 115,
+    "source": "docs/integrations/agentphone.md:115",
+    "ext": "ts",
+    "title": null,
+    "file": "docs__integrations__agentphone__01.ts",
+    "lines": 23,
+    "importsSdk": true,
+    "complete": true,
+    "probe": true,
+    "elided": false,
+    "errors": [],
+    "status": "pass"
+  },
+  {
+    "id": "docs__integrations__agentphone__02",
+    "kind": "block",
+    "page": "docs/integrations/agentphone.md",
+    "line": 143,
+    "source": "docs/integrations/agentphone.md:143",
+    "ext": "ts",
+    "title": null,
+    "file": "docs__integrations__agentphone__02.ts",
+    "lines": 24,
+    "importsSdk": true,
+    "complete": true,
+    "probe": true,
+    "elided": false,
+    "errors": [],
+    "status": "pass"
+  },
+  {
+    "id": "docs__integrations__asana__01",
+    "kind": "block",
+    "page": "docs/integrations/asana.md",
+    "line": 72,
+    "source": "docs/integrations/asana.md:72",
+    "ext": "ts",
+    "title": null,
+    "file": "docs__integrations__asana__01.ts",
+    "lines": 22,
+    "importsSdk": true,
+    "complete": true,
+    "probe": true,
+    "elided": false,
+    "errors": [],
+    "status": "pass"
+  },
+  {
+    "id": "docs__integrations__atlan__01",
+    "kind": "block",
+    "page": "docs/integrations/atlan.md",
+    "line": 85,
+    "source": "docs/integrations/atlan.md:85",
+    "ext": "ts",
+    "title": null,
+    "file": "docs__integrations__atlan__01.ts",
+    "lines": 22,
+    "importsSdk": true,
+    "complete": true,
+    "probe": true,
+    "elided": false,
+    "errors": [],
+    "status": "pass"
+  },
+  {
+    "id": "docs__integrations__atlassian__01",
+    "kind": "block",
+    "page": "docs/integrations/atlassian.md",
+    "line": 76,
+    "source": "docs/integrations/atlassian.md:76",
+    "ext": "ts",
+    "title": null,
+    "file": "docs__integrations__atlassian__01.ts",
+    "lines": 22,
+    "importsSdk": true,
+    "complete": true,
+    "probe": true,
+    "elided": false,
+    "errors": [],
+    "status": "pass"
+  },
+  {
+    "id": "docs__integrations__carsxe__01",
+    "kind": "block",
+    "page": "docs/integrations/carsxe.md",
+    "line": 81,
+    "source": "docs/integrations/carsxe.md:81",
+    "ext": "ts",
+    "title": null,
+    "file": "docs__integrations__carsxe__01.ts",
+    "lines": 27,
+    "importsSdk": true,
+    "complete": true,
+    "probe": true,
+    "elided": false,
+    "errors": [],
+    "status": "pass"
+  },
+  {
+    "id": "docs__integrations__cartesia__01",
+    "kind": "block",
+    "page": "docs/integrations/cartesia.md",
+    "line": 81,
+    "source": "docs/integrations/cartesia.md:81",
+    "ext": "ts",
+    "title": null,
+    "file": "docs__integrations__cartesia__01.ts",
+    "lines": 24,
+    "importsSdk": true,
+    "complete": true,
+    "probe": true,
+    "elided": false,
+    "errors": [],
+    "status": "pass"
+  },
+  {
+    "id": "docs__integrations__chroma__01",
+    "kind": "block",
+    "page": "docs/integrations/chroma.md",
+    "line": 96,
+    "source": "docs/integrations/chroma.md:96",
+    "ext": "ts",
+    "title": null,
+    "file": "docs__integrations__chroma__01.ts",
+    "lines": 42,
+    "importsSdk": true,
+    "complete": true,
+    "probe": true,
+    "elided": false,
+    "errors": [],
+    "status": "pass"
+  },
+  {
+    "id": "docs__integrations__clickhouse__01",
+    "kind": "block",
+    "page": "docs/integrations/clickhouse.md",
+    "line": 119,
+    "source": "docs/integrations/clickhouse.md:119",
+    "ext": "ts",
+    "title": null,
+    "file": "docs__integrations__clickhouse__01.ts",
+    "lines": 15,
+    "importsSdk": true,
+    "complete": true,
+    "probe": true,
+    "elided": false,
+    "errors": [],
+    "status": "pass"
+  },
+  {
+    "id": "docs__integrations__cloud-trace__01",
+    "kind": "block",
+    "page": "docs/integrations/cloud-trace.md",
+    "line": 170,
+    "source": "docs/integrations/cloud-trace.md:170",
+    "ext": "ts",
+    "title": null,
+    "file": "docs__integrations__cloud-trace__01.ts",
+    "lines": 11,
+    "importsSdk": true,
+    "complete": false,
+    "probe": false,
+    "elided": true,
+    "errors": [],
+    "status": "pass"
+  },
+  {
+    "id": "docs__integrations__copilotkit__01",
+    "kind": "block",
+    "page": "docs/integrations/copilotkit.md",
+    "line": 111,
+    "source": "docs/integrations/copilotkit.md:111",
+    "ext": "ts",
+    "title": "app/api/copilotkit/[[...slug]]/route.ts",
+    "file": "docs__integrations__copilotkit__01.ts",
+    "lines": 26,
+    "importsSdk": false,
+    "complete": false,
+    "probe": false,
+    "elided": false,
+    "errors": [
+      {
+        "line": 2,
+        "code": 2307,
+        "kind": "context",
+        "message": "Cannot find module '@ag-ui/client' or its corresponding type declarations."
+      },
+      {
+        "line": 7,
+        "code": 2307,
+        "kind": "context",
+        "message": "Cannot find module '@copilotkit/runtime/v2' or its corresponding type declarations."
+      },
+      {
+        "line": 8,
+        "code": 2307,
+        "kind": "context",
+        "message": "Cannot find module 'hono/vercel' or its corresponding type declarations."
+      }
+    ],
+    "status": "fragment"
+  },
+  {
+    "id": "docs__integrations__copilotkit__02",
+    "kind": "block",
+    "page": "docs/integrations/copilotkit.md",
+    "line": 145,
+    "source": "docs/integrations/copilotkit.md:145",
+    "ext": "tsx",
+    "title": "app/providers.tsx",
+    "file": "docs__integrations__copilotkit__02.tsx",
+    "lines": 12,
+    "importsSdk": false,
+    "complete": false,
+    "probe": false,
+    "elided": false,
+    "errors": [
+      {
+        "line": 4,
+        "code": 2307,
+        "kind": "context",
+        "message": "Cannot find module '@copilotkit/react-core/v2' or its corresponding type declarations."
+      },
+      {
+        "line": 5,
+        "code": 2882,
+        "kind": "context",
+        "message": "Cannot find module or type declarations for side-effect import of '@copilotkit/react-core/v2/styles.css'."
+      },
+      {
+        "line": 7,
+        "code": 2503,
+        "kind": "context",
+        "message": "Cannot find namespace 'React'."
+      },
+      {
+        "line": 9,
+        "code": 2875,
+        "kind": "context",
+        "message": "This JSX tag requires the module path 'react/jsx-runtime' to exist, but none could be found. Make sure you have types for the appropriate package installed."
+      }
+    ],
+    "status": "fragment"
+  },
+  {
+    "id": "docs__integrations__copilotkit__03",
+    "kind": "block",
+    "page": "docs/integrations/copilotkit.md",
+    "line": 160,
+    "source": "docs/integrations/copilotkit.md:160",
+    "ext": "tsx",
+    "title": "app/page.tsx",
+    "file": "docs__integrations__copilotkit__03.tsx",
+    "lines": 11,
+    "importsSdk": false,
+    "complete": false,
+    "probe": false,
+    "elided": false,
+    "errors": [
+      {
+        "line": 4,
+        "code": 2307,
+        "kind": "context",
+        "message": "Cannot find module '@copilotkit/react-core/v2' or its corresponding type declarations."
+      },
+      {
+        "line": 8,
+        "code": 7026,
+        "kind": "context",
+        "message": "JSX element implicitly has type 'any' because no interface 'JSX.IntrinsicElements' exists."
+      },
+      {
+        "line": 8,
+        "code": 2875,
+        "kind": "context",
+        "message": "This JSX tag requires the module path 'react/jsx-runtime' to exist, but none could be found. Make sure you have types for the appropriate package installed."
+      },
+      {
+        "line": 10,
+        "code": 7026,
+        "kind": "context",
+        "message": "JSX element implicitly has type 'any' because no interface 'JSX.IntrinsicElements' exists."
+      }
+    ],
+    "status": "fragment"
+  },
+  {
+    "id": "docs__integrations__copilotkit__04",
+    "kind": "block",
+    "page": "docs/integrations/copilotkit.md",
+    "line": 182,
+    "source": "docs/integrations/copilotkit.md:182",
+    "ext": "tsx",
+    "title": "app/SearchTool.tsx",
+    "file": "docs__integrations__copilotkit__04.tsx",
+    "lines": 20,
+    "importsSdk": false,
+    "complete": false,
+    "probe": false,
+    "elided": false,
+    "errors": [
+      {
+        "line": 4,
+        "code": 2307,
+        "kind": "context",
+        "message": "Cannot find module '@copilotkit/react-core/v2' or its corresponding type declarations."
+      },
+      {
+        "line": 14,
+        "code": 7031,
+        "kind": "context",
+        "message": "Binding element 'query' implicitly has an 'any' type."
+      }
+    ],
+    "status": "fragment"
+  },
+  {
+    "id": "docs__integrations__copilotkit__05",
+    "kind": "block",
+    "page": "docs/integrations/copilotkit.md",
+    "line": 245,
+    "source": "docs/integrations/copilotkit.md:245",
+    "ext": "ts",
+    "title": "slack-bot.ts",
+    "file": "docs__integrations__copilotkit__05.ts",
+    "lines": 29,
+    "importsSdk": false,
+    "complete": false,
+    "probe": false,
+    "elided": false,
+    "errors": [
+      {
+        "line": 2,
+        "code": 2307,
+        "kind": "context",
+        "message": "Cannot find module '@copilotkit/bot' or its corresponding type declarations."
+      },
+      {
+        "line": 8,
+        "code": 2307,
+        "kind": "context",
+        "message": "Cannot find module '@copilotkit/bot-slack' or its corresponding type declarations."
+      },
+      {
+        "line": 17,
+        "code": 7006,
+        "kind": "context",
+        "message": "Parameter 'threadId' implicitly has an 'any' type."
+      },
+      {
+        "line": 28,
+        "code": 7031,
+        "kind": "context",
+        "message": "Binding element 'thread' implicitly has an 'any' type."
+      }
+    ],
+    "status": "fragment"
+  },
+  {
+    "id": "docs__integrations__couchbase__01",
+    "kind": "block",
+    "page": "docs/integrations/couchbase.md",
+    "line": 86,
+    "source": "docs/integrations/couchbase.md:86",
+    "ext": "ts",
+    "title": null,
+    "file": "docs__integrations__couchbase__01.ts",
+    "lines": 28,
+    "importsSdk": true,
+    "complete": true,
+    "probe": true,
+    "elided": false,
+    "errors": [],
+    "status": "pass"
+  },
+  {
+    "id": "docs__integrations__e2a__01",
+    "kind": "block",
+    "page": "docs/integrations/e2a.md",
+    "line": 89,
+    "source": "docs/integrations/e2a.md:89",
+    "ext": "ts",
+    "title": null,
+    "file": "docs__integrations__e2a__01.ts",
+    "lines": 31,
+    "importsSdk": true,
+    "complete": true,
+    "probe": true,
+    "elided": false,
+    "errors": [],
+    "status": "pass"
+  },
+  {
+    "id": "docs__integrations__elevenlabs__01",
+    "kind": "block",
+    "page": "docs/integrations/elevenlabs.md",
+    "line": 84,
+    "source": "docs/integrations/elevenlabs.md:84",
+    "ext": "ts",
+    "title": null,
+    "file": "docs__integrations__elevenlabs__01.ts",
+    "lines": 23,
+    "importsSdk": true,
+    "complete": true,
+    "probe": true,
+    "elided": false,
+    "errors": [],
+    "status": "pass"
+  },
+  {
+    "id": "docs__integrations__enterprise-web-search__01",
+    "kind": "block",
+    "page": "docs/integrations/enterprise-web-search.md",
+    "line": 79,
+    "source": "docs/integrations/enterprise-web-search.md:79",
+    "ext": "ts",
+    "title": null,
+    "file": "docs__integrations__enterprise-web-search__01.ts",
+    "lines": 10,
+    "importsSdk": true,
+    "complete": true,
+    "probe": true,
+    "elided": false,
+    "errors": [],
+    "status": "pass"
+  },
+  {
+    "id": "docs__integrations__github__01",
+    "kind": "block",
+    "page": "docs/integrations/github.md",
+    "line": 71,
+    "source": "docs/integrations/github.md:71",
+    "ext": "ts",
+    "title": null,
+    "file": "docs__integrations__github__01.ts",
+    "lines": 26,
+    "importsSdk": true,
+    "complete": true,
+    "probe": true,
+    "elided": false,
+    "errors": [],
+    "status": "pass"
+  },
+  {
+    "id": "docs__integrations__gitlab__01",
+    "kind": "block",
+    "page": "docs/integrations/gitlab.md",
+    "line": 86,
+    "source": "docs/integrations/gitlab.md:86",
+    "ext": "ts",
+    "title": null,
+    "file": "docs__integrations__gitlab__01.ts",
+    "lines": 27,
+    "importsSdk": true,
+    "complete": true,
+    "probe": true,
+    "elided": false,
+    "errors": [],
+    "status": "pass"
+  },
+  {
+    "id": "docs__integrations__google-api-toolsets__01",
+    "kind": "block",
+    "page": "docs/integrations/google-api-toolsets.md",
+    "line": 114,
+    "source": "docs/integrations/google-api-toolsets.md:114",
+    "ext": "ts",
+    "title": null,
+    "file": "docs__integrations__google-api-toolsets__01.ts",
+    "lines": 23,
+    "importsSdk": true,
+    "complete": true,
+    "probe": true,
+    "elided": false,
+    "errors": [],
+    "status": "pass"
+  },
+  {
+    "id": "docs__integrations__google-api-toolsets__02",
+    "kind": "block",
+    "page": "docs/integrations/google-api-toolsets.md",
+    "line": 204,
+    "source": "docs/integrations/google-api-toolsets.md:204",
+    "ext": "ts",
+    "title": null,
+    "file": "docs__integrations__google-api-toolsets__02.ts",
+    "lines": 10,
+    "importsSdk": false,
+    "complete": false,
+    "probe": false,
+    "elided": false,
+    "errors": [
+      {
+        "line": 2,
+        "code": 2552,
+        "kind": "context",
+        "message": "Cannot find name 'CalendarToolset'. Did you mean 'calendarToolset'?"
+      }
+    ],
+    "status": "fragment"
+  },
+  {
+    "id": "docs__integrations__google-api-toolsets__03",
+    "kind": "block",
+    "page": "docs/integrations/google-api-toolsets.md",
+    "line": 246,
+    "source": "docs/integrations/google-api-toolsets.md:246",
+    "ext": "ts",
+    "title": null,
+    "file": "docs__integrations__google-api-toolsets__03.ts",
+    "lines": 4,
+    "importsSdk": false,
+    "complete": false,
+    "probe": false,
+    "elided": false,
+    "errors": [
+      {
+        "line": 2,
+        "code": 2552,
+        "kind": "context",
+        "message": "Cannot find name 'DocsToolset'. Did you mean 'docsToolset'?"
+      }
+    ],
+    "status": "fragment"
+  },
+  {
+    "id": "docs__integrations__google-api-toolsets__04",
+    "kind": "block",
+    "page": "docs/integrations/google-api-toolsets.md",
+    "line": 281,
+    "source": "docs/integrations/google-api-toolsets.md:281",
+    "ext": "ts",
+    "title": null,
+    "file": "docs__integrations__google-api-toolsets__04.ts",
+    "lines": 10,
+    "importsSdk": false,
+    "complete": false,
+    "probe": false,
+    "elided": false,
+    "errors": [
+      {
+        "line": 2,
+        "code": 2552,
+        "kind": "context",
+        "message": "Cannot find name 'GmailToolset'. Did you mean 'gmailToolset'?"
+      }
+    ],
+    "status": "fragment"
+  },
+  {
+    "id": "docs__integrations__google-api-toolsets__05",
+    "kind": "block",
+    "page": "docs/integrations/google-api-toolsets.md",
+    "line": 331,
+    "source": "docs/integrations/google-api-toolsets.md:331",
+    "ext": "ts",
+    "title": null,
+    "file": "docs__integrations__google-api-toolsets__05.ts",
+    "lines": 10,
+    "importsSdk": false,
+    "complete": false,
+    "probe": false,
+    "elided": false,
+    "errors": [
+      {
+        "line": 2,
+        "code": 2552,
+        "kind": "context",
+        "message": "Cannot find name 'SheetsToolset'. Did you mean 'sheetsToolset'?"
+      }
+    ],
+    "status": "fragment"
+  },
+  {
+    "id": "docs__integrations__google-api-toolsets__06",
+    "kind": "block",
+    "page": "docs/integrations/google-api-toolsets.md",
+    "line": 370,
+    "source": "docs/integrations/google-api-toolsets.md:370",
+    "ext": "ts",
+    "title": null,
+    "file": "docs__integrations__google-api-toolsets__06.ts",
+    "lines": 4,
+    "importsSdk": false,
+    "complete": false,
+    "probe": false,
+    "elided": false,
+    "errors": [
+      {
+        "line": 2,
+        "code": 2552,
+        "kind": "context",
+        "message": "Cannot find name 'SlidesToolset'. Did you mean 'slidesToolset'?"
+      }
+    ],
+    "status": "fragment"
+  },
+  {
+    "id": "docs__integrations__google-api-toolsets__07",
+    "kind": "block",
+    "page": "docs/integrations/google-api-toolsets.md",
+    "line": 407,
+    "source": "docs/integrations/google-api-toolsets.md:407",
+    "ext": "ts",
+    "title": null,
+    "file": "docs__integrations__google-api-toolsets__07.ts",
+    "lines": 10,
+    "importsSdk": false,
+    "complete": false,
+    "probe": false,
+    "elided": false,
+    "errors": [
+      {
+        "line": 2,
+        "code": 2552,
+        "kind": "context",
+        "message": "Cannot find name 'YoutubeToolset'. Did you mean 'youtubeToolset'?"
+      }
+    ],
+    "status": "fragment"
+  },
+  {
+    "id": "docs__integrations__google-api-toolsets__08",
+    "kind": "block",
+    "page": "docs/integrations/google-api-toolsets.md",
+    "line": 461,
+    "source": "docs/integrations/google-api-toolsets.md:461",
+    "ext": "ts",
+    "title": null,
+    "file": "docs__integrations__google-api-toolsets__08.ts",
+    "lines": 5,
+    "importsSdk": false,
+    "complete": false,
+    "probe": false,
+    "elided": false,
+    "errors": [
+      {
+        "line": 2,
+        "code": 2552,
+        "kind": "context",
+        "message": "Cannot find name 'CalendarToolset'. Did you mean 'calendarToolset'?"
+      }
+    ],
+    "status": "fragment"
+  },
+  {
+    "id": "docs__integrations__google-api-toolsets__09",
+    "kind": "block",
+    "page": "docs/integrations/google-api-toolsets.md",
+    "line": 599,
+    "source": "docs/integrations/google-api-toolsets.md:599",
+    "ext": "ts",
+    "title": null,
+    "file": "docs__integrations__google-api-toolsets__09.ts",
+    "lines": 11,
+    "importsSdk": true,
+    "complete": false,
+    "probe": false,
+    "elided": false,
+    "errors": [],
+    "status": "pass"
+  },
+  {
+    "id": "docs__integrations__google-api-toolsets__10",
+    "kind": "block",
+    "page": "docs/integrations/google-api-toolsets.md",
+    "line": 639,
+    "source": "docs/integrations/google-api-toolsets.md:639",
+    "ext": "ts",
+    "title": null,
+    "file": "docs__integrations__google-api-toolsets__10.ts",
+    "lines": 9,
+    "importsSdk": true,
+    "complete": false,
+    "probe": false,
+    "elided": false,
+    "errors": [],
+    "status": "pass"
+  },
+  {
+    "id": "docs__integrations__google-developer-knowledge__01",
+    "kind": "block",
+    "page": "docs/integrations/google-developer-knowledge.md",
+    "line": 73,
+    "source": "docs/integrations/google-developer-knowledge.md:73",
+    "ext": "ts",
+    "title": null,
+    "file": "docs__integrations__google-developer-knowledge__01.ts",
+    "lines": 24,
+    "importsSdk": true,
+    "complete": true,
+    "probe": true,
+    "elided": false,
+    "errors": [],
+    "status": "pass"
+  },
+  {
+    "id": "docs__integrations__google-search__01",
+    "kind": "block",
+    "page": "docs/integrations/google-search.md",
+    "line": 34,
+    "source": "docs/integrations/google-search.md:34",
+    "ext": "ts",
+    "title": null,
+    "file": "docs__integrations__google-search__01.ts",
+    "lines": 11,
+    "importsSdk": true,
+    "complete": true,
+    "probe": true,
+    "elided": false,
+    "errors": [],
+    "status": "pass"
+  },
+  {
+    "id": "docs__integrations__grafana-cloud__01",
+    "kind": "block",
+    "page": "docs/integrations/grafana-cloud.md",
+    "line": 80,
+    "source": "docs/integrations/grafana-cloud.md:80",
+    "ext": "ts",
+    "title": null,
+    "file": "docs__integrations__grafana-cloud__01.ts",
+    "lines": 24,
+    "importsSdk": true,
+    "complete": true,
+    "probe": true,
+    "elided": false,
+    "errors": [],
+    "status": "pass"
+  },
+  {
+    "id": "docs__integrations__hugging-face__01",
+    "kind": "block",
+    "page": "docs/integrations/hugging-face.md",
+    "line": 101,
+    "source": "docs/integrations/hugging-face.md:101",
+    "ext": "ts",
+    "title": null,
+    "file": "docs__integrations__hugging-face__01.ts",
+    "lines": 23,
+    "importsSdk": true,
+    "complete": true,
+    "probe": true,
+    "elided": false,
+    "errors": [],
+    "status": "pass"
+  },
+  {
+    "id": "docs__integrations__hugging-face__02",
+    "kind": "block",
+    "page": "docs/integrations/hugging-face.md",
+    "line": 129,
+    "source": "docs/integrations/hugging-face.md:129",
+    "ext": "ts",
+    "title": null,
+    "file": "docs__integrations__hugging-face__02.ts",
+    "lines": 24,
+    "importsSdk": true,
+    "complete": true,
+    "probe": true,
+    "elided": false,
+    "errors": [],
+    "status": "pass"
+  },
+  {
+    "id": "docs__integrations__linear__01",
+    "kind": "block",
+    "page": "docs/integrations/linear.md",
+    "line": 117,
+    "source": "docs/integrations/linear.md:117",
+    "ext": "ts",
+    "title": null,
+    "file": "docs__integrations__linear__01.ts",
+    "lines": 18,
+    "importsSdk": true,
+    "complete": true,
+    "probe": true,
+    "elided": false,
+    "errors": [],
+    "status": "pass"
+  },
+  {
+    "id": "docs__integrations__linear__02",
+    "kind": "block",
+    "page": "docs/integrations/linear.md",
+    "line": 147,
+    "source": "docs/integrations/linear.md:147",
+    "ext": "ts",
+    "title": null,
+    "file": "docs__integrations__linear__02.ts",
+    "lines": 24,
+    "importsSdk": true,
+    "complete": true,
+    "probe": true,
+    "elided": false,
+    "errors": [],
+    "status": "pass"
+  },
+  {
+    "id": "docs__integrations__mailgun__01",
+    "kind": "block",
+    "page": "docs/integrations/mailgun.md",
+    "line": 80,
+    "source": "docs/integrations/mailgun.md:80",
+    "ext": "ts",
+    "title": null,
+    "file": "docs__integrations__mailgun__01.ts",
+    "lines": 24,
+    "importsSdk": true,
+    "complete": true,
+    "probe": true,
+    "elided": false,
+    "errors": [],
+    "status": "pass"
+  },
+  {
+    "id": "docs__integrations__markifact__01",
+    "kind": "block",
+    "page": "docs/integrations/markifact.md",
+    "line": 126,
+    "source": "docs/integrations/markifact.md:126",
+    "ext": "ts",
+    "title": null,
+    "file": "docs__integrations__markifact__01.ts",
+    "lines": 27,
+    "importsSdk": true,
+    "complete": true,
+    "probe": true,
+    "elided": false,
+    "errors": [],
+    "status": "pass"
+  },
+  {
+    "id": "docs__integrations__markifact__02",
+    "kind": "block",
+    "page": "docs/integrations/markifact.md",
+    "line": 164,
+    "source": "docs/integrations/markifact.md:164",
+    "ext": "ts",
+    "title": null,
+    "file": "docs__integrations__markifact__02.ts",
+    "lines": 29,
+    "importsSdk": true,
+    "complete": true,
+    "probe": true,
+    "elided": false,
+    "errors": [],
+    "status": "pass"
+  },
+  {
+    "id": "docs__integrations__mcp-toolbox-for-databases__01",
+    "kind": "block",
+    "page": "docs/integrations/mcp-toolbox-for-databases.md",
+    "line": 182,
+    "source": "docs/integrations/mcp-toolbox-for-databases.md:182",
+    "ext": "ts",
+    "title": null,
+    "file": "docs__integrations__mcp-toolbox-for-databases__01.ts",
+    "lines": 44,
+    "importsSdk": true,
+    "complete": true,
+    "probe": false,
+    "elided": false,
+    "errors": [
+      {
+        "line": 4,
+        "code": 2307,
+        "kind": "context",
+        "message": "Cannot find module '@toolbox-sdk/adk' or its corresponding type declarations."
+      }
+    ],
+    "status": "fragment"
+  },
+  {
+    "id": "docs__integrations__mongodb__01",
+    "kind": "block",
+    "page": "docs/integrations/mongodb.md",
+    "line": 92,
+    "source": "docs/integrations/mongodb.md:92",
+    "ext": "ts",
+    "title": null,
+    "file": "docs__integrations__mongodb__01.ts",
+    "lines": 36,
+    "importsSdk": true,
+    "complete": true,
+    "probe": true,
+    "elided": false,
+    "errors": [],
+    "status": "pass"
+  },
+  {
+    "id": "docs__integrations__n8n__01",
+    "kind": "block",
+    "page": "docs/integrations/n8n.md",
+    "line": 127,
+    "source": "docs/integrations/n8n.md:127",
+    "ext": "ts",
+    "title": null,
+    "file": "docs__integrations__n8n__01.ts",
+    "lines": 28,
+    "importsSdk": true,
+    "complete": true,
+    "probe": true,
+    "elided": false,
+    "errors": [],
+    "status": "pass"
+  },
+  {
+    "id": "docs__integrations__n8n__02",
+    "kind": "block",
+    "page": "docs/integrations/n8n.md",
+    "line": 160,
+    "source": "docs/integrations/n8n.md:160",
+    "ext": "ts",
+    "title": null,
+    "file": "docs__integrations__n8n__02.ts",
+    "lines": 25,
+    "importsSdk": true,
+    "complete": true,
+    "probe": true,
+    "elided": false,
+    "errors": [],
+    "status": "pass"
+  },
+  {
+    "id": "docs__integrations__notion__01",
+    "kind": "block",
+    "page": "docs/integrations/notion.md",
+    "line": 88,
+    "source": "docs/integrations/notion.md:88",
+    "ext": "ts",
+    "title": null,
+    "file": "docs__integrations__notion__01.ts",
+    "lines": 23,
+    "importsSdk": true,
+    "complete": true,
+    "probe": true,
+    "elided": false,
+    "errors": [],
+    "status": "pass"
+  },
+  {
+    "id": "docs__integrations__paypal__01",
+    "kind": "block",
+    "page": "docs/integrations/paypal.md",
+    "line": 116,
+    "source": "docs/integrations/paypal.md:116",
+    "ext": "ts",
+    "title": null,
+    "file": "docs__integrations__paypal__01.ts",
+    "lines": 31,
+    "importsSdk": true,
+    "complete": true,
+    "probe": true,
+    "elided": false,
+    "errors": [],
+    "status": "pass"
+  },
+  {
+    "id": "docs__integrations__pinecone__01",
+    "kind": "block",
+    "page": "docs/integrations/pinecone.md",
+    "line": 78,
+    "source": "docs/integrations/pinecone.md:78",
+    "ext": "ts",
+    "title": null,
+    "file": "docs__integrations__pinecone__01.ts",
+    "lines": 23,
+    "importsSdk": true,
+    "complete": true,
+    "probe": true,
+    "elided": false,
+    "errors": [],
+    "status": "pass"
+  },
+  {
+    "id": "docs__integrations__postman__01",
+    "kind": "block",
+    "page": "docs/integrations/postman.md",
+    "line": 113,
+    "source": "docs/integrations/postman.md:113",
+    "ext": "ts",
+    "title": null,
+    "file": "docs__integrations__postman__01.ts",
+    "lines": 29,
+    "importsSdk": true,
+    "complete": true,
+    "probe": true,
+    "elided": false,
+    "errors": [],
+    "status": "pass"
+  },
+  {
+    "id": "docs__integrations__postman__02",
+    "kind": "block",
+    "page": "docs/integrations/postman.md",
+    "line": 147,
+    "source": "docs/integrations/postman.md:147",
+    "ext": "ts",
+    "title": null,
+    "file": "docs__integrations__postman__02.ts",
+    "lines": 27,
+    "importsSdk": true,
+    "complete": true,
+    "probe": true,
+    "elided": false,
+    "errors": [],
+    "status": "pass"
+  },
+  {
+    "id": "docs__integrations__qdrant__01",
+    "kind": "block",
+    "page": "docs/integrations/qdrant.md",
+    "line": 79,
+    "source": "docs/integrations/qdrant.md:79",
+    "ext": "ts",
+    "title": null,
+    "file": "docs__integrations__qdrant__01.ts",
+    "lines": 27,
+    "importsSdk": true,
+    "complete": true,
+    "probe": true,
+    "elided": false,
+    "errors": [],
+    "status": "pass"
+  },
+  {
+    "id": "docs__integrations__stripe__01",
+    "kind": "block",
+    "page": "docs/integrations/stripe.md",
+    "line": 108,
+    "source": "docs/integrations/stripe.md:108",
+    "ext": "ts",
+    "title": null,
+    "file": "docs__integrations__stripe__01.ts",
+    "lines": 29,
+    "importsSdk": true,
+    "complete": true,
+    "probe": true,
+    "elided": false,
+    "errors": [],
+    "status": "pass"
+  },
+  {
+    "id": "docs__integrations__stripe__02",
+    "kind": "block",
+    "page": "docs/integrations/stripe.md",
+    "line": 142,
+    "source": "docs/integrations/stripe.md:142",
+    "ext": "ts",
+    "title": null,
+    "file": "docs__integrations__stripe__02.ts",
+    "lines": 24,
+    "importsSdk": true,
+    "complete": true,
+    "probe": true,
+    "elided": false,
+    "errors": [],
+    "status": "pass"
+  },
+  {
+    "id": "docs__integrations__supermetrics__01",
+    "kind": "block",
+    "page": "docs/integrations/supermetrics.md",
+    "line": 78,
+    "source": "docs/integrations/supermetrics.md:78",
+    "ext": "ts",
+    "title": null,
+    "file": "docs__integrations__supermetrics__01.ts",
+    "lines": 24,
+    "importsSdk": true,
+    "complete": true,
+    "probe": true,
+    "elided": false,
+    "errors": [],
+    "status": "pass"
+  },
+  {
+    "id": "docs__integrations__windsor-ai__01",
+    "kind": "block",
+    "page": "docs/integrations/windsor-ai.md",
+    "line": 73,
+    "source": "docs/integrations/windsor-ai.md:73",
+    "ext": "ts",
+    "title": null,
+    "file": "docs__integrations__windsor-ai__01.ts",
+    "lines": 24,
+    "importsSdk": true,
+    "complete": true,
+    "probe": true,
+    "elided": false,
+    "errors": [],
+    "status": "pass"
+  },
+  {
+    "id": "docs__integrations__zespan__01",
+    "kind": "block",
+    "page": "docs/integrations/zespan.md",
+    "line": 140,
+    "source": "docs/integrations/zespan.md:140",
+    "ext": "ts",
+    "title": null,
+    "file": "docs__integrations__zespan__01.ts",
+    "lines": 41,
+    "importsSdk": true,
+    "complete": true,
+    "probe": false,
+    "elided": false,
+    "errors": [
+      {
+        "line": 2,
+        "code": 2307,
+        "kind": "context",
+        "message": "Cannot find module '@zespan/sdk' or its corresponding type declarations."
+      },
+      {
+        "line": 25,
+        "code": 2322,
+        "kind": "api",
+        "message": "Type '(city: string) => object' is not assignable to type 'ToolUnion'."
+      }
+    ],
+    "status": "api-mismatch"
+  },
+  {
+    "id": "docs__integrations__zespan__02",
+    "kind": "block",
+    "page": "docs/integrations/zespan.md",
+    "line": 187,
+    "source": "docs/integrations/zespan.md:187",
+    "ext": "ts",
+    "title": null,
+    "file": "docs__integrations__zespan__02.ts",
+    "lines": 26,
+    "importsSdk": true,
+    "complete": true,
+    "probe": false,
+    "elided": false,
+    "errors": [
+      {
+        "line": 2,
+        "code": 2307,
+        "kind": "context",
+        "message": "Cannot find module '@zespan/sdk' or its corresponding type declarations."
+      },
+      {
+        "line": 14,
+        "code": 2304,
+        "kind": "context",
+        "message": "Cannot find name 'getWeather'."
+      },
+      {
+        "line": 24,
+        "code": 2339,
+        "kind": "context",
+        "message": "Property 'isFinalResponse' does not exist on type 'Event'."
+      },
+      {
+        "line": 25,
+        "code": 18048,
+        "kind": "context",
+        "message": "'event.content' is possibly 'undefined'."
+      },
+      {
+        "line": 25,
+        "code": 18048,
+        "kind": "context",
+        "message": "'event.content.parts' is possibly 'undefined'."
+      }
+    ],
+    "status": "fragment"
+  },
+  {
+    "id": "docs__integrations__zespan__03",
+    "kind": "block",
+    "page": "docs/integrations/zespan.md",
+    "line": 247,
+    "source": "docs/integrations/zespan.md:247",
+    "ext": "ts",
+    "title": null,
+    "file": "docs__integrations__zespan__03.ts",
+    "lines": 16,
+    "importsSdk": false,
+    "complete": false,
+    "probe": false,
+    "elided": false,
+    "errors": [
+      {
+        "line": 2,
+        "code": 2304,
+        "kind": "context",
+        "message": "Cannot find name 'LlmAgent'."
+      },
+      {
+        "line": 5,
+        "code": 2304,
+        "kind": "context",
+        "message": "Cannot find name 'lookupTool'."
+      },
+      {
+        "line": 8,
+        "code": 2304,
+        "kind": "context",
+        "message": "Cannot find name 'LlmAgent'."
+      },
+      {
+        "line": 14,
+        "code": 2304,
+        "kind": "context",
+        "message": "Cannot find name 'instrumentADK'."
+      },
+      {
+        "line": 16,
+        "code": 2304,
+        "kind": "context",
+        "message": "Cannot find name 'InMemoryRunner'."
+      }
+    ],
+    "status": "fragment"
+  },
+  {
+    "id": "docs__integrations__zespan__04",
+    "kind": "block",
+    "page": "docs/integrations/zespan.md",
+    "line": 268,
+    "source": "docs/integrations/zespan.md:268",
+    "ext": "ts",
+    "title": null,
+    "file": "docs__integrations__zespan__04.ts",
+    "lines": 15,
+    "importsSdk": false,
+    "complete": false,
+    "probe": false,
+    "elided": false,
+    "errors": [
+      {
+        "line": 2,
+        "code": 2304,
+        "kind": "context",
+        "message": "Cannot find name 'ZespanADKCallbackHandler'."
+      },
+      {
+        "line": 4,
+        "code": 2304,
+        "kind": "context",
+        "message": "Cannot find name 'LlmAgent'."
+      },
+      {
+        "line": 7,
+        "code": 2304,
+        "kind": "context",
+        "message": "Cannot find name 'lookupTool'."
+      },
+      {
+        "line": 11,
+        "code": 2304,
+        "kind": "context",
+        "message": "Cannot find name 'LlmAgent'."
+      }
+    ],
+    "status": "fragment"
+  },
+  {
+    "id": "docs__integrations__zoominfo__01",
+    "kind": "block",
+    "page": "docs/integrations/zoominfo.md",
+    "line": 79,
+    "source": "docs/integrations/zoominfo.md:79",
+    "ext": "ts",
+    "title": null,
+    "file": "docs__integrations__zoominfo__01.ts",
+    "lines": 22,
+    "importsSdk": true,
+    "complete": true,
+    "probe": true,
+    "elided": false,
+    "errors": [],
+    "status": "pass"
+  },
+  {
+    "id": "docs__live__custom-server__01",
+    "kind": "block",
+    "page": "docs/live/custom-server.md",
+    "line": 203,
+    "source": "docs/live/custom-server.md:203",
+    "ext": "ts",
+    "title": null,
+    "file": "docs__live__custom-server__01.ts",
+    "lines": 16,
+    "importsSdk": false,
+    "complete": false,
+    "probe": false,
+    "elided": false,
+    "errors": [
+      {
+        "line": 2,
+        "code": 2552,
+        "kind": "context",
+        "message": "Cannot find name 'websocket'. Did you mean 'WebSocket'?"
+      },
+      {
+        "line": 2,
+        "code": 7006,
+        "kind": "context",
+        "message": "Parameter 'message' implicitly has an 'any' type."
+      },
+      {
+        "line": 5,
+        "code": 2304,
+        "kind": "context",
+        "message": "Cannot find name 'stopAudioPlayback'."
+      },
+      {
+        "line": 6,
+        "code": 2304,
+        "kind": "context",
+        "message": "Cannot find name 'finishCurrentBubble'."
+      },
+      {
+        "line": 10,
+        "code": 2304,
+        "kind": "context",
+        "message": "Cannot find name 'finishCurrentBubble'."
+      },
+      {
+        "line": 14,
+        "code": 2304,
+        "kind": "context",
+        "message": "Cannot find name 'appendText'."
+      },
+      {
+        "line": 15,
+        "code": 2304,
+        "kind": "context",
+        "message": "Cannot find name 'enqueueAudio'."
+      }
+    ],
+    "status": "fragment"
+  },
+  {
+    "id": "docs__plugins__index__01",
+    "kind": "block",
+    "page": "docs/plugins/index.md",
+    "line": 141,
+    "source": "docs/plugins/index.md:141",
+    "ext": "ts",
+    "title": "count_plugin.ts",
+    "file": "docs__plugins__index__01.ts",
+    "lines": 41,
+    "importsSdk": true,
+    "complete": false,
+    "probe": false,
+    "elided": false,
+    "errors": [
+      {
+        "line": 22,
+        "code": 2416,
+        "kind": "api",
+        "message": "Property 'beforeAgentCallback' in type 'CountInvocationPlugin' is not assignable to the same property in base type 'BasePlugin'."
+      },
+      {
+        "line": 34,
+        "code": 2416,
+        "kind": "api",
+        "message": "Property 'beforeModelCallback' in type 'CountInvocationPlugin' is not assignable to the same property in base type 'BasePlugin'."
+      }
+    ],
+    "status": "api-mismatch"
+  },
+  {
+    "id": "docs__plugins__index__02",
+    "kind": "block",
+    "page": "docs/plugins/index.md",
+    "line": 361,
+    "source": "docs/plugins/index.md:361",
+    "ext": "ts",
+    "title": null,
+    "file": "docs__plugins__index__02.ts",
+    "lines": 69,
+    "importsSdk": true,
+    "complete": true,
+    "probe": false,
+    "elided": false,
+    "errors": [
+      {
+        "line": 7,
+        "code": 2307,
+        "kind": "context",
+        "message": "Cannot find module './count_plugin.ts' or its corresponding type declarations."
+      }
+    ],
+    "status": "fragment"
+  },
+  {
+    "id": "docs__plugins__index__03",
+    "kind": "block",
+    "page": "docs/plugins/index.md",
+    "line": 836,
+    "source": "docs/plugins/index.md:836",
+    "ext": "ts",
+    "title": null,
+    "file": "docs__plugins__index__03.ts",
+    "lines": 6,
+    "importsSdk": false,
+    "complete": false,
+    "probe": false,
+    "elided": false,
+    "errors": [
+      {
+        "line": 2,
+        "code": 1434,
+        "kind": "syntax",
+        "message": "Unexpected keyword or identifier."
+      },
+      {
+        "line": 3,
+        "code": 1005,
+        "kind": "syntax",
+        "message": "',' expected."
+      },
+      {
+        "line": 4,
+        "code": 1005,
+        "kind": "syntax",
+        "message": "',' expected."
+      },
+      {
+        "line": 5,
+        "code": 1005,
+        "kind": "syntax",
+        "message": "';' expected."
+      }
+    ],
+    "status": "syntax"
+  },
+  {
+    "id": "docs__plugins__index__04",
+    "kind": "block",
+    "page": "docs/plugins/index.md",
+    "line": 894,
+    "source": "docs/plugins/index.md:894",
+    "ext": "ts",
+    "title": null,
+    "file": "docs__plugins__index__04.ts",
+    "lines": 3,
+    "importsSdk": false,
+    "complete": false,
+    "probe": false,
+    "elided": false,
+    "errors": [
+      {
+        "line": 2,
+        "code": 1434,
+        "kind": "syntax",
+        "message": "Unexpected keyword or identifier."
+      },
+      {
+        "line": 2,
+        "code": 1005,
+        "kind": "syntax",
+        "message": "',' expected."
+      },
+      {
+        "line": 2,
+        "code": 1005,
+        "kind": "syntax",
+        "message": "';' expected."
+      }
+    ],
+    "status": "syntax"
+  },
+  {
+    "id": "docs__plugins__index__05",
+    "kind": "block",
+    "page": "docs/plugins/index.md",
+    "line": 990,
+    "source": "docs/plugins/index.md:990",
+    "ext": "ts",
+    "title": null,
+    "file": "docs__plugins__index__05.ts",
+    "lines": 7,
+    "importsSdk": false,
+    "complete": false,
+    "probe": false,
+    "elided": false,
+    "errors": [
+      {
+        "line": 2,
+        "code": 1434,
+        "kind": "syntax",
+        "message": "Unexpected keyword or identifier."
+      },
+      {
+        "line": 3,
+        "code": 1005,
+        "kind": "syntax",
+        "message": "',' expected."
+      },
+      {
+        "line": 4,
+        "code": 1005,
+        "kind": "syntax",
+        "message": "',' expected."
+      },
+      {
+        "line": 5,
+        "code": 1005,
+        "kind": "syntax",
+        "message": "',' expected."
+      },
+      {
+        "line": 6,
+        "code": 1005,
+        "kind": "syntax",
+        "message": "';' expected."
+      }
+    ],
+    "status": "syntax"
+  },
+  {
+    "id": "docs__plugins__index__06",
+    "kind": "block",
+    "page": "docs/plugins/index.md",
+    "line": 1070,
+    "source": "docs/plugins/index.md:1070",
+    "ext": "ts",
+    "title": null,
+    "file": "docs__plugins__index__06.ts",
+    "lines": 8,
+    "importsSdk": false,
+    "complete": false,
+    "probe": false,
+    "elided": false,
+    "errors": [
+      {
+        "line": 2,
+        "code": 1434,
+        "kind": "syntax",
+        "message": "Unexpected keyword or identifier."
+      },
+      {
+        "line": 3,
+        "code": 1005,
+        "kind": "syntax",
+        "message": "',' expected."
+      },
+      {
+        "line": 4,
+        "code": 1005,
+        "kind": "syntax",
+        "message": "',' expected."
+      },
+      {
+        "line": 4,
+        "code": 1005,
+        "kind": "syntax",
+        "message": "']' expected."
+      },
+      {
+        "line": 4,
+        "code": 1005,
+        "kind": "syntax",
+        "message": "',' expected."
+      },
+      {
+        "line": 4,
+        "code": 1136,
+        "kind": "syntax",
+        "message": "Property assignment expected."
+      },
+      {
+        "line": 5,
+        "code": 1005,
+        "kind": "syntax",
+        "message": "',' expected."
+      },
+      {
+        "line": 6,
+        "code": 1005,
+        "kind": "syntax",
+        "message": "',' expected."
+      },
+      {
+        "line": 7,
+        "code": 1005,
+        "kind": "syntax",
+        "message": "';' expected."
+      },
+      {
+        "line": 7,
+        "code": 1005,
+        "kind": "syntax",
+        "message": "']' expected."
+      },
+      {
+        "line": 7,
+        "code": 1005,
+        "kind": "syntax",
+        "message": "',' expected."
+      },
+      {
+        "line": 7,
+        "code": 1136,
+        "kind": "syntax",
+        "message": "Property assignment expected."
+      }
+    ],
+    "status": "syntax"
+  },
+  {
+    "id": "docs__plugins__index__07",
+    "kind": "block",
+    "page": "docs/plugins/index.md",
+    "line": 1130,
+    "source": "docs/plugins/index.md:1130",
+    "ext": "ts",
+    "title": null,
+    "file": "docs__plugins__index__07.ts",
+    "lines": 6,
+    "importsSdk": false,
+    "complete": false,
+    "probe": false,
+    "elided": false,
+    "errors": [
+      {
+        "line": 2,
+        "code": 1434,
+        "kind": "syntax",
+        "message": "Unexpected keyword or identifier."
+      },
+      {
+        "line": 3,
+        "code": 1005,
+        "kind": "syntax",
+        "message": "',' expected."
+      },
+      {
+        "line": 4,
+        "code": 1005,
+        "kind": "syntax",
+        "message": "',' expected."
+      },
+      {
+        "line": 5,
+        "code": 1005,
+        "kind": "syntax",
+        "message": "';' expected."
+      }
+    ],
+    "status": "syntax"
+  },
+  {
+    "id": "docs__plugins__index__08",
+    "kind": "block",
+    "page": "docs/plugins/index.md",
+    "line": 1185,
+    "source": "docs/plugins/index.md:1185",
+    "ext": "ts",
+    "title": null,
+    "file": "docs__plugins__index__08.ts",
+    "lines": 3,
+    "importsSdk": false,
+    "complete": false,
+    "probe": false,
+    "elided": false,
+    "errors": [
+      {
+        "line": 2,
+        "code": 1434,
+        "kind": "syntax",
+        "message": "Unexpected keyword or identifier."
+      },
+      {
+        "line": 2,
+        "code": 1005,
+        "kind": "syntax",
+        "message": "',' expected."
+      },
+      {
+        "line": 2,
+        "code": 1005,
+        "kind": "syntax",
+        "message": "';' expected."
+      },
+      {
+        "line": 2,
+        "code": 1109,
+        "kind": "syntax",
+        "message": "Expression expected."
+      }
+    ],
+    "status": "syntax"
+  },
+  {
+    "id": "docs__runtime__event-loop__01",
+    "kind": "block",
+    "page": "docs/runtime/event-loop.md",
+    "line": 72,
+    "source": "docs/runtime/event-loop.md:72",
+    "ext": "ts",
+    "title": null,
+    "file": "docs__runtime__event-loop__01.ts",
+    "lines": 23,
+    "importsSdk": false,
+    "complete": false,
+    "probe": false,
+    "elided": false,
+    "errors": [
+      {
+        "line": 3,
+        "code": 1005,
+        "kind": "syntax",
+        "message": "',' expected."
+      },
+      {
+        "line": 3,
+        "code": 1109,
+        "kind": "syntax",
+        "message": "Expression expected."
+      },
+      {
+        "line": 3,
+        "code": 1005,
+        "kind": "syntax",
+        "message": "';' expected."
+      },
+      {
+        "line": 3,
+        "code": 1109,
+        "kind": "syntax",
+        "message": "Expression expected."
+      },
+      {
+        "line": 3,
+        "code": 1109,
+        "kind": "syntax",
+        "message": "Expression expected."
+      },
+      {
+        "line": 5,
+        "code": 1005,
+        "kind": "syntax",
+        "message": "':' expected."
+      },
+      {
+        "line": 8,
+        "code": 1005,
+        "kind": "syntax",
+        "message": "',' expected."
+      },
+      {
+        "line": 11,
+        "code": 1005,
+        "kind": "syntax",
+        "message": "':' expected."
+      },
+      {
+        "line": 11,
+        "code": 1005,
+        "kind": "syntax",
+        "message": "',' expected."
+      },
+      {
+        "line": 13,
+        "code": 1005,
+        "kind": "syntax",
+        "message": "':' expected."
+      },
+      {
+        "line": 13,
+        "code": 1109,
+        "kind": "syntax",
+        "message": "Expression expected."
+      },
+      {
+        "line": 13,
+        "code": 1005,
+        "kind": "syntax",
+        "message": "':' expected."
+      },
+      {
+        "line": 13,
+        "code": 1005,
+        "kind": "syntax",
+        "message": "',' expected."
+      },
+      {
+        "line": 13,
+        "code": 1005,
+        "kind": "syntax",
+        "message": "',' expected."
+      },
+      {
+        "line": 13,
+        "code": 1005,
+        "kind": "syntax",
+        "message": "',' expected."
+      },
+      {
+        "line": 13,
+        "code": 1136,
+        "kind": "syntax",
+        "message": "Property assignment expected."
+      },
+      {
+        "line": 16,
+        "code": 1005,
+        "kind": "syntax",
+        "message": "':' expected."
+      },
+      {
+        "line": 16,
+        "code": 1005,
+        "kind": "syntax",
+        "message": "',' expected."
+      },
+      {
+        "line": 21,
+        "code": 1005,
+        "kind": "syntax",
+        "message": "',' expected."
+      },
+      {
+        "line": 21,
+        "code": 1005,
+        "kind": "syntax",
+        "message": "',' expected."
+      },
+      {
+        "line": 24,
+        "code": 1109,
+        "kind": "syntax",
+        "message": "Expression expected."
+      }
+    ],
+    "status": "syntax"
+  },
+  {
+    "id": "docs__runtime__event-loop__02",
+    "kind": "block",
+    "page": "docs/runtime/event-loop.md",
+    "line": 236,
+    "source": "docs/runtime/event-loop.md:236",
+    "ext": "ts",
+    "title": null,
+    "file": "docs__runtime__event-loop__02.ts",
+    "lines": 29,
+    "importsSdk": false,
+    "complete": false,
+    "probe": false,
+    "elided": true,
+    "errors": [
+      {
+        "line": 9,
+        "code": 2304,
+        "kind": "context",
+        "message": "Cannot find name 'createEvent'."
+      },
+      {
+        "line": 10,
+        "code": 2532,
+        "kind": "other",
+        "message": "Object is possibly 'undefined'."
+      },
+      {
+        "line": 11,
+        "code": 2304,
+        "kind": "context",
+        "message": "Cannot find name 'createEventActions'."
+      },
+      {
+        "line": 17,
+        "code": 1163,
+        "kind": "syntax",
+        "message": "A 'yield' expression is only allowed in a generator body."
+      },
+      {
+        "line": 25,
+        "code": 2304,
+        "kind": "context",
+        "message": "Cannot find name 'ctx'."
+      }
+    ],
+    "status": "syntax"
+  },
+  {
+    "id": "docs__runtime__event-loop__03",
+    "kind": "block",
+    "page": "docs/runtime/event-loop.md",
+    "line": 495,
+    "source": "docs/runtime/event-loop.md:495",
+    "ext": "ts",
+    "title": null,
+    "file": "docs__runtime__event-loop__03.ts",
+    "lines": 20,
+    "importsSdk": false,
+    "complete": false,
+    "probe": false,
+    "elided": true,
+    "errors": [
+      {
+        "line": 6,
+        "code": 2304,
+        "kind": "context",
+        "message": "Cannot find name 'ctx'."
+      },
+      {
+        "line": 9,
+        "code": 2304,
+        "kind": "context",
+        "message": "Cannot find name 'createEvent'."
+      },
+      {
+        "line": 10,
+        "code": 2304,
+        "kind": "context",
+        "message": "Cannot find name 'createEventActions'."
+      },
+      {
+        "line": 15,
+        "code": 1163,
+        "kind": "syntax",
+        "message": "A 'yield' expression is only allowed in a generator body."
+      },
+      {
+        "line": 20,
+        "code": 2304,
+        "kind": "context",
+        "message": "Cannot find name 'ctx'."
+      }
+    ],
+    "status": "syntax"
+  },
+  {
+    "id": "docs__runtime__event-loop__04",
+    "kind": "block",
+    "page": "docs/runtime/event-loop.md",
+    "line": 634,
+    "source": "docs/runtime/event-loop.md:634",
+    "ext": "ts",
+    "title": null,
+    "file": "docs__runtime__event-loop__04.ts",
+    "lines": 13,
+    "importsSdk": false,
+    "complete": false,
+    "probe": false,
+    "elided": false,
+    "errors": [
+      {
+        "line": 3,
+        "code": 2304,
+        "kind": "context",
+        "message": "Cannot find name 'callbackContext'."
+      },
+      {
+        "line": 10,
+        "code": 2304,
+        "kind": "context",
+        "message": "Cannot find name 'toolContext'."
+      }
+    ],
+    "status": "fragment"
+  },
+  {
+    "id": "docs__runtime__runconfig__01",
+    "kind": "block",
+    "page": "docs/runtime/runconfig.md",
+    "line": 30,
+    "source": "docs/runtime/runconfig.md:30",
+    "ext": "ts",
+    "title": null,
+    "file": "docs__runtime__runconfig__01.ts",
+    "lines": 6,
+    "importsSdk": true,
+    "complete": false,
+    "probe": false,
+    "elided": false,
+    "errors": [],
+    "status": "pass"
+  },
+  {
+    "id": "docs__runtime__runconfig__02",
+    "kind": "block",
+    "page": "docs/runtime/runconfig.md",
+    "line": 139,
+    "source": "docs/runtime/runconfig.md:139",
+    "ext": "ts",
+    "title": null,
+    "file": "docs__runtime__runconfig__02.ts",
+    "lines": 6,
+    "importsSdk": true,
+    "complete": false,
+    "probe": false,
+    "elided": false,
+    "errors": [],
+    "status": "pass"
+  },
+  {
+    "id": "docs__runtime__runconfig__03",
+    "kind": "block",
+    "page": "docs/runtime/runconfig.md",
+    "line": 225,
+    "source": "docs/runtime/runconfig.md:225",
+    "ext": "ts",
+    "title": null,
+    "file": "docs__runtime__runconfig__03.ts",
+    "lines": 16,
+    "importsSdk": true,
+    "complete": false,
+    "probe": false,
+    "elided": false,
+    "errors": [],
+    "status": "pass"
+  },
+  {
+    "id": "docs__runtime__runconfig__04",
+    "kind": "block",
+    "page": "docs/runtime/runconfig.md",
+    "line": 318,
+    "source": "docs/runtime/runconfig.md:318",
+    "ext": "ts",
+    "title": null,
+    "file": "docs__runtime__runconfig__04.ts",
+    "lines": 8,
+    "importsSdk": true,
+    "complete": false,
+    "probe": false,
+    "elided": false,
+    "errors": [],
+    "status": "pass"
+  },
+  {
+    "id": "docs__safety__index__01",
+    "kind": "block",
+    "page": "docs/safety/index.md",
+    "line": 100,
+    "source": "docs/safety/index.md:100",
+    "ext": "ts",
+    "title": null,
+    "file": "docs__safety__index__01.ts",
+    "lines": 16,
+    "importsSdk": false,
+    "complete": false,
+    "probe": false,
+    "elided": false,
+    "errors": [
+      {
+        "line": 13,
+        "code": 2304,
+        "kind": "context",
+        "message": "Cannot find name 'invocationContext'."
+      },
+      {
+        "line": 16,
+        "code": 2552,
+        "kind": "context",
+        "message": "Cannot find name 'QueryTool'. Did you mean 'queryTool'?"
+      }
+    ],
+    "status": "fragment"
+  },
+  {
+    "id": "docs__safety__index__02",
+    "kind": "block",
+    "page": "docs/safety/index.md",
+    "line": 193,
+    "source": "docs/safety/index.md:193",
+    "ext": "ts",
+    "title": null,
+    "file": "docs__safety__index__02.ts",
+    "lines": 26,
+    "importsSdk": false,
+    "complete": false,
+    "probe": false,
+    "elided": false,
+    "errors": [
+      {
+        "line": 2,
+        "code": 2304,
+        "kind": "context",
+        "message": "Cannot find name 'Context'."
+      },
+      {
+        "line": 7,
+        "code": 2304,
+        "kind": "context",
+        "message": "Cannot find name 'explainQuery'."
+      },
+      {
+        "line": 10,
+        "code": 7006,
+        "kind": "context",
+        "message": "Parameter 'table' implicitly has an 'any' type."
+      }
+    ],
+    "status": "fragment"
+  },
+  {
+    "id": "docs__safety__index__03",
+    "kind": "block",
+    "page": "docs/safety/index.md",
+    "line": 449,
+    "source": "docs/safety/index.md:449",
+    "ext": "ts",
+    "title": null,
+    "file": "docs__safety__index__03.ts",
+    "lines": 36,
+    "importsSdk": false,
+    "complete": false,
+    "probe": false,
+    "elided": true,
+    "errors": [
+      {
+        "line": 5,
+        "code": 2304,
+        "kind": "context",
+        "message": "Cannot find name 'BaseTool'."
+      },
+      {
+        "line": 7,
+        "code": 2304,
+        "kind": "context",
+        "message": "Cannot find name 'Context'."
+      },
+      {
+        "line": 28,
+        "code": 2304,
+        "kind": "context",
+        "message": "Cannot find name 'LlmAgent'."
+      }
+    ],
+    "status": "fragment"
+  },
+  {
+    "id": "docs__sessions__memory__01",
+    "kind": "block",
+    "page": "docs/sessions/memory.md",
+    "line": 77,
+    "source": "docs/sessions/memory.md:77",
+    "ext": "ts",
+    "title": null,
+    "file": "docs__sessions__memory__01.ts",
+    "lines": 2,
+    "importsSdk": true,
+    "complete": false,
+    "probe": false,
+    "elided": false,
+    "errors": [],
+    "status": "pass"
+  },
+  {
+    "id": "docs__sessions__memory__02",
+    "kind": "block",
+    "page": "docs/sessions/memory.md",
+    "line": 258,
+    "source": "docs/sessions/memory.md:258",
+    "ext": "ts",
+    "title": null,
+    "file": "docs__sessions__memory__02.ts",
+    "lines": 9,
+    "importsSdk": false,
+    "complete": false,
+    "probe": false,
+    "elided": false,
+    "errors": [
+      {
+        "line": 3,
+        "code": 1434,
+        "kind": "syntax",
+        "message": "Unexpected keyword or identifier."
+      },
+      {
+        "line": 3,
+        "code": 1005,
+        "kind": "syntax",
+        "message": "',' expected."
+      },
+      {
+        "line": 3,
+        "code": 1005,
+        "kind": "syntax",
+        "message": "';' expected."
+      }
+    ],
+    "status": "syntax"
+  },
+  {
+    "id": "docs__sessions__memory__03",
+    "kind": "block",
+    "page": "docs/sessions/memory.md",
+    "line": 476,
+    "source": "docs/sessions/memory.md:476",
+    "ext": "ts",
+    "title": null,
+    "file": "docs__sessions__memory__03.ts",
+    "lines": 8,
+    "importsSdk": true,
+    "complete": false,
+    "probe": false,
+    "elided": false,
+    "errors": [
+      {
+        "line": 5,
+        "code": 2304,
+        "kind": "context",
+        "message": "Cannot find name 'MODEL_ID'."
+      }
+    ],
+    "status": "fragment"
+  },
+  {
+    "id": "docs__sessions__memory__04",
+    "kind": "block",
+    "page": "docs/sessions/memory.md",
+    "line": 547,
+    "source": "docs/sessions/memory.md:547",
+    "ext": "ts",
+    "title": null,
+    "file": "docs__sessions__memory__04.ts",
+    "lines": 17,
+    "importsSdk": true,
+    "complete": false,
+    "probe": false,
+    "elided": false,
+    "errors": [
+      {
+        "line": 13,
+        "code": 2304,
+        "kind": "context",
+        "message": "Cannot find name 'MODEL'."
+      }
+    ],
+    "status": "fragment"
+  },
+  {
+    "id": "docs__sessions__session__index__01",
+    "kind": "block",
+    "page": "docs/sessions/session/index.md",
+    "line": 73,
+    "source": "docs/sessions/session/index.md:73",
+    "ext": "ts",
+    "title": null,
+    "file": "docs__sessions__session__index__01.ts",
+    "lines": 26,
+    "importsSdk": true,
+    "complete": false,
+    "probe": false,
+    "elided": false,
+    "errors": [],
+    "status": "pass"
+  },
+  {
+    "id": "docs__sessions__session__index__02",
+    "kind": "block",
+    "page": "docs/sessions/session/index.md",
+    "line": 251,
+    "source": "docs/sessions/session/index.md:251",
+    "ext": "ts",
+    "title": null,
+    "file": "docs__sessions__session__index__02.ts",
+    "lines": 2,
+    "importsSdk": true,
+    "complete": false,
+    "probe": false,
+    "elided": false,
+    "errors": [],
+    "status": "pass"
+  },
+  {
+    "id": "docs__sessions__state__01",
+    "kind": "block",
+    "page": "docs/sessions/state.md",
+    "line": 108,
+    "source": "docs/sessions/state.md:108",
+    "ext": "ts",
+    "title": null,
+    "file": "docs__sessions__state__01.ts",
+    "lines": 11,
+    "importsSdk": true,
+    "complete": false,
+    "probe": false,
+    "elided": false,
+    "errors": [],
+    "status": "pass"
+  },
+  {
+    "id": "docs__sessions__state__02",
+    "kind": "block",
+    "page": "docs/sessions/state.md",
+    "line": 187,
+    "source": "docs/sessions/state.md:187",
+    "ext": "ts",
+    "title": null,
+    "file": "docs__sessions__state__02.ts",
+    "lines": 13,
+    "importsSdk": true,
+    "complete": false,
+    "probe": false,
+    "elided": false,
+    "errors": [],
+    "status": "pass"
+  },
+  {
+    "id": "docs__sessions__state__03",
+    "kind": "block",
+    "page": "docs/sessions/state.md",
+    "line": 362,
+    "source": "docs/sessions/state.md:362",
+    "ext": "ts",
+    "title": null,
+    "file": "docs__sessions__state__03.ts",
+    "lines": 46,
+    "importsSdk": true,
+    "complete": true,
+    "probe": false,
+    "elided": false,
+    "errors": [],
+    "status": "pass"
+  },
+  {
+    "id": "docs__sessions__state__04",
+    "kind": "block",
+    "page": "docs/sessions/state.md",
+    "line": 483,
+    "source": "docs/sessions/state.md:483",
+    "ext": "ts",
+    "title": null,
+    "file": "docs__sessions__state__04.ts",
+    "lines": 50,
+    "importsSdk": true,
+    "complete": false,
+    "probe": false,
+    "elided": false,
+    "errors": [],
+    "status": "pass"
+  },
+  {
+    "id": "docs__sessions__state__05",
+    "kind": "block",
+    "page": "docs/sessions/state.md",
+    "line": 592,
+    "source": "docs/sessions/state.md:592",
+    "ext": "ts",
+    "title": null,
+    "file": "docs__sessions__state__05.ts",
+    "lines": 17,
+    "importsSdk": true,
+    "complete": false,
+    "probe": false,
+    "elided": true,
+    "errors": [
+      {
+        "line": 11,
+        "code": 18048,
+        "kind": "context",
+        "message": "'count' is possibly 'undefined'."
+      }
+    ],
+    "status": "fragment"
+  },
+  {
+    "id": "docs__tools-custom__function-tools__01",
+    "kind": "block",
+    "page": "docs/tools-custom/function-tools.md",
+    "line": 789,
+    "source": "docs/tools-custom/function-tools.md:789",
+    "ext": "ts",
+    "title": null,
+    "file": "docs__tools-custom__function-tools__01.ts",
+    "lines": 1,
+    "importsSdk": false,
+    "complete": false,
+    "probe": false,
+    "elided": false,
+    "errors": [
+      {
+        "line": 2,
+        "code": 2304,
+        "kind": "context",
+        "message": "Cannot find name 'AgentTool'."
+      },
+      {
+        "line": 2,
+        "code": 2304,
+        "kind": "context",
+        "message": "Cannot find name 'agentB'."
+      }
+    ],
+    "status": "fragment"
+  },
+  {
+    "id": "docs__tools-custom__index__01",
+    "kind": "block",
+    "page": "docs/tools-custom/index.md",
+    "line": 440,
+    "source": "docs/tools-custom/index.md:440",
+    "ext": "ts",
+    "title": null,
+    "file": "docs__tools-custom__index__01.ts",
+    "lines": 38,
+    "importsSdk": false,
+    "complete": false,
+    "probe": false,
+    "elided": true,
+    "errors": [],
+    "status": "pass"
+  },
+  {
+    "id": "docs__tools-custom__mcp-tools__index__01",
+    "kind": "block",
+    "page": "docs/tools-custom/mcp-tools/index.md",
+    "line": 146,
+    "source": "docs/tools-custom/mcp-tools/index.md:146",
+    "ext": "ts",
+    "title": null,
+    "file": "docs__tools-custom__mcp-tools__index__01.ts",
+    "lines": 19,
+    "importsSdk": true,
+    "complete": true,
+    "probe": true,
+    "elided": false,
+    "errors": [],
+    "status": "pass"
+  },
+  {
+    "id": "docs__tools-custom__mcp-tools__index__02",
+    "kind": "block",
+    "page": "docs/tools-custom/mcp-tools/index.md",
+    "line": 309,
+    "source": "docs/tools-custom/mcp-tools/index.md:309",
+    "ext": "ts",
+    "title": null,
+    "file": "docs__tools-custom__mcp-tools__index__02.ts",
+    "lines": 24,
+    "importsSdk": true,
+    "complete": true,
+    "probe": true,
+    "elided": false,
+    "errors": [],
+    "status": "pass"
+  },
+  {
+    "id": "docs__tools-custom__mcp-tools__index__03",
+    "kind": "block",
+    "page": "docs/tools-custom/mcp-tools/index.md",
+    "line": 376,
+    "source": "docs/tools-custom/mcp-tools/index.md:376",
+    "ext": "ts",
+    "title": null,
+    "file": "docs__tools-custom__mcp-tools__index__03.ts",
+    "lines": 16,
+    "importsSdk": true,
+    "complete": false,
+    "probe": false,
+    "elided": false,
+    "errors": [],
+    "status": "pass"
+  },
+  {
+    "id": "docs__tools-custom__mcp-tools__index__04",
+    "kind": "block",
+    "page": "docs/tools-custom/mcp-tools/index.md",
+    "line": 430,
+    "source": "docs/tools-custom/mcp-tools/index.md:430",
+    "ext": "ts",
+    "title": null,
+    "file": "docs__tools-custom__mcp-tools__index__04.ts",
+    "lines": 11,
+    "importsSdk": false,
+    "complete": false,
+    "probe": false,
+    "elided": false,
+    "errors": [],
+    "status": "pass"
+  },
+  {
+    "id": "docs__tools__limitations__01",
+    "kind": "block",
+    "page": "docs/tools/limitations.md",
+    "line": 45,
+    "source": "docs/tools/limitations.md:45",
+    "ext": "ts",
+    "title": null,
+    "file": "docs__tools__limitations__01.ts",
+    "lines": 9,
+    "importsSdk": true,
+    "complete": false,
+    "probe": false,
+    "elided": false,
+    "errors": [
+      {
+        "line": 8,
+        "code": 2304,
+        "kind": "context",
+        "message": "Cannot find name 'myCustomTool'."
+      }
+    ],
+    "status": "fragment"
+  },
+  {
+    "id": "docs__tools__limitations__02",
+    "kind": "block",
+    "page": "docs/tools/limitations.md",
+    "line": 123,
+    "source": "docs/tools/limitations.md:123",
+    "ext": "ts",
+    "title": null,
+    "file": "docs__tools__limitations__02.ts",
+    "lines": 22,
+    "importsSdk": true,
+    "complete": false,
+    "probe": false,
+    "elided": false,
+    "errors": [],
+    "status": "pass"
+  },
+  {
+    "id": "docs__tools__limitations__03",
+    "kind": "block",
+    "page": "docs/tools/limitations.md",
+    "line": 279,
+    "source": "docs/tools/limitations.md:279",
+    "ext": "ts",
+    "title": null,
+    "file": "docs__tools__limitations__03.ts",
+    "lines": 22,
+    "importsSdk": true,
+    "complete": false,
+    "probe": false,
+    "elided": false,
+    "errors": [
+      {
+        "line": 8,
+        "code": 2304,
+        "kind": "context",
+        "message": "Cannot find name 'myCustomTool'."
+      }
+    ],
+    "status": "fragment"
+  },
+  {
+    "id": "docs__workflows__patterns__01",
+    "kind": "block",
+    "page": "docs/workflows/patterns.md",
+    "line": 54,
+    "source": "docs/workflows/patterns.md:54",
+    "ext": "ts",
+    "title": null,
+    "file": "docs__workflows__patterns__01.ts",
+    "lines": 16,
+    "importsSdk": true,
+    "complete": false,
+    "probe": false,
+    "elided": false,
+    "errors": [],
+    "status": "pass"
+  },
+  {
+    "id": "docs__workflows__patterns__02",
+    "kind": "block",
+    "page": "docs/workflows/patterns.md",
+    "line": 153,
+    "source": "docs/workflows/patterns.md:153",
+    "ext": "ts",
+    "title": null,
+    "file": "docs__workflows__patterns__02.ts",
+    "lines": 14,
+    "importsSdk": true,
+    "complete": false,
+    "probe": false,
+    "elided": false,
+    "errors": [],
+    "status": "pass"
+  },
+  {
+    "id": "docs__workflows__patterns__03",
+    "kind": "block",
+    "page": "docs/workflows/patterns.md",
+    "line": 267,
+    "source": "docs/workflows/patterns.md:267",
+    "ext": "ts",
+    "title": null,
+    "file": "docs__workflows__patterns__03.ts",
+    "lines": 22,
+    "importsSdk": true,
+    "complete": false,
+    "probe": false,
+    "elided": false,
+    "errors": [],
+    "status": "pass"
+  },
+  {
+    "id": "docs__workflows__patterns__04",
+    "kind": "block",
+    "page": "docs/workflows/patterns.md",
+    "line": 396,
+    "source": "docs/workflows/patterns.md:396",
+    "ext": "ts",
+    "title": null,
+    "file": "docs__workflows__patterns__04.ts",
+    "lines": 27,
+    "importsSdk": true,
+    "complete": false,
+    "probe": false,
+    "elided": false,
+    "errors": [],
+    "status": "pass"
+  },
+  {
+    "id": "docs__workflows__patterns__05",
+    "kind": "block",
+    "page": "docs/workflows/patterns.md",
+    "line": 532,
+    "source": "docs/workflows/patterns.md:532",
+    "ext": "ts",
+    "title": null,
+    "file": "docs__workflows__patterns__05.ts",
+    "lines": 23,
+    "importsSdk": true,
+    "complete": false,
+    "probe": false,
+    "elided": false,
+    "errors": [],
+    "status": "pass"
+  },
+  {
+    "id": "docs__workflows__patterns__06",
+    "kind": "block",
+    "page": "docs/workflows/patterns.md",
+    "line": 666,
+    "source": "docs/workflows/patterns.md:666",
+    "ext": "ts",
+    "title": null,
+    "file": "docs__workflows__patterns__06.ts",
+    "lines": 45,
+    "importsSdk": true,
+    "complete": false,
+    "probe": false,
+    "elided": false,
+    "errors": [
+      {
+        "line": 4,
+        "code": 2305,
+        "kind": "api",
+        "message": "Module '\"@google/genai\"' has no exported member 'Event'."
+      },
+      {
+        "line": 4,
+        "code": 2305,
+        "kind": "api",
+        "message": "Module '\"@google/genai\"' has no exported member 'createEvent'."
+      },
+      {
+        "line": 4,
+        "code": 2305,
+        "kind": "api",
+        "message": "Module '\"@google/genai\"' has no exported member 'createEventActions'."
+      },
+      {
+        "line": 26,
+        "code": 1361,
+        "kind": "api",
+        "message": "'createEvent' cannot be used as a value because it was imported using 'import type'."
+      },
+      {
+        "line": 28,
+        "code": 1361,
+        "kind": "api",
+        "message": "'createEventActions' cannot be used as a value because it was imported using 'import type'."
+      },
+      {
+        "line": 35,
+        "code": 1361,
+        "kind": "api",
+        "message": "'createEvent' cannot be used as a value because it was imported using 'import type'."
+      }
+    ],
+    "status": "api-mismatch"
+  },
+  {
+    "id": "docs__workflows__patterns__07",
+    "kind": "block",
+    "page": "docs/workflows/patterns.md",
+    "line": 857,
+    "source": "docs/workflows/patterns.md:857",
+    "ext": "ts",
+    "title": null,
+    "file": "docs__workflows__patterns__07.ts",
+    "lines": 51,
+    "importsSdk": true,
+    "complete": false,
+    "probe": false,
+    "elided": true,
+    "errors": [],
+    "status": "pass"
+  },
+  {
+    "id": "docs__workflows__patterns__08",
+    "kind": "block",
+    "page": "docs/workflows/patterns.md",
+    "line": 998,
+    "source": "docs/workflows/patterns.md:998",
+    "ext": "ts",
+    "title": null,
+    "file": "docs__workflows__patterns__08.ts",
+    "lines": 25,
+    "importsSdk": false,
+    "complete": false,
+    "probe": false,
+    "elided": false,
+    "errors": [
+      {
+        "line": 2,
+        "code": 2304,
+        "kind": "context",
+        "message": "Cannot find name 'LlmAgent'."
+      },
+      {
+        "line": 9,
+        "code": 2304,
+        "kind": "context",
+        "message": "Cannot find name 'getWeatherTool'."
+      },
+      {
+        "line": 12,
+        "code": 2304,
+        "kind": "context",
+        "message": "Cannot find name 'BasePolicyEngine'."
+      },
+      {
+        "line": 13,
+        "code": 2304,
+        "kind": "context",
+        "message": "Cannot find name 'ToolCallPolicyContext'."
+      },
+      {
+        "line": 13,
+        "code": 2304,
+        "kind": "context",
+        "message": "Cannot find name 'PolicyCheckResult'."
+      },
+      {
+        "line": 16,
+        "code": 2304,
+        "kind": "context",
+        "message": "Cannot find name 'PolicyOutcome'."
+      },
+      {
+        "line": 22,
+        "code": 2304,
+        "kind": "context",
+        "message": "Cannot find name 'InMemoryRunner'."
+      },
+      {
+        "line": 24,
+        "code": 18004,
+        "kind": "context",
+        "message": "No value exists in scope for the shorthand property 'appName'. Either declare one or provide an initializer."
+      },
+      {
+        "line": 25,
+        "code": 2304,
+        "kind": "context",
+        "message": "Cannot find name 'SecurityPlugin'."
+      }
+    ],
+    "status": "fragment"
+  },
+  {
+    "id": "snippet__snippets__agents__custom-agent__storyflow_agent",
+    "kind": "snippet",
+    "page": "examples/typescript/snippets/agents/custom-agent/storyflow_agent.ts",
+    "line": 1,
+    "source": "adk-docs/examples/typescript/snippets/agents/custom-agent/storyflow_agent.ts",
+    "ext": "ts",
+    "pages": [
+      "docs/agents/custom-agents.md:1088 [init]",
+      "docs/agents/custom-agents.md:1130 [executionlogic]",
+      "docs/agents/custom-agents.md:1186 [llmagents]",
+      "docs/agents/custom-agents.md:1216 [story_flow_agent]"
+    ],
+    "file": "snippet__snippets__agents__custom-agent__storyflow_agent.ts",
+    "lines": 261,
+    "importsSdk": true,
+    "complete": true,
+    "probe": false,
+    "elided": false,
+    "errors": [],
+    "status": "pass"
+  },
+  {
+    "id": "snippet__snippets__agents__llm-agent__capital_agent",
+    "kind": "snippet",
+    "page": "examples/typescript/snippets/agents/llm-agent/capital_agent.ts",
+    "line": 1,
+    "source": "adk-docs/examples/typescript/snippets/agents/llm-agent/capital_agent.ts",
+    "ext": "ts",
+    "pages": [
+      "docs/agents/llm-agents.md:963"
+    ],
+    "file": "snippet__snippets__agents__llm-agent__capital_agent.ts",
+    "lines": 166,
+    "importsSdk": true,
+    "complete": true,
+    "probe": false,
+    "elided": false,
+    "errors": [],
+    "status": "pass"
+  },
+  {
+    "id": "snippet__snippets__agents__models__routing__basic-usage",
+    "kind": "snippet",
+    "page": "examples/typescript/snippets/agents/models/routing/basic-usage.ts",
+    "line": 1,
+    "source": "adk-docs/examples/typescript/snippets/agents/models/routing/basic-usage.ts",
+    "ext": "ts",
+    "pages": [
+      "docs/agents/models/routing.md:62 [full]"
+    ],
+    "file": "snippet__snippets__agents__models__routing__basic-usage.ts",
+    "lines": 74,
+    "importsSdk": true,
+    "complete": true,
+    "probe": false,
+    "elided": false,
+    "errors": [],
+    "status": "pass"
+  },
+  {
+    "id": "snippet__snippets__agents__routing__auto-routing",
+    "kind": "snippet",
+    "page": "examples/typescript/snippets/agents/routing/auto-routing.ts",
+    "line": 1,
+    "source": "adk-docs/examples/typescript/snippets/agents/routing/auto-routing.ts",
+    "ext": "ts",
+    "pages": [
+      "docs/agents/routing.md:124 [config]"
+    ],
+    "file": "snippet__snippets__agents__routing__auto-routing.ts",
+    "lines": 99,
+    "importsSdk": true,
+    "complete": true,
+    "probe": false,
+    "elided": false,
+    "errors": [],
+    "status": "pass"
+  },
+  {
+    "id": "snippet__snippets__agents__routing__basic-usage",
+    "kind": "snippet",
+    "page": "examples/typescript/snippets/agents/routing/basic-usage.ts",
+    "line": 1,
+    "source": "adk-docs/examples/typescript/snippets/agents/routing/basic-usage.ts",
+    "ext": "ts",
+    "pages": [
+      "docs/agents/routing.md:73 [full]"
+    ],
+    "file": "snippet__snippets__agents__routing__basic-usage.ts",
+    "lines": 61,
+    "importsSdk": true,
+    "complete": true,
+    "probe": false,
+    "elided": false,
+    "errors": [],
+    "status": "pass"
+  },
+  {
+    "id": "snippet__snippets__agents__routing__fallback",
+    "kind": "snippet",
+    "page": "examples/typescript/snippets/agents/routing/fallback.ts",
+    "line": 1,
+    "source": "adk-docs/examples/typescript/snippets/agents/routing/fallback.ts",
+    "ext": "ts",
+    "pages": [
+      "docs/agents/routing.md:89 [config]"
+    ],
+    "file": "snippet__snippets__agents__routing__fallback.ts",
+    "lines": 80,
+    "importsSdk": true,
+    "complete": true,
+    "probe": false,
+    "elided": false,
+    "errors": [],
+    "status": "pass"
+  },
+  {
+    "id": "snippet__snippets__agents__routing__planning-mode",
+    "kind": "snippet",
+    "page": "examples/typescript/snippets/agents/routing/planning-mode.ts",
+    "line": 1,
+    "source": "adk-docs/examples/typescript/snippets/agents/routing/planning-mode.ts",
+    "ext": "ts",
+    "pages": [
+      "docs/agents/routing.md:106 [config]"
+    ],
+    "file": "snippet__snippets__agents__routing__planning-mode.ts",
+    "lines": 84,
+    "importsSdk": true,
+    "complete": true,
+    "probe": false,
+    "elided": false,
+    "errors": [],
+    "status": "pass"
+  },
+  {
+    "id": "snippet__snippets__agents__workflow-agents__hitl_confirmation_agent",
+    "kind": "snippet",
+    "page": "examples/typescript/snippets/agents/workflow-agents/hitl_confirmation_agent.ts",
+    "line": 1,
+    "source": "adk-docs/examples/typescript/snippets/agents/workflow-agents/hitl_confirmation_agent.ts",
+    "ext": "ts",
+    "pages": [],
+    "file": "snippet__snippets__agents__workflow-agents__hitl_confirmation_agent.ts",
+    "lines": 256,
+    "importsSdk": true,
+    "complete": true,
+    "probe": false,
+    "elided": false,
+    "errors": [],
+    "status": "pass"
+  },
+  {
+    "id": "snippet__snippets__agents__workflow-agents__loop_agent_doc_improv_agent",
+    "kind": "snippet",
+    "page": "examples/typescript/snippets/agents/workflow-agents/loop_agent_doc_improv_agent.ts",
+    "line": 1,
+    "source": "adk-docs/examples/typescript/snippets/agents/workflow-agents/loop_agent_doc_improv_agent.ts",
+    "ext": "ts",
+    "pages": [
+      "docs/agents/workflow-agents/loop-agents.md:69 [init]"
+    ],
+    "file": "snippet__snippets__agents__workflow-agents__loop_agent_doc_improv_agent.ts",
+    "lines": 144,
+    "importsSdk": true,
+    "complete": true,
+    "probe": true,
+    "elided": false,
+    "errors": [],
+    "status": "pass"
+  },
+  {
+    "id": "snippet__snippets__agents__workflow-agents__parallel_agent_web_research",
+    "kind": "snippet",
+    "page": "examples/typescript/snippets/agents/workflow-agents/parallel_agent_web_research.ts",
+    "line": 1,
+    "source": "adk-docs/examples/typescript/snippets/agents/workflow-agents/parallel_agent_web_research.ts",
+    "ext": "ts",
+    "pages": [
+      "docs/agents/workflow-agents/parallel-agents.md:71 [init]"
+    ],
+    "file": "snippet__snippets__agents__workflow-agents__parallel_agent_web_research.ts",
+    "lines": 216,
+    "importsSdk": true,
+    "complete": true,
+    "probe": false,
+    "elided": false,
+    "errors": [],
+    "status": "pass"
+  },
+  {
+    "id": "snippet__snippets__agents__workflow-agents__sequential_agent_code_development_agent",
+    "kind": "snippet",
+    "page": "examples/typescript/snippets/agents/workflow-agents/sequential_agent_code_development_agent.ts",
+    "line": 1,
+    "source": "adk-docs/examples/typescript/snippets/agents/workflow-agents/sequential_agent_code_development_agent.ts",
+    "ext": "ts",
+    "pages": [
+      "docs/agents/workflow-agents/sequential-agents.md:71 [init]"
+    ],
+    "file": "snippet__snippets__agents__workflow-agents__sequential_agent_code_development_agent.ts",
+    "lines": 197,
+    "importsSdk": true,
+    "complete": true,
+    "probe": false,
+    "elided": false,
+    "errors": [],
+    "status": "pass"
+  },
+  {
+    "id": "snippet__snippets__callbacks__after_agent_callback",
+    "kind": "snippet",
+    "page": "examples/typescript/snippets/callbacks/after_agent_callback.ts",
+    "line": 1,
+    "source": "adk-docs/examples/typescript/snippets/callbacks/after_agent_callback.ts",
+    "ext": "ts",
+    "pages": [
+      "docs/callbacks/types-of-callbacks.md:143"
+    ],
+    "file": "snippet__snippets__callbacks__after_agent_callback.ts",
+    "lines": 144,
+    "importsSdk": true,
+    "complete": true,
+    "probe": false,
+    "elided": false,
+    "errors": [],
+    "status": "pass"
+  },
+  {
+    "id": "snippet__snippets__callbacks__after_model_callback",
+    "kind": "snippet",
+    "page": "examples/typescript/snippets/callbacks/after_model_callback.ts",
+    "line": 1,
+    "source": "adk-docs/examples/typescript/snippets/callbacks/after_model_callback.ts",
+    "ext": "ts",
+    "pages": [
+      "docs/callbacks/types-of-callbacks.md:236"
+    ],
+    "file": "snippet__snippets__callbacks__after_model_callback.ts",
+    "lines": 128,
+    "importsSdk": true,
+    "complete": true,
+    "probe": false,
+    "elided": false,
+    "errors": [],
+    "status": "pass"
+  },
+  {
+    "id": "snippet__snippets__callbacks__after_tool_callback",
+    "kind": "snippet",
+    "page": "examples/typescript/snippets/callbacks/after_tool_callback.ts",
+    "line": 1,
+    "source": "adk-docs/examples/typescript/snippets/callbacks/after_tool_callback.ts",
+    "ext": "ts",
+    "pages": [
+      "docs/callbacks/types-of-callbacks.md:335"
+    ],
+    "file": "snippet__snippets__callbacks__after_tool_callback.ts",
+    "lines": 138,
+    "importsSdk": true,
+    "complete": true,
+    "probe": false,
+    "elided": false,
+    "errors": [],
+    "status": "pass"
+  },
+  {
+    "id": "snippet__snippets__callbacks__before_agent_callback",
+    "kind": "snippet",
+    "page": "examples/typescript/snippets/callbacks/before_agent_callback.ts",
+    "line": 1,
+    "source": "adk-docs/examples/typescript/snippets/callbacks/before_agent_callback.ts",
+    "ext": "ts",
+    "pages": [
+      "docs/callbacks/types-of-callbacks.md:93"
+    ],
+    "file": "snippet__snippets__callbacks__before_agent_callback.ts",
+    "lines": 150,
+    "importsSdk": true,
+    "complete": true,
+    "probe": false,
+    "elided": false,
+    "errors": [],
+    "status": "pass"
+  },
+  {
+    "id": "snippet__snippets__callbacks__before_model_callback",
+    "kind": "snippet",
+    "page": "examples/typescript/snippets/callbacks/before_model_callback.ts",
+    "line": 1,
+    "source": "adk-docs/examples/typescript/snippets/callbacks/before_model_callback.ts",
+    "ext": "ts",
+    "pages": [
+      "docs/callbacks/index.md:107",
+      "docs/callbacks/types-of-callbacks.md:197"
+    ],
+    "file": "snippet__snippets__callbacks__before_model_callback.ts",
+    "lines": 132,
+    "importsSdk": true,
+    "complete": true,
+    "probe": false,
+    "elided": false,
+    "errors": [],
+    "status": "pass"
+  },
+  {
+    "id": "snippet__snippets__callbacks__before_tool_callback",
+    "kind": "snippet",
+    "page": "examples/typescript/snippets/callbacks/before_tool_callback.ts",
+    "line": 1,
+    "source": "adk-docs/examples/typescript/snippets/callbacks/before_tool_callback.ts",
+    "ext": "ts",
+    "pages": [
+      "docs/callbacks/types-of-callbacks.md:287"
+    ],
+    "file": "snippet__snippets__callbacks__before_tool_callback.ts",
+    "lines": 125,
+    "importsSdk": true,
+    "complete": true,
+    "probe": false,
+    "elided": false,
+    "errors": [],
+    "status": "pass"
+  },
+  {
+    "id": "snippet__snippets__callbacks__callback_basic",
+    "kind": "snippet",
+    "page": "examples/typescript/snippets/callbacks/callback_basic.ts",
+    "line": 1,
+    "source": "adk-docs/examples/typescript/snippets/callbacks/callback_basic.ts",
+    "ext": "ts",
+    "pages": [
+      "docs/callbacks/index.md:45 [callback_basic]"
+    ],
+    "file": "snippet__snippets__callbacks__callback_basic.ts",
+    "lines": 91,
+    "importsSdk": true,
+    "complete": true,
+    "probe": false,
+    "elided": true,
+    "errors": [],
+    "status": "pass"
+  },
+  {
+    "id": "snippet__snippets__get-started__multi_tool_agent__agent",
+    "kind": "snippet",
+    "page": "examples/typescript/snippets/get-started/multi_tool_agent/agent.ts",
+    "line": 1,
+    "source": "adk-docs/examples/typescript/snippets/get-started/multi_tool_agent/agent.ts",
+    "ext": "ts",
+    "pages": [
+      "docs/tutorials/multi-tool-agent.md:207"
+    ],
+    "file": "snippet__snippets__get-started__multi_tool_agent__agent.ts",
+    "lines": 58,
+    "importsSdk": true,
+    "complete": true,
+    "probe": true,
+    "elided": false,
+    "errors": [
+      {
+        "line": 2,
+        "code": 2882,
+        "kind": "context",
+        "message": "Cannot find module or type declarations for side-effect import of 'dotenv/config'."
+      }
+    ],
+    "status": "fragment"
+  },
+  {
+    "id": "snippet__snippets__graphs__data-handling__node_output",
+    "kind": "snippet",
+    "page": "examples/typescript/snippets/graphs/data-handling/node_output.ts",
+    "line": 1,
+    "source": "adk-docs/examples/typescript/snippets/graphs/data-handling/node_output.ts",
+    "ext": "ts",
+    "pages": [
+      "docs/graphs/data-handling.md:124 [node-output]"
+    ],
+    "file": "snippet__snippets__graphs__data-handling__node_output.ts",
+    "lines": 48,
+    "importsSdk": true,
+    "complete": true,
+    "probe": true,
+    "elided": false,
+    "errors": [],
+    "status": "pass"
+  },
+  {
+    "id": "snippet__snippets__graphs__data-handling__routing_output",
+    "kind": "snippet",
+    "page": "examples/typescript/snippets/graphs/data-handling/routing_output.ts",
+    "line": 1,
+    "source": "adk-docs/examples/typescript/snippets/graphs/data-handling/routing_output.ts",
+    "ext": "ts",
+    "pages": [
+      "docs/graphs/data-handling.md:223 [routing-output]"
+    ],
+    "file": "snippet__snippets__graphs__data-handling__routing_output.ts",
+    "lines": 60,
+    "importsSdk": true,
+    "complete": true,
+    "probe": true,
+    "elided": false,
+    "errors": [],
+    "status": "pass"
+  },
+  {
+    "id": "snippet__snippets__graphs__data-handling__schemas",
+    "kind": "snippet",
+    "page": "examples/typescript/snippets/graphs/data-handling/schemas.ts",
+    "line": 1,
+    "source": "adk-docs/examples/typescript/snippets/graphs/data-handling/schemas.ts",
+    "ext": "ts",
+    "pages": [
+      "docs/graphs/data-handling.md:429 [schemas]"
+    ],
+    "file": "snippet__snippets__graphs__data-handling__schemas.ts",
+    "lines": 123,
+    "importsSdk": true,
+    "complete": true,
+    "probe": true,
+    "elided": false,
+    "errors": [],
+    "status": "pass"
+  },
+  {
+    "id": "snippet__snippets__graphs__data-handling__session_state",
+    "kind": "snippet",
+    "page": "examples/typescript/snippets/graphs/data-handling/session_state.ts",
+    "line": 1,
+    "source": "adk-docs/examples/typescript/snippets/graphs/data-handling/session_state.ts",
+    "ext": "ts",
+    "pages": [
+      "docs/graphs/data-handling.md:324 [session-state]"
+    ],
+    "file": "snippet__snippets__graphs__data-handling__session_state.ts",
+    "lines": 52,
+    "importsSdk": true,
+    "complete": true,
+    "probe": true,
+    "elided": false,
+    "errors": [],
+    "status": "pass"
+  },
+  {
+    "id": "snippet__snippets__graphs__data-handling__structured_access",
+    "kind": "snippet",
+    "page": "examples/typescript/snippets/graphs/data-handling/structured_access.ts",
+    "line": 1,
+    "source": "adk-docs/examples/typescript/snippets/graphs/data-handling/structured_access.ts",
+    "ext": "ts",
+    "pages": [
+      "docs/graphs/data-handling.md:505 [structured-access]"
+    ],
+    "file": "snippet__snippets__graphs__data-handling__structured_access.ts",
+    "lines": 70,
+    "importsSdk": true,
+    "complete": true,
+    "probe": true,
+    "elided": false,
+    "errors": [],
+    "status": "pass"
+  },
+  {
+    "id": "snippet__snippets__graphs__data-handling__structured_output",
+    "kind": "snippet",
+    "page": "examples/typescript/snippets/graphs/data-handling/structured_output.ts",
+    "line": 1,
+    "source": "adk-docs/examples/typescript/snippets/graphs/data-handling/structured_output.ts",
+    "ext": "ts",
+    "pages": [
+      "docs/graphs/data-handling.md:185 [structured-output]"
+    ],
+    "file": "snippet__snippets__graphs__data-handling__structured_output.ts",
+    "lines": 48,
+    "importsSdk": true,
+    "complete": true,
+    "probe": true,
+    "elided": false,
+    "errors": [],
+    "status": "pass"
+  },
+  {
+    "id": "snippet__snippets__graphs__data-handling__user_message",
+    "kind": "snippet",
+    "page": "examples/typescript/snippets/graphs/data-handling/user_message.ts",
+    "line": 1,
+    "source": "adk-docs/examples/typescript/snippets/graphs/data-handling/user_message.ts",
+    "ext": "ts",
+    "pages": [
+      "docs/graphs/data-handling.md:259 [user-message]"
+    ],
+    "file": "snippet__snippets__graphs__data-handling__user_message.ts",
+    "lines": 52,
+    "importsSdk": true,
+    "complete": true,
+    "probe": true,
+    "elided": false,
+    "errors": [],
+    "status": "pass"
+  },
+  {
+    "id": "snippet__snippets__graphs__dynamic__custom_run_ids",
+    "kind": "snippet",
+    "page": "examples/typescript/snippets/graphs/dynamic/custom_run_ids.ts",
+    "line": 1,
+    "source": "adk-docs/examples/typescript/snippets/graphs/dynamic/custom_run_ids.ts",
+    "ext": "ts",
+    "pages": [
+      "docs/graphs/dynamic.md:704 [custom-execution-ids]"
+    ],
+    "file": "snippet__snippets__graphs__dynamic__custom_run_ids.ts",
+    "lines": 65,
+    "importsSdk": true,
+    "complete": true,
+    "probe": true,
+    "elided": false,
+    "errors": [],
+    "status": "pass"
+  },
+  {
+    "id": "snippet__snippets__graphs__dynamic__data_handling",
+    "kind": "snippet",
+    "page": "examples/typescript/snippets/graphs/dynamic/data_handling.ts",
+    "line": 1,
+    "source": "adk-docs/examples/typescript/snippets/graphs/dynamic/data_handling.ts",
+    "ext": "ts",
+    "pages": [
+      "docs/graphs/dynamic.md:332 [data-handling]"
+    ],
+    "file": "snippet__snippets__graphs__dynamic__data_handling.ts",
+    "lines": 58,
+    "importsSdk": true,
+    "complete": true,
+    "probe": true,
+    "elided": false,
+    "errors": [],
+    "status": "pass"
+  },
+  {
+    "id": "snippet__snippets__graphs__dynamic__get_started",
+    "kind": "snippet",
+    "page": "examples/typescript/snippets/graphs/dynamic/get_started.ts",
+    "line": 1,
+    "source": "adk-docs/examples/typescript/snippets/graphs/dynamic/get_started.ts",
+    "ext": "ts",
+    "pages": [
+      "docs/graphs/dynamic.md:75 [get-started]"
+    ],
+    "file": "snippet__snippets__graphs__dynamic__get_started.ts",
+    "lines": 37,
+    "importsSdk": true,
+    "complete": true,
+    "probe": true,
+    "elided": false,
+    "errors": [],
+    "status": "pass"
+  },
+  {
+    "id": "snippet__snippets__graphs__dynamic__human_input",
+    "kind": "snippet",
+    "page": "examples/typescript/snippets/graphs/dynamic/human_input.ts",
+    "line": 1,
+    "source": "adk-docs/examples/typescript/snippets/graphs/dynamic/human_input.ts",
+    "ext": "ts",
+    "pages": [
+      "docs/graphs/dynamic.md:595 [human-input]"
+    ],
+    "file": "snippet__snippets__graphs__dynamic__human_input.ts",
+    "lines": 61,
+    "importsSdk": true,
+    "complete": true,
+    "probe": true,
+    "elided": false,
+    "errors": [],
+    "status": "pass"
+  },
+  {
+    "id": "snippet__snippets__graphs__dynamic__loop_route",
+    "kind": "snippet",
+    "page": "examples/typescript/snippets/graphs/dynamic/loop_route.ts",
+    "line": 1,
+    "source": "adk-docs/examples/typescript/snippets/graphs/dynamic/loop_route.ts",
+    "ext": "ts",
+    "pages": [
+      "docs/graphs/dynamic.md:456 [loop-route]"
+    ],
+    "file": "snippet__snippets__graphs__dynamic__loop_route.ts",
+    "lines": 84,
+    "importsSdk": true,
+    "complete": true,
+    "probe": true,
+    "elided": false,
+    "errors": [],
+    "status": "pass"
+  },
+  {
+    "id": "snippet__snippets__graphs__dynamic__nodes",
+    "kind": "snippet",
+    "page": "examples/typescript/snippets/graphs/dynamic/nodes.ts",
+    "line": 1,
+    "source": "adk-docs/examples/typescript/snippets/graphs/dynamic/nodes.ts",
+    "ext": "ts",
+    "pages": [
+      "docs/graphs/dynamic.md:160 [node-forms]",
+      "docs/graphs/dynamic.md:253 [workflows]"
+    ],
+    "file": "snippet__snippets__graphs__dynamic__nodes.ts",
+    "lines": 53,
+    "importsSdk": true,
+    "complete": true,
+    "probe": true,
+    "elided": false,
+    "errors": [],
+    "status": "pass"
+  },
+  {
+    "id": "snippet__snippets__graphs__dynamic__parallel_route",
+    "kind": "snippet",
+    "page": "examples/typescript/snippets/graphs/dynamic/parallel_route.ts",
+    "line": 1,
+    "source": "adk-docs/examples/typescript/snippets/graphs/dynamic/parallel_route.ts",
+    "ext": "ts",
+    "pages": [
+      "docs/graphs/dynamic.md:519 [parallel-route]"
+    ],
+    "file": "snippet__snippets__graphs__dynamic__parallel_route.ts",
+    "lines": 64,
+    "importsSdk": true,
+    "complete": true,
+    "probe": true,
+    "elided": false,
+    "errors": [],
+    "status": "pass"
+  },
+  {
+    "id": "snippet__snippets__graphs__dynamic__sequence_route",
+    "kind": "snippet",
+    "page": "examples/typescript/snippets/graphs/dynamic/sequence_route.ts",
+    "line": 1,
+    "source": "adk-docs/examples/typescript/snippets/graphs/dynamic/sequence_route.ts",
+    "ext": "ts",
+    "pages": [
+      "docs/graphs/dynamic.md:385 [sequence-route]"
+    ],
+    "file": "snippet__snippets__graphs__dynamic__sequence_route.ts",
+    "lines": 69,
+    "importsSdk": true,
+    "complete": true,
+    "probe": true,
+    "elided": false,
+    "errors": [],
+    "status": "pass"
+  },
+  {
+    "id": "snippet__snippets__graphs__human-input__get_started",
+    "kind": "snippet",
+    "page": "examples/typescript/snippets/graphs/human-input/get_started.ts",
+    "line": 1,
+    "source": "adk-docs/examples/typescript/snippets/graphs/human-input/get_started.ts",
+    "ext": "ts",
+    "pages": [
+      "docs/graphs/human-input.md:49 [get-started]"
+    ],
+    "file": "snippet__snippets__graphs__human-input__get_started.ts",
+    "lines": 46,
+    "importsSdk": true,
+    "complete": true,
+    "probe": true,
+    "elided": false,
+    "errors": [],
+    "status": "pass"
+  },
+  {
+    "id": "snippet__snippets__graphs__human-input__initial_prompt",
+    "kind": "snippet",
+    "page": "examples/typescript/snippets/graphs/human-input/initial_prompt.ts",
+    "line": 1,
+    "source": "adk-docs/examples/typescript/snippets/graphs/human-input/initial_prompt.ts",
+    "ext": "ts",
+    "pages": [
+      "docs/graphs/human-input.md:257 [initial-prompt]"
+    ],
+    "file": "snippet__snippets__graphs__human-input__initial_prompt.ts",
+    "lines": 67,
+    "importsSdk": true,
+    "complete": true,
+    "probe": true,
+    "elided": false,
+    "errors": [],
+    "status": "pass"
+  },
+  {
+    "id": "snippet__snippets__graphs__human-input__payload_and_schema",
+    "kind": "snippet",
+    "page": "examples/typescript/snippets/graphs/human-input/payload_and_schema.ts",
+    "line": 1,
+    "source": "adk-docs/examples/typescript/snippets/graphs/human-input/payload_and_schema.ts",
+    "ext": "ts",
+    "pages": [
+      "docs/graphs/human-input.md:190 [payload-and-schema]"
+    ],
+    "file": "snippet__snippets__graphs__human-input__payload_and_schema.ts",
+    "lines": 96,
+    "importsSdk": true,
+    "complete": true,
+    "probe": true,
+    "elided": false,
+    "errors": [],
+    "status": "pass"
+  },
+  {
+    "id": "snippet__snippets__graphs__index__get_started",
+    "kind": "snippet",
+    "page": "examples/typescript/snippets/graphs/index/get_started.ts",
+    "line": 1,
+    "source": "adk-docs/examples/typescript/snippets/graphs/index/get_started.ts",
+    "ext": "ts",
+    "pages": [
+      "docs/graphs/index.md:117 [get-started]"
+    ],
+    "file": "snippet__snippets__graphs__index__get_started.ts",
+    "lines": 80,
+    "importsSdk": true,
+    "complete": true,
+    "probe": true,
+    "elided": false,
+    "errors": [],
+    "status": "pass"
+  },
+  {
+    "id": "snippet__snippets__graphs__index__process_pipeline",
+    "kind": "snippet",
+    "page": "examples/typescript/snippets/graphs/index/process_pipeline.ts",
+    "line": 1,
+    "source": "adk-docs/examples/typescript/snippets/graphs/index/process_pipeline.ts",
+    "ext": "ts",
+    "pages": [
+      "docs/graphs/index.md:235 [process-pipeline]"
+    ],
+    "file": "snippet__snippets__graphs__index__process_pipeline.ts",
+    "lines": 88,
+    "importsSdk": true,
+    "complete": true,
+    "probe": true,
+    "elided": false,
+    "errors": [],
+    "status": "pass"
+  },
+  {
+    "id": "snippet__snippets__graphs__retry__get_started",
+    "kind": "snippet",
+    "page": "examples/typescript/snippets/graphs/retry/get_started.ts",
+    "line": 1,
+    "source": "adk-docs/examples/typescript/snippets/graphs/retry/get_started.ts",
+    "ext": "ts",
+    "pages": [
+      "docs/graphs/retry.md:87 [get-started]"
+    ],
+    "file": "snippet__snippets__graphs__retry__get_started.ts",
+    "lines": 73,
+    "importsSdk": true,
+    "complete": true,
+    "probe": true,
+    "elided": false,
+    "errors": [],
+    "status": "pass"
+  },
+  {
+    "id": "snippet__snippets__graphs__routes__branches",
+    "kind": "snippet",
+    "page": "examples/typescript/snippets/graphs/routes/branches.ts",
+    "line": 1,
+    "source": "adk-docs/examples/typescript/snippets/graphs/routes/branches.ts",
+    "ext": "ts",
+    "pages": [
+      "docs/graphs/routes.md:284 [branches]"
+    ],
+    "file": "snippet__snippets__graphs__routes__branches.ts",
+    "lines": 67,
+    "importsSdk": true,
+    "complete": true,
+    "probe": true,
+    "elided": false,
+    "errors": [],
+    "status": "pass"
+  },
+  {
+    "id": "snippet__snippets__graphs__routes__fan_out_join",
+    "kind": "snippet",
+    "page": "examples/typescript/snippets/graphs/routes/fan_out_join.ts",
+    "line": 1,
+    "source": "adk-docs/examples/typescript/snippets/graphs/routes/fan_out_join.ts",
+    "ext": "ts",
+    "pages": [
+      "docs/graphs/routes.md:403 [fan-out-join]"
+    ],
+    "file": "snippet__snippets__graphs__routes__fan_out_join.ts",
+    "lines": 57,
+    "importsSdk": true,
+    "complete": true,
+    "probe": true,
+    "elided": false,
+    "errors": [],
+    "status": "pass"
+  },
+  {
+    "id": "snippet__snippets__graphs__routes__function_node",
+    "kind": "snippet",
+    "page": "examples/typescript/snippets/graphs/routes/function_node.ts",
+    "line": 1,
+    "source": "adk-docs/examples/typescript/snippets/graphs/routes/function_node.ts",
+    "ext": "ts",
+    "pages": [
+      "docs/graphs/routes.md:134 [function-node]"
+    ],
+    "file": "snippet__snippets__graphs__routes__function_node.ts",
+    "lines": 52,
+    "importsSdk": true,
+    "complete": true,
+    "probe": true,
+    "elided": false,
+    "errors": [],
+    "status": "pass"
+  },
+  {
+    "id": "snippet__snippets__graphs__routes__loop_escalation",
+    "kind": "snippet",
+    "page": "examples/typescript/snippets/graphs/routes/loop_escalation.ts",
+    "line": 1,
+    "source": "adk-docs/examples/typescript/snippets/graphs/routes/loop_escalation.ts",
+    "ext": "ts",
+    "pages": [
+      "docs/graphs/routes.md:605 [loop-escalation]"
+    ],
+    "file": "snippet__snippets__graphs__routes__loop_escalation.ts",
+    "lines": 79,
+    "importsSdk": true,
+    "complete": true,
+    "probe": true,
+    "elided": false,
+    "errors": [],
+    "status": "pass"
+  },
+  {
+    "id": "snippet__snippets__graphs__routes__nested_workflow",
+    "kind": "snippet",
+    "page": "examples/typescript/snippets/graphs/routes/nested_workflow.ts",
+    "line": 1,
+    "source": "adk-docs/examples/typescript/snippets/graphs/routes/nested_workflow.ts",
+    "ext": "ts",
+    "pages": [
+      "docs/graphs/routes.md:511 [nested-workflow]"
+    ],
+    "file": "snippet__snippets__graphs__routes__nested_workflow.ts",
+    "lines": 95,
+    "importsSdk": true,
+    "complete": true,
+    "probe": true,
+    "elided": false,
+    "errors": [],
+    "status": "pass"
+  },
+  {
+    "id": "snippet__snippets__graphs__routes__sequence",
+    "kind": "snippet",
+    "page": "examples/typescript/snippets/graphs/routes/sequence.ts",
+    "line": 1,
+    "source": "adk-docs/examples/typescript/snippets/graphs/routes/sequence.ts",
+    "ext": "ts",
+    "pages": [
+      "docs/graphs/routes.md:211 [sequence]"
+    ],
+    "file": "snippet__snippets__graphs__routes__sequence.ts",
+    "lines": 41,
+    "importsSdk": true,
+    "complete": true,
+    "probe": true,
+    "elided": false,
+    "errors": [],
+    "status": "pass"
+  },
+  {
+    "id": "snippet__snippets__runtime__cancel__basic-usage",
+    "kind": "snippet",
+    "page": "examples/typescript/snippets/runtime/cancel/basic-usage.ts",
+    "line": 1,
+    "source": "adk-docs/examples/typescript/snippets/runtime/cancel/basic-usage.ts",
+    "ext": "ts",
+    "pages": [
+      "docs/runtime/cancel.md:24 [full]"
+    ],
+    "file": "snippet__snippets__runtime__cancel__basic-usage.ts",
+    "lines": 53,
+    "importsSdk": true,
+    "complete": true,
+    "probe": false,
+    "elided": false,
+    "errors": [],
+    "status": "pass"
+  },
+  {
+    "id": "snippet__snippets__runtime__cancel__combined-signal",
+    "kind": "snippet",
+    "page": "examples/typescript/snippets/runtime/cancel/combined-signal.ts",
+    "line": 1,
+    "source": "adk-docs/examples/typescript/snippets/runtime/cancel/combined-signal.ts",
+    "ext": "ts",
+    "pages": [
+      "docs/runtime/cancel.md:87 [run]"
+    ],
+    "file": "snippet__snippets__runtime__cancel__combined-signal.ts",
+    "lines": 60,
+    "importsSdk": true,
+    "complete": true,
+    "probe": false,
+    "elided": false,
+    "errors": [],
+    "status": "pass"
+  },
+  {
+    "id": "snippet__snippets__runtime__cancel__custom-tool",
+    "kind": "snippet",
+    "page": "examples/typescript/snippets/runtime/cancel/custom-tool.ts",
+    "line": 1,
+    "source": "adk-docs/examples/typescript/snippets/runtime/cancel/custom-tool.ts",
+    "ext": "ts",
+    "pages": [
+      "docs/runtime/cancel.md:99 [tool]"
+    ],
+    "file": "snippet__snippets__runtime__cancel__custom-tool.ts",
+    "lines": 45,
+    "importsSdk": true,
+    "complete": false,
+    "probe": false,
+    "elided": false,
+    "errors": [],
+    "status": "pass"
+  },
+  {
+    "id": "snippet__snippets__runtime__cancel__timeout",
+    "kind": "snippet",
+    "page": "examples/typescript/snippets/runtime/cancel/timeout.ts",
+    "line": 1,
+    "source": "adk-docs/examples/typescript/snippets/runtime/cancel/timeout.ts",
+    "ext": "ts",
+    "pages": [
+      "docs/runtime/cancel.md:77 [run]"
+    ],
+    "file": "snippet__snippets__runtime__cancel__timeout.ts",
+    "lines": 51,
+    "importsSdk": true,
+    "complete": true,
+    "probe": false,
+    "elided": false,
+    "errors": [],
+    "status": "pass"
+  },
+  {
+    "id": "snippet__snippets__sessions__memory_example",
+    "kind": "snippet",
+    "page": "examples/typescript/snippets/sessions/memory_example.ts",
+    "line": 1,
+    "source": "adk-docs/examples/typescript/snippets/sessions/memory_example.ts",
+    "ext": "ts",
+    "pages": [
+      "docs/sessions/memory.md:211 [full_example]"
+    ],
+    "file": "snippet__snippets__sessions__memory_example.ts",
+    "lines": 110,
+    "importsSdk": true,
+    "complete": true,
+    "probe": false,
+    "elided": false,
+    "errors": [],
+    "status": "pass"
+  },
+  {
+    "id": "snippet__snippets__skills__get_started",
+    "kind": "snippet",
+    "page": "examples/typescript/snippets/skills/get_started.ts",
+    "line": 1,
+    "source": "adk-docs/examples/typescript/snippets/skills/get_started.ts",
+    "ext": "ts",
+    "pages": [
+      "docs/skills/index.md:71 [full_example]"
+    ],
+    "file": "snippet__snippets__skills__get_started.ts",
+    "lines": 46,
+    "importsSdk": true,
+    "complete": false,
+    "probe": false,
+    "elided": false,
+    "errors": [],
+    "status": "pass"
+  },
+  {
+    "id": "snippet__snippets__skills__inline_skill",
+    "kind": "snippet",
+    "page": "examples/typescript/snippets/skills/inline_skill.ts",
+    "line": 1,
+    "source": "adk-docs/examples/typescript/snippets/skills/inline_skill.ts",
+    "ext": "ts",
+    "pages": [
+      "docs/skills/index.md:243 [full_example]"
+    ],
+    "file": "snippet__snippets__skills__inline_skill.ts",
+    "lines": 37,
+    "importsSdk": true,
+    "complete": false,
+    "probe": false,
+    "elided": false,
+    "errors": [],
+    "status": "pass"
+  },
+  {
+    "id": "snippet__snippets__tools__confirmation__boolean_confirmation",
+    "kind": "snippet",
+    "page": "examples/typescript/snippets/tools/confirmation/boolean_confirmation.ts",
+    "line": 1,
+    "source": "adk-docs/examples/typescript/snippets/tools/confirmation/boolean_confirmation.ts",
+    "ext": "ts",
+    "pages": [
+      "docs/tools-custom/confirmation.md:83 [boolean_confirmation]",
+      "docs/tools-custom/confirmation.md:152 [dynamic_confirmation]"
+    ],
+    "file": "snippet__snippets__tools__confirmation__boolean_confirmation.ts",
+    "lines": 77,
+    "importsSdk": true,
+    "complete": true,
+    "probe": true,
+    "elided": false,
+    "errors": [],
+    "status": "pass"
+  },
+  {
+    "id": "snippet__snippets__tools__confirmation__confirmation_example",
+    "kind": "snippet",
+    "page": "examples/typescript/snippets/tools/confirmation/confirmation_example.ts",
+    "line": 1,
+    "source": "adk-docs/examples/typescript/snippets/tools/confirmation/confirmation_example.ts",
+    "ext": "ts",
+    "pages": [
+      "docs/tools-custom/confirmation.md:282 [advanced_confirmation]"
+    ],
+    "file": "snippet__snippets__tools__confirmation__confirmation_example.ts",
+    "lines": 84,
+    "importsSdk": true,
+    "complete": true,
+    "probe": true,
+    "elided": false,
+    "errors": [],
+    "status": "pass"
+  },
+  {
+    "id": "snippet__snippets__tools__function-tools__agent-as-a-tool-example",
+    "kind": "snippet",
+    "page": "examples/typescript/snippets/tools/function-tools/agent-as-a-tool-example.ts",
+    "line": 1,
+    "source": "adk-docs/examples/typescript/snippets/tools/function-tools/agent-as-a-tool-example.ts",
+    "ext": "ts",
+    "pages": [
+      "docs/tools-custom/function-tools.md:842"
+    ],
+    "file": "snippet__snippets__tools__function-tools__agent-as-a-tool-example.ts",
+    "lines": 81,
+    "importsSdk": true,
+    "complete": true,
+    "probe": false,
+    "elided": false,
+    "errors": [],
+    "status": "pass"
+  },
+  {
+    "id": "snippet__snippets__tools__function-tools__function-tools-example",
+    "kind": "snippet",
+    "page": "examples/typescript/snippets/tools/function-tools/function-tools-example.ts",
+    "line": 1,
+    "source": "adk-docs/examples/typescript/snippets/tools/function-tools/function-tools-example.ts",
+    "ext": "ts",
+    "pages": [
+      "docs/tools-custom/function-tools.md:419"
+    ],
+    "file": "snippet__snippets__tools__function-tools__function-tools-example.ts",
+    "lines": 80,
+    "importsSdk": true,
+    "complete": true,
+    "probe": false,
+    "elided": false,
+    "errors": [],
+    "status": "pass"
+  },
+  {
+    "id": "snippet__snippets__tools__function-tools__long-running-function-tool-example",
+    "kind": "snippet",
+    "page": "examples/typescript/snippets/tools/function-tools/long-running-function-tool-example.ts",
+    "line": 1,
+    "source": "adk-docs/examples/typescript/snippets/tools/function-tools/long-running-function-tool-example.ts",
+    "ext": "ts",
+    "pages": [
+      "docs/tools-custom/function-tools.md:565 [define_long_running_function]",
+      "docs/tools-custom/function-tools.md:699"
+    ],
+    "file": "snippet__snippets__tools__function-tools__long-running-function-tool-example.ts",
+    "lines": 212,
+    "importsSdk": true,
+    "complete": true,
+    "probe": false,
+    "elided": false,
+    "errors": [],
+    "status": "pass"
+  },
+  {
+    "id": "snippet__snippets__tools__overview__customer_support_agent",
+    "kind": "snippet",
+    "page": "examples/typescript/snippets/tools/overview/customer_support_agent.ts",
+    "line": 1,
+    "source": "adk-docs/examples/typescript/snippets/tools/overview/customer_support_agent.ts",
+    "ext": "ts",
+    "pages": [
+      "docs/tools-custom/index.md:229"
+    ],
+    "file": "snippet__snippets__tools__overview__customer_support_agent.ts",
+    "lines": 91,
+    "importsSdk": true,
+    "complete": true,
+    "probe": false,
+    "elided": false,
+    "errors": [],
+    "status": "pass"
+  },
+  {
+    "id": "snippet__snippets__tools__overview__doc_analysis",
+    "kind": "snippet",
+    "page": "examples/typescript/snippets/tools/overview/doc_analysis.ts",
+    "line": 1,
+    "source": "adk-docs/examples/typescript/snippets/tools/overview/doc_analysis.ts",
+    "ext": "ts",
+    "pages": [
+      "docs/tools-custom/index.md:296"
+    ],
+    "file": "snippet__snippets__tools__overview__doc_analysis.ts",
+    "lines": 59,
+    "importsSdk": true,
+    "complete": false,
+    "probe": false,
+    "elided": false,
+    "errors": [
+      {
+        "line": 39,
+        "code": 18048,
+        "kind": "context",
+        "message": "'m.content.parts' is possibly 'undefined'."
+      }
+    ],
+    "status": "fragment"
+  },
+  {
+    "id": "snippet__snippets__tools__overview__toolset_example",
+    "kind": "snippet",
+    "page": "examples/typescript/snippets/tools/overview/toolset_example.ts",
+    "line": 1,
+    "source": "adk-docs/examples/typescript/snippets/tools/overview/toolset_example.ts",
+    "ext": "ts",
+    "pages": [
+      "docs/tools-custom/index.md:586"
+    ],
+    "file": "snippet__snippets__tools__overview__toolset_example.ts",
+    "lines": 107,
+    "importsSdk": true,
+    "complete": true,
+    "probe": false,
+    "elided": false,
+    "errors": [],
+    "status": "pass"
+  },
+  {
+    "id": "snippet__snippets__tools__overview__user_preference",
+    "kind": "snippet",
+    "page": "examples/typescript/snippets/tools/overview/user_preference.ts",
+    "line": 1,
+    "source": "adk-docs/examples/typescript/snippets/tools/overview/user_preference.ts",
+    "ext": "ts",
+    "pages": [
+      "docs/tools-custom/index.md:166"
+    ],
+    "file": "snippet__snippets__tools__overview__user_preference.ts",
+    "lines": 28,
+    "importsSdk": true,
+    "complete": false,
+    "probe": false,
+    "elided": false,
+    "errors": [],
+    "status": "pass"
+  },
+  {
+    "id": "snippet__snippets__tools__overview__weather_sentiment",
+    "kind": "snippet",
+    "page": "examples/typescript/snippets/tools/overview/weather_sentiment.ts",
+    "line": 1,
+    "source": "adk-docs/examples/typescript/snippets/tools/overview/weather_sentiment.ts",
+    "ext": "ts",
+    "pages": [
+      "docs/tools-custom/index.md:96"
+    ],
+    "file": "snippet__snippets__tools__overview__weather_sentiment.ts",
+    "lines": 123,
+    "importsSdk": true,
+    "complete": true,
+    "probe": false,
+    "elided": false,
+    "errors": [],
+    "status": "pass"
+  },
+  {
+    "id": "js__samples__agents__agent",
+    "kind": "sample",
+    "page": "adk-js/samples/agents/agent.ts",
+    "line": 1,
+    "source": "adk-js/samples/agents/agent.ts",
+    "ext": "ts",
+    "file": "js__samples__agents__agent.ts",
+    "lines": 335,
+    "importsSdk": true,
+    "complete": true,
+    "probe": false,
+    "elided": false,
+    "errors": [],
+    "status": "pass"
+  },
+  {
+    "id": "js__samples__artifacts__agent",
+    "kind": "sample",
+    "page": "adk-js/samples/artifacts/agent.ts",
+    "line": 1,
+    "source": "adk-js/samples/artifacts/agent.ts",
+    "ext": "ts",
+    "file": "js__samples__artifacts__agent.ts",
+    "lines": 233,
+    "importsSdk": true,
+    "complete": true,
+    "probe": false,
+    "elided": false,
+    "errors": [],
+    "status": "pass"
+  },
+  {
+    "id": "js__samples__auth__agent",
+    "kind": "sample",
+    "page": "adk-js/samples/auth/agent.ts",
+    "line": 1,
+    "source": "adk-js/samples/auth/agent.ts",
+    "ext": "ts",
+    "file": "js__samples__auth__agent.ts",
+    "lines": 161,
+    "importsSdk": true,
+    "complete": true,
+    "probe": true,
+    "elided": false,
+    "errors": [],
+    "status": "pass"
+  },
+  {
+    "id": "js__samples__cli__agent",
+    "kind": "sample",
+    "page": "adk-js/samples/cli/agent.ts",
+    "line": 1,
+    "source": "adk-js/samples/cli/agent.ts",
+    "ext": "ts",
+    "file": "js__samples__cli__agent.ts",
+    "lines": 260,
+    "importsSdk": true,
+    "complete": true,
+    "probe": false,
+    "elided": false,
+    "errors": [],
+    "status": "pass"
+  },
+  {
+    "id": "js__samples__code_execution__agent",
+    "kind": "sample",
+    "page": "adk-js/samples/code_execution/agent.ts",
+    "line": 1,
+    "source": "adk-js/samples/code_execution/agent.ts",
+    "ext": "ts",
+    "file": "js__samples__code_execution__agent.ts",
+    "lines": 178,
+    "importsSdk": true,
+    "complete": true,
+    "probe": true,
+    "elided": false,
+    "errors": [],
+    "status": "pass"
+  },
+  {
+    "id": "js__samples__code_execution__javascript__agent",
+    "kind": "sample",
+    "page": "adk-js/samples/code_execution/javascript/agent.ts",
+    "line": 1,
+    "source": "adk-js/samples/code_execution/javascript/agent.ts",
+    "ext": "ts",
+    "file": "js__samples__code_execution__javascript__agent.ts",
+    "lines": 102,
+    "importsSdk": true,
+    "complete": true,
+    "probe": true,
+    "elided": false,
+    "errors": [],
+    "status": "pass"
+  },
+  {
+    "id": "js__samples__confirm_writes__agent",
+    "kind": "sample",
+    "page": "adk-js/samples/confirm_writes/agent.ts",
+    "line": 1,
+    "source": "adk-js/samples/confirm_writes/agent.ts",
+    "ext": "ts",
+    "file": "js__samples__confirm_writes__agent.ts",
+    "lines": 180,
+    "importsSdk": true,
+    "complete": true,
+    "probe": true,
+    "elided": false,
+    "errors": [],
+    "status": "pass"
+  },
+  {
+    "id": "js__samples__events__agent",
+    "kind": "sample",
+    "page": "adk-js/samples/events/agent.ts",
+    "line": 1,
+    "source": "adk-js/samples/events/agent.ts",
+    "ext": "ts",
+    "file": "js__samples__events__agent.ts",
+    "lines": 189,
+    "importsSdk": true,
+    "complete": true,
+    "probe": false,
+    "elided": false,
+    "errors": [],
+    "status": "pass"
+  },
+  {
+    "id": "js__samples__examples__agent",
+    "kind": "sample",
+    "page": "adk-js/samples/examples/agent.ts",
+    "line": 1,
+    "source": "adk-js/samples/examples/agent.ts",
+    "ext": "ts",
+    "file": "js__samples__examples__agent.ts",
+    "lines": 81,
+    "importsSdk": true,
+    "complete": true,
+    "probe": true,
+    "elided": false,
+    "errors": [],
+    "status": "pass"
+  },
+  {
+    "id": "js__samples__flows__agent",
+    "kind": "sample",
+    "page": "adk-js/samples/flows/agent.ts",
+    "line": 1,
+    "source": "adk-js/samples/flows/agent.ts",
+    "ext": "ts",
+    "file": "js__samples__flows__agent.ts",
+    "lines": 473,
+    "importsSdk": true,
+    "complete": true,
+    "probe": false,
+    "elided": false,
+    "errors": [],
+    "status": "pass"
+  },
+  {
+    "id": "js__samples__integrations__anthropic__agent",
+    "kind": "sample",
+    "page": "adk-js/samples/integrations/anthropic/agent.ts",
+    "line": 1,
+    "source": "adk-js/samples/integrations/anthropic/agent.ts",
+    "ext": "ts",
+    "file": "js__samples__integrations__anthropic__agent.ts",
+    "lines": 84,
+    "importsSdk": true,
+    "complete": true,
+    "probe": true,
+    "elided": false,
+    "errors": [
+      {
+        "line": 28,
+        "code": 2307,
+        "kind": "context",
+        "message": "Cannot find module '@google/adk-integrations' or its corresponding type declarations."
+      }
+    ],
+    "status": "fragment"
+  },
+  {
+    "id": "js__samples__integrations__bigquery__agent",
+    "kind": "sample",
+    "page": "adk-js/samples/integrations/bigquery/agent.ts",
+    "line": 1,
+    "source": "adk-js/samples/integrations/bigquery/agent.ts",
+    "ext": "ts",
+    "file": "js__samples__integrations__bigquery__agent.ts",
+    "lines": 86,
+    "importsSdk": true,
+    "complete": true,
+    "probe": true,
+    "elided": false,
+    "errors": [
+      {
+        "line": 35,
+        "code": 2307,
+        "kind": "context",
+        "message": "Cannot find module '@google/adk-integrations' or its corresponding type declarations."
+      },
+      {
+        "line": 71,
+        "code": 7031,
+        "kind": "context",
+        "message": "Binding element 'projectId' implicitly has an 'any' type."
+      },
+      {
+        "line": 71,
+        "code": 7031,
+        "kind": "context",
+        "message": "Binding element 'datasetId' implicitly has an 'any' type."
+      },
+      {
+        "line": 71,
+        "code": 7031,
+        "kind": "context",
+        "message": "Binding element 'tableId' implicitly has an 'any' type."
+      },
+      {
+        "line": 71,
+        "code": 7031,
+        "kind": "context",
+        "message": "Binding element 'credentials' implicitly has an 'any' type."
+      }
+    ],
+    "status": "fragment"
+  },
+  {
+    "id": "js__samples__integrations__bigquery_agent_analytics__agent",
+    "kind": "sample",
+    "page": "adk-js/samples/integrations/bigquery_agent_analytics/agent.ts",
+    "line": 1,
+    "source": "adk-js/samples/integrations/bigquery_agent_analytics/agent.ts",
+    "ext": "ts",
+    "file": "js__samples__integrations__bigquery_agent_analytics__agent.ts",
+    "lines": 68,
+    "importsSdk": true,
+    "complete": true,
+    "probe": true,
+    "elided": false,
+    "errors": [
+      {
+        "line": 29,
+        "code": 2307,
+        "kind": "context",
+        "message": "Cannot find module '@google/adk-integrations/bigquery' or its corresponding type declarations."
+      }
+    ],
+    "status": "fragment"
+  },
+  {
+    "id": "js__samples__integrations__claude__agent",
+    "kind": "sample",
+    "page": "adk-js/samples/integrations/claude/agent.ts",
+    "line": 1,
+    "source": "adk-js/samples/integrations/claude/agent.ts",
+    "ext": "ts",
+    "file": "js__samples__integrations__claude__agent.ts",
+    "lines": 89,
+    "importsSdk": true,
+    "complete": true,
+    "probe": true,
+    "elided": false,
+    "errors": [
+      {
+        "line": 30,
+        "code": 2307,
+        "kind": "context",
+        "message": "Cannot find module '@google/adk-integrations' or its corresponding type declarations."
+      }
+    ],
+    "status": "fragment"
+  },
+  {
+    "id": "js__samples__memory__agent",
+    "kind": "sample",
+    "page": "adk-js/samples/memory/agent.ts",
+    "line": 1,
+    "source": "adk-js/samples/memory/agent.ts",
+    "ext": "ts",
+    "file": "js__samples__memory__agent.ts",
+    "lines": 303,
+    "importsSdk": true,
+    "complete": true,
+    "probe": false,
+    "elided": false,
+    "errors": [],
+    "status": "pass"
+  },
+  {
+    "id": "js__samples__models__agent",
+    "kind": "sample",
+    "page": "adk-js/samples/models/agent.ts",
+    "line": 1,
+    "source": "adk-js/samples/models/agent.ts",
+    "ext": "ts",
+    "file": "js__samples__models__agent.ts",
+    "lines": 138,
+    "importsSdk": true,
+    "complete": true,
+    "probe": true,
+    "elided": false,
+    "errors": [],
+    "status": "pass"
+  },
+  {
+    "id": "js__samples__planners__agent",
+    "kind": "sample",
+    "page": "adk-js/samples/planners/agent.ts",
+    "line": 1,
+    "source": "adk-js/samples/planners/agent.ts",
+    "ext": "ts",
+    "file": "js__samples__planners__agent.ts",
+    "lines": 170,
+    "importsSdk": true,
+    "complete": true,
+    "probe": false,
+    "elided": false,
+    "errors": [],
+    "status": "pass"
+  },
+  {
+    "id": "js__samples__runners__agent",
+    "kind": "sample",
+    "page": "adk-js/samples/runners/agent.ts",
+    "line": 1,
+    "source": "adk-js/samples/runners/agent.ts",
+    "ext": "ts",
+    "file": "js__samples__runners__agent.ts",
+    "lines": 128,
+    "importsSdk": true,
+    "complete": true,
+    "probe": true,
+    "elided": false,
+    "errors": [],
+    "status": "pass"
+  },
+  {
+    "id": "js__samples__sessions__agent",
+    "kind": "sample",
+    "page": "adk-js/samples/sessions/agent.ts",
+    "line": 1,
+    "source": "adk-js/samples/sessions/agent.ts",
+    "ext": "ts",
+    "file": "js__samples__sessions__agent.ts",
+    "lines": 155,
+    "importsSdk": true,
+    "complete": true,
+    "probe": false,
+    "elided": false,
+    "errors": [],
+    "status": "pass"
+  },
+  {
+    "id": "js__samples__telemetry__agent",
+    "kind": "sample",
+    "page": "adk-js/samples/telemetry/agent.ts",
+    "line": 1,
+    "source": "adk-js/samples/telemetry/agent.ts",
+    "ext": "ts",
+    "file": "js__samples__telemetry__agent.ts",
+    "lines": 74,
+    "importsSdk": true,
+    "complete": true,
+    "probe": true,
+    "elided": false,
+    "errors": [
+      {
+        "line": 33,
+        "code": 2307,
+        "kind": "context",
+        "message": "Cannot find module '@opentelemetry/sdk-logs' or its corresponding type declarations."
+      },
+      {
+        "line": 37,
+        "code": 2307,
+        "kind": "context",
+        "message": "Cannot find module '@opentelemetry/sdk-trace-base' or its corresponding type declarations."
+      }
+    ],
+    "status": "fragment"
+  },
+  {
+    "id": "js__samples__tools__agent",
+    "kind": "sample",
+    "page": "adk-js/samples/tools/agent.ts",
+    "line": 1,
+    "source": "adk-js/samples/tools/agent.ts",
+    "ext": "ts",
+    "file": "js__samples__tools__agent.ts",
+    "lines": 496,
+    "importsSdk": true,
+    "complete": true,
+    "probe": false,
+    "elided": false,
+    "errors": [
+      {
+        "line": 60,
+        "code": 2307,
+        "kind": "context",
+        "message": "Cannot find module '@google/adk-integrations' or its corresponding type declarations."
+      }
+    ],
+    "status": "fragment"
+  },
+  {
+    "id": "js__samples__tools__apihub_tool__agent",
+    "kind": "sample",
+    "page": "adk-js/samples/tools/apihub_tool/agent.ts",
+    "line": 1,
+    "source": "adk-js/samples/tools/apihub_tool/agent.ts",
+    "ext": "ts",
+    "file": "js__samples__tools__apihub_tool__agent.ts",
+    "lines": 81,
+    "importsSdk": true,
+    "complete": true,
+    "probe": true,
+    "elided": false,
+    "errors": [],
+    "status": "pass"
+  },
+  {
+    "id": "js__samples__tools__application_integration_tool__agent",
+    "kind": "sample",
+    "page": "adk-js/samples/tools/application_integration_tool/agent.ts",
+    "line": 1,
+    "source": "adk-js/samples/tools/application_integration_tool/agent.ts",
+    "ext": "ts",
+    "file": "js__samples__tools__application_integration_tool__agent.ts",
+    "lines": 128,
+    "importsSdk": true,
+    "complete": true,
+    "probe": true,
+    "elided": false,
+    "errors": [],
+    "status": "pass"
+  },
+  {
+    "id": "js__samples__tools__computer_use__agent",
+    "kind": "sample",
+    "page": "adk-js/samples/tools/computer_use/agent.ts",
+    "line": 1,
+    "source": "adk-js/samples/tools/computer_use/agent.ts",
+    "ext": "ts",
+    "file": "js__samples__tools__computer_use__agent.ts",
+    "lines": 156,
+    "importsSdk": true,
+    "complete": true,
+    "probe": true,
+    "elided": false,
+    "errors": [],
+    "status": "pass"
+  },
+  {
+    "id": "js__samples__tools__google_api_tool__agent",
+    "kind": "sample",
+    "page": "adk-js/samples/tools/google_api_tool/agent.ts",
+    "line": 1,
+    "source": "adk-js/samples/tools/google_api_tool/agent.ts",
+    "ext": "ts",
+    "file": "js__samples__tools__google_api_tool__agent.ts",
+    "lines": 171,
+    "importsSdk": true,
+    "complete": true,
+    "probe": false,
+    "elided": false,
+    "errors": [],
+    "status": "pass"
+  },
+  {
+    "id": "js__samples__tools__mcp_tool__agent",
+    "kind": "sample",
+    "page": "adk-js/samples/tools/mcp_tool/agent.ts",
+    "line": 1,
+    "source": "adk-js/samples/tools/mcp_tool/agent.ts",
+    "ext": "ts",
+    "file": "js__samples__tools__mcp_tool__agent.ts",
+    "lines": 106,
+    "importsSdk": true,
+    "complete": true,
+    "probe": true,
+    "elided": false,
+    "errors": [],
+    "status": "pass"
+  },
+  {
+    "id": "js__samples__tools__openapi_tool__agent",
+    "kind": "sample",
+    "page": "adk-js/samples/tools/openapi_tool/agent.ts",
+    "line": 1,
+    "source": "adk-js/samples/tools/openapi_tool/agent.ts",
+    "ext": "ts",
+    "file": "js__samples__tools__openapi_tool__agent.ts",
+    "lines": 99,
+    "importsSdk": true,
+    "complete": true,
+    "probe": true,
+    "elided": false,
+    "errors": [],
+    "status": "pass"
+  },
+  {
+    "id": "js__samples__tools__retrieval__agent",
+    "kind": "sample",
+    "page": "adk-js/samples/tools/retrieval/agent.ts",
+    "line": 1,
+    "source": "adk-js/samples/tools/retrieval/agent.ts",
+    "ext": "ts",
+    "file": "js__samples__tools__retrieval__agent.ts",
+    "lines": 145,
+    "importsSdk": true,
+    "complete": true,
+    "probe": true,
+    "elided": false,
+    "errors": [],
+    "status": "pass"
+  },
+  {
+    "id": "js__samples__workflows__data_handling__node_output__agent",
+    "kind": "sample",
+    "page": "adk-js/samples/workflows/data_handling/node_output/agent.ts",
+    "line": 1,
+    "source": "adk-js/samples/workflows/data_handling/node_output/agent.ts",
+    "ext": "ts",
+    "file": "js__samples__workflows__data_handling__node_output__agent.ts",
+    "lines": 62,
+    "importsSdk": true,
+    "complete": true,
+    "probe": true,
+    "elided": false,
+    "errors": [],
+    "status": "pass"
+  },
+  {
+    "id": "js__samples__workflows__data_handling__routing_output__agent",
+    "kind": "sample",
+    "page": "adk-js/samples/workflows/data_handling/routing_output/agent.ts",
+    "line": 1,
+    "source": "adk-js/samples/workflows/data_handling/routing_output/agent.ts",
+    "ext": "ts",
+    "file": "js__samples__workflows__data_handling__routing_output__agent.ts",
+    "lines": 63,
+    "importsSdk": true,
+    "complete": true,
+    "probe": true,
+    "elided": false,
+    "errors": [],
+    "status": "pass"
+  },
+  {
+    "id": "js__samples__workflows__data_handling__schemas__agent",
+    "kind": "sample",
+    "page": "adk-js/samples/workflows/data_handling/schemas/agent.ts",
+    "line": 1,
+    "source": "adk-js/samples/workflows/data_handling/schemas/agent.ts",
+    "ext": "ts",
+    "file": "js__samples__workflows__data_handling__schemas__agent.ts",
+    "lines": 121,
+    "importsSdk": true,
+    "complete": true,
+    "probe": true,
+    "elided": false,
+    "errors": [],
+    "status": "pass"
+  },
+  {
+    "id": "js__samples__workflows__data_handling__session_state__agent",
+    "kind": "sample",
+    "page": "adk-js/samples/workflows/data_handling/session_state/agent.ts",
+    "line": 1,
+    "source": "adk-js/samples/workflows/data_handling/session_state/agent.ts",
+    "ext": "ts",
+    "file": "js__samples__workflows__data_handling__session_state__agent.ts",
+    "lines": 65,
+    "importsSdk": true,
+    "complete": true,
+    "probe": true,
+    "elided": false,
+    "errors": [],
+    "status": "pass"
+  },
+  {
+    "id": "js__samples__workflows__data_handling__structured_access__agent",
+    "kind": "sample",
+    "page": "adk-js/samples/workflows/data_handling/structured_access/agent.ts",
+    "line": 1,
+    "source": "adk-js/samples/workflows/data_handling/structured_access/agent.ts",
+    "ext": "ts",
+    "file": "js__samples__workflows__data_handling__structured_access__agent.ts",
+    "lines": 77,
+    "importsSdk": true,
+    "complete": true,
+    "probe": true,
+    "elided": false,
+    "errors": [],
+    "status": "pass"
+  },
+  {
+    "id": "js__samples__workflows__data_handling__structured_output__agent",
+    "kind": "sample",
+    "page": "adk-js/samples/workflows/data_handling/structured_output/agent.ts",
+    "line": 1,
+    "source": "adk-js/samples/workflows/data_handling/structured_output/agent.ts",
+    "ext": "ts",
+    "file": "js__samples__workflows__data_handling__structured_output__agent.ts",
+    "lines": 49,
+    "importsSdk": true,
+    "complete": true,
+    "probe": true,
+    "elided": false,
+    "errors": [],
+    "status": "pass"
+  },
+  {
+    "id": "js__samples__workflows__data_handling__user_message__agent",
+    "kind": "sample",
+    "page": "adk-js/samples/workflows/data_handling/user_message/agent.ts",
+    "line": 1,
+    "source": "adk-js/samples/workflows/data_handling/user_message/agent.ts",
+    "ext": "ts",
+    "file": "js__samples__workflows__data_handling__user_message__agent.ts",
+    "lines": 56,
+    "importsSdk": true,
+    "complete": true,
+    "probe": true,
+    "elided": false,
+    "errors": [],
+    "status": "pass"
+  },
+  {
+    "id": "js__samples__workflows__dynamic__custom_run_ids__agent",
+    "kind": "sample",
+    "page": "adk-js/samples/workflows/dynamic/custom_run_ids/agent.ts",
+    "line": 1,
+    "source": "adk-js/samples/workflows/dynamic/custom_run_ids/agent.ts",
+    "ext": "ts",
+    "file": "js__samples__workflows__dynamic__custom_run_ids__agent.ts",
+    "lines": 71,
+    "importsSdk": true,
+    "complete": true,
+    "probe": true,
+    "elided": false,
+    "errors": [],
+    "status": "pass"
+  },
+  {
+    "id": "js__samples__workflows__dynamic__data_handling__agent",
+    "kind": "sample",
+    "page": "adk-js/samples/workflows/dynamic/data_handling/agent.ts",
+    "line": 1,
+    "source": "adk-js/samples/workflows/dynamic/data_handling/agent.ts",
+    "ext": "ts",
+    "file": "js__samples__workflows__dynamic__data_handling__agent.ts",
+    "lines": 60,
+    "importsSdk": true,
+    "complete": true,
+    "probe": true,
+    "elided": false,
+    "errors": [],
+    "status": "pass"
+  },
+  {
+    "id": "js__samples__workflows__dynamic__get_started__agent",
+    "kind": "sample",
+    "page": "adk-js/samples/workflows/dynamic/get_started/agent.ts",
+    "line": 1,
+    "source": "adk-js/samples/workflows/dynamic/get_started/agent.ts",
+    "ext": "ts",
+    "file": "js__samples__workflows__dynamic__get_started__agent.ts",
+    "lines": 42,
+    "importsSdk": true,
+    "complete": true,
+    "probe": true,
+    "elided": false,
+    "errors": [],
+    "status": "pass"
+  },
+  {
+    "id": "js__samples__workflows__dynamic__human_input__agent",
+    "kind": "sample",
+    "page": "adk-js/samples/workflows/dynamic/human_input/agent.ts",
+    "line": 1,
+    "source": "adk-js/samples/workflows/dynamic/human_input/agent.ts",
+    "ext": "ts",
+    "file": "js__samples__workflows__dynamic__human_input__agent.ts",
+    "lines": 68,
+    "importsSdk": true,
+    "complete": true,
+    "probe": true,
+    "elided": false,
+    "errors": [],
+    "status": "pass"
+  },
+  {
+    "id": "js__samples__workflows__dynamic__loop_route__agent",
+    "kind": "sample",
+    "page": "adk-js/samples/workflows/dynamic/loop_route/agent.ts",
+    "line": 1,
+    "source": "adk-js/samples/workflows/dynamic/loop_route/agent.ts",
+    "ext": "ts",
+    "file": "js__samples__workflows__dynamic__loop_route__agent.ts",
+    "lines": 91,
+    "importsSdk": true,
+    "complete": true,
+    "probe": true,
+    "elided": false,
+    "errors": [],
+    "status": "pass"
+  },
+  {
+    "id": "js__samples__workflows__dynamic__nodes__agent",
+    "kind": "sample",
+    "page": "adk-js/samples/workflows/dynamic/nodes/agent.ts",
+    "line": 1,
+    "source": "adk-js/samples/workflows/dynamic/nodes/agent.ts",
+    "ext": "ts",
+    "file": "js__samples__workflows__dynamic__nodes__agent.ts",
+    "lines": 60,
+    "importsSdk": true,
+    "complete": true,
+    "probe": true,
+    "elided": false,
+    "errors": [],
+    "status": "pass"
+  },
+  {
+    "id": "js__samples__workflows__dynamic__parallel_route__agent",
+    "kind": "sample",
+    "page": "adk-js/samples/workflows/dynamic/parallel_route/agent.ts",
+    "line": 1,
+    "source": "adk-js/samples/workflows/dynamic/parallel_route/agent.ts",
+    "ext": "ts",
+    "file": "js__samples__workflows__dynamic__parallel_route__agent.ts",
+    "lines": 70,
+    "importsSdk": true,
+    "complete": true,
+    "probe": true,
+    "elided": false,
+    "errors": [],
+    "status": "pass"
+  },
+  {
+    "id": "js__samples__workflows__dynamic__sequence_route__agent",
+    "kind": "sample",
+    "page": "adk-js/samples/workflows/dynamic/sequence_route/agent.ts",
+    "line": 1,
+    "source": "adk-js/samples/workflows/dynamic/sequence_route/agent.ts",
+    "ext": "ts",
+    "file": "js__samples__workflows__dynamic__sequence_route__agent.ts",
+    "lines": 68,
+    "importsSdk": true,
+    "complete": true,
+    "probe": true,
+    "elided": false,
+    "errors": [],
+    "status": "pass"
+  },
+  {
+    "id": "js__samples__workflows__graphs__get_started__agent",
+    "kind": "sample",
+    "page": "adk-js/samples/workflows/graphs/get_started/agent.ts",
+    "line": 1,
+    "source": "adk-js/samples/workflows/graphs/get_started/agent.ts",
+    "ext": "ts",
+    "file": "js__samples__workflows__graphs__get_started__agent.ts",
+    "lines": 78,
+    "importsSdk": true,
+    "complete": true,
+    "probe": true,
+    "elided": false,
+    "errors": [],
+    "status": "pass"
+  },
+  {
+    "id": "js__samples__workflows__graphs__process_pipeline__agent",
+    "kind": "sample",
+    "page": "adk-js/samples/workflows/graphs/process_pipeline/agent.ts",
+    "line": 1,
+    "source": "adk-js/samples/workflows/graphs/process_pipeline/agent.ts",
+    "ext": "ts",
+    "file": "js__samples__workflows__graphs__process_pipeline__agent.ts",
+    "lines": 89,
+    "importsSdk": true,
+    "complete": true,
+    "probe": true,
+    "elided": false,
+    "errors": [],
+    "status": "pass"
+  },
+  {
+    "id": "js__samples__workflows__human_input__get_started__agent",
+    "kind": "sample",
+    "page": "adk-js/samples/workflows/human_input/get_started/agent.ts",
+    "line": 1,
+    "source": "adk-js/samples/workflows/human_input/get_started/agent.ts",
+    "ext": "ts",
+    "file": "js__samples__workflows__human_input__get_started__agent.ts",
+    "lines": 47,
+    "importsSdk": true,
+    "complete": true,
+    "probe": true,
+    "elided": false,
+    "errors": [],
+    "status": "pass"
+  },
+  {
+    "id": "js__samples__workflows__human_input__initial_prompt__agent",
+    "kind": "sample",
+    "page": "adk-js/samples/workflows/human_input/initial_prompt/agent.ts",
+    "line": 1,
+    "source": "adk-js/samples/workflows/human_input/initial_prompt/agent.ts",
+    "ext": "ts",
+    "file": "js__samples__workflows__human_input__initial_prompt__agent.ts",
+    "lines": 70,
+    "importsSdk": true,
+    "complete": true,
+    "probe": true,
+    "elided": false,
+    "errors": [],
+    "status": "pass"
+  },
+  {
+    "id": "js__samples__workflows__human_input__payload_and_schema__agent",
+    "kind": "sample",
+    "page": "adk-js/samples/workflows/human_input/payload_and_schema/agent.ts",
+    "line": 1,
+    "source": "adk-js/samples/workflows/human_input/payload_and_schema/agent.ts",
+    "ext": "ts",
+    "file": "js__samples__workflows__human_input__payload_and_schema__agent.ts",
+    "lines": 101,
+    "importsSdk": true,
+    "complete": true,
+    "probe": true,
+    "elided": false,
+    "errors": [],
+    "status": "pass"
+  },
+  {
+    "id": "js__samples__workflows__human_input__rerun_on_resume__agent",
+    "kind": "sample",
+    "page": "adk-js/samples/workflows/human_input/rerun_on_resume/agent.ts",
+    "line": 1,
+    "source": "adk-js/samples/workflows/human_input/rerun_on_resume/agent.ts",
+    "ext": "ts",
+    "file": "js__samples__workflows__human_input__rerun_on_resume__agent.ts",
+    "lines": 105,
+    "importsSdk": true,
+    "complete": true,
+    "probe": true,
+    "elided": false,
+    "errors": [],
+    "status": "pass"
+  },
+  {
+    "id": "js__samples__workflows__routes__branches__agent",
+    "kind": "sample",
+    "page": "adk-js/samples/workflows/routes/branches/agent.ts",
+    "line": 1,
+    "source": "adk-js/samples/workflows/routes/branches/agent.ts",
+    "ext": "ts",
+    "file": "js__samples__workflows__routes__branches__agent.ts",
+    "lines": 67,
+    "importsSdk": true,
+    "complete": true,
+    "probe": true,
+    "elided": false,
+    "errors": [],
+    "status": "pass"
+  },
+  {
+    "id": "js__samples__workflows__routes__fan_out_join__agent",
+    "kind": "sample",
+    "page": "adk-js/samples/workflows/routes/fan_out_join/agent.ts",
+    "line": 1,
+    "source": "adk-js/samples/workflows/routes/fan_out_join/agent.ts",
+    "ext": "ts",
+    "file": "js__samples__workflows__routes__fan_out_join__agent.ts",
+    "lines": 67,
+    "importsSdk": true,
+    "complete": true,
+    "probe": true,
+    "elided": false,
+    "errors": [],
+    "status": "pass"
+  },
+  {
+    "id": "js__samples__workflows__routes__function_node__agent",
+    "kind": "sample",
+    "page": "adk-js/samples/workflows/routes/function_node/agent.ts",
+    "line": 1,
+    "source": "adk-js/samples/workflows/routes/function_node/agent.ts",
+    "ext": "ts",
+    "file": "js__samples__workflows__routes__function_node__agent.ts",
+    "lines": 60,
+    "importsSdk": true,
+    "complete": true,
+    "probe": true,
+    "elided": false,
+    "errors": [],
+    "status": "pass"
+  },
+  {
+    "id": "js__samples__workflows__routes__loop_escalation__agent",
+    "kind": "sample",
+    "page": "adk-js/samples/workflows/routes/loop_escalation/agent.ts",
+    "line": 1,
+    "source": "adk-js/samples/workflows/routes/loop_escalation/agent.ts",
+    "ext": "ts",
+    "file": "js__samples__workflows__routes__loop_escalation__agent.ts",
+    "lines": 89,
+    "importsSdk": true,
+    "complete": true,
+    "probe": true,
+    "elided": false,
+    "errors": [],
+    "status": "pass"
+  },
+  {
+    "id": "js__samples__workflows__routes__nested_workflow__agent",
+    "kind": "sample",
+    "page": "adk-js/samples/workflows/routes/nested_workflow/agent.ts",
+    "line": 1,
+    "source": "adk-js/samples/workflows/routes/nested_workflow/agent.ts",
+    "ext": "ts",
+    "file": "js__samples__workflows__routes__nested_workflow__agent.ts",
+    "lines": 98,
+    "importsSdk": true,
+    "complete": true,
+    "probe": true,
+    "elided": false,
+    "errors": [],
+    "status": "pass"
+  },
+  {
+    "id": "js__samples__workflows__routes__sequence__agent",
+    "kind": "sample",
+    "page": "adk-js/samples/workflows/routes/sequence/agent.ts",
+    "line": 1,
+    "source": "adk-js/samples/workflows/routes/sequence/agent.ts",
+    "ext": "ts",
+    "file": "js__samples__workflows__routes__sequence__agent.ts",
+    "lines": 44,
+    "importsSdk": true,
+    "complete": true,
+    "probe": true,
+    "elided": false,
+    "errors": [],
+    "status": "pass"
+  },
+  {
+    "id": "js__dev__samples__agent_as_tool",
+    "kind": "sample",
+    "page": "adk-js/dev/samples/agent_as_tool.ts",
+    "line": 1,
+    "source": "adk-js/dev/samples/agent_as_tool.ts",
+    "ext": "ts",
+    "file": "js__dev__samples__agent_as_tool.ts",
+    "lines": 23,
+    "importsSdk": true,
+    "complete": true,
+    "probe": true,
+    "elided": false,
+    "errors": [],
+    "status": "pass"
+  },
+  {
+    "id": "js__dev__samples__agent_transfer_return",
+    "kind": "sample",
+    "page": "adk-js/dev/samples/agent_transfer_return.ts",
+    "line": 1,
+    "source": "adk-js/dev/samples/agent_transfer_return.ts",
+    "ext": "ts",
+    "file": "js__dev__samples__agent_transfer_return.ts",
+    "lines": 21,
+    "importsSdk": true,
+    "complete": true,
+    "probe": true,
+    "elided": false,
+    "errors": [],
+    "status": "pass"
+  },
+  {
+    "id": "js__dev__samples__agent_with_tool",
+    "kind": "sample",
+    "page": "adk-js/dev/samples/agent_with_tool.ts",
+    "line": 1,
+    "source": "adk-js/dev/samples/agent_with_tool.ts",
+    "ext": "ts",
+    "file": "js__dev__samples__agent_with_tool.ts",
+    "lines": 96,
+    "importsSdk": true,
+    "complete": true,
+    "probe": true,
+    "elided": false,
+    "errors": [],
+    "status": "pass"
+  },
+  {
+    "id": "js__dev__samples__google_search_agent",
+    "kind": "sample",
+    "page": "adk-js/dev/samples/google_search_agent.ts",
+    "line": 1,
+    "source": "adk-js/dev/samples/google_search_agent.ts",
+    "ext": "ts",
+    "file": "js__dev__samples__google_search_agent.ts",
+    "lines": 17,
+    "importsSdk": true,
+    "complete": true,
+    "probe": true,
+    "elided": false,
+    "errors": [],
+    "status": "pass"
+  },
+  {
+    "id": "js__dev__samples__loop_agent",
+    "kind": "sample",
+    "page": "adk-js/dev/samples/loop_agent.ts",
+    "line": 1,
+    "source": "adk-js/dev/samples/loop_agent.ts",
+    "ext": "ts",
+    "file": "js__dev__samples__loop_agent.ts",
+    "lines": 66,
+    "importsSdk": true,
+    "complete": true,
+    "probe": true,
+    "elided": false,
+    "errors": [],
+    "status": "pass"
+  },
+  {
+    "id": "js__dev__samples__parallel_agent",
+    "kind": "sample",
+    "page": "adk-js/dev/samples/parallel_agent.ts",
+    "line": 1,
+    "source": "adk-js/dev/samples/parallel_agent.ts",
+    "ext": "ts",
+    "file": "js__dev__samples__parallel_agent.ts",
+    "lines": 56,
+    "importsSdk": true,
+    "complete": true,
+    "probe": true,
+    "elided": false,
+    "errors": [],
+    "status": "pass"
+  },
+  {
+    "id": "js__dev__samples__sequential_agent",
+    "kind": "sample",
+    "page": "adk-js/dev/samples/sequential_agent.ts",
+    "line": 1,
+    "source": "adk-js/dev/samples/sequential_agent.ts",
+    "ext": "ts",
+    "file": "js__dev__samples__sequential_agent.ts",
+    "lines": 81,
+    "importsSdk": true,
+    "complete": true,
+    "probe": true,
+    "elided": false,
+    "errors": [],
+    "status": "pass"
+  }
+]

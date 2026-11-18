@@ -1,0 +1,49 @@
+{
+  "value-imported-as-type": {
+    "errors": 6,
+    "files": [
+      "docs__agents__custom-agents__03",
+      "docs__agents__custom-agents__06",
+      "docs__agents__custom-agents__09",
+      "docs__workflows__patterns__06"
+    ],
+    "example": "docs/agents/custom-agents.md:331 'createEventActions' cannot be used as a value because it was imported using 'import type'."
+  },
+  "event-helpers-from-genai": {
+    "errors": 5,
+    "files": [
+      "docs__agents__custom-agents__09",
+      "docs__workflows__patterns__06"
+    ],
+    "example": "docs/agents/custom-agents.md:929 Module '\"@google/genai\"' has no exported member 'createEvent'."
+  },
+  "base-agent-missing-runLiveImpl": {
+    "errors": 2,
+    "files": [
+      "docs__context__index__02",
+      "docs__context__index__16"
+    ],
+    "example": "docs/context/index.md:166 Non-abstract class 'MyAgent' does not implement inherited abstract member runLiveImpl from class 'BaseAgent<BaseAgentConfig>'."
+  },
+  "plugin-positional-params": {
+    "errors": 2,
+    "files": [
+      "docs__plugins__index__01"
+    ],
+    "example": "docs/plugins/index.md:161 Property 'beforeAgentCallback' in type 'CountInvocationPlugin' is not assignable to the same property in base type 'BasePlugin'."
+  },
+  "state-get-default-narrows": {
+    "errors": 1,
+    "files": [
+      "docs__context__index__06"
+    ],
+    "example": "docs/context/index.md:558 This comparison appears to be unintentional because the types '\"default_mode\" | undefined' and '\"dark_mode\"' have no overlap."
+  },
+  "plain-function-as-tool": {
+    "errors": 1,
+    "files": [
+      "docs__integrations__zespan__01"
+    ],
+    "example": "docs/integrations/zespan.md:163 Type '(city: string) => object' is not assignable to type 'ToolUnion'."
+  }
+}
