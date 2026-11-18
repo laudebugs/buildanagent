@@ -1,16 +1,16 @@
-# Roadmap: from four verified SDK references to reviewed plans for our own agent stack
+# Roadmap: from eight verified SDK references to reviewed plans for our own agent stack
 
 - **Status:** In progress
 - **Date:** 2026-11-18
 - **Asked for by:** the project owner (2026-11-18)
 - **Plans:** [SDK references](sdk-references.md) · [SDK comparison](sdk-comparison.md) · [agent skills](agent-skills.md) · [build guides](build-guides.md) · [implementation plans](implementation-plans.md) · [CI](ci.md)
-- **Done so far:** the [research report](../research/agent-sdks-and-harness-design.md) and its [fact-check](../research/fact-check-2026-11-18.md), the [harness teardown](../research/harness-architectures.md), and the [Claude Agent SDK](../reference/claude-agent-sdk/) and [Pi](../reference/pi/) references with their verification harnesses.
+- **Done so far (2026-11-18):** milestones M1–M3 and X below: eight [SDK references](../reference/), the [comparison](../comparison/), eight [skills](../../.agents/skills/), the research rounds and the three [build guides](../guides/). M4, the plans, is in progress.
 
 ## What we are building
 
 agent-speak ends this phase with four things:
-1. **A verified reference for each of four agent SDKs:** the Claude Agent SDK, Pi, the OpenAI Agents SDK and the Vercel AI SDK. Each reference type-checks and runs every doc example offline.
-2. **A comparison** of those SDKs: one feature table and one deep comparison built on the same support-triage agent in all four.
+1. **A verified reference for each of eight agent SDKs:** the Claude Agent SDK, Pi, the OpenAI Agents SDK, the Vercel AI SDK, LangChain.js, Cloudflare Agents, Google ADK and the GitHub Copilot SDK. Each reference type-checks every doc example and runs the complete ones offline.
+2. **A comparison** of those SDKs: one feature table, one deep comparison built on the same support-triage agent in all eight, and a TypeScript gap report.
 3. **One agent skill per SDK,** so coding agents working in this repo know how to use each SDK correctly.
 4. **Three build guides and three reviewed implementation plans,** for building our own agent SDK, harness and agent. The phase stops when the plans are reviewed; building starts in the next phase.
 
@@ -44,10 +44,11 @@ agent-speak ends this phase with four things:
 | Milestone | Rounds | What ships |
 | --- | --- | --- |
 | M1 Four SDK references (done 2026-11-18) | S1–S4 | A guide, a fact-check, a mirror and an offline verification harness for each SDK |
-| M2 Comparison and skills (done 2026-11-18) | C1–C2, K1–K2 |
+| M2 Comparison and skills (done 2026-11-18) | C1–C2, K1–K2 | The feature table, the deep comparison, the refreshed research report, and four agent skills |
 | M2b LangChain (done 2026-11-18) | S5a, S5b, C3, K3 | A fifth verified reference, folded into the comparison and the skills before the build guides |
-| M2c Cloudflare, Google ADK and Copilot | S6a–S8b, C5, C4, K4 | Sixth to eighth references, the TypeScript gap report, and a TS-parity row for all eight SDKs | The feature table, the deep comparison, the refreshed research report, and four agent skills |
-| M3 Build guides | G1–G3 | Researched guides to building an agent SDK, a harness and an agent |
+| M2c Cloudflare, Google ADK and Copilot (done 2026-11-18) | S6a–S8b, C5, C4, K4 | Sixth to eighth references, the TypeScript gap report, and a TS-parity row for all eight SDKs |
+| M3 Build guides (done 2026-11-18) | G1–G3, H1–H3, R1 | Researched guides to building an agent SDK, a harness and an agent, informed by the Hacker News practitioner research and with secondary claims re-checked against primary sources |
+| X CI and dependency security (done 2026-11-18) | X1, X2 | Checks on every push, a nightly verify with drift and audit gates, and Dependabot scoped to our manifests |
 | M4 Reviewed plans | P1–P4 | Detailed implementation plans, reviewed together, ready for the build phase |
 
 ## How each todo is worked
