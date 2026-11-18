@@ -52,6 +52,7 @@ agent-speak ends this phase with four things:
 | M4 Reviewed plans | P1–P4 | Detailed implementation plans, reviewed together, ready for the build phase |
 | M5 Our agent SDK (next phase) | B1–B20 | `@agent-speak/gateway` and `@agent-speak/sdk` in `packages/`, built from [build-sdk.md](build-sdk.md) once P4 accepts it |
 | M6 Our agent harness (next phase) | N1–N39 | `@agent-speak/protocol`, `harness`, `cli` and `evals`, built from [build-harness.md](build-harness.md); it starts after B1–B2 and interleaves with Round B (§6 of the plan) |
+| M7 Our agent (next phase) | A1–A24 | `@agent-speak/triage-agent`, built from [build-agent.md](build-agent.md); it starts after N1 and needs N35 for its capstone, with shadow, canary and release as later-phase items |
 
 ## How each todo is worked
 

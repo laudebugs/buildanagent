@@ -1,6 +1,6 @@
 # Plan: turn the build guides into detailed, reviewed plans for our SDK, harness and agent (Round P)
 
-- **Status:** In progress (P1 done: [build-sdk.md](build-sdk.md); P2 done: [build-harness.md](build-harness.md); P3 next)
+- **Status:** In progress (P1 done: [build-sdk.md](build-sdk.md); P2 done: [build-harness.md](build-harness.md); P3 done: [build-agent.md](build-agent.md); P4 next)
 - **Date:** 2026-11-18
 - **Asked for by:** the project owner (2026-11-18): break the research into very detailed plans, and review every plan
 - **Builds on:** the three [build guides](build-guides.md) (Round G)
@@ -36,7 +36,7 @@ The findings and fixes go into `docs/plans/reviews/plan-review.md`. The phase en
 | --- | --- | --- |
 | P1 | Plan: our agent SDK (done: [build-sdk.md](build-sdk.md), [ADRs](../decisions/README.md), todos B1–B20) | G1b |
 | P2 | Plan: our agent harness (done: [build-harness.md](build-harness.md), ADRs 0012–0021, todos N1–N39) | G2b, P1 |
-| P3 | Plan: our agent | G3b, P2 |
+| P3 | Plan: our agent (done: [build-agent.md](build-agent.md), ADRs 0022–0031, todos A1–A24) | G3b, P2 |
 | P4 | Review all three plans together, and fix the findings | P1, P2, P3 |
 
 ## 5. Risks
@@ -46,5 +46,7 @@ The findings and fixes go into `docs/plans/reviews/plan-review.md`. The phase en
 ## 6. Open questions
 
 - **Answered by the owner on 2026-11-18:** SDK D2 (Anthropic Messages and OpenAI-compatible Chat Completions first), D5 with harness HD5 (a persistent host-only key ring), D8 (0.x, `private: true`, CI export check), and harness HD4 (`srt` interactive, Docker headless, confirmed after N19), HD8 (30 tasks, k = 5, $3 cap) and HD11 (no automatic deletion). Each accepted the plan's proposal; the ADRs say Accepted.
+- **For the owner, from P3** ([build-agent.md §2](build-agent.md)): AD2 tier caps and two sign-off owners; AD3 approver roles; AD6 the priority-policy writer and two labelling leads; AD8 disclosure, retention and whether real tickets may enter the repo; AD9 the production per-ticket budget; AD14 which helpdesk.
+- **For P4, from P3:** fifteen needs from the SDK and harness plans ([build-agent.md §3.7](build-agent.md)), the largest being a gated `Harness.invokeTool()` for code-initiated calls (H4) and product entries in the session log (H8); and whether N38 depends on A19 for the shared triage tasks.
 - **For P4, from P2:** thirteen needs from the SDK plan, listed in [build-harness.md §3.6](build-harness.md), such as `contextWindow` on `Model`, the overflow error kind on `RunError`, and whether `continueRun` re-runs the gate; and whether ADR 0009 takes HD9's session-level budget cap.
 - **Answered for P2, from P1:** use the seam names in [build-sdk.md §3.4](build-sdk.md) as written; `Cost.total` is `number | null`; check whether the `context_transformed` event carries enough for a compaction log entry.
