@@ -78,6 +78,20 @@ Note: the vendor-SDK notes cite ADK "2.6.x" on PyPI, which is now stale (2.14.1)
 - OpenAI "Why we no longer evaluate SWE-bench Verified" (59.4% of 138 audited tasks flawed): openai.com unreachable.
 - Terminal-Bench 2.0 Claude Code 58.0% vs Terminus-KIRA 74.7%: single secondary source.
 
+## Corrections from the verified SDK references (Round C, 2026-11-18)
+
+The four SDK references in [`docs/reference/`](../reference/) checked the report's SDK claims against pinned packages. These rows log what changed in the report.
+
+| # | Claim in the report | Finding | Action |
+|---|---|---|---|
+| 11 | Borrowable primitive: "per-tool `needsApproval(args)` predicates, cryptographically bound to the call" (Vercel AI SDK) | In `ai@7.0.162`, per-tool `needsApproval` is `@deprecated`; approval is a call-level `toolApproval` policy, and approval requests are HMAC-signed only when `experimental_toolApprovalSecret` is set ([Vercel guide §7](../reference/vercel-ai-sdk/guide.md#7-approval-is-a-call-level-policy-not-a-flag-on-the-tool)) | ✏️ Row rewritten |
+| 12 | "Composable stop conditions with a default step cap (20)" (Vercel AI SDK) | The 20-step default belongs to `ToolLoopAgent`; `generateText` and `streamText` default to one step. Both verified by examples 02 and 07 ([Vercel guide §4–5](../reference/vercel-ai-sdk/guide.md#4-tools-run-in-a-loop-only-as-long-as-stopwhen-allows)) | ✏️ Row clarified |
+| 13 | OpenAI Agents SDK: "tracing tied to OpenAI" | Sharper: tracing is on by default in Node.js, Deno and Bun and exports each run to OpenAI unless disabled ([OpenAI guide §2](../reference/openai-agents-sdk/guide.md#2-install-then-decide-where-traces-go)) | ✏️ Table cell expanded |
+| 14 | MCP 2026-07-28 removed the `initialize` handshake (search summary only) | Partly corroborated by a primary source: `@ai-sdk/mcp@2.0.90` names 2026-07-28 its latest, "stateless" protocol and probes with `server/discover` before falling back to `initialize`. The spec text remains unverified | ✏️ Corroboration added; still ⚠️ for the remaining details |
+| 15 | (new) Default behaviors that reach outside the process | Each of the four SDKs has one: Claude's inherited CLI environment (Claude fact-check F5), Pi's ambient-credential model choice, OpenAI's tracing export, Vercel's AI Gateway routing | ✏️ Added to the library-SDK section, linked to the deep comparison |
+
+Claims the references confirmed without change: the Claude Agent SDK's subprocess-per-session design, Claude-only models, local JSONL transcripts and non-replaceable compaction; the MIT label with Commercial Terms; Pi's four default tools, tree-shaped sessions and lack of a permission system; OpenAI's in-process runner, handoffs, guardrails and JS `SandboxAgent`; and the Vercel `ToolLoopAgent` as a developer-bounded loop.
+
 ## Reference architecture review
 
 The eight-layer architecture holds up against the source-level reading of Pi, Codex, the OpenAI sandbox harness and Cloudflare Think (see [harness-architectures.md](harness-architectures.md)). Refinements suggested by that reading:
