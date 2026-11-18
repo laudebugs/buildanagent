@@ -1,0 +1,210 @@
+[
+  {
+    "id": "agent-core-README__01",
+    "file": "/home/user/agent-speak/verify/pi/extracted/agent-core-README__01.ts",
+    "page": "agent-core-README.md",
+    "line": 13,
+    "outcome": "skipped",
+    "reason": "real provider via createModels()"
+  },
+  {
+    "id": "agent-core-README__20",
+    "file": "/home/user/agent-speak/verify/pi/extracted/agent-core-README__20.ts",
+    "page": "agent-core-README.md",
+    "line": 521,
+    "outcome": "ran-no-model",
+    "exit": 0,
+    "ms": 1524,
+    "fauxReplies": 0,
+    "tail": ""
+  },
+  {
+    "id": "coding-agent_sdk__01",
+    "file": "/home/user/agent-speak/verify/pi/extracted/coding-agent_sdk__01.ts",
+    "page": "coding-agent/sdk.md",
+    "line": 7,
+    "outcome": "ran",
+    "exit": 0,
+    "ms": 1842,
+    "fauxReplies": 1,
+    "tail": "Faux model: received the tool result, task complete."
+  },
+  {
+    "id": "coding-agent_sdk__02",
+    "file": "/home/user/agent-speak/verify/pi/extracted/coding-agent_sdk__02.ts",
+    "page": "coding-agent/sdk.md",
+    "line": 44,
+    "outcome": "ran-no-model",
+    "exit": 0,
+    "ms": 1459,
+    "fauxReplies": 0,
+    "tail": ""
+  },
+  {
+    "id": "example_sdk_01-minimal",
+    "file": "/home/user/agent-speak/verify/pi/extracted/example_sdk_01-minimal.ts",
+    "page": "examples/sdk/01-minimal.ts",
+    "line": 1,
+    "outcome": "ran",
+    "exit": 0,
+    "ms": 1530,
+    "fauxReplies": 2,
+    "tail": "    totalTokens: 1443,\n    cost: { input: 0, output: 0, cacheRead: 0, cacheWrite: 0, total: 0 }\n  },\n  stopReason: 'stop',\n  timestamp: 1794976431616,\n  durationMs: 0,\n  thinkingLevel: 'off'\n}"
+  },
+  {
+    "id": "example_sdk_02-custom-model",
+    "file": "/home/user/agent-speak/verify/pi/extracted/example_sdk_02-custom-model.ts",
+    "page": "examples/sdk/02-custom-model.ts",
+    "line": 1,
+    "outcome": "ran",
+    "exit": 0,
+    "ms": 1443,
+    "fauxReplies": 1,
+    "tail": "Found model: faux/faux-1\nFound custom model: faux/faux-1\nAvailable models: [ 'faux/faux-1' ]\nFaux model: received the tool result, task complete."
+  },
+  {
+    "id": "example_sdk_03-custom-prompt",
+    "file": "/home/user/agent-speak/verify/pi/extracted/example_sdk_03-custom-prompt.ts",
+    "page": "examples/sdk/03-custom-prompt.ts",
+    "line": 1,
+    "outcome": "ran",
+    "exit": 0,
+    "ms": 1627,
+    "fauxReplies": 2,
+    "tail": "=== Replace prompt ===\nFaux model: received the tool result, task complete.\n\n=== Modify prompt ===\nFaux model: received the tool result, task complete."
+  },
+  {
+    "id": "example_sdk_04-skills",
+    "file": "/home/user/agent-speak/verify/pi/extracted/example_sdk_04-skills.ts",
+    "page": "examples/sdk/04-skills.ts",
+    "line": 1,
+    "outcome": "ran-no-model",
+    "exit": 0,
+    "ms": 1569,
+    "fauxReplies": 0,
+    "tail": "Discovered skills: [ 'my-skill' ]\nSession created with filtered skills"
+  },
+  {
+    "id": "example_sdk_05-tools",
+    "file": "/home/user/agent-speak/verify/pi/extracted/example_sdk_05-tools.ts",
+    "page": "examples/sdk/05-tools.ts",
+    "line": 1,
+    "outcome": "ran-no-model",
+    "exit": 0,
+    "ms": 1993,
+    "fauxReplies": 0,
+    "tail": "Read-only session created\nCustom tools session created\nCustom cwd session created\nSpecific tools with custom cwd session created"
+  },
+  {
+    "id": "example_sdk_06-extensions",
+    "file": "/home/user/agent-speak/verify/pi/extracted/example_sdk_06-extensions.ts",
+    "page": "examples/sdk/06-extensions.ts",
+    "line": 1,
+    "outcome": "ran",
+    "exit": 0,
+    "ms": 1811,
+    "fauxReplies": 1,
+    "tail": "[Inline Extension] Agent starting\nFaux model: received the tool result, task complete."
+  },
+  {
+    "id": "example_sdk_07-context-files",
+    "file": "/home/user/agent-speak/verify/pi/extracted/example_sdk_07-context-files.ts",
+    "page": "examples/sdk/07-context-files.ts",
+    "line": 1,
+    "outcome": "ran-no-model",
+    "exit": 0,
+    "ms": 1790,
+    "fauxReplies": 0,
+    "tail": "Discovered context files:\n  - /tmp/pi-ex-example_sdk_07-context-files-WGOkCZ/AGENTS.md (48 chars)\n  - /virtual/AGENTS.md (103 chars)\nSession created with 3 context files"
+  },
+  {
+    "id": "example_sdk_08-prompt-templates",
+    "file": "/home/user/agent-speak/verify/pi/extracted/example_sdk_08-prompt-templates.ts",
+    "page": "examples/sdk/08-prompt-templates.ts",
+    "line": 1,
+    "outcome": "ran-no-model",
+    "exit": 0,
+    "ms": 1800,
+    "fauxReplies": 0,
+    "tail": "Discovered prompt templates:\n  /deploy: Deploy the application\nSession created with 2 prompt templates"
+  },
+  {
+    "id": "example_sdk_09-api-keys-and-oauth",
+    "file": "/home/user/agent-speak/verify/pi/extracted/example_sdk_09-api-keys-and-oauth.ts",
+    "page": "examples/sdk/09-api-keys-and-oauth.ts",
+    "line": 1,
+    "outcome": "ran-no-model",
+    "exit": 0,
+    "ms": 1738,
+    "fauxReplies": 0,
+    "tail": "Session with default model runtime\nSession with custom auth and models locations\nSession with runtime API key override"
+  },
+  {
+    "id": "example_sdk_10-settings",
+    "file": "/home/user/agent-speak/verify/pi/extracted/example_sdk_10-settings.ts",
+    "page": "examples/sdk/10-settings.ts",
+    "line": 1,
+    "outcome": "ran-no-model",
+    "exit": 0,
+    "ms": 1601,
+    "fauxReplies": 0,
+    "tail": "Current settings: {\n  \"defaultProvider\": \"faux\",\n  \"defaultModel\": \"faux-1\"\n}\nSession created with custom settings\nTest session created with in-memory settings"
+  },
+  {
+    "id": "example_sdk_11-sessions",
+    "file": "/home/user/agent-speak/verify/pi/extracted/example_sdk_11-sessions.ts",
+    "page": "examples/sdk/11-sessions.ts",
+    "line": 1,
+    "outcome": "ran-no-model",
+    "exit": 0,
+    "ms": 1736,
+    "fauxReplies": 0,
+    "tail": "In-memory session: (none)\nNew session file: /tmp/pi-ex-example_sdk_11-sessions-ZzhdVY/.pi-agent/sessions/--tmp-pi-ex-example_sdk_11-sessions-ZzhdVY--/2026-11-18T04-33-56-648Z_01a1ecee-d1a8-7453-81d4-6c9fec01ca64.jsonl\nContinued session: /tmp/pi-ex-example_sdk_11-sessions-ZzhdVY/.pi-agent/sessions/--tmp-pi-ex-example_sdk_11-sessions-ZzhdVY--/2026-11-18T04-33-56-667Z_01a1ecee-d1bb-7453-81d4-6ca08ee73199.jsonl\n\nFound 0 sessions:"
+  },
+  {
+    "id": "example_sdk_12-full-control",
+    "file": "/home/user/agent-speak/verify/pi/extracted/example_sdk_12-full-control.ts",
+    "page": "examples/sdk/12-full-control.ts",
+    "line": 1,
+    "outcome": "skipped",
+    "reason": "real Anthropic credential (static catalog model)"
+  },
+  {
+    "id": "example_sdk_13-session-runtime",
+    "file": "/home/user/agent-speak/verify/pi/extracted/example_sdk_13-session-runtime.ts",
+    "page": "examples/sdk/13-session-runtime.ts",
+    "line": 1,
+    "outcome": "ran-no-model",
+    "exit": 0,
+    "ms": 1676,
+    "fauxReplies": 0,
+    "tail": "Initial session: /tmp/pi-ex-example_sdk_13-session-runtime-rhCiHI/.pi-agent/sessions/--tmp-pi-ex-example_sdk_13-session-runtime-rhCiHI--/2026-11-18T04-33-56-582Z_01a1ecee-d165-75e7-bd27-19b424be5d3b.jsonl\nAfter newSession(): /tmp/pi-ex-example_sdk_13-session-runtime-rhCiHI/.pi-agent/sessions/--tmp-pi-ex-example_sdk_13-session-runtime-rhCiHI--/2026-11-18T04-33-56-672Z_01a1ecee-d1c0-75e7-bd27-19b67123362c.jsonl\nAfter switchSession(): /tmp/pi-ex-example_sdk_13-session-runtime-rhCiHI/.pi-agent/sessions/--tmp-pi-ex-example_sdk_13-session-runtime-rhCiHI--/2026-11-18T04-33-56-582Z_01a1ecee-d165-75e7-bd27-19b424be5d3b.jsonl"
+  },
+  {
+    "id": "example_sdk_14-codemode-mcp",
+    "file": "/home/user/agent-speak/verify/pi/extracted/example_sdk_14-codemode-mcp.ts",
+    "page": "examples/sdk/14-codemode-mcp.ts",
+    "line": 1,
+    "outcome": "ran",
+    "exit": 0,
+    "ms": 2329,
+    "fauxReplies": 1,
+    "tail": "Active tools: read, bash, edit, write, codemode, tool_search\nFaux model: received the tool result, task complete."
+  },
+  {
+    "id": "pi-ai-README__49",
+    "file": "/home/user/agent-speak/verify/pi/extracted/pi-ai-README__49.ts",
+    "page": "pi-ai-README.md",
+    "line": 1593,
+    "outcome": "skipped",
+    "reason": "real provider via createModels()"
+  },
+  {
+    "id": "pi-ai-README__53",
+    "file": "/home/user/agent-speak/verify/pi/extracted/pi-ai-README__53.ts",
+    "page": "pi-ai-README.md",
+    "line": 1696,
+    "outcome": "skipped",
+    "reason": "real provider via createModels()"
+  }
+]

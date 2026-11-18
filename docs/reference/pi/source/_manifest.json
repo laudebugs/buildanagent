@@ -1,0 +1,14 @@
+{
+  "repo": "https://github.com/earendil-works/pi",
+  "tag": "v1.5.2",
+  "commit": "b4afdddf44e059c67ccf5097e5317d913521b470",
+  "fetchedAt": "2026-11-18T04:38:02.903Z",
+  "paths": [
+    "/LICENSE",
+    "/packages/coding-agent/docs/",
+    "/packages/coding-agent/README.md",
+    "/packages/agent/README.md",
+    "/packages/ai/README.md",
+    "/packages/coding-agent/examples/"
+  ]
+}

@@ -5,7 +5,7 @@
 //   - canUseTool as the human-approval step for the risky tool
 //   - typed structured output, turn and budget caps
 // Docs: custom-tools.md, permissions.md, hooks.md, structured-outputs.md, agent-loop.md
-import { createSdkMcpServer, query, tool, type HookCallback } from "@anthropic-ai/claude-agent-sdk";
+import { createSdkMcpServer, type HookCallback, query, tool } from "@anthropic-ai/claude-agent-sdk";
 import { z } from "zod";
 import { check, collect } from "./lib/collect.ts";
 
@@ -23,12 +23,9 @@ const tickets = createSdkMcpServer({
       }),
       { annotations: { readOnlyHint: true } }, // read-only tools may run in parallel
     ),
-    tool(
-      "escalate",
-      "Escalate a ticket to the on-call engineer",
-      { reason: z.string() },
-      async () => ({ content: [{ type: "text", text: "escalated" }] }),
-    ),
+    tool("escalate", "Escalate a ticket to the on-call engineer", { reason: z.string() }, async () => ({
+      content: [{ type: "text", text: "escalated" }],
+    })),
   ],
 });
 
@@ -47,30 +44,36 @@ const auditHook: HookCallback = async (input) => {
 };
 
 const approvals: string[] = [];
-const { result, messages } = await collect(query({
-  prompt: "Customer user@example.com says checkout fails with a 500. Triage it.",
-  options: {
-    systemPrompt: "You are a support triage agent. Call lookup_customer first, then classify the issue.",
-    tools: [],                                            // no built-in tools (no Bash, Read, Edit...)
-    mcpServers: { support: tickets },
-    allowedTools: ["mcp__support__lookup_customer"],      // auto-approve the read-only tool only
-    canUseTool: async (toolName, input) => {               // everything else asks "a human"
-      approvals.push(toolName);
-      return toolName === "mcp__support__escalate"
-        ? { behavior: "deny", message: "Escalation needs a human; classify only." }
-        : { behavior: "allow", updatedInput: input };
+const { result, messages } = await collect(
+  query({
+    prompt: "Customer user@example.com says checkout fails with a 500. Triage it.",
+    options: {
+      systemPrompt: "You are a support triage agent. Call lookup_customer first, then classify the issue.",
+      tools: [], // no built-in tools (no Bash, Read, Edit...)
+      mcpServers: { support: tickets },
+      allowedTools: ["mcp__support__lookup_customer"], // auto-approve the read-only tool only
+      canUseTool: async (toolName, input) => {
+        // everything else asks "a human"
+        approvals.push(toolName);
+        return toolName === "mcp__support__escalate"
+          ? { behavior: "deny", message: "Escalation needs a human; classify only." }
+          : { behavior: "allow", updatedInput: input };
+      },
+      hooks: { PreToolUse: [{ hooks: [auditHook] }] },
+      outputFormat: { type: "json_schema", schema: z.toJSONSchema(Triage, { target: "draft-7" }) },
+      maxTurns: 6,
+      maxBudgetUsd: 0.5,
+      settingSources: [], // ignore ~/.claude and project settings
     },
-    hooks: { PreToolUse: [{ hooks: [auditHook] }] },
-    outputFormat: { type: "json_schema", schema: z.toJSONSchema(Triage, { target: "draft-7" }) },
-    maxTurns: 6,
-    maxBudgetUsd: 0.5,
-    settingSources: [],                                   // ignore ~/.claude and project settings
-  },
-}));
+  }),
+);
 
 check(audit.includes("mcp__support__lookup_customer"), "PreToolUse hook saw the lookup tool call");
 const offered = messages.find((m) => m.type === "system" && m.subtype === "init") as any;
-check(!offered.tools.includes("Bash") && !offered.tools.includes("Edit"), "`tools: []` removed the built-in Bash/Edit tools");
+check(
+  !offered.tools.includes("Bash") && !offered.tools.includes("Edit"),
+  "`tools: []` removed the built-in Bash/Edit tools",
+);
 check(approvals.length === 0, "auto-approved lookup never reached canUseTool");
 check(result?.subtype === "success", "agent finished successfully");
 const triage = Triage.safeParse(result?.subtype === "success" ? result.structured_output : undefined);

@@ -41,4 +41,6 @@ for (const page of (await readdir(sourceDir)).filter((f) => f.endsWith(".md")).s
 }
 await writeFile(join(outDir, "_manifest.json"), JSON.stringify(manifest, null, 2));
 const c = manifest.filter((m) => m.complete).length;
-console.log(`${manifest.length} TypeScript blocks from ${new Set(manifest.map((m) => m.page)).size} pages; ${manifest.filter((m) => m.importsSdk).length} import the SDK; ${c} look complete`);
+console.log(
+  `${manifest.length} TypeScript blocks from ${new Set(manifest.map((m) => m.page)).size} pages; ${manifest.filter((m) => m.importsSdk).length} import the SDK; ${c} look complete`,
+);

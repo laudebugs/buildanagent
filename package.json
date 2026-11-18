@@ -1,0 +1,24 @@
+{
+  "name": "agent-speak",
+  "private": true,
+  "type": "module",
+  "description": "Research and verification harnesses for building an AI agent and our own agent harness.",
+  "packageManager": "pnpm@10.28.0",
+  "engines": {
+    "node": ">=22"
+  },
+  "scripts": {
+    "check": "biome check .",
+    "lint": "biome lint .",
+    "format": "biome format --write .",
+    "typecheck": "pnpm -r --if-present typecheck",
+    "test": "pnpm -r --if-present test",
+    "verify": "pnpm -r --if-present verify"
+  },
+  "devDependencies": {
+    "@biomejs/biome": "2.6.4",
+    "@types/node": "26.6.6",
+    "tsx": "4.23.15",
+    "typescript": "7.0.2"
+  }
+}

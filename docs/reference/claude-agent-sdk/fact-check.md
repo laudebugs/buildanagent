@@ -1,14 +1,14 @@
 # The Claude Agent SDK docs match the package: a four-tier fact-check
 
-A developer who copies an example from SDK docs needs it to compile and run against the release they installed. To test that promise, I checked all 32 pages under `code.claude.com/docs/en/agent-sdk/`, fetched on 2026-11-18, against `@anthropic-ai/claude-agent-sdk@0.3.327` and its bundled CLI. Four automated tiers did the checking: type-checks, mock-model runs, an API-surface diff and behavioral tests. All of them live in [`verify/claude-agent-sdk/`](../../../verify/claude-agent-sdk/), with raw output in `verify/claude-agent-sdk/results/`. The docs passed. Across 385 TypeScript blocks, no complete example contradicts the package's types, and every behavior we tested matched its description. The problems I found are small: one misleading SDK error, one racy example, examples that need placeholder values, reference gaps, and an isolation leak specific to this host.
+A developer who copies an example from SDK docs needs it to compile and run against the release they installed. To test that promise, I checked all 32 pages under `code.claude.com/docs/en/agent-sdk/`, fetched on 2026-11-18, against `@anthropic-ai/claude-agent-sdk@0.3.327` and its bundled CLI. Four automated tiers did the checking: type-checks, mock-model runs, an API-surface diff and behavioral tests. All of them live in [`verify/claude-agent-sdk/`](../../../verify/claude-agent-sdk/), with raw output in `verify/claude-agent-sdk/results/`. The docs passed. Across 385 TypeScript blocks, no complete example contradicts the package's types, and every behavior we tested matched its description. The problems I found are small: one misleading SDK error, one racy example, examples that need placeholder values, reference gaps, and an isolation leak through inherited environment variables.
 
 ## Reproduce the checks in two commands
 
 ```bash
+pnpm install              # at the repo root: installs every harness
 cd verify/claude-agent-sdk
-npm install
-npm run fetch-docs   # mirror the docs (gitignored, © Anthropic)
-npm run verify       # extract -> type-check -> run docs examples -> API diff -> our tests
+pnpm run fetch-docs       # mirror the docs (gitignored, © Anthropic)
+pnpm run verify           # extract -> type-check -> run docs examples -> API diff -> our tests
 ```
 
 ## Tier 1: every TypeScript block compiles, apart from intentional fragments
@@ -24,14 +24,14 @@ I compiled each of the 385 ```` ```typescript ```` blocks from 27 pages on its o
 | syntax | 7 | Intentional partial snippets, such as a `return` outside a function |
 | api-mismatch | 1 | `typescript.md:31` imports the macOS binary package `@anthropic-ai/claude-agent-sdk-darwin-arm64/claude`, which Linux installs omit |
 
-## Tier 2: 70 of 87 complete examples run against the mock API
+## Tier 2: 69 of 87 complete examples run against the mock API
 
-I ran every block that looked complete and passed Tier 1, 87 in all, with the real SDK and its bundled CLI (`scripts/run-examples.mjs`). `ANTHROPIC_BASE_URL` pointed each run at the mock API, a local mock of the Anthropic Messages API (`scripts/mock-anthropic.mjs`). Each block also got a fresh temp `cwd`, files from `fixtures/` and a 60-second timeout. In three blocks, the harness replaced placeholder paths such as `/path/to/repo` with the temp directory. The 17 runs that fell short failed for reasons outside the docs' control:
+I ran every block that looked complete and passed Tier 1, 87 in all, with the real SDK and its bundled CLI (`scripts/run-examples.mjs`). `ANTHROPIC_BASE_URL` pointed each run at the mock API, a local mock of the Anthropic Messages API (`scripts/mock-anthropic.mjs`). Each block also got a fresh temp `cwd`, files from `fixtures/`, an allowlisted environment and a 60-second timeout. In three blocks, the harness replaced placeholder paths such as `/path/to/repo` with the temp directory. The 18 runs that fell short failed for reasons outside the docs' control:
 
 | Outcome | Count | Notes |
 |---|---|---|
-| ran | 70 | Exited 0 after at least one model request |
-| exited-no-model-call | 7 | Define tools without calling `query()` (6), or resume the placeholder session id `"..."` (1) |
+| ran | 69 | Exited 0 after at least one model request |
+| exited-no-model-call | 8 | Define tools without calling `query()` (6), resume the placeholder session id `"..."` (1), or enable the sandbox on a host without bubblewrap (1). That last block (`typescript.md:6129`) stops with "Sandbox required but unavailable", as its comment predicts, because `failIfUnavailable` defaults to true |
 | skipped | 6 | Need an external MCP server process or a remote URL (5), or Bedrock or Vertex (1) |
 | error | 4 | `hosting__03` and `hosting__04` reference `declare const` placeholders; `sessions__03` resumes `"..."`; `streaming-vs-single-mode__03` has a race (finding F3) |
 
@@ -81,7 +81,7 @@ Seven programs in `verify/claude-agent-sdk/examples/` assert documented behavior
 | Tool search runs by default behind an `ANTHROPIC_BASE_URL` gateway and defers MCP tools behind `ToolSearch` (tool-search) | mock API behavior | ✅ MCP tools stayed out of the initial list until `ToolSearch select:` loaded them |
 | `hosting.md` claims about resources, `SessionStore` and limitations | — | Checked by reading only; see `docs/research/fact-check-2026-11-18.md` |
 
-## Five findings: one SDK error, one racy example, two doc gaps and one host quirk
+## Five findings: one SDK error, one racy example, two doc gaps and one isolation lesson
 
 **F1. A missing `cwd` produces a misleading SDK error.** With `cwd: "/does/not/exist"`, `query()` throws: *"Claude Code native binary at … exists but failed to launch. This usually means the binary does not match this system's libc…"*. The real cause is the missing directory, and `troubleshooting.md` doesn't cover it. Until the SDK fixes the message, check that `cwd` exists before calling `query()`.
 
@@ -91,7 +91,7 @@ Seven programs in `verify/claude-agent-sdk/examples/` assert documented behavior
 
 **F4. The reference omits 20 items the package exports.** Tier 3 lists them: 8 functions, 5 options, 1 message type and 6 tool schemas. Most carry `@alpha` tags or serve niche setups.
 
-**F5. Host configuration leaked into test isolation on this machine.** The spawned CLI offered this cloud host's extra deferred tools, such as `ListPlugins` and `SuggestConnectors`, plus extra agent types. The CLI added them even with a private `CLAUDE_CONFIG_DIR` and `settingSources: []` in example 07. The likely sources are inherited `CLAUDE_CODE_*` environment variables, because the runner passes `process.env` through, or managed settings; we didn't isolate which. Production deployments should build the subprocess `env` explicitly and audit `init.tools`.
+**F5. Inherited environment variables leak host configuration into the CLI.** The first harness passed `process.env` to each run. On this cloud host, the spawned CLI then offered the host's extra deferred tools, such as `ListPlugins` and `SuggestConnectors`, even with a private `CLAUDE_CONFIG_DIR` and `settingSources: []`, and it called the host's agent-proxy endpoint. After the runner switched to an allowlisted environment (`PATH`, a temp `HOME`, `TMPDIR`, `LANG` and the mock settings), those tools and that request disappeared, and the host has no managed-settings file. The inherited environment was therefore the cause. Production deployments should build the CLI's `env` from an allowlist and audit `init.tools`.
 
 ## Verdict: trust the examples, and test the edges yourself
 

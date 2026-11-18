@@ -17,7 +17,11 @@ const fetchedAt = new Date().toISOString();
 const manifest = [];
 for (const url of urls) {
   const res = await fetch(url);
-  if (!res.ok) { manifest.push({ url, status: res.status }); console.error(`FAIL ${res.status} ${url}`); continue; }
+  if (!res.ok) {
+    manifest.push({ url, status: res.status });
+    console.error(`FAIL ${res.status} ${url}`);
+    continue;
+  }
   const body = await res.text();
   const file = url.slice(PREFIX.length);
   await writeFile(join(outDir, file), `<!-- source: ${url} | fetched: ${fetchedAt} -->\n\n${body}`);
@@ -25,4 +29,4 @@ for (const url of urls) {
   console.log(`ok ${file} (${body.length} bytes)`);
 }
 await writeFile(join(outDir, "_manifest.json"), JSON.stringify({ index: INDEX, fetchedAt, pages: manifest }, null, 2));
-console.log(`${manifest.filter(p => p.file).length}/${urls.length} pages -> ${outDir}`);
+console.log(`${manifest.filter((p) => p.file).length}/${urls.length} pages -> ${outDir}`);

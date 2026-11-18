@@ -246,7 +246,7 @@ The CLI compacts context on its own. You can steer compaction with CLAUDE.md ins
 
 Six practices cover most production risk:
 - **Isolation.** Run each agent in a container or sandbox behind an egress proxy. Keep credentials outside it, for example by pointing `ANTHROPIC_BASE_URL` at a proxy that injects the key (`secure-deployment.md`, `hosting.md`).
-- **Multi-tenancy.** Set `settingSources: []`, `CLAUDE_CODE_DISABLE_AUTO_MEMORY=1`, a per-tenant `CLAUDE_CONFIG_DIR` and a per-tenant `cwd` (`hosting.md`). Our harness still picked up this host's extra tools and agent types under all four settings, most likely through inherited environment variables. Build the CLI's `env` explicitly, and audit the `init` message's `tools` list.
+- **Multi-tenancy.** Set `settingSources: []`, `CLAUDE_CODE_DISABLE_AUTO_MEMORY=1`, a per-tenant `CLAUDE_CONFIG_DIR` and a per-tenant `cwd` (`hosting.md`). Those four settings still let inherited environment variables through: our harness picked up this host's extra tools until it passed the CLI an allowlisted `env`. Build the CLI's `env` from an allowlist, and audit the `init` message's `tools` list. **[verified]**
 - **Durability.** Configure a `sessionStore` for every session a user may resume.
 - **Limits.** The SDK enforces no session timeout and no per-subagent deadline, so always set `maxTurns` and `maxBudgetUsd`.
 - **Observability.** Set `CLAUDE_CODE_ENABLE_TELEMETRY=1` and the standard `OTEL_*` variables; traces also need `CLAUDE_CODE_ENHANCED_TELEMETRY_BETA=1`. Exports leave out prompts and tool inputs unless you opt in (`observability.md`, `hosting.md`).
@@ -263,7 +263,7 @@ The capstone [`07-triage-agent.ts`](../../../verify/claude-agent-sdk/examples/07
 6. **Bound the run.** Set `maxTurns` and `maxBudgetUsd`, then branch on `result.subtype`.
 
 ```bash
-cd verify/claude-agent-sdk && npm install && npm test
+pnpm install && pnpm --filter @agent-speak/verify-claude-agent-sdk test
 ```
 
 ## 16. Seven runnable examples back every [verified] claim

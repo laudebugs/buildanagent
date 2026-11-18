@@ -13,4 +13,7 @@ check(second.result?.session_id === sessionId, "resume keeps the same session_id
 // The mock logs every request; the resumed request must include the first prompt.
 const { readFileSync } = await import("node:fs");
 const log = process.env.MOCK_LOG ? readFileSync(process.env.MOCK_LOG, "utf8") : "";
-check(!process.env.MOCK_LOG || /PELICAN/.test(log.trim().split("\n").at(-1) ?? ""), "resumed model request contains the earlier turn");
+check(
+  !process.env.MOCK_LOG || /PELICAN/.test(log.trim().split("\n").at(-1) ?? ""),
+  "resumed model request contains the earlier turn",
+);

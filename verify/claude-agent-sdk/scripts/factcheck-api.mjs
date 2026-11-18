@@ -19,7 +19,8 @@ const section = (heading) => {
 const dtsBlock = (decl) => {
   const i = dts.indexOf(decl);
   if (i < 0) return "";
-  let depth = 0, j = dts.indexOf("{", i);
+  let depth = 0,
+    j = dts.indexOf("{", i);
   for (let k = j; k < dts.length; k++) {
     if (dts[k] === "{") depth++;
     else if (dts[k] === "}" && --depth === 0) return dts.slice(j + 1, k);
@@ -47,7 +48,7 @@ checks.functions = diff([...new Set(docFns)], [...new Set(dtsFns)]);
 
 // 2. Options fields (top-level members only: 4-space indent inside the type literal)
 const docOpts = [...section("### `Options`").matchAll(/^\| `(\w+)` \|/gm)].map((m) => m[1]);
-const dtsOpts = [...dtsBlock("export declare type Options = {").matchAll(/^    (\w+)\??:/gm)].map((m) => m[1]);
+const dtsOpts = [...dtsBlock("export declare type Options = {").matchAll(/^ {4}(\w+)\??:/gm)].map((m) => m[1]);
 checks.options = diff([...new Set(docOpts)], [...new Set(dtsOpts)]);
 
 // 3. PermissionMode and HookEvent unions
@@ -71,7 +72,9 @@ const report = { package: `${pkg.name}@${pkg.version}`, checkedAt: new Date().to
 await writeFile("results/factcheck-api.json", JSON.stringify(report, null, 2));
 console.log(report.package);
 for (const [k, v] of Object.entries(checks)) {
-  console.log(`${k.padEnd(15)} docs=${v.documented} pkg=${v.actual}  undocumented=${v.undocumented.length}  notInPackage=${v.notInPackage.length}`);
+  console.log(
+    `${k.padEnd(15)} docs=${v.documented} pkg=${v.actual}  undocumented=${v.undocumented.length}  notInPackage=${v.notInPackage.length}`,
+  );
   if (v.undocumented.length) console.log(`   undocumented: ${v.undocumented.join(", ")}`);
   if (v.notInPackage.length) console.log(`   notInPackage: ${v.notInPackage.join(", ")}`);
 }

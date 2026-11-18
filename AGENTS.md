@@ -9,8 +9,8 @@ Instructions for AI coding agents (Claude Code, Codex, OpenCode, Pi, etc.) worki
 ## Layout
 
 - `README.md`: project overview and doc index.
-- `docs/reference/<sdk>/`: per-SDK reference (`guide.md`, `fact-check.md`, `README.md`). `source/` holds mirrored upstream docs; the Claude mirror is gitignored because those docs are not openly licensed, so regenerate it with `npm run fetch-docs`.
-- `verify/<sdk>/`: per-SDK verification harness (Node, exact-pinned deps). `npm run verify` type-checks and runs doc examples against a mock model; `npm test` runs our own examples in `examples/`. Generated folders (`extracted/`, `.tmp/`) are gitignored, while `results/` is committed.
+- `docs/reference/<sdk>/`: per-SDK reference (`guide.md`, `fact-check.md`, `README.md`). `source/` holds mirrored upstream docs; the Claude mirror is gitignored because those docs are not openly licensed, so regenerate it with `pnpm run fetch-docs`.
+- `verify/<sdk>/`: per-SDK verification harness (Node, exact-pinned deps). `pnpm run verify` type-checks and runs doc examples against a mock model; `pnpm test` runs our own examples in `examples/`. Generated folders (`extracted/`, `.tmp/`) are gitignored, while `results/` is committed.
 - `docs/research/`: research reports.
   - `agent-sdks-and-harness-design.md`: the main report (SDK comparison, reference architecture, build-vs-buy).
   - `harness-architectures.md`: source-level notes on Pi, Codex, OpenAI Agents SDK sandbox agents and Cloudflare Agents/Think.
@@ -40,11 +40,40 @@ Follow the reference architecture in `docs/research/agent-sdks-and-harness-desig
 
 Each component should be removable so it can be ablated as models improve.
 
-## Verifying SDK examples
+## Process for documenting an SDK
 
+Every SDK reference follows the same eight steps. `docs/reference/claude-agent-sdk/` and `verify/claude-agent-sdk/` are the worked example; copy their layout and scripts.
+
+1. **Research.** Find the official docs site, the source repo, the npm packages and the license. Pin one release. If the docs site renders the repo's main branch, mirror from the git tag that matches the pinned npm version, and record any pages where the live site runs ahead of the release.
+2. **Mirror the docs.** Write `verify/<sdk>/scripts/fetch-docs.mjs` so the mirror can be regenerated, and record the source URL, tag or commit, and fetch date in `source/_manifest.json`. Include runnable examples the docs link to. Commit the mirror only when the license allows redistribution (MIT, Apache-2.0); otherwise gitignore `source/`. Skip compiled binaries.
+3. **Lay out the folders.** `docs/reference/<sdk>/` holds `README.md` (index, pinned version, how to regenerate), `guide.md`, `fact-check.md` and `source/`. `verify/<sdk>/` holds `package.json` with exact pins, `scripts/`, `examples/`, `fixtures/` and `results/`.
+4. **Verify the examples, in tiers.**
+   - Extract every TypeScript block, then type-check each one against the pinned package and classify the errors (pass, fragment, signature, syntax, API mismatch).
+   - Run every complete, type-clean block offline against a mock model. Prefer the SDK's own test provider (for example pi-ai's `fauxProvider`); otherwise mock the HTTP API through the SDK's base-URL setting.
+   - Diff the documented API surface (functions, options, unions, message types) against the package's `.d.ts` files or source.
+5. **Write behavioral examples.** Add small programs in `verify/<sdk>/examples/`, each asserting one documented behavior, plus a capstone that builds a complete agent. `pnpm test` must pass offline.
+6. **Write the reference.** Draft `guide.md` and `fact-check.md` with the `/anthropic-skills:writing` skill: thesis-first introductions, headings that state conclusions, one term per concept, endings on the conclusion or action.
+7. **Review.** Run `/anthropic-skills:writing-review` on both documents.
+8. **Fix and ship.** Apply the review fixes. Re-check every changed claim against the source, rerun `pnpm run verify`, then commit and push.
+
+Rules that apply throughout:
 - Pin SDK versions exactly in `verify/<sdk>/package.json`; reference docs state the version they were checked against.
 - Mark guide claims backed by a runnable example as **[verified]**, and cite the upstream page for everything else.
-- Mock models must never call tools that touch the host (shell, file edits).
+- Mock models must never call tools that touch the host (shell, file edits). Read-only tools inside a temp directory are allowed.
+- When a check fails, decide whether the docs, the SDK or the harness is wrong before recording a finding. Fix harness bugs and wrong examples of our own; record only real docs or SDK issues.
+
+## Coding standards
+
+The repo is a pnpm workspace. Run every command from the repo root unless a README says otherwise.
+
+- **Toolchain.** Node 22 (`.nvmrc`) and pnpm 10.28.0 (`packageManager` in `package.json`). Install with `pnpm install` at the root; never use npm or yarn, and never commit a `package-lock.json`.
+- **Workspace layout.** `pnpm-workspace.yaml` lists `verify/*`. Shared dev tools (TypeScript, tsx, `@types/node`, Biome) live in the root `package.json`. Each package declares only the runtime dependencies it imports, because pnpm does not hoist undeclared packages.
+- **Versions.** Pin every dependency exactly (`.npmrc` sets `save-exact`). Choose releases at least two weeks old. Allow dependency build scripts only through `onlyBuiltDependencies` in `pnpm-workspace.yaml`.
+- **TypeScript.** ESM everywhere (`"type": "module"`). Packages extend `tsconfig.base.json` (strict, ES2024). Harness scripts are `.mjs`; example programs are `.ts`, run with tsx.
+- **Lint and format.** Biome checks JS, TS and JSON (`biome.json`): 2-space indent, double quotes, semicolons, trailing commas, 120 columns. Biome skips Markdown and mirrored upstream sources. `noExplicitAny` is off only in `verify/*/examples`.
+- **Tool paths.** Never hard-code `node_modules` paths. Resolve tools with `import.meta.resolve("tsx")` or by walking up to the nearest `node_modules/.bin`.
+- **Running third-party code.** Spawn it with an allowlisted environment (`PATH`, a temp `HOME`, `TMPDIR`, `LANG` plus what the run needs), never `...process.env`, and block outbound network where the harness allows. Inherited credentials once sent a doc example to a real provider.
+- **Before you commit.** `pnpm check`, `pnpm typecheck` and `pnpm test` must pass.
 
 ## Git
 

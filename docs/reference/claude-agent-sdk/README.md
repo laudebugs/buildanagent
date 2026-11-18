@@ -12,10 +12,10 @@ TypeScript reference for `@anthropic-ai/claude-agent-sdk`, pinned to **0.3.327**
 ## Regenerate the mirror and re-verify
 
 ```bash
+pnpm install            # at the repo root: installs every harness
 cd verify/claude-agent-sdk
-npm install
-npm run fetch-docs      # -> docs/reference/claude-agent-sdk/source/ (from code.claude.com/docs/llms.txt)
-npm run verify          # all tiers; writes verify/claude-agent-sdk/results/*.json
+pnpm run fetch-docs     # -> docs/reference/claude-agent-sdk/source/ (from code.claude.com/docs/llms.txt)
+pnpm run verify         # all tiers; writes verify/claude-agent-sdk/results/*.json
 ```
 
 Upstream pages are also readable directly as Markdown, for example `https://code.claude.com/docs/en/agent-sdk/overview.md`. The page index is at `https://code.claude.com/docs/llms.txt`.
@@ -23,5 +23,5 @@ Upstream pages are also readable directly as Markdown, for example `https://code
 ## Upgrading the pinned version
 
 1. Bump `@anthropic-ai/claude-agent-sdk` in `verify/claude-agent-sdk/package.json`, using an exact version.
-2. `npm install && npm run fetch-docs && npm run verify`.
+2. `pnpm install && pnpm run fetch-docs && pnpm run verify` (inside `verify/claude-agent-sdk`).
 3. Diff `results/*.json` against the previous run, then update `guide.md` and `fact-check.md`.

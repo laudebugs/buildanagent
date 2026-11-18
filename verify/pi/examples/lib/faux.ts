@@ -1,0 +1,38 @@
+// Shared setup for the verified Pi examples: an in-memory session wired to the faux model.
+import {
+  type FauxResponseStep,
+  fauxAssistantMessage,
+  fauxProvider,
+  fauxText,
+  fauxToolCall,
+} from "@earendil-works/pi-ai";
+import {
+  type CreateAgentSessionOptions,
+  createAgentSession,
+  ModelRuntime,
+  SessionManager,
+  SettingsManager,
+} from "@earendil-works/pi-coding-agent";
+
+export { fauxAssistantMessage, fauxText, fauxToolCall };
+
+/** Create a session whose model replies with the scripted steps, in order. */
+export async function fauxSession(steps: FauxResponseStep[], options: Partial<CreateAgentSessionOptions> = {}) {
+  const faux = fauxProvider();
+  faux.setResponses(steps);
+  const modelRuntime = await ModelRuntime.create({ refreshOnCreate: false });
+  modelRuntime.registerNativeProvider(faux.provider);
+  const { session } = await createAgentSession({
+    modelRuntime,
+    model: faux.getModel(),
+    sessionManager: SessionManager.inMemory(),
+    settingsManager: SettingsManager.inMemory(),
+    ...options,
+  });
+  return { session, faux };
+}
+
+export function check(cond: unknown, msg: string): asserts cond {
+  if (!cond) throw new Error(`ASSERTION FAILED: ${msg}`);
+  console.log(`ok - ${msg}`);
+}

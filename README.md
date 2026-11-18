@@ -29,6 +29,19 @@ Each SDK gets a reference folder under `docs/reference/<sdk>/` (guide, fact-chec
 | OpenAI Agents SDK | `@openai/agents` | — | Next |
 | Vercel AI SDK | `ai` | — | Planned (agent-relevant core) |
 
+## Development
+
+The repo is a pnpm workspace (Node 22, pnpm 10.28.0). Each SDK harness under `verify/` is a workspace package.
+
+```bash
+pnpm install        # install every harness
+pnpm check          # Biome lint and format check
+pnpm typecheck      # type-check every package
+pnpm test           # run every harness's verified examples offline
+```
+
+See [AGENTS.md](AGENTS.md#coding-standards) for the coding standards.
+
 ## For AI agents
 
 See [AGENTS.md](AGENTS.md). `CLAUDE.md` is a symlink to it.

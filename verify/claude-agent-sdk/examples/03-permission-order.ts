@@ -1,6 +1,6 @@
 // The permission evaluation order: hooks -> deny rules -> ask rules -> mode -> allow rules -> canUseTool.
 // Docs: permissions.md "How permissions are evaluated"
-import { createSdkMcpServer, query, tool, type Options } from "@anthropic-ai/claude-agent-sdk";
+import { createSdkMcpServer, type Options, query, tool } from "@anthropic-ai/claude-agent-sdk";
 import { z } from "zod";
 import { check, collect } from "./lib/collect.ts";
 
@@ -8,15 +8,22 @@ const NAME = "mcp__ops__restart_service";
 function setup() {
   const state = { handler: 0, canUseTool: [] as string[] };
   const server = createSdkMcpServer({
-    name: "ops", version: "1.0.0",
-    tools: [tool("restart_service", "Restart a service", { service: z.string() }, async () => {
-      state.handler++;
-      return { content: [{ type: "text", text: "restarted" }] };
-    })],
+    name: "ops",
+    version: "1.0.0",
+    tools: [
+      tool("restart_service", "Restart a service", { service: z.string() }, async () => {
+        state.handler++;
+        return { content: [{ type: "text", text: "restarted" }] };
+      }),
+    ],
   });
   const options: Options = {
-    mcpServers: { ops: server }, maxTurns: 4,
-    canUseTool: async (toolName) => { state.canUseTool.push(toolName); return { behavior: "allow", updatedInput: { service: "api" } }; },
+    mcpServers: { ops: server },
+    maxTurns: 4,
+    canUseTool: async (toolName) => {
+      state.canUseTool.push(toolName);
+      return { behavior: "allow", updatedInput: { service: "api" } };
+    },
   };
   return { state, options };
 }
@@ -41,32 +48,74 @@ function setup() {
 // c) Deny rule wins even in bypassPermissions, and canUseTool is not called (step 2).
 {
   const { state, options } = setup();
-  await collect(query({ prompt: "restart the api", options: {
-    ...options, disallowedTools: [NAME], permissionMode: "bypassPermissions", allowDangerouslySkipPermissions: true,
-  } }));
+  await collect(
+    query({
+      prompt: "restart the api",
+      options: {
+        ...options,
+        disallowedTools: [NAME],
+        permissionMode: "bypassPermissions",
+        allowDangerouslySkipPermissions: true,
+      },
+    }),
+  );
   check(state.handler === 0, "c) disallowedTools blocks the tool even in bypassPermissions");
   check(state.canUseTool.length === 0, "c) denied call never reaches canUseTool");
 }
 // d) A PreToolUse hook can deny before any rule is checked (step 1).
 {
   const { state, options } = setup();
-  await collect(query({ prompt: "restart the api", options: {
-    ...options, allowedTools: [NAME],
-    hooks: { PreToolUse: [{ matcher: NAME, hooks: [async () => ({
-      hookSpecificOutput: { hookEventName: "PreToolUse", permissionDecision: "deny", permissionDecisionReason: "change freeze" },
-    })] }] },
-  } }));
+  await collect(
+    query({
+      prompt: "restart the api",
+      options: {
+        ...options,
+        allowedTools: [NAME],
+        hooks: {
+          PreToolUse: [
+            {
+              matcher: NAME,
+              hooks: [
+                async () => ({
+                  hookSpecificOutput: {
+                    hookEventName: "PreToolUse",
+                    permissionDecision: "deny",
+                    permissionDecisionReason: "change freeze",
+                  },
+                }),
+              ],
+            },
+          ],
+        },
+      },
+    }),
+  );
   check(state.handler === 0, "d) PreToolUse hook 'deny' blocks a tool that allowedTools would approve");
 }
 // e) A hook 'allow' does not override a deny rule.
 {
   const { state, options } = setup();
-  await collect(query({ prompt: "restart the api", options: {
-    ...options, disallowedTools: [NAME],
-    hooks: { PreToolUse: [{ matcher: NAME, hooks: [async () => ({
-      hookSpecificOutput: { hookEventName: "PreToolUse", permissionDecision: "allow" },
-    })] }] },
-  } }));
+  await collect(
+    query({
+      prompt: "restart the api",
+      options: {
+        ...options,
+        disallowedTools: [NAME],
+        hooks: {
+          PreToolUse: [
+            {
+              matcher: NAME,
+              hooks: [
+                async () => ({
+                  hookSpecificOutput: { hookEventName: "PreToolUse", permissionDecision: "allow" },
+                }),
+              ],
+            },
+          ],
+        },
+      },
+    }),
+  );
   check(state.handler === 0, "e) hook 'allow' does not skip deny rules");
 }
 // f) dontAsk mode skips canUseTool and denies (step 6).

@@ -2,7 +2,9 @@
 import type { Query, SDKMessage, SDKResultMessage } from "@anthropic-ai/claude-agent-sdk";
 
 /** Drain a query, returning every message and the final result. Errors thrown after the result are captured. */
-export async function collect(q: Query): Promise<{ messages: SDKMessage[]; result?: SDKResultMessage; thrown?: Error }> {
+export async function collect(
+  q: Query,
+): Promise<{ messages: SDKMessage[]; result?: SDKResultMessage; thrown?: Error }> {
   const messages: SDKMessage[] = [];
   let thrown: Error | undefined;
   try {

@@ -12,8 +12,9 @@
 // Every request is appended to $MOCK_LOG (JSONL) so tests can assert on what the CLI sent.
 //
 // Usage: node scripts/mock-anthropic.mjs [port]   (or import { startMock })
-import { createServer } from "node:http";
+
 import { appendFileSync } from "node:fs";
+import { createServer } from "node:http";
 
 let seq = 0;
 
@@ -25,11 +26,16 @@ function synth(schema = {}, depth = 0) {
   const t = Array.isArray(schema.type) ? schema.type[0] : schema.type;
   if (schema.anyOf || schema.oneOf) return synth((schema.anyOf ?? schema.oneOf)[0], depth + 1);
   switch (t) {
-    case "string": return schema.format === "email" ? "user@example.com" : "example";
-    case "number": case "integer": return schema.minimum ?? 1;
-    case "boolean": return true;
-    case "array": return [synth(schema.items ?? {}, depth + 1)];
-    case "object": default: {
+    case "string":
+      return schema.format === "email" ? "user@example.com" : "example";
+    case "number":
+    case "integer":
+      return schema.minimum ?? 1;
+    case "boolean":
+      return true;
+    case "array":
+      return [synth(schema.items ?? {}, depth + 1)];
+    default: {
       const out = {};
       for (const [k, v] of Object.entries(schema.properties ?? {})) out[k] = synth(v, depth + 1);
       return out;
@@ -40,7 +46,8 @@ function synth(schema = {}, depth = 0) {
 // Name of the tool each tool_use id called, across the whole conversation.
 function toolNamesById(msgs) {
   const map = {};
-  for (const m of msgs) for (const b of Array.isArray(m.content) ? m.content : []) if (b.type === "tool_use") map[b.id] = b.name;
+  for (const m of msgs)
+    for (const b of Array.isArray(m.content) ? m.content : []) if (b.type === "tool_use") map[b.id] = b.name;
   return map;
 }
 
@@ -63,7 +70,8 @@ function plan(body) {
     return { tool: custom, input: synth(custom.input_schema) };
   }
   // Answer: through StructuredOutput when the caller asked for a schema, else as text.
-  if (structured && !calledSoFar.has("StructuredOutput")) return { tool: structured, input: synth(structured.input_schema) };
+  if (structured && !calledSoFar.has("StructuredOutput"))
+    return { tool: structured, input: synth(structured.input_schema) };
   if (ranRealTool || calledSoFar.has("StructuredOutput")) {
     return { text: "Mock model: received the tool result, task complete." };
   }
@@ -90,7 +98,16 @@ function reply(res, body, p) {
     ? { type: "tool_use", id: `toolu_mock_${seq}`, name: p.tool.name, input: p.input }
     : { type: "text", text: p.text };
   const stop_reason = p.tool ? "tool_use" : "end_turn";
-  const message = { id, type: "message", role: "assistant", model: body.model ?? "mock", content: [], stop_reason: null, stop_sequence: null, usage };
+  const message = {
+    id,
+    type: "message",
+    role: "assistant",
+    model: body.model ?? "mock",
+    content: [],
+    stop_reason: null,
+    stop_sequence: null,
+    usage,
+  };
   if (!body.stream) {
     res.writeHead(200, { "content-type": "application/json" });
     return res.end(JSON.stringify({ ...message, content: [block], stop_reason }));
@@ -99,7 +116,10 @@ function reply(res, body, p) {
   sse(res, "message_start", { message });
   if (p.tool) {
     sse(res, "content_block_start", { index: 0, content_block: { ...block, input: {} } });
-    sse(res, "content_block_delta", { index: 0, delta: { type: "input_json_delta", partial_json: JSON.stringify(p.input) } });
+    sse(res, "content_block_delta", {
+      index: 0,
+      delta: { type: "input_json_delta", partial_json: JSON.stringify(p.input) },
+    });
   } else {
     sse(res, "content_block_start", { index: 0, content_block: { type: "text", text: "" } });
     sse(res, "content_block_delta", { index: 0, delta: { type: "text_delta", text: p.text } });
@@ -117,8 +137,14 @@ export function startMock(port = 0, log = process.env.MOCK_LOG) {
     req.on("end", () => {
       const path = req.url.split("?")[0];
       let body = {};
-      try { body = raw ? JSON.parse(raw) : {}; } catch {}
-      if (log) appendFileSync(log, JSON.stringify({ method: req.method, path, tools: body.tools?.map((t) => t.name), body }) + "\n");
+      try {
+        body = raw ? JSON.parse(raw) : {};
+      } catch {}
+      if (log)
+        appendFileSync(
+          log,
+          `${JSON.stringify({ method: req.method, path, tools: body.tools?.map((t) => t.name), body })}\n`,
+        );
       if (req.method === "POST" && path.endsWith("/v1/messages")) return reply(res, body, plan(body));
       if (path.endsWith("/v1/messages/count_tokens")) {
         res.writeHead(200, { "content-type": "application/json" });
@@ -126,10 +152,14 @@ export function startMock(port = 0, log = process.env.MOCK_LOG) {
       }
       if (path.includes("/v1/models")) {
         res.writeHead(200, { "content-type": "application/json" });
-        return res.end(JSON.stringify({ data: [{ id: "claude-mock", type: "model", display_name: "Mock" }], has_more: false }));
+        return res.end(
+          JSON.stringify({ data: [{ id: "claude-mock", type: "model", display_name: "Mock" }], has_more: false }),
+        );
       }
       res.writeHead(404, { "content-type": "application/json" });
-      res.end(JSON.stringify({ type: "error", error: { type: "not_found_error", message: `mock: ${req.method} ${path}` } }));
+      res.end(
+        JSON.stringify({ type: "error", error: { type: "not_found_error", message: `mock: ${req.method} ${path}` } }),
+      );
     });
   });
   return new Promise((resolve) => server.listen(port, "127.0.0.1", () => resolve(server)));

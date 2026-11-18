@@ -1,0 +1,9 @@
+packages:
+  - "verify/*"
+
+# pnpm blocks dependency build scripts by default; allow only what the harnesses need.
+onlyBuiltDependencies:
+  - esbuild
+ignoredBuiltDependencies:
+  - "@google/genai"
+  - protobufjs
