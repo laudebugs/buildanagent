@@ -3,7 +3,7 @@
 | Field | Value |
 | --- | --- |
 | ID | `C4` |
-| Status | `ready` |
+| Status | `ongoing` |
 | Plan | [SDK comparison §4](../../plans/sdk-comparison.md#4-todos) |
 | Round / milestone | M2c (added 2026-11-18) |
 | Depends on | [C5](../ready/C5-typescript-gaps.md) |
@@ -53,7 +53,7 @@ Cloudflare needs the Workers runtime locally (workerd); Google's TypeScript ADK 
 
 ## Definition of done
 
-- [ ] Claimed: the first commit moved this file `ready/` → `ongoing/` (Status `ongoing`)
+- [x] Claimed: the first commit moved this file `ready/` → `ongoing/` (Status `ongoing`)
 - [ ] Prose drafted with `/anthropic-skills:writing` and reviewed with `/anthropic-skills:writing-review`, with the fixes applied and changed claims re-checked
 - [ ] `pnpm check`, `pnpm typecheck` and `pnpm test` pass locally; pushed after each meaningful step
 - [ ] This file moved `ongoing/` → `done/` (Status `done`), and the plan's todo table updated
