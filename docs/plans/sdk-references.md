@@ -1,6 +1,6 @@
 # Plan: a verified reference for every agent SDK, built with one repeatable process (Round S)
 
-- **Status:** Done (S5 LangChain added and finished 2026-11-18)
+- **Status:** In progress (S6 Cloudflare and S7 Google ADK added 2026-11-18)
 - **Date:** 2026-11-18
 - **Asked for by:** the project owner (2026-11-18): fetch each SDK's docs, build a thorough reference, fact-check the docs, and find a way to verify the examples
 - **Builds on:**
@@ -85,6 +85,27 @@ The owner asked to add LangChain after the first four were done (2026-11-18).
 - **Behaviors to verify:** `createAgent` with tools, middleware (before/after model, human-in-the-loop approval with `interrupt` and resume), structured output (`responseFormat`), the checkpointer and thread memory, the recursion limit, streaming modes, and MCP tools if the adapter is in scope.
 - **Out of scope:** LangChain Python, LangSmith hosting and LangGraph Platform; note them in the guide.
 
+### Language policy: TypeScript references, with a parity check (decided 2026-11-18)
+
+The owner asked whether each SDK should be documented in its primary language. The answer is no. Every reference stays in TypeScript, because our own stack is TypeScript and a reference should cover the package we would import. The primary language still matters as a signal: the TypeScript ports of Python-first SDKs lag their primary. As of November 2026, `@google/adk` is at 2.4.0 against Python `google-adk` 2.14.1, and LangChain's JS docs share pages with Python and run ahead of the npm release. So every reference whose SDK is primarily another language adds a **TypeScript parity** section. That section compares the TS package's features with the primary-language docs, records the gaps in the fact-check, and feeds a "Primary language and TS parity" row in the feature table. S6 and S7 apply this policy from the start. C4 backfills the row for the first five SDKs: Claude (TS and Python, both first-party), Pi (TS only), OpenAI (Python first), Vercel (TS only) and LangChain (Python first).
+
+### S6 Cloudflare Agents (added 2026-11-18)
+
+- **Packages:** `agents@0.33.0` and `@cloudflare/think@0.23.0` (MIT, newest published by 2026-11-04). TypeScript is the primary language.
+- **Docs:** `developers.cloudflare.com/agents/` renders from `cloudflare/cloudflare-docs` (CC-BY-4.0 for content; check the license before committing the mirror), and the `cloudflare/agents` repo holds READMEs, docs and examples. Mirror from the release tag where the repo has one.
+- **Runtime:** agents are Durable Objects that run on the Workers runtime, so offline runs need Cloudflare's local runtime (`workerd`, through Miniflare or `@cloudflare/vitest-pool-workers`). Allow its build script only through `onlyBuiltDependencies`.
+- **Test model:** Think wraps the Vercel AI SDK's `streamText`, so `MockLanguageModelV4` from `ai/test` should drive it; plain `Agent` classes need no model.
+- **Behaviors to verify:** Agent state and SQL storage, scheduling, `AIChatAgent`/Think chat loops, tool approval, MCP (client and `McpAgent` server), workflows with human pause and resume, and hibernation-safe state.
+- **Out of scope:** deploying to Cloudflare, and paid platform features.
+
+### S7 Google Agent Development Kit (added 2026-11-18)
+
+- **Packages:** `@google/adk@2.4.0` (Apache-2.0, newest published by 2026-11-04), with `@google/genai` as its model layer. Python is the primary language (`google-adk` 2.14.1 on PyPI), so this reference carries the parity section.
+- **Docs:** `google.github.io/adk-docs` renders from `google/adk-docs` (check its license); the `google/adk-js` repo holds the TS source and samples. Mirror the TypeScript pages and samples at a recorded commit or tag.
+- **Test model:** look for a first-party fake `BaseLlm` in `@google/adk`; otherwise script one.
+- **Behaviors to verify:** `LlmAgent` with function tools, sequential, parallel and loop workflow agents, the graph workflow runtime in 2.x, sessions and state, callbacks (before/after model and tool), structured output, and human-in-the-loop.
+- **Out of scope:** Python ADK beyond the parity check, Vertex AI Agent Engine deployment.
+
 ## 5. Todos
 
 | ID | Title | Depends on |
@@ -97,6 +118,10 @@ The owner asked to add LangChain after the first four were done (2026-11-18).
 | S4b | Vercel AI SDK: guide and fact-check, written and reviewed (done) | S4a |
 | S5a | LangChain: mirror, verification harness and behavioral examples (done) | S4b |
 | S5b | LangChain: guide and fact-check, written and reviewed (done) | S5a |
+| S6a | Cloudflare Agents: mirror, verification harness and behavioral examples | S5b |
+| S6b | Cloudflare Agents: guide and fact-check, written and reviewed | S6a |
+| S7a | Google ADK: mirror, verification harness, behavioral examples and TS parity check | S6b |
+| S7b | Google ADK: guide and fact-check, written and reviewed | S7a |
 
 ## 6. Risks
 

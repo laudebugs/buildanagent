@@ -21,7 +21,8 @@ agent-speak ends this phase with four things:
  S2 Pi ✅ ─────┤
  S3a ─► S3b ───┼─► C1 ─► C2 ─► K1 ─► K2 ─┐
  S4a ─► S4b ───┘                          │
- S5a ─► S5b ─► C3 ─► K3 (LangChain, added 2026-11-18) ─► before G1b
+ S5a ─► S5b ─► C3 ─► K3 (LangChain, added 2026-11-18, done)
+ S6a ─► S6b ─► S7a ─► S7b ─► C4 ─► K4 (Cloudflare and Google ADK, added 2026-11-18) ─► before G1b
                                           ├─► G1a ─► G1b ─► P1 ─┐
                                           ├─► G2a ─► G2b ─► P2 ─┼─► P4 (review) ─► stop
                                           └─► G3a ─► G3b ─► P3 ─┘
@@ -41,7 +42,8 @@ agent-speak ends this phase with four things:
 | --- | --- | --- |
 | M1 Four SDK references (done 2026-11-18) | S1–S4 | A guide, a fact-check, a mirror and an offline verification harness for each SDK |
 | M2 Comparison and skills (done 2026-11-18) | C1–C2, K1–K2 |
-| M2b LangChain (done 2026-11-18) | S5a, S5b, C3, K3 | A fifth verified reference, folded into the comparison and the skills before the build guides | The feature table, the deep comparison, the refreshed research report, and four agent skills |
+| M2b LangChain (done 2026-11-18) | S5a, S5b, C3, K3 | A fifth verified reference, folded into the comparison and the skills before the build guides |
+| M2c Cloudflare and Google ADK | S6a–S7b, C4, K4 | Sixth and seventh references, with a TS-parity row for all seven SDKs | The feature table, the deep comparison, the refreshed research report, and four agent skills |
 | M3 Build guides | G1–G3 | Researched guides to building an agent SDK, a harness and an agent |
 | M4 Reviewed plans | P1–P4 | Detailed implementation plans, reviewed together, ready for the build phase |
 
