@@ -1,0 +1,95 @@
+# Loop template workflow agent
+
+<div class="language-support-tag">
+  <span class="lst-supported">Supported in ADK</span><span class="lst-python">Python v0.1.0</span><span class="lst-typescript">TypeScript v0.2.0</span><span class="lst-go">Go v0.1.0</span><span class="lst-java">Java v0.2.0</span><span class="lst-kotlin">Kotlin v0.1.0</span>
+</div>
+
+The ***LoopAgent*** class is a [template workflow](/agents/workflow-agents/) agent
+that executes its sub-agents in a loop for a specified number of iterations or
+until a termination condition is met. Use the ***LoopAgent*** when your workflow
+involves repetition or iterative refinement, such as revising code or a
+document. As with other templated workflows, the execution of a ***LoopAgent***
+object is not controlled by an AI model, and is deterministic in how it executes
+its sub-agents. The sub-agents within the defined loop may or may not utilize AI
+models, but the overall execution of those sub-agents is ultimately managed by
+the ***LoopAgent*** object you define.
+
+!!! warning "Deprecated: Use graph-based workflows"
+
+    In ADK Python, TypeScript, Go, and Kotlin, template workflows have been 
+    superseded by more flexible workflow structures, including
+    [graph-based workflows](/graphs/) and
+    [dynamic workflows](/graphs/dynamic/).
+
+### Example scenario
+
+You want to build an agent that can generate images of food, but sometimes when
+you want to generate a specific number of items, such as bananas, the agent
+generates a different number of those items in the image, such as an image of 7
+bananas. You have two tools: `Generate Image`, `Count Food Items`. If your goal
+is to keep generating images until it either correctly generates the specified
+number of items, or after a certain number of iterations, you can build your
+agent using a ***LoopAgent*** workflow.
+
+### How it Works
+
+When the `LoopAgent`'s `Run Async` method is called, it performs the following actions:
+
+1. **Sub-Agent Execution:**  It iterates through the Sub Agents list _in order_. For _each_ sub-agent, it calls the agent's `Run Async` method.
+2. **Termination Check:**
+
+    _Crucially_, the `LoopAgent` itself does _not_ inherently decide when to stop looping. You _must_ implement a termination mechanism to prevent infinite loops.  Common strategies include:
+
+    * **Max Iterations**: Set a maximum number of iterations in the `LoopAgent`. **The loop will terminate after that many iterations**. In Python, `max_iterations` defaults to `None`, which means the loop only stops on escalation.
+    * **Escalation from sub-agent**: Design one or more sub-agents to evaluate a condition (e.g., "Is the document quality good enough?", "Has a consensus been reached?").  If the condition is met, the sub-agent signals termination by emitting an event whose actions set `escalate` to true. In Python, a custom agent yields an `Event` with `actions=EventActions(escalate=True)`, while a callback sets `callback_context.actions.escalate = True` and a tool sets `tool_context.actions.escalate = True`. The built-in `exit_loop` tool sets that flag for you.
+
+![Loop Agent](/assets/loop-agent.png)
+
+### Full Example: Iterative Document Improvement
+
+Imagine a scenario where you want to iteratively improve a document:
+
+* **Writer Agent:** An `LlmAgent` that generates or refines a draft on a topic.
+* **Critic Agent:** An `LlmAgent` that critiques the draft, identifying areas for improvement.
+
+    ```py
+    LoopAgent(name="RefinementLoop", sub_agents=[WriterAgent, CriticAgent], max_iterations=5)
+    ```
+
+In this setup, the `LoopAgent` would manage the iterative process.  The `CriticAgent` could be **given an escalation tool such as `exit_loop`, which it calls once the document reaches a satisfactory quality level**, preventing further iterations. Alternatively, the `max_iterations` parameter could be used to limit the process to a fixed number of cycles, or external logic could be implemented to make stop decisions. The **loop would run at most five times**, ensuring the iterative refinement doesn't continue indefinitely.
+
+???+ "Full Code"
+
+    === "Python"
+        ```py
+        --8<-- "examples/python/snippets/agents/workflow-agents/loop_agent_doc_improv_agent.py:init"
+        ```
+
+    === "TypeScript"
+        ```typescript
+        --8<-- "examples/typescript/snippets/agents/workflow-agents/loop_agent_doc_improv_agent.ts:init"
+        ```
+
+    === "Go"
+        ```go
+        --8<-- "examples/go/snippets/agents/workflow-agents/loop/main.go:init"
+        ```
+
+    === "Java"
+        ```java
+        --8<-- "examples/java/snippets/src/main/java/agents/workflow/LoopAgentExample.java:init"
+        ```
+
+    === "Kotlin"
+        ```kotlin
+        --8<-- "examples/kotlin/snippets/agents/workflow-agents/LoopAgentDocImprovAgent.kt:init"
+        ```
+
+!!! tip "Global instructions for all agents"
+
+    Apply consistent rules across your workflow using the `GlobalInstructionPlugin` 
+    on your `App` ([Python](https://github.com/google/adk-python/blob/main/src/google/adk/plugins/global_instruction_plugin.py), 
+    [TypeScript](https://github.com/google/adk-js/blob/main/core/src/plugins/global_instruction_plugin.ts), 
+    [Java](https://github.com/google/adk-java/blob/main/core/src/main/java/com/google/adk/plugins/GlobalInstructionPlugin.java)) 
+    or the `GlobalInstruction` parameter on your agent 
+    ([Go](https://github.com/google/adk-go/blob/main/agent/llmagent/llmagent.go)).

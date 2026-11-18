@@ -1,0 +1,97 @@
+# Parallel template workflow agent
+
+<div class="language-support-tag">
+  <span class="lst-supported">Supported in ADK</span><span class="lst-python">Python v0.1.0</span><span class="lst-typescript">TypeScript v0.2.0</span><span class="lst-go">Go v0.1.0</span><span class="lst-java">Java v0.2.0</span><span class="lst-kotlin">Kotlin v0.1.0</span>
+</div>
+
+The ***ParallelAgent*** class is a [template workflow](/agents/workflow-agents/)
+agent that executes its sub-agents concurrently. This execution strategy can
+dramatically speed up workflows where two or more tasks can be performed
+independently. For scenarios prioritizing speed and involving independent,
+resource-intensive tasks, this templated workflow facilitates parallel
+execution, which can significantly reduce overall processing time. When using
+this workflow type, it is important that each sub-agent can operate without
+depending on the other sub-agents. This workflow type is particularly beneficial
+for operations like multi-source data retrieval or heavy computations, where
+parallelization yields substantial performance gains.
+
+As with other templated workflows, the execution of a ***ParallelAgent*** object
+is not controlled by an AI model, and is deterministic in how it executes its
+sub-agents. The sub-agents specified in the parallel execution set may or may
+not utilize AI models, but the overall execution of those sub-agents is
+ultimately managed by the ***ParallelAgent*** object you define.
+
+!!! warning "Deprecated: Use graph-based workflows"
+
+    In ADK Python, TypeScript, Go, and Kotlin, template workflows have been 
+    superseded by more flexible workflow structures, including
+    [graph-based workflows](/graphs/) and
+    [dynamic workflows](/graphs/dynamic/).
+
+### How it works
+
+When the `ParallelAgent`'s `run_async()` method is called:
+
+1. **Concurrent Execution:** It initiates the `run_async()` method of *each* sub-agent present in the `sub_agents` list *concurrently*.  This means all the agents start running at (approximately) the same time.
+2. **Independent Branches:**  Each sub-agent operates in its own execution branch, and there is ***no* automatic sharing of conversation history between these branches** during execution. A sub-agent sees only the events on its own branch. Session state is shared: all branches run against the same session, so a value one sub-agent writes, for example through `output_key`, is visible to the other branches and to later agents.
+3. **Result Collection:** The `ParallelAgent` merges the sub-agents' event streams and yields each event as it is produced; it does not gather the results into a list you can read afterwards. Because the branches interleave, the event order is not deterministic. To use a sub-agent's result, read it from the shared session state, for example the key it was given through `output_key`.
+
+### Independent Execution and State Management
+
+It's *crucial* to understand that sub-agents within a `ParallelAgent` run independently.  If you *need* communication or data sharing between these agents, you must implement it explicitly.  Possible approaches include:
+
+* **Shared session state:** All branches run against the same session, so give each sub-agent an `output_key` and read those keys from a later agent's instruction. Because the branches run concurrently, do not rely on one branch reading a key another branch is still writing.
+* **External State Management:**  Use an external database, message queue, or other mechanism to manage shared state and facilitate communication between agents.
+* **Post-Processing:** Collect results from each branch, and then implement logic to coordinate data afterwards.
+
+![Parallel Agent](/assets/parallel-agent.png){: width="600"}
+
+### Full Example: Parallel Web Research
+
+Imagine researching multiple topics simultaneously:
+
+1. **Researcher Agent 1:**  An `LlmAgent` that researches "renewable energy sources."
+2. **Researcher Agent 2:**  An `LlmAgent` that researches "electric vehicle technology."
+3. **Researcher Agent 3:**  An `LlmAgent` that researches "carbon capture methods."
+
+    ```py
+    ParallelAgent(name="ParallelWebResearchAgent", sub_agents=[ResearcherAgent1, ResearcherAgent2, ResearcherAgent3])
+    ```
+
+These research tasks are independent.  Using a `ParallelAgent` allows them to run concurrently, potentially reducing the total research time significantly compared to running them sequentially. To use each agent's result afterwards, give it an `output_key` and read that key from session state.
+
+???+ "Full Code"
+
+    === "Python"
+        ```py
+         --8<-- "examples/python/snippets/agents/workflow-agents/parallel_agent_web_research.py:init"
+        ```
+
+    === "TypeScript"
+        ```typescript
+         --8<-- "examples/typescript/snippets/agents/workflow-agents/parallel_agent_web_research.ts:init"
+        ```
+
+    === "Go"
+        ```go
+         --8<-- "examples/go/snippets/agents/workflow-agents/parallel/main.go:init"
+        ```
+
+    === "Java"
+        ```java
+         --8<-- "examples/java/snippets/src/main/java/agents/workflow/ParallelResearchPipeline.java:full_code"
+        ```
+
+    === "Kotlin"
+        ```kotlin
+         --8<-- "examples/kotlin/snippets/agents/workflow-agents/ParallelAgentWebResearch.kt:init"
+        ```
+
+!!! tip "Global instructions for all agents"
+
+    Apply consistent rules across your workflow using the `GlobalInstructionPlugin` 
+    on your `App` ([Python](https://github.com/google/adk-python/blob/main/src/google/adk/plugins/global_instruction_plugin.py), 
+    [TypeScript](https://github.com/google/adk-js/blob/main/core/src/plugins/global_instruction_plugin.ts), 
+    [Java](https://github.com/google/adk-java/blob/main/core/src/main/java/com/google/adk/plugins/GlobalInstructionPlugin.java)) 
+    or the `GlobalInstruction` parameter on your agent 
+    ([Go](https://github.com/google/adk-go/blob/main/agent/llmagent/llmagent.go)).

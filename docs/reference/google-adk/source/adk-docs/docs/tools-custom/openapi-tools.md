@@ -1,0 +1,161 @@
+# Integrate REST APIs with OpenAPI
+
+<div class="language-support-tag">
+  <span class="lst-supported">Supported in ADK</span><span class="lst-python">Python v0.1.0</span>
+</div>
+
+ADK simplifies interacting with external REST APIs by automatically generating callable tools directly from an [OpenAPI Specification (v3.x)](https://swagger.io/specification/). This eliminates the need to manually define individual function tools for each API endpoint.
+
+!!! tip "Core Benefit"
+    Use `OpenAPIToolset` to instantly create agent tools (`RestApiTool`) from your existing API documentation (OpenAPI spec), enabling agents to seamlessly call your web services.
+
+## Key components
+
+* **`OpenAPIToolset`**: This is the primary class you'll use. You initialize it with your OpenAPI specification, and it handles the parsing and generation of tools.
+* **`RestApiTool`**: This class represents a single, callable API operation (like `GET /pets/{petId}` or `POST /pets`). `OpenAPIToolset` creates one `RestApiTool` instance for each operation defined in your spec.
+
+## How it works
+
+The process involves these main steps when you use `OpenAPIToolset`:
+
+1. **Initialization & Parsing**:
+    * You provide the OpenAPI specification to `OpenAPIToolset` either as a Python dictionary, a JSON string, or a YAML string.
+    * The toolset internally parses the spec, resolving any internal references (`$ref`) to understand the complete API structure.
+
+2. **Operation Discovery**:
+    * It identifies all valid API operations (e.g., `GET`, `POST`, `PUT`, `DELETE`) defined within the `paths` object of your specification.
+
+3. **Tool Generation**:
+    * For each discovered operation, `OpenAPIToolset` automatically creates a corresponding `RestApiTool` instance.
+    * **Tool Name**: Derived from the `operationId` in the spec (converted to `snake_case`, max 60 chars). If `operationId` is missing, a name is generated from the method and path.
+    * **Tool Description**: Uses the `summary` or `description` from the operation for the LLM.
+    * **API Details**: Stores the required HTTP method, path, server base URL, parameters (path, query, header, cookie), and request body schema internally.
+
+4. **`RestApiTool` Functionality**: Each generated `RestApiTool`:
+    * **Schema Generation**: Dynamically creates a `FunctionDeclaration` based on
+   the operation's parameters and request body. This schema tells the LLM how
+   to call the tool (what arguments are expected).
+    * **Execution**: When the LLM calls the tool, the tool constructs the HTTP
+  request, including the URL, headers, query parameters, and body, using the
+  LLM's arguments and the OpenAPI specification. The tool handles
+  authentication if configured, and executes the API call asynchronously using
+  the `httpx` library with a 600-second read/write timeout (customizable with
+  `httpx_client_factory`).
+
+5. **Authentication**: You can configure global authentication (like API keys or
+   OAuth - see [Authentication](/tools-custom/authentication/) for details)
+   when initializing `OpenAPIToolset`. This authentication configuration is
+   automatically applied to all generated `RestApiTool` instances.
+
+## Usage workflow
+
+Follow these steps to integrate an OpenAPI spec into your agent:
+
+1. **Obtain Spec**: Get your OpenAPI specification document (e.g., load from a `.json` or `.yaml` file, fetch from a URL).
+2. **Instantiate Toolset**: Create an `OpenAPIToolset` instance, passing the spec content and type (`spec_str`/`spec_dict`, `spec_str_type`). Provide authentication details (`auth_scheme`, `auth_credential`) if required by the API.
+
+    ```python
+    from google.adk.tools.openapi_tool.openapi_spec_parser.openapi_toolset import OpenAPIToolset
+
+    # Example with a JSON string
+    openapi_spec_json = '...' # Your OpenAPI JSON string
+    toolset = OpenAPIToolset(spec_str=openapi_spec_json, spec_str_type="json")
+
+    # Example with a dictionary
+    # openapi_spec_dict = {...} # Your OpenAPI spec as a dict
+    # toolset = OpenAPIToolset(spec_dict=openapi_spec_dict)
+    ```
+
+3. **Add to Agent**: Include the retrieved tools in your `LlmAgent`'s `tools` list.
+
+    ```python
+    from google.adk.agents import LlmAgent
+
+    my_agent = LlmAgent(
+        name="api_interacting_agent",
+        model="gemini-flash-latest", # Or your preferred model
+        tools=[toolset], # Pass the toolset
+        # ... other agent config ...
+    )
+    ```
+
+4. **Instruct agent**: Update your agent's instructions to inform it about the new API capabilities and the names of the tools it can use (e.g., `list_pets`, `create_pet`). The tool descriptions generated from the spec will also help the LLM.
+5. **Run agent**: Execute your agent using the `Runner`. When the LLM determines it needs to call one of the APIs, it will generate a function call targeting the appropriate `RestApiTool`, which will then handle the HTTP request automatically.
+
+## See it in action
+
+This example demonstrates generating tools from a simple Pet Store OpenAPI spec (using `httpbin.org` for mock responses) and interacting with them via an agent.
+
+???+ "Code: Pet Store API"
+
+    ```python title="openapi_example.py"
+    --8<-- "examples/python/snippets/tools/openapi_tool.py"
+    ```
+
+## Advanced configuration
+
+!!! note
+    The parameters in this section require ADK Python v2.0.0 or higher.
+
+### Custom headers with `header_provider`
+
+To dynamically add custom headers to every API request, provide a callable to
+`header_provider`. The callable receives the `ReadonlyContext` and returns a
+dictionary of headers, as shown in the following example:
+
+```python
+from google.adk.agents.readonly_context import ReadonlyContext
+from google.adk.tools.openapi_tool.openapi_spec_parser.openapi_toolset import OpenAPIToolset
+
+openapi_spec = {...}  # Loaded from your OpenAPI file.
+
+
+def my_header_provider(context: ReadonlyContext) -> dict[str, str]:
+    return {"X-Request-ID": context.invocation_id}
+
+
+toolset = OpenAPIToolset(
+    spec_dict=openapi_spec,
+    header_provider=my_header_provider,
+)
+```
+
+### SSL certificate verification with `ssl_verify`
+
+To configure SSL certificate verification for all tools in the toolset, use the
+`ssl_verify` parameter. The following example shows how to configure SSL
+verification for environments with custom CA certificates:
+
+```python
+from google.adk.tools.openapi_tool.openapi_spec_parser.openapi_toolset import OpenAPIToolset
+
+openapi_spec = {...}  # Loaded from your OpenAPI file.
+
+toolset = OpenAPIToolset(
+    spec_dict=openapi_spec,
+    ssl_verify="/path/to/ca.pem",
+)
+```
+
+!!! warning "Do not disable verification"
+    `ssl_verify` also accepts `True`, `False`, or an `ssl.SSLContext`. Setting
+    `ssl_verify=False` disables certificate verification entirely and exposes
+    requests to interception. Use a CA bundle path or a custom `SSLContext`
+    instead.
+
+### Tool name prefix with `tool_name_prefix`
+
+To add a prefix to all tool names generated by the toolset, use the
+`tool_name_prefix` parameter. The following example demonstrates how to avoid
+name collisions when using multiple OpenAPI specs:
+
+```python
+from google.adk.tools.openapi_tool.openapi_spec_parser.openapi_toolset import OpenAPIToolset
+
+openapi_spec = {...}  # Loaded from your OpenAPI file.
+
+toolset = OpenAPIToolset(
+    spec_dict=openapi_spec,
+    tool_name_prefix="my_api",
+)
+```
