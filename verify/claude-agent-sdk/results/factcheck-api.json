@@ -1,0 +1,79 @@
+{
+  "package": "@anthropic-ai/claude-agent-sdk@0.3.327",
+  "checkedAt": "2026-11-18T04:11:59.953Z",
+  "checks": {
+    "functions": {
+      "documented": 13,
+      "actual": 21,
+      "undocumented": [
+        "archiveSession",
+        "deleteSession",
+        "filterEscalatingDefaultMode",
+        "foldSessionSummary",
+        "getSubagentMessages",
+        "importSessionToStore",
+        "listSubagents",
+        "unarchiveSession"
+      ],
+      "notInPackage": []
+    },
+    "options": {
+      "documented": 66,
+      "actual": 70,
+      "undocumented": [
+        "mcpServersDelivery",
+        "onUserDialog",
+        "perTaskStopAffordance",
+        "pluginDelivery",
+        "supportedDialogKinds"
+      ],
+      "notInPackage": [
+        "outputStyle"
+      ]
+    },
+    "permissionMode": {
+      "documented": 6,
+      "actual": 6,
+      "undocumented": [],
+      "notInPackage": []
+    },
+    "hookEvent": {
+      "documented": 33,
+      "actual": 33,
+      "undocumented": [],
+      "notInPackage": []
+    },
+    "sdkMessage": {
+      "documented": 39,
+      "actual": 40,
+      "undocumented": [
+        "SDKSessionWritesLostMessage"
+      ],
+      "notInPackage": []
+    },
+    "toolInputs": {
+      "documented": 40,
+      "actual": 44,
+      "undocumented": [
+        "ClaudeDesign",
+        "FileEdit",
+        "FileRead",
+        "FileWrite",
+        "Mcp",
+        "OfferChromeSetup",
+        "ProposeGoal",
+        "ProposeSkills",
+        "ReadNotifications",
+        "SendFeedback"
+      ],
+      "notInPackage": [
+        "Edit",
+        "McpInput",
+        "REPL",
+        "Read",
+        "TaskOutput",
+        "Write"
+      ]
+    }
+  }
+}

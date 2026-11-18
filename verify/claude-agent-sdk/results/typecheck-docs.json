@@ -1,0 +1,7757 @@
+[
+  {
+    "id": "agent-loop__01",
+    "page": "agent-loop.md",
+    "line": 422,
+    "lang": "typescript",
+    "title": "TypeScript",
+    "lines": 40,
+    "importsSdk": true,
+    "complete": true,
+    "errors": [],
+    "status": "pass"
+  },
+  {
+    "id": "claude-code-features__01",
+    "page": "claude-code-features.md",
+    "line": 48,
+    "lang": "typescript",
+    "title": "TypeScript",
+    "lines": 21,
+    "importsSdk": true,
+    "complete": true,
+    "errors": [],
+    "status": "pass"
+  },
+  {
+    "id": "claude-code-features__02",
+    "page": "claude-code-features.md",
+    "line": 155,
+    "lang": "typescript",
+    "title": "TypeScript",
+    "lines": 16,
+    "importsSdk": true,
+    "complete": true,
+    "errors": [],
+    "status": "pass"
+  },
+  {
+    "id": "claude-code-features__03",
+    "page": "claude-code-features.md",
+    "line": 230,
+    "lang": "typescript",
+    "title": "TypeScript",
+    "lines": 35,
+    "importsSdk": true,
+    "complete": true,
+    "errors": [],
+    "status": "pass"
+  },
+  {
+    "id": "configuration__01",
+    "page": "configuration.md",
+    "line": 24,
+    "lang": "typescript",
+    "title": "TypeScript",
+    "lines": 15,
+    "importsSdk": true,
+    "complete": true,
+    "errors": [],
+    "status": "pass"
+  },
+  {
+    "id": "configuration__02",
+    "page": "configuration.md",
+    "line": 88,
+    "lang": "typescript",
+    "title": "TypeScript",
+    "lines": 4,
+    "importsSdk": false,
+    "complete": false,
+    "errors": [],
+    "status": "pass"
+  },
+  {
+    "id": "configuration__03",
+    "page": "configuration.md",
+    "line": 117,
+    "lang": "typescript",
+    "title": "TypeScript",
+    "lines": 3,
+    "importsSdk": false,
+    "complete": false,
+    "errors": [],
+    "status": "pass"
+  },
+  {
+    "id": "configuration__04",
+    "page": "configuration.md",
+    "line": 179,
+    "lang": "typescript",
+    "title": "TypeScript",
+    "lines": 44,
+    "importsSdk": true,
+    "complete": true,
+    "errors": [],
+    "status": "pass"
+  },
+  {
+    "id": "cost-tracking__01",
+    "page": "cost-tracking.md",
+    "line": 100,
+    "lang": "typescript",
+    "title": "TypeScript",
+    "lines": 15,
+    "importsSdk": true,
+    "complete": true,
+    "errors": [],
+    "status": "pass"
+  },
+  {
+    "id": "cost-tracking__02",
+    "page": "cost-tracking.md",
+    "line": 154,
+    "lang": "typescript",
+    "title": null,
+    "lines": 32,
+    "importsSdk": true,
+    "complete": true,
+    "errors": [],
+    "status": "pass"
+  },
+  {
+    "id": "cost-tracking__03",
+    "page": "cost-tracking.md",
+    "line": 197,
+    "lang": "typescript",
+    "title": null,
+    "lines": 20,
+    "importsSdk": true,
+    "complete": true,
+    "errors": [],
+    "status": "pass"
+  },
+  {
+    "id": "cost-tracking__04",
+    "page": "cost-tracking.md",
+    "line": 233,
+    "lang": "typescript",
+    "title": "TypeScript",
+    "lines": 28,
+    "importsSdk": true,
+    "complete": true,
+    "errors": [],
+    "status": "pass"
+  },
+  {
+    "id": "cost-tracking__05",
+    "page": "cost-tracking.md",
+    "line": 368,
+    "lang": "typescript",
+    "title": "TypeScript",
+    "lines": 13,
+    "importsSdk": true,
+    "complete": true,
+    "errors": [],
+    "status": "pass"
+  },
+  {
+    "id": "custom-tools__01",
+    "page": "custom-tools.md",
+    "line": 110,
+    "lang": "typescript",
+    "title": "TypeScript",
+    "lines": 31,
+    "importsSdk": true,
+    "complete": true,
+    "errors": [],
+    "status": "pass"
+  },
+  {
+    "id": "custom-tools__02",
+    "page": "custom-tools.md",
+    "line": 187,
+    "lang": "typescript",
+    "title": "TypeScript",
+    "lines": 14,
+    "importsSdk": true,
+    "complete": true,
+    "errors": [
+      {
+        "line": 6,
+        "code": 2304,
+        "kind": "context",
+        "message": "Cannot find name 'weatherServer'."
+      }
+    ],
+    "status": "fragment"
+  },
+  {
+    "id": "custom-tools__03",
+    "page": "custom-tools.md",
+    "line": 289,
+    "lang": "typescript",
+    "title": "TypeScript",
+    "lines": 35,
+    "importsSdk": false,
+    "complete": false,
+    "errors": [
+      {
+        "line": 2,
+        "code": 2304,
+        "kind": "context",
+        "message": "Cannot find name 'tool'."
+      },
+      {
+        "line": 6,
+        "code": 2304,
+        "kind": "context",
+        "message": "Cannot find name 'z'."
+      },
+      {
+        "line": 7,
+        "code": 2304,
+        "kind": "context",
+        "message": "Cannot find name 'z'."
+      },
+      {
+        "line": 8,
+        "code": 2304,
+        "kind": "context",
+        "message": "Cannot find name 'z'."
+      },
+      {
+        "line": 16,
+        "code": 7006,
+        "kind": "context",
+        "message": "Parameter 'args' implicitly has an 'any' type."
+      },
+      {
+        "line": 31,
+        "code": 2304,
+        "kind": "context",
+        "message": "Cannot find name 'createSdkMcpServer'."
+      },
+      {
+        "line": 34,
+        "code": 2304,
+        "kind": "context",
+        "message": "Cannot find name 'getTemperature'."
+      }
+    ],
+    "status": "fragment"
+  },
+  {
+    "id": "custom-tools__04",
+    "page": "custom-tools.md",
+    "line": 360,
+    "lang": "typescript",
+    "title": "TypeScript",
+    "lines": 10,
+    "importsSdk": true,
+    "complete": true,
+    "errors": [],
+    "status": "pass"
+  },
+  {
+    "id": "custom-tools__05",
+    "page": "custom-tools.md",
+    "line": 401,
+    "lang": "typescript",
+    "title": "TypeScript",
+    "lines": 14,
+    "importsSdk": false,
+    "complete": false,
+    "errors": [
+      {
+        "line": 4,
+        "code": 1128,
+        "kind": "syntax",
+        "message": "Declaration or statement expected."
+      },
+      {
+        "line": 5,
+        "code": 1005,
+        "kind": "syntax",
+        "message": "';' expected."
+      },
+      {
+        "line": 7,
+        "code": 1128,
+        "kind": "syntax",
+        "message": "Declaration or statement expected."
+      },
+      {
+        "line": 9,
+        "code": 1005,
+        "kind": "syntax",
+        "message": "';' expected."
+      },
+      {
+        "line": 10,
+        "code": 1005,
+        "kind": "syntax",
+        "message": "';' expected."
+      }
+    ],
+    "status": "syntax"
+  },
+  {
+    "id": "custom-tools__06",
+    "page": "custom-tools.md",
+    "line": 475,
+    "lang": "typescript",
+    "title": "TypeScript",
+    "lines": 51,
+    "importsSdk": true,
+    "complete": true,
+    "errors": [],
+    "status": "pass"
+  },
+  {
+    "id": "custom-tools__07",
+    "page": "custom-tools.md",
+    "line": 572,
+    "lang": "typescript",
+    "title": "TypeScript",
+    "lines": 25,
+    "importsSdk": true,
+    "complete": true,
+    "errors": [],
+    "status": "pass"
+  },
+  {
+    "id": "custom-tools__08",
+    "page": "custom-tools.md",
+    "line": 614,
+    "lang": "typescript",
+    "title": "TypeScript",
+    "lines": 12,
+    "importsSdk": false,
+    "complete": false,
+    "errors": [
+      {
+        "line": 1,
+        "code": 1108,
+        "kind": "syntax",
+        "message": "A 'return' statement can only be used within a function body."
+      }
+    ],
+    "status": "syntax"
+  },
+  {
+    "id": "custom-tools__09",
+    "page": "custom-tools.md",
+    "line": 652,
+    "lang": "typescript",
+    "title": "TypeScript",
+    "lines": 14,
+    "importsSdk": false,
+    "complete": false,
+    "errors": [
+      {
+        "line": 1,
+        "code": 1108,
+        "kind": "syntax",
+        "message": "A 'return' statement can only be used within a function body."
+      }
+    ],
+    "status": "syntax"
+  },
+  {
+    "id": "custom-tools__10",
+    "page": "custom-tools.md",
+    "line": 764,
+    "lang": "typescript",
+    "title": "TypeScript",
+    "lines": 70,
+    "importsSdk": true,
+    "complete": true,
+    "errors": [],
+    "status": "pass"
+  },
+  {
+    "id": "custom-tools__11",
+    "page": "custom-tools.md",
+    "line": 883,
+    "lang": "typescript",
+    "title": "TypeScript",
+    "lines": 34,
+    "importsSdk": true,
+    "complete": true,
+    "errors": [
+      {
+        "line": 14,
+        "code": 2304,
+        "kind": "context",
+        "message": "Cannot find name 'converterServer'."
+      }
+    ],
+    "status": "fragment"
+  },
+  {
+    "id": "file-checkpointing__01",
+    "page": "file-checkpointing.md",
+    "line": 84,
+    "lang": "typescript",
+    "title": "TypeScript",
+    "lines": 52,
+    "importsSdk": true,
+    "complete": true,
+    "errors": [],
+    "status": "pass"
+  },
+  {
+    "id": "file-checkpointing__02",
+    "page": "file-checkpointing.md",
+    "line": 219,
+    "lang": "typescript",
+    "title": "TypeScript",
+    "lines": 32,
+    "importsSdk": true,
+    "complete": true,
+    "errors": [
+      {
+        "line": 24,
+        "code": 2304,
+        "kind": "context",
+        "message": "Cannot find name 'yourRevertCondition'."
+      }
+    ],
+    "status": "fragment"
+  },
+  {
+    "id": "file-checkpointing__03",
+    "page": "file-checkpointing.md",
+    "line": 326,
+    "lang": "typescript",
+    "title": "TypeScript",
+    "lines": 62,
+    "importsSdk": true,
+    "complete": true,
+    "errors": [],
+    "status": "pass"
+  },
+  {
+    "id": "file-checkpointing__04",
+    "page": "file-checkpointing.md",
+    "line": 420,
+    "lang": "typescript",
+    "title": "utils.ts",
+    "lines": 18,
+    "importsSdk": false,
+    "complete": false,
+    "errors": [],
+    "status": "pass"
+  },
+  {
+    "id": "file-checkpointing__05",
+    "page": "file-checkpointing.md",
+    "line": 511,
+    "lang": "typescript",
+    "title": "try_checkpointing.ts",
+    "lines": 78,
+    "importsSdk": true,
+    "complete": true,
+    "errors": [],
+    "status": "pass"
+  },
+  {
+    "id": "hooks__01",
+    "page": "hooks.md",
+    "line": 94,
+    "lang": "typescript",
+    "title": "TypeScript",
+    "lines": 42,
+    "importsSdk": true,
+    "complete": true,
+    "errors": [],
+    "status": "pass"
+  },
+  {
+    "id": "hooks__02",
+    "page": "hooks.md",
+    "line": 200,
+    "lang": "typescript",
+    "title": "TypeScript",
+    "lines": 10,
+    "importsSdk": false,
+    "complete": false,
+    "errors": [
+      {
+        "line": 1,
+        "code": 2304,
+        "kind": "context",
+        "message": "Cannot find name 'query'."
+      },
+      {
+        "line": 5,
+        "code": 2304,
+        "kind": "context",
+        "message": "Cannot find name 'myCallback'."
+      }
+    ],
+    "status": "fragment"
+  },
+  {
+    "id": "hooks__03",
+    "page": "hooks.md",
+    "line": 272,
+    "lang": "typescript",
+    "title": "TypeScript",
+    "lines": 5,
+    "importsSdk": false,
+    "complete": false,
+    "errors": [
+      {
+        "line": 1,
+        "code": 2304,
+        "kind": "context",
+        "message": "Cannot find name 'HookCallback'."
+      },
+      {
+        "line": 1,
+        "code": 7006,
+        "kind": "context",
+        "message": "Parameter 'input' implicitly has an 'any' type."
+      },
+      {
+        "line": 1,
+        "code": 7006,
+        "kind": "context",
+        "message": "Parameter 'toolUseID' implicitly has an 'any' type."
+      },
+      {
+        "line": 1,
+        "code": 7031,
+        "kind": "context",
+        "message": "Binding element 'signal' implicitly has an 'any' type."
+      },
+      {
+        "line": 3,
+        "code": 2304,
+        "kind": "context",
+        "message": "Cannot find name 'sendToLoggingService'."
+      }
+    ],
+    "status": "fragment"
+  },
+  {
+    "id": "hooks__04",
+    "page": "hooks.md",
+    "line": 305,
+    "lang": "typescript",
+    "title": "TypeScript",
+    "lines": 7,
+    "importsSdk": true,
+    "complete": false,
+    "errors": [
+      {
+        "line": 5,
+        "code": 2304,
+        "kind": "context",
+        "message": "Cannot find name 'checkPolicy'."
+      }
+    ],
+    "status": "fragment"
+  },
+  {
+    "id": "hooks__05",
+    "page": "hooks.md",
+    "line": 364,
+    "lang": "typescript",
+    "title": "TypeScript",
+    "lines": 20,
+    "importsSdk": false,
+    "complete": false,
+    "errors": [
+      {
+        "line": 1,
+        "code": 2304,
+        "kind": "context",
+        "message": "Cannot find name 'HookCallback'."
+      },
+      {
+        "line": 1,
+        "code": 7006,
+        "kind": "context",
+        "message": "Parameter 'input' implicitly has an 'any' type."
+      },
+      {
+        "line": 1,
+        "code": 7006,
+        "kind": "context",
+        "message": "Parameter 'toolUseID' implicitly has an 'any' type."
+      },
+      {
+        "line": 1,
+        "code": 7031,
+        "kind": "context",
+        "message": "Binding element 'signal' implicitly has an 'any' type."
+      },
+      {
+        "line": 4,
+        "code": 2304,
+        "kind": "context",
+        "message": "Cannot find name 'PreToolUseHookInput'."
+      }
+    ],
+    "status": "fragment"
+  },
+  {
+    "id": "hooks__06",
+    "page": "hooks.md",
+    "line": 419,
+    "lang": "typescript",
+    "title": "TypeScript",
+    "lines": 19,
+    "importsSdk": false,
+    "complete": false,
+    "errors": [
+      {
+        "line": 1,
+        "code": 2304,
+        "kind": "context",
+        "message": "Cannot find name 'HookCallback'."
+      },
+      {
+        "line": 1,
+        "code": 7006,
+        "kind": "context",
+        "message": "Parameter 'input' implicitly has an 'any' type."
+      },
+      {
+        "line": 1,
+        "code": 7006,
+        "kind": "context",
+        "message": "Parameter 'toolUseID' implicitly has an 'any' type."
+      },
+      {
+        "line": 1,
+        "code": 7031,
+        "kind": "context",
+        "message": "Binding element 'signal' implicitly has an 'any' type."
+      },
+      {
+        "line": 2,
+        "code": 2304,
+        "kind": "context",
+        "message": "Cannot find name 'PreToolUseHookInput'."
+      }
+    ],
+    "status": "fragment"
+  },
+  {
+    "id": "hooks__07",
+    "page": "hooks.md",
+    "line": 464,
+    "lang": "typescript",
+    "title": "TypeScript",
+    "lines": 16,
+    "importsSdk": false,
+    "complete": false,
+    "errors": [
+      {
+        "line": 1,
+        "code": 2304,
+        "kind": "context",
+        "message": "Cannot find name 'HookCallback'."
+      },
+      {
+        "line": 1,
+        "code": 7006,
+        "kind": "context",
+        "message": "Parameter 'input' implicitly has an 'any' type."
+      },
+      {
+        "line": 1,
+        "code": 7006,
+        "kind": "context",
+        "message": "Parameter 'toolUseID' implicitly has an 'any' type."
+      },
+      {
+        "line": 1,
+        "code": 7031,
+        "kind": "context",
+        "message": "Binding element 'signal' implicitly has an 'any' type."
+      },
+      {
+        "line": 4,
+        "code": 2304,
+        "kind": "context",
+        "message": "Cannot find name 'PreToolUseHookInput'."
+      }
+    ],
+    "status": "fragment"
+  },
+  {
+    "id": "hooks__08",
+    "page": "hooks.md",
+    "line": 501,
+    "lang": "typescript",
+    "title": "TypeScript",
+    "lines": 9,
+    "importsSdk": false,
+    "complete": false,
+    "errors": [
+      {
+        "line": 4,
+        "code": 2304,
+        "kind": "context",
+        "message": "Cannot find name 'authorizationCheck'."
+      },
+      {
+        "line": 5,
+        "code": 2304,
+        "kind": "context",
+        "message": "Cannot find name 'inputValidator'."
+      },
+      {
+        "line": 6,
+        "code": 2304,
+        "kind": "context",
+        "message": "Cannot find name 'auditLogger'."
+      }
+    ],
+    "status": "fragment"
+  },
+  {
+    "id": "hooks__09",
+    "page": "hooks.md",
+    "line": 536,
+    "lang": "typescript",
+    "title": "TypeScript",
+    "lines": 14,
+    "importsSdk": false,
+    "complete": false,
+    "errors": [
+      {
+        "line": 5,
+        "code": 2304,
+        "kind": "context",
+        "message": "Cannot find name 'fileSecurityHook'."
+      },
+      {
+        "line": 8,
+        "code": 2304,
+        "kind": "context",
+        "message": "Cannot find name 'mcpAuditHook'."
+      },
+      {
+        "line": 11,
+        "code": 2304,
+        "kind": "context",
+        "message": "Cannot find name 'globalLogger'."
+      }
+    ],
+    "status": "fragment"
+  },
+  {
+    "id": "hooks__10",
+    "page": "hooks.md",
+    "line": 572,
+    "lang": "typescript",
+    "title": "TypeScript",
+    "lines": 19,
+    "importsSdk": true,
+    "complete": false,
+    "errors": [],
+    "status": "pass"
+  },
+  {
+    "id": "hooks__11",
+    "page": "hooks.md",
+    "line": 641,
+    "lang": "typescript",
+    "title": "TypeScript",
+    "lines": 39,
+    "importsSdk": true,
+    "complete": true,
+    "errors": [],
+    "status": "pass"
+  },
+  {
+    "id": "hooks__12",
+    "page": "hooks.md",
+    "line": 747,
+    "lang": "typescript",
+    "title": "TypeScript",
+    "lines": 41,
+    "importsSdk": true,
+    "complete": true,
+    "errors": [],
+    "status": "pass"
+  },
+  {
+    "id": "hooks__13",
+    "page": "hooks.md",
+    "line": 807,
+    "lang": "typescript",
+    "title": null,
+    "lines": 8,
+    "importsSdk": false,
+    "complete": false,
+    "errors": [
+      {
+        "line": 1,
+        "code": 2304,
+        "kind": "context",
+        "message": "Cannot find name 'HookCallback'."
+      },
+      {
+        "line": 1,
+        "code": 7006,
+        "kind": "context",
+        "message": "Parameter 'input' implicitly has an 'any' type."
+      },
+      {
+        "line": 1,
+        "code": 7006,
+        "kind": "context",
+        "message": "Parameter 'toolUseID' implicitly has an 'any' type."
+      },
+      {
+        "line": 1,
+        "code": 7031,
+        "kind": "context",
+        "message": "Binding element 'signal' implicitly has an 'any' type."
+      },
+      {
+        "line": 2,
+        "code": 2304,
+        "kind": "context",
+        "message": "Cannot find name 'PreToolUseHookInput'."
+      }
+    ],
+    "status": "fragment"
+  },
+  {
+    "id": "hooks__14",
+    "page": "hooks.md",
+    "line": 850,
+    "lang": "typescript",
+    "title": null,
+    "lines": 7,
+    "importsSdk": false,
+    "complete": false,
+    "errors": [
+      {
+        "line": 1,
+        "code": 1108,
+        "kind": "syntax",
+        "message": "A 'return' statement can only be used within a function body."
+      }
+    ],
+    "status": "syntax"
+  },
+  {
+    "id": "hooks__15",
+    "page": "hooks.md",
+    "line": 874,
+    "lang": "typescript",
+    "title": "TypeScript",
+    "lines": 3,
+    "importsSdk": false,
+    "complete": false,
+    "errors": [],
+    "status": "pass"
+  },
+  {
+    "id": "hosting__01",
+    "page": "hosting.md",
+    "line": 25,
+    "lang": "typescript",
+    "title": "TypeScript",
+    "lines": 8,
+    "importsSdk": true,
+    "complete": true,
+    "errors": [],
+    "status": "pass"
+  },
+  {
+    "id": "hosting__02",
+    "page": "hosting.md",
+    "line": 81,
+    "lang": "typescript",
+    "title": "TypeScript",
+    "lines": 6,
+    "importsSdk": true,
+    "complete": true,
+    "errors": [],
+    "status": "pass"
+  },
+  {
+    "id": "hosting__03",
+    "page": "hosting.md",
+    "line": 133,
+    "lang": "typescript",
+    "title": "TypeScript",
+    "lines": 12,
+    "importsSdk": true,
+    "complete": true,
+    "errors": [],
+    "status": "pass"
+  },
+  {
+    "id": "hosting__04",
+    "page": "hosting.md",
+    "line": 284,
+    "lang": "typescript",
+    "title": "TypeScript",
+    "lines": 20,
+    "importsSdk": true,
+    "complete": true,
+    "errors": [],
+    "status": "pass"
+  },
+  {
+    "id": "mcp__01",
+    "page": "mcp.md",
+    "line": 23,
+    "lang": "typescript",
+    "title": "TypeScript",
+    "lines": 18,
+    "importsSdk": true,
+    "complete": true,
+    "errors": [],
+    "status": "pass"
+  },
+  {
+    "id": "mcp__02",
+    "page": "mcp.md",
+    "line": 81,
+    "lang": "typescript",
+    "title": "TypeScript",
+    "lines": 18,
+    "importsSdk": true,
+    "complete": true,
+    "errors": [],
+    "status": "pass"
+  },
+  {
+    "id": "mcp__03",
+    "page": "mcp.md",
+    "line": 212,
+    "lang": "typescript",
+    "title": "TypeScript hidelines={1,-1}",
+    "lines": 12,
+    "importsSdk": false,
+    "complete": false,
+    "errors": [],
+    "status": "pass"
+  },
+  {
+    "id": "mcp__04",
+    "page": "mcp.md",
+    "line": 254,
+    "lang": "typescript",
+    "title": "TypeScript",
+    "lines": 14,
+    "importsSdk": true,
+    "complete": true,
+    "errors": [],
+    "status": "pass"
+  },
+  {
+    "id": "mcp__05",
+    "page": "mcp.md",
+    "line": 305,
+    "lang": "typescript",
+    "title": "TypeScript hidelines={1,-1}",
+    "lines": 11,
+    "importsSdk": false,
+    "complete": false,
+    "errors": [],
+    "status": "pass"
+  },
+  {
+    "id": "mcp__06",
+    "page": "mcp.md",
+    "line": 339,
+    "lang": "typescript",
+    "title": "TypeScript hidelines={1,-1}",
+    "lines": 14,
+    "importsSdk": false,
+    "complete": false,
+    "errors": [],
+    "status": "pass"
+  },
+  {
+    "id": "mcp__07",
+    "page": "mcp.md",
+    "line": 508,
+    "lang": "typescript",
+    "title": "TypeScript",
+    "lines": 16,
+    "importsSdk": false,
+    "complete": false,
+    "errors": [
+      {
+        "line": 3,
+        "code": 2304,
+        "kind": "context",
+        "message": "Cannot find name 'getAccessTokenFromOAuthFlow'."
+      }
+    ],
+    "status": "fragment"
+  },
+  {
+    "id": "mcp__08",
+    "page": "mcp.md",
+    "line": 556,
+    "lang": "typescript",
+    "title": "TypeScript",
+    "lines": 36,
+    "importsSdk": true,
+    "complete": true,
+    "errors": [],
+    "status": "pass"
+  },
+  {
+    "id": "mcp__09",
+    "page": "mcp.md",
+    "line": 666,
+    "lang": "typescript",
+    "title": "TypeScript",
+    "lines": 20,
+    "importsSdk": true,
+    "complete": true,
+    "errors": [],
+    "status": "pass"
+  },
+  {
+    "id": "mcp__10",
+    "page": "mcp.md",
+    "line": 737,
+    "lang": "typescript",
+    "title": "TypeScript",
+    "lines": 35,
+    "importsSdk": true,
+    "complete": true,
+    "errors": [
+      {
+        "line": 9,
+        "code": 2304,
+        "kind": "context",
+        "message": "Cannot find name 'dataServer'."
+      }
+    ],
+    "status": "fragment"
+  },
+  {
+    "id": "mcp__11",
+    "page": "mcp.md",
+    "line": 824,
+    "lang": "typescript",
+    "title": "TypeScript",
+    "lines": 7,
+    "importsSdk": false,
+    "complete": false,
+    "errors": [
+      {
+        "line": 1,
+        "code": 2552,
+        "kind": "context",
+        "message": "Cannot find name 'message'. Did you mean 'onmessage'?"
+      },
+      {
+        "line": 1,
+        "code": 2552,
+        "kind": "context",
+        "message": "Cannot find name 'message'. Did you mean 'onmessage'?"
+      },
+      {
+        "line": 2,
+        "code": 2552,
+        "kind": "context",
+        "message": "Cannot find name 'message'. Did you mean 'onmessage'?"
+      }
+    ],
+    "status": "fragment"
+  },
+  {
+    "id": "mcp__12",
+    "page": "mcp.md",
+    "line": 854,
+    "lang": "typescript",
+    "title": "TypeScript hidelines={1,-1}",
+    "lines": 8,
+    "importsSdk": false,
+    "complete": false,
+    "errors": [],
+    "status": "pass"
+  },
+  {
+    "id": "migration-guide__01",
+    "page": "migration-guide.md",
+    "line": 45,
+    "lang": "typescript",
+    "title": null,
+    "lines": 5,
+    "importsSdk": true,
+    "complete": false,
+    "errors": [
+      {
+        "line": 2,
+        "code": 2300,
+        "kind": "context",
+        "message": "Duplicate identifier 'query'."
+      },
+      {
+        "line": 2,
+        "code": 2300,
+        "kind": "context",
+        "message": "Duplicate identifier 'tool'."
+      },
+      {
+        "line": 2,
+        "code": 2300,
+        "kind": "context",
+        "message": "Duplicate identifier 'createSdkMcpServer'."
+      },
+      {
+        "line": 2,
+        "code": 2307,
+        "kind": "context",
+        "message": "Cannot find module '@anthropic-ai/claude-code' or its corresponding type declarations."
+      },
+      {
+        "line": 5,
+        "code": 2300,
+        "kind": "context",
+        "message": "Duplicate identifier 'query'."
+      },
+      {
+        "line": 5,
+        "code": 2300,
+        "kind": "context",
+        "message": "Duplicate identifier 'tool'."
+      },
+      {
+        "line": 5,
+        "code": 2300,
+        "kind": "context",
+        "message": "Duplicate identifier 'createSdkMcpServer'."
+      }
+    ],
+    "status": "fragment"
+  },
+  {
+    "id": "migration-guide__02",
+    "page": "migration-guide.md",
+    "line": 125,
+    "lang": "typescript",
+    "title": "TypeScript",
+    "lines": 21,
+    "importsSdk": true,
+    "complete": true,
+    "errors": [],
+    "status": "pass"
+  },
+  {
+    "id": "modifying-system-prompts__01",
+    "page": "modifying-system-prompts.md",
+    "line": 55,
+    "lang": "typescript",
+    "title": "TypeScript",
+    "lines": 18,
+    "importsSdk": true,
+    "complete": true,
+    "errors": [],
+    "status": "pass"
+  },
+  {
+    "id": "modifying-system-prompts__02",
+    "page": "modifying-system-prompts.md",
+    "line": 143,
+    "lang": "typescript",
+    "title": null,
+    "lines": 1,
+    "importsSdk": false,
+    "complete": false,
+    "errors": [],
+    "status": "pass"
+  },
+  {
+    "id": "modifying-system-prompts__03",
+    "page": "modifying-system-prompts.md",
+    "line": 155,
+    "lang": "typescript",
+    "title": "TypeScript",
+    "lines": 19,
+    "importsSdk": true,
+    "complete": true,
+    "errors": [],
+    "status": "pass"
+  },
+  {
+    "id": "modifying-system-prompts__04",
+    "page": "modifying-system-prompts.md",
+    "line": 218,
+    "lang": "typescript",
+    "title": "TypeScript",
+    "lines": 15,
+    "importsSdk": true,
+    "complete": true,
+    "errors": [],
+    "status": "pass"
+  },
+  {
+    "id": "modifying-system-prompts__05",
+    "page": "modifying-system-prompts.md",
+    "line": 268,
+    "lang": "typescript",
+    "title": "TypeScript",
+    "lines": 23,
+    "importsSdk": true,
+    "complete": true,
+    "errors": [],
+    "status": "pass"
+  },
+  {
+    "id": "modifying-system-prompts__06",
+    "page": "modifying-system-prompts.md",
+    "line": 335,
+    "lang": "typescript",
+    "title": "TypeScript",
+    "lines": 16,
+    "importsSdk": true,
+    "complete": true,
+    "errors": [],
+    "status": "pass"
+  },
+  {
+    "id": "modifying-system-prompts__07",
+    "page": "modifying-system-prompts.md",
+    "line": 435,
+    "lang": "typescript",
+    "title": "TypeScript",
+    "lines": 19,
+    "importsSdk": true,
+    "complete": true,
+    "errors": [],
+    "status": "pass"
+  },
+  {
+    "id": "modifying-system-prompts__08",
+    "page": "modifying-system-prompts.md",
+    "line": 517,
+    "lang": "typescript",
+    "title": "TypeScript",
+    "lines": 23,
+    "importsSdk": true,
+    "complete": true,
+    "errors": [],
+    "status": "pass"
+  },
+  {
+    "id": "observability__01",
+    "page": "observability.md",
+    "line": 81,
+    "lang": "typescript",
+    "title": "TypeScript",
+    "lines": 24,
+    "importsSdk": true,
+    "complete": true,
+    "errors": [],
+    "status": "pass"
+  },
+  {
+    "id": "observability__02",
+    "page": "observability.md",
+    "line": 134,
+    "lang": "typescript",
+    "title": "TypeScript",
+    "lines": 6,
+    "importsSdk": false,
+    "complete": false,
+    "errors": [],
+    "status": "pass"
+  },
+  {
+    "id": "observability__03",
+    "page": "observability.md",
+    "line": 188,
+    "lang": "typescript",
+    "title": "TypeScript",
+    "lines": 9,
+    "importsSdk": false,
+    "complete": false,
+    "errors": [],
+    "status": "pass"
+  },
+  {
+    "id": "observability__04",
+    "page": "observability.md",
+    "line": 218,
+    "lang": "typescript",
+    "title": "TypeScript",
+    "lines": 8,
+    "importsSdk": false,
+    "complete": false,
+    "errors": [
+      {
+        "line": 6,
+        "code": 2552,
+        "kind": "context",
+        "message": "Cannot find name 'request'. Did you mean 'Request'?"
+      },
+      {
+        "line": 6,
+        "code": 2552,
+        "kind": "context",
+        "message": "Cannot find name 'request'. Did you mean 'Request'?"
+      }
+    ],
+    "status": "fragment"
+  },
+  {
+    "id": "permissions__01",
+    "page": "permissions.md",
+    "line": 114,
+    "lang": "typescript",
+    "title": null,
+    "lines": 4,
+    "importsSdk": false,
+    "complete": false,
+    "errors": [],
+    "status": "pass"
+  },
+  {
+    "id": "plugins__01",
+    "page": "plugins.md",
+    "line": 26,
+    "lang": "typescript",
+    "title": "TypeScript",
+    "lines": 13,
+    "importsSdk": true,
+    "complete": true,
+    "errors": [],
+    "status": "pass"
+  },
+  {
+    "id": "plugins__02",
+    "page": "plugins.md",
+    "line": 85,
+    "lang": "typescript",
+    "title": null,
+    "lines": 5,
+    "importsSdk": false,
+    "complete": false,
+    "errors": [
+      {
+        "line": 1,
+        "code": 2304,
+        "kind": "context",
+        "message": "Cannot find name 'q'."
+      },
+      {
+        "line": 5,
+        "code": 7006,
+        "kind": "context",
+        "message": "Parameter 'plugin' implicitly has an 'any' type."
+      }
+    ],
+    "status": "fragment"
+  },
+  {
+    "id": "plugins__03",
+    "page": "plugins.md",
+    "line": 99,
+    "lang": "typescript",
+    "title": "TypeScript",
+    "lines": 22,
+    "importsSdk": true,
+    "complete": true,
+    "errors": [],
+    "status": "pass"
+  },
+  {
+    "id": "plugins__04",
+    "page": "plugins.md",
+    "line": 157,
+    "lang": "typescript",
+    "title": "TypeScript",
+    "lines": 14,
+    "importsSdk": true,
+    "complete": true,
+    "errors": [],
+    "status": "pass"
+  },
+  {
+    "id": "plugins__05",
+    "page": "plugins.md",
+    "line": 205,
+    "lang": "typescript",
+    "title": "TypeScript",
+    "lines": 28,
+    "importsSdk": true,
+    "complete": true,
+    "errors": [],
+    "status": "pass"
+  },
+  {
+    "id": "plugins__06",
+    "page": "plugins.md",
+    "line": 309,
+    "lang": "typescript",
+    "title": null,
+    "lines": 10,
+    "importsSdk": false,
+    "complete": false,
+    "errors": [],
+    "status": "pass"
+  },
+  {
+    "id": "quickstart__01",
+    "page": "quickstart.md",
+    "line": 183,
+    "lang": "typescript",
+    "title": "TypeScript",
+    "lines": 23,
+    "importsSdk": true,
+    "complete": true,
+    "errors": [],
+    "status": "pass"
+  },
+  {
+    "id": "quickstart__02",
+    "page": "quickstart.md",
+    "line": 285,
+    "lang": "typescript",
+    "title": "TypeScript hidelines={1,-1}",
+    "lines": 6,
+    "importsSdk": false,
+    "complete": false,
+    "errors": [],
+    "status": "pass"
+  },
+  {
+    "id": "quickstart__03",
+    "page": "quickstart.md",
+    "line": 304,
+    "lang": "typescript",
+    "title": "TypeScript hidelines={1,-1}",
+    "lines": 7,
+    "importsSdk": false,
+    "complete": false,
+    "errors": [],
+    "status": "pass"
+  },
+  {
+    "id": "quickstart__04",
+    "page": "quickstart.md",
+    "line": 322,
+    "lang": "typescript",
+    "title": "TypeScript hidelines={1,-1}",
+    "lines": 6,
+    "importsSdk": false,
+    "complete": false,
+    "errors": [],
+    "status": "pass"
+  },
+  {
+    "id": "session-storage__01",
+    "page": "session-storage.md",
+    "line": 23,
+    "lang": "typescript",
+    "title": "TypeScript",
+    "lines": 31,
+    "importsSdk": false,
+    "complete": false,
+    "errors": [
+      {
+        "line": 12,
+        "code": 2552,
+        "kind": "context",
+        "message": "Cannot find name 'SessionStoreEntry'. Did you mean 'SessionStore'?"
+      },
+      {
+        "line": 13,
+        "code": 2552,
+        "kind": "context",
+        "message": "Cannot find name 'SessionStoreEntry'. Did you mean 'SessionStore'?"
+      }
+    ],
+    "status": "fragment"
+  },
+  {
+    "id": "session-storage__02",
+    "page": "session-storage.md",
+    "line": 114,
+    "lang": "typescript",
+    "title": "TypeScript",
+    "lines": 30,
+    "importsSdk": true,
+    "complete": true,
+    "errors": [],
+    "status": "pass"
+  },
+  {
+    "id": "session-storage__03",
+    "page": "session-storage.md",
+    "line": 206,
+    "lang": "typescript",
+    "title": "TypeScript",
+    "lines": 26,
+    "importsSdk": true,
+    "complete": true,
+    "errors": [
+      {
+        "line": 2,
+        "code": 2307,
+        "kind": "context",
+        "message": "Cannot find module '@aws-sdk/client-s3' or its corresponding type declarations."
+      },
+      {
+        "line": 3,
+        "code": 2307,
+        "kind": "context",
+        "message": "Cannot find module './S3SessionStore' or its corresponding type declarations."
+      }
+    ],
+    "status": "fragment"
+  },
+  {
+    "id": "sessions__01",
+    "page": "sessions.md",
+    "line": 111,
+    "lang": "typescript",
+    "title": "TypeScript",
+    "lines": 30,
+    "importsSdk": true,
+    "complete": true,
+    "errors": [],
+    "status": "pass"
+  },
+  {
+    "id": "sessions__02",
+    "page": "sessions.md",
+    "line": 186,
+    "lang": "typescript",
+    "title": "TypeScript",
+    "lines": 24,
+    "importsSdk": true,
+    "complete": true,
+    "errors": [],
+    "status": "pass"
+  },
+  {
+    "id": "sessions__03",
+    "page": "sessions.md",
+    "line": 248,
+    "lang": "typescript",
+    "title": "TypeScript",
+    "lines": 16,
+    "importsSdk": true,
+    "complete": true,
+    "errors": [],
+    "status": "pass"
+  },
+  {
+    "id": "sessions__04",
+    "page": "sessions.md",
+    "line": 343,
+    "lang": "typescript",
+    "title": "TypeScript",
+    "lines": 46,
+    "importsSdk": true,
+    "complete": true,
+    "errors": [],
+    "status": "pass"
+  },
+  {
+    "id": "skills__01",
+    "page": "skills.md",
+    "line": 42,
+    "lang": "typescript",
+    "title": "TypeScript",
+    "lines": 1,
+    "importsSdk": false,
+    "complete": false,
+    "errors": [],
+    "status": "pass"
+  },
+  {
+    "id": "skills__02",
+    "page": "skills.md",
+    "line": 78,
+    "lang": "typescript",
+    "title": "TypeScript",
+    "lines": 13,
+    "importsSdk": true,
+    "complete": true,
+    "errors": [],
+    "status": "pass"
+  },
+  {
+    "id": "skills__03",
+    "page": "skills.md",
+    "line": 129,
+    "lang": "typescript",
+    "title": "TypeScript",
+    "lines": 10,
+    "importsSdk": true,
+    "complete": true,
+    "errors": [],
+    "status": "pass"
+  },
+  {
+    "id": "skills__04",
+    "page": "skills.md",
+    "line": 183,
+    "lang": "typescript",
+    "title": "TypeScript",
+    "lines": 33,
+    "importsSdk": true,
+    "complete": true,
+    "errors": [],
+    "status": "pass"
+  },
+  {
+    "id": "skills__05",
+    "page": "skills.md",
+    "line": 305,
+    "lang": "typescript",
+    "title": "TypeScript",
+    "lines": 10,
+    "importsSdk": true,
+    "complete": true,
+    "errors": [],
+    "status": "pass"
+  },
+  {
+    "id": "skills__06",
+    "page": "skills.md",
+    "line": 377,
+    "lang": "typescript",
+    "title": "TypeScript",
+    "lines": 12,
+    "importsSdk": true,
+    "complete": true,
+    "errors": [],
+    "status": "pass"
+  },
+  {
+    "id": "skills__07",
+    "page": "skills.md",
+    "line": 413,
+    "lang": "typescript",
+    "title": "TypeScript",
+    "lines": 11,
+    "importsSdk": false,
+    "complete": false,
+    "errors": [],
+    "status": "pass"
+  },
+  {
+    "id": "skills__08",
+    "page": "skills.md",
+    "line": 440,
+    "lang": "typescript",
+    "title": "TypeScript",
+    "lines": 6,
+    "importsSdk": false,
+    "complete": false,
+    "errors": [],
+    "status": "pass"
+  },
+  {
+    "id": "streaming-output__01",
+    "page": "streaming-output.md",
+    "line": 56,
+    "lang": "typescript",
+    "title": "TypeScript",
+    "lines": 18,
+    "importsSdk": true,
+    "complete": true,
+    "errors": [],
+    "status": "pass"
+  },
+  {
+    "id": "streaming-output__02",
+    "page": "streaming-output.md",
+    "line": 188,
+    "lang": "typescript",
+    "title": "TypeScript",
+    "lines": 39,
+    "importsSdk": true,
+    "complete": true,
+    "errors": [],
+    "status": "pass"
+  },
+  {
+    "id": "streaming-output__03",
+    "page": "streaming-output.md",
+    "line": 286,
+    "lang": "typescript",
+    "title": "TypeScript",
+    "lines": 38,
+    "importsSdk": true,
+    "complete": true,
+    "errors": [],
+    "status": "pass"
+  },
+  {
+    "id": "streaming-vs-single-mode__01",
+    "page": "streaming-vs-single-mode.md",
+    "line": 41,
+    "lang": "typescript",
+    "title": "TypeScript",
+    "lines": 57,
+    "importsSdk": true,
+    "complete": true,
+    "errors": [],
+    "status": "pass"
+  },
+  {
+    "id": "streaming-vs-single-mode__02",
+    "page": "streaming-vs-single-mode.md",
+    "line": 168,
+    "lang": "typescript",
+    "title": null,
+    "lines": 31,
+    "importsSdk": true,
+    "complete": false,
+    "errors": [],
+    "status": "pass"
+  },
+  {
+    "id": "streaming-vs-single-mode__03",
+    "page": "streaming-vs-single-mode.md",
+    "line": 231,
+    "lang": "typescript",
+    "title": "TypeScript",
+    "lines": 52,
+    "importsSdk": true,
+    "complete": true,
+    "errors": [],
+    "status": "pass"
+  },
+  {
+    "id": "structured-outputs__01",
+    "page": "structured-outputs.md",
+    "line": 61,
+    "lang": "typescript",
+    "title": "TypeScript",
+    "lines": 34,
+    "importsSdk": true,
+    "complete": true,
+    "errors": [],
+    "status": "pass"
+  },
+  {
+    "id": "structured-outputs__02",
+    "page": "structured-outputs.md",
+    "line": 147,
+    "lang": "typescript",
+    "title": "TypeScript",
+    "lines": 52,
+    "importsSdk": true,
+    "complete": true,
+    "errors": [],
+    "status": "pass"
+  },
+  {
+    "id": "structured-outputs__03",
+    "page": "structured-outputs.md",
+    "line": 273,
+    "lang": "typescript",
+    "title": "TypeScript",
+    "lines": 52,
+    "importsSdk": true,
+    "complete": true,
+    "errors": [],
+    "status": "pass"
+  },
+  {
+    "id": "structured-outputs__04",
+    "page": "structured-outputs.md",
+    "line": 414,
+    "lang": "typescript",
+    "title": "TypeScript",
+    "lines": 38,
+    "importsSdk": true,
+    "complete": true,
+    "errors": [],
+    "status": "pass"
+  },
+  {
+    "id": "subagents__01",
+    "page": "subagents.md",
+    "line": 95,
+    "lang": "typescript",
+    "title": "TypeScript",
+    "lines": 45,
+    "importsSdk": true,
+    "complete": true,
+    "errors": [],
+    "status": "pass"
+  },
+  {
+    "id": "subagents__02",
+    "page": "subagents.md",
+    "line": 241,
+    "lang": "typescript",
+    "title": "TypeScript",
+    "lines": 4,
+    "importsSdk": false,
+    "complete": false,
+    "errors": [],
+    "status": "pass"
+  },
+  {
+    "id": "subagents__03",
+    "page": "subagents.md",
+    "line": 290,
+    "lang": "typescript",
+    "title": "TypeScript",
+    "lines": 29,
+    "importsSdk": true,
+    "complete": true,
+    "errors": [],
+    "status": "pass"
+  },
+  {
+    "id": "subagents__04",
+    "page": "subagents.md",
+    "line": 376,
+    "lang": "typescript",
+    "title": "TypeScript",
+    "lines": 39,
+    "importsSdk": true,
+    "complete": true,
+    "errors": [],
+    "status": "pass"
+  },
+  {
+    "id": "subagents__05",
+    "page": "subagents.md",
+    "line": 501,
+    "lang": "typescript",
+    "title": "TypeScript",
+    "lines": 52,
+    "importsSdk": true,
+    "complete": true,
+    "errors": [],
+    "status": "pass"
+  },
+  {
+    "id": "subagents__06",
+    "page": "subagents.md",
+    "line": 597,
+    "lang": "typescript",
+    "title": "TypeScript",
+    "lines": 19,
+    "importsSdk": true,
+    "complete": true,
+    "errors": [],
+    "status": "pass"
+  },
+  {
+    "id": "subagents__07",
+    "page": "subagents.md",
+    "line": 676,
+    "lang": "typescript",
+    "title": "TypeScript",
+    "lines": 25,
+    "importsSdk": true,
+    "complete": true,
+    "errors": [],
+    "status": "pass"
+  },
+  {
+    "id": "todo-tracking__01",
+    "page": "todo-tracking.md",
+    "line": 75,
+    "lang": "typescript",
+    "title": "TypeScript",
+    "lines": 30,
+    "importsSdk": true,
+    "complete": true,
+    "errors": [],
+    "status": "pass"
+  },
+  {
+    "id": "todo-tracking__02",
+    "page": "todo-tracking.md",
+    "line": 149,
+    "lang": "typescript",
+    "title": "TypeScript",
+    "lines": 103,
+    "importsSdk": true,
+    "complete": true,
+    "errors": [],
+    "status": "pass"
+  },
+  {
+    "id": "tool-search__01",
+    "page": "tool-search.md",
+    "line": 61,
+    "lang": "typescript",
+    "title": "TypeScript",
+    "lines": 28,
+    "importsSdk": true,
+    "complete": true,
+    "errors": [],
+    "status": "pass"
+  },
+  {
+    "id": "tool-search__02",
+    "page": "tool-search.md",
+    "line": 138,
+    "lang": "typescript",
+    "title": "TypeScript",
+    "lines": 7,
+    "importsSdk": false,
+    "complete": false,
+    "errors": [
+      {
+        "line": 4,
+        "code": 1005,
+        "kind": "syntax",
+        "message": "';' expected."
+      },
+      {
+        "line": 5,
+        "code": 1005,
+        "kind": "syntax",
+        "message": "';' expected."
+      }
+    ],
+    "status": "syntax"
+  },
+  {
+    "id": "typescript-v2-preview__01",
+    "page": "typescript-v2-preview.md",
+    "line": 41,
+    "lang": "typescript",
+    "title": null,
+    "lines": 8,
+    "importsSdk": true,
+    "complete": true,
+    "errors": [
+      {
+        "line": 1,
+        "code": 2305,
+        "kind": "api",
+        "message": "Module '\"@anthropic-ai/claude-agent-sdk\"' has no exported member 'unstable_v2_prompt'."
+      }
+    ],
+    "status": "documented-removed"
+  },
+  {
+    "id": "typescript-v2-preview__02",
+    "page": "typescript-v2-preview.md",
+    "line": 55,
+    "lang": "typescript",
+    "title": null,
+    "lines": 12,
+    "importsSdk": true,
+    "complete": true,
+    "errors": [],
+    "status": "pass"
+  },
+  {
+    "id": "typescript-v2-preview__03",
+    "page": "typescript-v2-preview.md",
+    "line": 82,
+    "lang": "typescript",
+    "title": null,
+    "lines": 17,
+    "importsSdk": true,
+    "complete": true,
+    "errors": [
+      {
+        "line": 1,
+        "code": 2305,
+        "kind": "api",
+        "message": "Module '\"@anthropic-ai/claude-agent-sdk\"' has no exported member 'unstable_v2_createSession'."
+      },
+      {
+        "line": 12,
+        "code": 7006,
+        "kind": "context",
+        "message": "Parameter 'block' implicitly has an 'any' type."
+      },
+      {
+        "line": 13,
+        "code": 7006,
+        "kind": "context",
+        "message": "Parameter 'block' implicitly has an 'any' type."
+      }
+    ],
+    "status": "documented-removed"
+  },
+  {
+    "id": "typescript-v2-preview__04",
+    "page": "typescript-v2-preview.md",
+    "line": 107,
+    "lang": "typescript",
+    "title": null,
+    "lines": 16,
+    "importsSdk": true,
+    "complete": true,
+    "errors": [],
+    "status": "pass"
+  },
+  {
+    "id": "typescript-v2-preview__05",
+    "page": "typescript-v2-preview.md",
+    "line": 133,
+    "lang": "typescript",
+    "title": null,
+    "lines": 30,
+    "importsSdk": true,
+    "complete": true,
+    "errors": [
+      {
+        "line": 1,
+        "code": 2305,
+        "kind": "api",
+        "message": "Module '\"@anthropic-ai/claude-agent-sdk\"' has no exported member 'unstable_v2_createSession'."
+      },
+      {
+        "line": 13,
+        "code": 7006,
+        "kind": "context",
+        "message": "Parameter 'block' implicitly has an 'any' type."
+      },
+      {
+        "line": 14,
+        "code": 7006,
+        "kind": "context",
+        "message": "Parameter 'block' implicitly has an 'any' type."
+      },
+      {
+        "line": 25,
+        "code": 7006,
+        "kind": "context",
+        "message": "Parameter 'block' implicitly has an 'any' type."
+      },
+      {
+        "line": 26,
+        "code": 7006,
+        "kind": "context",
+        "message": "Parameter 'block' implicitly has an 'any' type."
+      }
+    ],
+    "status": "documented-removed"
+  },
+  {
+    "id": "typescript-v2-preview__06",
+    "page": "typescript-v2-preview.md",
+    "line": 169,
+    "lang": "typescript",
+    "title": null,
+    "lines": 33,
+    "importsSdk": true,
+    "complete": true,
+    "errors": [
+      {
+        "line": 21,
+        "code": 2322,
+        "kind": "api",
+        "message": "Type 'AsyncGenerator<{ type: string; session_id: string; message: { role: string; content: { type: string; text: string; }[]; }; parent_tool_use_id: null; }, void, unknown>' is not assignable to type 'string | AsyncIterable<SDKUserMessage>'."
+      }
+    ],
+    "status": "documented-removed"
+  },
+  {
+    "id": "typescript-v2-preview__07",
+    "page": "typescript-v2-preview.md",
+    "line": 212,
+    "lang": "typescript",
+    "title": null,
+    "lines": 43,
+    "importsSdk": true,
+    "complete": true,
+    "errors": [
+      {
+        "line": 2,
+        "code": 2305,
+        "kind": "api",
+        "message": "Module '\"@anthropic-ai/claude-agent-sdk\"' has no exported member 'unstable_v2_createSession'."
+      },
+      {
+        "line": 3,
+        "code": 2305,
+        "kind": "api",
+        "message": "Module '\"@anthropic-ai/claude-agent-sdk\"' has no exported member 'unstable_v2_resumeSession'."
+      }
+    ],
+    "status": "documented-removed"
+  },
+  {
+    "id": "typescript-v2-preview__08",
+    "page": "typescript-v2-preview.md",
+    "line": 261,
+    "lang": "typescript",
+    "title": null,
+    "lines": 41,
+    "importsSdk": true,
+    "complete": true,
+    "errors": [],
+    "status": "pass"
+  },
+  {
+    "id": "typescript-v2-preview__09",
+    "page": "typescript-v2-preview.md",
+    "line": 314,
+    "lang": "typescript",
+    "title": null,
+    "lines": 6,
+    "importsSdk": true,
+    "complete": true,
+    "errors": [
+      {
+        "line": 1,
+        "code": 2305,
+        "kind": "api",
+        "message": "Module '\"@anthropic-ai/claude-agent-sdk\"' has no exported member 'unstable_v2_createSession'."
+      }
+    ],
+    "status": "documented-removed"
+  },
+  {
+    "id": "typescript-v2-preview__10",
+    "page": "typescript-v2-preview.md",
+    "line": 325,
+    "lang": "typescript",
+    "title": null,
+    "lines": 7,
+    "importsSdk": true,
+    "complete": true,
+    "errors": [
+      {
+        "line": 1,
+        "code": 2305,
+        "kind": "api",
+        "message": "Module '\"@anthropic-ai/claude-agent-sdk\"' has no exported member 'unstable_v2_createSession'."
+      }
+    ],
+    "status": "documented-removed"
+  },
+  {
+    "id": "typescript-v2-preview__11",
+    "page": "typescript-v2-preview.md",
+    "line": 341,
+    "lang": "typescript",
+    "title": null,
+    "lines": 4,
+    "importsSdk": false,
+    "complete": false,
+    "errors": [
+      {
+        "line": 1,
+        "code": 2391,
+        "kind": "other",
+        "message": "Function implementation is missing or not immediately following the declaration."
+      },
+      {
+        "line": 4,
+        "code": 2304,
+        "kind": "context",
+        "message": "Cannot find name 'SDKSession'."
+      }
+    ],
+    "status": "documented-removed"
+  },
+  {
+    "id": "typescript-v2-preview__12",
+    "page": "typescript-v2-preview.md",
+    "line": 352,
+    "lang": "typescript",
+    "title": null,
+    "lines": 7,
+    "importsSdk": false,
+    "complete": false,
+    "errors": [
+      {
+        "line": 1,
+        "code": 2391,
+        "kind": "other",
+        "message": "Function implementation is missing or not immediately following the declaration."
+      },
+      {
+        "line": 7,
+        "code": 2304,
+        "kind": "context",
+        "message": "Cannot find name 'SDKSession'."
+      }
+    ],
+    "status": "documented-removed"
+  },
+  {
+    "id": "typescript-v2-preview__13",
+    "page": "typescript-v2-preview.md",
+    "line": 366,
+    "lang": "typescript",
+    "title": null,
+    "lines": 7,
+    "importsSdk": false,
+    "complete": false,
+    "errors": [
+      {
+        "line": 1,
+        "code": 2391,
+        "kind": "other",
+        "message": "Function implementation is missing or not immediately following the declaration."
+      },
+      {
+        "line": 7,
+        "code": 2304,
+        "kind": "context",
+        "message": "Cannot find name 'SDKResultMessage'."
+      }
+    ],
+    "status": "documented-removed"
+  },
+  {
+    "id": "typescript-v2-preview__14",
+    "page": "typescript-v2-preview.md",
+    "line": 378,
+    "lang": "typescript",
+    "title": null,
+    "lines": 6,
+    "importsSdk": false,
+    "complete": false,
+    "errors": [
+      {
+        "line": 3,
+        "code": 2304,
+        "kind": "context",
+        "message": "Cannot find name 'SDKUserMessage'."
+      },
+      {
+        "line": 4,
+        "code": 2304,
+        "kind": "context",
+        "message": "Cannot find name 'SDKMessage'."
+      }
+    ],
+    "status": "documented-removed"
+  },
+  {
+    "id": "typescript__01",
+    "page": "typescript.md",
+    "line": 31,
+    "lang": "typescript",
+    "title": null,
+    "lines": 12,
+    "importsSdk": true,
+    "complete": true,
+    "errors": [
+      {
+        "line": 1,
+        "code": 2307,
+        "kind": "api",
+        "message": "Cannot find module '@anthropic-ai/claude-agent-sdk-darwin-arm64/claude' or its corresponding type declarations."
+      }
+    ],
+    "status": "api-mismatch"
+  },
+  {
+    "id": "typescript__02",
+    "page": "typescript.md",
+    "line": 70,
+    "lang": "typescript",
+    "title": null,
+    "lines": 7,
+    "importsSdk": false,
+    "complete": false,
+    "errors": [
+      {
+        "line": 1,
+        "code": 2391,
+        "kind": "other",
+        "message": "Function implementation is missing or not immediately following the declaration."
+      },
+      {
+        "line": 5,
+        "code": 2304,
+        "kind": "context",
+        "message": "Cannot find name 'SDKUserMessage'."
+      },
+      {
+        "line": 6,
+        "code": 2304,
+        "kind": "context",
+        "message": "Cannot find name 'Options'."
+      },
+      {
+        "line": 7,
+        "code": 2304,
+        "kind": "context",
+        "message": "Cannot find name 'Query'."
+      }
+    ],
+    "status": "signature"
+  },
+  {
+    "id": "typescript__03",
+    "page": "typescript.md",
+    "line": 95,
+    "lang": "typescript",
+    "title": null,
+    "lines": 4,
+    "importsSdk": false,
+    "complete": false,
+    "errors": [
+      {
+        "line": 1,
+        "code": 2391,
+        "kind": "other",
+        "message": "Function implementation is missing or not immediately following the declaration."
+      },
+      {
+        "line": 2,
+        "code": 2304,
+        "kind": "context",
+        "message": "Cannot find name 'Options'."
+      },
+      {
+        "line": 4,
+        "code": 2304,
+        "kind": "context",
+        "message": "Cannot find name 'WarmQuery'."
+      }
+    ],
+    "status": "signature"
+  },
+  {
+    "id": "typescript__04",
+    "page": "typescript.md",
+    "line": 126,
+    "lang": "typescript",
+    "title": null,
+    "lines": 9,
+    "importsSdk": true,
+    "complete": true,
+    "errors": [],
+    "status": "pass"
+  },
+  {
+    "id": "typescript__05",
+    "page": "typescript.md",
+    "line": 144,
+    "lang": "typescript",
+    "title": null,
+    "lines": 4,
+    "importsSdk": false,
+    "complete": false,
+    "errors": [
+      {
+        "line": 1,
+        "code": 2391,
+        "kind": "other",
+        "message": "Function implementation is missing or not immediately following the declaration."
+      },
+      {
+        "line": 2,
+        "code": 2304,
+        "kind": "context",
+        "message": "Cannot find name 'Options'."
+      },
+      {
+        "line": 4,
+        "code": 2304,
+        "kind": "context",
+        "message": "Cannot find name 'SpareProcess'."
+      }
+    ],
+    "status": "signature"
+  },
+  {
+    "id": "typescript__06",
+    "page": "typescript.md",
+    "line": 183,
+    "lang": "typescript",
+    "title": null,
+    "lines": 25,
+    "importsSdk": true,
+    "complete": true,
+    "errors": [],
+    "status": "pass"
+  },
+  {
+    "id": "typescript__07",
+    "page": "typescript.md",
+    "line": 215,
+    "lang": "typescript",
+    "title": null,
+    "lines": 7,
+    "importsSdk": false,
+    "complete": false,
+    "errors": [
+      {
+        "line": 1,
+        "code": 2391,
+        "kind": "other",
+        "message": "Function implementation is missing or not immediately following the declaration."
+      },
+      {
+        "line": 1,
+        "code": 2304,
+        "kind": "context",
+        "message": "Cannot find name 'AnyZodRawShape'."
+      },
+      {
+        "line": 5,
+        "code": 2304,
+        "kind": "context",
+        "message": "Cannot find name 'InferShape'."
+      },
+      {
+        "line": 5,
+        "code": 2304,
+        "kind": "context",
+        "message": "Cannot find name 'CallToolResult'."
+      },
+      {
+        "line": 6,
+        "code": 2304,
+        "kind": "context",
+        "message": "Cannot find name 'ToolAnnotations'."
+      },
+      {
+        "line": 7,
+        "code": 2304,
+        "kind": "context",
+        "message": "Cannot find name 'SdkMcpToolDefinition'."
+      }
+    ],
+    "status": "signature"
+  },
+  {
+    "id": "typescript__08",
+    "page": "typescript.md",
+    "line": 247,
+    "lang": "typescript",
+    "title": null,
+    "lines": 12,
+    "importsSdk": true,
+    "complete": true,
+    "errors": [],
+    "status": "pass"
+  },
+  {
+    "id": "typescript__09",
+    "page": "typescript.md",
+    "line": 266,
+    "lang": "typescript",
+    "title": null,
+    "lines": 8,
+    "importsSdk": false,
+    "complete": false,
+    "errors": [
+      {
+        "line": 1,
+        "code": 2391,
+        "kind": "other",
+        "message": "Function implementation is missing or not immediately following the declaration."
+      },
+      {
+        "line": 5,
+        "code": 2304,
+        "kind": "context",
+        "message": "Cannot find name 'SdkMcpToolDefinition'."
+      },
+      {
+        "line": 8,
+        "code": 2304,
+        "kind": "context",
+        "message": "Cannot find name 'McpSdkServerConfigWithInstance'."
+      }
+    ],
+    "status": "signature"
+  },
+  {
+    "id": "typescript__10",
+    "page": "typescript.md",
+    "line": 292,
+    "lang": "typescript",
+    "title": null,
+    "lines": 1,
+    "importsSdk": false,
+    "complete": false,
+    "errors": [
+      {
+        "line": 1,
+        "code": 2391,
+        "kind": "other",
+        "message": "Function implementation is missing or not immediately following the declaration."
+      },
+      {
+        "line": 1,
+        "code": 2304,
+        "kind": "context",
+        "message": "Cannot find name 'ListSessionsOptions'."
+      },
+      {
+        "line": 1,
+        "code": 2304,
+        "kind": "context",
+        "message": "Cannot find name 'SDKSessionInfo'."
+      }
+    ],
+    "status": "signature"
+  },
+  {
+    "id": "typescript__11",
+    "page": "typescript.md",
+    "line": 323,
+    "lang": "typescript",
+    "title": null,
+    "lines": 7,
+    "importsSdk": true,
+    "complete": false,
+    "errors": [],
+    "status": "pass"
+  },
+  {
+    "id": "typescript__12",
+    "page": "typescript.md",
+    "line": 337,
+    "lang": "typescript",
+    "title": null,
+    "lines": 4,
+    "importsSdk": false,
+    "complete": false,
+    "errors": [
+      {
+        "line": 1,
+        "code": 2391,
+        "kind": "other",
+        "message": "Function implementation is missing or not immediately following the declaration."
+      },
+      {
+        "line": 3,
+        "code": 2304,
+        "kind": "context",
+        "message": "Cannot find name 'GetSessionMessagesOptions'."
+      },
+      {
+        "line": 4,
+        "code": 2304,
+        "kind": "context",
+        "message": "Cannot find name 'SessionMessage'."
+      }
+    ],
+    "status": "signature"
+  },
+  {
+    "id": "typescript__13",
+    "page": "typescript.md",
+    "line": 367,
+    "lang": "typescript",
+    "title": null,
+    "lines": 14,
+    "importsSdk": true,
+    "complete": false,
+    "errors": [],
+    "status": "pass"
+  },
+  {
+    "id": "typescript__14",
+    "page": "typescript.md",
+    "line": 388,
+    "lang": "typescript",
+    "title": null,
+    "lines": 4,
+    "importsSdk": false,
+    "complete": false,
+    "errors": [
+      {
+        "line": 1,
+        "code": 2391,
+        "kind": "other",
+        "message": "Function implementation is missing or not immediately following the declaration."
+      },
+      {
+        "line": 3,
+        "code": 2304,
+        "kind": "context",
+        "message": "Cannot find name 'GetSessionInfoOptions'."
+      },
+      {
+        "line": 4,
+        "code": 2304,
+        "kind": "context",
+        "message": "Cannot find name 'SDKSessionInfo'."
+      }
+    ],
+    "status": "signature"
+  },
+  {
+    "id": "typescript__15",
+    "page": "typescript.md",
+    "line": 408,
+    "lang": "typescript",
+    "title": null,
+    "lines": 5,
+    "importsSdk": false,
+    "complete": false,
+    "errors": [
+      {
+        "line": 1,
+        "code": 2391,
+        "kind": "other",
+        "message": "Function implementation is missing or not immediately following the declaration."
+      },
+      {
+        "line": 4,
+        "code": 2304,
+        "kind": "context",
+        "message": "Cannot find name 'SessionMutationOptions'."
+      }
+    ],
+    "status": "signature"
+  },
+  {
+    "id": "typescript__16",
+    "page": "typescript.md",
+    "line": 428,
+    "lang": "typescript",
+    "title": null,
+    "lines": 5,
+    "importsSdk": false,
+    "complete": false,
+    "errors": [
+      {
+        "line": 1,
+        "code": 2391,
+        "kind": "other",
+        "message": "Function implementation is missing or not immediately following the declaration."
+      },
+      {
+        "line": 4,
+        "code": 2304,
+        "kind": "context",
+        "message": "Cannot find name 'SessionMutationOptions'."
+      }
+    ],
+    "status": "signature"
+  },
+  {
+    "id": "typescript__17",
+    "page": "typescript.md",
+    "line": 448,
+    "lang": "typescript",
+    "title": null,
+    "lines": 4,
+    "importsSdk": false,
+    "complete": false,
+    "errors": [
+      {
+        "line": 1,
+        "code": 2391,
+        "kind": "other",
+        "message": "Function implementation is missing or not immediately following the declaration."
+      },
+      {
+        "line": 3,
+        "code": 2304,
+        "kind": "context",
+        "message": "Cannot find name 'ForkSessionOptions'."
+      },
+      {
+        "line": 4,
+        "code": 2304,
+        "kind": "context",
+        "message": "Cannot find name 'ForkSessionResult'."
+      }
+    ],
+    "status": "signature"
+  },
+  {
+    "id": "typescript__18",
+    "page": "typescript.md",
+    "line": 486,
+    "lang": "typescript",
+    "title": null,
+    "lines": 3,
+    "importsSdk": false,
+    "complete": false,
+    "errors": [
+      {
+        "line": 1,
+        "code": 2391,
+        "kind": "other",
+        "message": "Function implementation is missing or not immediately following the declaration."
+      },
+      {
+        "line": 2,
+        "code": 2304,
+        "kind": "context",
+        "message": "Cannot find name 'ResolveSettingsOptions'."
+      },
+      {
+        "line": 3,
+        "code": 2304,
+        "kind": "context",
+        "message": "Cannot find name 'ResolvedSettings'."
+      }
+    ],
+    "status": "signature"
+  },
+  {
+    "id": "typescript__19",
+    "page": "typescript.md",
+    "line": 517,
+    "lang": "typescript",
+    "title": null,
+    "lines": 9,
+    "importsSdk": true,
+    "complete": false,
+    "errors": [],
+    "status": "pass"
+  },
+  {
+    "id": "typescript__20",
+    "page": "typescript.md",
+    "line": 533,
+    "lang": "typescript",
+    "title": null,
+    "lines": 4,
+    "importsSdk": false,
+    "complete": false,
+    "errors": [
+      {
+        "line": 1,
+        "code": 2391,
+        "kind": "other",
+        "message": "Function implementation is missing or not immediately following the declaration."
+      }
+    ],
+    "status": "signature"
+  },
+  {
+    "id": "typescript__21",
+    "page": "typescript.md",
+    "line": 619,
+    "lang": "typescript",
+    "title": null,
+    "lines": 13,
+    "importsSdk": true,
+    "complete": true,
+    "errors": [],
+    "status": "pass"
+  },
+  {
+    "id": "typescript__22",
+    "page": "typescript.md",
+    "line": 650,
+    "lang": "typescript",
+    "title": null,
+    "lines": 52,
+    "importsSdk": false,
+    "complete": false,
+    "errors": [
+      {
+        "line": 1,
+        "code": 2304,
+        "kind": "context",
+        "message": "Cannot find name 'SDKMessage'."
+      },
+      {
+        "line": 2,
+        "code": 2304,
+        "kind": "context",
+        "message": "Cannot find name 'SDKControlInterruptResponse'."
+      },
+      {
+        "line": 6,
+        "code": 2304,
+        "kind": "context",
+        "message": "Cannot find name 'RewindFilesResult'."
+      },
+      {
+        "line": 7,
+        "code": 2552,
+        "kind": "context",
+        "message": "Cannot find name 'PermissionMode'. Did you mean 'PermissionName'?"
+      },
+      {
+        "line": 11,
+        "code": 2304,
+        "kind": "context",
+        "message": "Cannot find name 'Settings'."
+      },
+      {
+        "line": 13,
+        "code": 2304,
+        "kind": "context",
+        "message": "Cannot find name 'Settings'."
+      },
+      {
+        "line": 19,
+        "code": 2304,
+        "kind": "context",
+        "message": "Cannot find name 'SDKControlInitializeResponse'."
+      },
+      {
+        "line": 20,
+        "code": 2304,
+        "kind": "context",
+        "message": "Cannot find name 'SDKControlInitializeResponse'."
+      },
+      {
+        "line": 21,
+        "code": 2304,
+        "kind": "context",
+        "message": "Cannot find name 'SlashCommand'."
+      },
+      {
+        "line": 22,
+        "code": 2304,
+        "kind": "context",
+        "message": "Cannot find name 'ModelInfo'."
+      },
+      {
+        "line": 23,
+        "code": 2304,
+        "kind": "context",
+        "message": "Cannot find name 'AgentInfo'."
+      },
+      {
+        "line": 24,
+        "code": 2304,
+        "kind": "context",
+        "message": "Cannot find name 'McpServerStatus'."
+      },
+      {
+        "line": 27,
+        "code": 2304,
+        "kind": "context",
+        "message": "Cannot find name 'SDKControlGetContextUsageResponse'."
+      },
+      {
+        "line": 31,
+        "code": 2304,
+        "kind": "context",
+        "message": "Cannot find name 'SDKControlReadFileResponse'."
+      },
+      {
+        "line": 34,
+        "code": 2304,
+        "kind": "context",
+        "message": "Cannot find name 'SdkPluginConfig'."
+      },
+      {
+        "line": 35,
+        "code": 2304,
+        "kind": "context",
+        "message": "Cannot find name 'SDKControlReloadPluginsResponse'."
+      },
+      {
+        "line": 36,
+        "code": 2304,
+        "kind": "context",
+        "message": "Cannot find name 'SDKControlReloadSkillsResponse'."
+      },
+      {
+        "line": 37,
+        "code": 2304,
+        "kind": "context",
+        "message": "Cannot find name 'SDKControlReloadOutputStylesResponse'."
+      },
+      {
+        "line": 39,
+        "code": 2304,
+        "kind": "context",
+        "message": "Cannot find name 'AccountInfo'."
+      },
+      {
+        "line": 42,
+        "code": 2304,
+        "kind": "context",
+        "message": "Cannot find name 'McpServerConfig'."
+      },
+      {
+        "line": 42,
+        "code": 2304,
+        "kind": "context",
+        "message": "Cannot find name 'McpSetServersResult'."
+      },
+      {
+        "line": 47,
+        "code": 2304,
+        "kind": "context",
+        "message": "Cannot find name 'SDKControlMcpReadResourceResponse'."
+      },
+      {
+        "line": 48,
+        "code": 2304,
+        "kind": "context",
+        "message": "Cannot find name 'SDKUserMessage'."
+      }
+    ],
+    "status": "fragment"
+  },
+  {
+    "id": "typescript__23",
+    "page": "typescript.md",
+    "line": 805,
+    "lang": "typescript",
+    "title": null,
+    "lines": 9,
+    "importsSdk": true,
+    "complete": true,
+    "errors": [
+      {
+        "line": 3,
+        "code": 2304,
+        "kind": "context",
+        "message": "Cannot find name 'messageStream'."
+      }
+    ],
+    "status": "fragment"
+  },
+  {
+    "id": "typescript__24",
+    "page": "typescript.md",
+    "line": 841,
+    "lang": "typescript",
+    "title": null,
+    "lines": 4,
+    "importsSdk": false,
+    "complete": false,
+    "errors": [
+      {
+        "line": 2,
+        "code": 2304,
+        "kind": "context",
+        "message": "Cannot find name 'SDKUserMessage'."
+      },
+      {
+        "line": 2,
+        "code": 2304,
+        "kind": "context",
+        "message": "Cannot find name 'Query'."
+      }
+    ],
+    "status": "fragment"
+  },
+  {
+    "id": "typescript__25",
+    "page": "typescript.md",
+    "line": 861,
+    "lang": "typescript",
+    "title": null,
+    "lines": 9,
+    "importsSdk": false,
+    "complete": false,
+    "errors": [
+      {
+        "line": 3,
+        "code": 2304,
+        "kind": "context",
+        "message": "Cannot find name 'SDKUserMessage'."
+      },
+      {
+        "line": 4,
+        "code": 2304,
+        "kind": "context",
+        "message": "Cannot find name 'ClaimOptions'."
+      },
+      {
+        "line": 5,
+        "code": 2304,
+        "kind": "context",
+        "message": "Cannot find name 'Query'."
+      }
+    ],
+    "status": "fragment"
+  },
+  {
+    "id": "typescript__26",
+    "page": "typescript.md",
+    "line": 890,
+    "lang": "typescript",
+    "title": null,
+    "lines": 20,
+    "importsSdk": false,
+    "complete": false,
+    "errors": [
+      {
+        "line": 2,
+        "code": 2304,
+        "kind": "context",
+        "message": "Cannot find name 'SlashCommand'."
+      },
+      {
+        "line": 3,
+        "code": 2304,
+        "kind": "context",
+        "message": "Cannot find name 'AgentInfo'."
+      },
+      {
+        "line": 6,
+        "code": 2304,
+        "kind": "context",
+        "message": "Cannot find name 'ModelInfo'."
+      },
+      {
+        "line": 7,
+        "code": 2304,
+        "kind": "context",
+        "message": "Cannot find name 'AccountInfo'."
+      },
+      {
+        "line": 9,
+        "code": 2304,
+        "kind": "context",
+        "message": "Cannot find name 'FastModeDisabledReason'."
+      }
+    ],
+    "status": "fragment"
+  },
+  {
+    "id": "typescript__27",
+    "page": "typescript.md",
+    "line": 941,
+    "lang": "typescript",
+    "title": null,
+    "lines": 4,
+    "importsSdk": false,
+    "complete": false,
+    "errors": [],
+    "status": "pass"
+  },
+  {
+    "id": "typescript__28",
+    "page": "typescript.md",
+    "line": 977,
+    "lang": "typescript",
+    "title": null,
+    "lines": 115,
+    "importsSdk": false,
+    "complete": false,
+    "errors": [],
+    "status": "pass"
+  },
+  {
+    "id": "typescript__29",
+    "page": "typescript.md",
+    "line": 1119,
+    "lang": "typescript",
+    "title": null,
+    "lines": 4,
+    "importsSdk": false,
+    "complete": false,
+    "errors": [
+      {
+        "line": 2,
+        "code": 2304,
+        "kind": "context",
+        "message": "Cannot find name 'q'."
+      },
+      {
+        "line": 4,
+        "code": 7006,
+        "kind": "context",
+        "message": "Parameter 'c' implicitly has an 'any' type."
+      }
+    ],
+    "status": "fragment"
+  },
+  {
+    "id": "typescript__30",
+    "page": "typescript.md",
+    "line": 1130,
+    "lang": "typescript",
+    "title": null,
+    "lines": 6,
+    "importsSdk": false,
+    "complete": false,
+    "errors": [],
+    "status": "pass"
+  },
+  {
+    "id": "typescript__31",
+    "page": "typescript.md",
+    "line": 1154,
+    "lang": "typescript",
+    "title": null,
+    "lines": 18,
+    "importsSdk": false,
+    "complete": false,
+    "errors": [
+      {
+        "line": 2,
+        "code": 2304,
+        "kind": "context",
+        "message": "Cannot find name 'SlashCommand'."
+      },
+      {
+        "line": 3,
+        "code": 2304,
+        "kind": "context",
+        "message": "Cannot find name 'AgentInfo'."
+      },
+      {
+        "line": 10,
+        "code": 2304,
+        "kind": "context",
+        "message": "Cannot find name 'McpServerStatus'."
+      }
+    ],
+    "status": "fragment"
+  },
+  {
+    "id": "typescript__32",
+    "page": "typescript.md",
+    "line": 1197,
+    "lang": "typescript",
+    "title": null,
+    "lines": 5,
+    "importsSdk": false,
+    "complete": false,
+    "errors": [
+      {
+        "line": 1,
+        "code": 2304,
+        "kind": "context",
+        "message": "Cannot find name 'q'."
+      },
+      {
+        "line": 5,
+        "code": 7006,
+        "kind": "context",
+        "message": "Parameter 'plugin' implicitly has an 'any' type."
+      }
+    ],
+    "status": "fragment"
+  },
+  {
+    "id": "typescript__33",
+    "page": "typescript.md",
+    "line": 1228,
+    "lang": "typescript",
+    "title": null,
+    "lines": 3,
+    "importsSdk": false,
+    "complete": false,
+    "errors": [
+      {
+        "line": 2,
+        "code": 2304,
+        "kind": "context",
+        "message": "Cannot find name 'SlashCommand'."
+      }
+    ],
+    "status": "fragment"
+  },
+  {
+    "id": "typescript__34",
+    "page": "typescript.md",
+    "line": 1240,
+    "lang": "typescript",
+    "title": null,
+    "lines": 3,
+    "importsSdk": false,
+    "complete": false,
+    "errors": [],
+    "status": "pass"
+  },
+  {
+    "id": "typescript__35",
+    "page": "typescript.md",
+    "line": 1252,
+    "lang": "typescript",
+    "title": null,
+    "lines": 9,
+    "importsSdk": false,
+    "complete": false,
+    "errors": [],
+    "status": "pass"
+  },
+  {
+    "id": "typescript__36",
+    "page": "typescript.md",
+    "line": 1274,
+    "lang": "typescript",
+    "title": null,
+    "lines": 18,
+    "importsSdk": false,
+    "complete": false,
+    "errors": [
+      {
+        "line": 7,
+        "code": 2304,
+        "kind": "context",
+        "message": "Cannot find name 'AgentMcpServerSpec'."
+      },
+      {
+        "line": 16,
+        "code": 2552,
+        "kind": "context",
+        "message": "Cannot find name 'PermissionMode'. Did you mean 'PermissionName'?"
+      }
+    ],
+    "status": "fragment"
+  },
+  {
+    "id": "typescript__37",
+    "page": "typescript.md",
+    "line": 1318,
+    "lang": "typescript",
+    "title": null,
+    "lines": 1,
+    "importsSdk": false,
+    "complete": false,
+    "errors": [
+      {
+        "line": 1,
+        "code": 2304,
+        "kind": "context",
+        "message": "Cannot find name 'McpServerConfigForProcessTransport'."
+      }
+    ],
+    "status": "fragment"
+  },
+  {
+    "id": "typescript__38",
+    "page": "typescript.md",
+    "line": 1328,
+    "lang": "typescript",
+    "title": null,
+    "lines": 1,
+    "importsSdk": false,
+    "complete": false,
+    "errors": [],
+    "status": "pass"
+  },
+  {
+    "id": "typescript__39",
+    "page": "typescript.md",
+    "line": 1346,
+    "lang": "typescript",
+    "title": null,
+    "lines": 7,
+    "importsSdk": true,
+    "complete": true,
+    "errors": [],
+    "status": "pass"
+  },
+  {
+    "id": "typescript__40",
+    "page": "typescript.md",
+    "line": 1358,
+    "lang": "typescript",
+    "title": null,
+    "lines": 9,
+    "importsSdk": true,
+    "complete": true,
+    "errors": [],
+    "status": "pass"
+  },
+  {
+    "id": "typescript__41",
+    "page": "typescript.md",
+    "line": 1384,
+    "lang": "typescript",
+    "title": null,
+    "lines": 7,
+    "importsSdk": false,
+    "complete": false,
+    "errors": [],
+    "status": "pass"
+  },
+  {
+    "id": "typescript__42",
+    "page": "typescript.md",
+    "line": 1407,
+    "lang": "typescript",
+    "title": null,
+    "lines": 16,
+    "importsSdk": false,
+    "complete": false,
+    "errors": [
+      {
+        "line": 6,
+        "code": 2552,
+        "kind": "context",
+        "message": "Cannot find name 'PermissionUpdate'. Did you mean 'PermissionState'?"
+      },
+      {
+        "line": 16,
+        "code": 2552,
+        "kind": "context",
+        "message": "Cannot find name 'PermissionResult'. Did you mean 'Permissions'?"
+      }
+    ],
+    "status": "fragment"
+  },
+  {
+    "id": "typescript__43",
+    "page": "typescript.md",
+    "line": 1447,
+    "lang": "typescript",
+    "title": null,
+    "lines": 13,
+    "importsSdk": false,
+    "complete": false,
+    "errors": [
+      {
+        "line": 5,
+        "code": 2552,
+        "kind": "context",
+        "message": "Cannot find name 'PermissionUpdate'. Did you mean 'PermissionState'?"
+      }
+    ],
+    "status": "fragment"
+  },
+  {
+    "id": "typescript__44",
+    "page": "typescript.md",
+    "line": 1469,
+    "lang": "typescript",
+    "title": null,
+    "lines": 5,
+    "importsSdk": false,
+    "complete": false,
+    "errors": [],
+    "status": "pass"
+  },
+  {
+    "id": "typescript__45",
+    "page": "typescript.md",
+    "line": 1485,
+    "lang": "typescript",
+    "title": null,
+    "lines": 5,
+    "importsSdk": false,
+    "complete": false,
+    "errors": [
+      {
+        "line": 2,
+        "code": 2552,
+        "kind": "context",
+        "message": "Cannot find name 'McpStdioServerConfig'. Did you mean 'McpServerConfig'?"
+      },
+      {
+        "line": 3,
+        "code": 2552,
+        "kind": "context",
+        "message": "Cannot find name 'McpSSEServerConfig'. Did you mean 'McpServerConfig'?"
+      },
+      {
+        "line": 4,
+        "code": 2552,
+        "kind": "context",
+        "message": "Cannot find name 'McpHttpServerConfig'. Did you mean 'McpServerConfig'?"
+      },
+      {
+        "line": 5,
+        "code": 2304,
+        "kind": "context",
+        "message": "Cannot find name 'McpSdkServerConfigWithInstance'."
+      }
+    ],
+    "status": "fragment"
+  },
+  {
+    "id": "typescript__46",
+    "page": "typescript.md",
+    "line": 1495,
+    "lang": "typescript",
+    "title": null,
+    "lines": 6,
+    "importsSdk": false,
+    "complete": false,
+    "errors": [],
+    "status": "pass"
+  },
+  {
+    "id": "typescript__47",
+    "page": "typescript.md",
+    "line": 1506,
+    "lang": "typescript",
+    "title": null,
+    "lines": 5,
+    "importsSdk": false,
+    "complete": false,
+    "errors": [],
+    "status": "pass"
+  },
+  {
+    "id": "typescript__48",
+    "page": "typescript.md",
+    "line": 1516,
+    "lang": "typescript",
+    "title": null,
+    "lines": 5,
+    "importsSdk": false,
+    "complete": false,
+    "errors": [],
+    "status": "pass"
+  },
+  {
+    "id": "typescript__49",
+    "page": "typescript.md",
+    "line": 1528,
+    "lang": "typescript",
+    "title": null,
+    "lines": 7,
+    "importsSdk": false,
+    "complete": false,
+    "errors": [
+      {
+        "line": 5,
+        "code": 2304,
+        "kind": "context",
+        "message": "Cannot find name 'McpServerToolPolicy'."
+      },
+      {
+        "line": 6,
+        "code": 2304,
+        "kind": "context",
+        "message": "Cannot find name 'McpServer'."
+      }
+    ],
+    "status": "fragment"
+  },
+  {
+    "id": "typescript__50",
+    "page": "typescript.md",
+    "line": 1542,
+    "lang": "typescript",
+    "title": null,
+    "lines": 34,
+    "importsSdk": true,
+    "complete": true,
+    "errors": [],
+    "status": "pass"
+  },
+  {
+    "id": "typescript__51",
+    "page": "typescript.md",
+    "line": 1593,
+    "lang": "typescript",
+    "title": null,
+    "lines": 5,
+    "importsSdk": false,
+    "complete": false,
+    "errors": [],
+    "status": "pass"
+  },
+  {
+    "id": "typescript__52",
+    "page": "typescript.md",
+    "line": 1628,
+    "lang": "typescript",
+    "title": null,
+    "lines": 5,
+    "importsSdk": false,
+    "complete": false,
+    "errors": [],
+    "status": "pass"
+  },
+  {
+    "id": "typescript__53",
+    "page": "typescript.md",
+    "line": 1640,
+    "lang": "typescript",
+    "title": null,
+    "lines": 5,
+    "importsSdk": false,
+    "complete": false,
+    "errors": [],
+    "status": "pass"
+  },
+  {
+    "id": "typescript__54",
+    "page": "typescript.md",
+    "line": 1656,
+    "lang": "typescript",
+    "title": null,
+    "lines": 4,
+    "importsSdk": false,
+    "complete": false,
+    "errors": [],
+    "status": "pass"
+  },
+  {
+    "id": "typescript__55",
+    "page": "typescript.md",
+    "line": 1671,
+    "lang": "typescript",
+    "title": null,
+    "lines": 40,
+    "importsSdk": false,
+    "complete": false,
+    "errors": [
+      {
+        "line": 2,
+        "code": 2304,
+        "kind": "context",
+        "message": "Cannot find name 'SDKAssistantMessage'."
+      },
+      {
+        "line": 3,
+        "code": 2552,
+        "kind": "context",
+        "message": "Cannot find name 'SDKUserMessage'. Did you mean 'SDKMessage'?"
+      },
+      {
+        "line": 4,
+        "code": 2304,
+        "kind": "context",
+        "message": "Cannot find name 'SDKUserMessageReplay'."
+      },
+      {
+        "line": 5,
+        "code": 2304,
+        "kind": "context",
+        "message": "Cannot find name 'SDKResultMessage'."
+      },
+      {
+        "line": 6,
+        "code": 2304,
+        "kind": "context",
+        "message": "Cannot find name 'SDKSystemMessage'."
+      },
+      {
+        "line": 7,
+        "code": 2304,
+        "kind": "context",
+        "message": "Cannot find name 'SDKPartialAssistantMessage'."
+      },
+      {
+        "line": 8,
+        "code": 2304,
+        "kind": "context",
+        "message": "Cannot find name 'SDKCompactBoundaryMessage'."
+      },
+      {
+        "line": 9,
+        "code": 2304,
+        "kind": "context",
+        "message": "Cannot find name 'SDKStatusMessage'."
+      },
+      {
+        "line": 10,
+        "code": 2304,
+        "kind": "context",
+        "message": "Cannot find name 'SDKLocalCommandOutputMessage'."
+      },
+      {
+        "line": 11,
+        "code": 2304,
+        "kind": "context",
+        "message": "Cannot find name 'SDKHookStartedMessage'."
+      },
+      {
+        "line": 12,
+        "code": 2304,
+        "kind": "context",
+        "message": "Cannot find name 'SDKHookProgressMessage'."
+      },
+      {
+        "line": 13,
+        "code": 2304,
+        "kind": "context",
+        "message": "Cannot find name 'SDKHookResponseMessage'."
+      },
+      {
+        "line": 14,
+        "code": 2304,
+        "kind": "context",
+        "message": "Cannot find name 'SDKPluginInstallMessage'."
+      },
+      {
+        "line": 15,
+        "code": 2304,
+        "kind": "context",
+        "message": "Cannot find name 'SDKToolProgressMessage'."
+      },
+      {
+        "line": 16,
+        "code": 2304,
+        "kind": "context",
+        "message": "Cannot find name 'SDKAuthStatusMessage'."
+      },
+      {
+        "line": 17,
+        "code": 2304,
+        "kind": "context",
+        "message": "Cannot find name 'SDKTaskNotificationMessage'."
+      },
+      {
+        "line": 18,
+        "code": 2304,
+        "kind": "context",
+        "message": "Cannot find name 'SDKTaskStartedMessage'."
+      },
+      {
+        "line": 19,
+        "code": 2304,
+        "kind": "context",
+        "message": "Cannot find name 'SDKTaskProgressMessage'."
+      },
+      {
+        "line": 20,
+        "code": 2304,
+        "kind": "context",
+        "message": "Cannot find name 'SDKTaskUpdatedMessage'."
+      },
+      {
+        "line": 21,
+        "code": 2304,
+        "kind": "context",
+        "message": "Cannot find name 'SDKBackgroundTasksChangedMessage'."
+      },
+      {
+        "line": 22,
+        "code": 2304,
+        "kind": "context",
+        "message": "Cannot find name 'SDKThinkingTokensMessage'."
+      },
+      {
+        "line": 23,
+        "code": 2304,
+        "kind": "context",
+        "message": "Cannot find name 'SDKSessionStateChangedMessage'."
+      },
+      {
+        "line": 24,
+        "code": 2304,
+        "kind": "context",
+        "message": "Cannot find name 'SDKWorkerShuttingDownMessage'."
+      },
+      {
+        "line": 25,
+        "code": 2304,
+        "kind": "context",
+        "message": "Cannot find name 'SDKCommandsChangedMessage'."
+      },
+      {
+        "line": 26,
+        "code": 2304,
+        "kind": "context",
+        "message": "Cannot find name 'SDKNotificationMessage'."
+      },
+      {
+        "line": 27,
+        "code": 2304,
+        "kind": "context",
+        "message": "Cannot find name 'SDKFilesPersistedEvent'."
+      },
+      {
+        "line": 28,
+        "code": 2304,
+        "kind": "context",
+        "message": "Cannot find name 'SDKToolUseSummaryMessage'."
+      },
+      {
+        "line": 29,
+        "code": 2304,
+        "kind": "context",
+        "message": "Cannot find name 'SDKMemoryRecallMessage'."
+      },
+      {
+        "line": 30,
+        "code": 2304,
+        "kind": "context",
+        "message": "Cannot find name 'SDKRateLimitEvent'."
+      },
+      {
+        "line": 31,
+        "code": 2304,
+        "kind": "context",
+        "message": "Cannot find name 'SDKElicitationCompleteMessage'."
+      },
+      {
+        "line": 32,
+        "code": 2304,
+        "kind": "context",
+        "message": "Cannot find name 'SDKPermissionDeniedMessage'."
+      },
+      {
+        "line": 33,
+        "code": 2304,
+        "kind": "context",
+        "message": "Cannot find name 'SDKPromptSuggestionMessage'."
+      },
+      {
+        "line": 34,
+        "code": 2304,
+        "kind": "context",
+        "message": "Cannot find name 'SDKAPIRetryMessage'."
+      },
+      {
+        "line": 35,
+        "code": 2304,
+        "kind": "context",
+        "message": "Cannot find name 'SDKControlRequestProgressMessage'."
+      },
+      {
+        "line": 36,
+        "code": 2304,
+        "kind": "context",
+        "message": "Cannot find name 'SDKModelRefusalFallbackMessage'."
+      },
+      {
+        "line": 37,
+        "code": 2304,
+        "kind": "context",
+        "message": "Cannot find name 'SDKModelRefusalNoFallbackMessage'."
+      },
+      {
+        "line": 38,
+        "code": 2304,
+        "kind": "context",
+        "message": "Cannot find name 'SDKMirrorErrorMessage'."
+      },
+      {
+        "line": 39,
+        "code": 2304,
+        "kind": "context",
+        "message": "Cannot find name 'SDKInformationalMessage'."
+      },
+      {
+        "line": 40,
+        "code": 2304,
+        "kind": "context",
+        "message": "Cannot find name 'SDKConversationResetMessage'."
+      }
+    ],
+    "status": "fragment"
+  },
+  {
+    "id": "typescript__56",
+    "page": "typescript.md",
+    "line": 1724,
+    "lang": "typescript",
+    "title": null,
+    "lines": 17,
+    "importsSdk": false,
+    "complete": false,
+    "errors": [
+      {
+        "line": 3,
+        "code": 2304,
+        "kind": "context",
+        "message": "Cannot find name 'UUID'."
+      },
+      {
+        "line": 5,
+        "code": 2304,
+        "kind": "context",
+        "message": "Cannot find name 'BetaMessage'."
+      },
+      {
+        "line": 7,
+        "code": 2552,
+        "kind": "context",
+        "message": "Cannot find name 'SDKAssistantMessageError'. Did you mean 'SDKAssistantMessage'?"
+      },
+      {
+        "line": 11,
+        "code": 2304,
+        "kind": "context",
+        "message": "Cannot find name 'SDKContextUsage'."
+      },
+      {
+        "line": 12,
+        "code": 2304,
+        "kind": "context",
+        "message": "Cannot find name 'SDKUsageReport'."
+      },
+      {
+        "line": 16,
+        "code": 2304,
+        "kind": "context",
+        "message": "Cannot find name 'UUID'."
+      }
+    ],
+    "status": "fragment"
+  },
+  {
+    "id": "typescript__57",
+    "page": "typescript.md",
+    "line": 1779,
+    "lang": "typescript",
+    "title": null,
+    "lines": 16,
+    "importsSdk": false,
+    "complete": false,
+    "errors": [
+      {
+        "line": 3,
+        "code": 2304,
+        "kind": "context",
+        "message": "Cannot find name 'UUID'."
+      },
+      {
+        "line": 6,
+        "code": 2304,
+        "kind": "context",
+        "message": "Cannot find name 'MessageParam'."
+      },
+      {
+        "line": 7,
+        "code": 2304,
+        "kind": "context",
+        "message": "Cannot find name 'MessageParam'."
+      },
+      {
+        "line": 14,
+        "code": 2304,
+        "kind": "context",
+        "message": "Cannot find name 'SDKMessageOrigin'."
+      }
+    ],
+    "status": "fragment"
+  },
+  {
+    "id": "typescript__58",
+    "page": "typescript.md",
+    "line": 1819,
+    "lang": "typescript",
+    "title": null,
+    "lines": 7,
+    "importsSdk": false,
+    "complete": false,
+    "errors": [
+      {
+        "line": 1,
+        "code": 2304,
+        "kind": "context",
+        "message": "Cannot find name 'SDKUserMessage'."
+      }
+    ],
+    "status": "fragment"
+  },
+  {
+    "id": "typescript__59",
+    "page": "typescript.md",
+    "line": 1845,
+    "lang": "typescript",
+    "title": null,
+    "lines": 12,
+    "importsSdk": false,
+    "complete": false,
+    "errors": [
+      {
+        "line": 3,
+        "code": 2304,
+        "kind": "context",
+        "message": "Cannot find name 'UUID'."
+      },
+      {
+        "line": 5,
+        "code": 2304,
+        "kind": "context",
+        "message": "Cannot find name 'MessageParam'."
+      },
+      {
+        "line": 10,
+        "code": 2304,
+        "kind": "context",
+        "message": "Cannot find name 'SDKMessageOrigin'."
+      }
+    ],
+    "status": "fragment"
+  },
+  {
+    "id": "typescript__60",
+    "page": "typescript.md",
+    "line": 1866,
+    "lang": "typescript",
+    "title": null,
+    "lines": 74,
+    "importsSdk": false,
+    "complete": false,
+    "errors": [
+      {
+        "line": 5,
+        "code": 2304,
+        "kind": "context",
+        "message": "Cannot find name 'UUID'."
+      },
+      {
+        "line": 33,
+        "code": 2552,
+        "kind": "context",
+        "message": "Cannot find name 'NonNullableUsage'. Did you mean 'NonNullable'?"
+      },
+      {
+        "line": 34,
+        "code": 2304,
+        "kind": "context",
+        "message": "Cannot find name 'ModelUsage'."
+      },
+      {
+        "line": 35,
+        "code": 2304,
+        "kind": "context",
+        "message": "Cannot find name 'SDKPermissionDenial'."
+      },
+      {
+        "line": 39,
+        "code": 2304,
+        "kind": "context",
+        "message": "Cannot find name 'TerminalReason'."
+      },
+      {
+        "line": 41,
+        "code": 2304,
+        "kind": "context",
+        "message": "Cannot find name 'FastModeState'."
+      },
+      {
+        "line": 42,
+        "code": 2304,
+        "kind": "context",
+        "message": "Cannot find name 'FastModeDisabledReason'."
+      },
+      {
+        "line": 43,
+        "code": 2304,
+        "kind": "context",
+        "message": "Cannot find name 'SDKMessageOrigin'."
+      },
+      {
+        "line": 52,
+        "code": 2304,
+        "kind": "context",
+        "message": "Cannot find name 'UUID'."
+      },
+      {
+        "line": 60,
+        "code": 2552,
+        "kind": "context",
+        "message": "Cannot find name 'NonNullableUsage'. Did you mean 'NonNullable'?"
+      },
+      {
+        "line": 61,
+        "code": 2304,
+        "kind": "context",
+        "message": "Cannot find name 'ModelUsage'."
+      },
+      {
+        "line": 62,
+        "code": 2304,
+        "kind": "context",
+        "message": "Cannot find name 'SDKPermissionDenial'."
+      },
+      {
+        "line": 65,
+        "code": 2304,
+        "kind": "context",
+        "message": "Cannot find name 'SDKStartupFailureReason'."
+      },
+      {
+        "line": 69,
+        "code": 2304,
+        "kind": "context",
+        "message": "Cannot find name 'TerminalReason'."
+      },
+      {
+        "line": 71,
+        "code": 2304,
+        "kind": "context",
+        "message": "Cannot find name 'FastModeState'."
+      },
+      {
+        "line": 72,
+        "code": 2304,
+        "kind": "context",
+        "message": "Cannot find name 'FastModeDisabledReason'."
+      },
+      {
+        "line": 73,
+        "code": 2304,
+        "kind": "context",
+        "message": "Cannot find name 'SDKMessageOrigin'."
+      }
+    ],
+    "status": "fragment"
+  },
+  {
+    "id": "typescript__61",
+    "page": "typescript.md",
+    "line": 2070,
+    "lang": "typescript",
+    "title": null,
+    "lines": 22,
+    "importsSdk": false,
+    "complete": false,
+    "errors": [],
+    "status": "pass"
+  },
+  {
+    "id": "typescript__62",
+    "page": "typescript.md",
+    "line": 2125,
+    "lang": "typescript",
+    "title": null,
+    "lines": 34,
+    "importsSdk": false,
+    "complete": false,
+    "errors": [
+      {
+        "line": 4,
+        "code": 2304,
+        "kind": "context",
+        "message": "Cannot find name 'UUID'."
+      },
+      {
+        "line": 7,
+        "code": 2304,
+        "kind": "context",
+        "message": "Cannot find name 'ApiKeySource'."
+      },
+      {
+        "line": 18,
+        "code": 2552,
+        "kind": "context",
+        "message": "Cannot find name 'PermissionMode'. Did you mean 'PermissionName'?"
+      },
+      {
+        "line": 30,
+        "code": 2304,
+        "kind": "context",
+        "message": "Cannot find name 'FastModeState'."
+      },
+      {
+        "line": 31,
+        "code": 2304,
+        "kind": "context",
+        "message": "Cannot find name 'FastModeDisabledReason'."
+      }
+    ],
+    "status": "fragment"
+  },
+  {
+    "id": "typescript__63",
+    "page": "typescript.md",
+    "line": 2197,
+    "lang": "typescript",
+    "title": null,
+    "lines": 11,
+    "importsSdk": false,
+    "complete": false,
+    "errors": [
+      {
+        "line": 3,
+        "code": 2304,
+        "kind": "context",
+        "message": "Cannot find name 'BetaRawMessageStreamEvent'."
+      },
+      {
+        "line": 5,
+        "code": 2304,
+        "kind": "context",
+        "message": "Cannot find name 'UUID'."
+      }
+    ],
+    "status": "fragment"
+  },
+  {
+    "id": "typescript__64",
+    "page": "typescript.md",
+    "line": 2217,
+    "lang": "typescript",
+    "title": null,
+    "lines": 10,
+    "importsSdk": false,
+    "complete": false,
+    "errors": [
+      {
+        "line": 4,
+        "code": 2304,
+        "kind": "context",
+        "message": "Cannot find name 'UUID'."
+      }
+    ],
+    "status": "fragment"
+  },
+  {
+    "id": "typescript__65",
+    "page": "typescript.md",
+    "line": 2238,
+    "lang": "typescript",
+    "title": null,
+    "lines": 11,
+    "importsSdk": false,
+    "complete": false,
+    "errors": [
+      {
+        "line": 9,
+        "code": 2304,
+        "kind": "context",
+        "message": "Cannot find name 'UUID'."
+      }
+    ],
+    "status": "fragment"
+  },
+  {
+    "id": "typescript__66",
+    "page": "typescript.md",
+    "line": 2256,
+    "lang": "typescript",
+    "title": null,
+    "lines": 7,
+    "importsSdk": false,
+    "complete": false,
+    "errors": [
+      {
+        "line": 5,
+        "code": 2304,
+        "kind": "context",
+        "message": "Cannot find name 'UUID'."
+      }
+    ],
+    "status": "fragment"
+  },
+  {
+    "id": "typescript__67",
+    "page": "typescript.md",
+    "line": 2270,
+    "lang": "typescript",
+    "title": null,
+    "lines": 9,
+    "importsSdk": false,
+    "complete": false,
+    "errors": [
+      {
+        "line": 7,
+        "code": 2304,
+        "kind": "context",
+        "message": "Cannot find name 'UUID'."
+      }
+    ],
+    "status": "fragment"
+  },
+  {
+    "id": "typescript__68",
+    "page": "typescript.md",
+    "line": 2293,
+    "lang": "typescript",
+    "title": null,
+    "lines": 12,
+    "importsSdk": false,
+    "complete": false,
+    "errors": [
+      {
+        "line": 10,
+        "code": 2304,
+        "kind": "context",
+        "message": "Cannot find name 'UUID'."
+      }
+    ],
+    "status": "fragment"
+  },
+  {
+    "id": "typescript__69",
+    "page": "typescript.md",
+    "line": 2321,
+    "lang": "typescript",
+    "title": null,
+    "lines": 5,
+    "importsSdk": false,
+    "complete": false,
+    "errors": [],
+    "status": "pass"
+  },
+  {
+    "id": "typescript__70",
+    "page": "typescript.md",
+    "line": 2333,
+    "lang": "typescript",
+    "title": null,
+    "lines": 32,
+    "importsSdk": false,
+    "complete": false,
+    "errors": [
+      {
+        "line": 10,
+        "code": 2304,
+        "kind": "context",
+        "message": "Cannot find name 'SDKContextUsageCategory'."
+      }
+    ],
+    "status": "fragment"
+  },
+  {
+    "id": "typescript__71",
+    "page": "typescript.md",
+    "line": 2394,
+    "lang": "typescript",
+    "title": null,
+    "lines": 5,
+    "importsSdk": false,
+    "complete": false,
+    "errors": [],
+    "status": "pass"
+  },
+  {
+    "id": "typescript__72",
+    "page": "typescript.md",
+    "line": 2421,
+    "lang": "typescript",
+    "title": null,
+    "lines": 33,
+    "importsSdk": false,
+    "complete": false,
+    "errors": [
+      {
+        "line": 8,
+        "code": 2304,
+        "kind": "context",
+        "message": "Cannot find name 'ModelUsage'."
+      }
+    ],
+    "status": "fragment"
+  },
+  {
+    "id": "typescript__73",
+    "page": "typescript.md",
+    "line": 2492,
+    "lang": "typescript",
+    "title": null,
+    "lines": 22,
+    "importsSdk": false,
+    "complete": false,
+    "errors": [],
+    "status": "pass"
+  },
+  {
+    "id": "typescript__74",
+    "page": "typescript.md",
+    "line": 2573,
+    "lang": "typescript",
+    "title": null,
+    "lines": 34,
+    "importsSdk": false,
+    "complete": false,
+    "errors": [],
+    "status": "pass"
+  },
+  {
+    "id": "typescript__75",
+    "page": "typescript.md",
+    "line": 2614,
+    "lang": "typescript",
+    "title": null,
+    "lines": 5,
+    "importsSdk": false,
+    "complete": false,
+    "errors": [
+      {
+        "line": 2,
+        "code": 2304,
+        "kind": "context",
+        "message": "Cannot find name 'HookInput'."
+      },
+      {
+        "line": 5,
+        "code": 2304,
+        "kind": "context",
+        "message": "Cannot find name 'HookJSONOutput'."
+      }
+    ],
+    "status": "fragment"
+  },
+  {
+    "id": "typescript__76",
+    "page": "typescript.md",
+    "line": 2626,
+    "lang": "typescript",
+    "title": null,
+    "lines": 6,
+    "importsSdk": false,
+    "complete": false,
+    "errors": [
+      {
+        "line": 3,
+        "code": 2304,
+        "kind": "context",
+        "message": "Cannot find name 'HookCallback'."
+      }
+    ],
+    "status": "fragment"
+  },
+  {
+    "id": "typescript__77",
+    "page": "typescript.md",
+    "line": 2641,
+    "lang": "typescript",
+    "title": null,
+    "lines": 34,
+    "importsSdk": false,
+    "complete": false,
+    "errors": [
+      {
+        "line": 2,
+        "code": 2304,
+        "kind": "context",
+        "message": "Cannot find name 'PreToolUseHookInput'."
+      },
+      {
+        "line": 3,
+        "code": 2304,
+        "kind": "context",
+        "message": "Cannot find name 'PostToolUseHookInput'."
+      },
+      {
+        "line": 4,
+        "code": 2304,
+        "kind": "context",
+        "message": "Cannot find name 'PostToolUseFailureHookInput'."
+      },
+      {
+        "line": 5,
+        "code": 2304,
+        "kind": "context",
+        "message": "Cannot find name 'PostToolBatchHookInput'."
+      },
+      {
+        "line": 6,
+        "code": 2304,
+        "kind": "context",
+        "message": "Cannot find name 'PermissionDeniedHookInput'."
+      },
+      {
+        "line": 7,
+        "code": 2304,
+        "kind": "context",
+        "message": "Cannot find name 'NotificationHookInput'."
+      },
+      {
+        "line": 8,
+        "code": 2304,
+        "kind": "context",
+        "message": "Cannot find name 'UserPromptSubmitHookInput'."
+      },
+      {
+        "line": 9,
+        "code": 2304,
+        "kind": "context",
+        "message": "Cannot find name 'UserPromptExpansionHookInput'."
+      },
+      {
+        "line": 10,
+        "code": 2304,
+        "kind": "context",
+        "message": "Cannot find name 'SessionStartHookInput'."
+      },
+      {
+        "line": 11,
+        "code": 2304,
+        "kind": "context",
+        "message": "Cannot find name 'SessionEndHookInput'."
+      },
+      {
+        "line": 12,
+        "code": 2552,
+        "kind": "context",
+        "message": "Cannot find name 'StopHookInput'. Did you mean 'HookInput'?"
+      },
+      {
+        "line": 13,
+        "code": 2304,
+        "kind": "context",
+        "message": "Cannot find name 'StopFailureHookInput'."
+      },
+      {
+        "line": 14,
+        "code": 2304,
+        "kind": "context",
+        "message": "Cannot find name 'SubagentStartHookInput'."
+      },
+      {
+        "line": 15,
+        "code": 2304,
+        "kind": "context",
+        "message": "Cannot find name 'SubagentStopHookInput'."
+      },
+      {
+        "line": 16,
+        "code": 2304,
+        "kind": "context",
+        "message": "Cannot find name 'PreCompactHookInput'."
+      },
+      {
+        "line": 17,
+        "code": 2304,
+        "kind": "context",
+        "message": "Cannot find name 'PostCompactHookInput'."
+      },
+      {
+        "line": 18,
+        "code": 2304,
+        "kind": "context",
+        "message": "Cannot find name 'PreModelSwitchHookInput'."
+      },
+      {
+        "line": 19,
+        "code": 2304,
+        "kind": "context",
+        "message": "Cannot find name 'PostModelSwitchHookInput'."
+      },
+      {
+        "line": 20,
+        "code": 2304,
+        "kind": "context",
+        "message": "Cannot find name 'PermissionRequestHookInput'."
+      },
+      {
+        "line": 21,
+        "code": 2304,
+        "kind": "context",
+        "message": "Cannot find name 'SetupHookInput'."
+      },
+      {
+        "line": 22,
+        "code": 2304,
+        "kind": "context",
+        "message": "Cannot find name 'TeammateIdleHookInput'."
+      },
+      {
+        "line": 23,
+        "code": 2304,
+        "kind": "context",
+        "message": "Cannot find name 'TaskCreatedHookInput'."
+      },
+      {
+        "line": 24,
+        "code": 2304,
+        "kind": "context",
+        "message": "Cannot find name 'TaskCompletedHookInput'."
+      },
+      {
+        "line": 25,
+        "code": 2304,
+        "kind": "context",
+        "message": "Cannot find name 'ElicitationHookInput'."
+      },
+      {
+        "line": 26,
+        "code": 2304,
+        "kind": "context",
+        "message": "Cannot find name 'ElicitationResultHookInput'."
+      },
+      {
+        "line": 27,
+        "code": 2304,
+        "kind": "context",
+        "message": "Cannot find name 'ConfigChangeHookInput'."
+      },
+      {
+        "line": 28,
+        "code": 2304,
+        "kind": "context",
+        "message": "Cannot find name 'InstructionsLoadedHookInput'."
+      },
+      {
+        "line": 29,
+        "code": 2304,
+        "kind": "context",
+        "message": "Cannot find name 'DirectoryAddedHookInput'."
+      },
+      {
+        "line": 30,
+        "code": 2304,
+        "kind": "context",
+        "message": "Cannot find name 'WorktreeCreateHookInput'."
+      },
+      {
+        "line": 31,
+        "code": 2304,
+        "kind": "context",
+        "message": "Cannot find name 'WorktreeRemoveHookInput'."
+      },
+      {
+        "line": 32,
+        "code": 2304,
+        "kind": "context",
+        "message": "Cannot find name 'CwdChangedHookInput'."
+      },
+      {
+        "line": 33,
+        "code": 2304,
+        "kind": "context",
+        "message": "Cannot find name 'FileChangedHookInput'."
+      },
+      {
+        "line": 34,
+        "code": 2304,
+        "kind": "context",
+        "message": "Cannot find name 'MessageDisplayHookInput'."
+      }
+    ],
+    "status": "fragment"
+  },
+  {
+    "id": "typescript__78",
+    "page": "typescript.md",
+    "line": 2682,
+    "lang": "typescript",
+    "title": null,
+    "lines": 10,
+    "importsSdk": false,
+    "complete": false,
+    "errors": [],
+    "status": "pass"
+  },
+  {
+    "id": "typescript__79",
+    "page": "typescript.md",
+    "line": 2699,
+    "lang": "typescript",
+    "title": null,
+    "lines": 7,
+    "importsSdk": false,
+    "complete": false,
+    "errors": [
+      {
+        "line": 1,
+        "code": 2304,
+        "kind": "context",
+        "message": "Cannot find name 'BaseHookInput'."
+      },
+      {
+        "line": 6,
+        "code": 2304,
+        "kind": "context",
+        "message": "Cannot find name 'McpServerProvenance'."
+      }
+    ],
+    "status": "fragment"
+  },
+  {
+    "id": "typescript__80",
+    "page": "typescript.md",
+    "line": 2713,
+    "lang": "typescript",
+    "title": null,
+    "lines": 9,
+    "importsSdk": false,
+    "complete": false,
+    "errors": [
+      {
+        "line": 1,
+        "code": 2304,
+        "kind": "context",
+        "message": "Cannot find name 'BaseHookInput'."
+      },
+      {
+        "line": 8,
+        "code": 2304,
+        "kind": "context",
+        "message": "Cannot find name 'McpServerProvenance'."
+      }
+    ],
+    "status": "fragment"
+  },
+  {
+    "id": "typescript__81",
+    "page": "typescript.md",
+    "line": 2727,
+    "lang": "typescript",
+    "title": null,
+    "lines": 10,
+    "importsSdk": false,
+    "complete": false,
+    "errors": [
+      {
+        "line": 1,
+        "code": 2304,
+        "kind": "context",
+        "message": "Cannot find name 'BaseHookInput'."
+      },
+      {
+        "line": 9,
+        "code": 2304,
+        "kind": "context",
+        "message": "Cannot find name 'McpServerProvenance'."
+      }
+    ],
+    "status": "fragment"
+  },
+  {
+    "id": "typescript__82",
+    "page": "typescript.md",
+    "line": 2744,
+    "lang": "typescript",
+    "title": null,
+    "lines": 11,
+    "importsSdk": false,
+    "complete": false,
+    "errors": [
+      {
+        "line": 1,
+        "code": 2304,
+        "kind": "context",
+        "message": "Cannot find name 'BaseHookInput'."
+      }
+    ],
+    "status": "fragment"
+  },
+  {
+    "id": "typescript__83",
+    "page": "typescript.md",
+    "line": 2760,
+    "lang": "typescript",
+    "title": null,
+    "lines": 8,
+    "importsSdk": false,
+    "complete": false,
+    "errors": [
+      {
+        "line": 1,
+        "code": 2304,
+        "kind": "context",
+        "message": "Cannot find name 'BaseHookInput'."
+      },
+      {
+        "line": 7,
+        "code": 2304,
+        "kind": "context",
+        "message": "Cannot find name 'McpServerProvenance'."
+      }
+    ],
+    "status": "fragment"
+  },
+  {
+    "id": "typescript__84",
+    "page": "typescript.md",
+    "line": 2773,
+    "lang": "typescript",
+    "title": null,
+    "lines": 6,
+    "importsSdk": false,
+    "complete": false,
+    "errors": [
+      {
+        "line": 1,
+        "code": 2304,
+        "kind": "context",
+        "message": "Cannot find name 'BaseHookInput'."
+      }
+    ],
+    "status": "fragment"
+  },
+  {
+    "id": "typescript__85",
+    "page": "typescript.md",
+    "line": 2784,
+    "lang": "typescript",
+    "title": null,
+    "lines": 5,
+    "importsSdk": false,
+    "complete": false,
+    "errors": [
+      {
+        "line": 1,
+        "code": 2304,
+        "kind": "context",
+        "message": "Cannot find name 'BaseHookInput'."
+      }
+    ],
+    "status": "fragment"
+  },
+  {
+    "id": "typescript__86",
+    "page": "typescript.md",
+    "line": 2794,
+    "lang": "typescript",
+    "title": null,
+    "lines": 8,
+    "importsSdk": false,
+    "complete": false,
+    "errors": [
+      {
+        "line": 1,
+        "code": 2304,
+        "kind": "context",
+        "message": "Cannot find name 'BaseHookInput'."
+      }
+    ],
+    "status": "fragment"
+  },
+  {
+    "id": "typescript__87",
+    "page": "typescript.md",
+    "line": 2807,
+    "lang": "typescript",
+    "title": null,
+    "lines": 7,
+    "importsSdk": false,
+    "complete": false,
+    "errors": [
+      {
+        "line": 1,
+        "code": 2304,
+        "kind": "context",
+        "message": "Cannot find name 'BaseHookInput'."
+      }
+    ],
+    "status": "fragment"
+  },
+  {
+    "id": "typescript__88",
+    "page": "typescript.md",
+    "line": 2819,
+    "lang": "typescript",
+    "title": null,
+    "lines": 4,
+    "importsSdk": false,
+    "complete": false,
+    "errors": [
+      {
+        "line": 1,
+        "code": 2304,
+        "kind": "context",
+        "message": "Cannot find name 'BaseHookInput'."
+      },
+      {
+        "line": 3,
+        "code": 2304,
+        "kind": "context",
+        "message": "Cannot find name 'ExitReason'."
+      }
+    ],
+    "status": "fragment"
+  },
+  {
+    "id": "typescript__89",
+    "page": "typescript.md",
+    "line": 2828,
+    "lang": "typescript",
+    "title": null,
+    "lines": 7,
+    "importsSdk": false,
+    "complete": false,
+    "errors": [
+      {
+        "line": 1,
+        "code": 2304,
+        "kind": "context",
+        "message": "Cannot find name 'BaseHookInput'."
+      },
+      {
+        "line": 5,
+        "code": 2304,
+        "kind": "context",
+        "message": "Cannot find name 'BackgroundTaskSummary'."
+      },
+      {
+        "line": 6,
+        "code": 2304,
+        "kind": "context",
+        "message": "Cannot find name 'SessionCronSummary'."
+      }
+    ],
+    "status": "fragment"
+  },
+  {
+    "id": "typescript__90",
+    "page": "typescript.md",
+    "line": 2840,
+    "lang": "typescript",
+    "title": null,
+    "lines": 6,
+    "importsSdk": false,
+    "complete": false,
+    "errors": [
+      {
+        "line": 1,
+        "code": 2304,
+        "kind": "context",
+        "message": "Cannot find name 'BaseHookInput'."
+      },
+      {
+        "line": 3,
+        "code": 2304,
+        "kind": "context",
+        "message": "Cannot find name 'SDKAssistantMessageError'."
+      }
+    ],
+    "status": "fragment"
+  },
+  {
+    "id": "typescript__91",
+    "page": "typescript.md",
+    "line": 2851,
+    "lang": "typescript",
+    "title": null,
+    "lines": 5,
+    "importsSdk": false,
+    "complete": false,
+    "errors": [
+      {
+        "line": 1,
+        "code": 2304,
+        "kind": "context",
+        "message": "Cannot find name 'BaseHookInput'."
+      }
+    ],
+    "status": "fragment"
+  },
+  {
+    "id": "typescript__92",
+    "page": "typescript.md",
+    "line": 2861,
+    "lang": "typescript",
+    "title": null,
+    "lines": 29,
+    "importsSdk": false,
+    "complete": false,
+    "errors": [
+      {
+        "line": 1,
+        "code": 2304,
+        "kind": "context",
+        "message": "Cannot find name 'BaseHookInput'."
+      }
+    ],
+    "status": "fragment"
+  },
+  {
+    "id": "typescript__93",
+    "page": "typescript.md",
+    "line": 2895,
+    "lang": "typescript",
+    "title": null,
+    "lines": 5,
+    "importsSdk": false,
+    "complete": false,
+    "errors": [
+      {
+        "line": 1,
+        "code": 2304,
+        "kind": "context",
+        "message": "Cannot find name 'BaseHookInput'."
+      }
+    ],
+    "status": "fragment"
+  },
+  {
+    "id": "typescript__94",
+    "page": "typescript.md",
+    "line": 2905,
+    "lang": "typescript",
+    "title": null,
+    "lines": 5,
+    "importsSdk": false,
+    "complete": false,
+    "errors": [
+      {
+        "line": 1,
+        "code": 2304,
+        "kind": "context",
+        "message": "Cannot find name 'BaseHookInput'."
+      }
+    ],
+    "status": "fragment"
+  },
+  {
+    "id": "typescript__95",
+    "page": "typescript.md",
+    "line": 2917,
+    "lang": "typescript",
+    "title": null,
+    "lines": 12,
+    "importsSdk": false,
+    "complete": false,
+    "errors": [
+      {
+        "line": 1,
+        "code": 2304,
+        "kind": "context",
+        "message": "Cannot find name 'BaseHookInput'."
+      }
+    ],
+    "status": "fragment"
+  },
+  {
+    "id": "typescript__96",
+    "page": "typescript.md",
+    "line": 2936,
+    "lang": "typescript",
+    "title": null,
+    "lines": 12,
+    "importsSdk": false,
+    "complete": false,
+    "errors": [
+      {
+        "line": 1,
+        "code": 2304,
+        "kind": "context",
+        "message": "Cannot find name 'BaseHookInput'."
+      }
+    ],
+    "status": "fragment"
+  },
+  {
+    "id": "typescript__97",
+    "page": "typescript.md",
+    "line": 2953,
+    "lang": "typescript",
+    "title": null,
+    "lines": 7,
+    "importsSdk": false,
+    "complete": false,
+    "errors": [
+      {
+        "line": 1,
+        "code": 2304,
+        "kind": "context",
+        "message": "Cannot find name 'BaseHookInput'."
+      },
+      {
+        "line": 5,
+        "code": 2552,
+        "kind": "context",
+        "message": "Cannot find name 'PermissionUpdate'. Did you mean 'PermissionState'?"
+      },
+      {
+        "line": 6,
+        "code": 2304,
+        "kind": "context",
+        "message": "Cannot find name 'McpServerProvenance'."
+      }
+    ],
+    "status": "fragment"
+  },
+  {
+    "id": "typescript__98",
+    "page": "typescript.md",
+    "line": 2965,
+    "lang": "typescript",
+    "title": null,
+    "lines": 4,
+    "importsSdk": false,
+    "complete": false,
+    "errors": [
+      {
+        "line": 1,
+        "code": 2552,
+        "kind": "context",
+        "message": "Cannot find name 'BaseHookInput'. Did you mean 'SetupHookInput'?"
+      }
+    ],
+    "status": "fragment"
+  },
+  {
+    "id": "typescript__99",
+    "page": "typescript.md",
+    "line": 2974,
+    "lang": "typescript",
+    "title": null,
+    "lines": 6,
+    "importsSdk": false,
+    "complete": false,
+    "errors": [
+      {
+        "line": 1,
+        "code": 2304,
+        "kind": "context",
+        "message": "Cannot find name 'BaseHookInput'."
+      }
+    ],
+    "status": "fragment"
+  },
+  {
+    "id": "typescript__100",
+    "page": "typescript.md",
+    "line": 2985,
+    "lang": "typescript",
+    "title": null,
+    "lines": 9,
+    "importsSdk": false,
+    "complete": false,
+    "errors": [
+      {
+        "line": 1,
+        "code": 2304,
+        "kind": "context",
+        "message": "Cannot find name 'BaseHookInput'."
+      }
+    ],
+    "status": "fragment"
+  },
+  {
+    "id": "typescript__101",
+    "page": "typescript.md",
+    "line": 2999,
+    "lang": "typescript",
+    "title": null,
+    "lines": 9,
+    "importsSdk": false,
+    "complete": false,
+    "errors": [
+      {
+        "line": 1,
+        "code": 2304,
+        "kind": "context",
+        "message": "Cannot find name 'BaseHookInput'."
+      }
+    ],
+    "status": "fragment"
+  },
+  {
+    "id": "typescript__102",
+    "page": "typescript.md",
+    "line": 3013,
+    "lang": "typescript",
+    "title": null,
+    "lines": 9,
+    "importsSdk": false,
+    "complete": false,
+    "errors": [
+      {
+        "line": 1,
+        "code": 2304,
+        "kind": "context",
+        "message": "Cannot find name 'BaseHookInput'."
+      }
+    ],
+    "status": "fragment"
+  },
+  {
+    "id": "typescript__103",
+    "page": "typescript.md",
+    "line": 3027,
+    "lang": "typescript",
+    "title": null,
+    "lines": 8,
+    "importsSdk": false,
+    "complete": false,
+    "errors": [
+      {
+        "line": 1,
+        "code": 2304,
+        "kind": "context",
+        "message": "Cannot find name 'BaseHookInput'."
+      }
+    ],
+    "status": "fragment"
+  },
+  {
+    "id": "typescript__104",
+    "page": "typescript.md",
+    "line": 3040,
+    "lang": "typescript",
+    "title": null,
+    "lines": 10,
+    "importsSdk": false,
+    "complete": false,
+    "errors": [
+      {
+        "line": 1,
+        "code": 2304,
+        "kind": "context",
+        "message": "Cannot find name 'BaseHookInput'."
+      }
+    ],
+    "status": "fragment"
+  },
+  {
+    "id": "typescript__105",
+    "page": "typescript.md",
+    "line": 3055,
+    "lang": "typescript",
+    "title": null,
+    "lines": 14,
+    "importsSdk": false,
+    "complete": false,
+    "errors": [
+      {
+        "line": 1,
+        "code": 2304,
+        "kind": "context",
+        "message": "Cannot find name 'BaseHookInput'."
+      }
+    ],
+    "status": "fragment"
+  },
+  {
+    "id": "typescript__106",
+    "page": "typescript.md",
+    "line": 3074,
+    "lang": "typescript",
+    "title": null,
+    "lines": 5,
+    "importsSdk": false,
+    "complete": false,
+    "errors": [
+      {
+        "line": 1,
+        "code": 2304,
+        "kind": "context",
+        "message": "Cannot find name 'BaseHookInput'."
+      }
+    ],
+    "status": "fragment"
+  },
+  {
+    "id": "typescript__107",
+    "page": "typescript.md",
+    "line": 3086,
+    "lang": "typescript",
+    "title": null,
+    "lines": 4,
+    "importsSdk": false,
+    "complete": false,
+    "errors": [
+      {
+        "line": 1,
+        "code": 2304,
+        "kind": "context",
+        "message": "Cannot find name 'BaseHookInput'."
+      }
+    ],
+    "status": "fragment"
+  },
+  {
+    "id": "typescript__108",
+    "page": "typescript.md",
+    "line": 3095,
+    "lang": "typescript",
+    "title": null,
+    "lines": 4,
+    "importsSdk": false,
+    "complete": false,
+    "errors": [
+      {
+        "line": 1,
+        "code": 2304,
+        "kind": "context",
+        "message": "Cannot find name 'BaseHookInput'."
+      }
+    ],
+    "status": "fragment"
+  },
+  {
+    "id": "typescript__109",
+    "page": "typescript.md",
+    "line": 3104,
+    "lang": "typescript",
+    "title": null,
+    "lines": 5,
+    "importsSdk": false,
+    "complete": false,
+    "errors": [
+      {
+        "line": 1,
+        "code": 2304,
+        "kind": "context",
+        "message": "Cannot find name 'BaseHookInput'."
+      }
+    ],
+    "status": "fragment"
+  },
+  {
+    "id": "typescript__110",
+    "page": "typescript.md",
+    "line": 3114,
+    "lang": "typescript",
+    "title": null,
+    "lines": 5,
+    "importsSdk": false,
+    "complete": false,
+    "errors": [
+      {
+        "line": 1,
+        "code": 2304,
+        "kind": "context",
+        "message": "Cannot find name 'BaseHookInput'."
+      }
+    ],
+    "status": "fragment"
+  },
+  {
+    "id": "typescript__111",
+    "page": "typescript.md",
+    "line": 3124,
+    "lang": "typescript",
+    "title": null,
+    "lines": 8,
+    "importsSdk": false,
+    "complete": false,
+    "errors": [
+      {
+        "line": 1,
+        "code": 2304,
+        "kind": "context",
+        "message": "Cannot find name 'BaseHookInput'."
+      }
+    ],
+    "status": "fragment"
+  },
+  {
+    "id": "typescript__112",
+    "page": "typescript.md",
+    "line": 3139,
+    "lang": "typescript",
+    "title": null,
+    "lines": 1,
+    "importsSdk": false,
+    "complete": false,
+    "errors": [
+      {
+        "line": 1,
+        "code": 2552,
+        "kind": "context",
+        "message": "Cannot find name 'AsyncHookJSONOutput'. Did you mean 'HookJSONOutput'?"
+      },
+      {
+        "line": 1,
+        "code": 2552,
+        "kind": "context",
+        "message": "Cannot find name 'SyncHookJSONOutput'. Did you mean 'HookJSONOutput'?"
+      }
+    ],
+    "status": "fragment"
+  },
+  {
+    "id": "typescript__113",
+    "page": "typescript.md",
+    "line": 3145,
+    "lang": "typescript",
+    "title": null,
+    "lines": 4,
+    "importsSdk": false,
+    "complete": false,
+    "errors": [],
+    "status": "pass"
+  },
+  {
+    "id": "typescript__114",
+    "page": "typescript.md",
+    "line": 3154,
+    "lang": "typescript",
+    "title": null,
+    "lines": 151,
+    "importsSdk": false,
+    "complete": false,
+    "errors": [
+      {
+        "line": 116,
+        "code": 2552,
+        "kind": "context",
+        "message": "Cannot find name 'PermissionUpdate'. Did you mean 'PermissionState'?"
+      }
+    ],
+    "status": "fragment"
+  },
+  {
+    "id": "typescript__115",
+    "page": "typescript.md",
+    "line": 3318,
+    "lang": "typescript",
+    "title": null,
+    "lines": 39,
+    "importsSdk": false,
+    "complete": false,
+    "errors": [
+      {
+        "line": 2,
+        "code": 2304,
+        "kind": "context",
+        "message": "Cannot find name 'AgentInput'."
+      },
+      {
+        "line": 3,
+        "code": 2304,
+        "kind": "context",
+        "message": "Cannot find name 'ArtifactInput'."
+      },
+      {
+        "line": 4,
+        "code": 2304,
+        "kind": "context",
+        "message": "Cannot find name 'AskUserQuestionInput'."
+      },
+      {
+        "line": 5,
+        "code": 2304,
+        "kind": "context",
+        "message": "Cannot find name 'BashInput'."
+      },
+      {
+        "line": 6,
+        "code": 2304,
+        "kind": "context",
+        "message": "Cannot find name 'CronCreateInput'."
+      },
+      {
+        "line": 7,
+        "code": 2304,
+        "kind": "context",
+        "message": "Cannot find name 'CronDeleteInput'."
+      },
+      {
+        "line": 8,
+        "code": 2304,
+        "kind": "context",
+        "message": "Cannot find name 'CronListInput'."
+      },
+      {
+        "line": 9,
+        "code": 2304,
+        "kind": "context",
+        "message": "Cannot find name 'EnterPlanModeInput'."
+      },
+      {
+        "line": 10,
+        "code": 2304,
+        "kind": "context",
+        "message": "Cannot find name 'EnterWorktreeInput'."
+      },
+      {
+        "line": 11,
+        "code": 2304,
+        "kind": "context",
+        "message": "Cannot find name 'ExitPlanModeInput'."
+      },
+      {
+        "line": 12,
+        "code": 2304,
+        "kind": "context",
+        "message": "Cannot find name 'ExitWorktreeInput'."
+      },
+      {
+        "line": 13,
+        "code": 2304,
+        "kind": "context",
+        "message": "Cannot find name 'FileEditInput'."
+      },
+      {
+        "line": 14,
+        "code": 2304,
+        "kind": "context",
+        "message": "Cannot find name 'FileReadInput'."
+      },
+      {
+        "line": 15,
+        "code": 2304,
+        "kind": "context",
+        "message": "Cannot find name 'FileWriteInput'."
+      },
+      {
+        "line": 16,
+        "code": 2304,
+        "kind": "context",
+        "message": "Cannot find name 'GlobInput'."
+      },
+      {
+        "line": 17,
+        "code": 2304,
+        "kind": "context",
+        "message": "Cannot find name 'GrepInput'."
+      },
+      {
+        "line": 18,
+        "code": 2304,
+        "kind": "context",
+        "message": "Cannot find name 'ListMcpResourcesInput'."
+      },
+      {
+        "line": 19,
+        "code": 2304,
+        "kind": "context",
+        "message": "Cannot find name 'McpInput'."
+      },
+      {
+        "line": 20,
+        "code": 2304,
+        "kind": "context",
+        "message": "Cannot find name 'MonitorInput'."
+      },
+      {
+        "line": 21,
+        "code": 2304,
+        "kind": "context",
+        "message": "Cannot find name 'NotebookEditInput'."
+      },
+      {
+        "line": 22,
+        "code": 2304,
+        "kind": "context",
+        "message": "Cannot find name 'ProjectsInput'."
+      },
+      {
+        "line": 23,
+        "code": 2304,
+        "kind": "context",
+        "message": "Cannot find name 'PushNotificationInput'."
+      },
+      {
+        "line": 24,
+        "code": 2304,
+        "kind": "context",
+        "message": "Cannot find name 'ReadMcpResourceDirInput'."
+      },
+      {
+        "line": 25,
+        "code": 2304,
+        "kind": "context",
+        "message": "Cannot find name 'ReadMcpResourceInput'."
+      },
+      {
+        "line": 26,
+        "code": 2304,
+        "kind": "context",
+        "message": "Cannot find name 'RefreshMcpToolsInput'."
+      },
+      {
+        "line": 27,
+        "code": 2304,
+        "kind": "context",
+        "message": "Cannot find name 'RemoteTriggerInput'."
+      },
+      {
+        "line": 28,
+        "code": 2304,
+        "kind": "context",
+        "message": "Cannot find name 'ReportFindingsInput'."
+      },
+      {
+        "line": 29,
+        "code": 2304,
+        "kind": "context",
+        "message": "Cannot find name 'ScheduleWakeupInput'."
+      },
+      {
+        "line": 30,
+        "code": 2304,
+        "kind": "context",
+        "message": "Cannot find name 'ShowOnboardingRolePickerInput'."
+      },
+      {
+        "line": 31,
+        "code": 2304,
+        "kind": "context",
+        "message": "Cannot find name 'TaskCreateInput'."
+      },
+      {
+        "line": 32,
+        "code": 2304,
+        "kind": "context",
+        "message": "Cannot find name 'TaskGetInput'."
+      },
+      {
+        "line": 33,
+        "code": 2304,
+        "kind": "context",
+        "message": "Cannot find name 'TaskListInput'."
+      },
+      {
+        "line": 34,
+        "code": 2304,
+        "kind": "context",
+        "message": "Cannot find name 'TaskStopInput'."
+      },
+      {
+        "line": 35,
+        "code": 2304,
+        "kind": "context",
+        "message": "Cannot find name 'TaskUpdateInput'."
+      },
+      {
+        "line": 36,
+        "code": 2304,
+        "kind": "context",
+        "message": "Cannot find name 'TodoWriteInput'."
+      },
+      {
+        "line": 37,
+        "code": 2304,
+        "kind": "context",
+        "message": "Cannot find name 'WebFetchInput'."
+      },
+      {
+        "line": 38,
+        "code": 2304,
+        "kind": "context",
+        "message": "Cannot find name 'WebSearchInput'."
+      },
+      {
+        "line": 39,
+        "code": 2304,
+        "kind": "context",
+        "message": "Cannot find name 'WorkflowInput'."
+      }
+    ],
+    "status": "fragment"
+  },
+  {
+    "id": "typescript__116",
+    "page": "typescript.md",
+    "line": 3370,
+    "lang": "typescript",
+    "title": null,
+    "lines": 12,
+    "importsSdk": false,
+    "complete": false,
+    "errors": [],
+    "status": "pass"
+  },
+  {
+    "id": "typescript__117",
+    "page": "typescript.md",
+    "line": 3391,
+    "lang": "typescript",
+    "title": null,
+    "lines": 11,
+    "importsSdk": false,
+    "complete": false,
+    "errors": [],
+    "status": "pass"
+  },
+  {
+    "id": "typescript__118",
+    "page": "typescript.md",
+    "line": 3411,
+    "lang": "typescript",
+    "title": null,
+    "lines": 7,
+    "importsSdk": false,
+    "complete": false,
+    "errors": [],
+    "status": "pass"
+  },
+  {
+    "id": "typescript__119",
+    "page": "typescript.md",
+    "line": 3427,
+    "lang": "typescript",
+    "title": null,
+    "lines": 9,
+    "importsSdk": false,
+    "complete": false,
+    "errors": [],
+    "status": "pass"
+  },
+  {
+    "id": "typescript__120",
+    "page": "typescript.md",
+    "line": 3459,
+    "lang": "typescript",
+    "title": null,
+    "lines": 6,
+    "importsSdk": false,
+    "complete": false,
+    "errors": [],
+    "status": "pass"
+  },
+  {
+    "id": "typescript__121",
+    "page": "typescript.md",
+    "line": 3474,
+    "lang": "typescript",
+    "title": null,
+    "lines": 7,
+    "importsSdk": false,
+    "complete": false,
+    "errors": [],
+    "status": "pass"
+  },
+  {
+    "id": "typescript__122",
+    "page": "typescript.md",
+    "line": 3495,
+    "lang": "typescript",
+    "title": null,
+    "lines": 4,
+    "importsSdk": false,
+    "complete": false,
+    "errors": [],
+    "status": "pass"
+  },
+  {
+    "id": "typescript__123",
+    "page": "typescript.md",
+    "line": 3508,
+    "lang": "typescript",
+    "title": null,
+    "lines": 4,
+    "importsSdk": false,
+    "complete": false,
+    "errors": [],
+    "status": "pass"
+  },
+  {
+    "id": "typescript__124",
+    "page": "typescript.md",
+    "line": 3521,
+    "lang": "typescript",
+    "title": null,
+    "lines": 17,
+    "importsSdk": false,
+    "complete": false,
+    "errors": [],
+    "status": "pass"
+  },
+  {
+    "id": "typescript__125",
+    "page": "typescript.md",
+    "line": 3547,
+    "lang": "typescript",
+    "title": null,
+    "lines": 4,
+    "importsSdk": false,
+    "complete": false,
+    "errors": [],
+    "status": "pass"
+  },
+  {
+    "id": "typescript__126",
+    "page": "typescript.md",
+    "line": 3560,
+    "lang": "typescript",
+    "title": null,
+    "lines": 7,
+    "importsSdk": false,
+    "complete": false,
+    "errors": [],
+    "status": "pass"
+  },
+  {
+    "id": "typescript__127",
+    "page": "typescript.md",
+    "line": 3576,
+    "lang": "typescript",
+    "title": null,
+    "lines": 5,
+    "importsSdk": false,
+    "complete": false,
+    "errors": [],
+    "status": "pass"
+  },
+  {
+    "id": "typescript__128",
+    "page": "typescript.md",
+    "line": 3592,
+    "lang": "typescript",
+    "title": null,
+    "lines": 5,
+    "importsSdk": false,
+    "complete": false,
+    "errors": [],
+    "status": "pass"
+  },
+  {
+    "id": "typescript__129",
+    "page": "typescript.md",
+    "line": 3606,
+    "lang": "typescript",
+    "title": null,
+    "lines": 9,
+    "importsSdk": false,
+    "complete": false,
+    "errors": [],
+    "status": "pass"
+  },
+  {
+    "id": "typescript__130",
+    "page": "typescript.md",
+    "line": 3634,
+    "lang": "typescript",
+    "title": null,
+    "lines": 7,
+    "importsSdk": false,
+    "complete": false,
+    "errors": [],
+    "status": "pass"
+  },
+  {
+    "id": "typescript__131",
+    "page": "typescript.md",
+    "line": 3666,
+    "lang": "typescript",
+    "title": null,
+    "lines": 6,
+    "importsSdk": false,
+    "complete": false,
+    "errors": [],
+    "status": "pass"
+  },
+  {
+    "id": "typescript__132",
+    "page": "typescript.md",
+    "line": 3681,
+    "lang": "typescript",
+    "title": null,
+    "lines": 11,
+    "importsSdk": false,
+    "complete": false,
+    "errors": [],
+    "status": "pass"
+  },
+  {
+    "id": "typescript__133",
+    "page": "typescript.md",
+    "line": 3701,
+    "lang": "typescript",
+    "title": null,
+    "lines": 3,
+    "importsSdk": false,
+    "complete": false,
+    "errors": [],
+    "status": "pass"
+  },
+  {
+    "id": "typescript__134",
+    "page": "typescript.md",
+    "line": 3713,
+    "lang": "typescript",
+    "title": null,
+    "lines": 1,
+    "importsSdk": false,
+    "complete": false,
+    "errors": [],
+    "status": "pass"
+  },
+  {
+    "id": "typescript__135",
+    "page": "typescript.md",
+    "line": 3723,
+    "lang": "typescript",
+    "title": null,
+    "lines": 8,
+    "importsSdk": false,
+    "complete": false,
+    "errors": [],
+    "status": "pass"
+  },
+  {
+    "id": "typescript__136",
+    "page": "typescript.md",
+    "line": 3740,
+    "lang": "typescript",
+    "title": null,
+    "lines": 3,
+    "importsSdk": false,
+    "complete": false,
+    "errors": [],
+    "status": "pass"
+  },
+  {
+    "id": "typescript__137",
+    "page": "typescript.md",
+    "line": 3752,
+    "lang": "typescript",
+    "title": null,
+    "lines": 4,
+    "importsSdk": false,
+    "complete": false,
+    "errors": [],
+    "status": "pass"
+  },
+  {
+    "id": "typescript__138",
+    "page": "typescript.md",
+    "line": 3765,
+    "lang": "typescript",
+    "title": null,
+    "lines": 4,
+    "importsSdk": false,
+    "complete": false,
+    "errors": [],
+    "status": "pass"
+  },
+  {
+    "id": "typescript__139",
+    "page": "typescript.md",
+    "line": 3778,
+    "lang": "typescript",
+    "title": null,
+    "lines": 4,
+    "importsSdk": false,
+    "complete": false,
+    "errors": [],
+    "status": "pass"
+  },
+  {
+    "id": "typescript__140",
+    "page": "typescript.md",
+    "line": 3791,
+    "lang": "typescript",
+    "title": null,
+    "lines": 1,
+    "importsSdk": false,
+    "complete": false,
+    "errors": [],
+    "status": "pass"
+  },
+  {
+    "id": "typescript__141",
+    "page": "typescript.md",
+    "line": 3801,
+    "lang": "typescript",
+    "title": null,
+    "lines": 6,
+    "importsSdk": false,
+    "complete": false,
+    "errors": [],
+    "status": "pass"
+  },
+  {
+    "id": "typescript__142",
+    "page": "typescript.md",
+    "line": 3818,
+    "lang": "typescript",
+    "title": null,
+    "lines": 3,
+    "importsSdk": false,
+    "complete": false,
+    "errors": [],
+    "status": "pass"
+  },
+  {
+    "id": "typescript__143",
+    "page": "typescript.md",
+    "line": 3830,
+    "lang": "typescript",
+    "title": null,
+    "lines": 1,
+    "importsSdk": false,
+    "complete": false,
+    "errors": [],
+    "status": "pass"
+  },
+  {
+    "id": "typescript__144",
+    "page": "typescript.md",
+    "line": 3840,
+    "lang": "typescript",
+    "title": null,
+    "lines": 7,
+    "importsSdk": false,
+    "complete": false,
+    "errors": [],
+    "status": "pass"
+  },
+  {
+    "id": "typescript__145",
+    "page": "typescript.md",
+    "line": 3856,
+    "lang": "typescript",
+    "title": null,
+    "lines": 17,
+    "importsSdk": false,
+    "complete": false,
+    "errors": [],
+    "status": "pass"
+  },
+  {
+    "id": "typescript__146",
+    "page": "typescript.md",
+    "line": 3889,
+    "lang": "typescript",
+    "title": null,
+    "lines": 4,
+    "importsSdk": false,
+    "complete": false,
+    "errors": [],
+    "status": "pass"
+  },
+  {
+    "id": "typescript__147",
+    "page": "typescript.md",
+    "line": 3906,
+    "lang": "typescript",
+    "title": null,
+    "lines": 13,
+    "importsSdk": false,
+    "complete": false,
+    "errors": [],
+    "status": "pass"
+  },
+  {
+    "id": "typescript__148",
+    "page": "typescript.md",
+    "line": 3939,
+    "lang": "typescript",
+    "title": null,
+    "lines": 15,
+    "importsSdk": false,
+    "complete": false,
+    "errors": [],
+    "status": "pass"
+  },
+  {
+    "id": "typescript__149",
+    "page": "typescript.md",
+    "line": 3979,
+    "lang": "typescript",
+    "title": null,
+    "lines": 14,
+    "importsSdk": false,
+    "complete": false,
+    "errors": [],
+    "status": "pass"
+  },
+  {
+    "id": "typescript__150",
+    "page": "typescript.md",
+    "line": 4008,
+    "lang": "typescript",
+    "title": null,
+    "lines": 4,
+    "importsSdk": false,
+    "complete": false,
+    "errors": [],
+    "status": "pass"
+  },
+  {
+    "id": "typescript__151",
+    "page": "typescript.md",
+    "line": 4021,
+    "lang": "typescript",
+    "title": null,
+    "lines": 3,
+    "importsSdk": false,
+    "complete": false,
+    "errors": [],
+    "status": "pass"
+  },
+  {
+    "id": "typescript__152",
+    "page": "typescript.md",
+    "line": 4033,
+    "lang": "typescript",
+    "title": null,
+    "lines": 1,
+    "importsSdk": false,
+    "complete": false,
+    "errors": [],
+    "status": "pass"
+  },
+  {
+    "id": "typescript__153",
+    "page": "typescript.md",
+    "line": 4043,
+    "lang": "typescript",
+    "title": null,
+    "lines": 3,
+    "importsSdk": false,
+    "complete": false,
+    "errors": [],
+    "status": "pass"
+  },
+  {
+    "id": "typescript__154",
+    "page": "typescript.md",
+    "line": 4059,
+    "lang": "typescript",
+    "title": null,
+    "lines": 39,
+    "importsSdk": false,
+    "complete": false,
+    "errors": [
+      {
+        "line": 2,
+        "code": 2304,
+        "kind": "context",
+        "message": "Cannot find name 'AgentOutput'."
+      },
+      {
+        "line": 3,
+        "code": 2304,
+        "kind": "context",
+        "message": "Cannot find name 'ArtifactOutput'."
+      },
+      {
+        "line": 4,
+        "code": 2304,
+        "kind": "context",
+        "message": "Cannot find name 'AskUserQuestionOutput'."
+      },
+      {
+        "line": 5,
+        "code": 2304,
+        "kind": "context",
+        "message": "Cannot find name 'BashOutput'."
+      },
+      {
+        "line": 6,
+        "code": 2304,
+        "kind": "context",
+        "message": "Cannot find name 'CronCreateOutput'."
+      },
+      {
+        "line": 7,
+        "code": 2304,
+        "kind": "context",
+        "message": "Cannot find name 'CronDeleteOutput'."
+      },
+      {
+        "line": 8,
+        "code": 2304,
+        "kind": "context",
+        "message": "Cannot find name 'CronListOutput'."
+      },
+      {
+        "line": 9,
+        "code": 2304,
+        "kind": "context",
+        "message": "Cannot find name 'EnterPlanModeOutput'."
+      },
+      {
+        "line": 10,
+        "code": 2304,
+        "kind": "context",
+        "message": "Cannot find name 'EnterWorktreeOutput'."
+      },
+      {
+        "line": 11,
+        "code": 2304,
+        "kind": "context",
+        "message": "Cannot find name 'ExitPlanModeOutput'."
+      },
+      {
+        "line": 12,
+        "code": 2304,
+        "kind": "context",
+        "message": "Cannot find name 'ExitWorktreeOutput'."
+      },
+      {
+        "line": 13,
+        "code": 2304,
+        "kind": "context",
+        "message": "Cannot find name 'FileEditOutput'."
+      },
+      {
+        "line": 14,
+        "code": 2304,
+        "kind": "context",
+        "message": "Cannot find name 'FileReadOutput'."
+      },
+      {
+        "line": 15,
+        "code": 2304,
+        "kind": "context",
+        "message": "Cannot find name 'FileWriteOutput'."
+      },
+      {
+        "line": 16,
+        "code": 2304,
+        "kind": "context",
+        "message": "Cannot find name 'GlobOutput'."
+      },
+      {
+        "line": 17,
+        "code": 2304,
+        "kind": "context",
+        "message": "Cannot find name 'GrepOutput'."
+      },
+      {
+        "line": 18,
+        "code": 2304,
+        "kind": "context",
+        "message": "Cannot find name 'ListMcpResourcesOutput'."
+      },
+      {
+        "line": 19,
+        "code": 2304,
+        "kind": "context",
+        "message": "Cannot find name 'McpOutput'."
+      },
+      {
+        "line": 20,
+        "code": 2304,
+        "kind": "context",
+        "message": "Cannot find name 'MonitorOutput'."
+      },
+      {
+        "line": 21,
+        "code": 2304,
+        "kind": "context",
+        "message": "Cannot find name 'NotebookEditOutput'."
+      },
+      {
+        "line": 22,
+        "code": 2304,
+        "kind": "context",
+        "message": "Cannot find name 'ProjectsOutput'."
+      },
+      {
+        "line": 23,
+        "code": 2304,
+        "kind": "context",
+        "message": "Cannot find name 'PushNotificationOutput'."
+      },
+      {
+        "line": 24,
+        "code": 2304,
+        "kind": "context",
+        "message": "Cannot find name 'ReadMcpResourceDirOutput'."
+      },
+      {
+        "line": 25,
+        "code": 2304,
+        "kind": "context",
+        "message": "Cannot find name 'ReadMcpResourceOutput'."
+      },
+      {
+        "line": 26,
+        "code": 2304,
+        "kind": "context",
+        "message": "Cannot find name 'RefreshMcpToolsOutput'."
+      },
+      {
+        "line": 27,
+        "code": 2304,
+        "kind": "context",
+        "message": "Cannot find name 'RemoteTriggerOutput'."
+      },
+      {
+        "line": 28,
+        "code": 2304,
+        "kind": "context",
+        "message": "Cannot find name 'ReportFindingsOutput'."
+      },
+      {
+        "line": 29,
+        "code": 2304,
+        "kind": "context",
+        "message": "Cannot find name 'ScheduleWakeupOutput'."
+      },
+      {
+        "line": 30,
+        "code": 2304,
+        "kind": "context",
+        "message": "Cannot find name 'ShowOnboardingRolePickerOutput'."
+      },
+      {
+        "line": 31,
+        "code": 2304,
+        "kind": "context",
+        "message": "Cannot find name 'TaskCreateOutput'."
+      },
+      {
+        "line": 32,
+        "code": 2304,
+        "kind": "context",
+        "message": "Cannot find name 'TaskGetOutput'."
+      },
+      {
+        "line": 33,
+        "code": 2304,
+        "kind": "context",
+        "message": "Cannot find name 'TaskListOutput'."
+      },
+      {
+        "line": 34,
+        "code": 2304,
+        "kind": "context",
+        "message": "Cannot find name 'TaskStopOutput'."
+      },
+      {
+        "line": 35,
+        "code": 2304,
+        "kind": "context",
+        "message": "Cannot find name 'TaskUpdateOutput'."
+      },
+      {
+        "line": 36,
+        "code": 2304,
+        "kind": "context",
+        "message": "Cannot find name 'TodoWriteOutput'."
+      },
+      {
+        "line": 37,
+        "code": 2304,
+        "kind": "context",
+        "message": "Cannot find name 'WebFetchOutput'."
+      },
+      {
+        "line": 38,
+        "code": 2304,
+        "kind": "context",
+        "message": "Cannot find name 'WebSearchOutput'."
+      },
+      {
+        "line": 39,
+        "code": 2304,
+        "kind": "context",
+        "message": "Cannot find name 'WorkflowOutput'."
+      }
+    ],
+    "status": "fragment"
+  },
+  {
+    "id": "typescript__155",
+    "page": "typescript.md",
+    "line": 4105,
+    "lang": "typescript",
+    "title": null,
+    "lines": 66,
+    "importsSdk": false,
+    "complete": false,
+    "errors": [],
+    "status": "pass"
+  },
+  {
+    "id": "typescript__156",
+    "page": "typescript.md",
+    "line": 4192,
+    "lang": "typescript",
+    "title": null,
+    "lines": 12,
+    "importsSdk": false,
+    "complete": false,
+    "errors": [],
+    "status": "pass"
+  },
+  {
+    "id": "typescript__157",
+    "page": "typescript.md",
+    "line": 4213,
+    "lang": "typescript",
+    "title": null,
+    "lines": 30,
+    "importsSdk": false,
+    "complete": false,
+    "errors": [],
+    "status": "pass"
+  },
+  {
+    "id": "typescript__158",
+    "page": "typescript.md",
+    "line": 4264,
+    "lang": "typescript",
+    "title": null,
+    "lines": 5,
+    "importsSdk": false,
+    "complete": false,
+    "errors": [],
+    "status": "pass"
+  },
+  {
+    "id": "typescript__159",
+    "page": "typescript.md",
+    "line": 4278,
+    "lang": "typescript",
+    "title": null,
+    "lines": 24,
+    "importsSdk": false,
+    "complete": false,
+    "errors": [],
+    "status": "pass"
+  },
+  {
+    "id": "typescript__160",
+    "page": "typescript.md",
+    "line": 4311,
+    "lang": "typescript",
+    "title": null,
+    "lines": 67,
+    "importsSdk": false,
+    "complete": false,
+    "errors": [],
+    "status": "pass"
+  },
+  {
+    "id": "typescript__161",
+    "page": "typescript.md",
+    "line": 4387,
+    "lang": "typescript",
+    "title": null,
+    "lines": 23,
+    "importsSdk": false,
+    "complete": false,
+    "errors": [],
+    "status": "pass"
+  },
+  {
+    "id": "typescript__162",
+    "page": "typescript.md",
+    "line": 4423,
+    "lang": "typescript",
+    "title": null,
+    "lines": 8,
+    "importsSdk": false,
+    "complete": false,
+    "errors": [],
+    "status": "pass"
+  },
+  {
+    "id": "typescript__163",
+    "page": "typescript.md",
+    "line": 4442,
+    "lang": "typescript",
+    "title": null,
+    "lines": 13,
+    "importsSdk": false,
+    "complete": false,
+    "errors": [],
+    "status": "pass"
+  },
+  {
+    "id": "typescript__164",
+    "page": "typescript.md",
+    "line": 4466,
+    "lang": "typescript",
+    "title": null,
+    "lines": 6,
+    "importsSdk": false,
+    "complete": false,
+    "errors": [],
+    "status": "pass"
+  },
+  {
+    "id": "typescript__165",
+    "page": "typescript.md",
+    "line": 4481,
+    "lang": "typescript",
+    "title": null,
+    "lines": 12,
+    "importsSdk": false,
+    "complete": false,
+    "errors": [],
+    "status": "pass"
+  },
+  {
+    "id": "typescript__166",
+    "page": "typescript.md",
+    "line": 4502,
+    "lang": "typescript",
+    "title": null,
+    "lines": 13,
+    "importsSdk": false,
+    "complete": false,
+    "errors": [],
+    "status": "pass"
+  },
+  {
+    "id": "typescript__167",
+    "page": "typescript.md",
+    "line": 4526,
+    "lang": "typescript",
+    "title": null,
+    "lines": 12,
+    "importsSdk": false,
+    "complete": false,
+    "errors": [],
+    "status": "pass"
+  },
+  {
+    "id": "typescript__168",
+    "page": "typescript.md",
+    "line": 4547,
+    "lang": "typescript",
+    "title": null,
+    "lines": 13,
+    "importsSdk": false,
+    "complete": false,
+    "errors": [],
+    "status": "pass"
+  },
+  {
+    "id": "typescript__169",
+    "page": "typescript.md",
+    "line": 4583,
+    "lang": "typescript",
+    "title": null,
+    "lines": 12,
+    "importsSdk": false,
+    "complete": false,
+    "errors": [],
+    "status": "pass"
+  },
+  {
+    "id": "typescript__170",
+    "page": "typescript.md",
+    "line": 4620,
+    "lang": "typescript",
+    "title": null,
+    "lines": 6,
+    "importsSdk": false,
+    "complete": false,
+    "errors": [],
+    "status": "pass"
+  },
+  {
+    "id": "typescript__171",
+    "page": "typescript.md",
+    "line": 4635,
+    "lang": "typescript",
+    "title": null,
+    "lines": 10,
+    "importsSdk": false,
+    "complete": false,
+    "errors": [],
+    "status": "pass"
+  },
+  {
+    "id": "typescript__172",
+    "page": "typescript.md",
+    "line": 4654,
+    "lang": "typescript",
+    "title": null,
+    "lines": 10,
+    "importsSdk": false,
+    "complete": false,
+    "errors": [],
+    "status": "pass"
+  },
+  {
+    "id": "typescript__173",
+    "page": "typescript.md",
+    "line": 4673,
+    "lang": "typescript",
+    "title": null,
+    "lines": 9,
+    "importsSdk": false,
+    "complete": false,
+    "errors": [],
+    "status": "pass"
+  },
+  {
+    "id": "typescript__174",
+    "page": "typescript.md",
+    "line": 4691,
+    "lang": "typescript",
+    "title": null,
+    "lines": 9,
+    "importsSdk": false,
+    "complete": false,
+    "errors": [],
+    "status": "pass"
+  },
+  {
+    "id": "typescript__175",
+    "page": "typescript.md",
+    "line": 4709,
+    "lang": "typescript",
+    "title": null,
+    "lines": 7,
+    "importsSdk": false,
+    "complete": false,
+    "errors": [],
+    "status": "pass"
+  },
+  {
+    "id": "typescript__176",
+    "page": "typescript.md",
+    "line": 4725,
+    "lang": "typescript",
+    "title": null,
+    "lines": 9,
+    "importsSdk": false,
+    "complete": false,
+    "errors": [],
+    "status": "pass"
+  },
+  {
+    "id": "typescript__177",
+    "page": "typescript.md",
+    "line": 4743,
+    "lang": "typescript",
+    "title": null,
+    "lines": 5,
+    "importsSdk": false,
+    "complete": false,
+    "errors": [],
+    "status": "pass"
+  },
+  {
+    "id": "typescript__178",
+    "page": "typescript.md",
+    "line": 4757,
+    "lang": "typescript",
+    "title": null,
+    "lines": 10,
+    "importsSdk": false,
+    "complete": false,
+    "errors": [],
+    "status": "pass"
+  },
+  {
+    "id": "typescript__179",
+    "page": "typescript.md",
+    "line": 4776,
+    "lang": "typescript",
+    "title": null,
+    "lines": 3,
+    "importsSdk": false,
+    "complete": false,
+    "errors": [],
+    "status": "pass"
+  },
+  {
+    "id": "typescript__180",
+    "page": "typescript.md",
+    "line": 4788,
+    "lang": "typescript",
+    "title": null,
+    "lines": 7,
+    "importsSdk": false,
+    "complete": false,
+    "errors": [],
+    "status": "pass"
+  },
+  {
+    "id": "typescript__181",
+    "page": "typescript.md",
+    "line": 4804,
+    "lang": "typescript",
+    "title": null,
+    "lines": 3,
+    "importsSdk": false,
+    "complete": false,
+    "errors": [],
+    "status": "pass"
+  },
+  {
+    "id": "typescript__182",
+    "page": "typescript.md",
+    "line": 4816,
+    "lang": "typescript",
+    "title": null,
+    "lines": 11,
+    "importsSdk": false,
+    "complete": false,
+    "errors": [],
+    "status": "pass"
+  },
+  {
+    "id": "typescript__183",
+    "page": "typescript.md",
+    "line": 4838,
+    "lang": "typescript",
+    "title": null,
+    "lines": 7,
+    "importsSdk": false,
+    "complete": false,
+    "errors": [],
+    "status": "pass"
+  },
+  {
+    "id": "typescript__184",
+    "page": "typescript.md",
+    "line": 4854,
+    "lang": "typescript",
+    "title": null,
+    "lines": 5,
+    "importsSdk": false,
+    "complete": false,
+    "errors": [],
+    "status": "pass"
+  },
+  {
+    "id": "typescript__185",
+    "page": "typescript.md",
+    "line": 4868,
+    "lang": "typescript",
+    "title": null,
+    "lines": 7,
+    "importsSdk": false,
+    "complete": false,
+    "errors": [],
+    "status": "pass"
+  },
+  {
+    "id": "typescript__186",
+    "page": "typescript.md",
+    "line": 4884,
+    "lang": "typescript",
+    "title": null,
+    "lines": 14,
+    "importsSdk": false,
+    "complete": false,
+    "errors": [],
+    "status": "pass"
+  },
+  {
+    "id": "typescript__187",
+    "page": "typescript.md",
+    "line": 4907,
+    "lang": "typescript",
+    "title": null,
+    "lines": 28,
+    "importsSdk": false,
+    "complete": false,
+    "errors": [],
+    "status": "pass"
+  },
+  {
+    "id": "typescript__188",
+    "page": "typescript.md",
+    "line": 4946,
+    "lang": "typescript",
+    "title": null,
+    "lines": 53,
+    "importsSdk": false,
+    "complete": false,
+    "errors": [],
+    "status": "pass"
+  },
+  {
+    "id": "typescript__189",
+    "page": "typescript.md",
+    "line": 5008,
+    "lang": "typescript",
+    "title": null,
+    "lines": 8,
+    "importsSdk": false,
+    "complete": false,
+    "errors": [],
+    "status": "pass"
+  },
+  {
+    "id": "typescript__190",
+    "page": "typescript.md",
+    "line": 5025,
+    "lang": "typescript",
+    "title": null,
+    "lines": 8,
+    "importsSdk": false,
+    "complete": false,
+    "errors": [],
+    "status": "pass"
+  },
+  {
+    "id": "typescript__191",
+    "page": "typescript.md",
+    "line": 5042,
+    "lang": "typescript",
+    "title": null,
+    "lines": 4,
+    "importsSdk": false,
+    "complete": false,
+    "errors": [],
+    "status": "pass"
+  },
+  {
+    "id": "typescript__192",
+    "page": "typescript.md",
+    "line": 5055,
+    "lang": "typescript",
+    "title": null,
+    "lines": 9,
+    "importsSdk": false,
+    "complete": false,
+    "errors": [],
+    "status": "pass"
+  },
+  {
+    "id": "typescript__193",
+    "page": "typescript.md",
+    "line": 5075,
+    "lang": "typescript",
+    "title": null,
+    "lines": 34,
+    "importsSdk": false,
+    "complete": false,
+    "errors": [
+      {
+        "line": 4,
+        "code": 2304,
+        "kind": "context",
+        "message": "Cannot find name 'PermissionRuleValue'."
+      },
+      {
+        "line": 5,
+        "code": 2304,
+        "kind": "context",
+        "message": "Cannot find name 'PermissionBehavior'."
+      },
+      {
+        "line": 6,
+        "code": 2304,
+        "kind": "context",
+        "message": "Cannot find name 'PermissionUpdateDestination'."
+      },
+      {
+        "line": 10,
+        "code": 2304,
+        "kind": "context",
+        "message": "Cannot find name 'PermissionRuleValue'."
+      },
+      {
+        "line": 11,
+        "code": 2304,
+        "kind": "context",
+        "message": "Cannot find name 'PermissionBehavior'."
+      },
+      {
+        "line": 12,
+        "code": 2304,
+        "kind": "context",
+        "message": "Cannot find name 'PermissionUpdateDestination'."
+      },
+      {
+        "line": 16,
+        "code": 2304,
+        "kind": "context",
+        "message": "Cannot find name 'PermissionRuleValue'."
+      },
+      {
+        "line": 17,
+        "code": 2304,
+        "kind": "context",
+        "message": "Cannot find name 'PermissionBehavior'."
+      },
+      {
+        "line": 18,
+        "code": 2304,
+        "kind": "context",
+        "message": "Cannot find name 'PermissionUpdateDestination'."
+      },
+      {
+        "line": 22,
+        "code": 2552,
+        "kind": "context",
+        "message": "Cannot find name 'PermissionMode'. Did you mean 'PermissionName'?"
+      },
+      {
+        "line": 23,
+        "code": 2304,
+        "kind": "context",
+        "message": "Cannot find name 'PermissionUpdateDestination'."
+      },
+      {
+        "line": 28,
+        "code": 2304,
+        "kind": "context",
+        "message": "Cannot find name 'PermissionUpdateDestination'."
+      },
+      {
+        "line": 33,
+        "code": 2304,
+        "kind": "context",
+        "message": "Cannot find name 'PermissionUpdateDestination'."
+      }
+    ],
+    "status": "fragment"
+  },
+  {
+    "id": "typescript__194",
+    "page": "typescript.md",
+    "line": 5114,
+    "lang": "typescript",
+    "title": null,
+    "lines": 1,
+    "importsSdk": false,
+    "complete": false,
+    "errors": [],
+    "status": "pass"
+  },
+  {
+    "id": "typescript__195",
+    "page": "typescript.md",
+    "line": 5120,
+    "lang": "typescript",
+    "title": null,
+    "lines": 6,
+    "importsSdk": false,
+    "complete": false,
+    "errors": [],
+    "status": "pass"
+  },
+  {
+    "id": "typescript__196",
+    "page": "typescript.md",
+    "line": 5131,
+    "lang": "typescript",
+    "title": null,
+    "lines": 4,
+    "importsSdk": false,
+    "complete": false,
+    "errors": [],
+    "status": "pass"
+  },
+  {
+    "id": "typescript__197",
+    "page": "typescript.md",
+    "line": 5144,
+    "lang": "typescript",
+    "title": null,
+    "lines": 10,
+    "importsSdk": false,
+    "complete": false,
+    "errors": [],
+    "status": "pass"
+  },
+  {
+    "id": "typescript__198",
+    "page": "typescript.md",
+    "line": 5172,
+    "lang": "typescript",
+    "title": null,
+    "lines": 1,
+    "importsSdk": false,
+    "complete": false,
+    "errors": [],
+    "status": "pass"
+  },
+  {
+    "id": "typescript__199",
+    "page": "typescript.md",
+    "line": 5184,
+    "lang": "typescript",
+    "title": null,
+    "lines": 7,
+    "importsSdk": false,
+    "complete": false,
+    "errors": [],
+    "status": "pass"
+  },
+  {
+    "id": "typescript__200",
+    "page": "typescript.md",
+    "line": 5200,
+    "lang": "typescript",
+    "title": null,
+    "lines": 11,
+    "importsSdk": false,
+    "complete": false,
+    "errors": [],
+    "status": "pass"
+  },
+  {
+    "id": "typescript__201",
+    "page": "typescript.md",
+    "line": 5230,
+    "lang": "typescript",
+    "title": null,
+    "lines": 5,
+    "importsSdk": false,
+    "complete": false,
+    "errors": [],
+    "status": "pass"
+  },
+  {
+    "id": "typescript__202",
+    "page": "typescript.md",
+    "line": 5248,
+    "lang": "typescript",
+    "title": null,
+    "lines": 4,
+    "importsSdk": false,
+    "complete": false,
+    "errors": [],
+    "status": "pass"
+  },
+  {
+    "id": "typescript__203",
+    "page": "typescript.md",
+    "line": 5274,
+    "lang": "typescript",
+    "title": null,
+    "lines": 22,
+    "importsSdk": false,
+    "complete": false,
+    "errors": [
+      {
+        "line": 9,
+        "code": 2552,
+        "kind": "context",
+        "message": "Cannot find name 'McpServerStatusConfig'. Did you mean 'McpServerStatus'?"
+      }
+    ],
+    "status": "fragment"
+  },
+  {
+    "id": "typescript__204",
+    "page": "typescript.md",
+    "line": 5325,
+    "lang": "typescript",
+    "title": null,
+    "lines": 6,
+    "importsSdk": false,
+    "complete": false,
+    "errors": [
+      {
+        "line": 2,
+        "code": 2304,
+        "kind": "context",
+        "message": "Cannot find name 'McpStdioServerConfig'."
+      },
+      {
+        "line": 3,
+        "code": 2304,
+        "kind": "context",
+        "message": "Cannot find name 'McpSSEServerConfig'."
+      },
+      {
+        "line": 4,
+        "code": 2304,
+        "kind": "context",
+        "message": "Cannot find name 'McpHttpServerConfig'."
+      },
+      {
+        "line": 5,
+        "code": 2304,
+        "kind": "context",
+        "message": "Cannot find name 'McpSdkServerConfig'."
+      },
+      {
+        "line": 6,
+        "code": 2304,
+        "kind": "context",
+        "message": "Cannot find name 'McpClaudeAIProxyServerConfig'."
+      }
+    ],
+    "status": "fragment"
+  },
+  {
+    "id": "typescript__205",
+    "page": "typescript.md",
+    "line": 5340,
+    "lang": "typescript",
+    "title": null,
+    "lines": 7,
+    "importsSdk": false,
+    "complete": false,
+    "errors": [],
+    "status": "pass"
+  },
+  {
+    "id": "typescript__206",
+    "page": "typescript.md",
+    "line": 5354,
+    "lang": "typescript",
+    "title": null,
+    "lines": 14,
+    "importsSdk": false,
+    "complete": false,
+    "errors": [],
+    "status": "pass"
+  },
+  {
+    "id": "typescript__207",
+    "page": "typescript.md",
+    "line": 5381,
+    "lang": "typescript",
+    "title": null,
+    "lines": 1,
+    "importsSdk": false,
+    "complete": false,
+    "errors": [],
+    "status": "pass"
+  },
+  {
+    "id": "typescript__208",
+    "page": "typescript.md",
+    "line": 5389,
+    "lang": "typescript",
+    "title": null,
+    "lines": 5,
+    "importsSdk": false,
+    "complete": false,
+    "errors": [
+      {
+        "line": 2,
+        "code": 2304,
+        "kind": "context",
+        "message": "Cannot find name 'Usage'."
+      },
+      {
+        "line": 3,
+        "code": 2304,
+        "kind": "context",
+        "message": "Cannot find name 'Usage'."
+      },
+      {
+        "line": 4,
+        "code": 2304,
+        "kind": "context",
+        "message": "Cannot find name 'Usage'."
+      }
+    ],
+    "status": "fragment"
+  },
+  {
+    "id": "typescript__209",
+    "page": "typescript.md",
+    "line": 5401,
+    "lang": "typescript",
+    "title": null,
+    "lines": 17,
+    "importsSdk": false,
+    "complete": false,
+    "errors": [
+      {
+        "line": 10,
+        "code": 2304,
+        "kind": "context",
+        "message": "Cannot find name 'BetaServerToolUsage'."
+      },
+      {
+        "line": 14,
+        "code": 2304,
+        "kind": "context",
+        "message": "Cannot find name 'BetaIterationsUsage'."
+      },
+      {
+        "line": 15,
+        "code": 2304,
+        "kind": "context",
+        "message": "Cannot find name 'BetaOutputTokensDetails'."
+      },
+      {
+        "line": 16,
+        "code": 2304,
+        "kind": "context",
+        "message": "Cannot find name 'BetaFallbackCreditUsage'."
+      }
+    ],
+    "status": "fragment"
+  },
+  {
+    "id": "typescript__210",
+    "page": "typescript.md",
+    "line": 5436,
+    "lang": "typescript",
+    "title": null,
+    "lines": 8,
+    "importsSdk": false,
+    "complete": false,
+    "errors": [],
+    "status": "pass"
+  },
+  {
+    "id": "typescript__211",
+    "page": "typescript.md",
+    "line": 5451,
+    "lang": "typescript",
+    "title": null,
+    "lines": 9,
+    "importsSdk": false,
+    "complete": false,
+    "errors": [],
+    "status": "pass"
+  },
+  {
+    "id": "typescript__212",
+    "page": "typescript.md",
+    "line": 5479,
+    "lang": "typescript",
+    "title": null,
+    "lines": 6,
+    "importsSdk": false,
+    "complete": false,
+    "errors": [],
+    "status": "pass"
+  },
+  {
+    "id": "typescript__213",
+    "page": "typescript.md",
+    "line": 5496,
+    "lang": "typescript",
+    "title": null,
+    "lines": 22,
+    "importsSdk": false,
+    "complete": false,
+    "errors": [
+      {
+        "line": 2,
+        "code": 2304,
+        "kind": "context",
+        "message": "Cannot find name 'Writable'."
+      },
+      {
+        "line": 3,
+        "code": 2304,
+        "kind": "context",
+        "message": "Cannot find name 'Readable'."
+      }
+    ],
+    "status": "fragment"
+  },
+  {
+    "id": "typescript__214",
+    "page": "typescript.md",
+    "line": 5525,
+    "lang": "typescript",
+    "title": null,
+    "lines": 7,
+    "importsSdk": false,
+    "complete": false,
+    "errors": [],
+    "status": "pass"
+  },
+  {
+    "id": "typescript__215",
+    "page": "typescript.md",
+    "line": 5545,
+    "lang": "typescript",
+    "title": null,
+    "lines": 5,
+    "importsSdk": false,
+    "complete": false,
+    "errors": [],
+    "status": "pass"
+  },
+  {
+    "id": "typescript__216",
+    "page": "typescript.md",
+    "line": 5575,
+    "lang": "typescript",
+    "title": null,
+    "lines": 8,
+    "importsSdk": false,
+    "complete": false,
+    "errors": [],
+    "status": "pass"
+  },
+  {
+    "id": "typescript__217",
+    "page": "typescript.md",
+    "line": 5592,
+    "lang": "typescript",
+    "title": null,
+    "lines": 8,
+    "importsSdk": false,
+    "complete": false,
+    "errors": [
+      {
+        "line": 5,
+        "code": 2552,
+        "kind": "context",
+        "message": "Cannot find name 'PermissionMode'. Did you mean 'PermissionName'?"
+      },
+      {
+        "line": 6,
+        "code": 2304,
+        "kind": "context",
+        "message": "Cannot find name 'UUID'."
+      }
+    ],
+    "status": "fragment"
+  },
+  {
+    "id": "typescript__218",
+    "page": "typescript.md",
+    "line": 5607,
+    "lang": "typescript",
+    "title": null,
+    "lines": 20,
+    "importsSdk": false,
+    "complete": false,
+    "errors": [
+      {
+        "line": 17,
+        "code": 2304,
+        "kind": "context",
+        "message": "Cannot find name 'SDKMcpResourceLink'."
+      },
+      {
+        "line": 18,
+        "code": 2304,
+        "kind": "context",
+        "message": "Cannot find name 'UUID'."
+      }
+    ],
+    "status": "fragment"
+  },
+  {
+    "id": "typescript__219",
+    "page": "typescript.md",
+    "line": 5642,
+    "lang": "typescript",
+    "title": null,
+    "lines": 7,
+    "importsSdk": false,
+    "complete": false,
+    "errors": [
+      {
+        "line": 5,
+        "code": 2304,
+        "kind": "context",
+        "message": "Cannot find name 'UUID'."
+      }
+    ],
+    "status": "fragment"
+  },
+  {
+    "id": "typescript__220",
+    "page": "typescript.md",
+    "line": 5660,
+    "lang": "typescript",
+    "title": null,
+    "lines": 9,
+    "importsSdk": false,
+    "complete": false,
+    "errors": [
+      {
+        "line": 7,
+        "code": 2304,
+        "kind": "context",
+        "message": "Cannot find name 'UUID'."
+      }
+    ],
+    "status": "fragment"
+  },
+  {
+    "id": "typescript__221",
+    "page": "typescript.md",
+    "line": 5676,
+    "lang": "typescript",
+    "title": null,
+    "lines": 12,
+    "importsSdk": false,
+    "complete": false,
+    "errors": [
+      {
+        "line": 10,
+        "code": 2304,
+        "kind": "context",
+        "message": "Cannot find name 'UUID'."
+      }
+    ],
+    "status": "fragment"
+  },
+  {
+    "id": "typescript__222",
+    "page": "typescript.md",
+    "line": 5695,
+    "lang": "typescript",
+    "title": null,
+    "lines": 14,
+    "importsSdk": false,
+    "complete": false,
+    "errors": [
+      {
+        "line": 12,
+        "code": 2304,
+        "kind": "context",
+        "message": "Cannot find name 'UUID'."
+      }
+    ],
+    "status": "fragment"
+  },
+  {
+    "id": "typescript__223",
+    "page": "typescript.md",
+    "line": 5716,
+    "lang": "typescript",
+    "title": null,
+    "lines": 20,
+    "importsSdk": false,
+    "complete": false,
+    "errors": [
+      {
+        "line": 18,
+        "code": 2304,
+        "kind": "context",
+        "message": "Cannot find name 'UUID'."
+      }
+    ],
+    "status": "fragment"
+  },
+  {
+    "id": "typescript__224",
+    "page": "typescript.md",
+    "line": 5755,
+    "lang": "typescript",
+    "title": null,
+    "lines": 8,
+    "importsSdk": false,
+    "complete": false,
+    "errors": [
+      {
+        "line": 6,
+        "code": 2304,
+        "kind": "context",
+        "message": "Cannot find name 'UUID'."
+      }
+    ],
+    "status": "fragment"
+  },
+  {
+    "id": "typescript__225",
+    "page": "typescript.md",
+    "line": 5770,
+    "lang": "typescript",
+    "title": null,
+    "lines": 15,
+    "importsSdk": false,
+    "complete": false,
+    "errors": [
+      {
+        "line": 13,
+        "code": 2304,
+        "kind": "context",
+        "message": "Cannot find name 'UUID'."
+      }
+    ],
+    "status": "fragment"
+  },
+  {
+    "id": "typescript__226",
+    "page": "typescript.md",
+    "line": 5827,
+    "lang": "typescript",
+    "title": null,
+    "lines": 18,
+    "importsSdk": false,
+    "complete": false,
+    "errors": [
+      {
+        "line": 16,
+        "code": 2304,
+        "kind": "context",
+        "message": "Cannot find name 'UUID'."
+      }
+    ],
+    "status": "fragment"
+  },
+  {
+    "id": "typescript__227",
+    "page": "typescript.md",
+    "line": 5852,
+    "lang": "typescript",
+    "title": null,
+    "lines": 16,
+    "importsSdk": false,
+    "complete": false,
+    "errors": [
+      {
+        "line": 14,
+        "code": 2304,
+        "kind": "context",
+        "message": "Cannot find name 'UUID'."
+      }
+    ],
+    "status": "fragment"
+  },
+  {
+    "id": "typescript__228",
+    "page": "typescript.md",
+    "line": 5885,
+    "lang": "typescript",
+    "title": null,
+    "lines": 15,
+    "importsSdk": false,
+    "complete": false,
+    "errors": [
+      {
+        "line": 13,
+        "code": 2304,
+        "kind": "context",
+        "message": "Cannot find name 'UUID'."
+      }
+    ],
+    "status": "fragment"
+  },
+  {
+    "id": "typescript__229",
+    "page": "typescript.md",
+    "line": 5913,
+    "lang": "typescript",
+    "title": null,
+    "lines": 9,
+    "importsSdk": false,
+    "complete": false,
+    "errors": [
+      {
+        "line": 7,
+        "code": 2304,
+        "kind": "context",
+        "message": "Cannot find name 'UUID'."
+      }
+    ],
+    "status": "fragment"
+  },
+  {
+    "id": "typescript__230",
+    "page": "typescript.md",
+    "line": 5937,
+    "lang": "typescript",
+    "title": null,
+    "lines": 7,
+    "importsSdk": false,
+    "complete": false,
+    "errors": [
+      {
+        "line": 5,
+        "code": 2304,
+        "kind": "context",
+        "message": "Cannot find name 'UUID'."
+      }
+    ],
+    "status": "fragment"
+  },
+  {
+    "id": "typescript__231",
+    "page": "typescript.md",
+    "line": 5951,
+    "lang": "typescript",
+    "title": null,
+    "lines": 9,
+    "importsSdk": false,
+    "complete": false,
+    "errors": [
+      {
+        "line": 7,
+        "code": 2304,
+        "kind": "context",
+        "message": "Cannot find name 'UUID'."
+      }
+    ],
+    "status": "fragment"
+  },
+  {
+    "id": "typescript__232",
+    "page": "typescript.md",
+    "line": 5967,
+    "lang": "typescript",
+    "title": null,
+    "lines": 14,
+    "importsSdk": false,
+    "complete": false,
+    "errors": [
+      {
+        "line": 12,
+        "code": 2304,
+        "kind": "context",
+        "message": "Cannot find name 'UUID'."
+      }
+    ],
+    "status": "fragment"
+  },
+  {
+    "id": "typescript__233",
+    "page": "typescript.md",
+    "line": 5992,
+    "lang": "typescript",
+    "title": null,
+    "lines": 7,
+    "importsSdk": false,
+    "complete": false,
+    "errors": [
+      {
+        "line": 5,
+        "code": 2304,
+        "kind": "context",
+        "message": "Cannot find name 'UUID'."
+      }
+    ],
+    "status": "fragment"
+  },
+  {
+    "id": "typescript__234",
+    "page": "typescript.md",
+    "line": 6008,
+    "lang": "typescript",
+    "title": null,
+    "lines": 7,
+    "importsSdk": false,
+    "complete": false,
+    "errors": [
+      {
+        "line": 4,
+        "code": 2304,
+        "kind": "context",
+        "message": "Cannot find name 'SlashCommand'."
+      },
+      {
+        "line": 5,
+        "code": 2304,
+        "kind": "context",
+        "message": "Cannot find name 'UUID'."
+      }
+    ],
+    "status": "fragment"
+  },
+  {
+    "id": "typescript__235",
+    "page": "typescript.md",
+    "line": 6022,
+    "lang": "typescript",
+    "title": null,
+    "lines": 6,
+    "importsSdk": false,
+    "complete": false,
+    "errors": [
+      {
+        "line": 4,
+        "code": 2304,
+        "kind": "context",
+        "message": "Cannot find name 'UUID'."
+      }
+    ],
+    "status": "fragment"
+  },
+  {
+    "id": "typescript__236",
+    "page": "typescript.md",
+    "line": 6035,
+    "lang": "typescript",
+    "title": null,
+    "lines": 9,
+    "importsSdk": false,
+    "complete": false,
+    "errors": [
+      {
+        "line": 3,
+        "code": 2304,
+        "kind": "context",
+        "message": "Cannot find name 'UUID'."
+      },
+      {
+        "line": 4,
+        "code": 2304,
+        "kind": "context",
+        "message": "Cannot find name 'UUID'."
+      }
+    ],
+    "status": "fragment"
+  },
+  {
+    "id": "typescript__237",
+    "page": "typescript.md",
+    "line": 6063,
+    "lang": "typescript",
+    "title": null,
+    "lines": 2,
+    "importsSdk": false,
+    "complete": false,
+    "errors": [
+      {
+        "line": 1,
+        "code": 1155,
+        "kind": "syntax",
+        "message": "'const' declarations must be initialized."
+      },
+      {
+        "line": 2,
+        "code": 1155,
+        "kind": "syntax",
+        "message": "'const' declarations must be initialized."
+      }
+    ],
+    "status": "syntax"
+  },
+  {
+    "id": "typescript__238",
+    "page": "typescript.md",
+    "line": 6079,
+    "lang": "typescript",
+    "title": null,
+    "lines": 1,
+    "importsSdk": false,
+    "complete": false,
+    "errors": [],
+    "status": "pass"
+  },
+  {
+    "id": "typescript__239",
+    "page": "typescript.md",
+    "line": 6091,
+    "lang": "typescript",
+    "title": null,
+    "lines": 13,
+    "importsSdk": false,
+    "complete": false,
+    "errors": [
+      {
+        "line": 7,
+        "code": 2304,
+        "kind": "context",
+        "message": "Cannot find name 'SandboxNetworkConfig'."
+      },
+      {
+        "line": 8,
+        "code": 2304,
+        "kind": "context",
+        "message": "Cannot find name 'SandboxFilesystemConfig'."
+      }
+    ],
+    "status": "fragment"
+  },
+  {
+    "id": "typescript__240",
+    "page": "typescript.md",
+    "line": 6129,
+    "lang": "typescript",
+    "title": null,
+    "lines": 22,
+    "importsSdk": true,
+    "complete": true,
+    "errors": [],
+    "status": "pass"
+  },
+  {
+    "id": "typescript__241",
+    "page": "typescript.md",
+    "line": 6162,
+    "lang": "typescript",
+    "title": null,
+    "lines": 11,
+    "importsSdk": false,
+    "complete": false,
+    "errors": [],
+    "status": "pass"
+  },
+  {
+    "id": "typescript__242",
+    "page": "typescript.md",
+    "line": 6196,
+    "lang": "typescript",
+    "title": null,
+    "lines": 5,
+    "importsSdk": false,
+    "complete": false,
+    "errors": [],
+    "status": "pass"
+  },
+  {
+    "id": "typescript__243",
+    "page": "typescript.md",
+    "line": 6218,
+    "lang": "typescript",
+    "title": null,
+    "lines": 30,
+    "importsSdk": true,
+    "complete": true,
+    "errors": [
+      {
+        "line": 17,
+        "code": 2304,
+        "kind": "context",
+        "message": "Cannot find name 'isCommandAuthorized'."
+      }
+    ],
+    "status": "fragment"
+  },
+  {
+    "id": "user-input__01",
+    "page": "user-input.md",
+    "line": 37,
+    "lang": "typescript",
+    "title": "TypeScript",
+    "lines": 9,
+    "importsSdk": true,
+    "complete": false,
+    "errors": [],
+    "status": "pass"
+  },
+  {
+    "id": "user-input__02",
+    "page": "user-input.md",
+    "line": 155,
+    "lang": "typescript",
+    "title": "TypeScript",
+    "lines": 46,
+    "importsSdk": true,
+    "complete": true,
+    "errors": [],
+    "status": "pass"
+  },
+  {
+    "id": "user-input__03",
+    "page": "user-input.md",
+    "line": 416,
+    "lang": "typescript",
+    "title": "TypeScript",
+    "lines": 13,
+    "importsSdk": false,
+    "complete": false,
+    "errors": [
+      {
+        "line": 1,
+        "code": 2304,
+        "kind": "context",
+        "message": "Cannot find name 'query'."
+      },
+      {
+        "line": 6,
+        "code": 7006,
+        "kind": "context",
+        "message": "Parameter 'toolName' implicitly has an 'any' type."
+      },
+      {
+        "line": 6,
+        "code": 7006,
+        "kind": "context",
+        "message": "Parameter 'input' implicitly has an 'any' type."
+      }
+    ],
+    "status": "fragment"
+  },
+  {
+    "id": "user-input__04",
+    "page": "user-input.md",
+    "line": 445,
+    "lang": "typescript",
+    "title": "TypeScript",
+    "lines": 8,
+    "importsSdk": false,
+    "complete": false,
+    "errors": [
+      {
+        "line": 1,
+        "code": 7006,
+        "kind": "context",
+        "message": "Parameter 'toolName' implicitly has an 'any' type."
+      },
+      {
+        "line": 1,
+        "code": 7006,
+        "kind": "context",
+        "message": "Parameter 'input' implicitly has an 'any' type."
+      },
+      {
+        "line": 4,
+        "code": 2304,
+        "kind": "context",
+        "message": "Cannot find name 'handleClarifyingQuestions'."
+      },
+      {
+        "line": 7,
+        "code": 2304,
+        "kind": "context",
+        "message": "Cannot find name 'promptForApproval'."
+      }
+    ],
+    "status": "fragment"
+  },
+  {
+    "id": "user-input__05",
+    "page": "user-input.md",
+    "line": 514,
+    "lang": "typescript",
+    "title": "TypeScript",
+    "lines": 10,
+    "importsSdk": false,
+    "complete": false,
+    "errors": [
+      {
+        "line": 1,
+        "code": 1108,
+        "kind": "syntax",
+        "message": "A 'return' statement can only be used within a function body."
+      }
+    ],
+    "status": "syntax"
+  },
+  {
+    "id": "user-input__06",
+    "page": "user-input.md",
+    "line": 568,
+    "lang": "typescript",
+    "title": null,
+    "lines": 16,
+    "importsSdk": true,
+    "complete": true,
+    "errors": [],
+    "status": "pass"
+  },
+  {
+    "id": "user-input__07",
+    "page": "user-input.md",
+    "line": 727,
+    "lang": "typescript",
+    "title": "TypeScript",
+    "lines": 68,
+    "importsSdk": true,
+    "complete": true,
+    "errors": [],
+    "status": "pass"
+  }
+]

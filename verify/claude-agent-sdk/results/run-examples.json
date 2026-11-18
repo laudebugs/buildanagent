@@ -1,0 +1,79 @@
+[
+  {
+    "id": "01-hello-agent",
+    "file": "/home/user/agent-speak/verify/claude-agent-sdk/examples/01-hello-agent.ts",
+    "outcome": "ran",
+    "patchedPlaceholders": false,
+    "exit": 0,
+    "ms": 2024,
+    "modelRequests": 1,
+    "toolResults": 0,
+    "tail": "ok - first SystemMessage has subtype 'init'\nok - ResultMessage subtype is 'success'\nok - `result` text is present on success\nok - ResultMessage carries session_id\nok - ResultMessage carries total_cost_usd and num_turns"
+  },
+  {
+    "id": "02-custom-tool",
+    "file": "/home/user/agent-speak/verify/claude-agent-sdk/examples/02-custom-tool.ts",
+    "outcome": "ran",
+    "patchedPlaceholders": false,
+    "exit": 0,
+    "ms": 1957,
+    "modelRequests": 3,
+    "toolResults": 3,
+    "tail": "ok - custom tool handler ran exactly once\nok - handler received Zod-validated arguments\nok - SDK yielded a UserMessage carrying the tool_result\nok - run finished with success"
+  },
+  {
+    "id": "03-permission-order",
+    "file": "/home/user/agent-speak/verify/claude-agent-sdk/examples/03-permission-order.ts",
+    "outcome": "ran",
+    "patchedPlaceholders": false,
+    "exit": 0,
+    "ms": 7368,
+    "modelRequests": 14,
+    "toolResults": 12,
+    "tail": "ok - c) disallowedTools blocks the tool even in bypassPermissions\nok - c) denied call never reaches canUseTool\n(node:20547) [CLAUDE_SDK_CAN_USE_TOOL_SHADOWED] Warning: canUseTool will not be invoked for: mcp__ops__restart_service. Bare allowedTools entries auto-approve the whole tool before the callback is consulted. To gate every tool call, use a PreToolUse hook; or remove the bare names from allowedTools so they fall through to canUseTool. Allow rules from settings files can also shadow the callback but are not visible here.\nok - d) PreToolUse hook 'deny' blocks a tool that allowedTools would approve\nok - e) hook 'allow' does not skip deny rules\nok - f) dontAsk denies without calling canUseTool"
+  },
+  {
+    "id": "04-max-turns",
+    "file": "/home/user/agent-speak/verify/claude-agent-sdk/examples/04-max-turns.ts",
+    "outcome": "ran",
+    "patchedPlaceholders": false,
+    "exit": 0,
+    "ms": 1889,
+    "modelRequests": 1,
+    "toolResults": 0,
+    "tail": "ok - result subtype is error_max_turns\nok - no `result` text on the error variant\nok - error results still carry session_id and cost\nok - query() throws 'Reached maximum number of turns' after yielding the result"
+  },
+  {
+    "id": "05-structured-output",
+    "file": "/home/user/agent-speak/verify/claude-agent-sdk/examples/05-structured-output.ts",
+    "outcome": "ran",
+    "patchedPlaceholders": false,
+    "exit": 0,
+    "ms": 2053,
+    "modelRequests": 1,
+    "toolResults": 0,
+    "tail": "ok - model answers through the StructuredOutput tool\nok - result is success\nok - structured_output validates against the Zod schema"
+  },
+  {
+    "id": "06-resume-session",
+    "file": "/home/user/agent-speak/verify/claude-agent-sdk/examples/06-resume-session.ts",
+    "outcome": "ran",
+    "patchedPlaceholders": false,
+    "exit": 0,
+    "ms": 3153,
+    "modelRequests": 2,
+    "toolResults": 0,
+    "tail": "ok - first run returned a session_id\nok - resumed run succeeded\nok - resume keeps the same session_id\nok - resumed model request contains the earlier turn"
+  },
+  {
+    "id": "07-triage-agent",
+    "file": "/home/user/agent-speak/verify/claude-agent-sdk/examples/07-triage-agent.ts",
+    "outcome": "ran",
+    "patchedPlaceholders": false,
+    "exit": 0,
+    "ms": 998,
+    "modelRequests": 2,
+    "toolResults": 1,
+    "tail": "ok - PreToolUse hook saw the lookup tool call\nok - `tools: []` removed the built-in Bash/Edit tools\nok - auto-approved lookup never reached canUseTool\nok - agent finished successfully\nok - structured_output matches the Triage schema\ntriage: {\"category\":\"bug\",\"priority\":\"low\",\"summary\":\"example\"}"
+  }
+]

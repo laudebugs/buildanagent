@@ -4,11 +4,13 @@ Instructions for AI coding agents (Claude Code, Codex, OpenCode, Pi, etc.) worki
 
 ## Project
 
-**agent-speak** researches, and will later build, an AI agent and our own agent harness/SDK. The repo is currently documentation only; there is no code, build or test suite yet.
+**agent-speak** researches, and will later build, an AI agent and our own agent harness/SDK. The repo is mostly documentation. The only code is the per-SDK verification harnesses under `verify/`.
 
 ## Layout
 
 - `README.md`: project overview and doc index.
+- `docs/reference/<sdk>/`: per-SDK reference (`guide.md`, `fact-check.md`, `README.md`). `source/` holds mirrored upstream docs; the Claude mirror is gitignored because those docs are not openly licensed, so regenerate it with `npm run fetch-docs`.
+- `verify/<sdk>/`: per-SDK verification harness (Node, exact-pinned deps). `npm run verify` type-checks and runs doc examples against a mock model; `npm test` runs our own examples in `examples/`. Generated folders (`extracted/`, `.tmp/`) are gitignored, while `results/` is committed.
 - `docs/research/`: research reports.
   - `agent-sdks-and-harness-design.md`: the main report (SDK comparison, reference architecture, build-vs-buy).
   - `harness-architectures.md`: source-level notes on Pi, Codex, OpenAI Agents SDK sandbox agents and Cloudflare Agents/Think.
@@ -37,6 +39,12 @@ Follow the reference architecture in `docs/research/agent-sdks-and-harness-desig
 8. OTel `gen_ai.*` spans and an eval suite that measures against a mini-swe-agent baseline.
 
 Each component should be removable so it can be ablated as models improve.
+
+## Verifying SDK examples
+
+- Pin SDK versions exactly in `verify/<sdk>/package.json`; reference docs state the version they were checked against.
+- Mark guide claims backed by a runnable example as **[verified]**, and cite the upstream page for everything else.
+- Mock models must never call tools that touch the host (shell, file edits).
 
 ## Git
 

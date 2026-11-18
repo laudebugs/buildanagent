@@ -1,0 +1,24 @@
+{
+  "name": "verify-claude-agent-sdk",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "fetch-docs": "node scripts/fetch-docs.mjs",
+    "extract": "node scripts/extract-examples.mjs",
+    "typecheck:docs": "node scripts/typecheck-examples.mjs",
+    "run:docs": "node scripts/run-examples.mjs",
+    "factcheck": "node scripts/factcheck-api.mjs",
+    "typecheck:examples": "tsc -p tsconfig.json",
+    "test": "tsc -p tsconfig.json && node scripts/run-examples.mjs examples",
+    "verify": "npm run extract && npm run typecheck:docs && npm run run:docs && npm run factcheck && npm test"
+  },
+  "dependencies": {
+    "@anthropic-ai/claude-agent-sdk": "0.3.327",
+    "zod": "4.6.7"
+  },
+  "devDependencies": {
+    "@types/node": "26.6.6",
+    "tsx": "4.23.15",
+    "typescript": "7.0.2"
+  }
+}

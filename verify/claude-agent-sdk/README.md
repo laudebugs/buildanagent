@@ -1,0 +1,28 @@
+# verify/claude-agent-sdk
+
+Offline verification harness for the Claude Agent SDK docs and our examples. No API key is needed: model calls go to a local mock of the Anthropic Messages API.
+
+## How it works
+
+The SDK spawns the bundled `claude` CLI, which honours `ANTHROPIC_BASE_URL`. Pointing that at `scripts/mock-anthropic.mjs` runs the **real** agent loop, permission flow, hooks, MCP and tool-search machinery against a scripted model:
+- **After a tool result:** if a `StructuredOutput` tool is offered, answer through it; otherwise reply with text.
+- **Before any tool call:** call one custom `mcp__*` tool, preferring one the prompt names, with arguments synthesised from its JSON Schema. If MCP tools are deferred, load them first with `ToolSearch("select:…")`.
+- **Never** calls built-in tools such as Bash or Edit, so running docs code can't touch the host.
+
+## Scripts
+
+| Command | Does |
+|---|---|
+| `npm run fetch-docs` | Mirror the 32 agent-sdk pages from `code.claude.com/docs/llms.txt` into `docs/reference/claude-agent-sdk/source/` (gitignored) |
+| `npm run extract` | Pull every TypeScript block into `extracted/` (gitignored), with `_manifest.json` |
+| `npm run typecheck:docs` | Compile each block against the pinned SDK and classify errors → `results/typecheck-docs.json` |
+| `npm run run:docs` | Run complete, type-clean blocks against the mock (fresh temp cwd, fixtures, placeholder-path substitution, timeout) → `results/run-docs.json` |
+| `npm run factcheck` | Diff `typescript.md` against `sdk.d.ts`: functions, Options, PermissionMode, HookEvent, SDKMessage, tool schemas → `results/factcheck-api.json` |
+| `npm test` | Type-check and run our examples in `examples/` → `results/run-examples.json` (non-zero exit on failure) |
+| `npm run verify` | All of the above except `fetch-docs` |
+
+Tunables: `EXAMPLE_TIMEOUT_MS` (default 60000) and `EXAMPLE_CONCURRENCY` (default 4). Run one example with `node scripts/run-examples.mjs examples --only 03-permission-order`.
+
+## Live runs (later)
+
+To run an example against the real API, unset `ANTHROPIC_BASE_URL`, set `ANTHROPIC_API_KEY`, and run `npx tsx examples/<file>.ts`. Keep `maxTurns` and `maxBudgetUsd` set. Some assertions depend on the mock's deterministic tool choice and may need loosening for a real model.

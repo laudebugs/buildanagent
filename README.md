@@ -19,6 +19,16 @@ The repo is documentation only for now. The research compares vendor agent SDKs,
 | [docs/research/fact-check-2026-11-18.md](docs/research/fact-check-2026-11-18.md) | Verification log: what was confirmed, corrected or is still secondary |
 | [docs/research/notes/](docs/research/notes/) | Raw research notes (vendor SDKs, OSS frameworks, OSS harnesses, custom harness architecture, observability and evals) |
 
+## SDK references
+
+Each SDK gets a reference folder under `docs/reference/<sdk>/` (guide, fact-check, mirrored upstream docs) and a verification harness under `verify/<sdk>/` that type-checks and runs every doc example offline against a mock model.
+
+| SDK | Pinned version | Reference | Status |
+|---|---|---|---|
+| Claude Agent SDK | `@anthropic-ai/claude-agent-sdk@0.3.327` | [docs/reference/claude-agent-sdk/](docs/reference/claude-agent-sdk/) | Done: 385 doc blocks type-checked, 87 run, 7 verified examples |
+| OpenAI Agents SDK | `@openai/agents` | — | Next |
+| Vercel AI SDK | `ai` | — | Planned (agent-relevant core) |
+
 ## For AI agents
 
 See [AGENTS.md](AGENTS.md). `CLAUDE.md` is a symlink to it.
