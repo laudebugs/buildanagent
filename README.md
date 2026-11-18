@@ -33,6 +33,7 @@ Each SDK gets a reference folder under `docs/reference/<sdk>/` (guide, fact-chec
 | Pi (agent harness) | `@earendil-works/pi-coding-agent@1.5.2` | [docs/reference/pi/](docs/reference/pi/) | Done: 334 sources type-checked, 20 run, 8 verified examples |
 | OpenAI Agents SDK | `@openai/agents@0.21.0` | [docs/reference/openai-agents-sdk/](docs/reference/openai-agents-sdk/) | Done: 182 sources type-checked, 66 run, 9 verified examples |
 | Vercel AI SDK | `ai@7.0.162` | [docs/reference/vercel-ai-sdk/](docs/reference/vercel-ai-sdk/) | Done: 741 doc blocks type-checked, 116 run, 9 verified examples (agent-relevant core) |
+| LangChain | `langchain@1.6.1` | — | Planned (S5, added 2026-11-18) |
 
 ## Development
 

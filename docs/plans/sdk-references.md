@@ -1,6 +1,6 @@
 # Plan: a verified reference for every agent SDK, built with one repeatable process (Round S)
 
-- **Status:** Done
+- **Status:** In progress (S5 LangChain added 2026-11-18)
 - **Date:** 2026-11-18
 - **Asked for by:** the project owner (2026-11-18): fetch each SDK's docs, build a thorough reference, fact-check the docs, and find a way to verify the examples
 - **Builds on:**
@@ -75,6 +75,16 @@ Result: `ai@7.0.162`, docs mirrored from tag `ai@7.0.162` (74 pages). 741 blocks
 - **Behaviors to verify:** the `Agent` class (`ToolLoopAgent`) and its stop conditions (`stopWhen`, the step cap), tool approval (`needsApproval`), `prepareStep`, structured output, MCP tools, and streaming.
 - **Out of scope:** the UI hooks (AI SDK UI and RSC), and providers other than Anthropic and OpenAI.
 
+### S5 LangChain (added 2026-11-18)
+
+The owner asked to add LangChain after the first four were done (2026-11-18).
+- **Packages:** `langchain@1.6.1` (its `createAgent` is built on LangGraph), with `@langchain/core@1.3.4`, `@langchain/langgraph@1.6.0`, `@langchain/anthropic@1.6.0` and `@langchain/openai@1.8.0`, all MIT and the newest releases published by 2026-11-04. Re-check the pins at the start of S5a.
+- **Docs:** the MIT-licensed `langchain-ai/docs` repo (Mintlify MDX) holds the JS and Python docs side by side. Mirror only the JavaScript pages for LangChain v1 agents and the LangGraph JS pages they depend on, from a commit fetched on the S5a date. Record the commit, because the docs repo has no release tags matching the packages. Commit the mirror with the license.
+- **Format work:** pages switch languages with `:::js` / `:::python` blocks or code groups. The extractor must keep only the JS variants.
+- **Test model:** check `@langchain/core/utils/testing` for a fake chat model with tool calls first (for example `FakeListChatModel` or `FakeToolCallingModel`); otherwise write a scripted `BaseChatModel`.
+- **Behaviors to verify:** `createAgent` with tools, middleware (before/after model, human-in-the-loop approval with `interrupt` and resume), structured output (`responseFormat`), the checkpointer and thread memory, the recursion limit, streaming modes, and MCP tools if the adapter is in scope.
+- **Out of scope:** LangChain Python, LangSmith hosting and LangGraph Platform; note them in the guide.
+
 ## 5. Todos
 
 | ID | Title | Depends on |
@@ -85,6 +95,8 @@ Result: `ai@7.0.162`, docs mirrored from tag `ai@7.0.162` (74 pages). 741 blocks
 | S3b | OpenAI Agents SDK: guide and fact-check, written and reviewed (done) | S3a |
 | S4a | Vercel AI SDK: mirror, verification harness and behavioral examples (done) | S3b |
 | S4b | Vercel AI SDK: guide and fact-check, written and reviewed (done) | S4a |
+| S5a | LangChain: mirror, verification harness and behavioral examples | S4b |
+| S5b | LangChain: guide and fact-check, written and reviewed | S5a |
 
 ## 6. Risks
 
