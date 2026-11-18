@@ -3,7 +3,7 @@
 | Field | Value |
 | --- | --- |
 | ID | `S8b` |
-| Status | `ready` |
+| Status | `ongoing` |
 | Plan | [M:SDK references §4](../../plans/sdk-references.md#4-the-eight-sdks) |
 | Round / milestone | M2c (added 2026-11-18) |
 | Depends on | [ guide and fact](../ready/ guide and fact-check, written and reviewed.md) |
