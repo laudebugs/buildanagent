@@ -66,6 +66,8 @@ for (const q of QUERIES) {
       tags: "story",
       // Match titles and URLs only: matching story text and comments pulls in unrelated threads.
       restrictSearchableAttributes: "title,url",
+      // Exact matching: with typo tolerance on, "MCP" also matches "map" and "MC03".
+      typoTolerance: "false",
       numericFilters: `created_at_i>=${FROM},created_at_i<${TO},points>=${MIN_POINTS}`,
       hitsPerPage: "100",
       page: String(page),
