@@ -27,6 +27,17 @@ function norm(v) {
   return typeof v === "string" ? normString(v) : v;
 }
 
+// Collects "path: before -> after" for each differing leaf, so a CI log shows what changed.
+function diff(a, b, at, out) {
+  if (JSON.stringify(a) === JSON.stringify(b)) return;
+  if (a && b && typeof a === "object" && typeof b === "object") {
+    for (const k of new Set([...Object.keys(a), ...Object.keys(b)])) diff(a[k], b[k], `${at}/${k}`, out);
+    return;
+  }
+  const show = (v) => (v === undefined ? "(absent)" : JSON.stringify(v).slice(0, 160));
+  out.push(`${at || "/"}: ${show(a)} -> ${show(b)}`);
+}
+
 const changed = execFileSync("git", ["diff", "--name-only", "--", "verify/*/results/*.json"], {
   cwd: root,
   encoding: "utf8",
@@ -44,7 +55,13 @@ for (const file of changed) {
     continue;
   }
   const after = JSON.parse(readFileSync(path.join(root, file), "utf8"));
-  if (JSON.stringify(norm(before)) !== JSON.stringify(norm(after))) drifted.push(file);
+  const diffs = [];
+  diff(norm(before), norm(after), "", diffs);
+  if (diffs.length) {
+    drifted.push(file);
+    for (const d of diffs.slice(0, 12)) console.error(`  ${file}: ${d}`);
+    if (diffs.length > 12) console.error(`  ${file}: … ${diffs.length - 12} more`);
+  }
 }
 
 const untracked = execFileSync("git", ["ls-files", "--others", "--exclude-standard", "--", "verify/*/results/"], {
