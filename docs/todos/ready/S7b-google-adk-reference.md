@@ -4,7 +4,7 @@
 | --- | --- |
 | ID | `S7b` |
 | Status | `ready` |
-| Plan | [SDK references §4](../../plans/sdk-references.md#4-the-four-sdks) |
+| Plan | [SDK references §4](../../plans/sdk-references.md#4-the-seven-sdks) |
 | Round / milestone | M2c (added 2026-11-18) |
 | Depends on | [ guide and fact](../ready/ guide and fact-check, written and reviewed.md) |
 | Size | S7a-google-adk-verify:M |

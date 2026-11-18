@@ -42,7 +42,7 @@ Each SDK takes two todos. The verification todo (a) does steps 1–5 of the [pro
 | 7. Review | `/anthropic-skills:writing-review` on both documents |
 | 8. Fix and ship | Fixes applied, changed claims re-checked, `pnpm run verify` green, pushed |
 
-## 4. The four SDKs
+## 4. The seven SDKs
 
 ### S1 Claude Agent SDK (done)
 
