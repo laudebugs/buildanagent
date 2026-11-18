@@ -13,6 +13,8 @@ Instructions for AI coding agents (Claude Code, Codex, OpenCode, Pi, etc.) worki
 - `verify/<sdk>/`: per-SDK verification harness (Node, exact-pinned deps). `pnpm run verify` type-checks and runs doc examples against a mock model; `pnpm test` runs our own examples in `examples/`. Generated folders (`extracted/`, `.tmp/`) are gitignored, while `results/` is committed.
 - `docs/plans/`: the plans and the [roadmap](docs/plans/roadmap.md); each plan starts with a status line and lists its todos.
 - `docs/todos/`: the todo board. A todo's folder (`ready/`, `ongoing/`, `done/`) is its state; new todos start from `docs/todos/TEMPLATE.md`.
+- `.agents/skills/`: agent skills, one folder per skill with a `SKILL.md` (frontmatter `name` and `description`); the format is in its README. `.claude/skills` is a relative symlink to it, so edit `.agents/skills/` only.
+- `docs/comparison/`: the SDK feature table and the deep comparison.
 - `docs/research/`: research reports.
   - `agent-sdks-and-harness-design.md`: the main report (SDK comparison, reference architecture, build-vs-buy).
   - `harness-architectures.md`: source-level notes on Pi, Codex, OpenAI Agents SDK sandbox agents and Cloudflare Agents/Think.

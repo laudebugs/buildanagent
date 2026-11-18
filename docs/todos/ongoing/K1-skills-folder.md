@@ -3,10 +3,10 @@
 | Field | Value |
 | --- | --- |
 | ID | `K1` |
-| Status | `ready` |
+| Status | `ongoing` |
 | Plan | [Agent skills §2](../../plans/agent-skills.md#2-layout) |
 | Round / milestone | Round K (skills), M2 |
-| Depends on | [C2](../ready/C2-deep-comparison.md) |
+| Depends on | [C2](../done/C2-deep-comparison.md) |
 | Size | S |
 
 ## Goal
