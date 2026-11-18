@@ -56,6 +56,6 @@ agent-speak ends this phase with four things:
 
 ## How each todo is worked
 
-- **One todo is one batch of commits pushed to `main`.** Move the todo `ready/` → `ongoing/` in the first commit and `ongoing/` → `done/` in the last, and push after each meaningful step.
+- **One todo is one pull request, squash-merged into `main`** (from 2026-11-18; before that, todos were pushed to `main` directly). Move the todo `ready/` → `ongoing/` in the first commit and `ongoing/` → `done/` in the last, push the branch after each meaningful step, and merge once CI passes ([AGENTS.md, Git](../../AGENTS.md#git)).
 - **Prose goes through the writing skills.** Draft with `/anthropic-skills:writing`, review with `/anthropic-skills:writing-review`, apply the fixes, then re-check every changed claim against its source.
 - **Code goes through the local checks.** `pnpm check`, `pnpm typecheck` and `pnpm test` pass before every push ([AGENTS.md coding standards](../../AGENTS.md#coding-standards)).
