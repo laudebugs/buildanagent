@@ -3,7 +3,7 @@
 | Field | Value |
 | --- | --- |
 | ID | `R1` |
-| Status | `ongoing` |
+| Status | `done` |
 | Plan | [Build guides §4c](../../plans/build-guides.md#4c-re-verify-secondary-claims-against-primary-sources-r1-added-2026-11-18) |
 | Round / milestone | Research, before the guides |
 | Depends on | [H3](../done/H3-hn-synthesis.md) |
@@ -30,15 +30,15 @@ Re-check every claim marked "(secondary)" or sourced from a search summary again
 
 ## Tasks
 
-- [ ] Fetch each primary source with curl; confirm, correct or mark still-unverified
-- [ ] Replace confirmed secondary marks with primary citations; correct wrong claims in place
-- [ ] Log every change in the matching fact-check log under "Re-verification against primary sources (R1)"
-- [ ] Push
+- [x] Fetch each primary source with curl; confirm, correct or mark still-unverified
+- [x] Replace confirmed secondary marks with primary citations; correct wrong claims in place
+- [x] Log every change in the matching fact-check log under "Re-verification against primary sources (R1)"
+- [x] Push
 
 ## Acceptance criteria
 
-- [ ] Every marked claim in scope is confirmed, corrected, or explicitly still unverified with the reason
-- [ ] Every change has a fact-check row
+- [x] Every marked claim in scope is confirmed, corrected, or explicitly still unverified with the reason
+- [x] Every change has a fact-check row
 
 ## Tests
 
@@ -55,6 +55,6 @@ openai.com and platform.openai.com return 403 to curl; claims sourced there may 
 ## Definition of done
 
 - [x] Claimed: the first commit moved this file `ready/` → `ongoing/` (Status `ongoing`)
-- [ ] Prose drafted with `/anthropic-skills:writing` and reviewed with `/anthropic-skills:writing-review`, with the fixes applied and changed claims re-checked
-- [ ] `pnpm check`, `pnpm typecheck` and `pnpm test` pass locally; pushed after each meaningful step
-- [ ] This file moved `ongoing/` → `done/` (Status `done`), and the plan's todo table updated
+- [x] Prose drafted with `/anthropic-skills:writing` and reviewed with `/anthropic-skills:writing-review`, with the fixes applied and changed claims re-checked
+- [x] `pnpm check`, `pnpm typecheck` and `pnpm test` pass locally; pushed after each meaningful step
+- [x] This file moved `ongoing/` → `done/` (Status `done`), and the plan's todo table updated

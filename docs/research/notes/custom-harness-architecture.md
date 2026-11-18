@@ -95,7 +95,7 @@ Anthropic's engineering blog forms a coherent arc: simple composable patterns (D
 ## What are the trade-offs among planning patterns (cost, latency, reliability)?
 
 ### Takeaway
-Practitioner consensus (no controlled benchmarks found): ReAct is the low-cost/low-latency default; plan-and-execute adds an upfront planning call but enables cheaper executors and parallelism at the cost of brittleness on step failure; reflection/evaluator loops buy quality at ~2–4x cost; tree-of-thought is very high cost and rare in production. Orchestrator-workers and multi-agent multiply tokens (~15x chat) and pay off mainly on parallelizable, breadth-first tasks. Routing is a cost reducer.
+Practitioner consensus (no controlled benchmarks found): ReAct is the low-cost/low-latency default; plan-and-execute adds an upfront planning call but enables cheaper executors and parallelism at the cost of brittleness on step failure; reflection/evaluator loops buy quality at ~2–4x cost (**R1 correction:** the cited posts support about 3x; see the main report); tree-of-thought is very high cost and rare in production. Orchestrator-workers and multi-agent multiply tokens (~15x chat) and pay off mainly on parallelizable, breadth-first tasks. Routing is a cost reducer.
 
 ### Cited Findings
 - Anthropic: prompt chaining trades latency for accuracy; routing sends easy queries to smaller models; orchestrator-workers fit unpredictable subtasks; evaluator-optimizer works when criteria are clear and feedback measurably helps. — [Anthropic: Building effective agents](https://www.anthropic.com/engineering/building-effective-agents)
