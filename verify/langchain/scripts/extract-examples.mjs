@@ -43,7 +43,10 @@ for (const page of pages) {
     // "Complete" means it imports the SDK and invokes or streams something, so it could run as-is.
     const complete = importsSdk && /\.(invoke|stream|streamEvents|batch)\s*\(/.test(code);
     const elided = /^\s*(\/\/\s*)?\.\.\.\s*$|\/\*\s*\.\.\.\s*\*\/|^\s*\/\/\s*\.\.\./m.test(code);
-    await writeFile(join(outDir, file), `// source: ${page}:${i + 1}${title ? ` (${title})` : ""}\n${code}\nexport {};\n`);
+    await writeFile(
+      join(outDir, file),
+      `// source: ${page}:${i + 1}${title ? ` (${title})` : ""}\n${code}\nexport {};\n`,
+    );
     manifest.push({ id, file, page, line: i + 1, ext, title, lines: body.length, importsSdk, complete, elided });
     i = j;
   }

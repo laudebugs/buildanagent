@@ -13,18 +13,52 @@ const COMMIT = "9d9747d0cf241e086c616a16d5ce230ad8f8f31d"; // main on 2026-11-18
 const OUT = resolve("../../docs/reference/langchain/source");
 
 const LANGCHAIN = [
-  "overview", "install", "quickstart", "philosophy", "component-architecture",
-  "agents", "models", "messages", "tools", "short-term-memory", "long-term-memory",
-  "streaming", "event-streaming", "structured-output", "runtime", "context-engineering",
-  "human-in-the-loop", "guardrails",
-  "middleware/overview", "middleware/built-in", "middleware/custom",
-  "mcp/index", "mcp/tools", "mcp/connections",
-  "multi-agent/index", "multi-agent/subagents", "multi-agent/handoffs", "multi-agent/router", "multi-agent/skills",
-  "test/index", "test/unit-testing", "test/integration-testing",
+  "overview",
+  "install",
+  "quickstart",
+  "philosophy",
+  "component-architecture",
+  "agents",
+  "models",
+  "messages",
+  "tools",
+  "short-term-memory",
+  "long-term-memory",
+  "streaming",
+  "event-streaming",
+  "structured-output",
+  "runtime",
+  "context-engineering",
+  "human-in-the-loop",
+  "guardrails",
+  "middleware/overview",
+  "middleware/built-in",
+  "middleware/custom",
+  "mcp/index",
+  "mcp/tools",
+  "mcp/connections",
+  "multi-agent/index",
+  "multi-agent/subagents",
+  "multi-agent/handoffs",
+  "multi-agent/router",
+  "multi-agent/skills",
+  "test/index",
+  "test/unit-testing",
+  "test/integration-testing",
 ].map((p) => `src/oss/langchain/${p}.mdx`);
 const LANGGRAPH = [
-  "overview", "quickstart", "workflows-agents", "persistence", "checkpointers", "add-memory",
-  "interrupts", "streaming", "fault-tolerance", "use-time-travel", "functional-api", "graph-api",
+  "overview",
+  "quickstart",
+  "workflows-agents",
+  "persistence",
+  "checkpointers",
+  "add-memory",
+  "interrupts",
+  "streaming",
+  "fault-tolerance",
+  "use-time-travel",
+  "functional-api",
+  "graph-api",
 ].map((p) => `src/oss/langgraph/${p}.mdx`);
 const PAGES = [...LANGCHAIN, ...LANGGRAPH];
 
@@ -34,7 +68,15 @@ try {
   git("init", "-q");
   git("remote", "add", "origin", REPO);
   git("config", "core.sparseCheckout", "true");
-  git("sparse-checkout", "set", "--no-cone", "/LICENSE", "/src/oss/langchain/", "/src/oss/langgraph/", "/src/snippets/");
+  git(
+    "sparse-checkout",
+    "set",
+    "--no-cone",
+    "/LICENSE",
+    "/src/oss/langchain/",
+    "/src/oss/langgraph/",
+    "/src/snippets/",
+  );
   git("fetch", "-q", "--depth", "1", "--filter=blob:none", "origin", COMMIT);
   git("checkout", "-q", "FETCH_HEAD");
   const committedAt = git("log", "-1", "--format=%cI").trim();
@@ -46,7 +88,8 @@ try {
     const text = await readFile(join(tmp, page), "utf8");
     for (const m of text.matchAll(/from ['"]\/snippets\/([^'"]+)['"]/g)) {
       // Keep JS-specific and language-neutral snippets; skip Python-only tabs.
-      if (!/(^|[-/])py(\.|-)|-py\.mdx$|chat-model-tabs\.mdx$|embeddings-tabs-py|vectorstore-tabs-py/.test(m[1])) snippets.add(`src/snippets/${m[1]}`);
+      if (!/(^|[-/])py(\.|-)|-py\.mdx$|chat-model-tabs\.mdx$|embeddings-tabs-py|vectorstore-tabs-py/.test(m[1]))
+        snippets.add(`src/snippets/${m[1]}`);
     }
   }
   for (const f of [...files, ...snippets]) {
@@ -63,7 +106,9 @@ try {
     snippets: [...snippets].sort(),
   };
   await writeFile(join(OUT, "_manifest.json"), `${JSON.stringify(manifest, null, 2)}\n`);
-  console.log(`mirrored ${PAGES.length} pages and ${snippets.size} snippets from ${COMMIT.slice(0, 7)} (${committedAt})`);
+  console.log(
+    `mirrored ${PAGES.length} pages and ${snippets.size} snippets from ${COMMIT.slice(0, 7)} (${committedAt})`,
+  );
 } finally {
   await rm(tmp, { recursive: true, force: true });
 }
