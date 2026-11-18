@@ -1,0 +1,52 @@
+{
+  "package": "@earendil-works/pi-coding-agent@1.5.2",
+  "checkedAt": "2026-11-18T04:47:09.163Z",
+  "checks": {
+    "settings": {
+      "documented": 54,
+      "actual": 60,
+      "undocumented": [
+        "deviceId",
+        "extensionChangelogVersions",
+        "lastChangelogVersion",
+        "queueMode",
+        "trackingId",
+        "websockets"
+      ],
+      "notInPackage": []
+    },
+    "sessionEntries": {
+      "documented": 11,
+      "actual": 11,
+      "undocumented": [],
+      "notInPackage": []
+    },
+    "rpcCommands": {
+      "documented": 33,
+      "actual": 33,
+      "undocumented": [],
+      "notInPackage": []
+    },
+    "extensionEvents": {
+      "documented": 41,
+      "actual": 41,
+      "undocumented": [],
+      "notInPackage": []
+    },
+    "createAgentSessionOptions": {
+      "documented": 12,
+      "actual": 14,
+      "undocumented": [
+        "agentDir",
+        "sessionStartEvent"
+      ],
+      "notInPackage": []
+    },
+    "agentSessionMembers": {
+      "documented": 13,
+      "actual": 95,
+      "notInPackage": [],
+      "undocumented": []
+    }
+  }
+}
