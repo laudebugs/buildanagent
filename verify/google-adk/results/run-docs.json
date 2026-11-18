@@ -6,7 +6,7 @@
     "probe": false,
     "outcome": "ran",
     "exit": 0,
-    "ms": 1693,
+    "ms": 2104,
     "modelCalls": 7,
     "tail": "{\n  \"topic\": \"a brave kitten exploring a haunted house\",\n  \"current_story\": \"Scripted model: hello from the offline model.\",\n  \"criticism\": \"Scripted model: hello from the offline model.\",\n  \"grammar_suggestions\": \"Scripted model: hello from the offline model.\",\n  \"tone_check_result\": \"Scripted model: hello from the offline model.\"\n}\n-------------------------------"
   },
@@ -17,7 +17,7 @@
     "probe": true,
     "outcome": "ran",
     "exit": 0,
-    "ms": 1692,
+    "ms": 2094,
     "modelCalls": 1,
     "tail": "probe: 1 events"
   },
@@ -28,7 +28,7 @@
     "probe": true,
     "outcome": "ran",
     "exit": 0,
-    "ms": 1690,
+    "ms": 2080,
     "modelCalls": 1,
     "tail": "probe: 1 events"
   },
@@ -39,7 +39,7 @@
     "probe": true,
     "outcome": "ran",
     "exit": 0,
-    "ms": 1975,
+    "ms": 2116,
     "modelCalls": 2,
     "toolCalls": [
       "get_current_time"
@@ -173,7 +173,7 @@
     "probe": true,
     "outcome": "ran",
     "exit": 0,
-    "ms": 2110,
+    "ms": 1726,
     "modelCalls": 1,
     "tail": "probe: 1 events"
   },
@@ -216,7 +216,7 @@
     "probe": true,
     "outcome": "ran",
     "exit": 0,
-    "ms": 1638,
+    "ms": 1816,
     "modelCalls": 1,
     "tail": "probe: 1 events"
   },
@@ -403,7 +403,7 @@
     "probe": false,
     "outcome": "ran",
     "exit": 0,
-    "ms": 1524,
+    "ms": 1719,
     "modelCalls": 1,
     "tail": "Initial state: {}\nAgent responded.\nState after agent run: {\"last_greeting\":\"Scripted model: hello from the offline model.\"}"
   },
@@ -430,7 +430,7 @@
     "probe": true,
     "outcome": "ran",
     "exit": 0,
-    "ms": 1473,
+    "ms": 1687,
     "modelCalls": 3,
     "toolCalls": [
       "summary_agent"
@@ -444,7 +444,7 @@
     "probe": true,
     "outcome": "ran",
     "exit": 0,
-    "ms": 1690,
+    "ms": 1860,
     "modelCalls": 2,
     "toolCalls": [
       "transfer_to_agent"
@@ -458,7 +458,7 @@
     "probe": true,
     "outcome": "ran",
     "exit": 0,
-    "ms": 1503,
+    "ms": 1547,
     "modelCalls": 2,
     "toolCalls": [
       "get_weather"
@@ -472,7 +472,7 @@
     "probe": true,
     "outcome": "ran",
     "exit": 0,
-    "ms": 1926,
+    "ms": 1595,
     "modelCalls": 1,
     "tail": "probe: 1 events"
   },
@@ -483,12 +483,12 @@
     "probe": true,
     "outcome": "ran",
     "exit": 0,
-    "ms": 3841,
+    "ms": 3353,
     "modelCalls": 6,
     "toolCalls": [
       "get_temperature"
     ],
-    "tail": "\u001b[33mWARN\u001b[39m: [ADK] 2026-11-18T13:42:48.430Z LoopAgent is deprecated in favor of Workflow and will be removed in a future version. Workflow cannot yet be used as an LlmAgent sub-agent.\nCurrent temperature is:  32.4601278143303\nprobe: 7 events"
+    "tail": "\u001b[33mWARN\u001b[39m: [ADK] 2026-11-18T15:42:01.520Z LoopAgent is deprecated in favor of Workflow and will be removed in a future version. Workflow cannot yet be used as an LlmAgent sub-agent.\nCurrent temperature is:  31.522968520517093\nprobe: 7 events"
   },
   {
     "id": "js__dev__samples__parallel_agent",
@@ -497,12 +497,12 @@
     "probe": true,
     "outcome": "ran",
     "exit": 0,
-    "ms": 2523,
+    "ms": 1199,
     "modelCalls": 3,
     "toolCalls": [
       "get_weather_temperature"
     ],
-    "tail": "\u001b[33mWARN\u001b[39m: [ADK] 2026-11-18T13:42:49.653Z ParallelAgent is deprecated in favor of Workflow and will be removed in a future version. Workflow cannot yet be used as an LlmAgent sub-agent.\nprobe: 4 events"
+    "tail": "\u001b[33mWARN\u001b[39m: [ADK] 2026-11-18T15:42:02.334Z ParallelAgent is deprecated in favor of Workflow and will be removed in a future version. Workflow cannot yet be used as an LlmAgent sub-agent.\nprobe: 4 events"
   },
   {
     "id": "js__dev__samples__sequential_agent",
@@ -511,13 +511,13 @@
     "probe": true,
     "outcome": "ran",
     "exit": 0,
-    "ms": 2428,
+    "ms": 1164,
     "modelCalls": 4,
     "toolCalls": [
       "roll_dice",
       "check_prime"
     ],
-    "tail": "\u001b[33mWARN\u001b[39m: [ADK] 2026-11-18T13:42:49.845Z SequentialAgent is deprecated in favor of Workflow and will be removed in a future version. Workflow cannot yet be used as an LlmAgent sub-agent.\nprobe: 6 events"
+    "tail": "\u001b[33mWARN\u001b[39m: [ADK] 2026-11-18T15:42:02.545Z SequentialAgent is deprecated in favor of Workflow and will be removed in a future version. Workflow cannot yet be used as an LlmAgent sub-agent.\nprobe: 6 events"
   },
   {
     "id": "js__samples__agents__agent",
@@ -526,7 +526,7 @@
     "probe": false,
     "outcome": "ran-no-model",
     "exit": 0,
-    "ms": 2057,
+    "ms": 1714,
     "modelCalls": 0,
     "tail": "[topic_summarizer] \n[graph_classifier] [LangGraph] Classified input (31 chars) as TECHNICAL.\n[topic_summarizer] Summary for \"Distributed agent architectures\"\n[quality_gate] Quality gate pass 1: requesting one more pass.\n[quality_gate] Quality gate approved on pass 2.\n\n=== 3. LLM Call Limit Enforcement ===\nCaught LlmCallsLimitExceededError: Max number of llm calls limit of 1 exceeded"
   },
@@ -537,9 +537,9 @@
     "probe": false,
     "outcome": "ran-no-model",
     "exit": 0,
-    "ms": 2076,
+    "ms": 1796,
     "modelCalls": 0,
-    "tail": "{\"id\":\"OIgRq0tm\",\"author\":\"artifacts_showcase_agent\",\"isFinal\":false,\"functionCalls\":[\"saveAndInspectReportArtifact\"],\"functionResponses\":[],\"artifactDelta\":{},\"text\":\"\"}\n{\"id\":\"ovSRh9Fs\",\"author\":\"artifacts_showcase_agent\",\"isFinal\":false,\"functionCalls\":[],\"functionResponses\":[\"saveAndInspectReportArtifact\"],\"artifactDelta\":{\"quarterly_report.md\":1,\"user:report_theme.json\":0},\"text\":\"\"}\n{\"id\":\"ZfCTPtFQ\",\"author\":\"artifacts_showcase_agent\",\"isFinal\":true,\"functionCalls\":[],\"functionResponses\":[],\"artifactDelta\":{},\"text\":\"Saved quarterly_report.md revisions [0, 1] (latest: \\\"# Q1 Report (Final)\\\") and user artifact user:report_theme.json. Visible keys in artifacts_sample_app: quarterly_report.md, user:report_theme.json.\"}\nKeys visible in second session (4289d193-a22a-460a-a1c8-e7dbec3484f9): [\"user:report_theme.json\"]"
+    "tail": "{\"id\":\"qW2LZUGV\",\"author\":\"artifacts_showcase_agent\",\"isFinal\":false,\"functionCalls\":[\"saveAndInspectReportArtifact\"],\"functionResponses\":[],\"artifactDelta\":{},\"text\":\"\"}\n{\"id\":\"s37ev5BI\",\"author\":\"artifacts_showcase_agent\",\"isFinal\":false,\"functionCalls\":[],\"functionResponses\":[\"saveAndInspectReportArtifact\"],\"artifactDelta\":{\"quarterly_report.md\":1,\"user:report_theme.json\":0},\"text\":\"\"}\n{\"id\":\"LXizD2fJ\",\"author\":\"artifacts_showcase_agent\",\"isFinal\":true,\"functionCalls\":[],\"functionResponses\":[],\"artifactDelta\":{},\"text\":\"Saved quarterly_report.md revisions [0, 1] (latest: \\\"# Q1 Report (Final)\\\") and user artifact user:report_theme.json. Visible keys in artifacts_sample_app: quarterly_report.md, user:report_theme.json.\"}\nKeys visible in second session (4dbd89da-b20b-471f-9476-68ec073b1f69): [\"user:report_theme.json\"]"
   },
   {
     "id": "js__samples__auth__agent",
@@ -548,9 +548,9 @@
     "probe": true,
     "outcome": "ran-no-model",
     "exit": 0,
-    "ms": 2029,
+    "ms": 1728,
     "modelCalls": 0,
-    "tail": "\u001b[33mWARN\u001b[39m: [ADK] 2026-11-18T13:42:30.439Z Class AutoAuthCredentialExchanger is experimental and may change in the future.\n\u001b[33mWARN\u001b[39m: [ADK] 2026-11-18T13:42:30.440Z Class ServiceAccountCredentialExchanger is experimental and may change in the future.\n\u001b[33mWARN\u001b[39m: [ADK] 2026-11-18T13:42:30.440Z Method AutoAuthCredentialExchanger.exchange is experimental and may change in the future.\nprobe: 1 events"
+    "tail": "\u001b[33mWARN\u001b[39m: [ADK] 2026-11-18T15:41:44.352Z Class AutoAuthCredentialExchanger is experimental and may change in the future.\n\u001b[33mWARN\u001b[39m: [ADK] 2026-11-18T15:41:44.353Z Class ServiceAccountCredentialExchanger is experimental and may change in the future.\n\u001b[33mWARN\u001b[39m: [ADK] 2026-11-18T15:41:44.353Z Method AutoAuthCredentialExchanger.exchange is experimental and may change in the future.\nprobe: 1 events"
   },
   {
     "id": "js__samples__cli__agent",
@@ -559,9 +559,9 @@
     "probe": false,
     "outcome": "ran-no-model",
     "exit": 0,
-    "ms": 1948,
+    "ms": 1825,
     "modelCalls": 0,
-    "tail": "Parsed eval spec: {\"support.evalset.json\":[\"order_flow\"]}\nEval order_flow: PASSED\n  tool_trajectory_avg_score: score=1 status=PASSED\n  response_match_score: score=1 status=PASSED\n\u001b[32mINFO\u001b[39m: [ADK] 2026-11-18T13:42:30.443Z Creating eval set file `/tmp/adk-cli-sample-YOEDSc/cli_sample_app/support.evalset.json`\n\u001b[32mINFO\u001b[39m: [ADK] 2026-11-18T13:42:30.453Z EvalCase `order_flow` was found in the eval set. It will be removed permanently.\n\u001b[32mINFO\u001b[39m: [ADK] 2026-11-18T13:42:30.460Z Writing eval result to file: /tmp/adk-cli-sample-YOEDSc/cli_sample_app/.adk/eval_history/cli_sample_app_support_1795009350.4599357.evalset_result.json\nSaved eval set result: cli_sample_app_support_1795009350.4599357 (total stored: 1)"
+    "tail": "Parsed eval spec: {\"support.evalset.json\":[\"order_flow\"]}\nEval order_flow: PASSED\n  tool_trajectory_avg_score: score=1 status=PASSED\n  response_match_score: score=1 status=PASSED\n\u001b[32mINFO\u001b[39m: [ADK] 2026-11-18T15:41:44.622Z Creating eval set file `/tmp/adk-cli-sample-yGSOew/cli_sample_app/support.evalset.json`\n\u001b[32mINFO\u001b[39m: [ADK] 2026-11-18T15:41:44.631Z EvalCase `order_flow` was found in the eval set. It will be removed permanently.\n\u001b[32mINFO\u001b[39m: [ADK] 2026-11-18T15:41:44.635Z Writing eval result to file: /tmp/adk-cli-sample-yGSOew/cli_sample_app/.adk/eval_history/cli_sample_app_support_1795016504.634708.evalset_result.json\nSaved eval set result: cli_sample_app_support_1795016504.634708 (total stored: 1)"
   },
   {
     "id": "js__samples__code_execution__agent",
@@ -586,7 +586,7 @@
     "probe": true,
     "outcome": "ran",
     "exit": 0,
-    "ms": 1964,
+    "ms": 1585,
     "modelCalls": 2,
     "toolCalls": [
       "search_catalog"
@@ -600,7 +600,7 @@
     "probe": false,
     "outcome": "ran-no-model",
     "exit": 0,
-    "ms": 1668,
+    "ms": 1538,
     "modelCalls": 0,
     "tail": "  artifactDelta: {},\n  text: 'Order ORD-42 has status SHIPPED via FastShip.'\n}\nUpdated session state: {\n  completedTurns: 1,\n  lastOrderId: 'ORD-42',\n  lastOrderStatus: 'SHIPPED'\n}"
   },
@@ -627,9 +627,9 @@
     "probe": false,
     "outcome": "ran-no-model",
     "exit": 0,
-    "ms": 1581,
+    "ms": 1818,
     "modelCalls": 0,
-    "tail": "{\"id\":\"otkWW9wf\",\"author\":\"memory_showcase_agent\",\"isFinal\":false,\"functionCalls\":[\"recallUserMemories\"],\"functionResponses\":[],\"artifactDelta\":{},\"text\":\"\"}\n{\"id\":\"MzH6CQQb\",\"author\":\"memory_showcase_agent\",\"isFinal\":false,\"functionCalls\":[],\"functionResponses\":[\"recallUserMemories\"],\"artifactDelta\":{\"memory_digest.json\":0},\"text\":\"\"}\n{\"id\":\"yxuZyiV6\",\"author\":\"memory_showcase_agent\",\"isFinal\":true,\"functionCalls\":[],\"functionResponses\":[],\"artifactDelta\":{},\"text\":\"Recalled 2 memory entries for user-1 in memory_sample_app: [2025-02-10T09:15:00.000Z] user: \\\"We booked flights to Lisbon with Nadia for October 14 and requested vegetarian meals.\\\" | [2025-02-10T09:16:00.000Z] model: \\\"Confirmed Lisbon hotel near Rossio Square with late check-in.\\\"\"}\nMemories visible to unindexed-user: []"
+    "tail": "{\"id\":\"AL5MUvaN\",\"author\":\"memory_showcase_agent\",\"isFinal\":false,\"functionCalls\":[\"recallUserMemories\"],\"functionResponses\":[],\"artifactDelta\":{},\"text\":\"\"}\n{\"id\":\"lbadsB65\",\"author\":\"memory_showcase_agent\",\"isFinal\":false,\"functionCalls\":[],\"functionResponses\":[\"recallUserMemories\"],\"artifactDelta\":{\"memory_digest.json\":0},\"text\":\"\"}\n{\"id\":\"80q9naHN\",\"author\":\"memory_showcase_agent\",\"isFinal\":true,\"functionCalls\":[],\"functionResponses\":[],\"artifactDelta\":{},\"text\":\"Recalled 2 memory entries for user-1 in memory_sample_app: [2025-02-10T09:15:00.000Z] user: \\\"We booked flights to Lisbon with Nadia for October 14 and requested vegetarian meals.\\\" | [2025-02-10T09:16:00.000Z] model: \\\"Confirmed Lisbon hotel near Rossio Square with late check-in.\\\"\"}\nMemories visible to unindexed-user: []"
   },
   {
     "id": "js__samples__models__agent",
@@ -638,7 +638,7 @@
     "probe": true,
     "outcome": "ran",
     "exit": 0,
-    "ms": 1700,
+    "ms": 1672,
     "modelCalls": 1,
     "tail": "probe: 1 events"
   },
@@ -649,12 +649,12 @@
     "probe": false,
     "outcome": "ran",
     "exit": 0,
-    "ms": 1762,
+    "ms": 1595,
     "modelCalls": 2,
     "toolCalls": [
       "roll_die"
     ],
-    "tail": "[data_processing_agent] call: roll_die {\"sides\":-9007199254740991}\n[data_processing_agent] result: roll_die {\"result\":-770958691868341}\n[data_processing_agent] answer: Scripted model: hello from the offline model."
+    "tail": "[data_processing_agent] call: roll_die {\"sides\":-9007199254740991}\n[data_processing_agent] result: roll_die {\"result\":-6645025258476988}\n[data_processing_agent] answer: Scripted model: hello from the offline model."
   },
   {
     "id": "js__samples__runners__agent",
@@ -663,7 +663,7 @@
     "probe": true,
     "outcome": "ran",
     "exit": 0,
-    "ms": 1838,
+    "ms": 1691,
     "modelCalls": 2,
     "toolCalls": [
       "search_archive"
@@ -677,9 +677,9 @@
     "probe": false,
     "outcome": "ran-no-model",
     "exit": 0,
-    "ms": 1740,
+    "ms": 1579,
     "modelCalls": 0,
-    "tail": "Created session id: \"first-session\"\n[session_state_agent]: Session first-session: turn 1 of this session, visit 1 for user user-1, turn 1 for app sessions_sample_app.\n  state: {\"turnCount\":1,\"user:visits\":1,\"app:totalTurns\":1}\n[session_state_agent]: Session first-session: turn 2 of this session, visit 2 for user user-1, turn 2 for app sessions_sample_app.\n  state: {\"turnCount\":2,\"user:visits\":2,\"app:totalTurns\":2}\nCreated session id: \"300a2333-60c6-4e59-bf1e-c139d56aec61\"\n[session_state_agent]: Session 300a2333-60c6-4e59-bf1e-c139d56aec61: turn 1 of this session, visit 3 for user user-1, turn 3 for app sessions_sample_app.\n  state: {\"turnCount\":1,\"user:visits\":3,\"app:totalTurns\":3}"
+    "tail": "Created session id: \"first-session\"\n[session_state_agent]: Session first-session: turn 1 of this session, visit 1 for user user-1, turn 1 for app sessions_sample_app.\n  state: {\"turnCount\":1,\"user:visits\":1,\"app:totalTurns\":1}\n[session_state_agent]: Session first-session: turn 2 of this session, visit 2 for user user-1, turn 2 for app sessions_sample_app.\n  state: {\"turnCount\":2,\"user:visits\":2,\"app:totalTurns\":2}\nCreated session id: \"3a8e5387-1192-4ef3-bc74-9f90b9b01a41\"\n[session_state_agent]: Session 3a8e5387-1192-4ef3-bc74-9f90b9b01a41: turn 1 of this session, visit 3 for user user-1, turn 3 for app sessions_sample_app.\n  state: {\"turnCount\":1,\"user:visits\":3,\"app:totalTurns\":3}"
   },
   {
     "id": "js__samples__tools__apihub_tool__agent",
@@ -736,12 +736,12 @@
     "probe": true,
     "outcome": "ran",
     "exit": 0,
-    "ms": 1636,
+    "ms": 1559,
     "modelCalls": 2,
     "toolCalls": [
       "employee_handbook"
     ],
-    "tail": "\u001b[32mINFO\u001b[39m: [ADK] 2026-11-18T13:42:33.787Z Loading data from /home/user/agent-speak/verify/google-adk/extracted/data\n[sample] search_documents is off: FilesRetrieval needs the optional package '@llamaindex/readers/directory', which is not installed. Install 'llamaindex' and '@llamaindex/readers', or build the retriever yourself and pass it to LlamaIndexRetrieval.\n[sample] install it with: npm install llamaindex @llamaindex/readers\nprobe: 3 events"
+    "tail": "\u001b[32mINFO\u001b[39m: [ADK] 2026-11-18T15:41:47.861Z Loading data from /home/user/agent-speak/verify/google-adk/extracted/data\n[sample] search_documents is off: FilesRetrieval needs the optional package '@llamaindex/readers/directory', which is not installed. Install 'llamaindex' and '@llamaindex/readers', or build the retriever yourself and pass it to LlamaIndexRetrieval.\n[sample] install it with: npm install llamaindex @llamaindex/readers\nprobe: 3 events"
   },
   {
     "id": "js__samples__workflows__data_handling__node_output__agent",
@@ -750,9 +750,9 @@
     "probe": true,
     "outcome": "ran-no-model",
     "exit": 0,
-    "ms": 1748,
+    "ms": 1993,
     "modelCalls": 0,
-    "tail": "\u001b[33mWARN\u001b[39m: [ADK] 2026-11-18T13:42:35.326Z Class Workflow is experimental and may change in the future.\nprobe: 4 events"
+    "tail": "\u001b[33mWARN\u001b[39m: [ADK] 2026-11-18T15:41:49.235Z Class Workflow is experimental and may change in the future.\nprobe: 4 events"
   },
   {
     "id": "js__samples__workflows__data_handling__routing_output__agent",
@@ -761,9 +761,9 @@
     "probe": true,
     "outcome": "ran-no-model",
     "exit": 0,
-    "ms": 2155,
+    "ms": 2007,
     "modelCalls": 0,
-    "tail": "\u001b[33mWARN\u001b[39m: [ADK] 2026-11-18T13:42:35.934Z Class Workflow is experimental and may change in the future.\nprobe: 2 events"
+    "tail": "\u001b[33mWARN\u001b[39m: [ADK] 2026-11-18T15:41:49.566Z Class Workflow is experimental and may change in the future.\nprobe: 2 events"
   },
   {
     "id": "js__samples__workflows__data_handling__schemas__agent",
@@ -772,13 +772,13 @@
     "probe": true,
     "outcome": "ran",
     "exit": 0,
-    "ms": 1791,
+    "ms": 1894,
     "modelCalls": 2,
     "toolCalls": [
       "search_flights_api",
       "set_model_response"
     ],
-    "tail": "\u001b[33mWARN\u001b[39m: [ADK] 2026-11-18T13:42:35.572Z Class Workflow is experimental and may change in the future.\nprobe: 5 events"
+    "tail": "\u001b[33mWARN\u001b[39m: [ADK] 2026-11-18T15:41:49.605Z Class Workflow is experimental and may change in the future.\nprobe: 5 events"
   },
   {
     "id": "js__samples__workflows__data_handling__session_state__agent",
@@ -787,9 +787,9 @@
     "probe": true,
     "outcome": "ran-no-model",
     "exit": 0,
-    "ms": 1607,
+    "ms": 1697,
     "modelCalls": 0,
-    "tail": "\u001b[33mWARN\u001b[39m: [ADK] 2026-11-18T13:42:35.500Z Class Workflow is experimental and may change in the future.\nprobe: 3 events"
+    "tail": "\u001b[33mWARN\u001b[39m: [ADK] 2026-11-18T15:41:49.580Z Class Workflow is experimental and may change in the future.\nprobe: 3 events"
   },
   {
     "id": "js__samples__workflows__data_handling__structured_access__agent",
@@ -798,9 +798,9 @@
     "probe": true,
     "outcome": "ran",
     "exit": 0,
-    "ms": 1654,
+    "ms": 1631,
     "modelCalls": 2,
-    "tail": "\u001b[33mWARN\u001b[39m: [ADK] 2026-11-18T13:42:36.935Z Class Workflow is experimental and may change in the future.\nprobe: 3 events"
+    "tail": "\u001b[33mWARN\u001b[39m: [ADK] 2026-11-18T15:41:50.855Z Class Workflow is experimental and may change in the future.\nprobe: 3 events"
   },
   {
     "id": "js__samples__workflows__data_handling__structured_output__agent",
@@ -809,9 +809,9 @@
     "probe": true,
     "outcome": "ran-no-model",
     "exit": 0,
-    "ms": 2068,
+    "ms": 1638,
     "modelCalls": 0,
-    "tail": "\u001b[33mWARN\u001b[39m: [ADK] 2026-11-18T13:42:37.552Z Class Workflow is experimental and may change in the future.\nprobe: 2 events"
+    "tail": "\u001b[33mWARN\u001b[39m: [ADK] 2026-11-18T15:41:51.207Z Class Workflow is experimental and may change in the future.\nprobe: 2 events"
   },
   {
     "id": "js__samples__workflows__data_handling__user_message__agent",
@@ -820,9 +820,9 @@
     "probe": true,
     "outcome": "ran-no-model",
     "exit": 0,
-    "ms": 1907,
+    "ms": 1813,
     "modelCalls": 0,
-    "tail": "\u001b[33mWARN\u001b[39m: [ADK] 2026-11-18T13:42:37.495Z Class Workflow is experimental and may change in the future.\nprobe: 4 events"
+    "tail": "\u001b[33mWARN\u001b[39m: [ADK] 2026-11-18T15:41:51.368Z Class Workflow is experimental and may change in the future.\nprobe: 4 events"
   },
   {
     "id": "js__samples__workflows__dynamic__custom_run_ids__agent",
@@ -831,9 +831,9 @@
     "probe": true,
     "outcome": "ran-no-model",
     "exit": 0,
-    "ms": 1783,
+    "ms": 1719,
     "modelCalls": 0,
-    "tail": "\u001b[33mWARN\u001b[39m: [ADK] 2026-11-18T13:42:37.727Z Class Workflow is experimental and may change in the future.\nprobe: 4 events"
+    "tail": "\u001b[33mWARN\u001b[39m: [ADK] 2026-11-18T15:41:51.360Z Class Workflow is experimental and may change in the future.\nprobe: 4 events"
   },
   {
     "id": "js__samples__workflows__dynamic__data_handling__agent",
@@ -842,9 +842,9 @@
     "probe": true,
     "outcome": "ran",
     "exit": 0,
-    "ms": 1802,
+    "ms": 1805,
     "modelCalls": 1,
-    "tail": "\u001b[33mWARN\u001b[39m: [ADK] 2026-11-18T13:42:38.749Z Class Workflow is experimental and may change in the future.\nprobe: 3 events"
+    "tail": "\u001b[33mWARN\u001b[39m: [ADK] 2026-11-18T15:41:52.660Z Class Workflow is experimental and may change in the future.\nprobe: 3 events"
   },
   {
     "id": "js__samples__workflows__dynamic__get_started__agent",
@@ -853,9 +853,9 @@
     "probe": true,
     "outcome": "ran-no-model",
     "exit": 0,
-    "ms": 1816,
+    "ms": 1796,
     "modelCalls": 0,
-    "tail": "\u001b[33mWARN\u001b[39m: [ADK] 2026-11-18T13:42:39.269Z Class Workflow is experimental and may change in the future.\nprobe: 2 events"
+    "tail": "\u001b[33mWARN\u001b[39m: [ADK] 2026-11-18T15:41:53.007Z Class Workflow is experimental and may change in the future.\nprobe: 2 events"
   },
   {
     "id": "js__samples__workflows__dynamic__human_input__agent",
@@ -864,9 +864,9 @@
     "probe": true,
     "outcome": "ran-no-model",
     "exit": 0,
-    "ms": 1615,
+    "ms": 1539,
     "modelCalls": 0,
-    "tail": "\u001b[33mWARN\u001b[39m: [ADK] 2026-11-18T13:42:39.173Z Class Workflow is experimental and may change in the future.\nprobe: 3 events"
+    "tail": "\u001b[33mWARN\u001b[39m: [ADK] 2026-11-18T15:41:52.906Z Class Workflow is experimental and may change in the future.\nprobe: 3 events"
   },
   {
     "id": "js__samples__workflows__dynamic__loop_route__agent",
@@ -875,9 +875,9 @@
     "probe": true,
     "outcome": "ran",
     "exit": 0,
-    "ms": 1846,
+    "ms": 1817,
     "modelCalls": 4,
-    "tail": "\u001b[33mWARN\u001b[39m: [ADK] 2026-11-18T13:42:39.526Z Class Workflow is experimental and may change in the future.\nprobe: 9 events"
+    "tail": "\u001b[33mWARN\u001b[39m: [ADK] 2026-11-18T15:41:53.171Z Class Workflow is experimental and may change in the future.\nprobe: 9 events"
   },
   {
     "id": "js__samples__workflows__dynamic__nodes__agent",
@@ -886,9 +886,9 @@
     "probe": true,
     "outcome": "ran-no-model",
     "exit": 0,
-    "ms": 2054,
+    "ms": 1902,
     "modelCalls": 0,
-    "tail": "\u001b[33mWARN\u001b[39m: [ADK] 2026-11-18T13:42:40.850Z Class Workflow is experimental and may change in the future.\nprobe: 4 events"
+    "tail": "\u001b[33mWARN\u001b[39m: [ADK] 2026-11-18T15:41:54.606Z Class Workflow is experimental and may change in the future.\nprobe: 4 events"
   },
   {
     "id": "js__samples__workflows__dynamic__parallel_route__agent",
@@ -897,9 +897,9 @@
     "probe": true,
     "outcome": "ran-no-model",
     "exit": 0,
-    "ms": 1965,
+    "ms": 1755,
     "modelCalls": 0,
-    "tail": "\u001b[33mWARN\u001b[39m: [ADK] 2026-11-18T13:42:40.977Z Class Workflow is experimental and may change in the future.\nprobe: 3 events"
+    "tail": "\u001b[33mWARN\u001b[39m: [ADK] 2026-11-18T15:41:54.499Z Class Workflow is experimental and may change in the future.\nprobe: 3 events"
   },
   {
     "id": "js__samples__workflows__dynamic__sequence_route__agent",
@@ -908,9 +908,9 @@
     "probe": true,
     "outcome": "ran",
     "exit": 0,
-    "ms": 2000,
+    "ms": 1775,
     "modelCalls": 2,
-    "tail": "\u001b[33mWARN\u001b[39m: [ADK] 2026-11-18T13:42:41.322Z Class Workflow is experimental and may change in the future.\nprobe: 4 events"
+    "tail": "\u001b[33mWARN\u001b[39m: [ADK] 2026-11-18T15:41:54.783Z Class Workflow is experimental and may change in the future.\nprobe: 4 events"
   },
   {
     "id": "js__samples__workflows__graphs__get_started__agent",
@@ -919,9 +919,9 @@
     "probe": true,
     "outcome": "ran",
     "exit": 0,
-    "ms": 1965,
+    "ms": 1811,
     "modelCalls": 2,
-    "tail": "\u001b[33mWARN\u001b[39m: [ADK] 2026-11-18T13:42:41.514Z Class Workflow is experimental and may change in the future.\nprobe: 4 events"
+    "tail": "\u001b[33mWARN\u001b[39m: [ADK] 2026-11-18T15:41:54.957Z Class Workflow is experimental and may change in the future.\nprobe: 4 events"
   },
   {
     "id": "js__samples__workflows__graphs__process_pipeline__agent",
@@ -930,9 +930,9 @@
     "probe": true,
     "outcome": "ran",
     "exit": 0,
-    "ms": 1649,
+    "ms": 1634,
     "modelCalls": 1,
-    "tail": "\u001b[33mWARN\u001b[39m: [ADK] 2026-11-18T13:42:42.486Z Class Workflow is experimental and may change in the future.\nprobe: 3 events"
+    "tail": "\u001b[33mWARN\u001b[39m: [ADK] 2026-11-18T15:41:56.206Z Class Workflow is experimental and may change in the future.\nprobe: 3 events"
   },
   {
     "id": "js__samples__workflows__human_input__get_started__agent",
@@ -941,9 +941,9 @@
     "probe": true,
     "outcome": "ran-no-model",
     "exit": 0,
-    "ms": 1497,
+    "ms": 1716,
     "modelCalls": 0,
-    "tail": "\u001b[33mWARN\u001b[39m: [ADK] 2026-11-18T13:42:42.643Z Class Workflow is experimental and may change in the future.\nprobe: 2 events"
+    "tail": "\u001b[33mWARN\u001b[39m: [ADK] 2026-11-18T15:41:56.371Z Class Workflow is experimental and may change in the future.\nprobe: 2 events"
   },
   {
     "id": "js__samples__workflows__human_input__initial_prompt__agent",
@@ -952,9 +952,9 @@
     "probe": true,
     "outcome": "ran-no-model",
     "exit": 0,
-    "ms": 1653,
+    "ms": 1932,
     "modelCalls": 0,
-    "tail": "\u001b[33mWARN\u001b[39m: [ADK] 2026-11-18T13:42:42.981Z Class Workflow is experimental and may change in the future.\nprobe: 2 events"
+    "tail": "\u001b[33mWARN\u001b[39m: [ADK] 2026-11-18T15:41:56.676Z Class Workflow is experimental and may change in the future.\nprobe: 2 events"
   },
   {
     "id": "js__samples__workflows__human_input__payload_and_schema__agent",
@@ -963,9 +963,9 @@
     "probe": true,
     "outcome": "ran-no-model",
     "exit": 0,
-    "ms": 1826,
+    "ms": 1712,
     "modelCalls": 0,
-    "tail": "\u001b[33mWARN\u001b[39m: [ADK] 2026-11-18T13:42:43.370Z Class Workflow is experimental and may change in the future.\nprobe: 3 events"
+    "tail": "\u001b[33mWARN\u001b[39m: [ADK] 2026-11-18T15:41:56.692Z Class Workflow is experimental and may change in the future.\nprobe: 3 events"
   },
   {
     "id": "js__samples__workflows__human_input__rerun_on_resume__agent",
@@ -974,9 +974,9 @@
     "probe": true,
     "outcome": "ran-no-model",
     "exit": 0,
-    "ms": 1634,
+    "ms": 1775,
     "modelCalls": 0,
-    "tail": "\u001b[33mWARN\u001b[39m: [ADK] 2026-11-18T13:42:44.122Z Class Workflow is experimental and may change in the future.\nprobe: 4 events"
+    "tail": "\u001b[33mWARN\u001b[39m: [ADK] 2026-11-18T15:41:57.993Z Class Workflow is experimental and may change in the future.\nprobe: 4 events"
   },
   {
     "id": "js__samples__workflows__routes__branches__agent",
@@ -985,9 +985,9 @@
     "probe": true,
     "outcome": "ran",
     "exit": 0,
-    "ms": 1593,
+    "ms": 1597,
     "modelCalls": 1,
-    "tail": "\u001b[33mWARN\u001b[39m: [ADK] 2026-11-18T13:42:44.226Z Class Workflow is experimental and may change in the future.\nprobe: 3 events"
+    "tail": "\u001b[33mWARN\u001b[39m: [ADK] 2026-11-18T15:41:57.963Z Class Workflow is experimental and may change in the future.\nprobe: 3 events"
   },
   {
     "id": "js__samples__workflows__routes__fan_out_join__agent",
@@ -996,9 +996,9 @@
     "probe": true,
     "outcome": "ran-no-model",
     "exit": 0,
-    "ms": 1679,
+    "ms": 1629,
     "modelCalls": 0,
-    "tail": "\u001b[33mWARN\u001b[39m: [ADK] 2026-11-18T13:42:44.657Z Class Workflow is experimental and may change in the future.\nprobe: 5 events"
+    "tail": "\u001b[33mWARN\u001b[39m: [ADK] 2026-11-18T15:41:58.336Z Class Workflow is experimental and may change in the future.\nprobe: 5 events"
   },
   {
     "id": "js__samples__workflows__routes__function_node__agent",
@@ -1007,9 +1007,9 @@
     "probe": true,
     "outcome": "ran-no-model",
     "exit": 0,
-    "ms": 1783,
+    "ms": 1670,
     "modelCalls": 0,
-    "tail": "\u001b[33mWARN\u001b[39m: [ADK] 2026-11-18T13:42:45.145Z Class Workflow is experimental and may change in the future.\nprobe: 2 events"
+    "tail": "\u001b[33mWARN\u001b[39m: [ADK] 2026-11-18T15:41:58.399Z Class Workflow is experimental and may change in the future.\nprobe: 2 events"
   },
   {
     "id": "js__samples__workflows__routes__loop_escalation__agent",
@@ -1018,9 +1018,9 @@
     "probe": true,
     "outcome": "ran-no-model",
     "exit": 0,
-    "ms": 1511,
+    "ms": 1517,
     "modelCalls": 0,
-    "tail": "\u001b[33mWARN\u001b[39m: [ADK] 2026-11-18T13:42:45.645Z Class Workflow is experimental and may change in the future.\nprobe: 7 events"
+    "tail": "\u001b[33mWARN\u001b[39m: [ADK] 2026-11-18T15:41:59.484Z Class Workflow is experimental and may change in the future.\nprobe: 7 events"
   },
   {
     "id": "js__samples__workflows__routes__nested_workflow__agent",
@@ -1029,9 +1029,9 @@
     "probe": true,
     "outcome": "ran-no-model",
     "exit": 0,
-    "ms": 1690,
+    "ms": 1576,
     "modelCalls": 0,
-    "tail": "\u001b[33mWARN\u001b[39m: [ADK] 2026-11-18T13:42:45.924Z Class Workflow is experimental and may change in the future.\nprobe: 4 events"
+    "tail": "\u001b[33mWARN\u001b[39m: [ADK] 2026-11-18T15:41:59.557Z Class Workflow is experimental and may change in the future.\nprobe: 4 events"
   },
   {
     "id": "js__samples__workflows__routes__sequence__agent",
@@ -1040,9 +1040,9 @@
     "probe": true,
     "outcome": "ran-no-model",
     "exit": 0,
-    "ms": 1572,
+    "ms": 1762,
     "modelCalls": 0,
-    "tail": "\u001b[33mWARN\u001b[39m: [ADK] 2026-11-18T13:42:46.248Z Class Workflow is experimental and may change in the future.\nprobe: 3 events"
+    "tail": "\u001b[33mWARN\u001b[39m: [ADK] 2026-11-18T15:42:00.112Z Class Workflow is experimental and may change in the future.\nprobe: 3 events"
   },
   {
     "id": "snippet__snippets__agents__custom-agent__storyflow_agent",
@@ -1051,7 +1051,7 @@
     "probe": false,
     "outcome": "ran",
     "exit": 0,
-    "ms": 2030,
+    "ms": 1587,
     "modelCalls": 7,
     "tail": "{\n  \"topic\": \"a brave kitten exploring a haunted house\",\n  \"current_story\": \"Scripted model: hello from the offline model.\",\n  \"criticism\": \"Scripted model: hello from the offline model.\",\n  \"grammar_suggestions\": \"Scripted model: hello from the offline model.\",\n  \"tone_check_result\": \"Scripted model: hello from the offline model.\"\n}\n-------------------------------"
   },
@@ -1062,7 +1062,7 @@
     "probe": false,
     "outcome": "ran",
     "exit": 0,
-    "ms": 1917,
+    "ms": 1905,
     "modelCalls": 6,
     "toolCalls": [
       "get_capital_city",
@@ -1077,9 +1077,9 @@
     "probe": false,
     "outcome": "ran",
     "exit": 0,
-    "ms": 1814,
+    "ms": 1776,
     "modelCalls": 1,
-    "tail": "\u001b[32mINFO\u001b[39m: [ADK] 2026-11-18T13:42:04.803Z Routing request via RoutedLlm[primary (gemini-flash-latest), fallback (gemini-pro-latest)]\nScripted model: hello from the offline model."
+    "tail": "\u001b[32mINFO\u001b[39m: [ADK] 2026-11-18T15:41:19.852Z Routing request via RoutedLlm[primary (gemini-flash-latest), fallback (gemini-pro-latest)]\nScripted model: hello from the offline model."
   },
   {
     "id": "snippet__snippets__agents__routing__auto-routing",
@@ -1088,7 +1088,7 @@
     "probe": false,
     "outcome": "ran",
     "exit": 0,
-    "ms": 1812,
+    "ms": 2016,
     "modelCalls": 2,
     "tail": "Scripted model: hello from the offline model."
   },
@@ -1099,7 +1099,7 @@
     "probe": false,
     "outcome": "ran",
     "exit": 0,
-    "ms": 1745,
+    "ms": 1813,
     "modelCalls": 1,
     "tail": "Scripted model: hello from the offline model."
   },
@@ -1110,7 +1110,7 @@
     "probe": false,
     "outcome": "ran",
     "exit": 0,
-    "ms": 1605,
+    "ms": 1720,
     "modelCalls": 1,
     "tail": "Scripted model: hello from the offline model."
   },
@@ -1121,7 +1121,7 @@
     "probe": false,
     "outcome": "ran",
     "exit": 0,
-    "ms": 1523,
+    "ms": 2148,
     "modelCalls": 1,
     "tail": "Scripted model: hello from the offline model."
   },
@@ -1132,7 +1132,7 @@
     "probe": false,
     "outcome": "ran",
     "exit": 0,
-    "ms": 1714,
+    "ms": 1737,
     "modelCalls": 2,
     "toolCalls": [
       "get_weather"
@@ -1146,7 +1146,7 @@
     "probe": true,
     "outcome": "ran",
     "exit": 0,
-    "ms": 1711,
+    "ms": 1782,
     "modelCalls": 4,
     "toolCalls": [
       "exit_loop"
@@ -1154,7 +1154,7 @@
     "probeState": [
       "initial_topic"
     ],
-    "tail": "\u001b[33mWARN\u001b[39m: [ADK] 2026-11-18T13:42:08.754Z LoopAgent is deprecated in favor of Workflow and will be removed in a future version. Workflow cannot yet be used as an LlmAgent sub-agent.\n\u001b[33mWARN\u001b[39m: [ADK] 2026-11-18T13:42:08.759Z SequentialAgent is deprecated in favor of Workflow and will be removed in a future version. Workflow cannot yet be used as an LlmAgent sub-agent.\n  [Tool Call] exit_loop triggered by RefinerAgent with input: [object Object]\nprobe: 5 events"
+    "tail": "\u001b[33mWARN\u001b[39m: [ADK] 2026-11-18T15:41:23.684Z LoopAgent is deprecated in favor of Workflow and will be removed in a future version. Workflow cannot yet be used as an LlmAgent sub-agent.\n\u001b[33mWARN\u001b[39m: [ADK] 2026-11-18T15:41:23.685Z SequentialAgent is deprecated in favor of Workflow and will be removed in a future version. Workflow cannot yet be used as an LlmAgent sub-agent.\n  [Tool Call] exit_loop triggered by RefinerAgent with input: [object Object]\nprobe: 5 events"
   },
   {
     "id": "snippet__snippets__agents__workflow-agents__parallel_agent_web_research",
@@ -1163,7 +1163,7 @@
     "probe": false,
     "outcome": "ran",
     "exit": 0,
-    "ms": 1684,
+    "ms": 1738,
     "modelCalls": 4,
     "tail": "  [Event] From: RenewableEnergyResearcher, Final: true\n    -> Intermediate Result from RenewableEnergyResearcher: Scripted model: hello from the offline model.\n  [Event] From: EVResearcher, Final: true\n    -> Intermediate Result from EVResearcher: Scripted model: hello from the offline model.\n  [Event] From: CarbonCaptureResearcher, Final: true\n    -> Intermediate Result from CarbonCaptureResearcher: Scripted model: hello from the offline model.\n  [Event] From: SynthesisAgent, Final: true\n<<< Final Synthesized Response (from SynthesisAgent): Scripted model: hello from the offline model."
   },
@@ -1174,7 +1174,7 @@
     "probe": false,
     "outcome": "ran",
     "exit": 0,
-    "ms": 1791,
+    "ms": 1823,
     "modelCalls": 3,
     "tail": "\n--- Attempting to retrieve Final Session State ---\n{\n  generated_code: 'Scripted model: hello from the offline model.',\n  review_comments: 'Scripted model: hello from the offline model.',\n  refactored_code: 'Scripted model: hello from the offline model.'\n}\n=================================================="
   },
@@ -1185,9 +1185,9 @@
     "probe": false,
     "outcome": "ran",
     "exit": 0,
-    "ms": 1950,
+    "ms": 1779,
     "modelCalls": 2,
-    "tail": "[Callback] Exiting agent: MySimpleAgentWithAfter (Inv: e-641b59fd-e4d0-4539-9adc-834b188e7bc1)\n[Callback] Current State: State {\n  value: { add_concluding_note: true },\n  delta: {},\n  schema: undefined\n}\n[Callback] State condition \"add_concluding_note=true\" met: Replacing agent MySimpleAgentWithAfter's output.\nFinal Output: [MySimpleAgentWithAfter] Concluding note added by after_agent_callback, replacing original output."
+    "tail": "[Callback] Exiting agent: MySimpleAgentWithAfter (Inv: e-68744637-285a-4d70-95bc-00175ff0b7f3)\n[Callback] Current State: State {\n  value: { add_concluding_note: true },\n  delta: {},\n  schema: undefined\n}\n[Callback] State condition \"add_concluding_note=true\" met: Replacing agent MySimpleAgentWithAfter's output.\nFinal Output: [MySimpleAgentWithAfter] Concluding note added by after_agent_callback, replacing original output."
   },
   {
     "id": "snippet__snippets__callbacks__after_model_callback",
@@ -1196,7 +1196,7 @@
     "probe": false,
     "outcome": "ran",
     "exit": 0,
-    "ms": 1666,
+    "ms": 1713,
     "modelCalls": 2,
     "tail": "[Callback] Proceeding with original LLM response.\n<<< Agent Response:  Scripted model: hello from the offline model.\n\n>>> Calling Agent with query: \"write a short poem about coding\"\n[Callback] After model call for agent: AfterModelCallbackAgent\n[Callback] Inspecting model response: \"Scripted model: hello from the offline model....\"\n[Callback] Proceeding with original LLM response.\n<<< Agent Response:  Scripted model: hello from the offline model."
   },
@@ -1207,7 +1207,7 @@
     "probe": false,
     "outcome": "ran",
     "exit": 0,
-    "ms": 1918,
+    "ms": 1910,
     "modelCalls": 2,
     "toolCalls": [
       "get_capital_city"
@@ -1221,9 +1221,9 @@
     "probe": false,
     "outcome": "ran",
     "exit": 0,
-    "ms": 1826,
+    "ms": 2003,
     "modelCalls": 1,
-    "tail": "Final Output: [MyControlledAgent] Scripted model: hello from the offline model.\n\n==================== SCENARIO 2: Running Agent on Session \"session_will_skip\" (Should Skip) ====================\n\n[Callback] Entering agent: MyControlledAgent (Inv: e-97508ecf-0b3f-4413-ac7a-52511dbd2e2e)\n[Callback] Current State: State { value: { skip_llm_agent: true }, delta: {}, schema: undefined }\n[Callback] State condition 'skip_llm_agent=True' met: Skipping agent MyControlledAgent.\nFinal Output: [MyControlledAgent] Agent MyControlledAgent skipped by before_agent_callback due to state."
+    "tail": "Final Output: [MyControlledAgent] Scripted model: hello from the offline model.\n\n==================== SCENARIO 2: Running Agent on Session \"session_will_skip\" (Should Skip) ====================\n\n[Callback] Entering agent: MyControlledAgent (Inv: e-6c3e1690-fb32-421f-929d-1bf66d99184e)\n[Callback] Current State: State { value: { skip_llm_agent: true }, delta: {}, schema: undefined }\n[Callback] State condition 'skip_llm_agent=True' met: Skipping agent MyControlledAgent.\nFinal Output: [MyControlledAgent] Agent MyControlledAgent skipped by before_agent_callback due to state."
   },
   {
     "id": "snippet__snippets__callbacks__before_model_callback",
@@ -1232,7 +1232,7 @@
     "probe": false,
     "outcome": "ran",
     "exit": 0,
-    "ms": 1642,
+    "ms": 1861,
     "modelCalls": 1,
     "tail": "<<< Agent Response:  LLM call was blocked by the before_model_callback.\n\n>>> Calling Agent with query: \"write a short poem\"\n[Callback] Before model call for agent: ModelCallbackAgent\n[Callback] Inspecting last user message: 'write a short poem'\n[Callback] Modified system instruction to: '[Modified by Callback] '\n[Callback] Proceeding with LLM call.\n<<< Agent Response:  Scripted model: hello from the offline model."
   },
@@ -1251,7 +1251,7 @@
     "probe": false,
     "outcome": "ran",
     "exit": 0,
-    "ms": 1559,
+    "ms": 1753,
     "modelCalls": 1,
     "tail": "Callback running before model call for agent: MyCallbackAgent\nAgent Response:  Scripted model: hello from the offline model."
   },
@@ -1262,9 +1262,9 @@
     "probe": true,
     "outcome": "ran-no-model",
     "exit": 0,
-    "ms": 1804,
+    "ms": 1964,
     "modelCalls": 0,
-    "tail": "\u001b[33mWARN\u001b[39m: [ADK] 2026-11-18T13:42:11.883Z Class Workflow is experimental and may change in the future.\nprobe: 4 events"
+    "tail": "\u001b[33mWARN\u001b[39m: [ADK] 2026-11-18T15:41:27.413Z Class Workflow is experimental and may change in the future.\nprobe: 4 events"
   },
   {
     "id": "snippet__snippets__graphs__data-handling__routing_output",
@@ -1273,9 +1273,9 @@
     "probe": true,
     "outcome": "ran-no-model",
     "exit": 0,
-    "ms": 1890,
+    "ms": 1681,
     "modelCalls": 0,
-    "tail": "\u001b[33mWARN\u001b[39m: [ADK] 2026-11-18T13:42:12.440Z Class Workflow is experimental and may change in the future.\nprobe: 2 events"
+    "tail": "\u001b[33mWARN\u001b[39m: [ADK] 2026-11-18T15:41:27.340Z Class Workflow is experimental and may change in the future.\nprobe: 2 events"
   },
   {
     "id": "snippet__snippets__graphs__data-handling__schemas",
@@ -1284,13 +1284,13 @@
     "probe": true,
     "outcome": "ran",
     "exit": 0,
-    "ms": 1815,
+    "ms": 1808,
     "modelCalls": 2,
     "toolCalls": [
       "search_flights_api",
       "set_model_response"
     ],
-    "tail": "\u001b[33mWARN\u001b[39m: [ADK] 2026-11-18T13:42:12.354Z Class Workflow is experimental and may change in the future.\nprobe: 5 events"
+    "tail": "\u001b[33mWARN\u001b[39m: [ADK] 2026-11-18T15:41:27.501Z Class Workflow is experimental and may change in the future.\nprobe: 5 events"
   },
   {
     "id": "snippet__snippets__graphs__data-handling__session_state",
@@ -1299,9 +1299,9 @@
     "probe": true,
     "outcome": "ran-no-model",
     "exit": 0,
-    "ms": 1891,
+    "ms": 1579,
     "modelCalls": 0,
-    "tail": "\u001b[33mWARN\u001b[39m: [ADK] 2026-11-18T13:42:13.135Z Class Workflow is experimental and may change in the future.\nprobe: 3 events"
+    "tail": "\u001b[33mWARN\u001b[39m: [ADK] 2026-11-18T15:41:28.320Z Class Workflow is experimental and may change in the future.\nprobe: 3 events"
   },
   {
     "id": "snippet__snippets__graphs__data-handling__structured_access",
@@ -1310,9 +1310,9 @@
     "probe": true,
     "outcome": "ran",
     "exit": 0,
-    "ms": 1837,
+    "ms": 1714,
     "modelCalls": 2,
-    "tail": "\u001b[33mWARN\u001b[39m: [ADK] 2026-11-18T13:42:13.706Z Class Workflow is experimental and may change in the future.\nprobe: 3 events"
+    "tail": "\u001b[33mWARN\u001b[39m: [ADK] 2026-11-18T15:41:29.058Z Class Workflow is experimental and may change in the future.\nprobe: 3 events"
   },
   {
     "id": "snippet__snippets__graphs__data-handling__structured_output",
@@ -1321,9 +1321,9 @@
     "probe": true,
     "outcome": "ran-no-model",
     "exit": 0,
-    "ms": 1524,
+    "ms": 1734,
     "modelCalls": 0,
-    "tail": "\u001b[33mWARN\u001b[39m: [ADK] 2026-11-18T13:42:13.946Z Class Workflow is experimental and may change in the future.\nprobe: 2 events"
+    "tail": "\u001b[33mWARN\u001b[39m: [ADK] 2026-11-18T15:41:29.155Z Class Workflow is experimental and may change in the future.\nprobe: 2 events"
   },
   {
     "id": "snippet__snippets__graphs__data-handling__user_message",
@@ -1332,9 +1332,9 @@
     "probe": true,
     "outcome": "ran-no-model",
     "exit": 0,
-    "ms": 1780,
+    "ms": 1786,
     "modelCalls": 0,
-    "tail": "\u001b[33mWARN\u001b[39m: [ADK] 2026-11-18T13:42:14.241Z Class Workflow is experimental and may change in the future.\nprobe: 4 events"
+    "tail": "\u001b[33mWARN\u001b[39m: [ADK] 2026-11-18T15:41:29.318Z Class Workflow is experimental and may change in the future.\nprobe: 4 events"
   },
   {
     "id": "snippet__snippets__graphs__dynamic__custom_run_ids",
@@ -1343,9 +1343,9 @@
     "probe": true,
     "outcome": "ran-no-model",
     "exit": 0,
-    "ms": 1680,
+    "ms": 1767,
     "modelCalls": 0,
-    "tail": "\u001b[33mWARN\u001b[39m: [ADK] 2026-11-18T13:42:14.802Z Class Workflow is experimental and may change in the future.\nprobe: 4 events"
+    "tail": "\u001b[33mWARN\u001b[39m: [ADK] 2026-11-18T15:41:30.117Z Class Workflow is experimental and may change in the future.\nprobe: 4 events"
   },
   {
     "id": "snippet__snippets__graphs__dynamic__data_handling",
@@ -1354,9 +1354,9 @@
     "probe": true,
     "outcome": "ran",
     "exit": 0,
-    "ms": 1770,
+    "ms": 1537,
     "modelCalls": 1,
-    "tail": "\u001b[33mWARN\u001b[39m: [ADK] 2026-11-18T13:42:15.518Z Class Workflow is experimental and may change in the future.\nprobe: 3 events"
+    "tail": "\u001b[33mWARN\u001b[39m: [ADK] 2026-11-18T15:41:30.564Z Class Workflow is experimental and may change in the future.\nprobe: 3 events"
   },
   {
     "id": "snippet__snippets__graphs__dynamic__get_started",
@@ -1365,9 +1365,9 @@
     "probe": true,
     "outcome": "ran-no-model",
     "exit": 0,
-    "ms": 1789,
+    "ms": 1592,
     "modelCalls": 0,
-    "tail": "\u001b[33mWARN\u001b[39m: [ADK] 2026-11-18T13:42:15.712Z Class Workflow is experimental and may change in the future.\nprobe: 2 events"
+    "tail": "\u001b[33mWARN\u001b[39m: [ADK] 2026-11-18T15:41:30.759Z Class Workflow is experimental and may change in the future.\nprobe: 2 events"
   },
   {
     "id": "snippet__snippets__graphs__dynamic__human_input",
@@ -1376,9 +1376,9 @@
     "probe": true,
     "outcome": "ran-no-model",
     "exit": 0,
-    "ms": 1518,
+    "ms": 1631,
     "modelCalls": 0,
-    "tail": "\u001b[33mWARN\u001b[39m: [ADK] 2026-11-18T13:42:15.764Z Class Workflow is experimental and may change in the future.\nprobe: 3 events"
+    "tail": "\u001b[33mWARN\u001b[39m: [ADK] 2026-11-18T15:41:30.932Z Class Workflow is experimental and may change in the future.\nprobe: 3 events"
   },
   {
     "id": "snippet__snippets__graphs__dynamic__loop_route",
@@ -1387,9 +1387,9 @@
     "probe": true,
     "outcome": "ran",
     "exit": 0,
-    "ms": 1723,
+    "ms": 1636,
     "modelCalls": 4,
-    "tail": "\u001b[33mWARN\u001b[39m: [ADK] 2026-11-18T13:42:16.525Z Class Workflow is experimental and may change in the future.\nprobe: 9 events"
+    "tail": "\u001b[33mWARN\u001b[39m: [ADK] 2026-11-18T15:41:31.720Z Class Workflow is experimental and may change in the future.\nprobe: 9 events"
   },
   {
     "id": "snippet__snippets__graphs__dynamic__nodes",
@@ -1398,9 +1398,9 @@
     "probe": true,
     "outcome": "ran-no-model",
     "exit": 0,
-    "ms": 1666,
+    "ms": 1518,
     "modelCalls": 0,
-    "tail": "\u001b[33mWARN\u001b[39m: [ADK] 2026-11-18T13:42:17.189Z Class Workflow is experimental and may change in the future.\nprobe: 4 events"
+    "tail": "\u001b[33mWARN\u001b[39m: [ADK] 2026-11-18T15:41:32.122Z Class Workflow is experimental and may change in the future.\nprobe: 4 events"
   },
   {
     "id": "snippet__snippets__graphs__dynamic__parallel_route",
@@ -1409,9 +1409,9 @@
     "probe": true,
     "outcome": "ran-no-model",
     "exit": 0,
-    "ms": 1929,
+    "ms": 1908,
     "modelCalls": 0,
-    "tail": "\u001b[33mWARN\u001b[39m: [ADK] 2026-11-18T13:42:17.501Z Class Workflow is experimental and may change in the future.\nprobe: 3 events"
+    "tail": "\u001b[33mWARN\u001b[39m: [ADK] 2026-11-18T15:41:32.499Z Class Workflow is experimental and may change in the future.\nprobe: 3 events"
   },
   {
     "id": "snippet__snippets__graphs__dynamic__sequence_route",
@@ -1420,9 +1420,9 @@
     "probe": true,
     "outcome": "ran",
     "exit": 0,
-    "ms": 1787,
+    "ms": 1738,
     "modelCalls": 2,
-    "tail": "\u001b[33mWARN\u001b[39m: [ADK] 2026-11-18T13:42:17.547Z Class Workflow is experimental and may change in the future.\nprobe: 4 events"
+    "tail": "\u001b[33mWARN\u001b[39m: [ADK] 2026-11-18T15:41:32.667Z Class Workflow is experimental and may change in the future.\nprobe: 4 events"
   },
   {
     "id": "snippet__snippets__graphs__human-input__get_started",
@@ -1431,9 +1431,9 @@
     "probe": true,
     "outcome": "ran-no-model",
     "exit": 0,
-    "ms": 1834,
+    "ms": 1602,
     "modelCalls": 0,
-    "tail": "\u001b[33mWARN\u001b[39m: [ADK] 2026-11-18T13:42:18.399Z Class Workflow is experimental and may change in the future.\nprobe: 2 events"
+    "tail": "\u001b[33mWARN\u001b[39m: [ADK] 2026-11-18T15:41:33.334Z Class Workflow is experimental and may change in the future.\nprobe: 2 events"
   },
   {
     "id": "snippet__snippets__graphs__human-input__initial_prompt",
@@ -1442,9 +1442,9 @@
     "probe": true,
     "outcome": "ran-no-model",
     "exit": 0,
-    "ms": 1631,
+    "ms": 1675,
     "modelCalls": 0,
-    "tail": "\u001b[33mWARN\u001b[39m: [ADK] 2026-11-18T13:42:18.799Z Class Workflow is experimental and may change in the future.\nprobe: 2 events"
+    "tail": "\u001b[33mWARN\u001b[39m: [ADK] 2026-11-18T15:41:33.767Z Class Workflow is experimental and may change in the future.\nprobe: 2 events"
   },
   {
     "id": "snippet__snippets__graphs__human-input__payload_and_schema",
@@ -1453,9 +1453,9 @@
     "probe": true,
     "outcome": "ran-no-model",
     "exit": 0,
-    "ms": 1731,
+    "ms": 1751,
     "modelCalls": 0,
-    "tail": "\u001b[33mWARN\u001b[39m: [ADK] 2026-11-18T13:42:19.274Z Class Workflow is experimental and may change in the future.\nprobe: 3 events"
+    "tail": "\u001b[33mWARN\u001b[39m: [ADK] 2026-11-18T15:41:34.391Z Class Workflow is experimental and may change in the future.\nprobe: 3 events"
   },
   {
     "id": "snippet__snippets__graphs__index__get_started",
@@ -1464,9 +1464,9 @@
     "probe": true,
     "outcome": "ran",
     "exit": 0,
-    "ms": 1748,
+    "ms": 1602,
     "modelCalls": 2,
-    "tail": "\u001b[33mWARN\u001b[39m: [ADK] 2026-11-18T13:42:19.401Z Class Workflow is experimental and may change in the future.\nprobe: 4 events"
+    "tail": "\u001b[33mWARN\u001b[39m: [ADK] 2026-11-18T15:41:34.275Z Class Workflow is experimental and may change in the future.\nprobe: 4 events"
   },
   {
     "id": "snippet__snippets__graphs__index__process_pipeline",
@@ -1475,9 +1475,9 @@
     "probe": true,
     "outcome": "ran",
     "exit": 0,
-    "ms": 2110,
+    "ms": 1691,
     "modelCalls": 1,
-    "tail": "\u001b[33mWARN\u001b[39m: [ADK] 2026-11-18T13:42:20.503Z Class Workflow is experimental and may change in the future.\nprobe: 3 events"
+    "tail": "\u001b[33mWARN\u001b[39m: [ADK] 2026-11-18T15:41:35.034Z Class Workflow is experimental and may change in the future.\nprobe: 3 events"
   },
   {
     "id": "snippet__snippets__graphs__retry__get_started",
@@ -1486,9 +1486,9 @@
     "probe": true,
     "outcome": "ran-no-model",
     "exit": 0,
-    "ms": 2110,
+    "ms": 3832,
     "modelCalls": 0,
-    "tail": "\u001b[33mWARN\u001b[39m: [ADK] 2026-11-18T13:42:20.914Z Class Workflow is experimental and may change in the future.\nprobe: 3 events"
+    "tail": "\u001b[33mWARN\u001b[39m: [ADK] 2026-11-18T15:41:35.331Z Class Workflow is experimental and may change in the future.\nprobe: 5 events"
   },
   {
     "id": "snippet__snippets__graphs__routes__branches",
@@ -1497,9 +1497,9 @@
     "probe": true,
     "outcome": "ran",
     "exit": 0,
-    "ms": 1541,
+    "ms": 1670,
     "modelCalls": 1,
-    "tail": "\u001b[33mWARN\u001b[39m: [ADK] 2026-11-18T13:42:20.814Z Class Workflow is experimental and may change in the future.\nprobe: 3 events"
+    "tail": "\u001b[33mWARN\u001b[39m: [ADK] 2026-11-18T15:41:35.955Z Class Workflow is experimental and may change in the future.\nprobe: 3 events"
   },
   {
     "id": "snippet__snippets__graphs__routes__fan_out_join",
@@ -1508,9 +1508,9 @@
     "probe": true,
     "outcome": "ran-no-model",
     "exit": 0,
-    "ms": 1909,
+    "ms": 1542,
     "modelCalls": 0,
-    "tail": "\u001b[33mWARN\u001b[39m: [ADK] 2026-11-18T13:42:21.309Z Class Workflow is experimental and may change in the future.\nprobe: 5 events"
+    "tail": "\u001b[33mWARN\u001b[39m: [ADK] 2026-11-18T15:41:35.951Z Class Workflow is experimental and may change in the future.\nprobe: 5 events"
   },
   {
     "id": "snippet__snippets__graphs__routes__function_node",
@@ -1519,9 +1519,9 @@
     "probe": true,
     "outcome": "ran-no-model",
     "exit": 0,
-    "ms": 1642,
+    "ms": 1435,
     "modelCalls": 0,
-    "tail": "\u001b[33mWARN\u001b[39m: [ADK] 2026-11-18T13:42:22.139Z Class Workflow is experimental and may change in the future.\nprobe: 2 events"
+    "tail": "\u001b[33mWARN\u001b[39m: [ADK] 2026-11-18T15:41:36.491Z Class Workflow is experimental and may change in the future.\nprobe: 2 events"
   },
   {
     "id": "snippet__snippets__graphs__routes__loop_escalation",
@@ -1530,9 +1530,9 @@
     "probe": true,
     "outcome": "ran-no-model",
     "exit": 0,
-    "ms": 1834,
+    "ms": 1305,
     "modelCalls": 0,
-    "tail": "\u001b[33mWARN\u001b[39m: [ADK] 2026-11-18T13:42:22.670Z Class Workflow is experimental and may change in the future.\nprobe: 7 events"
+    "tail": "\u001b[33mWARN\u001b[39m: [ADK] 2026-11-18T15:41:37.273Z Class Workflow is experimental and may change in the future.\nprobe: 7 events"
   },
   {
     "id": "snippet__snippets__graphs__routes__nested_workflow",
@@ -1541,9 +1541,9 @@
     "probe": true,
     "outcome": "ran-no-model",
     "exit": 0,
-    "ms": 1558,
+    "ms": 1470,
     "modelCalls": 0,
-    "tail": "\u001b[33mWARN\u001b[39m: [ADK] 2026-11-18T13:42:22.497Z Class Workflow is experimental and may change in the future.\nprobe: 4 events"
+    "tail": "\u001b[33mWARN\u001b[39m: [ADK] 2026-11-18T15:41:37.412Z Class Workflow is experimental and may change in the future.\nprobe: 4 events"
   },
   {
     "id": "snippet__snippets__graphs__routes__sequence",
@@ -1552,9 +1552,9 @@
     "probe": true,
     "outcome": "ran-no-model",
     "exit": 0,
-    "ms": 1633,
+    "ms": 1398,
     "modelCalls": 0,
-    "tail": "\u001b[33mWARN\u001b[39m: [ADK] 2026-11-18T13:42:22.927Z Class Workflow is experimental and may change in the future.\nprobe: 3 events"
+    "tail": "\u001b[33mWARN\u001b[39m: [ADK] 2026-11-18T15:41:37.879Z Class Workflow is experimental and may change in the future.\nprobe: 3 events"
   },
   {
     "id": "snippet__snippets__runtime__cancel__basic-usage",
@@ -1563,7 +1563,7 @@
     "probe": false,
     "outcome": "ran",
     "exit": 0,
-    "ms": 1686,
+    "ms": 1429,
     "modelCalls": 1,
     "toolCalls": [
       "get_info"
@@ -1577,7 +1577,7 @@
     "probe": false,
     "outcome": "ran",
     "exit": 0,
-    "ms": 2160,
+    "ms": 1706,
     "modelCalls": 2,
     "toolCalls": [
       "get_info"
@@ -1591,7 +1591,7 @@
     "probe": false,
     "outcome": "ran",
     "exit": 0,
-    "ms": 1691,
+    "ms": 1709,
     "modelCalls": 2,
     "toolCalls": [
       "get_info"
@@ -1605,7 +1605,7 @@
     "probe": false,
     "outcome": "ran",
     "exit": 0,
-    "ms": 1456,
+    "ms": 1545,
     "modelCalls": 3,
     "toolCalls": [
       "load_memory"
@@ -1619,7 +1619,7 @@
     "probe": true,
     "outcome": "ran",
     "exit": 0,
-    "ms": 2190,
+    "ms": 1751,
     "modelCalls": 1,
     "toolCalls": [
       "reimburse"
@@ -1633,7 +1633,7 @@
     "probe": true,
     "outcome": "ran",
     "exit": 0,
-    "ms": 2299,
+    "ms": 1656,
     "modelCalls": 1,
     "toolCalls": [
       "request_time_off"
@@ -1647,7 +1647,7 @@
     "probe": false,
     "outcome": "ran",
     "exit": 0,
-    "ms": 2377,
+    "ms": 1447,
     "modelCalls": 3,
     "toolCalls": [
       "summary_agent"
@@ -1661,7 +1661,7 @@
     "probe": false,
     "outcome": "ran",
     "exit": 0,
-    "ms": 2193,
+    "ms": 1614,
     "modelCalls": 2,
     "toolCalls": [
       "getStockPrice"
@@ -1675,7 +1675,7 @@
     "probe": false,
     "outcome": "ran",
     "exit": 0,
-    "ms": 1751,
+    "ms": 1896,
     "modelCalls": 4,
     "toolCalls": [
       "reimburse",
@@ -1690,7 +1690,7 @@
     "probe": false,
     "outcome": "ran",
     "exit": 0,
-    "ms": 1634,
+    "ms": 1753,
     "modelCalls": 4,
     "toolCalls": [
       "transfer_to_agent",
@@ -1705,7 +1705,7 @@
     "probe": false,
     "outcome": "ran",
     "exit": 0,
-    "ms": 1632,
+    "ms": 1815,
     "modelCalls": 2,
     "toolCalls": [
       "greet_user"
@@ -1719,7 +1719,7 @@
     "probe": false,
     "outcome": "ran",
     "exit": 0,
-    "ms": 1668,
+    "ms": 1762,
     "modelCalls": 2,
     "toolCalls": [
       "get_weather_report"

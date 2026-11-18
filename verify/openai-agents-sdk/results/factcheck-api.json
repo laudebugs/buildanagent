@@ -1,6 +1,6 @@
 {
   "package": "@openai/agents@0.21.0",
-  "checkedAt": "2026-11-18T05:23:56.587Z",
+  "checkedAt": "2026-11-18T15:43:14.499Z",
   "checks": {
     "agentConfiguration": {
       "documented": 16,

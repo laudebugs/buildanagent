@@ -7,7 +7,7 @@
     "outcome": "ran",
     "patchedPlaceholders": false,
     "exit": 0,
-    "ms": 997,
+    "ms": 1422,
     "modelRequests": 1,
     "toolResults": 0,
     "tail": "Done: Mock model: hello from the offline mock.\nCost: $0.0001"
@@ -20,7 +20,7 @@
     "outcome": "ran",
     "patchedPlaceholders": false,
     "exit": 0,
-    "ms": 986,
+    "ms": 1441,
     "modelRequests": 1,
     "toolResults": 0,
     "tail": "Mock model: hello from the offline mock.\n\nResult: Mock model: hello from the offline mock."
@@ -33,7 +33,7 @@
     "outcome": "ran",
     "patchedPlaceholders": false,
     "exit": 0,
-    "ms": 985,
+    "ms": 1431,
     "modelRequests": 1,
     "toolResults": 0,
     "tail": "Mock model: hello from the offline mock."
@@ -46,7 +46,7 @@
     "outcome": "ran",
     "patchedPlaceholders": false,
     "exit": 0,
-    "ms": 905,
+    "ms": 1436,
     "modelRequests": 1,
     "toolResults": 0,
     "tail": "Mock model: hello from the offline mock."
@@ -59,7 +59,7 @@
     "outcome": "ran",
     "patchedPlaceholders": true,
     "exit": 0,
-    "ms": 973,
+    "ms": 910,
     "modelRequests": 1,
     "toolResults": 0,
     "tail": "Mock model: hello from the offline mock."
@@ -72,7 +72,7 @@
     "outcome": "ran",
     "patchedPlaceholders": false,
     "exit": 0,
-    "ms": 990,
+    "ms": 1321,
     "modelRequests": 3,
     "toolResults": 0,
     "tail": "First turn model: claude-sonnet-5\nSecond turn model: claude-opus-5"
@@ -85,7 +85,7 @@
     "outcome": "ran",
     "patchedPlaceholders": false,
     "exit": 0,
-    "ms": 1005,
+    "ms": 857,
     "modelRequests": 1,
     "toolResults": 0,
     "tail": "Total cost: $0.00014000000000000001"
@@ -98,7 +98,7 @@
     "outcome": "ran",
     "patchedPlaceholders": false,
     "exit": 0,
-    "ms": 918,
+    "ms": 895,
     "modelRequests": 1,
     "toolResults": 0,
     "tail": "Steps: 1\nInput tokens: 10\nOutput tokens: 5"
@@ -111,7 +111,7 @@
     "outcome": "ran",
     "patchedPlaceholders": false,
     "exit": 0,
-    "ms": 1011,
+    "ms": 1056,
     "modelRequests": 1,
     "toolResults": 0,
     "tail": "claude-opus-5-5: $0.0001\n  Input tokens: 10\n  Output tokens: 5\n  Cache read: 0\n  Cache creation: 0"
@@ -124,7 +124,7 @@
     "outcome": "ran",
     "patchedPlaceholders": false,
     "exit": 0,
-    "ms": 1663,
+    "ms": 1643,
     "modelRequests": 2,
     "toolResults": 0,
     "tail": "This call: $0.00014000000000000001\nThis call: $0.00014000000000000001\nTotal spend: $0.0003"
@@ -145,7 +145,7 @@
     "outcome": "exited-no-model-call",
     "patchedPlaceholders": false,
     "exit": 0,
-    "ms": 468,
+    "ms": 589,
     "modelRequests": 0,
     "toolResults": 0,
     "tail": ""
@@ -158,7 +158,7 @@
     "outcome": "exited-no-model-call",
     "patchedPlaceholders": false,
     "exit": 0,
-    "ms": 515,
+    "ms": 504,
     "modelRequests": 0,
     "toolResults": 0,
     "tail": ""
@@ -171,7 +171,7 @@
     "outcome": "exited-no-model-call",
     "patchedPlaceholders": false,
     "exit": 0,
-    "ms": 530,
+    "ms": 489,
     "modelRequests": 0,
     "toolResults": 0,
     "tail": ""
@@ -184,7 +184,7 @@
     "outcome": "exited-no-model-call",
     "patchedPlaceholders": false,
     "exit": 0,
-    "ms": 517,
+    "ms": 605,
     "modelRequests": 0,
     "toolResults": 0,
     "tail": ""
@@ -197,7 +197,7 @@
     "outcome": "exited-no-model-call",
     "patchedPlaceholders": false,
     "exit": 0,
-    "ms": 433,
+    "ms": 520,
     "modelRequests": 0,
     "toolResults": 0,
     "tail": ""
@@ -210,10 +210,10 @@
     "outcome": "ran",
     "patchedPlaceholders": false,
     "exit": 0,
-    "ms": 1606,
+    "ms": 1862,
     "modelRequests": 2,
     "toolResults": 0,
-    "tail": "Rewound to checkpoint: 8e90d967-80e6-47c8-9a2a-68b8baeab6fc"
+    "tail": "Rewound to checkpoint: 529fb0fc-ef42-4403-bf63-0b301ccfc28a"
   },
   {
     "id": "file-checkpointing__03",
@@ -223,7 +223,7 @@
     "outcome": "ran",
     "patchedPlaceholders": false,
     "exit": 0,
-    "ms": 1434,
+    "ms": 1741,
     "modelRequests": 2,
     "toolResults": 0,
     "tail": "Rewound to: After turn 1"
@@ -236,7 +236,7 @@
     "outcome": "ran",
     "patchedPlaceholders": false,
     "exit": 0,
-    "ms": 856,
+    "ms": 1216,
     "modelRequests": 1,
     "toolResults": 0,
     "tail": "Running agent to add doc comments to utils.ts...\n\nDone! Open utils.ts to see the added doc comments.\n\nRewind to remove the doc comments? (y/n):"
@@ -249,7 +249,7 @@
     "outcome": "ran",
     "patchedPlaceholders": false,
     "exit": 0,
-    "ms": 956,
+    "ms": 986,
     "modelRequests": 1,
     "toolResults": 0,
     "tail": "      canonicalModel: 'claude-opus-5-5',\n      provider: 'firstParty',\n      costBasis: 'list'\n    }\n  }\n}"
@@ -262,7 +262,7 @@
     "outcome": "ran",
     "patchedPlaceholders": false,
     "exit": 0,
-    "ms": 816,
+    "ms": 961,
     "modelRequests": 1,
     "toolResults": 0,
     "tail": "      canonicalModel: 'claude-opus-5-5',\n      provider: 'firstParty',\n      costBasis: 'list'\n    }\n  }\n}"
@@ -275,7 +275,7 @@
     "outcome": "ran",
     "patchedPlaceholders": false,
     "exit": 0,
-    "ms": 951,
+    "ms": 1027,
     "modelRequests": 1,
     "toolResults": 0,
     "tail": "      canonicalModel: 'claude-opus-5-5',\n      provider: 'firstParty',\n      costBasis: 'list'\n    }\n  }\n}"
@@ -288,7 +288,7 @@
     "outcome": "ran",
     "patchedPlaceholders": true,
     "exit": 0,
-    "ms": 994,
+    "ms": 1029,
     "modelRequests": 1,
     "toolResults": 0,
     "tail": "      canonicalModel: 'claude-opus-5-5',\n      provider: 'firstParty',\n      costBasis: 'list'\n    }\n  }\n}"
@@ -301,7 +301,7 @@
     "outcome": "ran",
     "patchedPlaceholders": false,
     "exit": 0,
-    "ms": 874,
+    "ms": 1151,
     "modelRequests": 1,
     "toolResults": 0,
     "tail": "      canonicalModel: 'claude-opus-5-5',\n      provider: 'firstParty',\n      costBasis: 'list'\n    }\n  }\n}"
@@ -314,7 +314,7 @@
     "outcome": "error",
     "patchedPlaceholders": false,
     "exit": 1,
-    "ms": 344,
+    "ms": 409,
     "modelRequests": 0,
     "toolResults": 0,
     "tail": "    at <anonymous> (/home/user/agent-speak/verify/claude-agent-sdk/extracted/hosting__03.ts:9:11)\n    at ModuleJob.run (node:internal/modules/esm/module_job:343:25)\n    at async onImport.tracePromise.__proto__ (node:internal/modules/esm/loader:681:26)\n    at async asyncRunEntryPointWithESMLoader (node:internal/modules/run_main:117:5)\n\nNode.js v22.23.5"
@@ -327,7 +327,7 @@
     "outcome": "error",
     "patchedPlaceholders": false,
     "exit": 1,
-    "ms": 367,
+    "ms": 370,
     "modelRequests": 0,
     "toolResults": 0,
     "tail": "    at <anonymous> (/home/user/agent-speak/verify/claude-agent-sdk/extracted/hosting__04.ts:9:3)\n    at ModuleJob.run (node:internal/modules/esm/module_job:343:25)\n    at async onImport.tracePromise.__proto__ (node:internal/modules/esm/loader:681:26)\n    at async asyncRunEntryPointWithESMLoader (node:internal/modules/run_main:117:5)\n\nNode.js v22.23.5"
@@ -356,7 +356,7 @@
     "outcome": "ran",
     "patchedPlaceholders": false,
     "exit": 0,
-    "ms": 1228,
+    "ms": 1615,
     "modelRequests": 1,
     "toolResults": 0,
     "tail": "Available MCP tools: []"
@@ -385,7 +385,7 @@
     "outcome": "ran",
     "patchedPlaceholders": false,
     "exit": 0,
-    "ms": 2034,
+    "ms": 1663,
     "modelRequests": 3,
     "toolResults": 0,
     "tail": ""
@@ -398,7 +398,7 @@
     "outcome": "ran",
     "patchedPlaceholders": false,
     "exit": 0,
-    "ms": 1321,
+    "ms": 1069,
     "modelRequests": 1,
     "toolResults": 0,
     "tail": ""
@@ -411,7 +411,7 @@
     "outcome": "ran",
     "patchedPlaceholders": false,
     "exit": 0,
-    "ms": 1147,
+    "ms": 1528,
     "modelRequests": 1,
     "toolResults": 0,
     "tail": "[ { type: 'text', text: 'Mock model: hello from the offline mock.' } ]"
@@ -424,7 +424,7 @@
     "outcome": "ran",
     "patchedPlaceholders": false,
     "exit": 0,
-    "ms": 950,
+    "ms": 1182,
     "modelRequests": 1,
     "toolResults": 0,
     "tail": ""
@@ -437,7 +437,7 @@
     "outcome": "ran",
     "patchedPlaceholders": false,
     "exit": 0,
-    "ms": 912,
+    "ms": 1040,
     "modelRequests": 1,
     "toolResults": 0,
     "tail": "[ { type: 'text', text: 'Mock model: hello from the offline mock.' } ]"
@@ -450,7 +450,7 @@
     "outcome": "ran",
     "patchedPlaceholders": false,
     "exit": 0,
-    "ms": 876,
+    "ms": 1106,
     "modelRequests": 1,
     "toolResults": 0,
     "tail": ""
@@ -463,7 +463,7 @@
     "outcome": "ran",
     "patchedPlaceholders": false,
     "exit": 0,
-    "ms": 1158,
+    "ms": 1061,
     "modelRequests": 1,
     "toolResults": 0,
     "tail": "success"
@@ -476,7 +476,7 @@
     "outcome": "ran",
     "patchedPlaceholders": false,
     "exit": 0,
-    "ms": 951,
+    "ms": 1141,
     "modelRequests": 1,
     "toolResults": 0,
     "tail": ""
@@ -489,7 +489,7 @@
     "outcome": "ran",
     "patchedPlaceholders": false,
     "exit": 0,
-    "ms": 1070,
+    "ms": 1810,
     "modelRequests": 1,
     "toolResults": 0,
     "tail": "      canonicalModel: 'claude-opus-5-5',\n      provider: 'firstParty',\n      costBasis: 'list'\n    }\n  }\n}"
@@ -502,7 +502,7 @@
     "outcome": "ran",
     "patchedPlaceholders": false,
     "exit": 0,
-    "ms": 1040,
+    "ms": 1452,
     "modelRequests": 1,
     "toolResults": 0,
     "tail": ""
@@ -515,7 +515,7 @@
     "outcome": "ran",
     "patchedPlaceholders": false,
     "exit": 0,
-    "ms": 882,
+    "ms": 1280,
     "modelRequests": 1,
     "toolResults": 0,
     "tail": "  'insights',\n  'recap',\n  'goal',\n  'list-agents',\n  'team-onboarding'\n]"
@@ -528,7 +528,7 @@
     "outcome": "ran",
     "patchedPlaceholders": false,
     "exit": 0,
-    "ms": 892,
+    "ms": 1066,
     "modelRequests": 1,
     "toolResults": 0,
     "tail": "[ { type: 'text', text: 'Mock model: hello from the offline mock.' } ]"
@@ -541,7 +541,7 @@
     "outcome": "ran",
     "patchedPlaceholders": false,
     "exit": 0,
-    "ms": 890,
+    "ms": 1033,
     "modelRequests": 1,
     "toolResults": 0,
     "tail": "  'recap',\n  'goal',\n  'list-agents',\n  'team-onboarding'\n]\nAssistant: [ { type: 'text', text: 'Mock model: hello from the offline mock.' } ]"
@@ -554,7 +554,7 @@
     "outcome": "ran",
     "patchedPlaceholders": false,
     "exit": 0,
-    "ms": 939,
+    "ms": 987,
     "modelRequests": 1,
     "toolResults": 0,
     "tail": "Mock model: hello from the offline mock.\nDone: success"
@@ -567,7 +567,7 @@
     "outcome": "ran",
     "patchedPlaceholders": false,
     "exit": 0,
-    "ms": 1473,
+    "ms": 1803,
     "modelRequests": 2,
     "toolResults": 0,
     "tail": "Mock model: hello from the offline mock."
@@ -580,7 +580,7 @@
     "outcome": "ran",
     "patchedPlaceholders": false,
     "exit": 0,
-    "ms": 1429,
+    "ms": 1567,
     "modelRequests": 2,
     "toolResults": 0,
     "tail": "Mock model: hello from the offline mock.\nMock model: hello from the offline mock."
@@ -593,10 +593,10 @@
     "outcome": "ran",
     "patchedPlaceholders": false,
     "exit": 0,
-    "ms": 900,
+    "ms": 952,
     "modelRequests": 1,
     "toolResults": 0,
-    "tail": "Mock model: hello from the offline mock.\nSession ID: 568ca954-c5f9-40d7-a5ab-2daf2606b4da"
+    "tail": "Mock model: hello from the offline mock.\nSession ID: a5cab699-9338-4eb6-b31b-6aca48bef4f1"
   },
   {
     "id": "sessions__03",
@@ -606,7 +606,7 @@
     "outcome": "error",
     "patchedPlaceholders": false,
     "exit": 1,
-    "ms": 698,
+    "ms": 755,
     "modelRequests": 0,
     "toolResults": 0,
     "tail": "    at process.processTicksAndRejections (node:internal/process/task_queues:103:5) {\n  telemetryMessage: 'Claude Code returned an error result',\n  errorClass: 'error_result'\n}\n\nNode.js v22.23.5"
@@ -619,7 +619,7 @@
     "outcome": "exited-no-model-call",
     "patchedPlaceholders": false,
     "exit": 0,
-    "ms": 939,
+    "ms": 1199,
     "modelRequests": 0,
     "toolResults": 0,
     "tail": "Session ended with an error: Error: Claude Code returned an error result: Error: --resume requires a valid session ID or session title when used with --print. Usage: claude -p --resume <session-id|title>. Provided value \"...\" is not a UUID and does not match any session title.\nForked session: undefined\nSession ended with an error: Error: Claude Code returned an error result: Error: --resume requires a valid session ID or session title when used with --print. Usage: claude -p --resume <session-id|title>. Provided value \"...\" is not a UUID and does not match any session title."
@@ -632,7 +632,7 @@
     "outcome": "ran",
     "patchedPlaceholders": false,
     "exit": 0,
-    "ms": 895,
+    "ms": 907,
     "modelRequests": 1,
     "toolResults": 0,
     "tail": "      canonicalModel: 'claude-opus-5-5',\n      provider: 'firstParty',\n      costBasis: 'list'\n    }\n  }\n}"
@@ -645,7 +645,7 @@
     "outcome": "ran",
     "patchedPlaceholders": false,
     "exit": 0,
-    "ms": 918,
+    "ms": 1072,
     "modelRequests": 1,
     "toolResults": 0,
     "tail": "  'insights',\n  'recap',\n  'goal',\n  'list-agents',\n  'team-onboarding'\n]"
@@ -658,7 +658,7 @@
     "outcome": "ran",
     "patchedPlaceholders": false,
     "exit": 0,
-    "ms": 1580,
+    "ms": 1710,
     "modelRequests": 3,
     "toolResults": 0,
     "tail": "Mock model: hello from the offline mock.\nCompaction completed\nPre-compaction tokens: 15\nTrigger: manual"
@@ -671,7 +671,7 @@
     "outcome": "ran",
     "patchedPlaceholders": false,
     "exit": 0,
-    "ms": 828,
+    "ms": 895,
     "modelRequests": 1,
     "toolResults": 0,
     "tail": "Mock model: hello from the offline mock."
@@ -684,7 +684,7 @@
     "outcome": "ran",
     "patchedPlaceholders": false,
     "exit": 0,
-    "ms": 866,
+    "ms": 1108,
     "modelRequests": 1,
     "toolResults": 0,
     "tail": "      canonicalModel: 'claude-opus-5-5',\n      provider: 'firstParty',\n      costBasis: 'list'\n    }\n  }\n}"
@@ -697,7 +697,7 @@
     "outcome": "ran",
     "patchedPlaceholders": false,
     "exit": 0,
-    "ms": 891,
+    "ms": 994,
     "modelRequests": 1,
     "toolResults": 0,
     "tail": "Mock model: hello from the offline mock."
@@ -710,7 +710,7 @@
     "outcome": "ran",
     "patchedPlaceholders": false,
     "exit": 0,
-    "ms": 837,
+    "ms": 1073,
     "modelRequests": 1,
     "toolResults": 0,
     "tail": ""
@@ -723,7 +723,7 @@
     "outcome": "ran",
     "patchedPlaceholders": false,
     "exit": 0,
-    "ms": 1051,
+    "ms": 962,
     "modelRequests": 1,
     "toolResults": 0,
     "tail": "Mock model: hello from the offline mock.\n\n--- Complete ---"
@@ -736,7 +736,7 @@
     "outcome": "ran",
     "patchedPlaceholders": false,
     "exit": 0,
-    "ms": 906,
+    "ms": 1216,
     "modelRequests": 2,
     "toolResults": 0,
     "tail": "Mock model: hello from the offline mock.\nResponse 1 finished: success\nMock model: hello from the offline mock.\nResponse 2 finished: success"
@@ -749,10 +749,10 @@
     "outcome": "error",
     "patchedPlaceholders": false,
     "exit": 1,
-    "ms": 3688,
+    "ms": 3845,
     "modelRequests": 2,
     "toolResults": 0,
-    "tail": "    at gb.interrupt (file:///home/user/agent-speak/node_modules/.pnpm/@anthropic-ai+claude-agent-sdk@0.3.327_@anthropic-ai+sdk@0.129.0_zod@4.6.7__@modelconte_392f9c688d0e79c0834bb753bb4dccd6/node_modules/@anthropic-ai/claude-agent-sdk/sdk.mjs:167:15058)\n    at Timeout._onTimeout (/home/user/agent-speak/verify/claude-agent-sdk/extracted/streaming-vs-single-mode__03.ts:37:26)\n    at listOnTimeout (node:internal/timers:585:17)\n    at process.processTimers (node:internal/timers:521:7)\n\nNode.js v22.23.5"
+    "tail": "    at gb.interrupt (file:///home/user/agent-speak/node_modules/.pnpm/@anthropic-ai+claude-agent-sdk@0.3.327_@anthropic-ai+sdk@0.129.0_zod@4.6.7__@modelconte_2a5a8852683941a08453c5ba8c8c284a/node_modules/@anthropic-ai/claude-agent-sdk/sdk.mjs:167:15058)\n    at Timeout._onTimeout (/home/user/agent-speak/verify/claude-agent-sdk/extracted/streaming-vs-single-mode__03.ts:37:26)\n    at listOnTimeout (node:internal/timers:585:17)\n    at process.processTimers (node:internal/timers:521:7)\n\nNode.js v22.23.5"
   },
   {
     "id": "structured-outputs__01",
@@ -762,7 +762,7 @@
     "outcome": "ran",
     "patchedPlaceholders": false,
     "exit": 0,
-    "ms": 1025,
+    "ms": 1127,
     "modelRequests": 1,
     "toolResults": 0,
     "tail": "{ company_name: 'example', founded_year: 1, headquarters: 'example' }"
@@ -775,7 +775,7 @@
     "outcome": "ran",
     "patchedPlaceholders": false,
     "exit": 0,
-    "ms": 981,
+    "ms": 1132,
     "modelRequests": 1,
     "toolResults": 0,
     "tail": "Feature: example\nSummary: example\n1. [low] example"
@@ -788,7 +788,7 @@
     "outcome": "ran",
     "patchedPlaceholders": false,
     "exit": 0,
-    "ms": 905,
+    "ms": 942,
     "modelRequests": 1,
     "toolResults": 0,
     "tail": "Found 1 TODOs\nexample:1 - example\n  Added by example on example"
@@ -801,7 +801,7 @@
     "outcome": "ran",
     "patchedPlaceholders": false,
     "exit": 0,
-    "ms": 903,
+    "ms": 916,
     "modelRequests": 1,
     "toolResults": 0,
     "tail": "{ name: 'example', email: 'example' }"
@@ -814,7 +814,7 @@
     "outcome": "ran",
     "patchedPlaceholders": false,
     "exit": 0,
-    "ms": 912,
+    "ms": 943,
     "modelRequests": 1,
     "toolResults": 0,
     "tail": "Mock model: hello from the offline mock."
@@ -827,7 +827,7 @@
     "outcome": "ran",
     "patchedPlaceholders": false,
     "exit": 0,
-    "ms": 816,
+    "ms": 910,
     "modelRequests": 1,
     "toolResults": 0,
     "tail": "Mock model: hello from the offline mock."
@@ -840,7 +840,7 @@
     "outcome": "ran",
     "patchedPlaceholders": false,
     "exit": 0,
-    "ms": 823,
+    "ms": 874,
     "modelRequests": 1,
     "toolResults": 0,
     "tail": "Mock model: hello from the offline mock."
@@ -853,7 +853,7 @@
     "outcome": "ran",
     "patchedPlaceholders": false,
     "exit": 0,
-    "ms": 965,
+    "ms": 865,
     "modelRequests": 1,
     "toolResults": 0,
     "tail": "Mock model: hello from the offline mock.\nNo agentId found in the first query, so there is no subagent to resume."
@@ -866,7 +866,7 @@
     "outcome": "ran",
     "patchedPlaceholders": false,
     "exit": 0,
-    "ms": 779,
+    "ms": 894,
     "modelRequests": 1,
     "toolResults": 0,
     "tail": "Mock model: hello from the offline mock."
@@ -879,7 +879,7 @@
     "outcome": "ran",
     "patchedPlaceholders": false,
     "exit": 0,
-    "ms": 869,
+    "ms": 946,
     "modelRequests": 1,
     "toolResults": 0,
     "tail": "success: $0.00014000000000000001"
@@ -892,7 +892,7 @@
     "outcome": "ran",
     "patchedPlaceholders": false,
     "exit": 0,
-    "ms": 919,
+    "ms": 885,
     "modelRequests": 1,
     "toolResults": 0,
     "tail": ""
@@ -905,7 +905,7 @@
     "outcome": "ran",
     "patchedPlaceholders": false,
     "exit": 0,
-    "ms": 856,
+    "ms": 908,
     "modelRequests": 1,
     "toolResults": 0,
     "tail": ""
@@ -926,7 +926,7 @@
     "outcome": "ran",
     "patchedPlaceholders": false,
     "exit": 0,
-    "ms": 934,
+    "ms": 1101,
     "modelRequests": 1,
     "toolResults": 0,
     "tail": "      canonicalModel: 'claude-opus-5-5',\n      provider: 'firstParty',\n      costBasis: 'list'\n    }\n  }\n}"
@@ -939,7 +939,7 @@
     "outcome": "ran",
     "patchedPlaceholders": true,
     "exit": 0,
-    "ms": 1135,
+    "ms": 1050,
     "modelRequests": 1,
     "toolResults": 0,
     "tail": "      canonicalModel: 'claude-opus-5-5',\n      provider: 'firstParty',\n      costBasis: 'list'\n    }\n  }\n}"
@@ -952,7 +952,7 @@
     "outcome": "exited-no-model-call",
     "patchedPlaceholders": false,
     "exit": 0,
-    "ms": 474,
+    "ms": 713,
     "modelRequests": 0,
     "toolResults": 0,
     "tail": ""
@@ -965,7 +965,7 @@
     "outcome": "ran",
     "patchedPlaceholders": false,
     "exit": 0,
-    "ms": 980,
+    "ms": 1187,
     "modelRequests": 1,
     "toolResults": 0,
     "tail": ""
@@ -978,7 +978,7 @@
     "outcome": "exited-no-model-call",
     "patchedPlaceholders": false,
     "exit": 0,
-    "ms": 657,
+    "ms": 720,
     "modelRequests": 0,
     "toolResults": 0,
     "tail": "Session ended with an error: Error: Claude Code returned an error result: Sandbox required but unavailable: sandbox is enabled but dependencies are missing: bubblewrap (bwrap) not installed, socat not installed · install missing tools (e.g. apt install bubblewrap socat) or see https://code.claude.com/docs/en/sandboxing. Set sandbox.failIfUnavailable=false to allow unsandboxed execution."
@@ -991,7 +991,7 @@
     "outcome": "ran",
     "patchedPlaceholders": false,
     "exit": 0,
-    "ms": 882,
+    "ms": 1195,
     "modelRequests": 1,
     "toolResults": 0,
     "tail": ""
@@ -1004,7 +1004,7 @@
     "outcome": "ran",
     "patchedPlaceholders": false,
     "exit": 0,
-    "ms": 912,
+    "ms": 1221,
     "modelRequests": 1,
     "toolResults": 0,
     "tail": ""
@@ -1017,10 +1017,10 @@
     "outcome": "ran",
     "patchedPlaceholders": false,
     "exit": 0,
-    "ms": 1286,
+    "ms": 1353,
     "modelRequests": 3,
     "toolResults": 3,
-    "tail": "(node:2578) [CLAUDE_SDK_CAN_USE_TOOL_SHADOWED] Warning: canUseTool will not be invoked for: mcp__records__*. Bare allowedTools entries auto-approve the whole tool before the callback is consulted. To gate every tool call, use a PreToolUse hook; or remove the bare names from allowedTools so they fall through to canUseTool. Allow rules from settings files can also shadow the callback but are not visible here.\n(Use `node --trace-warnings ...` to show where the warning was created)\nApproval requested for mcp__records__delete_record\nMock model: received the tool result, task complete."
+    "tail": "(node:22870) [CLAUDE_SDK_CAN_USE_TOOL_SHADOWED] Warning: canUseTool will not be invoked for: mcp__records__*. Bare allowedTools entries auto-approve the whole tool before the callback is consulted. To gate every tool call, use a PreToolUse hook; or remove the bare names from allowedTools so they fall through to canUseTool. Allow rules from settings files can also shadow the callback but are not visible here.\n(Use `node --trace-warnings ...` to show where the warning was created)\nApproval requested for mcp__records__delete_record\nMock model: received the tool result, task complete."
   },
   {
     "id": "typescript-v2-preview__02",
@@ -1030,7 +1030,7 @@
     "outcome": "ran",
     "patchedPlaceholders": false,
     "exit": 0,
-    "ms": 863,
+    "ms": 958,
     "modelRequests": 1,
     "toolResults": 0,
     "tail": "Mock model: hello from the offline mock."
@@ -1043,7 +1043,7 @@
     "outcome": "ran",
     "patchedPlaceholders": false,
     "exit": 0,
-    "ms": 1018,
+    "ms": 959,
     "modelRequests": 1,
     "toolResults": 0,
     "tail": "Mock model: hello from the offline mock."
@@ -1056,10 +1056,10 @@
     "outcome": "ran",
     "patchedPlaceholders": false,
     "exit": 0,
-    "ms": 1684,
+    "ms": 1841,
     "modelRequests": 2,
     "toolResults": 0,
-    "tail": "Initial response: Mock model: hello from the offline mock.\nSession ID: bd31a524-2f10-4c1f-b843-9b828349642a\nResumed response: Mock model: hello from the offline mock."
+    "tail": "Initial response: Mock model: hello from the offline mock.\nSession ID: 31830be3-4c1e-420b-b156-c1e8e471e9cc\nResumed response: Mock model: hello from the offline mock."
   },
   {
     "id": "user-input__02",
@@ -1069,7 +1069,7 @@
     "outcome": "ran",
     "patchedPlaceholders": false,
     "exit": 0,
-    "ms": 984,
+    "ms": 939,
     "modelRequests": 1,
     "toolResults": 0,
     "tail": "Mock model: hello from the offline mock."
@@ -1082,7 +1082,7 @@
     "outcome": "ran",
     "patchedPlaceholders": false,
     "exit": 0,
-    "ms": 879,
+    "ms": 893,
     "modelRequests": 1,
     "toolResults": 0,
     "tail": ""
@@ -1095,7 +1095,7 @@
     "outcome": "ran",
     "patchedPlaceholders": false,
     "exit": 0,
-    "ms": 791,
+    "ms": 792,
     "modelRequests": 1,
     "toolResults": 0,
     "tail": "Mock model: hello from the offline mock."

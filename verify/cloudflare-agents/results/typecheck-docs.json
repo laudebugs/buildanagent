@@ -833,9 +833,9 @@
       },
       {
         "line": 7,
-        "code": 2304,
+        "code": 2552,
         "kind": "context",
-        "message": "Cannot find name 'request'."
+        "message": "Cannot find name 'request'. Did you mean 'Request'?"
       },
       {
         "line": 7,
@@ -1003,9 +1003,9 @@
     "errors": [
       {
         "line": 2,
-        "code": 2304,
+        "code": 2552,
         "kind": "context",
-        "message": "Cannot find name 'Agent'."
+        "message": "Cannot find name 'Agent'. Did you mean 'MyAgent'?"
       },
       {
         "line": 11,
@@ -1031,9 +1031,9 @@
     "errors": [
       {
         "line": 2,
-        "code": 2304,
+        "code": 2552,
         "kind": "context",
-        "message": "Cannot find name 'Agent'."
+        "message": "Cannot find name 'Agent'. Did you mean 'MyAgent'?"
       },
       {
         "line": 6,
@@ -1077,9 +1077,9 @@
     "errors": [
       {
         "line": 2,
-        "code": 2304,
+        "code": 2552,
         "kind": "context",
-        "message": "Cannot find name 'Agent'."
+        "message": "Cannot find name 'Agent'. Did you mean 'MyAgent'?"
       },
       {
         "line": 4,
@@ -1117,9 +1117,9 @@
     "errors": [
       {
         "line": 2,
-        "code": 2304,
+        "code": 2552,
         "kind": "context",
-        "message": "Cannot find name 'Agent'."
+        "message": "Cannot find name 'Agent'. Did you mean 'MyAgent'?"
       },
       {
         "line": 3,
@@ -1167,9 +1167,9 @@
     "errors": [
       {
         "line": 2,
-        "code": 2304,
+        "code": 2552,
         "kind": "context",
-        "message": "Cannot find name 'Agent'."
+        "message": "Cannot find name 'Agent'. Did you mean 'MyAgent'?"
       },
       {
         "line": 5,
@@ -1201,9 +1201,9 @@
     "errors": [
       {
         "line": 2,
-        "code": 2304,
+        "code": 2552,
         "kind": "context",
-        "message": "Cannot find name 'Agent'."
+        "message": "Cannot find name 'Agent'. Did you mean 'MyAgent'?"
       },
       {
         "line": 5,
@@ -1241,9 +1241,9 @@
     "errors": [
       {
         "line": 2,
-        "code": 2304,
+        "code": 2552,
         "kind": "context",
-        "message": "Cannot find name 'Agent'."
+        "message": "Cannot find name 'Agent'. Did you mean 'MyAgent'?"
       },
       {
         "line": 5,
@@ -1269,9 +1269,9 @@
     "errors": [
       {
         "line": 2,
-        "code": 2304,
+        "code": 2552,
         "kind": "context",
-        "message": "Cannot find name 'Agent'."
+        "message": "Cannot find name 'Agent'. Did you mean 'MyAgent'?"
       },
       {
         "line": 3,
@@ -1370,9 +1370,9 @@
     "errors": [
       {
         "line": 2,
-        "code": 2304,
+        "code": 2552,
         "kind": "context",
-        "message": "Cannot find name 'Agent'."
+        "message": "Cannot find name 'Agent'. Did you mean 'MyAgent'?"
       },
       {
         "line": 3,
@@ -1398,9 +1398,9 @@
     "errors": [
       {
         "line": 2,
-        "code": 2304,
+        "code": 2552,
         "kind": "context",
-        "message": "Cannot find name 'Agent'."
+        "message": "Cannot find name 'Agent'. Did you mean 'MyAgent'?"
       },
       {
         "line": 10,
@@ -1520,9 +1520,9 @@
       },
       {
         "line": 5,
-        "code": 2304,
+        "code": 2552,
         "kind": "context",
-        "message": "Cannot find name 'request'."
+        "message": "Cannot find name 'request'. Did you mean 'Request'?"
       },
       {
         "line": 5,
@@ -1587,9 +1587,9 @@
       },
       {
         "line": 12,
-        "code": 2304,
+        "code": 2552,
         "kind": "context",
-        "message": "Cannot find name 'Researcher'."
+        "message": "Cannot find name 'Researcher'. Did you mean 'research'?"
       }
     ],
     "status": "fragment"
@@ -1857,9 +1857,9 @@
       },
       {
         "line": 2,
-        "code": 18004,
+        "code": 2552,
         "kind": "context",
-        "message": "No value exists in scope for the shorthand property 'input'. Either declare one or provide an initializer."
+        "message": "Cannot find name 'input'. Did you mean 'oninput'?"
       }
     ],
     "status": "fragment"
@@ -1891,9 +1891,9 @@
       },
       {
         "line": 3,
-        "code": 18004,
+        "code": 2552,
         "kind": "context",
-        "message": "No value exists in scope for the shorthand property 'input'. Either declare one or provide an initializer."
+        "message": "Cannot find name 'input'. Did you mean 'oninput'?"
       }
     ],
     "status": "fragment"
@@ -2103,9 +2103,9 @@
       },
       {
         "line": 4,
-        "code": 18004,
+        "code": 2552,
         "kind": "context",
-        "message": "No value exists in scope for the shorthand property 'input'. Either declare one or provide an initializer."
+        "message": "Cannot find name 'input'. Did you mean 'oninput'?"
       },
       {
         "line": 10,
@@ -2121,9 +2121,9 @@
       },
       {
         "line": 11,
-        "code": 18004,
+        "code": 2552,
         "kind": "context",
-        "message": "No value exists in scope for the shorthand property 'input'. Either declare one or provide an initializer."
+        "message": "Cannot find name 'input'. Did you mean 'oninput'?"
       }
     ],
     "status": "fragment"
@@ -2429,9 +2429,9 @@
       },
       {
         "line": 8,
-        "code": 18004,
+        "code": 2552,
         "kind": "context",
-        "message": "No value exists in scope for the shorthand property 'messages'. Either declare one or provide an initializer."
+        "message": "Cannot find name 'messages'. Did you mean 'onmessage'?"
       }
     ],
     "status": "fragment"
@@ -2457,9 +2457,9 @@
       },
       {
         "line": 7,
-        "code": 18004,
+        "code": 2552,
         "kind": "context",
-        "message": "No value exists in scope for the shorthand property 'messages'. Either declare one or provide an initializer."
+        "message": "Cannot find name 'messages'. Did you mean 'onmessage'?"
       },
       {
         "line": 9,
@@ -2491,9 +2491,9 @@
     "errors": [
       {
         "line": 2,
-        "code": 2304,
+        "code": 2552,
         "kind": "context",
-        "message": "Cannot find name 'research'."
+        "message": "Cannot find name 'research'. Did you mean 'WebSearch'?"
       },
       {
         "line": 2,
@@ -2503,9 +2503,9 @@
       },
       {
         "line": 4,
-        "code": 2304,
+        "code": 2552,
         "kind": "context",
-        "message": "Cannot find name 'browserRun'."
+        "message": "Cannot find name 'browserRun'. Did you mean 'BrowserRun'?"
       },
       {
         "line": 4,
@@ -2775,9 +2775,9 @@
       },
       {
         "line": 6,
-        "code": 2304,
+        "code": 2552,
         "kind": "context",
-        "message": "Cannot find name 'cloudflare'."
+        "message": "Cannot find name 'cloudflare'. Did you mean 'Cloudflare'?"
       }
     ],
     "status": "fragment"
@@ -3338,9 +3338,9 @@
     "errors": [
       {
         "line": 2,
-        "code": 2304,
+        "code": 2552,
         "kind": "context",
-        "message": "Cannot find name 'Agent'."
+        "message": "Cannot find name 'Agent'. Did you mean 'agent'?"
       },
       {
         "line": 3,
@@ -3372,9 +3372,9 @@
     "errors": [
       {
         "line": 4,
-        "code": 2304,
+        "code": 2552,
         "kind": "context",
-        "message": "Cannot find name 'Agent'."
+        "message": "Cannot find name 'Agent'. Did you mean 'MyAgent'?"
       },
       {
         "line": 5,
@@ -3390,9 +3390,9 @@
       },
       {
         "line": 12,
-        "code": 2304,
+        "code": 2552,
         "kind": "context",
-        "message": "Cannot find name 'agent'."
+        "message": "Cannot find name 'agent'. Did you mean 'MyAgent'?"
       }
     ],
     "status": "fragment"
@@ -3516,9 +3516,9 @@
       },
       {
         "line": 2,
-        "code": 2304,
+        "code": 2552,
         "kind": "context",
-        "message": "Cannot find name 'input'."
+        "message": "Cannot find name 'input'. Did you mean 'oninput'?"
       },
       {
         "line": 4,
@@ -3917,9 +3917,9 @@
       },
       {
         "line": 5,
-        "code": 18004,
+        "code": 2552,
         "kind": "context",
-        "message": "No value exists in scope for the shorthand property 'onError'. Either declare one or provide an initializer."
+        "message": "Cannot find name 'onError'. Did you mean 'onerror'?"
       },
       {
         "line": 9,
@@ -4292,9 +4292,9 @@
     "errors": [
       {
         "line": 2,
-        "code": 2304,
+        "code": 2552,
         "kind": "context",
-        "message": "Cannot find name 'AIChatAgent'."
+        "message": "Cannot find name 'AIChatAgent'. Did you mean 'ChatAgent'?"
       }
     ],
     "status": "fragment"
@@ -4352,9 +4352,9 @@
     "errors": [
       {
         "line": 2,
-        "code": 2304,
+        "code": 2552,
         "kind": "context",
-        "message": "Cannot find name 'AIChatAgent'."
+        "message": "Cannot find name 'AIChatAgent'. Did you mean 'ChatAgent'?"
       }
     ],
     "status": "fragment"
@@ -4379,9 +4379,9 @@
     "errors": [
       {
         "line": 2,
-        "code": 2304,
+        "code": 2552,
         "kind": "context",
-        "message": "Cannot find name 'AIChatAgent'."
+        "message": "Cannot find name 'AIChatAgent'. Did you mean 'ChatAgent'?"
       }
     ],
     "status": "fragment"
@@ -4406,9 +4406,15 @@
     "errors": [
       {
         "line": 2,
-        "code": 2304,
+        "code": 2552,
         "kind": "context",
-        "message": "Cannot find name 'AIChatAgent'."
+        "message": "Cannot find name 'AIChatAgent'. Did you mean 'ChatAgent'?"
+      },
+      {
+        "line": 7,
+        "code": 2300,
+        "kind": "context",
+        "message": "Duplicate identifier 'waitForMcpConnections'."
       },
       {
         "line": 10,
@@ -4445,9 +4451,9 @@
       },
       {
         "line": 3,
-        "code": 2304,
+        "code": 2552,
         "kind": "context",
-        "message": "Cannot find name 'messages'."
+        "message": "Cannot find name 'messages'. Did you mean 'onmessage'?"
       },
       {
         "line": 6,
@@ -4463,9 +4469,9 @@
       },
       {
         "line": 6,
-        "code": 2304,
+        "code": 2552,
         "kind": "context",
-        "message": "Cannot find name 'newMessage'."
+        "message": "Cannot find name 'newMessage'. Did you mean 'onmessage'?"
       },
       {
         "line": 10,
@@ -4520,15 +4526,15 @@
       },
       {
         "line": 2,
-        "code": 2304,
+        "code": 2552,
         "kind": "context",
-        "message": "Cannot find name 'newMessage'."
+        "message": "Cannot find name 'newMessage'. Did you mean 'onmessage'?"
       },
       {
         "line": 3,
-        "code": 2304,
+        "code": 2552,
         "kind": "context",
-        "message": "Cannot find name 'abortController'."
+        "message": "Cannot find name 'abortController'. Did you mean 'AbortController'?"
       }
     ],
     "status": "fragment"
@@ -4780,9 +4786,9 @@
     "errors": [
       {
         "line": 2,
-        "code": 2304,
+        "code": 2552,
         "kind": "context",
-        "message": "Cannot find name 'AIChatAgent'."
+        "message": "Cannot find name 'AIChatAgent'. Did you mean 'ChatAgent'?"
       },
       {
         "line": 3,
@@ -4876,9 +4882,9 @@
     "errors": [
       {
         "line": 2,
-        "code": 2304,
+        "code": 2552,
         "kind": "context",
-        "message": "Cannot find name 'AIChatAgent'."
+        "message": "Cannot find name 'AIChatAgent'. Did you mean 'ChatAgent'?"
       },
       {
         "line": 3,
@@ -5894,9 +5900,9 @@
     "errors": [
       {
         "line": 9,
-        "code": 2304,
+        "code": 2552,
         "kind": "context",
-        "message": "Cannot find name 'AIChatAgent'."
+        "message": "Cannot find name 'AIChatAgent'. Did you mean 'ChatAgent'?"
       },
       {
         "line": 11,
@@ -6110,9 +6116,9 @@
     "errors": [
       {
         "line": 4,
-        "code": 2304,
+        "code": 2552,
         "kind": "context",
-        "message": "Cannot find name 'AIChatAgent'."
+        "message": "Cannot find name 'AIChatAgent'. Did you mean 'ChatAgent'?"
       }
     ],
     "status": "fragment"
@@ -6137,9 +6143,9 @@
     "errors": [
       {
         "line": 2,
-        "code": 2304,
+        "code": 2552,
         "kind": "context",
-        "message": "Cannot find name 'AIChatAgent'."
+        "message": "Cannot find name 'AIChatAgent'. Did you mean 'ChatAgent'?"
       },
       {
         "line": 6,
@@ -6149,9 +6155,9 @@
       },
       {
         "line": 7,
-        "code": 2304,
+        "code": 2552,
         "kind": "context",
-        "message": "Cannot find name 'workersai'."
+        "message": "Cannot find name 'workersai'. Did you mean 'Worker'?"
       },
       {
         "line": 8,
@@ -7198,9 +7204,9 @@
     "errors": [
       {
         "line": 16,
-        "code": 2304,
+        "code": 2552,
         "kind": "context",
-        "message": "Cannot find name 'agent'."
+        "message": "Cannot find name 'agent'. Did you mean 'Agent'?"
       },
       {
         "line": 17,
@@ -7757,9 +7763,9 @@
       },
       {
         "line": 8,
-        "code": 2304,
+        "code": 2552,
         "kind": "context",
-        "message": "Cannot find name 'getPosition'."
+        "message": "Cannot find name 'getPosition'. Did you mean 'CaretPosition'?"
       }
     ],
     "status": "fragment"
@@ -7856,9 +7862,9 @@
       },
       {
         "line": 7,
-        "code": 18004,
+        "code": 2552,
         "kind": "context",
-        "message": "No value exists in scope for the shorthand property 'messages'. Either declare one or provide an initializer."
+        "message": "Cannot find name 'messages'. Did you mean 'onmessage'?"
       },
       {
         "line": 8,
@@ -7924,9 +7930,9 @@
       },
       {
         "line": 4,
-        "code": 2304,
+        "code": 2552,
         "kind": "context",
-        "message": "Cannot find name 'cloudflare'."
+        "message": "Cannot find name 'cloudflare'. Did you mean 'Cloudflare'?"
       },
       {
         "line": 4,
@@ -8084,7 +8090,7 @@
         "line": 33,
         "code": 2322,
         "kind": "api",
-        "message": "Type '{ getPageTitle: { description: string; inputSchema: { type: string; properties: {}; required: never[]; }; execute: () => Promise<{ title: string; }>; }; getSelectionText: { description: string; inputSchema: { ...; }; execute: () => Promise<...>; }; }' is not assignable to type 'ApprovalAwareJsonSchemaExecutableToolDescriptor[] | ApprovalAwareJsonSchemaExecutableToolDescriptors'."
+        "message": "Type '{ getPageTitle: { description: string; inputSchema: { type: string; properties: {}; required: never[]; }; execute: () => Promise<{ title: string; }>; }; getSelectionText: { description: string; inputSchema: { type: string; properties: {}; required: never[]; }; execute: () => Promise<...>; }; }' is not assignable to type 'ApprovalAwareJsonSchemaExecutableToolDescriptors | ApprovalAwareJsonSchemaExecutableToolDescriptor[]'."
       },
       {
         "line": 44,
@@ -8332,9 +8338,9 @@
       },
       {
         "line": 3,
-        "code": 2304,
+        "code": 2552,
         "kind": "context",
-        "message": "Cannot find name 'cloudflare'."
+        "message": "Cannot find name 'cloudflare'. Did you mean 'Cloudflare'?"
       }
     ],
     "status": "fragment"
@@ -8461,9 +8467,9 @@
     "errors": [
       {
         "line": 2,
-        "code": 2304,
+        "code": 2552,
         "kind": "context",
-        "message": "Cannot find name 'Agent'."
+        "message": "Cannot find name 'Agent'. Did you mean 'MyAgent'?"
       }
     ],
     "status": "fragment"
@@ -8949,9 +8955,9 @@
     "errors": [
       {
         "line": 2,
-        "code": 2304,
+        "code": 2552,
         "kind": "context",
-        "message": "Cannot find name 'Agent'."
+        "message": "Cannot find name 'Agent'. Did you mean 'MyAgent'?"
       }
     ],
     "status": "fragment"
@@ -9291,9 +9297,9 @@
       },
       {
         "line": 3,
-        "code": 2304,
+        "code": 2552,
         "kind": "context",
-        "message": "Cannot find name 'WebhookEvent'."
+        "message": "Cannot find name 'WebhookEvent'. Did you mean 'WebhookAgent'?"
       },
       {
         "line": 4,
@@ -10439,9 +10445,9 @@
       },
       {
         "line": 7,
-        "code": 18004,
+        "code": 2552,
         "kind": "context",
-        "message": "No value exists in scope for the shorthand property 'messages'. Either declare one or provide an initializer."
+        "message": "Cannot find name 'messages'. Did you mean 'onmessage'?"
       }
     ],
     "status": "fragment"
@@ -11498,9 +11504,9 @@
       },
       {
         "line": 6,
-        "code": 2304,
+        "code": 2552,
         "kind": "context",
-        "message": "Cannot find name 'requestId'."
+        "message": "Cannot find name 'requestId'. Did you mean 'Request'?"
       }
     ],
     "status": "fragment"
@@ -11560,9 +11566,9 @@
     "errors": [
       {
         "line": 5,
-        "code": 2304,
+        "code": 2552,
         "kind": "context",
-        "message": "Cannot find name 'webSockets'."
+        "message": "Cannot find name 'webSockets'. Did you mean 'WebSockets'?"
       },
       {
         "line": 6,
@@ -11648,9 +11654,9 @@
       },
       {
         "line": 15,
-        "code": 2304,
+        "code": 2552,
         "kind": "context",
-        "message": "Cannot find name 'WSMessage'."
+        "message": "Cannot find name 'WSMessage'. Did you mean 'Message'?"
       }
     ],
     "status": "fragment"
@@ -11814,9 +11820,9 @@
       },
       {
         "line": 14,
-        "code": 2304,
+        "code": 2552,
         "kind": "context",
-        "message": "Cannot find name 'WSMessage'."
+        "message": "Cannot find name 'WSMessage'. Did you mean 'Message'?"
       },
       {
         "line": 25,
@@ -12023,9 +12029,9 @@
       },
       {
         "line": 20,
-        "code": 2304,
+        "code": 2552,
         "kind": "context",
-        "message": "Cannot find name 'WSMessage'."
+        "message": "Cannot find name 'WSMessage'. Did you mean 'Message'?"
       },
       {
         "line": 22,
@@ -12051,9 +12057,9 @@
     "errors": [
       {
         "line": 2,
-        "code": 2304,
+        "code": 2552,
         "kind": "context",
-        "message": "Cannot find name 'Agent'."
+        "message": "Cannot find name 'Agent'. Did you mean 'MyAgent'?"
       },
       {
         "line": 7,
@@ -12091,9 +12097,9 @@
     "errors": [
       {
         "line": 2,
-        "code": 2304,
+        "code": 2552,
         "kind": "context",
-        "message": "Cannot find name 'Agent'."
+        "message": "Cannot find name 'Agent'. Did you mean 'MyAgent'?"
       },
       {
         "line": 4,
@@ -12153,9 +12159,9 @@
     "errors": [
       {
         "line": 2,
-        "code": 2304,
+        "code": 2552,
         "kind": "context",
-        "message": "Cannot find name 'Agent'."
+        "message": "Cannot find name 'Agent'. Did you mean 'MyAgent'?"
       },
       {
         "line": 4,
@@ -12193,9 +12199,9 @@
     "errors": [
       {
         "line": 2,
-        "code": 2304,
+        "code": 2552,
         "kind": "context",
-        "message": "Cannot find name 'Agent'."
+        "message": "Cannot find name 'Agent'. Did you mean 'MyAgent'?"
       },
       {
         "line": 8,
@@ -12205,9 +12211,9 @@
       },
       {
         "line": 8,
-        "code": 2304,
+        "code": 2552,
         "kind": "context",
-        "message": "Cannot find name 'WSMessage'."
+        "message": "Cannot find name 'WSMessage'. Did you mean 'Message'?"
       },
       {
         "line": 10,
@@ -12309,9 +12315,9 @@
       },
       {
         "line": 27,
-        "code": 2304,
+        "code": 2552,
         "kind": "context",
-        "message": "Cannot find name 'WSMessage'."
+        "message": "Cannot find name 'WSMessage'. Did you mean 'Message'?"
       },
       {
         "line": 33,
@@ -12379,9 +12385,9 @@
       },
       {
         "line": 39,
-        "code": 2304,
+        "code": 2552,
         "kind": "context",
-        "message": "Cannot find name 'WSMessage'."
+        "message": "Cannot find name 'WSMessage'. Did you mean 'Message'?"
       },
       {
         "line": 41,
@@ -13493,15 +13499,15 @@
       },
       {
         "line": 3,
-        "code": 2304,
+        "code": 2552,
         "kind": "context",
-        "message": "Cannot find name 'Database'."
+        "message": "Cannot find name 'Database'. Did you mean 'D1Database'?"
       },
       {
         "line": 18,
-        "code": 2304,
+        "code": 2552,
         "kind": "context",
-        "message": "Cannot find name 'Database'."
+        "message": "Cannot find name 'Database'. Did you mean 'D1Database'?"
       },
       {
         "line": 21,
@@ -13616,9 +13622,9 @@
       },
       {
         "line": 2,
-        "code": 2304,
+        "code": 2552,
         "kind": "context",
-        "message": "Cannot find name 'MyObject'."
+        "message": "Cannot find name 'MyObject'. Did you mean 'Object'?"
       }
     ],
     "status": "fragment"
@@ -14404,9 +14410,9 @@
       },
       {
         "line": 6,
-        "code": 2304,
+        "code": 2552,
         "kind": "context",
-        "message": "Cannot find name 'ResearchAgent'."
+        "message": "Cannot find name 'ResearchAgent'. Did you mean 'researcher'?"
       },
       {
         "line": 13,
@@ -15012,9 +15018,9 @@
     "errors": [
       {
         "line": 6,
-        "code": 2304,
+        "code": 2552,
         "kind": "context",
-        "message": "Cannot find name 'openai'."
+        "message": "Cannot find name 'openai'. Did you mean 'open'?"
       },
       {
         "line": 8,
@@ -15398,9 +15404,9 @@
     "errors": [
       {
         "line": 3,
-        "code": 2304,
+        "code": 2552,
         "kind": "context",
-        "message": "Cannot find name 'Agent'."
+        "message": "Cannot find name 'Agent'. Did you mean 'MyAgent'?"
       },
       {
         "line": 6,
@@ -15857,9 +15863,9 @@
       },
       {
         "line": 7,
-        "code": 2304,
+        "code": 2552,
         "kind": "context",
-        "message": "Cannot find name 'McpServer'."
+        "message": "Cannot find name 'McpServer'. Did you mean 'server'?"
       },
       {
         "line": 12,
@@ -16197,9 +16203,9 @@
       },
       {
         "line": 5,
-        "code": 2304,
+        "code": 2552,
         "kind": "context",
-        "message": "Cannot find name 'openai'."
+        "message": "Cannot find name 'openai'. Did you mean 'open'?"
       },
       {
         "line": 9,
@@ -16227,9 +16233,9 @@
       },
       {
         "line": 11,
-        "code": 2304,
+        "code": 2552,
         "kind": "context",
-        "message": "Cannot find name 'openai'."
+        "message": "Cannot find name 'openai'. Did you mean 'open'?"
       }
     ],
     "status": "fragment"
@@ -16311,9 +16317,9 @@
     "errors": [
       {
         "line": 4,
-        "code": 2304,
+        "code": 2552,
         "kind": "context",
-        "message": "Cannot find name 'tool'."
+        "message": "Cannot find name 'tool'. Did you mean 'tools'?"
       },
       {
         "line": 6,
@@ -16341,9 +16347,9 @@
       },
       {
         "line": 9,
-        "code": 2304,
+        "code": 2552,
         "kind": "context",
-        "message": "Cannot find name 'tool'."
+        "message": "Cannot find name 'tool'. Did you mean 'tools'?"
       },
       {
         "line": 11,
@@ -16353,9 +16359,9 @@
       },
       {
         "line": 14,
-        "code": 2304,
+        "code": 2552,
         "kind": "context",
-        "message": "Cannot find name 'tool'."
+        "message": "Cannot find name 'tool'. Did you mean 'tools'?"
       },
       {
         "line": 16,
@@ -16413,9 +16419,9 @@
       },
       {
         "line": 27,
-        "code": 2304,
+        "code": 2552,
         "kind": "context",
-        "message": "Cannot find name 'getPosition'."
+        "message": "Cannot find name 'getPosition'. Did you mean 'CaretPosition'?"
       }
     ],
     "status": "fragment"
@@ -16441,9 +16447,9 @@
       },
       {
         "line": 4,
-        "code": 2304,
+        "code": 2552,
         "kind": "context",
-        "message": "Cannot find name 'options'."
+        "message": "Cannot find name 'options'. Did you mean 'Option'?"
       },
       {
         "line": 5,
@@ -16533,15 +16539,15 @@
     "errors": [
       {
         "line": 2,
-        "code": 2304,
+        "code": 2552,
         "kind": "context",
-        "message": "Cannot find name 'ai'."
+        "message": "Cannot find name 'ai'. Did you mean 'Ai'?"
       },
       {
         "line": 3,
-        "code": 2304,
+        "code": 2552,
         "kind": "context",
-        "message": "Cannot find name 'ai'."
+        "message": "Cannot find name 'ai'. Did you mean 'Ai'?"
       }
     ],
     "status": "fragment"
@@ -16604,21 +16610,21 @@
     "errors": [
       {
         "line": 3,
-        "code": 2304,
+        "code": 2552,
         "kind": "context",
-        "message": "Cannot find name 'ai'."
+        "message": "Cannot find name 'ai'. Did you mean 'Ai'?"
       },
       {
         "line": 6,
-        "code": 2304,
+        "code": 2552,
         "kind": "context",
-        "message": "Cannot find name 'ai'."
+        "message": "Cannot find name 'ai'. Did you mean 'Ai'?"
       },
       {
         "line": 9,
-        "code": 2304,
+        "code": 2552,
         "kind": "context",
-        "message": "Cannot find name 'ai'."
+        "message": "Cannot find name 'ai'. Did you mean 'Ai'?"
       },
       {
         "line": 12,
@@ -16634,9 +16640,9 @@
       },
       {
         "line": 16,
-        "code": 2304,
+        "code": 2552,
         "kind": "context",
-        "message": "Cannot find name 'ai'."
+        "message": "Cannot find name 'ai'. Did you mean 'Ai'?"
       }
     ],
     "status": "fragment"
@@ -16656,33 +16662,33 @@
     "errors": [
       {
         "line": 2,
-        "code": 2304,
+        "code": 2552,
         "kind": "context",
-        "message": "Cannot find name 'ai'."
+        "message": "Cannot find name 'ai'. Did you mean 'Ai'?"
       },
       {
         "line": 7,
-        "code": 2304,
+        "code": 2552,
         "kind": "context",
-        "message": "Cannot find name 'ai'."
+        "message": "Cannot find name 'ai'. Did you mean 'Ai'?"
       },
       {
         "line": 8,
-        "code": 2304,
+        "code": 2552,
         "kind": "context",
-        "message": "Cannot find name 'ai'."
+        "message": "Cannot find name 'ai'. Did you mean 'Ai'?"
       },
       {
         "line": 11,
-        "code": 2304,
+        "code": 2552,
         "kind": "context",
-        "message": "Cannot find name 'ai'."
+        "message": "Cannot find name 'ai'. Did you mean 'Ai'?"
       },
       {
         "line": 12,
-        "code": 2304,
+        "code": 2552,
         "kind": "context",
-        "message": "Cannot find name 'ai'."
+        "message": "Cannot find name 'ai'. Did you mean 'Ai'?"
       }
     ],
     "status": "fragment"
@@ -16714,15 +16720,15 @@
       },
       {
         "line": 6,
-        "code": 2304,
+        "code": 2552,
         "kind": "context",
-        "message": "Cannot find name 'ai'."
+        "message": "Cannot find name 'ai'. Did you mean 'Ai'?"
       },
       {
         "line": 7,
-        "code": 2304,
+        "code": 2552,
         "kind": "context",
-        "message": "Cannot find name 'storage'."
+        "message": "Cannot find name 'storage'. Did you mean 'Storage'?"
       },
       {
         "line": 7,
@@ -16760,15 +16766,15 @@
       },
       {
         "line": 5,
-        "code": 2304,
+        "code": 2552,
         "kind": "context",
-        "message": "Cannot find name 'ai'."
+        "message": "Cannot find name 'ai'. Did you mean 'Ai'?"
       },
       {
         "line": 7,
-        "code": 2304,
+        "code": 2552,
         "kind": "context",
-        "message": "Cannot find name 'ai'."
+        "message": "Cannot find name 'ai'. Did you mean 'Ai'?"
       },
       {
         "line": 7,
@@ -16822,9 +16828,9 @@
     "errors": [
       {
         "line": 2,
-        "code": 2304,
+        "code": 2552,
         "kind": "context",
-        "message": "Cannot find name 'ai'."
+        "message": "Cannot find name 'ai'. Did you mean 'Ai'?"
       },
       {
         "line": 2,
@@ -16862,9 +16868,9 @@
     "errors": [
       {
         "line": 2,
-        "code": 2304,
+        "code": 2552,
         "kind": "context",
-        "message": "Cannot find name 'ai'."
+        "message": "Cannot find name 'ai'. Did you mean 'Ai'?"
       },
       {
         "line": 2,
@@ -16890,15 +16896,15 @@
     "errors": [
       {
         "line": 2,
-        "code": 2304,
+        "code": 2552,
         "kind": "context",
-        "message": "Cannot find name 'ai'."
+        "message": "Cannot find name 'ai'. Did you mean 'Ai'?"
       },
       {
         "line": 3,
-        "code": 2304,
+        "code": 2552,
         "kind": "context",
-        "message": "Cannot find name 'ai'."
+        "message": "Cannot find name 'ai'. Did you mean 'Ai'?"
       }
     ],
     "status": "fragment"
@@ -16918,27 +16924,27 @@
     "errors": [
       {
         "line": 3,
-        "code": 2304,
+        "code": 2552,
         "kind": "context",
-        "message": "Cannot find name 'ai'."
+        "message": "Cannot find name 'ai'. Did you mean 'Ai'?"
       },
       {
         "line": 4,
-        "code": 2304,
+        "code": 2552,
         "kind": "context",
-        "message": "Cannot find name 'ai'."
+        "message": "Cannot find name 'ai'. Did you mean 'Ai'?"
       },
       {
         "line": 5,
-        "code": 2304,
+        "code": 2552,
         "kind": "context",
-        "message": "Cannot find name 'ai'."
+        "message": "Cannot find name 'ai'. Did you mean 'Ai'?"
       },
       {
         "line": 8,
-        "code": 2304,
+        "code": 2552,
         "kind": "context",
-        "message": "Cannot find name 'ai'."
+        "message": "Cannot find name 'ai'. Did you mean 'Ai'?"
       },
       {
         "line": 8,
@@ -16985,9 +16991,9 @@
       },
       {
         "line": 3,
-        "code": 2304,
+        "code": 2552,
         "kind": "context",
-        "message": "Cannot find name 'ai'."
+        "message": "Cannot find name 'ai'. Did you mean 'Ai'?"
       },
       {
         "line": 6,
@@ -17013,9 +17019,9 @@
     "errors": [
       {
         "line": 5,
-        "code": 2304,
+        "code": 2552,
         "kind": "context",
-        "message": "Cannot find name 'ai'."
+        "message": "Cannot find name 'ai'. Did you mean 'Ai'?"
       }
     ],
     "status": "fragment"
@@ -17063,9 +17069,9 @@
     "errors": [
       {
         "line": 5,
-        "code": 2304,
+        "code": 2552,
         "kind": "context",
-        "message": "Cannot find name 'ai'."
+        "message": "Cannot find name 'ai'. Did you mean 'Ai'?"
       },
       {
         "line": 12,
@@ -17103,9 +17109,9 @@
       },
       {
         "line": 3,
-        "code": 2304,
+        "code": 2552,
         "kind": "context",
-        "message": "Cannot find name 'gateway'."
+        "message": "Cannot find name 'gateway'. Did you mean 'AiGateway'?"
       },
       {
         "line": 4,
@@ -17115,15 +17121,15 @@
       },
       {
         "line": 4,
-        "code": 18004,
+        "code": 2552,
         "kind": "context",
-        "message": "No value exists in scope for the shorthand property 'headers'. Either declare one or provide an initializer."
+        "message": "Cannot find name 'headers'. Did you mean 'Headers'?"
       },
       {
         "line": 4,
-        "code": 18004,
+        "code": 2552,
         "kind": "context",
-        "message": "No value exists in scope for the shorthand property 'body'. Either declare one or provide an initializer."
+        "message": "Cannot find name 'body'. Did you mean 'Body'?"
       }
     ],
     "status": "fragment"
@@ -17143,21 +17149,21 @@
     "errors": [
       {
         "line": 8,
-        "code": 2304,
+        "code": 2552,
         "kind": "context",
-        "message": "Cannot find name 'ai'."
+        "message": "Cannot find name 'ai'. Did you mean 'Ai'?"
       },
       {
         "line": 9,
-        "code": 2304,
+        "code": 2552,
         "kind": "context",
-        "message": "Cannot find name 'ai'."
+        "message": "Cannot find name 'ai'. Did you mean 'Ai'?"
       },
       {
         "line": 10,
-        "code": 2304,
+        "code": 2552,
         "kind": "context",
-        "message": "Cannot find name 'ai'."
+        "message": "Cannot find name 'ai'. Did you mean 'Ai'?"
       }
     ],
     "status": "fragment"
@@ -17183,9 +17189,9 @@
       },
       {
         "line": 2,
-        "code": 2304,
+        "code": 2552,
         "kind": "context",
-        "message": "Cannot find name 'ai'."
+        "message": "Cannot find name 'ai'. Did you mean 'Ai'?"
       },
       {
         "line": 2,
@@ -17229,9 +17235,9 @@
       },
       {
         "line": 3,
-        "code": 2304,
+        "code": 2552,
         "kind": "context",
-        "message": "Cannot find name 'ai'."
+        "message": "Cannot find name 'ai'. Did you mean 'Ai'?"
       }
     ],
     "status": "fragment"
@@ -17285,27 +17291,27 @@
     "errors": [
       {
         "line": 5,
-        "code": 2304,
+        "code": 2552,
         "kind": "context",
-        "message": "Cannot find name 'ai'."
+        "message": "Cannot find name 'ai'. Did you mean 'Ai'?"
       },
       {
         "line": 10,
-        "code": 2304,
+        "code": 2552,
         "kind": "context",
-        "message": "Cannot find name 'ai'."
+        "message": "Cannot find name 'ai'. Did you mean 'Ai'?"
       },
       {
         "line": 15,
-        "code": 2304,
+        "code": 2552,
         "kind": "context",
-        "message": "Cannot find name 'ai'."
+        "message": "Cannot find name 'ai'. Did you mean 'Ai'?"
       },
       {
         "line": 20,
-        "code": 2304,
+        "code": 2552,
         "kind": "context",
-        "message": "Cannot find name 'ai'."
+        "message": "Cannot find name 'ai'. Did you mean 'Ai'?"
       }
     ],
     "status": "fragment"
@@ -17365,9 +17371,9 @@
       },
       {
         "line": 3,
-        "code": 2304,
+        "code": 2552,
         "kind": "context",
-        "message": "Cannot find name 'ai'."
+        "message": "Cannot find name 'ai'. Did you mean 'Ai'?"
       }
     ],
     "status": "fragment"
@@ -17387,9 +17393,9 @@
     "errors": [
       {
         "line": 2,
-        "code": 2304,
+        "code": 2552,
         "kind": "context",
-        "message": "Cannot find name 'ai'."
+        "message": "Cannot find name 'ai'. Did you mean 'Ai'?"
       },
       {
         "line": 2,
@@ -17421,9 +17427,9 @@
       },
       {
         "line": 2,
-        "code": 2304,
+        "code": 2552,
         "kind": "context",
-        "message": "Cannot find name 'ai'."
+        "message": "Cannot find name 'ai'. Did you mean 'Ai'?"
       }
     ],
     "status": "fragment"
@@ -17449,9 +17455,9 @@
       },
       {
         "line": 3,
-        "code": 2304,
+        "code": 2552,
         "kind": "context",
-        "message": "Cannot find name 'ai'."
+        "message": "Cannot find name 'ai'. Did you mean 'Ai'?"
       }
     ],
     "status": "fragment"
@@ -17477,9 +17483,9 @@
       },
       {
         "line": 5,
-        "code": 2304,
+        "code": 2552,
         "kind": "context",
-        "message": "Cannot find name 'ai'."
+        "message": "Cannot find name 'ai'. Did you mean 'Ai'?"
       }
     ],
     "status": "fragment"
@@ -17613,9 +17619,9 @@
     "errors": [
       {
         "line": 2,
-        "code": 2304,
+        "code": 2552,
         "kind": "context",
-        "message": "Cannot find name 'Agent'."
+        "message": "Cannot find name 'Agent'. Did you mean 'MyAgent'?"
       },
       {
         "line": 3,
@@ -17662,9 +17668,9 @@
       },
       {
         "line": 2,
-        "code": 2304,
+        "code": 2552,
         "kind": "context",
-        "message": "Cannot find name 'ai'."
+        "message": "Cannot find name 'ai'. Did you mean 'Ai'?"
       }
     ],
     "status": "fragment"
@@ -17746,9 +17752,9 @@
       },
       {
         "line": 2,
-        "code": 2304,
+        "code": 2552,
         "kind": "context",
-        "message": "Cannot find name 'ai'."
+        "message": "Cannot find name 'ai'. Did you mean 'Ai'?"
       },
       {
         "line": 7,
@@ -18126,9 +18132,9 @@
     "errors": [
       {
         "line": 7,
-        "code": 2304,
+        "code": 2552,
         "kind": "context",
-        "message": "Cannot find name 'RetryOptions'."
+        "message": "Cannot find name 'RetryOptions'. Did you mean 'R2GetOptions'?"
       }
     ],
     "status": "fragment"
@@ -18148,9 +18154,9 @@
     "errors": [
       {
         "line": 2,
-        "code": 2304,
+        "code": 2552,
         "kind": "context",
-        "message": "Cannot find name 'Agent'."
+        "message": "Cannot find name 'Agent'. Did you mean 'MyAgent'?"
       },
       {
         "line": 5,
@@ -18340,9 +18346,9 @@
     "errors": [
       {
         "line": 2,
-        "code": 2304,
+        "code": 2552,
         "kind": "context",
-        "message": "Cannot find name 'Agent'."
+        "message": "Cannot find name 'Agent'. Did you mean 'MyAgent'?"
       },
       {
         "line": 2,
@@ -19079,9 +19085,9 @@
       },
       {
         "line": 18,
-        "code": 2304,
+        "code": 2552,
         "kind": "context",
-        "message": "Cannot find name 'url'."
+        "message": "Cannot find name 'url'. Did you mean 'URL'?"
       },
       {
         "line": 22,
@@ -19113,9 +19119,9 @@
     "errors": [
       {
         "line": 2,
-        "code": 2304,
+        "code": 2552,
         "kind": "context",
-        "message": "Cannot find name 'Agent'."
+        "message": "Cannot find name 'Agent'. Did you mean 'MyAgent'?"
       }
     ],
     "status": "fragment"
@@ -19135,9 +19141,9 @@
     "errors": [
       {
         "line": 2,
-        "code": 2304,
+        "code": 2552,
         "kind": "context",
-        "message": "Cannot find name 'Agent'."
+        "message": "Cannot find name 'Agent'. Did you mean 'MyAgent'?"
       }
     ],
     "status": "fragment"
@@ -19163,9 +19169,9 @@
       },
       {
         "line": 3,
-        "code": 2304,
+        "code": 2552,
         "kind": "context",
-        "message": "Cannot find name 'url'."
+        "message": "Cannot find name 'url'. Did you mean 'URL'?"
       },
       {
         "line": 6,
@@ -19175,9 +19181,9 @@
       },
       {
         "line": 6,
-        "code": 2304,
+        "code": 2552,
         "kind": "context",
-        "message": "Cannot find name 'url'."
+        "message": "Cannot find name 'url'. Did you mean 'URL'?"
       }
     ],
     "status": "fragment"
@@ -19256,9 +19262,9 @@
     "errors": [
       {
         "line": 2,
-        "code": 2304,
+        "code": 2552,
         "kind": "context",
-        "message": "Cannot find name 'Agent'."
+        "message": "Cannot find name 'Agent'. Did you mean 'MyAgent'?"
       },
       {
         "line": 5,
@@ -19290,9 +19296,9 @@
     "errors": [
       {
         "line": 2,
-        "code": 2304,
+        "code": 2552,
         "kind": "context",
-        "message": "Cannot find name 'Agent'."
+        "message": "Cannot find name 'Agent'. Did you mean 'MyAgent'?"
       },
       {
         "line": 5,
@@ -19324,9 +19330,9 @@
     "errors": [
       {
         "line": 2,
-        "code": 2304,
+        "code": 2552,
         "kind": "context",
-        "message": "Cannot find name 'Agent'."
+        "message": "Cannot find name 'Agent'. Did you mean 'MyAgent'?"
       },
       {
         "line": 8,
@@ -19628,9 +19634,9 @@
       },
       {
         "line": 11,
-        "code": 2304,
+        "code": 2552,
         "kind": "context",
-        "message": "Cannot find name 'documentId'."
+        "message": "Cannot find name 'documentId'. Did you mean 'document'?"
       },
       {
         "line": 15,
@@ -19687,9 +19693,9 @@
       },
       {
         "line": 2,
-        "code": 2304,
+        "code": 2552,
         "kind": "context",
-        "message": "Cannot find name 'request'."
+        "message": "Cannot find name 'request'. Did you mean 'Request'?"
       },
       {
         "line": 2,
@@ -19734,9 +19740,9 @@
       },
       {
         "line": 2,
-        "code": 2304,
+        "code": 2552,
         "kind": "context",
-        "message": "Cannot find name 'request'."
+        "message": "Cannot find name 'request'. Did you mean 'Request'?"
       },
       {
         "line": 2,
@@ -19793,9 +19799,9 @@
       },
       {
         "line": 8,
-        "code": 2304,
+        "code": 2552,
         "kind": "context",
-        "message": "Cannot find name 'request'."
+        "message": "Cannot find name 'request'. Did you mean 'Request'?"
       },
       {
         "line": 8,
@@ -19852,9 +19858,9 @@
       },
       {
         "line": 8,
-        "code": 2304,
+        "code": 2552,
         "kind": "context",
-        "message": "Cannot find name 'request'."
+        "message": "Cannot find name 'request'. Did you mean 'Request'?"
       },
       {
         "line": 8,
@@ -19940,9 +19946,9 @@
     "errors": [
       {
         "line": 2,
-        "code": 2304,
+        "code": 2552,
         "kind": "context",
-        "message": "Cannot find name 'Agent'."
+        "message": "Cannot find name 'Agent'. Did you mean 'MyAgent'?"
       },
       {
         "line": 2,
@@ -19993,9 +19999,9 @@
       },
       {
         "line": 4,
-        "code": 2304,
+        "code": 2552,
         "kind": "context",
-        "message": "Cannot find name 'getSession'."
+        "message": "Cannot find name 'getSession'. Did you mean 'session'?"
       },
       {
         "line": 5,
@@ -20040,9 +20046,9 @@
       },
       {
         "line": 2,
-        "code": 2304,
+        "code": 2552,
         "kind": "context",
-        "message": "Cannot find name 'request'."
+        "message": "Cannot find name 'request'. Did you mean 'Request'?"
       },
       {
         "line": 2,
@@ -20140,9 +20146,9 @@
     "errors": [
       {
         "line": 8,
-        "code": 2304,
+        "code": 2552,
         "kind": "context",
-        "message": "Cannot find name 'getSession'."
+        "message": "Cannot find name 'getSession'. Did you mean 'session'?"
       },
       {
         "line": 9,
@@ -20187,15 +20193,15 @@
     "errors": [
       {
         "line": 3,
-        "code": 2304,
+        "code": 2552,
         "kind": "context",
-        "message": "Cannot find name 'url'."
+        "message": "Cannot find name 'url'. Did you mean 'URL'?"
       },
       {
         "line": 4,
-        "code": 2304,
+        "code": 2552,
         "kind": "context",
-        "message": "Cannot find name 'url'."
+        "message": "Cannot find name 'url'. Did you mean 'URL'?"
       },
       {
         "line": 5,
@@ -20217,15 +20223,15 @@
       },
       {
         "line": 10,
-        "code": 2304,
+        "code": 2552,
         "kind": "context",
-        "message": "Cannot find name 'url'."
+        "message": "Cannot find name 'url'. Did you mean 'URL'?"
       },
       {
         "line": 11,
-        "code": 2304,
+        "code": 2552,
         "kind": "context",
-        "message": "Cannot find name 'url'."
+        "message": "Cannot find name 'url'. Did you mean 'URL'?"
       },
       {
         "line": 12,
@@ -20645,9 +20651,9 @@
       },
       {
         "line": 5,
-        "code": 2304,
+        "code": 2552,
         "kind": "context",
-        "message": "Cannot find name 'chatId'."
+        "message": "Cannot find name 'chatId'. Did you mean 'chat'?"
       }
     ],
     "status": "fragment"
@@ -20951,9 +20957,9 @@
     "errors": [
       {
         "line": 2,
-        "code": 2304,
+        "code": 2552,
         "kind": "context",
-        "message": "Cannot find name 'Agent'."
+        "message": "Cannot find name 'Agent'. Did you mean 'MyAgent'?"
       },
       {
         "line": 5,
@@ -21205,9 +21211,9 @@
       },
       {
         "line": 2,
-        "code": 2304,
+        "code": 2552,
         "kind": "context",
-        "message": "Cannot find name 'scheduleId'."
+        "message": "Cannot find name 'scheduleId'. Did you mean 'schedule'?"
       }
     ],
     "status": "fragment"
@@ -21279,9 +21285,9 @@
       },
       {
         "line": 2,
-        "code": 2304,
+        "code": 2552,
         "kind": "context",
-        "message": "Cannot find name 'scheduleId'."
+        "message": "Cannot find name 'scheduleId'. Did you mean 'scheduler'?"
       }
     ],
     "status": "fragment"
@@ -21353,9 +21359,9 @@
     "errors": [
       {
         "line": 6,
-        "code": 2304,
+        "code": 2552,
         "kind": "context",
-        "message": "Cannot find name 'RetryOptions'."
+        "message": "Cannot find name 'RetryOptions'. Did you mean 'R2GetOptions'?"
       }
     ],
     "status": "fragment"
@@ -21622,9 +21628,9 @@
     "errors": [
       {
         "line": 2,
-        "code": 2693,
-        "kind": "other",
-        "message": "'Scheduler' only refers to a type, but is being used as a value here."
+        "code": 2554,
+        "kind": "api",
+        "message": "Expected 0 arguments, but got 1."
       },
       {
         "line": 3,
@@ -21664,9 +21670,9 @@
       },
       {
         "line": 6,
-        "code": 18004,
+        "code": 2552,
         "kind": "context",
-        "message": "No value exists in scope for the shorthand property 'onError'. Either declare one or provide an initializer."
+        "message": "Cannot find name 'onError'. Did you mean 'onerror'?"
       },
       {
         "line": 6,
@@ -21675,7 +21681,7 @@
         "message": "An object member cannot be declared optional."
       }
     ],
-    "status": "syntax"
+    "status": "api-mismatch"
   },
   {
     "id": "repo__agents__scheduling__31",
@@ -21906,9 +21912,9 @@
     "errors": [
       {
         "line": 2,
-        "code": 2304,
+        "code": 2552,
         "kind": "context",
-        "message": "Cannot find name 'Agent'."
+        "message": "Cannot find name 'Agent'. Did you mean 'MyAgent'?"
       },
       {
         "line": 5,
@@ -22342,9 +22348,9 @@
       },
       {
         "line": 7,
-        "code": 18004,
+        "code": 2552,
         "kind": "context",
-        "message": "No value exists in scope for the shorthand property 'messages'. Either declare one or provide an initializer."
+        "message": "Cannot find name 'messages'. Did you mean 'onmessage'?"
       }
     ],
     "status": "fragment"
@@ -22414,9 +22420,9 @@
     "errors": [
       {
         "line": 2,
-        "code": 2304,
+        "code": 2552,
         "kind": "context",
-        "message": "Cannot find name 'webSearchTool'."
+        "message": "Cannot find name 'webSearchTool'. Did you mean 'WebSearch'?"
       },
       {
         "line": 4,
@@ -22476,9 +22482,9 @@
       },
       {
         "line": 5,
-        "code": 2304,
+        "code": 2552,
         "kind": "context",
-        "message": "Cannot find name 'request'."
+        "message": "Cannot find name 'request'. Did you mean 'Request'?"
       },
       {
         "line": 9,
@@ -22488,15 +22494,15 @@
       },
       {
         "line": 14,
-        "code": 2304,
+        "code": 2552,
         "kind": "context",
-        "message": "Cannot find name 'request'."
+        "message": "Cannot find name 'request'. Did you mean 'Request'?"
       },
       {
         "line": 17,
-        "code": 2304,
+        "code": 2552,
         "kind": "context",
-        "message": "Cannot find name 'request'."
+        "message": "Cannot find name 'request'. Did you mean 'Request'?"
       },
       {
         "line": 18,
@@ -22506,9 +22512,9 @@
       },
       {
         "line": 20,
-        "code": 2304,
+        "code": 2552,
         "kind": "context",
-        "message": "Cannot find name 'request'."
+        "message": "Cannot find name 'request'. Did you mean 'Request'?"
       },
       {
         "line": 25,
@@ -22552,9 +22558,9 @@
       },
       {
         "line": 3,
-        "code": 2304,
+        "code": 2552,
         "kind": "context",
-        "message": "Cannot find name 'request'."
+        "message": "Cannot find name 'request'. Did you mean 'Request'?"
       },
       {
         "line": 3,
@@ -22594,9 +22600,9 @@
       },
       {
         "line": 16,
-        "code": 2304,
+        "code": 2552,
         "kind": "context",
-        "message": "Cannot find name 'request'."
+        "message": "Cannot find name 'request'. Did you mean 'Request'?"
       },
       {
         "line": 17,
@@ -22606,9 +22612,9 @@
       },
       {
         "line": 18,
-        "code": 2304,
+        "code": 2552,
         "kind": "context",
-        "message": "Cannot find name 'request'."
+        "message": "Cannot find name 'request'. Did you mean 'Request'?"
       },
       {
         "line": 21,
@@ -23322,9 +23328,9 @@
     "errors": [
       {
         "line": 2,
-        "code": 2304,
+        "code": 2552,
         "kind": "context",
-        "message": "Cannot find name 'Sessions'."
+        "message": "Cannot find name 'Sessions'. Did you mean 'sessions'?"
       },
       {
         "line": 6,
@@ -23356,9 +23362,9 @@
       },
       {
         "line": 2,
-        "code": 2304,
+        "code": 2552,
         "kind": "context",
-        "message": "Cannot find name 'message'."
+        "message": "Cannot find name 'message'. Did you mean 'onmessage'?"
       },
       {
         "line": 3,
@@ -23368,9 +23374,9 @@
       },
       {
         "line": 3,
-        "code": 2304,
+        "code": 2552,
         "kind": "context",
-        "message": "Cannot find name 'message'."
+        "message": "Cannot find name 'message'. Did you mean 'onmessage'?"
       },
       {
         "line": 4,
@@ -23578,9 +23584,9 @@
       },
       {
         "line": 4,
-        "code": 2304,
+        "code": 2552,
         "kind": "context",
-        "message": "Cannot find name 'parentId'."
+        "message": "Cannot find name 'parentId'. Did you mean 'parent'?"
       },
       {
         "line": 5,
@@ -23612,9 +23618,9 @@
       },
       {
         "line": 2,
-        "code": 2304,
+        "code": 2552,
         "kind": "context",
-        "message": "Cannot find name 'alternativeReply'."
+        "message": "Cannot find name 'alternativeReply'. Did you mean 'alternatives'?"
       },
       {
         "line": 3,
@@ -23754,9 +23760,9 @@
       },
       {
         "line": 2,
-        "code": 2304,
+        "code": 2552,
         "kind": "context",
-        "message": "Cannot find name 'toMessageId'."
+        "message": "Cannot find name 'toMessageId'. Did you mean 'onmessage'?"
       }
     ],
     "status": "fragment"
@@ -23822,9 +23828,9 @@
       },
       {
         "line": 2,
-        "code": 2304,
+        "code": 2552,
         "kind": "context",
-        "message": "Cannot find name 'message'."
+        "message": "Cannot find name 'message'. Did you mean 'onmessage'?"
       },
       {
         "line": 3,
@@ -23834,9 +23840,9 @@
       },
       {
         "line": 3,
-        "code": 2304,
+        "code": 2552,
         "kind": "context",
-        "message": "Cannot find name 'message'."
+        "message": "Cannot find name 'message'. Did you mean 'onmessage'?"
       }
     ],
     "status": "fragment"
@@ -23970,9 +23976,9 @@
       },
       {
         "line": 2,
-        "code": 2304,
+        "code": 2552,
         "kind": "context",
-        "message": "Cannot find name 'UIMessage'."
+        "message": "Cannot find name 'UIMessage'. Did you mean 'Message'?"
       },
       {
         "line": 3,
@@ -24118,9 +24124,9 @@
     "errors": [
       {
         "line": 3,
-        "code": 2304,
+        "code": 2552,
         "kind": "context",
-        "message": "Cannot find name 'Agent'."
+        "message": "Cannot find name 'Agent'. Did you mean 'MyAgent'?"
       },
       {
         "line": 3,
@@ -24801,9 +24807,9 @@
       },
       {
         "line": 5,
-        "code": 2304,
+        "code": 2552,
         "kind": "context",
-        "message": "Cannot find name 'AgentContext'."
+        "message": "Cannot find name 'AgentContext'. Did you mean 'EventContext'?"
       },
       {
         "line": 7,
@@ -25005,9 +25011,9 @@
       },
       {
         "line": 3,
-        "code": 2304,
+        "code": 2552,
         "kind": "context",
-        "message": "Cannot find name 'message'."
+        "message": "Cannot find name 'message'. Did you mean 'onmessage'?"
       }
     ],
     "status": "fragment"
@@ -25110,9 +25116,9 @@
       },
       {
         "line": 2,
-        "code": 2304,
+        "code": 2552,
         "kind": "context",
-        "message": "Cannot find name 'JobRunner'."
+        "message": "Cannot find name 'JobRunner'. Did you mean 'runner'?"
       }
     ],
     "status": "fragment"
@@ -25342,9 +25348,9 @@
       },
       {
         "line": 2,
-        "code": 2304,
+        "code": 2552,
         "kind": "context",
-        "message": "Cannot find name 'Supervisor'."
+        "message": "Cannot find name 'Supervisor'. Did you mean 'supervisor'?"
       },
       {
         "line": 3,
@@ -25518,9 +25524,9 @@
       },
       {
         "line": 5,
-        "code": 2304,
+        "code": 2552,
         "kind": "context",
-        "message": "Cannot find name 'JobRunner'."
+        "message": "Cannot find name 'JobRunner'. Did you mean 'runner'?"
       },
       {
         "line": 5,
@@ -25582,9 +25588,9 @@
       },
       {
         "line": 8,
-        "code": 18004,
+        "code": 2552,
         "kind": "context",
-        "message": "No value exists in scope for the shorthand property 'lastMessage'. Either declare one or provide an initializer."
+        "message": "Cannot find name 'lastMessage'. Did you mean 'postMessage'?"
       },
       {
         "line": 8,
@@ -25666,15 +25672,15 @@
       },
       {
         "line": 2,
-        "code": 2304,
+        "code": 2552,
         "kind": "context",
-        "message": "Cannot find name 'input'."
+        "message": "Cannot find name 'input'. Did you mean 'oninput'?"
       },
       {
         "line": 3,
-        "code": 2304,
+        "code": 2552,
         "kind": "context",
-        "message": "Cannot find name 'input'."
+        "message": "Cannot find name 'input'. Did you mean 'oninput'?"
       }
     ],
     "status": "fragment"
@@ -25978,9 +25984,9 @@
     "errors": [
       {
         "line": 4,
-        "code": 2304,
+        "code": 2552,
         "kind": "context",
-        "message": "Cannot find name 'Agent'."
+        "message": "Cannot find name 'Agent'. Did you mean 'MyAgent'?"
       },
       {
         "line": 7,
@@ -26802,9 +26808,9 @@
       },
       {
         "line": 3,
-        "code": 2304,
+        "code": 2552,
         "kind": "context",
-        "message": "Cannot find name 'WSMessage'."
+        "message": "Cannot find name 'WSMessage'. Did you mean 'Message'?"
       },
       {
         "line": 6,
@@ -27472,9 +27478,9 @@
       },
       {
         "line": 2,
-        "code": 2304,
+        "code": 2552,
         "kind": "context",
-        "message": "Cannot find name 'messages'."
+        "message": "Cannot find name 'messages'. Did you mean 'onmessage'?"
       },
       {
         "line": 3,
@@ -27932,9 +27938,9 @@
     "errors": [
       {
         "line": 3,
-        "code": 2304,
+        "code": 2552,
         "kind": "context",
-        "message": "Cannot find name 'WorkflowInfo'."
+        "message": "Cannot find name 'WorkflowInfo'. Did you mean 'Workflow'?"
       }
     ],
     "status": "fragment"
@@ -28181,9 +28187,9 @@
     "errors": [
       {
         "line": 2,
-        "code": 2304,
+        "code": 2552,
         "kind": "context",
-        "message": "Cannot find name 'Agent'."
+        "message": "Cannot find name 'Agent'. Did you mean 'MyAgent'?"
       },
       {
         "line": 35,
@@ -28214,9 +28220,9 @@
     "errors": [
       {
         "line": 2,
-        "code": 2304,
+        "code": 2552,
         "kind": "context",
-        "message": "Cannot find name 'Agent'."
+        "message": "Cannot find name 'Agent'. Did you mean 'MyAgent'?"
       },
       {
         "line": 5,
@@ -28295,9 +28301,9 @@
       },
       {
         "line": 30,
-        "code": 2304,
+        "code": 2552,
         "kind": "context",
-        "message": "Cannot find name 'Agent'."
+        "message": "Cannot find name 'Agent'. Did you mean 'MyAgent'?"
       },
       {
         "line": 37,
@@ -28376,9 +28382,9 @@
       },
       {
         "line": 37,
-        "code": 2304,
+        "code": 2552,
         "kind": "context",
-        "message": "Cannot find name 'Agent'."
+        "message": "Cannot find name 'Agent'. Did you mean 'MyAgent'?"
       },
       {
         "line": 40,
@@ -28535,15 +28541,15 @@
     "errors": [
       {
         "line": 11,
-        "code": 2304,
+        "code": 2552,
         "kind": "context",
-        "message": "Cannot find name 'AgentWorkflow'."
+        "message": "Cannot find name 'AgentWorkflow'. Did you mean 'ETLWorkflow'?"
       },
       {
         "line": 13,
-        "code": 2304,
+        "code": 2552,
         "kind": "context",
-        "message": "Cannot find name 'ETLParams'."
+        "message": "Cannot find name 'ETLParams'. Did you mean 'Params'?"
       },
       {
         "line": 16,
@@ -28553,9 +28559,9 @@
       },
       {
         "line": 16,
-        "code": 2304,
+        "code": 2552,
         "kind": "context",
-        "message": "Cannot find name 'ETLParams'."
+        "message": "Cannot find name 'ETLParams'. Did you mean 'Params'?"
       },
       {
         "line": 16,
@@ -28571,9 +28577,9 @@
       },
       {
         "line": 32,
-        "code": 2304,
+        "code": 2552,
         "kind": "context",
-        "message": "Cannot find name 'Agent'."
+        "message": "Cannot find name 'Agent'. Did you mean 'MyAgent'?"
       }
     ],
     "status": "fragment"
@@ -28861,9 +28867,9 @@
       },
       {
         "line": 9,
-        "code": 2304,
+        "code": 2552,
         "kind": "context",
-        "message": "Cannot find name 'ReplyAttachment'."
+        "message": "Cannot find name 'ReplyAttachment'. Did you mean 'EmailAttachment'?"
       }
     ],
     "status": "fragment"
@@ -29414,9 +29420,9 @@
       },
       {
         "line": 2,
-        "code": 2304,
+        "code": 2552,
         "kind": "context",
-        "message": "Cannot find name 'message'."
+        "message": "Cannot find name 'message'. Did you mean 'onmessage'?"
       },
       {
         "line": 2,
@@ -33526,9 +33532,9 @@
       },
       {
         "line": 2,
-        "code": 2304,
+        "code": 2552,
         "kind": "context",
-        "message": "Cannot find name 'messages'."
+        "message": "Cannot find name 'messages'. Did you mean 'onmessage'?"
       }
     ],
     "status": "fragment"
@@ -33554,9 +33560,9 @@
       },
       {
         "line": 2,
-        "code": 2304,
+        "code": 2552,
         "kind": "context",
-        "message": "Cannot find name 'messages'."
+        "message": "Cannot find name 'messages'. Did you mean 'onmessage'?"
       },
       {
         "line": 3,
@@ -33572,9 +33578,9 @@
       },
       {
         "line": 6,
-        "code": 2304,
+        "code": 2552,
         "kind": "context",
-        "message": "Cannot find name 'messages'."
+        "message": "Cannot find name 'messages'. Did you mean 'onmessage'?"
       },
       {
         "line": 7,
@@ -33652,15 +33658,15 @@
       },
       {
         "line": 2,
-        "code": 2304,
+        "code": 2552,
         "kind": "context",
-        "message": "Cannot find name 'message'."
+        "message": "Cannot find name 'message'. Did you mean 'onmessage'?"
       },
       {
         "line": 3,
-        "code": 2304,
+        "code": 2552,
         "kind": "context",
-        "message": "Cannot find name 'workflowName'."
+        "message": "Cannot find name 'workflowName'. Did you mean 'Workflow'?"
       },
       {
         "line": 3,
@@ -33726,9 +33732,9 @@
       },
       {
         "line": 2,
-        "code": 2304,
+        "code": 2552,
         "kind": "context",
-        "message": "Cannot find name 'messages'."
+        "message": "Cannot find name 'messages'. Did you mean 'onmessage'?"
       }
     ],
     "status": "fragment"
@@ -33754,9 +33760,9 @@
       },
       {
         "line": 2,
-        "code": 2304,
+        "code": 2552,
         "kind": "context",
-        "message": "Cannot find name 'messages'."
+        "message": "Cannot find name 'messages'. Did you mean 'onmessage'?"
       },
       {
         "line": 2,
@@ -33812,9 +33818,9 @@
       },
       {
         "line": 7,
-        "code": 2304,
+        "code": 2552,
         "kind": "context",
-        "message": "Cannot find name 'messages'."
+        "message": "Cannot find name 'messages'. Did you mean 'onmessage'?"
       },
       {
         "line": 8,
@@ -33870,9 +33876,9 @@
       },
       {
         "line": 2,
-        "code": 2304,
+        "code": 2552,
         "kind": "context",
-        "message": "Cannot find name 'messages'."
+        "message": "Cannot find name 'messages'. Did you mean 'onmessage'?"
       },
       {
         "line": 3,
@@ -35400,9 +35406,9 @@
       },
       {
         "line": 2,
-        "code": 2304,
+        "code": 2552,
         "kind": "context",
-        "message": "Cannot find name 'workflowId'."
+        "message": "Cannot find name 'workflowId'. Did you mean 'Workflow'?"
       }
     ],
     "status": "fragment"
@@ -35428,15 +35434,15 @@
       },
       {
         "line": 3,
-        "code": 2304,
+        "code": 2552,
         "kind": "context",
-        "message": "Cannot find name 'file'."
+        "message": "Cannot find name 'file'. Did you mean 'File'?"
       },
       {
         "line": 4,
-        "code": 2304,
+        "code": 2552,
         "kind": "context",
-        "message": "Cannot find name 'file'."
+        "message": "Cannot find name 'file'. Did you mean 'File'?"
       },
       {
         "line": 5,
@@ -35903,9 +35909,9 @@
       },
       {
         "line": 6,
-        "code": 2304,
+        "code": 2552,
         "kind": "context",
-        "message": "Cannot find name 'chatId'."
+        "message": "Cannot find name 'chatId'. Did you mean 'chat'?"
       }
     ],
     "status": "fragment"
@@ -36277,9 +36283,9 @@
       },
       {
         "line": 8,
-        "code": 2304,
+        "code": 2552,
         "kind": "context",
-        "message": "Cannot find name 'validateOrder'."
+        "message": "Cannot find name 'validateOrder'. Did you mean 'validated'?"
       },
       {
         "line": 12,
@@ -36408,9 +36414,9 @@
       },
       {
         "line": 13,
-        "code": 2304,
+        "code": 2552,
         "kind": "context",
-        "message": "Cannot find name 'openai'."
+        "message": "Cannot find name 'openai'. Did you mean 'open'?"
       },
       {
         "line": 14,
@@ -36598,9 +36604,9 @@
     "errors": [
       {
         "line": 6,
-        "code": 2304,
+        "code": 2552,
         "kind": "context",
-        "message": "Cannot find name 'AIChatAgent'."
+        "message": "Cannot find name 'AIChatAgent'. Did you mean 'ChatAgent'?"
       },
       {
         "line": 8,
@@ -36862,9 +36868,9 @@
     "errors": [
       {
         "line": 7,
-        "code": 2304,
+        "code": 2552,
         "kind": "context",
-        "message": "Cannot find name 'AIChatAgent'."
+        "message": "Cannot find name 'AIChatAgent'. Did you mean 'ChatAgent'?"
       },
       {
         "line": 8,
@@ -37000,9 +37006,9 @@
     "errors": [
       {
         "line": 2,
-        "code": 2304,
+        "code": 2552,
         "kind": "context",
-        "message": "Cannot find name 'AIChatAgent'."
+        "message": "Cannot find name 'AIChatAgent'. Did you mean 'ChatAgent'?"
       }
     ],
     "status": "fragment"
@@ -37093,9 +37099,9 @@
     "errors": [
       {
         "line": 2,
-        "code": 2304,
+        "code": 2552,
         "kind": "context",
-        "message": "Cannot find name 'AIChatAgent'."
+        "message": "Cannot find name 'AIChatAgent'. Did you mean 'ChatAgent'?"
       }
     ],
     "status": "fragment"
@@ -37120,9 +37126,9 @@
     "errors": [
       {
         "line": 5,
-        "code": 2304,
+        "code": 2552,
         "kind": "context",
-        "message": "Cannot find name 'AIChatAgent'."
+        "message": "Cannot find name 'AIChatAgent'. Did you mean 'ChatAgent'?"
       },
       {
         "line": 9,
@@ -37813,9 +37819,9 @@
       },
       {
         "line": 24,
-        "code": 2304,
+        "code": 2552,
         "kind": "context",
-        "message": "Cannot find name 'TimeoutConfiguration'."
+        "message": "Cannot find name 'TimeoutConfiguration'. Did you mean 'VideoConfiguration'?"
       },
       {
         "line": 27,
@@ -38017,9 +38023,9 @@
       },
       {
         "line": 14,
-        "code": 2304,
+        "code": 2552,
         "kind": "context",
-        "message": "Cannot find name 'MyAgent'."
+        "message": "Cannot find name 'MyAgent'. Did you mean 'agent'?"
       },
       {
         "line": 15,
@@ -38442,9 +38448,9 @@
       },
       {
         "line": 2,
-        "code": 18004,
+        "code": 2552,
         "kind": "context",
-        "message": "No value exists in scope for the shorthand property 'input'. Either declare one or provide an initializer."
+        "message": "Cannot find name 'input'. Did you mean 'oninput'?"
       }
     ],
     "status": "fragment"
@@ -38476,9 +38482,9 @@
       },
       {
         "line": 3,
-        "code": 18004,
+        "code": 2552,
         "kind": "context",
-        "message": "No value exists in scope for the shorthand property 'input'. Either declare one or provide an initializer."
+        "message": "Cannot find name 'input'. Did you mean 'oninput'?"
       }
     ],
     "status": "fragment"
@@ -38688,9 +38694,9 @@
       },
       {
         "line": 4,
-        "code": 18004,
+        "code": 2552,
         "kind": "context",
-        "message": "No value exists in scope for the shorthand property 'input'. Either declare one or provide an initializer."
+        "message": "Cannot find name 'input'. Did you mean 'oninput'?"
       },
       {
         "line": 10,
@@ -38706,9 +38712,9 @@
       },
       {
         "line": 11,
-        "code": 18004,
+        "code": 2552,
         "kind": "context",
-        "message": "No value exists in scope for the shorthand property 'input'. Either declare one or provide an initializer."
+        "message": "Cannot find name 'input'. Did you mean 'oninput'?"
       }
     ],
     "status": "fragment"
@@ -38983,9 +38989,9 @@
       },
       {
         "line": 5,
-        "code": 2304,
+        "code": 2552,
         "kind": "context",
-        "message": "Cannot find name 'cloudflare'."
+        "message": "Cannot find name 'cloudflare'. Did you mean 'Cloudflare'?"
       }
     ],
     "status": "fragment"
@@ -40059,9 +40065,9 @@
     "errors": [
       {
         "line": 2,
-        "code": 2304,
+        "code": 2552,
         "kind": "context",
-        "message": "Cannot find name 'AIChatAgent'."
+        "message": "Cannot find name 'AIChatAgent'. Did you mean 'ChatAgent'?"
       },
       {
         "line": 4,
@@ -40116,9 +40122,9 @@
     "errors": [
       {
         "line": 2,
-        "code": 2304,
+        "code": 2552,
         "kind": "context",
-        "message": "Cannot find name 'AIChatAgent'."
+        "message": "Cannot find name 'AIChatAgent'. Did you mean 'ChatAgent'?"
       }
     ],
     "status": "fragment"
@@ -40143,9 +40149,9 @@
     "errors": [
       {
         "line": 2,
-        "code": 2304,
+        "code": 2552,
         "kind": "context",
-        "message": "Cannot find name 'AIChatAgent'."
+        "message": "Cannot find name 'AIChatAgent'. Did you mean 'ChatAgent'?"
       },
       {
         "line": 3,
@@ -40182,9 +40188,9 @@
     "errors": [
       {
         "line": 2,
-        "code": 2304,
+        "code": 2552,
         "kind": "context",
-        "message": "Cannot find name 'AIChatAgent'."
+        "message": "Cannot find name 'AIChatAgent'. Did you mean 'ChatAgent'?"
       }
     ],
     "status": "fragment"
@@ -40209,9 +40215,9 @@
     "errors": [
       {
         "line": 4,
-        "code": 2304,
+        "code": 2552,
         "kind": "context",
-        "message": "Cannot find name 'AIChatAgent'."
+        "message": "Cannot find name 'AIChatAgent'. Did you mean 'ChatAgent'?"
       },
       {
         "line": 6,
@@ -40254,9 +40260,15 @@
     "errors": [
       {
         "line": 2,
-        "code": 2304,
+        "code": 2552,
         "kind": "context",
-        "message": "Cannot find name 'AIChatAgent'."
+        "message": "Cannot find name 'AIChatAgent'. Did you mean 'ChatAgent'?"
+      },
+      {
+        "line": 7,
+        "code": 2300,
+        "kind": "context",
+        "message": "Duplicate identifier 'waitForMcpConnections'."
       },
       {
         "line": 10,
@@ -40287,9 +40299,9 @@
     "errors": [
       {
         "line": 2,
-        "code": 2304,
+        "code": 2552,
         "kind": "context",
-        "message": "Cannot find name 'AIChatAgent'."
+        "message": "Cannot find name 'AIChatAgent'. Did you mean 'ChatAgent'?"
       }
     ],
     "status": "fragment"
@@ -40320,9 +40332,9 @@
       },
       {
         "line": 3,
-        "code": 2304,
+        "code": 2552,
         "kind": "context",
-        "message": "Cannot find name 'messages'."
+        "message": "Cannot find name 'messages'. Did you mean 'onmessage'?"
       },
       {
         "line": 6,
@@ -40332,9 +40344,9 @@
       },
       {
         "line": 6,
-        "code": 2304,
+        "code": 2552,
         "kind": "context",
-        "message": "Cannot find name 'messages'."
+        "message": "Cannot find name 'messages'. Did you mean 'onmessage'?"
       }
     ],
     "status": "fragment"
@@ -40431,9 +40443,9 @@
     "errors": [
       {
         "line": 4,
-        "code": 2304,
+        "code": 2552,
         "kind": "context",
-        "message": "Cannot find name 'AIChatAgent'."
+        "message": "Cannot find name 'AIChatAgent'. Did you mean 'ChatAgent'?"
       }
     ],
     "status": "fragment"
@@ -40458,21 +40470,21 @@
     "errors": [
       {
         "line": 2,
-        "code": 2304,
+        "code": 2552,
         "kind": "context",
-        "message": "Cannot find name 'AIChatAgent'."
+        "message": "Cannot find name 'AIChatAgent'. Did you mean 'ChatAgent'?"
       },
       {
         "line": 3,
-        "code": 2304,
+        "code": 2552,
         "kind": "context",
-        "message": "Cannot find name 'UIMessage'."
+        "message": "Cannot find name 'UIMessage'. Did you mean 'Message'?"
       },
       {
         "line": 3,
-        "code": 2304,
+        "code": 2552,
         "kind": "context",
-        "message": "Cannot find name 'UIMessage'."
+        "message": "Cannot find name 'UIMessage'. Did you mean 'Message'?"
       },
       {
         "line": 6,
@@ -40602,9 +40614,9 @@
     "errors": [
       {
         "line": 2,
-        "code": 2304,
+        "code": 2552,
         "kind": "context",
-        "message": "Cannot find name 'AIChatAgent'."
+        "message": "Cannot find name 'AIChatAgent'. Did you mean 'ChatAgent'?"
       },
       {
         "line": 3,
@@ -40665,9 +40677,9 @@
     "errors": [
       {
         "line": 2,
-        "code": 2304,
+        "code": 2552,
         "kind": "context",
-        "message": "Cannot find name 'AIChatAgent'."
+        "message": "Cannot find name 'AIChatAgent'. Did you mean 'ChatAgent'?"
       },
       {
         "line": 3,
@@ -40689,9 +40701,9 @@
       },
       {
         "line": 5,
-        "code": 2304,
+        "code": 2552,
         "kind": "context",
-        "message": "Cannot find name 'ai'."
+        "message": "Cannot find name 'ai'. Did you mean 'Ai'?"
       },
       {
         "line": 6,
@@ -40791,9 +40803,9 @@
     "errors": [
       {
         "line": 2,
-        "code": 2304,
+        "code": 2552,
         "kind": "context",
-        "message": "Cannot find name 'AIChatAgent'."
+        "message": "Cannot find name 'AIChatAgent'. Did you mean 'ChatAgent'?"
       },
       {
         "line": 3,
@@ -40868,9 +40880,9 @@
     "errors": [
       {
         "line": 7,
-        "code": 2304,
+        "code": 2552,
         "kind": "context",
-        "message": "Cannot find name 'AIChatAgent'."
+        "message": "Cannot find name 'AIChatAgent'. Did you mean 'ChatAgent'?"
       },
       {
         "line": 8,
@@ -41015,9 +41027,9 @@
     "errors": [
       {
         "line": 2,
-        "code": 2304,
+        "code": 2552,
         "kind": "context",
-        "message": "Cannot find name 'AIChatAgent'."
+        "message": "Cannot find name 'AIChatAgent'. Did you mean 'ChatAgent'?"
       },
       {
         "line": 3,
@@ -41039,9 +41051,9 @@
       },
       {
         "line": 5,
-        "code": 2304,
+        "code": 2552,
         "kind": "context",
-        "message": "Cannot find name 'openai'."
+        "message": "Cannot find name 'openai'. Did you mean 'open'?"
       },
       {
         "line": 6,
@@ -41137,9 +41149,9 @@
     "errors": [
       {
         "line": 4,
-        "code": 2304,
+        "code": 2552,
         "kind": "context",
-        "message": "Cannot find name 'AIChatAgent'."
+        "message": "Cannot find name 'AIChatAgent'. Did you mean 'ChatAgent'?"
       },
       {
         "line": 6,
@@ -41641,9 +41653,9 @@
     "errors": [
       {
         "line": 2,
-        "code": 2304,
+        "code": 2552,
         "kind": "context",
-        "message": "Cannot find name 'AIChatAgent'."
+        "message": "Cannot find name 'AIChatAgent'. Did you mean 'ChatAgent'?"
       },
       {
         "line": 3,
@@ -41731,9 +41743,9 @@
     "errors": [
       {
         "line": 9,
-        "code": 2304,
+        "code": 2552,
         "kind": "context",
-        "message": "Cannot find name 'AIChatAgent'."
+        "message": "Cannot find name 'AIChatAgent'. Did you mean 'ChatAgent'?"
       },
       {
         "line": 11,
@@ -41953,9 +41965,9 @@
     "errors": [
       {
         "line": 2,
-        "code": 2304,
+        "code": 2552,
         "kind": "context",
-        "message": "Cannot find name 'AIChatAgent'."
+        "message": "Cannot find name 'AIChatAgent'. Did you mean 'ChatAgent'?"
       },
       {
         "line": 4,
@@ -41965,9 +41977,9 @@
       },
       {
         "line": 5,
-        "code": 2304,
+        "code": 2552,
         "kind": "context",
-        "message": "Cannot find name 'ai'."
+        "message": "Cannot find name 'ai'. Did you mean 'Ai'?"
       },
       {
         "line": 6,
@@ -42145,9 +42157,9 @@
     "errors": [
       {
         "line": 5,
-        "code": 2304,
+        "code": 2552,
         "kind": "context",
-        "message": "Cannot find name 'AIChatAgent'."
+        "message": "Cannot find name 'AIChatAgent'. Did you mean 'ChatAgent'?"
       },
       {
         "line": 8,
@@ -42178,18 +42190,6 @@
         "code": 2304,
         "kind": "context",
         "message": "Cannot find name 'summarizeTool'."
-      },
-      {
-        "line": 16,
-        "code": 7031,
-        "kind": "context",
-        "message": "Binding element 'stepNumber' implicitly has an 'any' type."
-      },
-      {
-        "line": 16,
-        "code": 7031,
-        "kind": "context",
-        "message": "Binding element 'messages' implicitly has an 'any' type."
       },
       {
         "line": 28,
@@ -42232,9 +42232,9 @@
       },
       {
         "line": 14,
-        "code": 2304,
+        "code": 2552,
         "kind": "context",
-        "message": "Cannot find name 'AIChatAgent'."
+        "message": "Cannot find name 'AIChatAgent'. Did you mean 'ChatAgent'?"
       },
       {
         "line": 17,
@@ -42277,9 +42277,9 @@
     "errors": [
       {
         "line": 11,
-        "code": 2304,
+        "code": 2552,
         "kind": "context",
-        "message": "Cannot find name 'AIChatAgent'."
+        "message": "Cannot find name 'AIChatAgent'. Did you mean 'ChatAgent'?"
       },
       {
         "line": 14,
@@ -42328,15 +42328,15 @@
       },
       {
         "line": 15,
-        "code": 2304,
+        "code": 2552,
         "kind": "context",
-        "message": "Cannot find name 'webSearchTool'."
+        "message": "Cannot find name 'webSearchTool'. Did you mean 'WebSearch'?"
       },
       {
         "line": 19,
-        "code": 2304,
+        "code": 2552,
         "kind": "context",
-        "message": "Cannot find name 'AIChatAgent'."
+        "message": "Cannot find name 'AIChatAgent'. Did you mean 'ChatAgent'?"
       },
       {
         "line": 22,
@@ -42868,9 +42868,9 @@
       },
       {
         "line": 16,
-        "code": 2304,
+        "code": 2552,
         "kind": "context",
-        "message": "Cannot find name 'agent'."
+        "message": "Cannot find name 'agent'. Did you mean 'Agent'?"
       },
       {
         "line": 17,
@@ -43481,9 +43481,9 @@
     "errors": [
       {
         "line": 4,
-        "code": 2304,
+        "code": 2552,
         "kind": "context",
-        "message": "Cannot find name 'Agent'."
+        "message": "Cannot find name 'Agent'. Did you mean 'MyAgent'?"
       },
       {
         "line": 7,
@@ -44175,9 +44175,9 @@
       },
       {
         "line": 3,
-        "code": 2304,
+        "code": 2552,
         "kind": "context",
-        "message": "Cannot find name 'WSMessage'."
+        "message": "Cannot find name 'WSMessage'. Did you mean 'Message'?"
       },
       {
         "line": 6,
@@ -44541,9 +44541,9 @@
     "errors": [
       {
         "line": 5,
-        "code": 2304,
+        "code": 2552,
         "kind": "context",
-        "message": "Cannot find name 'useState'."
+        "message": "Cannot find name 'useState'. Did you mean 'setState'?"
       },
       {
         "line": 15,
@@ -44685,9 +44685,9 @@
       },
       {
         "line": 2,
-        "code": 2304,
+        "code": 2552,
         "kind": "context",
-        "message": "Cannot find name 'messages'."
+        "message": "Cannot find name 'messages'. Did you mean 'onmessage'?"
       },
       {
         "line": 3,
@@ -45221,9 +45221,9 @@
     "errors": [
       {
         "line": 2,
-        "code": 2304,
+        "code": 2552,
         "kind": "context",
-        "message": "Cannot find name 'Agent'."
+        "message": "Cannot find name 'Agent'. Did you mean 'MyAgent'?"
       }
     ],
     "status": "fragment"
@@ -46079,9 +46079,9 @@
     "errors": [
       {
         "line": 2,
-        "code": 2304,
+        "code": 2552,
         "kind": "context",
-        "message": "Cannot find name 'Server'."
+        "message": "Cannot find name 'Server'. Did you mean 'MyServer'?"
       },
       {
         "line": 6,
@@ -46107,9 +46107,9 @@
     "errors": [
       {
         "line": 2,
-        "code": 2304,
+        "code": 2552,
         "kind": "context",
-        "message": "Cannot find name 'Server'."
+        "message": "Cannot find name 'Server'. Did you mean 'MyServer'?"
       },
       {
         "line": 9,
@@ -46141,9 +46141,9 @@
     "errors": [
       {
         "line": 2,
-        "code": 2304,
+        "code": 2552,
         "kind": "context",
-        "message": "Cannot find name 'Agent'."
+        "message": "Cannot find name 'Agent'. Did you mean 'MyAgent'?"
       },
       {
         "line": 6,
@@ -46187,9 +46187,9 @@
     "errors": [
       {
         "line": 2,
-        "code": 2304,
+        "code": 2552,
         "kind": "context",
-        "message": "Cannot find name 'Agent'."
+        "message": "Cannot find name 'Agent'. Did you mean 'MyAgent'?"
       },
       {
         "line": 4,
@@ -46227,9 +46227,9 @@
     "errors": [
       {
         "line": 2,
-        "code": 2304,
+        "code": 2552,
         "kind": "context",
-        "message": "Cannot find name 'Agent'."
+        "message": "Cannot find name 'Agent'. Did you mean 'MyAgent'?"
       },
       {
         "line": 3,
@@ -46277,9 +46277,9 @@
     "errors": [
       {
         "line": 2,
-        "code": 2304,
+        "code": 2552,
         "kind": "context",
-        "message": "Cannot find name 'Agent'."
+        "message": "Cannot find name 'Agent'. Did you mean 'MyAgent'?"
       },
       {
         "line": 5,
@@ -46311,9 +46311,9 @@
     "errors": [
       {
         "line": 2,
-        "code": 2304,
+        "code": 2552,
         "kind": "context",
-        "message": "Cannot find name 'Agent'."
+        "message": "Cannot find name 'Agent'. Did you mean 'MyAgent'?"
       },
       {
         "line": 5,
@@ -46351,9 +46351,9 @@
     "errors": [
       {
         "line": 2,
-        "code": 2304,
+        "code": 2552,
         "kind": "context",
-        "message": "Cannot find name 'Agent'."
+        "message": "Cannot find name 'Agent'. Did you mean 'MyAgent'?"
       },
       {
         "line": 5,
@@ -46391,9 +46391,9 @@
     "errors": [
       {
         "line": 2,
-        "code": 2304,
+        "code": 2552,
         "kind": "context",
-        "message": "Cannot find name 'Agent'."
+        "message": "Cannot find name 'Agent'. Did you mean 'MyAgent'?"
       },
       {
         "line": 3,
@@ -46468,9 +46468,9 @@
     "errors": [
       {
         "line": 2,
-        "code": 2304,
+        "code": 2552,
         "kind": "context",
-        "message": "Cannot find name 'Agent'."
+        "message": "Cannot find name 'Agent'. Did you mean 'MyAgent'?"
       },
       {
         "line": 3,
@@ -46496,9 +46496,9 @@
     "errors": [
       {
         "line": 2,
-        "code": 2304,
+        "code": 2552,
         "kind": "context",
-        "message": "Cannot find name 'Agent'."
+        "message": "Cannot find name 'Agent'. Did you mean 'MyAgent'?"
       },
       {
         "line": 10,
@@ -46536,9 +46536,9 @@
     "errors": [
       {
         "line": 2,
-        "code": 2304,
+        "code": 2552,
         "kind": "context",
-        "message": "Cannot find name 'Agent'."
+        "message": "Cannot find name 'Agent'. Did you mean 'MyAgent'?"
       }
     ],
     "status": "fragment"
@@ -46558,9 +46558,9 @@
     "errors": [
       {
         "line": 2,
-        "code": 2304,
+        "code": 2552,
         "kind": "context",
-        "message": "Cannot find name 'Agent'."
+        "message": "Cannot find name 'Agent'. Did you mean 'MyAgent'?"
       },
       {
         "line": 5,
@@ -46622,9 +46622,9 @@
       },
       {
         "line": 5,
-        "code": 2304,
+        "code": 2552,
         "kind": "context",
-        "message": "Cannot find name 'request'."
+        "message": "Cannot find name 'request'. Did you mean 'Request'?"
       },
       {
         "line": 5,
@@ -46683,9 +46683,9 @@
       },
       {
         "line": 7,
-        "code": 2304,
+        "code": 2552,
         "kind": "context",
-        "message": "Cannot find name 'RetryOptions'."
+        "message": "Cannot find name 'RetryOptions'. Did you mean 'R2GetOptions'?"
       }
     ],
     "status": "fragment"
@@ -46757,9 +46757,9 @@
     "errors": [
       {
         "line": 2,
-        "code": 2304,
+        "code": 2552,
         "kind": "context",
-        "message": "Cannot find name 'Agent'."
+        "message": "Cannot find name 'Agent'. Did you mean 'MyAgent'?"
       },
       {
         "line": 10,
@@ -47093,9 +47093,9 @@
     "errors": [
       {
         "line": 2,
-        "code": 2304,
+        "code": 2552,
         "kind": "context",
-        "message": "Cannot find name 'Agent'."
+        "message": "Cannot find name 'Agent'. Did you mean 'MyAgent'?"
       },
       {
         "line": 5,
@@ -47225,9 +47225,9 @@
       },
       {
         "line": 11,
-        "code": 2304,
+        "code": 2552,
         "kind": "context",
-        "message": "Cannot find name 'WSMessage'."
+        "message": "Cannot find name 'WSMessage'. Did you mean 'Message'?"
       },
       {
         "line": 12,
@@ -47551,9 +47551,9 @@
       },
       {
         "line": 18,
-        "code": 2304,
+        "code": 2552,
         "kind": "context",
-        "message": "Cannot find name 'url'."
+        "message": "Cannot find name 'url'. Did you mean 'URL'?"
       },
       {
         "line": 22,
@@ -47585,9 +47585,9 @@
     "errors": [
       {
         "line": 2,
-        "code": 2304,
+        "code": 2552,
         "kind": "context",
-        "message": "Cannot find name 'Agent'."
+        "message": "Cannot find name 'Agent'. Did you mean 'MyAgent'?"
       }
     ],
     "status": "fragment"
@@ -47607,9 +47607,9 @@
     "errors": [
       {
         "line": 2,
-        "code": 2304,
+        "code": 2552,
         "kind": "context",
-        "message": "Cannot find name 'Agent'."
+        "message": "Cannot find name 'Agent'. Did you mean 'MyAgent'?"
       }
     ],
     "status": "fragment"
@@ -47635,9 +47635,9 @@
       },
       {
         "line": 3,
-        "code": 2304,
+        "code": 2552,
         "kind": "context",
-        "message": "Cannot find name 'url'."
+        "message": "Cannot find name 'url'. Did you mean 'URL'?"
       },
       {
         "line": 6,
@@ -47647,9 +47647,9 @@
       },
       {
         "line": 6,
-        "code": 2304,
+        "code": 2552,
         "kind": "context",
-        "message": "Cannot find name 'url'."
+        "message": "Cannot find name 'url'. Did you mean 'URL'?"
       }
     ],
     "status": "fragment"
@@ -47728,9 +47728,9 @@
     "errors": [
       {
         "line": 2,
-        "code": 2304,
+        "code": 2552,
         "kind": "context",
-        "message": "Cannot find name 'Agent'."
+        "message": "Cannot find name 'Agent'. Did you mean 'MyAgent'?"
       },
       {
         "line": 5,
@@ -47762,9 +47762,9 @@
     "errors": [
       {
         "line": 2,
-        "code": 2304,
+        "code": 2552,
         "kind": "context",
-        "message": "Cannot find name 'Agent'."
+        "message": "Cannot find name 'Agent'. Did you mean 'MyAgent'?"
       },
       {
         "line": 5,
@@ -47796,9 +47796,9 @@
     "errors": [
       {
         "line": 2,
-        "code": 2304,
+        "code": 2552,
         "kind": "context",
-        "message": "Cannot find name 'Agent'."
+        "message": "Cannot find name 'Agent'. Did you mean 'MyAgent'?"
       },
       {
         "line": 8,
@@ -48308,9 +48308,9 @@
     "errors": [
       {
         "line": 3,
-        "code": 2304,
+        "code": 2552,
         "kind": "context",
-        "message": "Cannot find name 'WorkflowInfo'."
+        "message": "Cannot find name 'WorkflowInfo'. Did you mean 'Workflow'?"
       }
     ],
     "status": "fragment"
@@ -48584,9 +48584,9 @@
     "errors": [
       {
         "line": 2,
-        "code": 2304,
+        "code": 2552,
         "kind": "context",
-        "message": "Cannot find name 'Agent'."
+        "message": "Cannot find name 'Agent'. Did you mean 'MyAgent'?"
       },
       {
         "line": 4,
@@ -48617,9 +48617,9 @@
     "errors": [
       {
         "line": 2,
-        "code": 2304,
+        "code": 2552,
         "kind": "context",
-        "message": "Cannot find name 'Agent'."
+        "message": "Cannot find name 'Agent'. Did you mean 'MyAgent'?"
       },
       {
         "line": 8,
@@ -48650,9 +48650,9 @@
     "errors": [
       {
         "line": 5,
-        "code": 2344,
-        "kind": "other",
-        "message": "Type 'MyAgent' does not satisfy the constraint 'Agent<Env, unknown, object>'."
+        "code": 2740,
+        "kind": "api",
+        "message": "Type 'MyAgent' is missing the following properties from type 'Agent<Env, unknown, object>': lifecycle, _state, _webSockets, onStart, and 294 more."
       },
       {
         "line": 5,
@@ -48674,9 +48674,9 @@
       },
       {
         "line": 33,
-        "code": 2304,
+        "code": 2552,
         "kind": "context",
-        "message": "Cannot find name 'Agent'."
+        "message": "Cannot find name 'Agent'. Did you mean 'MyAgent'?"
       },
       {
         "line": 35,
@@ -48691,7 +48691,7 @@
         "message": "Property 'rejectWorkflow' does not exist on type 'MyAgent'."
       }
     ],
-    "status": "other"
+    "status": "api-mismatch"
   },
   {
     "id": "cf__agent-class__run-workflows__24",
@@ -48803,30 +48803,30 @@
     "errors": [
       {
         "line": 15,
-        "code": 2344,
-        "kind": "other",
-        "message": "Type 'MyAgent' does not satisfy the constraint 'Agent<Env, unknown, object>'."
+        "code": 2740,
+        "kind": "context",
+        "message": "Type 'MyAgent' is missing the following properties from type 'Agent<Env, unknown, object>': lifecycle, _state, _webSockets, onStart, and 293 more."
       },
       {
         "line": 16,
-        "code": 2304,
+        "code": 2552,
         "kind": "context",
-        "message": "Cannot find name 'ETLParams'."
+        "message": "Cannot find name 'ETLParams'. Did you mean 'Params'?"
       },
       {
         "line": 19,
-        "code": 2304,
+        "code": 2552,
         "kind": "context",
-        "message": "Cannot find name 'ETLParams'."
+        "message": "Cannot find name 'ETLParams'. Did you mean 'Params'?"
       },
       {
         "line": 32,
-        "code": 2304,
+        "code": 2552,
         "kind": "context",
-        "message": "Cannot find name 'Agent'."
+        "message": "Cannot find name 'Agent'. Did you mean 'MyAgent'?"
       }
     ],
-    "status": "other"
+    "status": "fragment"
   },
   {
     "id": "cf__agent-class__run-workflows__27",
@@ -48848,9 +48848,9 @@
     "errors": [
       {
         "line": 2,
-        "code": 2304,
+        "code": 2552,
         "kind": "context",
-        "message": "Cannot find name 'Agent'."
+        "message": "Cannot find name 'Agent'. Did you mean 'MyAgent'?"
       },
       {
         "line": 10,
@@ -49325,9 +49325,9 @@
       },
       {
         "line": 2,
-        "code": 2304,
+        "code": 2552,
         "kind": "context",
-        "message": "Cannot find name 'Chat'."
+        "message": "Cannot find name 'Chat'. Did you mean 'chats'?"
       }
     ],
     "status": "fragment"
@@ -49448,9 +49448,9 @@
       },
       {
         "line": 2,
-        "code": 2304,
+        "code": 2552,
         "kind": "context",
-        "message": "Cannot find name 'Inbox'."
+        "message": "Cannot find name 'Inbox'. Did you mean 'inbox'?"
       },
       {
         "line": 3,
@@ -49493,9 +49493,9 @@
       },
       {
         "line": 5,
-        "code": 2304,
+        "code": 2552,
         "kind": "context",
-        "message": "Cannot find name 'chatId'."
+        "message": "Cannot find name 'chatId'. Did you mean 'chat'?"
       }
     ],
     "status": "fragment"
@@ -49636,15 +49636,15 @@
       },
       {
         "line": 5,
-        "code": 2304,
+        "code": 2552,
         "kind": "context",
-        "message": "Cannot find name 'Chat'."
+        "message": "Cannot find name 'Chat'. Did you mean 'chat'?"
       },
       {
         "line": 5,
-        "code": 2304,
+        "code": 2552,
         "kind": "context",
-        "message": "Cannot find name 'chatId'."
+        "message": "Cannot find name 'chatId'. Did you mean 'chat'?"
       },
       {
         "line": 7,
@@ -49744,9 +49744,9 @@
       },
       {
         "line": 2,
-        "code": 2304,
+        "code": 2552,
         "kind": "context",
-        "message": "Cannot find name 'Counter'."
+        "message": "Cannot find name 'Counter'. Did you mean 'counter'?"
       },
       {
         "line": 3,
@@ -49756,9 +49756,9 @@
       },
       {
         "line": 3,
-        "code": 2304,
+        "code": 2552,
         "kind": "context",
-        "message": "Cannot find name 'Logger'."
+        "message": "Cannot find name 'Logger'. Did you mean 'logger'?"
       }
     ],
     "status": "fragment"
@@ -51054,9 +51054,9 @@
       },
       {
         "line": 5,
-        "code": 2304,
+        "code": 2552,
         "kind": "context",
-        "message": "Cannot find name 'ResearchAgent'."
+        "message": "Cannot find name 'ResearchAgent'. Did you mean 'researcher'?"
       },
       {
         "line": 11,
@@ -51271,9 +51271,9 @@
       },
       {
         "line": 7,
-        "code": 2304,
+        "code": 2552,
         "kind": "context",
-        "message": "Cannot find name 'WSMessage'."
+        "message": "Cannot find name 'WSMessage'. Did you mean 'Message'?"
       }
     ],
     "status": "fragment"
@@ -51370,15 +51370,15 @@
       },
       {
         "line": 5,
-        "code": 2304,
+        "code": 2552,
         "kind": "context",
-        "message": "Cannot find name 'session'."
+        "message": "Cannot find name 'session'. Did you mean 'Session'?"
       },
       {
         "line": 12,
-        "code": 2304,
+        "code": 2552,
         "kind": "context",
-        "message": "Cannot find name 'session'."
+        "message": "Cannot find name 'session'. Did you mean 'Session'?"
       }
     ],
     "status": "api-mismatch"
@@ -51442,9 +51442,9 @@
     "errors": [
       {
         "line": 2,
-        "code": 2304,
+        "code": 2552,
         "kind": "context",
-        "message": "Cannot find name 'Session'."
+        "message": "Cannot find name 'Session'. Did you mean 'session'?"
       },
       {
         "line": 5,
@@ -51470,9 +51470,9 @@
     "errors": [
       {
         "line": 2,
-        "code": 2304,
+        "code": 2552,
         "kind": "context",
-        "message": "Cannot find name 'Session'."
+        "message": "Cannot find name 'Session'. Did you mean 'session'?"
       }
     ],
     "status": "fragment"
@@ -51498,9 +51498,9 @@
       },
       {
         "line": 4,
-        "code": 2304,
+        "code": 2552,
         "kind": "context",
-        "message": "Cannot find name 'Session'."
+        "message": "Cannot find name 'Session'. Did you mean 'session'?"
       }
     ],
     "status": "api-mismatch"
@@ -51520,9 +51520,9 @@
     "errors": [
       {
         "line": 2,
-        "code": 2304,
+        "code": 2552,
         "kind": "context",
-        "message": "Cannot find name 'Session'."
+        "message": "Cannot find name 'Session'. Did you mean 'session'?"
       },
       {
         "line": 6,
@@ -51636,9 +51636,9 @@
     "errors": [
       {
         "line": 2,
-        "code": 2304,
+        "code": 2552,
         "kind": "context",
-        "message": "Cannot find name 'Session'."
+        "message": "Cannot find name 'Session'. Did you mean 'session'?"
       }
     ],
     "status": "fragment"
@@ -51664,9 +51664,9 @@
       },
       {
         "line": 4,
-        "code": 2304,
+        "code": 2552,
         "kind": "context",
-        "message": "Cannot find name 'Session'."
+        "message": "Cannot find name 'Session'. Did you mean 'session'?"
       },
       {
         "line": 8,
@@ -51904,9 +51904,9 @@
       },
       {
         "line": 10,
-        "code": 18004,
+        "code": 2552,
         "kind": "context",
-        "message": "No value exists in scope for the shorthand property 'messages'. Either declare one or provide an initializer."
+        "message": "Cannot find name 'messages'. Did you mean 'onmessage'?"
       },
       {
         "line": 12,
@@ -52063,9 +52063,9 @@
       },
       {
         "line": 13,
-        "code": 18004,
+        "code": 2552,
         "kind": "context",
-        "message": "No value exists in scope for the shorthand property 'messages'. Either declare one or provide an initializer."
+        "message": "Cannot find name 'messages'. Did you mean 'onmessage'?"
       }
     ],
     "status": "fragment"
@@ -52106,9 +52106,9 @@
       },
       {
         "line": 9,
-        "code": 2304,
+        "code": 2552,
         "kind": "context",
-        "message": "Cannot find name 'Agent'."
+        "message": "Cannot find name 'Agent'. Did you mean 'MyAgent'?"
       },
       {
         "line": 20,
@@ -52146,9 +52146,9 @@
       },
       {
         "line": 8,
-        "code": 2304,
+        "code": 2552,
         "kind": "context",
-        "message": "Cannot find name 'Agent'."
+        "message": "Cannot find name 'Agent'. Did you mean 'MyAgent'?"
       },
       {
         "line": 11,
@@ -52693,9 +52693,9 @@
     "errors": [
       {
         "line": 2,
-        "code": 2304,
+        "code": 2552,
         "kind": "context",
-        "message": "Cannot find name 'Agent'."
+        "message": "Cannot find name 'Agent'. Did you mean 'MyAgent'?"
       },
       {
         "line": 3,
@@ -52929,9 +52929,9 @@
       },
       {
         "line": 4,
-        "code": 2304,
+        "code": 2552,
         "kind": "context",
-        "message": "Cannot find name 'Agent'."
+        "message": "Cannot find name 'Agent'. Did you mean 'MyAgent'?"
       },
       {
         "line": 5,
@@ -52963,9 +52963,9 @@
       },
       {
         "line": 5,
-        "code": 2304,
+        "code": 2552,
         "kind": "context",
-        "message": "Cannot find name 'Agent'."
+        "message": "Cannot find name 'Agent'. Did you mean 'MyAgent'?"
       },
       {
         "line": 6,
@@ -52991,9 +52991,9 @@
     "errors": [
       {
         "line": 2,
-        "code": 2304,
+        "code": 2552,
         "kind": "context",
-        "message": "Cannot find name 'Agent'."
+        "message": "Cannot find name 'Agent'. Did you mean 'MyAgent'?"
       },
       {
         "line": 3,
@@ -53031,9 +53031,9 @@
     "errors": [
       {
         "line": 2,
-        "code": 2304,
+        "code": 2552,
         "kind": "context",
-        "message": "Cannot find name 'Agent'."
+        "message": "Cannot find name 'Agent'. Did you mean 'MyAgent'?"
       },
       {
         "line": 3,
@@ -53107,9 +53107,9 @@
     "errors": [
       {
         "line": 2,
-        "code": 2304,
+        "code": 2552,
         "kind": "context",
-        "message": "Cannot find name 'Agent'."
+        "message": "Cannot find name 'Agent'. Did you mean 'MyAgent'?"
       },
       {
         "line": 3,
@@ -53135,9 +53135,9 @@
     "errors": [
       {
         "line": 2,
-        "code": 2304,
+        "code": 2552,
         "kind": "context",
-        "message": "Cannot find name 'Agent'."
+        "message": "Cannot find name 'Agent'. Did you mean 'MyAgent'?"
       },
       {
         "line": 3,
@@ -53169,9 +53169,9 @@
     "errors": [
       {
         "line": 2,
-        "code": 2304,
+        "code": 2552,
         "kind": "context",
-        "message": "Cannot find name 'Agent'."
+        "message": "Cannot find name 'Agent'. Did you mean 'MyAgent'?"
       },
       {
         "line": 3,
@@ -53261,9 +53261,9 @@
     "errors": [
       {
         "line": 2,
-        "code": 2304,
+        "code": 2552,
         "kind": "context",
-        "message": "Cannot find name 'Agent'."
+        "message": "Cannot find name 'Agent'. Did you mean 'MyAgent'?"
       },
       {
         "line": 3,
@@ -53632,15 +53632,15 @@
     "errors": [
       {
         "line": 2,
-        "code": 2304,
+        "code": 2552,
         "kind": "context",
-        "message": "Cannot find name 'openai'."
+        "message": "Cannot find name 'openai'. Did you mean 'open'?"
       },
       {
         "line": 4,
-        "code": 2304,
+        "code": 2552,
         "kind": "context",
-        "message": "Cannot find name 'input'."
+        "message": "Cannot find name 'input'. Did you mean 'oninput'?"
       }
     ],
     "status": "fragment"
@@ -53985,9 +53985,9 @@
     "errors": [
       {
         "line": 2,
-        "code": 2304,
+        "code": 2552,
         "kind": "context",
-        "message": "Cannot find name 'VoiceAgent'."
+        "message": "Cannot find name 'VoiceAgent'. Did you mean 'MyVoiceAgent'?"
       },
       {
         "line": 3,
@@ -54066,9 +54066,9 @@
       },
       {
         "line": 5,
-        "code": 2304,
+        "code": 2552,
         "kind": "context",
-        "message": "Cannot find name 'VoiceAgent'."
+        "message": "Cannot find name 'VoiceAgent'. Did you mean 'MyVoiceAgent'?"
       },
       {
         "line": 7,
@@ -55685,9 +55685,9 @@
       },
       {
         "line": 9,
-        "code": 2304,
+        "code": 2552,
         "kind": "context",
-        "message": "Cannot find name 'ReplyAttachment'."
+        "message": "Cannot find name 'ReplyAttachment'. Did you mean 'EmailAttachment'?"
       }
     ],
     "status": "fragment"
@@ -56217,9 +56217,9 @@
       },
       {
         "line": 2,
-        "code": 2304,
+        "code": 2552,
         "kind": "context",
-        "message": "Cannot find name 'message'."
+        "message": "Cannot find name 'message'. Did you mean 'onmessage'?"
       },
       {
         "line": 2,
@@ -58029,9 +58029,9 @@
       },
       {
         "line": 2,
-        "code": 2304,
+        "code": 2552,
         "kind": "context",
-        "message": "Cannot find name 'messages'."
+        "message": "Cannot find name 'messages'. Did you mean 'onmessage'?"
       },
       {
         "line": 3,
@@ -58047,9 +58047,9 @@
       },
       {
         "line": 6,
-        "code": 2304,
+        "code": 2552,
         "kind": "context",
-        "message": "Cannot find name 'messages'."
+        "message": "Cannot find name 'messages'. Did you mean 'onmessage'?"
       },
       {
         "line": 7,
@@ -59475,9 +59475,9 @@
       },
       {
         "line": 2,
-        "code": 2304,
+        "code": 2552,
         "kind": "context",
-        "message": "Cannot find name 'workflowId'."
+        "message": "Cannot find name 'workflowId'. Did you mean 'Workflow'?"
       }
     ],
     "status": "fragment"
@@ -59503,15 +59503,15 @@
       },
       {
         "line": 3,
-        "code": 2304,
+        "code": 2552,
         "kind": "context",
-        "message": "Cannot find name 'file'."
+        "message": "Cannot find name 'file'. Did you mean 'File'?"
       },
       {
         "line": 4,
-        "code": 2304,
+        "code": 2552,
         "kind": "context",
-        "message": "Cannot find name 'file'."
+        "message": "Cannot find name 'file'. Did you mean 'File'?"
       },
       {
         "line": 5,
@@ -60093,9 +60093,9 @@
     "errors": [
       {
         "line": 2,
-        "code": 2304,
+        "code": 2552,
         "kind": "context",
-        "message": "Cannot find name 'Agent'."
+        "message": "Cannot find name 'Agent'. Did you mean 'MyAgent'?"
       },
       {
         "line": 5,
@@ -60149,9 +60149,9 @@
     "errors": [
       {
         "line": 2,
-        "code": 2304,
+        "code": 2552,
         "kind": "context",
-        "message": "Cannot find name 'Agent'."
+        "message": "Cannot find name 'Agent'. Did you mean 'MyAgent'?"
       },
       {
         "line": 4,
@@ -60199,9 +60199,9 @@
     "errors": [
       {
         "line": 2,
-        "code": 2304,
+        "code": 2552,
         "kind": "context",
-        "message": "Cannot find name 'Agent'."
+        "message": "Cannot find name 'Agent'. Did you mean 'MyAgent'?"
       },
       {
         "line": 4,
@@ -60249,9 +60249,9 @@
     "errors": [
       {
         "line": 5,
-        "code": 2304,
+        "code": 2552,
         "kind": "context",
-        "message": "Cannot find name 'Agent'."
+        "message": "Cannot find name 'Agent'. Did you mean 'MyAgent'?"
       },
       {
         "line": 7,
@@ -60431,9 +60431,9 @@
       },
       {
         "line": 3,
-        "code": 2304,
+        "code": 2552,
         "kind": "context",
-        "message": "Cannot find name 'serverId'."
+        "message": "Cannot find name 'serverId'. Did you mean 'server'?"
       }
     ],
     "status": "fragment"
@@ -60877,9 +60877,9 @@
     "errors": [
       {
         "line": 2,
-        "code": 2304,
+        "code": 2552,
         "kind": "context",
-        "message": "Cannot find name 'Agent'."
+        "message": "Cannot find name 'Agent'. Did you mean 'MyAgent'?"
       },
       {
         "line": 5,
@@ -61398,15 +61398,15 @@
       },
       {
         "line": 7,
-        "code": 2304,
+        "code": 2552,
         "kind": "context",
-        "message": "Cannot find name 'MCPConnectionState'."
+        "message": "Cannot find name 'MCPConnectionState'. Did you mean 'RTCPeerConnectionState'?"
       },
       {
         "line": 7,
-        "code": 2304,
+        "code": 2552,
         "kind": "context",
-        "message": "Cannot find name 'MCPConnectionState'."
+        "message": "Cannot find name 'MCPConnectionState'. Did you mean 'RTCPeerConnectionState'?"
       }
     ],
     "status": "other"
@@ -61438,9 +61438,9 @@
       },
       {
         "line": 4,
-        "code": 2304,
+        "code": 2552,
         "kind": "context",
-        "message": "Cannot find name 'Agent'."
+        "message": "Cannot find name 'Agent'. Did you mean 'MyAgent'?"
       },
       {
         "line": 7,
@@ -62005,9 +62005,9 @@
     "errors": [
       {
         "line": 2,
-        "code": 2304,
+        "code": 2552,
         "kind": "context",
-        "message": "Cannot find name 'Agent'."
+        "message": "Cannot find name 'Agent'. Did you mean 'MyAgent'?"
       },
       {
         "line": 4,
@@ -62081,9 +62081,9 @@
     "errors": [
       {
         "line": 2,
-        "code": 2304,
+        "code": 2552,
         "kind": "context",
-        "message": "Cannot find name 'Agent'."
+        "message": "Cannot find name 'Agent'. Did you mean 'MyAgent'?"
       },
       {
         "line": 7,
@@ -62109,9 +62109,9 @@
     "errors": [
       {
         "line": 2,
-        "code": 2304,
+        "code": 2552,
         "kind": "context",
-        "message": "Cannot find name 'Agent'."
+        "message": "Cannot find name 'Agent'. Did you mean 'MyAgent'?"
       },
       {
         "line": 4,
@@ -62288,9 +62288,9 @@
     "errors": [
       {
         "line": 2,
-        "code": 2304,
+        "code": 2552,
         "kind": "context",
-        "message": "Cannot find name 'Agent'."
+        "message": "Cannot find name 'Agent'. Did you mean 'MyAgent'?"
       },
       {
         "line": 10,
@@ -62934,27 +62934,27 @@
     "errors": [
       {
         "line": 3,
-        "code": 2304,
+        "code": 2552,
         "kind": "context",
-        "message": "Cannot find name 'ai'."
+        "message": "Cannot find name 'ai'. Did you mean 'Ai'?"
       },
       {
         "line": 4,
-        "code": 2304,
+        "code": 2552,
         "kind": "context",
-        "message": "Cannot find name 'ai'."
+        "message": "Cannot find name 'ai'. Did you mean 'Ai'?"
       },
       {
         "line": 5,
-        "code": 2304,
+        "code": 2552,
         "kind": "context",
-        "message": "Cannot find name 'ai'."
+        "message": "Cannot find name 'ai'. Did you mean 'Ai'?"
       },
       {
         "line": 8,
-        "code": 2304,
+        "code": 2552,
         "kind": "context",
-        "message": "Cannot find name 'ai'."
+        "message": "Cannot find name 'ai'. Did you mean 'Ai'?"
       },
       {
         "line": 8,
@@ -63093,9 +63093,9 @@
       },
       {
         "line": 2,
-        "code": 2304,
+        "code": 2552,
         "kind": "context",
-        "message": "Cannot find name 'ai'."
+        "message": "Cannot find name 'ai'. Did you mean 'Ai'?"
       },
       {
         "line": 2,
@@ -63139,9 +63139,9 @@
       },
       {
         "line": 3,
-        "code": 2304,
+        "code": 2552,
         "kind": "context",
-        "message": "Cannot find name 'ai'."
+        "message": "Cannot find name 'ai'. Did you mean 'Ai'?"
       }
     ],
     "status": "fragment"
@@ -63161,9 +63161,9 @@
     "errors": [
       {
         "line": 2,
-        "code": 2304,
+        "code": 2552,
         "kind": "context",
-        "message": "Cannot find name 'ai'."
+        "message": "Cannot find name 'ai'. Did you mean 'Ai'?"
       },
       {
         "line": 2,
@@ -63210,9 +63210,9 @@
       },
       {
         "line": 3,
-        "code": 2304,
+        "code": 2552,
         "kind": "context",
-        "message": "Cannot find name 'ai'."
+        "message": "Cannot find name 'ai'. Did you mean 'Ai'?"
       }
     ],
     "status": "fragment"
@@ -63321,9 +63321,9 @@
     "errors": [
       {
         "line": 2,
-        "code": 2304,
+        "code": 2552,
         "kind": "context",
-        "message": "Cannot find name 'ai'."
+        "message": "Cannot find name 'ai'. Did you mean 'Ai'?"
       },
       {
         "line": 2,
@@ -63389,9 +63389,9 @@
       },
       {
         "line": 3,
-        "code": 2304,
+        "code": 2552,
         "kind": "context",
-        "message": "Cannot find name 'ai'."
+        "message": "Cannot find name 'ai'. Did you mean 'Ai'?"
       },
       {
         "line": 3,
@@ -63423,9 +63423,9 @@
       },
       {
         "line": 5,
-        "code": 2304,
+        "code": 2552,
         "kind": "context",
-        "message": "Cannot find name 'ai'."
+        "message": "Cannot find name 'ai'. Did you mean 'Ai'?"
       }
     ],
     "status": "fragment"
@@ -63445,33 +63445,33 @@
     "errors": [
       {
         "line": 11,
-        "code": 2304,
+        "code": 2552,
         "kind": "context",
-        "message": "Cannot find name 'ai'."
+        "message": "Cannot find name 'ai'. Did you mean 'Ai'?"
       },
       {
         "line": 16,
-        "code": 2304,
+        "code": 2552,
         "kind": "context",
-        "message": "Cannot find name 'ai'."
+        "message": "Cannot find name 'ai'. Did you mean 'Ai'?"
       },
       {
         "line": 21,
-        "code": 2304,
+        "code": 2552,
         "kind": "context",
-        "message": "Cannot find name 'ai'."
+        "message": "Cannot find name 'ai'. Did you mean 'Ai'?"
       },
       {
         "line": 26,
-        "code": 2304,
+        "code": 2552,
         "kind": "context",
-        "message": "Cannot find name 'ai'."
+        "message": "Cannot find name 'ai'. Did you mean 'Ai'?"
       },
       {
         "line": 31,
-        "code": 2304,
+        "code": 2552,
         "kind": "context",
-        "message": "Cannot find name 'ai'."
+        "message": "Cannot find name 'ai'. Did you mean 'Ai'?"
       }
     ],
     "status": "fragment"
@@ -63491,9 +63491,9 @@
     "errors": [
       {
         "line": 4,
-        "code": 2304,
+        "code": 2552,
         "kind": "context",
-        "message": "Cannot find name 'ai'."
+        "message": "Cannot find name 'ai'. Did you mean 'Ai'?"
       },
       {
         "line": 11,
@@ -63525,27 +63525,27 @@
     "errors": [
       {
         "line": 2,
-        "code": 2304,
+        "code": 2552,
         "kind": "context",
-        "message": "Cannot find name 'ai'."
+        "message": "Cannot find name 'ai'. Did you mean 'Ai'?"
       },
       {
         "line": 3,
-        "code": 2304,
+        "code": 2552,
         "kind": "context",
-        "message": "Cannot find name 'ai'."
+        "message": "Cannot find name 'ai'. Did you mean 'Ai'?"
       },
       {
         "line": 4,
-        "code": 2304,
+        "code": 2552,
         "kind": "context",
-        "message": "Cannot find name 'ai'."
+        "message": "Cannot find name 'ai'. Did you mean 'Ai'?"
       },
       {
         "line": 5,
-        "code": 2304,
+        "code": 2552,
         "kind": "context",
-        "message": "Cannot find name 'ai'."
+        "message": "Cannot find name 'ai'. Did you mean 'Ai'?"
       },
       {
         "line": 5,
@@ -63754,21 +63754,21 @@
     "errors": [
       {
         "line": 2,
-        "code": 2304,
+        "code": 2552,
         "kind": "context",
-        "message": "Cannot find name 'ai'."
+        "message": "Cannot find name 'ai'. Did you mean 'Ai'?"
       },
       {
         "line": 7,
-        "code": 2304,
+        "code": 2552,
         "kind": "context",
-        "message": "Cannot find name 'ai'."
+        "message": "Cannot find name 'ai'. Did you mean 'Ai'?"
       },
       {
         "line": 11,
-        "code": 2304,
+        "code": 2552,
         "kind": "context",
-        "message": "Cannot find name 'ai'."
+        "message": "Cannot find name 'ai'. Did you mean 'Ai'?"
       }
     ],
     "status": "fragment"
@@ -63878,9 +63878,9 @@
     "errors": [
       {
         "line": 2,
-        "code": 2304,
+        "code": 2552,
         "kind": "context",
-        "message": "Cannot find name 'ai'."
+        "message": "Cannot find name 'ai'. Did you mean 'Ai'?"
       },
       {
         "line": 2,
@@ -63906,9 +63906,9 @@
     "errors": [
       {
         "line": 2,
-        "code": 2304,
+        "code": 2552,
         "kind": "context",
-        "message": "Cannot find name 'ai'."
+        "message": "Cannot find name 'ai'. Did you mean 'Ai'?"
       },
       {
         "line": 2,
@@ -63946,15 +63946,15 @@
     "errors": [
       {
         "line": 2,
-        "code": 2304,
+        "code": 2552,
         "kind": "context",
-        "message": "Cannot find name 'ai'."
+        "message": "Cannot find name 'ai'. Did you mean 'Ai'?"
       },
       {
         "line": 3,
-        "code": 2304,
+        "code": 2552,
         "kind": "context",
-        "message": "Cannot find name 'ai'."
+        "message": "Cannot find name 'ai'. Did you mean 'Ai'?"
       }
     ],
     "status": "fragment"
@@ -65405,9 +65405,9 @@
       },
       {
         "line": 6,
-        "code": 2304,
+        "code": 2552,
         "kind": "context",
-        "message": "Cannot find name 'request'."
+        "message": "Cannot find name 'request'. Did you mean 'Request'?"
       }
     ],
     "status": "fragment"
@@ -65866,9 +65866,9 @@
       },
       {
         "line": 13,
-        "code": 18004,
+        "code": 2552,
         "kind": "context",
-        "message": "No value exists in scope for the shorthand property 'messages'. Either declare one or provide an initializer."
+        "message": "Cannot find name 'messages'. Did you mean 'onmessage'?"
       }
     ],
     "status": "fragment"
@@ -66408,9 +66408,9 @@
       },
       {
         "line": 4,
-        "code": 2304,
+        "code": 2552,
         "kind": "context",
-        "message": "Cannot find name 'browserRun'."
+        "message": "Cannot find name 'browserRun'. Did you mean 'BrowserRun'?"
       },
       {
         "line": 4,
@@ -66887,9 +66887,9 @@
       },
       {
         "line": 7,
-        "code": 2304,
+        "code": 2552,
         "kind": "context",
-        "message": "Cannot find name 'notificationTools'."
+        "message": "Cannot find name 'notificationTools'. Did you mean 'Notification'?"
       }
     ],
     "status": "fragment"
@@ -67254,15 +67254,15 @@
       },
       {
         "line": 8,
-        "code": 2304,
+        "code": 2552,
         "kind": "context",
-        "message": "Cannot find name 'ExecuteOptions'."
+        "message": "Cannot find name 'ExecuteOptions'. Did you mean 'TextOptions'?"
       },
       {
         "line": 9,
-        "code": 2304,
+        "code": 2552,
         "kind": "context",
-        "message": "Cannot find name 'ExecuteResult'."
+        "message": "Cannot find name 'ExecuteResult'. Did you mean 'D1ExecResult'?"
       }
     ],
     "status": "fragment"
@@ -67309,9 +67309,9 @@
       },
       {
         "line": 3,
-        "code": 2304,
+        "code": 2552,
         "kind": "context",
-        "message": "Cannot find name 'DynamicWorkerExecutorOptions'."
+        "message": "Cannot find name 'DynamicWorkerExecutorOptions'. Did you mean 'DynamicWorkerExecutor'?"
       },
       {
         "line": 4,
@@ -67327,15 +67327,15 @@
       },
       {
         "line": 9,
-        "code": 2304,
+        "code": 2552,
         "kind": "context",
-        "message": "Cannot find name 'ExecuteOptions'."
+        "message": "Cannot find name 'ExecuteOptions'. Did you mean 'TextOptions'?"
       },
       {
         "line": 10,
-        "code": 2304,
+        "code": 2552,
         "kind": "context",
-        "message": "Cannot find name 'ExecuteResult'."
+        "message": "Cannot find name 'ExecuteResult'. Did you mean 'D1ExecResult'?"
       }
     ],
     "status": "fragment"
@@ -68209,9 +68209,9 @@
       },
       {
         "line": 9,
-        "code": 2304,
+        "code": 2552,
         "kind": "context",
-        "message": "Cannot find name 'ExecuteResult'."
+        "message": "Cannot find name 'ExecuteResult'. Did you mean 'D1ExecResult'?"
       }
     ],
     "status": "fragment"
@@ -68904,9 +68904,9 @@
       },
       {
         "line": 6,
-        "code": 2304,
+        "code": 2552,
         "kind": "context",
-        "message": "Cannot find name 'orders'."
+        "message": "Cannot find name 'orders'. Did you mean 'order'?"
       }
     ],
     "status": "fragment"
@@ -69087,9 +69087,9 @@
       },
       {
         "line": 6,
-        "code": 2304,
+        "code": 2552,
         "kind": "context",
-        "message": "Cannot find name 'request'."
+        "message": "Cannot find name 'request'. Did you mean 'Request'?"
       }
     ],
     "status": "fragment"
@@ -69275,9 +69275,9 @@
       },
       {
         "line": 3,
-        "code": 18004,
+        "code": 2552,
         "kind": "context",
-        "message": "No value exists in scope for the shorthand property 'storage'. Either declare one or provide an initializer."
+        "message": "Cannot find name 'storage'. Did you mean 'Storage'?"
       },
       {
         "line": 4,
@@ -70201,9 +70201,9 @@
       },
       {
         "line": 14,
-        "code": 18004,
+        "code": 2552,
         "kind": "context",
-        "message": "No value exists in scope for the shorthand property 'messages'. Either declare one or provide an initializer."
+        "message": "Cannot find name 'messages'. Did you mean 'onmessage'?"
       }
     ],
     "status": "fragment"
@@ -70285,9 +70285,9 @@
       },
       {
         "line": 9,
-        "code": 18004,
+        "code": 2552,
         "kind": "context",
-        "message": "No value exists in scope for the shorthand property 'messages'. Either declare one or provide an initializer."
+        "message": "Cannot find name 'messages'. Did you mean 'onmessage'?"
       }
     ],
     "status": "fragment"
@@ -70319,9 +70319,9 @@
       },
       {
         "line": 7,
-        "code": 18004,
+        "code": 2552,
         "kind": "context",
-        "message": "No value exists in scope for the shorthand property 'messages'. Either declare one or provide an initializer."
+        "message": "Cannot find name 'messages'. Did you mean 'onmessage'?"
       },
       {
         "line": 8,
@@ -70424,9 +70424,9 @@
       },
       {
         "line": 9,
-        "code": 18004,
+        "code": 2552,
         "kind": "context",
-        "message": "No value exists in scope for the shorthand property 'messages'. Either declare one or provide an initializer."
+        "message": "Cannot find name 'messages'. Did you mean 'onmessage'?"
       }
     ],
     "status": "fragment"
@@ -70458,9 +70458,9 @@
       },
       {
         "line": 7,
-        "code": 18004,
+        "code": 2552,
         "kind": "context",
-        "message": "No value exists in scope for the shorthand property 'messages'. Either declare one or provide an initializer."
+        "message": "Cannot find name 'messages'. Did you mean 'onmessage'?"
       },
       {
         "line": 8,

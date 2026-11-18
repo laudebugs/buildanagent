@@ -9,17 +9,13 @@
 //      package's exports map. Checked by compiling one probe file per module with tsc.
 // Writes results/factcheck-api.json.
 import { execFileSync } from "node:child_process";
-import { existsSync, readdirSync, readFileSync, writeFileSync } from "node:fs";
-import { dirname, join } from "node:path";
+import { readdirSync, readFileSync, writeFileSync } from "node:fs";
+import { join } from "node:path";
 import { fileURLToPath } from "node:url";
 
-const findBin = (name, dir = dirname(fileURLToPath(import.meta.url))) =>
-  existsSync(join(dir, "node_modules/.bin", name))
-    ? join(dir, "node_modules/.bin", name)
-    : dirname(dir) === dir
-      ? name
-      : findBin(name, dirname(dir));
-const TSC = findBin("tsc");
+// Run the workspace's pinned TypeScript (the root devDependency). Resolving the package, not the nearest
+// node_modules/.bin/tsc, keeps a stray bin left by another TypeScript version from changing the results.
+const TSC = fileURLToPath(new URL("bin/tsc", import.meta.resolve("typescript/package.json")));
 
 const manifest = JSON.parse(readFileSync("extracted/_manifest.json", "utf8")).filter((m) => !m.example);
 const blocks = manifest.map((m) => ({ ...m, code: readFileSync(join("extracted", m.file), "utf8") }));

@@ -10,6 +10,21 @@
     ],
     "example": "agents/docs/agents/callable-methods.md:230 Property 'llm' does not exist on type 'AIAgent'."
   },
+  "call-shape": {
+    "errors": 12,
+    "files": [
+      "cf__agent-class__run-workflows__24",
+      "cf__concepts__agentic-patterns__human-in-the-loop__08",
+      "cf__model-context-protocol__guides__build-codemode-mcp-server__05",
+      "cf__model-context-protocol__guides__oauth-mcp-client__07",
+      "repo__agents__codemode__10",
+      "repo__agents__configuration__08",
+      "repo__agents__scheduling__30",
+      "repo__agents__state__18",
+      "repo__pkg-agents__16"
+    ],
+    "example": "agents/docs/agents/codemode.md:277 Type '{ getPageTitle: { description: string; inputSchema: { type: string; properties: {}; required: never[]; }; execute: () => Promise<{ title: string; }>; }; g"
+  },
   "untyped-client-or-row-state": {
     "errors": 11,
     "files": [
@@ -22,20 +37,6 @@
       "repo__think__multi-chat__03"
     ],
     "example": "agents/docs/agents/client-sdk.md:41 Property 'messageCount' does not exist on type '{}'."
-  },
-  "call-shape": {
-    "errors": 11,
-    "files": [
-      "cf__agent-class__run-workflows__24",
-      "cf__concepts__agentic-patterns__human-in-the-loop__08",
-      "cf__model-context-protocol__guides__build-codemode-mcp-server__05",
-      "cf__model-context-protocol__guides__oauth-mcp-client__07",
-      "repo__agents__codemode__10",
-      "repo__agents__configuration__08",
-      "repo__agents__state__18",
-      "repo__pkg-agents__16"
-    ],
-    "example": "agents/docs/agents/codemode.md:277 Type '{ getPageTitle: { description: string; inputSchema: { type: string; properties: {}; required: never[]; }; execute: () => Promise<{ title: string; }>; }; g"
   },
   "wrong-import-path": {
     "errors": 11,
@@ -127,6 +128,14 @@
     ],
     "example": "agents/docs/agents/webhooks.md:448 Argument of type 'Request<CfHostMetadata, Cf>' is not assignable to parameter of type 'Request<unknown, CfProperties<unknown>>'."
   },
+  "other": {
+    "errors": 2,
+    "files": [
+      "cf__agent-class__run-workflows__23",
+      "cf__model-context-protocol__apis__client-api__28"
+    ],
+    "example": "cloudflare-docs/src/content/docs/agents/agent-class/run-workflows.mdx:625 Type 'MyAgent' is missing the following properties from type 'Agent<Env, unknown, object>': lifecycle, _state, _webSockets, onStart, and 294 more."
+  },
   "api-not-in-any-release": {
     "errors": 2,
     "files": [
@@ -141,12 +150,5 @@
       "cf__agent-class__index__05"
     ],
     "example": "cloudflare-docs/src/content/docs/agents/agent-class/index.mdx:199 Type '(request: Request<unknown, CfProperties<unknown>>, env: Env) => Promise<Response | null>' is not assignable to type 'ExportedHandlerFetchHandler<Env, unkn"
-  },
-  "other": {
-    "errors": 1,
-    "files": [
-      "cf__model-context-protocol__apis__client-api__28"
-    ],
-    "example": "cloudflare-docs/src/content/docs/agents/model-context-protocol/apis/client-api.mdx:984 Type '{ readonly redirectUrl: string; readonly clientMetadata: { client_id: any; client_secret: any; redirect_uris: string[]; }; clientInformation(): { client_i"
   }
 }

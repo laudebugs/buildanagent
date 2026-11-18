@@ -1,7 +1,7 @@
 {
   "package": "@github/copilot-sdk@1.0.31",
   "cli": "1.0.109",
-  "checkedAt": "2026-11-18T13:45:32.908Z",
+  "checkedAt": "2026-11-18T15:41:02.921Z",
   "checks": {
     "exports": {
       "documented": 31,

@@ -7,7 +7,7 @@
     ],
     "outcome": "ran",
     "exit": 0,
-    "ms": 1240,
+    "ms": 1285,
     "modelCalls": 1,
     "tail": "Scripted model: hello from the offline model."
   },
@@ -19,7 +19,7 @@
     ],
     "outcome": "ran",
     "exit": 0,
-    "ms": 1155,
+    "ms": 1281,
     "modelCalls": 1,
     "tail": ""
   },
@@ -31,7 +31,7 @@
     ],
     "outcome": "ran",
     "exit": 0,
-    "ms": 1241,
+    "ms": 1322,
     "modelCalls": 2,
     "tail": "Scripted model: hello from the offline model."
   },
@@ -43,7 +43,7 @@
     ],
     "outcome": "ran",
     "exit": 0,
-    "ms": 1195,
+    "ms": 1266,
     "modelCalls": 2,
     "tail": "Joke: Scripted model: hello from the offline model.\nRating: Scripted model: hello from the offline model."
   },
@@ -64,7 +64,7 @@
     ],
     "outcome": "ran-no-model",
     "exit": 0,
-    "ms": 1300,
+    "ms": 1331,
     "modelCalls": 0,
     "tail": ""
   },
@@ -76,7 +76,7 @@
     ],
     "outcome": "ran-no-model",
     "exit": 0,
-    "ms": 1330,
+    "ms": 1320,
     "modelCalls": 0,
     "tail": ""
   },
@@ -88,7 +88,7 @@
     ],
     "outcome": "ran-no-model",
     "exit": 0,
-    "ms": 1269,
+    "ms": 1235,
     "modelCalls": 0,
     "tail": ""
   },
@@ -100,7 +100,7 @@
     ],
     "outcome": "error",
     "exit": 1,
-    "ms": 1430,
+    "ms": 1434,
     "modelCalls": 2,
     "tail": "Error: Expected the math homework guardrail to trip.\n    at main (/home/user/agent-speak/verify/openai-agents-sdk/extracted/examples/docs/guardrails/guardrails-input.ts:41:11)"
   },
@@ -112,7 +112,7 @@
     ],
     "outcome": "error",
     "exit": 1,
-    "ms": 1263,
+    "ms": 1099,
     "modelCalls": 2,
     "tail": "Error: Expected the math output guardrail to trip.\n    at main (/home/user/agent-speak/verify/openai-agents-sdk/extracted/examples/docs/guardrails/guardrails-output.ts:49:11)"
   },
@@ -124,7 +124,7 @@
     ],
     "outcome": "ran",
     "exit": 0,
-    "ms": 1141,
+    "ms": 1159,
     "modelCalls": 1,
     "tail": "Scripted model: hello from the offline model."
   },
@@ -137,7 +137,7 @@
     ],
     "outcome": "ran",
     "exit": 0,
-    "ms": 1099,
+    "ms": 1157,
     "modelCalls": 1,
     "tail": "Scripted model: hello from the offline model."
   },
@@ -149,7 +149,7 @@
     ],
     "outcome": "ran",
     "exit": 0,
-    "ms": 1223,
+    "ms": 1339,
     "modelCalls": 1,
     "tail": "Scripted model: hello from the offline model."
   },
@@ -161,7 +161,7 @@
     ],
     "outcome": "ran-no-model",
     "exit": 0,
-    "ms": 1174,
+    "ms": 1366,
     "modelCalls": 0,
     "tail": ""
   },
@@ -173,7 +173,7 @@
     ],
     "outcome": "ran",
     "exit": 0,
-    "ms": 1194,
+    "ms": 1347,
     "modelCalls": 1,
     "tail": "Scripted model: hello from the offline model."
   },
@@ -185,7 +185,7 @@
     ],
     "outcome": "ran",
     "exit": 0,
-    "ms": 1099,
+    "ms": 1252,
     "modelCalls": 1,
     "tail": "Scripted model: hello from the offline model."
   },
@@ -197,7 +197,7 @@
     ],
     "outcome": "ran",
     "exit": 0,
-    "ms": 1278,
+    "ms": 1374,
     "modelCalls": 1,
     "tail": "Done streaming; final result: Scripted model: hello from the offline model."
   },
@@ -236,7 +236,7 @@
     ],
     "outcome": "ran",
     "exit": 0,
-    "ms": 1251,
+    "ms": 1306,
     "modelCalls": 1,
     "tail": ""
   },
@@ -264,7 +264,7 @@
     ],
     "outcome": "ran",
     "exit": 0,
-    "ms": 1296,
+    "ms": 1033,
     "modelCalls": 1,
     "tail": ""
   },
@@ -276,7 +276,7 @@
     ],
     "outcome": "ran",
     "exit": 0,
-    "ms": 1138,
+    "ms": 1225,
     "modelCalls": 1,
     "tail": "Scripted model: hello from the offline model."
   },
@@ -288,7 +288,7 @@
     ],
     "outcome": "ran",
     "exit": 0,
-    "ms": 1135,
+    "ms": 1309,
     "modelCalls": 1,
     "tail": "Scripted model: hello from the offline model."
   },
@@ -300,7 +300,7 @@
     ],
     "outcome": "ran",
     "exit": 0,
-    "ms": 1166,
+    "ms": 1243,
     "modelCalls": 1,
     "tail": "Scripted model: hello from the offline model."
   },
@@ -310,7 +310,7 @@
     "pages": [],
     "outcome": "ran",
     "exit": 0,
-    "ms": 1383,
+    "ms": 1164,
     "modelCalls": 2,
     "tail": "Scripted model: hello from the offline model."
   },
@@ -320,7 +320,7 @@
     "pages": [],
     "outcome": "ran",
     "exit": 0,
-    "ms": 1180,
+    "ms": 1207,
     "modelCalls": 1,
     "tail": "Scripted model: hello from the offline model."
   },
@@ -330,7 +330,7 @@
     "pages": [],
     "outcome": "ran",
     "exit": 0,
-    "ms": 1162,
+    "ms": 1210,
     "modelCalls": 1,
     "tail": "Scripted model: hello from the offline model."
   },
@@ -342,7 +342,7 @@
     ],
     "outcome": "ran",
     "exit": 0,
-    "ms": 1241,
+    "ms": 1472,
     "modelCalls": 1,
     "tail": ""
   },
@@ -354,7 +354,7 @@
     ],
     "outcome": "ran",
     "exit": 0,
-    "ms": 1289,
+    "ms": 1276,
     "modelCalls": 10,
     "tail": ""
   },
@@ -366,7 +366,7 @@
     ],
     "outcome": "ran",
     "exit": 0,
-    "ms": 1174,
+    "ms": 1431,
     "modelCalls": 1,
     "tail": "{ requests: 1, inputTokens: 0, outputTokens: 0, totalTokens: 0 }"
   },
@@ -378,7 +378,7 @@
     ],
     "outcome": "ran",
     "exit": 0,
-    "ms": 1303,
+    "ms": 1204,
     "modelCalls": 2,
     "tail": ""
   },
@@ -399,7 +399,7 @@
     ],
     "outcome": "ran",
     "exit": 0,
-    "ms": 1242,
+    "ms": 1147,
     "modelCalls": 3,
     "tail": "Guardrail execution failed (input): GuardrailExecutionError: Input guardrail failed to complete: Error: Something is wrong!\nGuardrail execution failed (output): GuardrailExecutionError: Output guardrail failed to complete: Error: Output guardrail crashed."
   },
@@ -409,7 +409,7 @@
     "pages": [],
     "outcome": "ran",
     "exit": 0,
-    "ms": 1399,
+    "ms": 1185,
     "modelCalls": 3,
     "tail": "Tool call failed: ToolCallError: Failed to run function tools: Error: Failed to get weather\nScripted model: hello from the offline model."
   },
@@ -421,7 +421,7 @@
     ],
     "outcome": "ran",
     "exit": 0,
-    "ms": 1324,
+    "ms": 1223,
     "modelCalls": 2,
     "tail": "Scripted model: hello from the offline model.\nScripted model: hello from the offline model."
   },
@@ -434,7 +434,7 @@
     ],
     "outcome": "ran",
     "exit": 0,
-    "ms": 1596,
+    "ms": 1673,
     "modelCalls": 1,
     "tail": "Scripted model: hello from the offline model."
   },
@@ -446,7 +446,7 @@
     ],
     "outcome": "ran",
     "exit": 0,
-    "ms": 3376,
+    "ms": 3493,
     "modelCalls": 6,
     "tail": ""
   },
@@ -458,7 +458,7 @@
     ],
     "outcome": "ran",
     "exit": 0,
-    "ms": 1309,
+    "ms": 1290,
     "modelCalls": 2,
     "tail": ""
   },
@@ -470,7 +470,7 @@
     ],
     "outcome": "ran",
     "exit": 0,
-    "ms": 1363,
+    "ms": 1202,
     "modelCalls": 2,
     "tail": ""
   },
@@ -491,7 +491,7 @@
     ],
     "outcome": "ran",
     "exit": 0,
-    "ms": 1264,
+    "ms": 1358,
     "modelCalls": 1,
     "tail": ""
   },
@@ -503,7 +503,7 @@
     ],
     "outcome": "ran",
     "exit": 0,
-    "ms": 1264,
+    "ms": 1493,
     "modelCalls": 1,
     "tail": "Scripted model: hello from the offline model."
   },
@@ -524,7 +524,7 @@
     ],
     "outcome": "ran",
     "exit": 0,
-    "ms": 1332,
+    "ms": 1212,
     "modelCalls": 2,
     "tail": ""
   },
@@ -536,7 +536,7 @@
     ],
     "outcome": "ran",
     "exit": 0,
-    "ms": 1109,
+    "ms": 1304,
     "modelCalls": 2,
     "tail": "Scripted model: hello from the offline model.\nScripted model: hello from the offline model."
   },
@@ -548,7 +548,7 @@
     ],
     "outcome": "ran",
     "exit": 0,
-    "ms": 1201,
+    "ms": 1398,
     "modelCalls": 1,
     "tail": "Scripted model: hello from the offline model."
   },
@@ -578,7 +578,7 @@
     ],
     "outcome": "ran",
     "exit": 0,
-    "ms": 1115,
+    "ms": 1487,
     "modelCalls": 1,
     "tail": ""
   },
@@ -599,7 +599,7 @@
     ],
     "outcome": "ran",
     "exit": 0,
-    "ms": 1245,
+    "ms": 1328,
     "modelCalls": 1,
     "tail": ""
   },
@@ -611,7 +611,7 @@
     ],
     "outcome": "ran",
     "exit": 0,
-    "ms": 1328,
+    "ms": 1451,
     "modelCalls": 1,
     "tail": "    toolUseBehavior: 'run_llm_again',\n    resetToolChoice: true,\n    _toolsExplicitlyConfigured: false,\n    _modelSettingsExplicitlyConfigured: false,\n    [outputSchemaName]: [Getter]\n  },\n  [content]: [Getter]\n}"
   },
@@ -623,7 +623,7 @@
     ],
     "outcome": "ran",
     "exit": 0,
-    "ms": 1214,
+    "ms": 1421,
     "modelCalls": 1,
     "tail": "Scripted model: hello from the offline model."
   },
@@ -635,7 +635,7 @@
     ],
     "outcome": "ran",
     "exit": 0,
-    "ms": 1306,
+    "ms": 1586,
     "modelCalls": 1,
     "tail": "Scripted model: hello from the offline model."
   },
@@ -647,9 +647,9 @@
     ],
     "outcome": "ran-no-model",
     "exit": 0,
-    "ms": 1286,
+    "ms": 1401,
     "modelCalls": 0,
-    "tail": "# tests 1\n# suites 0\n# pass 1\n# fail 0\n# cancelled 0\n# skipped 0\n# todo 0\n# duration_ms 54.065337"
+    "tail": "# tests 1\n# suites 0\n# pass 1\n# fail 0\n# cancelled 0\n# skipped 0\n# todo 0\n# duration_ms 39.805417"
   },
   {
     "id": "ex:docs/testing/requestAwareResponse.ts",
@@ -659,9 +659,9 @@
     ],
     "outcome": "ran-no-model",
     "exit": 0,
-    "ms": 1209,
+    "ms": 1301,
     "modelCalls": 0,
-    "tail": "# tests 1\n# suites 0\n# pass 1\n# fail 0\n# cancelled 0\n# skipped 0\n# todo 0\n# duration_ms 25.548466"
+    "tail": "# tests 1\n# suites 0\n# pass 1\n# fail 0\n# cancelled 0\n# skipped 0\n# todo 0\n# duration_ms 39.73542"
   },
   {
     "id": "ex:docs/testing/sandboxWorkflow.ts",
@@ -671,9 +671,9 @@
     ],
     "outcome": "ran-no-model",
     "exit": 0,
-    "ms": 1232,
+    "ms": 1322,
     "modelCalls": 0,
-    "tail": "# tests 1\n# suites 0\n# pass 1\n# fail 0\n# cancelled 0\n# skipped 0\n# todo 0\n# duration_ms 72.307195"
+    "tail": "# tests 1\n# suites 0\n# pass 1\n# fail 0\n# cancelled 0\n# skipped 0\n# todo 0\n# duration_ms 124.577182"
   },
   {
     "id": "ex:docs/testing/toolWorkflow.ts",
@@ -683,9 +683,9 @@
     ],
     "outcome": "ran-no-model",
     "exit": 0,
-    "ms": 1215,
+    "ms": 1521,
     "modelCalls": 0,
-    "tail": "# tests 1\n# suites 0\n# pass 1\n# fail 0\n# cancelled 0\n# skipped 0\n# todo 0\n# duration_ms 56.820564"
+    "tail": "# tests 1\n# suites 0\n# pass 1\n# fail 0\n# cancelled 0\n# skipped 0\n# todo 0\n# duration_ms 66.527862"
   },
   {
     "id": "ex:docs/testing/workflowDrift.ts",
@@ -695,9 +695,9 @@
     ],
     "outcome": "ran-no-model",
     "exit": 0,
-    "ms": 1300,
+    "ms": 1280,
     "modelCalls": 0,
-    "tail": "# tests 1\n# suites 0\n# pass 1\n# fail 0\n# cancelled 0\n# skipped 0\n# todo 0\n# duration_ms 57.572526"
+    "tail": "# tests 1\n# suites 0\n# pass 1\n# fail 0\n# cancelled 0\n# skipped 0\n# todo 0\n# duration_ms 42.051346"
   },
   {
     "id": "ex:docs/tools/codexRunContextThread.ts",
@@ -716,7 +716,7 @@
     ],
     "outcome": "ran",
     "exit": 0,
-    "ms": 8295,
+    "ms": 8005,
     "modelCalls": 1,
     "tail": "Scripted model: hello from the offline model."
   },
@@ -726,7 +726,7 @@
     "pages": [],
     "outcome": "ran",
     "exit": 0,
-    "ms": 904,
+    "ms": 1034,
     "modelCalls": 1,
     "tail": "Scripted model: hello from the offline model."
   },

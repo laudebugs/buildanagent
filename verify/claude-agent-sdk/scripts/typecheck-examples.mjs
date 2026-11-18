@@ -3,19 +3,12 @@
 // "api" errors mean the block disagrees with the SDK's published types: candidate doc drift.
 // Usage: node scripts/typecheck-examples.mjs   (run extract first)
 import { execFileSync } from "node:child_process";
-import { existsSync } from "node:fs";
 import { readFile, writeFile } from "node:fs/promises";
-import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 
-// Find tsc in the nearest node_modules/.bin (pnpm keeps shared dev tools at the repo root).
-const findBin = (name, dir = dirname(fileURLToPath(import.meta.url))) =>
-  existsSync(join(dir, "node_modules/.bin", name))
-    ? join(dir, "node_modules/.bin", name)
-    : dirname(dir) === dir
-      ? name
-      : findBin(name, dirname(dir));
-const TSC = findBin("tsc");
+// Run the workspace's pinned TypeScript (the root devDependency). Resolving the package, not the nearest
+// node_modules/.bin/tsc, keeps a stray bin left by another TypeScript version from changing the results.
+const TSC = fileURLToPath(new URL("bin/tsc", import.meta.resolve("typescript/package.json")));
 
 const CONTEXT = new Set([
   2300, 2304, 2552, 2582, 2580, 7006, 7005, 7031, 7034, 7053, 18046, 18047, 18048, 2454, 1375, 1378, 2393, 2451, 6133,

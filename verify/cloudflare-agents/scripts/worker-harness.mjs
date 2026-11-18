@@ -13,6 +13,9 @@
 import { Agent, getAgentByName } from "agents";
 
 const errText = (e) => (e instanceof Error ? `${e.name}: ${e.message}` : String(e));
+// A 500 body is often a stack trace. Drop the checkout path from its frames before truncating, so the
+// recorded text doesn't depend on where the repo is checked out.
+const errBody = (text) => text.replace(/file:\/\/\/\S*?\/\.tmp\/docs\//g, ".tmp/docs/").slice(0, 300);
 
 function defaultFetch(mod) {
   const d = mod.default;
@@ -72,7 +75,7 @@ async function probe(mod, env, ctx, bindings) {
         entry.status = r.status;
         const body = (await r.text()).slice(0, 2000);
         entry.mcpInitialized = r.status < 300 && /"protocolVersion"/.test(body);
-        if (r.status >= 500) entry.error = body.slice(0, 300);
+        if (r.status >= 500) entry.error = errBody(body);
       } else if (!entry.agent && typeof cls?.prototype?.fetch !== "function") {
         entry.status = "no-fetch"; // a plain Durable Object reached only through RPC
       } else {
@@ -81,7 +84,7 @@ async function probe(mod, env, ctx, bindings) {
           : env[name].get(env[name].idFromName("probe"));
         const r = await stub.fetch(new Request("http://localhost/"));
         entry.status = r.status;
-        if (r.status >= 500) entry.error = (await r.text()).slice(0, 300);
+        if (r.status >= 500) entry.error = errBody(await r.text());
         if (entry.chat) {
           try {
             const res = await stub.saveMessages([
@@ -107,7 +110,7 @@ async function probe(mod, env, ctx, bindings) {
       const r = await fetchDefault(new Request("http://localhost/"), env, ctx);
       report.default = { status: r?.status ?? null };
       if (!(r instanceof Response)) report.default.error = "default fetch did not return a Response";
-      else if (r.status >= 500) report.default.error = (await r.text()).slice(0, 300);
+      else if (r.status >= 500) report.default.error = errBody(await r.text());
     } catch (e) {
       report.default = { error: errText(e) };
     }

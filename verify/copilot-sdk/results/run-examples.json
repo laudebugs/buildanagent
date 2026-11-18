@@ -5,11 +5,11 @@
     "outcome": "ran-no-model-call",
     "exit": 0,
     "leftOpen": false,
-    "ms": 3826,
+    "ms": 3689,
     "modelRequests": 0,
     "toolCalls": [],
     "harness": [],
-    "tail": "ok - no credential or proxy variables reach the example (found: none)\nok - HOME is a temp dir, not the real home, and cwd is inside it (/tmp/cp-00-sandbox-ZIlwm0)\nok - a raw TCP connection to a public address fails (ENETUNREACH)\nok - DNS lookups fail (EAI_AGAIN)\nok - the preload rejects non-local fetch()\nok - loopback still works (the mock answers)"
+    "tail": "ok - no credential or proxy variables reach the example (found: none)\nok - HOME is a temp dir, not the real home, and cwd is inside it (/tmp/cp-00-sandbox-GicfVU)\nok - a raw TCP connection to a public address fails (ENETUNREACH)\nok - DNS lookups fail (EAI_AGAIN)\nok - the preload rejects non-local fetch()\nok - loopback still works (the mock answers)"
   },
   {
     "id": "01-hello-session",
@@ -17,11 +17,11 @@
     "outcome": "ran",
     "exit": 0,
     "leftOpen": false,
-    "ms": 1180,
+    "ms": 928,
     "modelRequests": 1,
     "toolCalls": [],
     "harness": [],
-    "tail": "ok - sendAndWait resolves with an assistant.message event\nok - the reply carries the model's text (got \"4\")\nok - events arrive in order: user.message → assistant.turn_start → assistant.message → assistant.turn_end → session.idle\nok - the session has an id\nok - one model request reached the mock (got 1)\nok - by default the runtime offers its built-in tools, bash included\nobserved-events: [\"session.start\",\"session.managed_settings_resolved\",\"pending_messages.modified\",\"session.skills_loaded\",\"session.title_changed\",\"session.mcp_servers_loaded\",\"session.tools_updated\",\"instruction.update\",\"user.message\",\"system.message\",\"model.turn_started\",\"assistant.turn_start\",\"session.usage_info\",\"model.log\",\"model.call_start\",\"model.model_call_started\",\"assistant.usage\",\"model.call_finished\",\"assistant.message\",\"model.call_final_result\",\"assistant.turn_end\",\"model.model_call_success\",\"model.message\",\"model.response\",\"model.turn_ended\",\"model.messages_snapshot\",\"assistant.idle\",\"session.idle\"]"
+    "tail": "ok - sendAndWait resolves with an assistant.message event\nok - the reply carries the model's text (got \"4\")\nok - events arrive in order: user.message → assistant.turn_start → assistant.message → assistant.turn_end → session.idle\nok - the session has an id\nok - one model request reached the mock (got 1)\nok - by default the runtime offers its built-in tools, bash included\nobserved-events: [\"session.start\",\"session.managed_settings_resolved\",\"pending_messages.modified\",\"session.skills_loaded\",\"session.mcp_servers_loaded\",\"session.title_changed\",\"session.tools_updated\",\"instruction.update\",\"user.message\",\"system.message\",\"model.turn_started\",\"assistant.turn_start\",\"session.usage_info\",\"model.call_start\",\"model.log\",\"model.model_call_started\",\"assistant.usage\",\"model.call_finished\",\"assistant.message\",\"model.call_final_result\",\"assistant.turn_end\",\"model.model_call_success\",\"model.message\",\"model.response\",\"model.turn_ended\",\"model.messages_snapshot\",\"assistant.idle\",\"session.idle\"]"
   },
   {
     "id": "02-custom-tool",
@@ -29,7 +29,7 @@
     "outcome": "ran",
     "exit": 0,
     "leftOpen": false,
-    "ms": 1600,
+    "ms": 985,
     "modelRequests": 2,
     "toolCalls": [
       "get_weather"
@@ -43,7 +43,7 @@
     "outcome": "ran",
     "exit": 0,
     "leftOpen": false,
-    "ms": 1350,
+    "ms": 1074,
     "modelRequests": 4,
     "toolCalls": [
       "issue_refund",
@@ -58,7 +58,7 @@
     "outcome": "ran",
     "exit": 0,
     "leftOpen": false,
-    "ms": 1540,
+    "ms": 1128,
     "modelRequests": 11,
     "toolCalls": [
       "ping",
@@ -76,7 +76,7 @@
     "outcome": "ran",
     "exit": 0,
     "leftOpen": false,
-    "ms": 1109,
+    "ms": 729,
     "modelRequests": 2,
     "toolCalls": [],
     "harness": [],
@@ -88,7 +88,7 @@
     "outcome": "ran",
     "exit": 0,
     "leftOpen": false,
-    "ms": 1145,
+    "ms": 812,
     "modelRequests": 3,
     "toolCalls": [
       "note"
@@ -102,7 +102,7 @@
     "outcome": "ran",
     "exit": 0,
     "leftOpen": false,
-    "ms": 1487,
+    "ms": 914,
     "modelRequests": 3,
     "toolCalls": [
       "orders-order_status"
@@ -116,7 +116,7 @@
     "outcome": "ran",
     "exit": 0,
     "leftOpen": false,
-    "ms": 1269,
+    "ms": 768,
     "modelRequests": 3,
     "toolCalls": [
       "close_ticket",
@@ -131,7 +131,7 @@
     "outcome": "ran",
     "exit": 0,
     "leftOpen": false,
-    "ms": 1910,
+    "ms": 1297,
     "modelRequests": 7,
     "toolCalls": [
       "lookup_orders",

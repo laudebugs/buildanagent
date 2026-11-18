@@ -4,7 +4,7 @@
     "file": "/home/user/agent-speak/verify/langchain/extracted/langchain__event-streaming__01.ts",
     "outcome": "ran",
     "exit": 0,
-    "ms": 2146,
+    "ms": 2008,
     "modelCalls": 2,
     "tail": "Scripted model: hello from the offline model."
   },
@@ -13,7 +13,7 @@
     "file": "/home/user/agent-speak/verify/langchain/extracted/langchain__event-streaming__05.ts",
     "outcome": "ran",
     "exit": 0,
-    "ms": 2242,
+    "ms": 2126,
     "modelCalls": 4,
     "tail": "weather_agent: Scripted model: hello from the offline model."
   },
@@ -22,7 +22,7 @@
     "file": "/home/user/agent-speak/verify/langchain/extracted/langchain__messages__01.ts",
     "outcome": "ran",
     "exit": 0,
-    "ms": 1668,
+    "ms": 1980,
     "modelCalls": 1,
     "tail": ""
   },
@@ -31,7 +31,7 @@
     "file": "/home/user/agent-speak/verify/langchain/extracted/langchain__messages__13.ts",
     "outcome": "ran",
     "exit": 0,
-    "ms": 1856,
+    "ms": 2002,
     "modelCalls": 1,
     "tail": "undefined"
   },
@@ -49,7 +49,7 @@
     "file": "/home/user/agent-speak/verify/langchain/extracted/langchain__middleware__custom__13.ts",
     "outcome": "ran-no-model",
     "exit": 0,
-    "ms": 1355,
+    "ms": 1423,
     "modelCalls": 0,
     "tail": "I cannot respond to that request."
   },
@@ -58,7 +58,7 @@
     "file": "/home/user/agent-speak/verify/langchain/extracted/langchain__models__13.ts",
     "outcome": "ran",
     "exit": 0,
-    "ms": 1650,
+    "ms": 2366,
     "modelCalls": 1,
     "tail": "Tool: get_weather\nArgs: [object Object]"
   },
@@ -67,7 +67,7 @@
     "file": "/home/user/agent-speak/verify/langchain/extracted/langchain__models__32.ts",
     "outcome": "ran",
     "exit": 0,
-    "ms": 1735,
+    "ms": 1925,
     "modelCalls": 1,
     "tail": "[\n  {\n    type: 'text',\n    text: 'Scripted model: hello from the offline model.'\n  }\n]"
   },
@@ -91,7 +91,7 @@
     "file": "/home/user/agent-speak/verify/langchain/extracted/langchain__overview__03.ts",
     "outcome": "ran",
     "exit": 0,
-    "ms": 2112,
+    "ms": 1891,
     "modelCalls": 2,
     "tail": "      \"name\": \"model\",\n      \"additional_kwargs\": {},\n      \"response_metadata\": {},\n      \"tool_calls\": [],\n      \"invalid_tool_calls\": []\n    }\n  ]\n}"
   },
@@ -151,7 +151,7 @@
     "file": "/home/user/agent-speak/verify/langchain/extracted/langchain__quickstart__03.ts",
     "outcome": "ran",
     "exit": 0,
-    "ms": 2402,
+    "ms": 1768,
     "modelCalls": 2,
     "tail": "      \"name\": \"model\",\n      \"additional_kwargs\": {},\n      \"response_metadata\": {},\n      \"tool_calls\": [],\n      \"invalid_tool_calls\": []\n    }\n  ]\n}"
   },
@@ -216,7 +216,7 @@
     "reason": "uninferable model id",
     "prefixedOutcome": "error",
     "modelCalls": 1,
-    "tail": "      throw new Error(\n            ^\n\nError: Failed to put checkpoint. The passed RunnableConfig is missing a required \"thread_id\" field in its \"configurable\" property. When using a checkpointer, you must pass a \"thread_id\" so the checkpointer knows which conversation thread to persist state for. Example: graph.stream(input, { configurable: { thread_id: \"my-thread-id\" } })\n    at MemorySaver.put (/home/user/agent-speak/node_modules/.pnpm/@langchain+langgraph-checkpoint@1.2.3_@langchain+core@1.3.4_@opentelemetry+api@1.9.1_op_452b4628c3e18f2c2b42015bdd48ceff/node_modules/@langchain/langgraph-checkpoint/src/memory.ts:471:13)\n    at <anonymous> (/home/user/agent-speak/node_modules/.pnpm/@langchain+langgraph@1.6.0_@langchain+core@1.3.4_@opentelemetry+api@1.9.1_openai@7.49.0_01f6e0090e1b26fb821a60c5115d724c/node_modules/@langchain/langgraph/src/pregel/loop.ts:961:35)\n\nNode.js v22.23.5"
+    "tail": "      throw new Error(\n            ^\n\nError: Failed to put checkpoint. The passed RunnableConfig is missing a required \"thread_id\" field in its \"configurable\" property. When using a checkpointer, you must pass a \"thread_id\" so the checkpointer knows which conversation thread to persist state for. Example: graph.stream(input, { configurable: { thread_id: \"my-thread-id\" } })\n    at MemorySaver.put (/home/user/agent-speak/node_modules/.pnpm/@langchain+langgraph-checkpoint@1.2.3_@langchain+core@1.3.4_@opentelemetry+api@1.9.1_@o_fa5ff7e02eff9a599d69b05069cebca5/node_modules/@langchain/langgraph-checkpoint/src/memory.ts:471:13)\n    at <anonymous> (/home/user/agent-speak/node_modules/.pnpm/@langchain+langgraph@1.6.0_@langchain+core@1.3.4_@opentelemetry+api@1.9.1_@opentelemetr_23fba6c70e412e14a778e7c873303ff3/node_modules/@langchain/langgraph/src/pregel/loop.ts:961:35)\n\nNode.js v22.23.5"
   },
   {
     "id": "langchain__short-term-memory__05",
@@ -241,7 +241,7 @@
     "file": "/home/user/agent-speak/verify/langchain/extracted/langchain__short-term-memory__07.ts",
     "outcome": "ran",
     "exit": 0,
-    "ms": 2264,
+    "ms": 1893,
     "modelCalls": 2,
     "tail": "Scripted model: hello from the offline model."
   },
@@ -250,7 +250,7 @@
     "file": "/home/user/agent-speak/verify/langchain/extracted/langchain__short-term-memory__08.ts",
     "outcome": "ran",
     "exit": 0,
-    "ms": 2185,
+    "ms": 1998,
     "modelCalls": 2,
     "tail": "Scripted model: hello from the offline model."
   },
@@ -259,16 +259,16 @@
     "file": "/home/user/agent-speak/verify/langchain/extracted/langchain__short-term-memory__09.ts",
     "outcome": "ran",
     "exit": 0,
-    "ms": 2480,
+    "ms": 1868,
     "modelCalls": 2,
-    "tail": "  \"id\": \"37dc557e-c052-4554-a44d-8ad6058b3b93\",\n  \"content\": \"Scripted model: hello from the offline model.\",\n  \"name\": \"model\",\n  \"additional_kwargs\": {},\n  \"response_metadata\": {},\n  \"tool_calls\": [],\n  \"invalid_tool_calls\": []\n}"
+    "tail": "  \"id\": \"02af83a3-08ec-4ed6-8895-b69b65eb1f98\",\n  \"content\": \"Scripted model: hello from the offline model.\",\n  \"name\": \"model\",\n  \"additional_kwargs\": {},\n  \"response_metadata\": {},\n  \"tool_calls\": [],\n  \"invalid_tool_calls\": []\n}"
   },
   {
     "id": "langchain__streaming__01",
     "file": "/home/user/agent-speak/verify/langchain/extracted/langchain__streaming__01.ts",
     "outcome": "ran",
     "exit": 0,
-    "ms": 2356,
+    "ms": 2121,
     "modelCalls": 2,
     "tail": "]\nnode: model_request\ncontent: [\n  {\n    \"type\": \"text\",\n    \"text\": \"Scripted model: hello from the offline model.\"\n  }\n]"
   },
@@ -277,7 +277,7 @@
     "file": "/home/user/agent-speak/verify/langchain/extracted/langchain__streaming__02.ts",
     "outcome": "ran",
     "exit": 0,
-    "ms": 2320,
+    "ms": 2117,
     "modelCalls": 2,
     "tail": "Looking up data for city: example\nAcquired data for city: example"
   },
@@ -286,9 +286,9 @@
     "file": "/home/user/agent-speak/verify/langchain/extracted/langchain__streaming__03.ts",
     "outcome": "ran",
     "exit": 0,
-    "ms": 2300,
+    "ms": 1891,
     "modelCalls": 2,
-    "tail": "          \"response_metadata\": {},\n          \"id\": \"run-01a1ee77-8216-7172-bbbe-76dc7fef3367\",\n          \"name\": \"model\"\n        }\n      }\n    ]\n  }\n}"
+    "tail": "          \"response_metadata\": {},\n          \"id\": \"run-01a1ef52-ed2e-75b4-a56a-fd95a2242e5f\",\n          \"name\": \"model\"\n        }\n      }\n    ]\n  }\n}"
   },
   {
     "id": "langchain__structured-output__05",
@@ -349,7 +349,7 @@
     "file": "/home/user/agent-speak/verify/langchain/extracted/langchain__test__unit-testing__02.ts",
     "outcome": "ran-no-model",
     "exit": 0,
-    "ms": 1474,
+    "ms": 1181,
     "modelCalls": 0,
     "tail": ""
   },
@@ -358,7 +358,7 @@
     "file": "/home/user/agent-speak/verify/langchain/extracted/langchain__test__unit-testing__07.ts",
     "outcome": "ran-throws-as-documented",
     "exit": 1,
-    "ms": 1637,
+    "ms": 1246,
     "modelCalls": 0,
     "tail": "\nError: service unavailable\n    at <anonymous> (/home/user/agent-speak/verify/langchain/extracted/langchain__test__unit-testing__07.ts:5:39)\n    at ModuleJob.run (node:internal/modules/esm/module_job:343:25)\n    at async onImport.tracePromise.__proto__ (node:internal/modules/esm/loader:681:26)\n    at async asyncRunEntryPointWithESMLoader (node:internal/modules/run_main:117:5)\n\nNode.js v22.23.5"
   },
@@ -367,7 +367,7 @@
     "file": "/home/user/agent-speak/verify/langchain/extracted/langchain__test__unit-testing__08.ts",
     "outcome": "ran-no-model",
     "exit": 0,
-    "ms": 1321,
+    "ms": 1158,
     "modelCalls": 0,
     "tail": "You said: hello"
   },
@@ -376,16 +376,16 @@
     "file": "/home/user/agent-speak/verify/langchain/extracted/langchain__test__unit-testing__09.ts",
     "outcome": "ran-throws-as-documented",
     "exit": 1,
-    "ms": 1524,
+    "ms": 1460,
     "modelCalls": 0,
-    "tail": "me/user/agent-speak/node_modules/.pnpm/@langchain+core@1.3.4_@opentelemetry+api@1.9.1_openai@7.49.0_@aws-sdk+credential-provid_a4f6674d37f438e3ebe2eef06bc312b5/node_modules/@langchain/core/src/testing/fake_model_builder.ts:229:28)\n    at <anonymous> (/home/user/agent-speak/node_modules/.pnpm/@langchain+core@1.3.4_@opentelemetry+api@1.9.1_openai@7.49.0_@aws-sdk+credential-provid_a4f6674d37f438e3ebe2eef06bc312b5/node_modules/@langchain/core/src/language_models/chat_models.ts:859:46)\n    at Array.map (<anonymous>)\n    at FakeBuiltModel._generateUncached (/home/user/agent-speak/node_modules/.pnpm/@langchain+core@1.3.4_@opentelemetry+api@1.9.1_openai@7.49.0_@aws-sdk+credential-provid_a4f6674d37f438e3ebe2eef06bc312b5/node_modules/@langchain/core/src/language_models/chat_models.ts:858:22)\n    at async FakeBuiltModel.invoke (/home/user/agent-speak/node_modules/.pnpm/@langchain+core@1.3.4_@opentelemetry+api@1.9.1_openai@7.49.0_@aws-sdk+credential-provid_a4f6674d37f438e3ebe2eef06bc312b5/node_modules/@langchain/core/src/language_models/chat_models.ts:297:28)\n    at async <anonymous> (/home/user/agent-speak/verify/langchain/extracted/langchain__test__unit-testing__09.ts:14:1)\n\nNode.js v22.23.5"
+    "tail": "me/user/agent-speak/node_modules/.pnpm/@langchain+core@1.3.4_@opentelemetry+api@1.9.1_@opentelemetry+sdk-trace-base@2.12.0_@op_1ce03ebc1f1cf4d9985d672e96fe8cdb/node_modules/@langchain/core/src/testing/fake_model_builder.ts:229:28)\n    at <anonymous> (/home/user/agent-speak/node_modules/.pnpm/@langchain+core@1.3.4_@opentelemetry+api@1.9.1_@opentelemetry+sdk-trace-base@2.12.0_@op_1ce03ebc1f1cf4d9985d672e96fe8cdb/node_modules/@langchain/core/src/language_models/chat_models.ts:859:46)\n    at Array.map (<anonymous>)\n    at FakeBuiltModel._generateUncached (/home/user/agent-speak/node_modules/.pnpm/@langchain+core@1.3.4_@opentelemetry+api@1.9.1_@opentelemetry+sdk-trace-base@2.12.0_@op_1ce03ebc1f1cf4d9985d672e96fe8cdb/node_modules/@langchain/core/src/language_models/chat_models.ts:858:22)\n    at async FakeBuiltModel.invoke (/home/user/agent-speak/node_modules/.pnpm/@langchain+core@1.3.4_@opentelemetry+api@1.9.1_@opentelemetry+sdk-trace-base@2.12.0_@op_1ce03ebc1f1cf4d9985d672e96fe8cdb/node_modules/@langchain/core/src/language_models/chat_models.ts:297:28)\n    at async <anonymous> (/home/user/agent-speak/verify/langchain/extracted/langchain__test__unit-testing__09.ts:14:1)\n\nNode.js v22.23.5"
   },
   {
     "id": "langchain__test__unit-testing__10",
     "file": "/home/user/agent-speak/verify/langchain/extracted/langchain__test__unit-testing__10.ts",
     "outcome": "ran-no-model",
     "exit": 0,
-    "ms": 1198,
+    "ms": 1208,
     "modelCalls": 0,
     "tail": "{ temperature: 72, unit: 'fahrenheit' }"
   },
@@ -394,7 +394,7 @@
     "file": "/home/user/agent-speak/verify/langchain/extracted/langchain__test__unit-testing__11.ts",
     "outcome": "ran-no-model",
     "exit": 0,
-    "ms": 1482,
+    "ms": 1152,
     "modelCalls": 0,
     "tail": "2\nquestion 1\nquestion 2"
   },
@@ -403,7 +403,7 @@
     "file": "/home/user/agent-speak/verify/langchain/extracted/langchain__test__unit-testing__12.ts",
     "outcome": "ran-no-model",
     "exit": 0,
-    "ms": 1496,
+    "ms": 1200,
     "modelCalls": 0,
     "tail": "1\nwill fail"
   },
@@ -412,7 +412,7 @@
     "file": "/home/user/agent-speak/verify/langchain/extracted/langchain__tools__02.ts",
     "outcome": "ran",
     "exit": 0,
-    "ms": 2117,
+    "ms": 1811,
     "modelCalls": 4,
     "tail": "      \"name\": \"model\",\n      \"additional_kwargs\": {},\n      \"response_metadata\": {},\n      \"tool_calls\": [],\n      \"invalid_tool_calls\": []\n    }\n  ]\n}"
   },
@@ -421,7 +421,7 @@
     "file": "/home/user/agent-speak/verify/langchain/extracted/langgraph__checkpointers__02.ts",
     "outcome": "ran-no-model",
     "exit": 0,
-    "ms": 1093,
+    "ms": 1089,
     "modelCalls": 0,
     "tail": ""
   },
@@ -430,16 +430,16 @@
     "file": "/home/user/agent-speak/verify/langchain/extracted/langgraph__interrupts__04.ts",
     "outcome": "ran-no-model",
     "exit": 0,
-    "ms": 1128,
+    "ms": 1068,
     "modelCalls": 0,
-    "tail": "{\n  vals: [],\n  __interrupt__: [\n    { id: 'a1c8cf9566e3c47b883dc63895de7731', value: 'question_a' },\n    { id: '81edf66f63eef2f1f0878dd13554b56e', value: 'question_b' }\n  ]\n}\nFinal state: { vals: [ 'a:answer for question_a', 'b:answer for question_b' ] }"
+    "tail": "{\n  vals: [],\n  __interrupt__: [\n    { id: '2962853fe4ad018a62f8a67f1f01c6be', value: 'question_a' },\n    { id: 'a3d1250eecef27811d74f1601dfaa813', value: 'question_b' }\n  ]\n}\nFinal state: { vals: [ 'a:answer for question_a', 'b:answer for question_b' ] }"
   },
   {
     "id": "langgraph__overview__01",
     "file": "/home/user/agent-speak/verify/langchain/extracted/langgraph__overview__01.ts",
     "outcome": "ran-no-model",
     "exit": 0,
-    "ms": 1311,
+    "ms": 1176,
     "modelCalls": 0,
     "tail": ""
   },
@@ -448,16 +448,16 @@
     "file": "/home/user/agent-speak/verify/langchain/extracted/langgraph__streaming__19.ts",
     "outcome": "ran-no-model",
     "exit": 0,
-    "ms": 1554,
+    "ms": 1103,
     "modelCalls": 0,
-    "tail": "  [ 'node2:af7b75cb-a8fc-584d-bcc9-0c650cb2e48e' ],\n  { subgraphNode1: { bar: 'bar' } }\n]\n[\n  [ 'node2:af7b75cb-a8fc-584d-bcc9-0c650cb2e48e' ],\n  { subgraphNode2: { foo: 'hi! foobar' } }\n]\n[ [], { node2: { foo: 'hi! foobar' } } ]"
+    "tail": "  [ 'node2:6a6b4da4-97cd-5d09-ac9a-159f81faca94' ],\n  { subgraphNode1: { bar: 'bar' } }\n]\n[\n  [ 'node2:6a6b4da4-97cd-5d09-ac9a-159f81faca94' ],\n  { subgraphNode2: { foo: 'hi! foobar' } }\n]\n[ [], { node2: { foo: 'hi! foobar' } } ]"
   },
   {
     "id": "snippets__code-samples__langgraph-functional-api-overview-hello-js__01",
     "file": "/home/user/agent-speak/verify/langchain/extracted/snippets__code-samples__langgraph-functional-api-overview-hello-js__01.ts",
     "outcome": "ran-no-model",
     "exit": 0,
-    "ms": 1495,
+    "ms": 1053,
     "modelCalls": 0,
     "tail": ""
   },
@@ -466,7 +466,7 @@
     "file": "/home/user/agent-speak/verify/langchain/extracted/snippets__code-samples__langgraph-graph-api-overview-compile-js__01.ts",
     "outcome": "ran-no-model",
     "exit": 0,
-    "ms": 1543,
+    "ms": 1115,
     "modelCalls": 0,
     "tail": ""
   },
@@ -475,7 +475,7 @@
     "file": "/home/user/agent-speak/verify/langchain/extracted/snippets__code-samples__langgraph-graph-api-overview-runtime-context-js__01.ts",
     "outcome": "ran-no-model",
     "exit": 0,
-    "ms": 1025,
+    "ms": 1067,
     "modelCalls": 0,
     "tail": ""
   },
@@ -484,7 +484,7 @@
     "file": "/home/user/agent-speak/verify/langchain/extracted/snippets__code-samples__nostream-tag-js__01.ts",
     "outcome": "ran",
     "exit": 0,
-    "ms": 1401,
+    "ms": 1378,
     "modelCalls": 2,
     "tail": ""
   },
@@ -499,7 +499,7 @@
     "file": "/home/user/agent-speak/verify/langchain/extracted/snippets__code-samples__short-term-memory-usage-js__02.ts",
     "outcome": "ran",
     "exit": 0,
-    "ms": 2053,
+    "ms": 1845,
     "modelCalls": 3,
     "tail": "Scripted model: hello from the offline model.\nScripted model: hello from the offline model."
   },
@@ -508,7 +508,7 @@
     "file": "/home/user/agent-speak/verify/langchain/extracted/snippets__code-samples__short-term-memory-usage-js__03.ts",
     "outcome": "ran",
     "exit": 0,
-    "ms": 1904,
+    "ms": 1569,
     "modelCalls": 3,
     "tail": "Scripted model: hello from the offline model.\nScripted model: hello from the offline model."
   },
@@ -541,7 +541,7 @@
     "file": "/home/user/agent-speak/verify/langchain/extracted/snippets__code-samples__streaming-reasoning-tokens-js__01.ts",
     "outcome": "ran",
     "exit": 0,
-    "ms": 1882,
+    "ms": 1504,
     "modelCalls": 2,
     "tail": "Scripted model: hello from the offline model."
   },
@@ -550,7 +550,7 @@
     "file": "/home/user/agent-speak/verify/langchain/extracted/snippets__code-samples__tool-return-direct-js__01.ts",
     "outcome": "ran",
     "exit": 0,
-    "ms": 2048,
+    "ms": 2067,
     "modelCalls": 1,
     "tail": ""
   }
