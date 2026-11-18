@@ -1,0 +1,77 @@
+{
+  "package": "ai@7.0.162",
+  "checks": {
+    "generateText": {
+      "documented": 51,
+      "actual": 60,
+      "undocumented": [
+        "experimental_toolApprovalSecret"
+      ],
+      "undocumentedDeprecated": [
+        "experimental_include",
+        "experimental_onLanguageModelCallEnd",
+        "experimental_onLanguageModelCallStart",
+        "experimental_onStart",
+        "experimental_onStepStart",
+        "experimental_repairToolCall",
+        "experimental_telemetry",
+        "system"
+      ],
+      "notInPackage": []
+    },
+    "streamText": {
+      "documented": 57,
+      "actual": 66,
+      "undocumented": [
+        "experimental_toolApprovalSecret"
+      ],
+      "undocumentedDeprecated": [
+        "experimental_include",
+        "experimental_onLanguageModelCallEnd",
+        "experimental_onLanguageModelCallStart",
+        "experimental_onStart",
+        "experimental_onStepStart",
+        "experimental_repairToolCall",
+        "experimental_telemetry",
+        "system"
+      ],
+      "notInPackage": []
+    },
+    "toolLoopAgentSettings": {
+      "documented": 45,
+      "actual": 54,
+      "undocumented": [
+        "experimental_toolApprovalSecret",
+        "onLanguageModelCallEnd",
+        "onLanguageModelCallStart",
+        "reasoning",
+        "timeout"
+      ],
+      "undocumentedDeprecated": [
+        "experimental_onStart",
+        "experimental_onStepStart",
+        "experimental_repairToolCall",
+        "experimental_telemetry"
+      ],
+      "notInPackage": []
+    },
+    "toolOptions": {
+      "documented": 21,
+      "actual": 21,
+      "undocumented": [],
+      "undocumentedDeprecated": [],
+      "notInPackage": []
+    },
+    "stopHelpers": {
+      "isStepCount": true,
+      "hasToolCall": true,
+      "isLoopFinished": true,
+      "stepCountIs": true
+    },
+    "agentDefaultStepCap": {
+      "documented": 20,
+      "actual": 20,
+      "match": true
+    }
+  }
+}
