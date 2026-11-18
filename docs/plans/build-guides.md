@@ -90,6 +90,10 @@ The owner asked how a UI can make an agent's edits undoable. U4 researched it in
 
 The owner asked how hashbrown ([hashbrown.dev](https://hashbrown.dev/), [liveloveapp/hashbrown](https://github.com/liveloveapp/hashbrown)) implements its work. U3 researched it in two parts, its source-level implementation at v0.8.3 and its usage, adapters and position among agent UI approaches. [`hashbrown.md`](../research/agent-ui/hashbrown.md) finds that it uses strict structured output over AG-UI as the generative-UI boundary: the model picks registered components and fills their props, and the browser renders only what was registered.
 
+### U5: Server-side rollback for agent tool calls (added 2026-11-18)
+
+The owner asked how an API backend should make each agent tool call safe to fail, retry or reverse, with a short .NET section. U5 researched it in three parts: one transaction per tool call and idempotency keys, temporal tables and event sourcing, and what a tool returns to the model after a rollback. [`server-rollback.md`](../research/reversible-actions/server-rollback.md) recommends one transaction per tool call with an idempotency row keyed on tenant, session, branch and tool call id, side effects after commit or through an outbox, and reversal as a compensating write. Its fact-check is [`fact-check-server-rollback.md`](../research/reversible-actions/fact-check-server-rollback.md).
+
 ## 5. Todos
 
 | ID | Title | Depends on |
@@ -103,6 +107,7 @@ The owner asked how hashbrown ([hashbrown.dev](https://hashbrown.dev/), [livelov
 | U2 | Research Vercel Labs' UI SDK and the agent-facing UI tooling around it (done: [vercel-ui-sdk.md](../research/agent-ui/vercel-ui-sdk.md)) | U1 |
 | U4 | Research how a UI makes an agent's edits undoable (done: [undo-agent-edits.md](../research/agent-ui/undo-agent-edits.md)) | U2 |
 | U3 | Research how hashbrown implements generative UI (done: [hashbrown.md](../research/agent-ui/hashbrown.md)) | U2 |
+| U5 | Research server-side rollback for agent tool calls (done: [server-rollback.md](../research/reversible-actions/server-rollback.md)) | None |
 | G1b | Guide: building an agent SDK (done: [docs/guides/agent-sdk.md](../guides/agent-sdk.md)) | G1a, H3, R1 |
 | G2a | Deep research: building an agent harness (done) | G1a |
 | G2b | Guide: building an agent harness (done: [docs/guides/agent-harness.md](../guides/agent-harness.md)) | G2a, G1b, H3 |
