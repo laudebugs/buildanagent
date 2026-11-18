@@ -4,7 +4,7 @@
     "file": "/home/user/agent-speak/verify/vercel-ai-sdk/extracted/cookbook__node__call-tools__01.ts",
     "outcome": "ran",
     "exit": 0,
-    "ms": 582,
+    "ms": 633,
     "modelCalls": 1,
     "tail": ""
   },
@@ -13,7 +13,7 @@
     "file": "/home/user/agent-speak/verify/vercel-ai-sdk/extracted/cookbook__node__call-tools-in-parallel__01.ts",
     "outcome": "ran",
     "exit": 0,
-    "ms": 539,
+    "ms": 681,
     "modelCalls": 1,
     "tail": "    type: 'tool-result',\n    toolCallId: 'call_mock_1',\n    toolName: 'weather',\n    input: { city: 'example', unit: 'C' },\n    output: 'It is currently 25°C and Sunny in example!',\n    dynamic: false\n  }\n]"
   },
@@ -22,7 +22,7 @@
     "file": "/home/user/agent-speak/verify/vercel-ai-sdk/extracted/cookbook__node__call-tools-multiple-steps__01.ts",
     "outcome": "ran",
     "exit": 0,
-    "ms": 587,
+    "ms": 643,
     "modelCalls": 2,
     "tail": ""
   },
@@ -37,7 +37,7 @@
     "file": "/home/user/agent-speak/verify/vercel-ai-sdk/extracted/cookbook__node__web-search-agent__01.ts",
     "outcome": "ran",
     "exit": 0,
-    "ms": 578,
+    "ms": 627,
     "modelCalls": 1,
     "tail": "Mock model: hello from the offline model.\n[]"
   },
@@ -46,7 +46,7 @@
     "file": "/home/user/agent-speak/verify/vercel-ai-sdk/extracted/docs__agents__building-agents__11.ts",
     "outcome": "ran",
     "exit": 0,
-    "ms": 770,
+    "ms": 658,
     "modelCalls": 1,
     "tail": ""
   },
@@ -55,7 +55,7 @@
     "file": "/home/user/agent-speak/verify/vercel-ai-sdk/extracted/docs__agents__configuring-call-options__01.ts",
     "outcome": "ran",
     "exit": 0,
-    "ms": 665,
+    "ms": 710,
     "modelCalls": 1,
     "tail": ""
   },
@@ -64,7 +64,7 @@
     "file": "/home/user/agent-speak/verify/vercel-ai-sdk/extracted/docs__agents__configuring-call-options__02.ts",
     "outcome": "ran",
     "exit": 0,
-    "ms": 777,
+    "ms": 753,
     "modelCalls": 2,
     "tail": ""
   },
@@ -73,7 +73,7 @@
     "file": "/home/user/agent-speak/verify/vercel-ai-sdk/extracted/docs__agents__configuring-call-options__03.ts",
     "outcome": "ran",
     "exit": 0,
-    "ms": 654,
+    "ms": 892,
     "modelCalls": 1,
     "tail": ""
   },
@@ -82,7 +82,7 @@
     "file": "/home/user/agent-speak/verify/vercel-ai-sdk/extracted/docs__agents__configuring-call-options__04.ts",
     "outcome": "ran",
     "exit": 0,
-    "ms": 718,
+    "ms": 591,
     "modelCalls": 1,
     "tail": ""
   },
@@ -91,7 +91,7 @@
     "file": "/home/user/agent-speak/verify/vercel-ai-sdk/extracted/docs__agents__loop-control__01.ts",
     "outcome": "ran",
     "exit": 0,
-    "ms": 616,
+    "ms": 801,
     "modelCalls": 1,
     "tail": ""
   },
@@ -100,7 +100,7 @@
     "file": "/home/user/agent-speak/verify/vercel-ai-sdk/extracted/docs__agents__loop-control__02.ts",
     "outcome": "ran",
     "exit": 0,
-    "ms": 738,
+    "ms": 776,
     "modelCalls": 1,
     "tail": ""
   },
@@ -109,7 +109,7 @@
     "file": "/home/user/agent-speak/verify/vercel-ai-sdk/extracted/docs__agents__loop-control__03.ts",
     "outcome": "ran",
     "exit": 0,
-    "ms": 684,
+    "ms": 727,
     "modelCalls": 1,
     "tail": ""
   },
@@ -118,7 +118,7 @@
     "file": "/home/user/agent-speak/verify/vercel-ai-sdk/extracted/docs__agents__loop-control__04.ts",
     "outcome": "ran",
     "exit": 0,
-    "ms": 760,
+    "ms": 582,
     "modelCalls": 1,
     "tail": ""
   },
@@ -127,7 +127,7 @@
     "file": "/home/user/agent-speak/verify/vercel-ai-sdk/extracted/docs__agents__loop-control__06.ts",
     "outcome": "ran",
     "exit": 0,
-    "ms": 796,
+    "ms": 686,
     "modelCalls": 1,
     "tail": ""
   },
@@ -136,7 +136,7 @@
     "file": "/home/user/agent-speak/verify/vercel-ai-sdk/extracted/docs__agents__loop-control__07.ts",
     "outcome": "ran",
     "exit": 0,
-    "ms": 868,
+    "ms": 807,
     "modelCalls": 1,
     "tail": ""
   },
@@ -145,7 +145,7 @@
     "file": "/home/user/agent-speak/verify/vercel-ai-sdk/extracted/docs__agents__loop-control__08.ts",
     "outcome": "ran",
     "exit": 0,
-    "ms": 791,
+    "ms": 704,
     "modelCalls": 1,
     "tail": ""
   },
@@ -154,7 +154,7 @@
     "file": "/home/user/agent-speak/verify/vercel-ai-sdk/extracted/docs__agents__loop-control__21.ts",
     "outcome": "ran",
     "exit": 0,
-    "ms": 683,
+    "ms": 671,
     "modelCalls": 1,
     "tail": ""
   },
@@ -163,7 +163,7 @@
     "file": "/home/user/agent-speak/verify/vercel-ai-sdk/extracted/docs__agents__memory__01.ts",
     "outcome": "ran",
     "exit": 0,
-    "ms": 623,
+    "ms": 613,
     "modelCalls": 1,
     "tail": ""
   },
@@ -172,7 +172,7 @@
     "file": "/home/user/agent-speak/verify/vercel-ai-sdk/extracted/docs__agents__overview__01.ts",
     "outcome": "ran",
     "exit": 0,
-    "ms": 765,
+    "ms": 752,
     "modelCalls": 2,
     "tail": "      modelId: 'anthropic/claude-sonnet-5.5',\n      headers: undefined,\n      body: undefined,\n      messages: [Array]\n    },\n    providerMetadata: undefined\n  }\n]"
   },
@@ -181,7 +181,7 @@
     "file": "/home/user/agent-speak/verify/vercel-ai-sdk/extracted/docs__agents__workflows__01.ts",
     "outcome": "ran-no-model",
     "exit": 0,
-    "ms": 475,
+    "ms": 638,
     "modelCalls": 0,
     "tail": ""
   },
@@ -190,7 +190,7 @@
     "file": "/home/user/agent-speak/verify/vercel-ai-sdk/extracted/docs__agents__workflows__02.ts",
     "outcome": "ran-no-model",
     "exit": 0,
-    "ms": 700,
+    "ms": 555,
     "modelCalls": 0,
     "tail": ""
   },
@@ -199,7 +199,7 @@
     "file": "/home/user/agent-speak/verify/vercel-ai-sdk/extracted/docs__agents__workflows__03.ts",
     "outcome": "ran-no-model",
     "exit": 0,
-    "ms": 656,
+    "ms": 521,
     "modelCalls": 0,
     "tail": ""
   },
@@ -208,7 +208,7 @@
     "file": "/home/user/agent-speak/verify/vercel-ai-sdk/extracted/docs__agents__workflows__04.ts",
     "outcome": "ran-no-model",
     "exit": 0,
-    "ms": 495,
+    "ms": 678,
     "modelCalls": 0,
     "tail": ""
   },
@@ -217,7 +217,7 @@
     "file": "/home/user/agent-speak/verify/vercel-ai-sdk/extracted/docs__agents__workflows__05.ts",
     "outcome": "ran-no-model",
     "exit": 0,
-    "ms": 680,
+    "ms": 691,
     "modelCalls": 0,
     "tail": ""
   },
@@ -226,7 +226,7 @@
     "file": "/home/user/agent-speak/verify/vercel-ai-sdk/extracted/docs__ai-sdk-core__error-handling__01.ts",
     "outcome": "ran",
     "exit": 0,
-    "ms": 440,
+    "ms": 574,
     "modelCalls": 1,
     "tail": ""
   },
@@ -235,7 +235,7 @@
     "file": "/home/user/agent-speak/verify/vercel-ai-sdk/extracted/docs__ai-sdk-core__error-handling__02.ts",
     "outcome": "ran",
     "exit": 0,
-    "ms": 689,
+    "ms": 755,
     "modelCalls": 1,
     "tail": "Mock model: hello from the offline model."
   },
@@ -244,7 +244,7 @@
     "file": "/home/user/agent-speak/verify/vercel-ai-sdk/extracted/docs__ai-sdk-core__error-handling__03.ts",
     "outcome": "ran",
     "exit": 0,
-    "ms": 714,
+    "ms": 703,
     "modelCalls": 1,
     "tail": ""
   },
@@ -253,7 +253,7 @@
     "file": "/home/user/agent-speak/verify/vercel-ai-sdk/extracted/docs__ai-sdk-core__error-handling__04.ts",
     "outcome": "ran",
     "exit": 0,
-    "ms": 714,
+    "ms": 712,
     "modelCalls": 1,
     "tail": "Mock model: hello from the offline model."
   },
@@ -262,7 +262,7 @@
     "file": "/home/user/agent-speak/verify/vercel-ai-sdk/extracted/docs__ai-sdk-core__error-handling__06.ts",
     "outcome": "ran",
     "exit": 0,
-    "ms": 644,
+    "ms": 679,
     "modelCalls": 1,
     "tail": "Mock model: hello from the offline model.Stream completed normally"
   },
@@ -271,7 +271,7 @@
     "file": "/home/user/agent-speak/verify/vercel-ai-sdk/extracted/docs__ai-sdk-core__error-handling__07.ts",
     "outcome": "ran",
     "exit": 0,
-    "ms": 590,
+    "ms": 630,
     "modelCalls": 1,
     "tail": ""
   },
@@ -280,7 +280,7 @@
     "file": "/home/user/agent-speak/verify/vercel-ai-sdk/extracted/docs__ai-sdk-core__generating-structured-data__01.ts",
     "outcome": "ran",
     "exit": 0,
-    "ms": 664,
+    "ms": 612,
     "modelCalls": 1,
     "tail": ""
   },
@@ -289,7 +289,7 @@
     "file": "/home/user/agent-speak/verify/vercel-ai-sdk/extracted/docs__ai-sdk-core__generating-structured-data__03.ts",
     "outcome": "ran",
     "exit": 0,
-    "ms": 730,
+    "ms": 646,
     "modelCalls": 1,
     "tail": "{\n  recipe: { name: 'example', ingredients: [ [Object] ], steps: [ 'example' ] }\n}"
   },
@@ -298,7 +298,7 @@
     "file": "/home/user/agent-speak/verify/vercel-ai-sdk/extracted/docs__ai-sdk-core__generating-structured-data__11.ts",
     "outcome": "ran",
     "exit": 0,
-    "ms": 717,
+    "ms": 714,
     "modelCalls": 2,
     "tail": ""
   },
@@ -307,7 +307,7 @@
     "file": "/home/user/agent-speak/verify/vercel-ai-sdk/extracted/docs__ai-sdk-core__generating-structured-data__12.ts",
     "outcome": "ran",
     "exit": 0,
-    "ms": 589,
+    "ms": 603,
     "modelCalls": 1,
     "tail": ""
   },
@@ -316,7 +316,7 @@
     "file": "/home/user/agent-speak/verify/vercel-ai-sdk/extracted/docs__ai-sdk-core__generating-structured-data__13.ts",
     "outcome": "ran",
     "exit": 0,
-    "ms": 616,
+    "ms": 589,
     "modelCalls": 1,
     "tail": ""
   },
@@ -325,7 +325,7 @@
     "file": "/home/user/agent-speak/verify/vercel-ai-sdk/extracted/docs__ai-sdk-core__generating-structured-data__14.ts",
     "outcome": "ran",
     "exit": 0,
-    "ms": 524,
+    "ms": 622,
     "modelCalls": 1,
     "tail": "undefined"
   },
@@ -334,7 +334,7 @@
     "file": "/home/user/agent-speak/verify/vercel-ai-sdk/extracted/docs__ai-sdk-core__generating-text__01.tsx",
     "outcome": "ran",
     "exit": 0,
-    "ms": 704,
+    "ms": 906,
     "modelCalls": 1,
     "tail": ""
   },
@@ -343,7 +343,7 @@
     "file": "/home/user/agent-speak/verify/vercel-ai-sdk/extracted/docs__ai-sdk-core__generating-text__04.tsx",
     "outcome": "ran",
     "exit": 0,
-    "ms": 617,
+    "ms": 680,
     "modelCalls": 1,
     "tail": ""
   },
@@ -352,16 +352,16 @@
     "file": "/home/user/agent-speak/verify/vercel-ai-sdk/extracted/docs__ai-sdk-core__generating-text__05.tsx",
     "outcome": "ran",
     "exit": 0,
-    "ms": 673,
+    "ms": 747,
     "modelCalls": 1,
-    "tail": "    inputTokensPerSecond: undefined,\n    effectiveTotalTokensPerSecond: 16956.893316271166,\n    stepTimeMs: 1.625630000000001,\n    responseTimeMs: 0.8845959999999877,\n    toolExecutionMs: {},\n    timeToFirstOutputMs: undefined\n  }\n}"
+    "tail": "    inputTokensPerSecond: undefined,\n    effectiveTotalTokensPerSecond: 15839.008097958053,\n    stepTimeMs: 1.776416999999924,\n    responseTimeMs: 0.9470289999999295,\n    toolExecutionMs: {},\n    timeToFirstOutputMs: undefined\n  }\n}"
   },
   {
     "id": "docs__ai-sdk-core__generating-text__06",
     "file": "/home/user/agent-speak/verify/vercel-ai-sdk/extracted/docs__ai-sdk-core__generating-text__06.ts",
     "outcome": "ran",
     "exit": 0,
-    "ms": 814,
+    "ms": 869,
     "modelCalls": 1,
     "tail": "Mock model: hello from the offline model."
   },
@@ -370,7 +370,7 @@
     "file": "/home/user/agent-speak/verify/vercel-ai-sdk/extracted/docs__ai-sdk-core__generating-text__07.tsx",
     "outcome": "ran",
     "exit": 0,
-    "ms": 587,
+    "ms": 655,
     "modelCalls": 1,
     "tail": ""
   },
@@ -379,7 +379,7 @@
     "file": "/home/user/agent-speak/verify/vercel-ai-sdk/extracted/docs__ai-sdk-core__generating-text__08.tsx",
     "outcome": "ran",
     "exit": 0,
-    "ms": 529,
+    "ms": 677,
     "modelCalls": 1,
     "tail": ""
   },
@@ -388,7 +388,7 @@
     "file": "/home/user/agent-speak/verify/vercel-ai-sdk/extracted/docs__ai-sdk-core__generating-text__09.tsx",
     "outcome": "ran",
     "exit": 0,
-    "ms": 542,
+    "ms": 769,
     "modelCalls": 1,
     "tail": ""
   },
@@ -397,7 +397,7 @@
     "file": "/home/user/agent-speak/verify/vercel-ai-sdk/extracted/docs__ai-sdk-core__generating-text__10.tsx",
     "outcome": "ran",
     "exit": 0,
-    "ms": 598,
+    "ms": 691,
     "modelCalls": 1,
     "tail": "Streaming started { modelId: 'anthropic/claude-sonnet-5.5' }\nStep 0 starting { modelId: 'anthropic/claude-sonnet-5.5' }\nModel call starting { modelId: 'anthropic/claude-sonnet-5.5', messageCount: 1 }\nModel call finished {\n  modelId: 'anthropic/claude-sonnet-5.5',\n  finishReason: 'stop',\n  contentParts: 1\n}"
   },
@@ -406,7 +406,7 @@
     "file": "/home/user/agent-speak/verify/vercel-ai-sdk/extracted/docs__ai-sdk-core__generating-text__11.tsx",
     "outcome": "ran",
     "exit": 0,
-    "ms": 734,
+    "ms": 730,
     "modelCalls": 1,
     "tail": ""
   },
@@ -415,16 +415,16 @@
     "file": "/home/user/agent-speak/verify/vercel-ai-sdk/extracted/docs__ai-sdk-core__lifecycle-callbacks__01.tsx",
     "outcome": "ran",
     "exit": 0,
-    "ms": 745,
+    "ms": 629,
     "modelCalls": 1,
-    "tail": "  callId: 'call-sFTUJ7bATO3ev3Jj3bowoICl',\n  modelId: 'anthropic/claude-sonnet-5.5'\n}\nGeneration finished {\n  callId: 'call-sFTUJ7bATO3ev3Jj3bowoICl',\n  finishReason: 'stop',\n  totalTokens: 15\n}"
+    "tail": "  callId: 'call-0qQGTuckEw7BzO8RolfQSKN4',\n  modelId: 'anthropic/claude-sonnet-5.5'\n}\nGeneration finished {\n  callId: 'call-0qQGTuckEw7BzO8RolfQSKN4',\n  finishReason: 'stop',\n  totalTokens: 15\n}"
   },
   {
     "id": "docs__ai-sdk-core__reasoning__01",
     "file": "/home/user/agent-speak/verify/vercel-ai-sdk/extracted/docs__ai-sdk-core__reasoning__01.ts",
     "outcome": "ran",
     "exit": 0,
-    "ms": 618,
+    "ms": 512,
     "modelCalls": 1,
     "tail": ""
   },
@@ -433,7 +433,7 @@
     "file": "/home/user/agent-speak/verify/vercel-ai-sdk/extracted/docs__ai-sdk-core__reasoning__03.ts",
     "outcome": "ran",
     "exit": 0,
-    "ms": 615,
+    "ms": 736,
     "modelCalls": 1,
     "tail": ""
   },
@@ -442,7 +442,7 @@
     "file": "/home/user/agent-speak/verify/vercel-ai-sdk/extracted/docs__ai-sdk-core__settings__11.ts",
     "outcome": "ran",
     "exit": 0,
-    "ms": 608,
+    "ms": 590,
     "modelCalls": 1,
     "tail": ""
   },
@@ -451,7 +451,7 @@
     "file": "/home/user/agent-speak/verify/vercel-ai-sdk/extracted/docs__ai-sdk-core__testing__01.ts",
     "outcome": "ran-no-model",
     "exit": 0,
-    "ms": 479,
+    "ms": 695,
     "modelCalls": 0,
     "tail": ""
   },
@@ -460,7 +460,7 @@
     "file": "/home/user/agent-speak/verify/vercel-ai-sdk/extracted/docs__ai-sdk-core__testing__02.ts",
     "outcome": "ran-no-model",
     "exit": 0,
-    "ms": 814,
+    "ms": 762,
     "modelCalls": 0,
     "tail": ""
   },
@@ -469,7 +469,7 @@
     "file": "/home/user/agent-speak/verify/vercel-ai-sdk/extracted/docs__ai-sdk-core__testing__03.ts",
     "outcome": "ran-no-model",
     "exit": 0,
-    "ms": 547,
+    "ms": 650,
     "modelCalls": 0,
     "tail": ""
   },
@@ -478,7 +478,7 @@
     "file": "/home/user/agent-speak/verify/vercel-ai-sdk/extracted/docs__ai-sdk-core__testing__04.ts",
     "outcome": "ran-no-model",
     "exit": 0,
-    "ms": 748,
+    "ms": 819,
     "modelCalls": 0,
     "tail": ""
   },
@@ -487,7 +487,7 @@
     "file": "/home/user/agent-speak/verify/vercel-ai-sdk/extracted/docs__ai-sdk-core__tool-search__01.ts",
     "outcome": "ran",
     "exit": 0,
-    "ms": 523,
+    "ms": 505,
     "modelCalls": 2,
     "tail": ""
   },
@@ -496,7 +496,7 @@
     "file": "/home/user/agent-speak/verify/vercel-ai-sdk/extracted/docs__ai-sdk-core__tools-and-tool-calling__01.ts",
     "outcome": "ran",
     "exit": 0,
-    "ms": 623,
+    "ms": 626,
     "modelCalls": 2,
     "tail": ""
   },
@@ -505,7 +505,7 @@
     "file": "/home/user/agent-speak/verify/vercel-ai-sdk/extracted/docs__ai-sdk-core__tools-and-tool-calling__11.ts",
     "outcome": "ran",
     "exit": 0,
-    "ms": 575,
+    "ms": 706,
     "modelCalls": 2,
     "tail": ""
   },
@@ -514,7 +514,7 @@
     "file": "/home/user/agent-speak/verify/vercel-ai-sdk/extracted/docs__ai-sdk-core__tools-and-tool-calling__24.ts",
     "outcome": "ran",
     "exit": 0,
-    "ms": 635,
+    "ms": 565,
     "modelCalls": 1,
     "tail": ""
   },
@@ -523,7 +523,7 @@
     "file": "/home/user/agent-speak/verify/vercel-ai-sdk/extracted/docs__ai-sdk-core__tools-and-tool-calling__30.ts",
     "outcome": "ran",
     "exit": 0,
-    "ms": 550,
+    "ms": 572,
     "modelCalls": 1,
     "tail": "Complete input: { location: 'example' }"
   },
@@ -532,7 +532,7 @@
     "file": "/home/user/agent-speak/verify/vercel-ai-sdk/extracted/docs__ai-sdk-core__tools-and-tool-calling__31.ts",
     "outcome": "ran-no-model",
     "exit": 0,
-    "ms": 601,
+    "ms": 515,
     "modelCalls": 0,
     "tail": ""
   },
@@ -541,7 +541,7 @@
     "file": "/home/user/agent-speak/verify/vercel-ai-sdk/extracted/docs__foundations__provider-options__02.ts",
     "outcome": "ran",
     "exit": 0,
-    "ms": 548,
+    "ms": 686,
     "modelCalls": 1,
     "tail": "    cacheReadTokens: undefined,\n    cacheWriteTokens: undefined\n  },\n  outputTokens: 5,\n  outputTokenDetails: { textTokens: 5, reasoningTokens: undefined },\n  totalTokens: 15\n}\nReasoning tokens: undefined"
   },
@@ -550,7 +550,7 @@
     "file": "/home/user/agent-speak/verify/vercel-ai-sdk/extracted/docs__foundations__provider-options__04.ts",
     "outcome": "ran",
     "exit": 0,
-    "ms": 653,
+    "ms": 718,
     "modelCalls": 1,
     "tail": "Reasoning: []"
   },
@@ -559,7 +559,7 @@
     "file": "/home/user/agent-speak/verify/vercel-ai-sdk/extracted/docs__foundations__provider-options__05.ts",
     "outcome": "ran",
     "exit": 0,
-    "ms": 531,
+    "ms": 689,
     "modelCalls": 1,
     "tail": ""
   },
@@ -568,7 +568,7 @@
     "file": "/home/user/agent-speak/verify/vercel-ai-sdk/extracted/docs__foundations__provider-options__06.ts",
     "outcome": "ran",
     "exit": 0,
-    "ms": 754,
+    "ms": 943,
     "modelCalls": 1,
     "tail": "Reasoning: undefined\nAnswer: Mock model: hello from the offline model."
   },
@@ -577,7 +577,7 @@
     "file": "/home/user/agent-speak/verify/vercel-ai-sdk/extracted/docs__foundations__provider-options__07.ts",
     "outcome": "ran",
     "exit": 0,
-    "ms": 680,
+    "ms": 814,
     "modelCalls": 1,
     "tail": ""
   },
@@ -586,7 +586,7 @@
     "file": "/home/user/agent-speak/verify/vercel-ai-sdk/extracted/docs__foundations__provider-options__08.ts",
     "outcome": "ran",
     "exit": 0,
-    "ms": 609,
+    "ms": 683,
     "modelCalls": 1,
     "tail": ""
   },
@@ -595,7 +595,7 @@
     "file": "/home/user/agent-speak/verify/vercel-ai-sdk/extracted/docs__foundations__provider-options__09.ts",
     "outcome": "ran",
     "exit": 0,
-    "ms": 563,
+    "ms": 777,
     "modelCalls": 1,
     "tail": ""
   },
@@ -604,7 +604,7 @@
     "file": "/home/user/agent-speak/verify/vercel-ai-sdk/extracted/docs__foundations__provider-options__10.ts",
     "outcome": "ran",
     "exit": 0,
-    "ms": 767,
+    "ms": 581,
     "modelCalls": 1,
     "tail": ""
   },
@@ -613,7 +613,7 @@
     "file": "/home/user/agent-speak/verify/vercel-ai-sdk/extracted/docs__foundations__provider-options__11.ts",
     "outcome": "ran",
     "exit": 0,
-    "ms": 618,
+    "ms": 518,
     "modelCalls": 1,
     "tail": ""
   },
@@ -622,7 +622,7 @@
     "file": "/home/user/agent-speak/verify/vercel-ai-sdk/extracted/docs__foundations__streaming__01.ts",
     "outcome": "ran",
     "exit": 0,
-    "ms": 564,
+    "ms": 717,
     "modelCalls": 1,
     "tail": "Mock model: hello from the offline model."
   },
@@ -631,7 +631,7 @@
     "file": "/home/user/agent-speak/verify/vercel-ai-sdk/extracted/docs__foundations__tools__04.ts",
     "outcome": "ran",
     "exit": 0,
-    "ms": 672,
+    "ms": 583,
     "modelCalls": 1,
     "tail": ""
   },
@@ -646,7 +646,7 @@
     "file": "/home/user/agent-speak/verify/vercel-ai-sdk/extracted/docs__reference__ai-sdk-core__generate-text__01.ts",
     "outcome": "ran",
     "exit": 0,
-    "ms": 695,
+    "ms": 826,
     "modelCalls": 1,
     "tail": "Mock model: hello from the offline model."
   },
@@ -655,7 +655,7 @@
     "file": "/home/user/agent-speak/verify/vercel-ai-sdk/extracted/docs__reference__ai-sdk-core__loop-finished__01.ts",
     "outcome": "ran",
     "exit": 0,
-    "ms": 665,
+    "ms": 719,
     "modelCalls": 1,
     "tail": ""
   },
@@ -664,7 +664,7 @@
     "file": "/home/user/agent-speak/verify/vercel-ai-sdk/extracted/docs__reference__ai-sdk-core__output__01.ts",
     "outcome": "ran",
     "exit": 0,
-    "ms": 694,
+    "ms": 646,
     "modelCalls": 1,
     "tail": ""
   },
@@ -673,7 +673,7 @@
     "file": "/home/user/agent-speak/verify/vercel-ai-sdk/extracted/docs__reference__ai-sdk-core__stream-text__01.ts",
     "outcome": "ran",
     "exit": 0,
-    "ms": 737,
+    "ms": 655,
     "modelCalls": 1,
     "tail": "Mock model: hello from the offline model."
   },
@@ -682,7 +682,7 @@
     "file": "/home/user/agent-speak/verify/vercel-ai-sdk/extracted/docs__reference__ai-sdk-core__tool-loop-agent__10.ts",
     "outcome": "ran",
     "exit": 0,
-    "ms": 626,
+    "ms": 711,
     "modelCalls": 2,
     "tail": "Mock model: hello from the offline model."
   },
@@ -691,7 +691,7 @@
     "file": "/home/user/agent-speak/verify/vercel-ai-sdk/extracted/providers__ai-sdk-providers__anthropic__01.ts",
     "outcome": "ran",
     "exit": 0,
-    "ms": 580,
+    "ms": 699,
     "modelCalls": 1,
     "tail": "Mock model: hello from the offline model."
   },
@@ -700,7 +700,7 @@
     "file": "/home/user/agent-speak/verify/vercel-ai-sdk/extracted/providers__ai-sdk-providers__anthropic__06.ts",
     "outcome": "ran",
     "exit": 0,
-    "ms": 588,
+    "ms": 601,
     "modelCalls": 1,
     "tail": ""
   },
@@ -709,7 +709,7 @@
     "file": "/home/user/agent-speak/verify/vercel-ai-sdk/extracted/providers__ai-sdk-providers__anthropic__07.ts",
     "outcome": "ran",
     "exit": 0,
-    "ms": 667,
+    "ms": 726,
     "modelCalls": 1,
     "tail": ""
   },
@@ -718,7 +718,7 @@
     "file": "/home/user/agent-speak/verify/vercel-ai-sdk/extracted/providers__ai-sdk-providers__anthropic__08.ts",
     "outcome": "ran",
     "exit": 0,
-    "ms": 572,
+    "ms": 633,
     "modelCalls": 1,
     "tail": ""
   },
@@ -727,7 +727,7 @@
     "file": "/home/user/agent-speak/verify/vercel-ai-sdk/extracted/providers__ai-sdk-providers__anthropic__09.ts",
     "outcome": "ran",
     "exit": 0,
-    "ms": 683,
+    "ms": 722,
     "modelCalls": 1,
     "tail": "    noCacheTokens: 10,\n    cacheReadTokens: undefined,\n    cacheWriteTokens: undefined\n  },\n  outputTokens: 5,\n  outputTokenDetails: { textTokens: 5, reasoningTokens: undefined },\n  totalTokens: 15\n}"
   },
@@ -736,7 +736,7 @@
     "file": "/home/user/agent-speak/verify/vercel-ai-sdk/extracted/providers__ai-sdk-providers__anthropic__10.ts",
     "outcome": "ran",
     "exit": 0,
-    "ms": 755,
+    "ms": 844,
     "modelCalls": 1,
     "tail": ""
   },
@@ -745,7 +745,7 @@
     "file": "/home/user/agent-speak/verify/vercel-ai-sdk/extracted/providers__ai-sdk-providers__anthropic__11.ts",
     "outcome": "ran",
     "exit": 0,
-    "ms": 711,
+    "ms": 656,
     "modelCalls": 1,
     "tail": ""
   },
@@ -754,7 +754,7 @@
     "file": "/home/user/agent-speak/verify/vercel-ai-sdk/extracted/providers__ai-sdk-providers__anthropic__13.ts",
     "outcome": "ran",
     "exit": 0,
-    "ms": 655,
+    "ms": 656,
     "modelCalls": 1,
     "tail": ""
   },
@@ -763,7 +763,7 @@
     "file": "/home/user/agent-speak/verify/vercel-ai-sdk/extracted/providers__ai-sdk-providers__anthropic__14.ts",
     "outcome": "ran",
     "exit": 0,
-    "ms": 719,
+    "ms": 797,
     "modelCalls": 1,
     "tail": ""
   },
@@ -772,7 +772,7 @@
     "file": "/home/user/agent-speak/verify/vercel-ai-sdk/extracted/providers__ai-sdk-providers__anthropic__15.ts",
     "outcome": "ran",
     "exit": 0,
-    "ms": 800,
+    "ms": 715,
     "modelCalls": 1,
     "tail": ""
   },
@@ -781,7 +781,7 @@
     "file": "/home/user/agent-speak/verify/vercel-ai-sdk/extracted/providers__ai-sdk-providers__anthropic__17.ts",
     "outcome": "ran",
     "exit": 0,
-    "ms": 561,
+    "ms": 628,
     "modelCalls": 1,
     "tail": "undefined"
   },
@@ -790,7 +790,7 @@
     "file": "/home/user/agent-speak/verify/vercel-ai-sdk/extracted/providers__ai-sdk-providers__anthropic__18.ts",
     "outcome": "ran",
     "exit": 0,
-    "ms": 672,
+    "ms": 618,
     "modelCalls": 1,
     "tail": "undefined\n[]\nMock model: hello from the offline model."
   },
@@ -799,7 +799,7 @@
     "file": "/home/user/agent-speak/verify/vercel-ai-sdk/extracted/providers__ai-sdk-providers__anthropic__21.ts",
     "outcome": "ran",
     "exit": 0,
-    "ms": 594,
+    "ms": 879,
     "modelCalls": 2,
     "tail": ""
   },
@@ -808,7 +808,7 @@
     "file": "/home/user/agent-speak/verify/vercel-ai-sdk/extracted/providers__ai-sdk-providers__anthropic__23.ts",
     "outcome": "ran",
     "exit": 0,
-    "ms": 683,
+    "ms": 724,
     "modelCalls": 1,
     "tail": ""
   },
@@ -817,7 +817,7 @@
     "file": "/home/user/agent-speak/verify/vercel-ai-sdk/extracted/providers__ai-sdk-providers__anthropic__25.ts",
     "outcome": "ran",
     "exit": 0,
-    "ms": 648,
+    "ms": 818,
     "modelCalls": 1,
     "tail": "undefined\n[]\nMock model: hello from the offline model."
   },
@@ -826,7 +826,7 @@
     "file": "/home/user/agent-speak/verify/vercel-ai-sdk/extracted/providers__ai-sdk-providers__anthropic__26.ts",
     "outcome": "ran",
     "exit": 0,
-    "ms": 597,
+    "ms": 922,
     "modelCalls": 1,
     "tail": "undefined"
   },
@@ -835,7 +835,7 @@
     "file": "/home/user/agent-speak/verify/vercel-ai-sdk/extracted/providers__ai-sdk-providers__anthropic__28.ts",
     "outcome": "ran",
     "exit": 0,
-    "ms": 671,
+    "ms": 732,
     "modelCalls": 1,
     "tail": ""
   },
@@ -844,7 +844,7 @@
     "file": "/home/user/agent-speak/verify/vercel-ai-sdk/extracted/providers__ai-sdk-providers__anthropic__33.ts",
     "outcome": "ran",
     "exit": 0,
-    "ms": 516,
+    "ms": 765,
     "modelCalls": 1,
     "tail": "Mock model: hello from the offline model.\nCache read tokens: undefined\nCache write tokens: undefined"
   },
@@ -853,7 +853,7 @@
     "file": "/home/user/agent-speak/verify/vercel-ai-sdk/extracted/providers__ai-sdk-providers__anthropic__42.ts",
     "outcome": "ran",
     "exit": 0,
-    "ms": 663,
+    "ms": 849,
     "modelCalls": 1,
     "tail": ""
   },
@@ -862,7 +862,7 @@
     "file": "/home/user/agent-speak/verify/vercel-ai-sdk/extracted/providers__ai-sdk-providers__anthropic__45.ts",
     "outcome": "ran",
     "exit": 0,
-    "ms": 681,
+    "ms": 807,
     "modelCalls": 1,
     "tail": ""
   },
@@ -871,7 +871,7 @@
     "file": "/home/user/agent-speak/verify/vercel-ai-sdk/extracted/providers__ai-sdk-providers__anthropic__46.ts",
     "outcome": "ran",
     "exit": 0,
-    "ms": 562,
+    "ms": 609,
     "modelCalls": 1,
     "tail": ""
   },
@@ -880,7 +880,7 @@
     "file": "/home/user/agent-speak/verify/vercel-ai-sdk/extracted/providers__ai-sdk-providers__anthropic__47.ts",
     "outcome": "ran",
     "exit": 0,
-    "ms": 501,
+    "ms": 704,
     "modelCalls": 1,
     "tail": ""
   },
@@ -889,7 +889,7 @@
     "file": "/home/user/agent-speak/verify/vercel-ai-sdk/extracted/providers__ai-sdk-providers__anthropic__49.ts",
     "outcome": "ran",
     "exit": 0,
-    "ms": 691,
+    "ms": 681,
     "modelCalls": 1,
     "tail": ""
   },
@@ -898,7 +898,7 @@
     "file": "/home/user/agent-speak/verify/vercel-ai-sdk/extracted/providers__ai-sdk-providers__anthropic__50.ts",
     "outcome": "ran",
     "exit": 0,
-    "ms": 590,
+    "ms": 671,
     "modelCalls": 1,
     "tail": ""
   },
@@ -907,7 +907,7 @@
     "file": "/home/user/agent-speak/verify/vercel-ai-sdk/extracted/providers__ai-sdk-providers__anthropic__51.ts",
     "outcome": "ran",
     "exit": 0,
-    "ms": 595,
+    "ms": 640,
     "modelCalls": 1,
     "tail": ""
   },
@@ -931,7 +931,7 @@
     "file": "/home/user/agent-speak/verify/vercel-ai-sdk/extracted/providers__ai-sdk-providers__anthropic__59.ts",
     "outcome": "ran",
     "exit": 0,
-    "ms": 501,
+    "ms": 512,
     "modelCalls": 2,
     "tail": ""
   },
@@ -940,7 +940,7 @@
     "file": "/home/user/agent-speak/verify/vercel-ai-sdk/extracted/providers__ai-sdk-providers__anthropic__60.ts",
     "outcome": "ran",
     "exit": 0,
-    "ms": 437,
+    "ms": 559,
     "modelCalls": 1,
     "tail": ""
   },
@@ -949,7 +949,7 @@
     "file": "/home/user/agent-speak/verify/vercel-ai-sdk/extracted/providers__ai-sdk-providers__openai__01.ts",
     "outcome": "ran",
     "exit": 0,
-    "ms": 545,
+    "ms": 611,
     "modelCalls": 1,
     "tail": "Mock model: hello from the offline model."
   },
@@ -958,7 +958,7 @@
     "file": "/home/user/agent-speak/verify/vercel-ai-sdk/extracted/providers__ai-sdk-providers__openai__06.ts",
     "outcome": "ran",
     "exit": 0,
-    "ms": 648,
+    "ms": 646,
     "modelCalls": 1,
     "tail": ""
   },
@@ -967,7 +967,7 @@
     "file": "/home/user/agent-speak/verify/vercel-ai-sdk/extracted/providers__ai-sdk-providers__openai__10.ts",
     "outcome": "ran",
     "exit": 0,
-    "ms": 630,
+    "ms": 572,
     "modelCalls": 2,
     "tail": ""
   },
@@ -976,7 +976,7 @@
     "file": "/home/user/agent-speak/verify/vercel-ai-sdk/extracted/providers__ai-sdk-providers__openai__12.ts",
     "outcome": "ran",
     "exit": 0,
-    "ms": 646,
+    "ms": 772,
     "modelCalls": 1,
     "tail": "Reasoning: []"
   },
@@ -985,7 +985,7 @@
     "file": "/home/user/agent-speak/verify/vercel-ai-sdk/extracted/providers__ai-sdk-providers__openai__14.ts",
     "outcome": "ran",
     "exit": 0,
-    "ms": 598,
+    "ms": 723,
     "modelCalls": 1,
     "tail": ""
   },
@@ -994,7 +994,7 @@
     "file": "/home/user/agent-speak/verify/vercel-ai-sdk/extracted/providers__ai-sdk-providers__openai__17.ts",
     "outcome": "ran",
     "exit": 0,
-    "ms": 735,
+    "ms": 827,
     "modelCalls": 1,
     "tail": ""
   },
@@ -1003,7 +1003,7 @@
     "file": "/home/user/agent-speak/verify/vercel-ai-sdk/extracted/providers__ai-sdk-providers__openai__18.ts",
     "outcome": "ran",
     "exit": 0,
-    "ms": 551,
+    "ms": 758,
     "modelCalls": 2,
     "tail": ""
   },
@@ -1012,7 +1012,7 @@
     "file": "/home/user/agent-speak/verify/vercel-ai-sdk/extracted/providers__ai-sdk-providers__openai__23.ts",
     "outcome": "ran",
     "exit": 0,
-    "ms": 633,
+    "ms": 659,
     "modelCalls": 1,
     "tail": ""
   },
@@ -1021,7 +1021,7 @@
     "file": "/home/user/agent-speak/verify/vercel-ai-sdk/extracted/providers__ai-sdk-providers__openai__24.ts",
     "outcome": "ran",
     "exit": 0,
-    "ms": 688,
+    "ms": 695,
     "modelCalls": 1,
     "tail": ""
   },
@@ -1030,7 +1030,7 @@
     "file": "/home/user/agent-speak/verify/vercel-ai-sdk/extracted/providers__ai-sdk-providers__openai__26.ts",
     "outcome": "ran",
     "exit": 0,
-    "ms": 693,
+    "ms": 577,
     "modelCalls": 1,
     "tail": ""
   },
@@ -1039,7 +1039,7 @@
     "file": "/home/user/agent-speak/verify/vercel-ai-sdk/extracted/providers__ai-sdk-providers__openai__27.ts",
     "outcome": "ran",
     "exit": 0,
-    "ms": 622,
+    "ms": 793,
     "modelCalls": 1,
     "tail": ""
   },
@@ -1048,7 +1048,7 @@
     "file": "/home/user/agent-speak/verify/vercel-ai-sdk/extracted/providers__ai-sdk-providers__openai__37.ts",
     "outcome": "ran",
     "exit": 0,
-    "ms": 633,
+    "ms": 642,
     "modelCalls": 1,
     "tail": ""
   },
@@ -1057,7 +1057,7 @@
     "file": "/home/user/agent-speak/verify/vercel-ai-sdk/extracted/providers__ai-sdk-providers__openai__38.ts",
     "outcome": "ran",
     "exit": 0,
-    "ms": 669,
+    "ms": 596,
     "modelCalls": 2,
     "tail": ""
   },
@@ -1066,7 +1066,7 @@
     "file": "/home/user/agent-speak/verify/vercel-ai-sdk/extracted/providers__ai-sdk-providers__openai__40.ts",
     "outcome": "ran",
     "exit": 0,
-    "ms": 654,
+    "ms": 719,
     "modelCalls": 2,
     "tail": ""
   },
@@ -1075,7 +1075,7 @@
     "file": "/home/user/agent-speak/verify/vercel-ai-sdk/extracted/providers__ai-sdk-providers__openai__41.ts",
     "outcome": "ran",
     "exit": 0,
-    "ms": 535,
+    "ms": 833,
     "modelCalls": 2,
     "tail": ""
   },
@@ -1084,7 +1084,7 @@
     "file": "/home/user/agent-speak/verify/vercel-ai-sdk/extracted/providers__ai-sdk-providers__openai__43.ts",
     "outcome": "ran",
     "exit": 0,
-    "ms": 644,
+    "ms": 780,
     "modelCalls": 1,
     "tail": "  provider: 'mock',\n  modelId: 'openai:gpt-6-sol',\n  content: [\n    { type: 'text', text: 'Mock model: hello from the offline model.' }\n  ],\n  [Symbol(vercel.ai.error)]: true,\n  [Symbol(vercel.ai.error.AI_ToolChoiceViolationError)]: true\n}"
   },
@@ -1093,7 +1093,7 @@
     "file": "/home/user/agent-speak/verify/vercel-ai-sdk/extracted/providers__ai-sdk-providers__openai__53.ts",
     "outcome": "ran",
     "exit": 0,
-    "ms": 542,
+    "ms": 642,
     "modelCalls": 1,
     "tail": ""
   },
@@ -1102,7 +1102,7 @@
     "file": "/home/user/agent-speak/verify/vercel-ai-sdk/extracted/providers__ai-sdk-providers__openai__61.ts",
     "outcome": "ran",
     "exit": 0,
-    "ms": 698,
+    "ms": 763,
     "modelCalls": 1,
     "tail": "Mock model: hello from the offline model.\nReasoning tokens: undefined"
   },
@@ -1111,7 +1111,7 @@
     "file": "/home/user/agent-speak/verify/vercel-ai-sdk/extracted/providers__ai-sdk-providers__openai__62.ts",
     "outcome": "error",
     "exit": 1,
-    "ms": 798,
+    "ms": 861,
     "modelCalls": 0,
     "tail": "    at async asyncRunEntryPointWithESMLoader (node:internal/modules/run_main:117:5) {\n  cause: undefined,\n  prompt: undefined,\n  [Symbol(vercel.ai.error)]: true,\n  [Symbol(vercel.ai.error.AI_InvalidPromptError)]: true\n}\n\nNode.js v22.23.5"
   },
@@ -1120,7 +1120,7 @@
     "file": "/home/user/agent-speak/verify/vercel-ai-sdk/extracted/providers__ai-sdk-providers__openai__64.ts",
     "outcome": "ran",
     "exit": 0,
-    "ms": 594,
+    "ms": 689,
     "modelCalls": 1,
     "tail": ""
   },
@@ -1129,7 +1129,7 @@
     "file": "/home/user/agent-speak/verify/vercel-ai-sdk/extracted/providers__ai-sdk-providers__openai__74.ts",
     "outcome": "ran",
     "exit": 0,
-    "ms": 560,
+    "ms": 580,
     "modelCalls": 1,
     "tail": "Cached tokens: undefined"
   },
@@ -1138,7 +1138,7 @@
     "file": "/home/user/agent-speak/verify/vercel-ai-sdk/extracted/providers__ai-sdk-providers__openai__75.ts",
     "outcome": "ran",
     "exit": 0,
-    "ms": 507,
+    "ms": 627,
     "modelCalls": 1,
     "tail": "Cached tokens: undefined"
   },
@@ -1147,7 +1147,7 @@
     "file": "/home/user/agent-speak/verify/vercel-ai-sdk/extracted/providers__ai-sdk-providers__openai__76.ts",
     "outcome": "ran",
     "exit": 0,
-    "ms": 581,
+    "ms": 579,
     "modelCalls": 1,
     "tail": "Cache reads: undefined\nCache writes: undefined"
   },
@@ -1156,7 +1156,7 @@
     "file": "/home/user/agent-speak/verify/vercel-ai-sdk/extracted/providers__ai-sdk-providers__openai__77.ts",
     "outcome": "ran",
     "exit": 0,
-    "ms": 600,
+    "ms": 618,
     "modelCalls": 1,
     "tail": "Cached tokens: undefined"
   },

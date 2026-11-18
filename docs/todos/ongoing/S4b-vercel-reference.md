@@ -3,10 +3,10 @@
 | Field | Value |
 | --- | --- |
 | ID | `S4b` |
-| Status | `ready` |
+| Status | `ongoing` |
 | Plan | [SDK references §4 S4](../../plans/sdk-references.md#s4-vercel-ai-sdk) |
 | Round / milestone | Round S (SDK references), M1 |
-| Depends on | [S4a](../ready/S4a-vercel-verify.md) |
+| Depends on | [S4a](../done/S4a-vercel-verify.md) |
 | Size | M |
 
 ## Goal

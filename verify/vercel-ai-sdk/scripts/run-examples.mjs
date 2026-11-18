@@ -64,7 +64,8 @@ await mkdir("results", { recursive: true });
 
 async function runOne(t) {
   const code = await readFile(t.file, "utf8");
-  const ext = needsExternal(code);
+  // Our own examples are offline by construction (in-process MCP server included).
+  const ext = ownExamples ? null : needsExternal(code);
   if (ext) return { ...t, outcome: "skipped", reason: ext };
   const cwd = await mkdtemp(join(tmpdir(), "vai-ex-"));
   if (existsSync(join(root, "fixtures"))) await cp(join(root, "fixtures"), cwd, { recursive: true });
