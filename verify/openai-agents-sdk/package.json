@@ -1,0 +1,26 @@
+{
+  "name": "@agent-speak/verify-openai-agents-sdk",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "fetch-docs": "node scripts/fetch-docs.mjs",
+    "extract": "node scripts/extract-examples.mjs",
+    "typecheck:docs": "node scripts/typecheck-examples.mjs",
+    "run:docs": "node scripts/run-examples.mjs",
+    "factcheck": "node scripts/factcheck-api.mjs",
+    "typecheck": "tsc -p tsconfig.json",
+    "test": "tsc -p tsconfig.json && node scripts/run-examples.mjs examples",
+    "verify": "pnpm run extract && pnpm run typecheck:docs && pnpm run run:docs && pnpm run factcheck && pnpm test"
+  },
+  "dependencies": {
+    "@openai/agents": "0.21.0",
+    "@openai/agents-core": "0.21.0",
+    "@openai/agents-extensions": "0.21.0",
+    "@openai/agents-openai": "0.21.0",
+    "@openai/agents-realtime": "0.21.0",
+    "@valibot/to-json-schema": "1.8.0",
+    "openai": "7.49.0",
+    "valibot": "1.5.0",
+    "zod": "4.6.7"
+  }
+}
