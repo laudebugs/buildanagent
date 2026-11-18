@@ -3,10 +3,10 @@
 | Field | Value |
 | --- | --- |
 | ID | `G3a` |
-| Status | `ready` |
+| Status | `ongoing` |
 | Plan | [Build guides §4](../../plans/build-guides.md#4-research-questions) |
 | Round / milestone | Round G (build guides), M3 |
-| Depends on | [G2a](../ready/G2a-research-harness.md) |
+| Depends on | [G2a](../done/G2a-research-harness.md) |
 | Size | L |
 
 ## Goal
