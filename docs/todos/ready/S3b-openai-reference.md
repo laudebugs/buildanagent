@@ -6,7 +6,7 @@
 | Status | `ready` |
 | Plan | [SDK references §4 S3](../../plans/sdk-references.md#s3-openai-agents-sdk) |
 | Round / milestone | Round S (SDK references), M1 |
-| Depends on | [S3a](../ready/S3a-openai-verify.md) |
+| Depends on | [S3a](../done/S3a-openai-verify.md) |
 | Size | M |
 
 ## Goal

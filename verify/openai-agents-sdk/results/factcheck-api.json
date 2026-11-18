@@ -1,0 +1,52 @@
+{
+  "package": "@openai/agents@0.21.0",
+  "checkedAt": "2026-11-18T05:23:56.587Z",
+  "checks": {
+    "agentConfiguration": {
+      "documented": 16,
+      "actual": 16,
+      "undocumented": [],
+      "notInPackage": []
+    },
+    "runOptions": {
+      "documented": 17,
+      "actual": 18,
+      "undocumented": [
+        "outputGuardrailBlockedMessage"
+      ],
+      "notInPackage": []
+    },
+    "runConfig": {
+      "documented": 21,
+      "actual": 22,
+      "undocumented": [
+        "outputGuardrailBlockedMessage"
+      ],
+      "notInPackage": []
+    },
+    "runItemEvents": {
+      "documented": 9,
+      "actual": 10,
+      "undocumented": [
+        "compaction_item_created"
+      ],
+      "notInPackage": []
+    },
+    "errors": {
+      "documented": 8,
+      "actual": 11,
+      "undocumented": [
+        "InvalidToolInputError",
+        "InvalidToolOutputError",
+        "SystemError"
+      ],
+      "notInPackage": []
+    },
+    "maxTurnsDefault": {
+      "documented": 10,
+      "actual": 10,
+      "undocumented": [],
+      "notInPackage": []
+    }
+  }
+}

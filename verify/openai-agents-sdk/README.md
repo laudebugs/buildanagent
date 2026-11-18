@@ -1,0 +1,25 @@
+# verify/openai-agents-sdk
+
+Offline verification harness for the OpenAI Agents SDK (JS) docs and our examples, pinned to `@openai/agents@0.21.0`. No API key is needed: model calls go to the SDK's own `ScriptedModel` from `@openai/agents/testing`.
+
+## How it works
+
+The SDK runs its agent loop in-process and resolves model names through a default `ModelProvider`, so the harness swaps the provider rather than the network:
+- **Doc examples** run unmodified under `scripts/scripted-preload.mjs`. It imports `@openai/agents` (which installs the OpenAI provider), replaces that provider with a scripted one through `setDefaultModelProvider()`, and rejects any non-local `fetch`.
+- **The scripted model** (`scripts/scripted-model.mjs`) is a `ScriptedModel` of `modelResponder()` steps. After a tool result it answers; otherwise it calls one function tool with arguments built from its JSON Schema. It answers with schema-shaped JSON when the agent has an `outputType`, and never calls hosted, computer, shell or apply-patch tools.
+- **Each run** gets a temp working directory with `fixtures/`, an allowlisted environment with `OPENAI_AGENTS_DISABLE_TRACING=1`, and a timeout. Sandbox examples run from their own folder, because they mount sibling folders relative to it.
+- **Extraction** copies `examples/` with its layout, so the docs' `?raw` imports and the files' relative imports resolve, and marks the copies as ESM, as a reader's project would be.
+
+## Scripts
+
+| Command | Does |
+|---|---|
+| `pnpm run fetch-docs` | Mirror the English docs, `examples/docs` and the license from git tag `v<pinned version>` into `docs/reference/openai-agents-sdk/source/` (committed) |
+| `pnpm run extract` | Copy the example files and pull inline TypeScript blocks into `extracted/` (gitignored), mapping each file to the pages that embed it |
+| `pnpm run typecheck:docs` | Compile every source against the pinned packages and classify errors → `results/typecheck-docs.json` |
+| `pnpm run run:docs` | Run complete, type-clean sources on the scripted model → `results/run-docs.json` |
+| `pnpm run factcheck` | Diff the guides' option tables, stream events and error list against the package → `results/factcheck-api.json` |
+| `pnpm test` | Type-check and run our examples in `examples/` → `results/run-examples.json` (non-zero exit on failure) |
+| `pnpm run verify` | All of the above except `fetch-docs` |
+
+Tunables: `EXAMPLE_TIMEOUT_MS` (default 60000) and `EXAMPLE_CONCURRENCY` (default 4). Run one example with `node scripts/run-examples.mjs examples --only 05-approval-resume`.

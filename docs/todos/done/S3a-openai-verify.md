@@ -3,7 +3,7 @@
 | Field | Value |
 | --- | --- |
 | ID | `S3a` |
-| Status | `ongoing` |
+| Status | `done` |
 | Plan | [SDK references §4 S3](../../plans/sdk-references.md#s3-openai-agents-sdk) |
 | Round / milestone | Round S (SDK references), M1 |
 | Depends on | [S2](../done/S2-pi-reference.md) |
@@ -37,22 +37,22 @@ Build `verify/openai-agents-sdk/`, the offline harness for `@openai/agents`, and
 
 ## Tasks
 
-- [ ] Research: confirm versions, the docs layout, the release tag, the license, and the SDK's testing seam; write findings into the todo's notes
-- [ ] Create `verify/openai-agents-sdk/` as a workspace package with exact pins and the shared tsconfig
-- [ ] Write `scripts/fetch-docs.mjs` and commit the mirror to `docs/reference/openai-agents-sdk/source/` with `_manifest.json`
-- [ ] Write `scripts/extract-examples.mjs`, resolving `.mdx` embeds and copying `examples/` files with their relative imports intact
-- [ ] Write `scripts/typecheck-examples.mjs` (port from Pi) and classify every error; fix harness faults before recording findings
-- [ ] Write the test model and `scripts/run-examples.mjs`, with the environment allowlist and network guard
-- [ ] Write `scripts/factcheck-api.mjs` for the documented surfaces: agent options, run options, tool definitions, guardrails, run events and stream events
-- [ ] Write behavioral examples: hello agent, function tool, handoff, guardrail tripwire, human approval and resume from `RunState`, session, structured output, and the triage capstone
-- [ ] Run `pnpm run verify`, commit `results/`, and push
+- [x] Research: confirm versions, the docs layout, the release tag, the license, and the SDK's testing seam; write findings into the todo's notes
+- [x] Create `verify/openai-agents-sdk/` as a workspace package with exact pins and the shared tsconfig
+- [x] Write `scripts/fetch-docs.mjs` and commit the mirror to `docs/reference/openai-agents-sdk/source/` with `_manifest.json`
+- [x] Write `scripts/extract-examples.mjs`, resolving `.mdx` embeds and copying `examples/` files with their relative imports intact
+- [x] Write `scripts/typecheck-examples.mjs` (port from Pi) and classify every error; fix harness faults before recording findings
+- [x] Write the test model and `scripts/run-examples.mjs`, with the environment allowlist and network guard
+- [x] Write `scripts/factcheck-api.mjs` for the documented surfaces: agent options, run options, tool definitions, guardrails, run events and stream events
+- [x] Write behavioral examples: hello agent, function tool, handoff, guardrail tripwire, human approval and resume from `RunState`, session, structured output, and the triage capstone
+- [x] Run `pnpm run verify`, commit `results/`, and push
 
 ## Acceptance criteria
 
-- [ ] `pnpm --filter @agent-speak/verify-openai-agents-sdk test` passes offline
-- [ ] `pnpm run verify` inside the package regenerates every result file
-- [ ] Every Tier 1 api-mismatch is classified as a docs, SDK or harness issue
-- [ ] `pnpm check` and `pnpm typecheck` pass at the root
+- [x] `pnpm --filter @agent-speak/verify-openai-agents-sdk test` passes offline
+- [x] `pnpm run verify` inside the package regenerates every result file
+- [x] Every Tier 1 api-mismatch is classified as a docs, SDK or harness issue
+- [x] `pnpm check` and `pnpm typecheck` pass at the root
 
 ## Tests
 
@@ -68,7 +68,7 @@ MDX embeds may hide code from the extractor; report any unresolved embed. If the
 
 ## Definition of done
 
-- [ ] Claimed: the first commit moved this file `ready/` → `ongoing/` (Status `ongoing`)
-- [ ] Prose drafted with `/anthropic-skills:writing` and reviewed with `/anthropic-skills:writing-review`, with the fixes applied and changed claims re-checked
-- [ ] `pnpm check`, `pnpm typecheck` and `pnpm test` pass locally; pushed after each meaningful step
-- [ ] This file moved `ongoing/` → `done/` (Status `done`), and the plan's todo table updated
+- [x] Claimed: the first commit moved this file `ready/` → `ongoing/` (Status `ongoing`)
+- [x] Prose drafted with `/anthropic-skills:writing` and reviewed with `/anthropic-skills:writing-review`, with the fixes applied and changed claims re-checked
+- [x] `pnpm check`, `pnpm typecheck` and `pnpm test` pass locally; pushed after each meaningful step
+- [x] This file moved `ongoing/` → `done/` (Status `done`), and the plan's todo table updated

@@ -75,7 +75,7 @@ Each SDK takes two todos. The verification todo (a) does steps 1–5 of the [pro
 | --- | --- | --- |
 | S1 | Claude Agent SDK reference | done |
 | S2 | Pi reference | done |
-| S3a | OpenAI Agents SDK: mirror, verification harness and behavioral examples | S2 |
+| S3a | OpenAI Agents SDK: mirror, verification harness and behavioral examples (done) | S2 |
 | S3b | OpenAI Agents SDK: guide and fact-check, written and reviewed | S3a |
 | S4a | Vercel AI SDK: mirror, verification harness and behavioral examples | S3b |
 | S4b | Vercel AI SDK: guide and fact-check, written and reviewed | S4a |

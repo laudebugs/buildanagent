@@ -5,3 +5,4 @@ docs/reference/claude-agent-sdk/source/
 verify/*/extracted/
 verify/*/.tmp/
 verify/*/.tmp-tsconfig.json
+verify/*/.tmp-*
