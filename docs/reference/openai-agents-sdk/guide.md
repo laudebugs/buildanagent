@@ -6,7 +6,7 @@ The OpenAI Agents SDK runs a small agent loop inside your Node.js process. It sh
 
 ## 1. The SDK is a library loop that you run and can re-point
 
-`@openai/agents` bundles three packages: `agents-core` (the loop, tools, guardrails, sessions), `agents-openai` (the OpenAI provider and its hosted tools) and `agents-realtime` (voice). `agents-extensions` adds an AI SDK model adapter and more (`packages/agents/README.md`). You call `run(agent, input)`, or `runner.run()` on a long-lived `Runner`, and the loop runs in your process (`running-agents.mdx`):
+`@openai/agents` bundles three packages, as its `package.json` dependencies show: `agents-core` (the loop, tools, guardrails, sessions), `agents-openai` (the OpenAI provider and its hosted tools) and `agents-realtime` (voice). A separate package, `agents-extensions`, adds an AI SDK model adapter (`models.mdx`). You call `run(agent, input)`, or `runner.run()` on a long-lived `Runner`, and the loop runs in your process (`running-agents.mdx`):
 1. Call the current agent's model with the current input.
 2. On a final output, return it. On a handoff, switch agents and keep the history. On tool calls, run the tools, append the results, and go back to step 1.
 3. Throw `MaxTurnsExceededError` once `maxTurns` is reached.
@@ -60,7 +60,7 @@ The SDK groups tools into six categories (`tools.mdx`):
 - **Agents as tools:** another agent, called and returned like a function.
 - **MCP servers:** hosted MCP, Streamable HTTP or stdio.
 - **Hosted tools:** web search, file search, code interpreter, image generation, tool search and programmatic tool calling, which run on OpenAI's side.
-- **Built-in execution tools:** computer use, shell and apply-patch, which run against implementations you supply.
+- **Built-in execution tools:** computer use, shell, apply-patch, and a sandbox agent's shell and filesystem tools. They run against implementations you supply, a hosted container, or the sandbox workspace.
 - **Experimental:** the Codex tool.
 
 A function tool's `execute()` receives arguments already parsed by its Zod schema, and the result returns to the model in the next request:
@@ -135,7 +135,7 @@ const { finalOutput } = await run(agent, "Safari login crashes.");   // finalOut
 
 ## 12. Sandbox agents add a managed workspace
 
-`SandboxAgent` gives the model a persistent workspace with filesystem tools, shell commands and session state. A `Manifest` declares what goes into the workspace, and a sandbox client runs it: `UnixLocalSandboxClient` for trusted local development on macOS or Linux, `DockerSandboxClient`, or a hosted client (`sandbox-agents.mdx`). The JS SDK ships sandbox agents too, not only the Python SDK. Our harness ran the local-sandbox doc example offline, but this reference adds no behavioral test for sandboxes.
+`SandboxAgent` gives the model a persistent workspace with filesystem tools, shell commands and session state. A `Manifest` declares what goes into the workspace, and a sandbox client runs it: `UnixLocalSandboxClient` for trusted local development on macOS or Linux, `DockerSandboxClient`, or a hosted client (`sandbox-agents.mdx`). The JS SDK ships sandbox agents too, not only the Python SDK. Seven sandbox doc examples ran offline in our harness, but this reference adds no behavioral test for sandboxes. Sandbox capabilities reach the model as ordinary function tools (`exec_command`, `write_stdin`, `view_image`), so a test model must deny them by name (fact-check, Tier 2).
 
 ## 13. First-party test doubles make the whole loop testable offline
 
@@ -157,7 +157,7 @@ The real tool pipeline, guardrails and hooks run between the scripted steps, and
 
 ## 14. Other providers plug in through the model provider
 
-Model names resolve through the runner's `modelProvider`, so the SDK runs on any provider that implements `ModelProvider` or `Model`, and `agents-extensions` adapts AI SDK models (`models.mdx`). `setDefaultModelProvider()` switches the default for every runner. The cost of switching is the OpenAI-only features: hosted tools, server-side sessions, tool search and tracing export.
+Model names resolve through the runner's `modelProvider`, so the SDK runs on any provider that implements `ModelProvider` or `Model`, and `agents-extensions` adapts AI SDK models (`models.mdx`). `setDefaultModelProvider()` switches the default for every runner. The cost of switching is the OpenAI-only features: hosted tools, server-side sessions and tool search, which need the Responses API.
 
 ## 15. Production agents need four decisions made up front
 
