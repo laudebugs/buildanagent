@@ -38,7 +38,7 @@ Both C1 and C2 go through `/anthropic-skills:writing` and `/anthropic-skills:wri
 
 | ID | Title | Depends on |
 | --- | --- | --- |
-| C1 | Feature table for the four SDKs | S4b |
+| C1 | Feature table for the four SDKs (done) | S4b |
 | C2 | Deep comparison, and the research-report refresh | C1 |
 
 ## 5. Risks

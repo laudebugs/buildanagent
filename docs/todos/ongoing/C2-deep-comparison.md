@@ -3,10 +3,10 @@
 | Field | Value |
 | --- | --- |
 | ID | `C2` |
-| Status | `ready` |
+| Status | `ongoing` |
 | Plan | [SDK comparison §3](../../plans/sdk-comparison.md#3-the-deep-comparison-c2) |
 | Round / milestone | Round C (comparison), M2 |
-| Depends on | [C1](../ready/C1-feature-table.md) |
+| Depends on | [C1](../done/C1-feature-table.md) |
 | Size | L |
 
 ## Goal
