@@ -95,7 +95,7 @@ The owner asked to add LangChain after the first four were done (2026-11-18).
 | S3b | OpenAI Agents SDK: guide and fact-check, written and reviewed (done) | S3a |
 | S4a | Vercel AI SDK: mirror, verification harness and behavioral examples (done) | S3b |
 | S4b | Vercel AI SDK: guide and fact-check, written and reviewed (done) | S4a |
-| S5a | LangChain: mirror, verification harness and behavioral examples | S4b |
+| S5a | LangChain: mirror, verification harness and behavioral examples (done) | S4b |
 | S5b | LangChain: guide and fact-check, written and reviewed | S5a |
 
 ## 6. Risks
