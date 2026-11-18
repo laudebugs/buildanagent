@@ -159,7 +159,7 @@ Five areas stayed outside the offline harness:
 - **GitHub authentication and hosted models.** Every run used BYOK. The login, token-priority and billing claims in `docs/auth/` were read, not run, and F6 may differ with GitHub-hosted models.
 - **Server and cloud setups.** Blocks that need an external runtime server, cloud sessions, AHP hosts, managed settings or a CLI at a fixed path were skipped (Tier 2).
 - **Later releases.** The S8a log records that F1–F3 were still present in 1.0.34 on 2026-11-18. I did not repeat that check.
-- **Other languages.** The parity notes for Python, Go, .NET, Java and Rust come from their READMEs in the mirror; no non-TypeScript code was run.
+- **Other languages.** The parity notes for Python, Go, .NET, Java and Rust come from their READMEs in the mirror; no non-TypeScript code was run. The [TypeScript gap report](../../comparison/typescript-gaps.md#github-copilot-sdk-typescript-is-a-first-class-sdk-and-lacks-only-rust-extras) summarizes them: one Rust-only feature and two weaker TypeScript equivalents.
 
 ## Verdict: trust the strict-marked examples, and set the permission handler yourself
 

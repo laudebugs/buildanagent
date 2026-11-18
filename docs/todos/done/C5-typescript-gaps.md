@@ -3,7 +3,7 @@
 | Field | Value |
 | --- | --- |
 | ID | `C5` |
-| Status | `ongoing` |
+| Status | `done` |
 | Plan | [SDK references, TypeScript gap report](../../plans/sdk-references.md#typescript-gap-report-added-2026-11-18) |
 | Round / milestone | M2c (added 2026-11-18) |
 | Depends on | [S8b](../done/S8b-copilot-reference.md) |
@@ -30,14 +30,14 @@ Write `docs/comparison/typescript-gaps.md`: for each SDK whose primary language 
 
 ## Tasks
 
-- [ ] Do the work the plan section describes, citing primary sources at recorded versions
-- [ ] Draft prose with `/anthropic-skills:writing` and review it with `/anthropic-skills:writing-review`
-- [ ] Run the local checks and push
+- [x] Do the work the plan section describes, citing primary sources at recorded versions
+- [x] Draft prose with `/anthropic-skills:writing` and review it with `/anthropic-skills:writing-review`
+- [x] Run the local checks and push
 
 ## Acceptance criteria
 
-- [ ] The deliverables exist, every claim has a source, and review fixes are applied
-- [ ] `pnpm check`, `pnpm typecheck` and `pnpm test` pass
+- [x] The deliverables exist, every claim has a source, and review fixes are applied
+- [x] `pnpm check`, `pnpm typecheck` and `pnpm test` pass
 
 ## Tests
 
@@ -54,6 +54,6 @@ Primary-language docs may be blocked by the network policy; ask the owner to all
 ## Definition of done
 
 - [x] Claimed: the first commit moved this file `ready/` → `ongoing/` (Status `ongoing`)
-- [ ] Prose drafted with `/anthropic-skills:writing` and reviewed with `/anthropic-skills:writing-review`, with the fixes applied and changed claims re-checked
-- [ ] `pnpm check`, `pnpm typecheck` and `pnpm test` pass locally; pushed after each meaningful step
-- [ ] This file moved `ongoing/` → `done/` (Status `done`), and the plan's todo table updated
+- [x] Prose drafted with `/anthropic-skills:writing` and reviewed with `/anthropic-skills:writing-review`, with the fixes applied and changed claims re-checked
+- [x] `pnpm check`, `pnpm typecheck` and `pnpm test` pass locally; pushed after each meaningful step
+- [x] This file moved `ongoing/` → `done/` (Status `done`), and the plan's todo table updated

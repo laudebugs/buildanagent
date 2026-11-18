@@ -153,7 +153,7 @@ F16 stays an unverified note, as the draft marked it. The draft's citations of a
 
 ## TypeScript parity: 14 features missing, 2 weaker, 15 documented only for Python
 
-Python `google-adk` 2.14.1 is ADK's primary implementation. The guide's [TypeScript parity section](guide.md#14-typescript-parity-250-lacks-14-python-features-has-2-in-weaker-form-and-has-15-the-docs-show-only-for-python) lists every gap, and [`results/parity-draft.md`](../../../verify/google-adk/results/parity-draft.md) holds the Python and TypeScript evidence for each. In short:
+Python `google-adk` 2.14.1 is ADK's primary implementation. The guide's [TypeScript parity section](guide.md#14-typescript-parity-250-lacks-14-python-features-has-2-in-weaker-form-and-has-15-the-docs-show-only-for-python) lists every gap, and [`results/parity-draft.md`](../../../verify/google-adk/results/parity-draft.md) holds the Python and TypeScript evidence for each. The [TypeScript gap report](../../comparison/typescript-gaps.md#google-adk-the-port-trails-python-by-14-features-but-the-docs-undersell-it-by-15) sets these counts beside the other SDKs. In short:
 - **Missing from 2.5.0 (14):** among them LiteLLM, context caching, session rewind and `set_default_model`. `AuthenticatedFunctionTool` is already on adk-js main.
 - **Weaker (2):** `outputSchema` enforcement (F10) and parallel tool execution (F11).
 - **In TypeScript, documented only for Python (15):** among them `requireConfirmation` (F2), `App` plugins (F9), resumability, `runLive`, planners and the database session service.

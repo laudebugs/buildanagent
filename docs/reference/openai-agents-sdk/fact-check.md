@@ -80,6 +80,10 @@ Nine programs in `verify/openai-agents-sdk/examples/` assert documented behavior
 
 **F5. One embed lives outside `examples/docs`.** `models.mdx` embeds `examples/basic/prompt-id.ts`. That's harmless for readers, but a mirror or checker that assumes every embed sits in `examples/docs` misses it, as my first extractor did.
 
+## TypeScript parity
+
+Python `openai-agents` is the SDK's primary implementation, so the [TypeScript gap report](../../comparison/typescript-gaps.md#openai-agents-sdk-typescript-lacks-storage-backends-the-voice-pipeline-and-developer-utilities) compares 0.21.0 with Python 0.24.0 at tag `v0.24.0`. The core loop is at parity: tools, guardrails, handoffs, approvals, MCP, tracing, realtime and sandbox agents all exist in both. The JavaScript package lacks nine Python features, among them the SQLite, Redis, SQLAlchemy and other database sessions, `EncryptedSession`, nested handoff history, the `VoicePipeline`, `run_demo_loop` and `draw_graph`. Two more are weaker: no run-level history limit, and five listed tracing integrations against Python's 31. In the other direction, only JavaScript has the browser WebRTC transport, the Twilio and Cloudflare realtime transports and the `aisdk()` bridge. Plan to write your own durable `Session`, because only memory and OpenAI-hosted sessions ship.
+
 ## Verdict: build from the examples, and check names before you match on them
 
 The OpenAI Agents SDK docs are the most accurate of the three references so far. Every one of their 182 sources compiles against 0.21.0 without an API error, every documented option exists, and the loop, guardrails, approvals, sessions and structured output behave as written. Two small errors remain: handoff tool names keep their case (F1), and `instructions` is optional (F2). A team can build from the docs' examples as written, provided it treats tracing as an explicit decision (F3) and reruns `pnpm run verify` at each upgrade.
