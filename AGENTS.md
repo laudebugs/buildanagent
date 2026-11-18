@@ -11,11 +11,18 @@ Instructions for AI coding agents (Claude Code, Codex, OpenCode, Pi, etc.) worki
 - `README.md`: project overview and doc index.
 - `docs/reference/<sdk>/`: per-SDK reference (`guide.md`, `fact-check.md`, `README.md`). `source/` holds mirrored upstream docs. The Pi mirror is committed (MIT); the Claude mirror is gitignored because those docs are not openly licensed, so regenerate it with `pnpm run fetch-docs`.
 - `verify/<sdk>/`: per-SDK verification harness (Node, exact-pinned deps). `pnpm run verify` type-checks and runs doc examples against a mock model; `pnpm test` runs our own examples in `examples/`. Generated folders (`extracted/`, `.tmp/`) are gitignored, while `results/` is committed.
+- `docs/plans/`: the plans and the [roadmap](docs/plans/roadmap.md); each plan starts with a status line and lists its todos.
+- `docs/todos/`: the todo board. A todo's folder (`ready/`, `ongoing/`, `done/`) is its state; new todos start from `docs/todos/TEMPLATE.md`.
 - `docs/research/`: research reports.
   - `agent-sdks-and-harness-design.md`: the main report (SDK comparison, reference architecture, build-vs-buy).
   - `harness-architectures.md`: source-level notes on Pi, Codex, OpenAI Agents SDK sandbox agents and Cloudflare Agents/Think.
   - `fact-check-2026-11-18.md`: verification log for the main report.
   - `notes/`: raw research notes behind the report. Treat them as working material; the report and fact-check log supersede them where they disagree.
+
+## Working from the plans
+
+- Pick the next todo whose **Depends on** are all in `docs/todos/done/`, following the [roadmap](docs/plans/roadmap.md).
+- Move the todo to `ongoing/` in the first commit and to `done/` in the last, and push after each meaningful step.
 
 ## Working on docs
 

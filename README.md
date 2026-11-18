@@ -14,6 +14,8 @@ The repo is documentation only for now. The research compares vendor agent SDKs,
 
 | Doc | What it covers |
 |---|---|
+| [docs/plans/](docs/plans/) | The plans and roadmap for this phase: SDK references, comparison, skills, build guides and implementation plans |
+| [docs/todos/](docs/todos/) | The todo board: every planned batch of work, by state |
 | [docs/research/agent-sdks-and-harness-design.md](docs/research/agent-sdks-and-harness-design.md) | Main report: vendor SDKs vs OSS frameworks vs building our own; 8-layer reference architecture; build-vs-buy |
 | [docs/research/harness-architectures.md](docs/research/harness-architectures.md) | Source-level teardown of Pi, Codex CLI, OpenAI Agents SDK sandbox agents and Cloudflare Agents/Think |
 | [docs/research/fact-check-2026-11-18.md](docs/research/fact-check-2026-11-18.md) | Verification log: what was confirmed, corrected or is still secondary |
