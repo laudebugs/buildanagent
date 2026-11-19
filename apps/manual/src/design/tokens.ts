@@ -1,4 +1,5 @@
 import { readFileSync } from "node:fs";
+import { HEX_COLOR } from "./contrast.js";
 
 // The book's design tokens: their shape in docs/design/book-tokens.json, the checks the file must pass, and the CSS
 // custom properties generated from it. The JSON file is the single source; src/styles/tokens.css is its output.
@@ -10,8 +11,8 @@ export const TOKENS_URL = new URL("../../../../docs/design/book-tokens.json", im
 export const TOKENS_CSS_URL = new URL("../styles/tokens.css", import.meta.url);
 
 /** The four colour sets: the page and the code or figure panel, each in a light and a dark mode. */
-export const COLOUR_SETS = ["light", "dark", "panelLight", "panelDark"] as const;
-export type ColourSet = (typeof COLOUR_SETS)[number];
+export const COLOR_SETS = ["light", "dark", "panelLight", "panelDark"] as const;
+export type ColorSet = (typeof COLOR_SETS)[number];
 
 /** A text colour measured on a background, both named by their key in the same set. */
 export interface TextPair {
@@ -20,13 +21,13 @@ export interface TextPair {
   readonly ratio: number;
 }
 
-export interface ColourGroup {
+export interface ColorGroup {
   readonly values: Readonly<Record<string, string>>;
   readonly contrast: readonly TextPair[];
 }
 
-/** A colour measured for WCAG 1.4.11, both named as `<set>.<key>`. */
-export interface NonTextPair {
+/** A colour measured on another, both named as `<set>.<key>`: a focus ring for WCAG 1.4.11, or a decorative line. */
+export interface ColorPair {
   readonly color: string;
   readonly on: string;
   readonly ratio: number;
@@ -51,9 +52,9 @@ export interface FluidSize {
 }
 
 export interface BookTokens {
-  readonly color: Readonly<Record<ColourSet, ColourGroup>> & {
-    readonly nonText: { readonly contrast: readonly NonTextPair[] };
-    readonly decorativeOnly: Readonly<Record<string, number | string>>;
+  readonly color: Readonly<Record<ColorSet, ColorGroup>> & {
+    readonly nonText: { readonly contrast: readonly ColorPair[] };
+    readonly decorativeOnly: { readonly contrast: readonly ColorPair[] };
   };
   readonly font: { readonly display: FontToken; readonly body: FontToken; readonly code: FontToken };
   readonly size: {
@@ -75,9 +76,7 @@ export function readTokens(url: URL = TOKENS_URL): BookTokens {
   return JSON.parse(readFileSync(url, "utf8")) as BookTokens;
 }
 
-const HEX = /^#[0-9A-Fa-f]{6}$/;
-
-function missingKeys(from: ColourGroup, to: ColourGroup): string[] {
+function missingKeys(from: ColorGroup, to: ColorGroup): string[] {
   return Object.keys(from.values).filter((key) => !(key in to.values));
 }
 
@@ -87,12 +86,12 @@ function missingKeys(from: ColourGroup, to: ColourGroup): string[] {
  */
 export function tokenProblems(tokens: BookTokens): string[] {
   const problems: string[] = [];
-  for (const set of COLOUR_SETS) {
+  for (const set of COLOR_SETS) {
     for (const [key, value] of Object.entries(tokens.color[set].values)) {
-      if (!HEX.test(value)) problems.push(`${set}.${key} is ${value}, not a #rrggbb colour`);
+      if (!HEX_COLOR.test(value)) problems.push(`${set}.${key} is ${value}, not a #rrggbb colour`);
     }
   }
-  const twins: readonly [ColourSet, ColourSet][] = [
+  const twins: readonly [ColorSet, ColorSet][] = [
     ["light", "dark"],
     ["dark", "light"],
     ["panelLight", "panelDark"],
@@ -111,16 +110,16 @@ function kebab(name: string): string {
 }
 
 /** The custom property a colour token becomes: `--color-text-soft` for the page, `--panel-comment` for a panel. */
-export function colourProperty(set: ColourSet, key: string): string {
+export function colorProperty(set: ColorSet, key: string): string {
   return set === "light" || set === "dark" ? `--color-${kebab(key)}` : `--panel-${kebab(key)}`;
 }
 
-function declarations(tokens: BookTokens, sets: readonly ColourSet[], scheme: string, indent: string): string[] {
+function declarations(tokens: BookTokens, sets: readonly ColorSet[], scheme: string, indent: string): string[] {
   const lines = [`${indent}color-scheme: ${scheme};`];
   for (const set of sets) {
     for (const [key, value] of Object.entries(tokens.color[set].values)) {
       // Lower case, the form Biome formats CSS colours to, so the generated file passes `pnpm check` unchanged.
-      lines.push(`${indent}${colourProperty(set, key)}: ${value.toLowerCase()};`);
+      lines.push(`${indent}${colorProperty(set, key)}: ${value.toLowerCase()};`);
     }
   }
   return lines;
@@ -192,8 +191,8 @@ function sharedDeclarations(tokens: BookTokens): string[] {
 export function tokensCss(tokens: BookTokens): string {
   const problems = tokenProblems(tokens);
   if (problems.length > 0) throw new Error(`book-tokens.json cannot generate CSS:\n${problems.join("\n")}`);
-  const light: readonly ColourSet[] = ["light", "panelLight"];
-  const dark: readonly ColourSet[] = ["dark", "panelDark"];
+  const light: readonly ColorSet[] = ["light", "panelLight"];
+  const dark: readonly ColorSet[] = ["dark", "panelDark"];
   return [
     "/* Generated from docs/design/book-tokens.json by apps/manual/scripts/generate-tokens.ts. Do not edit: change the",
     "   JSON file and run `pnpm --filter @buildanagent/manual tokens`. */",

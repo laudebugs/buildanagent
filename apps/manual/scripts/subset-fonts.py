@@ -3,12 +3,15 @@
 # and the output folder as arguments so no code loads from either:
 #
 #   uv run --no-project --with fonttools==4.68.0 --with brotli==1.2.1 \
-#     python -I scripts/subset-fonts.py fonts/upstream public/fonts
+#     python -I scripts/subset-fonts.py fonts/sources.json fonts/upstream public/fonts
+#
+# fonts/sources.json lists the families, their files and their served names.
 #
 # A subset is a Modified Version under the SIL Open Font License 1.1. None of the three licences names a Reserved Font
 # Name, but Google Sans Code's TRADEMARKS.md keeps the "Google" mark off modified versions, so its subsets get the
 # neutral family name "Manual Code" in their file names and in their name tables, and lose Google's vendor id. The
 # copyright, trademark notice, designer and licence records stay as the OFL requires.
+import json
 import shutil
 import sys
 from pathlib import Path
@@ -25,44 +28,29 @@ UNICODES = (
 # Beside the subsetter's default features (kerning, ligatures, marks), keep the figure styles and the slashed zero.
 EXTRA_FEATURES = ["tnum", "lnum", "onum", "pnum", "case", "zero"]
 
-# (upstream folder, upstream file, output folder, output file)
-FONTS = [
-    ("instrumentserif", "InstrumentSerif-Regular.ttf", "instrument-serif", "instrument-serif-regular.woff2"),
-    ("instrumentserif", "InstrumentSerif-Italic.ttf", "instrument-serif", "instrument-serif-italic.woff2"),
-    ("literata", "Literata[opsz,wght].ttf", "literata", "literata-roman.woff2"),
-    ("literata", "Literata-Italic[opsz,wght].ttf", "literata", "literata-italic.woff2"),
-    ("googlesanscode", "GoogleSansCode[wght].ttf", "manual-code", "manual-code-roman.woff2"),
-    ("googlesanscode", "GoogleSansCode-Italic[wght].ttf", "manual-code", "manual-code-italic.woff2"),
-]
-# Files copied unchanged beside each family's subsets.
-LICENCE_FILES = {
-    "instrumentserif": ("instrument-serif", ["OFL.txt"]),
-    "literata": ("literata", ["OFL.txt"]),
-    "googlesanscode": ("manual-code", ["OFL.txt", "TRADEMARKS.md"]),
-}
-
 # Name records that identify the font itself; the others (copyright, trademark notice, designer, licence) stay.
 IDENTITY_NAME_IDS = {1, 3, 4, 6, 16, 18, 21, 25}
 # Records that point at Google as the source of this version; a modified version drops them.
 SOURCE_NAME_IDS = {8, 11}
 
 
-def neutral_names(font: TTFont) -> None:
-    """Renames a Google Sans Code subset to Manual Code, as its TRADEMARKS.md requires of modified versions."""
+def neutral_names(font: TTFont, original: str, neutral: str) -> None:
+    """Renames a subset to its neutral family name, as Google Sans Code's TRADEMARKS.md requires of modified versions."""
     name = font["name"]
+    compact = (original.replace(" ", ""), neutral.replace(" ", ""))
     name.names = [record for record in name.names if record.nameID not in SOURCE_NAME_IDS]
     for record in name.names:
         if record.nameID in IDENTITY_NAME_IDS or record.nameID >= 256:
             text = record.toUnicode().replace("GOOG;", "")
-            text = text.replace("Google Sans Code", "Manual Code").replace("GoogleSansCode", "ManualCode")
-            record.string = text
+            record.string = text.replace(original, neutral).replace(*compact)
     font["OS/2"].achVendID = "NONE"
+    # A real check, not an assert, so it still runs under python -O; test/fonts.test.ts reads the shipped names too.
     for record in name.names:
-        if record.nameID in IDENTITY_NAME_IDS or record.nameID >= 256:
-            assert "Google" not in record.toUnicode(), record.toUnicode()
+        if (record.nameID in IDENTITY_NAME_IDS or record.nameID >= 256) and "Google" in record.toUnicode():
+            raise ValueError(f"name record {record.nameID} still reads {record.toUnicode()!r}")
 
 
-def write_subset(source: Path, target: Path, rename: bool) -> None:
+def write_subset(source: Path, target: Path, rename: tuple[str, str] | None) -> None:
     options = subset.Options()
     options.flavor = "woff2"
     options.layout_features = [*options.layout_features, *EXTRA_FEATURES]
@@ -73,19 +61,23 @@ def write_subset(source: Path, target: Path, rename: bool) -> None:
     subsetter.populate(unicodes=subset.parse_unicodes(UNICODES))
     subsetter.subset(font)
     if rename:
-        neutral_names(font)
+        neutral_names(font, *rename)
     target.parent.mkdir(parents=True, exist_ok=True)
     subset.save_font(font, str(target), options)
     print(f"{target}  {target.stat().st_size} bytes")
 
 
 def main() -> None:
-    upstream, output = Path(sys.argv[1]), Path(sys.argv[2])
-    for family, file, folder, out in FONTS:
-        write_subset(upstream / family / file, output / folder / out, rename=family == "googlesanscode")
-    for family, (folder, files) in LICENCE_FILES.items():
-        for file in files:
-            shutil.copyfile(upstream / family / file, output / folder / file)
+    manifest, upstream, output = Path(sys.argv[1]), Path(sys.argv[2]), Path(sys.argv[3])
+    for family in json.loads(manifest.read_text())["families"]:
+        source, target = upstream / family["upstream"], output / family["folder"]
+        rename = None
+        if family["neutralName"]:
+            rename = (TTFont(source / family["fonts"][0]["upstream"])["name"].getBestFamilyName(), family["neutralName"])
+        for font in family["fonts"]:
+            write_subset(source / font["upstream"], target / font["served"], rename)
+        for file in family["licences"]:
+            shutil.copyfile(source / file, target / file)
 
 
 if __name__ == "__main__":

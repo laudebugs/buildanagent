@@ -12,21 +12,6 @@ import { fileURLToPath } from "node:url";
 
 const app = (path) => fileURLToPath(new URL(`../${path}`, import.meta.url));
 
-// Every file each family needs, relative to ofl/ in google/fonts. OFL.txt travels with the subsets, and Google Sans
-// Code's TRADEMARKS.md sets the rules for naming them.
-const FILES = [
-  "instrumentserif/InstrumentSerif-Regular.ttf",
-  "instrumentserif/InstrumentSerif-Italic.ttf",
-  "instrumentserif/OFL.txt",
-  "literata/Literata[opsz,wght].ttf",
-  "literata/Literata-Italic[opsz,wght].ttf",
-  "literata/OFL.txt",
-  "googlesanscode/GoogleSansCode[wght].ttf",
-  "googlesanscode/GoogleSansCode-Italic[wght].ttf",
-  "googlesanscode/OFL.txt",
-  "googlesanscode/TRADEMARKS.md",
-];
-
 async function download(commit, path) {
   const url = `https://raw.githubusercontent.com/google/fonts/${commit}/ofl/${path.split("/").map(encodeURIComponent).join("/")}`;
   const response = await fetch(url);
@@ -38,8 +23,12 @@ const record = process.argv.includes("--record");
 const manifestPath = app("fonts/sources.json");
 const manifest = JSON.parse(await readFile(manifestPath, "utf8"));
 const known = new Map(manifest.files.map((file) => [file.path, file.sha256]));
+// Every file the families list: the fonts to subset and the licence files that travel with them.
+const paths = manifest.families.flatMap((family) =>
+  [...family.fonts.map((font) => font.upstream), ...family.licences].map((file) => `${family.upstream}/${file}`),
+);
 const files = [];
-for (const path of FILES) {
+for (const path of paths) {
   const bytes = await download(manifest.commit, path);
   const sha256 = createHash("sha256").update(bytes).digest("hex");
   if (!record && known.get(path) !== sha256) {

@@ -2,20 +2,10 @@
 import { getCollection } from "astro:content";
 import ChapterHead from "../components/ChapterHead.astro";
 import Contents from "../components/Contents.astro";
-import type { ContentsPart } from "../components/types.js";
+import { contentsParts } from "../components/contents-parts.js";
 import BaseLayout from "../layouts/BaseLayout.astro";
 
-const chapters = await getCollection("chapters");
-const parts: ContentsPart[] = [
-  {
-    title: "Chapters",
-    chapters: chapters.map((chapter, index) => ({
-      number: index + 1,
-      title: chapter.data.title,
-      href: `/${chapter.id}/`,
-    })),
-  },
-];
+const parts = contentsParts(await getCollection("chapters"));
 ---
 
 <BaseLayout title="Build an agent" description="A textbook on building an AI agent.">

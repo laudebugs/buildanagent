@@ -41,3 +41,17 @@ test("no stylesheet loads anything from another origin", () => {
     assert.doesNotMatch(text, /@import|url\(\s*["']?(https?:)?\/\//, `${path} loads from another origin`);
   }
 });
+
+// The gallery shows the chapter layout inside each theme's section, so the columns must follow the width of their
+// container; a viewport media query would switch them on at widths the section does not have.
+test("the chapter layout switches its columns with container queries, not viewport media queries", () => {
+  const css = files.filter(({ path }) => path.endsWith(".css"));
+  const all = css.map(({ text }) => text).join("\n");
+  assert.match(all, /\.layout\s*\{\s*container:\s*layout\s*\/\s*inline-size;/);
+  for (const { path, text } of css) {
+    assert.doesNotMatch(text, /@media[^{]*width/, `${path} switches on the viewport's width`);
+  }
+  assert.match(all, /@container layout \(min-width: 64rem\)\s*\{\s*\.chapter-body/);
+  assert.match(all, /@container layout \(min-width: 69rem\)\s*\{\s*\.chapter-body/);
+  assert.match(all, /@container layout \(min-width: 69rem\)\s*\{\s*\.article \.sidenote/);
+});

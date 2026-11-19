@@ -607,7 +607,7 @@
   margin-bottom: 0;
 }
 
-@media (min-width: 80rem) {
+@container layout (min-width: 69rem) {
   .article .sidenote {
     float: right;
     clear: right;
@@ -675,6 +675,17 @@
   box-shadow: 0 6px 20px rgb(0 0 0 / 0.18);
 }
 
+/* A transparent bridge over the gap between the term and its card, so the pointer can move onto the card, which
+   stays open while hovered (WCAG 1.4.13). */
+.glossary-term__card::after {
+  content: "";
+  position: absolute;
+  top: 100%;
+  left: 0;
+  right: 0;
+  height: 0.5rem;
+}
+
 .glossary-term:hover .glossary-term__card,
 .glossary-term:focus-within .glossary-term__card {
   display: block;
@@ -699,13 +710,8 @@
 
 /* Gallery */
 
-.gallery {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(min(100%, 34rem), 1fr));
-}
-
+/* The themes stack at full width, so each shows the layout at the width a reader sees it. */
 .gallery__theme {
-  min-width: 0;
   padding: 1.5rem var(--gutter) 3rem;
 }
 

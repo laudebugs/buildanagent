@@ -16,13 +16,19 @@
   const stored = read();
   if (stored) root.dataset.theme = stored;
 
-  const prefersDark = () => window.matchMedia("(prefers-color-scheme: dark)").matches;
-  const current = () => root.dataset.theme ?? (prefersDark() ? "dark" : "light");
+  const scheme = window.matchMedia("(prefers-color-scheme: dark)");
+  const current = () => root.dataset.theme ?? (scheme.matches ? "dark" : "light");
 
   document.addEventListener("DOMContentLoaded", () => {
-    for (const button of document.querySelectorAll("[data-theme-toggle]")) {
-      const sync = () => button.setAttribute("aria-pressed", String(current() === "dark"));
-      sync();
+    const buttons = [...document.querySelectorAll("[data-theme-toggle]")];
+    // The label names what a press does, so it always offers the other mode.
+    const sync = () => {
+      const label = current() === "dark" ? "Switch to light theme" : "Switch to dark theme";
+      for (const button of buttons) button.textContent = label;
+    };
+    // With no stored choice the page follows the system, so the label follows it too.
+    scheme.addEventListener("change", sync);
+    for (const button of buttons) {
       button.hidden = false;
       button.addEventListener("click", () => {
         const next = current() === "dark" ? "light" : "dark";
@@ -35,5 +41,6 @@
         sync();
       });
     }
+    sync();
   });
 })();

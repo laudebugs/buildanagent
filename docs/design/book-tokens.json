@@ -1,5 +1,5 @@
 {
-  "$comment": "Design tokens for apps/manual (manual.buildanagent.fyi). The single source of the book's colours, fonts and sizes: apps/manual/scripts/generate-tokens.ts writes src/styles/tokens.css from this file, and the app's tests fail when that CSS is stale or a pair below misses its ratio. Decided by the owner on 2026-11-19 (book plan BK12); T2 added the dark panel border, the non-text pairs, the font files and the phone sizes. Contrast ratios are WCAG 2.x, computed from the hex values and rounded to two decimals.",
+  "$comment": "Design tokens for apps/manual (manual.buildanagent.fyi). The single source of the book's colours, fonts and sizes: apps/manual/scripts/generate-tokens.ts writes src/styles/tokens.css from this file, and the app's tests fail when that CSS is stale or a pair below misses its ratio. Decided by the owner on 2026-11-19 (book plan BK12); T2 proposed the dark panel border, the non-text pairs, the font files, the phone sizes and the layout widths, and the owner accepted them on 2026-11-19. Contrast ratios are WCAG 2.x, computed from the hex values and rounded to two decimals.",
   "version": 1,
   "decided": "2026-11-19",
   "color": {
@@ -122,7 +122,7 @@
       ]
     },
     "panelDark": {
-      "$comment": "Code and figure panels in dark mode: C1 Ember (owner, 2026-11-19). border is the dark rule, as the light panel uses the light rule (added by T2, 2026-11-19, for the owner to confirm).",
+      "$comment": "Code and figure panels in dark mode: C1 Ember (owner, 2026-11-19). border is the dark rule, as the light panel uses the light rule (proposed by T2 and accepted by the owner on 2026-11-19).",
       "values": {
         "background": "#17110D",
         "text": "#F2E8DC",
@@ -162,7 +162,7 @@
       ]
     },
     "nonText": {
-      "$comment": "Focus rings, control borders and figure lines that carry meaning need 3:1 against what they sit on (WCAG 1.4.11). The focus ring is the accent, so it is measured on the page and on the panel of each mode (added by T2, 2026-11-19).",
+      "$comment": "Focus rings, control borders and figure lines that carry meaning need 3:1 against what they sit on (WCAG 1.4.11). The focus ring is the accent, so it is measured on the page and on the panel of each mode (proposed by T2 and accepted by the owner on 2026-11-19).",
       "contrast": [
         {
           "color": "light.accent",
@@ -187,19 +187,53 @@
       ]
     },
     "decorativeOnly": {
-      "$comment": "Fail 4.5:1 and 3:1; use only for dividers, panel borders and grid lines, never for text, focus rings or figure lines that carry meaning. A key names a colour; without \"on\", it is measured on the background of its own set.",
-      "light.rule": 1.3,
-      "dark.rule": 1.39,
-      "panelLight.background on light.background": 1.08,
-      "panelDark.background on dark.background": 1.15,
-      "panelLight.grid": 1.11,
-      "panelDark.grid": 1.11,
-      "panelLight.border": 1.2,
-      "panelDark.border": 1.6
+      "$comment": "Fail 4.5:1 and 3:1; use only for dividers, panel borders and grid lines, never for text, focus rings or figure lines that carry meaning. Each colour is named as <set>.<key> and measured on the background it sits on.",
+      "contrast": [
+        {
+          "color": "light.rule",
+          "on": "light.background",
+          "ratio": 1.3
+        },
+        {
+          "color": "dark.rule",
+          "on": "dark.background",
+          "ratio": 1.39
+        },
+        {
+          "color": "panelLight.background",
+          "on": "light.background",
+          "ratio": 1.08
+        },
+        {
+          "color": "panelDark.background",
+          "on": "dark.background",
+          "ratio": 1.15
+        },
+        {
+          "color": "panelLight.grid",
+          "on": "panelLight.background",
+          "ratio": 1.11
+        },
+        {
+          "color": "panelDark.grid",
+          "on": "panelDark.background",
+          "ratio": 1.11
+        },
+        {
+          "color": "panelLight.border",
+          "on": "panelLight.background",
+          "ratio": 1.2
+        },
+        {
+          "color": "panelDark.border",
+          "on": "panelDark.background",
+          "ratio": 1.6
+        }
+      ]
     }
   },
   "font": {
-    "$comment": "Each family is served from the book itself: files are paths under apps/manual/public, written by apps/manual/scripts/subset-fonts.py",
+    "$comment": "Each family is served from the book itself: files are paths under apps/manual/public, written by apps/manual/scripts/subset-fonts.py (the file entries proposed by T2 and accepted by the owner on 2026-11-19)",
     "display": {
       "family": "Instrument Serif",
       "use": "titles, section heads, chapter links",
@@ -261,7 +295,7 @@
     "selfHosted": true
   },
   "size": {
-    "$comment": "px. The desktop values are the reference page at 1280 px wide; the phone values, added by T2 on 2026-11-19, apply at 360 px. The generated CSS converts both to rem and scales between them with the viewport width",
+    "$comment": "px. The desktop values are the reference page at 1280 px wide; the phone values apply at 360 px (proposed by T2 and accepted by the owner on 2026-11-19). The generated CSS converts both to rem and scales between them with the viewport width",
     "viewport": {
       "phone": 360,
       "desktop": 1280
@@ -307,7 +341,7 @@
     }
   },
   "layout": {
-    "$comment": "px, added by T2 on 2026-11-19 to build direction C's layout: the widest content (header, title, figure panel), the article column, the side-note column beside it and the side gutter, which scales like the sizes",
+    "$comment": "px, proposed by T2 and accepted by the owner on 2026-11-19, for direction C's layout: the widest content (header, title, figure panel), the article column, the side-note column beside it and the side gutter, which scales like the sizes",
     "pageWidth": 1152,
     "measure": 608,
     "sideNote": 240,

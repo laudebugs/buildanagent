@@ -22,7 +22,7 @@ body {
   font-optical-sizing: auto;
 }
 
-/* An element with its own data-theme repaints in that mode; the gallery shows both modes side by side this way. */
+/* An element with its own data-theme repaints in that mode; the gallery shows both modes on one page this way. */
 [data-theme] {
   background-color: var(--color-background);
   color: var(--color-text);

@@ -30,8 +30,15 @@ function render(steps: Steps): void {
   if (steps.status) steps.status.textContent = `${steps.unit} ${index + 1} of ${items.length}`;
   const back = button(root, "back");
   const next = button(root, "next");
-  if (back) back.disabled = index === 0;
-  if (next) next.disabled = index === items.length - 1;
+  disable(back, index === 0, next);
+  disable(next, index === items.length - 1, back);
+}
+
+// A disabled button drops keyboard focus to the page, so focus moves to the other button first.
+function disable(control: HTMLButtonElement | null, disabled: boolean, other: HTMLButtonElement | null): void {
+  if (!control) return;
+  if (disabled && document.activeElement === control) other?.focus();
+  control.disabled = disabled;
 }
 
 function go(steps: Steps, index: number): void {

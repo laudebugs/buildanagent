@@ -2,17 +2,17 @@
 import GallerySamples from "../components/GallerySamples.astro";
 import BaseLayout from "../layouts/BaseLayout.astro";
 
-// Every component in both themes side by side, for comparing with the owner's reference board. The page has no
+// Every component in both themes, one theme above the other at full width, for comparing with the owner's reference board. The page has no
 // data-pagefind-body, so search skips it, and noindex keeps it out of search engines.
 ---
 
 <BaseLayout title="Component gallery" description="Every component of the book in the light and dark themes." noindex>
   <div class="gallery">
-    <section class="gallery__theme" data-theme="light" aria-labelledby="gallery-light">
+    <section class="gallery__theme layout" data-theme="light" aria-labelledby="gallery-light">
       <h2 id="gallery-light" class="label">Light theme</h2>
       <GallerySamples prefix="light" />
     </section>
-    <section class="gallery__theme" data-theme="dark" aria-labelledby="gallery-dark">
+    <section class="gallery__theme layout" data-theme="dark" aria-labelledby="gallery-dark">
       <h2 id="gallery-dark" class="label">Dark theme</h2>
       <GallerySamples prefix="dark" />
     </section>

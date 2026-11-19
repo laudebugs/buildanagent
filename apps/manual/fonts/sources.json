@@ -1,8 +1,58 @@
 {
-  "$comment": "The upstream font files the book's subsets come from, read from google/fonts at one commit. scripts/fetch-fonts.mjs downloads each file into fonts/upstream/ and refuses a file whose SHA-256 differs; scripts/subset-fonts.py writes the served subsets into public/fonts/.",
+  "$comment": "The upstream font files the book serves subsets of, read from google/fonts at one commit, and the single list of them. families names each family's upstream folder, its served folder under public/fonts/, its fonts and the licence files copied unchanged; neutralName renames a family whose trademark rules keep its name off modified versions. scripts/fetch-fonts.mjs downloads every file into fonts/upstream/ and refuses one whose SHA-256 differs from files; scripts/subset-fonts.py writes the served subsets.",
   "repository": "https://github.com/google/fonts",
   "commit": "9bbbcda6f8aa91198223c77345d548af4b61940d",
   "commitDate": "2026-11-11",
+  "families": [
+    {
+      "upstream": "instrumentserif",
+      "folder": "instrument-serif",
+      "neutralName": null,
+      "fonts": [
+        {
+          "upstream": "InstrumentSerif-Regular.ttf",
+          "served": "instrument-serif-regular.woff2"
+        },
+        {
+          "upstream": "InstrumentSerif-Italic.ttf",
+          "served": "instrument-serif-italic.woff2"
+        }
+      ],
+      "licences": ["OFL.txt"]
+    },
+    {
+      "upstream": "literata",
+      "folder": "literata",
+      "neutralName": null,
+      "fonts": [
+        {
+          "upstream": "Literata[opsz,wght].ttf",
+          "served": "literata-roman.woff2"
+        },
+        {
+          "upstream": "Literata-Italic[opsz,wght].ttf",
+          "served": "literata-italic.woff2"
+        }
+      ],
+      "licences": ["OFL.txt"]
+    },
+    {
+      "upstream": "googlesanscode",
+      "folder": "manual-code",
+      "neutralName": "Manual Code",
+      "fonts": [
+        {
+          "upstream": "GoogleSansCode[wght].ttf",
+          "served": "manual-code-roman.woff2"
+        },
+        {
+          "upstream": "GoogleSansCode-Italic[wght].ttf",
+          "served": "manual-code-italic.woff2"
+        }
+      ],
+      "licences": ["OFL.txt", "TRADEMARKS.md"]
+    }
+  ],
   "files": [
     {
       "path": "instrumentserif/InstrumentSerif-Regular.ttf",

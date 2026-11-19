@@ -1,5 +1,8 @@
 ---
-// A numbered marker on a listing line: a link to its note under the code, so it works without JavaScript.
+import { annotationMarkerHtml } from "./listing-html.js";
+
+// A numbered marker that links to its note under a listing, so it works without JavaScript. Listing lines render the
+// same markup from listing-html.ts.
 interface Props {
   readonly href: string;
   readonly number: number;
@@ -8,4 +11,4 @@ interface Props {
 const { href, number } = Astro.props;
 ---
 
-<a class="annotation-marker" href={href} aria-label={`Note ${number}`}>{number}</a>
+<Fragment set:html={annotationMarkerHtml(href, number)} />

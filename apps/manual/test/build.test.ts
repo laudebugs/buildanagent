@@ -70,8 +70,8 @@ const COMPONENTS = [
 
 test("the gallery renders every component once in the light theme and once in the dark", () => {
   const html = gallery();
-  assert.match(html, /<section class="gallery__theme" data-theme="light"/);
-  assert.match(html, /<section class="gallery__theme" data-theme="dark"/);
+  assert.match(html, /<section class="gallery__theme layout" data-theme="light"/);
+  assert.match(html, /<section class="gallery__theme layout" data-theme="dark"/);
   const [light = "", dark = ""] = html.split('data-theme="dark"');
   for (const name of COMPONENTS) {
     const pattern = new RegExp(`class="([^"]* )?${name}( [^"]*)?"`);
@@ -104,18 +104,49 @@ test("every id on the gallery page is unique", () => {
   assert.deepEqual(repeated, []);
 });
 
-test("no page loads a font, script or stylesheet from another origin", () => {
-  for (const path of files(".html")) {
-    const html = readFileSync(join(out, path), "utf8");
+function pages(): { path: string; html: string }[] {
+  return files(".html").map((path) => ({ path, html: readFileSync(join(out, path), "utf8") }));
+}
+
+test("no page loads a font, script, stylesheet or image from another origin", () => {
+  for (const { path, html } of pages()) {
     for (const tag of html.match(/<(link|script|img|source|iframe|video|audio)\b[^>]*>/g) ?? []) {
       assert.doesNotMatch(tag, /\s(src|href|srcset)="(https?:)?\/\//, `${path}: ${tag}`);
     }
-    assert.doesNotMatch(html, /<style/, `${path} inlines a stylesheet`);
-    assert.doesNotMatch(html, /<script(?![^>]*\ssrc=)[^>]*>/, `${path} inlines a script`);
   }
+});
+
+test("no built stylesheet imports or points at another origin", () => {
   for (const path of files(".css")) {
     assert.doesNotMatch(readFileSync(join(out, path), "utf8"), /@import|url\(\s*["']?(https?:)?\/\//, path);
   }
+});
+
+// Inline styles and scripts would need hashes or 'unsafe-inline' in the content security policy.
+test("no page inlines a stylesheet", () => {
+  for (const { path, html } of pages()) assert.doesNotMatch(html, /<style/, path);
+});
+
+test("no page inlines a script", () => {
+  for (const { path, html } of pages()) assert.doesNotMatch(html, /<script(?![^>]*\ssrc=)[^>]*>/, path);
+});
+
+test("no page links to a site page that does not exist", () => {
+  const built = new Set(files(".html").map((path) => `/${path.replace(/index\.html$/, "")}`));
+  for (const { path, html } of pages()) {
+    for (const [, href = ""] of html.matchAll(/<a\b[^>]*\shref="(\/[^"#?]*)/g)) {
+      if (href.startsWith("/fonts/") || href.startsWith("/pagefind/")) continue;
+      // The gallery's citation and glossary samples link to the source register and the glossary, the pages the
+      // content model adds; every other page must link only to pages the build writes.
+      if (path === "gallery/index.html" && (href === "/sources/" || href === "/glossary/")) continue;
+      assert.ok(built.has(href), `${path} links to ${href}, which the build does not write`);
+    }
+  }
+});
+
+test("the chapter page and each gallery theme are layout containers, so the columns follow their width", () => {
+  assert.match(readFileSync(join(out, "welcome", "index.html"), "utf8"), /class="page layout"/);
+  assert.equal((gallery().match(/class="gallery__theme layout"/g) ?? []).length, 2);
 });
 
 test("the built stylesheet carries the generated tokens and the self-hosted font faces", () => {

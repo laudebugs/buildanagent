@@ -6,7 +6,8 @@ export const TEXT_MINIMUM = 4.5;
 /** The minimum contrast for focus rings, control borders and meaningful figure lines (success criterion 1.4.11). */
 export const NON_TEXT_MINIMUM = 3;
 
-const HEX = /^#[0-9a-fA-F]{6}$/;
+/** A `#rrggbb` colour, the only form the token file uses. */
+export const HEX_COLOR = /^#[0-9a-fA-F]{6}$/;
 
 function channel(hex: string, offset: number): number {
   const value = Number.parseInt(hex.slice(offset, offset + 2), 16) / 255;
@@ -15,7 +16,7 @@ function channel(hex: string, offset: number): number {
 
 /** The relative luminance of a `#rrggbb` colour, from 0 for black to 1 for white. */
 export function relativeLuminance(hex: string): number {
-  if (!HEX.test(hex)) throw new Error(`not a #rrggbb colour: ${hex}`);
+  if (!HEX_COLOR.test(hex)) throw new Error(`not a #rrggbb colour: ${hex}`);
   return 0.2126 * channel(hex, 1) + 0.7152 * channel(hex, 3) + 0.0722 * channel(hex, 5);
 }
 

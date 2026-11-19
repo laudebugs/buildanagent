@@ -30,7 +30,7 @@ No file here copies the textbook repository's personal or account data, or text 
 
 ## The book's three fonts are subsets of OFL fonts from google/fonts
 
-The book in `apps/manual/` serves its own fonts, so a reader's browser fetches nothing from Google. Each family comes from the [google/fonts](https://github.com/google/fonts) repository at commit `9bbbcda6f8aa91198223c77345d548af4b61940d` (2026-11-11), and [`apps/manual/fonts/sources.json`](apps/manual/fonts/sources.json) records the SHA-256 of every upstream file. The served files are WOFF2 subsets that keep Latin, punctuation, arrows, maths and box-drawing characters. A subset is a Modified Version under the SIL Open Font License 1.1, so each stays under that licence, and each family's unchanged `OFL.txt` ships beside its files. The subsets are written by [`apps/manual/scripts/subset-fonts.py`](apps/manual/scripts/subset-fonts.py) with fontTools 4.68.0.
+The book in `apps/manual/` serves its own fonts, so a reader's browser fetches nothing from Google. Each family comes from the [google/fonts](https://github.com/google/fonts) repository at commit `9bbbcda6f8aa91198223c77345d548af4b61940d` (2026-11-11), and [`apps/manual/fonts/sources.json`](apps/manual/fonts/sources.json) records the SHA-256 of every upstream file. The served files are WOFF2 subsets that keep Latin, punctuation, arrows, maths and box-drawing characters. A subset is a Modified Version under the SIL Open Font License 1.1, so each stays under that licence, and each family's unchanged `OFL.txt` ships beside its files. The subsets are written by [`apps/manual/scripts/subset-fonts.py`](apps/manual/scripts/subset-fonts.py) with fontTools 4.68.0, from the family list in [`apps/manual/fonts/sources.json`](apps/manual/fonts/sources.json).
 
 | Served files | Derived from | Upstream path | Licence |
 |---|---|---|---|
@@ -39,6 +39,8 @@ The book in `apps/manual/` serves its own fonts, so a reader's browser fetches n
 | [`apps/manual/public/fonts/manual-code/`](apps/manual/public/fonts/manual-code/) | Google Sans Code, variable roman and italic | `ofl/googlesanscode/` | OFL-1.1 ([OFL.txt](apps/manual/public/fonts/manual-code/OFL.txt)), copyright 2025 The Google Sans Code Project Authors; see [TRADEMARKS.md](apps/manual/public/fonts/manual-code/TRADEMARKS.md) |
 
 None of the three licences names a Reserved Font Name. Google Sans Code's `TRADEMARKS.md` adds one rule that matters here: "Google", "Google Sans" and "Google Sans Code" are trademarks of Google LLC, and the "Google Sans Code" mark may be used only in connection with the original font software. The book's files are derived from Google Sans Code, not the original, so they carry the neutral family name "Manual Code" in their file names, their CSS and their name tables. The subsetting script also drops the records that name Google as the manufacturer and vendor, and keeps the copyright, trademark notice, designer and licence records. Nothing in the book implies that Google made or endorses these files.
+
+Instrument Serif and Literata keep their names. Neither licence reserves a font name, and neither folder in google/fonts carries a `TRADEMARKS.md`. Literata's name table includes the notice "Literata is a trademark of Google Inc.", which the subsets keep unchanged. The owner chose to keep the Literata name on 2026-11-19.
 
 ## Quotations elsewhere are short, attributed excerpts
 

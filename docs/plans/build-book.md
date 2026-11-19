@@ -203,13 +203,15 @@ Every text colour in the table meets WCAG AA (4.5:1) on its background. The lowe
 
 The table lives as data in [`docs/design/book-tokens.json`](../design/book-tokens.json), with each contrast ratio recorded beside its pair; the JSON file is the source of truth, and this table restates it. T2 generates the CSS custom properties from that file and builds the components: the page layout, contents and sidebar, listing block, tabs, annotation markers, replay controls, figure frame and stepper, side notes, glossary card, citation and search box. Google Fonts is where the font files come from, not where the page loads them. The book serves the files itself, so a reader's browser makes no third-party request.
 
-**T2's additions (2026-11-19).** The reference board shows details the token table did not carry, so T2 added five kinds of token to `book-tokens.json` and records them here for the owner to confirm (fact-check rows 211–218):
+**T2's additions, accepted by the owner (2026-11-19).** T2 could not open the reference board, so it proposed five kinds of token the table above did not carry and added them to `book-tokens.json`. The owner accepted all five the same day ("Keep all"; fact-check rows 211–218 and 224):
 
 - **The dark panel's border** is `#45352A`, the dark rule, as the light panel's border is the light rule. Ember sits only 1.15:1 from the dark page, so without a border its edge would blur.
 - **Focus rings** use the accent, which reaches 3:1 on every surface it can sit on: 4.80:1 on the light page, 4.44:1 on the light panel, 7.63:1 on the dark page and 8.81:1 on Ember.
 - **Phone sizes** at 360 px: title 44, section 30, chapter link 22, lede 19, body 17, note 14, listing 13 and label 12 px. Each size scales linearly to its desktop value at 1280 px.
 - **Layout widths:** a 1152 px page, a 608 px article column, a 240 px side-note margin and a gutter from 16 to 40 px.
 - **The font files.** The code face is served as Manual Code, the neutral name its subsets need under Google Sans Code's `TRADEMARKS.md`.
+
+The owner also kept Literata's name for its subsets (2026-11-19: "Keep 'Literata'"). Its OFL names no Reserved Font Name and its folder in google/fonts has no `TRADEMARKS.md`, so only Google Sans Code needs a neutral name; Literata's trademark notice stays in its name table (fact-check rows 225–226).
 
 The CSS custom properties are generated from the JSON file by `apps/manual/scripts/generate-tokens.ts`, and the app's tests recompute every recorded ratio from the colours the CSS ships ([`apps/manual/README.md`](../../apps/manual/README.md)).
 

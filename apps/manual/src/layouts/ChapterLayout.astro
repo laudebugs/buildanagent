@@ -22,7 +22,7 @@ const { title, description, label, lede, headings = [], parts = [], current, pre
 ---
 
 <BaseLayout title={title} description={description}>
-  <div class="page">
+  <div class="page layout">
     <ChapterHead label={label} title={title} lede={lede} />
     {Astro.slots.has("figure") && <div class="chapter-figure"><slot name="figure" /></div>}
     <div class="chapter-body">

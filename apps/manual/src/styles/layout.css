@@ -1,5 +1,11 @@
 /* Direction C's page: a header, a wide title, a full-width figure panel, then the article column with the contents
-   sidebar on its left and side notes in its right margin, and previous and next links at the foot. */
+   sidebar on its left and side notes in its right margin, and previous and next links at the foot. The columns respond
+   to the width of their layout container, not the viewport, so the same layout holds in a page and in the gallery,
+   which shows it inside each theme's section. */
+
+.layout {
+  container: layout / inline-size;
+}
 
 .page {
   width: 100%;
@@ -94,7 +100,7 @@
   min-width: 0;
 }
 
-@media (min-width: 64rem) {
+@container layout (min-width: 64rem) {
   .chapter-body {
     grid-template-columns: 11rem minmax(0, var(--measure));
     gap: 2.5rem;
@@ -107,8 +113,9 @@
   }
 }
 
-/* From this width the margin right of the article holds the side notes. */
-@media (min-width: 80rem) {
+/* From 69rem, the sum of the sidebar, the article, the side-note margin and two gaps, the margin right of the
+   article holds the side notes; a 1280 px page reaches it. */
+@container layout (min-width: 69rem) {
   .chapter-body {
     grid-template-columns: 11rem minmax(0, var(--measure)) var(--side-note-width);
   }
