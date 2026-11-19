@@ -1,6 +1,6 @@
 # 0018. Keep transcripts until a retention period is set, and keep the entry base stable per format version
 
-- **Status:** Accepted (owner, 2026-11-18)
+- **Status:** Accepted (owner, 2026-11-18); amended by [0056](0056-file-based-memory-and-log-purge.md) (2026-11-19), so a memory delete also marks and purges the log entries that carry the fact
 - **Date:** 2026-11-18
 - **Plan:** [build-harness.md, HD11](../plans/build-harness.md#hd11-keep-transcripts-until-the-owner-sets-a-retention-period-and-keep-the-entry-base-stable-accepted)
 

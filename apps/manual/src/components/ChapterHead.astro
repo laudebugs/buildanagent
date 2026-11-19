@@ -1,0 +1,16 @@
+---
+// Direction C's wide title: a label in the code face, the title in Instrument Serif and the lede beneath it.
+interface Props {
+  readonly label?: string;
+  readonly title: string;
+  readonly lede?: string;
+}
+
+const { label, title, lede } = Astro.props;
+---
+
+<header class="chapter-head">
+  {label && <p class="chapter-head__label label">{label}</p>}
+  <h1 class="chapter-head__title">{title}</h1>
+  {lede && <p class="chapter-head__lede">{lede}</p>}
+</header>

@@ -33,7 +33,7 @@ Make code blocks interactive in the three tiers the owner asked for, all built f
 **Out of scope** (and which todo covers it)
 
 - Tier 4, live editing against `ScriptedModel` or a WebContainer embed (later; see BK9)
-- Styling ([T2](T2-book-design.md)) beyond wiring the components to its tokens
+- Styling ([T2](../done/T2-book-design.md)) beyond wiring the components to its tokens
 
 ## Tasks
 

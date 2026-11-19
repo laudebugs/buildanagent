@@ -1,0 +1,31 @@
+---
+import type { ChapterLink } from "./types.js";
+
+interface Props {
+  readonly previous?: ChapterLink;
+  readonly next?: ChapterLink;
+}
+
+const { previous, next } = Astro.props;
+---
+
+{
+  (previous || next) && (
+    <nav class="prev-next" aria-label="Previous and next chapters">
+      {previous ? (
+        <a class="prev-next__link" href={previous.href} rel="prev">
+          <span class="prev-next__direction label">Previous</span>
+          {previous.title}
+        </a>
+      ) : (
+        <span />
+      )}
+      {next && (
+        <a class="prev-next__link prev-next__link--next" href={next.href} rel="next">
+          <span class="prev-next__direction label">Next</span>
+          {next.title}
+        </a>
+      )}
+    </nav>
+  )
+}

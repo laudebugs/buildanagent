@@ -4,6 +4,16 @@ The SDK runs your agent's loop over [`@buildanagent/gateway`](../gateway/README.
 
 As of November 2026 the package holds only the testing export. The loop, tools, hooks, approvals and budgets are next.
 
+## Install the alpha with `pnpm add @buildanagent/sdk@alpha`
+
+Every release is an alpha until the first stable one, and npm serves the alphas under the `alpha` dist-tag. Add the gateway too when your code calls a model, since its adapters make the calls:
+
+```bash
+pnpm add @buildanagent/sdk@alpha @buildanagent/gateway@alpha
+```
+
+Both packages always share one version, and the SDK depends on that exact version of the gateway. Name the tag: a plain `pnpm add @buildanagent/sdk` installs `0.0.0-bootstrap.0`, a deprecated placeholder, because `latest` stays on it until the first stable release. The package needs Node 22 or later.
+
 ## Test against a strict scripted model
 
 `ScriptedModel` plays back the responses you script, one per model call. It fails loudly when your test's expectations drift:

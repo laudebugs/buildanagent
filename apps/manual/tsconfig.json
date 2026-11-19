@@ -1,6 +1,8 @@
 {
   "extends": "../../tsconfig.packages.json",
   "compilerOptions": {
+    // The book's enhancement scripts run in the browser, so the DOM types sit beside Node's.
+    "lib": ["es2024", "dom", "dom.iterable"],
     // The smoke test imports astro.config.mjs to render through the processor the build uses.
     "allowJs": true
   },

@@ -48,12 +48,21 @@ function appRoot(): string {
   }
 }
 
+/**
+ * The directory the build reads chapters from: `src/content/chapters/`, unless `BOOK_CHAPTERS_DIR` names another. The
+ * site's build test sets it to a fixture chapter, because the book has no chapter of its own yet; `src/content.config.ts`
+ * reads the same variable, so the collection and the content model always see the same files.
+ */
+export function chaptersDir(app: string = appRoot()): string {
+  return process.env.BOOK_CHAPTERS_DIR ?? join(app, "src/content/chapters");
+}
+
 /** The real book's inputs: `src/outline.ts`, the chapters and the three registers. */
 export function bookInputs(): BookInputs {
   const app = appRoot();
   return {
     outline: bookOutline,
-    chaptersDir: join(app, "src/content/chapters"),
+    chaptersDir: chaptersDir(app),
     sourcesFile: join(app, "src/data/sources.json"),
     glossaryFile: join(app, "src/data/glossary.json"),
     analogiesFile: join(app, "src/content/analogies.json"),

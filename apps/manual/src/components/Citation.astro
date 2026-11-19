@@ -1,0 +1,13 @@
+---
+// A citation: a link to the source's entry in the register on /sources/.
+interface Props {
+  readonly id: string;
+  readonly label: string;
+  /** The source's title, read out by screen readers in place of the bare label. */
+  readonly title: string;
+}
+
+const { id, label, title } = Astro.props;
+---
+
+<span class="citation"><a href={`/sources/#${id}`} aria-label={`Source: ${title}`}>[{label}]</a></span>

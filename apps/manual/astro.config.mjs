@@ -9,7 +9,7 @@ import { join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { unified } from "@astrojs/markdown-remark";
 import { defineConfig } from "astro/config";
-import { loadBook, renderDependencies } from "./src/book/load.js";
+import { chaptersDir as bookChaptersDir, loadBook, renderDependencies } from "./src/book/load.js";
 import { book, markdownOptions } from "./src/markdown/options.js";
 
 // Astro caches each chapter's rendered HTML until the chapter file itself changes. An edit to a Markdown plugin, to
@@ -49,7 +49,7 @@ if (!existsSync(renderStamp) || readFileSync(renderStamp, "utf8") !== renderDige
 // Under `astro dev`, an edit to a render input restarts the server, which reloads this config and reruns the check.
 // So does a chapter edit that changes the book's numbered blocks, or one that breaks the book's rules, so the error
 // shows at once.
-const chaptersDir = here("./src/content/chapters/");
+const chaptersDir = bookChaptersDir();
 function chapterChangesNumbers() {
   try {
     return renderDependencies(loadBook()) !== renderDependencies(book);
@@ -76,7 +76,10 @@ export default defineConfig({
   // Every page URL ends in a slash, so links and the search index agree on one address per page.
   trailingSlash: "always",
   devToolbar: { enabled: false },
-  vite: { plugins: [restartOnRenderInputs] },
+  // Every style and script ships as its own same-origin file, never inlined into the page, so the content security
+  // policy can allow scripts and styles by origin alone, with no hashes or 'unsafe-inline'.
+  build: { inlineStylesheets: "never" },
+  vite: { plugins: [restartOnRenderInputs], build: { assetsInlineLimit: 0 } },
   markdown: {
     // Astro 7's default processor, Sätteri, runs no remark or rehype plugins, so chapters use `unified()`.
     processor: unified(markdownOptions),

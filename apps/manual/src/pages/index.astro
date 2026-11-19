@@ -1,27 +1,20 @@
 ---
+import ChapterHead from "../components/ChapterHead.astro";
+import Contents from "../components/Contents.astro";
+import { contentsParts } from "../components/contents-parts.js";
 import BaseLayout from "../layouts/BaseLayout.astro";
 import { book } from "../markdown/options.js";
-import { outline } from "../outline.js";
 
 // The contents come from the outline, not from the chapter files, so a planned chapter shows in its place, as plain
 // text until its file exists (BK5).
-const numbered = new Map(book.chapters.map((chapter) => [chapter.slug, chapter.number]));
+const parts = contentsParts(book);
 ---
 
 <BaseLayout title="Build an agent" description="A textbook on building an AI agent.">
-  <h1>Build an agent</h1>
-  {
-    outline.map((part) => (
-      <section>
-        <h2>{part.title}</h2>
-        <ol>
-          {part.chapters.map((chapter) => (
-            <li value={numbered.get(chapter.slug)}>
-              {book.index.written.has(chapter.slug) ? <a href={`/${chapter.slug}/`}>{chapter.title}</a> : chapter.title}
-            </li>
-          ))}
-        </ol>
-      </section>
-    ))
-  }
+  <div class="page">
+    <ChapterHead title="Build an agent" lede="A textbook on building an AI agent." />
+    <nav aria-label="Contents" class="article">
+      <Contents parts={parts} />
+    </nav>
+  </div>
 </BaseLayout>

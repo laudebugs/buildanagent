@@ -1,0 +1,18 @@
+---
+// Back, next and the step count for a stepper or a replay, plus restart and play for a replay. The controls render
+// hidden and src/scripts/steps.ts shows them, so a page without JavaScript shows no dead buttons.
+interface Props {
+  readonly label: string;
+  readonly replay?: boolean;
+}
+
+const { label, replay = false } = Astro.props;
+---
+
+<div class="controls" role="group" aria-label={label} data-step-controls hidden>
+  {replay && <button type="button" class="control" data-step-action="restart">Restart</button>}
+  <button type="button" class="control" data-step-action="back">Back</button>
+  {replay && <button type="button" class="control" data-step-action="play" aria-pressed="false">Play</button>}
+  <button type="button" class="control" data-step-action="next">Next</button>
+  <span class="controls__status label" data-step-status aria-live="polite"></span>
+</div>

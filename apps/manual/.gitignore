@@ -1,3 +1,6 @@
 # Astro's generated types and dev cache, and the built site with its Pagefind index
 .astro/
 dist/
+
+# Upstream font files, downloaded by scripts/fetch-fonts.mjs; only the subsets in public/fonts/ are committed
+fonts/upstream/

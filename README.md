@@ -18,7 +18,7 @@ The repo is documentation only for now. The research compares vendor agent SDKs,
 | [SECURITY.md](SECURITY.md) | How to report a vulnerability privately, and what is in scope |
 | [docs/guidelines/](docs/guidelines/README.md) | The coding and documentation rules for our packages: strict, portable TypeScript; one home per concept and small functions; offline, deterministic tests; plain-English docs and tested examples |
 | [docs/plans/](docs/plans/) | The plans and roadmap: SDK references, comparison, skills, build guides, implementation plans, and the [personal cloud coding agent](docs/plans/build-coding-agent.md) that is the first agent to build, the multi-user [agent platform](docs/plans/build-agent-platform.md) that follows it, and the plan to [close seven SDK gaps](docs/plans/close-sdk-gaps.md) with a standalone safety package first |
-| [docs/plans/build-book.md](docs/plans/build-book.md) | The plan for a public textbook on building an agent, at `apps/manual` and manual.buildanagent.fyi: two parts, checked listings from `verify/`, generated figures, and 46 todos |
+| [docs/plans/build-book.md](docs/plans/build-book.md) | The plan for a public textbook on building an agent, at `apps/manual` and manual.buildanagent.fyi: two parts, checked listings from `verify/`, generated figures, and 48 todos |
 | [docs/todos/](docs/todos/) | The todo board: every planned batch of work, by state |
 | [docs/comparison/deep-comparison.md](docs/comparison/deep-comparison.md) | The same triage agent built on all eight SDKs, the design trade-offs, and lessons for our own SDK, harness and agent |
 | [docs/comparison/typescript-gaps.md](docs/comparison/typescript-gaps.md) | What each TypeScript SDK lacks, has in weaker form, or has documented only for its primary language (Python, mostly), with sources on both sides |
@@ -72,7 +72,7 @@ See [AGENTS.md](AGENTS.md#coding-standards) for the coding standards.
 
 ## Licence
 
-You may use our code (scripts, our packages in `packages/`, the `verify/` harnesses and their examples, the book's code in `apps/manual/`, workflows and configs) under [Apache-2.0](LICENSE-APACHE) or [MIT](LICENSE-MIT), at your option. The book's files adapted from the owner's garment engineering textbook are Apache-2.0 only. Our documentation, the book's prose and figures included, is licensed under [CC BY 4.0](LICENSE-DOCS), and [LICENSE](LICENSE) says which files fall under which licence. The upstream docs mirrored under `docs/reference/*/source/` keep their own licences, listed in [THIRD-PARTY-NOTICES.md](THIRD-PARTY-NOTICES.md).
+You may use our code (scripts, our packages in `packages/`, the `verify/` harnesses and their examples, the book's code in `apps/manual/`, workflows and configs) under [Apache-2.0](LICENSE-APACHE) or [MIT](LICENSE-MIT), at your option. The book's files adapted from the owner's garment engineering textbook are Apache-2.0 only, and the book's fonts in `apps/manual/public/fonts/` keep the SIL Open Font License 1.1. Our documentation, the book's prose and figures included, is licensed under [CC BY 4.0](LICENSE-DOCS), and [LICENSE](LICENSE) says which files fall under which licence. The upstream docs mirrored under `docs/reference/*/source/` keep their own licences, listed in [THIRD-PARTY-NOTICES.md](THIRD-PARTY-NOTICES.md).
 
 ## For AI agents
 

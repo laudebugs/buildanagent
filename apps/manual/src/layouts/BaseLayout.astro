@@ -1,9 +1,17 @@
 ---
+import SiteHeader from "../components/SiteHeader.astro";
+import "../styles/tokens.css";
+import "../styles/base.css";
+import "../styles/layout.css";
+import "../styles/components.css";
 import type { PageProps } from "./page-props.js";
 
-type Props = PageProps;
+type Props = PageProps & {
+  /** Keeps the page out of search engines, as the component gallery is. */
+  readonly noindex?: boolean;
+};
 
-const { title, description } = Astro.props;
+const { title, description, noindex = false } = Astro.props;
 ---
 
 <!doctype html>
@@ -12,17 +20,18 @@ const { title, description } = Astro.props;
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <meta name="description" content={description} />
+    {noindex && <meta name="robots" content="noindex" />}
     <title>{title}</title>
+    <!-- Blocking on purpose: it applies a stored theme before the first paint. -->
+    <script is:inline src="/scripts/theme.js"></script>
+    <link rel="preload" href="/fonts/literata/literata-roman.woff2" as="font" type="font/woff2" crossorigin />
+    <link rel="preload" href="/fonts/instrument-serif/instrument-serif-regular.woff2" as="font" type="font/woff2" crossorigin />
     <slot name="head" />
   </head>
   <body>
-    <header>
-      <a href="/">Build an agent</a>
-      <a href="/glossary/">Glossary</a>
-      <a href="/sources/">Sources</a>
-      <a href="/search/">Search</a>
-    </header>
-    <main>
+    <a class="skip-link" href="#main">Skip to the text</a>
+    <SiteHeader />
+    <main id="main" tabindex="-1">
       <slot />
     </main>
   </body>

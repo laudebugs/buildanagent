@@ -1,13 +1,23 @@
 ---
+import ChapterHead from "../components/ChapterHead.astro";
 import BaseLayout from "../layouts/BaseLayout.astro";
 ---
 
 <BaseLayout title="Search the book" description="Search every chapter of the book.">
   <link slot="head" rel="stylesheet" href="/pagefind/pagefind-component-ui.css" />
-  <h1>Search</h1>
-  <pagefind-input></pagefind-input>
-  <pagefind-summary></pagefind-summary>
-  <pagefind-results></pagefind-results>
+  <div class="page">
+    <ChapterHead title="Search" />
+    <div class="article">
+      <pagefind-input></pagefind-input>
+      <pagefind-summary></pagefind-summary>
+      <pagefind-results></pagefind-results>
+      <noscript><p>Search runs in the browser and needs JavaScript. The <a href="/">contents</a> lists every chapter.</p></noscript>
+    </div>
+  </div>
   <!-- Pagefind writes its UI into dist/pagefind/ after astro build, so Vite must leave this script unbundled. -->
   <script is:inline src="/pagefind/pagefind-component-ui.js"></script>
 </BaseLayout>
+
+<script>
+  import "../scripts/search-query.ts";
+</script>

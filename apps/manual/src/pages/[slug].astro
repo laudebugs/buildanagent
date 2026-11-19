@@ -1,6 +1,8 @@
 ---
 import { getCollection, render } from "astro:content";
+import { contentsParts, neighbours } from "../components/contents-parts.js";
 import ChapterLayout from "../layouts/ChapterLayout.astro";
+import { book } from "../markdown/options.js";
 
 export async function getStaticPaths() {
   const chapters = await getCollection("chapters");
@@ -8,9 +10,23 @@ export async function getStaticPaths() {
 }
 
 const { chapter } = Astro.props;
-const { Content } = await render(chapter);
+const { Content, headings } = await render(chapter);
+// The number and the neighbouring chapters come from the outline, never from the collection's file order (BK5).
+const number = book.bySlug.get(chapter.id)?.number;
+const { previous, next } = neighbours(book, chapter.id);
 ---
 
-<ChapterLayout slug={chapter.id} title={chapter.data.title} description={chapter.data.summary} sources={chapter.data.sources}>
+<ChapterLayout
+  title={chapter.data.title}
+  description={chapter.data.summary}
+  label={`Chapter ${number}`}
+  lede={chapter.data.summary}
+  headings={headings.filter((heading) => heading.depth === 2)}
+  parts={contentsParts(book)}
+  current={`/${chapter.id}/`}
+  previous={previous}
+  next={next}
+  sources={chapter.data.sources}
+>
   <Content />
 </ChapterLayout>

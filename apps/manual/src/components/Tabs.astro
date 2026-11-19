@@ -1,0 +1,18 @@
+---
+// SDK tabs. Each TabPanel inside renders under its own heading, so without JavaScript the listings follow one
+// another; src/scripts/tabs.ts turns the headings into a tab list.
+interface Props {
+  /** What the tabs choose between, such as "SDK", for the tab list's accessible name. */
+  readonly label: string;
+}
+
+const { label } = Astro.props;
+---
+
+<div class="tabs" data-label={label}>
+  <slot />
+</div>
+
+<script>
+  import "../scripts/tabs.ts";
+</script>

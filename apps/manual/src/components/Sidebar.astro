@@ -1,0 +1,34 @@
+---
+import Contents from "./Contents.astro";
+import type { ContentsPart, PageHeading } from "./types.js";
+
+// The chapter sidebar: the page's own headings, then the whole contents behind a disclosure that needs no script.
+interface Props {
+  readonly headings: readonly PageHeading[];
+  readonly parts: readonly ContentsPart[];
+  readonly current?: string;
+}
+
+const { headings, parts, current } = Astro.props;
+---
+
+<nav class="sidebar" aria-label="Chapter">
+  {
+    headings.length > 0 && (
+      <div class="sidebar__section">
+        <h2 class="sidebar__heading label">On this page</h2>
+        <ol class="sidebar__toc">
+          {headings.map((heading) => (
+            <li>
+              <a href={`#${heading.slug}`}>{heading.text}</a>
+            </li>
+          ))}
+        </ol>
+      </div>
+    )
+  }
+  <details class="sidebar__section">
+    <summary>All chapters</summary>
+    <Contents parts={parts} current={current} />
+  </details>
+</nav>
