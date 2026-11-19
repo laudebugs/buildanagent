@@ -2,6 +2,7 @@
 // Docs: sdk.md "SDK", "Session lifecycle", "Subscribing to events"
 import { check, fauxAssistantMessage, fauxSession, fauxText } from "./lib/faux.ts";
 
+// #region hello
 const { session, faux } = await fauxSession([fauxAssistantMessage(fauxText("Hello from Pi."))]);
 const events: string[] = [];
 session.subscribe((e) => events.push(e.type));
@@ -18,3 +19,4 @@ try {
 } finally {
   session.dispose();
 }
+// #endregion

@@ -8,6 +8,7 @@ import { createEvent, createEventActions, FunctionTool, InMemoryRunner, LlmAgent
 import { z } from "zod";
 import { afterTool, callTool, check, ScriptedLlm, say, turn } from "./lib/check.ts";
 
+// #region state-prefixes
 const remember = new FunctionTool({
   name: "remember",
   description: "Remember a note.",
@@ -21,6 +22,7 @@ const remember = new FunctionTool({
     return { saved: true, sawTemp: state?.get("temp:scratch") };
   },
 });
+// #endregion
 const model = new ScriptedLlm((req) => (afterTool(req) ? say("noted") : callTool("remember", { note: "hi" })));
 const agent = new LlmAgent({ name: "notes", model, instruction: "Take notes.", tools: [remember] });
 const runner = new InMemoryRunner({ agent, appName: "notes" });

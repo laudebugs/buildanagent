@@ -6,6 +6,7 @@ import { FunctionTool, InMemoryRunner, isFinalResponse, LlmAgent } from "@google
 import { z } from "zod";
 import { afterTool, callTool, check, offered, responses, ScriptedLlm, say, turn } from "./lib/check.ts";
 
+// #region function-tool
 const executed: string[] = [];
 const getOrderStatus = new FunctionTool({
   name: "get_order_status",
@@ -16,6 +17,7 @@ const getOrderStatus = new FunctionTool({
     return `order ${orderId} shipped`;
   },
 });
+// #endregion
 
 // Call 1 sends a number where the schema wants a string; call 2 retries with a string; call 3 answers.
 const model = new ScriptedLlm((req, n) =>

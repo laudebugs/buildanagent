@@ -5,6 +5,7 @@ import { assistantMessage, functionCall, ScriptedModel } from "@openai/agents/te
 import { z } from "zod";
 import { check, runner } from "./lib/check.ts";
 
+// #region function-tool
 const calls: Array<{ city: string }> = [];
 const weather = tool({
   name: "get_weather",
@@ -15,12 +16,15 @@ const weather = tool({
     return `${city}: sunny`;
   },
 });
+// #endregion
+// #region run
 const model = new ScriptedModel([
   [functionCall("get_weather", { city: "Lisbon" }, { callId: "call_1" })],
   [assistantMessage("It is sunny in Lisbon.")],
 ]);
 const agent = new Agent({ name: "Weather", model, tools: [weather] });
 const result = await runner.run(agent, "Weather in Lisbon?");
+// #endregion
 
 check(calls.length === 1 && calls[0].city === "Lisbon", "execute() received the parsed arguments");
 check(

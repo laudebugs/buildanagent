@@ -5,6 +5,7 @@ import { z } from "zod";
 import { check, collect } from "./lib/collect.ts";
 
 const calls: unknown[] = [];
+// #region custom-tool
 const weather = createSdkMcpServer({
   name: "weather",
   version: "1.0.0",
@@ -23,7 +24,9 @@ const weather = createSdkMcpServer({
     ),
   ],
 });
+// #endregion
 
+// #region allowed-tools
 const { messages, result } = await collect(
   query({
     prompt: "What's the temperature in Lisbon?",
@@ -34,6 +37,7 @@ const { messages, result } = await collect(
     },
   }),
 );
+// #endregion
 
 check(calls.length === 1, "custom tool handler ran exactly once");
 check(typeof (calls[0] as any).latitude === "number", "handler received Zod-validated arguments");

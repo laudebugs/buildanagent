@@ -25,6 +25,10 @@ Offline verification harness for the Cloudflare Agents docs and our examples, pi
 | `skipped` | Needs something the harness does not provide; `reason` says what (React or client code, containers, Workflows, a credential, a package outside the pinned set) |
 | `error`, `timeout`, `bundle-error` | A real failure, to be triaged |
 
+## Region markers feed the book's listings
+
+Some examples carry `// #region <name>` and `// #endregion` comments, which change no behaviour. The book's `::listing` directive shows the code between them, so a chapter quotes only code that `pnpm test` type-checks and runs, and `check:book` fails when a chapter names a region that no longer exists ([how to add a listing](../../apps/manual/README.md#a-listing-shows-a-region-of-a-real-file)).
+
 ## Scripts
 
 | Command | Does |

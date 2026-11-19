@@ -67,6 +67,10 @@ The skipped sources need an external MCP server (42), host code execution (3), a
 | `07-tool-confirmation.ts` | `requireConfirmation` pauses the call, then approve, reject, the predicate form, and a forged call id |
 | `08-triage-agent.ts` | Capstone: a lookup tool that reads identity from session state, an escalation that never runs without approval, and a zod-checked typed result |
 
+## Region markers feed the book's listings
+
+Some examples carry `// #region <name>` and `// #endregion` comments, which change no behaviour. The book's `::listing` directive shows the code between them, so a chapter quotes only code that `pnpm test` type-checks and runs, and `check:book` fails when a chapter names a region that no longer exists ([how to add a listing](../../apps/manual/README.md#a-listing-shows-a-region-of-a-real-file)).
+
 ## Scripts
 
 | Command | Does |

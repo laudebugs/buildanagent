@@ -153,3 +153,23 @@ test("the harness table names every verify/ harness and a main package its packa
     assert.match(manifest.dependencies?.[name] ?? "", /^\d+\.\d+\.\d+$/, `${harness} pins ${name} exactly`);
   }
 });
+
+test("every region marked in a verify/ example resolves to a listing with its harness's pin", () => {
+  let regions = 0;
+  for (const harness of real.harnesses.keys()) {
+    const dir = join(repoRoot, harness, "examples");
+    for (const file of readdirSync(dir, { recursive: true, encoding: "utf8" }).filter((f) => f.endsWith(".ts"))) {
+      const path = `${harness}/examples/${file}`;
+      const text = readFileSync(join(repoRoot, path), "utf8");
+      for (const [, region] of text.matchAll(/^\s*\/\/\s*#region\s+(\S+)/gm)) {
+        const listing = resolveListing({ id: "x", file: path, region }, real);
+        assert.ok(!("message" in listing), "message" in listing ? listing.message : "");
+        const manifest = JSON.parse(readFileSync(join(repoRoot, harness, "package.json"), "utf8"));
+        const name = real.harnesses.get(harness) ?? "";
+        assert.equal(listing.pin, `${name}@${manifest.dependencies[name]}`);
+        regions++;
+      }
+    }
+  }
+  assert.ok(regions > 0, "the verify/ examples mark regions");
+});
