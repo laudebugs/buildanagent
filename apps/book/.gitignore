@@ -1,0 +1,3 @@
+# Astro's generated types and dev cache, and the built site with its Pagefind index
+.astro/
+dist/
