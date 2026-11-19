@@ -175,7 +175,7 @@ function toolMessage(entry: ToolCallResult): Message {
   };
 }
 
-/** Runs the response's tool calls one at a time, recording each result as soon as it arrives. */
+/** Runs the response's tool calls as the pipeline schedules them, recording each result in model order. */
 async function runTools(state: LoopState, message: AssistantMessage): Promise<readonly ToolCallResult[]> {
   const { runId, signal, clock, tools, output } = state.setup;
   return runToolCalls(message, tools, {

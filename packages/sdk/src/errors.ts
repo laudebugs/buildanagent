@@ -20,12 +20,13 @@ export type SdkErrorCode =
 const SDK_ERROR = Symbol.for("buildanagent.sdk.SdkError");
 
 /**
- * Thrown for a mistake in how the SDK is called. `invalid_tool_definition`: a tool's name, description, schema or
- * exposure is unusable, or two tools share a name. `invalid_tool_result`: a tool's `execute` returned a malformed
- * result or write outcome. `invalid_run_options`: `run()` or `continueRun()` got an option it can't use, such as a
- * model that isn't from `createModel()`. `invalid_model_stream`: a model's stream ended without a final message.
- * `run_stopped`: `runOrThrow()` was given a run that did not finish (a `RunStoppedError`). `unexpected_model_call`: a
- * `ScriptedModel` was called more times than its script allows (an `UnexpectedModelCallError`).
+ * Thrown for a mistake in how the SDK is called. `invalid_tool_definition`: a tool's name, description, schema,
+ * exposure, `executionMode` or `resourceKey` is unusable, or two tools share a name. `invalid_tool_result`: a tool's
+ * `execute` returned a malformed result or write outcome. `invalid_run_options`: `run()` or `continueRun()` got an
+ * option it can't use, such as a model that isn't from `createModel()`. `invalid_model_stream`: a model's stream ended
+ * without a final message. `run_stopped`: `runOrThrow()` was given a run that did not finish (a `RunStoppedError`).
+ * `unexpected_model_call`: a `ScriptedModel` was called more times than its script allows (an
+ * `UnexpectedModelCallError`).
  */
 export class SdkError extends Error {
   override readonly name: string = "SdkError";

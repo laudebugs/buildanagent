@@ -43,6 +43,8 @@ function showArguments(input: unknown): string {
 
 const NOT_RUN = {
   run_aborted: (tool: string) => `Tool "${tool}" was not run, because the run was cancelled.`,
+  sibling_failed: (tool: string) =>
+    `Tool "${tool}" was not run, because another call in the same step failed with an error in the tool itself.`,
   response_error: (tool: string) =>
     `Tool "${tool}" was not run, because the response ended with an error before it was complete. Re-issue the ` +
     "call if it is still needed.",
