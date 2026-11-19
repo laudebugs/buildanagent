@@ -548,7 +548,7 @@ The three research rounds behind the sections each confirmed its placement, and 
 | [U19](../todos/done/U19-research-a2a.md) | Research: agent-to-agent protocols (a2a), for the book | None | L |
 | [U20](../todos/done/U20-research-voice-and-realtime.md) | Research: voice and realtime agents, for the book | None | L |
 | [U21](../todos/done/U21-research-fine-tuning-vs-prompting.md) | Research: fine-tuning versus prompting, for the book | None | L |
-| [T10](../todos/ready/T10-chapter-call-workflow-loop.md) | Chapter: Use the least autonomy that works: a call, a workflow, then a loop | T5, T7, T26 | M |
+| [T10](../todos/ongoing/T10-chapter-call-workflow-loop.md) | Chapter: Use the least autonomy that works: a call, a workflow, then a loop | T5, T7, T26 | M |
 | [T11](../todos/ready/T11-chapter-talking-to-a-model.md) | Chapter: Talking to a model: messages, streams, tokens, instructions and model choice | T5, T6, T26, T28 | M |
 | [T12](../todos/ready/T12-chapter-tools.md) | Chapter: Tools: schemas, validation, errors the model can read, and identity it cannot fake | T5, T6, T26 | M |
 | [T13](../todos/ready/T13-chapter-stopping-and-structured-output.md) | Chapter: Stopping: caps, stop conditions and structured output | T5, T6, T26 | M |
