@@ -4,6 +4,7 @@ import ChapterHead from "./ChapterHead.astro";
 import Citation from "./Citation.astro";
 import Contents from "./Contents.astro";
 import FigureFrame from "./FigureFrame.astro";
+import GeneratedFigure from "./GeneratedFigure.astro";
 import GlossaryCard from "./GlossaryCard.astro";
 import GlossaryTerm from "./GlossaryTerm.astro";
 import ListingBlock from "./ListingBlock.astro";
@@ -233,6 +234,19 @@ const events: ReplayEvent[] = [
       <text x="255" y="45" text-anchor="middle" class="fig-text">response</text>
     </svg>
   </FigureFrame>
+</div>
+
+<div class="gallery__item">
+  <h3>Generated figure from figures/, inlined</h3>
+  <GeneratedFigure
+    chapter="call-workflow-loop"
+    figure="who-decides"
+    id={id("figure-generated")}
+    idPrefix={`${prefix}-`}
+    number="1.6"
+    caption="A call, a workflow and a loop differ in who decides the next step."
+    alt="Three columns of boxes joined by arrows: a call, a workflow and a loop. Under each, a note says who decides the next step: your code, your code, and the model."
+  />
 </div>
 
 <div class="gallery__item">
