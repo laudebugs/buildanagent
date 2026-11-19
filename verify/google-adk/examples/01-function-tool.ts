@@ -12,8 +12,8 @@ const getOrderStatus = new FunctionTool({
   name: "get_order_status",
   description: "Look up an order by id.",
   parameters: z.object({ orderId: z.string().describe("The order id.") }), // book:note schema
-  execute: ({ orderId }) => { // book:note execute
-    executed.push(orderId);
+  execute: ({ orderId }) => {
+    executed.push(orderId); // book:note execute
     return `order ${orderId} shipped`;
   },
 });

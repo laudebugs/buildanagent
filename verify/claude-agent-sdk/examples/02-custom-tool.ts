@@ -17,8 +17,8 @@ const weather = createSdkMcpServer({
         latitude: z.number(), // book:note schema
         longitude: z.number(),
       },
-      async (args) => { // book:note handler
-        calls.push(args);
+      async (args) => {
+        calls.push(args); // book:note handler
         return { content: [{ type: "text", text: "Temperature: 21°C" }] };
       },
     ),

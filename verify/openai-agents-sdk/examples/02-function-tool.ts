@@ -11,8 +11,8 @@ const weather = tool({
   name: "get_weather",
   description: "Gets the weather for a city.",
   parameters: z.object({ city: z.string() }), // book:note schema
-  execute: async ({ city }) => { // book:note execute
-    calls.push({ city });
+  execute: async ({ city }) => {
+    calls.push({ city }); // book:note execute
     return `${city}: sunny`;
   },
 });
