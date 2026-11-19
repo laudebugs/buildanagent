@@ -1,6 +1,6 @@
 # 0052. Publish a two-part textbook from a new `apps/book`, public on Cloudflare at manual.buildanagent.fyi
 
-- **Status:** Accepted (owner, 2026-11-19); folder and package name superseded by [0055](0055-name-the-book-app-manual.md) (2026-11-19)
+- **Status:** Accepted (owner, 2026-11-19); folder and package name superseded by [0055](0055-name-the-book-app-manual.md) (2026-11-19); listings rule superseded by [0057](0057-book-keeps-third-party-listings-and-adds-ours-as-tabs.md) (2026-11-19)
 - **Date:** 2026-11-19
 - **Plan:** [Book plan, BK1 and BK2](../plans/build-book.md#2-decisions)
 
