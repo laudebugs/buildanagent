@@ -51,7 +51,9 @@ export function formatSwitches(switches: readonly ChapterSwitch[]): string[] {
     if (switchTo.length === 0) return `${head} lists no switchTo todos.`;
     const todos = switchTo.map((id) => `${id} ${done.includes(id) ? "done" : "not done"}`).join(", ");
     const verdict =
-      done.length === switchTo.length ? "ready to move to our own packages" : "keeps its verify/ listings";
+      done.length === switchTo.length
+        ? "ready for tabs on our own packages"
+        : "its verify/ listings wait for our own packages";
     return `${head} ${todos}; ${verdict}.`;
   });
 }

@@ -17,8 +17,8 @@ test("the switch report lists each chapter's switchTo todos and which are done",
     { slug: "second", number: 2, switchTo: ["B12"], done: [] },
   ]);
   assert.deepEqual(formatSwitches(switches), [
-    "Chapter 1 (first): B11 done; ready to move to our own packages.",
-    "Chapter 2 (second): B12 not done; keeps its verify/ listings.",
+    "Chapter 1 (first): B11 done; ready for tabs on our own packages.",
+    "Chapter 2 (second): B12 not done; its verify/ listings wait for our own packages.",
   ]);
 });
 

@@ -44,7 +44,7 @@ switchTo: [B11]
 - `opening` must be the type the outline plans for this chapter. To change it, change the outline, which reruns the rotation check.
 - `sources` lists the register ids the chapter relies on, in the order its source list shows them; it needs at least one.
 - `glossary` lists the glossary ids whose first use the chapter links; it may be empty.
-- `switchTo` lists the todos whose code will replace the chapter's `verify/` listings; it may be empty.
+- `switchTo` lists the todos whose code the chapter's `verify/` listings will gain as a first tab, beside the `verify/` listing, which stays (BK8); it may be empty.
 
 The chapter's last `##` section is `## Exercises`, and it holds a list. The layout adds the chapter's sources after it, so the chapter has no sources section of its own.
 
