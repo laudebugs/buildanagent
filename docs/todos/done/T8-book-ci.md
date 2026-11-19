@@ -30,7 +30,7 @@ Fail a pull request that breaks the book, and hand the deploy workflow a built s
 
 **Out of scope** (and which todo covers it)
 
-- The anatomy audits, which [T7](../ongoing/T7-book-isometric-figures.md) adds to this workflow
+- The anatomy audits, which [T7](T7-book-isometric-figures.md) adds to this workflow
 - Deploys and previews ([T9](../ready/T9-book-deploy.md))
 
 ## Tasks

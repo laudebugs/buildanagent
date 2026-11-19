@@ -33,7 +33,7 @@ Give chapters a way to add flat diagrams that stay correct. Each figure is a com
 
 **Out of scope** (and which todo covers it)
 
-- Isometric and interactive figures ([T7](../ongoing/T7-book-isometric-figures.md))
+- Isometric and interactive figures ([T7](T7-book-isometric-figures.md))
 - Each chapter's own figures (the chapter todos)
 
 ## Tasks
