@@ -409,6 +409,8 @@ Before the first deploy, check by name that each environment holds both secrets 
 2. Set `BOOK_DEPLOY_ENABLED` to `true`, if it is not, and push to `main` or rerun the latest `book-deploy` run for `main`. The deploy prints a note that the previews' DNS and certificate may take a few minutes.
 3. Open a pull request from a branch of this repository and check that the comment's two addresses serve the book with `X-Robots-Tag: noindex`.
 
+One point stays open until that deploy has run: whether a preview deployed before the switch, built without `noindex`, is served on the custom domain too. If it is, an open pull request's old preview lacks `noindex` until its next push.
+
 The same deploy turns off the old `workers.dev` previews. Any still listed stop serving there. A branch's old preview is deleted when its pull request closes, and a fork's, which the workflow no longer deletes, goes when Cloudflare's limit of previews per Worker removes the least recently deployed one.
 
 **To pause production,** set `BOOK_DEPLOY_ENABLED` to anything other than `true`, or delete it. Pushes to `main` still build the book and pull requests still get previews; the `production` job is skipped until the variable is `true` again.

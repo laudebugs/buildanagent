@@ -381,10 +381,32 @@ describe("the resolve step", () => {
   });
 
   test("a fork's pull request gets no preview, even into this repository", () => {
-    const result = run({ HEAD_REPO: "fork/repo" }, { [`repos/owner/repo/commits/${SHA}/pulls`]: pulls.slice(4) });
+    const result = run({}, { [`repos/owner/repo/commits/${SHA}/pulls`]: pulls.slice(4) });
     assert.equal(result.status, 0, result.stderr);
     assert.equal(result.outputs.previews, "[]");
     assert.match(result.stdout, /from a branch of owner\/repo/);
+  });
+
+  // A fork can open a pull request whose head is the same commit as a branch's open pull request. Its run's
+  // artifact is the fork's own build, so it must never deploy to, or comment on, the branch's pull request.
+  test("a fork-triggered run gets no preview, even when a branch's open pull request has the same commit", () => {
+    const result = run({ HEAD_REPO: "fork/repo" }, { [`repos/owner/repo/commits/${SHA}/pulls`]: pulls });
+    assert.equal(result.status, 0, result.stderr);
+    assert.deepEqual(result.outputs, { newest: "false", previews: "[]", deletions: "[]" });
+    assert.match(result.stdout, /fork\/repo, a fork, so nothing is previewed or deleted/);
+  });
+
+  test("a fork-triggered book-pr-closed run deletes nothing, even a branch's closed pull request at that commit", () => {
+    const result = run(
+      { WORKFLOW: "book-pr-closed", HEAD_REPO: "fork/repo" },
+      {
+        "repos/owner/repo/pulls?state=closed&sort=updated&direction=desc&per_page=100": [
+          { number: 8, head: head(SHA) },
+        ],
+      },
+    );
+    assert.equal(result.status, 0, result.stderr);
+    assert.equal(result.outputs.deletions, "[]");
   });
 
   test("a pull request run whose commit no open pull request has as its head previews nothing", () => {

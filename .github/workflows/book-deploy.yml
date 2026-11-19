@@ -62,14 +62,17 @@ jobs:
             tip=$(gh api "repos/$REPO/commits/main" --jq .sha)
             if [ "$tip" = "$HEAD_SHA" ]; then newest=true
             else echo "::notice::$HEAD_SHA is no longer main's newest commit; the run for $tip deploys that commit instead."; fi
-          elif [ "$WORKFLOW" = book-build ] && [ "$EVENT" = pull_request ]; then
-            # Open pull requests from a branch of this repository into it, whose head is still this commit.
+          elif [ "$WORKFLOW" = book-build ] && [ "$EVENT" = pull_request ] && [ "$HEAD_REPO" = "$REPO" ]; then
+            # Open pull requests from a branch of this repository into it, whose head is still this commit. The run
+            # itself must come from a branch here too: a fork's run of the same commit carries the fork's artifact.
             previews=$(gh api "repos/$REPO/commits/$HEAD_SHA/pulls" --jq "[.[] | select(.state == \"open\" and .head.sha == \"$HEAD_SHA\" and .base.repo.full_name == \"$REPO\" and .head.repo.full_name == \"$REPO\") | .number] | @json")
             [ "$previews" != "[]" ] || echo "::notice::No open pull request from a branch of $REPO has $HEAD_SHA as its head, so no preview."
-          elif [ "$WORKFLOW" = book-pr-closed ] && [ "$EVENT" = pull_request ]; then
+          elif [ "$WORKFLOW" = book-pr-closed ] && [ "$EVENT" = pull_request ] && [ "$HEAD_REPO" = "$REPO" ]; then
             # The commits endpoint omits closed, unmerged pull requests, so search the recently closed ones instead.
             deletions=$(gh api "repos/$REPO/pulls?state=closed&sort=updated&direction=desc&per_page=100" --jq "[.[] | select(.head.sha == \"$HEAD_SHA\" and .head.repo.full_name == \"$REPO\") | .number] | @json")
             [ "$deletions" != "[]" ] || echo "::notice::No recently closed pull request has $HEAD_SHA as its head."
+          elif [ "$EVENT" = pull_request ]; then
+            echo "::notice::The triggering run is for $HEAD_REPO, a fork, so nothing is previewed or deleted."
           fi
           for list in "$previews" "$deletions"; do
             [[ "$list" =~ ^\[([0-9]+(,[0-9]+)*)?\]$ ]] || { echo "::error::The API returned something other than pull request numbers."; exit 1; }
