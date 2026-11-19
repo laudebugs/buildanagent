@@ -168,7 +168,7 @@ These four sections were drafted together and checked together before the writin
 
 | # | Where | Claim | Source checked | Verdict |
 | --- | --- | --- | --- | --- |
-| 101 | Teach ¶1 | T11's model-choice section: "start with the most capable, then try smaller ones against evals" | [T11](../../todos/ongoing/T11-chapter-talking-to-a-model.md), Scope | ✅ Verbatim |
+| 101 | Teach ¶1 | T11's model-choice section: "start with the most capable, then try smaller ones against evals" | [T11](../../todos/done/T11-chapter-talking-to-a-model.md), Scope | ✅ Verbatim |
 | 102 | Teach, points 1–4 | The four teach points | Rows 11–14, 24–37, 41, 58, 66, 21 and 71–87 | ⚠️ (inferred) Point 2 restates row 33 and point 3 restates row 23, both inferences; the other claims restate ✅ rows, and "16 to 30 months" is row 8. Both inferences are now labelled in the text (rows 136–137); the first verdict, ✅, was corrected in PR #62's review |
 | 103 | Teach ¶3 | T39's analogy and its stated break, "a fine-tuned model also needs the brief" | [T39](../../todos/ready/T39-section-fine-tuning-vs-prompting.md), Analogy | ✅ |
 | 104 | Teach ¶3 | The certificate expires when the base model retires | Rows 41, 65–66 | ⚠️ (inferred) Our proposed analogy break |
