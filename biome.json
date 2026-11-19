@@ -16,7 +16,8 @@
       "!**/verify/*/extracted",
       "!**/verify/*/.tmp",
       "!apps/manual/**/figures/**/*.svg",
-      "!.agents/skills/anatomy"
+      "!.agents/skills/anatomy",
+      "!apps/manual/src/styles/anatomy.css"
     ]
   },
   "formatter": {

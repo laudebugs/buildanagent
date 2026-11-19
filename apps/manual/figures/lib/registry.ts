@@ -8,6 +8,7 @@ import { basename, join, relative, sep } from "node:path";
 import { fileURLToPath, pathToFileURL } from "node:url";
 import { FIGURES_BUILD, figureFiles } from "../../src/book/figures.js";
 import { KEBAB_ID } from "../../src/book/outline-rules.js";
+import { IsoFigure } from "./isokit.js";
 import { Figure, FigureError } from "./svgkit.js";
 
 const APP = fileURLToPath(new URL("../../", import.meta.url));
@@ -16,12 +17,13 @@ const REPO = join(APP, "../..");
 /** The book's own figure scripts, `figures/<chapter>/<id>.ts`. Fixture books name their own folders. */
 export const BOOK_FIGURES = join(APP, "figures");
 
-/** One figure script and the SVG it writes beside it. */
+/** One figure script and the files it may write beside it: an SVG for a flat figure, a fragment for an isometric one. */
 export interface FigureScript {
   readonly id: string;
   readonly chapter: string;
   readonly script: string;
   readonly svg: string;
+  readonly fragment: string;
   /** The script's path from the repository root, which the SVG's first line names. */
   readonly source: string;
 }
@@ -47,57 +49,70 @@ export function figureScripts(root: string): FigureScript[] {
         `${fromRepo(join(root, path))}: a figure script lives at figures/<chapter>/<figure-id>.ts, both kebab-case`,
       );
     }
-    const { script, svg } = figureFiles(root, chapter, id);
-    found.push({ id, chapter, script, svg, source: fromRepo(script) });
+    const { script, svg, fragment } = figureFiles(root, chapter, id);
+    found.push({ id, chapter, script, svg, fragment, source: fromRepo(script) });
   }
   return found;
 }
 
-/** Every committed SVG under `root` that no script draws. */
-export function orphanSvgs(root: string): string[] {
+/** Every committed SVG or fragment under `root` that no script draws. */
+export function orphanFiles(root: string): string[] {
   if (!existsSync(root)) return [];
-  const drawn = new Set(figureScripts(root).map((figure) => figure.svg));
+  const drawn = new Set(figureScripts(root).flatMap((figure) => [figure.svg, figure.fragment]));
   return readdirSync(root, { recursive: true, encoding: "utf8" })
-    .filter((path) => path.endsWith(".svg"))
+    .filter((path) => path.endsWith(".svg") || path.endsWith(".html"))
     .map((path) => join(root, path))
     .filter((svg) => !drawn.has(svg))
     .sort();
 }
 
-/**
- * Runs one figure script in memory and returns the SVG it draws now. The script's default export is a function that
- * returns a `Figure` whose id is the script's file name.
- */
-export async function drawFigure(figure: FigureScript): Promise<string> {
+/** What a figure script returns: a flat figure from svgkit or an isometric one from isokit. */
+export async function loadFigure(figure: FigureScript): Promise<Figure | IsoFigure> {
   const module = (await import(pathToFileURL(figure.script).href)) as { default?: unknown };
   if (typeof module.default !== "function") {
-    throw new FigureError(`${figure.source} must export default a function that returns its Figure`);
+    throw new FigureError(`${figure.source} must export default a function that returns its Figure or IsoFigure`);
   }
   const drawn: unknown = module.default();
-  if (!(drawn instanceof Figure)) throw new FigureError(`${figure.source}'s default export must return a Figure`);
+  if (!(drawn instanceof Figure) && !(drawn instanceof IsoFigure)) {
+    throw new FigureError(`${figure.source}'s default export must return a Figure or an IsoFigure`);
+  }
   if (drawn.id !== figure.id) {
     throw new FigureError(`${figure.source} draws figure "${drawn.id}", but its file name says "${figure.id}"`);
   }
-  return drawn.toSvg(figure.source);
+  return drawn;
 }
 
 /**
- * Every way the committed figures under `root` differ from what their scripts draw now: an SVG that is missing or
- * stale, naming the script to rerun, and an SVG that no script draws. An empty list means every figure is current.
+ * Runs one figure script in memory and returns the file it draws now: the SVG of a flat figure, or the HTML fragment of
+ * an isometric one. The script's default export is a function that returns a `Figure` or an `IsoFigure` whose id is
+ * the script's file name.
+ */
+export async function drawFigure(figure: FigureScript): Promise<{ readonly path: string; readonly text: string }> {
+  const drawn = await loadFigure(figure);
+  return drawn instanceof IsoFigure
+    ? { path: figure.fragment, text: drawn.fragment(figure.source) }
+    : { path: figure.svg, text: drawn.toSvg(figure.source) };
+}
+
+/**
+ * Every way the committed figures under `root` differ from what their scripts draw now: an SVG or fragment that is
+ * missing or stale, naming the script to rerun, and an SVG or fragment that no script draws. An empty list means every figure is current.
  */
 export async function staleFigures(root: string): Promise<string[]> {
   const problems: string[] = [];
   for (const figure of figureScripts(root)) {
-    const drawn = await drawFigure(figure);
-    const committed = existsSync(figure.svg) ? readFileSync(figure.svg, "utf8") : undefined;
+    const { path, text } = await drawFigure(figure);
+    const committed = existsSync(path) ? readFileSync(path, "utf8") : undefined;
     if (committed === undefined) {
-      problems.push(`${fromRepo(figure.svg)} is missing: run ${FIGURES_BUILD}, which draws it from ${figure.source}`);
-    } else if (committed !== drawn) {
-      problems.push(`${fromRepo(figure.svg)} is stale: run ${FIGURES_BUILD}, which redraws it from ${figure.source}`);
+      problems.push(`${fromRepo(path)} is missing: run ${FIGURES_BUILD}, which draws it from ${figure.source}`);
+    } else if (committed !== text) {
+      problems.push(`${fromRepo(path)} is stale: run ${FIGURES_BUILD}, which redraws it from ${figure.source}`);
     }
   }
-  for (const svg of orphanSvgs(root)) {
-    problems.push(`${fromRepo(svg)} has no script beside it; delete it or add ${basename(svg, ".svg")}.ts`);
+  for (const file of orphanFiles(root)) {
+    problems.push(
+      `${fromRepo(file)} has no script beside it; delete it or add ${basename(file).replace(/\.(svg|html)$/, "")}.ts`,
+    );
   }
   return problems;
 }

@@ -7,12 +7,24 @@
 // The garment plugin turns an image and its caption into a figure, fails when the alt text or the caption is missing,
 // and inlines a generated HTML fragment in place of the image. Here the book's `:::figure` directive already carries
 // the caption and the number (remark-book-directives and rehype-numbering), so this plugin keeps the other two rules:
-// it inlines the figure's generated SVG and fails without alt text.
+// it inlines the figure's generated SVG and fails without alt text. The garment plugin's `viewer:` image source, which
+// inlines an interactive figure's HTML fragment with its alt text kept as a visually hidden paragraph, becomes the
+// `::viewer` directive here.
 import { existsSync, readFileSync } from "node:fs";
 import { relative, sep } from "node:path";
 import type { Paragraph, Parent, Root, RootContent } from "mdast";
 import type { VFile } from "vfile";
-import { captionId, FIGURES_BUILD, figureFiles, inlineSvg, SCROLL_HINT, SCROLL_STAGE } from "../book/figures.js";
+import { blockKey } from "../book/book-index.js";
+import {
+  captionId,
+  escapeXml,
+  FIGURES_BUILD,
+  figureFiles,
+  inlineFragment,
+  inlineSvg,
+  SCROLL_HINT,
+  SCROLL_STAGE,
+} from "../book/figures.js";
 import type { Book } from "../book/load.js";
 import { checkedChapter } from "./chapter-file.js";
 import { failAt } from "./fail.js";
@@ -22,7 +34,8 @@ type ContainerDirective = Extract<RootContent, { type: "containerDirective" }>;
 type LeafDirective = Extract<RootContent, { type: "leafDirective" }>;
 
 const FIGURE_ATTRIBUTES = new Set(["id", "analogy"]);
-const DRAWING = "svg";
+/** A flat figure's drawing is `::svg`, and an isometric figure's interactive fragment is `::viewer`. */
+const DRAWINGS = new Set(["svg", "viewer"]);
 
 /** The analogy each figure in the chapter illustrates, by figure id, for the analogy-figure plugin to check. */
 export function figureAnalogies(file: VFile): Map<string, string> {
@@ -31,17 +44,19 @@ export function figureAnalogies(file: VFile): Map<string, string> {
   return data.figureAnalogies;
 }
 
-const isDrawing = (node: RootContent): node is LeafDirective => node.type === "leafDirective" && node.name === DRAWING;
+const isDrawing = (node: RootContent): node is LeafDirective =>
+  node.type === "leafDirective" && DRAWINGS.has(node.name);
 const isFigure = (node: Parent | RootContent): node is ContainerDirective =>
   node.type === "containerDirective" && (node as ContainerDirective).name === "figure";
 const isLabel = (node: RootContent): boolean => node.type === "paragraph" && node.data?.directiveLabel === true;
 
 /**
- * Inlines each figure's generated drawing. A figure holds one `::svg{alt="…"}` and nothing else besides its caption;
- * the plugin reads `<figures dir>/<chapter>/<figure id>.svg`, which the figure's script writes, and puts it in the
- * figure's panel with the alt text as its accessible name. A figure without its drawing or alt text, a drawing that is
- * missing or was not drawn for this figure, an `::svg` outside a figure, and an unknown attribute each fail with the
- * chapter's file and line. It runs before remark-book-directives, which numbers the figure and builds its caption.
+ * Inlines each figure's generated drawing. A figure holds one drawing and nothing else besides its caption: a flat
+ * figure's `::svg{alt="…"}`, read from `<figures dir>/<chapter>/<figure id>.svg` and named by its alt text, or an
+ * isometric figure's `::viewer{alt="…"}`, read from `<figure id>.html` and preceded by its alt text as a visually hidden
+ * paragraph. The figure's script writes either file, and the plugin puts the drawing in the figure's panel. A figure
+ * without its drawing or alt text, a drawing that is missing or was not drawn for this figure, a drawing outside a
+ * figure, and an unknown attribute each fail with the chapter's file and line. It runs before remark-book-directives, which numbers the figure and builds its caption.
  */
 export function remarkFigures(options: { readonly book: Book }) {
   const { book } = options;
@@ -52,7 +67,11 @@ export function remarkFigures(options: { readonly book: Book }) {
         return figure(node, { book, slug: outline.slug, file });
       }
       if (isDrawing(node) && !isFigure(parent)) {
-        return failAt(file, "::svg must sit inside a :::figure block, which gives it a number and a caption", node);
+        return failAt(
+          file,
+          `::${node.name} must sit inside a :::figure block, which gives it a number and a caption`,
+          node,
+        );
       }
       return undefined;
     });
@@ -86,7 +105,8 @@ function figure(
   if (drawing === undefined || drawings.length > 1 || node.children.some((c) => !isDrawing(c) && !isLabel(c))) {
     return failAt(
       file,
-      `figure "${id}" must hold one generated drawing, written ::svg{alt="…"}, and nothing else; put any prose in ` +
+      `figure "${id}" must hold one generated drawing, written ::svg{alt="…"} or ::viewer{alt="…"}, and nothing ` +
+        "else; put any prose in " +
         "its caption or in the text around it",
       node,
     );
@@ -108,27 +128,37 @@ function drawingHtml(
 ): Paragraph {
   const { book, slug, id, file } = where;
   const attributes = node.attributes ?? {};
+  const directive = node.name;
   const unknown = Object.keys(attributes).find((name) => name !== "alt");
-  if (unknown !== undefined) return failAt(file, `::svg takes only the attribute alt, not "${unknown}"`, node);
+  if (unknown !== undefined) return failAt(file, `::${directive} takes only the attribute alt, not "${unknown}"`, node);
   const alt = attributes.alt?.trim() ?? "";
   if (alt === "") {
-    return failAt(file, `figure "${id}" needs alt text that says what its drawing shows: ::svg{alt="…"}`, node);
-  }
-  const { svg, script } = figureFiles(book.inputs.figuresDir, slug, id);
-  const name = (path: string) => relative(book.inputs.repoRoot, path).split(sep).join("/");
-  if (!existsSync(svg)) {
     return failAt(
       file,
-      `figure "${id}" has no drawing at ${name(svg)}; write ${name(script)} and run ${FIGURES_BUILD}`,
+      `figure "${id}" needs alt text that says what its drawing shows: ::${directive}{alt="…"}`,
+      node,
+    );
+  }
+  const files = figureFiles(book.inputs.figuresDir, slug, id);
+  const drawn = directive === "viewer" ? files.fragment : files.svg;
+  const name = (path: string) => relative(book.inputs.repoRoot, path).split(sep).join("/");
+  if (!existsSync(drawn)) {
+    return failAt(
+      file,
+      `figure "${id}" has no drawing at ${name(drawn)}; write ${name(files.script)} and run ${FIGURES_BUILD}`,
       node,
     );
   }
   let html: string;
   try {
-    html = inlineSvg(readFileSync(svg, "utf8"), { figureId: id, alt });
+    const text = readFileSync(drawn, "utf8");
+    html =
+      directive === "viewer"
+        ? viewerHtml(text, { id, alt, number: book.index.blocks.get(blockKey("figure", id))?.number })
+        : inlineSvg(text, { figureId: id, alt });
   } catch (error) {
     const reason = error instanceof Error ? error.message : String(error);
-    return failAt(file, `${name(svg)} cannot be inlined: ${reason}; redraw it with ${FIGURES_BUILD}`, node);
+    return failAt(file, `${name(drawn)} cannot be inlined: ${reason}; redraw it with ${FIGURES_BUILD}`, node);
   }
   // The panel matches the FigureFrame component's scrolling stage, so a chapter's figure looks like the gallery's. The
   // drawing keeps its natural size, and the stage scrolls sideways where the panel is narrower (BK11); the stage takes
@@ -150,4 +180,17 @@ function drawingHtml(
     ],
     ...(node.position ? { position: node.position } : {}),
   };
+}
+
+/**
+ * An isometric figure's fragment as a chapter shows it: the alt text first, as a visually hidden paragraph, because
+ * the fragment's drawing is hidden from screen readers, then the fragment with its figure corner numbered.
+ */
+function viewerHtml(
+  text: string,
+  figure: { readonly id: string; readonly alt: string; readonly number: string | undefined },
+): string {
+  const { id, alt, number } = figure;
+  const fragment = inlineFragment(text, { figureId: id, ...(number ? { number: `Figure ${number}` } : {}) });
+  return `<p class="visually-hidden">${escapeXml(alt)}</p>${fragment}`;
 }
