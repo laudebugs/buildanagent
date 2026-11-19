@@ -142,16 +142,17 @@ export interface Run<S = unknown> extends AsyncIterable<AgentEvent> {
    * or tool batch in flight, never inside it, and before the next model call. The promise resolves with a
    * `DeliveryReceipt` once the message is in the transcript, and the run emits a `steer_applied` event for it. It
    * rejects with an `SdkError` whose code is `undelivered_message` when the run ends first, and with
-   * `invalid_run_options` for an empty message or a block that isn't text or an image. Steers are applied in the
+   * `invalid_run_options` for a blank message or a block that isn't text or an image. Steers are applied in the
    * order they were sent.
    */
   steer(message: string | readonly ContentBlock[]): Promise<DeliveryReceipt>;
   /**
    * Queues a user message that waits until the run would otherwise end. When the model has answered and no tool call
    * is left, the run applies every waiting follow-up as user messages and makes one more model call, so a follow-up
-   * sent before the run ends extends it by one step. A steer that is waiting goes first. Any other stop reason, a run that
-   * ends by calling its output tool, and a run already at `maxSteps` still end it, and the follow-up then rejects
-   * with `undelivered_message`. The receipt works as for `steer()`.
+   * sent before the run ends extends it by one step. A steer that is waiting goes first. Any other stop reason, a
+   * `shouldStop` hook or progress policy that ends the run, a run that ends by calling its output tool, an abort and
+   * a run already at `maxSteps` still end it, and the follow-up then rejects with `undelivered_message`. The receipt
+   * works as for `steer()`.
    */
   followUp(message: string | readonly ContentBlock[]): Promise<DeliveryReceipt>;
 }

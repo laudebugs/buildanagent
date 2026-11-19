@@ -78,15 +78,15 @@ export type AgentEventBody =
   /** The model is retrying a failed request; `attempt` is 1 for the first retry. */
   | { readonly type: "retry"; readonly attempt: number; readonly delayMs: number; readonly error: string }
   /**
+   * A queued steer or follow-up entered the transcript as a user message, at the start of the step named by
+   * `receipt.stepIndex`, before its model call. `receipt.kind` tells the two apart.
+   */
+  | { readonly type: "steer_applied"; readonly receipt: DeliveryReceipt }
+  /**
    * An interceptor or an observer threw. `hook` names it (`beforeToolCall`, `observer` and so on) and `error` is the
    * thrown message. The run goes on or fails by the interceptors' `onFailure` setting; a failed observer never
    * affects it.
    */
-  /**
-   * A queued steer or follow-up entered the transcript as a user message, before the model call named by
-   * `receipt.stepIndex`. `receipt.kind` tells the two apart.
-   */
-  | { readonly type: "steer_applied"; readonly receipt: DeliveryReceipt }
   | { readonly type: "hook_error"; readonly hook: string; readonly error: string }
   | { readonly type: "warning"; readonly code: WarningCode; readonly detail: string }
   | { readonly type: "error"; readonly error: RunError }

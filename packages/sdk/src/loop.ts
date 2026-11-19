@@ -443,7 +443,8 @@ function applySteering(state: LoopState): void {
     batch.push(...steering.takeFollowUps());
   }
   for (const delivery of batch) {
-    state.append({ role: "user", content: delivery.message });
+    // A copy, so a caller who changes a receipt's message cannot change the transcript.
+    state.append({ role: "user", content: delivery.message.map((block) => ({ ...block })) });
     state.send({ type: "steer_applied", receipt: delivery.deliver(state.stepIndex) });
   }
 }
@@ -451,11 +452,14 @@ function applySteering(state: LoopState): void {
 /**
  * Keeps a run that its model ended by answering going, when a message is waiting and the step cap leaves room for
  * one more call: a steer comes first, and follow-ups wait for the next time the run would end. Any other outcome
- * stands, and the messages still waiting are rejected when the run ends.
+ * stands, as does a `stop` or `no_progress` verdict that `withVerdict` folded into `done`, and an abort that came
+ * after the answer, which `stopCheck` lets the answer win over. The messages still waiting are rejected when the run
+ * ends.
  */
-function withQueued(state: LoopState, outcome: Outcome | undefined): Outcome | undefined {
-  const { steering, maxSteps } = state.setup;
+function withQueued(state: LoopState, outcome: Outcome | undefined, verdict: StopVerdict): Outcome | undefined {
+  const { steering, maxSteps, signal } = state.setup;
   if (outcome?.stopReason !== "done" || !steering.hasPending() || state.steps >= maxSteps) return outcome;
+  if (verdict.kind === "stop" || verdict.kind === "no_progress" || signal.aborted) return outcome;
   state.releaseFollowUps = !steering.hasSteers();
   return undefined;
 }
@@ -470,8 +474,9 @@ async function decide(
   const endedByAnswer = natural?.stopReason === "done" && results.length === 0;
   if (natural !== undefined && !endedByAnswer) return natural;
   const verdict = await state.hooks.shouldStop({ messages: state.messages, lastMessage: message });
-  const outcome = withVerdict(state, natural, await withProgress(state, verdict));
-  return endedByAnswer ? withQueued(state, outcome) : outcome;
+  const judged = await withProgress(state, verdict);
+  const outcome = withVerdict(state, natural, judged);
+  return endedByAnswer ? withQueued(state, outcome, judged) : outcome;
 }
 
 /**
@@ -569,10 +574,14 @@ export async function runLoop(setup: LoopSetup, emit: Emit, drain: Drain): Promi
   // A budget needs a price to check against, so a model without one is refused before it is called (D4).
   const refused = setup.budgetUsd === undefined ? undefined : unknownPriceError(setup.model);
   let outcome: Outcome | undefined = refused === undefined ? undefined : { stopReason: "error", error: refused };
-  while (outcome === undefined) {
-    outcome = setup.signal.aborted ? { stopReason: "aborted" } : await runStep(state);
+  try {
+    while (outcome === undefined) {
+      outcome = setup.signal.aborted ? { stopReason: "aborted" } : await runStep(state);
+    }
+  } finally {
+    // The run has its outcome, or threw for a programmer error, so a message still waiting can no longer reach a
+    // model call, and its receipt must not hang.
+    setup.steering.close();
   }
-  // The run has its outcome, so a message still waiting can no longer reach a model call.
-  setup.steering.close();
   return finish(state, outcome);
 }

@@ -560,6 +560,7 @@ declare function replayPairs(pairs: RecordedPair[]): ScriptedModel;   // rejects
 - `Run` gains `steer()` and `followUp()`, and `AgentEvent` gains `steer_applied`. A steer is applied at the start of the next step, before its model call. A follow-up is applied only when the model has answered without a tool call; a waiting steer goes first. The extra call counts against `maxSteps`.
 - A receipt rejects with `SdkError` code `undelivered_message` when the run ends before the message is applied. `receipt.id` is `<runId>:message-<n>`.
 
+### 3.4 The seams P2 consumes
 
 The harness plan should use these names as written; P4 checks that it does ([implementation plans §3](implementation-plans.md#3-the-review-p4)). The first six are the seams of [harness guide §1][hg1]; the rest are what its sketches assume from the SDK.
 

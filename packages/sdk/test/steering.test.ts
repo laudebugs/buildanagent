@@ -1,7 +1,7 @@
 // run.steer() and run.followUp(): messages applied only at step boundaries, with receipts.
 import assert from "node:assert/strict";
 import type { ContentBlock, Message } from "@buildanagent/gateway";
-import { type AgentEvent, type DeliveryReceipt, isSdkError, type Run, run } from "@buildanagent/sdk";
+import { type AgentEvent, type DeliveryReceipt, defineTool, isSdkError, type Run, run } from "@buildanagent/sdk";
 import { test } from "vitest";
 import { determinism, drive, scripted, text, typesOf } from "./run-helpers.js";
 import { Probe } from "./scheduler-helpers.js";
@@ -262,4 +262,110 @@ test("continueRun carries an applied steer in its context", async () => {
   void started.steer("Be brief.");
   const { result } = await drive(started);
   assert.deepEqual(userTexts(result.context.messages), ["Go.", "Be brief."]);
+});
+
+async function undeliveredBy(promise: Promise<unknown>): Promise<void> {
+  const error = await rejection(promise);
+  assert.ok(isSdkError(error) && error.code === "undelivered_message", `expected undelivered_message, got ${error}`);
+}
+
+test("a programmer error that rejects the run also rejects waiting and later messages", async () => {
+  const broken = defineTool({
+    name: "broken",
+    description: "Returns a malformed result.",
+    inputSchema: { type: "object" },
+    // @ts-expect-error: a tool must return a result with content
+    async execute() {
+      return {};
+    },
+  });
+  let started: Run | undefined;
+  let waiting: Promise<void> | undefined;
+  const { model } = scripted([
+    () => {
+      waiting = undeliveredBy(started?.steer("x") ?? Promise.reject(new Error("no run")));
+      return { content: [{ type: "tool_call", callId: "a", name: "broken", input: {} }] };
+    },
+  ]);
+  started = run({ model, system: SYSTEM, input: "Go.", tools: [broken], ...determinism() });
+  await assert.rejects(started.result, (error: unknown) => isSdkError(error) && error.code === "invalid_tool_result");
+  await waiting;
+  await undeliveredBy(started.followUp("y"));
+});
+
+test("a shouldStop hook that ends a text-answered run wins over a waiting steer", async () => {
+  let started: Run | undefined;
+  let waiting: Promise<void> | undefined;
+  const { adapter, model } = scripted([
+    () => {
+      waiting = undeliveredBy(started?.steer("also X") ?? Promise.reject(new Error("no run")));
+      return text("Done.");
+    },
+  ]);
+  started = run({
+    model,
+    system: SYSTEM,
+    input: "Go.",
+    interceptors: { shouldStop: () => ({ stop: "hook", reason: "budget policy" }) },
+    ...determinism(),
+  });
+  const { result } = await drive(started);
+  assert.equal(result.stopReason, "done");
+  assert.equal(result.steps, 1);
+  assert.equal(adapter.calls.length, 1);
+  await waiting;
+});
+
+test("an abort that comes after a finished answer still ends the run done while a steer waits", async () => {
+  let started: Run | undefined;
+  let waiting: Promise<void> | undefined;
+  const { model } = scripted([
+    () => {
+      waiting = undeliveredBy(started?.steer("also X") ?? Promise.reject(new Error("no run")));
+      return text("The answer.");
+    },
+  ]);
+  started = run({
+    model,
+    system: SYSTEM,
+    input: "Go.",
+    interceptors: {
+      shouldStop: () => {
+        started?.abort("late");
+        return false;
+      },
+    },
+    ...determinism(),
+  });
+  const { result } = await drive(started);
+  assert.equal(result.stopReason, "done");
+  assert.equal(result.steps, 1);
+  await waiting;
+});
+
+test("changing a receipt's message does not change the transcript", async () => {
+  const { adapter, model } = scripted([text("Ok.")]);
+  const started = run({ model, system: SYSTEM, input: "Go.", ...determinism() });
+  const sent = started.steer("Be brief.");
+  const driven = drive(started);
+  const receipt = await sent;
+  (receipt.message as ContentBlock[]).push({ type: "text", text: "injected" });
+  const { result } = await driven;
+  assert.deepEqual(userTexts(result.messages), ["Go.", "Be brief."]);
+  assert.deepEqual(userTexts(adapter.calls[0]?.context.messages ?? []), ["Go.", "Be brief."]);
+});
+
+test("a blank message or text block is refused, and a block keeps only its own fields", async () => {
+  const { model } = scripted([text("Done.")]);
+  const started = run({ model, system: SYSTEM, input: "Go.", ...determinism() });
+  const blank: ContentBlock[] = [{ type: "text", text: "" }];
+  const spaces: ContentBlock[] = [{ type: "text", text: "  " }];
+  const extra = [{ type: "text", text: "Be brief.", cache: true }] as unknown as ContentBlock[];
+  void started.steer(extra);
+  const refused = ["  ", blank, spaces].map((bad) => rejection(started.steer(bad)));
+  for (const error of await Promise.all(refused)) {
+    assert.ok(isSdkError(error) && error.code === "invalid_run_options");
+  }
+  const { result } = await drive(started);
+  assert.deepEqual(result.messages[1], { role: "user", content: [{ type: "text", text: "Be brief." }] });
 });
