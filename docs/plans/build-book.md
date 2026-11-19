@@ -226,7 +226,7 @@ The table lives as data in [`docs/design/book-tokens.json`](../design/book-token
 - **The dark panel's border** is `#45352A`, the dark rule, as the light panel's border is the light rule. Ember sits only 1.15:1 from the dark page, so without a border its edge would blur.
 - **Focus rings** use the accent, which reaches 3:1 on every surface it can sit on: 4.80:1 on the light page, 4.44:1 on the light panel, 7.63:1 on the dark page and 8.81:1 on Ember.
 - **Phone sizes** at 360 px: title 44, section 30, chapter link 22, lede 19, body 17, note 14, listing 13 and label 12 px. Each size scales linearly to its desktop value at 1280 px.
-- **Layout widths:** a 1152 px page, a 608 px article column, a 240 px side-note margin and a gutter from 16 to 40 px.
+- **Layout widths:** a 1600 px page, a 672 px measure for prose, a 240 px side-note margin and a gutter from 16 to 40 px. Listings, figures, tables and tabs take the whole column right of the contents sidebar. The owner widened the page from 1152 px and the measure from 608 px on 2026-11-19, asking for less empty space right of the text on desktops.
 - **The font files.** The code face is served as Manual Code, the neutral name its subsets need under Google Sans Code's `TRADEMARKS.md`.
 
 The owner also kept Literata's name for its subsets (2026-11-19: "Keep 'Literata'"). Its OFL names no Reserved Font Name, and its folder in google/fonts has no `TRADEMARKS.md`, so only Google Sans Code needs a neutral name. Literata's trademark notice stays in its name table (fact-check rows 225–226).

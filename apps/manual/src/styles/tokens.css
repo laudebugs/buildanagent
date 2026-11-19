@@ -62,8 +62,8 @@
   --size-listing: clamp(0.8125rem, 0.8003rem + 0.0543vw, 0.8438rem);
   --size-label: 0.75rem;
   --line-height-body: 1.7;
-  --page-width: 72rem;
-  --measure: 38rem;
+  --page-width: 100rem;
+  --measure: 42rem;
   --side-note-width: 15rem;
   --gutter: clamp(1rem, 0.413rem + 2.6087vw, 2.5rem);
 }

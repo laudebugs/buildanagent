@@ -86,7 +86,9 @@
   margin-block: 0 clamp(2rem, 5vw, 3.5rem);
 }
 
-/* The article column, with the sidebar and the side-note margin */
+/* The article column right of the sidebar. Prose keeps the measure, so a line holds about 75 characters of body text;
+   a listing, a listing with its run, a figure, a table and tabs take the whole column, wider than the prose. They clear
+   a side note floated beside the prose, so neither covers the other. */
 
 .chapter-body {
   display: grid;
@@ -96,13 +98,21 @@
 }
 
 .article {
-  max-width: var(--measure);
   min-width: 0;
+}
+
+.article > * {
+  max-width: var(--measure);
+}
+
+.article > :is(figure, .listing-replay, .tabs) {
+  max-width: none;
+  clear: right;
 }
 
 @container layout (min-width: 64rem) {
   .chapter-body {
-    grid-template-columns: 11rem minmax(0, var(--measure));
+    grid-template-columns: 11rem minmax(0, 1fr);
     gap: 2.5rem;
   }
 
@@ -110,14 +120,6 @@
     position: sticky;
     top: 1.5rem;
     align-self: start;
-  }
-}
-
-/* The margin right of the article holds the side notes from 69rem, the sum of the sidebar, the article, the side-note
-   margin and two gaps. A 1280 px page reaches that width. */
-@container layout (min-width: 69rem) {
-  .chapter-body {
-    grid-template-columns: 11rem minmax(0, var(--measure)) var(--side-note-width);
   }
 }
 

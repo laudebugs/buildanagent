@@ -44,6 +44,16 @@ test("no stylesheet loads anything from another origin", () => {
 
 // The gallery shows the chapter layout inside each theme's section, so the columns must follow the width of their
 // container; a viewport media query would switch them on at widths the section does not have.
+// Prose keeps the measure while listings, figures, tables and tabs take the whole column beside the sidebar.
+test("prose keeps the measure and listings, figures, tables and tabs break out to the whole column", () => {
+  const all = files
+    .filter(({ path }) => path.endsWith(".css"))
+    .map(({ text }) => text)
+    .join("\n");
+  assert.match(all, /\.article > \*\s*\{\s*max-width: var\(--measure\);/);
+  assert.match(all, /\.article > :is\(figure, \.listing-replay, \.tabs\)\s*\{\s*max-width: none;\s*clear: right;/);
+});
+
 test("the chapter layout switches its columns with container queries, not viewport media queries", () => {
   const css = files.filter(({ path }) => path.endsWith(".css"));
   const all = css.map(({ text }) => text).join("\n");
@@ -52,6 +62,6 @@ test("the chapter layout switches its columns with container queries, not viewpo
     assert.doesNotMatch(text, /@media[^{]*width/, `${path} switches on the viewport's width`);
   }
   assert.match(all, /@container layout \(min-width: 64rem\)\s*\{\s*\.chapter-body/);
-  assert.match(all, /@container layout \(min-width: 69rem\)\s*\{\s*\.chapter-body/);
-  assert.match(all, /@container layout \(min-width: 69rem\)\s*\{\s*\.article \.sidenote/);
+  assert.match(all, /@container layout \(min-width: 73rem\)\s*\{\s*\.article \.sidenote/);
+  assert.match(all, /@container listing-replay \(min-width: 52rem\)\s*\{\s*\.listing-replay > \*/);
 });

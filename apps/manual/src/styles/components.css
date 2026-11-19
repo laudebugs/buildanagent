@@ -414,6 +414,13 @@
   margin: 1.75rem 0;
 }
 
+/* A numbered table starts at the column's edge like a figure, without the browser's 40px figure indent, which pushed
+   it past a phone's screen. A table wider than the narrowest phones scrolls sideways inside its figure, not the page. */
+.table {
+  margin: 1.75rem 0;
+  overflow-x: auto;
+}
+
 .figure__stage {
   display: grid;
   place-items: center;
@@ -899,16 +906,9 @@
   }
 }
 
-/* Once the page has a side-note margin, a listing and its run take it too, so the pair spans the article and the
-   margin, everything right of the contents sidebar. It starts below any side note floated there. */
-@container layout (min-width: 69rem) {
-  .article .listing-replay {
-    clear: right;
-    margin-right: calc(-1 * (var(--side-note-width) + 2.5rem));
-  }
-}
-
-/* Side notes sit in the article flow, and float into the right margin once the page has one. */
+/* Side notes sit in the article flow, and float right of the prose once the column has room for both: from 73rem,
+   the sum of the sidebar, the measure, the side note and two gaps. The right margin carries the float in from the
+   column's edge to 2.5rem past the measure, so the note sits beside the text it explains, not at the far edge. */
 
 .sidenote {
   margin: 1.25rem 0;
@@ -929,12 +929,12 @@
   margin-bottom: 0;
 }
 
-@container layout (min-width: 69rem) {
+@container layout (min-width: 73rem) {
   .article .sidenote {
     float: right;
     clear: right;
     width: var(--side-note-width);
-    margin: 0.3rem calc(-1 * (var(--side-note-width) + 2.5rem)) 1rem 0;
+    margin: 0.3rem max(0rem, 100% - var(--measure) - 2.5rem - var(--side-note-width)) 1rem 0;
   }
 }
 
@@ -1058,10 +1058,6 @@
 @media print {
   .listing-replay > * {
     grid-column: 1 / -1;
-  }
-
-  .article .listing-replay {
-    margin-right: 0;
   }
 
   .replay,
