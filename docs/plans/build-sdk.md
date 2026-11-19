@@ -505,11 +505,11 @@ declare function projectCallCost(model: Model, context: ModelContext, options?: 
 declare const CAPABILITIES: readonly string[];
 
 // @buildanagent/sdk/otel (guide §5)
-interface TracerLike { startSpan(name: string, options?: { attributes?: Record<string, unknown>; startTime?: number }): SpanLike }
-interface SpanLike { setAttribute(name: string, value: unknown): void; end(endTime?: number): void }
+interface TracerLike { startSpan(name: string, options?: { kind?: number; attributes?: Record<string, string | number | boolean | string[]>; startTime?: number }, context?: unknown): SpanLike }
+interface SpanLike { setAttribute(name: string, value: string | number | boolean | string[]): unknown; setStatus?(status: { code: number; message?: string }): unknown; end(endTime?: number): void }
 declare const GEN_AI_ATTRIBUTES: Readonly<Record<string, string>>;     // the gen_ai.* names, shared with the harness projection
 declare const SEMCONV_GENAI_COMMIT: "d28355d";                          // the pinned convention commit (harness HD7)
-declare function otelObserver(options: { tracer: TracerLike; captureContent?: boolean }): Observer; // content off by default
+declare function otelObserver(options: { tracer: TracerLike; captureContent?: boolean; agentName?: string; parentContext?: unknown; childContext: (parent: SpanLike) => unknown; forceFlush?: () => Promise<unknown> }): Observer & { flush(): Promise<void>; endRun(runId: string, error?: unknown): void }; // content off by default; revised in B17
 
 // @buildanagent/sdk/testing (guide §8; SDK decision 14)
 interface AssistantScript {                    // added in B3, which found AssistantScript used but undefined
@@ -559,6 +559,11 @@ declare function replayPairs(pairs: RecordedPair[]): ScriptedModel;   // rejects
 **Revision (B16, 2026-11-19).** B16 adds steering with these choices, each recorded in [its outcome](../todos/done/B16-steering.md#outcome):
 - `Run` gains `steer()` and `followUp()`, and `AgentEvent` gains `steer_applied`. A steer is applied at the start of the next step, before its model call. A follow-up is applied only when the model has answered without a tool call; a waiting steer goes first. The extra call counts against `maxSteps`.
 - A receipt rejects with `SdkError` code `undelivered_message` when the run ends before the message is applied. `receipt.id` is `<runId>:message-<n>`.
+
+**Revision (B17, 2026-11-19).** B17 adds the OTel observer with these choices, each recorded in [its outcome](../todos/done/B17-otel-observer.md#outcome):
+- `TracerLike.startSpan` takes a third `context` argument and a span `kind`, and `SpanLike` gains an optional `setStatus`, so a real OpenTelemetry `Tracer` fits without a wrapper. The observer gets the trace context through `parentContext` and a required `childContext`, not from ambient storage, so its model and tool spans always join the run's trace.
+- `endRun(runId, error)` ends the spans of a run whose `result` rejected, because such a run sends no `run_end`.
+- The run, model-call and tool spans follow the in-process conventions of [the fact-check log](reviews/fact-check-otel-observer.md), rows B17-2 to B17-4.
 
 ### 3.4 The seams P2 consumes
 
@@ -622,7 +627,7 @@ The guide says to start with the gateway and the test model, because every other
 
 | ID | Title | Depends on | Size |
 | --- | --- | --- | --- |
-| [B17](../todos/ready/B17-otel-observer.md) | OTel `gen_ai.*` observer with content off | B13, B5 | M |
+| [B17](../todos/done/B17-otel-observer.md) | OTel `gen_ai.*` observer with content off | B13, B5 | M |
 | [B18](../todos/ready/B18-testing-export.md) | Complete the `testing` exports: `autoResponder`, seam doubles, record and replay, mock server | B8, B9, B15b | M |
 | [B19](../todos/ready/B19-triage-capstone.md) | Triage capstone and the conformance suite | B12, B14, B15b, B16, B18 | M |
 | [B19b](../todos/ready/B19b-reference-loop.md) | The readable reference loop, passing the capstone | B19 | M |

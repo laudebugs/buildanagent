@@ -50,10 +50,12 @@ test("the package's figures:build script redraws every folder this test checks",
   );
 });
 
-// Every folder holds isometric figures, whose painter's order takes a few seconds to settle once per run (the registry
-// keeps each drawing), so each check gets a longer limit than Vitest's default 5 seconds on a loaded machine.
+// Every folder holds isometric figures (the book's own since Chapter 1's loop bench), whose painter's order takes a few
+// seconds to settle once per run (the registry keeps each drawing), so each check gets a longer limit than Vitest's
+// default 5 seconds on a loaded machine, such as CI running every package's tests at once.
 for (const root of ROOTS) {
-  test(`every committed figure under ${relative(app, root).split(sep).join("/")} is what its script draws now`, async () => {
+  const folder = relative(app, root).split(sep).join("/");
+  test(`every committed figure under ${folder} is what its script draws now`, async () => {
     assert.deepEqual(await staleFigures(root), []);
   }, 60_000);
 }
@@ -127,8 +129,10 @@ test("an SVG left beside an isometric figure, or a fragment beside a flat one, i
   ]);
 }, 60_000);
 
-test("drawing the same figure twice writes the same bytes", async () => {
-  const [figure] = figureScripts(BOOK_FIGURES);
+// A flat figure, because the registry keeps each isometric drawing for the process, so drawing one twice would compare
+// the kept drawing with itself.
+test("drawing the same flat figure twice writes the same bytes", async () => {
+  const figure = figureScripts(BOOK_FIGURES).find((script) => script.id === "ticket-rail");
   assert.ok(figure);
   assert.deepEqual(await drawFigure(figure), await drawFigure(figure));
 });
