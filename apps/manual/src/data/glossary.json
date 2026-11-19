@@ -3,81 +3,113 @@
     "id": "agent",
     "term": "agent",
     "definition": "A system in which a model directs its own steps: it chooses which tools to call, reads their results and decides what to do next, until the task is done or a limit stops it.",
-    "sources": ["anthropic-building-effective-agents"]
+    "sources": [
+      "anthropic-building-effective-agents"
+    ]
   },
   {
     "id": "agent-loop",
     "term": "agent loop",
     "definition": "The cycle that runs an agent: send the context to the model, run the tools it calls, add their results to the context, and repeat until the model answers without a tool call or a stop condition, such as a step limit, ends the run.",
-    "sources": ["anthropic-building-effective-agents"]
+    "sources": [
+      "anthropic-building-effective-agents"
+    ]
   },
   {
     "id": "workflow",
     "term": "workflow",
     "definition": "A fixed sequence of model calls and tools that the code lays out in advance. Unlike an agent, the model never chooses the next step.",
-    "sources": ["anthropic-building-effective-agents"]
+    "sources": [
+      "anthropic-building-effective-agents"
+    ]
   },
   {
     "id": "stop-condition",
     "term": "stop condition",
     "definition": "A rule that ends an agent loop whatever the model asks for next, such as a maximum number of steps or model calls.",
-    "sources": ["anthropic-building-effective-agents"]
+    "sources": [
+      "anthropic-building-effective-agents"
+    ]
   },
   {
     "id": "mock-model",
     "term": "mock model",
     "definition": "A stand-in for a model provider that returns answers written in advance, so code that calls a model runs offline, gives the same result on every run and costs nothing.",
-    "sources": ["ai-sdk-testing"]
+    "sources": [
+      "ai-sdk-testing"
+    ]
   },
   {
     "id": "harness",
     "term": "harness",
     "definition": "The program around a model that turns it into a working agent: it runs the loop, calls the tools, keeps the session log and enforces the agent's limits. Pi, OpenCode, Claude Code and Codex are harnesses.",
-    "sources": ["vercel-agent-harnesses"]
+    "sources": [
+      "vercel-agent-harnesses"
+    ]
   },
   {
     "id": "session-log",
     "term": "session log",
     "definition": "The ordered record of a session: each message, tool call and tool result as it happened. A harness can rebuild a run from it, so a turn that crashed or timed out resumes instead of starting over.",
-    "sources": ["vercel-agent-harnesses"]
+    "sources": [
+      "vercel-agent-harnesses"
+    ]
   },
   {
     "id": "model-gateway",
     "term": "model gateway",
-    "match": ["model gateway", "gateway"],
+    "match": [
+      "model gateway",
+      "gateway"
+    ],
     "definition": "The layer between an agent and its model providers. It gives the agent one way to call many providers and handles shared concerns such as retries and prompt caching. Vercel's AI Gateway is a hosted example.",
-    "sources": ["vercel-ai-gateway-faq"]
+    "sources": [
+      "vercel-ai-gateway-faq"
+    ]
   },
   {
     "id": "approval",
     "term": "approval",
-    "match": ["tool approval", "approval"],
+    "match": [
+      "tool approval",
+      "approval"
+    ],
     "definition": "A pause before a tool call runs, in which a person or a rule approves or denies it. The agent waits for the answer, and a denied call returns a denial to the model instead of running.",
-    "sources": ["ai-sdk-tool-approvals"]
+    "sources": [
+      "ai-sdk-tool-approvals"
+    ]
   },
   {
     "id": "guardrail",
     "term": "guardrail",
     "definition": "A check that runs beside the agent to catch unsafe or off-policy input, output or tool use. Guardrails work in layers, because no single one is enough, and they add to access controls rather than replace them.",
-    "sources": ["openai-practical-guide-to-building-agents"]
+    "sources": [
+      "openai-practical-guide-to-building-agents"
+    ]
   },
   {
     "id": "sandbox",
     "term": "sandbox",
     "definition": "An isolated environment, such as a microVM, where an agent runs code it wrote or code nobody has vetted, kept apart from the machine that runs the agent.",
-    "sources": ["vercel-sandbox"]
+    "sources": [
+      "vercel-sandbox"
+    ]
   },
   {
     "id": "prompt-injection",
     "term": "prompt injection",
     "definition": "An attack that hides instructions in content the agent reads, such as a web page or an email, so the model follows them as if they came from the user. It works because trusted and untrusted text share one context.",
-    "sources": ["willison-lethal-trifecta"]
+    "sources": [
+      "willison-lethal-trifecta"
+    ]
   },
   {
     "id": "lethal-trifecta",
     "term": "lethal trifecta",
     "definition": "Three capabilities that are dangerous together: access to private data, exposure to untrusted content, and a way to communicate externally. An attacker can trick an agent that has all three into sending the private data to them.",
-    "sources": ["willison-lethal-trifecta"]
+    "sources": [
+      "willison-lethal-trifecta"
+    ]
   },
   {
     "id": "mcp",
@@ -85,6 +117,49 @@
     "kind": "abbr",
     "expansion": "Model Context Protocol",
     "definition": "An open standard for connecting AI applications to the systems where data lives, through one protocol instead of a custom integration for each source.",
-    "sources": ["anthropic-model-context-protocol"]
+    "sources": [
+      "anthropic-model-context-protocol"
+    ]
+  },
+  {
+    "id": "token",
+    "term": "token",
+    "definition": "The smallest unit a language model reads and writes, such as a word, part of a word or a character. Providers count a call's input and output in tokens and bill by the count.",
+    "sources": [
+      "anthropic-glossary",
+      "anthropic-pricing"
+    ]
+  },
+  {
+    "id": "system-prompt",
+    "term": "system prompt",
+    "definition": "The instructions a program sends at the front of every request, before the conversation, to set the model's role, output format and rules.",
+    "sources": [
+      "ai-sdk-prompts"
+    ]
+  },
+  {
+    "id": "delta",
+    "term": "delta",
+    "definition": "One small piece of a streamed answer, sent as the model produces it. The client joins the deltas in order into one message.",
+    "sources": [
+      "ai-sdk-stream-text"
+    ]
+  },
+  {
+    "id": "prompt-cache",
+    "term": "prompt cache",
+    "definition": "A provider's store of the front of earlier requests. A later request that starts the same way reads that part back at a lower price than uncached input.",
+    "sources": [
+      "anthropic-prompt-caching"
+    ]
+  },
+  {
+    "id": "thinking-block",
+    "term": "thinking block",
+    "definition": "Part of a model's response that holds its reasoning, or a summary of it, with an encrypted signature. A program sends it back to the model unchanged on later requests.",
+    "sources": [
+      "anthropic-thinking"
+    ]
   }
 ]

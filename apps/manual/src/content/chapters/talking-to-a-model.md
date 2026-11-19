@@ -2,8 +2,8 @@
 title: "Talking to a model: messages, streams, tokens, instructions and model choice"
 summary: A model call sends the whole conversation and gets back one message, often as a stream of pieces, with a bill in four token classes. This chapter reads each part of that exchange, then shows what belongs in the system prompt, how to choose a model, and why thinking goes back to the model untouched.
 opening: code
-sources: [anthropic-working-with-messages, ai-sdk-prompts, anthropic-how-tool-use-works, ai-sdk-generating-text, ai-sdk-stream-text, langchain-streaming, copilot-streaming-events, anthropic-pricing, anthropic-thinking, anthropic-prompt-caching, anthropic-effective-context-engineering, anthropic-prefix-checks, openai-practical-guide-to-building-agents, anthropic-preserved-thinking]
-glossary: []
+sources: [anthropic-working-with-messages, ai-sdk-prompts, anthropic-how-tool-use-works, ai-sdk-generating-text, ai-sdk-stream-text, langchain-streaming, copilot-streaming-events, anthropic-pricing, anthropic-thinking, anthropic-prompt-caching, anthropic-effective-context-engineering, anthropic-prefix-checks, openai-practical-guide-to-building-agents, anthropic-preserved-thinking, anthropic-glossary]
+glossary: [token, system-prompt, delta, prompt-cache, thinking-block]
 switchTo: [B4, B5]
 ---
 
@@ -80,7 +80,7 @@ The ticker breaks down at that last step. A news crawl reports facts that alread
 
 ## Every call runs a meter, and tokens fall into four classes with four prices
 
-Think of :analogy[a taxi meter that runs on both legs of the trip]{#taxi-meter}. It ticks on the way out, while your request rides to the model, and it keeps ticking on the way back, while the answer rides home, as [[fig:taxi-meter]] shows. A model call is billed the same way: you pay for the input tokens you send and for the output tokens you get back, each class at its own rate.
+Think of :analogy[a taxi meter that runs on both legs of the trip]{#taxi-meter}. It ticks on the way out, while your request rides to the model, and it keeps ticking on the way back, while the answer rides home, as [[fig:taxi-meter]] shows. A model call is billed the same way, in tokens, the small units a model reads and writes, each a word, part of a word or a character [@anthropic-glossary]. You pay for the input tokens you send and for the output tokens you get back, each class at its own rate.
 
 :::figure[A taxi meter that runs on both legs of the trip: input tokens on the way out, output tokens on the way back]{#taxi-meter analogy="taxi-meter"}
 ::svg{alt="A taxi travels between two boxes, your code on the left and the model on the right. An arrow out to the model is labelled out: 3,000 input tokens, and an arrow back is labelled back: 200 output tokens. Below, the meter reads out leg: $0.0034, back leg: $0.0020, fare: $0.0054."}
@@ -184,4 +184,6 @@ An SDK that keeps the session for you keeps these blocks for you too. The Copilo
 
 ## Exercises
 
-1. Exercises follow once every section is drafted.
+1. **Price a recorded run, then move it to a smaller model.** Copy `verify/vercel-ai-sdk/examples/10-streaming-usage.ts` to a new file in the same folder. From the Haiku 5.5 row of [[tbl:claude-rates]], write Haiku's four rates as a `Rates` object in nano-dollars per token, as [[lst:sonnet-rates]] does for Sonnet. Before you run anything, price the recorded usage by hand: 1,000 uncached, 1,500 cache-read and 500 cache-write input tokens, and 200 output tokens. Write your answer as a `check()`. Then price the call with Haiku's rates instead of `SONNET_5_5`, and pass `modelId: "claude-haiku-5-5"` to `scripted`. Predict which of the file's existing checks still pass, run `pnpm test` in `verify/vercel-ai-sdk`, and explain each result. What do the checks that still pass tell you about whether Haiku would answer this question as well as Sonnet? Delete the copy when you are done.
+2. **Count the deltas.** In the `stream-parts` block of `verify/vercel-ai-sdk/examples/06-streaming.ts`, count the `"text-delta"` parts the loop sees. Predict the count for the scripted answer "Typed parts." from how the mock splits text, write the prediction as a check, and run the harness's tests. Then change the answer to one with five words and predict again.
+3. **Find the change that breaks the thinking.** A conversation on Claude Sonnet 5.5 holds several turns with thinking blocks. Between two calls, your code makes one of these changes: it appends a user message that states today's date; it rewrites the system prompt to include today's date; it raises `max_tokens`{checked=row-96}; it removes a tool from `tools`; it fixes a typo in the user's first message. For each change, say whether the next request passes the prefix check, using the three habits and the prefix-check page's list of what counts as a change.

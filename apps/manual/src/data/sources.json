@@ -231,5 +231,14 @@
     "kind": "docs",
     "asOf": "November 2026",
     "verifiedIn": "apps/manual/fact-checks/talking-to-a-model.md"
+  },
+  {
+    "id": "anthropic-glossary",
+    "title": "Glossary",
+    "publisher": "Claude API documentation",
+    "url": "https://platform.claude.com/docs/en/about-claude/glossary",
+    "kind": "docs",
+    "asOf": "November 2026",
+    "verifiedIn": "apps/manual/fact-checks/talking-to-a-model.md"
   }
 ]
