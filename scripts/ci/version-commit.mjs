@@ -4,7 +4,7 @@
 // head, and moving the pull request's own branch back to main first could close or merge the open pull request. So the
 // commit is made on a staging branch that starts at the checked base, and the release branch is then force-updated to
 // it. release.yml runs this in the version-pr job's last step, the only one that holds RELEASE_PR_TOKEN, so it imports
-// only node: modules and version-pr.mjs, which imports only node: modules.
+// only node: modules and version-pr.mjs, which imports only node: modules and the two scripts beside it.
 //
 //   node scripts/ci/version-commit.mjs <base> <head> <branch>
 //
@@ -51,16 +51,24 @@ export function commitMessage(text) {
 }
 
 /**
- * Calls the GitHub API through gh. `run(args, input)` runs gh and returns `{ status, stdout, stderr }`. Returns the
- * parsed response, or undefined for a 404 when `missingOk` is set, and throws on any other failure.
+ * Calls the GitHub API through gh. `run(args, input)` runs gh and returns spawnSync's `{ status, stdout, stderr }`,
+ * with `error` or `signal` set when gh couldn't run or was killed. Returns the parsed response, or undefined for a
+ * missing resource when `missingOk` is set, and throws on any other failure. A missing resource is a 404, or the 422
+ * "Reference does not exist" that GitHub answers when the ref to delete is already gone.
  */
 export function apiCall(run, { method = "GET", path, body, missingOk = false }) {
   const args = ["api", "--method", method, path];
   if (body !== undefined) args.push("--input", "-");
   const result = run(args, body === undefined ? undefined : JSON.stringify(body));
+  if (result.error || result.signal) {
+    throw new Error(
+      `${method} ${path} failed: gh didn't run: ${result.error?.message ?? `killed by ${result.signal}`}`,
+    );
+  }
   if (result.status !== 0) {
-    if (missingOk && /HTTP 404/.test(result.stderr)) return undefined;
-    throw new Error(`${method} ${path} failed: ${`${result.stderr} ${result.stdout}`.trim()}`);
+    const output = `${result.stderr ?? ""} ${result.stdout ?? ""}`.trim();
+    if (missingOk && /HTTP 404|Reference does not exist/.test(output)) return undefined;
+    throw new Error(`${method} ${path} failed: ${output}`);
   }
   return result.stdout.trim() === "" ? undefined : JSON.parse(result.stdout);
 }
@@ -100,8 +108,9 @@ export function publishVersionCommit({ run, repo, branch, local, log = () => {} 
     log(`${branch} already holds this version commit, verified, at ${current.object.sha}.`);
     return { sha: current.object.sha, created: false };
   }
-  setBranch(run, repo, STAGING_BRANCH, base);
   try {
+    // Inside the try, so that a staging branch that GitHub created but gh failed to report is still deleted.
+    setBranch(run, repo, STAGING_BRANCH, base);
     const response = apiCall(run, {
       method: "POST",
       path: "graphql",

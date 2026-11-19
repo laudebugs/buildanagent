@@ -128,7 +128,7 @@ jobs:
   # Contents and Pull requests write. A push and a pull request made with GITHUB_TOKEN would start ci.yml's runs only
   # after someone approved them, and its merge would start no release run. The job runs no third-party code: no pnpm,
   # no npx and nothing from node_modules, only git, gh and scripts/ci/version-pr.mjs and version-commit.mjs, which
-  # import only node: modules. The token is in the environment of the last step alone, after the commit has been
+  # import only node: modules and the scripts beside them. The token is in the environment of the last step alone, after the commit has been
   # checked. That step makes the commit again through GitHub's API rather than pushing it with git, so that GitHub
   # signs it and main's "Require signed commits" rule lets the pull request merge. The version job ran third-party
   # code, so its base and patch are untrusted: the base must be a commit on main, and the patch goes into the index

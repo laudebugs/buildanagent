@@ -756,7 +756,14 @@ if (method === "POST" && route === "graphql") {
   const input = body.variables.input;
   const ref = "refs/heads/" + input.branch.branchName;
   if (input.branch.repositoryNameWithOwner !== "o/r") fail(422, "wrong repository");
-  if (sha(ref) !== input.expectedHeadOid) out({ errors: [{ message: "Expected branch to point to " + input.expectedHeadOid }] });
+  // $MOVED_HEAD stands for another writer that moved the branch after the script set it.
+  if (process.env.MOVED_HEAD || sha(ref) !== input.expectedHeadOid) {
+    // gh 2.89.0 exits 1 when a GraphQL response holds errors, with the response on stdout and each message on stderr.
+    const message = "Expected branch to point to " + input.expectedHeadOid;
+    console.log(JSON.stringify({ errors: [{ message }] }));
+    console.error("gh: " + message);
+    process.exit(1);
+  }
   const index = path.join(remote, "fake-index");
   // update-index wants a work tree; an empty one is enough, because nothing here reads or writes files.
   const work = fs.mkdtempSync(path.join(remote, "fake-work-"));
@@ -997,6 +1004,18 @@ process.exit(5);
     );
     assert.equal(repo.git(repo.remote, "log", "-1", "--format=%P", branch).trim(), main);
     assert.ok(apiCalls(run.gh).includes(`PATCH repos/o/r/git/refs/heads/${branch} --input -`), run.gh);
+  });
+
+  test("fails, and leaves the branch and the pull request alone, when createCommitOnBranch reports an error", () => {
+    const repo = setup({ changesets: { "brave-cats.md": changeset } });
+    const main = repo.git(repo.remote, "rev-parse", "main").trim();
+    assert.equal(runVersionStep(repo).status, 0);
+    const run = runVersionPr(repo, main, { MOVED_HEAD: "1" });
+    assert.equal(run.push.status, 1);
+    assert.match(run.push.stderr, /POST graphql failed: gh: Expected branch to point to [0-9a-f]{40}/);
+    assert.equal(spawnSync("git", ["rev-parse", "--verify", branch], { cwd: repo.remote }).status, 128);
+    assert.equal(spawnSync("git", ["rev-parse", "--verify", staging], { cwd: repo.remote }).status, 128);
+    assert.deepEqual(prCalls(run.gh), [], "no pull request is opened or changed");
   });
 
   test("fails, and leaves the branch and the pull request alone, when GitHub doesn't verify the commit", () => {

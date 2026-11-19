@@ -45,6 +45,18 @@ function fakeGh(routes) {
 }
 const json = (value) => ({ stdout: JSON.stringify(value) });
 const notFound = { status: 1, stdout: '{"message":"Not Found"}', stderr: "gh: Not Found (HTTP 404)" };
+// What gh prints for a DELETE of a ref that is already gone: GitHub answers 422, not 404.
+const refGone = {
+  status: 1,
+  stdout: '{"message":"Reference does not exist"}',
+  stderr: "gh: Reference does not exist (HTTP 422)",
+};
+// gh 2.89.0 exits 1 when a GraphQL response holds errors, with the response on stdout and each message on stderr.
+const graphqlError = (message) => ({
+  status: 1,
+  stdout: JSON.stringify({ errors: [{ message }] }),
+  stderr: `gh: ${message}`,
+});
 const commit = (sha, { verified = true, tree = TREE, parents = [BASE], reason } = {}) =>
   json({
     sha,
@@ -134,6 +146,19 @@ describe("apiCall", () => {
     assert.deepEqual(apiCall(gh.run, { method: "POST", path: "b", body: { x: 1 } }), { echo: { x: 1 } });
     assert.throws(() => apiCall(gh.run, { path: "c", missingOk: true }), /GET c failed/);
   });
+
+  test("reads a 422 for a ref that is already gone as missing only when asked", () => {
+    const gh = fakeGh({ "DELETE r": refGone });
+    assert.equal(apiCall(gh.run, { method: "DELETE", path: "r", missingOk: true }), undefined);
+    assert.throws(() => apiCall(gh.run, { method: "DELETE", path: "r" }), /Reference does not exist \(HTTP 422\)/);
+  });
+
+  test("names the cause when gh couldn't run or was killed", () => {
+    const missing = () => ({ status: null, stdout: "", stderr: "", error: new Error("spawnSync gh ENOENT") });
+    assert.throws(() => apiCall(missing, { path: "a" }), /GET a failed: gh didn't run: spawnSync gh ENOENT/);
+    const killed = () => ({ status: null, stdout: "", stderr: "", signal: "SIGTERM" });
+    assert.throws(() => apiCall(killed, { path: "a" }), /GET a failed: gh didn't run: killed by SIGTERM/);
+  });
 });
 
 describe("publishVersionCommit", () => {
@@ -219,13 +244,42 @@ describe("publishVersionCommit", () => {
     });
   }
 
-  test("fails when the mutation returns errors instead of a commit", () => {
-    const gh = fakeGh(fresh({ "POST graphql": json({ errors: [{ message: "Expected branch to point to x" }] }) }));
+  test("fails, leaving the release branch alone, when the mutation returns errors and gh exits 1", () => {
+    const gh = fakeGh(fresh({ "POST graphql": graphqlError("Expected branch to point to x") }));
     assert.throws(
       () => publishVersionCommit({ run: gh.run, repo, branch, local }),
-      /createCommitOnBranch returned no commit: .*Expected branch to point to x/,
+      /POST graphql failed: gh: Expected branch to point to x/,
     );
     assert.ok(!gh.keys().some((key) => key.includes(`refs/heads/${branch}`) && !key.startsWith("GET")));
+    assert.equal(gh.keys().at(-1), `DELETE repos/${repo}/git/refs/heads/${STAGING_BRANCH}`);
+  });
+
+  test("fails when the mutation succeeds but names no commit", () => {
+    const gh = fakeGh(fresh({ "POST graphql": json({ data: { createCommitOnBranch: null } }) }));
+    assert.throws(() => publishVersionCommit({ run: gh.run, repo, branch, local }), /returned no commit/);
+  });
+
+  test("deletes the staging branch, without a warning, when creating it fails after GitHub made it", () => {
+    const gh = fakeGh(
+      fresh({
+        [`POST repos/${repo}/git/refs`]: { status: 1, stderr: "gh: Server Error (HTTP 502)" },
+        [`DELETE repos/${repo}/git/refs/heads/${STAGING_BRANCH}`]: {},
+      }),
+    );
+    assert.throws(() => publishVersionCommit({ run: gh.run, repo, branch, local }), /HTTP 502/);
+    assert.equal(gh.keys().at(-1), `DELETE repos/${repo}/git/refs/heads/${STAGING_BRANCH}`);
+  });
+
+  test("doesn't warn when the staging branch to delete is already gone", (t) => {
+    const warn = t.mock.method(console, "error", () => {});
+    const gh = fakeGh(
+      fresh({
+        [`POST repos/${repo}/git/refs`]: { status: 1, stderr: "gh: Server Error (HTTP 502)" },
+        [`DELETE repos/${repo}/git/refs/heads/${STAGING_BRANCH}`]: refGone,
+      }),
+    );
+    assert.throws(() => publishVersionCommit({ run: gh.run, repo, branch, local }), /HTTP 502/);
+    assert.equal(warn.mock.callCount(), 0);
   });
 });
 
