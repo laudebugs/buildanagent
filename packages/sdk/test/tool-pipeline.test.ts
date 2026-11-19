@@ -296,7 +296,10 @@ for (const stopReason of ["error", "aborted"] as const) {
     const message = assistant([call("lookup_order", { order: 1 })], stopReason);
     const [entry] = await runToolCalls(message, [lookupOrder(seen)], pipelineContext());
     assert.equal(entry?.result.isError, true);
-    assert.match(textOf(entry?.result.content ?? []), /was not run, because the response ended with an error/);
+    assert.match(
+      textOf(entry?.result.content ?? []),
+      /was not run, because the response (ended with an error|was stopped)/,
+    );
     assert.deepEqual(seen, []);
   });
 }
@@ -351,4 +354,35 @@ test("arguments that neither JSON nor String() can show still produce an error r
   const result = await runToolCall(call("lookup_order", input), [lookupOrder()], pipelineContext());
   assert.equal(result.isError, true);
   assert.match(textOf(result.content), /Received arguments: \[object Object\]/);
+});
+
+test("a cancelled run starts no repair", async () => {
+  const controller = new AbortController();
+  controller.abort();
+  let repaired = false;
+  const tool = lookupOrder([], {
+    repair: async () => {
+      repaired = true;
+      return { order: 1 };
+    },
+  });
+  await runToolCall(call("lookup_order", {}), [tool], pipelineContext({ signal: controller.signal }));
+  assert.equal(repaired, false);
+});
+
+test("onExecuted hears of a call whose result then throws", async () => {
+  const executed: string[] = [];
+  const tool = lookupOrder([], { execute: async () => ({ text: "done" }) as never });
+  const ctx = pipelineContext({ onExecuted: ({ callId }) => executed.push(callId) });
+  await assert.rejects(() => runToolCall(call("lookup_order", { order: 1 }), [tool], ctx));
+  assert.deepEqual(executed, ["call-1"]);
+});
+
+test("an aborted response says it was stopped, not that it failed", async () => {
+  const [entry] = await runToolCalls(
+    assistant([call("lookup_order", { order: 1 })], "aborted"),
+    [lookupOrder()],
+    pipelineContext(),
+  );
+  assert.match(textOf(entry?.result.content ?? []), /because the response was stopped before it was complete/);
 });

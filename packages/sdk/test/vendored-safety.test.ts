@@ -5,7 +5,10 @@ import { test } from "vitest";
 // The SDK carries a copy of the safety package's outcome files until that package is published. A copy that drifts
 // would show the model different outcome text from the safety package's own adapters.
 const vendored = new URL("../src/vendor/agent-safety/", import.meta.url);
-const source = new URL("../../agent-safety/src/", import.meta.url);
+// Found through the declared dev dependency: its root entry resolves to src/index.ts under the workspace's `source`
+// condition, or to dist/index.js without it, and src/ sits beside either.
+const entry = import.meta.resolve("@buildanagent/agent-safety");
+const source = new URL(entry.includes("/src/") ? "./" : "../src/", entry);
 
 test("each vendored safety file is identical to its source in the safety package", () => {
   const files = readdirSync(vendored).filter((name) => name.endsWith(".ts"));

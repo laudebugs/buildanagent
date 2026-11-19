@@ -33,6 +33,11 @@ export interface PipelineContext {
    * in the same message throws.
    */
   onResult?(entry: ToolCallResult): void;
+  /**
+   * Called as soon as a tool's `execute` returns or throws, before the result is checked, so the run knows a write
+   * may have happened even when its result then throws an `SdkError`.
+   */
+  onExecuted?(call: ToolCall): void;
 }
 
 /** One tool call and the result the model will read for it. */
@@ -148,6 +153,7 @@ async function execute(tool: AnyTool, call: ToolCall, input: unknown, ctx: Pipel
   try {
     result = await tool.execute(input, context);
   } catch (error) {
+    ctx.onExecuted?.(call);
     const message = errorMessage(error);
     const redacted = tool.redactErrors === true;
     const failure: ToolFailure = {
@@ -160,6 +166,7 @@ async function execute(tool: AnyTool, call: ToolCall, input: unknown, ctx: Pipel
     };
     return failed(failure, tool, { error: { name: error instanceof Error ? error.name : typeof error, message } });
   }
+  ctx.onExecuted?.(call);
   return withOutcome(tool.name, checkResult(tool.name, result));
 }
 
@@ -182,9 +189,10 @@ export async function runToolCall(
       undefined,
     );
   }
+  // Checked before validation, so a cancelled run starts no `repair`, and again after, because `repair` may await.
+  if (ctx.signal.aborted) return notRun(call, tool, "run_aborted");
   const checked = await checkInput(tool, call);
   if (!checked.ok) return checked.result;
-  // Checked after validation, because `repair` may await: a write must not start once the user has cancelled.
   if (ctx.signal.aborted) return notRun(call, tool, "run_aborted");
   // Gate: every call is allowed until the beforeToolCall interceptor exists.
   const result = await execute(tool, call, checked.input, ctx);

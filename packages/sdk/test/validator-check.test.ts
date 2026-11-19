@@ -16,3 +16,13 @@ test("pi-schema judges no fixture instance wrong that @cfworker/json-schema judg
 test("docs/validator-check.md matches a fresh run of the check", () => {
   assert.equal(readFileSync(REPORT, "utf8"), renderReport(sets));
 });
+
+test("a fixture counts as a loss when pi-schema misses an instance the fallback gets right, even at equal scores", () => {
+  const row = (pi: boolean[], cf: boolean[]) => ({
+    fixture: { name: "tie" },
+    pi: { right: pi, correct: pi.filter(Boolean).length },
+    cf: { right: cf, correct: cf.filter(Boolean).length },
+  });
+  const losses = piSchemaLosses([{ rows: [row([true, false, true], [true, true, false])] }]);
+  assert.equal(losses.length, 1);
+});

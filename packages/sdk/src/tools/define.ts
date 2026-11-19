@@ -57,7 +57,7 @@ export function defineTool<I, S = unknown>(definition: ToolDefinition<I, S>): To
 /** The options of `outputTool()`. */
 export interface OutputToolOptions<S> {
   readonly name: string;
-  /** The schema of the final answer. A Standard Schema that can describe itself as JSON Schema, such as Zod 4's. */
+  /** The schema of the final answer. A Standard Schema that can describe itself as JSON Schema, such as Zod 4.2's. */
   readonly schema: StandardSchemaV1<unknown, S> & StandardJSONSchemaV1<unknown, S>;
   /** Defaults to a line asking the model to call the tool once, with its final answer. */
   readonly description?: string;

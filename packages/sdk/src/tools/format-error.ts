@@ -41,6 +41,16 @@ function showArguments(input: unknown): string {
   return `${text.slice(0, end)}… (${text.length - end} more characters)`;
 }
 
+const NOT_RUN = {
+  run_aborted: (tool: string) => `Tool "${tool}" was not run, because the run was cancelled.`,
+  response_error: (tool: string) =>
+    `Tool "${tool}" was not run, because the response ended with an error before it was complete. Re-issue the ` +
+    "call if it is still needed.",
+  response_aborted: (tool: string) =>
+    `Tool "${tool}" was not run, because the response was stopped before it was complete. Re-issue the call if it ` +
+    "is still needed.",
+} as const;
+
 function issueLine(issue: SchemaIssue): string {
   return `- ${issue.path === "" ? "(the whole input)" : issue.path}: ${issue.message}`;
 }
@@ -61,10 +71,7 @@ function describe(failure: ToolFailure): string {
         "call's arguments were complete. Re-issue the call with complete arguments, in a shorter response."
       );
     case "not_run":
-      return failure.reason === "run_aborted"
-        ? `Tool "${failure.tool}" was not run, because the run was cancelled.`
-        : `Tool "${failure.tool}" was not run, because the response ended with an error before it was complete. ` +
-            "Re-issue the call if it is still needed.";
+      return NOT_RUN[failure.reason](failure.tool);
   }
 }
 

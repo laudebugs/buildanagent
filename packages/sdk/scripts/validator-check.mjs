@@ -7,7 +7,8 @@
 //   node packages/sdk/scripts/validator-check.mjs --write   rewrites docs/validator-check.md
 //
 // test/validator-check.test.ts runs the same check under `pnpm test`.
-import { readdirSync, readFileSync, writeFileSync } from "node:fs";
+import { readdirSync, readFileSync, realpathSync, writeFileSync } from "node:fs";
+import { pathToFileURL } from "node:url";
 import { Validator as CfworkerValidator } from "@cfworker/json-schema";
 import { compile } from "@earendil-works/pi-schema";
 import { formats } from "@earendil-works/pi-schema/formats";
@@ -48,13 +49,14 @@ function cfworker(schema) {
   };
 }
 
-/** Runs one validator over a fixture's instances and counts the verdicts it gets right. */
+/** Runs one validator over a fixture's instances, valid ones first, and records which verdicts it gets right. */
 function score(fixture, makeValidator) {
   const check = makeValidator(fixture.schema);
   const valid = fixture.valid.map((value) => check(value));
   const invalid = fixture.invalid.map(({ value }) => check(value));
-  const correct = valid.filter((r) => r.valid).length + invalid.filter((r) => !r.valid).length;
-  return { correct, total: valid.length + invalid.length, invalidPaths: invalid.map((r) => r.paths) };
+  const right = [...valid.map((r) => r.valid), ...invalid.map((r) => !r.valid)];
+  const correct = right.filter(Boolean).length;
+  return { right, correct, total: right.length, invalidPaths: invalid.map((r) => r.paths) };
 }
 
 /** Runs both validators on every fixture. */
@@ -69,9 +71,9 @@ export function runCheck() {
   }));
 }
 
-/** The fixtures pi-schema gets wrong while the fallback gets them right: the D7 rule's trigger. */
+/** The fixtures with an instance pi-schema gets wrong and the fallback gets right: the D7 rule's trigger. */
 export function piSchemaLosses(sets) {
-  return sets.flatMap((set) => set.rows).filter((row) => row.pi.correct < row.cf.correct);
+  return sets.flatMap((set) => set.rows).filter((row) => row.pi.right.some((right, i) => !right && row.cf.right[i]));
 }
 
 const verdict = ({ correct, total }) => `${correct === total ? "pass" : "FAIL"} (${correct}/${total})`;
@@ -145,7 +147,7 @@ export function renderReport(sets) {
   ].join("\n");
 }
 
-if (import.meta.url === `file://${process.argv[1]}`) {
+if (process.argv[1] !== undefined && import.meta.url === pathToFileURL(realpathSync(process.argv[1])).href) {
   const report = renderReport(runCheck());
   if (process.argv.includes("--write")) {
     writeFileSync(REPORT, report);

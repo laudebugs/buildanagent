@@ -253,9 +253,15 @@ packTest("every packed declaration file imports only its own dist/ files or othe
   }
 });
 
+// The entries that fail to import under `--conditions=source`, because they reach pi-schema 1.5.2, whose `source`
+// condition names a file its tarball lacks. Every other entry must import; an entry listed here that imports again
+// fails the test, so the list is cut once pi-schema ships a fix.
+const SOURCE_CONDITION_FAILURES = ["@buildanagent/sdk"];
+
 for (const conditions of [[], ["--conditions=source"]]) {
   const label = conditions.length ? "with --conditions=source" : "with no extra condition";
   packTest(`Node imports every packed entry from dist/ ${label}`, (t) => {
+    const failed = [];
     for (const [name, { manifest, dest }] of packed) {
       // A dependency with a broken `source` condition can't load under it. An entry that reaches such a dependency
       // may fail to import only with an error naming that dependency; every other entry must import. The run with no
@@ -278,12 +284,16 @@ console.log(url);`;
         });
         assert.equal(child.status, 0, `${specifier} failed to import ${label}: ${child.stderr}`);
         const skipped = /^broken source: (.+)$/m.exec(child.stderr)?.[1];
-        if (skipped) t.diagnostic(`${specifier}: not imported ${label}, because ${skipped} ships a missing source`);
+        if (skipped) {
+          failed.push(specifier);
+          t.diagnostic(`${specifier}: not imported ${label}, because ${skipped} ships a missing source`);
+        }
         const url = child.stdout.trim();
         const resolved = fileURLToPath(url);
         assert.ok(resolved.startsWith(path.join(dest, "dist") + path.sep), `${specifier} resolved to ${resolved}`);
       }
     }
+    assert.deepEqual(failed, conditions.length ? SOURCE_CONDITION_FAILURES : []);
   });
 }
 

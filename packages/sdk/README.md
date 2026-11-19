@@ -12,7 +12,7 @@ Every release is an alpha until the first stable one, and npm serves the alphas 
 pnpm add @buildanagent/sdk@alpha @buildanagent/gateway@alpha
 ```
 
-Both packages always share one version, and the SDK depends on that exact version of the gateway. Name the tag: a plain `pnpm add @buildanagent/sdk` installs `0.0.0-bootstrap.0`, a deprecated placeholder, because `latest` stays on it until the first stable release. The package needs Node 22 or later.
+Both packages always share one version, and the SDK depends on that exact version of the gateway. Name the tag: a plain `pnpm add @buildanagent/sdk` installs `0.0.0-bootstrap.0`, a deprecated placeholder, because `latest` stays on it until the first stable release. The package needs Node 22.19 or later, the oldest Node its validator, pi-schema 1.5.2, supports.
 
 Don't start Node with `--conditions=source` in a project that installs the SDK. Its validator, pi-schema 1.5.2, maps that condition to a source file its package doesn't ship, so the SDK's root entry fails to load under it ([validator check](docs/validator-check.md)).
 
@@ -35,7 +35,7 @@ export function lookupOrderTool(findOrder: FindOrder) {
 }
 ```
 
-The input schema is either a Standard Schema or a raw JSON Schema object. A Standard Schema is a schema from a library such as Zod 4, Valibot or ArkType that can also describe itself as JSON Schema. A raw schema follows draft 2020-12, or draft 7 when its `$schema` names draft 7. Raw schemas check `format` keywords such as `email` and `date`.
+The input schema is either a Standard Schema or a raw JSON Schema object. A Standard Schema is a schema from a library that can also describe itself as JSON Schema: Zod 4.2 or later, ArkType, or Valibot through `toStandardJsonSchema()` from `@valibot/to-json-schema`. A raw schema follows draft 2020-12, or draft 7 when its `$schema` names draft 7. Raw schemas check `format` keywords such as `email` and `date`.
 
 `execute` receives the validated input and returns a tool result with three channels:
 

@@ -11,8 +11,8 @@ import type { WriteOutcome } from "../vendor/agent-safety/outcome.js";
 export type JsonSchema = Readonly<Record<string, unknown>>;
 
 /**
- * A tool's input schema: a Standard Schema that can also describe itself as JSON Schema (Zod 4, Valibot and ArkType
- * schemas are), or a raw JSON Schema object. A raw schema whose `$schema` names draft 7 is checked as draft 7, and
+ * A tool's input schema: a Standard Schema that can also describe itself as JSON Schema (Zod 4.2 or later, ArkType,
+ * or Valibot through `toStandardJsonSchema()` from `@valibot/to-json-schema`), or a raw JSON Schema object. A raw schema whose `$schema` names draft 7 is checked as draft 7, and
  * any other as draft 2020-12.
  */
 export type ToolSchema<I> = (StandardSchemaV1<unknown, I> & StandardJSONSchemaV1<unknown, I>) | JsonSchema;
