@@ -116,7 +116,8 @@ export interface ModelCallPatch {
  * What `beforeToolCall` decides. `allow` runs the call, with `input` in place of the model's when given; the
  * replacement must pass the tool's schema. `deny` blocks the call, and the model reads the `reason`. `ask` pauses
  * the call for a person: the run signs a pending request for it with the run's `signer`, and ends
- * `awaiting_approval` once the step's other calls have their results. `reason` is shown to the approver and isn't
+ * `awaiting_approval` once the step's other calls have their results, or, under `blockingApprovals()`, waits for the
+ * handler's answer. `reason` is shown to the approver and isn't
  * signed; `policyVersion` is signed. An `ask` may carry an `input`, which must pass the tool's schema like an
  * `allow`'s: the request is then signed over it, because it is the input the call would run with once approved.
  * `composeInterceptors()` passes an earlier gate's replacement on this way when a later gate asks.

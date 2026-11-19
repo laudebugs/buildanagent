@@ -412,12 +412,13 @@ test("a forged safety error's code never reaches a report", async () => {
   assert.match(failure?.type === "hook_error" ? failure.error : "", /\(signer_failed\)/);
 });
 
-test("continueRun() refuses a paused context until it can check resolutions", async () => {
+test("continueRun() refuses a paused context stored without its pending requests", async () => {
   const { result } = await pausedRun([calls(["refund", { order: 1 }, "c1"])]);
   const { model } = scripted([]);
+  const { pending: _pending, pendingInputs: _inputs, ...lost } = result.context;
   assert.throws(
-    () => continueRun(result.context, { model, signer: SIGNER }),
-    (error) => isSdkError(error) && error.code === "invalid_run_options",
+    () => continueRun(lost, { model, signer: SIGNER }),
+    (error) => isSdkError(error) && error.code === "invalid_run_options" && /pause record was lost/.test(error.message),
   );
 });
 

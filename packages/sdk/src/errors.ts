@@ -27,7 +27,8 @@ const SDK_ERROR = Symbol.for("buildanagent.sdk.SdkError");
  * Thrown for a mistake in how the SDK is called. `invalid_tool_definition`: a tool's name, description, schema,
  * exposure, `executionMode` or `resourceKey` is unusable, or two tools share a name. `invalid_tool_result`: a tool's
  * `execute` returned a malformed result or write outcome. `invalid_run_options`: `run()` or `continueRun()` got an
- * option it can't use, such as a model that isn't from `createModel()`. `invalid_model_stream`: a model's stream ended
+ * option it can't use, such as a model that isn't from `createModel()`, or `continueRun()` got a context it can't
+ * resume, such as one whose waiting call lost its pending request. `invalid_model_stream`: a model's stream ended
  * without a final message. `max_depth_exceeded`: a tool started a run nested deeper than `maxDepth` allows.
  * `invalid_hook_result`: an interceptor returned something its type does not allow, such as
  * a gate that returned no decision, or a replacement input that fails the tool's schema. `hook_failed`: an interceptor
@@ -59,8 +60,8 @@ const RUN_STOPPED_ERROR = Symbol.for("buildanagent.sdk.RunStoppedError");
 
 /**
  * Thrown by `runOrThrow()` for a run that ended any way other than `done`, such as one that reached `maxSteps`. It
- * carries the whole result, and the context to continue from; `continueRun()` refuses a paused run's context until it
- * can resume pauses. It is an `SdkError` with code `run_stopped`.
+ * carries the whole result, and the context to continue from: a paused run's context resumes with `continueRun()` and
+ * its resolutions. It is an `SdkError` with code `run_stopped`.
  */
 export class RunStoppedError extends SdkError {
   override readonly name = "RunStoppedError";

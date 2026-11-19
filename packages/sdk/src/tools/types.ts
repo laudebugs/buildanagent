@@ -102,9 +102,9 @@ export interface ToolContext {
 /**
  * What a tool returns. `content` is what the model reads, `details` is for logs and user interfaces, and
  * `structured` is typed data for your code; only `content` reaches the model. `isError` marks a failure for the model.
- * `terminate` asks the run to end after this step. `pause` asks the user a question. `outcome` reports what a write
- * did: any kind except `applied` sets `isError`, and the model reads the outcome's sentence and fields before
- * `content`.
+ * `terminate` asks the run to end after this step. `pause` asks the user a question: the call then waits for the
+ * answer, which reaches the model as its result. `outcome` reports what a write did: any kind except `applied` sets
+ * `isError`, and the model reads the outcome's sentence and fields before `content`.
  */
 export interface ToolResult<S = unknown> {
   readonly content: readonly ModelContent[];
