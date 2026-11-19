@@ -5,7 +5,7 @@
 | Field | Value |
 | --- | --- |
 | ID | `T3` |
-| Status | `ready` |
+| Status | `ongoing` |
 | Plan | [Book plan §5, BK5–BK7](../../plans/build-book.md#bk5-the-outline-lives-in-code-and-the-build-computes-every-number-proposed) |
 | Round / milestone | Round T (textbook), MT |
 | Depends on | [T1](../done/T1-book-scaffold.md) |
