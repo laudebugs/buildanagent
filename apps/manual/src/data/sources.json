@@ -70,5 +70,15 @@
     "kind": "post",
     "asOf": "November 2026",
     "verifiedIn": "docs/research/agent/fact-check.md"
+  },
+  {
+    "id": "ai-sdk-generate-text",
+    "title": "generateText",
+    "publisher": "AI SDK documentation",
+    "url": "https://ai-sdk.dev/docs/reference/ai-sdk-core/generate-text",
+    "kind": "docs",
+    "asOf": "November 2026",
+    "version": "ai@7.0.162",
+    "verifiedIn": "apps/manual/fact-checks/call-workflow-loop.md"
   }
 ]
