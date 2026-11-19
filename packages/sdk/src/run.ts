@@ -10,14 +10,16 @@ import type { AgentEvent, AgentEventBody } from "./events.js";
 import type { CallOptions, Interceptors, Observer } from "./hooks.js";
 import { type LoopSetup, runLoop } from "./loop.js";
 import { ObserverBus } from "./observers.js";
-import { isSigner } from "./pauses.js";
+import { blockingHandlerOf, isSigner } from "./pauses.js";
 import { type ProgressCheck, type ProgressPolicy, progressCheck, resolveProgress } from "./progress.js";
 import type { Context, DoneResult, RunResult } from "./result.js";
+import { resumeSetupOf } from "./resume.js";
 import { type DeliveryReceipt, SteeringQueue } from "./steering.js";
 import type { Clock } from "./testing/determinism.js";
 import { preparedSchemaOf } from "./tools/define.js";
 import type { AnyTool } from "./tools/pipeline.js";
 import type { ToolContext, ToolDefinition } from "./tools/types.js";
+import type { Recheck, Resolution } from "./vendor/agent-safety/pending.js";
 import { type ApprovalSigner, ephemeralSigner } from "./vendor/agent-safety/signer.js";
 import { SDK_VERSION } from "./version.js";
 
@@ -118,6 +120,23 @@ export interface RunOptions<S = unknown> {
   readonly signer?: ApprovalSigner;
 }
 
+/** What `continueRun()` takes besides the shared options: the answers to a paused context's requests. */
+export interface ContinueOptions<S = unknown> extends RunOptions<S> {
+  /**
+   * A person's answer to each pending request of the context: `{ requestId, decision: "allow" | "deny" }` for an
+   * approval, `{ requestId, answer }` for a question. Each is checked against its request and the input
+   * `context.pendingInputs` holds for it, with the run's `signer`, before anything runs. A request no resolution
+   * names still waits, and the run ends paused again without a model call.
+   */
+  readonly resolutions?: readonly Resolution[];
+  /**
+   * Runs current policy for each verified approval just before its call runs. Resolve to `"allow"` to run it, or
+   * to `{ deny: reason }` to give the model an error result with that reason instead. A `recheck` that throws or
+   * returns anything else denies the call. Without it, a verified approval runs, so check policy before you resolve.
+   */
+  readonly recheck?: Recheck;
+}
+
 /** What `run()` takes besides the shared options. */
 export interface RunInput {
   /** The system prompt. */
@@ -201,6 +220,7 @@ function checkInterceptors(interceptors: Interceptors): Interceptors {
       throw new SdkError("invalid_run_options", `interceptors.${name} must be a function, got ${typeof hook}`);
     }
   }
+  blockingHandlerOf(interceptors);
   const { onFailure } = interceptors;
   if (onFailure !== undefined && onFailure !== "fail_closed" && onFailure !== "continue") {
     throw new SdkError("invalid_run_options", `interceptors.onFailure must be "fail_closed" or "continue"`);
@@ -482,16 +502,31 @@ export function run<S = unknown>(options: RunOptions<S> & RunInput): Run<S> {
  * Goes on with a conversation from a result's `context`, or one you rebuilt from your own store. It runs like
  * `run()`, from the last message in the context, and `result.messages` holds only the messages it adds. The context
  * is sent as it stands, so add a user message to one that ends with the model's answer, such as a `done` result's.
- * Throws an `SdkError` with code `invalid_run_options` for a context with `pending` requests, which this version
- * can't resume yet.
+ * A context whose last response ended in an error asks the model again.
+ *
+ * A paused context resumes with `resolutions`. Before the first model call, each waiting call's stored request is
+ * verified with the run's `signer` against its call and its input in `context.pendingInputs`, then:
+ *
+ * - a verified `allow` runs the call once, with the input its request signs and without `beforeToolCall`, after
+ *   `recheck` allows it;
+ * - a verified `deny` gives the model an error result with the reason, and a verified `answer` reaches the model as
+ *   the call's result;
+ * - a request no resolution names still waits;
+ * - a request or resolution that fails its check runs nothing, emits `resolution_rejected`, and the call asks again
+ *   with a new request: the gate is asked as for a new call, and the call pauses even when the gate allows it.
+ *
+ * Settling the requests is not a step. When a call still waits, the run ends paused again without a model call.
+ * Each request answers once per context, but the SDK can't see other processes: mark a request used in your store
+ * before you resume it, so a second resume of the same stored context is refused there.
+ *
+ * Throws an `SdkError` with code `invalid_run_options` for a context it can't read, for a context whose last
+ * assistant message has a call with no result and no pending request, for a pending request whose call doesn't wait
+ * in the context, and for malformed `resolutions` or `recheck`, besides the options `run()` refuses.
  */
-export function continueRun<S = unknown>(context: Context, options: RunOptions<S>): Run<S> {
-  // Resuming a pause needs its resolutions checked against their signed requests first. Until continueRun() can do
-  // that, a paused context is refused, so a call that waits for a person is never silently dropped or answered.
-  if (context?.pending !== undefined && context.pending.length > 0) {
-    throw new SdkError("invalid_run_options", "continueRun() can't resume a context with pending requests yet");
-  }
-  return new RunHandle<S>(setupOf(options, context, []), options.signal, observersOf(options));
+export function continueRun<S = unknown>(context: Context, options: ContinueOptions<S>): Run<S> {
+  const resume = resumeSetupOf(context, options?.resolutions, options?.recheck);
+  const setup = setupOf(options, context, []);
+  return new RunHandle<S>(resume === undefined ? setup : { ...setup, resume }, options.signal, observersOf(options));
 }
 
 /**

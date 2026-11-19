@@ -99,7 +99,12 @@ function blocked(text: string, details: Record<string, unknown>): ToolResult {
 }
 
 /** The error result of a call a person denied, with their reason when they gave one. */
-export function denied(tool: string, reason: string | undefined, requestId: string, by: string | undefined): ToolResult {
+export function denied(
+  tool: string,
+  reason: string | undefined,
+  requestId: string,
+  by: string | undefined,
+): ToolResult {
   const text =
     reason === undefined || reason === ""
       ? `Tool call "${tool}" was denied by the approver.`
@@ -185,7 +190,11 @@ export class HookRunner {
       const outcome = this.#hooks.beforeToolCall === undefined ? undefined : await this.#gate(e, false);
       if (outcome !== undefined && ("blocked" in outcome || "paused" in outcome)) return outcome;
       const input = outcome === undefined ? e.input : outcome.input;
-      return this.#sign(e.tool.name, { kind: "approval", callId: e.call.callId, tool: e.tool.name, input, reason: REISSUED_REASON }, input);
+      return this.#sign(
+        e.tool.name,
+        { kind: "approval", callId: e.call.callId, tool: e.tool.name, input, reason: REISSUED_REASON },
+        input,
+      );
     };
   }
 
@@ -194,7 +203,11 @@ export class HookRunner {
    * with. A question that can't be signed blocks the call, as an approval does.
    */
   clarify(call: ToolCall, input: unknown, question: string): Promise<GateOutcome> {
-    return this.#sign(call.name, { kind: "clarification", callId: call.callId, tool: call.name, input, question }, input);
+    return this.#sign(
+      call.name,
+      { kind: "clarification", callId: call.callId, tool: call.name, input, question },
+      input,
+    );
   }
 
   /** The gate and the after-hook, for the tool pipeline. */
@@ -336,7 +349,12 @@ export class HookRunner {
     this.#setup.send({ type: "approval_request", request, input });
     const refuse = (why: string, error: string): GateOutcome => {
       this.#setup.send({ type: "hook_error", hook: "blockingApprovals", error });
-      return { blocked: blocked(`Tool call "${tool}" was not run, because ${why}.`, { decision: "ask", requestId: request.id }) };
+      return {
+        blocked: blocked(`Tool call "${tool}" was not run, because ${why}.`, {
+          decision: "ask",
+          requestId: request.id,
+        }),
+      };
     };
     let answer: unknown;
     try {
