@@ -2,7 +2,7 @@
 title: "Use the least autonomy that works: a call, a workflow, then a loop"
 summary: Three support requests need three shapes of program, one model call, a fixed workflow and an agent loop, and one question picks between them. Who decides the next step, your code or the model?
 opening: scenario
-sources: [anthropic-building-effective-agents, ai-sdk-generate-text, adk-sequential-agents, anthropic-how-tool-use-works, pi-how-pi-works]
+sources: [anthropic-building-effective-agents, ai-sdk-generate-text, adk-sequential-agents, anthropic-how-tool-use-works, pi-how-pi-works, openai-practical-guide-to-building-agents]
 glossary: [agent, workflow, agent-loop, stop-condition, harness]
 switchTo: [B11]
 ---
@@ -100,6 +100,28 @@ You will not always drive the loop step by step yourself. A harness is the progr
 In [[lst:pi-hello]] the scripted model answers with text at once, so the loop ends after one model request, and the example's checks confirm it. The events the session emits arrive in order, `message_update` and `message_end` while the answer streams, then `agent_settled` once Pi has nothing left to do. The replay shows the single request going out with Pi's system prompt and the user's "Say hello.", and the answer coming back.
 
 The last note deserves a second look. As of November 2026, a Pi session made this way starts with four tools active, and two of them, `bash` and `write`, can run commands and change files on the machine that runs the agent. The mock in this listing never calls them. A real model could, which is why handing the model the next step also hands it whatever the tools can reach, a question [[ch:approvals-guardrails-and-injection]] and [[ch:permissions-sandboxes-and-credentials]] take up. Who decides the next step in Pi? The model does, exactly as in [[lst:tool-loop]]; the harness only runs the steps the model chooses.
+
+## Choose the shape by asking who decides the next step
+
+Go back to Monday's three requests. Each now has a shape, and [[fig:who-decides]] puts the three shapes side by side with the one difference that matters. In a call and in a workflow, your code laid out every path before the run began. In a loop, the model chooses each next step after reading the last result.
+
+:::figure[A call, a workflow and a loop differ in who decides the next step]{#who-decides}
+::svg{alt="Three columns of boxes joined by arrows. A call runs your code, then the model, then an answer. A workflow runs three fixed steps in order: a model, a tool, a model. A loop sends the model's request to a tool and the result back to the model, which ends with an answer when it is done. Under each column, a note says who decides the next step: your code, your code, and the model."}
+:::
+
+:::table[Three shapes, and what each costs you in control]{#three-shapes}
+| Shape | Who decides the next step | Model calls per run | Use it when |
+| --- | --- | --- | --- |
+| One call | Your code, before the run | One | One request carries everything the model needs |
+| Workflow, such as a chain | Your code, before the run | A fixed number you can count in advance | You know the steps before the input arrives |
+| Agent loop | The model, after each result | Unknown until the run ends, so cap it | The next step depends on what the last step returned |
+:::
+
+The summary request is a call, the draft-and-review request is a workflow, and the order-status request is a loop. To sort a new task, we ask four questions in order and let the first "yes" set the shape. First, does one well-prompted call, with retrieval if needed, do the job? Ship the call. Second, do you know the steps in advance? Write a workflow. Third, does the number of steps depend on what each tool returns? Use one loop, with a cap you chose. Only the fourth question reaches past this chapter: is the work broad, parallel and too large for one context? Splitting it across several agents is a question for [[ch:choosing-the-shape]].
+
+Each step up the list buys flexibility with control, and the sources say so plainly. Anthropic notes that agentic systems "often trade latency and cost for better task performance", and that "the autonomous nature of agents means higher costs, and the potential for compounding errors" [@anthropic-building-effective-agents]. OpenAI's guide to building agents draws the same line from the other side. Agents earn their place in "workflows where traditional deterministic and rule-based approaches fall short", and where they do not, "a deterministic solution may suffice" [@openai-practical-guide-to-building-agents]. A loop that answers one order-status question in two model calls may take six on a harder order, and a wrong turn in its third step carries into its fourth.
+
+The shapes also combine, and we recommend combining them. A real order-status feature need not be a loop from end to end. Your code can check who is asking and load their orders before any model call, run one capped loop for the part where the next lookup depends on the last, and send the reply itself once the loop ends. Everything that must happen the same way every time stays in code, and the model decides only the steps that no one could write down in advance. That split is the least autonomy that works, and it is the habit this book builds on from here.
 
 ## Exercises
 
