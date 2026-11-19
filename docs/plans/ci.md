@@ -40,6 +40,20 @@ X2 works through every open alert, and keeps doing so as alerts arrive:
 
 Once CI exists (X1), the nightly `verify.yml` also runs `pnpm audit --audit-level high` and fails on new high alerts.
 
+## 3c. Weekly SDK updates (added 2026-11-19)
+
+The owner asked on 2026-11-19 for a weekly check that opens a pull request when an SDK we verify has a new version. `.github/workflows/sdk-updates.yml` does it every Monday at 05:37 UTC, and on demand.
+
+- **Plan.** `scripts/ci/sdk-updates.mjs plan` reads each `verify/*/package.json` and asks the npm registry for the newest release of every runtime dependency that is at least seven days old, the age rule in [AGENTS.md](../../AGENTS.md#coding-standards). A stable pin moves only to a stable release; a prerelease pin, such as miniflare's dated betas, may also move to a newer prerelease of the same major version. The job runs no package code.
+- **Update, without write access.** For each harness with an update, a job bumps its pins, runs `pnpm install` and the harness's `verify`, compares the results with the committed run, and uploads a patch with a summary. This job runs the new releases' code, so its token is read-only and its checkout keeps no credentials.
+- **Open the pull request.** A last job applies the patch on `deps/sdk-<harness>` and opens or updates one pull request per harness, with the bumps, the verify outcome and the drift in the description. It installs and runs nothing. The pull request then goes through the same reviews as any other, including re-mirroring the docs at the new tag and fact-checking what changed.
+- **Owner setup.** The repository must allow GitHub Actions to create pull requests (Settings → Actions → General). A pull request opened with the default `GITHUB_TOKEN` doesn't trigger `ci.yml`. So the workflow uses an `SDK_UPDATES_TOKEN` secret when one exists, such as a fine-grained token with contents and pull-request write access to this repository. Without it, someone starts CI by pushing to the branch.
+- **No shared cache from untrusted code.** The update job runs without the pnpm cache: a cache it saved could be restored by later runs on main, so a tampered store from a bad release would reach CI.
+- **Failures still open a pull request.** If `pnpm install` or `verify` fails, the pull request still opens, with the failure in its description. A run that finds nothing to change opens nothing.
+- **Lockfile conflicts.** Several harnesses share packages, such as `ai` and `@ai-sdk/openai`, so merging one harness's pull request can leave the others conflicting on `pnpm-lock.yaml`. The next weekly run rebuilds each open branch from `main`, or a person reruns the workflow by hand.
+- **Pinned actions.** The workflow reuses ci.yml's pins and adds `actions/download-artifact` v8.0.2, whose tag commit is dated 2026-10-07, more than a week before it was pinned.
+- **Tests.** `scripts/ci/sdk-updates.test.mjs` covers the version choice offline, including deprecated releases, and `ci.yml` runs it on every push.
+
 ## 4. Todos
 
 | ID | Title | Depends on |

@@ -1,0 +1,155 @@
+# Weekly and on demand: find newer releases of the SDKs the verify/* harnesses pin (each at least a week old,
+# AGENTS.md "Versions"), bump each harness, rerun its verify, and open one pull request per harness.
+#
+# Running verify runs the new releases' code, so the job that does it gets a read-only token and no persisted
+# credentials. It hands a patch to the open-pr job, which applies it and opens the pull request without
+# installing or running any package code.
+name: sdk-updates
+
+on:
+  schedule:
+    - cron: "37 5 * * 1"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: sdk-updates
+  cancel-in-progress: false
+
+jobs:
+  plan:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    outputs:
+      matrix: ${{ steps.plan.outputs.matrix }}
+      any: ${{ steps.plan.outputs.any }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version-file: .nvmrc
+      - id: plan
+        run: |
+          matrix=$(node scripts/ci/sdk-updates.mjs plan)
+          echo "matrix=$matrix" >> "$GITHUB_OUTPUT"
+          if [ "$matrix" = '{"include":[]}' ]; then echo "any=false" >> "$GITHUB_OUTPUT"; else echo "any=true" >> "$GITHUB_OUTPUT"; fi
+          echo "$matrix"
+
+  update:
+    needs: plan
+    if: needs.plan.outputs.any == 'true'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 45
+    strategy:
+      fail-fast: false
+      matrix: ${{ fromJSON(needs.plan.outputs.matrix) }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: pnpm/action-setup@73e46992e05b19abd31f2f3c20e0e7370d762115 # v6.1.1 (version from packageManager)
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version-file: .nvmrc
+          # No dependency cache: this job runs untrusted new releases, and a cache it saved would be restored
+          # by later runs on main.
+      - name: Allow unprivileged user namespaces
+        run: sudo sysctl -w kernel.apparmor_restrict_unprivileged_userns=0
+      - name: Bump the harness's pins
+        run: node scripts/ci/sdk-updates.mjs apply "${{ matrix.harness }}" > bumps.md
+      - name: Install the new releases
+        id: install
+        continue-on-error: true
+        run: pnpm install --no-frozen-lockfile
+      - name: Fetch the Claude docs mirror (gitignored)
+        if: matrix.harness == 'claude-agent-sdk'
+        run: pnpm -C verify/claude-agent-sdk run fetch-docs
+      - name: Verify the harness against the new releases
+        id: verify
+        if: steps.install.outcome == 'success'
+        continue-on-error: true
+        run: pnpm -C "verify/${{ matrix.harness }}" run verify
+      - name: Compare results with the committed run
+        id: drift
+        if: steps.install.outcome == 'success'
+        continue-on-error: true
+        run: node scripts/ci/results-drift.mjs > drift.txt 2>&1
+      - name: Write the patch and the summary
+        env:
+          HARNESS: ${{ matrix.harness }}
+          INSTALL: ${{ steps.install.outcome }}
+          VERIFY: ${{ steps.verify.outcome }}
+          DRIFT: ${{ steps.drift.outcome }}
+        run: |
+          touch drift.txt
+          git diff --binary -- "verify/$HARNESS" pnpm-lock.yaml > update.patch
+          {
+            echo "Bumps \`verify/$HARNESS\` to the newest releases that are at least a week old (AGENTS.md, Versions)."
+            echo
+            echo "| Package | From | To | Published |"
+            echo "| --- | --- | --- | --- |"
+            cat bumps.md
+            echo
+            echo "- \`pnpm install\`: **$INSTALL**"
+            echo "- \`pnpm -C verify/$HARNESS run verify\`: **$VERIFY**"
+            case "$DRIFT" in success) drift=none ;; skipped) drift="not run" ;; *) drift=yes ;; esac
+            echo "- Results drift against the committed run: **$drift**"
+            echo
+            echo '```'
+            tail -n 40 drift.txt
+            echo '```'
+            echo
+            echo "Before merging, follow AGENTS.md: re-mirror the docs at the new tag if the harness pins one, update the reference's pinned version, fact-check what changed, and run both code-review rounds and the writing review."
+          } > summary.md
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: update-${{ matrix.harness }}
+          path: |
+            update.patch
+            summary.md
+          retention-days: 7
+
+  open-pr:
+    needs: [plan, update]
+    if: needs.plan.outputs.any == 'true'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    permissions:
+      contents: write
+      pull-requests: write
+    strategy:
+      fail-fast: false
+      matrix: ${{ fromJSON(needs.plan.outputs.matrix) }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          token: ${{ secrets.SDK_UPDATES_TOKEN || github.token }}
+      - uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
+        with:
+          name: update-${{ matrix.harness }}
+          path: ${{ runner.temp }}/update
+      - name: Open or update the pull request
+        env:
+          GH_TOKEN: ${{ secrets.SDK_UPDATES_TOKEN || github.token }}
+          HARNESS: ${{ matrix.harness }}
+          PATCH: ${{ runner.temp }}/update/update.patch
+          SUMMARY: ${{ runner.temp }}/update/summary.md
+        run: |
+          if [ ! -s "$PATCH" ]; then echo "No change to propose for $HARNESS."; exit 0; fi
+          branch="deps/sdk-$HARNESS"
+          title="chore(deps): update the $HARNESS harness's SDK pins"
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git switch -C "$branch"
+          git apply --index "$PATCH"
+          git commit -m "$title" -m "$(cat "$SUMMARY")"
+          git push --force origin "$branch"
+          if [ -n "$(gh pr list --head "$branch" --state open --json number --jq '.[].number')" ]; then
+            gh pr edit "$branch" --title "$title" --body-file "$SUMMARY"
+          else
+            gh pr create --head "$branch" --base main --title "$title" --body-file "$SUMMARY"
+          fi

@@ -35,5 +35,7 @@ jobs:
       - run: pnpm check
       - run: pnpm typecheck
       - run: pnpm test
+      - name: Test the CI scripts
+        run: node --test scripts/ci/*.test.mjs
       # pnpm test rewrites results/run-examples.json; fail only if something other than timings changed.
       - run: node scripts/ci/results-drift.mjs
