@@ -466,4 +466,14 @@ These rows check the claims in T4's code comments, the app's README, the harness
 | 280 | The weekly SDK-update job rewrites `verify/<harness>/package.json`, so a caption's pin follows it | The app's README, the todo's risks | ✅ | `scripts/ci/sdk-updates.mjs`, header: `apply <harness>` "rewrites verify/<harness>/package.json"; `.github/workflows/sdk-updates.yml` runs on `cron: "37 5 * * 1"`, Mondays |
 | 281 | `pnpm test` of the manual runs `book:switch-report`, which exits 0 even when the book fails to load | The app's README, BK9's T4 result | ✅ | `apps/manual/package.json`: `"test": "vitest run && tsx scripts/switch-report.ts"`; `scripts/switch-report.ts` catches the load error and prints it; on the real book it printed "No chapter is written yet" |
 
-**Totals:** 281 claims: 251 ✅, 30 ✏️, 0 ⚠️.
+### T4's first review round
+
+| # | Claim | Where | Verdict | Source and reason |
+| --- | --- | --- | --- | --- |
+| 282 | The coverage check applies a config's `files`, `include` and `exclude` as TypeScript does | `src/book/typecheck-coverage.ts`, rows 275–276 | ✏️ | The first version took the three as one unit from the first config that set any, but row 275's source says each one in the inheriting config overwrites the base's separately, so a base `exclude` survives a child `include`. The check now asks `tsc` itself; the fixture "a listing of a file that a base tsconfig's exclude removes fails" makes `tsc` report the inherited `exclude` and fails the listing |
+| 283 | TypeScript 7.0.2 offers no stable JavaScript API for reading a tsconfig, so the check runs the workspace's `tsc` instead | `src/book/typecheck-coverage.ts` | ✅ | Our choice. `typescript@7.0.2`'s `package.json` `exports` names `.` (a version file) and `./unstable/*` entries only |
+| 284 | `tsc -p <config> --listFilesOnly` prints the files of the program and stops, without type-checking | `src/book/typecheck-coverage.ts`, the app's README | ✅ | `tsc --help --all` (7.0.2): "Print names of files that are part of the compilation and then stop processing." On 2026-11-19 it took 0.17 s for `verify/vercel-ai-sdk` and 0.11 s for the fixture harness |
+| 285 | A `pnpm-workspace.yaml` glob that starts with `!` excludes packages, and `!./packages/legacy` means `!packages/legacy` | `src/book/typecheck-coverage.ts`, the app's README | ✅ | [pnpm-workspace.yaml](https://pnpm.io/pnpm-workspace_yaml): the example `'!**/test/**'` excludes "packages that are inside test directories", and the page says the `./` prefix makes no difference |
+| 286 | The real harnesses still pass the coverage check when TypeScript decides it | `test/listings.test.ts` | ✅ | The test resolving all 39 marked regions passes with the `tsc`-based check |
+
+**Totals:** 286 claims: 255 ✅, 31 ✏️, 0 ⚠️.

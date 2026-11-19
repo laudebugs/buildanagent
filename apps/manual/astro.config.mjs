@@ -18,11 +18,12 @@ const book = loadBook();
 
 // Astro caches each chapter's rendered HTML until the chapter file itself changes. An edit to a Markdown plugin, to
 // the content model it calls, to the outline or a register it reads, to another chapter's numbered blocks, or to a
-// listed file or its harness's pin would therefore never reach the chapters. When any render input differs from the last build, the render-input check below
-// deletes the content cache, so every chapter renders again. Astro 7.4 keeps that cache in .astro/data-store.json
-// under `astro dev` and in <cacheDir>/data-store.json under `astro build` (astro/dist/content/paths.js), so both are
-// deleted. The config sets cacheDir itself, so the check and Astro use the same directory. Check both paths after
-// every Astro upgrade, because a moved cache would make chapters go stale again.
+// listed file or its harness's pin would therefore never reach the chapters. When any render input differs from the
+// last build, the render-input check below deletes the content cache, so every chapter renders again. Astro 7.4
+// keeps that cache in .astro/data-store.json under `astro dev` and in <cacheDir>/data-store.json under `astro build`
+// (astro/dist/content/paths.js), so both are deleted. The config sets cacheDir itself, so the check and Astro use the
+// same directory. Check both paths after every Astro upgrade, because a moved cache would make chapters go stale
+// again.
 // Paths resolve from this file, so the config loads from any directory.
 const CACHE_DIR = "./node_modules/.astro/";
 const here = (path) => fileURLToPath(new URL(path, import.meta.url));

@@ -22,7 +22,8 @@ interface Region {
 
 /**
  * Finds the `// #region <name>` and `// #endregion` markers in a file's lines. Regions may nest, and an `#endregion`
- * may repeat its region's name. Returns each region's marker lines (0-based) and the set of every marker line, or
+ * may repeat its region's name. Markers are found line by line, without parsing the code, so a line inside a template
+ * literal or a block comment that starts with `// #region` also counts as a marker. Returns each region's marker lines (0-based) and the set of every marker line, or
  * the first malformed marker with its 1-based line.
  */
 export function parseRegions(
@@ -87,9 +88,8 @@ export function cutRegion(text: string, region: string | undefined): readonly So
     const found = parsed.regions.get(region);
     if (found === undefined) {
       const names = [...parsed.regions.keys()].sort();
-      return {
-        message: `has no region "${region}"; ${names.length === 0 ? "it marks no regions" : `its regions are ${names.join(", ")}`}`,
-      };
+      const known = names.length === 0 ? "it marks no regions" : `its regions are ${names.join(", ")}`;
+      return { message: `has no region "${region}"; ${known}` };
     }
     from = found.start + 1;
     to = found.end;

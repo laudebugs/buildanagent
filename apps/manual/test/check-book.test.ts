@@ -1,5 +1,5 @@
 import assert from "node:assert/strict";
-import { rmSync, writeFileSync } from "node:fs";
+import { rmSync, symlinkSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { afterAll, beforeAll, test, vi } from "vitest";
 import { checkBook } from "../src/book/check-book.js";
@@ -9,6 +9,7 @@ import {
   buildError,
   edit,
   editJson,
+  FIXTURE_DIR,
   FIXTURE_OUTLINE,
   fixtureInputs,
   mutatedFixture,
@@ -297,6 +298,48 @@ const cases: readonly Case[] = [
       /scripts\/tool\.ts is outside every tsconfig\.json .*: verify\/demo-sdk\/tsconfig\.json does not include it/,
   },
   {
+    rule: "a listing of a file that a base tsconfig's exclude removes fails, as tsc inherits the exclude",
+    change: (dir) => {
+      writeFileSync(join(dir, "verify/demo-sdk/tsconfig.base.json"), '{ "exclude": ["examples/01-hello.ts"] }\n');
+      writeFileSync(
+        join(dir, "verify/demo-sdk/tsconfig.json"),
+        '{ "extends": "./tsconfig.base.json", "include": ["examples/**/*.ts"] }\n',
+      );
+    },
+    file: LISTING,
+    message: /01-hello\.ts is outside every tsconfig\.json .*: verify\/demo-sdk\/tsconfig\.json does not include it/,
+  },
+  {
+    rule: "a listing of a package that a ! glob removes from the pnpm workspace fails",
+    change: (dir) => edit(dir, "pnpm-workspace.yaml", (t) => `${t}  - "!verify/demo-sdk"\n`),
+    file: LISTING,
+    message: /outside every tsconfig\.json .*: verify\/demo-sdk is not a package of pnpm-workspace\.yaml/,
+  },
+  {
+    rule: "a listing of a symbolic link to a file outside the repository fails",
+    change: (dir) => {
+      symlinkSync(join(FIXTURE_DIR, EXAMPLE), join(dir, "verify/demo-sdk/examples/02-linked.ts"));
+      listingLine((l) => l.replace("01-hello.ts", "02-linked.ts"))(dir);
+    },
+    file: LISTING,
+    message: /02-linked\.ts resolves through a symbolic link to a file outside the repository/,
+  },
+  {
+    rule: "a listing through a symbolic link to a directory outside the repository fails",
+    change: (dir) => {
+      symlinkSync(join(FIXTURE_DIR, "verify/demo-sdk/examples"), join(dir, "verify/demo-sdk/examples/outside"));
+      listingLine((l) => l.replace("examples/01-hello.ts", "examples/outside/01-hello.ts"))(dir);
+    },
+    file: LISTING,
+    message: /examples\/outside\/01-hello\.ts resolves through a symbolic link to a file outside the repository/,
+  },
+  {
+    rule: "a listing whose path starts with ./ fails",
+    change: listingLine((l) => l.replace(EXAMPLE, `./${EXAMPLE}`)),
+    file: LISTING,
+    message: /must be a path from the repository root, without \.\/, \.\., \/\/ or a leading \//,
+  },
+  {
     rule: "a listing of a package outside the pnpm workspace fails",
     change: (dir) => edit(dir, "pnpm-workspace.yaml", (t) => t.replace('"verify/*"', '"apps/*"')),
     file: LISTING,
@@ -362,7 +405,7 @@ const cases: readonly Case[] = [
     rule: "a listing whose path leaves the repository fails",
     change: listingLine((l) => l.replace(EXAMPLE, `../${EXAMPLE}`)),
     file: LISTING,
-    message: /must be a path from the repository root, without \.\/ or \.\./,
+    message: /must be a path from the repository root, without \.\/, \.\., \/\/ or a leading \//,
   },
   {
     rule: "a region without its #endregion fails with the file's line",
@@ -540,5 +583,6 @@ for (const { rule, change, outline, file, message } of cases) {
     // The build names the file, and the line when the check does: a book-load problem by the file's path, a render
     // failure by the chapter's full path and its line in the file.
     assert.ok(error.includes(file), `the build's error should name ${file}:\n${error}`);
-  });
+    // Each listing case runs tsc twice, once per path, which can outlast Vitest's 5 s default on a busy machine.
+  }, 20_000);
 }

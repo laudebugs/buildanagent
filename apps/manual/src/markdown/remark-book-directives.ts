@@ -1,8 +1,9 @@
 import type { Html, Paragraph, Parent, PhrasingContent, Root, RootContent } from "mdast";
 import type { VFile } from "vfile";
-import { isNumberedKind, NUMBERED_KINDS, type NumberedBlock, type NumberedKind } from "../book/book-index.js";
+import { isNumberedKind, NUMBERED_KINDS, type NumberedKind } from "../book/book-index.js";
+import type { ListingSource } from "../book/listings.js";
 import type { Book } from "../book/load.js";
-import { escapeHtml, listingHtml } from "../components/listing-html.js";
+import { captionParts, listingCodeHtml } from "../components/listing-html.js";
 import { checkedChapter } from "./chapter-file.js";
 import { failAt } from "./fail.js";
 import { highlightListing } from "./highlight.js";
@@ -146,9 +147,10 @@ function mergeText(parent: Parent): void {
 
 /**
  * A `::listing` as a figure: a caption that the numbering plugin completes with "Listing 3.2", then the listing's path,
- * line range and pin, and the code. The code arrives as HTML that `highlighted` fills in once Shiki has tokenised the
- * lines, in the markup the ListingBlock component uses, so it takes the panel's colours and shows each line's number
- * in the file. Raw HTML reaches the page after Astro's own highlighter has run, so Astro does not highlight it again.
+ * line range and pin, and the code. The caption parts and the code panel come from `listing-html.ts`, which the
+ * ListingBlock component also uses, so the listing takes the panel's colours and shows each line's number in the file.
+ * The code arrives as raw HTML that `highlighted` fills in once Shiki has tokenised the lines; raw HTML reaches the
+ * page after Astro's own highlighter has run, so Astro does not highlight it again.
  */
 function fileListing(
   node: LeafDirective,
@@ -164,15 +166,8 @@ function fileListing(
   if (node.children.length === 0) {
     return failAt(file, `a listing needs a caption, written ::listing[Caption]{#${id} file="…"}`, node);
   }
-  const { source } = block;
+  const { source, number } = block;
   const domId = `${NUMBERED_KINDS.listing.prefix}-${id}`;
-  const first = source.lines[0]?.number ?? 0;
-  const last = source.lines.at(-1)?.number ?? first;
-  const span = (className: string, value: string): PhrasingContent => ({
-    type: "text",
-    value,
-    data: { hName: "span", hProperties: { className: [className] } },
-  });
   const caption: Paragraph = {
     type: "paragraph",
     data: { hName: "figcaption", hProperties: { className: ["listing__caption"], id: `${domId}-caption` } },
@@ -183,9 +178,13 @@ function fileListing(
         data: { hName: "span", hProperties: { className: ["listing__title"] } },
         children: node.children,
       },
-      span("listing__path", source.path),
-      span("listing__lines", first === last ? `line ${first}` : `lines ${first}–${last}`),
-      span("listing__pin", source.pin),
+      ...captionParts(source.path, source.lines, source.pin).map(
+        ({ className, text }): PhrasingContent => ({
+          type: "text",
+          value: text,
+          data: { hName: "span", hProperties: { className: [className] } },
+        }),
+      ),
     ],
   };
   const html: Html = { type: "html", value: "" };
@@ -206,12 +205,10 @@ function fileListing(
     },
     ...(node.position ? { position: node.position } : {}),
   };
-  return { figure, code: highlighted(html, block, domId) };
+  return { figure, code: highlighted(html, source, number, domId) };
 }
 
-async function highlighted(html: Html, block: NumberedBlock, domId: string): Promise<void> {
-  if (block.source === undefined) return;
-  const lines = await highlightListing(block.source);
-  const label = escapeHtml(`Code of listing ${block.number}`);
-  html.value = `<pre class="listing__code" tabindex="0" aria-label="${label}"><code>${listingHtml(domId, lines, new Map())}</code></pre>`;
+/** Fills the listing's HTML node with its code panel once Shiki has tokenised the lines. */
+async function highlighted(html: Html, source: ListingSource, number: string, domId: string): Promise<void> {
+  html.value = listingCodeHtml(domId, number, await highlightListing(source), new Map());
 }

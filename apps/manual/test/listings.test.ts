@@ -3,9 +3,10 @@ import { readdirSync, readFileSync } from "node:fs";
 import { join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { test } from "vitest";
-import { listingContext, resolveListing, stripJsonComments, tscProjects } from "../src/book/listings.js";
+import { listingContext, resolveListing } from "../src/book/listings.js";
 import { loadBook, renderDependencies } from "../src/book/load.js";
 import { ProblemList } from "../src/book/problems.js";
+import { inWorkspace, tscProjects } from "../src/book/typecheck-coverage.js";
 import { highlightListing } from "../src/markdown/highlight.js";
 import {
   edit,
@@ -128,9 +129,12 @@ test("the typecheck script's tsc commands name the tsconfig files the coverage c
   assert.deepEqual(tscProjects("node scripts/check.mjs"), []);
 });
 
-test("a tsconfig's comments and trailing commas are stripped, and a // inside a string stays", () => {
-  const text = '{\n  // a comment\n  "$schema": "https://example.com/x", /* block */\n  "include": ["a",],\n}';
-  assert.deepEqual(JSON.parse(stripJsonComments(text)), { $schema: "https://example.com/x", include: ["a"] });
+test("a workspace package matches a pnpm-workspace.yaml glob and no ! glob", () => {
+  assert.ok(inWorkspace("verify/pi", ["apps/*", "verify/*"]));
+  assert.ok(!inWorkspace("verify/pi", ["apps/*"]));
+  assert.ok(!inWorkspace("verify/pi", ["verify/*", "!verify/pi"]));
+  assert.ok(inWorkspace("verify/langchain", ["verify/*", "!verify/pi"]));
+  assert.ok(!inWorkspace("verify/pi", ["./verify/*", "!./verify/pi"]));
 });
 
 // The real harnesses: every region marked in a verify/ example resolves, with the pin its harness's package.json
@@ -147,8 +151,8 @@ test("the harness table names every verify/ harness and a main package its packa
   const harnesses = readdirSync(join(repoRoot, "verify"), { withFileTypes: true })
     .filter((entry) => entry.isDirectory())
     .map((entry) => `verify/${entry.name}`);
-  assert.deepEqual([...real.harnesses.keys()].sort(), harnesses.sort());
-  for (const [harness, name] of real.harnesses) {
+  assert.deepEqual([...real.harnesses.harnesses.keys()].sort(), harnesses.sort());
+  for (const [harness, name] of real.harnesses.harnesses) {
     const manifest = JSON.parse(readFileSync(join(repoRoot, harness, "package.json"), "utf8"));
     assert.match(manifest.dependencies?.[name] ?? "", /^\d+\.\d+\.\d+$/, `${harness} pins ${name} exactly`);
   }
@@ -156,7 +160,7 @@ test("the harness table names every verify/ harness and a main package its packa
 
 test("every region marked in a verify/ example resolves to a listing with its harness's pin", () => {
   let regions = 0;
-  for (const harness of real.harnesses.keys()) {
+  for (const harness of real.harnesses.harnesses.keys()) {
     const dir = join(repoRoot, harness, "examples");
     for (const file of readdirSync(dir, { recursive: true, encoding: "utf8" }).filter((f) => f.endsWith(".ts"))) {
       const path = `${harness}/examples/${file}`;
@@ -165,7 +169,7 @@ test("every region marked in a verify/ example resolves to a listing with its ha
         const listing = resolveListing({ id: "x", file: path, region }, real);
         assert.ok(!("message" in listing), "message" in listing ? listing.message : "");
         const manifest = JSON.parse(readFileSync(join(repoRoot, harness, "package.json"), "utf8"));
-        const name = real.harnesses.get(harness) ?? "";
+        const name = real.harnesses.harnesses.get(harness) ?? "";
         assert.equal(listing.pin, `${name}@${manifest.dependencies[name]}`);
         regions++;
       }

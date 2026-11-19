@@ -113,8 +113,8 @@ export interface IndexOptions {
  * Reads every chapter file in `chaptersDir`, numbers its figures, listings and tables from its outline position and
  * their order, and reports a file the outline does not name, a written chapter without its fact-check log, a block
  * without a kebab-case id, an id used twice in the book, and a `::listing` whose file, region or pin is missing or
- * whose file no typecheck covers, with each file and line. A slug the outline lists twice
- * is indexed once; the outline check reports the duplicate.
+ * whose file no typecheck covers, with each file and line. A slug the outline lists twice is indexed once; the
+ * outline check reports the duplicate.
  */
 export function indexChapters(
   chapters: readonly NumberedChapter[],
