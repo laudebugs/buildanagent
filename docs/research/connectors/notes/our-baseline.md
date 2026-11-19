@@ -110,7 +110,7 @@ Validation of MCP tool input inside the SDK is a deliberate choice, because SDKs
   — `docs/plans/build-sdk.md#33-sdk-api`
 - **Gate.** `GateDecision = allow | deny | ask{policyVersion}`. "'ask' without blockingApprovals: the run pauses with awaiting_approval." — `docs/plans/build-sdk.md#33-sdk-api`
 - **D5.** A pluggable `ApprovalSigner`; an unsigned or invalid resume fails closed. The harness always uses `hmacSigner()` (HD5, ADR 0035). — `docs/plans/build-sdk.md#d5-a-pluggable-signer-with-key-ids-an-ephemeral-default-and-no-unsigned-resume-accepted-with-hd5`
-- **D12.** The canonical rule is `^[A-Za-z0-9_-]{1,64}$`, "and namespaced names such as `mcp__<server>__<tool>` follow the same rule". — `docs/plans/build-sdk.md#d12-a-per-adapter-name-table-first-then-a-canonical-rule-and-reversible-sanitising`
+- **D12.** The canonical rule is `^[A-Za-z0-9_-]{1,64}$`, "and namespaced names such as `mcp__<server>__<tool>` follow the same rule". — `docs/plans/build-sdk.md#d12-a-per-adapter-name-table-first-then-a-canonical-rule-and-reversible-sanitising-accepted`
 - **SDK guide §4.** "Vercel's raw JSON Schema and dynamic MCP tools reach `execute` unvalidated unless a validator is passed", so validation lives in the SDK. Tools are "namespaced by source (`mcp__<server>__<tool>`)". — `docs/guides/agent-sdk.md#4-tools-should-take-standard-schema-validate-inside-the-sdk-and-return-every-failure-to-the-model-as-data`
 - **Non-goal.** "the MCP client and registry, tool search … belong to the harness plan". — `docs/plans/build-sdk.md#1-goal-and-non-goals`
 - **Server rollback research.** "Vercel's MCP adapter drops `isError`". MCP's `isError` exists so the model can self-correct. — `docs/research/reversible-actions/fact-check-server-rollback.md` (rows 51, 54)
