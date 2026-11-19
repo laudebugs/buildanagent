@@ -1,5 +1,6 @@
 import assert from "node:assert/strict";
 import { createHash } from "node:crypto";
+import { runInNewContext } from "node:vm";
 import { canonicalInputHash, isSafetyError } from "@buildanagent/agent-safety";
 import { test } from "vitest";
 
@@ -93,4 +94,40 @@ for (const [label, input] of [
 test("a value shared by two properties is no cycle", async () => {
   const shared = { n: 1 };
   assert.equal(await canonicalInputHash({ a: shared, b: [shared] }), sha256('{"a":{"n":1},"b":[{"n":1}]}'));
+});
+
+test("a plain object from another realm hashes like one from this realm", async () => {
+  assert.equal(
+    await canonicalInputHash(runInNewContext("({ b: [1], a: 2 })")),
+    await canonicalInputHash({ a: 2, b: [1] }),
+  );
+});
+
+test("a class instance is rejected as not plain", async () => {
+  class Point {
+    x = 1;
+  }
+  await assert.rejects(
+    canonicalInputHash(new Point()),
+    (error) => isSafetyError(error) && error.code === "invalid_input",
+  );
+});
+
+test("each property is read once", async () => {
+  let reads = 0;
+  const input = {
+    get flaky() {
+      reads += 1;
+      return reads === 1 ? 1 : undefined;
+    },
+  };
+  assert.equal(await canonicalInputHash(input), sha256('{"flaky":1}'));
+  assert.equal(reads, 1);
+});
+
+test("a lone surrogate in a property name is reported at that name", async () => {
+  await assert.rejects(
+    canonicalInputHash({ a: { [String.fromCharCode(0xd800)]: 1 } }),
+    (error) => isSafetyError(error) && error.message.includes("$.a's property name holds a lone surrogate"),
+  );
 });

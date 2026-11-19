@@ -23,20 +23,28 @@ function canonicalNumber(value: number, path: string): string {
   return JSON.stringify(value);
 }
 
+// Plain means a null prototype or any realm's `Object.prototype`, whose own prototype is null: an object made in a
+// `vm` context or an iframe is as plain as one made here, while a `Date` or class instance is not.
 function isPlainObject(value: object): value is Record<string, unknown> {
   const prototype = Object.getPrototypeOf(value);
-  return prototype === Object.prototype || prototype === null;
+  return prototype === null || Object.getPrototypeOf(prototype) === null;
+}
+
+function byKey([a]: [string, unknown], [b]: [string, unknown]): number {
+  // JCS sorts property names by UTF-16 code units, which is what `<` compares.
+  return a < b ? -1 : a > b ? 1 : 0;
 }
 
 // `ancestors` holds the objects and arrays that enclose the current value, so a cycle throws instead of recursing
 // until the stack runs out. A value shared by two siblings is no cycle, so it is removed again on the way out.
 function canonicalObject(value: Record<string, unknown>, path: string, ancestors: Set<object>): string {
-  // JCS sorts property names by UTF-16 code units, which is what the default sort compares.
-  const keys = Object.keys(value)
-    .filter((key) => value[key] !== undefined)
-    .sort();
-  const members = keys.map(
-    (key) => `${canonicalString(key, path)}:${canonical(value[key], `${path}.${key}`, ancestors)}`,
+  // Each property is read once, so a getter or a Proxy can't be counted as present and then read as undefined.
+  const entries = Object.entries(value)
+    .filter(([, item]) => item !== undefined)
+    .sort(byKey);
+  const members = entries.map(
+    ([key, item]) =>
+      `${canonicalString(key, `${path}'s property name`)}:${canonical(item, `${path}.${key}`, ancestors)}`,
   );
   return `{${members.join(",")}}`;
 }
@@ -90,7 +98,8 @@ function hex(bytes: ArrayBuffer): string {
  * set to `undefined` are left out, as `JSON.stringify` leaves them out. The hash is async because Web Crypto's
  * digest is. It rejects with a `SafetyError` with code `invalid_input` for a value JSON can't hold the same way
  * everywhere: `undefined` or a hole in an array, a number that isn't finite, a string with a lone surrogate, a bigint,
- * symbol or function, an object that isn't plain, such as a `Date`, or an object or array that contains itself.
+ * symbol or function, an object that isn't plain, such as a `Date`, or an object or array that contains itself. A
+ * plain object is one whose prototype is `null` or `Object.prototype`, from any realm.
  */
 export async function canonicalInputHash(input: unknown): Promise<string> {
   const text = canonical(input, "$", new Set());

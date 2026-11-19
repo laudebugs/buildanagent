@@ -122,8 +122,8 @@ function requireOptionalText(value: unknown, field: string): void {
 
 function effectList(value: unknown, field: string): readonly string[] {
   if (value === undefined) return Object.freeze([]);
-  if (!Array.isArray(value) || !value.every((item) => typeof item === "string")) {
-    throw invalid(`a write outcome's ${field} must be a list of strings`);
+  if (!Array.isArray(value) || !value.every((item) => typeof item === "string" && item.trim() !== "")) {
+    throw invalid(`a write outcome's ${field} must be a list of non-empty strings`);
   }
   return Object.freeze([...value]);
 }
@@ -165,7 +165,8 @@ function checkEffectKey(kind: OutcomeKind, retry: Retry, effectKey: unknown): vo
 function checkKindAndRetry(kind: unknown, retry: unknown): Retry {
   if (!OUTCOME_KINDS.includes(kind as OutcomeKind)) throw invalid(`unknown outcome kind ${JSON.stringify(kind)}`);
   const known = kind as OutcomeKind;
-  const chosen = retry ?? DEFAULT_RETRY[known];
+  // Only a missing retry takes the default; `null` from a JSON caller fails the check below like any other value.
+  const chosen = retry === undefined ? DEFAULT_RETRY[known] : retry;
   if (!(ALLOWED_RETRIES[known] as readonly unknown[]).includes(chosen)) {
     throw invalid(`a ${known} outcome cannot use retry ${JSON.stringify(chosen)}`);
   }
@@ -174,7 +175,8 @@ function checkKindAndRetry(kind: unknown, retry: unknown): Retry {
 
 /**
  * Builds a write outcome, filling in the defaults and checking every field. Throws a `SafetyError` with code
- * `invalid_outcome` for an unknown kind, a retry rule the kind doesn't allow, an empty `operation` or `next`, a blank
+ * `invalid_outcome` for an unknown kind, a retry rule the kind doesn't allow, an empty `operation` or `next`, an `operation` with
+ * leading or trailing spaces, a blank effect or
  * optional text field, a `reason` that isn't upper snake case of at most 63 characters, effects the kind contradicts
  * (any effect on `not_applied`, `reverted` on `applied`, `applied` on `compensated`), or a `partial` or `unknown`
  * outcome that allows a `same_key` retry without an `effectKey`. The result is frozen.
@@ -182,6 +184,8 @@ function checkKindAndRetry(kind: unknown, retry: unknown): Retry {
 export function writeOutcome(init: WriteOutcomeInit): WriteOutcome {
   const retry = checkKindAndRetry(init.kind, init.retry);
   requireText(init.operation, "operation");
+  if (init.operation !== init.operation.trim())
+    throw invalid("a write outcome's operation must not start or end with spaces");
   requireText(init.next, "next");
   for (const field of ["effectKey", "currentState", "avoid"] as const) requireOptionalText(init[field], field);
   checkReason(init.reason);

@@ -195,3 +195,44 @@ test("an effect that ends in a full stop renders with one", () => {
   const outcome = writeOutcome({ kind: "applied", operation: "send_email", next: "Done", applied: ["email sent."] });
   assert.match(renderOutcome(outcome).text, /Still in effect: email sent\. Next:/);
 });
+
+test("renderOutcome checks an outcome built by hand", () => {
+  const literal = {
+    kind: "unknown",
+    operation: "refund_create",
+    retry: "same_key",
+    applied: [],
+    reverted: [],
+    notReversible: [],
+    next: "Check the refund",
+  } as const;
+  assert.throws(
+    () => renderOutcome(literal),
+    (error) => isSafetyError(error) && error.code === "invalid_outcome" && /effectKey/.test(error.message),
+  );
+  const contradictory = { ...literal, kind: "not_applied", applied: ["email sent"] } as const;
+  assert.throws(
+    () => renderOutcome(contradictory),
+    (error) => isSafetyError(error) && /applied/.test(error.message),
+  );
+});
+
+test("renderOutcome fills in an effect list a revived outcome lacks", () => {
+  const revived = JSON.parse('{"kind":"applied","operation":"send_email","retry":"never","next":"Done"}');
+  assert.match(renderOutcome(revived).text, /^The send_email call took effect\./);
+});
+
+test("a blank effect is rejected at construction", () => {
+  rejectsInvalidOutcome(
+    { kind: "partial", operation: "refund", next: "Stop", applied: [" ", "refund issued"] },
+    /non-empty/,
+  );
+});
+
+test("a null retry is rejected rather than read as the default", () => {
+  rejectsInvalidOutcome({ kind: "unknown", operation: "refund_create", next: "Check", retry: null }, /retry null/);
+});
+
+test("an operation with surrounding spaces is rejected at construction", () => {
+  rejectsInvalidOutcome({ kind: "applied", operation: " send_email\n", next: "Done" }, /operation/);
+});

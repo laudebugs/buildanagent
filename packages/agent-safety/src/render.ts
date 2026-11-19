@@ -3,7 +3,7 @@
  * as a sentence and a structured payload, with the provider's error flag set as well, because some adapters drop the
  * flag and some SDKs hide text blocks once structured content is set (server rollback report).
  */
-import type { OutcomeKind, Retry, WriteOutcome } from "./outcome.js";
+import { type OutcomeKind, type Retry, type WriteOutcome, writeOutcome } from "./outcome.js";
 
 /**
  * The structured half of a rendered outcome: the outcome's own fields, as plain JSON. Optional fields the outcome
@@ -59,6 +59,7 @@ const RETRY: { readonly [R in Retry]: string } = {
   never: "Do not retry it.",
 };
 
+// A same-key retry with no key is safe only for not_applied, whose first attempt changed nothing.
 const KEYLESS_SAME_KEY = "Retrying this same call is safe, because this attempt changed nothing.";
 
 function sentence(text: string): string {
@@ -72,10 +73,12 @@ function effects(label: string, list: readonly string[]): string[] {
   return items.length === 0 ? [] : [`${label}: ${items.join("; ")}.`];
 }
 
-// A same-key retry takes effect at most once only when there is a key. writeOutcome() allows a keyless one only for
-// not_applied, whose first attempt changed nothing.
+// A same-key retry takes effect at most once only when there is a key. renderOutcome() checks the outcome first, and
+// writeOutcome() allows a keyless one only for not_applied, so only that kind reaches the keyless sentence.
 function retrySentence(outcome: WriteOutcome): string {
-  if (outcome.retry === "same_key" && outcome.effectKey === undefined) return KEYLESS_SAME_KEY;
+  if (outcome.retry === "same_key" && outcome.effectKey === undefined && outcome.kind === "not_applied") {
+    return KEYLESS_SAME_KEY;
+  }
   return RETRY[outcome.retry];
 }
 
@@ -114,8 +117,13 @@ function toPayload(outcome: WriteOutcome): OutcomePayload {
 /**
  * Renders a write outcome for the model: sentences that name what happened, what to do next and what not to do, the
  * outcome's fields as a JSON payload, and whether the provider's error flag should be set. Put both the text and the
- * payload in the tool result, because some SDKs show the model only one of them.
+ * payload in the tool result, because some SDKs show the model only one of them. It checks the outcome as
+ * `writeOutcome()` does, so an outcome built by hand that breaks a rule throws a `SafetyError` with code
+ * `invalid_outcome`.
  */
 export function renderOutcome(outcome: WriteOutcome): RenderedOutcome {
-  return { text: describe(outcome), payload: toPayload(outcome), isError: outcome.kind !== "applied" };
+  // `WriteOutcome` is a plain type, so a tool can build one as a literal or revive one from JSON. Checking it again
+  // here holds every outcome the model reads to the rules writeOutcome() enforces.
+  const checked = writeOutcome(outcome);
+  return { text: describe(checked), payload: toPayload(checked), isError: checked.kind !== "applied" };
 }

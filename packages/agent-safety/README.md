@@ -36,11 +36,11 @@ const outcome = writeOutcome({
 });
 ```
 
-Every outcome needs `operation` and `next`, which tells the model what to do now. Optional fields add detail: `applied`, `reverted` and `notReversible` list effects, `currentState` gives one line the model can trust, and `avoid` adds what the model must not do. A `reason` must be upper snake case of at most 63 characters, such as `CARD_DECLINED`. An optional text field, if set, must not be blank, and an effect list must not contradict the kind: a `not_applied` outcome lists no effects, an `applied` one nothing `reverted`, and a `compensated` one nothing `applied`. A `partial` or `unknown` outcome may use `same_key` only with an `effectKey`, since without one a retry could take effect twice. A field that breaks a rule throws a `SafetyError` with the code `invalid_outcome`.
+Every outcome needs `operation` and `next`, which tells the model what to do now. Optional fields add detail: `applied`, `reverted` and `notReversible` list effects, `currentState` gives one line the model can trust, and `avoid` adds what the model must not do. A `reason` must be upper snake case of at most 63 characters, such as `CARD_DECLINED`. An optional text field or listed effect must not be blank, and an effect list must not contradict the kind: a `not_applied` outcome lists no effects, an `applied` one nothing `reverted`, and a `compensated` one nothing `applied`. A `partial` or `unknown` outcome may use `same_key` only with an `effectKey`, since without one a retry could take effect twice. A field that breaks a rule throws a `SafetyError` with the code `invalid_outcome`.
 
 ## The model reads a sentence and a payload
 
-`renderOutcome()` turns an outcome into what the model reads. For the refund above, it returns this text:
+`renderOutcome()` turns an outcome into what the model reads. It checks the outcome as `writeOutcome()` does, so an outcome built by hand or parsed from JSON follows the same rules. For the refund above, it returns this text:
 
 > The refund_create call did not take effect, and nothing changed. Next: Ask the requester for another payment method. Retrying this same call is safe, because this attempt changed nothing. Do not say that it happened.
 
