@@ -24,4 +24,4 @@ L1 also tried TypeScript 7.0.2's `rewriteRelativeImportExtensions`, which would 
 
 - `scripts/ci/packages-pack.test.mjs` checks points 1, 2, 4 and 5. It fails if a tarball lacks a licence, if the gateway's `sideEffects` misses either setup file, if a packed `.map` names a source that is neither in the tarball nor inlined, or if a packed `dist/*.js` file has no matching `src/*.ts` module. It plants a stale `dist/` file before it builds, so a build that stops cleaning `dist/` fails it. Point 3 has no test of its own, but with no `dist/` present a bare `setupFiles` entry fails every test file (fact-check row 75).
 - The [TypeScript guideline](../guidelines/typescript.md#packages-build-to-dist-and-the-workspace-reads-src-through-source), the [testing guideline](../guidelines/testing.md) and PB3 describe these rules.
-- ADR 0050 is marked "superseded in part by 0051". If the owner rejects a point here, a new record says what replaces it.
+- ADR 0050 stays Accepted, with a dated note pointing here, and is marked "superseded in part by 0051" only once the owner accepts this record. If the owner rejects a point here, a new record says what replaces it.

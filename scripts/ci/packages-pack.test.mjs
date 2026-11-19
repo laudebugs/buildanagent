@@ -1,6 +1,7 @@
 // Builds and packs each package in packages/ the way a publish would, then checks the tarball: what it holds, that
 // its package.json has no `source` condition, and that Node resolves every export entry to dist/ from a temp install,
-// with and without `--conditions=source` (ADR 0050, as corrected by ADR 0051). Offline: `pnpm build` and `pnpm pack`
+// with and without `--conditions=source` (ADR 0050, as corrected by ADR 0051). The pack tests skip unless the installed
+// pnpm is the `packageManager` version. Offline: `pnpm build` and `pnpm pack`
 // read only the workspace. The test leaves the repo as it found it: it removes each package's dist/ and licence copies
 // unless they were there before it ran. Run with `node --test scripts/ci/*.test.mjs`.
 import assert from "node:assert/strict";
@@ -28,6 +29,20 @@ const LICENCES = ["LICENSE", "LICENSE-APACHE", "LICENSE-MIT"];
 const TOP_LEVEL = new Set(["package.json", "README.md", "CHANGELOG.md", ...LICENCES]);
 // A dist/ file left from an earlier build whose module no longer exists in src/. The build must delete it.
 const STALE = "dist/stale-module-from-an-earlier-build.js";
+// The pack tests run pnpm as installed (see `before`), so a global pnpm other than the `packageManager` version would
+// build and pack differently from CI. They skip, saying why, rather than pass on a different pnpm.
+const { packageManager } = JSON.parse(readFileSync(path.join(root, "package.json"), "utf8"));
+const wantedPnpm = packageManager.replace(/^pnpm@/, "");
+const installedPnpm = execFileSync("pnpm", ["--version"], {
+  encoding: "utf8",
+  env: { PATH: process.env.PATH, HOME: tmpdir(), npm_config_manage_package_manager_versions: "false" },
+}).trim();
+const skip =
+  installedPnpm === wantedPnpm
+    ? false
+    : `the installed pnpm is ${installedPnpm}, but package.json's packageManager is pnpm@${wantedPnpm}; install that version to run the pack tests`;
+if (skip) console.warn(`packages-pack: skipping, ${skip}`);
+const packTest = (name, fn) => test(name, { skip }, fn);
 
 let work;
 let env;
@@ -41,6 +56,7 @@ function run(file, args, options = {}) {
 }
 
 before(() => {
+  if (skip) return;
   work = realpathSync(mkdtempSync(path.join(tmpdir(), "buildanagent-pack-")));
   // An allowlisted environment with a temp HOME, so no provider keys, tokens or user config reach pnpm or the imports
   // below. With a HOME that holds no pnpm cache, pnpm would try to download the `packageManager` version of itself;
@@ -87,11 +103,11 @@ after(() => {
   if (work) rmSync(work, { recursive: true, force: true });
 });
 
-test("every package is packed", () => {
+packTest("every package is packed", () => {
   assert.equal(packed.size, packageDirs.length);
 });
 
-test("each tarball holds only package.json, README, CHANGELOG, the licences and dist/", () => {
+packTest("each tarball holds only package.json, README, CHANGELOG, the licences and dist/", () => {
   for (const [name, { files }] of packed) {
     const strays = files.filter((file) => !TOP_LEVEL.has(file) && !file.startsWith("dist/"));
     assert.deepEqual(strays, [], `${name} packs files outside dist/`);
@@ -100,7 +116,7 @@ test("each tarball holds only package.json, README, CHANGELOG, the licences and 
   }
 });
 
-test("every packed dist/ JavaScript file comes from a src/ TypeScript module", () => {
+packTest("every packed dist/ JavaScript file comes from a src/ TypeScript module", () => {
   for (const [name, { dir, files }] of packed) {
     const orphans = files
       .filter((file) => file.startsWith("dist/") && file.endsWith(".js"))
@@ -109,7 +125,7 @@ test("every packed dist/ JavaScript file comes from a src/ TypeScript module", (
   }
 });
 
-test("every packed source map's sources are inlined or in the tarball", () => {
+packTest("every packed source map's sources are inlined or in the tarball", () => {
   for (const [name, { files, dest }] of packed) {
     const maps = files.filter((file) => file.endsWith(".map"));
     assert.ok(maps.length > 0, `${name} packs no source maps`);
@@ -135,7 +151,7 @@ test("the gateway's sideEffects lists the setup entry's source and built files",
   for (const target of [source, built]) assert.ok(manifest.sideEffects.includes(target), `sideEffects lacks ${target}`);
 });
 
-test("each packed package.json has no source condition, and every entry's files are in the tarball", () => {
+packTest("each packed package.json has no source condition, and every entry's files are in the tarball", () => {
   for (const [name, { manifest, files }] of packed) {
     assert.ok(!JSON.stringify(manifest.exports).includes('"source"'), `${name} ships a source condition`);
     assert.equal(manifest.publishConfig, undefined, `${name} still carries publishConfig`);
@@ -148,7 +164,28 @@ test("each packed package.json has no source condition, and every entry's files 
   }
 });
 
-test("every packed declaration file imports only its own dist/ files or other packages by name", () => {
+packTest("every packed package.json depends on published versions, not workspace: ranges", () => {
+  for (const [name, { manifest }] of packed) {
+    for (const [dep, range] of Object.entries(manifest.dependencies ?? {})) {
+      assert.ok(!range.startsWith("workspace:"), `${name} depends on ${dep}@${range}`);
+    }
+  }
+  const sdk = packed.get("@buildanagent/sdk")?.manifest;
+  const gateway = packed.get("@buildanagent/gateway")?.manifest;
+  assert.ok(sdk && gateway, "the SDK or the gateway was not packed");
+  assert.equal(sdk.dependencies?.["@buildanagent/gateway"], gateway.version, "the SDK's gateway range");
+});
+
+test("tsconfig.base.json, which verify/* extends, adds no export conditions", () => {
+  // A `source` condition there would make the harnesses type-check third-party packages that ship one from their raw
+  // src/*.ts. Only tsconfig.packages.json names it, for our own packages.
+  const base = JSON.parse(readFileSync(path.join(root, "tsconfig.base.json"), "utf8"));
+  assert.equal(base.compilerOptions.customConditions, undefined);
+  const packages = JSON.parse(readFileSync(path.join(root, "tsconfig.packages.json"), "utf8"));
+  assert.deepEqual(packages.compilerOptions.customConditions, ["source"]);
+});
+
+packTest("every packed declaration file imports only its own dist/ files or other packages by name", () => {
   for (const [name, { files, dest }] of packed) {
     const dist = path.join(dest, "dist") + path.sep;
     for (const file of files.filter((f) => f.endsWith(".d.ts"))) {
@@ -166,7 +203,7 @@ test("every packed declaration file imports only its own dist/ files or other pa
 
 for (const conditions of [[], ["--conditions=source"]]) {
   const label = conditions.length ? "with --conditions=source" : "with no extra condition";
-  test(`Node imports every packed entry from dist/ ${label}`, () => {
+  packTest(`Node imports every packed entry from dist/ ${label}`, () => {
     for (const [name, { manifest, dest }] of packed) {
       for (const entry of Object.keys(manifest.exports)) {
         const specifier = entry === "." ? name : `${name}/${entry.slice(2)}`;
