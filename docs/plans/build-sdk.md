@@ -619,7 +619,7 @@ The guide says to start with the gateway and the test model, because every other
 | [B12](../todos/done/B12-parallel-tools.md) | Parallel tool scheduling, per-resource serialisation and sibling cancellation | B11 | M |
 | [B13](../todos/done/B13-interceptors-observers.md) | The six interceptors and observers | B11 | M |
 | [B14](../todos/done/B14-budget-progress.md) | Pre-emptive USD budget, progress detection and the depth cap | B5, B13, E1 | M |
-| [B15](../todos/ready/B15-signed-pauses.md) | Signed pauses in the loop on the safety package's signers, and `createPendingRequest` | B13, E3 | M |
+| [B15](../todos/ongoing/B15-signed-pauses.md) | Signed pauses in the loop on the safety package's signers, and `createPendingRequest` | B13, E3 | M |
 | [B15b](../todos/ready/B15b-continue-run.md) | `continueRun`, `blockingApprovals()` and the clarification pause | B15 | M |
 | [B16](../todos/done/B16-steering.md) | Steering and follow-up with delivery receipts | B11 | S |
 
