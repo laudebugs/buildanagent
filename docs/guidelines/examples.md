@@ -13,7 +13,7 @@ An example is code a reader will paste into their own agent, so it must be code 
 - **MUST:** the file opens with a comment that says what it shows. The comment mentions no ADR or todo ids, no repository paths and no test vocabulary.
 - **MUST:** an example imports only public entry points, such as `@buildanagent/sdk` and `@buildanagent/gateway/anthropic`. It never imports from `src/`, `test/` or another package's files.
 - **MUST:** an example holds no test scaffolding. A fixed clock, fixed ids or a scripted model are parameters the test passes in, and checks of the output live in the test.
-- **MUST:** an example takes its API key from the caller, never from a hard-coded string, and never reads an ambient environment variable inside library calls.
+- **MUST:** an example receives its API key from the code that calls it. It never hard-codes a key, and it never reads one from an environment variable inside the example's own functions.
 - **MUST:** numbers have names (`MAX_STEPS`, `BUDGET_USD`).
 - **MUST:** functions are at most 40 lines and files at most 100, stricter than the package limit, because a reader reads the whole file.
 - **SHOULD:** handle errors the way an app would: act on an `awaiting_approval` result or an error terminal, and let the rest throw.
