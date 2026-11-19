@@ -80,6 +80,14 @@ Nine programs in `verify/openai-agents-sdk/examples/` assert documented behavior
 
 **F5. One embed lives outside `examples/docs`.** `models.mdx` embeds `examples/basic/prompt-id.ts`. That's harmless for readers, but a mirror or checker that assumes every embed sits in `examples/docs` misses it, as my first extractor did.
 
+## U18 memory findings: a sandbox `memory()` capability the guide never covered (2026-11-19)
+
+The retrieval and memory research (U18) read the memory typings of `@openai/agents-core` 0.21.0 on 2026-11-19, and the owner approved recording what it found ([U18 report](../../research/memory/retrieval-and-memory.md#all-eight-sdks-retrieve-through-tools-six-ship-long-term-memory-and-none-expires-it-in-the-process); [SDK notes](../../research/memory/notes/sdks-claude-openai-vercel-langchain.md)). Both findings are gaps in our reference, not doc errors.
+
+**M1. Sandbox agents have a long-term memory capability, separate from sessions.** `memory(args?: MemoryArgs)` (`agents-core/dist/sandbox/capabilities/memory.d.ts:58`) takes `read`, `generate`, `layout` and `store` options, and `MemoryStore` declares `read`, `write` and optional `delete` and `list` (`dist/sandbox/memory/storage.d.ts:16`). The docs say this memory "is separate from the SDK's conversational Session memory" and forgets by recency: "If recent raw memories exceed `maxRawMemoriesForConsolidation`, Phase 2 keeps only memories from the newest conversations and removes older ones" (`source/docs/src/content/docs/guides/sandbox-agents/memory.mdx:13`, `:80`). Until this finding, our guide covered sessions only.
+
+**M2. No example tests sandbox memory.** Generation runs phase-one and phase-two models, so an offline test needs scripted models for both phases and a scripted sandbox. That test is plausible but has not been written, so every claim about `memory()` here rests on the typings and the docs.
+
 ## TypeScript parity
 
 Python `openai-agents` is the SDK's primary implementation, so the [TypeScript gap report](../../comparison/typescript-gaps.md#openai-agents-sdk-typescript-lacks-storage-backends-the-voice-pipeline-and-developer-utilities) compares 0.21.0 with Python 0.24.0 at tag `v0.24.0`. The core loop is at parity: tools, guardrails, handoffs, approvals, MCP, tracing, realtime and sandbox agents all exist in both. The JavaScript package lacks nine Python features, among them the SQLite, Redis, SQLAlchemy and other database sessions, `EncryptedSession`, nested handoff history, the `VoicePipeline`, `run_demo_loop` and `draw_graph`. Two more are weaker: no run-level history limit, and five listed tracing integrations against Python's 31. In the other direction, only JavaScript has the browser WebRTC transport, the Twilio and Cloudflare realtime transports and the `aisdk()` bridge. Plan to write your own durable `Session`, because only memory and OpenAI-hosted sessions ship.

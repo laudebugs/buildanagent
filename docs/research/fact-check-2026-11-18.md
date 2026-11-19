@@ -153,6 +153,14 @@ Effect on the report's conclusions: none of the corrections reverses a conclusio
 | --- | --- | --- | --- |
 | SDKs with a default that reaches outside the process | Four of five (LangChain the exception) | Six of eight: adds Copilot (inherited environment, GitHub login, telemetry) and Cloudflare (`sendIdentityOnConnect`); LangChain and Google ADK are the exceptions | [deep comparison](../comparison/deep-comparison.md#six-of-eight-sdks-have-a-default-that-reaches-outside-your-process) |
 
+## Revisions from the retrieval and memory report (U18, 2026-11-19)
+
+The [retrieval and memory report](memory/retrieval-and-memory.md#a-file-is-enough-for-one-agent-and-one-user-and-a-service-earns-its-price-at-many-users-or-temporal-questions) proposed twelve plan changes, and the owner approved all twelve on 2026-11-19. Change 11 revises layer 6 of this report.
+
+| Claim | Was | Now | Source |
+| --- | --- | --- | --- |
+| When to buy a memory service | ✏️ (revised by owner decision) "Buy a memory service only when you need cross-user personalization" (the memory paragraph), and "buy services later" in the layer 6 row | Buy only on one of three signals: many end users who each need an isolated profile, recall over thousands of records where keyword search over files starts to miss, or temporal questions. The layer 6 row now reads "buy a service on one of three signals" | [Retrieval and memory report](memory/retrieval-and-memory.md#a-file-is-enough-for-one-agent-and-one-user-and-a-service-earns-its-price-at-many-users-or-temporal-questions), rows 91–93 of its [fact-check](memory/fact-check-retrieval-and-memory.md). Row 92 confirms the old rule verbatim; row 93 marks the three signals ⚠️ (inferred), our synthesis of the memory evidence, and the report presents them as ours |
+
 ## Later closures
 
 Gaps that the research notes recorded and later work closed. Each note stays as written, and the row here records the closure.

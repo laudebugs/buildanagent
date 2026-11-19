@@ -57,4 +57,18 @@ This log checks every factual claim in [build-agent-platform.md](../build-agent-
 | 39 | GitHub documents the OAuth web flow F2 uses | ✅ | [Authorizing OAuth apps](https://docs.github.com/en/apps/oauth-apps/building-oauth-apps/authorizing-oauth-apps), page loads (HTTP 200) |
 | 40 | The owner accepted ADRs 0039–0042 (PF4, PF6–PF9) on 2026-11-18 | ✅ | Owner's answers in this session, 2026-11-18: "Accept" for each of 0039, 0040, 0041 and 0042 |
 
-**Totals:** 40 claims: 37 ✅, 2 ✏️, 1 ⚠️.
+## Memory note from U18 (2026-11-19)
+
+These rows check PF1's dated revision on per-tenant memory, against the [retrieval and memory report](../../research/memory/retrieval-and-memory.md) and [its fact-check](../../research/memory/fact-check-retrieval-and-memory.md), on 2026-11-19.
+
+| # | Claim | Verdict | Source and reason |
+|---|---|---|---|
+| 41 | The owner approved all twelve of U18's proposed changes on 2026-11-19, among them change 12, this note | ✅ | Owner's answers, 2026-11-19: every option chosen in three multi-select questions |
+| 42 | The report's first signal that a memory service is worth its price is many end users who each need an isolated profile, and the platform shows it from its first tenant | ✅ | [U18 report, Service ¶1](../../research/memory/retrieval-and-memory.md#a-file-is-enough-for-one-agent-and-one-user-and-a-service-earns-its-price-at-many-users-or-temporal-questions), signal 1 and its last sentence; the signals are the report's own synthesis (its fact-check row 93, ⚠️ inferred) |
+| 43 | Vectorize applies a metadata filter before taking the top-k | ✅ | U18 report, Untrusted ¶3, quoting [Vectorize metadata filtering](https://developers.cloudflare.com/vectorize/reference/metadata-filtering/): the "filter is applied first, and the topK results are taken from the filtered set" (vendor docs) |
+| 44 | OWASP's ASI06 describes a near-duplicate pulling "another tenant's sensitive chunk into retrieval" through a loose namespace filter | ✅ | U18 report, Untrusted ¶3, quoting the [OWASP Agentic Top 10](https://genai.owasp.org/resource/owasp-top-10-for-agentic-applications-for-2026/) |
+| 45 | No Round F todo builds memory yet | ✅ | `grep -il memory docs/todos/*/F*.md` finds only F1, whose "memory implementation" is an in-memory test store for tenants |
+| 46 | The report's four checks before buying a service: a full export, hard deletion across every revision, a maintained TypeScript client, and reach from all four targets | ✅ | U18 report, Service ¶3, last sentence, item by item |
+| 47 | The four targets are local Node, Cloudflare, AWS and Vercel | ✅ | [ADR 0033](../../decisions/0033-three-deployment-targets.md) as AGENTS.md summarises it |
+
+**Totals:** 47 claims: 44 ✅, 2 ✏️, 1 ⚠️.

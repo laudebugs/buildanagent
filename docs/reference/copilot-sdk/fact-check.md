@@ -154,6 +154,16 @@ F1 and F7 needed no change. The draft numbering is kept, so F10 follows F9.
 
 **Later correction (2026-11-18, agent UI research U1).** Tier 3's event-type count was 191 typed with 141 undocumented. `scripts/factcheck-api.mjs` counted every `type: "…"` literal in `dist/generated/session-events.d.ts`, including those in nested shapes. The `SessionEvent` union itself has 154 members (`session-events.d.ts:12`), so the row now says 154, and the undocumented count, which was derived from 191, is no longer stated as a number. The finding it supports (most events are undocumented, and ten emitted `model.*` types are untyped) is unchanged. Found by the [agent UI fact-check](../../research/agent-ui/fact-check.md).
 
+## U18 memory findings: Copilot Memory is a session option with no delete in the SDK (2026-11-19)
+
+The retrieval and memory research (U18) read the memory typings of `@github/copilot-sdk` 1.0.31 on 2026-11-19, and the owner approved recording what it found ([U18 report](../../research/memory/retrieval-and-memory.md#all-eight-sdks-retrieve-through-tools-six-ship-long-term-memory-and-none-expires-it-in-the-process); [SDK notes](../../research/memory/notes/sdks-cloudflare-adk-copilot-pi.md)). Our reference had not covered memory.
+
+**M1. A session option turns on Copilot Memory.** The session config takes `memory?: MemoryConfiguration` (`dist/types.d.ts:2823`), which holds `enabled`, an experimental `mode` and an experimental `storeMemory` callback (`types.d.ts:1899–1923`). The runtime's `store_memory` write reaches the permission handler with `kind: "memory"` and a scope of `"repository"` or `"user"` (`dist/generated/session-events.d.ts:11573`, `:1327`).
+
+**M2. `storeMemory` sends writes to your own storage, and then recall is yours too.** A `StoredMemory` carries `sessionId`, `subject`, `fact`, `citations` and `reason` (`types.d.ts:1939`). The docs say no GitHub identity is needed, and that while `storeMemory` is set "the runtime retrieves no memories and `vote_memory` is unavailable", and "`store_memory` takes no `scope`, so apply your own tenant, user and retention rules" (`source/docs/setup/multi-tenancy.md:486–538`). No example tests the callback, and the harness runs only on Linux.
+
+**M3. The SDK cannot list, delete or expire a memory.** No `.d.ts` in the package declares such a method. GitHub expires memories after 90 days without reinforcement by default, and deletion happens in repository or personal settings, as of November 2026 ([GitHub Docs, Copilot Memory](https://docs.github.com/en/copilot/concepts/agents/copilot-memory)).
+
 ## What we could not verify
 
 Five areas stayed outside the offline harness:
