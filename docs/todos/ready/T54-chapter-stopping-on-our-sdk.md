@@ -38,7 +38,7 @@ Our SDK fits this chapter closely. B11's `run()` counts `maxSteps` in model call
 
 **Out of scope** (and which todo covers it)
 
-- A listing of `continueRun()` resuming a capped run: resuming belongs to the memory chapter, so a future follow-up to [T15](T15-chapter-memory-and-sessions.md), opened once its `switchTo` todos N3 and N6 are done (BK8), covers it.
+- A listing of `continueRun()` resuming a capped run: resuming belongs to the memory chapter, so a future follow-up to [T15](../done/T15-chapter-memory-and-sessions.md), opened once its `switchTo` todos N3 and N6 are done (BK8), covers it.
 
 ## Tasks
 
