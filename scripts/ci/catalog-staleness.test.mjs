@@ -2,7 +2,7 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
 import { tsImport } from "tsx/esm/api";
-import { staleWarnings } from "./catalog-staleness.mjs";
+import { retirementWarnings, staleWarnings } from "./catalog-staleness.mjs";
 
 // The test compares against the gateway's real rule, read from its TypeScript source. tsx loads it, because the
 // source's relative imports use `.js` specifiers for the dist/ build, which Node's own type stripping doesn't map
@@ -26,4 +26,31 @@ test("the script and the gateway's staleCatalogEntries() flag the same entries",
   const gateway = staleCatalogEntries(catalog, new Date(NOW)).map((e) => e.id);
   assert.deepEqual(script, gateway);
   assert.deepEqual(gateway, ["2026-08-20", "2026-08-21"]);
+});
+
+const retiring = (id, retires) => ({ ...entry(id, "2026-11-19"), retires });
+
+test("warns about a retirement date 90 days away and not 91, whatever the hour", () => {
+  // 2026-11-19 plus 90 days is 2027-02-17.
+  const catalog = { models: [retiring("on-boundary", "2027-02-17"), retiring("beyond", "2027-02-18")] };
+  for (const hour of ["00:00:00", "12:00:00", "23:59:59"]) {
+    const warnings = retirementWarnings(catalog, Date.parse(`2026-11-19T${hour}Z`));
+    assert.equal(warnings.length, 1, hour);
+    assert.match(warnings[0], /test\/on-boundary is recorded as retiring on 2027-02-17 \(in 90 days\)/);
+  }
+});
+
+test("warns about a retirement date that is today or past, and says so", () => {
+  const catalog = { models: [retiring("today", "2026-11-19"), retiring("gone", "2026-11-09")] };
+  const [today, gone] = retirementWarnings(catalog, NOW);
+  assert.match(today, /test\/today .*\(today\)/);
+  assert.match(gone, /test\/gone .*\(10 days ago\)/);
+});
+
+test("the warning asks for a refresh and entries without a date are skipped", () => {
+  const catalog = { models: [entry("undated", "2026-11-19"), retiring("dated", "2027-01-01")] };
+  assert.deepEqual(retirementWarnings(catalog, NOW), [
+    "price catalog: test/dated is recorded as retiring on 2027-01-01 (in 43 days), as of 2026-11-19; " +
+      "check the provider's deprecations page and refresh the entry",
+  ]);
 });

@@ -60,6 +60,15 @@ export interface CatalogEntry {
   readonly reasoning?: boolean;
   /** The date the rates and limits were copied, as `YYYY-MM-DD`. */
   readonly asOf: string;
+  /**
+   * The date the provider says the model stops answering, as `YYYY-MM-DD`. Copy it from the provider's own
+   * deprecations page, and record that page in `note`. Leave it out when the provider has published no date: a
+   * "not sooner than" floor is not a retirement date. A tuned model retires with its base model, so give it the
+   * base model's date. Like the rates, the date is a copy as of `asOf`. The gateway never refuses a model because
+   * of it, but this repository's CI warns when a shipped entry's date is 90 days away or less, so refresh the copy
+   * then.
+   */
+  readonly retires?: string;
   readonly sources: CatalogSources;
   /** How a number was derived when the sources don't state it directly. */
   readonly note?: string;
@@ -118,6 +127,10 @@ function optionalFlag(value: unknown, where: string): boolean | undefined {
   return value;
 }
 
+function optionalDate(value: unknown, where: string): string | undefined {
+  return value === undefined ? undefined : date(value, where);
+}
+
 function optionalText(value: unknown, where: string): string | undefined {
   return value === undefined ? undefined : text(value, where);
 }
@@ -165,6 +178,7 @@ function parseEntry(value: unknown, where: string): CatalogEntry {
   const images = optionalFlag(entry.images, `${where}.images`);
   const reasoning = optionalFlag(entry.reasoning, `${where}.reasoning`);
   const note = optionalText(entry.note, `${where}.note`);
+  const retires = optionalDate(entry.retires, `${where}.retires`);
   return {
     provider: text(entry.provider, `${where}.provider`),
     id: text(entry.id, `${where}.id`),
@@ -174,6 +188,7 @@ function parseEntry(value: unknown, where: string): CatalogEntry {
     ...(images === undefined ? {} : { images }),
     ...(reasoning === undefined ? {} : { reasoning }),
     asOf: date(entry.asOf, `${where}.asOf`),
+    ...(retires === undefined ? {} : { retires }),
     sources: parseSources(entry.sources, `${where}.sources`),
     ...(note === undefined ? {} : { note }),
   };
