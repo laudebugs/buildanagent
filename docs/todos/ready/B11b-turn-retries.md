@@ -84,9 +84,9 @@ Let the loop retry a model call whose `retryable` error ended the turn, so a mid
 
 - **The default.** Retrying by default spends tokens on a failure the caller may prefer to see. Proposed: off by default, with the Pi-style behavior one option away, then change the default once B14's budget cap bounds the cost. The owner decides.
 - **Does a turn retry count against `maxSteps`?** Proposed: yes, so `maxSteps` still bounds the worst case. The owner decides.
-- **The failed attempt's events.** The loop sends `model_call_end` with the failed message, and the guide makes end events authoritative, so a harness that logs them would keep a message the result drops. Proposed: the failed attempt still ends with `model_call_end` carrying the failed message (its usage is real), then the `retry` event marks it superseded, and no `step_end` fires until the retried call ends. The README tells a log writer to drop a `model_call_end` that a turn `retry` follows. The owner decides.
+- **The failed attempt's events.** The loop sends `model_call_end` with the failed message, and the guide makes end events authoritative, so a harness that logs them would keep a message the result drops. Proposed: the failed attempt still ends with `model_call_end` carrying the failed message, because its usage is real. The `retry` event then marks that message superseded, and no `step_end` fires until the retried call ends. The README tells a log writer to drop a `model_call_end` that a turn `retry` follows. The owner decides.
 - **Streamed output cannot be unsent.** A caller that rendered deltas from the failed attempt sees them again from the retry. The `retry` event must let a UI discard the partial text, and the README must say so.
-- **Stacked layers multiply.** Two gateway retries times N turn retries is many requests against a failing provider. Cap the product, or document it, once the default is chosen.
+- **Stacked layers multiply.** Two gateway retries times N turn retries send many requests at a failing provider. Cap the product, or document it, once the default is chosen.
 - **Interaction with B13 and B14.** An interceptor that runs before the model call sees each retry unless B13 says otherwise, and B14's progress check must not read retries as a stuck loop. Check both when they land.
 
 ## Definition of done
