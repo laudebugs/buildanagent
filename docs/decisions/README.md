@@ -59,5 +59,6 @@ Each file records one lasting decision: what we chose, why, and what follows fro
 | [0043](0043-standalone-safety-core.md) | Build the signer, effect identity, outcomes and plan approval in a standalone safety package that our SDK later imports | Accepted (owner, 2026-11-18) | [SG1](../plans/close-sdk-gaps.md#sg1-the-safety-core-is-a-standalone-package-that-our-sdk-later-imports-accepted-adr-0043) |
 | [0044](0044-rename-to-buildanagent.md) | Rename the project, its npm scope and every name derived from it from agent-speak to buildanagent | Accepted (owner, 2026-11-19) | owner decision, [#27](https://github.com/laudebugs/buildanagent/pull/27) |
 | [0045](0045-hd8-coding-agent-eval-tasks.md) | Fill HD8's seed suite to 30 tasks with 10 coding-agent tasks while the triage tasks stay deferred | Accepted (owner, 2026-11-19) | [HD8](../plans/build-harness.md#hd8-a-30-task-seed-suite-of-20-repository-and-10-coding-agent-tasks-at-k--5-accepted-amended) |
+| [0046](0046-vitest-test-runner.md) | Run our packages' tests on Vitest, so the same suites can run inside workerd | Accepted (owner, 2026-11-19) | [SDK plan §3.1](../plans/build-sdk.md#31-two-packages-under-a-new-top-level-packages-directory) |
 
 ADRs 0022–0031 record the triage agent's decisions. ADR 0032 defers that agent, so they stay as written and take effect if its round resumes.

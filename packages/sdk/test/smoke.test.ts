@@ -1,8 +1,7 @@
-import "@buildanagent/gateway/testing/setup";
 import assert from "node:assert/strict";
-import { test } from "node:test";
 import { totalInput } from "@buildanagent/gateway";
 import { SDK_PACKAGE } from "@buildanagent/sdk";
+import { test } from "vitest";
 
 test("the SDK imports by its package name", () => {
   assert.equal(SDK_PACKAGE, "@buildanagent/sdk");

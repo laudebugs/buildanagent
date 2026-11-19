@@ -1,8 +1,7 @@
-import "@buildanagent/gateway/testing/setup";
 import assert from "node:assert/strict";
-import { test } from "node:test";
 import * as gateway from "@buildanagent/gateway";
 import { assertNoProviderKeys, guardedFetch, isLoopbackHost } from "@buildanagent/gateway/testing";
+import { test } from "vitest";
 
 test("the gateway imports by its package name", () => {
   assert.equal(typeof gateway.complete, "function");

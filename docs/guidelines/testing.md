@@ -4,8 +4,8 @@ Every test in `packages/` runs offline, drives a strict test double instead of a
 
 ## Every test starts from the shared setup
 
-- **MUST:** every test file's first import is `@buildanagent/gateway/testing/setup`. It makes `fetch` throw for any host other than loopback, fails the run if `ANTHROPIC_API_KEY` or `OPENAI_API_KEY` is set, and calls `allowModelRequests(false)`, so any adapter whose transport is not a marked mock throws before it sends.
-- **MUST:** tests use `node:test` through tsx (`tsx --test`), with one behaviour per `test()` and a name that states it ("an error terminal with partial content passes").
+- **MUST:** every package's `vitest.config.ts` lists `@buildanagent/gateway/testing/setup` in `setupFiles`, so it runs before each test file. The root `vitest.config.ts` lists `packages/*` as projects, so a run started from the repo root uses the same configs. The setup makes `fetch` throw for any host other than loopback, fails the run if `ANTHROPIC_API_KEY` or `OPENAI_API_KEY` is set, and calls `allowModelRequests(false)`, so any adapter whose transport is not a marked mock throws before it sends.
+- **MUST:** tests use Vitest ([ADR 0046](../decisions/0046-vitest-test-runner.md)), importing `test` from `vitest` and asserting with `node:assert/strict`, with one behaviour per `test()` and a name that states it ("an error terminal with partial content passes").
 - **MUST NOT:** spawn third-party code with `...process.env`. A test that must spawn uses an allowlisted environment ([AGENTS.md](../../AGENTS.md#coding-standards)).
 
 ## Pick the seam by what the test is about

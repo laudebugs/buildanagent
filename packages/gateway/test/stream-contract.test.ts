@@ -1,7 +1,6 @@
-import "@buildanagent/gateway/testing/setup";
 import assert from "node:assert/strict";
-import { test } from "node:test";
 import { assertStreamContract, type ModelEvent, StreamContractError } from "@buildanagent/gateway";
+import { test } from "vitest";
 import { message, streamOf, validEvents } from "./fixtures.ts";
 
 const rejects = (events: ModelEvent[], pattern: RegExp) =>

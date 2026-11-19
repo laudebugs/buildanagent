@@ -1,6 +1,4 @@
-import "@buildanagent/gateway/testing/setup";
 import assert from "node:assert/strict";
-import { test } from "node:test";
 import {
   assertStreamContract,
   complete,
@@ -16,6 +14,7 @@ import {
   sequentialIds,
   UnexpectedModelCallError,
 } from "@buildanagent/sdk/testing";
+import { test } from "vitest";
 
 const ref: ModelRef = { api: "scripted", provider: "scripted", id: "scripted-model" };
 const context = (text = "hello"): ModelContext => ({
