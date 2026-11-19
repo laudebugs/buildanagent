@@ -64,7 +64,7 @@ Make every pause resumable from any process: `continueRun` verifies the signed r
 
 ## Risks and open questions
 
-An approved call must run with the input its request signs, which `context.pendingInputs` holds by request id, not with the call's arguments in `messages`: coercion, `repair` and a gate's replacement can change it. A context stored without `pending` passes B15's guard, and the gateway answers its open call with "No result was recorded for this tool call". Decide whether `continueRun()` should refuse a context whose last assistant message has calls with no results.
+An approved call must run with the input its request signs, which `context.pendingInputs` holds by request id, not with the call's arguments in `messages`: coercion, `repair` and a gate's replacement can change it. A context stored without `pending` passes B15's guard, and the gateway answers its open call with "No result was recorded for this tool call". The owner decided that `continueRun()` refuses such a context, as the answer below says.
 
 **Answered (owner, 2026-11-19):** `continueRun()` refuses a context whose last assistant message has calls with no results and no matching signed pending request. It throws `SdkError` `invalid_run_options`, so a lost pending record becomes a loud error instead of a quiet "No result was recorded".
 

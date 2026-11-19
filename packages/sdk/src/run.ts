@@ -130,9 +130,10 @@ export interface ContinueOptions<S = unknown> extends RunOptions<S> {
    */
   readonly resolutions?: readonly Resolution[];
   /**
-   * Runs current policy for each verified approval just before its call runs. Resolve to `"allow"` to run it, or
-   * to `{ deny: reason }` to give the model an error result with that reason instead. A `recheck` that throws or
-   * returns anything else denies the call. Without it, a verified approval runs, so check policy before you resolve.
+   * Runs current policy for each verified approval just before its call runs. It gets copies of the request and
+   * input. Resolve to `"allow"` to run the call, or to `{ deny: reason }` to give the model an error result with that
+   * reason instead. A `recheck` that throws or returns anything else denies the call. Without it, a verified approval
+   * runs, so check policy before you resolve.
    */
   readonly recheck?: Recheck;
 }
