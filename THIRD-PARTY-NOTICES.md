@@ -1,6 +1,6 @@
-# Third-party notices: nine mirrored doc sets keep their upstream licences, the book credits the garment engineering textbook, and its fonts keep the OFL
+# Third-party notices: nine mirrored doc sets and one vendored skill keep their upstream licences, the book credits the garment engineering textbook, and its fonts keep the OFL
 
-This repository contains upstream documentation that other projects wrote. Our own code and docs are licensed as [LICENSE](LICENSE) describes, but that licence does not cover the mirrors under `docs/reference/*/source/`. Each mirror is an unmodified copy of upstream files at a recorded tag or commit, and each keeps its upstream licence file beside it. If you reuse a mirrored file, follow the licence in its row below. The book also adapts code from the owner's garment engineering textbook, and those files carry Apache-2.0 alone instead of our usual choice of two licences. The book serves three font families under the SIL Open Font License 1.1.
+This repository contains upstream documentation that other projects wrote. Our own code and docs are licensed as [LICENSE](LICENSE) describes, but that licence does not cover the mirrors under `docs/reference/*/source/`. Each mirror is an unmodified copy of upstream files at a recorded tag or commit, and each keeps its upstream licence file beside it. If you reuse a mirrored file, follow the licence in its row below. The book also adapts code from the owner's garment engineering textbook, and those files carry Apache-2.0 alone instead of our usual choice of two licences. The book serves three font families under the SIL Open Font License 1.1, and its isometric figures use a vendored copy of the MIT-licensed anatomy skill.
 
 ## Each mirror's licence comes from its upstream repository
 
@@ -17,6 +17,19 @@ The rows below come from each mirror's `_manifest.json` (repository, tag, commit
 | [`docs/reference/google-adk/source/adk-js/`](docs/reference/google-adk/source/adk-js/) | [google/adk-js](https://github.com/google/adk-js) | `main-v2.5.0` (`b1b94c0d501c`) | Apache-2.0 ([LICENSE](docs/reference/google-adk/source/adk-js/LICENSE)) |
 | [`docs/reference/cloudflare-agents/source/agents/`](docs/reference/cloudflare-agents/source/agents/) | [cloudflare/agents](https://github.com/cloudflare/agents) | `agents@0.33.0` (`5684e278e44a`), `@cloudflare/think@0.23.0` (`be1749221ab3`), `@cloudflare/ai-chat@0.12.2` (`fc7f59fb00e7`) | MIT ([LICENSE](docs/reference/cloudflare-agents/source/agents/LICENSE)) |
 | [`docs/reference/cloudflare-agents/source/cloudflare-docs/`](docs/reference/cloudflare-agents/source/cloudflare-docs/) | [cloudflare/cloudflare-docs](https://github.com/cloudflare/cloudflare-docs) | `production` branch, commit `6897a9fa0c11` | CC BY 4.0 ([LICENSE](docs/reference/cloudflare-agents/source/cloudflare-docs/LICENSE)); MIT (code, [LICENSE-CODE](docs/reference/cloudflare-agents/source/cloudflare-docs/LICENSE-CODE)); see [ATTRIBUTION.md](docs/reference/cloudflare-agents/source/cloudflare-docs/ATTRIBUTION.md) |
+
+## The anatomy skill is vendored at one upstream commit, under its MIT licence
+
+[`.agents/skills/anatomy/`](.agents/skills/anatomy/) is a copy of [wheresryan22/anatomy](https://github.com/wheresryan22/anatomy) at commit `1482e8469b0a9e0d8cc18ea2740a01423d29ae80` (2026-10-18), fetched as that commit's tarball on 2026-11-19. The owner approved vendoring it on 2026-11-19. Its licence is MIT, copyright 2026 Ryan, and its unchanged [LICENSE](.agents/skills/anatomy/LICENSE) sits beside the files; the repository has no NOTICE file at that commit, so none is copied. Every copied file is byte-identical to the tarball's, `SKILL.md` and the kit, audit and line check included. Four kinds of upstream file are left out:
+
+- the built example pages (`examples/**/*.html`), which each example's `build.mjs` writes again;
+- the printed sheets (`examples/**/*.pdf`), which `scripts/print.mjs` writes again;
+- the `.github/` folder: the upstream CI, issue templates and README images;
+- the files that publish a figure to the skill's community gallery, by the owner's decision of 2026-11-19: `scripts/publish.mjs` and its test, `scripts/session.mjs` and its test, which read an agent's session logs to time a figure for the gallery, `scripts/fingerprint.mjs`, which only `publish.mjs` uses, and `references/publish.md`.
+
+Because the copy is unchanged, some of its docs name files that are not in it. `README.md` shows five images from `.github/assets/`, `CONTRIBUTING.md` links `.github/workflows/ci.yml`, and `SKILL.md`, `README.md` and `CHANGELOG.md` mention publishing and the built example pages. Each example's page comes back when its `build.mjs` runs. The repository has no link checker of its own; a link check over the repository should skip `.agents/skills/anatomy/`. To update the copy, fetch the new commit's tarball, diff it against this folder with the same four exclusions, and change the commit here.
+
+The book uses the kit (`kit/iso-kit.mjs`, `kit/audit.mjs`, `kit/iso.css`) and the line check (`scripts/lines.mjs`, which runs `scripts/drive.mjs` in headless Chrome) from this folder; [`apps/manual/README.md`](apps/manual/README.md) says how. Nothing in the book's own docs copies the skill's text or its agent instructions.
 
 ## The book reuses code from the garment engineering textbook, under Apache-2.0 only
 

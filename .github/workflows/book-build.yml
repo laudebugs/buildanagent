@@ -5,7 +5,9 @@
 # No path filter: the book reads files from all over the repository. check:book reads fact-check logs under docs/,
 # listings read verify/ files and their harness pins, and the type-check coverage rule reads pnpm-workspace.yaml and
 # each package's tsconfig. A filter that missed one of these would skip a pull request that breaks the book. The
-# steps after the install take under 10 seconds locally, well inside T8's five-minute limit for adding a filter.
+# steps after the install take under 10 seconds locally. figures:audit took about 20 seconds more on a local machine
+# for the two fixture figures; that is a local time until the first CI run reports its own. Both are well inside
+# T8's five-minute limit for adding a filter.
 name: book-build
 
 on:
@@ -43,6 +45,28 @@ jobs:
       # test redraws every figure and fails on a stale one.
       - name: Figures match their scripts
         run: pnpm --filter @buildanagent/manual exec vitest run test/figures.test.ts
+      # The anatomy skill's line check drives headless Chrome. setup-chrome installs one Chrome for Testing build from
+      # Google's download bucket, so every run checks the figures in the same browser, whatever Chrome the runner image
+      # ships. It is a Chrome 157 build, the major version the local checks ran on. Our choice: the build is pinned by
+      # its version only, because Chrome for Testing publishes no checksum to pin; the next step fails unless the
+      # installed binary reports exactly that version. figures:audit then runs the skill's geometry audit and its line
+      # check on each isometric figure, in both themes, and fails unless every check passes.
+      - uses: browser-actions/setup-chrome@v2.2.0
+        id: chrome
+        with:
+          chrome-version: 157.0.8103.78
+          install-dependencies: true
+      - name: Chrome is the pinned build
+        env:
+          CHROME_PATH: ${{ steps.chrome.outputs.chrome-path }}
+        run: |
+          version="$("$CHROME_PATH" --version | sed 's/ *$//')"
+          echo "$version"
+          test "$version" = "Google Chrome for Testing 157.0.8103.78"
+      - name: Isometric figures pass the anatomy audits
+        run: pnpm --filter @buildanagent/manual figures:audit
+        env:
+          CHROME_PATH: ${{ steps.chrome.outputs.chrome-path }}
       - run: pnpm --filter @buildanagent/manual build
       - uses: actions/upload-artifact@v7.0.2
         with:

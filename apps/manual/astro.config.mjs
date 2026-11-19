@@ -37,10 +37,10 @@ const renderInputs = [
   ...filesIn("./src/book/"),
   ...filesIn("./src/data/"),
   here("./src/components/listing-html.ts"),
-  // A chapter inlines its figures' generated SVGs, so a redrawn figure must render the chapter again. The figures and
-  // the analogy register are the fixture's under BOOK_FIXTURE_DIR.
-  ...(existsSync(book.inputs.figuresDir) ? filesIn(book.inputs.figuresDir) : []).filter((file) =>
-    file.endsWith(".svg"),
+  // A chapter inlines its figures' generated SVGs and isometric fragments, so a redrawn figure must render the chapter
+  // again. The figures and the analogy register are the fixture's under BOOK_FIXTURE_DIR.
+  ...(existsSync(book.inputs.figuresDir) ? filesIn(book.inputs.figuresDir) : []).filter(
+    (file) => file.endsWith(".svg") || file.endsWith(".html"),
   ),
   here("./src/outline.ts"),
   book.inputs.analogiesFile,

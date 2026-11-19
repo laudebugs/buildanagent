@@ -1,11 +1,12 @@
 ---
 import { readFileSync } from "node:fs";
-import { figureFiles, inlineSvg } from "../book/figures.js";
+import { FIGURE_KINDS, type FigureDirective, figureFiles } from "../book/figures.js";
 import { bookFiguresDir } from "../book/load.js";
 import FigureFrame from "./FigureFrame.astro";
 
-// A generated figure from figures/<chapter>/<figure>.svg in the figure frame, inlined as a chapter's figure is, so it
-// follows the page's theme. A page that shows a figure twice, as the gallery does, gives each copy its own idPrefix.
+// A generated figure from <figures dir>/<chapter>/<figure>, inlined as a chapter's is, so it follows the page's theme:
+// a flat figure's SVG (`kind="svg"`) or an isometric figure's fragment (`kind="viewer"`), each through its kind in
+// FIGURE_KINDS. A page that shows a figure twice, as the gallery does, gives each copy its own idPrefix.
 interface Props {
   readonly chapter: string;
   readonly figure: string;
@@ -14,13 +15,35 @@ interface Props {
   readonly number: string;
   readonly caption: string;
   readonly alt: string;
+  readonly kind?: FigureDirective;
+  /** Where the figure's file lives; the book's own figures/ unless given. */
+  readonly figuresDir?: string;
 }
 
-const { chapter, figure, id, idPrefix, number, caption, alt } = Astro.props;
-const { svg } = figureFiles(bookFiguresDir(), chapter, figure);
-const html = inlineSvg(readFileSync(svg, "utf8"), { figureId: figure, alt, idPrefix });
+const {
+  chapter,
+  figure,
+  id,
+  idPrefix,
+  number,
+  caption,
+  alt,
+  kind = "svg",
+  figuresDir = bookFiguresDir(),
+} = Astro.props;
+const { file, inline } = FIGURE_KINDS[kind];
+const html = inline(readFileSync(figureFiles(figuresDir, chapter, figure)[file], "utf8"), {
+  figureId: figure,
+  alt,
+  idPrefix,
+  number,
+});
 ---
 
 <FigureFrame id={id} number={number} caption={caption} scroll>
   <Fragment set:html={html} />
 </FigureFrame>
+
+<script>
+  import "../scripts/iso-figures.ts";
+</script>
