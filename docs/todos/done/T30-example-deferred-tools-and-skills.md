@@ -17,7 +17,7 @@ Write a new type-checked, mock-run example in `verify/claude-agent-sdk/examples/
 
 ## Context
 
-- [Book plan BK20](../../plans/build-book.md#bk20-new-verify-examples-fill-the-gaps-the-coverage-review-found-accepted) and Chapter T21's todo, [T21](T21-chapter-tools-at-scale.md)
+- [Book plan BK20](../../plans/build-book.md#bk20-new-verify-examples-fill-the-gaps-the-coverage-review-found-accepted) and Chapter T21's todo, [T21](../ready/T21-chapter-tools-at-scale.md)
 - [AGENTS.md, process for documenting an SDK](../../../AGENTS.md#process-for-documenting-an-sdk): behavioural examples, mock models, and no host-touching tools
 - The harness's README and `examples/lib/` helpers
 

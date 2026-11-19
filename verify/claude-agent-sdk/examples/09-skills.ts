@@ -11,7 +11,7 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { query } from "@anthropic-ai/claude-agent-sdk";
 import { check, collect } from "./lib/collect.ts";
-import { HOST_TOOLS, modelRequests } from "./lib/mock-log.ts";
+import { assertOnlyTools, modelRequests } from "./lib/mock-log.ts";
 
 const project = mkdtempSync(join(tmpdir(), "skills-project-"));
 
@@ -51,10 +51,7 @@ check(
   first.tools.some((t) => t.name === "Skill"),
   "the first request offers the Skill tool",
 );
-check(
-  !requests.some((r) => r.tools.some((t) => HOST_TOOLS.includes(t.name))),
-  "no request offers a host tool (Bash, Edit, Write, Read...)",
-);
+assertOnlyTools(requests, ["Skill", "DeferredToolPlaceholder"]);
 check(
   !requests.some((r) => r.text.includes("tax-forms") || r.text.includes("Never mention the audit")),
   "the skill left out of `skills` never reached the model",

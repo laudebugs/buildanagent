@@ -33,5 +33,18 @@ export function modelRequests(from = 0): ModelRequest[] {
     }));
 }
 
-/** Built-in tools that touch the host; no example may offer the model any of them. */
-export const HOST_TOOLS = ["Bash", "Edit", "Write", "Read", "NotebookEdit", "WebFetch", "WebSearch"];
+/**
+ * Fail if any request offers a tool outside `allowed`. An allowlist, because the SDK's built-in
+ * list grows (Glob, Grep, Agent, TodoWrite, Monitor, Cron*, ...) and a denylist misses the new names.
+ * Each entry is an exact name or a prefix ending in `*`.
+ */
+export function assertOnlyTools(requests: ModelRequest[], allowed: string[]): void {
+  const ok = (name: string) => allowed.some((a) => (a.endsWith("*") ? name.startsWith(a.slice(0, -1)) : name === a));
+  const extra = [...new Set(requests.flatMap((r) => r.tools.map((t) => t.name)).filter((n) => !ok(n)))];
+  if (extra.length > 0) {
+    throw new Error(
+      `ASSERTION FAILED: a request offered tools outside the allowed set (${allowed.join(", ")}): ${extra.join(", ")}`,
+    );
+  }
+  console.log(`ok - every request offers only: ${allowed.join(", ")}`);
+}

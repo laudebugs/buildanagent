@@ -7,7 +7,7 @@
 import { createSdkMcpServer, query, tool } from "@anthropic-ai/claude-agent-sdk";
 import { z } from "zod";
 import { check, collect } from "./lib/collect.ts";
-import { HOST_TOOLS, modelRequests } from "./lib/mock-log.ts";
+import { assertOnlyTools, modelRequests } from "./lib/mock-log.ts";
 
 const handled: string[] = [];
 const noteCall = (name: string) => async () => {
@@ -91,7 +91,4 @@ check(
   size(loaded) < size(eagerRequests[0].tools),
   "one loaded definition is smaller than the three definitions alwaysLoad sends up front",
 );
-check(
-  ![...deferredRequests, ...eagerRequests].some((r) => r.tools.some((t) => HOST_TOOLS.includes(t.name))),
-  "no request offers a host tool (Bash, Edit, Write, Read...)",
-);
+assertOnlyTools([...deferredRequests, ...eagerRequests], ["ToolSearch", "DeferredToolPlaceholder", "mcp__weather__*"]);
