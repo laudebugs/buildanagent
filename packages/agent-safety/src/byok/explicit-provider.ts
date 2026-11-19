@@ -6,10 +6,10 @@
  * request that would carry another key or reach another host fails before it is sent.
  */
 import { type AnthropicProvider, createAnthropic } from "@ai-sdk/anthropic";
-import { createOpenAI, type OpenAIProvider } from "@ai-sdk/openai";
-import { type EgressCredential, egressGuard } from "../egress.js";
+import { createOpenAI, type OpenAIProvider, type OpenAIProviderSettings } from "@ai-sdk/openai";
+import { type EgressCredential, egressGuard, egressGuardWebSocket } from "../egress.js";
 import { SafetyError } from "../errors.js";
-import { parseModelBaseUrl } from "../model-url.js";
+import { cloudflareProviderMismatch, isCloudflareAiGatewayHost, parseModelBaseUrl } from "../model-url.js";
 
 /** The providers `explicitProvider()` builds. */
 export type ExplicitProviderName = "anthropic" | "openai";
@@ -49,6 +49,11 @@ function checkApiKey(apiKey: unknown, provider: string): string {
 function checkBaseUrl(baseURL: unknown, provider: string): string {
   const parsed = parseModelBaseUrl(baseURL);
   if (!parsed.ok) throw new SafetyError("invalid_byok_config", `explicitProvider(${provider}): ${parsed.message}`);
+  if (isCloudflareAiGatewayHost(parsed.url.hostname)) {
+    const mismatch = cloudflareProviderMismatch(parsed.url.path, provider);
+    if (mismatch !== undefined)
+      throw new SafetyError("invalid_byok_config", `explicitProvider(${provider}): ${mismatch}`);
+  }
   return baseURL as string;
 }
 
@@ -69,8 +74,8 @@ export function explicitProvider(options: ExplicitProviderOptions): AnthropicPro
 /**
  * Builds an `@ai-sdk/anthropic` or `@ai-sdk/openai` provider that uses only the `apiKey` and `baseURL` you pass. It
  * passes both to the provider, so the provider never reads `ANTHROPIC_API_KEY`, `OPENAI_API_KEY`,
- * `ANTHROPIC_BASE_URL` or `OPENAI_BASE_URL`, and it sends every request through `egressGuard()`, which refuses a
- * request to another host or with another credential. A request to Cloudflare AI Gateway also carries
+ * `ANTHROPIC_BASE_URL` or `OPENAI_BASE_URL`. It sends every request through `egressGuard()`, and every OpenAI
+ * WebSocket handshake through the same checks, which refuse a request to another host or with another credential. A request to Cloudflare AI Gateway also carries
  * `cf-aig-no-wholesale: true`.
  *
  * Throws a `SafetyError`, code `invalid_byok_config`, before any request when the key is missing, empty or padded with
@@ -83,12 +88,11 @@ export function explicitProvider(options: ExplicitProviderOptions): AnthropicPro
   }
   const apiKey = checkApiKey(options.apiKey, provider);
   const baseURL = checkBaseUrl(options.baseURL, provider);
-  const guard = egressGuard({
-    baseURL,
-    credential: credentialFor(provider, apiKey),
-    ...(options.fetch === undefined ? {} : { fetch: options.fetch }),
-  });
-  return provider === "anthropic"
-    ? createAnthropic({ apiKey, baseURL, fetch: guard })
-    : createOpenAI({ apiKey, baseURL, fetch: guard });
+  const credential = credentialFor(provider, apiKey);
+  const guard = egressGuard({ baseURL, credential, ...(options.fetch === undefined ? {} : { fetch: options.fetch }) });
+  if (provider === "anthropic") return createAnthropic({ apiKey, baseURL, fetch: guard });
+  // OpenAI's realtime transcription and speech translation open a WebSocket instead of calling fetch, so the
+  // handshake goes through the same checks.
+  const webSocket = egressGuardWebSocket({ baseURL, credential }) as NonNullable<OpenAIProviderSettings["webSocket"]>;
+  return createOpenAI({ apiKey, baseURL, fetch: guard, webSocket });
 }

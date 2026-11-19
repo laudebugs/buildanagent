@@ -52,11 +52,14 @@ export function parseModelBaseUrl(baseURL: unknown): ParsedBaseUrl {
     return refuse("the base URL is not an absolute URL");
   }
   const hostname = url.hostname.toLowerCase();
+  // DNS resolves `host.` to `host`, so a trailing dot would slip past every exact host comparison below.
+  if (hostname.endsWith(".")) return refuse("the base URL's host must not end in a dot");
   if (url.protocol !== "https:" && !(url.protocol === "http:" && LOOPBACK.test(hostname))) {
     return refuse(`the base URL must use https (http only on a loopback host), not ${url.protocol}`);
   }
   if (url.username !== "" || url.password !== "") return refuse("the base URL must not carry a user name or password");
   if (url.search !== "" || url.hash !== "") return refuse("the base URL must not carry a query or fragment");
+  if (hasEncodedSeparator(url.pathname)) return refuse("the base URL's path must not hold an encoded / or \\");
   if (hostIs(hostname, VERCEL_AI_GATEWAY_HOST)) {
     return {
       ok: false,
@@ -67,8 +70,25 @@ export function parseModelBaseUrl(baseURL: unknown): ParsedBaseUrl {
   return { ok: true, url: { origin: url.origin, path: url.pathname.replace(/\/+$/, ""), hostname } };
 }
 
-/** True when `url` lies on `base`'s origin and at or under its path. */
+// The URL parser resolves `..` and `%2e%2e` but keeps `%2F` and `%5C`, which a server that decodes before routing
+// would read as separators, so `/v1/..%2fadmin` would pass a prefix check and still leave the base path.
+function hasEncodedSeparator(pathname: string): boolean {
+  return /%2f|%5c/i.test(pathname);
+}
+
+/**
+ * Checks that a Cloudflare AI Gateway base URL's path starts with `provider`'s endpoint,
+ * `/v1/{account}/{gateway}/{provider}`, so a key meant for one provider never reaches the gateway's endpoint for
+ * another. Returns why it doesn't, or `undefined` when it does. The message names the rule, never the path.
+ */
+export function cloudflareProviderMismatch(path: string, provider: string): string | undefined {
+  const segments = path.split("/");
+  if (segments[1] === "v1" && segments[4] === provider) return undefined;
+  return `a Cloudflare AI Gateway base URL for ${provider} must start /v1/{account}/{gateway}/${provider}`;
+}
+
+/** True when `url` lies on `base`'s origin and at or under its path, and its path holds no encoded separator. */
 export function isUnderBase(url: URL, base: ModelBaseUrl): boolean {
-  if (url.origin !== base.origin) return false;
+  if (url.origin !== base.origin || hasEncodedSeparator(url.pathname)) return false;
   return base.path === "" || url.pathname === base.path || url.pathname.startsWith(`${base.path}/`);
 }

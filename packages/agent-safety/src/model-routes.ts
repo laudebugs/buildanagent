@@ -2,7 +2,7 @@
  * `checkModelRoutes()`: the deploy check that every model route keeps the user's own key. A route through Cloudflare
  * AI Gateway passes only with `byok_only: true`, and a route through Vercel AI Gateway never passes.
  */
-import { isCloudflareAiGatewayHost, parseModelBaseUrl } from "./model-url.js";
+import { cloudflareProviderMismatch, isCloudflareAiGatewayHost, parseModelBaseUrl } from "./model-url.js";
 
 /**
  * The date of the gateway documentation the checker's setting names come from: Cloudflare AI Gateway's Unified
@@ -36,7 +36,8 @@ export interface ModelRoutesConfig {
 /**
  * Why a configuration failed. `invalid_config`: it doesn't have the shape `ModelRoutesConfig` describes.
  * `unknown_field`: it names a field the checker doesn't know. `invalid_base_url`: a base URL breaks the rules
- * `egressGuard()` applies. `vercel_ai_gateway`: a route goes through Vercel AI Gateway. `byok_only_missing` and
+ * `egressGuard()` applies. `vercel_ai_gateway`: a route goes through Vercel AI Gateway. `provider_mismatch`: a route
+ * through Cloudflare AI Gateway uses an endpoint other than its own provider's. `byok_only_missing` and
  * `byok_only_off`: a route through Cloudflare AI Gateway doesn't record `byok_only: true`.
  */
 export type ModelRouteProblemCode =
@@ -44,6 +45,7 @@ export type ModelRouteProblemCode =
   | "unknown_field"
   | "invalid_base_url"
   | "vercel_ai_gateway"
+  | "provider_mismatch"
   | "byok_only_missing"
   | "byok_only_off";
 
@@ -120,6 +122,11 @@ function checkRoute(value: unknown, route: number): ModelRouteProblem[] {
   const parsed = parseModelBaseUrl(value.baseURL);
   if (!parsed.ok) return [...problems, { code: parsed.problem, route, message: parsed.message }];
   if (isCloudflareAiGatewayHost(parsed.url.hostname)) {
+    const mismatch =
+      typeof value.provider === "string" && PROVIDERS.has(value.provider)
+        ? cloudflareProviderMismatch(parsed.url.path, value.provider)
+        : undefined;
+    if (mismatch !== undefined) problems.push({ code: "provider_mismatch", route, message: mismatch });
     problems.push(...checkCloudflareSettings(value.cloudflareAiGateway, route));
   } else if (value.cloudflareAiGateway !== undefined) {
     problems.push({
@@ -135,7 +142,8 @@ function checkRoute(value: unknown, route: number): ModelRouteProblem[] {
  * Checks the model routes a deploy configures and reports every problem, so a deploy gate can fail on any of them.
  * The check fails closed: a configuration that isn't a `ModelRoutesConfig`, lists no routes or names an unknown field
  * fails, as does a route through Vercel AI Gateway, whose fallback to Vercel's own keys is a team dashboard setting
- * that no configuration records. A route through Cloudflare AI Gateway passes only with `byok_only: true`.
+ * that no configuration records. A route through Cloudflare AI Gateway passes only with `byok_only: true` and a base
+ * URL on its own provider's endpoint.
  */
 export function checkModelRoutes(config: unknown): ModelRoutesReport {
   const report = (problems: ModelRouteProblem[]): ModelRoutesReport => ({

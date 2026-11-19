@@ -53,7 +53,8 @@ function isRefusingProvider(value: unknown): boolean {
  * Makes every string model id fail with a `SafetyError`, code `default_provider`, before any request. It sets the AI
  * SDK's `globalThis.AI_SDK_DEFAULT_PROVIDER` to a provider whose model factories all throw, so a string id can never
  * fall through to Vercel AI Gateway and an ambient gateway key or OIDC token. Call it once at startup, before the
- * agent's first model call. Calling it again does nothing.
+ * agent's first model call. Calling it again does nothing. The global is left read-only, so later code that assigns
+ * another default provider throws a `TypeError` in strict mode rather than reopening the path.
  *
  * Throws a `SafetyError`, code `default_provider`, when another default provider is already set, because string ids
  * would then reach a provider whose credentials this package can't see. Clear that setting and pass models built with
@@ -63,11 +64,19 @@ export function assertNoDefaultProvider(): void {
   const global = globalThis as DefaultProviderGlobal;
   const current = global.AI_SDK_DEFAULT_PROVIDER;
   if (isRefusingProvider(current)) return;
-  if (current !== undefined) {
+  // `ai` reads the global with `??`, so null means "unset" there too and falls through to Vercel AI Gateway.
+  if (current !== undefined && current !== null) {
     throw new SafetyError(
       "default_provider",
       "globalThis.AI_SDK_DEFAULT_PROVIDER is already set, so string model ids would reach a provider whose credential nobody checked. Remove it and pass models built with explicitProvider().",
     );
   }
-  global.AI_SDK_DEFAULT_PROVIDER = refusingProvider();
+  // Read-only, so a later plain assignment throws in strict code instead of quietly reopening the path. It stays
+  // configurable, so a test can delete it.
+  Object.defineProperty(global, "AI_SDK_DEFAULT_PROVIDER", {
+    value: refusingProvider(),
+    writable: false,
+    enumerable: true,
+    configurable: true,
+  });
 }

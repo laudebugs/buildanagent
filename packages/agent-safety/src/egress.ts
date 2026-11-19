@@ -30,14 +30,14 @@ export interface EgressGuardOptions {
  * Headers that carry a credential for some model provider or gateway. A guarded request carries the configured one
  * and none of the others, so a second key can't ride along beside the user's.
  */
-export const CREDENTIAL_HEADERS: readonly string[] = [
+export const CREDENTIAL_HEADERS: readonly string[] = Object.freeze([
   "authorization",
   "x-api-key",
   "api-key",
   "x-goog-api-key",
   "proxy-authorization",
   "cf-aig-authorization",
-];
+]);
 
 /** The header that tells Cloudflare AI Gateway never to bill a request to Cloudflare's own credentials. */
 export const CLOUDFLARE_NO_WHOLESALE_HEADER = "cf-aig-no-wholesale";
@@ -55,7 +55,10 @@ function checkCredentials(headers: Headers, credential: EgressCredential): void 
   }
 }
 
-function checkCredential(credential: EgressCredential): void {
+function checkCredential(credential: EgressCredential | undefined): void {
+  if (typeof credential !== "object" || credential === null) {
+    throw new SafetyError("invalid_byok_config", "egressGuard needs a credential");
+  }
   if (credential.header !== "authorization" && credential.header !== "x-api-key") {
     throw new SafetyError("invalid_byok_config", "egressGuard needs a credential header of authorization or x-api-key");
   }
@@ -79,20 +82,69 @@ function checkCredential(credential: EgressCredential): void {
  * Throws a `SafetyError`, code `invalid_byok_config`, when the base URL or the credential is unusable.
  */
 export function egressGuard(options: EgressGuardOptions): typeof fetch {
-  const parsed = parseModelBaseUrl(options.baseURL);
-  if (!parsed.ok) throw new SafetyError("invalid_byok_config", `egressGuard: ${parsed.message}`);
-  const base = parsed.url;
-  checkCredential(options.credential);
-  const credential = { header: options.credential.header, value: options.credential.value };
+  const check = outgoingCheck(options.baseURL, options.credential);
   const send = options.fetch;
   return async (input, init) => {
     const request = new Request(input, init);
-    const url = new URL(request.url);
-    if (!isUnderBase(url, base)) throw refuse(`${url.host}${url.pathname} is outside the configured base URL`);
-    const headers = new Headers(request.headers);
-    checkCredentials(headers, credential);
-    if (isCloudflareAiGatewayHost(url.hostname)) headers.set(CLOUDFLARE_NO_WHOLESALE_HEADER, "true");
+    const headers = check(new URL(request.url), request.headers);
     const guarded = new Request(request, { headers, redirect: "manual" });
     return (send ?? globalThis.fetch)(guarded);
   };
+}
+
+/**
+ * Builds the check every guarded request passes: the URL stays under the base URL, the headers carry the credential
+ * and no other, and a Cloudflare AI Gateway request gains `cf-aig-no-wholesale`. Returns the headers to send.
+ */
+function outgoingCheck(baseURL: string, credentialOption: EgressCredential): (url: URL, sent: Headers) => Headers {
+  const parsed = parseModelBaseUrl(baseURL);
+  if (!parsed.ok) throw new SafetyError("invalid_byok_config", `egressGuard: ${parsed.message}`);
+  const base = parsed.url;
+  checkCredential(credentialOption);
+  const credential = { header: credentialOption.header, value: credentialOption.value };
+  return (url, sent) => {
+    if (!isUnderBase(url, base)) throw refuse(`${url.host}${url.pathname} is outside the configured base URL`);
+    const headers = new Headers(sent);
+    checkCredentials(headers, credential);
+    if (isCloudflareAiGatewayHost(url.hostname)) headers.set(CLOUDFLARE_NO_WHOLESALE_HEADER, "true");
+    return headers;
+  };
+}
+
+/** The WebSocket constructor shape the AI SDK's providers call, with the handshake headers as a plain object. */
+export type GuardableWebSocket = new (
+  url: string | URL,
+  protocols?: string | string[],
+  options?: { headers?: Record<string, string | undefined> },
+) => unknown;
+
+/**
+ * The WebSocket counterpart of `egressGuard()`, for a provider that opens a socket instead of calling `fetch`, such
+ * as `@ai-sdk/openai`'s realtime transcription. The handshake must pass the same checks before the socket opens, and
+ * a refused one throws the same `SafetyError`. `WebSocket` defaults to `globalThis.WebSocket`, looked up on each
+ * connection. Not exported from the package root.
+ */
+export function egressGuardWebSocket(
+  options: Omit<EgressGuardOptions, "fetch"> & { readonly WebSocket?: GuardableWebSocket },
+): GuardableWebSocket {
+  const check = outgoingCheck(options.baseURL, options.credential);
+  const open = options.WebSocket;
+  return function GuardedWebSocket(
+    url: string | URL,
+    protocols?: string | string[],
+    init?: { headers?: Record<string, string | undefined> },
+  ) {
+    const target = new URL(url);
+    // The base URL is http(s); compare the handshake on the same scheme, then open the socket on the original one.
+    const asHttp = new URL(target);
+    if (asHttp.protocol === "wss:") asHttp.protocol = "https:";
+    else if (asHttp.protocol === "ws:") asHttp.protocol = "http:";
+    else throw refuse(`a WebSocket must use wss or ws, not ${target.protocol}`);
+    const sent = new Headers();
+    for (const [name, value] of Object.entries(init?.headers ?? {})) if (value !== undefined) sent.set(name, value);
+    const headers = check(asHttp, sent);
+    const Socket = open ?? (globalThis as { WebSocket?: GuardableWebSocket }).WebSocket;
+    if (Socket === undefined) throw refuse("no WebSocket implementation is available");
+    return new Socket(target, protocols, { headers: Object.fromEntries(headers) });
+  } as unknown as GuardableWebSocket;
 }

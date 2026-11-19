@@ -3,10 +3,17 @@ import { createServer, type Server } from "node:http";
 import type { AddressInfo } from "node:net";
 import { createAnthropic } from "@ai-sdk/anthropic";
 import { createOpenAI } from "@ai-sdk/openai";
-import { checkModelRoutes, egressGuard, isSafetyError, MODEL_ROUTE_SETTINGS_AS_OF } from "@buildanagent/agent-safety";
+import {
+  CREDENTIAL_HEADERS,
+  checkModelRoutes,
+  egressGuard,
+  isSafetyError,
+  MODEL_ROUTE_SETTINGS_AS_OF,
+} from "@buildanagent/agent-safety";
 import { assertNoDefaultProvider, explicitProvider } from "@buildanagent/agent-safety/byok";
 import { generateText, type LanguageModel, streamText } from "ai";
 import { afterEach, beforeEach, test, vi } from "vitest";
+import { egressGuardWebSocket, type GuardableWebSocket } from "../src/egress.js";
 
 // Decoy credentials and hosts in the environment. A provider that falls back to the environment picks them up, and
 // any of them appearing in a recorded request fails the test. They are fake values that only this file sets.
@@ -479,4 +486,112 @@ test("the settings checker fails closed on an unknown field or a malformed confi
     codes({ routes: [{ provider: "openai", baseURL: OPENAI_URL, cloudflareAiGateway: { byok_only: true } }] }),
     ["invalid_config"],
   );
+});
+
+test("a host written with a trailing dot is refused, so it can't slip past the gateway checks", () => {
+  const codes = (route: unknown) => checkModelRoutes({ routes: [route] }).problems.map((problem) => problem.code);
+  const dottedGateway = "https://gateway.ai.cloudflare.com./v1/account-1/gateway-1/anthropic";
+  assert.deepEqual(codes({ provider: "anthropic", baseURL: dottedGateway }), ["invalid_base_url"]);
+  assert.deepEqual(codes({ provider: "anthropic", baseURL: "https://ai-gateway.vercel.sh./v4/ai" }), [
+    "invalid_base_url",
+  ]);
+  const credential = { header: "x-api-key", value: USER_ANTHROPIC_KEY } as const;
+  assert.throws(() => egressGuard({ baseURL: dottedGateway, credential }), safetyError("invalid_byok_config"));
+  assert.throws(
+    () => explicitProvider({ provider: "anthropic", apiKey: USER_ANTHROPIC_KEY, baseURL: dottedGateway }),
+    safetyError("invalid_byok_config"),
+  );
+});
+
+test("the guard refuses a path with an encoded slash or backslash, which a server may decode out of the base", async () => {
+  const transport = recorder(OPENAI_REPLY);
+  const credential = { header: "authorization", value: `Bearer ${USER_OPENAI_KEY}` } as const;
+  const guard = egressGuard({ baseURL: OPENAI_URL, credential, fetch: transport.fetch });
+  for (const path of ["..%2fadmin", "..%2Fadmin", "..%5cadmin", "a%2F..%2F..%2Fother"]) {
+    await assert.rejects(
+      guard(`${OPENAI_URL}/${path}`, { headers: { authorization: credential.value } }),
+      safetyError("egress_refused"),
+    );
+  }
+  assert.deepEqual(transport.requests, []);
+  assert.throws(() => egressGuard({ baseURL: `${OPENAI_URL}%2f..`, credential }), safetyError("invalid_byok_config"));
+});
+
+test("a Cloudflare AI Gateway route must use its own provider's endpoint", () => {
+  const codes = (route: unknown) => checkModelRoutes({ routes: [route] }).problems.map((problem) => problem.code);
+  const settings = { cloudflareAiGateway: { byok_only: true } };
+  assert.deepEqual(codes({ provider: "anthropic", baseURL: `${CF_GATEWAY}/openai`, ...settings }), [
+    "provider_mismatch",
+  ]);
+  assert.deepEqual(codes({ provider: "openai", baseURL: CF_GATEWAY, ...settings }), ["provider_mismatch"]);
+  assert.deepEqual(codes({ provider: "anthropic", baseURL: `${CF_GATEWAY}/anthropic`, ...settings }), []);
+  assert.deepEqual(codes({ provider: "anthropic", baseURL: `${CF_GATEWAY}/anthropic/v1`, ...settings }), []);
+  assert.throws(
+    () => explicitProvider({ provider: "anthropic", apiKey: USER_ANTHROPIC_KEY, baseURL: `${CF_GATEWAY}/openai` }),
+    safetyError("invalid_byok_config"),
+  );
+});
+
+test("egressGuard throws invalid_byok_config, not a TypeError, when the credential is missing", () => {
+  const options = { baseURL: OPENAI_URL } as unknown as Parameters<typeof egressGuard>[0];
+  assert.throws(() => egressGuard(options), safetyError("invalid_byok_config"));
+});
+
+test("CREDENTIAL_HEADERS can't be emptied at runtime to let a second credential through", () => {
+  assert.ok(Object.isFrozen(CREDENTIAL_HEADERS));
+  assert.throws(() => {
+    (CREDENTIAL_HEADERS as string[]).length = 0;
+  }, TypeError);
+});
+
+test("assertNoDefaultProvider treats null as unset, and a later assignment can't replace its provider", async () => {
+  globals.AI_SDK_DEFAULT_PROVIDER = null;
+  assertNoDefaultProvider();
+  assert.throws(() => {
+    globals.AI_SDK_DEFAULT_PROVIDER = createAnthropic({ apiKey: USER_ANTHROPIC_KEY, baseURL: ANTHROPIC_URL });
+  }, TypeError);
+  await assert.rejects(
+    generateText({ model: "anthropic/claude-test", prompt: "Hi", maxRetries: 0 }),
+    safetyError("default_provider"),
+  );
+});
+
+test("an OpenAI WebSocket handshake passes the guard's checks before the socket opens", () => {
+  type SocketInit = { headers?: Record<string, string | undefined> };
+  const opened: { url: string; headers: Record<string, string | undefined> }[] = [];
+  const FakeSocket = function (this: unknown, url: string | URL, _protocols?: unknown, init?: SocketInit) {
+    opened.push({ url: String(url), headers: init?.headers ?? {} });
+  } as unknown as GuardableWebSocket;
+  const credential = { header: "authorization", value: `Bearer ${USER_OPENAI_KEY}` } as const;
+  const Socket = egressGuardWebSocket({ baseURL: `${CF_GATEWAY}/openai`, credential, WebSocket: FakeSocket });
+  const gatewaySocket = "wss://gateway.ai.cloudflare.com/v1/account-1/gateway-1/openai/realtime?intent=transcription";
+  new Socket(gatewaySocket, undefined, { headers: { Authorization: credential.value, "OpenAI-Project": undefined } });
+  assert.equal(opened.length, 1);
+  assert.equal(opened[0]?.url, gatewaySocket);
+  assert.equal(opened[0]?.headers.authorization, credential.value);
+  assert.equal(opened[0]?.headers["cf-aig-no-wholesale"], "true");
+  assert.throws(
+    () => new Socket("wss://api.openai.com/v1/realtime", undefined, { headers: { Authorization: credential.value } }),
+    safetyError("egress_refused"),
+  );
+  assert.throws(
+    () => new Socket(gatewaySocket, undefined, { headers: { Authorization: `Bearer ${DECOYS.OPENAI_API_KEY}` } }),
+    safetyError("egress_refused"),
+  );
+  assert.equal(opened.length, 1);
+});
+
+test("explicitProvider hands the OpenAI provider a guarded WebSocket", () => {
+  const sockets: unknown[] = [];
+  vi.stubGlobal("WebSocket", function (this: unknown, url: string | URL) {
+    sockets.push(url);
+  });
+  const openai = explicitProvider({ provider: "openai", apiKey: USER_OPENAI_KEY, baseURL: OPENAI_URL });
+  const config = (openai.transcription("gpt-test") as unknown as { config: { webSocket?: GuardableWebSocket } }).config;
+  assert.ok(config.webSocket !== undefined);
+  assert.throws(
+    () => new (config.webSocket as GuardableWebSocket)("wss://decoy-openai.example/v1/realtime", undefined, {}),
+    safetyError("egress_refused"),
+  );
+  assert.deepEqual(sockets, []);
 });
