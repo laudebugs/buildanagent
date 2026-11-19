@@ -341,7 +341,7 @@
     }
   },
   "layout": {
-    "$comment": "px, proposed by T2 and accepted by the owner on 2026-11-19, for direction C's layout: the widest content (header, title, figure panel), the prose measure, the side-note column beside the prose and the side gutter, which scales like the sizes. The owner asked the same day for less empty space right of the text on desktops, so the page widened from 1152 and the measure from 608; listings, figures, tables and tabs take the whole article column, wider than the measure. With the owner's 'TOC on the right' (2026-11-19) a chapter's article column stops at articleMax, the measure, a gap and a side note, so the prose ends near the rail; the chapter page is then only as wide as the sidebar, the article, the rail and their gaps, centred",
+    "$comment": "px, proposed by T2 and accepted by the owner on 2026-11-19, for direction C's layout: the widest content (header, title, figure panel), the prose measure, the side-note column beside the prose and the side gutter, which scales like the sizes. The owner asked the same day for less empty space right of the text on desktops, so the page widened from 1152 and the measure from 608. Listings, figures, tables and tabs take the whole article column, wider than the measure. With the owner's 'TOC on the right' (2026-11-19) a chapter's article column stops at articleMax (the measure, a gap and a side note), so the prose ends near the rail. The chapter page is then only as wide as the sidebar, the article, the rail and their gaps, and centred",
     "pageWidth": 1600,
     "measure": 672,
     "articleMax": 952,

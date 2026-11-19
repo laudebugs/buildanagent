@@ -3,7 +3,7 @@ import Contents from "./Contents.astro";
 import type { ContentsPart, PageHeading } from "./types.js";
 
 // The chapter sidebar: the page's own headings, then the whole contents behind a disclosure that needs no script. Each
-// is its own navigation landmark, so on a wide page the layout can set "On this page" in a rail right of the article
+// part is its own navigation landmark, so on a wide page the layout can set "On this page" in a rail right of the article
 // while "All chapters" stays on the left; the wrapper then steps aside with display: contents.
 interface Props {
   readonly headings: readonly PageHeading[];

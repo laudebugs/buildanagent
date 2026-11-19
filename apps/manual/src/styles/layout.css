@@ -16,7 +16,7 @@
 
 /* A chapter page is only as wide as its widest row needs: the 11rem sidebar, the article at most --article-max, the
    15rem "On this page" rail and their two 2.5rem gaps, 90.5rem in all, centred like every page. The article stops at
-   the measure, a gap and a side note, so the prose ends near the rail instead of a wide empty band before it, a side
+   the measure, a gap and a side note, so the prose ends near the rail instead of a wide empty band before it. A side
    note still floats beside the prose, and the title and figure panel line up with the columns under them. A narrower
    screen never reaches the cap, so below a 90.5rem layout nothing changes. */
 .page.layout {
@@ -144,9 +144,9 @@
 
 /* From 83rem, "On this page" moves to a 15rem rail right of the article and "All chapters" keeps the left column, so
    the prose sits between them and the space right of it holds the page's headings. 83rem is the sidebar, the rail,
-   their gaps and a 52rem article: the rail never narrows the article below the width at which a listing and its run
+   their gaps and a 52rem article, so the rail never narrows the article below the width at which a listing and its run
    sit side by side. Listings, figures, tables and tabs stop at the article's edge, so the sticky rail, in a grid
-   column of its own, can never cover one; spanning under the rail would need a script to move the rail out of the
+   column of its own, can never cover one. Spanning under the rail would need a script to move the rail out of the
    way. The wrapper steps aside with display: contents, and each navigation becomes a sticky grid item of its own. */
 @container layout (min-width: 83rem) {
   .chapter-body {

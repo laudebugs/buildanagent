@@ -143,8 +143,8 @@ const SHAFT_INSET = HEAD * Math.cos(HEAD_ANGLE) * 0.9;
  * size, so its labels never shrink below the 12 px phone label size, and its panel scrolls sideways where the figure
  * is wider than the panel. A figure takes the whole article column, wider than the prose, so wherever the contents
  * sidebar shows, its stage leaves at least 726 px for the drawing (the 808 px column of a 64rem layout, less the
- * panel's 1 px border and 2.5rem of padding on each side), and without the sidebar a figure up to 520 wide shows whole
- * on a screen about 640 px or wider. The limit is our choice (BK11).
+ * panel's 1 px border and 2.5rem of padding on each side). Without the sidebar, a figure up to 520 wide shows whole on
+ * a screen about 640 px or wider. The limit is our choice (BK11).
  */
 export const MAX_FIGURE_WIDTH = 520;
 
