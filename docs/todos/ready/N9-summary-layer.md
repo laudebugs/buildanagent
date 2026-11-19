@@ -6,7 +6,7 @@
 | Status | `ready` |
 | Plan | [Build harness §4, Stage 2](../../plans/build-harness.md#42-stage-2-adds-the-five-context-layers-cheapest-first) |
 | Round / milestone | Round N (build harness), M6 |
-| Depends on | [N8](N8-write-cap-masking.md), [B5](../ongoing/B5-usage-cost-catalog.md), [B14](B14-budget-progress.md) |
+| Depends on | [N8](N8-write-cap-masking.md), [B5](../done/B5-usage-cost-catalog.md), [B14](B14-budget-progress.md) |
 | Size | M |
 
 ## Goal

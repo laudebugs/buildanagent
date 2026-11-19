@@ -6,7 +6,7 @@
 | Status | `ready` |
 | Plan | [Build SDK §4, Stage 3](../../plans/build-sdk.md#43-stage-3-builds-the-loop-its-tools-hooks-budget-and-signed-pauses) |
 | Round / milestone | Round B (build SDK), M5 |
-| Depends on | [B5](../ongoing/B5-usage-cost-catalog.md), [B13](B13-interceptors-observers.md), [E1](E1-safety-core-outcomes.md) |
+| Depends on | [B5](../done/B5-usage-cost-catalog.md), [B13](B13-interceptors-observers.md), [E1](E1-safety-core-outcomes.md) |
 | Size | M |
 
 ## Goal
@@ -17,7 +17,7 @@ Stop runaway runs before they spend: check the USD cap before each model call, s
 
 - [D9](../../plans/build-sdk.md#d9-the-usd-cap-is-checked-before-each-model-call-against-a-projected-cost)
 - [D11](../../plans/build-sdk.md#d11-three-identical-failing-calls-stop-the-run-and-the-depth-cap-is-2-provisional)
-- [ADR 0043](../../decisions/0043-standalone-safety-core.md): `projectCallCost()` lives in the gateway ([B5](../ongoing/B5-usage-cost-catalog.md)), and `canonicalInputHash()` in the safety package ([E1](E1-safety-core-outcomes.md))
+- [ADR 0043](../../decisions/0043-standalone-safety-core.md): `projectCallCost()` lives in the gateway ([B5](../done/B5-usage-cost-catalog.md)), and `canonicalInputHash()` in the safety package ([E1](E1-safety-core-outcomes.md))
 - [agent-SDK guide §3](../../guides/agent-sdk.md#3-the-loop-should-be-one-in-process-pure-function-capped-in-model-calls-that-ends-with-a-stop-reason): practitioners add progress detection and an earlier budget check
 
 ## Scope
