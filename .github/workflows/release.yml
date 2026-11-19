@@ -121,6 +121,10 @@ jobs:
             pnpm changeset version
             version=$(node -p 'require("./packages/gateway/package.json").version')
             git add -A
+            if git diff --cached --quiet; then
+              echo "pnpm changeset version changed nothing, so there is no version commit to push."
+              break
+            fi
             # [skip ci] keeps ci.yml off this commit; its changes were checked on the pull requests that made them.
             git commit --quiet -m "chore(release): version packages to $version [skip ci]"
             if git push --quiet "$remote" HEAD:main 2> "$RUNNER_TEMP/push-error"; then

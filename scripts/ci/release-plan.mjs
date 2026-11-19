@@ -34,7 +34,10 @@ function readManifest(root, dir) {
   return JSON.parse(readFileSync(path.join(root, "packages", dir, "package.json"), "utf8"));
 }
 
-/** Lists the pending changeset files, which Changesets keeps as `.changeset/*.md` beside its README. */
+/**
+ * Lists the pending changeset files, which Changesets keeps as `.changeset/*.md` beside its README. In pre mode,
+ * `changeset version` moves the ones it consumed into `.changeset/pre/`, so they no longer count.
+ */
 export function pendingChangesets(root) {
   const dir = path.join(root, ".changeset");
   if (!existsSync(dir)) return [];
