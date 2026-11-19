@@ -33,7 +33,7 @@ Our SDK and harness must run on local Node, Cloudflare, AWS and Vercel ([ADR 003
 | Functions, variables, methods | `camelCase` |
 | True module-level constants | `UPPER_SNAKE_CASE` |
 
-- **MUST:** export by name only. No `export default`.
+- **MUST:** export by name only. No `export default`, except in tool config files that require one, such as `vitest.config.ts`.
 - **MUST NOT:** use `any`. Use `unknown` and narrow it. Each non-null assertion (`!`) carries a comment saying why the value is present.
 
 ## Each package has one error class with a typed code
