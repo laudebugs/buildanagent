@@ -4,7 +4,9 @@
 // projects each call's worst-case cost, adds what earlier calls already spent, and throws before the model sees a
 // call that would pass the budget. Each behaviour runs twice: against a scripted model, and through
 // @ai-sdk/anthropic with a fetch function that answers in Anthropic's Messages wire format, so the same retry,
-// cache and budget code works over a second wire protocol. No network is used.
+// cache and budget code works over a second wire protocol. No network is used. The scripted model's requests and
+// answers reach the book's transcript; the Messages-format exchange does not, because the recorder attaches to
+// ai/test's mock model, which createAnthropic bypasses. Only that exchange's check() results are recorded.
 // Prices are Claude Sonnet 5.5 list prices per million tokens as of November 2026.
 import { createAnthropic } from "@ai-sdk/anthropic";
 import type { LanguageModelV4, LanguageModelV4CallOptions } from "@ai-sdk/provider";
@@ -169,10 +171,11 @@ check(
 
 // A long prefix with a short answer: the projection prices the prefix as a cache write and uses the call's own limit.
 await ask(model, "Hi", policy, { maxOutputTokens: 20 });
-const shortCall = usd({ input: 0, cacheRead: 0, cacheWrite: tokensIn(policy), output: 20 });
+// Literal check: 3,973 prefix tokens at $2.50, 8 question tokens at $2 and 20 output tokens at $10, per million.
+const shortCall = (3973 * 2.5 + 8 * 2 + 20 * 10) / 1e6;
 check(
-  Math.abs(ledger.projected - shortCall) < 0.0001,
-  `a long prefix with a short answer projects $${ledger.projected.toFixed(5)}`,
+  Math.abs(ledger.projected - shortCall) < 1e-9,
+  `a long prefix with a short answer projects $${ledger.projected.toFixed(7)}, not the input-rate $${((3973 * 2 + 16 + 200) / 1e6).toFixed(7)}`,
 );
 
 // #region refuse
@@ -234,8 +237,12 @@ check(
   overWireAgain.usage.inputTokenDetails.cacheReadTokens === tokensIn(policy),
   "over the Messages format, the repeated prefix reads from the cache",
 );
-const wireRefused = await ask(wire.model, "Summarise.", longPolicy.repeat(2)).catch((e) => e);
+const wireRefused = await ask(wire.model, "Summarise.", longPolicy).catch((e) => e);
 check(
-  wireRefused instanceof BudgetExceededError && wireRequests === 3,
-  "over the Messages format, the budget refuses before any request is sent",
+  wireRefused instanceof BudgetExceededError && wireRefused.projectedUsd < BUDGET_USD,
+  `over the Messages format, a call that fits the budget alone ($${wire.ledger.projected.toFixed(4)}) is refused ...`,
+);
+check(
+  wire.ledger.spent + wire.ledger.projected > BUDGET_USD && wireRequests === 3,
+  `... because $${wire.ledger.spent.toFixed(4)} is already spent, and no request was sent`,
 );

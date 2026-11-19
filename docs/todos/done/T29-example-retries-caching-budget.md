@@ -48,7 +48,7 @@ Write a new type-checked, mock-run example in `verify/vercel-ai-sdk/examples/` s
 - [x] The new example type-checks and passes in the harness's `pnpm test`, offline, with every `check()` passing
 - [x] No mock model in the example calls a tool that touches the host
 - [x] The results-drift check passes after the committed results update
-- [x] `pnpm check`, `pnpm typecheck` and `pnpm test` pass offline from the repo root
+- [ ] `pnpm check`, `pnpm typecheck` and `pnpm test` pass offline from the repo root (`pnpm check`, `pnpm typecheck` and the harness's `pnpm test` pass; the root `pnpm test` stops at `verify/copilot-sdk`, which needs Linux namespaces that this machine lacks)
 
 ## Tests
 
@@ -67,13 +67,15 @@ Write a new type-checked, mock-run example in `verify/vercel-ai-sdk/examples/` s
 
 - [x] Claimed: the first commit moved this file `ready/` → `ongoing/` (Status `ongoing`)
 - [x] Prose drafted with `/anthropic-skills:writing`, and changed claims re-checked against their sources
-- [x] `pnpm check`, `pnpm typecheck` and `pnpm test` pass locally; pushed after each meaningful step
+- [ ] `pnpm check`, `pnpm typecheck` and `pnpm test` pass locally; pushed after each meaningful step (`pnpm check`, `pnpm typecheck` and the harness's `pnpm test` pass locally; the branch was pushed once, not after each step)
 - [x] This file moved `ongoing/` → `done/` (Status `done`) in the last work commit, and the plan's todo table updated
 - [ ] Two code-review rounds run on the pull request (`/code-review high --max-findings default`, then `medium` and `low` after more than 6 confirmed findings, otherwise `low`), with every finding fixed or explained in a commit message
 - [ ] Copy reviewed with `/anthropic-skills:writing-review` after the code changes, with its findings fixed and the rubric scores in the pull request description
 
 ## Outcome
 
-Added `verify/vercel-ai-sdk/examples/12-retries-caching-budget.ts`, with `prices`, `budget`, `retry`, `cache`, `refuse` and `wire` regions and `book:note` markers `retry-header`, `retry-count`, `cache-read` and `refused`. Its fourteen checks cover, against a scripted model, one retry after a retryable error (`retry-after-ms: "0"` keeps the run fast), no retry for a non-retryable error, `RetryError` once `maxRetries` runs out, a cache write then cache-read tokens on a repeated prefix at under a fifth of the uncached cost, a projection that prices the prefix as a cache write and uses the call's own `maxOutputTokens`, and a budget middleware that refuses a call that fits alone but not on top of what is already spent, before it reaches the model. The same retry, cache and budget calls then run through `@ai-sdk/anthropic` with a stub `fetch` that answers in Anthropic's Messages wire format, the second wire protocol, offline. Prices are Claude Sonnet 5.5's from the gateway catalog, as of November 2026. The transcript and the example's `run-examples.json` entry are committed.
+Added `verify/vercel-ai-sdk/examples/12-retries-caching-budget.ts`, with `prices`, `budget`, `retry`, `cache`, `refuse` and `wire` regions and `book:note` markers `retry-header`, `retry-count`, `cache-read` and `refused`. Its fifteen checks cover, against a scripted model, one retry after a retryable error (`retry-after-ms: "0"` keeps the run fast), no retry for a non-retryable error, `RetryError` once `maxRetries` runs out, a cache write then cache-read tokens on a repeated prefix at under a fifth of the uncached cost, a projection that prices the prefix as a cache write and uses the call's own `maxOutputTokens`, and a budget middleware that refuses a call that fits alone but not on top of what is already spent, before it reaches the model (the projection's value is asserted as a literal, so a wrong rate fails). The same retry, cache and budget calls then run through `@ai-sdk/anthropic` with a stub `fetch` that answers in Anthropic's Messages wire format, the second wire protocol, offline. Prices are Claude Sonnet 5.5's from the gateway catalog, as of November 2026. The transcript and the example's `run-examples.json` entry are committed.
+
+Limit: the Messages-format exchange leaves no request or answer events in the transcript, because the recorder attaches to `ai/test`'s mock model, which `createAnthropic` bypasses; only its `check()` results are recorded. A follow-up could record wire calls (for example from the stub `fetch`); this todo leaves T5's recorder unchanged.
 
 Still open: the two code-review rounds, which belong to the pull request, and the writing review of the header and README copy (Task 6's last clause).
