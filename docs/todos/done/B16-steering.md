@@ -54,7 +54,7 @@ Let a caller steer a running agent or queue a follow-up, drained only at step bo
 
 ## Risks and open questions
 
-Low.
+Low: the queue is one class and the loop applies it in one function.
 
 ## Definition of done
 
@@ -70,7 +70,10 @@ Low.
 Decisions:
 
 - A steer is applied at the start of each step, before its model call, so it can never land inside a model call or a tool batch. A steer that arrives while the model answers without a tool call also extends the run.
-- A follow-up is applied only when the model has answered without a tool call and no steer waits. A run that ends any other way (an output tool, an abort, a `shouldStop` stop or `no_progress` verdict, even on a text answer, an error, `maxSteps`, or a programmer error that rejects `result`) rejects the waiting message with `undelivered_message`, so no receipt hangs.
+- A follow-up is applied only when the model has answered without a tool call and no steer waits. A run that ends any other way rejects the waiting message with `undelivered_message`, so no receipt hangs. The other ways are:
+  - an output tool, an abort, an error or `maxSteps`;
+  - a `shouldStop` stop or `no_progress` verdict, even on a text answer;
+  - a programmer error that rejects `result`.
 - `receipt.stepIndex` is the index of the step at whose start the message was added, which is also the `stepIndex` of its `steer_applied` event. That step's model call is the first to see the message, unless the run ends before the call (a budget stop or a failed hook).
 - `receipt.id` is `<runId>:message-<n>`, deterministic and unique within the run.
 - A message is a string that isn't blank or a non-empty list of text and image blocks whose text isn't blank. Each block is copied with only its own fields, and the transcript holds a copy of the receipt's message.

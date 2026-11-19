@@ -13,7 +13,7 @@ export type DeliveryKind = "steer" | "follow_up";
 /**
  * Proof that a queued message entered the transcript. `id` is unique within the run, `message` is the content the
  * run added as a user message, and `stepIndex` is the step at whose start the run added it. That step's model call is
- * the first to see the message, unless the run ends before the call, as a budget stop or a failed hook can make it.
+ * the first to see the message, unless the run ends before the call, which a budget stop or a failed hook can cause.
  */
 export interface DeliveryReceipt {
   readonly id: string;

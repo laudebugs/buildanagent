@@ -149,10 +149,9 @@ export interface Run<S = unknown> extends AsyncIterable<AgentEvent> {
   /**
    * Queues a user message that waits until the run would otherwise end. When the model has answered and no tool call
    * is left, the run applies every waiting follow-up as user messages and makes one more model call, so a follow-up
-   * sent before the run ends extends it by one step. A steer that is waiting goes first. Any other stop reason, a
-   * `shouldStop` hook or progress policy that ends the run, a run that ends by calling its output tool, an abort and
-   * a run already at `maxSteps` still end it, and the follow-up then rejects with `undelivered_message`. The receipt
-   * works as for `steer()`.
+   * sent before the run ends extends it by one step. A steer that is waiting goes first. The run still ends, and the
+   * follow-up rejects with `undelivered_message`, when another stop reason ends it: a `shouldStop` hook or progress
+   * policy that stops it, its output tool, an abort or `maxSteps`. The receipt works as for `steer()`.
    */
   followUp(message: string | readonly ContentBlock[]): Promise<DeliveryReceipt>;
 }
