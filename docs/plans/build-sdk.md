@@ -560,7 +560,7 @@ The guide says to start with the gateway and the test model, because every other
 
 | ID | Title | Depends on | Size |
 | --- | --- | --- | --- |
-| [B6](../todos/ongoing/B6-transform-messages.md) | The cross-provider `transformMessages` pass | B3 | M |
+| [B6](../todos/done/B6-transform-messages.md) | The cross-provider `transformMessages` pass | B3 | M |
 | [B7](../todos/ready/B7-tool-name-table.md) | Per-provider tool-name table and the canonical name rule | B1 | S |
 | [B8](../todos/ready/B8-anthropic-adapter.md) | Anthropic Messages adapter and its mock transport | B5, B6, B7 | L |
 | [B9](../todos/ready/B9-openai-chat-adapter.md) | OpenAI-compatible Chat Completions adapter and its mock transport | B5, B6, B7 | L |
