@@ -3,12 +3,19 @@
 // run's read-only GITHUB_TOKEN, for the release check.
 //
 //   node scripts/ci/release-plan.mjs plan          prints key=value lines for $GITHUB_OUTPUT
+//   node scripts/ci/release-plan.mjs needs-version prints true when `pnpm changeset version` has work to do
 //   node scripts/ci/release-plan.mjs notes <file>  writes the changelog section of the current version to <file>
 //
+// The plan asks for a version when changesets are pending, or when .changeset/pre.json is in "exit" mode. release.yml's
+// `version` job, which ran `pnpm changeset version` and pushed the result to main, is switched off until a "Version
+// packages" pull request replaces it (docs/plans/ci.md §3f), so until then such a plan publishes nothing.
 // The plan publishes only when every one of these holds, and says which one failed otherwise:
 // - no package is `private` (none has been since L4a, and a test in release.test.mjs fails if the field comes back);
+// - nothing needs versioning, because pending changesets must become a version first;
 // - the version isn't 0.0.0, the workspace's never-released version, so dropping `private` alone publishes nothing;
-// - no changeset is pending, because pending changesets belong in the "Version packages" pull request first;
+// - the version matches the pre mode: while .changeset/pre.json says `"mode": "pre"`, only a prerelease whose
+//   identifier is pre.json's `tag` (0.1.0-alpha.0 for `alpha`), published under that dist-tag; otherwise only a
+//   plain x.y.z, published under `latest`. A mismatch throws, because publishing it would move the wrong dist-tag;
 // - npm doesn't already hold every package at that version, or it does but the GitHub release v<version> is missing,
 //   so a run that failed after the uploads can still tag the release.
 // release.yml adds the last condition itself: only a push to main publishes.
@@ -21,16 +28,134 @@ export const RELEASE_ORDER = ["gateway", "sdk"];
 const REGISTRY = "https://registry.npmjs.org";
 const GITHUB_API = "https://api.github.com";
 const STABLE = /^\d+\.\d+\.\d+$/;
+// A dist-tag npm accepts and that can't be read as a version or range; `latest` is for stable releases only.
+const PRE_TAG = /^[a-z][a-z0-9-]*$/;
 
 function readManifest(root, dir) {
   return JSON.parse(readFileSync(path.join(root, "packages", dir, "package.json"), "utf8"));
 }
 
-/** Lists the pending changeset files, which Changesets keeps as `.changeset/*.md` beside its README. */
+// The Markdown files in .changeset/ that Changesets 3 never reads as changesets (@changesets/read's ignoredMdFiles).
+const NOT_CHANGESETS = [/^README\.md$/i, /^AGENTS\.md$/, /^CLAUDE\.md$/, /^GEMINI\.md$/];
+
+/**
+ * Lists the package names a changeset's frontmatter names, such as `"@buildanagent/gateway": patch`. An empty
+ * changeset names none. Returns undefined when the text has no frontmatter to read.
+ */
+export function changesetPackages(text) {
+  const match = /^\s*---\r?\n([\s\S]*?)^---\s*$/m.exec(text);
+  if (!match) return undefined;
+  const names = [];
+  for (const line of match[1].split(/\r?\n/)) {
+    if (line.trim() === "") continue;
+    const entry = /^\s*(["']?)([^"':]+)\1\s*:/.exec(line);
+    if (!entry) return undefined;
+    names.push(entry[2].trim());
+  }
+  return names;
+}
+
+/**
+ * True when `changeset version` would consume the changeset file `name` with contents `text`. Changesets skips the
+ * files in NOT_CHANGESETS and dotfiles, and it never consumes a changeset that names only packages it doesn't version,
+ * such as a private app or an ignored harness; `versioned` lists the package names it does version. A changeset that
+ * mixes both, or whose frontmatter this can't read, counts as pending, so the plan waits and `changeset version`
+ * reports the error itself.
+ */
+export function isPendingChangeset(name, text, versioned) {
+  if (!name.endsWith(".md") || name.startsWith(".") || NOT_CHANGESETS.some((re) => re.test(name))) return false;
+  const names = changesetPackages(text);
+  return names === undefined || names.length === 0 || names.some((pkg) => versioned.includes(pkg));
+}
+
+/** The names of the packages Changesets versions: the gateway and the SDK. */
+export function versionedPackageNames(root) {
+  return RELEASE_ORDER.map((dir) => readManifest(root, dir).name);
+}
+
+/**
+ * Lists the pending changeset files, which Changesets keeps as `.changeset/*.md` beside its README, keeping only those
+ * `changeset version` would consume (isPendingChangeset). In pre mode, `changeset version` moves the ones it consumed
+ * into `.changeset/pre/`, so they no longer count.
+ */
 export function pendingChangesets(root) {
   const dir = path.join(root, ".changeset");
   if (!existsSync(dir)) return [];
-  return readdirSync(dir).filter((name) => name.endsWith(".md") && name !== "README.md");
+  const candidates = readdirSync(dir).filter((name) => name.endsWith(".md"));
+  if (candidates.length === 0) return [];
+  const versioned = versionedPackageNames(root);
+  return candidates.filter((name) => isPendingChangeset(name, readFileSync(path.join(dir, name), "utf8"), versioned));
+}
+
+/**
+ * Reads `.changeset/pre.json`, which `pnpm changeset pre enter <tag>` writes: `{ mode, tag }`, with `mode` "pre"
+ * while in pre mode and "exit" after `pnpm changeset pre exit`, until the next `pnpm changeset version` deletes it.
+ * Returns undefined when the file doesn't exist.
+ */
+export function readPreState(root) {
+  const file = path.join(root, ".changeset", "pre.json");
+  return existsSync(file) ? parsePreState(readFileSync(file, "utf8")) : undefined;
+}
+
+/** Parses the text of `.changeset/pre.json` the way readPreState does, and throws on the same errors. */
+export function parsePreState(text) {
+  const state = JSON.parse(text);
+  if (state.mode !== "pre" && state.mode !== "exit") throw new Error(`.changeset/pre.json has mode ${state.mode}`);
+  if (typeof state.tag !== "string" || !PRE_TAG.test(state.tag) || state.tag === "latest") {
+    throw new Error(`.changeset/pre.json's tag ${JSON.stringify(state.tag)} can't be an npm dist-tag for prereleases`);
+  }
+  return state;
+}
+
+/**
+ * True when `pnpm changeset version` has work to do: a changeset is pending, or pre mode is exiting. It reads only the
+ * checkout, so release.yml's version job can ask it again after fetching the newest main.
+ */
+export function needsVersion(root) {
+  return pendingChangesets(root).length > 0 || readPreState(root)?.mode === "exit";
+}
+
+/**
+ * Orders two semver versions by semver precedence: negative when `a` comes first, positive when `b` does, 0 when equal.
+ * A prerelease comes before its plain version (0.1.0-alpha.9 < 0.1.0), and numeric identifiers compare as numbers
+ * (alpha.10 > alpha.9). Build metadata isn't accepted, because our versions never carry it.
+ */
+export function compareVersions(a, b) {
+  const parse = (version) => {
+    const match = /^(\d+)\.(\d+)\.(\d+)(?:-([0-9A-Za-z-]+(?:\.[0-9A-Za-z-]+)*))?$/.exec(version);
+    if (!match) throw new Error(`${JSON.stringify(version)} is not a semver version`);
+    return { core: match.slice(1, 4).map(Number), pre: match[4]?.split(".") ?? [] };
+  };
+  const x = parse(a);
+  const y = parse(b);
+  for (let i = 0; i < 3; i++) if (x.core[i] !== y.core[i]) return x.core[i] - y.core[i];
+  if (x.pre.length === 0 || y.pre.length === 0) return y.pre.length - x.pre.length;
+  for (let i = 0; i < Math.min(x.pre.length, y.pre.length); i++) {
+    const [p, q] = [x.pre[i], y.pre[i]];
+    if (p === q) continue;
+    const [pNum, qNum] = [/^\d+$/.test(p), /^\d+$/.test(q)];
+    if (pNum && qNum) return Number(p) - Number(q);
+    if (pNum !== qNum) return pNum ? -1 : 1;
+    return p < q ? -1 : 1;
+  }
+  return x.pre.length - y.pre.length;
+}
+
+/**
+ * Says why `version` can't be released in the pre mode `pre` (readPreState's result), or returns undefined when it can.
+ * While pre.json says `"mode": "pre"`, only a prerelease whose identifier is pre.json's tag fits, such as 0.1.0-alpha.0
+ * for `alpha`; otherwise only a plain x.y.z does.
+ */
+export function preModeMismatch(version, pre) {
+  if (pre?.mode === "pre") {
+    const prerelease = new RegExp(`^\\d+\\.\\d+\\.\\d+-${pre.tag}\\.\\d+$`);
+    if (!prerelease.test(version)) {
+      return `.changeset/pre.json is in pre mode with tag ${pre.tag}, but ${version} isn't a ${pre.tag} prerelease`;
+    }
+  } else if (!STABLE.test(version)) {
+    return `${version} is not a plain x.y.z version, and .changeset/pre.json isn't in pre mode`;
+  }
+  return undefined;
 }
 
 /** Asks the registry whether `name@version` exists: true on 200, false on 404, and an error on anything else. */
@@ -69,10 +194,15 @@ export async function planRelease({ root, repo, token, fetchImpl = fetch }) {
   }
   const [version] = versions;
   const pending = pendingChangesets(root);
+  const pre = readPreState(root);
+  const inPre = pre?.mode === "pre";
   const base = {
     version,
     tag: `v${version}`,
     pending: pending.length > 0,
+    needsVersion: needsVersion(root),
+    distTag: inPre ? pre.tag : "latest",
+    prerelease: inPre,
     docsDeploy: existsSync(path.join(root, ".github", "workflows", "docs-deploy.yml")),
     node: readFileSync(path.join(root, ".nvmrc"), "utf8").trim(),
   };
@@ -80,13 +210,14 @@ export async function planRelease({ root, repo, token, fetchImpl = fetch }) {
 
   const privateOnes = packages.filter((pkg) => pkg.private).map((pkg) => pkg.name);
   if (privateOnes.length > 0) return skip(`${privateOnes.join(" and ")} still set "private": true`);
-  if (version === "0.0.0") return skip("the packages are still at 0.0.0, which is never released");
-  if (!STABLE.test(version)) {
-    // npm needs an explicit dist-tag for a prerelease, and release.yml publishes to `latest` only.
-    throw new Error(`${version} is not a plain x.y.z version; release.yml doesn't publish prereleases`);
-  }
+  // Before the version checks: until `changeset version` runs, the version may not match the pre mode yet, as after
+  // `pnpm changeset pre exit`, which leaves the prerelease version in place.
   if (pending.length > 0)
-    return skip(`${pending.length} changeset(s) are pending; merge the "Version packages" pull request first`);
+    return skip(`${pending.length} changeset(s) are pending; they publish once a version commit versions them`);
+  if (base.needsVersion) return skip("pre mode is exiting; a version commit must version the packages first");
+  if (version === "0.0.0") return skip("the packages are still at 0.0.0, which is never released");
+  const mismatch = preModeMismatch(version, pre);
+  if (mismatch) throw new Error(mismatch);
 
   const toPublish = [];
   for (const pkg of packages) {
@@ -141,6 +272,9 @@ export function formatOutputs(plan) {
     `tag=${plan.tag}`,
     `publish=${plan.publish}`,
     `pending=${plan.pending}`,
+    `needs_version=${plan.needsVersion}`,
+    `dist_tag=${plan.distTag}`,
+    `prerelease=${plan.prerelease}`,
     `docs_deploy=${plan.docsDeploy}`,
     `node=${plan.node}`,
     `reason=${plan.reason}`,
@@ -152,11 +286,13 @@ async function main([command, arg]) {
   if (command === "plan") {
     const plan = await planRelease({ root, repo: process.env.GITHUB_REPOSITORY, token: process.env.GH_TOKEN });
     console.log(formatOutputs(plan));
+  } else if (command === "needs-version") {
+    console.log(needsVersion(root));
   } else if (command === "notes" && arg) {
     const { version } = readManifest(root, RELEASE_ORDER[0]);
     writeFileSync(arg, releaseNotes({ root, version }));
   } else {
-    throw new Error("usage: release-plan.mjs plan | notes <file>");
+    throw new Error("usage: release-plan.mjs plan | needs-version | notes <file>");
   }
 }
 

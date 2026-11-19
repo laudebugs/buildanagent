@@ -1,12 +1,15 @@
-# Publishes @buildanagent/gateway and @buildanagent/sdk to npm through trusted publishing, with provenance, and keeps
-# the "Version packages" pull request up to date (publish-and-docs PB2, ADR 0047).
+# Publishes @buildanagent/gateway and @buildanagent/sdk to npm through trusted publishing, with provenance, on every
+# push to main that brings a package change (publish-and-docs PB2, ADR 0047).
 #
-# - A push to main runs `plan`, which reads the checkout, the npm registry and the GitHub releases
-#   (scripts/ci/release-plan.mjs). With
-#   pending changesets, `version-pr` opens or updates the "Version packages" pull request; it is off until L4b.
-#   Merging that pull request is the next push to main: no changesets are pending, npm lacks the new version, so
-#   `pack` builds the tarballs and `publish` uploads them, tags the release and starts the docs deploy.
-# - A workflow_dispatch is a dry run: `plan` and `pack` run, and nothing else, because `version-pr` and `publish`
+# - `plan` reads the checkout, the npm registry and the GitHub releases (scripts/ci/release-plan.mjs).
+# - `version` is switched off. It ran `pnpm changeset version` on the newest main and pushed the version commit; a
+#   follow-up pull request replaces it with an auto-merged "Version packages" pull request (docs/plans/ci.md §3f).
+#   Until then, a push that brings changesets publishes nothing, and they wait. The first publish, 0.1.0-alpha.0,
+#   needs no version commit: the pull request that set up pre mode versioned it.
+# - When npm lacks the planned version, `pack` builds the tarballs from the release commit, and `publish` uploads them
+#   under the pre-mode dist-tag (`alpha`) or `latest`, tags the release, marking a prerelease as one, and `docs` starts
+#   the docs deploy for a stable release.
+# - A workflow_dispatch is a dry run: `plan` and `pack` run, and nothing else, because `version` and `publish`
 #   require a push to main.
 #
 # No job reads an npm token, and none is stored. The publish job authenticates with its OIDC token alone, so a
@@ -21,9 +24,12 @@ on:
 permissions:
   contents: read
 
-# One release at a time, and never cancelled: a cancelled publish could leave the gateway out without the SDK.
+# One release at a time, and never cancelled: a cancelled publish could leave the gateway out without the SDK. GitHub
+# keeps one run waiting and cancels an older waiting one, which loses nothing: the run that waited last plans a commit
+# that holds every change merged before it. A workflow_dispatch dry run waits in its own group, so it can never cancel
+# a waiting push run.
 concurrency:
-  group: release
+  group: release-${{ github.event_name }}
   cancel-in-progress: false
 
 jobs:
@@ -34,7 +40,9 @@ jobs:
       version: ${{ steps.plan.outputs.version }}
       tag: ${{ steps.plan.outputs.tag }}
       publish: ${{ steps.plan.outputs.publish }}
-      pending: ${{ steps.plan.outputs.pending }}
+      needs_version: ${{ steps.plan.outputs.needs_version }}
+      dist_tag: ${{ steps.plan.outputs.dist_tag }}
+      prerelease: ${{ steps.plan.outputs.prerelease }}
       docs_deploy: ${{ steps.plan.outputs.docs_deploy }}
       node: ${{ steps.plan.outputs.node }}
     steps:
@@ -53,25 +61,43 @@ jobs:
           set -o pipefail
           node scripts/ci/release-plan.mjs plan | tee -a "$GITHUB_OUTPUT"
 
-  # Opens or updates the "Version packages" pull request from the pending changesets.
-  # Off until L4b, because the owner said "Changesets wait until we publish". To switch it on, change `false &&` to
-  # `true &&` in the `if:` below, the same one-line switch as ci.yml's changesets job.
-  # The pull request is opened with GITHUB_TOKEN, so its ci.yml runs start in an approval-required state and a person
-  # with write access approves them from the merge box. That keeps release.yml free of stored secrets; the release
-  # pull request needs the owner's review anyway.
-  version-pr:
-    name: Open or update the "Version packages" pull request
+  # Switched off by the `false &&` in its `if:`, because it runs third-party code (pnpm install and Changesets) in a
+  # job whose token can push to main, and main's branch protection may refuse that push. The follow-up in
+  # docs/plans/ci.md §3f replaces it with a job that opens an auto-merged "Version packages" pull request with a
+  # dedicated token. The rest of this comment describes the job as written.
+  #
+  # Turns the pending changesets into the next version and pushes it to main, so every package change merged to main
+  # publishes (the owner's decision of 2026-11-19). In Changesets pre mode the version is the next prerelease, such as
+  # 0.1.0-alpha.1. The commit is pushed with GITHUB_TOKEN, and a push made with that token starts no workflow run, so
+  # the commit can't start another release; the `if:` also skips a run whose head commit is a version commit. Runs
+  # wait for each other (the `release-push` concurrency group), and the job versions the newest main, not the commit that
+  # started the run, so two quick merges publish two versions in order, and a run whose changesets an earlier run
+  # already versioned pushes nothing.
+  version:
+    name: Version the pending changesets and push them to main
     needs: plan
-    if: false && github.event_name == 'push' && needs.plan.outputs.pending == 'true'
+    if: >-
+      false &&
+      github.event_name == 'push' && github.ref == 'refs/heads/main' && needs.plan.outputs.needs_version == 'true' &&
+      !startsWith(github.event.head_commit.message, 'chore(release): version packages')
     runs-on: ubuntu-24.04
     timeout-minutes: 10
     permissions:
-      contents: write
-      pull-requests: write
+      contents: write # the version commit
+    outputs:
+      sha: ${{ steps.push.outputs.sha }}
+      version: ${{ steps.plan.outputs.version }}
+      tag: ${{ steps.plan.outputs.tag }}
+      publish: ${{ steps.plan.outputs.publish }}
+      dist_tag: ${{ steps.plan.outputs.dist_tag }}
+      prerelease: ${{ steps.plan.outputs.prerelease }}
+      docs_deploy: ${{ steps.plan.outputs.docs_deploy }}
+      node: ${{ steps.plan.outputs.node }}
     steps:
-      # Full history, so the release branch can be rebuilt from main; no persisted token while pnpm installs.
+      # Full history, so the version commit can go on top of the newest main; no persisted token while pnpm installs.
       - uses: actions/checkout@v7.0.1
         with:
+          ref: main
           fetch-depth: 0
           persist-credentials: false
       - uses: pnpm/action-setup@v6.1.1 # pnpm's version comes from packageManager
@@ -82,43 +108,92 @@ jobs:
           node-version-file: .nvmrc
       # The root's own devDependencies hold @changesets/cli; nothing else is needed to version.
       - run: pnpm install --frozen-lockfile --filter .
-      - run: pnpm changeset version
-      - name: Push the release branch and open or update the pull request
+      - name: Version the packages and push the commit to main
+        id: push
         env:
           GH_TOKEN: ${{ github.token }}
           REPO: ${{ github.repository }}
         run: |
-          branch="changeset-release/main"
-          title="chore(release): version packages"
+          set -euo pipefail
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git switch -C "$branch"
-          git add -A
-          git commit -m "$title"
-          git push --force "https://x-access-token:${GH_TOKEN}@github.com/${REPO}.git" "$branch"
-          {
-            echo "Merging this pull request publishes the versions below to npm through release.yml, tags the release and starts the docs deploy."
-            echo
-            echo '```'
-            git diff --stat origin/main
-            echo '```'
-          } > "$RUNNER_TEMP/body.md"
-          if [ -n "$(gh pr list --repo "$REPO" --head "$branch" --state open --json number --jq '.[].number')" ]; then
-            gh pr edit "$branch" --repo "$REPO" --title "$title" --body-file "$RUNNER_TEMP/body.md"
-          else
-            gh pr create --repo "$REPO" --head "$branch" --base main --title "$title" --body-file "$RUNNER_TEMP/body.md"
-          fi
+          remote="https://x-access-token:${GH_TOKEN}@github.com/${REPO}.git"
+          # A merge can land on main while this job versions, so a rejected push starts again from the newest main.
+          for attempt in 1 2 3; do
+            git fetch --quiet origin main
+            git reset --quiet --hard origin/main
+            # A plain assignment, so that a crash fails the step under `set -e` instead of reading as "nothing to do".
+            needs=$(node scripts/ci/release-plan.mjs needs-version)
+            if [ "$needs" != "true" ]; then
+              echo "Nothing to version at $(git rev-parse HEAD): an earlier run versioned these changesets."
+              break
+            fi
+            before=$(node -p 'require("./packages/gateway/package.json").version')
+            # Changesets and its dependencies run without the token that can push to main.
+            env -u GH_TOKEN pnpm changeset version
+            version=$(node -p 'require("./packages/gateway/package.json").version')
+            git add -A
+            if git diff --cached --quiet; then
+              echo "pnpm changeset version changed nothing, so there is no version commit to push."
+              break
+            fi
+            # [skip ci] keeps ci.yml off this commit; its changes were checked on the pull requests that made them.
+            # Empty changesets move into .changeset/pre/ without a bump, and that commit mustn't claim a version.
+            if [ "$version" = "$before" ]; then
+              git commit --quiet -m "chore(release): consume changesets that bump no package [skip ci]"
+            else
+              git commit --quiet -m "chore(release): version packages to $version [skip ci]"
+            fi
+            if git push --quiet "$remote" HEAD:main 2> "$RUNNER_TEMP/push-error"; then
+              echo "Pushed the version commit for $version."
+              break
+            fi
+            cat "$RUNNER_TEMP/push-error"
+            if grep -qiE 'protected branch|GH006|GH013|rule violation|required status check' "$RUNNER_TEMP/push-error"; then
+              echo "::error::main's branch protection refused the version commit. Let GitHub Actions bypass the rule for main, or switch release.yml back to a \"Version packages\" pull request (docs/plans/ci.md §3f)."
+              exit 1
+            fi
+            if [ "$attempt" = 3 ]; then
+              echo "::error::The version commit was rejected three times; the next push to main versions the changesets."
+              exit 1
+            fi
+            echo "main moved while this job versioned it; starting again from the newest main."
+          done
+          echo "sha=$(git rev-parse HEAD)" >> "$GITHUB_OUTPUT"
+      # Plans again on the commit the job ended on, which the pack and publish jobs then release.
+      - id: plan
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -o pipefail
+          node scripts/ci/release-plan.mjs plan | tee -a "$GITHUB_OUTPUT"
 
   # Builds and packs both packages with a read-only token. Each package's `prepack` builds dist/, so this job runs our
   # build scripts; the publish job then uploads these tarballs without installing or running anything.
+  # When the version job ran, the release is the commit it ended on and its plan; otherwise the run's own commit and
+  # the first plan. The jobs after this one read the release from this job's outputs.
   pack:
-    needs: plan
-    if: github.event_name == 'workflow_dispatch' || needs.plan.outputs.publish == 'true'
+    needs: [plan, version]
+    # !cancelled(), because a job that needs a skipped job is skipped unless its `if:` says otherwise.
+    if: >-
+      ${{ !cancelled() && needs.plan.result == 'success' &&
+      (needs.version.result == 'success' || needs.version.result == 'skipped') &&
+      (github.event_name == 'workflow_dispatch' || (needs.version.outputs.publish || needs.plan.outputs.publish) == 'true') }}
     runs-on: ubuntu-24.04
     timeout-minutes: 15
+    outputs:
+      sha: ${{ needs.version.outputs.sha || github.sha }}
+      version: ${{ needs.version.outputs.version || needs.plan.outputs.version }}
+      tag: ${{ needs.version.outputs.tag || needs.plan.outputs.tag }}
+      publish: ${{ needs.version.outputs.publish || needs.plan.outputs.publish }}
+      dist_tag: ${{ needs.version.outputs.dist_tag || needs.plan.outputs.dist_tag }}
+      prerelease: ${{ needs.version.outputs.prerelease || needs.plan.outputs.prerelease }}
+      docs_deploy: ${{ needs.version.outputs.docs_deploy || needs.plan.outputs.docs_deploy }}
+      node: ${{ needs.version.outputs.node || needs.plan.outputs.node }}
     steps:
       - uses: actions/checkout@v7.0.1
         with:
+          ref: ${{ needs.version.outputs.sha || github.sha }}
           persist-credentials: false
       - uses: pnpm/action-setup@v6.1.1
       # No dependency cache: what ships must come from a clean install.
@@ -134,12 +209,12 @@ jobs:
             pnpm --dir "packages/$pkg" pack --pack-destination "$RUNNER_TEMP/release"
           done
       - name: Write the release notes
-        if: needs.plan.outputs.publish == 'true'
+        if: (needs.version.outputs.publish || needs.plan.outputs.publish) == 'true'
         run: node scripts/ci/release-plan.mjs notes "$RUNNER_TEMP/release/release-notes.md"
       - name: Summarise the run
         env:
-          VERSION: ${{ needs.plan.outputs.version }}
-          PUBLISH: ${{ needs.plan.outputs.publish }}
+          VERSION: ${{ needs.version.outputs.version || needs.plan.outputs.version }}
+          PUBLISH: ${{ needs.version.outputs.publish || needs.plan.outputs.publish }}
           EVENT: ${{ github.event_name }}
         run: |
           {
@@ -158,14 +233,17 @@ jobs:
           name: release
           path: ${{ runner.temp }}/release
           if-no-files-found: error
-          # As long as the `release` environment can hold the publish job waiting for approval (30 days).
+          # Long enough to re-run a failed publish job from the same tarballs.
           retention-days: 30
 
-  # Uploads the tarballs to npm through trusted publishing. Only a push to main gets here, and the `release`
-  # environment holds the job until the owner approves it. The job checks nothing out and installs nothing but npm.
+  # Uploads the tarballs to npm through trusted publishing. Only a push to main gets here. The `release` environment
+  # has no approval rule since the owner removed it on 2026-11-19, so the job runs unattended. It checks nothing out
+  # and installs nothing but npm.
   publish:
-    needs: [plan, pack]
-    if: github.event_name == 'push' && github.ref == 'refs/heads/main' && needs.plan.outputs.publish == 'true'
+    needs: pack
+    if: >-
+      ${{ !cancelled() && needs.pack.result == 'success' && github.event_name == 'push' &&
+      github.ref == 'refs/heads/main' && needs.pack.outputs.publish == 'true' }}
     runs-on: ubuntu-24.04
     timeout-minutes: 15
     environment: release
@@ -173,8 +251,11 @@ jobs:
       contents: write # the tag and the GitHub release
       id-token: write # the OIDC token npm exchanges for a short-lived publish token
     env:
-      VERSION: ${{ needs.plan.outputs.version }}
-      TAG: ${{ needs.plan.outputs.tag }}
+      VERSION: ${{ needs.pack.outputs.version }}
+      TAG: ${{ needs.pack.outputs.tag }}
+      SHA: ${{ needs.pack.outputs.sha }}
+      DIST_TAG: ${{ needs.pack.outputs.dist_tag }}
+      PRERELEASE: ${{ needs.pack.outputs.prerelease }}
     steps:
       # npm then reads only this file, which names the registry and holds no credentials, so there is no token to
       # fall back on. The paths go through $GITHUB_ENV because a job's `env:` can't read the `runner` context.
@@ -189,7 +270,7 @@ jobs:
       # No registry-url: setup-node would write an .npmrc that reads NODE_AUTH_TOKEN.
       - uses: actions/setup-node@v7.1.0
         with:
-          node-version: ${{ needs.plan.outputs.node }}
+          node-version: ${{ needs.pack.outputs.node }}
           package-manager-cache: false
       - uses: actions/download-artifact@v8.0.2
         with:
@@ -204,13 +285,38 @@ jobs:
             if (major < 22 || (major === 22 && minor < 14)) throw new Error(`trusted publishing needs Node 22.14.0 or later, found ${process.version}`);
           '
           test "$(npm --version)" = "11.21.2"
+          # A prerelease goes under its pre-mode dist-tag and a stable release under `latest`, never the other way.
+          if [ "$PRERELEASE" = "true" ]; then
+            ok=$([ -n "$DIST_TAG" ] && [ "$DIST_TAG" != "latest" ] && echo yes || echo no)
+          else
+            ok=$([ "$DIST_TAG" = "latest" ] && echo yes || echo no)
+          fi
+          if [ "$ok" != "yes" ]; then
+            echo "::error::Refusing to publish $VERSION (prerelease: $PRERELEASE) under the dist-tag '$DIST_TAG'."
+            exit 1
+          fi
           # Names only: printing a matching line would put its value, which may not be masked, in the log.
           if env | cut -d= -f1 | grep -iE '^(NODE_AUTH_TOKEN|NPM_TOKEN|NPM_CONFIG_.*(AUTH|TOKEN).*)$'; then
             echo "::error::An npm token is set. release.yml publishes through trusted publishing only."
             exit 1
           fi
+      # A re-run of an older run could otherwise publish an older version after a newer one and move the dist-tag
+      # back, so the job publishes only the version main holds now. A normal run always matches: only the version
+      # job changes main's version, and runs wait for each other.
+      - name: Refuse a version main has moved past
+        env:
+          GH_TOKEN: ${{ github.token }}
+          REPO: ${{ github.repository }}
+        run: |
+          set -euo pipefail
+          current=$(gh api "repos/$REPO/contents/packages/gateway/package.json?ref=main" -H "Accept: application/vnd.github.raw" | node -p 'JSON.parse(require("fs").readFileSync(0, "utf8")).version')
+          if [ "$current" != "$VERSION" ]; then
+            echo "::error::main is at $current, so this run won't publish $VERSION. The next push to main releases $current."
+            exit 1
+          fi
       # A rerun after a partial failure skips what npm already holds. npm adds provenance on its own only from a public
-      # repository; `--provenance` makes the publish fail instead of shipping a release without it.
+      # repository; `--provenance` makes the publish fail instead of shipping a release without it. `--tag` names the
+      # dist-tag, which npm requires for a prerelease, so an alpha never moves `latest`.
       - name: Publish each tarball, gateway first
         run: |
           set -euo pipefail
@@ -221,9 +327,9 @@ jobs:
               404) ;;
               *) echo "::error::The registry answered $status for @buildanagent/$pkg@$VERSION."; exit 1 ;;
             esac
-            npm publish "$RELEASE_DIR/buildanagent-$pkg-$VERSION.tgz" --access public --provenance
+            npm publish "$RELEASE_DIR/buildanagent-$pkg-$VERSION.tgz" --tag "$DIST_TAG" --access public --provenance
           done
-      # Creating the release creates the tag at this commit. A tag that `release.yml` pushes with GITHUB_TOKEN starts
+      # Creating the release creates the tag at the released commit, which is the version job's commit when it ran. A tag that `release.yml` pushes with GITHUB_TOKEN starts
       # no workflow, so the docs deploy is started by the next job instead.
       - name: Tag the release and create its GitHub release
         env:
@@ -239,8 +345,8 @@ jobs:
             read -r type existing <<< "$ref"
             # An annotated tag's ref points at the tag object, so peel it to the commit.
             if [ "$type" = "tag" ]; then existing=$(gh api "repos/$REPO/git/tags/$existing" --jq .object.sha); fi
-            if [ "$existing" != "$GITHUB_SHA" ]; then
-              echo "::error::The tag $TAG already points at $existing, not $GITHUB_SHA."
+            if [ "$existing" != "$SHA" ]; then
+              echo "::error::The tag $TAG already points at $existing, not $SHA."
               exit 1
             fi
           elif ! grep -q "HTTP 404" "$RUNNER_TEMP/tag-error"; then
@@ -248,13 +354,18 @@ jobs:
             echo "::error::Couldn't tell whether the tag $TAG exists."
             exit 1
           fi
-          gh release create "$TAG" --repo "$REPO" --target "$GITHUB_SHA" --title "$TAG" --notes-file "$RELEASE_DIR/release-notes.md"
+          flags=()
+          if [ "$PRERELEASE" = "true" ]; then flags+=(--prerelease); fi
+          gh release create "$TAG" --repo "$REPO" --target "$SHA" --title "$TAG" --notes-file "$RELEASE_DIR/release-notes.md" "${flags[@]}"
 
   # Deploys the docs for the new tag (DS4). A workflow_dispatch sent with GITHUB_TOKEN still creates a run, unlike the
-  # tag push. Skipped, not failed, while docs-deploy.yml doesn't exist yet (L8).
+  # tag push. Skipped, not failed, while docs-deploy.yml doesn't exist yet (L8), and for a prerelease, because the
+  # production docs follow stable releases only; next.docs follows main in the meantime.
   docs:
-    needs: [plan, publish]
-    if: needs.plan.outputs.docs_deploy == 'true'
+    needs: [pack, publish]
+    if: >-
+      ${{ !cancelled() && needs.publish.result == 'success' && needs.pack.outputs.docs_deploy == 'true' &&
+      needs.pack.outputs.prerelease == 'false' }}
     runs-on: ubuntu-24.04
     timeout-minutes: 5
     permissions:
@@ -264,5 +375,5 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
           REPO: ${{ github.repository }}
-          TAG: ${{ needs.plan.outputs.tag }}
+          TAG: ${{ needs.pack.outputs.tag }}
         run: gh workflow run docs-deploy.yml --repo "$REPO" --ref main -f tag="$TAG"

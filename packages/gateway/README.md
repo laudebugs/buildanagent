@@ -4,6 +4,16 @@ The gateway lets your agent call any model through one transcript and one stream
 
 As of November 2026 the package holds the transcript types, the stream checker, `complete()`, `createModel()` with its retries and middleware, the price catalog that puts a cost on every message, the tool-name rule, the Anthropic Messages and OpenAI-compatible Chat Completions adapters, and `transformMessages()`, which prepares a transcript for the model you send it to.
 
+## Install the alpha with `pnpm add @buildanagent/gateway@alpha`
+
+Every release is an alpha until the first stable one, and npm serves the alphas under the `alpha` dist-tag:
+
+```bash
+pnpm add @buildanagent/gateway@alpha
+```
+
+Name the tag. A plain `pnpm add @buildanagent/gateway` installs `0.0.0-bootstrap.0`, a deprecated placeholder, because `latest` stays on it until the first stable release. The package needs Node 22 or later.
+
 ## A conversation is a list of messages you own
 
 A conversation is a list of `Message`s: user messages, assistant messages and tool results. Their content is a short list of blocks (`text`, `reasoning`, `image` and `tool_call`), so your code never handles a provider's wire format. A reasoning block may carry a signature that only the model that wrote it accepts.
