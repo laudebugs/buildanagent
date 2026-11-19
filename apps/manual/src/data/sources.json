@@ -138,5 +138,44 @@
     "asOf": "November 2026",
     "version": "ai@7.0.162",
     "verifiedIn": "apps/manual/fact-checks/talking-to-a-model.md"
+  },
+  {
+    "id": "ai-sdk-generating-text",
+    "title": "Generating and Streaming Text",
+    "publisher": "AI SDK documentation",
+    "url": "https://ai-sdk.dev/docs/ai-sdk-core/generating-text",
+    "kind": "docs",
+    "asOf": "November 2026",
+    "version": "ai@7.0.162",
+    "verifiedIn": "apps/manual/fact-checks/talking-to-a-model.md"
+  },
+  {
+    "id": "ai-sdk-stream-text",
+    "title": "streamText",
+    "publisher": "AI SDK documentation",
+    "url": "https://ai-sdk.dev/docs/reference/ai-sdk-core/stream-text",
+    "kind": "docs",
+    "asOf": "November 2026",
+    "version": "ai@7.0.162",
+    "verifiedIn": "apps/manual/fact-checks/talking-to-a-model.md"
+  },
+  {
+    "id": "langchain-streaming",
+    "title": "Streaming",
+    "publisher": "LangChain documentation",
+    "url": "https://docs.langchain.com/oss/javascript/langchain/streaming",
+    "kind": "docs",
+    "asOf": "November 2026",
+    "verifiedIn": "apps/manual/fact-checks/talking-to-a-model.md"
+  },
+  {
+    "id": "copilot-streaming-events",
+    "title": "Streaming events",
+    "publisher": "GitHub Copilot SDK documentation",
+    "url": "https://github.com/github/copilot-sdk/blob/v1.0.31/docs/features/streaming-events.md",
+    "kind": "docs",
+    "asOf": "November 2026",
+    "version": "v1.0.31",
+    "verifiedIn": "apps/manual/fact-checks/talking-to-a-model.md"
   }
 ]

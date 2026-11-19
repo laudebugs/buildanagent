@@ -30,5 +30,13 @@
     "chapter": "talking-to-a-model",
     "illustration": null,
     "breaks": "The model can be handed far more than a slip, and everything it is handed costs tokens."
+  },
+  {
+    "id": "news-ticker",
+    "concept": "streaming",
+    "analogy": "a news ticker",
+    "chapter": "talking-to-a-model",
+    "illustration": null,
+    "breaks": "The deltas are provisional; the message at the end is the one that counts."
   }
 ]
