@@ -1,14 +1,14 @@
 {
   "format": 1,
-  "example": "10-retries-caching-budget",
-  "file": "verify/vercel-ai-sdk/examples/10-retries-caching-budget.ts",
+  "example": "12-retries-caching-budget",
+  "file": "verify/vercel-ai-sdk/examples/12-retries-caching-budget.ts",
   "harness": "verify/vercel-ai-sdk",
   "pin": "ai@7.0.162",
   "mock": "ai@7.0.162",
   "events": [
     {
       "kind": "request",
-      "line": 81,
+      "line": 62,
       "model": "model-1",
       "repeated": 0,
       "messages": [
@@ -35,7 +35,7 @@
     },
     {
       "kind": "request",
-      "line": 81,
+      "line": 62,
       "model": "model-1",
       "repeated": 2,
       "messages": [],
@@ -43,7 +43,7 @@
     },
     {
       "kind": "response",
-      "line": 81,
+      "line": 62,
       "model": "model-1",
       "message": {
         "role": "assistant",
@@ -58,13 +58,13 @@
     },
     {
       "kind": "check",
-      "line": 114,
+      "line": 139,
       "message": "a retryable error costs one retry (1)",
       "pass": true
     },
     {
       "kind": "request",
-      "line": 81,
+      "line": 62,
       "model": "model-1",
       "repeated": 1,
       "messages": [
@@ -82,13 +82,13 @@
     },
     {
       "kind": "check",
-      "line": 121,
-      "message": "an error that is not retryable fails on the first attempt",
+      "line": 144,
+      "message": "an error that is not retryable is not retried",
       "pass": true
     },
     {
       "kind": "request",
-      "line": 81,
+      "line": 62,
       "model": "model-1",
       "repeated": 1,
       "messages": [
@@ -106,7 +106,7 @@
     },
     {
       "kind": "request",
-      "line": 81,
+      "line": 62,
       "model": "model-1",
       "repeated": 2,
       "messages": [],
@@ -114,13 +114,13 @@
     },
     {
       "kind": "check",
-      "line": 140,
+      "line": 148,
       "message": "maxRetries 1 gives up after two errors",
       "pass": true
     },
     {
       "kind": "request",
-      "line": 81,
+      "line": 62,
       "model": "model-1",
       "repeated": 1,
       "messages": [
@@ -138,7 +138,7 @@
     },
     {
       "kind": "response",
-      "line": 81,
+      "line": 62,
       "model": "model-1",
       "message": {
         "role": "assistant",
@@ -153,32 +153,101 @@
     },
     {
       "kind": "check",
-      "line": 149,
+      "line": 159,
       "message": "the first call writes the prefix to the cache",
       "pass": true
     },
     {
       "kind": "check",
-      "line": 153,
+      "line": 163,
       "message": "the same prefix, sent again, reports cache-read tokens (3973)",
       "pass": true
     },
     {
       "kind": "check",
-      "line": 154,
-      "message": "cached calls stay cheap (spent $0.01118)",
+      "line": 165,
+      "message": "the cached call costs under a fifth of an uncached one ($0.00062)",
+      "pass": true
+    },
+    {
+      "kind": "request",
+      "line": 62,
+      "model": "model-1",
+      "repeated": 1,
+      "messages": [
+        {
+          "role": "user",
+          "parts": [
+            {
+              "type": "text",
+              "text": "Hi"
+            }
+          ]
+        }
+      ],
+      "tools": []
+    },
+    {
+      "kind": "response",
+      "line": 62,
+      "model": "model-1",
+      "message": {
+        "role": "assistant",
+        "parts": [
+          {
+            "type": "text",
+            "text": "Refunds take five days."
+          }
+        ]
+      },
+      "finish": "stop"
+    },
+    {
+      "kind": "check",
+      "line": 173,
+      "message": "a long prefix with a short answer projects $0.01015",
       "pass": true
     },
     {
       "kind": "check",
-      "line": 160,
-      "message": "a call over the budget is refused (projected $0.0589)",
+      "line": 182,
+      "message": "a call that fits the budget alone ($0.0249) is refused ...",
       "pass": true
     },
     {
       "kind": "check",
-      "line": 161,
+      "line": 186,
+      "message": "... because $0.0114 is already spent",
+      "pass": true
+    },
+    {
+      "kind": "check",
+      "line": 187,
       "message": "the refused call never reached the model",
+      "pass": true
+    },
+    {
+      "kind": "check",
+      "line": 225,
+      "message": "over the Messages format, an HTTP 529 costs one retry (3 requests for two calls)",
+      "pass": true
+    },
+    {
+      "kind": "check",
+      "line": 229,
+      "message": "over the Messages format, the first call writes the prefix",
+      "pass": true
+    },
+    {
+      "kind": "check",
+      "line": 233,
+      "message": "over the Messages format, the repeated prefix reads from the cache",
+      "pass": true
+    },
+    {
+      "kind": "check",
+      "line": 238,
+      "message": "over the Messages format, the budget refuses before any request is sent",
       "pass": true
     }
   ]

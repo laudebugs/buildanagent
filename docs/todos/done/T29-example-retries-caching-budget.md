@@ -41,7 +41,7 @@ Write a new type-checked, mock-run example in `verify/vercel-ai-sdk/examples/` s
 - [x] Wrap the model with a middleware that projects each call's cost before sending it, and assert that a call over the cap never reaches the mock.
 - [x] If a second wire protocol can be shown offline through a provider's base-URL setting and a mock HTTP server, add it; otherwise say so in the example's header.
 - [x] Run the harness's `pnpm test` twice, and commit its updated `results/` and transcript.
-- [x] Draft the example's header comment and README line with `/anthropic-skills:writing`, fact-check each claim about the SDK against its pinned `.d.ts` or reference, then review the copy with `/anthropic-skills:writing-review` and fix every finding.
+- [ ] Draft the example's header comment and README line with `/anthropic-skills:writing`, fact-check each claim about the SDK against its pinned `.d.ts` or reference, then review the copy with `/anthropic-skills:writing-review` and fix every finding.
 
 ## Acceptance criteria
 
@@ -66,16 +66,14 @@ Write a new type-checked, mock-run example in `verify/vercel-ai-sdk/examples/` s
 ## Definition of done
 
 - [x] Claimed: the first commit moved this file `ready/` → `ongoing/` (Status `ongoing`)
-- [ ] Prose drafted with `/anthropic-skills:writing`, and changed claims re-checked against their sources
+- [x] Prose drafted with `/anthropic-skills:writing`, and changed claims re-checked against their sources
 - [x] `pnpm check`, `pnpm typecheck` and `pnpm test` pass locally; pushed after each meaningful step
-- [ ] This file moved `ongoing/` → `done/` (Status `done`) in the last work commit, and the plan's todo table updated
+- [x] This file moved `ongoing/` → `done/` (Status `done`) in the last work commit, and the plan's todo table updated
 - [ ] Two code-review rounds run on the pull request (`/code-review high --max-findings default`, then `medium` and `low` after more than 6 confirmed findings, otherwise `low`), with every finding fixed or explained in a commit message
 - [ ] Copy reviewed with `/anthropic-skills:writing-review` after the code changes, with its findings fixed and the rubric scores in the pull request description
 
 ## Outcome
 
-Added `verify/vercel-ai-sdk/examples/10-retries-caching-budget.ts`, with `prices`, `budget`, `retry`, `cache` and `refuse` regions and `book:note` markers `retry-header`, `retry-count`, `cache-read` and `refused`. Its eight checks cover one retry after a retryable error (`retry-after-ms: "0"` keeps the run fast), no retry for a non-retryable error, `RetryError` once `maxRetries` runs out, a cache write then cache-read tokens on a repeated prefix, and a budget middleware that refuses an over-budget call before it reaches the mock. Prices are Claude Sonnet 5.5's from the gateway catalog, as of November 2026. The transcript is committed.
+Added `verify/vercel-ai-sdk/examples/12-retries-caching-budget.ts`, with `prices`, `budget`, `retry`, `cache`, `refuse` and `wire` regions and `book:note` markers `retry-header`, `retry-count`, `cache-read` and `refused`. Its fourteen checks cover, against a scripted model, one retry after a retryable error (`retry-after-ms: "0"` keeps the run fast), no retry for a non-retryable error, `RetryError` once `maxRetries` runs out, a cache write then cache-read tokens on a repeated prefix at under a fifth of the uncached cost, a projection that prices the prefix as a cache write and uses the call's own `maxOutputTokens`, and a budget middleware that refuses a call that fits alone but not on top of what is already spent, before it reaches the model. The same retry, cache and budget calls then run through `@ai-sdk/anthropic` with a stub `fetch` that answers in Anthropic's Messages wire format, the second wire protocol, offline. Prices are Claude Sonnet 5.5's from the gateway catalog, as of November 2026. The transcript and the example's `run-examples.json` entry are committed.
 
-Decision: no second wire protocol. A mock HTTP server behind a provider's base URL replaces the transport below the model interface, where the recorder sits, so it would test a provider package and record nothing; the example header says so. Not run: the two code-review rounds and the writing review, which belong to the pull request.
-
-Review boxes still open: the two code-review rounds and the writing review.
+Still open: the two code-review rounds, which belong to the pull request, and the writing review of the header and README copy (Task 6's last clause).

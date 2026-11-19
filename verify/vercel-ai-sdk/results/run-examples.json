@@ -79,5 +79,14 @@
     "ms": 385,
     "modelCalls": 0,
     "tail": "ok - step 1 looks up the order\nok - the refund waits for approval\nok - no refund before approval\nok - after approval the refund runs exactly once\nok - the agent returns a typed triage record\nok - three model calls in all: lookup, refund request, final answer\nok - the final call asks for JSON\nRefunded A-1 after a double charge."
+  },
+  {
+    "id": "12-retries-caching-budget",
+    "file": "/home/user/agent-speak/verify/vercel-ai-sdk/examples/12-retries-caching-budget.ts",
+    "outcome": "ran",
+    "exit": 0,
+    "ms": 650,
+    "modelCalls": 0,
+    "tail": "ok - a long prefix with a short answer projects $0.01015\nok - a call that fits the budget alone ($0.0249) is refused ...\nok - ... because $0.0114 is already spent\nok - the refused call never reached the model\nok - over the Messages format, an HTTP 529 costs one retry (3 requests for two calls)\nok - over the Messages format, the first call writes the prefix\nok - over the Messages format, the repeated prefix reads from the cache\nok - over the Messages format, the budget refuses before any request is sent"
   }
 ]
