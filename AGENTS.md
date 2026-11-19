@@ -152,3 +152,13 @@ Copy is any text a person reads: documentation, READMEs, plans, ADRs, todos, pul
 4. If a writing fix changed code, run one more `/code-review low <PR#>` and fix its findings. Then run `/anthropic-skills:writing-review` once more on only the copy those last fixes changed, and fix its findings. The process stops there: anything a further pass would find goes in the pull request description as a follow-up.
 
 Writing findings are counted apart from code findings, and the pull request description records the rubric scores before and after. Every document also goes through the five steps in [Every document is drafted, fact-checked and reviewed before it merges](#every-document-is-drafted-fact-checked-and-reviewed-before-it-merges), wherever it lives in the repo.
+
+## Subagents run on the model their work needs
+
+When you delegate work to a subagent, choose its model by the kind of work (the owner's rule, 2026-11-19):
+
+- **Opus 5.5:** book chapters and their research; anything security-sensitive, such as secrets, deploys, untrusted input or live API runs; every first-round `/code-review high`; and tooling builds that need real design work.
+- **Sonnet 5.5:** builds that follow an established pattern, such as a new example in an existing harness; the `/code-review medium` and `low` rounds; and `/anthropic-skills:writing-review` passes.
+- **Sonnet 5.5 or Haiku 5.5:** mechanical chores, such as merging `main`, renumbering fact-check rows, link checks and drafting pull request descriptions.
+
+The session that coordinates the work stays on Opus 5.5. Ask the owner before using Fable 5.2 for this work. The split costs little in quality, because every pull request still gets its first review on Opus 5.5, and that review catches what a smaller model's build or follow-up review misses.
