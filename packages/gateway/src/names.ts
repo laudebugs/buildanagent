@@ -98,8 +98,11 @@ export interface ToolNameMap {
 const HASH_SUFFIX_LENGTH = 9; // "_" and 8 hex digits
 const HASH_ALPHABET = "_0123456789abcdef";
 
-// FNV-1a over UTF-16 code units: synchronous and portable, so sanitising needs neither Web Crypto nor a Promise.
-function fnv1a(text: string): string {
+/**
+ * FNV-1a over UTF-16 code units, as 8 hex digits: synchronous and portable, so sanitising needs neither Web Crypto
+ * nor a Promise. Internal to the gateway; adapters also use it to fingerprint a conversation.
+ */
+export function fnv1a(text: string): string {
   let hash = 0x811c9dc5;
   for (let i = 0; i < text.length; i++) {
     hash ^= text.charCodeAt(i);

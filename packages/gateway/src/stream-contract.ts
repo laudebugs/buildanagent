@@ -7,6 +7,7 @@
  * 4. An `error` terminal's message has `stopReason` `"error"` or `"aborted"`; a `done` terminal's has neither, and
  *    every block it started has ended.
  * 5. A gateway `retry` event comes after `start` and before any block event, because output is never retried.
+ * 6. A `warning` may come anywhere between `start` and the terminal event. It is not output, so a retry may follow it.
  */
 import type { GatewayEvent } from "./runtime-types.ts";
 import type { ModelEvent } from "./spec.ts";

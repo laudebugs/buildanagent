@@ -56,6 +56,7 @@ export type {
   ModelCaps,
   ModelContent,
   ModelContext,
+  ModelErrorCode,
   ModelRef,
   OpaqueToken,
   Usage,

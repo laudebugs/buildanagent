@@ -1,6 +1,6 @@
 /**
  * `GatewayError`: the gateway's error for programmer errors, such as a missing key, invalid options, a malformed
- * catalog or a tool name outside the canonical rule.
+ * catalog, a tool name outside the canonical rule, or a request a mock transport's script did not expect.
  */
 
 /** Why a `GatewayError` was thrown. */
@@ -9,7 +9,8 @@ export type GatewayErrorCode =
   | "missing_caps"
   | "invalid_options"
   | "invalid_catalog"
-  | "invalid_tool_name";
+  | "invalid_tool_name"
+  | "unexpected_request";
 
 // A registered symbol, so the guard still works when two copies of the package are bundled.
 const GATEWAY_ERROR = Symbol.for("buildanagent.gateway.GatewayError");

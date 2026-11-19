@@ -1,0 +1,9 @@
+{
+  "type": "error",
+  "error": {
+    "type": "rate_limit_error",
+    "message": "Your organization has reached the monthly usage threshold of its API tier.",
+    "details": { "error_code": "enforced_spend_limit_reached" }
+  },
+  "request_id": "req_011SpendLimit"
+}

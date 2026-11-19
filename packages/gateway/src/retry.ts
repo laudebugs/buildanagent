@@ -86,7 +86,7 @@ interface CallState {
 }
 
 function isBlockEvent(event: ModelEvent): boolean {
-  return event.type !== "start" && event.type !== "done" && event.type !== "error";
+  return event.type !== "start" && event.type !== "warning" && event.type !== "done" && event.type !== "error";
 }
 
 /** The final message: this attempt's usage and `cost`, with the failed attempts' usage and cost added. */
