@@ -1,6 +1,6 @@
 # Fact-check: the safety core's outcomes, hash and AI SDK adapter (E1)
 
-This log checks every factual claim about third-party APIs and standards that E1's code, tests and `packages/agent-safety/README.md` rely on, on 2026-11-19. Registry dates come from `https://registry.npmjs.org/<package>` read with curl that day. Type claims come from the `.d.ts` files of the pinned packages installed in this workspace. The standards were read from the RFC Editor's text and the AIP repository's Markdown. A claim backed by a passing test in `packages/agent-safety/test/` says so.
+On 2026-11-19, this log checked every factual claim about third-party APIs and standards that E1's code, tests and `packages/agent-safety/README.md` rely on. Registry dates come from `https://registry.npmjs.org/<package>` read with curl that day. Type claims come from the `.d.ts` files of the pinned packages installed in this workspace. The standards were read from the RFC Editor's text and the AIP repository's Markdown. A claim backed by a passing test in `packages/agent-safety/test/` says so.
 
 ## Pins
 
@@ -29,7 +29,7 @@ This log checks every factual claim about third-party APIs and standards that E1
 | # | Claim | Verdict | Source and reason |
 |---|---|---|---|
 | 13 | An AIP-193 `reason` "must be at most 63 characters and match a regular expression of `[A-Z][A-Z0-9_]+[A-Z0-9]`" | ✅ | [AIP-193](https://google.aip.dev/193), read from `aip/general/0193.md` in the AIP repository; `writeOutcome()` uses that pattern, anchored |
-| 14 | RFC 8785 (JCS) sorts property names recursively by their UTF-16 code units, compared as unsigned integers, and keeps array order | ✅ | [RFC 8785 §3.2.3](https://www.rfc-editor.org/rfc/rfc8785.txt); JavaScript's default `sort()` compares strings by UTF-16 code units, and `test/hash.test.ts` checks a surrogate pair against U+FB33 **[verified]** |
+| 14 | RFC 8785 (JCS) sorts property names recursively by their UTF-16 code units, compared as unsigned integers, and keeps array order | ✅ | [RFC 8785 §3.2.3](https://www.rfc-editor.org/rfc/rfc8785.txt); `byKey()` in `src/hash.ts` sorts with JavaScript's `<`, which compares strings by UTF-16 code units (corrected, row 24); `test/hash.test.ts` checks a surrogate pair against U+FB33 **[verified]** |
 | 15 | JCS serializes literals, strings and numbers as ECMAScript's `JSON.stringify` does | ✅ | RFC 8785 §3.2.2: "This part is identical to that of ECMAScript" |
 | 16 | JCS must reject NaN, Infinity and lone surrogates | ✅ | RFC 8785 §3.2.2.2 and §3.2.2.3; `test/hash.test.ts` checks all three **[verified]** |
 | 17 | RFC 8785's sample object canonicalizes to `{"literals":[null,true,false],"numbers":[333333333.3333333,1e+30,4.5,0.002,1e-27],"string":"€$\u000f\nA'B\"\\\\\"/"}` | ✅ | RFC 8785 §3.2.2 gives the serialized primitives; the sorted key order follows §3.2.3. `test/hash.test.ts` hashes the parsed sample against that string **[verified]** |
@@ -44,3 +44,14 @@ This log checks every factual claim about third-party APIs and standards that E1
 | 21 | Under our `source` condition, TypeScript reads those files and reports TS5097 unless `allowImportingTsExtensions` is on | ✅ | `pnpm --filter @buildanagent/agent-safety typecheck` before and after the setting in `tsconfig.json` |
 | 22 | Vitest's native loader resolves externalized dependencies with our `source` condition, and Node 22 then refuses with "Stripping types is currently unsupported for files under node_modules" | ✅ | The error from `vitest run` before `server.deps.inline` listed `ai`, `@ai-sdk/*` and `eventsource-parser` |
 | 23 | With pnpm's default `auto-install-peers`, listing `agents` as an optional peer made pnpm install it into the package and record it under `dependencies` in `pnpm-lock.yaml` | ✅ | Observed with pnpm 10.34.9 on 2026-11-19; `agents` therefore joins the peers with the first `./agents` adapter instead |
+
+## Language rules the review fixes rely on
+
+The code review's fixes changed how `canonicalInputHash()` walks its input, so these rows check the ECMAScript behaviour each fix assumes.
+
+| # | Claim | Verdict | Source and reason |
+|---|---|---|---|
+| 24 | Row 14's reason named JavaScript's default `sort()`; the code now sorts entries with `<`, which compares strings by UTF-16 code units as well | ✏️ | ECMA-262, IsLessThan on two strings compares code unit values. `src/hash.ts` `byKey()` uses `<`, and the surrogate-pair test in `test/hash.test.ts` still passes **[verified]** |
+| 25 | `Array.prototype.map` skips the holes of a sparse array, and `join` writes each one as an empty string, so `[1, , 3]` would serialize as `[1,,3]` | ✅ | ECMA-262, `map` calls its callback only where HasProperty is true, and `join` writes `undefined` and holes as the empty string. The hole test in `test/hash.test.ts` failed before the index loop **[verified]** |
+| 26 | `Object.prototype`'s own prototype is `null` in every realm, so a plain object from `node:vm` has a prototype whose prototype is `null` | ✅ | ECMA-262, the Object prototype object's [[Prototype]] is `null`. The cross-realm test in `test/hash.test.ts` hashes an object from `runInNewContext` **[verified]** |
+| 27 | RFC 8785 doesn't mention cycles, but it requires data to be adapted to I-JSON before serialization, whether parsed or created in code, and no JSON text holds a cycle; so rejecting a cyclic input follows from the RFC | ✅ | [RFC 8785 §3.1](https://www.rfc-editor.org/rfc/rfc8785.txt): "Irrespective of the method used, the data to be serialized MUST be adapted for I-JSON". `test/hash.test.ts` checks the rejection **[verified]** |

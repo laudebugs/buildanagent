@@ -36,7 +36,12 @@ const outcome = writeOutcome({
 });
 ```
 
-Every outcome needs `operation` and `next`, which tells the model what to do now. Optional fields add detail: `applied`, `reverted` and `notReversible` list effects, `currentState` gives one line the model can trust, and `avoid` adds what the model must not do. A `reason` must be upper snake case of at most 63 characters, such as `CARD_DECLINED`. An optional text field or listed effect must not be blank, and an effect list must not contradict the kind: a `not_applied` outcome lists no effects, an `applied` one nothing `reverted`, and a `compensated` one nothing `applied`. A `partial` or `unknown` outcome may use `same_key` only with an `effectKey`, since without one a retry could take effect twice. A field that breaks a rule throws a `SafetyError` with the code `invalid_outcome`.
+Every outcome needs `operation` and `next`, which tells the model what to do now. Optional fields add detail: `applied`, `reverted` and `notReversible` list effects, `currentState` gives one line the model can trust, and `avoid` adds what the model must not do. `writeOutcome()` throws a `SafetyError` with the code `invalid_outcome` when a field breaks one of these rules:
+
+- A `reason` is upper snake case of at most 63 characters, such as `CARD_DECLINED`.
+- No optional text field and no listed effect is blank.
+- The effects agree with the kind: a `not_applied` outcome lists none, an `applied` one lists nothing `reverted`, and a `compensated` one lists nothing `applied`.
+- A `partial` or `unknown` outcome uses `same_key` only with an `effectKey`, because without one a retry could take effect twice.
 
 ## The model reads a sentence and a payload
 
@@ -66,7 +71,14 @@ An approval signs a hash of the tool's input, and an effect record stores the sa
 await canonicalInputHash({ to: "ada@example.com", body: "Hi" }) === await canonicalInputHash({ body: "Hi", to: "ada@example.com" }); // true
 ```
 
-Any changed value gives a different hash. A property set to `undefined` counts as absent, as it does in `JSON.stringify`. The hash is async, because Web Crypto's digest is. For an input with no single JSON form, it rejects with a `SafetyError` with the code `invalid_input`: a number that isn't finite, `undefined` or a hole in an array, a string with a lone surrogate, a bigint, a function, an object that isn't plain, such as a `Date`, or an object that contains itself.
+Any changed value gives a different hash. A property set to `undefined` counts as absent, as it does in `JSON.stringify`. The hash is async, because Web Crypto's digest is. It rejects with a `SafetyError`, code `invalid_input`, for an input that has no single JSON form:
+
+- a number that isn't finite;
+- `undefined`, or a hole, in an array;
+- a string with a lone surrogate;
+- a bigint or a function;
+- an object that isn't plain, such as a `Date`;
+- an object or array that contains itself.
 
 ## The root entry loads without any third-party SDK
 

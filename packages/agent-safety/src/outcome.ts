@@ -174,12 +174,15 @@ function checkKindAndRetry(kind: unknown, retry: unknown): Retry {
 }
 
 /**
- * Builds a write outcome, filling in the defaults and checking every field. Throws a `SafetyError` with code
- * `invalid_outcome` for an unknown kind, a retry rule the kind doesn't allow, an empty `operation` or `next`, an `operation` with
- * leading or trailing spaces, a blank effect or
- * optional text field, a `reason` that isn't upper snake case of at most 63 characters, effects the kind contradicts
- * (any effect on `not_applied`, `reverted` on `applied`, `applied` on `compensated`), or a `partial` or `unknown`
- * outcome that allows a `same_key` retry without an `effectKey`. The result is frozen.
+ * Builds a write outcome, filling in the defaults and checking every field. The result is frozen.
+ *
+ * Throws a `SafetyError`, code `invalid_outcome`, for:
+ * - an unknown kind, or a retry rule the kind doesn't allow;
+ * - an empty `operation` or `next`, or an `operation` with leading or trailing spaces;
+ * - a blank effect or optional text field;
+ * - a `reason` that isn't upper snake case of at most 63 characters;
+ * - effects the kind contradicts: any effect on `not_applied`, `reverted` on `applied`, `applied` on `compensated`;
+ * - a `partial` or `unknown` outcome that allows a `same_key` retry without an `effectKey`.
  */
 export function writeOutcome(init: WriteOutcomeInit): WriteOutcome {
   const retry = checkKindAndRetry(init.kind, init.retry);

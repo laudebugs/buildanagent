@@ -103,7 +103,7 @@ History: plan review 2 (2026-11-19) moved `canonicalInputHash()` here from E3 an
 ## Definition of done
 
 - [x] Claimed: the first commit moved this file `ready/` → `ongoing/` (Status `ongoing`)
-- [ ] Prose drafted with `/anthropic-skills:writing` and reviewed with `/anthropic-skills:writing-review`, with the fixes applied and changed claims re-checked
+- [x] Prose drafted with `/anthropic-skills:writing` and reviewed with `/anthropic-skills:writing-review`, with the fixes applied and changed claims re-checked
 - [x] `pnpm check`, `pnpm typecheck` and `pnpm test` pass locally; pushed after each meaningful step
 - [x] This file moved `ongoing/` → `done/` (Status `done`), and the plan's todo table updated
 
@@ -118,14 +118,15 @@ Each criterion and the test that covers it:
 - A bad `reason` is rejected at construction: `test/outcomes.test.ts` (64 characters, seven malformed codes, and a 63-character code accepted).
 - Key order doesn't change the hash, and any changed value does: `test/hash.test.ts`, which also checks RFC 8785's sample.
 - The boundary: `test/boundaries.test.ts` walks every file reachable from `src/index.ts`. The import without peers is the new pack test in `scripts/ci/packages-pack.test.mjs`, which loads the root entry and hashes in an install that lacks `ai` and `@ai-sdk/provider-utils`.
-- The type rules: `test/outcome-types.test.ts`, which also rules out `unknown` with `new_operation_only`.
+- The type rules: `test/outcome-types.test.ts`, which checks every retry rule each kind allows and every one it rules out.
 
 Judgement calls:
 
 - **A new, private package.** ADR 0043 names a third workspace package, so E1 creates one. It stays out of the fixed version group and out of `release.yml`'s publish list. The changeset gate and the release plan skip private packages, so the change needs no changeset. Publishing it is an owner step: npm needs the package to exist before a trusted publisher can be added for it, and then it joins the fixed group and the release order, and drops `private`.
 - **Retry rules per kind.** `applied` allows only `never`; `not_applied` allows `same_key`, `new_operation_only` and `never`; `compensated` allows `new_operation_only` and `never`; `partial` and `unknown` allow `same_key`, `reconcile_first` and `never`. The defaults follow the server rollback table, with `applied` → `never`.
+- **Outcomes are checked where the model reads them.** `writeOutcome()` rejects effects that contradict the kind, blank text and a `same_key` retry of a `partial` or `unknown` write without an `effectKey`. `renderOutcome()` runs the same checks, because `WriteOutcome` is a plain type that a tool can build by hand. A keyless `not_applied` outcome renders "Retrying this same call is safe, because this attempt changed nothing" rather than promising a keyed retry. The code review added these rules.
 - **The reason rule** is AIP-193's pattern, `[A-Z][A-Z0-9_]+[A-Z0-9]`, so a code needs at least three characters.
-- **The hash** is RFC 8785 canonical JSON, SHA-256 and 64 lowercase hex digits, with no algorithm prefix. Properties set to `undefined` count as absent; everything without one JSON form throws `invalid_input`.
+- **The hash** is RFC 8785 canonical JSON, SHA-256 and 64 lowercase hex digits, with no algorithm prefix. Properties set to `undefined` count as absent. The hash is async, because Web Crypto's digest is, and it rejects with `invalid_input` for anything without one JSON form, holes in arrays and cycles included.
 - **The payload** uses the outcome's own camelCase field names rather than the report's proposed snake_case, so the model and the harness read one vocabulary. `toAiToolResult()` adds the sentences as `message`.
 - **`agents` is not yet a peer.** Listed as an optional peer, pnpm's default `auto-install-peers` installed the whole `agents` tree into the package and recorded it as a dependency in the lockfile. It joins the peers with the first `./agents` adapter.
 - **Pins.** `ai` 7.0.162, `@ai-sdk/provider-utils` 5.0.74, `@ai-sdk/provider` 4.0.35 and `zod` 4.6.7 are dev dependencies, each at least a week old. `ai` has moved on to 7.0.177, but ADR 0038 makes a new version a target only after a reference round, so the package keeps the verified pin and the plan's risk 4 passes to the weekly SDK-update pull requests.

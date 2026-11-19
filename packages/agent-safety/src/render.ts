@@ -117,8 +117,8 @@ function toPayload(outcome: WriteOutcome): OutcomePayload {
 /**
  * Renders a write outcome for the model: sentences that name what happened, what to do next and what not to do, the
  * outcome's fields as a JSON payload, and whether the provider's error flag should be set. Put both the text and the
- * payload in the tool result, because some SDKs show the model only one of them. It checks the outcome as
- * `writeOutcome()` does, so an outcome built by hand that breaks a rule throws a `SafetyError` with code
+ * payload in the tool result, because some SDKs show the model only one of them. It first checks the outcome as
+ * `writeOutcome()` does, so an outcome built by hand that breaks a rule throws a `SafetyError`, code
  * `invalid_outcome`.
  */
 export function renderOutcome(outcome: WriteOutcome): RenderedOutcome {

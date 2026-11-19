@@ -95,11 +95,17 @@ function hex(bytes: ArrayBuffer): string {
 /**
  * Hashes a tool input: the SHA-256 of its canonical JSON (RFC 8785), as 64 lowercase hex digits. Two inputs whose
  * object keys differ only in order get the same hash, and any changed value gives a different one. Object properties
- * set to `undefined` are left out, as `JSON.stringify` leaves them out. The hash is async because Web Crypto's
- * digest is. It rejects with a `SafetyError` with code `invalid_input` for a value JSON can't hold the same way
- * everywhere: `undefined` or a hole in an array, a number that isn't finite, a string with a lone surrogate, a bigint,
- * symbol or function, an object that isn't plain, such as a `Date`, or an object or array that contains itself. A
- * plain object is one whose prototype is `null` or `Object.prototype`, from any realm.
+ * set to `undefined` are left out, as `JSON.stringify` leaves them out. The hash is async, because Web Crypto's
+ * digest is.
+ *
+ * It rejects with a `SafetyError`, code `invalid_input`, for a value that has no single JSON form:
+ * - `undefined`, or a hole, in an array;
+ * - a number that isn't finite;
+ * - a string with a lone surrogate;
+ * - a bigint, symbol or function;
+ * - an object that isn't plain, such as a `Date` (a plain object's prototype is `null` or any realm's
+ *   `Object.prototype`);
+ * - an object or array that contains itself.
  */
 export async function canonicalInputHash(input: unknown): Promise<string> {
   const text = canonical(input, "$", new Set());
