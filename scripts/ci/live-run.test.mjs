@@ -146,6 +146,7 @@ test("redaction names the shape it found and never repeats the value", () => {
   assert.equal(findSecret(`x ${key} y`, [key]), "an API key the run was given");
   assert.equal(findSecret(`request-id: ${STUB_IDS.requestId}`), "an Anthropic request id");
   assert.equal(findSecret("Authorization: Bearer abcdefghijklmnop"), "an authorization header");
+  assert.equal(findSecret(`anthropic-workspace-id: ${STUB_IDS.workspace}`), "a workspace header");
   assert.equal(findSecret("It is 21C in Lisbon."), undefined);
   const out = redact(`ok\nkey=${key}\nopenai-organization: ${STUB_IDS.organization}`, [key]);
   assert.ok(!out.includes(key) && !out.includes(STUB_IDS.organization));

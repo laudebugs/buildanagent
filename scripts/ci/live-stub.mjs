@@ -10,6 +10,7 @@ export const STUB_IDS = {
   requestId: "req_011CStubRequestId0123456789",
   organization: "org-StubOrganization0123456789",
   anthropicOrganization: "0d4b5ad1-3f0e-4c0a-9b1e-5f4e3d2c1b0a",
+  workspace: "wrkspc_01StubWorkspace0123456789",
 };
 
 /** A turn's tool calls or text as the mock transcript's response parts give them. */
@@ -178,6 +179,7 @@ export async function startStub(script, { usage = { input: 120, output: 30 }, fa
         "request-id": STUB_IDS.requestId,
         "x-request-id": STUB_IDS.requestId,
         "anthropic-organization-id": STUB_IDS.anthropicOrganization,
+        "anthropic-workspace-id": STUB_IDS.workspace,
         "openai-organization": STUB_IDS.organization,
       });
       res.end(answer.text);

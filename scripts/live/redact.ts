@@ -13,6 +13,8 @@ export const SECRET_PATTERNS: readonly (readonly [string, RegExp])[] = [
   ["an Anthropic request id", /\breq_[A-Za-z0-9]{12,}/],
   ["a request-id header", /\b(?:x-)?request-id\b/i],
   ["an organization header", /\b(?:anthropic|openai)-organization(?:-id)?\b/i],
+  ["a workspace header", /\banthropic-workspace-id\b/i],
+  ["an Anthropic workspace id", /\bwrkspc_[A-Za-z0-9]{12,}/],
   ["an OpenAI project header", /\bopenai-project\b/i],
   ["an OpenAI organization id", /\borg-[A-Za-z0-9]{16,}/],
   ["an authorization header", /\b(?:authorization|x-api-key|proxy-authorization)\b\s*["']?\s*[:=]/i],
