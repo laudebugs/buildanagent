@@ -257,10 +257,10 @@ jobs:
       DIST_TAG: ${{ needs.pack.outputs.dist_tag }}
       PRERELEASE: ${{ needs.pack.outputs.prerelease }}
     steps:
-      # npm then reads only these two files: the user config names the registry, the global config is empty, and
-      # neither holds credentials, so there is no token to fall back on. They must be different files, because npm
-      # refuses to load one file as both ("double-loading config"). The paths go through $GITHUB_ENV because a job's
-      # `env:` can't read the `runner` context.
+      # npm's user config names the registry and its global config is empty. Neither holds credentials, and the job
+      # checks nothing out, so there's no project .npmrc either and no token to fall back on. The two settings must name
+      # different files, because npm refuses to load one file as both ("double-loading config"). The paths go through
+      # $GITHUB_ENV because a job's `env:` can't read the `runner` context.
       - name: Write an npm config with no credentials
         run: |
           echo "registry=https://registry.npmjs.org/" > "$RUNNER_TEMP/npmrc"

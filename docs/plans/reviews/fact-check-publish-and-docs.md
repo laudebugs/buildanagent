@@ -278,4 +278,13 @@ Rows 161–181 check the claims L4b added to the plan, CI plan §3e–3f, `.chan
 | 189 | CI plan §3f, PB2, `AGENTS.md` and `.changeset/README.md` said `release.yml` versions and publishes every merged changeset | ✏️ | The medium code review switched the `version` job off (`false &&` in its `if:`); a follow-up makes it open an auto-merged "Version packages" pull request (row 187) |
 | 190 | A pull request opened with `GITHUB_TOKEN` starts no workflow run, so the follow-up needs another token | ✅ | [GitHub, `GITHUB_TOKEN`](https://docs.github.com/en/actions/concepts/security/github_token), read 2026-11-19: events the `GITHUB_TOKEN` triggers, except `workflow_dispatch` and `repository_dispatch`, "will not create a new workflow run" |
 
-**Totals:** 190 claims: 144 ✅, 35 ✏️, 11 ⚠️.
+## Pull request #58: the npm config fix (2026-11-19)
+
+Rows 191–192 check what pull request #58 added to CI plan §3f and the L4b todo, against the failed run's log and npm 11.21.2 run locally.
+
+| # | Claim | Verdict | Source and reason |
+| --- | --- | --- | --- |
+| 191 | The first release run stopped in the `publish` job before uploading anything, because npm's user and global configs named one file and npm exits with "double-loading config" | ✅ | [Run 44528880576](https://github.com/laudebugs/buildanagent/actions/runs/44528880576), `publish` job log: `npm install --global npm@11.21.2` printed `double-loading config "/home/runner/work/_temp/npmrc" as "global", previously loaded as "user"` and exited 1; the publish step never ran. npm still lists only `0.0.0-stage` and `0.0.0-bootstrap.0` for both packages |
+| 192 | CI plan §3f said the `publish` job "points npm at a config file that names the registry" | ✏️ | Pull request #58 gives the global config a separate empty file. Locally, npm 10.9.9 and 11.21.2 both refuse one shared file and resolve the registry with two |
+
+**Totals:** 192 claims: 145 ✅, 36 ✏️, 11 ⚠️.

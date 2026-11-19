@@ -120,14 +120,16 @@ describe("release.yml", () => {
     assert.match(first.run, /^ {2}echo "NPM_CONFIG_USERCONFIG=\$RUNNER_TEMP\/npmrc"$/m);
   });
 
-  test("the publish job gives npm separate, credential-free user and global configs", () => {
+  test("the publish job gives npm separate user and global configs, and writes only the registry to them", () => {
     // npm exits with "double-loading config" when both settings name one file, which broke the first publish.
     const [first] = jobs.publish.steps;
     const user = first.run.match(/NPM_CONFIG_USERCONFIG=(\S+)"/)?.[1];
     const global = first.run.match(/NPM_CONFIG_GLOBALCONFIG=(\S+)"/)?.[1];
     assert.ok(user && global, "both config paths are set");
     assert.notEqual(user, global);
-    assert.match(first.run, /^: > "\$RUNNER_TEMP\/global-npmrc"$/m);
+    // Every write to either file, so a token line added to one of them fails here.
+    const writes = first.run.split("\n").filter((line) => line.includes(`"${user}"`) || line.includes(`"${global}"`));
+    assert.deepEqual(writes, [`echo "registry=https://registry.npmjs.org/" > "${user}"`, `: > "${global}"`]);
   });
 
   test("only the publish job can mint an OIDC token, only it and the version job can write, and only docs dispatches", () => {
