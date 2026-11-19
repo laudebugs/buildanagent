@@ -27,11 +27,24 @@ function dumpedOptions(options: StreamOptions): DumpedOptions {
 }
 
 async function* dumpBeforeFirstEvent(events: AsyncIterable<ModelEvent>, ensureDumped: () => void) {
-  for await (const event of events) {
-    if (event.type !== "start") ensureDumped();
-    yield event;
+  try {
+    for await (const event of events) {
+      if (event.type !== "start") ensureDumped();
+      yield event;
+    }
+  } finally {
+    // An attempt that throws before its first event still leaves a record of what it was asked to send.
+    ensureDumped();
   }
-  ensureDumped();
+}
+
+/** A copy of the dump, or the dump itself when part of it can't be cloned, such as a function in `providerOptions`. */
+function copyOf(dump: RequestDump): RequestDump {
+  try {
+    return structuredClone(dump);
+  } catch {
+    return dump;
+  }
 }
 
 /** Starts attempt `n` of the request. Each call sends a fresh request to the adapter. */
@@ -42,8 +55,7 @@ export function startAttempt(request: AttemptRequest, n: number): AsyncIterable<
     if (dumped) return;
     dumped = true;
     // A copy, so a caller that changes the context after the call can't rewrite what an earlier attempt sent.
-    if (onRequest)
-      onRequest(structuredClone({ attempt: n, model: ref, context, options: dumpedOptions(options), body }));
+    if (onRequest) onRequest(copyOf({ attempt: n, model: ref, context, options: dumpedOptions(options), body }));
   };
   const callerHook = options.onPayload;
   const onPayload = (body: unknown): unknown => {

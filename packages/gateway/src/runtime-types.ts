@@ -114,7 +114,7 @@ export interface Model {
   readonly ref: ModelRef;
   /** The context window and output limit, from the catalog or the adapter's defaults. */
   readonly caps: ModelCaps;
-  /** Streams one call. A failed call ends with an `error` event; it does not throw. */
+  /** Streams one call. A failed model call ends with an `error` event; only a throwing middleware makes it throw. */
   stream(context: ModelContext, options?: StreamOptions): AsyncIterable<GatewayEvent>;
   /** Reads `stream()` to its end and returns the final message, including a failed call's message. */
   complete(context: ModelContext, options?: StreamOptions): Promise<AssistantMessage>;

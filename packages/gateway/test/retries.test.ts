@@ -216,7 +216,10 @@ test("a stream that throws before output is retried, and one that keeps throwing
   assert.equal(retriesOf(events).length, 1);
   const last = events.at(-1);
   assert.equal(last?.type, "error");
-  assert.deepEqual(last?.type === "error" && last.message.error, { kind: "retryable", message: "fetch failed" });
+  assert.deepEqual(last?.type === "error" && last.message.error, {
+    kind: "retryable",
+    message: "TypeError: fetch failed",
+  });
 });
 
 test("the final message counts the usage of the failed attempts as well as the last one", async () => {
@@ -241,4 +244,59 @@ test("the final message counts the usage of the failed attempts as well as the l
 
   assert.equal(result.usage.uncachedInput, 300);
   assert.equal(result.usage.output, 7);
+});
+
+test("a stream that throws something other than a failed fetch ends at once with a fatal error", async () => {
+  const adapter = scriptedAdapter([
+    // biome-ignore lint/correctness/useYield: the attempt fails before it yields anything
+    async function* () {
+      throw new RangeError("bad content block");
+    },
+  ]);
+  const model = createModel({ adapter, id: "m", sleep: recordingSleep().sleep });
+
+  const events = await assertStreamContract(model.stream(context));
+
+  assert.equal(adapter.calls, 1);
+  const last = events.at(-1);
+  assert.deepEqual(last?.type === "error" && last.message.error, {
+    kind: "fatal",
+    message: "RangeError: bad content block",
+  });
+});
+
+test("the final message adds the failed attempts' cost, and an unknown cost makes the total unknown", async () => {
+  const priced = (model: ModelRef, total: number | null, done: boolean): AssistantMessage => {
+    const message: AssistantMessage = {
+      ...errorMessage(model, "retryable", usage(1, 0)),
+      cost: { total, basis: "provider", currency: "USD" },
+    };
+    if (!done) return message;
+    delete message.error;
+    return { ...message, stopReason: "stop" };
+  };
+  const run = async (second: number | null) => {
+    const adapter = scriptedAdapter([
+      async function* (model) {
+        yield { type: "start" };
+        yield { type: "error", message: priced(model, 0.01, false) };
+      },
+      async function* (model) {
+        yield { type: "start" };
+        yield { type: "done", message: priced(model, second, true) };
+      },
+    ]);
+    return createModel({ adapter, id: "m", sleep: recordingSleep().sleep }).complete(context);
+  };
+
+  assert.equal((await run(0.02)).cost.total?.toFixed(2), "0.03");
+  assert.equal((await run(null)).cost.total, null);
+});
+
+test("each retry wait is capped at 60 seconds", async () => {
+  const attempts = Array.from({ length: 8 }, () => ({ fail: "retryable" as const }));
+  const adapter = new FailingAdapter([...attempts, { reply: "ok" }]);
+  const { sleep, delays } = recordingSleep();
+  await createModel({ adapter, id: "m", retries: 8, sleep }).complete(context);
+  assert.deepEqual(delays, [2000, 4000, 8000, 16000, 32000, 60000, 60000, 60000]);
 });

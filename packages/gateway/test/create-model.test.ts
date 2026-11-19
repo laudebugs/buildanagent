@@ -226,3 +226,27 @@ test("an adapter that yields start before it builds its body is dumped once, wit
 
   assert.deepEqual(dumps, [{ prompt: "hi" }]);
 });
+
+test("an attempt that throws before its first event is still dumped, and an uncloneable dump is passed as it is", async () => {
+  const dumps: RequestDump[] = [];
+  const adapter: ModelAdapter = {
+    specificationVersion: "v1",
+    api: "test-api",
+    provider: "test",
+    defaultCaps: TEST_CAPS,
+    // biome-ignore lint/correctness/useYield: the attempt fails before it yields anything
+    async *stream() {
+      throw new RangeError("bad content block");
+    },
+  };
+  const fetchHook = () => undefined;
+  const model = createModel({ adapter, id: "m", onRequest: (dump) => dumps.push(dump) });
+
+  const result = await model.complete(context, { providerOptions: { fetch: fetchHook } });
+
+  assert.equal(result.error?.kind, "fatal");
+  assert.equal(dumps.length, 1);
+  const [dump] = dumps;
+  assert.ok(dump);
+  assert.equal((dump.options.providerOptions as { fetch: unknown }).fetch, fetchHook);
+});

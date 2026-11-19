@@ -50,7 +50,7 @@ A call that fails before the model has streamed any content is retried twice by 
 
 Three rules keep a retry from doing harm. First, once a content event has reached you, the gateway never retries, because a second attempt would replay text you have already seen. Second, only errors of kind `retryable` are retried, such as a rate limit or an overloaded server. A `quota` error, a context `overflow` or a `fatal` error ends the call at once, because waiting will not fix it. Third, aborting the signal during a wait ends the stream at once with `stopReason: "aborted"`.
 
-A failed attempt still costs tokens, so the final message's `usage` adds up every attempt, not only the last. An adapter whose stream throws, for example on a dropped connection, is treated like one that ends with an error: the call is retried or ends with an `error` event, and `stream()` itself never throws.
+A failed attempt still costs tokens, so the final message's `usage` adds up every attempt, not only the last. An adapter whose stream throws, for example on a dropped connection, is treated like one that ends with an error. A failed fetch is retried; any other throw ends the call with a `fatal` error event, so an adapter's failure never makes `stream()` throw. A middleware or `onRequest` hook that throws is your code failing, and its error reaches you from `stream()`.
 
 Adapters sort a failed request into these four kinds with `classifyError()`, from its HTTP status and the provider's error code or message.
 
