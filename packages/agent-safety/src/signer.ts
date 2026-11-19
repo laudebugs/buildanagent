@@ -2,6 +2,7 @@
  * The approval signers. Every signature names the key that made it, so a verifier can hold a ring of keys and rotate
  * the current one without stranding stored pauses (D5, ADR 0005). Each signer is HMAC-SHA-256 through Web Crypto, and
  * a key's bytes stay inside a non-extractable `CryptoKey` once imported: no signer exposes, logs or serializes a key.
+ * Web Crypto is the bare `crypto` global, as in hash.ts, so the file type-checks against the Workers types too.
  */
 import { constantTimeEqual, fromBase64Url, toBase64Url } from "./bytes.js";
 import { SafetyError } from "./errors.js";
@@ -49,7 +50,7 @@ function checkKeyId(keyId: unknown, what: string): string {
 /** A signer over `keyFor`, which returns the key for an id it holds and `undefined` for any other. */
 function macSigner(keyId: string, keyFor: (id: string) => Promise<CryptoKey> | undefined): ApprovalSigner {
   const mac = async (key: Promise<CryptoKey>, payload: Uint8Array) =>
-    new Uint8Array(await globalThis.crypto.subtle.sign("HMAC", await key, new Uint8Array(payload)));
+    new Uint8Array(await crypto.subtle.sign("HMAC", await key, new Uint8Array(payload)));
   return Object.freeze({
     keyId,
     async sign(payload: Uint8Array): Promise<string> {
@@ -105,7 +106,7 @@ export function hmacSigner(options: HmacSignerOptions): ApprovalSigner {
     if (cached !== undefined) return cached;
     const bytes = ring.get(id);
     if (bytes === undefined) return undefined;
-    const key = globalThis.crypto.subtle.importKey("raw", bytes, HMAC, false, ["sign"]);
+    const key = crypto.subtle.importKey("raw", bytes, HMAC, false, ["sign"]);
     imported.set(id, key);
     // The CryptoKey now holds the key, so the copy is wiped and dropped.
     bytes.fill(0);
@@ -131,12 +132,13 @@ function hex(bytes: Uint8Array): string {
  */
 export function ephemeralSigner(): ApprovalSigner {
   if (ephemeral === undefined) {
-    const keyId = `ephemeral-${hex(globalThis.crypto.getRandomValues(new Uint8Array(8)))}`;
+    const keyId = `ephemeral-${hex(crypto.getRandomValues(new Uint8Array(8)))}`;
     let key: Promise<CryptoKey> | undefined;
     ephemeral = macSigner(keyId, (id) => {
       if (id !== keyId) return undefined;
-      // Generated on first use and never extractable, so the key's bytes never exist outside Web Crypto.
-      key ??= globalThis.crypto.subtle.generateKey({ ...HMAC, length: 256 }, false, ["sign"]);
+      // Generated on first use and never extractable, so the key's bytes never exist outside Web Crypto. An HMAC key
+      // is one secret key, never a pair, which the Workers types' wider return type doesn't express.
+      key ??= crypto.subtle.generateKey({ ...HMAC, length: 256 }, false, ["sign"]) as Promise<CryptoKey>;
       return key;
     });
   }

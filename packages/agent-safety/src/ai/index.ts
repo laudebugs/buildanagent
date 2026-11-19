@@ -1,7 +1,9 @@
 /**
  * `@buildanagent/agent-safety/ai`: adapters for the Vercel AI SDK (`ai`). `toAiToolResult()` hands write outcomes to
- * the model, and `signedToolApproval()` makes every approval signed and fail closed on resume.
+ * the model, `signedToolApproval()` makes every approval signed and fail closed on resume, and
+ * `settleDeniedApprovals()` keeps a stored chat consistent after such a denial.
  */
+export { settleDeniedApprovals } from "./settle-denied.js";
 export {
   type ApprovalRejection,
   type ApprovalRejectionCause,

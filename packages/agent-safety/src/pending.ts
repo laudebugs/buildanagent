@@ -161,7 +161,7 @@ export async function signPending(
   signer: ApprovalSigner,
   options: SignPendingOptions = {},
 ): Promise<SignedPendingRequest> {
-  const id = (options.generateId ?? (() => globalThis.crypto.randomUUID()))();
+  const id = (options.generateId ?? (() => crypto.randomUUID()))();
   checkFields(fields, id);
   const inputHash = await canonicalInputHash(fields.input);
   const signed = { id, kind: fields.kind, callId: fields.callId, tool: fields.tool, inputHash };

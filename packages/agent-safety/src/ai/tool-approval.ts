@@ -52,8 +52,11 @@ export interface SignedToolApprovalOptions<TOOLS extends ToolSet, RUNTIME_CONTEX
   readonly recheck: Recheck;
   /** The version of your policy, signed into each pause so `recheck` can tell a pause made under an older one. */
   readonly policyVersion?: string | (() => string | Promise<string>);
-  /** Called when an approved call is denied, with the cause, for your audit log. */
-  readonly onRejected?: (rejection: ApprovalRejection) => void;
+  /**
+   * Called when an approved call is denied, with the cause, for your audit log. The adapter awaits what it returns,
+   * and if it throws, the error propagates and the call still does not run.
+   */
+  readonly onRejected?: (rejection: ApprovalRejection) => unknown;
   /** Returns a fresh pending request id. Defaults to `crypto.randomUUID()`. */
   readonly generateId?: () => string;
   /** Returns the current time. Defaults to `new Date()`. */
@@ -151,7 +154,7 @@ function denial(tool: string, reason: "APPROVAL_NOT_VERIFIED" | "POLICY_DENIED",
 interface Resume {
   readonly options: SignedToolApprovalOptions<ToolSet, unknown>;
   readonly args: ApprovalArgs;
-  readonly reject: (cause: ApprovalRejectionCause, extra?: Partial<ApprovalRejection>) => ToolApprovalStatus;
+  readonly reject: (cause: ApprovalRejectionCause, extra?: Partial<ApprovalRejection>) => Promise<ToolApprovalStatus>;
 }
 
 type Verified =
@@ -161,14 +164,15 @@ type Verified =
 async function verifyStored({ options, args, reject }: Resume): Promise<Verified> {
   const { toolCall } = args;
   const pending = await options.store.take(toolCall.toolCallId);
-  if (pending === undefined) return { ok: false, status: reject("unknown_request") };
+  if (pending === undefined) return { ok: false, status: await reject("unknown_request") };
   const call = { callId: toolCall.toolCallId, tool: toolCall.toolName, input: toolCall.input };
   const check = await verifyResolution(
     pending,
     { requestId: pending.id, decision: "allow" },
     { signer: options.signer, call },
   );
-  return check.ok ? { ok: true, pending } : { ok: false, status: reject(check.cause, { requestId: pending.id }) };
+  if (!check.ok) return { ok: false, status: await reject(check.cause, { requestId: pending.id }) };
+  return { ok: true, pending };
 }
 
 /** The second call for an approved call: verify, re-run current policy, then `recheck`. Every failure denies. */
@@ -183,7 +187,7 @@ async function resume(context: Resume): Promise<ToolApprovalStatus> {
   const deny = policyDeny ?? (typeof recheck === "object" && recheck !== null ? recheck.deny : undefined);
   if (deny !== undefined || recheck !== "allow") {
     const why = deny ?? "the policy check did not allow it";
-    options.onRejected?.({
+    await options.onRejected?.({
       callId: args.toolCall.toolCallId,
       tool: args.toolCall.toolName,
       cause: "policy_denied",
@@ -242,8 +246,8 @@ export function signedToolApproval<TOOLS extends ToolSet, RUNTIME_CONTEXT = unkn
   const loose = options as unknown as SignedToolApprovalOptions<ToolSet, unknown>;
   const approve = async (args: ApprovalArgs): Promise<ToolApprovalStatus> => {
     const { toolCallId: callId, toolName: tool } = args.toolCall;
-    const reject = (cause: ApprovalRejectionCause, extra: Partial<ApprovalRejection> = {}) => {
-      loose.onRejected?.({ callId, tool, cause, ...extra });
+    const reject = async (cause: ApprovalRejectionCause, extra: Partial<ApprovalRejection> = {}) => {
+      await loose.onRejected?.({ callId, tool, cause, ...extra });
       return denial(tool, "APPROVAL_NOT_VERIFIED", NOT_VERIFIED_NEXT);
     };
     if (!isApprovedResume(args.messages, callId)) return pause(loose, args);
