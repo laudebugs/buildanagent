@@ -3,7 +3,7 @@
 | Field | Value |
 | --- | --- |
 | ID | `L4a` |
-| Status | `ongoing` |
+| Status | `done` |
 | Plan | [Publish and docs §4](../../plans/publish-and-docs.md#4-round-l-and-its-todos) |
 | Round / milestone | Round L (publish and docs, added 2026-11-19) |
 | Depends on | [B4](../done/B4-gateway-runtime.md), [B8](../done/B8-anthropic-adapter.md), [L3](../done/L3-release-workflow.md) |
@@ -35,9 +35,9 @@ Make both packages publishable and confirm that npm still holds them as PB2 reco
 
 ## Acceptance criteria
 
-- [ ] Both packages' `package.json` files have no `private` field
-- [ ] `npm view @buildanagent/gateway versions dist-tags deprecated` and the same for `@buildanagent/sdk` show `0.0.0-bootstrap.0` and `0.0.0-stage`, `latest` on `0.0.0-bootstrap.0`, and the deprecation message
-- [ ] `pnpm check`, `pnpm typecheck` and `pnpm test` pass offline from the repo root
+- [x] Both packages' `package.json` files have no `private` field
+- [x] `npm view @buildanagent/gateway versions dist-tags deprecated` and the same for `@buildanagent/sdk` show `0.0.0-bootstrap.0` and `0.0.0-stage`, `latest` on `0.0.0-bootstrap.0`, and the deprecation message
+- [x] `pnpm check`, `pnpm typecheck` and `pnpm test` pass offline from the repo root
 
 ## Tests
 
@@ -51,11 +51,23 @@ CI plan (the answer about trusted publishers on new packages), the plan's todo t
 
 The registry may point `latest` at the placeholder until 0.1.0 ships, so `npm install @buildanagent/sdk` could fetch it for up to 2 days; the deprecation message says to wait for 0.1.0.
 
+## Outcome
+
+Both packages are public, and merging that publishes nothing. On the checkout, `release-plan.mjs plan` prints `publish=false` with the reason "the packages are still at 0.0.0, which is never released".
+
+- **What keyed off `private`.** Four things, each checked after the change:
+  - The release plan's `private` check no longer fires, and its 0.0.0 rule stops the run. A new test in `scripts/ci/release.test.mjs` runs the plan on the checkout's own `package.json` files. It fails if either sets `private`, or if the plan would publish or ask the registry at 0.0.0, and it skips once the packages leave 0.0.0.
+  - `ci.yml`'s `changesets` job stays `if: false`. Locally, this change fails `pnpm changeset status --since=origin/main`, because it edits each `package.json`. With this change as the base, a docs-only commit passes and a `src/` edit without a changeset fails, so L4b can switch the job on after this merges.
+  - `privatePackages` in `.changeset/config.json` now affects only the `verify/` harnesses, which `ignore` also lists.
+  - The pack test in `scripts/ci/packages-pack.test.mjs` passes unchanged with pnpm 10.34.9.
+- **The npm placeholders.** `npm view <package> versions dist-tags deprecated --json`, on 2026-11-19, gave the same answer for `@buildanagent/gateway` and `@buildanagent/sdk`: versions `0.0.0-bootstrap.0` and `0.0.0-stage`; dist-tags `latest` and `bootstrap` both on `0.0.0-bootstrap.0`; deprecated "Placeholder only; install 0.1.0 or later." That matches [PB2](../../plans/publish-and-docs.md#pb2-changesets-in-one-fixed-group-published-only-from-ci-accepted).
+- **Docs.** [CI plan §3f](../../plans/ci.md#3f-releases-through-npm-trusted-publishing-added-2026-11-19) records npm's prerequisite that a package exist before a trusted publisher can be added, and the first dry run on `main`. §3e, the `.changeset` README and the `ci.yml` comment no longer say the packages are private. The fact-check log gains rows 127–134, and [L3](L3-release-workflow.md) records its dry run on `main`.
+
 ## Definition of done
 
-- [ ] Claimed: the first commit moved this file `ready/` → `ongoing/` (Status `ongoing`)
-- [ ] Prose drafted with `/anthropic-skills:writing`, and changed claims re-checked against their sources
-- [ ] `pnpm check`, `pnpm typecheck` and `pnpm test` pass locally; pushed after each meaningful step
-- [ ] This file moved `ongoing/` → `done/` (Status `done`) in the last work commit, and the plan's todo table updated
+- [x] Claimed: the first commit moved this file `ready/` → `ongoing/` (Status `ongoing`)
+- [x] Prose drafted with `/anthropic-skills:writing`, and changed claims re-checked against their sources
+- [x] `pnpm check`, `pnpm typecheck` and `pnpm test` pass locally; pushed after each meaningful step
+- [x] This file moved `ongoing/` → `done/` (Status `done`) in the last work commit, and the plan's todo table updated
 - [ ] Two code-review rounds run on the pull request (`/code-review high --max-findings default`, then `medium` and `low` after more than 6 confirmed findings, otherwise `low`), with every finding fixed or explained in a commit message
 - [ ] Copy reviewed with `/anthropic-skills:writing-review` after the code changes, with its findings fixed and the rubric scores in the pull request description
