@@ -1,8 +1,8 @@
 # @buildanagent/agent-safety
 
-When a tool changes the world, such as sending an email or issuing a refund, your agent must know exactly what happened, and a person must approve exactly what runs. This package gives every write one of five typed outcomes, hashes tool inputs the same way on every runtime, and signs approvals so a forged or stale one runs nothing.
+When a tool changes the world, such as sending an email or issuing a refund, your agent must know exactly what happened, and a person must approve exactly what runs. This package gives every write one of five typed outcomes, hashes tool inputs the same way on every runtime, signs approvals so a forged or stale one runs nothing, and keeps every model call on the user's own key.
 
-As of November 2026 the package is not on npm yet. It holds the write outcomes, `renderOutcome()`, `canonicalInputHash()`, the approval signers and adapters for the Vercel AI SDK, which also serve Cloudflare's `AIChatAgent`. Effect keys and plan approvals come next.
+As of November 2026 the package is not on npm yet. It holds the write outcomes, `renderOutcome()`, `canonicalInputHash()`, the approval signers, adapters for the Vercel AI SDK, which also serve Cloudflare's `AIChatAgent`, and the guards that keep model calls on the user's key. Effect keys and plan approvals come next.
 
 ## A failed write reports one of five outcomes
 
@@ -147,8 +147,41 @@ const messages = settleDeniedApprovals(this.messages, deniedCallIds);
 
 The adapter rests on two functions in the root entry, which any host can call. `signPending()` hashes a call's input and signs the pending request, and `verifyResolution()` checks a person's answer against it before the call runs. `verifyResolution()` never throws for bad input; it returns `ok: false` with the first check that failed.
 
+## Every model call carries the user's own key, or it fails
+
+An agent that bills the wrong account fails silently: the call succeeds, and someone else pays for it. In `ai` 7.0.162 three paths let that happen without a line of your code choosing it. A provider built without `apiKey` reads `ANTHROPIC_API_KEY` or `OPENAI_API_KEY` from the environment. A provider built without `baseURL` reads `ANTHROPIC_BASE_URL` or `OPENAI_BASE_URL`. A string model id such as `"anthropic/<model>"` goes to Vercel AI Gateway, which signs in with `AI_GATEWAY_API_KEY` or a Vercel OIDC token and, by default, falls back to Vercel's own billed keys. The `./byok` subpath closes all three for the models it builds and for string ids. A call on a model built with `explicitProvider()` throws before it is sent if it would carry anything but the key you passed, and a string id throws once `assertNoDefaultProvider()` has run. A model object you build any other way, such as one from `createAnthropic()` or the `gateway` that `ai` exports, isn't checked, so build every model with `explicitProvider()`:
+
+```ts
+import { assertNoDefaultProvider, explicitProvider } from "@buildanagent/agent-safety/byok";
+
+assertNoDefaultProvider();
+const anthropic = explicitProvider({ provider: "anthropic", apiKey: userKey, baseURL: "https://api.anthropic.com/v1" });
+const result = await generateText({ model: anthropic(modelId), prompt });
+```
+
+`explicitProvider()` builds an `@ai-sdk/anthropic` or `@ai-sdk/openai` provider from the `apiKey` and `baseURL` you pass, and nothing else. Both are required, so the provider never reads the environment. A missing, empty or whitespace-padded key throws a `SafetyError` with the code `invalid_byok_config`, because the provider would otherwise send the empty key as given. The base URL must use https (plain http only on a loopback host, for a local proxy), must not end its host in a dot or hold an encoded `/` or `\` in its path, and must not be Vercel AI Gateway. A Cloudflare AI Gateway base URL must name the provider's own endpoint, `/v1/<account>/<gateway>/anthropic` for an Anthropic key. `assertNoDefaultProvider()` sets the AI SDK's default provider to one that refuses every model, so `generateText`, `streamText` or a `prepareStep` that names a model by string throws, code `default_provider`, before any request. Call it once at startup. It leaves the setting read-only, so later code that assigns another default provider throws instead of reopening the path. It throws the code `default_provider` if another default provider is already set.
+
+## `egressGuard()` checks each request on its way out
+
+Every provider that `explicitProvider()` builds sends its requests through `egressGuard()`, which you can also wrap around any other `fetch`. The OpenAI provider's realtime transcription opens a WebSocket instead, and `explicitProvider()` puts its handshake through the same checks and allows only the plain `realtime` subprotocol, because OpenAI's browser mode carries a key in a subprotocol where no header check sees it. The guard refuses a request, with the code `egress_refused` and before anything leaves, in three cases. First, the request goes to another origin or outside the base URL's path, which includes a path holding an encoded `/` or `\`. Second, its credential header is missing or differs from the configured key: `x-api-key` for Anthropic, `authorization: Bearer` for OpenAI. Third, it carries a second credential header, such as `cf-aig-authorization` beside the key, That rule means a Cloudflare gateway with authentication turned on can't be used through `explicitProvider()`. The guard never follows a redirect, because Node's `fetch` forwards `x-api-key` to a redirect's new host. Its errors name headers, never their values.
+
+## Run model calls through Cloudflare AI Gateway with `byok_only`, never through Vercel AI Gateway
+
+Each gateway has a setting that decides whether it may bill its owner's keys when the user's key fails. Cloudflare AI Gateway's **Require provider credentials** setting, `byok_only: true` in its API, refuses that fallback. The per-request header `cf-aig-no-wholesale: true` forces the same refusal, and it cannot relax the gateway's setting. `egressGuard()` adds that header to every request to `gateway.ai.cloudflare.com`, so pass a gateway endpoint as the base URL, such as `https://gateway.ai.cloudflare.com/v1/<account>/<gateway>/anthropic`. Through that endpoint the Anthropic key still travels in `x-api-key`, where the gateway reads provider credentials. Vercel AI Gateway's **Fallback to Vercel Keys** setting is on by default and lives only in the team dashboard, so no deploy configuration can show that it is off. The package therefore refuses every Vercel AI Gateway route.
+
+A deploy step checks its routes with `checkModelRoutes()`, which returns a report rather than throwing:
+
+```ts
+const report = checkModelRoutes({
+  routes: [{ provider: "anthropic", baseURL: gatewayURL, cloudflareAiGateway: { byok_only: true } }],
+});
+if (!report.ok) throw new Error(report.problems.map((problem) => problem.message).join("; "));
+```
+
+A route through Cloudflare AI Gateway passes only with `byok_only: true` and its own provider's endpoint, and a route through Vercel AI Gateway never passes. A route whose base URL is a loopback `http` URL fails too, because a deployed agent can't reach the deployer's loopback. The check fails closed: a field it doesn't know fails too, so a renamed gateway setting stops the deploy instead of slipping through. The report's `settingsAsOf` gives the date of the gateway documentation the setting names come from, 2026-11-18.
+
 ## The root entry loads without any third-party SDK
 
-`@buildanagent/agent-safety` imports no third-party SDK, so it runs anywhere Web Crypto does: Node 22, Cloudflare Workers and other edge runtimes. Adapters for other SDKs live in subpaths. `./ai` needs `ai` and `@ai-sdk/provider-utils`, which are optional peer dependencies. `./agents` will hold adapters that need Cloudflare `agents` itself, and it holds none yet, because `AIChatAgent` works through the `./ai` adapters. `./testing` holds only `testSigner()`, and imports no third-party SDK either.
+`@buildanagent/agent-safety` imports no third-party SDK, so it runs anywhere Web Crypto does: Node 22, Cloudflare Workers and other edge runtimes. Adapters for other SDKs live in subpaths. `./ai` needs `ai` and `@ai-sdk/provider-utils`, and `./byok` needs `@ai-sdk/anthropic` and `@ai-sdk/openai`; all four are optional peer dependencies. `egressGuard()` and `checkModelRoutes()` sit in the root entry, so a host without the AI SDK can use them. `./agents` will hold adapters that need Cloudflare `agents` itself, and it holds none yet, because `AIChatAgent` works through the `./ai` adapters. `./testing` holds only `testSigner()`, and imports no third-party SDK either.
 
 To see how the model runs these tools, read the [SDK's README](../sdk/README.md).

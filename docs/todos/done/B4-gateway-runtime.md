@@ -73,7 +73,7 @@ Gap 7 of the [close-sdk-gaps plan](../../plans/close-sdk-gaps.md#3-each-gap-the-
 
 - [x] With decoy provider key variables set in the test process, `createModel()` sends only `ProviderConfig.apiKey`, a missing `apiKey` fails before any request, and no code path reads a key from the environment (a recording transport checks every request).
 
-The safety package's [E6](../ready/E6-byok-no-fallback.md) asserts the same rule for the AI SDK's providers.
+The safety package's [E6](../done/E6-byok-no-fallback.md) asserts the same rule for the AI SDK's providers.
 
 ## Definition of done
 

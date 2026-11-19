@@ -1,12 +1,33 @@
 /**
  * `@buildanagent/agent-safety`: the safety core. Typed write outcomes that the harness can act on and the model can
  * read, the canonical input hash that approvals sign and effect records store, and the signers and signed pending
- * requests that make an approval fail closed. This entry imports no third-party SDK; the adapters for `ai` and
- * Cloudflare `agents` live in the `./ai` and `./agents` subpaths.
+ * requests that make an approval fail closed, and the egress guard and route check that keep every model call on the
+ * user's own key. This entry imports no third-party SDK; the adapters for `ai` and Cloudflare `agents` live in the
+ * `./ai`, `./byok` and `./agents` subpaths.
  */
+export {
+  CLOUDFLARE_NO_WHOLESALE_HEADER,
+  CREDENTIAL_HEADERS,
+  type CredentialHeader,
+  type EgressCredential,
+  type EgressGuardOptions,
+  egressGuard,
+} from "./egress.js";
 export { isSafetyError, SafetyError, type SafetyErrorCode } from "./errors.js";
 export { canonicalInputHash } from "./hash.js";
 export { type KeyRing, type KeyStore, parseKeyRing, signerFromKeyStore } from "./key-store.js";
+export {
+  type CloudflareAiGatewaySettings,
+  checkModelRoutes,
+  MODEL_ROUTE_SETTINGS_AS_OF,
+  type ModelRoute,
+  type ModelRouteProblem,
+  type ModelRouteProblemCode,
+  type ModelRouteProvider,
+  type ModelRoutesConfig,
+  type ModelRoutesReport,
+} from "./model-routes.js";
+export { CLOUDFLARE_AI_GATEWAY_HOST } from "./model-url.js";
 export {
   ALLOWED_RETRIES,
   type AllowedRetry,
