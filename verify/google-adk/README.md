@@ -73,7 +73,11 @@ Some examples carry `// #region <name>` and `// #endregion` comments, which chan
 
 ## Transcripts record each example's run for the book's replays
 
-`pnpm test` also writes `results/transcripts/<example>.json` for each example that calls the mock model. A transcript records each request the example sent, each response, and each `check()` with its result, with the example line that led to each event when the call stack shows it. `scripts/run-examples.mjs` runs the recorder from [`scripts/transcripts/`](../../scripts/transcripts/), which records the checks from the line each one prints. `examples/lib/transcript.ts` wraps `ScriptedLlm`'s `generateContentAsync`, which `lib/check.ts` hands it, and `Runner.runAsync`, so a request carries the line of the call that started the run. Recording only reads what the mock already holds, so it changes no verdict. The writer replaces machine paths and the SDK's generated ids, timestamps and durations with placeholders, so two runs on any machine write the same bytes; what an example scripts, such as a tool's input, stays as written.
+`pnpm test` also writes `results/transcripts/<example>.json` for each example that calls the mock model. The transcript holds each request the example sent, each answer and each `check()` with its result, and, when the call stack shows it, the example line that led to each event.
+
+`scripts/run-examples.mjs` preloads the recorder from [`scripts/transcripts/`](../../scripts/transcripts/), which records each `check()` from the `ok - ` line it prints, and only when the call stack shows `check()` printed it. `examples/lib/transcript.ts` wraps `ScriptedLlm`'s `generateContentAsync`, which `lib/check.ts` hands it, and `Runner.runAsync`, so a request carries the line of the call that started the run.
+
+Recording only reads what the mock already holds, so it changes no verdict. The writer replaces the run's own directories, and the ids, timestamps and durations the SDK generated, with placeholders. An id the mock's script chose stays as written, and so does everything else an example scripts, such as a tool's input. Two runs on any machine therefore write the same bytes.
 
 Commit the transcripts with the change that alters them, unlike a regenerated `run-examples.json`, which holds local paths and is restored before committing. CI's results-drift check fails when a committed transcript differs from the one a fresh run writes, and the book's replays read these files ([replays](../../apps/manual/README.md#a-replay-steps-through-a-recorded-run)).
 

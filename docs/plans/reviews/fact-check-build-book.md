@@ -704,4 +704,12 @@ The medium-effort review found that one Cloudflare transcript changed order betw
 | 406 | The AI SDK recorder's guard now checks that a new mock's `doGenerate` and `doStream` are the recorder's own wrappers, not merely own properties | `verify/vercel-ai-sdk/examples/lib/transcript.ts` | ✅ | The setters add each wrapper to a `WeakSet`, and `attach()` throws unless the probe's two functions are in it; the same check runs in the Cloudflare copy |
 | 407 | Row 405, corrected: in workerd a failed check was read from the error the test returned, which carried no marker, so an example that threw `ASSERTION FAILED: …` itself recorded a failed check. `scripts/worker-harness.mjs` now prints a failed check through the marked line, and only for an error whose first stack frame is a function named `check` | `verify/cloudflare-agents/README.md`, `scripts/worker-harness.mjs` | ✏️ | `transcripts.test.mjs` builds two probe examples in the harness's `.tmp/` and runs them in workerd: the one that prints `ok - fake`, prints a line with a made-up marker and throws a forged error records only its real passing check, and the one whose `check()` fails records that failure |
 
-**Totals:** 407 claims: 356 ✅, 51 ✏️, 0 ⚠️.
+### T5's writing review
+
+The writing review reworded T5's prose; this row records the one claim it found stale.
+
+| # | Claim | Where | Verdict | Source and reason |
+| --- | --- | --- | --- | --- |
+| 408 | `verify/openai-agents-sdk/README.md` no longer says that a handoff's call id is generated at run time and shows as `<id-1>`: the example scripts `call_handoff`, which the transcript keeps as written | `verify/openai-agents-sdk/README.md` | ✏️ | `examples/03-handoff.ts`, line 12, passes `{ callId: "call_handoff" }`, and `results/transcripts/03-handoff.json` holds `call_handoff` three times since the provenance rule (row 403) |
+
+**Totals:** 408 claims: 356 ✅, 52 ✏️, 0 ⚠️.
