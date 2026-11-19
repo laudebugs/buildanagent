@@ -8,6 +8,7 @@
 import { createSdkMcpServer, type HookCallback, query, tool } from "@anthropic-ai/claude-agent-sdk";
 import { z } from "zod";
 import { check, collect } from "./lib/collect.ts";
+import { assertOnlyTools, modelRequests } from "./lib/mock-log.ts";
 
 // 1. Tools: plain async functions with Zod input schemas.
 const tickets = createSdkMcpServer({
@@ -44,7 +45,7 @@ const auditHook: HookCallback = async (input) => {
 };
 
 const approvals: string[] = [];
-const { result, messages } = await collect(
+const { result } = await collect(
   query({
     prompt: "Customer user@example.com says checkout fails with a 500. Triage it.",
     options: {
@@ -69,11 +70,7 @@ const { result, messages } = await collect(
 );
 
 check(audit.includes("mcp__support__lookup_customer"), "PreToolUse hook saw the lookup tool call");
-const offered = messages.find((m) => m.type === "system" && m.subtype === "init") as any;
-check(
-  !offered.tools.includes("Bash") && !offered.tools.includes("Edit"),
-  "`tools: []` removed the built-in Bash/Edit tools",
-);
+assertOnlyTools(modelRequests(), ["mcp__support__*", "StructuredOutput", "DeferredToolPlaceholder"]); // `tools: []` removed every built-in
 check(approvals.length === 0, "auto-approved lookup never reached canUseTool");
 check(result?.subtype === "success", "agent finished successfully");
 const triage = Triage.safeParse(result?.subtype === "success" ? result.structured_output : undefined);
