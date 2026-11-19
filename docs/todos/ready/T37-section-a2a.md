@@ -8,16 +8,16 @@
 | Status | `ready` |
 | Plan | [Book plan §4.3, BK19](../../plans/build-book.md#43-four-topics-need-research-before-they-are-written) |
 | Round / milestone | Round T (textbook), MT |
-| Depends on | [U19](../ongoing/U19-research-a2a.md), [T21](T21-chapter-tools-at-scale.md) |
+| Depends on | [U19](../done/U19-research-a2a.md), [T21](T21-chapter-tools-at-scale.md) |
 | Size | S |
 
 ## Goal
 
-Add one section to Chapter T21 ("Tools at scale: the registry, deferred tools, MCP and skills") from research todo [U19](../ongoing/U19-research-a2a.md)'s report. It is a section, not a chapter: A2A is an interoperability protocol beside MCP, so it belongs in the chapter that already explains MCP; one section keeps Chapter T21 from waiting on research.
+Add one section to Chapter T21 ("Tools at scale: the registry, deferred tools, MCP and skills") from research todo [U19](../done/U19-research-a2a.md)'s report. It is a section, not a chapter: A2A is an interoperability protocol beside MCP, so it belongs in the chapter that already explains MCP; one section keeps Chapter T21 from waiting on research.
 
 ## Context
 
-- [U19](../ongoing/U19-research-a2a.md)'s report and fact-check
+- [U19](../done/U19-research-a2a.md)'s [report](../../research/a2a/agent-to-agent-protocols.md) and [fact-check](../../research/a2a/fact-check-agent-to-agent-protocols.md)
 - Chapter T21's todo, [T21](T21-chapter-tools-at-scale.md), and its fact-check file `apps/manual/fact-checks/tools-at-scale.md`
 - [Book plan BK21 and BK22](../../plans/build-book.md#bk21-every-section-is-fact-checked-before-the-next-is-drafted-accepted)
 

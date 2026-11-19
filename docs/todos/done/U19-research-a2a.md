@@ -5,7 +5,7 @@
 | Field | Value |
 | --- | --- |
 | ID | `U19` |
-| Status | `ongoing` |
+| Status | `done` |
 | Plan | [Book plan §4.3, BK19](../../plans/build-book.md#43-four-topics-need-research-before-they-are-written) |
 | Round / milestone | Round U (research), for Round T (textbook), MT |
 | Depends on | None |
@@ -38,17 +38,17 @@ Research agent-to-agent protocols (a2a) so the book can teach it from checked so
 
 ## Tasks
 
-- [ ] Gather primary sources first: specifications, official docs, repositories and papers; mark anything taken from a search summary or a secondary write-up as such.
-- [ ] Draft each section of the report with `/anthropic-skills:writing`, and fact-check that section's claims into the fact-check file before drafting the next (the owner's per-section rule).
-- [ ] Run `/anthropic-skills:writing-review` on the whole report, fix every finding with `/anthropic-skills:writing`, and re-check every claim a fix touched.
-- [ ] Write "as of <month year>" for every version, star count and spec status.
+- [x] Gather primary sources first: specifications, official docs, repositories and papers; mark anything taken from a search summary or a secondary write-up as such.
+- [x] Draft each section of the report with `/anthropic-skills:writing`, and fact-check that section's claims into the fact-check file before drafting the next (the owner's per-section rule).
+- [x] Run `/anthropic-skills:writing-review` on the whole report, fix every finding with `/anthropic-skills:writing`, and re-check every claim a fix touched.
+- [x] Write "as of <month year>" for every version, star count and spec status.
 
 ## Acceptance criteria
 
-- [ ] The report answers the research question in its thesis, with every factual claim cited
-- [ ] The fact-check file logs every claim as ✅, ✏️ or ⚠️, with a tally
-- [ ] The report names what the book should teach and which examples, if any, should be written
-- [ ] Every relative link resolves
+- [x] The report answers the research question in its thesis, with every factual claim cited
+- [x] The fact-check file logs every claim as ✅, ✏️ or ⚠️, with a tally
+- [x] The report names what the book should teach and which examples, if any, should be written
+- [x] Every relative link resolves
 - [ ] `pnpm check`, `pnpm typecheck` and `pnpm test` pass offline from the repo root
 
 ## Tests
@@ -68,8 +68,12 @@ None beyond `pnpm check` and the link check; the report is prose.
 ## Definition of done
 
 - [x] Claimed: the first commit moved this file `ready/` → `ongoing/` (Status `ongoing`)
-- [ ] Prose drafted with `/anthropic-skills:writing`, and changed claims re-checked against their sources
+- [x] Prose drafted with `/anthropic-skills:writing`, and changed claims re-checked against their sources
 - [ ] `pnpm check`, `pnpm typecheck` and `pnpm test` pass locally; pushed after each meaningful step
-- [ ] This file moved `ongoing/` → `done/` (Status `done`) in the last work commit, and the plan's todo table updated
+- [x] This file moved `ongoing/` → `done/` (Status `done`) in the last work commit, and the plan's todo table updated
 - [ ] Two code-review rounds run on the pull request (`/code-review high --max-findings default`, then `medium` and `low` after more than 6 confirmed findings, otherwise `low`), with every finding fixed or explained in a commit message
 - [ ] Copy reviewed with `/anthropic-skills:writing-review` after the code changes, with its findings fixed and the rubric scores in the pull request description
+
+## Outcome
+
+The report is [agent-to-agent-protocols.md](../../research/a2a/agent-to-agent-protocols.md), with its [fact-check log](../../research/a2a/fact-check-agent-to-agent-protocols.md) (125 claims: 95 ✅, 20 ✏️, 10 ⚠️). It finds that A2A 1.0.0 (patched as 1.0.1) is a released standard, that MCP 2026-07-28 leaves "who plans the work" as the line between the two protocols, and that only Google ADK ships A2A in TypeScript among our eight SDKs, on protocol 0.3. It recommends that T37 stay one section of T21, teaching five steps, and that a new ADK example (placeholder T45) give it a listing. It proposes seven plan changes for the owner to decide. The report sits in `docs/research/a2a/`, its own folder, rather than in `external-designs/` as this todo's scope first said. `pnpm check` passes and every relative link resolves. The offline-gate and review boxes stay open until `pnpm typecheck`, `pnpm test` and the pull request's rounds finish.
