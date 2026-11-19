@@ -60,6 +60,8 @@ The runtime saves a session to disk once the session handles its first message (
 
 > **Gotcha.** Custom tools do not survive a resume. A `resumeSession` call without `tools` offers the model none of the tools the session was created with. **[verified: 06]** The persistence page says the runtime maintains "tool state", and its table of resume options omits `tools` (F9). Pass `tools`, `provider` and your handlers again on every resume.
 
+Long-term memory is a separate session option. `memory: { enabled, mode?, storeMemory? }` turns on Copilot Memory, whose `store_memory` writes reach your permission handler as `kind: "memory"`. The experimental `storeMemory` callback sends those writes to your own storage instead, and then you supply recall yourself. The SDK has no call that lists, deletes or expires a memory; GitHub expires them after 90 days by default (fact-check M1–M3, as of November 2026).
+
 ## 4. Custom tools run in your process after the runtime asks permission
 
 `defineTool` takes a name, a description, a Zod schema or raw JSON Schema, and a handler. The SDK converts the Zod schema to JSON Schema for the model and gives the handler parsed arguments plus an `invocation` that carries the `toolName`. **[verified: 02]**

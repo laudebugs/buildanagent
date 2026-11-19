@@ -1,13 +1,13 @@
 # Plan: write a two-part textbook on building an agent, published from `apps/manual` to manual.buildanagent.fyi
 
-- **Status:** Approved (2026-11-19). The owner answered the design, licence, vendoring and Cloudflare questions, then asked for a review, including a check that the outline covers every part of building an agent. Asked to approve the reviewed plan, the owner said "If green merge" and then "Then continue work", so its 46 todos now start once their **Depends on** are done (§7).
+- **Status:** Approved (2026-11-19). The owner answered the design, licence, vendoring and Cloudflare questions, then asked for a review, including a check that the outline covers every part of building an agent. Asked to approve the reviewed plan, the owner said "If green merge" and then "Then continue work", so its todos now start once their **Depends on** are done (§7). On 2026-11-19 the owner also approved the twelve plan changes of the retrieval and memory research (U18), which added two example todos, T43 and T44, for 48 in all (BK20).
 - **Date:** 2026-11-19
 - **Asked for by:** the project owner (2026-11-19): "A textbook on how to build an agent, with images that explain how agents work and example code from this repository."
 - **Builds on:** the three [build guides](../guides/), the [main research report][main], the eight [SDK references](../reference/), the [comparison docs](../comparison/), the plans and ADRs, the [publish-and-docs plan](publish-and-docs.md) for the docs and website beside the book, the verified examples in `verify/*/examples/`, and the owner's garment engineering textbook repository, read at commit `bca44b0` (BK16)
 - **Decision records:** [ADR 0052](../decisions/0052-book-in-apps-on-cloudflare.md) (accepted, owner), [ADR 0053](../decisions/0053-book-stack-and-deploy.md) (proposed), [ADR 0054](../decisions/0054-reuse-garment-textbook-code.md) (accepted for the permission, the exclusions and the Apache-2.0 licence; proposed for the list)
 - **Todos:** Round T ("textbook") on the [todo board](../todos/README.md); §5 lists them.
 
-This repository already holds most of what a book on building agents needs. It has three guides, a research report with a fact-check log, eight SDK references, and 70 example programs that type-check and run offline against mock models. But these sources are written for the engineers who will build our stack, and they assume the reader knows how an agent works. The owner wants a textbook for two readers: developers new to agents, and experienced builders who want the design reasons. The owner's garment engineering textbook shows what goes wrong when a book like this grows by hand: chapters numbered by hand needed about fifty redirects after renumbering, and figure numbers were typed into captions. **This plan builds the book as a static Astro site in `apps/manual` whose chapter, figure and listing numbers, citations, glossary links and code listings are all computed and checked at build time. It deploys the site as an assets-only Worker on manual.buildanagent.fyi. After eleven tooling todos, ten new examples and four research rounds, it writes eighteen chapters in the owner's "call, then workflow, then loop" order, each fact-checked section by section.**
+This repository already holds most of what a book on building agents needs. It has three guides, a research report with a fact-check log, eight SDK references, and 70 example programs that type-check and run offline against mock models. But these sources are written for the engineers who will build our stack, and they assume the reader knows how an agent works. The owner wants a textbook for two readers: developers new to agents, and experienced builders who want the design reasons. The owner's garment engineering textbook shows what goes wrong when a book like this grows by hand: chapters numbered by hand needed about fifty redirects after renumbering, and figure numbers were typed into captions. **This plan builds the book as a static Astro site in `apps/manual` whose chapter, figure and listing numbers, citations, glossary links and code listings are all computed and checked at build time. It deploys the site as an assets-only Worker on manual.buildanagent.fyi. After eleven tooling todos, twelve new examples and four research rounds, it writes eighteen chapters in the owner's "call, then workflow, then loop" order, each fact-checked section by section.**
 
 ## 1. Goal and non-goals
 
@@ -203,7 +203,7 @@ Every text colour in the table meets WCAG AA (4.5:1) on its background. The lowe
 
 The table lives as data in [`docs/design/book-tokens.json`](../design/book-tokens.json), with each contrast ratio recorded beside its pair; the JSON file is the source of truth, and this table restates it. T2 generates the CSS custom properties from that file and builds the components: the page layout, contents and sidebar, listing block, tabs, annotation markers, replay controls, figure frame and stepper, side notes, glossary card, citation and search box. Google Fonts is where the font files come from, not where the page loads them. The book serves the files itself, so a reader's browser makes no third-party request.
 
-**T2's additions (2026-11-19).** The reference board shows details the token table did not carry, so T2 added five kinds of token to `book-tokens.json` and records them here for the owner to confirm (fact-check rows 192–199):
+**T2's additions (2026-11-19).** The reference board shows details the token table did not carry, so T2 added five kinds of token to `book-tokens.json` and records them here for the owner to confirm (fact-check rows 211–218):
 
 - **The dark panel's border** is `#45352A`, the dark rule, as the light panel's border is the light rule. Ember sits only 1.15:1 from the dark page, so without a border its edge would blur.
 - **Focus rings** use the accent, which reaches 3:1 on every surface it can sit on: 4.80:1 on the light page, 4.44:1 on the light panel, 7.63:1 on the dark page and 8.81:1 on Ember.
@@ -345,7 +345,7 @@ A listing from `google-adk`, or any example left out of the live list, says "ver
 
 ### BK20. New `verify/` examples fill the gaps the coverage review found (accepted)
 
-**The owner's decision (2026-11-19):** "New verify/ examples". The review read the named examples' headers and found seven chapters whose listings did not show their subject, and the code review of the plan found three more. Ten todos, T28–T34 and T40–T42, each write a type-checked, mock-run example in an existing harness, and each chapter waits for its example:
+**The owner's decision (2026-11-19):** "New verify/ examples". The review read the named examples' headers and found seven chapters whose listings did not show their subject, and the code review of the plan found three more. Twelve todos, T28–T34 and T40–T44, each write a type-checked, mock-run example in an existing harness, and each chapter waits for its example:
 
 - streaming with usage for T11;
 - retries, caching and a budget for T18;
@@ -356,7 +356,11 @@ A listing from `google-adk`, or any example left out of the live list, says "ver
 - tracing and an LLM judge for T25;
 - a subagent with its own context for T17;
 - a computer-use tool against a fake computer for T35;
-- retrieval over a small fixture for T36, after the retrieval research (U18).
+- retrieval over a small fixture for T36, after the retrieval research (U18);
+- storing, recalling and expiring a fact across runs on LangChain's store, for T36 (T43);
+- context-block memory that survives eviction on Cloudflare, for T36 (T44).
+
+**Amended by the owner on 2026-11-19.** U18's report proposed twelve plan changes, and the owner approved all twelve on 2026-11-19 ([retrieval and memory report][u18-changes]). Four of them change this plan. T41 now writes BM25 by hand over a fixture of about ten documents and asserts four behaviours, with a hybrid variant optional and labelled as a stand-in. T43 and T44 are new, and T36 waits for both. T36's second section adds retrieval measurement, and its third adds the rule that the agent checks a recalled record against its source before acting on it. Its exercise now shows the expired fact still in the session log.
 
 Where no SDK can show a behaviour offline, the example todo records the limit instead of faking one. That is the case for AWS and Vercel durability, which `verify/` cannot run. It is also why T40 drives a scripted fake computer through the pinned SDK's own computer-use tool: no harness runs a real browser, and adding one is a new dependency and a host-touching tool, a separate change the owner approves.
 
@@ -425,7 +429,7 @@ The owner's arc for Part I is "Call, then workflow, then loop" (BK1). Chapters a
 | 9 | T18 | The model gateway: one streaming method, retries, prompt caching, reasoning replay and cost (`the-model-gateway`) | code | One streaming method over two wire protocols; Retries and their limits; Prompt caching: a stable prefix, and MCP's request for a deterministic `tools/list` order; Replaying reasoning across providers: drop foreign signatures (SDK guide §2); Cost accounting and the pre-call budget (the evals chapter no longer carries cost) | `verify/vercel-ai-sdk/examples/04-prepare-step.ts`, `verify/vercel-ai-sdk/examples/06-streaming.ts`, the retries, caching and budget example from [T29](../todos/ready/T29-example-retries-caching-budget.md) | B4, B5, B8, B9 |
 | 10 | T19 | Events and hooks: one event union, interceptors and observers (`events-and-hooks`) | question | One closed event union, with end events that carry the authoritative item; Six interceptors at model and tool moments; Observers that only watch | `verify/copilot-sdk/examples/08-hooks.ts`, `verify/langchain/examples/07-middleware.ts`, `verify/google-adk/examples/05-callbacks.ts`, `verify/pi/examples/04-steering.ts` | B13, B16, B17 |
 | 11 | T20 | The session log and context policy (`the-session-log-and-context`) | analogy | One append-only tree of typed entries, with HEAD, forks and a writer lock; Five context layers, cheapest first, with visible and reversible compaction; Progress files and feature lists for long-running work (Anthropic's long-running harness; main report) | `verify/pi/examples/05-session-tree.ts`, `verify/pi/examples/06-compaction.ts`, `verify/cloudflare-agents/examples/08-hibernation.ts` | N2–N10 |
-| 12 | T36 | Retrieval and long-term memory (`retrieval-and-long-term-memory`) | scenario | Just-in-time retrieval through tools versus pre-loaded context; Vector and keyword search, and their failure modes (OWASP LLM08); Long-term memory across runs: what to store, when to recall, when to forget; When to buy a memory service (main report) and when a file is enough | `verify/langchain/examples/09-long-term-store.ts`, `verify/cloudflare-agents/examples/02-sql.ts`, the retrieval example from [T41](../todos/ready/T41-example-retrieval.md) | N23 |
+| 12 | T36 | Retrieval and long-term memory (`retrieval-and-long-term-memory`) | scenario | Just-in-time retrieval through tools versus pre-loaded context; Vector and keyword search, their failure modes (OWASP LLM08), and measuring retrieval: recall@k on 20 to 50 labelled queries, some of which should return nothing; Long-term memory across runs: what to store, when to recall, when to forget, and checking a recalled record against its source before acting on it; When to buy a memory service (main report) and when a file is enough | `verify/langchain/examples/09-long-term-store.ts`, `verify/cloudflare-agents/examples/02-sql.ts`, the retrieval example from [T41](../todos/ready/T41-example-retrieval.md), the store, recall and expiry example from [T43](../todos/ready/T43-example-store-recall-expire.md), the context-memory example from [T44](../todos/ready/T44-example-context-memory.md) | N23 |
 | 13 | T21 | Tools at scale: the registry, deferred tools, MCP and skills (`tools-at-scale`) | fact | One registry that names, defers and gates every tool; Deferred tools: load a tool's definition only when needed; MCP after 2026-07-28: stateless requests, `server/discover`, multi round-trip requests (`input_required`), and the deprecation of Roots, Sampling, Logging and dynamic client registration; Skills: procedures loaded on demand; Connector OAuth and token custody moved to the permissions chapter, after the credential boundary | `verify/vercel-ai-sdk/examples/08-mcp-tools.ts`, `verify/cloudflare-agents/examples/07-mcp.ts`, `verify/copilot-sdk/examples/07-mcp-server.ts`, `verify/pi/examples/03-tool-selection.ts`, the deferred-tools and skills examples from [T30](../todos/ready/T30-example-deferred-tools-and-skills.md) | N11, N21–N25 |
 | 14 | T22 | Permissions, sandboxes and credentials, and the lethal trifecta (`permissions-sandboxes-and-credentials`) | incident | A deny-first permission pipeline; Sandboxes and egress; The credential boundary, then connector OAuth and token custody (moved from the tools chapter); Prompt injection contained: the lethal trifecta and cutting the outbound leg (agent guide §5) | `verify/claude-agent-sdk/examples/03-permission-order.ts`, `verify/copilot-sdk/examples/03-permission-deny.ts`, `verify/copilot-sdk/examples/04-restrict-builtins.ts`, `verify/pi/examples/07-extension-gate.ts`, `verify/copilot-sdk/examples/00-sandbox.ts` (labelled as our harness's network self-check, not an SDK feature), the sandbox example from [T31](../todos/ready/T31-example-sandbox-behaviour.md) | N12–N20 |
 | 15 | T35 | Agents people can watch: UIs, browsers and taking over (`agents-people-can-watch`) | question | Agent UIs render an event log, not a chat (agent UI research); Undo for agent edits; Browser use: accessibility snapshots, hosted browsers and vendor computer-use tools; Watching and taking over the browser (U16); Why the network and the credential are the browser's boundary | `verify/vercel-ai-sdk/examples/06-streaming.ts` read as a UI event stream, `verify/cloudflare-agents/examples/04-chat-agent.ts`, the computer-use example from [T40](../todos/ready/T40-example-computer-use.md) | N44 |
@@ -494,6 +498,8 @@ The owner chose to cover every topic group the coverage review named (2026-11-19
 | [T40](../todos/ready/T40-example-computer-use.md) | Example: a computer-use tool against a fake computer | T5 | M |
 | [T41](../todos/ready/T41-example-retrieval.md) | Example: retrieval over a small fixture, offline | T5, U18 | M |
 | [T42](../todos/ready/T42-example-subagent.md) | Example: a subagent with its own context | T5 | M |
+| [T43](../todos/ready/T43-example-store-recall-expire.md) | Example: store, recall and expire a fact across runs on LangChain's store | T5, U18 | M |
+| [T44](../todos/ready/T44-example-context-memory.md) | Example: context-block memory that survives eviction and stays inside one agent | T5, U18 | M |
 | [U18](../todos/done/U18-research-retrieval-and-long-term-memory.md) | Research: retrieval and long-term memory, for the book | None | L |
 | [U19](../todos/ready/U19-research-a2a.md) | Research: agent-to-agent protocols (a2a), for the book | None | L |
 | [U20](../todos/ready/U20-research-voice-and-realtime.md) | Research: voice and realtime agents, for the book | None | L |
@@ -509,7 +515,7 @@ The owner chose to cover every topic group the coverage review named (2026-11-19
 | [T18](../todos/ready/T18-chapter-the-model-gateway.md) | Chapter: The model gateway: one streaming method, retries, prompt caching, reasoning replay and cost | T5, T6, T26, T29 | M |
 | [T19](../todos/ready/T19-chapter-events-and-hooks.md) | Chapter: Events and hooks: one event union, interceptors and observers | T5, T6, T26 | M |
 | [T20](../todos/ready/T20-chapter-the-session-log-and-context.md) | Chapter: The session log and context policy | T5, T7, T26 | M |
-| [T36](../todos/ready/T36-chapter-retrieval-and-long-term-memory.md) | Chapter: Retrieval and long-term memory | U18, T5, T6, T26, T41 | M |
+| [T36](../todos/ready/T36-chapter-retrieval-and-long-term-memory.md) | Chapter: Retrieval and long-term memory | U18, T5, T6, T26, T41, T43, T44 | M |
 | [T21](../todos/ready/T21-chapter-tools-at-scale.md) | Chapter: Tools at scale: the registry, deferred tools, MCP and skills | T5, T6, T26, T30 | M |
 | [T22](../todos/ready/T22-chapter-permissions-sandboxes-and-credentials.md) | Chapter: Permissions, sandboxes and credentials, and the lethal trifecta | T5, T7, T26, T31 | M |
 | [T35](../todos/ready/T35-chapter-agents-people-can-watch.md) | Chapter: Agents people can watch: UIs, browsers and taking over | T5, T6, T26, T40 | M |
@@ -520,7 +526,7 @@ The owner chose to cover every topic group the coverage review named (2026-11-19
 | [T38](../todos/ready/T38-section-voice-and-realtime.md) | Section: voice and realtime agents in Chapter T35 | U20, T35 | S |
 | [T39](../todos/ready/T39-section-fine-tuning-vs-prompting.md) | Section: fine-tuning versus prompting in Chapter T11 | U21, T11 | S |
 
-Chapters are listed in reading order. The longest chain runs T1 → T3 → T4 → T5 → T26 and then to any chapter; T6 → T8 → T7 runs beside it. Each chapter whose subject lacked code waits for its example todo (T28–T34, T40–T42), which needs T5, and T41 also needs U18. The research todos U18–U21 need nothing from Round T and can run first; T36 waits for U18, and each research-fed section waits for its research and its chapter. T27 can run any time after T5, and the owner starts each live run by hand. T9 can ship the site at any point after T8, with whatever chapters exist.
+Chapters are listed in reading order. The longest chain runs T1 → T3 → T4 → T5 → T26 and then to any chapter; T6 → T8 → T7 runs beside it. Each chapter whose subject lacked code waits for its example todo (T28–T34, T40–T44), which needs T5, and T41, T43 and T44 also need U18. The research todos U18–U21 need nothing from Round T and can run first; T36 waits for U18, and each research-fed section waits for its research and its chapter. T27 can run any time after T5, and the owner starts each live run by hand. T9 can ship the site at any point after T8, with whatever chapters exist.
 
 
 ## 6. Ten risks, each with the todo that handles it
@@ -545,7 +551,7 @@ Round T needs nothing from Rounds B, N or E to start: T1 needs only the workspac
      └─► T3 ─► T4 ─► T5 ─┬─► T26 ─┐          │
               T2, T3 ─► T6 ─► T8 (with T4) ─► T7
                          ├─► T27  │
-                         └─► T28–T34, T40–T42 (examples; T41 also after U18)
+                         └─► T28–T34, T40–T44 (examples; T41, T43 and T44 also after U18)
                                   ├─► chapters, each after T26, T6 or T7, and its example todo
  U18 ─► T36   U19 ─► T37 (in T21)   U20 ─► T38 (in T35)   U21 ─► T39 (in T11)
 ```
@@ -553,6 +559,7 @@ Round T needs nothing from Rounds B, N or E to start: T1 needs only the workspac
 The owner approved this plan on 2026-11-19 ("If green merge", then "Then continue work"), so T1 can begin now, and T2 already has the owner's design. Once Rounds B, N and E land the todos each chapter names in `switchTo`, follow-up todos move those chapters' listings to our own packages. The book then documents the stack this repository builds, in code that CI checks on every push.
 
 [main]: ../research/agent-sdks-and-harness-design.md
+[u18-changes]: ../research/memory/retrieval-and-memory.md#twelve-proposed-changes-await-the-owners-decision
 [main-arch]: ../research/agent-sdks-and-harness-design.md#a-reference-architecture-in-eight-swappable-layers
 [g-sdk]: ../guides/agent-sdk.md
 [g-harness]: ../guides/agent-harness.md
