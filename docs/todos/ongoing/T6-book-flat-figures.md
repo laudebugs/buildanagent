@@ -5,7 +5,7 @@
 | Field | Value |
 | --- | --- |
 | ID | `T6` |
-| Status | `ready` |
+| Status | `ongoing` |
 | Plan | [Book plan §5, BK10 and BK11](../../plans/build-book.md#bk11-generated-checked-inlined-figures-that-work-without-javascript-proposed) |
 | Round / milestone | Round T (textbook), MT |
 | Depends on | [T2](../done/T2-book-design.md), [T3](../done/T3-book-content-model.md) |
@@ -33,7 +33,7 @@ Give chapters a way to add flat diagrams that stay correct. Each figure is a com
 
 **Out of scope** (and which todo covers it)
 
-- Isometric and interactive figures ([T7](T7-book-isometric-figures.md))
+- Isometric and interactive figures ([T7](../ready/T7-book-isometric-figures.md))
 - Each chapter's own figures (the chapter todos)
 
 ## Tasks
@@ -69,7 +69,7 @@ Vitest: the staleness test over every figure, plus unit tests for `svgkit.ts` an
 
 ## Definition of done
 
-- [ ] Claimed: the first commit moved this file `ready/` → `ongoing/` (Status `ongoing`)
+- [x] Claimed: the first commit moved this file `ready/` → `ongoing/` (Status `ongoing`)
 - [ ] Prose drafted with `/anthropic-skills:writing`, and changed claims re-checked against their sources
 - [ ] `pnpm check`, `pnpm typecheck` and `pnpm test` pass locally; pushed after each meaningful step
 - [ ] This file moved `ongoing/` → `done/` (Status `done`) in the last work commit, and the plan's todo table updated

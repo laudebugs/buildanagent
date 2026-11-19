@@ -8,7 +8,7 @@
 | Status | `ready` |
 | Plan | [Book plan §4.1](../../plans/build-book.md#41-part-i-foundations-for-developers-new-to-agents) |
 | Round / milestone | Round T (textbook), MT |
-| Depends on | [T5](T5-book-interactive-listings.md), [T6](T6-book-flat-figures.md), [T26](T26-book-checked-inline-code.md), [T28](T28-example-streaming-usage.md) |
+| Depends on | [T5](T5-book-interactive-listings.md), [T6](../ongoing/T6-book-flat-figures.md), [T26](T26-book-checked-inline-code.md), [T28](T28-example-streaming-usage.md) |
 | Size | M |
 
 ## Goal

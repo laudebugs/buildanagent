@@ -507,7 +507,7 @@ The three research rounds behind the sections each confirmed its placement, and 
 | [T3](../todos/done/T3-book-content-model.md) | Content model: outline, numbering, source register, glossary, analogy register and chapter checks | T1 | L |
 | [T4](../todos/ready/T4-book-listings.md) | Code listings from real file regions, with path, lines and pin | T3 | M |
 | [T5](../todos/ready/T5-book-interactive-listings.md) | Interactive listings: annotations, SDK tabs, recorded-run replay and the transcript recorder | T4 | L |
-| [T6](../todos/ready/T6-book-flat-figures.md) | Flat figure pipeline: generated SVGs, analogy illustrations, numbering, themes and the staleness test | T2, T3 | M |
+| [T6](../todos/ongoing/T6-book-flat-figures.md) | Flat figure pipeline: generated SVGs, analogy illustrations, numbering, themes and the staleness test | T2, T3 | M |
 | [T7](../todos/ready/T7-book-isometric-figures.md) | Isometric and interactive figures: the vendored anatomy skill, its audits and inline fragments | T6, T8 | M |
 | [T8](../todos/ready/T8-book-ci.md) | The book's build workflow: every check, no secrets, `dist/` as an artifact | T4, T6 | S |
 | [T9](../todos/ready/T9-book-deploy.md) | Deploy to manual.buildanagent.fyi from GitHub Actions: guard, switch and branch previews | T2, T8 | M |
