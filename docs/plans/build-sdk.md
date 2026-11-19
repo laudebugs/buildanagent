@@ -597,7 +597,7 @@ The guide says to start with the gateway and the test model, because every other
 | [B11b](../todos/ready/B11b-turn-retries.md) | Turn-level retries: the loop retries a retryable error that ends a turn (added 2026-11-19, a B11 follow-up) | B11 | M |
 | [B11c](../todos/ready/B11c-raw-provider-events.md) | Raw provider events: `includeRaw` and the `raw` event, from the adapters up to the loop (added 2026-11-19, a B11 follow-up) | B11, B4, B8, B9 | L |
 | [B12](../todos/done/B12-parallel-tools.md) | Parallel tool scheduling, per-resource serialisation and sibling cancellation | B11 | M |
-| [B13](../todos/ready/B13-interceptors-observers.md) | The six interceptors and observers | B11 | M |
+| [B13](../todos/ongoing/B13-interceptors-observers.md) | The six interceptors and observers | B11 | M |
 | [B14](../todos/ready/B14-budget-progress.md) | Pre-emptive USD budget, progress detection and the depth cap | B5, B13, E1 | M |
 | [B15](../todos/ready/B15-signed-pauses.md) | Signed pauses in the loop on the safety package's signers, and `createPendingRequest` | B13, E3 | M |
 | [B15b](../todos/ready/B15b-continue-run.md) | `continueRun`, `blockingApprovals()` and the clarification pause | B15 | M |
