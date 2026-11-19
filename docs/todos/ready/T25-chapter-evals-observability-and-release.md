@@ -49,7 +49,7 @@ Write the chapter "Evals, observability and release" (`evals-observability-and-r
 
 **Out of scope** (and which todo covers it)
 
-- Adding our own packages' listings as tabs beside the third-party ones: a follow-up todo once its switch todos (N31, N36, N38) are done (BK8)
+- Adding our own packages' listings as tabs beside the third-party ones: a follow-up todo once the chapter's `switchTo` todos (N31, N36, N38) are done (BK8)
 - New research: a gap becomes a follow-up research todo
 
 ## Tasks

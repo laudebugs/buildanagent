@@ -233,7 +233,7 @@ function box(node: ContainerDirective, file: VFile, depth: number, topLevel: boo
   if (top !== undefined && !topLevel) {
     return failAt(
       file,
-      `a box marked top must sit directly in the chapter, not inside another block; drop top from :::box{#${id}} or move the box out`,
+      `a box marked top must sit directly in the chapter, not inside another block; drop top from :::box{#${id}} or move the box out of that block`,
       node,
     );
   }

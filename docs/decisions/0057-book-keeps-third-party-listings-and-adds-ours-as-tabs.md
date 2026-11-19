@@ -1,4 +1,4 @@
-# 0057. Keep each chapter's third-party listings, and add our SDK's as the first tab as it gains each feature
+# 0057. Keep each chapter's third-party listings, and add our SDK's as the first tab once it supports each feature
 
 - **Status:** Accepted (owner, 2026-11-19); supersedes the listings rule in [ADR 0052](0052-book-in-apps-on-cloudflare.md)
 - **Date:** 2026-11-19

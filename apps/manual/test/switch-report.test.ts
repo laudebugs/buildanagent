@@ -23,7 +23,7 @@ test("the switch report lists each chapter's switchTo todos and which are done",
 });
 
 test("the switch report says so when no chapter is written or a chapter waits on nothing", () => {
-  assert.deepEqual(formatSwitches([]), ["No chapter is written yet, so no chapter has listings to give tabs."]);
+  assert.deepEqual(formatSwitches([]), ["No chapter is written yet, so no chapter has listings that could gain tabs."]);
   assert.deepEqual(formatSwitches([{ slug: "tools", number: 3, switchTo: [], done: [] }]), [
     "Chapter 3 (tools): lists no switchTo todos.",
   ]);

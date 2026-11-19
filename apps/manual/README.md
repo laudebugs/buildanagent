@@ -46,7 +46,7 @@ switchTo: [B11]
 - `glossary` lists the glossary ids whose first use the chapter links; it may be empty.
 - `switchTo` lists the todos whose code will join the chapter's `verify/` listings as a first tab, while the `verify/` listings stay (BK8); it may be empty.
 
-The chapter's last `##` section is `## Exercises`, and it holds a list and nothing else: `check:book` fails on a paragraph or a box after the list, which would render inside the exercises. The layout adds the chapter's sources after it, so the chapter has no sources section of its own.
+The chapter's last `##` section is `## Exercises`, and it holds a list and nothing else: `check:book` fails on a paragraph or a box after the list, since either would render inside the exercises. The layout adds the chapter's sources after it, so the chapter has no sources section of its own.
 
 ## Citations point at the source register
 
@@ -184,10 +184,10 @@ Every listing in this book runs against a mock model, …
 :::
 ```
 
-The page renders the box as an `<aside>` whose `aria-labelledby` names its title, and the title is a heading that carries the box's id, so a link to `#how-these-examples-run-without-a-key` lands on the title. Where the box sits sets the title's level:
+The page renders the box as an `<aside>` whose `aria-labelledby` names its title, and the title is a heading that carries the box's id, so a link to `#how-these-examples-run-without-a-key` lands on the title. The `top` flag sets the title's level:
 
-- A box marked `top`, written `:::box[Title]{#id top}`, is a top-level box: its title is a level-2 heading, so the box stands beside the chapter's sections and the chapter's "On this page" list shows it. `top` is a bare flag with no value, and the box must sit directly in the chapter, not inside another block. Chapter 1's box is marked `top`, so it stands beside its sections.
-- A box without `top` sits inside its section, wherever it falls: its title is a heading one level below the heading the box follows, as a tab heading is, and "On this page", which shows only level-2 headings, leaves it out. A box that ends a section, or follows another box, is still one level down.
+- A box marked `top`, written `:::box[Title]{#id top}`, is a top-level box: its title is a level-2 heading, so the box stands beside the chapter's sections and the chapter's "On this page" list shows it. `top` is a bare flag with no value, and the box must sit directly in the chapter, not inside another block. Chapter 1's box is marked `top`.
+- A box without `top` sits inside its section, wherever it falls: its title is a heading one level below the heading the box follows, as a tab heading is. "On this page" shows only level-2 headings, so it leaves the box out. A box that ends a section, or follows another box, is still one level down.
 
 Position never decides the level; only `top` does. Two examples:
 
@@ -207,9 +207,9 @@ Skippable material at the chapter's top level, an h2 listed in "On this page".
 
 To move a box into its section, drop `top`; to lift it to the top level, add it.
 
-Inside, a box takes any Markdown: paragraphs, citations, glossary terms, analogies, references and file listings, which are numbered and checked like any other. A `:::listing` container with notes fits inside too, once the box's fence has four colons, `::::box`. So does a `:::tabs` block inside a `::::box`, and its tab headings sit one level below the box's title. The box draws a thin card border in the rule colour, which is decorative, and a 4px left rule in the muted text colour, which marks its boundary at 7.22:1 on the light page and 6.94:1 on the dark one, above WCAG 1.4.11's 3:1. A listing inside keeps its own panel in both themes. In print the border takes the muted text colour, and the title stays on the same page as the text after it. The box needs no script and writes no inline style.
+Inside, a box takes any Markdown: paragraphs, citations, glossary terms, analogies, references and file listings, which are numbered and checked like any other. A `:::listing` container with notes fits inside too, once the box's fence has four colons, `::::box`. So does a `:::tabs` block inside a `::::box`, and its tab headings sit one level below the box's title. The box draws a thin card border in the rule colour, which is decorative. A 4px left rule in the muted text colour marks its boundary, at 7.22:1 on the light page and 6.94:1 on the dark one, above WCAG 1.4.11's 3:1. A listing inside keeps its own panel in both themes. In print the border takes the muted text colour, and the title stays on the same page as the text after it. The box needs no script and writes no inline style.
 
-A box fails when its id is missing or not kebab-case, when it takes any attribute but its id and `top`, when `top` has a value (`top=x`), when a `top` box sits inside another block, when its title is missing or blank, when it holds nothing, and when it holds a heading or another box. It also fails when its id repeats another id on the page, such as `#exercises`, the slug of `## Exercises`, or `#lst-greet`, the id of Listing `greet`. The check covers every id on the page, from heading slugs to ids in a listing's raw HTML, so two boxes cannot share an id either. These rules are our choices. The heading rule keeps the title as the one heading a box adds to the page's outline.
+A box fails when its id is missing or not kebab-case, when it takes any attribute but its id and `top`, when `top` has a value (`top=x`), when a `top` box sits inside another block, when its title is missing or blank, when it holds nothing, and when it holds a heading or another box. It also fails when its id repeats another id on the page, such as `#exercises` (the slug of `## Exercises`) or `#lst-greet` (the id of Listing `greet`). The check covers every id on the page, from heading slugs to ids in a listing's raw HTML, so two boxes cannot share an id either. These rules are our choices. The heading rule keeps the title as the one heading a box adds to the page's outline.
 
 ## The live run compares the listed examples with real APIs, only when the owner starts it
 

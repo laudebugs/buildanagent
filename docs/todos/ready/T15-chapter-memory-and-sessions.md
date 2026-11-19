@@ -45,7 +45,7 @@ Write the chapter "Memory within a task: sessions, threads and resuming" (`memor
 
 **Out of scope** (and which todo covers it)
 
-- Adding our own packages' listings as tabs beside the third-party ones: a follow-up todo once its switch todos (N3, N6) are done (BK8)
+- Adding our own packages' listings as tabs beside the third-party ones: a follow-up todo once the chapter's `switchTo` todos (N3, N6) are done (BK8)
 - New research: a gap becomes a follow-up research todo
 
 ## Tasks

@@ -44,7 +44,7 @@ export function chapterSwitches(book: Book): ChapterSwitch[] {
 
 /** The report's lines, one per written chapter, in reading order. */
 export function formatSwitches(switches: readonly ChapterSwitch[]): string[] {
-  if (switches.length === 0) return ["No chapter is written yet, so no chapter has listings to give tabs."];
+  if (switches.length === 0) return ["No chapter is written yet, so no chapter has listings that could gain tabs."];
   return switches.map(({ slug, number, switchTo, done, invalid }) => {
     const head = `Chapter ${number} (${slug}):`;
     if (invalid) return `${head} its front matter fails the schema, so its switchTo cannot be read; run check:book.`;
