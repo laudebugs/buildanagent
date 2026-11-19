@@ -2,9 +2,10 @@ agent-speak is open source under three licence terms, one for each kind of
 content in the repository.
 
 Code: Apache-2.0 OR MIT, at your option
-  Scripts (scripts/), the verification harnesses and their examples (verify/),
-  the CI workflows (.github/), the configuration files, and the code blocks in
-  the agent skills (.agents/skills/) are licensed under either of
+  Scripts (scripts/), our packages (packages/), the verification harnesses and
+  their examples (verify/), the CI workflows (.github/), the configuration
+  files, and the code blocks in the agent skills (.agents/skills/) are licensed
+  under either of
 
     * the Apache License, Version 2.0 (LICENSE-APACHE), or
     * the MIT License (LICENSE-MIT).

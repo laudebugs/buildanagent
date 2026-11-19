@@ -55,20 +55,20 @@ Each SDK gets a reference folder under `docs/reference/<sdk>/` (guide, fact-chec
 
 ## Development
 
-The repo is a pnpm workspace (Node 22, pnpm 10.28.0). Each SDK harness under `verify/` is a workspace package.
+The repo is a pnpm workspace (Node 22, pnpm 10.28.0). Our own packages live in `packages/`: `@agent-speak/gateway` and `@agent-speak/sdk`, which are scaffolds as of November 2026. Each SDK harness under `verify/` is also a workspace package.
 
 ```bash
-pnpm install        # install every harness
+pnpm install        # install every package and harness
 pnpm check          # Biome lint and format check
 pnpm typecheck      # type-check every package
-pnpm test           # run every harness's verified examples offline
+pnpm test           # run our packages' tests and every harness's verified examples offline
 ```
 
 See [AGENTS.md](AGENTS.md#coding-standards) for the coding standards.
 
 ## Licence
 
-You may use our code (scripts, the `verify/` harnesses and their examples, workflows and configs) under [Apache-2.0](LICENSE-APACHE) or [MIT](LICENSE-MIT), at your option. Our documentation is licensed under [CC BY 4.0](LICENSE-DOCS), and [LICENSE](LICENSE) says which files fall under which licence. The upstream docs mirrored under `docs/reference/*/source/` keep their own licences, listed in [THIRD-PARTY-NOTICES.md](THIRD-PARTY-NOTICES.md).
+You may use our code (scripts, our packages in `packages/`, the `verify/` harnesses and their examples, workflows and configs) under [Apache-2.0](LICENSE-APACHE) or [MIT](LICENSE-MIT), at your option. Our documentation is licensed under [CC BY 4.0](LICENSE-DOCS), and [LICENSE](LICENSE) says which files fall under which licence. The upstream docs mirrored under `docs/reference/*/source/` keep their own licences, listed in [THIRD-PARTY-NOTICES.md](THIRD-PARTY-NOTICES.md).
 
 ## For AI agents
 

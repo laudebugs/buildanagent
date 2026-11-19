@@ -6,7 +6,7 @@
 | Status | `ready` |
 | Plan | [Build agent platform §5.1](../../plans/build-agent-platform.md#51-stage-f-a-builds-everything-that-needs-no-engine) |
 | Round / milestone | Round F (build the agent platform), M8 |
-| Depends on | [B1](B1-sdk-workspace-scaffold.md) |
+| Depends on | [B1](../done/B1-sdk-workspace-scaffold.md) |
 | Size | M |
 
 ## Goal

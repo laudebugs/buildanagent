@@ -4,12 +4,13 @@ Instructions for AI coding agents (Claude Code, Codex, OpenCode, Pi, etc.) worki
 
 ## Project
 
-**agent-speak** researches, and will later build, an AI agent and our own agent harness/SDK. The first agent is a personal cloud coding agent for the owner, deployed on Cloudflare first, with the SDK and harness also proved on AWS and Vercel ([coding agent plan](docs/plans/build-coding-agent.md)). After it comes a multi-user platform that turns a user's description into a checked agent deployed in the user's own cloud ([agent platform plan](docs/plans/build-agent-platform.md)). The repo is mostly documentation. The only code is the per-SDK verification harnesses under `verify/`.
+**agent-speak** researches, and will later build, an AI agent and our own agent harness/SDK. The first agent is a personal cloud coding agent for the owner, deployed on Cloudflare first, with the SDK and harness also proved on AWS and Vercel ([coding agent plan](docs/plans/build-coding-agent.md)). After it comes a multi-user platform that turns a user's description into a checked agent deployed in the user's own cloud ([agent platform plan](docs/plans/build-agent-platform.md)). The repo is mostly documentation. Our own code lives in `packages/` (the gateway and SDK, scaffolded empty in todo B1); the only other code is the per-SDK verification harnesses under `verify/`.
 
 ## Layout
 
 - `README.md`: project overview and doc index.
 - `docs/reference/<sdk>/`: per-SDK reference (`guide.md`, `fact-check.md`, `README.md`). `source/` holds mirrored upstream docs. The Pi mirror is committed (MIT); the Claude mirror is gitignored because those docs are not openly licensed, so regenerate it with `pnpm run fetch-docs`.
+- `packages/`: our own packages. `gateway/` is `@agent-speak/gateway` (the model gateway) and `sdk/` is `@agent-speak/sdk` (the loop over it); the harness plan adds `packages/harness` and others beside them. Each package runs `tsc -p` for `typecheck` and `tsx --test` for `test`, and every test file first imports `@agent-speak/gateway/testing/setup`, which blocks non-loopback `fetch` and fails if a provider key variable is set.
 - `verify/<sdk>/`: per-SDK verification harness (Node, exact-pinned deps). `pnpm run verify` type-checks and runs doc examples against a mock model; `pnpm test` runs our own examples in `examples/`. Generated folders (`extracted/`, `.tmp/`) are gitignored, while `results/` is committed.
 - `.github/workflows/`: `ci.yml` runs `pnpm check`, `pnpm typecheck`, `pnpm test` and the results-drift check (`scripts/ci/results-drift.mjs`) on every push; `verify.yml` runs every harness's full verify and `pnpm audit` nightly.
 - `docs/decisions/`: architecture decision records (ADRs) for lasting choices in the build plans; the format is in its README.
