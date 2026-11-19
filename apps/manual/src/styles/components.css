@@ -222,6 +222,19 @@
   margin-left: auto;
 }
 
+/* A listing the live run leaves out says so on a line of its own, under the path and pin. */
+.listing__verified {
+  flex-basis: 100%;
+  color: var(--panel-comment);
+}
+
+/* The line at the top of every page with a listing: how its listings were verified, and when last compared live. */
+.listing-verification {
+  margin: 0 0 1.5rem;
+  color: var(--color-text-muted);
+  font-size: var(--size-label);
+}
+
 .listing__code {
   margin: 0;
   padding: 0.75rem 0;

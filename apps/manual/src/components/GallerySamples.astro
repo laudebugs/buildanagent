@@ -11,6 +11,7 @@ import GeneratedFigure from "./GeneratedFigure.astro";
 import GlossaryCard from "./GlossaryCard.astro";
 import GlossaryTerm from "./GlossaryTerm.astro";
 import ListingBlock from "./ListingBlock.astro";
+import ListingVerification from "./ListingVerification.astro";
 import PrevNext from "./PrevNext.astro";
 import Replay from "./Replay.astro";
 import SearchBox from "./SearchBox.astro";
@@ -182,6 +183,9 @@ const events: ReplayEvent[] = [
 
 <div class="gallery__item">
   <h3>Listing block with annotation markers</h3>
+  <ListingVerification lastCompared={null} compared />
+  <ListingVerification lastCompared="2026-12-01" compared />
+  <ListingVerification lastCompared="2026-12-01" compared={false} />
   <ListingBlock
     id={id("listing-loop")}
     number="1.2"
@@ -189,6 +193,7 @@ const events: ReplayEvent[] = [
     pin="ai@7.0.162"
     lines={lines}
     notes={notes}
+    mockOnly
   />
   <p>
     A marker can also stand alone in the prose: <AnnotationMarker href={`#${id("listing-loop")}-note-stop`} number={1} />

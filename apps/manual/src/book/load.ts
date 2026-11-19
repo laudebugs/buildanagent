@@ -8,6 +8,7 @@ import { CodeNames } from "./code-names.js";
 import { FactCheckLogs } from "./fact-check-log.js";
 import { checkGlossary, type GlossaryEntry } from "./glossary.js";
 import { listingContext } from "./listings.js";
+import { type LiveRuns, readLiveRuns } from "./live-runs.js";
 import { checkOutline, type NumberedChapter, numberChapters } from "./outline-rules.js";
 import type { Outline } from "./outline-types.js";
 import { ProblemList } from "./problems.js";
@@ -31,6 +32,10 @@ export interface BookInputs {
   readonly analogiesFile: string;
   /** The table of each `verify/` harness's main package, whose pin a listing's caption shows. */
   readonly harnessesFile: string;
+  /** The live run's list of examples, whose listings the live run compares with real APIs (BK18). */
+  readonly liveExamplesFile: string;
+  /** The date of the last complete live comparison, which every page with a file listing shows. */
+  readonly liveComparisonFile: string;
   /** The directory that every `verifiedIn` path and every listed file is relative to: the repository root. */
   readonly repoRoot: string;
 }
@@ -42,6 +47,8 @@ export interface BookFileNames {
   readonly glossary: string;
   readonly analogies: string;
   readonly harnesses: string;
+  readonly liveExamples: string;
+  readonly liveComparison: string;
 }
 
 /** The checked book: its numbered outline, its three registers and its index of written chapters. */
@@ -54,6 +61,7 @@ export interface Book {
   readonly glossary: ReadonlyMap<string, GlossaryEntry>;
   readonly analogies: ReadonlyMap<string, Analogy>;
   readonly index: BookIndex;
+  readonly live: LiveRuns;
   /** What the inline-code check reads for this load: listed names, transcript values and package exports. */
   readonly code: CodeNames;
   /** The fact-check logs this load's markers cite, each read once. */
@@ -133,6 +141,8 @@ export function bookInputs(): BookInputs {
     sourcesFile: join(app, "src/data/sources.json"),
     glossaryFile: join(app, "src/data/glossary.json"),
     harnessesFile: join(app, "src/data/harnesses.json"),
+    liveExamplesFile: join(app, "src/data/live-examples.json"),
+    liveComparisonFile: join(app, "src/data/live-comparison.json"),
     repoRoot: join(app, "../.."),
   };
 }
@@ -173,6 +183,8 @@ export function loadBook(inputs: BookInputs = bookInputs()): Book {
     glossary: name(inputs.glossaryFile),
     analogies: name(inputs.analogiesFile),
     harnesses: name(inputs.harnessesFile),
+    liveExamples: name(inputs.liveExamplesFile),
+    liveComparison: name(inputs.liveComparisonFile),
   };
   checkOutline(inputs.outline, names.outline, problems);
   const chapters = numberChapters(inputs.outline);
@@ -203,6 +215,11 @@ export function loadBook(inputs: BookInputs = bookInputs()): Book {
     problems,
   );
   checkIllustrations(analogies, index, names.analogies, problems);
+  const live = readLiveRuns(
+    { examples: inputs.liveExamplesFile, comparison: inputs.liveComparisonFile },
+    { examples: names.liveExamples, comparison: names.liveComparison },
+    problems,
+  );
   problems.throwIfAny();
   return {
     inputs,
@@ -213,6 +230,7 @@ export function loadBook(inputs: BookInputs = bookInputs()): Book {
     glossary: new Map(glossary.map((entry) => [entry.id, entry])),
     analogies: new Map(analogies.map((entry) => [entry.id, entry])),
     index,
+    live,
     code: new CodeNames(inputs.repoRoot),
     logs: new FactCheckLogs(),
   };
@@ -237,12 +255,14 @@ function checkIllustrations(
 /**
  * What every chapter's rendered output depends on beyond its own file: which chapters exist, their numbers, the
  * numbered blocks in each, the lines and pin each listing shows, and the line offset of each body, which error lines
- * depend on. Astro caches a chapter until the chapter itself changes, so `astro.config.mjs` clears the cache when this
+ * depend on, and the live run's list and date. Astro caches a chapter until the chapter itself changes, so `astro.config.mjs` clears the cache when this
  * text changes, as when a figure is added to one chapter and another chapter refers to it, when a listed file or
  * its harness's pin changes, or when a package a listing imports resolves to another version.
  */
 export function renderDependencies(book: Book): string {
   return JSON.stringify({
+    // Every listing page states the comparison date, and each listing whether the live run covers it.
+    live: { compared: [...book.live.compared].sort(), lastCompared: book.live.lastCompared },
     chapters: book.chapters.map((chapter) => ({
       slug: chapter.slug,
       number: chapter.number,

@@ -20,6 +20,7 @@ import { existsSync } from "node:fs";
 import { mkdir, mkdtemp, readdir, readFile, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join, resolve } from "node:path";
+import { liveMode } from "../../../scripts/live/harness.mjs";
 import { writeTranscript } from "../../../scripts/transcripts/write.mjs";
 import { bundle, PKG } from "./workerd.mjs";
 
@@ -28,6 +29,10 @@ const ownExamples = !dir.endsWith("extracted");
 const only = process.argv.includes("--only")
   ? new Set(process.argv[process.argv.indexOf("--only") + 1].split(","))
   : null;
+// --live, which only scripts/live/run.mjs passes, runs one of our examples against a real provider: the bundle's
+// scripted() model asks the host for each answer, and the host, outside workerd, calls the provider
+// (scripts/live-model.mjs), so the key never enters workerd (scripts/live/harness.mjs).
+const liveRun = liveMode();
 const TIMEOUT_MS = Number(process.env.EXAMPLE_TIMEOUT_MS ?? 60000);
 const CONCURRENCY = Number(process.env.EXAMPLE_CONCURRENCY ?? 4);
 const MARKER = "[verify-harness] mock model call";
@@ -51,7 +56,15 @@ async function writeWorkerTranscript(t, out, cwd, nonce) {
   await writeFile(rawFile, JSON.stringify({ events }));
   // TRANSCRIPT_OUT_DIR lets a test write a probe's transcript outside results/ (scripts/ci/transcripts.test.mjs).
   const outDir = process.env.TRANSCRIPT_OUT_DIR || undefined;
-  writeTranscript({ harnessDir: PKG, exampleFile: resolve(t.path), rawFile, cwd, home: tmpdir(), outDir });
+  writeTranscript({
+    harnessDir: PKG,
+    exampleFile: resolve(t.path),
+    rawFile,
+    cwd,
+    home: tmpdir(),
+    outDir: liveRun?.transcript.outDir ?? outDir,
+    live: liveRun?.transcript.live,
+  });
   await rm(dir, { recursive: true, force: true });
 }
 // Bundles must live inside the package: workerd fails to load modules from some outside paths.
@@ -123,7 +136,14 @@ await rm(WORK, { recursive: true, force: true });
 
 function spawnRun(jobFile) {
   // Allowlisted environment: no inherited credentials reach workerd or the example.
-  const env = { PATH: process.env.PATH, HOME: tmpdir(), TMPDIR: tmpdir(), LANG: "C.UTF-8", NODE_NO_WARNINGS: "1" };
+  const env = {
+    PATH: process.env.PATH,
+    HOME: tmpdir(),
+    TMPDIR: tmpdir(),
+    LANG: "C.UTF-8",
+    NODE_NO_WARNINGS: "1",
+    ...liveRun?.env,
+  };
   return new Promise((done) => {
     const child = spawn(process.execPath, [join(PKG, "scripts/worker-run.mjs"), jobFile], {
       cwd: PKG,
@@ -167,6 +187,7 @@ async function runOne(t) {
   // Our own examples record a transcript, under a marker that is new for every run (examples/lib/transcript.ts).
   const nonce = randomUUID();
   const define = ownExamples ? { __TRANSCRIPT_NONCE__: JSON.stringify(nonce) } : {};
+  if (liveRun) define.__LIVE_MODEL__ = "true";
   const b = await bundle(resolve(t.path), work, { define });
   const base = { id: t.id, page: t.page, line: t.line, durableObjects };
   if (!b.ok) {
@@ -186,6 +207,7 @@ async function runOne(t) {
       durableObjects,
       compatibilityFlags: t.compatibilityFlags ?? [],
       vars: t.vars ?? {},
+      live: liveRun !== undefined,
     }),
   );
   const run = await spawnRun(jobFile);
@@ -193,12 +215,15 @@ async function runOne(t) {
   const line = run.out.split("\n").find((l) => l.startsWith("__RESULT__"));
   const r = line ? JSON.parse(line.slice("__RESULT__".length)) : null;
   if (ownExamples && !run.timedOut) await writeWorkerTranscript(t, run.out, work, nonce);
-  const tail = run.out
-    .split("\n")
-    .filter((l) => l && !l.startsWith("__RESULT__") && !l.includes(MARKER) && !l.startsWith(TRANSCRIPT_LINE))
-    .slice(-8)
-    .join("\n")
-    .slice(-1200);
+  const tail = (liveRun?.redact ?? String)(
+    run.out
+      .split("\n")
+      .filter((l) => l && !l.startsWith("__RESULT__") && !l.includes(MARKER) && !l.startsWith(TRANSCRIPT_LINE))
+      .slice(-8)
+      .join("\n")
+      .slice(-1200),
+  );
+  if (liveRun && r) r.error = r.error === undefined ? undefined : liveRun.redact(String(r.error));
   const res = { ...base, ms: Date.now() - started, modelCalls, blockedHost: r?.blocked?.[0] };
   if (run.timedOut) return { ...res, outcome: "timeout", tail };
   if (!r) return { ...res, outcome: "error", error: "no result", tail };
@@ -245,6 +270,8 @@ await Promise.all(
       console.log(
         `${r.outcome.padEnd(13)} ${r.id}${r.reason ? ` (${r.reason})` : ""}${r.error && ownExamples ? `\n  ${r.error}` : ""}`,
       );
+      // A live run's caller reports the example's last lines, already redacted, when it fails.
+      if (liveRun && r.outcome !== "ran" && r.tail) console.log(r.tail);
     }
   }),
 );
