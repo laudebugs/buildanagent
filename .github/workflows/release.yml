@@ -2,8 +2,10 @@
 # push to main that brings a package change (publish-and-docs PB2, ADR 0047).
 #
 # - `plan` reads the checkout, the npm registry and the GitHub releases (scripts/ci/release-plan.mjs).
-# - With changesets pending, `version` runs `pnpm changeset version` on the newest main, pushes the version commit
-#   and plans again on it. While .changeset/pre.json is in pre mode, the version is the next prerelease (0.1.0-alpha.N).
+# - `version` is switched off. It ran `pnpm changeset version` on the newest main and pushed the version commit; a
+#   follow-up pull request replaces it with an auto-merged "Version packages" pull request (docs/plans/ci.md §3f).
+#   Until then, a push that brings changesets publishes nothing, and they wait. The first publish, 0.1.0-alpha.0,
+#   needs no version commit: the pull request that set up pre mode versioned it.
 # - When npm lacks the planned version, `pack` builds the tarballs from the release commit, and `publish` uploads them
 #   under the pre-mode dist-tag (`alpha`) or `latest`, tags the release, marking a prerelease as one, and `docs` starts
 #   the docs deploy for a stable release.
@@ -23,9 +25,9 @@ permissions:
   contents: read
 
 # One release at a time, and never cancelled: a cancelled publish could leave the gateway out without the SDK. GitHub
-# keeps one run waiting and cancels an older waiting one, which loses nothing: the version job versions the newest main,
-# so the run that waited last versions every changeset merged before it. A workflow_dispatch dry run waits in its own
-# group, so it can never cancel a waiting push run and leave its changesets unreleased until the next push.
+# keeps one run waiting and cancels an older waiting one, which loses nothing: the run that waited last plans a commit
+# that holds every change merged before it. A workflow_dispatch dry run waits in its own group, so it can never cancel
+# a waiting push run.
 concurrency:
   group: release-${{ github.event_name }}
   cancel-in-progress: false
@@ -59,6 +61,11 @@ jobs:
           set -o pipefail
           node scripts/ci/release-plan.mjs plan | tee -a "$GITHUB_OUTPUT"
 
+  # Switched off by the `false &&` in its `if:`, because it runs third-party code (pnpm install and Changesets) in a
+  # job whose token can push to main, and main's branch protection may refuse that push. The follow-up in
+  # docs/plans/ci.md §3f replaces it with a job that opens an auto-merged "Version packages" pull request with a
+  # dedicated token. The rest of this comment describes the job as written.
+  #
   # Turns the pending changesets into the next version and pushes it to main, so every package change merged to main
   # publishes (the owner's decision of 2026-11-19). In Changesets pre mode the version is the next prerelease, such as
   # 0.1.0-alpha.1. The commit is pushed with GITHUB_TOKEN, and a push made with that token starts no workflow run, so
@@ -70,6 +77,7 @@ jobs:
     name: Version the pending changesets and push them to main
     needs: plan
     if: >-
+      false &&
       github.event_name == 'push' && github.ref == 'refs/heads/main' && needs.plan.outputs.needs_version == 'true' &&
       !startsWith(github.event.head_commit.message, 'chore(release): version packages')
     runs-on: ubuntu-24.04

@@ -268,5 +268,14 @@ Rows 161–181 check the claims L4b added to the plan, CI plan §3e–3f, `.chan
 | 179 | CI plan §3f said the plan refuses prerelease versions because the job publishes to `latest` only | ✏️ | Superseded by rows 161–162: the plan now accepts a prerelease whose identifier is `pre.json`'s tag while in pre mode, publishes it under that tag, and refuses any other pairing |
 | 180 | PB2 said 0.1.0 would take `latest` on its first publish | ✏️ | Superseded by row 162: the first release is 0.1.0-alpha.0 under `alpha`, and `latest` stays on `0.0.0-bootstrap.0` until the first stable release |
 | 181 | PB2 and CI plan §3f said each release goes through a "Version packages" pull request | ✏️ | Superseded by row 163: `release.yml` versions on `main` and publishes in the same run; L3's `version-pr` job is gone |
+| 182 | `pnpm changeset status --since` counts an added or edited `.changeset/pre/*.md` file as a changeset | ✅ | `@changesets/git` 4.0.1, `dist/index.mjs`, `getChangedChangesetFilesSinceRef`: it keeps files matching `\.changeset/[^/]+\.md$` or `\.changeset/pre/[^/]+\.md$` |
+| 183 | Changesets never reads `README.md`, `AGENTS.md`, `CLAUDE.md`, `GEMINI.md` or a dotfile in `.changeset/` as a changeset | ✅ | `@changesets/read` 1.0.1, `dist/index.mjs`: `ignoredMdFiles` and the `startsWith(".")` filter |
+| 184 | `changeset version` never consumes a changeset that names a package it skips, such as a private or ignored one | ✅ | `@changesets/apply-release-plan` 8.1.1, `dist/index.mjs`: it moves or deletes a changeset only when no release in it is skipped by `shouldSkipPackage` |
+| 185 | GitHub reports `main` as protected | ✅ | `gh api repos/laudebugs/buildanagent/branches/main`, 2026-11-19: `"protected": true`; the rules themselves weren't readable through the proxy |
+| 186 | The owner removed the `release` environment's approval rule on 2026-11-19 | ⚠️ | Owner's statement, relayed to the L4b session; the session can't read the environment's settings |
+| 187 | The owner agreed to make the version step "a pr that will be autocompleted" | ✅ | Owner's answer "yes", 2026-11-19, relayed to the L4b session |
+| 188 | `CONTRIBUTING.md`, PB2 and the todo said the publish waits for the owner's approval while the `release` environment requires it | ✏️ | Superseded by row 186: every publish runs unattended |
+| 189 | CI plan §3f, PB2, `AGENTS.md` and `.changeset/README.md` said `release.yml` versions and publishes every merged changeset | ✏️ | The medium code review switched the `version` job off (`false &&` in its `if:`); a follow-up makes it open an auto-merged "Version packages" pull request (row 187) |
+| 190 | A pull request opened with `GITHUB_TOKEN` starts no workflow run, so the follow-up needs another token | ✅ | [GitHub, `GITHUB_TOKEN`](https://docs.github.com/en/actions/concepts/security/github_token), read 2026-11-19: events the `GITHUB_TOKEN` triggers, except `workflow_dispatch` and `repository_dispatch`, "will not create a new workflow run" |
 
-**Totals:** 181 claims: 138 ✅, 33 ✏️, 10 ⚠️.
+**Totals:** 190 claims: 144 ✅, 35 ✏️, 11 ⚠️.

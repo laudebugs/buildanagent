@@ -17,7 +17,9 @@ import {
   hasGitHubRelease,
   isPublished,
   needsVersion,
+  pendingChangesets,
   planRelease,
+  preModeMismatch,
   readPreState,
   releaseNotes,
 } from "./release-plan.mjs";
@@ -129,7 +131,15 @@ describe("release.yml", () => {
     assert.deepEqual(jobs.version.permissions, { contents: "write" });
   });
 
-  test("there is no Version packages pull request: the version job pushes to main", () => {
+  test("the version job is switched off, so a merge publishes only a version already on main", () => {
+    // It runs third-party code with a token that can push to main; a follow-up replaces it with an auto-merged
+    // "Version packages" pull request. Pack and publish must still run while it is skipped.
+    assert.match(jobs.version.if, /^false &&\s/);
+    assert.match(jobs.pack.if, /needs\.version\.result == 'skipped'/);
+    assert.match(jobs.pack.if, /needs\.version\.outputs\.publish \|\| needs\.plan\.outputs\.publish/);
+  });
+
+  test("there is no Version packages pull request yet: the version job, when on, pushes to main", () => {
     assert.equal(jobs["version-pr"], undefined);
     const { version } = jobs;
     assert.match(version.if, /github\.event_name == 'push' && github\.ref == 'refs\/heads\/main'/);
@@ -443,6 +453,30 @@ describe("release-plan.mjs", () => {
     assert.match(plan.reason, /pre mode is exiting/);
     assert.equal(calls.length, 0);
     assert.equal(needsVersion(fixture({ version: "0.1.0-alpha.0", pre: alpha })), false);
+  });
+
+  test("counts only the changesets that changeset version would consume", () => {
+    const dir = fixture({ pre: alpha });
+    const write = (name, text) => writeFileSync(path.join(dir, ".changeset", name), text);
+    write("brave-cats.md", '---\n"@buildanagent/gateway": patch\n---\n\nFix.\n');
+    write("quiet-dogs.md", "---\n---\n");
+    write("odd.md", "no frontmatter\n");
+    // Changesets never reads these, or never consumes them, so counting them would hold every release back.
+    write("AGENTS.md", "# Notes for agents\n");
+    write("CLAUDE.md", "# Notes\n");
+    write(".draft.md", "---\n---\n");
+    write("manual.md", "---\n'@buildanagent/manual': patch\n---\n\nA private app.\n");
+    // Changesets refuses a changeset that mixes a versioned and a skipped package, so it stays pending and fails loudly.
+    write("mixed.md", '---\n"@buildanagent/sdk": patch\n"@buildanagent/verify-pi": patch\n---\n\nx\n');
+    assert.deepEqual(pendingChangesets(dir).sort(), ["brave-cats.md", "mixed.md", "odd.md", "quiet-dogs.md"]);
+  });
+
+  test("says why a version doesn't fit the pre mode", () => {
+    assert.equal(preModeMismatch("0.1.0-alpha.3", alpha), undefined);
+    assert.equal(preModeMismatch("0.1.0", undefined), undefined);
+    assert.equal(preModeMismatch("0.1.0", { mode: "exit", tag: "alpha" }), undefined);
+    assert.match(preModeMismatch("0.1.0", alpha), /isn't a alpha prerelease/);
+    assert.match(preModeMismatch("0.1.0-alpha.3", undefined), /not a plain x\.y\.z/);
   });
 
   test("refuses mismatched versions", async () => {

@@ -13,9 +13,11 @@ import { parse } from "yaml";
 import {
   classifyChange,
   isVersionOnlyChange,
+  newChangesets,
   patternToRegExp,
   runGate,
   shippedChanges,
+  statusEnv,
   versionedPackageDirs,
 } from "./changeset-gate.mjs";
 
@@ -98,6 +100,7 @@ describe("changeset-gate.mjs", () => {
       "packages/b/package.json": manifest("0.1.0-alpha.1"),
     };
     const head = (a, b) => ({
+      ".changeset/pre.json": JSON.stringify({ mode: "pre", tag: "alpha" }),
       "packages/a/package.json": manifest(a),
       "packages/a/CHANGELOG.md": `## ${a}\n\n- x\n`,
       "packages/b/package.json": manifest(b),
@@ -117,6 +120,53 @@ describe("changeset-gate.mjs", () => {
       assert.equal(result.bump, false, String(reason));
       assert.match(result.reason, reason);
     }
+  });
+
+  test("passes a bump only to a version that fits pre.json's pre mode", () => {
+    const pre = (mode) => ({ ".changeset/pre.json": JSON.stringify({ mode, tag: "alpha" }) });
+    const head = (version, extra = {}) => ({
+      "packages/a/package.json": manifest(version),
+      "packages/a/CHANGELOG.md": `## ${version}\n\n- x\n`,
+      ...extra,
+    });
+    const verdict = (version, extra) =>
+      classifyChange(
+        ["packages/a/package.json"],
+        files({ "packages/a/package.json": manifest("0.1.0-alpha.2") }, head(version, extra)),
+        ["packages/a"],
+      );
+    assert.equal(verdict("0.1.0-alpha.3", pre("pre")).bump, true);
+    // A stable version in pre mode would make every later release plan throw, so it isn't a bump.
+    assert.match(verdict("0.1.0", pre("pre")).reason, /0\.1\.0 isn't a alpha prerelease/);
+    assert.match(verdict("0.1.0-beta.0", pre("pre")).reason, /isn't a alpha prerelease/);
+    assert.match(verdict("0.1.0-alpha.3").reason, /not a plain x\.y\.z version/);
+    assert.equal(verdict("0.1.0", pre("exit")).bump, true);
+    assert.equal(verdict("0.1.0").bump, true);
+  });
+
+  test("counts only top-level changesets that changeset version would consume", () => {
+    const text = {
+      ".changeset/brave-cats.md": '---\n"@x/a": patch\n---\n\nFix.\n',
+      ".changeset/quiet-dogs.md": "---\n---\n",
+      ".changeset/pre/first.md": '---\n"@x/a": minor\n---\n\nFirst.\n',
+      ".changeset/README.md": "# Changesets\n",
+      ".changeset/AGENTS.md": "# Notes\n",
+      ".changeset/manual.md": '---\n"@x/manual": patch\n---\n\nA private app.\n',
+      ".changeset/config.json": "{}",
+    };
+    const read = (file) => text[file];
+    assert.deepEqual(newChangesets(Object.keys(text), read, ["@x/a"]), [
+      ".changeset/brave-cats.md",
+      ".changeset/quiet-dogs.md",
+    ]);
+  });
+
+  test("runs changeset status with an allowlisted environment", () => {
+    const parent = { PATH: "/bin", PNPM_HOME: "/pnpm", LANG: "en_US.UTF-8", GH_TOKEN: "t", NPM_TOKEN: "n", HOME: "/h" };
+    const env = statusEnv(parent, "/tmp/home");
+    assert.deepEqual(Object.keys(env).sort(), ["HOME", "LANG", "PATH", "PNPM_HOME", "TMPDIR"]);
+    assert.equal(env.HOME, "/tmp/home");
+    assert.equal(env.PATH, "/bin");
   });
 
   test("sends everything else to changeset status", () => {
@@ -142,8 +192,9 @@ describe("changeset-gate.mjs", () => {
       for (const dir of dirs) rmSync(dir, { recursive: true, force: true });
     });
 
-    // A repository with one package at 0.0.0 on `main`, and a `work` branch checked out for the change under test.
-    function repo() {
+    // A repository with one package at 0.0.0 on `main`, plus `baseFiles`, and a `work` branch checked out for the
+    // change under test.
+    function repo(baseFiles = {}) {
       const dir = mkdtempSync(path.join(tmpdir(), "changeset-gate-"));
       dirs.push(dir);
       const env = { PATH: process.env.PATH, HOME: dir, LANG: "C.UTF-8", GIT_CONFIG_NOSYSTEM: "1" };
@@ -158,6 +209,7 @@ describe("changeset-gate.mjs", () => {
       write(".changeset/config.json", JSON.stringify(config));
       write("packages/a/package.json", manifest("0.0.0"));
       write("packages/a/src/index.ts", "export const a = 1;\n");
+      for (const [file, text] of Object.entries(baseFiles)) write(file, text);
       git("add", "-A");
       git("commit", "-qm", "base");
       git("switch", "-qc", "work");
@@ -190,18 +242,49 @@ describe("changeset-gate.mjs", () => {
       assert.deepEqual(gate(dir), { code: 0, calls: [] });
     });
 
-    test("a src/ change runs changeset status, whose failure fails the gate", () => {
+    const changeset = '---\n"@x/a": patch\n---\n\nFix a thing.\n';
+
+    test("a src/ change with a changeset runs changeset status, whose failure fails the gate", () => {
       const { dir, write, commit } = repo();
       write("packages/a/src/index.ts", "export const a = 2;\n");
+      write(".changeset/brave-cats.md", changeset);
       commit();
       assert.deepEqual(gate(dir), { code: 1, calls: ["main"] });
     });
 
-    test("a bump that also changes src/ runs changeset status", () => {
+    test("a src/ change without a top-level changeset fails without running changeset status", () => {
+      const { dir, write, commit } = repo();
+      write("packages/a/src/index.ts", "export const a = 2;\n");
+      commit();
+      assert.deepEqual(gate(dir), { code: 1, calls: [] });
+    });
+
+    test("an edit to a consumed changeset in .changeset/pre/ doesn't release a src/ change", () => {
+      // changeset status counts the pre/ edit as this change's changeset, but changeset version never consumes it
+      // again, so the src/ change would merge and never publish.
+      const { dir, write, commit } = repo({ ".changeset/pre/first-release.md": changeset });
+      write(".changeset/pre/first-release.md", `${changeset}A typo fixed.\n`);
+      write("packages/a/src/index.ts", "export const a = 2;\n");
+      commit();
+      assert.deepEqual(gate(dir), { code: 1, calls: [] });
+    });
+
+    test("a changeset that names only a package Changesets skips doesn't release a src/ change", () => {
+      const { dir, write, commit } = repo();
+      write("packages/a/src/index.ts", "export const a = 2;\n");
+      write(".changeset/manual.md", '---\n"@x/manual": patch\n---\n\nA private app.\n');
+      commit();
+      assert.deepEqual(gate(dir), { code: 1, calls: [] });
+    });
+
+    test("a bump that also changes src/ needs a changeset like any other change", () => {
       const { dir, write, commit } = repo();
       write("packages/a/package.json", manifest("0.1.0"));
       write("packages/a/CHANGELOG.md", "## 0.1.0\n\n- first\n");
       write("packages/a/src/index.ts", "export const a = 2;\n");
+      commit();
+      assert.deepEqual(gate(dir), { code: 1, calls: [] });
+      write(".changeset/brave-cats.md", changeset);
       commit();
       assert.deepEqual(gate(dir).calls, ["main"]);
     });
@@ -210,7 +293,8 @@ describe("changeset-gate.mjs", () => {
       const { dir, write } = repo();
       write("packages/a/package.json", manifest("0.1.0"));
       write("packages/a/CHANGELOG.md", "## 0.1.0\n\n- first\n");
-      assert.deepEqual(gate(dir).calls, ["main"]);
+      // The committed side has no shipped change, so the gate goes straight to changeset status.
+      assert.deepEqual(gate(dir), { code: 1, calls: ["main"] });
     });
   });
 });
