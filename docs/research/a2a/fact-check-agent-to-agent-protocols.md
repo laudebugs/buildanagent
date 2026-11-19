@@ -1,8 +1,8 @@
 # Fact-check log: agent-to-agent protocols (A2A) report
 
-The agent-to-agent protocols report holds up, and its thesis stands: A2A is the standard way to hand a task to an agent we neither own nor can see inside, and our agents should use it only across that ownership boundary, treating every card and reply as untrusted. Of the 118 rows below, 92 are confirmed (✅), 16 needed a correction (✏️) and 10 rest on inference, on absence or on untested code (⚠️). Each section was checked as soon as it was drafted, before the next was written. The intro and conclusion were drafted last, so that they summarise checked sections, and the rows come in seven blocks.
+The agent-to-agent protocols report holds up, and its thesis stands: A2A is the standard way to hand a task to an agent we neither own nor can see inside, and our agents should use it only across that ownership boundary, treating every card and reply as untrusted. Of the 125 rows below, 95 are confirmed (✅), 20 needed a correction (✏️) and 10 rest on inference, on absence or on untested code (⚠️). Each section was checked as soon as it was drafted, before the next was written. The intro and conclusion were drafted last, so that they summarise checked sections, and the rows come in eight blocks: one per section group, then the re-checks of the writing review's fixes (rows 119–125).
 
-None of the corrections changes a finding. Seven fixed claims that overstated or misquoted a source: the card's required fields (row 21), the 0.3-to-1.0 rule (row 24), two MCP sampling quotes (row 37), the spec's "SHOULD" on webhook validation (row 60), the name-collision counts (row 86), the bearer-token rejection (row 103) and the count of A2A mentions in our repo (row 109). Five fixed our own wording: a contradiction about ADK (row 96), an unsupported line count (row 101), a missing SDK (row 114), the terms heading (row 116) and an unchecked claim about editors (row 117). Four fixed only a citation (rows 31, 54, 69 and 100).
+None of the corrections changes a finding. Seven fixed claims that overstated or misquoted a source: the card's required fields (row 21), the 0.3-to-1.0 rule (row 24), two MCP sampling quotes (row 37), the spec's "SHOULD" on webhook validation (row 60), the name-collision counts (row 86), the bearer-token rejection (row 103) and the count of A2A mentions in our repo (row 109). Five fixed our own wording: a contradiction about ADK (row 96), an unsupported line count (row 101), a missing SDK (row 114), the terms heading (row 116) and an unchecked claim about editors (row 117). Four fixed only a citation (rows 31, 54, 69 and 100). The writing review added four more ✏️ (design) rows for wording (119, 120, 122 and 125) and re-confirmed three changed claims (121, 123 and 124).
 
 The ⚠️ rows fall into three groups. Six are our own synthesis, and the report labels each as ours: the line between MCP and A2A, the harness pause, the five rules, task durability, peer pinning and the five teaching steps (rows 42, 45, 57, 59, 87 and 98). Three are absence claims or untested code: no A2A mention in MCP's documents, ADK's offline delegation path, and the example's checks 2 and 5 (rows 33, 78 and 104). The last concerns a source: A2ABreak's abstract does not say which spec version it modelled (row 84). Row 62 is ✅ for ADK and an absence claim for the other seven SDKs; it is counted once, as ✅.
 
@@ -18,7 +18,7 @@ The ⚠️ rows fall into three groups. Six are our own synthesis, and the repor
 
 ## Link check
 
-LINKCHECK-PLACEHOLDER
+Every relative link and anchor in the report, this log and the notes resolves. The session's link checker extracts each Markdown link target that is not `http(s):` or `mailto:`, resolves it against the file's folder, and matches each `#anchor` against GitHub-style slugs of the target's headings. On 2026-11-19 it checked 31 links in the report (23 distinct targets, 8 of them with anchors), 25 in this log and 28 in the notes, with no failures. It first flagged three quotations of upstream Markdown in the notes as broken relative links, and the quotes now name their targets in prose. External links were fetched during the fact-check and returned HTTP 200, except one Microsoft page that redirected (row 54).
 
 ## Rows by section
 
@@ -178,3 +178,17 @@ The intro and conclusion were drafted after the body, so that they summarise che
 | 116 | Terms | Ten defined terms | — | ✏️ (design) The heading first said "Seven"; the paragraph defines ten. **Now:** "Ten terms" |
 | 117 | Terms | IBM's ACP merged into A2A in August 2025; the Strands CLI speaks the Agent Client Protocol | [LF AI & Data post](https://lfaidata.foundation/communityblog/2025/08/29/acp-joins-forces-with-a2a-under-the-linux-foundations-lf-ai-data/), 2025-08-29; [Strands report](../external-designs/strands-harness-sdk.md), line 39 | ✏️ The draft said "editors and the Strands CLI", and no checked source covers editors. **Now:** the Strands CLI only |
 | 118 | Conclusion | Restates the findings; adds no new fact | Rows above | ✅ |
+
+### Writing-review fixes, re-checked (2026-11-19)
+
+The writing review scored the report 4/4/4/4/4 (coherence, continuity, clarity, concision, cadence) and made twelve findings. Each fix below that touched a claim was re-checked against its source; fixes that changed only wording are logged as ✏️ (design).
+
+| # | Where | Claim | Source checked | Verdict |
+| --- | --- | --- | --- | --- |
+| 119 | Title, Terms | "an agent you cannot see inside" used "you" where the body says "we"; "peer" was used throughout but never defined | — | ✏️ (design) **Now:** "an agent we cannot see inside"; Terms defines **peer** as either side of an A2A call, and the heading counts eleven terms |
+| 120 | Intro ¶2 | Finding 3 listed every SDK, making the paragraph about 330 words | Rows 62–67 | ✏️ (design) **Now:** "four other SDKs have A2A work only outside their released packages"; the four are OpenAI, Cloudflare, LangChain and Vercel, as the SDK table shows |
+| 121 | Spec ¶1 | New head: "a released standard under multi-vendor governance" | Row 5 | ✅ Eight companies hold the TSC's eight seats |
+| 122 | MCP ¶4, When ¶1, SDKs ¶2, Examples check 2 | "exactly as" cut; "Its January 2026 guidance" made "Anthropic's"; "local sub-agent" made "in-process subagent" outside ADK's own quotes | Rows 48, 71 | ✏️ (design) No claim changed |
+| 123 | SDKs ¶3 (new) | The ADK paragraph was split; the new head says the 2.5.0 agents guide mentions none of the three details | Mirror `docs/reference/google-adk/source/adk-js/docs/guides/agents/index.md` (tag `main-v2.5.0`): `grep -i` for `cancel`, `longRunning` and `input-required` finds nothing relevant, and `basePath` does not appear | ✅ The details themselves are rows 73, 80 and 81 |
+| 124 | Security ¶1 | New head: the broadest paper "reports eleven vulnerabilities that a specification-compliant adversary can exploit" | Row 83 | ✅ "11 new vulnerabilities, each exploitable by a specification-compliant adversary"; the head avoids calling them proven flaws in 1.0.0, as the paragraph's foot says |
+| 125 | Teach ¶3, Examples ¶1 | Teach ¶3, a two-sentence paragraph, was folded into the Examples head; "Spec ¶5"'s closing "That rule matters for the SDKs below." was cut; "yet … Yet" in the intro became "but … Yet" | Row 62 | ✏️ (design) No claim changed |
