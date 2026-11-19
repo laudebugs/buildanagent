@@ -229,7 +229,8 @@ export function run<S = unknown>(options: RunOptions<S> & RunInput): Run<S> {
 
 /**
  * Goes on with a conversation from a result's `context`, or one you rebuilt from your own store. It runs like
- * `run()`, from the last message in the context, and `result.messages` holds only the messages it adds.
+ * `run()`, from the last message in the context, and `result.messages` holds only the messages it adds. The context
+ * is sent as it stands, so add a user message to one that ends with the model's answer, such as a `done` result's.
  */
 export function continueRun<S = unknown>(context: Context, options: RunOptions<S>): Run<S> {
   return new RunHandle<S>(setupOf(options, context, []), options.signal);

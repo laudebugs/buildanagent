@@ -239,8 +239,9 @@ async function runStep(state: LoopState): Promise<Outcome | undefined> {
 }
 
 /**
- * An aborted run's transcript ends with an assistant message whose `stopReason` is `"aborted"`. When the abort came
- * while tools ran, the loop appends an empty one after their results; the replay pass drops it before any request.
+ * An aborted run's transcript ends with an assistant message whose `stopReason` is `"aborted"`. When tool results end
+ * the transcript, because the abort came while tools ran or cut off a response that held tool calls, the loop
+ * appends an empty one after them; the replay pass drops it before any request.
  */
 function closeAborted(state: LoopState): void {
   const last = state.messages.at(-1);

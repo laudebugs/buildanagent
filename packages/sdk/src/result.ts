@@ -35,7 +35,10 @@ export interface ResultBase {
   readonly context: Context;
   /** The tokens of every model call, summed. */
   readonly usage: Usage;
-  /** The cost of every model call, summed. It is unknown if any call's cost is. */
+  /**
+   * The cost of every model call, summed. It is unknown if any call's cost is. A run that made no call costs an exact
+   * 0 with basis `provider`, so adding it to another cost keeps that cost's basis.
+   */
   readonly cost: Cost;
   /** How many model calls the run made. */
   readonly steps: number;
@@ -43,7 +46,8 @@ export interface ResultBase {
 
 /**
  * A run that finished: the model answered without calling a tool, or an output tool accepted its answer. `output` is
- * the accepted answer, and `undefined` when the run has no output tool or the model answered in text instead. A text
+ * the accepted answer, and `undefined` when the run has no output tool, the model answered in text, or another tool
+ * ended the run with `terminate: true`. A text
  * answer cut off at the output limit also ends `done`; its message's `stopReason` is then `"length"`.
  */
 export interface DoneResult<S> extends ResultBase {

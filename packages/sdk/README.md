@@ -60,13 +60,13 @@ const result = await runOrThrow(run({ model, system, input }));
 
 ### Continue a conversation with `continueRun()`
 
-`continueRun(context, options)` goes on from a context: a previous result's `context`, or one you rebuilt from your own store. A context is plain JSON holding the system prompt and the messages. A run that stopped at `max_steps` continues with the model reading its last tool results. Pass `history` to `run()` instead when you have earlier messages and a new user message.
+`continueRun(context, options)` goes on from a context: a previous result's `context`, or one you rebuilt from your own store. A context is plain JSON holding the system prompt and the messages. A run that stopped at `max_steps` continues with the model reading its last tool results. A `done` context ends with the model's answer, so add a user message to it before you continue, or pass the messages as `history` to `run()` with the new input.
 
 ### Abort a run with `run.abort()` or a signal
 
 `run.abort(reason)` stops a run, and so does the `signal` option. A model call in flight ends, and a running tool sees its `ctx.signal` fire. The run waits for that tool to return, so pass the signal on to your own I/O. Calls that haven't started get an error result instead of running.
 
-An aborted run's transcript stays well formed: every tool call has a result, and the last message is an assistant message with `stopReason: "aborted"`. When the abort came while tools ran, that message is empty. Each gateway adapter drops it before the next request, so the transcript can be sent again as it is.
+An aborted run's transcript stays well formed: every tool call has a result, and the last message is an assistant message with `stopReason: "aborted"`. When tool results would end the transcript, because the abort came while tools ran or cut off a response that held tool calls, the loop appends an empty aborted message after them. Each gateway adapter drops it before the next request, so the transcript can be sent again as it is.
 
 ## A run streams one closed set of events
 
@@ -157,7 +157,7 @@ The model reads the outcome first, as a sentence and as JSON, and then your cont
 
 ## End the run with `outputTool()`, or ask with `clarificationTool()`
 
-`outputTool({ name, schema })` turns the run's final answer into a tool call. Pass it to `run()` as `output`. A call whose input passes the schema ends the run `done`, and the validated answer is `result.output`. A call that fails the schema returns the issues to the model, which can correct its answer and call again. If the model answers in text instead, the run still ends `done`, with `result.output` undefined. The output tool must keep the default `exposure`, because the model has to be sent it.
+`outputTool({ name, schema })` turns the run's final answer into a tool call. Pass it to `run()` as `output`. A call whose input passes the schema ends the run `done`, and the validated answer is `result.output`. A call that fails the schema returns the issues to the model, which can correct its answer and call again. If the model answers in text instead, or another tool returns `terminate: true`, the run still ends `done`, with `result.output` undefined. The output tool must keep the default `exposure`, because the model has to be sent it.
 
 `clarificationTool()` gives the model a tool named `ask_user` that takes one `question`. Pass `{ name }` to call it something else. Once the model calls it, the run ends with `stopReason: "stopped"` and `stoppedBy: "clarification"`, and the question is the call's input in `result.messages`. To go on, add the user's answer to `result.context` as a user message and pass the context to `continueRun()`.
 
