@@ -526,6 +526,15 @@ test("a Cloudflare AI Gateway route must use its own provider's endpoint", () =>
   assert.deepEqual(codes({ provider: "openai", baseURL: CF_GATEWAY, ...settings }), ["provider_mismatch"]);
   assert.deepEqual(codes({ provider: "anthropic", baseURL: `${CF_GATEWAY}/anthropic`, ...settings }), []);
   assert.deepEqual(codes({ provider: "anthropic", baseURL: `${CF_GATEWAY}/anthropic/v1`, ...settings }), []);
+  const gateway = "https://gateway.ai.cloudflare.com/v1";
+  assert.deepEqual(codes({ provider: "anthropic", baseURL: `${gateway}///anthropic`, ...settings }), [
+    "provider_mismatch",
+  ]);
+  assert.deepEqual(
+    codes({ provider: "anthropic", baseURL: `${gateway}//gateway-1/anthropic/anthropic`, ...settings }),
+    ["provider_mismatch"],
+  );
+  assert.deepEqual(codes({ provider: "openai", baseURL: "http://127.0.0.1:8787/v1" }), ["invalid_base_url"]);
   assert.throws(
     () => explicitProvider({ provider: "anthropic", apiKey: USER_ANTHROPIC_KEY, baseURL: `${CF_GATEWAY}/openai` }),
     safetyError("invalid_byok_config"),
@@ -579,6 +588,15 @@ test("an OpenAI WebSocket handshake passes the guard's checks before the socket 
     safetyError("egress_refused"),
   );
   assert.equal(opened.length, 1);
+  // The key may not ride in a subprotocol, where no header check sees it.
+  new Socket(gatewaySocket, ["realtime"], { headers: { Authorization: credential.value } });
+  for (const protocols of [["realtime", "openai-insecure-api-key.sk-other"], "openai-insecure-api-key.sk-other"]) {
+    assert.throws(
+      () => new Socket(gatewaySocket, protocols, { headers: { Authorization: credential.value } }),
+      safetyError("egress_refused"),
+    );
+  }
+  assert.equal(opened.length, 2);
 });
 
 test("explicitProvider hands the OpenAI provider a guarded WebSocket", () => {

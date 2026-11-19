@@ -73,7 +73,8 @@ function checkCredential(credential: EgressCredential | undefined): void {
  *
  * - goes to another origin, or to a path outside the base URL's path;
  * - carries no `credential.header`, or one whose value differs from `credential.value`;
- * - carries any other credential header in `CREDENTIAL_HEADERS`.
+ * - carries any other credential header in `CREDENTIAL_HEADERS`, including `cf-aig-authorization`, so a gateway with
+ *   authentication turned on can't be used through this guard.
  *
  * Every request to a Cloudflare AI Gateway host also gets `cf-aig-no-wholesale: true`, so the gateway refuses to bill
  * Cloudflare's credentials even when its own setting is off. Redirects are never followed, because a redirect would
@@ -118,11 +119,20 @@ export type GuardableWebSocket = new (
   options?: { headers?: Record<string, string | undefined> },
 ) => unknown;
 
+// OpenAI's browser mode sends its key as the `openai-insecure-api-key.<key>` subprotocol, which no header check sees,
+// so only the plain `realtime` subprotocol may pass.
+function checkSubprotocols(protocols: string | string[] | undefined): void {
+  for (const protocol of protocols === undefined ? [] : [protocols].flat()) {
+    if (protocol !== "realtime") throw refuse("a WebSocket subprotocol other than realtime could carry a key");
+  }
+}
+
 /**
  * The WebSocket counterpart of `egressGuard()`, for a provider that opens a socket instead of calling `fetch`, such
  * as `@ai-sdk/openai`'s realtime transcription. The handshake must pass the same checks before the socket opens, and
  * a refused one throws the same `SafetyError`. `WebSocket` defaults to `globalThis.WebSocket`, looked up on each
- * connection. Not exported from the package root.
+ * connection. It also refuses any subprotocol but `realtime`, because OpenAI's browser mode carries a key there. Not
+ * exported from the package root.
  */
 export function egressGuardWebSocket(
   options: Omit<EgressGuardOptions, "fetch"> & { readonly WebSocket?: GuardableWebSocket },
@@ -140,6 +150,7 @@ export function egressGuardWebSocket(
     if (asHttp.protocol === "wss:") asHttp.protocol = "https:";
     else if (asHttp.protocol === "ws:") asHttp.protocol = "http:";
     else throw refuse(`a WebSocket must use wss or ws, not ${target.protocol}`);
+    checkSubprotocols(protocols);
     const sent = new Headers();
     for (const [name, value] of Object.entries(init?.headers ?? {})) if (value !== undefined) sent.set(name, value);
     const headers = check(asHttp, sent);

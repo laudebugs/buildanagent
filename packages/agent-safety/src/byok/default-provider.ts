@@ -45,6 +45,8 @@ function refusingProvider(): object {
   return Object.freeze(provider);
 }
 
+// The marker is not a security boundary: code that can write to `globalThis` can already install any provider before
+// this runs. It only recognises our own provider on a repeated call.
 function isRefusingProvider(value: unknown): boolean {
   return typeof value === "object" && value !== null && (value as Record<symbol, unknown>)[REFUSING_PROVIDER] === true;
 }

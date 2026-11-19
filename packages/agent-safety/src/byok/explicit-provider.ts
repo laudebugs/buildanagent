@@ -75,8 +75,9 @@ export function explicitProvider(options: ExplicitProviderOptions): AnthropicPro
  * Builds an `@ai-sdk/anthropic` or `@ai-sdk/openai` provider that uses only the `apiKey` and `baseURL` you pass. It
  * passes both to the provider, so the provider never reads `ANTHROPIC_API_KEY`, `OPENAI_API_KEY`,
  * `ANTHROPIC_BASE_URL` or `OPENAI_BASE_URL`. It sends every request through `egressGuard()`, and every OpenAI
- * WebSocket handshake through the same checks, which refuse a request to another host or with another credential. A request to Cloudflare AI Gateway also carries
- * `cf-aig-no-wholesale: true`.
+ * WebSocket handshake through the same checks, which refuse a request to another host or with another credential. A
+ * request to Cloudflare AI Gateway also carries `cf-aig-no-wholesale: true`. A gateway with authentication turned on
+ * needs a `cf-aig-authorization` header, which the guard refuses as a second credential, so it can't be used here.
  *
  * Throws a `SafetyError`, code `invalid_byok_config`, before any request when the key is missing, empty or padded with
  * whitespace, when the base URL is missing or breaks the guard's rules, or when it points at Vercel AI Gateway.

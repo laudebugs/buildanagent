@@ -83,7 +83,7 @@ function hasEncodedSeparator(pathname: string): boolean {
  */
 export function cloudflareProviderMismatch(path: string, provider: string): string | undefined {
   const segments = path.split("/");
-  if (segments[1] === "v1" && segments[4] === provider) return undefined;
+  if (segments[1] === "v1" && segments[2] !== "" && segments[3] !== "" && segments[4] === provider) return undefined;
   return `a Cloudflare AI Gateway base URL for ${provider} must start /v1/{account}/{gateway}/${provider}`;
 }
 

@@ -121,6 +121,14 @@ function checkRoute(value: unknown, route: number): ModelRouteProblem[] {
   const problems = [...unknownFields(value, ROUTE_FIELDS, "the route", route), ...checkProvider(value.provider, route)];
   const parsed = parseModelBaseUrl(value.baseURL);
   if (!parsed.ok) return [...problems, { code: parsed.problem, route, message: parsed.message }];
+  // A deployed agent can't reach the deployer's loopback, so a plain-http base URL would fail at runtime.
+  if (parsed.url.origin.startsWith("http:")) {
+    problems.push({
+      code: "invalid_base_url",
+      route,
+      message: "a deployed route's base URL must use https, not a loopback http URL",
+    });
+  }
   if (isCloudflareAiGatewayHost(parsed.url.hostname)) {
     const mismatch =
       typeof value.provider === "string" && PROVIDERS.has(value.provider)
