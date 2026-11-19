@@ -1,6 +1,6 @@
 /** `complete()`: folds a model stream into its final message (SDK plan §3.2). */
-import type { GatewayEvent } from "./runtime-types.ts";
-import type { AssistantMessage } from "./types.ts";
+import type { GatewayEvent } from "./runtime-types.js";
+import type { AssistantMessage } from "./types.js";
 
 /**
  * Reads the stream to its terminal event and returns that event's message. An `error` terminal is returned, not

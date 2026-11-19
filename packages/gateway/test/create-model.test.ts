@@ -13,8 +13,8 @@ import {
 } from "@buildanagent/gateway";
 import { assertStreamContract } from "@buildanagent/gateway/testing";
 import { afterEach, test } from "vitest";
-import { context, FailingAdapter, httpTestAdapter, recordingSleep, recordingTransport, TEST_CAPS } from "./adapters.ts";
-import { fakeEntry } from "./fixtures.ts";
+import { context, FailingAdapter, httpTestAdapter, recordingSleep, recordingTransport, TEST_CAPS } from "./adapters.js";
+import { fakeEntry } from "./fixtures.js";
 
 const catalog: PriceCatalog = {
   models: [

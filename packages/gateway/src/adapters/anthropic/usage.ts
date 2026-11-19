@@ -12,7 +12,7 @@
  *
  * The response carries no billed price, so the cost always comes from the catalog.
  */
-import type { Usage } from "../../types.ts";
+import type { Usage } from "../../types.js";
 
 type Json = Record<string, unknown>;
 

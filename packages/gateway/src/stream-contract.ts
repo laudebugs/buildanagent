@@ -9,8 +9,8 @@
  * 5. A gateway `retry` event comes after `start` and before any block event, because output is never retried.
  * 6. A `warning` may come anywhere between `start` and the terminal event. It is not output, so a retry may follow it.
  */
-import type { GatewayEvent } from "./runtime-types.ts";
-import type { ModelEvent } from "./spec.ts";
+import type { GatewayEvent } from "./runtime-types.js";
+import type { ModelEvent } from "./spec.js";
 
 export class StreamContractError extends Error {
   override readonly name = "StreamContractError";

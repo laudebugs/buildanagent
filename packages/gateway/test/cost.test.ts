@@ -15,8 +15,8 @@ import {
   type Usage,
 } from "@buildanagent/gateway";
 import { test } from "vitest";
-import { type Attempt, context, FailingAdapter, recordingSleep, TEST_CAPS } from "./adapters.ts";
-import { FAKE_RATES, fakeEntry, message } from "./fixtures.ts";
+import { type Attempt, context, FailingAdapter, recordingSleep, TEST_CAPS } from "./adapters.js";
+import { FAKE_RATES, fakeEntry, message } from "./fixtures.js";
 
 const entry = fakeEntry();
 const catalog: PriceCatalog = { models: [entry] };

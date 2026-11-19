@@ -1,5 +1,5 @@
 /** Usage helpers (D3). */
-import type { Usage } from "./types.ts";
+import type { Usage } from "./types.js";
 
 /** All input tokens: uncached, cache reads and both cache-write lifetimes. */
 export function totalInput(u: Usage): number {

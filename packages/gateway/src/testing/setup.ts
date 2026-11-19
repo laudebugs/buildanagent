@@ -5,8 +5,8 @@
  *
  * It installs the network guard, checks for provider keys and turns real model requests off.
  */
-import { setModelRequestsAllowed } from "../request-policy.ts";
-import { installTestGuards } from "./guards.ts";
+import { setModelRequestsAllowed } from "../request-policy.js";
+import { installTestGuards } from "./guards.js";
 
 installTestGuards();
 setModelRequestsAllowed(false);

@@ -10,18 +10,18 @@
  * request that carries it (Prefix checks on thinking blocks,
  * https://platform.claude.com/docs/en/build-with-claude/preserved-thinking/prefix-checks, as of November 2026).
  */
-import { isTransportFailure } from "../../classify.ts";
-import { isGatewayError } from "../../errors.ts";
-import { fnv1a } from "../../names.ts";
-import { type ResolvedProviderConfig, resolveProviderConfig } from "../../provider-config.ts";
-import { assertModelRequestAllowed, ModelRequestsDisabledError } from "../../request-policy.ts";
-import type { ProviderConfig } from "../../runtime-types.ts";
-import type { ModelAdapter, ModelEvent, StreamOptions } from "../../spec.ts";
-import { readServerSentEvents } from "../../sse.ts";
-import type { ContentBlock, Message, ModelCaps, ModelContext, ModelRef } from "../../types.ts";
-import { abortedEvent, failureEvent, failureFromResponse, isPrefixMismatch } from "./failure.ts";
-import { anthropicOptions, buildRequest, type RequestPlan } from "./request.ts";
-import { MessageAssembler } from "./response.ts";
+import { isTransportFailure } from "../../classify.js";
+import { isGatewayError } from "../../errors.js";
+import { fnv1a } from "../../names.js";
+import { type ResolvedProviderConfig, resolveProviderConfig } from "../../provider-config.js";
+import { assertModelRequestAllowed, ModelRequestsDisabledError } from "../../request-policy.js";
+import type { ProviderConfig } from "../../runtime-types.js";
+import type { ModelAdapter, ModelEvent, StreamOptions } from "../../spec.js";
+import { readServerSentEvents } from "../../sse.js";
+import type { ContentBlock, Message, ModelCaps, ModelContext, ModelRef } from "../../types.js";
+import { abortedEvent, failureEvent, failureFromResponse, isPrefixMismatch } from "./failure.js";
+import { anthropicOptions, buildRequest, type RequestPlan } from "./request.js";
+import { MessageAssembler } from "./response.js";
 
 type Json = Record<string, unknown>;
 

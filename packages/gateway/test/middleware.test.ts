@@ -2,7 +2,7 @@ import assert from "node:assert/strict";
 import { createModel, type GatewayEvent, type ModelMiddleware } from "@buildanagent/gateway";
 import { assertStreamContract } from "@buildanagent/gateway/testing";
 import { test } from "vitest";
-import { context, FailingAdapter, recordingSleep } from "./adapters.ts";
+import { context, FailingAdapter, recordingSleep } from "./adapters.js";
 
 function logging(name: string, log: string[]): ModelMiddleware {
   return {

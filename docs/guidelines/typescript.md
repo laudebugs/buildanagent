@@ -1,6 +1,6 @@
 # TypeScript: strict, portable, named and documented
 
-These rules apply to every TypeScript file in `packages/`. The `verify/*` harnesses follow [AGENTS.md coding standards](../../AGENTS.md#coding-standards) instead, because they test other people's SDKs. The rules adapt Lamina PDF's `typescript.md` to one decision of ours: our private packages export their `src/` TypeScript directly until todo [L1](../todos/ongoing/L1-build-dist-packages.md) builds them to `dist/` with a `source` condition for the workspace ([ADR 0050](../decisions/0050-dist-build-with-source-condition.md)). Tests run on Vitest, as Lamina's do ([ADR 0046](../decisions/0046-vitest-test-runner.md)).
+These rules apply to every TypeScript file in `packages/`. The `verify/*` harnesses follow [AGENTS.md coding standards](../../AGENTS.md#coding-standards) instead, because they test other people's SDKs. The rules adapt Lamina PDF's `typescript.md`, including its packaging rule: each package builds to `dist/` with `tsc`, and the workspace reads `src/` through a `source` export condition, so tests and type-checks need no build ([ADR 0050](../decisions/0050-dist-build-with-source-condition.md)). Tests run on Vitest, as Lamina's do ([ADR 0046](../decisions/0046-vitest-test-runner.md)).
 
 ## Compiler settings are strict, and only erasable syntax is allowed
 
@@ -8,6 +8,16 @@ These rules apply to every TypeScript file in `packages/`. The `verify/*` harnes
 - **MUST:** the packages config turns on ten flags: `strict`, `noImplicitOverride` and `noFallthroughCasesInSwitch` from `tsconfig.base.json`, plus `noUncheckedIndexedAccess`, `exactOptionalPropertyTypes`, `noUnusedLocals`, `noUnusedParameters`, `isolatedModules`, `verbatimModuleSyntax` and `erasableSyntaxOnly`. The `verify/*` harnesses extend only the base config, because these rules cover `packages/` alone. Their own examples fail the stricter seven: as of November 2026, `verify/vercel-ai-sdk` has 18 errors.
 - **MUST NOT:** use `enum`, `namespace` or constructor parameter properties, which `erasableSyntaxOnly` forbids. Use string-literal unions and `as const` objects.
 - **MUST:** write type-only imports as `import type { … }`, as `verbatimModuleSyntax` requires.
+
+## Packages build to `dist/`, and the workspace reads `src/` through `source`
+
+npm users get JavaScript and declarations from `dist/`; the repo's tests and type-checks read `src/` directly ([ADR 0050](../decisions/0050-dist-build-with-source-condition.md)).
+
+- **MUST:** relative imports use `.js` specifiers (`import { x } from "./x.js"`), which `NodeNext` requires in the emitted code. The packages config turns `allowImportingTsExtensions` off, so a `.ts` specifier fails `pnpm typecheck`. TypeScript, Vite and tsx all map a `.js` specifier to its `.ts` source.
+- **MUST:** each package has a `tsconfig.build.json` that extends the packages config, emits `src/` only into `dist/` with `module` and `moduleResolution` `NodeNext`, declarations, declaration maps and source maps, and sets `customConditions: []`. `pnpm build` runs every package's `build` script in dependency order, so the SDK compiles against the gateway's `dist/*.d.ts`.
+- **MUST:** every entry in `exports` lists `source` (the `src/*.ts` file), then `types`, then `default`. Node and TypeScript take the first condition that matches, so `source` must come first. `tsconfig.base.json` sets `customConditions: ["source"]`, and each `vitest.config.ts` sets `ssr.resolve.conditions` to `source` followed by Vite's default server conditions.
+- **MUST:** `publishConfig.exports` repeats each entry with only `types`, then `default`, and pnpm swaps it in when it packs, so the `source` condition never ships. The package also sets `files` (`dist` and the licence files, which its `prepack` script copies from the repo root), `sideEffects`, `engines.node`, `repository`, `homepage` and `license`. `sideEffects` is `false`, except that the gateway lists `./dist/testing/setup.js`, which installs the offline guards when imported.
+- `scripts/ci/packages-pack.test.mjs` builds and packs each package, and fails if a tarball holds anything but `package.json`, `README.md`, `CHANGELOG.md`, the licences and `dist/`, ships a `source` condition, or resolves an entry outside `dist/`.
 
 ## Shared packages are portable: no Node-only APIs in `src/`
 

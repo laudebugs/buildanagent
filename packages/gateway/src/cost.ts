@@ -4,10 +4,10 @@
  * Separate token classes (D3) mean the fold multiplies each class by its own rate with no conversion. A provider's
  * billed total wins over the catalog, and a model the catalog lacks has an unknown price, never a guessed zero.
  */
-import type { CatalogEntry, RateTier } from "./catalog.ts";
-import type { Model, ModelCallOptions } from "./runtime-types.ts";
-import type { AssistantMessage, ContentBlock, Cost, Message, ModelContext, Usage } from "./types.ts";
-import { emptyUsage, totalInput } from "./usage.ts";
+import type { CatalogEntry, RateTier } from "./catalog.js";
+import type { Model, ModelCallOptions } from "./runtime-types.js";
+import type { AssistantMessage, ContentBlock, Cost, Message, ModelContext, Usage } from "./types.js";
+import { emptyUsage, totalInput } from "./usage.js";
 
 const PER_MILLION = 1_000_000;
 

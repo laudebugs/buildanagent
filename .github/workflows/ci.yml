@@ -38,7 +38,8 @@ jobs:
       - run: pnpm check
       - run: pnpm typecheck
       - run: pnpm test
-      - name: Test the CI scripts
+      # packages-pack.test.mjs builds and packs both packages, so this step also checks what npm would get.
+      - name: Test the CI scripts and the packed packages
         run: node --test scripts/ci/*.test.mjs
       # Reads today's date, so it runs here and not in the gateway's deterministic tests; it warns and never fails.
       # `always()` keeps the warning visible on a run whose tests failed.

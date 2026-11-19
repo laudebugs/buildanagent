@@ -12,6 +12,7 @@
     "check": "biome check .",
     "lint": "biome lint .",
     "format": "biome format --write .",
+    "build": "pnpm -r --if-present build",
     "typecheck": "pnpm -r --if-present typecheck",
     "test": "pnpm -r --if-present test",
     "verify": "pnpm -r --if-present verify"

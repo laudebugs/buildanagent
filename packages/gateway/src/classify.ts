@@ -2,7 +2,7 @@
  * `classifyError()`: sorts a failed request into the four error kinds the gateway and the loop act on (SDK decision 4;
  * agent-SDK guide §2). Adapters call it with the HTTP status and the provider's error code or message.
  */
-import type { AssistantMessage } from "./types.ts";
+import type { AssistantMessage } from "./types.js";
 
 /** How a failed call is handled: retried, compacted, stopped for billing, or stopped. */
 export type ErrorKind = NonNullable<AssistantMessage["error"]>["kind"];

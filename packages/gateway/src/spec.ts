@@ -1,5 +1,5 @@
 /** The single-method model spec every provider adapter implements (SDK plan §3.2; SDK decision 1). */
-import type { AssistantMessage, ContentBlock, ModelCaps, ModelContext, ModelRef } from "./types.ts";
+import type { AssistantMessage, ContentBlock, ModelCaps, ModelContext, ModelRef } from "./types.js";
 
 /** The events one model call streams. Exactly one terminal event, `done` or `error`, ends every stream. */
 export type ModelEvent =

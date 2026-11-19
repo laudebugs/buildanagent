@@ -14,12 +14,12 @@
  *   and no event carries a hint to the gateway.
  */
 
-import { classifyError, isTransportFailure } from "./classify.ts";
-import { foldCost } from "./cost.ts";
-import type { GatewayEvent, Sleep } from "./runtime-types.ts";
-import type { ModelEvent } from "./spec.ts";
-import type { AssistantMessage, Cost, ModelRef, Usage } from "./types.ts";
-import { addUsage, emptyUsage } from "./usage.ts";
+import { classifyError, isTransportFailure } from "./classify.js";
+import { foldCost } from "./cost.js";
+import type { GatewayEvent, Sleep } from "./runtime-types.js";
+import type { ModelEvent } from "./spec.js";
+import type { AssistantMessage, Cost, ModelRef, Usage } from "./types.js";
+import { addUsage, emptyUsage } from "./usage.js";
 
 /** How many times to retry, how long to wait, and how. */
 export interface RetrySettings {

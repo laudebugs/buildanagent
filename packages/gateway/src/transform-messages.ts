@@ -4,8 +4,8 @@
  * grows, an Anthropic target loses older turns' thinking only as a leading run, which Anthropic's rule on omitted
  * thinking allows.
  */
-import { isCanonicalName } from "./names.ts";
-import type { ContentBlock, Message, ModelCaps, ModelContent, ModelRef } from "./types.ts";
+import { isCanonicalName } from "./names.js";
+import type { ContentBlock, Message, ModelCaps, ModelContent, ModelRef } from "./types.js";
 
 type Block<T extends ContentBlock["type"]> = Extract<ContentBlock, { type: T }>;
 type AssistantMessage = Extract<Message, { role: "assistant" }>;

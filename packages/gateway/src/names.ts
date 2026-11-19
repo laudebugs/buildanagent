@@ -2,7 +2,7 @@
  * Tool names: the canonical rule every tool name meets, each wire protocol's own rule, and a reversible map from
  * canonical names to wire names. `names.md` beside this file holds the per-provider table and its sources.
  */
-import { GatewayError } from "./errors.ts";
+import { GatewayError } from "./errors.js";
 
 /**
  * The canonical tool-name rule: 1 to 64 ASCII letters, digits, underscores or hyphens. It is the strictest

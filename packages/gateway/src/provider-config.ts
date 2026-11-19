@@ -2,8 +2,8 @@
  * `resolveProviderConfig()`: the one place adapters read their `ProviderConfig` (SDK decision 13; agent-SDK guide §9).
  * It reads nothing from the environment, so the only key an adapter can send is the one its caller passed.
  */
-import { GatewayError } from "./errors.ts";
-import type { ProviderConfig, Transport } from "./runtime-types.ts";
+import { GatewayError } from "./errors.js";
+import type { ProviderConfig, Transport } from "./runtime-types.js";
 
 /** A `ProviderConfig` with every default filled in. */
 export interface ResolvedProviderConfig {

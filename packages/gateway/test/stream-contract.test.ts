@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import { assertStreamContract, type GatewayEvent, type ModelEvent, StreamContractError } from "@buildanagent/gateway";
 import { test } from "vitest";
-import { message, streamOf, validEvents } from "./fixtures.ts";
+import { message, streamOf, validEvents } from "./fixtures.js";
 
 const rejects = (events: ModelEvent[], pattern: RegExp) =>
   assert.rejects(

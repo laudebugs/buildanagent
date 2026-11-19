@@ -4,7 +4,7 @@
  * Every adapter calls `assertModelRequestAllowed(transport)` before it sends a request. When tests have turned real
  * requests off, any transport not marked as a mock throws before anything leaves the process.
  */
-import type { Transport } from "./runtime-types.ts";
+import type { Transport } from "./runtime-types.js";
 
 const MOCK_TRANSPORT = Symbol.for("buildanagent.gateway.mockTransport");
 

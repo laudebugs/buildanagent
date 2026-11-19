@@ -11,12 +11,12 @@ export {
   parseCatalog,
   type RateTier,
   staleCatalogEntries,
-} from "./catalog.ts";
-export { classifyError, type ErrorKind, type FailedRequest } from "./classify.ts";
-export { complete } from "./complete.ts";
-export { estimateInputTokens, type ProjectedTokens, priceUsage, projectCallCost, projectCost } from "./cost.ts";
-export { createModel } from "./create-model.ts";
-export { GatewayError, type GatewayErrorCode, isGatewayError } from "./errors.ts";
+} from "./catalog.js";
+export { classifyError, type ErrorKind, type FailedRequest } from "./classify.js";
+export { complete } from "./complete.js";
+export { estimateInputTokens, type ProjectedTokens, priceUsage, projectCallCost, projectCost } from "./cost.js";
+export { createModel } from "./create-model.js";
+export { GatewayError, type GatewayErrorCode, isGatewayError } from "./errors.js";
 export {
   assertCanonicalName,
   CANONICAL_TOOL_NAME,
@@ -25,14 +25,14 @@ export {
   TOOL_NAME_RULES,
   type ToolNameMap,
   type ToolNameRule,
-} from "./names.ts";
-export { type ResolvedProviderConfig, resolveProviderConfig } from "./provider-config.ts";
+} from "./names.js";
+export { type ResolvedProviderConfig, resolveProviderConfig } from "./provider-config.js";
 export {
   assertModelRequestAllowed,
   isMockTransport,
   ModelRequestsDisabledError,
   modelRequestsAreAllowed,
-} from "./request-policy.ts";
+} from "./request-policy.js";
 export type {
   CreateModelOptions,
   DumpedOptions,
@@ -45,10 +45,10 @@ export type {
   RequestDump,
   Sleep,
   Transport,
-} from "./runtime-types.ts";
-export type { ModelAdapter, ModelEvent, StreamOptions } from "./spec.ts";
-export { assertStreamContract, StreamContractError } from "./stream-contract.ts";
-export { transformMessages } from "./transform-messages.ts";
+} from "./runtime-types.js";
+export type { ModelAdapter, ModelEvent, StreamOptions } from "./spec.js";
+export { assertStreamContract, StreamContractError } from "./stream-contract.js";
+export { transformMessages } from "./transform-messages.js";
 export type {
   AssistantMessage,
   ContentBlock,
@@ -62,5 +62,5 @@ export type {
   OpaqueToken,
   Usage,
   WireTool,
-} from "./types.ts";
-export { addUsage, emptyUsage, totalInput } from "./usage.ts";
+} from "./types.js";
+export { addUsage, emptyUsage, totalInput } from "./usage.js";

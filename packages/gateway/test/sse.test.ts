@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { test } from "vitest";
-import { readServerSentEvents, type ServerSentEvent } from "../src/sse.ts";
+import { readServerSentEvents, type ServerSentEvent } from "../src/sse.js";
 
 function bodyOf(chunks: (string | Uint8Array)[]): ReadableStream<Uint8Array> {
   const encoder = new TextEncoder();

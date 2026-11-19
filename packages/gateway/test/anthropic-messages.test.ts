@@ -25,7 +25,7 @@ import {
 import { anthropic } from "@buildanagent/gateway/anthropic";
 import { markMockTransport, mockTransport, type WireResponse } from "@buildanagent/gateway/testing";
 import { test } from "vitest";
-import { fakeEntry } from "./fixtures.ts";
+import { fakeEntry } from "./fixtures.js";
 
 const FIXTURES = fileURLToPath(new URL("./fixtures/anthropic-messages/", import.meta.url));
 const MODEL = { api: "anthropic-messages", provider: "anthropic", id: "claude-opus-5-5" };

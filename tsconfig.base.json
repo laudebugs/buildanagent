@@ -5,6 +5,7 @@
     "lib": ["es2024"],
     "module": "esnext",
     "moduleResolution": "bundler",
+    "customConditions": ["source"],
     "strict": true,
     "noImplicitOverride": true,
     "noFallthroughCasesInSwitch": true,

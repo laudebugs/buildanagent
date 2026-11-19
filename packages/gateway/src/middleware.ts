@@ -4,7 +4,7 @@
  * `transformParams` runs first to last, each seeing the previous one's result. `wrapStream` nests the same way, so the
  * first middleware's wrapper sees every event the inner ones pass on, retries included.
  */
-import type { GatewayEvent, MiddlewareParams, ModelMiddleware } from "./runtime-types.ts";
+import type { GatewayEvent, MiddlewareParams, ModelMiddleware } from "./runtime-types.js";
 
 /** Applies each middleware's `transformParams` in order. */
 export async function transformParams(

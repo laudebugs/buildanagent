@@ -1,7 +1,7 @@
 /** Gateway runtime types (SDK plan §3.2; SDK decisions 4, 13). */
-import type { PriceCatalog } from "./catalog.ts";
-import type { ModelAdapter, ModelEvent, StreamOptions } from "./spec.ts";
-import type { AssistantMessage, Cost, ModelCaps, ModelContext, ModelRef, Usage } from "./types.ts";
+import type { PriceCatalog } from "./catalog.js";
+import type { ModelAdapter, ModelEvent, StreamOptions } from "./spec.js";
+import type { AssistantMessage, Cost, ModelCaps, ModelContext, ModelRef, Usage } from "./types.js";
 
 /** How an adapter sends HTTP. Defaults to `globalThis.fetch`. */
 export type Transport = (request: Request) => Promise<Response>;
