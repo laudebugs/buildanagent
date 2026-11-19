@@ -26,11 +26,11 @@ Both packages dropped `private` in todo L4a, so `pnpm changeset` offers them and
 
 ## Each merged Version packages pull request publishes an alpha
 
-The owner decided on 2026-11-19: "let's make the releases automated too. Let's keep it alpha for now until we're ready to publish", and then "let's make the publishes run on every change to the package". Asked whether the version step should be "a pr that will be autocompleted", the owner answered "yes". So the repo is in Changesets pre mode with the tag `alpha`, which `pnpm changeset pre enter alpha` set up in `pre.json`, and a release takes four steps:
+The owner decided on 2026-11-19: "let's make the releases automated too. Let's keep it alpha for now until we're ready to publish", and then "let's make the publishes run on every change to the package". Asked whether the version step should be "a pr that will be autocompleted", the owner answered "yes". So the repo is in Changesets pre mode with the tag `alpha`, which `pnpm changeset pre enter alpha` set up in `pre.json`. A release takes four steps:
 
 1. Your pull request adds a changeset and merges.
 2. `release.yml` runs `pnpm changeset version` on `main`, which moves both packages to the next prerelease, such as `0.1.0-alpha.1`. In pre mode, Changesets 3 moves the changesets it consumed into `pre/` instead of deleting them, because they become the changelog of the stable release.
-3. The workflow checks that the result changes only versions, changelogs and changesets, pushes it to the `changeset-release/main` branch and opens a "Version packages" pull request with auto-merge on. A changeset merged while that pull request is open updates it, so several changes ship as one alpha.
+3. The workflow checks that the result changes only versions, changelogs and changesets, pushes it to the `changeset-release/main` branch and opens a "Version packages" pull request with auto-merge on. Auto-merge waits until `main` requires the `checks` status, which the owner still has to set. A changeset merged while that pull request is open updates it, so several changes ship as one alpha.
 4. Once the required checks pass, GitHub squash-merges the pull request, and the push to `main` publishes both packages under npm's `alpha` dist-tag, then tags the release `v<version>` and marks its GitHub release as a prerelease.
 
 `latest` stays on the deprecated placeholder `0.0.0-bootstrap.0` until the first stable release, so users install with `pnpm add @buildanagent/sdk@alpha`. The details are in the [CI plan](../docs/plans/ci.md#3f-releases-through-npm-trusted-publishing-added-2026-11-19).
