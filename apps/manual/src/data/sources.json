@@ -315,5 +315,33 @@
     "version": "v0.21.0",
     "asOf": "November 2026",
     "verifiedIn": "apps/manual/fact-checks/stopping-and-structured-output.md"
+  },
+  {
+    "id": "ai-sdk-generating-structured-data",
+    "title": "Generating Structured Data",
+    "publisher": "AI SDK documentation",
+    "url": "https://ai-sdk.dev/docs/ai-sdk-core/generating-structured-data",
+    "kind": "docs",
+    "version": "ai@7.0.162",
+    "asOf": "November 2026",
+    "verifiedIn": "apps/manual/fact-checks/stopping-and-structured-output.md"
+  },
+  {
+    "id": "claude-agent-sdk-structured-outputs",
+    "title": "Get structured output from agents",
+    "publisher": "Claude Agent SDK documentation",
+    "url": "https://code.claude.com/docs/en/agent-sdk/structured-outputs",
+    "kind": "docs",
+    "asOf": "November 2026",
+    "verifiedIn": "apps/manual/fact-checks/stopping-and-structured-output.md"
+  },
+  {
+    "id": "anthropic-structured-outputs",
+    "title": "Structured outputs",
+    "publisher": "Claude API documentation",
+    "url": "https://platform.claude.com/docs/en/build-with-claude/structured-outputs",
+    "kind": "docs",
+    "asOf": "November 2026",
+    "verifiedIn": "apps/manual/fact-checks/stopping-and-structured-output.md"
   }
 ]

@@ -2,8 +2,8 @@
 title: "Stopping: caps, stop conditions and structured output"
 summary: An agent stops when the model answers, when a condition you wrote holds, or when a cap runs out, and each SDK counts and reports that end in its own way. A schema then turns the answer into a typed object, which fixes its shape but never its truth.
 opening: question
-sources: [ai-sdk-loop-control, langgraph-graph-api, claude-agent-sdk-agent-loop, openai-agents-running-agents]
-glossary: [agent-loop, stop-condition, tool]
+sources: [ai-sdk-loop-control, langgraph-graph-api, claude-agent-sdk-agent-loop, openai-agents-running-agents, ai-sdk-generating-structured-data, claude-agent-sdk-structured-outputs, anthropic-structured-outputs]
+glossary: [agent-loop, stop-condition, tool, stop-reason, structured-output]
 switchTo: [B11, B14]
 ---
 
@@ -80,3 +80,53 @@ Not every early stop is a failure. Sometimes you want the loop to end the moment
 The replay shows the condition at work. The first request offers the model two tools, `ping` and `finalAnswer`. The model calls `ping`, the tool returns "pong", and the second request carries that result back. The model then calls `finalAnswer` with the answer "42", the tool runs, and `hasToolCall("finalAnswer")` holds, so the loop ends after two steps. The script holds a third answer, "never reached", and the replay confirms that no request ever asked for it. The answer arrives as the tool's result, and the example's checks read "42" from it.
 
 A done tool hands you more than a clean stop. Its input schema shapes the answer, so the model's last act fills in typed fields instead of writing prose. Several SDKs build structured output on this very idea, as the next section shows. Until then, the rule for this section is ours: read the run's stop reason before you read its answer. A run that the model ended, a run that your condition ended and a run that a cap cut off can all return text, and only the first two are finished.
+
+## A schema fixes the shape of the answer, never its truth
+
+Pour hot jelly into :analogy[a jelly mould]{#jelly-mould} shaped like a rabbit, and whatever you poured comes out a rabbit: lime or strawberry, sweet or far too sour. The mould decides the shape and has no say over the flavour. A schema does the same for a model's answer. It can make every answer an object with a `category` and an `urgent` flag, and it cannot make the category the right one.
+
+Structured output is the mechanism behind the mould. Your code gives the SDK a schema; the SDK sends it with the request, asks for JSON, then parses the answer and checks it against the schema before your code sees it. The AI SDK puts it plainly: "LLMs can produce incorrect or incomplete structured data", so the schema "is also used to validate the generated data" [@ai-sdk-generating-structured-data]. [[lst:triage-output]] asks for a ticket's triage with the AI SDK's `Output.object`, using the schema in [[lst:triage-schema]].
+
+::listing[The triage schema: a category from three values and an urgency flag]{#triage-schema file="verify/vercel-ai-sdk/examples/05-structured-output.ts" region="schema"}
+
+:::listing[A typed answer from a schema]{#triage-output file="verify/vercel-ai-sdk/examples/05-structured-output.ts" region="output-object" replay}
+::note[`Output.object` sends the schema with the request and checks the answer against it. The `name` and `description` give some providers extra guidance.]{#output}
+::note[`result.output` takes its type from the schema, so this assignment type-checks. Misspell a field, and the example fails to compile.]{#typed}
+:::
+
+The replay is short, because the work happens around the model rather than in it. The request carries one message, "I was charged twice!", and offers no tools. The model answers with the text `{"category":"billing","urgent":true}` and finishes with `"stop"`. The SDK parses that text into an object, checks it, and hands it over as `result.output`. The example's checks confirm the rest: the request asked for JSON under the schema's name, "triage", and carried the JSON Schema, and the answer came back as the parsed, typed object.
+
+[[fig:jelly-mould]] shows what the check can and cannot catch. The same example sends a second request whose scripted answer is `{"category":"refund"}`, with a category the schema does not list and no `urgent` field at all. That jelly never set: `generateText` rejects with `NoObjectGeneratedError`. Picture, though, a third answer for the same ticket, `{"category":"bug","urgent":false}`. It fits the mould exactly, passes every check, and is wrong.
+
+:::figure[A jelly mould: every answer that fits comes out the same shape, right or wrong]{#jelly-mould analogy="jelly-mould"}
+::svg{alt="A box at the top, the mould, reads: the schema, category, urgent: true or false. Arrows lead down to three jellies. The first, billing, urgent: true, is marked right shape, right answer. The second, bug, urgent: false, is marked right shape, wrong answer. The third, drawn dashed, reads refund, no urgent field, and is marked did not set: rejected. Text under them names the ticket: I was charged twice!"}
+:::
+
+A structured answer also needs a step to arrive in, which ties this section to the first. The AI SDK counts "structured output generation" as a step, and its docs ask you to set `stopWhen` to "allow enough steps for both tool execution and output generation" [@ai-sdk-generating-structured-data]. The example's third case leaves no such step. With the default cap of one step, a model that calls a tool first uses its only step on the call, and reading `result.output` then throws `NoOutputGeneratedError`, because the last step ended in `"tool-calls"`.
+
+Every SDK in this book has a route to structured output as of November 2026, and several build it on the done tool from the previous section. The Claude Agent SDK adds a tool called `StructuredOutput`{checked=row-48} that the agent calls with its answer [@claude-agent-sdk-structured-outputs]. Cloudflare Think adds a final-answer tool and stops on it with `hasToolCall`, and Pi ends a run after a batch of tool calls whose results all set `terminate: true`{checked=row-49}. What happens when the answer breaks the schema differs more, as [[tbl:schema-failures]] shows.
+
+:::table[What each SDK does when the answer breaks the schema, as of November 2026]{#schema-failures}
+| SDK and option | When the answer does not fit |
+| --- | --- |
+| AI SDK `Output.object` | Rejects with `NoObjectGeneratedError`, which keeps the model's text and the cause |
+| OpenAI Agents SDK `outputType`{checked=row-50} | Throws `ModelBehaviorError`{checked=row-50}, unless an `invalidFinalOutput`{checked=row-50} handler returns a valid fallback |
+| Claude Agent SDK `outputFormat`{checked=row-51} | Returns the error to the agent, which tries again; when no attempt passes, the run ends in `"error_max_structured_output_retries"` |
+| Google ADK `outputSchema`{checked=row-52}, TypeScript | Logs the error and stores the answer anyway, as raw text when it is not JSON and as the invalid object when it breaks the schema |
+:::
+
+ADK's row is the warning in the table. Its TypeScript port, at version 2.5.0 as of November 2026, raises no error for an answer that breaks the schema, so the value it stores can be anything. Validate it again yourself before you use it.
+
+Even a check that passes guarantees less than its name suggests. Anthropic's API can constrain the model's output to a schema while the model writes, and its docs promise "schema-compliant responses through constrained decoding" [@anthropic-structured-outputs]. The same page lists three ways that promise gives out:
+
+- **A refusal.** When the model declines, "the refusal message takes precedence over schema constraints", and the response ends with `"refusal"`.
+- **A cut-off answer.** When the response hits the token limit, it ends with `"max_tokens"`, and "the output might be incomplete and not match your schema".
+- **An enum value in the wrong case.** The model "might return a value that differs from your schema only in capitalization", with "no error and no special `stop_reason`{checked=row-58}".
+
+Some constraints never reach the model at all. Anthropic's constrained decoding does not support limits such as `minimum`{checked=row-59} or `maxLength`{checked=row-59}, and a request that sends one directly fails with a 400 error. Its SDK helpers instead move such a limit into the field's description, where the model reads it as a request, and check it afterwards when the helper validates [@anthropic-structured-outputs]. The Claude Agent SDK accepts a schema's `format`{checked=row-60} keyword, such as `"email"`, only "as an annotation", which its validator does not enforce [@claude-agent-sdk-structured-outputs]. Two of those failures come back with a stop reason, which is one more reason to read it before the answer.
+
+The jelly mould stops matching the mechanism at the pour. A mould forces its shape on whatever goes in; most SDKs can only check the answer's shape after the model has written it, so an answer that does not fit is rejected or retried rather than reshaped. Even constrained decoding lets a refusal or a cut-off answer through. What the mould does get right is the part that matters most: a schema fixes the shape of an answer and says nothing about its truth.
+
+So treat a validated object as well-formed and nothing more. We recommend three habits. First, read the run's stop reason, and use the object only when the run finished. Second, check what the schema could not: the enum's casing, the limits the provider dropped, and any rule that ties one field to another or to your data, such as a refund amount no larger than the order. Third, give the model an honest way out, such as the `"other"` category in [[lst:triage-schema]], so that a ticket that fits no category does not have to be forced into one.
+
+An agent, then, stops for one of three reasons: the model finishes, a condition you wrote holds, or a cap runs out, and a default cap is set by people who never saw your task. Set the cap yourself, in the unit your SDK counts. Read why the run ended before you read what it said. And when the answer comes back as a typed object, trust its shape to the schema and its truth to your own checks.

@@ -86,5 +86,13 @@
     "chapter": "stopping-and-structured-output",
     "illustration": null,
     "breaks": "Every bus company counts a stop the same way. SDKs count steps, turns, graph super-steps and model calls, so the same cap allows a different number of model calls in each."
+  },
+  {
+    "id": "jelly-mould",
+    "concept": "structured output",
+    "analogy": "a jelly mould",
+    "chapter": "stopping-and-structured-output",
+    "illustration": "jelly-mould",
+    "breaks": "A mould forces its shape on whatever is poured in. Most SDKs only check the answer's shape after the model has written it, so an answer that does not fit is rejected or retried, and even constrained decoding lets a refusal or a cut-off answer through. Neither a mould nor a schema can vouch for what is inside: a schema fixes the shape of an answer, never its truth."
   }
 ]
