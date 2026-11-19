@@ -34,7 +34,7 @@ The first research round could not fetch many of its seed sources because the ne
 
 **Out of scope** (and which todo covers it)
 
-- Editing the main report's text, N24, N25, B17 or the AGENTS.md research rules: each is a proposed change for the owner
+- Editing the main report's text, N24, N25, N31 or the AGENTS.md research rules: each is a proposed change for the owner
 - Rewriting the historical custom-harness and frameworks notes: they stay as written
 - The seeds the owner did not choose: aiagent.org, six planning blogs and gotburnout.io (custom-harness notes), and six frameworks seed hosts. No todo covers them yet
 
@@ -65,14 +65,14 @@ None: documentation only. `pnpm -s check` and a relative-link check over the cha
 
 ## Risks and open questions
 
-- The owner decides three of the report's proposed changes: whether an MCP server's input request may pause a turn, whether to edit the main report's text, and whether to require arXiv versions on every figure.
+- The owner decides four of the report's proposed changes: whether an MCP server's input request may pause a turn, whether to mint span ids at call time, whether to edit the main report's text, and whether to require arXiv versions on every figure.
 - Whether the pinned `@modelcontextprotocol/client` 2.4.0 handles `input_required` results is unchecked; N24 should check it first.
 
 ## Definition of done
 
-- [ ] Claimed: the first commit moved this file `ready/` → `ongoing/` (Status `ongoing`). Not done: the work ran in one sitting on `docs/research-source-update` and the owner commits it, so the file started in `done/`
+- [ ] Claimed: the first commit moved this file `ready/` → `ongoing/` (Status `ongoing`). Not done: the work was drafted in one sitting on `docs/research-source-update`, and its first commit (`12b3a54`, pull request #36) added this file straight to `done/`
 - [x] Prose drafted with `/anthropic-skills:writing`, and changed claims re-checked against their sources
-- [ ] `pnpm check`, `pnpm typecheck` and `pnpm test` pass locally; pushed after each meaningful step. Partly done: `pnpm -s check` passes; `typecheck` and `test` were not run because no code changed, and the owner pushes
+- [ ] `pnpm check`, `pnpm typecheck` and `pnpm test` pass locally; pushed after each meaningful step. Partly done: `pnpm -s check` passes; `typecheck` and `test` were not run because no code changed. The branch is pushed to pull request #36
 - [ ] This file moved `ongoing/` → `done/` (Status `done`) in the last work commit, and the plan's todo table updated. Partly done: the file was created in `done/` rather than moved (see the first item), and the plan's table row is added
-- [ ] Two code-review rounds run on the pull request (`/code-review high --max-findings default`, then `medium` and `low` after more than 6 confirmed findings, otherwise `low`), with every finding fixed or explained in a commit message. In progress: the first round's findings are fixed; the second round is still to run on pull request #36
-- [x] Copy reviewed with `/anthropic-skills:writing-review` after the code changes, with its findings fixed and the rubric scores in the pull request description. Rerun on the copy that the first code-review round's fixes changed
+- [ ] Two code-review rounds run on the pull request (`/code-review high --max-findings default`, then `medium` and `low` after more than 6 confirmed findings, otherwise `low`), with every finding fixed or explained in a commit message. In progress: the first round (high) counted more than 6 findings, so the second round is medium then low. The high and medium findings are fixed; the low review is still to run on pull request #36
+- [x] Copy reviewed with `/anthropic-skills:writing-review` after the code changes, with its findings fixed and the rubric scores in the pull request description. Rerun on the copy that each code-review round's fixes changed
