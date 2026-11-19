@@ -5,7 +5,7 @@
 | Field | Value |
 | --- | --- |
 | ID | `T8` |
-| Status | `ready` |
+| Status | `ongoing` |
 | Plan | [Book plan §5, BK14](../../plans/build-book.md#bk14-one-ci-job-builds-the-book-and-runs-every-check-proposed) |
 | Round / milestone | Round T (textbook), MT |
 | Depends on | [T4](../done/T4-book-listings.md), [T6](../done/T6-book-flat-figures.md) |
@@ -18,7 +18,7 @@ Fail a pull request that breaks the book, and hand the deploy workflow a built s
 ## Context
 
 - [Book plan BK14 and BK15](../../plans/build-book.md#bk14-one-ci-job-builds-the-book-and-runs-every-check-proposed).
-- [Publish-and-docs plan, DS3](../../plans/publish-and-docs.md#ds3-workers-static-assets-and-a-preview-per-pull-request-accepted) and [L8](L8-cloudflare-deploys.md): the same split for the docs and the website.
+- [Publish-and-docs plan, DS3](../../plans/publish-and-docs.md#ds3-workers-static-assets-and-a-preview-per-pull-request-accepted) and [L8](../ready/L8-cloudflare-deploys.md): the same split for the docs and the website.
 - [ci.yml](../../../.github/workflows/ci.yml), [`actions.lock`](../../../.github/workflows/actions.lock) and the [CI plan §3d](../../plans/ci.md#3d-actions-locked-by-a-lockfile-added-2026-11-19): how workflows and actions are added.
 
 ## Scope
@@ -30,8 +30,8 @@ Fail a pull request that breaks the book, and hand the deploy workflow a built s
 
 **Out of scope** (and which todo covers it)
 
-- The anatomy audits, which [T7](T7-book-isometric-figures.md) adds to this workflow
-- Deploys and previews ([T9](T9-book-deploy.md))
+- The anatomy audits, which [T7](../ready/T7-book-isometric-figures.md) adds to this workflow
+- Deploys and previews ([T9](../ready/T9-book-deploy.md))
 
 ## Tasks
 
@@ -63,7 +63,7 @@ The workflow itself, proved by the deliberate failure in the tasks.
 
 ## Definition of done
 
-- [ ] Claimed: the first commit moved this file `ready/` → `ongoing/` (Status `ongoing`)
+- [x] Claimed: the first commit moved this file `ready/` → `ongoing/` (Status `ongoing`)
 - [ ] Prose drafted with `/anthropic-skills:writing`, and changed claims re-checked against their sources
 - [ ] `pnpm check`, `pnpm typecheck` and `pnpm test` pass locally; pushed after each meaningful step
 - [ ] This file moved `ongoing/` → `done/` (Status `done`) in the last work commit, and the plan's todo table updated
