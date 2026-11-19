@@ -69,4 +69,16 @@ These rows check PF1's dated revision on per-tenant memory, against the [retriev
 | 44 | OWASP's ASI06 describes a near-duplicate pulling "another tenant's sensitive chunk into retrieval" through a loose namespace filter | ✅ | U18 report, Untrusted ¶3, quoting the [OWASP Agentic Top 10](https://genai.owasp.org/resource/owasp-top-10-for-agentic-applications-for-2026/) |
 | 45 | No Round F todo builds memory yet | ✅ | `grep -il memory docs/todos/*/F*.md` finds only F1, whose "memory implementation" is an in-memory test store for tenants |
 
-**Totals:** 45 claims: 42 ✅, 2 ✏️, 1 ⚠️.
+
+## A2A note from U19 (2026-11-19)
+
+These rows check PF1's dated revision on A2A, against the [A2A report](../../research/a2a/agent-to-agent-protocols.md), its [ecosystem notes](../../research/a2a/notes/ecosystem-and-papers.md) and [its fact-check](../../research/a2a/fact-check-agent-to-agent-protocols.md), on 2026-11-19.
+
+| # | Claim | Verdict | Source and reason |
+|---|---|---|---|
+| 46 | The owner approved all seven of U19's proposed changes on 2026-11-19, among them change 6, this note | ✅ | The owner's decision of 2026-11-19 ("owner decision 2026-11-19") |
+| 47 | As of November 2026, Gemini Enterprise can register A2A agents in preview, Foundry Agent Service calls them through its `a2a` tool, and Bedrock AgentCore Runtime hosts A2A servers | ✏️ | U19 report, When, rule 5, and the ecosystem notes' sources for each product. The first draft of this note said all three products "call" an outside agent; AgentCore hosts A2A servers instead, so the note now names each product's role |
+| 48 | The A2A specification requires a server to scope every task operation to the caller "before any database queries" | ✅ | U19 report, When ¶ on exposing, quoting [spec §13.1](https://github.com/a2aproject/A2A/blob/v1.0.0/docs/specification.md#131-data-access-and-authorization-scoping) |
+| 49 | No Round F todo builds A2A yet | ✅ | A case-insensitive search for "a2a" in `docs/todos/*/F*.md` finds nothing |
+
+**Totals:** 49 claims: 45 ✅, 3 ✏️, 1 ⚠️.
