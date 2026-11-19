@@ -12,8 +12,8 @@
  *   https://platform.claude.com/docs/en/build-with-claude/structured-outputs, as of November 2026).
  *
  * OpenAI's strict mode accepts the numeric constraints and `minItems`/`maxItems`, rejects `allOf`, `if`/`then`/`else`
- * and the `dependent*` keywords, requires every property, and limits a schema to 5,000 properties, 10 levels of
- * nesting and 1,000 enum values (Structured model outputs, "Supported schemas",
+ * and the `dependent*` keywords, requires every property, and limits a schema's size: 5,000 properties, 10 levels of
+ * nesting, 1,000 enum values and 120,000 characters of names and values, among others (Structured model outputs, "Supported schemas",
  * https://developers.openai.com/api/docs/guides/structured-outputs#supported-schemas, as of November 2026). Its
  * dialect therefore writes an optional property as a required one that also accepts `null`. The removed constraints
  * are not lost: the SDK validates every call against the original schema, after `stripAddedNulls()`.
@@ -34,7 +34,19 @@ export interface StrictDialect {
   /** Keywords the provider rejects; a schema that uses one is sent without strict. */
   readonly rejects?: ReadonlySet<string>;
   /** Limits on one schema; a schema over any of them is sent without strict. */
-  readonly limits?: { readonly properties: number; readonly depth: number; readonly enumValues: number };
+  readonly limits?: StrictLimits;
+}
+
+/** The size limits of one strict schema. */
+export interface StrictLimits {
+  readonly properties: number;
+  /** Levels of object nesting. */
+  readonly depth: number;
+  readonly enumValues: number;
+  /** Characters in all property names, definition names, and string enum and `const` values. */
+  readonly stringLength: number;
+  /** The most characters one string enum may hold once it has more than `values` values. */
+  readonly largeEnum: { readonly values: number; readonly length: number };
 }
 
 /** A schema lowered to strict form, with the counts the request-wide complexity limits are checked against. */
@@ -70,11 +82,14 @@ interface Walk {
   readonly dialect: StrictDialect;
   optional: number;
   unions: number;
-  /** Properties, object nesting (deepest so far and current) and enum values, for `StrictDialect.limits`. */
+  /** Properties, object nesting (deepest so far and current), enum values and strings, for `StrictDialect.limits`. */
   properties: number;
   depth: number;
   maxDepth: number;
   enumValues: number;
+  stringLength: number;
+  /** The character count of the longest string enum with more than `limits.largeEnum.values` values. */
+  largeEnumLength: number;
   /** Set when the schema uses a feature strict mode rejects; the tool is then sent without `strict`. */
   failure?: string;
 }
@@ -102,8 +117,9 @@ function lowerChildren(key: string, value: unknown, walk: Walk): unknown {
 }
 
 /**
- * True when the schema already accepts `null`. A schema that constrains nothing, such as `{}`, accepts it; a `$ref`
- * or an `allOf` counts as not accepting it, so a nullable dialect gives it an explicit `null` branch.
+ * True when the schema already accepts `null`. A schema that constrains nothing, such as `{}`, accepts it; a `$ref`,
+ * an `allOf`, or an object or array schema written without `type` counts as not accepting it, so a nullable dialect
+ * gives it an explicit `null` branch.
  */
 function allowsNull(schema: unknown): boolean {
   if (!isObject(schema)) return true;
@@ -112,7 +128,7 @@ function allowsNull(schema: unknown): boolean {
   if ("const" in schema) return schema.const === null;
   const branches = Array.isArray(schema.anyOf) ? schema.anyOf : Array.isArray(schema.oneOf) ? schema.oneOf : undefined;
   if (branches) return branches.some(allowsNull);
-  return schema.type === undefined && !("$ref" in schema) && !("allOf" in schema);
+  return schema.type === undefined && !["$ref", "allOf", "properties", "items"].some((key) => key in schema);
 }
 
 /** The schema made to accept `null` as well, in the simplest form strict mode reads. */
@@ -166,8 +182,29 @@ function isObjectNode(node: Json): boolean {
 function measure(node: Json, isObjectSchema: boolean, walk: Walk): void {
   if (isObjectSchema) walk.depth += 1;
   walk.maxDepth = Math.max(walk.maxDepth, walk.depth);
+  const names = SCHEMA_MAPS.flatMap((key) => (isObject(node[key]) ? Object.keys(node[key]) : []));
   if (isObject(node.properties)) walk.properties += Object.keys(node.properties).length;
-  if (Array.isArray(node.enum)) walk.enumValues += node.enum.length;
+  const strings = [...(Array.isArray(node.enum) ? node.enum : []), node.const].filter((v) => typeof v === "string");
+  walk.stringLength += [...names, ...strings].reduce((sum, text) => sum + text.length, 0);
+  if (!Array.isArray(node.enum)) return;
+  walk.enumValues += node.enum.length;
+  const enumStrings = node.enum.filter((value) => typeof value === "string");
+  const large = walk.dialect.limits?.largeEnum.values ?? Number.POSITIVE_INFINITY;
+  if (enumStrings.length > large) {
+    const length = enumStrings.reduce((sum, text) => sum + text.length, 0);
+    walk.largeEnumLength = Math.max(walk.largeEnumLength, length);
+  }
+}
+
+function overLimits(walk: Walk, limits: StrictLimits | undefined): boolean {
+  if (limits === undefined) return false;
+  return (
+    walk.properties > limits.properties ||
+    walk.maxDepth > limits.depth ||
+    walk.enumValues > limits.enumValues ||
+    walk.stringLength > limits.stringLength ||
+    walk.largeEnumLength > limits.largeEnum.length
+  );
 }
 
 function lowerNode(node: unknown, walk: Walk): unknown {
@@ -197,13 +234,19 @@ function lowerNode(node: unknown, walk: Walk): unknown {
 /** The schema in strict form with its counts, or `undefined` when strict mode cannot express it. */
 export function lowerToStrict(schema: Json, dialect: StrictDialect): StrictSchema | undefined {
   if (dialect.objectRoot && schema.type !== "object") return undefined;
-  const walk: Walk = { dialect, optional: 0, unions: 0, properties: 0, depth: 0, maxDepth: 0, enumValues: 0 };
+  const walk: Walk = {
+    dialect,
+    optional: 0,
+    unions: 0,
+    properties: 0,
+    depth: 0,
+    maxDepth: 0,
+    enumValues: 0,
+    stringLength: 0,
+    largeEnumLength: 0,
+  };
   const lowered = lowerNode(schema, walk) as Json;
-  const { limits } = dialect;
-  const tooBig =
-    limits !== undefined &&
-    (walk.properties > limits.properties || walk.maxDepth > limits.depth || walk.enumValues > limits.enumValues);
-  if (walk.failure !== undefined || tooBig) return undefined;
+  if (walk.failure !== undefined || overLimits(walk, dialect.limits)) return undefined;
   return { schema: lowered, optional: walk.optional, unions: walk.unions };
 }
 

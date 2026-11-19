@@ -28,8 +28,9 @@ type Warning = Extract<ModelEvent, { type: "warning" }>;
 export interface OpenAIChatProviderOptions {
   /**
    * Extra fields for the request body, such as `reasoning_effort`, `prompt_cache_key` or `parallel_tool_calls`. The
-   * fields the adapter sets itself (`model`, `stream`, `stream_options`, `messages`, `tools` and the output-limit
-   * field) win over these, and an `extraBody` that sets one streams an `unsupported_option` warning.
+   * fields the adapter sets itself (`model`, `stream`, `stream_options`, `messages`, `tools`, `max_completion_tokens`
+   * and `max_tokens`) win over these: an `extraBody` value for one is not sent, and the call streams an
+   * `unsupported_option` warning.
    */
   readonly extraBody?: Readonly<Record<string, unknown>>;
 }
@@ -53,7 +54,13 @@ const STRICT_DIALECT: StrictDialect = {
   objectRoot: true,
   keeps: new Set(["minimum", "maximum", "exclusiveMinimum", "exclusiveMaximum", "multipleOf", "minItems", "maxItems"]),
   rejects: new Set(["allOf", "dependentRequired", "dependentSchemas", "if", "then", "else", "prefixItems"]),
-  limits: { properties: 5000, depth: 10, enumValues: 1000 },
+  limits: {
+    properties: 5000,
+    depth: 10,
+    enumValues: 1000,
+    stringLength: 120_000,
+    largeEnum: { values: 250, length: 15_000 },
+  },
 };
 
 const TOOL_IMAGES_NOTE = "The images below are part of the tool results above.";
@@ -84,7 +91,8 @@ function userContent(blocks: readonly ContentBlock[]): string | Json[] {
 }
 
 function assistantMessage(message: Extract<Message, { role: "assistant" }>, names: ToolNameMap): Json | undefined {
-  const text = message.content.flatMap((block) => (block.type === "text" ? [block.text] : [])).join("");
+  // Text blocks a reasoning block or a merged turn kept apart stay apart, as paragraphs.
+  const text = message.content.flatMap((block) => (block.type === "text" ? [block.text] : [])).join("\n\n");
   const toolCalls = message.content.flatMap((block): Json[] => {
     if (block.type !== "tool_call") return [];
     // A call cut off by the output limit holds its partial JSON as a string; the wire needs a JSON object.
@@ -255,7 +263,8 @@ export function buildRequest(
     ...sampling.fields,
     ...caching.fields,
   };
-  const owned = ["model", "stream", "stream_options", "messages", "tools", compat.maxTokensField];
+  // Both output-limit fields, so an extra cannot send a second limit beside the adapter's.
+  const owned = ["model", "stream", "stream_options", "messages", "tools", "max_completion_tokens", "max_tokens"];
   const { body, warnings } = mergeExtras(own, openaiChatOptions(options).extraBody ?? {}, owned);
   return {
     body,

@@ -48,6 +48,15 @@ function errorBody(chunk: unknown): Json {
   return isObject(chunk) ? { error: chunk } : {};
 }
 
+/** An error event's data: JSON when it parses, else its text, which some compatible servers send bare. */
+function parseErrorData(data: string): unknown {
+  try {
+    return JSON.parse(data);
+  } catch {
+    return data;
+  }
+}
+
 /** One stream's state: the blocks so far, the usage and the finish reason. */
 export class ChunkAssembler implements StreamReader {
   readonly #model: ModelRef;
@@ -73,7 +82,7 @@ export class ChunkAssembler implements StreamReader {
   /** The events one server-sent event produces. The last one is the terminal when the stream has ended. */
   handle(sse: ServerSentEvent): ModelEvent[] {
     if (sse.data.trim() === "[DONE]") return this.#terminal();
-    const chunk: unknown = JSON.parse(sse.data);
+    const chunk: unknown = sse.event === "error" ? parseErrorData(sse.data) : JSON.parse(sse.data);
     if (sse.event === "error" || (isObject(chunk) && (isObject(chunk.error) || typeof chunk.error === "string"))) {
       return [failureEvent(this.#model, failureFrom(errorBody(chunk), undefined, "stream error"), this.partial())];
     }

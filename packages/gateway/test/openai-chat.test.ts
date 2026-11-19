@@ -248,6 +248,14 @@ test("an extraBody field the adapter leaves out is not sent, and the warning say
   assert.doesNotMatch(warnings(events)[0]?.message ?? "", /adapter's value/);
 });
 
+test("extraBody cannot add the other output-limit field", async () => {
+  const { events, transport } = await run([streamed("text.sse")], hello, {
+    providerOptions: { openaiChat: { extraBody: { max_tokens: 100 } } },
+  });
+  assert.equal("max_tokens" in bodyOf(transport), false);
+  assert.match(warnings(events)[0]?.message ?? "", /max_tokens/);
+});
+
 test("a per-model compat object changed after openaiChat() does not change its requests", async () => {
   const modelCompat = { "gpt-5.4-mini": { systemRole: "developer" as "system" | "developer" } };
   const transport = mockTransport("openai-chat", [streamed("text.sse")]);
@@ -310,6 +318,24 @@ test("history encodes as tool_calls, tool messages and a user message for the re
       ],
     },
   ]);
+});
+
+test("an assistant turn's separate text blocks are replayed as separate paragraphs", async () => {
+  const assistant: Message = {
+    ...(history[1] as Extract<Message, { role: "assistant" }>),
+    content: [
+      { type: "text", text: "Let me check." },
+      { type: "reasoning", text: "Think." },
+      { type: "text", text: "The answer is 4." },
+    ],
+    stopReason: "stop",
+  };
+  const { transport } = await run([streamed("text.sse")], {
+    system: "",
+    messages: [history[0] as Message, assistant],
+    tools: [],
+  });
+  assert.equal(messagesOf(transport)[1]?.content, "Let me check.\n\nThe answer is 4.");
 });
 
 test("a failed tool result says so in its tool message", async () => {
@@ -504,6 +530,67 @@ test("a null strict lowering added inside an anyOf branch is stripped too", asyn
   const { terminal } = await run([{ body }], { ...hello, tools: [target] });
   const [call] = terminal.content;
   assert.deepEqual(call?.type === "tool_call" ? call.input : undefined, { target: { id: "1" }, list: [{ k: "a" }] });
+});
+
+test("an optional object or array written without type gets a null branch, and its null is stripped", async () => {
+  const tool = {
+    name: "configure",
+    description: "",
+    inputSchema: {
+      type: "object",
+      properties: {
+        opts: { properties: { x: { type: "string" } }, required: ["x"] },
+        ids: { items: { type: "string" } },
+      },
+    },
+  };
+  const body = chatCompletionEvents([
+    {
+      choices: [
+        {
+          index: 0,
+          delta: {
+            tool_calls: [
+              {
+                index: 0,
+                id: "c1",
+                type: "function",
+                function: { name: "configure", arguments: '{"opts":null,"ids":null}' },
+              },
+            ],
+          },
+          finish_reason: "tool_calls",
+        },
+      ],
+    },
+  ]);
+  const { transport, terminal } = await run([{ body }], { ...hello, tools: [tool] });
+  const properties = toolsOf(transport)[0]?.parameters.properties as Record<string, { anyOf?: unknown[] }>;
+  assert.deepEqual(properties.opts?.anyOf?.at(-1), { type: "null" });
+  assert.deepEqual(properties.ids?.anyOf?.at(-1), { type: "null" });
+  const [call] = terminal.content;
+  assert.deepEqual(call?.type === "tool_call" ? call.input : undefined, {});
+});
+
+test("a schema over OpenAI's string-size limits is sent without strict", async () => {
+  const long = Array.from({ length: 300 }, (_, i) => `${"x".repeat(60)}${i}`);
+  const manyNames = Object.fromEntries(
+    Array.from({ length: 2000 }, (_, i) => [`p${"n".repeat(60)}${i}`, { type: "string" }]),
+  );
+  const tools = [
+    {
+      name: "bigenum",
+      description: "",
+      inputSchema: { type: "object", properties: { e: { type: "string", enum: long } }, required: ["e"] },
+    },
+    {
+      name: "names",
+      description: "",
+      inputSchema: { type: "object", properties: manyNames, required: Object.keys(manyNames) },
+    },
+  ];
+  const { transport } = await run([streamed("text.sse")], { ...hello, tools });
+  for (const tool of toolsOf(transport)) assert.equal("strict" in tool, false, tool.name);
 });
 
 test("compat strictTools false sends every tool without strict", async () => {
@@ -840,6 +927,7 @@ test("an SSE event named error is an error terminal too", async () => {
 test.each([
   ['"model overloaded"', "retryable", /^model overloaded$/],
   ['{"error":"maximum context length exceeded"}', "overflow", /^maximum context length exceeded$/],
+  ["upstream overloaded", "retryable", /^upstream overloaded$/],
 ] as const)("an error event whose data is %s keeps its message and kind", async (data, kind, message) => {
   const { terminal } = await run([{ body: `event: error\ndata: ${data}\n\n` }]);
   assert.equal(terminal.error?.kind, kind);
