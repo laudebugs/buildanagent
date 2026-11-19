@@ -1,8 +1,8 @@
 # @buildanagent/agent-safety
 
-When a tool changes the world, such as sending an email or issuing a refund, your agent must know exactly what happened. This package gives every such write one of five typed outcomes, renders each one as text the model can act on, and hashes tool inputs the same way on every runtime.
+When a tool changes the world, such as sending an email or issuing a refund, your agent must know exactly what happened, and a person must approve exactly what runs. This package gives every write one of five typed outcomes, hashes tool inputs the same way on every runtime, and signs approvals so a forged or stale one runs nothing.
 
-As of November 2026 the package is not on npm yet. It holds the write outcomes, `renderOutcome()`, `canonicalInputHash()` and an adapter for the Vercel AI SDK. Effect keys, signed approvals and plan approvals come next.
+As of November 2026 the package is not on npm yet. It holds the write outcomes, `renderOutcome()`, `canonicalInputHash()`, the approval signers and adapters for the Vercel AI SDK, which also serve Cloudflare's `AIChatAgent`. Effect keys and plan approvals come next.
 
 ## A failed write reports one of five outcomes
 
@@ -80,8 +80,75 @@ Any changed value gives a different hash. A property set to `undefined` counts a
 - an object that isn't plain, such as a `Date`;
 - an object or array that contains itself.
 
+## An approved call runs only after its signed pause verifies
+
+An approval that travels through a browser or a stored chat is untrusted input: anyone who can edit the history can approve a call they changed. `signedToolApproval()` closes that gap for the AI SDK's call-level `toolApproval`. Wrap the policy you would pass anyway, and give the adapter a signer and a store:
+
+```ts
+const toolApproval = signedToolApproval({ signer, store, policy: { refund: "user-approval" }, recheck });
+const result = await generateText({ model, messages, tools: { refund }, toolApproval });
+```
+
+When the policy asks for a person, the adapter signs a pending request and keeps it in the store under the tool call's id. The signature covers the request's id and kind, the call id, the tool's name, the input's hash and an optional policy version. The AI SDK then asks the adapter again just before it runs the approved call. At that point the adapter runs the call only if four checks pass:
+
+1. The store holds a pending request for the call. Each request is used once, so a replayed approval fails.
+2. The signature verifies under a key the signer holds.
+3. The call's id, tool and input match what was signed, so an edited input fails.
+4. Your policy doesn't deny the call now, and `recheck` allows it.
+
+If any check fails, the adapter denies the call, and its `execute` never runs. No option turns these checks off. The model receives a `not_applied` outcome as the denial's reason, in the same shape `toAiToolResult()` gives, so it can tell the user or ask again with a fresh call. A tool that still sets the deprecated `needsApproval` gets the same signing when your policy says nothing about it.
+
+Keep the AI SDK's own `experimental_toolApprovalSecret` set as well. That setting adds a second check, signed with one secret and no key id. On a bad signature it throws `InvalidToolApprovalSignatureError` instead of denying the call.
+
+## `recheck` lets current policy stop an approved call
+
+An approval can sit for hours, and your rules can change while it waits. `recheck` runs after the pending request verifies and before the call runs, with the request and the call's input. Resolve to `"allow"`, or to `{ deny }` with a reason the model reads:
+
+```ts
+const recheck: Recheck = async (pending) =>
+  pending.policyVersion === currentPolicyVersion ? "allow" : { deny: "the refund policy changed" };
+```
+
+Pass `policyVersion` to the adapter so each pause records the version it was made under. A `recheck` that throws, or answers anything but `"allow"`, denies the call. `onRejected` receives the cause of every denial, such as `signature_invalid` or `input_changed`, for your audit log; it never receives key material.
+
+## Use a persistent key ring wherever a pause can resume in another process
+
+A signature only helps if the process that resumes can check it. `ephemeralSigner()` makes a random key that lives only in the current process, so it suits a single long-running process. On Cloudflare, AWS Lambda or Vercel, the isolate or function that paused may be gone before the person answers. There, an ephemeral pause always fails closed.
+
+On those hosts, keep a key ring in the platform's secret store and pass `hmacSigner()` over it. `parseKeyRing()` reads the ring from the secret's text, JSON such as `{"current":"2026-11","keys":{"2026-11":"<key>"}}`, with each key as 32 or more random bytes in unpadded base64url:
+
+```ts
+const signer = hmacSigner(parseKeyRing(env.APPROVAL_KEYS));
+```
+
+`hmacSigner()` signs with the `current` key and verifies with any key in the ring. To rotate, add a new key and make it current, then remove the old one once no unanswered pause names it. Your platform's secret tooling does the rotation; the signer only reads the ring. `signerFromKeyStore()` builds the same signer from any `KeyStore`, an object whose `load()` returns the ring.
+
+The signers compare signatures in constant time, copy the keys you pass, and keep them inside Web Crypto. No error message, log line or signer property holds a key's bytes. For tests, `testSigner()` signs with a fixed, published key, so its signatures are the same in every process. Anyone can forge them, so it lives in its own subpath, `@buildanagent/agent-safety/testing`, which only test code should import.
+
+## Keep pending requests where the resume can find them
+
+A `PendingStore` holds each signed pending request from the pause until the resume, and needs two methods: `put()` and `take()`. `memoryPendingStore()` keeps them in memory, for tests and single-process hosts. On a serverless host, back the store with storage that outlives the isolate, such as Durable Object storage. The store needn't be trusted, because the adapter verifies every request it takes before the request counts. The store keys requests by call id alone, so two pauses with one id replace each other, and the first one's approval fails closed. Use one store per conversation, or make sure your model's call ids are unique across the conversations that share a store.
+
+`take()` must remove and return a request in one atomic step. If it reads and then deletes, two copies of one approval that arrive together can both get the request, and the call runs twice. Durable Object storage is atomic within one object; elsewhere, use an atomic operation such as Redis `GETDEL` or SQL `DELETE ... RETURNING`.
+
+The adapter takes a request whenever its call comes back approved, even when the check then fails. A forged approval therefore uses up the real one, and the model has to ask again. A call the person denies, or never answers, is never taken, so expire old requests: `memoryPendingStore()` drops each one 24 hours after it was stored (set `maxAgeMs` to change that), and a durable store should do the same. Expiry also lets you prune an old key once no stored request names it.
+
+## On Cloudflare, settle denied approvals before the next turn
+
+Pass the adapter as `toolApproval` to the `streamText` call in your `AIChatAgent`'s `onChatMessage`, and the client's approval over the agent's WebSocket gets the same checks. One difference remains as of `agents` 0.33.0: the agent drops the denial chunk for a part it already marked as approved. The stored part therefore keeps its approval, and the model's next step fails because that call has no result. To fix the stored history, collect the denied call ids from `onRejected`, keep them in the agent's storage, and pass them to `settleDeniedApprovals()` before converting the messages:
+
+```ts
+const messages = settleDeniedApprovals(this.messages, deniedCallIds);
+```
+
+`settleDeniedApprovals()` moves those parts to `output-denied` and marks their approval `approved: false`, the form `ai`'s own UI message validator requires for that state; each approval keeps its id and the person's reason. Store the result if it changed, then convert it for the model.
+
+## Sign and verify a pause without an SDK
+
+The adapter rests on two functions in the root entry, which any host can call. `signPending()` hashes a call's input and signs the pending request, and `verifyResolution()` checks a person's answer against it before the call runs. `verifyResolution()` never throws for bad input; it returns `ok: false` with the first check that failed.
+
 ## The root entry loads without any third-party SDK
 
-`@buildanagent/agent-safety` imports no third-party SDK, so it runs anywhere Web Crypto does: Node 22, Cloudflare Workers and other edge runtimes. Adapters for other SDKs live in subpaths. `./ai` needs `ai` and `@ai-sdk/provider-utils`, which are optional peer dependencies. `./agents` will hold the adapters for Cloudflare `agents`, and it holds none yet.
+`@buildanagent/agent-safety` imports no third-party SDK, so it runs anywhere Web Crypto does: Node 22, Cloudflare Workers and other edge runtimes. Adapters for other SDKs live in subpaths. `./ai` needs `ai` and `@ai-sdk/provider-utils`, which are optional peer dependencies. `./agents` will hold adapters that need Cloudflare `agents` itself, and it holds none yet, because `AIChatAgent` works through the `./ai` adapters. `./testing` holds only `testSigner()`, and imports no third-party SDK either.
 
 To see how the model runs these tools, read the [SDK's README](../sdk/README.md).

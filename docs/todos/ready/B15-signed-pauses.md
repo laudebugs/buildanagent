@@ -6,7 +6,7 @@
 | Status | `ready` |
 | Plan | [Build SDK §4, Stage 3](../../plans/build-sdk.md#43-stage-3-builds-the-loop-its-tools-hooks-budget-and-signed-pauses) |
 | Round / milestone | Round B (build SDK), M5 |
-| Depends on | [B13](../done/B13-interceptors-observers.md), [E3](E3-signed-approvals-third-party.md) |
+| Depends on | [B13](../done/B13-interceptors-observers.md), [E3](../done/E3-signed-approvals-third-party.md) |
 | Size | M |
 
 ## Goal
@@ -18,7 +18,7 @@ Make every pause a signed record: a gate that returns `ask` ends the run with a 
 - [agent-SDK guide §7](../../guides/agent-sdk.md#7-an-approval-should-end-the-run-in-a-signed-resumable-log-state-not-block-a-callback): signed log states and the no-handler outcome
 - [D5](../../plans/build-sdk.md#d5-a-pluggable-signer-with-key-ids-an-ephemeral-default-and-no-unsigned-resume-accepted-with-hd5): the signer, its key ids and the signed payload
 - [seams §3.4](../../plans/build-sdk.md#34-the-seams-p2-consumes): pause records and `createPendingRequest()`, which harness N40 uses for code-initiated calls
-- [ADR 0043](../../decisions/0043-standalone-safety-core.md) and [E3](E3-signed-approvals-third-party.md): the safety package defines the signer, the pending record and `Resolution`, with the shapes of build-sdk.md §3.3
+- [ADR 0043](../../decisions/0043-standalone-safety-core.md) and [E3](../done/E3-signed-approvals-third-party.md): the safety package defines the signer, the pending record and `Resolution`, with the shapes of build-sdk.md §3.3
 - [P4 review R25 and need S1](../../plans/reviews/plan-review.md#4-needs-reconciliation-24-change-upstream-3-drop-1-is-already-covered): why B15 was split and what S1 asks for
 
 ## Scope

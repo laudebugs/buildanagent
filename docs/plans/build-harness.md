@@ -116,7 +116,7 @@ N8, N9 and N10 test the first rule, N25 the third, and B8 surfaces the 400 as a 
 
 ### HD5. The harness always passes `hmacSigner()` over a persistent key ring (accepted, with SDK D5)
 
-**Accepted by the owner on 2026-11-18.** **Revision (2026-11-18):** [ADR 0035](../decisions/0035-read-only-key-store.md), also accepted by the owner, supersedes ADR 0015. It makes `KeyStore.rotate()` and `prune()` optional so a read-only cloud secret can back the ring; the rest of this decision stands (N42). **Revision (plan review 2, 2026-11-19):** under [ADR 0043](../decisions/0043-standalone-safety-core.md), `hmacSigner()` is defined in `@buildanagent/agent-safety` ([E3](../todos/ready/E3-signed-approvals-third-party.md)) and reaches the harness through the SDK's re-export, so N13 keeps importing it from `@buildanagent/sdk`.
+**Accepted by the owner on 2026-11-18.** **Revision (2026-11-18):** [ADR 0035](../decisions/0035-read-only-key-store.md), also accepted by the owner, supersedes ADR 0015. It makes `KeyStore.rotate()` and `prune()` optional so a read-only cloud secret can back the ring; the rest of this decision stands (N42). **Revision (plan review 2, 2026-11-19):** under [ADR 0043](../decisions/0043-standalone-safety-core.md), `hmacSigner()` is defined in `@buildanagent/agent-safety` ([E3](../todos/done/E3-signed-approvals-third-party.md)) and reaches the harness through the SDK's re-export, so N13 keeps importing it from `@buildanagent/sdk`.
 
 [SDK D5][sdk-d5] covers the SDK side: key-id signers, an `ephemeralSigner()` default and a fail-closed resume.
 
