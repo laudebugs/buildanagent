@@ -1,7 +1,7 @@
 /* Direction C's page: a header, a wide title, a full-width figure panel, then the article column with the contents
-   sidebar on its left and side notes in its right margin, and previous and next links at the foot. The columns respond
-   to the width of their layout container, not the viewport, so the same layout holds in a page and in the gallery,
-   which shows it inside each theme's section. */
+   sidebar on its left (and, on a wide page, the "On this page" rail on its right) and side notes floated beside the
+   prose, and previous and next links at the foot. The columns respond to the width of their layout container, not the
+   viewport, so the same layout holds in a page and in the gallery, which shows it inside each theme's section. */
 
 .layout {
   container: layout / inline-size;
@@ -12,6 +12,22 @@
   max-width: calc(var(--page-width) + 2 * var(--gutter));
   margin-inline: auto;
   padding-inline: var(--gutter);
+}
+
+/* A chapter page is only as wide as its widest row needs: the 11rem sidebar, the article at most --article-max, the
+   15rem "On this page" rail and their two 2.5rem gaps, 90.5rem in all, centred like every page. The article stops at
+   the measure, a gap and a side note, so the prose ends near the rail instead of a wide empty band before it. A side
+   note still floats beside the prose, and the title and figure panel line up with the columns under them. A narrower
+   screen never reaches the cap, so below a 90.5rem layout nothing changes. */
+.page.layout {
+  max-width: calc(11rem + var(--article-max) + 15rem + 2 * 2.5rem + 2 * var(--gutter));
+}
+
+/* A page with no chapter, such as the contents, the glossary, the sources, search and the 404 page, has no sidebar and
+   no listing or figure to widen for, so its title and text share one column the width of the measure, centred under
+   the header, instead of sitting at the left of the chapter page's width with the rest of a wide screen empty. */
+.page--single {
+  max-width: calc(var(--measure) + 2 * var(--gutter));
 }
 
 /* Header */
@@ -86,7 +102,9 @@
   margin-block: 0 clamp(2rem, 5vw, 3.5rem);
 }
 
-/* The article column, with the sidebar and the side-note margin */
+/* The article column, right of the sidebar. Prose keeps the measure, so a line holds about 75 characters of body text;
+   a listing, a listing with its run, a figure, a table and tabs take the whole column, wider than the prose. They clear
+   a side note floated beside the prose, so neither covers the other. */
 
 .chapter-body {
   display: grid;
@@ -95,14 +113,25 @@
   padding-bottom: 3rem;
 }
 
+/* The article is a container, so a side note floats beside the prose only when the article itself has room for the
+   measure, a gap and the note, whichever columns sit around it. */
 .article {
-  max-width: var(--measure);
+  container: article / inline-size;
   min-width: 0;
+}
+
+.article > * {
+  max-width: var(--measure);
+}
+
+.article > :is(figure, .listing-replay, .tabs) {
+  max-width: none;
+  clear: right;
 }
 
 @container layout (min-width: 64rem) {
   .chapter-body {
-    grid-template-columns: 11rem minmax(0, var(--measure));
+    grid-template-columns: 11rem minmax(0, 1fr);
     gap: 2.5rem;
   }
 
@@ -113,11 +142,40 @@
   }
 }
 
-/* The margin right of the article holds the side notes from 69rem, the sum of the sidebar, the article, the side-note
-   margin and two gaps. A 1280 px page reaches that width. */
-@container layout (min-width: 69rem) {
+/* From 83rem, "On this page" moves to a 15rem rail right of the article and "All chapters" keeps the left column, so
+   the prose sits between them and the space right of it holds the page's headings. 83rem is the sidebar, the rail,
+   their gaps and a 52rem article, so the rail never narrows the article below the width at which a listing and its run
+   sit side by side. Listings, figures, tables and tabs stop at the article's edge, so the sticky rail, in a grid
+   column of its own, can never cover one. Spanning under the rail would need a script to move the rail out of the
+   way. The wrapper steps aside with display: contents, and each navigation becomes a sticky grid item of its own. */
+@container layout (min-width: 83rem) {
   .chapter-body {
-    grid-template-columns: 11rem minmax(0, var(--measure)) var(--side-note-width);
+    grid-template-columns: 11rem minmax(0, 1fr) 15rem;
+  }
+
+  .chapter-body > .sidebar {
+    display: contents;
+  }
+
+  .chapter-body > .sidebar > .sidebar__section {
+    position: sticky;
+    top: 1.5rem;
+    grid-row: 1;
+    align-self: start;
+    margin-top: 0;
+  }
+
+  .chapter-body > .sidebar > .sidebar__chapters {
+    grid-column: 1;
+  }
+
+  .chapter-body > .sidebar > .sidebar__on-page {
+    grid-column: 3;
+  }
+
+  .chapter-body > .article {
+    grid-column: 2;
+    grid-row: 1;
   }
 }
 
@@ -183,4 +241,19 @@
   font-size: var(--size-label);
   letter-spacing: 0.06em;
   text-transform: uppercase;
+}
+
+/* Print: the page's navigation has nothing to do on paper, so it goes, and the article takes the whole width. */
+@media print {
+  .chapter-body > .sidebar {
+    display: none;
+  }
+
+  .chapter-body {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .chapter-body > .article {
+    grid-column: 1;
+  }
 }

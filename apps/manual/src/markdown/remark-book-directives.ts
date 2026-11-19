@@ -109,9 +109,11 @@ function numbered(node: ContainerDirective, kind: NumberedKind, file: VFile): Co
     return failAt(file, `a ${kind} must hold ${required === undefined ? "its content" : `a ${required} block`}`, node);
   }
   const { prefix } = NUMBERED_KINDS[kind];
+  const table = kind === "table";
+  const captionId = `${prefix}-${id}--caption`;
   const caption: Paragraph = {
     type: "paragraph",
-    data: { hName: "figcaption" },
+    data: table ? { hName: "figcaption", hProperties: { id: captionId } } : { hName: "figcaption" },
     children: [
       { type: "text", value: "", data: { hName: "span", hProperties: { className: ["number"] } } },
       { type: "text", value: " " },
@@ -121,12 +123,40 @@ function numbered(node: ContainerDirective, kind: NumberedKind, file: VFile): Co
   return {
     ...node,
     // A figure's caption goes below it; a table's and a listing's go above, where readers look for them.
-    children: kind === "figure" ? [...body, caption] : [caption, ...body],
+    children: kind === "figure" ? [...body, caption] : [caption, ...(table ? scrolling(body, captionId) : body)],
     data: {
       hName: "figure",
-      hProperties: { id: `${prefix}-${id}`, className: ["numbered", kind], dataNumbered: kind, dataNumberedId: id },
+      hProperties: {
+        id: `${prefix}-${id}`,
+        className: ["numbered", kind],
+        dataNumbered: kind,
+        dataNumberedId: id,
+        ...(table ? { ariaLabelledBy: [captionId] } : {}),
+      },
     },
   };
+}
+
+/**
+ * A table wrapped in the region that scrolls it sideways when it is wider than the column, as on a narrow phone. The
+ * region takes focus, so a reader without a pointer can scroll it, and the table's caption names it, as a listing's
+ * caption names its code.
+ */
+function scrolling(body: ContainerDirective["children"], captionId: string): ContainerDirective["children"] {
+  return body.map((child) =>
+    child.type === "table"
+      ? ({
+          type: "containerDirective",
+          name: "table-scroll",
+          attributes: {},
+          children: [child],
+          data: {
+            hName: "div",
+            hProperties: { className: ["table__scroll"], tabIndex: 0, role: "group", ariaLabelledBy: [captionId] },
+          },
+        } as ContainerDirective)
+      : child,
+  );
 }
 
 function analogy(node: TextDirective, book: Book, chapterNumber: number, file: VFile): TextDirective {
