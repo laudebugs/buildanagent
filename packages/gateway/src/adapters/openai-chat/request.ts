@@ -1,17 +1,18 @@
 /**
- * Builds the Chat Completions request body from a `ModelContext`. OpenAI's docs host was unreachable from our build
- * environment, so every field below follows `ChatCompletionCreateParams` and the message, content-part and tool types
- * in openai-node v7.49.0 (`src/resources/chat/completions/completions.ts` and `src/resources/shared.ts`, as of
- * November 2026), whose comments link the API reference at
- * https://developers.openai.com/api/reference/resources/chat/subresources/completions/methods/create.
+ * Builds the Chat Completions request body from a `ModelContext`. Every field below follows the API reference at
+ * https://developers.openai.com/api/reference/resources/chat/subresources/completions/methods/create and
+ * `ChatCompletionCreateParams` in openai-node v7.49.0 (`src/resources/chat/completions/completions.ts`), both as of
+ * November 2026.
  *
  * - Messages pass through `transformMessages()` first. A tool result becomes a `tool` message, whose content can hold
- *   only text, so a result's images follow in one user message after the turn's results. The transcript's reasoning
+ *   only text, so a result's images follow in one user message after the turn's results, and a failed result's text
+ *   starts with `Error: `. The transcript's reasoning
  *   is never sent, because a Chat Completions message has no field for it.
  * - Tool names go through the run's `ToolNameMap`. A tool is sent with `strict: true` when its schema can be lowered,
  *   and the plan keeps the original schema of each, so the reply's added nulls can be stripped.
  * - Caching follows the model's `ChatCompat` flags: explicit breakpoints on the system prompt and the newest user or
- *   tool message, `prompt_cache_retention: "24h"`, or neither, which leaves the server's automatic prefix cache.
+ *   tool message, with the 30-minute lifetime Chat Completions offers; `prompt_cache_retention: "24h"`; or neither,
+ *   which leaves the server's automatic prefix cache.
  */
 import { createToolNameMap, TOOL_NAME_RULES, type ToolNameMap } from "../../names.js";
 import type { ModelEvent, StreamOptions } from "../../spec.js";
@@ -40,17 +41,19 @@ export interface RequestPlan {
   readonly names: ToolNameMap;
   /** The original input schema of each tool sent strict, by tool name. */
   readonly strictSchemas: ReadonlyMap<string, Json>;
-  /** The `Usage.cacheWrite` key the reply's cache writes count under: `"1h"` for 12-hour breakpoints. */
-  readonly cacheSlot: "5m" | "1h";
 }
 
-// Strict function calling makes every property required, so an optional one becomes nullable. The formats are the
-// ones Anthropic and OpenAI's structured outputs have both documented; `uri` is left out, because OpenAI's list could
-// not be checked.
+// Strict function calling makes every property required, so an optional one becomes nullable. The formats, the kept
+// and rejected keywords and the limits are those of Structured model outputs, "Supported schemas"
+// (https://developers.openai.com/api/docs/guides/structured-outputs#supported-schemas, as of November 2026), which
+// does not list `prefixItems`, so a schema that uses it is sent without strict.
 const STRICT_DIALECT: StrictDialect = {
   optional: "nullable",
   formats: new Set(["date-time", "time", "date", "duration", "email", "hostname", "ipv4", "ipv6", "uuid"]),
   objectRoot: true,
+  keeps: new Set(["minimum", "maximum", "exclusiveMinimum", "exclusiveMaximum", "multipleOf", "minItems", "maxItems"]),
+  rejects: new Set(["allOf", "dependentRequired", "dependentSchemas", "if", "then", "else", "prefixItems"]),
+  limits: { properties: 5000, depth: 10, enumValues: 1000 },
 };
 
 const TOOL_IMAGES_NOTE = "The images below are part of the tool results above.";
@@ -102,9 +105,12 @@ function assistantMessage(message: Extract<Message, { role: "assistant" }>, name
   };
 }
 
+// A tool message has no error field, so a failed result says so in its text.
+const TOOL_ERROR_PREFIX = "Error: ";
+
 function toolMessage(message: Extract<Message, { role: "tool" }>): Json {
   const text = message.content.flatMap((block) => (block.type === "text" ? [block.text] : [])).join("\n");
-  return { role: "tool", tool_call_id: message.callId, content: text };
+  return { role: "tool", tool_call_id: message.callId, content: message.isError ? TOOL_ERROR_PREFIX + text : text };
 }
 
 /** Encodes the transcript; a run of tool results is followed by one user message with their images, if any. */
@@ -144,18 +150,29 @@ function markMessage(message: Json, breakpoint: Json): void {
   if (isObject(last)) last.prompt_cache_breakpoint = breakpoint;
 }
 
+// Chat Completions caches for 30 minutes: its `prompt_cache_options.ttl` takes only "30m", and the 12-hour lifetime
+// is offered in the Responses API (Prompt caching, "Cache lifetime",
+// https://developers.openai.com/api/docs/guides/prompt-caching, as of November 2026).
+const LONG_BREAKPOINTS_NOTE =
+  'cacheRetention "long" asks for a 12-hour cache, which Chat Completions does not offer, ' +
+  "so the request was sent with 30-minute breakpoints.";
+
 /** The caching fields for the body, after marking the messages that take a breakpoint. */
-function applyCaching(messages: Json[], retention: StreamOptions["cacheRetention"], compat: ResolvedCompat): Json {
+function applyCaching(
+  messages: Json[],
+  retention: StreamOptions["cacheRetention"],
+  compat: ResolvedCompat,
+): { fields: Json; warnings: Warning[] } {
   if (compat.cacheBreakpoints) {
     // Explicit mode with no breakpoint turns caching off; implicit mode adds the server's own breakpoint to ours.
-    if (retention === "none") return { prompt_cache_options: { mode: "explicit" } };
-    const breakpoint = retention === "long" ? { mode: "explicit", ttl: "12h" } : { mode: "explicit" };
+    if (retention === "none") return { fields: { prompt_cache_options: { mode: "explicit" } }, warnings: [] };
     const system = messages[0]?.role === compat.systemRole ? messages[0] : undefined;
     const newest = messages.findLast((message) => message.role === "user" || message.role === "tool");
-    for (const message of new Set([system, newest])) if (message) markMessage(message, breakpoint);
-    return {};
+    for (const message of new Set([system, newest])) if (message) markMessage(message, { mode: "explicit" });
+    return { fields: {}, warnings: retention === "long" ? [warning(LONG_BREAKPOINTS_NOTE)] : [] };
   }
-  return retention === "long" && compat.promptCacheRetention ? { prompt_cache_retention: "24h" } : {};
+  const fields = retention === "long" && compat.promptCacheRetention ? { prompt_cache_retention: "24h" } : {};
+  return { fields, warnings: [] };
 }
 
 // Tools --------------------------------------------------------------------------------------------------------------
@@ -200,7 +217,7 @@ function mergeExtras(own: Json, extras: Readonly<Json>, owned: readonly string[]
       : [
           warning(
             `providerOptions.openaiChat.extraBody cannot set ${overridden.join(", ")}, ` +
-              "which the adapter sets itself, so the request was sent with the adapter's value.",
+              "which the adapter sets itself, so those extraBody values were not sent.",
           ),
         ];
   return { body, warnings };
@@ -236,15 +253,14 @@ export function buildRequest(
     ...(tools.encoded.length > 0 ? { tools: tools.encoded } : {}),
     [compat.maxTokensField]: options.maxOutputTokens ?? caps.maxOutputTokens,
     ...sampling.fields,
-    ...caching,
+    ...caching.fields,
   };
   const owned = ["model", "stream", "stream_options", "messages", "tools", compat.maxTokensField];
   const { body, warnings } = mergeExtras(own, openaiChatOptions(options).extraBody ?? {}, owned);
   return {
     body,
-    warnings: [...sampling.warnings, ...warnings],
+    warnings: [...sampling.warnings, ...caching.warnings, ...warnings],
     names,
     strictSchemas: tools.strictSchemas,
-    cacheSlot: compat.cacheBreakpoints && options.cacheRetention === "long" ? "1h" : "5m",
   };
 }

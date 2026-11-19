@@ -7,15 +7,16 @@
  *   strict. An object that declares neither `properties` nor `additionalProperties` accepts any keys, and adding
  *   `additionalProperties: false` would let the model send only `{}`, so it cannot be strict either;
  * - `not` is unsupported, and `oneOf` must be written as `anyOf`;
- * - numeric constraints, string length constraints and array constraints beyond `minItems` of 0 or 1 are dropped.
- *   Anthropic rejects them (Structured outputs, "JSON Schema limitations",
- *   https://platform.claude.com/docs/en/build-with-claude/structured-outputs, as of November 2026). OpenAI's list
- *   could not be read from its docs, so the OpenAI dialect drops the same keywords, which keeps it inside both.
+ * - numeric constraints, string length constraints and array constraints beyond `minItems` of 0 or 1 are dropped,
+ *   unless the dialect keeps them. Anthropic rejects them (Structured outputs, "JSON Schema limitations",
+ *   https://platform.claude.com/docs/en/build-with-claude/structured-outputs, as of November 2026).
  *
- * Anthropic keeps optional properties optional. OpenAI's strict mode makes the model "follow the exact schema"
- * (`FunctionDefinition.strict`, openai-node v7.49.0, `src/resources/shared.ts`, as of November 2026), so its
- * dialect writes an optional property as a required one that also accepts `null`. The removed constraints are not
- * lost: the SDK validates every call against the original schema, after `stripAddedNulls()`.
+ * OpenAI's strict mode accepts the numeric constraints and `minItems`/`maxItems`, rejects `allOf`, `if`/`then`/`else`
+ * and the `dependent*` keywords, requires every property, and limits a schema to 5,000 properties, 10 levels of
+ * nesting and 1,000 enum values (Structured model outputs, "Supported schemas",
+ * https://developers.openai.com/api/docs/guides/structured-outputs#supported-schemas, as of November 2026). Its
+ * dialect therefore writes an optional property as a required one that also accepts `null`. The removed constraints
+ * are not lost: the SDK validates every call against the original schema, after `stripAddedNulls()`.
  */
 
 type Json = Record<string, unknown>;
@@ -28,6 +29,12 @@ export interface StrictDialect {
   readonly formats: ReadonlySet<string>;
   /** True when the provider accepts only an object schema, with `type: "object"`, at the root. */
   readonly objectRoot: boolean;
+  /** Keywords the provider enforces, which lowering keeps although the shared rules drop them. */
+  readonly keeps?: ReadonlySet<string>;
+  /** Keywords the provider rejects; a schema that uses one is sent without strict. */
+  readonly rejects?: ReadonlySet<string>;
+  /** Limits on one schema; a schema over any of them is sent without strict. */
+  readonly limits?: { readonly properties: number; readonly depth: number; readonly enumValues: number };
 }
 
 /** A schema lowered to strict form, with the counts the request-wide complexity limits are checked against. */
@@ -63,6 +70,11 @@ interface Walk {
   readonly dialect: StrictDialect;
   optional: number;
   unions: number;
+  /** Properties, object nesting (deepest so far and current) and enum values, for `StrictDialect.limits`. */
+  properties: number;
+  depth: number;
+  maxDepth: number;
+  enumValues: number;
   /** Set when the schema uses a feature strict mode rejects; the tool is then sent without `strict`. */
   failure?: string;
 }
@@ -73,6 +85,7 @@ function isObject(value: unknown): value is Json {
 
 /** True for a key strict mode rejects, so lowering removes it. */
 function dropsKey(key: string, value: unknown, dialect: StrictDialect): boolean {
+  if (dialect.keeps?.has(key)) return false;
   if (UNSUPPORTED_KEYWORDS.has(key)) return true;
   if (key === "minItems") return typeof value !== "number" || value > 1;
   if (key === "format") return typeof value !== "string" || !dialect.formats.has(value);
@@ -131,8 +144,10 @@ function countOptional(node: Json, walk: Walk): void {
 }
 
 /** Why strict mode cannot express this node itself, or `undefined` when it can. */
-function strictFailure(node: Json, isObjectSchema: boolean): string | undefined {
+function strictFailure(node: Json, isObjectSchema: boolean, dialect: StrictDialect): string | undefined {
   if ("not" in node) return "uses not";
+  const rejected = Object.keys(node).find((key) => dialect.rejects?.has(key));
+  if (rejected !== undefined) return `uses ${rejected}`;
   if (!isObjectSchema) return undefined;
   if ("additionalProperties" in node) {
     return node.additionalProperties === false ? undefined : "allows additional properties";
@@ -147,19 +162,29 @@ function isObjectNode(node: Json): boolean {
   );
 }
 
+/** Counts the node toward `StrictDialect.limits`; an object nests one level deeper until its children are lowered. */
+function measure(node: Json, isObjectSchema: boolean, walk: Walk): void {
+  if (isObjectSchema) walk.depth += 1;
+  walk.maxDepth = Math.max(walk.maxDepth, walk.depth);
+  if (isObject(node.properties)) walk.properties += Object.keys(node.properties).length;
+  if (Array.isArray(node.enum)) walk.enumValues += node.enum.length;
+}
+
 function lowerNode(node: unknown, walk: Walk): unknown {
   if (!isObject(node) || walk.failure !== undefined) return node;
   const isObjectSchema = isObjectNode(node);
-  const failure = strictFailure(node, isObjectSchema);
+  const failure = strictFailure(node, isObjectSchema, walk.dialect);
   if (failure !== undefined) {
     walk.failure = failure;
     return node;
   }
+  measure(node, isObjectSchema, walk);
   const lowered: Json = {};
   for (const [key, value] of Object.entries(node)) {
     if (dropsKey(key, value, walk.dialect)) continue;
     lowered[key === "oneOf" ? "anyOf" : key] = lowerChildren(key, value, walk);
   }
+  if (isObjectSchema) walk.depth -= 1;
   if (isObjectSchema) {
     lowered.additionalProperties = false;
     if (walk.dialect.optional === "nullable") requireAll(lowered, node, walk);
@@ -172,9 +197,14 @@ function lowerNode(node: unknown, walk: Walk): unknown {
 /** The schema in strict form with its counts, or `undefined` when strict mode cannot express it. */
 export function lowerToStrict(schema: Json, dialect: StrictDialect): StrictSchema | undefined {
   if (dialect.objectRoot && schema.type !== "object") return undefined;
-  const walk: Walk = { dialect, optional: 0, unions: 0 };
+  const walk: Walk = { dialect, optional: 0, unions: 0, properties: 0, depth: 0, maxDepth: 0, enumValues: 0 };
   const lowered = lowerNode(schema, walk) as Json;
-  return walk.failure === undefined ? { schema: lowered, optional: walk.optional, unions: walk.unions } : undefined;
+  const { limits } = dialect;
+  const tooBig =
+    limits !== undefined &&
+    (walk.properties > limits.properties || walk.maxDepth > limits.depth || walk.enumValues > limits.enumValues);
+  if (walk.failure !== undefined || tooBig) return undefined;
+  return { schema: lowered, optional: walk.optional, unions: walk.unions };
 }
 
 // Stripping the added nulls ------------------------------------------------------------------------------------------
@@ -188,13 +218,34 @@ function resolve(schema: unknown, root: Json): unknown {
   return isObject(defs) ? defs[decodeURIComponent(match[2] ?? "")] : schema;
 }
 
+/**
+ * The first `anyOf`/`oneOf` branch that can describe the value: for an array, one with `items`; for an object, one
+ * whose `properties` name every key the value has. The branch the model chose is the one its value fits.
+ */
+function matchingBranch(value: unknown, schema: Json, root: Json): unknown {
+  const branches = Array.isArray(schema.anyOf) ? schema.anyOf : Array.isArray(schema.oneOf) ? schema.oneOf : [];
+  return branches.find((branch) => {
+    const resolved = resolve(branch, root);
+    if (!isObject(resolved)) return false;
+    if (Array.isArray(value)) return isObject(resolved.items);
+    const properties = resolved.properties;
+    return isObject(value) && isObject(properties) && Object.keys(value).every((key) => key in properties);
+  });
+}
+
 function strip(value: unknown, node: unknown, root: Json): unknown {
   const schema = resolve(node, root);
   if (!isObject(schema)) return value;
+  if (!isObject(schema.properties) && !isObject(schema.items) && value !== null && typeof value === "object") {
+    const branch = matchingBranch(value, schema, root);
+    return branch === undefined ? value : strip(value, branch, root);
+  }
   if (Array.isArray(value))
     return isObject(schema.items) ? value.map((item) => strip(item, schema.items, root)) : value;
-  if (!isObject(value) || !isObject(schema.properties)) return value;
-  const properties = schema.properties;
+  return isObject(value) && isObject(schema.properties) ? stripObject(value, schema.properties, schema, root) : value;
+}
+
+function stripObject(value: Json, properties: Json, schema: Json, root: Json): Json {
   const required = new Set(Array.isArray(schema.required) ? schema.required : []);
   const out: Json = {};
   for (const [name, item] of Object.entries(value)) {
@@ -210,8 +261,8 @@ function strip(value: unknown, node: unknown, root: Json): unknown {
 
 /**
  * Removes from a tool call's input each `null` that nullable lowering added: a `null` in a property that the original
- * schema leaves optional and does not let be `null`. It follows `properties`, `items` and local `$ref`s. Inside an
- * `anyOf` it cannot tell which branch the model chose, so it leaves those values as they are.
+ * schema leaves optional and does not let be `null`. It follows `properties`, `items`, local `$ref`s and, for an
+ * object or array inside an `anyOf` or `oneOf`, the first branch whose properties or items fit the value.
  */
 export function stripAddedNulls(input: unknown, original: Json): unknown {
   return strip(input, original, original);

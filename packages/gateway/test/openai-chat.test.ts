@@ -1,9 +1,9 @@
 /**
  * The OpenAI-compatible Chat Completions adapter against recorded wire fixtures, over a mock transport.
  *
- * The fixtures in `fixtures/openai-chat/` follow the chunk, usage and error shapes in openai-node v7.49.0's types
- * (`ChatCompletionChunk`, `CompletionUsage`, `APIError`), as of November 2026, because OpenAI's docs host could not be
- * reached. The wording of every error message, and the `reasoning_content` field of a compatible server, are ours.
+ * The fixtures in `fixtures/openai-chat/` follow the chunk, usage and error shapes of OpenAI's Chat Completions
+ * reference and openai-node v7.49.0's types (`ChatCompletionChunk`, `CompletionUsage`, `APIError`), as of November
+ * 2026. The wording of every error message, and the `reasoning_content` field of a compatible server, are ours.
  */
 import assert from "node:assert/strict";
 import { readdirSync, readFileSync } from "node:fs";
@@ -234,6 +234,27 @@ test("extraBody adds fields such as reasoning_effort, but cannot override the ad
   const [warning] = warnings(events);
   assert.equal(warning?.code, "unsupported_option");
   assert.match(warning?.message ?? "", /stream, max_completion_tokens/);
+  assert.match(warning?.message ?? "", /were not sent/);
+});
+
+test("an extraBody field the adapter leaves out is not sent, and the warning says so", async () => {
+  const { events, transport } = await run(
+    [streamed("text.sse")],
+    hello,
+    { providerOptions: { openaiChat: { extraBody: { stream_options: { include_usage: true } } } } },
+    { compat: { streamUsage: false } },
+  );
+  assert.equal("stream_options" in bodyOf(transport), false);
+  assert.doesNotMatch(warnings(events)[0]?.message ?? "", /adapter's value/);
+});
+
+test("a per-model compat object changed after openaiChat() does not change its requests", async () => {
+  const modelCompat = { "gpt-5.4-mini": { systemRole: "developer" as "system" | "developer" } };
+  const transport = mockTransport("openai-chat", [streamed("text.sse")]);
+  const adapter = openaiChat({ apiKey: KEY, transport, modelCompat });
+  modelCompat["gpt-5.4-mini"].systemRole = "system";
+  await assertStreamContract(adapter.stream(MODEL, hello, { caps: CAPS }));
+  assert.equal(messagesOf(transport)[0]?.role, "developer");
 });
 
 const history: Message[] = [
@@ -289,6 +310,25 @@ test("history encodes as tool_calls, tool messages and a user message for the re
       ],
     },
   ]);
+});
+
+test("a failed tool result says so in its tool message", async () => {
+  const failedResult: Message = {
+    role: "tool",
+    callId: "call_a",
+    content: [{ type: "text", text: "ENOENT" }],
+    isError: true,
+  };
+  const { transport } = await run([streamed("text.sse")], {
+    system: "",
+    messages: [...history.slice(0, 2), failedResult, history[3] as Message],
+    tools: [weatherTool],
+  });
+  const tools = messagesOf(transport).filter((message) => message.role === "tool");
+  assert.deepEqual(
+    tools.map((message) => message.content),
+    ["Error: ENOENT", "radar"],
+  );
 });
 
 test("an image in a user message encodes as a data URL", async () => {
@@ -356,6 +396,114 @@ test("a tool whose schema strict mode cannot express is sent as it is, without s
     assert.equal("strict" in tool, false);
     assert.deepEqual(tool.parameters, [open, rootless][i]?.inputSchema);
   }
+});
+
+test("OpenAI's supported constraints are kept, and its rejected keywords send the tool without strict", async () => {
+  const numeric = {
+    name: "pick",
+    description: "",
+    inputSchema: {
+      type: "object",
+      properties: {
+        n: { type: "integer", minimum: 1, maximum: 9, multipleOf: 1 },
+        tags: { type: "array", items: { type: "string" }, minItems: 2, maxItems: 4 },
+      },
+      required: ["n", "tags"],
+    },
+  };
+  const composed = {
+    name: "both",
+    description: "",
+    inputSchema: { type: "object", properties: { a: { allOf: [{ type: "string" }] } }, required: ["a"] },
+  };
+  const tuple = {
+    name: "pair",
+    description: "",
+    inputSchema: { type: "object", properties: { p: { type: "array", prefixItems: [{ type: "string" }] } } },
+  };
+  const { transport } = await run([streamed("text.sse")], { ...hello, tools: [numeric, composed, tuple] });
+  const [sentNumeric, sentComposed, sentTuple] = toolsOf(transport);
+  assert.equal(sentNumeric?.strict, true);
+  assert.deepEqual(sentNumeric?.parameters.properties, numeric.inputSchema.properties);
+  for (const [sent, tool] of [
+    [sentComposed, composed],
+    [sentTuple, tuple],
+  ] as const) {
+    assert.equal("strict" in (sent ?? {}), false, tool.name);
+    assert.deepEqual(sent?.parameters, tool.inputSchema);
+  }
+});
+
+test("a schema past OpenAI's nesting or enum limits is sent without strict", async () => {
+  let deep: Record<string, unknown> = { type: "object", properties: { leaf: { type: "string" } }, required: ["leaf"] };
+  for (let level = 0; level < 10; level += 1) {
+    deep = { type: "object", properties: { next: deep }, required: ["next"] };
+  }
+  const values = Array.from({ length: 1001 }, (_, i) => `v${i}`);
+  const tools = [
+    { name: "deep", description: "", inputSchema: deep },
+    {
+      name: "wide",
+      description: "",
+      inputSchema: { type: "object", properties: { e: { type: "string", enum: values } }, required: ["e"] },
+    },
+  ];
+  const { transport } = await run([streamed("text.sse")], { ...hello, tools });
+  for (const tool of toolsOf(transport)) assert.equal("strict" in tool, false, tool.name);
+});
+
+test("a null strict lowering added inside an anyOf branch is stripped too", async () => {
+  const target = {
+    name: "focus",
+    description: "",
+    inputSchema: {
+      type: "object",
+      properties: {
+        target: {
+          anyOf: [
+            { type: "object", properties: { id: { type: "string" }, label: { type: "string" } }, required: ["id"] },
+            { type: "string" },
+          ],
+        },
+        list: {
+          anyOf: [
+            {
+              type: "array",
+              items: { type: "object", properties: { k: { type: "string" }, v: { type: "string" } }, required: ["k"] },
+            },
+            { type: "null" },
+          ],
+        },
+      },
+      required: ["target", "list"],
+    },
+  };
+  const body = chatCompletionEvents([
+    {
+      choices: [
+        {
+          index: 0,
+          delta: {
+            tool_calls: [
+              {
+                index: 0,
+                id: "call_1",
+                type: "function",
+                function: {
+                  name: "focus",
+                  arguments: '{"target":{"id":"1","label":null},"list":[{"k":"a","v":null}]}',
+                },
+              },
+            ],
+          },
+          finish_reason: "tool_calls",
+        },
+      ],
+    },
+  ]);
+  const { terminal } = await run([{ body }], { ...hello, tools: [target] });
+  const [call] = terminal.content;
+  assert.deepEqual(call?.type === "tool_call" ? call.input : undefined, { target: { id: "1" }, list: [{ k: "a" }] });
 });
 
 test("compat strictTools false sends every tool without strict", async () => {
@@ -448,8 +596,9 @@ test("with cache breakpoints, short retention marks the system prompt and the ne
   assert.equal("prompt_cache_options" in bodyOf(transport), false);
 });
 
-test("with cache breakpoints, long retention asks for 12-hour breakpoints", async () => {
-  const { transport } = await run(
+test("with cache breakpoints, long retention sends 30-minute breakpoints and a warning", async () => {
+  // Chat Completions offers no 12-hour cache lifetime; the Responses API does.
+  const { transport, events } = await run(
     [streamed("text.sse")],
     hello,
     { cacheRetention: "long" },
@@ -457,13 +606,14 @@ test("with cache breakpoints, long retention asks for 12-hour breakpoints", asyn
       compat: { cacheBreakpoints: true },
     },
   );
-  const breakpoint = { mode: "explicit", ttl: "12h" };
   for (const message of messagesOf(transport)) {
-    assert.deepEqual(
-      (message.content as { prompt_cache_breakpoint?: unknown }[]).at(-1)?.prompt_cache_breakpoint,
-      breakpoint,
-    );
+    assert.deepEqual((message.content as { prompt_cache_breakpoint?: unknown }[]).at(-1)?.prompt_cache_breakpoint, {
+      mode: "explicit",
+    });
   }
+  const [warning] = warnings(events);
+  assert.equal(warning?.code, "unsupported_option");
+  assert.match(warning?.message ?? "", /30-minute breakpoints/);
 });
 
 test("with cache breakpoints and no system prompt, only the newest user or tool message is marked", async () => {
@@ -532,7 +682,7 @@ test("cache writes count under the 5m key for short retention", async () => {
   assert.equal(terminal.usage.uncachedInput, 904);
 });
 
-test("cache writes count under the 1h key for 12-hour breakpoints", async () => {
+test("cache writes count under the 5m key for long retention too", async () => {
   const { terminal } = await run(
     [streamed("cache-write.sse")],
     hello,
@@ -541,7 +691,7 @@ test("cache writes count under the 1h key for 12-hour breakpoints", async () => 
       compat: { cacheBreakpoints: true },
     },
   );
-  assert.deepEqual(terminal.usage.cacheWrite, { "5m": 0, "1h": 4096 });
+  assert.deepEqual(terminal.usage.cacheWrite, { "5m": 4096, "1h": 0 });
 });
 
 test("parallel tool calls stream as two tool inputs and end with tool_calls", async () => {
@@ -561,6 +711,22 @@ test("parallel tool calls stream as two tool inputs and end with tool_calls", as
     deltas.map((event) => (event.type === "tool_input_delta" ? event.delta : "")).join(""),
     '{"location": "Zürich", "unit": "celsius"}',
   );
+});
+
+test("whole tool calls without an index, as some compatible servers send them, stay separate calls", async () => {
+  const call = (id: string, name: string, args: string) => ({
+    choices: [{ index: 0, delta: { tool_calls: [{ id, type: "function", function: { name, arguments: args } }] } }],
+  });
+  const body = chatCompletionEvents([
+    call("call_a", "get_weather", '{"location":"SF"}'),
+    call("call_b", "get_weather", '{"location":"Zürich"}'),
+    { choices: [{ index: 0, delta: {}, finish_reason: "tool_calls" }] },
+  ]);
+  const { terminal } = await run([{ body }], { ...hello, tools: [weatherTool] });
+  assert.deepEqual(terminal.content, [
+    { type: "tool_call", callId: "call_a", name: "get_weather", input: { location: "SF" } },
+    { type: "tool_call", callId: "call_b", name: "get_weather", input: { location: "Zürich" } },
+  ]);
 });
 
 test("a length stop yields stopReason length with the partial tool input", async () => {
@@ -669,6 +835,37 @@ test("an SSE event named error is an error terminal too", async () => {
   const { terminal } = await run([{ body }]);
   assert.equal(terminal.error?.kind, "fatal");
   assert.equal(terminal.error?.message, "invalid_request_error: bad request");
+});
+
+test.each([
+  ['"model overloaded"', "retryable", /^model overloaded$/],
+  ['{"error":"maximum context length exceeded"}', "overflow", /^maximum context length exceeded$/],
+] as const)("an error event whose data is %s keeps its message and kind", async (data, kind, message) => {
+  const { terminal } = await run([{ body: `event: error\ndata: ${data}\n\n` }]);
+  assert.equal(terminal.error?.kind, kind);
+  assert.match(terminal.error?.message ?? "", message);
+});
+
+// The billing codes and the slow_down rate limit of OpenAI's error-code guide
+// (https://developers.openai.com/api/docs/guides/error-codes, as of November 2026).
+test.each([
+  ["credit_balance_exhausted", "insufficient_quota", "quota"],
+  ["organization_spend_limit_exceeded", "insufficient_quota", "quota"],
+  ["project_spend_limit_exceeded", "insufficient_quota", "quota"],
+  ["organization_usage_limit_exceeded", "insufficient_quota", "quota"],
+  ["some_future_billing_code", "insufficient_quota", "quota"],
+  ["slow_down", "rate_limit_error", "retryable"],
+] as const)("a 429 with code %s and type %s is %s", async (code, type, kind) => {
+  const body = JSON.stringify({ error: { message: "limit", type, param: null, code } });
+  const { terminal } = await run([{ status: 429, body }]);
+  assert.equal(terminal.error?.kind, kind);
+  assert.match(terminal.error?.message ?? "", new RegExp(`^${code}: `));
+});
+
+test("a rate_limit_error chunk inside a 200 stream is retryable", async () => {
+  const body = 'data: {"error":{"message":"slow down","type":"rate_limit_error","code":"slow_down"}}\n\n';
+  const { terminal } = await run([{ body }]);
+  assert.equal(terminal.error?.kind, "retryable");
 });
 
 test("createModel retries a mid-stream error and prices the reply from the catalog", async () => {

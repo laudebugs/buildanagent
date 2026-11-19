@@ -1,13 +1,16 @@
 /**
- * Failed requests and streams, as `error` terminals. openai-node v7.49.0 reads a failed response's body as
- * `{ "error": { "message", "type", "param", "code" } }` and names the statuses 400, 401, 403, 404, 409, 422 and 429,
- * with 500 and above as server errors (`src/core/error.ts`). A stream that already returned 200 reports a later error
- * as a chunk whose `error` field holds the same object, or as an SSE event named `error` (`src/core/streaming.ts`);
- * both are as of November 2026.
+ * Failed requests and streams, as `error` terminals. A failed response's body is
+ * `{ "error": { "message", "type", "param", "code" } }`, as openai-node v7.49.0 reads it (`src/core/error.ts`). A
+ * stream that already returned 200 reports a later error as a chunk whose `error` field holds the same object, or as
+ * an SSE event named `error` (`src/core/streaming.ts`); both as of November 2026.
  *
- * `classifyError()` reads the `code` before the `type`, so `insufficient_quota` is a `quota` error even at 429 and
- * `context_length_exceeded` an `overflow`. Those two codes come from OpenAI's error-code guide, which could not be
- * fetched for this adapter; the fixtures use them as that guide has long described them.
+ * OpenAI's error-code guide (https://developers.openai.com/api/docs/guides/error-codes, as of November 2026) sends
+ * billing, spend and usage limits as 429s whose `code` names the cause (`credit_balance_exhausted`,
+ * `organization_spend_limit_exceeded` and so on) and whose `type` can be `insufficient_quota`, and says retrying them
+ * won't restore access. `classifyError()` reads the code and the type, so those are `quota` errors even at 429, while
+ * a 429 `rate_limit_error` such as `slow_down` stays retryable. `context_length_exceeded`, which the fixtures use for
+ * an over-long prompt, is not on that page, so its wording is unverified; the classifier also matches the phrase
+ * "maximum context".
  */
 import type { ModelEvent } from "../../spec.js";
 import type { ModelRef } from "../../types.js";
@@ -21,7 +24,9 @@ const STATUS_OF_TYPE: Readonly<Record<string, number>> = {
   permission_error: 403,
   not_found_error: 404,
   insufficient_quota: 429,
+  rate_limit_error: 429,
   server_error: 500,
+  service_unavailable_error: 503,
 };
 
 /** Reads an error object, from an HTTP error body or an error chunk in a stream. */

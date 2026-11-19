@@ -37,12 +37,22 @@ const STOP_REASONS: Readonly<Record<string, AssistantMessage["stopReason"]>> = {
   function_call: "tool_calls",
 };
 
+/**
+ * An error chunk as the `{ error: { message, ... } }` body `failureFrom()` reads. A compatible server may send the
+ * error object bare, or only its message as a string.
+ */
+function errorBody(chunk: unknown): Json {
+  if (isObject(chunk) && isObject(chunk.error)) return chunk;
+  if (isObject(chunk) && typeof chunk.error === "string") return { error: { message: chunk.error } };
+  if (typeof chunk === "string") return { error: { message: chunk } };
+  return isObject(chunk) ? { error: chunk } : {};
+}
+
 /** One stream's state: the blocks so far, the usage and the finish reason. */
 export class ChunkAssembler implements StreamReader {
   readonly #model: ModelRef;
   readonly #names: ToolNameMap;
   readonly #strictSchemas: ReadonlyMap<string, Json>;
-  readonly #cacheSlot: "5m" | "1h";
   readonly #open = new Map<number, OpenBlock>();
   readonly #closed = new Map<number, ContentBlock>();
   // The block index of each wire tool-call index, and of the open text and reasoning blocks.
@@ -54,22 +64,20 @@ export class ChunkAssembler implements StreamReader {
   #finish = "";
   #refusal = "";
 
-  constructor(model: ModelRef, plan: Pick<RequestPlan, "names" | "strictSchemas" | "cacheSlot">) {
+  constructor(model: ModelRef, plan: Pick<RequestPlan, "names" | "strictSchemas">) {
     this.#model = model;
     this.#names = plan.names;
     this.#strictSchemas = plan.strictSchemas;
-    this.#cacheSlot = plan.cacheSlot;
   }
 
   /** The events one server-sent event produces. The last one is the terminal when the stream has ended. */
   handle(sse: ServerSentEvent): ModelEvent[] {
     if (sse.data.trim() === "[DONE]") return this.#terminal();
     const chunk: unknown = JSON.parse(sse.data);
-    if (!isObject(chunk)) return [];
-    if (sse.event === "error" || isObject(chunk.error)) {
-      const body = isObject(chunk.error) ? chunk : { error: chunk };
-      return [failureEvent(this.#model, failureFrom(body, undefined, "stream error"), this.partial())];
+    if (sse.event === "error" || (isObject(chunk) && (isObject(chunk.error) || typeof chunk.error === "string"))) {
+      return [failureEvent(this.#model, failureFrom(errorBody(chunk), undefined, "stream error"), this.partial())];
     }
+    if (!isObject(chunk)) return [];
     if (isObject(chunk.usage)) this.#usage = chunk.usage;
     const choices = Array.isArray(chunk.choices) ? chunk.choices.filter(isObject) : [];
     // The adapter never asks for more than one choice, so it reads the first.
@@ -92,7 +100,7 @@ export class ChunkAssembler implements StreamReader {
   partial(): { content: ContentBlock[]; usage: Usage } {
     const open = [...this.#open].map(([index, block]) => [index, this.#finishBlock(block)] as const);
     const content = [...this.#closed, ...open].sort(([a], [b]) => a - b).map(([, block]) => block);
-    return { content, usage: openaiUsage(this.#usage, this.#cacheSlot) };
+    return { content, usage: openaiUsage(this.#usage) };
   }
 
   #delta(delta: Json): ModelEvent[] {
@@ -126,18 +134,22 @@ export class ChunkAssembler implements StreamReader {
   #appendToolCall(call: Json): ModelEvent[] {
     const wireIndex = typeof call.index === "number" ? call.index : 0;
     const fn = isObject(call.function) ? call.function : {};
+    const id = str(call.id);
     const events: ModelEvent[] = [];
     let index = this.#tools.get(wireIndex);
+    // A server that leaves out `index` sends each call whole under its own id, so a new id starts a new call.
+    const current = index === undefined ? undefined : this.#open.get(index);
+    if (id !== "" && current?.callId && current.callId !== id) index = undefined;
     if (index === undefined) {
       events.push(...this.#closeIndex(this.#text), ...this.#closeIndex(this.#reasoning));
-      index = this.#openBlock({ kind: "tool_input", text: "", callId: str(call.id), name: str(fn.name) });
+      index = this.#openBlock({ kind: "tool_input", text: "", callId: id, name: str(fn.name) });
       this.#tools.set(wireIndex, index);
       events.push({ type: "tool_input_start", index });
     }
     const open = this.#open.get(index);
     if (open === undefined) return events;
     // The first entry carries the id and name; a server that repeats them in later entries adds nothing.
-    if (!open.callId) open.callId = str(call.id);
+    if (!open.callId) open.callId = id;
     if (!open.name) open.name = str(fn.name);
     const args = str(fn.arguments);
     if (args === "") return events;

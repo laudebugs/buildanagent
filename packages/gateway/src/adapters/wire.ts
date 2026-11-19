@@ -94,11 +94,13 @@ export function failureTerminal(
 ): Extract<ModelEvent, { type: "error" }> {
   const status = failure.status ?? (failure.type ? statusOfType[failure.type] : undefined);
   const label = failure.errorCode ?? failure.type;
+  // Both go to the classifier: a billing error's code names its cause while its type says `insufficient_quota`.
+  const codes = [failure.errorCode, failure.type].filter((part) => part !== undefined && part !== "").join(" ");
   const kind =
     failure.kind ??
     classifyError({
       ...(status === undefined ? {} : { status }),
-      ...(label ? { code: label } : {}),
+      ...(codes ? { code: codes } : {}),
       message: failure.message,
     });
   const error: NonNullable<AssistantMessage["error"]> = {

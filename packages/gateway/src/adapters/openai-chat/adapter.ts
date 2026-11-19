@@ -84,7 +84,9 @@ export function openaiChat(config: OpenAIChatConfig): ModelAdapter {
   // Copied, so a caller who changes the objects later does not change the adapter's requests.
   const settings: CompatSettings = {
     ...(config.compat ? { compat: { ...config.compat } } : {}),
-    ...(config.modelCompat ? { modelCompat: { ...config.modelCompat } } : {}),
+    ...(config.modelCompat
+      ? { modelCompat: Object.fromEntries(Object.entries(config.modelCompat).map(([id, own]) => [id, { ...own }])) }
+      : {}),
   };
   return {
     specificationVersion: "v1",
