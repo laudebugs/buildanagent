@@ -578,7 +578,7 @@ The guide says to start with the gateway and the test model, because every other
 
 | ID | Title | Depends on | Size |
 | --- | --- | --- | --- |
-| [B10](../todos/ready/B10-tool-runtime.md) | Tool definitions, the validation pipeline and the validator check (D7) | B3, B7, E1 | M |
+| [B10](../todos/ongoing/B10-tool-runtime.md) | Tool definitions, the validation pipeline and the validator check (D7) | B3, B7, E1 | M |
 | [B11](../todos/ready/B11-loop-core.md) | Loop core: `run`, the closed event union, stop reasons, aborts and `runOrThrow` | B4, B10 | L |
 | [B12](../todos/ready/B12-parallel-tools.md) | Parallel tool scheduling, per-resource serialisation and sibling cancellation | B11 | M |
 | [B13](../todos/ready/B13-interceptors-observers.md) | The six interceptors and observers | B11 | M |
