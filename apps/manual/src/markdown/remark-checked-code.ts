@@ -64,12 +64,12 @@ interface ChapterLog {
 }
 
 /**
- * Checks code in a chapter's prose like code in its listings (BK17). Each inline-code span of code, such as
- * `generateText`, `result.steps` or `stopWhen: isStepCount(5)`, must name only what the chapter's file listings show,
- * their examples' transcripts record, or the pinned `.d.ts` files of the packages they import export. Otherwise the
- * span carries a hand-checked marker, `` `name`{checked=row-N} ``, whose row in the chapter's fact-check log is ✅ or
- * ✏️; the marker is removed from the page, and a marker that does not touch its span fails. Shell commands, paths
- * and literal values skip the check (`inline-code.ts`).
+ * Checks code in a chapter's prose like code in its listings (BK17). A span such as `generateText`, `result.steps` or
+ * `stopWhen: isStepCount(5)` must name only what the chapter's file listings show, their examples' transcripts
+ * record, the pinned `.d.ts` files of the packages they import export, or the standard library declares. Otherwise
+ * the span carries a hand-checked marker, `` `name`{checked=row-N} ``, whose row in the chapter's fact-check log is
+ * ✅ or ✏️. The page shows the span without its marker, and a marker that does not touch its span fails. Shell
+ * commands, paths and literal values skip the check (`inline-code.ts`).
  */
 export function remarkCheckedCode(options: { readonly book: Book }) {
   const { book } = options;

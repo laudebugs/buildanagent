@@ -955,7 +955,7 @@ const cases: readonly Case[] = [
       ),
     ),
     file: AT_PROSE,
-    message: /imports demo-sdk, whose \.d\.ts \(demo-sdk@1\.2\.3\) is no module, so its exports cannot be listed/,
+    message: /imports demo-sdk, whose \.d\.ts \(demo-sdk@1\.2\.3\) declares no module whose exports can be listed/,
   },
   {
     rule: "an assignment's name found nowhere fails, because only arithmetic is notation",

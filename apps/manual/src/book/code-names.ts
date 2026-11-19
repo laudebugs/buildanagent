@@ -284,8 +284,8 @@ export class CodeNames {
     const names = this.#exportsOf(resolved.entry);
     if (names === undefined) {
       return (
-        `${source.path} imports ${specifier}, whose .d.ts (${resolved.label}) is no module, so its exports cannot ` +
-        "be listed; a package that only declares its module ambiently, with declare module, cannot be checked"
+        `${source.path} imports ${specifier}, whose .d.ts (${resolved.label}) declares no module whose exports can ` +
+        "be listed, as when a package only declares its module ambiently, with declare module"
       );
     }
     return { label: resolved.label, names };
