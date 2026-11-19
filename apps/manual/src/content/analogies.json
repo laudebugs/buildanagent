@@ -1,1 +1,10 @@
-[]
+[
+  {
+    "id": "assembly-line",
+    "concept": "fixed workflow",
+    "analogy": "an assembly line with fixed stations",
+    "chapter": "call-workflow-loop",
+    "illustration": null,
+    "breaks": "Each station here is a model call that can still return something unexpected."
+  }
+]
