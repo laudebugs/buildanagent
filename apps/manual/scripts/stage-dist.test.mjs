@@ -126,6 +126,14 @@ test("files the asset server may read as configuration are refused", () => {
   }
 });
 
+test("a _headers directory, or anything under _headers, is refused before anything is written", () => {
+  refuses(
+    [...SITE.filter((entry) => entry.name !== "_headers"), { name: "_headers/x", data: "x" }],
+    /_headers must be/,
+  );
+  refuses([...SITE.filter((entry) => entry.name !== "_headers"), { name: "_headers/", data: "" }], /_headers must be/);
+});
+
 test("encrypted entries, other compression methods and broken data are refused", () => {
   refuses([...SITE, { name: "a.html", data: "x", flags: 1 }], /encrypted/);
   refuses([...SITE, { name: "a.html", data: "x", method: 12 }], /compression method 12/);

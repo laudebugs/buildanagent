@@ -273,6 +273,20 @@ test("the built site carries main's _headers and a 404 page for not_found_handli
   assert.match(readFileSync(join(out, "404.html"), "utf8"), /<meta name="robots" content="noindex">/);
 });
 
+test("every response asks for HTTPS for a year, subdomains included, without joining the preload list", () => {
+  const headers = readFileSync(join(app, "public", "_headers"), "utf8");
+  const all = headers.slice(headers.indexOf("\n/*\n"), headers.indexOf("\n/_astro/*"));
+  assert.match(all, /^ {2}Strict-Transport-Security: max-age=31536000; includeSubDomains$/m);
+  const rules = headers
+    .split("\n")
+    .filter((line) => !line.startsWith("#"))
+    .join("\n");
+  assert.doesNotMatch(rules, /preload/);
+  for (const name of ["X-Content-Type-Options: nosniff", "Referrer-Policy: strict-origin-when-cross-origin"]) {
+    assert.ok(all.includes(`  ${name}\n`), name);
+  }
+});
+
 test("the content security policy allows only the book's own origin, with no inline code", () => {
   const csp = policy();
   assert.deepEqual(csp.get("default-src"), ["'none'"]);

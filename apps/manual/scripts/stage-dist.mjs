@@ -15,7 +15,8 @@
 // - pushes the archive past 20,000 files, the Workers Free plan's limit per Worker version, or past 100 MiB unpacked.
 //
 // It also refuses an artifact without index.html or 404.html, and an entry whose data fails its CRC-32 or size.
-// After unpacking, it replaces dist/_headers with main's public/_headers, so a pull request cannot change the headers.
+// It skips the artifact's own _headers file, refuses a `_headers` directory or anything under one, and writes main's
+// public/_headers in its place, so a pull request cannot change the headers.
 //
 // Usage: node scripts/stage-dist.mjs <download directory> <dist directory> <_headers file>. The download directory
 // must hold exactly one file, the zip that actions/download-artifact saved with skip-decompress.
@@ -70,6 +71,10 @@ export function checkName(name) {
     if (segment.startsWith(".")) throw new ArtifactError(`"${name}" has a segment that starts with a dot`);
   }
   const top = segments[0];
+  // main's copy replaces the artifact's _headers, so only a plain top-level file may carry that name.
+  if (top === "_headers" && (segments.length > 1 || name.endsWith("/"))) {
+    throw new ArtifactError(`"${name}": _headers must be a plain file, which main's copy replaces`);
+  }
   if (top.startsWith("_") && !ALLOWED_UNDERSCORE.has(top)) {
     throw new ArtifactError(`"${top}" is a name Cloudflare's asset server may treat as configuration`);
   }
@@ -145,7 +150,8 @@ export function readEntries(zip) {
     total += uncompressedSize;
     if (total > LIMITS.totalBytes) throw new ArtifactError(`the site unpacks to more than ${LIMITS.totalBytes} bytes`);
     files.add(path);
-    entries.push({ path, method, crc, compressedSize, uncompressedSize, localOffset });
+    // The artifact's own _headers is never written: stageZip puts main's copy there.
+    if (path !== "_headers") entries.push({ path, method, crc, compressedSize, uncompressedSize, localOffset });
   }
   for (const file of files) if (dirs.has(file)) throw new ArtifactError(`"${file}" is both a file and a directory`);
   for (const file of REQUIRED) if (!files.has(file)) throw new ArtifactError(`${file} is missing`);
@@ -173,8 +179,8 @@ export function readEntry(zip, entry) {
 }
 
 /**
- * Checks the zip, then writes it into `distDir`, which must not exist yet, and copies `headersFile` over
- * `distDir/_headers`. Nothing is written unless every entry passes.
+ * Checks the zip, then writes it into `distDir`, which must not exist yet, with `headersFile` as `distDir/_headers`
+ * in place of the artifact's own. Nothing is written unless every entry passes. Returns the number of files written.
  */
 export function stageZip(zip, distDir, headersFile) {
   const entries = readEntries(zip);
@@ -189,7 +195,7 @@ export function stageZip(zip, distDir, headersFile) {
     writeFileSync(target, contents[i], { flag: "wx", mode: 0o644 });
   });
   copyFileSync(headersFile, join(root, "_headers"));
-  return entries.length;
+  return entries.length + 1;
 }
 
 /** Finds the one zip in the download directory and stages it. */

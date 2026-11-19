@@ -7,7 +7,7 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { after, describe, test } from "node:test";
 import { fileURLToPath } from "node:url";
-import { checkApp, DOMAIN, parseJsonc, problemsIn } from "./guard-deploy.mjs";
+import { checkApp, DOMAIN, parseJsonc, problemsIn, strayConfigs } from "./guard-deploy.mjs";
 
 const app = fileURLToPath(new URL("..", import.meta.url));
 const committed = parseJsonc(readFileSync(join(app, "wrangler.jsonc"), "utf8"));
@@ -140,5 +140,56 @@ describe("the command", () => {
     assert.deepEqual(checkApp(appWith({})), ["wrangler.jsonc is missing"]);
     assert.match(checkApp(appWith({ config: "{ nope" }))[0], /could not be read/);
     assert.deepEqual(checkApp(appWith({ config: "[]" })), ["wrangler.jsonc must hold an object"]);
+  });
+});
+
+describe("another config Wrangler could read", () => {
+  // A repository root with apps/manual inside it, holding the committed config and main's _headers in both places.
+  function tree() {
+    const top = mkdtempSync(join(work, "tree-"));
+    const dir = join(top, "apps", "manual");
+    mkdirSync(join(dir, "public"), { recursive: true });
+    mkdirSync(join(dir, "dist"));
+    copyFileSync(join(app, "wrangler.jsonc"), join(dir, "wrangler.jsonc"));
+    writeFileSync(join(dir, "public", "_headers"), HEADERS.source);
+    writeFileSync(join(dir, "dist", "_headers"), HEADERS.source);
+    return { top, dir };
+  }
+
+  test("none: the committed tree passes", () => {
+    assert.deepEqual(checkApp(tree().dir), []);
+  });
+
+  // Wrangler 4.160.1 looks for wrangler.json up the whole path before wrangler.jsonc, so any of these would win.
+  for (const [where, name] of [
+    ["beside it", "wrangler.json"],
+    ["beside it", "wrangler.toml"],
+    ["in apps/", "wrangler.json"],
+    ["at the repository root", "wrangler.jsonc"],
+    ["at the repository root", "wrangler.toml"],
+  ]) {
+    test(`a ${name} ${where} is refused`, () => {
+      const { top, dir } = tree();
+      const at = { "beside it": dir, "in apps/": join(top, "apps"), "at the repository root": top }[where];
+      writeFileSync(join(at, name), "{}");
+      const problems = checkApp(dir);
+      assert.equal(problems.length, 1, problems.join("\n"));
+      assert.match(problems[0], new RegExp(`${name.replace(".", "\\.")} must not exist`));
+    });
+  }
+
+  test("a .wrangler/deploy/config.json redirect beside the config or above it is refused", () => {
+    for (const level of [0, 2]) {
+      const { top, dir } = tree();
+      const at = level === 0 ? dir : top;
+      mkdirSync(join(at, ".wrangler", "deploy"), { recursive: true });
+      writeFileSync(join(at, ".wrangler", "deploy", "config.json"), '{ "configPath": "../../other.jsonc" }');
+      assert.match(checkApp(dir)[0], /\.wrangler\/deploy\/config\.json must not exist/);
+    }
+  });
+
+  test("the app's own wrangler.jsonc is not a stray", () => {
+    const { dir } = tree();
+    assert.deepEqual(strayConfigs(dir), []);
   });
 });

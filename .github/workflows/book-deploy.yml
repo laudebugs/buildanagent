@@ -21,7 +21,7 @@ on:
 permissions: {}
 
 jobs:
-  # Decides what this run deploys, with no Cloudflare secret. A push to main deploys only if it is still main's newest
+  # Decides what this run deploys. It names no environment and holds no Cloudflare secret, so it has no secrets check. A push to main deploys only if it is still main's newest
   # commit, so a build that finished late never replaces a newer one. A pull request's preview needs the pull
   # request's number, which comes from the API, never from the artifact; a commit that is no longer an open pull
   # request's head gets no preview. A closed pull request's number also comes from the API.
@@ -32,6 +32,7 @@ jobs:
     permissions:
       contents: read # GET /repos/{repo}/commits/main
       pull-requests: read # GET /repos/{repo}/commits/{sha}/pulls and /repos/{repo}/pulls
+    # previews and deletions are JSON arrays of pull request numbers, such as [81], for the jobs' matrices.
     outputs:
       newest: ${{ steps.resolve.outputs.newest }}
       previews: ${{ steps.resolve.outputs.previews }}
@@ -51,22 +52,23 @@ jobs:
           if ! [[ "$HEAD_SHA" =~ ^[0-9a-f]{40}$ ]]; then
             echo "::error::The triggering run's head SHA is not a commit SHA." && exit 1
           fi
-          newest=false previews="" deletions=""
+          newest=false previews="[]" deletions="[]"
           if [ "$WORKFLOW" = book-build ] && [ "$EVENT" = push ] && [ "$HEAD_REPO" = "$REPO" ] && [ "$HEAD_BRANCH" = main ]; then
+            # If the API call fails, the step fails and nothing deploys.
             tip=$(gh api "repos/$REPO/commits/main" --jq .sha)
             if [ "$tip" = "$HEAD_SHA" ]; then newest=true
             else echo "::notice::$HEAD_SHA is no longer main's newest commit ($tip), so its run deploys instead."; fi
           elif [ "$WORKFLOW" = book-build ] && [ "$EVENT" = pull_request ]; then
             # Open pull requests into this repository whose head is still this commit.
-            previews=$(gh api "repos/$REPO/commits/$HEAD_SHA/pulls" --jq "[.[] | select(.state == \"open\" and .head.sha == \"$HEAD_SHA\" and .base.repo.full_name == \"$REPO\") | .number] | join(\" \")")
-            [ -n "$previews" ] || echo "::notice::No open pull request has $HEAD_SHA as its head, so no preview."
+            previews=$(gh api "repos/$REPO/commits/$HEAD_SHA/pulls" --jq "[.[] | select(.state == \"open\" and .head.sha == \"$HEAD_SHA\" and .base.repo.full_name == \"$REPO\") | .number] | @json")
+            [ "$previews" != "[]" ] || echo "::notice::No open pull request has $HEAD_SHA as its head, so no preview."
           elif [ "$WORKFLOW" = book-pr-closed ] && [ "$EVENT" = pull_request ]; then
             # The commits endpoint omits closed, unmerged pull requests, so search the recently closed ones instead.
-            deletions=$(gh api "repos/$REPO/pulls?state=closed&sort=updated&direction=desc&per_page=100" --jq "[.[] | select(.head.sha == \"$HEAD_SHA\") | .number] | join(\" \")")
-            [ -n "$deletions" ] || echo "::notice::No recently closed pull request has $HEAD_SHA as its head."
+            deletions=$(gh api "repos/$REPO/pulls?state=closed&sort=updated&direction=desc&per_page=100" --jq "[.[] | select(.head.sha == \"$HEAD_SHA\") | .number] | @json")
+            [ "$deletions" != "[]" ] || echo "::notice::No recently closed pull request has $HEAD_SHA as its head."
           fi
           for list in "$previews" "$deletions"; do
-            [[ "$list" =~ ^[0-9\ ]*$ ]] || { echo "::error::The API returned something other than pull request numbers."; exit 1; }
+            [[ "$list" =~ ^\[([0-9]+(,[0-9]+)*)?\]$ ]] || { echo "::error::The API returned something other than pull request numbers."; exit 1; }
           done
           { echo "newest=$newest"; echo "previews=$previews"; echo "deletions=$deletions"; } >> "$GITHUB_OUTPUT"
 
@@ -87,6 +89,9 @@ jobs:
     environment:
       name: book-production
       url: https://manual.buildanagent.fyi/
+    # The environment's name, for the secrets check's message; job-level env holds nothing else.
+    env:
+      BOOK_ENVIRONMENT: book-production
     permissions:
       actions: read # download the artifact from the build run
       contents: read # check out main
@@ -94,11 +99,13 @@ jobs:
     concurrency:
       group: book-production
       cancel-in-progress: false
+    # The steps that every deploy job shares are written once here, as YAML anchors, and repeated below as aliases.
+    # GitHub expands an alias exactly as if the step were written out again.
     steps:
       # First, so a half-finished setup stops before anything else runs, naming the missing secret.
-      - name: Check the environment's secrets
+      - &check-secrets
+        name: Check the environment's secrets
         env:
-          ENVIRONMENT: book-production
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
           CHECKLIST: ${{ github.server_url }}/${{ github.repository }}/blob/main/apps/manual/README.md#what-the-owner-sets-up
@@ -106,94 +113,82 @@ jobs:
           missing=0
           for name in CLOUDFLARE_API_TOKEN CLOUDFLARE_ACCOUNT_ID; do
             if [ -z "${!name}" ]; then
-              echo "::error title=Missing secret $name::The $ENVIRONMENT environment has no $name secret, so nothing was deployed. Add it as the owner's checklist says: $CHECKLIST"
+              echo "::error title=Missing secret $name::The $BOOK_ENVIRONMENT environment has no $name secret, so nothing was deployed. Add it as the owner's checklist says: $CHECKLIST"
               missing=1
             fi
           done
           exit "$missing"
-      - uses: actions/checkout@v7.0.1
+      - &checkout-main
+        uses: actions/checkout@v7.0.1
         with:
           ref: main
           persist-credentials: false
       # Saved unextracted: stage-dist.mjs reads the zip itself, so no entry name can point a write outside dist/.
-      - uses: actions/download-artifact@v8.0.2
+      - &download-dist
+        uses: actions/download-artifact@v8.0.2
         with:
           name: book-dist
           path: ${{ runner.temp }}/book-dist
           run-id: ${{ github.event.workflow_run.id }}
           github-token: ${{ github.token }}
           skip-decompress: true
-      - uses: pnpm/action-setup@v6.1.1 # pnpm's version comes from packageManager
+      - &setup-pnpm
+        uses: pnpm/action-setup@v6.1.1 # pnpm's version comes from packageManager
       # No cache: the deploy installs from scratch, so it never runs files another run saved.
-      - uses: actions/setup-node@v7.1.0
+      - &setup-node
+        uses: actions/setup-node@v7.1.0
         with:
           node-version-file: .nvmrc
-      - run: pnpm install --frozen-lockfile --filter @buildanagent/manual
-      - name: Check the artifact and put main's _headers in it
+      - &install
+        run: pnpm install --frozen-lockfile --filter @buildanagent/manual
+      - &stage-dist
+        name: Check the artifact and put main's _headers in it
         run: node apps/manual/scripts/stage-dist.mjs "$RUNNER_TEMP/book-dist" apps/manual/dist apps/manual/public/_headers
-      - name: Guard the config
+      - &guard
+        name: Guard the config
         run: node apps/manual/scripts/guard-deploy.mjs
+      # --config skips Wrangler's search up the directory tree, so it reads the file the guard checked.
       - name: Deploy
         working-directory: apps/manual
         env:
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
           WRANGLER_SEND_METRICS: "false"
-        run: pnpm exec wrangler deploy
+        run: pnpm exec wrangler deploy --config wrangler.jsonc
 
   preview:
-    name: Preview the pull request
+    name: Preview pull request ${{ matrix.number }}
     needs: resolve
     if: >-
       github.event.workflow_run.name == 'book-build' &&
       github.event.workflow_run.event == 'pull_request' &&
-      needs.resolve.outputs.previews != ''
+      needs.resolve.outputs.previews != '[]'
+    # One job per pull request whose head is this commit; nearly always exactly one.
+    strategy:
+      matrix:
+        number: ${{ fromJSON(needs.resolve.outputs.previews) }}
     runs-on: ubuntu-24.04
     timeout-minutes: 15
     environment: book-preview
+    env:
+      BOOK_ENVIRONMENT: book-preview
     permissions:
       actions: read # download the artifact from the build run
       contents: read # check out main
-    # One queue per pull request branch, shared with the deletion job, so a preview and its deletion never overlap.
+    # One queue per pull request, shared with its deletion, so a preview and its deletion never overlap and neither
+    # replaces a waiting run of another pull request.
     concurrency:
-      group: book-preview-${{ github.event.workflow_run.head_repository.full_name }}-${{ github.event.workflow_run.head_branch }}
+      group: book-preview-pr-${{ matrix.number }}
       cancel-in-progress: false
     steps:
-      - name: Check the environment's secrets
-        env:
-          ENVIRONMENT: book-preview
-          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
-          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
-          CHECKLIST: ${{ github.server_url }}/${{ github.repository }}/blob/main/apps/manual/README.md#what-the-owner-sets-up
-        run: |
-          missing=0
-          for name in CLOUDFLARE_API_TOKEN CLOUDFLARE_ACCOUNT_ID; do
-            if [ -z "${!name}" ]; then
-              echo "::error title=Missing secret $name::The $ENVIRONMENT environment has no $name secret, so nothing was deployed. Add it as the owner's checklist says: $CHECKLIST"
-              missing=1
-            fi
-          done
-          exit "$missing"
-      - uses: actions/checkout@v7.0.1
-        with:
-          ref: main
-          persist-credentials: false
-      - uses: actions/download-artifact@v8.0.2
-        with:
-          name: book-dist
-          path: ${{ runner.temp }}/book-dist
-          run-id: ${{ github.event.workflow_run.id }}
-          github-token: ${{ github.token }}
-          skip-decompress: true
-      - uses: pnpm/action-setup@v6.1.1
-      - uses: actions/setup-node@v7.1.0
-        with:
-          node-version-file: .nvmrc
-      - run: pnpm install --frozen-lockfile --filter @buildanagent/manual
-      - name: Check the artifact and put main's _headers in it
-        run: node apps/manual/scripts/stage-dist.mjs "$RUNNER_TEMP/book-dist" apps/manual/dist apps/manual/public/_headers
-      - name: Guard the config
-        run: node apps/manual/scripts/guard-deploy.mjs
+      - *check-secrets
+      - *checkout-main
+      - *download-dist
+      - *setup-pnpm
+      - *setup-node
+      - *install
+      - *stage-dist
+      - *guard
       # --ignore-base-config keeps main's wrangler.jsonc the whole configuration, whatever the dashboard holds.
       - name: Deploy the preview
         working-directory: apps/manual
@@ -201,53 +196,38 @@ jobs:
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
           WRANGLER_SEND_METRICS: "false"
-          PREVIEWS: ${{ needs.resolve.outputs.previews }}
+          NUMBER: ${{ matrix.number }}
           HEAD_SHA: ${{ github.event.workflow_run.head_sha }}
         run: |
-          for number in $PREVIEWS; do
-            pnpm exec wrangler preview --name "pr-$number" --message "Pull request #$number at $HEAD_SHA" --ignore-base-config
-          done
+          pnpm exec wrangler preview --config wrangler.jsonc --name "pr-$NUMBER" \
+            --message "Pull request #$NUMBER at $HEAD_SHA" --ignore-base-config
 
   delete-preview:
-    name: Delete the closed pull request's preview
+    name: Delete pull request ${{ matrix.number }}'s preview
     needs: resolve
     if: >-
       github.event.workflow_run.name == 'book-pr-closed' &&
       github.event.workflow_run.event == 'pull_request' &&
-      needs.resolve.outputs.deletions != ''
+      needs.resolve.outputs.deletions != '[]'
+    strategy:
+      matrix:
+        number: ${{ fromJSON(needs.resolve.outputs.deletions) }}
     runs-on: ubuntu-24.04
     timeout-minutes: 10
     environment: book-preview
+    env:
+      BOOK_ENVIRONMENT: book-preview
     permissions:
       contents: read # check out main
     concurrency:
-      group: book-preview-${{ github.event.workflow_run.head_repository.full_name }}-${{ github.event.workflow_run.head_branch }}
+      group: book-preview-pr-${{ matrix.number }}
       cancel-in-progress: false
     steps:
-      - name: Check the environment's secrets
-        env:
-          ENVIRONMENT: book-preview
-          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
-          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
-          CHECKLIST: ${{ github.server_url }}/${{ github.repository }}/blob/main/apps/manual/README.md#what-the-owner-sets-up
-        run: |
-          missing=0
-          for name in CLOUDFLARE_API_TOKEN CLOUDFLARE_ACCOUNT_ID; do
-            if [ -z "${!name}" ]; then
-              echo "::error title=Missing secret $name::The $ENVIRONMENT environment has no $name secret, so nothing was deployed. Add it as the owner's checklist says: $CHECKLIST"
-              missing=1
-            fi
-          done
-          exit "$missing"
-      - uses: actions/checkout@v7.0.1
-        with:
-          ref: main
-          persist-credentials: false
-      - uses: pnpm/action-setup@v6.1.1
-      - uses: actions/setup-node@v7.1.0
-        with:
-          node-version-file: .nvmrc
-      - run: pnpm install --frozen-lockfile --filter @buildanagent/manual
+      - *check-secrets
+      - *checkout-main
+      - *setup-pnpm
+      - *setup-node
+      - *install
       # A pull request whose build failed never got a preview, so a failed deletion warns instead of failing the run.
       # Cloudflare also deletes the least recently deployed preview once a Worker reaches its preview limit.
       - name: Delete the preview
@@ -256,11 +236,9 @@ jobs:
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
           WRANGLER_SEND_METRICS: "false"
-          DELETIONS: ${{ needs.resolve.outputs.deletions }}
+          NUMBER: ${{ matrix.number }}
         # Wrangler reads wrangler.jsonc, which names ./dist as the assets directory; an empty one is enough here.
         run: |
           mkdir -p dist
-          for number in $DELETIONS; do
-            pnpm exec wrangler preview delete --name "pr-$number" --skip-confirmation ||
-              echo "::warning::Could not delete the preview pr-$number; it may never have been deployed."
-          done
+          pnpm exec wrangler preview delete --config wrangler.jsonc --name "pr-$NUMBER" --skip-confirmation ||
+            echo "::warning::Could not delete the preview pr-$NUMBER; it may never have been deployed."

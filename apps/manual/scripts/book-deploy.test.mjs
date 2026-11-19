@@ -87,6 +87,14 @@ describe("book-deploy.yml's triggers and jobs", () => {
     assert.match(jobs.preview.if, /github\.event\.workflow_run\.event == 'pull_request'/);
     assert.match(jobs["delete-preview"].if, /github\.event\.workflow_run\.name == 'book-pr-closed'/);
     assert.deepEqual(jobs.preview.concurrency, jobs["delete-preview"].concurrency);
+    // Keyed by pull request, not branch: two pull requests from one branch never replace each other's waiting run.
+    assert.equal(jobs.preview.concurrency.group, `book-preview-pr-\${{ matrix.number }}`);
+    assert.deepEqual(jobs.preview.strategy.matrix, { number: `\${{ fromJSON(needs.resolve.outputs.previews) }}` });
+    assert.deepEqual(jobs["delete-preview"].strategy.matrix, {
+      number: `\${{ fromJSON(needs.resolve.outputs.deletions) }}`,
+    });
+    assert.match(jobs.preview.if, /needs\.resolve\.outputs\.previews != '\[\]'/);
+    assert.match(jobs["delete-preview"].if, /needs\.resolve\.outputs\.deletions != '\[\]'/);
     assert.equal(jobs.preview.concurrency["cancel-in-progress"], false);
     assert.match(jobs.resolve.if, /conclusion == 'success'/);
   });
@@ -125,9 +133,32 @@ describe("what touches code and secrets", () => {
     }
   });
 
+  test("the deploy jobs share one definition of each common step, written once as a YAML anchor", () => {
+    const [production, preview, deletion] = ["production", "preview", "delete-preview"].map((n) => jobs[n].steps);
+    assert.deepEqual(preview.slice(0, -1), production.slice(0, -1));
+    assert.deepEqual(deletion.slice(0, -1), [
+      production[0],
+      production[1],
+      production[3],
+      production[4],
+      production[5],
+    ]);
+    assert.equal((deployText.match(/^ {6}- &[a-z-]+$/gm) ?? []).length, 8);
+  });
+
+  test("every Wrangler call names wrangler.jsonc, so Wrangler reads the file the guard checked", () => {
+    const calls = Object.values(jobs).flatMap((job) =>
+      job.steps.flatMap((step) => (step.run ?? "").match(/wrangler (deploy|preview)[^\n]*/g) ?? []),
+    );
+    assert.equal(calls.length, 3);
+    for (const call of calls) assert.match(call, /--config wrangler\.jsonc/, call);
+  });
+
   test("secrets reach only each deploy job's first step and its Wrangler step", () => {
     for (const [name, job] of Object.entries(jobs)) {
-      assert.equal(job.env, undefined, `${name} sets no job-level env`);
+      // Job-level env holds only the environment's name, which the secrets check's message uses.
+      const expected = job.environment === undefined ? undefined : { BOOK_ENVIRONMENT: environmentOf(job) };
+      assert.deepEqual(job.env, expected, `${name}'s job-level env`);
       const readers = job.steps.flatMap((step, i) => (JSON.stringify(step).includes("secrets.") ? [i] : []));
       if (job.environment === undefined) {
         assert.deepEqual(readers, [], `${name} reads no secret`);
@@ -188,7 +219,7 @@ describe("the secrets check", () => {
     assert.equal(new Set(scripts).size, 1);
     for (const [name, job] of deployJobs) {
       assert.equal(job.steps[0].name, "Check the environment's secrets", name);
-      assert.equal(job.steps[0].env.ENVIRONMENT, environmentOf(job), name);
+      assert.equal(job.env.BOOK_ENVIRONMENT, environmentOf(job), name);
       assert.match(job.steps[0].env.CHECKLIST, /apps\/manual\/README\.md#what-the-owner-sets-up$/);
     }
   });
@@ -197,7 +228,7 @@ describe("the secrets check", () => {
 
   test("passes when both secrets are set", () => {
     const result = runStep(script, {
-      ENVIRONMENT: "book-production",
+      BOOK_ENVIRONMENT: "book-production",
       CHECKLIST,
       CLOUDFLARE_API_TOKEN: "x",
       CLOUDFLARE_ACCOUNT_ID: "y",
@@ -209,7 +240,12 @@ describe("the secrets check", () => {
   for (const missing of SECRETS) {
     test(`fails naming ${missing} and the checklist when it is missing or empty`, () => {
       for (const value of [undefined, ""]) {
-        const env = { ENVIRONMENT: "book-preview", CHECKLIST, CLOUDFLARE_API_TOKEN: "x", CLOUDFLARE_ACCOUNT_ID: "y" };
+        const env = {
+          BOOK_ENVIRONMENT: "book-preview",
+          CHECKLIST,
+          CLOUDFLARE_API_TOKEN: "x",
+          CLOUDFLARE_ACCOUNT_ID: "y",
+        };
         if (value === undefined) delete env[missing];
         else env[missing] = value;
         const result = runStep(script, env);
@@ -223,7 +259,7 @@ describe("the secrets check", () => {
   }
 
   test("names both secrets when both are missing", () => {
-    const result = runStep(script, { ENVIRONMENT: "book-production", CHECKLIST });
+    const result = runStep(script, { BOOK_ENVIRONMENT: "book-production", CHECKLIST });
     assert.equal(result.status, 1);
     assert.equal(result.stdout.trim().split("\n").length, 2);
   });
@@ -276,7 +312,7 @@ describe("the resolve step", () => {
   test("a push to main that is still main's newest commit deploys", () => {
     const result = run({ EVENT: "push", HEAD_BRANCH: "main" }, { "repos/owner/repo/commits/main": { sha: SHA } });
     assert.equal(result.status, 0, result.stderr);
-    assert.deepEqual(result.outputs, { newest: "true", previews: "", deletions: "" });
+    assert.deepEqual(result.outputs, { newest: "true", previews: "[]", deletions: "[]" });
   });
 
   test("a push to main that a newer commit has passed does not", () => {
@@ -285,9 +321,16 @@ describe("the resolve step", () => {
     assert.match(result.stdout, /no longer main's newest commit/);
   });
 
+  test("a push to main whose newest-commit lookup fails deploys nothing", () => {
+    // No fixture for the path, so the stand-in gh fails as an API error would.
+    const result = run({ EVENT: "push", HEAD_BRANCH: "main" });
+    assert.notEqual(result.status, 0);
+    assert.notEqual(result.outputs.newest, "true");
+  });
+
   test("a fork's branch named main is not a push to main", () => {
     const result = run({ EVENT: "push", HEAD_BRANCH: "main", HEAD_REPO: "fork/repo" });
-    assert.deepEqual(result.outputs, { newest: "false", previews: "", deletions: "" });
+    assert.deepEqual(result.outputs, { newest: "false", previews: "[]", deletions: "[]" });
   });
 
   const pulls = [
@@ -300,12 +343,12 @@ describe("the resolve step", () => {
   test("a pull request run previews only open pull requests into this repository whose head is the commit", () => {
     const result = run({}, { [`repos/owner/repo/commits/${SHA}/pulls`]: pulls });
     assert.equal(result.status, 0, result.stderr);
-    assert.deepEqual(result.outputs, { newest: "false", previews: "7", deletions: "" });
+    assert.deepEqual(result.outputs, { newest: "false", previews: "[7]", deletions: "[]" });
   });
 
   test("a pull request run whose commit no open pull request has as its head previews nothing", () => {
     const result = run({}, { [`repos/owner/repo/commits/${SHA}/pulls`]: pulls.slice(1, 3) });
-    assert.equal(result.outputs.previews, "");
+    assert.equal(result.outputs.previews, "[]");
     assert.match(result.stdout, /no preview/);
   });
 
@@ -319,7 +362,7 @@ describe("the resolve step", () => {
         ],
       },
     );
-    assert.deepEqual(result.outputs, { newest: "false", previews: "", deletions: "8" });
+    assert.deepEqual(result.outputs, { newest: "false", previews: "[]", deletions: "[8]" });
   });
 
   test("refuses a head SHA that is not a commit SHA", () => {

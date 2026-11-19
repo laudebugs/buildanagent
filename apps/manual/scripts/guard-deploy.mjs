@@ -8,9 +8,14 @@
 // custom domain (book plan BK15). The deploy workflow runs it from main's checkout, after the built site is in dist/
 // and main's public/_headers has been copied over it, so a drifted config fails here and not on the live site.
 //
+// It also refuses when Wrangler could read another config. Without --config, Wrangler 4.160.1 looks for wrangler.json
+// in the current directory and every directory above it before it looks for wrangler.jsonc, then wrangler.toml, and
+// follows a .wrangler/deploy/config.json redirect found the same way. The workflow passes --config wrangler.jsonc,
+// which skips that search; this check keeps the guard and Wrangler reading the same file if a call ever drops it.
+//
 // Usage: node scripts/guard-deploy.mjs [app directory], which defaults to apps/manual.
 import { existsSync, readFileSync } from "node:fs";
-import { join, resolve } from "node:path";
+import { dirname, join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 
 export const DOMAIN = "manual.buildanagent.fyi";
@@ -111,8 +116,32 @@ export function problemsIn(config, headers) {
   return problems;
 }
 
+const CONFIG_NAMES = ["wrangler.json", "wrangler.jsonc", "wrangler.toml"];
+const REDIRECT = join(".wrangler", "deploy", "config.json");
+
+/**
+ * Lists every Wrangler config or deploy redirect from `appDir` up to the filesystem root, other than
+ * `appDir/wrangler.jsonc`, each as a refusal message. Wrangler's own search walks past the repository root, so this
+ * one does too.
+ */
+export function strayConfigs(appDir) {
+  const problems = [];
+  const own = join(appDir, "wrangler.jsonc");
+  for (let dir = appDir; ; dir = dirname(dir)) {
+    for (const name of [...CONFIG_NAMES, REDIRECT]) {
+      const path = join(dir, name);
+      if (path !== own && existsSync(path)) {
+        problems.push(`${path} must not exist: Wrangler could read it instead of ${own}`);
+      }
+    }
+    if (dirname(dir) === dir) return problems;
+  }
+}
+
 // Reads the config and both _headers files from the app directory and returns the problems.
 export function checkApp(appDir) {
+  const stray = strayConfigs(resolve(appDir));
+  if (stray.length > 0) return stray;
   const configPath = join(appDir, "wrangler.jsonc");
   if (!existsSync(configPath)) return ["wrangler.jsonc is missing"];
   let config;
