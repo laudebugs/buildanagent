@@ -14,11 +14,12 @@ import {
 import { assertStreamContract } from "@buildanagent/gateway/testing";
 import { afterEach, test } from "vitest";
 import { context, FailingAdapter, httpTestAdapter, recordingSleep, recordingTransport, TEST_CAPS } from "./adapters.ts";
+import { fakeEntry } from "./fixtures.ts";
 
 const catalog: PriceCatalog = {
   models: [
-    { provider: "test", id: "listed", contextWindow: 200_000, maxOutputTokens: 64_000, images: true },
-    { provider: "other", id: "m", contextWindow: 1, maxOutputTokens: 1 },
+    fakeEntry({ id: "listed", contextWindow: 200_000, maxOutputTokens: 64_000, images: true }),
+    fakeEntry({ provider: "other", id: "m", contextWindow: 1, maxOutputTokens: 1 }),
   ],
 };
 

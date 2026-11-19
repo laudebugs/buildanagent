@@ -40,6 +40,11 @@ jobs:
       - run: pnpm test
       - name: Test the CI scripts
         run: node --test scripts/ci/*.test.mjs
+      # Reads today's date, so it runs here and not in the gateway's deterministic tests; it warns and never fails.
+      # `always()` keeps the warning visible on a run whose tests failed.
+      - name: Warn about stale price catalog entries
+        if: always()
+        run: node scripts/ci/catalog-staleness.mjs check
       # pnpm test rewrites results/run-examples.json; fail only if something other than timings changed.
       - run: node scripts/ci/results-drift.mjs
 

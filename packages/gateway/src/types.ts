@@ -60,7 +60,13 @@ export interface AssistantMessage {
   model: ModelRef;
   stopReason: "stop" | "length" | "tool_calls" | "error" | "aborted";
   error?: { kind: "retryable" | "overflow" | "quota" | "fatal"; message: string; status?: number };
+  /** The tokens of every attempt the call made, failed attempts included, because the provider bills them all. */
   usage: Usage;
+  /**
+   * The usage of the attempt that produced this message alone. `createModel()` sets it when a call was retried, so
+   * `usage` sums several requests; it is absent when `usage` is one request's.
+   */
+  lastAttemptUsage?: Usage;
   cost: Cost;
 }
 
@@ -89,6 +95,7 @@ export interface ModelContext {
 
 /** The context window and output limit that context trimming and the budget need; filled from the price catalog. */
 export interface ModelCaps {
+  /** The most input tokens one request can send, which is below the full window when the provider caps input. */
   contextWindow: number;
   maxOutputTokens: number;
   images: boolean;
