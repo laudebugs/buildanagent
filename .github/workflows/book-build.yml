@@ -5,7 +5,7 @@
 # No path filter: the book reads files from all over the repository. check:book reads fact-check logs under docs/,
 # listings read verify/ files and their harness pins, and the type-check coverage rule reads pnpm-workspace.yaml and
 # each package's tsconfig. A filter that missed one of these would skip a pull request that breaks the book. The
-# whole run takes about a minute after the install.
+# steps after the install take under 10 seconds locally, well inside T8's five-minute limit for adding a filter.
 name: book-build
 
 on:

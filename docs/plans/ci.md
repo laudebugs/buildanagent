@@ -17,6 +17,7 @@ Locally on 4 CPUs with a warm install, `pnpm check` takes under 1 second, `pnpm 
 ## 3. The workflows
 
 - **`ci.yml` on every push and pull request:** checkout, Node 22, pnpm through corepack, a cached `pnpm install`, then `pnpm check`, `pnpm typecheck` and `pnpm test`. No secrets.
+- **`book-build.yml` on every push to `main` and every pull request (added 2026-11-19, T8):** the same setup as `ci.yml`'s `checks` job without the user-namespace step, which only the Copilot harness needs, then `check:book`, `book:switch-report`, the figure staleness test and the book's build, and an upload of `apps/manual/dist/` as the `book-dist` artifact, kept 7 days, for T9's deploy. It reads no secrets. It has no path filter, because the book's checks read fact-check logs under `docs/`, the listed files in `verify/` and their harness pins, `pnpm-workspace.yaml` and each package's `typecheck` script and tsconfig. A filter that missed one of these would let a pull request break the book unchecked, and its steps after the install took under 10 seconds locally, against T8's five-minute limit for filtering ([book plan BK14](build-book.md#bk14-one-ci-job-builds-the-book-and-runs-every-check-proposed)).
 - **`verify.yml` nightly and on demand:** the same setup, then `pnpm run fetch-docs` for any harness whose mirror isn't committed (Claude), and `pnpm verify`. The workflow fails when a result file changes, which flags upstream drift for review.
 
 ### What X1 built (2026-11-18)

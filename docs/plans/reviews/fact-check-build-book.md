@@ -604,4 +604,24 @@ The writing review reworded T6's prose; these rows re-check the claims its fixes
 | 348 | Row 327, updated: after the samples were redrawn at 520 units, `who-decides.svg` is 61,727 bytes and `ticket-rail.svg` 60,823, still about 61 KB each, most of it the 42,228-byte font | Outcome, BK11, README | ✏️ | `wc -c` on the committed files after `ee683e8`. Row 327 gave the sizes before the redraw |
 | 349 | The hint's claims in BK11's rewritten "Our choices" paragraph are rows 343–345, the label size row 338 and the focusable stage row 346 | BK11 | ✅ | The rows of this log, matched one by one after the rewrite |
 
-**Totals:** 349 claims: 308 ✅, 41 ✏️, 0 ⚠️.
+### T8's build workflow
+
+These rows check the claims T8 adds to `book-build.yml`'s comments, AGENTS.md, the CI plan and the todo's Outcome, against the repository at `46e6721` and local runs in the T8 branch.
+
+| # | Claim | Where | Verdict | Source and reason |
+| --- | --- | --- | --- | --- |
+| 350 | `book-build.yml` runs on pushes to `main` and on every pull request, with `permissions: contents: read` only, and names no secret and no environment | Workflow, AGENTS.md, CI plan, Outcome | ✅ | The workflow's `on:` and `permissions:` blocks; `grep -n "secrets\|environment"` matches only the header comment's "no secrets" |
+| 351 | Its setup is `ci.yml`'s `checks` job's without the user-namespace step, which only the Copilot harness's examples need | Workflow, CI plan | ✅ | `ci.yml`: the same checkout with `persist-credentials: false`, `pnpm/action-setup`, `setup-node` with `.nvmrc` and the pnpm cache; its comment says the Copilot harness runs each example in `unshare -rn`. The book's steps run no harness example |
+| 352 | The source register and glossary checks have no command of their own; `check:book` runs them | Workflow, Outcome | ✅ | `apps/manual/package.json` scripts list no such command; `checkBook()` calls `loadBook()`, which runs `checkSources` and `checkGlossary` (`src/book/load.ts`) |
+| 353 | `check:book` reads the committed SVGs and never redraws a figure, so only the figure test catches a stale one | Workflow, Outcome | ✅ | `staleFigures` appears only in `figures/lib/registry.ts` and `test/figures.test.ts`; `src/book/figures.ts` reads `<figures dir>/<slug>/<id>.svg` |
+| 354 | `test/figures.test.ts` redraws every figure and fails on a stale one | Workflow, AGENTS.md, CI plan | ✅ | Its test "every committed figure … is what its script draws now" asserts `staleFigures(root)` is empty; a local run passed 23 tests |
+| 355 | The only artifact is `book-dist`, holding `apps/manual/dist/`, kept 7 days, and the upload fails when the folder is empty | Workflow, AGENTS.md, CI plan, Outcome | ✅ | The workflow's single `upload-artifact` step: `name: book-dist`, `path: apps/manual/dist/`, `retention-days: 7`, `if-no-files-found: error` |
+| 356 | The book's checks read fact-check logs under `docs/`, the listed files in `verify/` and their harness pins, `pnpm-workspace.yaml` and each package's `typecheck` script and tsconfig | Workflow, CI plan, Outcome | ✅ | `sources.json`'s eight `verifiedIn` paths are all under `docs/research/`; `src/book/listings.ts` and `harnesses.ts` read the listed file and the harness's `package.json`; `readWorkspace()` reads `pnpm-workspace.yaml`; `typecheck-coverage.ts` reads `typecheck` scripts and their tsconfig files |
+| 357 | The steps after the install take under 10 seconds locally | Workflow, CI plan, Outcome | ✏️ | The first draft said "about a minute", which nobody measured. Timed locally: `check:book` 2.1 s, `book:switch-report` 1.7 s, the figure test 1.9 s, the build 2.9 s, 8.6 s together |
+| 358 | `gh actions-lock` v0.4.1 added the workflow's four actions to `actions.lock` at the commits already locked, and `gh actions-lock --verify` passes | Outcome, commit | ✅ | Its output: "Pinned 4 actions across 1 workflow" (`3d3c42e`, `73e4699`, `949feb2`, `cf430e0`); the diff adds five lines and no `dependencies` entry; `--verify` printed "All 6 workflows valid" |
+| 359 | actionlint 1.7.12 reports nothing on `book-build.yml`, and the repository's tooling has no actionlint | Outcome | ✅ | A local `actionlint .github/workflows/book-build.yml` exited 0; no `package.json` script or CI step runs actionlint |
+| 360 | A glossary entry that cites an id missing from the register makes `check:book` exit 1 with the file and the id | Outcome | ✅ | Local run with `agent`'s source set to `anthropic-building-agents`: "apps/manual/src/data/glossary.json: agent: source "anthropic-building-agents" is not in the register", then exit 1; the build failed with the same message |
+| 361 | The book has no written chapter yet, so its only checked citations are the glossary's register sources | Outcome | ✅ | `src/content/chapters/` is empty at `46e6721`; the gallery's `Citation` sample takes a literal id that no check reads |
+| 362 | The AGENTS.md and CI plan lines describe the workflow as written | AGENTS.md, CI plan | ✅ | Each line read against the workflow file after the edit |
+
+**Totals:** 362 claims: 320 ✅, 42 ✏️, 0 ⚠️.
