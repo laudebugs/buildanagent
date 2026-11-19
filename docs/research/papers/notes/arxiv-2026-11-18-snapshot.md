@@ -23,7 +23,7 @@ Relevance tags: **[R]** relevant to our SDK/harness/coding-agent/platform plans 
 16. [-] arXiv:2611.23855. RoboBuilder. Nehme et al. 18 Nov 2026. cs.AI cs.CV cs.RO.
 17. [-] arXiv:2611.23847. Great Listeners, Poor Decision-Makers: Rethinking Agentic Audio AI. Latif et al. 17 Nov 2026. cs.SD.
 18. [-] arXiv:2611.23747. Heuristic/Human-Sensitive/Self-Play DRL in Human-Agent Teaming. bin Kamruddin et al. 17 Nov 2026. cs.MA cs.HC.
-19. [R] arXiv:2611.23678. Evaluating Governed LLM-Driven ML Experimentation: Lifecycle, Provenance, and Failure Metrics. Wong. 17 Nov 2026. cs.AI cs.LG cs.SE. Scores ML-experiment agents on process/provenance via a governed harness and append-only ledger. Relevant to our session event log and gate design.
+19. [R] arXiv:2611.23678. Evaluating Governed LLM-Driven ML Experimentation: Lifecycle, Provenance, and Failure Metrics. Wong. 18 Nov 2026. cs.AI cs.LG cs.SE. Scores ML-experiment agents on process/provenance via a governed harness and append-only ledger. Relevant to our session event log and gate design.
 20. [-] arXiv:2611.23663. Lodestone. Liu et al. 17 Nov 2026. cs.AR cs.AI.
 21. [-] arXiv:2611.23644. Polymorph. Sysman et al. 17 Nov 2026. cs.OS.
 22. [~] arXiv:2611.23629. The Value Semantics Layer. Mahmud, Kandogan. 17 Nov 2026. cs.DB cs.AI. Persistent, planner-visible operational semantics for databases used by LLM agents. Adjacent to tool contracts.
