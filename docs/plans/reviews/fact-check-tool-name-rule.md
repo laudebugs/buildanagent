@@ -32,7 +32,7 @@ This log checks the provider claims that todo B7 adds, on 2026-11-19: the table 
 
 ## OpenAI claims re-read on the live pages (2026-11-19)
 
-Rows 5 and 7 record that the OpenAI reference was out of reach when B7 was drafted, so the SDK's source stood in for it. Each row below re-reads one claim on the live page.
+Row 7 records that the OpenAI reference was out of reach when B7 was drafted, so the SDK's source (row 5) stood in for it until `developers.openai.com` answered later that day and row 4 cited it. Row 14 re-reads that page once more, row 15 re-tries `platform.openai.com`, and row 16 re-reads the reference for the two absence claims.
 
 | # | Claim | Verdict | Source and reason |
 | --- | --- | --- | --- |
