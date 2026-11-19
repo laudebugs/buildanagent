@@ -11,7 +11,7 @@
 
 ## Goal
 
-Let the book replay the Claude Agent SDK and Copilot SDK examples that Part I lists, as it replays the other six harnesses' examples. Both harnesses mock the provider over HTTP, so their recorders belong in the mock servers, and their runtime ids must normalise to the same bytes on every run before their transcripts are committed. Once their transcripts exist, give both harnesses the live mode that T27 gave five others, so the occasional live run can compare them too (scope amended 2026-11-19, when T27's review found that no todo owned it).
+Let the book replay the Claude Agent SDK and Copilot SDK examples that Part I lists, as it replays the other six harnesses' examples. Both harnesses mock the provider over HTTP, so their recorders belong in the mock servers, and their runtime ids must normalise to the same bytes on every run before their transcripts are committed. Once their transcripts exist, give both harnesses the live mode that T27 gave five others, so the occasional live run can compare them too. T27's review added that step on 2026-11-19, when it found that no todo owned it.
 
 ## Context
 

@@ -1,6 +1,6 @@
-// Runs the live list (apps/manual/src/data/live-examples.json) against the real APIs, one example at a time, and
-// writes each example's live transcript to verify/<sdk>/results/live/<example>.json. Only
-// .github/workflows/live-run.yml runs it, once in each provider's job; the tests run it against a stub server on the loopback interface.
+// Runs the live list (apps/manual/src/data/live-examples.json) against the real APIs, one example at a time, and writes
+// each example's live transcript to verify/<sdk>/results/live/<example>.json. Only .github/workflows/live-run.yml runs
+// it, once in each provider's job; the tests run it against a stub server on the loopback interface.
 //
 //   node scripts/live/run.mjs --key-file <provider>=<file> [--key-file …] [--config <file>] [--report <dir>]
 //                             [--out <dir>] [--catalog <file>] [--base-url <provider>=<url>]
@@ -8,8 +8,8 @@
 // The run covers the listed examples of each provider it is given a key file for. It reads each file and deletes it,
 // so no key sits in its environment. For each example it writes the key to a new file that only this user can read
 // and passes that file's path, in an allowlisted environment, to the harness's own scripts/run-examples.mjs --live;
-// the example's live mode reads the file and deletes it (live.ts). A run with keys for some of the providers may
-// spend that share of the $1.00 cap, so the workflow's two provider jobs together stay within it.
+// the example's live mode reads the file and deletes it (live.ts). A run given keys for one of the list's two providers
+// may spend half of the $1.00 cap, so the workflow's two provider jobs together stay within it.
 //
 // Before each model call the example's cost guard (budget.ts) checks the call against the cap, from a ledger that
 // starts at the run's spend so far. The example writes that ledger, so this script treats its figures as the example's

@@ -4,11 +4,11 @@
 #
 # Two jobs hold keys, one per provider, each on its own runner in the protected live-run environment and each naming
 # only its own secret (the owner's decision, 2026-11-19). GitHub holds both until the owner approves them, and the
-# environment releases its secrets only after that approval. Each job first checks through the API that the
-# environment still requires the owner's review, lets no administrator bypass it, and admits only main, and stops if
-# not. One step writes the key to a file only the runner's user can read; scripts/live/run.mjs reads the file and
-# deletes it, and passes each example the key in a new file of its own. A cost guard checks every model call against
-# the job's share of the $1.00 cap before it is sent.
+# environment releases its secrets only after that approval. Each job first checks through the API that the environment
+# still requires the owner's review, lets no administrator bypass it and admits only main; if any of the three fails,
+# the job stops before it receives its key. One step writes the key to a file only the runner's user can read;
+# scripts/live/run.mjs reads the file and deletes it, and passes each example the key in a new file of its own. A cost
+# guard checks every model call against the job's share of the $1.00 cap before it is sent.
 #
 # The guard catches our own mistakes, such as an example that loops. It can't contain malicious package code, which
 # runs in the example's process, can read the key there and can call the provider without the guard. The hard

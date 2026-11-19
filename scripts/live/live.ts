@@ -9,9 +9,9 @@
 // also checked for host tools, as the SDK process requires of mocks (AGENTS.md): a live example may offer only
 // in-process function tools.
 //
-// What this protects against is our own mistakes: an example that loops, a model that answers at length, a tool that
-// reaches the host by accident. It does not contain malicious package code. Any code in the example's process, a
-// pinned dependency included, runs before or beside this file and can read the key file before it is deleted, read
+// The guard and these checks protect against our own mistakes: an example that loops, a model that answers at length, a
+// tool that reaches the host by accident. They can't contain malicious package code. Any code in the example's process,
+// a pinned dependency included, runs before or beside this file and can read the key file before it is deleted, read
 // the key from memory, call the provider without the guard, or rewrite the ledger. The hard ceiling on spend is the
 // provider's own spend limit on the workspace or project the key belongs to (apps/manual/README.md).
 import { readFileSync, rmSync } from "node:fs";

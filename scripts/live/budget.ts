@@ -1,9 +1,9 @@
 // The live run's cost guard, the owner's rule of 2026-11-19: "A run may cost at most $1, but should aim to be less
 // than $.50". Before each model call, a harness's live mode projects the call's cost from the gateway's price catalog
 // (packages/gateway/src/catalog.json) and a token estimate, the formula D9 and E5 share, and refuses the call when the
-// run's spend plus that projection would pass the cap. After the call it records what the provider reported. The run's
-// examples run one after another, each in its own process, so the spend lives in a ledger file that each call reads
-// and writes in turn.
+// spend so far plus that projection would pass the ledger's cap, which run.mjs sets to the job's share of $1.00. After
+// the call it records what the provider reported. The run's examples run one after another, each in its own process,
+// so the spend lives in a ledger file that each call reads and writes in turn.
 //
 // The formula restates the gateway's projectCost() and priceUsage() (packages/gateway/src/cost.ts) for plain Node,
 // because the harnesses don't depend on the gateway: every input token at the dearest input rate of the tier the input
