@@ -48,7 +48,7 @@ Our SDK and harness must run on local Node, Cloudflare, AWS and Vercel ([ADR 003
 
 ## Each package has one error class with a typed code
 
-- **MUST:** a package defines one error class that extends `Error`, sets `name`, and carries a `readonly code` typed as a string-literal union. It exports an `isXError(e: unknown): e is XError` guard. The SDK plan's `SdkError` base with `isInstance` markers is where the SDK's class lives. As of November 2026 three earlier classes predate the rule; [Known gaps](README.md#known-gaps) lists them.
+- **MUST:** a package defines one error class that extends `Error`, sets `name`, and carries a `readonly code` typed as a string-literal union. It exports an `isXError(e: unknown): e is XError` guard. The SDK plan's `SdkError` base with `isInstance` markers is where the SDK's class lives. A class that callers catch by name, such as the gateway's `StreamContractError` or the SDK's `RunStoppedError`, extends its package's class with its own code, so the package's guard still recognises it.
 - **MUST:** throw only `Error` subclasses, and pass `{ cause }` when wrapping another error.
 - **MUST NOT:** swallow an error. A failed model call is data, not an exception: it ends its stream with an `error` terminal, and `complete()` returns that message.
 
