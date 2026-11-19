@@ -49,6 +49,32 @@ jobs:
       # pnpm test rewrites results/run-examples.json; fail only if something other than timings changed.
       - run: node scripts/ci/results-drift.mjs
 
+  # Fails when a change to a package's src/, package.json or tsconfig.build.json (changedFilePatterns in
+  # .changeset/config.json) comes without a changeset; changes anywhere else, docs included, need none.
+  # Off until the first release, because the owner said "Changesets wait until we publish". To switch it on,
+  # change `if: false` to `if: true`. Changesets skips private packages, so the check can only fail once the
+  # packages drop `private`.
+  changesets:
+    name: Changeset for package changes
+    if: false
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    steps:
+      # Full history, so Changesets can find the commit where this branch left main.
+      - uses: actions/checkout@v7.0.1
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+      - uses: pnpm/action-setup@v6.1.1
+      # No pnpm cache: this job installs a small part of the store, and saving it under the shared key
+      # would keep the checks job's full store out of the cache.
+      - uses: actions/setup-node@v7.1.0
+        with:
+          node-version-file: .nvmrc
+      # The root's own devDependencies hold @changesets/cli; the harnesses' dependencies aren't needed.
+      - run: pnpm install --frozen-lockfile --filter .
+      - run: pnpm changeset status --since=origin/main
+
   # Runs on every pull request, docs-only ones included, because a workflow edit is the change it catches.
   lockfile:
     name: Workflow lockfile (gh actions-lock --verify)
