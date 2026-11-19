@@ -28,8 +28,8 @@ interface Props {
 }
 
 const { prefix } = Astro.props;
-// The isometric sample: the book's loop bench once T10 draws it, or, under BOOK_FIXTURE_DIR, the site fixture's. The
-// book has none yet, so a production build leaves the item out.
+// The isometric sample: Chapter 1's loop bench, or, under BOOK_FIXTURE_DIR, the site fixture's. A book without the
+// figure leaves the item out.
 const isometricFigures = contentDirs().figuresDir;
 const hasIsometric = existsSync(figureFiles(isometricFigures, "call-workflow-loop", "loop-bench").fragment);
 const id = (name: string) => `${prefix}-${name}`;

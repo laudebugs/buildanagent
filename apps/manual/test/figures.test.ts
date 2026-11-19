@@ -23,9 +23,13 @@ afterAll(() => {
   for (const dir of dirs) rmSync(dir, { recursive: true, force: true });
 });
 
-test("the book's figures hold only Chapter 1's figure, and the fixtures hold their own, isometric ones too", () => {
+test("the book's figures hold Chapter 1's three, and the fixtures hold their own, isometric ones too", () => {
   const ids = (root: string) => figureScripts(root).map((figure) => `${figure.chapter}/${figure.id}`);
-  assert.deepEqual(ids(BOOK_FIGURES), ["call-workflow-loop/who-decides"]);
+  assert.deepEqual(ids(BOOK_FIGURES), [
+    "call-workflow-loop/loop-bench",
+    "call-workflow-loop/ticket-rail",
+    "call-workflow-loop/who-decides",
+  ]);
   assert.deepEqual(ids(FIXTURE_FIGURES), ["first/loop-bench", "first/tally-counter", "first/ticket-rail"]);
   assert.deepEqual(ids(SITE_FIGURES), [
     "call-workflow-loop/loop-bench",
@@ -56,11 +60,14 @@ for (const root of ROOTS) {
   );
 }
 
-/** Copies the fixture's flat ticket rail, script and SVG, into `root`; the test rewrites its import of svgkit. */
+/**
+ * Copies Chapter 1's flat ticket rail, script and SVG, into `root`, where the fixture book keeps its re-export of it;
+ * the test rewrites the script's import of svgkit.
+ */
 function copyTicketRail(root: string): void {
   mkdirSync(join(root, "first"));
   for (const file of ["ticket-rail.ts", "ticket-rail.svg"]) {
-    cpSync(join(FIXTURE_FIGURES, "first", file), join(root, "first", file));
+    cpSync(join(BOOK_FIGURES, "call-workflow-loop", file), join(root, "first", file));
   }
 }
 

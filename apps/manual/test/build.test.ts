@@ -9,7 +9,8 @@ import { afterAll, beforeAll, test } from "vitest";
 
 // Builds the site into a temporary folder once, then checks the pages the build writes: the gallery renders every
 // component in both themes with its script-only controls hidden, and no page loads anything from another origin.
-// The book has no chapter yet, so the build reads one fixture chapter, written as Chapter 1, through BOOK_FIXTURE_DIR.
+// The build reads one fixture chapter, written as Chapter 1, through BOOK_FIXTURE_DIR, so the checks below stay
+// fixed while the book's own chapters change.
 const app = fileURLToPath(new URL("..", import.meta.url));
 const fixtureBook = fileURLToPath(new URL("./fixtures/site/", import.meta.url));
 let out = "";

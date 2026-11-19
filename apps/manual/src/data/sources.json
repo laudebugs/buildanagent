@@ -90,5 +90,14 @@
     "asOf": "November 2026",
     "version": "@google/adk@2.5.0",
     "verifiedIn": "apps/manual/fact-checks/call-workflow-loop.md"
+  },
+  {
+    "id": "anthropic-how-tool-use-works",
+    "title": "How tool use works",
+    "publisher": "Claude API documentation",
+    "url": "https://platform.claude.com/docs/en/agents-and-tools/tool-use/how-tool-use-works",
+    "kind": "docs",
+    "asOf": "November 2026",
+    "verifiedIn": "apps/manual/fact-checks/call-workflow-loop.md"
   }
 ]

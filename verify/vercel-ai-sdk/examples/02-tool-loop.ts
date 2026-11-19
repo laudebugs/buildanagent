@@ -31,11 +31,11 @@ const script = () => scripted([{ tools: [{ name: "weather", input: { city: "Lisb
 {
   calls.length = 0;
   // #region loop
-  const { model, requests } = script();
+  const { model, requests } = script(); // book:note script
   const result = await generateText({
     model,
-    tools: { weather },
-    stopWhen: isStepCount(5),
+    tools: { weather }, // book:note tools
+    stopWhen: isStepCount(5), // book:note cap
     prompt: "Weather in Lisbon?",
   });
   // #endregion

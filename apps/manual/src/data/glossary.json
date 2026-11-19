@@ -18,6 +18,12 @@
     "sources": ["anthropic-building-effective-agents"]
   },
   {
+    "id": "stop-condition",
+    "term": "stop condition",
+    "definition": "A rule that ends an agent loop whatever the model asks for next, such as a maximum number of steps or model calls.",
+    "sources": ["anthropic-building-effective-agents"]
+  },
+  {
     "id": "harness",
     "term": "harness",
     "definition": "The program around a model that turns it into a working agent: it runs the loop, calls the tools, keeps the session log and enforces the agent's limits. Pi, OpenCode, Claude Code and Codex are harnesses.",
