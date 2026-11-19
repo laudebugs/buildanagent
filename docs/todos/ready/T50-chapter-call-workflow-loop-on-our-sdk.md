@@ -38,7 +38,7 @@ Each listing in `apps/manual/src/content/chapters/call-workflow-loop.md` that ou
 | `#scripted-mock` | `verify/vercel-ai-sdk/examples/lib/check.ts`, region `scripted` | `ScriptedModel` from `@buildanagent/sdk/testing` (B3) |
 
 - New examples under `packages/sdk/examples/` (or `packages/gateway/examples/` for the one call), with `// #region` and `// book:note` markers, run offline by the package's `test`.
-- Widen the listing rule so a listing may come from `packages/`, in three places: the coverage check, the harness table (or a sibling table) and the caption's pin. For our packages, the pin is the workspace version (an `0.1.0-alpha` release as of November 2026) rather than an exact third-party pin.
+- Widen the listing rule so a listing may come from `packages/`, in three places: the coverage check, the harness table (or a sibling table) and the caption's pin. For our packages, the pin is the workspace version (a `0.1.0-alpha` release as of November 2026) rather than an exact third-party pin.
 - Transcripts for the new examples, in the format of `scripts/transcripts/events.ts`, recorded by the package's tests and committed beside those tests, so our tabs replay as the third-party tabs do. The results-drift check covers them.
 - Turn each listing in the table into a `:::tabs` block, ours first. A block holding a container listing, one with notes or a replay, needs a longer fence (`::::tabs`), and the `#scripted-mock` block sits inside the chapter's box, whose fence then grows again. If the tabs block cannot yet hold a listing with notes and a replay, widen it here, with tests. A tab's caption becomes its heading and names its SDK, so each listing's descriptive caption, such as "One model call: your code sends one request and reads one answer", moves into the sentence that introduces the block.
 - The prose around each listing, so it names both tabs where it describes code: the notes, the paragraphs that walk through each replay, and the box "How these examples run without a key". The inline code that names `generateText`, `stopWhen`, `SequentialAgent` or `LoopAgent` keeps resolving under BK17, because those listings stay; new inline code names our SDK's identifiers.
@@ -86,7 +86,7 @@ The listing-rule tests in `apps/manual/test/`, the new examples in `packages/sdk
 
 - Tabs double the code a reader can open at each step, and the prose must still read as one argument. Keep each paragraph about the step, and name an SDK only where the two tabs differ.
 - Listing numbers shift, because each tabs block numbers both its listings and ours comes first. The build computes every number and reference, so only hand-written text that counts listings needs checking.
-- Our packages are alpha (an `0.1.0-alpha` release as of November 2026), so their APIs may change under the chapter. The type-check and the results-drift check catch each change, but each one then needs a chapter update.
+- Our packages are alpha (a `0.1.0-alpha` release as of November 2026), so their APIs may change under the chapter. The type-check and the results-drift check catch each change, but each one then needs a chapter update.
 - The replay recorder is new code; if it grows past this todo, split it into its own todo that this one depends on.
 
 ## Definition of done
