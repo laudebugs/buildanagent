@@ -68,7 +68,5 @@ These rows check PF1's dated revision on per-tenant memory, against the [retriev
 | 43 | Vectorize applies a metadata filter before taking the top-k | ✅ | U18 report, Untrusted ¶3, quoting [Vectorize metadata filtering](https://developers.cloudflare.com/vectorize/reference/metadata-filtering/): the "filter is applied first, and the topK results are taken from the filtered set" (vendor docs) |
 | 44 | OWASP's ASI06 describes a near-duplicate pulling "another tenant's sensitive chunk into retrieval" through a loose namespace filter | ✅ | U18 report, Untrusted ¶3, quoting the [OWASP Agentic Top 10](https://genai.owasp.org/resource/owasp-top-10-for-agentic-applications-for-2026/) |
 | 45 | No Round F todo builds memory yet | ✅ | `grep -il memory docs/todos/*/F*.md` finds only F1, whose "memory implementation" is an in-memory test store for tenants |
-| 46 | The report's four checks before buying a service: a full export, hard deletion across every revision, a maintained TypeScript client, and reach from all four targets | ✅ | U18 report, Service ¶3, last sentence, item by item |
-| 47 | The four targets are local Node, Cloudflare, AWS and Vercel | ✅ | [ADR 0033](../../decisions/0033-three-deployment-targets.md) as AGENTS.md summarises it |
 
-**Totals:** 47 claims: 44 ✅, 2 ✏️, 1 ⚠️.
+**Totals:** 45 claims: 42 ✅, 2 ✏️, 1 ⚠️.

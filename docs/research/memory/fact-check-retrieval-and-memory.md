@@ -218,7 +218,7 @@ Every typings claim below was read in the installed package under `verify/<sdk>/
 
 ### Owner decisions applied, re-checked (2026-11-19)
 
-The owner approved all twelve proposed changes on 2026-11-19. These rows check this report's own edits and the claims that changes 9 and 10 carried into the feature table and the four SDK references. The plans' changes are checked in their own logs: the [book plan's](../../plans/reviews/fact-check-build-book.md) rows 187–205, the [harness plan's](../../plans/reviews/fact-check-build-harness.md) rows 1–28, the [platform plan's](../../plans/reviews/fact-check-build-agent-platform.md) rows 41–47 and the [main report's](../fact-check-2026-11-18.md) U18 revision row.
+The owner approved all twelve proposed changes on 2026-11-19. These rows check this report's own edits and the claims that changes 9 and 10 carried into the feature table and the four SDK references. The plans' changes are checked in their own logs: the [book plan's](../../plans/reviews/fact-check-build-book.md) rows 187–205, the [harness plan's](../../plans/reviews/fact-check-build-harness.md) rows 1–30, the [platform plan's](../../plans/reviews/fact-check-build-agent-platform.md) rows 41–45 and the [main report's](../fact-check-2026-11-18.md) U18 revision row.
 
 | # | Where | Claim | Source checked | Verdict |
 | --- | --- | --- | --- | --- |
