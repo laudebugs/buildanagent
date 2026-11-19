@@ -1,0 +1,44 @@
+{
+  "name": "claude-ticket",
+  "source": "https://github.com/laudebugs/buildanagent/blob/main/verify/claude-agent-sdk/examples/05-structured-output.ts",
+  "section": "Our Claude Agent SDK example's Ticket Zod schema, converted with z.toJSONSchema(schema, { target: \"draft-7\" }) by zod 4.6.7",
+  "checkedOn": "2026-11-19",
+  "schema": {
+    "$schema": "http://json-schema.org/draft-07/schema#",
+    "type": "object",
+    "properties": {
+      "title": {
+        "type": "string"
+      },
+      "priority": {
+        "type": "string",
+        "enum": ["low", "medium", "high"]
+      },
+      "labels": {
+        "type": "array",
+        "items": {
+          "type": "string"
+        }
+      }
+    },
+    "required": ["title", "priority", "labels"],
+    "additionalProperties": false
+  },
+  "valid": [
+    {
+      "title": "Login crashes on Safari",
+      "priority": "high",
+      "labels": ["bug"]
+    }
+  ],
+  "invalid": [
+    {
+      "value": {
+        "title": "Login crashes",
+        "priority": "urgent",
+        "labels": []
+      },
+      "paths": ["/priority"]
+    }
+  ]
+}

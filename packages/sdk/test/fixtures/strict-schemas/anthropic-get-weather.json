@@ -1,0 +1,52 @@
+{
+  "name": "anthropic-get-weather",
+  "source": "https://platform.claude.com/docs/en/agents-and-tools/tool-use/strict-tool-use",
+  "section": "Strict tool use, quick start: the get_weather tool's input_schema",
+  "checkedOn": "2026-11-19",
+  "schema": {
+    "type": "object",
+    "properties": {
+      "location": {
+        "type": "string",
+        "description": "The city and state, e.g. San Francisco, CA"
+      },
+      "unit": {
+        "type": "string",
+        "enum": ["celsius", "fahrenheit"]
+      }
+    },
+    "required": ["location"],
+    "additionalProperties": false
+  },
+  "valid": [
+    {
+      "location": "San Francisco, CA"
+    },
+    {
+      "location": "Paris",
+      "unit": "celsius"
+    }
+  ],
+  "invalid": [
+    {
+      "value": {
+        "unit": "celsius"
+      },
+      "paths": ["/location"]
+    },
+    {
+      "value": {
+        "location": "Paris",
+        "unit": "kelvin"
+      },
+      "paths": ["/unit"]
+    },
+    {
+      "value": {
+        "location": "Paris",
+        "days": 3
+      },
+      "paths": ["/days"]
+    }
+  ]
+}

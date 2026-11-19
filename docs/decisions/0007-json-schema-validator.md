@@ -1,6 +1,6 @@
 # 0007. Validate raw JSON Schema with pi-schema 1.5.2, supporting drafts 2020-12 and 7
 
-- **Status:** Proposed (provisional until todo B10)
+- **Status:** Proposed; todo B10's check confirmed it on 2026-11-19
 - **Date:** 2026-11-18
 - **Plan:** [build-sdk.md, D7](../plans/build-sdk.md#d7-pi-schema-validates-raw-json-schema-and-b10-confirms-the-choice-against-both-candidates-provisional)
 
@@ -16,3 +16,7 @@ The SDK bundles pi-schema 1.5.2, with `@cfworker/json-schema` 4.1.6 as the fallb
 
 - Todo B10 runs both candidates on our adapters' strict schemas and Claude's draft-07 schemas; pi-schema stays unless it fails a schema the fallback passes.
 - pi-schema declares `node >=22.19.0`, which B1 checks.
+
+## Status note (todo B10, 2026-11-19)
+
+B10's check ran both validators on 11 strict schemas from the Anthropic and OpenAI references and on 3 draft 7 output schemas. Each validator judged all 43 instances correctly, so pi-schema stays ([validator check](../../packages/sdk/docs/validator-check.md)). pi-schema also loads and validates inside workerd, where `eval` is blocked. The check found one packaging gap outside its rule: pi-schema 1.5.2 maps a `source` export condition to a file its tarball lacks, so Node can't load it under `--conditions=source`. Because pi-schema declares `node >=22.19.0`, the SDK now requires Node 22.19 or later too.

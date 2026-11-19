@@ -1,0 +1,51 @@
+{
+  "name": "anthropic-key-value-array",
+  "source": "https://platform.claude.com/docs/en/build-with-claude/structured-outputs",
+  "section": "JSON Schema limitations, objects with arbitrary keys: the key-value array",
+  "checkedOn": "2026-11-19",
+  "schema": {
+    "type": "array",
+    "items": {
+      "type": "object",
+      "properties": {
+        "key": {
+          "type": "string"
+        },
+        "value": {
+          "type": "string"
+        }
+      },
+      "required": ["key", "value"],
+      "additionalProperties": false
+    }
+  },
+  "valid": [
+    [],
+    [
+      {
+        "key": "color",
+        "value": "blue"
+      }
+    ]
+  ],
+  "invalid": [
+    {
+      "value": [
+        {
+          "key": "color"
+        }
+      ],
+      "paths": ["/0/value"]
+    },
+    {
+      "value": [
+        {
+          "key": "color",
+          "value": "blue",
+          "extra": "x"
+        }
+      ],
+      "paths": ["/0/extra"]
+    }
+  ]
+}

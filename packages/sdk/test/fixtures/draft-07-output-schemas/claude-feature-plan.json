@@ -1,0 +1,87 @@
+{
+  "name": "claude-feature-plan",
+  "source": "https://code.claude.com/docs/en/agent-sdk/structured-outputs",
+  "section": "The FeaturePlan Zod schema, converted with z.toJSONSchema(schema, { target: \"draft-7\" }) by zod 4.6.7",
+  "checkedOn": "2026-11-19",
+  "schema": {
+    "$schema": "http://json-schema.org/draft-07/schema#",
+    "type": "object",
+    "properties": {
+      "feature_name": {
+        "type": "string"
+      },
+      "summary": {
+        "type": "string"
+      },
+      "steps": {
+        "type": "array",
+        "items": {
+          "type": "object",
+          "properties": {
+            "step_number": {
+              "type": "number"
+            },
+            "description": {
+              "type": "string"
+            },
+            "estimated_complexity": {
+              "type": "string",
+              "enum": ["low", "medium", "high"]
+            }
+          },
+          "required": ["step_number", "description", "estimated_complexity"],
+          "additionalProperties": false
+        }
+      },
+      "risks": {
+        "type": "array",
+        "items": {
+          "type": "string"
+        }
+      }
+    },
+    "required": ["feature_name", "summary", "steps", "risks"],
+    "additionalProperties": false
+  },
+  "valid": [
+    {
+      "feature_name": "Dark mode",
+      "summary": "Add a theme toggle",
+      "steps": [
+        {
+          "step_number": 1,
+          "description": "Add CSS variables",
+          "estimated_complexity": "low"
+        }
+      ],
+      "risks": []
+    }
+  ],
+  "invalid": [
+    {
+      "value": {
+        "feature_name": "Dark mode",
+        "summary": "x",
+        "steps": [
+          {
+            "step_number": "one",
+            "description": "x",
+            "estimated_complexity": "low"
+          }
+        ],
+        "risks": []
+      },
+      "paths": ["/steps/0/step_number"]
+    },
+    {
+      "value": {
+        "feature_name": "Dark mode",
+        "summary": "x",
+        "steps": [],
+        "risks": [],
+        "owner": "me"
+      },
+      "paths": ["/owner"]
+    }
+  ]
+}
