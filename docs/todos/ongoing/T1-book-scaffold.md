@@ -5,7 +5,7 @@
 | Field | Value |
 | --- | --- |
 | ID | `T1` |
-| Status | `ready` |
+| Status | `ongoing` |
 | Plan | [Book plan §5, BK3 and BK4](../../plans/build-book.md#5-round-t-and-its-todos) |
 | Round / milestone | Round T (textbook), MT |
 | Depends on | None |
@@ -33,15 +33,15 @@ Create the book's package so every later Round T todo has a site to build into. 
 
 **Out of scope** (and which todo covers it)
 
-- The design tokens and components ([T2](T2-book-design.md))
-- The content model and its checks ([T3](T3-book-content-model.md))
-- CI and deploy ([T8](T8-book-ci.md), [T9](T9-book-deploy.md))
+- The design tokens and components ([T2](../ready/T2-book-design.md))
+- The content model and its checks ([T3](../ready/T3-book-content-model.md))
+- CI and deploy ([T8](../ready/T8-book-ci.md), [T9](../ready/T9-book-deploy.md))
 
 ## Tasks
 
 - [ ] Re-run `npm view <package> time` for `astro`, `@astrojs/markdown-remark`, `pagefind`, `remark-directive`, `unist-util-visit` and `wrangler`, and pin the newest release at least a week old; update BK3's table if a pin moves.
 - [ ] Confirm that CI's `node-version-file: .nvmrc` and a fresh local install both resolve Node 22 to 22.23.4 or later, which Astro 7.4.11's `engines` requires; if not, pin `.nvmrc` to a full version in its own commit.
-- [ ] Add `apps/*` to `pnpm-workspace.yaml` only if it is not there yet: whichever of [L5](L5-docs-app.md), [L7](L7-website-app.md) or this todo lands first adds it ([DS2](../../plans/publish-and-docs.md#ds2-two-sites-on-cloudflare-accepted)). Then create `apps/book` with `build`, `dev`, `check:book`, `typecheck` and `test` scripts, following `apps/docs` and `apps/site` where they exist (private `@buildanagent/<name>` packages, the same Astro pin), and install with `pnpm install` at the root.
+- [ ] Add `apps/*` to `pnpm-workspace.yaml` only if it is not there yet: whichever of [L5](../ready/L5-docs-app.md), [L7](../ready/L7-website-app.md) or this todo lands first adds it ([DS2](../../plans/publish-and-docs.md#ds2-two-sites-on-cloudflare-accepted)). Then create `apps/book` with `build`, `dev`, `check:book`, `typecheck` and `test` scripts, following `apps/docs` and `apps/site` where they exist (private `@buildanagent/<name>` packages, the same Astro pin), and install with `pnpm install` at the root.
 - [ ] Write `astro.config.mjs` with the render-input hash adapted from the garment repository, with a header comment naming its origin, the source commit and its Apache-2.0 licence, and add the THIRD-PARTY-NOTICES.md section.
 - [ ] Add `data-pagefind-body` to the chapter layout only, and a search page that loads Pagefind's UI.
 - [ ] Try `astro check` under the root's TypeScript 7.0.2; if it fails, type-check the book's `.ts` files with `tsc -p` and record the result in the plan's risks.

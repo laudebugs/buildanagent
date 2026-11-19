@@ -457,7 +457,7 @@ The owner chose to cover every topic group the coverage review named (2026-11-19
 
 | ID | Title | Depends on | Size |
 | --- | --- | --- | --- |
-| [T1](../todos/ready/T1-book-scaffold.md) | Scaffold `apps/book`: workspace wiring, pins, a static build and Pagefind | None | M |
+| [T1](../todos/ongoing/T1-book-scaffold.md) | Scaffold `apps/book`: workspace wiring, pins, a static build and Pagefind | None | M |
 | [T2](../todos/ready/T2-book-design.md) | The owner's design as tokens and components: C's layout, C4 pages, theme-following panels and three fonts | T1 | M |
 | [T3](../todos/ready/T3-book-content-model.md) | Content model: outline, numbering, source register, glossary, analogy register and chapter checks | T1 | L |
 | [T4](../todos/ready/T4-book-listings.md) | Code listings from real file regions, with path, lines and pin | T3 | M |

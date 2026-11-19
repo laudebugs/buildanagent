@@ -8,7 +8,7 @@
 | Status | `ready` |
 | Plan | [Book plan §5, BK5–BK7](../../plans/build-book.md#bk5-the-outline-lives-in-code-and-the-build-computes-every-number-proposed) |
 | Round / milestone | Round T (textbook), MT |
-| Depends on | [T1](T1-book-scaffold.md) |
+| Depends on | [T1](../ongoing/T1-book-scaffold.md) |
 | Size | L |
 
 ## Goal
