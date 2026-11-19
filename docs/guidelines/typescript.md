@@ -4,8 +4,8 @@ These rules apply to every TypeScript file in `packages/`. The `verify/*` harnes
 
 ## Compiler settings are strict, and only erasable syntax is allowed
 
-- **MUST:** every package extends the root `tsconfig.base.json`, and `pnpm typecheck` passes for `src/` and `test/`.
-- **MUST:** the base config turns on `strict`, `noUncheckedIndexedAccess`, `exactOptionalPropertyTypes`, `noImplicitOverride`, `noFallthroughCasesInSwitch`, `noUnusedLocals`, `noUnusedParameters`, `isolatedModules`, `verbatimModuleSyntax` and `erasableSyntaxOnly`. As of November 2026 it sets only `strict`, `noImplicitOverride` and `noFallthroughCasesInSwitch`. Until [Q1](../todos/ongoing/Q1-strict-compiler-and-lint.md) lands, write code as if the other seven were on, because the compiler doesn't catch them yet.
+- **MUST:** every package extends the root `tsconfig.packages.json`, and `pnpm typecheck` passes for `src/` and `test/`.
+- **MUST:** the packages config turns on ten flags: `strict`, `noImplicitOverride` and `noFallthroughCasesInSwitch` from `tsconfig.base.json`, plus `noUncheckedIndexedAccess`, `exactOptionalPropertyTypes`, `noUnusedLocals`, `noUnusedParameters`, `isolatedModules`, `verbatimModuleSyntax` and `erasableSyntaxOnly`. The `verify/*` harnesses extend only the base config, because they type-check upstream doc examples that the stricter seven would reject.
 - **MUST NOT:** use `enum`, `namespace` or constructor parameter properties, which `erasableSyntaxOnly` forbids. Use string-literal unions and `as const` objects.
 - **MUST:** write type-only imports as `import type { … }`, as `verbatimModuleSyntax` requires.
 
@@ -16,13 +16,13 @@ Our SDK and harness must run on local Node, Cloudflare, AWS and Vercel ([ADR 003
 - **MUST NOT:** import `node:*` modules or use `Buffer`, `process`, `__dirname` or `require` in a package's `src/`. Bytes are `Uint8Array`, text goes through `TextEncoder` and `TextDecoder`, and randomness and crypto go through `globalThis.crypto`.
 - **MUST NOT:** use DOM-only globals (`window`, `document`, `localStorage`) in `src/`.
 - **SHOULD:** take anything environment-specific (a transport, a store, a clock) as an option, so the caller supplies it.
-- Test files may use Node APIs, and so may the offline guards in a package's `src/testing/` (`guards.ts` and `setup.ts`), because they guard our Node test process. The rest of a `testing` export, such as `ScriptedModel`, stays portable, because users run it on every target. A portability test enforces the rule once [Q1](../todos/ongoing/Q1-strict-compiler-and-lint.md) lands.
+- Test files may use Node APIs, and so may the offline guards in a package's `src/testing/` (`guards.ts` and `setup.ts`), because they guard our Node test process. The rest of a `testing` export, such as `ScriptedModel`, stays portable, because users run it on every target. `packages/gateway/test/portability.test.ts` enforces the rule for every package.
 
 ## Biome lints and formats, and caps each function's size
 
 - **MUST:** Biome is the only linter and formatter, with the root `biome.json`'s `recommended` preset. `pnpm check` passes.
 - **MUST:** turn a rule off inline only with `// biome-ignore lint/<group>/<rule>: <reason>`, and give the reason.
-- **MUST:** a function has a cognitive complexity of at most 15 and at most 60 lines, and code throws only `Error` subclasses. Test files are exempt from the length cap, because one `test` callback can hold a whole scenario. The lint follow-up turns these into Biome errors.
+- **MUST:** a function has a cognitive complexity of at most 15 and at most 60 lines, and code throws only `Error` subclasses. Test files are exempt from the length cap, because one `test` callback can hold a whole scenario. Biome reports each of these as an error in `packages/`, along with default exports and DOM-only globals in `src/`.
 
 ## Names follow one convention per kind
 
