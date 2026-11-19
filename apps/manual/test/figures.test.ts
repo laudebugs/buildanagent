@@ -29,6 +29,7 @@ test("the book's figures hold its chapters' figures, and the fixtures hold their
     "call-workflow-loop/loop-bench",
     "call-workflow-loop/ticket-rail",
     "call-workflow-loop/who-decides",
+    "stopping-and-structured-output/default-caps",
     "talking-to-a-model/resent-history",
     "talking-to-a-model/stream-fold",
     "talking-to-a-model/taxi-meter",
