@@ -2,11 +2,12 @@
 // API error that marks itself retryable, and waits as long as the error's retry-after-ms header says. A prompt
 // cache reports cache-read tokens when it sees a prefix a second time. A middleware built with wrapLanguageModel
 // projects each call's worst-case cost, adds what earlier calls already spent, and throws before the model sees a
-// call that would pass the budget. Each behaviour runs twice: against a scripted model, and through
-// @ai-sdk/anthropic with a fetch function that answers in Anthropic's Messages wire format, so the same retry,
-// cache and budget code works over a second wire protocol. No network is used. The scripted model's requests and
-// answers reach the book's transcript; the Messages-format exchange does not, because the recorder attaches to
-// ai/test's mock model, which createAnthropic bypasses. Only that exchange's check() results are recorded.
+// call that would exceed the budget.
+// Each behaviour runs twice: against a scripted model, and through @ai-sdk/anthropic with a fetch function that
+// answers in Anthropic's Messages wire format. The same retry, cache and budget code thus works over a second wire
+// protocol, and the example uses no network.
+// Only the scripted model's requests and answers reach the book's transcript. The recorder attaches to ai/test's
+// mock model, which createAnthropic bypasses, so the Messages-format exchange records only its check() results.
 // Prices are Claude Sonnet 5.5 list prices per million tokens as of November 2026.
 import { createAnthropic } from "@ai-sdk/anthropic";
 import type { LanguageModelV4, LanguageModelV4CallOptions } from "@ai-sdk/provider";
@@ -143,7 +144,10 @@ check(first.text === "Refunds take five days." && retries === 1, `a retryable er
 failures.push(apiError(401, false));
 const before = attempts;
 const rejected = await ask(model, "Again?").catch((e) => e);
-check(APICallError.isInstance(rejected) && attempts - before === 1, "an error that is not retryable is not retried");
+check(
+  APICallError.isInstance(rejected) && attempts - before === 1,
+  "an error that is not retryable fails at once, with no retry",
+);
 
 failures.push(apiError(429, true), apiError(429, true));
 const exhausted = await ask(model, "Once more?", policy, { maxRetries: 1 }).catch((e) => e);

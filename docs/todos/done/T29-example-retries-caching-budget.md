@@ -41,7 +41,7 @@ Write a new type-checked, mock-run example in `verify/vercel-ai-sdk/examples/` s
 - [x] Wrap the model with a middleware that projects each call's cost before sending it, and assert that a call over the cap never reaches the mock.
 - [x] If a second wire protocol can be shown offline through a provider's base-URL setting and a mock HTTP server, add it; otherwise say so in the example's header.
 - [x] Run the harness's `pnpm test` twice, and commit its updated `results/` and transcript.
-- [ ] Draft the example's header comment and README line with `/anthropic-skills:writing`, fact-check each claim about the SDK against its pinned `.d.ts` or reference, then review the copy with `/anthropic-skills:writing-review` and fix every finding.
+- [x] Draft the example's header comment and README line with `/anthropic-skills:writing`, fact-check each claim about the SDK against its pinned `.d.ts` or reference, then review the copy with `/anthropic-skills:writing-review` and fix every finding.
 
 ## Acceptance criteria
 
@@ -74,8 +74,10 @@ Write a new type-checked, mock-run example in `verify/vercel-ai-sdk/examples/` s
 
 ## Outcome
 
-Added `verify/vercel-ai-sdk/examples/12-retries-caching-budget.ts`, with `prices`, `budget`, `retry`, `cache`, `refuse` and `wire` regions and `book:note` markers `retry-header`, `retry-count`, `cache-read` and `refused`. Its fifteen checks cover, against a scripted model, one retry after a retryable error (`retry-after-ms: "0"` keeps the run fast), no retry for a non-retryable error, `RetryError` once `maxRetries` runs out, a cache write then cache-read tokens on a repeated prefix at under a fifth of the uncached cost, a projection that prices the prefix as a cache write and uses the call's own `maxOutputTokens`, and a budget middleware that refuses a call that fits alone but not on top of what is already spent, before it reaches the model (the projection's value is asserted as a literal, so a wrong rate fails). The same retry, cache and budget calls then run through `@ai-sdk/anthropic` with a stub `fetch` that answers in Anthropic's Messages wire format, the second wire protocol, offline. Prices are Claude Sonnet 5.5's from the gateway catalog, as of November 2026. The transcript and the example's `run-examples.json` entry are committed.
+Added `verify/vercel-ai-sdk/examples/12-retries-caching-budget.ts`, with `prices`, `budget`, `retry`, `cache`, `refuse` and `wire` regions and `book:note` markers `retry-header`, `retry-count`, `cache-read` and `refused`. Its fifteen checks cover, against a scripted model, one retry after a retryable error (`retry-after-ms: "0"` keeps the run fast), no retry for a non-retryable error, and a `RetryError` once `maxRetries` runs out. They also cover a cache write followed by cache-read tokens on a repeated prefix, at under a fifth of the uncached cost, and a projection that prices the prefix as a cache write and uses the call's own `maxOutputTokens`. The last check is a budget middleware that refuses a call before it reaches the model; the call fits alone but not on top of what is already spent. The projection's value is asserted as a literal, so a wrong rate fails.
 
-Limit: the Messages-format exchange leaves no request or answer events in the transcript, because the recorder attaches to `ai/test`'s mock model, which `createAnthropic` bypasses; only its `check()` results are recorded. A follow-up could record wire calls (for example from the stub `fetch`); this todo leaves T5's recorder unchanged.
+The same retry, cache and budget calls then run through `@ai-sdk/anthropic` with a stub `fetch` that answers in Anthropic's Messages wire format, the second wire protocol, offline. Prices are Claude Sonnet 5.5's from the gateway catalog, as of November 2026. The transcript and the example's `run-examples.json` entry are committed.
 
-Still open: the two code-review rounds, which belong to the pull request, and the writing review of the header and README copy (Task 6's last clause).
+Limit: the Messages-format exchange leaves no request or answer events in the transcript. The recorder attaches to `ai/test`'s mock model, which `createAnthropic` bypasses, so only the exchange's `check()` results are recorded. A follow-up could record wire calls (for example from the stub `fetch`); this todo leaves T5's recorder unchanged.
+
+Still open: the two code-review rounds, which belong to the pull request. The writing review of the header and README copy has run.

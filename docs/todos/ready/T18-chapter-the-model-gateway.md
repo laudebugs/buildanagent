@@ -90,7 +90,7 @@ The book's build and `check:book` in the CI `book` job; the harness tests for an
 
 ## Risks and open questions
 
-- The second wire protocol in the T29 example runs through `@ai-sdk/anthropic` against a stub `fetch`, so a replay of it shows only the `check()` results, not the request and the answer: the transcript recorder attaches to `ai/test`'s mock model, which `createAnthropic` bypasses. Replay the scripted-model half, or ask for a follow-up that records wire calls.
+- A replay of the T29 example's second wire protocol shows only `check()` results, not the request and the answer. The protocol runs through `@ai-sdk/anthropic` against a stub `fetch`, and the transcript recorder attaches to `ai/test`'s mock model, which `createAnthropic` bypasses. Replay the scripted-model half, or ask for a follow-up that records wire calls.
 - A source may not answer the research question; record the gap as a follow-up research todo instead of answering from memory.
 - An analogy can mislead a newcomer more than no analogy; the vetting task and the "where it breaks" note catch it. A weak analogy is dropped, or goes back to the owner with a proposed replacement, instead of being forced in.
 
