@@ -1,7 +1,8 @@
 # Publishes @buildanagent/gateway and @buildanagent/sdk to npm through trusted publishing, with provenance, and keeps
 # the "Version packages" pull request up to date (publish-and-docs PB2, ADR 0047).
 #
-# - A push to main runs `plan`, which reads the checkout and the npm registry (scripts/ci/release-plan.mjs). With
+# - A push to main runs `plan`, which reads the checkout, the npm registry and the GitHub releases
+#   (scripts/ci/release-plan.mjs). With
 #   pending changesets, `version-pr` opens or updates the "Version packages" pull request; it is off until L4b.
 #   Merging that pull request is the next push to main: no changesets are pending, npm lacks the new version, so
 #   `pack` builds the tarballs and `publish` uploads them, tags the release and starts the docs deploy.
@@ -44,6 +45,9 @@ jobs:
         with:
           node-version-file: .nvmrc
       - id: plan
+        # GH_TOKEN is the run's read-only GITHUB_TOKEN, for the check that the GitHub release exists.
+        env:
+          GH_TOKEN: ${{ github.token }}
         # pipefail, because a `run` step without `shell:` doesn't set it, and a failed plan must fail the job.
         run: |
           set -o pipefail
@@ -154,7 +158,8 @@ jobs:
           name: release
           path: ${{ runner.temp }}/release
           if-no-files-found: error
-          retention-days: 7
+          # As long as the `release` environment can hold the publish job waiting for approval (30 days).
+          retention-days: 30
 
   # Uploads the tarballs to npm through trusted publishing. Only a push to main gets here, and the `release`
   # environment holds the job until the owner approves it. The job checks nothing out and installs nothing but npm.
@@ -199,7 +204,8 @@ jobs:
             if (major < 22 || (major === 22 && minor < 14)) throw new Error(`trusted publishing needs Node 22.14.0 or later, found ${process.version}`);
           '
           test "$(npm --version)" = "11.21.2"
-          if env | grep -iE '^(NODE_AUTH_TOKEN|NPM_TOKEN|NPM_CONFIG_[A-Z_]*AUTH[A-Z_]*|NPM_CONFIG_[A-Z_]*TOKEN[A-Z_]*)='; then
+          # Names only: printing a matching line would put its value, which may not be masked, in the log.
+          if env | cut -d= -f1 | grep -iE '^(NODE_AUTH_TOKEN|NPM_TOKEN|NPM_CONFIG_.*(AUTH|TOKEN).*)$'; then
             echo "::error::An npm token is set. release.yml publishes through trusted publishing only."
             exit 1
           fi
@@ -228,9 +234,18 @@ jobs:
             echo "The GitHub release $TAG already exists."
             exit 0
           fi
-          existing=$(gh api "repos/$REPO/git/ref/tags/$TAG" --jq .object.sha 2> /dev/null || true)
-          if [ -n "$existing" ] && [ "$existing" != "$GITHUB_SHA" ]; then
-            echo "::error::The tag $TAG already points at $existing, not $GITHUB_SHA."
+          # Branch on gh's exit status: on an error, gh prints the error body to stdout and skips --jq.
+          if ref=$(gh api "repos/$REPO/git/ref/tags/$TAG" --jq '.object.type + " " + .object.sha' 2> "$RUNNER_TEMP/tag-error"); then
+            read -r type existing <<< "$ref"
+            # An annotated tag's ref points at the tag object, so peel it to the commit.
+            if [ "$type" = "tag" ]; then existing=$(gh api "repos/$REPO/git/tags/$existing" --jq .object.sha); fi
+            if [ "$existing" != "$GITHUB_SHA" ]; then
+              echo "::error::The tag $TAG already points at $existing, not $GITHUB_SHA."
+              exit 1
+            fi
+          elif ! grep -q "HTTP 404" "$RUNNER_TEMP/tag-error"; then
+            cat "$RUNNER_TEMP/tag-error"
+            echo "::error::Couldn't tell whether the tag $TAG exists."
             exit 1
           fi
           gh release create "$TAG" --repo "$REPO" --target "$GITHUB_SHA" --title "$TAG" --notes-file "$RELEASE_DIR/release-notes.md"

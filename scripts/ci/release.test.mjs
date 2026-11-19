@@ -8,7 +8,14 @@ import path from "node:path";
 import { after, describe, test } from "node:test";
 import { fileURLToPath } from "node:url";
 import { parse } from "yaml";
-import { changelogSection, formatOutputs, isPublished, planRelease, releaseNotes } from "./release-plan.mjs";
+import {
+  changelogSection,
+  formatOutputs,
+  hasGitHubRelease,
+  isPublished,
+  planRelease,
+  releaseNotes,
+} from "./release-plan.mjs";
 
 const root = path.resolve(fileURLToPath(new URL("../..", import.meta.url)));
 const workflowText = readFileSync(path.join(root, ".github/workflows/release.yml"), "utf8");
@@ -61,7 +68,27 @@ describe("release.yml", () => {
     assert.ok(major > 11 || (major === 11 && (minor > 5 || (minor === 5 && patch >= 1))), "npm 11.5.1 or later");
     assert.match(runs, /test "\$\(npm --version\)" = "11\.21\.2"/);
     assert.ok(!publish.steps.some((step) => step.uses?.startsWith("actions/checkout")), "publish checks nothing out");
-    assert.doesNotMatch(runs, /pnpm|npm (ci|install) *\n/, "publish installs nothing but npm");
+    assert.doesNotMatch(runs, /pnpm/, "publish runs no pnpm");
+    const installs = runs.match(/\bnpm +(i|ci|install|add|isntall)\b.*$/gm) ?? [];
+    assert.deepEqual(installs, ["npm install --global npm@11.21.2"], "publish installs nothing but npm");
+  });
+
+  test("the token guard prints variable names, never values", () => {
+    const step = jobs.publish.steps.find((s) => s.name === "Check the toolchain and that no npm token is present");
+    assert.match(step.run, /env \| cut -d= -f1 \| grep /);
+  });
+
+  test("the tag step branches on gh's exit status and peels annotated tags", () => {
+    const step = jobs.publish.steps.find((s) => s.name === "Tag the release and create its GitHub release");
+    assert.doesNotMatch(step.run, /\|\| true/, "a failed lookup must not read as an answer");
+    assert.match(step.run, /if ref=\$\(gh api "repos\/\$REPO\/git\/ref\/tags\/\$TAG"/);
+    assert.match(step.run, /elif ! grep -q "HTTP 404"/);
+    assert.match(step.run, /gh api "repos\/\$REPO\/git\/tags\/\$existing" --jq \.object\.sha/);
+  });
+
+  test("the tarballs outlive the release environment's 30-day approval wait", () => {
+    const upload = jobs.pack.steps.find((s) => s.uses?.startsWith("actions/upload-artifact"));
+    assert.ok(upload.with["retention-days"] >= 30);
   });
 
   test("the publish job publishes packed tarballs, gateway first", () => {
@@ -130,11 +157,19 @@ describe("release-plan.mjs", () => {
     return dir;
   }
 
-  // A registry stub: `published` lists the names that exist at any version.
-  function registry(published = [], status) {
+  const repo = "laudebugs/buildanagent";
+
+  // A registry and GitHub stub: `published` lists the package names npm holds at any version, `releases` the tags
+  // GitHub has a release for, and `status` (or `githubStatus`) overrides every registry (or GitHub) answer.
+  function registry(published = [], status, { releases = [], githubStatus } = {}) {
     const calls = [];
-    const fetchImpl = async (url) => {
+    const fetchImpl = async (url, init) => {
       calls.push(url);
+      if (url.startsWith("https://api.github.com/")) {
+        calls.auth = init?.headers?.authorization;
+        if (githubStatus) return { status: githubStatus };
+        return { status: releases.some((tag) => url.endsWith(`/releases/tags/${tag}`)) ? 200 : 404 };
+      }
       if (status) return { status };
       return { status: published.some((name) => url.includes(name.replace("/", "%2f"))) ? 200 : 404 };
     };
@@ -173,9 +208,42 @@ describe("release-plan.mjs", () => {
     assert.deepEqual(partial.toPublish, ["@buildanagent/sdk"]);
     const both = await planRelease({
       root,
-      fetchImpl: registry(["@buildanagent/gateway", "@buildanagent/sdk"]).fetchImpl,
+      repo,
+      fetchImpl: registry(["@buildanagent/gateway", "@buildanagent/sdk"], undefined, { releases: ["v0.1.0"] })
+        .fetchImpl,
     });
     assert.equal(both.publish, false);
+    assert.match(both.reason, /release v0\.1\.0 exists/);
+  });
+
+  test("still tags the release when npm holds both packages but the GitHub release is missing", async () => {
+    const { fetchImpl, calls } = registry(["@buildanagent/gateway", "@buildanagent/sdk"]);
+    const plan = await planRelease({ root: fixture(), repo, token: "t", fetchImpl });
+    assert.equal(plan.publish, true);
+    assert.deepEqual(plan.toPublish, []);
+    assert.match(plan.reason, /v0\.1\.0 has no release/);
+    assert.ok(calls.includes("https://api.github.com/repos/laudebugs/buildanagent/releases/tags/v0.1.0"));
+    assert.equal(calls.auth, "Bearer t");
+  });
+
+  test("fails on a GitHub error, or without a repository, instead of guessing whether the release exists", async () => {
+    const published = ["@buildanagent/gateway", "@buildanagent/sdk"];
+    await assert.rejects(
+      planRelease({
+        root: fixture(),
+        repo,
+        fetchImpl: registry(published, undefined, { githubStatus: 502 }).fetchImpl,
+      }),
+      /answered 502/,
+    );
+    await assert.rejects(
+      hasGitHubRelease(repo, "v0.1.0", { fetchImpl: registry([], undefined, { githubStatus: 403 }).fetchImpl }),
+      /answered 403/,
+    );
+    await assert.rejects(
+      planRelease({ root: fixture(), fetchImpl: registry(published).fetchImpl }),
+      /GITHUB_REPOSITORY/,
+    );
   });
 
   test("fails on a registry error instead of reading it as unpublished", async () => {
@@ -184,7 +252,10 @@ describe("release-plan.mjs", () => {
   });
 
   test("refuses prereleases and mismatched versions", async () => {
-    await assert.rejects(planRelease({ root: fixture({ version: "0.2.0-beta.0" }), fetchImpl: registry().fetchImpl }));
+    await assert.rejects(
+      planRelease({ root: fixture({ version: "0.2.0-beta.0" }), fetchImpl: registry().fetchImpl }),
+      /not a plain x\.y\.z version/,
+    );
     const root = fixture();
     writeFileSync(
       path.join(root, "packages", "sdk", "package.json"),

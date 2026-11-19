@@ -1,5 +1,6 @@
-// Decides what release.yml does on a run, and writes the GitHub release notes. It reads only the checkout and the
-// public npm registry, and never runs package code, so the plan job needs no token.
+// Decides what release.yml does on a run, and writes the GitHub release notes. It reads only the checkout, the public
+// npm registry and the repository's GitHub releases, and never runs package code, so the plan job needs only the
+// run's read-only GITHUB_TOKEN.
 //
 //   node scripts/ci/release-plan.mjs plan          prints key=value lines for $GITHUB_OUTPUT
 //   node scripts/ci/release-plan.mjs notes <file>  writes the changelog section of the current version to <file>
@@ -8,7 +9,8 @@
 // - no package is `private` (L4a removes the field);
 // - the version isn't 0.0.0, the workspace's never-released version, so dropping `private` alone publishes nothing;
 // - no changeset is pending, because pending changesets belong in the "Version packages" pull request first;
-// - npm doesn't already hold every package at that version.
+// - npm doesn't already hold every package at that version, or it does but the GitHub release v<version> is missing,
+//   so a run that failed after the uploads can still tag the release.
 // release.yml adds the last condition itself: only a push to main publishes.
 import { existsSync, readdirSync, readFileSync, writeFileSync } from "node:fs";
 import path from "node:path";
@@ -17,6 +19,7 @@ import { fileURLToPath } from "node:url";
 // Publish order matters: the SDK depends on the gateway, so the gateway goes first.
 export const RELEASE_ORDER = ["gateway", "sdk"];
 const REGISTRY = "https://registry.npmjs.org";
+const GITHUB_API = "https://api.github.com";
 const STABLE = /^\d+\.\d+\.\d+$/;
 
 function readManifest(root, dir) {
@@ -40,8 +43,21 @@ export async function isPublished(name, version, fetchImpl = fetch) {
   throw new Error(`${url} answered ${response.status}; can't tell whether ${name}@${version} is published`);
 }
 
-/** Works out the release plan for the checkout at `root`. */
-export async function planRelease({ root, fetchImpl = fetch }) {
+/** Asks GitHub whether `repo` has a release for `tag`: true on 200, false on 404, and an error on anything else. */
+export async function hasGitHubRelease(repo, tag, { token, fetchImpl = fetch } = {}) {
+  const url = `${GITHUB_API}/repos/${repo}/releases/tags/${encodeURIComponent(tag)}`;
+  const headers = { accept: "application/vnd.github+json", ...(token ? { authorization: `Bearer ${token}` } : {}) };
+  const response = await fetchImpl(url, { headers });
+  if (response.status === 200) return true;
+  if (response.status === 404) return false;
+  throw new Error(`${url} answered ${response.status}; can't tell whether the release ${tag} exists`);
+}
+
+/**
+ * Works out the release plan for the checkout at `root`. `repo` is the `owner/name` whose GitHub releases it checks,
+ * and `token` authenticates that request.
+ */
+export async function planRelease({ root, repo, token, fetchImpl = fetch }) {
   const packages = RELEASE_ORDER.map((dir) => {
     const manifest = readManifest(root, dir);
     return { dir, name: manifest.name, version: manifest.version, private: manifest.private === true };
@@ -76,7 +92,19 @@ export async function planRelease({ root, fetchImpl = fetch }) {
   for (const pkg of packages) {
     if (!(await isPublished(pkg.name, version, fetchImpl))) toPublish.push(pkg.name);
   }
-  if (toPublish.length === 0) return skip(`npm already holds every package at ${version}`);
+  if (toPublish.length === 0) {
+    if (!repo) throw new Error("set GITHUB_REPOSITORY to owner/name, so the plan can check the GitHub release");
+    if (await hasGitHubRelease(repo, base.tag, { token, fetchImpl })) {
+      return skip(`npm already holds every package at ${version}, and the release ${base.tag} exists`);
+    }
+    // An earlier run uploaded both packages but stopped before the release; the publish job skips what npm holds.
+    return {
+      ...base,
+      publish: true,
+      reason: `npm holds every package at ${version}, but ${base.tag} has no release`,
+      toPublish,
+    };
+  }
   return { ...base, publish: true, reason: `npm doesn't hold ${toPublish.join(" and ")} at ${version}`, toPublish };
 }
 
@@ -122,7 +150,7 @@ export function formatOutputs(plan) {
 async function main([command, arg]) {
   const root = process.cwd();
   if (command === "plan") {
-    const plan = await planRelease({ root });
+    const plan = await planRelease({ root, repo: process.env.GITHUB_REPOSITORY, token: process.env.GH_TOKEN });
     console.log(formatOutputs(plan));
   } else if (command === "notes" && arg) {
     const { version } = readManifest(root, RELEASE_ORDER[0]);
