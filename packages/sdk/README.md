@@ -2,7 +2,7 @@
 
 The SDK runs your agent's loop over [`@buildanagent/gateway`](../gateway/README.md): it calls the model, runs the tools the model asks for, and stops when the work is done. Its testing export lets you test that agent offline against a scripted model, with no API key.
 
-As of November 2026 the package holds the loop, tool definitions, hooks and the testing export. Approvals and budgets come next.
+As of November 2026 the package holds the loop, tool definitions, hooks and the testing export. Approvals come next.
 
 ## Install the alpha with `pnpm add @buildanagent/sdk@alpha`
 
@@ -42,10 +42,11 @@ A failed model call or a failing tool never makes a run throw. The run ends with
 
 - **`done`**: the model answered without calling a tool, or an output tool accepted its answer. A text answer cut off at `maxOutputTokens` also ends `done`, so check whether the last message's `stopReason` is `"length"` before you show it as complete.
 - **`max_steps`**: the run made `maxSteps` model calls, 20 by default, and the model still wanted to go on. The run also emits a `warning` event with `code: "max_steps"`, so a cap that cut a run short shows up in your logs.
-- **`error`**: a model call failed. `result.error` copies the failure's `kind`, `message` and HTTP `status`. Its `kind` is `overflow` for a request too large for the model's window, `quota` for an account out of credit, `retryable` for a temporary failure that outlasted the gateway's retries, `hook` for an interceptor that threw while the run fails closed, and `fatal` otherwise.
+- **`error`**: a model call failed. `result.error` copies the failure's `kind`, `message` and HTTP `status`. Its `kind` is `overflow` for a request too large for the model's window, `quota` for an account out of credit, `retryable` for a temporary failure that outlasted the gateway's retries, `hook` for an interceptor that threw while the run fails closed, `unknown_price` for a budgeted run that can't price a call, and `fatal` otherwise.
 - **`aborted`**: you aborted the run.
 - **`stopped`**: a tool from `clarificationTool()` asked the user a question, and `result.stoppedBy` is `"clarification"`; or a `shouldStop` hook ended the run, and `result.stoppedBy` is the reason it gave.
-- **`no_progress`**: a `shouldStop` hook ended the run with `{ stop: "no_progress", reason }`, and `result.reason` repeats the reason.
+- **`no_progress`**: the default progress policy found the model repeating a failing call, or a `shouldStop` hook ended the run with `{ stop: "no_progress", reason }`. `result.reason` says why.
+- **`budget`**: the next call could have taken the run past `budgetUsd`, so the run ended without making it. `result.spentUsd`, `result.projectedUsd` and `result.budgetUsd` give the numbers.
 
 `maxSteps` counts model calls, so an output call that fails its schema spends one of them. The tool calls of the last allowed response still run, so every call in the transcript has a result.
 
@@ -68,6 +69,52 @@ const result = await runOrThrow(run({ model, system, input }));
 `run.abort(reason)` stops a run, and so does the `signal` option. A model call in flight ends, and a running tool sees its `ctx.signal` fire. The run waits for that tool to return, so pass the signal on to your own I/O. Calls that haven't started get an error result instead of running.
 
 An aborted run's transcript stays well formed: every tool call has a result, and the last message is an assistant message with `stopReason: "aborted"`. When tool results would end the transcript, because the abort came while tools ran or cut off a response that held tool calls, the loop appends an empty aborted message after them. Each gateway adapter drops it before the next request, so the transcript can be sent again as it is.
+
+## Three guards stop a runaway run
+
+A run that loops or overspends costs real money, so the SDK ships three guards. Each is an option of `run()` and `continueRun()`, and the table gives its default (the budget has none).
+
+| Guard | Default | Change it with |
+| --- | --- | --- |
+| USD budget | none | `budgetUsd: 5` |
+| Progress policy | 3 identical failing calls, or 5 calls on one `progressKey` | `progress: { maxIdenticalFailures, maxSameKeyCalls }`, or `progress: false` |
+| Depth cap | `maxDepth` 2 | `depth` and `maxDepth` |
+
+These numbers are provisional. Recorded runs will retune them.
+
+### `budgetUsd` checks the cost before each call
+
+Before every model call, the run projects the most that call can cost and compares the spend so far plus that projection with `budgetUsd`. If the call could pass the cap, the run ends with `stopReason: "budget"` and never sends it. The projection comes from the gateway's `projectCallCost()`: the previous call's reported input, plus a character-based estimate of the messages added since, at the model's input rate, plus the call's `maxOutputTokens` (or the model's own limit) at its output rate. The SDK re-exports the function, so code that calls `Model.complete()` outside the loop projects with the same formula.
+
+Because the projection assumes the model may use its whole output allowance, the run stops early rather than late.
+
+On the SDK's scripted 30-step run, with caps placed just above the spend after `k` calls, the pre-emptive check overshot the cap by $0 on every cap and sent 9.3 calls on average. A check that runs after each response overshot by $0.0105 on average, almost the whole call that crossed the cap. The cost of the early stop is cap left unspent: $0.054 on average in that run, set by how far `maxOutputTokens` sits above the output the model actually writes. Lower `maxOutputTokens` in `modelOptions` to tighten the projection.
+
+The cap counts the calls the run itself makes. A `continueRun()` does not count the cost of the context it starts from.
+
+A run with a budget needs a price for every call. If the model's price is unknown, the run ends `error` with `error.kind: "unknown_price"` before its first call, and so does a run whose earlier call came back with an unknown cost. Add the model to a catalog you pass to `createModel()`, or drop the budget.
+
+### The progress policy ends a run that repeats a failing call
+
+The policy reads the run's transcript after each step, after your own `shouldStop` hook. It ends the run `no_progress` in two cases:
+
+- **Identical failures.** The latest three tool calls name one tool, carry one input, and each returned an error. Inputs compare by `canonicalInputHash()`, so `{a, b}` and `{b, a}` are the same input. A successful call, or a call to another tool, breaks the streak.
+- **One key.** A tool declares `progressKey(input)`, such as a file path plus a line, and five calls to it return that key with no success between them. A success with that key starts the count again, and calls with other keys do not affect it. The inputs may differ, which is how it catches a model that keeps rewording a failing edit. The function receives the input exactly as the model sent it, so it must cope with any shape; a key that throws or isn't a string leaves that call out of the count.
+
+Your own `shouldStop` runs first and its stop wins, but neither its `{ continue }` nor a throw under `onFailure: "continue"` can keep a stuck run going. Pass `progress: { maxIdenticalFailures: 2 }` to tighten a threshold, or `progress: false` to turn the policy off. A `continueRun()` counts only the calls it makes, so you can continue a run that ended `no_progress` after you change what the model sees.
+
+### `depth` and `maxDepth` stop a tree of agents
+
+Every tool receives `ctx.depth` (0 for a top-level run) and `ctx.maxDepth` (2 by default). A tool that starts its own agent passes the next level down with `nestedRunDepth(ctx)`:
+
+```ts
+async execute(input, ctx) {
+  const child = run({ model, system, input: input.task, signal: ctx.signal, budgetUsd: 0.5, ...nestedRunDepth(ctx) });
+  return { content: [{ type: "text", text: (await child.result).stopReason }] };
+}
+```
+
+Pass `signal: ctx.signal` so the child stops when the parent's call is aborted. The parent's `budgetUsd` counts only the parent's own model calls, so give each child a budget of its own. A tool running at `depth === maxDepth` that starts a child run this way makes `run()` throw `max_depth_exceeded`. Since the throw happens inside `execute`, the model reads it as an error result and can answer without the sub-agent.
 
 ## A run streams one closed set of events
 
@@ -231,9 +278,10 @@ Every tool gets a `ctx.signal` that fires when the run is aborted. It also fires
 
 The SDK throws only for programmer errors, never for a failure the model caused. `isSdkError(error)` recognises the error, and its `code` says why:
 
-- **`invalid_tool_definition`**: a tool's name, description, schema, exposure, `executionMode` or `resourceKey` is unusable, or two tools share a name.
+- **`invalid_tool_definition`**: a tool's name, description, schema, exposure, `executionMode`, `resourceKey` or `progressKey` is unusable, or two tools share a name.
 - **`invalid_tool_result`**: `execute` returned something other than a tool result, or an invalid outcome. A text block needs a string `text`, and an image block a string `mediaType` and `data`. The run's `result` rejects with this error, and iterating the run throws it after the last event.
-- **`invalid_run_options`**: `run()` or `continueRun()` got a model that isn't from `createModel()`, a `maxSteps` that isn't a positive integer, or an output tool whose `exposure` isn't `"direct"`.
+- **`invalid_run_options`**: `run()` or `continueRun()` got a model that isn't from `createModel()`, a `maxSteps` that isn't a positive integer, an output tool whose `exposure` isn't `"direct"`, a `budgetUsd` that isn't a non-negative number, a `progress` threshold that isn't a positive integer, or a `depth` or `maxDepth` that isn't a whole number.
+- **`max_depth_exceeded`**: a tool started a run nested deeper than `maxDepth` allows.
 - **`invalid_model_stream`**: a model's stream ended without a final message, which only a broken adapter does.
 Hooks add two `SdkError` codes:
 

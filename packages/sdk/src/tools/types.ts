@@ -154,6 +154,14 @@ export interface ToolDefinition<I = unknown, S = unknown> {
    * deterministic and return a string, and it receives the validated input.
    */
   resourceKey?(input: I): string;
+  /**
+   * Names what a call works on, such as a file path and a line range, so the run can tell that the model keeps
+   * retrying the same thing. By default, five calls to this tool with one key, none of them successful, end the run
+   * `no_progress`; a successful call with that key starts the count again. It receives the model's input as sent,
+   * before validation, so it must cope with any shape, and its parameter is `unknown` for that reason. A key that throws or
+   * isn't a string leaves the call unkeyed.
+   */
+  progressKey?(input: unknown): string;
   /** Hints about the tool, such as `readOnlyHint`. They affect scheduling only when `firstParty` is true. */
   readonly annotations?: ToolAnnotations;
   /**
