@@ -18,7 +18,7 @@ The summary request needs exactly one model call. Your code sends the ticket and
 [[lst:one-call]] makes that call with the Vercel AI SDK's `generateText`. Read it as a request and a reply.
 
 :::listing[One model call: your code sends one request and reads one answer]{#one-call file="verify/vercel-ai-sdk/examples/01-generate-text.ts" region="call" replay}
-::note[`scripted` builds a mock model that plays back the answer written here, so the call needs no key and sends nothing over the network. [How these examples run without a key](#how-these-examples-run-without-a-key), near the end of this chapter, explains how.]{#mock}
+::note[`scripted` builds a mock model that plays back the answer written here, so the call needs no key and sends nothing over the network. The box [How these examples run without a key](#how-these-examples-run-without-a-key), near the end of this chapter, explains how.]{#mock}
 ::note[One request: `instructions` reach the model as the system message and `prompt` as the user's message.]{#request}
 ::note[`result.finishReason` is `"stop"`: the model ended its answer on its own instead of asking for anything.]{#finish}
 :::
@@ -131,8 +131,7 @@ OpenAI's guide to building agents asks a different question, and it uses one of 
 
 The shapes also combine, and we recommend combining them. A real order-status feature need not be a loop from end to end. Your code can check who is asking and load their orders before any model call, run one capped loop for the part where the next lookup depends on the last, and send the reply itself once the loop ends. Everything that must happen the same way every time stays in code, and the model decides only the steps that no one could write down in advance. That split is the least autonomy that works, and it is the habit this book builds on from here.
 
-## How these examples run without a key
-
+:::box[How these examples run without a key]{#how-these-examples-run-without-a-key top}
 Every listing in this book runs against a mock model, so you can run each one yourself with no API key and no bill. A pilot practises an engine fire in :analogy[a flight simulator]{#flight-simulator}, where the fire breaks out exactly when the instructor scripted it and nobody gets hurt. A mock model plays the same part for code: it stands in for the provider and plays back answers written in advance. The AI SDK's testing guide names the problem it solves, "Testing language models can be challenging, because they are non-deterministic and calling them is slow and expensive", and the SDK ships mock models for it, `MockLanguageModelV4` among them [@ai-sdk-testing].
 
 ::listing[The scripted mock behind this chapter's AI SDK listings]{#scripted-mock file="verify/vercel-ai-sdk/examples/lib/check.ts" region="scripted"}
@@ -140,6 +139,7 @@ Every listing in this book runs against a mock model, so you can run each one yo
 [[lst:scripted-mock]] wraps that mock model in a helper of our own. `scripted` takes a list of turns, each either text or a set of tool calls, plays them back in order, and records every request the code sends in `requests`. When the loop asks for a turn the script lacks, the helper throws, so an example fails if its loop makes more model calls than you planned. The other harnesses follow the same plan with their own parts: the ADK listing's `ScriptedLlm`{checked=row-68} subclasses ADK's model class, because ADK 2.5.0 ships no test model, and Pi's listing runs on pi-ai's own faux provider. Each of these three harnesses also records every example's run, and CI fails when a recording no longer matches its code, so the replays in this chapter show what the code really does today.
 
 Mocks part company with simulators where a simulator is at its best. A flight simulator models the aircraft and answers whatever the pilot does, but a scripted mock can give only the answers someone wrote for it in advance. A passing example therefore proves that your code handles the answers you scripted; it cannot prove that a real model will give them. [[ch:testing-offline-and-a-first-agent]] covers what such tests can and cannot show.
+:::
 
 ## Exercises
 
