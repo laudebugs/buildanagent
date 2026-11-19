@@ -897,10 +897,13 @@
    border, so a listing in it keeps its own panel. In print the border takes the muted text colour, which a printer
    keeps where the rule colour can fade, and the title stays with the text after it. */
 
+/* The rule colour is decorative (1.3:1 and 1.39:1 on the page), so the box's boundary is its left rule in the muted
+   text colour, 7.22:1 on the light page and 6.94:1 on the dark one (book-tokens.json, nonText; WCAG 1.4.11). */
 .box {
   margin: 2rem 0;
   padding: 1.1rem 1.25rem 0.1rem;
   border: 1px solid var(--color-rule);
+  border-left: 4px solid var(--color-text-muted);
   border-radius: 6px;
   background-color: var(--color-background);
   color: var(--color-text);

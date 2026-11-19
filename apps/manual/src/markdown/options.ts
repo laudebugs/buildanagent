@@ -3,6 +3,7 @@ import remarkDirective from "remark-directive";
 import type { Book } from "../book/load.js";
 import { rehypeAnalogyFigures } from "./rehype-analogy-figures.js";
 import { rehypeNumbering } from "./rehype-numbering.js";
+import { rehypeUniqueIds } from "./rehype-unique-ids.js";
 import { remarkBookDirectives } from "./remark-book-directives.js";
 import { remarkChapterContract } from "./remark-chapter-contract.js";
 import { remarkCheckedCode } from "./remark-checked-code.js";
@@ -31,6 +32,8 @@ export function markdownOptionsFor(book: Book): UnifiedProcessorOptions {
     rehypePlugins: [
       [rehypeNumbering, { book }],
       [rehypeAnalogyFigures, { book }],
+      // Last, once every id is in place.
+      rehypeUniqueIds,
     ],
   };
 }

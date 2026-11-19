@@ -373,6 +373,48 @@ const cases: readonly Case[] = [
     file: `${FIRST}:37`,
     message: /a box may hold no heading and no other box/,
   },
+  // Ids: a box's id must not repeat any other id on the page (H2 of PR #99's review).
+  {
+    rule: "a box whose id is a heading's slug fails",
+    change: firstChapter((t) => t.replace("## Exercises", ":::box[A box]{#exercises}\nText.\n:::\n\n## Exercises")),
+    file: `${FIRST}:40`,
+    message: /the id "exercises" is used twice on the page, by a box and by a heading/,
+  },
+  {
+    rule: "a box whose id is a listing's id fails",
+    change: (dir) =>
+      edit(dir, SECOND, (t) => t.replace("## Exercises", ":::box[A box]{#lst-greet}\nText.\n:::\n\n## Exercises")),
+    file: `${SECOND}:20`,
+    message: /the id "lst-greet" is used twice on the page, by the listing "greet" and by a box/,
+  },
+  {
+    rule: "a box whose id is a figure's id fails",
+    change: firstChapter((t) =>
+      t.replace("## Exercises", ":::box[A box]{#fig-ticket-rail}\nText.\n:::\n\n## Exercises"),
+    ),
+    file: `${FIRST}:36`,
+    message: /the id "fig-ticket-rail" is used twice on the page, by the figure "ticket-rail" and by a box/,
+  },
+  {
+    rule: "two boxes with one id fail",
+    change: firstChapter((t) =>
+      t.replace("## Exercises", ":::box[One]{#a-box}\nText.\n:::\n\n:::box[Two]{#a-box}\nText.\n:::\n\n## Exercises"),
+    ),
+    file: `${FIRST}:40`,
+    message: /the id "a-box" is used twice on the page, by a box and by a box/,
+  },
+  {
+    rule: "a box after the exercises fails",
+    change: firstChapter((t) => `${t.trimEnd()}\n\n:::box[Late]{#late}\nText.\n:::\n`),
+    file: `${FIRST}:40`,
+    message: /the "Exercises" section holds only its list; move the :::box above "## Exercises"/,
+  },
+  {
+    rule: "a paragraph after the exercises fails",
+    change: firstChapter((t) => `${t.trimEnd()}\n\nA closing word.\n`),
+    file: `${FIRST}:40`,
+    message: /the "Exercises" section holds only its list; move the paragraph above "## Exercises"/,
+  },
   // Generated figures and analogy illustrations (BK11, BK22).
   {
     rule: "a figure whose drawing has no alt text fails with its line",

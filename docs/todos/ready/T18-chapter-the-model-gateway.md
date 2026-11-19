@@ -49,7 +49,7 @@ Write the chapter "The model gateway: one streaming method, retries, prompt cach
 
 **Out of scope** (and which todo covers it)
 
-- Moving the listings to our own packages: a follow-up todo once its switch todos (B4, B5, B8, B9) are done (BK8)
+- Adding our own packages' listings as tabs beside the third-party ones: a follow-up todo once its switch todos (B4, B5, B8, B9) are done (BK8)
 - New research: a gap becomes a follow-up research todo
 
 ## Tasks

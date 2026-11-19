@@ -146,7 +146,7 @@ Chapters cite with `[@claw-swe-bench]`, which the build turns into a link to `/s
 
 ### BK8. Code from `verify/` now, our own SDK as its todos land (accepted)
 
-**The owner's decision (2026-11-19):** "Code: the verified SDK examples in verify/ now (they are type-checked and run offline against mock models); switch chapters to our own SDK (packages/) as its todos land."
+**The owner's decision (2026-11-19), amended the same day (see below):** "Code: the verified SDK examples in verify/ now (they are type-checked and run offline against mock models); switch chapters to our own SDK (packages/) as its todos land." The amendment keeps the `verify/` listings and adds our SDK's as tabs, so the switch this quote names no longer applies.
 
 **The owner's decision (2026-11-19): our SDK joins as tabs, and the third-party listings stay.** Asked whether T50 should replace Chapter 1's listings with our SDK's or keep them in tabs beside ours, the owner chose the tabs: "we'll add our SDK as functionality becomes available." It amends the first decision, which said to switch chapters to our own SDK. A chapter keeps each third-party listing, and once our SDK supports what a listing shows, the chapter turns it into a `:::tabs` block whose first tab is our SDK's listing (BK9's tier 2). A listing our SDK cannot show yet stays as it is until the feature lands.
 

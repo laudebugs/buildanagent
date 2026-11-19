@@ -12,7 +12,8 @@ const plain = (node: RootContent): string =>
 /**
  * Checks the chapter contract before any other plugin runs: the file is a chapter in the outline, its front matter
  * passes the strict schema, it opens with the outline's planned type, every source and glossary id it lists exists,
- * and its last section is "Exercises" with a list in it. The layout adds the source list after the exercises.
+ * and its last section is "Exercises" holding a list and nothing else. The layout adds the source list after the
+ * exercises.
  */
 export function remarkChapterContract(options: { readonly book: Book }) {
   const { book } = options;
@@ -65,4 +66,20 @@ function checkExercises(tree: Root, file: VFile): void {
   if (!after.some((node) => node.type === "list")) {
     failAt(file, 'the "Exercises" section needs a list of exercises', last);
   }
+  // A box or a paragraph after the list would render inside the Exercises section, which holds only the exercises.
+  const stray = after.find((node) => node.type !== "list");
+  if (stray !== undefined) {
+    failAt(
+      file,
+      `the "Exercises" section holds only its list; move the ${described(stray)} above "## Exercises"`,
+      stray,
+    );
+  }
+}
+
+/** A node as a writer knows it, for an error message: `:::box`, `::listing` or the node's type. */
+function described(node: RootContent): string {
+  if (node.type === "containerDirective") return `:::${node.name}`;
+  if (node.type === "leafDirective") return `::${node.name}`;
+  return node.type;
 }

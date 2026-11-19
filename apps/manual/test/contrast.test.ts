@@ -76,7 +76,7 @@ test("every text colour on a page or panel has a recorded pair against its backg
   }
 });
 
-test("focus rings reach 3:1 on the page and the panel in both modes, as recorded", () => {
+test("focus rings and the box's left rule reach 3:1 in both modes, as recorded", () => {
   for (const pair of tokens.color.nonText.contrast) {
     const ratio = contrastRatio(qualified(pair.color), qualified(pair.on));
     const name = `${pair.color} on ${pair.on}`;
@@ -107,4 +107,20 @@ test("the contrast formula gives WCAG's reference values", () => {
   assert.equal(contrastRatio("#000000", "#FFFFFF"), 21);
   assert.equal(contrastRatio("#777777", "#777777"), 1);
   assert.equal(roundRatio(contrastRatio("#767676", "#ffffff")), 4.54);
+});
+
+// A box's only boundary must not be a decorative colour: its left rule takes a token whose pairs in nonText reach 3:1
+// on the page in both modes (WCAG 1.4.11).
+test("a box's left rule uses a colour recorded at 3:1 or more on the page in both modes", () => {
+  const components = readFileSync(new URL("../src/styles/components.css", import.meta.url), "utf8");
+  const rule = /\n\.box \{([^}]*)\}/.exec(components)?.[1] ?? "";
+  const token = /border-left:[^;]*var\(--color-([a-z-]+)\)/.exec(rule)?.[1];
+  assert.ok(token, "the .box rule sets a border-left colour from a --color- token");
+  const key = token.replace(/-([a-z])/g, (_, letter: string) => letter.toUpperCase());
+  for (const mode of ["light", "dark"]) {
+    const pair = tokens.color.nonText.contrast.find((found) => found.color === `${mode}.${key}`);
+    assert.ok(pair, `nonText records ${mode}.${key}, the box's left rule`);
+    assert.equal(pair.on, `${mode}.background`);
+    assert.ok(contrastRatio(qualified(pair.color), qualified(pair.on)) >= NON_TEXT_MINIMUM);
+  }
 });

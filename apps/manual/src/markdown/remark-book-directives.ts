@@ -171,18 +171,32 @@ function mergeText(parent: Parent): void {
 
 /**
  * The heading level of each `:::tabs` block's tab headings and each `:::box`'s title: one below the heading the block
- * follows, so the headings keep the page's outline without JavaScript. A block before the chapter's first heading sits
- * under the chapter's title, a level-1 heading, so its headings are level 2. Levels stop at 6.
+ * follows, so the headings keep the page's outline without JavaScript. A box's title counts as a heading for what the
+ * box holds, so tabs inside a box under a level-2 heading get level-4 tab headings, below the box's level-3 title. A
+ * block before the chapter's first heading sits under the chapter's title, a level-1 heading, so its headings are
+ * level 2. Levels stop at 6.
  */
 function nestedHeadingDepths(tree: Root): Map<RootContent, number> {
   const depths = new Map<RootContent, number>();
   let current = 1;
-  visit(tree, (node) => {
-    if (node.type === "heading") current = node.depth;
-    if (node.type === "containerDirective" && (node.name === "tabs" || node.name === "box")) {
-      depths.set(node, Math.min(current + 1, 6));
+  const visitAll = (parent: Parent): void => {
+    for (const node of parent.children) {
+      if (node.type === "heading") current = node.depth;
+      const nests = node.type === "containerDirective" && (node.name === "tabs" || node.name === "box");
+      if (nests) depths.set(node, Math.min(current + 1, 6));
+      if (!("children" in node)) continue;
+      if (node.type === "containerDirective" && node.name === "box") {
+        // A box holds no heading, so the level after it is the one before it.
+        const outside = current;
+        current = Math.min(current + 1, 6);
+        visitAll(node);
+        current = outside;
+      } else {
+        visitAll(node);
+      }
     }
-  });
+  };
+  visitAll(tree);
   return depths;
 }
 
