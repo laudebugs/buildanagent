@@ -11,15 +11,15 @@
 
 ## Goal
 
-Move the listings of Chapter 1, "Use the least autonomy that works: a call, a workflow, then a loop" (`call-workflow-loop`), from the `verify/` examples onto `@buildanagent/gateway` and `@buildanagent/sdk`. BK8 says the chapters list `verify/` code until our own packages can show the same thing, and that the pull request which completes a chapter's last `switchTo` todo opens this follow-up. Chapter 1's only `switchTo` todo is B11, the loop core, and `book:switch-report` now prints "Chapter 1 (call-workflow-loop): B11 done; ready to move to our own packages." The reader then learns the loop from the code the rest of the book builds on.
+Move the listings of Chapter 1, "Use the least autonomy that works: a call, a workflow, then a loop" (`call-workflow-loop`), from the `verify/` examples onto `@buildanagent/gateway` and `@buildanagent/sdk`. BK8 says the chapters list `verify/` code until our own packages can show the same thing. It also says that the pull request which completes a chapter's last `switchTo` todo opens this follow-up. Chapter 1's only `switchTo` todo is B11, the loop core, and `book:switch-report` now prints "Chapter 1 (call-workflow-loop): B11 done; ready to move to our own packages." The reader then learns the loop from the code the rest of the book builds on.
 
 ## Context
 
 - [Book plan BK8](../../plans/build-book.md#bk8-code-from-verify-now-our-own-sdk-as-its-todos-land-accepted): the switch rule, and the note that this todo first widens the listing rule to name `packages/`.
 - [Book plan BK9's T4 result](../../plans/build-book.md#bk9-listings-come-from-real-regions-and-become-interactive-in-three-tiers-accepted-the-mechanism-is-proposed): a listing must sit in a harness that `apps/manual/src/data/harnesses.json` lists, with an exact pin, so a listing from `packages/` fails today as "in no harness".
 - [T10's Outcome](../done/T10-chapter-call-workflow-loop.md#outcome): the chapter's six listings, its four replays, its figures and its fact-check log.
-- [B11's Outcome](../done/B11-loop-core.md#outcome): what the loop core delivered. `run()`, `runOrThrow()`, the `RunResult` union with its stop reasons, the closed `AgentEvent` union, and `maxSteps`, which defaults to 20 and counts model calls.
-- `packages/sdk/README.md`, `packages/gateway/README.md` and `packages/sdk/examples/`: the existing order-agent example, which `packages/sdk/test/examples.test.ts` runs, shows how our examples are written and run offline.
+- [B11's Outcome](../done/B11-loop-core.md#outcome): what the loop core delivered: `run()`, `runOrThrow()`, the `RunResult` union with its stop reasons, the closed `AgentEvent` union, and `maxSteps`, which defaults to 20 and counts model calls.
+- `packages/sdk/README.md`, `packages/gateway/README.md` and `packages/sdk/examples/`: the existing order-agent example, which `packages/sdk/test/examples.test.ts` runs, shows how we write our examples and run them offline.
 - `apps/manual/src/book/transcripts.ts` and `scripts/transcripts/`: the transcript format a replay reads, which today only `verify/*/results/transcripts/` supplies.
 
 ## Scope
@@ -37,20 +37,20 @@ Each listing in `apps/manual/src/content/chapters/call-workflow-loop.md`, and wh
 | `#scripted-mock` | `verify/vercel-ai-sdk/examples/lib/check.ts`, region `scripted` | `ScriptedModel` from `@buildanagent/sdk/testing` (B3) |
 
 - New examples under `packages/sdk/examples/` (or `packages/gateway/examples/` for the one call), with `// #region` and `// book:note` markers, run offline by the package's `test`.
-- Widen the listing rule so a listing may come from `packages/`: the coverage check, the harness table or a sibling table, and the caption's pin, which for our packages is the workspace version (`0.1.0-alpha.4` as of November 2026) rather than an exact third-party pin.
-- Transcripts for the new examples in the format of `scripts/transcripts/events.ts`, recorded by the package's tests and committed beside them, so the three replays keep working, and the results-drift check covers them.
-- The prose around each listing, its notes, the inline code that names `generateText`, `stopWhen`, `SequentialAgent` or `LoopAgent` (each must resolve again under BK17), the exercises, and the "How these examples run without a key" section.
+- Widen the listing rule so a listing may come from `packages/`, in three places: the coverage check, the harness table (or a sibling table) and the caption's pin. For our packages, the pin is the workspace version (`0.1.0-alpha.4` as of November 2026) rather than an exact third-party pin.
+- Transcripts for the new examples, in the format of `scripts/transcripts/events.ts`, recorded by the package's tests and committed beside those tests. The transcripts keep the three replays working, and the results-drift check covers them.
+- The prose around each listing and its notes, the exercises, the "How these examples run without a key" section, and the inline code that names `generateText`, `stopWhen`, `SequentialAgent` or `LoopAgent`, each of which must resolve again under BK17.
 - `figures/call-workflow-loop/loop-bench.ts`: it lights six steps in the order of the AI SDK loop's transcript, so check that order against the new transcript and redraw if it differs.
 
 **Out of scope** (and which todo covers it)
 
-- `#pi-hello` (`verify/pi/examples/01-hello-session.ts`): the chapter shows a harness keeping a session and bringing its own tools, which our harness does only once its session runner lands ([N6](N6-session-runner.md)). The listing stays on Pi; a later todo moves it, and the chapter's `switchTo` gains N6 if the owner wants that.
+- `#pi-hello` (`verify/pi/examples/01-hello-session.ts`): the chapter shows a harness keeping a session and bringing its own tools, which our harness does only once its session runner lands ([N6](N6-session-runner.md)). The listing stays on Pi until a later todo moves it; if the owner wants that move, the chapter's `switchTo` gains N6.
 - The other chapters' listings: each moves in its own follow-up when its `switchTo` todos are done.
 
 ## Tasks
 
 - [ ] Widen the listing rule to accept `packages/`, with a test for a listing from `packages/sdk/examples/` and one for a file in no package, and update `apps/manual/README.md` and BK9's T4 result.
-- [ ] Add the recorder for our packages' examples, writing transcripts in the existing format, and commit the transcripts.
+- [ ] Add a transcript recorder for our packages' examples, writing transcripts in the existing format, and commit the transcripts.
 - [ ] Write the five replacement examples with their regions and notes, each run offline by the package's `test`.
 - [ ] Switch each listing in the table above, rewrite its notes and the prose that names AI SDK or ADK identifiers, and keep each replay.
 - [ ] Rewrite the exercises for `run()` and `maxSteps`, and keep the call-count prediction.
@@ -80,8 +80,8 @@ The listing-rule tests in `apps/manual/test/`, the new examples in `packages/sdk
 
 ## Risks and open questions
 
-- The comparison with other SDKs is part of what Chapter 1 teaches. Dropping the AI SDK and ADK listings may lose that; tabs could keep one of them beside ours. The owner decides.
-- Our packages are alpha (`0.1.0-alpha.4` as of November 2026), so their APIs may change under the chapter; the type-check and the results-drift check catch that, but each change then needs a chapter update.
+- The comparison with other SDKs is part of what Chapter 1 teaches. Dropping the AI SDK and ADK listings may lose that comparison; tabs could keep one of them beside ours. The owner decides.
+- Our packages are alpha (`0.1.0-alpha.4` as of November 2026), so their APIs may change under the chapter. The type-check and the results-drift check catch each change, but each one then needs a chapter update.
 - The replay recorder is new code; if it grows past this todo, split it into its own todo that this one depends on.
 
 ## Definition of done
