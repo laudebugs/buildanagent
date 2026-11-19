@@ -34,7 +34,7 @@ for await (const event of started) {
 const result = await started.result;
 ```
 
-`model` comes from `createModel()` in the gateway, and a bare model id is a type error. The run makes its tool calls one at a time, in the order the model sent them. A tool whose `exposure` is `"deferred"` or `"hidden"` is never sent to the model, and a call to it gets the unknown-tool error.
+`model` comes from `createModel()` in the gateway, and a bare model id is a type error. A tool whose `exposure` is `"deferred"` or `"hidden"` is never sent to the model, and a call to it gets the unknown-tool error.
 
 ### Every run ends with a stop reason
 
@@ -161,11 +161,21 @@ The model reads the outcome first, as a sentence and as JSON, and then your cont
 
 `clarificationTool()` gives the model a tool named `ask_user` that takes one `question`. Pass `{ name }` to call it something else. Once the model calls it, the run ends with `stopReason: "stopped"` and `stoppedBy: "clarification"`, and the question is the call's input in `result.messages`. To go on, add the user's answer to `result.context` as a user message and pass the context to `continueRun()`.
 
+## A step's tool calls run in parallel
+
+When the model asks for several tools in one response, the run checks them one at a time, in the order the model sent them, and then starts them all together. Results are added to the transcript in the model's order, whichever call finishes first, and a result is added as soon as every result before it is in. Three settings on a tool change the schedule:
+
+- **`executionMode: "sequential"`** makes every call in that step run one at a time, in the model's order. Use it for a tool that depends on the calls around it. One sequential tool is enough: its whole step runs in sequence, including calls to other tools.
+- **`resourceKey(input)`** returns a string that names what a call touches, such as a file path. Calls in one step with the same key never run at the same time, even when they come from different tools, and they run in the model's order. Calls with different keys, or no key, still run together.
+- **`readOnlyHint`**, set in `annotations`, says that a tool changes nothing. It affects scheduling only when the tool is also `firstParty: true`. A read-only call doesn't wait for other read-only calls that share its key, though it still waits for a write before it, and a write waits for the reads before it. A tool from an MCP server stays `firstParty: false`, so its hint is ignored: the hint is a claim by whoever runs the server.
+
+Every tool gets a `ctx.signal` that fires when the run is aborted. It also fires when a sibling call in the same step throws a programmer error, an `SdkError` such as a malformed result, because the run stops there. Calls waiting for a key never start after it fires. A sibling's error result, one the model can read and answer, such as invalid input or a tool that threw, cancels nothing. When the signal fires, the run waits for the other calls to return, so pass the signal on to your own I/O.
+
 ## `SdkError` marks a mistake in your code
 
 The SDK throws only for programmer errors, never for a failure the model caused. `isSdkError(error)` recognises the error, and its `code` says why:
 
-- **`invalid_tool_definition`**: a tool's name, description, schema or exposure is unusable, or two tools share a name.
+- **`invalid_tool_definition`**: a tool's name, description, schema, exposure, `executionMode` or `resourceKey` is unusable, or two tools share a name.
 - **`invalid_tool_result`**: `execute` returned something other than a tool result, or an invalid outcome. A text block needs a string `text`, and an image block a string `mediaType` and `data`. The run's `result` rejects with this error, and iterating the run throws it after the last event.
 - **`invalid_run_options`**: `run()` or `continueRun()` got a model that isn't from `createModel()`, a `maxSteps` that isn't a positive integer, or an output tool whose `exposure` isn't `"direct"`.
 - **`invalid_model_stream`**: a model's stream ended without a final message, which only a broken adapter does.

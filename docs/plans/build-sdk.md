@@ -351,6 +351,7 @@ interface ToolDefinition<I, S> {
   progressKey?(input: I): string;                     // D11 repeated-edit detection
   execution?: "inline" | "activity";                  // per-tool durable dispatch, for a later durable adapter
   firstParty?: boolean;                               // only first-party readOnlyHint affects scheduling
+  annotations?: { readOnlyHint?: boolean };           // revision (B12): MCP-style hints; scheduling trusts them only with firstParty
   repair?(e: { input: unknown; issues: SchemaIssue[] }): Promise<unknown | undefined>;
   formatError?(e: ToolFailure): ModelContent[];       // overrides the default "do not substitute a mock" text
   redactErrors?: boolean;                             // default false: replace a thrown error's message with a fixed line
