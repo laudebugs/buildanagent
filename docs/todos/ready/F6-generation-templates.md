@@ -43,7 +43,6 @@ Write one generation template per target: project layout, safety-package wiring,
 
 - [ ] Each template's sample agent passes the gate.
 - [ ] A sample that skips the approval gate fails a grader.
-- [ ] A sample that leaves the approval policy to the SDK's default fails a grader.
 
 ## Tests
 

@@ -1,4 +1,4 @@
-# Plan: build our agent harness as four packages around one session log, in 53 todos that start on the SDK's seams
+# Plan: build our agent harness as four packages around one session log, in 54 todos that start on the SDK's seams
 
 - **Status:** Draft (P2, 2026-11-18), revised on 2026-11-18 with the fixes from the [P4 review](reviews/plan-review.md), and on 2026-11-18 for three deployment targets ([ADR 0033](../decisions/0033-three-deployment-targets.md), [coding agent plan §4](build-coding-agent.md#4-changes-to-the-sdk-and-harness-plans)): stage 8 (§4.8) adds todos N41–N49. Revised on 2026-11-19 (plan review 2) to apply [ADR 0043](../decisions/0043-standalone-safety-core.md) and the [close-sdk-gaps plan](close-sdk-gaps.md), Anthropic's thinking prefix check (HD3), MCP tool pinning (HD14) and the owner's HD8 amendment.
 - **Date:** 2026-11-18
@@ -9,7 +9,7 @@
 
 The harness is the layer that moves agent results most: with the model held fixed, Pass@1 across seven harnesses differed by up to 24.3 points, and cost among mature harnesses differed by up to 3× ([harness guide, introduction][hg]). The [harness guide][hg] settles the design in five parts. One append-only, tree-shaped session log is the only source of truth, and context layers are added from the cheapest upward. The permission pipeline, the sandbox and the credential boundary stay three components the host owns. One typed protocol sits under every interface, and evals report cost beside pass rate against mini-swe-agent.
 
-The guide left twelve decisions open, and the [SDK plan][sdk] has since fixed the loop, the event union and eleven named seams the harness must use as written ([SDK plan §3.4][sdk34]). This plan makes the twelve decisions plus three the guide did not list, lays out four packages with their public APIs, and turns the architecture into 53 todos, each one reviewable batch tested offline: 41 from P2 and P4 (N1–N40 with N38b), and 12 added on 2026-11-18 for portability (N41–N49 with N46a/b, N47a/b and N48a/b). Where the harness needed more than the SDK plan provided, §3.6 lists it, and P4 moved those needs into the SDK plan. In one sentence: **build the session log first, fill the SDK's interceptors with the context, tool and permission layers, add the sandbox, credentials and protocol, and judge every removable component by cost per task beside pass rate.**
+The guide left twelve decisions open, and the [SDK plan][sdk] has since fixed the loop, the event union and eleven named seams the harness must use as written ([SDK plan §3.4][sdk34]). This plan makes the twelve decisions plus three the guide did not list, lays out four packages with their public APIs, and turns the architecture into 54 todos, each one reviewable batch tested offline: 41 from P2 and P4 (N1–N40 with N38b), 12 added on 2026-11-18 for portability (N41–N49 with N46a/b, N47a/b and N48a/b), and N50, a verification todo added in plan review 2. Where the harness needed more than the SDK plan provided, §3.6 lists it, and P4 moved those needs into the SDK plan. In one sentence: **build the session log first, fill the SDK's interceptors with the context, tool and permission layers, add the sandbox, credentials and protocol, and judge every removable component by cost per task beside pass rate.**
 
 ## 1. Goal and non-goals
 
@@ -90,14 +90,15 @@ Three decisions merge with the SDK's. For each, this plan references P1's choice
 
 **Evidence.** The cheap layers carry most of the measured value: masking matched LLM summarization's solve rate at about half the raw agent's cost ([harness guide §3][hg3]). The gain from context management fell from 35.7 to 2.7 points as windows grew from 32K to 128K, so the mid-turn layer earns least on large windows ([harness guide §3][hg3]). Practitioners report a quality threshold of 200–300K tokens on 1M-token models, so the cap starts at the low end; Pi reserves 16,384 tokens below the window for its trigger ([harness guide §3][hg3]). The 64 KiB cap is Codex's persistence bound, and the 500-character mask and the 8-message step are Cloudflare Think's ([sessions note §5][n-sess-5]; [harness guide §3][hg3]). The layer-3 default stays on despite the decay result because a 1M-window session without it ends in an overflow error, and practitioners object to compaction they cannot see more than to compaction itself ([harness guide §3][hg3]). N39 runs the guide's settling test: each layer on and off on the seed suite, scored on cost and pass^k.
 
-**Revision (plan review 2, 2026-11-19): the request view stays append-only for signed thinking.** Anthropic models with preserved thinking (Claude Opus, Sonnet and Haiku 5.5, and Fable and Mythos 5.1–5.2) run a prefix check on every thinking block sent back. If the request changes `system`, `tools` or an earlier message, every thinking block after the change fails the check, which is a 400 on some models ([Anthropic, preserved thinking prefix checks](https://platform.claude.com/docs/en/build-with-claude/preserved-thinking/prefix-checks), as of November 2026). Layers 2, 3 and 4 edit earlier messages, so on these models the request view follows four rules:
+**Revision (plan review 2, 2026-11-19): the request view stays append-only for signed thinking.** Anthropic models with preserved thinking (Claude Opus, Sonnet and Haiku 5.5, and Fable and Mythos 5.1–5.2) run a prefix check on every thinking block sent back. If the request changes `system`, `tools` or an earlier message, every thinking block after the change fails the check, which is a 400 on Fable 5.2 and Mythos 5.x and a possible 400 on the others; when no error comes back, the stale blocks reach the model and are billed ([Anthropic, preserved thinking prefix checks](https://platform.claude.com/docs/en/build-with-claude/preserved-thinking/prefix-checks), as of November 2026). Layers 2, 3 and 4 edit earlier messages, so on these models the request view follows five rules:
 
 1. When a layer edits or removes an earlier message, the view drops every thinking block after the edit point. A view may leave out the oldest run of thinking blocks, the newest run or all of them, never one in between.
 2. The harness builds `system` and `tools` once per session.
 3. A tool change mid-session is announced in a `role: "system"` message, not by changing `tools` (N25).
-4. On a 400 that says a block is "bound to a different conversation", the adapter retries with `thinking.block_binding.prefix_mismatch_behavior: "drop_block"` (beta header `thinking-binding-controls-2026-08-01`) and sends that setting on every later request of the same session, because the setting acts only on the request that carries it.
+4. On a 400 that says a block is "bound to a different conversation", the adapter retries with `thinking.block_binding.prefix_mismatch_behavior: "drop_block"` (beta header `thinking-binding-controls-2026-08-01`) and sends that setting on every later request of the same conversation (the same branch of the session log), because the setting acts only on the request that carries it.
+5. Because a failed check may return no error, the adapter sends the beta header on every request and records each `thinking_mismatch_allowed` entry in the response's `input_transformations` as a warning event, so a layer that breaks rule 1 shows up in the trace.
 
-N8, N9 and N10 test the first rule, N25 the third, and B8 surfaces the 400 as a typed error kind. N39's ablation is where the extra cost of the dropped blocks gets measured, though N39 does not list that arm yet.
+N8, N9 and N10 test the first rule, N25 the third, and B8 surfaces the 400 as a typed error kind. N39's ablation measures the extra cost of the dropped blocks in its own arm.
 
 ### HD4. `srt` for interactive runs and Docker for headless runs (accepted)
 
@@ -501,7 +502,7 @@ declare function startEgressProxy(options: { allow: string[]; routes?: Credentia
 declare function scrubSecrets(entry: SessionEntry, secrets: readonly string[]): SessionEntry; // applied before every append
 ```
 
-**Revision (2026-11-18): remote backends.** Todo N43 extends `SandboxClient` with `resume(id)`, `snapshot` and `pause` capability flags, `stops` computed from the applied policy and a post-provision policy read-back, and replaces the proxy URL with an `EgressPolicy { allow, routes }` that each backend compiles: the HD15 proxy locally, `outboundByHost` on Cloudflare, egress Secrets on E2B and the firewall `transform` on Vercel, where `subnets.allow` is banned ([portable agents report](../research/deployment/portable-agents.md#four-hosted-sandboxes-meet-our-three-hard-rules-and-e2b-should-come-first)). N42 makes `KeyStore.rotate()` and `prune()` optional, as ADR 0035 decides. *(Revision, plan review 2, 2026-11-19: `@cloudflare/sandbox` 1.0 removed `outboundByHost` and `allowedHosts`, so N46b targets the Durable Object Container API's `interceptOutboundHttp()` and `interceptOutboundHttps()`. Its HTTPS design waits for S10 and the owner's decision on ADR 0020's "no TLS interception".)*
+**Revision (2026-11-18): remote backends.** Todo N43 extends `SandboxClient` with `resume(id)`, `snapshot` and `pause` capability flags, `stops` computed from the applied policy and a post-provision policy read-back, and replaces the proxy URL with an `EgressPolicy { allow, routes }` that each backend compiles: the HD15 proxy locally, `outboundByHost` on Cloudflare, egress Secrets on E2B and the firewall `transform` on Vercel, where `subnets.allow` is banned ([portable agents report](../research/deployment/portable-agents.md#four-hosted-sandboxes-meet-our-three-hard-rules-and-e2b-should-come-first)). N42 makes `KeyStore.rotate()` and `prune()` optional, as ADR 0035 decides. *(Revision, plan review 2, 2026-11-19: `@cloudflare/sandbox` 1.0 removed `outboundByHost` and `allowedHosts`, so N46b targets the Durable Object Container API's `interceptOutboundHttp()` and `interceptOutboundHttps()`. Its HTTPS design waits for N50 and the owner's decision on ADR 0020's "no TLS interception".)*
 
 ### 3.5 Extension, protocol, telemetry, eval and ablation APIs
 
@@ -718,7 +719,7 @@ The guide says to start with the log, because context layers, pauses, replay, th
 | [N36](../todos/ready/N36-eval-reports-replay.md) | Eval package: reports, mini-swe-agent trajectories and the offline replay suite | N35 | M |
 | [N37](../todos/ready/N37-inspect-bridge.md) | Inspect bridge and the baseline runner (opt-in) | N36, N17 | M |
 | [N38](../todos/ready/N38-seed-suite-baseline.md) | Seed suite of 20 repository tasks and the first baseline run (HD8) | N37 | M |
-| [N38b](../todos/ready/N38b-shared-triage-tasks.md) | Add the 10 shared triage tasks to the seed suite (HD8); deferred with the triage round ([ADR 0032](../decisions/0032-personal-coding-agent-first.md)) | N38, A17, A19 | M |
+| [N38b](../todos/ready/N38b-shared-triage-tasks.md) | Add the 10 shared triage tasks to the seed suite (HD8); deferred with the triage round ([ADR 0032](../decisions/0032-personal-coding-agent-first.md)) | N38, W12, A17, A19 | M |
 | [N39](../todos/ready/N39-ablation-runs.md) | Ablation and tuning runs: HD3, HD9, HD12 and SDK D11 | N38 | M |
 
 No todo is size L. The longest dependency chain runs N1 → N2 → N3 → N4 → N5 → N6 → N7 → N13 → N28 → N29 → N35 → N36 → N37 → N38 → N39, fifteen todos. Two branches tie it: N7 → N27 → N28, and the branch that ends in N38b, which also waits for A17 and A19 from Round A. Stages 4 and 5, N26 and N40 run beside it.
@@ -735,13 +736,13 @@ No todo is size L. The longest dependency chain runs N1 → N2 → N3 → N4 →
 | [N44](../todos/ready/N44-web-stream-websocket-transport.md) | stdio over Web streams and a WebSocket transport | N29 | M |
 | [N45](../todos/ready/N45-portability-conformance-suite.md) | One conformance suite over the eight portable seams (`EffectStore` is the eighth, ADR 0043) | N41, N42, N43, N44, E7 | M |
 | [N46a](../todos/ready/N46a-cloudflare-state-adapters.md) | Cloudflare store, lock, scheduler, key store and workerd smoke test | N45 | M |
-| [N46b](../todos/ready/N46b-cloudflare-sandbox-backend.md) | Cloudflare Sandbox backend and per-host outbound interception egress, blocked on the owner's decision after S10 | N45, S10 | M |
+| [N46b](../todos/ready/N46b-cloudflare-sandbox-backend.md) | Cloudflare Sandbox backend and per-host outbound interception egress, blocked on the owner's decision after N50 | N45, N50 | M |
 | [N47a](../todos/ready/N47a-aws-state-adapters.md) | DynamoDB store and lock, EventBridge Scheduler wake, Secrets Manager key store | N45 | M |
 | [N47b](../todos/ready/N47b-e2b-sandbox-backend.md) | E2B backend and egress Secrets | N45 | M |
 | [N48a](../todos/ready/N48a-vercel-state-adapters.md) | Postgres store and lock, Workflow wake, environment key store | N45 | M |
 | [N48b](../todos/ready/N48b-vercel-sandbox-backend.md) | Vercel Sandbox backend and firewall `transform` | N45 | M |
 | [N49](../todos/ready/N49-hosted-sandbox-measurement.md) | Cold start, snapshot and per-call overhead on the hosted backends | N46b, N47b, N48b, N19 | S |
-| [S10](../todos/ready/S10-cloudflare-sandbox-egress.md) | Verify Cloudflare Sandbox 1.0 egress on a real sandbox, and draft an ADR for the owner (added in plan review 2, 2026-11-19) | None | M |
+| [N50](../todos/ready/N50-cloudflare-sandbox-egress.md) | Verify Cloudflare Sandbox 1.0 egress on a real sandbox, and draft an ADR for the owner (added in plan review 2, 2026-11-19) | None | M |
 
 ## 5. Test strategy
 
@@ -806,7 +807,7 @@ The owner answered HD4, HD5, HD8 and HD11 on 2026-11-18. N19's measurement is th
 
 ### 6.3 Where Round N slots into the roadmap
 
-Round N follows Round B in the build phase, and a new milestone, "M6 Our agent harness", covers N1 to N49 (with N46a/b, N47a/b and N48a/b); N38b is deferred with the triage agent under M7b. *(Revised in plan review 2, 2026-11-19: the milestone first covered N1 to N40 with N38b.)* Most of Round N waits for the SDK's loop, but the log and the sandbox do not:
+Round N interleaves with Round B in the build phase, starting from B1 and B2, and a new milestone, "M6 Our agent harness", covers N1 to N49 (with N46a/b, N47a/b and N48a/b); N38b is deferred with the triage agent under M7b. *(Revised in plan review 2, 2026-11-19: the milestone first covered N1 to N40 with N38b.)* Most of Round N waits for the SDK's loop, but the log and the sandbox do not:
 - **After B1 and B2:** the scaffold, entries, store, lock and HEAD (N1 to N5), the sandbox interface and backends (N15 to N17, N19) and the credential proxy (N20), which need only the workspace and the gateway's types.
 - **After B11 and B15:** the protocol package (N26), whose union names `AgentEvent` and `SignedPendingRequest`.
 - **After B12 and B13:** the runner (N6), context layers 1 and 2 (N8), the registry (N11), the pipeline (N12), the built-in tools (N21), extensions (N22) and the MCP client (N24, N25).
@@ -815,9 +816,9 @@ Round N follows Round B in the build phase, and a new milestone, "M6 Our agent h
 - **After B19 and B20:** the harness capstone (N35), whose `initialize` capabilities need B20's list, and the eval stage.
 - **After A17 and A19:** the 10 shared triage tasks (N38b), the one harness todo that waits for Round A.
 - **After Round E (M5e):** E2 gates rebuild and resume (N7) and code-initiated calls (N40), and E7 gates the portability suite (N45). The owner lifted Round E's hold on 2026-11-19, so these gates wait only on E's own order ([close-sdk-gaps plan §4](close-sdk-gaps.md#4-round-e-and-its-todos)).
-- **Stage 8, after N4, N13, N15, N20 and N29:** the scheduler (N41), the read-only key store (N42), the remote sandbox extensions (N43) and the Web-stream transport (N44), then N45 and the per-target adapters (N46a to N48b) and N49's measurement. N46b also waits for S10 and the owner's decision on Cloudflare egress.
+- **Stage 8, after N4, N13, N15, N20 and N29:** the scheduler (N41), the read-only key store (N42), the remote sandbox extensions (N43) and the Web-stream transport (N44), then N45 and the per-target adapters (N46a to N48b) and N49's measurement. N46b also waits for N50 and the owner's decision on Cloudflare egress.
 
-The roadmap graph gains one line, `B2 ─► N1 … N40 ─► N41–N49 ─► M6`, with branches from B13 to N6, from B15b and E2 to N7, from E7 to N45 and from A19 to N38b. P3's agent round starts after N1 and needs N35 for its capstone.
+The roadmap graph gains one line, `B1 ─► N1 … N40 ─► N41–N50 ─► M6`, with branches from B2 to N2, from B13 to N6, from B15b and E2 to N7, from E7 to N45, from N50 to N46b and from A19 to N38b. The deferred triage round (M7b) would start after N1 and need N35 for its capstone.
 
 Round N closes when the triage capstone pauses, resumes in a second process and replays byte for byte from its log, and when the first eval report sets our harness beside mini-swe-agent on cost and pass^k. As of 2026-11-19, B1 and B2 are done, so N1 has every dependency done.
 

@@ -22,7 +22,7 @@ Make a transcript recorded on one provider replay safely on another, through one
 
 **In scope**
 
-- Drop reasoning from a different provider and strip foreign signatures. For a same-provider Anthropic target, pass thinking blocks through unchanged: Anthropic drops the ones it cannot read without billing them ([Anthropic, extended thinking](https://platform.claude.com/docs/en/build-with-claude/thinking), as of November 2026). When the pass must drop thinking blocks, it drops only a leading or trailing run, never one in between (plan review 2, 2026-11-19)
+- Drop reasoning from a different provider and strip foreign signatures. For a same-provider Anthropic target, pass thinking blocks through unchanged: Anthropic drops the ones it cannot read without billing them ([Anthropic, thinking](https://platform.claude.com/docs/en/build-with-claude/thinking), as of November 2026). When the pass must drop thinking blocks, it drops only a leading or trailing run, never one in between (plan review 2, 2026-11-19)
 - Remap tool-call ids to the target's charset
 - Replace images for text-only models
 - Skip errored turns

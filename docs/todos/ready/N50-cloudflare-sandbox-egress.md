@@ -1,11 +1,11 @@
-# S10: Verify Cloudflare Sandbox 1.0 egress on a real sandbox before N46b picks a design
+# N50: Verify Cloudflare Sandbox 1.0 egress on a real sandbox before N46b picks a design
 
 | Field | Value |
 | --- | --- |
-| ID | `S10` |
+| ID | `N50` |
 | Status | `ready` |
 | Plan | [Build harness §4.8](../../plans/build-harness.md#48-stage-8-makes-the-harness-portable-to-cloudflare-aws-and-vercel-added-2026-11-18) |
-| Round / milestone | Round S (verification), M6 |
+| Round / milestone | Round N (build harness, stage 8: portability; a verification todo added in plan review 2), M6 |
 | Depends on | None |
 | Size | M |
 

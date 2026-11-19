@@ -23,7 +23,7 @@ Collect every portability case into one suite that any target's implementations 
 **In scope**
 
 - One exported suite in `@buildanagent/harness/testing` over `SessionStore`, `SessionLock`, `Scheduler`, `KeyStore`, `SandboxClient`, `EgressPolicy`, the transport and `EffectStore`
-- Egress cases for every backend: a request to a host outside `EgressPolicy.allow`, to a loopback address, and to `169.254.169.254` or another cloud metadata address all fail closed. They need no browser (curl in the sandbox is enough), and N47b and N48b run them, as does N46b once S10 settles its design
+- Egress cases for every backend: a request to a host outside `EgressPolicy.allow`, to a loopback address, and to `169.254.169.254` or another cloud metadata address all fail closed. They need no browser (curl in the sandbox is enough), and N47b and N48b run them, as does N46b once N50 settles its design
 - Local implementations passing it
 
 **Out of scope**

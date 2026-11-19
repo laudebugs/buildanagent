@@ -6,7 +6,7 @@
 - **Base:** `main` at `4feea36` (B1–B3 merged), plus the rename to `@buildanagent/*` in pull request #27.
 - **Fact-check:** [fact-check-plan-review-2.md](fact-check-plan-review-2.md)
 
-The first plan review ([P4](plan-review.md)) fixed 39 findings across Rounds A, B and N. Since P4, three plans have amended those rounds: the coding agent plan (ADRs 0032–0036), the platform plan (ADRs 0037–0042) and Round E (ADR 0043). Research reports U11–U15 have also landed. This review asked three questions. Do the amended plans still agree with each other? Do their pins and third-party APIs still hold today? Have the research recommendations reached a plan or a todo? The todo graph is sound: all 195 todos at the review's base resolve their dependencies, nothing cycles, and the three merged build todos (B1–B3) sit in `done/`. Three findings would stop a builder, though. The Round E hold blocked 13 of the 19 ready SDK todos and 40 of the 53 ready harness todos (G1). Anthropic's newest models reject thinking blocks after the harness masks or summarizes earlier messages (V1). The Cloudflare sandbox backend relies on an egress API that Sandbox SDK 1.0 removed, and its HTTPS design fails as written (V5, R43). **Verdict: the owner's four answers and this review's edits clear G1 and V1, and S10 now carries V5; once S10 reports and the owner rules on its result, the SDK, harness and Round E can be built in the order in §5.**
+The first plan review ([P4](plan-review.md)) fixed 39 findings across Rounds A, B and N. Since P4, three plans have amended those rounds: the coding agent plan (ADRs 0032–0036), the platform plan (ADRs 0037–0042) and Round E (ADR 0043). Research reports U11–U15 have also landed. This review asked three questions. Do the amended plans still agree with each other? Do their pins and third-party APIs still hold today? Have the research recommendations reached a plan or a todo? The todo graph is sound: all 195 todos at the review's base resolve their dependencies, nothing cycles, and the three merged build todos (B1–B3) sit in `done/`. Three findings would stop a builder, though. The Round E hold blocked 13 of the 19 ready SDK todos and 40 of the 53 ready harness todos (G1). Anthropic's newest models reject thinking blocks after the harness masks or summarizes earlier messages (V1). The Cloudflare sandbox backend relies on an egress API that Sandbox SDK 1.0 removed, and its HTTPS design fails as written (V5, R43). **Verdict: the owner's four answers and this review's edits clear G1 and V1, and N50 now carries V5; once N50 reports and the owner rules on its result, the SDK, harness and Round E can be built in the order in §5.**
 
 ## 1. Three reviews found 3 blockers, 11 majors and 15 minors, and 27 research recommendations that no plan carries
 
@@ -28,7 +28,7 @@ The research review classified each recommendation rather than grading it. Of th
 | ID | Question | Owner's answer | What changed |
 | --- | --- | --- | --- |
 | D1 | Round E is on hold, yet B10, B15, N7, N40 and N45 depend on it (G1) | "Lift hold on all of E" | [SG2][gaps], the [roadmap][road] and every E todo now say Round E is being built with the SDK and harness. Rounds W, F and A keep their hold, which their todos now carry as a banner (G2). |
-| D2 | N46b's HTTPS needs TLS interception, which ADR 0020 and HD15 rule out (R43) | "Research it first" | A new verification todo, S10, tests Sandbox SDK 1.0's egress on a real sandbox. N46b depends on S10 and waits for the owner's ruling on its result. ADR 0020 and HD15 are unchanged. |
+| D2 | N46b's HTTPS needs TLS interception, which ADR 0020 and HD15 rule out (R43) | "Research it first" | A new verification todo, N50, tests Sandbox SDK 1.0's egress on a real sandbox. N46b depends on N50 and waits for the owner's ruling on its result. ADR 0020 and HD15 are unchanged. |
 | D3 | W6 plans its own idempotency keys beside E2 (G12, O1) | "E2 owns it; W6 uses it" | W6 depends on E2 and runs its pushes and pull requests through `guardedWrite()`. U14's change 7 is closed because Round E covers it. |
 | D4 | HD8's 30-task suite lost its 10 triage tasks when triage was deferred | "20 now, plus coding tasks" | HD8 carries a dated amendment. N38 ships 20 tasks, and a new todo, W12, adds 10 coding-agent tasks before W8 publishes its baseline. N38b adds the triage tasks when Round A resumes. |
 
@@ -38,7 +38,7 @@ The research review classified each recommendation rather than grading it. Of th
 
 **V1: Anthropic's prefix check rejects thinking blocks once the harness edits an earlier message.** Claude Opus 5.5, Sonnet 5.5, Haiku 5.5 and Fable and Mythos 5.1–5.2 check each returned thinking block against everything before it. A prefix check fails "if `system`, `tools`, or an earlier message changed after Claude produced a block". On Fable 5.2 and Mythos 5.x a failed check is a 400 error; on the others it is a possible 400 ([Anthropic, prefix checks][prefix]). HD3's layer 2 masks older tool results, layer 3 summarizes and layer 4 compacts, and each layer edits an earlier message. N25 also adds tools mid-session. HD3 is provisional, so this review amended it in place. The request view keeps signed thinking blocks append-only. After an edit, the view drops every thinking block that follows the edit point. The harness builds `system` and `tools` once per session, and it announces a tool change in a `role: "system"` message. On a "bound to a different conversation" error, the adapter retries with `prefix_mismatch_behavior: "drop_block"` and keeps sending it for the rest of that conversation, because the setting acts only on the request that carries it. N8, N9, N10, N25, B6 and B8 carry the matching tasks and tests.
 
-**V5 and R43: the Cloudflare sandbox backend cannot be built as written.** N46b compiles the `EgressPolicy` to `enableInternet = false`, `allowedHosts` and an `outboundByHost` handler. On 22 October 2026, `@cloudflare/sandbox` 1.0.3 became npm's `latest`, and the 1.0 line drops those options for `ctx.container.interceptOutboundHttp()` and `interceptOutboundHttps()` on the Durable Object Container API ([Cloudflare, migrate outbound rules from Sandbox SDK 0.x][cf-migrate]). U15's fact-check also found that HTTPS under `enableInternet = false` needs interception on both API versions. Without it, every HTTPS request fails, including package installs, git and credential injection ([U15 fact-check, rows 112, 114, 117][u15fc]). ADR 0020 and HD15 rule out TLS interception, so the owner chose to verify first (D2). S10 runs that test, and N46b and W4 wait for it.
+**V5 and R43: the Cloudflare sandbox backend cannot be built as written.** N46b compiles the `EgressPolicy` to `enableInternet = false`, `allowedHosts` and an `outboundByHost` handler. On 22 October 2026, `@cloudflare/sandbox` 1.0.3 became npm's `latest`, and the 1.0 line drops those options for `ctx.container.interceptOutboundHttp()` and `interceptOutboundHttps()` on the Durable Object Container API ([Cloudflare, migrate outbound rules from Sandbox SDK 0.x][cf-migrate]). U15's fact-check also found that HTTPS under `enableInternet = false` needs interception on both API versions. Without it, every HTTPS request fails, including package installs, git and credential injection ([U15 fact-check, rows 112, 114, 117][u15fc]). ADR 0020 and HD15 rule out TLS interception, so the owner chose to verify first (D2). N50 runs that test, and N46b and W4 wait for it.
 
 ## 4. The majors and minors: fixed in place, except four that need the owner
 
@@ -73,13 +73,13 @@ The plans' todo tables also lacked six dependency links that the Round E amendme
 | V3 | minor | Anthropic counts thinking inside `output_tokens` | D3's open question is closed; B8 adds a fixture for the final `message_delta` |
 | V4 | minor | Anthropic advises against stripping thinking blocks on a model switch | B6 keeps same-provider thinking blocks and drops only leading or trailing runs |
 | V8 | minor | The OTLP exporter 0.223.2 turns one week old on 2026-11-19 | None needed |
-| V9 | minor | `srt` moved to `anthropics/sandbox-runtime` and is still a "Beta Research Preview" | N16 links the new repository and pins 0.0.82 |
+| V9 | minor | `srt` moved to `anthropics/sandbox-runtime` and is still a "Beta Research Preview" (as of November 2026) | N16 links the new repository and pins 0.0.82 |
 | V10 | minor | MCP 2026-07-28 sends list changes on `subscriptions/listen` and formally classes HTTP+SSE, deprecated since 2025-03-26, as Deprecated | N25 notes both |
 | V11 | minor | Node 22 reaches end of life on 2027-04-30 | The SDK plan's risks name the date and a move to Node 24 or 26 |
-| V12 | minor | `ai` moved by patch releases to 7.0.177 | None needed: E1 re-pins first |
+| V12 | minor | `ai` moved by patch releases to 7.0.177 (as of 2026-11-18) | None needed: E1 re-pins first |
 | V13 | minor | A `pnpm-workspace.yaml` comment names just-bash 3.6.1, while the lockfile has 3.6.0 | Fixed with V6 |
 
-`@modelcontextprotocol/client` 2.4.0, TypeScript 7.0.2, zod 4.6.7 and `@cfworker/json-schema` 4.1.6 are all current and match the lockfile. `e2b` and `@vercel/sandbox` are not in the lockfile yet; N47b's and N48b's pins, 2.63.0 and 3.9.1, still hold under the one-week rule.
+`@modelcontextprotocol/client` 2.4.0, TypeScript 7.0.2, zod 4.6.7 and `@cfworker/json-schema` 4.1.6 are the latest releases and match the lockfile (as of 2026-11-19). `e2b` and `@vercel/sandbox` are not in the lockfile yet; N47b's and N48b's pins, 2.63.0 and 3.9.1, still hold under the one-week rule.
 
 ### 4.3 Research recommendations: one owner per concept, with the connector and browser work scheduled for later
 
@@ -100,7 +100,7 @@ With D1 applied, these waves are the schedule for the work the owner has release
 
 | Wave | SDK (B) | Harness (N) and verification (S) | Safety core (E) |
 | --- | --- | --- | --- |
-| 1 | B4, B6, B7 | N1, S10 | E1 |
+| 1 | B4, B6, B7 | N1, N50 | E1 |
 | 2 | B5, B10 | N2, N15 | E2, E3, E6 |
 | 3 | B8, B9, B11 | N3, N16, N17, N20 | E4a, E5 |
 | 4 | B12, B13, B16 | N4, N19, N43 | E4b |
@@ -111,13 +111,13 @@ With D1 applied, these waves are the schedule for the work the owner has release
 | 9 | B19b, B20 | N10, N14, N18, N23, N28, N31, N42 | — |
 | 10–15 | — | N29, N30, N34, N40; then N35 and N44; N36 and N45; N37 with the backend adapters N46a–N48b; N38 and N49; N39 | — |
 
-The longest chain to a usable SDK (B19) runs E1 → B10 → B11 → B13 → B15 → B15b → B18 → B19. The harness capstone, N35, follows that chain through N7, N27, N28 and N30. N46b cannot start until S10 reports and the owner rules on TLS interception. The other backend adapters (N46a, N47a and b, N48a and b) do not wait for it.
+The longest chain to a usable SDK (B19) runs E1 → B10 → B11 → B13 → B15 → B15b → B18 → B19. The harness capstone, N35, follows that chain through N7, N27, N28 and N30. N46b cannot start until N50 reports and the owner rules on TLS interception. The other backend adapters (N46a, N47a and b, N48a and b) do not wait for it.
 
-## 6. Ten decisions are still open, and none blocks waves 1–5
+## 6. Eleven owner actions are still open, and only one, a test project for N50, touches waves 1–5
 
 | # | Decision | Source | Blocks |
 | --- | --- | --- | --- |
-| 1 | Accept or reject S10's proposed ADR on TLS interception for the Cloudflare backend | D2, R43 | N46b, then W4 |
+| 1 | Accept or reject N50's proposed ADR on TLS interception for the Cloudflare backend | D2, R43 | N46b, then W4 |
 | 2 | Confirm that the safety package owns `SignedPendingRequest` and `Resolution`, with the SDK re-exporting them | G5 | E3 and B15 (both can proceed on this reading) |
 | 3 | Confirm that ADR 0043's "depends only on the gateway" means the package's root export | G7 | E1 (can proceed on this reading) |
 | 4 | Add status pointers to ADR 0043 on ADRs 0001, 0005, 0009 and 0033 | G11 | Nothing |
@@ -127,8 +127,9 @@ The longest chain to a usable SDK (B19) runs E1 → B10 → B11 → B13 → B15 
 | 8 | An ADR for a logged-out browser inside the coding agent's sandbox | R42 | U15's browser verification todo |
 | 9 | Whether "export as an MCP server" becomes a platform package | R18, R40 | Nothing yet |
 | 10 | Bump pnpm in its own pull request | V6 | Nothing; security hygiene |
+| 11 | Provide a disposable Cloudflare project for N50's live run | D2 | N50 (wave 1) |
 
-With waves 1–5 released and every finding resolved or owned, the next step is to build B4, B6, B7, N1, S10 and E1 in parallel, then follow the waves in §5.
+With waves 1–5 released and every finding resolved or owned, the next step is to build B4, B6, B7, N1 and E1 in parallel, with N50 as soon as the owner provides its test project, then follow the waves in §5.
 
 [sdk]: ../build-sdk.md
 [har]: ../build-harness.md

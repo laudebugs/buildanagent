@@ -45,7 +45,7 @@ The agent serves one person. The model key is one secret held by the host and ad
 
 ### CA2. The coding agent replaces triage as the first agent (accepted)
 
-**Accepted by the owner on 2026-11-18.** The coding agent becomes M7's agent. The triage plan, its decisions and its todos stay on the board, each marked deferred, so the work can resume without rework. One harness todo depended on triage: N38b adds ten triage tasks to HD8's seed suite after A17 and A19. N38b is deferred with them, and N38's twenty repository tasks become the coding agent's first eval suite (W8). HD8 itself is unchanged, so its suite runs at twenty tasks until N38b resumes.
+**Accepted by the owner on 2026-11-18.** The coding agent becomes M7's agent. The triage plan, its decisions and its todos stay on the board, each marked deferred, so the work can resume without rework. One harness todo depended on triage: N38b adds ten triage tasks to HD8's seed suite after A17 and A19. N38b is deferred with them, and N38's twenty repository tasks become the coding agent's first eval suite (W8). HD8 was first left unchanged, so the suite ran at twenty tasks; the amendment below restores thirty with W12.
 
 **Amended (owner, 2026-11-19):** "20 now, plus coding tasks". N38's twenty repository tasks ship first, and [W12](../todos/ready/W12-coding-agent-eval-tasks.md) adds ten coding-agent tasks, so the suite reaches thirty before W8 publishes its baseline. When Round A resumes, N38b adds its ten triage tasks on top ([harness plan, HD8][hp-hd8]).
 
@@ -60,11 +60,11 @@ The agent serves one person. The model key is one secret held by the host and ad
 | `Scheduler.wake` | in-process timer | Durable Object alarm | EventBridge Scheduler one-time schedule | Workflow `sleep()` and hooks |
 | `KeyStore` | key file (HD5) | Worker secret or Secrets Store | Secrets Manager | secret environment variable |
 | `SandboxClient` | `srt`, Docker | Cloudflare Sandbox (E2B as a swap) | E2B | Vercel Sandbox |
-| `EgressPolicy` | HD15 proxy | per-host `interceptOutboundHttp()` / `interceptOutboundHttps()` on the Durable Object Container API; HTTPS design set by S10 and the owner | E2B egress Secrets | firewall `transform`, `subnets.allow` banned |
+| `EgressPolicy` | HD15 proxy | per-host `interceptOutboundHttp()` / `interceptOutboundHttps()` on the Durable Object Container API; HTTPS design set by N50 and the owner | E2B egress Secrets | firewall `transform`, `subnets.allow` banned |
 | Transport | stdio | WebSocket on the Durable Object | Lambda response streaming | WebSocket (beta) or SSE |
 | `EffectStore` | `memoryEffectStore()` | Durable Object SQLite | DynamoDB, conditional put | Postgres, insert on conflict do nothing |
 
-**Revision (plan review 2, 2026-11-19).** The `EffectStore` row applies [ADR 0043](../decisions/0043-standalone-safety-core.md), which makes it the eighth portable seam; [E2](../todos/ready/E2-effect-identity-crash-rule.md) builds the local store and [E7](../todos/ready/E7-safety-portability.md) the three cloud stores. The Cloudflare `EgressPolicy` cell changed because `@cloudflare/sandbox` 1.0 removed `outboundByHost`; [S10](../todos/ready/S10-cloudflare-sandbox-egress.md) tests the replacement before N46b builds it.
+**Revision (plan review 2, 2026-11-19).** The `EffectStore` row applies [ADR 0043](../decisions/0043-standalone-safety-core.md), which makes it the eighth portable seam; [E2](../todos/ready/E2-effect-identity-crash-rule.md) builds the local store and [E7](../todos/ready/E7-safety-portability.md) the three cloud stores. The Cloudflare `EgressPolicy` cell changed because `@cloudflare/sandbox` 1.0 removed `outboundByHost`; [N50](../todos/ready/N50-cloudflare-sandbox-egress.md) tests the replacement before N46b builds it.
 
 The table follows U11's per-target mapping, which is our inference from each platform's docs and untested ([portable agents report][pa-sdk]). The conformance suite (N45) makes it a test: every implementation in a column must pass the same cases, including HD2's settling test and the three rules of the [storage-and-wake note][sw-rules].
 
@@ -119,7 +119,7 @@ owner ── CLI / GitHub label ──► Worker (control plane, ingress, dedup)
                        Scheduler.wake on DO alarms; signed pauses (HD5)
                                    │
                  egress route ◄────┤  model key and GitHub token added here,
-                 (outboundByHost)  │  pushes outside refs/heads/agent/* rejected
+                 (per-host intercept, N50)│  pushes outside refs/heads/agent/* rejected
                                    ▼
                      Cloudflare Sandbox: clone, build, test, edit
                        network limited to the allowlist; no credentials
@@ -166,13 +166,13 @@ Two harness non-goals change. "A WebSocket or HTTP-with-SSE transport" leaves th
 | [N44](../todos/ready/N44-web-stream-websocket-transport.md) | stdio over Web streams and a WebSocket transport | N29 | M |
 | [N45](../todos/ready/N45-portability-conformance-suite.md) | One conformance suite over the eight seams (`EffectStore` added by ADR 0043); local implementations pass | N41, N42, N43, N44, E7 | M |
 | [N46a](../todos/ready/N46a-cloudflare-state-adapters.md) | Cloudflare store, lock, scheduler, key store and workerd smoke test | N45 | M |
-| [N46b](../todos/ready/N46b-cloudflare-sandbox-backend.md) | Cloudflare Sandbox backend and per-host outbound interception egress, blocked on the owner's decision after S10 | N45, S10 | M |
+| [N46b](../todos/ready/N46b-cloudflare-sandbox-backend.md) | Cloudflare Sandbox backend and per-host outbound interception egress, blocked on the owner's decision after N50 | N45, N50 | M |
 | [N47a](../todos/ready/N47a-aws-state-adapters.md) | DynamoDB store and lock, EventBridge Scheduler wake, Secrets Manager key store | N45 | M |
 | [N47b](../todos/ready/N47b-e2b-sandbox-backend.md) | E2B backend and egress Secrets | N45 | M |
 | [N48a](../todos/ready/N48a-vercel-state-adapters.md) | Postgres store and lock, Workflow wake, environment key store | N45 | M |
 | [N48b](../todos/ready/N48b-vercel-sandbox-backend.md) | Vercel Sandbox backend and firewall `transform` | N45 | M |
 | [N49](../todos/ready/N49-hosted-sandbox-measurement.md) | Cold start, snapshot and per-call overhead on the three hosted backends | N46b, N47b, N48b, N19 | S |
-| [S10](../todos/ready/S10-cloudflare-sandbox-egress.md) | Verify Cloudflare Sandbox 1.0 egress on a real sandbox, and draft an ADR for the owner (added in plan review 2, 2026-11-19) | None | M |
+| [N50](../todos/ready/N50-cloudflare-sandbox-egress.md) | Verify Cloudflare Sandbox 1.0 egress on a real sandbox, and draft an ADR for the owner (added in plan review 2, 2026-11-19) | None | M |
 
 ### 5.2 Round W builds the coding agent
 
@@ -203,7 +203,7 @@ Four risks remain, and each has a todo that settles it:
 3. **Pinned sandbox SDKs move fast.** `e2b` 2.64.0 and `@vercel/sandbox` 4.0.0 were under a week old on 2026-11-18, so N47b and N48b pin the previous releases, 2.63.0 and 3.9.1, under the one-week rule ([portable agents report][pa-sbx]).
 4. **The git route must parse pushes correctly.** W3 tests it against real `git push` traffic recorded offline, and the default-branch ruleset stays as the second layer (CA5).
 
-Round W starts after the harness's stage 7 and the portability stage: W1 needs only N1, but W4 needs the Cloudflare adapters. The roadmap's M7 becomes "Our coding agent" (W1–W11), and the triage round moves to a deferred milestone. As of 2026-11-19, B1–B3 are done, Rounds B, N and E are being built, and Round W stays on hold until the owner says go; the first new harness todo this plan adds, N41, opens once N4 is done.
+Round W starts after the harness's stage 7 and the portability stage: W1 needs only N1, but W4 needs the Cloudflare adapters. The roadmap's M7 becomes "Our coding agent" (W1–W12, with W12 added in plan review 2), and the triage round moves to a deferred milestone. As of 2026-11-19, B1–B3 are done, Rounds B, N and E are being built, and Round W stays on hold until the owner says go; the first new harness todo this plan adds, N41, opens once N4 is done.
 
 [sdk]: build-sdk.md
 [sdk-32]: build-sdk.md#32-gateway-api
