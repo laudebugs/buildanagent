@@ -18,7 +18,7 @@ Our SDK fits this chapter closely. B11's `run()` counts `maxSteps` in model call
 ## Context
 
 - [T13's Outcome](../done/T13-chapter-stopping-and-structured-output.md#outcome): the chapter's listings, replays, figures and fact-check log.
-- [T50](T50-chapter-call-workflow-loop-on-our-sdk.md): widens the listing rule to `packages/` and adds a transcript recorder for our examples; this todo reuses both, so it depends on T50. The id T53 was left for T15's follow-up, which was written in parallel.
+- [T50](T50-chapter-call-workflow-loop-on-our-sdk.md): widens the listing rule to `packages/` and adds a transcript recorder for our examples; this todo reuses both, so it depends on T50.
 - `packages/sdk/README.md` ("How a run ends", the output tool and `shouldStop`) and `packages/sdk/src/loop.ts`, `result.ts` and `budget.ts`.
 
 ## Scope
@@ -36,9 +36,9 @@ Our SDK fits this chapter closely. B11's `run()` counts `maxSteps` in model call
 - The spend-cap paragraph gains our pre-emptive `budgetUsd` beside the Claude Agent SDK's post-response `maxBudgetUsd`, citing B14's measured overshoot.
 - The prose, notes and fact-check rows the tabs change.
 
-**Out of scope**
+**Out of scope** (and which todo covers it)
 
-- A listing of `continueRun()` resuming a capped run; the memory chapter's follow-up covers resuming.
+- A listing of `continueRun()` resuming a capped run: resuming belongs to the memory chapter, so a future follow-up to [T15](T15-chapter-memory-and-sessions.md), opened once its `switchTo` todos N3 and N6 are done (BK8), covers it.
 
 ## Tasks
 
