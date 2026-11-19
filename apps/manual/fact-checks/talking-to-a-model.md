@@ -188,14 +188,16 @@ The first high-effort code review of the pull request found nine problems. It co
 | 119 | Exercise 1 runs as written: the copy `10-haiku-usage.ts`, with Haiku's `Rates`, `modelId: "claude-haiku-5-5"` and the Sonnet price check replaced by the reader's own, passes every check, and its run writes its own transcript and rewrites `results/run-examples.json`, which the clean-up steps remove and restore; `check()` throws at the first failing check | § Exercises, 1 | ✅ | `verify/vercel-ai-sdk/examples/lib/check.ts`, line 11: `if (!cond) throw new Error(…)`. A scratch run on 2026-11-19 followed the steps exactly: `{ noCache: 100, cacheRead: 10, cacheWrite: 125, output: 500 }`, `costNanos` on them, and `check(nanos === 277_500, …)` in place of line 35; `pnpm test` ran 13 examples, all passing, and in the copy's transcript all ten checks pass, the last still comparing with Sonnet's uncached bill. The run left `results/run-examples.json` modified and `results/transcripts/10-haiku-usage.json` untracked; deleting the copy and that transcript and running `git checkout -- verify/vercel-ai-sdk/results` left a clean tree. A second scratch run kept the Sonnet check before the reader's: `tsc` then refused the copy (TS2367, since `check` narrows `nanos` to `5400000`), so `pnpm test` failed before any example ran. The chapter does not print these answers |
 | 120 | Exercise 2's clean-up, `git checkout -- verify/vercel-ai-sdk` from the repository root, restores the edited example and the results its run rewrote | § Exercises, 2 | ✅ | The exercise edits only `examples/06-streaming.ts`, a tracked file, and its run rewrites tracked files under `results/` and creates none (row 94's scratch run edited the same file), so checking out the harness folder restores both |
 | 121 | The varied bridges change no claim: streaming gives the reader the answer early, the taxi meter counts tokens, and OpenAI's guide orders models most capable first | § Streams, § Usage, § Choosing a model | ✅ | Rows 19 and 21, row 111 and row 65; the analogy register now holds four entries for this chapter, the pharmacist's slip removed |
+| 122 | After the writing review of the high-review fixes: the system-prompt section's thinking paragraph splits at the prefix check, which "reaches back to the system prompt"; its two facts are numbered and the second now reads "Anthropic's models with preserved thinking … check each block" | § The system prompt | ✅ | Row 117 for the two facts; row 61 for the quote, whose `system` is the system prompt (row 7). The split adds no claim |
+| 123 | After the same review: the statelessness paragraph's head says "two consequences" instead of "two limits", since billing is no limit, and its last sentence splits; the usage replay's paragraph names the transcript, not "it", as what names the model `model-1`; the Copilot sentence splits in three; the taxi meter's provider "charges" the fare; exercise 1's rates step splits | § Messages and roles, § Usage, § Thinking, § Exercises | ✅ | Rows 114, 116, 118 and 119; each fix rewords a sentence and changes no claim, and exercise 1's steps are the ones row 119's scratch run followed |
 
 ## Tally
 
 | Verdict | Rows |
 | --- | --- |
-| ✅ confirmed | 108 |
+| ✅ confirmed | 110 |
 | ✏️ corrected | 9 (rows 12, 17, 24, 38, 49, 91, 93, 103 and 108) |
 | ⚠️ unverified, our judgement or recommendation, marked as ours in the text | 4 (rows 16, 31, 57 and 75) |
-| Total | 121 |
+| Total | 123 |
 
 Five ✅ rows (21, 32, 59, 76 and 96) also record a draft sentence that was reworded before its section's commit, so no wrong claim was ever committed; Chapter 1's log treats such rows the same way (its row 71).
