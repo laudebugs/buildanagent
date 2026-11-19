@@ -62,7 +62,7 @@ None open. The owner accepted D5 with an ephemeral default and an optional `sign
 
 ## Revision (2026-11-18, SDK gaps)
 
-[ADR 0043](../../decisions/0043-standalone-safety-core.md), accepted by the owner on 2026-11-18, puts the signer and the canonical input hash in `@agent-speak/agent-safety`, which [E3](E3-signed-approvals-third-party.md) builds with the shapes of [build-sdk.md §3.3](../../plans/build-sdk.md#33-sdk-api). D5's contract and ADR 0005's rules do not change.
+[ADR 0043](../../decisions/0043-standalone-safety-core.md), accepted by the owner on 2026-11-18, puts the signer and the canonical input hash in `@buildanagent/agent-safety`, which [E3](E3-signed-approvals-third-party.md) builds with the shapes of [build-sdk.md §3.3](../../plans/build-sdk.md#33-sdk-api). D5's contract and ADR 0005's rules do not change.
 
 - [ ] `hmacSigner()`, `ephemeralSigner()` and the input hash are imported from the safety package, not defined here; the SDK re-exports them.
 - [ ] A pause signed through the SDK and one signed directly by the package for the same fields produce byte-identical payloads (E3's matching test).

@@ -1,7 +1,7 @@
-import "@agent-speak/gateway/testing/setup";
+import "@buildanagent/gateway/testing/setup";
 import assert from "node:assert/strict";
 import { test } from "node:test";
-import { complete, emptyUsage, totalInput, type Usage } from "@agent-speak/gateway";
+import { complete, emptyUsage, totalInput, type Usage } from "@buildanagent/gateway";
 import { message, streamOf, validEvents } from "./fixtures.ts";
 
 test("complete() returns the done terminal's message", async () => {

@@ -39,7 +39,7 @@ A verified TypeScript reference for `@anthropic-ai/claude-agent-sdk@0.3.327`: a 
 
 ## Acceptance criteria
 
-- [x] `pnpm --filter @agent-speak/verify-claude-agent-sdk test` passes offline
+- [x] `pnpm --filter @buildanagent/verify-claude-agent-sdk test` passes offline
 
 ## Tests
 

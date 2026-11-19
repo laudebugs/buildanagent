@@ -85,5 +85,5 @@ try {
 The SDK has no mock model, so tests point `ANTHROPIC_BASE_URL` at the mock Messages API in [`verify/claude-agent-sdk/scripts/mock-anthropic.mjs`](../../../verify/claude-agent-sdk/scripts/mock-anthropic.mjs). The mock calls one `mcp__` tool per query (one the prompt names, else the first offered), then answers, through `StructuredOutput` when a schema is set; test a second tool with a second query whose prompt names it. The runner `node scripts/run-examples.mjs <dir> --only <name>` (from `verify/claude-agent-sdk`) starts a mock per file, runs it in a temp cwd, and sets an allowlisted environment (`ANTHROPIC_BASE_URL`, a fake key, `HOME`, `CLAUDE_CONFIG_DIR`, `MOCK_LOG`, `NO_PROXY`, …). Inside the file, pass those through to the CLI with `env: { PATH: process.env.PATH, HOME: process.env.HOME, ANTHROPIC_BASE_URL: process.env.ANTHROPIC_BASE_URL, ANTHROPIC_API_KEY: process.env.ANTHROPIC_API_KEY, CLAUDE_CONFIG_DIR: process.env.CLAUDE_CONFIG_DIR }`. Drain the query with `collect()` (`import { collect } from "../examples/lib/collect.ts"`). The runner prints only the outcome; exit 0 is a pass. Run the verified examples with:
 
 ```bash
-pnpm --filter @agent-speak/verify-claude-agent-sdk test
+pnpm --filter @buildanagent/verify-claude-agent-sdk test
 ```

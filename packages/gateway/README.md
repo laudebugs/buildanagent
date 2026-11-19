@@ -1,6 +1,6 @@
-# @agent-speak/gateway
+# @buildanagent/gateway
 
-The model gateway gives the agent-speak SDK one provider-neutral way to call any model: a transcript it owns, one streaming method per provider, and a stream rule every adapter must follow. As of November 2026 it holds the core types, the stream checker and `complete()` (todo B2). Retries and middleware (B4), pricing (B5) and the Anthropic and OpenAI adapters (B8, B9) come next. The design is in the [SDK plan §3.2](../../docs/plans/build-sdk.md#32-gateway-api).
+The model gateway gives the buildanagent SDK one provider-neutral way to call any model: a transcript it owns, one streaming method per provider, and a stream rule every adapter must follow. As of November 2026 it holds the core types, the stream checker and `complete()` (todo B2). Retries and middleware (B4), pricing (B5) and the Anthropic and OpenAI adapters (B8, B9) come next. The design is in the [SDK plan §3.2](../../docs/plans/build-sdk.md#32-gateway-api).
 
 ## The transcript belongs to us, not to a provider
 
@@ -23,4 +23,4 @@ An adapter implements one method, `stream(model, context, options)`, behind `spe
 
 ## Tests run offline
 
-Every test file starts with `import "@agent-speak/gateway/testing/setup"`. The setup blocks `fetch` to any host other than loopback and fails the run if `ANTHROPIC_API_KEY` or `OPENAI_API_KEY` is set, so no test can reach a real provider. Run the tests with `pnpm test` from the repo root.
+Every test file starts with `import "@buildanagent/gateway/testing/setup"`. The setup blocks `fetch` to any host other than loopback and fails the run if `ANTHROPIC_API_KEY` or `OPENAI_API_KEY` is set, so no test can reach a real provider. Run the tests with `pnpm test` from the repo root.

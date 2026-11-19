@@ -1,6 +1,6 @@
 # 0017. Pin semconv-genai at `d28355d`, and name cost attributes in our own namespace
 
-- **Status:** Accepted (P4 review, 2026-11-18)
+- **Status:** Accepted (P4 review, 2026-11-18); names amended by [0044](0044-rename-to-buildanagent.md) (2026-11-19)
 - **Date:** 2026-11-18
 - **Plan:** [build-harness.md, HD7](../plans/build-harness.md#hd7-pin-semconv-genai-d28355d-and-name-cost-in-our-own-namespace-with-sdk-d3)
 

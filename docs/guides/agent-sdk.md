@@ -172,7 +172,7 @@ The first three rows and Claude and Pi come from [SDK research §2][sr2]; the de
 
 ## 8. The SDK should ship a strict scripted test model in a `testing` export from the first release
 
-**Recommended design.** `@agent-speak/sdk/testing` centres on a strict `ScriptedModel` with fixed and responder steps, frozen request snapshots, a typed over-run error and `assertComplete()` ([SDK decision 14][sr6]). Beside it ship an `autoResponder` with a host-tool deny list, realistic chunked streams, scripted doubles for the sandbox, approval and MCP seams, a mock transport per adapter, and `allowModelRequests(false)`. The core makes `clock`, `idGenerator` and `random` stable run options ([SDK decision 14][sr6]).
+**Recommended design.** `@buildanagent/sdk/testing` centres on a strict `ScriptedModel` with fixed and responder steps, frozen request snapshots, a typed over-run error and `assertComplete()` ([SDK decision 14][sr6]). Beside it ship an `autoResponder` with a host-tool deny list, realistic chunked streams, scripted doubles for the sandbox, approval and MCP seams, a mock transport per adapter, and `allowModelRequests(false)`. The core makes `clock`, `idGenerator` and `random` stable run options ([SDK decision 14][sr6]).
 
 **Four of the eight SDKs ship a test model, one borrows another's, and three ship none.** Pi ships `fauxProvider`, OpenAI `ScriptedModel`, Vercel `MockLanguageModelV4` in `ai/test`, and LangChain `fakeModel()` ([SDK research §5][sr5]). Cloudflare's agents reuse Vercel's mock, because both chat classes call the AI SDK ([Cloudflare guide §12][cf-g12]). The other three ship none:
 - **Claude:** our harness mocks the Messages API over HTTP and had to reimplement the CLI's tool-search step ([SDK research §5][sr5]).

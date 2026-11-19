@@ -89,5 +89,5 @@ An Agent cannot be constructed in Node, so tests run inside workerd through Mini
 Run one new file without touching committed results, from `verify/cloudflare-agents`: `node scripts/run-examples.mjs examples --only <name>` (no type-check; run `pnpm typecheck` too). Run the verified examples with:
 
 ```bash
-pnpm --filter @agent-speak/verify-cloudflare-agents test
+pnpm --filter @buildanagent/verify-cloudflare-agents test
 ```

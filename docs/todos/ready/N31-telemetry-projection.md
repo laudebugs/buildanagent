@@ -25,9 +25,9 @@ Project OTel `gen_ai.*` spans from stored entries, with an approval-wait span, c
 **In scope**
 
 - `projectSpans(entries, { tracer, content, toolArguments })`: `invoke_agent` → turn → model call → `execute_tool`, plus `approval_wait` from `approval_requested` to `approval_resolved`
-- `GEN_AI_ATTRIBUTES` and `SEMCONV_GENAI_COMMIT` imported from `@agent-speak/sdk/otel` (B17), plus a module for our own `agent_speak.*` names
+- `GEN_AI_ATTRIBUTES` and `SEMCONV_GENAI_COMMIT` imported from `@buildanagent/sdk/otel` (B17), plus a module for our own `buildanagent.*` names
 - `hashAttributes: { key, names }`: HMAC-SHA-256 over each named attribute's value before export (agent AH12)
-- `gen_ai.usage.input_tokens` as `totalInput(usage)`; `agent_speak.cost.usd` omitted when `Cost.total` is `null`
+- `gen_ai.usage.input_tokens` as `totalInput(usage)`; `buildanagent.cost.usd` omitted when `Cost.total` is `null`
 - Content levels `none` (default), `attributes`, `refs`; tool arguments gated apart
 - The session budget meter and the `budget_warning` event (HD9)
 
@@ -45,7 +45,7 @@ Project OTel `gen_ai.*` spans from stored entries, with an approval-wait span, c
 - [ ] A recorded capstone session projects to the expected span tree, checked against a fixture
 - [ ] The approval-wait span's duration equals the gap between the two approval entries
 - [ ] With default options no span attribute contains message or tool-argument text
-- [ ] A session with an unknown price has spans with `agent_speak.cost.basis = "unknown"` and no `agent_speak.cost.usd`
+- [ ] A session with an unknown price has spans with `buildanagent.cost.basis = "unknown"` and no `buildanagent.cost.usd`
 - [ ] At 80% of a session cap the meter emits one `budget_warning`
 - [ ] With `hashAttributes` naming an attribute, every exported span carries the keyed hash of its value and never the value itself
 - [ ] No `gen_ai.*` string literal appears in `packages/harness/src/telemetry` (a test)

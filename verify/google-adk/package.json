@@ -1,5 +1,5 @@
 {
-  "name": "@agent-speak/verify-google-adk",
+  "name": "@buildanagent/verify-google-adk",
   "private": true,
   "license": "Apache-2.0 OR MIT",
   "type": "module",

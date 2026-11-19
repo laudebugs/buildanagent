@@ -26,7 +26,7 @@ Complete HD8's 30-task seed suite with the agent's 10 classification-slice tasks
 
 **In scope**
 
-- A runner that loads the 10 classification-slice `TriageTask`s from `@agent-speak/triage-agent/evals` and runs them on the harness with the fake helpdesk and the triage tools
+- A runner that loads the 10 classification-slice `TriageTask`s from `@buildanagent/triage-agent/evals` and runs them on the harness with the fake helpdesk and the triage tools
 - A decision, recorded in the results note, on how mini-swe-agent receives a ticket: as a task file it reads with bash, or not at all, in which case those 10 tasks are scored for our harness only and the report says so
 - Two runs of the same configuration for discordance on the 30-task suite
 
@@ -37,7 +37,7 @@ Complete HD8's 30-task seed suite with the agent's 10 classification-slice tasks
 
 ## Tasks
 
-- [ ] Import the task ids and graders from `@agent-speak/triage-agent/evals`; commit only the ids, grader names and versions in `packages/evals`.
+- [ ] Import the task ids and graders from `@buildanagent/triage-agent/evals`; commit only the ids, grader names and versions in `packages/evals`.
 - [ ] Keep ticket text in the agent's eval package, which holds only synthetic and de-identified tickets; never copy a raw ticket into `packages/evals`.
 - [ ] Try the task-file route for mini-swe-agent on one task offline against the mock server, and record the result.
 - [ ] Run the 30-task suite twice at k = 5 within the owner's budget, through N37's live script.

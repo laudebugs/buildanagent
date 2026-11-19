@@ -199,7 +199,7 @@ The capstone [`09-triage-agent.ts`](../../../verify/vercel-ai-sdk/examples/09-tr
 The run looks up the order, asks to refund it, resumes with the approval, refunds once and returns `{ category: "billing", action: "refunded", … }` in three model calls. **[verified: 09]**
 
 ```bash
-pnpm install && pnpm --filter @agent-speak/verify-vercel-ai-sdk test
+pnpm install && pnpm --filter @buildanagent/verify-vercel-ai-sdk test
 ```
 
 ## 16. Nine runnable examples back every [verified] claim
@@ -218,4 +218,4 @@ pnpm install && pnpm --filter @agent-speak/verify-vercel-ai-sdk test
 
 ## Conclusion: set the limits and gates yourself, and the thin loop stays predictable
 
-The Vercel AI SDK suits teams that want an agent loop they can read in an afternoon, across any provider, with tests that run offline. Its docs are accurate where it matters: every documented option of `generateText`, `streamText`, `ToolLoopAgent` and `tool()` exists, and 116 doc examples ran unmodified on a mock model. What the SDK leaves to you is the policy: route model strings deliberately, set `stopWhen` on every loop, and gate every state-changing tool with `toolApproval`. To start, copy [`09-triage-agent.ts`](../../../verify/vercel-ai-sdk/examples/09-triage-agent.ts), swap in your tools and schema, and run `pnpm --filter @agent-speak/verify-vercel-ai-sdk test` to confirm the gates still hold.
+The Vercel AI SDK suits teams that want an agent loop they can read in an afternoon, across any provider, with tests that run offline. Its docs are accurate where it matters: every documented option of `generateText`, `streamText`, `ToolLoopAgent` and `tool()` exists, and 116 doc examples ran unmodified on a mock model. What the SDK leaves to you is the policy: route model strings deliberately, set `stopWhen` on every loop, and gate every state-changing tool with `toolApproval`. To start, copy [`09-triage-agent.ts`](../../../verify/vercel-ai-sdk/examples/09-triage-agent.ts), swap in your tools and schema, and run `pnpm --filter @buildanagent/verify-vercel-ai-sdk test` to confirm the gates still hold.

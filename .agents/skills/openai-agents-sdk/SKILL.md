@@ -79,5 +79,5 @@ Use `ScriptedModel` from `@openai/agents/testing`: `new ScriptedModel([step, ste
 Run one new file offline, without touching committed results, from `verify/openai-agents-sdk`: `node scripts/run-examples.mjs <dir> --only <name>`. The runner prints only the outcome, so run the file with tsx to see its output. Run the verified examples with:
 
 ```bash
-pnpm --filter @agent-speak/verify-openai-agents-sdk test
+pnpm --filter @buildanagent/verify-openai-agents-sdk test
 ```

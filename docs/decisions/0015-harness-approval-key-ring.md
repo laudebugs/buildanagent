@@ -1,6 +1,6 @@
 # 0015. Have the harness always sign pauses with a persistent, host-only key ring, and make every approval a pause first
 
-- **Status:** Superseded by [0035](0035-read-only-key-store.md) (2026-11-18); accepted by the owner on 2026-11-18
+- **Status:** Superseded by [0035](0035-read-only-key-store.md) (2026-11-18); accepted by the owner on 2026-11-18; names amended by [0044](0044-rename-to-buildanagent.md) (2026-11-19)
 - **Date:** 2026-11-18
 - **Plan:** [build-harness.md, HD5](../plans/build-harness.md#hd5-the-harness-always-passes-hmacsigner-over-a-persistent-key-ring-accepted-with-sdk-d5)
 

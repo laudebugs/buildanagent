@@ -11,7 +11,7 @@
 
 ## Goal
 
-Ship `agent-speak` as a client of the in-process transport: a one-shot JSONL mode for scripts, a line-mode chat with approvals, and the search and replay commands practitioners ask for, with nothing leaving the machine by default.
+Ship `buildanagent` as a client of the in-process transport: a one-shot JSONL mode for scripts, a line-mode chat with approvals, and the search and replay commands practitioners ask for, with nothing leaving the machine by default.
 
 ## Context
 
@@ -23,9 +23,9 @@ Ship `agent-speak` as a client of the in-process transport: a one-shot JSONL mod
 
 **In scope**
 
-- `agent-speak run <prompt> [--json]`: JSONL events on stdout
-- `agent-speak chat`: line mode with approval prompts, grouped calls and chained commands shown normalised
-- `agent-speak rpc` (N29), `resume <session>`, `sessions list|show|search|replay`, `session unlock --force`, `keys rotate|prune`
+- `buildanagent run <prompt> [--json]`: JSONL events on stdout
+- `buildanagent chat`: line mode with approval prompts, grouped calls and chained commands shown normalised
+- `buildanagent rpc` (N29), `resume <session>`, `sessions list|show|search|replay`, `session unlock --force`, `keys rotate|prune`
 - Preamble size at session start; context fill and running cost with the 80% warning
 - Optional `--otlp-endpoint`; no update check and no commit attribution
 
@@ -39,7 +39,7 @@ Ship `agent-speak` as a client of the in-process transport: a one-shot JSONL mod
 
 ## Acceptance criteria
 
-- [ ] `agent-speak run --json` prints one JSON object per line and exits 0 on `done`
+- [ ] `buildanagent run --json` prints one JSON object per line and exits 0 on `done`
 - [ ] `sessions search <text>` finds a message in a recorded session
 - [ ] `sessions replay` plays a session back with zero model calls
 - [ ] With no flags, the CLI opens no outbound connection (guarded `fetch`)

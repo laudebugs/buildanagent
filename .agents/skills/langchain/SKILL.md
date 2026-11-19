@@ -79,5 +79,5 @@ Use `fakeModel()` from `langchain`, passed straight in as `createAgent({ model: 
 Run one new file offline, without touching committed results, from `verify/langchain`: `node scripts/run-examples.mjs <dir> --only <name>` (it prints only the outcome and runs through tsx without type-checking; run the file with tsx to see its output, and type-check it yourself, since `pnpm test` covers only `examples/`). Run the verified examples with:
 
 ```bash
-pnpm --filter @agent-speak/verify-langchain test
+pnpm --filter @buildanagent/verify-langchain test
 ```

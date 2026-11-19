@@ -37,15 +37,15 @@ Define the harness protocol once, as a discriminated TypeScript union with stric
 ## Tasks
 
 - [ ] Pin the JSON Schema generator as an exact dev dependency at least a week old (shared with N2).
-- [ ] Declare `@agent-speak/gateway` and `@agent-speak/sdk` as `dependencies` used for types only; `ContentBlock`, `AgentEvent` and `SignedPendingRequest` come in as type-only imports, and `SessionEntry` is the package's own (N2).
+- [ ] Declare `@buildanagent/gateway` and `@buildanagent/sdk` as `dependencies` used for types only; `ContentBlock`, `AgentEvent` and `SignedPendingRequest` come in as type-only imports, and `SessionEntry` is the package's own (N2).
 
 ## Acceptance criteria
 
 - [ ] A JSON string containing U+2028 and U+2029 round-trips through the framer
 - [ ] A message without `jsonrpc` is rejected with the JSON-RPC invalid-request code
 - [ ] Every fixture validates and type-checks in both directions
-- [ ] The emitted JavaScript of `@agent-speak/protocol` imports nothing outside the package (a test scans `dist/` for import specifiers)
-- [ ] `@agent-speak/protocol` declares no dependency on `@agent-speak/harness`, so the workspace graph has no cycle
+- [ ] The emitted JavaScript of `@buildanagent/protocol` imports nothing outside the package (a test scans `dist/` for import specifiers)
+- [ ] `@buildanagent/protocol` declares no dependency on `@buildanagent/harness`, so the workspace graph has no cycle
 - [ ] `pnpm check`, `pnpm typecheck` and `pnpm test` pass offline from the repo root
 
 ## Tests

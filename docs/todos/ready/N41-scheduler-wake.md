@@ -22,7 +22,7 @@ Add the one seam the harness plan lacks for running off-host: `Scheduler.wake(at
 
 **In scope**
 
-- `Scheduler` interface in `@agent-speak/harness`
+- `Scheduler` interface in `@buildanagent/harness`
 - `processScheduler()` using an in-process timer
 - `fileLock()` renewal moved onto the scheduler
 

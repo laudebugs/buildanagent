@@ -1,8 +1,8 @@
 # 0030. Ship the triage agent as one private package, `@agent-speak/triage-agent`, with one subpath per removable component
 
-- **Status:** Accepted (P4 review, 2026-11-18)
+- **Status:** Accepted (P4 review, 2026-11-18); names amended by [0044](0044-rename-to-buildanagent.md) (2026-11-19)
 - **Date:** 2026-11-18
-- **Plan:** [build-agent.md, AD13](../plans/build-agent.md#ad13-one-private-package-agent-speaktriage-agent-with-one-subpath-per-removable-component)
+- **Plan:** [build-agent.md, AD13](../plans/build-agent.md#ad13-one-private-package-buildanagenttriage-agent-with-one-subpath-per-removable-component)
 
 ## Context
 

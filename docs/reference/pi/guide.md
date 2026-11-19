@@ -198,7 +198,7 @@ The capstone [`08-triage-agent.ts`](../../../verify/pi/examples/08-triage-agent.
 5. **Stay self-contained.** In-memory session and settings managers, an explicit resource loader over a temp folder, and a `ModelRuntime` with its own `authPath` and `modelsPath: null` keep `~/.pi` out of the run.
 
 ```bash
-pnpm install && pnpm --filter @agent-speak/verify-pi test
+pnpm install && pnpm --filter @buildanagent/verify-pi test
 ```
 
 ## 15. Eight runnable examples back every [verified] claim
@@ -216,4 +216,4 @@ pnpm install && pnpm --filter @agent-speak/verify-pi test
 
 ## Conclusion: Pi trades vendor guardrails for a harness you can read
 
-Pi suits teams that want to own their agent harness: the loop, the session tree, compaction and the provider layer are all in-process TypeScript, and the faux provider makes every layer testable offline. Its docs are accurate, too: the reference pages matched the 1.5.2 package exactly on session entries, RPC commands and extension events, and on every documented setting. The cost of that openness is safety work Pi won't do for you. Before you put a Pi agent in front of real tools, write a `tool_call` extension that blocks risky calls, run the process in a container with a scrubbed environment, and pin the model. To start, copy [`08-triage-agent.ts`](../../../verify/pi/examples/08-triage-agent.ts), swap in your tools, and run `pnpm --filter @agent-speak/verify-pi test` to confirm the gate still holds.
+Pi suits teams that want to own their agent harness: the loop, the session tree, compaction and the provider layer are all in-process TypeScript, and the faux provider makes every layer testable offline. Its docs are accurate, too: the reference pages matched the 1.5.2 package exactly on session entries, RPC commands and extension events, and on every documented setting. The cost of that openness is safety work Pi won't do for you. Before you put a Pi agent in front of real tools, write a `tool_call` extension that blocks risky calls, run the process in a container with a scrubbed environment, and pin the model. To start, copy [`08-triage-agent.ts`](../../../verify/pi/examples/08-triage-agent.ts), swap in your tools, and run `pnpm --filter @buildanagent/verify-pi test` to confirm the gate still holds.

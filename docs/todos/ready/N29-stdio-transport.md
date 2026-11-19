@@ -11,7 +11,7 @@
 
 ## Goal
 
-Serve the dispatcher over JSONL on stdio as `agent-speak rpc`, and run the guide's settling test for the framing with a generic JSON-RPC client and an MCP-style library.
+Serve the dispatcher over JSONL on stdio as `buildanagent rpc`, and run the guide's settling test for the framing with a generic JSON-RPC client and an MCP-style library.
 
 ## Context
 

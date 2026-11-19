@@ -1,6 +1,6 @@
 # 0012. Ship the harness as four packages: protocol, harness with one subpath per component, CLI and evals
 
-- **Status:** Accepted (P4 review, 2026-11-18)
+- **Status:** Accepted (P4 review, 2026-11-18); names amended by [0044](0044-rename-to-buildanagent.md) (2026-11-19)
 - **Date:** 2026-11-18
 - **Plan:** [build-harness.md, HD13](../plans/build-harness.md#hd13-four-packages-with-one-subpath-export-per-removable-component)
 

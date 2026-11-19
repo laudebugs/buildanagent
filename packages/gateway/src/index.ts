@@ -1,4 +1,4 @@
-/** `@agent-speak/gateway`: the model gateway's transcript, model spec, stream rule and helpers. */
+/** `@buildanagent/gateway`: the model gateway's transcript, model spec, stream rule and helpers. */
 export { complete } from "./complete.ts";
 export {
   assertModelRequestAllowed,

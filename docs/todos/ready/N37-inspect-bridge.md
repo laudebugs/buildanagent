@@ -28,7 +28,7 @@ Drive the unmodified harness from Inspect through `sandbox_agent_bridge()`, run 
 - `forward_generation_config=True`
 - Graders outside the agent's writable sandbox; a clean workspace per trial with no earlier git history
 - Resource guarantees and kill limits from HD8, recorded per row
-- A `pnpm --filter @agent-speak/evals eval:live` script that refuses to start without an explicit budget flag
+- A `pnpm --filter @buildanagent/evals eval:live` script that refuses to start without an explicit budget flag
 
 **Out of scope** (and which todo covers it)
 

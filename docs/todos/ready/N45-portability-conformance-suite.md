@@ -22,7 +22,7 @@ Collect every portability case into one suite that any target's implementations 
 
 **In scope**
 
-- One exported suite in `@agent-speak/harness/testing` over `SessionStore`, `SessionLock`, `Scheduler`, `KeyStore`, `SandboxClient`, `EgressPolicy` and the transport
+- One exported suite in `@buildanagent/harness/testing` over `SessionStore`, `SessionLock`, `Scheduler`, `KeyStore`, `SandboxClient`, `EgressPolicy` and the transport
 - Local implementations passing it
 
 **Out of scope**

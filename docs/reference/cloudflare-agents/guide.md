@@ -191,7 +191,7 @@ The capstone [`09-triage-agent.ts`](../../../verify/cloudflare-agents/examples/0
 The run logged the identity warning from section 13, because the example keeps the default.
 
 ```bash
-pnpm install && pnpm --filter @agent-speak/verify-cloudflare-agents test
+pnpm install && pnpm --filter @buildanagent/verify-cloudflare-agents test
 ```
 
 ## 15. Nine runnable examples back the [verified] claims
@@ -210,4 +210,4 @@ pnpm install && pnpm --filter @agent-speak/verify-cloudflare-agents test
 
 ## Conclusion: let the Durable Object hold the state, and set the defaults yourself
 
-Cloudflare Agents suits teams that want each agent to be a long-lived, addressable server: its state, conversation, schedules, MCP connections and pending approvals sit in one instance's SQLite, and they survive hibernation and eviction. The agent loop itself is the Vercel AI SDK's, so that SDK's knowledge carries over and its mock model tests both chat classes offline. The SDK matched its docs in 18 of 20 behavioral tests, and both misses were patterns the docs teach: an un-awaited router and a `body` flag that `runTurn` drops. The docs fare worse, because they span two sites and track branches rather than the release. Before you deploy, turn off `sendIdentityOnConnect` for sensitive names, decide which of Think's workspace tools the model gets, gate state-changing tools with `needsApproval`, and await `routeAgentRequest`. Then copy [`09-triage-agent.ts`](../../../verify/cloudflare-agents/examples/09-triage-agent.ts), swap in your tools and schema, and run `pnpm --filter @agent-speak/verify-cloudflare-agents test` to confirm the gate still holds.
+Cloudflare Agents suits teams that want each agent to be a long-lived, addressable server: its state, conversation, schedules, MCP connections and pending approvals sit in one instance's SQLite, and they survive hibernation and eviction. The agent loop itself is the Vercel AI SDK's, so that SDK's knowledge carries over and its mock model tests both chat classes offline. The SDK matched its docs in 18 of 20 behavioral tests, and both misses were patterns the docs teach: an un-awaited router and a `body` flag that `runTurn` drops. The docs fare worse, because they span two sites and track branches rather than the release. Before you deploy, turn off `sendIdentityOnConnect` for sensitive names, decide which of Think's workspace tools the model gets, gate state-changing tools with `needsApproval`, and await `routeAgentRequest`. Then copy [`09-triage-agent.ts`](../../../verify/cloudflare-agents/examples/09-triage-agent.ts), swap in your tools and schema, and run `pnpm --filter @buildanagent/verify-cloudflare-agents test` to confirm the gate still holds.
