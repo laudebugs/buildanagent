@@ -642,7 +642,7 @@ The guide says to start with the gateway and the test model, because every other
 | ID | Title | Depends on | Size |
 | --- | --- | --- | --- |
 | [B17](../todos/done/B17-otel-observer.md) | OTel `gen_ai.*` observer with content off | B13, B5 | M |
-| [B18](../todos/ready/B18-testing-export.md) | Complete the `testing` exports: `autoResponder`, seam doubles, record and replay, mock server | B8, B9, B15b | M |
+| [B18](../todos/ongoing/B18-testing-export.md) | Complete the `testing` exports: `autoResponder`, seam doubles, record and replay, mock server | B8, B9, B15b | M |
 | [B19](../todos/ready/B19-triage-capstone.md) | Triage capstone and the conformance suite | B12, B14, B15b, B16, B18 | M |
 | [B19b](../todos/ready/B19b-reference-loop.md) | The readable reference loop, passing the capstone | B19 | M |
 | [B20](../todos/ready/B20-versioning-docs.md) | Versioning policy, defaults hash, compiled docs, `llms.txt` and the export diffs | B17, B19 | M |

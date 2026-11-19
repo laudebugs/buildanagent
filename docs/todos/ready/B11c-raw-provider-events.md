@@ -21,7 +21,7 @@ Let a caller opt in to the provider's own stream events beside the normalized on
 - `packages/gateway/src/sse.ts`, `packages/gateway/src/adapters/anthropic/response.ts` and `packages/gateway/src/adapters/openai-chat/response.ts`: `sse.ts` parses the body into `ServerSentEvent`s, joining an event's `data:` lines into one string, and both adapters' `handle()` reads one `ServerSentEvent` at a time. The OpenAI Chat adapter's `data: [DONE]` is not JSON: on it, `handle()` returns the terminal event.
 - `packages/gateway/src/retry.ts`: forwards each attempt's events live and counts only block events as output, so a failed attempt's events reach the caller before the retry decision.
 - `packages/gateway/src/stream-contract.ts`: the contract every stream must pass, which a new event type must not break.
-- [B18](../ready/B18-testing-export.md): record and replay works at the normalized boundary, so raw events stay out of recorded pairs. B18's Risks say so.
+- [B18](../ongoing/B18-testing-export.md): record and replay works at the normalized boundary, so raw events stay out of recorded pairs. B18's Risks say so.
 
 ## Scope
 

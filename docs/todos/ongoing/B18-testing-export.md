@@ -3,7 +3,7 @@
 | Field | Value |
 | --- | --- |
 | ID | `B18` |
-| Status | `ready` |
+| Status | `ongoing` |
 | Plan | [Build SDK §4, Stage 4](../../plans/build-sdk.md#44-stage-4-ships-telemetry-the-testing-exports-the-capstone-and-the-docs-checks) |
 | Round / milestone | Round B (build SDK), M5 |
 | Depends on | [B8](../done/B8-anthropic-adapter.md), [B9](../done/B9-openai-chat-adapter.md), [B15b](../done/B15b-continue-run.md) |
@@ -58,7 +58,7 @@ Finish the `testing` exports so users of the SDK, and the harness, can test agen
 
 Record and replay must never capture real credentials; the header strip is tested.
 
-Recordings hold no `raw` provider events ([B11c](B11c-raw-provider-events.md)): they sit outside the normalized boundary, so the "same event log" check compares the log without them.
+Recordings hold no `raw` provider events ([B11c](../ready/B11c-raw-provider-events.md)): they sit outside the normalized boundary, so the "same event log" check compares the log without them.
 
 ## Definition of done
 
