@@ -8,7 +8,7 @@ import {
   type SignedPendingRequest,
   testSigner,
 } from "@buildanagent/agent-safety";
-import { type ApprovalRejection, signedToolApproval } from "@buildanagent/agent-safety/ai";
+import { type ApprovalRejection, settleDeniedApprovals, signedToolApproval } from "@buildanagent/agent-safety/ai";
 import {
   generateText,
   InvalidToolApprovalSignatureError,
@@ -18,6 +18,7 @@ import {
   streamText,
   type ToolApprovalConfiguration,
   tool,
+  type UIMessage,
 } from "ai";
 import { MockLanguageModelV4, simulateReadableStream } from "ai/test";
 import { test } from "vitest";
@@ -458,4 +459,57 @@ test("a pause signed under a rotated-out key is denied once that key leaves the 
     toolApproval: pruned,
   });
   assert.equal(executed.length, 1, "once a leaves the ring, its pause fails closed");
+});
+
+test("an onRejected that throws still runs nothing: the error propagates instead of an approval", async () => {
+  const agent = refundAgent();
+  const { model } = scripted([{ call: "call_1" }, "unused"]);
+  const history = await pause(agent, model);
+  await agent.store.take("call_1");
+  const toolApproval = signedToolApproval({
+    signer: testSigner(),
+    store: agent.store,
+    policy: { refund: "user-approval" },
+    recheck: async () => "allow",
+    onRejected: () => {
+      throw new Error("audit log unavailable");
+    },
+  });
+  await assert.rejects(
+    generateText({ model, messages: approve(history), tools: agent.tools, toolApproval }),
+    /audit log unavailable/,
+  );
+  assert.equal(agent.executed.length, 0);
+});
+
+test("settleDeniedApprovals moves only the named approval-responded parts to output-denied", () => {
+  const approval = { id: "a1", approved: true };
+  const messages = [
+    { id: "u1", role: "user", parts: [{ type: "text", text: "Refund it." }] },
+    {
+      id: "m1",
+      role: "assistant",
+      parts: [
+        { type: "tool-refund", toolCallId: "call_1", state: "approval-responded", input: REFUND, approval },
+        { type: "tool-refund", toolCallId: "call_2", state: "approval-responded", input: REFUND, approval },
+        { type: "tool-refund", toolCallId: "call_3", state: "output-available", input: REFUND, output: 1 },
+      ],
+    },
+  ] as UIMessage[];
+  const settled = settleDeniedApprovals(messages, new Set(["call_1", "call_3"]));
+  assert.equal(settled[0], messages[0], "an unchanged message is returned as it is");
+  assert.deepEqual(
+    settled[1]?.parts.map((part) => (part as { state?: string }).state),
+    ["output-denied", "approval-responded", "output-available"],
+  );
+  assert.deepEqual(
+    (settled[1]?.parts[0] as { approval?: unknown } | undefined)?.approval,
+    approval,
+    "the approval is kept",
+  );
+  assert.equal(
+    (messages[1]?.parts[0] as { state?: string } | undefined)?.state,
+    "approval-responded",
+    "the input is unchanged",
+  );
 });
