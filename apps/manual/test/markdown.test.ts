@@ -41,7 +41,7 @@ test("the config's pipeline renders a chapter's paragraphs and collects its head
       { depth: 2, slug: "lst-loop-ai-sdk-heading", text: "AI SDK" },
       { depth: 2, slug: "lst-loop-openai-heading", text: "OpenAI Agents SDK" },
       { depth: 2, slug: "how-the-loop-stops", text: "How the loop stops" },
-      // A box followed directly by a ## heading is at the chapter's top level, so its title is a level-2 heading.
+      // A box marked `top` is at the chapter's top level, so its title is a level-2 heading.
       { depth: 2, slug: "where-steps-go", text: "Where each step goes" },
       { depth: 2, slug: "exercises", text: "Exercises" },
     ],

@@ -244,7 +244,7 @@ test("a chapter page shows SDK tabs and a replay that read in full without JavaS
   assert.match(html, /<script type="module" src="\/_astro\/[^"]+\.js"><\/script>/, "the page loads its script by URL");
 });
 
-test("a box at the chapter's top level has a level-2 title, listed in the page's \"On this page\"", () => {
+test('a box marked top has a level-2 title, listed in the page\'s "On this page"', () => {
   const html = chapter();
   assert.match(
     html,

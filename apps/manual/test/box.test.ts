@@ -35,9 +35,51 @@ Both tabs make the same call.
 
 ## Exercises`;
 
-// The same box with nothing after it but the next section's heading: it stands at the chapter's top level, so its
-// title is a level-2 heading and the tab headings are level 3.
-const TOP_LEVEL = TABBED.replace("Both tabs make the same call.\n\n", "");
+// The same box marked `top`: it stands at the chapter's top level, so its title is a level-2 heading and the tab
+// headings are level 3.
+const TOP_LEVEL = TABBED.replace("{#same-call}", "{#same-call top}");
+
+// Position never makes a box top level: an untagged box that ends its section, and two boxes in a row before a ##
+// heading, each keep the level they declare.
+const ENDING = `## Alpha
+
+Text.
+
+:::box[Ends alpha]{#ends-alpha}
+Body.
+:::
+
+## Beta
+
+### Sub
+
+Text.
+
+:::box[Ends sub]{#ends-sub}
+Body.
+:::
+
+## Exercises`;
+const ROW = `## Alpha
+
+Text.
+
+:::box[First]{#first}
+Body.
+:::
+
+:::box[Second top]{#second-top top}
+Body.
+:::
+
+## Exercises`;
+const rendered = (body: string) => {
+  const d = mutatedFixture((copy) => edit(copy, "chapters/second.md", (text) => text.replace("## Exercises", body)));
+  const out = renderLikeAstro(loadBook(fixtureInputs(d)), "second");
+  return out.finally(() => removeFixture(d));
+};
+const endingHtml = await rendered(ENDING);
+const rowHtml = await rendered(ROW);
 
 const dir = mutatedFixture((copy) => edit(copy, "chapters/second.md", (text) => text.replace("## Exercises", BOX)));
 const html = await renderLikeAstro(loadBook(fixtureInputs(dir)), "second");
@@ -87,7 +129,7 @@ test("tabs inside a box under a level-2 heading get level-4 tab headings, below 
   assert.doesNotMatch(tabbedHtml, /<p>:::/, "every fence closes its own block");
 });
 
-test("a box followed directly by a ## heading is at the top level: a level-2 title, and level-3 tab headings", () => {
+test("a box marked top is at the top level: a level-2 title, and level-3 tab headings", () => {
   assert.match(topHtml, /<h2 class="box__heading" id="same-call">The same call in two harnesses<\/h2>/);
   assert.match(topHtml, /<h3 class="tabs__heading" id="lst-hello-demo-heading">demo-sdk<\/h3>/);
   assert.match(topHtml, /<h3 class="tabs__heading" id="lst-hello-other-heading">other-sdk<\/h3>/);
@@ -95,4 +137,14 @@ test("a box followed directly by a ## heading is at the top level: a level-2 tit
 
 test("a box followed by more of its section stays inside it, one level below the section's heading", () => {
   assert.match(box, /<h3 class="box__heading" id="fixture-runs-offline">/);
+});
+
+test("an untagged box that ends a section stays a sub-heading, before a ## heading or after a ### one", () => {
+  assert.match(endingHtml, /<h3 class="box__heading" id="ends-alpha">/);
+  assert.match(endingHtml, /<h4 class="box__heading" id="ends-sub">/);
+});
+
+test("two boxes in a row keep their own declared levels: untagged one level down, top at level 2", () => {
+  assert.match(rowHtml, /<h3 class="box__heading" id="first">/);
+  assert.match(rowHtml, /<h2 class="box__heading" id="second-top">/);
 });

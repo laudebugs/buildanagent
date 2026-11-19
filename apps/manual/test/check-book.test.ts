@@ -343,7 +343,21 @@ const cases: readonly Case[] = [
       t.replace("## Exercises", ':::box[A box]{#a-box tone="warm"}\nText.\n:::\n\n## Exercises'),
     ),
     file: `${FIRST}:36`,
-    message: /a box takes no attribute but its id, not tone/,
+    message: /a box takes no attribute but its id and the bare flag top, not tone/,
+  },
+  {
+    rule: "a box given top a value fails",
+    change: firstChapter((t) => t.replace("## Exercises", ":::box[A box]{#a-box top=x}\nText.\n:::\n\n## Exercises")),
+    file: `${FIRST}:36`,
+    message: /top takes no value; write :::box\[Title\]\{#a-box top\}, not top=x/,
+  },
+  {
+    rule: "a top box inside another block fails",
+    change: firstChapter((t) =>
+      t.replace("## Exercises", "> :::box[A box]{#a-box top}\n> Text.\n> :::\n\n## Exercises"),
+    ),
+    file: `${FIRST}:36`,
+    message: /a box marked top must sit directly in the chapter, not inside another block/,
   },
   {
     rule: "a box without a title fails",

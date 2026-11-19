@@ -53,7 +53,8 @@ export function remarkBookDirectives(options: { readonly book: Book }) {
       }
       if (node.type === "containerDirective" && isNumberedKind(node.name)) return numbered(node, node.name, file);
       if (node.type === "containerDirective" && node.name === "tabs") return tabs(node, file, depths.get(node) ?? 3);
-      if (node.type === "containerDirective" && node.name === "box") return box(node, file, depths.get(node) ?? 3);
+      if (node.type === "containerDirective" && node.name === "box")
+        return box(node, file, depths.get(node) ?? 3, tree.children.includes(node));
       if (node.type === "textDirective" && node.name === "analogy") return analogy(node, book, outline.number, file);
       if (node.type === "textDirective" && isBare(node)) return restored(node);
       if (node.type === "containerDirective" || node.type === "leafDirective" || node.type === "textDirective") {
@@ -174,10 +175,10 @@ function mergeText(parent: Parent): void {
  * follows, so the headings keep the page's outline without JavaScript. A block before the chapter's first heading sits
  * under the chapter's title, a level-1 heading, so its headings are level 2. Levels stop at 6.
  *
- * A box at the chapter's top level is the exception: its title is a level-2 heading, so the box stands beside the
- * chapter's sections and appears in "On this page". A box is at the top level when it sits directly in the chapter,
- * not inside another block, and either comes before the chapter's first heading or is followed directly by a `##`
- * heading, so nothing of the section before it comes after it. Any other box sits inside its section.
+ * A box marked `top`, as in `:::box[Title]{#id top}`, is the exception: its title is a level-2 heading, so the box
+ * stands beside the chapter's sections and appears in "On this page". A `top` box sits directly in the chapter, not
+ * inside another block. Position never decides this: a box without `top` is always one level below the heading it
+ * follows, wherever it sits.
  *
  * A box's title counts as a heading for what the box holds, so tabs inside a box get tab headings one level below
  * the box's title: level 4 in a box inside a `##` section, level 3 in a top-level box.
@@ -186,12 +187,11 @@ function nestedHeadingDepths(tree: Root): Map<RootContent, number> {
   const depths = new Map<RootContent, number>();
   let current = 1;
   const visitAll = (parent: Parent): void => {
-    parent.children.forEach((node, index) => {
+    parent.children.forEach((node) => {
       if (node.type === "heading") current = node.depth;
       const isBox = node.type === "containerDirective" && node.name === "box";
       if (isBox || (node.type === "containerDirective" && node.name === "tabs")) {
-        const next = parent.children[index + 1];
-        const topLevel = isBox && parent === tree && next?.type === "heading" && next.depth === 2;
+        const topLevel = isBox && node.attributes !== null && node.attributes !== undefined && "top" in node.attributes;
         depths.set(node, topLevel ? 2 : Math.min(current + 1, 6));
       }
       if (!("children" in node)) return;
@@ -214,15 +214,29 @@ function nestedHeadingDepths(tree: Root): Map<RootContent, number> {
  * `:::box[Title]{#id}` as an `<aside>` named by its title, which becomes a heading at the level `nestedHeadingDepths`
  * gives it, with the box's id, so a link to `#id` lands on the title. The box holds any Markdown but a heading or
  * another box, so its title stays the one heading the page's outline gets from it; a file listing inside it is numbered
- * and checked like any other. A box takes no attribute but its id.
+ * and checked like any other. A box takes no attribute but its id and the bare `top`, which must sit directly in
+ * the chapter (`topLevel`).
  */
-function box(node: ContainerDirective, file: VFile, depth: number): ContainerDirective {
+function box(node: ContainerDirective, file: VFile, depth: number, topLevel: boolean): ContainerDirective {
   const id = node.attributes?.id;
   if (id === undefined || id === null || !KEBAB_ID.test(id)) {
     return failAt(file, "a box needs a kebab-case id, written :::box[Title]{#some-id}", node);
   }
-  const extra = Object.keys(node.attributes ?? {}).find((name) => name !== "id");
-  if (extra !== undefined) return failAt(file, `a box takes no attribute but its id, not ${extra}`, node);
+  const extra = Object.keys(node.attributes ?? {}).find((name) => name !== "id" && name !== "top");
+  if (extra !== undefined) {
+    return failAt(file, `a box takes no attribute but its id and the bare flag top, not ${extra}`, node);
+  }
+  const top = node.attributes?.top;
+  if (top !== undefined && top !== null && top !== "") {
+    return failAt(file, `top takes no value; write :::box[Title]{#${id} top}, not top=${top}`, node);
+  }
+  if (top !== undefined && !topLevel) {
+    return failAt(
+      file,
+      `a box marked top must sit directly in the chapter, not inside another block; drop top from :::box{#${id}} or move the box out`,
+      node,
+    );
+  }
   const labelIndex = node.children.findIndex((child) => child.type === "paragraph" && child.data?.directiveLabel);
   const label = node.children[labelIndex] as Paragraph | undefined;
   if (label === undefined || isBlank(label.children)) {
