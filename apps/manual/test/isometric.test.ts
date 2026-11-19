@@ -78,6 +78,12 @@ test("a fragment drawn for another figure, or not by isokit, is refused", () => 
   );
 });
 
+test("a step's readout may name an API term with an underscore, such as tool_result", () => {
+  const readout = "4/6 · tool_result: 21C";
+  const html = inlineFragment(tiny("tiny", `<g data-iso-readout="${readout}"></g>`), { figureId: "tiny" });
+  assert.match(html, /data-iso-readout="4\/6 · tool_result: 21C"/);
+});
+
 test("the fragment allowlist refuses anything the kit does not write", () => {
   const inline = (extra: string) => inlineFragment(tiny("tiny", extra), { figureId: "tiny" });
   const cases: [string, RegExp][] = [
