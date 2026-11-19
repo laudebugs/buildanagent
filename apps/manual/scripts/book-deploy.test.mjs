@@ -596,15 +596,48 @@ describe("the preview's URL check", () => {
     ["a very long label", ALIAS, `https://${"a".repeat(5000)}.manual.buildanagent.fyi`],
     ["the alias as the commit URL", ALIAS, ALIAS],
   ];
+  const NO_PREVIEW = /::warning::Wrangler reported no preview URL on manual\.buildanagent\.fyi for pr-7/;
+  const NO_COMMIT_URL =
+    /::warning::Wrangler reported pr-7's preview URL but no commit URL of the form https:\/\/<8 lowercase hex>\.manual\.buildanagent\.fyi; it listed \d+ deployment URL\(s\), all rejected\. Cloudflare may have changed the deployment id's form/;
   for (const [name, alias, version] of hostile) {
     test(`refuses ${name}, so no URL file and no comment`, () => {
       const result = recordWith([entry([alias], [version])]);
       assert.equal(result.status, 0, result.stderr);
       assert.equal(result.urls, null);
       assert.equal(result.outputs.found, "false");
-      assert.match(result.stdout, /::warning::Wrangler reported no preview URL on manual\.buildanagent\.fyi/);
+      // A good alias with a bad commit URL gets the warning that the id's form changed; a bad alias gets the other.
+      assert.match(result.stdout, alias === ALIAS ? NO_COMMIT_URL : NO_PREVIEW);
+      assert.doesNotMatch(result.stdout, alias === ALIAS ? NO_PREVIEW : NO_COMMIT_URL);
     });
   }
+
+  test("the alias with a commit URL of another form warns that the id's form changed and never prints that URL", () => {
+    const other = "https://1a2b3c4d-pr-7.manual.buildanagent.fyi";
+    const result = recordWith([entry([ALIAS], [other, "https://1a2b3c4d-buildanagent-manual.example.workers.dev"])]);
+    assert.equal(result.status, 0, result.stderr);
+    assert.equal(result.urls, null);
+    assert.equal(result.outputs.found, "false");
+    assert.match(result.stdout, NO_COMMIT_URL);
+    assert.match(result.stdout, /it listed 2 deployment URL\(s\)/);
+    assert.doesNotMatch(result.stdout, NO_PREVIEW);
+    assert.doesNotMatch(result.stdout, /1a2b3c4d/);
+  });
+
+  test("the alias with no commit URL at all warns that the id's form changed", () => {
+    const result = recordWith([entry([ALIAS], [])]);
+    assert.equal(result.urls, null);
+    assert.equal(result.outputs.found, "false");
+    assert.match(result.stdout, NO_COMMIT_URL);
+    assert.match(result.stdout, /it listed 0 deployment URL\(s\)/);
+  });
+
+  test("neither the alias nor the commit URL keeps the no-preview warning alone", () => {
+    const result = recordWith([entry(["https://pr-7-buildanagent-manual.example.workers.dev"], ["https://x.example"])]);
+    assert.equal(result.urls, null);
+    assert.equal(result.outputs.found, "false");
+    assert.match(result.stdout, NO_PREVIEW);
+    assert.doesNotMatch(result.stdout, NO_COMMIT_URL);
+  });
 
   test("a newline inside a URL never splits it into two accepted lines", () => {
     // jq would print the string on two lines, the first of them a perfect alias; the character check drops it whole.

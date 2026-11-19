@@ -220,7 +220,9 @@ jobs:
       # the exact forms below; jq first drops any string with a character a URL of ours cannot hold, a newline
       # included, so one string never reads as two lines. A miss warns and leaves the job green. The commit's URL
       # is <8 hex digits>.manual.buildanagent.fyi, as Wrangler 4.160.1 printed it in run 44588564990, not the
-      # <id>-pr-<n> form Cloudflare's docs give.
+      # <id>-pr-<n> form Cloudflare's docs give. An alias with no such commit URL gets its own warning, which counts
+      # the rejected URLs but never prints one, since they are Wrangler's unchecked output; it means the id's form
+      # changed, and this pattern and the comment script's must follow.
       - name: Record the preview's URLs
         id: record
         env:
@@ -229,8 +231,9 @@ jobs:
           URLS_DIR: ${{ runner.temp }}/book-preview-urls
         run: |
           [[ "$NUMBER" =~ ^[1-9][0-9]{0,9}$ ]] || { echo "::error::The pull request number is not a number."; exit 1; }
-          alias="" version=""
+          alias="" version="" listed=0
           if [ -f "$OUTPUT_FILE" ]; then
+            listed=$(jq -s '[.[] | select(.type == "preview") | (.deployment_urls // [])[] | strings] | length' "$OUTPUT_FILE" 2>/dev/null || echo 0)
             while IFS= read -r url; do
               if [ "${url%/}" = "https://pr-$NUMBER.manual.buildanagent.fyi" ]; then alias=${url%/}; fi
             done < <(jq -r 'select(.type == "preview") | (.preview_urls // [])[] | strings | select(test("\\A[a-z0-9:/.-]{1,200}\\z"))' "$OUTPUT_FILE")
@@ -238,8 +241,13 @@ jobs:
               if [[ "${url%/}" =~ ^https://[0-9a-f]{8}\.manual\.buildanagent\.fyi$ ]]; then version=${url%/}; fi
             done < <(jq -r 'select(.type == "preview") | (.deployment_urls // [])[] | strings | select(test("\\A[a-z0-9:/.-]{1,200}\\z"))' "$OUTPUT_FILE")
           fi
-          if [ -z "$alias" ] || [ -z "$version" ] || [ "$version" = "$alias" ]; then
+          if [ -z "$alias" ]; then
             echo "::warning::Wrangler reported no preview URL on manual.buildanagent.fyi for pr-$NUMBER, so the pull request gets no comment. The production deploy after a change to the custom domain's previews publishes them."
+            echo "found=false" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+          if [ -z "$version" ] || [ "$version" = "$alias" ]; then
+            echo "::warning::Wrangler reported pr-$NUMBER's preview URL but no commit URL of the form https://<8 lowercase hex>.manual.buildanagent.fyi; it listed $listed deployment URL(s), all rejected. Cloudflare may have changed the deployment id's form, so the pull request gets no comment."
             echo "found=false" >> "$GITHUB_OUTPUT"
             exit 0
           fi
