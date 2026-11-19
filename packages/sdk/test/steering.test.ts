@@ -42,21 +42,22 @@ test("a steer sent during a tool batch is applied after the batch, never inside 
   const started = run({ model, system: SYSTEM, input: "Go.", tools: [probe.tool()], ...determinism() });
   const driven = drive(started);
   await Promise.all([probe.started("a"), probe.started("b")]);
-  const got: { receipt?: DeliveryReceipt } = {};
+  const got = { resolved: false };
   const sent = started.steer("Use order 2 instead.").then((value) => {
-    got.receipt = value;
+    got.resolved = true;
+    return value;
   });
   probe.release("a");
   await Promise.resolve();
-  assert.equal(got.receipt, undefined, "a steer is not applied while a call of the batch still runs");
+  assert.equal(got.resolved, false, "a steer is not applied while a call of the batch still runs");
   probe.release("b");
   const { events, result } = await driven;
-  await sent;
+  const receipt = await sent;
   const types = typesOf(events);
   const steerAt = types.indexOf("steer_applied");
   assert.ok(steerAt > types.lastIndexOf("tool_call_end"), "the steer follows the last tool_call_end");
   assert.ok(steerAt > types.indexOf("step_end"), "the steer follows the step that ran the batch");
-  assert.equal(got.receipt?.stepIndex, 1);
+  assert.equal(receipt.stepIndex, 1);
   assert.deepEqual(
     adapter.calls[1]?.context.messages.map((message) => message.role),
     ["user", "assistant", "tool", "tool", "user"],
