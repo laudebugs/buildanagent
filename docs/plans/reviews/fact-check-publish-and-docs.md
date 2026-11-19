@@ -346,7 +346,7 @@ Pull request #70 was blocked by "Commits must have verified signatures", so this
 
 ### The first code-review round (2026-11-19)
 
-The first code review of this pull request found claims that no longer matched the code, and changed how the script treats a failed or missing staging branch. Each row below records a claim that review checked or corrected.
+The first code review of this pull request found claims that no longer matched the code, and its fixes changed how the script treats a failed or missing staging branch. Each row below records a claim that review checked or corrected.
 
 | # | Claim | Verdict | Source and reason |
 | --- | --- | --- | --- |

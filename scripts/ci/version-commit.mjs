@@ -1,9 +1,9 @@
 // Recreates the checked version commit on GitHub through the API, so that GitHub signs it and the ruleset's "Require
 // signed commits" lets the Version packages pull request merge. A commit pushed with plain git is unsigned. GraphQL's
 // createCommitOnBranch makes a commit that GitHub signs, authored by the token's owner, but it appends to a branch's
-// head, and moving the pull request's own branch back to main first could close or merge the open pull request. So the
-// commit is made on a staging branch that starts at the checked base, and the release branch is then force-updated to
-// it. release.yml runs this in the version-pr job's last step, the only one that holds RELEASE_PR_TOKEN, so it imports
+// head, and GitHub's docs don't say what happens to an open pull request whose branch first moves back to the base. So
+// the commit is made on a staging branch that starts at the checked base, and the release branch then moves to it.
+// release.yml runs this in the version-pr job's last step, the only one that holds RELEASE_PR_TOKEN, so it imports
 // only node: modules and version-pr.mjs, which imports only node: modules and the two scripts beside it.
 //
 //   node scripts/ci/version-commit.mjs <base> <head> <branch>
