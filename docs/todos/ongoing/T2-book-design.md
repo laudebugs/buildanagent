@@ -5,7 +5,7 @@
 | Field | Value |
 | --- | --- |
 | ID | `T2` |
-| Status | `ready` |
+| Status | `ongoing` |
 | Plan | [Book plan §5, BK12](../../plans/build-book.md#bk12-the-owner-picked-direction-cs-layout-c4s-page-colours-and-panels-that-follow-the-theme-accepted) |
 | Round / milestone | Round T (textbook), MT |
 | Depends on | [T1](../done/T1-book-scaffold.md) |
@@ -35,8 +35,8 @@ Give the book the look the owner picked. This todo turns the owner's type and co
 
 **Out of scope** (and which todo covers it)
 
-- The behaviour behind listings and replays ([T4](T4-book-listings.md), [T5](T5-book-interactive-listings.md))
-- Figure drawing ([T6](T6-book-flat-figures.md), [T7](T7-book-isometric-figures.md))
+- The behaviour behind listings and replays ([T4](../ready/T4-book-listings.md), [T5](../ready/T5-book-interactive-listings.md))
+- Figure drawing ([T6](../ready/T6-book-flat-figures.md), [T7](../ready/T7-book-isometric-figures.md))
 
 ## Tasks
 
