@@ -2,7 +2,7 @@
 "@buildanagent/sdk": minor
 ---
 
-Breaking Changes: a step's tool calls now start together instead of one at a time. A tool that relied on running after the calls before it must set `executionMode: "sequential"`, which runs its whole step in the model's order. Two things also change for every run: `tool_call_start` is emitted for all of a step's calls before the first one executes, and `ToolFailure`'s `not_run` kind has a new `reason`, `"sibling_failed"`, so an exhaustive `switch` over it needs a case.
+Breaking Changes: a step's tool calls now start together instead of one at a time. A tool that relied on running after the calls before it must set `executionMode: "sequential"`, which runs its whole step in the model's order. Two other changes reach every run. The run emits `tool_call_start` for all of a step's calls before the first one executes. `ToolFailure`'s `not_run` kind has a new `reason`, `"sibling_failed"`, so an exhaustive `switch` over it needs a case.
 
 When the model calls several tools in one response, the run checks each call in order, then starts them all at once and adds their results to the transcript in the model's order, whichever finishes first. New settings on `defineTool()`:
 

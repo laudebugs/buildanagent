@@ -543,7 +543,7 @@ declare function replayPairs(pairs: RecordedPair[]): ScriptedModel;   // rejects
 - `RunOptions` holds `model`, `tools`, `output`, `maxSteps`, `signal`, `modelOptions`, `clock` and `idGenerator`; the other options arrive with their todos. `Run` has `id`, `result`, `abort()` and iteration, and B13 and B16 add `on()`, `steer()` and `followUp()`.
 - `RunStoppedError` and `UnexpectedModelCallError` extend `SdkError`, and the gateway's `StreamContractError` and `ModelRequestsDisabledError` extend `GatewayError`, so each package keeps one error class ([typescript.md](../guidelines/typescript.md#each-package-has-one-error-class-with-a-typed-code)).
 
-**Revision (B12, 2026-11-19).** B12 adds `annotations: { readOnlyHint }` to `ToolDefinition`, because the sketch named `readOnlyHint` without a home, and the `not_run` failure reason `sibling_failed`. A step's calls start together and their results are appended in model order; see [its outcome](../todos/done/B12-parallel-tools.md#outcome).
+**Revision (B12, 2026-11-19).** B12 adds two things to the sketch: `annotations: { readOnlyHint }` on `ToolDefinition`, which gives the sketch's `readOnlyHint` a home, and the `not_run` failure reason `sibling_failed`. A step's calls start together and their results are appended in model order; see [its outcome](../todos/done/B12-parallel-tools.md#outcome).
 
 ### 3.4 The seams P2 consumes
 

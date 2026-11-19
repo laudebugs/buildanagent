@@ -64,7 +64,7 @@ Timing tests can flake; use the fixed clock and explicit promises, never real ti
 ## Definition of done
 
 - [x] Claimed: the first commit moved this file `ready/` → `ongoing/` (Status `ongoing`)
-- [ ] Prose drafted with `/anthropic-skills:writing` and reviewed with `/anthropic-skills:writing-review`, with the fixes applied and changed claims re-checked
+- [x] Prose drafted with `/anthropic-skills:writing` and reviewed with `/anthropic-skills:writing-review`, with the fixes applied and changed claims re-checked
 - [x] `pnpm check`, `pnpm typecheck` and `pnpm test` pass locally; pushed after each meaningful step
 - [x] This file moved `ongoing/` → `done/` (Status `done`), and the plan's todo table updated
 
@@ -87,8 +87,9 @@ Judgement calls, where the plan left room:
 - **Gates.** `PipelineContext.gate` is the ordering hook only. Each call's gate settles before the next call's is asked, and all gates settle before any call executes. A gate returns a result to block a call, or `undefined`. It is internal until the interceptors arrive.
 - **Events.** `tool_call_start` is emitted for every call of a step before the first executes, because each call is checked and gated first. `tool_call_end` events come in model order.
 - **Read-only calls.** A tool with an `effect` is a writer whatever its hint. A trusted read-only call neither waits for nor blocks other read-only calls with its key, but it waits for the writes before it, and a write waits for the reads before it, so a model's "read, then write" order holds. The scheduler is a readers-writer lock built in model order, with no timers.
-- **Sequential.** One call to a sequential tool runs the whole step in model order, other tools' calls included, even when that call fails validation or is gated. The key lanes then play no part.
-- **Programmer errors.** A malformed result from `execute` aborts the batch signal. The run waits for the other calls to return, passes on every other call's result in model order, including calls after the failing one that had already run and may have written, then throws. Calls queued behind it get `sibling_failed` and never run. A `resourceKey` or gate that throws does so before any call starts; the calls checked before it get their results (`sibling_failed` for those that had passed), so every `tool_call_start` but the failing call's has its `tool_call_end`.
+- **Sequential.** One call to a sequential tool runs the whole step in model order, other tools' calls included, even when that call fails validation or is gated. Resource keys then play no part.
+- **Programmer errors.** A malformed result from `execute` aborts the batch signal. The run waits for the other calls to return and passes on their results in model order, including those of calls after the failing one that had already run and may have written. It then throws. Calls queued behind the failing one get `sibling_failed` and never run.
+- **Errors before any call starts.** A `resourceKey` or gate that throws does so before any call starts. The calls checked before it get their results, `sibling_failed` for those that had passed, so every `tool_call_start` but the failing call's has its `tool_call_end`.
 - **`annotations`.** The plan listed `readOnlyHint` without a home, so it sits in `annotations`, which mirrors MCP's name.
 
 Left undone: gate logic and the `beforeToolCall` interceptor (B13), and a `progressKey` and `execution` option the plan sketch lists for later todos.
