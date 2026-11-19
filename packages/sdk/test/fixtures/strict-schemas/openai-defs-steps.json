@@ -1,0 +1,61 @@
+{
+  "name": "openai-defs-steps",
+  "source": "https://developers.openai.com/api/docs/guides/structured-outputs",
+  "section": "Definitions are supported: steps through $defs",
+  "checkedOn": "2026-11-19",
+  "schema": {
+    "type": "object",
+    "properties": {
+      "steps": {
+        "type": "array",
+        "items": {
+          "$ref": "#/$defs/step"
+        }
+      },
+      "final_answer": {
+        "type": "string"
+      }
+    },
+    "$defs": {
+      "step": {
+        "type": "object",
+        "properties": {
+          "explanation": {
+            "type": "string"
+          },
+          "output": {
+            "type": "string"
+          }
+        },
+        "required": ["explanation", "output"],
+        "additionalProperties": false
+      }
+    },
+    "required": ["steps", "final_answer"],
+    "additionalProperties": false
+  },
+  "valid": [
+    {
+      "steps": [
+        {
+          "explanation": "Subtract 7",
+          "output": "8x = -30"
+        }
+      ],
+      "final_answer": "x = -3.75"
+    }
+  ],
+  "invalid": [
+    {
+      "value": {
+        "steps": [
+          {
+            "explanation": "Subtract 7"
+          }
+        ],
+        "final_answer": "x"
+      },
+      "paths": ["/steps/0/output"]
+    }
+  ]
+}

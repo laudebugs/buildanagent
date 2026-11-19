@@ -1,0 +1,43 @@
+{
+  "name": "openai-get-weather-nullable",
+  "source": "https://developers.openai.com/api/docs/guides/structured-outputs",
+  "section": "All fields must be required: get_weather with a nullable unit",
+  "checkedOn": "2026-11-19",
+  "schema": {
+    "type": "object",
+    "properties": {
+      "location": {
+        "type": "string",
+        "description": "The location to get the weather for"
+      },
+      "unit": {
+        "type": ["string", "null"],
+        "description": "The unit to return the temperature in",
+        "enum": ["F", "C"]
+      }
+    },
+    "additionalProperties": false,
+    "required": ["location", "unit"]
+  },
+  "valid": [
+    {
+      "location": "Oslo",
+      "unit": "F"
+    }
+  ],
+  "invalid": [
+    {
+      "value": {
+        "location": "Oslo"
+      },
+      "paths": ["/unit"]
+    },
+    {
+      "value": {
+        "location": "Oslo",
+        "unit": "K"
+      },
+      "paths": ["/unit"]
+    }
+  ]
+}

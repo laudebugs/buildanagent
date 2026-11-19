@@ -1,0 +1,86 @@
+{
+  "name": "openai-recursive-ui",
+  "source": "https://developers.openai.com/api/docs/guides/structured-outputs",
+  "section": "Recursive schemas are supported: root recursion with #",
+  "checkedOn": "2026-11-19",
+  "schema": {
+    "type": "object",
+    "properties": {
+      "type": {
+        "type": "string",
+        "description": "The type of the UI component",
+        "enum": ["div", "button", "header", "section", "field", "form"]
+      },
+      "label": {
+        "type": "string",
+        "description": "The label of the UI component, used for buttons or form fields"
+      },
+      "children": {
+        "type": "array",
+        "description": "Nested UI components",
+        "items": {
+          "$ref": "#"
+        }
+      },
+      "attributes": {
+        "type": "array",
+        "description": "Arbitrary attributes for the UI component, suitable for any element",
+        "items": {
+          "type": "object",
+          "properties": {
+            "name": {
+              "type": "string",
+              "description": "The name of the attribute, for example onClick or className"
+            },
+            "value": {
+              "type": "string",
+              "description": "The value of the attribute"
+            }
+          },
+          "additionalProperties": false,
+          "required": ["name", "value"]
+        }
+      }
+    },
+    "required": ["type", "label", "children", "attributes"],
+    "additionalProperties": false
+  },
+  "valid": [
+    {
+      "type": "form",
+      "label": "Sign up",
+      "children": [
+        {
+          "type": "button",
+          "label": "Submit",
+          "children": [],
+          "attributes": [
+            {
+              "name": "className",
+              "value": "primary"
+            }
+          ]
+        }
+      ],
+      "attributes": []
+    }
+  ],
+  "invalid": [
+    {
+      "value": {
+        "type": "form",
+        "label": "Sign up",
+        "children": [
+          {
+            "type": "span",
+            "label": "x",
+            "children": [],
+            "attributes": []
+          }
+        ],
+        "attributes": []
+      },
+      "paths": ["/children/0/type"]
+    }
+  ]
+}

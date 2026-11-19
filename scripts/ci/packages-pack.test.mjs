@@ -5,10 +5,12 @@
 // runs read only the workspace. The test leaves the repo as it found it: it removes each package's dist/ and licence
 // copies unless they were there before it ran. It ends with the release's install check: a fresh project installs
 // both tarballs with pnpm, offline, and makes one model call through the Anthropic adapter against a mock server on
-// the loopback interface. The install check lives here, not in its own file, because `node --test` runs files in
-// parallel and two files packing the same folders would race on dist/. Run with `node --test scripts/ci/*.test.mjs`.
+// the loopback interface. Both installs link each third-party runtime dependency, such as the SDK's validator, from
+// the workspace's own install, since the registry is out of reach. The install check lives here, not in its own
+// file, because `node --test` runs files in parallel and two files packing the same folders would race on dist/. Run
+// with `node --test scripts/ci/*.test.mjs`.
 import assert from "node:assert/strict";
-import { execFile, execFileSync } from "node:child_process";
+import { execFile, execFileSync, spawnSync } from "node:child_process";
 import {
   existsSync,
   mkdirSync,
@@ -17,6 +19,7 @@ import {
   readFileSync,
   realpathSync,
   rmSync,
+  symlinkSync,
   writeFileSync,
 } from "node:fs";
 import { createServer } from "node:http";
@@ -101,7 +104,50 @@ before(() => {
     run("tar", ["-xzf", tarball, "-C", dest, "--strip-components=1"]);
     packed.set(manifest.name, { dir, manifest, files, dest, tarball });
   }
+  // The registry is out of reach, so each third-party runtime dependency is linked from the workspace's own install.
+  for (const [name, dir] of thirdPartyDependencies()) {
+    const link = path.join(install, "node_modules", name);
+    if (existsSync(link)) continue;
+    mkdirSync(path.dirname(link), { recursive: true });
+    symlinkSync(dir, link, "dir");
+  }
 });
+
+/**
+ * The runtime dependencies of the packed packages that are not packed themselves, as [name, installed directory]
+ * pairs. Each directory is the workspace's install of the dependency, which stands in for the registry offline.
+ */
+function thirdPartyDependencies() {
+  const found = new Map();
+  for (const { dir, manifest } of packed.values()) {
+    for (const name of Object.keys(manifest.dependencies ?? {})) {
+      if (!packed.has(name)) found.set(name, realpathSync(path.join(dir, "node_modules", name)));
+    }
+  }
+  return found;
+}
+
+/** The `source` targets in a package's exports, at any depth of conditions. */
+function sourceTargets(exports) {
+  if (typeof exports !== "object" || exports === null) return [];
+  return Object.entries(exports).flatMap(([key, value]) =>
+    key === "source" && typeof value === "string" ? [value] : sourceTargets(value),
+  );
+}
+
+/**
+ * The third-party runtime dependencies of a packed package that ship a `source` condition pointing at a file their
+ * tarball lacks. Node fails to load such a dependency under `--conditions=source`, whatever our own manifests say.
+ */
+function brokenSourceDependencies(manifest) {
+  return Object.keys(manifest.dependencies ?? {})
+    .filter((name) => !packed.has(name))
+    .filter((name) => {
+      const dir = path.join(install, "node_modules", name);
+      const { exports } = JSON.parse(readFileSync(path.join(dir, "package.json"), "utf8"));
+      return sourceTargets(exports).some((target) => !existsSync(path.join(dir, target)));
+    });
+}
 
 after(() => {
   for (const dir of packageDirs) rmSync(path.join(dir, STALE), { force: true });
@@ -207,20 +253,47 @@ packTest("every packed declaration file imports only its own dist/ files or othe
   }
 });
 
+// The entries that fail to import under `--conditions=source`, because they reach pi-schema 1.5.2, whose `source`
+// condition names a file its tarball lacks. Every other entry must import; an entry listed here that imports again
+// fails the test, so the list is cut once pi-schema ships a fix.
+const SOURCE_CONDITION_FAILURES = ["@buildanagent/sdk"];
+
 for (const conditions of [[], ["--conditions=source"]]) {
   const label = conditions.length ? "with --conditions=source" : "with no extra condition";
-  packTest(`Node imports every packed entry from dist/ ${label}`, () => {
+  packTest(`Node imports every packed entry from dist/ ${label}`, (t) => {
+    const failed = [];
     for (const [name, { manifest, dest }] of packed) {
+      // A dependency with a broken `source` condition can't load under it. An entry that reaches such a dependency
+      // may fail to import only with an error naming that dependency; every other entry must import. The run with no
+      // extra condition imports them all.
+      const broken = conditions.length ? brokenSourceDependencies(manifest) : [];
       for (const entry of Object.keys(manifest.exports)) {
         const specifier = entry === "." ? name : `${name}/${entry.slice(2)}`;
-        const script = `const url = import.meta.resolve(${JSON.stringify(specifier)}); await import(url); console.log(url);`;
-        const url = run(process.execPath, [...conditions, "--input-type=module", "-e", script], {
+        const tolerated = JSON.stringify(broken);
+        const script = `const url = import.meta.resolve(${JSON.stringify(specifier)});
+try { await import(url); } catch (error) {
+  const named = ${tolerated}.find((dep) => String(error?.stack ?? error).includes(dep));
+  if (named === undefined) throw error;
+  console.error(\`broken source: \${named}\`);
+}
+console.log(url);`;
+        const child = spawnSync(process.execPath, [...conditions, "--input-type=module", "-e", script], {
           cwd: install,
-        }).trim();
+          encoding: "utf8",
+          env,
+        });
+        assert.equal(child.status, 0, `${specifier} failed to import ${label}: ${child.stderr}`);
+        const skipped = /^broken source: (.+)$/m.exec(child.stderr)?.[1];
+        if (skipped) {
+          failed.push(specifier);
+          t.diagnostic(`${specifier}: not imported ${label}, because ${skipped} ships a missing source`);
+        }
+        const url = child.stdout.trim();
         const resolved = fileURLToPath(url);
         assert.ok(resolved.startsWith(path.join(dest, "dist") + path.sep), `${specifier} resolved to ${resolved}`);
       }
     }
+    assert.deepEqual(failed, conditions.length ? SOURCE_CONDITION_FAILURES : []);
   });
 }
 
@@ -238,13 +311,18 @@ console.log(await canonicalInputHash({ b: 1, a: 2 }));`;
 });
 
 // The program the fresh project runs: one call to the mock server, whose URL comes in as its only argument. It prints
-// the reply's text and stop reason, and checks that the SDK's testing export loads from the installed package.
+// the reply's text and stop reason, and checks that the SDK's root and testing exports load from the installed
+// package.
 const CALL_PROGRAM = `
 import { createModel } from "@buildanagent/gateway";
 import { anthropic } from "@buildanagent/gateway/anthropic";
+import { defineTool } from "@buildanagent/sdk";
 import { ScriptedModel } from "@buildanagent/sdk/testing";
 
 if (typeof ScriptedModel !== "function") throw new Error("ScriptedModel did not load");
+// Defining a tool compiles its schema, so this loads the SDK's root entry and its validator from the install.
+const lookup = { name: "lookup", description: "Look up.", inputSchema: { type: "object" } };
+defineTool({ ...lookup, execute: async () => ({ content: [] }) });
 const model = createModel({ adapter: anthropic({ apiKey: "sk-test-not-a-real-key", baseURL: process.argv[2] }), id: "claude-opus-5-5" });
 const message = await model.complete({ messages: [{ role: "user", content: [{ type: "text", text: "Hello" }] }], tools: [] });
 console.log(JSON.stringify({ content: message.content, stopReason: message.stopReason, output: message.usage.output }));
@@ -292,7 +370,13 @@ packTest(
           "@buildanagent/sdk": `file:${sdk.tarball}`,
           "@buildanagent/gateway": `file:${gateway.tarball}`,
         },
-        pnpm: { overrides: { "@buildanagent/gateway": `file:${gateway.tarball}` } },
+        // Third-party dependencies link to the workspace's installs of them, which stand in for the registry.
+        pnpm: {
+          overrides: {
+            "@buildanagent/gateway": `file:${gateway.tarball}`,
+            ...Object.fromEntries([...thirdPartyDependencies()].map(([name, dir]) => [name, `link:${dir}`])),
+          },
+        },
       }),
     );
     writeFileSync(path.join(app, "call.mjs"), CALL_PROGRAM);
