@@ -3,8 +3,10 @@
  *
  *   import "@agent-speak/gateway/testing/setup";
  *
- * Later todos extend it (B4 adds `allowModelRequests(false)`).
+ * It installs the network guard, checks for provider keys and turns real model requests off.
  */
+import { setModelRequestsAllowed } from "../request-policy.ts";
 import { installTestGuards } from "./guards.ts";
 
 installTestGuards();
+setModelRequestsAllowed(false);
