@@ -81,7 +81,7 @@ Decisions:
 - **`scriptedApprovals()` answers; the test's gate asks.** It wraps `blockingApprovals()`, so the real signing and verification run. An answer's `requestId` is optional, because a test can't know a generated id in advance.
 - **`scriptedMcpServer()` builds plain frozen tool definitions.** It checks each namespaced name with the gateway's name rule and leaves the schema to `run()`, because `defineTool()` would load pi-schema into the testing export, and pi-schema 1.5.2's broken `source` condition would then fail the pack test for `@buildanagent/sdk/testing` too.
 - **`startMockServer()` is the gateway's one Node-only module besides the guards.** It imports `node:http` when a server starts, so the testing export still loads on every target; `portability.test.ts` and [typescript.md](../../guidelines/typescript.md#shared-packages-are-portable-no-node-only-apis-in-src) list it. It binds only to 127.0.0.0/8 or `::1` (not `localhost`, whose address depends on the resolver), and its `transport` is marked as a mock and refuses any URL outside the server.
-- **`testSigner()` comes from a vendored copy.** The safety package is still private, so `packages/sdk/src/vendor/agent-safety/testing.ts` is a byte-identical copy of its `testing.ts`, and the drift test covers it.
+- **`testSigner()` comes from a vendored copy.** The safety package is still private, so `packages/sdk/src/vendor/agent-safety/test-signer.ts` is a byte-identical copy of its `test-signer.ts`, and the drift test covers it. The signer moved out of the safety package's `testing.ts` into that file when [E2](../done/E2-effect-identity-crash-rule.md) added the `EffectStore` conformance cases to `testing.ts`, so the SDK copies the signer without them.
 
 Each criterion and the test that covers it:
 
@@ -89,6 +89,7 @@ Each criterion and the test that covers it:
 - Same event log: "a run recorded on the Anthropic adapter replays through replayPairs() to the same event log" records a tool-calling run over `mockTransport()`, writes the pairs through JSON, replays them and compares the logs with `deepEqual`.
 - Expiry: "an expired recording throws on replay".
 - No credential: "no recorded pair contains an authorization or API-key header, or the key itself" checks a recording from the Anthropic adapter and one whose `providerOptions` carry six credential headers and an `apiKey`. "startMockServer() writes one JSON line per request and never writes the API key" and "startMockServer() serves a plain fetch client and redacts its authorization and cookie headers" (`packages/gateway/test/mock-server.test.ts`) cover the server.
+- No `raw` events (Risks): "a recorded pair holds no provider event outside the model spec, such as a raw event, though the caller sees it" streams an event shaped like B11c's and checks that the pair leaves it out while the caller still receives it.
 - Loopback only: "startMockServer() refuses to bind to <host>" for `0.0.0.0`, `::`, `192.168.1.20`, `localhost` and `example.com` (`mock-server.test.ts`).
 - Offline checks: `pnpm check`, `pnpm typecheck`, `pnpm test` and `node --test scripts/ci/*.test.mjs` pass from the repo root.
 

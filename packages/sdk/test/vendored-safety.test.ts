@@ -21,7 +21,7 @@ test("each vendored safety file is identical to its source in the safety package
     "pending.ts",
     "render.ts",
     "signer.ts",
-    "testing.ts",
+    "test-signer.ts",
   ]);
   for (const file of files) {
     const copy = readFileSync(new URL(file, vendored), "utf8");

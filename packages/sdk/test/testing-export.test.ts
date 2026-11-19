@@ -1,7 +1,7 @@
 // The testing export's doubles: autoResponder() and its host-tool deny list, record and replay at the normalised
 // boundary, the scripted approval and MCP doubles, and the re-exported fixed-key test signer.
 import assert from "node:assert/strict";
-import { createModel, type Model, type ModelContext } from "@buildanagent/gateway";
+import { createModel, type GatewayEvent, type Model, type ModelContext } from "@buildanagent/gateway";
 import { anthropic } from "@buildanagent/gateway/anthropic";
 import { mockTransport, serverSentEvents } from "@buildanagent/gateway/testing";
 import {
@@ -275,6 +275,38 @@ test("no recorded pair contains an authorization or API-key header, or the key i
     }
   }
   assert.deepEqual(recorder.pairs()[0]?.request.options.providerOptions, { headers: { accept: "text/event-stream" } });
+});
+
+test("a recorded pair holds no provider event outside the model spec, such as a raw event, though the caller sees it", async () => {
+  const { model: base } = scripted([text("ok")]);
+  // The shape B11c's opt-in raw events will take: a provider's own wire event, which may echo request fields.
+  const raw = { type: "raw", api: "anthropic-messages", event: { type: "message_start", key: KEY } };
+  const withRaw: Model = {
+    ref: base.ref,
+    caps: base.caps,
+    price: (usage) => base.price(usage),
+    complete: (context, options) => base.complete(context, options),
+    async *stream(context, options) {
+      for await (const event of base.stream(context, options)) {
+        yield raw as unknown as GatewayEvent;
+        yield event;
+      }
+    },
+  };
+  const recorder = recordPairs(withRaw, { providerVersion: "v1", expiresAt: LATER, clock: fixedClock(START) });
+  const context: ModelContext = {
+    system: "s",
+    messages: [{ role: "user", content: [{ type: "text", text: "i" }] }],
+    tools: [],
+  };
+  const seen: string[] = [];
+  for await (const event of recorder.model.stream(context)) seen.push(event.type);
+  assert.ok(seen.includes("raw"), "the caller still receives the raw event");
+  const [pair] = recorder.pairs();
+  assert.ok(pair !== undefined);
+  assert.ok(pair.response.events.length > 0);
+  assert.ok(pair.response.events.every((event) => (event.type as string) !== "raw"));
+  assert.ok(!JSON.stringify(pair).includes(KEY), "no pair holds what the raw event carried");
 });
 
 test("an expired recording throws on replay", async () => {

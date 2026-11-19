@@ -5,7 +5,7 @@
  * replay it, and `fixedClock()` and `sequentialIds()` keep the run deterministic.
  */
 
-export { TEST_KEY_ID, testSigner } from "../vendor/agent-safety/testing.js";
+export { TEST_KEY_ID, testSigner } from "../vendor/agent-safety/test-signer.js";
 export {
   type AutoResponderOptions,
   autoResponder,
