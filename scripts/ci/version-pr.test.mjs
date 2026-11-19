@@ -464,14 +464,30 @@ describe("this checkout on main", () => {
       );
     }
     assert.deepEqual(result.consumed, pending.sort());
-    const pre = readPreState(root);
-    assert.equal(pre.mode, "pre");
-    assert.match(result.version, new RegExp(`^\\d+\\.\\d+\\.\\d+-${pre.tag}\\.\\d+$`));
-    assert.equal(prTitle(result), `chore(release): version packages to ${result.version}`);
-    // The gate in ci.yml passes the pull request without a changeset and without running changeset status.
+    // An empty changeset (`pnpm changeset --empty`, for a change users don't see) bumps nothing, so when every pending
+    // changeset is empty the version commit only consumes them and names no version.
+    const bumps = pending.some((name) => namesAPackage(readFileSync(path.join(root, ".changeset", name), "utf8")));
+    assert.equal(result.bumped, bumps);
+    if (bumps) {
+      const pre = readPreState(root);
+      assert.equal(pre.mode, "pre");
+      assert.match(result.version, new RegExp(`^\\d+\\.\\d+\\.\\d+-${pre.tag}\\.\\d+$`));
+      assert.equal(prTitle(result), `chore(release): version packages to ${result.version}`);
+    } else {
+      assert.equal(prTitle(result), "chore(release): consume changesets that bump no package");
+    }
+    // The gate in ci.yml passes a bump without a changeset and without running changeset status. A commit that only
+    // consumes empty changesets changes no shipped file, so the gate leaves it to changeset status, which passes when no
+    // package changed; the stub stands in for it.
     const calls = [];
-    const code = runGate({ root: dir, base: "main", log: () => {}, runStatus: (base) => calls.push(base) && 1 });
-    assert.deepEqual({ code, calls }, { code: 0, calls: [] });
+    const code = runGate({ root: dir, base: "main", log: () => {}, runStatus: (base) => calls.push(base) && 0 });
+    assert.deepEqual({ code, calls }, { code: 0, calls: bumps ? [] : ["main"] });
     assert.equal(needsVersion(dir), false, "nothing is pending once the pull request merges");
   });
 });
+
+/** Whether a changeset's front matter names a package to bump; an empty changeset's front matter holds nothing. */
+function namesAPackage(text) {
+  const frontMatter = /^---\n([\s\S]*?)\n?---/.exec(text)?.[1] ?? "";
+  return frontMatter.split("\n").some((line) => line.trim() !== "");
+}
