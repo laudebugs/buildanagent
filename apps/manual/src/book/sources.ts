@@ -24,7 +24,7 @@ export const sourceSchema = z.strictObject({
   asOf: z.string().regex(MONTH_YEAR, 'asOf must be a month and year, such as "November 2026"'),
   /** A version, tag or commit, when the source has one. */
   version: z.string().trim().min(1).optional(),
-  /** The repository path of the fact-check log that verified this source; it must contain `url`. */
+  /** The repository path of the fact-check log that verified this source; it must be a fact-check log holding `url`. */
   verifiedIn: z.string().trim().min(1),
   /** True when that check rests on a search summary or a secondary write-up. */
   secondary: z.boolean().optional(),
@@ -32,6 +32,20 @@ export const sourceSchema = z.strictObject({
 
 /** One entry in the source register. */
 export type Source = z.infer<typeof sourceSchema>;
+
+/**
+ * The fact-check logs a register entry may name as `verifiedIn`: the research logs, the plan reviews' logs, each SDK
+ * reference's log and each chapter's own log. A source verified anywhere else has not been fact-checked (BK6).
+ */
+const FACT_CHECK_LOGS: readonly RegExp[] = [
+  /^docs\/research\/(?:[^/]+\/)*fact-check[^/]*\.md$/,
+  /^docs\/plans\/reviews\/fact-check[^/]*\.md$/,
+  /^docs\/reference\/[^/]+\/fact-check\.md$/,
+  /^apps\/manual\/fact-checks\/[a-z0-9]+(?:-[a-z0-9]+)*\.md$/,
+];
+
+/** Whether a repository path is one of the fact-check logs a register entry may name. */
+export const isFactCheckLog = (path: string): boolean => FACT_CHECK_LOGS.some((pattern) => pattern.test(path));
 
 const URL_IN_TEXT = /https?:\/\/[^\s<>()[\]"'`|]+/g;
 
@@ -83,6 +97,14 @@ function checkVerifiedIn(
   urlsByFile: Map<string, ReadonlySet<string> | undefined>,
   problems: ProblemList,
 ): void {
+  if (!isFactCheckLog(source.verifiedIn)) {
+    problems.add(
+      file,
+      `${source.id}: verifiedIn names ${source.verifiedIn}, which is not a fact-check log; name a docs/research, ` +
+        "docs/plans/reviews or docs/reference fact-check log, or apps/manual/fact-checks/<slug>.md",
+    );
+    return;
+  }
   if (!urlsByFile.has(source.verifiedIn)) {
     const path = join(repoRoot, source.verifiedIn);
     const isFile = existsSync(path) && statSync(path).isFile();

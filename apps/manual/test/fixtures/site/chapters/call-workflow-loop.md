@@ -13,6 +13,13 @@ An agent loop calls a model and runs its tools until a stop condition holds [@an
 A placeholder for the figure.
 :::
 
+## How the loop stops
+
+| Stop | When |
+| --- | --- |
+| Answer | The model replies without a tool call |
+| Cap | The loop reaches its step limit |
+
 ## Exercises
 
 1. Count the loop's steps.

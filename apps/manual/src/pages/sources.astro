@@ -1,7 +1,9 @@
 ---
+import { getBook } from "../book/load.js";
 import ChapterHead from "../components/ChapterHead.astro";
 import BaseLayout from "../layouts/BaseLayout.astro";
-import { book } from "../markdown/options.js";
+
+const book = getBook();
 
 // Every register entry, in the register's order. Each anchor is the id chapters cite with [@id].
 const sources = [...book.sources.values()];

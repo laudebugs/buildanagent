@@ -1,8 +1,10 @@
 ---
 import { getCollection, render } from "astro:content";
+import { getBook } from "../book/load.js";
 import { contentsParts, neighbours } from "../components/contents-parts.js";
 import ChapterLayout from "../layouts/ChapterLayout.astro";
-import { book } from "../markdown/options.js";
+
+const book = getBook();
 
 export async function getStaticPaths() {
   const chapters = await getCollection("chapters");

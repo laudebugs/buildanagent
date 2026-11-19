@@ -1,6 +1,6 @@
-# Fixture fact-check log
+# Fact-check: the fixture's first chapter
 
-The register test reads this file as a `verifiedIn` target. It names its URLs the ways real logs do.
+The register test reads this log as a `verifiedIn` target. It names its URLs the ways real logs do.
 
 | # | Claim | Verdict | Source |
 | --- | --- | --- | --- |

@@ -20,20 +20,21 @@ export function remarkChapterContract(options: { readonly book: Book }) {
     const slug = slugOf(file);
     const outline = slug === undefined ? undefined : book.bySlug.get(slug);
     if (outline === undefined) {
-      failAt(file, `"${slug ?? "(no file)"}" is not a chapter in src/outline.ts, so it has no number`);
+      failAt(file, `"${slug ?? "(no file)"}" is not a chapter in ${book.names.outline}, so it has no number`);
     }
+    fileData(file).lineOffset = book.index.written.get(outline.slug)?.bodyLineOffset ?? 0;
     const parsed = chapterSchema.safeParse(fileData(file).astro?.frontmatter ?? {});
     if (!parsed.success) failAt(file, `front matter: ${formatIssues(parsed.error)}`);
     const frontmatter = parsed.data;
     if (frontmatter.opening !== outline.opening) {
       failAt(
         file,
-        `front matter: opening is "${frontmatter.opening}", but src/outline.ts plans "${outline.opening}" for this ` +
+        `front matter: opening is "${frontmatter.opening}", but ${book.names.outline} plans "${outline.opening}" for this ` +
           "chapter; change the outline, which re-runs the rotation check, or the opening",
       );
     }
-    checkIds(file, frontmatter.sources, (id) => book.sources.has(id), "sources", "the source register");
-    checkIds(file, frontmatter.glossary, (id) => book.glossary.has(id), "glossary", "src/data/glossary.json");
+    checkIds(file, frontmatter.sources, (id) => book.sources.has(id), "sources", book.names.sources);
+    checkIds(file, frontmatter.glossary, (id) => book.glossary.has(id), "glossary", book.names.glossary);
     checkExercises(tree, file);
     fileData(file).chapter = { outline, frontmatter };
   };

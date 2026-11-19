@@ -1,7 +1,9 @@
 import assert from "node:assert/strict";
 import { test } from "vitest";
+import { CITE_LIKE } from "../src/book/citations.js";
 import { loadBook } from "../src/book/load.js";
-import { normalizeUrl, urlsIn } from "../src/book/sources.js";
+import { isFactCheckLog, normalizeUrl, urlsIn } from "../src/book/sources.js";
+import { REF_LIKE } from "../src/markdown/rehype-numbering.js";
 import { FIXTURE_OUTLINE, fixtureInputs, renderLikeAstro } from "./book-fixture.js";
 
 // The fixture book's two chapters use every feature the content model renders. These tests read the HTML the build's
@@ -116,4 +118,37 @@ test("a verifiedIn file's URLs are read from inline links, reference definitions
   assert.deepEqual([...urls], ["https://a.example/x", "https://b.example/y", "https://c.example/z"]);
   assert.equal(normalizeUrl("https://a.example/x/"), "https://a.example/x");
   assert.ok(!urlsIn("https://vercel.com/docs/sandbox/pricing.md").has("https://vercel.com/docs/sandbox"));
+});
+
+test("a long run of unclosed citation or reference brackets is scanned in linear time", () => {
+  // Unbounded, each "[[" or "[@" would scan to the end of the text, so 100,000 of them would take minutes.
+  for (const [pattern, text] of [
+    [REF_LIKE, "[[".repeat(100_000)],
+    [CITE_LIKE, "[@".repeat(100_000)],
+  ] as const) {
+    const started = performance.now();
+    assert.equal([...text.matchAll(pattern)].length, 0);
+    assert.ok(performance.now() - started < 1000, `${pattern} took ${performance.now() - started} ms`);
+  }
+});
+
+test("only fact-check logs count as verifiedIn targets", () => {
+  for (const path of [
+    "docs/research/fact-check-2026-11-18.md",
+    "docs/research/agent/fact-check.md",
+    "docs/research/memory/fact-check-retrieval-and-memory.md",
+    "docs/plans/reviews/fact-check-build-book.md",
+    "docs/reference/pi/fact-check.md",
+    "apps/manual/fact-checks/call-workflow-loop.md",
+  ]) {
+    assert.ok(isFactCheckLog(path), path);
+  }
+  for (const path of [
+    "docs/research/agent-sdks-and-harness-design.md",
+    "docs/reference/pi/guide.md",
+    "apps/manual/fact-checks/README.md",
+    "README.md",
+  ]) {
+    assert.ok(!isFactCheckLog(path), path);
+  }
 });

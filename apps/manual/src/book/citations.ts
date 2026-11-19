@@ -13,8 +13,12 @@ const ONE = "@[a-z0-9]+(?:-[a-z0-9]+)*";
 /** One bracket holding one or more citations: `[@a]` or `[@a; @b]`. */
 export const CITE = new RegExp(`\\[(${ONE}(?:\\s*;\\s*${ONE})*)\\]`, "g");
 
-/** Anything that starts like a citation, so a malformed one fails instead of rendering as plain text. */
-export const CITE_LIKE = /\[@[^\]]*\]/g;
+/**
+ * Anything that starts like a citation, so a malformed one fails instead of rendering as plain text. The match stays
+ * on one line and within 200 characters, so a long run of unclosed brackets cannot make it scan the text again and
+ * again.
+ */
+export const CITE_LIKE = /\[@[^\]\n]{0,200}\]/g;
 
 /** Where a citation links: the source's entry on the sources page. */
 export const citeHref = (id: string): string => `/sources/#${id}`;
@@ -23,13 +27,17 @@ export const citeHref = (id: string): string => `/sources/#${id}`;
 export type CitePart = { readonly id: string; readonly text: string } | { readonly text: string };
 
 /**
- * Splits the inside of one bracket into its pieces. Each id must be in the register (`known`) and in `order`, the
+ * Splits the inside of one bracket into its pieces. Each id must be in the register and in `order`, the
  * chapter's `sources` list, and shows as its 1-based position there, so the numbers match the chapter's source list.
  */
-export function citeParts(inner: string, known: ReadonlySet<string>, order: readonly string[]): readonly CitePart[] {
+export function citeParts(
+  inner: string,
+  register: { readonly ids: ReadonlySet<string>; readonly file: string },
+  order: readonly string[],
+): readonly CitePart[] {
   const ids = inner.split(/\s*;\s*/).map((id) => id.slice(1));
   const numbers = ids.map((id) => {
-    if (!known.has(id)) throw new Error(`[@${id}] is not in the source register (src/data/sources.json)`);
+    if (!register.ids.has(id)) throw new Error(`[@${id}] is not in the source register (${register.file})`);
     const index = order.indexOf(id);
     if (index === -1) throw new Error(`[@${id}] is not in this chapter's \`sources\`; add it there`);
     return String(index + 1);

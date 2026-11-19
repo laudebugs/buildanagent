@@ -1,6 +1,6 @@
 import type { Paragraph, Parent, Root, RootContent } from "mdast";
 import type { VFile } from "vfile";
-import { NUMBERED_KINDS, type NumberedKind } from "../book/book-index.js";
+import { isNumberedKind, NUMBERED_KINDS, type NumberedKind } from "../book/book-index.js";
 import type { Book } from "../book/load.js";
 import { checkedChapter } from "./chapter-file.js";
 import { failAt } from "./fail.js";
@@ -15,8 +15,6 @@ const REQUIRED_CONTENT: Record<NumberedKind, RootContent["type"] | undefined> = 
 // remark-directive's types add these node types to mdast's content unions.
 type ContainerDirective = Extract<RootContent, { type: "containerDirective" }>;
 type TextDirective = Extract<RootContent, { type: "textDirective" }>;
-
-const isNumberedKind = (name: string): name is NumberedKind => Object.hasOwn(NUMBERED_KINDS, name);
 
 /**
  * Turns the book's directives into HTML-ready nodes. `:::figure[Caption]{#id}`, `:::listing[…]{#id}` and
@@ -97,7 +95,7 @@ function analogy(node: TextDirective, book: Book, chapterNumber: number, file: V
   const id = node.attributes?.id;
   const entry = id ? book.analogies.get(id) : undefined;
   if (entry === undefined) {
-    return failAt(file, `:analogy{#${id ?? ""}} is not in the analogy register (src/content/analogies.json)`, node);
+    return failAt(file, `:analogy{#${id ?? ""}} is not in the analogy register (${book.names.analogies})`, node);
   }
   if (node.children.length === 0)
     return failAt(file, `:analogy{#${id}} needs a label: :analogy[the label]{#${id}}`, node);

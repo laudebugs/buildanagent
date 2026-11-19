@@ -1,9 +1,11 @@
 ---
+import { getBook } from "../book/load.js";
 import ChapterHead from "../components/ChapterHead.astro";
 import Contents from "../components/Contents.astro";
 import { contentsParts } from "../components/contents-parts.js";
 import BaseLayout from "../layouts/BaseLayout.astro";
-import { book } from "../markdown/options.js";
+
+const book = getBook();
 
 // The contents come from the outline, not from the chapter files, so a planned chapter shows in its place, as plain
 // text until its file exists (BK5).

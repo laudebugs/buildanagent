@@ -5,6 +5,8 @@ import type { NumberedChapter } from "../book/outline-rules.js";
 
 interface AstroData {
   astro?: { frontmatter?: Record<string, unknown> };
+  /** The lines of the chapter file above the rendered body; the chapter-contract plugin sets it from the book index. */
+  lineOffset?: number;
   /** Set by the chapter-contract plugin once the front matter has passed the schema. */
   chapter?: { readonly outline: NumberedChapter; readonly frontmatter: ChapterFrontmatter };
 }

@@ -1,7 +1,10 @@
 ---
+import { citeHref } from "../book/citations.js";
+import { getBook } from "../book/load.js";
 import ChapterHead from "../components/ChapterHead.astro";
 import BaseLayout from "../layouts/BaseLayout.astro";
-import { book } from "../markdown/options.js";
+
+const book = getBook();
 
 // Every glossary entry, in alphabetical order. Each anchor is the id a chapter's first use of the term links to.
 const entries = [...book.glossary.values()].sort((a, b) => a.term.localeCompare(b.term, "en"));
@@ -22,7 +25,7 @@ const entries = [...book.glossary.values()].sort((a, b) => a.term.localeCompare(
                 {entry.sources.map((id, k) => (
                   <>
                     {k > 0 && ", "}
-                    <a href={`/sources/#${id}`}>{book.sources.get(id)?.title}</a>
+                    <a href={citeHref(id)}>{book.sources.get(id)?.title}</a>
                   </>
                 ))}
               </dd>

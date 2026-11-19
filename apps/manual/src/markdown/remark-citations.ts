@@ -17,24 +17,28 @@ import { CITE, CITE_LIKE, citeHref, citeParts } from "../book/citations.js";
 import type { Book } from "../book/load.js";
 import { checkedChapter } from "./chapter-file.js";
 import { failAt } from "./fail.js";
+import { placeAt } from "./position.js";
 import { splitText, textInside } from "./split-text.js";
 
 export function remarkCitations(options: { readonly book: Book }) {
-  const known = new Set(options.book.sources.keys());
+  const register = { ids: new Set(options.book.sources.keys()), file: options.book.names.sources };
   return (tree: Root, file: VFile): void => {
     const { frontmatter } = checkedChapter(file);
     splitText(tree, textInside(tree, new Set(["link", "linkReference"])), (value, node) => {
       const valid = new Set([...value.matchAll(CITE)].map((m) => m.index));
       for (const m of value.matchAll(CITE_LIKE)) {
-        if (!valid.has(m.index))
-          failAt(file, `${m[0]} is not a citation; write [@id] or [@a; @b] with kebab-case ids`, node);
+        if (!valid.has(m.index)) {
+          const at = placeAt(node.position, value, m.index, m.index + m[0].length);
+          failAt(file, `${m[0]} is not a citation; write [@id] or [@a; @b] with kebab-case ids`, at);
+        }
       }
       return [...value.matchAll(CITE)].map((m) => {
         let parts: ReturnType<typeof citeParts> = [];
         try {
-          parts = citeParts(m[1] ?? "", known, frontmatter.sources);
+          parts = citeParts(m[1] ?? "", register, frontmatter.sources);
         } catch (error) {
-          failAt(file, error instanceof Error ? error.message : String(error), node);
+          const at = placeAt(node.position, value, m.index, m.index + m[0].length);
+          failAt(file, error instanceof Error ? error.message : String(error), at);
         }
         return {
           index: m.index,

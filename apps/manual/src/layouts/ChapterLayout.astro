@@ -1,11 +1,14 @@
 ---
+import { citeHref } from "../book/citations.js";
+import { getBook } from "../book/load.js";
 import ChapterHead from "../components/ChapterHead.astro";
 import PrevNext from "../components/PrevNext.astro";
 import Sidebar from "../components/Sidebar.astro";
 import type { ChapterLink, ContentsPart, PageHeading } from "../components/types.js";
-import { book } from "../markdown/options.js";
 import BaseLayout from "./BaseLayout.astro";
 import type { PageProps } from "./page-props.js";
+
+const book = getBook();
 
 // Direction C's chapter page: the wide title, the figure panel (the "figure" slot), then the sidebar, the article
 // column with its side notes, and the previous and next links.
@@ -53,7 +56,7 @@ const {
                   const source = book.sources.get(id);
                   return (
                     <li>
-                      <a href={`/sources/#${id}`}>{source?.title}</a>, {source?.publisher}
+                      <a href={citeHref(id)}>{source?.title}</a>, {source?.publisher}
                     </li>
                   );
                 })}

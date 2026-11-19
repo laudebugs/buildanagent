@@ -26,7 +26,9 @@ export const FIXTURE_OUTLINE: Outline = [
 export function fixtureInputs(dir: string = FIXTURE_DIR, outline: Outline = FIXTURE_OUTLINE): BookInputs {
   return {
     outline,
+    outlineFile: join(dir, "outline.ts"),
     chaptersDir: join(dir, "chapters"),
+    factChecksDir: join(dir, "apps/manual/fact-checks"),
     sourcesFile: join(dir, "sources.json"),
     glossaryFile: join(dir, "glossary.json"),
     analogiesFile: join(dir, "analogies.json"),
@@ -64,8 +66,10 @@ export async function renderLikeAstro(book: Book, slug: string): Promise<string>
   const { syntaxHighlight, shikiConfig } = markdownConfigDefaults;
   const renderer = await unified(markdownOptionsFor(book)).createRenderer({ syntaxHighlight, shikiConfig });
   const file = join(book.inputs.chaptersDir, `${slug}.md`);
-  const { content, frontmatter } = parseFrontmatter(readFileSync(file, "utf8"));
-  const { code } = await renderer.render(content, { frontmatter, fileURL: pathToFileURL(file) });
+  const text = readFileSync(file, "utf8");
+  // Astro renders the body with its front matter removed and the rest trimmed (its Markdown entry type).
+  const { content, frontmatter } = parseFrontmatter(text);
+  const { code } = await renderer.render(content.trim(), { frontmatter, fileURL: pathToFileURL(file) });
   return code;
 }
 

@@ -6,14 +6,13 @@ import type { ChapterLink, ContentsPart } from "./types.js";
  * `href`, so the contents shows it as plain text in its place (BK5).
  */
 export function contentsParts(book: Book): ContentsPart[] {
-  return book.inputs.outline.map((part) => ({
+  return book.inputs.outline.map((part, index) => ({
     title: part.title,
-    chapters: part.chapters.map((chapter) => {
-      const number = book.bySlug.get(chapter.slug)?.number ?? 0;
-      return book.index.written.has(chapter.slug)
-        ? { number, title: chapter.title, href: `/${chapter.slug}/` }
-        : { number, title: chapter.title };
-    }),
+    chapters: book.chapters
+      .filter((chapter) => chapter.part === index + 1)
+      .map(({ slug, number, title }) =>
+        book.index.written.has(slug) ? { number, title, href: `/${slug}/` } : { number, title },
+      ),
   }));
 }
 

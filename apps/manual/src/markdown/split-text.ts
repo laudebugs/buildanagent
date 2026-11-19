@@ -4,13 +4,15 @@
 // As a file derived from that repository, this file is licensed under Apache-2.0 only, not Apache-2.0 OR MIT
 // (LICENSE, THIRD-PARTY-NOTICES.md).
 //
-// Changed from the original: typed for mdast, and `split` may return nodes of any phrasing type.
+// Changed from the original: typed for mdast, `split` may return nodes of any phrasing type, and every new node keeps
+// the position of the text it replaces.
 //
 // Shared by the remark plugins that turn pieces of plain text into other nodes (citations, glossary terms).
 // CommonMark leaves those pieces inside text nodes, so each plugin splits the text nodes it is allowed to touch.
 
 import type { PhrasingContent, Root, Text } from "mdast";
 import { SKIP, visit } from "unist-util-visit";
+import { slicePosition } from "./position.js";
 
 /** Text nodes inside any node of the given types (link text, headings, code and so on). */
 export function textInside(tree: Root, types: ReadonlySet<string>): Set<Text> {
@@ -34,7 +36,8 @@ export interface TextPiece {
 
 /**
  * Replaces each text node not in `skip` with the pieces `split(value, node)` returns, in order. Text between them stays
- * text. Returning an empty list leaves the node as it is.
+ * text. Returning an empty list leaves the node as it is. Every new node gets the position of the characters it
+ * replaces, so a later plugin's error inside it still names the right line.
  */
 export function splitText(
   tree: Root,
@@ -44,15 +47,20 @@ export function splitText(
   visit(tree, "text", (node, index, parent) => {
     if (!parent || index === undefined || skip.has(node)) return;
     const value = node.value;
+    const text = (from: number, to: number): Text => {
+      const position = slicePosition(node.position, value, from, to);
+      return { type: "text", value: value.slice(from, to), ...(position ? { position } : {}) };
+    };
     const out: PhrasingContent[] = [];
     let last = 0;
     for (const piece of split(value, node)) {
-      if (piece.index > last) out.push({ type: "text", value: value.slice(last, piece.index) });
-      out.push(...[piece.node].flat());
+      if (piece.index > last) out.push(text(last, piece.index));
+      const position = slicePosition(node.position, value, piece.index, piece.index + piece.length);
+      for (const replacement of [piece.node].flat()) out.push(position ? { ...replacement, position } : replacement);
       last = piece.index + piece.length;
     }
     if (out.length === 0) return;
-    if (last < value.length) out.push({ type: "text", value: value.slice(last) });
+    if (last < value.length) out.push(text(last, value.length));
     (parent.children as PhrasingContent[]).splice(index, 1, ...out);
     return [SKIP, index + out.length];
   });

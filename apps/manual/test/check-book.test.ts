@@ -1,4 +1,6 @@
 import assert from "node:assert/strict";
+import { rmSync } from "node:fs";
+import { join } from "node:path";
 import { afterAll, beforeAll, test, vi } from "vitest";
 import { checkBook } from "../src/book/check-book.js";
 import type { Outline } from "../src/book/outline-types.js";
@@ -46,13 +48,26 @@ const cases: readonly Case[] = [
     rule: "a register entry whose verifiedIn file lacks its URL fails",
     change: (dir) => editJson(dir, "sources.json", (s) => [{ ...s[0], url: "https://example.com/unchecked" }, s[1]]),
     file: "sources.json",
-    message: /alpha-docs: fact-check\.md does not mention https:\/\/example\.com\/unchecked/,
+    message: /alpha-docs: apps\/manual\/fact-checks\/first\.md does not mention https:\/\/example\.com\/unchecked/,
   },
   {
     rule: "a register entry whose verifiedIn file does not exist fails",
-    change: (dir) => editJson(dir, "sources.json", (s) => [{ ...s[0], verifiedIn: "missing.md" }, s[1]]),
+    change: (dir) =>
+      editJson(dir, "sources.json", (s) => [{ ...s[0], verifiedIn: "apps/manual/fact-checks/missing.md" }, s[1]]),
     file: "sources.json",
-    message: /alpha-docs: verifiedIn names missing\.md, which is not a file/,
+    message: /alpha-docs: verifiedIn names apps\/manual\/fact-checks\/missing\.md, which is not a file/,
+  },
+  {
+    rule: "a register entry whose verifiedIn is not a fact-check log fails",
+    change: (dir) => editJson(dir, "sources.json", (s) => [{ ...s[0], verifiedIn: "chapters/first.md" }, s[1]]),
+    file: "sources.json",
+    message: /alpha-docs: verifiedIn names chapters\/first\.md, which is not a fact-check log/,
+  },
+  {
+    rule: "a written chapter without its fact-check log fails",
+    change: (dir) => rmSync(join(dir, "apps/manual/fact-checks/second.md")),
+    file: SECOND,
+    message: /the chapter has no fact-check log; add apps\/manual\/fact-checks\/second\.md/,
   },
   {
     rule: "a source id used twice fails",
@@ -62,9 +77,9 @@ const cases: readonly Case[] = [
   },
   {
     rule: "a register entry that breaks the schema fails",
-    change: (dir) => editJson(dir, "sources.json", (s) => [{ ...s[0], asOf: "2026" }, s[1]]),
+    change: (dir) => editJson(dir, "sources.json", (s) => [...s, { ...s[0], id: "gamma-docs", asOf: "2026" }]),
     file: "sources.json",
-    message: /entry 1: asOf: asOf must be a month and year/,
+    message: /entry 3: asOf: asOf must be a month and year/,
   },
   // The glossary (BK7).
   {
@@ -125,7 +140,7 @@ const cases: readonly Case[] = [
     rule: "an analogy whose chapter is not in the outline fails",
     change: (dir) => editJson(dir, "analogies.json", (a) => [{ ...a[0], chapter: "nowhere" }]),
     file: "analogies.json",
-    message: /kitchen-ticket-rail: chapter "nowhere" is not in the outline/,
+    message: /kitchen-ticket-rail: chapter "nowhere" is not in outline\.ts/,
   },
   {
     rule: "an illustration that is not a figure in its written chapter fails",
@@ -154,26 +169,26 @@ const cases: readonly Case[] = [
   // The outline and its opening rotation (BK5, BK22).
   {
     rule: "an outline where two consecutive chapters share an opening type fails",
-    outline: withOpenings("scenario", "code", "code"),
-    file: "src/outline.ts",
+    outline: withOpenings("scenario", "code", "code", "question", "fact", "analogy", "incident", "scenario"),
+    file: "outline.ts",
     message: /chapters 2 \(second\) and 3 \(third\) both open with "code"/,
   },
   {
     rule: "an outline where one type opens more than a quarter of the chapters fails",
     outline: withOpenings("scenario", "code", "scenario", "question", "scenario"),
-    file: "src/outline.ts",
+    file: "outline.ts",
     message: /"scenario" opens 3 of 5 chapters; no type may open more than 2/,
   },
   {
     rule: "a slug listed twice in the outline fails",
     outline: [...FIXTURE_OUTLINE, { title: "Part C", chapters: [{ slug: "first", title: "Again", opening: "fact" }] }],
-    file: "src/outline.ts",
+    file: "outline.ts",
     message: /chapter slug "first" appears twice/,
   },
   {
     rule: "a slug that is not kebab-case fails",
     outline: [...FIXTURE_OUTLINE, { title: "Part C", chapters: [{ slug: "Ch_4", title: "Four", opening: "fact" }] }],
-    file: "src/outline.ts",
+    file: "outline.ts",
     message: /chapter slug "Ch_4" is not kebab-case/,
   },
   // Numbering and references (BK5).
@@ -181,13 +196,13 @@ const cases: readonly Case[] = [
     rule: "a chapter file the outline does not name fails",
     outline: [{ title: "Part A", chapters: [{ slug: "first", title: "One", opening: "scenario" }] }],
     file: SECOND,
-    message: /this chapter is not in src\/outline\.ts/,
+    message: /this chapter is not in the outline/,
   },
   {
-    rule: "a figure without an id fails with its line",
-    change: firstChapter((t) => t.replace("{#ticket-rail}", "")),
-    file: `${FIRST}:14`,
-    message: /a figure needs a kebab-case id/,
+    rule: "a numbered block without an id fails with its line",
+    change: firstChapter((t) => t.replace("{#stop-reasons}", "")),
+    file: `${FIRST}:18`,
+    message: /a table needs a kebab-case id/,
   },
   {
     rule: "an id used for two figures fails with both places",
@@ -202,10 +217,33 @@ const cases: readonly Case[] = [
     message: /\[\[fig:missing\]\] names no figure in the book/,
   },
   {
+    rule: "a reference error keeps its line in a paragraph that also links a glossary term",
+    change: firstChapter((t) =>
+      t
+        .replace("glossary: [agent-loop, mcp]", "glossary: [agent-loop, mcp, harness]")
+        .replace("See [[fig:ticket-rail]],", "The harness and [[fig:missing]]. See [[fig:ticket-rail]],"),
+    ),
+    file: `${FIRST}:24`,
+    message: /\[\[fig:missing\]\] names no figure in the book/,
+  },
+  {
+    rule: "a reference error names its own line inside a paragraph with a term and a citation",
+    change: firstChapter((t) =>
+      t
+        .replace("glossary: [agent-loop, mcp]", "glossary: [agent-loop, mcp, harness]")
+        .replace(
+          "See [[fig:ticket-rail]],",
+          "The harness runs [@alpha-docs].\nIt names [[fig:missing]]. See [[fig:ticket-rail]],",
+        ),
+    ),
+    file: `${FIRST}:25`,
+    message: /\[\[fig:missing\]\] names no figure in the book/,
+  },
+  {
     rule: "a reference to a chapter not in the outline fails",
     change: firstChapter((t) => t.replace("[[ch:third]]", "[[ch:fourth]]")),
     file: `${FIRST}:24`,
-    message: /\[\[ch:fourth\]\] names no chapter in src\/outline\.ts/,
+    message: /\[\[ch:fourth\]\] names no chapter in outline\.ts/,
   },
   {
     rule: "a malformed reference fails",
@@ -267,13 +305,13 @@ const cases: readonly Case[] = [
     rule: "an opening that differs from the outline's plan fails",
     change: firstChapter((t) => t.replace("opening: scenario", "opening: incident")),
     file: FIRST,
-    message: /opening is "incident", but src\/outline\.ts plans "scenario"/,
+    message: /opening is "incident", but outline\.ts plans "scenario"/,
   },
   {
     rule: "front matter sources that name an unknown id fail",
     change: firstChapter((t) => t.replace("sources: [alpha-docs, beta-paper]", "sources: [alpha-docs, nope]")),
     file: FIRST,
-    message: /sources lists "nope", which is not in the source register/,
+    message: /sources lists "nope", which is not in sources\.json/,
   },
   {
     rule: "front matter sources that list an id twice fail",
@@ -285,7 +323,7 @@ const cases: readonly Case[] = [
     rule: "a chapter tagging an unknown glossary term fails",
     change: firstChapter((t) => t.replace("glossary: [agent-loop, mcp]", "glossary: [agent-loop, mcp, toolbox]")),
     file: FIRST,
-    message: /glossary lists "toolbox", which is not in src\/data\/glossary\.json/,
+    message: /glossary lists "toolbox", which is not in glossary\.json/,
   },
   {
     rule: "a chapter tagging a glossary term its text never uses fails",
@@ -332,8 +370,10 @@ for (const { rule, change, outline, file, message } of cases) {
     dirs.push(dir);
     const inputs = fixtureInputs(dir, outline);
     const problems = (await checkBook(inputs)).map(formatProblem);
+    // One rule broken, one problem: the fixture must not trip any other rule.
+    assert.equal(problems.length, 1, `check:book should report exactly one problem, got:\n${problems.join("\n")}`);
     assert.ok(
-      problems.some((p) => p.startsWith(file) && message.test(p)),
+      problems[0]?.startsWith(file) && message.test(problems[0]),
       `check:book should report ${file}: ${message}, got:\n${problems.join("\n")}`,
     );
     const error = await buildError(inputs);

@@ -38,10 +38,11 @@ export function normalizePhrase(text: string): string {
  */
 export function checkAnalogies(
   data: unknown,
-  file: string,
+  files: { readonly file: string; readonly outlineFile: string },
   chapterSlugs: ReadonlySet<string>,
   problems: ProblemList,
 ): readonly Analogy[] {
+  const { file, outlineFile } = files;
   const parsed = z.array(z.unknown()).safeParse(data);
   if (!parsed.success) {
     problems.add(file, "the analogy register must be a JSON array of entries");
@@ -61,7 +62,7 @@ export function checkAnalogies(
     if (ids.has(entry.id)) problems.add(file, `${entry.id}: the id appears twice`);
     ids.add(entry.id);
     if (!chapterSlugs.has(entry.chapter))
-      problems.add(file, `${entry.id}: chapter "${entry.chapter}" is not in the outline`);
+      problems.add(file, `${entry.id}: chapter "${entry.chapter}" is not in ${outlineFile}`);
     checkPairing(entry, byAnalogy, byConcept, file, problems);
     entries.push(entry);
   }

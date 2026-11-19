@@ -3,6 +3,7 @@ import { relative } from "node:path";
 import { pathToFileURL } from "node:url";
 import { markdownConfigDefaults, parseFrontmatter, unified } from "@astrojs/markdown-remark";
 import { markdownOptionsFor } from "../markdown/options.js";
+import { renderedBody } from "./book-index.js";
 import { type BookInputs, loadBook } from "./load.js";
 import { BookError, type Problem } from "./problems.js";
 
@@ -37,10 +38,12 @@ export async function checkBook(inputs?: BookInputs): Promise<readonly Problem[]
   const problems: Problem[] = [];
   for (const { file } of book.index.written.values()) {
     if (!existsSync(file)) continue;
-    // The front matter is blanked line for line, so a problem's line is the file's own line.
-    const { content, frontmatter } = parseFrontmatter(readFileSync(file, "utf8"), { frontmatter: "empty-with-lines" });
+    // The same text Astro renders: the body without its front matter, trimmed. The plugins add the body's line offset
+    // from the book index, so a problem's line is the file's own line.
+    const text = readFileSync(file, "utf8");
+    const { frontmatter } = parseFrontmatter(text);
     try {
-      await renderer.render(content, { frontmatter, fileURL: pathToFileURL(file) });
+      await renderer.render(renderedBody(text).body, { frontmatter, fileURL: pathToFileURL(file) });
     } catch (error) {
       problems.push(renderProblem(error, relative(book.inputs.repoRoot, file)));
     }

@@ -416,4 +416,16 @@ Todo T3 built the book's content model on 2026-11-19. These rows check the pins 
 | 256 | Glossary, MCP: an open standard that connects AI applications to the systems where data lives, through one protocol | `src/data/glossary.json` | ✅ | [Anthropic, MCP](https://www.anthropic.com/news/model-context-protocol): "a new standard for connecting AI assistants to the systems where data lives"; "a universal, open standard … replacing fragmented integrations with a single protocol" |
 | 257 | No fact-check log cites a web page for "interceptor" or "hook", so the seed glossary leaves the term to the events-and-hooks chapter | BK7 (T3's result) | ✅ | `grep` for hook and middleware URLs over every `fact-check*.md`: the reference logs check LangChain middleware and Copilot hooks against mirrored files and `.d.ts` paths, not URLs; the one hooks URL, `workflow-sdk.dev/docs/foundations/hooks`, documents workflow hooks, a different concept |
 
-**Totals:** 257 claims: 229 ✅, 28 ✏️, 0 ⚠️.
+### T3's first review round
+
+The fixes for the first code-review round added these claims to the plan's T3 notes, the app's README, the new `apps/manual/fact-checks/README.md` and the code's comments.
+
+| # | Claim | Where | Verdict | Source and reason |
+| --- | --- | --- | --- | --- |
+| 258 | An unbounded `[[…]]` pattern scans the rest of the text from every unclosed `[[`, so its time grows with the square of the input; the bounded pattern stays linear | `rehype-numbering.ts`, `citations.ts`, the timing test | ✅ | Node 24 on 2026-11-19, 20,000 copies of `[[`: `/\[\[[^\]]*\]\]/g` took 4,695 ms and `/\[\[[^\]\n]{0,200}\]\]/g` took 27 ms; at 100,000 copies the unbounded pattern would take about 25 times as long, minutes, while the test's bounded run finishes well under its 1 s limit |
+| 259 | Every register entry's `verifiedIn` names a fact-check log under `docs/research/` | `src/data/sources.json` | ✅ | The eight paths are `docs/research/agent/fact-check.md` (three entries), `docs/research/fact-check-source-update-2026-11-19.md`, `docs/research/connectors/fact-check-agent-connectors.md`, `docs/research/deployment/fact-check-portable-agents.md`, `docs/research/deployment/fact-check-agent-building-platforms.md` and `docs/research/browser-use/fact-check-browser-use.md`; `check:book` passes with the restricted `verifiedIn` |
+| 260 | The fact-check logs a register entry may name live under `docs/research/`, in `docs/plans/reviews/` and as `docs/reference/<sdk>/fact-check.md` | BK6 (T3's result), the app's README | ✅ | `ls`: eight `docs/reference/*/fact-check.md` files, `docs/plans/reviews/fact-check-build-book.md` among the plan logs, and `fact-check*.md` files at several depths under `docs/research/` |
+| 261 | A chapter log's rows take the columns of the repository's other logs: number, claim, where, verdict, and source and reason | `apps/manual/fact-checks/README.md` | ✅ | This log's tables use `\| # \| Claim \| Where \| Verdict \| Source and reason \|` |
+| 262 | BK21 has each section fact-checked as soon as it is drafted, before the next, with the section's rows committed with it | `apps/manual/fact-checks/README.md` | ✅ | [BK21](../build-book.md#bk21-every-section-is-fact-checked-before-the-next-is-drafted-accepted), step 2: "commit the section with its rows before drafting the next section" |
+
+**Totals:** 262 claims: 234 ✅, 28 ✏️, 0 ⚠️.

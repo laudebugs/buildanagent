@@ -1,4 +1,6 @@
 ---
+import { citeHref } from "../book/citations.js";
+
 // A citation: a link to the source's entry in the register on /sources/.
 interface Props {
   readonly id: string;
@@ -10,4 +12,4 @@ interface Props {
 const { id, label, title } = Astro.props;
 ---
 
-<span class="citation"><a href={`/sources/#${id}`} aria-label={`Source: ${title}`}>[{label}]</a></span>
+<span class="citation"><a href={citeHref(id)} aria-label={`Source: ${title}`}>[{label}]</a></span>

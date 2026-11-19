@@ -1,15 +1,23 @@
 import type { Element, ElementContent, Root, Text } from "hast";
 import { SKIP, visit } from "unist-util-visit";
 import type { VFile } from "vfile";
-import { NUMBERED_KINDS, type NumberedKind } from "../book/book-index.js";
+import { isNumberedKind, NUMBERED_KINDS, type NumberedKind } from "../book/book-index.js";
 import type { Book } from "../book/load.js";
 import { checkedChapter } from "./chapter-file.js";
 import { failAt } from "./fail.js";
+import { placeAt } from "./position.js";
+
+/** Where a reference sits, for its error message. */
+type Place = ReturnType<typeof placeAt>;
 
 /** A reference as written: `[[fig:id]]`, `[[lst:id]]`, `[[tbl:id]]` or `[[ch:slug]]`. */
 const REF = /\[\[(fig|lst|tbl|ch):([a-z0-9]+(?:-[a-z0-9]+)*)\]\]/g;
-/** Anything that starts like a reference, so a malformed one fails instead of rendering as plain text. */
-const REF_LIKE = /\[\[[^\]]*\]\]/g;
+/**
+ * Anything that starts like a reference, so a malformed one fails instead of rendering as plain text. The match stays
+ * on one line and within 200 characters, so a long run of unclosed brackets cannot make it scan the text again and
+ * again.
+ */
+export const REF_LIKE = /\[\[[^\]\n]{0,200}\]\]/g;
 /** Text inside these elements is never a reference: code shows syntax, and links cannot nest. */
 const NO_REFS = new Set(["code", "pre", "a", "script", "style"]);
 
@@ -17,13 +25,10 @@ const KIND_BY_PREFIX: ReadonlyMap<string, NumberedKind> = new Map(
   Object.entries(NUMBERED_KINDS).map(([kind, { prefix }]) => [prefix, kind as NumberedKind]),
 );
 
-const isNumberedKind = (value: unknown): value is NumberedKind =>
-  typeof value === "string" && Object.hasOwn(NUMBERED_KINDS, value);
-
 /**
  * Numbers the chapter's figures, listings and tables and resolves references to them. A number is the chapter's
  * position in the outline and the block's order in the chapter (Figure 3.2), both taken from the book index, so
- * moving a chapter in `src/outline.ts` renumbers its blocks and every reference to them. A reference to an unknown id
+ * moving a chapter in the outline renumbers its blocks and every reference to them. A reference to an unknown id
  * fails the build with the file and line. A reference to a chapter that is not written yet shows its number without
  * a link.
  */
@@ -92,18 +97,19 @@ function refPieces(node: Text, file: VFile, book: Book): ElementContent[] | unde
   for (const m of value.matchAll(REF)) {
     const [whole, prefix = "", id = ""] = m;
     if (m.index > last) out.push({ type: "text", value: value.slice(last, m.index) });
-    out.push(prefix === "ch" ? chapterRef(id, file, book, node) : blockRef(prefix, id, file, book, node));
+    const at = placeAt(node.position, value, m.index, m.index + whole.length);
+    out.push(prefix === "ch" ? chapterRef(id, file, book, at) : blockRef(prefix, id, file, book, at));
     last = m.index + whole.length;
   }
   if (last < value.length) out.push({ type: "text", value: value.slice(last) });
   return out;
 }
 
-function blockRef(prefix: string, id: string, file: VFile, book: Book, node: Text): ElementContent {
+function blockRef(prefix: string, id: string, file: VFile, book: Book, at: Place): ElementContent {
   const block = book.index.blocks.get(`${prefix}:${id}`);
   const kind = KIND_BY_PREFIX.get(prefix);
   if (block === undefined || kind === undefined) {
-    return failAt(file, `[[${prefix}:${id}]] names no ${kind ?? "block"} in the book`, node);
+    return failAt(file, `[[${prefix}:${id}]] names no ${kind ?? "block"} in the book`, at);
   }
   return {
     type: "element",
@@ -113,9 +119,9 @@ function blockRef(prefix: string, id: string, file: VFile, book: Book, node: Tex
   };
 }
 
-function chapterRef(slug: string, file: VFile, book: Book, node: Text): ElementContent {
+function chapterRef(slug: string, file: VFile, book: Book, at: Place): ElementContent {
   const chapter = book.bySlug.get(slug);
-  if (chapter === undefined) return failAt(file, `[[ch:${slug}]] names no chapter in src/outline.ts`, node);
+  if (chapter === undefined) return failAt(file, `[[ch:${slug}]] names no chapter in ${book.names.outline}`, at);
   const text: Text = { type: "text", value: `Chapter ${chapter.number}` };
   if (!book.index.written.has(slug)) return text;
   return { type: "element", tagName: "a", properties: { href: `/${slug}/`, className: ["xref"] }, children: [text] };

@@ -1,5 +1,5 @@
 import { existsSync, readFileSync } from "node:fs";
-import { dirname, join, relative } from "node:path";
+import { dirname, join, relative, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 import { outline as bookOutline } from "../outline.js";
 import { type Analogy, checkAnalogies } from "./analogies.js";
@@ -13,8 +13,12 @@ import { checkSources, type Source } from "./sources.js";
 /** Where a book's content lives. The real book's come from `bookInputs()`; the tests pass fixture books. */
 export interface BookInputs {
   readonly outline: Outline;
+  /** The file the outline comes from, for messages. */
+  readonly outlineFile: string;
   /** The directory that holds `<slug>.md` for each written chapter. */
   readonly chaptersDir: string;
+  /** The directory that holds each written chapter's fact-check log, `<slug>.md` (BK21). */
+  readonly factChecksDir: string;
   readonly sourcesFile: string;
   readonly glossaryFile: string;
   readonly analogiesFile: string;
@@ -22,9 +26,18 @@ export interface BookInputs {
   readonly repoRoot: string;
 }
 
+/** The input files as messages name them: relative to the repository root. */
+export interface BookFileNames {
+  readonly outline: string;
+  readonly sources: string;
+  readonly glossary: string;
+  readonly analogies: string;
+}
+
 /** The checked book: its numbered outline, its three registers and its index of written chapters. */
 export interface Book {
   readonly inputs: BookInputs;
+  readonly names: BookFileNames;
   readonly chapters: readonly NumberedChapter[];
   readonly bySlug: ReadonlyMap<string, NumberedChapter>;
   readonly sources: ReadonlyMap<string, Source>;
@@ -48,21 +61,35 @@ function appRoot(): string {
   }
 }
 
+let fixtureWarned = false;
+
 /**
- * The directory the build reads chapters from: `src/content/chapters/`, unless `BOOK_CHAPTERS_DIR` names another. The
- * site's build test sets it to a fixture chapter, because the book has no chapter of its own yet; `src/content.config.ts`
- * reads the same variable, so the collection and the content model always see the same files.
+ * Where the build reads chapters and their fact-check logs: `src/content/chapters/` and `fact-checks/`, unless
+ * `BOOK_FIXTURE_DIR` names a directory holding `chapters/` and `fact-checks/`. Only the site's build test sets it, to
+ * build one fixture chapter while the book has none of its own, so every process that uses it says so on stderr. A
+ * relative value resolves against the app's directory. `src/content.config.ts` reads the same directories, so the
+ * collection and the content model always see the same files.
  */
-export function chaptersDir(app: string = appRoot()): string {
-  return process.env.BOOK_CHAPTERS_DIR ?? join(app, "src/content/chapters");
+export function contentDirs(app: string = appRoot()): { readonly chaptersDir: string; readonly factChecksDir: string } {
+  const fixture = process.env.BOOK_FIXTURE_DIR;
+  if (fixture === undefined || fixture === "") {
+    return { chaptersDir: join(app, "src/content/chapters"), factChecksDir: join(app, "fact-checks") };
+  }
+  const dir = resolve(app, fixture);
+  if (!fixtureWarned) {
+    fixtureWarned = true;
+    console.warn(`BOOK_FIXTURE_DIR is set: building the fixture chapters in ${dir}, not the book's own`);
+  }
+  return { chaptersDir: join(dir, "chapters"), factChecksDir: join(dir, "fact-checks") };
 }
 
-/** The real book's inputs: `src/outline.ts`, the chapters and the three registers. */
+/** The real book's inputs: `src/outline.ts`, the chapters, their fact-check logs and the three registers. */
 export function bookInputs(): BookInputs {
   const app = appRoot();
   return {
     outline: bookOutline,
-    chaptersDir: chaptersDir(app),
+    outlineFile: join(app, "src/outline.ts"),
+    ...contentDirs(app),
     sourcesFile: join(app, "src/data/sources.json"),
     glossaryFile: join(app, "src/data/glossary.json"),
     analogiesFile: join(app, "src/content/analogies.json"),
@@ -70,11 +97,19 @@ export function bookInputs(): BookInputs {
   };
 }
 
-function readJson(file: string, problems: ProblemList): unknown {
+let realBook: Book | undefined;
+
+/** The real book, loaded on first use and kept for the rest of the process, for the pages and the layouts. */
+export function getBook(): Book {
+  realBook ??= loadBook();
+  return realBook;
+}
+
+function readJson(file: string, shownAs: string, problems: ProblemList): unknown {
   try {
     return JSON.parse(readFileSync(file, "utf8"));
   } catch (error) {
-    problems.add(file, `cannot read this file as JSON: ${error instanceof Error ? error.message : String(error)}`);
+    problems.add(shownAs, `cannot read this file as JSON: ${error instanceof Error ? error.message : String(error)}`);
     return [];
   }
 }
@@ -88,33 +123,44 @@ function readJson(file: string, problems: ProblemList): unknown {
 export function loadBook(inputs: BookInputs = bookInputs()): Book {
   const problems = new ProblemList();
   const name = (file: string) => relative(inputs.repoRoot, file) || file;
-  checkOutline(inputs.outline, "src/outline.ts", problems);
+  const names: BookFileNames = {
+    outline: name(inputs.outlineFile),
+    sources: name(inputs.sourcesFile),
+    glossary: name(inputs.glossaryFile),
+    analogies: name(inputs.analogiesFile),
+  };
+  checkOutline(inputs.outline, names.outline, problems);
   const chapters = numberChapters(inputs.outline);
   const bySlug = new Map(chapters.map((chapter) => [chapter.slug, chapter]));
   const sources = checkSources(
-    readJson(inputs.sourcesFile, problems),
-    name(inputs.sourcesFile),
+    readJson(inputs.sourcesFile, names.sources, problems),
+    names.sources,
     inputs.repoRoot,
     problems,
   );
   const sourceIds = new Set(sources.map((source) => source.id));
   const glossary = checkGlossary(
-    readJson(inputs.glossaryFile, problems),
-    name(inputs.glossaryFile),
+    readJson(inputs.glossaryFile, names.glossary, problems),
+    names.glossary,
     sourceIds,
     problems,
   );
   const analogies = checkAnalogies(
-    readJson(inputs.analogiesFile, problems),
-    name(inputs.analogiesFile),
+    readJson(inputs.analogiesFile, names.analogies, problems),
+    { file: names.analogies, outlineFile: names.outline },
     new Set(bySlug.keys()),
     problems,
   );
-  const index = indexChapters(chapters, inputs.chaptersDir, problems, name);
-  checkIllustrations(analogies, index, name(inputs.analogiesFile), problems);
+  const index = indexChapters(
+    chapters,
+    { chaptersDir: inputs.chaptersDir, factChecksDir: inputs.factChecksDir, name },
+    problems,
+  );
+  checkIllustrations(analogies, index, names.analogies, problems);
   problems.throwIfAny();
   return {
     inputs,
+    names,
     chapters,
     bySlug,
     sources: new Map(sources.map((source) => [source.id, source])),

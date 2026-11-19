@@ -7,7 +7,7 @@
     "kind": "docs",
     "asOf": "November 2026",
     "version": "v1.2.3",
-    "verifiedIn": "fact-check.md"
+    "verifiedIn": "apps/manual/fact-checks/first.md"
   },
   {
     "id": "beta-paper",
@@ -16,7 +16,7 @@
     "url": "https://example.org/beta/",
     "kind": "paper",
     "asOf": "October 2026",
-    "verifiedIn": "fact-check.md",
+    "verifiedIn": "apps/manual/fact-checks/first.md",
     "secondary": true
   }
 ]
