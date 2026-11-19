@@ -34,9 +34,11 @@ export {
 export type {
   JsonSchema,
   SchemaIssue,
+  ToolAnnotations,
   ToolContext,
   ToolDefinition,
   ToolEffect,
+  ToolExecutionMode,
   ToolExposure,
   ToolFailure,
   ToolResult,
