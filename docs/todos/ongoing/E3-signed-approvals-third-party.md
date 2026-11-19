@@ -98,7 +98,7 @@ The package README (how to pass a persistent key ring on serverless hosts, with 
 ## Risks and open questions
 
 - The resume-time re-run of `toolApproval` is read from the shipped `ai` 7.0.162 source, not from a documented guarantee, so a test pins it; if a later version drops it, the adapter wraps `execute` instead.
-- Clarification pending owner confirmation: ADR 0043 moves the signer and the input hash but does not list the pending record. Plan review 2 (2026-11-19) gives `SignedPendingRequest` and `Resolution` to this package, so one definition crosses `Context` and the protocol union (N26).
+- Settled by the owner on 2026-11-19: the safety package owns `SignedPendingRequest` and `Resolution`, and the SDK re-exports them. ADR 0043 moves the signer and the input hash but did not list the pending record; plan review 2 (2026-11-19) gave both types to this package, so one definition crosses `Context` and the protocol union (N26), and the owner confirmed that reading the same day.
 
 History: plan review 2 (2026-11-19) moved `canonicalInputHash()` to E1, added `ephemeralSigner()` and the `Resolution` type, restored `question?` and `reason?`, and put `signedToolApproval` in `./ai`.
 

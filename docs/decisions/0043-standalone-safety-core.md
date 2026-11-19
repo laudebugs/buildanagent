@@ -18,3 +18,7 @@ The owner wants the SDK gaps closed and tested before anything big is built. The
 - B15 imports the signer and `canonicalInputHash()` from the package, B5 exports `projectCallCost()` and the token-level `projectCost()` it calls, and B14 imports both from the gateway. B5, B14 and B15 carry revisions that apply this record, which the owner accepted on 2026-11-18.
 - ADR 0001 is extended by a third package, ADR 0033 by an eighth seam, and ADR 0009's consequence about B14 is superseded by this record; ADR 0005 is unchanged in substance.
 - F5 narrows to releasing the package for the platform's generation templates.
+
+## Notes
+
+- 2026-11-19 (owner decision): the package also owns the `SignedPendingRequest` and `Resolution` types, which this record did not list, and our SDK re-exports them. Plan review 2 proposed it ([§6, action 2](../plans/reviews/plan-review-2.md#6-eleven-owner-actions-are-still-open-and-only-one-a-test-project-for-n50-touches-waves-15)), and [E3](../todos/ongoing/E3-signed-approvals-third-party.md) builds them. The decision above is otherwise unchanged.
