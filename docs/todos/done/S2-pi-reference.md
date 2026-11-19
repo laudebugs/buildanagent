@@ -39,7 +39,7 @@ A verified TypeScript reference for Pi 1.5.2 (`@earendil-works/pi-coding-agent`,
 
 ## Acceptance criteria
 
-- [x] `pnpm --filter @agent-speak/verify-pi test` passes offline
+- [x] `pnpm --filter @buildanagent/verify-pi test` passes offline
 
 ## Tests
 

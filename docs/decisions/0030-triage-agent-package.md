@@ -1,4 +1,4 @@
-# 0030. Ship the triage agent as one private package, `@agent-speak/triage-agent`, with one subpath per removable component
+# 0030. Ship the triage agent as one private package, `@buildanagent/triage-agent`, with one subpath per removable component
 
 - **Status:** Accepted (P4 review, 2026-11-18)
 - **Date:** 2026-11-18

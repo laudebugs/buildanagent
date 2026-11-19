@@ -225,7 +225,7 @@ session.on("permission.requested", (event) => {
 ```
 
 ```bash
-pnpm install && pnpm --filter @agent-speak/verify-copilot-sdk test
+pnpm install && pnpm --filter @buildanagent/verify-copilot-sdk test
 ```
 
 ## 14. Ten runnable examples back the [verified] claims
@@ -254,4 +254,4 @@ Packaging differs by language. Python downloads the runtime on first use or with
 
 ## Conclusion: restrict the runtime first, then add back what the agent needs
 
-The Copilot SDK suits teams that want Copilot CLI's loop, tools and session store behind a small API, from any of six languages, and who can run one runtime process per client. The runtime owns the loop, so you shape an agent through `availableTools`, the permission handler, hooks and session options. Its defaults suit a developer's terminal: a full coding toolset, `approveAll` in the Quick Start, the process environment and the logged-in GitHub user. A production agent reverses each one. Set `mode: "empty"` and `availableTools`, write a handler for every session, return `no-result` for calls a person must decide, pass an allowlisted `env`, and pass `tools` again on every resume. To start, copy [`09-triage-agent.ts`](../../../verify/copilot-sdk/examples/09-triage-agent.ts), swap in your tools and schema, and run `pnpm --filter @agent-speak/verify-copilot-sdk test` to confirm the gate still holds.
+The Copilot SDK suits teams that want Copilot CLI's loop, tools and session store behind a small API, from any of six languages, and who can run one runtime process per client. The runtime owns the loop, so you shape an agent through `availableTools`, the permission handler, hooks and session options. Its defaults suit a developer's terminal: a full coding toolset, `approveAll` in the Quick Start, the process environment and the logged-in GitHub user. A production agent reverses each one. Set `mode: "empty"` and `availableTools`, write a handler for every session, return `no-result` for calls a person must decide, pass an allowlisted `env`, and pass `tools` again on every resume. To start, copy [`09-triage-agent.ts`](../../../verify/copilot-sdk/examples/09-triage-agent.ts), swap in your tools and schema, and run `pnpm --filter @buildanagent/verify-copilot-sdk test` to confirm the gate still holds.

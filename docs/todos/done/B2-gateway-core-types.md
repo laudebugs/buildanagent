@@ -33,7 +33,7 @@ Define the provider-neutral transcript and the single-method model spec that eve
 
 - Retries, middleware and the model factory (B4)
 - Pricing (B5)
-- `Context`, which names the SDK's `SignedPendingRequest` and so lives in `@agent-speak/sdk` (B11), keeping the gateway free of SDK types
+- `Context`, which names the SDK's `SignedPendingRequest` and so lives in `@buildanagent/sdk` (B11), keeping the gateway free of SDK types
 - Adapters (B8, B9)
 
 ## Tasks
@@ -41,7 +41,7 @@ Define the provider-neutral transcript and the single-method model spec that eve
 - [x] Write the types from §3.2 exactly; any rename needs a plan edit in the same commit.
 - [x] Implement `assertStreamContract()`: `start` first; per index, start → deltas → end; no event after the terminal; exactly one `done` or `error`; an `error` message has `stopReason` `error` or `aborted`.
 - [x] Implement `complete()` over any `AsyncIterable<ModelEvent>`, returning the terminal message and never throwing for an `error` terminal.
-- [x] Export everything from `@agent-speak/gateway`.
+- [x] Export everything from `@buildanagent/gateway`.
 - [x] Write unit tests with hand-built event arrays for each contract rule.
 
 ## Acceptance criteria
@@ -50,7 +50,7 @@ Define the provider-neutral transcript and the single-method model spec that eve
 - [x] `assertStreamContract()` rejects each of: a delta before `start`, a delta after its `end`, two terminals, no terminal, and an `error` with `stopReason: "stop"`, with one test each
 - [x] `complete()` returns the `error` terminal's message, with partial content and usage, without throwing
 - [x] No field named `input` exists on `Usage` (a type test)
-- [x] No gateway source file imports from `@agent-speak/sdk`, and `packages/gateway/package.json` has no `dependencies` entry
+- [x] No gateway source file imports from `@buildanagent/sdk`, and `packages/gateway/package.json` has no `dependencies` entry
 - [x] `pnpm check`, `pnpm typecheck` and `pnpm test` pass offline from the repo root
 
 ## Tests
@@ -74,7 +74,7 @@ The `ContentBlock` set may need a block kind the adapters reveal (for example ci
 
 ## Outcome (2026-11-19)
 
-- `src/types.ts`, `spec.ts`, `usage.ts`, `stream-contract.ts` and `complete.ts` implement §3.2's transcript and spec blocks. Every type is exported from `@agent-speak/gateway`, and `assertStreamContract()` is also exported from `./testing`, where §3.2 lists it.
+- `src/types.ts`, `spec.ts`, `usage.ts`, `stream-contract.ts` and `complete.ts` implement §3.2's transcript and spec blocks. Every type is exported from `@buildanagent/gateway`, and `assertStreamContract()` is also exported from `./testing`, where §3.2 lists it.
 - **`WireTool`** was used in `ModelContext` but defined nowhere in the plans. B2 defines it as `{ name; description; inputSchema }`, with `inputSchema` a JSON Schema object, and adds the line to §3.2.
 - `assertStreamContract()` enforces two rules beyond the five this todo listed: a `done` terminal may not carry `stopReason` `"error"` or `"aborted"`, and every block a `done` stream started must have ended. Each has a test.
 - **Tests:** 27 pass in the gateway: 14 for the stream contract, 6 for `complete()` and usage including the type test, 2 for package boundaries, and 5 from B1. Adding an `input` field to `Usage` fails `pnpm typecheck`, checked by hand.

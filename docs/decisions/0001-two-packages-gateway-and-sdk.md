@@ -10,7 +10,7 @@ The [agent-SDK guide](../guides/agent-sdk.md#12-open-decisions-for-round-p) (dec
 
 ## Decision
 
-We ship `@agent-speak/gateway` (transcript types, the v1 model spec, the gateway runtime, usage and cost, adapters as subpath exports) and `@agent-speak/sdk` (loop, tools, hooks, events, OTel observer, and the run `Context`, which holds the SDK's pause records). The gateway names no SDK type, so the dependency runs one way. Each has a `./testing` subpath. Our own packages live in a new top-level `packages/` directory, apart from the third-party harnesses in `verify/`.
+We ship `@buildanagent/gateway` (transcript types, the v1 model spec, the gateway runtime, usage and cost, adapters as subpath exports) and `@buildanagent/sdk` (loop, tools, hooks, events, OTel observer, and the run `Context`, which holds the SDK's pause records). The gateway names no SDK type, so the dependency runs one way. Each has a `./testing` subpath. Our own packages live in a new top-level `packages/` directory, apart from the third-party harnesses in `verify/`.
 
 ## Consequences
 

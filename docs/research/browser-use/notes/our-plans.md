@@ -155,7 +155,7 @@ Fourteen ready todos are the natural landing points: N15, N18, N20, N21, N24, N2
 - **W8:** "Cloud-mode evals against mini-swe-agent" · W6, N38, N49. Scope: "A report with provisioning time, infra failures, pass^k and cost"; out of scope: "New task suites". — `docs/todos/ready/W8-cloud-mode-evals.md`
 - **W11:** "Snapshot-cache ADR and, if W8's numbers justify it, the cache" · W8. — `docs/plans/build-coding-agent.md` §5.2
 - **F3:** the gate's type-check and mock-model checks, with "A mock-model test runner with host-touching tools denied by name" · B1. **F4:** "Hidden-grader eval runner and signed gate reports" · F3. — `docs/plans/build-agent-platform.md` §5.1; F3 todo
-- **F5:** "`@agent-speak/agent-safety` with adapters for `agents` 0.33.0 and `ai` 7.0.162" (signed approvals, idempotency keys, typed outcomes `not_applied`, `compensated`, `partial`, `unknown`) · B15. — `docs/todos/ready/F5-agent-safety-package.md`
+- **F5:** "`@buildanagent/agent-safety` with adapters for `agents` 0.33.0 and `ai` 7.0.162" (signed approvals, idempotency keys, typed outcomes `not_applied`, `compensated`, `partial`, `unknown`) · B15. — `docs/todos/ready/F5-agent-safety-package.md`
 - **F6:** generation templates for `agents` 0.33.0 and `ai` 7.0.162 · F3, F5. — §5.1
 - **F11:** "The generated-code sandbox profile and MCP-config rule" · N43, N46b, N47b. — §5.2; todo
 - **F15:** "Security review and abuse tests before sign-ups open" covering "sandbox escape, egress, MCP-config injection, grader access and cross-tenant reads" · F12, F9, F13, F14. — `docs/todos/ready/F15-security-review.md`

@@ -150,7 +150,7 @@ The capstone [`10-triage-agent.ts`](../../../verify/langchain/examples/10-triage
 5. **A checkpointer, a `thread_id` and `recursionLimit: 12`** make the pause possible and bound the run.
 
 ```bash
-pnpm install && pnpm --filter @agent-speak/verify-langchain test
+pnpm install && pnpm --filter @buildanagent/verify-langchain test
 ```
 
 ## 15. Ten runnable examples back every [verified] claim
@@ -170,4 +170,4 @@ pnpm install && pnpm --filter @agent-speak/verify-langchain test
 
 ## Conclusion: pin the model, the thread and the limit, and the middleware does the rest
 
-LangChain suits teams that want the most features ready-made: approvals, summarisation, limits and guardrails as middleware, and threads and interrupts from LangGraph. Its JavaScript docs are its weak point. They share pages with Python, they run ahead of the npm release, and 78 of 713 blocks disagree with the 1.6.1 types, most often over the long-term store and message content. Behavior matched the docs in every test we ran, though. To build on it, give every model id a provider prefix, pass a `thread_id` with a durable checkpointer, and set the recursion limit yourself. Then copy [`10-triage-agent.ts`](../../../verify/langchain/examples/10-triage-agent.ts), swap in your tools, and run `pnpm --filter @agent-speak/verify-langchain test` to confirm the gate still holds.
+LangChain suits teams that want the most features ready-made: approvals, summarisation, limits and guardrails as middleware, and threads and interrupts from LangGraph. Its JavaScript docs are its weak point. They share pages with Python, they run ahead of the npm release, and 78 of 713 blocks disagree with the 1.6.1 types, most often over the long-term store and message content. Behavior matched the docs in every test we ran, though. To build on it, give every model id a provider prefix, pass a `thread_id` with a durable checkpointer, and set the recursion limit yourself. Then copy [`10-triage-agent.ts`](../../../verify/langchain/examples/10-triage-agent.ts), swap in your tools, and run `pnpm --filter @buildanagent/verify-langchain test` to confirm the gate still holds.

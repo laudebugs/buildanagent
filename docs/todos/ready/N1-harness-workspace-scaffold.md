@@ -37,7 +37,7 @@ Create the four harness packages beside the SDK's two, each building, type-check
 ## Tasks
 
 - [ ] Copy the SDK packages' `package.json` scripts (`typecheck`: `tsc -p`, `test`: `tsx --test`).
-- [ ] Add `workspace:*` dependencies on `@agent-speak/sdk`, `@agent-speak/gateway` and `@agent-speak/protocol` where §3.1 lists them.
+- [ ] Add `workspace:*` dependencies on `@buildanagent/sdk`, `@buildanagent/gateway` and `@buildanagent/protocol` where §3.1 lists them.
 - [ ] Add one smoke test per package that imports its root export.
 - [ ] Check that Biome covers the new folders without config changes.
 

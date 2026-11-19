@@ -26,7 +26,7 @@ Let product code run a side effect it chose, such as an approved reply or a refu
 **In scope**
 
 - `Harness.invokeTool(session, { tool, input, hostContext })` returning a `CodeCallResult`: `done`, `denied` or `awaiting_approval` with its pending request
-- The `code_call` entry (`callId`, `tool`, `input`, `inputHash`), added to the entry union in `@agent-speak/protocol` and to the schema
+- The `code_call` entry (`callId`, `tool`, `input`, `inputHash`), added to the entry union in `@buildanagent/protocol` and to the schema
 - The pipeline's `decide()` with `ToolCall.initiator: "code"`, writing a `permission_decision` entry as for any call
 - On `allow`: run the registered tool through the registry's wrapper with the given host context, and write a `tool_result` entry
 - On `deny`: write a `tool_result` entry with `isError` and return `denied`

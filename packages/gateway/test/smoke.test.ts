@@ -1,8 +1,8 @@
-import "@agent-speak/gateway/testing/setup";
+import "@buildanagent/gateway/testing/setup";
 import assert from "node:assert/strict";
 import { test } from "node:test";
-import * as gateway from "@agent-speak/gateway";
-import { assertNoProviderKeys, guardedFetch, isLoopbackHost } from "@agent-speak/gateway/testing";
+import * as gateway from "@buildanagent/gateway";
+import { assertNoProviderKeys, guardedFetch, isLoopbackHost } from "@buildanagent/gateway/testing";
 
 test("the gateway imports by its package name", () => {
   assert.equal(typeof gateway.complete, "function");

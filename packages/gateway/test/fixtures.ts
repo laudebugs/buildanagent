@@ -1,5 +1,5 @@
-import type { AssistantMessage, ContentBlock, ModelEvent } from "@agent-speak/gateway";
-import { emptyUsage } from "@agent-speak/gateway";
+import type { AssistantMessage, ContentBlock, ModelEvent } from "@buildanagent/gateway";
+import { emptyUsage } from "@buildanagent/gateway";
 
 export function message(
   stopReason: AssistantMessage["stopReason"],

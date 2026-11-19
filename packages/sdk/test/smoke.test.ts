@@ -1,11 +1,11 @@
-import "@agent-speak/gateway/testing/setup";
+import "@buildanagent/gateway/testing/setup";
 import assert from "node:assert/strict";
 import { test } from "node:test";
-import { totalInput } from "@agent-speak/gateway";
-import { SDK_PACKAGE } from "@agent-speak/sdk";
+import { totalInput } from "@buildanagent/gateway";
+import { SDK_PACKAGE } from "@buildanagent/sdk";
 
 test("the SDK imports by its package name", () => {
-  assert.equal(SDK_PACKAGE, "@agent-speak/sdk");
+  assert.equal(SDK_PACKAGE, "@buildanagent/sdk");
 });
 
 test("the SDK resolves the gateway through its workspace dependency", () => {

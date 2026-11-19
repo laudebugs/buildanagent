@@ -74,7 +74,7 @@ Ship the strict scripted test model before any loop code, because every later te
 
 ## Outcome (2026-11-19)
 
-- **`@agent-speak/sdk/testing`** exports `ScriptedModel`, `UnexpectedModelCallError`, `fixedClock()`, `sequentialIds()` and `seededRandom()`, and the `AssistantScript`, `RecordedRequest`, `ScriptStep`, `ScriptedModelOptions` and `Clock` types. `ScriptedModel` imports only gateway types, never loop code.
+- **`@buildanagent/sdk/testing`** exports `ScriptedModel`, `UnexpectedModelCallError`, `fixedClock()`, `sequentialIds()` and `seededRandom()`, and the `AssistantScript`, `RecordedRequest`, `ScriptStep`, `ScriptedModelOptions` and `Clock` types. `ScriptedModel` imports only gateway types, never loop code.
 - **Plan edits in §3.3:**
   - `AssistantScript` and `RecordedRequest` were used but undefined; B3 defines both.
   - `ScriptedModel`'s options gain `idGenerator`, which fills missing tool-call ids.

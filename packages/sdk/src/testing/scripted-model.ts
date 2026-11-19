@@ -21,7 +21,7 @@ import {
   type ModelRef,
   type StreamOptions,
   type Usage,
-} from "@agent-speak/gateway";
+} from "@buildanagent/gateway";
 
 /** One scripted model response. */
 export interface AssistantScript {

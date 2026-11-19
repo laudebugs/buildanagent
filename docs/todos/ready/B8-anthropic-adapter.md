@@ -24,7 +24,7 @@ Ship the `anthropic-messages` adapter, one of the two first wire protocols in D2
 
 **In scope**
 
-- `anthropic(config)` in `@agent-speak/gateway/anthropic`, over `fetch` through `ProviderConfig.transport`
+- `anthropic(config)` in `@buildanagent/gateway/anthropic`, over `fetch` through `ProviderConfig.transport`
 - An SSE parser that emits `ModelEvent`s passing `assertStreamContract()`
 - Request encoding: system, messages after `transformMessages`, tools lowered to strict form with names sanitised (B7); the nulls that strict lowering adds are stripped from the model's arguments before validation
 - Caching: cache breakpoints on the system prompt, the last tool and the last user or tool-result block, at most 4

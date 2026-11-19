@@ -1,5 +1,5 @@
 /**
- * `@agent-speak/sdk/testing`: the strict scripted test model and deterministic seams.
+ * `@buildanagent/sdk/testing`: the strict scripted test model and deterministic seams.
  *
  * B18 adds `autoResponder`, seam doubles and record and replay.
  */

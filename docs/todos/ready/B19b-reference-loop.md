@@ -32,7 +32,7 @@ Give readers a loop they can read in one sitting: a few hundred lines with the s
 
 ## Tasks
 
-- [ ] Write the loop in the order transform → before → stream → after → tools → stop, using only the public exports of `@agent-speak/gateway` and `@agent-speak/sdk`.
+- [ ] Write the loop in the order transform → before → stream → after → tools → stop, using only the public exports of `@buildanagent/gateway` and `@buildanagent/sdk`.
 - [ ] Run B19's conformance suite against it.
 - [ ] Count its non-blank, non-comment lines in a test.
 

@@ -1,10 +1,10 @@
-# @agent-speak/sdk
+# @buildanagent/sdk
 
-The agent-speak SDK runs the agent loop over [`@agent-speak/gateway`](../gateway/README.md): tools, hooks, signed pauses and budgets. As of November 2026 it holds only its testing export (todo B3); the loop arrives from B10 onward. The design is in the [SDK plan §3.3](../../docs/plans/build-sdk.md#33-sdk-api).
+The agent-speak SDK runs the agent loop over [`@buildanagent/gateway`](../gateway/README.md): tools, hooks, signed pauses and budgets. As of November 2026 it holds only its testing export (todo B3); the loop arrives from B10 onward. The design is in the [SDK plan §3.3](../../docs/plans/build-sdk.md#33-sdk-api).
 
 ## Testing: a strict scripted model, not a lenient mock
 
-`@agent-speak/sdk/testing` exports `ScriptedModel`, the model every loop, tool, hook and pause test drives. It implements the gateway's `ModelAdapter`, so a test can pass it anywhere a real adapter goes, and it fails loudly when a test's expectations drift:
+`@buildanagent/sdk/testing` exports `ScriptedModel`, the model every loop, tool, hook and pause test drives. It implements the gateway's `ModelAdapter`, so a test can pass it anywhere a real adapter goes, and it fails loudly when a test's expectations drift:
 
 - **Over-run throws.** A call past the last scripted step throws `UnexpectedModelCallError`.
 - **Under-run fails.** `assertComplete()` throws if any step was never called; call it in teardown.
@@ -14,7 +14,7 @@ The agent-speak SDK runs the agent loop over [`@agent-speak/gateway`](../gateway
 A step is either a fixed `AssistantScript` or a responder that builds one from the recorded request:
 
 ```ts
-import { ScriptedModel, sequentialIds } from "@agent-speak/sdk/testing";
+import { ScriptedModel, sequentialIds } from "@buildanagent/sdk/testing";
 
 const model = new ScriptedModel(
   [
@@ -31,4 +31,4 @@ A script's `stopReason` defaults to `"tool_calls"` when its content has a tool c
 
 Nothing in the testing export reads `Date.now()` or `Math.random()`. `fixedClock(start, stepMs)` returns an ISO 8601 clock, `sequentialIds(prefix)` returns `prefix-1`, `prefix-2` and so on, and `seededRandom(seed)` returns a seeded generator. The same script with the same clock and ids produces deep-equal events on every run.
 
-Every test file starts with `import "@agent-speak/gateway/testing/setup"`. The setup blocks `fetch` to non-loopback hosts, fails if a provider key variable is set, and calls `allowModelRequests(false)`, so any adapter whose transport is not marked as a mock throws before it sends.
+Every test file starts with `import "@buildanagent/gateway/testing/setup"`. The setup blocks `fetch` to non-loopback hosts, fails if a provider key variable is set, and calls `allowModelRequests(false)`, so any adapter whose transport is not marked as a mock throws before it sends.

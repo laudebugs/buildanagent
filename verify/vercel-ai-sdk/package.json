@@ -1,5 +1,5 @@
 {
-  "name": "@agent-speak/verify-vercel-ai-sdk",
+  "name": "@buildanagent/verify-vercel-ai-sdk",
   "private": true,
   "license": "Apache-2.0 OR MIT",
   "type": "module",

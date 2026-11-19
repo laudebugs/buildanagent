@@ -10,10 +10,10 @@ The harness guide defines one typed protocol package first, wants the CLI to be 
 
 ## Decision
 
-`@agent-speak/protocol` holds the typed union, the session-entry union, framing and generated JSON Schema. Its emitted JavaScript imports nothing at run time; it declares `@agent-speak/gateway` and `@agent-speak/sdk` as dependencies for types only, and never depends on the harness. `@agent-speak/harness` holds the session log, context policy, registry, MCP client, permissions, sandbox, credentials, extensions, telemetry, ablation and dispatcher, each behind its own subpath export. `@agent-speak/cli` is the `agent-speak` binary and a client of the in-process transport. `@agent-speak/evals` holds reports, trajectory conversion and the offline replay suite, with the Inspect task beside it in Python. All four live in `packages/` beside the SDK's two.
+`@buildanagent/protocol` holds the typed union, the session-entry union, framing and generated JSON Schema. Its emitted JavaScript imports nothing at run time; it declares `@buildanagent/gateway` and `@buildanagent/sdk` as dependencies for types only, and never depends on the harness. `@buildanagent/harness` holds the session log, context policy, registry, MCP client, permissions, sandbox, credentials, extensions, telemetry, ablation and dispatcher, each behind its own subpath export. `@buildanagent/cli` is the `agent-speak` binary and a client of the in-process transport. `@buildanagent/evals` holds reports, trajectory conversion and the offline replay suite, with the Inspect task beside it in Python. All four live in `packages/` beside the SDK's two.
 
 ## Consequences
 
 - Todo N1 scaffolds the four packages; no change to `pnpm-workspace.yaml` beyond B1's `packages/*`.
 - A component that gains an outside consumer can move to its own package later without changing its subpath's API.
-- P4 (2026-11-18) moved the `SessionEntry` union into the protocol package, so protocol → harness is no longer a cycle (plan review R2); `@agent-speak/harness/session` re-exports it.
+- P4 (2026-11-18) moved the `SessionEntry` union into the protocol package, so protocol → harness is no longer a cycle (plan review R2); `@buildanagent/harness/session` re-exports it.

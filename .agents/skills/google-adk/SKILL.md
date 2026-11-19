@@ -91,5 +91,5 @@ ADK ships no fake model, so subclass `BaseLlm`: [`verify/google-adk/examples/lib
 Run one new file offline, without touching committed results, from `verify/google-adk`: `node scripts/run-examples.mjs <dir> --only <name>`. The runner skips type-checking and prints only the outcome, so also run `pnpm exec tsc --noEmit -p .` and `pnpm exec biome check --write <file>`, and run the file with tsx to see its output. Run the verified examples with:
 
 ```bash
-pnpm --filter @agent-speak/verify-google-adk test
+pnpm --filter @buildanagent/verify-google-adk test
 ```

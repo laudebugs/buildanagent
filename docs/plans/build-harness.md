@@ -13,7 +13,7 @@ The guide left twelve decisions open, and the [SDK plan][sdk] has since fixed th
 
 ## 1. Goal and non-goals
 
-**Goal.** At the end of Round N, `@agent-speak/protocol`, `@agent-speak/harness`, `@agent-speak/cli` and `@agent-speak/evals` build, type-check and pass `pnpm test` offline beside the SDK's two packages. Together they implement the ten components of the [reference architecture][hg12] on top of `@agent-speak/sdk` and `@agent-speak/gateway`. A triage capstone runs on the harness, pauses for approval, resumes in a second process and replays byte for byte from its log. An eval runner compares the harness with mini-swe-agent on cost and pass^k. Every component other than the log, the permission pipeline and the protocol can be switched off for an ablation, as [AGENTS.md](../../AGENTS.md#planned-architecture-when-code-starts) and [harness guide §11][hg11] require.
+**Goal.** At the end of Round N, `@buildanagent/protocol`, `@buildanagent/harness`, `@buildanagent/cli` and `@buildanagent/evals` build, type-check and pass `pnpm test` offline beside the SDK's two packages. Together they implement the ten components of the [reference architecture][hg12] on top of `@buildanagent/sdk` and `@buildanagent/gateway`. A triage capstone runs on the harness, pauses for approval, resumes in a second process and replays byte for byte from its log. An eval runner compares the harness with mini-swe-agent on cost and pass^k. Every component other than the log, the permission pipeline and the protocol can be switched off for an ablation, as [AGENTS.md](../../AGENTS.md#planned-architecture-when-code-starts) and [harness guide §11][hg11] require.
 
 The goal covers every recommendation in the guide's design sections, §2 to §11. The table maps each section to the todos that build it:
 
@@ -126,7 +126,7 @@ Three decisions merge with the SDK's. For each, this plan references P1's choice
 
 [SDK D3][sdk-d3] settles the guide's in-memory-field question with four token classes and `totalInput()`.
 
-**Harness side.** The telemetry projection pins `open-telemetry/semantic-conventions-genai` at commit `d28355d`, the HEAD the observability note read on 2026-11-18, and stamps it as the resource attribute `agent_speak.semconv.genai.commit`. The commit constant and the `gen_ai.*` names come from `@agent-speak/sdk/otel` (`SEMCONV_GENAI_COMMIT`, `GEN_AI_ATTRIBUTES`), so the live observer and the log projection share one module. It writes `gen_ai.usage.input_tokens` as `totalInput(usage)` and `gen_ai.usage.output_tokens` as `usage.output`. Our own attributes are `agent_speak.cost.usd` (omitted when `Cost.total` is `null`), `agent_speak.cost.basis` and `agent_speak.usage.cache_read_tokens` and `.cache_write_tokens`. They sit outside `gen_ai.*`, so a future convention cannot collide with them.
+**Harness side.** The telemetry projection pins `open-telemetry/semantic-conventions-genai` at commit `d28355d`, the HEAD the observability note read on 2026-11-18, and stamps it as the resource attribute `agent_speak.semconv.genai.commit`. The commit constant and the `gen_ai.*` names come from `@buildanagent/sdk/otel` (`SEMCONV_GENAI_COMMIT`, `GEN_AI_ATTRIBUTES`), so the live observer and the log projection share one module. It writes `gen_ai.usage.input_tokens` as `totalInput(usage)` and `gen_ai.usage.output_tokens` as `usage.output`. Our own attributes are `agent_speak.cost.usd` (omitted when `Cost.total` is `null`), `agent_speak.cost.basis` and `agent_speak.usage.cache_read_tokens` and `.cache_write_tokens`. They sit outside `gen_ai.*`, so a future convention cannot collide with them.
 
 **Evidence.** The conventions are Development-only and had no tags on 2026-11-18, so a version means a commit ([harness guide §9][hg9]; [observability note §2][n-obs-2]). OTel's `input_tokens` "SHOULD include cached tokens", and no convention names cost, so the cost attribute is ours to name ([harness guide §9][hg9]). SDK D3 already ran the guide's settling test, writing the projection and the cost fold against both conventions ([SDK plan, D3][sdk-d3]). Cost keeps its `basis`, because Claude calls its costs "client-side estimates, not authoritative billing data" ([harness guide §9][hg9]).
 
@@ -186,9 +186,9 @@ The pipeline's permission modes are `default`, `accept_edits`, `read_only`, `byp
 
 ### HD13. Four packages, with one subpath export per removable component
 
-**Options.** (a) One `@agent-speak/harness` package with everything. (b) A package per component, as many as ten. (c) A protocol package, a harness package with subpath exports per component, a CLI package and an evals package.
+**Options.** (a) One `@buildanagent/harness` package with everything. (b) A package per component, as many as ten. (c) A protocol package, a harness package with subpath exports per component, a CLI package and an evals package.
 
-**Choice: (c).** `@agent-speak/protocol` holds the typed union, the session-entry union it carries, the framing and the generated JSON Schema. Its emitted JavaScript imports nothing at run time, so a client in any language can depend on its schema alone; it declares `@agent-speak/gateway` and `@agent-speak/sdk` as dependencies only for the transcript and pause types. `@agent-speak/harness` depends on it, never the reverse. `@agent-speak/harness` holds the session log, context policy, registry, MCP client, permissions, sandbox, credentials, extensions, telemetry and the dispatcher, each behind its own subpath. `@agent-speak/cli` is the `agent-speak` binary and a client of the in-process transport. `@agent-speak/evals` holds the report builder, the trajectory converter and the offline replay suite; the Inspect task lives beside it in Python.
+**Choice: (c).** `@buildanagent/protocol` holds the typed union, the session-entry union it carries, the framing and the generated JSON Schema. Its emitted JavaScript imports nothing at run time, so a client in any language can depend on its schema alone; it declares `@buildanagent/gateway` and `@buildanagent/sdk` as dependencies only for the transcript and pause types. `@buildanagent/harness` depends on it, never the reverse. `@buildanagent/harness` holds the session log, context policy, registry, MCP client, permissions, sandbox, credentials, extensions, telemetry and the dispatcher, each behind its own subpath. `@buildanagent/cli` is the `agent-speak` binary and a client of the in-process transport. `@buildanagent/evals` holds the report builder, the trajectory converter and the offline replay suite; the Inspect task lives beside it in Python.
 
 **Evidence.** The guide defines the protocol package first, and generates TypeScript and JSON Schema from one union, so that clients need nothing else ([harness guide §8][hg8]). The CLI must be a replaceable client, because practitioners blame UI flicker and CPU on a harness apart from its model ([harness guide §8][hg8]). Subpath exports keep each removable component importable, and ablatable, on its own without the cost of ten `package.json` files, the same trade the SDK plan made for adapters ([SDK plan, D1][sdk-d1]).
 
@@ -216,13 +216,13 @@ The SDK plan puts our code in `packages/` and expects P2 to add the harness ther
 
 ```text
 packages/
-  protocol/                     @agent-speak/protocol   (types from gateway and sdk; no runtime imports)
+  protocol/                     @buildanagent/protocol   (types from gateway and sdk; no runtime imports)
     src/entries.ts              SessionEntry, EntryBase, Origin (the harness re-exports them from ./session)
     src/messages.ts             ClientCommand, ServerRequest, ServerNotification, Response, errors
     src/framing.ts              JsonlFramer (splits on \n only), encode(), decode()
     schema/protocol.schema.json generated from messages.ts and committed
     schema/session-entry.schema.json generated from entries.ts and committed
-  harness/                      @agent-speak/harness
+  harness/                      @buildanagent/harness
     package.json                exports: ".", "./session", "./context", "./tools", "./mcp",
                                 "./permissions", "./sandbox", "./sandbox/srt", "./sandbox/docker",
                                 "./credentials", "./extensions", "./telemetry", "./server",
@@ -240,22 +240,22 @@ packages/
     src/server/                 Dispatcher, inProcessTransport(), stdioTransport()
     src/ablation.ts             AblationConfig and its hash
     src/testing/                fakeSandbox(), memoryStore(), scriptedClient(), conformance suites
-  cli/                          @agent-speak/cli        bin: agent-speak
-  evals/                        @agent-speak/evals      (private)
+  cli/                          @buildanagent/cli        bin: agent-speak
+  evals/                        @buildanagent/evals      (private)
     src/                        reports, mini-swe-agent trajectories, offline replay suite
     inspect/                    harness_task.py, requirements.txt (Python, outside pnpm)
 ```
 
-**Dependencies.** `protocol` depends on `@agent-speak/gateway` and `@agent-speak/sdk` (`workspace:*`) for types only. N26 checks that its emitted JavaScript imports neither. pnpm resolves a type import only from a declared dependency, so the dependency is declared even though nothing loads at run time ([AGENTS.md "Workspace layout"](../../AGENTS.md#coding-standards)). `harness` depends on `@agent-speak/sdk`, `@agent-speak/gateway` and `@agent-speak/protocol` (`workspace:*`), and on `@modelcontextprotocol/client` 2.4.0 (HD14). The `srt` and Docker backends spawn the `srt` and `docker` binaries and add no npm dependency; N16 records which `srt` release it was tested against. `cli` depends on `harness` and, for the optional OTLP exporter, on `@opentelemetry/exporter-trace-otlp-http` 0.223.2 and `@opentelemetry/sdk-trace-base` 2.12.0, both already in the lockfile. Dev dependencies: `@modelcontextprotocol/server` 2.4.0 for MCP tests and a JSON Schema generator that N26 pins. Every new pin follows [AGENTS.md "Versions"](../../AGENTS.md#coding-standards).
+**Dependencies.** `protocol` depends on `@buildanagent/gateway` and `@buildanagent/sdk` (`workspace:*`) for types only. N26 checks that its emitted JavaScript imports neither. pnpm resolves a type import only from a declared dependency, so the dependency is declared even though nothing loads at run time ([AGENTS.md "Workspace layout"](../../AGENTS.md#coding-standards)). `harness` depends on `@buildanagent/sdk`, `@buildanagent/gateway` and `@buildanagent/protocol` (`workspace:*`), and on `@modelcontextprotocol/client` 2.4.0 (HD14). The `srt` and Docker backends spawn the `srt` and `docker` binaries and add no npm dependency; N16 records which `srt` release it was tested against. `cli` depends on `harness` and, for the optional OTLP exporter, on `@opentelemetry/exporter-trace-otlp-http` 0.223.2 and `@opentelemetry/sdk-trace-base` 2.12.0, both already in the lockfile. Dev dependencies: `@modelcontextprotocol/server` 2.4.0 for MCP tests and a JSON Schema generator that N26 pins. Every new pin follows [AGENTS.md "Versions"](../../AGENTS.md#coding-standards).
 
 **Tooling.** The same as the SDK's: ESM, `tsconfig.base.json`, `node:test` through tsx, `typecheck` and `test` scripts picked up by the root ([SDK plan §3.1][sdk31]). The Python Inspect task has its own `requirements.txt` with exact pins and runs only in the opt-in eval job.
 
 ### 3.2 Session log API
 
-Every type below uses the SDK plan's names unchanged. `ContentBlock`, `ModelContent`, `ModelRef`, `Usage` and `Cost` come from `@agent-speak/gateway`, and `SignedPendingRequest`, `Resolution`, `RunResult` and `Context` from `@agent-speak/sdk`. The entry union lives in `@agent-speak/protocol` (HD13), and the harness re-exports it. Revisions of the [guide's sketch][hg12] are marked.
+Every type below uses the SDK plan's names unchanged. `ContentBlock`, `ModelContent`, `ModelRef`, `Usage` and `Cost` come from `@buildanagent/gateway`, and `SignedPendingRequest`, `Resolution`, `RunResult` and `Context` from `@buildanagent/sdk`. The entry union lives in `@buildanagent/protocol` (HD13), and the harness re-exports it. Revisions of the [guide's sketch][hg12] are marked.
 
 ```ts
-// @agent-speak/protocol entries, re-exported by @agent-speak/harness/session (guide §2; HD1, HD2, HD11, HD13)
+// @buildanagent/protocol entries, re-exported by @buildanagent/harness/session (guide §2; HD1, HD2, HD11, HD13)
 type Origin = "user" | "operator" | "model" | "tool" | "harness";   // R3 hook (§3.7); one label per block entry
 interface EntryBase { id: string; parentId: string | null; seq: number; timestamp: string; origin: Origin }
 type SessionEntry = EntryBase & (
@@ -347,7 +347,7 @@ declare function processScheduler(): Scheduler; // local default; DO alarms, Eve
 ### 3.3 Context policy and tool registry APIs
 
 ```ts
-// @agent-speak/harness/context (guide §3; HD3, HD9)
+// @buildanagent/harness/context (guide §3; HD3, HD9)
 type LayerName = "write_cap" | "mask" | "summarize" | "mid_turn" | "overflow_retry";
 interface ContextPolicyOptions {
   budgetTokens?: number;                    // default min(window − 16,384, 200,000)
@@ -365,7 +365,7 @@ interface ContextPolicy {
 }
 declare function createContextPolicy(session: Session, options?: ContextPolicyOptions): ContextPolicy;
 
-// @agent-speak/harness/tools (guide §4)
+// @buildanagent/harness/tools (guide §4)
 type ToolSource = "builtin" | "extension" | `mcp:${string}` | "client";
 type HostPattern = "in_process" | "client_request";       // the third pattern is deferred (§1)
 interface RegisteredTool {
@@ -387,7 +387,7 @@ type ToolWrapper<H = unknown> = (tool: RegisteredTool, hostContext: H) => ToolDe
 declare function toolSearchTool(registry: ToolRegistry): ToolDefinition<{ query: string }, { activated: string[] }>;
 declare function builtinTools(sandbox: Sandbox, proxy?: EgressProxy): RegisteredTool[];  // read, write, edit, bash, fetch
 
-// @agent-speak/harness/mcp (guide §4; HD14)
+// @buildanagent/harness/mcp (guide §4; HD14)
 interface McpServerConfig {
   name: string; transport: { kind: "stdio"; command: string; args: string[]; env?: string[] } | { kind: "http"; url: string };
   exposure?: RegisteredTool["exposure"]; trusted?: boolean;   // project-supplied servers need project trust (guide §7)
@@ -399,7 +399,7 @@ declare function createMcpManager(options: { servers: McpServerConfig[]; registr
 ### 3.4 Permission, approval and sandbox APIs
 
 ```ts
-// @agent-speak/harness/permissions (guide §5; HD5, HD12)
+// @buildanagent/harness/permissions (guide §5; HD5, HD12)
 type PermissionMode = "default" | "accept_edits" | "read_only" | "bypass" | "shadow";
 interface Rule { tool: string | RegExp; paths?: string[]; commandPrefix?: string[]; reason?: string }
 interface ToolCall { callId: string; tool: string; input: unknown; initiator: "model" | "code" }   // Revision (agent AH5)
@@ -452,7 +452,7 @@ type CodeCallResult =
 // Harness.invokeTool(session, { tool, input, hostContext }) writes code_call, runs decide() with initiator "code",
 // then a tool_result on allow or deny, or an approval_requested entry signed with createPendingRequest() on ask.
 
-// @agent-speak/harness/sandbox (guide §6; HD4)
+// @buildanagent/harness/sandbox (guide §6; HD4)
 interface SandboxPolicy { readRoots: string[]; writeRoots: string[]; network: { allow: string[]; deny: string[] } }
 type ApprovalPolicy = "on-request" | "granular" | "never";
 interface SandboxClient {
@@ -473,7 +473,7 @@ declare function spawnEnv(allow: string[], extra?: Record<string, string>): Reco
 declare function escalation(options: { approvalPolicy: ApprovalPolicy; approvals: Approvals }): EscalationMachine;
 // states: sandboxed → denied → (never: return denial to the model) | (on-request: approval_requested → approved → rerun once with widened policy)
 
-// @agent-speak/harness/credentials (guide §6; HD15)
+// @buildanagent/harness/credentials (guide §6; HD15)
 interface CredentialRoute { route: string; host: string; methods: string[]; header: string; secret: () => Promise<string> }
 interface EgressProxy {
   readonly url: string;                                  // given to the sandbox as HTTP(S)_PROXY
@@ -490,7 +490,7 @@ declare function scrubSecrets(entry: SessionEntry, secrets: readonly string[]): 
 ### 3.5 Extension, protocol, telemetry, eval and ablation APIs
 
 ```ts
-// @agent-speak/harness/extensions (guide §7)
+// @buildanagent/harness/extensions (guide §7)
 type Composition = "notify" | "chain" | "gate" | "last_override";
 interface Extension {
   name: string; version: string;
@@ -507,7 +507,7 @@ declare function loadProjectExtensions(root: string, options: { trust: TrustStor
 declare function discoverSkills(cwd: string): Promise<Array<{ name: string; description: string; path: string }>>; // .agents/skills up to the repo root
 declare function contextFiles(cwd: string): Promise<Array<{ path: string; text: string }>>;  // AGENTS.md, CLAUDE.md; outside the trust gate, labelled untrusted
 
-// @agent-speak/protocol (guide §8; HD6)
+// @buildanagent/protocol (guide §8; HD6)
 type Id = number | string;
 type ClientCommand =
   | { jsonrpc: "2.0"; id: Id; method: "initialize"; params: { clientInfo: { name: string; version: string }; capabilities: string[] } }
@@ -541,7 +541,7 @@ type HarnessEvent =
 declare const ErrorCodes: { readonly QueueFull: -32001; readonly SessionLocked: -32002; readonly NotOptedIn: -32003 };
 declare class JsonlFramer { push(chunk: Uint8Array): unknown[]; }   // \n only; never Node readline (U+2028)
 
-// @agent-speak/harness/server
+// @buildanagent/harness/server
 interface Harness<H = unknown> {
   registry: ToolRegistry; pipeline: PermissionPipeline; context: ContextPolicy; sandbox: SandboxClient; model: Model;
   approvals: Approvals;
@@ -553,14 +553,14 @@ declare function createDispatcher(harness: Harness, options?: { queueSize?: numb
 declare function inProcessTransport(dispatcher: Dispatcher): ClientConnection;
 declare function stdioTransport(dispatcher: Dispatcher, io: { stdin: NodeJS.ReadableStream; stdout: NodeJS.WritableStream }): Promise<void>;
 
-// @agent-speak/harness/telemetry (guide §9; HD7). SEMCONV_GENAI_COMMIT and GEN_AI_ATTRIBUTES come from @agent-speak/sdk/otel.
+// @buildanagent/harness/telemetry (guide §9; HD7). SEMCONV_GENAI_COMMIT and GEN_AI_ATTRIBUTES come from @buildanagent/sdk/otel.
 declare function projectSpans(entries: AsyncIterable<SessionEntry>, options: {
   tracer: TracerLike; content?: "none" | "attributes" | "refs";      // "none" by default
   toolArguments?: boolean;                                          // gated apart from prompts; false by default
   hashAttributes?: { key: Uint8Array; names: string[] };            // Revision (agent AH12): HMAC-SHA-256 per named attribute
 }): Promise<void>;    // invoke_agent → turn → model call → execute_tool (+ approval_wait child)
 
-// @agent-speak/evals (guide §10; HD8)
+// @buildanagent/evals (guide §10; HD8)
 interface EvalRow {                                    // guide sketch; Revision: costUsd may be null
   task: string; trial: number; costUsd: number | null; tokens: Usage;
   passed: boolean | null; unscored?: "judge_unknown" | "infra_error";   // Revision (R11): null when unscored
@@ -574,7 +574,7 @@ declare function report(rows: EvalRow[], options: { k: number }): EvalReport; //
 declare function toMiniSweTrajectory(entries: SessionEntry[]): MiniSweTrajectoryV1_1; // format "mini-swe-agent-1.1"
 declare function discordance(a: EvalRow[], b: EvalRow[]): { flipped: number; total: number };
 
-// @agent-speak/harness/ablation (guide §11)
+// @buildanagent/harness/ablation (guide §11)
 interface AblationConfig {
   context: Record<LayerName, boolean>;
   mcp: boolean; extensions: { inProcess: boolean; mcp: boolean; skills: boolean };
@@ -607,7 +607,7 @@ P1 left two questions for P2 ([implementation plans §6](implementation-plans.md
 The harness needed thirteen things the SDK plan did not state. P4 moved twelve into the SDK plan and dropped one, so no harness todo carries a workaround ([plan review §4][p4-4]). The twelve fall into three groups, each tested in the SDK todo named:
 - **Hooks and events (B13), four needs.** `transformContext` returns a per-call view, and the loop keeps the full history (1). `ContextEvent` carries `system`, `messages`, `model` and `lastUsage` (2). `tool_call_end.result` is the result after `afterToolCall`, so the log stores what the model saw (5). `activeTools` may name deferred tools, and tools go out in definition order (8).
 - **Resume (B6, B11, B15b), three needs.** `RunError.kind` marks `"overflow"`, and `continueRun` drops a trailing errored assistant message and re-issues the call, which layer 5 needs (4). `Context` is plain JSON that a caller may build from its store (6). A verified `allow` runs without `beforeToolCall`, and the harness re-checks policy before it resolves (7, HD5).
-- **Gateway, budget, steering, telemetry and versioning, five needs.** `Model.caps` carries `contextWindow` and `maxOutputTokens` (3; B4, B5). `projectCallCost()` is exported for the summary call (9; B14). `@agent-speak/sdk/otel` exports `GEN_AI_ATTRIBUTES` and `SEMCONV_GENAI_COMMIT` (10; B17). `CAPABILITIES` lists the strings `run_start.capabilities` carries (11; B20). `DeliveryReceipt` carries `kind`, `message` and `stepIndex`, and `steer_applied` fires for both kinds (12; B16).
+- **Gateway, budget, steering, telemetry and versioning, five needs.** `Model.caps` carries `contextWindow` and `maxOutputTokens` (3; B4, B5). `projectCallCost()` is exported for the summary call (9; B14). `@buildanagent/sdk/otel` exports `GEN_AI_ATTRIBUTES` and `SEMCONV_GENAI_COMMIT` (10; B17). `CAPABILITIES` lists the strings `run_start.capabilities` carries (11; B20). `DeliveryReceipt` carries `kind`, `message` and `stepIndex`, and `steer_applied` fires for both kinds (12; B16).
 
 The thirteenth, a client-tool pause kind for the third host-tool pattern, was dropped for Rounds B and N because §1 defers that pattern; the SDK plan records it as a later item.
 
@@ -633,7 +633,7 @@ The guide says to start with the log, because context layers, pauses, replay, th
 | ID | Title | Depends on | Size |
 | --- | --- | --- | --- |
 | [N1](../todos/ready/N1-harness-workspace-scaffold.md) | Scaffold `protocol`, `harness`, `cli` and `evals` packages | B1 | S |
-| [N2](../todos/ready/N2-session-entries-schema.md) | Session entry union in `@agent-speak/protocol`, its JSON Schema and the stable fields | N1, B2 | M |
+| [N2](../todos/ready/N2-session-entries-schema.md) | Session entry union in `@buildanagent/protocol`, its JSON Schema and the stable fields | N1, B2 | M |
 | [N3](../todos/ready/N3-session-store.md) | `SessionStore`: memory and JSONL backends, the conformance suite and the write-time bound | N2 | M |
 | [N4](../todos/ready/N4-writer-lock.md) | Writer lock with a lease, and the crash test (HD2) | N3 | M |
 | [N5](../todos/ready/N5-head-fork-revert.md) | HEAD, checkout, fork, revert and migration by pointer | N4 | M |
@@ -731,7 +731,7 @@ No todo is size L. The longest dependency chain runs N1 → N2 → N3 → N4 →
 
 Every harness test that runs a turn drives `ScriptedModel` through `createModel`, with `fixedClock`, `sequentialIds` and `testSigner`, so runs are deterministic and the SDK's teardown checks apply ([SDK plan §5.1][sdk51]). The harness reuses the SDK's shared setup: `allowModelRequests(false)`, a `fetch` guard that allows only loopback, and a failure when a provider key variable is set ([SDK plan §5.4][sdk54]). Any spawned process gets `spawnEnv()`, never `...process.env` ([AGENTS.md](../../AGENTS.md#coding-standards)).
 
-The built-in `bash`, `write` and `edit` tools touch a host only through a `Sandbox`. In `pnpm test` they run against `fakeSandbox()` from `@agent-speak/harness/testing`, an in-memory file system with a recorded `exec`, so a scripted model never runs a command on the host. `read` may read a temp directory, which [AGENTS.md](../../AGENTS.md#process-for-documenting-an-sdk) allows. The real `srt` and Docker backends run commands only inside their sandbox, in the opt-in `test:sandbox` job.
+The built-in `bash`, `write` and `edit` tools touch a host only through a `Sandbox`. In `pnpm test` they run against `fakeSandbox()` from `@buildanagent/harness/testing`, an in-memory file system with a recorded `exec`, so a scripted model never runs a command on the host. `read` may read a temp directory, which [AGENTS.md](../../AGENTS.md#process-for-documenting-an-sdk) allows. The real `srt` and Docker backends run commands only inside their sandbox, in the opt-in `test:sandbox` job.
 
 ### 5.2 Conformance suites pin each interface that has more than one implementation
 

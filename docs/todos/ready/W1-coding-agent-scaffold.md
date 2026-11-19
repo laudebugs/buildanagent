@@ -1,4 +1,4 @@
-# W1: `@agent-speak/coding-agent` package and its task model
+# W1: `@buildanagent/coding-agent` package and its task model
 
 | Field | Value |
 | --- | --- |

@@ -1,7 +1,7 @@
 /**
  * Shared test setup. Import it first in every test file under `packages/`:
  *
- *   import "@agent-speak/gateway/testing/setup";
+ *   import "@buildanagent/gateway/testing/setup";
  *
  * It installs the network guard, checks for provider keys and turns real model requests off.
  */

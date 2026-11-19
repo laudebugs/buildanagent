@@ -1,5 +1,5 @@
 {
-  "name": "@agent-speak/sdk",
+  "name": "@buildanagent/sdk",
   "version": "0.0.0",
   "private": true,
   "license": "Apache-2.0 OR MIT",
@@ -15,6 +15,6 @@
     "test": "tsx --test \"test/**/*.test.ts\""
   },
   "dependencies": {
-    "@agent-speak/gateway": "workspace:*"
+    "@buildanagent/gateway": "workspace:*"
   }
 }

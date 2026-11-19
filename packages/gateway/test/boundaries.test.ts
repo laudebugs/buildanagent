@@ -1,4 +1,4 @@
-import "@agent-speak/gateway/testing/setup";
+import "@buildanagent/gateway/testing/setup";
 import assert from "node:assert/strict";
 import { readdirSync, readFileSync } from "node:fs";
 import { join } from "node:path";
@@ -15,9 +15,9 @@ function sourceFiles(dir: string): string[] {
   });
 }
 
-test("no gateway source file imports from @agent-speak/sdk", () => {
+test("no gateway source file imports from @buildanagent/sdk", () => {
   const offenders = sourceFiles(join(packageRoot, "src")).filter((file) =>
-    readFileSync(file, "utf8").includes("@agent-speak/sdk"),
+    readFileSync(file, "utf8").includes("@buildanagent/sdk"),
   );
   assert.deepEqual(offenders, []);
 });

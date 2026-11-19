@@ -45,7 +45,7 @@ Build `verify/vercel-ai-sdk/`, the offline harness for the `ai` package, coverin
 
 ## Acceptance criteria
 
-- [x] `pnpm --filter @agent-speak/verify-vercel-ai-sdk test` passes offline
+- [x] `pnpm --filter @buildanagent/verify-vercel-ai-sdk test` passes offline
 - [x] `pnpm run verify` regenerates every result file
 - [x] Every Tier 1 mismatch is classified
 - [x] Root checks pass

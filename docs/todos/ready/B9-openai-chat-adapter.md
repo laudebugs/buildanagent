@@ -23,7 +23,7 @@ Ship the `openai-chat` adapter, one of the two first wire protocols in D2, with 
 
 **In scope**
 
-- `openaiChat(config)` in `@agent-speak/gateway/openai-chat`, over `fetch` through `ProviderConfig.transport`
+- `openaiChat(config)` in `@buildanagent/gateway/openai-chat`, over `fetch` through `ProviderConfig.transport`
 - An SSE parser that emits `ModelEvent`s passing `assertStreamContract()`
 - Request encoding: system, messages after `transformMessages`, tools lowered to strict form with names sanitised (B7); the nulls that strict lowering adds are stripped from the model's arguments before validation
 - Caching: per-model `compat` flags for OpenAI-compatible servers

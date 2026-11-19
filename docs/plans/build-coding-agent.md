@@ -172,7 +172,7 @@ Two harness non-goals change. "A WebSocket or HTTP-with-SSE transport" leaves th
 
 | Todo | Delivers | Depends on | Size |
 | --- | --- | --- | --- |
-| [W1](../todos/ready/W1-coding-agent-scaffold.md) | `@agent-speak/coding-agent` package and its task model | N1 | S |
+| [W1](../todos/ready/W1-coding-agent-scaffold.md) | `@buildanagent/coding-agent` package and its task model | N1 | S |
 | [W2](../todos/ready/W2-coding-tool-profile.md) | Git tools, repository checkout and the completion check | N21, N32 | M |
 | [W3](../todos/ready/W3-github-app-identity.md) | GitHub App token minting, repository allowlist and the git egress route | N43, W1 | M |
 | [W4](../todos/ready/W4-durable-object-task-runner.md) | Task runner on a Durable Object, with wake and resume onto a fresh sandbox | W2, N46a, N46b | M |

@@ -13,7 +13,7 @@
 
 ## Goal
 
-Create the `@agent-speak/triage-agent` package with its subpath exports, scripts and the shared offline test setup, so every later A-todo lands in a package that already type-checks and refuses real model calls.
+Create the `@buildanagent/triage-agent` package with its subpath exports, scripts and the shared offline test setup, so every later A-todo lands in a package that already type-checks and refuses real model calls.
 
 ## Context
 
@@ -27,7 +27,7 @@ Create the `@agent-speak/triage-agent` package with its subpath exports, scripts
 
 - `packages/triage-agent/package.json` (`private: true`, ESM, exports `.`, `./policy`, `./tools`, `./roles`, `./workflow`, `./helpdesk`, `./evals`, `./rollout`, `./testing`)
 - `tsconfig.json` extending `tsconfig.base.json`; `typecheck` and `test` scripts
-- Workspace dependencies on `@agent-speak/sdk`, `gateway`, `harness` and `evals`; `zod` 4.6.7
+- Workspace dependencies on `@buildanagent/sdk`, `gateway`, `harness` and `evals`; `zod` 4.6.7
 - A `test/setup.ts` that imports the SDK's offline setup and fails when a provider key variable is set
 - README and CHANGELOG stubs
 
@@ -43,7 +43,7 @@ Create the `@agent-speak/triage-agent` package with its subpath exports, scripts
 
 ## Acceptance criteria
 
-- [ ] `pnpm --filter @agent-speak/triage-agent test` runs the smoke tests offline
+- [ ] `pnpm --filter @buildanagent/triage-agent test` runs the smoke tests offline
 - [ ] A test with `ANTHROPIC_API_KEY` set fails at setup
 - [ ] Biome checks `packages/triage-agent` with `noExplicitAny` on
 - [ ] `pnpm check`, `pnpm typecheck` and `pnpm test` pass offline from the repo root

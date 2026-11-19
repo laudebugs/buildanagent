@@ -25,7 +25,7 @@ Project OTel `gen_ai.*` spans from stored entries, with an approval-wait span, c
 **In scope**
 
 - `projectSpans(entries, { tracer, content, toolArguments })`: `invoke_agent` → turn → model call → `execute_tool`, plus `approval_wait` from `approval_requested` to `approval_resolved`
-- `GEN_AI_ATTRIBUTES` and `SEMCONV_GENAI_COMMIT` imported from `@agent-speak/sdk/otel` (B17), plus a module for our own `agent_speak.*` names
+- `GEN_AI_ATTRIBUTES` and `SEMCONV_GENAI_COMMIT` imported from `@buildanagent/sdk/otel` (B17), plus a module for our own `agent_speak.*` names
 - `hashAttributes: { key, names }`: HMAC-SHA-256 over each named attribute's value before export (agent AH12)
 - `gen_ai.usage.input_tokens` as `totalInput(usage)`; `agent_speak.cost.usd` omitted when `Cost.total` is `null`
 - Content levels `none` (default), `attributes`, `refs`; tool arguments gated apart

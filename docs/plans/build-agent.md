@@ -13,7 +13,7 @@ The plan then turns the architecture into 24 todos, each one reviewable batch te
 
 ## 1. Goal and non-goals
 
-**Goal.** At the end of Round A, `@agent-speak/triage-agent` builds, type-checks and passes `pnpm test` offline beside the SDK's and harness's packages. It triages a ticket end to end on the SDK's `ScriptedModel` and a fake helpdesk. Intake binds identity, the reader classifies, and code validates and routes. The planner then runs one capped loop with T0–T2 tools, the drafter writes a reply, and every T2+ action waits for a signed approval in the session log. The offline suite proves that an injected ticket and a cross-customer request change nothing beyond their labelled outcome, that a kill switch stops a running ticket, and that the release gate blocks on a safety failure. Once the owner supplies the inputs in §2, the same code runs the 30-ticket eval at k = 5 against a single-call baseline and enters shadow mode on a real helpdesk. Every component stays removable, as [AGENTS.md](../../AGENTS.md#planned-architecture-when-code-starts) requires.
+**Goal.** At the end of Round A, `@buildanagent/triage-agent` builds, type-checks and passes `pnpm test` offline beside the SDK's and harness's packages. It triages a ticket end to end on the SDK's `ScriptedModel` and a fake helpdesk. Intake binds identity, the reader classifies, and code validates and routes. The planner then runs one capped loop with T0–T2 tools, the drafter writes a reply, and every T2+ action waits for a signed approval in the session log. The offline suite proves that an injected ticket and a cross-customer request change nothing beyond their labelled outcome, that a kill switch stops a running ticket, and that the release gate blocks on a safety failure. Once the owner supplies the inputs in §2, the same code runs the 30-ticket eval at k = 5 against a single-call baseline and enters shadow mode on a real helpdesk. Every component stays removable, as [AGENTS.md](../../AGENTS.md#planned-architecture-when-code-starts) requires.
 
 The goal covers every recommendation in the guide's design sections, §2 to §8. The table maps each section to the todos that build it, and the deferred and rejected items follow it:
 
@@ -65,7 +65,7 @@ Six decisions merge with earlier ones. For each, this plan cites the earlier cho
 | AD10 | Classifier approval (with HD12) | No classifier approves anything; a classifier may only raise a tier | Decided | [0029](../decisions/0029-no-classifier-approval.md) |
 | AD11 | Template-only reply path | Every reply needs a person in v1; the template path waits for a zero-leak corpus of dozens of tasks | Decided (deferral) | none: [0023](../decisions/0023-tier-table-as-code.md) covers it |
 | AD12 | Clarification versus handoff | A missing fact becomes a templated question through the reply gate; missing authority or an unclassifiable ticket becomes a handoff | Decided, provisional (shadow labels) | none: a tunable rule |
-| AD13 | Package layout | One private package, `@agent-speak/triage-agent`, with one subpath per removable component | Decided | [0030](../decisions/0030-triage-agent-package.md) |
+| AD13 | Package layout | One private package, `@buildanagent/triage-agent`, with one subpath per removable component | Decided | [0030](../decisions/0030-triage-agent-package.md) |
 | AD14 | Helpdesk boundary | One `Helpdesk` interface is the only way out: a fake for tests, a shadow wrapper for rollout and a real adapter the owner names | Accepted (owner, 2026-11-18) | [0031](../decisions/0031-helpdesk-interface.md) |
 
 ### AD1. The product composes the workflow from three linked harness turns, and code runs every side effect through the pipeline (provisional)
@@ -226,11 +226,11 @@ Metrics count resolutions, clarifications and handoffs apart, and a ticket resol
 
 **Evidence.** When the agent lacks a fact rather than authority, it asks instead of guessing ([agent guide §7][ag7]). Pricing models disagree on what a handoff is: Intercom counts a request for a person as unresolved, while fin.ai bills a "Procedure handoff" at the same $0.99 as a resolution, so handoffs need their own row ([agent guide §7][ag7]). A question to the requester is external communication, so it takes the T3 gate. The guide's settling test labels the shadow tickets the leads would have answered with a question; A22 records those labels for the tuning.
 
-### AD13. One private package, `@agent-speak/triage-agent`, with one subpath per removable component
+### AD13. One private package, `@buildanagent/triage-agent`, with one subpath per removable component
 
-**Options.** (a) Agent code inside `@agent-speak/harness` as examples. (b) One package with subpath exports. (c) Separate packages for policy, tools, workflow and evals.
+**Options.** (a) Agent code inside `@buildanagent/harness` as examples. (b) One package with subpath exports. (c) Separate packages for policy, tools, workflow and evals.
 
-**Choice: (b).** `@agent-speak/triage-agent` is `private: true`. Its subpaths are `./policy`, `./tools`, `./roles`, `./workflow`, `./helpdesk`, `./evals`, `./rollout` and `./testing`. Each removable component has a no-op or pass-through: the taint hook, the policy hook, the outbound checks and the shadow wrapper can each be switched off for an ablation, while the tier table and identity binding cannot.
+**Choice: (b).** `@buildanagent/triage-agent` is `private: true`. Its subpaths are `./policy`, `./tools`, `./roles`, `./workflow`, `./helpdesk`, `./evals`, `./rollout` and `./testing`. Each removable component has a no-op or pass-through: the taint hook, the policy hook, the outbound checks and the shadow wrapper can each be switched off for an ablation, while the tier table and identity binding cannot.
 
 **Evidence.** The harness plan ruled agent policy out of the harness ([harness plan §1][hp1]), which rules out (a). Subpath exports keep each component importable and ablatable without the cost of several `package.json` files, the trade the SDK and harness plans made ([harness plan, HD13][hp-hd13]). Only the agent will import its policy, so (c) buys nothing yet.
 
@@ -255,7 +255,7 @@ Metrics count resolutions, clarifications and handoffs apart, and a ticket resol
 
 ```text
 packages/
-  triage-agent/                 @agent-speak/triage-agent   (private)
+  triage-agent/                 @buildanagent/triage-agent   (private)
     package.json                exports: ".", "./policy", "./tools", "./roles", "./workflow",
                                 "./helpdesk", "./evals", "./rollout", "./testing"
     src/
@@ -277,7 +277,7 @@ packages/
     README.md  CHANGELOG.md
 ```
 
-**Dependencies.** `@agent-speak/sdk`, `@agent-speak/gateway`, `@agent-speak/harness` and `@agent-speak/evals` (`workspace:*`), and `zod` 4.6.7 for tool and output schemas, a version already in the lockfile. A3 checks that Zod's schemas satisfy the SDK's `inputSchema` type, `StandardSchemaV1 & StandardJSONSchemaV1`, and falls back to raw JSON Schema validated by the SDK's D7 validator if they do not. The real helpdesk adapter adds no SDK; it calls `fetch` through the egress proxy. Every new pin follows [AGENTS.md "Versions"](../../AGENTS.md#coding-standards).
+**Dependencies.** `@buildanagent/sdk`, `@buildanagent/gateway`, `@buildanagent/harness` and `@buildanagent/evals` (`workspace:*`), and `zod` 4.6.7 for tool and output schemas, a version already in the lockfile. A3 checks that Zod's schemas satisfy the SDK's `inputSchema` type, `StandardSchemaV1 & StandardJSONSchemaV1`, and falls back to raw JSON Schema validated by the SDK's D7 validator if they do not. The real helpdesk adapter adds no SDK; it calls `fetch` through the egress proxy. Every new pin follows [AGENTS.md "Versions"](../../AGENTS.md#coding-standards).
 
 **Tooling.** The same as the SDK's and harness's: ESM, `tsconfig.base.json`, `node:test` through tsx, `typecheck` and `test` scripts picked up by the root ([SDK plan §3.1][sp31]). The Inspect task has its own exact-pinned `requirements.txt` and runs only in the opt-in eval job.
 
@@ -286,7 +286,7 @@ packages/
 Every type below uses the lower plans' names unchanged. From the SDK plan come `Model`, `ModelRef`, `ContentBlock`, `ModelContent`, `Usage`, `Cost`, `ToolDefinition`, `ToolContext`, `ToolResult`, `SignedPendingRequest`, `Resolution` and `Interceptors` ([SDK plan §3.3][sp33]). From the harness plan come `Session`, `SessionEntry`, `RegisteredTool`, `PermissionConfig`, `Decision`, `Approvals` and `runTurn` ([harness plan §3.2][hp32]; [harness plan §3.4][hp34]). Revisions of the [guide's sketch][ag9] are marked.
 
 ```ts
-// @agent-speak/triage-agent: trusted run context (R2; AD1). Set by intake, never in a model-facing schema or the log.
+// @buildanagent/triage-agent: trusted run context (R2; AD1). Set by intake, never in a model-facing schema or the log.
 interface TrustedContext {
   readonly requesterId: string; readonly tenantId: string; readonly ticketId: string;
   readonly orderIds: readonly string[];      // the requester's own orders, loaded at intake
@@ -345,7 +345,7 @@ declare const TRIAGE_TOOLS: readonly AgentTool<any, any>[];             // the t
 ### 3.3 Policy: tiers, store, quorum and taint
 
 ```ts
-// @agent-speak/triage-agent/policy (AD2, AD4, AD3, AD5)
+// @buildanagent/triage-agent/policy (AD2, AD4, AD3, AD5)
 interface TierEntry { tool: string; tier: Tier; limit?: { counter: CounterName; perCall: number | "amount" } }
 interface T4Caps { singleApproverMaxCents: number; dailyValueBudgetCents: number }
 interface AgentPolicy {
@@ -396,7 +396,7 @@ declare function taintHook(source: TaintSource): PermissionHook;            // d
 ### 3.4 Roles, gates and the workflow
 
 ```ts
-// @agent-speak/triage-agent/roles (AD1; agent decision 5)
+// @buildanagent/triage-agent/roles (AD1; agent decision 5)
 interface ReaderOutput {                       // what the model emits through outputTool
   category: "bug" | "billing" | "question" | "account";
   priority: "low" | "normal" | "high" | "urgent";
@@ -421,7 +421,7 @@ declare const READER: (bundle: Bundle) => RoleSettings;    // tools: [], maxStep
 declare const PLANNER: (bundle: Bundle) => RoleSettings;   // seven T0–T2 tools + clarification, maxSteps 8
 declare const DRAFTER: (bundle: Bundle) => RoleSettings;   // tools: [], maxSteps 2
 
-// @agent-speak/triage-agent/gates (agent decision 15)
+// @buildanagent/triage-agent/gates (agent decision 15)
 interface OutboundCheck { ok: boolean; flags: Array<"foreign_identifier" | "link_not_allowed" | "image_stripped" | "label_appended"> }
 declare function checkReply(draft: DraftResult, ctx: TrustedContext, options: { linkAllowlist: string[] }): { body: string; check: OutboundCheck };
 interface ApprovalCard {
@@ -432,7 +432,7 @@ interface ApprovalCard {
 }
 declare function approvalCard(session: Session, request: SignedPendingRequest): Promise<ApprovalCard>;
 
-// @agent-speak/triage-agent/workflow (AD1, AD9, AD12)
+// @buildanagent/triage-agent/workflow (AD1, AD9, AD12)
 type HandoffReason =
   | "needs_human" | "t5_request" | "unauthenticated" | "unknown_requester" | "invalid_order_ids"
   | "kill_switch" | "budget" | "unknown_price" | "max_steps" | "no_progress" | "denied" | "error";
@@ -471,7 +471,7 @@ declare function bundleHash(bundle: Bundle): string;            // sha-256 over 
 ### 3.5 Evals and rollout
 
 ```ts
-// @agent-speak/triage-agent/evals (AD6, AD7; agent decisions 9 and 10)
+// @buildanagent/triage-agent/evals (AD6, AD7; agent decisions 9 and 10)
 type Slice = "classification" | "must_escalate" | "must_not_escalate" | "lookup_discipline" | "grounding" | "injection" | "multi_turn";
 interface TriageTask {
   id: string; slice: Slice; safety: boolean;    // safety: must_not_escalate, grounding, injection
@@ -490,7 +490,7 @@ declare function releaseGate(input: { baseline: EvalRow[]; candidate: EvalRow[];
 declare function costPerResolvedTicket(rows: EvalRow[], outcomes: Map<string, TriageOutcome["kind"]>): number | null;
 declare function singleCallBaseline(model: Model): (ticket: InboundTicket, helpdesk: Helpdesk) => Promise<TriageOutcome>;
 
-// @agent-speak/triage-agent/rollout (agent decisions 12 and 13)
+// @buildanagent/triage-agent/rollout (agent decisions 12 and 13)
 interface StageConfig { stage: RolloutStage; canaryQueues: string[]; retention?: { days: number; action: "archive" | "purge" } }
 declare function assertStageReady(config: StageConfig, policy: AgentPolicy): void;   // throws without retention past offline (AD8)
 interface ShadowLabel { ticketId: string; proposed: RecordedWrite; human: { decision: "same" | "different" | "none"; value?: unknown; wouldAsk?: boolean } }

@@ -55,7 +55,7 @@ Each SDK gets a reference folder under `docs/reference/<sdk>/` (guide, fact-chec
 
 ## Development
 
-The repo is a pnpm workspace (Node 22, pnpm 10.28.0). Our own packages live in `packages/`: `@agent-speak/gateway` and `@agent-speak/sdk`, which are scaffolds as of November 2026. Each SDK harness under `verify/` is also a workspace package.
+The repo is a pnpm workspace (Node 22, pnpm 10.28.0). Our own packages live in `packages/`: `@buildanagent/gateway` and `@buildanagent/sdk`, which are scaffolds as of November 2026. Each SDK harness under `verify/` is also a workspace package.
 
 ```bash
 pnpm install        # install every package and harness

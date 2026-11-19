@@ -83,5 +83,5 @@ Use `MockLanguageModelV4` from `ai/test` with `doGenerate`/`doStream`, and `simu
 Run one new file offline, without touching committed results, from `verify/vercel-ai-sdk`: `node scripts/run-examples.mjs <dir> --only <name>`. The runner prints only the outcome, so run the file with tsx to see its `ok -` lines. Run the verified examples with:
 
 ```bash
-pnpm --filter @agent-speak/verify-vercel-ai-sdk test
+pnpm --filter @buildanagent/verify-vercel-ai-sdk test
 ```
