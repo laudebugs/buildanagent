@@ -135,3 +135,18 @@ test("on a wide page the page's headings move to a sticky right rail, and print 
   assert.match(print, /\.chapter-body > \.sidebar\s*\{\s*display: none;/);
   assert.match(print, /\.chapter-body > \.article\s*\{\s*grid-column: 1;/);
 });
+
+// A chapter page is only as wide as the sidebar, the capped article, the rail and their gaps, and is centred like
+// every page; the cap leaves room for the measure, a gap and a side note, so side notes still float beside the prose.
+test("a chapter page caps its article at --article-max and is only as wide as its columns", () => {
+  const css = readFileSync(new URL("styles/layout.css", src), "utf8");
+  assert.match(
+    css,
+    /\.page\.layout\s*\{\s*max-width: calc\(11rem \+ var\(--article-max\) \+ 15rem \+ 2 \* 2\.5rem \+ 2 \* var\(--gutter\)\);/,
+  );
+  const tokens = readFileSync(new URL("styles/tokens.css", src), "utf8");
+  assert.match(tokens, /--article-max: 59\.5rem;/);
+  // 59.5rem is the measure, the 2.5rem gap and the side note, the width at which a side note floats.
+  assert.match(tokens, /--measure: 42rem;/);
+  assert.match(tokens, /--side-note-width: 15rem;/);
+});

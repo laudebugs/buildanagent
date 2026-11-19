@@ -14,6 +14,15 @@
   padding-inline: var(--gutter);
 }
 
+/* A chapter page is only as wide as its widest row needs: the 11rem sidebar, the article at most --article-max, the
+   15rem "On this page" rail and their two 2.5rem gaps, 90.5rem in all, centred like every page. The article stops at
+   the measure, a gap and a side note, so the prose ends near the rail instead of a wide empty band before it, a side
+   note still floats beside the prose, and the title and figure panel line up with the columns under them. A narrower
+   screen never reaches the cap, so below a 90.5rem layout nothing changes. */
+.page.layout {
+  max-width: calc(11rem + var(--article-max) + 15rem + 2 * 2.5rem + 2 * var(--gutter));
+}
+
 /* A page with no chapter, such as the contents, the glossary, the sources, search and the 404 page, has no sidebar and
    no listing or figure to widen for, so its title and text share one column the width of the measure, centred under
    the header, instead of sitting at the left of the chapter page's width with the rest of a wide screen empty. */

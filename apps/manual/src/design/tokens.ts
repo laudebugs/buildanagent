@@ -66,6 +66,7 @@ export interface BookTokens {
   readonly layout: {
     readonly pageWidth: number;
     readonly measure: number;
+    readonly articleMax: number;
     readonly sideNote: number;
     readonly gutter: FluidSize;
   };
@@ -177,6 +178,7 @@ function sharedDeclarations(tokens: BookTokens): string[] {
     `  --line-height-body: ${size.body.lineHeight};`,
     `  --page-width: ${number(tokens.layout.pageWidth / 16)}rem;`,
     `  --measure: ${number(tokens.layout.measure / 16)}rem;`,
+    `  --article-max: ${number(tokens.layout.articleMax / 16)}rem;`,
     `  --side-note-width: ${number(tokens.layout.sideNote / 16)}rem;`,
     `  --gutter: ${fluidSize(tokens.layout.gutter, size.viewport)};`,
     "}",
