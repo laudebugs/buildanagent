@@ -114,3 +114,21 @@ The claims log for [`call-workflow-loop.md`](../src/content/chapters/call-workfl
 | 71 | A scripted mock can give only the answers someone wrote for it in advance | § Without a key | ✅ | `scripted` plays a list or a function of the turn number (row 67); ADK's `ScriptedLlm` takes a function that may read the request but returns only what its author wrote; Pi's faux provider plays scripted messages (`verify/pi/README.md`). The draft said a mock "ignores what the code sent", which ADK's `ScriptedLlm` need not do, so the text was narrowed before commit |
 | 72 | A passing example proves the code handles the scripted answers, not that a real model will give them | § Without a key | ✅ | Follows from row 71; [book plan BK18](../../../docs/plans/build-book.md#bk18-an-occasional-live-run-compares-real-flows-with-the-mock-transcripts-accepted) adds an occasional live run for this reason |
 | 73 | Glossary, mock model: a stand-in for a provider that returns answers written in advance, so code runs offline, repeatably and at no cost | Glossary | ✅ | [AI SDK, Testing](https://ai-sdk.dev/docs/ai-sdk-core/testing), re-read 2026-11-19, verbatim: testing models is hard "because they are non-deterministic and calling them is slow and expensive", and "To enable you to unit test your code that uses the AI SDK, the AI SDK Core includes mock providers and test helpers." A first read relied on a summary's "repeatable and deterministic" wording, which the page does not use, so the row rests on these two sentences and on the mock's behaviour in row 67, which answers from memory with no request |
+
+## § Exercises
+
+| # | Claim | Where | Verdict | Source and reason |
+| --- | --- | --- | --- | --- |
+| 74 | ADK's `LoopAgent` takes the same sub-agents and stops after `maxIterations` | § Exercises, 1 | ✅ | `verify/google-adk/examples/02-workflow-agents.ts`, region `loop` and its check "LoopAgent stops after maxIterations (3 model calls)"; `docs/reference/google-adk/guide.md` §4: "`LoopAgent` repeats until `maxIterations`, or until a sub-agent calls the built-in `exit_loop` tool" |
+| 75 | `EXIT_LOOP` is ADK's built-in tool, and a sub-agent that calls `exit_loop` ends the loop; the same file's loop test shows how to script it | § Exercises, 1 | ✅ | Same file, lines 83–99: a `ScriptedLlm` returns `callTool("exit_loop")`, and the checks "exit_loop ends the loop in the iteration that calls it" and "the exit_loop tool result carries actions.escalate" pass |
+| 76 | The exercise runs offline and its predictions can be checked: a `LoopAgent` of the writer and a reviewer with `EXIT_LOOP` and `maxIterations: 3` makes 2, 4 and 6 model calls when the reviewer approves the first draft, the second, or none | § Exercises, 1 | ✅ | A scratch example run in `verify/google-adk` on 2026-11-19 and then deleted printed "calls 2", "calls 4" and "calls 6". The chapter does not print these answers |
+| 77 | `pnpm test` in each harness type-checks and runs its examples, and fails on a failing check | § Exercises, 1 and 2 | ✅ | `verify/google-adk/package.json` and `verify/vercel-ai-sdk/package.json`: `test` runs `tsc` then `scripts/run-examples.mjs`; `check()` throws "ASSERTION FAILED" on a false condition (`examples/lib/check.ts`) |
+
+## Tally
+
+| Verdict | Rows |
+| --- | --- |
+| ✅ confirmed | 71 |
+| ✏️ corrected | 3 (rows 26, 42 and 70) |
+| ⚠️ unverified, our judgement or recommendation, marked as ours in the text | 3 (rows 11, 41 and 63) |
+| Total | 77 |
