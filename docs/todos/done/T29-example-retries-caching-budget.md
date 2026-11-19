@@ -69,15 +69,15 @@ Write a new type-checked, mock-run example in `verify/vercel-ai-sdk/examples/` s
 - [x] Prose drafted with `/anthropic-skills:writing`, and changed claims re-checked against their sources
 - [ ] `pnpm check`, `pnpm typecheck` and `pnpm test` pass locally; pushed after each meaningful step (`pnpm check`, `pnpm typecheck` and the harness's `pnpm test` pass locally; the branch was pushed once, not after each step)
 - [x] This file moved `ongoing/` → `done/` (Status `done`) in the last work commit, and the plan's todo table updated
-- [ ] Two code-review rounds run on the pull request (`/code-review high --max-findings default`, then `medium` and `low` after more than 6 confirmed findings, otherwise `low`), with every finding fixed or explained in a commit message
-- [ ] Copy reviewed with `/anthropic-skills:writing-review` after the code changes, with its findings fixed and the rubric scores in the pull request description
+- [x] Two code-review rounds run on the pull request (`/code-review high --max-findings default`, then `medium` and `low` after more than 6 confirmed findings, otherwise `low`), with every finding fixed or explained in a commit message
+- [x] Copy reviewed with `/anthropic-skills:writing-review` after the code changes, with its findings fixed and the rubric scores in the pull request description
 
 ## Outcome
 
 Added `verify/vercel-ai-sdk/examples/12-retries-caching-budget.ts`, with `prices`, `budget`, `retry`, `cache`, `refuse` and `wire` regions and `book:note` markers `retry-header`, `retry-count`, `cache-read` and `refused`. Its fifteen checks cover, against a scripted model, one retry after a retryable error (`retry-after-ms: "0"` keeps the run fast), no retry for a non-retryable error, and a `RetryError` once `maxRetries` runs out. They also cover a cache write followed by cache-read tokens on a repeated prefix, at under a fifth of the uncached cost, and a projection that prices the prefix as a cache write and uses the call's own `maxOutputTokens`. The last check is a budget middleware that refuses a call before it reaches the model; the call fits alone but not on top of what is already spent. The projection's value is asserted as a literal, so a wrong rate fails.
 
-The same retry, cache and budget calls then run through `@ai-sdk/anthropic` with a stub `fetch` that answers in Anthropic's Messages wire format, the second wire protocol, offline. Prices are Claude Sonnet 5.5's from the gateway catalog, as of November 2026. The transcript and the example's `run-examples.json` entry are committed.
+The same retry, cache and budget calls then run through `@ai-sdk/anthropic` with a stub `fetch` that answers in Anthropic's Messages wire format, the second wire protocol, offline. Prices are Claude Sonnet 5.5's, taken from `examples/lib/rates.ts` (`SONNET_5_5` and `costNanos`) as integer nano-dollars, as of November 2026. The projection check compares the exact integer value, 10,148,500 nanos. The transcript and the example's `run-examples.json` entry are committed.
 
 Limit: the Messages-format exchange leaves no request or answer events in the transcript. The recorder attaches to `ai/test`'s mock model, which `createAnthropic` bypasses, so only the exchange's `check()` results are recorded. A follow-up could record wire calls (for example from the stub `fetch`); this todo leaves T5's recorder unchanged.
 
-Still open: the two code-review rounds, which belong to the pull request. The writing review of the header and README copy has run.
+Both code-review rounds and the writing review of the header and README copy have run.
