@@ -13,9 +13,14 @@ import {
   FIXTURE_DIR,
   FIXTURE_OUTLINE,
   fixtureInputs,
+  PROSE_LINE,
+  prose,
   removeFixture,
   resetFixture,
+  SECOND_LOG,
   withInteractive,
+  withRows,
+  withSdk,
 } from "./book-fixture.js";
 
 // Every rule check:book applies has a failing fixture here: a copy of the fixture book with one thing broken. Each
@@ -51,6 +56,17 @@ const interactive = (change: (dir: string) => void) => (dir: string) => {
 };
 const noted = (change: (text: string) => string) => (dir: string) => edit(dir, NOTED, change);
 const interactiveChapter = (change: (text: string) => string) => interactive((dir) => edit(dir, SECOND, change));
+// withSdk lists an example that imports the fixture's installed package, demo-sdk, and prose adds a paragraph to the
+// second chapter on PROSE_LINE; withRows gives the second chapter's fact-check log three rows, one per verdict.
+const sdkProse =
+  (paragraph: string, more: (dir: string) => void = () => undefined) =>
+  (dir: string) => {
+    withSdk(dir);
+    withRows(dir);
+    prose(dir, paragraph);
+    more(dir);
+  };
+const AT_PROSE = `${SECOND}:${PROSE_LINE}`;
 const withOpenings = (...openings: Outline[number]["chapters"][number]["opening"][]): Outline => [
   {
     title: "Part A",
@@ -810,6 +826,184 @@ const cases: readonly Case[] = [
     change: interactiveChapter((t) => t.replace(":::tabs\n", ":::tabs[SDKs]\n")),
     file: `${SECOND}:26`,
     message: /:::tabs takes no caption/,
+  },
+  // Inline code is checked like a listing (BK17).
+  {
+    rule: "inline code naming what no listing, transcript, .d.ts or library holds fails, naming the four places",
+    change: sdkProse("The agent calls `notAnywhere`."),
+    file: AT_PROSE,
+    message: new RegExp(
+      "inline code `notAnywhere` names `notAnywhere`, which none of the four places holds: the chapter's listings " +
+        String.raw`\(verify/demo-sdk/examples/01-hello\.ts#greet, verify/demo-sdk/examples/03-sdk\.ts#run\), ` +
+        String.raw`their transcripts \(none recorded\), the \.d\.ts exports of the packages they import ` +
+        String.raw`\(demo-sdk@1\.2\.3\) and the standard library their harnesses compile against ` +
+        String.raw`\(verify/demo-sdk/tsconfig\.json \(lib es2024; types none\)\)\. .*\{checked=row-N\}, ` +
+        String.raw`where row N of apps/manual/fact-checks/second\.md is ✅ or ✏️`,
+    ),
+  },
+  {
+    rule: "inline code in a chapter with no file listing fails, saying it has nothing to search",
+    change: firstChapter((t) => t.replace("Lowercase mcp", "`notAnywhere` and lowercase mcp")),
+    file: `${FIRST}:12`,
+    message: new RegExp(
+      String.raw`the chapter's listings \(it includes none\), their transcripts \(none recorded\), the \.d\.ts ` +
+        String.raw`exports of the packages they import \(they import none\) and the standard library their ` +
+        String.raw`harnesses compile against \(no harness\)`,
+    ),
+  },
+  {
+    rule: "a name the listed file holds outside the listed region fails",
+    change: sdkProse("The example exports `unlisted`."),
+    file: AT_PROSE,
+    message: /inline code `unlisted` names `unlisted`, which none of the four places holds/,
+  },
+  {
+    rule: "a member path fails on the one name that resolves nowhere",
+    change: sdkProse("The run returns `result.steps`."),
+    file: AT_PROSE,
+    message: /inline code `result\.steps` names `steps`, which none/,
+  },
+  {
+    rule: "a name a package's .d.ts declares but its entry does not export fails",
+    change: sdkProse("The package hides `internalHelper`."),
+    file: AT_PROSE,
+    message: /inline code `internalHelper` names `internalHelper`, which none/,
+  },
+  {
+    rule: "an option a package's types declare as a member, not an export, fails without a marker",
+    change: sdkProse("The agent takes `maxTurns`."),
+    file: AT_PROSE,
+    message: /inline code `maxTurns` names `maxTurns`, which none/,
+  },
+  {
+    rule: "a marker citing a row the fact-check log does not have fails",
+    change: sdkProse("The agent takes `maxTurns`{checked=row-9}."),
+    file: AT_PROSE,
+    message: /`maxTurns`\{checked=row-9\} cites row 9, which apps\/manual\/fact-checks\/second\.md does not have/,
+  },
+  {
+    rule: "a marker citing an unverified row fails",
+    change: sdkProse("The agent takes `maxTurns`{checked=row-3}."),
+    file: AT_PROSE,
+    message: new RegExp(
+      String.raw`\`maxTurns\`\{checked=row-3\} cites row 3 of apps/manual/fact-checks/second\.md, ` +
+        "whose verdict is ⚠️; a marker needs ✅ or ✏️",
+    ),
+  },
+  {
+    rule: "a marker citing a row the log numbers twice fails",
+    change: sdkProse("The agent takes `maxTurns`{checked=row-1}.", (dir) =>
+      edit(dir, SECOND_LOG, (t) => t.replace("| 2 | internalHelper", "| 1 | internalHelper")),
+    ),
+    file: AT_PROSE,
+    message: /cites row 1, which apps\/manual\/fact-checks\/second\.md numbers more than once/,
+  },
+  {
+    rule: "a malformed marker fails",
+    change: sdkProse("The agent takes `maxTurns`{checked=3}."),
+    file: AT_PROSE,
+    message: /\{checked=3\} after `maxTurns` is not a marker; write \{checked=row-N\}/,
+  },
+  {
+    rule: "code in a span is checked by each name in it, a label and a call alike",
+    change: sdkProse("The agent stops on `stopWhen: isStepCount(5)`."),
+    file: AT_PROSE,
+    message: /inline code `stopWhen: isStepCount\(5\)` names `stopWhen` and `isStepCount`, which none/,
+  },
+  {
+    rule: "a call to a name found nowhere fails",
+    change: sdkProse("The agent calls `zzz(1)`."),
+    file: AT_PROSE,
+    message: /inline code `zzz\(1\)` names `zzz`, which none/,
+  },
+  {
+    rule: "a method call named like a file extension is checked as code, not skipped as a file",
+    change: sdkProse("The body comes from `response.json()`."),
+    file: AT_PROSE,
+    message: /inline code `response\.json\(\)` names `response` and `json`, which none/,
+  },
+  {
+    rule: "a member path is checked by a property that a keyword spells",
+    change: sdkProse("The answer is `result.object`."),
+    file: AT_PROSE,
+    message: /inline code `result\.object` names `object`, which none/,
+  },
+  {
+    rule: "a contextual keyword alone is checked like a name",
+    change: sdkProse("The listing declares a `type`."),
+    file: AT_PROSE,
+    message: /inline code `type` names `type`, which none/,
+  },
+  {
+    rule: "a marker set apart from its code span by a space fails",
+    change: sdkProse("The agent comes from `createAgent` {checked=row-1}."),
+    file: AT_PROSE,
+    message: /\{checked=row-1\} stands apart from its code span; a marker must touch the span it marks, with no space/,
+  },
+  {
+    rule: "a marker in text with no code span before it fails",
+    change: sdkProse("Write {checked=row-1} after the code."),
+    file: AT_PROSE,
+    message: /\{checked=row-1\} stands apart from its code span/,
+  },
+  {
+    rule: "an import whose .d.ts declares its module only ambiently fails",
+    change: sdkProse("The agent calls `createAgent`.", (dir) =>
+      writeFileSync(
+        join(dir, "verify/demo-sdk/node_modules/demo-sdk/index.d.ts"),
+        'declare module "demo-sdk" {\n  export function createAgent(): void;\n}\n',
+      ),
+    ),
+    file: AT_PROSE,
+    message: /imports demo-sdk, whose \.d\.ts \(demo-sdk@1\.2\.3\) declares no module whose exports can be listed/,
+  },
+  {
+    rule: "an assignment's name found nowhere fails, because only arithmetic is notation",
+    change: sdkProse("The agent sets `maxTurns = 10`."),
+    file: AT_PROSE,
+    message: /inline code `maxTurns = 10` names `maxTurns`, which none/,
+  },
+  {
+    rule: "a nullish expression is checked by its names",
+    change: sdkProse("The agent falls back with `zzz ?? yyy`."),
+    file: AT_PROSE,
+    message: /inline code `zzz \?\? yyy` names `zzz` and `yyy`, which none/,
+  },
+  {
+    rule: "an as expression is checked by its value's name and its type's name",
+    change: sdkProse("The agent casts with `agent as AgentHandle`."),
+    file: AT_PROSE,
+    message: /inline code `agent as AgentHandle` names `AgentHandle`, which none/,
+  },
+  {
+    rule: "a template literal with a substitution is checked by the names inside it",
+    // biome-ignore lint/suspicious/noTemplateCurlyInString: the inline code is a template literal with a substitution.
+    change: sdkProse("The agent greets with `` `Hello, ${reader}` ``."),
+    file: AT_PROSE,
+    message: /inline code ``Hello, \$\{reader\}`` names `reader`, which none/,
+  },
+  {
+    rule: "an environment variable fails without a marker, though the standard library resolves",
+    change: sdkProse("The key is read from `OPENAI_API_KEY`."),
+    file: AT_PROSE,
+    message: /inline code `OPENAI_API_KEY` names `OPENAI_API_KEY`, which none of the four places holds/,
+  },
+  {
+    rule: "a global that the harness's standard library does not include fails",
+    change: sdkProse("The page has a `document`."),
+    file: AT_PROSE,
+    message: /inline code `document` names `document`, which none of the four places holds/,
+  },
+  {
+    rule: "a listed import whose .d.ts cannot be found fails",
+    change: sdkProse("The agent calls `createAgent`.", (dir) =>
+      rmSync(join(dir, "verify/demo-sdk/node_modules"), { recursive: true }),
+    ),
+    file: AT_PROSE,
+    message: new RegExp(
+      String.raw`verify/demo-sdk/examples/03-sdk\.ts imports demo-sdk, whose \.d\.ts cannot be found from ` +
+        "verify/demo-sdk; run pnpm install",
+    ),
   },
 ];
 

@@ -5,6 +5,7 @@ import { rehypeAnalogyFigures } from "./rehype-analogy-figures.js";
 import { rehypeNumbering } from "./rehype-numbering.js";
 import { remarkBookDirectives } from "./remark-book-directives.js";
 import { remarkChapterContract } from "./remark-chapter-contract.js";
+import { remarkCheckedCode } from "./remark-checked-code.js";
 import { remarkCitations } from "./remark-citations.js";
 import { remarkFigures } from "./remark-figures.js";
 import { remarkTerms } from "./remark-terms.js";
@@ -24,6 +25,8 @@ export function markdownOptionsFor(book: Book): UnifiedProcessorOptions {
       [remarkBookDirectives, { book }],
       [remarkCitations, { book }],
       [remarkTerms, { book }],
+      // Last, so every inline-code span is in its final place, a listing's notes included.
+      [remarkCheckedCode, { book }],
     ],
     rehypePlugins: [
       [rehypeNumbering, { book }],

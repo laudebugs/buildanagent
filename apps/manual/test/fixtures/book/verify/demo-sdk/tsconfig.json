@@ -1,5 +1,6 @@
 {
   // A comment, which tsconfig files allow and JSON does not.
-  "compilerOptions": { "strict": true },
+  // The standard library is ECMAScript alone, so a DOM or Node.js global resolves in no fixture chapter.
+  "compilerOptions": { "strict": true, "lib": ["es2024"], "types": [] },
   "include": ["examples/**/*.ts"]
 }
