@@ -6,7 +6,7 @@
 | Status | `ready` |
 | Plan | [Build SDK §4, Stage 1](../../plans/build-sdk.md#41-stage-1-builds-the-gateway-types-and-the-scripted-model-that-every-later-todo-tests-against) |
 | Round / milestone | Round B (build SDK), M5 |
-| Depends on | [B2](B2-gateway-core-types.md) |
+| Depends on | [B2](../ongoing/B2-gateway-core-types.md) |
 | Size | M |
 
 ## Goal
