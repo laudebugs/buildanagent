@@ -13,16 +13,7 @@
  * The response carries no billed price, so the cost always comes from the catalog.
  */
 import type { Usage } from "../../types.js";
-
-type Json = Record<string, unknown>;
-
-function isObject(value: unknown): value is Json {
-  return typeof value === "object" && value !== null && !Array.isArray(value);
-}
-
-function count(value: unknown): number {
-  return typeof value === "number" && Number.isFinite(value) && value > 0 ? value : 0;
-}
+import { count, isObject, type Json } from "../wire.js";
 
 /**
  * Overlays a later usage report on an earlier one. A `message_delta`'s counts are cumulative, and a field it sends
