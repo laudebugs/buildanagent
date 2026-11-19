@@ -5,7 +5,7 @@
 | Field | Value |
 | --- | --- |
 | ID | `E1` |
-| Status | `ready` |
+| Status | `done` |
 | Plan | [Close SDK gaps §4](../../plans/close-sdk-gaps.md#4-round-e-and-its-todos) |
 | Round / milestone | Round E (close the SDK gaps), M5e |
 | Depends on | [B1](../done/B1-sdk-workspace-scaffold.md) |
@@ -68,21 +68,21 @@ The default retry rule follows the server rollback table: `not_applied` → `sam
 
 ## Tasks
 
-- [ ] Scaffold `packages/agent-safety` (package.json with `"license": "Apache-2.0 OR MIT"` and `private: true`, exact pins, `tsconfig.json`, `src/index.ts`, `src/ai/index.ts`, `src/agents/index.ts`), with `exports` for `.`, `./ai` and `./agents`, and `ai`, `@ai-sdk/provider-utils` and `agents` as optional peer dependencies.
-- [ ] Add the boundary test: nothing reachable from `src/index.ts` imports `ai`, `@ai-sdk/*` or `agents`.
-- [ ] Define `OutcomeKind`, `Retry` and `WriteOutcome`, with the default retry table.
-- [ ] Write `canonicalInputHash()` with Web Crypto SHA-256 over canonical JSON.
-- [ ] Write `renderOutcome()`, and the `ai` adapter `toAiToolResult()` in `./ai`, used as the tool's `toModelOutput`.
-- [ ] Add type tests: a `WriteOutcome` without `next` fails to compile; `kind: "applied"` cannot set `retry: "reconcile_first"`.
+- [x] Scaffold `packages/agent-safety` (package.json with `"license": "Apache-2.0 OR MIT"` and `private: true`, exact pins, `tsconfig.json`, `src/index.ts`, `src/ai/index.ts`, `src/agents/index.ts`), with `exports` for `.`, `./ai` and `./agents`, and `ai`, `@ai-sdk/provider-utils` and `agents` as optional peer dependencies. (`agents` waits for the first `./agents` adapter; see Outcome.)
+- [x] Add the boundary test: nothing reachable from `src/index.ts` imports `ai`, `@ai-sdk/*` or `agents`.
+- [x] Define `OutcomeKind`, `Retry` and `WriteOutcome`, with the default retry table.
+- [x] Write `canonicalInputHash()` with Web Crypto SHA-256 over canonical JSON.
+- [x] Write `renderOutcome()`, and the `ai` adapter `toAiToolResult()` in `./ai`, used as the tool's `toModelOutput`.
+- [x] Add type tests: a `WriteOutcome` without `next` fails to compile; `kind: "applied"` cannot set `retry: "reconcile_first"`.
 
 ## Acceptance criteria
 
-- [ ] Each of the five kinds renders a sentence that names what happened and what not to do, checked by snapshot tests.
-- [ ] An `ai` 7.0.162 tool that returns `toAiToolResult(outcome)` delivers both the sentence and the payload to `MockLanguageModelV4` in the next request as an `error-json` tool result for every kind except `applied`, checked by inspecting the recorded prompt.
-- [ ] A `reason` longer than 63 characters or not in upper snake case is rejected at construction.
-- [ ] `canonicalInputHash()` gives the same hash for objects whose keys differ only in order, and a different hash when any value changes.
-- [ ] The boundary test passes, and `import "@buildanagent/agent-safety"` succeeds in a package that has none of the optional peers installed.
-- [ ] `pnpm check`, `pnpm typecheck` and `pnpm test` pass offline from the repo root.
+- [x] Each of the five kinds renders a sentence that names what happened and what not to do, checked by snapshot tests.
+- [x] An `ai` 7.0.162 tool that returns `toAiToolResult(outcome)` delivers both the sentence and the payload to `MockLanguageModelV4` in the next request as an `error-json` tool result for every kind except `applied`, checked by inspecting the recorded prompt.
+- [x] A `reason` longer than 63 characters or not in upper snake case is rejected at construction.
+- [x] `canonicalInputHash()` gives the same hash for objects whose keys differ only in order, and a different hash when any value changes.
+- [x] The boundary test passes, and `import "@buildanagent/agent-safety"` succeeds in a package that has none of the optional peers installed.
+- [x] `pnpm check`, `pnpm typecheck` and `pnpm test` pass offline from the repo root.
 
 ## Tests
 
@@ -102,7 +102,34 @@ History: plan review 2 (2026-11-19) moved `canonicalInputHash()` here from E3 an
 
 ## Definition of done
 
-- [ ] Claimed: the first commit moved this file `ready/` → `ongoing/` (Status `ongoing`)
-- [ ] Prose drafted with `/anthropic-skills:writing` and reviewed with `/anthropic-skills:writing-review`, with the fixes applied and changed claims re-checked
-- [ ] `pnpm check`, `pnpm typecheck` and `pnpm test` pass locally; pushed after each meaningful step
-- [ ] This file moved `ongoing/` → `done/` (Status `done`), and the plan's todo table updated
+- [x] Claimed: the first commit moved this file `ready/` → `ongoing/` (Status `ongoing`)
+- [x] Prose drafted with `/anthropic-skills:writing` and reviewed with `/anthropic-skills:writing-review`, with the fixes applied and changed claims re-checked
+- [x] `pnpm check`, `pnpm typecheck` and `pnpm test` pass locally; pushed after each meaningful step
+- [x] This file moved `ongoing/` → `done/` (Status `done`), and the plan's todo table updated
+
+## Outcome
+
+`packages/agent-safety` is `@buildanagent/agent-safety`, version `0.0.0` and `private: true`. Its root entry exports `writeOutcome()`, the `WriteOutcome` union, `OUTCOME_KINDS`, `DEFAULT_RETRY`, `ALLOWED_RETRIES`, `renderOutcome()`, `canonicalInputHash()` and `SafetyError`; `./ai` exports `toAiToolResult()`; `./agents` is an empty entry. The third-party claims are logged in [the E1 fact-check](../../plans/reviews/fact-check-safety-core-outcomes.md).
+
+Each criterion and the test that covers it:
+
+- Five kinds render a sentence naming what happened and what not to do: `test/outcomes.test.ts`, against the wording recorded in `test/fixtures/rendered-outcomes.json`.
+- `error-json` for every kind but `applied`, with sentence and payload, in the next `MockLanguageModelV4` request: `test/ai-adapter.test.ts`.
+- A bad `reason` is rejected at construction: `test/outcomes.test.ts` (64 characters, seven malformed codes, and a 63-character code accepted).
+- Key order doesn't change the hash, and any changed value does: `test/hash.test.ts`, which also checks RFC 8785's sample.
+- The boundary: `test/boundaries.test.ts` walks every file reachable from `src/index.ts`. The import without peers is the new pack test in `scripts/ci/packages-pack.test.mjs`, which loads the root entry and hashes in an install that lacks `ai` and `@ai-sdk/provider-utils`.
+- The type rules: `test/outcome-types.test.ts`, which checks every retry rule each kind allows and every one it rules out.
+
+Judgement calls:
+
+- **A new, private package.** ADR 0043 names a third workspace package, so E1 creates one. It stays out of the fixed version group and out of `release.yml`'s publish list. The changeset gate and the release plan skip private packages, so the change needs no changeset. Publishing it is an owner step: npm needs the package to exist before a trusted publisher can be added for it, and then it joins the fixed group and the release order, and drops `private`.
+- **Retry rules per kind.** `applied` allows only `never`; `not_applied` allows `same_key`, `new_operation_only` and `never`; `compensated` allows `new_operation_only` and `never`; `partial` and `unknown` allow `same_key`, `reconcile_first` and `never`. The defaults follow the server rollback table, with `applied` → `never`.
+- **Outcomes are checked where the model reads them.** `writeOutcome()` rejects effects that contradict the kind, blank text and a `same_key` retry of a `partial` or `unknown` write without an `effectKey`. `renderOutcome()` runs the same checks, because `WriteOutcome` is a plain type that a tool can build by hand. A keyless `not_applied` outcome renders "Retrying this same call is safe, because this attempt changed nothing" rather than promising a keyed retry. The code review added these rules.
+- **The reason rule** is AIP-193's pattern, `[A-Z][A-Z0-9_]+[A-Z0-9]`, so a code needs at least three characters.
+- **The hash** is RFC 8785 canonical JSON, SHA-256 and 64 lowercase hex digits, with no algorithm prefix. Properties set to `undefined` count as absent. The hash is async, because Web Crypto's digest is, and it rejects with `invalid_input` for anything without one JSON form, holes in arrays and cycles included.
+- **The payload** uses the outcome's own camelCase field names rather than the report's proposed snake_case, so the model and the harness read one vocabulary. `toAiToolResult()` adds the sentences as `message`.
+- **`agents` is not yet a peer.** Listed as an optional peer, pnpm's default `auto-install-peers` installed the whole `agents` tree into the package and recorded it as a dependency in the lockfile. It joins the peers with the first `./agents` adapter.
+- **Pins.** `ai` 7.0.162, `@ai-sdk/provider-utils` 5.0.74, `@ai-sdk/provider` 4.0.35 and `zod` 4.6.7 are dev dependencies, each at least a week old. `ai` has moved on to 7.0.177, but ADR 0038 makes a new version a target only after a reference round, so the package keeps the verified pin and the plan's risk 4 passes to the weekly SDK-update pull requests.
+- **Two workarounds for `eventsource-parser`**, which `ai` reaches and which ships a `source` export condition of its own. The package's `tsconfig.json` allows `.ts` specifiers, and a boundary test keeps our own imports on `.js`. Its `vitest.config.ts` inlines `ai`, `@ai-sdk/*` and `eventsource-parser`. Renaming our condition to one no third-party package uses would remove both; that change touches every package and ADR 0050, so it is left as a follow-up.
+- The outcome wording is a first guess; the fixture records it so later evals can change it.
+
