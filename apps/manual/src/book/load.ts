@@ -223,8 +223,8 @@ export function renderDependencies(book: Book): string {
 }
 
 /**
- * The files the book's listings read, from the repository root: each listed file and its harness's `package.json`,
- * whose pin the caption shows. Under `astro dev` an edit to one of them restarts the server when it changes what a
+ * The files the book's listings read, from the repository root: each listed file, its harness's `package.json`,
+ * whose pin the caption shows, and the transcript a replay shows. Under `astro dev` an edit to one of them restarts the server when it changes what a
  * listing shows.
  */
 export function listedFiles(book: Book): string[] {
@@ -233,6 +233,7 @@ export function listedFiles(book: Book): string[] {
     if (block.source === undefined) continue;
     files.add(join(book.inputs.repoRoot, block.source.path));
     files.add(join(book.inputs.repoRoot, block.source.harness, "package.json"));
+    if (block.source.replay) files.add(join(book.inputs.repoRoot, block.source.replay.path));
   }
   return [...files].sort();
 }

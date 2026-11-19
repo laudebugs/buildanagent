@@ -1,36 +1,23 @@
 ---
-import StepControls from "./StepControls.astro";
+import { replayHtml } from "./replay-html.js";
 import type { ReplayEvent } from "./types.js";
 
 // A recorded run beside a listing. Without JavaScript every event shows in order; src/scripts/steps.ts reveals them
-// one by one with back, next, restart and play.
+// one by one with back, next, restart and play. A chapter's `::listing{… replay}` renders the same markup from
+// replay-html.ts.
 interface Props {
   readonly id: string;
   readonly title: string;
   readonly source: string;
   readonly events: readonly ReplayEvent[];
+  /** The id of the listing whose lines the replay highlights. */
+  readonly listing?: string;
 }
 
-const { id, title, source, events } = Astro.props;
+const { id, title, source, events, listing } = Astro.props;
 ---
 
-<section class="replay panel" id={id} aria-labelledby={`${id}-title`} data-steps="cumulative" data-step-unit="Event">
-  <header class="replay__header">
-    <span class="label panel__label" id={`${id}-title`}>{title}</span>
-    <span class="label panel__label">{source}</span>
-  </header>
-  <ol class="replay__events">
-    {
-      events.map((event, index) => (
-        <li class="replay__event" data-kind={event.kind} data-step={String(index)}>
-          <span class="replay__role">{event.role}</span>
-          <p class="replay__body">{event.body}</p>
-        </li>
-      ))
-    }
-  </ol>
-  <StepControls label={`Replay of ${title}`} replay />
-</section>
+<Fragment set:html={replayHtml({ id, title, source, events, ...(listing === undefined ? {} : { listing }) })} />
 
 <script>
   import "../scripts/steps.ts";

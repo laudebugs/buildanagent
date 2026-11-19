@@ -15,6 +15,9 @@ export function escapeHtml(text: string): string {
   return text.replace(/[&<>"']/g, (char) => `&#${char.charCodeAt(0)};`);
 }
 
+/** The accessible name of the numbered list of notes under a listing. */
+export const NOTES_LABEL = "Notes on this listing";
+
 /** A numbered marker linking to its note: the one markup for markers on listing lines and in prose. */
 export function annotationMarkerHtml(href: string, number: number): string {
   return `<a class="annotation-marker" href="${escapeHtml(href)}" aria-label="Note ${number}">${number}</a>`;
@@ -41,7 +44,7 @@ export function listingHtml(
         line.note === undefined || number === undefined
           ? ""
           : annotationMarkerHtml(`#${listingId}-note-${line.note}`, number);
-      return `<span class="${classes}"><span class="line__number" aria-hidden="true">${line.number}</span>${tokens}${marker}</span>`;
+      return `<span class="${classes}" data-line="${line.number}"><span class="line__number" aria-hidden="true">${line.number}</span>${tokens}${marker}</span>`;
     })
     .join("");
 }

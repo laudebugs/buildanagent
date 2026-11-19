@@ -35,6 +35,9 @@ test("the config's pipeline renders a chapter's paragraphs and collects its head
   assert.deepEqual(
     rendered.metadata.headings.map(({ depth, slug, text }) => ({ depth, slug, text })),
     [
+      // Each tab of an SDK tabs block is a heading, so the listings read as sections without JavaScript.
+      { depth: 4, slug: "ai-sdk", text: "AI SDK" },
+      { depth: 4, slug: "openai-agents-sdk", text: "OpenAI Agents SDK" },
       { depth: 2, slug: "how-the-loop-stops", text: "How the loop stops" },
       { depth: 2, slug: "exercises", text: "Exercises" },
     ],

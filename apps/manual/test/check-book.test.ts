@@ -15,6 +15,7 @@ import {
   fixtureInputs,
   removeFixture,
   resetFixture,
+  withInteractive,
 } from "./book-fixture.js";
 
 // Every rule check:book applies has a failing fixture here: a copy of the fixture book with one thing broken. Each
@@ -40,6 +41,16 @@ const HARNESS_MANIFEST = "verify/demo-sdk/package.json";
 const listingLine = (change: (text: string) => string) => (dir: string) =>
   edit(dir, SECOND, (text) => text.replace(/^::listing.*$/m, (line) => change(line)));
 const example = (change: (text: string) => string) => (dir: string) => edit(dir, EXAMPLE, change);
+// withInteractive adds a listing with notes and a replay on line 20, its notes on lines 21-23, and tabs on line 26 whose
+// listings are on lines 27 and 28, all after the file listing on line 18.
+const NOTED = "verify/demo-sdk/examples/02-notes.ts";
+const TRANSCRIPT = "verify/demo-sdk/results/transcripts/02-notes.json";
+const interactive = (change: (dir: string) => void) => (dir: string) => {
+  withInteractive(dir);
+  change(dir);
+};
+const noted = (change: (text: string) => string) => (dir: string) => edit(dir, NOTED, change);
+const interactiveChapter = (change: (text: string) => string) => interactive((dir) => edit(dir, SECOND, change));
 const withOpenings = (...openings: Outline[number]["chapters"][number]["opening"][]): Outline => [
   {
     title: "Part A",
@@ -400,7 +411,7 @@ const cases: readonly Case[] = [
     rule: "a listing with an unknown attribute fails",
     change: listingLine((l) => l.replace("region=", "regoin=")),
     file: LISTING,
-    message: /::listing does not take "regoin"; it takes id, file and region/,
+    message: /::listing does not take "regoin"; it takes id, file, region and replay/,
   },
   {
     rule: "a listing whose path leaves the repository fails",
@@ -545,6 +556,109 @@ const cases: readonly Case[] = [
     file: `${FIRST}:26`,
     message: /the "Exercises" section needs a list of exercises/,
   },
+  // Notes, tabs and replays (BK9, T5).
+  {
+    rule: "a note whose id no marker in the listed lines carries fails",
+    change: interactiveChapter((t) => t.replace("{#print}", "{#printed}")),
+    file: `${SECOND}:23`,
+    message:
+      /note "printed" has no \/\/ book:note printed marker in the lines listing "noted" shows; their markers are name, greet, print/,
+  },
+  {
+    rule: "a marker in the listed lines without its note fails, once the listing gives notes",
+    change: interactiveChapter((t) => t.replace(/^::note\[The third.*\n/m, "")),
+    file: `${SECOND}:20`,
+    message:
+      /listing "noted" gives no note for the marker \/\/ book:note print at verify\/demo-sdk\/examples\/02-notes\.ts:7/,
+  },
+  {
+    rule: "a note given twice fails",
+    change: interactiveChapter((t) => t.replace("{#print}", "{#greet}")),
+    file: `${SECOND}:23`,
+    message: /listing "noted" gives note "greet" twice/,
+  },
+  {
+    rule: "a note without text fails",
+    change: interactiveChapter((t) => t.replace("::note[The third prints the greeting.]{#print}", "::note{#print}")),
+    file: `${SECOND}:23`,
+    message: /note "print" needs its text, written ::note\[Text\]\{#print\}/,
+  },
+  {
+    rule: "a file listing that holds anything but notes fails",
+    change: interactiveChapter((t) => t.replace(/^(::note\[The third.*)$/m, "$1\nA stray paragraph.")),
+    file: `${SECOND}:24`,
+    message: /listing "noted" may hold only notes/,
+  },
+  {
+    rule: "a note marker whose id is not kebab-case fails with the file's line",
+    change: interactive(noted((t) => t.replace("book:note print", "book:note Print"))),
+    file: `${SECOND}:20`,
+    message: /listing "noted": verify\/demo-sdk\/examples\/02-notes\.ts:7: book:note needs a kebab-case id/,
+  },
+  {
+    rule: "a note marker on a line of its own fails",
+    change: interactive(noted((t) => t.replace("// #region steps\n", "// #region steps\n// book:note alone\n"))),
+    file: `${SECOND}:20`,
+    message: /02-notes\.ts:5: book:note alone must end the line of code it annotates/,
+  },
+  {
+    rule: "a note marker used twice in one file fails",
+    change: interactive(noted((t) => t.replace("book:note print", "book:note name"))),
+    file: `${SECOND}:20`,
+    message: /02-notes\.ts:7: book:note name appears twice; it is already on line 5/,
+  },
+  {
+    rule: "a replay whose transcript does not exist fails",
+    change: interactive((dir) => rmSync(join(dir, TRANSCRIPT))),
+    file: `${SECOND}:20`,
+    message: /replay needs verify\/demo-sdk\/results\/transcripts\/02-notes\.json, which does not exist/,
+  },
+  {
+    rule: "a replay whose transcript was recorded at another pin fails",
+    change: interactive((dir) => edit(dir, TRANSCRIPT, (t) => t.replace("demo-sdk@1.2.3", "demo-sdk@1.2.2"))),
+    file: `${SECOND}:20`,
+    message:
+      /was recorded with demo-sdk@1\.2\.2, but the harness pins demo-sdk@1\.2\.3; run verify\/demo-sdk's pnpm test/,
+  },
+  {
+    rule: "a replay whose transcript records another file fails",
+    change: interactive((dir) =>
+      edit(dir, TRANSCRIPT, (t) => t.replace(`"file": "${NOTED}"`, '"file": "verify/demo-sdk/examples/01-hello.ts"')),
+    ),
+    file: `${SECOND}:20`,
+    message:
+      /02-notes\.json records verify\/demo-sdk\/examples\/01-hello\.ts, not verify\/demo-sdk\/examples\/02-notes\.ts/,
+  },
+  {
+    rule: "a replay whose transcript is malformed fails",
+    change: interactive((dir) => edit(dir, TRANSCRIPT, (t) => JSON.stringify({ ...JSON.parse(t), events: [] }))),
+    file: `${SECOND}:20`,
+    message: /02-notes\.json is not a transcript: events: /,
+  },
+  {
+    rule: "a replay given a value fails",
+    change: interactiveChapter((t) => t.replace('region="steps" replay}', 'region="steps" replay="yes"}')),
+    file: `${SECOND}:20`,
+    message: /replay takes no value; write \{… replay\}, not replay="yes"/,
+  },
+  {
+    rule: "a tabs block that holds anything but file listings fails",
+    change: interactiveChapter((t) => t.replace(/^(::listing\[other-sdk.*)$/m, "$1\nA stray paragraph.")),
+    file: `${SECOND}:29`,
+    message: /:::tabs may hold only listings of files/,
+  },
+  {
+    rule: "a tabs block with one listing fails",
+    change: interactiveChapter((t) => t.replace(/^::listing\[other-sdk.*\n/m, "")),
+    file: `${SECOND}:26`,
+    message: /:::tabs needs two or more listings, one for each tab/,
+  },
+  {
+    rule: "a tabs block with a caption fails",
+    change: interactiveChapter((t) => t.replace(":::tabs\n", ":::tabs[SDKs]\n")),
+    file: `${SECOND}:26`,
+    message: /:::tabs takes no caption/,
+  },
 ];
 
 const caseDir = mkdtempSync(join(tmpdir(), "book-cases-"));
@@ -561,6 +675,12 @@ afterAll(() => {
 test("the fixture book passes check:book and the build", async () => {
   assert.deepEqual(await checkBook(fixtureInputs()), []);
   assert.equal(await buildError(fixtureInputs()), undefined);
+});
+
+test("the fixture book with notes, tabs and a replay passes check:book and the build", async () => {
+  const dir = resetFixture(caseDir, withInteractive);
+  assert.deepEqual(await checkBook(fixtureInputs(dir)), []);
+  assert.equal(await buildError(fixtureInputs(dir)), undefined);
 });
 
 test("the real book passes check:book", async () => {

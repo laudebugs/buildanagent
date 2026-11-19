@@ -15,7 +15,14 @@ A placeholder for the figure.
 
 [[lst:one-call]] makes one call.
 
-::listing[One model call]{#one-call file="verify/vercel-ai-sdk/examples/01-generate-text.ts" region="call"}
+::listing[One model call]{#one-call file="verify/vercel-ai-sdk/examples/01-generate-text.ts" region="call" replay}
+
+The same loop in two SDKs:
+
+:::tabs
+::listing[AI SDK]{#loop-ai-sdk file="verify/vercel-ai-sdk/examples/02-tool-loop.ts" region="loop"}
+::listing[OpenAI Agents SDK]{#loop-openai file="verify/openai-agents-sdk/examples/02-function-tool.ts" region="run"}
+:::
 
 ## How the loop stops
 

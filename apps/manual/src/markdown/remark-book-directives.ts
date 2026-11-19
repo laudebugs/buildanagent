@@ -1,9 +1,12 @@
-import type { Html, Paragraph, Parent, PhrasingContent, Root, RootContent } from "mdast";
+import type { Html, List, ListItem, Paragraph, Parent, PhrasingContent, Root, RootContent } from "mdast";
 import type { VFile } from "vfile";
-import { isNumberedKind, NUMBERED_KINDS, type NumberedKind } from "../book/book-index.js";
+import { isFileListing, isNumberedKind, NUMBERED_KINDS, type NumberedKind } from "../book/book-index.js";
 import type { ListingSource } from "../book/listings.js";
 import type { Book } from "../book/load.js";
-import { captionParts, listingCodeHtml } from "../components/listing-html.js";
+import { noteNumbers } from "../book/notes.js";
+import { replayEvents } from "../book/transcripts.js";
+import { captionParts, listingCodeHtml, NOTES_LABEL } from "../components/listing-html.js";
+import { replayHtml } from "../components/replay-html.js";
 import { checkedChapter } from "./chapter-file.js";
 import { failAt } from "./fail.js";
 import { highlightListing } from "./highlight.js";
@@ -25,7 +28,9 @@ type LeafDirective = Extract<RootContent, { type: "leafDirective" }>;
  * `:::table[…]{#id}` become a `<figure>` with an id such as `fig-<id>`, a caption and an empty number that the
  * numbering plugin fills in. `::listing[Caption]{#id file="…" region="…"}` shows a region of a real file, which the
  * book index has already cut and checked, highlighted with Shiki, under a caption with its number, path, line range
- * and pin. `:analogy[label]{#id}` marks a use of a registered analogy. Any other directive fails,
+ * and pin; written as a `:::listing` container, it holds `::note[Text]{#id}` notes for the lines marked
+ * `// book:note <id>`, and with `replay` it adds the recorded run of its example. `:::tabs` holds file listings from
+ * different harnesses, one tab each. `:analogy[label]{#id}` marks a use of a registered analogy. Any other directive fails,
  * except a bare text directive such as the `:Invent` in "re:Invent" or the `:tools` in `[[ch:tools]]`, which is put
  * back as the text it was.
  */
@@ -35,12 +40,15 @@ export function remarkBookDirectives(options: { readonly book: Book }) {
     const { outline } = checkedChapter(file);
     const listings: Promise<void>[] = [];
     walk(tree, (node) => {
-      if (node.type === "containerDirective" && isNumberedKind(node.name)) return numbered(node, node.name, file);
-      if (node.type === "leafDirective" && node.name === "listing") {
+      // A directive this plugin built, such as a tab panel or a listing's figure, already names its element.
+      if (node.type === "containerDirective" && node.data?.hName !== undefined) return undefined;
+      if ((node.type === "leafDirective" || node.type === "containerDirective") && isFileListing(node)) {
         const { figure, code } = fileListing(node, book, outline.slug, file);
         listings.push(code);
         return figure;
       }
+      if (node.type === "containerDirective" && isNumberedKind(node.name)) return numbered(node, node.name, file);
+      if (node.type === "containerDirective" && node.name === "tabs") return tabs(node, file);
       if (node.type === "textDirective" && node.name === "analogy") return analogy(node, book, outline.number, file);
       if (node.type === "textDirective" && isBare(node)) return restored(node);
       if (node.type === "containerDirective" || node.type === "leafDirective" || node.type === "textDirective") {
@@ -145,15 +153,87 @@ function mergeText(parent: Parent): void {
   parent.children = merged as typeof parent.children;
 }
 
+/** The plain text of a caption, for a tab's heading. */
+function plainText(nodes: readonly PhrasingContent[]): string {
+  return nodes
+    .map((node) =>
+      "value" in node ? node.value : "children" in node ? plainText(node.children as PhrasingContent[]) : "",
+    )
+    .join("")
+    .trim();
+}
+
+/** A file listing's caption: a leaf directive's children, or a container's label paragraph. */
+function captionOf(node: LeafDirective | ContainerDirective): PhrasingContent[] {
+  if (node.type === "leafDirective") return node.children;
+  const label = node.children.find((child) => child.type === "paragraph" && child.data?.directiveLabel);
+  return (label as Paragraph | undefined)?.children ?? [];
+}
+
+/** The `::note` directives of a file listing, by id; the book index has checked them against the file's markers. */
+function notesOf(node: LeafDirective | ContainerDirective): ReadonlyMap<string, PhrasingContent[]> {
+  if (node.type === "leafDirective") return new Map();
+  const notes = new Map<string, PhrasingContent[]>();
+  for (const child of node.children) {
+    if (child.type === "leafDirective" && child.name === "note" && child.attributes?.id) {
+      notes.set(child.attributes.id, child.children);
+    }
+  }
+  return notes;
+}
+
 /**
- * A `::listing` as a figure: a caption that the numbering plugin completes with "Listing 3.2", then the listing's path,
- * line range and pin, and the code. The caption parts and the code panel come from `listing-html.ts`, which the
- * ListingBlock component also uses, so the listing takes the panel's colours and shows each line's number in the file.
- * The code arrives as raw HTML that `highlighted` fills in once Shiki has tokenised the lines; raw HTML reaches the
- * page after Astro's own highlighter has run, so Astro does not highlight it again.
+ * `:::tabs` as the tabs component's markup: each file listing in a panel under a heading taken from its caption, so the
+ * listings follow one another without JavaScript and src/scripts/tabs.ts turns the headings into a tab list. The
+ * block must hold two or more file listings and nothing else.
+ */
+function tabs(node: ContainerDirective, file: VFile): ContainerDirective {
+  if (node.children.some((child) => child.type === "paragraph" && child.data?.directiveLabel)) {
+    return failAt(file, ":::tabs takes no caption; each listing in it is a tab with its own caption", node);
+  }
+  const stray = node.children.find(
+    (child) => !((child.type === "leafDirective" || child.type === "containerDirective") && isFileListing(child)),
+  );
+  if (stray !== undefined) {
+    return failAt(file, ':::tabs may hold only listings of files, written ::listing[Tab]{#id file="…"}', stray);
+  }
+  if (node.children.length < 2) return failAt(file, ":::tabs needs two or more listings, one for each tab", node);
+  const panels = node.children.map((child): ContainerDirective => {
+    const listing = child as LeafDirective | ContainerDirective;
+    const id = `${NUMBERED_KINDS.listing.prefix}-${listing.attributes?.id ?? ""}-panel`;
+    return {
+      type: "containerDirective",
+      name: "tab",
+      attributes: {},
+      children: [
+        {
+          type: "paragraph",
+          data: { hName: "h4", hProperties: { className: ["tabs__heading"] } },
+          children: [{ type: "text", value: plainText(captionOf(listing)) }],
+        },
+        listing,
+      ],
+      data: { hName: "section", hProperties: { className: ["tabs__panel"], id } },
+    };
+  });
+  return {
+    ...node,
+    children: panels,
+    data: { hName: "div", hProperties: { className: ["tabs"], dataLabel: "SDK" } },
+  };
+}
+
+/**
+ * A file listing as a figure: a caption that the numbering plugin completes with "Listing 3.2", then the listing's
+ * path, line range and pin, the code, and its notes as a numbered list. The caption parts and the code panel come
+ * from `listing-html.ts`, which the ListingBlock component also uses, so the listing takes the panel's colours and
+ * shows each line's number in the file; a line with a note shows its numbered marker, a link to the note. The code
+ * arrives as raw HTML that `highlighted` fills in once Shiki has tokenised the lines; raw HTML reaches the page after
+ * Astro's own highlighter has run, so Astro does not highlight it again. A listing with `replay` is followed by the
+ * recorded run of its example, in a wrapper that keeps the two together.
  */
 function fileListing(
-  node: LeafDirective,
+  node: LeafDirective | ContainerDirective,
   book: Book,
   slug: string,
   file: VFile,
@@ -163,7 +243,8 @@ function fileListing(
   if (block?.source === undefined) {
     return failAt(file, `the book index has no listing "${id}" from a file; rerun the build`, node);
   }
-  if (node.children.length === 0) {
+  const label = captionOf(node);
+  if (label.length === 0) {
     return failAt(file, `a listing needs a caption, written ::listing[Caption]{#${id} file="…"}`, node);
   }
   const { source, number } = block;
@@ -176,7 +257,7 @@ function fileListing(
       {
         type: "emphasis",
         data: { hName: "span", hProperties: { className: ["listing__title"] } },
-        children: node.children,
+        children: label,
       },
       ...captionParts(source.path, source.lines, source.pin).map(
         ({ className, text }): PhrasingContent => ({
@@ -187,12 +268,14 @@ function fileListing(
       ),
     ],
   };
+  const notes = notesOf(node);
+  const numbers = noteNumbers(source, new Set(notes.keys()));
   const html: Html = { type: "html", value: "" };
   const figure: ContainerDirective = {
     type: "containerDirective",
     name: "listing",
     attributes: node.attributes ?? {},
-    children: [caption, html],
+    children: numbers.size === 0 ? [caption, html] : [caption, html, notesList(domId, numbers, notes)],
     data: {
       hName: "figure",
       hProperties: {
@@ -205,10 +288,65 @@ function fileListing(
     },
     ...(node.position ? { position: node.position } : {}),
   };
-  return { figure, code: highlighted(html, source, number, domId) };
+  const code = highlighted(html, source, number, domId, numbers);
+  if (source.replay === undefined) return { figure, code };
+  const replay: Html = {
+    type: "html",
+    value: replayHtml({
+      id: `${domId}-replay`,
+      title: `Recorded run of Listing ${number}`,
+      source: source.replay.path,
+      events: replayEvents(source.replay.transcript),
+      listing: domId,
+      controlsLabel: `Replay of Listing ${number}`,
+    }),
+  };
+  const pair: ContainerDirective = {
+    type: "containerDirective",
+    name: "listing-replay",
+    attributes: {},
+    children: [figure, replay],
+    data: { hName: "div", hProperties: { className: ["listing-replay"] } },
+  };
+  return { figure: pair, code };
+}
+
+/**
+ * The notes under a listing as a numbered list in the order of their markers, each item's id the target of its
+ * marker's link. The notes stay Markdown, so citations, glossary terms and references in them still render.
+ */
+function notesList(
+  domId: string,
+  numbers: ReadonlyMap<string, number>,
+  notes: ReadonlyMap<string, PhrasingContent[]>,
+): List {
+  const items = [...numbers.keys()].map(
+    (id): ListItem => ({
+      type: "listItem",
+      spread: false,
+      data: { hProperties: { id: `${domId}-note-${id}` } },
+      children: [{ type: "paragraph", children: notes.get(id) ?? [] }],
+    }),
+  );
+  return {
+    type: "list",
+    ordered: true,
+    spread: false,
+    data: { hProperties: { className: ["annotations"], ariaLabel: NOTES_LABEL } },
+    children: items,
+  };
 }
 
 /** Fills the listing's HTML node with its code panel once Shiki has tokenised the lines. */
-async function highlighted(html: Html, source: ListingSource, number: string, domId: string): Promise<void> {
-  html.value = listingCodeHtml(domId, number, await highlightListing(source), new Map());
+async function highlighted(
+  html: Html,
+  source: ListingSource,
+  number: string,
+  domId: string,
+  numbers: ReadonlyMap<string, number>,
+): Promise<void> {
+  const lines = (await highlightListing(source)).map((line) =>
+    line.note !== undefined && numbers.has(line.note) ? { ...line, highlight: true } : line,
+  );
+  html.value = listingCodeHtml(domId, number, lines, numbers);
 }
