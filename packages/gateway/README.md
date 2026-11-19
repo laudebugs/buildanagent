@@ -2,13 +2,31 @@
 
 The gateway lets your agent call any model through one transcript and one stream format, so switching providers never changes your agent code. Use it directly to call a model, or through `@buildanagent/sdk`, which runs the agent loop on top of it.
 
-As of November 2026 the package holds the transcript types, the stream checker, `complete()`, `createModel()` with its retries and middleware, and the price catalog that puts a cost on every message. The Anthropic and OpenAI adapters are next.
+As of November 2026 the package holds the transcript types, the stream checker, `complete()`, `createModel()` with its retries and middleware, the price catalog that puts a cost on every message, and `transformMessages()`, which prepares a transcript for the model you send it to. The Anthropic and OpenAI adapters are next.
 
 ## A conversation is a list of messages you own
 
 A conversation is a list of `Message`s: user messages, assistant messages and tool results. Their content is a short list of blocks (`text`, `reasoning`, `image` and `tool_call`), so your code never handles a provider's wire format. A reasoning block may carry a signature that only the model that wrote it accepts.
 
 Every `AssistantMessage` records its model, why it stopped (`stopReason`), any typed `error`, its `Usage` and its `Cost`. `Usage` has no field named `input`, because providers disagree on whether input includes cached tokens. The uncached part is `uncachedInput`, and `totalInput()` adds the cache reads and cache writes to it. `Cost.total` is `null` when the price is unknown, never a guessed zero.
+
+## A transcript recorded on one model replays on another
+
+You can start a conversation on one model and continue it on another, even from another provider. Before each request, `transformMessages()` turns your transcript into one that the target model accepts:
+
+```ts
+const messages = transformMessages(transcript, model.ref, model.caps);
+```
+
+The pass returns a new array and leaves your transcript as it was, so you keep the full record. It changes five things:
+
+- **Failed turns.** It leaves out every assistant message that stopped with `"error"` or `"aborted"`. A resumed call then asks the model again instead of building on a half-written answer.
+- **Reasoning.** A reasoning signature is valid only for the provider, and often only for the model, that wrote it. The pass drops reasoning that another provider wrote and removes any signature the target cannot check. An Anthropic model accepts thinking from any Anthropic model, so an Anthropic target gets every Anthropic thinking block exactly as recorded, empty ones included.
+- **Images.** For a model that takes no images (`caps.images` is `false`), each image becomes a short text note.
+- **Tool-call ids.** Each id must be 1 to 64 letters, digits, `_` or `-`, and must not repeat. The pass rewrites any id that breaks the rule and updates the result that answers it.
+- **Tool results.** Each result moves next to the call it answers, and a result that answers no call is dropped. A call that never got a result gets a synthetic one with `isError: true`, because providers reject a call left unanswered.
+
+When the pass must drop reasoning, it also drops every reasoning block before the newest one it drops, so the blocks it keeps are the newest unbroken run. Anthropic checks each thinking block against everything sent before it, and a gap in the middle would fail that check. The pass gives the same answer for the same transcript every time, and running it on its own output changes nothing, so an earlier message looks the same in every request.
 
 ## Every stream follows one rule
 

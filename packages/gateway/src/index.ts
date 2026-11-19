@@ -38,6 +38,7 @@ export type {
 } from "./runtime-types.ts";
 export type { ModelAdapter, ModelEvent, StreamOptions } from "./spec.ts";
 export { assertStreamContract, StreamContractError } from "./stream-contract.ts";
+export { transformMessages } from "./transform-messages.ts";
 export type {
   AssistantMessage,
   ContentBlock,
