@@ -8,7 +8,7 @@
 | Status | `ready` |
 | Plan | [Book plan §4.2](../../plans/build-book.md#42-part-ii-in-depth-for-experienced-builders) |
 | Round / milestone | Round T (textbook), MT |
-| Depends on | [T5](T5-book-interactive-listings.md), [T6](../done/T6-book-flat-figures.md), [T26](T26-book-checked-inline-code.md), [T29](T29-example-retries-caching-budget.md) |
+| Depends on | [T5](../done/T5-book-interactive-listings.md), [T6](../done/T6-book-flat-figures.md), [T26](T26-book-checked-inline-code.md), [T29](T29-example-retries-caching-budget.md) |
 | Size | M |
 
 ## Goal

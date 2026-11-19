@@ -1,0 +1,214 @@
+{
+  "format": 1,
+  "example": "06-tool-approval",
+  "file": "verify/cloudflare-agents/examples/06-tool-approval.ts",
+  "harness": "verify/cloudflare-agents",
+  "pin": "agents@0.33.0",
+  "mock": "ai@7.0.162",
+  "events": [
+    {
+      "kind": "request",
+      "model": "model-1",
+      "repeated": 0,
+      "messages": [
+        {
+          "role": "user",
+          "parts": [
+            {
+              "type": "text",
+              "text": "Refund order A1 ($250)."
+            }
+          ]
+        }
+      ],
+      "tools": [
+        "refund"
+      ]
+    },
+    {
+      "kind": "response",
+      "model": "model-1",
+      "message": {
+        "role": "assistant",
+        "parts": [
+          {
+            "type": "tool-call",
+            "id": "call_1",
+            "name": "refund",
+            "input": {
+              "orderId": "A1",
+              "amount": 250
+            }
+          }
+        ]
+      },
+      "finish": "tool-calls"
+    },
+    {
+      "kind": "check",
+      "message": "the turn ends while waiting for approval (status completed)",
+      "pass": true
+    },
+    {
+      "kind": "check",
+      "message": "the gated call is persisted as 'approval-requested'",
+      "pass": true
+    },
+    {
+      "kind": "check",
+      "message": "the gated tool has not executed",
+      "pass": true
+    },
+    {
+      "kind": "request",
+      "model": "model-1",
+      "repeated": 2,
+      "messages": [
+        {
+          "role": "tool",
+          "parts": [
+            {
+              "type": "tool-result",
+              "id": "call_1",
+              "name": "refund",
+              "output": {
+                "refunded": 250
+              }
+            }
+          ]
+        }
+      ],
+      "tools": [
+        "refund"
+      ]
+    },
+    {
+      "kind": "response",
+      "model": "model-1",
+      "message": {
+        "role": "assistant",
+        "parts": [
+          {
+            "type": "text",
+            "text": "Done."
+          }
+        ]
+      },
+      "finish": "stop"
+    },
+    {
+      "kind": "check",
+      "message": "approved: true moves the part to 'output-available'",
+      "pass": true
+    },
+    {
+      "kind": "check",
+      "message": "the approved tool executed exactly once",
+      "pass": true
+    },
+    {
+      "kind": "check",
+      "message": "autoContinue ran the model again and persisted its answer",
+      "pass": true
+    },
+    {
+      "kind": "request",
+      "model": "model-2",
+      "repeated": 0,
+      "messages": [
+        {
+          "role": "user",
+          "parts": [
+            {
+              "type": "text",
+              "text": "Refund order A1 ($250)."
+            }
+          ]
+        }
+      ],
+      "tools": [
+        "refund"
+      ]
+    },
+    {
+      "kind": "response",
+      "model": "model-2",
+      "message": {
+        "role": "assistant",
+        "parts": [
+          {
+            "type": "tool-call",
+            "id": "call_2",
+            "name": "refund",
+            "input": {
+              "orderId": "A1",
+              "amount": 250
+            }
+          }
+        ]
+      },
+      "finish": "tool-calls"
+    },
+    {
+      "kind": "check",
+      "message": "the turn ends while waiting for approval (status completed)",
+      "pass": true
+    },
+    {
+      "kind": "check",
+      "message": "the gated call is persisted as 'approval-requested'",
+      "pass": true
+    },
+    {
+      "kind": "check",
+      "message": "the gated tool has not executed",
+      "pass": true
+    },
+    {
+      "kind": "check",
+      "message": "approved: false moves the part to 'output-denied'",
+      "pass": true
+    },
+    {
+      "kind": "request",
+      "model": "model-2",
+      "repeated": 2,
+      "messages": [
+        {
+          "role": "tool",
+          "parts": [
+            {
+              "type": "tool-result",
+              "id": "call_2",
+              "name": "refund",
+              "output": "Tool call execution denied.",
+              "error": true
+            }
+          ]
+        }
+      ],
+      "tools": [
+        "refund"
+      ]
+    },
+    {
+      "kind": "response",
+      "model": "model-2",
+      "message": {
+        "role": "assistant",
+        "parts": [
+          {
+            "type": "text",
+            "text": "Done."
+          }
+        ]
+      },
+      "finish": "stop"
+    },
+    {
+      "kind": "check",
+      "message": "a denied tool never executes",
+      "pass": true
+    }
+  ]
+}

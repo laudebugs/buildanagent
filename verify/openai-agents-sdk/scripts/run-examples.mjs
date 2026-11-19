@@ -9,6 +9,7 @@ import { existsSync } from "node:fs";
 import { cp, mkdir, mkdtemp, readdir, readFile, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { dirname, join, resolve } from "node:path";
+import { transcriptRun } from "../../../scripts/transcripts/write.mjs";
 
 const dir = resolve(process.argv[2] && !process.argv[2].startsWith("--") ? process.argv[2] : "extracted");
 const ownExamples = !dir.endsWith("extracted");
@@ -80,6 +81,8 @@ async function runOne(t) {
   };
   const args = ["--import", TSX];
   if (!ownExamples) args.push("--import", join(root, "scripts/scripted-preload.mjs"));
+  // Our own examples also record their model exchange and checks as a transcript (results/transcripts/).
+  const transcript = ownExamples ? transcriptRun(args, env) : undefined;
   args.push(resolve(t.file));
   const started = Date.now();
   const result = await new Promise((done) => {
@@ -98,6 +101,7 @@ async function runOne(t) {
   });
   const modelCalls = existsSync(log) ? Number(await readFile(log, "utf8")) : 0;
   const blocked = /network disabled \(blocked ([^)]+)\)/.exec(result.out)?.[1];
+  transcript?.write({ harnessDir: root, exampleFile: resolve(t.file), cwd });
   // Our own examples assert their behaviour, so exit 0 is a pass.
   const outcome = result.timedOut
     ? "timeout"

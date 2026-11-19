@@ -15,10 +15,12 @@
 //   - Our examples (examples/*.ts): each exports `test(env, h)`, which asserts behavior; pass = ok.
 // Usage: node scripts/run-examples.mjs [dir=extracted] [--only id1,id2]
 import { spawn } from "node:child_process";
+import { randomUUID } from "node:crypto";
 import { existsSync } from "node:fs";
-import { mkdir, readdir, readFile, rm, writeFile } from "node:fs/promises";
+import { mkdir, mkdtemp, readdir, readFile, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join, resolve } from "node:path";
+import { writeTranscript } from "../../../scripts/transcripts/write.mjs";
 import { bundle, PKG } from "./workerd.mjs";
 
 const dir = resolve(process.argv[2] && !process.argv[2].startsWith("--") ? process.argv[2] : "extracted");
@@ -29,6 +31,29 @@ const only = process.argv.includes("--only")
 const TIMEOUT_MS = Number(process.env.EXAMPLE_TIMEOUT_MS ?? 60000);
 const CONCURRENCY = Number(process.env.EXAMPLE_CONCURRENCY ?? 4);
 const MARKER = "[verify-harness] mock model call";
+// Our own examples print each transcript event, a request, an answer or a check, on a line that starts with this
+// prefix and the run's marker (examples/lib/transcript.ts and the failed-check case in scripts/worker-harness.mjs).
+const TRANSCRIPT_LINE = "__TRANSCRIPT__";
+
+/**
+ * Writes the transcript of one of our examples from workerd's output: the lines that carry this run's marker, in the
+ * order workerd printed them, the failed check that ended a run included. workerd keeps no stack that names the
+ * example's lines, so these events carry none.
+ */
+async function writeWorkerTranscript(t, out, cwd, nonce) {
+  const events = [];
+  const prefix = `${TRANSCRIPT_LINE}${nonce}:`;
+  for (const line of out.split("\n")) {
+    if (line.startsWith(prefix)) events.push(JSON.parse(line.slice(prefix.length)));
+  }
+  const dir = await mkdtemp(join(tmpdir(), "transcript-"));
+  const rawFile = join(dir, "events.json");
+  await writeFile(rawFile, JSON.stringify({ events }));
+  // TRANSCRIPT_OUT_DIR lets a test write a probe's transcript outside results/ (scripts/ci/transcripts.test.mjs).
+  const outDir = process.env.TRANSCRIPT_OUT_DIR || undefined;
+  writeTranscript({ harnessDir: PKG, exampleFile: resolve(t.path), rawFile, cwd, home: tmpdir(), outDir });
+  await rm(dir, { recursive: true, force: true });
+}
 // Bundles must live inside the package: workerd fails to load modules from some outside paths.
 const WORK = join(PKG, ".tmp", ownExamples ? "examples" : "docs");
 
@@ -139,7 +164,10 @@ async function runOne(t) {
   const work = join(WORK, t.id);
   await mkdir(work, { recursive: true });
   const started = Date.now();
-  const b = await bundle(resolve(t.path), work);
+  // Our own examples record a transcript, under a marker that is new for every run (examples/lib/transcript.ts).
+  const nonce = randomUUID();
+  const define = ownExamples ? { __TRANSCRIPT_NONCE__: JSON.stringify(nonce) } : {};
+  const b = await bundle(resolve(t.path), work, { define });
   const base = { id: t.id, page: t.page, line: t.line, durableObjects };
   if (!b.ok) {
     const missing = b.error.match(/Could not resolve "([^"]+)"/)?.[1];
@@ -164,9 +192,10 @@ async function runOne(t) {
   const modelCalls = run.out.split(MARKER).length - 1;
   const line = run.out.split("\n").find((l) => l.startsWith("__RESULT__"));
   const r = line ? JSON.parse(line.slice("__RESULT__".length)) : null;
+  if (ownExamples && !run.timedOut) await writeWorkerTranscript(t, run.out, work, nonce);
   const tail = run.out
     .split("\n")
-    .filter((l) => l && !l.startsWith("__RESULT__") && !l.includes(MARKER))
+    .filter((l) => l && !l.startsWith("__RESULT__") && !l.includes(MARKER) && !l.startsWith(TRANSCRIPT_LINE))
     .slice(-8)
     .join("\n")
     .slice(-1200);

@@ -12,6 +12,21 @@
 // Any other request goes to the example's default handler.
 import { Agent, getAgentByName } from "agents";
 
+/**
+ * Records a failed check() of our examples in the transcript, through the same marked console line that
+ * examples/lib/transcript.ts uses: the marker is the per-run value scripts/run-examples.mjs builds in, so example
+ * output cannot fake the line, and only an error whose first frame is a function named check counts.
+ */
+function recordFailedCheck(e) {
+  // esbuild's define writes the marker in; without it, typeof sees an undeclared name and gives "undefined".
+  const nonce = typeof __TRANSCRIPT_NONCE__ === "string" ? __TRANSCRIPT_NONCE__ : undefined;
+  const message = e instanceof Error ? e.message : "";
+  if (nonce === undefined || !message.startsWith("ASSERTION FAILED: ")) return;
+  if (!/^at check\d* /.test((e.stack ?? "").split("\n")[1]?.trim() ?? "")) return;
+  const event = { kind: "check", message: message.slice("ASSERTION FAILED: ".length), pass: false };
+  console.log(`__TRANSCRIPT__${nonce}:${JSON.stringify(event)}`);
+}
+
 const errText = (e) => (e instanceof Error ? `${e.name}: ${e.message}` : String(e));
 // A 500 body is often a stack trace. Drop the checkout path from its frames before truncating, so the
 // recorded text doesn't depend on where the repo is checked out.
@@ -132,6 +147,7 @@ export function harness(mod) {
           await mod.test(env, helpers(env), ctx);
           return Response.json({ ok: true });
         } catch (e) {
+          recordFailedCheck(e);
           return Response.json({ ok: false, error: errText(e), stack: e?.stack?.split("\n").slice(0, 6).join("\n") });
         }
       }

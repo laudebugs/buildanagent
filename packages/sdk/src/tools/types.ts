@@ -63,6 +63,9 @@ export interface ToolEffect<I> {
   businessKey?(input: I): string;
 }
 
+/** Whether a tool is sent to the model: `direct`, `deferred` or `hidden`. */
+export type ToolExposure = "direct" | "deferred" | "hidden";
+
 /** What a tool's `execute` receives besides its input. */
 export interface ToolContext {
   readonly runId: string;
@@ -113,6 +116,12 @@ export interface ToolDefinition<I = unknown, S = unknown> {
    */
   readonly kind?: "function" | "dynamic" | "provider-local" | "provider-executed";
   readonly inputSchema: ToolSchema<I>;
+  /**
+   * Whether the model is sent this tool. `direct` (the default) sends it with every model call. A `deferred` or
+   * `hidden` tool is left out of every request, and a call the model makes to it anyway gets the unknown-tool error
+   * result.
+   */
+  readonly exposure?: ToolExposure;
   /** Marks a tool that changes the world. A tool without it counts as read-only. */
   readonly effect?: ToolEffect<I>;
   /**

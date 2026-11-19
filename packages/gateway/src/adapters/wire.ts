@@ -9,7 +9,7 @@
  */
 import { classifyError, type ErrorKind, isTransportFailure } from "../classify.js";
 import { isGatewayError } from "../errors.js";
-import { assertModelRequestAllowed, ModelRequestsDisabledError } from "../request-policy.js";
+import { assertModelRequestAllowed } from "../request-policy.js";
 import type { Transport } from "../runtime-types.js";
 import type { ModelEvent, StreamOptions } from "../spec.js";
 import { readServerSentEvents, type ServerSentEvent } from "../sse.js";
@@ -198,7 +198,7 @@ export async function* sendRequest(
   try {
     return await transport(request);
   } catch (thrown) {
-    if (isGatewayError(thrown) || thrown instanceof ModelRequestsDisabledError) throw thrown;
+    if (isGatewayError(thrown)) throw thrown;
     yield signal?.aborted ? abortedEvent(model) : thrownTerminal(model, thrown);
     return undefined;
   }

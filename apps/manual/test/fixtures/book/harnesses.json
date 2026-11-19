@@ -1,3 +1,4 @@
 {
-  "verify/demo-sdk": "demo-sdk"
+  "verify/demo-sdk": "demo-sdk",
+  "verify/other-sdk": "other-sdk"
 }

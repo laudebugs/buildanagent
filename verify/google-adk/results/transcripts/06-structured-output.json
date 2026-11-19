@@ -1,0 +1,302 @@
+{
+  "format": 1,
+  "example": "06-structured-output",
+  "file": "verify/google-adk/examples/06-structured-output.ts",
+  "harness": "verify/google-adk",
+  "pin": "@google/adk@2.5.0",
+  "mock": "@google/adk@2.5.0",
+  "events": [
+    {
+      "kind": "request",
+      "line": 35,
+      "model": "model-1",
+      "repeated": 0,
+      "messages": [
+        {
+          "role": "system",
+          "parts": [
+            {
+              "type": "text",
+              "text": "Classify."
+            }
+          ]
+        },
+        {
+          "role": "user",
+          "parts": [
+            {
+              "type": "text",
+              "text": "I was charged twice"
+            }
+          ]
+        }
+      ],
+      "tools": []
+    },
+    {
+      "kind": "response",
+      "line": 35,
+      "model": "model-1",
+      "message": {
+        "role": "assistant",
+        "parts": [
+          {
+            "type": "text",
+            "text": "{\"category\":\"billing\",\"priority\":2}"
+          }
+        ]
+      },
+      "finish": "stop"
+    },
+    {
+      "kind": "check",
+      "line": 42,
+      "message": "outputSchema sets responseMimeType application/json",
+      "pass": true
+    },
+    {
+      "kind": "check",
+      "line": 43,
+      "message": "the zod schema becomes the request's responseSchema",
+      "pass": true
+    },
+    {
+      "kind": "check",
+      "line": 47,
+      "message": "outputKey stores the parsed object, not the JSON text",
+      "pass": true
+    },
+    {
+      "kind": "request",
+      "line": 35,
+      "model": "model-2",
+      "repeated": 0,
+      "messages": [
+        {
+          "role": "system",
+          "parts": [
+            {
+              "type": "text",
+              "text": "Classify."
+            }
+          ]
+        },
+        {
+          "role": "user",
+          "parts": [
+            {
+              "type": "text",
+              "text": "I was charged twice"
+            }
+          ]
+        }
+      ],
+      "tools": []
+    },
+    {
+      "kind": "response",
+      "line": 35,
+      "model": "model-2",
+      "message": {
+        "role": "assistant",
+        "parts": [
+          {
+            "type": "text",
+            "text": "sorry, I cannot do that"
+          }
+        ]
+      },
+      "finish": "stop"
+    },
+    {
+      "kind": "check",
+      "line": 53,
+      "message": "a non-JSON reply produces no error event",
+      "pass": true
+    },
+    {
+      "kind": "check",
+      "line": 54,
+      "message": "a non-JSON reply is stored in outputKey as raw text",
+      "pass": true
+    },
+    {
+      "kind": "check",
+      "line": 55,
+      "message": "the parse failure is only logged",
+      "pass": true
+    },
+    {
+      "kind": "request",
+      "line": 35,
+      "model": "model-3",
+      "repeated": 0,
+      "messages": [
+        {
+          "role": "system",
+          "parts": [
+            {
+              "type": "text",
+              "text": "Classify."
+            }
+          ]
+        },
+        {
+          "role": "user",
+          "parts": [
+            {
+              "type": "text",
+              "text": "I was charged twice"
+            }
+          ]
+        }
+      ],
+      "tools": []
+    },
+    {
+      "kind": "response",
+      "line": 35,
+      "model": "model-3",
+      "message": {
+        "role": "assistant",
+        "parts": [
+          {
+            "type": "text",
+            "text": "{\"category\":\"refund\",\"priority\":2}"
+          }
+        ]
+      },
+      "finish": "stop"
+    },
+    {
+      "kind": "check",
+      "line": 61,
+      "message": "JSON that violates the schema is stored anyway",
+      "pass": true
+    },
+    {
+      "kind": "check",
+      "line": 62,
+      "message": "the schema violation is only logged",
+      "pass": true
+    },
+    {
+      "kind": "request",
+      "line": 89,
+      "model": "model-4",
+      "repeated": 0,
+      "messages": [
+        {
+          "role": "system",
+          "parts": [
+            {
+              "type": "text",
+              "text": "Classify.\n\nTo output the final result, you must call the \"set_model_response\" function with the appropriate values. Do not output anything else."
+            }
+          ]
+        },
+        {
+          "role": "user",
+          "parts": [
+            {
+              "type": "text",
+              "text": "I was charged twice"
+            }
+          ]
+        }
+      ],
+      "tools": [
+        "lookup_account",
+        "set_model_response"
+      ]
+    },
+    {
+      "kind": "response",
+      "line": 89,
+      "model": "model-4",
+      "message": {
+        "role": "assistant",
+        "parts": [
+          {
+            "type": "tool-call",
+            "id": "call-1",
+            "name": "lookup_account",
+            "input": {
+              "email": "a@example.com"
+            }
+          }
+        ]
+      },
+      "finish": "tool-calls"
+    },
+    {
+      "kind": "request",
+      "line": 89,
+      "model": "model-4",
+      "repeated": 3,
+      "messages": [
+        {
+          "role": "user",
+          "parts": [
+            {
+              "type": "tool-result",
+              "id": "call-1",
+              "name": "lookup_account",
+              "output": {
+                "plan": "pro"
+              }
+            }
+          ]
+        }
+      ],
+      "tools": [
+        "lookup_account",
+        "set_model_response"
+      ]
+    },
+    {
+      "kind": "response",
+      "line": 89,
+      "model": "model-4",
+      "message": {
+        "role": "assistant",
+        "parts": [
+          {
+            "type": "tool-call",
+            "id": "call-2",
+            "name": "set_model_response",
+            "input": {
+              "category": "billing",
+              "priority": 1
+            }
+          }
+        ]
+      },
+      "finish": "tool-calls"
+    },
+    {
+      "kind": "check",
+      "line": 90,
+      "message": "with tools, ADK offers a set_model_response tool",
+      "pass": true
+    },
+    {
+      "kind": "check",
+      "line": 91,
+      "message": "with tools, no responseSchema is sent (Gemini API backend)",
+      "pass": true
+    },
+    {
+      "kind": "check",
+      "line": 95,
+      "message": "set_model_response's arguments become the final text answer",
+      "pass": true
+    },
+    {
+      "kind": "check",
+      "line": 100,
+      "message": "and the parsed object lands in outputKey",
+      "pass": true
+    }
+  ]
+}

@@ -69,3 +69,10 @@ const {
     <PrevNext previous={previous} next={next} />
   </div>
 </BaseLayout>
+
+<script>
+  // A chapter's tabs and replays come from its Markdown, so the layout loads their scripts; each does nothing on a
+  // page without them, and Astro serves them as a same-origin file.
+  import "../scripts/tabs.ts";
+  import "../scripts/steps.ts";
+</script>

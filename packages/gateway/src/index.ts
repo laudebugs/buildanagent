@@ -14,7 +14,14 @@ export {
 } from "./catalog.js";
 export { classifyError, type ErrorKind, type FailedRequest } from "./classify.js";
 export { complete } from "./complete.js";
-export { estimateInputTokens, type ProjectedTokens, priceUsage, projectCallCost, projectCost } from "./cost.js";
+export {
+  addCost,
+  estimateInputTokens,
+  type ProjectedTokens,
+  priceUsage,
+  projectCallCost,
+  projectCost,
+} from "./cost.js";
 export { createModel } from "./create-model.js";
 export { GatewayError, type GatewayErrorCode, isGatewayError } from "./errors.js";
 export {

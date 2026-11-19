@@ -1,0 +1,280 @@
+{
+  "format": 1,
+  "example": "02-tool-loop",
+  "file": "verify/vercel-ai-sdk/examples/02-tool-loop.ts",
+  "harness": "verify/vercel-ai-sdk",
+  "pin": "ai@7.0.162",
+  "mock": "ai@7.0.162",
+  "events": [
+    {
+      "kind": "request",
+      "line": 24,
+      "model": "model-1",
+      "repeated": 0,
+      "messages": [
+        {
+          "role": "user",
+          "parts": [
+            {
+              "type": "text",
+              "text": "Weather in Lisbon?"
+            }
+          ]
+        }
+      ],
+      "tools": [
+        "weather"
+      ]
+    },
+    {
+      "kind": "response",
+      "line": 24,
+      "model": "model-1",
+      "message": {
+        "role": "assistant",
+        "parts": [
+          {
+            "type": "tool-call",
+            "id": "call_1",
+            "name": "weather",
+            "input": {
+              "city": "Lisbon"
+            }
+          }
+        ]
+      },
+      "finish": "tool-calls"
+    },
+    {
+      "kind": "check",
+      "line": 25,
+      "message": "default: one model call",
+      "pass": true
+    },
+    {
+      "kind": "check",
+      "line": 26,
+      "message": "default: the tool still executes in that step",
+      "pass": true
+    },
+    {
+      "kind": "check",
+      "line": 27,
+      "message": "default: no final text, because the loop stopped after the tool step",
+      "pass": true
+    },
+    {
+      "kind": "request",
+      "line": 35,
+      "model": "model-2",
+      "repeated": 0,
+      "messages": [
+        {
+          "role": "user",
+          "parts": [
+            {
+              "type": "text",
+              "text": "Weather in Lisbon?"
+            }
+          ]
+        }
+      ],
+      "tools": [
+        "weather"
+      ]
+    },
+    {
+      "kind": "response",
+      "line": 35,
+      "model": "model-2",
+      "message": {
+        "role": "assistant",
+        "parts": [
+          {
+            "type": "tool-call",
+            "id": "call_2",
+            "name": "weather",
+            "input": {
+              "city": "Lisbon"
+            }
+          }
+        ]
+      },
+      "finish": "tool-calls"
+    },
+    {
+      "kind": "request",
+      "line": 35,
+      "model": "model-2",
+      "repeated": 1,
+      "messages": [
+        {
+          "role": "assistant",
+          "parts": [
+            {
+              "type": "tool-call",
+              "id": "call_2",
+              "name": "weather",
+              "input": {
+                "city": "Lisbon",
+                "unit": "C"
+              }
+            }
+          ]
+        },
+        {
+          "role": "tool",
+          "parts": [
+            {
+              "type": "tool-result",
+              "id": "call_2",
+              "name": "weather",
+              "output": {
+                "city": "Lisbon",
+                "temperature": 21,
+                "unit": "C"
+              }
+            }
+          ]
+        }
+      ],
+      "tools": [
+        "weather"
+      ]
+    },
+    {
+      "kind": "response",
+      "line": 35,
+      "model": "model-2",
+      "message": {
+        "role": "assistant",
+        "parts": [
+          {
+            "type": "text",
+            "text": "It is 21C in Lisbon."
+          }
+        ]
+      },
+      "finish": "stop"
+    },
+    {
+      "kind": "check",
+      "line": 42,
+      "message": "execute() gets parsed input with schema defaults applied",
+      "pass": true
+    },
+    {
+      "kind": "check",
+      "line": 46,
+      "message": "two steps: tool call, then answer",
+      "pass": true
+    },
+    {
+      "kind": "check",
+      "line": 48,
+      "message": "the tool result is sent back to the model",
+      "pass": true
+    },
+    {
+      "kind": "check",
+      "line": 49,
+      "message": "the final step's text is the result",
+      "pass": true
+    },
+    {
+      "kind": "request",
+      "line": 56,
+      "model": "model-3",
+      "repeated": 0,
+      "messages": [
+        {
+          "role": "user",
+          "parts": [
+            {
+              "type": "text",
+              "text": "Weather?"
+            }
+          ]
+        }
+      ],
+      "tools": [
+        "weather"
+      ]
+    },
+    {
+      "kind": "response",
+      "line": 56,
+      "model": "model-3",
+      "message": {
+        "role": "assistant",
+        "parts": [
+          {
+            "type": "tool-call",
+            "id": "call_3",
+            "name": "weather",
+            "input": {
+              "town": "Lisbon"
+            }
+          }
+        ]
+      },
+      "finish": "tool-calls"
+    },
+    {
+      "kind": "request",
+      "line": 56,
+      "model": "model-3",
+      "repeated": 2,
+      "messages": [
+        {
+          "role": "tool",
+          "parts": [
+            {
+              "type": "tool-result",
+              "id": "call_3",
+              "name": "weather",
+              "output": "AI_InvalidToolInputError: Invalid input for tool weather: AI_TypeValidationError: Type validation failed: Value: {\"town\":\"Lisbon\"}.\nError message: [\n  {\n    \"expected\": \"string\",\n    \"code\": \"invalid_type\",\n    \"path\": [\n      \"city\"\n    ],\n    \"message\": \"Invalid input: expected string, received undefined\"\n  }\n]",
+              "error": true
+            }
+          ]
+        }
+      ],
+      "tools": [
+        "weather"
+      ]
+    },
+    {
+      "kind": "response",
+      "line": 56,
+      "model": "model-3",
+      "message": {
+        "role": "assistant",
+        "parts": [
+          {
+            "type": "text",
+            "text": "Sorry."
+          }
+        ]
+      },
+      "finish": "stop"
+    },
+    {
+      "kind": "check",
+      "line": 57,
+      "message": "invalid input: execute() is not called",
+      "pass": true
+    },
+    {
+      "kind": "check",
+      "line": 58,
+      "message": "invalid input: the step records a tool-error",
+      "pass": true
+    },
+    {
+      "kind": "check",
+      "line": 62,
+      "message": "invalid input: the loop continues so the model can recover",
+      "pass": true
+    }
+  ]
+}

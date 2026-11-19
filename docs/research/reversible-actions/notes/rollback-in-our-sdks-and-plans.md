@@ -90,7 +90,7 @@ The plans specify *agent rewind* in detail: an immutable log, HEAD, fork, revert
 - D5 signs the request id, kind, call id, tool, canonical input hash and `policyVersion`. A forged or invalid resume fails closed and runs nothing. — [build-sdk.md:95-105](../../../../docs/plans/build-sdk.md)
 - D10: `RunResult` is a union over `done`, `max_steps`, `budget`, `no_progress`, `aborted`, `error`, `stopped`, `awaiting_approval` and `clarification_requested`. Each variant carries a resumable `context`. — [build-sdk.md:143-149, 375-385](../../../../docs/plans/build-sdk.md)
 - Retries: "default 2 HTTP retries, before any output only". — [build-sdk.md:282](../../../../docs/plans/build-sdk.md). D11 fires `no_progress` after three identical failing calls. — [build-sdk.md:151-157](../../../../docs/plans/build-sdk.md)
-- Abort: "every open tool call gets an aborted error result". — [B11-loop-core.md:34, 60](../../../../docs/todos/ready/B11-loop-core.md)
+- Abort: "every open tool call gets an aborted error result". — [B11-loop-core.md:34, 60](../../../../docs/todos/done/B11-loop-core.md)
 - D12's "reversible sanitising" concerns tool *names*, not actions. — [build-sdk.md:159-165](../../../../docs/plans/build-sdk.md); [ADR 0011](../../../../docs/decisions/0011-tool-name-rule.md)
 
 **Harness plan (`docs/plans/build-harness.md`)**
@@ -206,7 +206,7 @@ The plans cover agent rewind (log, HEAD, fork, revert, playback, safe resume) an
 
 ### Cited Findings (each gap is an absence, confirmed by the files cited)
 - **No idempotency key on tool calls or helpdesk writes.** `ToolDefinition` and `Helpdesk` carry none. — [build-sdk.md:310-326](../../../../docs/plans/build-sdk.md); [build-agent.md:302-316](../../../../docs/plans/build-agent.md). Contrast OpenAI's `operationId` contract — `verify/openai-agents-sdk/node_modules/@openai/agents-core/dist/memory/session.d.ts:108-128` — and LangGraph's idempotency rule. — [interrupts.mdx:1365-1375](../../../../docs/reference/langchain/source/src/oss/langgraph/interrupts.mdx)
-- **No `unknown` outcome.** A crash mid-call yields an "aborted error result". — [N7-rebuild-resume-replay.md:29](../../../../docs/todos/ready/N7-rebuild-resume-replay.md); [B11-loop-core.md:34](../../../../docs/todos/ready/B11-loop-core.md). No reconciliation step is planned.
+- **No `unknown` outcome.** A crash mid-call yields an "aborted error result". — [N7-rebuild-resume-replay.md:29](../../../../docs/todos/ready/N7-rebuild-resume-replay.md); [B11-loop-core.md:34](../../../../docs/todos/done/B11-loop-core.md). No reconciliation step is planned.
 - **No outcome kind beyond `isError`.** — [build-sdk.md:332-336](../../../../docs/plans/build-sdk.md); `CodeCallResult` is only `done | denied | awaiting_approval`. — [build-harness.md:433-436](../../../../docs/plans/build-harness.md)
 - **No rollback or compensation entry.** — entry union, [build-harness.md:257-291](../../../../docs/plans/build-harness.md)
 - **Revert is log-only.** — [N5-head-fork-revert.md:14](../../../../docs/todos/ready/N5-head-fork-revert.md). Nothing reconciles a revert or re-run past an executed side effect. `rerunFrom()` "calls the model again", and its re-proposed calls would pass the gate again. — [build-harness.md:315](../../../../docs/plans/build-harness.md)

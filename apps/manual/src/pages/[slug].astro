@@ -13,6 +13,7 @@ export async function getStaticPaths() {
 
 const { chapter } = Astro.props;
 const { Content, headings } = await render(chapter);
+// "On this page" lists the chapter's sections; a tab's heading (its id starts "lst-") names a listing, not a section.
 // The number and the neighbouring chapters come from the outline, never from the collection's file order (BK5).
 const number = book.bySlug.get(chapter.id)?.number;
 const { previous, next } = neighbours(book, chapter.id);
@@ -23,7 +24,7 @@ const { previous, next } = neighbours(book, chapter.id);
   description={chapter.data.summary}
   label={`Chapter ${number}`}
   lede={chapter.data.summary}
-  headings={headings.filter((heading) => heading.depth === 2)}
+  headings={headings.filter((heading) => heading.depth === 2 && !heading.slug.startsWith("lst-"))}
   parts={contentsParts(book)}
   current={`/${chapter.id}/`}
   previous={previous}

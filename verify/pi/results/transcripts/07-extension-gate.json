@@ -1,0 +1,139 @@
+{
+  "format": 1,
+  "example": "07-extension-gate",
+  "file": "verify/pi/examples/07-extension-gate.ts",
+  "harness": "verify/pi",
+  "pin": "@earendil-works/pi-coding-agent@1.5.2",
+  "mock": "@earendil-works/pi-ai@1.5.2",
+  "events": [
+    {
+      "kind": "check",
+      "line": 47,
+      "message": "extension-registered tool is active",
+      "pass": true
+    },
+    {
+      "kind": "request",
+      "line": 48,
+      "model": "model-1",
+      "repeated": 0,
+      "messages": [
+        {
+          "role": "system",
+          "parts": [
+            {
+              "type": "text",
+              "text": ""
+            },
+            {
+              "type": "other",
+              "kind": "sections",
+              "value": [
+                "preamble",
+                "tools",
+                "rules",
+                "docs",
+                "cwd"
+              ]
+            }
+          ]
+        },
+        {
+          "role": "user",
+          "parts": [
+            {
+              "type": "text",
+              "text": "Restart the api service."
+            }
+          ]
+        }
+      ],
+      "tools": [
+        "read",
+        "bash",
+        "edit",
+        "write",
+        "restart_service"
+      ]
+    },
+    {
+      "kind": "response",
+      "line": 48,
+      "model": "model-1",
+      "message": {
+        "role": "assistant",
+        "parts": [
+          {
+            "type": "tool-call",
+            "id": "<id-1>",
+            "name": "restart_service",
+            "input": {
+              "service": "api"
+            }
+          }
+        ]
+      },
+      "finish": "toolUse"
+    },
+    {
+      "kind": "request",
+      "line": 48,
+      "model": "model-1",
+      "repeated": 3,
+      "messages": [
+        {
+          "role": "tool",
+          "parts": [
+            {
+              "type": "tool-result",
+              "id": "<id-1>",
+              "name": "restart_service",
+              "output": "change freeze",
+              "error": true
+            }
+          ]
+        }
+      ],
+      "tools": [
+        "read",
+        "bash",
+        "edit",
+        "write",
+        "restart_service"
+      ]
+    },
+    {
+      "kind": "response",
+      "line": 48,
+      "model": "model-1",
+      "message": {
+        "role": "assistant",
+        "parts": [
+          {
+            "type": "text",
+            "text": "The restart was blocked."
+          }
+        ]
+      },
+      "finish": "stop"
+    },
+    {
+      "kind": "check",
+      "line": 49,
+      "message": "tool_call fires before the tool executes",
+      "pass": true
+    },
+    {
+      "kind": "check",
+      "line": 50,
+      "message": "returning { block: true } stops execution",
+      "pass": true
+    },
+    {
+      "kind": "check",
+      "line": 54,
+      "message": "the block reason reaches the model as an error result",
+      "pass": true
+    }
+  ]
+}

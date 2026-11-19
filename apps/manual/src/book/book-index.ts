@@ -7,6 +7,7 @@ import remarkParse from "remark-parse";
 import { unified } from "unified";
 import { visit } from "unist-util-visit";
 import { type ListingContext, type ListingSource, resolveListing } from "./listings.js";
+import { checkNotes } from "./notes.js";
 import { KEBAB_ID, type NumberedChapter } from "./outline-rules.js";
 import type { ProblemList } from "./problems.js";
 
@@ -78,12 +79,50 @@ export function renderedBody(text: string): { readonly body: string; readonly li
 
 const parser = unified().use(remarkParse).use(remarkDirective);
 
-/** A numbered directive as the index finds it. A leaf `::listing` carries the attributes that name its file. */
+/** A `::note[Text]{#id}` inside a file listing, as the index finds it: its id, whether it has text, and its line. */
+interface ScannedNote {
+  readonly id: string | undefined;
+  readonly hasText: boolean;
+  readonly line: number;
+}
+
+/**
+ * A numbered directive as the index finds it. A file listing, the leaf `::listing` or a `:::listing` that names a
+ * `file`, carries the attributes that name its file and the notes it gives, and any other child, which it may not
+ * hold, by its line.
+ */
 interface ScannedBlock {
   readonly kind: NumberedKind;
   readonly id: string | undefined;
   readonly line: number;
   readonly fromFile?: Readonly<Record<string, string | null | undefined>>;
+  readonly notes?: readonly ScannedNote[];
+  readonly strays?: readonly number[];
+}
+
+type Directive = Extract<Root["children"][number], { type: "containerDirective" | "leafDirective" }>;
+
+/** Whether a directive is a listing of a real file: `::listing{… file}`, or `:::listing{… file}` with notes. */
+export const isFileListing = (node: { type: string; name?: string; attributes?: unknown }): boolean =>
+  node.name === "listing" &&
+  (node.type === "leafDirective" ||
+    (node.type === "containerDirective" && Object.hasOwn(Object(node.attributes), "file")));
+
+/** The notes a file listing gives and the lines of any other children, leaving out the container's caption. */
+function scanNotes(node: Directive): { notes: ScannedNote[]; strays: number[] } {
+  const notes: ScannedNote[] = [];
+  const strays: number[] = [];
+  if (node.type !== "containerDirective") return { notes, strays };
+  for (const child of node.children) {
+    if (child.type === "paragraph" && child.data?.directiveLabel) continue;
+    const line = child.position?.start.line ?? 0;
+    if (child.type === "leafDirective" && child.name === "note") {
+      notes.push({ id: child.attributes?.id ?? undefined, hasText: child.children.length > 0, line });
+    } else {
+      strays.push(line);
+    }
+  }
+  return { notes, strays };
 }
 
 /** The numbered directives in one chapter's body, in document order. */
@@ -93,8 +132,7 @@ function scanBlocks(body: string): ScannedBlock[] {
   visit(tree, (node) => {
     if ((node.type === "containerDirective" || node.type === "leafDirective") && isNumberedKind(node.name)) {
       const block = { kind: node.name, id: node.attributes?.id ?? undefined, line: node.position?.start.line ?? 0 };
-      const fromFile = node.type === "leafDirective" && node.name === "listing";
-      found.push(fromFile ? { ...block, fromFile: node.attributes ?? {} } : block);
+      found.push(isFileListing(node) ? { ...block, fromFile: node.attributes ?? {}, ...scanNotes(node) } : block);
     }
   });
   return found;
@@ -161,7 +199,7 @@ function indexBlocks(
   const { file, chaptersDir, name, listings } = where;
   const counters = new Map<NumberedKind, number>();
   const own: NumberedBlock[] = [];
-  for (const { kind, id, line: bodyLine, fromFile } of scanBlocks(body)) {
+  for (const { kind, id, line: bodyLine, fromFile, notes = [], strays = [] } of scanBlocks(body)) {
     const line = bodyLine + lineOffset;
     const count = (counters.get(kind) ?? 0) + 1;
     counters.set(kind, count);
@@ -174,6 +212,11 @@ function indexBlocks(
       const source = resolveListing(fromFile, listings);
       if ("message" in source) {
         problems.add(name(file), `listing "${id}": ${source.message}`, line);
+        continue;
+      }
+      const noteProblem = checkNotes(id, source, notes, strays, line, lineOffset);
+      if (noteProblem !== undefined) {
+        problems.add(name(file), noteProblem.message, noteProblem.line);
         continue;
       }
       block = { ...block, source };

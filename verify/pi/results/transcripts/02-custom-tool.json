@@ -1,0 +1,151 @@
+{
+  "format": 1,
+  "example": "02-custom-tool",
+  "file": "verify/pi/examples/02-custom-tool.ts",
+  "harness": "verify/pi",
+  "pin": "@earendil-works/pi-coding-agent@1.5.2",
+  "mock": "@earendil-works/pi-ai@1.5.2",
+  "events": [
+    {
+      "kind": "request",
+      "line": 33,
+      "model": "model-1",
+      "repeated": 0,
+      "messages": [
+        {
+          "role": "system",
+          "parts": [
+            {
+              "type": "text",
+              "text": ""
+            },
+            {
+              "type": "other",
+              "kind": "sections",
+              "value": [
+                "preamble",
+                "tools",
+                "rules",
+                "docs",
+                "project_context",
+                "cwd"
+              ]
+            }
+          ]
+        },
+        {
+          "role": "user",
+          "parts": [
+            {
+              "type": "text",
+              "text": "What's the temperature in Lisbon?"
+            }
+          ]
+        }
+      ],
+      "tools": [
+        "read",
+        "bash",
+        "edit",
+        "write",
+        "get_temperature"
+      ]
+    },
+    {
+      "kind": "response",
+      "line": 33,
+      "model": "model-1",
+      "message": {
+        "role": "assistant",
+        "parts": [
+          {
+            "type": "tool-call",
+            "id": "<id-1>",
+            "name": "get_temperature",
+            "input": {
+              "city": "Lisbon"
+            }
+          }
+        ]
+      },
+      "finish": "toolUse"
+    },
+    {
+      "kind": "request",
+      "line": 33,
+      "model": "model-1",
+      "repeated": 3,
+      "messages": [
+        {
+          "role": "tool",
+          "parts": [
+            {
+              "type": "tool-result",
+              "id": "<id-1>",
+              "name": "get_temperature",
+              "output": "21°C in Lisbon"
+            }
+          ]
+        }
+      ],
+      "tools": [
+        "read",
+        "bash",
+        "edit",
+        "write",
+        "get_temperature"
+      ]
+    },
+    {
+      "kind": "response",
+      "line": 33,
+      "model": "model-1",
+      "message": {
+        "role": "assistant",
+        "parts": [
+          {
+            "type": "text",
+            "text": "It is 21°C in Lisbon."
+          }
+        ]
+      },
+      "finish": "stop"
+    },
+    {
+      "kind": "check",
+      "line": 34,
+      "message": "custom tool joins the active tool set",
+      "pass": true
+    },
+    {
+      "kind": "check",
+      "line": 35,
+      "message": "execute() received the model's arguments",
+      "pass": true
+    },
+    {
+      "kind": "check",
+      "line": 39,
+      "message": "tool execution events stream",
+      "pass": true
+    },
+    {
+      "kind": "check",
+      "line": 44,
+      "message": "tool result is recorded in the transcript",
+      "pass": true
+    },
+    {
+      "kind": "check",
+      "line": 45,
+      "message": "two model requests: tool call, then the final answer",
+      "pass": true
+    },
+    {
+      "kind": "check",
+      "line": 46,
+      "message": "final answer follows the tool result",
+      "pass": true
+    }
+  ]
+}

@@ -1,0 +1,149 @@
+{
+  "format": 1,
+  "example": "02-tool-loop",
+  "file": "verify/langchain/examples/02-tool-loop.ts",
+  "harness": "verify/langchain",
+  "pin": "langchain@1.6.1",
+  "mock": "@langchain/core@1.3.4",
+  "events": [
+    {
+      "kind": "request",
+      "line": 24,
+      "model": "model-1",
+      "repeated": 0,
+      "messages": [
+        {
+          "role": "user",
+          "parts": [
+            {
+              "type": "text",
+              "text": "Weather in Lisbon?"
+            }
+          ]
+        }
+      ],
+      "tools": [
+        "get_weather"
+      ]
+    },
+    {
+      "kind": "response",
+      "line": 24,
+      "model": "model-1",
+      "message": {
+        "role": "assistant",
+        "parts": [
+          {
+            "type": "other",
+            "kind": "derived-text",
+            "value": {
+              "characters": 18
+            }
+          },
+          {
+            "type": "tool-call",
+            "id": "call_1",
+            "name": "get_weather",
+            "input": {
+              "city": "Lisbon"
+            }
+          }
+        ]
+      },
+      "finish": "tool-calls"
+    },
+    {
+      "kind": "request",
+      "line": 24,
+      "model": "model-1",
+      "repeated": 0,
+      "messages": [
+        {
+          "role": "user",
+          "parts": [
+            {
+              "type": "other",
+              "kind": "derived-text",
+              "value": {
+                "characters": 18
+              }
+            }
+          ]
+        },
+        {
+          "role": "assistant",
+          "parts": [
+            {
+              "type": "other",
+              "kind": "derived-text",
+              "value": {
+                "characters": 18
+              }
+            },
+            {
+              "type": "tool-call",
+              "id": "call_1",
+              "name": "get_weather",
+              "input": {
+                "city": "Lisbon"
+              }
+            }
+          ]
+        },
+        {
+          "role": "tool",
+          "parts": [
+            {
+              "type": "tool-result",
+              "id": "call_1",
+              "name": "get_weather",
+              "output": "Lisbon: 21C"
+            }
+          ]
+        }
+      ],
+      "tools": [
+        "get_weather"
+      ]
+    },
+    {
+      "kind": "response",
+      "line": 24,
+      "model": "model-1",
+      "message": {
+        "role": "assistant",
+        "parts": [
+          {
+            "type": "text",
+            "text": "It is 21C in Lisbon."
+          }
+        ]
+      },
+      "finish": "stop"
+    },
+    {
+      "kind": "check",
+      "line": 28,
+      "message": "the tool gets parsed input with defaults",
+      "pass": true
+    },
+    {
+      "kind": "check",
+      "line": 32,
+      "message": "human, tool call, tool result, answer",
+      "pass": true
+    },
+    {
+      "kind": "check",
+      "line": 37,
+      "message": "the tool result reaches the next model call",
+      "pass": true
+    },
+    {
+      "kind": "check",
+      "line": 38,
+      "message": "the loop ends on the model's answer",
+      "pass": true
+    }
+  ]
+}

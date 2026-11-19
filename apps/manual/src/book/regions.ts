@@ -2,6 +2,8 @@
 export interface SourceLine {
   readonly number: number;
   readonly text: string;
+  /** The id of the `// book:note <id>` marker the line ended with, which its text no longer holds. */
+  readonly note?: string;
 }
 
 /** A failure inside the listed file, with the file's own line when one applies. */
@@ -12,6 +14,8 @@ export interface RegionError {
 
 const REGION = /^\s*\/\/\s*#region\b\s*(.*?)\s*$/;
 const END_REGION = /^\s*\/\/\s*#endregion\b\s*(.*?)\s*$/;
+/** A note marker at the end of a code line, `// book:note <id>`, with the space before it. */
+const NOTE = /\s*\/\/\s*book:note\b\s*(.*?)\s*$/;
 /** A region name: kebab-case, like every other id in the book. */
 const REGION_NAME = /^[a-z0-9]+(?:-[a-z0-9]+)*$/;
 
@@ -66,22 +70,67 @@ export function parseRegions(
   return { regions, markers };
 }
 
+/**
+ * Takes the `// book:note <id>` markers off the ends of a file's lines. Each marker's id must be kebab-case and unique
+ * in the file, and it must follow code on its line, because the note belongs to that line. Like region markers, a
+ * marker is found by its text alone, so one inside a string or a block comment also counts. Returns each line's text
+ * and note id, or the first malformed marker with its 1-based line.
+ */
+export function parseNotes(
+  lines: readonly string[],
+): readonly { readonly text: string; readonly note?: string }[] | RegionError {
+  const seen = new Map<string, number>();
+  const out: { text: string; note?: string }[] = [];
+  for (const [index, line] of lines.entries()) {
+    const match = NOTE.exec(line);
+    if (!match) {
+      out.push({ text: line });
+      continue;
+    }
+    const id = match[1] ?? "";
+    const text = line.slice(0, match.index);
+    if (!REGION_NAME.test(id)) {
+      return {
+        message: `book:note needs a kebab-case id, as in // book:note first-call; got "${id}"`,
+        line: index + 1,
+      };
+    }
+    if (text.trim() === "") {
+      return {
+        message: `book:note ${id} must end the line of code it annotates, not stand on its own line`,
+        line: index + 1,
+      };
+    }
+    const earlier = seen.get(id);
+    if (earlier !== undefined) {
+      return { message: `book:note ${id} appears twice; it is already on line ${earlier}`, line: index + 1 };
+    }
+    seen.set(id, index + 1);
+    out.push({ text, note: id });
+  }
+  return out;
+}
+
 /** Removes the indentation every non-blank line shares, so a region cut from inside a block starts at the margin. */
 function dedent(lines: readonly SourceLine[]): SourceLine[] {
   const indents = lines.filter((line) => line.text.trim() !== "").map((line) => /^[ \t]*/.exec(line.text)?.[0].length);
   const shared = Math.min(...indents.map((n) => n ?? 0));
-  return lines.map((line) => ({ number: line.number, text: line.text.slice(Math.min(shared, line.text.length)) }));
+  return lines.map((line) => ({ ...line, text: line.text.slice(Math.min(shared, line.text.length)) }));
 }
 
 /**
  * The lines a listing shows: the named region of `text`, or the whole file when `region` is undefined, with every
- * region marker inside it left out, its shared indentation removed and blank lines at either end dropped. Each line
- * keeps its number in the file, so the caption and the line numbers name the lines a reader finds in the file.
+ * region marker inside it left out, each note marker taken off its line, its shared indentation removed and blank lines
+ * at either end dropped. Each line keeps its number in the file, so the caption and the line numbers name the lines a
+ * reader finds in the file.
  */
 export function cutRegion(text: string, region: string | undefined): readonly SourceLine[] | RegionError {
-  const lines = text.replace(/\r\n?/g, "\n").replace(/\n$/, "").split("\n");
-  const parsed = parseRegions(lines);
+  const raw = text.replace(/\r\n?/g, "\n").replace(/\n$/, "").split("\n");
+  const parsed = parseRegions(raw);
   if ("message" in parsed) return parsed;
+  const noted = parseNotes(raw);
+  if ("message" in noted) return noted;
+  const lines = noted.map((line) => line.text);
   let from = 0;
   let to = lines.length;
   if (region !== undefined) {
@@ -96,7 +145,9 @@ export function cutRegion(text: string, region: string | undefined): readonly So
   }
   const kept: SourceLine[] = [];
   for (let index = from; index < to; index++) {
-    if (!parsed.markers.has(index)) kept.push({ number: index + 1, text: lines[index] ?? "" });
+    if (parsed.markers.has(index)) continue;
+    const note = noted[index]?.note;
+    kept.push({ number: index + 1, text: lines[index] ?? "", ...(note === undefined ? {} : { note }) });
   }
   const first = kept.findIndex((line) => line.text.trim() !== "");
   const last = kept.findLastIndex((line) => line.text.trim() !== "");

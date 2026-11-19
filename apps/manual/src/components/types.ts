@@ -52,6 +52,8 @@ export interface ReplayEvent {
   readonly kind: "user" | "model" | "tool" | "result" | "check";
   readonly role: string;
   readonly body: string;
+  /** The line of the example file that led to the event, which the replay highlights in its listing. */
+  readonly line?: number;
 }
 
 /** A link to a neighbouring chapter. */
