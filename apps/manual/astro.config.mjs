@@ -12,7 +12,8 @@ import { defineConfig } from "astro/config";
 import { contentDirs, loadBook, renderDependencies } from "./src/book/load.js";
 import { markdownOptionsFor } from "./src/markdown/options.js";
 
-// The book every chapter renders against, loaded and checked once per config load; a broken rule stops the build here.
+// The book every chapter renders against, loaded and checked when the config loads; a broken rule stops the build
+// here. The pages load their own cached copy through getBook(), because Astro bundles them separately.
 const book = loadBook();
 
 // Astro caches each chapter's rendered HTML until the chapter file itself changes. An edit to a Markdown plugin, to
@@ -50,8 +51,8 @@ if (!existsSync(renderStamp) || readFileSync(renderStamp, "utf8") !== renderDige
 }
 
 // Under `astro dev`, an edit to a render input restarts the server, which reloads this config and reruns the check.
-// So does a chapter edit that changes the book's numbered blocks, or one that breaks the book's rules, so the error
-// shows at once.
+// So does a chapter edit that changes the book's numbered blocks or a body's line offset, or one that breaks the
+// book's rules, so numbers and error lines stay current.
 const { chaptersDir } = contentDirs();
 function chapterChangesNumbers() {
   try {

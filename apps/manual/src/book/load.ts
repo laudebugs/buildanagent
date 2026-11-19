@@ -61,12 +61,15 @@ function appRoot(): string {
   }
 }
 
-let fixtureWarned = false;
+// Astro loads this module twice in one build, once for the config and once in the pages' prerender bundle, so the
+// "warned" flag lives on globalThis to print the fixture warning once per process.
+const FIXTURE_WARNED = Symbol.for("@buildanagent/manual:fixture-warned");
+const shared = globalThis as { [FIXTURE_WARNED]?: boolean };
 
 /**
  * Where the build reads chapters and their fact-check logs: `src/content/chapters/` and `fact-checks/`, unless
  * `BOOK_FIXTURE_DIR` names a directory holding `chapters/` and `fact-checks/`. Only the site's build test sets it, to
- * build one fixture chapter while the book has none of its own, so every process that uses it says so on stderr. A
+ * build one fixture chapter while the book has none of its own, so a process that uses it says so once on stderr. A
  * relative value resolves against the app's directory. `src/content.config.ts` reads the same directories, so the
  * collection and the content model always see the same files.
  */
@@ -76,8 +79,8 @@ export function contentDirs(app: string = appRoot()): { readonly chaptersDir: st
     return { chaptersDir: join(app, "src/content/chapters"), factChecksDir: join(app, "fact-checks") };
   }
   const dir = resolve(app, fixture);
-  if (!fixtureWarned) {
-    fixtureWarned = true;
+  if (!shared[FIXTURE_WARNED]) {
+    shared[FIXTURE_WARNED] = true;
     console.warn(`BOOK_FIXTURE_DIR is set: building the fixture chapters in ${dir}, not the book's own`);
   }
   return { chaptersDir: join(dir, "chapters"), factChecksDir: join(dir, "fact-checks") };
@@ -99,7 +102,10 @@ export function bookInputs(): BookInputs {
 
 let realBook: Book | undefined;
 
-/** The real book, loaded on first use and kept for the rest of the process, for the pages and the layouts. */
+/**
+ * The real book for the pages and the layouts, loaded on first use and cached. Astro bundles the pages into their own
+ * module graph, so a build loads the book twice: once in `astro.config.mjs` and once here, each cached.
+ */
 export function getBook(): Book {
   realBook ??= loadBook();
   return realBook;
@@ -187,8 +193,8 @@ function checkIllustrations(
 }
 
 /**
- * What every chapter's rendered HTML depends on beyond its own file: which chapters exist, their numbers and the
- * numbered blocks in each. Astro caches a chapter until the chapter itself changes, so `astro.config.mjs` clears the
+ * What every chapter's rendered output depends on beyond its own file: which chapters exist, their numbers, the
+ * numbered blocks in each, and the line offset of each body, which error lines depend on. Astro caches a chapter until the chapter itself changes, so `astro.config.mjs` clears the
  * cache when this text changes, as when a figure is added to one chapter and another chapter refers to it.
  */
 export function renderDependencies(book: Book): string {
@@ -197,6 +203,8 @@ export function renderDependencies(book: Book): string {
       slug: chapter.slug,
       number: chapter.number,
       blocks: book.index.written.get(chapter.slug)?.blocks.map((block) => [block.kind, block.id, block.number]) ?? null,
+      // A front-matter edit moves every line below it, and the plugins add this offset to each error's line.
+      bodyLineOffset: book.index.written.get(chapter.slug)?.bodyLineOffset ?? null,
     })),
   );
 }

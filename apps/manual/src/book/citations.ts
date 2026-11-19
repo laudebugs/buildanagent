@@ -14,11 +14,11 @@ const ONE = "@[a-z0-9]+(?:-[a-z0-9]+)*";
 export const CITE = new RegExp(`\\[(${ONE}(?:\\s*;\\s*${ONE})*)\\]`, "g");
 
 /**
- * Anything that starts like a citation, so a malformed one fails instead of rendering as plain text. The match stays
- * on one line and within 200 characters, so a long run of unclosed brackets cannot make it scan the text again and
+ * Anything that starts like a citation, so a malformed one fails instead of rendering as plain text. The match may cross a soft line
+ * break but stops after 200 characters, so a long run of unclosed brackets cannot make it scan the text again and
  * again.
  */
-export const CITE_LIKE = /\[@[^\]\n]{0,200}\]/g;
+export const CITE_LIKE = /\[@[^\]]{0,200}\]/g;
 
 /** Where a citation links: the source's entry on the sources page. */
 export const citeHref = (id: string): string => `/sources/#${id}`;

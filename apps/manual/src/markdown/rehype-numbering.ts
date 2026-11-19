@@ -13,11 +13,11 @@ type Place = ReturnType<typeof placeAt>;
 /** A reference as written: `[[fig:id]]`, `[[lst:id]]`, `[[tbl:id]]` or `[[ch:slug]]`. */
 const REF = /\[\[(fig|lst|tbl|ch):([a-z0-9]+(?:-[a-z0-9]+)*)\]\]/g;
 /**
- * Anything that starts like a reference, so a malformed one fails instead of rendering as plain text. The match stays
- * on one line and within 200 characters, so a long run of unclosed brackets cannot make it scan the text again and
+ * Anything that starts like a reference, so a malformed one fails instead of rendering as plain text. The match may cross a soft line
+ * break but stops after 200 characters, so a long run of unclosed brackets cannot make it scan the text again and
  * again.
  */
-export const REF_LIKE = /\[\[[^\]\n]{0,200}\]\]/g;
+export const REF_LIKE = /\[\[[^\]]{0,200}\]\]/g;
 /** Text inside these elements is never a reference: code shows syntax, and links cannot nest. */
 const NO_REFS = new Set(["code", "pre", "a", "script", "style"]);
 

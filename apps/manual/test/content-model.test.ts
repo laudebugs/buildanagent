@@ -1,10 +1,17 @@
 import assert from "node:assert/strict";
 import { test } from "vitest";
 import { CITE_LIKE } from "../src/book/citations.js";
-import { loadBook } from "../src/book/load.js";
+import { loadBook, renderDependencies } from "../src/book/load.js";
 import { isFactCheckLog, normalizeUrl, urlsIn } from "../src/book/sources.js";
 import { REF_LIKE } from "../src/markdown/rehype-numbering.js";
-import { FIXTURE_OUTLINE, fixtureInputs, renderLikeAstro } from "./book-fixture.js";
+import {
+  edit,
+  FIXTURE_OUTLINE,
+  fixtureInputs,
+  mutatedFixture,
+  removeFixture,
+  renderLikeAstro,
+} from "./book-fixture.js";
 
 // The fixture book's two chapters use every feature the content model renders. These tests read the HTML the build's
 // pipeline makes from them; check-book.test.ts holds one failing fixture per rule.
@@ -150,5 +157,21 @@ test("only fact-check logs count as verifiedIn targets", () => {
     "README.md",
   ]) {
     assert.ok(!isFactCheckLog(path), path);
+  }
+});
+
+test("a longer front matter changes the render dependencies, so astro dev restarts with current error lines", () => {
+  const dir = mutatedFixture((copy) =>
+    edit(copy, "chapters/first.md", (text) => text.replace("switchTo: [B11]", "switchTo: [B11, B12]\n# a comment")),
+  );
+  try {
+    const longer = loadBook(fixtureInputs(dir));
+    assert.equal(
+      longer.index.written.get("first")?.bodyLineOffset,
+      (book.index.written.get("first")?.bodyLineOffset ?? 0) + 1,
+    );
+    assert.notEqual(renderDependencies(longer), renderDependencies(book));
+  } finally {
+    removeFixture(dir);
   }
 });

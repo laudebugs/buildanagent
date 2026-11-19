@@ -288,6 +288,24 @@ const cases: readonly Case[] = [
     file: `${FIRST}:10`,
     message: /\[@Alpha_Docs\] is not a citation/,
   },
+  {
+    rule: "a malformed citation that crosses a line break fails",
+    change: firstChapter((t) => t.replace("[@alpha-docs; @beta-paper]", "[@alpha-docs;\n@Beta]")),
+    file: `${FIRST}:12`,
+    message: /\[@alpha-docs;\n@Beta\] is not a citation/,
+  },
+  {
+    rule: "a citation id broken by a line break fails",
+    change: firstChapter((t) => t.replace("[@alpha-docs]", "[@Bad\nthing]")),
+    file: `${FIRST}:10`,
+    message: /\[@Bad\nthing\] is not a citation/,
+  },
+  {
+    rule: "a reference broken by a line break fails",
+    change: firstChapter((t) => t.replace("See [[fig:ticket-rail]],", "See [[fig:ticket\nrail]],")),
+    file: `${FIRST}:24`,
+    message: /\[\[fig:ticket\nrail\]\] is not a reference/,
+  },
   // The chapter contract: the front matter schema and the chapter's shape (BK5).
   {
     rule: "a front matter key the schema does not know fails",
