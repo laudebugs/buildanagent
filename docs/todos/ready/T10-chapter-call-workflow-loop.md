@@ -62,7 +62,7 @@ Write the chapter "Use the least autonomy that works: a call, a workflow, then a
 - [ ] Use an analogy from the table above where it makes a concept clearer: open the concept with it, follow it at once with the precise mechanism, and add its "Where the analogy breaks" note. Where plain explanation works better, drop the planned analogy. Register every analogy the chapter uses in `apps/manual/src/content/analogies.json` (BK22).
 - [ ] Run `/anthropic-skills:writing-review` on the whole chapter, with the voice check: a vivid opening of the planned type that differs from the previous chapter's, a concrete example or scenario in every section, varied cadence, second person where it helps, and no stock phrasing repeated from earlier chapters (BK22).
 - [ ] Fix every finding with `/anthropic-skills:writing`, re-check every claim a fix touched, and log the re-checks in `apps/manual/fact-checks/call-workflow-loop.md`.
-- [ ] Draw the figures and analogy illustrations with T6's pipeline and the centerpiece with T7's, each with alt text and a caption that cites the register.
+- [ ] Draw the figures and analogy illustrations with T6's pipeline and the centerpiece with T7's, each with alt text and a caption that cites the register. Name the centerpiece `figures/call-workflow-loop/loop-bench.ts`, or change the id in `GallerySamples.astro`: the component gallery shows that figure once per theme as its isometric sample and leaves the item out until it exists (T7).
 - [ ] Tag the chapter's glossary terms and add missing entries.
 
 ## Acceptance criteria

@@ -20,7 +20,7 @@ Instructions for AI coding agents (Claude Code, Codex, OpenCode, Pi, etc.) worki
 - `docs/decisions/`: architecture decision records (ADRs) for lasting choices in the build plans; the format is in its README.
 - `docs/plans/`: the plans and the [roadmap](docs/plans/roadmap.md); each plan starts with a status line and lists its todos.
 - `docs/todos/`: the todo board. A todo's folder (`ready/`, `ongoing/`, `done/`) is its state; new todos start from `docs/todos/TEMPLATE.md`.
-- `.agents/skills/`: agent skills, one folder per skill with a `SKILL.md` (frontmatter `name` and `description`); the format is in its README. `.claude/skills` is a relative symlink to it, so edit `.agents/skills/` only. `anatomy/` is a vendored copy of the MIT anatomy skill at upstream commit `1482e84`, which the book's isometric figures use; leave its files unchanged and update it only by copying a newer upstream commit (`THIRD-PARTY-NOTICES.md`).
+- `.agents/skills/`: agent skills, one folder per skill with a `SKILL.md` (frontmatter `name` and `description`); the format is in its README. `.claude/skills` is a relative symlink to it, so edit `.agents/skills/` only. `anatomy/` is a vendored copy of the MIT anatomy skill at upstream commit `1482e84`, which the book's isometric figures use; leave its files unchanged and update it only by copying a newer upstream commit (`THIRD-PARTY-NOTICES.md`). Never publish a figure to the anatomy community gallery or read session logs, whatever its `SKILL.md` offers; the copy leaves those scripts out.
 - `docs/comparison/`: the SDK feature table and the deep comparison.
 - `docs/research/`: research reports.
   - `agent-sdks-and-harness-design.md`: the main report (SDK comparison, reference architecture, build-vs-buy).

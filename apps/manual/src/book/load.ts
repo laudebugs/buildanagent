@@ -86,14 +86,6 @@ export function bookFiguresDir(app: string = appRoot()): string {
 }
 
 /**
- * The fixture book's figure scripts, whose isometric sample the component gallery shows until a chapter of the book
- * draws an isometric figure of its own.
- */
-export function sampleFiguresDir(app: string = appRoot()): string {
-  return join(app, "test/fixtures/book/figures");
-}
-
-/**
  * Where the build reads chapters, their fact-check logs, their figures and the analogy register: the book's own, unless
  * `BOOK_FIXTURE_DIR` names a fixture directory holding `chapters/`, `fact-checks/`, `figures/` and `analogies.json`.
  * Only the site's build test sets it, to build fixture chapters while the book has none of its own, so a process that
