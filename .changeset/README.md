@@ -22,7 +22,7 @@ Both packages stay at 0.x, so a change that breaks the API is a `minor` bump, ne
 
 ## Both packages are versioned, and the harnesses never are
 
-Both packages dropped `private` in todo L4a, so `pnpm changeset` offers them and `pnpm changeset version` moves them off 0.0.0 once a changeset is pending. `privatePackages` in `config.json` still tells Changesets to skip private packages, which now affects only the harnesses under `verify/`. They are also listed in `ignore`, so they are never versioned.
+Both packages dropped `private` in todo L4a, so `pnpm changeset` offers them and `pnpm changeset version` moves them off 0.0.0 once a changeset is pending. `privatePackages` in `config.json` still tells Changesets to skip private packages, which today affects only the harnesses under `verify/`, and later the private apps and packages the plans add. The harnesses are also listed in `ignore`, so they are never versioned.
 
 ## CI checks for a changeset once publishing starts
 

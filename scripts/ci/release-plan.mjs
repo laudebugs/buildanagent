@@ -6,7 +6,7 @@
 //   node scripts/ci/release-plan.mjs notes <file>  writes the changelog section of the current version to <file>
 //
 // The plan publishes only when every one of these holds, and says which one failed otherwise:
-// - no package is `private` (none is since L4a; the check guards against the field coming back);
+// - no package is `private` (none has been since L4a, and a test in release.test.mjs fails if the field comes back);
 // - the version isn't 0.0.0, the workspace's never-released version, so dropping `private` alone publishes nothing;
 // - no changeset is pending, because pending changesets belong in the "Version packages" pull request first;
 // - npm doesn't already hold every package at that version, or it does but the GitHub release v<version> is missing,

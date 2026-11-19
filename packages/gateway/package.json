@@ -68,6 +68,7 @@
   "scripts": {
     "build": "node ../../scripts/clean-dist.mjs && tsc -p tsconfig.build.json",
     "prepack": "pnpm run build && node ../../scripts/copy-licenses.mjs",
+    "prepublishOnly": "node ../../scripts/refuse-local-publish.mjs",
     "typecheck": "tsc -p tsconfig.json",
     "test": "vitest run"
   }

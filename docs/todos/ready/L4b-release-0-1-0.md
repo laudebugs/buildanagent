@@ -53,6 +53,8 @@ Both READMEs and CHANGELOGs, the roadmap, the plan's todo table.
 
 If L4b can't merge within 2 days of the owner adding the trusted publishers, they expire; the owner re-adds them on npmjs.com before L4b merges.
 
+The changeset gate, once switched on, fails any pull request that runs `pnpm changeset version`, because that command edits each `package.json` and deletes the changesets it consumed. A local run on 2026-11-19 failed that way with "Some packages have been changed but no changesets were found". This pull request does both as scoped, and every "Version packages" pull request runs the command too. Before switching the gate on, choose one fix: skip the gate on `changeset-release/main`, and let this pull request add the 0.1.0 changeset while the "Version packages" pull request does the bump; or switch the gate on only in a follow-up pull request, with the skip ([CI plan §3e](../../plans/ci.md#3e-a-changeset-check-off-until-the-first-release-added-2026-11-19)).
+
 ## Definition of done
 
 - [ ] Claimed: the first commit moved this file `ready/` → `ongoing/` (Status `ongoing`)
