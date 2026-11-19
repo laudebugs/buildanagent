@@ -47,6 +47,10 @@ The same loop in two SDKs, where `stopWhen` and `Agent` set who decides:
 | Answer | The model replies without a tool call |
 | Cap | The loop reaches its step limit |
 
+:::box[Where each step goes]{#where-steps-go}
+Each step the loop takes is one model call, and the cap counts them.
+:::
+
 ## Exercises
 
 1. Count the loop's steps.

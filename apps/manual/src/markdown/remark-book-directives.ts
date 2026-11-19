@@ -171,38 +171,48 @@ function mergeText(parent: Parent): void {
 
 /**
  * The heading level of each `:::tabs` block's tab headings and each `:::box`'s title: one below the heading the block
- * follows, so the headings keep the page's outline without JavaScript. A box's title counts as a heading for what the
- * box holds, so tabs inside a box under a level-2 heading get level-4 tab headings, below the box's level-3 title. A
- * block before the chapter's first heading sits under the chapter's title, a level-1 heading, so its headings are
- * level 2. Levels stop at 6.
+ * follows, so the headings keep the page's outline without JavaScript. A block before the chapter's first heading sits
+ * under the chapter's title, a level-1 heading, so its headings are level 2. Levels stop at 6.
+ *
+ * A box at the chapter's top level is the exception: its title is a level-2 heading, so the box stands beside the
+ * chapter's sections and appears in "On this page". A box is at the top level when it sits directly in the chapter,
+ * not inside another block, and either comes before the chapter's first heading or is followed directly by a `##`
+ * heading, so nothing of the section before it comes after it. Any other box sits inside its section.
+ *
+ * A box's title counts as a heading for what the box holds, so tabs inside a box get tab headings one level below
+ * the box's title: level 4 in a box inside a `##` section, level 3 in a top-level box.
  */
 function nestedHeadingDepths(tree: Root): Map<RootContent, number> {
   const depths = new Map<RootContent, number>();
   let current = 1;
   const visitAll = (parent: Parent): void => {
-    for (const node of parent.children) {
+    parent.children.forEach((node, index) => {
       if (node.type === "heading") current = node.depth;
-      const nests = node.type === "containerDirective" && (node.name === "tabs" || node.name === "box");
-      if (nests) depths.set(node, Math.min(current + 1, 6));
-      if (!("children" in node)) continue;
-      if (node.type === "containerDirective" && node.name === "box") {
+      const isBox = node.type === "containerDirective" && node.name === "box";
+      if (isBox || (node.type === "containerDirective" && node.name === "tabs")) {
+        const next = parent.children[index + 1];
+        const topLevel = isBox && parent === tree && next?.type === "heading" && next.depth === 2;
+        depths.set(node, topLevel ? 2 : Math.min(current + 1, 6));
+      }
+      if (!("children" in node)) return;
+      if (isBox) {
         // A box holds no heading, so the level after it is the one before it.
         const outside = current;
-        current = Math.min(current + 1, 6);
+        current = depths.get(node) ?? outside + 1;
         visitAll(node);
         current = outside;
       } else {
         visitAll(node);
       }
-    }
+    });
   };
   visitAll(tree);
   return depths;
 }
 
 /**
- * `:::box[Title]{#id}` as an `<aside>` named by its title, which becomes a heading one level below the heading the box
- * follows, with the box's id, so a link to `#id` lands on the title. The box holds any Markdown but a heading or
+ * `:::box[Title]{#id}` as an `<aside>` named by its title, which becomes a heading at the level `nestedHeadingDepths`
+ * gives it, with the box's id, so a link to `#id` lands on the title. The box holds any Markdown but a heading or
  * another box, so its title stays the one heading the page's outline gets from it; a file listing inside it is numbered
  * and checked like any other. A box takes no attribute but its id.
  */

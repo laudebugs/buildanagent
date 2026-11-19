@@ -163,19 +163,20 @@ The first code review (high) found four wrong or misleading passages and a figur
 
 ## Re-checks after the owner's decisions of 2026-11-19
 
-The owner decided on 2026-11-19 that the book gets a box and that the bench's readout says `tool_result`. The chapter's last section before the exercises became a box, and the bench's fourth readout changed. Each row below checks a claim those changes touched.
+The owner decided on 2026-11-19 that the book gets a box and that the bench's readout says `tool_result`, and later that day that a box at the chapter's top level gets a level-2 title. The chapter's last section before the exercises became a box, the bench's fourth readout changed, and the box's title became a level-2 heading again. Each row below checks a claim those changes touched.
 
 | # | Claim | Where | Verdict | Source and reason |
 | --- | --- | --- | --- | --- |
 | 101 | "How these examples run without a key" is now a box, an `<aside>` labelled by its title, and its title keeps the id `how-these-examples-run-without-a-key`, so note 1 of [[lst:one-call]], which now calls it "The box", still links to it near the end of the chapter | § One call, note 1; the box | ✅ | The built page (`apps/manual/dist/call-workflow-loop/index.html`, 2026-11-19) holds `<aside class="box" aria-labelledby="how-these-examples-run-without-a-key">`, whose `<h3>` carries that id, and note 1's link `href="#how-these-examples-run-without-a-key"`. The box comes after § Choose the shape and before § Exercises, so "near the end of this chapter" still holds |
 | 102 | The box's text and its listing, [[lst:scripted-mock]], are unchanged, so rows 64–73 still check its claims | The box | ✅ | `git diff` of the chapter against `main` before this change: the section's heading became the box's fence and title, and a closing fence follows its last paragraph; no sentence and no directive inside changed |
 | 103 | The bench's fourth step reads "4/6 · tool_result: 21C", naming the part as its drawn label `tool_result` does and as the prose names Anthropic's block (row 28); the 21C is the tool's result in the AI SDK loop's transcript | § The loop, [[fig:loop-bench]] | ✅ | `figures/call-workflow-loop/loop-bench.ts`, `STEPS[3]`, and its rebuilt `loop-bench.html`; the drawn label is `parts.label("tool_result", …)` in the same file. `verify/vercel-ai-sdk/results/transcripts/02-tool-loop.json` holds the `tool-result` part with `"temperature": 21` and `"unit": "C"` for Lisbon (row 36). The alt text describes only the first step's readout, so it needs no change |
+| 104 | The box "How these examples run without a key" stands at the chapter's top level, so its title is a level-2 heading and the chapter's "On this page" list shows it; its id `how-these-examples-run-without-a-key` and note 1's link to it are unchanged | The box; § One call, note 1 | ✅ | The owner decided on 2026-11-19 that a box at the chapter's top level gets a level-2 title. The box is followed directly by `## Exercises`, so the README's rule puts it at the top level. The built page (`apps/manual/dist/call-workflow-loop/index.html`, 2026-11-19) holds `<h2 class="box__heading" id="how-these-examples-run-without-a-key">`, which replaces the `<h3>` row 101 saw, and the sidebar's list links `#how-these-examples-run-without-a-key` between § Choose the shape and § Exercises |
 
 ## Tally
 
 | Verdict | Rows |
 | --- | --- |
-| ✅ confirmed | 92 |
+| ✅ confirmed | 93 |
 | ✏️ corrected | 7 (rows 26, 42, 61, 70, 85, 86 and 98) |
 | ⚠️ unverified, our judgement or recommendation, marked as ours in the text | 4 (rows 11, 41, 63 and 97) |
-| Total | 103 |
+| Total | 104 |

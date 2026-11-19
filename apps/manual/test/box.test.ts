@@ -19,19 +19,25 @@ The example in [[lst:boxed]] runs offline, like :analogy[the ticket rail]{#kitch
 ## Exercises`;
 
 // Tabs inside a box: the box's title is a level-3 heading under the section's level-2 heading, so the tab headings
-// sit one level below it, at level 4.
+// sit one level below it, at level 4. The paragraph after the box keeps the box inside its section.
 const TABBED = `## Two harnesses
 
-:::box[The same call in two harnesses]{#same-call}
+::::box[The same call in two harnesses]{#same-call}
 Each tab shows the call in one harness.
 
-::::tabs
+:::tabs
 ::listing[demo-sdk]{#hello-demo file="verify/demo-sdk/examples/01-hello.ts" region="call"}
 ::listing[other-sdk]{#hello-other file="verify/other-sdk/examples/01-other.ts" region="call"}
-::::
 :::
+::::
+
+Both tabs make the same call.
 
 ## Exercises`;
+
+// The same box with nothing after it but the next section's heading: it stands at the chapter's top level, so its
+// title is a level-2 heading and the tab headings are level 3.
+const TOP_LEVEL = TABBED.replace("Both tabs make the same call.\n\n", "");
 
 const dir = mutatedFixture((copy) => edit(copy, "chapters/second.md", (text) => text.replace("## Exercises", BOX)));
 const html = await renderLikeAstro(loadBook(fixtureInputs(dir)), "second");
@@ -39,9 +45,14 @@ const tabbedDir = mutatedFixture((copy) =>
   edit(copy, "chapters/second.md", (text) => text.replace("## Exercises", TABBED)),
 );
 const tabbedHtml = await renderLikeAstro(loadBook(fixtureInputs(tabbedDir)), "second");
+const topDir = mutatedFixture((copy) =>
+  edit(copy, "chapters/second.md", (text) => text.replace("## Exercises", TOP_LEVEL)),
+);
+const topHtml = await renderLikeAstro(loadBook(fixtureInputs(topDir)), "second");
 afterAll(() => {
   removeFixture(dir);
   removeFixture(tabbedDir);
+  removeFixture(topDir);
 });
 const box = html.slice(html.indexOf('<aside class="box"'), html.indexOf("</aside>") + "</aside>".length);
 
@@ -73,4 +84,15 @@ test("tabs inside a box under a level-2 heading get level-4 tab headings, below 
   assert.match(tabbedHtml, /<h4 class="tabs__heading" id="lst-hello-demo-heading">demo-sdk<\/h4>/);
   assert.match(tabbedHtml, /<h4 class="tabs__heading" id="lst-hello-other-heading">other-sdk<\/h4>/);
   assert.doesNotMatch(tabbedHtml, /<h3 class="tabs__heading"/);
+  assert.doesNotMatch(tabbedHtml, /<p>:::/, "every fence closes its own block");
+});
+
+test("a box followed directly by a ## heading is at the top level: a level-2 title, and level-3 tab headings", () => {
+  assert.match(topHtml, /<h2 class="box__heading" id="same-call">The same call in two harnesses<\/h2>/);
+  assert.match(topHtml, /<h3 class="tabs__heading" id="lst-hello-demo-heading">demo-sdk<\/h3>/);
+  assert.match(topHtml, /<h3 class="tabs__heading" id="lst-hello-other-heading">other-sdk<\/h3>/);
+});
+
+test("a box followed by more of its section stays inside it, one level below the section's heading", () => {
+  assert.match(box, /<h3 class="box__heading" id="fixture-runs-offline">/);
 });
