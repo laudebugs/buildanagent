@@ -8,7 +8,7 @@
 | Status | `ready` |
 | Plan | [Book plan §5, BK14](../../plans/build-book.md#bk14-one-ci-job-builds-the-book-and-runs-every-check-proposed) |
 | Round / milestone | Round T (textbook), MT |
-| Depends on | [T4](../done/T4-book-listings.md), [T6](T6-book-flat-figures.md) |
+| Depends on | [T4](../done/T4-book-listings.md), [T6](../done/T6-book-flat-figures.md) |
 | Size | S |
 
 ## Goal

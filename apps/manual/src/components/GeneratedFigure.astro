@@ -1,0 +1,26 @@
+---
+import { readFileSync } from "node:fs";
+import { figureFiles, inlineSvg } from "../book/figures.js";
+import { bookFiguresDir } from "../book/load.js";
+import FigureFrame from "./FigureFrame.astro";
+
+// A generated figure from figures/<chapter>/<figure>.svg in the figure frame, inlined as a chapter's figure is, so it
+// follows the page's theme. A page that shows a figure twice, as the gallery does, gives each copy its own idPrefix.
+interface Props {
+  readonly chapter: string;
+  readonly figure: string;
+  readonly id: string;
+  readonly idPrefix: string;
+  readonly number: string;
+  readonly caption: string;
+  readonly alt: string;
+}
+
+const { chapter, figure, id, idPrefix, number, caption, alt } = Astro.props;
+const { svg } = figureFiles(bookFiguresDir(), chapter, figure);
+const html = inlineSvg(readFileSync(svg, "utf8"), { figureId: figure, alt, idPrefix });
+---
+
+<FigureFrame id={id} number={number} caption={caption} scroll>
+  <Fragment set:html={html} />
+</FigureFrame>

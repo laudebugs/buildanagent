@@ -114,6 +114,25 @@ importers:
       '@buildanagent/gateway':
         specifier: workspace:*
         version: link:../gateway
+      '@earendil-works/pi-schema':
+        specifier: 1.5.2
+        version: 1.5.2
+      '@standard-schema/spec':
+        specifier: 1.1.0
+        version: 1.1.0
+    devDependencies:
+      '@buildanagent/agent-safety':
+        specifier: workspace:*
+        version: link:../agent-safety
+      '@cfworker/json-schema':
+        specifier: 4.1.6
+        version: 4.1.6
+      miniflare:
+        specifier: 5.20261103.0-beta
+        version: 5.20261103.0-beta(@types/node@26.6.6)
+      zod:
+        specifier: 4.6.7
+        version: 4.6.7
 
   verify/claude-agent-sdk:
     dependencies:

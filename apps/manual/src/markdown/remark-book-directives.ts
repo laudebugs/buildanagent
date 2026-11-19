@@ -76,6 +76,17 @@ function restored(node: TextDirective): RootContent {
   return { type: "text", value: `:${node.name}`, ...(node.position ? { position: node.position } : {}) };
 }
 
+/** Whether a caption's nodes hold no text but spaces, as in `:::figure[ ]`, which would render as an empty caption. */
+function isBlank(nodes: readonly RootContent[]): boolean {
+  const text = (node: RootContent): string =>
+    "value" in node && typeof node.value === "string"
+      ? node.value
+      : "children" in node
+        ? (node.children as RootContent[]).map(text).join("")
+        : "";
+  return nodes.map(text).join("").trim() === "";
+}
+
 const isBare = (node: TextDirective): boolean =>
   node.children.length === 0 && Object.keys(node.attributes ?? {}).length === 0;
 
@@ -83,7 +94,7 @@ function numbered(node: ContainerDirective, kind: NumberedKind, file: VFile): Co
   const id = node.attributes?.id;
   const labelIndex = node.children.findIndex((child) => child.type === "paragraph" && child.data?.directiveLabel);
   const label = node.children[labelIndex] as Paragraph | undefined;
-  if (label === undefined || label.children.length === 0) {
+  if (label === undefined || isBlank(label.children)) {
     return failAt(file, `a ${kind} needs a caption, written :::${kind}[Caption]{#${id ?? "id"}}`, node);
   }
   const body = node.children.filter((_, i) => i !== labelIndex);
@@ -244,7 +255,7 @@ function fileListing(
     return failAt(file, `the book index has no listing "${id}" from a file; rerun the build`, node);
   }
   const label = captionOf(node);
-  if (label.length === 0) {
+  if (isBlank(label)) {
     return failAt(file, `a listing needs a caption, written ::listing[Caption]{#${id} file="…"}`, node);
   }
   const { source, number } = block;

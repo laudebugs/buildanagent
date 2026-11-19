@@ -5,7 +5,7 @@
 // (LICENSE, THIRD-PARTY-NOTICES.md).
 import { createHash } from "node:crypto";
 import { existsSync, mkdirSync, readdirSync, readFileSync, rmSync, writeFileSync } from "node:fs";
-import { join } from "node:path";
+import { isAbsolute, join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { unified } from "@astrojs/markdown-remark";
 import { defineConfig } from "astro/config";
@@ -27,8 +27,9 @@ const book = loadBook();
 // Paths resolve from this file, so the config loads from any directory.
 const CACHE_DIR = "./node_modules/.astro/";
 const here = (path) => fileURLToPath(new URL(path, import.meta.url));
+// A directory relative to this file, or an absolute one.
 const filesIn = (dir) =>
-  readdirSync(here(dir), { recursive: true, withFileTypes: true })
+  readdirSync(isAbsolute(dir) ? dir : here(dir), { recursive: true, withFileTypes: true })
     .filter((entry) => entry.isFile())
     .map((entry) => join(entry.parentPath, entry.name));
 const renderInputs = [
@@ -36,8 +37,13 @@ const renderInputs = [
   ...filesIn("./src/book/"),
   ...filesIn("./src/data/"),
   here("./src/components/listing-html.ts"),
+  // A chapter inlines its figures' generated SVGs, so a redrawn figure must render the chapter again. The figures and
+  // the analogy register are the fixture's under BOOK_FIXTURE_DIR.
+  ...(existsSync(book.inputs.figuresDir) ? filesIn(book.inputs.figuresDir) : []).filter((file) =>
+    file.endsWith(".svg"),
+  ),
   here("./src/outline.ts"),
-  here("./src/content/analogies.json"),
+  book.inputs.analogiesFile,
 ].sort();
 const renderHash = createHash("sha256");
 for (const file of renderInputs) renderHash.update(file.slice(here("./").length)).update(readFileSync(file));

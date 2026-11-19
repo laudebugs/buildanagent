@@ -541,4 +541,67 @@ The writing review reworded T4's prose; this row re-checks the one claim its fix
 | --- | --- | --- | --- | --- |
 | 319 | A file that an included example imports counts as covered, because it is in the program `tsc --listFilesOnly` prints | The app's README | ✅ | Row 308's source; the test "a file only one harness imports is covered there" in `test/typecheck-coverage.test.ts` finds `verify/a/lib/y.ts`, outside `include`, covered through `a`'s import |
 
-**Totals:** 319 claims: 281 ✅, 38 ✏️, 0 ⚠️.
+## T6 pass: the flat figure pipeline
+
+These rows check the claims that T6 adds to its todo's outcome, `apps/manual/README.md`, THIRD-PARTY-NOTICES.md, AGENTS.md and BK11, at branch `todo/T6-book-flat-figures` off `main` `3c438b0`. Garment claims come from the three files at commit `bca44b0`, read with `gh api`. Rows marked "ours" record a choice or an observation of our own, not an outside fact.
+
+| # | Claim | Where | Verdict | Source and reason |
+| --- | --- | --- | --- | --- |
+| 320 | The garment kit embeds its code font as a data URI because an SVG shown through `<img>` cannot load the page's fonts, and its `text()` raises on a character outside the subset | Notices, `svgkit.ts` header | ✅ | `scripts/figures/svgkit.py` at `bca44b0`, module docstring lines 3–6 and `text()`. Its glyph set is a hand-kept list of ranges ("Update this if public/fonts/… change"); ours reads the committed font's character map instead (ours) |
+| 321 | The garment kit escapes every label and draws arrowheads and arrows whose shaft starts on one box edge and whose head lands on the next | Notices, `svgkit.ts` header | ✅ | `svgkit.py`: `text()` calls `escape(s)`; `arrowhead()`; `down()` and `right()`, whose docstrings say "starts on a box edge and whose head lands on the next" |
+| 322 | The garment staleness check draws every figure in memory, compares each with its committed file, and names the script to rerun | Notices, `registry.ts` header | ✅ | `scripts/tests/figure_staleness.py`: `assert_current` collects `module.OUT` and fails with "`{name} is stale: run python3 scripts/figures/{chapter}.py`" |
+| 323 | The garment figure plugin fails without alt text or a caption and inlines a generated fragment in place of the image, inside the captioned figure | Notices, `remark-figures.ts` header | ✅ | `src/lib/markdown/rehype-figures.mjs`: the two `throw`s for a missing caption and missing alt text, and the `{ type: 'raw', value: viewerHtml(src) }` child |
+| 324 | The figure kit reads the upright code font that the tokens name, `/fonts/manual-code/manual-code-roman.woff2`, from `public/fonts/` | README, `svgkit.ts` | ✅ | `docs/design/book-tokens.json`, `font.code.files[0]`; `figureFont()` |
+| 325 | That subset maps 484 code points, every one at an advance of 0.6 em, so the font is monospaced and a label's width is its length times 0.6 em | README, `svgkit.ts`, figure tests | ✅ | `woff2CharacterMap()` and `woff2Advances()` on the committed file: 484 entries, one distinct advance, 0.6. Its `hmtx` table is stored untransformed (directory flag 0), so the reader needs no WOFF2 transform |
+| 326 | The subset draws `→` (U+2192) but not `↺` (U+21BA), so the README's example of a refused glyph is real | README, figure tests | ✅ | The same character map: U+2190–U+2193 are present, U+21BA is not; the test "a label with a glyph outside the embedded font throws" asserts both |
+| 327 | The upright subset is 42,228 bytes, and each committed figure, which embeds it as base64, is about 61 KB | Outcome | ✅ | `wc -c`: 42,228; `who-decides.svg` 61,743 and `ticket-rail.svg` 60,833 bytes |
+| 328 | Every tone a figure label may take (panel text, comment, terracotta) reaches at least 4.5:1 on the panel background in both modes | `svgkit.ts`, README | ✅ | `book-tokens.json` `panelLight` and `panelDark` contrast lists, recomputed by `test/contrast.test.ts`: the lowest is light terracotta at 5.32. Labels never sit on a filled shape, whose contrast nobody measured (ours) |
+| 329 | No built page may hold a `<style>` element, because the content security policy is to allow styles by origin only | README, `inlineSvg()` | ✅ | `test/build.test.ts`, "no page inlines a stylesheet", and `astro.config.mjs`'s `inlineStylesheets: "never"` comment, both from T2 |
+| 330 | XML forbids the string `--` inside a comment, so the generated header comment names `figures:build` without `pnpm --filter` | `svgkit.ts` | ✅ | [XML 1.0, fifth edition, §2.5](https://www.w3.org/TR/xml/#sec-comments): "For compatibility, the string "--" (double-hyphen) MUST NOT occur within comments". Chrome refused the first draft with "Unexpected token '--'" |
+| 331 | Biome 2.6.4 lints SVG files, and its `noSvgWithoutTitle` rule fails on a generated figure, which takes its accessible name from the chapter's alt text when inlined | `biome.json` | ✅ | `pnpm check` on the first draft reported `lint/a11y/noSvgWithoutTitle` on both SVGs. Excluding the generated files, which the staleness test checks byte for byte, is our choice (ours) |
+| 332 | T10 plans a flat analogy illustration of the kitchen ticket rail and a flat figure of a call, a workflow and a loop side by side, with who decides the next step in each | Outcome, figure scripts | ✅ | [T10](../../todos/ready/T10-chapter-call-workflow-loop.md), Figures bullet and the analogy table's "agent loop" row |
+| 333 | The book's own analogy register is empty, and the fixture register already holds `kitchen-ticket-rail` with the illustration `ticket-rail` | Outcome, README | ✅ | `git show 3c438b0:apps/manual/src/content/analogies.json` prints `[]`; `apps/manual/test/fixtures/book/analogies.json` |
+| 334 | The sample analogy figure and its register entry stay in the fixture book, so the book's register claims no analogy before T10 writes Chapter 1 | Outcome, README | ✅ | Ours, as the T6 brief asked when a real entry would claim T10's analogy early |
+| 335 | Both samples render with the panel colours of each theme, and stay legible at 200% zoom | Outcome | ✅ | Ours: headless Chrome screenshots of a fixture build, the chapter page in light and with `--force-dark-mode`, at 1280 px and at 640 px with a device scale of 2, which is how a 1280 px window lays out at 200%; the analogy figure through a page holding a light and a dark `[data-theme]` section |
+
+### T6's first review round and the owner's phone decision
+
+These rows check the claims that the fixes for PR #71's first code review add to BK10, BK11, the app's README, the kit's comments and T6's Outcome, after the merge of `main` `65677cb`. Measurements come from headless Chrome on a fixture build, with the chapter page in an iframe of the stated width.
+
+| # | Claim | Where | Verdict | Source and reason |
+| --- | --- | --- | --- | --- |
+| 336 | At desktop widths a chapter's figure stage leaves 526 px for the drawing: the 38rem column, less the panel's 1 px border and 2.5rem of padding a side; a 520-unit limit therefore shows every figure whole there | BK11, `svgkit.ts`, README | ✅ | `tokens.css` `--measure: 38rem`; `components.css` `.panel` `border: 1px` and `.figure__stage` `padding: clamp(1rem, 4vw, 2.5rem)`; Chrome at 1280 px: stage `clientWidth` 606 and `scrollWidth` 606 for both figures. The limit of 520 is our choice (ours) |
+| 337 | The scroll hint shows while the panel's content is under 37.5rem (600 px), the room a 520-unit figure needs with 2.5rem of padding a side, and stays hidden at desktop widths | BK11, `components.css` | ✅ | 520 + 2 × 40 = 600. Chrome: the hint's `display` is `none` at 1280 px and `block` at 360 px. The threshold is our choice (ours) |
+| 338 | At 360 px every label of both sample figures renders at 12 px, and each panel scrolls sideways | BK11, Outcome | ✅ | Chrome at 360 px: the smallest of the 35 labels is 12.00 px (font size times the SVG's screen scale); each stage is 326 px wide and scrolls to 552. Our measurement (ours) |
+| 339 | The approved phone label size is 12 px | BK11, README, figure tests | ✅ | `docs/design/book-tokens.json`, `size.code.label`: `phone` 12, `desktop` 12 |
+| 340 | Figures scroll sideways on phones below the width at which labels would drop under the phone label size, with a visible hint, one drawing per figure and no JavaScript, and the kit checks a maximum width | BK10, BK11 | ✅ | The owner's decision of 2026-11-19, as relayed with the first review round's findings |
+| 341 | The figure kit writes only `g`, `rect`, `path`, `circle` and `text` inside its root, with the attributes the inliner allows | README, `figures.ts` | ✅ | `figures/lib/svgkit.ts`: those are the only element names its template strings write after the `<style>`; the attribute list matches what `text()`, `box()`, `line()`, `#head()`, `curve()`, `dot()` and `group()` write |
+
+### T6's second review round
+
+The medium review of PR #71 found that the scroll hint showed when nothing scrolled, so row 337's threshold was wrong. These rows correct it and check the claims of the fix, measured in headless Chrome 157 on a fixture build with the chapter page in an iframe of the stated width.
+
+| # | Claim | Where | Verdict | Source and reason |
+| --- | --- | --- | --- | --- |
+| 342 | Row 337, corrected: a 37.5rem threshold assumed 2.5rem of stage padding, but the padding is `clamp(1rem, 4vw, 2.5rem)`, so from about 617 to 649 px the hint showed with no overflow, and it would show under a narrower figure that fits | BK11, `components.css` | ✏️ | `components.css` `.figure__stage` padding; the review measured 640 px: panel 591, `scrollWidth` equal to `clientWidth`, hint shown. **Now:** the hint follows the stage's own overflow (row 343), and the 37.5rem rule is gone |
+| 343 | A scroll timeline is inactive while its container has nothing to scroll, so an animation on it has no effect and the hint keeps its hidden base style | `components.css`, README, BK11 | ✅ | [CSS Scroll-driven Animations](https://www.w3.org/TR/scroll-animations-1/), the `ScrollTimeline` interface: "if there is no scrollable overflow, then the ScrollTimeline is inactive"; checked in Chrome by row 344 |
+| 344 | At 360, 480, 640 and 1280 px the hint shows exactly when a stage's `scrollWidth` exceeds its `clientWidth`, for both 520-wide samples and a 300-wide copy | BK11, commit | ✅ | Ours. Stage `clientWidth`/`scrollWidth`, hint shown: 360 px, 326/552 shown for the 520-wide figures and 326/332 shown for the 300-wide copy; 480 px, 440/558 shown and 440/440 hidden; 640 px, 591/591 hidden for all; 1280 px, 606/606 hidden for all |
+| 345 | The build's CSS minifier folds `animation` and `animation-timeline` in one rule into an `animation` shorthand that holds the timeline, which Chrome rejects, so the timeline sits in a later rule | `components.css` | ✅ | Ours: the built CSS read `animation:linear both figure-scroll-hint --figure-scroll`, and the hint never showed until the timeline moved to its own rule. MDN's [`animation-timeline`](https://developer.mozilla.org/en-US/docs/Web/CSS/Reference/Properties/animation-timeline) page: "The animation-timeline property is included in the animation shorthand as a reset-only value" (a secondary source) |
+| 346 | Every scrolling stage keeps `tabindex="0"`, because CSS cannot make an element focusable only while it overflows; a figure that fits is then a named tab stop that scrolls nothing | BK11, README | ✅ | Ours: focusability comes from the `tabindex` attribute, which no CSS property sets; scoping it needs a script, which BK11 rules out |
+
+### T6's second review round, low effort
+
+| # | Claim | Where | Verdict | Source and reason |
+| --- | --- | --- | --- | --- |
+| 347 | Row 345, corrected: the primary source does not make `animation-timeline` reset-only in the `animation` shorthand; the shorthand's grammar includes `<single-animation-timeline>`. Chrome 157 still rejects the shorthand the minifier wrote, so the timeline stays in its own rule | Row 345, `components.css` | ✏️ | [CSS Animations Level 2, §4.12, the `animation` shorthand](https://drafts.csswg.org/css-animations-2/#animation-shorthand), Editor's Draft of 18 August 2026, and §4.10 of the Working Draft of 2 June 2023: both grammars end in `|| <single-animation-timeline>`. MDN's "reset-only value" does not match them. The shorthand still resets the timeline when it omits it, as it does every sub-property; the comment now says the grammar allows the minifier's shorthand and Chrome rejects it |
+
+### T6's writing review
+
+The writing review reworded T6's prose; these rows re-check the claims its fixes touched.
+
+| # | Claim | Where | Verdict | Source and reason |
+| --- | --- | --- | --- | --- |
+| 348 | Row 327, updated: after the samples were redrawn at 520 units, `who-decides.svg` is 61,727 bytes and `ticket-rail.svg` 60,823, still about 61 KB each, most of it the 42,228-byte font | Outcome, BK11, README | ✏️ | `wc -c` on the committed files after `ee683e8`. Row 327 gave the sizes before the redraw |
+| 349 | The hint's claims in BK11's rewritten "Our choices" paragraph are rows 343–345, the label size row 338 and the focusable stage row 346 | BK11 | ✅ | The rows of this log, matched one by one after the rewrite |
+
+**Totals:** 349 claims: 308 ✅, 41 ✏️, 0 ⚠️.

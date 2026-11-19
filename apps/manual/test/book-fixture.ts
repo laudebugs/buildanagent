@@ -32,6 +32,7 @@ export function fixtureInputs(dir: string = FIXTURE_DIR, outline: Outline = FIXT
     outlineFile: join(dir, "outline.ts"),
     chaptersDir: join(dir, "chapters"),
     factChecksDir: join(dir, "apps/manual/fact-checks"),
+    figuresDir: join(dir, "figures"),
     sourcesFile: join(dir, "sources.json"),
     glossaryFile: join(dir, "glossary.json"),
     analogiesFile: join(dir, "analogies.json"),

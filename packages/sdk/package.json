@@ -1,6 +1,6 @@
 {
   "name": "@buildanagent/sdk",
-  "version": "0.1.0-alpha.0",
+  "version": "0.1.0-alpha.1",
   "description": "The buildanagent SDK: the agent loop, tools, hooks, signed pauses and budgets over the gateway.",
   "license": "Apache-2.0 OR MIT",
   "repository": {
@@ -12,7 +12,7 @@
   "type": "module",
   "sideEffects": false,
   "engines": {
-    "node": ">=22"
+    "node": ">=22.19.0"
   },
   "files": [
     "dist",
@@ -61,6 +61,14 @@
     "test": "vitest run"
   },
   "dependencies": {
-    "@buildanagent/gateway": "workspace:*"
+    "@buildanagent/gateway": "workspace:*",
+    "@earendil-works/pi-schema": "1.5.2",
+    "@standard-schema/spec": "1.1.0"
+  },
+  "devDependencies": {
+    "@buildanagent/agent-safety": "workspace:*",
+    "@cfworker/json-schema": "4.1.6",
+    "miniflare": "5.20261103.0-beta",
+    "zod": "4.6.7"
   }
 }

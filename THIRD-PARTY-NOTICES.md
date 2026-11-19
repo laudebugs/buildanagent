@@ -25,10 +25,13 @@ The book in `apps/manual/` copies or adapts code from the owner's garment engine
 | File here | Source file | Commit | What it takes |
 |---|---|---|---|
 | [`apps/manual/astro.config.mjs`](apps/manual/astro.config.mjs) | `astro.config.mjs` | `bca44b0` | The render-input hash that deletes Astro's content cache when a Markdown plugin or its data changes, and the dev-server restart on those files |
+| [`apps/manual/figures/lib/registry.ts`](apps/manual/figures/lib/registry.ts) | `scripts/tests/figure_staleness.py` | `bca44b0` | The staleness check: draw every figure in memory, compare it byte for byte with its committed file, and name the script to rerun |
+| [`apps/manual/figures/lib/svgkit.ts`](apps/manual/figures/lib/svgkit.ts) | `scripts/figures/svgkit.py` | `bca44b0` | The figure kit: the embedded font subset, a text helper that refuses a glyph outside it, escaped labels, arrowheads, and arrows that run from one box's edge to the next |
 | [`apps/manual/src/book/chapter-schema.ts`](apps/manual/src/book/chapter-schema.ts) | `src/content.config.ts` | `bca44b0` | The strict front-matter schema, which rejects an unknown key, and its rule that the check and the build share one set of rules |
 | [`apps/manual/src/book/citations.ts`](apps/manual/src/book/citations.ts) | `src/lib/citations.mjs` | `bca44b0` | The citation pattern, the link target on the sources page and the split of one bracket into its citations |
 | [`apps/manual/src/book/glossary.ts`](apps/manual/src/book/glossary.ts) | `src/lib/terms.mjs` | `bca44b0` | The glossary entry checks, the hover-card text and the matcher that links the longest spelling first, with plurals |
 | [`apps/manual/src/markdown/remark-citations.ts`](apps/manual/src/markdown/remark-citations.ts) | `src/lib/markdown/remark-citations.mjs` | `bca44b0` | The remark plugin that turns citations into links and fails on an unknown id |
+| [`apps/manual/src/markdown/remark-figures.ts`](apps/manual/src/markdown/remark-figures.ts) | `src/lib/markdown/rehype-figures.mjs` | `bca44b0` | The rules that a figure needs alt text and that a generated file is inlined in place, inside its captioned figure |
 | [`apps/manual/src/markdown/remark-terms.ts`](apps/manual/src/markdown/remark-terms.ts) | `src/lib/markdown/remark-terms.mjs` | `bca44b0` | The remark plugin that links each term's first use, with `aria-describedby` text and a hidden list of definitions |
 | [`apps/manual/src/markdown/split-text.ts`](apps/manual/src/markdown/split-text.ts) | `src/lib/markdown/split-text.mjs` | `bca44b0` | The helpers that split text nodes, outside links and code, into new nodes |
 

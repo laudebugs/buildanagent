@@ -3,7 +3,7 @@ import { createHash } from "node:crypto";
 import { readdirSync, readFileSync } from "node:fs";
 import { test } from "vitest";
 import { readTokens } from "../src/design/tokens.js";
-import { woff2Names } from "./woff2-names.js";
+import { woff2Names } from "../src/design/woff2.js";
 
 const publicDir = new URL("../public/", import.meta.url);
 const fontsDir = new URL("fonts/", publicDir);

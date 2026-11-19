@@ -6,7 +6,7 @@
 | Status | `ready` |
 | Plan | [Build SDK §4, Stage 3](../../plans/build-sdk.md#43-stage-3-builds-the-loop-its-tools-hooks-budget-and-signed-pauses) |
 | Round / milestone | Round B (build SDK), M5 |
-| Depends on | [B4](../done/B4-gateway-runtime.md), [B10](B10-tool-runtime.md) |
+| Depends on | [B4](../done/B4-gateway-runtime.md), [B10](../done/B10-tool-runtime.md) |
 | Size | L |
 
 ## Goal
@@ -33,7 +33,7 @@ Build the one pure streaming loop: model step, tool dispatch and stop check, wit
 - An output-only run: a run whose only tool is an `outputTool` ends `done` after one valid call
 - Abort: every open tool call gets an aborted error result, the message closes with `stopReason: "aborted"`, and `agent_settled` fires after retries stop
 - `exposure`: deferred and hidden tools are not sent to the model
-- `RunStoppedError` and `SdkError` with `isInstance` markers
+- `RunStoppedError` with an `isInstance` marker, beside the `SdkError` that B10 added
 - `run_start` with `sdkVersion`, `specVersion` and placeholders for `defaultsHash` and `capabilities` (B20 fills them)
 
 **Out of scope** (and which todo covers it)

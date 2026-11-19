@@ -1,0 +1,41 @@
+{
+  "name": "anthropic-search-flights",
+  "source": "https://platform.claude.com/docs/en/build-with-claude/structured-outputs",
+  "section": "Using both features together: the search_flights tool's input_schema",
+  "checkedOn": "2026-11-19",
+  "schema": {
+    "type": "object",
+    "properties": {
+      "destination": {
+        "type": "string"
+      },
+      "date": {
+        "type": "string",
+        "format": "date"
+      }
+    },
+    "required": ["destination", "date"],
+    "additionalProperties": false
+  },
+  "valid": [
+    {
+      "destination": "Paris",
+      "date": "2026-05-15"
+    }
+  ],
+  "invalid": [
+    {
+      "value": {
+        "destination": "Paris",
+        "date": "May 15"
+      },
+      "paths": ["/date"]
+    },
+    {
+      "value": {
+        "destination": "Paris"
+      },
+      "paths": ["/date"]
+    }
+  ]
+}
