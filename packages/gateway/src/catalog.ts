@@ -14,6 +14,10 @@ export interface RateTier {
   readonly upToInputTokens: number | null;
   readonly uncachedInput: number;
   readonly cacheRead: number;
+  /**
+   * The short and the long cache-write rate. The keys name Anthropic's 5-minute and 1-hour writes; an OpenAI entry
+   * stores its 30-minute rate under `"5m"`, the key its adapter counts every Chat Completions write under.
+   */
   readonly cacheWrite: { readonly "5m": number; readonly "1h": number };
   /** Reasoning tokens are part of output and are billed at this rate. */
   readonly output: number;

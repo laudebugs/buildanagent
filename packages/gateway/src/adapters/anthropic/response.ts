@@ -11,12 +11,13 @@
  */
 import type { ToolNameMap } from "../../names.js";
 import type { ModelEvent } from "../../spec.js";
+import type { ServerSentEvent } from "../../sse.js";
 import type { AssistantMessage, ContentBlock, ModelRef, Usage } from "../../types.js";
-import { failureEvent, failureFrom, terminalMessage } from "./failure.js";
+import { isObject, type Json, parseToolInput, type StreamReader, str, terminalMessage } from "../wire.js";
+import { failureEvent, failureFrom } from "./failure.js";
 import { REDACTED_THINKING_PREFIX } from "./request.js";
 import { anthropicUsage, mergeUsage } from "./usage.js";
 
-type Json = Record<string, unknown>;
 type Warning = Extract<ModelEvent, { type: "warning" }>;
 
 interface OpenBlock {
@@ -39,26 +40,8 @@ const STOP_REASONS: Readonly<Record<string, AssistantMessage["stopReason"]>> = {
   model_context_window_exceeded: "length",
 };
 
-function isObject(value: unknown): value is Json {
-  return typeof value === "object" && value !== null && !Array.isArray(value);
-}
-
-function str(value: unknown): string {
-  return typeof value === "string" ? value : "";
-}
-
-/** A tool call's input: the parsed JSON, or the partial JSON text when the output limit cut it off. */
-function toolInput(open: OpenBlock): unknown {
-  if (open.text === "") return open.startInput ?? {};
-  try {
-    return JSON.parse(open.text);
-  } catch {
-    return open.text;
-  }
-}
-
 /** One stream's state: the blocks so far, the usage and the stop reason. */
-export class MessageAssembler {
+export class MessageAssembler implements StreamReader {
   readonly #model: ModelRef;
   readonly #names: ToolNameMap;
   readonly #cacheTtl: "5m" | "1h";
@@ -75,8 +58,19 @@ export class MessageAssembler {
     this.#cacheTtl = cacheTtl;
   }
 
-  /** The events one wire event produces. The last one is the terminal when the stream has ended. */
-  handle(type: string, data: Json): ModelEvent[] {
+  /** The events one server-sent event produces. The last one is the terminal when the stream has ended. */
+  handle(sse: ServerSentEvent): ModelEvent[] {
+    const data: unknown = JSON.parse(sse.data);
+    if (!isObject(data)) return [];
+    return this.#dispatch(typeof data.type === "string" ? data.type : sse.event, data);
+  }
+
+  /** No status and no terminal: the connection closed early, which a retry may fix. */
+  ended(): ModelEvent[] {
+    return [failureEvent(this.#model, { message: "the stream ended before message_stop" }, this.partial())];
+  }
+
+  #dispatch(type: string, data: Json): ModelEvent[] {
     switch (type) {
       case "message_start":
         return this.#messageStart(data);
@@ -206,7 +200,7 @@ export class MessageAssembler {
         type: "tool_call",
         callId: open.callId ?? "",
         name: this.#names.restore(wire) ?? wire,
-        input: toolInput(open),
+        input: parseToolInput(open.text, open.startInput ?? {}),
       };
     }
     const value = open.redacted === undefined ? open.signature : `${REDACTED_THINKING_PREFIX}${open.redacted}`;

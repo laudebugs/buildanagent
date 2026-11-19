@@ -2,7 +2,7 @@
 
 The gateway lets your agent call any model through one transcript and one stream format, so switching providers never changes your agent code. Use it directly to call a model, or through `@buildanagent/sdk`, which runs the agent loop on top of it.
 
-As of November 2026 the package holds the transcript types, the stream checker, `complete()`, `createModel()` with its retries and middleware, the price catalog that puts a cost on every message, the tool-name rule, the Anthropic Messages adapter, and `transformMessages()`, which prepares a transcript for the model you send it to. The OpenAI-compatible adapter is next.
+As of November 2026 the package holds the transcript types, the stream checker, `complete()`, `createModel()` with its retries and middleware, the price catalog that puts a cost on every message, the tool-name rule, the Anthropic Messages and OpenAI-compatible Chat Completions adapters, and `transformMessages()`, which prepares a transcript for the model you send it to.
 
 ## A conversation is a list of messages you own
 
@@ -95,7 +95,7 @@ A caller that holds a token count instead of a `ModelContext` calls `projectCost
 
 ## One caching option covers every provider
 
-The `cacheRetention` stream option sets how long the provider keeps the prompt cache: `"none"`, `"short"` or `"long"`. The gateway passes it to the adapter unchanged, and each adapter maps it to its provider's own cache controls. Leave it out to keep the adapter's default, which is `"short"` for the Anthropic adapter.
+The `cacheRetention` stream option sets how long the provider keeps the prompt cache: `"none"`, `"short"` or `"long"`. The gateway passes it to the adapter unchanged, and each adapter maps it to its provider's own cache controls. Leave it out to keep the adapter's default, which is `"short"` for both adapters. OpenAI caches prompts on its own, so the OpenAI-compatible adapter acts on the option only for a model whose flags allow explicit breakpoints or extended retention.
 
 ## One tool name works with every provider
 
@@ -173,6 +173,82 @@ The adapter reads the model's caps from `options.caps`, which `createModel()` se
 
 Headers in `config.headers` are sent with lower-case names. An `anthropic-beta` header is merged with the adapter's beta, and an `x-api-key` or `authorization` header is dropped, so `apiKey` stays the only key sent.
 
+## The OpenAI-compatible adapter speaks Chat Completions to OpenAI and to servers that copy it
+
+`openaiChat({ apiKey })` from `@buildanagent/gateway/openai-chat` returns an adapter for OpenAI's Chat Completions API. Many other servers speak the same API, so one adapter serves them too. It calls `fetch` through your `transport`, posts to `{baseURL}/chat/completions`, streams every response, and sends your key as `Authorization: Bearer <apiKey>`. The `baseURL` defaults to `https://api.openai.com/v1`. For another server, set `baseURL`, set `provider` to the name its models have in your catalog, and describe how the server differs with `compat`:
+
+```ts
+import { createModel } from "@buildanagent/gateway";
+import { openaiChat } from "@buildanagent/gateway/openai-chat";
+
+const model = createModel({ adapter: openaiChat({ apiKey }), id: "gpt-5.4-mini" });
+
+const local = openaiChat({
+  apiKey: localKey,
+  baseURL: "http://127.0.0.1:8000/v1",
+  provider: "local",
+  compat: { maxTokensField: "max_tokens" },
+});
+```
+
+The wire format follows OpenAI's [Chat Completions reference](https://developers.openai.com/api/reference/resources/chat/subresources/completions/methods/create) and the types of its TypeScript SDK, [openai-node v7.49.0](https://github.com/openai/openai-node/tree/v7.49.0) (commit `272a6de`), both as of November 2026. The error handling follows OpenAI's [error-code guide](https://developers.openai.com/api/docs/guides/error-codes), except for `context_length_exceeded`: that page doesn't list it, so its wording is unverified.
+
+Each request runs `transformMessages()` first, so a transcript from any model can be sent. The body asks for a final usage chunk with `stream_options: { include_usage: true }`, and it sets `max_completion_tokens` from the call's `maxOutputTokens` or the model's caps. The system prompt goes first as a `system` message. Tool calls become an assistant message's `tool_calls`, and each result becomes a `tool` message. A `tool` message holds only text and has no error field. A failed result's text therefore starts with `Error: `, and a result's images follow the turn's results in one user message. The transcript's reasoning is never sent, because a Chat Completions message has no field for it.
+
+Each tool goes out with `strict: true` when its schema allows it. Strict mode makes the model follow the schema exactly, so the adapter lists every property in `required` and lets each optional one also be `null`. It also adds `additionalProperties: false` to every object. It keeps the constraints OpenAI's [supported schemas](https://developers.openai.com/api/docs/guides/structured-outputs#supported-schemas) list, such as `minimum`, `pattern` and `maxItems`, and removes the others, such as `maxLength`. When the model answers with `null` for an optional field whose schema does not allow `null`, the adapter removes the field before the call reaches validation, so your tool sees the field left out, as the model meant; inside an `anyOf`, it follows the branch the value fits. The SDK still validates every call against your original schema.
+
+A schema strict mode cannot express goes out unchanged without `strict`. Three kinds of schema fall back this way:
+
+- a schema whose root is not `type: "object"`;
+- a schema that uses `not`, `allOf`, `prefixItems`, `if`/`then`/`else` or a `dependent*` keyword;
+- a schema over one of OpenAI's size limits, such as 5,000 properties, 10 levels of nesting, 1,000 enum values or 120,000 characters of names and values.
+
+### Compat flags describe how a server differs from OpenAI
+
+`compat` sets flags for every model behind the adapter, and `modelCompat` sets them for single models by id, flag by flag over `compat`. Each default is what OpenAI's own API accepts:
+
+| Flag | Default | Set it when |
+| --- | --- | --- |
+| `maxTokensField` | `"max_completion_tokens"` | the server reads only `max_tokens` |
+| `systemRole` | `"system"` | the model wants the system prompt as a `developer` message |
+| `streamUsage` | `true` | the server rejects `stream_options`; its replies then report no usage |
+| `strictTools` | `true` | the server rejects `strict` tools |
+| `temperature` | `true` | the model rejects `temperature`; a `temperature` you set then streams a `warning` instead |
+| `cacheBreakpoints` | `false` | the model takes explicit cache breakpoints, as OpenAI's do from `gpt-5.6` |
+| `promptCacheRetention` | `false` | the model offers 24-hour retention through `prompt_cache_retention` |
+
+`providerOptions.openaiChat.extraBody` adds fields to the request body, such as `reasoning_effort`, `prompt_cache_key` or `parallel_tool_calls`. It cannot change the fields the adapter sets itself: `model`, `stream`, `stream_options`, `messages`, `tools`, `max_completion_tokens` and `max_tokens`. An `extraBody` value for one of them is not sent, and the call streams a `warning` with code `unsupported_option`.
+
+### Caching follows the model's flags
+
+OpenAI caches the start of every prompt on its own, so by default the adapter sends no caching field, whatever `cacheRetention` says. A model with `cacheBreakpoints` gets explicit breakpoints on the system prompt and the newest user or tool message, with the default 30-minute lifetime. `"none"` sends `prompt_cache_options: { mode: "explicit" }` with no breakpoint, which turns caching off. Chat Completions accepts only `"30m"` as `prompt_cache_options.ttl`, and OpenAI's [prompt caching guide](https://developers.openai.com/api/docs/guides/prompt-caching) offers the 12-hour lifetime in the Responses API only, as of November 2026. So `"long"` sends 30-minute breakpoints and streams a `warning`. A model with `promptCacheRetention` gets `prompt_cache_retention: "24h"` for `"long"`.
+
+### Usage maps into the four token classes, and reasoning is counted inside output
+
+A chat completion's `usage` counts the whole prompt in `prompt_tokens`, with the cached and the newly written tokens as parts of it. OpenAI's prompt caching guide computes ordinary input as the input tokens less both, and so does the adapter:
+
+| Chat Completions `usage` field | `Usage` field |
+| --- | --- |
+| `prompt_tokens` − `cached_tokens` − `cache_write_tokens` | `uncachedInput` |
+| `prompt_tokens_details.cached_tokens` | `cacheRead` |
+| `prompt_tokens_details.cache_write_tokens` | `cacheWrite["5m"]` |
+| `completion_tokens` | `output` |
+| `completion_tokens_details.reasoning_tokens` | `reasoning` |
+
+Reasoning is counted inside output: `max_completion_tokens` bounds "visible output tokens and reasoning tokens" together, and the reference says rejected prediction tokens are, "like reasoning tokens", counted in the completion tokens for billing.
+
+Chat Completions writes only 30-minute cache entries, so every write counts under `"5m"`, the key for the short cache-write rate, and an OpenAI catalog entry stores its 30-minute rate there. Models before `gpt-5.6` add no cache-write charge, so for `gpt-5.4-mini` that rate is the uncached input rate.
+
+Responses carry no billed price, as of November 2026: the usage object holds token counts only. The adapter therefore reports an unknown cost, and `createModel()` prices the usage from the catalog.
+
+### Stop reasons and errors map onto the gateway's
+
+`stop` ends with `"stop"`, `tool_calls` with `"tool_calls"`, and `length` with `"length"`, where a tool call cut off by the limit keeps its partial JSON as a string in `input`. A server that ends a reply holding tool calls with `stop` still yields `"tool_calls"`. A `content_filter` finish, or a reply that streams a `refusal`, ends in a `fatal` error with the content that arrived. A compatible server that streams reasoning text as `reasoning_content` or `reasoning` gets an unsigned reasoning block; OpenAI's own models stream none.
+
+A failed request ends in an `error` terminal, never a throw. The adapter reads the body's `error.message`, `error.type` and `error.code`, and `classifyError()` sorts it by status, code and type. A billing 429 is `quota`, because retrying won't restore access. Its code names the cause, such as `credit_balance_exhausted` or `project_spend_limit_exceeded`, and its type can be `insufficient_quota`. `context_length_exceeded` is `overflow`. Other 429s, `slow_down` among them, and 5xx errors are `retryable`, and the rest are `fatal`. An error chunk inside a stream that already returned 200 has no status, so it classifies by its type, and a `server_error` is retried while no content has arrived. A stream that closes after its finish reason but without `[DONE]` ends normally, because some compatible servers never send `[DONE]`.
+
+Headers in `config.headers` are sent with lower-case names. An `authorization`, `api-key` or `x-api-key` header is dropped, so `apiKey` stays the only key sent. A model the catalog lacks gets the adapter's default caps, which send no images and assume no reasoning.
+
 ## Your key is the only key the gateway sends
 
 Every adapter takes a `ProviderConfig` whose `apiKey` you pass in. The gateway never reads a key from the environment and never falls back to another credential, so a key left in your shell cannot reach a provider. An adapter made without a key, or with an empty one, throws a `GatewayError` with code `missing_api_key` before it sends anything.
@@ -203,7 +279,7 @@ A `ModelMiddleware` can rewrite the request with `transformParams` and watch or 
 
 Start each test file with `import "@buildanagent/gateway/testing/setup"`. The setup blocks every request to a host other than your own machine, stops the run if a provider API key is set, and turns real model requests off. Your tests then never reach a real provider by accident.
 
-To test an adapter's wire format, pass `mockTransport(api, script)` as its `transport`. The mock answers the n-th request with the n-th scripted response, splits each body into chunks of `chunkSize` bytes or at `splitAt` offsets, and records every request in `requests`. A request past the end of the script throws a `GatewayError` with code `unexpected_request`. `serverSentEvents(events)` writes a list of events as a stream body:
+To test an adapter's wire format, pass `mockTransport(api, script)` as its `transport`. The mock answers the n-th request with the n-th scripted response, splits each body into chunks of `chunkSize` bytes or at `splitAt` offsets, and records every request in `requests`. A request past the end of the script throws a `GatewayError` with code `unexpected_request`. `serverSentEvents(events)` writes a list of events as an Anthropic stream body, and `chatCompletionEvents(chunks)` writes Chat Completions chunks followed by `data: [DONE]`:
 
 ```ts
 import { mockTransport, serverSentEvents } from "@buildanagent/gateway/testing";

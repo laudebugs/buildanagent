@@ -86,6 +86,8 @@ Each decision answers one open decision in [guide §12][g12], in the same order,
 
 **Revision (plan review 2, 2026-11-19).** Anthropic's docs answer the question for B8: thinking tokens count inside `output_tokens`, and `usage.output_tokens_details.thinking_tokens` reports how many of the billed output tokens were reasoning. When streaming, that field arrives only on the final `message_delta` ([Anthropic, extended thinking](https://platform.claude.com/docs/en/build-with-claude/extended-thinking), as of November 2026). B8 adds a fixture for it, and B9 still checks the OpenAI-compatible side.
 
+**Revision (B9, 2026-11-19).** The OpenAI-compatible side agrees, so D3 stands. `max_completion_tokens` bounds "visible output tokens and reasoning tokens" together, and `completion_tokens_details.reasoning_tokens` reports the reasoning part of `completion_tokens` ([Chat Completions reference](https://developers.openai.com/api/reference/resources/chat/subresources/completions/methods/create), as of November 2026). Chat Completions reports cache writes as one `cache_write_tokens` count and writes only 30-minute entries; the 12-hour lifetime is offered in the Responses API only ([prompt caching guide](https://developers.openai.com/api/docs/guides/prompt-caching), as of November 2026). The adapter therefore counts every write under `cacheWrite["5m"]`. The two keys name the short and the long write rate, and an OpenAI catalog entry stores its 30-minute rate under `"5m"` ([gateway README](../../packages/gateway/README.md#usage-maps-into-the-four-token-classes-and-reasoning-is-counted-inside-output)).
+
 ### D4. Prices come from a versioned catalog, and a provider-billed total overrides it
 
 **Options.** Price tables from a catalog shipped in the package, fetched at run time, or supplied by the caller; refresh on release or on a schedule; and whether a provider-billed total overrides the catalog, as Pi's `totalFromProvider` does ([guide §12, decision 4][g12]).
@@ -93,6 +95,8 @@ Each decision answers one open decision in [guide §12][g12], in the same order,
 **Choice.** `@buildanagent/gateway` ships `catalog.json`, which gives each model its tiered rates per token class, an `asOf` date and a source URL. A caller can pass its own catalog. When a response carries a billed total, `cost.basis` is `"provider"` and that total wins. Otherwise the catalog prices the usage (`basis: "catalog"`). A model missing from the catalog gets `basis: "unknown"` and `total: null`. A run with a USD cap refuses to start on an unknown price and ends with `stopReason: "error"`. The catalog is refreshed in every minor release, and a test warns when an entry's `asOf` is older than 90 days. Failed attempts are priced too.
 
 **Evidence.** Cost carries a `basis` flag and comes from a catalog with tiered rates, and failed attempts count, as OpenAI's retry accounting shows ([guide §2][g2]; [SDK decision 5][sr6]). mini-swe-agent raises when it cannot price a model ([harness research §5][har5]). A budget that silently prices at zero would be the same failure in a quieter form, so a budgeted run with an unknown price fails closed. The guide asks which first providers return a billed cost. Neither D2 protocol is known to return one, but nobody has checked, so B8 and B9 check each API reference and fixture and record the answer. The provider-wins rule costs nothing to keep if neither does. Run-time fetching would make cost depend on the network, which contradicts the "nothing reaches outside by default" rule ([guide §9][g9]).
+
+**Revision (B8 and B9, 2026-11-19).** Neither D2 protocol returns a billed cost: each `usage` object holds token counts only, as of November 2026, so both adapters report `basis: "unknown"` and `createModel()` prices every reply from the catalog. The provider-wins rule stays for a later adapter whose provider does bill in the response.
 
 ### D5. A pluggable signer with key ids, an ephemeral default, and no unsigned resume (accepted, with HD5)
 
@@ -316,11 +320,12 @@ declare function transformMessages(messages: Message[], target: ModelRef, caps: 
 // import { anthropic } from "@buildanagent/gateway/anthropic";
 declare function anthropic(config: ProviderConfig): ModelAdapter;
 // import { openaiChat } from "@buildanagent/gateway/openai-chat";
-declare function openaiChat(config: ProviderConfig & { compat?: ChatCompat }): ModelAdapter;
+declare function openaiChat(config: OpenAIChatConfig): ModelAdapter; // Revision (B9): ProviderConfig plus provider, compat and per-model modelCompat
 
 // @buildanagent/gateway/testing (SDK decision 14)
 declare function allowModelRequests(allowed: boolean): void;  // false: any non-mock transport throws
 declare function mockTransport(api: "anthropic-messages" | "openai-chat", script: WireScript): Transport;
+declare function chatCompletionEvents(chunks: object[]): string;   // added in B9: Chat Completions chunks, then data: [DONE]
 declare function startMockServer(options: { api: string; script: WireScript; log?: string }): Promise<{ url: string; close(): Promise<void> }>; // 127.0.0.1 only
 declare function assertStreamContract(events: AsyncIterable<ModelEvent>): Promise<ModelEvent[]>;
 declare function seededRandom(seed: number): () => number;   // added in B3; moved here from @buildanagent/sdk/testing in B7, its one entry point
@@ -567,7 +572,7 @@ The guide says to start with the gateway and the test model, because every other
 | [B6](../todos/done/B6-transform-messages.md) | The cross-provider `transformMessages` pass | B3 | M |
 | [B7](../todos/done/B7-tool-name-table.md) | Per-provider tool-name table and the canonical name rule | B1 | S |
 | [B8](../todos/done/B8-anthropic-adapter.md) | Anthropic Messages adapter and its mock transport | B5, B6, B7 | L |
-| [B9](../todos/ready/B9-openai-chat-adapter.md) | OpenAI-compatible Chat Completions adapter and its mock transport | B5, B6, B7 | L |
+| [B9](../todos/done/B9-openai-chat-adapter.md) | OpenAI-compatible Chat Completions adapter and its mock transport | B5, B6, B7 | L |
 
 ### 4.3 Stage 3 builds the loop, its tools, hooks, budget and signed pauses
 
