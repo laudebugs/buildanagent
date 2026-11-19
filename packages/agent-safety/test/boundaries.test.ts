@@ -14,7 +14,7 @@ const manifest = JSON.parse(readFileSync(join(packageRoot, "package.json"), "utf
 // The third-party SDKs only the subpaths may import.
 const THIRD_PARTY = /^(ai|agents|@ai-sdk\/[^/]+)(\/|$)/;
 // `agents` joins them with the first adapter in ./agents; listed before then, pnpm would install it as a peer.
-const OPTIONAL_PEERS = ["@ai-sdk/provider-utils", "ai"];
+const OPTIONAL_PEERS = ["@ai-sdk/anthropic", "@ai-sdk/openai", "@ai-sdk/provider-utils", "ai"];
 
 function specifiers(file: string): string[] {
   const code = readFileSync(file, "utf8");
@@ -100,6 +100,14 @@ test("the ai subpath imports third-party SDKs for types only", () => {
     thirdPartyValueImports(readFileSync(file, "utf8")),
   );
   assert.deepEqual(valueImports, []);
+});
+
+test("the byok subpath imports only the two provider packages by value, and no Cloudflare agents code", () => {
+  // It builds providers, so it needs their factories at runtime, and nothing else from a third-party SDK.
+  const valueImports = [...reachable(join(packageRoot, "src", "byok", "index.ts")).keys()].flatMap((file) =>
+    thirdPartyValueImports(readFileSync(file, "utf8")),
+  );
+  assert.deepEqual([...new Set(valueImports)].sort(), ["@ai-sdk/anthropic", "@ai-sdk/openai"]);
 });
 
 test("the third-party SDKs are optional peers, never dependencies", () => {
