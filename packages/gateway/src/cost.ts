@@ -40,6 +40,20 @@ export function priceUsage(usage: Usage, entry: CatalogEntry | undefined): Cost 
   return { total, basis: "catalog", currency: "USD", catalogAsOf: entry.asOf };
 }
 
+/**
+ * Adds two costs, such as the costs of two model calls. The sum is unknown if either cost is, a catalog estimate if
+ * either is one, and a provider bill only when both are. A catalog sum keeps the later cost's `catalogAsOf`.
+ */
+export function addCost(a: Cost, b: Cost): Cost {
+  if (a.total === null || b.total === null || a.basis === "unknown" || b.basis === "unknown") {
+    return { ...UNKNOWN_COST };
+  }
+  const total = a.total + b.total;
+  if (a.basis === "provider" && b.basis === "provider") return { total, basis: "provider", currency: "USD" };
+  const catalogAsOf = b.catalogAsOf ?? a.catalogAsOf;
+  return { total, basis: "catalog", currency: "USD", ...(catalogAsOf === undefined ? {} : { catalogAsOf }) };
+}
+
 /** The message's cost: the provider's billed total when the adapter reported one, else `price(usage)`. */
 export function foldCost(message: AssistantMessage, price: (usage: Usage) => Cost): Cost {
   if (message.cost.basis === "provider" && message.cost.total !== null) return message.cost;

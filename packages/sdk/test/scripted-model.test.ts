@@ -9,6 +9,7 @@ import {
   type PriceCatalog,
 } from "@buildanagent/gateway";
 import { seededRandom } from "@buildanagent/gateway/testing";
+import { isSdkError } from "@buildanagent/sdk";
 import {
   type AssistantScript,
   fixedClock,
@@ -37,6 +38,14 @@ test("a script with two steps called three times throws UnexpectedModelCallError
   await complete(model.stream(ref, context(), {}));
   await complete(model.stream(ref, context(), {}));
   await assert.rejects(() => complete(model.stream(ref, context(), {})), UnexpectedModelCallError);
+});
+
+test("UnexpectedModelCallError is an SdkError with code unexpected_model_call", async () => {
+  const model = new ScriptedModel([]);
+  await assert.rejects(
+    () => complete(model.stream(ref, context(), {})),
+    (error: unknown) => isSdkError(error) && error.code === "unexpected_model_call",
+  );
 });
 
 test("a script with two steps called once fails assertComplete()", async () => {

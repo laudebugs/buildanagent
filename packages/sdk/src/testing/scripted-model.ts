@@ -24,6 +24,7 @@ import {
   type Usage,
   unreportedUsage,
 } from "@buildanagent/gateway";
+import { SdkError } from "../errors.js";
 
 /** One scripted model response. */
 export interface AssistantScript {
@@ -65,8 +66,16 @@ export interface ScriptedModelOptions {
 
 const DEFAULT_CAPS: ModelCaps = { contextWindow: 200_000, maxOutputTokens: 32_000, images: true, reasoning: true };
 
-export class UnexpectedModelCallError extends Error {
+/**
+ * Thrown when a `ScriptedModel` is called after its last scripted step. It is an `SdkError` with code
+ * `unexpected_model_call`, so `isSdkError()` recognises it too.
+ */
+export class UnexpectedModelCallError extends SdkError {
   override readonly name = "UnexpectedModelCallError";
+
+  constructor(message: string) {
+    super("unexpected_model_call", message);
+  }
 }
 
 function deepFreeze<T>(value: T): T {

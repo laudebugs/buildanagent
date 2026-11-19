@@ -1,5 +1,10 @@
 import assert from "node:assert/strict";
-import { assertModelRequestAllowed, modelRequestsAreAllowed, type Transport } from "@buildanagent/gateway";
+import {
+  assertModelRequestAllowed,
+  isGatewayError,
+  modelRequestsAreAllowed,
+  type Transport,
+} from "@buildanagent/gateway";
 import { allowModelRequests, ModelRequestsDisabledError, markMockTransport } from "@buildanagent/gateway/testing";
 import { afterEach, test } from "vitest";
 
@@ -14,6 +19,13 @@ test("the shared setup turns real model requests off", () => {
 test("with requests off, a real transport throws before sending", () => {
   assert.throws(() => assertModelRequestAllowed(realTransport), ModelRequestsDisabledError);
   assert.throws(() => assertModelRequestAllowed(undefined), ModelRequestsDisabledError);
+});
+
+test("ModelRequestsDisabledError is a GatewayError with code model_requests_disabled", () => {
+  assert.throws(
+    () => assertModelRequestAllowed(realTransport),
+    (error: unknown) => isGatewayError(error) && error.code === "model_requests_disabled",
+  );
 });
 
 test("with requests off, a transport marked as a mock passes", () => {

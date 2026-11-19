@@ -18,7 +18,7 @@
  */
 
 import { classifyError, isTransportFailure } from "./classify.js";
-import { foldCost } from "./cost.js";
+import { addCost, foldCost } from "./cost.js";
 import type { GatewayEvent, Sleep } from "./runtime-types.js";
 import type { ModelEvent } from "./spec.js";
 import type { AssistantMessage, Cost, ModelRef, Usage } from "./types.js";
@@ -37,19 +37,9 @@ const BACKOFF_FACTOR = 2;
 const MAX_RETRY_DELAY_MS = 60_000;
 const UNKNOWN_COST: Cost = { total: null, basis: "unknown", currency: "USD" };
 
-/**
- * Adds a carried cost to an attempt's. The sum is unknown if either part is, a catalog estimate if either part is one,
- * and a provider bill only when both parts are. `undefined` means no attempt is carried yet.
- */
-function addCost(a: Cost | undefined, b: Cost): Cost {
-  if (a === undefined) return b;
-  if (a.total === null || b.total === null || a.basis === "unknown" || b.basis === "unknown") {
-    return { ...UNKNOWN_COST };
-  }
-  const total = a.total + b.total;
-  if (a.basis === "provider" && b.basis === "provider") return { total, basis: "provider", currency: "USD" };
-  const catalogAsOf = b.catalogAsOf ?? a.catalogAsOf;
-  return { total, basis: "catalog", currency: "USD", ...(catalogAsOf === undefined ? {} : { catalogAsOf }) };
+/** Adds a carried cost to an attempt's; `undefined` means no attempt is carried yet. */
+function addCarriedCost(a: Cost | undefined, b: Cost): Cost {
+  return a === undefined ? b : addCost(a, b);
 }
 
 /** The default `Sleep`: a timer that resolves early, without rejecting, when the signal aborts. */
@@ -113,7 +103,11 @@ function isBlockEvent(event: ModelEvent): boolean {
 
 /** The final message: this attempt's usage and `cost`, with the failed attempts' usage and cost added. */
 function withCarried(message: AssistantMessage, call: CallState, cost: Cost): AssistantMessage {
-  const summed = { ...message, usage: addUsage(call.carried, message.usage), cost: addCost(call.carriedCost, cost) };
+  const summed = {
+    ...message,
+    usage: addUsage(call.carried, message.usage),
+    cost: addCarriedCost(call.carriedCost, cost),
+  };
   // The projection needs one request's size, which a sum over several attempts overstates.
   return call.carriedCost === undefined ? summed : { ...summed, lastAttemptUsage: message.usage };
 }
@@ -248,7 +242,7 @@ export async function* withRetries(
     const outcome = yield* runAttempt(attempt(n), call, n <= settings.retries);
     if (!outcome.retry) return;
     call.carried = addUsage(call.carried, outcome.failure.usage);
-    const carriedCost = addCost(call.carriedCost, outcome.cost);
+    const carriedCost = addCarriedCost(call.carriedCost, outcome.cost);
     call.carriedCost = carriedCost;
     // The stream rule puts `start` first, so a failure that arrived without one still gets it before the retry.
     if (!call.started) {

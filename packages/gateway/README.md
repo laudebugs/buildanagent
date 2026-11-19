@@ -51,7 +51,7 @@ A provider adapter implements one method, `stream()`. The stream it returns foll
 
 A `warning` event may come anywhere between `start` and the terminal. It reports something the call survived, such as an option the provider would reject, with a snake_case `code` and a `message`. A warning is not output, so the gateway still retries a call that has only warned. A retry does not repeat a warning that an earlier attempt streamed with the same code and message.
 
-This check reads a stream and throws a `StreamContractError` at the first broken rule:
+This check reads a stream and throws a `StreamContractError` at the first broken rule. The error is a `GatewayError` with code `stream_contract`, and its `position` says which event broke the rule:
 
 ```ts
 import { assertStreamContract } from "@buildanagent/gateway/testing";
@@ -80,7 +80,7 @@ The gateway prices each response from the price catalog, so every `AssistantMess
 - `"catalog"`: the gateway multiplied each token class by its catalog rate, and `catalogAsOf` gives the date those rates were copied.
 - `"unknown"`: the catalog doesn't list the model, or the provider never reported the usage, so `total` is `null`. Usage goes unreported when a request fails before any response arrives, when a stream throws or breaks off before its usage arrives, and when a reply ends without the usage chunk a server should send. A failed request's usage is unreported because the request may have reached the provider before the connection broke. The gateway never guesses a zero, because a budget that counts an unknown price as free never stops. An HTTP error response is the one failure that counts as zero tokens, because the provider sent an error instead of a reply.
 
-A retried call's cost sums its attempts, and the sum takes the weakest basis among them. It is `"unknown"` if any attempt's cost is unknown, and `"catalog"`, with `catalogAsOf`, if any attempt was priced from the catalog. It is `"provider"` only when the provider billed every attempt.
+A retried call's cost sums its attempts, and the sum takes the weakest basis among them. `addCost(a, b)` adds two costs by the same rule, such as the costs of every call in a run. It is `"unknown"` if any attempt's cost is unknown, and `"catalog"`, with `catalogAsOf`, if any attempt was priced from the catalog. It is `"provider"` only when the provider billed every attempt.
 
 Some models charge more for long prompts. Their entries list several rate tiers, and each request pays the tier its total input selects, cache reads and writes included. The gateway prices each attempt of a call on its own before it adds them up, so a retried call pays each request's own tier. `model.price(usage)` applies the same rates to one request's usage.
 
@@ -293,7 +293,7 @@ A `ModelMiddleware` can rewrite the request with `transformParams` and watch or 
 
 ## Tests run offline
 
-Start each test file with `import "@buildanagent/gateway/testing/setup"`. The setup blocks every request to a host other than your own machine, stops the run if a provider API key is set, and turns real model requests off. Your tests then never reach a real provider by accident.
+Start each test file with `import "@buildanagent/gateway/testing/setup"`. The setup blocks every request to a host other than your own machine, stops the run if a provider API key is set, and turns real model requests off. Your tests then never reach a real provider by accident. An adapter that tries anyway throws a `ModelRequestsDisabledError`, a `GatewayError` with code `model_requests_disabled`, before it sends anything.
 
 To test an adapter's wire format, pass `mockTransport(api, script)` as its `transport`. The mock answers the n-th request with the n-th scripted response, splits each body into chunks of `chunkSize` bytes or at `splitAt` offsets, and records every request in `requests`. A request past the end of the script throws a `GatewayError` with code `unexpected_request`. `serverSentEvents(events)` writes a list of events as an Anthropic stream body, and `chatCompletionEvents(chunks)` writes Chat Completions chunks followed by `data: [DONE]`:
 

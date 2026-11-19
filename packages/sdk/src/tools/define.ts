@@ -2,11 +2,13 @@
  * `defineTool()`, `outputTool()` and `clarificationTool()`: each checks a definition once and prepares its schema,
  * so a broken tool throws when it is defined rather than when the model first calls it.
  */
-import { assertCanonicalName } from "@buildanagent/gateway";
+import { assertCanonicalName, type WireTool } from "@buildanagent/gateway";
 import type { StandardJSONSchemaV1, StandardSchemaV1 } from "@standard-schema/spec";
 import { SdkError } from "../errors.js";
 import { type PreparedSchema, prepareSchema } from "./schema.js";
 import type { ToolDefinition, ToolResult } from "./types.js";
+
+const EXPOSURES: readonly string[] = ["direct", "deferred", "hidden"];
 
 // Keyed by the frozen definition, so a schema is compiled once however many runs use the tool.
 const prepared = new WeakMap<object, PreparedSchema>();
@@ -27,7 +29,8 @@ function checkName(name: unknown): string {
 
 /**
  * Checks a tool and returns its prepared schema, preparing it on first use. Throws an `SdkError`, code
- * `invalid_tool_definition`, for a bad name, a missing description or `execute`, or an unusable schema.
+ * `invalid_tool_definition`, for a bad name, a missing description or `execute`, an unknown exposure, or an unusable
+ * schema.
  */
 export function preparedSchemaOf(tool: ToolDefinition<unknown, unknown>): PreparedSchema {
   const known = prepared.get(tool);
@@ -35,6 +38,9 @@ export function preparedSchemaOf(tool: ToolDefinition<unknown, unknown>): Prepar
   const name = checkName(tool.name);
   if (typeof tool.description !== "string") throw invalid(`tool "${name}": description must be a string`);
   if (typeof tool.execute !== "function") throw invalid(`tool "${name}": execute must be a function`);
+  if (tool.exposure !== undefined && !EXPOSURES.includes(tool.exposure)) {
+    throw invalid(`tool "${name}": exposure must be "direct", "deferred" or "hidden"`);
+  }
   const schema = prepareSchema(name, tool.inputSchema);
   prepared.set(tool, schema);
   return schema;
@@ -44,8 +50,9 @@ export function preparedSchemaOf(tool: ToolDefinition<unknown, unknown>): Prepar
  * Defines a tool. The returned copy is frozen, and its schema is compiled now, so a mistake surfaces here.
  *
  * Throws an `SdkError`, code `invalid_tool_definition`, when the name breaks the tool-name rule (1 to 64 characters
- * from `A-Z`, `a-z`, `0-9`, `_` and `-`), the description or `execute` is missing, a raw JSON Schema does not
- * compile or names a draft other than 2020-12 or 7, or a Standard Schema cannot describe itself as JSON Schema.
+ * from `A-Z`, `a-z`, `0-9`, `_` and `-`), the description or `execute` is missing, `exposure` is not one of its three
+ * values, a raw JSON Schema does not compile or names a draft other than 2020-12 or 7, or a Standard Schema cannot
+ * describe itself as JSON Schema.
  */
 export function defineTool<I, S = unknown>(definition: ToolDefinition<I, S>): ToolDefinition<I, S> {
   const tool = Object.freeze({ ...definition });
@@ -113,4 +120,11 @@ export function clarificationTool(options: ClarificationToolOptions = {}): ToolD
       };
     },
   });
+}
+
+/** The tool as one model call sends it: its name, description and input JSON Schema. */
+export function toWireTool(tool: ToolDefinition<unknown, unknown>): WireTool {
+  const { jsonSchema } = preparedSchemaOf(tool);
+  // Adapters only read the schema; the cast drops the `readonly` that keeps our own code from changing it.
+  return { name: tool.name, description: tool.description, inputSchema: jsonSchema as Record<string, unknown> };
 }
