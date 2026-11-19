@@ -3,6 +3,18 @@ import { createHash } from "node:crypto";
 import { canonicalInputHash, isSafetyError } from "@buildanagent/agent-safety";
 import { test } from "vitest";
 
+function cyclic(): Record<string, unknown> {
+  const value: Record<string, unknown> = { a: 1 };
+  value.self = { back: value };
+  return value;
+}
+
+function cyclicArray(): unknown[] {
+  const value: unknown[] = [1];
+  value.push(value);
+  return value;
+}
+
 const sha256 = (text: string) => createHash("sha256").update(text, "utf8").digest("hex");
 
 test("objects whose keys differ only in order hash the same", async () => {
@@ -68,8 +80,17 @@ for (const [label, input] of [
   ["a Date", { at: new Date(0) }],
   ["a function", { f: () => 1 }],
   ["undefined at the top", undefined],
+  // biome-ignore lint/suspicious/noSparseArray: the hole is the case under test.
+  ["a hole in a sparse array", [1, , 3]],
+  ["an object that contains itself", cyclic()],
+  ["an array that contains itself", cyclicArray()],
 ] as const) {
   test(`an input holding ${label} is rejected`, async () => {
     await assert.rejects(canonicalInputHash(input), (error) => isSafetyError(error) && error.code === "invalid_input");
   });
 }
+
+test("a value shared by two properties is no cycle", async () => {
+  const shared = { n: 1 };
+  assert.equal(await canonicalInputHash({ a: shared, b: [shared] }), sha256('{"a":{"n":1},"b":[{"n":1}]}'));
+});

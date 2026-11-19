@@ -59,24 +59,36 @@ const RETRY: { readonly [R in Retry]: string } = {
   never: "Do not retry it.",
 };
 
+const KEYLESS_SAME_KEY = "Retrying this same call is safe, because this attempt changed nothing.";
+
 function sentence(text: string): string {
   const trimmed = text.trim();
   return /[.!?]$/.test(trimmed) ? trimmed : `${trimmed}.`;
 }
 
 function effects(label: string, list: readonly string[]): string[] {
-  return list.length === 0 ? [] : [`${label}: ${list.join("; ")}.`];
+  // Each effect loses its own end punctuation, so "email sent." doesn't render as "email sent..".
+  const items = list.map((item) => item.trim().replace(/[.!?]+$/, ""));
+  return items.length === 0 ? [] : [`${label}: ${items.join("; ")}.`];
+}
+
+// A same-key retry takes effect at most once only when there is a key. writeOutcome() allows a keyless one only for
+// not_applied, whose first attempt changed nothing.
+function retrySentence(outcome: WriteOutcome): string {
+  if (outcome.retry === "same_key" && outcome.effectKey === undefined) return KEYLESS_SAME_KEY;
+  return RETRY[outcome.retry];
 }
 
 function describe(outcome: WriteOutcome): string {
   const parts = [
-    HAPPENED[outcome.kind].replace("{op}", outcome.operation),
+    // A function replacer, so `$&` or `$'` in an operation's name is copied, not read as a replacement pattern.
+    HAPPENED[outcome.kind].replace("{op}", () => outcome.operation),
     ...effects("Still in effect", outcome.applied),
     ...effects("Undone", outcome.reverted),
     ...effects("Cannot be undone", outcome.notReversible),
     ...(outcome.currentState === undefined ? [] : [`Current state: ${sentence(outcome.currentState)}`]),
     `Next: ${sentence(outcome.next)}`,
-    ...(outcome.kind === "applied" ? [] : [RETRY[outcome.retry]]),
+    ...(outcome.kind === "applied" ? [] : [retrySentence(outcome)]),
     MUST_NOT[outcome.kind],
     ...(outcome.avoid === undefined ? [] : [sentence(outcome.avoid)]),
   ];

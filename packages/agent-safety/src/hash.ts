@@ -28,21 +28,40 @@ function isPlainObject(value: object): value is Record<string, unknown> {
   return prototype === Object.prototype || prototype === null;
 }
 
-function canonicalObject(value: Record<string, unknown>, path: string): string {
+// `ancestors` holds the objects and arrays that enclose the current value, so a cycle throws instead of recursing
+// until the stack runs out. A value shared by two siblings is no cycle, so it is removed again on the way out.
+function canonicalObject(value: Record<string, unknown>, path: string, ancestors: Set<object>): string {
   // JCS sorts property names by UTF-16 code units, which is what the default sort compares.
   const keys = Object.keys(value)
     .filter((key) => value[key] !== undefined)
     .sort();
-  const members = keys.map((key) => `${canonicalString(key, path)}:${canonical(value[key], `${path}.${key}`)}`);
+  const members = keys.map(
+    (key) => `${canonicalString(key, path)}:${canonical(value[key], `${path}.${key}`, ancestors)}`,
+  );
   return `{${members.join(",")}}`;
 }
 
-function canonicalArray(value: readonly unknown[], path: string): string {
-  const items = value.map((item, index) => {
-    if (item === undefined) throw invalid(`${path}[${index}]`, "is undefined");
-    return canonical(item, `${path}[${index}]`);
-  });
+function canonicalArray(value: readonly unknown[], path: string, ancestors: Set<object>): string {
+  // An index loop, because `map` skips the holes of a sparse array and `join` would then write `[1,,3]`.
+  const items: string[] = [];
+  for (let index = 0; index < value.length; index++) {
+    const itemPath = `${path}[${index}]`;
+    if (!(index in value)) throw invalid(itemPath, "is a hole in a sparse array");
+    const item = value[index];
+    if (item === undefined) throw invalid(itemPath, "is undefined");
+    items.push(canonical(item, itemPath, ancestors));
+  }
   return `[${items.join(",")}]`;
+}
+
+function nested(value: object, path: string, ancestors: Set<object>, write: () => string): string {
+  if (ancestors.has(value)) throw invalid(path, "refers back to an object that contains it");
+  ancestors.add(value);
+  try {
+    return write();
+  } finally {
+    ancestors.delete(value);
+  }
 }
 
 function describeType(value: unknown): string {
@@ -50,12 +69,14 @@ function describeType(value: unknown): string {
   return typeof value === "object" ? "an object that isn't plain" : `a ${typeof value}`;
 }
 
-function canonical(value: unknown, path: string): string {
+function canonical(value: unknown, path: string, ancestors: Set<object>): string {
   if (value === null || typeof value === "boolean") return JSON.stringify(value);
   if (typeof value === "string") return canonicalString(value, path);
   if (typeof value === "number") return canonicalNumber(value, path);
-  if (Array.isArray(value)) return canonicalArray(value, path);
-  if (typeof value === "object" && isPlainObject(value)) return canonicalObject(value, path);
+  if (Array.isArray(value)) return nested(value, path, ancestors, () => canonicalArray(value, path, ancestors));
+  if (typeof value === "object" && isPlainObject(value)) {
+    return nested(value, path, ancestors, () => canonicalObject(value, path, ancestors));
+  }
   throw invalid(path, `is ${describeType(value)}`);
 }
 
@@ -66,12 +87,12 @@ function hex(bytes: ArrayBuffer): string {
 /**
  * Hashes a tool input: the SHA-256 of its canonical JSON (RFC 8785), as 64 lowercase hex digits. Two inputs whose
  * object keys differ only in order get the same hash, and any changed value gives a different one. Object properties
- * set to `undefined` are left out, as `JSON.stringify` leaves them out. Throws a `SafetyError` with code
- * `invalid_input` for a value JSON can't hold the same way everywhere: `undefined` in an array, a number that isn't
- * finite, a string with a lone surrogate, a bigint, symbol or function, or an object that isn't plain, such as a
- * `Date`.
+ * set to `undefined` are left out, as `JSON.stringify` leaves them out. The hash is async because Web Crypto's
+ * digest is. It rejects with a `SafetyError` with code `invalid_input` for a value JSON can't hold the same way
+ * everywhere: `undefined` or a hole in an array, a number that isn't finite, a string with a lone surrogate, a bigint,
+ * symbol or function, an object that isn't plain, such as a `Date`, or an object or array that contains itself.
  */
 export async function canonicalInputHash(input: unknown): Promise<string> {
-  const text = canonical(input, "$");
+  const text = canonical(input, "$", new Set());
   return hex(await globalThis.crypto.subtle.digest("SHA-256", ENCODER.encode(text)));
 }

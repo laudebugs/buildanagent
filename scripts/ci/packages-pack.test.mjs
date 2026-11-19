@@ -225,7 +225,7 @@ for (const conditions of [[], ["--conditions=source"]]) {
 }
 
 packTest("the safety package's root entry loads and hashes in an install without its optional peers", () => {
-  // The SDK imports this entry, so it must load where `ai` and `@ai-sdk/*` are absent, as they are from this install.
+  // The SDK will import this entry (ADR 0043), so it must load where `ai` and `@ai-sdk/*` are absent, as they are here.
   const { manifest } = packed.get("@buildanagent/agent-safety") ?? {};
   assert.ok(manifest, "the safety package was not packed");
   const peers = Object.keys(manifest.peerDependencies ?? {});

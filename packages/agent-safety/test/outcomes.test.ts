@@ -152,3 +152,46 @@ test("the README's declined refund renders the text the README shows", () => {
   const readme = readFileSync(new URL("../README.md", import.meta.url), "utf8");
   assert.ok(readme.includes(`> ${renderOutcome(outcome).text}\n`), renderOutcome(outcome).text);
 });
+
+test("an operation name with a replacement pattern renders as written", () => {
+  const outcome = writeOutcome({ kind: "unknown", operation: "pay$&x$'", next: "Check" });
+  assert.ok(renderOutcome(outcome).text.startsWith("It is not known whether the pay$&x$' call took effect."));
+});
+
+for (const field of ["currentState", "avoid", "effectKey"] as const) {
+  test(`a blank ${field} is rejected at construction`, () => {
+    rejectsInvalidOutcome({ kind: "not_applied", operation: "send_email", next: "Stop", [field]: " " }, /non-empty/);
+  });
+}
+
+for (const [kind, field] of [
+  ["not_applied", "applied"],
+  ["not_applied", "reverted"],
+  ["not_applied", "notReversible"],
+  ["applied", "reverted"],
+  ["compensated", "applied"],
+] as const) {
+  test(`a ${kind} outcome that lists ${field} effects is rejected at construction`, () => {
+    rejectsInvalidOutcome({ kind, operation: "send_email", next: "Stop", [field]: ["email sent"] }, new RegExp(field));
+  });
+}
+
+for (const kind of ["partial", "unknown"] as const) {
+  test(`a ${kind} outcome needs an effectKey to allow a same_key retry`, () => {
+    rejectsInvalidOutcome({ kind, operation: "refund_create", next: "Check", retry: "same_key" }, /effectKey/);
+    const keyed = writeOutcome({ kind, operation: "refund_create", next: "Check", retry: "same_key", effectKey: "k" });
+    assert.match(renderOutcome(keyed).text, /takes effect at most once/);
+  });
+}
+
+test("a not_applied outcome without an effectKey doesn't promise a keyed retry", () => {
+  const outcome = writeOutcome({ kind: "not_applied", operation: "send_email", next: "Stop" });
+  const { text } = renderOutcome(outcome);
+  assert.doesNotMatch(text, /at most once/);
+  assert.match(text, /this attempt changed nothing/);
+});
+
+test("an effect that ends in a full stop renders with one", () => {
+  const outcome = writeOutcome({ kind: "applied", operation: "send_email", next: "Done", applied: ["email sent."] });
+  assert.match(renderOutcome(outcome).text, /Still in effect: email sent\. Next:/);
+});

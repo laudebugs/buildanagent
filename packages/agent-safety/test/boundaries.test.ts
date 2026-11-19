@@ -54,10 +54,12 @@ test("nothing reachable from the root entry imports ai, @ai-sdk/* or agents", ()
   assert.deepEqual(offenders, []);
 });
 
-test("the root entry imports nothing but the gateway and its own files", () => {
+test("the root entry imports nothing but its own files and declared dependencies", () => {
+  // A devDependency such as the gateway would pass in this workspace and fail in a consumer's install.
+  const declared = Object.keys(manifest.dependencies ?? {});
   const bare = [...reachable(join(packageRoot, "src", "index.ts")).values()].flat();
   assert.deepEqual(
-    bare.filter((spec) => !spec.startsWith("@buildanagent/gateway")),
+    bare.filter((spec) => !declared.some((name) => spec === name || spec.startsWith(`${name}/`))),
     [],
   );
 });
@@ -70,11 +72,32 @@ test("the ai subpath imports no Cloudflare agents code", () => {
   );
 });
 
+// Value imports, value re-exports (`export { x } from`, `export * from`), side-effect imports and dynamic imports.
+const VALUE_IMPORT =
+  /^(?:import|export)\s+(?!type\b)[^;]*?from\s+["']([^"']+)["']|^import\s+["']([^"']+)["']|\bimport\s*\(\s*["']([^"']+)["']/gm;
+
+function thirdPartyValueImports(code: string): string[] {
+  return [...code.matchAll(VALUE_IMPORT)]
+    .map((match) => match[1] ?? match[2] ?? match[3] ?? "")
+    .filter((spec) => THIRD_PARTY.test(spec));
+}
+
+test("the value-import check catches re-exports, side-effect and dynamic imports, and skips type-only ones", () => {
+  const code = [
+    'import type { A } from "ai";',
+    'export type { B } from "@ai-sdk/provider-utils";',
+    'import { tool } from "ai";',
+    'export { generateText } from "ai";',
+    'export * from "@ai-sdk/provider-utils";',
+    'import "agents";',
+    'const m = await import("ai/test");',
+  ].join("\n");
+  assert.deepEqual(thirdPartyValueImports(code), ["ai", "ai", "@ai-sdk/provider-utils", "agents", "ai/test"]);
+});
+
 test("the ai subpath imports third-party SDKs for types only", () => {
   const valueImports = [...reachable(join(packageRoot, "src", "ai", "index.ts")).keys()].flatMap((file) =>
-    [...readFileSync(file, "utf8").matchAll(/^import\s+(?!type\b)[^;]*?from\s+["']([^"']+)["']/gm)]
-      .map((match) => match[1] ?? "")
-      .filter((spec) => THIRD_PARTY.test(spec)),
+    thirdPartyValueImports(readFileSync(file, "utf8")),
   );
   assert.deepEqual(valueImports, []);
 });

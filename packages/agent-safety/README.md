@@ -36,13 +36,13 @@ const outcome = writeOutcome({
 });
 ```
 
-Every outcome needs `operation` and `next`, which tells the model what to do now. Optional fields add detail: `applied`, `reverted` and `notReversible` list effects, `currentState` gives one line the model can trust, and `avoid` adds what the model must not do. A `reason` must be upper snake case of at most 63 characters, such as `CARD_DECLINED`. A field that breaks a rule throws a `SafetyError` with the code `invalid_outcome`.
+Every outcome needs `operation` and `next`, which tells the model what to do now. Optional fields add detail: `applied`, `reverted` and `notReversible` list effects, `currentState` gives one line the model can trust, and `avoid` adds what the model must not do. A `reason` must be upper snake case of at most 63 characters, such as `CARD_DECLINED`. An optional text field, if set, must not be blank, and an effect list must not contradict the kind: a `not_applied` outcome lists no effects, an `applied` one nothing `reverted`, and a `compensated` one nothing `applied`. A `partial` or `unknown` outcome may use `same_key` only with an `effectKey`, since without one a retry could take effect twice. A field that breaks a rule throws a `SafetyError` with the code `invalid_outcome`.
 
 ## The model reads a sentence and a payload
 
 `renderOutcome()` turns an outcome into what the model reads. For the refund above, it returns this text:
 
-> The refund_create call did not take effect, and nothing changed. Next: Ask the requester for another payment method. Retrying this same call is safe; it takes effect at most once. Do not say that it happened.
+> The refund_create call did not take effect, and nothing changed. Next: Ask the requester for another payment method. Retrying this same call is safe, because this attempt changed nothing. Do not say that it happened.
 
 Beside the text, it returns the outcome's fields as a JSON `payload`, and `isError`, which is true for every kind except `applied`. Send all three to the model. Some SDKs show the model only the text or only the structured part, and some adapters drop the provider's error flag, so the outcome must survive in each channel alone.
 
@@ -66,7 +66,7 @@ An approval signs a hash of the tool's input, and an effect record stores the sa
 await canonicalInputHash({ to: "ada@example.com", body: "Hi" }) === await canonicalInputHash({ body: "Hi", to: "ada@example.com" }); // true
 ```
 
-Any changed value gives a different hash. A property set to `undefined` counts as absent, as it does in `JSON.stringify`. An input with no single JSON form throws a `SafetyError` with the code `invalid_input`: a number that isn't finite, `undefined` in an array, a string with a lone surrogate, a bigint, a function, or an object that isn't plain, such as a `Date`.
+Any changed value gives a different hash. A property set to `undefined` counts as absent, as it does in `JSON.stringify`. The hash is async, because Web Crypto's digest is. For an input with no single JSON form, it rejects with a `SafetyError` with the code `invalid_input`: a number that isn't finite, `undefined` or a hole in an array, a string with a lone surrogate, a bigint, a function, an object that isn't plain, such as a `Date`, or an object that contains itself.
 
 ## The root entry loads without any third-party SDK
 

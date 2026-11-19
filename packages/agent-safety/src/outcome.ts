@@ -114,7 +114,10 @@ function requireText(value: unknown, field: string): void {
 }
 
 function requireOptionalText(value: unknown, field: string): void {
-  if (value !== undefined && typeof value !== "string") throw invalid(`a write outcome's ${field} must be a string`);
+  // A blank value would render as an empty sentence, such as "Current state: .", so it must be left out instead.
+  if (value !== undefined && (typeof value !== "string" || value.trim() === "")) {
+    throw invalid(`a write outcome's ${field} must be non-empty when it is set`);
+  }
 }
 
 function effectList(value: unknown, field: string): readonly string[] {
@@ -135,6 +138,30 @@ function checkReason(reason: unknown): void {
   }
 }
 
+// The effect lists each kind can't hold, because the kind's own sentence would contradict them: a write that changed
+// nothing has no effects, one that took effect undid nothing, and one that was undone holds none of its effects.
+const FORBIDDEN_EFFECTS: { readonly [K in OutcomeKind]: readonly Defaulted[] } = {
+  applied: ["reverted"],
+  not_applied: ["applied", "reverted", "notReversible"],
+  compensated: ["applied"],
+  partial: [],
+  unknown: [],
+};
+
+function checkEffects(kind: OutcomeKind, lists: Readonly<Record<Defaulted, readonly string[]>>): void {
+  for (const field of FORBIDDEN_EFFECTS[kind]) {
+    if (lists[field].length > 0) throw invalid(`a ${kind} outcome cannot list ${field} effects`);
+  }
+}
+
+function checkEffectKey(kind: OutcomeKind, retry: Retry, effectKey: unknown): void {
+  // Without a key, a same-key retry of a write that may have taken effect could take effect twice. A not_applied
+  // write took no effect, so retrying it is safe with or without one.
+  if (retry === "same_key" && effectKey === undefined && (kind === "partial" || kind === "unknown")) {
+    throw invalid(`a ${kind} outcome can use retry "same_key" only with an effectKey`);
+  }
+}
+
 function checkKindAndRetry(kind: unknown, retry: unknown): Retry {
   if (!OUTCOME_KINDS.includes(kind as OutcomeKind)) throw invalid(`unknown outcome kind ${JSON.stringify(kind)}`);
   const known = kind as OutcomeKind;
@@ -147,8 +174,10 @@ function checkKindAndRetry(kind: unknown, retry: unknown): Retry {
 
 /**
  * Builds a write outcome, filling in the defaults and checking every field. Throws a `SafetyError` with code
- * `invalid_outcome` for an unknown kind, a retry rule the kind doesn't allow, an empty `operation` or `next`, or a
- * `reason` that isn't upper snake case of at most 63 characters. The result is frozen.
+ * `invalid_outcome` for an unknown kind, a retry rule the kind doesn't allow, an empty `operation` or `next`, a blank
+ * optional text field, a `reason` that isn't upper snake case of at most 63 characters, effects the kind contradicts
+ * (any effect on `not_applied`, `reverted` on `applied`, `applied` on `compensated`), or a `partial` or `unknown`
+ * outcome that allows a `same_key` retry without an `effectKey`. The result is frozen.
  */
 export function writeOutcome(init: WriteOutcomeInit): WriteOutcome {
   const retry = checkKindAndRetry(init.kind, init.retry);
@@ -156,13 +185,18 @@ export function writeOutcome(init: WriteOutcomeInit): WriteOutcome {
   requireText(init.next, "next");
   for (const field of ["effectKey", "currentState", "avoid"] as const) requireOptionalText(init[field], field);
   checkReason(init.reason);
+  checkEffectKey(init.kind, retry, init.effectKey);
+  const lists = {
+    applied: effectList(init.applied, "applied"),
+    reverted: effectList(init.reverted, "reverted"),
+    notReversible: effectList(init.notReversible, "notReversible"),
+  };
+  checkEffects(init.kind, lists);
   const outcome = {
     kind: init.kind,
     operation: init.operation,
     ...(init.effectKey === undefined ? {} : { effectKey: init.effectKey }),
-    applied: effectList(init.applied, "applied"),
-    reverted: effectList(init.reverted, "reverted"),
-    notReversible: effectList(init.notReversible, "notReversible"),
+    ...lists,
     ...(init.currentState === undefined ? {} : { currentState: init.currentState }),
     retry,
     next: init.next,
