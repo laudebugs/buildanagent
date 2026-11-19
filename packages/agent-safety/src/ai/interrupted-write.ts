@@ -31,7 +31,8 @@ function interrupted(operation: string): WriteOutcome {
 
 /**
  * Returns `part` settled as `output-available` with an `unknown` write outcome as its output, if its tool is one of
- * `writes`, or `undefined` for any other tool, so the caller keeps the default repair for reads. Use it in an
+ * `writes` and `execute` may have started, or `undefined` for any other tool or a part still streaming its input or
+ * awaiting approval, so the caller keeps the default repair for those. Use it in an
  * `AIChatAgent`'s `repairInterruptedToolPart` override, and convert the stored messages with the agent's tools, so a
  * tool whose `toModelOutput` calls `toAiToolResult()` hands the model the outcome as an `error-json` result.
  *
@@ -48,6 +49,10 @@ function interrupted(operation: string): WriteOutcome {
 export function repairInterruptedWrite<PART extends Part>(part: PART, writes: ReadonlySet<string>): PART | undefined {
   const name = toolName(part);
   if (name === undefined || !writes.has(name)) return undefined;
+  // `execute` starts only once the input is complete and any approval is granted, so a part in an earlier state never
+  // ran; the default repair, which reports a failure the model may retry, is the honest one for it.
+  const state = (part as { state?: unknown }).state;
+  if (state === "input-streaming" || state === "approval-requested") return undefined;
   // `ai` 7.0.162's UI message validator takes an `output-available` tool part with any output and no error text; an
   // approval the part keeps is a granted one, because the agent settles a denied part as `output-denied` first.
   const { errorText: _dropped, ...rest } = part as Part & { errorText?: unknown };

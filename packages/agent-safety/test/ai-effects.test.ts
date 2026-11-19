@@ -111,6 +111,16 @@ test("repairInterruptedWrite leaves a tool that isn't a write to the default rep
   assert.equal(repairInterruptedWrite(text, new Set(["send_email"])), undefined);
 });
 
+test("repairInterruptedWrite leaves a part whose execute cannot have started to the default repair", () => {
+  const writes = new Set(["send_email"]);
+  for (const state of ["input-streaming", "approval-requested"]) {
+    const part = { ...ORPHAN, state } as unknown as UIMessage["parts"][number];
+    assert.equal(repairInterruptedWrite(part, writes), undefined, state);
+  }
+  const responded = { ...ORPHAN, state: "approval-responded" } as unknown as UIMessage["parts"][number];
+  assert.ok(repairInterruptedWrite(responded, writes) !== undefined);
+});
+
 test("repairInterruptedWrite drops any error text and reads a dynamic tool by its name", () => {
   const dynamic = { ...ORPHAN, type: "dynamic-tool", toolName: "send_email", errorText: "interrupted" };
   const repaired = repairInterruptedWrite(dynamic as unknown as UIMessage["parts"][number], new Set(["send_email"]));

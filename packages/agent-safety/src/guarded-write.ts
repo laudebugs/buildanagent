@@ -37,7 +37,7 @@ export interface GuardedWriteOptions<T> {
   readonly businessKey?: string;
   /** The tool or business operation, such as `refund_create`. */
   readonly operation: string;
-  /** The tool's input. Its canonical hash is stored, and a later call with the same key and another input is refused. */
+  /** The tool's input. Its canonical hash is stored; a later call with the same key and another input is refused. */
   readonly input: unknown;
   /** How a retry finds out what an earlier attempt did. */
   readonly dedupe: WriteDedupe;
@@ -102,7 +102,7 @@ function checkOptions<T>(options: GuardedWriteOptions<T>): void {
   if (!Number.isSafeInteger(lease) || lease <= 0) throw invalid("a guarded write's leaseMs must be a positive integer");
 }
 
-/** The outcome with this write's effect key, unless the tool set one; checked again, so a stored one is re-validated. */
+/** The outcome with this write's effect key, unless the tool set one; checked again, so a stored one is re-checked. */
 function stamped(ctx: Context<unknown>, outcome: WriteOutcome): WriteOutcome {
   return writeOutcome(outcome.effectKey === undefined ? { ...outcome, effectKey: ctx.key } : outcome);
 }
@@ -296,8 +296,10 @@ async function resume<T>(ctx: Context<T>, existing: EffectRecord, depth: number)
  *
  * The key comes from `effectKey()`, and no option lets a caller pick another one. With a business key, a write whose
  * outcome is `unknown` can therefore never run again under a fresh key. Without one, the key holds the tool call id,
- * so only a resume of the same call finds the record, and a fresh call is a fresh write. It rejects with a `SafetyError`, code `invalid_effect`, for an
- * empty scope field, business key or operation, or for a `dedupe` that doesn't match the `reconcile` hook.
+ * so only a resume of the same call finds the record, and a fresh call is a fresh write.
+ *
+ * It rejects with a `SafetyError`, code `invalid_effect`, for an empty scope field, business key or operation, or for a
+ * `dedupe` that doesn't match the `reconcile` hook.
  *
  * @example
  * ```ts
@@ -305,7 +307,8 @@ async function resume<T>(ctx: Context<T>, existing: EffectRecord, depth: number)
  *   store, scope, businessKey: `refund:${input.orderId}`, operation: "refund_create", input,
  *   dedupe: "idempotency_key",
  *   run: (key) => payments.refunds.create(input, { idempotencyKey: key }),
- *   toOutcome: (refund) => writeOutcome({ kind: "applied", operation: "refund_create", next: `Tell the user ${refund.id} is on its way` }),
+ *   toOutcome: (refund) =>
+ *     writeOutcome({ kind: "applied", operation: "refund_create", next: `Tell the user ${refund.id} is on its way` }),
  * });
  * ```
  */
