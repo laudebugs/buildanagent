@@ -30,7 +30,7 @@ Hold every tool from every source in one registry that names it canonically, ref
 - `toolSearchTool()` that activates deferred tools for the next step through `ModelCallPatch.activeTools`
 - Host patterns `in_process` and `client_request` (the latter awaits a `tool/call` server request, wired in N28)
 - The turn's `hostContext` passed to the wrapper by `definitions(wrap, hostContext)` and on to `execute`, never in a schema (agent AH2)
-- `RegisteredTool.outputTrust`, defaulting to `"untrusted"` for `mcp:*` sources and `"trusted"` otherwise, copied into `tool_result.trust` (agent AH10)
+- `RegisteredTool.outputTrust`, defaulting to `"untrusted"` for `mcp:*` sources and for any tool that calls a remote agent, and `"trusted"` otherwise, copied into `tool_result.trust` (agent AH10; the remote-agent default added by the owner's approval of U19's change 4 on 2026-11-19, [harness plan §3.3](../../plans/build-harness.md#33-context-policy-and-tool-registry-apis)). Choose how the registry knows a tool calls a remote agent: a source such as `` `agent:${string}` `` or a flag the registering code sets
 - `RegisteredTool.approvalReuse`, default `"both"`, which N14 enforces (R8)
 
 **Out of scope** (and which todo covers it)
@@ -52,7 +52,7 @@ Hold every tool from every source in one registry that names it canonically, ref
 - [ ] A deferred tool is absent from requests until `tool_search` activates it, then present in the next request
 - [ ] Activation does not reorder tools already sent
 - [ ] A host-context value reaches `execute` and appears in no recorded request and no entry
-- [ ] An MCP-sourced tool's results are written with `trust: "untrusted"`, a built-in's with `"trusted"`, and a declared `outputTrust` overrides either default
+- [ ] An MCP-sourced tool's results and a remote-agent tool's results are written with `trust: "untrusted"`, a built-in's with `"trusted"`, and a declared `outputTrust` overrides any default
 - [ ] `pnpm check`, `pnpm typecheck` and `pnpm test` pass offline from the repo root
 
 ## Tests

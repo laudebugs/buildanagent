@@ -1,13 +1,13 @@
 # Plan: write a two-part textbook on building an agent, published from `apps/manual` to manual.buildanagent.fyi
 
-- **Status:** Approved (2026-11-19). The owner answered the design, licence, vendoring and Cloudflare questions, then asked for a review, including a check that the outline covers every part of building an agent. Asked to approve the reviewed plan, the owner said "If green merge" and then "Then continue work", so its todos now start once their **Depends on** are done (§7). On 2026-11-19 the owner also approved the twelve plan changes of the retrieval and memory research (U18), which added two example todos, T43 and T44, for 48 in all (BK20).
+- **Status:** Approved (2026-11-19). The owner answered the design, licence, vendoring and Cloudflare questions, then asked for a review, including a check that the outline covers every part of building an agent. Asked to approve the reviewed plan, the owner said "If green merge" and then "Then continue work", so its todos now start once their **Depends on** are done (§7). On 2026-11-19 the owner also approved the twelve plan changes of the retrieval and memory research (U18), which added two example todos, T43 and T44, for 48 in all (BK20). The same day the owner approved every change that the A2A (U19), voice (U20) and fine-tuning (U21) research proposed. Those changes added four example todos, T45–T48, for 52 in all, and T48 is held until an SDK we pin ships A2A 1.0 (BK20).
 - **Date:** 2026-11-19
 - **Asked for by:** the project owner (2026-11-19): "A textbook on how to build an agent, with images that explain how agents work and example code from this repository."
 - **Builds on:** the three [build guides](../guides/), the [main research report][main], the eight [SDK references](../reference/), the [comparison docs](../comparison/), the plans and ADRs, the [publish-and-docs plan](publish-and-docs.md) for the docs and website beside the book, the verified examples in `verify/*/examples/`, and the owner's garment engineering textbook repository, read at commit `bca44b0` (BK16)
 - **Decision records:** [ADR 0052](../decisions/0052-book-in-apps-on-cloudflare.md) (accepted, owner), [ADR 0053](../decisions/0053-book-stack-and-deploy.md) (proposed), [ADR 0054](../decisions/0054-reuse-garment-textbook-code.md) (accepted for the permission, the exclusions and the Apache-2.0 licence; proposed for the list)
 - **Todos:** Round T ("textbook") on the [todo board](../todos/README.md); §5 lists them.
 
-This repository already holds most of what a book on building agents needs. It has three guides, a research report with a fact-check log, eight SDK references, and 70 example programs that type-check and run offline against mock models. But these sources are written for the engineers who will build our stack, and they assume the reader knows how an agent works. The owner wants a textbook for two readers: developers new to agents, and experienced builders who want the design reasons. The owner's garment engineering textbook shows what goes wrong when a book like this grows by hand: chapters numbered by hand needed about fifty redirects after renumbering, and figure numbers were typed into captions. **This plan builds the book as a static Astro site in `apps/manual` whose chapter, figure and listing numbers, citations, glossary links and code listings are all computed and checked at build time. It deploys the site as an assets-only Worker on manual.buildanagent.fyi. After eleven tooling todos, twelve new examples and four research rounds, it writes eighteen chapters in the owner's "call, then workflow, then loop" order, each fact-checked section by section.**
+This repository already holds most of what a book on building agents needs. It has three guides, a research report with a fact-check log, eight SDK references, and 70 example programs that type-check and run offline against mock models. But these sources are written for the engineers who will build our stack, and they assume the reader knows how an agent works. The owner wants a textbook for two readers: developers new to agents, and experienced builders who want the design reasons. The owner's garment engineering textbook shows what goes wrong when a book like this grows by hand: chapters numbered by hand needed about fifty redirects after renumbering, and figure numbers were typed into captions. **This plan builds the book as a static Astro site in `apps/manual` whose chapter, figure and listing numbers, citations, glossary links and code listings are all computed and checked at build time. It deploys the site as an assets-only Worker on manual.buildanagent.fyi. After eleven tooling todos, sixteen new examples and four research rounds, it writes eighteen chapters in the owner's "call, then workflow, then loop" order, each fact-checked section by section.**
 
 ## 1. Goal and non-goals
 
@@ -357,7 +357,7 @@ A listing from `google-adk`, or any example left out of the live list, says "ver
 
 ### BK20. New `verify/` examples fill the gaps the coverage review found (accepted)
 
-**The owner's decision (2026-11-19):** "New verify/ examples". The review read the named examples' headers and found seven chapters whose listings did not show their subject, and the code review of the plan found three more. Twelve todos, T28–T34 and T40–T44, each write a type-checked, mock-run example in an existing harness, and each chapter waits for its example:
+**The owner's decision (2026-11-19):** "New verify/ examples". The review read the named examples' headers and found seven chapters whose listings did not show their subject, and the code review of the plan found three more. Sixteen todos, T28–T34 and T40–T48, each write a type-checked, mock-run example in an existing harness, and each chapter waits for its example:
 
 - streaming with usage for T11;
 - retries, caching and a budget for T18;
@@ -370,9 +370,20 @@ A listing from `google-adk`, or any example left out of the live list, says "ver
 - a computer-use tool against a fake computer for T35;
 - retrieval over a small fixture for T36, after the retrieval research (U18);
 - storing, recalling and expiring a fact across runs on LangChain's store, for T36 (T43);
-- context-block memory that survives eviction on Cloudflare, for T36 (T44).
+- context-block memory that survives eviction on Cloudflare, for T36 (T44);
+- delegation to a remote agent over A2A on ADK, both ends offline, for T37 (T45);
+- an OpenAI realtime session on the SDK's scripted transport, for T38 (T46);
+- a chained voice pipeline with a tool and barge-in on Cloudflare, for T38 (T47);
+- an A2A 1.0 example, held until an SDK we pin ships 1.0 support, for T37 (T48).
 
 **Amended by the owner on 2026-11-19.** U18's report proposed twelve plan changes, and the owner approved all twelve on 2026-11-19 ([retrieval and memory report][u18-changes]). Four of them change this plan. T41 now writes BM25 by hand over a fixture of about ten documents and asserts four behaviours, with a hybrid variant optional and labelled as a stand-in. T43 and T44 are new, and T36 waits for both. T36's second section adds retrieval measurement, and its third adds the rule that the agent checks a recalled record against its source before acting on it. Its exercise now shows the expired fact still in the session log.
+
+**Amended again by the owner on 2026-11-19 (owner decision 2026-11-19).** The A2A report (U19) proposed seven changes, the voice report (U20) eight and the fine-tuning report (U21) six, and the owner approved all 21 that day ([A2A][u19-changes]; [voice][u20-changes]; [fine-tuning][u21-changes]). Nine of them change this plan, three from each report:
+- **New examples.** T45 runs both ends of A2A on ADK in one process, and adds `@a2a-js/sdk` 0.3.14 as a direct dependency of `verify/google-adk`. T46 runs a realtime session on OpenAI's scripted transport, with a runner change so our own realtime example runs. T47 runs a voice pipeline on Cloudflare.
+- **A held example.** T48 shows A2A 1.0 once ADK merges its pull request #1365 or OpenAI releases `@openai/agents/a2a`.
+- **T28's scope.** T28 also prices a tuned model against a cached prompt, giving T39 its listing, instead of a new todo.
+- **The three sections.** T37, T38 and T39 each stay one section, with the scope their reports recommend, and wait for their examples: T37 for T45, T38 for T46 and T47, and T39 for T28. T37 and T39 each gain a second break note. T38's break note is replaced: "the agent must stop speaking at once, decide for each tool in flight whether it finishes or is undone, and forget the words the caller never heard". The analogies themselves are unchanged, so BK22's count stays 61.
+- **A correction.** MAP's 70% describes 14 of 20 interviewed teams, not a survey. Rows 105 and 174 of the [fact-check log](reviews/fact-check-build-book.md) stay as written, and new rows at its end record the correction.
 
 Where no SDK can show a behaviour offline, the example todo records the limit instead of faking one. That is the case for AWS and Vercel durability, which `verify/` cannot run. It is also why T40 drives a scripted fake computer through the pinned SDK's own computer-use tool: no harness runs a real browser, and adding one is a new dependency and a host-touching tool, a separate change the owner approves.
 
@@ -462,6 +473,8 @@ The owner chose to cover every topic group the coverage review named (2026-11-19
 | Voice and realtime agents | [U20](../todos/done/U20-research-voice-and-realtime.md); report: [voice-and-realtime.md](../research/voice/voice-and-realtime.md) | T38, a section of T35 | Voice and realtime change how a person interacts with a running agent, which is Chapter T35's subject |
 | Fine-tuning versus prompting | [U21](../todos/done/U21-research-fine-tuning-vs-prompting.md); report: [fine-tuning-vs-prompting.md](../research/fine-tuning/fine-tuning-vs-prompting.md) | T39, a section of T11 | The question arises the moment a reader chooses a model, which Chapter T11 teaches |
 
+The three research rounds behind the sections each confirmed its placement, and the owner approved their proposed changes on 2026-11-19 (owner decision 2026-11-19, BK20). Each section stays a section and waits for the example that gives it a listing. T37 follows the MCP section of T21 and uses T45's ADK example. T38 uses T46's scripted OpenAI session and T47's Cloudflare pipeline. T39 uses the tuned-versus-cached pricing example that T28 now also writes.
+
 ### 4.4 Where each topic of the coverage review lands
 
 | Topic | Chapter or section |
@@ -514,6 +527,10 @@ The owner chose to cover every topic group the coverage review named (2026-11-19
 | [T42](../todos/ready/T42-example-subagent.md) | Example: a subagent with its own context | T5 | M |
 | [T43](../todos/ready/T43-example-store-recall-expire.md) | Example: store, recall and expire a fact across runs on LangChain's store | T5, U18 | M |
 | [T44](../todos/ready/T44-example-context-memory.md) | Example: context-block memory that survives eviction and stays inside one agent | T5, U18 | M |
+| [T45](../todos/ready/T45-example-a2a-delegation.md) | Example: delegation to a remote agent over A2A on ADK, both ends offline | T5, U19 | M |
+| [T46](../todos/ready/T46-example-realtime-session.md) | Example: an OpenAI realtime session on the SDK's scripted transport | T5, U20 | M |
+| [T47](../todos/ready/T47-example-voice-pipeline.md) | Example: a chained voice pipeline with a tool and barge-in on Cloudflare | T5, U20 | M |
+| [T48](../todos/ready/T48-example-a2a-1-0.md) | Example: A2A 1.0 delegation, once a pinned SDK ships 1.0 support (on hold) | T45 | M |
 | [U18](../todos/done/U18-research-retrieval-and-long-term-memory.md) | Research: retrieval and long-term memory, for the book | None | L |
 | [U19](../todos/done/U19-research-a2a.md) | Research: agent-to-agent protocols (a2a), for the book | None | L |
 | [U20](../todos/done/U20-research-voice-and-realtime.md) | Research: voice and realtime agents, for the book | None | L |
@@ -536,11 +553,11 @@ The owner chose to cover every topic group the coverage review named (2026-11-19
 | [T23](../todos/ready/T23-chapter-side-effects-that-can-fail.md) | Chapter: Side effects that can fail: outcomes, idempotency and plan approvals | T5, T6, T26, T32 | M |
 | [T24](../todos/ready/T24-chapter-durable-and-portable-agents.md) | Chapter: Durable and portable agents, and how work reaches them | T5, T6, T26, T33 | M |
 | [T25](../todos/ready/T25-chapter-evals-observability-and-release.md) | Chapter: Evals, observability and release | T5, T6, T26, T34 | M |
-| [T37](../todos/ready/T37-section-a2a.md) | Section: agent-to-agent protocols (A2A) in Chapter T21 | U19, T21 | S |
-| [T38](../todos/ready/T38-section-voice-and-realtime.md) | Section: voice and realtime agents in Chapter T35 | U20, T35 | S |
-| [T39](../todos/ready/T39-section-fine-tuning-vs-prompting.md) | Section: fine-tuning versus prompting in Chapter T11 | U21, T11 | S |
+| [T37](../todos/ready/T37-section-a2a.md) | Section: agent-to-agent protocols (A2A) in Chapter T21 | U19, T21, T45 | S |
+| [T38](../todos/ready/T38-section-voice-and-realtime.md) | Section: voice and realtime agents in Chapter T35 | U20, T35, T46, T47 | S |
+| [T39](../todos/ready/T39-section-fine-tuning-vs-prompting.md) | Section: fine-tuning versus prompting in Chapter T11 | U21, T11, T28 | S |
 
-Chapters are listed in reading order. The longest chain runs T1 → T3 → T4 → T5 → T26 and then to any chapter; T6 → T8 → T7 runs beside it. Each chapter whose subject lacked code waits for its example todo (T28–T34, T40–T44), which needs T5, and T41, T43 and T44 also need U18. The research todos U18–U21 need nothing from Round T and can run first; T36 waits for U18, and each research-fed section waits for its research and its chapter. T27 can run any time after T5, and the owner starts each live run by hand. T9 can ship the site at any point after T8, with whatever chapters exist.
+Chapters are listed in reading order. The longest chain runs T1 → T3 → T4 → T5 → T26 and then to any chapter; T6 → T8 → T7 runs beside it. Each chapter whose subject lacked code waits for its example todo (T28–T34, T40–T47), which needs T5, and T41, T43 and T44 also need U18. T45 also needs U19, and T46 and T47 need U20. T48 needs T45 and stays on hold until a pinned SDK ships A2A 1.0. The research todos U18–U21 need nothing from Round T and can run first; T36 waits for U18, and each research-fed section waits for its research, its chapter and its example: T37 for T45, T38 for T46 and T47, and T39 for T28. T27 can run any time after T5, and the owner starts each live run by hand. T9 can ship the site at any point after T8, with whatever chapters exist.
 
 
 ## 6. Ten risks, each with the todo that handles it
@@ -565,15 +582,20 @@ Round T needs nothing from Rounds B, N or E to start: T1 needs only the workspac
      └─► T3 ─► T4 ─► T5 ─┬─► T26 ─┐          │
               T2, T3 ─► T6 ─► T8 (with T4) ─► T7
                          ├─► T27  │
-                         └─► T28–T34, T40–T44 (examples; T41, T43 and T44 also after U18)
+                         └─► T28–T34, T40–T47 (examples; T41, T43 and T44 also after U18,
+                                  │                T45 after U19, T46 and T47 after U20)
                                   ├─► chapters, each after T26, T6 or T7, and its example todo
- U18 ─► T36   U19 ─► T37 (in T21)   U20 ─► T38 (in T35)   U21 ─► T39 (in T11)
+ U18 ─► T36   U19 ─► T37 (in T21, after T45)   U20 ─► T38 (in T35, after T46, T47)
+ U21 ─► T39 (in T11, after T28)                T45 ─► T48 (held for A2A 1.0)
 ```
 
 The owner approved this plan on 2026-11-19 ("If green merge", then "Then continue work"), so T1 can begin now, and T2 already has the owner's design. Once Rounds B, N and E land the todos each chapter names in `switchTo`, follow-up todos move those chapters' listings to our own packages. The book then documents the stack this repository builds, in code that CI checks on every push.
 
 [main]: ../research/agent-sdks-and-harness-design.md
 [u18-changes]: ../research/memory/retrieval-and-memory.md#twelve-proposed-changes-await-the-owners-decision
+[u19-changes]: ../research/a2a/agent-to-agent-protocols.md#seven-proposed-changes-await-the-owners-decision
+[u20-changes]: ../research/voice/voice-and-realtime.md#eight-proposed-changes-await-the-owners-decision
+[u21-changes]: ../research/fine-tuning/fine-tuning-vs-prompting.md#six-proposed-changes-await-the-owners-decision
 [main-arch]: ../research/agent-sdks-and-harness-design.md#a-reference-architecture-in-eight-swappable-layers
 [g-sdk]: ../guides/agent-sdk.md
 [g-harness]: ../guides/agent-harness.md

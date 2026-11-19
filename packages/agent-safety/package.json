@@ -1,0 +1,83 @@
+{
+  "name": "@buildanagent/agent-safety",
+  "version": "0.0.0",
+  "private": true,
+  "description": "Safety core for buildanagent agents: typed write outcomes the model can read and a canonical input hash.",
+  "license": "Apache-2.0 OR MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/laudebugs/buildanagent.git",
+    "directory": "packages/agent-safety"
+  },
+  "homepage": "https://github.com/laudebugs/buildanagent/tree/main/packages/agent-safety#readme",
+  "type": "module",
+  "sideEffects": false,
+  "engines": {
+    "node": ">=22"
+  },
+  "files": [
+    "dist",
+    "LICENSE",
+    "LICENSE-APACHE",
+    "LICENSE-MIT"
+  ],
+  "exports": {
+    ".": {
+      "source": "./src/index.ts",
+      "types": "./dist/index.d.ts",
+      "default": "./dist/index.js"
+    },
+    "./ai": {
+      "source": "./src/ai/index.ts",
+      "types": "./dist/ai/index.d.ts",
+      "default": "./dist/ai/index.js"
+    },
+    "./agents": {
+      "source": "./src/agents/index.ts",
+      "types": "./dist/agents/index.d.ts",
+      "default": "./dist/agents/index.js"
+    }
+  },
+  "publishConfig": {
+    "exports": {
+      ".": {
+        "types": "./dist/index.d.ts",
+        "default": "./dist/index.js"
+      },
+      "./ai": {
+        "types": "./dist/ai/index.d.ts",
+        "default": "./dist/ai/index.js"
+      },
+      "./agents": {
+        "types": "./dist/agents/index.d.ts",
+        "default": "./dist/agents/index.js"
+      }
+    }
+  },
+  "scripts": {
+    "build": "node ../../scripts/clean-dist.mjs && tsc -p tsconfig.build.json",
+    "prepack": "pnpm run build && node ../../scripts/copy-licenses.mjs",
+    "prepublishOnly": "node ../../scripts/refuse-local-publish.mjs",
+    "typecheck": "tsc -p tsconfig.json",
+    "test": "vitest run"
+  },
+  "peerDependencies": {
+    "@ai-sdk/provider-utils": "5.0.74",
+    "ai": "7.0.162"
+  },
+  "peerDependenciesMeta": {
+    "@ai-sdk/provider-utils": {
+      "optional": true
+    },
+    "ai": {
+      "optional": true
+    }
+  },
+  "devDependencies": {
+    "@ai-sdk/provider": "4.0.35",
+    "@ai-sdk/provider-utils": "5.0.74",
+    "@buildanagent/gateway": "workspace:*",
+    "ai": "7.0.162",
+    "zod": "4.6.7"
+  }
+}

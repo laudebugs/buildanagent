@@ -224,6 +224,19 @@ for (const conditions of [[], ["--conditions=source"]]) {
   });
 }
 
+packTest("the safety package's root entry loads and hashes in an install without its optional peers", () => {
+  // The SDK will import this entry (ADR 0043), so it must load where `ai` and `@ai-sdk/*` are absent, as they are here.
+  const { manifest } = packed.get("@buildanagent/agent-safety") ?? {};
+  assert.ok(manifest, "the safety package was not packed");
+  const peers = Object.keys(manifest.peerDependencies ?? {});
+  assert.ok(peers.length > 0, "the safety package declares no optional peers");
+  for (const peer of peers) assert.ok(!existsSync(path.join(install, "node_modules", peer)), `${peer} is installed`);
+  const script = `const { canonicalInputHash } = await import("@buildanagent/agent-safety");
+console.log(await canonicalInputHash({ b: 1, a: 2 }));`;
+  const hash = run(process.execPath, ["--input-type=module", "-e", script], { cwd: install }).trim();
+  assert.match(hash, /^[0-9a-f]{64}$/);
+});
+
 // The program the fresh project runs: one call to the mock server, whose URL comes in as its only argument. It prints
 // the reply's text and stop reason, and checks that the SDK's testing export loads from the installed package.
 const CALL_PROGRAM = `
