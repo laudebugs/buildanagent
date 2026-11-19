@@ -712,4 +712,19 @@ The writing review reworded T5's prose; this row records the one claim it found 
 | --- | --- | --- | --- | --- |
 | 408 | `verify/openai-agents-sdk/README.md` no longer says that a handoff's call id is generated at run time and shows as `<id-1>`: the example scripts `call_handoff`, which the transcript keeps as written | `verify/openai-agents-sdk/README.md` | ✏️ | `examples/03-handoff.ts`, line 12, passes `{ callId: "call_handoff" }`, and `results/transcripts/03-handoff.json` holds `call_handoff` three times since the provenance rule (row 403) |
 
-**Totals:** 408 claims: 356 ✅, 52 ✏️, 0 ⚠️.
+### T26: checked inline code
+
+T26 checks each identifier in a chapter's inline code against its listings, their transcripts and the `.d.ts` exports of the packages they import (BK17's T26 result, the manual's README). These rows check the package facts its design rests on, on 2026-11-19, and mark the rest as our choices.
+
+| # | Claim | Where | Verdict | Source and reason |
+| --- | --- | --- | --- | --- |
+| 409 | typescript 7.0.2 exports no stable compiler API: its `package.json` has no `main` or `types`, and its `exports` map holds only `./package.json`, `.` (`./lib/version.cjs`) and eleven `./unstable/*` entries | The manual's README, `src/book/code-names.ts` | ✅ | The installed `typescript@7.0.2/package.json` |
+| 410 | typescript 7.0.2's `./unstable/sync` client runs the native compiler in a child process | The manual's README, `src/book/code-names.ts` | ✅ | `dist/api/syncChannel.js`, line 12, imports `spawn` from `node:child_process`, and line 99 spawns the executable with `--pipe` |
+| 411 | typescript 6.0.3 was published on 2026-04-16, more than a week ago, and its stable API has `createSourceFile`, `createProgram`, `resolveModuleName`, `identifierToKeywordKind` and the checker's `getExportsOfModule` | The manual's README, `apps/manual/package.json` | ✅ | `npm view typescript time`: 6.0.3 at 2026-04-16T23:38Z. `lib/typescript.d.ts` declares them on lines 9202, 9629, 9340, 8665 and 6282 |
+| 412 | Installed as the alias `typescript-api`, typescript 6.0.3 leaves the manual's `tsc` at 7.0.2, so the listing coverage check and `pnpm typecheck` still run 7.0.2 | `apps/manual/package.json` | ✅ | `apps/manual/node_modules/.bin/tsc --version` prints `Version 7.0.2` after the install, and `node_modules/typescript-api` links to `typescript@6.0.3` |
+| 413 | The checker follows a re-export across packages: ai 7.0.162 imports `tool` from `@ai-sdk/provider-utils` and exports it again, and the check finds `tool` among ai's exports | The manual's README, `test/checked-code.test.ts` | ✅ | ai's `dist/index.d.ts` imports `tool as tool$1` from `@ai-sdk/provider-utils` (line 2) and ends with `export { …, tool$1 as tool, … }` (line 11429); the test asserts `tool`, `generateText`, `isStepCount` and zod's `z` |
+| 414 | BK17's marker example, `maxBudgetUsd`, is an option of the Claude Agent SDK, not an export, so the check requires its marker | BK17 | ✅ | `@anthropic-ai/claude-agent-sdk@0.3.327`'s `sdk.d.ts` declares `maxBudgetUsd?: number` on line 2070, inside `export declare type Options` (line 1658) |
+| 415 | The compiler's keyword test counts `true`, `undefined`, `this` and contextual keywords such as `async`, `string` and `type`, but not `NaN`, so the plain-value pattern names `NaN` and `Infinity` itself | `src/book/inline-code.ts` | ✅ | A probe of typescript 6.0.3's scanner keywords on 2026-11-19; `test/checked-code.test.ts` checks `true`, `null`, `undefined`, `async` and `NaN` |
+| 416 | Our choices: typescript 6.0.3 over the unstable 7.0.2 client; the definition of identifier-like; the three skip patterns and their lists; that only exports count, not members; that relative and Node built-in imports and fenced `:::listing` code offer nothing; that a transcript counts without `replay`; and that a stale or missing transcript offers nothing | The manual's README, BK17's T26 result | ✅ | Our choices, not facts; the tests in `test/checked-code.test.ts` and `test/check-book.test.ts` fix each one |
+
+**Totals:** 416 claims: 364 ✅, 52 ✏️, 0 ⚠️.

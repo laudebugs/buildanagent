@@ -8,7 +8,7 @@
 | Status | `ready` |
 | Plan | [Book plan §4.2](../../plans/build-book.md#42-part-ii-in-depth-for-experienced-builders) |
 | Round / milestone | Round T (textbook), MT |
-| Depends on | [T5](../done/T5-book-interactive-listings.md), [T7](T7-book-isometric-figures.md), [T26](../ongoing/T26-book-checked-inline-code.md), [T31](T31-example-sandbox-behaviour.md) |
+| Depends on | [T5](../done/T5-book-interactive-listings.md), [T7](T7-book-isometric-figures.md), [T26](../done/T26-book-checked-inline-code.md), [T31](T31-example-sandbox-behaviour.md) |
 | Size | M |
 
 ## Goal
