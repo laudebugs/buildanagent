@@ -4,7 +4,7 @@
   "license": "Apache-2.0 OR MIT",
   "type": "module",
   "description": "Research and verification harnesses for building an AI agent and our own agent harness.",
-  "packageManager": "pnpm@10.28.0",
+  "packageManager": "pnpm@10.34.9",
   "engines": {
     "node": ">=22"
   },

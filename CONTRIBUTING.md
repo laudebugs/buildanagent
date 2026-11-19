@@ -4,7 +4,7 @@ Contributions of code and documentation are welcome. The full rules live in [AGE
 
 ## Install with pnpm on Node 22
 
-The repo is a pnpm workspace and uses Node 22 (`.nvmrc`) and pnpm 10.28.0 (`packageManager` in `package.json`). Run `pnpm install` at the repo root. Never use npm or yarn, and never commit a `package-lock.json`.
+The repo is a pnpm workspace and uses Node 22 (`.nvmrc`) and pnpm 10.34.9 (`packageManager` in `package.json`). Run `pnpm install` at the repo root. Never use npm or yarn, and never commit a `package-lock.json`.
 
 ## Pin every dependency exactly, to a release at least one week old
 
