@@ -1,6 +1,6 @@
 // Checks the book-dist artifact that book-build.yml uploaded and unpacks it into dist/ for the deploy workflow.
 //
-// The artifact may come from any pull request, a fork's included, so nothing in it is trusted (book plan BK15). The
+// The artifact comes from a branch of this repository, but its contents are not trusted (book plan BK15). The
 // workflow downloads it unextracted, and this script reads the zip itself instead of letting a general extractor
 // write wherever the archive's names point. It refuses the whole artifact, before writing anything, when an entry:
 //

@@ -407,6 +407,7 @@ describe("the resolve step", () => {
     );
     assert.equal(result.status, 0, result.stderr);
     assert.equal(result.outputs.deletions, "[]");
+    assert.match(result.stdout, /fork\/repo, a fork, so nothing is previewed or deleted/);
   });
 
   test("a pull request run whose commit no open pull request has as its head previews nothing", () => {
