@@ -54,9 +54,10 @@ test("mutating the context after a call leaves calls[0] unchanged", async () => 
   const ctx = context("original");
   await complete(model.stream(ref, ctx, { temperature: 0.2 }));
   ctx.messages.push({ role: "user", content: [{ type: "text", text: "later" }] });
-  (ctx.messages[0] as { content: { type: "text"; text: string }[] }).content[0].text = "changed";
+  (ctx.messages[0] as unknown as { content: [{ type: "text"; text: string }] }).content[0].text = "changed";
   ctx.system = "changed";
   const recorded = model.calls[0];
+  assert.ok(recorded, "the call was recorded");
   assert.equal(recorded.context.system, "be brief");
   assert.equal(recorded.context.messages.length, 1);
   assert.deepEqual(recorded.context.messages[0], { role: "user", content: [{ type: "text", text: "original" }] });
