@@ -525,7 +525,7 @@ The guide says to start with the gateway and the test model, because every other
 | --- | --- | --- | --- |
 | [B1](../todos/done/B1-sdk-workspace-scaffold.md) | Scaffold `packages/gateway` and `packages/sdk` in the workspace | P4 | S |
 | [B2](../todos/done/B2-gateway-core-types.md) | Gateway core types, the v1 model spec, the stream contract and `complete()` | B1 | M |
-| [B3](../todos/ready/B3-scripted-model.md) | `ScriptedModel`, chunked streams, determinism options and `allowModelRequests` | B2 | M |
+| [B3](../todos/ongoing/B3-scripted-model.md) | `ScriptedModel`, chunked streams, determinism options and `allowModelRequests` | B2 | M |
 | [B4](../todos/ready/B4-gateway-runtime.md) | Gateway runtime: `createModel`, retries, middleware, `onPayload` and the request dump | B3 | M |
 | [B5](../todos/ready/B5-usage-cost-catalog.md) | Usage, the cost catalog and fold, and the caching policy | B4 | M |
 
