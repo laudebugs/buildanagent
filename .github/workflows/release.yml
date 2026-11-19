@@ -257,15 +257,18 @@ jobs:
       DIST_TAG: ${{ needs.pack.outputs.dist_tag }}
       PRERELEASE: ${{ needs.pack.outputs.prerelease }}
     steps:
-      # npm then reads only this file, which names the registry and holds no credentials, so there is no token to
-      # fall back on. The paths go through $GITHUB_ENV because a job's `env:` can't read the `runner` context.
+      # npm then reads only these two files: the user config names the registry, the global config is empty, and
+      # neither holds credentials, so there is no token to fall back on. They must be different files, because npm
+      # refuses to load one file as both ("double-loading config"). The paths go through $GITHUB_ENV because a job's
+      # `env:` can't read the `runner` context.
       - name: Write an npm config with no credentials
         run: |
           echo "registry=https://registry.npmjs.org/" > "$RUNNER_TEMP/npmrc"
+          : > "$RUNNER_TEMP/global-npmrc"
           {
             echo "RELEASE_DIR=$RUNNER_TEMP/release"
             echo "NPM_CONFIG_USERCONFIG=$RUNNER_TEMP/npmrc"
-            echo "NPM_CONFIG_GLOBALCONFIG=$RUNNER_TEMP/npmrc"
+            echo "NPM_CONFIG_GLOBALCONFIG=$RUNNER_TEMP/global-npmrc"
           } >> "$GITHUB_ENV"
       # No registry-url: setup-node would write an .npmrc that reads NODE_AUTH_TOKEN.
       - uses: actions/setup-node@v7.1.0

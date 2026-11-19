@@ -120,6 +120,16 @@ describe("release.yml", () => {
     assert.match(first.run, /^ {2}echo "NPM_CONFIG_USERCONFIG=\$RUNNER_TEMP\/npmrc"$/m);
   });
 
+  test("the publish job gives npm separate, credential-free user and global configs", () => {
+    // npm exits with "double-loading config" when both settings name one file, which broke the first publish.
+    const [first] = jobs.publish.steps;
+    const user = first.run.match(/NPM_CONFIG_USERCONFIG=(\S+)"/)?.[1];
+    const global = first.run.match(/NPM_CONFIG_GLOBALCONFIG=(\S+)"/)?.[1];
+    assert.ok(user && global, "both config paths are set");
+    assert.notEqual(user, global);
+    assert.match(first.run, /^: > "\$RUNNER_TEMP\/global-npmrc"$/m);
+  });
+
   test("only the publish job can mint an OIDC token, only it and the version job can write, and only docs dispatches", () => {
     for (const [name, job] of Object.entries(jobs)) {
       const permissions = job.permissions ?? workflow.permissions;
