@@ -5,7 +5,7 @@
 | Field | Value |
 | --- | --- |
 | ID | `E5` |
-| Status | `ready` |
+| Status | `ongoing` |
 | Plan | [Close SDK gaps §4](../../plans/close-sdk-gaps.md#4-round-e-and-its-todos) |
 | Round / milestone | Round E (close the SDK gaps), M5e |
 | Depends on | [E1](../done/E1-safety-core-outcomes.md), [B5](../done/B5-usage-cost-catalog.md) |

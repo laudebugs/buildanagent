@@ -8,7 +8,7 @@
 | Status | `ready` |
 | Plan | [Close SDK gaps §4](../../plans/close-sdk-gaps.md#4-round-e-and-its-todos) |
 | Round / milestone | Round E (close the SDK gaps), M5e |
-| Depends on | [E4b](E4b-ordered-plan-execution.md), [E5](E5-pre-call-cost-guard.md), [E6](../done/E6-byok-no-fallback.md) |
+| Depends on | [E4b](E4b-ordered-plan-execution.md), [E5](../ongoing/E5-pre-call-cost-guard.md), [E6](../done/E6-byok-no-fallback.md) |
 | Size | M |
 
 ## Goal
