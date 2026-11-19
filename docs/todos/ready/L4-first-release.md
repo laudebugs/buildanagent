@@ -24,7 +24,9 @@ Ship the first public release, 0.1.0, once a model call works ([PB1](../../plans
 
 - Remove `private: true` from both packages
 - A changeset for 0.1.0 summarising what the release offers: the transcript, `createModel()`, the Anthropic adapter, `ScriptedModel`
-- The npm trusted-publisher setup with the owner: if npm requires an existing package first, a one-time granular token publishes 0.1.0 and is revoked straight after, and the trusted publisher is then added
+- The npm trusted-publisher setup with the owner. If npm requires an existing package first, the owner saves a one-time granular token as `NPM_BOOTSTRAP_TOKEN`, L3's `bootstrap` job publishes `0.0.0-bootstrap.0` of each package, and the owner adds the trusted publishers. `release.yml` then publishes 0.1.0 through trusted publishing within 2 days of that setup, before the trusted publishers expire
+- Afterwards: the owner revokes the token and deletes the secret, the `bootstrap` job is removed from `release.yml`, and `0.0.0-bootstrap.0` is deprecated
+- Switching on L2's changeset gate and the "Version packages" pull request, with the 0.1.0 changeset as the first
 - Both READMEs gain install instructions
 
 **Out of scope** (and which todo covers it)
@@ -35,7 +37,8 @@ Ship the first public release, 0.1.0, once a model call works ([PB1](../../plans
 
 - [ ] `npm view @buildanagent/gateway@0.1.0` and `npm view @buildanagent/sdk@0.1.0` return the release, and npmjs.com shows provenance for both
 - [ ] A fresh project installs `@buildanagent/sdk@0.1.0` and makes one model call against a mock server through the Anthropic adapter, offline
-- [ ] No npm token remains in the repository's or the owner's secrets after the release
+- [ ] No npm token remains in the repository's or the owner's secrets after the release, and `release.yml` has no `bootstrap` job
+- [ ] A changeset-free change to `packages/*/src` fails CI after the release
 - [ ] `pnpm check`, `pnpm typecheck` and `pnpm test` pass offline from the repo root
 
 ## Tests

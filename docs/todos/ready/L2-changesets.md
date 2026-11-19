@@ -24,9 +24,9 @@ Record every user-facing change as a changeset, version the gateway and SDK toge
 **In scope**
 
 - `@changesets/cli` pinned in the root (3.0.3, or the newest release at least a week old when the todo starts)
-- `.changeset/config.json`: `fixed: [["@buildanagent/gateway", "@buildanagent/sdk"]]`, `access: "public"`, `baseBranch: "main"`, the apps and `verify/*` in `ignore`
+- `.changeset/config.json`: `fixed: [["@buildanagent/gateway", "@buildanagent/sdk"]]`, `access: "public"`, `baseBranch: "main"`, the apps and `verify/*` in `ignore`, and `privatePackages: { "version": false, "tag": false }`, so nothing versions the packages while they are private
 - A `.changeset/README.md` with the 0.x rule: a breaking change is a `minor` bump whose summary starts "Breaking Changes"
-- A CI step that fails a pull request changing `packages/*/src` without a changeset
+- A CI step that fails a pull request changing `packages/*/src` without a changeset, written in L2 but switched on in L4, because the owner said "Changesets wait until we publish"
 
 **Out of scope** (and which todo covers it)
 
@@ -35,7 +35,8 @@ Record every user-facing change as a changeset, version the gateway and SDK toge
 ## Acceptance criteria
 
 - [ ] `pnpm changeset` writes a changeset for both packages, and `pnpm changeset version` bumps both to the same version and writes both `CHANGELOG.md` files
-- [ ] A pull request that edits `packages/gateway/src` without a changeset fails CI, and passes once one is added
+- [ ] With the step switched on on a test branch, a pull request that edits `packages/gateway/src` without a changeset fails, and passes once one is added; on `main` the step stays off until L4
+- [ ] `pnpm changeset version` on `main` before L4 leaves both packages at 0.0.0
 - [ ] A pull request that edits only `docs/` needs no changeset
 - [ ] `pnpm check`, `pnpm typecheck` and `pnpm test` pass offline from the repo root
 

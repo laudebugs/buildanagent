@@ -10,9 +10,11 @@ The owner said on 2026-11-19 "We'll use cloudflare to deploy docs and the websit
 
 ## Decision
 
-`apps/site` serves `buildanagent.fyi` and `apps/docs` serves `docs.buildanagent.fyi`. Each deploys as Workers static assets, with its custom domain in its `wrangler.toml` and `workers_dev` off. A pull request's sites deploy as Cloudflare Previews from a job that holds the Cloudflare token but never runs the pull request's code. The docs serve `main` until 0.1.0 ships, then the latest release, with `main` at `next.docs.buildanagent.fyi`.
+`apps/site` serves `buildanagent.fyi` and `apps/docs` serves `docs.buildanagent.fyi`. Each deploys as Workers static assets, with its custom domain in its `wrangler.toml` and `workers_dev` off. A pull request's sites build in a workflow with no secrets, and deploy as Cloudflare Previews from a separate `workflow_run` workflow that GitHub always runs from `main`. Only that workflow holds the Cloudflare token, and it never checks out or runs the pull request's code. The docs serve `main` until 0.1.0 ships, then the latest release, with `main` at `next.docs.buildanagent.fyi`.
 
 ## Consequences
 
 - The owner adds the `buildanagent.fyi` zone and two GitHub secrets, `CLOUDFLARE_API_TOKEN` and `CLOUDFLARE_ACCOUNT_ID` (todo L8).
-- Fork pull requests get no preview, because they can't receive secrets.
+- Fork pull requests get previews too, because the secrets live only in the deploy workflow.
+- The token's permissions (Workers Scripts edit, Zone Workers Routes edit) come from Lamina PDF's config and are confirmed in todo L8; Cloudflare creates each custom domain's DNS record and certificate ([Cloudflare docs](https://developers.cloudflare.com/workers/configuration/routing/custom-domains/)).
+- All four site workflows go in `.github/workflows/actions.lock`.

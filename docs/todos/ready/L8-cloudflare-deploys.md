@@ -25,7 +25,9 @@ Deploy `apps/site` to `buildanagent.fyi` and `apps/docs` to `docs.buildanagent.f
 
 - A `wrangler.toml` per app: `[assets] directory = "./dist"`, `not_found_handling = "404-page"`, a custom domain with `custom_domain = true`, `workers_dev = false`; the docs app also has `[env.next]` for `next.docs.buildanagent.fyi`
 - Wrangler pinned (4.160.1 on 2026-11-19, or newer and at least a week old; Previews need 4.135.0 or later)
-- `site.yml` and `docs.yml`: a build job with no secrets that uploads `dist/`, and a deploy job that holds the Cloudflare secrets, never checks out or runs the pull request's code, takes `wrangler.toml` from `main`, and runs `wrangler preview` for pull requests or `wrangler deploy` for `main`
+- `docs-build.yml` and `site-build.yml` on `pull_request` and pushes to `main`: build the site with no secrets and upload `dist/` and the pull request number as an artifact
+- `docs-deploy.yml` and `site-deploy.yml` on `workflow_run` after their build workflow, which GitHub always runs from `main`: download the artifact, take `wrangler.toml` from `main`, never check out or run the pull request's code, and run `wrangler preview` for a pull request or `wrangler deploy` for `main`
+- Confirming the deploy token's permissions against Cloudflare's docs, and recording them in the CI plan
 - The docs deploy `main` to `docs.buildanagent.fyi` until 0.1.0 ships; after it, release tags deploy production and `main` deploys `next`, marked unreleased and `noindex`
 
 **Out of scope** (and which todo covers it)
@@ -34,9 +36,10 @@ Deploy `apps/site` to `buildanagent.fyi` and `apps/docs` to `docs.buildanagent.f
 
 ## Acceptance criteria
 
-- [ ] A pull request that changes `apps/docs` gets a Preview URL in a comment, from a job that never ran the pull request's code with secrets
+- [ ] A pull request that changes `apps/docs` gets a Preview URL in a comment, from a `workflow_run` deploy that never ran the pull request's code with secrets
+- [ ] Editing a deploy workflow on a pull request's branch changes nothing that runs with the secrets
 - [ ] A push to `main` updates `buildanagent.fyi`, and `docs.buildanagent.fyi` serves the docs over HTTPS
-- [ ] A fork's pull request builds both sites and skips the deploy without failing
+- [ ] A fork's pull request builds both sites and gets previews
 - [ ] Every new workflow and action is in `.github/workflows/actions.lock`: run `gh actions-lock`, or copy verified entries and check each tag's commit with `git ls-remote` ([CI plan §3d](../../plans/ci.md#3d-actions-locked-by-a-lockfile-added-2026-11-19)); `ci.yml`'s `lockfile` job passes
 - [ ] `pnpm check`, `pnpm typecheck` and `pnpm test` pass offline from the repo root
 

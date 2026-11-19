@@ -23,12 +23,13 @@ Make `@buildanagent/gateway` and `@buildanagent/sdk` publishable: compiled JavaS
 
 **In scope**
 
-- A `tsconfig.build.json` per package: `module` and `moduleResolution` `NodeNext`, `declaration`, `declarationMap`, `sourceMap`, `outDir: dist`, `src/` only
+- A `tsconfig.build.json` per package: `module` and `moduleResolution` `NodeNext`, `declaration`, `declarationMap`, `sourceMap`, `outDir: dist`, `src/` only, and `customConditions: []` so the build never follows `source`
 - Relative imports rewritten from `.ts` to `.js` specifiers; `allowImportingTsExtensions` off for the build
-- `exports` with `source`, `types` and `default` conditions for every entry, including `./testing` and `./testing/setup`
+- `exports` with `source`, `types` and `default` conditions for every entry, including `./testing` and `./testing/setup`, and `publishConfig.exports` with only `types` and `default`, so the packed `package.json` has no `source` condition
 - `files: ["dist"]`, `sideEffects: false`, `engines.node: ">=22"`, `repository`, `homepage`, `license`
 - `customConditions: ["source"]` in `tsconfig.base.json` and `resolve.conditions` in each `vitest.config.ts`
-- A `build` script in each package and a root `pnpm build`
+- A `build` script in each package, and a root `pnpm build` that runs `pnpm -r build`, which builds in dependency order
+- `LICENSE`, `LICENSE-APACHE` and `LICENSE-MIT` copied into each package by a `prepack` script, and listed in `files`
 
 **Out of scope** (and which todo covers it)
 
@@ -37,8 +38,10 @@ Make `@buildanagent/gateway` and `@buildanagent/sdk` publishable: compiled JavaS
 ## Acceptance criteria
 
 - [ ] `pnpm build` writes `dist/*.js` and `dist/*.d.ts` for every entry of both packages
+- [ ] The SDK's `dist/` holds only SDK files, and its `.d.ts` files import `@buildanagent/gateway`, never a path into the gateway's `src/`
 - [ ] `pnpm typecheck` and `pnpm test` pass with no `dist/` present (`git clean -xdf packages` first)
-- [ ] A test packs each package with `pnpm pack` and fails if the tarball holds anything but `package.json`, `dist/`, `README.md`, `CHANGELOG.md` and the licence files
+- [ ] A test packs each package with `pnpm pack` and fails if the tarball holds anything but `package.json`, `dist/`, `README.md`, `CHANGELOG.md` and the licence files, or lacks `LICENSE`, `LICENSE-APACHE` or `LICENSE-MIT`
+- [ ] The packed `package.json` has no `source` condition, and a Node script that sets `--conditions=source` still resolves every packed entry to `dist/`
 - [ ] A Node script imports each published entry from the packed tarball installed in a temp directory, with no `source` condition, and the imports resolve to `dist/`
 - [ ] `pnpm check`, `pnpm typecheck` and `pnpm test` pass offline from the repo root
 
@@ -48,7 +51,7 @@ The pack test, under `packages/gateway/test/` or `scripts/ci/`.
 
 ## Docs to update
 
-[typescript.md](../../guidelines/typescript.md) (replace the "export `src/` until B20" line), AGENTS.md's `packages/` layout line, both package READMEs if install steps change, the plan's todo table.
+[typescript.md](../../guidelines/typescript.md) (replace the line that our private packages export `src/` until L1), AGENTS.md's `packages/` layout line, both package READMEs if install steps change, the plan's todo table.
 
 ## Risks and open questions
 

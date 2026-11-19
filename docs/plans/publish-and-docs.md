@@ -34,16 +34,22 @@ The first release waits for two todos: B4 builds `createModel()` with retries, a
 
 **Accepted by the owner on 2026-11-19**, with PB1: "Changesets wait until we publish. We can start publishing as soon as we're ready to".
 
-- **Versioning.** Changesets 3.0.3 records each change as a `.changeset/*.md` file. `@buildanagent/gateway` and `@buildanagent/sdk` form one `fixed` group, as Lamina's packages do, because the SDK depends on the gateway's types and a user should never mix versions. `access` is `public`. The apps and `verify/*` harnesses are in `ignore`.
+- **Versioning.** Changesets 3.0.3 records each change as a `.changeset/*.md` file. `@buildanagent/gateway` and `@buildanagent/sdk` form one `fixed` group, as Lamina's packages do, because the SDK depends on the gateway's types and a user should never mix versions. `access` is `public`. The apps and `verify/*` harnesses are in `ignore`, and `privatePackages` is `{ "version": false, "tag": false }` ([Changesets config schema](https://github.com/changesets/changesets/blob/main/packages/config/schema.json)), so nothing moves the packages off 0.0.0 while they are private.
+- **Changesets wait until we publish.** The owner said "Changesets wait until we publish", so L2 adds the config and tooling but no CI gate. The gate that requires a changeset, and the "Version packages" pull request, turn on in L4, with the 0.1.0 changeset as the first one.
 - **Changelog.** `changeset version` writes each package's `CHANGELOG.md`. A change that breaks the API must be a `minor` bump under 0.x and must say "Breaking Changes" in its changeset, which D8 requires.
 - **Trusted publishing.** A release job publishes with npm trusted publishing: npm exchanges the workflow's OIDC token for a short-lived publish token, so no npm token is stored. npm requires a GitHub-hosted runner, `id-token: write`, npm CLI 11.5.1 or later and Node 22.14.0 or later, and it adds provenance attestations by default ([npm docs](https://docs.npmjs.com/trusted-publishers)). Our `.nvmrc` resolves to the newest Node 22, which ships npm 10, so the release job installs npm 11.5.1 or later before it publishes.
-- **The release flow.** On every push to `main`, the release workflow opens or updates a "Version packages" pull request from the pending changesets. Merging that pull request publishes the new versions and tags them. It goes through the same two code-review rounds as any other pull request.
+- **The first publish.** npm's docs don't say whether a package must exist before a trusted publisher can be added, and a new trusted publisher expires unless it publishes within 2 days ([npm docs](https://docs.npmjs.com/trusted-publishers)). If npm requires an existing package, L4 bootstraps each package once: a manually triggered `bootstrap` job in `release.yml` reads a temporary `NPM_BOOTSTRAP_TOKEN` secret and publishes a `0.0.0-bootstrap.0` placeholder with `--provenance` under the `bootstrap` dist-tag. The owner then adds the trusted publisher, and `release.yml` publishes 0.1.0 itself through trusted publishing within the 2 days. Straight after, the owner revokes the token and deletes the secret, the `bootstrap` job is removed, and the placeholder is deprecated. The normal publish job never sees a token.
+- **The release flow.** From L4 on, every push to `main` makes the release workflow open or update a "Version packages" pull request from the pending changesets. Merging that pull request publishes the new versions and tags them. It goes through the same two code-review rounds as any other pull request.
 
 ### PB3. Built `dist/` packages, with a `source` condition for the workspace (proposed)
 
 Today each package exports its `src/*.ts` files, because the packages were private and Vitest and tsx read TypeScript directly ([typescript.md](../guidelines/typescript.md)). A published package can't do that: npm users need JavaScript and `.d.ts` files. Lamina's rule, which PB3 adopts, is to emit with `tsc` into `dist/`, with `module` and `moduleResolution` `NodeNext`, `.js` specifiers in relative imports, and `exports` whose conditions list `types` first. Each published `package.json` sets `files: ["dist"]`, `sideEffects: false` and `engines.node`.
 
-The workspace keeps working without a build step through one extra export condition, `source`, which points at `src/*.ts`. Vitest's `resolve.conditions` and TypeScript's `customConditions` name it, so tests and type-checks in the repo read source while npm users get `dist/`. This includes `@buildanagent/gateway/testing/setup`, which every package's Vitest config loads. PB3 replaces the "export `src/` until todo B20 decides" line in the TypeScript guideline.
+The workspace keeps working without a build step through one extra export condition, `source`, which points at `src/*.ts`. Vitest's `resolve.conditions` and TypeScript's `customConditions` name it, so tests and type-checks in the repo read source while npm users get `dist/`. This includes `@buildanagent/gateway/testing/setup`, which every package's Vitest config loads. PB3 replaces the TypeScript guideline's line that our private packages export their `src/` TypeScript until L1.
+
+Two rules keep the `source` condition inside the repo:
+- **It never ships.** Each package's `publishConfig.exports` lists only `types` and `default`, and pnpm replaces `exports` with it when it packs ([pnpm docs](https://pnpm.io/package_json#publishconfig)). A user whose own tooling sets a `source` condition would otherwise resolve to `src/` files that the tarball doesn't contain.
+- **The build ignores it.** Each `tsconfig.build.json` sets `customConditions: []`, and `pnpm -r build` builds in dependency order, so the SDK compiles against the gateway's `dist/*.d.ts`, not its sources.
 
 ### DS1. Starlight docs with a generated API reference (accepted)
 
@@ -68,22 +74,22 @@ The docs, like all our documentation, are licensed CC BY 4.0, and every page foo
 
 Cloudflare's Astro guide deploys a static Astro site to Workers with static assets: a `wrangler.toml` whose `[assets]` directory is `./dist`, and no `main`, because no Worker code runs ([Cloudflare docs](https://developers.cloudflare.com/workers/framework-guides/web-apps/astro/)). Each app's `wrangler.toml` names its custom domain with `custom_domain = true`, sets `not_found_handling = "404-page"`, and turns off `workers_dev`, as Lamina's docs config does. Wrangler is pinned to 4.160.1, the newest release at least a week old on 2026-11-19.
 
-For pull requests, Cloudflare now recommends Previews (`wrangler preview`, Wrangler 4.135.0 or later) over Version URLs, which share production resources ([Cloudflare docs](https://developers.cloudflare.com/workers/previews/compare-workflows/)). The deploy workflows split each run in two, as Lamina's `docs.yml` does:
-- **Build:** builds the pull request's site with no secrets and uploads `dist/` as an artifact.
-- **Deploy:** holds the Cloudflare token, never checks out or runs the pull request's code, takes `wrangler.toml` from `main`, and deploys the artifact.
+For pull requests, Cloudflare now recommends Previews (`wrangler preview`, Wrangler 4.135.0 or later) over Version URLs, which share production resources ([Cloudflare docs](https://developers.cloudflare.com/workers/previews/compare-workflows/)). Each site gets two workflows, so no pull request can edit the job that holds the Cloudflare token:
+- **Build** (`docs-build.yml`, `site-build.yml`), on `pull_request` and pushes to `main`: builds the site with no secrets and uploads `dist/` and the pull request number as an artifact.
+- **Deploy** (`docs-deploy.yml`, `site-deploy.yml`), on `workflow_run` after its build workflow finishes: GitHub always runs this workflow's definition from `main`. It downloads the artifact, takes `wrangler.toml` from `main`, never checks out or runs the pull request's code, and runs `wrangler preview` for a pull request or `wrangler deploy` for `main`.
 
-Pull requests from forks get no preview, because they can't receive secrets. Pushes to `main` deploy the website. The docs deploy from `main` until 0.1.0 ships, then from each release tag, with `main`'s docs at `next.docs.buildanagent.fyi` marked unreleased and `noindex`.
+Pull requests from forks get previews too, because the secrets live only in the deploy workflow. Pushes to `main` deploy the website. The docs deploy from `main` until 0.1.0 ships, then from each release tag, with `main`'s docs at `next.docs.buildanagent.fyi` marked unreleased and `noindex`.
 
 ## 3. What the owner sets up
 
 1. **npm.** After the first publish exists (L4 says how), add a trusted publisher to each package on npmjs.com: user `laudebugs`, repository `buildanagent`, workflow `release.yml`, environment `release`. A new trusted publisher must complete its first publish within 2 days, or it expires ([npm docs](https://docs.npmjs.com/trusted-publishers)).
 2. **GitHub.** Create the `release` environment with the owner as required reviewer. Keep "Allow GitHub Actions to create and approve pull requests" on, for the "Version packages" pull request.
-3. **Cloudflare.** Add the `buildanagent.fyi` zone to the Cloudflare account. Create an API token with Workers Scripts edit and Zone Workers Routes edit on that zone, and save it and the account id as the `CLOUDFLARE_API_TOKEN` and `CLOUDFLARE_ACCOUNT_ID` secrets. `wrangler deploy` then creates the DNS records and certificates for both custom domains.
-4. **Actions lockfile.** Each new workflow and action needs an entry in `.github/workflows/actions.lock` ([CI plan §3d](ci.md#3d-actions-locked-by-a-lockfile-added-2026-11-19)). The implementer runs `gh actions-lock`, or copies verified entries and checks each with `git ls-remote`.
+3. **Cloudflare.** Add the `buildanagent.fyi` zone to the Cloudflare account. Create an API token for Wrangler deploys, and save it and the account id as the `CLOUDFLARE_API_TOKEN` and `CLOUDFLARE_ACCOUNT_ID` secrets. The permissions to grant, Workers Scripts edit and Zone Workers Routes edit on the zone, come from Lamina PDF's `wrangler.toml` and are not yet confirmed against Cloudflare's docs; L8 confirms them. Once a Worker has a custom domain, Cloudflare creates its DNS record and issues its certificate ([Cloudflare docs](https://developers.cloudflare.com/workers/configuration/routing/custom-domains/)).
+4. **Actions lockfile.** Each new workflow and action, including the four site workflows and `release.yml`, needs an entry in `.github/workflows/actions.lock` ([CI plan §3d](ci.md#3d-actions-locked-by-a-lockfile-added-2026-11-19)). The implementer runs `gh actions-lock`, or copies verified entries and checks each with `git ls-remote`.
 
 ## 4. Round L and its todos
 
-Round L runs beside Round B. L1, L5 and L7 can start now; L4, the release, waits for B4, B8 and L3.
+Round L runs beside Round B. L5 and L7 can start now; L1 starts after Q1, and L4, the release, waits for B4, B8 and L3.
 
 | Todo | What it delivers | Depends on | Size |
 | --- | --- | --- | --- |
@@ -100,11 +106,11 @@ B20's README type-checking, `llms.txt`, `defaultsHash` and second export diff st
 
 ## 5. Risks
 
-1. **npm may need the package to exist before a trusted publisher can be added.** npm's docs describe the setup on a package's settings page. If a new package can't be configured beforehand, the first publish of each package needs a one-time token; L4 covers both paths and revokes the token after.
-2. **The `source` condition could leak.** If a published `package.json` keeps the `source` condition and ships `src/`, users could resolve TypeScript sources. L1 keeps `src/` out of `files`, and a test packs each package and checks the tarball's contents.
+1. **npm may need the package to exist before a trusted publisher can be added.** npm's docs describe the setup on a package's settings page. If a new package can't be configured beforehand, the bootstrap path in [PB2](#pb2-changesets-in-one-fixed-group-published-only-from-ci-accepted) publishes a placeholder first, and 0.1.0 still goes out through trusted publishing within the 2-day window.
+2. **The `source` condition could leak.** A published `package.json` that kept the `source` condition would point users' tooling at `src/` files the tarball doesn't hold. `publishConfig.exports` strips it, and an L1 test packs each package and resolves every entry with a `source` condition set.
 3. **TypeDoc lags TypeScript.** Pinning TypeScript 6.0.3 for TypeDoc means the reference could disagree with how TypeScript 7 reads a type. L6's check builds the reference and type-checks the packages, so a mismatch surfaces in CI.
 4. **The pins may move.** Astro, Starlight and Wrangler release weekly. Each todo re-pins to the newest release at least a week old when it starts.
 
 ## 6. Conclusion
 
-Round L puts our packages on npm with provenance and our docs on `docs.buildanagent.fyi`, using the setup Lamina PDF already runs. L1, L5 and L7 can start now, and 0.1.0 ships as soon as B4 and B8 are done and the owner has set up npm, GitHub and Cloudflare as §3 lists.
+Round L puts our packages on npm with provenance and our docs on `docs.buildanagent.fyi`, using the setup Lamina PDF already runs. L5 and L7 can start now and L1 starts after Q1; 0.1.0 ships as soon as B4 and B8 are done and the owner has set up npm, GitHub and Cloudflare as §3 lists.

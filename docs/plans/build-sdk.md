@@ -33,7 +33,7 @@ The goal covers every recommendation in the guide's design sections, §2 to §10
 - **A durable-engine adapter (Temporal and similar).** The guide keeps durable engines as adapters over the log, and the per-tool `execution` setting is the only hook they need now ([guide §3][g3]). The adapter needs the harness's log, so it waits for P2.
 - **Adapters beyond the first two wire protocols**, including OpenAI Responses. Decision D2 defers them, with a reason.
 - **An automatic per-request model router.** Practitioners report that switching models mid-session busts the cache, so the gateway offers a per-subagent model setting instead ([guide §2][g2]; [HN §4.1][hn41]).
-- **Publishing to npm.** Both packages stay `private: true`, as the owner accepted with D8; publishing waits for an outside consumer.
+- **Publishing to npm.** Both packages stay `private: true` until 0.1.0. *Revised 2026-11-19 by [ADR 0047](../decisions/0047-first-release-and-trusted-publishing.md): the owner chose to publish 0.1.0 once a model call works, after B4 and B8, instead of waiting for an outside consumer.*
 - **A client-tool pause kind.** The harness defers the third host-tool pattern, so `ToolResult.pause` carries only `clarification` for now (§6.2).
 
 ## 2. Decisions
@@ -642,7 +642,7 @@ Model quality and tool selection belong to evals with a real model, which the ha
 
 ### 6.2 No question is open, and one item waits for a later round
 
-- **Answered by the owner on 2026-11-18:** D2, D5 and D8 (§2). Publishing waits for an outside consumer.
+- **Answered by the owner on 2026-11-18:** D2, D5 and D8 (§2). Publishing waits for an outside consumer; revised 2026-11-19 by [ADR 0047](../decisions/0047-first-release-and-trusted-publishing.md), which publishes 0.1.0 after B4 and B8.
 - **Answered by P2:** the harness takes `Cost.total` as `number | null`, and `context_transformed` is enough because the harness writes its compaction entry from its own `transformContext` ([harness plan §3.6][har-36]).
 - **Answered by P3:** the reader and drafter run as tool-less loop runs, not through `Model.complete()` (agent plan, AD1).
 - **Later:** a client-tool pause kind on `ToolResult.pause`, for the third host-tool pattern the harness defers (harness need 13, dropped from Rounds B and N by [P4][p4-4]).

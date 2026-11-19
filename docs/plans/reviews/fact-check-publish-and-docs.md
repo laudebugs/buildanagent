@@ -48,7 +48,7 @@ This log checks every factual claim in [publish-and-docs.md](../publish-and-docs
 | 25 | `not_found_handling = "404-page"` returns the nearest `404.html` with a 404 status | ✅ | [Static assets docs](https://developers.cloudflare.com/workers/static-assets/) |
 | 26 | Cloudflare recommends Previews over Version URLs for branch and pull request testing | ✅ | [Compare workflows](https://developers.cloudflare.com/workers/previews/compare-workflows/): "Previews are the recommended way… Do not use Version URLs for branch or pull request testing" |
 | 27 | Previews need Wrangler 4.135.0 or later, through `wrangler preview` | ✅ | [Previews](https://developers.cloudflare.com/workers/previews/) |
-| 28 | `wrangler deploy` with `custom_domain = true` creates the DNS record and certificate | ✅ | Lamina PDF's `apps/docs/wrangler.toml` comment (secondary: a repo, not Cloudflare's docs) |
+| 28 | `wrangler deploy` with `custom_domain = true` creates the DNS record and certificate | ✅ | Lamina PDF's `apps/docs/wrangler.toml` comment (secondary: a repo, not Cloudflare's docs); row 43 confirms it against Cloudflare's docs |
 | 29 | The deploy token needs Workers Scripts edit and Zone Workers Routes edit on the zone | ⚠️ | Zone Workers Routes edit from Lamina's `wrangler.toml` comment; Workers Scripts edit is the usual Wrangler permission, not checked in Cloudflare's docs today |
 
 ## Lamina PDF
@@ -74,4 +74,11 @@ This log checks every factual claim in [publish-and-docs.md](../publish-and-docs
 | 41 | Our documentation is licensed CC BY 4.0 | ✅ | `LICENSE` and `LICENSE-DOCS` |
 | 42 | A pull request opened with `GITHUB_TOKEN` doesn't trigger `ci.yml` | ✅ | [CI plan §3c](../ci.md#3c-weekly-sdk-updates-added-2026-11-19), which records GitHub's rule |
 
-**Totals:** 42 claims: 39 ✅, 0 ✏️, 3 ⚠️.
+| 43 | Cloudflare creates a Custom Domain's DNS record and issues its certificate | ✅ | [Custom Domains](https://developers.cloudflare.com/workers/configuration/routing/custom-domains/), read 2026-11-19: "Cloudflare will create DNS records and issue necessary certificates on your behalf" |
+| 44 | pnpm's `publishConfig` can override `exports` when it packs | ✅ | [pnpm package.json docs](https://pnpm.io/package_json#publishconfig), read 2026-11-19: the overridable fields include `exports` |
+| 45 | Changesets' `privatePackages` takes `version` and `tag` booleans | ✅ | [Changesets config schema](https://github.com/changesets/changesets/blob/main/packages/config/schema.json) on `main`, read 2026-11-19 |
+| 46 | The plan said L1 could start now | ✏️ | L1 depends on Q1, which is in `ready/`; corrected to "L1 starts after Q1" in the plan and the roadmap |
+| 47 | Fork pull requests get no preview | ✏️ | With the deploy moved to a `workflow_run` workflow, fork pull requests get previews; corrected in DS3, ADR 0049 and L8 |
+| 48 | The TypeScript guideline's line reads "export `src/` until B20 decides" | ✏️ | This PR had already changed it to "until todo L1"; PB3, ADR 0050 and L1 now quote the new line |
+
+**Totals:** 48 claims: 42 ✅, 3 ✏️, 3 ⚠️.
