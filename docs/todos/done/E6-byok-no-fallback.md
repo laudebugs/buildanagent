@@ -75,13 +75,13 @@ The package README (the BYOK rule in one paragraph, and the two gateway settings
 ## Definition of done
 
 - [x] Claimed: the first commit moved this file `ready/` → `ongoing/` (Status `ongoing`)
-- [ ] Prose drafted with `/anthropic-skills:writing` and reviewed with `/anthropic-skills:writing-review`, with the fixes applied and changed claims re-checked
+- [x] Prose drafted with `/anthropic-skills:writing` and reviewed with `/anthropic-skills:writing-review`, with the fixes applied and changed claims re-checked
 - [x] `pnpm check`, `pnpm typecheck` and `pnpm test` pass locally; pushed after each meaningful step
 - [x] This file moved `ongoing/` → `done/` (Status `done`), and the plan's todo table updated
 
 ## Outcome
 
-`@buildanagent/agent-safety` now keeps every AI SDK model call on the key the caller passes, and fails before sending when a call would use any other credential. The third-party claims behind it are rows E6-1 to E6-13 of [the plan's fact-check log](../../plans/reviews/fact-check-close-sdk-gaps.md). The code-review rounds and the writing review run on the pull request after this commit.
+`@buildanagent/agent-safety` now keeps every AI SDK model call on the key the caller passes, and fails before sending when a call would use any other credential. The third-party claims behind it are rows E6-1 to E6-18 of [the plan's fact-check log](../../plans/reviews/fact-check-close-sdk-gaps.md). The code-review rounds and the writing review ran on the pull request; their findings are recorded in its description and fix commits.
 
 The public API:
 
@@ -104,9 +104,10 @@ Judgement calls:
 - **Only Cloudflare's page has been re-read.** `developers.cloudflare.com` and `vercel.com` are outside this session's network allowlist, so the checker rests on the 2026-11-18 reads (rows 44 and 45) and records that date as `MODEL_ROUTE_SETTINGS_AS_OF`. In the first code-review round, Cloudflare's documentation search returned the current Unified Billing and changelog text, which still names `byok_only`, **Require provider credentials** and `cf-aig-no-wholesale` as the checker does (row E6-14, ✅). Vercel's BYOK page still couldn't be fetched; a secondary search summary agrees with row 45 (row E6-15, ⚠️). The third task stays unticked until someone re-reads Vercel's page.
 - **The checker reads our own route record**, `{ routes: [{ provider, baseURL, cloudflareAiGateway?: { byok_only } }] }`, not Cloudflare's full gateway object. No deploy step exists yet, and an unknown-field rule over Cloudflare's whole API object would need its schema, which this session could not fetch. F9's deploy step produces this record.
 - **The guard checks more than the host:** the origin, the base URL's path prefix, the configured credential header's exact value, and the absence of every other credential header. It never follows a redirect, because Node 22's `fetch` forwards `x-api-key` across origins (row E6-10).
-- **Base URLs must use https**, except on a loopback host, and must not carry a user name, password, query or fragment.
+- **Base URLs must use https**, except on a loopback host, and must not carry a user name, password, query or fragment. `checkModelRoutes()` also rejects a loopback `http` URL, because a deployed agent can't reach it.
+- **The WebSocket guard allows only the `realtime` subprotocol**, because OpenAI's browser mode sends a key as `openai-insecure-api-key.<key>` in a subprotocol that no header check sees (row E6-17).
 - **`assertNoDefaultProvider()` throws when another default provider is set**, rather than replacing it, so a deliberate setting elsewhere surfaces instead of vanishing.
 - **`explicitProvider()` takes no `headers` option**, because Anthropic's provider spreads caller headers over its own `x-api-key` (row E6-8).
-- **Authenticated Cloudflare gateways and stored BYOK keys are out of scope.** The guard refuses `cf-aig-authorization`, so a gateway with authentication on, or one that holds the provider key itself, needs a follow-up option, which belongs with F9.
+- **Authenticated Cloudflare gateways and stored BYOK keys are out of scope.** The guard refuses `cf-aig-authorization` (row E6-18), so a gateway with authentication on, or one that holds the provider key itself, needs a follow-up option, which belongs with F9.
 - **The SDK's vendored `errors.ts`** follows the new codes, with an empty changeset, because the SDK exports no `SafetyError` (row E6-13).
 - **A flaky book test:** `apps/manual`'s "book:switch-report runs on the real book and exits 0" timed out at its 5-second limit twice while the machine's load average was near 18, and passed on a rerun at a load near 7. The script exits 0 in about 4.7 seconds under load, and this change touches nothing it reads.
