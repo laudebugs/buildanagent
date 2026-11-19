@@ -56,7 +56,7 @@ Received arguments: {"order":"forty-two"}
 Do not substitute a mock, a placeholder or invented data for this tool's result. Fix the call, try another approach, or tell the user what failed.
 ```
 
-Each failing field appears as its JSON Pointer path, so the model knows exactly what to fix. The last line is there because agents have been seen to answer a failed tool by inventing a result. Four options change what happens:
+Each failing field appears as its JSON Pointer path, so the model knows exactly what to fix. The last line is there because agents have been seen to answer a failed tool by inventing a result. Three options on the tool and one flag on your own result change what happens:
 
 - **`repair`** receives invalid input and its issues, and returns fixed input to validate again, or `undefined` to report the failure.
 - **`formatError`** builds the model's content for a failed call in place of the default text.
