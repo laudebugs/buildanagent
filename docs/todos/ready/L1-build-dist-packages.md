@@ -11,11 +11,11 @@
 
 ## Goal
 
-Make `@buildanagent/gateway` and `@buildanagent/sdk` publishable: compiled JavaScript and declarations in `dist/`, while tests and type-checks in the repo keep reading `src/` with no build step ([PB3](../../plans/publish-and-docs.md#pb3-built-dist-packages-with-a-source-condition-for-the-workspace-proposed), ADR 0050).
+Make `@buildanagent/gateway` and `@buildanagent/sdk` publishable: compiled JavaScript and declarations in `dist/`, while tests and type-checks in the repo keep reading `src/` with no build step ([PB3](../../plans/publish-and-docs.md#pb3-built-dist-packages-with-a-source-condition-for-the-workspace-accepted), ADR 0050).
 
 ## Context
 
-- [PB3](../../plans/publish-and-docs.md#pb3-built-dist-packages-with-a-source-condition-for-the-workspace-proposed) and [ADR 0050](../../decisions/0050-dist-build-with-source-condition.md)
+- [PB3](../../plans/publish-and-docs.md#pb3-built-dist-packages-with-a-source-condition-for-the-workspace-accepted) and [ADR 0050](../../decisions/0050-dist-build-with-source-condition.md)
 - [typescript.md](../../guidelines/typescript.md): modules and packaging
 - Lamina PDF's `packages/sdk/package.json` (exports with `types` first, `files`, `sideEffects`, `engines`)
 

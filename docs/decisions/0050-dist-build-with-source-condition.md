@@ -1,8 +1,8 @@
 # 0050. Publish built dist/ files with types first, and keep a source export condition for the workspace
 
-- **Status:** Proposed
+- **Status:** Accepted (owner, 2026-11-19)
 - **Date:** 2026-11-19
-- **Plan:** [publish-and-docs.md, PB3](../plans/publish-and-docs.md#pb3-built-dist-packages-with-a-source-condition-for-the-workspace-proposed)
+- **Plan:** [publish-and-docs.md, PB3](../plans/publish-and-docs.md#pb3-built-dist-packages-with-a-source-condition-for-the-workspace-accepted)
 
 ## Context
 

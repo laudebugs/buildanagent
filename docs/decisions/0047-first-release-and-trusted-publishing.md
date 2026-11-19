@@ -6,7 +6,7 @@
 
 ## Context
 
-ADR 0008 kept both packages private until the owner chose to publish. On 2026-11-19 the owner reserved the `@buildanagent` scope on npm, said "We can start publishing as soon as we're ready to", and chose "0.1.0 once a model call works". Lamina PDF publishes with a fixed Changesets group and npm trusted publishing, which needs no stored npm token ([npm docs](https://docs.npmjs.com/trusted-publishers)).
+ADR 0008 kept both packages private until the owner chose to publish. On 2026-11-19 the owner reserved the `@buildanagent` scope on npm, said "We can start publishing as soon as we're ready to", and chose "0.1.0 once a model call works". For the first publish they answered "Yes, one-time token if needed". Lamina PDF publishes with a fixed Changesets group and npm trusted publishing, which needs no stored npm token ([npm docs](https://docs.npmjs.com/trusted-publishers)).
 
 ## Decision
 

@@ -1,8 +1,8 @@
 # 0049. Serve the website at buildanagent.fyi and the docs at docs.buildanagent.fyi, both on Cloudflare Workers static assets
 
-- **Status:** Accepted (owner, 2026-11-19) for two sites on Cloudflare at these domains; Proposed for Workers static assets and per-PR Previews
+- **Status:** Accepted (owner, 2026-11-19), including Workers static assets, per-PR Previews and the docs' version policy
 - **Date:** 2026-11-19
-- **Plan:** [publish-and-docs.md, DS2 and DS3](../plans/publish-and-docs.md#ds2-two-sites-on-cloudflare-accepted)
+- **Plan:** [publish-and-docs.md, DS2 to DS4](../plans/publish-and-docs.md#ds2-two-sites-on-cloudflare-accepted)
 
 ## Context
 

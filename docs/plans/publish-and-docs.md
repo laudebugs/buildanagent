@@ -1,6 +1,6 @@
 # Publish the SDK to npm and its docs to two Cloudflare sites
 
-- **Status:** Ready (2026-11-19). The owner decided on 2026-11-19 to publish under `@buildanagent`, to ship 0.1.0 once a model call works, to build the docs on Astro Starlight, and to serve two sites on Cloudflare. Round L's todos are ready; none has started.
+- **Status:** Ready (2026-11-19). The owner decided on 2026-11-19 to publish under `@buildanagent`, to ship 0.1.0 once a model call works, to build the docs on Astro Starlight, and to serve two sites on Cloudflare, and accepted every decision below the same day. Round L's todos are ready; none has started.
 
 The owner reserved the `@buildanagent` scope on npm and said, on 2026-11-19, "We can start publishing as soon as we're ready to". The same day they asked for library docs ("We also need to build documentation for the libraries") and named where they live ("We'll use cloudflare to deploy docs and the website - buildanagent.fyi"). This plan turns those decisions into Round L, eight todos that take `@buildanagent/gateway` and `@buildanagent/sdk` from private source packages to a 0.1.0 release with provenance, and that stand up the website at `buildanagent.fyi` and the docs at `docs.buildanagent.fyi`. It adapts Lamina PDF's working setup (`laudebugs/laminapdf` at `7b4b37b`): built `dist/` packages, a fixed Changesets group, npm trusted publishing, and Starlight docs on Cloudflare Workers static assets.
 
@@ -17,16 +17,17 @@ The owner reserved the `@buildanagent` scope on npm and said, on 2026-11-19, "We
 
 | Id | Decision | Status | Record |
 | --- | --- | --- | --- |
-| PB1 | Publish 0.1.0 of the gateway and SDK once a model call works, after B4 and B8 | Accepted (owner, 2026-11-19) | [ADR 0047](../decisions/0047-first-release-and-trusted-publishing.md) |
+| PB1 | Publish 0.1.0 of the gateway and SDK once a model call works, after B4 and B8, with a one-time bootstrap publish if npm needs it | Accepted (owner, 2026-11-19) | [ADR 0047](../decisions/0047-first-release-and-trusted-publishing.md) |
 | PB2 | Version with Changesets in one fixed group, and publish only from CI through npm trusted publishing | Accepted (owner, 2026-11-19), with PB1 | [ADR 0047](../decisions/0047-first-release-and-trusted-publishing.md) |
-| PB3 | Ship built `dist/` with `.d.ts` files, and keep a `source` export condition for the workspace | Proposed | [ADR 0050](../decisions/0050-dist-build-with-source-condition.md) |
+| PB3 | Ship built `dist/` with `.d.ts` files, and keep a `source` export condition for the workspace | Accepted (owner, 2026-11-19) | [ADR 0050](../decisions/0050-dist-build-with-source-condition.md) |
 | DS1 | Build the docs on Astro Starlight, with the API reference generated from TSDoc | Accepted (owner, 2026-11-19) | [ADR 0048](../decisions/0048-docs-on-astro-starlight.md) |
 | DS2 | Serve two sites on Cloudflare: the website at `buildanagent.fyi` and the docs at `docs.buildanagent.fyi` | Accepted (owner, 2026-11-19) | [ADR 0049](../decisions/0049-two-sites-on-cloudflare.md) |
-| DS3 | Deploy both sites as Workers static assets, with a Cloudflare Preview per pull request | Proposed | [ADR 0049](../decisions/0049-two-sites-on-cloudflare.md) |
+| DS3 | Deploy both sites as Workers static assets, with a Cloudflare Preview per pull request | Accepted (owner, 2026-11-19) | [ADR 0049](../decisions/0049-two-sites-on-cloudflare.md) |
+| DS4 | The docs follow `main` until 0.1.0, then release tags, with `main` at `next.docs.buildanagent.fyi` | Accepted (owner, 2026-11-19) | [ADR 0049](../decisions/0049-two-sites-on-cloudflare.md) |
 
 ### PB1. Ship 0.1.0 once a model call works (accepted)
 
-**Accepted by the owner on 2026-11-19:** "0.1.0 once a model call works".
+**Accepted by the owner on 2026-11-19:** "0.1.0 once a model call works". For the first publish, the owner also answered "Yes, one-time token if needed": if npm needs a package to exist before a trusted publisher can be added, the bootstrap path in PB2 runs once.
 
 The first release waits for two todos: B4 builds `createModel()` with retries, and B8 builds the Anthropic adapter. With both, a published package can call a real model; without them, it holds only types and a test model. B8 depends on B5, B6 and B7, so the release also carries the cost catalog, the message transform and the tool-name table. ADR 0008's 0.x rule applies from this release: a minor version may break the API, and only with a "Breaking Changes" changelog entry ([D8](build-sdk.md#d8-0x-with-a-changelog-that-marks-breaking-changes-and-two-export-diffs-in-ci-accepted)).
 
@@ -41,7 +42,9 @@ The first release waits for two todos: B4 builds `createModel()` with retries, a
 - **The first publish.** npm's docs don't say whether a package must exist before a trusted publisher can be added, and a new trusted publisher expires unless it publishes within 2 days ([npm docs](https://docs.npmjs.com/trusted-publishers)). If npm requires an existing package, L4 bootstraps each package once: a manually triggered `bootstrap` job in `release.yml` reads a temporary `NPM_BOOTSTRAP_TOKEN` secret and publishes a `0.0.0-bootstrap.0` placeholder with `--provenance` under the `bootstrap` dist-tag. The owner then adds the trusted publisher, and `release.yml` publishes 0.1.0 itself through trusted publishing within the 2 days. Straight after, the owner revokes the token and deletes the secret, the `bootstrap` job is removed, and the placeholder is deprecated. The normal publish job never sees a token.
 - **The release flow.** From L4 on, every push to `main` makes the release workflow open or update a "Version packages" pull request from the pending changesets. Merging that pull request publishes the new versions and tags them. It goes through the same two code-review rounds as any other pull request.
 
-### PB3. Built `dist/` packages, with a `source` condition for the workspace (proposed)
+### PB3. Built `dist/` packages, with a `source` condition for the workspace (accepted)
+
+**Accepted by the owner on 2026-11-19.**
 
 Today each package exports its `src/*.ts` files, because the packages were private and Vitest and tsx read TypeScript directly ([typescript.md](../guidelines/typescript.md)). A published package can't do that: npm users need JavaScript and `.d.ts` files. Lamina's rule, which PB3 adopts, is to emit with `tsc` into `dist/`, with `module` and `moduleResolution` `NodeNext`, `.js` specifiers in relative imports, and `exports` whose conditions list `types` first. Each published `package.json` sets `files: ["dist"]`, `sideEffects: false` and `engines.node`.
 
@@ -70,7 +73,9 @@ The docs, like all our documentation, are licensed CC BY 4.0, and every page foo
 
 **Accepted by the owner on 2026-11-19:** "We'll use cloudflare to deploy docs and the website - buildanagent.fyi", with two sites. The website, `apps/site` (`@buildanagent/site`, private, plain Astro), serves `buildanagent.fyi`: what buildanagent is, the packages, and links to the docs and the repository. The docs serve `docs.buildanagent.fyi`. Two apps keep the site's design free of Starlight's layout, as Lamina keeps `apps/site` and `apps/docs` apart. `pnpm-workspace.yaml` adds `apps/*`.
 
-### DS3. Workers static assets, and a Preview per pull request (proposed)
+### DS3. Workers static assets, and a Preview per pull request (accepted)
+
+**Accepted by the owner on 2026-11-19**, with the build and deploy split below.
 
 Cloudflare's Astro guide deploys a static Astro site to Workers with static assets: a `wrangler.toml` whose `[assets]` directory is `./dist`, and no `main`, because no Worker code runs ([Cloudflare docs](https://developers.cloudflare.com/workers/framework-guides/web-apps/astro/)). Each app's `wrangler.toml` names its custom domain with `custom_domain = true`, sets `not_found_handling = "404-page"`, and turns off `workers_dev`, as Lamina's docs config does. Wrangler is pinned to 4.160.1, the newest release at least a week old on 2026-11-19.
 
@@ -78,7 +83,11 @@ For pull requests, Cloudflare now recommends Previews (`wrangler preview`, Wrang
 - **Build** (`docs-build.yml`, `site-build.yml`), on `pull_request` and pushes to `main`: builds the site with no secrets and uploads `dist/` and the pull request number as an artifact.
 - **Deploy** (`docs-deploy.yml`, `site-deploy.yml`), on `workflow_run` after its build workflow finishes: GitHub always runs this workflow's definition from `main`. It downloads the artifact, takes `wrangler.toml` from `main`, never checks out or runs the pull request's code, and runs `wrangler preview` for a pull request or `wrangler deploy` for `main`.
 
-Pull requests from forks get previews too, because the secrets live only in the deploy workflow. Pushes to `main` deploy the website. The docs deploy from `main` until 0.1.0 ships, then from each release tag, with `main`'s docs at `next.docs.buildanagent.fyi` marked unreleased and `noindex`.
+Pull requests from forks get previews too, because the secrets live only in the deploy workflow. Pushes to `main` deploy the website.
+
+### DS4. The docs follow `main` until 0.1.0, then releases (accepted)
+
+**Accepted by the owner on 2026-11-19:** "main until 0.1.0, then releases". Until 0.1.0 ships, pushes to `main` deploy `docs.buildanagent.fyi`. From 0.1.0 on, each release tag deploys `docs.buildanagent.fyi`, so the docs match the published packages, and `main` deploys `next.docs.buildanagent.fyi`, marked unreleased and `noindex`.
 
 ## 3. What the owner sets up
 

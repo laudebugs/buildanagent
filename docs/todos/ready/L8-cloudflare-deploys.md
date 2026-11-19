@@ -11,11 +11,11 @@
 
 ## Goal
 
-Deploy `apps/site` to `buildanagent.fyi` and `apps/docs` to `docs.buildanagent.fyi` as Workers static assets, with a Cloudflare Preview for each pull request ([DS3](../../plans/publish-and-docs.md#ds3-workers-static-assets-and-a-preview-per-pull-request-proposed), ADR 0049).
+Deploy `apps/site` to `buildanagent.fyi` and `apps/docs` to `docs.buildanagent.fyi` as Workers static assets, with a Cloudflare Preview for each pull request ([DS3](../../plans/publish-and-docs.md#ds3-workers-static-assets-and-a-preview-per-pull-request-accepted), ADR 0049).
 
 ## Context
 
-- [DS3](../../plans/publish-and-docs.md#ds3-workers-static-assets-and-a-preview-per-pull-request-proposed) and [ADR 0049](../../decisions/0049-two-sites-on-cloudflare.md)
+- [DS3](../../plans/publish-and-docs.md#ds3-workers-static-assets-and-a-preview-per-pull-request-accepted) and [ADR 0049](../../decisions/0049-two-sites-on-cloudflare.md)
 - Cloudflare's [Astro guide](https://developers.cloudflare.com/workers/framework-guides/web-apps/astro/) and [Previews](https://developers.cloudflare.com/workers/previews/)
 - Lamina PDF's `apps/docs/wrangler.toml` and `.github/workflows/docs.yml` (split build and deploy jobs)
 
@@ -28,7 +28,7 @@ Deploy `apps/site` to `buildanagent.fyi` and `apps/docs` to `docs.buildanagent.f
 - `docs-build.yml` and `site-build.yml` on `pull_request` and pushes to `main`: build the site with no secrets and upload `dist/` and the pull request number as an artifact
 - `docs-deploy.yml` and `site-deploy.yml` on `workflow_run` after their build workflow, which GitHub always runs from `main`: download the artifact, take `wrangler.toml` from `main`, never check out or run the pull request's code, and run `wrangler preview` for a pull request or `wrangler deploy` for `main`
 - Confirming the deploy token's permissions against Cloudflare's docs, and recording them in the CI plan
-- The docs deploy `main` to `docs.buildanagent.fyi` until 0.1.0 ships; after it, release tags deploy production and `main` deploys `next`, marked unreleased and `noindex`
+- The docs' version policy, DS4: `main` deploys `docs.buildanagent.fyi` until 0.1.0 ships; after it, release tags deploy production and `main` deploys `next.docs.buildanagent.fyi`, marked unreleased and `noindex`
 
 **Out of scope** (and which todo covers it)
 

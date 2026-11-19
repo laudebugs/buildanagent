@@ -81,4 +81,9 @@ This log checks every factual claim in [publish-and-docs.md](../publish-and-docs
 | 47 | Fork pull requests get no preview | ✏️ | With the deploy moved to a `workflow_run` workflow, fork pull requests get previews; corrected in DS3, ADR 0049 and L8 |
 | 48 | The TypeScript guideline's line reads "export `src/` until B20 decides" | ✏️ | This PR had already changed it to "until todo L1"; PB3, ADR 0050 and L1 now quote the new line |
 
-**Totals:** 48 claims: 42 ✅, 3 ✏️, 3 ⚠️.
+| 49 | The owner accepted PB3 and ADR 0050 | ✅ | Owner's answer, 2026-11-19: "Accept" |
+| 50 | The owner accepted DS3 and ADR 0049's deploy design | ✅ | Owner's answer, 2026-11-19: "Accept", applied to the `workflow_run` split |
+| 51 | The owner chose DS4: the docs follow `main` until 0.1.0, then releases | ✅ | Owner's answer, 2026-11-19: "main until 0.1.0, then releases" |
+| 52 | The owner allowed a one-time token for the first publish if npm needs it | ✅ | Owner's answer, 2026-11-19: "Yes, one-time token if needed" |
+
+**Totals:** 52 claims: 46 ✅, 3 ✏️, 3 ⚠️.
