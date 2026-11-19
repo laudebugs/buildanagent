@@ -252,3 +252,69 @@ test("the gallery shows the generated figure once per theme, each copy with its 
   assert.match(html, /<g id="dark-who-decides--loop">/);
   assert.match(html, /tabindex="0" role="group" aria-labelledby="light-figure-generated-caption"/);
 });
+
+// The content security policy in public/_headers, as the deploy serves it from main. Each directive's sources, by
+// directive name.
+function policy(): Map<string, string[]> {
+  const headers = readFileSync(join(app, "public", "_headers"), "utf8");
+  const line = headers.split("\n").find((text) => text.trim().startsWith("Content-Security-Policy:")) ?? "";
+  const directives = line.slice(line.indexOf(":") + 1).split(";");
+  return new Map(
+    directives
+      .map((directive) => directive.trim().split(/\s+/))
+      .filter(([name]) => name)
+      .map(([name = "", ...sources]) => [name, sources]),
+  );
+}
+
+test("the built site carries main's _headers and a 404 page for not_found_handling", () => {
+  assert.equal(readFileSync(join(out, "_headers"), "utf8"), readFileSync(join(app, "public", "_headers"), "utf8"));
+  assert.match(readFileSync(join(out, "404.html"), "utf8"), /<h1 class="chapter-head__title">Page not found<\/h1>/);
+  assert.match(readFileSync(join(out, "404.html"), "utf8"), /<meta name="robots" content="noindex">/);
+});
+
+test("the content security policy allows only the book's own origin, with no inline code", () => {
+  const csp = policy();
+  assert.deepEqual(csp.get("default-src"), ["'none'"]);
+  assert.deepEqual(csp.get("script-src"), ["'self'", "'wasm-unsafe-eval'"]);
+  // Pagefind's stylesheet draws its search icon as a data: SVG.
+  assert.deepEqual(csp.get("img-src"), ["'self'", "data:"]);
+  for (const name of ["style-src", "font-src", "connect-src", "worker-src", "form-action"]) {
+    assert.deepEqual(csp.get(name), ["'self'"], name);
+  }
+  assert.deepEqual(csp.get("base-uri"), ["'none'"]);
+  assert.deepEqual(csp.get("frame-ancestors"), ["'none'"]);
+  for (const [name, sources] of csp) {
+    for (const source of sources) {
+      assert.doesNotMatch(source, /^'(unsafe-inline|unsafe-eval|unsafe-hashes|strict-dynamic)'$|^'(sha|nonce)/, source);
+      // A scheme or host would let another origin in; img-src's data: is the one exception.
+      if (!(name === "img-src" && source === "data:")) assert.doesNotMatch(source, /:/, `${name} ${source}`);
+    }
+  }
+});
+
+// What a browser would block under that policy: an inline style attribute or event handler, a javascript: URL, an
+// object or frame, or a form that posts elsewhere. The inline <script> and <style> rules are the tests above.
+test("no built page holds markup the content security policy would block", () => {
+  for (const { path, html } of pages()) {
+    assert.doesNotMatch(html, /<[a-z][^>]*\sstyle=/i, `${path}: an inline style attribute`);
+    assert.doesNotMatch(html, /<[a-z][^>]*\son[a-z]+=/i, `${path}: an inline event handler`);
+    assert.doesNotMatch(html, /\s(href|src|action|formaction)="\s*javascript:/i, `${path}: a javascript: URL`);
+    assert.doesNotMatch(html, /<(object|embed|iframe|frame|base)\b/i, `${path}: an element the policy blocks`);
+    for (const [, action = ""] of html.matchAll(/<form\b[^>]*\saction="([^"]*)"/g)) {
+      assert.match(action, /^\/[^/]/, `${path}: a form posts to ${action}`);
+    }
+  }
+});
+
+// Pagefind writes its files after astro build, so this build has none; the policy's worker-src and 'wasm-unsafe-eval'
+// are for its pagefind-worker.js and its WebAssembly index.
+test("every script the pages load is a same-origin file", () => {
+  for (const { path, html } of pages()) {
+    for (const [, src = ""] of html.matchAll(/<script\b[^>]*\ssrc="([^"]+)"/g)) {
+      assert.match(src, /^\/[^/]/, `${path}: ${src}`);
+      if (src.startsWith("/pagefind/")) continue;
+      assert.ok(existsSync(join(out, src)), `${path} loads ${src}, which the build does not write`);
+    }
+  }
+});
