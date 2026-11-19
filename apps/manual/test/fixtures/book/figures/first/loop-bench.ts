@@ -28,7 +28,9 @@ const LAMP_H = 2;
 /** The stations in the order the loop visits them, with the readout each shows while its lamp is lit. */
 const STATIONS = ["context", "model", "tool"] as const;
 const readout = (step: number): string => `step ${step + 1} of ${STATIONS.length} · ${STATIONS[step]}`;
+// Each lamp has an id, which the inliner prefixes when a page shows the figure twice, as the gallery does.
 const step = (index: number): Record<string, string> => ({
+  id: `loop-bench--lamp-${STATIONS[index]}`,
   "data-iso-step": String(index),
   "data-iso-readout": readout(index),
 });

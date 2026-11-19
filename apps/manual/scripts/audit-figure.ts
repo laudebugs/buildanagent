@@ -5,14 +5,14 @@
 // process, as the skill runs `node build.mjs --audit`.
 import { writeFileSync } from "node:fs";
 import { join } from "node:path";
-import { IsoFigure, THEMES } from "../figures/lib/isokit.js";
+import { THEMES } from "../figures/lib/isokit.js";
 import { figureScripts, loadFigure } from "../figures/lib/registry.js";
 
 const [root = "", name = "", out = ""] = process.argv.slice(2);
 const figure = figureScripts(root).find((script) => `${script.chapter}/${script.id}` === name);
 if (figure === undefined) throw new Error(`no figure script ${name} under ${root}`);
 const drawn = await loadFigure(figure);
-if (!(drawn instanceof IsoFigure)) throw new Error(`${figure.source} draws a flat figure, which has no audit`);
+if (drawn.file !== "fragment") throw new Error(`${figure.source} draws a flat figure, which has no audit`);
 const problems = drawn.audit();
 for (const theme of THEMES) writeFileSync(join(out, `${figure.id}-${theme}.html`), drawn.page(figure.source, theme));
 process.exitCode = problems === 0 ? 0 : 1;

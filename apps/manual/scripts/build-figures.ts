@@ -18,6 +18,6 @@ for (const root of roots) {
     console.log(`wrote ${fromRepo(path)}`);
     written += 1;
   }
-  for (const file of orphanFiles(root)) console.warn(`${fromRepo(file)} has no script beside it`);
+  for (const file of await orphanFiles(root)) console.warn(`${fromRepo(file)} is drawn by no script`);
 }
 console.log(`figures:build: drew ${written} figure(s)`);

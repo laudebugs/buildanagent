@@ -23,10 +23,12 @@ const ACCENT = "--panel-terracotta";
  * Each `--anatomy-*` colour the kit's rules read, in each mode. The kit's tone ladder keeps its order: `hi` is the
  * panel text and `mid` the panel comment colour, both AA on their panel, while `lo` and `faint` are mixes toward the
  * panel for textures that carry no meaning alone. The one lit part takes the panel's terracotta highlight, as the
- * kit's lit part takes white in dark and black in light. Faces and tops lighten toward the page colour in both modes,
- * because the page is lighter than the panel in light mode and lighter than Ember in dark mode; the side shades darken
- * toward the text in light mode and lighten toward the page in dark mode, as the kit's own two palettes do. The book
- * has no blue, so the kit's three channel colours take terracotta, olive and amber.
+ * kit's lit part takes white in dark and black in light: its outline is terracotta, and its faces are tinted with it,
+ * so a small part still reads as the lit one. Tops lighten toward the page colour in both modes. This is our choice:
+ * the page is lighter than the panel in both modes, while the panel's own lighter tokens are its text colours, and in
+ * dark mode its grid and border, which may colour only borders and backgrounds. The side shades darken toward the text in light
+ * mode and lighten toward the page in dark mode, as the kit's own two palettes do. The book has no blue, so the kit's
+ * three channel colours take terracotta, olive and amber.
  */
 export const ANATOMY_PALETTE: Readonly<Record<string, { readonly light: string; readonly dark: string }>> = {
   "--anatomy-text": { light: `var(${TEXT})`, dark: `var(${TEXT})` },
@@ -34,14 +36,14 @@ export const ANATOMY_PALETTE: Readonly<Record<string, { readonly light: string; 
   "--anatomy-muted": { light: `var(${COMMENT})`, dark: `var(${COMMENT})` },
   "--anatomy-card": { light: "transparent", dark: "transparent" },
   "--anatomy-paper": { light: `var(${PANEL})`, dark: `var(${PANEL})` },
-  "--anatomy-face": { light: `var(${PAGE})`, dark: mix(PANEL, 50, PAGE) },
+  "--anatomy-face": { light: mix(PANEL, 72, ACCENT), dark: mix(PANEL, 70, ACCENT) },
   "--anatomy-top": { light: mix(PANEL, 40, PAGE), dark: mix(PANEL, 40, PAGE) },
   "--anatomy-shade-0": { light: mix(PANEL, 84, TEXT), dark: `var(${PANEL})` },
   "--anatomy-shade-1": { light: mix(PANEL, 89, TEXT), dark: mix(PANEL, 85, PAGE) },
   "--anatomy-shade-2": { light: mix(PANEL, 93, TEXT), dark: mix(PANEL, 72, PAGE) },
   "--anatomy-shade-3": { light: mix(PANEL, 97, TEXT), dark: mix(PANEL, 60, PAGE) },
-  "--anatomy-lit-top": { light: `var(${PAGE})`, dark: mix(PAGE, 80, ACCENT) },
-  "--anatomy-lit-shade": { light: mix(PANEL, 88, ACCENT), dark: mix(PANEL, 80, ACCENT) },
+  "--anatomy-lit-top": { light: mix(PANEL, 62, ACCENT), dark: mix(PANEL, 55, ACCENT) },
+  "--anatomy-lit-shade": { light: mix(PANEL, 50, ACCENT), dark: mix(PANEL, 62, ACCENT) },
   "--anatomy-hi": { light: `var(${TEXT})`, dark: `var(${TEXT})` },
   "--anatomy-mid": { light: `var(${COMMENT})`, dark: `var(${COMMENT})` },
   "--anatomy-lo": { light: mix(COMMENT, 60, PANEL), dark: mix(COMMENT, 55, PANEL) },

@@ -254,12 +254,13 @@ test("the gallery shows the generated figure once per theme, each copy with its 
 });
 
 // Isometric figures (BK11): an HTML fragment inlined with no iframe, complete without JavaScript, and its motion in an
-// external module. A style attribute would need 'unsafe-inline' in the content security policy, as a style element does.
+// external module. A style attribute would need 'unsafe-inline' in the content security policy, as a style element
+// does.
 test("no page carries a style attribute", () => {
   for (const { path, html } of pages()) assert.doesNotMatch(html, /<[a-z][^>]*\sstyle=/, path);
 });
 
-test("a chapter inlines each isometric figure whole, with its alt text, caption and scroll stage, and no iframe", () => {
+test("a chapter inlines each isometric figure whole, with its alt text, caption and stage, and no iframe", () => {
   const html = chapter();
   assert.doesNotMatch(html, /<iframe/);
   for (const [id, number, alt] of [
@@ -283,8 +284,17 @@ test("a chapter inlines each isometric figure whole, with its alt text, caption 
   assert.doesNotMatch(html, /iso-figure__controls|<button[^>]*>Play/);
 });
 
+test("the gallery shows the isometric sample once per theme, each copy's ids prefixed", () => {
+  const html = gallery();
+  for (const theme of ["light", "dark"]) {
+    assert.match(html, new RegExp(`<g data-part="context\\.lamp" id="${theme}-loop-bench--lamp-context"`));
+    assert.match(html, new RegExp(`<g data-part="tool\\.lamp" id="${theme}-loop-bench--lamp-tool"`));
+  }
+});
+
 test("every id on a chapter page is unique, the isometric figures' included", () => {
   const ids = [...chapter().matchAll(/\sid="([^"]+)"/g)].map((match) => match[1]);
+  assert.ok(ids.includes("loop-bench--lamp-model"), "the sample centerpiece's lamps carry ids");
   assert.deepEqual(
     ids.filter((id, index) => ids.indexOf(id) !== index),
     [],

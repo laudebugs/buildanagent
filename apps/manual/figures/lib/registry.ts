@@ -17,7 +17,10 @@ const REPO = join(APP, "../..");
 /** The book's own figure scripts, `figures/<chapter>/<id>.ts`. Fixture books name their own folders. */
 export const BOOK_FIGURES = join(APP, "figures");
 
-/** One figure script and the files it may write beside it: an SVG for a flat figure, a fragment for an isometric one. */
+/**
+ * One figure script and the files it may write beside it: an SVG for a flat figure, an HTML fragment for an isometric
+ * one.
+ */
 export interface FigureScript {
   readonly id: string;
   readonly chapter: string;
@@ -55,48 +58,62 @@ export function figureScripts(root: string): FigureScript[] {
   return found;
 }
 
-/** Every committed SVG or fragment under `root` that no script draws. */
-export function orphanFiles(root: string): string[] {
-  if (!existsSync(root)) return [];
-  const drawn = new Set(figureScripts(root).flatMap((figure) => [figure.svg, figure.fragment]));
-  return readdirSync(root, { recursive: true, encoding: "utf8" })
-    .filter((path) => path.endsWith(".svg") || path.endsWith(".html"))
-    .map((path) => join(root, path))
-    .filter((svg) => !drawn.has(svg))
-    .sort();
-}
+/** A flat or an isometric figure, each naming the file its script writes and drawing it. */
+export type DrawnFigure = Figure | IsoFigure;
 
-/** What a figure script returns: a flat figure from svgkit or an isometric one from isokit. */
-export async function loadFigure(figure: FigureScript): Promise<Figure | IsoFigure> {
+// An isometric figure settles its painter's order once per drawing, which takes seconds; the site fixture re-exports
+// the book fixture's figures, so each drawing is kept by the function that made it and drawn only once per process.
+const isometric = new WeakMap<object, IsoFigure>();
+
+/**
+ * What a figure script returns: a flat figure from svgkit or an isometric one from isokit, whose id must be the
+ * script's file name. A flat figure is drawn afresh each time; an isometric one is kept for the process.
+ */
+export async function loadFigure(figure: FigureScript): Promise<DrawnFigure> {
   const module = (await import(pathToFileURL(figure.script).href)) as { default?: unknown };
-  if (typeof module.default !== "function") {
+  const draw = module.default;
+  if (typeof draw !== "function") {
     throw new FigureError(`${figure.source} must export default a function that returns its Figure or IsoFigure`);
   }
-  const drawn: unknown = module.default();
+  const drawn: unknown = isometric.get(draw) ?? draw();
   if (!(drawn instanceof Figure) && !(drawn instanceof IsoFigure)) {
     throw new FigureError(`${figure.source}'s default export must return a Figure or an IsoFigure`);
   }
   if (drawn.id !== figure.id) {
     throw new FigureError(`${figure.source} draws figure "${drawn.id}", but its file name says "${figure.id}"`);
   }
+  if (drawn instanceof IsoFigure) isometric.set(draw, drawn);
   return drawn;
 }
 
 /**
- * Runs one figure script in memory and returns the file it draws now: the SVG of a flat figure, or the HTML fragment of
- * an isometric one. The script's default export is a function that returns a `Figure` or an `IsoFigure` whose id is
- * the script's file name.
+ * Runs one figure script in memory and returns the file it draws now, where its kind says: a flat figure's SVG or an
+ * isometric figure's HTML fragment.
  */
 export async function drawFigure(figure: FigureScript): Promise<{ readonly path: string; readonly text: string }> {
   const drawn = await loadFigure(figure);
-  return drawn instanceof IsoFigure
-    ? { path: figure.fragment, text: drawn.fragment(figure.source) }
-    : { path: figure.svg, text: drawn.toSvg(figure.source) };
+  return { path: figure[drawn.file], text: drawn.draw(figure.source) };
+}
+
+/**
+ * Every committed SVG or fragment under `root` that no script draws: one with no script beside it, and one of the
+ * other kind beside a script, such as an SVG left behind when a flat figure became isometric.
+ */
+export async function orphanFiles(root: string): Promise<string[]> {
+  if (!existsSync(root)) return [];
+  const drawn = new Set<string>();
+  for (const figure of figureScripts(root)) drawn.add(figure[(await loadFigure(figure)).file]);
+  return readdirSync(root, { recursive: true, encoding: "utf8" })
+    .filter((path) => path.endsWith(".svg") || path.endsWith(".html"))
+    .map((path) => join(root, path))
+    .filter((file) => !drawn.has(file))
+    .sort();
 }
 
 /**
  * Every way the committed figures under `root` differ from what their scripts draw now: an SVG or fragment that is
- * missing or stale, naming the script to rerun, and an SVG or fragment that no script draws. An empty list means every figure is current.
+ * missing or stale, naming the script to rerun, and an SVG or fragment that no script draws. An empty list means every
+ * figure is current.
  */
 export async function staleFigures(root: string): Promise<string[]> {
   const problems: string[] = [];
@@ -109,9 +126,14 @@ export async function staleFigures(root: string): Promise<string[]> {
       problems.push(`${fromRepo(path)} is stale: run ${FIGURES_BUILD}, which redraws it from ${figure.source}`);
     }
   }
-  for (const file of orphanFiles(root)) {
+  const scripts = new Set(figureScripts(root).map((figure) => figure.script));
+  for (const file of await orphanFiles(root)) {
+    const script = file.replace(/\.(svg|html)$/, ".ts");
+    const name = basename(script);
     problems.push(
-      `${fromRepo(file)} has no script beside it; delete it or add ${basename(file).replace(/\.(svg|html)$/, "")}.ts`,
+      scripts.has(script)
+        ? `${fromRepo(file)} is left over: ${name} draws the other kind of file; delete it`
+        : `${fromRepo(file)} has no script beside it; delete it or add ${name}`,
     );
   }
   return problems;

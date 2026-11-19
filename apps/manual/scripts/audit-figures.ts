@@ -9,7 +9,7 @@ import { mkdtempSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
-import { IsoFigure, THEMES } from "../figures/lib/isokit.js";
+import { THEMES } from "../figures/lib/isokit.js";
 import { figureScripts, fromRepo, loadFigure } from "../figures/lib/registry.js";
 
 const LINES = fileURLToPath(new URL("../../../.agents/skills/anatomy/scripts/lines.mjs", import.meta.url));
@@ -50,7 +50,7 @@ try {
   for (const root of roots) {
     for (const figure of figureScripts(root)) {
       const drawn = await loadFigure(figure);
-      if (!(drawn instanceof IsoFigure)) continue;
+      if (drawn.file !== "fragment") continue;
       // A fixture may re-export another fixture's figure; the same drawing needs proving once.
       const card = drawn.fragment(figure.source).replace(/^<!--[^\n]*-->\n/, "");
       const same = proven.get(card);

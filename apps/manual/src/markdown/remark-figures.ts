@@ -17,11 +17,10 @@ import type { VFile } from "vfile";
 import { blockKey } from "../book/book-index.js";
 import {
   captionId,
-  escapeXml,
+  FIGURE_KINDS,
   FIGURES_BUILD,
   figureFiles,
-  inlineFragment,
-  inlineSvg,
+  isFigureDirective,
   SCROLL_HINT,
   SCROLL_STAGE,
 } from "../book/figures.js";
@@ -34,8 +33,6 @@ type ContainerDirective = Extract<RootContent, { type: "containerDirective" }>;
 type LeafDirective = Extract<RootContent, { type: "leafDirective" }>;
 
 const FIGURE_ATTRIBUTES = new Set(["id", "analogy"]);
-/** A flat figure's drawing is `::svg`, and an isometric figure's interactive fragment is `::viewer`. */
-const DRAWINGS = new Set(["svg", "viewer"]);
 
 /** The analogy each figure in the chapter illustrates, by figure id, for the analogy-figure plugin to check. */
 export function figureAnalogies(file: VFile): Map<string, string> {
@@ -45,7 +42,7 @@ export function figureAnalogies(file: VFile): Map<string, string> {
 }
 
 const isDrawing = (node: RootContent): node is LeafDirective =>
-  node.type === "leafDirective" && DRAWINGS.has(node.name);
+  node.type === "leafDirective" && isFigureDirective(node.name);
 const isFigure = (node: Parent | RootContent): node is ContainerDirective =>
   node.type === "containerDirective" && (node as ContainerDirective).name === "figure";
 const isLabel = (node: RootContent): boolean => node.type === "paragraph" && node.data?.directiveLabel === true;
@@ -53,10 +50,11 @@ const isLabel = (node: RootContent): boolean => node.type === "paragraph" && nod
 /**
  * Inlines each figure's generated drawing. A figure holds one drawing and nothing else besides its caption: a flat
  * figure's `::svg{alt="…"}`, read from `<figures dir>/<chapter>/<figure id>.svg` and named by its alt text, or an
- * isometric figure's `::viewer{alt="…"}`, read from `<figure id>.html` and preceded by its alt text as a visually hidden
- * paragraph. The figure's script writes either file, and the plugin puts the drawing in the figure's panel. A figure
- * without its drawing or alt text, a drawing that is missing or was not drawn for this figure, a drawing outside a
- * figure, and an unknown attribute each fail with the chapter's file and line. It runs before remark-book-directives, which numbers the figure and builds its caption.
+ * isometric figure's `::viewer{alt="…"}`, read from `<figure id>.html` and preceded by its alt text as a visually
+ * hidden paragraph (FIGURE_KINDS in src/book/figures.ts). The figure's script writes either file, and the plugin puts
+ * the drawing in the figure's panel. A figure without its drawing or alt text, a drawing that is missing or was not
+ * drawn for this figure, a drawing outside a figure, and an unknown attribute each fail with the chapter's file and
+ * line. It runs before remark-book-directives, which numbers the figure and builds its caption.
  */
 export function remarkFigures(options: { readonly book: Book }) {
   const { book } = options;
@@ -106,8 +104,7 @@ function figure(
     return failAt(
       file,
       `figure "${id}" must hold one generated drawing, written ::svg{alt="…"} or ::viewer{alt="…"}, and nothing ` +
-        "else; put any prose in " +
-        "its caption or in the text around it",
+        "else; put any prose in its caption or in the text around it",
       node,
     );
   }
@@ -129,6 +126,8 @@ function drawingHtml(
   const { book, slug, id, file } = where;
   const attributes = node.attributes ?? {};
   const directive = node.name;
+  if (!isFigureDirective(directive)) return failAt(file, `::${directive} is not a figure drawing`, node);
+  const kind = FIGURE_KINDS[directive];
   const unknown = Object.keys(attributes).find((name) => name !== "alt");
   if (unknown !== undefined) return failAt(file, `::${directive} takes only the attribute alt, not "${unknown}"`, node);
   const alt = attributes.alt?.trim() ?? "";
@@ -140,7 +139,7 @@ function drawingHtml(
     );
   }
   const files = figureFiles(book.inputs.figuresDir, slug, id);
-  const drawn = directive === "viewer" ? files.fragment : files.svg;
+  const drawn = files[kind.file];
   const name = (path: string) => relative(book.inputs.repoRoot, path).split(sep).join("/");
   if (!existsSync(drawn)) {
     return failAt(
@@ -151,11 +150,10 @@ function drawingHtml(
   }
   let html: string;
   try {
-    const text = readFileSync(drawn, "utf8");
-    html =
-      directive === "viewer"
-        ? viewerHtml(text, { id, alt, number: book.index.blocks.get(blockKey("figure", id))?.number })
-        : inlineSvg(text, { figureId: id, alt });
+    // A chapter page shows each figure once, and figure ids are unique across the book, so ids need no prefix here;
+    // the gallery, which shows a figure once per theme, gives each copy its own.
+    const number = book.index.blocks.get(blockKey("figure", id))?.number;
+    html = kind.inline(readFileSync(drawn, "utf8"), { figureId: id, alt, ...(number ? { number } : {}) });
   } catch (error) {
     const reason = error instanceof Error ? error.message : String(error);
     return failAt(file, `${name(drawn)} cannot be inlined: ${reason}; redraw it with ${FIGURES_BUILD}`, node);
@@ -180,17 +178,4 @@ function drawingHtml(
     ],
     ...(node.position ? { position: node.position } : {}),
   };
-}
-
-/**
- * An isometric figure's fragment as a chapter shows it: the alt text first, as a visually hidden paragraph, because
- * the fragment's drawing is hidden from screen readers, then the fragment with its figure corner numbered.
- */
-function viewerHtml(
-  text: string,
-  figure: { readonly id: string; readonly alt: string; readonly number: string | undefined },
-): string {
-  const { id, alt, number } = figure;
-  const fragment = inlineFragment(text, { figureId: id, ...(number ? { number: `Figure ${number}` } : {}) });
-  return `<p class="visually-hidden">${escapeXml(alt)}</p>${fragment}`;
 }

@@ -1,4 +1,5 @@
 ---
+import { sampleFiguresDir } from "../book/load.js";
 import AnnotationMarker from "./AnnotationMarker.astro";
 import ChapterHead from "./ChapterHead.astro";
 import Citation from "./Citation.astro";
@@ -25,6 +26,7 @@ interface Props {
 }
 
 const { prefix } = Astro.props;
+const fixtureFigures = sampleFiguresDir();
 const id = (name: string) => `${prefix}-${name}`;
 
 const parts: ContentsPart[] = [
@@ -246,6 +248,22 @@ const events: ReplayEvent[] = [
     number="1.6"
     caption="A call, a workflow and a loop differ in who decides the next step."
     alt="Three columns of boxes joined by arrows: a call, a workflow and a loop. Under each, a note says who decides the next step: your code, your code, and the model."
+  />
+</div>
+
+<div class="gallery__item">
+  <h3>Isometric figure, inlined from its fragment</h3>
+  <!-- The book has no isometric figure until T10 draws one, so the gallery shows the fixture book's sample. -->
+  <GeneratedFigure
+    kind="viewer"
+    figuresDir={fixtureFigures}
+    chapter="first"
+    figure="loop-bench"
+    id={id("figure-isometric")}
+    idPrefix={`${prefix}-`}
+    number="1.7"
+    caption="The agent loop's bench: context, model and tool, each with a lamp."
+    alt="An isometric bench with three stations: a stack of three context pages, a round model with a cap, and a tool block. Each station has a small lamp; the lamp on the context stack is lit."
   />
 </div>
 

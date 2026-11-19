@@ -104,6 +104,13 @@ test("the fragment allowlist refuses anything the kit does not write", () => {
     ['<svg viewBox="0 0 1 1"></svg>', /more than one <svg>/],
     ["<div></div>", /a <div> inside its <svg>/],
     ["<g>", /closes no open element|is never closed/],
+    // Values: an entity in an attribute, and data-* attributes outside the closed set iso-figures.ts and the kit use.
+    ['<path d="M0 0" class="iso-line&#x20;x"/>', /its <path>'s class holds an entity the kit never writes/],
+    ['<g data-iso-readout="&lt;b&gt;"></g>', /data-iso-readout="&lt;b&gt;", which is not a value the kit writes/],
+    ['<g data-iso-step="javascript:alert(1)"></g>', /data-iso-step="javascript:alert\(1\)"/],
+    ['<g data-tone="javascript:x"></g>', /data-tone="javascript:x", which is not a value the kit writes/],
+    ['<g data-href="https://example.com/"></g>', /its <g> has a data-href attribute, which the fragment allowlist/],
+    ["<g>stray words</g>", /text in its drawing outside a <text> element/],
     ['<path d="M0 0"><g></g></path>', /its <path> holds a <g>/],
   ];
   for (const [extra, message] of cases) assert.throws(() => inline(extra), message, extra);
@@ -111,6 +118,12 @@ test("the fragment allowlist refuses anything the kit does not write", () => {
     () =>
       inlineFragment(tiny().replace('<svg width="120"', '<svg onload="alert(1)" width="120"'), { figureId: "tiny" }),
     /its <svg> has an event handler, onload/,
+  );
+  // HTML ignores "/>" on a div or span, so a self-closing tag outside the drawing would swallow what follows it.
+  assert.throws(
+    () =>
+      inlineFragment(tiny().replace('<div class="iso-plate">', '<div class="iso-plate"><span/>'), { figureId: "tiny" }),
+    /its <span\/> closes itself outside the <svg>/,
   );
   assert.throws(
     () =>
@@ -205,7 +218,7 @@ test("the book maps every anatomy colour the kit's rules read to its panel token
   assert.match(css, /\[data-theme="dark"\] \{\n[^}]*--anatomy-paper: var\(--panel-background\);/);
 });
 
-test("a chapter inlines both isometric samples, alt text first, and the analogy one passes the register check", async () => {
+test("a chapter inlines both isometric samples, alt text first, and the analogy passes the register", async () => {
   const book = loadBook(fixtureInputs(FIXTURE_DIR));
   const html = await renderLikeAstro(book, "first");
   assert.match(
