@@ -1,6 +1,6 @@
 # Changesets: one file per user-facing change, versioned as one group
 
-Every pull request that changes what a user of `@buildanagent/gateway` or `@buildanagent/sdk` gets adds a changeset: a small Markdown file in this folder that names the bump and says what changed. When a release is cut, `pnpm changeset version` turns the pending changesets into new versions and `CHANGELOG.md` entries, and deletes them. [Changesets](https://github.com/changesets/changesets) does the work; `config.json` holds our settings.
+Add a changeset to every pull request that changes what users of `@buildanagent/gateway` or `@buildanagent/sdk` get. A changeset is a small Markdown file in this folder that names the bump and says what changed. When a release is cut, `pnpm changeset version` turns the pending changesets into new versions and `CHANGELOG.md` entries, and deletes them. [Changesets](https://github.com/changesets/changesets) does the work; `config.json` holds our settings.
 
 ## Add a changeset with `pnpm changeset`
 
@@ -26,6 +26,6 @@ Both packages are still `private`, and `privatePackages` in `config.json` tells 
 
 ## CI checks for a changeset once publishing starts
 
-CI's `changesets` job runs `pnpm changeset status --since=origin/main` and fails a pull request that changes a package's shipped files without a changeset. Those files are the ones `changedFilePatterns` in `config.json` lists: everything under `src/`, `package.json` and `tsconfig.build.json`, because a dependency bump or a build setting reaches users as surely as a code change. Changes anywhere else, such as docs, tests outside `src/` or workflows, need none. The job stays off until the first release.
+CI's `changesets` job runs `pnpm changeset status --since=origin/main` and fails a pull request that changes a package's shipped files without a changeset. `changedFilePatterns` in `config.json` lists those files: everything under `src/`, plus `package.json` and `tsconfig.build.json`. The last two count because a dependency bump or a build setting reaches users as surely as a code change. Changes anywhere else, such as docs, tests outside `src/` or workflows, need none. The job stays off until the first release.
 
 When a pull request touches those files but users get nothing new, as with an internal rename or a devDependency bump, run `pnpm changeset --empty`. It writes a changeset that names no package, which satisfies the check and adds nothing to the changelog.
