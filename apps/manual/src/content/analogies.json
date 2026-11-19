@@ -38,5 +38,13 @@
     "chapter": "tools",
     "illustration": "vending-machine",
     "breaks": "You read the note and act on it; a model may ignore an error, so the error must say exactly what to try next, and the loop still needs a cap."
+  },
+  {
+    "id": "passport-control",
+    "concept": "identity from trusted context",
+    "analogy": "passport control, where the officer reads your passport, not what you claim at the desk",
+    "chapter": "tools",
+    "illustration": null,
+    "breaks": "A traveller carries the passport and hands it over; in an agent, your code reads the identity from the signed-in session, and the model never sees or carries the passport."
   }
 ]

@@ -137,5 +137,24 @@
     "kind": "docs",
     "asOf": "November 2026",
     "verifiedIn": "apps/manual/fact-checks/tools.md"
+  },
+  {
+    "id": "owasp-llm06-excessive-agency",
+    "title": "LLM06:2025 Excessive Agency",
+    "publisher": "OWASP Top 10 for LLM Applications",
+    "url": "https://raw.githubusercontent.com/OWASP/www-project-top-10-for-large-language-model-applications/main/2_0_vulns/LLM06_ExcessiveAgency.md",
+    "kind": "spec",
+    "asOf": "November 2026",
+    "verifiedIn": "apps/manual/fact-checks/tools.md"
+  },
+  {
+    "id": "openai-agents-context",
+    "title": "Context Management",
+    "publisher": "OpenAI Agents SDK documentation",
+    "url": "https://github.com/openai/openai-agents-js/blob/v0.21.0/docs/src/content/docs/guides/context.mdx",
+    "kind": "docs",
+    "asOf": "November 2026",
+    "version": "v0.21.0",
+    "verifiedIn": "apps/manual/fact-checks/tools.md"
   }
 ]

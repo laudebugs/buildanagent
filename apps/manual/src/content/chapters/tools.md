@@ -2,8 +2,8 @@
 title: "Tools: schemas, validation, errors the model can read, and identity it cannot fake"
 summary: A tool is a contract between your code and a model. The model learns it from a name, a description and a schema; your SDK checks every argument, a failed call comes back as a message the model can act on, and the user's identity comes from the signed-in session, never from the model.
 opening: incident
-sources: [anthropic-how-tool-use-works, anthropic-writing-tools, claude-agent-sdk-custom-tools]
-glossary: [tool, agent-loop]
+sources: [anthropic-how-tool-use-works, anthropic-writing-tools, claude-agent-sdk-custom-tools, owasp-llm06-excessive-agency, openai-agents-context]
+glossary: [tool, agent-loop, prompt-injection, trusted-context]
 switchTo: [B10]
 ---
 
@@ -125,6 +125,29 @@ Names matter once tools come from more than one place, because a model choosing 
 A result deserves the same care as a schema, because every token of it lands in the context and stays there for the rest of the run. Anthropic asks tools to "return only high signal information" and to drop "low-level technical identifiers", and reports that "merely resolving arbitrary alphanumeric UUIDs to more semantically meaningful and interpretable language … significantly improves Claude's precision in retrieval tasks by reducing hallucinations." For results that can grow, it suggests "some combination of pagination, range selection, filtering, and/or truncation with sensible default parameter values", and notes that Claude Code caps tool responses "to 25,000 tokens by default". A `response_format`{checked=row-49} input with "concise" and "detailed" values lets the model choose. In the post's Slack example, the concise form used about a third of the tokens of the detailed one.
 
 Pi builds that split into the result itself. A Pi tool returns `content` for the model and `details` for your logs and interface, as [[lst:tool-pi]] does, so a record can carry everything you want to keep while the model reads one line. The rule behind it is the one this section started from: the model should see the fields that inform its next action, and your code should keep the rest.
+
+## Identity comes from the signed-in session, never from the model
+
+At :analogy[passport control]{#passport-control}, you can tell the officer any name you like. The officer reads your passport instead, a document someone else issued and the officer can check against your face, and your claim at the desk changes nothing. Ada's ticket from the start of this chapter is a claim at the desk. When a lookup takes an email argument, the model decides whose record to read, and it decides from text that Ada wrote.
+
+The mechanism is simple and unforgiving. Every argument in a tool call is text the model wrote after reading its whole context: the user's message, earlier tool results, perhaps a web page or an email a tool fetched. Some of that text comes from people other than the signed-in user, and some may carry instructions planted for the model to follow, the attack called prompt injection. So any argument that names whose data a tool reads or changes is a choice made under the influence of whoever wrote the context. OWASP's guidance on excessive agency names the fix: "Execute extensions in user's context", so that actions "taken on behalf of a user are executed on downstream systems in the context of that specific user", and "Implement authorization in downstream systems rather than relying on an LLM to decide if an action is allowed or not" [@owasp-llm06-excessive-agency].
+
+In code, the fix has two halves. First, the schema loses its identity field: a lookup of the signed-in customer's orders asks for no customer at all. Second, the tool's function reads the identity from trusted context, a value your code set from the authenticated session and handed to the tool outside its arguments. The model cannot write that value, and it sees it only if your code chooses to show it. Each SDK in this chapter offers a route, though they differ in how much they give you, as [[tbl:trusted-context]] shows.
+
+:::table[What a tool's function receives beside the model's arguments, and where the identity can come from]{#trusted-context}
+| SDK | What the function receives beside the arguments | Where the signed-in user's identity comes from |
+| --- | --- | --- |
+| OpenAI Agents SDK | A `RunContext` that wraps an object your code passed to the run | A field your code puts in that object when it starts the run; the SDK does not send the object to the model |
+| Google ADK | A `Context` with the session's user id, session id and state | The user id your code passes when it runs the agent, and state such as a "user:customer_id" key that your code writes when it creates the session |
+| Pi | A context with fields such as the working directory, the session manager and the model, but none for your own user | A value the function closes over, because your code builds the tool for each signed-in session |
+| Claude Agent SDK | A second argument that its types declare only as unknown | A value the handler closes over, because your code builds the in-process MCP server for each request |
+:::
+
+The OpenAI Agents SDK is the most explicit about the boundary. Its documentation says the object behind `RunContext` "is not sent to the LLM. It is purely local", and lists "Data about the run (user name, IDs, etc.)" among its uses [@openai-agents-context]. The same page warns against a tempting shortcut. Hiding a tool from the model with an `isEnabled`{checked=row-58} check decides which tools the model sees, but those checks "run before the model produces tool or handoff arguments, so they cannot authorize a model-generated argument or resource selection". The authorization belongs inside `execute`.
+
+Two of our capstones already work this way, and their checks show it. The ADK capstone's `lookup_customer`{checked=row-59} declares no parameters and reads "user:customer_id" from session state; its scripted model tries to smuggle in another customer's id, the plain Zod object drops the extra key, and the checks confirm that the lookup ran for the signed-in customer and that "the other customer's record never reaches the model" (`verify/google-adk/examples/08-triage-agent.ts`). The Copilot capstone's `lookup_orders`{checked=row-60} closes over a customer object "set by our auth layer" and ignores the id its mock sends (`verify/copilot-sdk/examples/09-triage-agent.ts`). Do not read the dropped key as the defence, though. A schema that kept unknown keys would pass the smuggled id to the function, which would still be safe only because it never reads it. The defence is that identity comes from the session.
+
+Passport control stops matching at who holds the document. A traveller carries the passport and hands it to the officer. In an agent, the model never holds the passport at all: your code reads the identity from the signed-in session and gives it straight to the tool, so nothing the model writes, and nothing written to the model, can stand in for it. For Ada, the fixed lookup takes no email, returns her own plan and tickets, and has no way to fetch Bob's. If the model asks about Bob anyway, the right reply, written as the error section above recommends, says that the tool reads only the signed-in customer's account and that the request should go to a person.
 
 ## Exercises
 
