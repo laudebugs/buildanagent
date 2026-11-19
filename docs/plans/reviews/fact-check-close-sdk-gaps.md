@@ -114,6 +114,7 @@ Each row checks a claim about a third-party API or package that E2's code, its c
 | E2-8 | `ai` 7.0.162's UI message validator accepts an `output-available` tool part with any `output`, no `errorText` and an optional granted approval | `interrupted-write.ts` | ✅ | `ai` 7.0.162 `dist/index.js` lines 11400–11408 and 11501–11509 (`output: z.unknown()`, `errorText: z.never().optional()`, `approval: approvalGrantedSchema.optional()`); test "repairInterruptedWrite settles an interrupted write as an unknown outcome that ai's validator accepts" |
 | E2-9 | `convertToModelMessages()` takes the tools as an option, so a stored output reaches the model through its tool's `toModelOutput` | README, `interrupted-write.ts` | ✅ | `ai` 7.0.162 `dist/index.d.ts` line 6145 (`options?: { tools?: ToolSet; … }`); the workerd test shows the outcome arriving as an `error-json` result |
 | E2-10 | A Durable Object is single-threaded, so a store there can read and write a record with no other `await` between the two | README | ✅ | Cloudflare `agents` docs mirror, `docs/reference/cloudflare-agents/source/agents/docs/agents/agent-class.md` line 9: "every Agent is a globally addressable, single-threaded compute instance". That no other request runs between a read and a write with no `await` between them follows from that, our reasoning |
+| E2-11 | `AIChatAgent` repairs an interrupted server-tool part before each turn but skips an `approval-requested` part, which awaits the user, and a part still streaming its input has not started `execute()` | README, `interrupted-write.ts` | ✅ | `@cloudflare/ai-chat` 0.12.2 `dist/index.js` `_repairInterruptedToolsBeforeTurn` (`shouldRepair` skips a part that awaits a client interaction) and its doc comment; `execute()` needs a complete input, our reading of the AI SDK's tool-part states |
 
 ## Owner decisions recorded (2026-11-18 and 2026-11-19)
 
@@ -130,4 +131,4 @@ Each row checks that a document records the owner's answer as given in this sess
 | 68 | The owner accepted SG2's ordering and put Round E on hold until the owner says go | Plan status and SG2, roadmap, every E todo | ✅ | Owner's answer, 2026-11-19: "Approve plan, don't start yet" |
 | 69 | With ADR 0043 accepted, B10 depends on E1, B15 on E3, N7 and N40 on E2, and N45 on E7, and the graph stays acyclic | Todo headers, roadmap | ✅ | E1 needs only B1 and E3 only E1, so no Round B or N todo is upstream of the E todos it now waits for |
 
-**Totals:** 97 claims: 88 ✅, 7 ✏️, 2 ⚠️.
+**Totals:** 98 claims: 89 ✅, 7 ✏️, 2 ⚠️.

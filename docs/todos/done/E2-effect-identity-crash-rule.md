@@ -110,7 +110,7 @@ The package README (the write rule in one paragraph, and the list of tools that 
 ## Definition of done
 
 - [x] Claimed: the first commit moved this file `ready/` → `ongoing/` (Status `ongoing`)
-- [ ] Prose drafted with `/anthropic-skills:writing` and reviewed with `/anthropic-skills:writing-review`, with the fixes applied and changed claims re-checked
+- [x] Prose drafted with `/anthropic-skills:writing` and reviewed with `/anthropic-skills:writing-review`, with the fixes applied and changed claims re-checked
 - [x] `pnpm check`, `pnpm typecheck` and `pnpm test` pass locally; pushed after each meaningful step
 - [x] This file moved `ongoing/` → `done/` (Status `done`), and the plan's todo table updated
 
@@ -146,5 +146,5 @@ Judgement calls, where the code departs from the design notes:
 - **Two settled outcomes are not final.** A `not_applied` outcome with a `same_key` retry runs again under the same key, because it changed nothing; Stripe likewise saves no result for a request that failed validation (row E2-1's page). A settled `unknown` goes to `reconcile`, like a lapsed lease. An `unknown` or `partial` outcome with a `same_key` retry runs again only under `"idempotency_key"`.
 - **A `run` that throws settles as `unknown`**, reason `WRITE_FAILED`, unless the tool's optional `onError` maps the error to an outcome. A `toOutcome` that throws settles the record as `unknown` and rethrows, so a bug in the tool surfaces and the record still shows the write may have happened.
 - **`guardedWrite()` stamps its effect key on every outcome that lacks one**, so an `IN_PROGRESS` outcome can carry a `same_key` retry, which E1 allows only with a key.
-- **`repairInterruptedWrite()` returns `undefined` for tools not in its list**, so the override falls back to the agent's default repair for reads. Its outcome carries no effect key, because the agent's repair hook is synchronous.
+- **`repairInterruptedWrite()` returns `undefined` for tools not in its list and for a part still streaming its input or awaiting approval**, so the override falls back to the agent's default repair for reads and for a call that never started. Its outcome carries no effect key, because the agent's repair hook is synchronous.
 - **The crash test's store and fake API live in the test process, behind loopback HTTP**, so they outlive the child the test kills, as a durable store and a real API would.

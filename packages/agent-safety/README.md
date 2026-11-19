@@ -105,7 +105,11 @@ const outcome = await guardedWrite({
 | `started`, lease lapsed | Calls `reconcile(key)`: a found write returns its outcome, and `"not_found"` runs the write once under the same key | Whatever `reconcile` finds |
 | `started`, lease lapsed, no `reconcile` | Runs nothing | `unknown`, reason `WRITE_INTERRUPTED`, retry `reconcile_first`, or `never` for `dedupe: "unknown_only"` |
 
-The two refusals follow the IETF `Idempotency-Key` draft, which answers a reused key with a different payload with 422 and a retry of a request still running with 409. Two settled outcomes are not final. A `not_applied` outcome that allows a `same_key` retry, such as a declined card reported through `onError`, runs again under the same key, because it changed nothing. A settled `unknown` or `partial` outcome whose retry isn't `never` goes to `reconcile`, like a lapsed lease. If `run` throws and the tool gives no `onError`, the write settles as `unknown`, because the request may have reached the system. `toOutcome` and `onError` receive the effect key as their second argument, so an `unknown` or `partial` outcome they build can allow a `same_key` retry. No option lets a caller choose the key, so with a business key an `unknown` write never runs again under a fresh one.
+The two refusals follow the IETF `Idempotency-Key` draft, which answers a reused key with a different payload with 422 and a retry of a request still running with 409.
+
+Two settled outcomes are not final. A `not_applied` outcome that allows a `same_key` retry, such as a declined card reported through `onError`, runs again under the same key, because it changed nothing. A settled `unknown` or `partial` outcome whose retry isn't `never` goes to `reconcile`, like a lapsed lease. If `run` throws and the tool gives no `onError`, the write settles as `unknown`, because the request may have reached the system.
+
+`toOutcome` and `onError` receive the effect key as their second argument, so an `unknown` or `partial` outcome they build can allow a `same_key` retry. No option lets a caller choose the key, so with a business key an `unknown` write never runs again under a fresh one.
 
 ## Declare a business key for every tool that sends, submits, pays or deletes
 
@@ -124,7 +128,7 @@ The key is 64 hex digits, never the business key's own text. Stripe caps an idem
 
 Every guarded write declares `dedupe`, which tells `guardedWrite()` what the external system can do with the key:
 
-- **`idempotency_key`:** the system dedupes by the key `run` sends, as Stripe does with its `Idempotency-Key` header. `reconcile` is optional.
+- **`idempotency_key`:** the system dedupes by the key `run` sends, as Stripe does with its `Idempotency-Key` header. `reconcile` is optional, but without it a crashed attempt stays `unknown` with retry `reconcile_first`, and `guardedWrite()` does not send it again on its own.
 - **`reconcile`:** the system ignores keys, but `reconcile` can find the write by a field the tool sets, such as a message id header. The hook is required.
 - **`unknown_only`:** the system offers neither. An interrupted attempt stays `unknown` with retry `never`, and the model is told to ask a person to check. Put such a tool behind an approval, so a person sees it before it runs.
 
@@ -144,7 +148,7 @@ protected override repairInterruptedToolPart(part: UIMessage["parts"][number]) {
 }
 ```
 
-The listed tools' parts then settle as `output-available` with an `unknown` outcome, and other tools keep the default repair. Convert the stored messages with your tools, `convertToModelMessages(this.messages, { tools })`, so each tool's `toModelOutput` hands the outcome to the model through `toAiToolResult()`. When the model calls the tool again for the same business key, `guardedWrite()` finds the started record. Until the record's lease lapses, it reports `IN_PROGRESS`, because it can't tell a dead isolate from a slow one; after that, it reconciles the record. A lease just longer than the tool's slowest write keeps that wait short.
+The listed tools' parts then settle as `output-available` with an `unknown` outcome. Other tools keep the default repair, and so does a listed tool's part that is still streaming its input or awaiting approval, because its `execute()` never started. Convert the stored messages with your tools, `convertToModelMessages(this.messages, { tools })`, so each tool's `toModelOutput` hands the outcome to the model through `toAiToolResult()`. When the model calls the tool again for the same business key, `guardedWrite()` finds the started record. Until the record's lease lapses, it reports `IN_PROGRESS`, because it can't tell a dead isolate from a slow one; after that, it reconciles the record. A lease just longer than the tool's slowest write keeps that wait short.
 
 ## An approved call runs only after its signed pause verifies
 
