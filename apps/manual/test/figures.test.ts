@@ -23,12 +23,14 @@ afterAll(() => {
   for (const dir of dirs) rmSync(dir, { recursive: true, force: true });
 });
 
-test("the book's figures hold Chapter 1's three, and the fixtures hold their own, isometric ones too", () => {
+test("the book's figures hold its chapters' figures, and the fixtures hold their own, isometric ones too", () => {
   const ids = (root: string) => figureScripts(root).map((figure) => `${figure.chapter}/${figure.id}`);
   assert.deepEqual(ids(BOOK_FIGURES), [
     "call-workflow-loop/loop-bench",
     "call-workflow-loop/ticket-rail",
     "call-workflow-loop/who-decides",
+    "tools/tool-round-trip",
+    "tools/vending-machine",
   ]);
   assert.deepEqual(ids(FIXTURE_FIGURES), ["first/loop-bench", "first/tally-counter", "first/ticket-rail"]);
   assert.deepEqual(ids(SITE_FIGURES), [
@@ -48,15 +50,15 @@ test("the package's figures:build script redraws every folder this test checks",
   );
 });
 
-// The fixture folders hold isometric figures, whose painter's order takes a few seconds to settle once per run (the
-// registry keeps each drawing), so their checks get a longer limit than Vitest's default 5 seconds on a loaded machine.
+// Every folder holds isometric figures, whose painter's order takes a few seconds to settle once per run (the registry
+// keeps each drawing), so each check gets a longer limit than Vitest's default 5 seconds on a loaded machine.
 for (const root of ROOTS) {
   test(
     `every committed figure under ${relative(app, root).split(sep).join("/")} is what its script draws now`,
     async () => {
       assert.deepEqual(await staleFigures(root), []);
     },
-    root === BOOK_FIGURES ? undefined : 60_000,
+    60_000,
   );
 }
 
