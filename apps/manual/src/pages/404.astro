@@ -1,0 +1,15 @@
+---
+// The page Cloudflare serves for any path the build did not write, because wrangler.jsonc sets
+// not_found_handling to "404-page". Astro writes it to dist/404.html.
+import ChapterHead from "../components/ChapterHead.astro";
+import BaseLayout from "../layouts/BaseLayout.astro";
+---
+
+<BaseLayout title="Page not found" description="This page is not part of the book." noindex>
+  <div class="page">
+    <ChapterHead title="Page not found" />
+    <div class="article">
+      <p>No page of the book lives at this address. The <a href="/">contents</a> list every chapter, and the <a href="/search/">search</a> finds a word in any of them.</p>
+    </div>
+  </div>
+</BaseLayout>
