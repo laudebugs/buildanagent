@@ -118,6 +118,15 @@ The writing review rewrote twelve passages and added a closing paragraph. Each r
 | 69 | The schema is the form the model receives; in ADK the Zod object becomes a declaration whose `orderId` is a required string | § The model learns a tool | ✅ | Rows 9 and 13, unchanged by the rewording |
 | 70 | A schema only describes the fields and checks nothing itself, so each SDK checks the arguments before the function runs | § The model learns a tool | ✅ | Rows 17–20; the rewording moved the analogy's break into the clerk sentence and changed no claim |
 | 71 | ADK keeps the loop running after a failed call and sends the failure back under an `error` key | § A failed call | ✅ | Rows 26 and 28: `agents/functions.js:417-432` catches the error and returns it as the function response |
-| 72 | The four ⚠️ rows still read as ours: row 16 under "we recommend", row 36 under "We recommend", and row 45 under "In our view" and "We recommend" | Whole chapter | ✅ | Re-read against the chapter after the review's fixes on 2026-11-19; the earlier "a limit that we set" became "In our view" |
+| 72 | The three ⚠️ rows still read as ours: row 16 under "we recommend", row 36 under "We recommend", and row 45 under "In our view" and "We recommend" | Whole chapter | ✅ | Re-read against the chapter after the review's fixes on 2026-11-19; the earlier "a limit that we set" became "In our view" |
 | 73 | The closing paragraph's summary: the model reads a name, description and schema; the SDK checks every argument; each failure returns a note; the session decides whose data a tool touches | § Identity, last paragraph | ✅ | Rows 5, 17–20, 26 and 55; "a note that says what to try next" restates our recommendation of row 36, which the section marks as ours |
 | 74 | "Anthropic calls this pattern 'a common error'" and the split sentence on identifiers and UUIDs keep their quotes verbatim | § A few tools | ✅ | Rows 40 and 48, re-read against [Writing effective tools](https://www.anthropic.com/engineering/writing-tools-for-agents) on 2026-11-19 |
+
+## Tally
+
+| Verdict | Rows |
+| --- | --- |
+| ✅ confirmed | 69 |
+| ✏️ corrected | 2 (rows 26 and 68) |
+| ⚠️ unverified, our recommendation, marked as ours in the text | 3 (rows 16, 36 and 45) |
+| Total | 74 |
