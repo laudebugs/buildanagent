@@ -5,7 +5,7 @@
  * 1. A string that holds JSON becomes the object or array it encodes, where the schema's `type` is `object` or
  *    `array`.
  * 2. A string that holds a decimal number becomes that number, where the `type` is `number`, or `integer` when the
- *    number is whole.
+ *    number is whole. A whole number outside the safe integer range (beyond 2^53) stays a string.
  * 3. The string `"true"` or `"false"` becomes a boolean, where the `type` is `boolean`.
  *
  * The rules reach nested values through `properties` and `items` only, and only where `type` is a single string.
@@ -58,6 +58,9 @@ function coerceNumber(value: unknown, integer: boolean): unknown {
   if (typeof value !== "string" || !DECIMAL.test(value)) return value;
   const number = Number(value);
   if (!Number.isFinite(number) || (integer && !Number.isInteger(number))) return value;
+  // A whole number past 2^53 would come out as a different number, such as another order's id, so it stays a string
+  // and validation reports it.
+  if (Number.isInteger(number) && !Number.isSafeInteger(number)) return value;
   return number;
 }
 

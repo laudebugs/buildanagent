@@ -39,13 +39,19 @@ interface FailureBase {
  * A failed tool call, as the error formatter receives it. `unknown_tool`: the model named a tool that doesn't exist.
  * `invalid_input`: the arguments failed the schema, even after repair. `execution_error`: `execute` threw; with
  * `redactErrors`, `message` is a fixed line and the thrown message is only in the result's `details`. `truncated`:
- * the response was cut off at the output limit, so the call was not run.
+ * the response was cut off at the output limit, so the call was not run. `not_run`: the call was not run because the
+ * response ended in an error (`response_error`) or was aborted (`response_aborted`), or the run was cancelled before
+ * the call started (`run_aborted`).
  */
 export type ToolFailure =
   | (FailureBase & { readonly kind: "unknown_tool"; readonly availableTools: readonly string[] })
   | (FailureBase & { readonly kind: "invalid_input"; readonly issues: readonly SchemaIssue[] })
   | (FailureBase & { readonly kind: "execution_error"; readonly message: string; readonly redacted: boolean })
-  | (FailureBase & { readonly kind: "truncated" });
+  | (FailureBase & { readonly kind: "truncated" })
+  | (FailureBase & {
+      readonly kind: "not_run";
+      readonly reason: "response_error" | "response_aborted" | "run_aborted";
+    });
 
 /**
  * Declares that a tool changes the world, such as sending an email. A tool without `effect` counts as read-only, so
@@ -93,8 +99,9 @@ export interface ToolResult<S = unknown> {
  * A tool the model can call. `I` is the input `execute` receives after validation, and `S` the type of `structured`.
  *
  * Every call runs the same steps: the name is resolved, the input is coerced and validated, `repair` gets one chance
- * to fix invalid input, then `execute` runs. A failure at any step returns an error result to the model and throws
- * nothing.
+ * to fix invalid input, then `execute` runs. A failure the model caused, such as an unknown tool, invalid input or
+ * a throwing `execute`, returns an error result to the model. A result that isn't a list of text and image blocks,
+ * or that carries an invalid write outcome, throws an `SdkError` with code `invalid_tool_result`.
  */
 export interface ToolDefinition<I = unknown, S = unknown> {
   /** 1 to 64 characters from `A-Z`, `a-z`, `0-9`, `_` and `-`. */
@@ -115,7 +122,8 @@ export interface ToolDefinition<I = unknown, S = unknown> {
   repair?(e: { readonly input: unknown; readonly issues: readonly SchemaIssue[] }): Promise<unknown>;
   /**
    * Builds the content the model reads for a failed call, in place of the default text, which lists the issues and
-   * the received arguments and tells the model not to substitute invented data.
+   * the received arguments and tells the model not to substitute invented data. It runs synchronously; if it throws
+   * or returns anything but a list of text and image blocks, the model reads the default text instead.
    */
   formatError?(failure: ToolFailure): readonly ModelContent[];
   /**

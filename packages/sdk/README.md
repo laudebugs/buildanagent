@@ -14,6 +14,8 @@ pnpm add @buildanagent/sdk@alpha @buildanagent/gateway@alpha
 
 Both packages always share one version, and the SDK depends on that exact version of the gateway. Name the tag: a plain `pnpm add @buildanagent/sdk` installs `0.0.0-bootstrap.0`, a deprecated placeholder, because `latest` stays on it until the first stable release. The package needs Node 22 or later.
 
+Don't start Node with `--conditions=source` in a project that installs the SDK. Its validator, pi-schema 1.5.2, maps that condition to a source file its package doesn't ship, so the SDK's root entry fails to load under it ([validator check](docs/validator-check.md)).
+
 ## Define a tool with `defineTool()`
 
 A tool is a name, a description the model reads, an input schema and an `execute` function. This tool looks up an order in your own store:
@@ -45,7 +47,7 @@ The input schema is either a Standard Schema or a raw JSON Schema object. A Stan
 
 ## A failed call becomes an error the model can fix
 
-Every tool call runs the same steps in order: find the tool by name, coerce the arguments, validate them, give `repair` one chance, then run `execute`. A failure at any step returns an error result to the model and throws nothing. When the model sends `"forty-two"` as the order number, it reads this:
+Every tool call runs the same steps in order: find the tool by name, coerce the arguments, validate them, give `repair` one chance, then run `execute`. A failure the model caused, at any step, returns an error result to the model and throws nothing. When the model sends `"forty-two"` as the order number, it reads this:
 
 ```text
 The arguments for tool "lookup_order" are invalid:
@@ -61,14 +63,14 @@ Each failing field appears as its JSON Pointer path, so the model knows exactly 
 - **`redactErrors: true`** shows the model a fixed line when `execute` throws, and keeps the thrown message in the result's `details`. Use it when error messages may hold secrets, such as connection strings.
 - **`isError: true`** on your own result marks a failure you report yourself, such as an order that doesn't exist.
 
-The model also sees an error for a tool name that doesn't exist, with the list of real ones. A response that stopped at its output limit runs none of its tool calls, because their arguments may be cut short; the model is asked to send each call again.
+The model also sees an error for a tool name that doesn't exist, with the list of real ones. A response that stopped at its output limit runs none of its tool calls, because their arguments may be cut short; the model is asked to send each call again. A response that ended in an error or was aborted runs none of its calls either, and once the run is cancelled no further call starts.
 
 ## Arguments are coerced by three rules
 
 Models sometimes send a number as a string. Before validation, the SDK converts these values, and nothing else:
 
 1. A string holding JSON becomes the object or array it encodes, where the schema expects an object or an array.
-2. A string holding a decimal number becomes that number, where the schema expects a number, or an integer when the number is whole.
+2. A string holding a decimal number becomes that number, where the schema expects a number, or an integer when the number is whole. A whole number beyond 2^53 stays a string, because JavaScript would round it to a different number.
 3. The string `"true"` or `"false"` becomes a boolean, where the schema expects a boolean.
 
 The rules reach nested values through `properties` and `items`, and only where the schema names a single type. A value that already has the expected type is never changed.
@@ -96,7 +98,7 @@ The model reads the outcome first, as a sentence and as JSON, and then your cont
 The SDK throws only for programmer errors, never for a failure the model caused. `isSdkError(error)` recognises the error, and its `code` says why:
 
 - **`invalid_tool_definition`**: a tool's name, description or schema is unusable, or two tools share a name.
-- **`invalid_tool_result`**: `execute` returned something other than a tool result, or an invalid outcome.
+- **`invalid_tool_result`**: `execute` returned something other than a tool result, or an invalid outcome. A text block needs a string `text`, and an image block a string `mediaType` and `data`.
 
 ## Test against a strict scripted model
 

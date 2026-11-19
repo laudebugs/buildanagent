@@ -289,3 +289,66 @@ test("two tools with one name throw an SdkError", async () => {
     (error) => isSdkError(error) && error.code === "invalid_tool_definition",
   );
 });
+
+for (const stopReason of ["error", "aborted"] as const) {
+  test(`a message that stopped with ${stopReason} runs none of its calls`, async () => {
+    const seen: unknown[] = [];
+    const message = assistant([call("lookup_order", { order: 1 })], stopReason);
+    const [entry] = await runToolCalls(message, [lookupOrder(seen)], pipelineContext());
+    assert.equal(entry?.result.isError, true);
+    assert.match(textOf(entry?.result.content ?? []), /was not run, because the response ended with an error/);
+    assert.deepEqual(seen, []);
+  });
+}
+
+test("a cancelled run executes no further calls", async () => {
+  const seen: unknown[] = [];
+  const controller = new AbortController();
+  controller.abort();
+  const message = assistant([call("lookup_order", { order: 1 }, "a"), call("lookup_order", { order: 2 }, "b")]);
+  const results = await runToolCalls(message, [lookupOrder(seen)], pipelineContext({ signal: controller.signal }));
+  assert.deepEqual(seen, []);
+  for (const { result } of results) assert.match(textOf(result.content), /because the run was cancelled/);
+});
+
+test("a whole number beyond 2^53 is not coerced, so execute never sees a different id", async () => {
+  const seen: unknown[] = [];
+  const result = await runToolCall(
+    call("lookup_order", { order: "9007199254740993" }),
+    [lookupOrder(seen)],
+    pipelineContext(),
+  );
+  assert.equal(result.isError, true);
+  assert.deepEqual(seen, []);
+});
+
+test("a formatError that returns no content list falls back to the default text", async () => {
+  const tool = lookupOrder([], { formatError: (() => undefined) as never });
+  const result = await runToolCall(call("lookup_order", {}), [tool], pipelineContext());
+  assert.ok(textOf(result.content).endsWith(DO_NOT_SUBSTITUTE));
+  assert.match((result.details as { formatterError?: string }).formatterError ?? "", /did not return a list/);
+});
+
+test("a text block whose text is not a string throws an SdkError", async () => {
+  const tool = lookupOrder([], { execute: async () => ({ content: [{ type: "text", text: 42 }] }) as never });
+  await assert.rejects(
+    () => runToolCall(call("lookup_order", { order: 1 }), [tool], pipelineContext()),
+    (error) => isSdkError(error) && error.code === "invalid_tool_result",
+  );
+});
+
+test("onResult receives each call's result before a later call throws", async () => {
+  const recorded: string[] = [];
+  const broken = lookupOrder([], { name: "broken", execute: async () => ({ text: "done" }) as never });
+  const message = assistant([call("lookup_order", { order: 1 }, "a"), call("broken", { order: 2 }, "b")]);
+  const ctx = pipelineContext({ onResult: ({ call }) => recorded.push(call.callId) });
+  await assert.rejects(() => runToolCalls(message, [lookupOrder(), broken], ctx));
+  assert.deepEqual(recorded, ["a"]);
+});
+
+test("arguments that neither JSON nor String() can show still produce an error result", async () => {
+  const input = Object.assign(Object.create(null), { order: 1n });
+  const result = await runToolCall(call("lookup_order", input), [lookupOrder()], pipelineContext());
+  assert.equal(result.isError, true);
+  assert.match(textOf(result.content), /Received arguments: \[object Object\]/);
+});

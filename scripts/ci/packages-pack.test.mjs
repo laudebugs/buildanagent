@@ -10,7 +10,7 @@
 // file, because `node --test` runs files in parallel and two files packing the same folders would race on dist/. Run
 // with `node --test scripts/ci/*.test.mjs`.
 import assert from "node:assert/strict";
-import { execFile, execFileSync } from "node:child_process";
+import { execFile, execFileSync, spawnSync } from "node:child_process";
 import {
   existsSync,
   mkdirSync,
@@ -257,17 +257,29 @@ for (const conditions of [[], ["--conditions=source"]]) {
   const label = conditions.length ? "with --conditions=source" : "with no extra condition";
   packTest(`Node imports every packed entry from dist/ ${label}`, (t) => {
     for (const [name, { manifest, dest }] of packed) {
-      // A dependency with a broken `source` condition can't load under it, so such a package's entries are resolved
-      // under it but not imported; the run with no extra condition still imports them.
+      // A dependency with a broken `source` condition can't load under it. An entry that reaches such a dependency
+      // may fail to import only with an error naming that dependency; every other entry must import. The run with no
+      // extra condition imports them all.
       const broken = conditions.length ? brokenSourceDependencies(manifest) : [];
-      if (broken.length) t.diagnostic(`${name}: resolving only, because ${broken.join(", ")} ships a missing source`);
       for (const entry of Object.keys(manifest.exports)) {
         const specifier = entry === "." ? name : `${name}/${entry.slice(2)}`;
-        const load = broken.length ? "" : "await import(url); ";
-        const script = `const url = import.meta.resolve(${JSON.stringify(specifier)}); ${load}console.log(url);`;
-        const url = run(process.execPath, [...conditions, "--input-type=module", "-e", script], {
+        const tolerated = JSON.stringify(broken);
+        const script = `const url = import.meta.resolve(${JSON.stringify(specifier)});
+try { await import(url); } catch (error) {
+  const named = ${tolerated}.find((dep) => String(error?.stack ?? error).includes(dep));
+  if (named === undefined) throw error;
+  console.error(\`broken source: \${named}\`);
+}
+console.log(url);`;
+        const child = spawnSync(process.execPath, [...conditions, "--input-type=module", "-e", script], {
           cwd: install,
-        }).trim();
+          encoding: "utf8",
+          env,
+        });
+        assert.equal(child.status, 0, `${specifier} failed to import ${label}: ${child.stderr}`);
+        const skipped = /^broken source: (.+)$/m.exec(child.stderr)?.[1];
+        if (skipped) t.diagnostic(`${specifier}: not imported ${label}, because ${skipped} ships a missing source`);
+        const url = child.stdout.trim();
         const resolved = fileURLToPath(url);
         assert.ok(resolved.startsWith(path.join(dest, "dist") + path.sep), `${specifier} resolved to ${resolved}`);
       }

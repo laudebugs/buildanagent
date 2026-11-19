@@ -90,3 +90,17 @@ const _readEffect: ToolEffect<unknown> = { kind: "read" };
 // @ts-expect-error: a business key receives the tool's typed input, which has no `order`.
 readFile({ effect: { kind: "write", businessKey: (input) => input.order } });
 void _readEffect;
+
+test("a Standard Schema that is a function, as ArkType's are, is accepted", async () => {
+  const schema = Object.assign(() => undefined, {
+    "~standard": {
+      version: 1,
+      vendor: "function-schema",
+      validate: (value: unknown) => ({ value }),
+      jsonSchema: { input: () => ({ type: "object" }), output: () => ({ type: "object" }) },
+    },
+  });
+  const tool = defineTool({ ...readFile(), inputSchema: schema as never });
+  const result = await runToolCall(call("read_file", { path: "a" }), [tool as never], pipelineContext());
+  assert.notEqual(result.isError, true);
+});

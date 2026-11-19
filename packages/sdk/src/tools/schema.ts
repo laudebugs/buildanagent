@@ -30,6 +30,12 @@ function isStandardSchema(schema: ToolSchema<unknown>): schema is StandardToolSc
   return "~standard" in schema;
 }
 
+// An ArkType schema is a callable function that carries `~standard`, so a function counts when it has that property.
+function isSchemaShaped(schema: unknown): schema is ToolSchema<unknown> {
+  if (typeof schema === "object") return schema !== null;
+  return typeof schema === "function" && "~standard" in schema;
+}
+
 function invalid(tool: string, message: string, cause?: unknown): SdkError {
   return new SdkError("invalid_tool_definition", `tool "${tool}": ${message}`, cause === undefined ? {} : { cause });
 }
@@ -103,6 +109,6 @@ function prepareStandardSchema(tool: string, schema: StandardToolSchema): Prepar
  * compile or names a draft other than 2020-12 or 7, or when a Standard Schema cannot produce JSON Schema.
  */
 export function prepareSchema(tool: string, schema: ToolSchema<unknown>): PreparedSchema {
-  if (typeof schema !== "object" || schema === null) throw invalid(tool, "inputSchema must be an object");
+  if (!isSchemaShaped(schema)) throw invalid(tool, "inputSchema must be a JSON Schema object or a Standard Schema");
   return isStandardSchema(schema) ? prepareStandardSchema(tool, schema) : prepareJsonSchema(tool, schema);
 }

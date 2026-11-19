@@ -17,16 +17,28 @@ export const REDACTED_MESSAGE = "its error message is hidden.";
 // Received arguments are shown up to this many characters, so one huge argument can't flood the context.
 const MAX_ARGUMENTS_LENGTH = 2000;
 
+// `String()` can itself throw, on an object with no prototype, so the last resort is the object tag.
+function plainString(input: unknown): string {
+  try {
+    return String(input);
+  } catch {
+    return Object.prototype.toString.call(input);
+  }
+}
+
 function showArguments(input: unknown): string {
   let text: string;
   try {
-    text = JSON.stringify(input) ?? String(input);
+    text = JSON.stringify(input) ?? plainString(input);
   } catch {
-    // A repaired input may hold a cycle or a bigint; its plain string form still tells the model something.
-    text = String(input);
+    // Input from a test double or a tool bridge may hold a cycle or a bigint, which JSON can't encode.
+    text = plainString(input);
   }
   if (text.length <= MAX_ARGUMENTS_LENGTH) return text;
-  return `${text.slice(0, MAX_ARGUMENTS_LENGTH)}… (${text.length - MAX_ARGUMENTS_LENGTH} more characters)`;
+  // Cut before a surrogate pair rather than through it, so the text stays valid UTF-16.
+  const high = text.charCodeAt(MAX_ARGUMENTS_LENGTH - 1);
+  const end = high >= 0xd800 && high <= 0xdbff ? MAX_ARGUMENTS_LENGTH - 1 : MAX_ARGUMENTS_LENGTH;
+  return `${text.slice(0, end)}… (${text.length - end} more characters)`;
 }
 
 function issueLine(issue: SchemaIssue): string {
@@ -48,6 +60,11 @@ function describe(failure: ToolFailure): string {
         `Tool "${failure.tool}" was not run, because the response was cut off at the output limit before the ` +
         "call's arguments were complete. Re-issue the call with complete arguments, in a shorter response."
       );
+    case "not_run":
+      return failure.reason === "run_aborted"
+        ? `Tool "${failure.tool}" was not run, because the run was cancelled.`
+        : `Tool "${failure.tool}" was not run, because the response ended with an error before it was complete. ` +
+            "Re-issue the call if it is still needed.";
   }
 }
 

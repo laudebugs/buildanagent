@@ -28,6 +28,11 @@ export interface PipelineContext {
   readonly clock: Clock;
   /** Receives a tool's progress updates. */
   onUpdate?(callId: string, details: unknown): void;
+  /**
+   * Receives each call's result as soon as `runToolCalls` has it, so the run can record a write before a later call
+   * in the same message throws.
+   */
+  onResult?(entry: ToolCallResult): void;
 }
 
 /** One tool call and the result the model will read for it. */
@@ -52,18 +57,36 @@ function errorMessage(error: unknown): string {
   return error instanceof Error ? error.message : String(error);
 }
 
-// A formatter that throws must not hide the failure from the model, so the default text is used instead, and the
-// formatter's error is kept in `details`.
-function failed(failure: ToolFailure, tool: AnyTool | undefined, details: Record<string, unknown> = {}): ToolResult {
-  let content: readonly ModelContent[] = formatToolError(failure);
-  let formatterError: string | undefined;
-  if (tool?.formatError !== undefined) {
-    try {
-      content = tool.formatError(failure);
-    } catch (error) {
-      formatterError = errorMessage(error);
-    }
+function isModelContent(block: unknown): block is ModelContent {
+  if (typeof block !== "object" || block === null) return false;
+  const { type, text, mediaType, data } = block as Record<string, unknown>;
+  if (type === "text") return typeof text === "string";
+  return type === "image" && typeof mediaType === "string" && typeof data === "string";
+}
+
+function isContentList(content: unknown): content is readonly ModelContent[] {
+  return Array.isArray(content) && content.every(isModelContent);
+}
+
+type Formatted = { readonly content: readonly ModelContent[]; readonly error?: string };
+
+// A formatter that throws, or returns something the model can't read, must not hide the failure from the model, so
+// the default text is used instead, and the formatter's error is kept in `details`.
+function formatted(failure: ToolFailure, tool: AnyTool | undefined): Formatted {
+  const fallback = formatToolError(failure);
+  if (tool?.formatError === undefined) return { content: fallback };
+  let content: unknown;
+  try {
+    content = tool.formatError(failure);
+  } catch (error) {
+    return { content: fallback, error: errorMessage(error) };
   }
+  if (isContentList(content)) return { content };
+  return { content: fallback, error: "formatError did not return a list of text and image blocks" };
+}
+
+function failed(failure: ToolFailure, tool: AnyTool | undefined, details: Record<string, unknown> = {}): ToolResult {
+  const { content, error: formatterError } = formatted(failure, tool);
   return {
     content,
     isError: true,
@@ -100,15 +123,9 @@ async function checkInput(tool: AnyTool, call: ToolCall): Promise<Checked> {
   return { ok: false, result: failed(failure, tool, { repaired, repairedIssues: second.issues }) };
 }
 
-function isModelContent(block: unknown): block is ModelContent {
-  if (typeof block !== "object" || block === null) return false;
-  const { type } = block as { type?: unknown };
-  return type === "text" || type === "image";
-}
-
 function checkResult(tool: string, result: unknown): ToolResult {
   const content = (result as { content?: unknown } | null)?.content;
-  if (typeof result !== "object" || result === null || !Array.isArray(content) || !content.every(isModelContent)) {
+  if (typeof result !== "object" || result === null || !isContentList(content)) {
     throw new SdkError(
       "invalid_tool_result",
       `tool "${tool}" must return an object whose content is a list of text and image blocks`,
@@ -167,21 +184,40 @@ export async function runToolCall(
   }
   const checked = await checkInput(tool, call);
   if (!checked.ok) return checked.result;
+  // Checked after validation, because `repair` may await: a write must not start once the user has cancelled.
+  if (ctx.signal.aborted) return notRun(call, tool, "run_aborted");
   // Gate: every call is allowed until the beforeToolCall interceptor exists.
   const result = await execute(tool, call, checked.input, ctx);
   // afterToolCall: the result passes through unchanged until that interceptor exists.
   return result;
 }
 
-function truncated(call: ToolCall, tools: readonly AnyTool[]): ToolResult {
+type NotRunReason = Extract<ToolFailure, { kind: "not_run" }>["reason"];
+
+function notRun(call: ToolCall, tool: AnyTool | undefined, reason: NotRunReason): ToolResult {
+  return failed({ kind: "not_run", reason, tool: call.name, callId: call.callId, input: call.input }, tool);
+}
+
+// Why none of a message's calls may run, or undefined when they all may.
+function unrunnable(message: AssistantMessage, call: ToolCall, tools: readonly AnyTool[]): ToolResult | undefined {
   const tool = tools.find((candidate) => candidate.name === call.name);
-  return failed({ kind: "truncated", tool: call.name, callId: call.callId, input: call.input }, tool);
+  switch (message.stopReason) {
+    case "length":
+      return failed({ kind: "truncated", tool: call.name, callId: call.callId, input: call.input }, tool);
+    case "error":
+      return notRun(call, tool, "response_error");
+    case "aborted":
+      return notRun(call, tool, "response_aborted");
+    default:
+      return undefined;
+  }
 }
 
 /**
- * Runs every tool call of an assistant message, one at a time and in model order. A message that stopped at the
- * output limit (`stopReason: "length"`) runs nothing: each of its calls gets an error asking the model to re-issue
- * it, because its arguments may be cut short.
+ * Runs every tool call of an assistant message, one at a time and in model order, and passes each result to
+ * `ctx.onResult` as it arrives. A message that stopped at the output limit (`stopReason: "length"`) runs nothing:
+ * each of its calls gets an error asking the model to re-issue it, because its arguments may be cut short. A message
+ * that ended in an error or was aborted also runs nothing, because its calls may be partial.
  */
 export async function runToolCalls(
   message: AssistantMessage,
@@ -190,8 +226,11 @@ export async function runToolCalls(
 ): Promise<ToolCallResult[]> {
   const calls = message.content.filter((block): block is ToolCall => block.type === "tool_call");
   toolsByName(tools);
-  if (message.stopReason === "length") return calls.map((call) => ({ call, result: truncated(call, tools) }));
   const results: ToolCallResult[] = [];
-  for (const call of calls) results.push({ call, result: await runToolCall(call, tools, ctx) });
+  for (const call of calls) {
+    const entry = { call, result: unrunnable(message, call, tools) ?? (await runToolCall(call, tools, ctx)) };
+    results.push(entry);
+    ctx.onResult?.(entry);
+  }
   return results;
 }
