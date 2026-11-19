@@ -343,5 +343,102 @@
     "kind": "docs",
     "asOf": "November 2026",
     "verifiedIn": "apps/manual/fact-checks/stopping-and-structured-output.md"
+  },
+  {
+    "id": "openai-agents-sessions",
+    "title": "Sessions",
+    "publisher": "OpenAI Agents SDK documentation",
+    "url": "https://github.com/openai/openai-agents-js/blob/v0.21.0/docs/src/content/docs/guides/sessions.mdx",
+    "kind": "docs",
+    "asOf": "November 2026",
+    "version": "v0.21.0",
+    "verifiedIn": "apps/manual/fact-checks/memory-and-sessions.md"
+  },
+  {
+    "id": "openai-agents-human-in-the-loop",
+    "title": "Human-in-the-loop",
+    "publisher": "OpenAI Agents SDK documentation",
+    "url": "https://github.com/openai/openai-agents-js/blob/v0.21.0/docs/src/content/docs/guides/human-in-the-loop.mdx",
+    "kind": "docs",
+    "asOf": "November 2026",
+    "version": "v0.21.0",
+    "verifiedIn": "apps/manual/fact-checks/memory-and-sessions.md"
+  },
+  {
+    "id": "langgraph-persistence",
+    "title": "Persistence",
+    "publisher": "LangChain documentation",
+    "url": "https://github.com/langchain-ai/docs/blob/9d9747d0cf241e086c616a16d5ce230ad8f8f31d/src/oss/langgraph/persistence.mdx",
+    "kind": "docs",
+    "asOf": "November 2026",
+    "version": "9d9747d",
+    "verifiedIn": "apps/manual/fact-checks/memory-and-sessions.md"
+  },
+  {
+    "id": "langgraph-checkpointers",
+    "title": "Checkpointers",
+    "publisher": "LangChain documentation",
+    "url": "https://github.com/langchain-ai/docs/blob/9d9747d0cf241e086c616a16d5ce230ad8f8f31d/src/oss/langgraph/checkpointers.mdx",
+    "kind": "docs",
+    "asOf": "November 2026",
+    "version": "9d9747d",
+    "verifiedIn": "apps/manual/fact-checks/memory-and-sessions.md"
+  },
+  {
+    "id": "claude-agent-sdk-sessions",
+    "title": "Work with sessions",
+    "publisher": "Claude Agent SDK documentation",
+    "url": "https://code.claude.com/docs/en/agent-sdk/sessions",
+    "kind": "docs",
+    "asOf": "November 2026",
+    "verifiedIn": "apps/manual/fact-checks/memory-and-sessions.md"
+  },
+  {
+    "id": "claude-code-sessions",
+    "title": "Manage sessions",
+    "publisher": "Claude Code documentation",
+    "url": "https://code.claude.com/docs/en/sessions",
+    "kind": "docs",
+    "asOf": "November 2026",
+    "verifiedIn": "apps/manual/fact-checks/memory-and-sessions.md"
+  },
+  {
+    "id": "claude-agent-sdk-hosting",
+    "title": "Hosting the Agent SDK",
+    "publisher": "Claude Agent SDK documentation",
+    "url": "https://code.claude.com/docs/en/agent-sdk/hosting",
+    "kind": "docs",
+    "asOf": "November 2026",
+    "verifiedIn": "apps/manual/fact-checks/memory-and-sessions.md"
+  },
+  {
+    "id": "adk-session-state",
+    "title": "State: the session's scratchpad",
+    "publisher": "Agent Development Kit documentation",
+    "url": "https://github.com/google/adk-docs/blob/ff7a5f56469a81f3e43a8fc54668d8dc84300192/docs/sessions/state.md",
+    "kind": "docs",
+    "asOf": "November 2026",
+    "version": "ff7a5f5",
+    "verifiedIn": "apps/manual/fact-checks/memory-and-sessions.md"
+  },
+  {
+    "id": "cloudflare-agents-state",
+    "title": "State management",
+    "publisher": "Cloudflare Agents documentation",
+    "url": "https://github.com/cloudflare/agents/blob/agents@0.33.0/docs/agents/state.md",
+    "kind": "docs",
+    "asOf": "November 2026",
+    "version": "agents@0.33.0",
+    "verifiedIn": "apps/manual/fact-checks/memory-and-sessions.md"
+  },
+  {
+    "id": "cloudflare-agents-routing",
+    "title": "Routing",
+    "publisher": "Cloudflare Agents documentation",
+    "url": "https://github.com/cloudflare/agents/blob/agents@0.33.0/docs/agents/routing.md",
+    "kind": "docs",
+    "asOf": "November 2026",
+    "version": "agents@0.33.0",
+    "verifiedIn": "apps/manual/fact-checks/memory-and-sessions.md"
   }
 ]

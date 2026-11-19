@@ -10,9 +10,9 @@ const model = new ScriptedModel([
 ]);
 // #region session
 const agent = new Agent({ name: "Memory", model });
-const session = new MemorySession();
-await runner.run(agent, "Remember the codeword PELICAN.", { session });
-const second = await runner.run(agent, "What was the codeword?", { session });
+const session = new MemorySession(); // book:note memory-session
+await runner.run(agent, "Remember the codeword PELICAN.", { session }); // book:note first-run
+const second = await runner.run(agent, "What was the codeword?", { session }); // book:note second-run
 // #endregion
 
 const input = JSON.stringify(model.lastCall?.request.input);

@@ -94,5 +94,21 @@
     "chapter": "stopping-and-structured-output",
     "illustration": "jelly-mould",
     "breaks": "A mould forces its shape on whatever is poured in. Most SDKs only check the answer's shape after the model has written it, so an answer that does not fit is rejected or retried, and even constrained decoding lets a refusal or a cut-off answer through. Neither a mould nor a schema can vouch for what is inside: a schema fixes the shape of an answer, never its truth."
+  },
+  {
+    "id": "patients-chart",
+    "concept": "session",
+    "analogy": "a patient's chart that travels with them between shifts",
+    "chapter": "memory-and-sessions",
+    "illustration": "patients-chart",
+    "breaks": "A nurse skims the chart for what matters tonight; your code sends the model the whole session on every call, and the provider bills you for every token of it."
+  },
+  {
+    "id": "bookmark",
+    "concept": "resume",
+    "analogy": "a bookmark",
+    "chapter": "memory-and-sessions",
+    "illustration": null,
+    "breaks": "A bookmark restores only your place; a resumed run must also restore pending approvals and tool state, and some SDKs bring back the conversation alone."
   }
 ]

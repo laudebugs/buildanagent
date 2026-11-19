@@ -15,10 +15,10 @@ const remember = new FunctionTool({
   parameters: z.object({ note: z.string() }),
   execute: ({ note }, ctx?: Context) => {
     const state = ctx?.state;
-    state?.set("last_note", note);
-    state?.set("user:notes", [...(state.get<string[]>("user:notes") ?? []), note]);
-    state?.set("app:total", (state.get<number>("app:total") ?? 0) + 1);
-    state?.set("temp:scratch", "only for this invocation");
+    state?.set("last_note", note); // book:note session-key
+    state?.set("user:notes", [...(state.get<string[]>("user:notes") ?? []), note]); // book:note user-key
+    state?.set("app:total", (state.get<number>("app:total") ?? 0) + 1); // book:note app-key
+    state?.set("temp:scratch", "only for this invocation"); // book:note temp-key
     return { saved: true, sawTemp: state?.get("temp:scratch") };
   },
 });
