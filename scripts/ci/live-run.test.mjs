@@ -23,10 +23,12 @@ import {
 } from "../live/budget.ts";
 import { exampleOf, LIVE_HARNESSES, liveConfigProblems, projection, readLiveConfig } from "../live/config.mjs";
 import { liveMode } from "../live/harness.mjs";
+import { guardStream } from "../live/live.ts";
 import { findSecret, redact } from "../live/redact.ts";
-import { writeTranscript } from "../transcripts/write.mjs";
+import { childSpend } from "../live/run.mjs";
+import { transcriptProblems, writeTranscript } from "../transcripts/write.mjs";
 import { compareAll, compareFlows, diffMarkdown, flowOf } from "./live-diff.mjs";
-import { changeProblems, DATE_FILE, dateAfter, protectionProblems } from "./live-run.mjs";
+import { changeProblems, DATE_FILE, dateAfter, fenced, mergeReports, protectionProblems } from "./live-run.mjs";
 import { STUB_IDS, startStub, turnsFromTranscript } from "./live-stub.mjs";
 
 const root = fileURLToPath(new URL("../../", import.meta.url));
@@ -185,13 +187,16 @@ test("the writer refuses a live transcript that holds the key, and drops every t
 test("a harness runner's --live needs the runner's environment and one example", () => {
   assert.equal(liveMode(["node", "x"], {}), undefined);
   assert.throws(() => liveMode(["node", "x", "--live", "--only", "a"], {}), /only under scripts\/live\/run\.mjs/);
-  assert.throws(() => liveMode(["node", "x", "--live"], { LIVE: "1", LIVE_API_KEY: "k".repeat(10) }), /--only/);
+  assert.throws(() => liveMode(["node", "x", "--live"], { LIVE: "1", LIVE_API_KEY_FILE: "/k" }), /--only/);
   const mode = liveMode(["node", "x", "--live", "--only", "a"], {
     LIVE: "1",
+    LIVE_API_KEY_FILE: "/k",
     LIVE_API_KEY: "k".repeat(10),
     HOME: "/h",
   });
   assert.equal(mode.env.HOME, undefined, "only LIVE_* variables pass on");
+  assert.equal(mode.env.LIVE_API_KEY, undefined, "a key in the environment never passes on");
+  assert.equal(mode.env.LIVE_API_KEY_FILE, "/k");
 });
 
 // --- The runner against a stub ----------------------------------------------------------------------------------
@@ -225,17 +230,31 @@ function stubScript(examples) {
   };
 }
 
-/** Runs run.mjs with the fake keys; resolves with its exit code and everything it printed. */
-function runLive(args) {
+/**
+ * Runs run.mjs with fake keys for `providers`, each in a key file as the workflow writes it, and no key in its
+ * environment; resolves with its exit code, everything it printed and whether it deleted the key files.
+ */
+function runLive(args, providers = ["anthropic", "openai"]) {
+  const keys = mkdtempSync(join(tmpdir(), "live-keys-"));
+  const files = providers.map((provider) => {
+    const file = join(keys, `${provider}.key`);
+    writeFileSync(file, FAKE_KEYS[provider === "anthropic" ? "ANTHROPIC_API_KEY" : "OPENAI_API_KEY"], { mode: 0o600 });
+    return [provider, file];
+  });
   return new Promise((resolve) => {
-    const child = spawn(process.execPath, [join(root, "scripts/live/run.mjs"), ...args], {
-      env: { PATH: process.env.PATH, ...FAKE_KEYS },
-      stdio: ["ignore", "pipe", "pipe"],
-    });
+    const child = spawn(
+      process.execPath,
+      [join(root, "scripts/live/run.mjs"), ...files.flatMap(([p, f]) => ["--key-file", `${p}=${f}`]), ...args],
+      { env: { PATH: process.env.PATH }, stdio: ["ignore", "pipe", "pipe"] },
+    );
     let out = "";
     child.stdout.on("data", (chunk) => (out += chunk));
     child.stderr.on("data", (chunk) => (out += chunk));
-    child.on("close", (code) => resolve({ code, out }));
+    child.on("close", (code) => {
+      const deleted = files.every(([, file]) => !existsSync(file));
+      rmSync(keys, { recursive: true, force: true });
+      resolve({ code, out, deleted });
+    });
   });
 }
 
@@ -268,18 +287,23 @@ test("every listed example runs live against a stub that answers as its mock did
   const stub = await startStub(stubScript(config.examples));
   const out = join(dir, "out");
   const report = join(dir, "report");
-  const { code, out: log } = await runLive([
+  const {
+    code,
+    out: log,
+    deleted,
+  } = await runLive([
     ...["--config", writeConfig(dir, config.examples), "--out", out, "--report", report],
     ...["--base-url", `anthropic=${stub.url}`, "--base-url", `openai=${stub.url}`],
   ]);
   await stub.close();
   assert.equal(code, 0, log);
+  assert.ok(deleted, "run.mjs deletes each key file once it has read it");
   const results = JSON.parse(readFileSync(join(report, "live-report.json"), "utf8"));
   assert.ok(results.complete, log);
   for (const example of results.examples) assert.equal(example.outcome, "ran", `${example.file}\n${log}`);
   assert.match(
     readFileSync(join(report, "live-report.md"), "utf8"),
-    /of the \$1\.0000 cap; the target is under \$0\.5000/,
+    /^anthropic and openai: spent \$0\.\d{4} of a \$1\.0000 share of the run's \$1\.0000 cap; the run's target is under \$0\.5000\./,
   );
   const flows = compareAll(config, { liveDir: out });
   for (const result of flows) assert.deepEqual(result.differences, [], result.file);
@@ -320,10 +344,13 @@ test("a provider error that repeats the key reaches no file or log", async () =>
   const examples = config.examples.filter((e) => e.provider === "anthropic").slice(0, 1);
   const out = join(dir, "out");
   const report = join(dir, "report");
-  const { code, out: log } = await runLive([
-    ...["--config", writeConfig(dir, examples), "--out", out, "--report", report],
-    ...["--base-url", `anthropic=${stub.url}`],
-  ]);
+  const { code, out: log } = await runLive(
+    [
+      ...["--config", writeConfig(dir, examples), "--out", out, "--report", report],
+      ...["--base-url", `anthropic=${stub.url}`],
+    ],
+    ["anthropic"],
+  );
   await stub.close();
   assert.equal(code, 0, log);
   const results = JSON.parse(readFileSync(join(report, "live-report.json"), "utf8"));
@@ -336,31 +363,91 @@ test("a provider error that repeats the key reaches no file or log", async () =>
   rmSync(dir, { recursive: true, force: true });
 });
 
-test("with a fixture price table, the run stops before the call that would pass $1.00 and reports it", async () => {
+test("with a fixture price table, a provider's job stops before the call that would pass its share of $1.00", async () => {
   const dir = mkdtempSync(join(tmpdir(), "live-run-"));
   const examples = config.examples.filter((e) => e.provider === "anthropic").map((e) => ({ ...e, maxTokens: 300 }));
   // Each answer reports 100 input and its whole 300-token allowance as output: about $0.31 at the fixture's rates,
-  // under each call's projection, as a real answer is.
+  // under each call's projection, as a real answer is. The list names two providers, so one provider's job has half
+  // the $1.00 cap.
   const stub = await startStub(stubScript(examples), { usage: { input: 100, output: 300 } });
   const report = join(dir, "report");
-  const { code, out: log } = await runLive([
-    ...["--config", writeConfig(dir, examples), "--out", join(dir, "out"), "--report", report],
-    ...["--catalog", fixtureCatalog(dir), "--base-url", `anthropic=${stub.url}`],
-  ]);
+  const { code, out: log } = await runLive(
+    [
+      ...["--config", writeConfig(dir, [...examples, config.examples.at(-1)]), "--out", join(dir, "out")],
+      ...["--report", report, "--catalog", fixtureCatalog(dir), "--base-url", `anthropic=${stub.url}`],
+    ],
+    ["anthropic"],
+  );
   await stub.close();
   assert.equal(code, 0, log);
   const results = JSON.parse(readFileSync(join(report, "live-report.json"), "utf8"));
+  assert.equal(results.cap, 0.5);
   const calls = results.examples.reduce((sum, e) => sum + e.calls, 0);
   assert.equal(stub.requests.length, calls, "every call the stub saw is in the ledger");
-  assert.ok(calls >= 2 && calls < 9, `the guard stopped the run part way (${calls} calls)`);
-  assert.ok(results.spent <= 1, `spent ${results.spent}`);
-  assert.ok(results.aborted !== null && results.spent + results.aborted.projected > 1);
+  assert.ok(calls >= 1 && calls < 9, `the guard stopped the run part way (${calls} calls)`);
+  assert.ok(results.spent <= results.cap, `spent ${results.spent}`);
+  assert.ok(results.aborted !== null && results.spent + results.aborted.projected > results.cap);
   assert.equal(results.complete, false);
   assert.equal(results.examples.at(-1).outcome, "not run");
+  assert.ok(
+    results.examples.every((e) => e.provider === "anthropic"),
+    "the job runs only its provider's examples",
+  );
   const markdown = readFileSync(join(report, "live-report.md"), "utf8");
-  assert.match(markdown, /^Spent \$0\.\d{4} of the \$1\.0000 cap; the target is under \$0\.5000\./);
-  assert.match(markdown, /The cost guard stopped the run before a call/);
+  assert.match(
+    markdown,
+    /^anthropic: spent \$0\.\d{4} of a \$0\.5000 share of the run's \$1\.0000 cap; the run's target is under \$0\.5000\./,
+  );
+  assert.match(markdown, /The run stopped at `verify\/vercel-ai-sdk/);
   rmSync(dir, { recursive: true, force: true });
+});
+
+test("the run reads an example's ledger as a claim, and stops when it can't", () => {
+  const dir = mkdtempSync(join(tmpdir(), "live-ledger-"));
+  const file = join(dir, "ledger.json");
+  assert.match(childSpend(file).aborted.reason, /no readable ledger/);
+  writeFileSync(file, JSON.stringify({ ...newLedger(), calls: [{ cost: -5, projected: 1 }] }));
+  assert.match(childSpend(file).aborted.reason, /malformed/);
+  writeFileSync(
+    file,
+    JSON.stringify({
+      ...newLedger(),
+      calls: [
+        { cost: 0.25, projected: 0.3 },
+        { cost: 0.1, projected: 0.2 },
+      ],
+    }),
+  );
+  const claim = childSpend(file);
+  assert.ok(close(claim.cost, 0.35));
+  assert.equal(claim.aborted, null);
+  rmSync(dir, { recursive: true, force: true });
+});
+
+test("a streamed answer settles its guard when it finishes, fails or is cancelled", async () => {
+  const settled = [];
+  const guard = { settle: (usage) => settled.push(usage ?? "projection") };
+  const usageOf = (part) => (part.type === "finish" ? { uncachedInput: 1, output: 2 } : undefined);
+  const parts = (list, fail) =>
+    new ReadableStream({
+      start(controller) {
+        for (const part of list) controller.enqueue(part);
+        if (fail) controller.error(new Error("connection reset"));
+        else controller.close();
+      },
+    });
+  const read = async (stream) => {
+    const out = [];
+    for await (const part of stream) out.push(part);
+    return out;
+  };
+  assert.equal((await read(guardStream(parts([{ type: "text" }, { type: "finish" }]), guard, usageOf))).length, 2);
+  await assert.rejects(read(guardStream(parts([{ type: "text" }], true), guard, usageOf)), /connection reset/);
+  const endless = new ReadableStream({ pull: (controller) => controller.enqueue({ type: "text" }) });
+  const reader = guardStream(endless, guard, usageOf).getReader();
+  await reader.read();
+  await reader.cancel("the caller stopped reading");
+  assert.deepEqual(settled, [{ uncachedInput: 1, output: 2 }, "projection", "projection"]);
 });
 
 // --- The flow comparison ----------------------------------------------------------------------------------------
@@ -456,22 +543,37 @@ const environment = {
     { type: "required_reviewers", reviewers: [{ type: "User", reviewer: { login: "owner" } }] },
   ],
   deployment_branch_policy: { protected_branches: true, custom_branch_policies: false },
+  can_admins_bypass: false,
 };
 
 test("the pre-run check passes the environment as set up and stops when its protection is gone", () => {
-  assert.deepEqual(protectionProblems(environment, "owner"), []);
-  assert.match(protectionProblems({ ...environment, protection_rules: [] }, "owner")[0], /owner's review/);
-  assert.match(protectionProblems(environment, "someone-else")[0], /someone-else's review/);
+  assert.deepEqual(protectionProblems(environment, ["main"], "owner"), []);
+  assert.match(protectionProblems({ ...environment, protection_rules: [] }, ["main"], "owner")[0], /owner's review/);
+  assert.match(protectionProblems(environment, ["main"], "someone-else")[0], /someone-else's review/);
   const anyBranch = { ...environment, deployment_branch_policy: null };
-  assert.match(protectionProblems(anyBranch, "owner")[0], /only protected branches/);
-  assert.equal(protectionProblems({}, "owner").length, 2);
+  assert.match(protectionProblems(anyBranch, ["main"], "owner")[0], /only protected branches/);
+  const bypass = { ...environment, can_admins_bypass: true };
+  assert.match(protectionProblems(bypass, ["main"], "owner")[0], /administrators can bypass/);
+  assert.match(
+    protectionProblems(environment, ["main", "release"], "owner")[0],
+    /other than main are protected, so they could deploy: release/,
+  );
+  assert.match(protectionProblems(environment, [], "owner")[0], /main is not a protected branch/);
+  assert.equal(protectionProblems({}, [], "owner").length, 4);
 });
 
-test("the date moves only after a complete run", () => {
-  assert.deepEqual(dateAfter({ complete: true }, "2026-12-01", { lastCompared: null }), { lastCompared: "2026-12-01" });
+const reportOf = (providers, complete) => ({ providers, runCap: 1, target: 0.5, spent: 0.1, complete, examples: [] });
+
+test("the date moves to the report job's own date only after every provider's job completed", () => {
   const before = { lastCompared: "2026-11-30" };
-  assert.equal(dateAfter({ complete: false }, "2026-12-01", before), before);
-  assert.throws(() => dateAfter({ complete: true }, "yesterday", before));
+  const both = mergeReports([reportOf(["anthropic"], true), reportOf(["openai"], true)]);
+  assert.ok(close(both.spent, 0.2));
+  assert.deepEqual(dateAfter(both, "2026-12-01", before, config), { lastCompared: "2026-12-01" });
+  const one = mergeReports([reportOf(["anthropic"], true)]);
+  assert.equal(dateAfter(one, "2026-12-01", before, config), before, "the OpenAI job never reported");
+  const partial = mergeReports([reportOf(["anthropic"], true), reportOf(["openai"], false)]);
+  assert.equal(dateAfter(partial, "2026-12-01", before, config), before);
+  assert.throws(() => dateAfter(both, "yesterday", before, config));
 });
 
 test("the results commit may change only listed live transcripts and the date file", () => {
@@ -479,19 +581,57 @@ test("the results commit may change only listed live transcripts and the date fi
   const mock = readFileSync(join(root, exampleOf(config.examples[0].file).mock), "utf8");
   const liveText = JSON.stringify({ ...JSON.parse(mock), live: { provider: "anthropic", model: "m" } });
   const read = (texts) => (path) => texts[path];
-  assert.deepEqual(changeProblems({ status: "A", path: live }, read({ [live]: liveText }), config), []);
-  assert.match(changeProblems({ status: "A", path: live }, read({ [live]: mock }), config)[0], /provider and model/);
+  const day = "2026-12-01";
+  assert.deepEqual(changeProblems({ status: "A", path: live }, read({ [live]: liveText }), config, day), []);
+  assert.match(
+    changeProblems({ status: "A", path: live }, read({ [live]: mock }), config, day)[0],
+    /provider and model/,
+  );
   const leaked = liveText.replace('"example"', `"note":"${FAKE_KEYS.ANTHROPIC_API_KEY}","example"`);
   assert.ok(
-    changeProblems({ status: "M", path: live }, read({ [live]: leaked }), config).some((p) =>
+    changeProblems({ status: "M", path: live }, read({ [live]: leaked }), config, day).some((p) =>
       /Anthropic API key/.test(p),
     ),
   );
-  assert.match(changeProblems({ status: "M", path: "scripts/ci/live-run.mjs" }, read({}), config)[0], /not a listed/);
+  assert.match(
+    changeProblems({ status: "M", path: "scripts/ci/live-run.mjs" }, read({}), config, day)[0],
+    /not a listed/,
+  );
   const date = read({ [DATE_FILE]: '{"lastCompared":"2026-12-01"}' });
-  assert.deepEqual(changeProblems({ status: "M", path: DATE_FILE }, date, config), []);
+  assert.deepEqual(changeProblems({ status: "M", path: DATE_FILE }, date, config, day), []);
+  // A live job can't move the date: only the report job's own date passes.
+  assert.match(
+    changeProblems({ status: "M", path: DATE_FILE }, date, config, "2026-12-02")[0],
+    /the run's date, 2026-12-02/,
+  );
   const extra = read({ [DATE_FILE]: '{"lastCompared":"2026-12-01","x":1}' });
-  assert.equal(changeProblems({ status: "M", path: DATE_FILE }, extra, config).length, 1);
+  assert.equal(changeProblems({ status: "M", path: DATE_FILE }, extra, config, day).length, 1);
+});
+
+test("text a live job wrote goes into an issue only inside a code block it can't close, with mentions broken", () => {
+  const hostile = "Ping @laudebugs\n```\n## Injected heading\n````\n[click](https://example.com) @team-x\n";
+  const block = fenced(hostile);
+  const lines = block.trimEnd().split("\n");
+  const fence = lines[0].replace(/text$/, "");
+  assert.equal(fence, "`````", "one backtick longer than the longest run in the text");
+  assert.equal(lines.at(-1), fence);
+  for (const line of lines.slice(1, -1)) assert.ok(!line.startsWith(fence), `${line} closes the block`);
+  assert.ok(!/@[A-Za-z0-9_-]/.test(block), "no @ stays right before a name");
+  assert.match(fenced("plain"), /^```text\nplain\n```\n$/);
+});
+
+test("a transcript may name tools and argument keys only with [A-Za-z0-9_.-]", () => {
+  const base = JSON.parse(readFileSync(join(root, exampleOf(config.examples[0].file).mock), "utf8"));
+  const withCall = (name, input) => {
+    const copy = structuredClone(base);
+    const response = copy.events.find((event) => event.kind === "response");
+    response.message.parts = [{ type: "tool-call", id: "<id-1>", name, input }];
+    return transcriptProblems(copy);
+  };
+  assert.deepEqual(withCall("lookup_customer", { email: "a" }), []);
+  assert.ok(withCall("x](https://evil.example)", {}).some((p) => /names a tool outside/.test(p)));
+  assert.ok(withCall("@owner", {}).some((p) => /names a tool outside/.test(p)));
+  assert.ok(withCall("lookup", { "`a`\n## b": 1 }).some((p) => /argument key outside/.test(p)));
 });
 
 // --- The workflow -----------------------------------------------------------------------------------------------
@@ -499,15 +639,25 @@ test("the results commit may change only listed live transcripts and the date fi
 const workflows = readdirSync(join(root, ".github/workflows")).filter((f) => /\.ya?ml$/.test(f));
 const workflow = parse(readFileSync(join(root, ".github/workflows/live-run.yml"), "utf8"));
 
-test("live-run.yml runs only when started by hand, from main, in the protected environment", () => {
+const keyed = (job) => JSON.stringify(job).match(/secrets\.(ANTHROPIC|OPENAI)_API_KEY/g) ?? [];
+
+test("live-run.yml runs only when started by hand, one key-holding job per provider, from main, in live-run", () => {
   assert.deepEqual(Object.keys(workflow.on), ["workflow_dispatch"]);
   assert.deepEqual(workflow.permissions, { contents: "read" });
   const inEnvironment = Object.entries(workflow.jobs).filter(([, job]) => job.environment !== undefined);
-  assert.equal(inEnvironment.length, 1);
-  const [, live] = inEnvironment[0];
-  assert.equal(live.environment, "live-run");
-  assert.equal(live.if, "github.ref == 'refs/heads/main'");
-  assert.deepEqual(live.permissions, { contents: "read" });
+  assert.deepEqual(inEnvironment.map(([name]) => name).sort(), ["live-anthropic", "live-openai"]);
+  for (const [name, job] of inEnvironment) {
+    assert.equal(job.environment, "live-run");
+    assert.equal(job.if, "github.ref == 'refs/heads/main'");
+    assert.deepEqual(job.permissions, { contents: "read", actions: "read" });
+    const own = name === "live-anthropic" ? "secrets.ANTHROPIC_API_KEY" : "secrets.OPENAI_API_KEY";
+    assert.deepEqual(keyed(job), [own], `${name} names only its own key`);
+    assert.match(JSON.stringify(job), /live-run\.mjs protected/);
+  }
+  const report = workflow.jobs.report;
+  assert.equal(report.environment, undefined);
+  assert.deepEqual(report.permissions, { contents: "read", issues: "write" });
+  assert.deepEqual(keyed(report), []);
   for (const job of Object.values(workflow.jobs)) {
     for (const step of job.steps) {
       if (String(step.uses ?? "").startsWith("actions/checkout@"))
@@ -516,19 +666,30 @@ test("live-run.yml runs only when started by hand, from main, in the protected e
   }
 });
 
-test("only the step that runs the examples receives a provider key, and no workflow but live-run.yml names one", () => {
+test("a key reaches only the step that writes it to a private file, and run.mjs reads it from there", () => {
+  for (const name of ["live-anthropic", "live-openai"]) {
+    const steps = workflow.jobs[name].steps;
+    const withKey = steps.filter((step) => keyed(step).length > 0);
+    assert.equal(withKey.length, 1);
+    assert.match(withKey[0].run, /umask 077/);
+    assert.doesNotMatch(withKey[0].run, /run\.mjs/);
+    const run = steps.find((step) => /scripts\/live\/run\.mjs/.test(step.run ?? ""));
+    assert.match(run.run, /--key-file/);
+    assert.equal(run.env, undefined, "the run step has no key in its environment");
+  }
   const text = readFileSync(join(root, ".github/workflows/live-run.yml"), "utf8");
-  const keyed = Object.values(workflow.jobs)
-    .flatMap((job) => job.steps)
-    .filter((step) => /secrets\.(ANTHROPIC|OPENAI)_API_KEY/.test(JSON.stringify(step)));
-  assert.equal(keyed.length, 1);
-  assert.match(keyed[0].run, /scripts\/live\/run\.mjs/);
-  assert.deepEqual(Object.keys(keyed[0].env).sort(), ["ANTHROPIC_API_KEY", "OPENAI_API_KEY"]);
   const providerSecrets = [...text.matchAll(/secrets\.([A-Z_]+)/g)].map((m) => m[1]).filter((n) => /API_KEY/.test(n));
   assert.deepEqual([...new Set(providerSecrets)].sort(), ["ANTHROPIC_API_KEY", "OPENAI_API_KEY"]);
   for (const file of workflows.filter((f) => f !== "live-run.yml")) {
     const other = readFileSync(join(root, ".github/workflows", file), "utf8");
     assert.ok(!/ANTHROPIC_API_KEY|OPENAI_API_KEY/.test(other), `${file} names a provider key`);
+  }
+});
+
+test("the report job puts the live jobs' text into the issue and pull request only through fence", () => {
+  for (const step of workflow.jobs.report.steps.filter((s) => /issue\.md|body\.md/.test(s.run ?? ""))) {
+    assert.doesNotMatch(step.run, /cat "\$RUNNER_TEMP\/(diff\.md|live)/, step.name);
+    assert.match(step.run, /live-run\.mjs fence/);
   }
 });
 

@@ -17,7 +17,14 @@ import type {
 } from "@ai-sdk/provider";
 import { MockLanguageModelV4 } from "ai/test";
 import type { TokenUsage } from "../../../../scripts/live/budget.ts";
-import { beginCall, denyHostTools, guardedCall, type LiveConfig, live } from "../../../../scripts/live/live.ts";
+import {
+  beginCall,
+  denyHostTools,
+  guardedCall,
+  guardStream,
+  type LiveConfig,
+  live,
+} from "../../../../scripts/live/live.ts";
 
 export { live };
 
@@ -50,7 +57,7 @@ const sized = (options: LanguageModelV4CallOptions) => ({ prompt: options.prompt
 
 /**
  * A model that sends each call to the live provider and records each request in `requests`, as scripted() does.
- * Streamed answers pass through as the provider sends them, and the cost guard settles once the stream finishes.
+ * Streamed answers pass through as the provider sends them, and the cost guard settles however the stream ends.
  */
 export function liveModel(config: LiveConfig, requests: LanguageModelV4CallOptions[]): MockLanguageModelV4 {
   const real = providerModel(config);
@@ -84,17 +91,18 @@ export function liveModel(config: LiveConfig, requests: LanguageModelV4CallOptio
         guard.settle(undefined);
         throw error;
       }
-      let usage: TokenUsage | undefined;
-      const settle = new TransformStream<LanguageModelV4StreamPart, LanguageModelV4StreamPart>({
-        transform(part, controller) {
-          if (part.type === "finish") usage = tokensOf(part.usage);
-          if (part.type !== "response-metadata" && part.type !== "raw") controller.enqueue(part);
-        },
-        flush() {
-          guard.settle(usage);
-        },
-      });
-      return { stream: result.stream.pipeThrough(settle) };
+      // The metadata and raw chunks name the response and the request, so they go no further.
+      const kept = result.stream.pipeThrough(
+        new TransformStream<LanguageModelV4StreamPart, LanguageModelV4StreamPart>({
+          transform(part, controller) {
+            if (part.type !== "response-metadata" && part.type !== "raw") controller.enqueue(part);
+          },
+        }),
+      );
+      // The guard settles when the stream finishes, fails or is cancelled (live.ts).
+      return {
+        stream: guardStream(kept, guard, (part) => (part.type === "finish" ? tokensOf(part.usage) : undefined)),
+      };
     },
   });
 }

@@ -258,6 +258,11 @@ export function transcriptRun(args, env) {
 }
 
 const ROLES = new Set(["system", "user", "assistant", "tool"]);
+/**
+ * The characters a tool's name and its arguments' keys may use. The live run's issue and pull request quote them, so
+ * a transcript that a real model or package code wrote can't smuggle Markdown or a mention in through them.
+ */
+const NAME = /^[A-Za-z0-9_.-]{1,128}$/;
 const PART_TYPES = new Set(["text", "reasoning", "tool-call", "tool-result", "other"]);
 
 /** The problems with a transcript's shape, each a sentence naming where; an empty list means it is well formed. */
@@ -281,6 +286,16 @@ export function transcriptProblems(transcript) {
     }
     m.parts.forEach((part, i) => {
       if (!PART_TYPES.has(part?.type)) fail(`${where}.parts[${i}]`, `has type ${JSON.stringify(part?.type)}`);
+      // A tool result may leave its tool unnamed, as a LangChain tool message without a name does.
+      const unnamed = part?.type === "tool-result" && part.name === "";
+      if ((part?.type === "tool-call" || part?.type === "tool-result") && !unnamed && !NAME.test(String(part.name))) {
+        fail(`${where}.parts[${i}]`, "names a tool outside [A-Za-z0-9_.-]");
+      }
+      if (part?.type === "tool-call" && part.input && typeof part.input === "object" && !Array.isArray(part.input)) {
+        if (!Object.keys(part.input).every((key) => NAME.test(key))) {
+          fail(`${where}.parts[${i}]`, "has an argument key outside [A-Za-z0-9_.-]");
+        }
+      }
     });
   };
   transcript.events.forEach((event, i) => {
@@ -291,6 +306,9 @@ export function transcriptProblems(transcript) {
     if (event.kind === "request") {
       if (typeof event.model !== "string") fail(where, "names no model");
       if (!(Number.isInteger(event.repeated) && event.repeated >= 0)) fail(where, "has no count of repeated messages");
+      if (Array.isArray(event.tools) && !event.tools.every((tool) => NAME.test(String(tool)))) {
+        fail(where, "offers a tool whose name is outside [A-Za-z0-9_.-]");
+      }
       if (!Array.isArray(event.messages)) fail(where, "has no messages");
       else
         event.messages.forEach((m, j) => {

@@ -1,15 +1,21 @@
 // The steps of .github/workflows/live-run.yml that are not the run itself (scripts/live/run.mjs) or the comparison
 // (live-diff.mjs). Each reads files and git alone and imports only node: modules and the scripts beside it.
 //
-//   node scripts/ci/live-run.mjs protected <environment.json> <owner>
-//       Fails unless the live-run environment, as GitHub's API returned it, still requires the owner's review and
-//       allows only protected branches. The job runs this before the step that receives the keys.
+//   node scripts/ci/live-run.mjs protected <environment.json> <protected-branches.txt> <owner>
+//       Fails unless the live-run environment, as GitHub's API returned it, still requires the owner's review, lets
+//       no administrator bypass that, and allows only protected branches, and unless main is the only protected
+//       branch. Each provider's job runs this before it receives its key.
+//   node scripts/ci/live-run.mjs merge <out.json> <report.json>...
+//       Merges the provider jobs' reports into one, which the date step and the issue and pull request read.
 //   node scripts/ci/live-run.mjs date <report.json> <YYYY-MM-DD>
-//       Records the run's date in apps/manual/src/data/live-comparison.json when every listed example ran, so the
-//       book's line names the last complete comparison.
-//   node scripts/ci/live-run.mjs check <base> <head>
-//       Fails unless the commit <base>..<head> changes only listed examples' live transcripts and the date file, each
-//       well formed and free of anything shaped like a key or an account or request id.
+//       Records the date in apps/manual/src/data/live-comparison.json when the merged report shows every listed
+//       provider's job complete. The report job passes the date it computed itself.
+//   node scripts/ci/live-run.mjs check <base> <head> <YYYY-MM-DD>
+//       Fails unless the commit <base>..<head> changes only listed examples' live transcripts, each well formed and
+//       free of anything shaped like a key or an account or request id, and the date file, set to that date.
+//   node scripts/ci/live-run.mjs fence <file>
+//       Prints a file as a Markdown code block that its text can't close, with its @ mentions broken, so text a live
+//       job wrote can go into an issue or a pull request without becoming Markdown or a notification.
 import { execFileSync } from "node:child_process";
 import { readFileSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
@@ -22,8 +28,12 @@ import { transcriptProblems } from "../transcripts/write.mjs";
 export const DATE_FILE = "apps/manual/src/data/live-comparison.json";
 const DATE = /^\d{4}-\d{2}-\d{2}$/;
 
-/** The problems with the environment's protection; an empty list means it still holds. */
-export function protectionProblems(environment, owner) {
+/**
+ * The problems with the environment's protection; an empty list means it still holds. `protectedBranches` names
+ * the branches GitHub's API lists for `branches?protected=true`: "protected branches only" admits every one of them,
+ * so the check also fails when any branch but main is protected.
+ */
+export function protectionProblems(environment, protectedBranches, owner) {
   const problems = [];
   const rules = Array.isArray(environment?.protection_rules) ? environment.protection_rules : [];
   const reviewers = rules
@@ -31,30 +41,53 @@ export function protectionProblems(environment, owner) {
     .flatMap((rule) => rule.reviewers ?? [])
     .map((reviewer) => reviewer.reviewer?.login);
   if (!reviewers.includes(owner)) problems.push(`the environment no longer requires ${owner}'s review`);
+  if (environment?.can_admins_bypass !== false) problems.push("administrators can bypass the environment's rules");
   const branches = environment?.deployment_branch_policy;
   if (branches?.protected_branches !== true || branches.custom_branch_policies !== false) {
     problems.push("the environment no longer allows only protected branches");
   }
+  const names = Array.isArray(protectedBranches) ? protectedBranches : [];
+  const others = names.filter((name) => name !== "main");
+  if (!names.includes("main")) problems.push("main is not a protected branch");
+  if (others.length > 0)
+    problems.push(`branches other than main are protected, so they could deploy: ${others.join(", ")}`);
   return problems;
 }
 
-/** The date file's contents after a run: the run's date when it was complete, else unchanged. */
-export function dateAfter(report, date, current) {
+/** One report from the provider jobs' reports: their examples and spend together, against the run's cap. */
+export function mergeReports(reports) {
+  return {
+    providers: reports.flatMap((report) => report.providers ?? []),
+    cap: reports[0]?.runCap ?? 1,
+    runCap: reports[0]?.runCap ?? 1,
+    target: reports[0]?.target ?? 0.5,
+    spent: reports.reduce((sum, report) => sum + (Number.isFinite(report.spent) ? report.spent : 0), 0),
+    complete: reports.length > 0 && reports.every((report) => report.complete === true),
+    aborted: reports.find((report) => report.aborted)?.aborted ?? null,
+    examples: reports.flatMap((report) => report.examples ?? []),
+  };
+}
+
+/**
+ * The date file's contents after a run: `date`, the date the report job computed, when the merged report covers
+ * every provider the list names and each provider's job completed; otherwise unchanged.
+ */
+export function dateAfter(report, date, current, config) {
   if (!DATE.test(date)) throw new Error(`${date} is not a YYYY-MM-DD date`);
-  return report?.complete === true ? { lastCompared: date } : current;
+  const listed = new Set(config.examples.map((example) => example.provider));
+  const covered = [...listed].every((provider) => report?.providers?.includes(provider));
+  return covered && report?.complete === true ? { lastCompared: date } : current;
 }
 
 /** The problems with one changed file of the results commit; `read(path)` returns its new contents. */
-export function changeProblems(entry, read, config) {
+export function changeProblems(entry, read, config, date) {
   const allowed = new Set(config.examples.map((example) => exampleOf(example.file).live));
   const { status, path } = entry;
   if (path === DATE_FILE) {
     if (status !== "M") return [`${path} may only be modified`];
     const value = JSON.parse(read(path));
     const keys = Object.keys(value);
-    return keys.length === 1 && DATE.test(value.lastCompared ?? "")
-      ? []
-      : [`${path} must hold only a lastCompared date`];
+    return keys.length === 1 && value.lastCompared === date ? [] : [`${path} must hold only the run's date, ${date}`];
   }
   if (!allowed.has(path)) return [`${path} is not a listed example's live transcript`];
   if (status === "D") return [];
@@ -76,24 +109,47 @@ export function changeProblems(entry, read, config) {
   return problems;
 }
 
+/**
+ * `text` as a Markdown code block it can't close: the fence is one backtick longer than the longest run of backticks
+ * in the text, and never shorter than three. Each @ before a name gets a zero-width space after it, so no mention
+ * notifies anyone, inside the block or out of it.
+ */
+export function fenced(text) {
+  const longest = Math.max(0, ...[...text.matchAll(/`+/g)].map((match) => match[0].length));
+  const fence = "`".repeat(Math.max(3, longest + 1));
+  const quiet = text.replace(/@(?=[A-Za-z0-9_-])/g, "@​");
+  return `${fence}text\n${quiet.replace(/\n$/, "")}\n${fence}\n`;
+}
+
 function main(argv) {
   const [command, ...args] = argv;
+  const json = (file) => JSON.parse(readFileSync(file, "utf8"));
   if (command === "protected") {
-    const [file, owner] = args;
-    const problems = protectionProblems(JSON.parse(readFileSync(file, "utf8")), owner);
+    const [environmentFile, branchesFile, owner] = args;
+    const branches = readFileSync(branchesFile, "utf8").split("\n").filter(Boolean);
+    const problems = protectionProblems(json(environmentFile), branches, owner);
     for (const problem of problems) console.error(`::error::The live-run environment changed: ${problem}.`);
     return problems.length === 0 ? 0 : 1;
   }
+  if (command === "merge") {
+    const [out, ...reports] = args;
+    writeFileSync(out, `${JSON.stringify(mergeReports(reports.map(json)), null, 2)}\n`);
+    return 0;
+  }
   if (command === "date") {
     const [reportFile, date] = args;
-    const current = JSON.parse(readFileSync(join(REPO_ROOT, DATE_FILE), "utf8"));
-    const next = dateAfter(JSON.parse(readFileSync(reportFile, "utf8")), date, current);
+    const current = json(join(REPO_ROOT, DATE_FILE));
+    const next = dateAfter(json(reportFile), date, current, readLiveConfig());
     writeFileSync(join(REPO_ROOT, DATE_FILE), `${JSON.stringify(next, null, 2)}\n`);
     console.log(next === current ? "The run was not complete, so the comparison date stays." : `Compared on ${date}.`);
     return 0;
   }
   if (command === "check") {
-    const [base, head] = args;
+    const [base, head, date] = args;
+    if (!DATE.test(date ?? "")) {
+      console.error("::error::check needs the run's own date as YYYY-MM-DD");
+      return 2;
+    }
     const git = (...gitArgs) => execFileSync("git", gitArgs, { cwd: REPO_ROOT, encoding: "utf8" });
     const entries = git("diff", "--name-status", "--no-renames", base, head)
       .split("\n")
@@ -104,15 +160,17 @@ function main(argv) {
       });
     const config = readLiveConfig();
     const problems = entries.flatMap((entry) =>
-      changeProblems(entry, (path) => git("show", `${head}:${path}`), config),
+      changeProblems(entry, (path) => git("show", `${head}:${path}`), config, date),
     );
     if (entries.length === 0) problems.push("the commit changes nothing");
     for (const problem of problems) console.error(`::error::${problem}`);
     return problems.length === 0 ? 0 : 1;
   }
-  console.error(
-    "usage: live-run.mjs protected <environment.json> <owner> | date <report.json> <date> | check <base> <head>",
-  );
+  if (command === "fence") {
+    process.stdout.write(fenced(readFileSync(args[0], "utf8")));
+    return 0;
+  }
+  console.error("usage: live-run.mjs protected | merge | date | check | fence (see the file's header)");
   return 2;
 }
 
