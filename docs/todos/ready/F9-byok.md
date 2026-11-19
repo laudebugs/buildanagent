@@ -60,7 +60,7 @@ None.
 
 Gap 7 of the [close-sdk-gaps plan](../../plans/close-sdk-gaps.md#3-each-gap-the-todos-that-cover-it-and-what-changes) adds a test for the silent fallbacks the research found. Add:
 
-- [ ] Every generated agent builds its providers with [E6](E6-byok-no-fallback.md)'s `explicitProvider()`, and the gate fails a project whose deploy configuration leaves Cloudflare AI Gateway's `byok_only` off or routes any model call through Vercel AI Gateway. Vercel's "Fallback to Vercel Keys" is a team dashboard setting that no deploy configuration records, so the gate cannot check it ([ADR 0040](../../decisions/0040-tenant-cloud-connections-and-byok.md): Vercel AI Gateway is not used for tenant calls unless its fallback is off).
+- [ ] Every generated agent builds its providers with [E6](../done/E6-byok-no-fallback.md)'s `explicitProvider()`, and the gate fails a project whose deploy configuration leaves Cloudflare AI Gateway's `byok_only` off or routes any model call through Vercel AI Gateway. Vercel's "Fallback to Vercel Keys" is a team dashboard setting that no deploy configuration records, so the gate cannot check it ([ADR 0040](../../decisions/0040-tenant-cloud-connections-and-byok.md): Vercel AI Gateway is not used for tenant calls unless its fallback is off).
 
 The owner chose on 2026-11-18 to refuse Vercel AI Gateway outright for generated agents' model calls ([SG4](../../plans/close-sdk-gaps.md#sg4-generated-agents-model-calls-never-go-through-vercel-ai-gateway-accepted)). That narrows [ADR 0040](../../decisions/0040-tenant-cloud-connections-and-byok.md), whose attested-setting path this todo does not implement for model calls. **Follow-up when this todo starts:** write a short ADR that amends 0040 to record the narrowing.
 

@@ -1,4 +1,6 @@
 import assert from "node:assert/strict";
+import { createServer, type Server } from "node:http";
+import type { AddressInfo } from "node:net";
 import { createAnthropic } from "@ai-sdk/anthropic";
 import { createOpenAI } from "@ai-sdk/openai";
 import { checkModelRoutes, egressGuard, isSafetyError, MODEL_ROUTE_SETTINGS_AS_OF } from "@buildanagent/agent-safety";
@@ -270,6 +272,43 @@ test("the guard overwrites a cf-aig-no-wholesale header that tries to relax it, 
   await direct(`${ANTHROPIC_URL}/messages`, { method: "POST", headers: { "x-api-key": USER_ANTHROPIC_KEY } });
   assert.equal(transport.requests[0]?.headers["cf-aig-no-wholesale"], "true");
   assert.equal(transport.requests[1]?.headers["cf-aig-no-wholesale"], undefined);
+});
+
+async function listen(server: Server): Promise<string> {
+  await new Promise<void>((resolve) => server.listen(0, "127.0.0.1", resolve));
+  return `http://127.0.0.1:${(server.address() as AddressInfo).port}`;
+}
+
+test("the guard never follows a redirect, so the key's header can't reach the redirect's target", async () => {
+  // Node's fetch drops Authorization on a cross-origin redirect but forwards x-api-key, so following one would hand
+  // the user's Anthropic key to wherever the response points. Both servers bind to loopback only.
+  const seen: (string | undefined)[] = [];
+  const target = createServer((request, response) => {
+    seen.push(request.headers["x-api-key"] as string | undefined);
+    response.end("{}");
+  });
+  const targetUrl = await listen(target);
+  const origin = createServer((_request, response) => {
+    response.writeHead(307, { location: `${targetUrl}/v1/messages` });
+    response.end();
+  });
+  const originUrl = await listen(origin);
+  try {
+    const guard = egressGuard({
+      baseURL: `${originUrl}/v1`,
+      credential: { header: "x-api-key", value: USER_ANTHROPIC_KEY },
+    });
+    const response = await guard(`${originUrl}/v1/messages`, {
+      method: "POST",
+      headers: { "x-api-key": USER_ANTHROPIC_KEY },
+      body: "{}",
+    });
+    assert.equal(response.status, 307);
+    assert.deepEqual(seen, []);
+  } finally {
+    origin.close();
+    target.close();
+  }
 });
 
 test("explicitProvider with an empty, missing or padded key throws before any request", () => {
