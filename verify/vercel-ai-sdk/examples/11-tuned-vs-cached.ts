@@ -69,5 +69,8 @@ check(
 );
 check(uncached > tuned, "the uncached base call costs more than the tuned call");
 check(cached < tuned, "the cached base call costs less than the tuned call");
-check(breakEven(uncached) === 28_847, "against the uncached prompt, a $30 training run breaks even after 28,847 requests");
+check(
+  breakEven(uncached) === 28_847,
+  "against the uncached prompt, a $30 training run breaks even after 28,847 requests",
+);
 check(breakEven(cached) === null, "against the cached prompt, the training run never breaks even");

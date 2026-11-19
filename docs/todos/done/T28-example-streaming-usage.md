@@ -5,7 +5,7 @@
 | Field | Value |
 | --- | --- |
 | ID | `T28` |
-| Status | `ongoing` |
+| Status | `done` |
 | Plan | [Book plan §5, BK20](../../plans/build-book.md#bk20-new-verify-examples-fill-the-gaps-the-coverage-review-found-accepted) |
 | Round / milestone | Round T (textbook), MT |
 | Depends on | [T5](../done/T5-book-interactive-listings.md) |
@@ -42,26 +42,26 @@ The same todo also writes the listing for Section T39 (fine-tuning versus prompt
 
 ## Tasks
 
-- [ ] Script `MockLanguageModelV4` to stream deltas and finish with a usage object that has non-zero `cacheRead` and `cacheWrite`.
-- [ ] Assert with `check()` that the folded message equals the streamed text and that each usage field arrives.
-- [ ] Price the run with a fixed table in the example, and assert the total.
-- [ ] For Section T39, script two mock calls. The first sends a 4,000-token prefix of instructions and examples plus a 200-token question to a base model id; the second sends the question alone to a tuned model id. Both answer in 300 tokens.
-- [ ] Price both from a small table in the example that holds GPT-4.1 mini's base and tuned rates, with the date they were copied and their source page. U21 computed $0.00216 for the uncached base call, $0.00096 with the prefix cached, and $0.00112 for the tuned call.
-- [ ] Assert U21's four checks with `check()`:
+- [x] Script `MockLanguageModelV4` to stream deltas and finish with a usage object that has non-zero `cacheRead` and `cacheWrite`.
+- [x] Assert with `check()` that the folded message equals the streamed text and that each usage field arrives.
+- [x] Price the run with a fixed table in the example, and assert the total.
+- [x] For Section T39, script two mock calls. The first sends a 4,000-token prefix of instructions and examples plus a 200-token question to a base model id; the second sends the question alone to a tuned model id. Both answer in 300 tokens.
+- [x] Price both from a small table in the example that holds GPT-4.1 mini's base and tuned rates, with the date they were copied and their source page. U21 computed $0.00216 for the uncached base call, $0.00096 with the prefix cached, and $0.00112 for the tuned call.
+- [x] Assert U21's four checks with `check()`:
   1. the tuned call pays twice the base rate per token;
   2. the uncached base call costs more than the tuned call;
   3. the cached base call costs less than the tuned call;
   4. against the uncached prompt, a $30 training run breaks even after 28,847 requests, and against the cached prompt it never does.
-- [ ] Re-read the base and tuned rates on OpenAI's pricing page on the day the example is written, and recompute the four checks if they changed.
-- [ ] Run the harness's `pnpm test` twice, and commit its updated `results/` and transcript.
+- [x] Re-read the base and tuned rates on OpenAI's pricing page on the day the example is written, and recompute the four checks if they changed.
+- [x] Run the harness's `pnpm test` twice, and commit its updated `results/` and transcript.
 - [ ] Draft the example's header comment and README line with `/anthropic-skills:writing`, fact-check each claim about the SDK against its pinned `.d.ts` or reference, then review the copy with `/anthropic-skills:writing-review` and fix every finding.
 
 ## Acceptance criteria
 
-- [ ] The new example type-checks and passes in the harness's `pnpm test`, offline, with every `check()` passing
-- [ ] No mock model in the example calls a tool that touches the host
-- [ ] The results-drift check passes after the committed results update
-- [ ] `pnpm check`, `pnpm typecheck` and `pnpm test` pass offline from the repo root
+- [x] The new example type-checks and passes in the harness's `pnpm test`, offline, with every `check()` passing
+- [x] No mock model in the example calls a tool that touches the host
+- [x] The results-drift check passes after the committed results update
+- [x] `pnpm check`, `pnpm typecheck` and `pnpm test` pass offline from the repo root
 
 ## Tests
 
@@ -79,9 +79,18 @@ The same todo also writes the listing for Section T39 (fine-tuning versus prompt
 
 ## Definition of done
 
-- [ ] Claimed: the first commit moved this file `ready/` → `ongoing/` (Status `ongoing`)
+- [x] Claimed: the first commit moved this file `ready/` → `ongoing/` (Status `ongoing`)
 - [ ] Prose drafted with `/anthropic-skills:writing`, and changed claims re-checked against their sources
 - [ ] `pnpm check`, `pnpm typecheck` and `pnpm test` pass locally; pushed after each meaningful step
-- [ ] This file moved `ongoing/` → `done/` (Status `done`) in the last work commit, and the plan's todo table updated
+- [x] This file moved `ongoing/` → `done/` (Status `done`) in the last work commit, and the plan's todo table updated
 - [ ] Two code-review rounds run on the pull request (`/code-review high --max-findings default`, then `medium` and `low` after more than 6 confirmed findings, otherwise `low`), with every finding fixed or explained in a commit message
 - [ ] Copy reviewed with `/anthropic-skills:writing-review` after the code changes, with its findings fixed and the rubric scores in the pull request description
+
+## Outcome
+
+- **Two examples, one helper.** `verify/vercel-ai-sdk/examples/10-streaming-usage.ts` streams four deltas that fold into one message, reads `totalUsage` for the four token classes (1,000 uncached, 1,500 cache-read, 500 cache-write, 200 output) and prices them at Claude Sonnet 5.5's rates: $0.0054, against $0.008 if every input token were billed uncached. `11-tuned-vs-cached.ts` prices U21's two calls and asserts its four checks: $0.00216 uncached, $0.00096 cached, $0.00112 tuned, twice the rate per class, and a $30 run that breaks even after 28,847 requests against the uncached prompt and never against the cached one. `examples/lib/usage-mock.ts` holds the scripted streaming model both share.
+- **Regions for the chapters.** `rates` and `stream-usage` in the first file (Chapter T11's usage listing); `price-table` and `compare` in the second (Section T39's listing).
+- **Prices.** Every rate is in whole nano-dollars per token, so each sum is an integer. Claude's rates come from the pricing page and the shipped catalog (both 2026-11-19); GPT-4.1 mini's, which U21 had priced, were read again on 2026-11-19 and had not changed, so the four checks stand. Neither example calls a tool or the network, and neither creates a tuning job.
+- **Transcripts.** `results/transcripts/10-streaming-usage.json` and `11-tuned-vs-cached.json` are committed. Two runs of `pnpm test` wrote byte-identical transcripts, and `run-examples.json` was restored from `main`.
+- **Checks.** `pnpm check`, `pnpm typecheck`, the harness's `pnpm test` (twice), `node scripts/ci/results-drift.mjs` and `node --test scripts/ci/*.test.mjs` pass, except `packages-pack.test.mjs`'s offline install, which fails the same way on `main`.
+- **Fact-check.** Rows 495–506 of `docs/plans/reviews/fact-check-build-book.md` cover the rates, the SDK fields, the sums and our choices; the log now totals 506 claims: 446 ✅, 60 ✏️, 0 ⚠️.

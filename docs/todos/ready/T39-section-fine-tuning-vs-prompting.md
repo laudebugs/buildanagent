@@ -8,7 +8,7 @@
 | Status | `ready` |
 | Plan | [Book plan §4.3, BK19](../../plans/build-book.md#43-four-topics-need-research-before-they-are-written) |
 | Round / milestone | Round T (textbook), MT |
-| Depends on | [U21](../done/U21-research-fine-tuning-vs-prompting.md), [T11](T11-chapter-talking-to-a-model.md), [T28](T28-example-streaming-usage.md) |
+| Depends on | [U21](../done/U21-research-fine-tuning-vs-prompting.md), [T11](T11-chapter-talking-to-a-model.md), [T28](../done/T28-example-streaming-usage.md) |
 | Size | S |
 
 ## Goal
@@ -20,7 +20,7 @@ U21's report settled the scope, and the owner approved its proposed changes on 2
 ## Context
 
 - [U21](../done/U21-research-fine-tuning-vs-prompting.md)'s [report](../../research/fine-tuning/fine-tuning-vs-prompting.md) and [fact-check](../../research/fine-tuning/fact-check-fine-tuning-vs-prompting.md), including the [MAP reread](../../research/fine-tuning/notes/map-reread.md): MAP's 70% is 14 of 20 interviewed teams, not a survey figure
-- [T28](T28-example-streaming-usage.md): the listing, a tuned model priced against a cached prompt, offline
+- [T28](../done/T28-example-streaming-usage.md): the listing, a tuned model priced against a cached prompt, offline
 - Chapter T11's todo, [T11](T11-chapter-talking-to-a-model.md), and its fact-check file `apps/manual/fact-checks/talking-to-a-model.md`
 - [Book plan BK21 and BK22](../../plans/build-book.md#bk21-every-section-is-fact-checked-before-the-next-is-drafted-accepted)
 
@@ -35,7 +35,7 @@ U21's report settled the scope, and the owner approved its proposed changes on 2
   3. **A tuned model is a new model with its own price and a short life.** It costs up to twice the base rate per token on OpenAI, it retires with its base model 16 to 30 months after that model's release, and, by U21's conclusion, it needs the safety evals of a new model (OpenAI pricing and deprecations; Google model versions; Qi et al.).
   4. **Deployed agents mostly prompt.** In MAP, 14 of 20 interviewed teams prompted off-the-shelf models, and the teams that tuned gave latency, volume, domain knowledge or cost as their reasons. The vendors that train agent models with reinforcement learning tie them to their own harness (MAP; Cursor; Cognition).
 - The provider status of November 2026 (OpenAI closing its tuning service, Anthropic offering none in its own API, Google alone tuning its current models) in one dated note, so a later edition changes one place; every vendor result labelled as one
-- The listing from [T28](T28-example-streaming-usage.md)'s tuned-versus-cached pricing example
+- The listing from [T28](../done/T28-example-streaming-usage.md)'s tuned-versus-cached pricing example
 - Rows for the section in `apps/manual/fact-checks/talking-to-a-model.md`
 
 **Analogy** (BK22): fine-tuning versus prompting, as sending an employee on a year-long course versus handing a skilled contractor a clear brief. Where the analogy breaks: a fine-tuned model also needs the brief; tuning changes defaults, not the need for instructions. A second break note, approved by the owner on 2026-11-19: the course's certificate expires when the base model retires, and the employee must then retake the course. Use the analogy only if it makes the concept clearer than plain explanation. No illustration unless the section needs one.
