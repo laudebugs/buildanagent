@@ -37,7 +37,7 @@ Each listing in `apps/manual/src/content/chapters/call-workflow-loop.md`, and wh
 | `#scripted-mock` | `verify/vercel-ai-sdk/examples/lib/check.ts`, region `scripted` | `ScriptedModel` from `@buildanagent/sdk/testing` (B3) |
 
 - New examples under `packages/sdk/examples/` (or `packages/gateway/examples/` for the one call), with `// #region` and `// book:note` markers, run offline by the package's `test`.
-- Widen the listing rule so a listing may come from `packages/`, in three places: the coverage check, the harness table (or a sibling table) and the caption's pin. For our packages, the pin is the workspace version (`0.1.0-alpha.4` as of November 2026) rather than an exact third-party pin.
+- Widen the listing rule so a listing may come from `packages/`, in three places: the coverage check, the harness table (or a sibling table) and the caption's pin. For our packages, the pin is the workspace version (`0.1.0-alpha.5` as of November 2026) rather than an exact third-party pin.
 - Transcripts for the new examples, in the format of `scripts/transcripts/events.ts`, recorded by the package's tests and committed beside those tests. The transcripts keep the three replays working, and the results-drift check covers them.
 - The prose around each listing and its notes, the exercises, the "How these examples run without a key" section, and the inline code that names `generateText`, `stopWhen`, `SequentialAgent` or `LoopAgent`, each of which must resolve again under BK17.
 - `figures/call-workflow-loop/loop-bench.ts`: it lights six steps in the order of the AI SDK loop's transcript, so check that order against the new transcript and redraw if it differs.
@@ -81,7 +81,7 @@ The listing-rule tests in `apps/manual/test/`, the new examples in `packages/sdk
 ## Risks and open questions
 
 - The comparison with other SDKs is part of what Chapter 1 teaches. Dropping the AI SDK and ADK listings may lose that comparison; tabs could keep one of them beside ours. The owner decides.
-- Our packages are alpha (`0.1.0-alpha.4` as of November 2026), so their APIs may change under the chapter. The type-check and the results-drift check catch each change, but each one then needs a chapter update.
+- Our packages are alpha (`0.1.0-alpha.5` as of November 2026), so their APIs may change under the chapter. The type-check and the results-drift check catch each change, but each one then needs a chapter update.
 - The replay recorder is new code; if it grows past this todo, split it into its own todo that this one depends on.
 
 ## Definition of done
