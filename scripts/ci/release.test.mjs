@@ -127,7 +127,7 @@ describe("release.yml", () => {
     const global = first.run.match(/NPM_CONFIG_GLOBALCONFIG=(\S+)"/)?.[1];
     assert.ok(user && global, "both config paths are set");
     assert.notEqual(user, global);
-    // Every write to either file, so a token line added to one of them fails here.
+    // Collects every line that writes to either file, so a token written to one of them fails the test.
     const writes = first.run.split("\n").filter((line) => line.includes(`"${user}"`) || line.includes(`"${global}"`));
     assert.deepEqual(writes, [`echo "registry=https://registry.npmjs.org/" > "${user}"`, `: > "${global}"`]);
   });

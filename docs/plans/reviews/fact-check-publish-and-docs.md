@@ -280,7 +280,7 @@ Rows 161–181 check the claims L4b added to the plan, CI plan §3e–3f, `.chan
 
 ## Pull request #58: the npm config fix (2026-11-19)
 
-Rows 191–192 check what pull request #58 added to CI plan §3f and the L4b todo, against the failed run's log and npm 11.21.2 run locally.
+Rows 191–192 check what pull request #58 added to CI plan §3f and the L4b todo, against the failed run's log and local runs of npm 11.21.2.
 
 | # | Claim | Verdict | Source and reason |
 | --- | --- | --- | --- |
