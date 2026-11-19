@@ -54,6 +54,18 @@ test("a script with two steps called once fails assertComplete()", async () => {
   assert.throws(() => model.assertComplete(), /1 of 2 scripted steps were never called/);
 });
 
+test("a script called past its last step fails assertComplete(), even when createModel() turned the throw into data", async () => {
+  const adapter = new ScriptedModel([textStep("one")]);
+  const model = createModel({ adapter, id: "scripted-model", retries: 0 });
+  await model.complete(context());
+  const overRun = await model.complete(context());
+  assert.equal(overRun.stopReason, "error");
+  assert.throws(
+    () => adapter.assertComplete(),
+    (error: unknown) => isSdkError(error) && error.code === "unexpected_model_call",
+  );
+});
+
 test("a fully used script passes assertComplete()", async () => {
   const model = new ScriptedModel([textStep("one")]);
   await complete(model.stream(ref, context(), {}));

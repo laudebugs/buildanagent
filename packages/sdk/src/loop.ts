@@ -19,6 +19,7 @@ import {
   type Model,
   type ModelCallOptions,
   type ModelContext,
+  type StreamOptions,
   type Usage,
   type WireTool,
 } from "@buildanagent/gateway";
@@ -30,12 +31,18 @@ import { toWireTool } from "./tools/define.js";
 import { type AnyTool, runToolCalls, type ToolCallResult } from "./tools/pipeline.js";
 import type { ToolCall } from "./tools/types.js";
 
+/** The `stoppedBy` of a run that a clarification tool stopped. */
+const CLARIFICATION = "clarification";
+
 // The depth cap's defaults (D11). Nested runs pass their own depth once the depth cap is configurable.
 const TOP_LEVEL_DEPTH = 0;
 const DEFAULT_MAX_DEPTH = 2;
 
-/** The cost of a run that made no model call. */
-const NO_COST: Cost = { total: 0, basis: "catalog", currency: "USD" };
+/**
+ * The cost of no model call: an exact zero. Its basis is `provider` because `addCost()` keeps the other cost's basis
+ * when it adds a provider cost, so the zero never turns a billed sum into an estimate.
+ */
+const NO_COST: Cost = { total: 0, basis: "provider", currency: "USD" };
 
 /** Everything one run needs, fixed when it starts. */
 export interface LoopSetup {
@@ -62,7 +69,8 @@ export type Emit = (body: AgentEventBody, stepIndex: number) => void;
 type Outcome =
   | { readonly stopReason: "done"; readonly output: unknown }
   | { readonly stopReason: "max_steps" | "aborted" }
-  | { readonly stopReason: "error"; readonly error: RunError };
+  | { readonly stopReason: "error"; readonly error: RunError }
+  | { readonly stopReason: "stopped"; readonly stoppedBy: string };
 
 /** What changes while a run goes on. */
 class LoopState {
@@ -95,9 +103,12 @@ class LoopState {
   }
 }
 
-/** The stream options a request event records: everything but the payload hook, which is a function. */
+/**
+ * The stream options a request event records: everything but the payload hook, the abort signal and the caps, as the
+ * gateway's own request dump leaves them out. An untyped caller may still pass a signal or caps in `modelOptions`.
+ */
 function dumpedOptions(options: Omit<ModelCallOptions, "signal">): DumpedOptions {
-  const { onPayload: _onPayload, ...rest } = options;
+  const { onPayload: _onPayload, signal: _signal, caps: _caps, ...rest } = options as StreamOptions;
   return rest;
 }
 
@@ -194,8 +205,9 @@ function runErrorOf(message: AssistantMessage): RunError {
 }
 
 /**
- * The stop check after one step. A finished answer wins over an abort that came too late to change it; otherwise an
- * abort stops the run before the step cap does.
+ * The stop check after one step. A finished answer, or a question for the user, wins over an abort that came too late
+ * to change it; otherwise an abort stops the run before the step cap does. A text answer cut off at the output limit
+ * also counts as finished: its message keeps `stopReason: "length"`.
  */
 function stopCheck(
   state: LoopState,
@@ -206,6 +218,11 @@ function stopCheck(
   if (message.stopReason === "aborted") return { stopReason: "aborted" };
   const finished = results.length === 0 || results.some(({ result }) => result.terminate === true && !result.isError);
   if (finished) return { stopReason: "done", output: state.output };
+  // Until runs can pause for an answer, a clarification question stops the run, so the model never goes on as if the
+  // user had been asked and answered.
+  if (results.some(({ result }) => result.pause !== undefined && !result.isError)) {
+    return { stopReason: "stopped", stoppedBy: CLARIFICATION };
+  }
   if (state.setup.signal.aborted) return { stopReason: "aborted" };
   if (state.steps >= state.setup.maxSteps) return { stopReason: "max_steps" };
   return undefined;
@@ -228,15 +245,13 @@ async function runStep(state: LoopState): Promise<Outcome | undefined> {
 function closeAborted(state: LoopState): void {
   const last = state.messages.at(-1);
   if (last?.role === "assistant" && last.stopReason === "aborted") return;
-  const usage = emptyUsage();
-  const { model } = state.setup;
   state.append({
     role: "assistant",
     content: [],
-    model: model.ref,
+    model: state.setup.model.ref,
     stopReason: "aborted",
-    usage,
-    cost: model.price(usage),
+    usage: emptyUsage(),
+    cost: { ...NO_COST },
   });
 }
 

@@ -106,7 +106,7 @@ const CLARIFICATION_SCHEMA = Object.freeze({
 
 /**
  * Defines a tool the model calls to ask the user a question. Its result carries the question as a `pause` of kind
- * `clarification`, which the run turns into a request for the user's answer.
+ * `clarification`, and a run that gets it ends with `stopReason: "stopped"` and `stoppedBy: "clarification"`.
  */
 export function clarificationTool(options: ClarificationToolOptions = {}): ToolDefinition<{ question: string }, never> {
   return defineTool<{ question: string }, never>({

@@ -125,6 +125,16 @@ test("a run whose signal is already aborted makes no model call and ends aborted
   assert.deepEqual(typesOf(events), ["run_start", "abort", "agent_settled", "run_end"]);
 });
 
+test("an aborted run's cost and its closing message's cost are the same exact zero, even for an unpriced model", async () => {
+  const { result } = await drive(
+    run({ model: scripted([text("Hi.")]).model, system: SYSTEM, input: "Hi.", signal: AbortSignal.abort() }),
+  );
+  const zero = { total: 0, basis: "provider", currency: "USD" };
+  assert.deepEqual(result.cost, zero);
+  const last = result.messages.at(-1);
+  assert.deepEqual(last?.role === "assistant" ? last.cost : undefined, zero);
+});
+
 test("run.abort() stops the run like the signal option", async () => {
   const { model } = scripted([text("Hi.")]);
   const started = run({ model, system: SYSTEM, input: "Hi." });

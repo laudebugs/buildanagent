@@ -3,6 +3,7 @@ import { createModel, type Message, type PriceCatalog } from "@buildanagent/gate
 import {
   AGENT_EVENT_TYPES,
   type AgentEvent,
+  clarificationTool,
   continueRun,
   defineTool,
   isSdkError,
@@ -334,4 +335,41 @@ test("the call id the model sends reaches its tool result", async () => {
   );
   const toolMessage = result.messages.find((message) => message.role === "tool");
   assert.equal(toolMessage?.role === "tool" ? toolMessage.callId : undefined, "toolu_1");
+});
+
+test("a text answer cut off at the output limit ends done, and its message keeps stopReason length", async () => {
+  const { result } = await drive(
+    run({ model: scripted([{ ...text("The order is"), stopReason: "length" }]).model, system: SYSTEM, input: "Hi." }),
+  );
+  assert.equal(result.stopReason, "done");
+  const last = result.messages.at(-1);
+  assert.equal(last?.role === "assistant" ? last.stopReason : undefined, "length");
+});
+
+test("a clarification question stops the run with stoppedBy clarification and makes no further call", async () => {
+  const { adapter, model } = scripted([toolCall("ask_user", { question: "Which order?" })]);
+  const { result } = await drive(
+    run({ model, system: SYSTEM, input: "Where is my order?", tools: [clarificationTool()], ...determinism() }),
+  );
+  adapter.assertComplete();
+  assert.equal(result.stopReason, "stopped");
+  assert.equal(result.stopReason === "stopped" ? result.stoppedBy : undefined, "clarification");
+  assert.equal(result.messages.at(-1)?.role, "tool");
+});
+
+test("run() throws SdkError invalid_run_options for an output tool that isn't sent to the model", () => {
+  const answer = outputTool({ name: "answer", schema: z.object({ status: z.string() }) });
+  assert.throws(
+    () => run({ model: scripted([]).model, system: SYSTEM, input: "Hi.", output: { ...answer, exposure: "deferred" } }),
+    (error: unknown) => isSdkError(error) && error.code === "invalid_run_options",
+  );
+});
+
+test("model_call_start records no signal or caps that an untyped caller put in modelOptions", async () => {
+  const modelOptions = { maxOutputTokens: 64, signal: new AbortController().signal, caps: {} } as never;
+  const { events } = await drive(
+    run({ model: scripted([text("Hi.")]).model, system: SYSTEM, input: "Hi.", modelOptions }),
+  );
+  const start = events.find((event) => event.type === "model_call_start");
+  assert.deepEqual(start?.type === "model_call_start" ? start.request.options : undefined, { maxOutputTokens: 64 });
 });

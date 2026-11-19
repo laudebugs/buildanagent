@@ -40,10 +40,11 @@ const result = await started.result;
 
 A failed model call or a failing tool never makes a run throw. The run ends with a result whose `stopReason` says why:
 
-- **`done`**: the model answered without calling a tool, or an output tool accepted its answer.
+- **`done`**: the model answered without calling a tool, or an output tool accepted its answer. A text answer cut off at `maxOutputTokens` also ends `done`, so check whether the last message's `stopReason` is `"length"` before you show it as complete.
 - **`max_steps`**: the run made `maxSteps` model calls, 20 by default, and the model still wanted to go on. The run also emits a `warning` event with `code: "max_steps"`, so a cap that cut a run short shows up in your logs.
 - **`error`**: a model call failed. `result.error` copies the failure's `kind`, `message` and HTTP `status`. Its `kind` is `overflow` for a request too large for the model's window, `quota` for an account out of credit, `retryable` for a temporary failure that outlasted the gateway's retries, and `fatal` otherwise.
 - **`aborted`**: you aborted the run.
+- **`stopped`**: a tool from `clarificationTool()` asked the user a question, and `result.stoppedBy` is `"clarification"`.
 
 `maxSteps` counts model calls, so an output call that fails its schema spends one of them. The tool calls of the last allowed response still run, so every call in the transcript has a result.
 
@@ -156,9 +157,9 @@ The model reads the outcome first, as a sentence and as JSON, and then your cont
 
 ## End the run with `outputTool()`, or ask with `clarificationTool()`
 
-`outputTool({ name, schema })` turns the run's final answer into a tool call. Pass it to `run()` as `output`. A call whose input passes the schema ends the run `done`, and the validated answer is `result.output`. A call that fails the schema returns the issues to the model, which can correct its answer and call again.
+`outputTool({ name, schema })` turns the run's final answer into a tool call. Pass it to `run()` as `output`. A call whose input passes the schema ends the run `done`, and the validated answer is `result.output`. A call that fails the schema returns the issues to the model, which can correct its answer and call again. If the model answers in text instead, the run still ends `done`, with `result.output` undefined. The output tool must keep the default `exposure`, because the model has to be sent it.
 
-`clarificationTool()` gives the model a tool named `ask_user` that takes one `question`. Its result carries the question as a pause, so the run can wait for the user's answer. Pass `{ name }` to call it something else.
+`clarificationTool()` gives the model a tool named `ask_user` that takes one `question`. Pass `{ name }` to call it something else. Once the model calls it, the run ends with `stopReason: "stopped"` and `stoppedBy: "clarification"`, and the question is the call's input in `result.messages`. To go on, add the user's answer to `result.context` as a user message and pass the context to `continueRun()`.
 
 ## `SdkError` marks a mistake in your code
 
@@ -166,7 +167,7 @@ The SDK throws only for programmer errors, never for a failure the model caused.
 
 - **`invalid_tool_definition`**: a tool's name, description, schema or exposure is unusable, or two tools share a name.
 - **`invalid_tool_result`**: `execute` returned something other than a tool result, or an invalid outcome. A text block needs a string `text`, and an image block a string `mediaType` and `data`. The run's `result` rejects with this error, and iterating the run throws it after the last event.
-- **`invalid_run_options`**: `run()` or `continueRun()` got a model that isn't from `createModel()`, or a `maxSteps` that isn't a positive integer.
+- **`invalid_run_options`**: `run()` or `continueRun()` got a model that isn't from `createModel()`, a `maxSteps` that isn't a positive integer, or an output tool whose `exposure` isn't `"direct"`.
 - **`invalid_model_stream`**: a model's stream ended without a final message, which only a broken adapter does.
 - **`run_stopped`**: the error is a `RunStoppedError` from `runOrThrow()`.
 - **`unexpected_model_call`**: the error is an `UnexpectedModelCallError` from `ScriptedModel`.
@@ -175,8 +176,8 @@ The SDK throws only for programmer errors, never for a failure the model caused.
 
 `ScriptedModel` plays back the responses you script, one per model call. It fails loudly when your test's expectations drift:
 
-- **Too many calls throw.** A call past the last scripted step throws `UnexpectedModelCallError`, an `SdkError` with code `unexpected_model_call`.
-- **Unused steps fail.** `assertComplete()` throws if any step was never called; call it when the test ends.
+- **Too many calls throw.** A call past the last scripted step throws `UnexpectedModelCallError`, an `SdkError` with code `unexpected_model_call`. Behind `createModel()`, the gateway turns that throw into a failed call, so a run ends `error` instead of throwing.
+- **`assertComplete()` catches both drifts.** It throws if any step was never called, or if a call came after the last step. Call it when the test ends, so an over-run fails the test even when the run swallowed it.
 - **Requests are snapshots.** `calls` holds a frozen copy of each request, taken when the call was made, so later changes to your conversation never show up in it.
 - **Streams look real.** Text, reasoning and tool-call input arrive in small pieces (4 characters by default), and an abort is checked between pieces.
 

@@ -41,7 +41,11 @@ export interface ResultBase {
   readonly steps: number;
 }
 
-/** A run that finished. `output` is the final answer's value when the run has an output tool. */
+/**
+ * A run that finished: the model answered without calling a tool, or an output tool accepted its answer. `output` is
+ * the accepted answer, and `undefined` when the run has no output tool or the model answered in text instead. A text
+ * answer cut off at the output limit also ends `done`; its message's `stopReason` is then `"length"`.
+ */
 export interface DoneResult<S> extends ResultBase {
   readonly stopReason: "done";
   readonly output: S | undefined;
@@ -61,7 +65,11 @@ export interface ErrorResult extends ResultBase {
   readonly error: RunError;
 }
 
-/** A run that your own stop check ended. `stoppedBy` is the reason it gave. */
+/**
+ * A run that stopped before it finished, for a reason `stoppedBy` names. `clarification`: a tool from
+ * `clarificationTool()` asked the user a question. Add the answer to `context` as a user message and pass it to
+ * `continueRun()`.
+ */
 export interface StoppedResult extends ResultBase {
   readonly stopReason: "stopped";
   readonly stoppedBy: string;

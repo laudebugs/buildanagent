@@ -46,7 +46,7 @@ test("the order agent example streams the answer after looking the order up", as
     },
   );
   adapter.assertComplete();
-  assert.equal(outcome, "answered");
+  assert.equal(outcome, "Order 42 has shipped.");
   assert.equal(streamed, "Order 42 has shipped.");
 });
 

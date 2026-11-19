@@ -194,6 +194,12 @@ function setupOf(options: RunOptions<unknown>, context: Context, input: readonly
     throw new SdkError("invalid_run_options", `maxSteps must be a positive integer, got ${maxSteps}`);
   }
   const tools = toolsOf(options);
+  if (options.output !== undefined && (options.output.exposure ?? "direct") !== "direct") {
+    throw new SdkError(
+      "invalid_run_options",
+      `the output tool "${options.output.name}" must be sent to the model, so its exposure must be "direct"`,
+    );
+  }
   return {
     runId: (options.idGenerator ?? randomIds)(),
     model: options.model,
@@ -211,8 +217,8 @@ function setupOf(options: RunOptions<unknown>, context: Context, input: readonly
 /**
  * Starts a run: the model answers `input`, runs the tools it asks for, and goes on until it answers without a tool
  * call, an output tool accepts its answer, or a stop reason ends the run early. Throws an `SdkError` at once for an
- * unusable option: a model that isn't from `createModel()`, a `maxSteps` that isn't a positive integer, or two tools
- * with one name.
+ * unusable option: a model that isn't from `createModel()`, a `maxSteps` that isn't a positive integer, an output tool
+ * that isn't sent to the model, or two tools with one name.
  */
 export function run<S = unknown>(options: RunOptions<S> & RunInput): Run<S> {
   const content = typeof options.input === "string" ? [{ type: "text" as const, text: options.input }] : options.input;
