@@ -53,7 +53,10 @@ export default defineConfig({
   // Every page URL ends in a slash, so links and the search index agree on one address per page.
   trailingSlash: "always",
   devToolbar: { enabled: false },
-  vite: { plugins: [restartOnRenderInputs] },
+  // Every style and script ships as its own same-origin file, never inlined into the page, so the content security
+  // policy can allow scripts and styles by origin alone, with no hashes or 'unsafe-inline'.
+  build: { inlineStylesheets: "never" },
+  vite: { plugins: [restartOnRenderInputs], build: { assetsInlineLimit: 0 } },
   markdown: {
     // Astro 7's default processor, Sätteri, runs no remark or rehype plugins, so chapters use `unified()`.
     processor: unified(markdownOptions),

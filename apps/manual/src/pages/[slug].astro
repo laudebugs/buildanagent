@@ -1,16 +1,39 @@
 ---
 import { getCollection, render } from "astro:content";
+import type { ContentsPart } from "../components/types.js";
 import ChapterLayout from "../layouts/ChapterLayout.astro";
 
 export async function getStaticPaths() {
   const chapters = await getCollection("chapters");
-  return chapters.map((chapter) => ({ params: { slug: chapter.id }, props: { chapter } }));
+  return chapters.map((chapter, index) => ({
+    params: { slug: chapter.id },
+    props: { chapter, previous: chapters[index - 1], next: chapters[index + 1] },
+  }));
 }
 
-const { chapter } = Astro.props;
-const { Content } = await render(chapter);
+const { chapter, previous, next } = Astro.props;
+const { Content, headings } = await render(chapter);
+const chapters = await getCollection("chapters");
+// The outline arrives with the content model; until then the contents is one part in collection order.
+const parts: ContentsPart[] = [
+  {
+    title: "Chapters",
+    chapters: chapters.map((entry, index) => ({ number: index + 1, title: entry.data.title, href: `/${entry.id}/` })),
+  },
+];
+const link = (entry: typeof previous) => entry && { href: `/${entry.id}/`, title: entry.data.title };
 ---
 
-<ChapterLayout title={chapter.data.title} description={chapter.data.description}>
+<ChapterLayout
+  title={chapter.data.title}
+  description={chapter.data.description}
+  label={`Chapter ${chapters.findIndex((entry) => entry.id === chapter.id) + 1}`}
+  lede={chapter.data.description}
+  headings={headings.filter((heading) => heading.depth === 2)}
+  parts={parts}
+  current={`/${chapter.id}/`}
+  previous={link(previous)}
+  next={link(next)}
+>
   <Content />
 </ChapterLayout>

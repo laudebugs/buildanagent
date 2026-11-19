@@ -1,0 +1,32 @@
+---
+import Annotations from "./Annotations.astro";
+import { listingHtml } from "./listing-html.js";
+import type { ListingLine, ListingNote } from "./types.js";
+
+// A listing: its number, the file path, the line range and the pinned package, then the code on a panel, with
+// highlighted lines, annotation markers and the notes they point to.
+interface Props {
+  readonly id: string;
+  readonly number: string;
+  readonly path: string;
+  readonly pin: string;
+  readonly lines: readonly ListingLine[];
+  readonly notes?: readonly ListingNote[];
+}
+
+const { id, number, path, pin, lines, notes = [] } = Astro.props;
+const first = lines[0]?.number ?? 0;
+const last = lines.at(-1)?.number ?? 0;
+const noteNumber = new Map(notes.map((note, index) => [note.id, index + 1]));
+---
+
+<figure class="listing panel" id={id} aria-labelledby={`${id}-caption`}>
+  <figcaption class="listing__caption" id={`${id}-caption`}>
+    <span class="listing__number">Listing {number}</span>
+    <span class="listing__path">{path}</span>
+    <span class="listing__lines">lines {first}–{last}</span>
+    <span class="listing__pin">{pin}</span>
+  </figcaption>
+  <pre class="listing__code" tabindex="0" aria-label={`Code of listing ${number}`}><code set:html={listingHtml(id, lines, noteNumber)} /></pre>
+  <Annotations listingId={id} notes={notes} />
+</figure>

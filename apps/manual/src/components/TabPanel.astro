@@ -1,0 +1,13 @@
+---
+interface Props {
+  readonly id: string;
+  readonly title: string;
+}
+
+const { id, title } = Astro.props;
+---
+
+<section class="tabs__panel" id={id}>
+  <h4 class="tabs__heading">{title}</h4>
+  <slot />
+</section>

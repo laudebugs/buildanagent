@@ -1,0 +1,36 @@
+---
+import type { ContentsPart } from "./types.js";
+
+// The contents: parts, then numbered chapters. A planned chapter with no page yet shows as plain text.
+interface Props {
+  readonly parts: readonly ContentsPart[];
+  /** The href of the page being read, marked aria-current. */
+  readonly current?: string;
+}
+
+const { parts, current } = Astro.props;
+---
+
+<ol class="contents">
+  {
+    parts.map((part) => (
+      <li class="contents__part">
+        <p class="contents__part-title label">{part.title}</p>
+        <ol class="contents__chapters">
+          {part.chapters.map((chapter) => (
+            <li class="contents__chapter">
+              <span class="contents__number">{String(chapter.number).padStart(2, "0")}</span>
+              {chapter.href ? (
+                <a href={chapter.href} aria-current={chapter.href === current ? "page" : undefined}>
+                  {chapter.title}
+                </a>
+              ) : (
+                <span class="contents__planned">{chapter.title}</span>
+              )}
+            </li>
+          ))}
+        </ol>
+      </li>
+    ))
+  }
+</ol>

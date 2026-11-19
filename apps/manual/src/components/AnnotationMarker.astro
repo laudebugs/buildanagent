@@ -1,0 +1,11 @@
+---
+// A numbered marker on a listing line: a link to its note under the code, so it works without JavaScript.
+interface Props {
+  readonly href: string;
+  readonly number: number;
+}
+
+const { href, number } = Astro.props;
+---
+
+<a class="annotation-marker" href={href} aria-label={`Note ${number}`}>{number}</a>

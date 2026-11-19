@@ -1,0 +1,161 @@
+/* Page-wide type and colour. Every colour comes from tokens.css, and the rule, grid and border tokens appear only on
+   decorative borders and backgrounds, never on text, focus rings or meaningful lines (test/styles.test.ts). */
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+html {
+  background-color: var(--color-background);
+  color: var(--color-text);
+  font-family: var(--font-body);
+  -webkit-text-size-adjust: 100%;
+  text-size-adjust: 100%;
+}
+
+body {
+  margin: 0;
+  font-size: var(--size-text);
+  line-height: var(--line-height-body);
+  font-optical-sizing: auto;
+}
+
+/* An element with its own data-theme repaints in that mode; the gallery shows both modes side by side this way. */
+[data-theme] {
+  background-color: var(--color-background);
+  color: var(--color-text);
+}
+
+h1,
+h2,
+h3,
+h4 {
+  margin: 0;
+  font-family: var(--font-display);
+  font-weight: 400;
+  line-height: 1.1;
+  text-wrap: balance;
+}
+
+h2 {
+  margin-block: 2.5rem 0.75rem;
+  font-size: var(--size-section);
+}
+
+h3 {
+  margin-block: 2rem 0.5rem;
+  font-size: var(--size-chapter-link);
+}
+
+p,
+ul,
+ol {
+  margin-block: 0 1.1em;
+}
+
+p {
+  text-wrap: pretty;
+}
+
+/* Neither link colour is 3:1 apart from body text, so links are underlined in both modes (WCAG 1.4.1). */
+a {
+  color: var(--color-link);
+  text-decoration-line: underline;
+  text-decoration-thickness: 0.07em;
+  text-underline-offset: 0.18em;
+}
+
+a:hover {
+  text-decoration-thickness: 0.14em;
+}
+
+/* The accent reaches 3:1 on the page and on the panel in both modes (book-tokens.json, nonText). */
+:focus-visible {
+  outline: 2px solid var(--color-accent);
+  outline-offset: 2px;
+  border-radius: 2px;
+}
+
+::selection {
+  background-color: var(--color-accent);
+  color: var(--color-background);
+}
+
+code,
+kbd,
+samp,
+pre {
+  font-family: var(--font-code);
+}
+
+:not(pre) > code {
+  font-size: 0.86em;
+}
+
+hr {
+  margin-block: 2.5rem;
+  border: 0;
+  border-top: 1px solid var(--color-rule);
+}
+
+button {
+  font: inherit;
+  color: inherit;
+}
+
+/* Small capitals in the code face: chapter numbers, listing and figure labels, control captions. */
+.label {
+  font-family: var(--font-code);
+  font-size: var(--size-label);
+  font-weight: 500;
+  letter-spacing: 0.08em;
+  line-height: 1.4;
+  text-transform: uppercase;
+}
+
+.text-soft {
+  color: var(--color-text-soft);
+}
+
+.text-muted {
+  color: var(--color-text-muted);
+}
+
+.text-accent {
+  color: var(--color-accent);
+}
+
+.visually-hidden {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  margin: -1px;
+  padding: 0;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+  border: 0;
+}
+
+.skip-link {
+  position: absolute;
+  top: 0.5rem;
+  left: 0.5rem;
+  z-index: 10;
+  padding: 0.5rem 0.75rem;
+  background-color: var(--color-background);
+  transform: translateY(-200%);
+}
+
+.skip-link:focus-visible {
+  transform: none;
+}
+
+/* Controls that only work with a script render with the hidden attribute, which the script removes, so a page
+   without JavaScript shows no dead buttons. No component rule may override it. */
+[hidden] {
+  /* biome-ignore lint/complexity/noImportantStyles: no component display rule may reveal a hidden control. */
+  display: none !important;
+}

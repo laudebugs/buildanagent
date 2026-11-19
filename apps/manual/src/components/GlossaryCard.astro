@@ -1,0 +1,23 @@
+---
+// A glossary card: the term, its definition and a link to its glossary entry. `inline` renders it from spans, so a
+// term's hover card can sit inside a paragraph.
+interface Props {
+  readonly term: string;
+  readonly slug: string;
+  readonly definition: string;
+  readonly inline?: boolean;
+  readonly id?: string;
+  readonly class?: string;
+  readonly role?: string;
+}
+
+const { term, slug, definition, inline = false, id, class: className, role } = Astro.props;
+const Card = inline ? "span" : "aside";
+const Line = inline ? "span" : "p";
+---
+
+<Card class:list={["glossary-card", className]} id={id} role={role}>
+  <Line class="glossary-card__term"><dfn>{term}</dfn></Line>
+  <Line class="glossary-card__definition">{definition}</Line>
+  {!inline && <Line class="glossary-card__more"><a href={`/glossary/#${slug}`}>In the glossary</a></Line>}
+</Card>

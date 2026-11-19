@@ -1,0 +1,727 @@
+/* The book's components. A panel (listing, figure, replay) takes the panel tokens of the current mode: in light mode
+   one shade darker than the page and framed by its border, in dark mode C1 Ember. */
+
+.panel {
+  border: 1px solid var(--panel-border);
+  border-radius: 6px;
+  background-color: var(--panel-background);
+  color: var(--panel-text);
+}
+
+/* Grid paper, direction C's figure ground. The grid colour is decorative only. */
+.panel--grid {
+  background-image:
+    linear-gradient(var(--panel-grid) 1px, transparent 1px),
+    linear-gradient(90deg, var(--panel-grid) 1px, transparent 1px);
+  background-size: 24px 24px;
+  background-position: -1px -1px;
+}
+
+.panel__label {
+  color: var(--panel-comment);
+}
+
+/* A control on the page or in a panel: its border is muted text, which reaches 3:1 where the rule colour would not. */
+.control {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  min-height: 2.25rem;
+  padding: 0.25rem 0.75rem;
+  border: 1px solid currentcolor;
+  border-radius: 4px;
+  background-color: transparent;
+  font-family: var(--font-code);
+  font-size: var(--size-label);
+  letter-spacing: 0.04em;
+  cursor: pointer;
+}
+
+.control:disabled {
+  cursor: default;
+  opacity: 1;
+  border-style: dashed;
+}
+
+.controls {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.controls__status {
+  margin-left: auto;
+}
+
+/* Theme toggle */
+
+.theme-toggle {
+  color: var(--color-text-muted);
+}
+
+.theme-toggle:hover {
+  color: var(--color-text);
+}
+
+/* Search box */
+
+.search-box {
+  display: flex;
+  gap: 0.4rem;
+  align-items: center;
+}
+
+.search-box__input {
+  width: 12rem;
+  min-height: 2.25rem;
+  padding: 0.25rem 0.6rem;
+  border: 1px solid var(--color-text-muted);
+  border-radius: 4px;
+  background-color: var(--color-background);
+  color: var(--color-text);
+  font-family: var(--font-code);
+  font-size: var(--size-label);
+}
+
+.search-box__input::placeholder {
+  color: var(--color-text-muted);
+  opacity: 1;
+}
+
+.search-box .control {
+  color: var(--color-text-muted);
+}
+
+/* Contents and sidebar */
+
+.contents {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.contents__part + .contents__part {
+  margin-top: 1rem;
+}
+
+.contents__part-title {
+  margin: 0 0 0.35rem;
+  color: var(--color-text-muted);
+}
+
+.contents__chapters {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  counter-reset: chapter;
+}
+
+.contents__chapter {
+  display: grid;
+  grid-template-columns: 2.25rem 1fr;
+  align-items: baseline;
+  padding-block: 0.2rem;
+  font-size: var(--size-note);
+  line-height: 1.45;
+}
+
+.contents__number {
+  font-family: var(--font-code);
+  font-size: var(--size-label);
+  color: var(--color-text-muted);
+}
+
+.contents__chapter [aria-current="page"] {
+  color: var(--color-text);
+  font-weight: 600;
+}
+
+.contents__planned {
+  color: var(--color-text-muted);
+}
+
+.sidebar {
+  font-size: var(--size-note);
+}
+
+.sidebar__section + .sidebar__section {
+  margin-top: 1.5rem;
+}
+
+.sidebar__heading {
+  margin: 0 0 0.5rem;
+  font-family: var(--font-code);
+  font-size: var(--size-label);
+  color: var(--color-text-muted);
+}
+
+.sidebar__toc {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.sidebar__toc li {
+  padding-block: 0.2rem;
+  line-height: 1.45;
+}
+
+.sidebar summary {
+  cursor: pointer;
+  font-family: var(--font-code);
+  font-size: var(--size-label);
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--color-text-muted);
+}
+
+.sidebar details[open] summary {
+  margin-bottom: 0.75rem;
+}
+
+/* Listing block */
+
+.listing {
+  margin: 1.75rem 0;
+  overflow: hidden;
+}
+
+.listing__caption {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 0.25rem 1rem;
+  padding: 0.6rem 1rem;
+  border-bottom: 1px solid var(--panel-border);
+  font-family: var(--font-code);
+  font-size: var(--size-label);
+}
+
+.listing__number {
+  color: var(--panel-terracotta);
+}
+
+.listing__path {
+  color: var(--panel-text);
+  overflow-wrap: anywhere;
+}
+
+.listing__lines,
+.listing__pin {
+  color: var(--panel-comment);
+}
+
+.listing__pin {
+  margin-left: auto;
+}
+
+.listing__code {
+  margin: 0;
+  padding: 0.75rem 0;
+  overflow-x: auto;
+  font-size: var(--size-listing);
+  line-height: 1.6;
+  tab-size: 2;
+}
+
+.listing__code code {
+  display: block;
+  min-width: max-content;
+}
+
+.line {
+  display: block;
+  padding-inline: 0 1rem;
+  border-left: 3px solid transparent;
+}
+
+.line__number {
+  display: inline-block;
+  width: 3.5em;
+  padding-right: 1em;
+  text-align: right;
+  color: var(--panel-comment);
+  user-select: none;
+}
+
+/* A highlighted line is marked by a terracotta bar (5.32:1 and 5.93:1 on the panels), not by a fill alone. */
+.line--highlight {
+  border-left-color: var(--panel-terracotta);
+}
+
+.tok-keyword {
+  color: var(--panel-amber);
+}
+
+.tok-string {
+  color: var(--panel-olive);
+}
+
+.tok-comment {
+  color: var(--panel-comment);
+  font-style: italic;
+}
+
+.tok-highlight {
+  color: var(--panel-terracotta);
+}
+
+/* Annotation markers and their notes */
+
+.annotation-marker {
+  display: inline-grid;
+  place-items: center;
+  min-width: 1.5em;
+  height: 1.5em;
+  margin-left: 0.75em;
+  padding-inline: 0.3em;
+  border: 1px solid currentcolor;
+  border-radius: 999px;
+  color: var(--panel-terracotta);
+  font-family: var(--font-code);
+  font-size: 0.85em;
+  font-style: normal;
+  line-height: 1;
+  text-decoration: none;
+  vertical-align: 0.05em;
+}
+
+.annotations {
+  margin: 0;
+  padding: 0.75rem 1rem 0.9rem 2.75rem;
+  border-top: 1px solid var(--panel-border);
+  font-size: var(--size-note);
+  line-height: 1.55;
+}
+
+.annotations li {
+  padding-left: 0.25rem;
+}
+
+.annotations li::marker {
+  font-family: var(--font-code);
+  color: var(--panel-terracotta);
+}
+
+.annotations li:target {
+  outline: 2px solid var(--color-accent);
+  outline-offset: 2px;
+}
+
+.annotations a {
+  color: inherit;
+}
+
+/* Tabs. Without a script every panel shows under its own heading; with one, a tab list picks one panel. */
+
+.tabs {
+  margin: 1.75rem 0;
+}
+
+.tabs__list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.25rem;
+  margin-bottom: -1px;
+}
+
+.tabs__tab {
+  padding: 0.45rem 0.9rem;
+  border: 1px solid transparent;
+  border-bottom: 2px solid transparent;
+  background-color: transparent;
+  color: var(--color-text-muted);
+  font-family: var(--font-code);
+  font-size: var(--size-label);
+  letter-spacing: 0.04em;
+  cursor: pointer;
+}
+
+.tabs__tab:hover {
+  color: var(--color-text);
+}
+
+/* The selected tab shows in text colour with an accent bar, so colour is not its only cue. */
+.tabs__tab[aria-selected="true"] {
+  color: var(--color-text);
+  border-bottom-color: var(--color-accent);
+}
+
+.tabs__heading {
+  margin: 1.25rem 0 0.5rem;
+  font-family: var(--font-code);
+  font-size: var(--size-label);
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--color-text-muted);
+}
+
+.tabs[data-enhanced] .tabs__heading {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+}
+
+.tabs[data-enhanced] .tabs__panel > .listing {
+  margin-top: 0;
+}
+
+/* Figure frame and the isometric stepper */
+
+.figure {
+  margin: 1.75rem 0;
+}
+
+.figure__stage {
+  display: grid;
+  place-items: center;
+  min-height: 12rem;
+  padding: clamp(1rem, 4vw, 2.5rem);
+}
+
+.figure__stage svg {
+  display: block;
+  width: 100%;
+  max-width: 56rem;
+  height: auto;
+}
+
+.figure__caption {
+  margin-top: 0.75rem;
+  font-size: var(--size-note);
+  line-height: 1.5;
+  color: var(--color-text-soft);
+}
+
+.figure__number {
+  margin-right: 0.5rem;
+  color: var(--color-accent);
+}
+
+/* Figure marks. SVG presentation attributes cannot read custom properties, so figures colour their parts through
+   these classes, and a figure follows the panel of the current mode. */
+.fig-text {
+  fill: var(--panel-text);
+  font-family: var(--font-code);
+  font-size: 12px;
+}
+
+.fig-line {
+  fill: none;
+  stroke: var(--panel-text);
+  stroke-width: 2;
+}
+
+.fig-line--accent {
+  stroke: var(--panel-terracotta);
+}
+
+.fig-amber {
+  fill: var(--panel-amber);
+}
+
+.fig-olive {
+  fill: var(--panel-olive);
+}
+
+.fig-terracotta {
+  fill: var(--panel-terracotta);
+}
+
+.fig-shade {
+  fill: var(--panel-comment);
+}
+
+.fig-shade-deep {
+  fill: var(--panel-text);
+  opacity: 0.7;
+}
+
+.stepper {
+  padding: 0.9rem 1rem 1rem;
+  border-top: 1px solid var(--panel-border);
+}
+
+.stepper__steps {
+  display: grid;
+  gap: 0.75rem;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  counter-reset: step;
+}
+
+.stepper__step {
+  display: grid;
+  grid-template-columns: 2rem 1fr;
+  gap: 0 0.5rem;
+  counter-increment: step;
+  font-size: var(--size-note);
+  line-height: 1.55;
+}
+
+.stepper__step::before {
+  content: counter(step, decimal-leading-zero);
+  font-family: var(--font-code);
+  font-size: var(--size-label);
+  line-height: 1.9;
+  color: var(--panel-terracotta);
+}
+
+.stepper__title {
+  display: block;
+  font-weight: 600;
+}
+
+.stepper__step p {
+  grid-column: 2;
+  margin: 0;
+  color: var(--panel-comment);
+}
+
+/* With the script, one step shows at a time beside its controls. */
+[data-enhanced] .stepper__step:not([aria-current="step"]) {
+  display: none;
+}
+
+.stepper .controls {
+  margin-top: 0.9rem;
+  color: var(--panel-text);
+}
+
+.stepper .controls__status {
+  color: var(--panel-comment);
+}
+
+/* A figure part tied to a step dims while another step is current. */
+[data-enhanced] [data-step-part] {
+  transition: opacity 160ms ease;
+}
+
+[data-enhanced] [data-step-part][data-dimmed] {
+  opacity: 0.25;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  [data-enhanced] [data-step-part] {
+    transition: none;
+  }
+}
+
+/* Replay controls over a recorded run */
+
+.replay {
+  margin: 1.75rem 0;
+}
+
+.replay__header {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.25rem 1rem;
+  padding: 0.6rem 1rem;
+  border-bottom: 1px solid var(--panel-border);
+}
+
+.replay__events {
+  margin: 0;
+  padding: 0.75rem 1rem;
+  list-style: none;
+  font-family: var(--font-code);
+  font-size: var(--size-listing);
+  line-height: 1.6;
+}
+
+.replay__event {
+  display: grid;
+  grid-template-columns: 6.5rem 1fr;
+  gap: 0.75rem;
+  padding-block: 0.35rem;
+}
+
+.replay__event + .replay__event {
+  border-top: 1px dashed var(--panel-border);
+}
+
+.replay__role {
+  color: var(--panel-comment);
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  font-size: var(--size-label);
+  line-height: 2;
+}
+
+.replay__event[data-kind="model"] .replay__role {
+  color: var(--panel-amber);
+}
+
+.replay__event[data-kind="tool"] .replay__role {
+  color: var(--panel-olive);
+}
+
+.replay__event[data-kind="check"] .replay__role {
+  color: var(--panel-terracotta);
+}
+
+.replay__body {
+  margin: 0;
+  overflow-wrap: anywhere;
+  white-space: pre-wrap;
+}
+
+.replay[data-enhanced] .replay__event[data-future] {
+  display: none;
+}
+
+.replay .controls {
+  padding: 0.6rem 1rem 0.8rem;
+  border-top: 1px solid var(--panel-border);
+  color: var(--panel-text);
+}
+
+.replay .controls__status {
+  color: var(--panel-comment);
+}
+
+/* Side notes sit in the article flow, and float into the right margin once the page has one. */
+
+.sidenote {
+  margin: 1.25rem 0;
+  padding-left: 0.9rem;
+  border-left: 2px solid var(--color-rule);
+  font-size: var(--size-note);
+  line-height: 1.55;
+  color: var(--color-text-soft);
+}
+
+.sidenote__label {
+  display: block;
+  margin-bottom: 0.2rem;
+  color: var(--color-accent);
+}
+
+.sidenote p:last-child {
+  margin-bottom: 0;
+}
+
+@media (min-width: 80rem) {
+  .article .sidenote {
+    float: right;
+    clear: right;
+    width: var(--side-note-width);
+    margin: 0.3rem calc(-1 * (var(--side-note-width) + 2.5rem)) 1rem 0;
+  }
+}
+
+/* Glossary card and the inline term that opens it */
+
+.glossary-card {
+  margin: 1.25rem 0;
+  padding: 0.9rem 1rem;
+  border: 1px solid var(--color-rule);
+  border-radius: 6px;
+  background-color: var(--color-background);
+  color: var(--color-text);
+  font-size: var(--size-note);
+  line-height: 1.55;
+}
+
+.glossary-card__term,
+.glossary-card__definition,
+.glossary-card__more {
+  display: block;
+}
+
+.glossary-card__term {
+  margin: 0 0 0.35rem;
+  font-family: var(--font-display);
+  font-size: var(--size-chapter-link);
+  line-height: 1.15;
+}
+
+.glossary-card__term dfn {
+  font-style: normal;
+}
+
+.glossary-card__definition {
+  margin: 0 0 0.5rem;
+}
+
+.glossary-card__more {
+  margin: 0;
+  font-family: var(--font-code);
+  font-size: var(--size-label);
+}
+
+.glossary-term {
+  position: relative;
+}
+
+.glossary-term__link {
+  text-decoration-style: dotted;
+}
+
+.glossary-term__card {
+  position: absolute;
+  bottom: calc(100% + 0.4rem);
+  left: 0;
+  z-index: 5;
+  display: none;
+  width: min(20rem, 80vw);
+  margin: 0;
+  box-shadow: 0 6px 20px rgb(0 0 0 / 0.18);
+}
+
+.glossary-term:hover .glossary-term__card,
+.glossary-term:focus-within .glossary-term__card {
+  display: block;
+}
+
+.glossary-term[data-dismissed] .glossary-term__card {
+  display: none;
+}
+
+/* Citation */
+
+.citation {
+  font-family: var(--font-code);
+  font-size: 0.72em;
+  line-height: 0;
+  vertical-align: super;
+}
+
+.citation a {
+  padding-inline: 0.1em;
+}
+
+/* Gallery */
+
+.gallery {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 34rem), 1fr));
+}
+
+.gallery__theme {
+  min-width: 0;
+  padding: 1.5rem var(--gutter) 3rem;
+}
+
+.gallery__theme + .gallery__theme {
+  border-top: 1px solid var(--color-rule);
+}
+
+.gallery__item {
+  margin-top: 2.5rem;
+}
+
+.gallery__item > h3 {
+  margin: 0 0 0.75rem;
+  font-family: var(--font-code);
+  font-size: var(--size-label);
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--color-text-muted);
+}

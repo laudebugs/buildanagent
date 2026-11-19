@@ -1,0 +1,21 @@
+---
+import type { ListingNote } from "./types.js";
+
+// The notes on a listing's lines, as a numbered list under the code; each marker links to its note.
+interface Props {
+  readonly listingId: string;
+  readonly notes: readonly ListingNote[];
+}
+
+const { listingId, notes } = Astro.props;
+---
+
+{
+  notes.length > 0 && (
+    <ol class="annotations" aria-label="Notes on this listing">
+      {notes.map((note) => (
+        <li id={`${listingId}-note-${note.id}`}>{note.text}</li>
+      ))}
+    </ol>
+  )
+}

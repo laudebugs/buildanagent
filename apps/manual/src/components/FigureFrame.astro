@@ -1,0 +1,49 @@
+---
+import StepControls from "./StepControls.astro";
+import type { FigureStep } from "./types.js";
+
+// A figure on the grid-paper panel, with its number and caption under it. Given steps, it becomes the isometric
+// stepper: every step is listed under the figure, and src/scripts/steps.ts shows one at a time and dims the parts
+// (data-step-part) that belong to other steps.
+interface Props {
+  readonly id: string;
+  readonly number: string;
+  readonly caption: string;
+  readonly steps?: readonly FigureStep[];
+  readonly class?: string;
+}
+
+const { id, number, caption, steps = [], class: className } = Astro.props;
+const stepped = steps.length > 1;
+---
+
+<figure class:list={["figure", className]} id={id} aria-labelledby={`${id}-caption`}>
+  <div class="panel" data-steps={stepped ? "single" : undefined}>
+    <div class="figure__stage panel--grid">
+      <slot />
+    </div>
+    {
+      stepped && (
+        <div class="stepper">
+          <ol class="stepper__steps">
+            {steps.map((step) => (
+              <li class="stepper__step" data-step={step.id}>
+                <span class="stepper__title">{step.title}</span>
+                <p>{step.text}</p>
+              </li>
+            ))}
+          </ol>
+          <StepControls label={`Steps of figure ${number}`} />
+        </div>
+      )
+    }
+  </div>
+  <figcaption class="figure__caption" id={`${id}-caption`}>
+    <span class="figure__number label">Figure {number}</span>
+    {caption}
+  </figcaption>
+</figure>
+
+<script>
+  import "../scripts/steps.ts";
+</script>
