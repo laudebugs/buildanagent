@@ -326,4 +326,22 @@ The first round's fixes changed what §3f and ADR 0047 claim, so rows 207–217 
 | 216 | On this branch after merging `main` at `3c438b0`, the plan asks for a version and publishes nothing, and `pnpm changeset version` moves both packages to 0.1.0-alpha.1 | ✅ | Local run, 2026-11-19: `release-plan.mjs plan` printed `publish=false` and `needs_version=true` for one pending changeset. In a throwaway worktree, `changeset version` changed six entries, none under `packages/agent-safety` or `packages/manual`, and `version-pr.mjs check` accepted them as a version commit for 0.1.0-alpha.1 |
 | 217 | The versioned packages are the public `packages/*`, so the private `@buildanagent/agent-safety` from #65 is never versioned | ✅ | `gitChange` keeps only packages whose base `package.json` lacks `private: true`; `packages/agent-safety/package.json` sets it. `version-pr.test.mjs` checks this checkout's list and refuses a private package's version change |
 
-**Totals:** 217 claims: 160 ✅, 40 ✏️, 17 ⚠️.
+## Verified Version packages commits (2026-11-19)
+
+Pull request #70 was blocked by "Commits must have verified signatures", so this pull request makes the version commit through GitHub's API. GitHub's claims were read on the live docs.github.com on 2026-11-19, and the repository's state through the REST API the same day.
+
+| # | Claim | Verdict | Source and reason |
+| --- | --- | --- | --- |
+| 218 | Commits made with `createCommitOnBranch` "are automatically signed by GitHub if supported and will be marked as verified"; they are authored by the owner of the credential, and the mutation takes no author or committer | ✅ | [GraphQL reference, `createCommitOnBranch`](https://docs.github.com/en/graphql/reference/commits#mutation-createcommitonbranch), "Authorship" and "Commit Signing" |
+| 219 | The mutation's commit has the branch's head as its parent, `expectedHeadOid` must match that head, and `fileChanges` holds additions and deletions | ✅ | The same page and `CreateCommitOnBranchInput` on it |
+| 220 | GitHub promises a signature for commits made through APIs such as the Commits API only when the request is authenticated as a GitHub App or bot and sets no custom author, committer or signature | ✅ | [About commit signature verification](https://docs.github.com/en/authentication/managing-commit-signature-verification/about-commit-signature-verification#signature-verification-for-bots) |
+| 221 | `createCommitOnBranch` called with `RELEASE_PR_TOKEN`, a fine-grained personal access token, gives a commit that reads as verified here | ⚠️ | Inferred from row 218, whose "if supported" names no condition on the token type; nothing in row 220 limits the mutation. The next release run settles it: `version-commit.mjs` fails, leaving the branch alone, unless REST reports `verification.verified` true |
+| 222 | A ruleset that requires signed commits checks the head branch's commits when GitHub decides whether a pull request can merge, so an unsigned commit there blocks even a squash merge | ✅ | [Available rules for rulesets](https://docs.github.com/en/repositories/configuring-branches-and-merges-in-your-repository/managing-rulesets/available-rules-for-rulesets#require-signed-commits) |
+| 223 | #70's head commit `9a375a4`, pushed with `git` by the `version-pr` job, was unsigned | ✅ | `GET repos/laudebugs/buildanagent/commits/9a375a4…` showed `verification.verified: false`, `reason: unsigned`, author `github-actions[bot]` |
+| 224 | The REST git commit object carries `verification.verified` and `verification.reason` | ✅ | [REST git commits](https://docs.github.com/en/rest/git/commits) |
+| 225 | §3f, `.changeset/README.md` and `CONTRIBUTING.md` said `main` didn't require the `checks` status yet | ✏️ | `GET repos/laudebugs/buildanagent/branches/main` on 2026-11-19 listed `checks` among the required contexts, enforced for non-admins; the three documents now say so |
+| 226 | #70 merged at 2026-11-19T15:03:54Z as `e2b8397`, a squash commit GitHub signed, and the release run on it succeeded | ✅ | `GET repos/…/pulls/70` and `…/commits/e2b8397`, `verification.verified: true`, committer GitHub; release run 44550571848. How the owner got past the rule isn't recorded |
+| 227 | Moving an open pull request's head branch back to its base would leave it with no commits, and GitHub's docs don't say what happens to it then | ⚠️ | Unverified: no docs page found. The script avoids the case with `changeset-release/staging` |
+| 228 | Besides `version-pr`, only `sdk-updates.yml` creates commits; the guard only runs `gh pr merge --disable-auto` | ✅ | Search of `.github/workflows/` and `scripts/ci/` on this branch for `git commit`, `git push` and commit endpoints |
+
+**Totals:** 228 claims: 168 ✅, 41 ✏️, 19 ⚠️.
