@@ -46,13 +46,15 @@ Every adapter takes a `ProviderConfig` whose `apiKey` you pass in. The gateway n
 
 ## Retries happen only before the model streams output
 
-A call that fails before the model has streamed any content is retried twice by default. The first retry waits 2 seconds and the second waits 4, and each retry streams a `retry` event with the attempt number, the delay and the error. Set `retries` to change the count, or to 0 to turn retries off.
+A call that fails before the model has streamed any content is retried twice by default. The first retry waits 2 seconds and the second waits 4, and each retry streams a `retry` event with the attempt number, the delay and the error. Each wait doubles and is capped at 60 seconds. Set `retries` to change the count, or to 0 to turn retries off.
 
 Three rules keep a retry from doing harm. First, once a content event has reached you, the gateway never retries, because a second attempt would replay text you have already seen. Second, only errors of kind `retryable` are retried, such as a rate limit or an overloaded server. A `quota` error, a context `overflow` or a `fatal` error ends the call at once, because waiting will not fix it. Third, aborting the signal during a wait ends the stream at once with `stopReason: "aborted"`.
 
-A failed attempt still costs tokens, so the final message's `usage` adds up every attempt, not only the last. An adapter whose stream throws, for example on a dropped connection, is treated like one that ends with an error. A failed fetch is retried; any other throw ends the call with a `fatal` error event, so an adapter's failure never makes `stream()` throw. A middleware or `onRequest` hook that throws is your code failing, and its error reaches you from `stream()`.
+A failed attempt still costs tokens, so the final message's `usage` and `cost` add up every attempt, not only the last. If any attempt's cost is unknown, the total is unknown too.
 
-Adapters sort a failed request into these four kinds with `classifyError()`, from its HTTP status and the provider's error code or message.
+An adapter whose stream throws, for example on a dropped connection, is treated like one that ends with an error. A failed fetch is retried, and any other throw ends the call with a `fatal` error event, so an adapter's failure never makes `stream()` throw. A throwing `onRequest` hook runs inside the attempt, so it also ends the call with a `fatal` error. A middleware that throws runs outside the call, so its error makes `stream()` throw.
+
+Adapters sort a failed request into the four kinds, `retryable`, `quota`, `overflow` and `fatal`, with `classifyError()`, from its HTTP status and the provider's error code or message.
 
 ## Middleware wraps every call, first one outermost
 
