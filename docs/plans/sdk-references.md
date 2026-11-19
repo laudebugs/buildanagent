@@ -1,6 +1,6 @@
 # Plan: a verified reference for every agent SDK, built with one repeatable process (Round S)
 
-- **Status:** In progress (S9 Strands Agents added 2026-11-18; S1–S8 done)
+- **Status:** In progress (S9 Strands Agents added 2026-11-18; S1–S8 done; S10, voice sections in three references, added 2026-11-19)
 - **Date:** 2026-11-18
 - **Asked for by:** the project owner (2026-11-18): fetch each SDK's docs, build a thorough reference, fact-check the docs, and find a way to verify the examples
 - **Builds on:**
@@ -62,7 +62,7 @@ Result: `@openai/agents@0.21.0`, docs mirrored from tag `v0.21.0`. 182 sources t
 - **Format work:** `.mdx` pages embed code from files with Astro components and imports. The extractor must resolve those embeds to the real files, which also brings the `examples/` folder under test.
 - **Test model:** the SDK's `Model` and `ModelProvider` interfaces run the loop in-process. Check for a first-party fake model in the SDK's tests first; otherwise write a scripted `Model`, the equivalent of Pi's faux provider.
 - **Behaviors to verify:** handoffs between agents, input and output guardrails that trip a run, function tools with Zod schemas, human-in-the-loop approval (`needsApproval` and resuming from `RunState`), sessions, structured output (`outputType`), `maxTurns`, and tracing hooks. Sandbox agents ship in the Python SDK; record whether the JS SDK has them.
-- **Out of scope:** the realtime and voice agents, and the Python SDK. Note them in the guide.
+- **Out of scope:** the realtime and voice agents, and the Python SDK. Note them in the guide. *Revised 2026-11-19 (owner decision 2026-11-19): the realtime and voice agents left this list, and S10 adds them.*
 
 ### S4 Vercel AI SDK (done)
 
@@ -129,6 +129,10 @@ The owner added Strands as a ninth SDK after the [U10 report](../research/extern
 
 The owner asked to document, for every SDK whose primary language isn't TypeScript, what the TypeScript SDK is missing. Todo C5 writes `docs/comparison/typescript-gaps.md`. For each SDK it lists the features in the primary-language SDK that the TypeScript package lacks, has only in a weaker form, or documents only for the primary language. Each gap cites the primary-language docs or source, at a recorded version, and the TypeScript package's `.d.ts` that shows the absence. The report covers OpenAI Agents (Python first), LangChain (Python first), Google ADK (Python first), and the Claude Agent SDK's Python package, plus Copilot if it has other official SDKs. Each reference's fact-check then gains a short parity section that links to the report.
 
+### Voice and realtime in three references (added 2026-11-19)
+
+The plan first left the realtime and voice agents out of scope (S3). The [voice research](../research/voice/voice-and-realtime.md#two-sdks-ship-a-voice-agent-two-ship-experimental-live-layers-and-four-leave-voice-to-the-builder) (U20) then found that the OpenAI Agents SDK and Cloudflare Agents ship a voice agent, and that Google ADK ships an experimental live layer whose TypeScript docs lag its code. The owner approved its change 6 on 2026-11-19 (owner decision 2026-11-19), so voice is now in scope for those three references. Todo S10 adds a voice and realtime section to each guide, with fact-check rows, and marks claims **[verified]** where the book's examples T46 and T47 have run them. The other five SDKs ship no voice agent as of November 2026, so their references need no section.
+
 ## 5. Todos
 
 | ID | Title | Depends on |
@@ -149,6 +153,7 @@ The owner asked to document, for every SDK whose primary language isn't TypeScri
 | S8b | GitHub Copilot SDK: guide and fact-check, written and reviewed (done) | S8a |
 | S9a | Strands Agents: mirror, verification harness, behavioral examples and TS parity check (from 2026-11-20) | S8b, U10 |
 | S9b | Strands Agents: guide and fact-check, written and reviewed | S9a |
+| [S10](../todos/ready/S10-voice-reference-sections.md) | Voice and realtime sections in the OpenAI, Cloudflare and ADK references (added 2026-11-19) | U20 |
 
 ## 6. Risks
 

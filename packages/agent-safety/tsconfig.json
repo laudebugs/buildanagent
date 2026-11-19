@@ -1,0 +1,10 @@
+{
+  "extends": "../../tsconfig.packages.json",
+  "compilerOptions": {
+    // `ai` reaches eventsource-parser, which ships a `source` condition whose src/*.ts imports name `.ts` files. Our
+    // `source` condition makes TypeScript read them, so this type-check allows `.ts` specifiers; the build config
+    // still forbids them, and test/boundaries.test.ts fails on one in our own files.
+    "allowImportingTsExtensions": true
+  },
+  "include": ["src/**/*.ts", "test/**/*.ts", "vitest.config.ts"]
+}
