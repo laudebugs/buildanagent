@@ -637,4 +637,12 @@ The high review of PR #76 found the offline-gate items unticked with no record. 
 | 367 | `node --test scripts/ci/*.test.mjs` runs 138 tests, 135 pass, 2 skip and 1 fails: the packed packages' offline install, which fails the same way at `46e6721` | Todo boxes, Outcome | ✅ | Runs on this branch and on a detached checkout of `46e6721`: both `ℹ tests 138`, `pass 135`, `skipped 2`, `fail 1`, the same test, with `ERR_PNPM_NO_OFFLINE_META` after corepack downloaded pnpm 12.21.0 |
 | 368 | `ci.yml`'s `pnpm test` already runs the figure test and `book:switch-report`, so both run twice per pull request, about 4 seconds | Outcome, CI plan | ✅ | `apps/manual/package.json`: `"test": "vitest run && tsx scripts/switch-report.ts"`, and `vitest run` includes `test/figures.test.ts`; timed locally at 1.9 s and 1.7 s (row 357) |
 
-**Totals:** 368 claims: 325 ✅, 43 ✏️, 0 ⚠️.
+### T8's writing review
+
+The writing review split long sentences and reworded the workflow's step comment, AGENTS.md's line, the CI plan's line and the Outcome. This row re-checks the claims those fixes touched.
+
+| # | Claim | Where | Verdict | Source and reason |
+| --- | --- | --- | --- | --- |
+| 369 | The reworded lines keep the claims of rows 350–368, and `check:book` checks "the three registers": the source register, the glossary and the analogy register | Workflow, AGENTS.md, CI plan, Outcome | ✅ | Each rewritten sentence matched to its row; `loadBook()`'s doc comment in `src/book/load.ts` names "the outline's rules, the source register …, the glossary, the analogy register", and the type it returns is "its three registers" |
+
+**Totals:** 369 claims: 326 ✅, 43 ✏️, 0 ⚠️.

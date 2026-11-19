@@ -35,8 +35,8 @@ jobs:
           cache: pnpm
       # ci.yml's user-namespace step is left out: only the Copilot harness's examples need it, and none run here.
       - run: pnpm install --frozen-lockfile
-      # The outline, the source register, the glossary, the analogy register, the listings and every chapter, against
-      # the build's own rules. The register and glossary checks have no command of their own; they run here.
+      # Checks the outline, the three registers, the listings and every chapter against the build's own rules. The
+      # source register and glossary checks have no command of their own, so they run here.
       - run: pnpm --filter @buildanagent/manual check:book
       - run: pnpm --filter @buildanagent/manual book:switch-report
       # check:book reads the committed SVGs, so a figure whose script changed without figures:build passes it; this
