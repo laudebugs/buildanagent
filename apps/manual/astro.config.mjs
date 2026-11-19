@@ -39,7 +39,8 @@ const renderInputs = [
 ].sort();
 const renderHash = createHash("sha256");
 for (const file of renderInputs) renderHash.update(file.slice(here("./").length)).update(readFileSync(file));
-// The other chapters' numbered blocks, which a chapter's references and numbers depend on.
+// Every chapter's numbered blocks, which references and numbers depend on, and each body's line offset, which error
+// lines depend on.
 renderHash.update(renderDependencies(book));
 const renderDigest = renderHash.digest("hex");
 const renderStamp = here(`${CACHE_DIR}render-inputs.sha256`);

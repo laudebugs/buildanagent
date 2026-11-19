@@ -433,6 +433,6 @@ The fixes for the first code-review round added these claims to the plan's T3 no
 | # | Claim | Where | Verdict | Source and reason |
 | --- | --- | --- | --- | --- |
 | 263 | A build loads the book twice, once for `astro.config.mjs` and once in the pages' prerender bundle, and with `BOOK_FIXTURE_DIR` set it prints the fixture warning once | `src/book/load.ts`, `astro.config.mjs`, the T3 todo's Outcome | ✅ | Row 239: the pages' copy of `load.ts` runs from `dist/.prerender/chunks/`, apart from the config's. `BOOK_FIXTURE_DIR=test/fixtures/site astro build` on 2026-11-19 printed "BOOK_FIXTURE_DIR is set" once, now that the flag lives on `globalThis` |
-| 264 | Row 258's linear scan holds for the pattern that may cross a line break, `/\[\[[^\]]{0,200}\]\]/g` | `rehype-numbering.ts`, `citations.ts` | ✅ | Node 24 on 2026-11-19: 20,000 copies of `[[` took 27 ms, and 20,000 of `[[` followed by a newline took 14 ms. Row 258 quoted the earlier pattern, which also stopped at a newline and so let a malformed citation or reference that crossed one pass as text |
+| 264 | Row 258's linear scan holds for the pattern that may cross a line break, `/\[\[[^\]]{0,200}\]\]/g` | `rehype-numbering.ts`, `citations.ts` | ✏️ | Node 24 on 2026-11-19: 20,000 copies of `[[` took 27 ms, and 20,000 of `[[` followed by a newline took 14 ms. Row 258 quoted the earlier pattern, which also stopped at a newline and so let a malformed citation or reference that crossed one pass as text |
 
-**Totals:** 264 claims: 236 ✅, 28 ✏️, 0 ⚠️.
+**Totals:** 264 claims: 235 ✅, 29 ✏️, 0 ⚠️.

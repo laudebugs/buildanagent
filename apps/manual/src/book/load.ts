@@ -194,8 +194,9 @@ function checkIllustrations(
 
 /**
  * What every chapter's rendered output depends on beyond its own file: which chapters exist, their numbers, the
- * numbered blocks in each, and the line offset of each body, which error lines depend on. Astro caches a chapter until the chapter itself changes, so `astro.config.mjs` clears the
- * cache when this text changes, as when a figure is added to one chapter and another chapter refers to it.
+ * numbered blocks in each, and the line offset of each body, which error lines depend on. Astro caches a chapter
+ * until the chapter itself changes, so `astro.config.mjs` clears the cache when this text changes, as when a figure is
+ * added to one chapter and another chapter refers to it.
  */
 export function renderDependencies(book: Book): string {
   return JSON.stringify(
