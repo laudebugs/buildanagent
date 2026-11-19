@@ -2,7 +2,7 @@
 title: "Talking to a model: messages, streams, tokens, instructions and model choice"
 summary: A model call sends the whole conversation and gets back one message, often as a stream of pieces, with a bill in four token classes. This chapter reads each part of that exchange, then shows what belongs in the system prompt, how to choose a model, and why thinking goes back to the model untouched.
 opening: code
-sources: [anthropic-working-with-messages, ai-sdk-prompts, anthropic-how-tool-use-works, ai-sdk-generating-text, ai-sdk-stream-text, langchain-streaming, copilot-streaming-events, anthropic-pricing, anthropic-thinking, anthropic-prompt-caching, anthropic-effective-context-engineering, anthropic-prefix-checks]
+sources: [anthropic-working-with-messages, ai-sdk-prompts, anthropic-how-tool-use-works, ai-sdk-generating-text, ai-sdk-stream-text, langchain-streaming, copilot-streaming-events, anthropic-pricing, anthropic-thinking, anthropic-prompt-caching, anthropic-effective-context-engineering, anthropic-prefix-checks, openai-practical-guide-to-building-agents]
 glossary: []
 switchTo: [B4, B5]
 ---
@@ -125,6 +125,28 @@ The card stays frozen because two mechanisms read the front of the request as on
 The second mechanism is stricter. On Anthropic's models with preserved thinking, each thinking block is checked against everything that came before it, and the check "fails if `system`, `tools`, or an earlier message changed after Claude produced a block" [@anthropic-prefix-checks]. Anthropic's own example is the one this section warns about: an app that puts today's date in its system prompt. "At midnight the date changes, and so does the prefix of the thinking already in the conversation", and the next request can fail. The fix the same page gives is the tour guide's: keep the system prompt as it was, and state the new date in a message at the end. On newer Claude models that message may even carry the `system` role, since a system message added mid-conversation "does not invalidate any cached prefix that came before it" [@anthropic-working-with-messages].
 
 The briefing card differs from a system prompt in two ways. A guide who finds a line on the card unclear can phone the office and ask; a model cannot ask what an instruction meant, so it acts on its best reading of the words. And a guide can cross out a line between tours at no cost, while a changed system prompt breaks the cache, and on some models the conversation's thinking, for every call that follows. Write the card carefully, then leave it alone until the session ends.
+
+## Choose a model by starting with the most capable, then trying smaller ones against your evals
+
+A director casting a new play often follows :analogy[a casting rule]{#casting-understudies}: give the lead to the most experienced actor first, to learn what the part can be, then have understudies play the same scenes and keep whoever plays them well enough. Nobody casts the cheapest actor first and hopes. The part has to be seen played well before anyone can judge a cheaper performance of it.
+
+OpenAI's guide to building agents gives the same order for models. "An approach that works well is to build your agent prototype with the most capable model for every task to establish a performance baseline. From there, try swapping in smaller models to see if they still achieve acceptable results." The guide's reason is that "you don't prematurely limit the agent's abilities, and you can diagnose where smaller models succeed or fail". It sums the method up in three principles: "Set up evals to establish a performance baseline", "Focus on meeting your accuracy target with the best models available", and "Optimize for cost and latency by replacing larger models with smaller ones" [@openai-practical-guide-to-building-agents]. Anthropic's context-engineering post starts in the same place, "testing a minimal prompt with the best model available to see how it performs on your task" [@anthropic-effective-context-engineering].
+
+The prices show why the second step is worth taking. [[tbl:claude-rates]] lists the three Claude 5.5 models as of November 2026, and the gap from the top of the table to the bottom is large.
+
+:::table[Claude 5.5 rates per million tokens, as of November 2026]{#claude-rates}
+| Model | Uncached input | Five-minute cache write | Cache read | Output |
+| --- | --- | --- | --- | --- |
+| Claude Opus 5.5 | $4 | $5 | $0.20 | $20 |
+| Claude Sonnet 5.5 | $2 | $2.50 | $0.10 | $10 |
+| Claude Haiku 5.5, prompts up to 100,000 tokens | $0.10 | $0.125 | $0.01 | $0.50 |
+:::
+
+Price [[lst:stream-usage]]'s call on Opus 5.5 and the same four classes cost $0.0108, twice the $0.0054 they cost on Sonnet 5.5. Haiku 5.5's rates are a twentieth of Sonnet's for uncached input and output, and Haiku is priced by prompt length: a request whose prompt is over 100,000 tokens pays $0.50 for input and $2.50 for output, still well under Sonnet [@anthropic-pricing]. Anthropic's own rule of thumb points the same way as OpenAI's method: "Choose Haiku for simple tasks, Sonnet for most production workloads, and Opus for the most complex reasoning."
+
+A smaller model is the right choice only when it still passes. OpenAI's guide notes that "a simple retrieval or intent classification task may be handled by a smaller, faster model, while harder tasks like deciding whether to approve a refund may benefit from a more capable model", and that one workflow may use "a variety of models for different tasks" [@openai-practical-guide-to-building-agents]. The order-status agent of Chapter 1 shows the split. Sorting a message into "where is my order" or "something else" is classification, which a small model may handle. Deciding what to tell a customer whose parcel is held at customs is judgement, which may need the large one. We recommend comparing models by the cost of each task that passes your evals, not by the price of a call, because a cheap model that fails one task in five sends that task to a second attempt or to a person.
+
+The casting analogy breaks at rehearsal. An understudy improves with every run-through, but a model keeps nothing between calls, so the hundredth run of an eval meets the same model as the first. What improves between runs is everything around the model, the prompt and the evals that judge it, which is why the evals have to exist before the swap. This book's listings cannot run that comparison for you, since every model in them is a mock that plays back answers someone wrote. [[ch:testing-offline-and-a-first-agent]] shows what such checks prove and what only a real model can.
 
 ## Exercises
 

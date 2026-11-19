@@ -54,5 +54,13 @@
     "chapter": "talking-to-a-model",
     "illustration": null,
     "breaks": "The model cannot ask what the card means, and a changed card breaks the cache."
+  },
+  {
+    "id": "casting-understudies",
+    "concept": "model choice",
+    "analogy": "casting the lead with the most experienced actor, then trying understudies in the same scenes",
+    "chapter": "talking-to-a-model",
+    "illustration": null,
+    "breaks": "A model does not improve with rehearsal; only the prompt and the evals do."
   }
 ]
