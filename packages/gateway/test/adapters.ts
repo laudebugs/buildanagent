@@ -36,8 +36,12 @@ interface Billing {
   cost?: Cost;
 }
 
-/** One scripted attempt: a reply, or a failure before or after the first text delta. */
-export type Attempt = ({ reply: string } | { fail: ErrorKind; afterOutput?: boolean; message?: string }) & Billing;
+/** One scripted attempt: a reply, or a failure before or after the first text delta, with any retry-after hint. */
+export type Attempt = (
+  | { reply: string }
+  | { fail: ErrorKind; afterOutput?: boolean; message?: string; retryAfterMs?: number }
+) &
+  Billing;
 
 function terminal(model: ModelRef, content: ContentBlock[], attempt: Attempt): ModelEvent {
   const base = {
@@ -48,7 +52,11 @@ function terminal(model: ModelRef, content: ContentBlock[], attempt: Attempt): M
     cost: attempt.cost ?? { total: null, basis: "unknown", currency: "USD" },
   };
   if ("reply" in attempt) return { type: "done", message: { ...base, stopReason: "stop" } as AssistantMessage };
-  const error = { kind: attempt.fail, message: attempt.message ?? `${attempt.fail} failure` };
+  const error = {
+    kind: attempt.fail,
+    message: attempt.message ?? `${attempt.fail} failure`,
+    ...(attempt.retryAfterMs === undefined ? {} : { retryAfterMs: attempt.retryAfterMs }),
+  };
   return { type: "error", message: { ...base, stopReason: "error", error } as AssistantMessage };
 }
 

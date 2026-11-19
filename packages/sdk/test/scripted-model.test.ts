@@ -6,6 +6,7 @@ import {
   type ModelContext,
   type ModelEvent,
   type ModelRef,
+  type PriceCatalog,
 } from "@buildanagent/gateway";
 import { seededRandom } from "@buildanagent/gateway/testing";
 import {
@@ -251,4 +252,40 @@ test("ScriptedModel's caps option sets the caps createModel reports", () => {
   const caps = { contextWindow: 8000, maxOutputTokens: 1000, images: false, reasoning: false };
   const model = createModel({ adapter: new ScriptedModel([], { caps }), id: "scripted-model" });
   assert.deepEqual(model.caps, caps);
+});
+
+const scriptedCatalog: PriceCatalog = {
+  models: [
+    {
+      provider: "scripted",
+      id: "scripted-model",
+      rates: [{ upToInputTokens: null, uncachedInput: 1, cacheRead: 1, cacheWrite: { "5m": 1, "1h": 1 }, output: 1 }],
+      contextWindow: 200_000,
+      maxOutputTokens: 32_000,
+      asOf: "2026-11-19",
+      sources: {
+        rates: "https://pricing.test",
+        contextWindow: "https://models.test",
+        maxOutputTokens: "https://models.test",
+      },
+    },
+  ],
+};
+
+test("a script without usage reports unreported usage, which createModel() prices as unknown", async () => {
+  const model = createModel({
+    adapter: new ScriptedModel([textStep("hi")]),
+    id: "scripted-model",
+    catalog: scriptedCatalog,
+  });
+  const message = await model.complete(context());
+  assert.equal(message.usage.unreported, true);
+  assert.deepEqual(message.cost, { total: null, basis: "unknown", currency: "USD" });
+});
+
+test("a script with usage {} reports zero tokens, which createModel() prices as a known zero", async () => {
+  const adapter = new ScriptedModel([{ ...textStep("hi"), usage: {} }]);
+  const message = await createModel({ adapter, id: "scripted-model", catalog: scriptedCatalog }).complete(context());
+  assert.equal(message.usage.unreported, undefined);
+  assert.deepEqual(message.cost, { total: 0, basis: "catalog", currency: "USD", catalogAsOf: "2026-11-19" });
 });

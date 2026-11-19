@@ -8,11 +8,16 @@
  * Text blocks become text, `thinking` and `redacted_thinking` blocks become reasoning with an Anthropic signature,
  * and `tool_use` blocks become tool calls. Server-tool blocks carry nothing this transcript can replay, so they are
  * skipped.
+ *
+ * Usage arrives on `message_start` and, with the authoritative output count, on the final `message_delta`. A stream
+ * that sent no usage object at all has `unreported` usage, and so does a finished reply whose `message_delta`s carried
+ * none, because its output count is then missing. An error mid-stream keeps whatever usage `message_start` reported.
  */
 import type { ToolNameMap } from "../../names.js";
 import type { ModelEvent } from "../../spec.js";
 import type { ServerSentEvent } from "../../sse.js";
 import type { AssistantMessage, ContentBlock, ModelRef, Usage } from "../../types.js";
+import { unreportedUsage } from "../../usage.js";
 import { isObject, type Json, parseToolInput, type StreamReader, str, terminalMessage } from "../wire.js";
 import { failureEvent, failureFrom } from "./failure.js";
 import { REDACTED_THINKING_PREFIX } from "./request.js";
@@ -49,6 +54,9 @@ export class MessageAssembler implements StreamReader {
   readonly #closed = new Map<number, ContentBlock>();
   readonly #transformations = new Set<string>();
   #usage: Json = {};
+  // Whether any event carried a usage object, and whether a `message_delta` did, with the final output count.
+  #usageSeen = false;
+  #finalUsageSeen = false;
   #stopReason = "";
   #stopDetails: unknown;
 
@@ -98,12 +106,14 @@ export class MessageAssembler implements StreamReader {
     return { content, usage: this.usage() };
   }
 
+  /** The usage so far: `unreported` until an event has carried a usage object. */
   usage(): Usage {
-    return anthropicUsage(this.#usage, this.#cacheTtl);
+    return this.#usageSeen ? anthropicUsage(this.#usage, this.#cacheTtl) : unreportedUsage();
   }
 
   #messageStart(data: Json): ModelEvent[] {
     const message = isObject(data.message) ? data.message : {};
+    if (isObject(message.usage)) this.#usageSeen = true;
     this.#usage = mergeUsage({}, message.usage);
     return this.#transformationWarnings(message.input_transformations);
   }
@@ -214,6 +224,10 @@ export class MessageAssembler implements StreamReader {
     const delta = isObject(data.delta) ? data.delta : {};
     if (typeof delta.stop_reason === "string") this.#stopReason = delta.stop_reason;
     if (delta.stop_details !== undefined) this.#stopDetails = delta.stop_details;
+    if (isObject(data.usage)) {
+      this.#usageSeen = true;
+      this.#finalUsageSeen = true;
+    }
     this.#usage = mergeUsage(this.#usage, data.usage);
     return this.#transformationWarnings(data.input_transformations ?? delta.input_transformations);
   }
@@ -225,7 +239,9 @@ export class MessageAssembler implements StreamReader {
   }
 
   #terminal(): ModelEvent[] {
-    const { content, usage } = this.partial();
+    const { content, usage: counted } = this.partial();
+    // Without a `message_delta` usage, the output count is the one `message_start` sent before any output was made.
+    const usage: Usage = this.#finalUsageSeen ? counted : { ...counted, unreported: true };
     if (this.#stopReason === "refusal") {
       const details = isObject(this.#stopDetails) ? this.#stopDetails : {};
       const category = str(details.category) || "no category";

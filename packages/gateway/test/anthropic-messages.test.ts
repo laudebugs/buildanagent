@@ -871,3 +871,54 @@ test("a request past the end of the mock script throws unexpected_request", asyn
     (error: unknown) => isGatewayError(error) && error.code === "unexpected_request",
   );
 });
+
+/** The text fixture with the usage removed from its `message_delta`, or from every event with `everywhere`. */
+function textWithoutUsage(everywhere = false): string {
+  return fixture("text.sse")
+    .split("\n")
+    .map((line) => {
+      if (!line.startsWith("data: ")) return line;
+      const data = JSON.parse(line.slice(6)) as { type?: string; usage?: unknown; message?: { usage?: unknown } };
+      if (data.type === "message_delta") delete data.usage;
+      if (everywhere && data.message) delete data.message.usage;
+      return `data: ${JSON.stringify(data)}`;
+    })
+    .join("\n");
+}
+
+test("a finished stream whose message_delta carries no usage has unreported usage", async () => {
+  const { terminal } = await run([{ body: textWithoutUsage() }]);
+  assert.equal(terminal.stopReason, "stop");
+  assert.equal(terminal.usage.unreported, true);
+});
+
+test("createModel prices a stream that reported no usage as unknown, not as a known zero", async () => {
+  const transport = mockTransport("anthropic-messages", [{ body: textWithoutUsage(true) }]);
+  const model = createModel({ adapter: anthropic({ apiKey: KEY, transport }), id: MODEL.id });
+  const message = await model.complete(hello);
+  assert.equal(message.usage.unreported, true);
+  assert.deepEqual(message.cost, { total: null, basis: "unknown", currency: "USD" });
+});
+
+test("an error mid-stream keeps the usage message_start reported", async () => {
+  const { terminal } = await run([streamed("overloaded-mid-stream.sse")]);
+  assert.equal(terminal.usage.unreported, undefined);
+  assert.ok(terminal.usage.uncachedInput > 0);
+});
+
+test("a 429's retry-after header becomes the error's retryAfterMs", async () => {
+  const { terminal } = await run([{ ...failed(429, "error-rate-limit.json"), headers: { "retry-after": "12" } }]);
+  assert.equal(terminal.error?.kind, "retryable");
+  assert.equal(terminal.error?.retryAfterMs, 12_000);
+});
+
+test("a retry-after HTTP date counts from the response's date header", async () => {
+  const headers = { "retry-after": "Thu, 19 Nov 2026 12:00:20 GMT", date: "Thu, 19 Nov 2026 12:00:00 GMT" };
+  const { terminal } = await run([{ ...failed(529, "error-overloaded.json"), headers }]);
+  assert.equal(terminal.error?.retryAfterMs, 20_000);
+});
+
+test("a 429 without retry-after has no retryAfterMs", async () => {
+  const { terminal } = await run([failed(429, "error-rate-limit.json")]);
+  assert.equal(terminal.error?.retryAfterMs, undefined);
+});

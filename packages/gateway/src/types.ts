@@ -48,6 +48,12 @@ export interface Usage {
   reasoning: number;
   /** The provider's usage object, unchanged. */
   raw: unknown;
+  /**
+   * `true` when the provider did not report this response's usage, such as a stream that ended without its usage
+   * chunk. The counts are then incomplete, often all zero, and the gateway prices the response as unknown instead of
+   * as free. Left out, the counts are what the provider reported, zeros included.
+   */
+  unreported?: true;
 }
 
 /** The price of one response. `total` is `null` when the price is unknown, never a guessed zero. */
@@ -75,6 +81,12 @@ export interface AssistantMessage {
     status?: number;
     /** A provider-neutral name for a failure the caller may want to handle on its own, when the adapter knows one. */
     code?: ModelErrorCode;
+    /**
+     * How long the provider asked the caller to wait before retrying, in milliseconds, read from the error
+     * response's `retry-after-ms` or `retry-after` header. Left out when the response sent neither or sent a value
+     * that isn't a valid delay. `createModel()` waits at least this long, up to 60 seconds, before it retries.
+     */
+    retryAfterMs?: number;
   };
   /** The tokens of every attempt the call made, failed attempts included, because the provider bills them all. */
   usage: Usage;

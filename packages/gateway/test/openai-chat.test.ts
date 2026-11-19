@@ -1060,3 +1060,60 @@ test("the adapter reads no environment variable", async () => {
   }
   assert.deepEqual(read, []);
 });
+
+/** The text fixture without its final usage chunk, as from a server that ignores `stream_options.include_usage`. */
+function withoutUsageChunk(): string {
+  return fixture("text.sse")
+    .split("\n\n")
+    .filter((event) => !event.includes('"choices":[],"usage":{'))
+    .join("\n\n");
+}
+
+test("a reply without a usage chunk has unreported usage", async () => {
+  const { terminal } = await run([{ body: withoutUsageChunk() }]);
+  assert.equal(terminal.stopReason, "stop");
+  assert.equal(terminal.usage.unreported, true);
+});
+
+test("createModel prices a reply without a usage chunk as unknown, not as a known zero", async () => {
+  const transport = mockTransport("openai-chat", [{ body: withoutUsageChunk() }]);
+  const model = createModel({ adapter: openaiChat({ apiKey: KEY, transport }), id: MODEL.id });
+  assert.deepEqual((await model.complete(hello)).cost, { total: null, basis: "unknown", currency: "USD" });
+});
+
+test("an error chunk before any usage chunk has unreported usage", async () => {
+  const { terminal } = await run([streamed("error-mid-stream.sse")]);
+  assert.equal(terminal.stopReason, "error");
+  assert.equal(terminal.usage.unreported, true);
+});
+
+test("an HTTP error response reports zero tokens, not unreported usage", async () => {
+  const { terminal } = await run([failed(500, "error-server.json")]);
+  assert.equal(terminal.usage.unreported, undefined);
+  assert.equal(terminal.usage.uncachedInput, 0);
+});
+
+test("a 429's Retry-After header becomes the error's retryAfterMs", async () => {
+  const { terminal } = await run([{ ...failed(429, "error-rate-limit.json"), headers: { "retry-after": "7" } }]);
+  assert.equal(terminal.error?.kind, "retryable");
+  assert.equal(terminal.error?.retryAfterMs, 7000);
+});
+
+test("a 503's retry-after-ms header becomes the error's retryAfterMs", async () => {
+  const { terminal } = await run([{ ...failed(503, "error-overloaded.json"), headers: { "retry-after-ms": "1500" } }]);
+  assert.equal(terminal.error?.retryAfterMs, 1500);
+});
+
+test("createModel waits for a 429's Retry-After before it retries", async () => {
+  const transport = mockTransport("openai-chat", [
+    { ...failed(429, "error-rate-limit.json"), headers: { "retry-after": "9" } },
+    streamed("text.sse"),
+  ]);
+  const delays: number[] = [];
+  const sleep = async (ms: number) => {
+    delays.push(ms);
+  };
+  const model = createModel({ adapter: openaiChat({ apiKey: KEY, transport }), id: MODEL.id, sleep });
+  assert.equal((await model.complete(hello)).stopReason, "stop");
+  assert.deepEqual(delays, [9000]);
+});

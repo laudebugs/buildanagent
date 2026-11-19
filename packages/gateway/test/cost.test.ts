@@ -1,5 +1,6 @@
 import assert from "node:assert/strict";
 import {
+  addUsage,
   type Cost,
   createModel,
   emptyUsage,
@@ -13,6 +14,7 @@ import {
   projectCallCost,
   projectCost,
   type Usage,
+  unreportedUsage,
 } from "@buildanagent/gateway";
 import { test } from "vitest";
 import { type Attempt, context, FailingAdapter, recordingSleep, TEST_CAPS } from "./adapters.js";
@@ -332,4 +334,41 @@ test("a call aborted after a retry keeps its last attempt's usage apart", async 
   assert.equal(result.stopReason, "aborted");
   assert.equal(result.usage.uncachedInput, 30);
   assert.equal(result.lastAttemptUsage?.uncachedInput, 20);
+});
+
+test("usage the provider didn't report is priced as unknown, not as a known zero", () => {
+  assert.deepEqual(priceUsage(unreportedUsage(), entry), UNKNOWN);
+});
+
+test("a reply whose usage is unreported has an unknown cost through createModel()", async () => {
+  const { model } = pricedModel([{ reply: "hi", usage: unreportedUsage() }]);
+  assert.deepEqual((await model.complete(context)).cost, UNKNOWN);
+});
+
+test("a provider-billed total still wins when the usage is unreported", async () => {
+  const billed: Cost = { total: 0.42, basis: "provider", currency: "USD" };
+  const { model } = pricedModel([{ reply: "hi", usage: unreportedUsage(), cost: billed }]);
+  assert.deepEqual((await model.complete(context)).cost, billed);
+});
+
+test("a retried call whose failed attempt reported no usage has an unknown cost", async () => {
+  const { model } = pricedModel([
+    { fail: "retryable", usage: unreportedUsage() },
+    { reply: "hi", usage: usage({ uncachedInput: 1_000_000 }) },
+  ]);
+  const result = await model.complete(context);
+  assert.deepEqual(result.cost, UNKNOWN);
+  assert.equal(result.usage.unreported, true);
+});
+
+test("adding an unreported usage record gives an unreported sum", () => {
+  assert.equal(addUsage(usage({ output: 1 }), unreportedUsage()).unreported, true);
+  assert.equal(addUsage(unreportedUsage(), usage({ output: 1 })).unreported, true);
+  assert.equal(addUsage(usage({ output: 1 }), usage({ output: 1 })).unreported, undefined);
+});
+
+test("the input estimate skips a call whose usage is unreported and counts characters instead", () => {
+  const reply = message("stop", [], { usage: { ...usage({ uncachedInput: 900, output: 1 }), unreported: true } });
+  const later: ModelContext = { ...firstTurn, messages: [...firstTurn.messages, reply] };
+  assert.equal(estimateInputTokens(later), Math.ceil(106 / 2.5));
 });

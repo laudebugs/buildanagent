@@ -2,7 +2,8 @@
  * Pricing usage against the catalog, and projecting a call's cost before it is sent (D3, D4, D9; ADR 0043).
  *
  * Separate token classes (D3) mean the fold multiplies each class by its own rate with no conversion. A provider's
- * billed total wins over the catalog, and a model the catalog lacks has an unknown price, never a guessed zero.
+ * billed total wins over the catalog, and a model the catalog lacks, or a response whose usage the provider didn't
+ * report, has an unknown price, never a guessed zero.
  */
 import type { CatalogEntry, RateTier } from "./catalog.js";
 import type { Model, ModelCallOptions } from "./runtime-types.js";
@@ -11,7 +12,7 @@ import { emptyUsage, totalInput } from "./usage.js";
 
 const PER_MILLION = 1_000_000;
 
-/** The cost of a model the catalog doesn't list. */
+/** The cost of a model the catalog doesn't list, or of usage the provider didn't report. */
 const UNKNOWN_COST: Cost = { total: null, basis: "unknown", currency: "USD" };
 
 /** The first tier whose limit covers `inputTokens`; the catalog check guarantees the last tier has no limit. */
@@ -21,9 +22,12 @@ function tierFor(rates: readonly RateTier[], inputTokens: number): RateTier | un
 
 /**
  * Prices one response's usage with a catalog entry. Each token class is multiplied by its rate in the tier that the
- * response's total input selects. Without an entry, the result is `{ total: null, basis: "unknown" }`.
+ * response's total input selects. Without an entry, or for usage marked `unreported`, the result is
+ * `{ total: null, basis: "unknown" }`.
  */
 export function priceUsage(usage: Usage, entry: CatalogEntry | undefined): Cost {
+  // Zero counts the provider never reported are not a price of zero, and a budget must not treat them as one.
+  if (usage.unreported) return { ...UNKNOWN_COST };
   const tier = entry ? tierFor(entry.rates, totalInput(usage)) : undefined;
   if (entry === undefined || tier === undefined) return { ...UNKNOWN_COST };
   const total =
@@ -115,7 +119,12 @@ function requestUsage(message: AssistantMessage): Usage {
 
 /** The index of the last assistant message whose request reports any input, or -1 when there is none. */
 function lastReportedCall(messages: readonly Message[]): number {
-  return messages.findLastIndex((m) => m.role === "assistant" && totalInput(requestUsage(m)) > 0);
+  return messages.findLastIndex((m) => {
+    if (m.role !== "assistant") return false;
+    const usage = requestUsage(m);
+    // Unreported counts may miss the output, so the estimate falls back to characters, which errs high.
+    return !usage.unreported && totalInput(usage) > 0;
+  });
 }
 
 /**

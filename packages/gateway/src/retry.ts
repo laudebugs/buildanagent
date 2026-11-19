@@ -10,8 +10,8 @@
  * - A stream that throws is treated like one that ends with an `error` event, so the caller always gets a terminal.
  * - A warning an earlier attempt already streamed, with the same code and message, is not streamed again, because a
  *   retry sends the same request and an adapter warns about it each time.
- * - Each wait is capped at 60 s. The provider's retry-after hint isn't used yet: adapters see the response headers,
- *   and no event carries a hint to the gateway.
+ * - A failure's `error.retryAfterMs`, which an adapter reads from the provider's retry-after header, sets the least
+ *   wait: the gateway waits for the longer of the backoff and the hint. Each wait is capped at 60 s.
  */
 
 import { classifyError, isTransportFailure } from "./classify.js";
@@ -19,7 +19,7 @@ import { foldCost } from "./cost.js";
 import type { GatewayEvent, Sleep } from "./runtime-types.js";
 import type { ModelEvent } from "./spec.js";
 import type { AssistantMessage, Cost, ModelRef, Usage } from "./types.js";
-import { addUsage, emptyUsage } from "./usage.js";
+import { addUsage, emptyUsage, unreportedUsage } from "./usage.js";
 
 /** How many times to retry, how long to wait, and how. */
 export interface RetrySettings {
@@ -122,15 +122,16 @@ function withCarriedUsage(event: GatewayEvent, call: CallState): GatewayEvent {
 }
 
 /**
- * The message for an adapter whose stream threw instead of ending with an `error` event. Its usage is zero, because
- * nothing reported any, but its cost is unknown, not zero: the request may have reached the provider and been billed.
+ * The message for an adapter whose stream threw instead of ending with an `error` event. Nothing reported its usage,
+ * so the usage is `unreported` and the cost unknown, not zero: the request may have reached the provider and been
+ * billed.
  */
 function thrownFailure(thrown: unknown, call: CallState): AssistantMessage {
   const base = {
     role: "assistant" as const,
     content: [],
     model: call.ref,
-    usage: emptyUsage(),
+    usage: unreportedUsage(),
     cost: { ...UNKNOWN_COST },
   };
   if (call.signal?.aborted) return { ...base, stopReason: "aborted" };
@@ -179,7 +180,6 @@ async function* runAttempt(
   } finally {
     for (const key of output.warned) call.warned.add(key);
   }
-  // The failure's unknown cost is final: pricing its zero usage would claim a known zero.
   if (mayRetry && !output.seen && failure.error?.kind === "retryable") {
     return { retry: true, failure, cost: failure.cost };
   }
@@ -200,6 +200,17 @@ function abortedTerminal(failure: AssistantMessage, call: CallState, cost: Cost,
   const { error: _error, ...rest } = failure;
   const message = { ...rest, stopReason: "aborted" as const, usage: call.carried, cost };
   return { type: "error", message: retried ? { ...message, lastAttemptUsage: failure.usage } : message };
+}
+
+/**
+ * The wait before retry `n`: the exponential backoff, or the provider's hint when it asks for longer. The cap keeps a
+ * long retry count or a large hint from waiting hours, or overflowing setTimeout's 32-bit delay.
+ */
+function retryDelay(initialDelayMs: number, n: number, hintMs: number | undefined): number {
+  const backoff = initialDelayMs * BACKOFF_FACTOR ** (n - 1);
+  // A NaN hint from a hand-written adapter is no hint; an infinite one waits the cap.
+  const hint = hintMs === undefined || Number.isNaN(hintMs) ? 0 : hintMs;
+  return Math.min(Math.max(backoff, hint), MAX_RETRY_DELAY_MS);
 }
 
 /** Runs `attempt(1)`, then retries per `settings`. `attempt(n)` must start a fresh request each time it is called. */
@@ -233,8 +244,7 @@ export async function* withRetries(
       yield abortedTerminal(outcome.failure, call, carriedCost, n > 1);
       return;
     }
-    // The cap keeps a long retry count from waiting hours, or overflowing setTimeout's 32-bit delay.
-    const delayMs = Math.min(settings.initialDelayMs * BACKOFF_FACTOR ** (n - 1), MAX_RETRY_DELAY_MS);
+    const delayMs = retryDelay(settings.initialDelayMs, n, outcome.failure.error?.retryAfterMs);
     yield { type: "retry", attempt: n, delayMs, error: outcome.failure.error?.message ?? "retryable error" };
     await settings.sleep(delayMs, signal);
     if (signal?.aborted) {
