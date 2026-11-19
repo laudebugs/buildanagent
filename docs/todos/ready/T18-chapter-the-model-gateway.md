@@ -8,7 +8,7 @@
 | Status | `ready` |
 | Plan | [Book plan §4.2](../../plans/build-book.md#42-part-ii-in-depth-for-experienced-builders) |
 | Round / milestone | Round T (textbook), MT |
-| Depends on | [T5](../done/T5-book-interactive-listings.md), [T6](../done/T6-book-flat-figures.md), [T26](../done/T26-book-checked-inline-code.md), [T29](T29-example-retries-caching-budget.md) |
+| Depends on | [T5](../done/T5-book-interactive-listings.md), [T6](../done/T6-book-flat-figures.md), [T26](../done/T26-book-checked-inline-code.md), [T29](../done/T29-example-retries-caching-budget.md) |
 | Size | M |
 
 ## Goal
@@ -31,7 +31,7 @@ Write the chapter "The model gateway: one streaming method, retries, prompt cach
 
 - `apps/manual/src/content/chapters/the-model-gateway.md`, with `switchTo: [B4, B5, B8, B9]` and `opening: code` in its front matter
 - Sections: One streaming method over two wire protocols; Retries and their limits; Prompt caching: a stable prefix, and MCP's request for a deterministic `tools/list` order; Replaying reasoning across providers: drop foreign signatures (SDK guide §2); Cost accounting and the pre-call budget (the evals chapter no longer carries cost)
-- Listings and at least one replay from: `verify/vercel-ai-sdk/examples/04-prepare-step.ts`, `verify/vercel-ai-sdk/examples/06-streaming.ts`, the retries, caching and budget example from [T29](T29-example-retries-caching-budget.md)
+- Listings and at least one replay from: `verify/vercel-ai-sdk/examples/04-prepare-step.ts`, `verify/vercel-ai-sdk/examples/06-streaming.ts`, the retries, caching and budget example from [T29](../done/T29-example-retries-caching-budget.md)
 - Figures: a flat figure of one gateway method under two wire protocols; a flat figure of a pre-call budget check against a projected cost; a flat analogy illustration of the printer's letterhead plate
 - Exercise: Project the cost of the next call from a transcript, decide whether the budget allows it, and see the cache-read tokens on a repeated prefix.
 - `apps/manual/fact-checks/the-model-gateway.md`, the chapter's claims log

@@ -5,7 +5,7 @@
 | Field | Value |
 | --- | --- |
 | ID | `T29` |
-| Status | `ongoing` |
+| Status | `done` |
 | Plan | [Book plan §5, BK20](../../plans/build-book.md#bk20-new-verify-examples-fill-the-gaps-the-coverage-review-found-accepted) |
 | Round / milestone | Round T (textbook), MT |
 | Depends on | [T5](../done/T5-book-interactive-listings.md) |
@@ -36,19 +36,19 @@ Write a new type-checked, mock-run example in `verify/vercel-ai-sdk/examples/` s
 
 ## Tasks
 
-- [ ] Script a mock that fails once with a retryable error, then succeeds; assert the retry count.
-- [ ] Send the same prefix twice and assert that the second usage reports cache-read tokens.
-- [ ] Wrap the model with a middleware that projects each call's cost before sending it, and assert that a call over the cap never reaches the mock.
-- [ ] If a second wire protocol can be shown offline through a provider's base-URL setting and a mock HTTP server, add it; otherwise say so in the example's header.
-- [ ] Run the harness's `pnpm test` twice, and commit its updated `results/` and transcript.
-- [ ] Draft the example's header comment and README line with `/anthropic-skills:writing`, fact-check each claim about the SDK against its pinned `.d.ts` or reference, then review the copy with `/anthropic-skills:writing-review` and fix every finding.
+- [x] Script a mock that fails once with a retryable error, then succeeds; assert the retry count.
+- [x] Send the same prefix twice and assert that the second usage reports cache-read tokens.
+- [x] Wrap the model with a middleware that projects each call's cost before sending it, and assert that a call over the cap never reaches the mock.
+- [x] If a second wire protocol can be shown offline through a provider's base-URL setting and a mock HTTP server, add it; otherwise say so in the example's header.
+- [x] Run the harness's `pnpm test` twice, and commit its updated `results/` and transcript.
+- [x] Draft the example's header comment and README line with `/anthropic-skills:writing`, fact-check each claim about the SDK against its pinned `.d.ts` or reference, then review the copy with `/anthropic-skills:writing-review` and fix every finding.
 
 ## Acceptance criteria
 
-- [ ] The new example type-checks and passes in the harness's `pnpm test`, offline, with every `check()` passing
-- [ ] No mock model in the example calls a tool that touches the host
-- [ ] The results-drift check passes after the committed results update
-- [ ] `pnpm check`, `pnpm typecheck` and `pnpm test` pass offline from the repo root
+- [x] The new example type-checks and passes in the harness's `pnpm test`, offline, with every `check()` passing
+- [x] No mock model in the example calls a tool that touches the host
+- [x] The results-drift check passes after the committed results update
+- [x] `pnpm check`, `pnpm typecheck` and `pnpm test` pass offline from the repo root
 
 ## Tests
 
@@ -65,9 +65,17 @@ Write a new type-checked, mock-run example in `verify/vercel-ai-sdk/examples/` s
 
 ## Definition of done
 
-- [ ] Claimed: the first commit moved this file `ready/` → `ongoing/` (Status `ongoing`)
+- [x] Claimed: the first commit moved this file `ready/` → `ongoing/` (Status `ongoing`)
 - [ ] Prose drafted with `/anthropic-skills:writing`, and changed claims re-checked against their sources
-- [ ] `pnpm check`, `pnpm typecheck` and `pnpm test` pass locally; pushed after each meaningful step
+- [x] `pnpm check`, `pnpm typecheck` and `pnpm test` pass locally; pushed after each meaningful step
 - [ ] This file moved `ongoing/` → `done/` (Status `done`) in the last work commit, and the plan's todo table updated
 - [ ] Two code-review rounds run on the pull request (`/code-review high --max-findings default`, then `medium` and `low` after more than 6 confirmed findings, otherwise `low`), with every finding fixed or explained in a commit message
 - [ ] Copy reviewed with `/anthropic-skills:writing-review` after the code changes, with its findings fixed and the rubric scores in the pull request description
+
+## Outcome
+
+Added `verify/vercel-ai-sdk/examples/10-retries-caching-budget.ts`, with `prices`, `budget`, `retry`, `cache` and `refuse` regions and `book:note` markers `retry-header`, `retry-count`, `cache-read` and `refused`. Its eight checks cover one retry after a retryable error (`retry-after-ms: "0"` keeps the run fast), no retry for a non-retryable error, `RetryError` once `maxRetries` runs out, a cache write then cache-read tokens on a repeated prefix, and a budget middleware that refuses an over-budget call before it reaches the mock. Prices are Claude Sonnet 5.5's from the gateway catalog, as of November 2026. The transcript is committed.
+
+Decision: no second wire protocol. A mock HTTP server behind a provider's base URL replaces the transport below the model interface, where the recorder sits, so it would test a provider package and record nothing; the example header says so. Not run: the two code-review rounds and the writing review, which belong to the pull request.
+
+Review boxes still open: the two code-review rounds and the writing review.
