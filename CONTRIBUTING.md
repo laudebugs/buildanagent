@@ -24,7 +24,7 @@ We squash-merge a pull request once CI passes and its review findings are fixed.
 
 ## Every pull request gets two rounds of code review
 
-The first round is one `/code-review high` on the pull request. If it reports more than 6 findings, the second round is two reviews, `/code-review medium` and then `/code-review low`; otherwise it is one `/code-review low`. Each round's findings are fixed in new commits that list each finding and its fix. Copy, meaning any text a person reads, is drafted with `/anthropic-skills:writing` and checked with `/anthropic-skills:writing-review` after the code changes. If you don't use these Claude Code skills, a maintainer runs the reviews on your pull request and pushes the fixes or asks you for them. The details are in [AGENTS.md](AGENTS.md#every-pull-request-gets-two-rounds-of-code-review).
+The first round is one `/code-review high --max-findings default` on the pull request. If it confirms more than 6 findings, the second round is two reviews, `/code-review medium` and then `/code-review low`; otherwise it is one `/code-review low`. Each round's findings are fixed in new commits that list each finding and its fix. Copy, meaning any text a person reads, is drafted with `/anthropic-skills:writing` and checked with `/anthropic-skills:writing-review` after the code changes. If you don't use these Claude Code skills, a maintainer runs the reviews on your pull request and pushes the fixes or asks you for them. The details are in [AGENTS.md](AGENTS.md#every-pull-request-gets-two-rounds-of-code-review).
 
 ## Draft, fact-check and review every document before it merges
 
