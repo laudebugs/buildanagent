@@ -21,12 +21,18 @@
 
   document.addEventListener("DOMContentLoaded", () => {
     const buttons = [...document.querySelectorAll("[data-theme-toggle]")];
-    // The label names what a press does, so it always offers the other mode.
+    // The name says what a press does, so it always offers the other mode. data-mode holds the current mode, which the
+    // stylesheet reads to show the sun in the dark theme and the moon in the light one.
     const sync = () => {
-      const label = current() === "dark" ? "Switch to light theme" : "Switch to dark theme";
-      for (const button of buttons) button.textContent = label;
+      const mode = current();
+      const label = mode === "dark" ? "Switch to light theme" : "Switch to dark theme";
+      for (const button of buttons) {
+        button.dataset.mode = mode;
+        button.setAttribute("aria-label", label);
+        button.title = label;
+      }
     };
-    // With no stored choice the page follows the system, so the label follows it too.
+    // With no stored choice the page follows the system, so the icon follows it too.
     scheme.addEventListener("change", sync);
     for (const button of buttons) {
       button.hidden = false;
