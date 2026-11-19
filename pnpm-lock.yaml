@@ -25,6 +25,14 @@ importers:
         specifier: 7.0.2
         version: 7.0.2
 
+  packages/gateway: {}
+
+  packages/sdk:
+    dependencies:
+      '@agent-speak/gateway':
+        specifier: workspace:*
+        version: link:../gateway
+
   verify/claude-agent-sdk:
     dependencies:
       '@anthropic-ai/claude-agent-sdk':
