@@ -3,8 +3,9 @@
  * `continueRun()`, `runOrThrow()`), its events and results, the tools (their definitions, schemas, results and write
  * outcomes) and the hooks: six interceptors that can change a run and observers that only watch it. The loop also
  * holds the run's guards: a USD budget checked before each call, progress detection and a depth cap. A caller can
- * steer a running agent or queue a follow-up, both applied at step boundaries. Signed pauses are planned in the SDK
- * plan §3.3.
+ * steer a running agent or queue a follow-up, both applied at step boundaries. A gate that asks for a person ends the
+ * run with a signed pending request; the signers, the input hash and the pending record are the safety package's,
+ * re-exported unchanged.
  */
 // Re-exported so a caller that calls `Model.complete()` outside the loop projects a cost with the loop's own formula.
 export { projectCallCost } from "@buildanagent/gateway";
@@ -36,8 +37,10 @@ export type {
   ToolResultEvent,
   ToolResultPatch,
 } from "./hooks.js";
+export { createPendingRequest, type PendingRequestFields } from "./pauses.js";
 export { DEFAULT_PROGRESS, type ProgressPolicy } from "./progress.js";
 export type {
+  AwaitingApprovalResult,
   BudgetResult,
   Context,
   DoneResult,
@@ -72,7 +75,16 @@ export type {
   ToolResult,
   ToolSchema,
 } from "./tools/types.js";
+export { isSafetyError, SafetyError, type SafetyErrorCode } from "./vendor/agent-safety/errors.js";
+export { canonicalInputHash } from "./vendor/agent-safety/hash.js";
 export type { WriteOutcome } from "./vendor/agent-safety/outcome.js";
+export type { Resolution, SignedPendingRequest, SignPendingOptions } from "./vendor/agent-safety/pending.js";
+export {
+  type ApprovalSigner,
+  ephemeralSigner,
+  type HmacSignerOptions,
+  hmacSigner,
+} from "./vendor/agent-safety/signer.js";
 
 /** The package's name, `@buildanagent/sdk`. */
 export const SDK_PACKAGE = "@buildanagent/sdk";

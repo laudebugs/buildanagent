@@ -2,7 +2,7 @@
 
 The SDK runs your agent's loop over [`@buildanagent/gateway`](../gateway/README.md): it calls the model, runs the tools the model asks for, and stops when the work is done. Its testing export lets you test that agent offline against a scripted model, with no API key.
 
-As of November 2026 the package holds the loop, tool definitions, hooks and the testing export. Approvals come next.
+As of November 2026 the package holds the loop, tool definitions, hooks, signed pauses for approval and the testing export. Resuming a pause comes next.
 
 ## Install the alpha with `pnpm add @buildanagent/sdk@alpha`
 
@@ -47,8 +47,9 @@ A failed model call or a failing tool never makes a run throw. The run ends with
 - **`stopped`**: a tool from `clarificationTool()` asked the user a question, and `result.stoppedBy` is `"clarification"`; or a `shouldStop` hook ended the run, and `result.stoppedBy` is the reason it gave.
 - **`no_progress`**: the default progress policy found the model repeating a failing call, or a `shouldStop` hook ended the run with `{ stop: "no_progress", reason }`. `result.reason` says why.
 - **`budget`**: the next call could have taken the run past `budgetUsd`, so the run ended without making it. `result.spentUsd`, `result.projectedUsd` and `result.budgetUsd` give the numbers.
+- **`awaiting_approval`**: a `beforeToolCall` gate returned `ask`, so the call waits for a person. `result.pending` holds one signed request for each waiting call, as [the pause section](#a-gate-that-asks-ends-the-run-with-a-signed-pending-request) explains.
 
-`maxSteps` counts model calls, so an output call that fails its schema spends one of them. The tool calls of the last allowed response still run, so every call in the transcript has a result.
+`maxSteps` counts model calls, so an output call that fails its schema spends one of them. The tool calls of the last allowed response still run, so every call in the transcript has a result, except a call a gate paused, which waits for a person.
 
 Only the `done` result carries `output`. TypeScript rejects `result.output` until you have checked `result.stopReason === "done"`, so an unfinished run can't pass for a finished one. Every result carries `usage` and `cost`, summed over the run's model calls, and `steps`, the number of calls. `result.messages` holds the messages this run added. `result.context` holds the whole conversation, ready to continue.
 
@@ -151,7 +152,8 @@ The events come in two layers. The delta layer streams each content block by its
 - **`tool_call_start`**, **`tool_call_update`** and **`tool_call_end`** follow each tool call; `tool_call_end.result` is what the model reads. When a `beforeToolCall` gate replaced the model's input, `tool_call_end.input` holds the input the call got instead.
 - **`context_transformed`** reports the message counts before and after `transformContext` for one model call.
 - **`steer_applied`** reports a queued steer or follow-up that entered the transcript, with its receipt.
-- **`hook_error`** reports an interceptor or an observer that threw, with the hook's name and the message.
+- **`approval_request`** reports a call a gate paused, with its signed `request` and the `input` that request signs, once every call of the step has been gated. That call gets no `tool_call_end`.
+- **`hook_error`** reports an interceptor or an observer that threw, with the hook's name and the message. It also reports a pause that could not be signed, with `hook: "signer"`.
 - **`retry`** reports a failed request the gateway is retrying, and **`warning`** reports a reached cap or a model warning.
 - **`error`** and **`abort`** report a failed call and an abort request.
 - **`agent_settled`** fires once nothing is running any more, retries and tools included. **`run_end`** follows it and carries the result.
@@ -179,7 +181,7 @@ Every event carries `runId`, `stepIndex`, `signal` and `timestamp`, and the two 
 
 ### A gate decides each tool call
 
-`beforeToolCall` returns `{ decision: "allow" }`, `{ decision: "deny", reason }` or `{ decision: "ask" }`. An `allow` may carry a new `input`, which must pass the tool's schema. A `deny` reaches the model as an error result that states the reason. Until runs can pause for approval, `ask` blocks the call the same way, with a message that says approval isn't available. The model never sees a silent block.
+`beforeToolCall` returns `{ decision: "allow" }`, `{ decision: "deny", reason }` or `{ decision: "ask" }`. An `allow` may carry a new `input`, which must pass the tool's schema. A `deny` reaches the model as an error result that states the reason, so the model never sees a silent block. An `ask` pauses the call: the run ends `awaiting_approval` with a signed pending request, as the next section explains.
 
 The run asks about one call at a time, in the order the model sent them, and no call of the step starts until every gate has answered. Without a `beforeToolCall`, every registered tool is allowed. A gate must return a decision: returning nothing throws `invalid_hook_result`, so a forgotten `return` can't pass for permission.
 
@@ -210,6 +212,55 @@ An observer is `(event) => void | Promise<void>`. Each one sees every event in o
 An observer that throws or rejects becomes a `hook_error` event with `hook: "observer"`, and never changes the run. The one exception is an observer that fails while handling `run_end`: nothing may follow that event, so the failure is dropped. 
 
 The run waits for observers to handle `agent_settled` and `run_end` before it settles, for at most `observerTimeoutMs` each time, a number from 1 to 2147483647 that defaults to 10000. An observer that hasn't caught up by then is removed and reported as a `hook_error`, so an observer whose promise never settles can't hold the run open. Each observer gets a frozen copy of the event, so it can't change the run's own data.
+
+## A gate that asks ends the run with a signed pending request
+
+When a `beforeToolCall` gate returns `{ decision: "ask", reason, policyVersion }`, the run doesn't run that call, and doesn't block on a callback either. It signs a pending request for the call, finishes the step's other calls, and ends with `stopReason: "awaiting_approval"`. Store the request with the context, show it to a person with the input it signs, and check the answer against the signature before the call runs:
+
+```ts
+const result = await run({ model, system, input, tools, interceptors: { beforeToolCall: gate }, signer }).result;
+if (result.stopReason === "awaiting_approval") {
+  await store.save(result.context); // result.context.pending holds the same requests as result.pending
+}
+```
+
+Each request is a `SignedPendingRequest`. Its signature covers six fields: the request's `id`, its `kind`, the `callId`, the `tool`, the `inputHash` and the `policyVersion`. The input hash is `canonicalInputHash()` of the input the call would run with once approved, so a stored pause whose call, tool or input changed no longer verifies. That input is the model's after coercion, `repair` and any gate's replacement, so it can differ from the call's arguments in the transcript; the request stores only its hash, and `result.context.pendingInputs` and the `approval_request` event hold the input itself, by request id. Show the approver that input, not the model's arguments.
+
+A gate's `ask` may carry its own `input`, which must pass the tool's schema, and `composeInterceptors()` passes an earlier gate's replacement on that way when a later gate asks, so the pause signs the input the earlier gate chose.
+
+`reason` and `createdAt` are shown to people and are not signed, so never let them decide anything. `keyId` names the key that signed.
+
+A paused call has no result in the transcript, so the context ends with the model's call still open. The step's other calls run or are denied as usual, and every call a gate paused gets its own request, in model order. A pause wins over an output tool that answered in the same step, because its call is still waiting. The run emits `approval_request` with the request and its input once every call of the step has been gated and before any of them runs. The call gets no `tool_call_end`, and the OpenTelemetry observer ends its tool span without an error. The event is advisory. A later call in the step can still fail the run with a programmer error, which ends it `error` with no `pending`, so build an approval queue from `result.pending`, not from the events.
+
+`continueRun()` can't resume a paused context yet. It throws `invalid_run_options` for a context whose `pending` isn't empty, so a waiting call is never dropped without an answer. Store `pending` and `pendingInputs` with the messages, because the check reads `pending`. A context saved without it gets through, and the gateway answers the open call with an error result. The call never runs, and no person is asked.
+
+### Pass `hmacSigner()` wherever a pause may resume in another process
+
+The run signs with its `signer` option. The default, `ephemeralSigner()`, holds a random key that lives only in this process. On a serverless host an isolate or function can be recycled between the pause and the answer, and another process rejects the signature as one from an unknown key. The default signer is also shared by every run in the process, and the signed fields name no run or tenant, so a host that serves several tenants in one process stores each tenant's requests apart and passes a signer of its own. Pass `hmacSigner({ keys, current })` over a key ring you keep there:
+
+```ts
+const signer = hmacSigner({ keys: { "2026-11": key2611, "2026-12": key2612 }, current: "2026-12" });
+```
+
+`hmacSigner()` signs with the key `current` names and verifies with any key in `keys`, each 32 bytes or more. To rotate, add a new key and make it current, and keep the old key in the ring until no stored pause names it. A request whose `keyId` isn't in the ring fails verification. Keys stay inside non-extractable Web Crypto keys: no error, event, result or span holds a key's bytes.
+
+A pause that can't be signed is never written unsigned. If the signer throws, the call is blocked with an error result, and a `hook_error` with `hook: "signer"` names the cause without the signer's own message. A request id from `idGenerator` that repeats the run's id or an earlier request's is replaced by a random UUID, so a generator that always returns one id still pauses every call.
+
+### Sign a pause outside a run with `createPendingRequest()`
+
+Code that makes a tool call itself, rather than through the model, can build the same record:
+
+```ts
+const request = await createPendingRequest({ kind: "approval", callId, tool: "refund", input, reason }, signer);
+```
+
+`createPendingRequest()` signs through the same code path as the loop, so for the same fields, id and signer the two requests are identical byte for byte. Its optional third argument takes `generateId` and `now`, which default to `crypto.randomUUID()` and the current time. It rejects with `invalid_run_options` for a `kind` other than `"approval"` or a signer that isn't an `ApprovalSigner`.
+
+### The signers and the record belong to the safety package
+
+`ApprovalSigner`, `ephemeralSigner()`, `hmacSigner()`, `canonicalInputHash()`, `SignedPendingRequest`, `Resolution` and `SignPendingOptions` are `@buildanagent/agent-safety`'s, re-exported unchanged. So are `SafetyError` and `isSafetyError()`, because `hmacSigner()` throws a `SafetyError` with code `invalid_key_ring` for an unusable ring, and `createPendingRequest()` rejects with one, code `invalid_pending` or `invalid_input`, for a blank field or an input with no canonical JSON form.
+
+Until the safety package is published, the SDK carries byte-identical copies of its files, and a test fails if they drift. One consequence follows from the copies: in a process that loads both packages, each has its own ephemeral signer, so a pause signed by one's default doesn't verify with the other's.
 
 ## Export a run as OpenTelemetry spans with `otelObserver()`
 

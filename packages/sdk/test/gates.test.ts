@@ -63,17 +63,18 @@ test("a replacement input that fails the tool's schema rejects the run with inva
   assert.deepEqual(lookup.inputs, []);
 });
 
-test("a gate that asks blocks the call with a message that says approval isn't available", async () => {
+test("a gate that asks pauses the call: it doesn't run, gets no result, and the run ends awaiting_approval", async () => {
   const lookup = recorder("lookup");
   const { result } = await drivenRun(
-    [CALL, text("Done.")],
+    [CALL],
     {
       beforeToolCall: async () => ({ decision: "ask", reason: "refunds need a manager" }),
     },
     { tools: [lookup.tool] },
   );
   assert.deepEqual(lookup.inputs, []);
-  assert.match(textOf(toolMessage(result)?.content ?? []), /needs approval \(refunds need a manager\).*can't ask/);
+  assert.equal(toolMessage(result), undefined);
+  assert.equal(result.stopReason, "awaiting_approval");
 });
 
 test("a gate that returns nothing rejects the run with invalid_hook_result", async () => {
