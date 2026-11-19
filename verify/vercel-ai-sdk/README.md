@@ -10,6 +10,7 @@ The SDK runs its tool loop in-process and gets models from provider instances (`
 - **Each run** gets a temp working directory with `fixtures/`, an allowlisted environment and a timeout.
 - **Extraction** fills the docs' `__MODEL__` and `__PROVIDER_IMPORT__` placeholders the way ai-sdk.dev renders them by default: the gateway string `"anthropic/claude-sonnet-5.5"` and no provider import.
 - **Our examples** (`examples/`) build their own scripted `MockLanguageModelV4` (`examples/lib/check.ts`) and assert one documented behavior each.
+- `examples/10-retries-caching-budget.ts` shows a retry after a scripted retryable error (with `retry-after-ms: "0"`, so no real wait), cache-read tokens on a repeated prefix, and a `wrapLanguageModel` budget that refuses a call before it reaches the mock. Prices are Claude Sonnet 5.5's as of November 2026. It shows no second wire protocol, because a mock HTTP server would bypass the model interface where the transcript recorder sits.
 
 ## Region markers feed the book's listings
 
