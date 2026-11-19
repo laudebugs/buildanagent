@@ -1,4 +1,5 @@
 ---
+import { NOTES_LABEL } from "./listing-html.js";
 import type { ListingNote } from "./types.js";
 
 // The notes on a listing's lines, as a numbered list under the code; each marker links to its note.
@@ -12,7 +13,7 @@ const { listingId, notes } = Astro.props;
 
 {
   notes.length > 0 && (
-    <ol class="annotations" aria-label="Notes on this listing">
+    <ol class="annotations" aria-label={NOTES_LABEL}>
       {notes.map((note) => (
         <li id={`${listingId}-note-${note.id}`}>{note.text}</li>
       ))}

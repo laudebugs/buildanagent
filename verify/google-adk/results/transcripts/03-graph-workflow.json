@@ -1,0 +1,100 @@
+{
+  "format": 1,
+  "example": "03-graph-workflow",
+  "file": "verify/google-adk/examples/03-graph-workflow.ts",
+  "harness": "verify/google-adk",
+  "pin": "@google/adk@2.5.0",
+  "mock": "@google/adk@2.5.0",
+  "events": [
+    {
+      "kind": "check",
+      "line": 22,
+      "message": "a node's return value is the next node's input (START gets the user text)",
+      "pass": true
+    },
+    {
+      "kind": "check",
+      "line": 43,
+      "message": "route DIGITS runs only the digits node",
+      "pass": true
+    },
+    {
+      "kind": "request",
+      "line": 47,
+      "model": "model-1",
+      "repeated": 0,
+      "messages": [
+        {
+          "role": "system",
+          "parts": [
+            {
+              "type": "text",
+              "text": "You are an agent. Your internal name is \"words\".\n\nReply."
+            }
+          ]
+        },
+        {
+          "role": "user",
+          "parts": [
+            {
+              "type": "text",
+              "text": "hello"
+            }
+          ]
+        }
+      ],
+      "tools": []
+    },
+    {
+      "kind": "response",
+      "line": 47,
+      "model": "model-1",
+      "message": {
+        "role": "assistant",
+        "parts": [
+          {
+            "type": "text",
+            "text": "from the agent"
+          }
+        ]
+      },
+      "finish": "stop"
+    },
+    {
+      "kind": "check",
+      "line": 48,
+      "message": "route WORDS runs the LlmAgent node",
+      "pass": true
+    },
+    {
+      "kind": "check",
+      "line": 49,
+      "message": "the agent node's reply is an event",
+      "pass": true
+    },
+    {
+      "kind": "check",
+      "line": 73,
+      "message": "JoinNode waits for every branch and passes {nodeName: output}",
+      "pass": true
+    },
+    {
+      "kind": "check",
+      "line": 97,
+      "message": "RequestInput pauses the workflow with a long-running call",
+      "pass": true
+    },
+    {
+      "kind": "check",
+      "line": 98,
+      "message": "the pause is an adk_request_input function call",
+      "pass": true
+    },
+    {
+      "kind": "check",
+      "line": 103,
+      "message": "the next user message resumes the paused node with that text",
+      "pass": true
+    }
+  ]
+}

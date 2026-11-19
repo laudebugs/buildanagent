@@ -1,0 +1,134 @@
+{
+  "format": 1,
+  "example": "04-chat-agent",
+  "file": "verify/cloudflare-agents/examples/04-chat-agent.ts",
+  "harness": "verify/cloudflare-agents",
+  "pin": "agents@0.33.0",
+  "mock": "ai@7.0.162",
+  "events": [
+    {
+      "kind": "request",
+      "model": "model-1",
+      "repeated": 0,
+      "messages": [
+        {
+          "role": "system",
+          "parts": [
+            {
+              "type": "text",
+              "text": "You are a support agent."
+            }
+          ]
+        },
+        {
+          "role": "user",
+          "parts": [
+            {
+              "type": "text",
+              "text": "Where is order A1?"
+            }
+          ]
+        }
+      ],
+      "tools": [
+        "lookupOrder"
+      ]
+    },
+    {
+      "kind": "response",
+      "model": "model-1",
+      "message": {
+        "role": "assistant",
+        "parts": [
+          {
+            "type": "tool-call",
+            "id": "call_1",
+            "name": "lookupOrder",
+            "input": {
+              "orderId": "A1"
+            }
+          }
+        ]
+      },
+      "finish": "tool-calls"
+    },
+    {
+      "kind": "request",
+      "model": "model-1",
+      "repeated": 3,
+      "messages": [
+        {
+          "role": "tool",
+          "parts": [
+            {
+              "type": "tool-result",
+              "id": "call_1",
+              "name": "lookupOrder",
+              "output": {
+                "orderId": "A1",
+                "status": "shipped"
+              }
+            }
+          ]
+        }
+      ],
+      "tools": [
+        "lookupOrder"
+      ]
+    },
+    {
+      "kind": "response",
+      "model": "model-1",
+      "message": {
+        "role": "assistant",
+        "parts": [
+          {
+            "type": "text",
+            "text": "Order A1 is shipped."
+          }
+        ]
+      },
+      "finish": "stop"
+    },
+    {
+      "kind": "check",
+      "message": "saveMessages runs a full turn (status completed)",
+      "pass": true
+    },
+    {
+      "kind": "check",
+      "message": "the server tool executed once with the model's input",
+      "pass": true
+    },
+    {
+      "kind": "check",
+      "message": "the loop called the model again after the tool result (2 model calls)",
+      "pass": true
+    },
+    {
+      "kind": "check",
+      "message": "this.messages holds the user message and one assistant message",
+      "pass": true
+    },
+    {
+      "kind": "check",
+      "message": "the tool call is persisted as a tool-lookupOrder part with its output",
+      "pass": true
+    },
+    {
+      "kind": "check",
+      "message": "the persisted tool output is the execute() result",
+      "pass": true
+    },
+    {
+      "kind": "check",
+      "message": "the final text is persisted in the same assistant message",
+      "pass": true
+    },
+    {
+      "kind": "check",
+      "message": "a new stub to the same name sees the persisted messages",
+      "pass": true
+    }
+  ]
+}

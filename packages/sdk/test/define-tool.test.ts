@@ -33,6 +33,11 @@ test("a raw schema that names a draft other than 2020-12 or 7 throws an SdkError
   assert.throws(() => defineTool(readFile({ inputSchema: draft4 })), isDefinitionError);
 });
 
+test("an exposure outside direct, deferred and hidden throws an SdkError", () => {
+  // @ts-expect-error: exposure is one of three values
+  assert.throws(() => defineTool(readFile({ exposure: "lazy" })), isDefinitionError);
+});
+
 test("defineTool returns a frozen copy", () => {
   const definition = readFile();
   const tool = defineTool(definition);

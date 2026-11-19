@@ -1,0 +1,143 @@
+{
+  "format": 1,
+  "example": "05-structured-output",
+  "file": "verify/vercel-ai-sdk/examples/05-structured-output.ts",
+  "harness": "verify/vercel-ai-sdk",
+  "pin": "ai@7.0.162",
+  "mock": "ai@7.0.162",
+  "events": [
+    {
+      "kind": "request",
+      "line": 17,
+      "model": "model-1",
+      "repeated": 0,
+      "messages": [
+        {
+          "role": "user",
+          "parts": [
+            {
+              "type": "text",
+              "text": "I was charged twice!"
+            }
+          ]
+        }
+      ],
+      "tools": []
+    },
+    {
+      "kind": "response",
+      "line": 17,
+      "model": "model-1",
+      "message": {
+        "role": "assistant",
+        "parts": [
+          {
+            "type": "text",
+            "text": "{\"category\":\"billing\",\"urgent\":true}"
+          }
+        ]
+      },
+      "finish": "stop"
+    },
+    {
+      "kind": "check",
+      "line": 24,
+      "message": "result.output is the parsed, typed object",
+      "pass": true
+    },
+    {
+      "kind": "check",
+      "line": 26,
+      "message": "the request asks for JSON with the schema's name",
+      "pass": true
+    },
+    {
+      "kind": "check",
+      "line": 27,
+      "message": "the request carries the JSON Schema",
+      "pass": true
+    },
+    {
+      "kind": "request",
+      "line": 33,
+      "model": "model-2",
+      "repeated": 0,
+      "messages": [
+        {
+          "role": "user",
+          "parts": [
+            {
+              "type": "text",
+              "text": "?"
+            }
+          ]
+        }
+      ],
+      "tools": []
+    },
+    {
+      "kind": "response",
+      "line": 33,
+      "model": "model-2",
+      "message": {
+        "role": "assistant",
+        "parts": [
+          {
+            "type": "text",
+            "text": "{\"category\":\"refund\"}"
+          }
+        ]
+      },
+      "finish": "stop"
+    },
+    {
+      "kind": "check",
+      "line": 37,
+      "message": "a response that fails the schema rejects with NoObjectGeneratedError",
+      "pass": true
+    },
+    {
+      "kind": "request",
+      "line": 45,
+      "model": "model-3",
+      "repeated": 0,
+      "messages": [
+        {
+          "role": "user",
+          "parts": [
+            {
+              "type": "text",
+              "text": "?"
+            }
+          ]
+        }
+      ],
+      "tools": [
+        "lookup"
+      ]
+    },
+    {
+      "kind": "response",
+      "line": 45,
+      "model": "model-3",
+      "message": {
+        "role": "assistant",
+        "parts": [
+          {
+            "type": "tool-call",
+            "id": "call_1",
+            "name": "lookup",
+            "input": {}
+          }
+        ]
+      },
+      "finish": "tool-calls"
+    },
+    {
+      "kind": "check",
+      "line": 52,
+      "message": "result.output throws NoOutputGeneratedError when the last step ended on tool calls",
+      "pass": true
+    }
+  ]
+}

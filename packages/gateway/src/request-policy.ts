@@ -4,6 +4,7 @@
  * Every adapter calls `assertModelRequestAllowed(transport)` before it sends a request. When tests have turned real
  * requests off, any transport not marked as a mock throws before anything leaves the process.
  */
+import { GatewayError } from "./errors.js";
 import type { Transport } from "./runtime-types.js";
 
 const MOCK_TRANSPORT = Symbol.for("buildanagent.gateway.mockTransport");
@@ -29,8 +30,16 @@ export function isMockTransport(transport: Transport | undefined): boolean {
   return transport !== undefined && (transport as unknown as Record<symbol, unknown>)[MOCK_TRANSPORT] === true;
 }
 
-export class ModelRequestsDisabledError extends Error {
+/**
+ * Thrown before a request is sent while real model requests are off and the transport is not a mock. It is a
+ * `GatewayError` with code `model_requests_disabled`, so `isGatewayError()` recognises it too.
+ */
+export class ModelRequestsDisabledError extends GatewayError {
   override readonly name = "ModelRequestsDisabledError";
+
+  constructor(message: string) {
+    super("model_requests_disabled", message);
+  }
 }
 
 /** Throws unless real requests are allowed or the transport is a mock. Adapters call it before sending. */

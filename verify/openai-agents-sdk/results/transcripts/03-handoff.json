@@ -1,0 +1,129 @@
+{
+  "format": 1,
+  "example": "03-handoff",
+  "file": "verify/openai-agents-sdk/examples/03-handoff.ts",
+  "harness": "verify/openai-agents-sdk",
+  "pin": "@openai/agents@0.21.0",
+  "mock": "@openai/agents@0.21.0",
+  "events": [
+    {
+      "kind": "request",
+      "line": 19,
+      "model": "model-1",
+      "repeated": 0,
+      "messages": [
+        {
+          "role": "system",
+          "parts": [
+            {
+              "type": "text",
+              "text": "Route the user."
+            }
+          ]
+        },
+        {
+          "role": "user",
+          "parts": [
+            {
+              "type": "text",
+              "text": "Where is my refund?"
+            }
+          ]
+        }
+      ],
+      "tools": [
+        "transfer_to_Billing_agent"
+      ]
+    },
+    {
+      "kind": "response",
+      "line": 19,
+      "model": "model-1",
+      "message": {
+        "role": "assistant",
+        "parts": [
+          {
+            "type": "tool-call",
+            "id": "call_handoff",
+            "name": "transfer_to_Billing_agent",
+            "input": {}
+          }
+        ]
+      },
+      "finish": "tool-calls"
+    },
+    {
+      "kind": "request",
+      "line": 19,
+      "model": "model-1",
+      "repeated": 0,
+      "messages": [
+        {
+          "role": "user",
+          "parts": [
+            {
+              "type": "text",
+              "text": "Where is my refund?"
+            }
+          ]
+        },
+        {
+          "role": "assistant",
+          "parts": [
+            {
+              "type": "tool-call",
+              "id": "call_handoff",
+              "name": "transfer_to_Billing_agent",
+              "input": {}
+            }
+          ]
+        },
+        {
+          "role": "tool",
+          "parts": [
+            {
+              "type": "tool-result",
+              "id": "call_handoff",
+              "name": "transfer_to_Billing_agent",
+              "output": "{\"assistant\":\"Billing agent\"}"
+            }
+          ]
+        }
+      ],
+      "tools": []
+    },
+    {
+      "kind": "response",
+      "line": 19,
+      "model": "model-1",
+      "message": {
+        "role": "assistant",
+        "parts": [
+          {
+            "type": "text",
+            "text": "Billing here: your refund is on its way."
+          }
+        ]
+      },
+      "finish": "stop"
+    },
+    {
+      "kind": "check",
+      "line": 23,
+      "message": "a handoff is a tool named transfer_to_<agent name, case kept>",
+      "pass": true
+    },
+    {
+      "kind": "check",
+      "line": 27,
+      "message": "lastAgent is the specialist after the handoff",
+      "pass": true
+    },
+    {
+      "kind": "check",
+      "line": 28,
+      "message": "the specialist's answer is the final output",
+      "pass": true
+    }
+  ]
+}

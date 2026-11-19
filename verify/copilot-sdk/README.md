@@ -30,7 +30,7 @@ The harness runs on Linux only (user and network namespaces).
 
 ## Region markers feed the book's listings
 
-Some examples carry `// #region <name>` and `// #endregion` comments, which change no behaviour. The book's `::listing` directive shows the code between them, so a chapter quotes only code that `pnpm test` type-checks and runs. Rename or remove a region only together with the chapters that list it, because `check:book` fails on a region that no longer exists ([how to add a listing](../../apps/manual/README.md#a-listing-shows-a-region-of-a-real-file)).
+Some examples carry `// #region <name>` and `// #endregion` comments, which change no behaviour. The book's `::listing` directive shows the code between them, so a chapter quotes only code that `pnpm test` type-checks and runs. Rename or remove a region only together with the chapters that list it, because `check:book` fails on a region that no longer exists ([how to add a listing](../../apps/manual/README.md#a-listing-shows-a-region-of-a-real-file)). This harness has no transcript recorder yet, because its mock answers over HTTP to the Copilot runtime, which the SDK runs in a child process, so the book cannot replay its examples; [T49](../../docs/todos/ready/T49-book-http-mock-transcripts.md) adds one.
 
 ## Scripts
 

@@ -1,0 +1,145 @@
+{
+  "format": 1,
+  "example": "06-streaming",
+  "file": "verify/vercel-ai-sdk/examples/06-streaming.ts",
+  "harness": "verify/vercel-ai-sdk",
+  "pin": "ai@7.0.162",
+  "mock": "ai@7.0.162",
+  "events": [
+    {
+      "kind": "request",
+      "model": "model-1",
+      "repeated": 0,
+      "messages": [
+        {
+          "role": "user",
+          "parts": [
+            {
+              "type": "text",
+              "text": "Stream something."
+            }
+          ]
+        }
+      ],
+      "tools": []
+    },
+    {
+      "kind": "response",
+      "model": "model-1",
+      "message": {
+        "role": "assistant",
+        "parts": [
+          {
+            "type": "text",
+            "text": "Streams arrive in pieces."
+          }
+        ]
+      },
+      "finish": "stop"
+    },
+    {
+      "kind": "check",
+      "line": 14,
+      "message": "textStream yields several chunks (4)",
+      "pass": true
+    },
+    {
+      "kind": "check",
+      "line": 15,
+      "message": "the chunks join to the full text",
+      "pass": true
+    },
+    {
+      "kind": "check",
+      "line": 16,
+      "message": "result.text resolves to the full text",
+      "pass": true
+    },
+    {
+      "kind": "check",
+      "line": 17,
+      "message": "result.finishReason resolves after the stream",
+      "pass": true
+    },
+    {
+      "kind": "request",
+      "model": "model-2",
+      "repeated": 0,
+      "messages": [
+        {
+          "role": "user",
+          "parts": [
+            {
+              "type": "text",
+              "text": "Stream something."
+            }
+          ]
+        }
+      ],
+      "tools": []
+    },
+    {
+      "kind": "response",
+      "model": "model-2",
+      "message": {
+        "role": "assistant",
+        "parts": [
+          {
+            "type": "text",
+            "text": "Typed parts."
+          }
+        ]
+      },
+      "finish": "stop"
+    },
+    {
+      "kind": "check",
+      "line": 30,
+      "message": "result.stream yields lifecycle and text-delta parts",
+      "pass": true
+    },
+    {
+      "kind": "check",
+      "line": 34,
+      "message": "text-delta parts carry the text in `text`",
+      "pass": true
+    },
+    {
+      "kind": "request",
+      "model": "model-3",
+      "repeated": 0,
+      "messages": [
+        {
+          "role": "user",
+          "parts": [
+            {
+              "type": "text",
+              "text": "x"
+            }
+          ]
+        }
+      ],
+      "tools": []
+    },
+    {
+      "kind": "response",
+      "model": "model-3",
+      "message": {
+        "role": "assistant",
+        "parts": [
+          {
+            "type": "text",
+            "text": "Done."
+          }
+        ]
+      },
+      "finish": "stop"
+    },
+    {
+      "kind": "check",
+      "line": 47,
+      "message": "onEnd fires once the stream is consumed",
+      "pass": true
+    }
+  ]
+}

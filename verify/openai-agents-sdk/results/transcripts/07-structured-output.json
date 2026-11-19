@@ -1,0 +1,94 @@
+{
+  "format": 1,
+  "example": "07-structured-output",
+  "file": "verify/openai-agents-sdk/examples/07-structured-output.ts",
+  "harness": "verify/openai-agents-sdk",
+  "pin": "@openai/agents@0.21.0",
+  "mock": "@openai/agents@0.21.0",
+  "events": [
+    {
+      "kind": "request",
+      "line": 12,
+      "model": "model-1",
+      "repeated": 0,
+      "messages": [
+        {
+          "role": "user",
+          "parts": [
+            {
+              "type": "text",
+              "text": "Safari login crashes."
+            }
+          ]
+        }
+      ],
+      "tools": []
+    },
+    {
+      "kind": "response",
+      "line": 12,
+      "model": "model-1",
+      "message": {
+        "role": "assistant",
+        "parts": [
+          {
+            "type": "text",
+            "text": "{\"title\":\"Login crash\",\"priority\":\"high\"}"
+          }
+        ]
+      },
+      "finish": "stop"
+    },
+    {
+      "kind": "check",
+      "line": 13,
+      "message": "finalOutput is the parsed, typed object",
+      "pass": true
+    },
+    {
+      "kind": "check",
+      "line": 15,
+      "message": "the model receives a JSON Schema output type",
+      "pass": true
+    },
+    {
+      "kind": "request",
+      "line": 22,
+      "model": "model-2",
+      "repeated": 0,
+      "messages": [
+        {
+          "role": "user",
+          "parts": [
+            {
+              "type": "text",
+              "text": "Safari login crashes."
+            }
+          ]
+        }
+      ],
+      "tools": []
+    },
+    {
+      "kind": "response",
+      "line": 22,
+      "model": "model-2",
+      "message": {
+        "role": "assistant",
+        "parts": [
+          {
+            "type": "text",
+            "text": "not json"
+          }
+        ]
+      },
+      "finish": "stop"
+    },
+    {
+      "kind": "check",
+      "line": 26,
+      "message": "output that fails the schema throws ModelBehaviorError",
+      "pass": true
+    }
+  ]
+}

@@ -1,0 +1,99 @@
+{
+  "format": 1,
+  "example": "01-hello-session",
+  "file": "verify/pi/examples/01-hello-session.ts",
+  "harness": "verify/pi",
+  "pin": "@earendil-works/pi-coding-agent@1.5.2",
+  "mock": "@earendil-works/pi-ai@1.5.2",
+  "events": [
+    {
+      "kind": "request",
+      "line": 10,
+      "model": "model-1",
+      "repeated": 0,
+      "messages": [
+        {
+          "role": "system",
+          "parts": [
+            {
+              "type": "text",
+              "text": ""
+            },
+            {
+              "type": "other",
+              "kind": "sections",
+              "value": [
+                "preamble",
+                "tools",
+                "rules",
+                "docs",
+                "project_context",
+                "cwd"
+              ]
+            }
+          ]
+        },
+        {
+          "role": "user",
+          "parts": [
+            {
+              "type": "text",
+              "text": "Say hello."
+            }
+          ]
+        }
+      ],
+      "tools": [
+        "read",
+        "bash",
+        "edit",
+        "write"
+      ]
+    },
+    {
+      "kind": "response",
+      "line": 10,
+      "model": "model-1",
+      "message": {
+        "role": "assistant",
+        "parts": [
+          {
+            "type": "text",
+            "text": "Hello from Pi."
+          }
+        ]
+      },
+      "finish": "stop"
+    },
+    {
+      "kind": "check",
+      "line": 11,
+      "message": "getLastAssistantText() returns the final answer",
+      "pass": true
+    },
+    {
+      "kind": "check",
+      "line": 12,
+      "message": "one model request for a text-only answer",
+      "pass": true
+    },
+    {
+      "kind": "check",
+      "line": 13,
+      "message": "streams message_update then message_end",
+      "pass": true
+    },
+    {
+      "kind": "check",
+      "line": 14,
+      "message": "agent_settled is the last event of the run",
+      "pass": true
+    },
+    {
+      "kind": "check",
+      "line": 15,
+      "message": "default active tools are read, bash, edit, write",
+      "pass": true
+    }
+  ]
+}

@@ -1,5 +1,7 @@
 // Shared helpers for the verified LangChain examples.
 import type { BaseMessage } from "@langchain/core/messages";
+// Attaches the transcript recorder to fakeModel() when the runner preloads it (scripts/transcripts/).
+import "./transcript.ts";
 
 export function check(cond: unknown, msg: string): asserts cond {
   if (!cond) throw new Error(`ASSERTION FAILED: ${msg}`);

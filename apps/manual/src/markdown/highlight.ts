@@ -27,6 +27,7 @@ export async function highlightListing(source: ListingSource): Promise<ListingLi
   return source.lines.map((line, index) => ({
     number: line.number,
     tokens: merge((tokens[index] ?? []).map((token) => ({ text: token.content, kind: KINDS[token.color ?? ""] }))),
+    ...(line.note === undefined ? {} : { note: line.note }),
   }));
 }
 

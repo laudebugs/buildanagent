@@ -35,7 +35,7 @@ Give the book the look the owner picked. This todo turns the owner's type and co
 
 **Out of scope** (and which todo covers it)
 
-- The behaviour behind listings and replays ([T4](../done/T4-book-listings.md), [T5](../ready/T5-book-interactive-listings.md))
+- The behaviour behind listings and replays ([T4](../done/T4-book-listings.md), [T5](../done/T5-book-interactive-listings.md))
 - Figure drawing ([T6](T6-book-flat-figures.md), [T7](T7-book-isometric-figures.md))
 
 ## Tasks

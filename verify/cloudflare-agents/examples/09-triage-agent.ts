@@ -100,6 +100,11 @@ export class TriageAgent extends Think<Env> {
   report() {
     return { lookups: this.lookups, escalations: this.escalations };
   }
+  /** Whether the last message is the model's text answer, which ends the turn an approval continues. */
+  answered() {
+    const last = this.messages.at(-1);
+    return last?.role === "assistant" && last.parts.some((part) => part.type === "text");
+  }
 }
 
 export async function test(env: Env, h: Harness) {
@@ -119,8 +124,13 @@ export async function test(env: Env, h: Harness) {
   if (!ws) throw new Error("no WebSocket");
   ws.accept();
   ws.send(JSON.stringify({ type: "cf_agent_tool_approval", toolCallId: gate.id, approved: true, autoContinue: true }));
-  const done = await h.until(async () => (await agent.pending())[0]?.state === "output-available", 5000);
-  check(done, "approval moved the escalation to output-available");
+  // Wait for the escalation's result and for the model's answer in the turn the approval continues, so the run
+  // happens in one order: the continued turn ends before the checks below.
+  const done = await h.until(
+    async () => (await agent.pending())[0]?.state === "output-available" && (await agent.answered()),
+    5000,
+  );
+  check(done, "approval moved the escalation to output-available, and the continued turn answered");
   r = await agent.report();
   check(r.escalations.join() === "C-9:outage", "the escalate tool ran exactly once, after approval");
   ws.close();

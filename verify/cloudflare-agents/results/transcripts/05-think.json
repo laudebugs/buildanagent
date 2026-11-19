@@ -1,0 +1,246 @@
+{
+  "format": 1,
+  "example": "05-think",
+  "file": "verify/cloudflare-agents/examples/05-think.ts",
+  "harness": "verify/cloudflare-agents",
+  "pin": "agents@0.33.0",
+  "mock": "ai@7.0.162",
+  "events": [
+    {
+      "kind": "request",
+      "model": "model-1",
+      "repeated": 0,
+      "messages": [
+        {
+          "role": "system",
+          "parts": [
+            {
+              "type": "text",
+              "text": "You are the help desk.\n\nYou are running inside a Think agent.\n\nCapabilities available in this turn:\n- You can inspect and edit the agent workspace using the available file tools.\n- Use the tools exposed in this turn when they materially improve accuracy or let you act on the user's request. Treat tool descriptions and schemas as the source of truth.\n- Some tools may call server code, browser/client code, MCP servers, extensions, or delegated agents. Use them according to their descriptions.\n- Do not claim access to capabilities that are not exposed as tools in this turn."
+            }
+          ]
+        },
+        {
+          "role": "user",
+          "parts": [
+            {
+              "type": "text",
+              "text": "What is ticket T-1 about? Then purge it."
+            }
+          ]
+        }
+      ],
+      "tools": [
+        "read",
+        "ls",
+        "find",
+        "grep",
+        "write",
+        "edit",
+        "delete",
+        "lookupTicket",
+        "purgeTicket"
+      ]
+    },
+    {
+      "kind": "response",
+      "model": "model-1",
+      "message": {
+        "role": "assistant",
+        "parts": [
+          {
+            "type": "tool-call",
+            "id": "call_1",
+            "name": "lookupTicket",
+            "input": {
+              "id": "T-1"
+            }
+          },
+          {
+            "type": "tool-call",
+            "id": "call_2",
+            "name": "purgeTicket",
+            "input": {
+              "id": "T-1"
+            }
+          }
+        ]
+      },
+      "finish": "tool-calls"
+    },
+    {
+      "kind": "request",
+      "model": "model-1",
+      "repeated": 3,
+      "messages": [
+        {
+          "role": "tool",
+          "parts": [
+            {
+              "type": "tool-result",
+              "id": "call_1",
+              "name": "lookupTicket",
+              "output": {
+                "id": "T-1",
+                "title": "Printer on fire"
+              }
+            },
+            {
+              "type": "tool-result",
+              "id": "call_2",
+              "name": "purgeTicket",
+              "output": "purging is disabled"
+            }
+          ]
+        }
+      ],
+      "tools": [
+        "read",
+        "ls",
+        "find",
+        "grep",
+        "write",
+        "edit",
+        "delete",
+        "lookupTicket",
+        "purgeTicket"
+      ]
+    },
+    {
+      "kind": "response",
+      "model": "model-1",
+      "message": {
+        "role": "assistant",
+        "parts": [
+          {
+            "type": "text",
+            "text": "Looked it up. Purge said: blocked"
+          }
+        ]
+      },
+      "finish": "stop"
+    },
+    {
+      "kind": "check",
+      "message": "runTurn waits for the turn to finish (status completed)",
+      "pass": true
+    },
+    {
+      "kind": "check",
+      "message": "getSystemPrompt() reaches the model as a system message",
+      "pass": true
+    },
+    {
+      "kind": "check",
+      "message": "getTools() tools are offered",
+      "pass": true
+    },
+    {
+      "kind": "check",
+      "message": "the allowed tool ran; the blocked tool's execute never ran",
+      "pass": true
+    },
+    {
+      "kind": "check",
+      "message": "the model saw the block reason as the tool's output",
+      "pass": true
+    },
+    {
+      "kind": "request",
+      "model": "model-1",
+      "repeated": 5,
+      "messages": [
+        {
+          "role": "user",
+          "parts": [
+            {
+              "type": "text",
+              "text": "Classify ticket T-1."
+            }
+          ]
+        }
+      ],
+      "tools": [
+        "read",
+        "ls",
+        "find",
+        "grep",
+        "write",
+        "edit",
+        "delete",
+        "lookupTicket",
+        "purgeTicket"
+      ]
+    },
+    {
+      "kind": "response",
+      "model": "model-1",
+      "message": {
+        "role": "assistant",
+        "parts": [
+          {
+            "type": "text",
+            "text": "Looked it up. Purge said: ?"
+          }
+        ]
+      },
+      "finish": "stop"
+    },
+    {
+      "kind": "check",
+      "message": "runTurn({ input, body }) does not pass body to beforeTurn's ctx.body",
+      "pass": true
+    },
+    {
+      "kind": "check",
+      "message": "so that turn ran without structured output",
+      "pass": true
+    },
+    {
+      "kind": "request",
+      "model": "model-1",
+      "repeated": 7,
+      "messages": [
+        {
+          "role": "user",
+          "parts": [
+            {
+              "type": "text",
+              "text": "Classify ticket T-1."
+            }
+          ]
+        }
+      ],
+      "tools": []
+    },
+    {
+      "kind": "response",
+      "model": "model-1",
+      "message": {
+        "role": "assistant",
+        "parts": [
+          {
+            "type": "text",
+            "text": "{\"severity\":\"high\",\"summary\":\"Printer on fire\"}"
+          }
+        ]
+      },
+      "finish": "stop"
+    },
+    {
+      "kind": "check",
+      "message": "beforeTurn's activeTools: [] removed every tool for the structured turn",
+      "pass": true
+    },
+    {
+      "kind": "check",
+      "message": "beforeTurn's output asked the model for JSON",
+      "pass": true
+    },
+    {
+      "kind": "check",
+      "message": "TurnResult.output holds the parsed object",
+      "pass": true
+    }
+  ]
+}

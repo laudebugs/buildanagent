@@ -1,0 +1,424 @@
+{
+  "format": 1,
+  "example": "08-triage-agent",
+  "file": "verify/google-adk/examples/08-triage-agent.ts",
+  "harness": "verify/google-adk",
+  "pin": "@google/adk@2.5.0",
+  "mock": "@google/adk@2.5.0",
+  "events": [
+    {
+      "kind": "request",
+      "line": 90,
+      "model": "model-1",
+      "repeated": 0,
+      "messages": [
+        {
+          "role": "system",
+          "parts": [
+            {
+              "type": "text",
+              "text": "Triage the ticket. Look up the customer first. Escalate billing disputes.\n\nTo output the final result, you must call the \"set_model_response\" function with the appropriate values. Do not output anything else."
+            }
+          ]
+        },
+        {
+          "role": "user",
+          "parts": [
+            {
+              "type": "text",
+              "text": "I was charged twice this month."
+            }
+          ]
+        }
+      ],
+      "tools": [
+        "lookup_customer",
+        "escalate_to_human",
+        "set_model_response"
+      ]
+    },
+    {
+      "kind": "response",
+      "line": 90,
+      "model": "model-1",
+      "message": {
+        "role": "assistant",
+        "parts": [
+          {
+            "type": "tool-call",
+            "id": "call-1",
+            "name": "lookup_customer",
+            "input": {
+              "customerId": "cust-999"
+            }
+          }
+        ]
+      },
+      "finish": "tool-calls"
+    },
+    {
+      "kind": "request",
+      "line": 90,
+      "model": "model-1",
+      "repeated": 3,
+      "messages": [
+        {
+          "role": "user",
+          "parts": [
+            {
+              "type": "tool-result",
+              "id": "call-1",
+              "name": "lookup_customer",
+              "output": {
+                "customerId": "cust-42",
+                "name": "Ada",
+                "plan": "pro",
+                "openTickets": 2
+              }
+            }
+          ]
+        }
+      ],
+      "tools": [
+        "lookup_customer",
+        "escalate_to_human",
+        "set_model_response"
+      ]
+    },
+    {
+      "kind": "response",
+      "line": 90,
+      "model": "model-1",
+      "message": {
+        "role": "assistant",
+        "parts": [
+          {
+            "type": "tool-call",
+            "id": "call-2",
+            "name": "escalate_to_human",
+            "input": {
+              "reason": "double charge on pro plan"
+            }
+          }
+        ]
+      },
+      "finish": "tool-calls"
+    },
+    {
+      "kind": "check",
+      "line": 91,
+      "message": "lookup_customer reads the identity from session state and drops the model's customerId",
+      "pass": true
+    },
+    {
+      "kind": "check",
+      "line": 95,
+      "message": "the other customer's record never reaches the model",
+      "pass": true
+    },
+    {
+      "kind": "check",
+      "line": 97,
+      "message": "escalate_to_human pauses for approval and has not run",
+      "pass": true
+    },
+    {
+      "kind": "request",
+      "line": 98,
+      "model": "model-1",
+      "repeated": 5,
+      "messages": [
+        {
+          "role": "user",
+          "parts": [
+            {
+              "type": "tool-result",
+              "id": "call-2",
+              "name": "escalate_to_human",
+              "output": {
+                "status": "escalated",
+                "queue": "tier-2"
+              }
+            }
+          ]
+        }
+      ],
+      "tools": [
+        "lookup_customer",
+        "escalate_to_human",
+        "set_model_response"
+      ]
+    },
+    {
+      "kind": "response",
+      "line": 98,
+      "model": "model-1",
+      "message": {
+        "role": "assistant",
+        "parts": [
+          {
+            "type": "tool-call",
+            "id": "call-3",
+            "name": "set_model_response",
+            "input": {
+              "category": "billing",
+              "priority": 2,
+              "escalated": true,
+              "summary": "Double charge"
+            }
+          }
+        ]
+      },
+      "finish": "tool-calls"
+    },
+    {
+      "kind": "check",
+      "line": 99,
+      "message": "after approval the escalation runs once, for the session's customer",
+      "pass": true
+    },
+    {
+      "kind": "check",
+      "line": 104,
+      "message": "the typed result parses with zod and records the escalation",
+      "pass": true
+    },
+    {
+      "kind": "request",
+      "line": 113,
+      "model": "model-1",
+      "repeated": 2,
+      "messages": [],
+      "tools": [
+        "lookup_customer",
+        "escalate_to_human",
+        "set_model_response"
+      ]
+    },
+    {
+      "kind": "response",
+      "line": 113,
+      "model": "model-1",
+      "message": {
+        "role": "assistant",
+        "parts": [
+          {
+            "type": "tool-call",
+            "id": "call-4",
+            "name": "lookup_customer",
+            "input": {
+              "customerId": "cust-999"
+            }
+          }
+        ]
+      },
+      "finish": "tool-calls"
+    },
+    {
+      "kind": "request",
+      "line": 113,
+      "model": "model-1",
+      "repeated": 3,
+      "messages": [
+        {
+          "role": "user",
+          "parts": [
+            {
+              "type": "tool-result",
+              "id": "call-4",
+              "name": "lookup_customer",
+              "output": {
+                "customerId": "cust-42",
+                "name": "Ada",
+                "plan": "pro",
+                "openTickets": 2
+              }
+            }
+          ]
+        }
+      ],
+      "tools": [
+        "lookup_customer",
+        "escalate_to_human",
+        "set_model_response"
+      ]
+    },
+    {
+      "kind": "response",
+      "line": 113,
+      "model": "model-1",
+      "message": {
+        "role": "assistant",
+        "parts": [
+          {
+            "type": "tool-call",
+            "id": "call-5",
+            "name": "escalate_to_human",
+            "input": {
+              "reason": "double charge on pro plan"
+            }
+          }
+        ]
+      },
+      "finish": "tool-calls"
+    },
+    {
+      "kind": "request",
+      "line": 115,
+      "model": "model-1",
+      "repeated": 5,
+      "messages": [
+        {
+          "role": "user",
+          "parts": [
+            {
+              "type": "tool-result",
+              "id": "call-5",
+              "name": "escalate_to_human",
+              "output": {
+                "error": "This tool call is rejected."
+              }
+            }
+          ]
+        }
+      ],
+      "tools": [
+        "lookup_customer",
+        "escalate_to_human",
+        "set_model_response"
+      ]
+    },
+    {
+      "kind": "response",
+      "line": 115,
+      "model": "model-1",
+      "message": {
+        "role": "assistant",
+        "parts": [
+          {
+            "type": "tool-call",
+            "id": "call-6",
+            "name": "set_model_response",
+            "input": {
+              "category": "billing",
+              "priority": 2,
+              "escalated": false,
+              "summary": "Double charge"
+            }
+          }
+        ]
+      },
+      "finish": "tool-calls"
+    },
+    {
+      "kind": "check",
+      "line": 116,
+      "message": "a rejected escalation never runs",
+      "pass": true
+    },
+    {
+      "kind": "check",
+      "line": 118,
+      "message": "the typed result says the ticket was not escalated",
+      "pass": true
+    },
+    {
+      "kind": "request",
+      "line": 124,
+      "model": "model-1",
+      "repeated": 1,
+      "messages": [
+        {
+          "role": "user",
+          "parts": [
+            {
+              "type": "text",
+              "text": "Who am I?"
+            }
+          ]
+        }
+      ],
+      "tools": [
+        "lookup_customer",
+        "escalate_to_human",
+        "set_model_response"
+      ]
+    },
+    {
+      "kind": "response",
+      "line": 124,
+      "model": "model-1",
+      "message": {
+        "role": "assistant",
+        "parts": [
+          {
+            "type": "tool-call",
+            "id": "call-7",
+            "name": "lookup_customer",
+            "input": {
+              "customerId": "cust-999"
+            }
+          }
+        ]
+      },
+      "finish": "tool-calls"
+    },
+    {
+      "kind": "request",
+      "line": 124,
+      "model": "model-1",
+      "repeated": 3,
+      "messages": [
+        {
+          "role": "user",
+          "parts": [
+            {
+              "type": "tool-result",
+              "id": "call-7",
+              "name": "lookup_customer",
+              "output": {
+                "error": "no customer in session"
+              }
+            }
+          ]
+        }
+      ],
+      "tools": [
+        "lookup_customer",
+        "escalate_to_human",
+        "set_model_response"
+      ]
+    },
+    {
+      "kind": "response",
+      "line": 124,
+      "model": "model-1",
+      "message": {
+        "role": "assistant",
+        "parts": [
+          {
+            "type": "tool-call",
+            "id": "call-8",
+            "name": "escalate_to_human",
+            "input": {
+              "reason": "double charge on pro plan"
+            }
+          }
+        ]
+      },
+      "finish": "tool-calls"
+    },
+    {
+      "kind": "check",
+      "line": 125,
+      "message": "without user:customer_id in state the lookup returns an error, not a guess",
+      "pass": true
+    },
+    {
+      "kind": "check",
+      "line": 131,
+      "message": "no host tool is ever offered to the model",
+      "pass": true
+    }
+  ]
+}

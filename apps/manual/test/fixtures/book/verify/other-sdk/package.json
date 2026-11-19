@@ -1,0 +1,11 @@
+{
+  "name": "@fixture/other-sdk",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "typecheck": "tsc -p tsconfig.json"
+  },
+  "dependencies": {
+    "other-sdk": "4.5.6"
+  }
+}

@@ -1,8 +1,29 @@
 /**
- * `@buildanagent/sdk`: the agent loop over `@buildanagent/gateway`. This entry holds the tools: their definitions,
- * schemas, results and write outcomes. The loop, hooks, signed pauses and budgets are planned in the SDK plan §3.3.
+ * `@buildanagent/sdk`: the agent loop over `@buildanagent/gateway`. This entry holds the loop (`run()`,
+ * `continueRun()`, `runOrThrow()`), its events and results, and the tools: their definitions, schemas, results and
+ * write outcomes. Hooks, signed pauses and budgets are planned in the SDK plan §3.3.
  */
-export { isSdkError, SdkError, type SdkErrorCode } from "./errors.js";
+export { isSdkError, RunStoppedError, SdkError, type SdkErrorCode } from "./errors.js";
+export {
+  AGENT_EVENT_TYPES,
+  type AgentEvent,
+  type AgentEventBody,
+  type EventBase,
+  type ModelCallRequest,
+  type WarningCode,
+} from "./events.js";
+export type {
+  Context,
+  DoneResult,
+  EndedResult,
+  ErrorResult,
+  ResultBase,
+  RunError,
+  RunResult,
+  StoppedResult,
+  UnfinishedResult,
+} from "./result.js";
+export { continueRun, type Run, type RunInput, type RunOptions, run, runOrThrow } from "./run.js";
 export {
   type ClarificationToolOptions,
   clarificationTool,
@@ -16,6 +37,7 @@ export type {
   ToolContext,
   ToolDefinition,
   ToolEffect,
+  ToolExposure,
   ToolFailure,
   ToolResult,
   ToolSchema,

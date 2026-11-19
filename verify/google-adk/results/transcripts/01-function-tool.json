@@ -1,0 +1,313 @@
+{
+  "format": 1,
+  "example": "01-function-tool",
+  "file": "verify/google-adk/examples/01-function-tool.ts",
+  "harness": "verify/google-adk",
+  "pin": "@google/adk@2.5.0",
+  "mock": "@google/adk@2.5.0",
+  "events": [
+    {
+      "kind": "request",
+      "line": 33,
+      "model": "model-1",
+      "repeated": 0,
+      "messages": [
+        {
+          "role": "system",
+          "parts": [
+            {
+              "type": "text",
+              "text": "You are an agent. Your internal name is \"support\".\n\nAnswer order questions."
+            }
+          ]
+        },
+        {
+          "role": "user",
+          "parts": [
+            {
+              "type": "text",
+              "text": "Where is order A-1?"
+            }
+          ]
+        }
+      ],
+      "tools": [
+        "get_order_status"
+      ]
+    },
+    {
+      "kind": "response",
+      "line": 33,
+      "model": "model-1",
+      "message": {
+        "role": "assistant",
+        "parts": [
+          {
+            "type": "tool-call",
+            "id": "call-1",
+            "name": "get_order_status",
+            "input": {
+              "orderId": 42
+            }
+          }
+        ]
+      },
+      "finish": "tool-calls"
+    },
+    {
+      "kind": "request",
+      "line": 33,
+      "model": "model-1",
+      "repeated": 3,
+      "messages": [
+        {
+          "role": "user",
+          "parts": [
+            {
+              "type": "tool-result",
+              "id": "call-1",
+              "name": "get_order_status",
+              "output": {
+                "error": "Error in tool 'get_order_status': [\n  {\n    \"expected\": \"string\",\n    \"code\": \"invalid_type\",\n    \"path\": [\n      \"orderId\"\n    ],\n    \"message\": \"Invalid input: expected string, received number\"\n  }\n]"
+              }
+            }
+          ]
+        }
+      ],
+      "tools": [
+        "get_order_status"
+      ]
+    },
+    {
+      "kind": "response",
+      "line": 33,
+      "model": "model-1",
+      "message": {
+        "role": "assistant",
+        "parts": [
+          {
+            "type": "tool-call",
+            "id": "call-2",
+            "name": "get_order_status",
+            "input": {
+              "orderId": "A-1"
+            }
+          }
+        ]
+      },
+      "finish": "tool-calls"
+    },
+    {
+      "kind": "request",
+      "line": 33,
+      "model": "model-1",
+      "repeated": 5,
+      "messages": [
+        {
+          "role": "user",
+          "parts": [
+            {
+              "type": "tool-result",
+              "id": "call-2",
+              "name": "get_order_status",
+              "output": {
+                "result": "order A-1 shipped"
+              }
+            }
+          ]
+        }
+      ],
+      "tools": [
+        "get_order_status"
+      ]
+    },
+    {
+      "kind": "response",
+      "line": 33,
+      "model": "model-1",
+      "message": {
+        "role": "assistant",
+        "parts": [
+          {
+            "type": "text",
+            "text": "Your order A-1 has shipped."
+          }
+        ]
+      },
+      "finish": "stop"
+    },
+    {
+      "kind": "check",
+      "line": 36,
+      "message": "the model is offered the tool by name",
+      "pass": true
+    },
+    {
+      "kind": "check",
+      "line": 37,
+      "message": "the zod schema becomes a Gemini Schema declaration (type OBJECT, orderId STRING)",
+      "pass": true
+    },
+    {
+      "kind": "check",
+      "line": 41,
+      "message": "required zod fields are marked required",
+      "pass": true
+    },
+    {
+      "kind": "check",
+      "line": 43,
+      "message": "arguments that fail the zod schema come back to the model as {error}, not as an exception",
+      "pass": true
+    },
+    {
+      "kind": "check",
+      "line": 47,
+      "message": "the tool body ran only for the valid call",
+      "pass": true
+    },
+    {
+      "kind": "check",
+      "line": 48,
+      "message": "a string result is wrapped as {result: ...}",
+      "pass": true
+    },
+    {
+      "kind": "check",
+      "line": 49,
+      "message": "each tool result triggers another model call",
+      "pass": true
+    },
+    {
+      "kind": "check",
+      "line": 50,
+      "message": "the model sees the tool result as a functionResponse part",
+      "pass": true
+    },
+    {
+      "kind": "check",
+      "line": 55,
+      "message": "the last event is the final answer",
+      "pass": true
+    },
+    {
+      "kind": "check",
+      "line": 59,
+      "message": "ADK prepends an identity preamble to the instruction",
+      "pass": true
+    },
+    {
+      "kind": "request",
+      "line": 101,
+      "model": "model-2",
+      "repeated": 0,
+      "messages": [
+        {
+          "role": "system",
+          "parts": [
+            {
+              "type": "text",
+              "text": "You are an agent. Your internal name is \"par\".\n\nx"
+            }
+          ]
+        },
+        {
+          "role": "user",
+          "parts": [
+            {
+              "type": "text",
+              "text": "look up both"
+            }
+          ]
+        }
+      ],
+      "tools": [
+        "slow_a",
+        "slow_b"
+      ]
+    },
+    {
+      "kind": "response",
+      "line": 101,
+      "model": "model-2",
+      "message": {
+        "role": "assistant",
+        "parts": [
+          {
+            "type": "tool-call",
+            "id": "p1",
+            "name": "slow_a",
+            "input": {}
+          },
+          {
+            "type": "tool-call",
+            "id": "p2",
+            "name": "slow_b",
+            "input": {}
+          }
+        ]
+      },
+      "finish": "tool-calls"
+    },
+    {
+      "kind": "request",
+      "line": 101,
+      "model": "model-2",
+      "repeated": 3,
+      "messages": [
+        {
+          "role": "user",
+          "parts": [
+            {
+              "type": "tool-result",
+              "id": "p1",
+              "name": "slow_a",
+              "output": {
+                "ok": "slow_a"
+              }
+            },
+            {
+              "type": "tool-result",
+              "id": "p2",
+              "name": "slow_b",
+              "output": {
+                "ok": "slow_b"
+              }
+            }
+          ]
+        }
+      ],
+      "tools": [
+        "slow_a",
+        "slow_b"
+      ]
+    },
+    {
+      "kind": "response",
+      "line": 101,
+      "model": "model-2",
+      "message": {
+        "role": "assistant",
+        "parts": [
+          {
+            "type": "text",
+            "text": "both done"
+          }
+        ]
+      },
+      "finish": "stop"
+    },
+    {
+      "kind": "check",
+      "line": 102,
+      "message": "both calls from one model turn get a functionResponse",
+      "pass": true
+    },
+    {
+      "kind": "check",
+      "line": 104,
+      "message": "the second call starts only after the first finishes (sequential, not parallel)",
+      "pass": true
+    }
+  ]
+}

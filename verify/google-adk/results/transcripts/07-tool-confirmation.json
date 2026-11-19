@@ -1,0 +1,385 @@
+{
+  "format": 1,
+  "example": "07-tool-confirmation",
+  "file": "verify/google-adk/examples/07-tool-confirmation.ts",
+  "harness": "verify/google-adk",
+  "pin": "@google/adk@2.5.0",
+  "mock": "@google/adk@2.5.0",
+  "events": [
+    {
+      "kind": "check",
+      "line": 34,
+      "message": "the confirmation call is named adk_request_confirmation",
+      "pass": true
+    },
+    {
+      "kind": "request",
+      "line": 42,
+      "model": "model-1",
+      "repeated": 0,
+      "messages": [
+        {
+          "role": "system",
+          "parts": [
+            {
+              "type": "text",
+              "text": "You are an agent. Your internal name is \"finance\".\n\nReimburse."
+            }
+          ]
+        },
+        {
+          "role": "user",
+          "parts": [
+            {
+              "type": "text",
+              "text": "reimburse 500"
+            }
+          ]
+        }
+      ],
+      "tools": [
+        "reimburse"
+      ]
+    },
+    {
+      "kind": "response",
+      "line": 42,
+      "model": "model-1",
+      "message": {
+        "role": "assistant",
+        "parts": [
+          {
+            "type": "tool-call",
+            "id": "call-1",
+            "name": "reimburse",
+            "input": {
+              "amount": 500
+            }
+          }
+        ]
+      },
+      "finish": "tool-calls"
+    },
+    {
+      "kind": "check",
+      "line": 44,
+      "message": "a call that needs confirmation pauses before the tool body runs",
+      "pass": true
+    },
+    {
+      "kind": "check",
+      "line": 45,
+      "message": "the confirmation request is a long-running call",
+      "pass": true
+    },
+    {
+      "kind": "check",
+      "line": 49,
+      "message": "the request carries the original call and its arguments",
+      "pass": true
+    },
+    {
+      "kind": "check",
+      "line": 53,
+      "message": "the paused turn makes no further model call",
+      "pass": true
+    },
+    {
+      "kind": "request",
+      "line": 54,
+      "model": "model-1",
+      "repeated": 3,
+      "messages": [
+        {
+          "role": "user",
+          "parts": [
+            {
+              "type": "tool-result",
+              "id": "call-1",
+              "name": "reimburse",
+              "output": {
+                "status": "paid",
+                "amount": 500
+              }
+            }
+          ]
+        }
+      ],
+      "tools": [
+        "reimburse"
+      ]
+    },
+    {
+      "kind": "response",
+      "line": 54,
+      "model": "model-1",
+      "message": {
+        "role": "assistant",
+        "parts": [
+          {
+            "type": "text",
+            "text": "summary"
+          }
+        ]
+      },
+      "finish": "stop"
+    },
+    {
+      "kind": "check",
+      "line": 55,
+      "message": "confirmed: true runs the tool with the original arguments",
+      "pass": true
+    },
+    {
+      "kind": "check",
+      "line": 56,
+      "message": "the result goes to the model, which answers",
+      "pass": true
+    },
+    {
+      "kind": "request",
+      "line": 65,
+      "model": "model-1",
+      "repeated": 2,
+      "messages": [],
+      "tools": [
+        "reimburse"
+      ]
+    },
+    {
+      "kind": "response",
+      "line": 65,
+      "model": "model-1",
+      "message": {
+        "role": "assistant",
+        "parts": [
+          {
+            "type": "tool-call",
+            "id": "call-2",
+            "name": "reimburse",
+            "input": {
+              "amount": 500
+            }
+          }
+        ]
+      },
+      "finish": "tool-calls"
+    },
+    {
+      "kind": "request",
+      "line": 67,
+      "model": "model-1",
+      "repeated": 3,
+      "messages": [
+        {
+          "role": "user",
+          "parts": [
+            {
+              "type": "tool-result",
+              "id": "call-2",
+              "name": "reimburse",
+              "output": {
+                "error": "This tool call is rejected."
+              }
+            }
+          ]
+        }
+      ],
+      "tools": [
+        "reimburse"
+      ]
+    },
+    {
+      "kind": "response",
+      "line": 67,
+      "model": "model-1",
+      "message": {
+        "role": "assistant",
+        "parts": [
+          {
+            "type": "text",
+            "text": "summary"
+          }
+        ]
+      },
+      "finish": "stop"
+    },
+    {
+      "kind": "check",
+      "line": 68,
+      "message": "confirmed: false never runs the tool",
+      "pass": true
+    },
+    {
+      "kind": "check",
+      "line": 69,
+      "message": "the model sees a rejection error as the tool result",
+      "pass": true
+    },
+    {
+      "kind": "request",
+      "line": 78,
+      "model": "model-1",
+      "repeated": 1,
+      "messages": [
+        {
+          "role": "user",
+          "parts": [
+            {
+              "type": "text",
+              "text": "reimburse 40"
+            }
+          ]
+        }
+      ],
+      "tools": [
+        "reimburse"
+      ]
+    },
+    {
+      "kind": "response",
+      "line": 78,
+      "model": "model-1",
+      "message": {
+        "role": "assistant",
+        "parts": [
+          {
+            "type": "tool-call",
+            "id": "call-3",
+            "name": "reimburse",
+            "input": {
+              "amount": 40
+            }
+          }
+        ]
+      },
+      "finish": "tool-calls"
+    },
+    {
+      "kind": "request",
+      "line": 78,
+      "model": "model-1",
+      "repeated": 3,
+      "messages": [
+        {
+          "role": "user",
+          "parts": [
+            {
+              "type": "tool-result",
+              "id": "call-3",
+              "name": "reimburse",
+              "output": {
+                "status": "paid",
+                "amount": 40
+              }
+            }
+          ]
+        }
+      ],
+      "tools": [
+        "reimburse"
+      ]
+    },
+    {
+      "kind": "response",
+      "line": 78,
+      "model": "model-1",
+      "message": {
+        "role": "assistant",
+        "parts": [
+          {
+            "type": "text",
+            "text": "summary"
+          }
+        ]
+      },
+      "finish": "stop"
+    },
+    {
+      "kind": "check",
+      "line": 79,
+      "message": "requireConfirmation's predicate can let a call through",
+      "pass": true
+    },
+    {
+      "kind": "request",
+      "line": 89,
+      "model": "model-1",
+      "repeated": 1,
+      "messages": [
+        {
+          "role": "user",
+          "parts": [
+            {
+              "type": "text",
+              "text": "reimburse 900"
+            }
+          ]
+        }
+      ],
+      "tools": [
+        "reimburse"
+      ]
+    },
+    {
+      "kind": "response",
+      "line": 89,
+      "model": "model-1",
+      "message": {
+        "role": "assistant",
+        "parts": [
+          {
+            "type": "tool-call",
+            "id": "call-4",
+            "name": "reimburse",
+            "input": {
+              "amount": 900
+            }
+          }
+        ]
+      },
+      "finish": "tool-calls"
+    },
+    {
+      "kind": "request",
+      "line": 91,
+      "model": "model-1",
+      "repeated": 3,
+      "messages": [],
+      "tools": [
+        "reimburse"
+      ]
+    },
+    {
+      "kind": "response",
+      "line": 91,
+      "model": "model-1",
+      "message": {
+        "role": "assistant",
+        "parts": [
+          {
+            "type": "tool-call",
+            "id": "call-5",
+            "name": "reimburse",
+            "input": {
+              "amount": 900
+            }
+          }
+        ]
+      },
+      "finish": "tool-calls"
+    },
+    {
+      "kind": "check",
+      "line": 92,
+      "message": "a confirmation with an unknown call id does not run the tool",
+      "pass": true
+    },
+    {
+      "kind": "check",
+      "line": 93,
+      "message": "instead the turn starts over and the tool asks for confirmation again",
+      "pass": true
+    }
+  ]
+}

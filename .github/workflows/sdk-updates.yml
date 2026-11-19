@@ -2,8 +2,13 @@
 # AGENTS.md "Versions"), bump each harness, rerun its verify, and open one pull request per harness.
 #
 # Running verify runs the new releases' code, so the job that does it gets a read-only token and no persisted
-# credentials. It hands a patch to the open-pr job, which applies it and opens the pull request without
-# installing or running any package code.
+# credentials. It hands a patch to the open-pr job, which installs and runs no package code. That job commits the patch
+# locally and checks that it changes only the harness's pins, its results and the lockfile, without a token. Only then
+# does its last step get SDK_UPDATES_TOKEN, or else RELEASE_PR_TOKEN. That step makes the commit again through GitHub's
+# API with scripts/ci/version-commit.mjs, so that GitHub signs it and main's ruleset, which requires signed commits,
+# lets the pull request merge, and then opens or updates the pull request. A personal access token, not GITHUB_TOKEN,
+# opens it, so that ci.yml runs on it without someone approving the runs (docs/plans/ci.md §3c). Auto-merge stays off:
+# these pull requests need a person's review, and auto-merge-guard.yml turns it off on any branch but the release's.
 name: sdk-updates
 
 on:
@@ -20,6 +25,9 @@ concurrency:
 
 jobs:
   plan:
+    # Only main's workflow and scripts may propose updates: a run dispatched from another branch would base the update
+    # commit on that branch's unmerged commits. The jobs below need this one, so they skip too.
+    if: github.ref == 'refs/heads/main'
     runs-on: ubuntu-24.04
     timeout-minutes: 5
     outputs:
@@ -60,7 +68,10 @@ jobs:
       - name: Allow unprivileged user namespaces
         run: sudo sysctl -w kernel.apparmor_restrict_unprivileged_userns=0
       - name: Bump the harness's pins
-        run: node scripts/ci/sdk-updates.mjs apply "${{ matrix.harness }}" > bumps.md
+        env:
+          HARNESS: ${{ matrix.harness }}
+          BUMPS: ${{ matrix.bumps }}
+        run: node scripts/ci/sdk-updates.mjs apply "$HARNESS" "$BUMPS" > bumps.md
       - name: Install the new releases
         id: install
         continue-on-error: true
@@ -72,7 +83,9 @@ jobs:
         id: verify
         if: steps.install.outcome == 'success'
         continue-on-error: true
-        run: pnpm -C "verify/${{ matrix.harness }}" run verify
+        env:
+          HARNESS: ${{ matrix.harness }}
+        run: pnpm -C "verify/$HARNESS" run verify
       - name: Compare results with the committed run
         id: drift
         if: steps.install.outcome == 'success'
@@ -86,7 +99,9 @@ jobs:
           DRIFT: ${{ steps.drift.outcome }}
         run: |
           touch drift.txt
-          git diff --binary -- "verify/$HARNESS" pnpm-lock.yaml > update.patch
+          # Staged first, so that a results file verify created is in the patch too; .gitignore keeps scratch out.
+          git add -A -- "verify/$HARNESS" pnpm-lock.yaml
+          git diff --cached --binary -- "verify/$HARNESS" pnpm-lock.yaml > update.patch
           {
             echo "Bumps \`verify/$HARNESS\` to the newest releases that are at least a week old (AGENTS.md, Versions)."
             echo
@@ -115,41 +130,85 @@ jobs:
 
   open-pr:
     needs: [plan, update]
-    if: needs.plan.outputs.any == 'true'
+    # Runs even when another harness's update job failed, so one failure doesn't hold back every pull request; a
+    # harness whose update job uploaded nothing fails at the download.
+    if: ${{ !cancelled() && needs.plan.result == 'success' && needs.plan.outputs.any == 'true' }}
     runs-on: ubuntu-24.04
     timeout-minutes: 10
+    # The run's own token only reads: the pull request's branch is written with the personal access token below.
     permissions:
-      contents: write
-      pull-requests: write
+      contents: read
     strategy:
       fail-fast: false
       matrix: ${{ fromJSON(needs.plan.outputs.matrix) }}
+    env:
+      HARNESS: ${{ matrix.harness }}
+      # The plan job chose these releases without running any package code, so the check holds the patch to them.
+      BUMPS: ${{ matrix.bumps }}
+      TITLE: "chore(deps): update the ${{ matrix.harness }} harness's SDK pins"
     steps:
+      # The run's commit on main, the one the update job bumped from, so the patch applies to it.
       - uses: actions/checkout@v7.0.1
         with:
-          token: ${{ secrets.SDK_UPDATES_TOKEN || github.token }}
+          persist-credentials: false
       - uses: actions/download-artifact@v8.0.2
         with:
           name: update-${{ matrix.harness }}
           path: ${{ runner.temp }}/update
-      - name: Open or update the pull request
-        env:
-          GH_TOKEN: ${{ secrets.SDK_UPDATES_TOKEN || github.token }}
-          HARNESS: ${{ matrix.harness }}
-          PATCH: ${{ runner.temp }}/update/update.patch
-          SUMMARY: ${{ runner.temp }}/update/summary.md
+      # The patch came from a job that ran third-party code, so it is checked before anything is written to GitHub.
+      - name: Commit the update and check that it changes only the harness
+        id: commit
         run: |
-          if [ ! -s "$PATCH" ]; then echo "No change to propose for $HARNESS."; exit 0; fi
-          branch="deps/sdk-$HARNESS"
-          title="chore(deps): update the $HARNESS harness's SDK pins"
+          set -euo pipefail
+          patch="$RUNNER_TEMP/update/update.patch"
+          if [ ! -s "$patch" ]; then
+            echo "No change to propose for $HARNESS."
+            echo "changed=false" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git switch -C "$branch"
-          git apply --index "$PATCH"
-          git commit -m "$title" -m "$(cat "$SUMMARY")"
-          git push --force origin "$branch"
-          if [ -n "$(gh pr list --head "$branch" --state open --json number --jq '.[].number')" ]; then
-            gh pr edit "$branch" --title "$title" --body-file "$SUMMARY"
+          base=$(git rev-parse HEAD)
+          # --cached leaves the working tree at main's commit, so the scripts below run as main holds them, never as the
+          # patch rewrote them.
+          git apply --cached --binary "$patch"
+          # The commit message and the pull request's first lines come from the plan, not from the update job's summary,
+          # which a release that verify ran could have rewritten.
+          { echo "$TITLE"; echo; echo "Bumps verify/$HARNESS to $BUMPS."; } > "$RUNNER_TEMP/message"
+          git commit --quiet --no-verify -F "$RUNNER_TEMP/message"
+          node scripts/ci/sdk-updates.mjs check "$HARNESS" "$base" HEAD "$BUMPS"
+          {
+            echo "Bumps \`verify/$HARNESS\` to \`$BUMPS\`. The plan job chose these releases without running any package code, and \`sdk-updates.mjs check\` confirmed that the commit changes only them, the lockfile and the harness's results."
+            echo
+            echo "The report below comes from the update job, which ran the new releases' code, so a malicious release could have rewritten it."
+            echo
+            cat "$RUNNER_TEMP/update/summary.md"
+          } > "$RUNNER_TEMP/body.md"
+          { echo "changed=true"; echo "base=$base"; } >> "$GITHUB_OUTPUT"
+      - name: Commit through the API and open or update the pull request
+        if: steps.commit.outputs.changed == 'true'
+        env:
+          GH_TOKEN: ${{ secrets.SDK_UPDATES_TOKEN || secrets.RELEASE_PR_TOKEN }}
+          REPO: ${{ github.repository }}
+          BASE: ${{ steps.commit.outputs.base }}
+        run: |
+          set -euo pipefail
+          if [ -z "$GH_TOKEN" ]; then
+            echo "::error::Neither SDK_UPDATES_TOKEN nor RELEASE_PR_TOKEN is set, so the $HARNESS update's pull request can't be opened (docs/plans/ci.md §3c)."
+            exit 1
+          fi
+          branch="deps/sdk-$HARNESS"
+          # A commit pushed with git is unsigned, and main's ruleset requires signed commits, so the checked commit is
+          # made again through GitHub's API, which signs it. The script runs as main holds it, since the patch went into
+          # the index alone. It writes only this branch and its own staging branch, one per harness, and fails unless
+          # GitHub verified the new commit. When the branch already holds that verified commit, it leaves it alone, and
+          # --replace-own-only makes it fail rather than drop commits someone pushed to the pull request.
+          node scripts/ci/version-commit.mjs --replace-own-only "$BASE" HEAD "$branch" "deps/staging/sdk-$HARNESS"
+          # --head matches a fork's branch of the same name too, so only this repository's pull request counts.
+          number=$(gh pr list --repo "$REPO" --head "$branch" --base main --state open --json number,isCrossRepository \
+            --jq 'map(select(.isCrossRepository | not)) | .[0].number // empty')
+          if [ -z "$number" ]; then
+            gh pr create --repo "$REPO" --base main --head "$branch" --title "$TITLE" --body-file "$RUNNER_TEMP/body.md"
           else
-            gh pr create --head "$branch" --base main --title "$title" --body-file "$SUMMARY"
+            gh pr edit "$number" --repo "$REPO" --title "$TITLE" --body-file "$RUNNER_TEMP/body.md"
           fi

@@ -1,0 +1,166 @@
+{
+  "format": 1,
+  "example": "05-thread-memory",
+  "file": "verify/langchain/examples/05-thread-memory.ts",
+  "harness": "verify/langchain",
+  "pin": "langchain@1.6.1",
+  "mock": "@langchain/core@1.3.4",
+  "events": [
+    {
+      "kind": "request",
+      "line": 17,
+      "model": "model-1",
+      "repeated": 0,
+      "messages": [
+        {
+          "role": "user",
+          "parts": [
+            {
+              "type": "text",
+              "text": "I am Ada."
+            }
+          ]
+        }
+      ],
+      "tools": []
+    },
+    {
+      "kind": "response",
+      "line": 17,
+      "model": "model-1",
+      "message": {
+        "role": "assistant",
+        "parts": [
+          {
+            "type": "text",
+            "text": "Nice to meet you, Ada."
+          }
+        ]
+      },
+      "finish": "stop"
+    },
+    {
+      "kind": "request",
+      "line": 18,
+      "model": "model-1",
+      "repeated": 2,
+      "messages": [
+        {
+          "role": "user",
+          "parts": [
+            {
+              "type": "text",
+              "text": "Who am I?"
+            }
+          ]
+        }
+      ],
+      "tools": []
+    },
+    {
+      "kind": "response",
+      "line": 18,
+      "model": "model-1",
+      "message": {
+        "role": "assistant",
+        "parts": [
+          {
+            "type": "text",
+            "text": "You are Ada."
+          }
+        ]
+      },
+      "finish": "stop"
+    },
+    {
+      "kind": "check",
+      "line": 20,
+      "message": "the same thread_id carries the earlier turn into the second invocation",
+      "pass": true
+    },
+    {
+      "kind": "check",
+      "line": 21,
+      "message": "the model sees the full thread history",
+      "pass": true
+    },
+    {
+      "kind": "request",
+      "line": 22,
+      "model": "model-1",
+      "repeated": 0,
+      "messages": [
+        {
+          "role": "user",
+          "parts": [
+            {
+              "type": "text",
+              "text": "Who am I?"
+            }
+          ]
+        }
+      ],
+      "tools": []
+    },
+    {
+      "kind": "response",
+      "line": 22,
+      "model": "model-1",
+      "message": {
+        "role": "assistant",
+        "parts": [
+          {
+            "type": "text",
+            "text": "I don't know your name."
+          }
+        ]
+      },
+      "finish": "stop"
+    },
+    {
+      "kind": "check",
+      "line": 26,
+      "message": "a new thread_id starts empty",
+      "pass": true
+    },
+    {
+      "kind": "request",
+      "line": 30,
+      "model": "model-1",
+      "repeated": 0,
+      "messages": [
+        {
+          "role": "user",
+          "parts": [
+            {
+              "type": "text",
+              "text": "hi"
+            }
+          ]
+        }
+      ],
+      "tools": []
+    },
+    {
+      "kind": "response",
+      "line": 30,
+      "model": "model-1",
+      "message": {
+        "role": "assistant",
+        "parts": [
+          {
+            "type": "text",
+            "text": "Hello."
+          }
+        ]
+      },
+      "finish": "stop"
+    },
+    {
+      "kind": "check",
+      "line": 34,
+      "message": "without a thread_id, a checkpointed agent throws",
+      "pass": true
+    }
+  ]
+}
