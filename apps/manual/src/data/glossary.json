@@ -3,19 +3,19 @@
     "id": "agent",
     "term": "agent",
     "definition": "A system in which a model directs its own steps: it chooses which tools to call, reads their results and decides what to do next, until the task is done or a limit stops it.",
-    "sources": ["anthropic-building-effective-agents"]
+    "sources": ["anthropic-building-agents"]
   },
   {
     "id": "agent-loop",
     "term": "agent loop",
     "definition": "The cycle that runs an agent: send the context to the model, run the tools it calls, add their results to the context, and repeat until the model answers without a tool call or a stop condition, such as a step limit, ends the run.",
-    "sources": ["anthropic-building-effective-agents"]
+    "sources": ["anthropic-building-agents"]
   },
   {
     "id": "workflow",
     "term": "workflow",
     "definition": "A fixed sequence of model calls and tools that the code lays out in advance. Unlike an agent, the model never chooses the next step.",
-    "sources": ["anthropic-building-effective-agents"]
+    "sources": ["anthropic-building-agents"]
   },
   {
     "id": "harness",
