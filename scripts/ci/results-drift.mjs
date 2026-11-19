@@ -1,9 +1,12 @@
 // Compares each committed verify/*/results/*.json with the working copy after a run, ignoring what
 // legitimately varies between runs: timings ("ms", "checkedAt"), raw stdout ("tail"), the checkout path
 // and temp dirs. For our own examples (run-examples.json) it compares only each example's verdict.
+// Transcripts (results/transcripts/*.json) are written normalised, so they are compared byte for byte; a
+// transcript a run wrote that is not committed, a committed one the run deleted, and a committed one whose
+// example no longer exists also count as drift.
 // Exits 1 and lists the files whose normalized content changed, so a scheduled verify flags drift.
 import { execFileSync } from "node:child_process";
-import { readFileSync } from "node:fs";
+import { existsSync, readFileSync } from "node:fs";
 import path from "node:path";
 
 const root = execFileSync("git", ["rev-parse", "--show-toplevel"], { encoding: "utf8" }).trim();
@@ -49,15 +52,36 @@ function diff(a, b, at, out) {
   out.push(`${at || "/"}: ${show(a)} -> ${show(b)}`);
 }
 
-const changed = execFileSync("git", ["diff", "--name-only", "--", "verify/*/results/*.json"], {
-  cwd: root,
-  encoding: "utf8",
-})
-  .split("\n")
-  .filter(Boolean);
+const git = (...args) =>
+  execFileSync("git", args, { cwd: root, encoding: "utf8", maxBuffer: 256 * 1024 * 1024 })
+    .split("\n")
+    .filter(Boolean);
+// A git pathspec's "*" also matches "/", so this covers results/transcripts/ too.
+const changed = git("diff", "--name-only", "--", "verify/*/results/*.json");
+const TRANSCRIPT = /^verify\/[^/]+\/results\/transcripts\/[^/]+\.json$/;
 
 const drifted = [];
 for (const file of changed) {
+  if (!existsSync(path.join(root, file))) {
+    drifted.push(`${file} (deleted)`);
+    continue;
+  }
+  if (TRANSCRIPT.test(file)) {
+    // A transcript holds no machine- or run-specific value, so any change is a change in behaviour.
+    drifted.push(file);
+    const diffs = [];
+    diff(
+      JSON.parse(execFileSync("git", ["show", `HEAD:${file}`], { cwd: root, encoding: "utf8" })),
+      JSON.parse(readFileSync(path.join(root, file), "utf8")),
+      "",
+      diffs,
+    );
+    for (const d of diffs.slice(0, 12)) console.error(`  ${file}: ${d}`);
+    if (diffs.length > 12) console.error(`  ${file}: … ${diffs.length - 12} more`);
+    if (diffs.length === 0)
+      console.error(`  ${file}: same JSON, different bytes; regenerate it with the harness's pnpm test`);
+    continue;
+  }
   let before;
   try {
     before = JSON.parse(
@@ -78,13 +102,17 @@ for (const file of changed) {
   }
 }
 
-const untracked = execFileSync("git", ["ls-files", "--others", "--exclude-standard", "--", "verify/*/results/"], {
-  cwd: root,
-  encoding: "utf8",
-})
-  .split("\n")
-  .filter(Boolean);
+const untracked = git("ls-files", "--others", "--exclude-standard", "--", "verify/*/results/*");
 drifted.push(...untracked.map((f) => `${f} (untracked)`));
+
+// A transcript stays committed after its example is renamed or deleted unless someone removes it.
+for (const file of git("ls-files", "--", "verify/*/results/transcripts/*.json")) {
+  const [, sdk, name] = /^verify\/([^/]+)\/results\/transcripts\/(.+)\.json$/.exec(file) ?? [];
+  if (sdk === undefined) continue;
+  const examples = path.join(root, "verify", sdk, "examples");
+  const found = [".ts", ".mts", ".tsx"].some((ext) => existsSync(path.join(examples, `${name}${ext}`)));
+  if (!found) drifted.push(`${file} (no example verify/${sdk}/examples/${name}.ts)`);
+}
 
 if (drifted.length) {
   console.error("results drifted from the committed run:");
