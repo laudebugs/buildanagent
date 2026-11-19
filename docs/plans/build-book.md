@@ -494,7 +494,7 @@ The owner chose to cover every topic group the coverage review named (2026-11-19
 | [T1](../todos/done/T1-book-scaffold.md) | Scaffold `apps/manual`: workspace wiring, pins, a static build and Pagefind | None | M |
 | [T2](../todos/done/T2-book-design.md) | The owner's design as tokens and components: C's layout, C4 pages, theme-following panels and three fonts | T1 | M |
 | [T3](../todos/done/T3-book-content-model.md) | Content model: outline, numbering, source register, glossary, analogy register and chapter checks | T1 | L |
-| [T4](../todos/ongoing/T4-book-listings.md) | Code listings from real file regions, with path, lines and pin | T3 | M |
+| [T4](../todos/done/T4-book-listings.md) | Code listings from real file regions, with path, lines and pin | T3 | M |
 | [T5](../todos/ready/T5-book-interactive-listings.md) | Interactive listings: annotations, SDK tabs, recorded-run replay and the transcript recorder | T4 | L |
 | [T6](../todos/ready/T6-book-flat-figures.md) | Flat figure pipeline: generated SVGs, analogy illustrations, numbering, themes and the staleness test | T2, T3 | M |
 | [T7](../todos/ready/T7-book-isometric-figures.md) | Isometric and interactive figures: the vendored anatomy skill, its audits and inline fragments | T6, T8 | M |
