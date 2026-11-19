@@ -18,9 +18,10 @@ Let a caller opt in to the provider's own stream events beside the normalized on
 - [agent-SDK guide §5](../../guides/agent-sdk.md#5-the-event-stream-should-be-one-closed-layered-union-whose-end-events-carry-the-authoritative-item): "Raw provider events are opt-in", and the union stays closed.
 - [SDK API §3.2](../../plans/build-sdk.md#32-gateway-api) and [§3.3](../../plans/build-sdk.md#33-sdk-api): the gateway's `ModelEvent` and `StreamOptions`, and the SDK's `includeRaw?: boolean` and `{ type: "raw"; event: unknown }`, both in the sketch only.
 - [B11's outcome](../done/B11-loop-core.md#outcome), under "Left out": `raw` and `includeRaw` are missing because the gateway streams no raw events, and no todo owns them.
-- `packages/gateway/src/adapters/anthropic/response.ts`, `packages/gateway/src/adapters/openai-chat/response.ts` and `packages/gateway/src/sse.ts`: where each adapter parses its wire events, and so where the raw event is in hand.
+- `packages/gateway/src/sse.ts`, `packages/gateway/src/adapters/anthropic/response.ts` and `packages/gateway/src/adapters/openai-chat/response.ts`: `sse.ts` parses the body into `ServerSentEvent`s, joining an event's `data:` lines into one string, and both adapters' `handle()` reads one `ServerSentEvent` at a time. The OpenAI Chat adapter's `data: [DONE]` is not JSON: on it, `handle()` returns the terminal event.
+- `packages/gateway/src/retry.ts`: forwards each attempt's events live and counts only block events as output, so a failed attempt's events reach the caller before the retry decision.
 - `packages/gateway/src/stream-contract.ts`: the contract every stream must pass, which a new event type must not break.
-- [B18](../ready/B18-testing-export.md): record and replay works at the normalized boundary, so raw events must stay out of recorded pairs.
+- [B18](../ready/B18-testing-export.md): record and replay works at the normalized boundary, so raw events stay out of recorded pairs. B18's Risks say so.
 
 ## Scope
 
@@ -37,7 +38,7 @@ Let a caller opt in to the provider's own stream events beside the normalized on
 
 - Typing the provider's events: the payload stays `unknown`
 - Raw events in OTel spans (B17 keeps content off)
-- Raw events in recorded and replayed pairs (B18)
+- Raw events in recorded and replayed pairs: they are never recorded, and B18's replay compares the event log without them (B18 implements it, and its Risks say so)
 - Any new adapter
 - Raw events from the loop's own tool and hook machinery, which have no provider event
 
@@ -54,9 +55,11 @@ Let a caller opt in to the provider's own stream events beside the normalized on
 ## Acceptance criteria
 
 - [ ] With the option off, both adapters' streams are byte-for-byte what they were before, and no `raw` event appears
-- [ ] With it on, each adapter emits one `raw` event per wire event it parsed, in wire order, and the payload deep-equals the parsed provider event
+- [ ] With it on, each adapter emits one `raw` event per `ServerSentEvent` it handled, in wire order, before the normalized events that event produced, and the payload follows the unit decided in Risks
+- [ ] OpenAI's `[DONE]`, a stream `error` event and a non-SSE HTTP error body are each handled as decided in Risks, and no `raw` event follows the terminal
 - [ ] Raw events never change the normalized events, the final `AssistantMessage`, its usage or its cost
-- [ ] A retry before output does not replay a failed attempt's raw events, which follows the gateway's no-replay rule
+- [ ] A raw event does not count as output under the gateway's no-replay rule, so `includeRaw` leaves every pre-output retry in place: a 529 before any block event is still retried with the option on
+- [ ] A failed attempt's raw events reach the caller as the decision in Risks says, and a test covers a retried call with the option on
 - [ ] `assertStreamContract()` accepts a stream with `raw` events and still rejects a stream with two terminal events
 - [ ] `run()` with `includeRaw: true` emits `raw` events between `model_call_start` and `model_call_end`, and with it off emits none
 - [ ] `raw` is in `AGENT_EVENT_TYPES`, and the teardown check passes with and without the option
@@ -75,7 +78,8 @@ Gateway: `packages/gateway/test/raw-events.test.ts` for the option, `createModel
 
 - **A spec change.** A new `ModelEvent` member could break a custom adapter or middleware that switches on `type` exhaustively. Opt-in keeps existing streams unchanged, but the todo must decide whether this stays `specificationVersion: "v1"` or needs a note under the versioning rules. The owner decides.
 - **Where the option lives.** On `StreamOptions` it reaches every adapter; on the adapter's config it is fixed at construction. Proposed: `StreamOptions`, so one `includeRaw` on `run()` maps to one call.
-- **What counts as one raw event.** The OpenAI Chat adapter reads Server-Sent Events chunks, and the Anthropic adapter reads typed events. Pick the unit that is the same across them (the parsed JSON of one SSE data line) and say so in the TSDoc.
+- **What counts as one raw event.** Both adapters read the same `ServerSentEvent` from `sse.ts`, so the unit is one `ServerSentEvent` (`event` and joined `data`), not one `data:` line. Decide whether the payload is that event as parsed (`{ event, data }`), or its `data` parsed as JSON with OpenAI's non-JSON `[DONE]` carried as the raw string, and say so in the TSDoc. Decide too whether an HTTP error body, which arrives without SSE framing, gets a raw event.
+- **Raw events and retries.** A raw event must not count as output, or `includeRaw` would turn off the gateway's pre-output retries. But the retry layer forwards events live, so a failed attempt's raw events (its `message_start`, say) have reached the caller before the retry. Proposed: forward them, and the `retry` event marks them superseded, as it does for warnings; the alternative is to buffer raw events until the first block event. The owner decides.
 - **Sensitive content.** A raw event holds the model's output and may hold provider metadata that normalized events drop. The default is off, and the README says to keep it out of logs.
 - **Size.** L because it touches both packages and both adapters. If the batch grows, split it into a gateway todo and an SDK todo, with the SDK half depending on the gateway half.
 
