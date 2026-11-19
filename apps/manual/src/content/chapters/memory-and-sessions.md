@@ -2,8 +2,8 @@
 title: "Memory within a task: sessions, threads and resuming"
 summary: A model keeps nothing between calls, so an agent's memory is a session that your SDK or your code stores and sends back. This chapter shows how sessions and threads carry a conversation between runs, what a resume in a fresh process brings back and what it drops, who may use a session id, and where each of eight SDKs keeps its state.
 opening: analogy
-sources: [openai-agents-sessions, langgraph-checkpointers, langgraph-persistence]
-glossary: [session, checkpointer]
+sources: [openai-agents-sessions, langgraph-checkpointers, langgraph-persistence, claude-agent-sdk-hosting, claude-agent-sdk-sessions, openai-agents-human-in-the-loop, cloudflare-agents-routing, cloudflare-agents-state]
+glossary: [session, checkpointer, trusted-context, prompt-injection, approval]
 switchTo: [N3, N6]
 ---
 
@@ -37,7 +37,67 @@ LangChain calls the same idea a thread and stores it in a checkpointer. The `thr
 
 The replay follows the thread through four calls. The first sends "I am Ada."; the second, on the same thread, sends "Who am I?", and the check on line 21 confirms that the model saw three messages: the introduction, its answer and the new question. The call on line 22 names thread `"b"`, which starts empty. Its request carries "Who am I?" alone, and the scripted model answers "I don't know your name." A script wrote that reply, but a real model on thread `"b"` would have nothing more to go on. The last call names no thread. Its request still reaches the model, which answers "Hello.", and only after that answer does the call throw an error that names the missing `thread_id`, raised by the checkpointer when it tries to save. So a forgotten `thread_id` costs a model call before it fails.
 
-The chart and the session part ways on cost. A nurse skims the chart for what matters tonight, but the model is sent the whole session on every call and bills every token of it. A session that runs for weeks therefore becomes a long and expensive request, and [[ch:the-session-log-and-context]] shows how to shorten one without losing what it holds. Within a single run, though, the session's job is simpler: it has to survive until the next run asks for it, which may be in another process entirely.
+The chart and the session part ways on cost. A nurse skims the chart for what matters tonight, but the model is sent the whole session on every call and bills every token of it. A session that runs for weeks therefore becomes a long and expensive request, and [[ch:the-session-log-and-context]] shows how to shorten one without losing what it holds. Before any of that, a session has a plainer job: it has to last until the next run asks for it, and that run may start in another process entirely.
+
+## Saving and resuming a run: the history comes back, and little else
+
+You close a novel on page 212 and leave :analogy[a bookmark]{#bookmark} in it. A week later you open the book at the bookmark and read on, with no need to remember where you stopped. A resume works the same way. Your code keeps an id that marks where a session stopped, and a later run, often in a new process on another day, opens the session at that place and goes on.
+
+Saving comes first, and each SDK saves at its own moments. The OpenAI Agents SDK writes a session once a non-streaming run completes; for a streaming run "it writes the user input first and appends streamed outputs once the turn completes" [@openai-agents-sessions]. LangChain's checkpointer saves after every super-step, as the last section showed. The Claude Agent SDK hands the whole job to its command-line program, Claude Code, which the SDK starts for each `query()` call. That process "owns the shell, the working directory, and the JSONL session transcripts on local disk" [@claude-agent-sdk-hosting], so each turn lands in a file as one JSON object per line, and your own program holds the session only if it keeps the messages the query streams. [[lst:resume-claude]] resumes such a session.
+
+:::listing[A second query resumes the first one's session by its id]{#resume-claude file="verify/claude-agent-sdk/examples/06-resume-session.ts" region="resume"}
+::note[Every result message carries a `session_id`. Claude Code generates it, a UUID, unless you pass your own through the `sessionId`{checked=row-23} option.]{#session-id}
+::note[`resume` "Loads the conversation history from the specified session". This second `query()` starts a new Claude Code process, which reads the first run's transcript from disk.]{#resume}
+:::
+
+The two calls in that listing never share memory. The first `query()` ends, and its process with it, leaving a transcript file and an id. The second starts a fresh process with `resume: sessionId`, and the example's checks confirm three things: the resumed run succeeds, it keeps the same `session_id`, and the request it sends the model contains PELICAN from the earlier turn. Our harness has no recorded transcript of this example yet, so it has no replay; the checks read the mock server's request log instead. On a real host, Anthropic's sessions guide adds a limit: "Session files are local to the machine that created them", so resuming on another host needs a `SessionStore`{checked=row-26} that mirrors transcripts to storage you choose [@claude-agent-sdk-sessions].
+
+"Resume" names two different acts, and the next chapter depends on telling them apart:
+
+- **Continuing a conversation.** A new run starts with a new message and the saved history in front of it. Every listing so far does this: OpenAI's second run, LangChain's second call, Claude's resumed query.
+- **Continuing a paused run.** A run stopped partway, typically because a tool call waits for a person's approval, and the saved snapshot holds the run in mid-turn: the pending call, its arguments and the decisions made so far. The OpenAI Agents SDK saves that snapshot as a `RunState`, which your code turns into a string and later restores with `RunState.fromString()`{checked=row-28} [@openai-agents-human-in-the-loop]. LangChain keeps the pause inside the thread's own checkpoint, and a later call with a `Command` on the same `thread_id` resumes it [@langgraph-persistence].
+
+[[ch:approvals-guardrails-and-injection]] builds approvals on the second act. Everything below applies to both.
+
+### What a resume brings back, and what it leaves behind
+
+Here the bookmark stops helping. A bookmark only has to keep your place, because the story is printed in the book. A resumed run has to restore whatever was in flight as well, such as a tool call waiting for approval or the tools it is allowed to call, and most SDKs bring back the conversation alone. [[tbl:resume-keeps]] lists what comes back in five SDKs, as of November 2026.
+
+:::table[What a resume brings back, and what your code must supply again]{#resume-keeps}
+| SDK | Comes back | Your code supplies again |
+| --- | --- | --- |
+| OpenAI Agents SDK | A session's stored items; from a paused `RunState`, also the pending calls, approval decisions, usage and your app's context object | The agent, its tools and its model, rebuilt as the same agent graph |
+| Claude Agent SDK | The conversation in the transcript | The new call's options, such as its tools and permissions, and every file the agent changed: "Sessions persist the conversation, not the filesystem" |
+| LangChain | The thread's state, including a pending interrupt, from whichever checkpointer holds it | The agent and its tools; with `MemorySaver`, everything after a restart |
+| GitHub Copilot SDK | The session's history, from the runtime's disk | The custom tools, which a resume without them leaves out |
+| Cloudflare Agents | The agent's state and SQL rows, reloaded from its database | Whatever the agent kept in ordinary class fields, which hibernation resets |
+:::
+
+Two rows deserve a closer look. The Copilot row comes from `verify/copilot-sdk/examples/06-resume-session.ts`: after a new client resumes the session without passing `tools`, the model's next request offers none of the session's custom tools, though it still carries the earlier turn. The OpenAI row is the generous one, and the reason is the `RunState`: its snapshot "includes your app context plus SDK-managed runtime metadata such as approvals, usage, nested `toolInput`{checked=row-33}, and pending nested agent-tool resumptions" [@openai-agents-human-in-the-loop]. That generosity is exactly what makes a snapshot dangerous in the wrong hands, as the last part of this section shows.
+
+### A session id finds a session; your server decides whose it is
+
+Picture Ada's support chat, stored as session `5b3f2c1a-8d4e-4f6b-9a7c-2e1d0f9b8a6c` and reached at a URL that holds that id. Bob, signed in as himself, copies the id from a shared screenshot and sends it with his own message. What happens next depends on where the session lives:
+
+- **LangChain's `MemorySaver`** files snapshots by `thread_id` alone, so Bob's call loads Ada's thread.
+- **The Claude Agent SDK** resumes any session whose transcript is on that machine: Claude Code "searches beyond the current project directory to find the ID" [@claude-agent-sdk-sessions].
+- **Cloudflare Agents** routes a request for `/agents/<class>/<name>` to the agent of that name, so the name in the URL picks the agent unless your Worker checks it first [@cloudflare-agents-routing].
+- **ADK's in-memory session service** files each session under its app, its user id and its own id, so a lookup with Bob's user id finds no session with Ada's id, provided your code takes the user id from Bob's sign-in and never from the request.
+
+None of these SDKs is wrong. A session id is a key that finds a session; it was never meant to prove who may open it. OpenAI's approval guide says it outright: "A run ID or decision ID is not proof of authorization" [@openai-agents-human-in-the-loop]. The check belongs to your server, and the trusted context of [[ch:tools]] supplies the fact it needs, the signed-in user. We recommend four rules:
+
+1. Generate each session id on the server, randomly, and never accept a new id the client invents.
+2. Record the owner when you create the session, and look sessions up by owner and id together, as ADK does and as Cloudflare's routing guide does by refusing any agent name other than `user-${user.id}`{checked=row-41}.
+3. Answer a missing session and someone else's session with the same "not found", so the response does not confirm that Ada's id exists.
+4. Keep transcripts and snapshots where only the server can read them, per user where the SDK allows it, as the next part explains.
+
+Anthropic's hosting guide shows the second rule in its own example: the session id to resume is "looked up from your database by user" [@claude-agent-sdk-hosting].
+
+### A resumed run trusts whatever was saved
+
+A resumed run treats the saved state as fact, because it has no way to tell. The history goes back to the model as earlier turns, so whatever the session holds keeps shaping every later call. In our reading, that includes a tool result that once carried instructions planted for the model, the prompt injection of [[ch:tools]]: once it is in the session, it rides along on every resume, long after the run that fetched it. A paused run trusts more. A `RunState` restores the approvals already given and your app's context, the very object that the trusted context of [[ch:tools]] placed the user's id in. OpenAI's guide is blunt about it: `RunState.fromString()`{checked=row-28} "restores that state; the method does not authenticate the snapshot or the person submitting it" [@openai-agents-human-in-the-loop]. A snapshot that a browser stored and sent back could therefore carry another user's id, or an approval nobody gave.
+
+The guide's remedy is the one we follow: keep the snapshot in storage that only the server reads, send the person approving a call only the details they need and an opaque id, and "Do not accept replacement tool calls, arguments, approval records, or serialized state from the client." Cloudflare's agents need the same care in another place. An agent's state syncs to every connected client, and the state guide says plainly that "Any client can call setState() to push updates" [@cloudflare-agents-state], unless the agent rejects the change in `validateStateChange`{checked=row-49} or marks the connection read-only. A chart is trusted because only staff write in it. The same has to hold for a session before an agent acts on what it reads there, and an approval, the subject of the next chapter, is the first thing it will act on.
 
 ## Exercises
 

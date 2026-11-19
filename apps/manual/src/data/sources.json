@@ -355,5 +355,15 @@
     "asOf": "November 2026",
     "version": "agents@0.33.0",
     "verifiedIn": "apps/manual/fact-checks/memory-and-sessions.md"
+  },
+  {
+    "id": "cloudflare-agents-routing",
+    "title": "Routing",
+    "publisher": "Cloudflare Agents documentation",
+    "url": "https://github.com/cloudflare/agents/blob/agents@0.33.0/docs/agents/routing.md",
+    "kind": "docs",
+    "asOf": "November 2026",
+    "version": "agents@0.33.0",
+    "verifiedIn": "apps/manual/fact-checks/memory-and-sessions.md"
   }
 ]
