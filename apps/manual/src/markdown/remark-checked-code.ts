@@ -23,7 +23,7 @@ function unresolvedMessage(span: string, missing: readonly string[], names: Chap
     `the chapter's listings (${searched(names.listings, "it includes none")}), ` +
     `their transcripts (${searched(names.transcripts, "none recorded")}) ` +
     `and the .d.ts exports of the packages they import (${searched(names.packages, "they import none")}). ` +
-    `Show it in a listing, or check it by hand and cite the row: \`${span}\`{checked=row-N}, ` +
+    `Show it in a listing, or check it by hand and cite the row as \`${span}\`{checked=row-N}, ` +
     `where row N of ${log} is ✅ or ✏️`
   );
 }
@@ -73,7 +73,7 @@ export function remarkCheckedCode(options: { readonly book: Book }) {
 function checkRow(book: Book, file: VFile, node: InlineCode, row: number, logFile: string, log: string): void {
   const cited = `\`${node.value}\`{checked=row-${row}}`;
   const rows = book.code.rows(logFile);
-  if (rows === undefined) failAt(file, `${cited} cites a row of ${log}, which does not exist`, node);
+  if (rows === undefined) failAt(file, `${cited} cites a row, but the chapter has no fact-check log, ${log}`, node);
   if (rows.repeated.has(row)) failAt(file, `${cited} cites row ${row}, which ${log} numbers more than once`, node);
   const verdict = rows.verdicts.get(row);
   if (verdict === undefined) failAt(file, `${cited} cites row ${row}, which ${log} does not have`, node);

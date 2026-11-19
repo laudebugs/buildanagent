@@ -169,6 +169,32 @@ The replay shows a request's new messages only. When a request resends messages 
 
 A replay fails when the transcript is missing or malformed, when it records another file, and when it was recorded at a pin other than the harness's current one. The pin check covers both the harness's main package and the package its recorder attaches to, which the transcript names as `mock`, and rerunning the harness's `pnpm test` fixes a stale pin. Six harnesses record transcripts: `vercel-ai-sdk`, `pi`, `openai-agents-sdk`, `langchain`, `google-adk` and `cloudflare-agents`. An example that calls no model, such as `cloudflare-agents/examples/01-state.ts`, has no transcript, and the Claude Agent SDK and Copilot SDK wait for [T49](../../docs/todos/ready/T49-book-http-mock-transcripts.md). The transcript format lives in [`scripts/transcripts/events.ts`](../../scripts/transcripts/events.ts), with its recorder and writer beside it.
 
+## Code in the prose resolves to a listing, a transcript or a `.d.ts`, or cites a fact-check row
+
+Inline code that names an API is checked like code in a listing, by the owner's rule ([BK17](../../docs/plans/build-book.md#bk17-code-in-the-prose-is-checked-like-code-in-a-listing-accepted)). The check applies to each identifier-like span: a JavaScript identifier or a dotted member path, such as `generateText` or `result.steps`, with or without a trailing `()`. Each name in the span must appear in one of three places:
+
+1. **The chapter's file listings.** Every identifier and every string the listed lines hold counts, property names included, read with the TypeScript compiler from the real file. A name that only a comment holds, or that the file holds outside the listed region, does not count.
+2. **Their transcripts.** The transcript of each listed example, whether or not the listing replays it, gives its tool names, message roles, stop reasons and `check()` messages.
+3. **The `.d.ts` exports of the packages they import.** The compiler resolves each package import from the listed file, so the harness's own `node_modules` and the package's `exports` map pick the `.d.ts`. It then lists the module's exports after every `export *` and re-export. Only exports count: an option such as `maxTurns`, which a type declares as a member, is no export.
+
+A name found in none of them fails `check:book` and the build at the chapter's line, and the message names every listing, transcript and package searched. To keep such a name, check it by hand, log the check as a row of the chapter's fact-check log, and cite the row right after the span:
+
+```markdown
+The run stops once it has spent `maxBudgetUsd`{checked=row-12}.
+```
+
+The cited row must exist once in `fact-checks/<slug>.md` with a ✅ or ✏️ verdict; a ⚠️ row, a missing row and a malformed marker all fail. The page shows the code without the marker, and a marker may follow any inline code.
+
+Three skip patterns leave a span alone, and `test/checked-code.test.ts` tests each one:
+
+- **Shell commands:** a span that starts with `corepack`, `curl`, `gh`, `git`, `node`, `npm`, `npx`, `pnpm`, `tsc`, `tsx` or `wrangler`, such as `pnpm test`.
+- **File paths:** a span with a slash, or a dotted name that ends in one of 20 file extensions, such as `package.json` or `AGENTS.md`.
+- **Plain values:** a number, a quoted string, a TypeScript keyword such as `true`, `undefined` or `async`, and `NaN` or `Infinity`. Inside a member path the check skips a keyword, so `import.meta.resolve` is checked by `meta` and `resolve`.
+
+The test fixes the list of commands and the count of extensions, so any addition shows up in review. Keep the list short, or the rule loses its force. A span that is neither identifier-like nor skipped goes unchecked, such as the expression `stopWhen: isStepCount(5)` or the notation `pass^k`. Fenced code in a `:::listing` comes from no file, so its names do not count.
+
+The check reads code with typescript 6.0.3, installed as `typescript-api`, which is our choice. The workspace's typescript 7.0.2 exports no stable compiler API, only `./unstable/*` clients that run the native compiler in a child process. One book load parses each listed file once and lists each package's exports once, however many spans need them. Each written chapter's fact-check log, each listed example's transcript, each harness's `package.json` and the lockfile join the render dependencies, so an edit to any of them renders every chapter again.
+
 ## A figure is a script that draws an SVG, and the build inlines it
 
 Each flat figure is a TypeScript script, and the SVG it writes is committed beside it. A test redraws every figure and fails when a committed SVG differs from what its script draws now, so a figure cannot drift from its script. The build inlines the SVG instead of linking it, so the figure takes the page's colours in both themes and needs no JavaScript. To add a figure to a chapter:
