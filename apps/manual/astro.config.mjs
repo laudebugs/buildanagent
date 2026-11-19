@@ -5,11 +5,11 @@
 // (LICENSE, THIRD-PARTY-NOTICES.md).
 import { createHash } from "node:crypto";
 import { existsSync, mkdirSync, readdirSync, readFileSync, rmSync, writeFileSync } from "node:fs";
-import { isAbsolute, join } from "node:path";
+import { isAbsolute, join, relative } from "node:path";
 import { fileURLToPath } from "node:url";
 import { unified } from "@astrojs/markdown-remark";
 import { defineConfig } from "astro/config";
-import { contentDirs, listedFiles, loadBook, renderDependencies } from "./src/book/load.js";
+import { checkedCodeFiles, contentDirs, listedFiles, loadBook, renderDependencies } from "./src/book/load.js";
 import { markdownOptionsFor } from "./src/markdown/options.js";
 
 // The book every chapter renders against, loaded and checked when the config loads; a broken rule stops the build
@@ -44,9 +44,11 @@ const renderInputs = [
   ),
   here("./src/outline.ts"),
   book.inputs.analogiesFile,
+  // The fact-check logs and transcripts the inline-code check reads, from outside the app's directory too.
+  ...checkedCodeFiles(book),
 ].sort();
 const renderHash = createHash("sha256");
-for (const file of renderInputs) renderHash.update(file.slice(here("./").length)).update(readFileSync(file));
+for (const file of renderInputs) renderHash.update(relative(here("./"), file)).update(readFileSync(file));
 // Every chapter's numbered blocks, which references and numbers depend on, the lines and pin of every listing, and
 // each body's line offset, which error lines depend on.
 renderHash.update(renderDependencies(book));

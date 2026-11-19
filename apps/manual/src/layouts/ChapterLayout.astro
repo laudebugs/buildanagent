@@ -2,6 +2,7 @@
 import { citeHref } from "../book/citations.js";
 import { getBook } from "../book/load.js";
 import ChapterHead from "../components/ChapterHead.astro";
+import ListingVerification from "../components/ListingVerification.astro";
 import PrevNext from "../components/PrevNext.astro";
 import Sidebar from "../components/Sidebar.astro";
 import type { ChapterLink, ContentsPart, PageHeading } from "../components/types.js";
@@ -22,6 +23,10 @@ type Props = PageProps & {
   readonly next?: ChapterLink;
   /** The chapter's register ids in front-matter order; its citations number them in the same order. */
   readonly sources?: readonly string[];
+  /** Whether the chapter shows a listing of a file, so the page states how its listings were verified. */
+  readonly hasFileListing?: boolean;
+  /** Whether one of those listings shows a file the live run compares, so the line gives the comparison's date. */
+  readonly hasComparedListing?: boolean;
 };
 
 const {
@@ -35,6 +40,8 @@ const {
   previous,
   next,
   sources = [],
+  hasFileListing = false,
+  hasComparedListing = false,
 } = Astro.props;
 ---
 
@@ -46,6 +53,11 @@ const {
       <Sidebar headings={headings} parts={parts} current={current} />
       <!-- Only a chapter's body carries data-pagefind-body, so search indexes chapters and skips every other page. -->
       <article class="article" data-pagefind-body>
+        {
+          hasFileListing && (
+            <ListingVerification lastCompared={book.live.lastCompared} compared={hasComparedListing} />
+          )
+        }
         <slot />
         {
           sources.length > 0 && (

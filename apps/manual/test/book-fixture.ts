@@ -37,6 +37,8 @@ export function fixtureInputs(dir: string = FIXTURE_DIR, outline: Outline = FIXT
     glossaryFile: join(dir, "glossary.json"),
     analogiesFile: join(dir, "analogies.json"),
     harnessesFile: join(dir, "harnesses.json"),
+    liveExamplesFile: join(dir, "live-examples.json"),
+    liveComparisonFile: join(dir, "live-comparison.json"),
     repoRoot: dir,
   };
 }
@@ -62,6 +64,67 @@ export const INTERACTIVE = `
 /** Adds the interactive listings to a fixture copy's second chapter. */
 export function withInteractive(dir: string): void {
   edit(dir, "chapters/second.md", (text) => text.replace(/^(::listing\[Greeting.*)$/m, `$1\n${INTERACTIVE}`));
+}
+
+/**
+ * A fixture example that imports the fixture's own package, `demo-sdk`, for the inline-code check. It stays out of the
+ * committed harness, because the manual's typecheck covers the fixture's examples and no `node_modules` holds the
+ * package there; `withSdk` writes it into a fixture copy.
+ */
+export const SDK_EXAMPLE = `// A fixture example that imports the fixture's installed package.
+import { createAgent } from "demo-sdk";
+
+// #region run
+const agent = createAgent({ name: "greeter" });
+const result = await agent.run("Greet the reader.");
+console.log(result.text);
+// #endregion
+
+export const unlisted = "outsideRegion";
+`;
+
+/** The line of the second chapter where `withSdk` lists the example above. */
+export const SDK_LISTING_LINE = 20;
+/** The line where `prose` adds its paragraph, once `withSdk` has listed the example. */
+export const PROSE_LINE = 22;
+
+/**
+ * Installs the fixture's package, committed under `installed/demo-sdk` because Git ignores every `node_modules`, into
+ * the demo harness of a fixture copy, writes `SDK_EXAMPLE` beside the harness's other examples, and lists its region
+ * in the second chapter after the file listing on line 18.
+ */
+export function withSdk(dir: string): void {
+  cpSync(join(dir, "installed/demo-sdk"), join(dir, "verify/demo-sdk/node_modules/demo-sdk"), { recursive: true });
+  writeFileSync(join(dir, "verify/demo-sdk/examples/03-sdk.ts"), SDK_EXAMPLE);
+  edit(dir, "chapters/second.md", (text) =>
+    text.replace(
+      /^(::listing\[Greeting.*)$/m,
+      '$1\n\n::listing[Running an agent]{#run file="verify/demo-sdk/examples/03-sdk.ts" region="run"}',
+    ),
+  );
+}
+
+/** The second chapter's fact-check log, from the fixture's root. */
+export const SECOND_LOG = "apps/manual/fact-checks/second.md";
+
+/** A fact-check table in the README's format, with one row for each verdict: 1 is ✅, 2 is ✏️ and 3 is ⚠️. */
+export const FACT_CHECK_ROWS = [
+  "| # | Claim | Where | Verdict | Source and reason |",
+  "| --- | --- | --- | --- | --- |",
+  "| 1 | maxTurns caps the run | § Exercises | ✅ | agent.d.ts |",
+  "| 2 | internalHelper was misnamed | § Exercises | ✏️ | agent.d.ts |",
+  "| 3 | maxTurns defaults to 10 | § Exercises | ⚠️ | none |",
+  "",
+].join("\n");
+
+/** Appends `FACT_CHECK_ROWS` to the second chapter's fact-check log in a fixture copy. */
+export function withRows(dir: string): void {
+  edit(dir, SECOND_LOG, (text) => `${text}\n${FACT_CHECK_ROWS}`);
+}
+
+/** Adds a paragraph to the second chapter just before its exercises, on `PROSE_LINE` once `withSdk` has run. */
+export function prose(dir: string, paragraph: string): void {
+  edit(dir, "chapters/second.md", (text) => text.replace("## Exercises", `${paragraph}\n\n## Exercises`));
 }
 
 /** Copies the fixture book to a fresh temporary directory, applies `change` and returns the directory. */
