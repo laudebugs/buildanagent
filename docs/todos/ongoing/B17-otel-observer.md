@@ -3,7 +3,7 @@
 | Field | Value |
 | --- | --- |
 | ID | `B17` |
-| Status | `ready` |
+| Status | `ongoing` |
 | Plan | [Build SDK §4, Stage 4](../../plans/build-sdk.md#44-stage-4-ships-telemetry-the-testing-exports-the-capstone-and-the-docs-checks) |
 | Round / milestone | Round B (build SDK), M5 |
 | Depends on | [B13](../done/B13-interceptors-observers.md), [B5](../done/B5-usage-cost-catalog.md) |
@@ -62,7 +62,7 @@ The GenAI conventions are at Development stability; the constants file isolates 
 
 ## Definition of done
 
-- [ ] Claimed: the first commit moved this file `ready/` → `ongoing/` (Status `ongoing`)
+- [x] Claimed: the first commit moved this file `ready/` → `ongoing/` (Status `ongoing`)
 - [ ] Prose drafted with `/anthropic-skills:writing` and reviewed with `/anthropic-skills:writing-review`, with the fixes applied and changed claims re-checked
 - [ ] `pnpm check`, `pnpm typecheck` and `pnpm test` pass locally; pushed after each meaningful step
 - [ ] This file moved `ongoing/` → `done/` (Status `done`), and the plan's todo table updated
