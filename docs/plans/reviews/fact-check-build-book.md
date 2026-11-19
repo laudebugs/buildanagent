@@ -293,7 +293,7 @@ Row 105 took MAP's figure from the U17 report's reading of the paper, a secondar
 
 ## Twelfth pass: T1's scaffold
 
-Todo T1 re-checked the pins and the stack on 2026-11-19 at about 11:25 UTC, while it built the scaffold, and recorded the results in BK3 and risk 2. These rows check those claims against `npm view`, the installed packages and the Node release lists.
+Todo T1 re-checked the pins and the stack on 2026-11-19 at about 11:25 UTC, while it built the scaffold, and recorded the results in BK3 and risk 2; its review fixes added claims to AGENTS.md, the app's config and its test. These rows check those claims against `npm view`, the installed packages, the Node release lists and Biome's docs.
 
 | # | Claim | Where | Verdict | Source and reason |
 | --- | --- | --- | --- | --- |
@@ -308,5 +308,6 @@ Todo T1 re-checked the pins and the stack on 2026-11-19 at about 11:25 UTC, whil
 | 183 | Biome's `.astro` support is partial, and Biome's language-support page recommends turning `noUnusedVariables` and `noUnusedImports` off for `.astro` files | AGENTS.md, "Lint and format" (T1's review fixes) | ✅ | [Biome, language support](https://biomejs.dev/internals/language-support/), read 2026-11-19: Astro support is experimental, and with `html.experimentalFullSupportEnabled` off it suggests an `overrides` entry for `**/*.astro` that turns off those two rules (and `useConst` and `useImportType`). Under Biome 2.6.4, the app's layouts and pages drew 10 unused-symbol warnings, each for a name the template uses |
 | 184 | Astro hands `processor.createRenderer` its shared Markdown options (`image`, `syntaxHighlight`, `shikiConfig`, `gfm`, `smartypants`) | The app's `test/markdown.test.ts` | ✅ | `astro/dist/vite-plugin-markdown/content-entry-type.js` lines 18–24 in 7.4.11; `markdownConfigDefaults` from `@astrojs/markdown-remark` 7.3.8 supplies the defaults the test passes |
 | 185 | Astro 7.4.11's `cacheDir` defaults to `./node_modules/.astro`, the value the app's config now sets explicitly | The app's `astro.config.mjs` | ✅ | `astro/dist/core/config/schemas/defaults.js` line 8; row 182 for where the data store lives |
+| 186 | Until T3's checks replace it, `check:book` runs `astro sync`, which fails on a chapter whose frontmatter breaks the strict schema | BK3 (T1's result), T1's Outcome | ✅ | `apps/manual/package.json` maps `check:book` to `astro sync`, and `src/content.config.ts` makes the chapter schema `.strict()`. On 2026-11-19, with an extra `extra: x` key added to `welcome.md`, `pnpm check:book` failed in `getEntryData` (`astro/dist/content/utils.js`) and exited 1; the file was then restored |
 
-**Totals:** 185 claims: 160 ✅, 25 ✏️, 0 ⚠️.
+**Totals:** 186 claims: 161 ✅, 25 ✏️, 0 ⚠️.

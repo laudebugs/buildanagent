@@ -1,4 +1,4 @@
-# Third-party notices: nine mirrored doc sets keep their upstream licences, and the book credits the garment textbook
+# Third-party notices: nine mirrored doc sets keep their upstream licences, and the book credits the garment engineering textbook
 
 This repository contains upstream documentation that other projects wrote. Our own code and docs are licensed as [LICENSE](LICENSE) describes, but that licence does not cover the mirrors under `docs/reference/*/source/`. Each mirror is an unmodified copy of upstream files at a recorded tag or commit, and each keeps its upstream licence file beside it. If you reuse a mirrored file, follow the licence in its row below. The book also adapts code from the owner's garment engineering textbook, and those files carry Apache-2.0 alone instead of our usual choice of two licences.
 
@@ -26,7 +26,7 @@ The book in `apps/manual/` copies or adapts code from the owner's garment engine
 |---|---|---|---|
 | [`apps/manual/astro.config.mjs`](apps/manual/astro.config.mjs) | `astro.config.mjs` | `bca44b0` | The render-input hash that deletes Astro's content cache when a Markdown plugin or its data changes, and the dev-server restart on those files |
 
-No file here copies the garment repository's personal or account data, or text from its agent rules.
+No file here copies the textbook repository's personal or account data, or text from its agent rules.
 
 ## Quotations elsewhere are short, attributed excerpts
 

@@ -58,7 +58,7 @@ Each SDK gets a reference folder under `docs/reference/<sdk>/` (guide, fact-chec
 
 ## Development
 
-The repo is a pnpm workspace (Node 22, pnpm 10.34.9). Our own packages live in `packages/`: `@buildanagent/gateway` and `@buildanagent/sdk`, which are scaffolds as of November 2026. Each SDK harness under `verify/` is also a workspace package. The textbook, `@buildanagent/manual` in `apps/manual`, is a private workspace package that builds a static Astro site with Pagefind search; `pnpm --filter @buildanagent/manual build` writes it to `apps/manual/dist/`, and the book needs Node 22.23.4 or later.
+The repo is a pnpm workspace (Node 22, pnpm 10.34.9). Our own packages live in `packages/`: `@buildanagent/gateway` and `@buildanagent/sdk`, which are scaffolds as of November 2026. Each SDK harness under `verify/` is also a workspace package. The textbook, `@buildanagent/manual` in `apps/manual`, is a private workspace package that builds a static Astro site with Pagefind search. `pnpm --filter @buildanagent/manual build` writes the site to `apps/manual/dist/`. The book needs Node 22.23.4 or later.
 
 ```bash
 pnpm install        # install every package and harness

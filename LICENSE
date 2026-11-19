@@ -12,14 +12,6 @@ Code: Apache-2.0 OR MIT, at your option
 
   SPDX-License-Identifier: Apache-2.0 OR MIT
 
-Documentation: CC BY 4.0
-  The documents under docs/, the book's prose and figures (apps/manual/), the
-  READMEs, the prose of the agent skills (.agents/skills/) and AGENTS.md are
-  licensed under the Creative Commons Attribution 4.0 International licence
-  (LICENSE-DOCS).
-
-  SPDX-License-Identifier: CC-BY-4.0
-
 Code from the garment engineering textbook: Apache-2.0 only
   Some files in apps/manual/ are copied or adapted from the owner's garment
   engineering textbook (tajistudios/garment-engineering-textbook), with the
@@ -29,6 +21,14 @@ Code from the garment engineering textbook: Apache-2.0 only
   THIRD-PARTY-NOTICES.md lists each file with its source path and commit.
 
   SPDX-License-Identifier: Apache-2.0
+
+Documentation: CC BY 4.0
+  The documents under docs/, the book's prose and figures (apps/manual/), the
+  READMEs, the prose of the agent skills (.agents/skills/) and AGENTS.md are
+  licensed under the Creative Commons Attribution 4.0 International licence
+  (LICENSE-DOCS).
+
+  SPDX-License-Identifier: CC-BY-4.0
 
 Mirrored third-party docs: their own licences
   The upstream documentation mirrored under docs/reference/*/source/ is not ours.

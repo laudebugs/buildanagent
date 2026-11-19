@@ -13,8 +13,8 @@ async function renderFixture() {
   const processor = config.markdown?.processor;
   assert.ok(processor, "astro.config.mjs sets markdown.processor");
   assert.equal(processor.name, "unified");
-  // Astro passes these shared options to createRenderer (astro/dist/vite-plugin-markdown/content-entry-type.js);
-  // the config sets none of them, so Astro's defaults stand in.
+  // Astro passes its shared Markdown options, these two among them, to createRenderer
+  // (astro/dist/vite-plugin-markdown/content-entry-type.js). The config sets none, so Astro's defaults stand in.
   const { syntaxHighlight, shikiConfig } = markdownConfigDefaults;
   const renderer = await processor.createRenderer({ syntaxHighlight, shikiConfig });
   const { content, frontmatter } = parseFrontmatter(await readFile(fixture, "utf8"));

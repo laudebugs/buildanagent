@@ -11,13 +11,13 @@ import { unified } from "@astrojs/markdown-remark";
 import { defineConfig } from "astro/config";
 import { markdownOptions } from "./src/markdown/options.js";
 
-// Astro caches each chapter's rendered HTML until the chapter file itself changes. An edit to a Markdown plugin, or
-// to data a plugin reads, would therefore never reach the chapters. When any render input differs from the last
-// build, the config deletes the content cache, so every chapter renders again. Astro 7.4 keeps that cache in
+// Astro caches each chapter's rendered HTML until the chapter file itself changes. An edit to a Markdown plugin, or to
+// data a plugin reads, would therefore never reach the chapters. When any render input differs from the last build, the
+// render-input check below deletes the content cache, so every chapter renders again. Astro 7.4 keeps that cache in
 // .astro/data-store.json under `astro dev` and in <cacheDir>/data-store.json under `astro build`
-// (astro/dist/content/paths.js), so both are deleted. The config sets cacheDir itself, so the hash and Astro read
-// the same directory. Check both paths after every Astro upgrade, because a moved cache would make chapters go stale
-// again. Paths resolve from this file, so the config loads from any directory.
+// (astro/dist/content/paths.js), so both are deleted. The config sets cacheDir itself, so the check and Astro use the
+// same directory. Check both paths after every Astro upgrade, because a moved cache would make chapters go stale again.
+// Paths resolve from this file, so the config loads from any directory.
 const CACHE_DIR = "./node_modules/.astro/";
 const here = (path) => fileURLToPath(new URL(path, import.meta.url));
 const renderInputs = readdirSync(here("./src/markdown/"), { recursive: true, withFileTypes: true })
@@ -35,7 +35,7 @@ if (!existsSync(renderStamp) || readFileSync(renderStamp, "utf8") !== renderDige
   writeFileSync(renderStamp, renderDigest);
 }
 
-// Under `astro dev`, an edit to a render input restarts the server, which reloads this config and runs the check.
+// Under `astro dev`, an edit to a render input restarts the server, which reloads this config and reruns the check.
 const restartOnRenderInputs = {
   name: "restart-on-render-inputs",
   configureServer(server) {
