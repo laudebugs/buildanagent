@@ -17,6 +17,7 @@ export type SdkErrorCode =
   | "invalid_hook_result"
   | "hook_failed"
   | "run_stopped"
+  | "undelivered_message"
   | "unexpected_model_call";
 
 // A registered symbol, so the guard still works when two copies of the package are bundled.
@@ -33,6 +34,8 @@ const SDK_ERROR = Symbol.for("buildanagent.sdk.SdkError");
  * threw while the run fails closed. The run catches it and ends with an `error` result whose `error.kind` is `hook`,
  * so it never reaches your code. `run_stopped`: `runOrThrow()` was given a run that did not finish (a
  * `RunStoppedError`).
+ * `undelivered_message`: `steer()` or `followUp()` was called on a run that had ended, or the run ended before it
+ * could apply the message.
  * `unexpected_model_call`: a `ScriptedModel` was called more times than its script allows (an
  * `UnexpectedModelCallError`).
  */

@@ -165,6 +165,20 @@ test("the chapter page and each gallery theme are layout containers, so the colu
   assert.equal((gallery().match(/class="gallery__theme layout"/g) ?? []).length, 2);
 });
 
+test("a chapter page's sidebar holds two navigation landmarks, its headings before the whole contents", () => {
+  const html = chapter();
+  assert.match(
+    html,
+    /<div class="sidebar"><nav class="sidebar__section sidebar__on-page" aria-label="On this page"><h2 class="sidebar__heading label">On this page<\/h2><ol class="sidebar__toc"><li><a href="#/,
+  );
+  assert.match(
+    html,
+    /<nav class="sidebar__section sidebar__chapters" aria-label="All chapters"><details><summary>All chapters<\/summary>/,
+  );
+  // The sidebar comes before the article, so the page's navigation keeps its place in the reading and tab order.
+  assert.ok(html.indexOf('class="sidebar"') < html.indexOf('class="article"'));
+});
+
 test("the built stylesheet carries the generated tokens and the self-hosted font faces", () => {
   const css = files(".css")
     .map((path) => readFileSync(join(out, path), "utf8"))
@@ -237,11 +251,38 @@ test("a chapter page shows SDK tabs and a replay that read in full without JavaS
     html.indexOf('id="lst-one-call-replay"'),
     html.indexOf("</section>", html.indexOf('id="lst-one-call-replay"')),
   );
-  assert.ok(replay.includes("verify/vercel-ai-sdk/results/transcripts/01-generate-text.json"));
+  assert.ok(
+    replay.includes(
+      ["verify/", "vercel-ai-sdk/", "results/", "transcripts/", "01-generate-text.json"]
+        .map((part) => `<span class="replay__segment">${part}</span>`)
+        .join(""),
+    ),
+    "the transcript's path wraps only between its names",
+  );
+  assert.match(
+    replay,
+    /<div class="replay__scroll" tabindex="0" role="group" aria-label="Events of Recorded run of Listing 1\.1" data-step-scroll(?:="")?>/,
+  );
   const checks = transcript.events.filter((event: { kind: string }) => event.kind === "check").length;
   assert.equal((replay.match(/data-kind="check"/g) ?? []).length, checks, "every check of the run is listed");
   assert.match(replay, /data-step-controls[^>]* hidden/);
   assert.match(html, /<script type="module" src="\/_astro\/[^"]+\.js"><\/script>/, "the page loads its script by URL");
+});
+
+test('a box marked top has a level-2 title, listed in the page\'s "On this page"', () => {
+  const html = chapter();
+  assert.match(
+    html,
+    /<aside class="box" aria-labelledby="where-steps-go"><h2 class="box__heading" id="where-steps-go">/,
+  );
+  const toc = html.slice(
+    html.indexOf('<ol class="sidebar__toc">'),
+    html.indexOf("</ol>", html.indexOf("sidebar__toc")),
+  );
+  assert.match(
+    toc,
+    /<a href="#how-the-loop-stops">How the loop stops<\/a><\/li><li><a href="#where-steps-go">Where each step goes<\/a>/,
+  );
 });
 
 test("the contents list every chapter in the outline, linking only the written ones", () => {

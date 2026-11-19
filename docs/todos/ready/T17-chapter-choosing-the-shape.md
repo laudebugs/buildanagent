@@ -47,7 +47,7 @@ Write the chapter "Choosing the shape: buy, adopt or build, how to plan, and whe
 
 **Out of scope** (and which todo covers it)
 
-- Moving the listings to our own packages: a follow-up todo once its switch todos (B19b) are done (BK8)
+- Adding our own packages' listings as tabs beside the third-party ones: a follow-up todo once the chapter's `switchTo` todos (B19b) are done (BK8)
 - New research: a gap becomes a follow-up research todo
 
 ## Tasks

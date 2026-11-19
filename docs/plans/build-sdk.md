@@ -556,6 +556,10 @@ declare function replayPairs(pairs: RecordedPair[]): ScriptedModel;   // rejects
 - The progress policy is a `shouldStop` interceptor that `run()` joins after the caller's own, so a caller's `{ continue }` cannot keep a stuck run going. It hashes inputs with the SDK's vendored copy of `canonicalInputHash()`.
 - `run()` throws `SdkError` code `max_depth_exceeded` for a run whose `depth` is above `maxDepth`, and `nestedRunDepth(ctx)` builds a child run's options.
 
+**Revision (B16, 2026-11-19).** B16 adds steering with these choices, each recorded in [its outcome](../todos/done/B16-steering.md#outcome):
+- `Run` gains `steer()` and `followUp()`, and `AgentEvent` gains `steer_applied`. A steer is applied at the start of the next step, before its model call. A follow-up is applied only when the model has answered without a tool call; a waiting steer goes first. The extra call counts against `maxSteps`.
+- A receipt rejects with `SdkError` code `undelivered_message` when the run ends before the message is applied. `receipt.id` is `<runId>:message-<n>`.
+
 ### 3.4 The seams P2 consumes
 
 The harness plan should use these names as written; P4 checks that it does ([implementation plans §3](implementation-plans.md#3-the-review-p4)). The first six are the seams of [harness guide §1][hg1]; the rest are what its sketches assume from the SDK.
@@ -612,7 +616,7 @@ The guide says to start with the gateway and the test model, because every other
 | [B14](../todos/done/B14-budget-progress.md) | Pre-emptive USD budget, progress detection and the depth cap | B5, B13, E1 | M |
 | [B15](../todos/ready/B15-signed-pauses.md) | Signed pauses in the loop on the safety package's signers, and `createPendingRequest` | B13, E3 | M |
 | [B15b](../todos/ready/B15b-continue-run.md) | `continueRun`, `blockingApprovals()` and the clarification pause | B15 | M |
-| [B16](../todos/ready/B16-steering.md) | Steering and follow-up with delivery receipts | B11 | S |
+| [B16](../todos/done/B16-steering.md) | Steering and follow-up with delivery receipts | B11 | S |
 
 ### 4.4 Stage 4 ships telemetry, the testing exports, the capstone and the docs checks
 

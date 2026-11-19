@@ -47,7 +47,7 @@ const STEPS = [
   { part: "context", readout: "1/6 · context to model call" },
   { part: "model", readout: "2/6 · model call: tool call" },
   { part: "tool", readout: "3/6 · tool: weather runs" },
-  { part: "result", readout: "4/6 · tool result: 21C" },
+  { part: "result", readout: "4/6 · tool_result: 21C" },
   { part: "append", readout: "5/6 · append to context" },
   { part: "answer", readout: "6/6 · model call: text, stop" },
 ] as const;

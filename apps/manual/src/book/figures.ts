@@ -141,7 +141,8 @@ const FRAGMENT_VALUES: ReadonlyMap<string, RegExp> = new Map([
 /**
  * The `data-*` attributes a fragment may carry, each with the values it may take: the kit's tones, shades, flags and
  * card corners; the part names `isokit.ts` writes; and the two that src/scripts/iso-figures.ts reads, a step number
- * and the readout text it shows through `textContent`. Any other `data-*` attribute, or another value, throws.
+ * and the readout text it shows through `textContent`, whose `_` lets a readout name an API's own term, such as
+ * `tool_result`. Any other `data-*` attribute, or another value, throws.
  */
 const FRAGMENT_DATA: ReadonlyMap<string, RegExp> = new Map([
   ["data-tone", /^(?:hi|mid|lo|faint|lit|red|green|blue)$/],
@@ -156,7 +157,7 @@ const FRAGMENT_DATA: ReadonlyMap<string, RegExp> = new Map([
   ["data-corner", /^(?:fig|title|hint|readout)$/],
   ["data-part", /^[a-z0-9.#-]+$/],
   ["data-iso-step", /^\d{1,2}$/],
-  ["data-iso-readout", /^[\p{L}\p{N} .,:;·()/+%–-]*$/u],
+  ["data-iso-readout", /^[\p{L}\p{N} .,:;·()/+%_–-]*$/u],
 ]);
 
 /** The isometric kit's allowlist: the card, then one drawing inside it, then nothing after the card. */

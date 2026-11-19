@@ -96,7 +96,16 @@ test("a tab heading sits one level below the heading the tabs follow", async () 
 test("without JavaScript a replay lists every event and says where each came from", () => {
   const replay = between('<section class="replay panel" id="lst-noted-replay"', "</section>");
   assert.match(replay, /data-steps="cumulative"[^>]* data-listing="lst-noted"/);
-  assert.match(replay, /verify\/demo-sdk\/results\/transcripts\/02-notes\.json/);
+  assert.match(
+    replay,
+    /<span class="label panel__label replay__source"><span class="replay__segment">verify\/<\/span><span class="replay__segment">demo-sdk\/<\/span><span class="replay__segment">results\/<\/span><span class="replay__segment">transcripts\/<\/span><span class="replay__segment">02-notes\.json<\/span><\/span>/,
+    "the transcript's path may wrap after a slash, never inside a name",
+  );
+  assert.match(
+    replay,
+    /<div class="replay__scroll" tabindex="0" role="group" aria-label="Events of Recorded run of Listing 2\.3" data-step-scroll(?:="")?><ol class="replay__events">/,
+    "the events scroll in a region the keyboard reaches and a screen reader names",
+  );
   const events = [
     ...replay.matchAll(
       /<li class="replay__event" data-kind="(\w+)" data-step="\d+"(?: data-line="(\d+)")?><span class="replay__role">([^<]+)<\/span><p class="replay__body">([^<]*)<span class="replay__where">([^<]+)<\/span><\/p>/g,

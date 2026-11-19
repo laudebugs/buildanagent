@@ -41,8 +41,22 @@ test("figures, tables and listings are numbered from the chapter's place in the 
     first,
     /<figure id="fig-ticket-rail"[^>]*>[\s\S]*<figcaption class="figure__caption" id="fig-ticket-rail--caption"><span class="number figure__number label">Figure 1\.1<\/span> A kitchen ticket rail/,
   );
-  assert.match(first, /<figcaption><span class="number">Table 1\.1<\/span> How the loop stops<\/figcaption><table>/);
+  assert.match(
+    first,
+    /<figcaption id="tbl-stop-reasons--caption"><span class="number">Table 1\.1<\/span> How the loop stops<\/figcaption><div class="table__scroll"/,
+  );
   assert.match(second, /<figcaption><span class="number">Listing 2\.1<\/span> Saying hello<\/figcaption><pre/);
+});
+
+test("a table scrolls inside a region that takes focus and is named by the table's caption", () => {
+  assert.match(
+    first,
+    /<figure id="tbl-stop-reasons" class="numbered table" data-numbered="table" data-numbered-id="stop-reasons" aria-labelledby="tbl-stop-reasons--caption">/,
+  );
+  assert.match(
+    first,
+    /<div class="table__scroll" tabindex="0" role="group" aria-labelledby="tbl-stop-reasons--caption"><table>/,
+  );
 });
 
 test("references become numbered links, within a chapter and across chapters", () => {

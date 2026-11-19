@@ -162,7 +162,7 @@
       ]
     },
     "nonText": {
-      "$comment": "Focus rings, control borders and figure lines that carry meaning need 3:1 against what they sit on (WCAG 1.4.11). The focus ring is the accent, so it is measured on the page and on the panel of each mode (proposed by T2 and accepted by the owner on 2026-11-19).",
+      "$comment": "Focus rings, control borders and figure lines that carry meaning need 3:1 against what they sit on (WCAG 1.4.11). The focus ring is the accent, so it is measured on the page and on the panel of each mode (proposed by T2 and accepted by the owner on 2026-11-19). A box's left rule, its boundary, is the muted text colour, measured on the page of each mode.",
       "contrast": [
         {
           "color": "light.accent",
@@ -183,6 +183,16 @@
           "color": "dark.accent",
           "on": "panelDark.background",
           "ratio": 8.81
+        },
+        {
+          "color": "light.textMuted",
+          "on": "light.background",
+          "ratio": 7.22
+        },
+        {
+          "color": "dark.textMuted",
+          "on": "dark.background",
+          "ratio": 6.94
         }
       ]
     },
@@ -341,9 +351,10 @@
     }
   },
   "layout": {
-    "$comment": "px, proposed by T2 and accepted by the owner on 2026-11-19, for direction C's layout: the widest content (header, title, figure panel), the article column, the side-note column beside it and the side gutter, which scales like the sizes",
-    "pageWidth": 1152,
-    "measure": 608,
+    "$comment": "px, proposed by T2 and accepted by the owner on 2026-11-19, for direction C's layout: the widest content (header, title, figure panel), the prose measure, the side-note column beside the prose and the side gutter, which scales like the sizes. The owner asked the same day for less empty space right of the text on desktops, so the page widened from 1152 and the measure from 608. Listings, figures, tables and tabs take the whole article column, wider than the measure. With the owner's 'TOC on the right' (2026-11-19) a chapter's article column stops at articleMax (the measure, a gap and a side note), so the prose ends near the rail. The chapter page is then only as wide as the sidebar, the article, the rail and their gaps, and centred",
+    "pageWidth": 1600,
+    "measure": 672,
+    "articleMax": 952,
     "sideNote": 240,
     "gutter": {
       "phone": 16,

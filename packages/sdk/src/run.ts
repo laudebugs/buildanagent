@@ -12,6 +12,7 @@ import { type LoopSetup, runLoop } from "./loop.js";
 import { ObserverBus } from "./observers.js";
 import { type ProgressCheck, type ProgressPolicy, progressCheck, resolveProgress } from "./progress.js";
 import type { Context, DoneResult, RunResult } from "./result.js";
+import { type DeliveryReceipt, SteeringQueue } from "./steering.js";
 import type { Clock } from "./testing/determinism.js";
 import { preparedSchemaOf } from "./tools/define.js";
 import type { AnyTool } from "./tools/pipeline.js";
@@ -136,6 +137,23 @@ export interface Run<S = unknown> extends AsyncIterable<AgentEvent> {
    * in the `observers` option.
    */
   on(observer: Observer): () => void;
+  /**
+   * Queues a user message that redirects the run. The run applies it at the next step boundary: after the model call
+   * or tool batch in flight, never inside it, and before the next model call. The promise resolves with a
+   * `DeliveryReceipt` once the message is in the transcript, and the run emits a `steer_applied` event for it. It
+   * rejects with an `SdkError` whose code is `undelivered_message` when the run ends first, and with
+   * `invalid_run_options` for a blank message or a block that isn't text or an image. Steers are applied in the
+   * order they were sent.
+   */
+  steer(message: string | readonly ContentBlock[]): Promise<DeliveryReceipt>;
+  /**
+   * Queues a user message that waits until the run would otherwise end. When the model has answered and no tool call
+   * is left, the run applies every waiting follow-up as user messages and makes one more model call, so a follow-up
+   * sent before the run ends extends it by one step. A steer that is waiting goes first. The run still ends, and the
+   * follow-up rejects with `undelivered_message`, when another stop reason ends it: a `shouldStop` hook or progress
+   * policy that stops it, its output tool, an abort or `maxSteps`. The receipt works as for `steer()`.
+   */
+  followUp(message: string | readonly ContentBlock[]): Promise<DeliveryReceipt>;
 }
 
 function messageOf(error: unknown): string {
@@ -193,12 +211,14 @@ class RunHandle<S> implements Run<S> {
   #settled = false;
   /** Set by `run_end`: nothing may follow it, so a late observer report is dropped. */
   #closed = false;
+  readonly #steering: SteeringQueue;
   #failure: { readonly error: unknown } | undefined;
   #stepIndex = 0;
 
-  constructor(setup: Omit<LoopSetup, "signal">, signal: AbortSignal | undefined, watch: ObserverSetup) {
+  constructor(setup: Omit<LoopSetup, "signal" | "steering">, signal: AbortSignal | undefined, watch: ObserverSetup) {
     this.id = setup.runId;
     this.#clock = setup.clock;
+    this.#steering = new SteeringQueue(setup.runId);
     this.#bus = new ObserverBus((hook, error) => {
       if (!this.#closed) this.#push({ type: "hook_error", hook, error: messageOf(error) }, this.#stepIndex);
     }, watch.timeoutMs);
@@ -219,7 +239,9 @@ class RunHandle<S> implements Run<S> {
       this.#settled = true;
       return this.#bus.flush();
     };
-    const loop = Promise.resolve().then(() => runLoop({ ...setup, signal: this.#controller.signal }, emit, drain));
+    const loop = Promise.resolve().then(() =>
+      runLoop({ ...setup, signal: this.#controller.signal, steering: this.#steering }, emit, drain),
+    );
     // The loop's result type is `RunResult<unknown>`; only the output tool, whose type is `S`, fills `output`.
     this.result = loop as Promise<RunResult<S>>;
     // Handling the rejection here also keeps a caller who only iterates from an unhandled rejection: iteration
@@ -239,6 +261,14 @@ class RunHandle<S> implements Run<S> {
   on(observer: Observer): () => void {
     checkObserver(observer);
     return this.#bus.add(observer);
+  }
+
+  steer(message: string | readonly ContentBlock[]): Promise<DeliveryReceipt> {
+    return this.#steering.add("steer", message);
+  }
+
+  followUp(message: string | readonly ContentBlock[]): Promise<DeliveryReceipt> {
+    return this.#steering.add("follow_up", message);
   }
 
   [Symbol.asyncIterator](): AsyncIterator<AgentEvent> {
@@ -347,7 +377,11 @@ function progressOf(options: RunOptions<unknown>, tools: readonly AnyTool[], ski
   return policy === undefined ? undefined : progressCheck(tools, policy, skip);
 }
 
-function setupOf(options: RunOptions<unknown>, context: Context, input: readonly Message[]): Omit<LoopSetup, "signal"> {
+function setupOf(
+  options: RunOptions<unknown>,
+  context: Context,
+  input: readonly Message[],
+): Omit<LoopSetup, "signal" | "steering"> {
   if (!isModel(options.model)) {
     throw new SdkError(
       "invalid_run_options",
