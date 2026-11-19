@@ -1,10 +1,11 @@
 // Offline checks for the release workflow: the shape of .github/workflows/release.yml, which must never read an npm
-// token, must version and publish only from a push to main and must keep prereleases off `latest`, and the decisions
+// token, must version and publish only from a push to main, must keep RELEASE_PR_TOKEN in one step of a job that runs
+// no third-party code, and must keep prereleases off `latest`, and the decisions
 // scripts/ci/release-plan.mjs makes, including the plan this checkout gives once it is on main. The plan
 // tests stub the registry, so nothing here touches the network. Run with `node --test scripts/ci/*.test.mjs`.
 import assert from "node:assert/strict";
 import { execFileSync, spawnSync } from "node:child_process";
-import { chmodSync, copyFileSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
+import { chmodSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import path from "node:path";
 import { after, describe, test } from "node:test";
@@ -30,13 +31,24 @@ const workflow = parse(workflowText);
 const { jobs } = workflow;
 
 describe("release.yml", () => {
-  test("no job reads an npm token or any secret", () => {
-    assert.doesNotMatch(workflowText, /secrets\./);
+  test("no job reads an npm token, and only the version-pr job's push step reads a secret", () => {
+    // The one secret is RELEASE_PR_TOKEN, which the step that pushes the version branch and enables auto-merge needs.
+    const secrets = workflowText.match(/secrets\.[A-Za-z_]+/g) ?? [];
+    assert.deepEqual(secrets, ["secrets.RELEASE_PR_TOKEN"]);
     assert.doesNotMatch(workflowText, /_authToken/);
+    const readers = [];
+    for (const [name, job] of Object.entries(jobs)) {
+      if (JSON.stringify({ ...job, steps: undefined }).includes("secrets.")) readers.push(`${name} (job)`);
+      for (const step of job.steps ?? []) if (JSON.stringify(step).includes("secrets.")) readers.push(name);
+    }
+    assert.deepEqual(readers, ["version-pr"]);
+    const pushStep = jobs["version-pr"].steps.at(-1);
+    assert.equal(pushStep.env.GH_TOKEN, `\${{ secrets.RELEASE_PR_TOKEN }}`);
     const envKeys = (env) => Object.keys(env ?? {});
     for (const [name, job] of Object.entries(jobs)) {
       const keys = [...envKeys(workflow.env), ...envKeys(job.env), ...(job.steps ?? []).flatMap((s) => envKeys(s.env))];
-      // GH_TOKEN is the run's own GITHUB_TOKEN, for gh; any other token or auth variable could reach npm.
+      // GH_TOKEN is the run's own GITHUB_TOKEN, or RELEASE_PR_TOKEN in the push step, for gh; any other token or auth
+      // variable could reach npm.
       for (const key of keys) assert.ok(key === "GH_TOKEN" || !/TOKEN|AUTH/i.test(key), `${name} sets ${key}`);
       for (const step of job.steps ?? []) {
         assert.equal(
@@ -58,7 +70,14 @@ describe("release.yml", () => {
   test("runs on pushes to main and on workflow_dispatch only", () => {
     assert.deepEqual(Object.keys(workflow.on).sort(), ["push", "workflow_dispatch"]);
     assert.deepEqual(workflow.on.push.branches, ["main"]);
-    assert.deepEqual(workflow.permissions, { contents: "read" });
+    assert.deepEqual(workflow.permissions, {});
+  });
+
+  test("no run step expands an expression, so no event field can be injected into a script", () => {
+    for (const [name, job] of Object.entries(jobs)) {
+      for (const step of job.steps ?? [])
+        assert.doesNotMatch(step.run ?? "", /\$\{\{/, `${name}: ${step.name ?? step.run}`);
+    }
   });
 
   test("the publish job uses trusted publishing on a GitHub-hosted runner in the release environment", () => {
@@ -132,46 +151,81 @@ describe("release.yml", () => {
     assert.deepEqual(writes, [`echo "registry=https://registry.npmjs.org/" > "${user}"`, `: > "${global}"`]);
   });
 
-  test("only the publish job can mint an OIDC token, only it and the version job can write, and only docs dispatches", () => {
+  test("each job names its permissions, only publish can mint an OIDC token or write, and only docs dispatches", () => {
     for (const [name, job] of Object.entries(jobs)) {
-      const permissions = job.permissions ?? workflow.permissions;
-      if (name !== "publish") assert.equal(permissions["id-token"], undefined, name);
-      if (name !== "docs") assert.equal(permissions.actions, undefined, name);
-      if (name !== "publish" && name !== "version") assert.notEqual(permissions.contents, "write", name);
+      assert.ok(job.permissions, `${name} relies on the workflow's empty default`);
+      if (name !== "publish") assert.equal(job.permissions["id-token"], undefined, name);
+      if (name !== "docs") assert.equal(job.permissions.actions, undefined, name);
+      if (name !== "publish") assert.notEqual(job.permissions.contents, "write", name);
+      if (name !== "publish") assert.equal(job.permissions["pull-requests"], undefined, name);
     }
     assert.deepEqual(jobs.docs.permissions, { actions: "write" });
-    assert.deepEqual(jobs.version.permissions, { contents: "write" });
+    for (const name of ["plan", "version", "version-pr", "pack"]) {
+      assert.deepEqual(jobs[name].permissions, { contents: "read" }, name);
+    }
   });
 
-  test("the version job is switched off, so a merge publishes only a version already on main", () => {
-    // It runs third-party code with a token that can push to main; a follow-up replaces it with an auto-merged
-    // "Version packages" pull request. Pack and publish must still run while it is skipped.
-    assert.match(jobs.version.if, /^false &&\s/);
-    assert.match(jobs.pack.if, /needs\.version\.result == 'skipped'/);
-    assert.match(jobs.pack.if, /needs\.version\.outputs\.publish \|\| needs\.plan\.outputs\.publish/);
-  });
-
-  test("there is no Version packages pull request yet: the version job, when on, pushes to main", () => {
-    assert.equal(jobs["version-pr"], undefined);
+  test("the version job runs Changesets on the newest main with a read-only token and pushes nothing", () => {
     const { version } = jobs;
+    assert.equal(version.needs, "plan");
     assert.match(version.if, /github\.event_name == 'push' && github\.ref == 'refs\/heads\/main'/);
     assert.match(version.if, /needs\.plan\.outputs\.needs_version == 'true'/);
-    assert.match(
-      version.if,
-      /!startsWith\(github\.event\.head_commit\.message, 'chore\(release\): version packages'\)/,
-    );
+    assert.deepEqual(version.permissions, { contents: "read" });
     const checkout = version.steps.find((s) => s.uses?.startsWith("actions/checkout"));
     assert.deepEqual(checkout.with, { ref: "main", "fetch-depth": 0, "persist-credentials": false });
-    const step = version.steps.find((s) => s.id === "push");
-    // It versions the newest main, only when something is still pending, and starts no other workflow run.
-    assert.match(step.run, /git reset --quiet --hard origin\/main/);
-    assert.match(step.run, /needs=\$\(node scripts\/ci\/release-plan\.mjs needs-version\)\n/);
-    assert.match(step.run, /^ *env -u GH_TOKEN pnpm changeset version$/m, "Changesets runs without the push token");
-    assert.doesNotMatch(step.run, /^ *pnpm changeset version$/m);
-    assert.match(step.run, /git commit --quiet -m "chore\(release\): version packages to \$version \[skip ci\]"/);
-    assert.match(step.run, /git push --quiet "\$remote" HEAD:main/);
-    assert.match(step.run, /::error::main's branch protection refused the version commit/);
-    assert.match(version.steps.at(-1).run, /node scripts\/ci\/release-plan\.mjs plan \| tee -a "\$GITHUB_OUTPUT"/);
+    for (const step of version.steps) {
+      assert.equal(step.env, undefined, `${step.name ?? step.uses} sets env in a job that runs Changesets`);
+      assert.doesNotMatch(JSON.stringify(step), /token/i, `${step.name ?? step.uses} names a token`);
+    }
+    const runs = version.steps.map((s) => s.run ?? "").join("\n");
+    assert.match(runs, /^ *pnpm changeset version$/m);
+    assert.doesNotMatch(runs, /git push|gh /, "the version job pushes nothing and calls no GitHub API");
+    assert.match(runs, /git diff --cached --binary --no-renames > "\$RUNNER_TEMP\/version\/version\.patch"/);
+    const upload = version.steps.find((s) => s.uses?.startsWith("actions/upload-artifact"));
+    assert.equal(upload.with.name, "version-commit");
+  });
+
+  test("the version-pr job runs no third-party code, and only its last step holds RELEASE_PR_TOKEN", () => {
+    const job = jobs["version-pr"];
+    assert.equal(job.needs, "version");
+    assert.equal(job.if, "needs.version.outputs.changed == 'true'");
+    assert.deepEqual(job.permissions, { contents: "read" });
+    assert.equal(job.env.GH_TOKEN, undefined);
+    const text = JSON.stringify(job);
+    assert.doesNotMatch(text, /\bpnpm\b|\bnpx\b|node_modules|\bnpm\b|\byarn\b|corepack/);
+    // Only GitHub's own actions, and none that sets up a package manager or runs code from the checkout.
+    const uses = job.steps.filter((s) => s.uses).map((s) => s.uses.replace(/@.*/, ""));
+    assert.deepEqual(uses, ["actions/checkout", "actions/download-artifact"]);
+    const checkout = job.steps[0];
+    assert.deepEqual(checkout.with, { ref: `\${{ needs.version.outputs.base }}`, "persist-credentials": false });
+    const [, , commit, push] = job.steps;
+    assert.equal(commit.env, undefined, "the step that runs node holds no token");
+    assert.match(commit.run, /^ *node scripts\/ci\/version-pr\.mjs prepare "\$BASE" HEAD "\$RUNNER_TEMP\/pr"$/m);
+    const nodeCalls = job.steps.flatMap((s) => (s.run ?? "").match(/\bnode\b.*$/gm) ?? []);
+    assert.deepEqual(nodeCalls, ['node scripts/ci/version-pr.mjs prepare "$BASE" HEAD "$RUNNER_TEMP/pr"']);
+    assert.doesNotMatch(push.run, /\bnode\b/);
+    assert.equal(push.env.BRANCH, "changeset-release/main");
+    // Force-updates the release branch only, and never main.
+    const pushes = push.run.match(/git push.*$/gm);
+    assert.deepEqual(pushes, ['git push --quiet --force "$remote" "HEAD:refs/heads/$BRANCH"']);
+    assert.match(push.run, /gh pr merge "\$number" --repo "\$REPO" --auto --squash/);
+  });
+
+  test("version-pr.mjs imports nothing but node: modules and the scripts beside it", () => {
+    const seen = new Set();
+    const visit = (file) => {
+      if (seen.has(file)) return;
+      seen.add(file);
+      const text = readFileSync(path.join(root, "scripts/ci", file), "utf8");
+      for (const [, spec] of text.matchAll(/^import [^;]*?from "([^"]+)";/gms)) {
+        if (spec.startsWith("node:")) continue;
+        assert.match(spec, /^\.\/[a-z-]+\.mjs$/, `${file} imports ${spec}`);
+        visit(spec.slice(2));
+      }
+      assert.doesNotMatch(text, /\bimport\(/, `${file} has a dynamic import`);
+    };
+    visit("version-pr.mjs");
+    assert.deepEqual([...seen].sort(), ["changeset-gate.mjs", "release-plan.mjs", "version-pr.mjs"]);
   });
 
   test("releases run one at a time and are never cancelled, and a dry run waits apart from them", () => {
@@ -185,17 +239,17 @@ describe("release.yml", () => {
     assert.ok(guard < names.indexOf("Publish each tarball, gateway first"));
   });
 
-  test("pack releases the version job's commit and plan when it ran, and the run's own otherwise", () => {
+  test("pack releases the run's own commit with the plan's outputs, and only when the plan publishes", () => {
     const { pack } = jobs;
-    assert.deepEqual(pack.needs, ["plan", "version"]);
-    assert.equal(pack.outputs.sha, `\${{ needs.version.outputs.sha || github.sha }}`);
+    assert.equal(pack.needs, "plan");
+    assert.equal(pack.outputs.sha, `\${{ github.sha }}`);
     for (const key of ["version", "tag", "publish", "dist_tag", "prerelease", "docs_deploy", "node"]) {
-      assert.equal(pack.outputs[key], `\${{ needs.version.outputs.${key} || needs.plan.outputs.${key} }}`, key);
-      assert.ok(jobs.version.outputs[key], `the version job lacks the ${key} output`);
+      assert.equal(pack.outputs[key], `\${{ needs.plan.outputs.${key} }}`, key);
       assert.ok(jobs.plan.outputs[key], `the plan job lacks the ${key} output`);
     }
+    assert.match(pack.if, /needs\.plan\.outputs\.publish == 'true'/);
     const checkout = pack.steps.find((s) => s.uses?.startsWith("actions/checkout"));
-    assert.equal(checkout.with.ref, pack.outputs.sha);
+    assert.equal(checkout.with.ref, undefined, "pack checks out the run's own commit");
     // A job that needs a skipped job is skipped too, unless its `if:` starts from !cancelled().
     for (const name of ["pack", "publish", "docs"]) assert.match(jobs[name].if, /^\$\{\{ !cancelled\(\) && /, name);
   });
@@ -209,8 +263,10 @@ describe("release.yml", () => {
 
   test("a workflow_dispatch runs only the plan and the pack (a dry run)", () => {
     assert.match(jobs.pack.if, /github\.event_name == 'workflow_dispatch'/);
-    assert.equal(jobs.pack.permissions, undefined, "pack keeps the read-only default");
+    assert.deepEqual(jobs.pack.permissions, { contents: "read" }, "pack can't write");
     for (const name of ["version", "publish"]) assert.match(jobs[name].if, /github\.event_name == 'push'/, name);
+    // version-pr needs version, so it is skipped whenever version is.
+    assert.equal(jobs["version-pr"].needs, "version");
     // The docs job needs publish, so it is skipped whenever publish is.
     assert.ok(jobs.docs.needs.includes("publish"));
   });
@@ -576,13 +632,12 @@ describe("release.yml's scripts, run for real", () => {
     chmodSync(file, 0o755);
   };
 
-  // A stand-in for `pnpm changeset version` in pre mode: it fails when the push token reached it, moves every pending
-  // changeset into .changeset/pre/, and bumps both packages to the next prerelease when one of them names a package.
-  // With RACE_CLONE set, its first call pushes another commit to main, as a merge landing mid-job would.
+  // A stand-in for `pnpm changeset version` in pre mode: it fails when any token reached it, moves every pending
+  // changeset into .changeset/pre/, and bumps both packages to the next prerelease, with a changelog section, when one
+  // of them names a package. With EVIL set, it also edits a package's source, as a compromised dependency might.
   const FAKE_PNPM = `#!/usr/bin/env node
 const fs = require("node:fs");
-const { execFileSync } = require("node:child_process");
-if (process.env.GH_TOKEN) { console.error("GH_TOKEN reached pnpm"); process.exit(3); }
+if (Object.keys(process.env).some((key) => /TOKEN/.test(key))) { console.error("a token reached pnpm"); process.exit(3); }
 if (process.argv.slice(2).join(" ") !== "changeset version") process.exit(2);
 fs.mkdirSync(".changeset/pre", { recursive: true });
 let bump = false;
@@ -596,17 +651,26 @@ if (bump) for (const pkg of ["gateway", "sdk"]) {
   const manifest = JSON.parse(fs.readFileSync(file, "utf8"));
   manifest.version = manifest.version.replace(/\\d+$/, (n) => String(Number(n) + 1));
   fs.writeFileSync(file, JSON.stringify(manifest) + "\\n");
+  const log = "packages/" + pkg + "/CHANGELOG.md";
+  fs.writeFileSync(log, "## " + manifest.version + "\\n\\n- a change\\n\\n" + fs.readFileSync(log, "utf8"));
 }
-const race = process.env.RACE_CLONE;
-if (race && !fs.existsSync(race + "/.raced")) {
-  fs.writeFileSync(race + "/.raced", "");
-  execFileSync("git", ["-C", race, "commit", "-q", "--allow-empty", "-m", "docs: a merge that lands meanwhile"]);
-  execFileSync("git", ["-C", race, "push", "-q", "origin", "HEAD:main"]);
-}
+if (process.env.EVIL) fs.writeFileSync("packages/gateway/src/index.js", "steal();\\n");
+`;
+
+  // A stand-in for gh that logs each call to $GH_LOG and answers as GitHub would: `pr list` prints $EXISTING_PR,
+  // `pr create` prints the new pull request's URL, and `pr view` prints $AUTO_MERGE, whether auto-merge is on.
+  const FAKE_GH = `#!/bin/sh
+printf '%s\\n' "$*" >> "$GH_LOG"
+[ "$GH_TOKEN" = "secret" ] || { echo "gh got no token" >&2; exit 4; }
+case "$1 $2" in
+  "pr list") printf '%s\\n' "$EXISTING_PR" ;;
+  "pr create") echo "https://github.com/o/r/pull/42" ;;
+  "pr view") echo "\${AUTO_MERGE:-false}" ;;
+esac
 `;
 
   // A repository whose main holds both packages at 0.1.0-alpha.0 in alpha pre mode, plus `changesets`, pushed to a
-  // bare remote that the version step's token URL is rewritten to.
+  // bare remote that the push step's token URL is rewritten to.
   function setup({ changesets = {}, pre = { mode: "pre", tag: "alpha" } } = {}) {
     const dir = temp();
     const remote = path.join(dir, "remote.git");
@@ -614,6 +678,7 @@ if (race && !fs.existsSync(race + "/.raced")) {
     const bin = path.join(dir, "bin");
     mkdirSync(bin);
     executable(path.join(bin, "pnpm"), FAKE_PNPM);
+    executable(path.join(bin, "gh"), FAKE_GH);
     writeFileSync(
       path.join(dir, "gitconfig"),
       `[user]\n\tname = test\n\temail = test@example.invalid\n[url "${remote}"]\n\tinsteadOf = https://x-access-token:secret@github.com/o/r.git\n`,
@@ -638,73 +703,164 @@ if (race && !fs.existsSync(race + "/.raced")) {
         `packages/${pkg}/package.json`,
         `${JSON.stringify({ name: `@buildanagent/${pkg}`, version: "0.1.0-alpha.0" })}\n`,
       );
+      write(`packages/${pkg}/CHANGELOG.md`, `# @buildanagent/${pkg}\n\n## 0.1.0-alpha.0\n\n- first\n`);
+      write(`packages/${pkg}/src/index.js`, "export {};\n");
     }
     write(".changeset/README.md", "# Changesets\n");
+    write(".changeset/config.json", JSON.stringify({ changedFilePatterns: ["src/**", "package.json"] }));
     write(".changeset/pre.json", JSON.stringify(pre));
     for (const [name, text] of Object.entries(changesets)) write(`.changeset/${name}`, text);
-    mkdirSync(path.join(work, "scripts", "ci"), { recursive: true });
-    copyFileSync(path.join(root, "scripts/ci/release-plan.mjs"), path.join(work, "scripts/ci/release-plan.mjs"));
+    for (const script of ["release-plan.mjs", "changeset-gate.mjs", "version-pr.mjs"]) {
+      write(`scripts/ci/${script}`, readFileSync(path.join(root, "scripts/ci", script), "utf8"));
+    }
     git(work, "add", "-A");
     git(work, "commit", "-qm", "feat: a change with a changeset");
     git(work, "remote", "add", "origin", remote);
     git(work, "push", "-q", "origin", "main");
-    return { dir, remote, work, env, git };
+    return { dir, remote, work, env, git, write };
   }
 
+  const outputs = (file) =>
+    Object.fromEntries(
+      readFileSync(file, "utf8")
+        .split("\n")
+        .filter(Boolean)
+        .map((line) => line.split(/=(.*)/s).slice(0, 2)),
+    );
+
+  // Runs the version job's script in `work`, which stands for its checkout of the newest main.
   function runVersionStep({ work, dir, env }, extraEnv = {}) {
-    const script = jobs.version.steps.find((s) => s.id === "push").run;
-    const output = path.join(dir, "github-output");
+    const script = jobs.version.steps.find((s) => s.id === "version").run;
+    const runner = path.join(dir, "runner");
+    mkdirSync(runner, { recursive: true });
+    const output = path.join(dir, "version-output");
     writeFileSync(output, "");
     const result = spawnSync("bash", ["-e", "-c", script], {
       cwd: work,
-      env: { ...env, GH_TOKEN: "secret", REPO: "o/r", RUNNER_TEMP: dir, GITHUB_OUTPUT: output, ...extraEnv },
+      env: { ...env, RUNNER_TEMP: runner, GITHUB_OUTPUT: output, ...extraEnv },
       encoding: "utf8",
     });
-    return { ...result, output: readFileSync(output, "utf8") };
+    return { ...result, outputs: outputs(output) };
+  }
+
+  // Runs the version-pr job's two steps in a fresh clone checked out at `base`, as its checkout is, with the version
+  // job's patch where download-artifact puts it. The push step runs only when the commit step passed.
+  function runVersionPr(repo, base, extraEnv = {}) {
+    const clone = path.join(repo.dir, `pr-${Math.random().toString(36).slice(2)}`);
+    repo.git(repo.dir, "clone", "-q", repo.remote, clone);
+    repo.git(clone, "checkout", "-q", base);
+    const runner = path.join(repo.dir, "runner");
+    rmSync(path.join(runner, "pr"), { recursive: true, force: true });
+    const log = path.join(repo.dir, "gh-log");
+    writeFileSync(log, "");
+    const summary = path.join(repo.dir, "summary");
+    const [, , commit, push] = jobs["version-pr"].steps;
+    const env = { ...repo.env, BASE: base, RUNNER_TEMP: runner, GITHUB_STEP_SUMMARY: summary };
+    const commitRun = spawnSync("bash", ["-e", "-c", commit.run], { cwd: clone, env, encoding: "utf8" });
+    if (commitRun.status !== 0) return { commit: commitRun, gh: [] };
+    const pushRun = spawnSync("bash", ["-e", "-c", push.run], {
+      cwd: clone,
+      env: { ...env, ...push.env, GH_TOKEN: "secret", REPO: "o/r", GH_LOG: log, ...extraEnv },
+      encoding: "utf8",
+    });
+    return { commit: commitRun, push: pushRun, gh: readFileSync(log, "utf8").split("\n").filter(Boolean) };
   }
 
   const changeset = '---\n"@buildanagent/gateway": patch\n---\n\nFix a thing.\n';
+  const branch = "changeset-release/main";
 
-  test("the version step pushes the next prerelease to main without handing pnpm the token", () => {
+  test("a merged changeset opens a Version packages pull request with auto-merge, and main stays as it was", () => {
     const repo = setup({ changesets: { "brave-cats.md": changeset } });
-    const run = runVersionStep(repo);
-    assert.equal(run.status, 0, run.stderr + run.stdout);
-    const head = repo.git(repo.remote, "log", "-1", "--format=%s%n%H", "main").trim().split("\n");
-    assert.equal(head[0], "chore(release): version packages to 0.1.0-alpha.1 [skip ci]");
-    assert.equal(run.output, `sha=${head[1]}\n`);
-    const manifest = repo.git(repo.remote, "show", "main:packages/sdk/package.json");
-    assert.equal(JSON.parse(manifest).version, "0.1.0-alpha.1");
-  });
-
-  test("the version step starts again from the newest main when a merge lands while it versions", () => {
-    const repo = setup({ changesets: { "brave-cats.md": changeset } });
-    const race = path.join(repo.dir, "race");
-    repo.git(repo.dir, "clone", "-q", repo.remote, race);
-    const run = runVersionStep(repo, { RACE_CLONE: race });
-    assert.equal(run.status, 0, run.stderr + run.stdout);
-    assert.match(run.stdout, /main moved while this job versioned it/);
-    const log = repo.git(repo.remote, "log", "--format=%s", "main").trim().split("\n");
-    assert.deepEqual(log.slice(0, 2), [
-      "chore(release): version packages to 0.1.0-alpha.1 [skip ci]",
-      "docs: a merge that lands meanwhile",
+    const main = repo.git(repo.remote, "rev-parse", "main").trim();
+    const version = runVersionStep(repo);
+    assert.equal(version.status, 0, version.stderr + version.stdout);
+    assert.deepEqual(version.outputs, { base: main, changed: "true" });
+    const run = runVersionPr(repo, main);
+    assert.equal(run.commit.status, 0, run.commit.stderr + run.commit.stdout);
+    assert.equal(run.push.status, 0, run.push.stderr + run.push.stdout);
+    assert.equal(repo.git(repo.remote, "rev-parse", "main").trim(), main, "main is never pushed");
+    const [subject, parent] = repo.git(repo.remote, "log", "-1", "--format=%s%n%P", branch).trim().split("\n");
+    assert.equal(subject, "chore(release): version packages to 0.1.0-alpha.1");
+    assert.equal(parent, main);
+    assert.equal(
+      JSON.parse(repo.git(repo.remote, "show", `${branch}:packages/sdk/package.json`)).version,
+      "0.1.0-alpha.1",
+    );
+    assert.deepEqual(run.gh, [
+      `pr list --repo o/r --head ${branch} --base main --state open --json number --jq .[0].number // empty`,
+      `pr create --repo o/r --base main --head ${branch} --title chore(release): version packages to 0.1.0-alpha.1 --body-file ${path.join(repo.dir, "runner", "pr", "body.md")}`,
+      "pr view 42 --repo o/r --json autoMergeRequest --jq .autoMergeRequest != null",
+      "pr merge 42 --repo o/r --auto --squash",
     ]);
+    const body = readFileSync(path.join(repo.dir, "runner", "pr", "body.md"), "utf8");
+    assert.match(
+      body,
+      /publishes `@buildanagent\/gateway` and `@buildanagent\/sdk` 0\.1\.0-alpha\.1 to npm under the `alpha` dist-tag/,
+    );
+    assert.match(body, /- `brave-cats\.md` \("@buildanagent\/gateway": patch\): Fix a thing\./);
   });
 
-  test("the version step names no version for empty changesets, which bump nothing", () => {
+  test("a later changeset updates the same pull request, and a rerun pushes nothing new", () => {
+    const repo = setup({ changesets: { "brave-cats.md": changeset } });
+    repo.write(".changeset/quiet-dogs.md", '---\n"@buildanagent/sdk": patch\n---\n\nAnother fix.\n');
+    repo.git(repo.work, "add", "-A");
+    repo.git(repo.work, "commit", "-qm", "fix: a second change");
+    repo.git(repo.work, "push", "-q", "origin", "main");
+    // The branch still holds the first changeset's version commit, on the older main.
+    repo.git(repo.work, "push", "-q", "origin", `HEAD~1:refs/heads/${branch}`);
+    const main = repo.git(repo.remote, "rev-parse", "main").trim();
+    assert.equal(runVersionStep(repo).status, 0);
+    const open = { EXISTING_PR: "42", AUTO_MERGE: "true" };
+    const first = runVersionPr(repo, main, open);
+    assert.equal(first.push.status, 0, first.push.stderr);
+    assert.equal(repo.git(repo.remote, "log", "-1", "--format=%P", branch).trim(), main);
+    const files = repo.git(repo.remote, "show", "--name-only", "--format=", branch).split("\n").filter(Boolean);
+    assert.ok(files.includes(".changeset/pre/quiet-dogs.md") && files.includes(".changeset/pre/brave-cats.md"));
+    assert.ok(
+      first.gh.some((call) => call.startsWith("pr edit 42 --repo o/r --title chore(release): version packages")),
+    );
+    assert.ok(!first.gh.some((call) => call.startsWith("pr create") || call.startsWith("pr merge")), first.gh);
+    const again = runVersionPr(repo, main, open);
+    assert.equal(again.push.status, 0, again.push.stderr);
+    assert.match(again.push.stdout, /already holds this version commit/);
+  });
+
+  test("turns auto-merge back on when someone turned it off", () => {
+    const repo = setup({ changesets: { "brave-cats.md": changeset } });
+    const main = repo.git(repo.remote, "rev-parse", "main").trim();
+    runVersionStep(repo);
+    const run = runVersionPr(repo, main, { EXISTING_PR: "42", AUTO_MERGE: "false" });
+    assert.equal(run.push.status, 0, run.push.stderr);
+    assert.equal(run.gh.at(-1), "pr merge 42 --repo o/r --auto --squash");
+  });
+
+  test("refuses a version commit that changes more than versions, and pushes nothing", () => {
+    const repo = setup({ changesets: { "brave-cats.md": changeset } });
+    const main = repo.git(repo.remote, "rev-parse", "main").trim();
+    assert.equal(runVersionStep(repo, { EVIL: "1" }).status, 0);
+    const run = runVersionPr(repo, main);
+    assert.notEqual(run.commit.status, 0);
+    assert.match(run.commit.stderr, /M packages\/gateway\/src\/index\.js: a version commit doesn't change this file/);
+    assert.equal(run.push, undefined);
+    assert.equal(spawnSync("git", ["rev-parse", "--verify", branch], { cwd: repo.remote }).status, 128);
+  });
+
+  test("empty changesets get a pull request that names no version", () => {
     const repo = setup({ changesets: { "quiet-dogs.md": "---\n---\n" } });
-    const run = runVersionStep(repo);
-    assert.equal(run.status, 0, run.stderr + run.stdout);
-    const subject = repo.git(repo.remote, "log", "-1", "--format=%s", "main").trim();
-    assert.equal(subject, "chore(release): consume changesets that bump no package [skip ci]");
+    const main = repo.git(repo.remote, "rev-parse", "main").trim();
+    assert.equal(runVersionStep(repo).status, 0);
+    const run = runVersionPr(repo, main);
+    assert.equal(run.push.status, 0, run.push.stderr + run.commit.stderr);
+    const subject = repo.git(repo.remote, "log", "-1", "--format=%s", branch).trim();
+    assert.equal(subject, "chore(release): consume changesets that bump no package");
   });
 
-  test("the version step fails, instead of reporting nothing to do, when the plan script crashes", () => {
-    // With no changeset pending, needs-version reads pre.json, and this one makes it throw.
-    const repo = setup({ pre: { mode: "bogus", tag: "alpha" } });
-    const run = runVersionStep(repo);
-    assert.notEqual(run.status, 0);
-    assert.doesNotMatch(run.stdout, /Nothing to version/);
-    assert.match(run.stderr, /has mode bogus/);
+  test("a run with nothing for Changesets to change uploads no patch", () => {
+    const repo = setup();
+    const version = runVersionStep(repo);
+    assert.equal(version.status, 0, version.stderr);
+    assert.equal(version.outputs.changed, "false");
+    assert.match(version.stdout, /changed nothing/);
   });
 
   // The publish job's guard against a re-run of an older run, with a fake `gh` that answers main's package.json.

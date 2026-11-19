@@ -1,0 +1,55 @@
+# Lets GitHub auto-merge only the "Version packages" pull request that release.yml opens (docs/plans/ci.md §3f).
+# When anyone turns on auto-merge for a pull request, this workflow turns it off again unless the pull request's head
+# is changeset-release/main in this repository, its base is main, and it changes only what a version commit may
+# (scripts/ci/version-pr.mjs). The job summary says which rule decided.
+#
+# A workflow that turns on auto-merge with GITHUB_TOKEN starts no run of this guard, because events that token causes
+# start no workflow; no workflow here does that, and release.yml turns it on with RELEASE_PR_TOKEN.
+#
+# pull_request_target runs this file as main holds it, never the pull request's version. The job checks out main,
+# fetches the pull request's commits only to read them with git, and runs none of their code. Pull request fields
+# reach the scripts through env vars, never through `${{ }}` in a `run:`. If any step fails, auto-merge is turned off.
+name: auto-merge-guard
+
+on:
+  pull_request_target:
+    types: [auto_merge_enabled]
+
+permissions: {}
+
+jobs:
+  guard:
+    name: Allow auto-merge only for the Version packages pull request
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    permissions:
+      contents: read
+      pull-requests: write # to turn auto-merge off
+    steps:
+      # The default ref for pull_request_target is main's latest commit, so this checks out main's scripts.
+      - uses: actions/checkout@v7.0.1
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+      - name: Decide whether auto-merge may stay on
+        id: decide
+        env:
+          NUMBER: ${{ github.event.pull_request.number }}
+          HEAD_REF: ${{ github.event.pull_request.head.ref }}
+          HEAD_REPO: ${{ github.event.pull_request.head.repo.full_name }}
+          BASE_REF: ${{ github.event.pull_request.base.ref }}
+          REPO: ${{ github.repository }}
+        run: |
+          set -euo pipefail
+          git fetch --quiet --no-tags origin "+refs/pull/${NUMBER}/head:refs/remotes/pr/head"
+          node scripts/ci/version-pr.mjs guard origin/main refs/remotes/pr/head | tee -a "$GITHUB_OUTPUT"
+      # Anything but a clear "keep", a failed step included, turns auto-merge off.
+      - name: Turn auto-merge off
+        if: always() && steps.decide.outputs.action != 'keep'
+        env:
+          GH_TOKEN: ${{ github.token }}
+          NUMBER: ${{ github.event.pull_request.number }}
+          REPO: ${{ github.repository }}
+        run: |
+          gh pr merge "$NUMBER" --repo "$REPO" --disable-auto
+          echo "Auto-merge is off for pull request #$NUMBER. When the step above failed, the log says why." >> "$GITHUB_STEP_SUMMARY"
