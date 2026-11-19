@@ -489,7 +489,8 @@ describe("this checkout on main", () => {
       assert.equal(prTitle(result), "chore(release): consume changesets that bump no package");
     }
     // The gate in ci.yml passes a bump without a changeset and without running changeset status. A commit that only
-    // consumes changesets changes no shipped file, so the gate leaves it to the real `changeset status`, which must pass.
+    // consumes changesets changes no shipped file, so the gate leaves it to the real `changeset status`, which must
+    // pass.
     const calls = [];
     const runStatus = (base) => {
       calls.push(base);
