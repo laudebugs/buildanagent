@@ -8,16 +8,16 @@
 | Status | `ready` |
 | Plan | [Book plan §4.3, BK19](../../plans/build-book.md#43-four-topics-need-research-before-they-are-written) |
 | Round / milestone | Round T (textbook), MT |
-| Depends on | [U20](../ongoing/U20-research-voice-and-realtime.md), [T35](T35-chapter-agents-people-can-watch.md) |
+| Depends on | [U20](../done/U20-research-voice-and-realtime.md), [T35](T35-chapter-agents-people-can-watch.md) |
 | Size | S |
 
 ## Goal
 
-Add one section to Chapter T35 ("Agents people can watch: UIs, browsers and taking over") from research todo [U20](../ongoing/U20-research-voice-and-realtime.md)'s report. It is a section, not a chapter: voice and realtime change how a person interacts with a running agent, which is Chapter T35's subject.
+Add one section to Chapter T35 ("Agents people can watch: UIs, browsers and taking over") from research todo [U20](../done/U20-research-voice-and-realtime.md)'s report. It is a section, not a chapter: voice and realtime change how a person interacts with a running agent, which is Chapter T35's subject.
 
 ## Context
 
-- [U20](../ongoing/U20-research-voice-and-realtime.md)'s report and fact-check
+- [U20](../done/U20-research-voice-and-realtime.md)'s report and fact-check
 - Chapter T35's todo, [T35](T35-chapter-agents-people-can-watch.md), and its fact-check file `apps/manual/fact-checks/agents-people-can-watch.md`
 - [Book plan BK21 and BK22](../../plans/build-book.md#bk21-every-section-is-fact-checked-before-the-next-is-drafted-accepted)
 
