@@ -3,11 +3,13 @@ import { typescript } from "./typescript.js";
 
 /**
  * What the book makes of one inline-code span. A span of code is checked: each name in it must resolve to a listing,
- * a transcript or a pinned `.d.ts` export, or the span must carry a hand-checked marker. A span that a skip pattern
- * matches is left alone and says which pattern matched; so is a span that is not code, such as the notation `pass^k`.
+ * a transcript, a pinned `.d.ts` export or the standard library, or the span must carry a hand-checked marker. A span
+ * that a skip pattern matches is left alone and says which pattern matched; so is a span that is not code, such as
+ * the notation `pass^k`. `paths` lists the member paths in a checked span, such as `JSON.parse`, by their names, so a
+ * property of a standard-library global can resolve through the global's type.
  */
 export type InlineSpan =
-  | { readonly kind: "checked"; readonly names: readonly string[] }
+  | { readonly kind: "checked"; readonly names: readonly string[]; readonly paths: readonly (readonly string[])[] }
   | { readonly kind: "skipped"; readonly rule: SkipRule }
   | { readonly kind: "unchecked" };
 
@@ -82,66 +84,92 @@ function pathNames(span: string): readonly string[] | undefined {
   return rest.length === 0 ? undefined : rest;
 }
 
-/** Expressions that make a span code, not notation: a call, `new`, a member access, an object or a function. */
-function codeKinds(): ReadonlySet<ts.SyntaxKind> {
-  const { SyntaxKind } = typescript();
-  return new Set([
-    SyntaxKind.CallExpression,
-    SyntaxKind.NewExpression,
-    SyntaxKind.PropertyAccessExpression,
-    SyntaxKind.ElementAccessExpression,
-    SyntaxKind.ObjectLiteralExpression,
-    SyntaxKind.ArrowFunction,
-    SyntaxKind.FunctionExpression,
-    SyntaxKind.TaggedTemplateExpression,
-  ]);
+/** The operators of arithmetic notation, such as `pass^k` or `n - 1`: `^`, `+`, `-`, `*`, `/` and `**`. */
+function isNotation(node: ts.Expression): boolean {
+  const ts = typescript();
+  const { CaretToken, PlusToken, MinusToken, AsteriskToken, SlashToken, AsteriskAsteriskToken } = ts.SyntaxKind;
+  const operators = new Set([CaretToken, PlusToken, MinusToken, AsteriskToken, SlashToken, AsteriskAsteriskToken]);
+  if (ts.isParenthesizedExpression(node)) return isNotation(node.expression);
+  if (ts.isIdentifier(node) || ts.isNumericLiteral(node)) return true;
+  return (
+    ts.isBinaryExpression(node) &&
+    operators.has(node.operatorToken.kind) &&
+    isNotation(node.left) &&
+    isNotation(node.right)
+  );
 }
 
-const parsed = new Map<string, readonly string[] | undefined>();
+/** The names and member paths of a span of code. */
+interface CodeSpan {
+  readonly names: readonly string[];
+  readonly paths: readonly (readonly string[])[];
+}
+
+/** A member access whose every part is a plain name, such as `process.env.HOME`, as its names; else undefined. */
+function memberPath(node: ts.Expression): string[] | undefined {
+  const ts = typescript();
+  if (ts.isIdentifier(node)) return [node.text];
+  if (!ts.isPropertyAccessExpression(node) || !ts.isIdentifier(node.name)) return undefined;
+  const head = memberPath(node.expression);
+  return head === undefined ? undefined : [...head, node.name.text];
+}
+
+const parsed = new Map<string, CodeSpan | undefined>();
 
 /**
- * The names a span of code holds, read with the compiler: every identifier in it, property names and labels
- * included, but no string, number or literal value. Undefined when the span does not parse as TypeScript, or when it
- * is a lone expression of operators and plain names, such as `pass^k` or `n - 1`, which reads as notation.
- * Spans repeat across a book, so each text is parsed once per process.
+ * The names a span of code holds, read with the compiler: every identifier in it, property names, labels, type
+ * names and the expressions inside a template literal included, but no string, number or literal value. Undefined
+ * when the span does not parse as TypeScript, or when it is arithmetic notation: plain names and numbers joined by
+ * `^`, `+`, `-`, `*`, `/` or `**`, such as `pass^k` or `n - 1`. Spans repeat across a book, so each text is parsed
+ * once per process.
  */
-function codeNames(span: string): readonly string[] | undefined {
+function codeSpan(span: string): CodeSpan | undefined {
   if (parsed.has(span)) return parsed.get(span);
   const ts = typescript();
-  const kinds = codeKinds();
   const { diagnostics = [] } = ts.transpileModule(span, {
     fileName: "span.ts",
     reportDiagnostics: true,
     compilerOptions: { target: ts.ScriptTarget.ESNext, module: ts.ModuleKind.ESNext, noLib: true },
   });
-  let names: string[] | undefined;
+  let found: CodeSpan | undefined;
   if (diagnostics.length === 0) {
     const file = ts.createSourceFile("span.ts", span, ts.ScriptTarget.ESNext, true);
-    const found: string[] = [];
-    let code = !(file.statements.length === 1 && ts.isExpressionStatement(file.statements[0] as ts.Statement));
-    const visit = (node: ts.Node): void => {
-      if (kinds.has(node.kind)) code = true;
-      if (ts.isIdentifier(node) && !LITERAL_VALUES.has(node.text)) found.push(node.text);
-      ts.forEachChild(node, visit);
-    };
-    visit(file);
-    names = code && found.length > 0 ? [...new Set(found)] : undefined;
+    const [only] = file.statements;
+    const notation = file.statements.length === 1 && only !== undefined && ts.isExpressionStatement(only);
+    if (!(notation && isNotation(only.expression))) {
+      const names: string[] = [];
+      const paths: string[][] = [];
+      const visit = (node: ts.Node): void => {
+        if (ts.isIdentifier(node) && !LITERAL_VALUES.has(node.text)) names.push(node.text);
+        // The longest plain member path only: `a.b.c`, not also `a.b`.
+        const outer =
+          node.parent !== undefined && ts.isPropertyAccessExpression(node.parent) && node.parent.expression === node;
+        const path = ts.isPropertyAccessExpression(node) && !outer ? memberPath(node) : undefined;
+        if (path !== undefined) paths.push(path);
+        ts.forEachChild(node, visit);
+      };
+      visit(file);
+      if (names.length > 0) found = { names: [...new Set(names)], paths };
+    }
   }
-  parsed.set(span, names);
-  return names;
+  parsed.set(span, found);
+  return found;
 }
 
 /**
  * Sorts an inline-code span. The skip patterns run first: a command starts with a shell command's name; a path holds
  * a slash, or is a dotted name that ends in a file extension and has no `()`; a value is a number, a quoted string or
- * a literal such as `true` or `undefined`. An identifier or a member path is then checked by its names, a reserved
- * word alone is not code, and any other span is checked by the names in it when it parses as code.
+ * a literal such as `true` or `undefined`, and a template literal counts as a string only without `${…}`. An
+ * identifier or a member path is then checked by its names, a reserved word alone is not code, and any other span is
+ * checked by the names in it when it parses as code that is not arithmetic notation.
  */
 export function classifySpan(text: string): InlineSpan {
   const span = text.trim();
   if (SHELL_COMMANDS.has(span.split(/\s+/)[0] ?? "")) return { kind: "skipped", rule: "command" };
   if (PATH.test(span)) return { kind: "skipped", rule: "path" };
-  if (/^[-+]?\.?\d[\w.]*$/.test(span) || /^(["'`]).*\1$/s.test(span) || LITERAL_VALUES.has(span)) {
+  // A template literal with a ${…} holds code, which the parser below checks; one without is a string.
+  const quoted = /^(["'`]).*\1$/s.test(span) && !(span.startsWith("`") && span.includes("${"));
+  if (/^[-+]?\.?\d[\w.]*$/.test(span) || quoted || LITERAL_VALUES.has(span)) {
     return { kind: "skipped", rule: "value" };
   }
   if (IDENTIFIER_LIKE.test(span)) {
@@ -150,10 +178,11 @@ export function classifySpan(text: string): InlineSpan {
       return { kind: "skipped", rule: "path" };
     }
     const names = pathNames(span);
-    return names === undefined ? { kind: "unchecked" } : { kind: "checked", names };
+    if (names === undefined) return { kind: "unchecked" };
+    return { kind: "checked", names, paths: names.length > 1 ? [names] : [] };
   }
-  const names = codeNames(span);
-  return names === undefined ? { kind: "unchecked" } : { kind: "checked", names };
+  const code = codeSpan(span);
+  return code === undefined ? { kind: "unchecked" } : { kind: "checked", ...code };
 }
 
 /** The hand-checked marker written right after an inline-code span: `{checked=row-12}`. */

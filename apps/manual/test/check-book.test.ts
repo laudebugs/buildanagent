@@ -829,14 +829,15 @@ const cases: readonly Case[] = [
   },
   // Inline code is checked like a listing (BK17).
   {
-    rule: "inline code naming what no listing, transcript or .d.ts holds fails, naming the three places searched",
+    rule: "inline code naming what no listing, transcript, .d.ts or library holds fails, naming the four places",
     change: sdkProse("The agent calls `notAnywhere`."),
     file: AT_PROSE,
     message: new RegExp(
-      "inline code `notAnywhere` names `notAnywhere`, which none of the three places holds: the chapter's listings " +
+      "inline code `notAnywhere` names `notAnywhere`, which none of the four places holds: the chapter's listings " +
         String.raw`\(verify/demo-sdk/examples/01-hello\.ts#greet, verify/demo-sdk/examples/03-sdk\.ts#run\), ` +
-        String.raw`their transcripts \(none recorded\) and the \.d\.ts exports of the packages they import ` +
-        String.raw`\(demo-sdk@1\.2\.3\)\. .*\{checked=row-N\}, ` +
+        String.raw`their transcripts \(none recorded\), the \.d\.ts exports of the packages they import ` +
+        String.raw`\(demo-sdk@1\.2\.3\) and the standard library their harnesses compile against ` +
+        String.raw`\(verify/demo-sdk/tsconfig\.json \(lib es2024; types none\)\)\. .*\{checked=row-N\}, ` +
         String.raw`where row N of apps/manual/fact-checks/second\.md is ✅ or ✏️`,
     ),
   },
@@ -845,15 +846,16 @@ const cases: readonly Case[] = [
     change: firstChapter((t) => t.replace("Lowercase mcp", "`notAnywhere` and lowercase mcp")),
     file: `${FIRST}:12`,
     message: new RegExp(
-      String.raw`the chapter's listings \(it includes none\), their transcripts \(none recorded\) and the \.d\.ts ` +
-        String.raw`exports of the packages they import \(they import none\)`,
+      String.raw`the chapter's listings \(it includes none\), their transcripts \(none recorded\), the \.d\.ts ` +
+        String.raw`exports of the packages they import \(they import none\) and the standard library their ` +
+        String.raw`harnesses compile against \(no harness\)`,
     ),
   },
   {
     rule: "a name the listed file holds outside the listed region fails",
     change: sdkProse("The example exports `unlisted`."),
     file: AT_PROSE,
-    message: /inline code `unlisted` names `unlisted`, which none of the three places holds/,
+    message: /inline code `unlisted` names `unlisted`, which none of the four places holds/,
   },
   {
     rule: "a member path fails on the one name that resolves nowhere",
@@ -954,6 +956,43 @@ const cases: readonly Case[] = [
     ),
     file: AT_PROSE,
     message: /imports demo-sdk, whose \.d\.ts \(demo-sdk@1\.2\.3\) is no module, so its exports cannot be listed/,
+  },
+  {
+    rule: "an assignment's name found nowhere fails, because only arithmetic is notation",
+    change: sdkProse("The agent sets `maxTurns = 10`."),
+    file: AT_PROSE,
+    message: /inline code `maxTurns = 10` names `maxTurns`, which none/,
+  },
+  {
+    rule: "a nullish expression is checked by its names",
+    change: sdkProse("The agent falls back with `zzz ?? yyy`."),
+    file: AT_PROSE,
+    message: /inline code `zzz \?\? yyy` names `zzz` and `yyy`, which none/,
+  },
+  {
+    rule: "an as expression is checked by its value's name and its type's name",
+    change: sdkProse("The agent casts with `agent as AgentHandle`."),
+    file: AT_PROSE,
+    message: /inline code `agent as AgentHandle` names `AgentHandle`, which none/,
+  },
+  {
+    rule: "a template literal with a substitution is checked by the names inside it",
+    // biome-ignore lint/suspicious/noTemplateCurlyInString: the inline code is a template literal with a substitution.
+    change: sdkProse("The agent greets with `` `Hello, ${reader}` ``."),
+    file: AT_PROSE,
+    message: /inline code ``Hello, \$\{reader\}`` names `reader`, which none/,
+  },
+  {
+    rule: "an environment variable fails without a marker, though the standard library resolves",
+    change: sdkProse("The key is read from `OPENAI_API_KEY`."),
+    file: AT_PROSE,
+    message: /inline code `OPENAI_API_KEY` names `OPENAI_API_KEY`, which none of the four places holds/,
+  },
+  {
+    rule: "a global that the harness's standard library does not include fails",
+    change: sdkProse("The page has a `document`."),
+    file: AT_PROSE,
+    message: /inline code `document` names `document`, which none of the four places holds/,
   },
   {
     rule: "a listed import whose .d.ts cannot be found fails",

@@ -2,30 +2,59 @@ import { join, relative } from "node:path";
 import type { InlineCode, Parent, Root, Text } from "mdast";
 import { visit } from "unist-util-visit";
 import type { VFile } from "vfile";
-import { type ChapterNames, hasName, type NameSource } from "../book/code-names.js";
+import { type ChapterNames, hasName } from "../book/code-names.js";
 import { CHECKED_VERDICTS } from "../book/fact-check-log.js";
 import { classifySpan, markerAt, STRAY_MARKER } from "../book/inline-code.js";
 import type { Book } from "../book/load.js";
+import type { LibraryScope } from "../book/standard-library.js";
 import { checkedChapter } from "./chapter-file.js";
 import { failAt } from "./fail.js";
 import { placeAt, pointAt } from "./position.js";
 
 /** A list of the places searched, as a failure message names them, or what the chapter lacks. */
-function searched(sources: readonly NameSource[], none: string): string {
+function searched(sources: readonly { readonly label: string }[], none: string): string {
   return sources.length === 0 ? none : sources.map((source) => source.label).join(", ");
 }
 
-/** Why a span's name resolves nowhere, naming the three places searched and the two ways to fix it. */
-function unresolvedMessage(span: string, missing: readonly string[], names: ChapterNames, log: string): string {
-  const what = missing.length === 1 ? `\`${missing[0]}\`` : missing.map((name) => `\`${name}\``).join(" and ");
+/** Why a span's name resolves nowhere, naming the four places searched and the two ways to fix it. */
+function unresolvedMessage(
+  span: string,
+  missing: readonly string[],
+  names: ChapterNames,
+  libraries: readonly LibraryScope[],
+  log: string,
+): string {
+  const what = missing.map((name) => `\`${name}\``).join(" and ");
   return (
-    `inline code \`${span}\` names ${what}, which none of the three places holds: ` +
+    `inline code \`${span}\` names ${what}, which none of the four places holds: ` +
     `the chapter's listings (${searched(names.listings, "it includes none")}), ` +
-    `their transcripts (${searched(names.transcripts, "none recorded")}) ` +
-    `and the .d.ts exports of the packages they import (${searched(names.packages, "they import none")}). ` +
+    `their transcripts (${searched(names.transcripts, "none recorded")}), ` +
+    `the .d.ts exports of the packages they import (${searched(names.packages, "they import none")}) ` +
+    `and the standard library their harnesses compile against (${searched(libraries, "no harness")}). ` +
     `Show it in a listing, or check it by hand and cite the row as \`${span}\`{checked=row-N}, ` +
     `where row N of ${log} is ✅ or ✏️`
   );
+}
+
+/**
+ * The names of a span that only the standard library holds: each name a library declares as a global, unless the
+ * span uses it only as a property, and each property of a member path that resolves through its root global's type.
+ */
+function inLibraries(
+  span: { readonly paths: readonly (readonly string[])[] },
+  missing: readonly string[],
+  libraries: readonly LibraryScope[],
+): Set<string> {
+  const found = new Set<string>();
+  const roots = new Set(span.paths.map((path) => path[0]));
+  const properties = new Set(span.paths.flatMap((path) => path.slice(1)));
+  for (const library of libraries) {
+    for (const path of span.paths) for (const name of path.slice(0, library.resolvedPrefix(path))) found.add(name);
+    for (const name of missing) {
+      if ((roots.has(name) || !properties.has(name)) && library.has(name)) found.add(name);
+    }
+  }
+  return found;
 }
 
 /** The chapter's fact-check log: its file, and its path from the repository root as messages name it. */
@@ -73,7 +102,13 @@ export function remarkCheckedCode(options: { readonly book: Book }) {
       }
       const known = names;
       const missing = span.names.filter((name) => !hasName(known, name));
-      if (missing.length > 0) failAt(file, unresolvedMessage(node.value, missing, known, log.name), node);
+      if (missing.length === 0) return;
+      const libraries = book.code.libraries(written);
+      const library = inLibraries(span, missing, libraries);
+      const unresolved = missing.filter((name) => !library.has(name));
+      if (unresolved.length > 0) {
+        failAt(file, unresolvedMessage(node.value, unresolved, known, libraries, log.name), node);
+      }
     });
     // Every marker that touched its span is gone by now, so any left in the text stands apart from its code.
     visit(tree, "text", (node: Text) => {

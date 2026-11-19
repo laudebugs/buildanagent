@@ -4,6 +4,7 @@ import { extname, join } from "node:path";
 import type ts from "typescript-api";
 import type { WrittenChapter } from "./book-index.js";
 import type { ListingSource } from "./listings.js";
+import { type LibraryScope, nearestTsconfig, StandardLibraries } from "./standard-library.js";
 import { readTranscript, type Transcript, type TranscriptMessage } from "./transcripts.js";
 import { typescript } from "./typescript.js";
 
@@ -142,8 +143,30 @@ export class CodeNames {
   #options: ts.CompilerOptions | undefined;
   #host: ts.CompilerHost | undefined;
 
+  readonly #libraries: StandardLibraries;
+  readonly #chapterLibraries = new Map<string, readonly LibraryScope[]>();
+
   constructor(repoRoot: string) {
     this.#repoRoot = repoRoot;
+    this.#libraries = new StandardLibraries(repoRoot);
+  }
+
+  /**
+   * The standard libraries a written chapter's inline code may resolve to: one for each tsconfig that compiles its
+   * file listings, the nearest above each listed file. Read on first use, because a library and its `@types` take
+   * the longest to read, and a chapter needs them only for a name the other places lack.
+   */
+  libraries(written: WrittenChapter): readonly LibraryScope[] {
+    let scopes = this.#chapterLibraries.get(written.file);
+    if (scopes === undefined) {
+      const configs = new Set<string | undefined>();
+      for (const { source } of written.blocks) {
+        if (source !== undefined) configs.add(nearestTsconfig(join(this.#repoRoot, source.path), this.#repoRoot));
+      }
+      scopes = [...configs].map((config) => this.#libraries.scope(config));
+      this.#chapterLibraries.set(written.file, scopes);
+    }
+    return scopes;
   }
 
   /** The check's compiler options, made on first use, so a load that checks no inline code never loads the compiler. */

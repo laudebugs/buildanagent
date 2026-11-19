@@ -12,6 +12,7 @@ import { checkOutline, type NumberedChapter, numberChapters } from "./outline-ru
 import type { Outline } from "./outline-types.js";
 import { ProblemList } from "./problems.js";
 import { checkSources, type Source } from "./sources.js";
+import { nearestTsconfig } from "./standard-library.js";
 import { transcriptPathOf } from "./transcripts.js";
 
 /** Where a book's content lives. The real book's inputs come from `bookInputs()`; the tests pass fixture books. */
@@ -260,7 +261,8 @@ export function renderDependencies(book: Book): string {
 
 /**
  * The files the inline-code check reads that no listing shows, from the repository root: each written chapter's
- * fact-check log and each listed example's transcript, which a listing without `replay` still offers. Only the files
+ * fact-check log, each listed example's transcript, which a listing without `replay` still offers, and the nearest
+ * tsconfig.json above each listed file, whose `lib` and `types` pick the standard library. Only the files
  * that exist are named. `astro.config.mjs` hashes them with its other render inputs and watches them under
  * `astro dev`.
  */
@@ -271,6 +273,8 @@ export function checkedCodeFiles(book: Book): string[] {
   for (const block of book.index.blocks.values()) {
     if (block.source === undefined) continue;
     files.add(join(book.inputs.repoRoot, transcriptPathOf(block.source.harness, block.source.path)));
+    const config = nearestTsconfig(join(book.inputs.repoRoot, block.source.path), book.inputs.repoRoot);
+    if (config !== undefined) files.add(config);
   }
   return [...files].filter((file) => existsSync(file)).sort();
 }

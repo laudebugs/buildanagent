@@ -36,37 +36,82 @@ const SLOW = { timeout: 60_000 };
 afterAll(() => removeFixture(dir));
 
 test("identifiers and member paths are checked by every name, a property's name whatever it spells", () => {
-  assert.deepEqual(classifySpan("generateText"), { kind: "checked", names: ["generateText"] });
-  assert.deepEqual(classifySpan("generateText()"), { kind: "checked", names: ["generateText"] });
-  assert.deepEqual(classifySpan("result.steps"), { kind: "checked", names: ["result", "steps"] });
-  assert.deepEqual(classifySpan("result.object"), { kind: "checked", names: ["result", "object"] });
-  assert.deepEqual(classifySpan("part.type"), { kind: "checked", names: ["part", "type"] });
-  assert.deepEqual(classifySpan("import.meta.resolve"), { kind: "checked", names: ["meta", "resolve"] });
-  assert.deepEqual(classifySpan("$state"), { kind: "checked", names: ["$state"] });
+  assert.deepEqual(classifySpan("generateText"), { kind: "checked", names: ["generateText"], paths: [] });
+  assert.deepEqual(classifySpan("generateText()"), { kind: "checked", names: ["generateText"], paths: [] });
+  assert.deepEqual(classifySpan("result.steps"), {
+    kind: "checked",
+    names: ["result", "steps"],
+    paths: [["result", "steps"]],
+  });
+  assert.deepEqual(classifySpan("result.object"), {
+    kind: "checked",
+    names: ["result", "object"],
+    paths: [["result", "object"]],
+  });
+  assert.deepEqual(classifySpan("part.type"), { kind: "checked", names: ["part", "type"], paths: [["part", "type"]] });
+  assert.deepEqual(classifySpan("import.meta.resolve"), {
+    kind: "checked",
+    names: ["meta", "resolve"],
+    paths: [["meta", "resolve"]],
+  });
+  assert.deepEqual(classifySpan("$state"), { kind: "checked", names: ["$state"], paths: [] });
 });
 
 test("contextual keywords are checked like names, and a reserved word alone is not code", () => {
   for (const span of ["type", "object", "async", "string"]) {
-    assert.deepEqual(classifySpan(span), { kind: "checked", names: [span] }, span);
+    assert.deepEqual(classifySpan(span), { kind: "checked", names: [span], paths: [] }, span);
   }
   for (const span of ["const", "return", "this", "await"]) assert.deepEqual(classifySpan(span), { kind: "unchecked" });
 });
 
 test("code that parses is checked by each identifier in it, and strings and numbers are left out", () => {
-  assert.deepEqual(classifySpan("stopWhen: isStepCount(5)"), { kind: "checked", names: ["stopWhen", "isStepCount"] });
-  assert.deepEqual(classifySpan("zzz(1)"), { kind: "checked", names: ["zzz"] });
-  assert.deepEqual(classifySpan("maxBudgetUsd: 1"), { kind: "checked", names: ["maxBudgetUsd"] });
-  assert.deepEqual(classifySpan("{ maxTurns: 10 }"), { kind: "checked", names: ["maxTurns"] });
+  assert.deepEqual(classifySpan("stopWhen: isStepCount(5)"), {
+    kind: "checked",
+    names: ["stopWhen", "isStepCount"],
+    paths: [],
+  });
+  assert.deepEqual(classifySpan("zzz(1)"), { kind: "checked", names: ["zzz"], paths: [] });
+  assert.deepEqual(classifySpan("maxBudgetUsd: 1"), { kind: "checked", names: ["maxBudgetUsd"], paths: [] });
+  assert.deepEqual(classifySpan("{ maxTurns: 10 }"), { kind: "checked", names: ["maxTurns"], paths: [] });
   assert.deepEqual(classifySpan('tool({ description: "Get the weather", input: undefined })'), {
     kind: "checked",
     names: ["tool", "description", "input"],
+    paths: [],
   });
   // A trailing () makes a member path code, so a method named like an extension is checked, not taken for a file.
-  assert.deepEqual(classifySpan("response.json()"), { kind: "checked", names: ["response", "json"] });
+  assert.deepEqual(classifySpan("response.json()"), {
+    kind: "checked",
+    names: ["response", "json"],
+    paths: [["response", "json"]],
+  });
+  // Assignments, logical and nullish operators, typeof and as are code, not notation.
+  for (const [span, names] of [
+    ["maxTurns = 10", ["maxTurns"]],
+    ["retries++", ["retries"]],
+    ["!done", ["done"]],
+    ["a && b", ["a", "b"]],
+    ["a ?? b", ["a", "b"]],
+    ["typeof x", ["x"]],
+    ["foo as Bar", ["foo", "Bar"]],
+  ] as const) {
+    assert.deepEqual(classifySpan(span), { kind: "checked", names, paths: [] }, span);
+  }
+  // A template literal with a substitution is code; the member path inside it is kept for the standard library.
+  // biome-ignore lint/suspicious/noTemplateCurlyInString: the inline code is a template literal with a substitution.
+  assert.deepEqual(classifySpan("`hi ${user.name}`"), {
+    kind: "checked",
+    names: ["user", "name"],
+    paths: [["user", "name"]],
+  });
+  assert.deepEqual(classifySpan("JSON.parse(text)"), {
+    kind: "checked",
+    names: ["JSON", "parse", "text"],
+    paths: [["JSON", "parse"]],
+  });
 });
 
 test("a span that is not code, or does not parse, is left unchecked", () => {
-  for (const span of ["pass^k", "n - 1", "tool-calls", "a b", "[[fig:nope]]", "[@nope]"]) {
+  for (const span of ["pass^k", "n - 1", "(a + b) / 2", "2 ** k", "tool-calls", "a b", "[[fig:nope]]", "[@nope]"]) {
     assert.deepEqual(classifySpan(span), { kind: "unchecked" }, span);
   }
 });
@@ -91,7 +136,7 @@ test("shell commands skip the check", () => {
 });
 
 test("numbers, quoted strings and literal values skip the check", () => {
-  for (const span of ["42", "0.5", "-1", "1e3", '"assistant"', "'stop'", "true", "null", "undefined", "NaN"]) {
+  for (const span of ["42", "0.5", "-1", "1e3", '"assistant"', "'stop'", "`plain`", "true", "undefined", "NaN"]) {
     assert.deepEqual(classifySpan(span), { kind: "skipped", rule: "value" }, span);
   }
 });
@@ -201,6 +246,26 @@ test("a real AI SDK listing offers its region's names, its transcript's values a
 });
 
 test(
+  "a real harness's standard library resolves ECMAScript and Node.js globals, but no environment variable",
+  SLOW,
+  () => {
+    const code = new CodeNames(REPO_ROOT);
+    const written = realListing("verify/vercel-ai-sdk", "verify/vercel-ai-sdk/examples/02-tool-loop.ts", "loop");
+    const [library] = code.libraries(written);
+    assert.ok(library !== undefined);
+    assert.equal(library.label, "verify/vercel-ai-sdk/tsconfig.json (lib es2024; types node)");
+    for (const name of ["Promise", "JSON", "fetch", "process", "Buffer"]) assert.ok(library.has(name), name);
+    for (const name of ["document", "window", "OPENAI_API_KEY"]) assert.ok(!library.has(name), name);
+    assert.equal(library.resolvedPrefix(["JSON", "parse"]), 2);
+    assert.equal(library.resolvedPrefix(["Promise", "resolve"]), 2);
+    // ProcessEnv's index signature names no property, so an environment variable needs a listing or a marker.
+    assert.equal(library.resolvedPrefix(["process", "env", "OPENAI_API_KEY"]), 2);
+    assert.equal(library.resolvedPrefix(["result", "text"]), 0);
+    assert.equal(code.libraries(written), code.libraries(written));
+  },
+);
+
+test(
   "names from a listing, a transcript and a re-exported .d.ts build, and so does a cited ✅ or ✏️ row",
   SLOW,
   async () => {
@@ -215,6 +280,7 @@ test(
           "A listing's keywords count too: `string`.",
           "The transcript names the `assistant` and the stop reason `stop`.",
           "The package also exports `defineTool` and `stepLimit`.",
+          "The standard library declares `Promise`, `JSON.parse` and `Array.from()`.",
           "By hand: `maxTurns`{checked=row-1} and `internalHelper`{checked=row-2}.",
           "Skipped: `package.json`, `src/index.ts`, `pnpm test`, `true` and `42`.",
         ].join(" "),
@@ -255,7 +321,12 @@ test("logs and transcripts join the files astro.config.mjs hashes, and package v
   const book = loadBook(fixtureInputs(dir));
   assert.deepEqual(
     checkedCodeFiles(book).map((file) => relative(dir, file)),
-    [SECOND_LOG.replace("second", "first"), SECOND_LOG, "verify/demo-sdk/results/transcripts/02-notes.json"],
+    [
+      SECOND_LOG.replace("second", "first"),
+      SECOND_LOG,
+      "verify/demo-sdk/results/transcripts/02-notes.json",
+      "verify/demo-sdk/tsconfig.json",
+    ],
   );
   assert.match(renderDependencies(book), /"packages":\["demo-sdk@1\.2\.3"\]/);
   const before = renderDependencies(book);
