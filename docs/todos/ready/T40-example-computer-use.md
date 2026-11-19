@@ -13,7 +13,7 @@
 
 ## Goal
 
-Write a new type-checked, mock-run example in `verify/openai-agents-sdk/examples/` that shows a model driving a computer-use tool whose actions go to a scripted fake computer that records each click and keystroke and returns a fixture screenshot, with an approval before a consequential action, so Chapter T35 ("Agents people can watch: UIs, browsers and taking over") has code behind its subject. The plan's code review found the gap: Chapter T35 teaches browser and computer use, and no `verify/` harness drives a browser or emits a computer call: the harness's reference says its scripted model "calls only function tools you define, never hosted, computer, shell, apply-patch or sandbox tools" ([OpenAI Agents SDK fact-check](../../reference/openai-agents-sdk/fact-check.md)).
+Write a new type-checked, mock-run example in `verify/openai-agents-sdk/examples/` so Chapter T35 ("Agents people can watch: UIs, browsers and taking over") has code behind its subject. The example shows a model driving a computer-use tool whose actions go to a scripted fake computer that records each click and keystroke and returns a fixture screenshot, with an approval before a consequential action. The plan's code review found the gap: Chapter T35 teaches browser and computer use, and no `verify/` harness drives a browser or emits a computer call. The harness's reference says its scripted model "calls only function tools you define, never hosted, computer, shell, apply-patch or sandbox tools" ([OpenAI Agents SDK fact-check](../../reference/openai-agents-sdk/fact-check.md)).
 
 ## Context
 
@@ -30,13 +30,13 @@ Write a new type-checked, mock-run example in `verify/openai-agents-sdk/examples
 
 - One or more examples in `verify/openai-agents-sdk/examples/`, each asserting its behaviour with `check()`
 - `// #region` and `// book:note` markers for the chapter's listings
-- A transcript from T5's recorder, if the harness is covered
+- A transcript from T5's recorder, if that recorder covers the harness
 
 **Out of scope** (and which todo covers it)
 
 - Chapter T35's prose (its own todo)
 - Our own packages' versions of the same behaviour (the chapter's switch todos)
-- A real browser (Playwright, or a hosted browser over CDP): a new dependency and a host-touching tool, so it is a separate change the owner approves once the [browser-use report](../../research/browser-use/browser-use.md)'s proposed plan changes are decided; no todo covers it yet
+- A real browser (Playwright, or a hosted browser over CDP): a new dependency and a host-touching tool, so it is a separate change the owner approves after deciding the plan changes the [browser-use report](../../research/browser-use/browser-use.md) proposes; no todo covers it yet
 
 ## Tasks
 

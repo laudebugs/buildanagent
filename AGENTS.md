@@ -52,7 +52,7 @@ Every document goes through the same five steps before it merges, whoever or wha
 
 Record the review's rubric scores, before and after, in the pull request description.
 
-**A long document is fact-checked section by section** (the owner's rule, 2026-11-19: "We'll always write copy with /writing and review with /writing-review and fix any issues from that review. As well, we should always run a fact check after each chapter/section is written."). A book chapter, or a section of a long report, is fact-checked as soon as it is written, before the next section is drafted, not only at the end. Step 3's review then reads the whole document, and steps 4 and 5 still apply. The book's workflow is in its plan ([BK21](docs/plans/build-book.md#bk21-every-section-is-fact-checked-before-the-next-is-drafted-accepted)).
+**A long document is fact-checked section by section** (the owner's rule, 2026-11-19: "We'll always write copy with /writing and review with /writing-review and fix any issues from that review. As well, we should always run a fact check after each chapter/section is written."). Each section of a book chapter or of a long report is fact-checked as soon as it is written, before the next section is drafted, not only at the end. Step 3's review then reads the whole document, and steps 4 and 5 still apply. The book's workflow is in its plan ([BK21](docs/plans/build-book.md#bk21-every-section-is-fact-checked-before-the-next-is-drafted-accepted)).
 
 Four rules apply to every claim in every document:
 - Cite a source for each factual claim, and prefer primary sources (official docs, repos, papers) over blogs.

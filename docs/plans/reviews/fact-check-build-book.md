@@ -242,4 +242,20 @@ The second code-review round (medium) on #37, at `725315a`, confirmed five findi
 | 151 | The owner replaced T12's analogy for identity from trusted context with passport control, and the valet key stays with the credential boundary | BK22, T12 | ✅ | Owner's answer, 2026-11-19: "a border officer who reads your passport, not what you claim at the desk" |
 | 152 | After the replacement the todos still plan 61 analogies, all distinct; the nearest image, T22's club door list, explains a different concept (rule order, not identity) | BK22 | ✅ | The row 108 script, rerun, plus a scan of travel and checkpoint images across all chapters |
 
-**Totals:** 152 claims: 131 ✅, 21 ✏️, 0 ⚠️.
+## Ninth pass: the final writing review of #37
+
+The writing review (`/anthropic-skills:writing-review`) of the plan, the three ADRs, the todos and the changed index lines, at `bf47487`, reworded the claims below. Each was re-checked against its source on 2026-11-19; none changed in substance.
+
+| # | Claim | Where | Verdict | Source and reason |
+| --- | --- | --- | --- | --- |
+| 153 | Astro 7's default Markdown processor is Sätteri, so the remark and rehype plugins run through the `unified()` processor that `@astrojs/markdown-remark` 7.3.8 exports | BK3 | ✅ | `npm view astro@7.4.11 dependencies` lists `@astrojs/markdown-satteri` 0.4.9; row 9 for the `unified` export. The sentence was split, with the reason first |
+| 154 | The rule colours reach 1.30:1 and 1.39:1, the grid colours 1.11:1 and the light panel 1.08:1, and they serve only as dividers, panel borders and grid lines, never text, focus rings or figure lines that carry meaning | BK12 | ✅ | [`docs/design/book-tokens.json`](../../design/book-tokens.json), `decorativeOnly` and its `$comment`. The "They" that followed the panel sentence now sits with the colours it named |
+| 155 | #35 is the publish-and-docs pull request | BK15 | ✅ | `git log main`: `dc2fdb5` "docs(plans): plan npm publishing and the two Cloudflare sites (#35)"; row 126 |
+| 156 | The book's three GitHub environments, `book-preview`, `book-production` and `live-run`, exist | BK15 | ✅ | `gh api repos/{repo}/environments` lists those three and `release`, which is not the book's; row 113 |
+| 157 | The harness's scripted model "calls only function tools you define, never hosted, computer, shell, apply-patch or sandbox tools" | T40 | ✅ | [OpenAI Agents SDK fact-check](../../reference/openai-agents-sdk/fact-check.md), line 38; row 146. The quote now opens its own sentence |
+| 158 | The `search` tools in `claude-agent-sdk/04-max-turns.ts` and `openai-agents-sdk/08-max-turns.ts` return a fixed "3 hits" | T41 | ✅ | Both files, lines 8–13 and 9–13; row 148 |
+| 159 | `openai-agents-sdk/03-handoff.ts` hands the conversation over, and `google-adk/02-workflow-agents.ts` runs sub-agents in sequence or in parallel over shared session state | T42 | ✅ | `03-handoff.ts` line 1 and `02-workflow-agents.ts` lines 1–2; row 149 |
+| 160 | `copilot-sdk/00-sandbox.ts` is our harness's network self-check, not an SDK feature | §4.2, T22 | ✅ | Its first line, "Harness self-check, not an SDK behavior"; row 95. The label is now in parentheses, so it no longer reads as the next list item |
+| 161 | ADR 0052's restated setup: production token Workers Editor plus Workers Routes Write on the zone, preview token Workers Editor on the book's Worker only, the Worker created once with Admin rights, and a production deploy that never cancels mid-way | ADR 0052 | ✅ | BK15's owner-setup table and rows 115, 116 and 119; the two long sentences were split with no change to the setup |
+
+**Totals:** 161 claims: 140 ✅, 21 ✏️, 0 ⚠️.

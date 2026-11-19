@@ -18,6 +18,5 @@ The owner owns `tajistudios/garment-engineering-textbook`, a private Astro textb
 
 ## Consequences
 
-- Todos T1, T3, T6 and T9 carry the copying, and their reviews check the header comments, the notices and the exclusions.
+- Todos T1, T3, T6 and T9 carry the copying. The files they copy carry a different licence from the rest of our code, so every review of those todos checks the header comments, the notices entries and the exclusions.
 - The garment skills under its `.agents/skills/` carry their own MIT licences, so anything taken from them follows those licences instead of this permission.
-- Files derived from the garment repository carry a different licence from the rest of our code, so T1 adds the exception to LICENSE, and every review of a copying todo checks the header comment and the notices entry.

@@ -13,7 +13,7 @@
 
 ## Goal
 
-Write a new type-checked, mock-run example in `verify/vercel-ai-sdk/examples/` that shows a retried call after a scripted retryable error, cache-read tokens on a repeated prefix, and a budget middleware that refuses a call whose projected cost exceeds the cap, so Chapter T18 ("The model gateway: one streaming method, retries, prompt caching, reasoning replay and cost") has code behind its subject. The coverage review found the gap: `04-prepare-step` narrows tools and `06-streaming` shows stream parts; neither shows retries, caching or a budget, the subjects of Chapter T18.
+Write a new type-checked, mock-run example in `verify/vercel-ai-sdk/examples/` so Chapter T18 ("The model gateway: one streaming method, retries, prompt caching, reasoning replay and cost") has code behind its subject. The example shows a retried call after a scripted retryable error, cache-read tokens on a repeated prefix, and a budget middleware that refuses a call whose projected cost exceeds the cap. The coverage review found the gap: `04-prepare-step` narrows tools and `06-streaming` shows stream parts; neither shows retries, caching or a budget, the subjects of Chapter T18.
 
 ## Context
 
@@ -27,7 +27,7 @@ Write a new type-checked, mock-run example in `verify/vercel-ai-sdk/examples/` t
 
 - One or more examples in `verify/vercel-ai-sdk/examples/`, each asserting its behaviour with `check()`
 - `// #region` and `// book:note` markers for the chapter's listings
-- A transcript from T5's recorder, if the harness is covered
+- A transcript from T5's recorder, if that recorder covers the harness
 
 **Out of scope** (and which todo covers it)
 

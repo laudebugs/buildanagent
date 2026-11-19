@@ -61,7 +61,7 @@ Round E (close the SDK gaps, added 2026-11-18) builds the safety package on the 
            └─► E5 (after B5) ──────┘
 ```
 
-Round T (the textbook, added 2026-11-19) needs nothing from Rounds B, N or E to start, because its chapters use the `verify/` examples. It waits for the owner to approve the [book plan](build-book.md); the owner has already picked the design that T2 builds ([BK12](build-book.md#bk12-the-owner-picked-direction-cs-layout-c4s-page-colours-and-panels-that-follow-the-theme-accepted)). Its chapters later move to our own packages as the Round B, N and E todos each chapter names land ([BK8](build-book.md#bk8-code-from-verify-now-our-own-sdk-as-its-todos-land-accepted)):
+Round T (the textbook, added 2026-11-19) needs nothing from Rounds B, N or E to start, because its chapters use the `verify/` examples. It waits for the owner to approve the [book plan](build-book.md); the owner has already picked the design that T2 builds ([BK12](build-book.md#bk12-the-owner-picked-direction-cs-layout-c4s-page-colours-and-panels-that-follow-the-theme-accepted)). Each chapter later moves to our own packages once the Round B, N and E todos it names have landed ([BK8](build-book.md#bk8-code-from-verify-now-our-own-sdk-as-its-todos-land-accepted)):
 
 ```
  T1 ─┬─► T2 ─────────────────────────────────┬─► T9 (deploy)

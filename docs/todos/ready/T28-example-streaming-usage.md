@@ -13,7 +13,7 @@
 
 ## Goal
 
-Write a new type-checked, mock-run example in `verify/vercel-ai-sdk/examples/` that shows a streamed response whose final usage reports input, cached-read, cached-write and output tokens, and a price computed from them, so Chapter T11 ("Talking to a model: messages, streams, tokens, instructions and model choice") has code behind its subject. The coverage review found the gap: `claude-agent-sdk/01-hello-agent.ts` (16 lines) shows no stream and no usage, so it cannot support Chapter T11's token-class figure or its pricing exercise.
+Write a new type-checked, mock-run example in `verify/vercel-ai-sdk/examples/` so Chapter T11 ("Talking to a model: messages, streams, tokens, instructions and model choice") has code behind its subject. The example shows a streamed response whose final usage reports input, cached-read, cached-write and output tokens, and a price computed from them. The coverage review found the gap: `claude-agent-sdk/01-hello-agent.ts` (16 lines) shows no stream and no usage, so it cannot support Chapter T11's token-class figure or its pricing exercise.
 
 ## Context
 
@@ -27,7 +27,7 @@ Write a new type-checked, mock-run example in `verify/vercel-ai-sdk/examples/` t
 
 - One or more examples in `verify/vercel-ai-sdk/examples/`, each asserting its behaviour with `check()`
 - `// #region` and `// book:note` markers for the chapter's listings
-- A transcript from T5's recorder, if the harness is covered
+- A transcript from T5's recorder, if that recorder covers the harness
 
 **Out of scope** (and which todo covers it)
 

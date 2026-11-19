@@ -13,7 +13,7 @@
 
 ## Goal
 
-Write a new type-checked, mock-run example in `verify/claude-agent-sdk or copilot-sdk/examples/` that shows a call the SDK's own sandbox or permission policy refuses before it runs, offline and without touching the host, so Chapter T22 ("Permissions, sandboxes and credentials, and the lethal trifecta") has code behind its subject. The coverage review found the gap: `copilot-sdk/00-sandbox.ts` describes itself as a "Harness self-check, not an SDK behavior", so Chapter T22 has no SDK sandbox behaviour to show.
+Write a new type-checked, mock-run example in `verify/claude-agent-sdk/examples/` or `verify/copilot-sdk/examples/` so Chapter T22 ("Permissions, sandboxes and credentials, and the lethal trifecta") has code behind its subject. The example shows a call the SDK's own sandbox or permission policy refuses before it runs, offline and without touching the host. The coverage review found the gap: `copilot-sdk/00-sandbox.ts` describes itself as a "Harness self-check, not an SDK behavior", so Chapter T22 has no SDK sandbox behaviour to show.
 
 ## Context
 
@@ -25,9 +25,9 @@ Write a new type-checked, mock-run example in `verify/claude-agent-sdk or copilo
 
 **In scope**
 
-- One or more examples in `verify/claude-agent-sdk or copilot-sdk/examples/`, each asserting its behaviour with `check()`
+- One or more examples in `verify/claude-agent-sdk/examples/` or `verify/copilot-sdk/examples/`, each asserting its behaviour with `check()`
 - `// #region` and `// book:note` markers for the chapter's listings
-- A transcript from T5's recorder, if the harness is covered
+- A transcript from T5's recorder, if that recorder covers the harness
 
 **Out of scope** (and which todo covers it)
 
@@ -51,11 +51,11 @@ Write a new type-checked, mock-run example in `verify/claude-agent-sdk or copilo
 
 ## Tests
 
-`pnpm test` in `verify/claude-agent-sdk or copilot-sdk`, and the root `pnpm test`.
+`pnpm test` in `verify/claude-agent-sdk` or `verify/copilot-sdk`, whichever holds the example, and the root `pnpm test`.
 
 ## Docs to update
 
-- `verify/claude-agent-sdk or copilot-sdk/README.md`: the new example
+- `verify/claude-agent-sdk/README.md` or `verify/copilot-sdk/README.md`, whichever holds the example: the new example
 - The plan's §4 row for the chapter
 
 ## Risks and open questions

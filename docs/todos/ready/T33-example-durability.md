@@ -13,7 +13,7 @@
 
 ## Goal
 
-Write a new type-checked, mock-run example in `verify/cloudflare-agents/examples/` that shows an agent whose SQL state and schedule survive hibernation and a restart in workerd, so Chapter T24 ("Durable and portable agents, and how work reaches them") has code behind its subject. The coverage review found the gap: `05-think.ts` shows the Think turn API, not durability, and `verify/` has no AWS or Vercel harness.
+Write a new type-checked, mock-run example in `verify/cloudflare-agents/examples/` so Chapter T24 ("Durable and portable agents, and how work reaches them") has code behind its subject. The example shows an agent whose SQL state and schedule survive hibernation and a restart in workerd. The coverage review found the gap: `05-think.ts` shows the Think turn API, not durability, and `verify/` has no AWS or Vercel harness.
 
 ## Context
 
@@ -27,7 +27,7 @@ Write a new type-checked, mock-run example in `verify/cloudflare-agents/examples
 
 - One or more examples in `verify/cloudflare-agents/examples/`, each asserting its behaviour with `check()`
 - `// #region` and `// book:note` markers for the chapter's listings
-- A transcript from T5's recorder, if the harness is covered
+- A transcript from T5's recorder, if that recorder covers the harness
 
 **Out of scope** (and which todo covers it)
 

@@ -67,7 +67,7 @@ Vitest tests for the note and tab directives and the replay's static rendering; 
 ## Risks and open questions
 
 - Harnesses that mock over HTTP (Claude Agent SDK, Copilot SDK) carry runtime-generated ids; if a transcript still varies after normalisation, leave that harness without replays and say so in its README (plan risk 3).
-- Transcripts add files that the weekly SDK-update pull requests regenerate; their diffs make those pull requests longer but show behaviour changes, which is useful review material.
+- Transcripts add files that the weekly SDK-update pull requests regenerate; their diffs make those pull requests longer, but they also show behaviour changes, which reviewers want to see.
 
 ## Definition of done
 

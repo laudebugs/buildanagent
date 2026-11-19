@@ -13,7 +13,7 @@
 
 ## Goal
 
-Write a new type-checked, mock-run example in `verify/claude-agent-sdk/examples/` that shows a tool definition loaded only when the model asks for it, and a skill read into context on demand, so Chapter T21 ("Tools at scale: the registry, deferred tools, MCP and skills") has code behind its subject. The coverage review found the gap: `pi/03-tool-selection` sets the active tool set but does not defer loading, and no example shows skills.
+Write a new type-checked, mock-run example in `verify/claude-agent-sdk/examples/` so Chapter T21 ("Tools at scale: the registry, deferred tools, MCP and skills") has code behind its subject. The example shows a tool definition loaded only when the model asks for it, and a skill read into context on demand. The coverage review found the gap: `pi/03-tool-selection` sets the active tool set but does not defer loading, and no example shows skills.
 
 ## Context
 
@@ -27,7 +27,7 @@ Write a new type-checked, mock-run example in `verify/claude-agent-sdk/examples/
 
 - One or more examples in `verify/claude-agent-sdk/examples/`, each asserting its behaviour with `check()`
 - `// #region` and `// book:note` markers for the chapter's listings
-- A transcript from T5's recorder, if the harness is covered
+- A transcript from T5's recorder, if that recorder covers the harness
 
 **Out of scope** (and which todo covers it)
 

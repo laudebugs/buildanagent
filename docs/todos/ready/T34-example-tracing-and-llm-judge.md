@@ -13,7 +13,7 @@
 
 ## Goal
 
-Write a new type-checked, mock-run example in `verify/vercel-ai-sdk/examples/` that shows a run's OpenTelemetry spans captured in memory, and a scripted judge model that scores an answer from 0.0 to 1.0 against a rubric with a pass-fail grade, so Chapter T25 ("Evals, observability and release") has code behind its subject. The coverage review found the gap: no example covers spans or an LLM judge.
+Write a new type-checked, mock-run example in `verify/vercel-ai-sdk/examples/` so Chapter T25 ("Evals, observability and release") has code behind its subject. The example shows a run's OpenTelemetry spans captured in memory, and a scripted judge model that scores an answer from 0.0 to 1.0 against a rubric with a pass-fail grade. The coverage review found the gap: no example covers spans or an LLM judge.
 
 ## Context
 
@@ -27,7 +27,7 @@ Write a new type-checked, mock-run example in `verify/vercel-ai-sdk/examples/` t
 
 - One or more examples in `verify/vercel-ai-sdk/examples/`, each asserting its behaviour with `check()`
 - `// #region` and `// book:note` markers for the chapter's listings
-- A transcript from T5's recorder, if the harness is covered
+- A transcript from T5's recorder, if that recorder covers the harness
 
 **Out of scope** (and which todo covers it)
 
