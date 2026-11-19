@@ -1,11 +1,11 @@
-import { existsSync, readFileSync } from "node:fs";
+import { readFileSync } from "node:fs";
 import { isBuiltin } from "node:module";
 import { extname, join } from "node:path";
-import ts from "typescript-api";
+import type ts from "typescript-api";
 import type { WrittenChapter } from "./book-index.js";
-import { type FactCheckRows, readFactCheckRows } from "./fact-check-log.js";
 import type { ListingSource } from "./listings.js";
-import { readTranscript, type Transcript } from "./transcripts.js";
+import { readTranscript, type Transcript, type TranscriptMessage } from "./transcripts.js";
+import { typescript } from "./typescript.js";
 
 // The workspace pins typescript 7.0.2, whose package exports no stable compiler API: only its version and
 // `./unstable/*`, a client that drives the native compiler in a child process. The inline-code check therefore reads
@@ -18,34 +18,34 @@ import { readTranscript, type Transcript } from "./transcripts.js";
  * does. `noLib` and an empty `types` keep the standard library and `@types` out, because only a package's own exports
  * count, and they keep each program small.
  */
-const OPTIONS: ts.CompilerOptions = {
-  target: ts.ScriptTarget.ES2024,
-  module: ts.ModuleKind.ESNext,
-  moduleResolution: ts.ModuleResolutionKind.Bundler,
-  allowImportingTsExtensions: true,
-  noEmit: true,
-  noLib: true,
-  skipLibCheck: true,
-  types: [],
-};
+function compilerOptions(): ts.CompilerOptions {
+  const ts = typescript();
+  return {
+    target: ts.ScriptTarget.ES2024,
+    module: ts.ModuleKind.ESNext,
+    moduleResolution: ts.ModuleResolutionKind.Bundler,
+    allowImportingTsExtensions: true,
+    noEmit: true,
+    noLib: true,
+    skipLibCheck: true,
+    types: [],
+  };
+}
 
 /** The extensions a resolved import may have for its exports to be read: declarations, or TypeScript source. */
 const TYPED = new Set([".d.ts", ".d.mts", ".d.cts", ".ts", ".mts", ".cts", ".tsx"]);
 
-/** One package a listing imports, at the version its harness resolves, and the names its `.d.ts` exports. */
-export interface PackageExports {
-  /** The import and its package's version, such as `ai@7.0.162` or `ai/test from ai@7.0.162`. */
-  readonly label: string;
-  readonly names: ReadonlySet<string>;
-}
-
-/** One place a chapter's inline code may resolve to, as a failure message names it, and the names found there. */
+/**
+ * One place a chapter's inline code may resolve to, and the names found there. The label names it in a failure
+ * message: a listing's path and region, a transcript's path, or a package import and its version, such as
+ * `ai@7.0.162` or `ai/test from ai@7.0.162`.
+ */
 export interface NameSource {
   readonly label: string;
   readonly names: ReadonlySet<string>;
 }
 
-/** The three places a chapter's inline code resolves to: its listings, their transcripts and the packages they import. */
+/** The three places a chapter's inline code resolves to: its listings, their transcripts and their packages. */
 export interface ChapterNames {
   readonly listings: readonly NameSource[];
   readonly transcripts: readonly NameSource[];
@@ -56,9 +56,7 @@ export interface ChapterNames {
 export const hasName = (names: ChapterNames, name: string): boolean =>
   [...names.listings, ...names.transcripts, ...names.packages].some((source) => source.names.has(name));
 
-type TranscriptMessage = Extract<Transcript["events"][number], { kind: "response" }>["message"];
-
-/** The values a transcript records that prose may name: tool names, message roles, stop reasons and check messages. */
+/** The values a transcript records that prose may name: tool names, roles, stop reasons and check messages. */
 export function transcriptValues(transcript: Transcript): Set<string> {
   const values = new Set<string>();
   const addMessage = (message: TranscriptMessage) => {
@@ -80,17 +78,21 @@ export function transcriptValues(transcript: Transcript): Set<string> {
 }
 
 /**
- * The identifiers and string values of the code a listing shows, read with the compiler from the real file: every
- * identifier, property names included, and every string or template literal's text whose node starts on a line the
- * listing shows. Comments are not code, so a name only a comment holds does not count.
+ * The names and string values of the code a listing shows, read with the compiler from the real file: every
+ * identifier, property names included, every keyword, such as `async` or `string`, and every string or template
+ * literal's text, whose node starts on a line the listing shows. Comments are not code, so a name only a comment
+ * holds does not count.
  */
 export function listedNames(file: ts.SourceFile, shown: ReadonlySet<number>): Set<string> {
+  const ts = typescript();
   const names = new Set<string>();
   const visit = (node: ts.Node): void => {
     const line = file.getLineAndCharacterOfPosition(node.getStart(file)).line + 1;
     if (shown.has(line)) {
       if (ts.isIdentifier(node)) names.add(node.text);
-      else if (
+      else if (node.kind >= ts.SyntaxKind.FirstKeyword && node.kind <= ts.SyntaxKind.LastKeyword) {
+        names.add(ts.tokenToString(node.kind) ?? "");
+      } else if (
         ts.isStringLiteralLike(node) ||
         ts.isTemplateHead(node) ||
         ts.isTemplateMiddle(node) ||
@@ -105,8 +107,12 @@ export function listedNames(file: ts.SourceFile, shown: ReadonlySet<number>): Se
   return names;
 }
 
-/** The package imports of a file: each `import … from` and `export … from` that names neither a path nor a Node built-in. */
+/**
+ * The package imports of a file: each `import … from` and `export … from` that names neither a path nor a Node
+ * built-in.
+ */
 export function packageImports(file: ts.SourceFile): string[] {
+  const ts = typescript();
   const specifiers = new Set<string>();
   for (const statement of file.statements) {
     const specifier =
@@ -129,26 +135,40 @@ export function packageImports(file: ts.SourceFile): string[] {
 export class CodeNames {
   readonly #repoRoot: string;
   readonly #files = new Map<string, ts.SourceFile>();
-  readonly #exports = new Map<string, ReadonlySet<string>>();
-  readonly #resolved = new Map<string, PackageExports | string>();
+  readonly #exports = new Map<string, ReadonlySet<string> | undefined>();
+  readonly #resolved = new Map<string, { readonly label: string; readonly entry: string } | string>();
   readonly #chapters = new Map<string, ChapterNames | string>();
-  readonly #rows = new Map<string, FactCheckRows | undefined>();
   readonly #declarations = new Map<string, ts.SourceFile | undefined>();
-  readonly #host: ts.CompilerHost;
+  #options: ts.CompilerOptions | undefined;
+  #host: ts.CompilerHost | undefined;
 
   constructor(repoRoot: string) {
     this.#repoRoot = repoRoot;
-    // One host for every program of this load, sharing each declaration file it parses: packages re-export from the
-    // same files, so one parse serves every package that reaches it.
-    const host = ts.createCompilerHost(OPTIONS);
-    const read = host.getSourceFile.bind(host);
-    host.getSourceFile = (fileName, languageVersion, onError, shouldCreate) => {
-      if (!this.#declarations.has(fileName)) {
-        this.#declarations.set(fileName, read(fileName, languageVersion, onError, shouldCreate));
-      }
-      return this.#declarations.get(fileName);
-    };
-    this.#host = host;
+  }
+
+  /** The check's compiler options, made on first use, so a load that checks no inline code never loads the compiler. */
+  get #compilerOptions(): ts.CompilerOptions {
+    this.#options ??= compilerOptions();
+    return this.#options;
+  }
+
+  /**
+   * One host for every program of this load, sharing each declaration file it parses: packages re-export from the
+   * same files, so one parse serves every package that reaches it.
+   */
+  get #compilerHost(): ts.CompilerHost {
+    if (this.#host === undefined) {
+      const host = typescript().createCompilerHost(this.#compilerOptions);
+      const read = host.getSourceFile.bind(host);
+      host.getSourceFile = (fileName, languageVersion, onError, shouldCreate) => {
+        if (!this.#declarations.has(fileName)) {
+          this.#declarations.set(fileName, read(fileName, languageVersion, onError, shouldCreate));
+        }
+        return this.#declarations.get(fileName);
+      };
+      this.#host = host;
+    }
+    return this.#host;
   }
 
   /**
@@ -163,12 +183,22 @@ export class CodeNames {
     return found;
   }
 
-  /** A fact-check log's rows, or undefined when the log does not exist. */
-  rows(file: string): FactCheckRows | undefined {
-    if (!this.#rows.has(file)) {
-      this.#rows.set(file, existsSync(file) ? readFactCheckRows(readFileSync(file, "utf8")) : undefined);
+  /**
+   * The package imports of every file listing in the book, each as its label or the reason it cannot be read, for
+   * the render dependencies: a new version of a package a listing imports changes what its inline code resolves to.
+   */
+  packageLabels(written: Iterable<WrittenChapter>): string[] {
+    const labels = new Set<string>();
+    for (const chapter of written) {
+      for (const { source } of chapter.blocks) {
+        if (source === undefined) continue;
+        for (const specifier of packageImports(this.#sourceFile(source.path))) {
+          const found = this.#resolve(source, specifier);
+          labels.add(typeof found === "string" ? found : found.label);
+        }
+      }
     }
-    return this.#rows.get(file);
+    return [...labels].sort();
   }
 
   #chapterNames(written: WrittenChapter): ChapterNames | string {
@@ -196,6 +226,7 @@ export class CodeNames {
     let file = this.#files.get(path);
     if (file === undefined) {
       const text = readFileSync(join(this.#repoRoot, path), "utf8");
+      const ts = typescript();
       const kind = extname(path) === ".tsx" ? ts.ScriptKind.TSX : ts.ScriptKind.TS;
       file = ts.createSourceFile(path, text, ts.ScriptTarget.Latest, true, kind);
       this.#files.set(path, file);
@@ -221,36 +252,56 @@ export class CodeNames {
    * `node_modules` and the package's `exports` map decide which `.d.ts` is read. The checker lists the module's
    * exports after every `export *` and `export { … } from`, across packages too.
    */
-  #packageExports(source: ListingSource, specifier: string): PackageExports | string {
-    const key = `${source.harness}\0${specifier}`;
-    const cached = this.#resolved.get(key);
-    if (cached !== undefined) return cached;
-    const resolved = ts.resolveModuleName(specifier, join(this.#repoRoot, source.path), OPTIONS, ts.sys).resolvedModule;
-    let found: PackageExports | string;
-    if (resolved === undefined || !TYPED.has(resolved.extension)) {
-      found =
-        `${source.path} imports ${specifier}, whose .d.ts cannot be found from ${source.harness}; ` +
-        `run pnpm install, or check that ${specifier} ships its types`;
-    } else {
-      const id = resolved.packageId;
-      const version = id === undefined ? specifier : `${id.name}@${id.version}`;
-      const label = id === undefined || id.name === specifier ? version : `${specifier} from ${version}`;
-      found = { label, names: this.#exportsOf(resolved.resolvedFileName) };
+  #packageExports(source: ListingSource, specifier: string): NameSource | string {
+    const resolved = this.#resolve(source, specifier);
+    if (typeof resolved === "string") return resolved;
+    const names = this.#exportsOf(resolved.entry);
+    if (names === undefined) {
+      return (
+        `${source.path} imports ${specifier}, whose .d.ts (${resolved.label}) is no module, so its exports cannot ` +
+        "be listed; a package that only declares its module ambiently, with declare module, cannot be checked"
+      );
     }
-    this.#resolved.set(key, found);
+    return { label: resolved.label, names };
+  }
+
+  /** The `.d.ts` entry a package import resolves to from the listed file, and its label, or why it has none. */
+  #resolve(source: ListingSource, specifier: string): { readonly label: string; readonly entry: string } | string {
+    const key = `${source.harness}\0${specifier}`;
+    let found = this.#resolved.get(key);
+    if (found === undefined) {
+      const listed = join(this.#repoRoot, source.path);
+      const ts = typescript();
+      const resolved = ts.resolveModuleName(specifier, listed, this.#compilerOptions, ts.sys).resolvedModule;
+      if (resolved === undefined || !TYPED.has(resolved.extension)) {
+        found =
+          `${source.path} imports ${specifier}, whose .d.ts cannot be found from ${source.harness}; ` +
+          `run pnpm install, or check that ${specifier} ships its types`;
+      } else {
+        const id = resolved.packageId;
+        const version = id === undefined ? specifier : `${id.name}@${id.version}`;
+        const label = id === undefined || id.name === specifier ? version : `${specifier} from ${version}`;
+        found = { label, entry: resolved.resolvedFileName };
+      }
+      this.#resolved.set(key, found);
+    }
     return found;
   }
 
-  #exportsOf(entry: string): ReadonlySet<string> {
-    let names = this.#exports.get(entry);
-    if (names === undefined) {
-      const program = ts.createProgram({ rootNames: [entry], options: OPTIONS, host: this.#host });
+  /** The names a module's entry exports, or undefined when the entry is no module, such as an ambient declaration. */
+  #exportsOf(entry: string): ReadonlySet<string> | undefined {
+    if (!this.#exports.has(entry)) {
+      const program = typescript().createProgram({
+        rootNames: [entry],
+        options: this.#compilerOptions,
+        host: this.#compilerHost,
+      });
       const checker = program.getTypeChecker();
       const file = program.getSourceFile(entry);
       const module = file === undefined ? undefined : checker.getSymbolAtLocation(file);
-      names = new Set(module === undefined ? [] : checker.getExportsOfModule(module).map((symbol) => symbol.name));
-      this.#exports.set(entry, names);
+      const names = module === undefined ? undefined : checker.getExportsOfModule(module).map((symbol) => symbol.name);
+      this.#exports.set(entry, names === undefined ? undefined : new Set(names));
     }
-    return names;
+    return this.#exports.get(entry);
   }
 }

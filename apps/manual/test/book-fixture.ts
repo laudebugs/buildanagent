@@ -102,6 +102,24 @@ export function withSdk(dir: string): void {
   );
 }
 
+/** The second chapter's fact-check log, from the fixture's root. */
+export const SECOND_LOG = "apps/manual/fact-checks/second.md";
+
+/** A fact-check table in the README's format, with one row for each verdict: 1 is ✅, 2 is ✏️ and 3 is ⚠️. */
+export const FACT_CHECK_ROWS = [
+  "| # | Claim | Where | Verdict | Source and reason |",
+  "| --- | --- | --- | --- | --- |",
+  "| 1 | maxTurns caps the run | § Exercises | ✅ | agent.d.ts |",
+  "| 2 | internalHelper was misnamed | § Exercises | ✏️ | agent.d.ts |",
+  "| 3 | maxTurns defaults to 10 | § Exercises | ⚠️ | none |",
+  "",
+].join("\n");
+
+/** Appends `FACT_CHECK_ROWS` to the second chapter's fact-check log in a fixture copy. */
+export function withRows(dir: string): void {
+  edit(dir, SECOND_LOG, (text) => `${text}\n${FACT_CHECK_ROWS}`);
+}
+
 /** Adds a paragraph to the second chapter just before its exercises, on `PROSE_LINE` once `withSdk` has run. */
 export function prose(dir: string, paragraph: string): void {
   edit(dir, "chapters/second.md", (text) => text.replace("## Exercises", `${paragraph}\n\n## Exercises`));

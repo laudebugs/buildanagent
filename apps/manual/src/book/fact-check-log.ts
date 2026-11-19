@@ -1,4 +1,6 @@
-/** A fact-check verdict: ✅ confirmed, ✏️ corrected or ⚠️ unverified, or the text of a cell that is none of them. */
+import { existsSync, readFileSync } from "node:fs";
+
+/** A fact-check verdict: ✅ confirmed, ✏️ corrected or ⚠️ unverified, or the text of any other verdict cell. */
 export type Verdict = "✅" | "✏️" | "⚠️" | { readonly other: string };
 
 /** The verdicts a hand-checked marker may cite: the claim was confirmed, or corrected and then confirmed. */
@@ -55,4 +57,17 @@ export function readFactCheckRows(text: string): FactCheckRows {
     else verdicts.set(n, verdictOf(row[columns.verdict] ?? ""));
   }
   return { verdicts, repeated };
+}
+
+/** The fact-check logs one book load reads, each read once however many markers cite it. */
+export class FactCheckLogs {
+  readonly #rows = new Map<string, FactCheckRows | undefined>();
+
+  /** A log's rows, or undefined when the log does not exist. */
+  rows(file: string): FactCheckRows | undefined {
+    if (!this.#rows.has(file)) {
+      this.#rows.set(file, existsSync(file) ? readFactCheckRows(readFileSync(file, "utf8")) : undefined);
+    }
+    return this.#rows.get(file);
+  }
 }

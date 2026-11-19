@@ -174,11 +174,11 @@ A replay fails when the transcript is missing or malformed, when it records anot
 
 ## Code in the prose resolves to a listing, a transcript or a `.d.ts`, or cites a fact-check row
 
-Inline code that names an API is checked like code in a listing, by the owner's rule ([BK17](../../docs/plans/build-book.md#bk17-code-in-the-prose-is-checked-like-code-in-a-listing-accepted)). The check applies to each identifier-like span: a JavaScript identifier or a dotted member path, such as `generateText` or `result.steps`, with or without a trailing `()`. Each name in the span must appear in one of three places:
+Inline code that names an API is checked like code in a listing, by the owner's rule ([BK17](../../docs/plans/build-book.md#bk17-code-in-the-prose-is-checked-like-code-in-a-listing-accepted)). The check reads two kinds of span. An identifier or a dotted member path, such as `generateText`, `result.steps` or `response.json()`, is checked by every name in it; a name after a dot is a property, whatever it spells, so `part.type` is checked by `part` and `type`. Any other span is checked when the TypeScript compiler parses it as code, such as `stopWhen: isStepCount(5)` or `zzz(1)`: every identifier in it counts, labels and property names included, but no string or number. Each name must appear in one of three places:
 
-1. **The chapter's file listings.** Every identifier and every string the listed lines hold counts, property names included, read with the TypeScript compiler from the real file. A name that only a comment holds, or that the file holds outside the listed region, does not count.
+1. **The chapter's file listings.** Every identifier, keyword and string the listed lines hold counts, property names included, read with the TypeScript compiler from the real file. A name that only a comment holds, or that the file holds outside the listed region, does not count.
 2. **Their transcripts.** The transcript of each listed example, whether or not the listing replays it, gives its tool names, message roles, stop reasons and `check()` messages.
-3. **The `.d.ts` exports of the packages they import.** The compiler resolves each package import from the listed file, so the harness's own `node_modules` and the package's `exports` map pick the `.d.ts`. It then lists the module's exports after every `export *` and re-export. Only exports count: an option such as `maxTurns`, which a type declares as a member, is no export.
+3. **The `.d.ts` exports of the packages they import.** The compiler resolves each package import from the listed file, so the harness's own `node_modules` and the package's `exports` map pick the `.d.ts`. It then lists the module's exports after every `export *` and re-export. Only exports count, by their exported names. An option such as `maxTurns`, which a type declares as a member, is no export, and a default export counts as `default`, not as its local name.
 
 A name found in none of them fails `check:book` and the build at the chapter's line, and the message names every listing, transcript and package searched. To keep such a name, check it by hand, log the check as a row of the chapter's fact-check log, and cite the row right after the span:
 
@@ -186,17 +186,19 @@ A name found in none of them fails `check:book` and the build at the chapter's l
 The run stops once it has spent `maxBudgetUsd`{checked=row-12}.
 ```
 
-The cited row must exist once in `fact-checks/<slug>.md` with a ✅ or ✏️ verdict; a ⚠️ row, a missing row and a malformed marker all fail. The page shows the code without the marker, and a marker may follow any inline code.
+The marker must touch the span, with no space between them. The cited row must appear once in `fact-checks/<slug>.md` with a ✅ or ✏️ verdict. A ⚠️ row, a missing row, a row numbered twice, a malformed marker and a marker that stands apart from its span all fail. The page shows the code without the marker, and a marker may follow any inline code.
+
+The check also fails when a listed file imports a package whose types it cannot read: no `.d.ts` resolves, as when the harness is not installed, or the `.d.ts` declares its module only ambiently, with `declare module`, so it has no exports to list.
 
 Three skip patterns leave a span alone, and `test/checked-code.test.ts` tests each one:
 
-- **Shell commands:** a span that starts with `corepack`, `curl`, `gh`, `git`, `node`, `npm`, `npx`, `pnpm`, `tsc`, `tsx` or `wrangler`, such as `pnpm test`.
-- **File paths:** a span with a slash, or a dotted name that ends in one of 20 file extensions, such as `package.json` or `AGENTS.md`.
-- **Plain values:** a number, a quoted string, a TypeScript keyword such as `true`, `undefined` or `async`, and `NaN` or `Infinity`. Inside a member path the check skips a keyword, so `import.meta.resolve` is checked by `meta` and `resolve`.
+- **Shell commands:** a span that starts with `git`, `node`, `npm`, `npx`, `pnpm`, `tsc` or `tsx`, the workspace's own toolchain, such as `pnpm test`.
+- **File paths:** a span with a slash and no space, or a dotted name without `()` that ends in one of 20 file extensions, such as `package.json` or `AGENTS.md`.
+- **Literal values:** a number, a quoted string, `true`, `false`, `null`, `undefined`, `NaN` or `Infinity`.
 
-The test fixes the list of commands and the count of extensions, so any addition shows up in review. Keep the list short, or the rule loses its force. A span that is neither identifier-like nor skipped goes unchecked, such as the expression `stopWhen: isStepCount(5)` or the notation `pass^k`. Fenced code in a `:::listing` comes from no file, so its names do not count.
+The test fixes each list in full, so any addition shows up in review; add a command when a chapter first needs it. Keep the lists short, or the rule loses its force. Two kinds of span are not code and go unchecked: a reserved word alone, such as `const` or `await`, and an expression of operators and plain names, such as the notation `pass^k`. A span the compiler cannot parse is not checked either, and fenced code in a `:::listing` comes from no file, so its names do not count.
 
-The check reads code with typescript 6.0.3, installed as `typescript-api`, which is our choice. The workspace's typescript 7.0.2 exports no stable compiler API, only `./unstable/*` clients that run the native compiler in a child process. One book load parses each listed file once and lists each package's exports once, however many spans need them. Each written chapter's fact-check log, each listed example's transcript, each harness's `package.json` and the lockfile join the render dependencies, so an edit to any of them renders every chapter again.
+The check reads code with typescript 6.0.3, installed as `typescript-api`, which is our choice. The workspace's typescript 7.0.2 exports no stable compiler API, only `./unstable/*` clients that run the native compiler in a child process. The compiler loads only when a chapter's inline code needs it. One book load then parses each listed file once and lists each package's exports once, however many spans need them. `astro.config.mjs` hashes each written chapter's fact-check log and each listed example's transcript with its other render inputs. The render dependencies name each package a listing imports at the version its harness resolves. An edit to any of them renders every chapter again.
 
 ## A figure is a script that draws an SVG, and the build inlines it
 
