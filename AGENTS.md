@@ -25,6 +25,7 @@ Instructions for AI coding agents (Claude Code, Codex, OpenCode, Pi, etc.) worki
   - `deployment/`: deploying our agents anywhere: portable agents and cloud coding agents (`portable-agents.md`), the storage-and-wake problem behind its seams (`storage-and-wake.md`), and the market for agent-building platforms (`agent-building-platforms.md`). Each report has its own `fact-check-*.md`.
   - `agents/`: research for agents we might build on our stack: a job-search agent (`job-search-agent.md`). Each report has its own `fact-check-*.md`.
   - `browser-use/`: how our agents should use a web browser (`browser-use.md`): page representations, hosted browsers, vendor computer-use tools, browser security, evals and proposed plan changes. It has its own `fact-check-browser-use.md`.
+  - `connectors/`: connectors for our agents and platform (`agent-connectors.md`): how platforms offer them, MCP authorization and token custody, build-or-buy infrastructure and a recommended design. It has its own `fact-check-*.md`.
   - `harness-architectures.md`: source-level notes on Pi, Codex, OpenAI Agents SDK sandbox agents and Cloudflare Agents/Think.
   - `fact-check-2026-11-18.md`: verification log for the main report.
   - `notes/`: raw research notes behind the report. Treat them as working material; the report and fact-check log supersede them where they disagree.
