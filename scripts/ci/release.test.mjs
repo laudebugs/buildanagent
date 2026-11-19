@@ -190,6 +190,24 @@ describe("release-plan.mjs", () => {
     assert.match(plan.reason, /0\.0\.0/);
   });
 
+  // The same rule against this checkout's own package.json files, which have no `private` field since L4a. It skips
+  // once the "Version packages" pull request moves the packages off 0.0.0, when the rule no longer applies.
+  const realVersion = JSON.parse(readFileSync(path.join(root, "packages/gateway/package.json"), "utf8")).version;
+  test("this checkout's public packages at 0.0.0 publish nothing and ask no registry", {
+    skip: realVersion === "0.0.0" ? false : `the packages are at ${realVersion}`,
+  }, async () => {
+    for (const pkg of ["gateway", "sdk"]) {
+      const manifest = JSON.parse(readFileSync(path.join(root, "packages", pkg, "package.json"), "utf8"));
+      assert.equal(manifest.private, undefined, `packages/${pkg}/package.json still has a private field`);
+    }
+    const { fetchImpl, calls } = registry();
+    const plan = await planRelease({ root, repo, fetchImpl });
+    assert.equal(plan.publish, false);
+    assert.equal(plan.version, "0.0.0");
+    assert.match(plan.reason, /0\.0\.0, which is never released/);
+    assert.equal(calls.length, 0);
+  });
+
   test("waits for the Version packages pull request while changesets are pending", async () => {
     const plan = await planRelease({
       root: fixture({ changesets: ["brave-cats.md"] }),

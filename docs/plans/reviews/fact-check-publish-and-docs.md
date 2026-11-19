@@ -195,4 +195,17 @@ Each row checks a claim in [ADR 0051](../../decisions/0051-dist-build-correction
 | 125 | A job can wait up to 30 days for an environment approval, so the tarball artifact is kept 30 days | ✏️ | `github/docs` `content/actions/reference/limits.md` at `39c1e01`: "Gate approval time", 30 days. The first code review found the original 7-day retention shorter than that wait |
 | 126 | Once npm holds both packages, the plan still publishes while the GitHub release `v<version>` is missing | ✏️ | `scripts/ci/release-plan.mjs` and its tests. The first code review found that the original plan skipped such a run, so "Re-run all jobs" or the next push left the release untagged |
 
-**Totals:** 126 claims: 93 ✅, 27 ✏️, 6 ⚠️.
+## Checked while doing todo L4a (2026-11-19)
+
+| # | Claim | Verdict | Source and reason |
+| --- | --- | --- | --- |
+| 127 | npm holds each package at `0.0.0-bootstrap.0` and `0.0.0-stage` only, `latest` and `bootstrap` point at `0.0.0-bootstrap.0`, and the deprecation message is "Placeholder only; install 0.1.0 or later." | ✅ | `npm view @buildanagent/gateway versions dist-tags deprecated --json` and the same for `@buildanagent/sdk`, 2026-11-19 |
+| 128 | npm's `trust` docs require the package to exist before a trusted publisher can be added | ✅ | `npm/cli` `docs/lib/content/commands/npm-trust.md` at `787f152`, line 19: "The package you're configuring must already exist on the npm registry" |
+| 129 | With `private` dropped, the release plan publishes nothing at 0.0.0 and asks no registry | ✅ | The new test in `scripts/ci/release.test.mjs`, run on the checkout's own `package.json` files; it fails when `private` is put back. `node scripts/ci/release-plan.mjs plan` printed `publish=false` |
+| 130 | L4a's own change fails `changeset status --since=origin/main` | ✅ | Run locally on 2026-11-19: removing `private` edits each `package.json`, which `changedFilePatterns` lists. The job is `if: false`, so CI doesn't run it |
+| 131 | With L4a as the base, a docs-only commit passes the check and a `src/` edit without a changeset fails | ✅ | Run locally on 2026-11-19 in a throwaway worktree; before L4a, on `origin/main`, the same `src/` edit passed |
+| 132 | `privatePackages` now affects only the `verify/` harnesses, which `ignore` also lists | ✅ | `pnpm-workspace.yaml` lists `packages/*` and `verify/*`; every harness is private and named `@buildanagent/verify-*` |
+| 133 | Run 44505430717, a `workflow_dispatch` on `main`, ran `plan` and `pack` and skipped the other three jobs | ✅ | `gh run view 44505430717`: both succeeded; `version-pr`, `publish` and `docs` skipped |
+| 134 | Run 44505312929, the push to `main` that merged L3, ran only `plan` | ✅ | `gh run view 44505312929`: `plan` succeeded; `pack`, `version-pr`, `publish` and `docs` skipped |
+
+**Totals:** 134 claims: 101 ✅, 27 ✏️, 6 ⚠️.
