@@ -109,7 +109,7 @@ Round L runs beside Round B. L1, L5 and L7 can start now. The release takes two 
 
 | Todo | What it delivers | Depends on | Size |
 | --- | --- | --- | --- |
-| [L1](../todos/ongoing/L1-build-dist-packages.md) | `tsc` builds `dist/` for both packages, with `types`-first exports and a `source` condition | Q1 | M |
+| [L1](../todos/done/L1-build-dist-packages.md) | `tsc` builds `dist/` for both packages, with `types`-first exports and a `source` condition | Q1 | M |
 | [L2](../todos/ready/L2-changesets.md) | Changesets config, a fixed group, and a CI check for missing changesets, switched on in L4b | L1 | S |
 | [L3](../todos/ready/L3-release-workflow.md) | `release.yml`: trusted publishing with provenance and the "Version packages" pull request, switched on in L4b | L2 | M |
 | [L4a](../todos/ready/L4a-bootstrap-and-trusted-publishers.md) | Drop `private`, and check that the placeholders and dist-tags are as PB2 records | B4, B8, L3 | S |

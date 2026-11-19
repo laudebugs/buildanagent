@@ -3,7 +3,7 @@
 | Field | Value |
 | --- | --- |
 | ID | `L1` |
-| Status | `ongoing` |
+| Status | `done` |
 | Plan | [Publish and docs §4](../../plans/publish-and-docs.md#4-round-l-and-its-todos) |
 | Round / milestone | Round L (publish and docs, added 2026-11-19) |
 | Depends on | [Q1](../done/Q1-strict-compiler-and-lint.md) |
@@ -39,14 +39,14 @@ Make `@buildanagent/gateway` and `@buildanagent/sdk` publishable: compiled JavaS
 
 ## Acceptance criteria
 
-- [ ] `pnpm build` writes `dist/*.js` and `dist/*.d.ts` for every entry of both packages
-- [ ] The SDK's `dist/` holds only SDK files, and its `.d.ts` files import `@buildanagent/gateway`, never a path into the gateway's `src/`
-- [ ] `pnpm typecheck` and `pnpm test` pass with no `dist/` present (`git clean -xdf packages` first), which proves `source` is reached before `types`
-- [ ] A test asserts the Vitest configs' list after `source` equals Vite's `defaultServerConditions`, read from the `vite` that Vitest itself resolves, so a Vite upgrade that changes the defaults fails CI
-- [ ] A test packs each package with `pnpm pack` and fails if the tarball holds anything but `package.json`, `dist/`, `README.md`, `CHANGELOG.md` and the licence files, or lacks `LICENSE`, `LICENSE-APACHE` or `LICENSE-MIT`
-- [ ] The packed `package.json` has no `source` condition, and a Node script that sets `--conditions=source` still resolves every packed entry to `dist/`
-- [ ] A Node script imports each published entry from the packed tarball installed in a temp directory, with no `source` condition, and the imports resolve to `dist/`
-- [ ] `pnpm check`, `pnpm typecheck` and `pnpm test` pass offline from the repo root
+- [x] `pnpm build` writes `dist/*.js` and `dist/*.d.ts` for every entry of both packages
+- [x] The SDK's `dist/` holds only SDK files, and its `.d.ts` files import `@buildanagent/gateway`, never a path into the gateway's `src/`
+- [x] `pnpm typecheck` and `pnpm test` pass with no `dist/` present (`git clean -xdf packages` first), which proves `source` is reached before `types`
+- [x] A test asserts the Vitest configs' list after `source` equals Vite's `defaultServerConditions`, read from the `vite` that Vitest itself resolves, so a Vite upgrade that changes the defaults fails CI
+- [x] A test packs each package with `pnpm pack` and fails if the tarball holds anything but `package.json`, `dist/`, `README.md`, `CHANGELOG.md` and the licence files, or lacks `LICENSE`, `LICENSE-APACHE` or `LICENSE-MIT`
+- [x] The packed `package.json` has no `source` condition, and a Node script that sets `--conditions=source` still resolves every packed entry to `dist/`
+- [x] A Node script imports each published entry from the packed tarball installed in a temp directory, with no `source` condition, and the imports resolve to `dist/`
+- [x] `pnpm check`, `pnpm typecheck` and `pnpm test` pass offline from the repo root
 
 ## Tests
 
@@ -60,11 +60,18 @@ The pack test, under `packages/gateway/test/` or `scripts/ci/`.
 
 Vitest's resolver must honour `source` for workspace packages through `ssr.resolve.conditions`; if it doesn't, use a Vitest alias per package instead and record why.
 
+## Outcome
+
+- Specifiers: relative imports use `.js`. TypeScript 7.0.2's `rewriteRelativeImportExtensions` was rejected because it leaves `./x.ts` in emitted `.d.ts` files.
+- The Risks question resolved the other way round: `ssr.resolve.conditions` does reach `src/` for imports, but Vitest 5.1.0 resolves a bare `setupFiles` entry when it loads the config, with Node's default conditions. Each package's `setupFiles` therefore lists `test/setup.ts`, which imports `@buildanagent/gateway/testing/setup`.
+- The gateway's `sideEffects` lists `./dist/testing/setup.js` instead of `false`, because importing the setup installs the offline guards.
+- The pack test is `scripts/ci/packages-pack.test.mjs`, which CI's `node --test scripts/ci/*.test.mjs` step runs. It builds both packages itself. The Vite conditions test is `packages/gateway/test/vite-conditions.test.ts`.
+
 ## Definition of done
 
 - [x] Claimed: the first commit moved this file `ready/` → `ongoing/` (Status `ongoing`)
-- [ ] Prose drafted with `/anthropic-skills:writing`, and changed claims re-checked against their sources
-- [ ] `pnpm check`, `pnpm typecheck` and `pnpm test` pass locally; pushed after each meaningful step
-- [ ] This file moved `ongoing/` → `done/` (Status `done`) in the last work commit, and the plan's todo table updated
+- [x] Prose drafted with `/anthropic-skills:writing`, and changed claims re-checked against their sources
+- [x] `pnpm check`, `pnpm typecheck` and `pnpm test` pass locally; pushed after each meaningful step
+- [x] This file moved `ongoing/` → `done/` (Status `done`) in the last work commit, and the plan's todo table updated
 - [ ] Two code-review rounds run on the pull request (`/code-review high --max-findings default`, then `medium` and `low` after more than 6 confirmed findings, otherwise `low`), with every finding fixed or explained in a commit message
 - [ ] Copy reviewed with `/anthropic-skills:writing-review` after the code changes, with its findings fixed and the rubric scores in the pull request description
