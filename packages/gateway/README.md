@@ -2,13 +2,33 @@
 
 The gateway lets your agent call any model through one transcript and one stream format, so switching providers never changes your agent code. Use it directly to call a model, or through `@buildanagent/sdk`, which runs the agent loop on top of it.
 
-As of November 2026 the package holds the transcript types, the stream checker, `complete()`, `createModel()` with its retries and middleware, the price catalog that puts a cost on every message, and the tool-name rule. The Anthropic and OpenAI adapters are next.
+As of November 2026 the package holds the transcript types, the stream checker, `complete()`, `createModel()` with its retries and middleware, the price catalog that puts a cost on every message, the tool-name rule, and `transformMessages()`, which prepares a transcript for the model you send it to. The Anthropic and OpenAI adapters are next.
 
 ## A conversation is a list of messages you own
 
 A conversation is a list of `Message`s: user messages, assistant messages and tool results. Their content is a short list of blocks (`text`, `reasoning`, `image` and `tool_call`), so your code never handles a provider's wire format. A reasoning block may carry a signature that only the model that wrote it accepts.
 
 Every `AssistantMessage` records its model, why it stopped (`stopReason`), any typed `error`, its `Usage` and its `Cost`. `Usage` has no field named `input`, because providers disagree on whether input includes cached tokens. The uncached part is `uncachedInput`, and `totalInput()` adds the cache reads and cache writes to it. `Cost.total` is `null` when the price is unknown, never a guessed zero.
+
+## A transcript recorded on one model replays on another
+
+You can start a conversation on one model and continue it on another, even from another provider. Before each request, `transformMessages()` turns your transcript into one that the target model accepts:
+
+```ts
+const messages = transformMessages(transcript, model.ref, model.caps);
+```
+
+The pass returns a new array and leaves your transcript as it was, so you keep the full record. It gives the same answer for the same transcript every time, and running it on its own output changes nothing. It changes five things:
+
+- **Failed turns.** It leaves out every assistant message that stopped with `"error"` or `"aborted"`, and the tool results that answer its calls. A resumed call then asks the model again instead of building on a half-written answer.
+- **Reasoning.** For a model that does not reason (`caps.reasoning` is `false`), the pass drops every reasoning block. Otherwise it drops reasoning that another provider wrote and removes any signature the target cannot check, because a reasoning signature is valid only for the provider, and often only for the model, that wrote it. An Anthropic target gets every Anthropic-signed thinking block exactly as recorded, empty ones included, and no unsigned reasoning. Another target keeps the text of reasoning it cannot verify, unless the text is empty.
+- **Images.** For a model that takes no images (`caps.images` is `false`), each image becomes a short text note.
+- **Tool-call ids.** Each id must be 1 to 64 letters, digits, `_` or `-`, and must not repeat. The pass rewrites any id that breaks the rule and updates the result that answers it.
+- **Tool results.** Each result moves next to the call it answers, even when it was recorded after a later turn, and a result that answers no call is dropped. When several calls share an id, a result goes to the newest waiting call from a completed turn. It goes to a failed turn's call, and is dropped with that turn, only when no completed turn's call is waiting. A call that never got a result gets a synthetic one with `isError: true`, because providers reject a call left unanswered.
+
+The pass also keeps every message to a shape both providers accept. It removes reasoning and tool calls from user messages, removes empty text blocks, and drops any message left with no content. It merges user messages that end up next to each other into one, and does the same for assistant messages. A merged assistant message keeps the later message's stop reason, usage and cost. If the earlier message has text or tool calls, the pass drops the later message's reasoning, so no reasoning block ends up after a block it did not follow before. When your transcript has a user message, the output starts with one: if the pass empties the first user message, a short `(continued)` note takes its place. A transcript left with nothing to send becomes `[]`.
+
+When an Anthropic target must lose a reasoning block, the pass also drops every reasoning block before it, so the blocks it keeps are the newest unbroken run. As the transcript grows, a later drop can remove older thinking, but only ever as a leading run. Anthropic's thinking documentation allows exactly that: outside tool use, a request may omit prior turns' thinking, "but not a block between two that you keep" ([Thinking](https://platform.claude.com/docs/en/build-with-claude/thinking), linked from [Extended thinking](https://platform.claude.com/docs/en/build-with-claude/extended-thinking), as of November 2026). The same page says the API drops, without billing, the thinking blocks a target model cannot read, and uses each block's signature to verify that Claude wrote it. It does not say what happens to an unsigned thinking block; the pass drops those blocks on the reading that they cannot pass that check (unverified). Other targets check no such order, so they lose only the blocks they cannot accept.
 
 ## Every stream follows one rule
 
