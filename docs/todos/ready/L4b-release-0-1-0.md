@@ -23,9 +23,9 @@ Ship the first public release, 0.1.0, once a model call works, through the trust
 **In scope**
 
 - A changeset for 0.1.0 summarising what the release offers: the transcript, `createModel()`, the Anthropic adapter, `ScriptedModel`
-- `pnpm changeset version` run in this pull request, so it carries both packages at 0.1.0 and their first `CHANGELOG.md` entries; merging it makes `release.yml` publish them through trusted publishing
-- Switching on L2's changeset gate (change `if: false` to `if: true` on `ci.yml`'s `changesets` job) and L3's "Version packages" pull request, so every later release goes through them. This pull request is the job's first `pull_request` run, so check that the job ran and passed on it
-- The owner adds a trusted publisher to each package (user `laudebugs`, repository `buildanagent`, workflow `release.yml`, environment `release`) on the day this pull request merges, before the merge. Merging starts the publish, and a trusted publisher expires unless it publishes within 2 days
+- `pnpm changeset version` run in this pull request, so it carries both packages at 0.1.0 and their first `CHANGELOG.md` entries and no pending changeset. Merging it makes `release.yml` pack both packages and hold the `publish` job for the owner's approval in the `release` environment; once approved, it publishes them through trusted publishing, creates the `v0.1.0` tag and GitHub release, and starts the docs deploy
+- Switching on L2's changeset gate (change `if: false` to `if: true` on `ci.yml`'s `changesets` job) and L3's "Version packages" pull request (change `false &&` to `true &&` in the `if:` of `release.yml`'s `version-pr` job), so every later release goes through them. This pull request is the job's first `pull_request` run, so check that the job ran and passed on it
+- The owner adds a trusted publisher to each package (user `laudebugs`, repository `buildanagent`, workflow `release.yml`, environment `release`, with `npm publish` ticked under **Allowed actions**, since a new configuration otherwise allows only `npm stage publish`) on the day this pull request merges, before the merge. Merging starts the publish, and a trusted publisher expires unless it publishes within 2 days
 - Both READMEs gain install instructions
 
 **Out of scope** (and which todo covers it)
@@ -38,7 +38,7 @@ Ship the first public release, 0.1.0, once a model call works, through the trust
 - [ ] A fresh project installs `@buildanagent/sdk@0.1.0` and makes one model call against a mock server through the Anthropic adapter, offline
 - [ ] npmjs.com shows a trusted publisher for both packages, naming `release.yml` and the `release` environment
 - [ ] A changeset-free change to `packages/*/src` fails CI after the release
-- [ ] The release's `workflow_dispatch` deploys the 0.1.0 docs to `docs.buildanagent.fyi`, and the next push to `main` deploys `next.docs.buildanagent.fyi` (once L8 has landed; otherwise L8 checks it)
+- [ ] The release's `workflow_dispatch` (`docs-deploy.yml` with `tag=v0.1.0`) deploys the 0.1.0 docs to `docs.buildanagent.fyi`, and the next push to `main` deploys `next.docs.buildanagent.fyi` (once L8 has landed; otherwise L8 checks it)
 - [ ] `pnpm check`, `pnpm typecheck` and `pnpm test` pass offline from the repo root
 
 ## Tests

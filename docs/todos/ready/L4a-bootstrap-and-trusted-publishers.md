@@ -6,7 +6,7 @@
 | Status | `ready` |
 | Plan | [Publish and docs §4](../../plans/publish-and-docs.md#4-round-l-and-its-todos) |
 | Round / milestone | Round L (publish and docs, added 2026-11-19) |
-| Depends on | [B4](../done/B4-gateway-runtime.md), [B8](../done/B8-anthropic-adapter.md), [L3](L3-release-workflow.md) |
+| Depends on | [B4](../done/B4-gateway-runtime.md), [B8](../done/B8-anthropic-adapter.md), [L3](../done/L3-release-workflow.md) |
 | Size | S |
 
 The filename predates the 2026-11-19 change, when the owner's hand-run bootstrap moved the trusted publishers to L4b; it stays so links keep working. L4a still waits for L3, because `release.yml` must exist before the packages go public.
@@ -25,7 +25,7 @@ Make both packages publishable and confirm that npm still holds them as PB2 reco
 
 **In scope**
 
-- Remove `private: true` from both packages
+- Remove `private: true` from both packages. Merging that publishes nothing: `release.yml`'s plan refuses version 0.0.0, which the workspace has never released ([CI plan §3f](../../plans/ci.md#3f-releases-through-npm-trusted-publishing-added-2026-11-19))
 - Confirm with `npm view` that each package still has only its two deprecated placeholders and that `latest` points at `0.0.0-bootstrap.0`, and record the output in the pull request description
 - Record in the CI plan that npm needs a package to exist before a trusted publisher can be added, citing npm's `trust` docs
 
