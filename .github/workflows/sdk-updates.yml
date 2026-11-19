@@ -96,7 +96,8 @@ jobs:
             echo
             echo "- \`pnpm install\`: **$INSTALL**"
             echo "- \`pnpm -C verify/$HARNESS run verify\`: **$VERIFY**"
-            echo "- Results drift against the committed run: **$([ "$DRIFT" = success ] && echo none || echo yes)**"
+            case "$DRIFT" in success) drift=none ;; skipped) drift="not run" ;; *) drift=yes ;; esac
+            echo "- Results drift against the committed run: **$drift**"
             echo
             echo '```'
             tail -n 40 drift.txt
