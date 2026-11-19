@@ -595,4 +595,13 @@ The medium review of PR #71 found that the scroll hint showed when nothing scrol
 | --- | --- | --- | --- | --- |
 | 347 | Row 345, corrected: the primary source does not make `animation-timeline` reset-only in the `animation` shorthand; the shorthand's grammar includes `<single-animation-timeline>`. Chrome 157 still rejects the shorthand the minifier wrote, so the timeline stays in its own rule | Row 345, `components.css` | ✏️ | [CSS Animations Level 2, §4.12, the `animation` shorthand](https://drafts.csswg.org/css-animations-2/#animation-shorthand), Editor's Draft of 18 August 2026, and §4.10 of the Working Draft of 2 June 2023: both grammars end in `|| <single-animation-timeline>`. MDN's "reset-only value" does not match them. The shorthand still resets the timeline when it omits it, as it does every sub-property; the comment now says the grammar allows the minifier's shorthand and Chrome rejects it |
 
-**Totals:** 347 claims: 307 ✅, 40 ✏️, 0 ⚠️.
+### T6's writing review
+
+The writing review reworded T6's prose; these rows re-check the claims its fixes touched.
+
+| # | Claim | Where | Verdict | Source and reason |
+| --- | --- | --- | --- | --- |
+| 348 | Row 327, updated: after the samples were redrawn at 520 units, `who-decides.svg` is 61,727 bytes and `ticket-rail.svg` 60,823, still about 61 KB each, most of it the 42,228-byte font | Outcome, BK11, README | ✏️ | `wc -c` on the committed files after `ee683e8`. Row 327 gave the sizes before the redraw |
+| 349 | The hint's claims in BK11's rewritten "Our choices" paragraph are rows 343–345, the label size row 338 and the focusable stage row 346 | BK11 | ✅ | The rows of this log, matched one by one after the rewrite |
+
+**Totals:** 349 claims: 308 ✅, 41 ✏️, 0 ⚠️.
