@@ -251,9 +251,9 @@ async function* streamMessage(
  * `defaultCaps`. Caller headers from `config.headers` are sent with lower-case names; a caller `anthropic-beta` is
  * merged with the adapter's beta, and a caller `x-api-key` or `authorization` is dropped.
  *
- * `providerOptions.anthropic` takes a `conversationId`, which marks requests of one conversation, and an `extraBody`
- * merged into the request body under the fields the adapter sets itself. Without a `conversationId`, the adapter
- * tells conversations apart by their system prompt and the text of their first message, so conversations that share
+ * `providerOptions.anthropic` takes a `conversationId`, which marks requests of one conversation, and an `extraBody`,
+ * whose fields join the request body wherever the adapter sets no field of the same name. Without a
+ * `conversationId`, the adapter tells conversations apart by their system prompt and the text of their first message, so conversations that share
  * both also share the `drop_block` setting; pass a `conversationId` for each conversation to keep them apart. The
  * adapter remembers the last 1,000 conversations that needed `drop_block`. `temperature`, `top_p` and `top_k` are
  * never sent, because this API version rejects them; the call streams a `warning` instead.

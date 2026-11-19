@@ -6,9 +6,10 @@
  * so the dump shows what was actually sent. An adapter calls `onPayload` once per HTTP request, so an attempt that
  * sends two requests, such as the Anthropic adapter's retry with `drop_block`, is dumped twice, both times with the
  * attempt's number. An adapter with no wire body never calls `onPayload`; its dump, with `body: undefined`, goes out
- * before its first event that is neither `start` nor `warning` instead. An adapter may yield both before it sends,
- * as the Anthropic adapter does with its sampling warnings, so skipping them keeps one dump per HTTP request, with
- * the body. Either way every attempt is dumped before any of its content reaches the caller.
+ * before its first event that is neither `start` nor `warning` instead. An adapter may yield a `start` and a
+ * `warning` before it sends, as the Anthropic adapter does with its sampling warnings, so skipping them keeps one
+ * dump per HTTP request, with the body. Either way every attempt is dumped before any of its content reaches the
+ * caller.
  */
 import type { DumpedOptions, ModelCallOptions, RequestDump } from "./runtime-types.ts";
 import type { ModelAdapter, ModelEvent, StreamOptions } from "./spec.ts";
