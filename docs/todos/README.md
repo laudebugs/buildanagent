@@ -6,7 +6,7 @@ Each todo is one pull request, squash-merged into `main` ([AGENTS.md, Git](../..
 | --- | --- |
 | [`ready/`](ready/) | Specified and waiting. Start one only when every todo in its **Depends on** is in `done/`. |
 | [`ongoing/`](ongoing/) | Claimed. The first commit of the work moves the file here. |
-| [`done/`](done/) | Finished. The last work commit, before the pull request opens, moves the file here, with its plan's to-dos updated. Review-fix commits may then tick its review checkboxes. |
+| [`done/`](done/) | Finished. The last work commit before the pull request opens moves the file here and updates its plan's to-dos. Review-fix commits may then tick its review checkboxes. |
 
 New todos start from [`TEMPLATE.md`](TEMPLATE.md), and each plan lists its todos. **Depends on** is the only record of the order; the [roadmap](../plans/roadmap.md) draws it as a graph.
 
