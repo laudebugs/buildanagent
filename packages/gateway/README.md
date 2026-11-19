@@ -46,7 +46,9 @@ The gateway prices each response from the price catalog, so every `AssistantMess
 
 - `"provider"`: the adapter reported a total the provider billed, and that total wins over the catalog.
 - `"catalog"`: the gateway multiplied each token class by its catalog rate, and `catalogAsOf` gives the date those rates were copied.
-- `"unknown"`: the catalog doesn't list the model, so `total` is `null`. The gateway never guesses a zero, because a budget that counts an unknown price as free never stops.
+- `"unknown"`: the catalog doesn't list the model, or an attempt's stream threw before it reported usage, so `total` is `null`. The gateway never guesses a zero, because a budget that counts an unknown price as free never stops.
+
+A retried call's cost sums its attempts, and the sum takes the weakest basis among them. It is `"unknown"` if any attempt's cost is unknown, and `"catalog"`, with `catalogAsOf`, if any attempt was priced from the catalog. It is `"provider"` only when the provider billed every attempt.
 
 Some models charge more for long prompts. Their entries list several rate tiers, and each request pays the tier its total input selects, cache reads and writes included. The gateway prices each attempt of a call on its own before it adds them up, so a retried call pays each request's own tier. `model.price(usage)` applies the same rates to any usage you hold.
 
@@ -59,13 +61,13 @@ const catalog = parseCatalog({ models: [...defaultCatalog.models, myEntry] });
 const model = createModel({ adapter, id: "my-model", catalog });
 ```
 
-Each entry records its rate tiers, `contextWindow`, `maxOutputTokens`, the `asOf` date it was copied, and the provider page each number came from. `parseCatalog()` checks a catalog read from JSON and throws a `GatewayError` with code `invalid_catalog` that names the first bad field.
+Each entry records its rate tiers, `contextWindow`, `maxOutputTokens`, the `asOf` date it was copied, and the provider page each number came from. `contextWindow` is the most input one request can send, so a model whose page caps input below its full window, such as `gpt-5.4-mini`, records the input cap. `parseCatalog()` checks a catalog read from JSON and throws a `GatewayError` with code `invalid_catalog` that names the first bad field. `createModel()` runs the same check on a catalog you pass, so a typed catalog with tiers out of order or a negative rate throws too.
 
-Prices change often, so refresh the shipped catalog before every minor release. Copy each number from the provider's own pricing and model pages, record each page in the entry's `sources`, and set `asOf` to the day you copied them. The gateway's own tests warn about any entry older than 90 days, and `staleCatalogEntries(catalog, now)` runs the same check on a catalog you maintain.
+Prices change often, so refresh the shipped catalog before every minor release. Copy each number from the provider's own pricing and model pages, record each page in the entry's `sources`, and set `asOf` to the day you copied them. The repository's CI warns about any shipped entry older than 90 days, and `staleCatalogEntries(catalog, now)` runs the same check on a catalog you maintain.
 
 ## You can project a call's cost before you send it
 
-`projectCallCost(model, context, options)` returns the most the next call can cost, so a budget can stop a run before the call that would cross its cap. It prices every input token at the uncached rate and the full output limit at the output rate: the call's `maxOutputTokens`, or else the model's. The input comes from `estimateInputTokens(context)`. When an earlier assistant message in the context reports its usage, the estimate starts from that call's input and output and adds the messages that came after it. Otherwise it estimates the whole context from its length in characters. Each estimate errs high, so a budget errs towards stopping.
+`projectCallCost(model, context, options)` returns the most the next call can cost, so a budget can stop a run before the call that would cross its cap. It prices every input token at the uncached rate and the full output limit at the output rate: the call's `maxOutputTokens`, or else the model's. The input comes from `estimateInputTokens(context)`. When an earlier assistant message in the context reports its usage, the estimate starts from that request's input and output and adds the messages that came after it. A retried call's `usage` sums every attempt, so the estimate reads its `lastAttemptUsage`, the usage of the one request that produced the message. Otherwise it estimates the whole context from its length in characters. Each estimate errs high, so a budget errs towards stopping.
 
 A caller that holds a token count instead of a `ModelContext` calls `projectCost({ inputTokens, maxOutputTokens }, entry)` directly, with an entry from `findCatalogEntry()`. Both functions use one formula, so they return the same cost for the same tokens.
 
@@ -83,7 +85,7 @@ A call that fails before the model has streamed any content is retried twice by 
 
 Three rules keep a retry from doing harm. First, once a content event has reached you, the gateway never retries, because a second attempt would replay text you have already seen. Second, only errors of kind `retryable` are retried, such as a rate limit or an overloaded server. A `quota` error, a context `overflow` or a `fatal` error ends the call at once, because waiting will not fix it. Third, aborting the signal during a wait ends the stream at once with `stopReason: "aborted"`.
 
-A failed attempt still costs tokens, so the final message's `usage` and `cost` add up every attempt, not only the last. If any attempt's cost is unknown, the total is unknown too. An attempt that never reached the provider, such as a failed fetch, used no tokens and costs nothing.
+A failed attempt still costs tokens, so the final message's `usage` and `cost` add up every attempt, not only the last, and `lastAttemptUsage` keeps the last attempt's usage on its own. If any attempt's cost is unknown, the total is unknown too. An attempt whose stream threw reported no usage, so it adds no tokens, but its cost is unknown, because the request may have reached the provider and been billed before the stream failed.
 
 An adapter whose stream throws, for example on a dropped connection, is treated like one that ends with an error. A failed fetch is retried, and any other throw ends the call with a `fatal` error event, so an adapter's failure never makes `stream()` throw. A throwing `onRequest` hook runs inside the attempt, so it also ends the call with a `fatal` error. A middleware that throws runs outside the call, so its error makes `stream()` throw.
 

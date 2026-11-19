@@ -30,13 +30,21 @@ export interface RetrySettings {
 
 const BACKOFF_FACTOR = 2;
 const MAX_RETRY_DELAY_MS = 60_000;
-// A known zero, so adding the first attempt's cost keeps its basis.
-const ZERO_COST: Cost = { total: 0, basis: "provider", currency: "USD" };
+const UNKNOWN_COST: Cost = { total: null, basis: "unknown", currency: "USD" };
 
-/** Adds two costs; the total is unknown if either is, and the basis is the second's. */
-function addCost(a: Cost, b: Cost): Cost {
-  const total = a.total === null || b.total === null ? null : a.total + b.total;
-  return { ...b, total };
+/**
+ * Adds a carried cost to an attempt's. The sum is unknown if either part is, a catalog estimate if either part is one,
+ * and a provider bill only when both parts are. `undefined` means no attempt is carried yet.
+ */
+function addCost(a: Cost | undefined, b: Cost): Cost {
+  if (a === undefined) return b;
+  if (a.total === null || b.total === null || a.basis === "unknown" || b.basis === "unknown") {
+    return { ...UNKNOWN_COST };
+  }
+  const total = a.total + b.total;
+  if (a.basis === "provider" && b.basis === "provider") return { total, basis: "provider", currency: "USD" };
+  const catalogAsOf = b.catalogAsOf ?? a.catalogAsOf;
+  return { total, basis: "catalog", currency: "USD", ...(catalogAsOf === undefined ? {} : { catalogAsOf }) };
 }
 
 /** The default `Sleep`: a timer that resolves early, without rejecting, when the signal aborts. */
@@ -57,8 +65,13 @@ export const abortableSleep: Sleep = (ms, signal) =>
     signal?.addEventListener("abort", onAbort, { once: true });
   });
 
-/** How one attempt ended: it ran to its end, or it failed before any output and may be retried. */
-type AttemptOutcome = { readonly retry: false } | { readonly retry: true; readonly failure: AssistantMessage };
+/**
+ * How one attempt ended: it ran to its end, or it failed before any output and may be retried. A retryable failure
+ * carries its own cost, already priced.
+ */
+type AttemptOutcome =
+  | { readonly retry: false }
+  | { readonly retry: true; readonly failure: AssistantMessage; readonly cost: Cost };
 
 /** One call's state across its attempts. */
 interface CallState {
@@ -68,26 +81,25 @@ interface CallState {
   started: boolean;
   /** The usage of the failed attempts so far; the final message adds it, because the provider billed them too. */
   carried: Usage;
-  /** The cost of the failed attempts so far, added the same way. */
-  carriedCost: Cost;
+  /** The cost of the failed attempts so far, added the same way; `undefined` until an attempt has failed. */
+  carriedCost: Cost | undefined;
 }
 
 function isBlockEvent(event: ModelEvent): boolean {
   return event.type !== "start" && event.type !== "done" && event.type !== "error";
 }
 
-/** The final message, with the failed attempts' usage added to the last attempt's. */
+/** The final message: this attempt's usage and `cost`, with the failed attempts' usage and cost added. */
+function withCarried(message: AssistantMessage, call: CallState, cost: Cost): AssistantMessage {
+  const summed = { ...message, usage: addUsage(call.carried, message.usage), cost: addCost(call.carriedCost, cost) };
+  // The projection needs one request's size, which a sum over several attempts overstates.
+  return call.carriedCost === undefined ? summed : { ...summed, lastAttemptUsage: message.usage };
+}
+
+/** A terminal event with the failed attempts added; any other event unchanged. The adapter's usage is priced here. */
 function withCarriedUsage(event: GatewayEvent, call: CallState): GatewayEvent {
   if (event.type !== "done" && event.type !== "error") return event;
-  const { message } = event;
-  return {
-    ...event,
-    message: {
-      ...message,
-      usage: addUsage(call.carried, message.usage),
-      cost: addCost(call.carriedCost, foldCost(message, call.price)),
-    },
-  };
+  return { ...event, message: withCarried(event.message, call, foldCost(event.message, call.price)) };
 }
 
 /** True for the errors `fetch` throws when a request never gets a response. */
@@ -95,14 +107,17 @@ function isTransportFailure(thrown: unknown): boolean {
   return thrown instanceof TypeError && /fetch|network|socket|connect/i.test(thrown.message);
 }
 
-/** The message for an adapter whose stream threw instead of ending with an `error` event. */
+/**
+ * The message for an adapter whose stream threw instead of ending with an `error` event. Its usage is zero, because
+ * nothing reported any, but its cost is unknown, not zero: the request may have reached the provider and been billed.
+ */
 function thrownFailure(thrown: unknown, call: CallState): AssistantMessage {
   const base = {
     role: "assistant" as const,
     content: [],
     model: call.ref,
     usage: emptyUsage(),
-    cost: { total: null, basis: "unknown" as const, currency: "USD" as const },
+    cost: { ...UNKNOWN_COST },
   };
   if (call.signal?.aborted) return { ...base, stopReason: "aborted" };
   const name = thrown instanceof Error ? thrown.name : "Error";
@@ -125,7 +140,7 @@ async function* forwardEvents(
       call.started = true;
     }
     if (event.type === "error" && mayRetry && !output.seen && event.message.error?.kind === "retryable") {
-      return { retry: true, failure: event.message };
+      return { retry: true, failure: event.message, cost: foldCost(event.message, call.price) };
     }
     if (isBlockEvent(event)) output.seen = true;
     yield withCarriedUsage(event, call);
@@ -147,19 +162,29 @@ async function* runAttempt(
     // A thrown stream is a failure like any other: it ends in an `error` terminal and may be retried.
     failure = thrownFailure(thrown, call);
   }
-  if (mayRetry && !output.seen && failure.error?.kind === "retryable") return { retry: true, failure };
+  // The failure's unknown cost is final: pricing its zero usage would claim a known zero.
+  if (mayRetry && !output.seen && failure.error?.kind === "retryable") {
+    return { retry: true, failure, cost: failure.cost };
+  }
   if (!call.started) {
     call.started = true;
     yield { type: "start" };
   }
-  yield withCarriedUsage({ type: "error", message: failure }, call);
+  yield { type: "error", message: withCarried(failure, call, failure.cost) };
   return { retry: false };
 }
 
 /** The terminal for a call aborted between attempts. It keeps every failed attempt's usage and drops the error. */
-function abortedTerminal(failure: AssistantMessage, call: CallState): GatewayEvent {
+function abortedTerminal(failure: AssistantMessage, call: CallState, cost: Cost): GatewayEvent {
   const { error: _error, ...rest } = failure;
-  return { type: "error", message: { ...rest, stopReason: "aborted", usage: call.carried, cost: call.carriedCost } };
+  const message = {
+    ...rest,
+    stopReason: "aborted" as const,
+    usage: call.carried,
+    cost,
+    lastAttemptUsage: failure.usage,
+  };
+  return { type: "error", message };
 }
 
 /** Runs `attempt(1)`, then retries per `settings`. `attempt(n)` must start a fresh request each time it is called. */
@@ -175,20 +200,21 @@ export async function* withRetries(
     price: settings.price,
     started: false,
     carried: emptyUsage(),
-    carriedCost: ZERO_COST,
+    carriedCost: undefined,
   };
   for (let n = 1; ; n += 1) {
     const outcome = yield* runAttempt(attempt(n), call, n <= settings.retries);
     if (!outcome.retry) return;
     call.carried = addUsage(call.carried, outcome.failure.usage);
-    call.carriedCost = addCost(call.carriedCost, foldCost(outcome.failure, call.price));
+    const carriedCost = addCost(call.carriedCost, outcome.cost);
+    call.carriedCost = carriedCost;
     // The stream rule puts `start` first, so a failure that arrived without one still gets it before the retry.
     if (!call.started) {
       call.started = true;
       yield { type: "start" };
     }
     if (signal?.aborted) {
-      yield abortedTerminal(outcome.failure, call);
+      yield abortedTerminal(outcome.failure, call, carriedCost);
       return;
     }
     // The cap keeps a long retry count from waiting hours, or overflowing setTimeout's 32-bit delay.
@@ -196,7 +222,7 @@ export async function* withRetries(
     yield { type: "retry", attempt: n, delayMs, error: outcome.failure.error?.message ?? "retryable error" };
     await settings.sleep(delayMs, signal);
     if (signal?.aborted) {
-      yield abortedTerminal(outcome.failure, call);
+      yield abortedTerminal(outcome.failure, call, carriedCost);
       return;
     }
   }

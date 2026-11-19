@@ -4,7 +4,6 @@ import {
   defaultCatalog,
   findCatalogEntry,
   isGatewayError,
-  type PriceCatalog,
   parseCatalog,
   staleCatalogEntries,
 } from "@buildanagent/gateway";
@@ -12,16 +11,6 @@ import { test } from "vitest";
 import { FAKE_RATES, fakeEntry } from "./fixtures.ts";
 
 const shippedJson: unknown = JSON.parse(readFileSync(new URL("../src/catalog.json", import.meta.url), "utf8"));
-
-/** Warns once per entry whose `asOf` is more than 90 days before `now`, and returns the warnings. */
-function warnAboutStaleEntries(catalog: PriceCatalog, now: Date, warn: (text: string) => void): string[] {
-  const warnings = staleCatalogEntries(catalog, now).map(
-    (e) =>
-      `price catalog: ${e.provider}/${e.id} was copied on ${e.asOf}, more than 90 days ago; refresh it from ${e.sources.rates}`,
-  );
-  for (const warning of warnings) warn(warning);
-  return warnings;
-}
 
 function rejects(value: unknown, pattern: RegExp): void {
   assert.throws(
@@ -70,6 +59,15 @@ test("an asOf that is not a calendar date is rejected", () => {
   rejects(withEntry({ asOf: "2026-02-30" }), /asOf must be a date/);
 });
 
+test("an asOf with a month or day out of range is an invalid_catalog error, not a RangeError", () => {
+  rejects(withEntry({ asOf: "2026-13-01" }), /asOf must be a date/);
+  rejects(withEntry({ asOf: "2026-11-32" }), /asOf must be a date/);
+});
+
+test("gpt-5.4-mini's contextWindow is its 272,000-token input limit, not its 400,000-token window", () => {
+  assert.equal(findCatalogEntry(defaultCatalog, "openai", "gpt-5.4-mini")?.contextWindow, 272_000);
+});
+
 test("two entries for one model are rejected", () => {
   rejects({ models: [fakeEntry(), fakeEntry()] }, /lists test\/priced twice/);
 });
@@ -80,18 +78,15 @@ test("findCatalogEntry() matches on provider and id", () => {
   assert.equal(findCatalogEntry(catalog, "test", "missing"), undefined);
 });
 
-test("the staleness check warns on an entry dated more than 90 days before the test clock", () => {
+// The check of the shipped catalog against today's date runs in CI (scripts/ci/catalog-staleness.mjs), because a
+// test that reads the wall clock is not deterministic.
+test("staleCatalogEntries() returns the entries dated more than 90 days before the given clock", () => {
   const now = new Date("2026-11-19T12:00:00Z");
   const catalog = {
     models: [fakeEntry({ id: "old", asOf: "2026-08-20" }), fakeEntry({ id: "recent", asOf: "2026-08-22" })],
   };
-  const warned: string[] = [];
-  warnAboutStaleEntries(catalog, now, (text) => warned.push(text));
-  assert.equal(warned.length, 1);
-  assert.match(warned[0] ?? "", /test\/old was copied on 2026-08-20/);
-});
-
-test("the shipped catalog is checked for stale entries against today's date, as a warning", () => {
-  // A warning, not a failure: an old price should prompt a refresh, not block an unrelated change.
-  warnAboutStaleEntries(defaultCatalog, new Date(), (text) => console.warn(text));
+  assert.deepEqual(
+    staleCatalogEntries(catalog, now).map((e) => e.id),
+    ["old"],
+  );
 });

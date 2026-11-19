@@ -95,16 +95,25 @@ function promptEstimate(context: ModelContext): number {
   return (context.system.length + tools) / CHARS_PER_TOKEN;
 }
 
-/** The index of the last assistant message whose usage reports any input, or -1 when there is none. */
+/**
+ * One request's usage: a retried call's `usage` sums every attempt, so its last attempt's usage alone gives the size
+ * of the request that produced the message.
+ */
+function requestUsage(message: AssistantMessage): Usage {
+  return message.lastAttemptUsage ?? message.usage;
+}
+
+/** The index of the last assistant message whose request reports any input, or -1 when there is none. */
 function lastReportedCall(messages: readonly Message[]): number {
-  return messages.findLastIndex((m) => m.role === "assistant" && totalInput(m.usage) > 0);
+  return messages.findLastIndex((m) => m.role === "assistant" && totalInput(requestUsage(m)) > 0);
 }
 
 /**
  * Estimates the input tokens of sending `context`. When an earlier assistant message reports its usage, the estimate
- * is that call's total input and output plus a character-based estimate of the messages after it; otherwise every
- * part of the context is estimated from its characters. The estimate errs high, so a budget check errs towards
- * stopping.
+ * is that request's total input and output plus a character-based estimate of the messages after it; otherwise every
+ * part of the context is estimated from its characters. A retried call counts only its last attempt, through
+ * `lastAttemptUsage`, because its summed `usage` would count the same prompt once per attempt. The estimate errs high,
+ * so a budget check errs towards stopping.
  */
 export function estimateInputTokens(context: ModelContext): number {
   const last = lastReportedCall(context.messages);
@@ -115,7 +124,8 @@ export function estimateInputTokens(context: ModelContext): number {
   }
   // The reported output stands in for the assistant message's own content, which the next call sends as input.
   const added = context.messages.slice(last + 1).reduce((sum, m) => sum + messageEstimate(m), 0);
-  return Math.ceil(totalInput(previous.usage) + previous.usage.output + added);
+  const usage = requestUsage(previous);
+  return Math.ceil(totalInput(usage) + usage.output + added);
 }
 
 /**

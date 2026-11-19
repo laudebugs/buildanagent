@@ -2,7 +2,7 @@
  * `createModel()`: binds an adapter to one model id and wraps it in the gateway's shared behaviour (SDK plan §3.2;
  * SDK decisions 4, 13). The order, outside in: middleware, then retries, then the request dump, then the adapter.
  */
-import { type CatalogEntry, defaultCatalog, findCatalogEntry } from "./catalog.ts";
+import { type CatalogEntry, defaultCatalog, findCatalogEntry, parseCatalog } from "./catalog.ts";
 import { complete } from "./complete.ts";
 import { priceUsage } from "./cost.ts";
 import { GatewayError } from "./errors.ts";
@@ -53,13 +53,17 @@ function resolveCaps(adapter: ModelAdapter, id: string, entry: CatalogEntry | un
 
 /**
  * Creates a model from an adapter object and a model id. Every call through it is retried, wrapped in middleware
- * and dumped the same way, whatever the adapter.
+ * and dumped the same way, whatever the adapter. Throws a `GatewayError` for bad options, including a malformed
+ * `catalog` (code `invalid_catalog`).
  */
 export function createModel(options: CreateModelOptions): Model {
   const { adapter, id } = options;
   assertAdapter(adapter);
   const ref = { api: adapter.api, provider: adapter.provider, id };
-  const entry = findCatalogEntry(options.catalog ?? defaultCatalog, adapter.provider, id);
+  // A caller's catalog is checked like a JSON one: pricing relies on ascending tiers, an open last tier and
+  // finite, non-negative rates, and a typed object can still break them.
+  const catalog = options.catalog === undefined ? defaultCatalog : parseCatalog(options.catalog);
+  const entry = findCatalogEntry(catalog, adapter.provider, id);
   const caps = resolveCaps(adapter, id, entry);
   const price = (usage: Usage) => priceUsage(usage, entry);
   const middleware = [...(options.middleware ?? [])];

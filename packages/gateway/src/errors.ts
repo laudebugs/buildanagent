@@ -1,4 +1,7 @@
-/** `GatewayError`: the gateway's error for programmer errors, such as a missing key, invalid options or a malformed catalog. */
+/**
+ * `GatewayError`: the gateway's error for programmer errors, such as a missing key, invalid options or a malformed
+ * catalog.
+ */
 
 /** Why a `GatewayError` was thrown. */
 export type GatewayErrorCode = "missing_api_key" | "missing_caps" | "invalid_options" | "invalid_catalog";

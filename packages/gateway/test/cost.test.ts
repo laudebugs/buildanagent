@@ -4,6 +4,7 @@ import {
   createModel,
   emptyUsage,
   estimateInputTokens,
+  isGatewayError,
   type ModelAdapter,
   type ModelContext,
   type ModelEvent,
@@ -111,7 +112,8 @@ test("each attempt is priced in its own tier, not the tier of the summed usage",
   assert.equal((await model.complete(context)).cost.total, 4);
 });
 
-test("an attempt whose stream throws costs nothing, so the call keeps a known total", async () => {
+/** An adapter whose first `throws` calls throw `error`, then replies with 1M uncached input tokens. */
+function throwingAdapter(throws: number, error: Error): { adapter: ModelAdapter; calls: () => number } {
   let calls = 0;
   const adapter: ModelAdapter = {
     specificationVersion: "v1",
@@ -120,16 +122,90 @@ test("an attempt whose stream throws costs nothing, so the call keeps a known to
     defaultCaps: TEST_CAPS,
     async *stream(model): AsyncGenerator<ModelEvent> {
       calls += 1;
-      if (calls === 1) throw new TypeError("fetch failed");
+      if (calls <= throws) throw error;
       const reply = message("stop", [], { model, usage: usage({ uncachedInput: 1_000_000 }) });
       yield { type: "start" };
       yield { type: "done", message: reply };
     },
   };
-  const model = createModel({ adapter, id: "priced", catalog, sleep: recordingSleep().sleep });
+  return { adapter, calls: () => calls };
+}
+
+const UNKNOWN: Cost = { total: null, basis: "unknown", currency: "USD" };
+
+test("an attempt whose stream throws leaves the call's cost unknown, not a known zero", async () => {
+  // The request may have reached the provider and been billed before the stream threw, so its cost is unknown.
+  const retried = throwingAdapter(1, new TypeError("fetch failed"));
+  const model = createModel({ adapter: retried.adapter, id: "priced", catalog, sleep: recordingSleep().sleep });
   const result = await model.complete(context);
-  assert.equal(calls, 2);
-  assert.equal(result.cost.total, 2);
+  assert.equal(retried.calls(), 2);
+  assert.equal(result.usage.uncachedInput, 1_000_000);
+  assert.deepEqual(result.cost, UNKNOWN);
+
+  const final = throwingAdapter(1, new RangeError("bad content block"));
+  const failed = await createModel({ adapter: final.adapter, id: "priced", catalog }).complete(context);
+  assert.equal(failed.stopReason, "error");
+  assert.deepEqual(failed.cost, UNKNOWN);
+});
+
+test("a stream that throws on abort reports an unknown cost, not a known zero", async () => {
+  const { adapter } = throwingAdapter(1, new Error("The operation was aborted"));
+  const controller = new AbortController();
+  controller.abort();
+  const result = await createModel({ adapter, id: "priced", catalog }).complete(context, { signal: controller.signal });
+  assert.equal(result.stopReason, "aborted");
+  assert.deepEqual(result.cost, UNKNOWN);
+});
+
+test("a sum of catalog estimates and provider bills is labelled catalog, with the catalog's date", async () => {
+  const billed: Cost = { total: 0.5, basis: "provider", currency: "USD" };
+  const run = (attempts: Attempt[]) => pricedModel(attempts).model.complete(context);
+  const expected: Cost = { total: 2.5, basis: "catalog", currency: "USD", catalogAsOf: "2026-11-01" };
+  const estimated = { usage: usage({ uncachedInput: 1_000_000 }) };
+  assert.deepEqual(
+    (
+      await run([
+        { fail: "retryable", ...estimated },
+        { reply: "hi", cost: billed },
+      ])
+    ).cost,
+    expected,
+  );
+  assert.deepEqual(
+    (
+      await run([
+        { fail: "retryable", cost: billed },
+        { reply: "hi", ...estimated },
+      ])
+    ).cost,
+    expected,
+  );
+});
+
+test("a sum of provider bills alone stays labelled provider", async () => {
+  const billed: Cost = { total: 0.5, basis: "provider", currency: "USD" };
+  const { model } = pricedModel([
+    { fail: "retryable", cost: billed },
+    { reply: "hi", cost: billed },
+  ]);
+  assert.deepEqual((await model.complete(context)).cost, { total: 1, basis: "provider", currency: "USD" });
+});
+
+test("createModel() rejects a caller's catalog that pricing cannot use", () => {
+  const adapter = new FailingAdapter([]);
+  const outOfOrder = [{ ...FAKE_RATES, upToInputTokens: 20 }, { ...FAKE_RATES, upToInputTokens: 10 }, FAKE_RATES];
+  const bad: PriceCatalog[] = [
+    { models: [fakeEntry({ rates: outOfOrder })] },
+    { models: [fakeEntry({ rates: [{ ...FAKE_RATES, upToInputTokens: 10 }] })] },
+    { models: [fakeEntry({ rates: [{ ...FAKE_RATES, output: -1 }] })] },
+    { models: [fakeEntry({ rates: [{ ...FAKE_RATES, cacheRead: Number.NaN }] })] },
+  ];
+  for (const badCatalog of bad) {
+    assert.throws(
+      () => createModel({ adapter, id: "priced", catalog: badCatalog }),
+      (error) => isGatewayError(error) && error.code === "invalid_catalog",
+    );
+  }
 });
 
 test("the cacheRetention option reaches the adapter unchanged", async () => {
@@ -169,6 +245,29 @@ test("a context with a reported call starts from that call's input and output", 
   };
   // 1,000 reported input + 40 reported output + 25 characters of tool result.
   assert.equal(estimateInputTokens(later), 1040 + 10);
+});
+
+test("a retried call's estimate counts its last attempt's request, not every attempt's", async () => {
+  const request = usage({ uncachedInput: 900, cacheRead: 100 });
+  const { model } = pricedModel([
+    { fail: "retryable", usage: request },
+    { fail: "retryable", usage: request },
+    { reply: "hi", usage: { ...request, output: 40 } },
+  ]);
+  const reply = await model.complete(context);
+  assert.equal(reply.usage.uncachedInput, 2700);
+  assert.deepEqual(reply.lastAttemptUsage, { ...request, output: 40 });
+  const later: ModelContext = {
+    ...firstTurn,
+    messages: [...firstTurn.messages, reply, { role: "user", content: [{ type: "text", text: "r".repeat(25) }] }],
+  };
+  // 1,000 input + 40 output of the last request alone, plus 25 characters of the next user message.
+  assert.equal(estimateInputTokens(later), 1040 + 10);
+});
+
+test("a call that was not retried carries no lastAttemptUsage", async () => {
+  const { model } = pricedModel([{ reply: "hi", usage: usage({ uncachedInput: 10 }) }]);
+  assert.equal("lastAttemptUsage" in (await model.complete(context)), false);
 });
 
 test("projectCallCost() and projectCost() agree on one scripted context", () => {

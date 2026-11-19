@@ -32,6 +32,10 @@ export interface CatalogEntry {
   readonly id: string;
   /** The rate tiers, in ascending order of `upToInputTokens`. A model without long-context pricing has one tier. */
   readonly rates: readonly RateTier[];
+  /**
+   * The most input tokens one request can send: the context window, or the provider's lower input limit when its
+   * model page sets one inside the window.
+   */
   readonly contextWindow: number;
   readonly maxOutputTokens: number;
   /** Whether the model takes image input. Left out, the adapter's default applies. */
@@ -84,8 +88,10 @@ function url(value: unknown, where: string): string {
 
 function date(value: unknown, where: string): string {
   const s = text(value, where);
-  // A calendar check, so "2026-02-30" fails as well as "Nov 2026".
-  if (!/^\d{4}-\d{2}-\d{2}$/.test(s) || new Date(`${s}T00:00:00Z`).toISOString().slice(0, 10) !== s) {
+  // A calendar check, so "2026-02-30" fails as well as "Nov 2026". `Date.parse` is NaN for a month or day out of
+  // range, such as "2026-13-01", where `toISOString()` would throw a RangeError.
+  const time = /^\d{4}-\d{2}-\d{2}$/.test(s) ? Date.parse(`${s}T00:00:00Z`) : Number.NaN;
+  if (Number.isNaN(time) || new Date(time).toISOString().slice(0, 10) !== s) {
     fail(where, "must be a date in the form YYYY-MM-DD");
   }
   return s;

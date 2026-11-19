@@ -89,7 +89,8 @@ export interface CreateModelOptions {
   middleware?: readonly ModelMiddleware[];
   /**
    * Where `caps` and prices come from. Defaults to the catalog that ships with the gateway; a catalog you pass
-   * replaces it. A model missing from it gets the adapter's default caps and an unknown price.
+   * replaces it. A model missing from it gets the adapter's default caps and an unknown price. It is checked like
+   * `parseCatalog()`, so a malformed catalog throws a `GatewayError` with code `invalid_catalog`.
    */
   catalog?: PriceCatalog;
   /** Receives the full request before each attempt is sent. */
