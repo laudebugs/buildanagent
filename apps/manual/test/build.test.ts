@@ -449,7 +449,7 @@ test("the theme toggle is an icon button whose name says what a press does, and 
   assert.match(css, /\.theme-toggle\[data-mode=light\] \.theme-toggle__icon--moon/);
 });
 
-test("every page ends with a footer that links to the repository and the author's profiles", () => {
+test("every page ends with a footer whose links to the repository and the author's profiles open in a new window", () => {
   const links = [
     "https://github.com/laudebugs/buildanagent",
     "https://x.com/laudebugs",
@@ -463,7 +463,12 @@ test("every page ends with a footer that links to the repository and the author'
     );
     for (const href of links)
       assert.ok(footer.includes(`href="${href}"`), `${path}: the footer does not link to ${href}`);
-    assert.doesNotMatch(footer, /target="_blank"/, `${path}: an off-site link opens a new window`);
+    const anchors = footer.match(/<a\b[^>]*>/g) ?? [];
+    assert.equal(anchors.length, links.length, `${path}: the footer holds ${anchors.length} links`);
+    for (const anchor of anchors) {
+      assert.match(anchor, /target="_blank"/, `${path}: ${anchor} does not open a new window`);
+      assert.match(anchor, /rel="noopener noreferrer"/, `${path}: ${anchor} lacks rel="noopener noreferrer"`);
+    }
   }
 });
 

@@ -44,14 +44,17 @@ test("no stylesheet loads anything from another origin", () => {
 
 // The gallery shows the chapter layout inside each theme's section, so the columns must follow the width of their
 // container; a viewport media query would switch them on at widths the section does not have.
-// Prose keeps the measure while listings, figures, tables and tabs take the whole column beside the sidebar.
-test("prose keeps the measure and listings, figures, tables and tabs break out to the whole column", () => {
+// Prose keeps the measure while listings, figures, tables, tabs and boxes take the whole column beside the sidebar.
+test("prose keeps the measure and listings, figures, tables, tabs and boxes break out to the whole column", () => {
   const all = files
     .filter(({ path }) => path.endsWith(".css"))
     .map(({ text }) => text)
     .join("\n");
   assert.match(all, /\.article > \*\s*\{\s*max-width: var\(--measure\);/);
-  assert.match(all, /\.article > :is\(figure, \.listing-replay, \.tabs\)\s*\{\s*max-width: none;\s*clear: right;/);
+  assert.match(
+    all,
+    /\.article > :is\(figure, \.listing-replay, \.tabs, \.box\)\s*\{\s*max-width: none;\s*clear: right;/,
+  );
 });
 
 test("the chapter layout switches its columns with container queries, not viewport media queries", () => {
@@ -149,4 +152,19 @@ test("a chapter page caps its article at --article-max and is only as wide as it
   // 59.5rem is the measure, the 2.5rem gap and the side note, the width at which a side note floats.
   assert.match(tokens, /--measure: 42rem;/);
   assert.match(tokens, /--side-note-width: 15rem;/);
+});
+
+// The title runs to the article's right edge: the whole page width, less the "On this page" rail and its gap once the
+// rail is there (from 83rem, where the grid gives it a column).
+test("the chapter title stretches to where the article ends, with no character cap", () => {
+  const layout = files.find(({ path }) => path === "styles/layout.css")?.text ?? "";
+  assert.doesNotMatch(layout, /\.chapter-head__title\s*\{[^}]*max-width:\s*\d+ch/);
+  assert.match(
+    layout,
+    /@container layout \(min-width: 83rem\)\s*\{\s*\.chapter-head__title\s*\{\s*max-width:\s*calc\(100% - 15rem - 2\.5rem\);/,
+  );
+  assert.match(
+    layout,
+    /@container layout \(min-width: 83rem\)\s*\{\s*\.chapter-body\s*\{\s*grid-template-columns:\s*11rem minmax\(0, 1fr\) 15rem;/,
+  );
 });
