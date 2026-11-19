@@ -223,7 +223,8 @@ export class ScriptedModel implements ModelAdapter {
   }
 
   #withCallId(scripted: ContentBlock): ContentBlock {
-    if (scripted.type === "tool_call" && !scripted.callId) return { ...scripted, callId: this.#nextId() };
+    if (scripted.type === "tool_call" && !scripted.callId)
+      return { ...structuredClone(scripted), callId: this.#nextId() };
     return structuredClone(scripted);
   }
 
