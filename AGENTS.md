@@ -30,6 +30,7 @@ Instructions for AI coding agents (Claude Code, Codex, OpenCode, Pi, etc.) worki
   - `connectors/`: connectors for our agents and platform (`agent-connectors.md`): how platforms offer them, MCP authorization and token custody, build-or-buy infrastructure and a recommended design. It has its own `fact-check-*.md`.
   - `harness-architectures.md`: source-level notes on Pi, Codex, OpenAI Agents SDK sandbox agents and Cloudflare Agents/Think.
   - `fact-check-2026-11-18.md`: verification log for the main report.
+  - `source-update-2026-11-19.md`: what fourteen owner-chosen sources, most of them seeds the first round could not fetch, add to the main report, with proposed plan changes. It has its own `fact-check-source-update-2026-11-19.md`.
   - `notes/`: raw research notes behind the report. Treat them as working material; the report and fact-check log supersede them where they disagree.
 
 ## Working from the plans
