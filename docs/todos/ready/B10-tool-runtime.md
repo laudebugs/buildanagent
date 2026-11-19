@@ -6,7 +6,7 @@
 | Status | `ready` |
 | Plan | [Build SDK §4, Stage 3](../../plans/build-sdk.md#43-stage-3-builds-the-loop-its-tools-hooks-budget-and-signed-pauses) |
 | Round / milestone | Round B (build SDK), M5 |
-| Depends on | [B3](../done/B3-scripted-model.md), [B7](../done/B7-tool-name-table.md), [E1](../ongoing/E1-safety-core-outcomes.md) |
+| Depends on | [B3](../done/B3-scripted-model.md), [B7](../done/B7-tool-name-table.md), [E1](../done/E1-safety-core-outcomes.md) |
 | Size | M |
 
 ## Goal
@@ -70,7 +70,7 @@ Coercion rules (for example string to number) are ours; keep them minimal and li
 
 ## Revision (2026-11-18, SDK gaps)
 
-Gap 1 of the [close-sdk-gaps plan](../../plans/close-sdk-gaps.md#3-each-gap-the-todos-that-cover-it-and-what-changes) gives every write a typed outcome. When this todo defines `ToolResult`, add an optional `outcome?: WriteOutcome` field, typed by the safety package's [E1](../ongoing/E1-safety-core-outcomes.md), and these criteria:
+Gap 1 of the [close-sdk-gaps plan](../../plans/close-sdk-gaps.md#3-each-gap-the-todos-that-cover-it-and-what-changes) gives every write a typed outcome. When this todo defines `ToolResult`, add an optional `outcome?: WriteOutcome` field, typed by the safety package's [E1](../done/E1-safety-core-outcomes.md), and these criteria:
 
 - [ ] A tool that returns `outcome` with any kind except `applied` has `isError` set for the model, and the model-facing content includes the outcome sentence.
 - [ ] `outcome` round-trips through a `context` JSON serialisation.
