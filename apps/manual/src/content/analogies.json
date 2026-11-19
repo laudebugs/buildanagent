@@ -46,5 +46,13 @@
     "chapter": "talking-to-a-model",
     "illustration": "taxi-meter",
     "breaks": "Cached input is billed at a discount; a taxi has no such fare."
+  },
+  {
+    "id": "tour-guide-card",
+    "concept": "system prompt",
+    "analogy": "the briefing card a tour guide carries on every tour",
+    "chapter": "talking-to-a-model",
+    "illustration": null,
+    "breaks": "The model cannot ask what the card means, and a changed card breaks the cache."
   }
 ]

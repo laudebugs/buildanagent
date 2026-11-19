@@ -2,7 +2,7 @@
 title: "Talking to a model: messages, streams, tokens, instructions and model choice"
 summary: A model call sends the whole conversation and gets back one message, often as a stream of pieces, with a bill in four token classes. This chapter reads each part of that exchange, then shows what belongs in the system prompt, how to choose a model, and why thinking goes back to the model untouched.
 opening: code
-sources: [anthropic-working-with-messages, ai-sdk-prompts, anthropic-how-tool-use-works, ai-sdk-generating-text, ai-sdk-stream-text, langchain-streaming, copilot-streaming-events, anthropic-pricing, anthropic-thinking, anthropic-prompt-caching]
+sources: [anthropic-working-with-messages, ai-sdk-prompts, anthropic-how-tool-use-works, ai-sdk-generating-text, ai-sdk-stream-text, langchain-streaming, copilot-streaming-events, anthropic-pricing, anthropic-thinking, anthropic-prompt-caching, anthropic-effective-context-engineering, anthropic-prefix-checks]
 glossary: []
 switchTo: [B4, B5]
 ---
@@ -107,6 +107,24 @@ Two of those prices explain most agent bills. First, output costs five times as 
 The replay beside [[lst:stream-usage]] shows the request, the answer and every check passing, but not the counts themselves. This book's transcripts record no usage yet, so the counts in this section come from the example's checks, which assert each one.
 
 The taxi stops matching at the cache. A taxi has no fare for a stretch of road it drove an hour ago, but a model provider does: a cached input token is billed at a fraction of the uncached rate, and only while the cache holds it. By default a cache entry lives at least five minutes, and each read refreshes it [@anthropic-prompt-caching], so the discount rewards a conversation that keeps its front unchanged. The next section is about the part of the front that should never change.
+
+## Keep the system prompt short, and freeze it for the session
+
+A city tour guide carries :analogy[a briefing card on every tour]{#tour-guide-card}: the route, the meeting point, the three facts to tell at the cathedral, and which questions to pass on to the office. The card is short, because the guide reads it before every tour, and it stays the same all day. Today's weather and the size of this morning's group are not on it. The guide learns those at the meeting point.
+
+The system prompt is that card. It sits at the front of every request, so the model reads it, and you pay for it, on every call. Anthropic's advice on writing one names the target as "the minimal set of information that fully outlines your expected behavior" and adds at once that "minimal does not necessarily mean short" [@anthropic-effective-context-engineering]. The post places a good prompt at the "right altitude" between two failure modes. One is "hardcoding complex, brittle logic", and the other is "vague, high-level guidance that fails to give the LLM concrete signals for desired outputs". It also recommends organizing the prompt "into distinct sections", marked with XML tags or Markdown headers, and giving the model "diverse, canonical examples" instead of a list of every edge case.
+
+Take Chapter 1's order-status agent. In our view its card holds four things: who the agent is and whom it serves, the format of a reply, the policy it must follow, such as never promising a delivery date the carrier has not given, and one or two example exchanges. Three kinds of text stay off the card:
+
+- **Facts that change**, such as today's date or the customer's name and orders. They go in a later message, as the weather reaches the guide at the meeting point.
+- **Procedures for one kind of request**, such as handling a refund dispute. They load when that request arrives, so they do not cost tokens on every call.
+- **Rules that must hold every time.** A sentence in a prompt asks; only code can refuse. A rule such as "never refund more than the order total" belongs in the refund tool's own check, which [[ch:tools]] and [[ch:approvals-guardrails-and-injection]] build.
+
+The card stays frozen because two mechanisms read the front of the request as one unit. The first is the prompt cache. Anthropic builds its cache prefix in the order `tools`, `system`, then `messages`, and "Changes at each level invalidate that level and all subsequent levels" [@anthropic-prompt-caching]. With caching on, edit one word of the system prompt and the next call pays to write the system prompt and the whole conversation to the cache again. At Claude Sonnet 5.5's rates, as of November 2026, a 2,000-token system prompt read from the cache costs $0.0002, and written again it costs $0.005, twenty-five times as much, before the conversation behind it is counted [@anthropic-pricing].
+
+The second mechanism is stricter. On Anthropic's models with preserved thinking, each thinking block is checked against everything that came before it, and the check "fails if `system`, `tools`, or an earlier message changed after Claude produced a block" [@anthropic-prefix-checks]. Anthropic's own example is the one this section warns about: an app that puts today's date in its system prompt. "At midnight the date changes, and so does the prefix of the thinking already in the conversation", and the next request can fail. The fix the same page gives is the tour guide's: keep the system prompt as it was, and state the new date in a message at the end. On newer Claude models that message may even carry the `system` role, since a system message added mid-conversation "does not invalidate any cached prefix that came before it" [@anthropic-working-with-messages].
+
+The briefing card differs from a system prompt in two ways. A guide who finds a line on the card unclear can phone the office and ask; a model cannot ask what an instruction meant, so it acts on its best reading of the words. And a guide can cross out a line between tours at no cost, while a changed system prompt breaks the cache, and on some models the conversation's thinking, for every call that follows. Write the card carefully, then leave it alone until the session ends.
 
 ## Exercises
 

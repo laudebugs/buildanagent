@@ -204,5 +204,23 @@
     "kind": "docs",
     "asOf": "November 2026",
     "verifiedIn": "apps/manual/fact-checks/talking-to-a-model.md"
+  },
+  {
+    "id": "anthropic-effective-context-engineering",
+    "title": "Effective context engineering for AI agents",
+    "publisher": "Anthropic",
+    "url": "https://www.anthropic.com/engineering/effective-context-engineering-for-ai-agents",
+    "kind": "post",
+    "asOf": "November 2026",
+    "verifiedIn": "apps/manual/fact-checks/talking-to-a-model.md"
+  },
+  {
+    "id": "anthropic-prefix-checks",
+    "title": "Prefix checks on thinking blocks",
+    "publisher": "Claude API documentation",
+    "url": "https://platform.claude.com/docs/en/build-with-claude/preserved-thinking/prefix-checks",
+    "kind": "docs",
+    "asOf": "November 2026",
+    "verifiedIn": "apps/manual/fact-checks/talking-to-a-model.md"
   }
 ]
