@@ -575,6 +575,88 @@
   }
 }
 
+/* An isometric figure's card, which figures/lib/isokit.ts writes with the vendored anatomy kit. Its parts take the
+   kit's rules and the palette in anatomy.css; the card itself follows the book. The figure panel frames it, so it
+   draws no border, and its four corners use the code face at the label size. Like a flat figure, the drawing keeps
+   its natural size and the stage scrolls sideways where the panel is narrower. */
+.iso-figure {
+  width: max-content;
+  margin-inline: auto;
+}
+
+.iso-plate {
+  position: relative;
+  padding: 2.25rem 0.5rem;
+}
+
+.iso-plate-corners {
+  position: absolute;
+  inset: 0.25rem 0.5rem;
+  pointer-events: none;
+}
+
+.iso-plate-corner {
+  position: absolute;
+  font-family: var(--font-code);
+  font-size: var(--size-label);
+  line-height: 1;
+  letter-spacing: 0.04em;
+  white-space: nowrap;
+  color: var(--panel-comment);
+}
+
+.iso-plate-corner[data-corner="fig"] {
+  top: 0;
+  left: 0;
+  color: var(--panel-text);
+}
+
+.iso-plate-corner[data-corner="title"] {
+  top: 0;
+  right: 0;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+}
+
+.iso-plate-corner[data-corner="hint"] {
+  bottom: 0;
+  left: 0;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+}
+
+.iso-plate-corner[data-corner="readout"] {
+  right: 0;
+  bottom: 0;
+  color: var(--panel-text);
+  font-variant-numeric: tabular-nums;
+}
+
+.figure__stage--scroll svg.iso-svg {
+  width: auto;
+  max-width: none;
+  height: auto;
+}
+
+/* src/scripts/iso-figures.ts moves the lit part from step to step; the colour eases instead of jumping. */
+.iso-solid > path {
+  transition:
+    fill 0.4s var(--anatomy-ease),
+    stroke 0.4s var(--anatomy-ease);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .iso-solid > path {
+    transition: none;
+  }
+}
+
+.iso-figure__controls {
+  margin-top: 0.5rem;
+  padding-inline: 0.5rem;
+  color: var(--panel-text);
+}
+
 /* The note under an analogy illustration's caption that says where the analogy breaks. */
 .figure__breaks {
   margin-top: 0.35rem;

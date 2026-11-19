@@ -15,7 +15,10 @@ Run each from the repo root.
 | `pnpm --filter @buildanagent/manual check:book` | Checks the outline, the three registers and every chapter against the build's own rules, without building |
 | `pnpm --filter @buildanagent/manual book:switch-report` | Lists each written chapter's `switchTo` todos and which are done; `test` runs it too, and it never fails |
 | `pnpm --filter @buildanagent/manual tokens` | Regenerates `src/styles/tokens.css` from `book-tokens.json` |
-| `pnpm --filter @buildanagent/manual figures:build` | Runs every figure script, the book's and the two fixture books', and writes its SVG beside it |
+| `pnpm --filter @buildanagent/manual anatomy:css` | Regenerates `src/styles/anatomy.css` from the vendored anatomy kit's `iso.css` |
+| `pnpm --filter @buildanagent/manual figures:build` | Runs every figure script, the book's and the two fixture books', and writes its SVG or fragment beside it |
+| `pnpm --filter @buildanagent/manual figures:audit` | Proves every isometric figure with the anatomy skill's geometry audit and its line check in both themes; needs Chrome |
+| `pnpm --filter @buildanagent/manual exec wrangler dev` | Serves the built `dist/` locally as Cloudflare would, with the `_headers` rules and the 404 page; it needs no Cloudflare login |
 
 ## The outline places the chapter and gives it its number
 
@@ -229,7 +232,7 @@ A page shows a figure at its natural size, so its labels stay at 12 px, the appr
 
 The inlined drawing may hold only what the kit writes: `g`, `rect`, `path`, `circle` and `text` elements, the kit's attributes, and links to ids inside the figure. A script, an image, a `foreignObject`, a second `<style>`, an event handler or a link elsewhere fails the build, so a hand-edited SVG cannot put script or outside content on a page.
 
-The build and `check:book` fail, with the chapter's file and line, when a figure lacks its alt text or its caption, or holds anything besides one `::svg`. They also fail when its SVG is missing or was drawn for another figure. Figure numbers come from the outline, like every other block's.
+The build and `check:book` fail, with the chapter's file and line, when a figure lacks its alt text or its caption, or holds anything besides one `::svg` or `::viewer`. They also fail when its SVG is missing or was drawn for another figure. Figure numbers come from the outline, like every other block's.
 
 ### An analogy illustration names its register entry
 
@@ -242,6 +245,39 @@ An analogy illustration is a figure marked with the analogy it draws (BK22):
 ```
 
 The register entry must name this figure as its `illustration`, and the caption must start with the analogy's name. The page then adds a link from the caption to a note under it that says where the analogy breaks, taken from the entry's `breaks`. The build fails when the entry is missing or names another figure, when the caption starts with anything else, and when a figure that an entry names as its illustration lacks the mark. The sample is `test/fixtures/book/figures/first/ticket-rail.ts`. The site fixture places the same drawing, so the build test checks it on a built page. Both fixtures register the analogy in their own `analogies.json`. The analogy belongs to Chapter 1, whose todo adds it to the book's register when it writes the chapter.
+
+## An isometric figure is drawn with the anatomy skill and proved by its audits
+
+A few chapters get an isometric centerpiece, an interactive drawing of a small machine (BK10). Each is a script like a flat figure, but it draws with the anatomy skill vendored in [`.agents/skills/anatomy/`](../../.agents/skills/anatomy/SKILL.md), pinned at upstream commit `1482e84` ([THIRD-PARTY-NOTICES.md](../../THIRD-PARTY-NOTICES.md)). Read the skill's `SKILL.md` and `references/craft.md` before designing one. To add an isometric figure to a chapter:
+
+1. Write `figures/<chapter slug>/<figure id>.ts`. Its default export builds the camera with the kit's `fitProjection`, makes the audit's `recorder`, draws every part through `IsoParts` from [`figures/lib/isokit.ts`](figures/lib/isokit.ts), and returns an `IsoFigure` with the card's title, hint and readout. `IsoParts` draws each slab or cylinder with the kit and records the same shape for the audit, so the audit checks what the page shows. A part whose name starts with `stand.` is the ground, and every other part must rest on one that leads to it. The fixture book's [`loop-bench.ts`](test/fixtures/book/figures/first/loop-bench.ts) is the sample centerpiece.
+2. Run `figures:build`, which writes `<figure id>.html`, the kit's card around the drawing, beside the script. Commit both files; the staleness test covers fragments as it covers SVGs.
+3. Run `figures:audit`. For every isometric figure it runs the skill's geometry audit, which must print `audit passed`, then the skill's `scripts/lines.mjs` on a light and a dark check page, which must each print `line ends: 0`. The line check needs Chrome; set `CHROME_PATH` if the skill's search does not find it. The book's CI job runs the same command.
+4. Place the figure with `::viewer` where a flat figure has `::svg`:
+
+   ```markdown
+   :::figure[The agent loop's bench: context, model and tool, each with a lamp]{#loop-bench}
+   ::viewer{alt="An isometric bench with three stations: …"}
+   :::
+   ```
+
+The build inlines the fragment in the chapter, with no iframe, on the same scrolling stage as a flat figure, so the drawing keeps its natural size and its labels never shrink under 12 px. The alt text goes first, as a visually hidden paragraph, and the drawing itself is hidden from screen readers. The card's top-left corner shows the figure's number. The first paint is complete: the static page already shows the first step's part lit and its readout. Where parts carry `data-iso-step` and `data-iso-readout` attributes (pass them as `attributes` to `IsoParts`), [`src/scripts/iso-figures.ts`](src/scripts/iso-figures.ts) walks through the steps, moves the lit part and the readout, and adds Play and Next step buttons. It plays only while the card is on screen and starts paused when the reader prefers reduced motion. Without JavaScript the reader sees the first step and no buttons.
+
+The fragment may hold only what the kit writes for a card and its drawing. Its elements are `figure`, `div`, `span`, `svg`, `g`, `path`, `circle` and `text`, each with the attributes and values the kit writes, and its ids start with `<figure id>--`. Its `data-*` attributes come from a closed list, each with the values it may take: the kit's tones, shades, flags and card corners, the part names `isokit.ts` writes, and the step number and readout text that `iso-figures.ts` reads. Anything else fails the build, for example:
+
+- a script, an event handler, a link or a `url()`;
+- a style element or attribute;
+- an image, an iframe or a second drawing;
+- an entity the kit never writes, in text or in a value;
+- a self-closing tag outside the drawing, which HTML would ignore.
+
+Flat SVGs and fragments go through one checker, `src/book/markup.ts`, and each kind adds its own allowlist. Two kit helpers write inline styles, `fadeLineSvg` and pulsing dots, so a book figure cannot use them, because the page's content security policy allows no inline style.
+
+Ids need a prefix only when a page shows a figure twice. A chapter page shows each figure once, and figure ids are unique across the book, so a chapter's ids keep their names. The component gallery shows Chapter 1's centerpiece, `figures/call-workflow-loop/loop-bench`, once per theme, so each copy's ids take the theme as a prefix. Until T10 draws that figure the gallery leaves the item out; under `BOOK_FIXTURE_DIR` it shows the site fixture's sample, and the build test checks its prefixed ids.
+
+[`src/styles/anatomy.css`](src/styles/anatomy.css) gives the drawing its colours. `anatomy:css` generates it from the kit's `iso.css`: it keeps the kit's rules for parts, drops the kit's grey palettes, card and phone layout, and maps every `--anatomy-*` colour to the panel tokens of each mode, as [`src/design/anatomy-css.ts`](src/design/anatomy-css.ts) lists. `hi` is the panel text and `mid` the panel comment colour. The one lit part is outlined in the panel's terracotta and its faces are tinted with it, so even a small part reads as the lit one. The side shades and faint lines are `color-mix()` blends of panel tokens. The tops lighten toward the page colour, our choice: the page is lighter than the panel in both modes, while the panel's lighter tokens are text colours or, in dark mode, the decorative grid and border. No hex value leaves `tokens.css`. A test fails when the file is stale, so rerun `anatomy:css` after updating the vendored skill.
+
+An isometric analogy illustration is an isometric figure with the analogy mark, checked against the register like a flat one; the fixture book's [`tally-counter.ts`](test/fixtures/book/figures/first/tally-counter.ts) is the sample. The site fixture re-exports both samples, so the build test sees them on a built page, and `figures:audit` proves each drawing once.
 
 ## Glossary terms link on their first use
 
@@ -268,7 +304,7 @@ The chapter then marks each use with `:analogy[the ticket rail]{#kitchen-ticket-
 
 The outline checks, the three registers, the index that numbers blocks and the listing resolver live in `src/book/`, and the Markdown plugins that use them in `src/markdown/`. `check:book` loads the outline and the three registers, then renders every chapter through the build's own plugins and prints each problem as `file:line: message`. The tests run the same plugins on the fixture book in `test/fixtures/book/`, with one failing fixture for each rule `check:book` applies. That directory is also its own repository root, holding a workspace of one harness, `verify/demo-sdk`, whose example the second chapter lists. When the content model, a plugin, the outline, a register, another chapter's numbered blocks, a body's line offset, a listed file, its harness's pin or a replayed transcript change, `astro.config.mjs` clears Astro's content cache, so no chapter keeps stale numbers, links, listings or error lines.
 
-The build reads chapters from `src/content/chapters/` and their logs from `fact-checks/`, unless `BOOK_FIXTURE_DIR` names a directory that holds `chapters/`, `fact-checks/`, `figures/` and `analogies.json`; the build then reads all four from there. Only the tests set it, pointing it at `test/fixtures/site/` because the book has no chapter of its own yet, and any build that uses it says so on stderr. The book's `figures/` therefore holds only the book's own figures; the site fixture's scripts draw Chapter 1's figure and the ticket rail by importing their scripts. The citation, glossary and figure plugins, the strict schema, the text splitter, the figure kit and its staleness check are adapted from the owner's garment engineering textbook and are licensed Apache-2.0 only ([THIRD-PARTY-NOTICES.md](../../THIRD-PARTY-NOTICES.md)).
+The build reads chapters from `src/content/chapters/` and their logs from `fact-checks/`, unless `BOOK_FIXTURE_DIR` names a directory that holds `chapters/`, `fact-checks/`, `figures/` and `analogies.json`; the build then reads all four from there. Only the tests set it, pointing it at `test/fixtures/site/` because the book has no chapter of its own yet, and any build that uses it says so on stderr. The book's `figures/` therefore holds only the book's own figures; the site fixture's scripts draw Chapter 1's figure, the ticket rail and the two isometric samples by importing their scripts. The citation, glossary and figure plugins, the strict schema, the text splitter, the figure kit and its staleness check are adapted from the owner's garment engineering textbook and are licensed Apache-2.0 only ([THIRD-PARTY-NOTICES.md](../../THIRD-PARTY-NOTICES.md)).
 
 ## The tokens come from one JSON file
 
@@ -338,3 +374,50 @@ Each component in `src/components/` renders its full content with no script. A f
 - **Theme:** `ThemeToggle`, driven by `public/scripts/theme.js`, which applies a stored choice before the first paint. The button's label names its action, "Switch to light theme" or "Switch to dark theme", and follows the system setting while the reader has stored no choice.
 
 The gallery at `/gallery/` renders every component in both themes, one above the other at full width, so each shows the layout at the width a reader sees it. It stays out of the search index and carries `noindex`. Its citation and glossary samples link to the `/sources/` and `/glossary/` pages. The owner compares the gallery with the reference board after any design change.
+
+## The book deploys from main's workflow, and a pull request only ever gets a preview
+
+GitHub Actions publishes the book, not Cloudflare's own Git integration. Two workflows split the work so that no pull request can change a job that holds a Cloudflare token ([book plan BK15](../../docs/plans/build-book.md#bk15-an-assets-only-worker-on-a-custom-domain-behind-a-guard-and-a-switch-proposed)). First, `book-build.yml` builds the site with no secrets on every pull request and every push to `main`, and uploads `dist/` as the `book-dist` artifact. Second, `book-deploy.yml` runs after each build finishes. GitHub always runs that second workflow from the file on `main`, so editing it on a branch changes nothing until the branch merges.
+
+`book-deploy.yml` never checks out or runs a pull request's code. It takes the artifact and the build's commit SHA from the triggering run, and everything else from `main`: `wrangler.jsonc`, `public/_headers`, the scripts and Wrangler itself. It has four jobs. `resolve` runs first and decides which of the other three runs:
+
+1. **`resolve`** names no environment and holds no Cloudflare secret, so it has no secrets check. It asks GitHub's API whether a push is still `main`'s newest commit, which open pull requests have the build's commit as their head, or which closed pull request a `book-pr-closed` run belongs to. If the API call fails, the job fails and nothing deploys.
+2. **`production`** deploys to manual.buildanagent.fyi with `wrangler deploy`, from the `book-production` environment. It runs only for a push to `main` from this repository, only while the variable `BOOK_DEPLOY_ENABLED` is `true`, and only for `main`'s newest commit. A fork's branch named `main` never reaches it, and a running deploy is never cancelled.
+3. **`preview`** runs `wrangler preview --name pr-<number>` from the `book-preview` environment, for each open pull request into this repository whose head is the build's commit, a fork's included. A push to `main` gets no preview, because it already deploys production or is held back on purpose. The preview lives on `workers.dev` at `pr-<number>-buildanagent-manual.<account subdomain>.workers.dev`, which Cloudflare serves with `X-Robots-Tag: noindex`. Preview URLs are public, like the book.
+4. **`delete-preview`** runs `wrangler preview delete` from the `book-preview` environment when a pull request closes.
+
+Each pull request has its own queue, shared by its previews and its deletion. A preview and its deletion therefore never overlap, and no other pull request's run can replace one that is waiting.
+
+Before Wrangler runs, `scripts/stage-dist.mjs` checks the artifact, because a pull request's build may have put anything in it. The script reads the zip itself and refuses the whole artifact if an entry escapes `dist/`, is a symbolic link or a dot file, is a file Cloudflare reads as configuration (such as `_redirects`), or breaks Cloudflare's limits of 25 MiB per file and 20,000 files. It skips the artifact's own `_headers`, refuses a `_headers` directory, and writes `main`'s copy in its place.
+
+Next, `scripts/guard-deploy.mjs` refuses a deploy unless seven rules hold. Six are settings in `wrangler.jsonc`: exactly the one custom-domain route, no `main`, `assets.directory: "./dist"`, `not_found_handling: "404-page"`, `workers_dev: false` and `preview_urls: true`. The seventh is that `dist/_headers` matches `public/_headers`. Without `--config`, Wrangler looks for a `wrangler.json` in this directory and every one above it before it reads `wrangler.jsonc`, so every Wrangler call passes `--config wrangler.jsonc`. The guard also refuses when any other Wrangler config, or a `.wrangler/deploy/config.json` redirect, sits in `apps/manual/` or a directory above it. The guard is adapted from the owner's garment engineering textbook and is licensed Apache-2.0 only ([THIRD-PARTY-NOTICES.md](../../THIRD-PARTY-NOTICES.md)).
+
+Deleting a preview needs a third workflow, `book-pr-closed.yml`, because GitHub runs a `pull_request` workflow from the pull request's merge commit, so an unmerged branch supplies the file. A job there that held the preview token would run whatever a branch wrote into it, and a fork's run gets no secrets, so a fork's preview would never be deleted. `book-pr-closed.yml` therefore holds no secret and does nothing but finish. Its run starts `book-deploy.yml` from `main`, which finds the closed pull request through the API and deletes its preview.
+
+Every page gets the headers in [`public/_headers`](public/_headers). The content security policy allows only the book's own origin: scripts, styles, fonts, fetches and Pagefind's worker all come from it, and no inline script or style runs. Pagefind's search also needs `'wasm-unsafe-eval'` to compile its WebAssembly, and `data:` images for its search icon. `Strict-Transport-Security` keeps browsers on HTTPS for a year, for manual.buildanagent.fyi and any name under it; it leaves out `preload`. Files under `/_astro/`, whose names carry a content hash, are cached for a year.
+
+**A fork's preview runs the fork's own code in the browser.** The artifact is the fork's build, so its pages and scripts are whatever the fork wrote. They are served same-origin on the preview's own `workers.dev` hostname, under the account's subdomain, and the content security policy allows them there as it allows the book's own. BK15 accepted this so that every pull request, a fork's included, gets a preview. The book sets no cookies and has no sign-in, so a fork's script on a preview finds nothing of the book's to read.
+
+## What the owner sets up
+
+The owner creates every piece below; the workflows only use them, by these exact names. Until a piece exists, the job that needs it stops at its first step, which names the missing secret and links here. This repository can therefore merge the workflows before the setup is done.
+
+| Where | Name | What it holds or allows |
+| --- | --- | --- |
+| Cloudflare | the `buildanagent.fyi` zone | In the account both tokens belong to. `manual.buildanagent.fyi` must have no CNAME record, because Cloudflare refuses a custom domain on a hostname that has one |
+| Cloudflare | the Worker `buildanagent-manual` | Created once by hand, or by one first deploy with a short-lived token that has Workers Admin. Workers Editor cannot create a Worker, so neither stored token needs Admin |
+| GitHub environment | `book-production` | Deployment branches: protected branches only, which here means `main`. Secrets `CLOUDFLARE_API_TOKEN` and `CLOUDFLARE_ACCOUNT_ID` |
+| GitHub environment | `book-preview` | Deployment branches: protected branches only, which here means `main`. Secrets `CLOUDFLARE_API_TOKEN` and `CLOUDFLARE_ACCOUNT_ID`, its own token |
+| Production token, in `book-production` | An account-owned API token | Account › Workers › Editor, plus Zone › Workers Routes › Write on the `buildanagent.fyi` zone. Once the custom domain is attached, the zone permission can be removed until the domain changes |
+| Preview token, in `book-preview` | An account-owned API token | Account › Workers › Editor, scoped to the Worker `buildanagent-manual`, with no zone permission |
+| GitHub repository variable | `BOOK_DEPLOY_ENABLED` | `true` turns production deploys on |
+
+`CLOUDFLARE_ACCOUNT_ID` is the ID of the account that owns the zone and the Worker. Both tokens are account-owned, because Wrangler needs that kind for per-Worker permissions. Cloudflare's [Workers roles](https://developers.cloudflare.com/workers/authorization/workers/) page lists what each role allows.
+
+**`book-preview` must allow protected branches only, like `book-production`.** Its token holds Editor on the book's Worker, which can also deploy to production. Without the rule, any workflow on a branch of this repository could name `book-preview` and read that token. `book-deploy.yml` runs from `main`, so the rule leaves its previews working. The owner set it on 2026-11-19.
+
+One risk remains, accepted: the preview job handles a fork's artifact while it holds that token. Cloudflare's Workers roles have no permission for previews alone, so the token could also deploy the production Worker. The artifact check, the guard and `main`'s own Wrangler stand between the fork's files and the token, and no code from the artifact ever runs in the job.
+
+Before the first deploy, check by name that each environment holds both secrets and that both allow only protected branches. Then watch the first production deploy and one pull request's preview: the site should serve the book with the `_headers` values, and the preview should carry `X-Robots-Tag: noindex`.
+
+**To pause production,** set `BOOK_DEPLOY_ENABLED` to anything other than `true`, or delete it. Pushes to `main` still build the book and pull requests still get previews; the `production` job is skipped until the variable is `true` again.

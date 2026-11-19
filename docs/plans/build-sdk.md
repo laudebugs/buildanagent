@@ -1,13 +1,13 @@
-# Plan: build our agent SDK as two workspace packages, a gateway and a loop, in 24 todos tested offline against a scripted model
+# Plan: build our agent SDK as two workspace packages, a gateway and a loop, in 26 todos tested offline against a scripted model
 
-- **Status:** Draft (P1, 2026-11-18), revised on 2026-11-18 with the fixes from the [P4 review](reviews/plan-review.md), and on 2026-11-18 for three deployment targets: notes in D5 and D7, and tasks added to B10 and B17 ([ADR 0033](../decisions/0033-three-deployment-targets.md)). Revised on 2026-11-19 (plan review 2) to apply [ADR 0043](../decisions/0043-standalone-safety-core.md) and the [close-sdk-gaps plan](close-sdk-gaps.md): the signer, the input hash and the pending record now come from `@buildanagent/agent-safety`, the cost projection from the gateway, and Round E feeds B10, B14 and B15. Revised on 2026-11-19 from the voice (U20) and fine-tuning (U21) research, whose proposed changes the owner approved that day (owner decision 2026-11-19): §1 gains two non-goals, audio and realtime sessions and model training, and §4.5 adds B21 and B22 for the price catalog.
+- **Status:** Draft (P1, 2026-11-18), revised on 2026-11-18 with the fixes from the [P4 review](reviews/plan-review.md), and on 2026-11-18 for three deployment targets: notes in D5 and D7, and tasks added to B10 and B17 ([ADR 0033](../decisions/0033-three-deployment-targets.md)). Revised on 2026-11-19 (plan review 2) to apply [ADR 0043](../decisions/0043-standalone-safety-core.md) and the [close-sdk-gaps plan](close-sdk-gaps.md): the signer, the input hash and the pending record now come from `@buildanagent/agent-safety`, the cost projection from the gateway, and Round E feeds B10, B14 and B15. Revised on 2026-11-19 from the voice (U20) and fine-tuning (U21) research, whose proposed changes the owner approved that day (owner decision 2026-11-19): §1 gains two non-goals, audio and realtime sessions and model training, and §4.5 adds B21 and B22 for the price catalog. Revised on 2026-11-19 after B11: §4.3 adds B11b (turn-level retries) and B11c (raw provider events), two follow-ups that B11's outcome left without an owner.
 - **Date:** 2026-11-18
 - **Asked for by:** the project owner (2026-11-18), through the [implementation plans](implementation-plans.md#2-what-each-plan-contains)
 - **Builds on:** the [agent-SDK guide][g] (G1b), its [reference architecture][g11] and its [twelve open decisions][g12], plus the six seams that the [harness guide §1][hg1] needs from the SDK
 - **Decision records:** [ADRs 0001–0011](../decisions/README.md), and [ADR 0043](../decisions/0043-standalone-safety-core.md) (accepted, owner, 2026-11-18), which the [close-sdk-gaps plan](close-sdk-gaps.md) applies to D5, D9 and §3
 - **Todos:** Round B ("build SDK") on the [todo board](../todos/README.md); §4 lists them.
 
-The [agent-SDK guide][g] already settles the design: one in-process loop as a pure streaming function over a versioned single-method model gateway, every failure and pause returned to the caller as data, and a strict scripted test model shipped from the first release. The guide still left twelve decisions open, ranging from the package split to the tool-name rule ([guide §12][g12]). The harness plan (P2) will also build on this SDK through six seams, so any gap here becomes a workaround there ([harness guide §1][hg1]). This plan makes the twelve decisions and turns the reference architecture into two packages and 24 todos: 22 from P1, and B21 and B22, added from the fine-tuning research on 2026-11-19. Each todo is one reviewable batch with checkable acceptance criteria. It also gives the test strategy that keeps every todo offline. Nine decisions follow from the evidence, and the owner accepted the other three, D2, D5 and D8, on 2026-11-18. The owner also accepted D12 on 2026-11-19, after todo B7 confirmed its rule (§2). In one sentence: **build the gateway and the scripted test model first, then the loop, tools, hooks and pauses on top of them, and finish with a triage capstone that passes the same contract the eight reference capstones pass, so P2 can start on stable seams.**
+The [agent-SDK guide][g] already settles the design: one in-process loop as a pure streaming function over a versioned single-method model gateway, every failure and pause returned to the caller as data, and a strict scripted test model shipped from the first release. The guide still left twelve decisions open, ranging from the package split to the tool-name rule ([guide §12][g12]). The harness plan (P2) will also build on this SDK through six seams, so any gap here becomes a workaround there ([harness guide §1][hg1]). This plan makes the twelve decisions and turns the reference architecture into two packages and 26 todos: 22 from P1; B21 and B22, added from the fine-tuning research on 2026-11-19; and B11b and B11c, added as B11 follow-ups the same day. Each todo is one reviewable batch with checkable acceptance criteria. It also gives the test strategy that keeps every todo offline. Nine decisions follow from the evidence, and the owner accepted the other three, D2, D5 and D8, on 2026-11-18. The owner also accepted D12 on 2026-11-19, after todo B7 confirmed its rule (§2). In one sentence: **build the gateway and the scripted test model first, then the loop, tools, hooks and pauses on top of them, and finish with a triage capstone that passes the same contract the eight reference capstones pass, so P2 can start on stable seams.**
 
 ## 1. Goal and non-goals
 
@@ -351,6 +351,7 @@ interface ToolDefinition<I, S> {
   progressKey?(input: I): string;                     // D11 repeated-edit detection
   execution?: "inline" | "activity";                  // per-tool durable dispatch, for a later durable adapter
   firstParty?: boolean;                               // only first-party readOnlyHint affects scheduling
+  annotations?: { readOnlyHint?: boolean };           // revision (B12): MCP-style hints; scheduling trusts them only with firstParty
   repair?(e: { input: unknown; issues: SchemaIssue[] }): Promise<unknown | undefined>;
   formatError?(e: ToolFailure): ModelContent[];       // overrides the default "do not substitute a mock" text
   redactErrors?: boolean;                             // default false: replace a thrown error's message with a fixed line
@@ -542,6 +543,8 @@ declare function replayPairs(pairs: RecordedPair[]): ScriptedModel;   // rejects
 - `RunOptions` holds `model`, `tools`, `output`, `maxSteps`, `signal`, `modelOptions`, `clock` and `idGenerator`; the other options arrive with their todos. `Run` has `id`, `result`, `abort()` and iteration, and B13 and B16 add `on()`, `steer()` and `followUp()`.
 - `RunStoppedError` and `UnexpectedModelCallError` extend `SdkError`, and the gateway's `StreamContractError` and `ModelRequestsDisabledError` extend `GatewayError`, so each package keeps one error class ([typescript.md](../guidelines/typescript.md#each-package-has-one-error-class-with-a-typed-code)).
 
+**Revision (B12, 2026-11-19).** B12 adds two things to the sketch: `annotations: { readOnlyHint }` on `ToolDefinition`, which gives the sketch's `readOnlyHint` a home, and the `not_run` failure reason `sibling_failed`. A step's calls start together and their results are appended in model order; see [its outcome](../todos/done/B12-parallel-tools.md#outcome).
+
 ### 3.4 The seams P2 consumes
 
 The harness plan should use these names as written; P4 checks that it does ([implementation plans §3](implementation-plans.md#3-the-review-p4)). The first six are the seams of [harness guide §1][hg1]; the rest are what its sketches assume from the SDK.
@@ -591,7 +594,9 @@ The guide says to start with the gateway and the test model, because every other
 | --- | --- | --- | --- |
 | [B10](../todos/done/B10-tool-runtime.md) | Tool definitions, the validation pipeline and the validator check (D7) | B3, B7, E1 | M |
 | [B11](../todos/done/B11-loop-core.md) | Loop core: `run`, the closed event union, stop reasons, aborts and `runOrThrow` | B4, B10 | L |
-| [B12](../todos/ready/B12-parallel-tools.md) | Parallel tool scheduling, per-resource serialisation and sibling cancellation | B11 | M |
+| [B11b](../todos/ready/B11b-turn-retries.md) | Turn-level retries: the loop retries a retryable error that ends a turn (added 2026-11-19, a B11 follow-up) | B11 | M |
+| [B11c](../todos/ready/B11c-raw-provider-events.md) | Raw provider events: `includeRaw` and the `raw` event, from the adapters up to the loop (added 2026-11-19, a B11 follow-up) | B11, B4, B8, B9 | L |
+| [B12](../todos/done/B12-parallel-tools.md) | Parallel tool scheduling, per-resource serialisation and sibling cancellation | B11 | M |
 | [B13](../todos/ready/B13-interceptors-observers.md) | The six interceptors and observers | B11 | M |
 | [B14](../todos/ready/B14-budget-progress.md) | Pre-emptive USD budget, progress detection and the depth cap | B5, B13, E1 | M |
 | [B15](../todos/ready/B15-signed-pauses.md) | Signed pauses in the loop on the safety package's signers, and `createPendingRequest` | B13, E3 | M |
@@ -608,7 +613,7 @@ The guide says to start with the gateway and the test model, because every other
 | [B19b](../todos/ready/B19b-reference-loop.md) | The readable reference loop, passing the capstone | B19 | M |
 | [B20](../todos/ready/B20-versioning-docs.md) | Versioning policy, defaults hash, compiled docs, `llms.txt` and the export diffs | B17, B19 | M |
 
-The longest dependency chain runs B1 → B2 → B3 → B4 → B11 → B13 → B15 → B15b → B18 → B19 → B20, eleven todos. B6, B7, B10 and B19b can run beside it. Round E feeds this stage: E1 ─► B10 and B14, and E3 ─► B15 ([close-sdk-gaps plan §4](close-sdk-gaps.md#4-round-e-and-its-todos)). Weighted by size, E1 → B10 (two M todos) is longer than B4 (one M todo), so E1, not B4, sits on the loop's critical path. Three todos stay size L: the two adapters (B8, B9) and the loop core (B11).
+The longest dependency chain runs B1 → B2 → B3 → B4 → B11 → B13 → B15 → B15b → B18 → B19 → B20, eleven todos. B6, B7, B10 and B19b can run beside it. Round E feeds this stage: E1 ─► B10 and B14, and E3 ─► B15 ([close-sdk-gaps plan §4](close-sdk-gaps.md#4-round-e-and-its-todos)). Weighted by size, E1 → B10 (two M todos) is longer than B4 (one M todo), so E1, not B4, sits on the loop's critical path. Four todos are size L: the two adapters (B8, B9), the loop core (B11) and the raw events (B11c).
 
 ### 4.5 Two catalog todos from the fine-tuning research (added 2026-11-19)
 

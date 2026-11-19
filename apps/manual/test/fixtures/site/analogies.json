@@ -6,5 +6,13 @@
     "chapter": "call-workflow-loop",
     "illustration": "ticket-rail",
     "breaks": "A cook remembers yesterday's orders; a model sees only its context."
+  },
+  {
+    "id": "tally-counter",
+    "concept": "step cap",
+    "analogy": "a tally counter",
+    "chapter": "call-workflow-loop",
+    "illustration": "tally-counter",
+    "breaks": "A tally counter only counts; a step cap also stops the loop when the count reaches its limit."
   }
 ]

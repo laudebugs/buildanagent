@@ -173,6 +173,8 @@ export interface FigureOptions {
  * a label holds a glyph the embedded font lacks. `toSvg()` writes the file.
  */
 export class Figure {
+  /** The file a flat figure's script writes beside itself (a key of `figureFiles`). */
+  readonly file = "svg" as const;
   readonly id: string;
   readonly width: number;
   readonly height: number;
@@ -455,6 +457,11 @@ export class Figure {
    * stylesheets. `source` is the script's path from the repository root. The header comment never holds "--",
    * which XML forbids in a comment.
    */
+  /** What `figures:build` writes for this figure: its SVG file. */
+  draw(source: string): string {
+    return this.toSvg(source);
+  }
+
   toSvg(source: string): string {
     const font = figureFont();
     const tokens = readTokens();

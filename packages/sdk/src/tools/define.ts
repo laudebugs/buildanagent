@@ -9,6 +9,7 @@ import { type PreparedSchema, prepareSchema } from "./schema.js";
 import type { ToolDefinition, ToolResult } from "./types.js";
 
 const EXPOSURES: readonly string[] = ["direct", "deferred", "hidden"];
+const EXECUTION_MODES: readonly string[] = ["parallel", "sequential"];
 
 // Keyed by the frozen definition, so a schema is compiled once however many runs use the tool.
 const prepared = new WeakMap<object, PreparedSchema>();
@@ -41,6 +42,12 @@ export function preparedSchemaOf(tool: ToolDefinition<unknown, unknown>): Prepar
   if (tool.exposure !== undefined && !EXPOSURES.includes(tool.exposure)) {
     throw invalid(`tool "${name}": exposure must be "direct", "deferred" or "hidden"`);
   }
+  if (tool.executionMode !== undefined && !EXECUTION_MODES.includes(tool.executionMode)) {
+    throw invalid(`tool "${name}": executionMode must be "parallel" or "sequential"`);
+  }
+  if (tool.resourceKey !== undefined && typeof tool.resourceKey !== "function") {
+    throw invalid(`tool "${name}": resourceKey must be a function`);
+  }
   const schema = prepareSchema(name, tool.inputSchema);
   prepared.set(tool, schema);
   return schema;
@@ -51,8 +58,9 @@ export function preparedSchemaOf(tool: ToolDefinition<unknown, unknown>): Prepar
  *
  * Throws an `SdkError`, code `invalid_tool_definition`, when the name breaks the tool-name rule (1 to 64 characters
  * from `A-Z`, `a-z`, `0-9`, `_` and `-`), the description or `execute` is missing, `exposure` is not one of its three
- * values, a raw JSON Schema does not compile or names a draft other than 2020-12 or 7, or a Standard Schema cannot
- * describe itself as JSON Schema.
+ * values, `executionMode` is neither `parallel` nor `sequential`, `resourceKey` is not a function, a raw JSON Schema
+ * does not compile or names a draft other than 2020-12 or 7, or a Standard Schema cannot describe itself as JSON
+ * Schema.
  */
 export function defineTool<I, S = unknown>(definition: ToolDefinition<I, S>): ToolDefinition<I, S> {
   const tool = Object.freeze({ ...definition });
