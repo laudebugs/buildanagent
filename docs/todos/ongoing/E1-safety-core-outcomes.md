@@ -5,7 +5,7 @@
 | Field | Value |
 | --- | --- |
 | ID | `E1` |
-| Status | `ready` |
+| Status | `ongoing` |
 | Plan | [Close SDK gaps §4](../../plans/close-sdk-gaps.md#4-round-e-and-its-todos) |
 | Round / milestone | Round E (close the SDK gaps), M5e |
 | Depends on | [B1](../done/B1-sdk-workspace-scaffold.md) |

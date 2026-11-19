@@ -8,7 +8,7 @@
 | Status | `ready` |
 | Plan | [Close SDK gaps §4](../../plans/close-sdk-gaps.md#4-round-e-and-its-todos) |
 | Round / milestone | Round E (close the SDK gaps), M5e |
-| Depends on | [E1](E1-safety-core-outcomes.md) |
+| Depends on | [E1](../ongoing/E1-safety-core-outcomes.md) |
 | Size | M |
 
 ## Goal
