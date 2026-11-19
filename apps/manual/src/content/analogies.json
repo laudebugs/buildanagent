@@ -24,6 +24,38 @@
     "breaks": "A simulator answers the pilot's controls; a scripted mock replays only what was scripted, so it cannot surprise you the way a real model can."
   },
   {
+    "id": "news-ticker",
+    "concept": "streaming",
+    "analogy": "a news ticker",
+    "chapter": "talking-to-a-model",
+    "illustration": null,
+    "breaks": "The deltas are provisional; the message at the end is the one that counts."
+  },
+  {
+    "id": "taxi-meter",
+    "concept": "tokens and cost",
+    "analogy": "a taxi meter that runs on both legs of the trip",
+    "chapter": "talking-to-a-model",
+    "illustration": "taxi-meter",
+    "breaks": "Cached input is billed at a discount; a taxi has no such fare."
+  },
+  {
+    "id": "tour-guide-card",
+    "concept": "system prompt",
+    "analogy": "the briefing card a tour guide carries on every tour",
+    "chapter": "talking-to-a-model",
+    "illustration": null,
+    "breaks": "The model cannot ask what the card means, and a changed card breaks the cache."
+  },
+  {
+    "id": "casting-understudies",
+    "concept": "model choice",
+    "analogy": "casting the lead with the most experienced actor, then trying understudies in the same scenes",
+    "chapter": "talking-to-a-model",
+    "illustration": null,
+    "breaks": "A model does not improve with rehearsal; only the prompt and the evals do."
+  },
+  {
     "id": "counter-form",
     "concept": "tool schema",
     "analogy": "a form at a counter with labelled boxes",

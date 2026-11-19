@@ -121,6 +121,127 @@
     "verifiedIn": "apps/manual/fact-checks/call-workflow-loop.md"
   },
   {
+    "id": "anthropic-working-with-messages",
+    "title": "Using the Messages API",
+    "publisher": "Claude API documentation",
+    "url": "https://platform.claude.com/docs/en/build-with-claude/working-with-messages",
+    "kind": "docs",
+    "asOf": "November 2026",
+    "verifiedIn": "apps/manual/fact-checks/talking-to-a-model.md"
+  },
+  {
+    "id": "ai-sdk-prompts",
+    "title": "Prompts",
+    "publisher": "AI SDK documentation",
+    "url": "https://ai-sdk.dev/docs/foundations/prompts",
+    "kind": "docs",
+    "asOf": "November 2026",
+    "version": "ai@7.0.162",
+    "verifiedIn": "apps/manual/fact-checks/talking-to-a-model.md"
+  },
+  {
+    "id": "ai-sdk-generating-text",
+    "title": "Generating and Streaming Text",
+    "publisher": "AI SDK documentation",
+    "url": "https://ai-sdk.dev/docs/ai-sdk-core/generating-text",
+    "kind": "docs",
+    "asOf": "November 2026",
+    "version": "ai@7.0.162",
+    "verifiedIn": "apps/manual/fact-checks/talking-to-a-model.md"
+  },
+  {
+    "id": "ai-sdk-stream-text",
+    "title": "streamText",
+    "publisher": "AI SDK documentation",
+    "url": "https://ai-sdk.dev/docs/reference/ai-sdk-core/stream-text",
+    "kind": "docs",
+    "asOf": "November 2026",
+    "version": "ai@7.0.162",
+    "verifiedIn": "apps/manual/fact-checks/talking-to-a-model.md"
+  },
+  {
+    "id": "langchain-streaming",
+    "title": "Streaming",
+    "publisher": "LangChain documentation",
+    "url": "https://docs.langchain.com/oss/javascript/langchain/streaming",
+    "kind": "docs",
+    "asOf": "November 2026",
+    "verifiedIn": "apps/manual/fact-checks/talking-to-a-model.md"
+  },
+  {
+    "id": "copilot-streaming-events",
+    "title": "Streaming events",
+    "publisher": "GitHub Copilot SDK documentation",
+    "url": "https://github.com/github/copilot-sdk/blob/v1.0.31/docs/features/streaming-events.md",
+    "kind": "docs",
+    "asOf": "November 2026",
+    "version": "v1.0.31",
+    "verifiedIn": "apps/manual/fact-checks/talking-to-a-model.md"
+  },
+  {
+    "id": "anthropic-pricing",
+    "title": "Pricing",
+    "publisher": "Claude API documentation",
+    "url": "https://platform.claude.com/docs/en/about-claude/pricing",
+    "kind": "docs",
+    "asOf": "November 2026",
+    "verifiedIn": "apps/manual/fact-checks/talking-to-a-model.md"
+  },
+  {
+    "id": "anthropic-thinking",
+    "title": "Thinking",
+    "publisher": "Claude API documentation",
+    "url": "https://platform.claude.com/docs/en/build-with-claude/thinking",
+    "kind": "docs",
+    "asOf": "November 2026",
+    "verifiedIn": "apps/manual/fact-checks/talking-to-a-model.md"
+  },
+  {
+    "id": "anthropic-prompt-caching",
+    "title": "Prompt caching",
+    "publisher": "Claude API documentation",
+    "url": "https://platform.claude.com/docs/en/build-with-claude/prompt-caching",
+    "kind": "docs",
+    "asOf": "November 2026",
+    "verifiedIn": "apps/manual/fact-checks/talking-to-a-model.md"
+  },
+  {
+    "id": "anthropic-effective-context-engineering",
+    "title": "Effective context engineering for AI agents",
+    "publisher": "Anthropic",
+    "url": "https://www.anthropic.com/engineering/effective-context-engineering-for-ai-agents",
+    "kind": "post",
+    "asOf": "November 2026",
+    "verifiedIn": "apps/manual/fact-checks/talking-to-a-model.md"
+  },
+  {
+    "id": "anthropic-prefix-checks",
+    "title": "Prefix checks on thinking blocks",
+    "publisher": "Claude API documentation",
+    "url": "https://platform.claude.com/docs/en/build-with-claude/preserved-thinking/prefix-checks",
+    "kind": "docs",
+    "asOf": "November 2026",
+    "verifiedIn": "apps/manual/fact-checks/talking-to-a-model.md"
+  },
+  {
+    "id": "anthropic-preserved-thinking",
+    "title": "Preserved thinking",
+    "publisher": "Claude API documentation",
+    "url": "https://platform.claude.com/docs/en/build-with-claude/preserved-thinking",
+    "kind": "docs",
+    "asOf": "November 2026",
+    "verifiedIn": "apps/manual/fact-checks/talking-to-a-model.md"
+  },
+  {
+    "id": "anthropic-glossary",
+    "title": "Glossary",
+    "publisher": "Claude API documentation",
+    "url": "https://platform.claude.com/docs/en/about-claude/glossary",
+    "kind": "docs",
+    "asOf": "November 2026",
+    "verifiedIn": "apps/manual/fact-checks/talking-to-a-model.md"
+  },
+  {
     "id": "anthropic-writing-tools",
     "title": "Writing effective tools for AI agents",
     "publisher": "Anthropic",

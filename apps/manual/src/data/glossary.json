@@ -88,6 +88,36 @@
     "sources": ["anthropic-model-context-protocol"]
   },
   {
+    "id": "token",
+    "term": "token",
+    "definition": "The smallest unit a language model reads and writes, such as a word, part of a word or a character. Providers count a call's input and output in tokens and bill by the count.",
+    "sources": ["anthropic-glossary", "anthropic-pricing"]
+  },
+  {
+    "id": "system-prompt",
+    "term": "system prompt",
+    "definition": "The instructions a program sends at the front of every request, before the conversation, to set the model's role, output format and rules.",
+    "sources": ["ai-sdk-prompts"]
+  },
+  {
+    "id": "delta",
+    "term": "delta",
+    "definition": "One small piece of a streamed answer, sent as the model produces it. The client joins the deltas in order into one message.",
+    "sources": ["ai-sdk-stream-text"]
+  },
+  {
+    "id": "prompt-cache",
+    "term": "prompt cache",
+    "definition": "A provider's store of the front of earlier requests. A later request that starts the same way reads that part back at a lower price than uncached input.",
+    "sources": ["anthropic-prompt-caching"]
+  },
+  {
+    "id": "thinking-block",
+    "term": "thinking block",
+    "definition": "Part of a model's response that holds its reasoning, or a summary of it, with an encrypted signature. A program sends it back to the model unchanged on later requests.",
+    "sources": ["anthropic-thinking"]
+  },
+  {
     "id": "tool",
     "term": "tool",
     "definition": "A function your code offers a model by name, description and input schema. The model asks for a call with arguments; your code checks them, runs the function and sends the result back to the model.",
