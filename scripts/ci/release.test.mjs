@@ -34,6 +34,13 @@ describe("release.yml", () => {
     }
   });
 
+  test("job-level env reads no context GitHub rejects there", () => {
+    // GitHub refuses the whole workflow when a job's `env:` names the `runner` context, which only steps can read.
+    for (const [name, job] of Object.entries(jobs)) {
+      for (const value of Object.values(job.env ?? {})) assert.doesNotMatch(String(value), /runner\./, name);
+    }
+  });
+
   test("runs on pushes to main and on workflow_dispatch only", () => {
     assert.deepEqual(Object.keys(workflow.on).sort(), ["push", "workflow_dispatch"]);
     assert.deepEqual(workflow.on.push.branches, ["main"]);
@@ -64,7 +71,9 @@ describe("release.yml", () => {
       step.run,
       /npm publish "\$RELEASE_DIR\/buildanagent-\$pkg-\$VERSION\.tgz" --access public --provenance/,
     );
-    assert.match(jobs.publish.env.NPM_CONFIG_USERCONFIG, /^\$\{\{ runner\.temp \}\}\/npmrc$/);
+    const [first] = jobs.publish.steps;
+    assert.match(first.run, /^echo "registry=https:\/\/registry\.npmjs\.org\/" > "\$RUNNER_TEMP\/npmrc"$/m);
+    assert.match(first.run, /^ {2}echo "NPM_CONFIG_USERCONFIG=\$RUNNER_TEMP\/npmrc"$/m);
   });
 
   test("only the publish job can mint an OIDC token, and only the docs job can start workflows", () => {

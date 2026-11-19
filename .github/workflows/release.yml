@@ -170,12 +170,17 @@ jobs:
     env:
       VERSION: ${{ needs.plan.outputs.version }}
       TAG: ${{ needs.plan.outputs.tag }}
-      RELEASE_DIR: ${{ runner.temp }}/release
-      # npm reads only this file, which names the registry and holds no credentials, so there is no token to fall
-      # back on.
-      NPM_CONFIG_USERCONFIG: ${{ runner.temp }}/npmrc
-      NPM_CONFIG_GLOBALCONFIG: ${{ runner.temp }}/npmrc
     steps:
+      # npm then reads only this file, which names the registry and holds no credentials, so there is no token to
+      # fall back on. The paths go through $GITHUB_ENV because a job's `env:` can't read the `runner` context.
+      - name: Write an npm config with no credentials
+        run: |
+          echo "registry=https://registry.npmjs.org/" > "$RUNNER_TEMP/npmrc"
+          {
+            echo "RELEASE_DIR=$RUNNER_TEMP/release"
+            echo "NPM_CONFIG_USERCONFIG=$RUNNER_TEMP/npmrc"
+            echo "NPM_CONFIG_GLOBALCONFIG=$RUNNER_TEMP/npmrc"
+          } >> "$GITHUB_ENV"
       # No registry-url: setup-node would write an .npmrc that reads NODE_AUTH_TOKEN.
       - uses: actions/setup-node@v7.1.0
         with:
@@ -185,8 +190,6 @@ jobs:
         with:
           name: release
           path: ${{ runner.temp }}/release
-      - name: Write an npm config with no credentials
-        run: echo "registry=https://registry.npmjs.org/" > "$NPM_CONFIG_USERCONFIG"
       # Node 22 ships npm 10, and trusted publishing needs npm 11.5.1 or later.
       - run: npm install --global npm@11.21.2
       - name: Check the toolchain and that no npm token is present
