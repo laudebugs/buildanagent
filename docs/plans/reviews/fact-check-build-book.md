@@ -783,7 +783,7 @@ These rows check T7's vendored skill, its scripts, the fragment inliner, the CI 
 | --- | --- | --- | --- | --- |
 | 446 | `1482e84` is `1482e8469b0a9e0d8cc18ea2740a01423d29ae80`, committed on 2026-10-18, and the repository's licence is MIT, copyright 2026 Ryan | THIRD-PARTY-NOTICES.md, BK10, BK11 | ✅ | `gh api repos/wheresryan22/anatomy/commits/1482e84`: that sha, committer date 2026-10-18T20:20:24Z; `gh api …/license`: `MIT`; the tarball's `LICENSE` opens "MIT License … Copyright (c) 2026 Ryan" |
 | 447 | Upstream has no NOTICE file at that commit, so only LICENSE is copied | THIRD-PARTY-NOTICES.md, BK10 | ✏️ | The plan and the todo said T7 keeps "its LICENSE and NOTICE". `find -iname '*notice*'` over the 173-file tarball finds nothing, nor does the copy installed for the owner's agents; BK10 now says so |
-| 448 | The vendored folder holds 138 files, about 2 MB, each byte-identical to the tarball's; the 16 built example pages, the 9 PDFs and the 10 files of `.github/` are left out, 25.7 MB together | THIRD-PARTY-NOTICES.md, BK11, commit | ✅ | `diff -rq` between the tarball and `.agents/skills/anatomy/` lists only "Only in" lines for those 35 files; `find … -type f` counts 173 and 138; the copy is 1,974,123 bytes, the left-out pages and PDFs 25,511,321 and `.github/` 162,907 |
+| 448 | The vendored folder held 138 files, about 2 MB, at `85a6594` (132 files, 1.9 MB, since `cea8455` left out six publishing files; row 477), each byte-identical to the tarball's; the 16 built example pages, the 9 PDFs and the 10 files of `.github/` are left out, 25.7 MB together | THIRD-PARTY-NOTICES.md, BK11, commit | ✅ | `diff -rq` between the tarball and `.agents/skills/anatomy/` lists only "Only in" lines for those 35 files; `find … -type f` counts 173 and 138; the copy is 1,974,123 bytes, the left-out pages and PDFs 25,511,321 and `.github/` 162,907 |
 | 449 | `scripts/lines.mjs` only starts `scripts/drive.mjs`, which launches a local headless Chrome with a temporary profile it deletes, talks to it over the DevTools port on 127.0.0.1, adds `--no-sandbox` on Linux and writes a PNG only where `--out` names one | Report, README | ✅ | `lines.mjs` (31 lines) spawns `drive.mjs` with `["wait"]` and `["lines"]` actions; `drive.mjs` lines 135–140 (Chrome flags, `rmSync(profile)`), its only `fetch` is `http://127.0.0.1:${port}/json/new`, and `save()` writes only the `shot`, `sheet`, `orbit` and `lines --out` files |
 | 450 | `kit/audit.mjs` imports only the kit's own modules, touches no file or network, prints `audit passed` or `audit failed: N problems` and sets `process.exitCode = 1` on a failure | `isokit.ts`, README | ✅ | Its three imports (lines 1–3); no `fs`, `child_process` or `fetch` in the file; `auditOrExit`, lines 1902–1913 |
 | 451 | An example's `build.mjs` writes only its own page beside itself | Report | ✅ | `examples/dial-indicator/build.mjs` line 274 and `examples/push-button/build.mjs` line 312 call `writeFileSync(join(HERE, …))` once; the book never runs them |
@@ -827,4 +827,13 @@ The medium review of PR #80 found row 475's count wrong; the fix moved the galle
 | --- | --- | --- | --- | --- |
 | 476 | Row 475, corrected: `test/isometric.test.ts` refuses 31 crafted fragments, not 32: 27 in its `cases` list and 4 in separate `assert.throws` calls (an `onload` handler, a self-closing `<span/>`, a `style` attribute on the card and a second card) | Row 475, Outcome | ✏️ | Counted in the test file at `b8caa04`; row 475 and the T7 Outcome now say 31 |
 
-**Totals:** 476 claims: 420 ✅, 56 ✏️, 0 ⚠️.
+
+### T7's second review round, low effort
+
+The low review of PR #80 found row 448's file count stale after the owner's publishing decision removed six files.
+
+| # | Claim | Where | Verdict | Source and reason |
+| --- | --- | --- | --- | --- |
+| 477 | Row 448, corrected: after `cea8455` removed the six publishing and session files, the vendored folder holds 132 files, 1,933,216 bytes (1.9 MB); the 138 files and about 2 MB were true only at `85a6594` | Row 448 | ✏️ | `find .agents/skills/anatomy -type f` counts 132, and their bytes sum to 1,933,216; row 448 now gives both counts |
+
+**Totals:** 477 claims: 420 ✅, 57 ✏️, 0 ⚠️.
