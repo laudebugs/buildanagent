@@ -2,7 +2,7 @@
 // script per example with an allowlisted environment, so workerd (a child of this process)
 // inherits no credentials.
 // Usage: node scripts/worker-run.mjs <job.json>
-//   job: { file, mode: "probe" | "test", durableObjects: { binding: className }, compatibilityFlags }
+//   job: { file, mode: "probe" | "test", durableObjects: { binding: className }, compatibilityFlags, live }
 import { readFile } from "node:fs/promises";
 import { start } from "./workerd.mjs";
 
@@ -20,11 +20,15 @@ const out = (result) => console.log(`__RESULT__${JSON.stringify(result)}`);
 let mf;
 const evicted = [];
 try {
+  // A live run answers the Worker's model calls here, outside workerd, through the fetch the guard above leaves
+  // alone (scripts/live-model.mjs). Importing it takes the key out of the environment before workerd starts.
+  const liveModel = job.live ? (await import("./live-model.mjs")).liveModel(realFetch) : undefined;
   const started = start(job.file, {
     durableObjects: job.durableObjects,
     compatibilityFlags: job.compatibilityFlags,
     vars: job.vars,
     onEvict: (c) => evicted.push(c),
+    liveModel,
   });
   mf = started.mf;
   try {

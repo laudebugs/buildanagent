@@ -1,0 +1,53 @@
+{
+  "cap": 1,
+  "target": 0.5,
+  "examples": [
+    {
+      "file": "verify/vercel-ai-sdk/examples/09-triage-agent.ts",
+      "provider": "anthropic",
+      "model": "claude-haiku-5-5",
+      "maxTokens": 1024,
+      "calls": 6
+    },
+    {
+      "file": "verify/langchain/examples/10-triage-agent.ts",
+      "provider": "anthropic",
+      "model": "claude-haiku-5-5",
+      "maxTokens": 1024,
+      "calls": 6
+    },
+    {
+      "file": "verify/pi/examples/08-triage-agent.ts",
+      "provider": "anthropic",
+      "model": "claude-haiku-5-5",
+      "maxTokens": 1024,
+      "calls": 6
+    },
+    {
+      "file": "verify/openai-agents-sdk/examples/09-triage-agent.ts",
+      "provider": "openai",
+      "model": "gpt-5.4-mini",
+      "maxTokens": 2048,
+      "calls": 6
+    },
+    {
+      "file": "verify/cloudflare-agents/examples/09-triage-agent.ts",
+      "provider": "openai",
+      "model": "gpt-5.4-mini",
+      "maxTokens": 2048,
+      "calls": 6
+    }
+  ],
+  "projection": {
+    "inputTokensPerCall": 8000,
+    "catalogAsOf": "2026-11-19",
+    "examples": {
+      "verify/vercel-ai-sdk/examples/09-triage-agent.ts": 0.0127,
+      "verify/langchain/examples/10-triage-agent.ts": 0.0127,
+      "verify/pi/examples/08-triage-agent.ts": 0.0127,
+      "verify/openai-agents-sdk/examples/09-triage-agent.ts": 0.0913,
+      "verify/cloudflare-agents/examples/09-triage-agent.ts": 0.0913
+    },
+    "total": 0.2207
+  }
+}

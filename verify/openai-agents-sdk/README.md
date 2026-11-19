@@ -24,6 +24,10 @@ Recording only reads what the mock already holds, so it changes no verdict. The 
 
 Commit the transcripts with the change that alters them, unlike a regenerated `run-examples.json`, which holds local paths and is restored before committing. CI's results-drift check fails when a committed transcript differs from the one a fresh run writes, and the book's replays read these files ([replays](../../apps/manual/README.md#a-replay-steps-through-a-recorded-run)).
 
+## A live run sends one example to a real provider
+
+The book's occasional live run ([`scripts/live/`](../../scripts/live/), started only by `.github/workflows/live-run.yml`) calls `scripts/run-examples.mjs examples --only <example> --live`. In that mode the runner preloads `examples/lib/live-register.mjs`, a Node.js resolve hook that hands every import of `@openai/agents/testing` in `examples/` the module `examples/lib/live.ts`. Its `ScriptedModel` ignores the script it is given and answers each call from the Responses API through the pinned `@openai/agents-openai`, with the key passed explicitly. The example's `calls`, `firstCall`, `lastCall` and `assertComplete()` therefore work as they do against a script. Each call has its output capped at the run's `maxTokens`, is refused when it offers a hosted tool such as shell, computer use or code interpreter, and goes through the cost guard first. The answer keeps only its output and usage, without the response and request ids, and the transcript goes to `results/live/<example>.json`. Without `--live`, nothing in the live mode runs, so `pnpm test` and the committed transcripts are unchanged.
+
 ## Scripts
 
 | Command | Does |
