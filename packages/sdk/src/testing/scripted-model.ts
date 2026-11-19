@@ -16,6 +16,7 @@ import {
   type ContentBlock,
   emptyUsage,
   type ModelAdapter,
+  type ModelCaps,
   type ModelContext,
   type ModelEvent,
   type ModelRef,
@@ -52,7 +53,11 @@ export interface ScriptedModelOptions {
   ref?: Partial<ModelRef>;
   /** Fills in missing tool-call ids. Default `call-1`, `call-2`, … */
   idGenerator?: () => string;
+  /** The caps `createModel()` gives this model. Default: 200,000-token window, 32,000 output tokens, images, reasoning. */
+  caps?: ModelCaps;
 }
+
+const DEFAULT_CAPS: ModelCaps = { contextWindow: 200_000, maxOutputTokens: 32_000, images: true, reasoning: true };
 
 export class UnexpectedModelCallError extends Error {
   override readonly name = "UnexpectedModelCallError";
@@ -117,6 +122,7 @@ export class ScriptedModel implements ModelAdapter {
   readonly specificationVersion = "v1" as const;
   readonly api: string;
   readonly provider: string;
+  readonly defaultCaps: ModelCaps;
   readonly #steps: ScriptStep[];
   readonly #calls: RecordedRequest[] = [];
   readonly #chunkSize: number;
@@ -130,6 +136,7 @@ export class ScriptedModel implements ModelAdapter {
     this.#chunkSize = chunkSize;
     this.api = options.ref?.api ?? "scripted";
     this.provider = options.ref?.provider ?? "scripted";
+    this.defaultCaps = { ...(options.caps ?? DEFAULT_CAPS) };
     let n = 0;
     this.#nextId = options.idGenerator ?? (() => `call-${++n}`);
   }
