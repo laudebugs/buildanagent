@@ -1,4 +1,4 @@
-# L4a: Make the packages public, bootstrap them on npm if needed, and add the trusted publishers
+# L4a: Make the packages public and confirm their npm placeholders
 
 | Field | Value |
 | --- | --- |
@@ -11,11 +11,11 @@
 
 ## Goal
 
-Get both packages ready for trusted publishing, so L4b can ship 0.1.0 within npm's 2-day window ([PB1](../../plans/publish-and-docs.md#pb1-ship-010-once-a-model-call-works-accepted), [PB2](../../plans/publish-and-docs.md#pb2-changesets-in-one-fixed-group-published-only-from-ci-accepted), ADR 0047).
+Make both packages publishable and confirm that npm still holds them as PB2 records, so L4b can add the trusted publishers and ship 0.1.0 the same day ([PB1](../../plans/publish-and-docs.md#pb1-ship-010-once-a-model-call-works-accepted), [PB2](../../plans/publish-and-docs.md#pb2-changesets-in-one-fixed-group-published-only-from-ci-accepted), ADR 0047).
 
 ## Context
 
-- [PB2](../../plans/publish-and-docs.md#pb2-changesets-in-one-fixed-group-published-only-from-ci-accepted): the first publish and the bootstrap path
+- [PB2](../../plans/publish-and-docs.md#pb2-changesets-in-one-fixed-group-published-only-from-ci-accepted): the placeholders the owner published on 2026-11-19
 - The owner's setup in [§3](../../plans/publish-and-docs.md#3-what-the-owner-sets-up)
 - [npm trusted publishing](https://docs.npmjs.com/trusted-publishers): a new trusted publisher expires unless it publishes within 2 days
 
@@ -24,20 +24,17 @@ Get both packages ready for trusted publishing, so L4b can ship 0.1.0 within npm
 **In scope**
 
 - Remove `private: true` from both packages
-- Check whether npm lets the owner add a trusted publisher before a package exists, and record the answer in the CI plan
-- If it doesn't: the owner saves a one-time granular token as `NPM_BOOTSTRAP_TOKEN`, L3's `bootstrap` job publishes `0.0.0-bootstrap.0` of each package under the `bootstrap` dist-tag with provenance, and the placeholder is deprecated straight away with a message to wait for 0.1.0
-- The owner adds a trusted publisher to each package (user `laudebugs`, repository `buildanagent`, workflow `release.yml`, environment `release`)
-- The pull request description records the date the trusted publishers were added, which starts L4b's 2-day window
+- Confirm with `npm view` that each package still has only its two deprecated placeholders and that `latest` points at `0.0.0-bootstrap.0`, and record the output in the pull request description
+- Record in the CI plan that npm needs a package to exist before a trusted publisher can be added, citing npm's `trust` docs
 
 **Out of scope** (and which todo covers it)
 
-- Publishing 0.1.0, switching on the changeset gate, removing the bootstrap path (L4b)
+- Adding the trusted publishers, publishing 0.1.0 and switching on the changeset gate (L4b)
 
 ## Acceptance criteria
 
 - [ ] Both packages' `package.json` files have no `private` field
-- [ ] npmjs.com shows a trusted publisher for both packages, naming `release.yml` and the `release` environment
-- [ ] If the bootstrap ran: `npm view @buildanagent/gateway@0.0.0-bootstrap.0` shows the placeholder, deprecated, with provenance
+- [ ] `npm view @buildanagent/gateway versions dist-tags deprecated` and the same for `@buildanagent/sdk` show `0.0.0-bootstrap.0` and `0.0.0-stage`, `latest` on `0.0.0-bootstrap.0`, and the deprecation message
 - [ ] `pnpm check`, `pnpm typecheck` and `pnpm test` pass offline from the repo root
 
 ## Tests
