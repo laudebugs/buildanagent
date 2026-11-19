@@ -79,5 +79,23 @@
     "ms": 385,
     "modelCalls": 0,
     "tail": "ok - step 1 looks up the order\nok - the refund waits for approval\nok - no refund before approval\nok - after approval the refund runs exactly once\nok - the agent returns a typed triage record\nok - three model calls in all: lookup, refund request, final answer\nok - the final call asks for JSON\nRefunded A-1 after a double charge."
+  },
+  {
+    "id": "10-streaming-usage",
+    "file": "/home/user/agent-speak/verify/vercel-ai-sdk/examples/10-streaming-usage.ts",
+    "outcome": "ran",
+    "exit": 0,
+    "ms": 299,
+    "modelCalls": 0,
+    "tail": "ok - result.text equals the folded deltas\nok - input tokens total the three input classes (3,000)\nok - usage reports the uncached input tokens (1,000)\nok - usage reports the cache-read tokens (1,500)\nok - usage reports the cache-write tokens (500)\nok - usage reports the output tokens (200)\nok - the four classes cost 5,400,000 nano-dollars ($0.0054)\nok - billing every input token at the uncached rate would cost more"
+  },
+  {
+    "id": "11-tuned-vs-cached",
+    "file": "/home/user/agent-speak/verify/vercel-ai-sdk/examples/11-tuned-vs-cached.ts",
+    "outcome": "ran",
+    "exit": 0,
+    "ms": 299,
+    "modelCalls": 0,
+    "tail": "ok - the uncached base call costs $0.00216\nok - the base call with its prefix cached costs $0.00096\nok - the tuned call costs $0.00112\nok - the tuned model pays twice the base rate on every token class\nok - the uncached base call costs more than the tuned call\nok - the cached base call costs less than the tuned call\nok - against the uncached prompt, a $30 training run breaks even after 28,847 requests\nok - against the cached prompt, the training run never breaks even"
   }
 ]
