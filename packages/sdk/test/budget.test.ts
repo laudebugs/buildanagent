@@ -135,6 +135,8 @@ test("a run whose next call would cross the cap ends budget before that call", a
   assert.ok(result.spentUsd <= budgetUsd);
   assert.ok(result.spentUsd + result.projectedUsd > budgetUsd);
   assert.match(result.reason, /passes the budget/);
+  // The amounts in the reason are rounded, so float noise from summing costs doesn't reach the message.
+  assert.doesNotMatch(result.reason, /\d{8,}/);
   assert.equal(events.filter((e) => e.type === "model_call_start").length, 10);
   assert.equal(events.at(-1)?.type, "run_end");
 });

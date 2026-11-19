@@ -29,6 +29,7 @@ import type { AgentEventBody } from "./events.js";
 import type { StopVerdict } from "./hook-checks.js";
 import { HookFailure, HookRunner } from "./hook-runner.js";
 import type { CallOptions, Interceptors, ModelCallPatch } from "./hooks.js";
+import type { ProgressCheck } from "./progress.js";
 import type { RunError, RunResult } from "./result.js";
 import type { Clock } from "./testing/determinism.js";
 import { toWireTool } from "./tools/define.js";
@@ -67,6 +68,8 @@ export interface LoopSetup {
   readonly maxDepth: number;
   readonly modelOptions: CallOptions;
   readonly interceptors: Interceptors;
+  /** The default progress policy, run after the caller's `shouldStop`, or `undefined` when it is off (D11). */
+  readonly progress?: ProgressCheck;
   readonly signal: AbortSignal;
   readonly clock: Clock;
 }
@@ -432,7 +435,17 @@ async function decide(
   const endedByAnswer = natural?.stopReason === "done" && results.length === 0;
   if (natural !== undefined && !endedByAnswer) return natural;
   const verdict = await state.hooks.shouldStop({ messages: state.messages, lastMessage: message });
-  return withVerdict(state, natural, verdict);
+  return withVerdict(state, natural, await withProgress(state, verdict));
+}
+
+/**
+ * The caller's verdict, unless the progress policy finds the run stuck. A caller's own stop stands, and a caller's
+ * `{ continue }` or failed hook can't keep a stuck run going.
+ */
+async function withProgress(state: LoopState, verdict: StopVerdict): Promise<StopVerdict> {
+  if (verdict.kind === "stop" || verdict.kind === "no_progress" || state.setup.progress === undefined) return verdict;
+  const reason = await state.setup.progress(state.messages);
+  return reason === undefined ? verdict : { kind: "no_progress", reason };
 }
 
 /** The outcome of a hook that failed while the run fails closed. A failure caused by an abort ends the run aborted. */

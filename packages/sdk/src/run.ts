@@ -5,13 +5,12 @@
  */
 import type { ContentBlock, Message, Model } from "@buildanagent/gateway";
 import { checkBudgetOption } from "./budget.js";
-import { composeInterceptors } from "./compose.js";
 import { RunStoppedError, SdkError } from "./errors.js";
 import type { AgentEvent, AgentEventBody } from "./events.js";
 import type { CallOptions, Interceptors, Observer } from "./hooks.js";
 import { type LoopSetup, runLoop } from "./loop.js";
 import { ObserverBus } from "./observers.js";
-import { type ProgressPolicy, progressInterceptors, resolveProgress } from "./progress.js";
+import { type ProgressCheck, type ProgressPolicy, progressCheck, resolveProgress } from "./progress.js";
 import type { Context, DoneResult, RunResult } from "./result.js";
 import type { Clock } from "./testing/determinism.js";
 import { preparedSchemaOf } from "./tools/define.js";
@@ -55,7 +54,7 @@ export interface RunOptions<S = unknown> {
   /**
    * The most the run's model calls may cost, in USD. Before each call the run projects its cost with
    * `projectCallCost()` and, if the spend so far plus that projection would pass the cap, ends with
-   * `stopReason: "budget"` without making the call (D9). The cap counts the calls this run makes, not the cost of the
+   * `stopReason: "budget"` without making the call. The cap counts the calls this run makes, not the cost of the
    * history a `continueRun()` starts from. A budgeted run on a model whose price is unknown ends `error` with
    * `error.kind: "unknown_price"` before its first call, because it could not tell what it spent. Without it, a run
    * has no cap.
@@ -63,8 +62,9 @@ export interface RunOptions<S = unknown> {
   readonly budgetUsd?: number;
   /**
    * The default progress policy: the run ends `no_progress` after 3 identical failing tool calls in a row, or after 5
-   * calls to a tool with one `progressKey` and no success between them (D11). Pass numbers to change either
-   * threshold, or `false` to turn the policy off.
+   * calls to a tool with one `progressKey` and no success between them. It runs after your own `shouldStop`, whose
+   * `{ continue }` can't keep a stuck run going. Pass numbers to change either threshold, or `false` to turn the
+   * policy off.
    */
   readonly progress?: ProgressPolicy | false;
   /**
@@ -339,19 +339,12 @@ function depthsOf(options: RunOptions<unknown>): { depth: number; maxDepth: numb
 }
 
 /**
- * The run's interceptors: the caller's, then the default progress policy, which joins last so a caller's
- * `{ continue }` can't keep a stuck run going. The policy takes the caller's `onFailure`, so it never loosens or
- * tightens it. `skip` is the number of messages before the run's own.
+ * The default progress policy for this run, or `undefined` when `progress: false` turns it off. `skip` is the number
+ * of messages before the run's own.
  */
-function interceptorsOf(options: RunOptions<unknown>, tools: readonly AnyTool[], skip: number): Interceptors {
-  const own = checkInterceptors(options.interceptors ?? {});
+function progressOf(options: RunOptions<unknown>, tools: readonly AnyTool[], skip: number): ProgressCheck | undefined {
   const policy = resolveProgress(options.progress);
-  if (policy === undefined) return own;
-  const progress = progressInterceptors(tools, policy, skip);
-  return composeInterceptors(own, {
-    ...progress,
-    ...(own.onFailure === undefined ? {} : { onFailure: own.onFailure }),
-  });
+  return policy === undefined ? undefined : progressCheck(tools, policy, skip);
 }
 
 function setupOf(options: RunOptions<unknown>, context: Context, input: readonly Message[]): Omit<LoopSetup, "signal"> {
@@ -368,6 +361,7 @@ function setupOf(options: RunOptions<unknown>, context: Context, input: readonly
   const budgetUsd = checkBudgetOption(options.budgetUsd);
   const tools = toolsOf(options);
   const { depth, maxDepth } = depthsOf(options);
+  const progress = progressOf(options, tools, context.messages.length + input.length);
   if (options.output !== undefined && (options.output.exposure ?? "direct") !== "direct") {
     throw new SdkError(
       "invalid_run_options",
@@ -387,7 +381,8 @@ function setupOf(options: RunOptions<unknown>, context: Context, input: readonly
     depth,
     maxDepth,
     modelOptions: options.modelOptions ?? {},
-    interceptors: interceptorsOf(options, tools, context.messages.length + input.length),
+    interceptors: checkInterceptors(options.interceptors ?? {}),
+    ...(progress === undefined ? {} : { progress }),
     clock: options.clock ?? systemClock,
   };
 }

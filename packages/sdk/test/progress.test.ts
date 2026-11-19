@@ -1,4 +1,4 @@
-// The default progress policy (D11): a shouldStop interceptor on canonicalInputHash() that ends a run `no_progress`.
+// The default progress policy (D11): a check on canonicalInputHash() and progressKey() that ends a run `no_progress`.
 import assert from "node:assert/strict";
 import {
   continueRun,
@@ -53,6 +53,7 @@ const failing = (extra: Record<string, unknown> = {}) => toolCall("flaky", { fai
 
 test("the defaults are three identical failing calls and five calls on one key", () => {
   assert.deepEqual(DEFAULT_PROGRESS, { maxIdenticalFailures: 3, maxSameKeyCalls: 5 });
+  assert.ok(Object.isFrozen(DEFAULT_PROGRESS), "no caller can loosen the defaults for every other run");
 });
 
 test("three identical failing calls end no_progress, and the key order of the input does not matter", async () => {
@@ -227,4 +228,41 @@ test("a continued run counts only its own calls, not the loop in its history", a
   const next = await drive(continueRun(context, { model, tools: [flaky], ...determinism() }));
   adapter.assertComplete();
   assert.equal(next.result.stopReason, "done");
+});
+
+test("calls that share one callId keep their own inputs and outcomes", async () => {
+  const reused = (input: Record<string, unknown>) => toolCall("flaky", input, "call_0");
+  const different = await go([
+    reused({ fail: true, n: 1 }),
+    reused({ fail: true, n: 2 }),
+    reused({ fail: true, n: 3 }),
+    text("Done."),
+  ]);
+  assert.equal(different.result.stopReason, "done");
+  const identical = await go([reused({ fail: true }), reused({ fail: true }), reused({ fail: true }), text("never")]);
+  assert.equal(identical.result.stopReason, "no_progress");
+});
+
+test("a key's failures still count when a success in the same step reuses their callId", async () => {
+  const step = {
+    content: [
+      { type: "tool_call" as const, callId: "call_0", name: "edit", input: { path: "a.ts", line: 1, fail: true } },
+      { type: "tool_call" as const, callId: "call_0", name: "flaky", input: {} },
+    ],
+  };
+  const { result } = await go([step, step, step, step, step, text("never sent")]);
+  assert.equal(result.stopReason, "no_progress");
+  if (result.stopReason !== "no_progress") return;
+  assert.equal(result.steps, 5);
+});
+
+test("a caller's shouldStop that throws under onFailure continue leaves the policy in force", async () => {
+  const interceptors: Interceptors = {
+    shouldStop: () => {
+      throw new Error("bug");
+    },
+    onFailure: "continue",
+  };
+  const { result } = await go([failing(), failing(), failing(), text("never sent")], { interceptors });
+  assert.equal(result.stopReason, "no_progress");
 });

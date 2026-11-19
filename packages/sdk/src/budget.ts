@@ -54,6 +54,11 @@ export function checkBudget(budgetUsd: number, spent: Cost | undefined, projecte
   if (projected.total === null) return { kind: "unknown", error: unknownCost("the next call's projected cost is") };
   const spentUsd = spent?.total ?? 0;
   if (spentUsd + projected.total <= budgetUsd) return { kind: "allow" };
-  const reason = `the run has spent $${spentUsd} and the next call can cost up to $${projected.total}, which passes the budget of $${budgetUsd}`;
+  const reason = `the run has spent ${dollars(spentUsd)} and the next call can cost up to ${dollars(projected.total)}, which passes the budget of ${dollars(budgetUsd)}`;
   return { kind: "exceeded", reason, spentUsd, projectedUsd: projected.total };
+}
+
+/** A dollar amount for a message, to six significant digits, so a float sum doesn't print as $0.054000000000000006. */
+function dollars(usd: number): string {
+  return `$${Number(usd.toPrecision(6))}`;
 }

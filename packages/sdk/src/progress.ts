@@ -1,6 +1,6 @@
 /**
- * The default progress policy (D11), written as a `shouldStop` interceptor: it ends a run with `no_progress` when the
- * model keeps making the same failing call. Two rules fire it:
+ * The default progress policy (D11): it ends a run with `no_progress` when the model keeps making the same failing
+ * call. Two rules fire it:
  *
  * - **Identical failures.** The latest calls are one tool with one canonical input hash, each returned an error, and
  *   there are `maxIdenticalFailures` of them in a row (3 by default).
@@ -8,11 +8,11 @@
  *   succeeded. A successful call with that key starts its count again; calls with other keys don't.
  *
  * The policy reads the transcript, so it holds no state a `continueRun()` would have to restore, and it counts only
- * the calls the run itself made.
+ * the calls the run itself made. The loop runs it after the caller's `shouldStop`, outside the hook runner, so a
+ * caller's hook that throws can't switch it off.
  */
-import type { Message } from "@buildanagent/gateway";
+import type { AssistantMessage, Message } from "@buildanagent/gateway";
 import { SdkError } from "./errors.js";
-import type { Interceptors, StepEvent, StopDecision } from "./hooks.js";
 import type { AnyTool } from "./tools/pipeline.js";
 import type { ToolCall } from "./tools/types.js";
 import { canonicalInputHash } from "./vendor/agent-safety/hash.js";
@@ -25,8 +25,11 @@ export interface ProgressPolicy {
   readonly maxSameKeyCalls?: number;
 }
 
-/** The defaults (D11), provisional until recorded runs retune them. */
-export const DEFAULT_PROGRESS: Required<ProgressPolicy> = { maxIdenticalFailures: 3, maxSameKeyCalls: 5 };
+/** The defaults, provisional until recorded runs retune them. The object is frozen, so no caller can change them. */
+export const DEFAULT_PROGRESS: Readonly<Required<ProgressPolicy>> = Object.freeze({
+  maxIdenticalFailures: 3,
+  maxSameKeyCalls: 5,
+});
 
 /** Checks a `progress` option and fills in its defaults. */
 export function resolveProgress(progress: ProgressPolicy | false | undefined): Required<ProgressPolicy> | undefined {
@@ -52,6 +55,12 @@ interface Attempt {
   readonly failed: boolean;
 }
 
+/** What the policy works out once for each call: its input hash and its key. */
+interface CallFacts {
+  readonly hash: Promise<string>;
+  readonly key: string | undefined;
+}
+
 function keyOf(tool: AnyTool | undefined, input: unknown): string | undefined {
   if (tool?.progressKey === undefined) return undefined;
   try {
@@ -65,42 +74,71 @@ function keyOf(tool: AnyTool | undefined, input: unknown): string | undefined {
 }
 
 /** The hash of a call's input, or a value no other call shares when the input has no canonical form. */
-async function hashOf(callId: string, input: unknown): Promise<string> {
+async function hashOf(position: string, input: unknown): Promise<string> {
   try {
     return await canonicalInputHash(input);
   } catch {
-    return `unhashable:${callId}`;
+    return `unhashable:${position}`;
   }
 }
 
-/** The tool calls in `messages` that have a result, in the order the model made them. */
-function resolvedCalls(messages: readonly Message[]): { call: ToolCall; failed: boolean }[] {
-  const failedBy = new Map<string, boolean>();
-  for (const message of messages) {
-    if (message.role === "tool") failedBy.set(message.callId, message.isError === true);
-  }
-  const calls: { call: ToolCall; failed: boolean }[] = [];
-  for (const message of messages) {
-    if (message.role !== "assistant") continue;
-    for (const call of message.content.filter((block): block is ToolCall => block.type === "tool_call")) {
-      const failed = failedBy.get(call.callId);
-      if (failed !== undefined) calls.push({ call, failed });
-    }
-  }
+/** A call waiting for its result, named by its place in the transcript. */
+interface Pending {
+  readonly call: ToolCall;
+  readonly position: string;
+  readonly turn: number;
+  failed?: boolean;
+}
+
+/** The calls of one assistant message, each named by its place in the transcript. */
+function callsOf(message: AssistantMessage, turn: number): Pending[] {
+  const calls: Pending[] = [];
+  message.content.forEach((block, at) => {
+    if (block.type === "tool_call") calls.push({ call: block, position: `${turn}:${at}`, turn });
+  });
   return calls;
+}
+
+/** The unanswered call with `callId` in the newest turn, the first such call within it. */
+function callFor(calls: readonly Pending[], callId: string): Pending | undefined {
+  let best: Pending | undefined;
+  for (const pending of calls) {
+    if (pending.failed !== undefined || pending.call.callId !== callId) continue;
+    if (best === undefined || pending.turn > best.turn) best = pending;
+  }
+  return best;
+}
+
+/**
+ * The tool calls in `messages` that have a result, in the order the model made them. Call ids need not be unique:
+ * a provider may repeat one or send none, so a result goes to the unanswered call with its id in the newest turn,
+ * the first such call within it, the order the gateway pairs them in.
+ */
+function resolvedCalls(messages: readonly Message[]): Pending[] {
+  const calls: Pending[] = [];
+  messages.forEach((message, index) => {
+    if (message.role === "assistant") calls.push(...callsOf(message, index));
+    if (message.role !== "tool") return;
+    const pending = callFor(calls, message.callId);
+    if (pending !== undefined) pending.failed = message.isError === true;
+  });
+  return calls.filter((pending) => pending.failed !== undefined);
 }
 
 /** The calls in `messages` that have a result, each with its input hash, key and outcome. */
 async function attemptsOf(
   messages: readonly Message[],
   tools: ReadonlyMap<string, AnyTool>,
-  hashes: Map<string, Promise<string>>,
+  facts: Map<string, CallFacts>,
 ): Promise<Attempt[]> {
   const attempts: Attempt[] = [];
-  for (const { call, failed } of resolvedCalls(messages)) {
-    const hash = hashes.get(call.callId) ?? hashOf(call.callId, call.input);
-    hashes.set(call.callId, hash);
-    attempts.push({ tool: call.name, hash: await hash, key: keyOf(tools.get(call.name), call.input), failed });
+  for (const { call, position, failed } of resolvedCalls(messages)) {
+    let known = facts.get(position);
+    if (known === undefined) {
+      known = { hash: hashOf(position, call.input), key: keyOf(tools.get(call.name), call.input) };
+      facts.set(position, known);
+    }
+    attempts.push({ tool: call.name, hash: await known.hash, key: known.key, failed: failed === true });
   }
   return attempts;
 }
@@ -133,22 +171,23 @@ function repeatedKey(attempts: readonly Attempt[], limit: number): string | unde
   return undefined;
 }
 
+/** The progress check the loop runs after each step: the reason the run is stuck, or `undefined`. */
+export type ProgressCheck = (messages: readonly Message[]) => Promise<string | undefined>;
+
 /**
- * The default progress policy as an interceptor object. `skip` is how many messages came before this run's own, so a
- * run continued from a context that ended in a loop is not stopped by the old calls.
+ * The default progress policy as a check over the transcript. `skip` is how many messages came before this run's
+ * own, so a run continued from a context that ended in a loop is not stopped by the old calls. The transcript only
+ * grows, so each call's hash and key are worked out once and kept by its place in it.
  */
-export function progressInterceptors(
+export function progressCheck(
   tools: readonly AnyTool[],
   policy: Required<ProgressPolicy>,
   skip: number,
-): Interceptors {
+): ProgressCheck {
   const byName = new Map(tools.map((tool) => [tool.name, tool]));
-  const hashes = new Map<string, Promise<string>>();
-  const shouldStop = async (e: StepEvent): Promise<StopDecision> => {
-    const attempts = await attemptsOf(e.messages.slice(skip), byName, hashes);
-    const reason =
-      identicalFailures(attempts, policy.maxIdenticalFailures) ?? repeatedKey(attempts, policy.maxSameKeyCalls);
-    return reason === undefined ? false : { stop: "no_progress", reason };
+  const facts = new Map<string, CallFacts>();
+  return async (messages) => {
+    const attempts = await attemptsOf(messages.slice(skip), byName, facts);
+    return identicalFailures(attempts, policy.maxIdenticalFailures) ?? repeatedKey(attempts, policy.maxSameKeyCalls);
   };
-  return { shouldStop };
 }

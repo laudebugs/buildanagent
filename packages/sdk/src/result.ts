@@ -64,7 +64,12 @@ export interface EndedResult extends ResultBase {
   readonly stopReason: "max_steps" | "aborted";
 }
 
-/** A run that a `shouldStop` hook ended with `{ stop: "no_progress" }`, which gave `reason`. */
+/**
+ * A run that stopped making progress. The default progress policy ends a run this way after 3 identical failing tool
+ * calls in a row, or after 5 failing calls to a tool with one `progressKey`; pass `progress` to `run()` to change the
+ * thresholds, or `progress: false` to turn the policy off. A `shouldStop` hook that returns `{ stop: "no_progress" }`
+ * ends a run this way too. `reason` says which rule or hook fired.
+ */
 export interface NoProgressResult extends ResultBase {
   readonly stopReason: "no_progress";
   readonly reason: string;

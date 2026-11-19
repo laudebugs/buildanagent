@@ -94,12 +94,12 @@ A run with a budget needs a price for every call. If the model's price is unknow
 
 ### The progress policy ends a run that repeats a failing call
 
-The policy is a `shouldStop` interceptor that reads the run's transcript after each step. It ends the run `no_progress` in two cases:
+The policy reads the run's transcript after each step, after your own `shouldStop` hook. It ends the run `no_progress` in two cases:
 
 - **Identical failures.** The latest three tool calls name one tool, carry one input, and each returned an error. Inputs compare by `canonicalInputHash()`, so `{a, b}` and `{b, a}` are the same input. A successful call, or a call to another tool, breaks the streak.
 - **One key.** A tool declares `progressKey(input)`, such as a file path plus a line, and five calls to it return that key with no success between them. A success with that key starts the count again, and calls with other keys do not affect it. The inputs may differ, which is how it catches a model that keeps rewording a failing edit. The function receives the input exactly as the model sent it, so it must cope with any shape; a key that throws or isn't a string leaves that call out of the count.
 
-Your own `shouldStop` runs first, but its `{ continue }` cannot keep a stuck run going. Pass `progress: { maxIdenticalFailures: 2 }` to tighten a threshold, or `progress: false` to turn the policy off. A `continueRun()` counts only the calls it makes, so you can continue a run that ended `no_progress` after you change what the model sees.
+Your own `shouldStop` runs first and its stop wins, but neither its `{ continue }` nor a throw under `onFailure: "continue"` can keep a stuck run going. Pass `progress: { maxIdenticalFailures: 2 }` to tighten a threshold, or `progress: false` to turn the policy off. A `continueRun()` counts only the calls it makes, so you can continue a run that ended `no_progress` after you change what the model sees.
 
 ### `depth` and `maxDepth` stop a tree of agents
 
@@ -107,12 +107,12 @@ Every tool receives `ctx.depth` (0 for a top-level run) and `ctx.maxDepth` (2 by
 
 ```ts
 async execute(input, ctx) {
-  const child = run({ model, system, input: input.task, ...nestedRunDepth(ctx) });
+  const child = run({ model, system, input: input.task, signal: ctx.signal, budgetUsd: 0.5, ...nestedRunDepth(ctx) });
   return { content: [{ type: "text", text: (await child.result).stopReason }] };
 }
 ```
 
-A tool running at `depth === maxDepth` that does this makes `run()` throw `max_depth_exceeded`. Since the throw happens inside `execute`, the model reads it as an error result and can answer without the sub-agent.
+Pass `signal: ctx.signal` so the child stops when the parent's call is aborted. The parent's `budgetUsd` counts only the parent's own model calls, so give each child a budget of its own. A tool running at `depth === maxDepth` that does this makes `run()` throw `max_depth_exceeded`. Since the throw happens inside `execute`, the model reads it as an error result and can answer without the sub-agent.
 
 ## A run streams one closed set of events
 
