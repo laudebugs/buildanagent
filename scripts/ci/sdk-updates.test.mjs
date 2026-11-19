@@ -11,7 +11,7 @@ import { after, describe, test } from "node:test";
 import { fileURLToPath } from "node:url";
 import { parse } from "yaml";
 import { FAKE_GH } from "./fake-gh.mjs";
-import { newestEligible, updateProblems } from "./sdk-updates.mjs";
+import { lockfileProblems, manifestProblems, newestEligible, parseBumps, updateProblems } from "./sdk-updates.mjs";
 
 const NOW = Date.parse("2026-11-19T00:00:00Z");
 const times = {
@@ -102,6 +102,235 @@ describe("updateProblems", () => {
   });
 });
 
+describe("parseBumps and manifestProblems", () => {
+  const before = `${JSON.stringify({ name: "verify-pi", scripts: { verify: "node v.mjs" }, dependencies: { "@s/a": "1.0.0", b: "2.0.0" } }, null, 2)}\n`;
+  const bumped = (change) => {
+    const manifest = JSON.parse(before);
+    change(manifest);
+    return `${JSON.stringify(manifest, null, 2)}\n`;
+  };
+  const bumps = parseBumps("@s/a@1.1.0");
+
+  test("reads the plan's bumps and refuses anything else", () => {
+    assert.deepEqual(parseBumps("@s/a@1.1.0 b@2.0.1-beta.1"), [
+      { name: "@s/a", version: "1.1.0" },
+      { name: "b", version: "2.0.1-beta.1" },
+    ]);
+    for (const bad of ["", "b", "b@latest", "@s/a", "B@1.0.0", "../x@1.0.0"]) assert.throws(() => parseBumps(bad), bad);
+  });
+
+  test("accepts exactly apply's rewrite with the planned versions", () => {
+    assert.deepEqual(
+      manifestProblems(
+        before,
+        bumped((m) => Object.assign(m.dependencies, { "@s/a": "1.1.0" })),
+        bumps,
+      ),
+      [],
+    );
+  });
+
+  test("refuses a version the plan didn't choose, a new script, dependency, override or pnpm setting", () => {
+    for (const change of [
+      (m) => Object.assign(m.dependencies, { "@s/a": "1.2.0" }),
+      (m) => Object.assign(m.dependencies, { "@s/a": "1.1.0", b: "2.0.1" }),
+      (m) => Object.assign(m.dependencies, { "@s/a": "1.1.0", evil: "1.0.0" }),
+      (m) => Object.assign(m.dependencies, { "@s/a": "1.1.0" }) && Object.assign(m.scripts, { postinstall: "x" }),
+      (m) => Object.assign(m.dependencies, { "@s/a": "1.1.0" }) && Object.assign(m, { pnpm: { overrides: {} } }),
+    ]) {
+      assert.match(manifestProblems(before, bumped(change), bumps)[0] ?? "", /changes more than the planned versions/);
+    }
+    assert.match(manifestProblems(before, before, parseBumps("c@1.0.0"))[0], /c isn't a dependency to bump/);
+  });
+});
+
+// A small lockfile in pnpm's v9 layout: the root importer, the harness's and another harness's.
+const LOCK = `lockfileVersion: '9.0'
+
+settings:
+  autoInstallPeers: true
+
+importers:
+
+  .:
+    devDependencies:
+      typescript:
+        specifier: 7.0.2
+        version: 7.0.2
+
+  verify/other:
+    dependencies:
+      sdk-x:
+        specifier: 3.0.0
+        version: 3.0.0(peer@1.0.0)
+
+  verify/pi:
+    dependencies:
+      pi-ai:
+        specifier: 1.0.0
+        version: 1.0.0(peer@1.0.0)
+
+packages:
+
+  peer@1.0.0:
+    resolution: {integrity: sha512-cGVlcjE=}
+
+  pi-ai@1.0.0:
+    resolution: {integrity: sha512-cGktYWkx}
+    peerDependencies:
+      peer: ^1.0.0 || ^2.0.0
+
+  sdk-x@3.0.0:
+    resolution: {integrity: sha512-c2RrLXg=}
+    deprecated: Use your platform's sdk-y instead
+
+  typescript@7.0.2:
+    resolution: {integrity: sha512-dHM=}
+    hasBin: true
+
+snapshots:
+
+  peer@1.0.0: {}
+
+  pi-ai@1.0.0(peer@1.0.0):
+    dependencies:
+      peer: 1.0.0
+
+  sdk-x@3.0.0(peer@1.0.0):
+    dependencies:
+      peer: 1.0.0
+
+  typescript@7.0.2: {}
+`;
+
+describe("lockfileProblems", () => {
+  // pi-ai 1.1.0 needs peer 2, which pnpm then shares with verify/other.
+  const BUMPED = LOCK.replace(
+    "specifier: 1.0.0\n        version: 1.0.0(peer@1.0.0)",
+    "specifier: 1.1.0\n        version: 1.1.0(peer@2.0.0)",
+  )
+    .replace("version: 3.0.0(peer@1.0.0)", "version: 3.0.0(peer@2.0.0)")
+    .replace(
+      "  pi-ai@1.0.0:\n    resolution: {integrity: sha512-cGktYWkx}\n",
+      "  peer@2.0.0:\n    resolution: {integrity: sha512-cGVlcjI=}\n    deprecated: |-\n      Use peer 3; it's: #faster\n\n  pi-ai@1.1.0:\n    resolution: {integrity: sha512-cGktYWky}\n",
+    )
+    .replace(
+      "  pi-ai@1.0.0(peer@1.0.0):",
+      "  pi-ai@1.1.0(peer@2.0.0):\n    dependencies:\n      peer: 2.0.0\n\n  sdk-x@3.0.0(peer@2.0.0):",
+    );
+
+  test("accepts a bump: the harness's pins, a peer another harness shares, and new or removed entries", () => {
+    assert.deepEqual(lockfileProblems(LOCK, BUMPED, "pi"), []);
+  });
+
+  test("accepts the repository's own lockfile with any of its entries new", () => {
+    const lock = readFileSync(path.join(root, "pnpm-lock.yaml"), "utf8");
+    for (const parity of [0, 1]) {
+      let section = "";
+      let n = 0;
+      let skip = false;
+      const lines = lock.split("\n").filter((line) => {
+        if (/^\S/.test(line)) [section, skip] = [line, false];
+        else if (/^(packages|snapshots):$/.test(section) && /^ {2}\S/.test(line)) skip = n++ % 2 === parity;
+        return !skip;
+      });
+      assert.deepEqual(lockfileProblems(lines.join("\n"), lock, "pi"), []);
+    }
+  });
+
+  for (const [name, edit, message] of [
+    ["changes the root importer", (t) => t.replace("version: 7.0.2\n", "version: 7.0.3\n"), /changes the \. importer/],
+    [
+      "changes another harness's pin",
+      (t) => t.replace("specifier: 3.0.0", "specifier: 3.0.1"),
+      /more of the verify\/other importer/,
+    ],
+    [
+      "changes another harness's resolved version",
+      (t) => t.replace("version: 3.0.0(", "version: 3.0.1("),
+      /verify\/other/,
+    ],
+    [
+      "changes the harness's importer beyond its pins",
+      (t) => t.replace("      pi-ai:\n", "      pi-ai:\n        optional: true\n"),
+      /more of the verify\/pi importer/,
+    ],
+    [
+      "adds an importer",
+      (t) => t.replace("\npackages:", "  verify/new: {}\n\npackages:"),
+      /adds, removes or reorders an importer/,
+    ],
+    ["changes settings", (t) => t.replace("autoInstallPeers: true", "autoInstallPeers: false"), /changes settings/],
+    [
+      "adds overrides",
+      (t) => t.replace("\nimporters:", "\noverrides:\n  typescript: 9.9.9\n\nimporters:"),
+      /sections changed/,
+    ],
+    [
+      "rewrites an existing package",
+      (t) => t.replace("sha512-dHM=", "sha512-ZXZpbA=="),
+      /changes packages typescript@7\.0\.2/,
+    ],
+    [
+      "rewrites an existing snapshot",
+      (t) => t.replace("  typescript@7.0.2: {}", "  typescript@7.0.2:\n    dependencies:\n      evil: 1.0.0"),
+      /changes snapshots typescript@7\.0\.2/,
+    ],
+    [
+      "respells an existing package to list it twice",
+      (t) =>
+        t.replace("\nsnapshots:", '  "typescript@7.0.2":\n    resolution: {integrity: sha512-ZXZpbA==}\n\nsnapshots:'),
+      /isn't an entry pnpm writes/,
+    ],
+    [
+      "lists a package twice",
+      (t) =>
+        t.replace("\nsnapshots:", "  typescript@7.0.2:\n    resolution: {integrity: sha512-ZXZpbA==}\n\nsnapshots:"),
+      /lists typescript@7\.0\.2 twice/,
+    ],
+    [
+      "adds a package from a tarball URL",
+      (t) =>
+        t.replace(
+          "\nsnapshots:",
+          "  evil@1.0.0:\n    resolution: {tarball: https://example.invalid/e.tgz}\n\nsnapshots:",
+        ),
+      /evil@1\.0\.0 doesn't resolve from the npm registry/,
+    ],
+    [
+      "opens a quote that swallows the next entry",
+      (t) => t.replace("    hasBin: true", "    hasBin: 'true"),
+      /isn't an entry|holds a line pnpm doesn't write|changes packages/,
+    ],
+    [
+      "adds an alias",
+      (t) =>
+        t.replace(
+          "\nsnapshots:",
+          "  evil@1.0.0:\n    resolution: {integrity: sha512-ZXZpbA==}\n    x: *a\n\nsnapshots:",
+        ),
+      /evil@1\.0\.0 holds a line pnpm doesn't write/,
+    ],
+    [
+      "opens a flow mapping across lines",
+      (t) => t.replace("\nsnapshots:", "  evil@1.0.0:\n    resolution: {integrity: sha512-ZXZpbA==\n\nsnapshots:"),
+      /holds a line pnpm doesn't write|doesn't resolve/,
+    ],
+    [
+      "indents a line by three",
+      (t) => t.replace("\nsnapshots:", "  evil@1.0.0:\n   x: 1\n\nsnapshots:"),
+      /badly indented/,
+    ],
+    ["uses a tab", (t) => t.replace("hasBin: true", "hasBin:\ttrue"), /tab or a carriage return/],
+  ]) {
+    test(`refuses a lockfile that ${name}`, () => {
+      const after = edit(BUMPED);
+      assert.notEqual(after, BUMPED, "the edit applies");
+      assert.match(lockfileProblems(LOCK, after, "pi").join("\n"), message);
+    });
+  }
+});
+
 const root = path.resolve(fileURLToPath(new URL("../..", import.meta.url)));
 const workflowText = readFileSync(path.join(root, ".github/workflows/sdk-updates.yml"), "utf8");
 const workflow = parse(workflowText);
@@ -157,12 +386,23 @@ describe("sdk-updates.yml", () => {
     assert.doesNotMatch(commit.run, /--index/);
     const nodeCalls = job.steps.flatMap((s) => (s.run ?? "").match(/\bnode\b.*$/gm) ?? []);
     assert.deepEqual(nodeCalls, [
-      'node scripts/ci/sdk-updates.mjs check "$HARNESS" "$base" HEAD',
-      'node scripts/ci/version-commit.mjs "$BASE" HEAD "$branch" "deps/staging/sdk-$HARNESS"',
+      'node scripts/ci/sdk-updates.mjs check "$HARNESS" "$base" HEAD "$BUMPS"',
+      'node scripts/ci/version-commit.mjs --replace-own-only "$BASE" HEAD "$branch" "deps/staging/sdk-$HARNESS"',
     ]);
+    assert.equal(job.env.BUMPS, `\${{ matrix.bumps }}`, "the check compares the patch with the plan's bumps");
+    assert.doesNotMatch(push.run, /summary\.md|SUMMARY/, "the pull request's body is the one the commit step wrote");
     assert.equal(push.if, "steps.commit.outputs.changed == 'true'");
     assert.doesNotMatch(push.run, /git push|x-access-token|gh pr merge|--auto/);
     assert.ok(push.run.indexOf("version-commit.mjs") < push.run.indexOf("gh pr list"));
+  });
+
+  test("runs only from main, and opens the other harnesses' pull requests when one harness's update fails", () => {
+    assert.equal(jobs.plan.if, "github.ref == 'refs/heads/main'");
+    assert.deepEqual(jobs.update.needs, "plan");
+    assert.equal(
+      jobs["open-pr"].if,
+      `\${{ !cancelled() && needs.plan.result == 'success' && needs.plan.outputs.any == 'true' }}`,
+    );
   });
 
   test("sdk-updates.mjs and version-commit.mjs import nothing but node: modules and the scripts beside them", () => {
@@ -202,6 +442,9 @@ describe("sdk-updates.yml's open-pr steps, run for real", () => {
   const staging = "deps/staging/sdk-pi";
   const job = jobs["open-pr"];
   const title = job.env.TITLE.replace(`\${{ matrix.harness }}`, harness);
+  const bumps = "pi-ai@1.1.0";
+  const manifest = (version) =>
+    `${JSON.stringify({ name: "verify-pi", dependencies: { "pi-ai": version } }, null, 2)}\n`;
 
   // A main with one harness and the CI scripts, pushed to a bare remote, and a checkout of it as open-pr's checkout is.
   function setup() {
@@ -229,10 +472,10 @@ describe("sdk-updates.yml's open-pr steps, run for real", () => {
       mkdirSync(path.dirname(path.join(work, file)), { recursive: true });
       writeFileSync(path.join(work, file), text);
     };
-    write("verify/pi/package.json", '{"dependencies":{"pi-ai":"1.0.0"}}\n');
+    write("verify/pi/package.json", manifest("1.0.0"));
     write("verify/pi/results/run-docs.json", '{"pass":1}\n');
     write("verify/pi/results/old.json", "{}\n");
-    write("pnpm-lock.yaml", "pi-ai: 1.0.0\n");
+    write("pnpm-lock.yaml", LOCK);
     for (const script of ["sdk-updates.mjs", "version-pr.mjs", "changeset-gate.mjs", "release-plan.mjs"]) {
       write(`scripts/ci/${script}`, readFileSync(path.join(root, "scripts/ci", script), "utf8"));
     }
@@ -256,9 +499,12 @@ describe("sdk-updates.yml's open-pr steps, run for real", () => {
     repo.git(repo.work, "reset", "-q", "--hard");
   }
   const bump = ({ write }) => {
-    write("verify/pi/package.json", '{"dependencies":{"pi-ai":"1.1.0"}}\n');
+    write("verify/pi/package.json", manifest("1.1.0"));
     write("verify/pi/results/run-docs.json", '{"pass":2}\n');
-    write("pnpm-lock.yaml", "pi-ai: 1.1.0\n");
+    write(
+      "pnpm-lock.yaml",
+      LOCK.replace("specifier: 1.0.0\n        version: 1.0.0", "specifier: 1.1.0\n        version: 1.1.0"),
+    );
   };
 
   // Runs open-pr's commit step in a fresh clone of main, then its token step when the commit step says there is a change.
@@ -271,7 +517,14 @@ describe("sdk-updates.yml's open-pr steps, run for real", () => {
     const log = path.join(repo.dir, "gh-log");
     writeFileSync(log, "");
     const [, , commit, push] = job.steps;
-    const env = { ...repo.env, HARNESS: harness, TITLE: title, RUNNER_TEMP: runner, GITHUB_OUTPUT: output };
+    const env = {
+      ...repo.env,
+      HARNESS: harness,
+      BUMPS: bumps,
+      TITLE: title,
+      RUNNER_TEMP: runner,
+      GITHUB_OUTPUT: output,
+    };
     const commitRun = spawnSync("bash", ["-e", "-c", commit.run], { cwd: clone, env, encoding: "utf8" });
     const outputs = Object.fromEntries(
       readFileSync(output, "utf8")
@@ -287,7 +540,6 @@ describe("sdk-updates.yml's open-pr steps, run for real", () => {
         GH_TOKEN: "secret",
         REPO: "o/r",
         BASE: outputs.base,
-        SUMMARY: path.join(runner, "update", "summary.md"),
         GH_LOG: log,
         FAKE_REMOTE: repo.remote,
         ...extraEnv,
@@ -325,15 +577,22 @@ describe("sdk-updates.yml's open-pr steps, run for real", () => {
     assert.equal(repo.git(repo.remote, "rev-parse", `${head}^{tree}`), repo.git(run.clone, "rev-parse", "HEAD^{tree}"));
     assert.equal(repo.git(repo.remote, "rev-parse", `${head}^`), main);
     assert.equal(repo.git(repo.remote, "log", "-1", "--format=%s", head), title);
-    assert.match(repo.git(repo.remote, "log", "-1", "--format=%b", head), /\| `pi-ai` \| 1\.0\.0 \| 1\.1\.0 \|/);
+    assert.equal(repo.git(repo.remote, "log", "-1", "--format=%b", head), "Bumps verify/pi to pi-ai@1.1.0.");
+    const body = readFileSync(path.join(repo.dir, "runner", "body.md"), "utf8");
+    assert.match(body, /^Bumps `verify\/pi` to `pi-ai@1\.1\.0`\. The plan job chose these releases/);
+    assert.match(body, /a malicious release could have rewritten it\.\n\n\| `pi-ai` \| 1\.0\.0 \| 1\.1\.0 \|/);
     assert.equal(ref(repo, staging), "", "the staging branch is deleted");
     assert.equal(ref(repo, "main"), main, "main stays as it was");
     const calls = prCalls(run.gh);
     assert.equal(calls.length, 2);
-    assert.match(calls[0], /^pr list --repo o\/r --head deps\/sdk-pi --base main --state open/);
+    assert.match(
+      calls[0],
+      /^pr list --repo o\/r --head deps\/sdk-pi --base main --state open --json number,isCrossRepository/,
+    );
+    assert.match(calls[0], /select\(\.isCrossRepository \| not\)/, "a fork's branch of the same name doesn't count");
     assert.match(
       calls[1],
-      /^pr create --repo o\/r --base main --head deps\/sdk-pi --title chore\(deps\): update the pi/,
+      /^pr create --repo o\/r --base main --head deps\/sdk-pi --title chore\(deps\): update the pi.* --body-file .*body\.md$/,
     );
     assert.ok(!run.gh.some((call) => /pr merge/.test(call)), "auto-merge stays off");
   });
@@ -347,7 +606,7 @@ describe("sdk-updates.yml's open-pr steps, run for real", () => {
     assert.equal(run.push.status, 0, run.push.stderr);
     assert.equal(ref(repo, branch), head);
     assert.deepEqual(signed(repo), [head]);
-    assert.match(run.push.stdout, /already holds this version commit, verified/);
+    assert.match(run.push.stdout, /already holds the checked commit, verified/);
     assert.match(prCalls(run.gh).at(-1), /^pr edit 42 --repo o\/r --title chore\(deps\)/);
   });
 
@@ -361,6 +620,28 @@ describe("sdk-updates.yml's open-pr steps, run for real", () => {
       /M scripts\/ci\/version-commit\.mjs: an update may edit only/,
     ],
     ["edits a workflow", (r) => r.write(".github/workflows/ci.yml", "on: push\n"), /A \.github\/workflows\/ci\.yml/],
+    [
+      "adds a script to the harness's package.json",
+      (r) => {
+        bump(r);
+        r.write(
+          "verify/pi/package.json",
+          manifest("1.1.0").replace('"name"', '"scripts": { "postinstall": "steal" },\n  "name"'),
+        );
+      },
+      /verify\/pi\/package\.json: changes more than the planned versions \(pi-ai@1\.1\.0\)/,
+    ],
+    [
+      "moves the root's tools in the lockfile",
+      (r) => {
+        bump(r);
+        r.write(
+          "pnpm-lock.yaml",
+          readFileSync(path.join(r.work, "pnpm-lock.yaml"), "utf8").replace("version: 7.0.2\n", "version: 7.0.3\n"),
+        );
+      },
+      /pnpm-lock\.yaml: changes the \. importer/,
+    ],
     [
       "adds an executable file",
       (r) => {
@@ -381,6 +662,31 @@ describe("sdk-updates.yml's open-pr steps, run for real", () => {
       assert.equal(ref(repo, branch), "");
     });
   }
+
+  test("refuses to drop a commit someone pushed to the update branch, and leaves its pull request alone", () => {
+    const repo = setup();
+    artifact(repo, bump);
+    assert.equal(runOpenPr(repo).push.status, 0);
+    // A maintainer re-mirrors the docs on the pull request's branch.
+    const pushed = path.join(repo.dir, "maintainer");
+    repo.git(repo.dir, "clone", "-q", "-b", branch, repo.remote, pushed);
+    writeFileSync(path.join(pushed, "notes.md"), "re-mirrored\n");
+    repo.git(pushed, "add", "-A");
+    repo.git(pushed, "commit", "-qm", "docs(pi): re-mirror the docs at the new tag");
+    repo.git(pushed, "push", "-q", "origin", branch);
+    const head = ref(repo, branch);
+    // main moves on, so the next run's checked commit differs from the branch's.
+    repo.write("verify/pi/results/later.json", "{}\n");
+    repo.git(repo.work, "add", "-A");
+    repo.git(repo.work, "commit", "-qm", "later");
+    repo.git(repo.work, "push", "-q", "origin", "main");
+    artifact(repo, bump);
+    const run = runOpenPr(repo, { EXISTING_PR: "42" });
+    assert.notEqual(run.push.status, 0);
+    assert.match(run.push.stderr, /isn't a commit this workflow made, so deps\/sdk-pi stays as it was/);
+    assert.equal(ref(repo, branch), head);
+    assert.deepEqual(prCalls(run.gh), []);
+  });
 
   test("fails, leaving the update branch and the pull request alone, when GitHub doesn't verify the commit", () => {
     const repo = setup();

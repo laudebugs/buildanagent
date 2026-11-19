@@ -8,14 +8,15 @@
 // only one that holds its token. So it imports only node: modules and version-pr.mjs, which imports only node: modules
 // and the two scripts beside it.
 //
-//   node scripts/ci/version-commit.mjs <base> <head> <branch> [<staging>]
+//   node scripts/ci/version-commit.mjs [--replace-own-only] <base> <head> <branch> [<staging>]
 //
 // <head> is the local commit, whose only parent must be <base>; REPO names the repository and gh reads the token from
 // GH_TOKEN. <staging> is the branch the commit is made on first, changeset-release/staging unless given; each caller
 // that can run beside another needs its own. The script makes the commit that holds <head>'s tree on <base>, checks
 // through the REST API that GitHub verified its signature and that its tree and parent match, and only then moves
 // <branch> to it. When <branch> already holds a verified commit with that tree on <base>, it changes nothing, so a rerun
-// doesn't restart the checks.
+// doesn't restart the checks. --replace-own-only makes it refuse to move a <branch> whose head has another headline than
+// <head>, such as a commit someone pushed to the pull request by hand.
 import { execFileSync, spawnSync } from "node:child_process";
 import { fileURLToPath } from "node:url";
 import { parseRawDiff } from "./version-pr.mjs";
@@ -103,16 +104,36 @@ export function commitProblem(commit, { tree, base }) {
  * Makes the verified commit on `staging` and moves `branch` to it. `local` describes the checked commit as `{ base,
  * tree, message, fileChanges }`. Returns `{ sha, created }`; throws, leaving `branch` as it was, when GitHub's commit
  * isn't verified or doesn't match. `staging` is moved to `base` first and deleted at the end, so it must be a branch
- * that nothing else uses. `log` receives progress lines.
+ * that nothing else uses. With `replaceOwnOnly`, it also throws, before writing anything, when `branch` exists and its
+ * head's headline differs from `local`'s, because someone else's commits would then be lost. `log` receives progress
+ * lines.
  */
-export function publishVersionCommit({ run, repo, branch, local, staging = STAGING_BRANCH, log = () => {} }) {
+export function publishVersionCommit({
+  run,
+  repo,
+  branch,
+  local,
+  staging = STAGING_BRANCH,
+  replaceOwnOnly = false,
+  log = () => {},
+}) {
   const { base } = local;
   if (!staging || staging === branch) throw new Error(`the staging branch must differ from ${branch}`);
   const getCommit = (sha) => apiCall(run, { path: `repos/${repo}/git/commits/${sha}` });
   const current = apiCall(run, { path: `repos/${repo}/git/ref/heads/${branch}`, missingOk: true });
-  if (current && commitProblem(getCommit(current.object.sha), local) === "") {
-    log(`${branch} already holds this version commit, verified, at ${current.object.sha}.`);
-    return { sha: current.object.sha, created: false };
+  if (current) {
+    const head = getCommit(current.object.sha);
+    if (commitProblem(head, local) === "") {
+      log(`${branch} already holds the checked commit, verified, at ${current.object.sha}.`);
+      return { sha: current.object.sha, created: false };
+    }
+    const headline = String(head.message ?? "").split("\n")[0];
+    if (replaceOwnOnly && headline !== local.message.headline) {
+      throw new Error(
+        `${branch}'s head ${current.object.sha} ("${headline}") isn't a commit this workflow made, so ${branch} stays ` +
+          "as it was: merge or close its pull request, or delete the branch, and run the workflow again",
+      );
+    }
   }
   try {
     // Inside the try, so that a staging branch that GitHub created but gh failed to report is still deleted.
@@ -138,7 +159,7 @@ export function publishVersionCommit({ run, repo, branch, local, staging = STAGI
     const problem = commitProblem(getCommit(sha), local);
     if (problem) throw new Error(`${problem}, so ${branch} stays as it was`);
     setBranch(run, repo, branch, sha);
-    log(`${branch} now holds the verified version commit ${sha}.`);
+    log(`${branch} now holds the verified commit ${sha}.`);
     return { sha, created: true };
   } finally {
     try {
@@ -156,7 +177,7 @@ export function localCommit(root, base, head) {
   const parents = git("rev-list", "--parents", "-n", "1", head).trim().split(" ").slice(1);
   const baseSha = git("rev-parse", "--verify", `${base}^{commit}`).trim();
   if (parents.length !== 1 || parents[0] !== baseSha) {
-    throw new Error(`${head}'s parents are ${parents}, but the version commit's only parent must be ${baseSha}`);
+    throw new Error(`${head}'s parents are ${parents}, but the checked commit's only parent must be ${baseSha}`);
   }
   const entries = parseRawDiff(git("diff", "--raw", "-z", "--no-renames", "--no-abbrev", baseSha, head));
   const readBlob = (sha) => execFileSync("git", ["cat-file", "blob", sha], { cwd: root, maxBuffer: 64 * 1024 * 1024 });
@@ -173,14 +194,18 @@ function runGh(args, input) {
 }
 
 if (process.argv[1] === fileURLToPath(import.meta.url)) {
-  const [base, head, branch, staging = STAGING_BRANCH, ...extra] = process.argv.slice(2);
+  const args = process.argv.slice(2);
+  const replaceOwnOnly = args[0] === "--replace-own-only";
+  const [base, head, branch, staging = STAGING_BRANCH, ...extra] = replaceOwnOnly ? args.slice(1) : args;
   const repo = process.env.REPO;
   try {
-    if (!base || !head || !branch || !repo || extra.length > 0) {
-      throw new Error("usage: REPO=<owner/name> version-commit.mjs <base> <head> <branch> [<staging>]");
+    if (!base || !head || !branch || !repo || extra.length > 0 || base.startsWith("-")) {
+      throw new Error(
+        "usage: REPO=<owner/name> version-commit.mjs [--replace-own-only] <base> <head> <branch> [<staging>]",
+      );
     }
     const local = localCommit(process.cwd(), base, head);
-    publishVersionCommit({ run: runGh, repo, branch, local, staging, log: console.log });
+    publishVersionCommit({ run: runGh, repo, branch, local, staging, replaceOwnOnly, log: console.log });
   } catch (error) {
     console.error(`::error::version-commit: ${error.message}`);
     process.exit(1);

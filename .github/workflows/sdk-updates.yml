@@ -25,6 +25,9 @@ concurrency:
 
 jobs:
   plan:
+    # Only main's workflow and scripts may propose updates: a run dispatched from another branch would base the update
+    # commit on that branch's unmerged commits. The jobs below need this one, so they skip too.
+    if: github.ref == 'refs/heads/main'
     runs-on: ubuntu-24.04
     timeout-minutes: 5
     outputs:
@@ -126,7 +129,9 @@ jobs:
 
   open-pr:
     needs: [plan, update]
-    if: needs.plan.outputs.any == 'true'
+    # Runs even when another harness's update job failed, so one failure doesn't hold back every pull request; a
+    # harness whose update job uploaded nothing fails at the download.
+    if: ${{ !cancelled() && needs.plan.result == 'success' && needs.plan.outputs.any == 'true' }}
     runs-on: ubuntu-24.04
     timeout-minutes: 10
     # The run's own token only reads: the pull request's branch is written with the personal access token below.
@@ -137,6 +142,8 @@ jobs:
       matrix: ${{ fromJSON(needs.plan.outputs.matrix) }}
     env:
       HARNESS: ${{ matrix.harness }}
+      # The plan job chose these releases without running any package code, so the check holds the patch to them.
+      BUMPS: ${{ matrix.bumps }}
       TITLE: "chore(deps): update the ${{ matrix.harness }} harness's SDK pins"
     steps:
       # The run's commit on main, the one the update job bumped from, so the patch applies to it.
@@ -164,9 +171,18 @@ jobs:
           # --cached leaves the working tree at main's commit, so the scripts below run as main holds them, never as the
           # patch rewrote them.
           git apply --cached --binary "$patch"
-          { echo "$TITLE"; echo; cat "$RUNNER_TEMP/update/summary.md"; } > "$RUNNER_TEMP/message"
+          # The commit message and the pull request's first lines come from the plan, not from the update job's summary,
+          # which a release that verify ran could have rewritten.
+          { echo "$TITLE"; echo; echo "Bumps verify/$HARNESS to $BUMPS."; } > "$RUNNER_TEMP/message"
           git commit --quiet --no-verify -F "$RUNNER_TEMP/message"
-          node scripts/ci/sdk-updates.mjs check "$HARNESS" "$base" HEAD
+          node scripts/ci/sdk-updates.mjs check "$HARNESS" "$base" HEAD "$BUMPS"
+          {
+            echo "Bumps \`verify/$HARNESS\` to \`$BUMPS\`. The plan job chose these releases without running any package code, and \`sdk-updates.mjs check\` confirmed that the commit changes only them, the lockfile and the harness's results."
+            echo
+            echo "The report below comes from the update job, which ran the new releases' code, so a malicious release could have rewritten it."
+            echo
+            cat "$RUNNER_TEMP/update/summary.md"
+          } > "$RUNNER_TEMP/body.md"
           { echo "changed=true"; echo "base=$base"; } >> "$GITHUB_OUTPUT"
       - name: Commit through the API and open or update the pull request
         if: steps.commit.outputs.changed == 'true'
@@ -174,7 +190,6 @@ jobs:
           GH_TOKEN: ${{ secrets.SDK_UPDATES_TOKEN || secrets.RELEASE_PR_TOKEN }}
           REPO: ${{ github.repository }}
           BASE: ${{ steps.commit.outputs.base }}
-          SUMMARY: ${{ runner.temp }}/update/summary.md
         run: |
           set -euo pipefail
           if [ -z "$GH_TOKEN" ]; then
@@ -185,11 +200,14 @@ jobs:
           # A commit pushed with git is unsigned, and main's ruleset requires signed commits, so the checked commit is
           # made again through GitHub's API, which signs it. The script runs as main holds it, since the patch went into
           # the index alone. It writes only this branch and its own staging branch, one per harness, and fails unless
-          # GitHub verified the new commit. When the branch already holds that verified commit, it leaves it alone.
-          node scripts/ci/version-commit.mjs "$BASE" HEAD "$branch" "deps/staging/sdk-$HARNESS"
-          number=$(gh pr list --repo "$REPO" --head "$branch" --base main --state open --json number --jq '.[0].number // empty')
+          # GitHub verified the new commit. When the branch already holds that verified commit, it leaves it alone, and
+          # --replace-own-only makes it fail rather than drop commits someone pushed to the pull request.
+          node scripts/ci/version-commit.mjs --replace-own-only "$BASE" HEAD "$branch" "deps/staging/sdk-$HARNESS"
+          # --head matches a fork's branch of the same name too, so only this repository's pull request counts.
+          number=$(gh pr list --repo "$REPO" --head "$branch" --base main --state open --json number,isCrossRepository \
+            --jq 'map(select(.isCrossRepository | not)) | .[0].number // empty')
           if [ -z "$number" ]; then
-            gh pr create --repo "$REPO" --base main --head "$branch" --title "$TITLE" --body-file "$SUMMARY"
+            gh pr create --repo "$REPO" --base main --head "$branch" --title "$TITLE" --body-file "$RUNNER_TEMP/body.md"
           else
-            gh pr edit "$number" --repo "$REPO" --title "$TITLE" --body-file "$SUMMARY"
+            gh pr edit "$number" --repo "$REPO" --title "$TITLE" --body-file "$RUNNER_TEMP/body.md"
           fi

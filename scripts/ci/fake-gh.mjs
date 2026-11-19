@@ -55,7 +55,8 @@ if (method === "DELETE" && (match = /^repos\\/o\\/r\\/git\\/refs\\/(heads\\/.+)$
 if (method === "GET" && (match = /^repos\\/o\\/r\\/git\\/commits\\/([0-9a-f]{40})$/.exec(route))) {
   const [tree, ...parents] = git(["log", "-1", "--format=%T %P", match[1]]).split(" ").filter(Boolean);
   const verified = signed().includes(match[1]) && !process.env.UNVERIFIED;
-  out({ sha: match[1], tree: { sha: tree }, parents: parents.map((p) => ({ sha: p })),
+  const message = git(["log", "-1", "--format=%B", match[1]]);
+  out({ sha: match[1], message, tree: { sha: tree }, parents: parents.map((p) => ({ sha: p })),
     verification: { verified, reason: verified ? "valid" : "unsigned" } });
 }
 if (method === "POST" && route === "graphql") {

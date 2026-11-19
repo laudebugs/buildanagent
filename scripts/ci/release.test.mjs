@@ -880,7 +880,7 @@ if (process.env.EVIL === "checker") {
     assert.ok(!first.gh.some((call) => call.startsWith("pr create") || call.startsWith("pr merge")), first.gh);
     const again = runVersionPr(repo, main, open);
     assert.equal(again.push.status, 0, again.push.stderr);
-    assert.match(again.push.stdout, /already holds this version commit/);
+    assert.match(again.push.stdout, /already holds the checked commit/);
     assert.deepEqual(apiCalls(again.gh), [
       `GET repos/o/r/git/ref/heads/${branch}`,
       `GET repos/o/r/git/commits/${repo.git(repo.remote, "rev-parse", branch).trim()}`,

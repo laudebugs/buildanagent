@@ -57,9 +57,10 @@ const graphqlError = (message) => ({
   stdout: JSON.stringify({ errors: [{ message }] }),
   stderr: `gh: ${message}`,
 });
-const commit = (sha, { verified = true, tree = TREE, parents = [BASE], reason } = {}) =>
+const commit = (sha, { verified = true, tree = TREE, parents = [BASE], reason, message = "" } = {}) =>
   json({
     sha,
+    message,
     tree: { sha: tree },
     parents: parents.map((p) => ({ sha: p })),
     verification: { verified, reason: reason ?? (verified ? "valid" : "unsigned") },
@@ -217,7 +218,7 @@ describe("publishVersionCommit", () => {
     const result = publishVersionCommit({ run: gh.run, repo, branch, local, log: (line) => lines.push(line) });
     assert.deepEqual(result, { sha: OLD, created: false });
     assert.equal(gh.calls.length, 2);
-    assert.match(lines[0], /already holds this version commit, verified/);
+    assert.match(lines[0], /already holds the checked commit, verified/);
   });
 
   test("replaces an unsigned commit even when its tree and base match, as on pull request #70", () => {
@@ -317,6 +318,36 @@ describe("publishVersionCommit with its own staging branch, as sdk-updates.yml c
     assert.equal(gh.keys().at(-1), `DELETE repos/${repo}/git/refs/heads/${staging}`);
   });
 
+  test("with replaceOwnOnly, replaces a stale commit that has the update's headline", () => {
+    const gh = fakeGh(
+      routes({
+        [`GET repos/${repo}/git/ref/heads/${update}`]: json({ object: { sha: OLD } }),
+        [`GET repos/${repo}/git/commits/${OLD}`]: commit(OLD, {
+          parents: ["e".repeat(40)],
+          message: `${local.message.headline}\n\nlast week's bumps`,
+        }),
+        [`PATCH repos/${repo}/git/refs/heads/${update}`]: {},
+      }),
+    );
+    const result = publishVersionCommit({ run: gh.run, repo, branch: update, local, staging, replaceOwnOnly: true });
+    assert.deepEqual(result, { sha: NEW, created: true });
+  });
+
+  test("with replaceOwnOnly, refuses before any write to replace a commit someone pushed by hand", () => {
+    const gh = fakeGh({
+      [`GET repos/${repo}/git/ref/heads/${update}`]: json({ object: { sha: OLD } }),
+      [`GET repos/${repo}/git/commits/${OLD}`]: commit(OLD, {
+        parents: [NEW],
+        message: "docs(pi): re-mirror at v1.6.0",
+      }),
+    });
+    assert.throws(
+      () => publishVersionCommit({ run: gh.run, repo, branch: update, local, staging, replaceOwnOnly: true }),
+      /\("docs\(pi\): re-mirror at v1\.6\.0"\) isn't a commit this workflow made, so deps\/sdk-pi stays as it was/,
+    );
+    assert.deepEqual(gh.keys(), [`GET repos/${repo}/git/ref/heads/${update}`, `GET repos/${repo}/git/commits/${OLD}`]);
+  });
+
   test("refuses a staging branch that is the branch itself, before any call", () => {
     for (const bad of [update, ""]) {
       const gh = fakeGh({});
@@ -384,6 +415,6 @@ describe("localCommit", () => {
   test("refuses a head whose parent isn't the base", () => {
     const { dir, git } = versioned();
     git("commit", "-q", "--allow-empty", "-m", "another");
-    assert.throws(() => localCommit(dir, "HEAD~2", "HEAD"), /the version commit's only parent must be/);
+    assert.throws(() => localCommit(dir, "HEAD~2", "HEAD"), /the checked commit's only parent must be/);
   });
 });
