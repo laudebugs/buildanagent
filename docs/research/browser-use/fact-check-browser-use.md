@@ -1,6 +1,6 @@
 # Fact-check log: browser-use report
 
-The browser-use report holds up, and its recommendation stands: the coding agent's first browser belongs inside the existing sandbox, logged out and under the sandbox's egress allowlist, with ADR 0045 as the owner's first decision, and the U16 viewer relay holds on Cloudflare with the limits that open problem 8 records. Of the 348 rows below, 226 are confirmed, 76 needed a correction and 46 rest on inference, on absence or on pages that state less than the claim. The rows come from seven rounds:
+The browser-use report holds up, and its recommendation stands: the coding agent's first browser belongs inside the existing sandbox, logged out and under the sandbox's egress allowlist, with ADR 0045 as the owner's first decision, and the U16 viewer relay holds on Cloudflare with the limits that open problem 8 records. Of the 349 rows below, 226 are confirmed, 76 needed a correction and 47 rest on inference, on absence, on pages that state less than the claim or on pages that could not be read. The rows come from eight rounds:
 
 - **Rows 1–261:** the fact-check round, 18 November 2026.
 - **Rows 262–276:** the editorial review that followed it.
@@ -9,6 +9,7 @@ The browser-use report holds up, and its recommendation stands: the coding agent
 - **Rows 335–340:** the first code-review round.
 - **Rows 341–344:** the second code-review round, at medium.
 - **Rows 345–348:** the writing review of the U16 copy.
+- **Row 349:** a later re-try of the OpenAI help page that row 316 couldn't read.
 
 The largest correction concerns the Cloudflare finding behind change 2. The page we quoted covers Sandbox SDK 0.x only, while npm's `latest` has been SDK 1.0 since 30 September 2026, which replaces `interceptHttps` with per-host `interceptOutboundHttps`. HTTPS under `enableInternet = false` still needs interception on both, so the finding stands with both API names.
 
@@ -470,6 +471,14 @@ The `/anthropic-skills:writing-review` round on pull request #28 found 23 proble
 | 346 | Open problem 8 names a change for each of its four problems, and marks the unauthenticated debugging port as our reading | Open problems, item 8; build-guides U16 | ✏️ | The item attached "change 18 measures the stream" to the simultaneous-input problem, dropped the single writer's condition (row 337), and named no change for the debugging port, whose lack of authentication is our reading (row 336). **Now:** "change 18 measures it first" follows the frame-size problem; "change 18 makes the task's Durable Object the single writer while no sandbox process drives the browser"; "Because Chromium's debugging port has no authentication on our reading, … change 18 does not close this gap, so ADR 0045 should record it as an accepted risk". build-guides U16 says "on the report's reading Chromium's debugging port has no authentication" |
 | 347 | A tenant's hosted-browser handoff must be completed by the signed-in tenant user, because Browserless warns that an interactive-link holder "can also choose **Done**" | Plan table, change 14 | ✏️ (design) | The rule sat in the last Watch paragraph, outside the section's stated scope, and in no plan change. The quotation is row 322's. **Now:** change 14 adds "a handoff completed only by the signed-in tenant user, since Browserless warns that an interactive-link holder 'can also choose **Done**'" |
 | 348 | Change 18 folds into ADR 0045, so the owner's first decision also settles watching and takeover | Conclusion ¶2 | ✅ | Change 18's New ADR cell reads "no; fold into ADR 0045 with change 1" (row 332). **Now:** Conclusion ¶2 adds "Change 18 would fold into the same record, so the decision also settles whether the owner can watch and take over that browser" |
+
+## OpenAI help page re-tried (2026-11-19)
+
+Row 316 rests on a search summary because help.openai.com refused the U16 session. This row tries the page again with a real browser.
+
+| # | Claim | Where | Verdict | Source |
+|---|---|---|---|---|
+| 349 | Row 316: search summaries say ChatGPT agent "doesn't capture passwords or sensitive data you manually enter" during takeover | Watch ¶8 | ⚠️ | Still unread at the source. On 2026-11-19, [the help article](https://help.openai.com/en/articles/11752874-chatgpt-agent) and OpenAI's launch post returned 403 to `curl`, and the article returned 403 with a "Just a moment..." challenge page to Playwright's Chromium. The quotation stays marked as a search summary |
 
 ## Link check
 

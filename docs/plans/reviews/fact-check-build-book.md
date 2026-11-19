@@ -260,4 +260,12 @@ The writing review (`/anthropic-skills:writing-review`) of the plan, the three A
 
 | 162 | The book's ADRs are 0052–0054 | ADR index, plan, todos, AGENTS.md | ✏️ | After #37 was first opened, `main` gained ADR 0051 (`0051-dist-build-corrections-from-l1.md`, from L1); on rebase the book's records moved from 0051–0053 to 0052–0054, and every reference was updated, leaving main's 0051 untouched |
 
-**Totals:** 162 claims: 140 ✅, 22 ✏️, 0 ⚠️.
+## Re-checked at the primary source (2026-11-19)
+
+Row 105 took MAP's figure from the U17 report's reading of the paper, a secondary source. This row reads the abstract itself.
+
+| # | Claim | Where | Verdict | Source and reason |
+| --- | --- | --- | --- | --- |
+| 163 | Row 105: MAP found that "70% rely on prompting off-the-shelf models instead of weight tuning" | U21 | ✅ | [arXiv 2512.04123](https://arxiv.org/abs/2512.04123), abstract of v4 (4 June 2026), read with `curl` on 2026-11-19: "70% rely on prompting off-the-shelf models instead of weight tuning". U21 still reads the paper's body for its method |
+
+**Totals:** 163 claims: 141 ✅, 22 ✏️, 0 ⚠️.
