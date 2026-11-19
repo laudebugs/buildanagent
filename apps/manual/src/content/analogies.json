@@ -93,6 +93,6 @@
     "analogy": "a bookmark",
     "chapter": "memory-and-sessions",
     "illustration": null,
-    "breaks": "A bookmark restores only your place; a resumed run must also restore pending approvals and tool state, and most SDKs bring back the conversation alone."
+    "breaks": "A bookmark restores only your place; a resumed run must also restore pending approvals and tool state, and some SDKs bring back the conversation alone."
   }
 ]

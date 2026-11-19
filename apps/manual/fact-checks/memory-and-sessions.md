@@ -155,3 +155,26 @@ Each exercise was followed as written in a scratch copy of the repository on 202
 | 84 | Exercise 2: every query starts a fresh Claude Code process | § Exercises | ✅ | Row 21 |
 | 85 | Exercise 3: fetching Alice's session id with Bob's user id returns `undefined`, and with Alice's returns the session | § Exercises | ✅ | Row 39; scratch run of `verify/google-adk/examples/04-sessions-state.ts` with both checks added after line 37: the example ran |
 | 86 | Exercise 3: `MemorySaver` checks no user | § Exercises | ✅ | Row 13 |
+
+## Re-checks after the writing review
+
+The writing review (5Cs with BK22's voice check) found one factual overreach: the draft said "most SDKs bring back the conversation alone", which [[tbl:resume-keeps]] itself contradicts. Its other fixes reworded sentences, split long ones and replaced frames reused from earlier chapters ("deserves a closer look", "Here the … stops", "puts it plainly"). Each touched claim was checked again.
+
+| # | Claim | Where | Verdict | Source and reason |
+| --- | --- | --- | --- | --- |
+| 87 | A resumed run has to restore what was in flight, and some SDKs bring back the conversation alone | § Saving and resuming | ✏️ | The draft said "most SDKs". Of the five in [[tbl:resume-keeps]], the Claude Agent SDK and the Copilot SDK bring back the conversation alone, while OpenAI's `RunState`, LangChain's checkpoint and Cloudflare's state bring back more (rows 30–32); "some" is what the table supports |
+| 88 | The analogy register's break note for the bookmark: some SDKs bring back the conversation alone | `analogies.json` | ✏️ | Row 87; the note said "most SDKs" |
+| 89 | Section heading: the saved state comes back, and your code supplies the rest | § Saving and resuming | ✏️ | The heading said "the history comes back, and little else", which undersold OpenAI's `RunState` and LangChain's interrupts (rows 30 and 32); the new heading matches [[tbl:resume-keeps]]'s two columns. The last paragraph's "bring back only what was saved" replaces "the conversation and little else" on the same grounds |
+| 90 | The OpenAI row holds the most, because of the `RunState` | § Saving and resuming | ✅ | Rows 30 and 33 |
+| 91 | A session id finds a session and proves nothing about who may open it, as OpenAI's guide warns | § A session id finds a session | ✅ | Row 40 |
+| 92 | A resumed run treats the saved state as fact, because nothing in the state says who wrote it; a `RunState` restores your app's context, where Chapter 3 keeps the user's id as trusted context | § A resumed run trusts | ✅ | Row 46 (no authentication of the snapshot); [Chapter 3](../src/content/chapters/tools.md), [[tbl:trusted-context]]: the OpenAI Agents SDK's `RunContext` wraps the object your code passes to the run, where the signed-in user's id goes; row 33 (the snapshot includes "your app context") |
+| 93 | Cloudflare's state guide warns that "Any client can call setState() to push updates" | § A resumed run trusts | ✅ | Row 49; the wording "says plainly" became "warns", with no change to the quote |
+
+## Tally
+
+| Verdict | Rows |
+| --- | --- |
+| ✅ confirmed | 87 |
+| ✏️ corrected | 3 (rows 87, 88 and 89) |
+| ⚠️ unverified, our recommendation or reading, marked as ours in the text | 3 (rows 42, 45 and 74) |
+| Total | 93 |
