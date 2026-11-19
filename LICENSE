@@ -1,11 +1,11 @@
-buildanagent is open source under three licence terms, one for each kind of
+buildanagent is open source under four licence terms, one for each kind of
 content in the repository.
 
 Code: Apache-2.0 OR MIT, at your option
   Scripts (scripts/), our packages (packages/), the verification harnesses and
-  their examples (verify/), the CI workflows (.github/), the configuration
-  files, and the code blocks in the agent skills (.agents/skills/) are licensed
-  under either of
+  their examples (verify/), the book's code and figure generators (apps/book/),
+  the CI workflows (.github/), the configuration files, and the code blocks in
+  the agent skills (.agents/skills/) are licensed under either of
 
     * the Apache License, Version 2.0 (LICENSE-APACHE), or
     * the MIT License (LICENSE-MIT).
@@ -13,11 +13,22 @@ Code: Apache-2.0 OR MIT, at your option
   SPDX-License-Identifier: Apache-2.0 OR MIT
 
 Documentation: CC BY 4.0
-  The documents under docs/, the READMEs, the prose of the agent skills
-  (.agents/skills/) and AGENTS.md are licensed under the Creative Commons
-  Attribution 4.0 International licence (LICENSE-DOCS).
+  The documents under docs/, the book's prose and figures (apps/book/), the
+  READMEs, the prose of the agent skills (.agents/skills/) and AGENTS.md are
+  licensed under the Creative Commons Attribution 4.0 International licence
+  (LICENSE-DOCS).
 
   SPDX-License-Identifier: CC-BY-4.0
+
+Code from the garment engineering textbook: Apache-2.0 only
+  Some files in apps/book/ are copied or adapted from the owner's garment
+  engineering textbook (tajistudios/garment-engineering-textbook), with the
+  owner's permission. Those files are licensed under the Apache License,
+  Version 2.0 (LICENSE-APACHE) only, not under the MIT option above. Each one
+  opens with a header comment that names its source and this licence, and
+  THIRD-PARTY-NOTICES.md lists each file with its source path and commit.
+
+  SPDX-License-Identifier: Apache-2.0
 
 Mirrored third-party docs: their own licences
   The upstream documentation mirrored under docs/reference/*/source/ is not ours.
