@@ -22,8 +22,10 @@
     "pagefind": "1.6.0",
     "remark-directive": "4.0.0",
     "remark-parse": "11.0.0",
+    "shiki": "4.6.0",
     "unified": "11.0.5",
-    "unist-util-visit": "5.2.0"
+    "unist-util-visit": "5.2.0",
+    "yaml": "2.9.1"
   },
   "devDependencies": {
     "@buildanagent/gateway": "workspace:*",

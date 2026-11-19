@@ -7,7 +7,10 @@ import { type Book, type BookInputs, loadBook } from "../src/book/load.js";
 import type { Outline } from "../src/book/outline-types.js";
 import { markdownOptionsFor } from "../src/markdown/options.js";
 
-/** The committed fixture book: two written chapters and one planned one, with small registers. */
+/**
+ * The committed fixture book: two written chapters and one planned one, with small registers. The directory is also
+ * its own repository root, with a workspace of one harness, `verify/demo-sdk`, whose example a listing shows.
+ */
 export const FIXTURE_DIR = fileURLToPath(new URL("./fixtures/book/", import.meta.url));
 
 /** The fixture's outline: `first` and `second` are written, `third` is planned. */
@@ -32,6 +35,7 @@ export function fixtureInputs(dir: string = FIXTURE_DIR, outline: Outline = FIXT
     sourcesFile: join(dir, "sources.json"),
     glossaryFile: join(dir, "glossary.json"),
     analogiesFile: join(dir, "analogies.json"),
+    harnessesFile: join(dir, "harnesses.json"),
     repoRoot: dir,
   };
 }

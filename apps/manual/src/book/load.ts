@@ -5,6 +5,7 @@ import { outline as bookOutline } from "../outline.js";
 import { type Analogy, checkAnalogies } from "./analogies.js";
 import { type BookIndex, indexChapters } from "./book-index.js";
 import { checkGlossary, type GlossaryEntry } from "./glossary.js";
+import { listingContext } from "./listings.js";
 import { checkOutline, type NumberedChapter, numberChapters } from "./outline-rules.js";
 import type { Outline } from "./outline-types.js";
 import { ProblemList } from "./problems.js";
@@ -22,7 +23,9 @@ export interface BookInputs {
   readonly sourcesFile: string;
   readonly glossaryFile: string;
   readonly analogiesFile: string;
-  /** The directory that every `verifiedIn` path is relative to: the repository root. */
+  /** The table of each `verify/` harness's main package, whose pin a listing's caption shows. */
+  readonly harnessesFile: string;
+  /** The directory that every `verifiedIn` path and every listed file is relative to: the repository root. */
   readonly repoRoot: string;
 }
 
@@ -32,6 +35,7 @@ export interface BookFileNames {
   readonly sources: string;
   readonly glossary: string;
   readonly analogies: string;
+  readonly harnesses: string;
 }
 
 /** The checked book: its numbered outline, its three registers and its index of written chapters. */
@@ -96,6 +100,7 @@ export function bookInputs(): BookInputs {
     sourcesFile: join(app, "src/data/sources.json"),
     glossaryFile: join(app, "src/data/glossary.json"),
     analogiesFile: join(app, "src/content/analogies.json"),
+    harnessesFile: join(app, "src/data/harnesses.json"),
     repoRoot: join(app, "../.."),
   };
 }
@@ -122,7 +127,8 @@ function readJson(file: string, shownAs: string, problems: ProblemList): unknown
 
 /**
  * Loads and checks the whole book before any chapter renders: the outline's rules, the source register and its
- * `verifiedIn` files, the glossary, the analogy register, and the numbered blocks of every chapter. The Markdown
+ * `verifiedIn` files, the glossary, the analogy register, the harness table, and the numbered blocks of every
+ * chapter, including the file, region and pin of every listing. The Markdown
  * pipeline calls it when it loads, so the build and `check:book` fail on the same problems. Throws a `BookError`
  * that lists them all.
  */
@@ -134,6 +140,7 @@ export function loadBook(inputs: BookInputs = bookInputs()): Book {
     sources: name(inputs.sourcesFile),
     glossary: name(inputs.glossaryFile),
     analogies: name(inputs.analogiesFile),
+    harnesses: name(inputs.harnessesFile),
   };
   checkOutline(inputs.outline, names.outline, problems);
   const chapters = numberChapters(inputs.outline);
@@ -157,9 +164,10 @@ export function loadBook(inputs: BookInputs = bookInputs()): Book {
     new Set(bySlug.keys()),
     problems,
   );
+  const listings = listingContext(inputs.repoRoot, inputs.harnessesFile, names.harnesses, problems);
   const index = indexChapters(
     chapters,
-    { chaptersDir: inputs.chaptersDir, factChecksDir: inputs.factChecksDir, name },
+    { chaptersDir: inputs.chaptersDir, factChecksDir: inputs.factChecksDir, name, listings },
     problems,
   );
   checkIllustrations(analogies, index, names.analogies, problems);
@@ -194,18 +202,37 @@ function checkIllustrations(
 
 /**
  * What every chapter's rendered output depends on beyond its own file: which chapters exist, their numbers, the
- * numbered blocks in each, and the line offset of each body, which error lines depend on. Astro caches a chapter
- * until the chapter itself changes, so `astro.config.mjs` clears the cache when this text changes, as when a figure is
- * added to one chapter and another chapter refers to it.
+ * numbered blocks in each, the lines and pin each listing shows, and the line offset of each body, which error lines
+ * depend on. Astro caches a chapter until the chapter itself changes, so `astro.config.mjs` clears the cache when this
+ * text changes, as when a figure is added to one chapter and another chapter refers to it, or when a listed file or
+ * its harness's pin changes.
  */
 export function renderDependencies(book: Book): string {
   return JSON.stringify(
     book.chapters.map((chapter) => ({
       slug: chapter.slug,
       number: chapter.number,
-      blocks: book.index.written.get(chapter.slug)?.blocks.map((block) => [block.kind, block.id, block.number]) ?? null,
+      blocks:
+        book.index.written
+          .get(chapter.slug)
+          ?.blocks.map((block) => [block.kind, block.id, block.number, block.source ?? null]) ?? null,
       // A front-matter edit moves every line below it, and the plugins add this offset to each error's line.
       bodyLineOffset: book.index.written.get(chapter.slug)?.bodyLineOffset ?? null,
     })),
   );
+}
+
+/**
+ * The files the book's listings read, from the repository root: each listed file and its harness's `package.json`,
+ * whose pin the caption shows. Under `astro dev` an edit to one of them restarts the server when it changes what a
+ * listing shows.
+ */
+export function listedFiles(book: Book): string[] {
+  const files = new Set<string>();
+  for (const block of book.index.blocks.values()) {
+    if (block.source === undefined) continue;
+    files.add(join(book.inputs.repoRoot, block.source.path));
+    files.add(join(book.inputs.repoRoot, block.source.harness, "package.json"));
+  }
+  return [...files].sort();
 }

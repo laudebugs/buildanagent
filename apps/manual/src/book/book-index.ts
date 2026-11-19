@@ -6,6 +6,7 @@ import remarkDirective from "remark-directive";
 import remarkParse from "remark-parse";
 import { unified } from "unified";
 import { visit } from "unist-util-visit";
+import { type ListingContext, type ListingSource, resolveListing } from "./listings.js";
 import { KEBAB_ID, type NumberedChapter } from "./outline-rules.js";
 import type { ProblemList } from "./problems.js";
 
@@ -33,6 +34,8 @@ export interface NumberedBlock {
   readonly chapter: NumberedChapter;
   readonly number: string;
   readonly line: number;
+  /** For a `::listing` that names a file, the lines it shows and its caption's path, line range and pin. */
+  readonly source?: ListingSource;
 }
 
 /** A written chapter: its place in the outline, its file and the numbered blocks it holds, in order. */
@@ -75,13 +78,23 @@ export function renderedBody(text: string): { readonly body: string; readonly li
 
 const parser = unified().use(remarkParse).use(remarkDirective);
 
+/** A numbered directive as the index finds it. A leaf `::listing` carries the attributes that name its file. */
+interface ScannedBlock {
+  readonly kind: NumberedKind;
+  readonly id: string | undefined;
+  readonly line: number;
+  readonly fromFile?: Readonly<Record<string, string | null | undefined>>;
+}
+
 /** The numbered directives in one chapter's body, in document order. */
-function scanBlocks(body: string): { kind: NumberedKind; id: string | undefined; line: number }[] {
+function scanBlocks(body: string): ScannedBlock[] {
   const tree = parser.runSync(parser.parse(body)) as Root;
-  const found: { kind: NumberedKind; id: string | undefined; line: number }[] = [];
+  const found: ScannedBlock[] = [];
   visit(tree, (node) => {
     if ((node.type === "containerDirective" || node.type === "leafDirective") && isNumberedKind(node.name)) {
-      found.push({ kind: node.name, id: node.attributes?.id ?? undefined, line: node.position?.start.line ?? 0 });
+      const block = { kind: node.name, id: node.attributes?.id ?? undefined, line: node.position?.start.line ?? 0 };
+      const fromFile = node.type === "leafDirective" && node.name === "listing";
+      found.push(fromFile ? { ...block, fromFile: node.attributes ?? {} } : block);
     }
   });
   return found;
@@ -92,17 +105,20 @@ export interface IndexOptions {
   readonly chaptersDir: string;
   readonly factChecksDir: string;
   readonly name: (file: string) => string;
+  /** What a `::listing` needs to find its file, its region and its pin. */
+  readonly listings: ListingContext;
 }
 
 /**
  * Reads every chapter file in `chaptersDir`, numbers its figures, listings and tables from its outline position and
  * their order, and reports a file the outline does not name, a written chapter without its fact-check log, a block
- * without a kebab-case id, and an id used twice in the book, with each file and line. A slug the outline lists twice
+ * without a kebab-case id, an id used twice in the book, and a `::listing` whose file, region or pin is missing or
+ * whose file no typecheck covers, with each file and line. A slug the outline lists twice
  * is indexed once; the outline check reports the duplicate.
  */
 export function indexChapters(
   chapters: readonly NumberedChapter[],
-  { chaptersDir, factChecksDir, name }: IndexOptions,
+  { chaptersDir, factChecksDir, name, listings }: IndexOptions,
   problems: ProblemList,
 ): BookIndex {
   const bySlug = new Map(chapters.map((chapter) => [chapter.slug, chapter]));
@@ -123,7 +139,7 @@ export function indexChapters(
     const log = join(factChecksDir, `${chapter.slug}.md`);
     if (!existsSync(log)) problems.add(name(file), `the chapter has no fact-check log; add ${name(log)} (BK21)`);
     const { body, lineOffset } = renderedBody(readFileSync(file, "utf8"));
-    const own = indexBlocks(chapter, body, lineOffset, { file, chaptersDir, name }, blocks, problems);
+    const own = indexBlocks(chapter, body, lineOffset, { file, chaptersDir, name, listings }, blocks, problems);
     written.set(chapter.slug, { chapter, file, blocks: own, bodyLineOffset: lineOffset });
   }
   return { written, blocks };
@@ -133,14 +149,19 @@ function indexBlocks(
   chapter: NumberedChapter,
   body: string,
   lineOffset: number,
-  where: { readonly file: string; readonly chaptersDir: string; readonly name: (file: string) => string },
+  where: {
+    readonly file: string;
+    readonly chaptersDir: string;
+    readonly name: (file: string) => string;
+    readonly listings: ListingContext;
+  },
   blocks: Map<string, NumberedBlock>,
   problems: ProblemList,
 ): NumberedBlock[] {
-  const { file, chaptersDir, name } = where;
+  const { file, chaptersDir, name, listings } = where;
   const counters = new Map<NumberedKind, number>();
   const own: NumberedBlock[] = [];
-  for (const { kind, id, line: bodyLine } of scanBlocks(body)) {
+  for (const { kind, id, line: bodyLine, fromFile } of scanBlocks(body)) {
     const line = bodyLine + lineOffset;
     const count = (counters.get(kind) ?? 0) + 1;
     counters.set(kind, count);
@@ -148,7 +169,15 @@ function indexBlocks(
       problems.add(name(file), `a ${kind} needs a kebab-case id, written {#some-id}`, line);
       continue;
     }
-    const block = { kind, id, chapter, number: `${chapter.number}.${count}`, line };
+    let block: NumberedBlock = { kind, id, chapter, number: `${chapter.number}.${count}`, line };
+    if (fromFile !== undefined) {
+      const source = resolveListing(fromFile, listings);
+      if ("message" in source) {
+        problems.add(name(file), `listing "${id}": ${source.message}`, line);
+        continue;
+      }
+      block = { ...block, source };
+    }
     const earlier = blocks.get(blockKey(kind, id));
     if (earlier !== undefined) {
       const at = `${name(join(chaptersDir, `${earlier.chapter.slug}.md`))}:${earlier.line}`;
