@@ -253,6 +253,18 @@ test("recheck runs current policy before an approved call, and a recheck that de
   assert.equal(next.refund.inputs.length, 1);
 });
 
+test("recheck gets copies, so editing them can't change the input an approved call runs with", async () => {
+  const { context, pending } = await pause();
+  const next = await resume(roundTrip(context), [allow(pending[0])], [text("Done.")], {
+    recheck: async (request, input) => {
+      (input as { order: number }).order = 99;
+      (request as { callId: string }).callId = "other";
+      return "allow";
+    },
+  });
+  assert.deepEqual(next.refund.inputs, [{ order: 1, note: "checked by policy" }]);
+});
+
 test("a context whose last response ended in an error asks the model again, and the model records one new request", async () => {
   const { model, adapter } = scripted([text("Here is the answer.")]);
   const context: Context = {

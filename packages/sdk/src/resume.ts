@@ -149,7 +149,10 @@ function matchOpenCalls(calls: readonly ToolCall[], byCall: ReadonlyMap<string, 
   }
   for (const [callId, request] of byCall) {
     if (!calls.some((call) => call.callId === callId)) {
-      invalid(`got the pending request ${JSON.stringify(request.id)}, whose call doesn't wait in this context`);
+      invalid(
+        `got the pending request ${JSON.stringify(request.id)}, whose call doesn't wait in this context. ` +
+          "Remove the request from pending and its input from pendingInputs, or restore the call without its result",
+      );
     }
   }
   return open;
@@ -299,7 +302,9 @@ async function policyBlock(
 ): Promise<string | undefined> {
   let answer: unknown;
   try {
-    answer = await recheck(request, input);
+    // Copies, so a callback that edits what it is handed can't change the input the run executes after the check. A
+    // request or input that can't be copied fails the check closed.
+    answer = await recheck(structuredClone(request), structuredClone(input));
   } catch (error) {
     ctx.send({ type: "hook_error", hook: "recheck", error: error instanceof Error ? error.message : String(error) });
     return "the policy check failed";
