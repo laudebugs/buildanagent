@@ -1,7 +1,8 @@
 /**
  * `@buildanagent/gateway/testing`: test doubles for the gateway.
  *
- * It exposes the offline guards, `allowModelRequests()` and `assertStreamContract()`; `mockTransport()` and `startMockServer()` are planned here (SDK plan §3.2).
+ * It exposes the offline guards, `allowModelRequests()`, `assertStreamContract()` and `seededRandom()`;
+ * `mockTransport()` and `startMockServer()` are planned here (SDK plan §3.2).
  */
 
 export {
@@ -18,3 +19,4 @@ export {
   isLoopbackHost,
   PROVIDER_KEY_VARIABLES,
 } from "./guards.ts";
+export { seededRandom } from "./random.ts";
