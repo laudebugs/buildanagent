@@ -6,7 +6,7 @@
 | Status | `ready` |
 | Plan | [Publish and docs §4](../../plans/publish-and-docs.md#4-round-l-and-its-todos) |
 | Round / milestone | Round L (publish and docs, added 2026-11-19) |
-| Depends on | [L1](L1-build-dist-packages.md) |
+| Depends on | [L1](../ongoing/L1-build-dist-packages.md) |
 | Size | S |
 
 ## Goal
