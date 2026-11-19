@@ -1,11 +1,16 @@
 // The transcript recorder that each harness's `scripts/run-examples.mjs` preloads into an example's process with
-// `--import`, after tsx. It keeps the events the harness's mock layer reports, each with the line of the example file
-// that led to it, and writes them as raw JSON to $TRANSCRIPT_FILE when the process exits. `write.mjs` then normalises
-// them into `results/transcripts/<example>.json`. Without $TRANSCRIPT_FILE, as when an example runs on its own, the
-// recorder is not installed and the mock layer's calls do nothing.
+// `--import`, after tsx. It keeps the events the harness's mock layer reports (events.ts), each with the line of the
+// example file that led to it, and writes them as raw JSON to $TRANSCRIPT_FILE when the process exits. `write.mjs`
+// then normalises them into `results/transcripts/<example>.json`. Without $TRANSCRIPT_FILE, as when an example runs on
+// its own, the recorder is not installed and the mock layer attaches nothing.
+//
+// The recorder also records each check() itself, so no listed helper carries recorder code: every harness's check()
+// prints "ok - <message>" when it passes and throws "ASSERTION FAILED: <message>" when it fails. The recorder reads
+// that line on its way to the console and that error on its way out of the process, and changes neither.
 //
 // The mock layer finds the recorder at globalThis[Symbol.for("buildanagent.transcript")]; recording only reads what
 // the mock already holds, so it cannot change what an example does or whether its checks pass.
+import { AsyncLocalStorage } from "node:async_hooks";
 import { writeFileSync } from "node:fs";
 import { resolve } from "node:path";
 import { fileURLToPath } from "node:url";
@@ -42,12 +47,8 @@ function plain(value, seen = new WeakSet()) {
 /** The path in one stack frame, such as `at f (/a/b.ts:3:7)` or `at async file:///a/b.ts:3:7`, with its line. */
 const FRAME = /(?:\(|at (?:async )?)((?:file:\/\/)?\/[^():]+|[A-Za-z]:\\[^():]+):(\d+):\d+\)?$/;
 
-/** The line of the example file nearest the top of the current stack, or undefined when the example is not on it. */
-function exampleLine() {
-  const limit = Error.stackTraceLimit;
-  Error.stackTraceLimit = 200;
-  const stack = new Error().stack ?? "";
-  Error.stackTraceLimit = limit;
+/** The line of the example file nearest the top of a stack, or undefined when the example is not on it. */
+function lineIn(stack) {
   for (const frame of stack.split("\n").slice(1)) {
     const match = FRAME.exec(frame.trim());
     if (!match) continue;
@@ -57,16 +58,48 @@ function exampleLine() {
   return undefined;
 }
 
+/** The line of the example file nearest the top of the current stack. */
+function exampleLine() {
+  const limit = Error.stackTraceLimit;
+  Error.stackTraceLimit = 200;
+  const stack = new Error().stack ?? "";
+  Error.stackTraceLimit = limit;
+  return lineIn(stack);
+}
+
+const CHECK_PASSED = "ok - ";
+const CHECK_FAILED = "ASSERTION FAILED: ";
+
 if (out) {
   const events = [];
+  // The example line of the call that an SDK answers later, outside the example's stack (events.ts, recordCallers).
+  const caller = new AsyncLocalStorage();
+  const push = (event, line) => {
+    const copy = plain(event);
+    // The line follows the kind, so each event in the file reads as "what happened, and where".
+    events.push(line === undefined ? copy : { kind: copy.kind, line, ...copy });
+  };
   globalThis[Symbol.for("buildanagent.transcript")] = {
     record(event) {
-      const line = exampleLine();
-      const copy = plain(event);
-      // The line follows the kind, so each event in the file reads as "what happened, and where".
-      events.push(line === undefined ? copy : { kind: copy.kind, line, ...copy });
+      push(event, exampleLine() ?? caller.getStore());
+    },
+    atCaller(run) {
+      return caller.run(exampleLine() ?? caller.getStore(), run);
     },
   };
+  const log = console.log;
+  console.log = function (...args) {
+    if (args.length === 1 && typeof args[0] === "string" && args[0].startsWith(CHECK_PASSED)) {
+      push({ kind: "check", message: args[0].slice(CHECK_PASSED.length), pass: true }, exampleLine());
+    }
+    return log.apply(this, args);
+  };
+  process.on("uncaughtExceptionMonitor", (error) => {
+    const message = error instanceof Error ? error.message : "";
+    if (message.startsWith(CHECK_FAILED)) {
+      push({ kind: "check", message: message.slice(CHECK_FAILED.length), pass: false }, lineIn(error.stack ?? ""));
+    }
+  });
   process.on("exit", () => {
     writeFileSync(out, JSON.stringify({ events }));
   });

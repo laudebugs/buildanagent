@@ -1,0 +1,203 @@
+{
+  "format": 1,
+  "example": "09-triage-agent",
+  "file": "verify/cloudflare-agents/examples/09-triage-agent.ts",
+  "harness": "verify/cloudflare-agents",
+  "pin": "agents@0.33.0",
+  "mock": "ai@7.0.162",
+  "events": [
+    {
+      "kind": "request",
+      "model": "model-1",
+      "repeated": 0,
+      "messages": [
+        {
+          "role": "system",
+          "parts": [
+            {
+              "type": "text",
+              "text": "Triage support tickets. Look the customer up before escalating.\n\nYou are running inside a Think agent.\n\nCapabilities available in this turn:\n- You can inspect and edit the agent workspace using the available file tools.\n- Use the tools exposed in this turn when they materially improve accuracy or let you act on the user's request. Treat tool descriptions and schemas as the source of truth.\n- Some tools may call server code, browser/client code, MCP servers, extensions, or delegated agents. Use them according to their descriptions.\n- Do not claim access to capabilities that are not exposed as tools in this turn."
+            }
+          ]
+        },
+        {
+          "role": "user",
+          "parts": [
+            {
+              "type": "text",
+              "text": "Customer C-9 reports a full outage."
+            }
+          ]
+        }
+      ],
+      "tools": [
+        "read",
+        "ls",
+        "find",
+        "grep",
+        "write",
+        "edit",
+        "delete",
+        "lookupCustomer",
+        "escalate"
+      ]
+    },
+    {
+      "kind": "response",
+      "model": "model-1",
+      "message": {
+        "role": "assistant",
+        "parts": [
+          {
+            "type": "tool-call",
+            "id": "call_1",
+            "name": "lookupCustomer",
+            "input": {
+              "customerId": "C-9"
+            }
+          },
+          {
+            "type": "tool-call",
+            "id": "call_2",
+            "name": "escalate",
+            "input": {
+              "customerId": "C-9",
+              "reason": "outage"
+            }
+          }
+        ]
+      },
+      "finish": "tool-calls"
+    },
+    {
+      "kind": "check",
+      "message": "the triage turn completes",
+      "pass": true
+    },
+    {
+      "kind": "check",
+      "message": "the read-only lookup tool ran without approval",
+      "pass": true
+    },
+    {
+      "kind": "check",
+      "message": "the escalation is waiting for approval",
+      "pass": true
+    },
+    {
+      "kind": "check",
+      "message": "the gated escalate tool has not run",
+      "pass": true
+    },
+    {
+      "kind": "check",
+      "message": "it still has not run while nobody answers",
+      "pass": true
+    },
+    {
+      "kind": "request",
+      "model": "model-1",
+      "repeated": 3,
+      "messages": [
+        {
+          "role": "tool",
+          "parts": [
+            {
+              "type": "tool-result",
+              "id": "call_1",
+              "name": "lookupCustomer",
+              "output": {
+                "plan": "enterprise",
+                "openTickets": 3
+              }
+            },
+            {
+              "type": "tool-result",
+              "id": "call_2",
+              "name": "escalate",
+              "output": {
+                "ticket": "ESC-1"
+              }
+            }
+          ]
+        }
+      ],
+      "tools": [
+        "read",
+        "ls",
+        "find",
+        "grep",
+        "write",
+        "edit",
+        "delete",
+        "lookupCustomer",
+        "escalate"
+      ]
+    },
+    {
+      "kind": "response",
+      "model": "model-1",
+      "message": {
+        "role": "assistant",
+        "parts": [
+          {
+            "type": "text",
+            "text": "Escalated to the on-call team."
+          }
+        ]
+      },
+      "finish": "stop"
+    },
+    {
+      "kind": "check",
+      "message": "approval moved the escalation to output-available",
+      "pass": true
+    },
+    {
+      "kind": "check",
+      "message": "the escalate tool ran exactly once, after approval",
+      "pass": true
+    },
+    {
+      "kind": "request",
+      "model": "model-1",
+      "repeated": 5,
+      "messages": [
+        {
+          "role": "user",
+          "parts": [
+            {
+              "type": "text",
+              "text": "Return the triage result."
+            }
+          ]
+        }
+      ],
+      "tools": []
+    },
+    {
+      "kind": "response",
+      "model": "model-1",
+      "message": {
+        "role": "assistant",
+        "parts": [
+          {
+            "type": "text",
+            "text": "{\"customerId\":\"C-9\",\"priority\":\"p1\",\"escalated\":true,\"summary\":\"Enterprise outage\"}"
+          }
+        ]
+      },
+      "finish": "stop"
+    },
+    {
+      "kind": "check",
+      "message": "the structured turn returns a value matching the TriageResult schema",
+      "pass": true
+    },
+    {
+      "kind": "check",
+      "message": "the typed result reflects the approved escalation",
+      "pass": true
+    }
+  ]
+}

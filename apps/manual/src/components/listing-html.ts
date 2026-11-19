@@ -44,7 +44,8 @@ export function listingHtml(
         line.note === undefined || number === undefined
           ? ""
           : annotationMarkerHtml(`#${listingId}-note-${line.note}`, number);
-      return `<span class="${classes}" data-line="${line.number}"><span class="line__number" aria-hidden="true">${line.number}</span>${tokens}${marker}</span>`;
+      const gutter = `<span class="line__number" aria-hidden="true">${line.number}</span>`;
+      return `<span class="${classes}" data-line="${line.number}">${gutter}${tokens}${marker}</span>`;
     })
     .join("");
 }

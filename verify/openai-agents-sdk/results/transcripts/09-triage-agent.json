@@ -4,6 +4,7 @@
   "file": "verify/openai-agents-sdk/examples/09-triage-agent.ts",
   "harness": "verify/openai-agents-sdk",
   "pin": "@openai/agents@0.21.0",
+  "mock": "@openai/agents@0.21.0",
   "events": [
     {
       "kind": "request",
@@ -58,21 +59,8 @@
       "kind": "request",
       "line": 66,
       "model": "model-1",
-      "repeated": 2,
+      "repeated": 3,
       "messages": [
-        {
-          "role": "assistant",
-          "parts": [
-            {
-              "type": "tool-call",
-              "id": "c1",
-              "name": "lookup_customer",
-              "input": {
-                "email": "user@example.com"
-              }
-            }
-          ]
-        },
         {
           "role": "tool",
           "parts": [
@@ -119,21 +107,8 @@
       "kind": "request",
       "line": 70,
       "model": "model-1",
-      "repeated": 4,
+      "repeated": 5,
       "messages": [
-        {
-          "role": "assistant",
-          "parts": [
-            {
-              "type": "tool-call",
-              "id": "c2",
-              "name": "escalate",
-              "input": {
-                "reason": "checkout 500"
-              }
-            }
-          ]
-        },
         {
           "role": "tool",
           "parts": [

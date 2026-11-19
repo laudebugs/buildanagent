@@ -32,20 +32,38 @@ export interface ReplayOptions {
   readonly listing?: string;
   /** The accessible name of the controls; "Replay of <title>" unless given. */
   readonly controlsLabel?: string;
+  /** The file lines the listing shows. With them, each event says where it came from, or that the listing lacks it. */
+  readonly listingLines?: ReadonlySet<number>;
+}
+
+/**
+ * Where an event came from, as the replay says it beside a listing: the listed line it highlights, a line the
+ * listing leaves out, or no line at all. Shown with or without JavaScript, so a step that highlights nothing says why.
+ */
+export function eventWhere(line: number | undefined, listingLines: ReadonlySet<number>): string {
+  if (line === undefined) return "no source line";
+  return listingLines.has(line) ? `line ${line}` : `line ${line}, outside this listing`;
 }
 
 /**
  * A recorded run as a panel. Without JavaScript every event shows in order, as a numbered list; src/scripts/steps.ts
  * reveals them one by one with back, next, restart and play, and highlights the listing line an event names.
  */
-export function replayHtml({ id, title, source, events, listing, controlsLabel }: ReplayOptions): string {
+export function replayHtml(options: ReplayOptions): string {
+  const { id, title, source, events, listing, controlsLabel, listingLines } = options;
   const items = events
     .map((event, index) => {
-      const line = event.line === undefined ? "" : ` data-line="${event.line}"`;
+      // Only a line the listing shows is one the script can highlight.
+      const shown = event.line !== undefined && (listingLines === undefined || listingLines.has(event.line));
+      const line = shown ? ` data-line="${event.line}"` : "";
+      const where =
+        listingLines === undefined
+          ? ""
+          : `<span class="replay__where">${escapeHtml(eventWhere(event.line, listingLines))}</span>`;
       return (
         `<li class="replay__event" data-kind="${event.kind}" data-step="${index}"${line}>` +
         `<span class="replay__role">${escapeHtml(event.role)}</span>` +
-        `<p class="replay__body">${escapeHtml(event.body)}</p></li>`
+        `<p class="replay__body">${escapeHtml(event.body)}${where}</p></li>`
       );
     })
     .join("");
@@ -54,7 +72,8 @@ export function replayHtml({ id, title, source, events, listing, controlsLabel }
   return (
     `<section class="replay panel" id="${escapeHtml(id)}" aria-labelledby="${escapeHtml(titleId)}" ` +
     `data-steps="cumulative" data-step-unit="Event"${listingAttribute}>` +
-    `<header class="replay__header"><span class="label panel__label" id="${escapeHtml(titleId)}">${escapeHtml(title)}</span>` +
+    `<header class="replay__header">` +
+    `<span class="label panel__label" id="${escapeHtml(titleId)}">${escapeHtml(title)}</span>` +
     `<span class="label panel__label">${escapeHtml(source)}</span></header>` +
     `<ol class="replay__events">${items}</ol>` +
     stepControlsHtml(controlsLabel ?? `Replay of ${title}`, true) +

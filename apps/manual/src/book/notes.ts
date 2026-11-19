@@ -41,9 +41,10 @@ export function checkNotes(
     if (!note.hasText)
       return { message: `note "${note.id}" needs its text, written ::note[Text]{#${note.id}}`, line: at };
     if (!markers.has(note.id)) {
+      const shows = `listing "${listingId}" shows`;
       const known = markers.size === 0 ? "they hold no marker" : `their markers are ${[...markers.keys()].join(", ")}`;
       return {
-        message: `note "${note.id}" has no // book:note ${note.id} marker in the lines listing "${listingId}" shows; ${known}`,
+        message: `note "${note.id}" has no // book:note ${note.id} marker in the lines ${shows}; ${known}`,
         line: at,
       };
     }

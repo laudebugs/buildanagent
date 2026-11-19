@@ -54,9 +54,9 @@ test("without JavaScript the notes are a numbered list of three under the code, 
 });
 
 test("a tabs block with listings from two harnesses shows two panels, two paths and two pins", () => {
-  const tabs = between('<div class="tabs" data-label="SDK">', "<h2");
+  const tabs = between('<div class="tabs" data-label="SDK">', '<h2 id="exercises"');
   assert.deepEqual(
-    [...tabs.matchAll(/<section class="tabs__panel" id="([^"]+)"><h4 class="tabs__heading"[^>]*>([^<]+)<\/h4>/g)].map(
+    [...tabs.matchAll(/<section class="tabs__panel" id="([^"]+)"><h2 class="tabs__heading"[^>]*>([^<]+)<\/h2>/g)].map(
       (m) => [m[1], m[2]],
     ),
     [
@@ -76,26 +76,42 @@ test("a tabs block with listings from two harnesses shows two panels, two paths 
     [...tabs.matchAll(/<span class="listing__number number">([^<]+)<\/span>/g)].map((m) => m[1]),
     ["Listing 2.4", "Listing 2.5"],
   );
+  assert.doesNotMatch(tabs, /listing__title/, "the tab's heading is the caption, so the caption does not repeat it");
+  assert.match(tabs, /<figure id="lst-hello-demo"[^>]*aria-labelledby="lst-hello-demo-heading lst-hello-demo-caption"/);
 });
 
-test("without JavaScript a replay lists every event of the transcript, each with the listing line it came from", () => {
+test("a tab heading sits one level below the heading the tabs follow", async () => {
+  const nested = mutatedFixture((copy) => {
+    withInteractive(copy);
+    edit(copy, "chapters/second.md", (text) => text.replace(":::tabs\n", "## Two SDKs\n\n:::tabs\n"));
+  });
+  const page = await renderLikeAstro(loadBook(fixtureInputs(nested)), "second");
+  removeFixture(nested);
+  assert.deepEqual(
+    [...page.matchAll(/<(h\d) class="tabs__heading"/g)].map((m) => m[1]),
+    ["h3", "h3"],
+  );
+});
+
+test("without JavaScript a replay lists every event and says where each came from", () => {
   const replay = between('<section class="replay panel" id="lst-noted-replay"', "</section>");
   assert.match(replay, /data-steps="cumulative"[^>]* data-listing="lst-noted"/);
   assert.match(replay, /verify\/demo-sdk\/results\/transcripts\/02-notes\.json/);
   const events = [
     ...replay.matchAll(
-      /<li class="replay__event" data-kind="(\w+)" data-step="\d+" data-line="(\d+)"><span class="replay__role">([^<]+)<\/span><p class="replay__body">([^<]*)<\/p>/g,
+      /<li class="replay__event" data-kind="(\w+)" data-step="\d+"(?: data-line="(\d+)")?><span class="replay__role">([^<]+)<\/span><p class="replay__body">([^<]*)<span class="replay__where">([^<]+)<\/span><\/p>/g,
     ),
   ];
   assert.deepEqual(
-    events.map((m) => [m[1], m[2], m[3], m[4]]),
+    events.map((m) => [m[1], m[2], m[3], m[4], m[5]]),
     [
-      ["user", "6", "System", "Be brief."],
-      ["user", "6", "User", "Greet the reader."],
-      ["tool", "6", "Tool call", 'greet({"name":"reader"})'],
-      ["result", "6", "Tool result", "greet: Hello, reader."],
-      ["model", "6", "Model", "Hello, reader."],
-      ["check", "7", "Check", "the greeting reaches the reader"],
+      ["user", "6", "System", "Be brief.", "line 6"],
+      ["user", "6", "User", "Greet the reader.", "line 6"],
+      ["tool", "6", "Tool call", 'greet({"name":"reader"})', "line 6"],
+      ["result", "6", "Tool result", "greet: Hello, reader.", "line 6"],
+      ["model", undefined, "Model", "Hello, reader.", "no source line"],
+      ["check", "7", "Check", "the greeting reaches the reader", "line 7"],
+      ["check", undefined, "Check", "greet is defined", "line 2, outside this listing"],
     ],
   );
   assert.match(replay, /<div class="controls"[^>]*aria-label="Replay of Listing 2\.3"[^>]* hidden>/);
@@ -109,6 +125,7 @@ test("a replay leaves out the model's answer when the next request resends it, a
     file: "x.ts",
     harness: "verify/x",
     pin: "x@1.0.0",
+    mock: "x@1.0.0",
     events: [
       {
         kind: "request",
@@ -145,9 +162,62 @@ test("a replay leaves out the model's answer when the next request resends it, a
   assert.deepEqual(replayEvents(transcript), [
     { kind: "user", role: "User", body: "Hi" },
     { kind: "tool", role: "Tool call", body: "t({})" },
+    { kind: "user", role: "History", body: "1 earlier message sent again" },
     { kind: "result", role: "Tool error", body: 't: {"ok":false}' },
     { kind: "check", role: "Check failed", body: "it failed", line: 9 },
   ]);
+});
+
+test("a replay folds history another agent resends, names unknown parts and shortens long bodies", () => {
+  const user = { role: "user" as const, parts: [{ type: "text" as const, text: "Where is my refund?" }] };
+  const transcript: Transcript = {
+    format: 1,
+    example: "x",
+    file: "x.ts",
+    harness: "verify/x",
+    pin: "x@1.0.0",
+    mock: "x@1.0.0",
+    events: [
+      { kind: "request", model: "model-1", repeated: 0, messages: [user], tools: [] },
+      {
+        kind: "request",
+        model: "model-1",
+        repeated: 0,
+        messages: [
+          { role: "system", parts: [{ type: "other", kind: "sections", value: ["preamble", "tools"] }] },
+          user,
+          { role: "user", parts: [{ type: "text", text: "x".repeat(700) }] },
+        ],
+        tools: [],
+      },
+      {
+        kind: "response",
+        model: "model-1",
+        message: {
+          role: "assistant",
+          parts: [
+            { type: "other", kind: "derived-text", value: { characters: 42 } },
+            { type: "other", kind: "image", value: { url: "a.png" } },
+          ],
+        },
+        finish: "stop",
+      },
+    ],
+  };
+  assert.deepEqual(
+    replayEvents(transcript).map(({ role, body }) => [role, body]),
+    [
+      ["User", "Where is my refund?"],
+      ["History", "1 earlier message sent again"],
+      ["System prompt sections", "preamble, tools"],
+      ["User", `${"x".repeat(600)}… (100 more characters)`],
+      [
+        "Model text (made up by the fake model)",
+        "42 characters that the fake model built from the conversation so far",
+      ],
+      ["Other part (image)", '{"url":"a.png"}'],
+    ],
+  );
 });
 
 test("note markers come off their lines, and a listing keeps each line's note id", () => {

@@ -1,0 +1,416 @@
+{
+  "format": 1,
+  "example": "02-workflow-agents",
+  "file": "verify/google-adk/examples/02-workflow-agents.ts",
+  "harness": "verify/google-adk",
+  "pin": "@google/adk@2.5.0",
+  "mock": "@google/adk@2.5.0",
+  "events": [
+    {
+      "kind": "request",
+      "line": 33,
+      "model": "model-1",
+      "repeated": 0,
+      "messages": [
+        {
+          "role": "system",
+          "parts": [
+            {
+              "type": "text",
+              "text": "You are an agent. Your internal name is \"writer\".\n\nWrite."
+            }
+          ]
+        },
+        {
+          "role": "user",
+          "parts": [
+            {
+              "type": "text",
+              "text": "Write a haiku."
+            }
+          ]
+        }
+      ],
+      "tools": []
+    },
+    {
+      "kind": "response",
+      "line": 33,
+      "model": "model-1",
+      "message": {
+        "role": "assistant",
+        "parts": [
+          {
+            "type": "text",
+            "text": "DRAFT-TEXT"
+          }
+        ]
+      },
+      "finish": "stop"
+    },
+    {
+      "kind": "request",
+      "line": 33,
+      "model": "model-2",
+      "repeated": 0,
+      "messages": [
+        {
+          "role": "system",
+          "parts": [
+            {
+              "type": "text",
+              "text": "You are an agent. Your internal name is \"reviewer\".\n\nReview this: DRAFT-TEXT"
+            }
+          ]
+        },
+        {
+          "role": "user",
+          "parts": [
+            {
+              "type": "text",
+              "text": "Write a haiku."
+            }
+          ]
+        },
+        {
+          "role": "user",
+          "parts": [
+            {
+              "type": "text",
+              "text": "For context:"
+            },
+            {
+              "type": "text",
+              "text": "[writer] said: DRAFT-TEXT"
+            }
+          ]
+        }
+      ],
+      "tools": []
+    },
+    {
+      "kind": "response",
+      "line": 33,
+      "model": "model-2",
+      "message": {
+        "role": "assistant",
+        "parts": [
+          {
+            "type": "text",
+            "text": "LGTM"
+          }
+        ]
+      },
+      "finish": "stop"
+    },
+    {
+      "kind": "check",
+      "line": 35,
+      "message": "SequentialAgent runs its sub-agents in order",
+      "pass": true
+    },
+    {
+      "kind": "check",
+      "line": 36,
+      "message": "outputKey writes state that {draft} injects into the next instruction",
+      "pass": true
+    },
+    {
+      "kind": "check",
+      "line": 41,
+      "message": "the outputKey value persists in session state",
+      "pass": true
+    },
+    {
+      "kind": "request",
+      "line": 53,
+      "model": "model-3",
+      "repeated": 0,
+      "messages": [
+        {
+          "role": "system",
+          "parts": [
+            {
+              "type": "text",
+              "text": "You are an agent. Your internal name is \"a\".\n\nA"
+            }
+          ]
+        },
+        {
+          "role": "user",
+          "parts": [
+            {
+              "type": "text",
+              "text": "Go."
+            }
+          ]
+        }
+      ],
+      "tools": []
+    },
+    {
+      "kind": "request",
+      "line": 53,
+      "model": "model-4",
+      "repeated": 0,
+      "messages": [
+        {
+          "role": "system",
+          "parts": [
+            {
+              "type": "text",
+              "text": "You are an agent. Your internal name is \"b\".\n\nB"
+            }
+          ]
+        },
+        {
+          "role": "user",
+          "parts": [
+            {
+              "type": "text",
+              "text": "Go."
+            }
+          ]
+        }
+      ],
+      "tools": []
+    },
+    {
+      "kind": "response",
+      "line": 53,
+      "model": "model-3",
+      "message": {
+        "role": "assistant",
+        "parts": [
+          {
+            "type": "text",
+            "text": "A-RESULT"
+          }
+        ]
+      },
+      "finish": "stop"
+    },
+    {
+      "kind": "response",
+      "line": 53,
+      "model": "model-4",
+      "message": {
+        "role": "assistant",
+        "parts": [
+          {
+            "type": "text",
+            "text": "B-RESULT"
+          }
+        ]
+      },
+      "finish": "stop"
+    },
+    {
+      "kind": "check",
+      "line": 54,
+      "message": "ParallelAgent runs every sub-agent",
+      "pass": true
+    },
+    {
+      "kind": "check",
+      "line": 56,
+      "message": "each parallel sub-agent runs on its own branch (fan.a, fan.b)",
+      "pass": true
+    },
+    {
+      "kind": "check",
+      "line": 60,
+      "message": "a parallel sibling's reply is not in the other's context",
+      "pass": true
+    },
+    {
+      "kind": "check",
+      "line": 65,
+      "message": "both branches write to the shared session state",
+      "pass": true
+    },
+    {
+      "kind": "request",
+      "line": 80,
+      "model": "model-5",
+      "repeated": 0,
+      "messages": [
+        {
+          "role": "system",
+          "parts": [
+            {
+              "type": "text",
+              "text": "You are an agent. Your internal name is \"step\".\n\nIterate."
+            }
+          ]
+        },
+        {
+          "role": "user",
+          "parts": [
+            {
+              "type": "text",
+              "text": "Go."
+            }
+          ]
+        }
+      ],
+      "tools": []
+    },
+    {
+      "kind": "response",
+      "line": 80,
+      "model": "model-5",
+      "message": {
+        "role": "assistant",
+        "parts": [
+          {
+            "type": "text",
+            "text": "again"
+          }
+        ]
+      },
+      "finish": "stop"
+    },
+    {
+      "kind": "request",
+      "line": 80,
+      "model": "model-5",
+      "repeated": 3,
+      "messages": [],
+      "tools": []
+    },
+    {
+      "kind": "response",
+      "line": 80,
+      "model": "model-5",
+      "message": {
+        "role": "assistant",
+        "parts": [
+          {
+            "type": "text",
+            "text": "again"
+          }
+        ]
+      },
+      "finish": "stop"
+    },
+    {
+      "kind": "request",
+      "line": 80,
+      "model": "model-5",
+      "repeated": 4,
+      "messages": [],
+      "tools": []
+    },
+    {
+      "kind": "response",
+      "line": 80,
+      "model": "model-5",
+      "message": {
+        "role": "assistant",
+        "parts": [
+          {
+            "type": "text",
+            "text": "again"
+          }
+        ]
+      },
+      "finish": "stop"
+    },
+    {
+      "kind": "check",
+      "line": 81,
+      "message": "LoopAgent stops after maxIterations (3 model calls)",
+      "pass": true
+    },
+    {
+      "kind": "request",
+      "line": 94,
+      "model": "model-6",
+      "repeated": 0,
+      "messages": [
+        {
+          "role": "system",
+          "parts": [
+            {
+              "type": "text",
+              "text": "You are an agent. Your internal name is \"stepper\".\n\nIterate."
+            }
+          ]
+        },
+        {
+          "role": "user",
+          "parts": [
+            {
+              "type": "text",
+              "text": "Go."
+            }
+          ]
+        }
+      ],
+      "tools": [
+        "exit_loop"
+      ]
+    },
+    {
+      "kind": "response",
+      "line": 94,
+      "model": "model-6",
+      "message": {
+        "role": "assistant",
+        "parts": [
+          {
+            "type": "text",
+            "text": "pass 1"
+          }
+        ]
+      },
+      "finish": "stop"
+    },
+    {
+      "kind": "request",
+      "line": 94,
+      "model": "model-6",
+      "repeated": 3,
+      "messages": [],
+      "tools": [
+        "exit_loop"
+      ]
+    },
+    {
+      "kind": "response",
+      "line": 94,
+      "model": "model-6",
+      "message": {
+        "role": "assistant",
+        "parts": [
+          {
+            "type": "tool-call",
+            "id": "call-1",
+            "name": "exit_loop",
+            "input": {}
+          }
+        ]
+      },
+      "finish": "tool-calls"
+    },
+    {
+      "kind": "check",
+      "line": 95,
+      "message": "exit_loop ends the loop in the iteration that calls it",
+      "pass": true
+    },
+    {
+      "kind": "check",
+      "line": 96,
+      "message": "the exit_loop tool result carries actions.escalate",
+      "pass": true
+    },
+    {
+      "kind": "check",
+      "line": 102,
+      "message": "constructing each workflow agent logs a deprecation warning pointing to Workflow",
+      "pass": true
+    }
+  ]
+}

@@ -1,44 +1,17 @@
-// The mock layer's side of the transcript recorder (scripts/transcripts/record.mjs at the repository root). faux.ts
-// wraps each scripted step of the faux provider with recordedSteps(), so each request and response joins the example's
-// transcript, and check() reports each assertion. When the runner did not preload the recorder, as when an example
-// runs on its own, nothing is recorded. A wrapped step returns the same message the scripted step does.
+// Pi's side of the transcript recorder (scripts/transcripts/). When the runner preloads the recorder, faux.ts wraps
+// each scripted step of the faux provider with recordedSteps(), so each request and answer joins the example's
+// transcript, and this file wraps the session methods that start a run, so those events carry the example line of the
+// call; otherwise both do nothing. A wrapped step returns the same message the scripted step does.
 import type { AssistantMessage, FauxResponseStep, Message as PiMessage } from "@earendil-works/pi-ai";
-
-/** One part of a message, in the transcript's SDK-neutral shape. */
-export type Part =
-  | { type: "text"; text: string }
-  | { type: "reasoning"; text: string }
-  | { type: "tool-call"; id: string; name: string; input: unknown }
-  | { type: "tool-result"; id: string; name: string; output: unknown; error?: true }
-  | { type: "other"; kind: string; value: unknown };
-
-export interface Message {
-  role: "system" | "user" | "assistant" | "tool";
-  parts: Part[];
-}
-
-export type TranscriptEvent =
-  | { kind: "request"; model: string; messages: Message[]; tools: string[] }
-  | { kind: "response"; model: string; message: Message; finish: string }
-  | { kind: "check"; message: string; pass: boolean };
-
-const recorder = (globalThis as { [key: symbol]: { record(event: TranscriptEvent): void } | undefined })[
-  Symbol.for("buildanagent.transcript")
-];
-
-export function record(event: TranscriptEvent): void {
-  recorder?.record(event);
-}
-
-/** A tool-call input as the model wrote it: JSON text is parsed, anything else is kept. */
-export const parsed = (input: unknown): unknown => {
-  if (typeof input !== "string") return input;
-  try {
-    return JSON.parse(input);
-  } catch {
-    return input;
-  }
-};
+import { AgentSession } from "@earendil-works/pi-coding-agent";
+import {
+  type Message,
+  modelNames,
+  type Part,
+  record,
+  recordCallers,
+  recording,
+} from "../../../../scripts/transcripts/events.ts";
 
 type Block = { type: string; text?: string; thinking?: string; id?: string; name?: string; arguments?: unknown };
 
@@ -104,15 +77,18 @@ function toolsOf(messages: readonly PiMessage[]): string[] {
   return tools;
 }
 
-let models = 0;
+const nameOf = modelNames();
 
 /**
- * The scripted steps of one faux provider, each wrapped to record the request it answers and the message it returns.
- * The transcript names each faux provider in the order its steps were scripted.
+ * The scripted steps of one faux provider, each wrapped to record the request it answers and the message it returns,
+ * or the steps unchanged when the runner did not preload the recorder. The transcript names each faux provider in the
+ * order of its first request.
  */
 export function recordedSteps(steps: FauxResponseStep[]): FauxResponseStep[] {
-  const model = `model-${++models}`;
+  if (!recording) return steps;
+  const key = {};
   return steps.map((step) => async (context, options, state, fauxModel) => {
+    const model = nameOf(key);
     record({ kind: "request", model, messages: context.messages.map(messageOf), tools: toolsOf(context.messages) });
     const answer: AssistantMessage = typeof step === "function" ? await step(context, options, state, fauxModel) : step;
     const message = messageOf(answer);
@@ -120,3 +96,6 @@ export function recordedSteps(steps: FauxResponseStep[]): FauxResponseStep[] {
     return answer;
   });
 }
+
+// The faux provider answers away from the example's stack, so the session call that starts a run lends it its line.
+if (recording) recordCallers(AgentSession.prototype, ["prompt", "steer", "followUp", "compact"]);

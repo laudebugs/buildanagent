@@ -1,0 +1,381 @@
+{
+  "format": 1,
+  "example": "05-callbacks",
+  "file": "verify/google-adk/examples/05-callbacks.ts",
+  "harness": "verify/google-adk",
+  "pin": "@google/adk@2.5.0",
+  "mock": "@google/adk@2.5.0",
+  "events": [
+    {
+      "kind": "check",
+      "line": 45,
+      "message": "beforeAgentCallback returning Content skips the agent",
+      "pass": true
+    },
+    {
+      "kind": "check",
+      "line": 65,
+      "message": "beforeModelCallback returning a response skips the model call",
+      "pass": true
+    },
+    {
+      "kind": "check",
+      "line": 69,
+      "message": "beforeModelCallback receives the LlmRequest",
+      "pass": true
+    },
+    {
+      "kind": "request",
+      "line": 77,
+      "model": "model-1",
+      "repeated": 0,
+      "messages": [
+        {
+          "role": "system",
+          "parts": [
+            {
+              "type": "text",
+              "text": "You are an agent. Your internal name is \"rewritten\".\n\nx"
+            }
+          ]
+        },
+        {
+          "role": "user",
+          "parts": [
+            {
+              "type": "text",
+              "text": "hi"
+            }
+          ]
+        }
+      ],
+      "tools": []
+    },
+    {
+      "kind": "response",
+      "line": 77,
+      "model": "model-1",
+      "message": {
+        "role": "assistant",
+        "parts": [
+          {
+            "type": "text",
+            "text": "raw answer"
+          }
+        ]
+      },
+      "finish": "stop"
+    },
+    {
+      "kind": "check",
+      "line": 78,
+      "message": "afterModelCallback returning a response replaces the model's",
+      "pass": true
+    },
+    {
+      "kind": "request",
+      "line": 92,
+      "model": "model-2",
+      "repeated": 0,
+      "messages": [
+        {
+          "role": "system",
+          "parts": [
+            {
+              "type": "text",
+              "text": "You are an agent. Your internal name is \"blocked\".\n\nx"
+            }
+          ]
+        },
+        {
+          "role": "user",
+          "parts": [
+            {
+              "type": "text",
+              "text": "refund A-1"
+            }
+          ]
+        }
+      ],
+      "tools": [
+        "refund"
+      ]
+    },
+    {
+      "kind": "response",
+      "line": 92,
+      "model": "model-2",
+      "message": {
+        "role": "assistant",
+        "parts": [
+          {
+            "type": "tool-call",
+            "id": "call-1",
+            "name": "refund",
+            "input": {
+              "orderId": "A-1"
+            }
+          }
+        ]
+      },
+      "finish": "tool-calls"
+    },
+    {
+      "kind": "request",
+      "line": 92,
+      "model": "model-2",
+      "repeated": 3,
+      "messages": [
+        {
+          "role": "user",
+          "parts": [
+            {
+              "type": "tool-result",
+              "id": "call-1",
+              "name": "refund",
+              "output": {
+                "error": "refund of A-1 needs a human"
+              }
+            }
+          ]
+        }
+      ],
+      "tools": [
+        "refund"
+      ]
+    },
+    {
+      "kind": "response",
+      "line": 92,
+      "model": "model-2",
+      "message": {
+        "role": "assistant",
+        "parts": [
+          {
+            "type": "text",
+            "text": "done"
+          }
+        ]
+      },
+      "finish": "stop"
+    },
+    {
+      "kind": "check",
+      "line": 93,
+      "message": "beforeToolCallback returning an object means the tool body never runs",
+      "pass": true
+    },
+    {
+      "kind": "check",
+      "line": 94,
+      "message": "the returned object is the tool result the model sees",
+      "pass": true
+    },
+    {
+      "kind": "request",
+      "line": 107,
+      "model": "model-3",
+      "repeated": 0,
+      "messages": [
+        {
+          "role": "system",
+          "parts": [
+            {
+              "type": "text",
+              "text": "You are an agent. Your internal name is \"after\".\n\nx"
+            }
+          ]
+        },
+        {
+          "role": "user",
+          "parts": [
+            {
+              "type": "text",
+              "text": "status?"
+            }
+          ]
+        }
+      ],
+      "tools": [
+        "lookup"
+      ]
+    },
+    {
+      "kind": "response",
+      "line": 107,
+      "model": "model-3",
+      "message": {
+        "role": "assistant",
+        "parts": [
+          {
+            "type": "tool-call",
+            "id": "call-2",
+            "name": "lookup",
+            "input": {
+              "orderId": "A-1"
+            }
+          }
+        ]
+      },
+      "finish": "tool-calls"
+    },
+    {
+      "kind": "request",
+      "line": 107,
+      "model": "model-3",
+      "repeated": 3,
+      "messages": [
+        {
+          "role": "user",
+          "parts": [
+            {
+              "type": "tool-result",
+              "id": "call-2",
+              "name": "lookup",
+              "output": {
+                "orderId": "A-1",
+                "status": "shipped",
+                "note": "checked"
+              }
+            }
+          ]
+        }
+      ],
+      "tools": [
+        "lookup"
+      ]
+    },
+    {
+      "kind": "response",
+      "line": 107,
+      "model": "model-3",
+      "message": {
+        "role": "assistant",
+        "parts": [
+          {
+            "type": "text",
+            "text": "done"
+          }
+        ]
+      },
+      "finish": "stop"
+    },
+    {
+      "kind": "check",
+      "line": 108,
+      "message": "afterToolCallback returning an object replaces the tool result",
+      "pass": true
+    },
+    {
+      "kind": "request",
+      "line": 159,
+      "model": "model-4",
+      "repeated": 0,
+      "messages": [
+        {
+          "role": "system",
+          "parts": [
+            {
+              "type": "text",
+              "text": "You are an agent. Your internal name is \"guarded\".\n\nx"
+            }
+          ]
+        },
+        {
+          "role": "user",
+          "parts": [
+            {
+              "type": "text",
+              "text": "refund B-2"
+            }
+          ]
+        }
+      ],
+      "tools": [
+        "refund"
+      ]
+    },
+    {
+      "kind": "response",
+      "line": 159,
+      "model": "model-4",
+      "message": {
+        "role": "assistant",
+        "parts": [
+          {
+            "type": "tool-call",
+            "id": "call-3",
+            "name": "refund",
+            "input": {
+              "orderId": "B-2"
+            }
+          }
+        ]
+      },
+      "finish": "tool-calls"
+    },
+    {
+      "kind": "request",
+      "line": 159,
+      "model": "model-4",
+      "repeated": 3,
+      "messages": [
+        {
+          "role": "user",
+          "parts": [
+            {
+              "type": "tool-result",
+              "id": "call-3",
+              "name": "refund",
+              "output": {
+                "error": "blocked B-2 by policy"
+              }
+            }
+          ]
+        }
+      ],
+      "tools": [
+        "refund"
+      ]
+    },
+    {
+      "kind": "response",
+      "line": 159,
+      "model": "model-4",
+      "message": {
+        "role": "assistant",
+        "parts": [
+          {
+            "type": "text",
+            "text": "done"
+          }
+        ]
+      },
+      "finish": "stop"
+    },
+    {
+      "kind": "check",
+      "line": 160,
+      "message": "a plugin's beforeToolCallback can block a tool",
+      "pass": true
+    },
+    {
+      "kind": "check",
+      "line": 164,
+      "message": "when a plugin hook returns a value, the agent-level callback is skipped",
+      "pass": true
+    },
+    {
+      "kind": "check",
+      "line": 165,
+      "message": "a positional (agent, context) plugin hook gets context === undefined",
+      "pass": true
+    },
+    {
+      "kind": "check",
+      "line": 166,
+      "message": "the first argument is the params object {agent, callbackContext}, not the agent",
+      "pass": true
+    }
+  ]
+}

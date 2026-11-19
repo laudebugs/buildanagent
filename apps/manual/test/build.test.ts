@@ -198,7 +198,7 @@ test("a chapter page shows SDK tabs and a replay that read in full without JavaS
   const html = chapter();
   const tabs = html.slice(html.indexOf('<div class="tabs" data-label="SDK">'));
   assert.deepEqual(
-    [...tabs.matchAll(/<h4 class="tabs__heading"[^>]*>([^<]+)<\/h4>/g)].map((m) => m[1]),
+    [...tabs.matchAll(/<h2 class="tabs__heading"[^>]*>([^<]+)<\/h2>/g)].map((m) => m[1]),
     ["AI SDK", "OpenAI Agents SDK"],
   );
   assert.ok(tabs.includes('<span class="listing__path">verify/openai-agents-sdk/examples/02-function-tool.ts</span>'));

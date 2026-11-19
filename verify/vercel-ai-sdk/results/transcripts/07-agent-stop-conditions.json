@@ -4,6 +4,7 @@
   "file": "verify/vercel-ai-sdk/examples/07-agent-stop-conditions.ts",
   "harness": "verify/vercel-ai-sdk",
   "pin": "ai@7.0.162",
+  "mock": "ai@7.0.162",
   "events": [
     {
       "kind": "request",
@@ -46,19 +47,8 @@
       "kind": "request",
       "line": 17,
       "model": "model-1",
-      "repeated": 1,
+      "repeated": 2,
       "messages": [
-        {
-          "role": "assistant",
-          "parts": [
-            {
-              "type": "tool-call",
-              "id": "call_1",
-              "name": "ping",
-              "input": {}
-            }
-          ]
-        },
         {
           "role": "tool",
           "parts": [
@@ -96,19 +86,8 @@
       "kind": "request",
       "line": 17,
       "model": "model-1",
-      "repeated": 3,
+      "repeated": 4,
       "messages": [
-        {
-          "role": "assistant",
-          "parts": [
-            {
-              "type": "tool-call",
-              "id": "call_2",
-              "name": "ping",
-              "input": {}
-            }
-          ]
-        },
         {
           "role": "tool",
           "parts": [
@@ -146,19 +125,8 @@
       "kind": "request",
       "line": 17,
       "model": "model-1",
-      "repeated": 5,
+      "repeated": 6,
       "messages": [
-        {
-          "role": "assistant",
-          "parts": [
-            {
-              "type": "tool-call",
-              "id": "call_3",
-              "name": "ping",
-              "input": {}
-            }
-          ]
-        },
         {
           "role": "tool",
           "parts": [
@@ -196,19 +164,8 @@
       "kind": "request",
       "line": 17,
       "model": "model-1",
-      "repeated": 7,
+      "repeated": 8,
       "messages": [
-        {
-          "role": "assistant",
-          "parts": [
-            {
-              "type": "tool-call",
-              "id": "call_4",
-              "name": "ping",
-              "input": {}
-            }
-          ]
-        },
         {
           "role": "tool",
           "parts": [
@@ -246,19 +203,8 @@
       "kind": "request",
       "line": 17,
       "model": "model-1",
-      "repeated": 9,
+      "repeated": 10,
       "messages": [
-        {
-          "role": "assistant",
-          "parts": [
-            {
-              "type": "tool-call",
-              "id": "call_5",
-              "name": "ping",
-              "input": {}
-            }
-          ]
-        },
         {
           "role": "tool",
           "parts": [
@@ -296,19 +242,8 @@
       "kind": "request",
       "line": 17,
       "model": "model-1",
-      "repeated": 11,
+      "repeated": 12,
       "messages": [
-        {
-          "role": "assistant",
-          "parts": [
-            {
-              "type": "tool-call",
-              "id": "call_6",
-              "name": "ping",
-              "input": {}
-            }
-          ]
-        },
         {
           "role": "tool",
           "parts": [
@@ -346,19 +281,8 @@
       "kind": "request",
       "line": 17,
       "model": "model-1",
-      "repeated": 13,
+      "repeated": 14,
       "messages": [
-        {
-          "role": "assistant",
-          "parts": [
-            {
-              "type": "tool-call",
-              "id": "call_7",
-              "name": "ping",
-              "input": {}
-            }
-          ]
-        },
         {
           "role": "tool",
           "parts": [
@@ -396,19 +320,8 @@
       "kind": "request",
       "line": 17,
       "model": "model-1",
-      "repeated": 15,
+      "repeated": 16,
       "messages": [
-        {
-          "role": "assistant",
-          "parts": [
-            {
-              "type": "tool-call",
-              "id": "call_8",
-              "name": "ping",
-              "input": {}
-            }
-          ]
-        },
         {
           "role": "tool",
           "parts": [
@@ -446,19 +359,8 @@
       "kind": "request",
       "line": 17,
       "model": "model-1",
-      "repeated": 17,
+      "repeated": 18,
       "messages": [
-        {
-          "role": "assistant",
-          "parts": [
-            {
-              "type": "tool-call",
-              "id": "call_9",
-              "name": "ping",
-              "input": {}
-            }
-          ]
-        },
         {
           "role": "tool",
           "parts": [
@@ -496,19 +398,8 @@
       "kind": "request",
       "line": 17,
       "model": "model-1",
-      "repeated": 19,
+      "repeated": 20,
       "messages": [
-        {
-          "role": "assistant",
-          "parts": [
-            {
-              "type": "tool-call",
-              "id": "call_10",
-              "name": "ping",
-              "input": {}
-            }
-          ]
-        },
         {
           "role": "tool",
           "parts": [
@@ -546,19 +437,8 @@
       "kind": "request",
       "line": 17,
       "model": "model-1",
-      "repeated": 21,
+      "repeated": 22,
       "messages": [
-        {
-          "role": "assistant",
-          "parts": [
-            {
-              "type": "tool-call",
-              "id": "call_11",
-              "name": "ping",
-              "input": {}
-            }
-          ]
-        },
         {
           "role": "tool",
           "parts": [
@@ -596,19 +476,8 @@
       "kind": "request",
       "line": 17,
       "model": "model-1",
-      "repeated": 23,
+      "repeated": 24,
       "messages": [
-        {
-          "role": "assistant",
-          "parts": [
-            {
-              "type": "tool-call",
-              "id": "call_12",
-              "name": "ping",
-              "input": {}
-            }
-          ]
-        },
         {
           "role": "tool",
           "parts": [
@@ -646,19 +515,8 @@
       "kind": "request",
       "line": 17,
       "model": "model-1",
-      "repeated": 25,
+      "repeated": 26,
       "messages": [
-        {
-          "role": "assistant",
-          "parts": [
-            {
-              "type": "tool-call",
-              "id": "call_13",
-              "name": "ping",
-              "input": {}
-            }
-          ]
-        },
         {
           "role": "tool",
           "parts": [
@@ -696,19 +554,8 @@
       "kind": "request",
       "line": 17,
       "model": "model-1",
-      "repeated": 27,
+      "repeated": 28,
       "messages": [
-        {
-          "role": "assistant",
-          "parts": [
-            {
-              "type": "tool-call",
-              "id": "call_14",
-              "name": "ping",
-              "input": {}
-            }
-          ]
-        },
         {
           "role": "tool",
           "parts": [
@@ -746,19 +593,8 @@
       "kind": "request",
       "line": 17,
       "model": "model-1",
-      "repeated": 29,
+      "repeated": 30,
       "messages": [
-        {
-          "role": "assistant",
-          "parts": [
-            {
-              "type": "tool-call",
-              "id": "call_15",
-              "name": "ping",
-              "input": {}
-            }
-          ]
-        },
         {
           "role": "tool",
           "parts": [
@@ -796,19 +632,8 @@
       "kind": "request",
       "line": 17,
       "model": "model-1",
-      "repeated": 31,
+      "repeated": 32,
       "messages": [
-        {
-          "role": "assistant",
-          "parts": [
-            {
-              "type": "tool-call",
-              "id": "call_16",
-              "name": "ping",
-              "input": {}
-            }
-          ]
-        },
         {
           "role": "tool",
           "parts": [
@@ -846,19 +671,8 @@
       "kind": "request",
       "line": 17,
       "model": "model-1",
-      "repeated": 33,
+      "repeated": 34,
       "messages": [
-        {
-          "role": "assistant",
-          "parts": [
-            {
-              "type": "tool-call",
-              "id": "call_17",
-              "name": "ping",
-              "input": {}
-            }
-          ]
-        },
         {
           "role": "tool",
           "parts": [
@@ -896,19 +710,8 @@
       "kind": "request",
       "line": 17,
       "model": "model-1",
-      "repeated": 35,
+      "repeated": 36,
       "messages": [
-        {
-          "role": "assistant",
-          "parts": [
-            {
-              "type": "tool-call",
-              "id": "call_18",
-              "name": "ping",
-              "input": {}
-            }
-          ]
-        },
         {
           "role": "tool",
           "parts": [
@@ -946,19 +749,8 @@
       "kind": "request",
       "line": 17,
       "model": "model-1",
-      "repeated": 37,
+      "repeated": 38,
       "messages": [
-        {
-          "role": "assistant",
-          "parts": [
-            {
-              "type": "tool-call",
-              "id": "call_19",
-              "name": "ping",
-              "input": {}
-            }
-          ]
-        },
         {
           "role": "tool",
           "parts": [
@@ -1045,19 +837,8 @@
       "kind": "request",
       "line": 28,
       "model": "model-2",
-      "repeated": 1,
+      "repeated": 2,
       "messages": [
-        {
-          "role": "assistant",
-          "parts": [
-            {
-              "type": "tool-call",
-              "id": "call_21",
-              "name": "ping",
-              "input": {}
-            }
-          ]
-        },
         {
           "role": "tool",
           "parts": [
@@ -1095,19 +876,8 @@
       "kind": "request",
       "line": 28,
       "model": "model-2",
-      "repeated": 3,
+      "repeated": 4,
       "messages": [
-        {
-          "role": "assistant",
-          "parts": [
-            {
-              "type": "tool-call",
-              "id": "call_22",
-              "name": "ping",
-              "input": {}
-            }
-          ]
-        },
         {
           "role": "tool",
           "parts": [
@@ -1195,19 +965,8 @@
       "kind": "request",
       "line": 48,
       "model": "model-3",
-      "repeated": 1,
+      "repeated": 2,
       "messages": [
-        {
-          "role": "assistant",
-          "parts": [
-            {
-              "type": "tool-call",
-              "id": "call_24",
-              "name": "ping",
-              "input": {}
-            }
-          ]
-        },
         {
           "role": "tool",
           "parts": [

@@ -41,8 +41,8 @@ const HARNESS_MANIFEST = "verify/demo-sdk/package.json";
 const listingLine = (change: (text: string) => string) => (dir: string) =>
   edit(dir, SECOND, (text) => text.replace(/^::listing.*$/m, (line) => change(line)));
 const example = (change: (text: string) => string) => (dir: string) => edit(dir, EXAMPLE, change);
-// withInteractive adds a listing with notes and a replay on line 20, its notes on lines 21-23, and tabs on line 26 whose
-// listings are on lines 27 and 28, all after the file listing on line 18.
+// withInteractive adds a listing with notes and a replay on line 20, its notes on lines 21-23, and tabs on line 26
+// whose listings are on lines 27 and 28, all after the file listing on line 18.
 const NOTED = "verify/demo-sdk/examples/02-notes.ts";
 const TRANSCRIPT = "verify/demo-sdk/results/transcripts/02-notes.json";
 const interactive = (change: (dir: string) => void) => (dir: string) => {
@@ -759,7 +759,16 @@ const cases: readonly Case[] = [
     change: interactive((dir) => edit(dir, TRANSCRIPT, (t) => t.replace("demo-sdk@1.2.3", "demo-sdk@1.2.2"))),
     file: `${SECOND}:20`,
     message:
-      /was recorded with demo-sdk@1\.2\.2, but the harness pins demo-sdk@1\.2\.3; run verify\/demo-sdk's pnpm test/,
+      /was recorded with demo-sdk@1\.2\.2 and demo-sdk@1\.2\.3, but the harness pins demo-sdk@1\.2\.3 and demo-sdk@1\.2\.3; run verify\/demo-sdk's pnpm test/,
+  },
+  {
+    rule: "a replay whose transcript was recorded with another version of the mock layer's package fails",
+    change: interactive((dir) =>
+      edit(dir, TRANSCRIPT, (t) => t.replace('"mock": "demo-sdk@1.2.3"', '"mock": "demo-sdk@1.2.0"')),
+    ),
+    file: `${SECOND}:20`,
+    message:
+      /was recorded with demo-sdk@1\.2\.3 and demo-sdk@1\.2\.0, but the harness pins demo-sdk@1\.2\.3 and demo-sdk@1\.2\.3/,
   },
   {
     rule: "a replay whose transcript records another file fails",

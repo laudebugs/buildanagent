@@ -27,7 +27,13 @@ Offline verification harness for the Cloudflare Agents docs and our examples, pi
 
 ## Region markers feed the book's listings
 
-Some examples carry `// #region <name>` and `// #endregion` comments, which change no behaviour. The book's `::listing` directive shows the code between them, so a chapter quotes only code that `pnpm test` type-checks and runs. Rename or remove a region only together with the chapters that list it, because `check:book` fails on a region that no longer exists ([how to add a listing](../../apps/manual/README.md#a-listing-shows-a-region-of-a-real-file)). This harness has no transcript recorder yet, so the book cannot replay its examples (T5's outcome says why).
+Some examples carry `// #region <name>` and `// #endregion` comments, which change no behaviour. The book's `::listing` directive shows the code between them, so a chapter quotes only code that `pnpm test` type-checks and runs. Rename or remove a region only together with the chapters that list it, because `check:book` fails on a region that no longer exists ([how to add a listing](../../apps/manual/README.md#a-listing-shows-a-region-of-a-real-file)).
+
+## Transcripts record each example's run for the book's replays
+
+`pnpm test` also writes `results/transcripts/<example>.json` for each example that calls the mock model. A transcript records each request the example sent, each response, and each `check()` with its result, with the example line that led to each event when the call stack shows it. `scripts/run-examples.mjs` runs the recorder from [`scripts/transcripts/`](../../scripts/transcripts/), which records the checks from the line each one prints. The examples run inside workerd, where the runner cannot preload the recorder, so `examples/lib/transcript.ts` attaches it to `ai/test`'s `MockLanguageModelV4` itself and prints each request and answer on a console line of its own; `scripts/run-examples.mjs` reads those lines and each check's `ok - ` line from workerd's output. workerd's stack names no line of the example, so these events carry none, and the five examples that call no model, `01-state.ts` among them, have no transcript. Recording only reads what the mock already holds, so it changes no verdict. The writer replaces machine paths and the SDK's generated ids, timestamps and durations with placeholders, so two runs on any machine write the same bytes; what an example scripts, such as a tool's input, stays as written.
+
+Commit the transcripts with the change that alters them, unlike a regenerated `run-examples.json`, which holds local paths and is restored before committing. CI's results-drift check fails when a committed transcript differs from the one a fresh run writes, and the book's replays read these files ([replays](../../apps/manual/README.md#a-replay-steps-through-a-recorded-run)).
 
 ## Scripts
 

@@ -4,9 +4,11 @@
   "file": "verify/pi/examples/06-compaction.ts",
   "harness": "verify/pi",
   "pin": "@earendil-works/pi-coding-agent@1.5.2",
+  "mock": "@earendil-works/pi-ai@1.5.2",
   "events": [
     {
       "kind": "request",
+      "line": 25,
       "model": "model-1",
       "repeated": 0,
       "messages": [
@@ -45,6 +47,7 @@
     },
     {
       "kind": "response",
+      "line": 25,
       "model": "model-1",
       "message": {
         "role": "assistant",
@@ -59,18 +62,10 @@
     },
     {
       "kind": "request",
+      "line": 26,
       "model": "model-1",
-      "repeated": 2,
+      "repeated": 3,
       "messages": [
-        {
-          "role": "assistant",
-          "parts": [
-            {
-              "type": "text",
-              "text": "The capital of France is Paris."
-            }
-          ]
-        },
         {
           "role": "user",
           "parts": [
@@ -85,6 +80,7 @@
     },
     {
       "kind": "response",
+      "line": 26,
       "model": "model-1",
       "message": {
         "role": "assistant",
@@ -99,6 +95,7 @@
     },
     {
       "kind": "request",
+      "line": 28,
       "model": "model-1",
       "repeated": 0,
       "messages": [
@@ -125,6 +122,7 @@
     },
     {
       "kind": "response",
+      "line": 28,
       "model": "model-1",
       "message": {
         "role": "assistant",
@@ -139,6 +137,7 @@
     },
     {
       "kind": "request",
+      "line": 28,
       "model": "model-1",
       "repeated": 1,
       "messages": [
@@ -156,6 +155,7 @@
     },
     {
       "kind": "response",
+      "line": 28,
       "model": "model-1",
       "message": {
         "role": "assistant",
@@ -194,6 +194,7 @@
     },
     {
       "kind": "request",
+      "line": 40,
       "model": "model-1",
       "repeated": 0,
       "messages": [
@@ -250,6 +251,7 @@
     },
     {
       "kind": "response",
+      "line": 40,
       "model": "model-1",
       "message": {
         "role": "assistant",

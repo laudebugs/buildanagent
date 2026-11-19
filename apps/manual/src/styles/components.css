@@ -706,6 +706,13 @@
   white-space: pre-wrap;
 }
 
+/* Where an event came from: the listed line it highlights, or why it highlights none. */
+.replay__where {
+  display: block;
+  color: var(--panel-comment);
+  font-size: var(--size-label);
+}
+
 .replay[data-enhanced] .replay__event[data-future] {
   display: none;
 }

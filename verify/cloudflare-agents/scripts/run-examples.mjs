@@ -16,9 +16,10 @@
 // Usage: node scripts/run-examples.mjs [dir=extracted] [--only id1,id2]
 import { spawn } from "node:child_process";
 import { existsSync } from "node:fs";
-import { mkdir, readdir, readFile, rm, writeFile } from "node:fs/promises";
+import { mkdir, mkdtemp, readdir, readFile, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join, resolve } from "node:path";
+import { writeTranscript } from "../../../scripts/transcripts/write.mjs";
 import { bundle, PKG } from "./workerd.mjs";
 
 const dir = resolve(process.argv[2] && !process.argv[2].startsWith("--") ? process.argv[2] : "extracted");
@@ -29,6 +30,28 @@ const only = process.argv.includes("--only")
 const TIMEOUT_MS = Number(process.env.EXAMPLE_TIMEOUT_MS ?? 60000);
 const CONCURRENCY = Number(process.env.EXAMPLE_CONCURRENCY ?? 4);
 const MARKER = "[verify-harness] mock model call";
+// examples/lib/transcript.ts prints each model request and answer of our own examples on a line with this prefix.
+const TRANSCRIPT_LINE = "__TRANSCRIPT__";
+
+/**
+ * Writes the transcript of one of our examples from workerd's output: the recorder's lines and each check's "ok - "
+ * line, in the order workerd printed them, then the failed check, if one ended the run. workerd keeps no stack that
+ * names the example's lines, so these events carry none.
+ */
+async function writeWorkerTranscript(t, out, error, cwd) {
+  const events = [];
+  for (const line of out.split("\n")) {
+    if (line.startsWith(TRANSCRIPT_LINE)) events.push(JSON.parse(line.slice(TRANSCRIPT_LINE.length)));
+    else if (line.startsWith("ok - ")) events.push({ kind: "check", message: line.slice(5), pass: true });
+  }
+  const failed = /ASSERTION FAILED: (.*)/.exec(error ?? "")?.[1];
+  if (failed !== undefined) events.push({ kind: "check", message: failed, pass: false });
+  const dir = await mkdtemp(join(tmpdir(), "transcript-"));
+  const rawFile = join(dir, "events.json");
+  await writeFile(rawFile, JSON.stringify({ events }));
+  writeTranscript({ harnessDir: PKG, exampleFile: resolve(t.path), rawFile, cwd, home: tmpdir() });
+  await rm(dir, { recursive: true, force: true });
+}
 // Bundles must live inside the package: workerd fails to load modules from some outside paths.
 const WORK = join(PKG, ".tmp", ownExamples ? "examples" : "docs");
 
@@ -164,9 +187,10 @@ async function runOne(t) {
   const modelCalls = run.out.split(MARKER).length - 1;
   const line = run.out.split("\n").find((l) => l.startsWith("__RESULT__"));
   const r = line ? JSON.parse(line.slice("__RESULT__".length)) : null;
+  if (ownExamples && !run.timedOut) await writeWorkerTranscript(t, run.out, r?.error, work);
   const tail = run.out
     .split("\n")
-    .filter((l) => l && !l.startsWith("__RESULT__") && !l.includes(MARKER))
+    .filter((l) => l && !l.startsWith("__RESULT__") && !l.includes(MARKER) && !l.startsWith(TRANSCRIPT_LINE))
     .slice(-8)
     .join("\n")
     .slice(-1200);

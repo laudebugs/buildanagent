@@ -1,47 +1,20 @@
-// The mock layer's side of the transcript recorder (scripts/transcripts/record.mjs at the repository root). Importing
-// this file attaches the recorder to the model that langchain's fakeModel() builds, so each request and response of
-// every fake model joins the example's transcript; check() reports each assertion. When the runner did not preload
-// the recorder, as when an example runs on its own, nothing is recorded. Recording only reads the messages going in
-// and coming out, so it changes nothing the model returns.
+// LangChain's side of the transcript recorder (scripts/transcripts/). When the runner preloads the recorder, this
+// file wraps the model that langchain's fakeModel() builds, so each request and answer of every fake model joins the
+// example's transcript, and wraps an agent's invoke, stream and streamEvents, so those events carry the example line
+// that started the run; otherwise it does nothing. The wrappers only read what goes in and comes out, so the model
+// returns what it would without them.
 import type { BaseMessage } from "@langchain/core/messages";
 import type { ChatResult } from "@langchain/core/outputs";
-import { fakeModel } from "langchain";
-
-/** One part of a message, in the transcript's SDK-neutral shape. */
-export type Part =
-  | { type: "text"; text: string }
-  | { type: "reasoning"; text: string }
-  | { type: "tool-call"; id: string; name: string; input: unknown }
-  | { type: "tool-result"; id: string; name: string; output: unknown; error?: true }
-  | { type: "other"; kind: string; value: unknown };
-
-export interface Message {
-  role: "system" | "user" | "assistant" | "tool";
-  parts: Part[];
-}
-
-export type TranscriptEvent =
-  | { kind: "request"; model: string; messages: Message[]; tools: string[] }
-  | { kind: "response"; model: string; message: Message; finish: string }
-  | { kind: "check"; message: string; pass: boolean };
-
-const recorder = (globalThis as { [key: symbol]: { record(event: TranscriptEvent): void } | undefined })[
-  Symbol.for("buildanagent.transcript")
-];
-
-export function record(event: TranscriptEvent): void {
-  recorder?.record(event);
-}
-
-/** A tool-call input as the model wrote it: JSON text is parsed, anything else is kept. */
-export const parsed = (input: unknown): unknown => {
-  if (typeof input !== "string") return input;
-  try {
-    return JSON.parse(input);
-  } catch {
-    return input;
-  }
-};
+import { createAgent, fakeModel } from "langchain";
+import {
+  type Message,
+  modelNames,
+  type Part,
+  parsed,
+  record,
+  recordCallers,
+  recording,
+} from "../../../../scripts/transcripts/events.ts";
 
 type Block = Record<string, unknown> & { type?: string };
 
@@ -80,7 +53,7 @@ function messageOf(message: BaseMessage): Message {
   return {
     role,
     parts: [
-      ...contentParts(message.content),
+      ...contentParts(message.content).map(withoutDerivedText),
       ...(calls ?? []).map(
         (call): Part => ({ type: "tool-call", id: call.id ?? "", name: call.name, input: call.args }),
       ),
@@ -88,40 +61,67 @@ function messageOf(message: BaseMessage): Message {
   };
 }
 
+/** The private fields of fakeModel()'s class that the recorder reads; attach() checks they still exist. */
 interface FakeModel {
-  _state: object;
+  _state: object & { callIndex: number };
   _tools: { name?: string; function?: { name?: string } }[];
+  queue: { kind: string }[];
   _generate(messages: BaseMessage[], options: unknown, runManager?: unknown): Promise<ChatResult>;
 }
 
-/** The transcript names each fake model in the order of its first request; a model with tools bound is the same one. */
-const names = new WeakMap<object, string>();
-let models = 0;
-const nameOf = (state: object): string => {
-  let name = names.get(state);
-  if (name === undefined) {
-    name = `model-${++models}`;
-    names.set(state, name);
-  }
-  return name;
-};
+/** A model with tools bound shares its original's state, so the state names the model. */
+const nameOf = modelNames();
 
-const proto = Object.getPrototypeOf(fakeModel()) as FakeModel;
-const generate = proto._generate;
-proto._generate = async function (this: FakeModel, messages, options, runManager) {
-  const model = nameOf(this._state);
-  record({
-    kind: "request",
-    model,
-    messages: messages.map(messageOf),
-    tools: this._tools.map((tool) => tool.name ?? tool.function?.name ?? ""),
-  });
-  const result = await generate.call(this, messages, options, runManager);
-  const answer = result.generations[0]?.message;
-  if (answer) {
-    const message = messageOf(answer);
-    const finish = message.parts.some((part) => part.type === "tool-call") ? "tool-calls" : "stop";
-    record({ kind: "response", model, message, finish });
+/**
+ * The text the fake model built for queued tool calls. It joins every message before the call, so it grows with each
+ * step and says nothing; wherever it appears, in the answer or resent in a later request, the transcript keeps only
+ * its length, as a `derived-text` part.
+ */
+const derivedTexts = new Set<string>();
+
+function withoutDerivedText(part: Part): Part {
+  return part.type === "text" && derivedTexts.has(part.text)
+    ? { type: "other", kind: "derived-text", value: { characters: part.text.length } }
+    : part;
+}
+
+function attach(): void {
+  const proto = Object.getPrototypeOf(fakeModel()) as FakeModel;
+  const sample = fakeModel() as unknown as FakeModel;
+  const generate = proto._generate;
+  if (
+    typeof generate !== "function" ||
+    !sample._state ||
+    !Array.isArray(sample._tools) ||
+    !Array.isArray(sample.queue)
+  ) {
+    throw new Error("transcript recorder: fakeModel()'s _generate, _state, _tools or queue has changed");
   }
-  return result;
-};
+  proto._generate = async function (this: FakeModel, messages, options, runManager) {
+    const model = nameOf(this._state);
+    const derived = this.queue[this._state.callIndex]?.kind === "toolCalls";
+    record({
+      kind: "request",
+      model,
+      messages: messages.map(messageOf),
+      tools: this._tools.map((tool) => tool.name ?? tool.function?.name ?? ""),
+    });
+    const result = await generate.call(this, messages, options, runManager);
+    const answer = result.generations[0]?.message;
+    if (answer) {
+      if (derived && typeof answer.content === "string") derivedTexts.add(answer.content);
+      const message = messageOf(answer);
+      const finish = message.parts.some((part) => part.type === "tool-call") ? "tool-calls" : "stop";
+      record({ kind: "response", model, message, finish });
+    }
+    return result;
+  };
+  // LangGraph runs each model call away from the example's stack, so the call that starts a run lends it its line.
+  recordCallers(Object.getPrototypeOf(createAgent({ model: fakeModel(), tools: [] })), [
+    "invoke",
+    "stream",
+    "streamEvents",
+  ]);
+}
+
+if (recording) attach();

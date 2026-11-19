@@ -4,6 +4,7 @@
   "file": "verify/vercel-ai-sdk/examples/05-structured-output.ts",
   "harness": "verify/vercel-ai-sdk",
   "pin": "ai@7.0.162",
+  "mock": "ai@7.0.162",
   "events": [
     {
       "kind": "request",

@@ -4,6 +4,7 @@
   "file": "verify/pi/examples/03-tool-selection.ts",
   "harness": "verify/pi",
   "pin": "@earendil-works/pi-coding-agent@1.5.2",
+  "mock": "@earendil-works/pi-ai@1.5.2",
   "events": [
     {
       "kind": "check",
@@ -25,7 +26,8 @@
     },
     {
       "kind": "request",
-      "model": "model-4",
+      "line": 35,
+      "model": "model-1",
       "repeated": 0,
       "messages": [
         {
@@ -65,7 +67,8 @@
     },
     {
       "kind": "response",
-      "model": "model-4",
+      "line": 35,
+      "model": "model-1",
       "message": {
         "role": "assistant",
         "parts": [
@@ -83,22 +86,10 @@
     },
     {
       "kind": "request",
-      "model": "model-4",
-      "repeated": 2,
+      "line": 35,
+      "model": "model-1",
+      "repeated": 3,
       "messages": [
-        {
-          "role": "assistant",
-          "parts": [
-            {
-              "type": "tool-call",
-              "id": "<id-1>",
-              "name": "ls",
-              "input": {
-                "path": "."
-              }
-            }
-          ]
-        },
         {
           "role": "tool",
           "parts": [
@@ -118,7 +109,8 @@
     },
     {
       "kind": "response",
-      "model": "model-4",
+      "line": 35,
+      "model": "model-1",
       "message": {
         "role": "assistant",
         "parts": [

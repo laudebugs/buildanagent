@@ -43,8 +43,8 @@ export function fixtureInputs(dir: string = FIXTURE_DIR, outline: Outline = FIXT
 
 /**
  * The fixture's interactive listings, which `withInteractive` adds to the second chapter after its file listing on
- * line 18: a listing with three notes and a replay (lines 20–24), and two tabs from two harnesses (lines 26–29). They
- * stay out of the committed chapter, so each of T4's failing fixtures still breaks exactly one listing.
+ * line 18: a listing with three notes and a replay (lines 20–24), and two tabs from two harnesses (lines 26–29).
+ * They stay out of the committed chapter, so each of T4's failing fixtures still breaks exactly one listing.
  */
 export const INTERACTIVE = `
 :::listing[Three steps, each with a note]{#noted file="verify/demo-sdk/examples/02-notes.ts" region="steps" replay}

@@ -248,8 +248,8 @@ export function renderDependencies(book: Book): string {
 
 /**
  * The files the book's listings read, from the repository root: each listed file, its harness's `package.json`,
- * whose pin the caption shows, and the transcript a replay shows. Under `astro dev` an edit to one of them restarts the server when it changes what a
- * listing shows.
+ * whose pin the caption shows, and the transcript a replay shows. Under `astro dev` an edit to one of them restarts
+ * the server when it changes what a listing shows.
  */
 export function listedFiles(book: Book): string[] {
   const files = new Set<string>();

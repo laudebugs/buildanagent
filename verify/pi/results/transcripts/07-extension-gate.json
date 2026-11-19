@@ -4,6 +4,7 @@
   "file": "verify/pi/examples/07-extension-gate.ts",
   "harness": "verify/pi",
   "pin": "@earendil-works/pi-coding-agent@1.5.2",
+  "mock": "@earendil-works/pi-ai@1.5.2",
   "events": [
     {
       "kind": "check",
@@ -13,6 +14,7 @@
     },
     {
       "kind": "request",
+      "line": 48,
       "model": "model-1",
       "repeated": 0,
       "messages": [
@@ -56,6 +58,7 @@
     },
     {
       "kind": "response",
+      "line": 48,
       "model": "model-1",
       "message": {
         "role": "assistant",
@@ -74,22 +77,10 @@
     },
     {
       "kind": "request",
+      "line": 48,
       "model": "model-1",
-      "repeated": 2,
+      "repeated": 3,
       "messages": [
-        {
-          "role": "assistant",
-          "parts": [
-            {
-              "type": "tool-call",
-              "id": "<id-1>",
-              "name": "restart_service",
-              "input": {
-                "service": "api"
-              }
-            }
-          ]
-        },
         {
           "role": "tool",
           "parts": [
@@ -113,6 +104,7 @@
     },
     {
       "kind": "response",
+      "line": 48,
       "model": "model-1",
       "message": {
         "role": "assistant",

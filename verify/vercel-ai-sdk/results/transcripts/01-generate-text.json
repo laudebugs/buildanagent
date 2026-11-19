@@ -4,6 +4,7 @@
   "file": "verify/vercel-ai-sdk/examples/01-generate-text.ts",
   "harness": "verify/vercel-ai-sdk",
   "pin": "ai@7.0.162",
+  "mock": "ai@7.0.162",
   "events": [
     {
       "kind": "request",
@@ -86,7 +87,7 @@
     {
       "kind": "request",
       "line": 36,
-      "model": "model-3",
+      "model": "model-2",
       "repeated": 0,
       "messages": [
         {
@@ -113,7 +114,7 @@
     {
       "kind": "response",
       "line": 36,
-      "model": "model-3",
+      "model": "model-2",
       "message": {
         "role": "assistant",
         "parts": [

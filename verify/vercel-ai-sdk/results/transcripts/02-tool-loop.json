@@ -4,6 +4,7 @@
   "file": "verify/vercel-ai-sdk/examples/02-tool-loop.ts",
   "harness": "verify/vercel-ai-sdk",
   "pin": "ai@7.0.162",
+  "mock": "ai@7.0.162",
   "events": [
     {
       "kind": "request",
@@ -223,21 +224,8 @@
       "kind": "request",
       "line": 56,
       "model": "model-3",
-      "repeated": 1,
+      "repeated": 2,
       "messages": [
-        {
-          "role": "assistant",
-          "parts": [
-            {
-              "type": "tool-call",
-              "id": "call_3",
-              "name": "weather",
-              "input": {
-                "town": "Lisbon"
-              }
-            }
-          ]
-        },
         {
           "role": "tool",
           "parts": [

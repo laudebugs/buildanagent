@@ -4,6 +4,7 @@
   "file": "verify/openai-agents-sdk/examples/03-handoff.ts",
   "harness": "verify/openai-agents-sdk",
   "pin": "@openai/agents@0.21.0",
+  "mock": "@openai/agents@0.21.0",
   "events": [
     {
       "kind": "request",

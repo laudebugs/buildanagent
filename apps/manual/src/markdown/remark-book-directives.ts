@@ -1,4 +1,5 @@
 import type { Html, List, ListItem, Paragraph, Parent, PhrasingContent, Root, RootContent } from "mdast";
+import { visit } from "unist-util-visit";
 import type { VFile } from "vfile";
 import { isFileListing, isNumberedKind, NUMBERED_KINDS, type NumberedKind } from "../book/book-index.js";
 import type { ListingSource } from "../book/listings.js";
@@ -30,15 +31,16 @@ type LeafDirective = Extract<RootContent, { type: "leafDirective" }>;
  * book index has already cut and checked, highlighted with Shiki, under a caption with its number, path, line range
  * and pin; written as a `:::listing` container, it holds `::note[Text]{#id}` notes for the lines marked
  * `// book:note <id>`, and with `replay` it adds the recorded run of its example. `:::tabs` holds file listings from
- * different harnesses, one tab each. `:analogy[label]{#id}` marks a use of a registered analogy. Any other directive fails,
- * except a bare text directive such as the `:Invent` in "re:Invent" or the `:tools` in `[[ch:tools]]`, which is put
- * back as the text it was.
+ * different harnesses, one tab each. `:analogy[label]{#id}` marks a use of a registered analogy. Any other directive
+ * fails, except a bare text directive such as the `:Invent` in "re:Invent" or the `:tools` in `[[ch:tools]]`, which
+ * is put back as the text it was.
  */
 export function remarkBookDirectives(options: { readonly book: Book }) {
   const { book } = options;
   return async (tree: Root, file: VFile): Promise<void> => {
     const { outline } = checkedChapter(file);
     const listings: Promise<void>[] = [];
+    const tabDepths = tabHeadingDepths(tree);
     walk(tree, (node) => {
       // A directive this plugin built, such as a tab panel or a listing's figure, already names its element.
       if (node.type === "containerDirective" && node.data?.hName !== undefined) return undefined;
@@ -48,7 +50,7 @@ export function remarkBookDirectives(options: { readonly book: Book }) {
         return figure;
       }
       if (node.type === "containerDirective" && isNumberedKind(node.name)) return numbered(node, node.name, file);
-      if (node.type === "containerDirective" && node.name === "tabs") return tabs(node, file);
+      if (node.type === "containerDirective" && node.name === "tabs") return tabs(node, file, tabDepths.get(node) ?? 3);
       if (node.type === "textDirective" && node.name === "analogy") return analogy(node, book, outline.number, file);
       if (node.type === "textDirective" && isBare(node)) return restored(node);
       if (node.type === "containerDirective" || node.type === "leafDirective" || node.type === "textDirective") {
@@ -164,6 +166,24 @@ function mergeText(parent: Parent): void {
   parent.children = merged as typeof parent.children;
 }
 
+/**
+ * The heading level of each `:::tabs` block's tab headings: one below the heading the block follows, so the headings
+ * keep the page's outline without JavaScript. A block before the chapter's first heading sits under the chapter's
+ * title, a level-1 heading, so its tabs are level 2. Levels stop at 6.
+ */
+function tabHeadingDepths(tree: Root): Map<RootContent, number> {
+  const depths = new Map<RootContent, number>();
+  let current = 1;
+  visit(tree, (node) => {
+    if (node.type === "heading") current = node.depth;
+    if (node.type === "containerDirective" && node.name === "tabs") depths.set(node, Math.min(current + 1, 6));
+  });
+  return depths;
+}
+
+/** Listings inside `:::tabs`, whose tab heading shows their caption, so their own caption leaves it out. */
+const tabbed = new WeakSet<object>();
+
 /** The plain text of a caption, for a tab's heading. */
 function plainText(nodes: readonly PhrasingContent[]): string {
   return nodes
@@ -198,7 +218,7 @@ function notesOf(node: LeafDirective | ContainerDirective): ReadonlyMap<string, 
  * listings follow one another without JavaScript and src/scripts/tabs.ts turns the headings into a tab list. The
  * block must hold two or more file listings and nothing else.
  */
-function tabs(node: ContainerDirective, file: VFile): ContainerDirective {
+function tabs(node: ContainerDirective, file: VFile, depth: number): ContainerDirective {
   if (node.children.some((child) => child.type === "paragraph" && child.data?.directiveLabel)) {
     return failAt(file, ":::tabs takes no caption; each listing in it is a tab with its own caption", node);
   }
@@ -211,7 +231,9 @@ function tabs(node: ContainerDirective, file: VFile): ContainerDirective {
   if (node.children.length < 2) return failAt(file, ":::tabs needs two or more listings, one for each tab", node);
   const panels = node.children.map((child): ContainerDirective => {
     const listing = child as LeafDirective | ContainerDirective;
-    const id = `${NUMBERED_KINDS.listing.prefix}-${listing.attributes?.id ?? ""}-panel`;
+    const listingId = `${NUMBERED_KINDS.listing.prefix}-${listing.attributes?.id ?? ""}`;
+    const id = `${listingId}-panel`;
+    tabbed.add(listing);
     return {
       type: "containerDirective",
       name: "tab",
@@ -219,7 +241,7 @@ function tabs(node: ContainerDirective, file: VFile): ContainerDirective {
       children: [
         {
           type: "paragraph",
-          data: { hName: "h4", hProperties: { className: ["tabs__heading"] } },
+          data: { hName: `h${depth}`, hProperties: { className: ["tabs__heading"], id: `${listingId}-heading` } },
           children: [{ type: "text", value: plainText(captionOf(listing)) }],
         },
         listing,
@@ -265,11 +287,16 @@ function fileListing(
     data: { hName: "figcaption", hProperties: { className: ["listing__caption"], id: `${domId}-caption` } },
     children: [
       { type: "text", value: "", data: { hName: "span", hProperties: { className: ["listing__number", "number"] } } },
-      {
-        type: "emphasis",
-        data: { hName: "span", hProperties: { className: ["listing__title"] } },
-        children: label,
-      },
+      // In a tab, the tab's heading is the caption, so the caption does not repeat it.
+      ...(tabbed.has(node)
+        ? []
+        : [
+            {
+              type: "emphasis",
+              data: { hName: "span", hProperties: { className: ["listing__title"] } },
+              children: label,
+            } satisfies PhrasingContent,
+          ]),
       ...captionParts(source.path, source.lines, source.pin).map(
         ({ className, text }): PhrasingContent => ({
           type: "text",
@@ -294,7 +321,7 @@ function fileListing(
         className: ["numbered", "listing", "panel"],
         dataNumbered: "listing",
         dataNumberedId: id,
-        ariaLabelledBy: [`${domId}-caption`],
+        ariaLabelledBy: tabbed.has(node) ? [`${domId}-heading`, `${domId}-caption`] : [`${domId}-caption`],
       },
     },
     ...(node.position ? { position: node.position } : {}),
@@ -310,6 +337,7 @@ function fileListing(
       events: replayEvents(source.replay.transcript),
       listing: domId,
       controlsLabel: `Replay of Listing ${number}`,
+      listingLines: new Set(source.lines.map((line) => line.number)),
     }),
   };
   const pair: ContainerDirective = {

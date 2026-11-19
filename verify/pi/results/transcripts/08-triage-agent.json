@@ -4,6 +4,7 @@
   "file": "verify/pi/examples/08-triage-agent.ts",
   "harness": "verify/pi",
   "pin": "@earendil-works/pi-coding-agent@1.5.2",
+  "mock": "@earendil-works/pi-ai@1.5.2",
   "events": [
     {
       "kind": "check",
@@ -13,6 +14,7 @@
     },
     {
       "kind": "request",
+      "line": 89,
       "model": "model-1",
       "repeated": 0,
       "messages": [
@@ -54,6 +56,7 @@
     },
     {
       "kind": "response",
+      "line": 89,
       "model": "model-1",
       "message": {
         "role": "assistant",
@@ -72,22 +75,10 @@
     },
     {
       "kind": "request",
+      "line": 89,
       "model": "model-1",
-      "repeated": 2,
+      "repeated": 3,
       "messages": [
-        {
-          "role": "assistant",
-          "parts": [
-            {
-              "type": "tool-call",
-              "id": "<id-1>",
-              "name": "lookup_customer",
-              "input": {
-                "email": "user@example.com"
-              }
-            }
-          ]
-        },
         {
           "role": "tool",
           "parts": [
@@ -108,6 +99,7 @@
     },
     {
       "kind": "response",
+      "line": 89,
       "model": "model-1",
       "message": {
         "role": "assistant",
@@ -126,22 +118,10 @@
     },
     {
       "kind": "request",
+      "line": 89,
       "model": "model-1",
-      "repeated": 4,
+      "repeated": 5,
       "messages": [
-        {
-          "role": "assistant",
-          "parts": [
-            {
-              "type": "tool-call",
-              "id": "<id-2>",
-              "name": "escalate",
-              "input": {
-                "reason": "checkout 500"
-              }
-            }
-          ]
-        },
         {
           "role": "tool",
           "parts": [
@@ -163,6 +143,7 @@
     },
     {
       "kind": "response",
+      "line": 89,
       "model": "model-1",
       "message": {
         "role": "assistant",

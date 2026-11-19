@@ -1,12 +1,12 @@
 // Shared helpers for the verified AI SDK examples: an assertion helper and a scripted mock model.
 import type { LanguageModelV4CallOptions, LanguageModelV4Content } from "@ai-sdk/provider";
 import { simulateReadableStream } from "ai";
-import { MockLanguageModelV4 as AiSdkMockModel } from "ai/test";
-import { record, recordedModel } from "./transcript.ts";
+import { MockLanguageModelV4 } from "ai/test";
+// Attaches the transcript recorder to ai/test's mock model when the runner preloads it (scripts/transcripts/).
+import "./transcript.ts";
 
 // #region check
 export function check(cond: unknown, msg: string): asserts cond {
-  record({ kind: "check", message: msg, pass: Boolean(cond) });
   if (!cond) throw new Error(`ASSERTION FAILED: ${msg}`);
   console.log(`ok - ${msg}`);
 }
@@ -19,18 +19,6 @@ const usage = {
   inputTokens: { total: 10, noCache: 10, cacheRead: undefined, cacheWrite: undefined },
   outputTokens: { total: 5, text: 5, reasoning: undefined },
 };
-
-/**
- * ai/test's MockLanguageModelV4 with the transcript recorder attached: each request and response it handles joins the
- * example's transcript. It changes nothing the model returns, so `scripted` below reads as it would with ai/test's
- * class.
- */
-class MockLanguageModelV4 extends AiSdkMockModel {
-  constructor(options: ConstructorParameters<typeof AiSdkMockModel>[0]) {
-    super(options);
-    recordedModel(this);
-  }
-}
 
 let ids = 0;
 const content = (turn: Turn): LanguageModelV4Content[] =>

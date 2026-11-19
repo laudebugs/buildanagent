@@ -1,6 +1,7 @@
 import { existsSync, readFileSync } from "node:fs";
 import { basename, extname, join } from "node:path";
 import { z } from "astro/zod";
+import { TRANSCRIPT_FORMAT } from "../../../../scripts/transcripts/events.js";
 import type { ReplayEvent } from "../components/types.js";
 
 // A transcript is the recorded run of one `verify/` example against its mock model: each request the example's code
@@ -40,11 +41,13 @@ const event = z.discriminatedUnion("kind", [
 ]);
 
 const transcriptSchema = z.object({
-  format: z.literal(1),
+  format: z.literal(TRANSCRIPT_FORMAT),
   example: z.string(),
   file: z.string(),
   harness: z.string(),
   pin: z.string(),
+  /** The package the harness's recorder attaches to, at the version the run used. */
+  mock: z.string().regex(/^@?[^@]+@\d/),
   events: z.array(event).min(1),
 });
 
@@ -88,17 +91,47 @@ export function readTranscript(
   if (transcript.file !== listing.path) {
     return { message: `${transcriptPath} records ${transcript.file}, not ${listing.path}` };
   }
-  if (transcript.pin !== listing.pin) {
+  const [, mockName = "", mockVersion] = /^(@?[^@]+)@(.+)$/.exec(transcript.mock) ?? [];
+  const manifest = JSON.parse(readFileSync(join(repoRoot, listing.harness, "package.json"), "utf8")) as {
+    dependencies?: Record<string, string>;
+    devDependencies?: Record<string, string>;
+  };
+  const pinned = manifest.dependencies?.[mockName] ?? manifest.devDependencies?.[mockName];
+  if (transcript.pin !== listing.pin || pinned !== mockVersion) {
     return {
       message:
-        `${transcriptPath} was recorded with ${transcript.pin}, but the harness pins ${listing.pin}; ` +
-        `run ${listing.harness}'s pnpm test to record it again`,
+        `${transcriptPath} was recorded with ${transcript.pin} and ${transcript.mock}, but the harness pins ` +
+        `${listing.pin} and ${mockName}@${pinned ?? "nothing"}; run ${listing.harness}'s pnpm test to record it again`,
     };
   }
   return { transcript, transcriptPath };
 }
 
 const compact = (value: unknown): string => (typeof value === "string" ? value : JSON.stringify(value));
+
+/** The longest body a replay event shows; a longer one ends with how many characters it left out. Our choice. */
+export const REPLAY_BODY_LIMIT = 600;
+
+function capped(body: string): string {
+  if (body.length <= REPLAY_BODY_LIMIT) return body;
+  return `${body.slice(0, REPLAY_BODY_LIMIT)}… (${body.length - REPLAY_BODY_LIMIT} more characters)`;
+}
+
+/** A part the format has no shape for, under a name a reader can follow. */
+function otherEvent(kind: string, value: unknown, role: TranscriptMessage["role"]): Omit<ReplayEvent, "line"> {
+  if (kind === "sections" && Array.isArray(value)) {
+    return { kind: "user", role: "System prompt sections", body: value.join(", ") };
+  }
+  if (kind === "derived-text") {
+    const characters = (value as { characters?: number } | null)?.characters ?? 0;
+    return {
+      kind: "model",
+      role: "Model text (made up by the fake model)",
+      body: `${characters} characters that the fake model built from the conversation so far`,
+    };
+  }
+  return { kind: role === "assistant" ? "model" : "user", role: `Other part (${kind})`, body: compact(value) };
+}
 
 function partEvent(item: TranscriptPart, role: TranscriptMessage["role"]): Omit<ReplayEvent, "line"> {
   switch (item.type) {
@@ -117,19 +150,25 @@ function partEvent(item: TranscriptPart, role: TranscriptMessage["role"]): Omit<
         body: `${item.name}: ${compact(item.output)}`,
       };
     case "other":
-      return { kind: role === "assistant" ? "model" : "user", role: item.kind, body: compact(item.value) };
+      return otherEvent(item.kind, item.value, role);
   }
 }
 
-const withLine = (event: Omit<ReplayEvent, "line">, at: number | undefined): ReplayEvent =>
-  at === undefined ? event : { ...event, line: at };
+const withLine = (event: Omit<ReplayEvent, "line">, at: number | undefined): ReplayEvent => {
+  const body = capped(event.body);
+  return at === undefined ? { ...event, body } : { ...event, body, line: at };
+};
 
 /**
- * The transcript as the replay shows it, one event per message part. A request shows only the messages that are new
- * since its model's previous request, and leaves out the model's own last answer, which the replay showed as a
- * response already; an empty text part shows nothing.
+ * The transcript as the replay shows it, one event per message part. A request shows the messages that are new since
+ * its model's previous request and answer (the transcript has already left the rest out). A request can still resend
+ * history, as when a handoff gives the conversation to another agent: a message the replay showed before, unless it
+ * ends the request, folds into one "History" event that says how many messages were sent again. So does the model's
+ * own last answer when the SDK resends it changed, such as with a tool input's defaults filled in. An empty text part
+ * shows nothing.
  */
 export function replayEvents(transcript: Transcript): ReplayEvent[] {
+  const shown = new Set<string>();
   const answered = new Set<string>();
   const out: ReplayEvent[] = [];
   for (const item of transcript.events) {
@@ -138,18 +177,28 @@ export function replayEvents(transcript: Transcript): ReplayEvent[] {
       continue;
     }
     const messages = item.kind === "request" ? item.messages : [item.message];
-    // The first assistant message after a model's answer is that answer, resent as history.
-    let skipEcho = item.kind === "request" && answered.has(item.model);
-    for (const m of messages) {
-      if (skipEcho && m.role === "assistant") {
-        skipEcho = false;
-        continue;
+    let echo = item.kind === "request" && answered.has(item.model);
+    let resent = 0;
+    const fresh: ReplayEvent[] = [];
+    messages.forEach((m, index) => {
+      const key = JSON.stringify(m);
+      const last = index === messages.length - 1;
+      if (item.kind === "request" && ((echo && m.role === "assistant") || (!last && shown.has(key)))) {
+        if (m.role === "assistant") echo = false;
+        resent++;
+        return;
       }
+      shown.add(key);
       for (const piece of m.parts) {
         if ((piece.type === "text" || piece.type === "reasoning") && piece.text === "") continue;
-        out.push(withLine(partEvent(piece, m.role), item.line));
+        fresh.push(withLine(partEvent(piece, m.role), item.line));
       }
+    });
+    if (resent > 0) {
+      const body = resent === 1 ? "1 earlier message sent again" : `${resent} earlier messages sent again`;
+      out.push(withLine({ kind: "user", role: "History", body }, item.line));
     }
+    out.push(...fresh);
     if (item.kind === "response") answered.add(item.model);
     else answered.delete(item.model);
   }

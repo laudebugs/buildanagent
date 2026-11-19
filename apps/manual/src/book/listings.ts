@@ -87,7 +87,9 @@ export function resolveListing(
   const unknown = Object.keys(attributes).filter((key) => !(LISTING_ATTRIBUTES as readonly string[]).includes(key));
   if (unknown.length > 0) {
     return {
-      message: `::listing does not take ${unknown.map((key) => `"${key}"`).join(", ")}; it takes id, file, region and replay`,
+      message:
+        `::listing does not take ${unknown.map((key) => `"${key}"`).join(", ")}; ` +
+        "it takes id, file, region and replay",
     };
   }
   const { file, region, replay } = attributes;

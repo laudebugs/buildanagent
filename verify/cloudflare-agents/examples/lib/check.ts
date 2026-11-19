@@ -3,6 +3,8 @@
 import type { LanguageModelV4CallOptions, LanguageModelV4Content } from "@ai-sdk/provider";
 import { simulateReadableStream } from "ai";
 import { MockLanguageModelV4 } from "ai/test";
+// Attaches the transcript recorder to ai/test's mock model (scripts/transcripts/).
+import "./transcript.ts";
 
 export function check(cond: unknown, msg: string): asserts cond {
   if (!cond) throw new Error(`ASSERTION FAILED: ${msg}`);

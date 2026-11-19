@@ -1,46 +1,17 @@
-// The mock layer's side of the transcript recorder (scripts/transcripts/record.mjs at the repository root). Importing
-// this file attaches the recorder to @openai/agents/testing's ScriptedModel, so each request and response of every
-// scripted model joins the example's transcript; check() reports each assertion. When the runner did not preload the
-// recorder, as when an example runs on its own, nothing is recorded. Recording only reads the request and the
-// response, so it changes nothing the model returns.
+// The OpenAI Agents SDK's side of the transcript recorder (scripts/transcripts/). When the runner preloads the
+// recorder, this file wraps @openai/agents/testing's ScriptedModel, so each request and answer of every scripted model
+// joins the example's transcript; otherwise it does nothing. The wrapper only reads the request and the answer, so
+// the model returns what it would without it.
 import type { ModelRequest, ModelResponse, StreamEvent } from "@openai/agents";
 import { ScriptedModel } from "@openai/agents/testing";
-
-/** One part of a message, in the transcript's SDK-neutral shape. */
-export type Part =
-  | { type: "text"; text: string }
-  | { type: "reasoning"; text: string }
-  | { type: "tool-call"; id: string; name: string; input: unknown }
-  | { type: "tool-result"; id: string; name: string; output: unknown; error?: true }
-  | { type: "other"; kind: string; value: unknown };
-
-export interface Message {
-  role: "system" | "user" | "assistant" | "tool";
-  parts: Part[];
-}
-
-export type TranscriptEvent =
-  | { kind: "request"; model: string; messages: Message[]; tools: string[] }
-  | { kind: "response"; model: string; message: Message; finish: string }
-  | { kind: "check"; message: string; pass: boolean };
-
-const recorder = (globalThis as { [key: symbol]: { record(event: TranscriptEvent): void } | undefined })[
-  Symbol.for("buildanagent.transcript")
-];
-
-export function record(event: TranscriptEvent): void {
-  recorder?.record(event);
-}
-
-/** A tool-call input as the model wrote it: JSON text is parsed, anything else is kept. */
-export const parsed = (input: unknown): unknown => {
-  if (typeof input !== "string") return input;
-  try {
-    return JSON.parse(input);
-  } catch {
-    return input;
-  }
-};
+import {
+  type Message,
+  modelNames,
+  type Part,
+  parsed,
+  record,
+  recording,
+} from "../../../../scripts/transcripts/events.ts";
 
 type Item = Record<string, unknown> & { type?: string; role?: string };
 
@@ -99,17 +70,7 @@ const toolsOf = (request: ModelRequest): string[] => [
   ...request.handoffs.map((handoff) => handoff.toolName),
 ];
 
-/** The transcript names each scripted model in the order of its first request. */
-const names = new WeakMap<object, string>();
-const nameOf = (model: object): string => {
-  let name = names.get(model);
-  if (name === undefined) {
-    name = `model-${++models}`;
-    names.set(model, name);
-  }
-  return name;
-};
-let models = 0;
+const nameOf = modelNames();
 
 function recordRequest(model: object, request: ModelRequest): void {
   record({ kind: "request", model: nameOf(model), messages: messagesOf(request), tools: toolsOf(request) });
@@ -126,23 +87,31 @@ function recordResponse(model: object, output: readonly unknown[]): void {
   });
 }
 
-const proto = ScriptedModel.prototype;
-const getResponse = proto.getResponse;
-const getStreamedResponse = proto.getStreamedResponse;
-proto.getResponse = async function (this: ScriptedModel, request: ModelRequest): Promise<ModelResponse> {
-  recordRequest(this, request);
-  const response = await getResponse.call(this, request);
-  recordResponse(this, response.output);
-  return response;
-};
-proto.getStreamedResponse = function (this: ScriptedModel, request: ModelRequest): AsyncIterable<StreamEvent> {
-  recordRequest(this, request);
-  const events = getStreamedResponse.call(this, request);
-  const model = this;
-  return (async function* () {
-    for await (const event of events) {
-      if (event.type === "response_done") recordResponse(model, event.response.output);
-      yield event;
-    }
-  })();
-};
+/** Wraps ScriptedModel's two entry points; a renamed one fails here instead of recording nothing. */
+function attach(): void {
+  const proto = ScriptedModel.prototype;
+  const getResponse = proto.getResponse;
+  const getStreamedResponse = proto.getStreamedResponse;
+  if (typeof getResponse !== "function" || typeof getStreamedResponse !== "function") {
+    throw new Error("transcript recorder: ScriptedModel no longer has getResponse and getStreamedResponse");
+  }
+  proto.getResponse = async function (this: ScriptedModel, request: ModelRequest): Promise<ModelResponse> {
+    recordRequest(this, request);
+    const response = await getResponse.call(this, request);
+    recordResponse(this, response.output);
+    return response;
+  };
+  proto.getStreamedResponse = function (this: ScriptedModel, request: ModelRequest): AsyncIterable<StreamEvent> {
+    recordRequest(this, request);
+    const events = getStreamedResponse.call(this, request);
+    const model = this;
+    return (async function* () {
+      for await (const event of events) {
+        if (event.type === "response_done") recordResponse(model, event.response.output);
+        yield event;
+      }
+    })();
+  };
+}
+
+if (recording) attach();

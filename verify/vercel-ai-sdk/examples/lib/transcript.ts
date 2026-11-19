@@ -1,6 +1,7 @@
-// The mock layer's side of the transcript recorder (scripts/transcripts/record.mjs at the repository root). The
-// scripted model reports each request and response here, and check() each assertion. When the runner preloaded the
-// recorder, the event joins the example's transcript; otherwise, as when an example runs on its own, nothing happens.
+// The AI SDK's side of the transcript recorder (scripts/transcripts/). When the runner preloads the recorder, this file
+// attaches it to ai/test's MockLanguageModelV4, so each request and answer of every mock model joins the example's
+// transcript; otherwise it does nothing. The recorder only reads the request and the answer, so the model returns
+// what it would without it.
 import type {
   LanguageModelV4,
   LanguageModelV4CallOptions,
@@ -8,42 +9,15 @@ import type {
   LanguageModelV4Prompt,
   LanguageModelV4StreamPart,
 } from "@ai-sdk/provider";
-
-/** One part of a message, in the transcript's SDK-neutral shape. */
-export type Part =
-  | { type: "text"; text: string }
-  | { type: "reasoning"; text: string }
-  | { type: "tool-call"; id: string; name: string; input: unknown }
-  | { type: "tool-result"; id: string; name: string; output: unknown; error?: true }
-  | { type: "other"; kind: string; value: unknown };
-
-export interface Message {
-  role: "system" | "user" | "assistant" | "tool";
-  parts: Part[];
-}
-
-export type TranscriptEvent =
-  | { kind: "request"; model: string; messages: Message[]; tools: string[] }
-  | { kind: "response"; model: string; message: Message; finish: string }
-  | { kind: "check"; message: string; pass: boolean };
-
-const recorder = (globalThis as { [key: symbol]: { record(event: TranscriptEvent): void } | undefined })[
-  Symbol.for("buildanagent.transcript")
-];
-
-export function record(event: TranscriptEvent): void {
-  recorder?.record(event);
-}
-
-/** A tool-call input as the model wrote it: the AI SDK carries a JSON string in responses and an object in prompts. */
-const parsed = (input: unknown): unknown => {
-  if (typeof input !== "string") return input;
-  try {
-    return JSON.parse(input);
-  } catch {
-    return input;
-  }
-};
+import { MockLanguageModelV4 } from "ai/test";
+import {
+  type Message,
+  modelNames,
+  type Part,
+  parsed,
+  record,
+  recording,
+} from "../../../../scripts/transcripts/events.ts";
 
 /** A tool result's value: the AI SDK wraps it as `{ type: "json" | "text" | …, value }`. */
 const outputOf = (output: unknown): { output: unknown; error?: true } => {
@@ -51,8 +25,6 @@ const outputOf = (output: unknown): { output: unknown; error?: true } => {
   const { type, value } = output as { type: string; value?: unknown };
   return type.startsWith("error") ? { output: value, error: true } : { output: value ?? output };
 };
-
-const contentPart = (content: LanguageModelV4Content): Part => part(content as unknown as PartLike);
 
 type PartLike = Record<string, unknown> & { type: string };
 
@@ -83,8 +55,10 @@ function part(content: PartLike): Part {
   }
 }
 
+const contentPart = (content: LanguageModelV4Content): Part => part(content as unknown as PartLike);
+
 /** The AI SDK's prompt as transcript messages. */
-export function messagesOf(prompt: LanguageModelV4Prompt): Message[] {
+function messagesOf(prompt: LanguageModelV4Prompt): Message[] {
   return prompt.map((message) =>
     message.role === "system"
       ? { role: "system", parts: [{ type: "text", text: message.content }] }
@@ -92,33 +66,39 @@ export function messagesOf(prompt: LanguageModelV4Prompt): Message[] {
   );
 }
 
-let models = 0;
+const nameOf = modelNames();
 
-/**
- * Attaches the recorder to a mock model: each call records the request, then the answer, which for a stream is
- * gathered from its parts as they pass through unchanged. The transcript names models in the order they were made.
- */
-export function recordedModel(model: Pick<LanguageModelV4, "doGenerate" | "doStream">): void {
-  const name = `model-${++models}`;
-  const generate = model.doGenerate.bind(model);
-  const stream = model.doStream.bind(model);
-  const request = (options: LanguageModelV4CallOptions) =>
-    record({
-      kind: "request",
-      model: name,
-      messages: messagesOf(options.prompt),
-      tools: (options.tools ?? []).map((tool) => tool.name),
-    });
-  const response = (content: LanguageModelV4Content[], finish: string) =>
-    record({ kind: "response", model: name, message: { role: "assistant", parts: content.map(contentPart) }, finish });
-  model.doGenerate = async (options) => {
-    request(options);
+type Generate = LanguageModelV4["doGenerate"];
+type Stream = LanguageModelV4["doStream"];
+
+function recordRequest(model: object, options: LanguageModelV4CallOptions): void {
+  record({
+    kind: "request",
+    model: nameOf(model),
+    messages: messagesOf(options.prompt),
+    tools: (options.tools ?? []).map((tool) => tool.name),
+  });
+}
+
+function recordResponse(model: object, content: LanguageModelV4Content[], finish: string): void {
+  const message: Message = { role: "assistant", parts: content.map(contentPart) };
+  record({ kind: "response", model: nameOf(model), message, finish });
+}
+
+/** Wraps a mock's generate function so it records each request and its answer. */
+function recordedGenerate(model: object, generate: Generate): Generate {
+  return async (options) => {
+    recordRequest(model, options);
     const result = await generate(options);
-    response(result.content, result.finishReason.unified);
+    recordResponse(model, result.content, result.finishReason.unified);
     return result;
   };
-  model.doStream = async (options) => {
-    request(options);
+}
+
+/** Wraps a mock's stream function so it records each request, and the answer gathered as its parts pass through. */
+function recordedStream(model: object, stream: Stream): Stream {
+  return async (options) => {
+    recordRequest(model, options);
     const result = await stream(options);
     const content: LanguageModelV4Content[] = [];
     let text = "";
@@ -131,9 +111,36 @@ export function recordedModel(model: Pick<LanguageModelV4, "doGenerate" | "doStr
         controller.enqueue(chunk);
       },
       flush() {
-        response(text === "" ? content : [{ type: "text", text }, ...content], finish);
+        recordResponse(model, text === "" ? content : [{ type: "text", text }, ...content], finish);
       },
     });
     return { ...result, stream: result.stream.pipeThrough(gather) };
   };
 }
+
+/**
+ * MockLanguageModelV4's constructor assigns `doGenerate` and `doStream` to the instance. A setter of the same name on
+ * the prototype receives each assignment and stores the wrapped function on the instance instead, so the class and
+ * the code that builds a mock stay as ai/test ships them. If the constructor stops assigning them, attach() fails.
+ */
+function attach(): void {
+  const proto = MockLanguageModelV4.prototype as unknown as Record<string, unknown>;
+  const wrappers: Record<string, (model: object, fn: Generate & Stream) => unknown> = {
+    doGenerate: recordedGenerate,
+    doStream: recordedStream,
+  };
+  for (const [name, wrap] of Object.entries(wrappers)) {
+    Object.defineProperty(proto, name, {
+      configurable: true,
+      set(this: object, value: Generate & Stream) {
+        Object.defineProperty(this, name, { value: wrap(this, value), writable: true, configurable: true });
+      },
+    });
+  }
+  const probe = new MockLanguageModelV4();
+  if (!Object.hasOwn(probe, "doGenerate") || !Object.hasOwn(probe, "doStream")) {
+    throw new Error("transcript recorder: MockLanguageModelV4 no longer assigns doGenerate and doStream");
+  }
+}
+
+if (recording) attach();
