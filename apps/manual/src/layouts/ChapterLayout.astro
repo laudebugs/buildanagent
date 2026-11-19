@@ -1,10 +1,8 @@
 ---
 import BaseLayout from "./BaseLayout.astro";
+import type { PageProps } from "./page-props.js";
 
-interface Props {
-  title: string;
-  description: string;
-}
+type Props = PageProps;
 
 const { title, description } = Astro.props;
 ---

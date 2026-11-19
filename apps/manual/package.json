@@ -3,7 +3,7 @@
   "version": "0.0.0",
   "private": true,
   "description": "The buildanagent textbook on building an agent, published at manual.buildanagent.fyi.",
-  "license": "SEE LICENSE IN ../../LICENSE",
+  "license": "Apache-2.0 OR MIT",
   "type": "module",
   "engines": {
     "node": ">=22.23.4"

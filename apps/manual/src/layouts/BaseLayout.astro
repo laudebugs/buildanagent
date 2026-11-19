@@ -1,8 +1,7 @@
 ---
-interface Props {
-  title: string;
-  description: string;
-}
+import type { PageProps } from "./page-props.js";
+
+type Props = PageProps;
 
 const { title, description } = Astro.props;
 ---

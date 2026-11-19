@@ -117,7 +117,7 @@
       }
     },
     {
-      "includes": ["**/*.astro"],
+      "includes": ["apps/manual/**/*.astro"],
       "linter": {
         "rules": {
           "correctness": {
