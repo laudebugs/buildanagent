@@ -11,7 +11,7 @@
 
 ## Goal
 
-Let the book replay the Claude Agent SDK and Copilot SDK examples that Part I lists, as it replays the other six harnesses' examples. Both harnesses mock the provider over HTTP, so their recorders belong in the mock servers, and their runtime ids must normalise to the same bytes on every run before their transcripts are committed.
+Let the book replay the Claude Agent SDK and Copilot SDK examples that Part I lists, as it replays the other six harnesses' examples. Both harnesses mock the provider over HTTP, so their recorders belong in the mock servers, and their runtime ids must normalise to the same bytes on every run before their transcripts are committed. Once their transcripts exist, give both harnesses the live mode that T27 gave five others, so the occasional live run can compare them too (scope amended 2026-11-19, when T27's review found that no todo owned it).
 
 ## Context
 
@@ -28,11 +28,12 @@ Let the book replay the Claude Agent SDK and Copilot SDK examples that Part I li
 - Normalised message ids, session ids and tool-use ids, with two runs of each `pnpm test` writing identical bytes
 - Each harness's entry in `MOCK_PACKAGES` (`scripts/transcripts/write.mjs`), its README section on transcripts, and its transcripts committed
 - Copilot's examples run only on Linux, inside `unshare`; record and check its transcripts in CI or on a Linux machine
+- After the transcripts: a `--live` mode in both harnesses' `scripts/run-examples.mjs`, as [T27](../done/T27-book-live-run.md) built for five others (`scripts/live/harness.mjs`, `scripts/live/live.ts`), with each harness added to `LIVE_HARNESSES` in `scripts/live/config.mjs`. The Claude Agent SDK reaches Anthropic through its bundled CLI and the Copilot SDK either provider through BYOK (book plan BK18), and both CLIs offer host tools that the live mode must deny by name and type. Adding their examples to `apps/manual/src/data/live-examples.json` is the owner's choice, since it changes what a run costs
 
 **Out of scope** (and which todo covers it)
 
 - Lines for events: the model calls happen in the CLI's process, so they carry none unless the example's call can be matched to them ([T5](../done/T5-book-interactive-listings.md) shows "no source line")
-- The live run's transcripts ([T27](T27-book-live-run.md))
+- The live run itself, its workflow and its comparison ([T27](../done/T27-book-live-run.md))
 
 ## Tasks
 
@@ -41,12 +42,14 @@ Let the book replay the Claude Agent SDK and Copilot SDK examples that Part I li
 - [ ] Find every id that varies between runs and normalise it, or leave the harness without transcripts and say why in its README.
 - [ ] Run each harness's `pnpm test` twice and diff the transcripts; for Copilot, do it on Linux.
 - [ ] Add each harness to `MOCK_PACKAGES`, commit the transcripts, and check that `results-drift.mjs` and `scripts/ci/transcripts.test.mjs` pass.
+- [ ] Add `--live` to both harnesses' runners, pass the key from `LIVE_API_KEY_FILE` to the CLI's child process in its allowlisted environment, deny the CLIs' host tools, and test each against `scripts/ci/live-stub.mjs` as `scripts/ci/live-run.test.mjs` tests the other five.
 
 ## Acceptance criteria
 
 - [ ] Two runs of each harness's `pnpm test` write byte-identical transcripts, and every example still passes
 - [ ] A listing of `verify/claude-agent-sdk/examples/02-custom-tool.ts` with `replay` passes `check:book`
 - [ ] No listed region in either harness holds recorder code (`scripts/ci/transcripts.test.mjs`)
+- [ ] Both harnesses run a listed example live against the stub, with no key in any written file or log
 
 ## Tests
 

@@ -183,8 +183,9 @@ const events: ReplayEvent[] = [
 
 <div class="gallery__item">
   <h3>Listing block with annotation markers</h3>
-  <ListingVerification lastCompared={null} />
-  <ListingVerification lastCompared="2026-12-01" />
+  <ListingVerification lastCompared={null} compared />
+  <ListingVerification lastCompared="2026-12-01" compared />
+  <ListingVerification lastCompared="2026-12-01" compared={false} />
   <ListingBlock
     id={id("listing-loop")}
     number="1.2"

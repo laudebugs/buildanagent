@@ -57,8 +57,13 @@ export function readableDate(date: string): string {
   return `${day} ${name} ${year}`;
 }
 
-/** The line every page with a file listing shows, without its date's markup. */
-export function verificationLine(lastCompared: string | null): string {
+/**
+ * The line every page with a file listing shows. A page with a listing the live run compares gives the date of the
+ * last comparison, or says none has run; a page whose listings the live run all leaves out says only mock models
+ * verify them.
+ */
+export function verificationLine(lastCompared: string | null, compared: boolean): string {
+  if (!compared) return "Listings on this page are verified against mock models only.";
   return lastCompared === null
     ? "Listings on this page are verified against mock models; not yet compared with live APIs."
     : `Listings on this page are verified against mock models; last compared with live APIs on ${readableDate(lastCompared)}.`;

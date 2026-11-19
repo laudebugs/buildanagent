@@ -75,6 +75,17 @@ const COMPONENTS = [
   "theme-toggle",
 ];
 
+test("the gallery shows the page line in its three states", () => {
+  const html = gallery();
+  for (const line of [
+    /Listings on this page are verified against mock models; not yet compared with live APIs\./,
+    /Listings on this page are verified against mock models; last compared with live APIs on\s*<time datetime="2026-12-01">1 December 2026<\/time>\./,
+    /Listings on this page are verified against mock models only\./,
+  ]) {
+    assert.match(html, line);
+  }
+});
+
 test("the gallery renders every component once in the light theme and once in the dark", () => {
   const html = gallery();
   assert.match(html, /<section class="gallery__theme layout" data-theme="light"/);
@@ -188,15 +199,13 @@ test("a chapter page shows a listing cut from a verify/ example, with the pin it
   );
   assert.ok(html.includes('<span class="listing__path">verify/vercel-ai-sdk/examples/01-generate-text.ts</span>'));
   assert.ok(html.includes(`<span class="listing__pin">ai@${manifest.dependencies.ai}</span>`));
-  // The live run leaves 01-generate-text.ts out, and the page states when the live run last compared its listings.
+  // The live run compares none of this chapter's files, so each listing and the page say only mock models verify them.
   assert.ok(html.includes('<span class="listing__verified">Verified against mock models only</span>'));
-  const { lastCompared } = JSON.parse(readFileSync(join(app, "src/data/live-comparison.json"), "utf8"));
   assert.match(
     html,
-    lastCompared === null
-      ? /<p class="listing-verification"[^>]*>\s*Listings on this page are verified against mock models; not yet compared with live APIs\.\s*<\/p>/
-      : new RegExp(`<time datetime="${lastCompared}">`),
+    /<p class="listing-verification"[^>]*>\s*Listings on this page are verified against mock models only\.\s*<\/p>/,
   );
+  assert.doesNotMatch(html, /compared with live APIs/);
   assert.match(
     html,
     /<span class="line__number" aria-hidden="true">9<\/span><span class="tok-keyword">const<\/span> \{ model, requests \}/,

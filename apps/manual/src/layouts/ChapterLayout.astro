@@ -25,6 +25,8 @@ type Props = PageProps & {
   readonly sources?: readonly string[];
   /** Whether the chapter shows a listing of a file, so the page states how its listings were verified. */
   readonly hasFileListing?: boolean;
+  /** Whether one of those listings shows a file the live run compares, so the line gives the comparison's date. */
+  readonly hasComparedListing?: boolean;
 };
 
 const {
@@ -39,6 +41,7 @@ const {
   next,
   sources = [],
   hasFileListing = false,
+  hasComparedListing = false,
 } = Astro.props;
 ---
 
@@ -50,7 +53,11 @@ const {
       <Sidebar headings={headings} parts={parts} current={current} />
       <!-- Only a chapter's body carries data-pagefind-body, so search indexes chapters and skips every other page. -->
       <article class="article" data-pagefind-body>
-        {hasFileListing && <ListingVerification lastCompared={book.live.lastCompared} />}
+        {
+          hasFileListing && (
+            <ListingVerification lastCompared={book.live.lastCompared} compared={hasComparedListing} />
+          )
+        }
         <slot />
         {
           sources.length > 0 && (

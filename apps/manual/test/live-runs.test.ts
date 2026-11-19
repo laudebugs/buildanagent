@@ -23,15 +23,18 @@ const app = fileURLToPath(new URL("../", import.meta.url));
 const dir = mutatedFixture(withInteractive);
 afterAll(() => removeFixture(dir));
 
-test("the page line gives the last comparison's date, or says that none has run", () => {
+test("the page line gives the last comparison's date, says none has run, or says only mock models verify it", () => {
   assert.equal(
-    verificationLine(null),
+    verificationLine(null, true),
     "Listings on this page are verified against mock models; not yet compared with live APIs.",
   );
   assert.equal(
-    verificationLine("2026-12-01"),
+    verificationLine("2026-12-01", true),
     "Listings on this page are verified against mock models; last compared with live APIs on 1 December 2026.",
   );
+  // A page whose every listing the live run leaves out claims no comparison, whatever the date.
+  assert.equal(verificationLine("2026-12-01", false), "Listings on this page are verified against mock models only.");
+  assert.equal(verificationLine(null, false), "Listings on this page are verified against mock models only.");
   assert.equal(readableDate("2027-01-09"), "9 January 2027");
 });
 
