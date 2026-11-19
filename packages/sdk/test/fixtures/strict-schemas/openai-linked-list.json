@@ -1,0 +1,63 @@
+{
+  "name": "openai-linked-list",
+  "source": "https://developers.openai.com/api/docs/guides/structured-outputs",
+  "section": "Recursive schemas are supported: explicit recursion through $defs",
+  "checkedOn": "2026-11-19",
+  "schema": {
+    "type": "object",
+    "properties": {
+      "linked_list": {
+        "$ref": "#/$defs/linked_list_node"
+      }
+    },
+    "$defs": {
+      "linked_list_node": {
+        "type": "object",
+        "properties": {
+          "value": {
+            "type": "number"
+          },
+          "next": {
+            "anyOf": [
+              {
+                "$ref": "#/$defs/linked_list_node"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          }
+        },
+        "additionalProperties": false,
+        "required": ["next", "value"]
+      }
+    },
+    "additionalProperties": false,
+    "required": ["linked_list"]
+  },
+  "valid": [
+    {
+      "linked_list": {
+        "value": 1,
+        "next": {
+          "value": 2,
+          "next": null
+        }
+      }
+    }
+  ],
+  "invalid": [
+    {
+      "value": {
+        "linked_list": {
+          "value": 1,
+          "next": {
+            "value": "two",
+            "next": null
+          }
+        }
+      },
+      "paths": ["/linked_list/next/value"]
+    }
+  ]
+}

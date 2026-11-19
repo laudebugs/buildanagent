@@ -1,0 +1,71 @@
+{
+  "name": "draft-07-keywords",
+  "source": "https://json-schema.org/draft-07/json-schema-validation",
+  "section": "Our own schema, written to exercise draft 7 keywords that draft 2020-12 changed: definitions, items as a tuple with additionalItems, and dependencies",
+  "checkedOn": "2026-11-19",
+  "note": "A card without a billing address fails `dependencies`. pi-schema reports it at the missing property, and @cfworker/json-schema at the object that lacks it.",
+  "schema": {
+    "$schema": "http://json-schema.org/draft-07/schema#",
+    "type": "object",
+    "definitions": {
+      "point": {
+        "type": "array",
+        "items": [
+          {
+            "type": "number"
+          },
+          {
+            "type": "number"
+          }
+        ],
+        "additionalItems": false
+      }
+    },
+    "properties": {
+      "start": {
+        "$ref": "#/definitions/point"
+      },
+      "card": {
+        "type": "string"
+      },
+      "billing_address": {
+        "type": "string"
+      }
+    },
+    "dependencies": {
+      "card": ["billing_address"]
+    },
+    "required": ["start"]
+  },
+  "valid": [
+    {
+      "start": [0, 1]
+    },
+    {
+      "start": [0, 1],
+      "card": "4242",
+      "billing_address": "1 Main St"
+    }
+  ],
+  "invalid": [
+    {
+      "value": {
+        "start": [0, 1, 2]
+      },
+      "paths": ["/start/2"]
+    },
+    {
+      "value": {
+        "start": [0, "y"]
+      },
+      "paths": ["/start/1"]
+    },
+    {
+      "value": {
+        "start": [0, 1],
+        "card": "4242"
+      },
+      "paths": ["/billing_address"]
+    }
+  ]
+}

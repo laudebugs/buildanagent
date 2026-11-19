@@ -1,0 +1,44 @@
+{
+  "name": "anthropic-extract-contact",
+  "source": "https://platform.claude.com/docs/en/build-with-claude/structured-outputs",
+  "section": "Usage: the output_config.format schema that extracts an email's key facts",
+  "checkedOn": "2026-11-19",
+  "schema": {
+    "type": "object",
+    "properties": {
+      "name": {
+        "type": "string"
+      },
+      "email": {
+        "type": "string"
+      },
+      "plan_interest": {
+        "type": "string"
+      },
+      "demo_requested": {
+        "type": "boolean"
+      }
+    },
+    "required": ["name", "email", "plan_interest", "demo_requested"],
+    "additionalProperties": false
+  },
+  "valid": [
+    {
+      "name": "John Smith",
+      "email": "john@example.com",
+      "plan_interest": "Enterprise",
+      "demo_requested": true
+    }
+  ],
+  "invalid": [
+    {
+      "value": {
+        "name": "John Smith",
+        "email": "john@example.com",
+        "plan_interest": "Enterprise",
+        "demo_requested": "yes"
+      },
+      "paths": ["/demo_requested"]
+    }
+  ]
+}

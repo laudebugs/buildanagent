@@ -61,6 +61,14 @@
     "test": "vitest run"
   },
   "dependencies": {
-    "@buildanagent/gateway": "workspace:*"
+    "@buildanagent/gateway": "workspace:*",
+    "@earendil-works/pi-schema": "1.5.2",
+    "@standard-schema/spec": "1.1.0"
+  },
+  "devDependencies": {
+    "@buildanagent/agent-safety": "workspace:*",
+    "@cfworker/json-schema": "4.1.6",
+    "miniflare": "5.20261103.0-beta",
+    "zod": "4.6.7"
   }
 }
