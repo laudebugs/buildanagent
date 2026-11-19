@@ -6,7 +6,7 @@
 | Status | `ready` |
 | Plan | [Build harness §4, Stage 3](../../plans/build-harness.md#43-stage-3-adds-the-registry-the-permission-pipeline-signed-approvals-and-code-initiated-calls) |
 | Round / milestone | Round N (build harness), M6 |
-| Depends on | [N13](N13-signed-approvals.md), [N14](N14-sticky-grouped-quorum.md), [B15](B15-signed-pauses.md) |
+| Depends on | [N13](N13-signed-approvals.md), [N14](N14-sticky-grouped-quorum.md), [B15](B15-signed-pauses.md), [E2](E2-effect-identity-crash-rule.md) |
 | Size | M |
 
 ## Goal
@@ -68,6 +68,15 @@ Let product code run a side effect it chose, such as an approved reply or a refu
 ## Risks and open questions
 
 A code call's input often comes from a tainted draft. The harness records the call and its decision; taint is the product's rule (agent AD5), so a product hook must ask for such calls.
+
+## Revision (2026-11-18, SDK gaps)
+
+Gap 2 of the [close-sdk-gaps plan](../../plans/close-sdk-gaps.md#3-each-gap-the-todos-that-cover-it-and-what-changes) gives code-initiated writes the same identity as model-initiated ones. The `code_call` entry is appended before the tool runs, so the effect key must be derived from that entry ([rewind report](../../research/reversible-actions/rewind-vs-rollback.md#a-rollback-is-a-new-linked-entry-and-the-model-must-read-it)). Add:
+
+- [ ] `invokeTool()` derives the effect key from the `code_call` entry id, or from the tool's business key when it declares one, and a resumed call finds the same key.
+- [ ] A compensation runs through `invokeTool()` with its own key and writes a linked record naming the call it compensates.
+
+The business key is the tool's `effect.businessKey` from the [B10](B10-tool-runtime.md) revision, and the key function is [E2](E2-effect-identity-crash-rule.md)'s `effectKey()`. The owner accepted SG3 on 2026-11-18, so E2 is in **Depends on**.
 
 ## Definition of done
 

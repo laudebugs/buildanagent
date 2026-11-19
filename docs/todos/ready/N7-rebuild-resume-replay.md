@@ -6,7 +6,7 @@
 | Status | `ready` |
 | Plan | [Build harness §4, Stage 1](../../plans/build-harness.md#41-stage-1-builds-the-session-log-from-its-entry-union-to-rebuild-and-replay) |
 | Round / milestone | Round N (build harness), M6 |
-| Depends on | [N6](N6-session-runner.md), [B15b](B15b-continue-run.md) |
+| Depends on | [N6](N6-session-runner.md), [B15b](B15b-continue-run.md), [E2](E2-effect-identity-crash-rule.md) |
 | Size | M |
 
 ## Goal
@@ -60,6 +60,15 @@ Make the log the only state: rebuild the SDK `Context` from entries in any proce
 ## Risks and open questions
 
 If §3.6 need 6 is refused, keep a serialised `Context` snapshot entry per turn and record the cost.
+
+## Revision (2026-11-18, SDK gaps)
+
+Gap 2 of the [close-sdk-gaps plan](../../plans/close-sdk-gaps.md#3-each-gap-the-todos-that-cover-it-and-what-changes) changes the crash rule for writes. A write whose call entry exists without a result must not get an "aborted error result"; the rewind report explains that such a result cannot say whether the effect happened ([rewind report](../../research/reversible-actions/rewind-vs-rollback.md#our-sdks-and-plans-rewind-the-conversation-and-roll-back-no-data)). Add:
+
+- [ ] On resume, an open call to a tool that declares itself a write gets a result with `outcome.kind: "unknown"` and `retry: "reconcile_first"`, not an aborted error; read-only tools keep the aborted error.
+- [ ] A resumed run whose model re-proposes the same write reaches the same effect key and sends nothing twice (the fake system counts requests per key).
+
+The effect key and store come from the safety package's [E2](E2-effect-identity-crash-rule.md), and a tool declares itself a write through the `effect` field the [B10](B10-tool-runtime.md) revision adds. The owner accepted SG3 on 2026-11-18, so E2 is in **Depends on**.
 
 ## Definition of done
 

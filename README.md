@@ -16,7 +16,7 @@ The repo is documentation only for now. The research compares vendor agent SDKs,
 |---|---|
 | [CONTRIBUTING.md](CONTRIBUTING.md) | How to contribute: pnpm setup, exact pins, one pull request per change, the document review rule and the licence of contributions |
 | [SECURITY.md](SECURITY.md) | How to report a vulnerability privately, and what is in scope |
-| [docs/plans/](docs/plans/) | The plans and roadmap: SDK references, comparison, skills, build guides, implementation plans, and the [personal cloud coding agent](docs/plans/build-coding-agent.md) that is the first agent to build, and the multi-user [agent platform](docs/plans/build-agent-platform.md) that follows it |
+| [docs/plans/](docs/plans/) | The plans and roadmap: SDK references, comparison, skills, build guides, implementation plans, and the [personal cloud coding agent](docs/plans/build-coding-agent.md) that is the first agent to build, the multi-user [agent platform](docs/plans/build-agent-platform.md) that follows it, and the plan to [close seven SDK gaps](docs/plans/close-sdk-gaps.md) with a standalone safety package first |
 | [docs/todos/](docs/todos/) | The todo board: every planned batch of work, by state |
 | [docs/comparison/deep-comparison.md](docs/comparison/deep-comparison.md) | The same triage agent built on all eight SDKs, the design trade-offs, and lessons for our own SDK, harness and agent |
 | [docs/comparison/typescript-gaps.md](docs/comparison/typescript-gaps.md) | What each TypeScript SDK lacks, has in weaker form, or has documented only for its primary language (Python, mostly), with sources on both sides |
