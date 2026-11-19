@@ -275,6 +275,62 @@ test("the gallery shows the generated figure once per theme, each copy with its 
   assert.match(html, /tabindex="0" role="group" aria-labelledby="light-figure-generated-caption"/);
 });
 
+// Isometric figures (BK11): an HTML fragment inlined with no iframe, complete without JavaScript, and its motion in an
+// external module. The content security policy tests below also cover their markup.
+
+test("a chapter inlines each isometric figure whole, with its alt text, caption and stage, and no iframe", () => {
+  const html = chapter();
+  assert.doesNotMatch(html, /<iframe/);
+  for (const [id, number, alt] of [
+    ["tally-counter", "1.3", "A hand tally counter on a small bench"],
+    ["loop-bench", "1.4", "An isometric bench with three stations"],
+  ] as const) {
+    assert.match(
+      html,
+      new RegExp(
+        `<figure id="fig-${id}"[^>]*><div class="panel figure__panel"><div class="figure__stage figure__stage--scroll panel--grid" tabindex="0" role="group" aria-labelledby="fig-${id}--caption"><p class="visually-hidden">${alt}`,
+      ),
+    );
+    assert.match(html, new RegExp(`<div class="iso-figure" data-figure="${id}"><div class="iso-plate">`));
+    assert.match(html, new RegExp(`data-corner="fig">Figure ${number.replace(".", "\\.")}</span>`));
+    assert.match(html, new RegExp(`<figcaption class="figure__caption" id="fig-${id}--caption">`));
+  }
+  // The first paint already shows the first step: its part lit and its readout written.
+  assert.match(html, /data-corner="readout" data-readout="">step 1 of 3 · context<\/span>/);
+  assert.match(html, /data-iso-step="0" data-iso-readout="step 1 of 3 · context"><g class="iso-solid" data-lit="">/);
+  // The controls exist only once the external module builds them, so no dead button shows without JavaScript.
+  assert.doesNotMatch(html, /iso-figure__controls/);
+  for (const card of html.match(/<div class="iso-figure"[\s\S]*?<\/figure>/g) ?? [])
+    assert.doesNotMatch(card, /<button/);
+});
+
+test("the gallery shows the isometric sample once per theme, each copy's ids prefixed", () => {
+  const html = gallery();
+  for (const theme of ["light", "dark"]) {
+    assert.match(html, new RegExp(`<g data-part="context\\.lamp" id="${theme}-loop-bench--lamp-context"`));
+    assert.match(html, new RegExp(`<g data-part="tool\\.lamp" id="${theme}-loop-bench--lamp-tool"`));
+  }
+});
+
+test("every id on a chapter page is unique, the isometric figures' included", () => {
+  const ids = [...chapter().matchAll(/\sid="([^"]+)"/g)].map((match) => match[1]);
+  assert.ok(ids.includes("loop-bench--lamp-model"), "the sample centerpiece's lamps carry ids");
+  assert.deepEqual(
+    ids.filter((id, index) => ids.indexOf(id) !== index),
+    [],
+  );
+});
+
+test("the isometric figures' motion ships as an external module, and their colours as the anatomy stylesheet", () => {
+  const scripts = files(".js").map((path) => readFileSync(join(out, path), "utf8"));
+  assert.ok(scripts.some((text) => text.includes("data-iso-step") && text.includes("prefers-reduced-motion")));
+  const css = files(".css")
+    .map((path) => readFileSync(join(out, path), "utf8"))
+    .join("\n");
+  assert.match(css, /--anatomy-paper:var\(--panel-background\)/);
+  assert.match(css, /\.iso-fill\{fill:var\(--anatomy-paper\)/);
+});
+
 // The content security policy in public/_headers, as the deploy serves it from main. Each directive's sources, by
 // directive name.
 function policy(): Map<string, string[]> {
