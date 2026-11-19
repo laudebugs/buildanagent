@@ -12,7 +12,7 @@ The tags mean:
 - **[npm]**: the npm registry (`https://registry.npmjs.org/<pkg>`), read 2026-11-19.
 - **[secondary]**: anything else not checked against a primary source.
 
-Downloads are saved under `/private/tmp/claude-501/-Users-laudebugs-git-agent-speak-git/13349893-3ab5-443b-8939-e45188938409/scratchpad/u19/sdks/` (`npm/` registry JSON, `latest/` unpacked newest tarballs, `adk-js/`, `cf/`, `oai/`, `lc/`, `vercel/`, `gh/` for GitHub API responses).
+Sources outside the worktree resolve for any reader: registry documents at `https://registry.npmjs.org/<package>`, newest releases as the npm tarballs named with their versions (for example the tarball of `@google/adk-devtools@2.5.0`), and GitHub files, issues and pull requests at the tag, commit or number given beside each finding.
 
 ## Claude Agent SDK (@anthropic-ai/claude-agent-sdk 0.3.327)
 
@@ -114,7 +114,7 @@ ADK is the only one of the eight SDKs with first-party A2A in TypeScript, and it
   - The Agent Registry integration has `getRemoteA2AAgent(agentName, ...)`: Promise<RemoteA2AAgent> — [d.ts] `.../dist/types/integrations/agent_registry/agent_registry.d.ts:90–93`.
   - `InvocationContext.a2aMetadata` — [d.ts] `.../dist/types/agents/invocation_context.d.ts:60, 229`.
   - `RunConfig.allowRemoteToolConfirmation` — [d.ts] `.../dist/types/agents/run_config.d.ts:126`.
-- **CLI (not installed in our harness).** `@google/adk-devtools` 2.5.0 (2026-11-12) adds `--a2a [boolean]` ("Whether to enable A2A for web/api server. Default: false") and `--a2a-auth-token` ("If unset, the A2A surface is served WITHOUT authentication"). The dev server mounts `toA2a(agent, { basePath: \`/a2a/${appName}\` ... })` — [js] `scratchpad/u19/sdks/latest/_google_adk-devtools/package/dist/esm/cli/cli.js:229–236` and `dist/esm/server/adk_api_server.js:237–241` [npm tarball].
+- **CLI (not installed in our harness).** `@google/adk-devtools` 2.5.0 (2026-11-12) adds `--a2a [boolean]` ("Whether to enable A2A for web/api server. Default: false") and `--a2a-auth-token` ("If unset, the A2A surface is served WITHOUT authentication"). The dev server mounts `toA2a(agent, { basePath: \`/a2a/${appName}\` ... })` — [js] `package/dist/esm/cli/cli.js:229–236` and `package/dist/esm/server/adk_api_server.js:237–241` inside the npm tarball of `@google/adk-devtools@2.5.0`.
 - **Docs mirror, TypeScript.**
   - The adk-js README says "Delegate to remote agents via the A2A protocol" — [docs] [`../../../reference/google-adk/source/adk-js/README.md:47`](../../../reference/google-adk/source/adk-js/README.md) (tag `main-v2.5.0`, commit `b1b94c0`).
   - The agents guide has a "Delegating execution with `RemoteA2AAgent`" section with a `new RemoteA2AAgent({ name, description, agentCard: 'https://billing-agent.example.invalid/.well-known/agent.json' })` example — [docs] [`../../../reference/google-adk/source/adk-js/docs/guides/agents/index.md:325–335`](../../../reference/google-adk/source/adk-js/docs/guides/agents/index.md). The example uses the pre-0.3 path `agent.json`, while the SDK constant is `agent-card.json`. That is minor doc drift.
@@ -210,7 +210,7 @@ No first-party A2A in `ai` or `@ai-sdk/harness`, pinned or latest. The AI SDK do
 ### Cited findings
 - **Installed packages.** The only match is the provider list in the AI SDK's bundled docs: "A2A Provider (`a2a-ai-provider`)", a list item linking to `/providers/community-providers/a2a` — [docs] `verify/vercel-ai-sdk/node_modules/ai/docs/02-foundations/02-providers-and-models.mdx:86`. That is also in our mirror at [`../../../reference/vercel-ai-sdk/source/content/docs/02-foundations/02-providers-and-models.mdx:86`](../../../reference/vercel-ai-sdk/source/content/docs/02-foundations/02-providers-and-models.mdx). The other matches are commit hashes in changelogs. `guide.md` has no match.
 - **Provider page.** At vercel/ai tag `ai@7.0.162` (commit `2feaeec`), `content/providers/05-community-providers/02-a2a.mdx` says "The [dracoblue/a2a-ai-provider] is a community provider" (line 8). It also says the provider supports "**Streaming Text Responses** via `sendSubscribe` and SSE", which is a pre-0.3 method name (line 16), and shows the usage `model: a2a('https://your-a2a-server.example.com')` (line 48) [docs].
-- **Community package `a2a-ai-provider`** [npm] (tarball in `scratchpad/u19/sdks/vercel/tgz/`):
+- **Community package `a2a-ai-provider`** [npm] (read in the npm tarball of `a2a-ai-provider@0.5.0-alpha.1`):
   - It is MIT-licensed. The latest is `0.5.0-alpha.1` (2026-06-12), with `peerDependencies: { ai: ">=5.0.0 <7.0.0" }` and `dependencies: { "@a2a-js/sdk": "^0.3.13" }`.
   - Its `@a2a-js/sdk` range has moved from ^0.2.2 (0.1.0-alpha.2, 2025-07-01) through ^0.2.5 and ^0.3.4 to ^0.3.13.
   - `dist/index.d.ts:9–10` declares `declare class A2aChatLanguageModel implements LanguageModelV2 { readonly specificationVersion = "v2";`.

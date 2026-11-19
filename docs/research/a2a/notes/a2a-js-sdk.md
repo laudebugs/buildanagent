@@ -5,11 +5,11 @@ Provenance. Fetched 2026-11-19. Source trees were downloaded as GitHub tarballs 
 Tag legend:
 - [repo@1.3.0] file in a2a-js at tag v1.3.0 (`29417a5`); [repo@0.3.14] file at tag v0.3.14 (`cfeed0d`).
 - [npm] npm registry or npm downloads API.
-- [d.ts] installed typings (0.3.14 in the worktree, or 1.3.0 in the scratch install, as stated).
+- [d.ts] installed typings (0.3.14 in the worktree, or 1.3.0 installed with pnpm in a throwaway project outside the repository, as stated).
 - [docs] markdown docs inside the a2a-js repo at the stated tag.
 - [gh] GitHub REST API (releases, repos, compare).
 - [secondary] other registries (PyPI, NuGet, crates.io).
-- [run] my own scratch experiment.
+- [run] an experiment run in a throwaway project outside the repository.
 
 ## 1. Protocol version per line (0.3.14 vs 1.3.0)
 
@@ -205,7 +205,7 @@ Cited findings:
   - `SendMessageRequest` needs `tenant`, `message`, `configuration`, `metadata`.
   - In the snippets I cast the agent card through `as unknown as AgentCard` and passed `''` or `undefined` for the unused fields.
   - The `execute` in my executor called `bus.finished()` after publishing a message. I did not test whether the handler requires this.
-- Scratch files: `/private/tmp/claude-501/-Users-laudebugs-git-agent-speak-git/13349893-3ab5-443b-8939-e45188938409/scratchpad/u19/a2a-js/tc/src/loopback.ts` and `/private/tmp/claude-501/-Users-laudebugs-git-agent-speak-git/13349893-3ab5-443b-8939-e45188938409/scratchpad/u19/a2a-js/tc/src/inmemory.ts`.
+- The two snippets lived in a throwaway project outside the repository and were not kept. They can be rebuilt from this section: a pnpm project with `@a2a-js/sdk@1.3.0` and `express@5`, `strict` TypeScript with `skipLibCheck: false`, one file that serves `DefaultRequestHandler` through Express on `127.0.0.1:0`, and one that passes `JsonRpcTransportFactory` a `fetchImpl` calling `JsonRpcTransportHandler.handle()` directly.
 
 ## 7. Other official A2A SDKs (November 2026)
 

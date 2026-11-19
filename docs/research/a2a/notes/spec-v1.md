@@ -9,7 +9,7 @@ The tags mean:
 - **[release]**: the GitHub release notes, fetched from the GitHub API on 2026-11-19.
 - **[site]**: a page on a2a-protocol.org fetched on 2026-11-19.
 
-Downloads are saved under `/private/tmp/claude-501/-Users-laudebugs-git-agent-speak-git/13349893-3ab5-443b-8939-e45188938409/scratchpad/u19/src/`.
+Each file was downloaded from `https://raw.githubusercontent.com/a2aproject/A2A/<tag>/<path>` at the tag named, so any reader can fetch the same copy.
 
 ## Versions and status
 
