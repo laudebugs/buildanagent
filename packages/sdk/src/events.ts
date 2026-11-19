@@ -8,7 +8,7 @@ import type { AssistantMessage, ContentBlock, DumpedOptions, ModelContext, Model
 import type { RunError, RunResult } from "./result.js";
 import type { DeliveryReceipt } from "./steering.js";
 import type { ToolResult } from "./tools/types.js";
-import type { SignedPendingRequest } from "./vendor/agent-safety/pending.js";
+import type { RejectionCause, SignedPendingRequest } from "./vendor/agent-safety/pending.js";
 
 /** The fields every event carries. `seq` counts the run's events from 0; `stepIndex` counts its model calls from 0. */
 export interface EventBase {
@@ -31,6 +31,13 @@ export interface ModelCallRequest {
  * reported something that did not stop it, such as an option the provider would reject and the adapter dropped.
  */
 export type WarningCode = "max_steps" | "model_warning";
+
+/**
+ * Why `continueRun()` refused a resolution or a stored request: one of `verifyResolution()`'s causes, `replayed` when
+ * two resolutions name one request, or `error` when the check itself threw, such as a signer whose `verify()` threw.
+ * `unknown_request` also covers a resolution that names no request in the context.
+ */
+export type ResolutionRejectionCause = RejectionCause | "replayed" | "error";
 
 /** The body of each event, without the fields of `EventBase`. */
 export type AgentEventBody =
@@ -84,13 +91,28 @@ export type AgentEventBody =
    */
   | { readonly type: "steer_applied"; readonly receipt: DeliveryReceipt }
   /**
-   * A gate returned `ask` and the run signed a pending request for the call, which waits for a person. `input` is
-   * the input the request signs and the call would run with once approved: the model's input after coercion,
-   * `repair` and any gate's replacement, so show the approver this, not the model's raw arguments. It comes once every
-   * call of the step has been gated, after the call's `tool_call_start` and before any call of the step runs, and the
-   * call gets no `tool_call_end`: it doesn't run in this run. The run ends `awaiting_approval` after the step.
+   * The run signed a pending request for a call that waits for a person; `request.kind` tells the two kinds apart.
+   * An `approval`: a gate returned `ask`. `input` is the input the request signs and the call would run with once
+   * approved: the model's input after coercion, `repair` and any gate's replacement, so show the approver this, not
+   * the model's raw arguments. It comes once every call of the step has been gated, after the call's
+   * `tool_call_start` and before any call of the step runs; under `blockingApprovals()` it comes before the run waits
+   * for the answer. A `clarification`: a tool asked the user `request.question`, and `input` is the input it ran
+   * with; it comes once every call of the step has its result. A waiting call gets no `tool_call_end`, and the run
+   * ends `awaiting_approval` or `clarification_requested` after the step.
    */
   | { readonly type: "approval_request"; readonly request: SignedPendingRequest; readonly input: unknown }
+  /**
+   * `continueRun()` refused a resolution, or a stored request it had to check: the call did not run, and unless the
+   * resolution named no request in the context, the call asks again with a new request, which an `approval_request`
+   * event follows. `requestId` is the id the resolution or the stored request gave, and `callId` the waiting call's,
+   * when there is one. It holds no signature and no key.
+   */
+  | {
+      readonly type: "resolution_rejected";
+      readonly requestId: string;
+      readonly callId?: string;
+      readonly cause: ResolutionRejectionCause;
+    }
   /**
    * An interceptor or an observer threw, or a pause could not be signed. `hook` names it (`beforeToolCall`,
    * `observer`, `signer` and so on) and `error` is the thrown message; for `signer` it is a fixed text with the
@@ -127,6 +149,7 @@ export const AGENT_EVENT_TYPES = Object.freeze([
   "steer_applied",
   "tool_call_start",
   "approval_request",
+  "resolution_rejected",
   "tool_call_update",
   "tool_call_end",
   "step_end",

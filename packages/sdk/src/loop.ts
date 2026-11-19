@@ -31,16 +31,14 @@ import { HookFailure, HookRunner } from "./hook-runner.js";
 import type { CallOptions, Interceptors, ModelCallPatch } from "./hooks.js";
 import type { ProgressCheck } from "./progress.js";
 import type { RunError, RunResult } from "./result.js";
+import { judgeOpenCalls, type ResumeSetup, type Verdict } from "./resume.js";
 import type { SteeringQueue } from "./steering.js";
 import type { Clock } from "./testing/determinism.js";
 import { toWireTool } from "./tools/define.js";
-import { type AnyTool, runToolCalls, type ToolCallResult } from "./tools/pipeline.js";
-import type { ToolCall } from "./tools/types.js";
+import { type AnyTool, type PipelineContext, runToolCalls, type ToolCallResult } from "./tools/pipeline.js";
+import type { ToolCall, ToolResult } from "./tools/types.js";
 import type { SignedPendingRequest } from "./vendor/agent-safety/pending.js";
 import type { ApprovalSigner } from "./vendor/agent-safety/signer.js";
-
-/** The `stoppedBy` of a run that a clarification tool stopped. */
-const CLARIFICATION = "clarification";
 
 /**
  * The cost of no model call: an exact zero. Its basis is `provider` because `addCost()` keeps the other cost's basis
@@ -81,6 +79,8 @@ export interface LoopSetup {
   readonly signer: ApprovalSigner;
   /** Makes each pending request's id. */
   readonly nextId: () => string;
+  /** The waiting calls of the context a `continueRun()` resumes, and their resolutions. */
+  readonly resume?: ResumeSetup;
 }
 
 /** Sends one event; the run adds the `EventBase` fields. */
@@ -107,7 +107,7 @@ type Outcome =
   | { readonly stopReason: "stopped"; readonly stoppedBy: string }
   | { readonly stopReason: "no_progress"; readonly reason: string }
   | {
-      readonly stopReason: "awaiting_approval";
+      readonly stopReason: "awaiting_approval" | "clarification_requested";
       readonly pending: readonly SignedPendingRequest[];
       readonly pendingInputs: Readonly<Record<string, unknown>>;
     };
@@ -373,33 +373,97 @@ function toolMessage(entry: ToolCallResult): Message {
   };
 }
 
-/** Runs the response's tool calls as the pipeline schedules them, recording each result in model order. */
-async function runTools(state: LoopState, message: AssistantMessage): Promise<readonly ToolCallResult[]> {
-  const { runId, signal, clock, output } = state.setup;
-  return runToolCalls(message, state.active, {
+/** Records one call's result: the tool message the model reads, the output tool's answer and `tool_call_end`. */
+function recordResult(state: LoopState, entry: ToolCallResult): void {
+  const { output } = state.setup;
+  state.append(toolMessage(entry));
+  if (output !== undefined && entry.call.name === output.name && entry.result.isError !== true) {
+    state.output = entry.result.structured;
+  }
+  const ranWith = "input" in entry ? { input: entry.input } : {};
+  state.send({ type: "tool_call_end", callId: entry.call.callId, result: entry.result, ...ranWith });
+}
+
+/** Holds a signed request for a person: in the run's pending list, by id in its inputs, and as `approval_request`. */
+function holdPause(state: LoopState, request: SignedPendingRequest, input: unknown): void {
+  state.pending.push(request);
+  state.pendingInputs[request.id] = input;
+  state.send({ type: "approval_request", request, input });
+}
+
+/** True for a result that asks the user a question, which pauses its call instead of reaching the model. */
+function asksUser(result: ToolResult): boolean {
+  return result.pause !== undefined && result.isError !== true;
+}
+
+/** The pipeline callbacks every tool batch of the run shares. `onResult` holds back a question for `askUser()`. */
+function pipelineOf(state: LoopState, asks: ToolCallResult[]): PipelineContext {
+  const { runId, signal, clock, depth, maxDepth } = state.setup;
+  return {
     runId,
     signal,
     clock,
-    depth: state.setup.depth,
-    maxDepth: state.setup.maxDepth,
-    ...state.hooks.pipelineHooks(),
+    depth,
+    maxDepth,
     onStart: (call: ToolCall) =>
       state.send({ type: "tool_call_start", callId: call.callId, tool: call.name, input: call.input }),
     onUpdate: (callId, details) => state.send({ type: "tool_call_update", callId, details }),
-    onPause: ({ request, input }) => {
-      state.pending.push(request);
-      state.pendingInputs[request.id] = input;
-      state.send({ type: "approval_request", request, input });
-    },
+    onPause: ({ request, input }) => holdPause(state, request, input),
     onResult: (entry) => {
-      state.append(toolMessage(entry));
-      if (output !== undefined && entry.call.name === output.name && entry.result.isError !== true) {
-        state.output = entry.result.structured;
-      }
-      const ranWith = "input" in entry ? { input: entry.input } : {};
-      state.send({ type: "tool_call_end", callId: entry.call.callId, result: entry.result, ...ranWith });
+      if (asksUser(entry.result)) asks.push(entry);
+      else recordResult(state, entry);
     },
+  };
+}
+
+/**
+ * Signs a clarification request for each call whose tool asked the user a question, in model order. The call then
+ * waits like a paused one, with no result; a question that can't be signed reaches the model as an error result.
+ * Returns the batch's results with those error results in place.
+ */
+async function askUser(
+  state: LoopState,
+  results: readonly ToolCallResult[],
+  asks: readonly ToolCallResult[],
+): Promise<ToolCallResult[]> {
+  const replaced = new Map<ToolCallResult, ToolCallResult>();
+  for (const entry of asks) {
+    const question = entry.result.pause?.question;
+    const outcome = await state.hooks.clarify(entry.call, entry.ranWith, question as string);
+    if ("paused" in outcome) {
+      holdPause(state, outcome.paused, outcome.input);
+    } else if ("blocked" in outcome) {
+      const blocked = { call: entry.call, result: outcome.blocked };
+      recordResult(state, blocked);
+      replaced.set(entry, blocked);
+    }
+  }
+  return results.map((entry) => replaced.get(entry) ?? entry);
+}
+
+/** Runs the response's tool calls as the pipeline schedules them, recording each result in model order. */
+async function runTools(state: LoopState, message: AssistantMessage): Promise<readonly ToolCallResult[]> {
+  const asks: ToolCallResult[] = [];
+  const results = await runToolCalls(message, state.active, {
+    ...pipelineOf(state, asks),
+    ...state.hooks.pipelineHooks(),
   });
+  return asks.length === 0 ? results : askUser(state, results, asks);
+}
+
+/**
+ * The outcome of a run whose calls wait for a person. Its requests are put in the model's order of their calls, and
+ * it ends `awaiting_approval` when any waits for an approval, or `clarification_requested` when all wait for answers.
+ */
+function pausedOutcome(state: LoopState, message: AssistantMessage): Outcome {
+  const order = callOrderOf(message);
+  const pending = [...state.pending].sort((a, b) => order.indexOf(a.callId) - order.indexOf(b.callId));
+  const approval = pending.some((request) => request.kind === "approval");
+  return {
+    stopReason: approval ? "awaiting_approval" : "clarification_requested",
+    pending,
+    pendingInputs: { ...state.pendingInputs },
+  };
 }
 
 /** The failed call's error as the run reports it. A message without one counts as `fatal`. */
@@ -410,10 +474,10 @@ function runErrorOf(message: AssistantMessage): RunError {
 }
 
 /**
- * The stop check after one step. A pause, a finished answer or a question for the user wins over an abort that came
- * too late to change it; otherwise an abort stops the run before the step cap does. A pause wins over a finished
- * answer too, because its call is still waiting. A text answer cut off at the output limit
- * also counts as finished: its message keeps `stopReason: "length"`.
+ * The stop check after one step. A pause, including a question for the user, or a finished answer wins over an abort
+ * that came too late to change it; otherwise an abort stops the run before the step cap does. A pause wins over a
+ * finished answer too, because its call is still waiting. A text answer cut off at the output limit also counts as
+ * finished: its message keeps `stopReason: "length"`.
  */
 function stopCheck(
   state: LoopState,
@@ -424,16 +488,9 @@ function stopCheck(
   if (message.stopReason === "aborted") return { stopReason: "aborted" };
   // A paused call is still waiting, so the run can't count as finished, and the pause is signed and stored with the
   // context, so it outlasts an abort that came while the step's other calls ran.
-  if (state.pending.length > 0) {
-    return { stopReason: "awaiting_approval", pending: [...state.pending], pendingInputs: { ...state.pendingInputs } };
-  }
+  if (state.pending.length > 0) return pausedOutcome(state, message);
   const finished = results.length === 0 || results.some(({ result }) => result.terminate === true && !result.isError);
   if (finished) return { stopReason: "done", output: state.output };
-  // Until runs can pause for an answer, a clarification question stops the run, so the model never goes on as if the
-  // user had been asked and answered.
-  if (results.some(({ result }) => result.pause !== undefined && !result.isError)) {
-    return { stopReason: "stopped", stoppedBy: CLARIFICATION };
-  }
   if (state.setup.signal.aborted) return { stopReason: "aborted" };
   if (state.steps >= state.setup.maxSteps) return { stopReason: "max_steps" };
   return undefined;
@@ -564,7 +621,7 @@ function closeAborted(state: LoopState): void {
 
 function resultOf(state: LoopState, outcome: Outcome): RunResult {
   const pending =
-    outcome.stopReason === "awaiting_approval"
+    outcome.stopReason === "awaiting_approval" || outcome.stopReason === "clarification_requested"
       ? { pending: [...outcome.pending], pendingInputs: { ...outcome.pendingInputs } }
       : {};
   const base = {
@@ -597,6 +654,97 @@ async function finish(state: LoopState, outcome: Outcome): Promise<RunResult> {
   return result;
 }
 
+/** The synthetic response that holds `calls`, so the pipeline runs them as one batch of the resumed message. */
+function batchOf(message: AssistantMessage, calls: readonly ToolCall[]): AssistantMessage {
+  return { ...message, content: [...calls], stopReason: "tool_calls" };
+}
+
+/** The call ids of `message`'s tool calls, in model order. */
+function callOrderOf(message: AssistantMessage): string[] {
+  return message.content.flatMap((block) => (block.type === "tool_call" ? [block.callId] : []));
+}
+
+/**
+ * Puts the tool messages `list` gained from `from` on in the model's order of their calls, as a step records them.
+ * A resume settles its calls by verdict, so without this a denial could come before an approval the model made first.
+ */
+function inModelOrder(list: Message[], from: number, order: readonly string[]): void {
+  const rank = (entry: Message) => (entry.role === "tool" ? order.indexOf(entry.callId) : order.length);
+  const tail = list.splice(from).sort((a, b) => rank(a) - rank(b));
+  list.push(...tail);
+}
+
+/**
+ * Acts on the verdicts for a resumed context's waiting calls, before the run's first model call, which none of this
+ * counts as, and records their results in the model's order. Returns the paused outcome when any call still waits,
+ * and `done` when none does and an approved call's result ends the run, as `terminate` does in a step.
+ */
+async function resume(state: LoopState, setup: ResumeSetup): Promise<Outcome | undefined> {
+  const { message } = setup;
+  const from = { messages: state.messages.length, added: state.added.length };
+  try {
+    return await settle(state, setup);
+  } finally {
+    if (message !== undefined) {
+      const order = callOrderOf(message);
+      inModelOrder(state.messages, from.messages, order);
+      inModelOrder(state.added, from.added, order);
+    }
+  }
+}
+
+/**
+ * Verified answers and denials reach the model as results; verified approvals run, without the gate, with the input
+ * their requests sign; requests that still wait stay pending; and calls whose checks failed ask again, through the
+ * gate but never running.
+ */
+async function settle(state: LoopState, setup: ResumeSetup): Promise<Outcome | undefined> {
+  const { signer } = state.setup;
+  state.hooks.reserveRequestIds(setup.open.map((entry) => entry.request.id));
+  const verdicts = await judgeOpenCalls(setup, { signer, send: (body) => state.send(body) });
+  const of = <K extends Verdict["kind"]>(kind: K) =>
+    verdicts.filter((verdict): verdict is Extract<Verdict, { kind: K }> => verdict.kind === kind);
+  for (const { call, result } of of("result")) {
+    state.send({ type: "tool_call_start", callId: call.callId, tool: call.name, input: call.input });
+    recordResult(state, { call, result });
+  }
+  const asks: ToolCallResult[] = [];
+  const { message } = setup;
+  if (message === undefined) return undefined;
+  const run = of("run").map((verdict) => verdict.call);
+  let ran: readonly ToolCallResult[] = [];
+  if (run.length > 0) {
+    const { after } = state.hooks.pipelineHooks();
+    const ctx = { ...pipelineOf(state, asks), approved: true, ...(after === undefined ? {} : { after }) };
+    // A verified request names its tool, and the run signed it only for a call to a tool its request had sent.
+    const results = await runToolCalls(batchOf(message, run), state.setup.tools, ctx);
+    ran = asks.length > 0 ? await askUser(state, results, asks) : results;
+  }
+  for (const { request, input } of of("wait")) {
+    state.pending.push(request);
+    state.pendingInputs[request.id] = input;
+  }
+  const again = of("reissue").map((verdict) => verdict.call);
+  if (again.length > 0) {
+    const ctx = { ...pipelineOf(state, asks), gate: state.hooks.reissueGate() };
+    // Nothing verified these calls, so only the tools a request sends by default may ask again: a stored context
+    // can't get a new signed request for a tool the model is never sent.
+    await runToolCalls(batchOf(message, again), directTools(state.setup.tools), ctx);
+  }
+  if (state.pending.length > 0) return pausedOutcome(state, message);
+  const ends = ran.some(({ result }) => result.terminate === true && !result.isError);
+  return ends ? { stopReason: "done", output: state.output } : undefined;
+}
+
+/** `resume()`, with a hook that failed while the run fails closed ending the run as a step's failure would. */
+async function resumeOrFail(state: LoopState, setup: ResumeSetup): Promise<Outcome | undefined> {
+  try {
+    return await resume(state, setup);
+  } catch (error) {
+    return failedOutcome(state, error);
+  }
+}
+
 /**
  * Runs the loop to a stop reason and returns the result. It throws only for a programmer error, after the results
  * already received are in the transcript.
@@ -607,6 +755,7 @@ export async function runLoop(setup: LoopSetup, emit: Emit, drain: Drain): Promi
   const refused = setup.budgetUsd === undefined ? undefined : unknownPriceError(setup.model);
   let outcome: Outcome | undefined = refused === undefined ? undefined : { stopReason: "error", error: refused };
   try {
+    if (outcome === undefined && setup.resume !== undefined) outcome = await resumeOrFail(state, setup.resume);
     while (outcome === undefined) {
       outcome = setup.signal.aborted ? { stopReason: "aborted" } : await runStep(state);
     }

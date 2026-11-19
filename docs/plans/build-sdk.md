@@ -572,6 +572,13 @@ declare function replayPairs(pairs: RecordedPair[]): ScriptedModel;   // rejects
 - The SDK vendors the safety package's `bytes.ts`, `signer.ts` and `pending.ts` beside B10's copies. Until B15b, `continueRun()` throws `invalid_run_options` for a context with pending requests.
 - The owner decided on 2026-11-19 to keep D5's request kinds, `"approval" | "clarification"`, with no `"plan"` kind ([SG5](close-sdk-gaps.md#sg5-a-plan-approval-keeps-its-own-signature-separate-from-d5s-signed-request-kinds-accepted)).
 
+**Revision (B15b, 2026-11-19).** B15b resumes signed pauses with these choices, each recorded in [its outcome](../todos/done/B15b-continue-run.md#outcome):
+- `continueRun(context, options)` takes `ContinueOptions`, which add `resolutions` and `recheck` (the safety package's `Recheck`) to `RunOptions`. Before the first model call it verifies each waiting call's stored request against the transcript's call and the input in `context.pendingInputs`. A verified `allow` runs the call once with the signed input and without `beforeToolCall`, after `recheck` allows it. A `deny` or an `answer` becomes a tool result, and an unnamed request still waits. A request or resolution that fails a check runs nothing and emits the new `resolution_rejected` event. The call then asks again with a new request, through the gate but never running. Settling requests is not a step.
+- The owner decided on 2026-11-19 that `continueRun()` refuses, with `invalid_run_options`, a context whose last assistant message has a call with no result and no matching pending request, so a lost pause record fails loudly instead of reaching the model as "No result was recorded".
+- The clarification pause is the sketch's `clarification_requested` variant, `ClarificationRequestedResult`; a step that also paused an approval ends `awaiting_approval` with both requests. `approval_request` reports both kinds, as the sketch says.
+- `blockingApprovals(handler)` returns an `Interceptors` object that carries its handler outside the six hooks, and `composeInterceptors()` passes it on. Its handler also receives the signed input and the run's signal.
+- Single use across processes stays the host's store's job; within one `continueRun()`, two resolutions for one request are refused as `replayed`.
+
 ### 3.4 The seams P2 consumes
 
 The harness plan should use these names as written; P4 checks that it does ([implementation plans §3](implementation-plans.md#3-the-review-p4)). The first six are the seams of [harness guide §1][hg1]; the rest are what its sketches assume from the SDK.
@@ -627,7 +634,7 @@ The guide says to start with the gateway and the test model, because every other
 | [B13](../todos/done/B13-interceptors-observers.md) | The six interceptors and observers | B11 | M |
 | [B14](../todos/done/B14-budget-progress.md) | Pre-emptive USD budget, progress detection and the depth cap | B5, B13, E1 | M |
 | [B15](../todos/done/B15-signed-pauses.md) | Signed pauses in the loop on the safety package's signers, and `createPendingRequest` | B13, E3 | M |
-| [B15b](../todos/ready/B15b-continue-run.md) | `continueRun`, `blockingApprovals()` and the clarification pause | B15 | M |
+| [B15b](../todos/done/B15b-continue-run.md) | `continueRun`, `blockingApprovals()` and the clarification pause | B15 | M |
 | [B16](../todos/done/B16-steering.md) | Steering and follow-up with delivery receipts | B11 | S |
 
 ### 4.4 Stage 4 ships telemetry, the testing exports, the capstone and the docs checks

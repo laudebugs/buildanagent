@@ -44,12 +44,13 @@ A failed model call or a failing tool never makes a run throw. The run ends with
 - **`max_steps`**: the run made `maxSteps` model calls, 20 by default, and the model still wanted to go on. The run also emits a `warning` event with `code: "max_steps"`, so a cap that cut a run short shows up in your logs.
 - **`error`**: a model call failed. `result.error` copies the failure's `kind`, `message` and HTTP `status`. Its `kind` is `overflow` for a request too large for the model's window, `quota` for an account out of credit, `retryable` for a temporary failure that outlasted the gateway's retries, `hook` for an interceptor that threw while the run fails closed, `unknown_price` for a budgeted run that can't price a call, and `fatal` otherwise.
 - **`aborted`**: you aborted the run.
-- **`stopped`**: a tool from `clarificationTool()` asked the user a question, and `result.stoppedBy` is `"clarification"`; or a `shouldStop` hook ended the run, and `result.stoppedBy` is the reason it gave.
+- **`stopped`**: a `shouldStop` hook ended the run, and `result.stoppedBy` is the reason it gave.
 - **`no_progress`**: the default progress policy found the model repeating a failing call, or a `shouldStop` hook ended the run with `{ stop: "no_progress", reason }`. `result.reason` says why.
 - **`budget`**: the next call could have taken the run past `budgetUsd`, so the run ended without making it. `result.spentUsd`, `result.projectedUsd` and `result.budgetUsd` give the numbers.
 - **`awaiting_approval`**: a `beforeToolCall` gate returned `ask`, so the call waits for a person. `result.pending` holds one signed request for each waiting call, as [the pause section](#a-gate-that-asks-ends-the-run-with-a-signed-pending-request) explains.
+- **`clarification_requested`**: a tool from `clarificationTool()` asked the user a question, and no call waits for an approval. `result.pending` holds a signed request of kind `clarification` for each question, as [the clarification section](#end-the-run-with-outputtool-or-ask-with-clarificationtool) explains.
 
-`maxSteps` counts model calls, so an output call that fails its schema spends one of them. The tool calls of the last allowed response still run, so every call in the transcript has a result, except a call a gate paused, which waits for a person.
+`maxSteps` counts model calls, so an output call that fails its schema spends one of them. The tool calls of the last allowed response still run, so every call in the transcript has a result, except a paused call, which waits for a person.
 
 Only the `done` result carries `output`. TypeScript rejects `result.output` until you have checked `result.stopReason === "done"`, so an unfinished run can't pass for a finished one. Every result carries `usage` and `cost`, summed over the run's model calls, and `steps`, the number of calls. `result.messages` holds the messages this run added. `result.context` holds the whole conversation, ready to continue.
 
@@ -63,7 +64,7 @@ const result = await runOrThrow(run({ model, system, input }));
 
 ### Continue a conversation with `continueRun()`
 
-`continueRun(context, options)` goes on from a context: a previous result's `context`, or one you rebuilt from your own store. A context is plain JSON holding the system prompt and the messages. A run that stopped at `max_steps` continues with the model reading its last tool results. A `done` context ends with the model's answer, so add a user message to it before you continue, or pass the messages as `history` to `run()` with the new input.
+`continueRun(context, options)` goes on from a context: a previous result's `context`, or one you rebuilt from your own store. A context is plain JSON holding the system prompt, the messages and, for a paused run, `pending` and `pendingInputs`. A run that stopped at `max_steps` continues with the model reading its last tool results. A context whose last response ended in an error asks the model again, because the gateway leaves that response out of the request. A `done` context ends with the model's answer, so add a user message to it before you continue, or pass the messages as `history` to `run()` with the new input. A paused context resumes with `resolutions`, as [the resume section](#resume-a-pause-with-continuerun-and-a-resolution-for-each-request) explains.
 
 ### Abort a run with `run.abort()` or a signal
 
@@ -152,7 +153,7 @@ The events come in two layers. The delta layer streams each content block by its
 - **`tool_call_start`**, **`tool_call_update`** and **`tool_call_end`** follow each tool call; `tool_call_end.result` is what the model reads. When a `beforeToolCall` gate replaced the model's input, `tool_call_end.input` holds the input the call got instead.
 - **`context_transformed`** reports the message counts before and after `transformContext` for one model call.
 - **`steer_applied`** reports a queued steer or follow-up that entered the transcript, with its receipt.
-- **`approval_request`** reports a call a gate paused, with its signed `request` and the `input` that request signs, once every call of the step has been gated. That call gets no `tool_call_end`.
+- **`approval_request`** reports a call that waits for a person, with its signed `request` and the `input` that request signs: a call a gate paused, or a tool's question. That call gets no `tool_call_end`. In a resumed run, **`resolution_rejected`** reports a request or resolution that failed its check, with the cause.
 - **`hook_error`** reports an interceptor or an observer that threw, with the hook's name and the message. It also reports a pause that could not be signed, with `hook: "signer"`.
 - **`retry`** reports a failed request the gateway is retrying, and **`warning`** reports a reached cap or a model warning.
 - **`error`** and **`abort`** report a failed call and an abort request.
@@ -215,7 +216,7 @@ The run waits for observers to handle `agent_settled` and `run_end` before it se
 
 ## A gate that asks ends the run with a signed pending request
 
-When a `beforeToolCall` gate returns `{ decision: "ask", reason, policyVersion }`, the run doesn't run that call, and doesn't block on a callback either. It signs a pending request for the call, finishes the step's other calls, and ends with `stopReason: "awaiting_approval"`. Store the request with the context, show it to a person with the input it signs, and check the answer against the signature before the call runs:
+When a `beforeToolCall` gate returns `{ decision: "ask", reason, policyVersion }`, the run doesn't run that call, and doesn't block on a callback either. It signs a pending request for the call, finishes the step's other calls, and ends with `stopReason: "awaiting_approval"`. Store the request with the context, show it to a person with the input it signs, and pass the answer to `continueRun()`, which checks it against the signature before the call runs:
 
 ```ts
 const result = await run({ model, system, input, tools, interceptors: { beforeToolCall: gate }, signer }).result;
@@ -232,7 +233,37 @@ A gate's `ask` may carry its own `input`, which must pass the tool's schema, and
 
 A paused call has no result in the transcript, so the context ends with the model's call still open. The step's other calls run or are denied as usual, and every call a gate paused gets its own request, in model order. A pause wins over an output tool that answered in the same step, because its call is still waiting. The run emits `approval_request` with the request and its input once every call of the step has been gated and before any of them runs. The call gets no `tool_call_end`, and the OpenTelemetry observer ends its tool span without an error. The event is advisory. A later call in the step can still fail the run with a programmer error, which ends it `error` with no `pending`, so build an approval queue from `result.pending`, not from the events.
 
-`continueRun()` can't resume a paused context yet. It throws `invalid_run_options` for a context whose `pending` isn't empty, so a waiting call is never dropped without an answer. Store `pending` and `pendingInputs` with the messages, because the check reads `pending`. A context saved without it gets through, and the gateway answers the open call with an error result. The call never runs, and no person is asked.
+### Resume a pause with `continueRun()` and a resolution for each request
+
+A person answers each request with a `Resolution`: `{ requestId, decision: "allow" | "deny", reason?, by? }` for an approval, or `{ requestId, answer, by? }` for a question. Pass the answers to `continueRun()` with the stored context, in this process or another one that holds the same key ring:
+
+```ts
+const context = await store.load(id); // plain JSON, with pending and pendingInputs
+const next = continueRun(context, { model, tools, signer, resolutions: [{ requestId, decision: "allow", by: "ana" }] });
+```
+
+Before its first model call, the run checks every waiting call's stored request with its `signer`. The check verifies the signature under the request's `keyId`, then the call id and tool against the transcript's call, then the input in `context.pendingInputs` against the signed hash, and last that the resolution fits the request's kind. Each waiting call then goes one of four ways:
+
+- **A verified `allow`** runs the call once, with the input its request signs, never the transcript's arguments. `beforeToolCall` isn't asked again, and `afterToolCall` still runs.
+- **A verified `deny`** gives the model an error result with the reason, and a verified `answer` reaches the model as the call's result.
+- **A request no resolution names** still waits. When any call still waits, the run ends paused again without a model call, so you can answer one call at a time.
+- **A request or resolution that fails a check** runs nothing. The run emits `resolution_rejected` with the cause, such as `signature_invalid`, `input_changed`, `resolution_mismatch` or `replayed`, and the call asks again. Your gate is asked as for a new call, and the call pauses with a new request even when the gate allows it. The new request is always an approval, because a request that failed its check can't be trusted to say it was a question. A question that fails therefore comes back as an approval request for the asking tool, and once allowed, the tool runs and asks again. Only a tool the model is sent by default can ask again; a call to any other tool gets the unknown-tool error result instead. A resolution that names no request in the context is reported as `unknown_request`, and its request still waits.
+
+Settling the requests is not a step, so `steps` and `maxSteps` count only the model calls the resumed run makes. The results are recorded in the order the model made the calls. When no call still waits and an approved call's result sets `terminate`, such as the output tool's, the run ends `done` without a model call. Pass `recheck` to run current policy just before an approved call runs. It gets copies of the request and its input, so editing them changes nothing, and resolves to `"allow"`, or to `{ deny: reason }`, which gives the model an error result instead. A `recheck` that throws or returns anything else denies the call. Without `recheck`, a verified approval runs, so check policy before you resolve.
+
+`continueRun()` refuses a context it can't resume safely. It throws `invalid_run_options` for a context whose last assistant message has a call with no result and no pending request, because that call's pause record was lost, and silently answering it would hide the loss. It also throws for a pending request whose call doesn't wait in the context, and for malformed `pending`, `pendingInputs` or `resolutions`. Store `pending` and `pendingInputs` with the messages.
+
+A request is meant to be answered once, but the SDK can't see your other processes, so single use is your store's job. Mark a request used, atomically, before you call `continueRun()` with its answer, and refuse a second resume of the same stored context there. Within one call, two resolutions for one request are refused as `replayed`.
+
+### `blockingApprovals()` answers inside the run, where the person waits with the process
+
+Where the run and the person share a process, such as a terminal, `blockingApprovals(handler)` answers approvals without ending the run. Join it with your gate:
+
+```ts
+const interceptors = composeInterceptors(gate, blockingApprovals(async (request, { input }) => askInTerminal(request, input)));
+```
+
+When a gate asks, the run signs the request and emits `approval_request` before it calls the handler, so a crash while it waits still leaves a signed record to resume from. The handler returns a `Resolution` for that request, which the run checks against the request like a resumed one. An `allow` runs the call, and a `deny` gives the model an error result. An answer that names another request, an answer of the wrong kind, a handler that throws and an abort while the run waits each deny the call, and all but the abort emit a `hook_error` with `hook: "blockingApprovals"`. `composeInterceptors()` joins at most one `blockingApprovals()` object.
 
 ### Pass `hmacSigner()` wherever a pause may resume in another process
 
@@ -258,7 +289,7 @@ const request = await createPendingRequest({ kind: "approval", callId, tool: "re
 
 ### The signers and the record belong to the safety package
 
-`ApprovalSigner`, `ephemeralSigner()`, `hmacSigner()`, `canonicalInputHash()`, `SignedPendingRequest`, `Resolution` and `SignPendingOptions` are `@buildanagent/agent-safety`'s, re-exported unchanged. So are `SafetyError` and `isSafetyError()`, because `hmacSigner()` throws a `SafetyError` with code `invalid_key_ring` for an unusable ring, and `createPendingRequest()` rejects with one, code `invalid_pending` or `invalid_input`, for a blank field or an input with no canonical JSON form.
+`ApprovalSigner`, `ephemeralSigner()`, `hmacSigner()`, `canonicalInputHash()`, `SignedPendingRequest`, `Resolution`, `Recheck`, `RejectionCause` and `SignPendingOptions` are `@buildanagent/agent-safety`'s, re-exported unchanged. So are `SafetyError` and `isSafetyError()`, because `hmacSigner()` throws a `SafetyError` with code `invalid_key_ring` for an unusable ring, and `createPendingRequest()` rejects with one, code `invalid_pending` or `invalid_input`, for a blank field or an input with no canonical JSON form.
 
 Until the safety package is published, the SDK carries byte-identical copies of its files, and a test fails if they drift. One consequence follows from the copies: in a process that loads both packages, each has its own ephemeral signer, so a pause signed by one's default doesn't verify with the other's.
 
@@ -373,7 +404,7 @@ The model reads the outcome first, as a sentence and as JSON, and then your cont
 
 `outputTool({ name, schema })` turns the run's final answer into a tool call. Pass it to `run()` as `output`. A call whose input passes the schema ends the run `done`, and the validated answer is `result.output`. A call that fails the schema returns the issues to the model, which can correct its answer and call again. If the model answers in text instead, or another tool returns `terminate: true`, the run still ends `done`, with `result.output` undefined. The output tool must keep the default `exposure`, because the model has to be sent it.
 
-`clarificationTool()` gives the model a tool named `ask_user` that takes one `question`. Pass `{ name }` to call it something else. Once the model calls it, the run ends with `stopReason: "stopped"` and `stoppedBy: "clarification"`, and the question is the call's input in `result.messages`. To go on, add the user's answer to `result.context` as a user message and pass the context to `continueRun()`.
+`clarificationTool()` gives the model a tool named `ask_user` that takes one `question`. Pass `{ name }` to call it something else. Once the model calls it, the run signs a pending request of kind `clarification` with the question in `question`, emits `approval_request`, and ends with `stopReason: "clarification_requested"` once the step's other calls have their results. The asking call has no result yet. Pass the user's answer to `continueRun()` as `{ requestId, answer }`, and the model reads the answer as that call's result. Any tool whose result carries `pause: { kind: "clarification", question }` pauses the same way. When a gate also paused a call in the same step, the run ends `awaiting_approval`, with both requests in `pending` in the model's order.
 
 ## A step's tool calls run in parallel
 
@@ -391,7 +422,7 @@ The SDK throws only for programmer errors, never for a failure the model caused.
 
 - **`invalid_tool_definition`**: a tool's name, description, schema, exposure, `executionMode`, `resourceKey` or `progressKey` is unusable, or two tools share a name.
 - **`invalid_tool_result`**: `execute` returned something other than a tool result, or an invalid outcome. A text block needs a string `text`, and an image block a string `mediaType` and `data`. The run's `result` rejects with this error, and iterating the run throws it after the last event.
-- **`invalid_run_options`**: `run()` or `continueRun()` got a model that isn't from `createModel()`, a `maxSteps` that isn't a positive integer, an output tool whose `exposure` isn't `"direct"`, a `budgetUsd` that isn't a non-negative number, a `progress` threshold that isn't a positive integer, or a `depth` or `maxDepth` that isn't a whole number.
+- **`invalid_run_options`**: `run()` or `continueRun()` got a model that isn't from `createModel()`, a `maxSteps` that isn't a positive integer, an output tool whose `exposure` isn't `"direct"`, a `budgetUsd` that isn't a non-negative number, a `progress` threshold that isn't a positive integer, or a `depth` or `maxDepth` that isn't a whole number. `continueRun()` also throws it for a context it can't resume, such as one whose waiting call lost its pending request.
 - **`max_depth_exceeded`**: a tool started a run nested deeper than `maxDepth` allows.
 - **`undelivered_message`**: `steer()` or `followUp()` rejects with it when the run ended before it could apply the message.
 - **`invalid_model_stream`**: a model's stream ended without a final message, which only a broken adapter does.

@@ -346,15 +346,15 @@ test("a text answer cut off at the output limit ends done, and its message keeps
   assert.equal(last?.role === "assistant" ? last.stopReason : undefined, "length");
 });
 
-test("a clarification question stops the run with stoppedBy clarification and makes no further call", async () => {
+test("a clarification question ends the run clarification_requested and makes no further call", async () => {
   const { adapter, model } = scripted([toolCall("ask_user", { question: "Which order?" })]);
   const { result } = await drive(
     run({ model, system: SYSTEM, input: "Where is my order?", tools: [clarificationTool()], ...determinism() }),
   );
   adapter.assertComplete();
-  assert.equal(result.stopReason, "stopped");
-  assert.equal(result.stopReason === "stopped" ? result.stoppedBy : undefined, "clarification");
-  assert.equal(result.messages.at(-1)?.role, "tool");
+  assert.equal(result.stopReason, "clarification_requested");
+  // The asking call waits for the answer, so it has no result yet.
+  assert.equal(result.messages.at(-1)?.role, "assistant");
 });
 
 test("run() throws SdkError invalid_run_options for an output tool that isn't sent to the model", () => {

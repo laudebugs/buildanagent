@@ -6,7 +6,7 @@
 | Status | `ready` |
 | Plan | [Build harness §4, Stage 1](../../plans/build-harness.md#41-stage-1-builds-the-session-log-from-its-entry-union-to-rebuild-and-replay) |
 | Round / milestone | Round N (build harness), M6 |
-| Depends on | [N6](N6-session-runner.md), [B15b](B15b-continue-run.md), [E2](../done/E2-effect-identity-crash-rule.md) |
+| Depends on | [N6](N6-session-runner.md), [B15b](../done/B15b-continue-run.md), [E2](../done/E2-effect-identity-crash-rule.md) |
 | Size | M |
 
 ## Goal
