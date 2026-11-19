@@ -98,7 +98,7 @@ test("without JavaScript a replay lists every event and says where each came fro
   assert.match(replay, /data-steps="cumulative"[^>]* data-listing="lst-noted"/);
   assert.match(
     replay,
-    /<span class="label panel__label replay__source">verify\/<wbr>demo-sdk\/<wbr>results\/<wbr>transcripts\/<wbr>02-notes\.json<\/span>/,
+    /<span class="label panel__label replay__source"><span class="replay__segment">verify\/<\/span><span class="replay__segment">demo-sdk\/<\/span><span class="replay__segment">results\/<\/span><span class="replay__segment">transcripts\/<\/span><span class="replay__segment">02-notes\.json<\/span><\/span>/,
     "the transcript's path may wrap after a slash, never inside a name",
   );
   assert.match(

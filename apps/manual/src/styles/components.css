@@ -774,9 +774,14 @@
   border-bottom: 1px solid var(--panel-border);
 }
 
-/* A path wraps at the <wbr> after each slash, and inside a name only when one name is wider than the panel. */
+/* A path wraps between its names, each with its slash, and inside a name only when one name is wider than the panel. */
 .replay__source {
   overflow-wrap: break-word;
+}
+
+.replay__segment {
+  display: inline-block;
+  max-width: 100%;
 }
 
 .replay__scroll {

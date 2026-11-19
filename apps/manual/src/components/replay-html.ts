@@ -45,9 +45,15 @@ export function eventWhere(line: number | undefined, listingLines: ReadonlySet<n
   return listingLines.has(line) ? `line ${line}` : `line ${line}, outside this listing`;
 }
 
-/** A path, escaped, that may wrap after each slash instead of inside a name. */
+/**
+ * A path, escaped, that wraps only after a slash: each name and its slash is one inline block, so the line breaks
+ * between names, never at a hyphen inside one, unless a single name is wider than the panel.
+ */
 function breakAtSlashes(path: string): string {
-  return escapeHtml(path).replaceAll("/", "/<wbr>");
+  return path
+    .split(/(?<=\/)/)
+    .map((part) => `<span class="replay__segment">${escapeHtml(part)}</span>`)
+    .join("");
 }
 
 /**
