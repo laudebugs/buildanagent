@@ -1,6 +1,6 @@
-# Third-party notices: nine mirrored doc sets keep their upstream licences, and the book credits the garment engineering textbook
+# Third-party notices: nine mirrored doc sets keep their upstream licences, the book credits the garment engineering textbook, and its fonts keep the OFL
 
-This repository contains upstream documentation that other projects wrote. Our own code and docs are licensed as [LICENSE](LICENSE) describes, but that licence does not cover the mirrors under `docs/reference/*/source/`. Each mirror is an unmodified copy of upstream files at a recorded tag or commit, and each keeps its upstream licence file beside it. If you reuse a mirrored file, follow the licence in its row below. The book also adapts code from the owner's garment engineering textbook, and those files carry Apache-2.0 alone instead of our usual choice of two licences.
+This repository contains upstream documentation that other projects wrote. Our own code and docs are licensed as [LICENSE](LICENSE) describes, but that licence does not cover the mirrors under `docs/reference/*/source/`. Each mirror is an unmodified copy of upstream files at a recorded tag or commit, and each keeps its upstream licence file beside it. If you reuse a mirrored file, follow the licence in its row below. The book also adapts code from the owner's garment engineering textbook, and those files carry Apache-2.0 alone instead of our usual choice of two licences. The book serves three font families under the SIL Open Font License 1.1.
 
 ## Each mirror's licence comes from its upstream repository
 
@@ -27,6 +27,18 @@ The book in `apps/manual/` copies or adapts code from the owner's garment engine
 | [`apps/manual/astro.config.mjs`](apps/manual/astro.config.mjs) | `astro.config.mjs` | `bca44b0` | The render-input hash that deletes Astro's content cache when a Markdown plugin or its data changes, and the dev-server restart on those files |
 
 No file here copies the textbook repository's personal or account data, or text from its agent rules.
+
+## The book's three fonts are subsets of OFL fonts from google/fonts
+
+The book in `apps/manual/` serves its own fonts, so a reader's browser fetches nothing from Google. Each family comes from the [google/fonts](https://github.com/google/fonts) repository at commit `9bbbcda6f8aa91198223c77345d548af4b61940d` (2026-11-11), and [`apps/manual/fonts/sources.json`](apps/manual/fonts/sources.json) records the SHA-256 of every upstream file. The served files are WOFF2 subsets that keep Latin, punctuation, arrows, maths and box-drawing characters. A subset is a Modified Version under the SIL Open Font License 1.1, so each stays under that licence, and each family's unchanged `OFL.txt` ships beside its files. The subsets are written by [`apps/manual/scripts/subset-fonts.py`](apps/manual/scripts/subset-fonts.py) with fontTools 4.68.0.
+
+| Served files | Derived from | Upstream path | Licence |
+|---|---|---|---|
+| [`apps/manual/public/fonts/instrument-serif/`](apps/manual/public/fonts/instrument-serif/) | Instrument Serif, Regular and Italic | `ofl/instrumentserif/` | OFL-1.1 ([OFL.txt](apps/manual/public/fonts/instrument-serif/OFL.txt)), copyright 2022 The Instrument Serif Project Authors |
+| [`apps/manual/public/fonts/literata/`](apps/manual/public/fonts/literata/) | Literata, variable roman and italic | `ofl/literata/` | OFL-1.1 ([OFL.txt](apps/manual/public/fonts/literata/OFL.txt)), copyright 2017 The Literata Project Authors |
+| [`apps/manual/public/fonts/manual-code/`](apps/manual/public/fonts/manual-code/) | Google Sans Code, variable roman and italic | `ofl/googlesanscode/` | OFL-1.1 ([OFL.txt](apps/manual/public/fonts/manual-code/OFL.txt)), copyright 2025 The Google Sans Code Project Authors; see [TRADEMARKS.md](apps/manual/public/fonts/manual-code/TRADEMARKS.md) |
+
+None of the three licences names a Reserved Font Name. Google Sans Code's `TRADEMARKS.md` adds one rule that matters here: "Google", "Google Sans" and "Google Sans Code" are trademarks of Google LLC, and the "Google Sans Code" mark may be used only in connection with the original font software. The book's files are derived from Google Sans Code, not the original, so they carry the neutral family name "Manual Code" in their file names, their CSS and their name tables. The subsetting script also drops the records that name Google as the manufacturer and vendor, and keeps the copyright, trademark notice, designer and licence records. Nothing in the book implies that Google made or endorses these files.
 
 ## Quotations elsewhere are short, attributed excerpts
 

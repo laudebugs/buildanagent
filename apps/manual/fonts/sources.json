@@ -1,0 +1,58 @@
+{
+  "$comment": "The upstream font files the book's subsets come from, read from google/fonts at one commit. scripts/fetch-fonts.mjs downloads each file into fonts/upstream/ and refuses a file whose SHA-256 differs; scripts/subset-fonts.py writes the served subsets into public/fonts/.",
+  "repository": "https://github.com/google/fonts",
+  "commit": "9bbbcda6f8aa91198223c77345d548af4b61940d",
+  "commitDate": "2026-11-11",
+  "files": [
+    {
+      "path": "instrumentserif/InstrumentSerif-Regular.ttf",
+      "bytes": 70012,
+      "sha256": "498efd461f6ddfcb7a111bf9a565709d2085d48201d501ead960d93e84ffbb88"
+    },
+    {
+      "path": "instrumentserif/InstrumentSerif-Italic.ttf",
+      "bytes": 71592,
+      "sha256": "08939b8bdf534afec24ae0ef5e03f948940cd9a8fe08e7fecbad040e62327385"
+    },
+    {
+      "path": "instrumentserif/OFL.txt",
+      "bytes": 4405,
+      "sha256": "129ed7618959716959f2941fdd5b49e0ad6e6c1d78726761786a00253d865521"
+    },
+    {
+      "path": "literata/Literata[opsz,wght].ttf",
+      "bytes": 955132,
+      "sha256": "b41138c9373112f32abb589cc22e8674b06ed4048b0c513be922bdd26f274440"
+    },
+    {
+      "path": "literata/Literata-Italic[opsz,wght].ttf",
+      "bytes": 902728,
+      "sha256": "d483dfaeba9cbf4ce71d32a52ee65df82f7e35b15fff8d1011cdb242d1fcd465"
+    },
+    {
+      "path": "literata/OFL.txt",
+      "bytes": 4389,
+      "sha256": "8742963604cd89dc81437811a850018fc03b2bfad686d7422c8235967c87614e"
+    },
+    {
+      "path": "googlesanscode/GoogleSansCode[wght].ttf",
+      "bytes": 126224,
+      "sha256": "c9649573afcd966f61096b1e9c3c3115e7b54315ca2adf9839c6f8b17d5f8e1f"
+    },
+    {
+      "path": "googlesanscode/GoogleSansCode-Italic[wght].ttf",
+      "bytes": 132968,
+      "sha256": "bdf116292f27aca16e2aefb5534042a25f244d3a9187a521ce97fc2117a4a844"
+    },
+    {
+      "path": "googlesanscode/OFL.txt",
+      "bytes": 4396,
+      "sha256": "ff8f4fbc4f1a71c7d4c6481c48dc2b21c43f8dc15872536667fee45c15d20928"
+    },
+    {
+      "path": "googlesanscode/TRADEMARKS.md",
+      "bytes": 1478,
+      "sha256": "d9c627c968837b4a148195153271ca69e98d4bc750b041e0d98ba7b376b1cf50"
+    }
+  ]
+}
