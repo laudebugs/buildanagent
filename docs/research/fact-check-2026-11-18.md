@@ -161,6 +161,14 @@ The [retrieval and memory report](memory/retrieval-and-memory.md#a-file-is-enoug
 | --- | --- | --- | --- |
 | When to buy a memory service | ✏️ (revised by owner decision) "Buy a memory service only when you need cross-user personalization" (the memory paragraph), and "buy services later" in the layer 6 row | Buy only on one of three signals: many end users who each need an isolated profile, recall over thousands of records where keyword search over files starts to miss, or temporal questions. The layer 6 row now reads "buy a service on one of three signals" | [Retrieval and memory report](memory/retrieval-and-memory.md#a-file-is-enough-for-one-agent-and-one-user-and-a-service-earns-its-price-at-many-users-or-temporal-questions), rows 91–93 of its [fact-check](memory/fact-check-retrieval-and-memory.md). Row 92 confirms the old rule verbatim; row 93 marks the three signals ⚠️ (inferred), our synthesis of the memory evidence, and the report presents them as ours |
 
+## Revisions from the A2A report (U19, 2026-11-19)
+
+The [A2A report](a2a/agent-to-agent-protocols.md#seven-proposed-changes-await-the-owners-decision) proposed seven changes, and the owner approved all seven on 2026-11-19 (owner decision 2026-11-19). Change 7 corrects the Google ADK row of this report's SDK table.
+
+| Claim | Was | Now | Source |
+| --- | --- | --- | --- |
+| ADK's A2A support | ✏️ (corrected by owner decision) "Task API with A2A" in the Notable strengths cell | "A2A client and server (protocol 0.3, TypeScript)". `@google/adk` 2.5.0 ships `RemoteA2AAgent` and `toA2a`, and its generated card declares `protocolVersion: "0.3.0"` | [A2A report, SDKs](a2a/agent-to-agent-protocols.md#one-of-our-eight-sdks-ships-a2a-in-typescript-and-it-speaks-03-not-10); `verify/google-adk/node_modules/@google/adk/dist/esm/a2a/agent_card.js:178` |
+
 ## Later closures
 
 Gaps that the research notes recorded and later work closed. Each note stays as written, and the row here records the closure.

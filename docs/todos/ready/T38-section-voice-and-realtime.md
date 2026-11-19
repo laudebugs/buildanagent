@@ -8,16 +8,19 @@
 | Status | `ready` |
 | Plan | [Book plan §4.3, BK19](../../plans/build-book.md#43-four-topics-need-research-before-they-are-written) |
 | Round / milestone | Round T (textbook), MT |
-| Depends on | [U20](../done/U20-research-voice-and-realtime.md), [T35](T35-chapter-agents-people-can-watch.md) |
+| Depends on | [U20](../done/U20-research-voice-and-realtime.md), [T35](T35-chapter-agents-people-can-watch.md), [T46](T46-example-realtime-session.md), [T47](T47-example-voice-pipeline.md) |
 | Size | S |
 
 ## Goal
 
 Add one section to Chapter T35 ("Agents people can watch: UIs, browsers and taking over") from research todo [U20](../done/U20-research-voice-and-realtime.md)'s report. It is a section, not a chapter: voice and realtime change how a person interacts with a running agent, which is Chapter T35's subject.
 
+U20's report settled the scope, and the owner approved its proposed changes on 2026-11-19 (owner decision 2026-11-19). The topic stays one section, opened by the phone-call analogy. It teaches four ways a voice agent differs from the text loop, and its listings come from T46's scripted OpenAI session and T47's Cloudflare pipeline ([U20 report, Teach](../../research/voice/voice-and-realtime.md#t38-should-teach-four-differences-from-the-text-loop-in-one-section-opened-by-the-phone-call-analogy)).
+
 ## Context
 
-- [U20](../done/U20-research-voice-and-realtime.md)'s report and fact-check
+- [U20](../done/U20-research-voice-and-realtime.md)'s [report](../../research/voice/voice-and-realtime.md) and [fact-check](../../research/voice/fact-check-voice-and-realtime.md)
+- [T46](T46-example-realtime-session.md) and [T47](T47-example-voice-pipeline.md): the two listings, both offline
 - Chapter T35's todo, [T35](T35-chapter-agents-people-can-watch.md), and its fact-check file `apps/manual/fact-checks/agents-people-can-watch.md`
 - [Book plan BK21 and BK22](../../plans/build-book.md#bk21-every-section-is-fact-checked-before-the-next-is-drafted-accepted)
 
@@ -26,10 +29,16 @@ Add one section to Chapter T35 ("Agents people can watch: UIs, browsers and taki
 **In scope**
 
 - One section in `apps/manual/src/content/chapters/agents-people-can-watch.md`
-- Listings, if the report recommends an example and a later todo writes it
+- Four differences from the text loop, in this order (owner decision 2026-11-19):
+  1. **The loop is a session driven by events.** Name the three shapes (speech-to-speech, chained pipeline, and a speaking front model that delegates) and show that the tool loop survives inside each. The number to remember is the 208 ms gap people leave between turns.
+  2. **Turn detection predicts the end of a turn.** Show the trade between a short silence threshold and a late reply, with OpenAI's 500 ms default and the robot study's drop from 2.7 s to 1.5 s, and name push-to-talk as the simple escape.
+  3. **Barge-in stops the speech, settles the tools and keeps only the heard words.** Show truncation to `audio_end_ms`, the opposite defaults of Gemini and GPT-Live for tools in flight, and the yield-or-hold trade, with GPT-4o realtime's 0.23 s stop beside its 93% reply rate to background speech.
+  4. **Tools must not silence the agent.** Show announcing, background calls and delegation to a text agent, and close on τ-Voice's 85% against 31–51% as the reason for U20's proposed rule to read back consequential arguments.
+- A link to the vendor guides for transports and audio formats, which the section does not cover
+- The listings from [T46](T46-example-realtime-session.md) and [T47](T47-example-voice-pipeline.md); truncation itself is explained in prose, because it needs the real transport
 - Rows for the section in `apps/manual/fact-checks/agents-people-can-watch.md`
 
-**Analogy** (BK22): voice interruption, as a phone call where either side can cut in. Where the analogy breaks: the agent must cancel speech and tool calls already in flight when the person cuts in. Use it only if it makes the concept clearer than plain explanation. No illustration unless the section needs one.
+**Analogy** (BK22): voice interruption, as a phone call where either side can cut in. Where the analogy breaks: the agent must stop speaking at once, decide for each tool in flight whether it finishes or is undone, and forget the words the caller never heard. The owner approved this break note on 2026-11-19, replacing the earlier "the agent must cancel speech and tool calls already in flight when the person cuts in", because U20 found that cancelling every tool in flight is not the rule. Use the analogy only if it makes the concept clearer than plain explanation. No illustration unless the section needs one.
 
 **Out of scope** (and which todo covers it)
 
@@ -39,6 +48,7 @@ Add one section to Chapter T35 ("Agents people can watch: UIs, browsers and taki
 ## Tasks
 
 - [ ] Draft the section with `/anthropic-skills:writing`. If the analogy makes the concept clearer, open with it, then the mechanism and a "Where the analogy breaks" note, and register it in `analogies.json`; otherwise explain the concept plainly.
+- [ ] Give every model name, price and benchmark score its date and the version tested, as "the version tested in 2025" or "in 2026", never as a property of a vendor.
 - [ ] Fact-check every claim in the section against its primary source into `apps/manual/fact-checks/agents-people-can-watch.md` before any further edit, and commit the section together with its fact-check rows (BK21).
 - [ ] Run `/anthropic-skills:writing-review` on the whole chapter with the voice check, fix every finding with `/anthropic-skills:writing`, and re-check every claim a fix touched.
 
@@ -59,7 +69,8 @@ The book's build and `check:book` in the CI `book` job.
 
 ## Risks and open questions
 
-- The research may show the topic needs a chapter after all; if so, propose it to the owner instead of overfilling the section.
+- U20 judged that the topic fits one section, and the owner agreed on 2026-11-19, so the risk that it needs a chapter is closed.
+- T46's approval check and all of T47 were untested when this scope was set. If either records a limit, teach that behaviour from the SDK's docs and say so.
 
 ## Definition of done
 
