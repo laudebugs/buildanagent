@@ -1,5 +1,5 @@
 /**
- * HTTP retries before any output (SDK decision 4; agent-SDK guide §2).
+ * HTTP retries before any output, and nothing after it (SDK decision 4; agent-SDK guide §2).
  *
  * - Only an `error` terminal of kind `retryable` that arrives before any content is retried. Once a block event has
  *   been streamed, a retry would replay output the caller has already seen, so the failure is final.
