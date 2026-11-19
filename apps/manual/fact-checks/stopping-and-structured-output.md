@@ -95,6 +95,7 @@ A program gets a typed answer by handing the SDK a schema. Every SDK offers a ro
 | 63 | Three habits: use the object only when the run finished; check what the schema could not (enum casing, dropped limits, rules across fields or against your data, such as a refund no larger than the order); give the model an honest way out, such as the `"other"` category | § A schema | ⚠️ | Our recommendation, introduced with "We recommend". It follows from rows 38, 46 and 56–60, and the schema's `"other"` value is in `05-structured-output.ts:11`. No source measures the effect of an "other" category on accuracy |
 | 64 | Closing: an agent stops when the model finishes, a condition holds or a cap runs out, and a default cap is set by people who never saw your task | § A schema | ✅ | Rows 1–8 and 24: the default caps are the SDK authors' choice, made for every task ("a safety measure to prevent runaway loops") |
 
+
 ## Re-checks after the writing review
 
 The writing review of the whole chapter (5Cs and BK22's voice check) changed the sentences below. Each row re-checks a claim a fix touched, read again on 2026-11-19.
@@ -108,3 +109,23 @@ The writing review of the whole chapter (5Cs and BK22's voice check) changed the
 | 69 | A cap of 25 allows twenty-five model calls in OpenAI's unit, thirteen in LangChain's, and in Claude's twenty-four tool-calling turns plus the answer | § A cap | ✅ | Row 17, unchanged in substance; reworded for clarity |
 | 70 | Constrained decoding "promises less than it seems to"; a refusal and a cut-off answer come back with `"refusal"` or `"max_tokens"`, and the casing failure looks like success, so compare enum values without regard to case | § A schema | ✅ | Rows 55–58 and 61; [Structured outputs](https://platform.claude.com/docs/en/build-with-claude/structured-outputs), "Enum value casing": "Compare enum values case-insensitively, and avoid enum values that differ only in capitalization." |
 | 71 | The other fixes reword sentences without changing a claim: the opening's promise, the tabs sentence, the AI SDK's quoted reason, the done-tool replay's first sentence, the section 2 rule (still marked ours), the mould's bridge sentence, "Behind the mould sits structured output", the third answer's sentence, the table's lead-in and the mould's break | Throughout | ✅ | Re-read each against its rows (8, 10, 35–38, 39–41, 46, 50–53, 62) on 2026-11-19. The changes replace sentence frames that Chapters 1–3 had already used ("By the end you can", "switch tabs to compare them", "puts it plainly", "stops matching", "deserves a second look", "Picture") |
+
+## § Exercises
+
+Each exercise was followed exactly as written on 2026-11-19, in this worktree, and the files were then restored with `git checkout verify/vercel-ai-sdk`.
+
+| # | Claim | Where | Verdict | Source and reason |
+| --- | --- | --- | --- | --- |
+| 72 | Exercise 1: the done-tool run needs two steps; with `isStepCount(1)` the example's two checks after that agent fail, so the reader replaces them; the predictions hold: one step, a last finish reason of `"tool-calls"`, and a last tool result of "pong"; the transcript then shows one request for `model-3`; no result field names the cap | § Exercises | ✅ | Edited `07-agent-stop-conditions.ts:46` to `isStepCount(1)` and replaced the checks at `:50-51` with `result.steps.length === 1`, `result.finishReason === "tool-calls"` and `result.staticToolResults.at(-1)?.output === "pong"`; `pnpm test` ran all 12 examples and the three checks passed; the transcript held one request and one `ping` call for `model-3`. Row 28 for the missing field. `check()` throws at its first failure (`examples/lib/check.ts`), which is why the exercise says to replace the old checks first |
+| 73 | Exercise 2: with a second scripted answer, `{ category: "bug", urgent: false }`, and `stopWhen: isStepCount(2)` imported from "ai", `result.output` holds that object, and the transcript shows a second request carrying the tool result; the answer passes the schema though nothing in the run says it is right | § Exercises | ✅ | Edited the last block of `05-structured-output.ts` that way; `tsc` and `pnpm test` passed with the check "two steps leave room for the answer"; the transcript showed a request with the `lookup` result "x" and a response with `{"category":"bug","urgent":false}` finishing `"stop"`. Rows 46–47 |
+| 74 | Both exercises rewrite the transcripts and `results/run-examples.json`, and `git checkout verify/vercel-ai-sdk` restores them | § Exercises | ✅ | `git status` after each run listed the edited example, `results/run-examples.json` and the example's transcript; after `git checkout verify`, `git status --short` was empty |
+| 75 | Exercise 3 is a paper exercise whose answer depends on the reader's choices; it asks for a cap, its unit, every way a run can end, a schema and three checks the schema cannot make | § Exercises | ✅ | Each part maps to a section: rows 1–26 (caps and units), 28–38 (ways a run ends), 39–63 (schema and checks) |
+
+## Tally
+
+| Verdict | Rows |
+| --- | --- |
+| ✅ confirmed | 71 |
+| ✏️ corrected | 1 (row 65) |
+| ⚠️ unverified, our recommendation, marked as ours in the text | 3 (rows 26, 38 and 63) |
+| Total | 75 |
