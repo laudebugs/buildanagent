@@ -1,0 +1,27 @@
+# Marks a closed pull request, so book-deploy.yml can delete its preview. It holds no secret, reads nothing and
+# checks nothing out: its only output is the run itself, which starts book-deploy.yml through workflow_run.
+#
+# Why a separate workflow, and not a `pull_request: closed` job that deletes the preview itself: on `pull_request`,
+# GitHub runs the workflow file from the pull request's merge ref. A job there that held the book-preview token would
+# run whatever a same-repository branch wrote into it, and a fork's run gets no secrets at all, so a fork's preview
+# would never be deleted. book-deploy.yml runs from main whatever this file says, and it looks the pull request up
+# through the API instead of trusting this run, so a branch that edits this file can at most ask for the preview of
+# an already-closed pull request to be deleted.
+name: book-pr-closed
+
+on:
+  pull_request:
+    types: [closed]
+
+permissions: {}
+
+jobs:
+  closed:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 2
+    steps:
+      - name: Record the closed pull request
+        env:
+          NUMBER: ${{ github.event.pull_request.number }}
+        run: |
+          echo "Pull request #$NUMBER closed; book-deploy.yml deletes its preview, pr-$NUMBER."
