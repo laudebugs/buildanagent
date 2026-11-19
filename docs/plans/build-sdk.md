@@ -351,6 +351,7 @@ interface ToolDefinition<I, S> {
   progressKey?(input: I): string;                     // D11 repeated-edit detection
   execution?: "inline" | "activity";                  // per-tool durable dispatch, for a later durable adapter
   firstParty?: boolean;                               // only first-party readOnlyHint affects scheduling
+  annotations?: { readOnlyHint?: boolean };           // revision (B12): MCP-style hints; scheduling trusts them only with firstParty
   repair?(e: { input: unknown; issues: SchemaIssue[] }): Promise<unknown | undefined>;
   formatError?(e: ToolFailure): ModelContent[];       // overrides the default "do not substitute a mock" text
   redactErrors?: boolean;                             // default false: replace a thrown error's message with a fixed line
@@ -542,6 +543,8 @@ declare function replayPairs(pairs: RecordedPair[]): ScriptedModel;   // rejects
 - `RunOptions` holds `model`, `tools`, `output`, `maxSteps`, `signal`, `modelOptions`, `clock` and `idGenerator`; the other options arrive with their todos. `Run` has `id`, `result`, `abort()` and iteration, and B13 and B16 add `on()`, `steer()` and `followUp()`.
 - `RunStoppedError` and `UnexpectedModelCallError` extend `SdkError`, and the gateway's `StreamContractError` and `ModelRequestsDisabledError` extend `GatewayError`, so each package keeps one error class ([typescript.md](../guidelines/typescript.md#each-package-has-one-error-class-with-a-typed-code)).
 
+**Revision (B12, 2026-11-19).** B12 adds two things to the sketch: `annotations: { readOnlyHint }` on `ToolDefinition`, which gives the sketch's `readOnlyHint` a home, and the `not_run` failure reason `sibling_failed`. A step's calls start together and their results are appended in model order; see [its outcome](../todos/done/B12-parallel-tools.md#outcome).
+
 ### 3.4 The seams P2 consumes
 
 The harness plan should use these names as written; P4 checks that it does ([implementation plans §3](implementation-plans.md#3-the-review-p4)). The first six are the seams of [harness guide §1][hg1]; the rest are what its sketches assume from the SDK.
@@ -593,7 +596,7 @@ The guide says to start with the gateway and the test model, because every other
 | [B11](../todos/done/B11-loop-core.md) | Loop core: `run`, the closed event union, stop reasons, aborts and `runOrThrow` | B4, B10 | L |
 | [B11b](../todos/ready/B11b-turn-retries.md) | Turn-level retries: the loop retries a retryable error that ends a turn (added 2026-11-19, a B11 follow-up) | B11 | M |
 | [B11c](../todos/ready/B11c-raw-provider-events.md) | Raw provider events: `includeRaw` and the `raw` event, from the adapters up to the loop (added 2026-11-19, a B11 follow-up) | B11, B4, B8, B9 | L |
-| [B12](../todos/ready/B12-parallel-tools.md) | Parallel tool scheduling, per-resource serialisation and sibling cancellation | B11 | M |
+| [B12](../todos/done/B12-parallel-tools.md) | Parallel tool scheduling, per-resource serialisation and sibling cancellation | B11 | M |
 | [B13](../todos/ready/B13-interceptors-observers.md) | The six interceptors and observers | B11 | M |
 | [B14](../todos/ready/B14-budget-progress.md) | Pre-emptive USD budget, progress detection and the depth cap | B5, B13, E1 | M |
 | [B15](../todos/ready/B15-signed-pauses.md) | Signed pauses in the loop on the safety package's signers, and `createPendingRequest` | B13, E3 | M |

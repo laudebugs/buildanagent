@@ -41,7 +41,7 @@ interface FailureBase {
  * `redactErrors`, `message` is a fixed line and the thrown message is only in the result's `details`. `truncated`:
  * the response was cut off at the output limit, so the call was not run. `not_run`: the call was not run because the
  * response ended in an error (`response_error`) or was aborted (`response_aborted`), or the run was cancelled before
- * the call started (`run_aborted`).
+ * the call started (`run_aborted`), or a sibling call in the same step threw a programmer error (`sibling_failed`).
  */
 export type ToolFailure =
   | (FailureBase & { readonly kind: "unknown_tool"; readonly availableTools: readonly string[] })
@@ -50,7 +50,7 @@ export type ToolFailure =
   | (FailureBase & { readonly kind: "truncated" })
   | (FailureBase & {
       readonly kind: "not_run";
-      readonly reason: "response_error" | "response_aborted" | "run_aborted";
+      readonly reason: "response_error" | "response_aborted" | "run_aborted" | "sibling_failed";
     });
 
 /**
@@ -63,6 +63,21 @@ export interface ToolEffect<I> {
   businessKey?(input: I): string;
 }
 
+/**
+ * What a tool says about itself, using the names of the Model Context Protocol's tool annotations. A hint comes from
+ * whoever wrote the tool, so the scheduler trusts it only for a tool marked `firstParty`.
+ */
+export interface ToolAnnotations {
+  /**
+   * The tool changes nothing. With `firstParty`, its calls that share a `resourceKey` run together, unless the tool
+   * also declares an `effect`, which wins.
+   */
+  readonly readOnlyHint?: boolean;
+}
+
+/** How a tool's calls are scheduled within one step: `parallel` (the default) or `sequential`. */
+export type ToolExecutionMode = "parallel" | "sequential";
+
 /** Whether a tool is sent to the model: `direct`, `deferred` or `hidden`. */
 export type ToolExposure = "direct" | "deferred" | "hidden";
 
@@ -70,7 +85,10 @@ export type ToolExposure = "direct" | "deferred" | "hidden";
 export interface ToolContext {
   readonly runId: string;
   readonly callId: string;
-  /** Fires when the run is aborted. */
+  /**
+   * Fires when the run is aborted, and when a sibling call in the same step throws a programmer error, because the
+   * step is then abandoned. A sibling's error result, which the model reads and answers, never fires it.
+   */
   readonly signal: AbortSignal;
   /** How deeply this run is nested inside other agents' tool calls; 0 for a top-level run. */
   readonly depth: number;
@@ -124,6 +142,26 @@ export interface ToolDefinition<I = unknown, S = unknown> {
   readonly exposure?: ToolExposure;
   /** Marks a tool that changes the world. A tool without it counts as read-only. */
   readonly effect?: ToolEffect<I>;
+  /**
+   * How this tool's calls are scheduled. A step's calls start together by default. A tool that sets `sequential`
+   * makes every call of its step run one at a time, in the order the model sent them, because it may depend on the
+   * calls around it.
+   */
+  readonly executionMode?: ToolExecutionMode;
+  /**
+   * Names the resource a call touches, such as a file path. Calls in one step that return the same key never run at
+   * the same time, in any tool, and run in model order; calls with different keys run together. It must be
+   * deterministic and return a string, and it receives the validated input.
+   */
+  resourceKey?(input: I): string;
+  /** Hints about the tool, such as `readOnlyHint`. They affect scheduling only when `firstParty` is true. */
+  readonly annotations?: ToolAnnotations;
+  /**
+   * True for a tool you wrote, false (the default) for one that came from a server you don't control, such as an MCP
+   * tool. Only a first-party tool's `readOnlyHint` changes how its calls are scheduled: read-only calls that share a
+   * `resourceKey` run together, and wait only for the writers before them. A tool with an `effect` is never read-only.
+   */
+  readonly firstParty?: boolean;
   /**
    * Called once when the input fails its schema, with the coerced input and the issues. Return fixed input to
    * validate again, or `undefined` to report the failure to the model.
