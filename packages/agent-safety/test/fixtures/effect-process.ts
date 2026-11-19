@@ -11,6 +11,15 @@ import { type EffectClaim, type EffectRecord, type EffectStore, guardedWrite, wr
 const [base = "", toolCallId = "", nowArg = "", reconcileArg = ""] = process.argv.slice(2);
 const now = Number(nowArg);
 
+// This process runs outside Vitest's offline setup, so it refuses every request that would leave loopback itself.
+const loopbackFetch = globalThis.fetch;
+globalThis.fetch = (input, init) => {
+  const url = new URL(input instanceof Request ? input.url : String(input));
+  if (url.hostname !== "127.0.0.1")
+    return Promise.reject(new Error(`network disabled in the crash test: ${url.hostname}`));
+  return loopbackFetch(input, init);
+};
+
 async function call<T>(path: string, body?: unknown): Promise<T> {
   const response = await fetch(new URL(path, base), {
     method: body === undefined ? "GET" : "POST",

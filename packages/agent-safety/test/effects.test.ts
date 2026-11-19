@@ -342,6 +342,105 @@ test("a toOutcome that throws settles the record as unknown and rethrows", async
   assert.equal(record?.outcome?.reason, "REPORT_FAILED");
 });
 
+test("onError gets the effect key, so it can report unknown with a same_key retry that reruns under that key", async () => {
+  const api = fakeApi();
+  const store = memoryEffectStore();
+  const conflicted = await guardedWrite(
+    refundWrite(api, store, {
+      run: async () => {
+        throw new Error("409 conflict");
+      },
+      onError: (_error, key) =>
+        writeOutcome({
+          kind: "unknown",
+          operation: "refund_create",
+          effectKey: key,
+          retry: "same_key",
+          next: "Call the tool again for the same refund",
+        }),
+    }),
+  );
+  assert.equal(conflicted.kind, "unknown");
+  assert.equal(conflicted.retry, "same_key");
+  const retried = await guardedWrite(refundWrite(api, store));
+  assert.equal(retried.kind, "applied");
+  assert.deepEqual(
+    api.requests.map((request) => request.key),
+    [conflicted.effectKey],
+  );
+});
+
+test("toOutcome gets the effect key as its second argument", async () => {
+  const api = fakeApi();
+  const keys: string[] = [];
+  const outcome = await guardedWrite(
+    refundWrite(api, memoryEffectStore(), {
+      toOutcome: (_refund, key) => {
+        keys.push(key);
+        return applied();
+      },
+    }),
+  );
+  assert.deepEqual(keys, [outcome.effectKey]);
+});
+
+test("a settled partial outcome with retry reconcile_first goes to reconcile on the next call", async () => {
+  const api = fakeApi();
+  const store = memoryEffectStore();
+  const partial = await guardedWrite(
+    refundWrite(api, store, {
+      toOutcome: () =>
+        writeOutcome({
+          kind: "partial",
+          operation: "refund_create",
+          retry: "reconcile_first",
+          applied: ["refund issued"],
+          notReversible: ["receipt email"],
+          next: "Check the refund",
+        }),
+    }),
+  );
+  assert.equal(partial.kind, "partial");
+  let checks = 0;
+  const checked = await guardedWrite(
+    refundWrite(api, store, {
+      reconcile: async () => {
+        checks++;
+        return applied();
+      },
+    }),
+  );
+  assert.equal(checks, 1);
+  assert.equal(checked.kind, "applied");
+  assert.equal(api.requests.length, 1);
+});
+
+test("an onError that throws settles as unknown without saying the write ran, and rethrows even if settling fails", async () => {
+  const api = fakeApi();
+  const failingRun = async (): Promise<{ id: string }> => {
+    throw new Error("validation failed");
+  };
+  const brokenHook = (): WriteOutcome => {
+    throw new Error("onError bug");
+  };
+  const store = memoryEffectStore();
+  await assert.rejects(guardedWrite(refundWrite(api, store, { run: failingRun, onError: brokenHook })), /onError bug/);
+  const record = await store.get(await effectKey(SCOPE, "refund:4417"));
+  assert.equal(record?.outcome?.reason, "REPORT_FAILED");
+  assert.doesNotMatch(record?.outcome?.currentState ?? "", /ran/);
+
+  const unreachable: EffectStore = {
+    ...memoryEffectStore(),
+    settle: async () => {
+      throw new Error("store unreachable");
+    },
+  };
+  await assert.rejects(
+    guardedWrite(refundWrite(api, unreachable, { run: failingRun, onError: brokenHook })),
+    /onError bug/,
+  );
+});
+
 test("an unknown_only write that crashed stays unknown with retry never, so a person checks it", async () => {
   const api = fakeApi();
   const store = memoryEffectStore();

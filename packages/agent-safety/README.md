@@ -103,18 +103,20 @@ const outcome = await guardedWrite({
 | Same key, another input or operation | Sends nothing | `not_applied`, retry `never`, reason `IDEMPOTENCY_KEY_REUSED` |
 | `started`, lease still live | Runs nothing and calls no hook, because another attempt may be running | `unknown`, retry `same_key`, reason `IN_PROGRESS` |
 | `started`, lease lapsed | Calls `reconcile(key)`: a found write returns its outcome, and `"not_found"` runs the write once under the same key | Whatever `reconcile` finds |
-| `started`, lease lapsed, no `reconcile` | Runs nothing | `unknown`, retry `reconcile_first`, reason `WRITE_INTERRUPTED` |
+| `started`, lease lapsed, no `reconcile` | Runs nothing | `unknown`, reason `WRITE_INTERRUPTED`, retry `reconcile_first`, or `never` for `dedupe: "unknown_only"` |
 
-The two refusals follow the IETF `Idempotency-Key` draft, which answers a reused key with a different payload with 422 and a retry of a request still running with 409. Two settled outcomes are not final. A `not_applied` outcome that allows a `same_key` retry, such as a declined card reported through `onError`, runs again under the same key, because it changed nothing. A settled `unknown` outcome goes to `reconcile`, like a lapsed lease. If `run` throws and the tool gives no `onError`, the write settles as `unknown`, because the request may have reached the system. No option lets a caller choose the key, so an `unknown` write never runs again under a fresh one.
+The two refusals follow the IETF `Idempotency-Key` draft, which answers a reused key with a different payload with 422 and a retry of a request still running with 409. Two settled outcomes are not final. A `not_applied` outcome that allows a `same_key` retry, such as a declined card reported through `onError`, runs again under the same key, because it changed nothing. A settled `unknown` or `partial` outcome whose retry isn't `never` goes to `reconcile`, like a lapsed lease. If `run` throws and the tool gives no `onError`, the write settles as `unknown`, because the request may have reached the system. `toOutcome` and `onError` receive the effect key as their second argument, so an `unknown` or `partial` outcome they build can allow a `same_key` retry. No option lets a caller choose the key, so with a business key an `unknown` write never runs again under a fresh one.
 
 ## Declare a business key for every tool that sends, submits, pays or deletes
 
-`effectKey()` hashes the scope into the key that `run` receives. With a business key, the hash covers only the tenant and that key. A regenerated turn, a new session and a forked branch then all map to the same effect, and one tenant is one user, so the same refund or email is blocked across all of that user's sessions. Without a business key, the hash covers the tenant, session, branch and tool call id, and a regenerated turn's fresh call id starts a fresh write. These tools therefore need a business key:
+`effectKey()` hashes the scope into the key that `run` receives. With a business key, the hash covers only the tenant and that key. A regenerated turn, a new session and a forked branch then all map to the same effect, and one tenant is one user, so the same refund or email is blocked across all of that user's sessions. Without a business key, the hash covers the tenant, session, branch and tool call id, and a regenerated turn's fresh call id starts a fresh write, even after an `unknown` outcome. These tools therefore need a business key:
 
 - **Send:** an email, a chat message or a reply, keyed by the thread and draft, such as `email:{threadId}:{draftId}`.
 - **Submit:** a job application or a form, keyed by what it is for, such as `apply:{jobId}`.
 - **Pay:** a refund, a charge or a credit, keyed by the order, such as `refund:{orderId}`.
 - **Delete:** a record or a file, keyed by its id, such as `delete:{documentId}`.
+
+A business key names one operation for good. Once its write has settled, every later call with that key returns the stored outcome, so a `compensated` outcome's `new_operation_only` retry, or a second refund of one order, needs a new business key, such as one that adds the request's own id: `refund:{orderId}:{requestId}`.
 
 The key is 64 hex digits, never the business key's own text. Stripe caps an idempotency key at 255 characters and asks callers to keep email addresses and other personal identifiers out of it, and a hash meets both rules.
 
@@ -130,7 +132,7 @@ Every guarded write declares `dedupe`, which tells `guardedWrite()` what the ext
 
 An `EffectStore` holds the records and needs four methods: `begin()`, `takeOver()`, `settle()` and `get()`. Each must be atomic, because every change is a compare-and-set on the record's attempt number; without that, two processes that resume one crashed write could both run it. In SQL, `INSERT ... ON CONFLICT DO NOTHING` and `UPDATE ... WHERE attempt = ?` give that. On Cloudflare, a Durable Object is single-threaded, so a store there can read and write a record with no other `await` between the two. `memoryEffectStore()` keeps records in memory, for tests and single-process hosts, and forgets them when the process ends. Keep records at least as long as a business key can come back and longer than the external API keeps its keys: Stripe's API v1 may prune a key after 24 hours and then treats a reused key as a new request. A durable store proves itself with the cases `effectStoreConformance()` returns from `./testing`, which import no test runner.
 
-Set `leaseMs` longer than the slowest write. A call that meets a live lease reports `IN_PROGRESS`, and once the lease lapses, the attempt counts as crashed. The default is five minutes.
+Set `leaseMs` longer than the slowest write, plus the clock skew between the hosts that share the store, because the host that resumes reads the lease on its own clock. A call that meets a live lease reports `IN_PROGRESS`, and once the lease lapses, the attempt counts as crashed. The default is five minutes.
 
 ## On Cloudflare, repair an interrupted write as `unknown`
 
@@ -142,7 +144,7 @@ protected override repairInterruptedToolPart(part: UIMessage["parts"][number]) {
 }
 ```
 
-The listed tools' parts then settle as `output-available` with an `unknown` outcome, and other tools keep the default repair. Convert the stored messages with your tools, `convertToModelMessages(this.messages, { tools })`, so each tool's `toModelOutput` hands the outcome to the model through `toAiToolResult()`. When the model calls the tool again for the same business key, `guardedWrite()` finds the started record and reconciles it.
+The listed tools' parts then settle as `output-available` with an `unknown` outcome, and other tools keep the default repair. Convert the stored messages with your tools, `convertToModelMessages(this.messages, { tools })`, so each tool's `toModelOutput` hands the outcome to the model through `toAiToolResult()`. When the model calls the tool again for the same business key, `guardedWrite()` finds the started record. Until the record's lease lapses, it reports `IN_PROGRESS`, because it can't tell a dead isolate from a slow one; after that, it reconciles the record. A lease just longer than the tool's slowest write keeps that wait short.
 
 ## An approved call runs only after its signed pause verifies
 

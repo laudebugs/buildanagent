@@ -40,6 +40,21 @@ export async function startWorker(
   bindings: Record<string, string> = {},
 ): Promise<TestWorker> {
   const outDir = mkdtempSync(join(tmpdir(), "agent-safety-workerd-"));
+  try {
+    return await start(entry, durableObjects, bindings, outDir);
+  } catch (error) {
+    // Nothing returned a dispose() yet, so the bundle's folder would outlive a failed build or startup.
+    rmSync(outDir, { recursive: true, force: true });
+    throw error;
+  }
+}
+
+async function start(
+  entry: string,
+  durableObjects: readonly string[],
+  bindings: Record<string, string>,
+  outDir: string,
+): Promise<TestWorker> {
   const outfile = join(outDir, "worker.mjs");
   await build({
     entryPoints: [entry],

@@ -29,8 +29,10 @@ export interface GuardedWriteOptions<T> {
   /** The tenant, session, branch and tool call the write was asked for. */
   readonly scope: EffectScope;
   /**
-   * The business object the write acts on, such as `refund:{orderId}`. Set it for every tool that sends, submits,
-   * pays or deletes, so a regenerated turn or a new session maps to the same effect.
+   * The business operation the write performs, such as `refund:{orderId}`. Set it for every tool that sends, submits,
+   * pays or deletes, so a regenerated turn or a new session maps to the same effect. One business key names one
+   * operation for good: a write the user asks for again as a new operation, such as a second refund of one order,
+   * needs a new business key, such as one that adds the request's own id.
    */
   readonly businessKey?: string;
   /** The tool or business operation, such as `refund_create`. */
@@ -41,13 +43,14 @@ export interface GuardedWriteOptions<T> {
   readonly dedupe: WriteDedupe;
   /** Runs the write. Pass `key` to the external API's idempotency header, or set it where `reconcile` can find it. */
   run(key: string): Promise<T>;
-  /** Turns what `run` returned into the write's outcome. */
-  toOutcome(result: T): WriteOutcome;
+  /** Turns what `run` returned into the write's outcome. `key` is the effect key, for an outcome that names it. */
+  toOutcome(result: T, key: string): WriteOutcome;
   /**
    * Turns an error `run` threw into an outcome, for errors the tool knows took no effect, such as a validation
-   * failure. Without it, every error from `run` is `unknown`, because the request may have reached the system.
+   * failure. Without it, every error from `run` is `unknown`, because the request may have reached the system. `key` is
+   * the effect key, which an `unknown` or `partial` outcome needs for a `same_key` retry.
    */
-  onError?(error: unknown): WriteOutcome;
+  onError?(error: unknown, key: string): WriteOutcome;
   /**
    * Reads the external system's state by key, for a resume after a crash or an `unknown` outcome. Return the outcome
    * if the write took effect or was rejected, or `"not_found"` if it never reached the system, and the write then
@@ -56,7 +59,8 @@ export interface GuardedWriteOptions<T> {
   reconcile?(key: string): Promise<WriteOutcome | "not_found">;
   /**
    * How long a started attempt counts as live, in milliseconds. A call that finds a live attempt gets `unknown` with
-   * reason `IN_PROGRESS`; once the lease lapses, the attempt counts as crashed. Make it longer than the slowest write.
+   * reason `IN_PROGRESS`; once the lease lapses, the attempt counts as crashed. Make it longer than the slowest write
+   * plus the clock skew between the hosts that share the store, because the lease is read on the resuming host's clock.
    * Defaults to five minutes.
    */
   readonly leaseMs?: number;
@@ -185,18 +189,32 @@ async function execute<T>(ctx: Context<T>, record: EffectRecord): Promise<WriteO
     if (onError === undefined) {
       return settle(ctx, record, unchecked(ctx, "WRITE_FAILED", "The write threw before it reported a result."));
     }
-    return report(ctx, record, () => onError(error));
+    return report(ctx, record, () => onError(error, ctx.key), "The write threw, and its error could not be read.");
   }
-  return report(ctx, record, () => ctx.options.toOutcome(result));
+  return report(
+    ctx,
+    record,
+    () => ctx.options.toOutcome(result, ctx.key),
+    "The write ran, but its outcome could not be read.",
+  );
 }
 
-/** Settles the tool's own outcome. If the tool's hook throws, the record still settles as `unknown`, then it rethrows. */
-async function report(ctx: Context<unknown>, record: EffectRecord, hook: () => WriteOutcome): Promise<WriteOutcome> {
+/**
+ * Settles the tool's own outcome. If the tool's hook throws, or returns an invalid outcome, the record still settles as
+ * `unknown`, saying `why`, and the hook's error is rethrown, even when that settle fails too.
+ */
+async function report(
+  ctx: Context<unknown>,
+  record: EffectRecord,
+  hook: () => WriteOutcome,
+  why: string,
+): Promise<WriteOutcome> {
   let outcome: WriteOutcome;
   try {
     outcome = stamped(ctx, hook());
   } catch (error) {
-    await settle(ctx, record, unchecked(ctx, "REPORT_FAILED", "The write ran, but its outcome could not be read."));
+    // A settle that fails leaves the record started, which a later call reads as crashed, so it stays unknown anyway.
+    await settle(ctx, record, unchecked(ctx, "REPORT_FAILED", why)).catch(() => undefined);
     throw error;
   }
   return settle(ctx, record, outcome);
@@ -231,7 +249,7 @@ async function recover<T>(
       return settle(ctx, record, unchecked(ctx, "RECONCILE_FAILED", "Checking the earlier attempt failed."));
     }
     if (found === "not_found") return execute(ctx, record);
-    return report(ctx, record, () => found);
+    return report(ctx, record, () => found, "The earlier attempt was checked, but the check's outcome is invalid.");
   });
 }
 
@@ -254,8 +272,10 @@ async function resume<T>(ctx: Context<T>, existing: EffectRecord, depth: number)
   const outcome = stamped(ctx, existing.outcome);
   if (depth > MAX_REREADS) return outcome;
   if (rerunnable(ctx, outcome)) return retake(ctx, existing, depth, (record) => execute(ctx, record));
-  // An unknown outcome that a check could settle goes to `reconcile`; one marked `never` stays as it is.
-  if (outcome.kind === "unknown" && outcome.retry !== "never") return recover(ctx, existing, depth, outcome);
+  // An unknown or partial outcome that a check could settle goes to `reconcile`; one marked `never` stays as it is.
+  if ((outcome.kind === "unknown" || outcome.kind === "partial") && outcome.retry !== "never") {
+    return recover(ctx, existing, depth, outcome);
+  }
   return outcome;
 }
 
@@ -270,11 +290,13 @@ async function resume<T>(ctx: Context<T>, existing: EffectRecord, depth: number)
  * - A key whose attempt is still live, perhaps in another process, returns `unknown`, reason `IN_PROGRESS`, with a
  *   `same_key` retry, and runs nothing.
  * - A key whose attempt crashed, because its lease lapsed, calls `reconcile`: a found write returns its outcome, and
- *   `"not_found"` runs the write once more under the same key. Without `reconcile`, it returns `unknown` with a
- *   `reconcile_first` retry, reason `WRITE_INTERRUPTED`, and runs nothing.
+ *   `"not_found"` runs the write once more under the same key. Without `reconcile`, it returns `unknown`, reason
+ *   `WRITE_INTERRUPTED`, and runs nothing: its retry is `reconcile_first`, or `never` for `dedupe: "unknown_only"`.
+ * - A settled `unknown` or `partial` outcome whose retry isn't `never` calls `reconcile` the same way.
  *
- * The key comes from `effectKey()`, and no option lets a caller pick another one, so a write whose outcome is
- * `unknown` can never run again under a fresh key. It rejects with a `SafetyError`, code `invalid_effect`, for an
+ * The key comes from `effectKey()`, and no option lets a caller pick another one. With a business key, a write whose
+ * outcome is `unknown` can therefore never run again under a fresh key. Without one, the key holds the tool call id,
+ * so only a resume of the same call finds the record, and a fresh call is a fresh write. It rejects with a `SafetyError`, code `invalid_effect`, for an
  * empty scope field, business key or operation, or for a `dedupe` that doesn't match the `reconcile` hook.
  *
  * @example
