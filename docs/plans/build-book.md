@@ -85,11 +85,15 @@ The zone buildanagent.fyi already uses Cloudflare's name servers, and manual.bui
 
 Each pin is the newest release at least a week old on 2026-11-19, from `npm view <package> time` (fact-check rows 1–7). Wrangler 4.161.0 came out on 2026-11-12 at 13:40 UTC, a few hours short of a week, so the plan takes 4.160.1. T1 re-checks every pin under the [version rule](../../AGENTS.md#coding-standards) before installing.
 
+**T1's re-check (2026-11-19, 11:25 UTC).** No pin moved (fact-check rows 172–174). Wrangler 4.161.0 was still about two hours short of a week old, so 4.160.1 stays. T1 installs only the three packages the scaffold uses: `astro`, `@astrojs/markdown-remark` and `pagefind`. `remark-directive` and `unist-util-visit` arrive with T3's plugins, and `wrangler` with T9's deploy, each re-checked again then. None of the three needs a build script, so `onlyBuiltDependencies` is unchanged.
+
 **Choice.** The book is a fully static site: Astro's default static output, with no `@astrojs/cloudflare` adapter and no server code. The garment book needs the adapter only because a Worker checks sign-in in front of its pages (its `wrangler.jsonc` and `scripts/guard-deploy.mjs`), and our book is public. Cloudflare's Astro guide deploys a static Astro build with an `assets.directory` and no `main` ([Cloudflare, Astro][cf-astro]). If the book ever needs a Worker, the adapter's pin would be 14.4.7 (2026-11-10).
 
 Chapters are plain `.md` files. Our citation, glossary and figure plugins are remark and rehype plugins, but Astro 7's default processor is Sätteri (fact-check row 9). Chapters therefore go through the `unified()` processor that `@astrojs/markdown-remark` 7.3.8 exports, the route the garment book takes. `remark-directive` adds the block syntax for listings, tabs and asides. Pagefind indexes the built site after `astro build`, and only chapter bodies carry `data-pagefind-body`, as in the garment book.
 
 **Evidence.** Astro 7.4.11 requires Node 22.23.4 or later (`engines`), and our `.nvmrc` names only the major version, `22`, so T1 confirms that CI and local installs resolve to 22.23.4 or later. `@astrojs/check` 0.9.12 accepts TypeScript 5 or 6 as a peer, while the root pins TypeScript 7.0.2 (fact-check row 10). T1 therefore type-checks the book's `.ts` files with the root `tsc` and records whether `astro check` can run at all.
+
+**T1's result (2026-11-19).** `astro check` cannot run: Astro 7.4.11 stops before loading `@astrojs/check` when TypeScript's major version is 7 or more, and tells the user to install TypeScript 6 (fact-check row 176). The book's `typecheck` therefore runs the root `tsc` 7.0.2 over its `.ts` files, and `check:book` runs `astro sync` until T3's checks replace it, so the strict chapter schema still fails the check. Both CI's cached Node and a fresh Node 22 install meet Astro's `engines` floor of 22.23.4 (fact-check row 175), so `.nvmrc` stays `22`, and the book's own `engines` names that floor.
 
 ### BK4. `apps/*` joins the workspace as `@buildanagent/book` (proposed)
 
@@ -510,7 +514,7 @@ Chapters are listed in reading order. The longest chain runs T1 → T3 → T4 �
 ## 6. Ten risks, each with the todo that handles it
 
 1. **The tool versions move fast.** Astro, Wrangler and the adapter each shipped several releases in the week before 2026-11-19 (BK3). T1 re-pins under the one-week rule, and the weekly SDK-update job could later cover `apps/book`.
-2. **TypeScript 7 may not check Astro files.** `@astrojs/check` 0.9.12 accepts TypeScript 5 or 6 only (BK3). If T1 finds `astro check` unusable, `.astro` components stay small and logic moves into `.ts` modules that the root `tsc` checks.
+2. **TypeScript 7 may not check Astro files.** `@astrojs/check` 0.9.12 accepts TypeScript 5 or 6 only (BK3). If T1 finds `astro check` unusable, `.astro` components stay small and logic moves into `.ts` modules that the root `tsc` checks. T1 found it unusable: Astro 7.4.11 refuses `astro check` under TypeScript 7 (BK3), so that rule now applies. Astro's message points to an experimental checker, `@astrojs/ts-content-mapper`, for TypeScript 7.1 or later; a later todo can try it once the root moves to 7.1.
 3. **Transcripts may not be deterministic.** Some harnesses mock at the HTTP layer and emit ids and timestamps. T5 normalises them, and a harness whose transcript still varies between runs gets no replay until it is fixed.
 4. **Anatomy figures are slow to audit.** The skill's own notes report a 17-minute full audit for one 3D figure ([anatomy, verify][anatomy]). The book's centerpieces are flat isometric figures without turning groups, and T7 measures the job's time before T8's job adds the audits.
 5. **Deploys wait on the owner's setup.** The zone, both GitHub environments, their secrets and the deploy switch are the owner's to create (BK15). T9 can merge before they exist, because each job stops with a named missing secret, but nothing deploys until they do.

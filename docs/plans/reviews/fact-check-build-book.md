@@ -276,4 +276,19 @@ On 2026-11-19 the owner approved the plan, which #37 then merged as `138527e`, a
 | 170 | Regenerating the todos changed only the banner lines and the analogy wording | Todos | ✅ | `git diff` over `docs/todos/ready/`: 46 files, and every changed line is the banner, the analogy table's lead-in, or analogy wording in a goal, task, acceptance criterion or risk |
 | 171 | The owner approved the plan before #37 merged, and the merge followed from it | This section's introduction | ✏️ | The first draft said the owner approved the plan after #37 merged; "If green merge" made the approval the condition for the merge, and `git log` shows `138527e` as the merge. The writing review's other fixes reworded rows 163, 164 and 166's sentences in the plan and todos and were re-checked against the same sources, with no change in substance |
 
-**Totals:** 171 claims: 148 ✅, 23 ✏️, 0 ⚠️.
+## Eleventh pass: T1's scaffold
+
+Todo T1 re-checked the pins and the stack on 2026-11-19 at about 11:25 UTC, while it built the scaffold, and recorded the results in BK3 and risk 2. These rows check those claims against `npm view`, the installed packages and the Node release lists.
+
+| # | Claim | Where | Verdict | Source and reason |
+| --- | --- | --- | --- | --- |
+| 172 | `astro` 7.4.11 and `@astrojs/markdown-remark` 7.3.8 are still the newest releases at least a week old, and 7.4.13 and 7.3.10 are still the latest | BK3 (T1's re-check) | ✅ | `npm view <package> time --json` at 2026-11-19T11:25Z: 7.4.12 and 7.3.9 came out on 2026-11-13, under a week before |
+| 173 | `pagefind` 1.6.0, `remark-directive` 4.0.0 and `unist-util-visit` 5.2.0 are still the latest releases, each over a week old | BK3 (T1's re-check) | ✅ | `npm view <package> time --json`: 2026-11-01, 2025-02-27 and 2026-10-24 |
+| 174 | Wrangler 4.161.0 was still about two hours short of a week old, so 4.160.1 stays | BK3 (T1's re-check) | ✅ | `npm view wrangler time --json`: 4.161.0 at 2026-11-12T13:40Z, checked at 2026-11-19T11:25Z; 4.160.1 at 2026-11-11T14:45Z |
+| 175 | CI's cached Node and a fresh Node 22 install both meet Astro's floor of 22.23.4, so `.nvmrc` stays `22` | BK3 (T1's result) | ✅ | The `ubuntu-24.04` image lists Node 22.23.4 in its tool cache (`actions/runner-images`, `images/ubuntu/Ubuntu2404-Readme.md`), and `setup-node` uses a cached version that matches `22`; the newest Node 22 release is 22.23.5 (2026-11-11, `nodejs.org/dist/index.json`). A machine that already holds an older Node 22, such as 22.18.0, is below the floor |
+| 176 | Astro 7.4.11 stops `astro check` before loading `@astrojs/check` when TypeScript's major version is 7 or more, and tells the user to install TypeScript 6 | BK3 (T1's result), risk 2 | ✅ | `astro/dist/cli/check/index.js` lines 13–16; running `astro check` with `@astrojs/check` 0.9.12 installed under TypeScript 7.0.2 printed that error and exited 1 |
+| 177 | Astro's message names `@astrojs/ts-content-mapper` as experimental type-checking for TypeScript 7.1 or later | Risk 2 | ✅ | The same message in `astro/dist/cli/check/index.js`; `npm view @astrojs/ts-content-mapper time` lists 0.2.0 (2026-09-22) |
+| 178 | None of the three packages T1 installs needs a build script, so `onlyBuiltDependencies` is unchanged | BK3 (T1's re-check) | ✅ | `pnpm ignored-builds` after the install: "None" |
+| 179 | Astro 7.4.11 keeps its content cache in `.astro/data-store.json` under `astro dev` and in `node_modules/.astro/data-store.json` under `astro build` | The book's `astro.config.mjs` | ✅ | `astro/dist/content/paths.js` line 8 picks `dotAstroDir` in dev and `cacheDir` otherwise, and `cacheDir` defaults to `./node_modules/.astro/`; a build after an edit to `src/markdown/options.ts` wrote a new `render-inputs.sha256` |
+
+**Totals:** 179 claims: 156 ✅, 23 ✏️, 0 ⚠️.

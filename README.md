@@ -58,20 +58,20 @@ Each SDK gets a reference folder under `docs/reference/<sdk>/` (guide, fact-chec
 
 ## Development
 
-The repo is a pnpm workspace (Node 22, pnpm 10.34.9). Our own packages live in `packages/`: `@buildanagent/gateway` and `@buildanagent/sdk`, which are scaffolds as of November 2026. Each SDK harness under `verify/` is also a workspace package.
+The repo is a pnpm workspace (Node 22, pnpm 10.34.9). Our own packages live in `packages/`: `@buildanagent/gateway` and `@buildanagent/sdk`, which are scaffolds as of November 2026. Each SDK harness under `verify/` is also a workspace package. The textbook, `@buildanagent/manual` in `apps/manual`, is a private workspace package that builds a static Astro site with Pagefind search; `pnpm --filter @buildanagent/manual build` writes it to `apps/manual/dist/`, and the book needs Node 22.23.4 or later.
 
 ```bash
 pnpm install        # install every package and harness
 pnpm check          # Biome lint and format check
 pnpm typecheck      # type-check every package
-pnpm test           # run our packages' tests and every harness's verified examples offline
+pnpm test           # run our packages' and the book's tests and every harness's verified examples offline
 ```
 
 See [AGENTS.md](AGENTS.md#coding-standards) for the coding standards.
 
 ## Licence
 
-You may use our code (scripts, our packages in `packages/`, the `verify/` harnesses and their examples, workflows and configs) under [Apache-2.0](LICENSE-APACHE) or [MIT](LICENSE-MIT), at your option. Our documentation is licensed under [CC BY 4.0](LICENSE-DOCS), and [LICENSE](LICENSE) says which files fall under which licence. The upstream docs mirrored under `docs/reference/*/source/` keep their own licences, listed in [THIRD-PARTY-NOTICES.md](THIRD-PARTY-NOTICES.md).
+You may use our code (scripts, our packages in `packages/`, the `verify/` harnesses and their examples, the book's code in `apps/manual/`, workflows and configs) under [Apache-2.0](LICENSE-APACHE) or [MIT](LICENSE-MIT), at your option. The book's files adapted from the owner's garment engineering textbook are Apache-2.0 only. Our documentation, the book's prose and figures included, is licensed under [CC BY 4.0](LICENSE-DOCS), and [LICENSE](LICENSE) says which files fall under which licence. The upstream docs mirrored under `docs/reference/*/source/` keep their own licences, listed in [THIRD-PARTY-NOTICES.md](THIRD-PARTY-NOTICES.md).
 
 ## For AI agents
 
