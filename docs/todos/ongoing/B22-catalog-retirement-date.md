@@ -3,7 +3,7 @@
 | Field | Value |
 | --- | --- |
 | ID | `B22` |
-| Status | `ready` |
+| Status | `ongoing` |
 | Plan | [Build SDK §4.5](../../plans/build-sdk.md#45-two-catalog-todos-from-the-fine-tuning-research-added-2026-11-19) |
 | Round / milestone | Round B (build SDK), M5 |
 | Depends on | [B5](../done/B5-usage-cost-catalog.md), [B21](../done/B21-catalog-tuned-model-docs.md) |
