@@ -1,5 +1,5 @@
 import assert from "node:assert/strict";
-import { rmSync } from "node:fs";
+import { readFileSync, rmSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { afterAll, beforeAll, test, vi } from "vitest";
 import { checkBook } from "../src/book/check-book.js";
@@ -253,7 +253,7 @@ const cases: readonly Case[] = [
   },
   {
     rule: "a figure without a caption fails",
-    change: firstChapter((t) => t.replace(":::figure[The ticket rail]", ":::figure")),
+    change: firstChapter((t) => t.replace(/:::figure\[[^\]]*\]/, ":::figure")),
     file: `${FIRST}:14`,
     message: /a figure needs a caption/,
   },
@@ -268,6 +268,93 @@ const cases: readonly Case[] = [
     change: firstChapter((t) => t.replace("## Exercises", ":::aside\nA note.\n:::\n\n## Exercises")),
     file: `${FIRST}:26`,
     message: /unknown directive :::aside/,
+  },
+  // Generated figures and analogy illustrations (BK11, BK22).
+  {
+    rule: "a figure whose drawing has no alt text fails with its line",
+    change: firstChapter((t) => t.replace(/::svg\{alt="[^"]*"\}/, "::svg")),
+    file: `${FIRST}:15`,
+    message: /figure "ticket-rail" needs alt text that says what its drawing shows/,
+  },
+  {
+    rule: "a figure that holds prose beside its drawing fails",
+    change: firstChapter((t) => t.replace("::svg{", "A drawing of the rail.\n\n::svg{")),
+    file: `${FIRST}:14`,
+    message: /figure "ticket-rail" must hold one generated drawing, written ::svg\{alt="…"\}, and nothing else/,
+  },
+  {
+    rule: "a figure whose generated drawing is missing fails, naming the script to write",
+    change: (dir) => rmSync(join(dir, "figures/first/ticket-rail.svg")),
+    file: `${FIRST}:15`,
+    message: /has no drawing at figures\/first\/ticket-rail\.svg; write figures\/first\/ticket-rail\.ts and run/,
+  },
+  {
+    rule: "a drawing made for another figure fails",
+    change: (dir) =>
+      edit(dir, "figures/first/ticket-rail.svg", (t) => t.replace('data-figure="ticket-rail"', 'data-figure="rail"')),
+    file: `${FIRST}:15`,
+    message: /figures\/first\/ticket-rail\.svg cannot be inlined: it was drawn for figure "rail", not "ticket-rail"/,
+  },
+  {
+    rule: "a drawing outside a figure fails",
+    change: firstChapter((t) => t.replace("## Exercises", '::svg{alt="A loose drawing."}\n\n## Exercises')),
+    file: `${FIRST}:26`,
+    message: /::svg must sit inside a :::figure block/,
+  },
+  {
+    rule: "a figure with an attribute the book does not know fails",
+    change: firstChapter((t) => t.replace("{#ticket-rail analogy=", '{#ticket-rail width="300" analogy=')),
+    file: `${FIRST}:14`,
+    message: /a figure takes only the attributes id and analogy, not "width"/,
+  },
+  {
+    rule: "a drawing with an attribute other than alt fails",
+    change: firstChapter((t) => t.replace("::svg{alt=", '::svg{src="rail.svg" alt=')),
+    file: `${FIRST}:15`,
+    message: /::svg takes only the attribute alt, not "src"/,
+  },
+  {
+    rule: "an analogy figure whose register entry is missing fails",
+    change: firstChapter((t) => t.replace('analogy="kitchen-ticket-rail"', 'analogy="order-spike"')),
+    file: `${FIRST}:14`,
+    message: /figure "ticket-rail" names the analogy "order-spike", which is not in analogies\.json/,
+  },
+  {
+    rule: "an analogy figure whose register entry names another figure fails",
+    change: (dir) => {
+      const svg = (t: string) => t.replace(/ticket-rail/g, "rail-detail");
+      writeFileSync(
+        join(dir, "figures/first/rail-detail.svg"),
+        svg(readFileSync(join(dir, "figures/first/ticket-rail.svg"), "utf8")),
+      );
+      edit(dir, FIRST, (t) =>
+        t.replace(
+          "## Exercises",
+          ':::figure[The rail up close]{#rail-detail}\n::svg{alt="The rail."}\n:::\n\n## Exercises',
+        ),
+      );
+      editJson(dir, "analogies.json", (a) => [{ ...a[0], illustration: "rail-detail" }]);
+    },
+    file: `${FIRST}:14`,
+    message: /gives that analogy "rail-detail" as its illustration; set its illustration to "ticket-rail"/,
+  },
+  {
+    rule: "an analogy figure whose register entry has no illustration fails",
+    change: (dir) => editJson(dir, "analogies.json", (a) => [{ ...a[0], illustration: null }]),
+    file: `${FIRST}:14`,
+    message: /gives that analogy no illustration; set its illustration to "ticket-rail"/,
+  },
+  {
+    rule: "an analogy figure whose caption does not start with the analogy's name fails",
+    change: firstChapter((t) => t.replace("[A kitchen ticket rail:", "[The rail:")),
+    file: `${FIRST}:14`,
+    message: /the caption of figure "ticket-rail" must start with the analogy's name, "a kitchen ticket rail"/,
+  },
+  {
+    rule: "a figure that illustrates a registered analogy without saying so fails",
+    change: firstChapter((t) => t.replace(' analogy="kitchen-ticket-rail"', "")),
+    file: `${FIRST}:14`,
+    message: /figure "ticket-rail" illustrates the analogy kitchen-ticket-rail in analogies\.json; mark it/,
   },
   // Citations (BK6).
   {

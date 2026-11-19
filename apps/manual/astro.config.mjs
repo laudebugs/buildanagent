@@ -34,6 +34,8 @@ const renderInputs = [
   ...filesIn("./src/markdown/"),
   ...filesIn("./src/book/"),
   ...filesIn("./src/data/"),
+  // A chapter inlines its figures' generated SVGs, so a redrawn figure must render the chapter again.
+  ...filesIn("./figures/").filter((file) => file.endsWith(".svg")),
   here("./src/outline.ts"),
   here("./src/content/analogies.json"),
 ].sort();

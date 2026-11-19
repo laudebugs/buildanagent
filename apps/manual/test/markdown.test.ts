@@ -47,6 +47,9 @@ test("the config's pipeline renders GitHub-flavoured tables", () => {
 });
 
 test("the config's pipeline runs the book's plugins: numbering and citations", () => {
-  assert.match(rendered.code, /<span class="number">Figure 1\.1<\/span> The loop, as a placeholder/);
+  assert.match(
+    rendered.code,
+    /<span class="number figure__number label">Figure 1\.1<\/span> A call, a workflow and a loop/,
+  );
   assert.match(rendered.code, /class="cite">1<\/a>\]/);
 });

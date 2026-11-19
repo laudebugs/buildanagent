@@ -20,10 +20,26 @@ const book = loadBook(fixtureInputs());
 const first = await renderLikeAstro(book, "first");
 const second = await renderLikeAstro(book, "second");
 
+test("an analogy figure inlines its drawing, names its analogy and links its caption to where the analogy breaks", () => {
+  assert.match(
+    first,
+    /<figure id="fig-ticket-rail" class="numbered figure"[^>]*data-analogy="kitchen-ticket-rail"><div class="panel"><div class="figure__stage panel--grid"><svg [^>]*data-figure="ticket-rail" role="img" aria-label="Three order tickets hang from a rail\./,
+  );
+  assert.doesNotMatch(first, /<style|data:font/);
+  assert.match(
+    first,
+    / \(<a href="#fig-ticket-rail--breaks" class="figure__breaks-link">where the analogy breaks<\/a>\)<\/figcaption>/,
+  );
+  assert.match(
+    first,
+    /<p id="fig-ticket-rail--breaks" class="figure__breaks"><span class="label">Where it breaks<\/span> A cook remembers yesterday's orders; a model sees only its context\.<\/p><\/figure>/,
+  );
+});
+
 test("figures, tables and listings are numbered from the chapter's place in the outline", () => {
   assert.match(
     first,
-    /<figure id="fig-ticket-rail"[^>]*>[\s\S]*<figcaption><span class="number">Figure 1\.1<\/span> The ticket rail<\/figcaption><\/figure>/,
+    /<figure id="fig-ticket-rail"[^>]*>[\s\S]*<figcaption class="figure__caption"><span class="number figure__number label">Figure 1\.1<\/span> A kitchen ticket rail/,
   );
   assert.match(first, /<figcaption><span class="number">Table 1\.1<\/span> How the loop stops<\/figcaption><table>/);
   assert.match(second, /<figcaption><span class="number">Listing 2\.1<\/span> Saying hello<\/figcaption><pre/);
@@ -57,7 +73,7 @@ test("moving a chapter in the outline renumbers its blocks and every reference t
   );
   const movedFirst = await renderLikeAstro(moved, "first");
   const movedSecond = await renderLikeAstro(moved, "second");
-  assert.match(movedFirst, /<span class="number">Figure 2\.1<\/span> The ticket rail/);
+  assert.match(movedFirst, /<span class="number figure__number label">Figure 2\.1<\/span> A kitchen ticket rail/);
   assert.match(movedFirst, /<span class="number">Table 2\.1<\/span>/);
   assert.match(
     movedFirst,

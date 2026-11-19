@@ -19,6 +19,8 @@ export interface BookInputs {
   readonly chaptersDir: string;
   /** The directory that holds each written chapter's fact-check log, `<slug>.md` (BK21). */
   readonly factChecksDir: string;
+  /** The directory that holds each generated figure, `<slug>/<figure id>.svg`, beside the script that draws it. */
+  readonly figuresDir: string;
   readonly sourcesFile: string;
   readonly glossaryFile: string;
   readonly analogiesFile: string;
@@ -86,13 +88,16 @@ export function contentDirs(app: string = appRoot()): { readonly chaptersDir: st
   return { chaptersDir: join(dir, "chapters"), factChecksDir: join(dir, "fact-checks") };
 }
 
-/** The real book's inputs: `src/outline.ts`, the chapters, their fact-check logs and the three registers. */
+/** The real book's inputs: `src/outline.ts`, the chapters, their fact-check logs and figures, and the three registers. */
 export function bookInputs(): BookInputs {
   const app = appRoot();
   return {
     outline: bookOutline,
     outlineFile: join(app, "src/outline.ts"),
     ...contentDirs(app),
+    // The site's build test reads its stand-in chapter from BOOK_FIXTURE_DIR, but that chapter is Chapter 1, so its
+    // figures come from the book's own figures/ folder.
+    figuresDir: join(app, "figures"),
     sourcesFile: join(app, "src/data/sources.json"),
     glossaryFile: join(app, "src/data/glossary.json"),
     analogiesFile: join(app, "src/content/analogies.json"),
