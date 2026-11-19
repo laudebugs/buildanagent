@@ -68,9 +68,11 @@ Round T (the textbook, added 2026-11-19) needs nothing from Rounds B, N or E to 
      └─► T3 ─► T4 ─► T5 ─┬─► T26 ─┐          │
               T2, T3 ─► T6 ─► T8 (with T4) ─► T7
                          ├─► T27  │
-                         └─► T28–T34, T40–T44 (examples; T41, T43 and T44 also after U18)
+                         └─► T28–T34, T40–T47 (examples; T41, T43 and T44 also after U18,
+                                  │                T45 after U19, T46 and T47 after U20)
                                   ├─► chapters, each after T26, T6 or T7, and its example todo
- U18 ─► T36   U19 ─► T37 (in T21)   U20 ─► T38 (in T35)   U21 ─► T39 (in T11)
+ U18 ─► T36   U19 ─► T37 (in T21, after T45)   U20 ─► T38 (in T35, after T46, T47)
+ U21 ─► T39 (in T11, after T28)                T45 ─► T48 (held for A2A 1.0)
 ```
 
 Round E also feeds later todos, which list it in **Depends on**: E1 ─► B10 and B14, E3 ─► B15, E2 ─► N7, N40 and W6, and E7 ─► N45. Plan review 2 also added two edges outside Round E: N50 ─► N46b (Cloudflare egress, which also waits for the owner's decision) and W12 ─► W8 (the ten coding-agent eval tasks).
@@ -90,14 +92,15 @@ Round E also feeds later todos, which list it in **Depends on**: E1 ─► B10 a
 | M2b LangChain (done 2026-11-18) | S5a, S5b, C3, K3 | A fifth verified reference, folded into the comparison and the skills before the build guides |
 | M2c Cloudflare, Google ADK and Copilot (done 2026-11-18) | S6a–S8b, C5, C4, K4 | Sixth to eighth references, the TypeScript gap report, and a TS-parity row for all eight SDKs |
 | M2d Strands Agents (added 2026-11-18) | S9a, S9b, C6, K5 | A ninth verified reference, folded into the comparison, the gap report and the skills; starts 2026-11-20 |
+| M2e Voice in three references (added 2026-11-19) | S10 | Voice and realtime sections in the OpenAI, Cloudflare and ADK references, with fact-check rows, from the [voice report](../research/voice/voice-and-realtime.md); S10 can start now |
 | M3 Build guides (done 2026-11-18) | G1–G3, H1–H3, R1 | Researched guides to building an agent SDK, a harness and an agent, informed by the Hacker News practitioner research and with secondary claims re-checked against primary sources |
 | X CI and dependency security (done 2026-11-18) | X1, X2 | Checks on every push, a nightly verify with drift and audit gates, and Dependabot scoped to our manifests |
 | M4 Reviewed plans (done 2026-11-18) | P1–P4 | Detailed implementation plans, reviewed together, ready for the build phase |
 | M5e The SDK gaps as a safety package (added 2026-11-18; approved, hold lifted 2026-11-19) | E1–E7 | `@buildanagent/agent-safety` on `agents` 0.33.0 and `ai` 7.0.162: typed write outcomes, effect identity, signed approvals, plan approvals, a pre-call cost cap, a BYOK guard and stores on four targets, built from [close-sdk-gaps.md](close-sdk-gaps.md) |
 | Q Code quality checks (added 2026-11-19) | Q1, Q2 | The strict compiler flags, Biome caps and a portability test (Q1), then unused-code, boundary, duplication and todo-id checks (Q2), as [`docs/guidelines/`](../guidelines/README.md) requires; Q1 is done and Q2 can start now |
 | L Publish and docs (added 2026-11-19) | L1–L3, L4a, L4b, L5–L8 | Built `dist/` packages, Changesets and trusted publishing, then an alpha of the gateway and SDK on every package change, from 0.1.0-alpha.0 (L4b, done); the docs at `docs.buildanagent.fyi` on Starlight and the website at `buildanagent.fyi`, both on Cloudflare ([publish-and-docs.md](publish-and-docs.md)); L1, L5 and L7 can start now |
-| MT The textbook (added 2026-11-19; approved 2026-11-19) | T1–T44, U18–U21 | `@buildanagent/manual` at `apps/manual`, a public two-part textbook deployed to manual.buildanagent.fyi, built from [build-book.md](build-book.md). It depends on no other round to start; its chapters switch to our own packages as Rounds B, N and E land |
-| M5 Our agent SDK (next phase) | B1–B20, B15b, B19b | `@buildanagent/gateway` and `@buildanagent/sdk` in `packages/`, built from [build-sdk.md](build-sdk.md) |
+| MT The textbook (added 2026-11-19; approved 2026-11-19) | T1–T48 (T48 on hold for A2A 1.0), U18–U21 | `@buildanagent/manual` at `apps/manual`, a public two-part textbook deployed to manual.buildanagent.fyi, built from [build-book.md](build-book.md). It depends on no other round to start; its chapters switch to our own packages as Rounds B, N and E land |
+| M5 Our agent SDK (next phase) | B1–B20, B15b, B19b, B21–B22 (price-catalog docs and retirement dates, added 2026-11-19) | `@buildanagent/gateway` and `@buildanagent/sdk` in `packages/`, built from [build-sdk.md](build-sdk.md) |
 | M6 Our agent harness (next phase) | N1–N40, N41–N49 (portability, added 2026-11-18), N50 (Cloudflare egress verification, added 2026-11-19), N52 (file-based memory, added 2026-11-19) | `@buildanagent/protocol`, `harness`, `cli` and `evals`, built from [build-harness.md](build-harness.md); it starts after B1–B2 and interleaves with Round B (§6 of the plan); N38b is deferred with M7b |
 | M7 Our coding agent (next phase, added 2026-11-18) | W1–W12 (W12 added 2026-11-19) | `@buildanagent/coding-agent`, a personal cloud coding agent built from [build-coding-agent.md](build-coding-agent.md): on Cloudflare first (W4–W8), then AWS (W9) and Vercel (W10); W4 needs the portability todos N46a and N46b |
 | M7b The triage agent (deferred 2026-11-18) | A1–A24, N38b | `@buildanagent/triage-agent`, built from [build-agent.md](build-agent.md) when its round resumes ([ADR 0032](../decisions/0032-personal-coding-agent-first.md)) |
