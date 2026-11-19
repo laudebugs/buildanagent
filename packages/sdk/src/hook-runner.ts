@@ -10,7 +10,7 @@
 import type { AssistantMessage, Message, ModelContext, ModelRef, Usage } from "@buildanagent/gateway";
 import { isSdkError, SdkError } from "./errors.js";
 import type { AgentEventBody } from "./events.js";
-import { frozenCopy } from "./freeze.js";
+import { frozenCopy, thawedCopy } from "./freeze.js";
 import {
   checkDecision,
   checkMessages,
@@ -78,7 +78,8 @@ function blocked(text: string, details: Record<string, unknown>): ToolResult {
 export type PipelineHooks = Pick<PipelineContext, "gate" | "after">;
 
 function gateOutcome(tool: string, decision: GateDecision): GateOutcome | undefined {
-  if (decision.decision === "allow") return decision.input === undefined ? undefined : { input: decision.input };
+  if (decision.decision === "allow")
+    return decision.input === undefined ? undefined : { input: thawedCopy(decision.input) };
   if (decision.decision === "deny") {
     return { blocked: blocked(`Tool call "${tool}" was denied: ${decision.reason}`, { decision: "deny" }) };
   }
@@ -175,11 +176,15 @@ export class HookRunner {
     const { call, tool, result } = input;
     if (hook === undefined) return result;
     const event = this.#event({ callId: call.callId, tool: tool.name, input: input.input, result }, call.callId);
-    const withheld = (error: unknown): ToolResult =>
-      blocked(`The result of tool call "${tool.name}" was withheld, because its result check failed.`, {
+    // The tool already ran, so the stand-in says so and keeps the write outcome: a model told only "withheld" would
+    // retry a write that was applied.
+    const withheld = (error: unknown): ToolResult => ({
+      ...blocked(`Tool call "${tool.name}" ran, but its result was withheld, because its result check failed.`, {
         hook: "afterToolCall",
         error: messageOf(error),
-      });
+      }),
+      ...(result.outcome === undefined ? {} : { outcome: result.outcome }),
+    });
     const guarded = await this.#guard("afterToolCall", () => hook(event), withheld);
     if (guarded.status === "skipped") return result;
     return guarded.status === "closed"

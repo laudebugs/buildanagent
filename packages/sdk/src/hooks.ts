@@ -131,7 +131,8 @@ export type ToolResultPatch = Partial<Omit<ToolResult, "outcome">>;
 /**
  * What `shouldStop` decides. `true` or `{ stop: "hook" }` ends the run `stopped`, with the reason as `stoppedBy`
  * (`"hook"` for `true`). `{ stop: "no_progress" }` ends it `no_progress`. `{ continue }` keeps a run going that the
- * model ended by answering in text, adding the content as a user message. `false` leaves the decision to the run.
+ * model ended by answering in text, adding the content as a user message. When the model's step called tools, the run goes on anyway and the content is
+ * not added, so a hook that must reach the model should return it after a text answer. `false` leaves the decision to the run.
  */
 export type StopDecision =
   | boolean

@@ -302,8 +302,8 @@ test("an observer that mutates an event mid-run fails, and the transcript keeps 
   assert.equal(first?.role === "assistant" ? first.content.length : undefined, 1);
 });
 
-test("an observerTimeoutMs that isn't a positive number rejects run() with invalid_run_options", () => {
-  for (const observerTimeoutMs of [0, -1, Number.NaN, Number.POSITIVE_INFINITY]) {
+test("an observerTimeoutMs that isn't a number from 1 to 2147483647 rejects run() with invalid_run_options", () => {
+  for (const observerTimeoutMs of [0, -1, Number.NaN, Number.POSITIVE_INFINITY, 2_147_483_648]) {
     assert.throws(
       () => hookedRun([text("Done.")], {}, { observerTimeoutMs }),
       (error) => isSdkError(error) && error.code === "invalid_run_options",

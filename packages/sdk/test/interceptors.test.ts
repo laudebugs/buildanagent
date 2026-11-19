@@ -228,6 +228,17 @@ test("shouldStop's continue keeps a run going with the content as a user message
   assert.equal(lastText(adapter.calls[1]?.context.messages ?? []), "Check again.");
 });
 
+test("a continue after a step that called tools is not added, because the run goes on anyway", async () => {
+  const { adapter, result } = await drivenRun(
+    [toolCall("lookup", { order: 1 }), text("Done.")],
+    { shouldStop: async (e) => (e.lastMessage.stopReason === "tool_calls" ? { continue: "Check again." } : false) },
+    { tools: [lookup] },
+  );
+  assert.equal(result.stopReason, "done");
+  const sent = JSON.stringify(adapter.calls[1]?.context.messages ?? []);
+  assert.equal(sent.includes("Check again."), false);
+});
+
 test("a continue at the step cap ends the run max_steps", async () => {
   const { result } = await drivenRun(
     [text("First.")],

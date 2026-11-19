@@ -22,7 +22,7 @@ import {
   type Usage,
   type WireTool,
 } from "@buildanagent/gateway";
-import { SdkError } from "./errors.js";
+import { isSdkError, SdkError } from "./errors.js";
 import type { AgentEventBody } from "./events.js";
 import type { StopVerdict } from "./hook-checks.js";
 import { HookFailure, HookRunner } from "./hook-runner.js";
@@ -288,7 +288,9 @@ async function callModel(state: LoopState): Promise<AssistantMessage> {
   try {
     message = await state.hooks.afterModelCall(original);
   } catch (error) {
-    if (error instanceof HookFailure) record(state, withheld(original));
+    if (error instanceof HookFailure || (isSdkError(error) && error.code === "invalid_hook_result")) {
+      record(state, withheld(original));
+    }
     throw error;
   }
   record(state, message);

@@ -21,6 +21,8 @@ const DEFAULT_MAX_STEPS = 20;
 
 /** How long the run waits, by default, for an observer to catch up before it drops it. */
 const DEFAULT_OBSERVER_TIMEOUT_MS = 10_000;
+/** The longest delay `setTimeout` accepts; a larger one fires at once on Node and workerd alike. */
+const MAX_TIMER_MS = 2_147_483_647;
 
 const systemClock: Clock = { now: () => new Date().toISOString() };
 const randomIds = (): string => globalThis.crypto.randomUUID();
@@ -63,7 +65,7 @@ export interface RunOptions<S = unknown> {
   readonly observers?: readonly Observer[];
   /**
    * The longest the run waits for its observers each time it waits for them: before `agent_settled`, before
-   * `run_end` and before it settles. Default 10000. It bounds an observer whose promise never settles.
+   * `run_end` and before it settles. A number from 1 to 2147483647; the default is 10000. It bounds an observer whose promise never settles.
    */
   readonly observerTimeoutMs?: number;
   /** Stamps each event's `timestamp`, and is passed to tools. Defaults to the system clock. */
@@ -322,8 +324,11 @@ function observersOf(options: RunOptions<unknown>): ObserverSetup {
   const observers = options.observers ?? [];
   for (const observer of observers) checkObserver(observer);
   const timeoutMs = options.observerTimeoutMs ?? DEFAULT_OBSERVER_TIMEOUT_MS;
-  if (typeof timeoutMs !== "number" || !Number.isFinite(timeoutMs) || timeoutMs <= 0) {
-    throw new SdkError("invalid_run_options", `observerTimeoutMs must be a positive number, got ${timeoutMs}`);
+  if (typeof timeoutMs !== "number" || !Number.isFinite(timeoutMs) || timeoutMs <= 0 || timeoutMs > MAX_TIMER_MS) {
+    throw new SdkError(
+      "invalid_run_options",
+      `observerTimeoutMs must be a number from 1 to ${MAX_TIMER_MS}, got ${timeoutMs}`,
+    );
   }
   return { observers, timeoutMs };
 }

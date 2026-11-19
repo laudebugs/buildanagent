@@ -1,8 +1,9 @@
 // What a throwing interceptor does: fail closed by default, skip the hook with onFailure "continue", and read-only inputs.
 import assert from "node:assert/strict";
 import type { Interceptors } from "@buildanagent/sdk";
+import { defineTool } from "@buildanagent/sdk";
 import { test } from "vitest";
-import { drivenRun, recorder } from "./hook-helpers.js";
+import { drivenRun, hookedRun, recorder } from "./hook-helpers.js";
 import { lookup, text, toolCall, typesOf } from "./run-helpers.js";
 
 function boom(): never {
@@ -116,4 +117,75 @@ test("a failed afterModelCall records a withheld stand-in, so the billed call st
   assert.deepEqual(recorded?.role === "assistant" ? [recorded.content, recorded.stopReason] : undefined, [[], "error"]);
   assert.equal(result.steps, 1);
   assert.deepEqual(recorded?.role === "assistant" ? recorded.usage : undefined, result.usage);
+});
+
+test("a failed afterToolCall under fail_closed says the tool ran and keeps a write's outcome", async () => {
+  const write = defineTool({
+    name: "edit",
+    description: "Edits a file.",
+    inputSchema: { type: "object", properties: {}, required: [] },
+    async execute() {
+      return {
+        content: [{ type: "text", text: "ok" }],
+        outcome: { kind: "applied", operation: "edit_file", next: "Tell the user" },
+      };
+    },
+  } as never);
+  const { events } = await drivenRun(
+    [toolCall("edit", {}), text("Done.")],
+    { afterToolCall: boom },
+    { tools: [write] },
+  );
+  const end = events.find((event) => event.type === "tool_call_end");
+  const result = end?.type === "tool_call_end" ? end.result : undefined;
+  assert.equal(result?.isError, true);
+  assert.match(result?.content[0]?.type === "text" ? result.content[0].text : "", /ran, but its result was withheld/);
+  assert.equal(result?.outcome?.kind, "applied");
+});
+
+test("a replacement input from a gate is writable, so a tool that edits its input doesn't throw", async () => {
+  const seen: unknown[] = [];
+  const editing = defineTool({
+    name: "lookup",
+    description: "Looks up.",
+    inputSchema: { type: "object", properties: { order: { type: "integer" } }, required: ["order"] },
+    async execute(input: { order: number }) {
+      input.order += 1;
+      seen.push(input.order);
+      return { content: [{ type: "text", text: "ok" }] };
+    },
+  } as never);
+  const { result } = await drivenRun(
+    [toolCall("lookup", { order: 1 }), text("Done.")],
+    { beforeToolCall: async (e) => ({ decision: "allow", input: e.input }) },
+    { tools: [editing] },
+  );
+  assert.equal(result.stopReason, "done");
+  assert.deepEqual(seen, [2]);
+});
+
+test("an afterToolCall patch with a non-boolean isError or terminate throws invalid_hook_result", async () => {
+  for (const patch of [{ isError: "no" }, { terminate: 1 }]) {
+    const { started } = hookedRun(
+      [toolCall("lookup", { order: 1 }), text("Done.")],
+      {
+        afterToolCall: async () => patch as never,
+      },
+      { tools: [lookup] },
+    );
+    await assert.rejects(started.result, { code: "invalid_hook_result" });
+  }
+});
+
+test("an afterModelCall that returns a wrong shape still records the billed call before the run rejects", async () => {
+  const { started } = hookedRun(
+    [text("Done.")],
+    {
+      afterModelCall: async () => ({ message: "text" }) as never,
+    },
+    { observers: [(event) => void seen.push(event.type)] },
+  );
+  const seen: string[] = [];
+  await assert.rejects(started.result, { code: "invalid_hook_result" });
+  assert.ok(seen.includes("model_call_end"));
 });

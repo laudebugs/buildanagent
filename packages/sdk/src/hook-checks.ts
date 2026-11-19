@@ -76,6 +76,11 @@ export function checkResultPatch(value: unknown): Record<string, unknown> | unde
   if (value === undefined) return undefined;
   if (!isObject(value)) invalid("afterToolCall", "must return a patch object or nothing");
   if ("outcome" in value) invalid("afterToolCall", "returned an outcome; replace content instead");
+  for (const flag of ["isError", "terminate"] as const) {
+    if (value[flag] !== undefined && typeof value[flag] !== "boolean") {
+      invalid("afterToolCall", `returned ${flag} that is not a boolean`);
+    }
+  }
   return value;
 }
 

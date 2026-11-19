@@ -146,7 +146,9 @@ const stop =
  * Each hook's return value is checked as if the hook ran alone, so a wrong shape, such as a gate that returns nothing,
  * throws an `SdkError` with code `invalid_hook_result` whatever the other hooks return. A hook that throws fails the
  * moment it belongs to, because the joined hook is one function. The joined `onFailure` is
- * `"continue"` only when every object that sets it says so; otherwise the run fails closed.
+ * `"continue"` only when every object sets it to `"continue"`; an object that leaves it unset counts as
+ * `"fail_closed"`. One lenient object therefore never loosens the others, and a join of a gate with a lenient audit
+ * hook fails closed. Set `"continue"` on all of them, and the gate then fails open too.
  */
 export function composeInterceptors(...sets: readonly Interceptors[]): Interceptors {
   const lenient = sets.every((set) => (set.onFailure ?? "fail_closed") === "continue");
