@@ -40,11 +40,11 @@ svg{--font-code:"Manual Code",ui-monospace, "SF Mono", Menlo, Consolas, monospac
 <g id="who-decides--workflow">
 <text x="260" y="28" text-anchor="middle" class="fig-text fig-text--heading">A workflow</text>
 <rect x="200" y="50" width="120" height="40" rx="4" class="fig-paper"/>
-<text x="260" y="74.2" text-anchor="middle" class="fig-text">step 1: model</text>
+<text x="260" y="74.2" text-anchor="middle" class="fig-text">writer model</text>
 <rect x="200" y="130" width="120" height="40" rx="4" class="fig-paper"/>
-<text x="260" y="154.2" text-anchor="middle" class="fig-text">step 2: tool</text>
-<rect x="200" y="210" width="120" height="40" rx="4" class="fig-paper"/>
-<text x="260" y="234.2" text-anchor="middle" class="fig-text">step 3: model</text>
+<text x="260" y="154.2" text-anchor="middle" class="fig-text">reviewer model</text>
+<rect x="200" y="210" width="120" height="40" rx="4" class="fig-paper fig-paper--muted"/>
+<text x="260" y="234.2" text-anchor="middle" class="fig-text">answer</text>
 <path d="M260 90 L260 123.37" class="fig-line"/>
 <path d="M260 130 L263.12 122.63 L256.88 122.63 Z" class="fig-head"/>
 <path d="M260 170 L260 203.37" class="fig-line"/>

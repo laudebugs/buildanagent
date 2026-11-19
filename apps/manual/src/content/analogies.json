@@ -1,1 +1,26 @@
-[]
+[
+  {
+    "id": "kitchen-ticket-rail",
+    "concept": "agent loop",
+    "analogy": "a kitchen ticket rail",
+    "chapter": "call-workflow-loop",
+    "illustration": "ticket-rail",
+    "breaks": "A cook remembers yesterday's orders; a model sees only what its context carries, so the loop resends the context on every call."
+  },
+  {
+    "id": "assembly-line",
+    "concept": "fixed workflow",
+    "analogy": "an assembly line with fixed stations",
+    "chapter": "call-workflow-loop",
+    "illustration": null,
+    "breaks": "Each station here is a model call that can still return something unexpected."
+  },
+  {
+    "id": "flight-simulator",
+    "concept": "mock model",
+    "analogy": "a flight simulator",
+    "chapter": "call-workflow-loop",
+    "illustration": null,
+    "breaks": "A simulator answers the pilot's controls; a scripted mock replays only what was scripted, so it cannot surprise you the way a real model can."
+  }
+]
