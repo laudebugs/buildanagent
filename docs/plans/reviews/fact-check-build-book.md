@@ -624,4 +624,17 @@ These rows check the claims T8 adds to `book-build.yml`'s comments, AGENTS.md, t
 | 361 | The book has no written chapter yet, so its only checked citations are the glossary's register sources | Outcome | ✅ | `src/content/chapters/` is empty at `46e6721`; the gallery's `Citation` sample takes a literal id that no check reads |
 | 362 | The AGENTS.md and CI plan lines describe the workflow as written | AGENTS.md, CI plan | ✅ | Each line read against the workflow file after the edit |
 
-**Totals:** 362 claims: 320 ✅, 42 ✏️, 0 ⚠️.
+### T8's first review round
+
+The high review of PR #76 found the offline-gate items unticked with no record. These rows check the claims of the fix and of the deliberate failure the owner ran.
+
+| # | Claim | Where | Verdict | Source and reason |
+| --- | --- | --- | --- | --- |
+| 363 | Draft pull request #77, which changed the glossary's source id, failed `book-build.yml` at `check:book` with three problems, because three glossary entries share that source; #77 is closed | Outcome, todo boxes | ✅ | [Run 44559753914](https://github.com/laudebugs/buildanagent/actions/runs/44559753914), as reported by the coordinator: `agent`, `agent-loop` and `workflow` each "not in the register", then `check:book: 3 problem(s)`; `glossary.json` lists `anthropic-building-effective-agents` for those three entries |
+| 364 | The handback's one-line deliberate edit, corrected: changing line 6 breaks only `agent`, and the run changed all three lines that cite the source | Outcome | ✏️ | The handback named line 6 alone; the coordinator's edit replaced every occurrence, so the run reports three problems instead of one |
+| 365 | `book-build.yml` passed on #76; "passes on `main`" waits for the first run after the merge | Todo boxes | ✅ | The coordinator's report of #76's checks; no run on `main` exists before the merge |
+| 366 | On macOS, `pnpm check` and `pnpm typecheck` pass, and `pnpm -r --no-bail test` passes for every package except `verify/copilot-sdk`, which needs Linux's `unshare` | Todo boxes, Outcome | ✅ | Local rerun on `c02f48e`: gateway 400, agent-safety 98, manual 208 and sdk 84 tests passed, seven harnesses "Done", `copilot-sdk` refused without `unshare` |
+| 367 | `node --test scripts/ci/*.test.mjs` runs 138 tests, 135 pass, 2 skip and 1 fails: the packed packages' offline install, which fails the same way at `46e6721` | Todo boxes, Outcome | ✅ | Runs on this branch and on a detached checkout of `46e6721`: both `ℹ tests 138`, `pass 135`, `skipped 2`, `fail 1`, the same test, with `ERR_PNPM_NO_OFFLINE_META` after corepack downloaded pnpm 12.21.0 |
+| 368 | `ci.yml`'s `pnpm test` already runs the figure test and `book:switch-report`, so both run twice per pull request, about 4 seconds | Outcome, CI plan | ✅ | `apps/manual/package.json`: `"test": "vitest run && tsx scripts/switch-report.ts"`, and `vitest run` includes `test/figures.test.ts`; timed locally at 1.9 s and 1.7 s (row 357) |
+
+**Totals:** 368 claims: 325 ✅, 43 ✏️, 0 ⚠️.

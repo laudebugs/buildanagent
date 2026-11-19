@@ -38,15 +38,15 @@ Fail a pull request that breaks the book, and hand the deploy workflow a built s
 - [x] Write `book-build.yml` on `ubuntu-24.04`, with `permissions: contents: read`, `persist-credentials: false`, no secrets and the same setup steps as `ci.yml`'s `checks` job.
 - [x] Run `pnpm --filter @buildanagent/manual check:book` and the build, then upload `apps/manual/dist/` as the workflow's only artifact.
 - [x] Run `gh actions-lock` for the new workflow, and commit the lockfile.
-- [ ] Open a draft pull request with a deliberately broken citation to see the workflow fail, then revert it.
+- [x] Open a draft pull request with a deliberately broken citation to see the workflow fail, then revert it (#77, closed).
 
 ## Acceptance criteria
 
-- [ ] `book-build.yml` runs on every pull request and push to `main`, references no secret, and passes on `main`
+- [ ] `book-build.yml` runs on every pull request and push to `main`, references no secret, and passes on `main` (it passed on #76; the first run on `main` after the merge confirms the rest)
 - [x] Its only artifact is `apps/manual/dist/`
-- [ ] A pull request with an unknown citation fails the workflow
+- [x] A pull request with an unknown citation fails the workflow (#77)
 - [x] `gh actions-lock --verify` passes
-- [ ] `pnpm check`, `pnpm typecheck` and `pnpm test` pass offline from the repo root
+- [x] `pnpm check`, `pnpm typecheck` and `pnpm test` pass offline from the repo root (on macOS all pass except `verify/copilot-sdk`, which needs Linux's `unshare` and runs in CI, and `scripts/ci/packages-pack.test.mjs`'s offline install, which fails the same way on `main` at `46e6721`)
 
 ## Tests
 
@@ -65,7 +65,7 @@ The workflow itself, proved by the deliberate failure in the tasks.
 
 - [x] Claimed: the first commit moved this file `ready/` → `ongoing/` (Status `ongoing`)
 - [x] Prose drafted with `/anthropic-skills:writing`, and changed claims re-checked against their sources
-- [ ] `pnpm check`, `pnpm typecheck` and `pnpm test` pass locally; pushed after each meaningful step
+- [x] `pnpm check`, `pnpm typecheck` and `pnpm test` pass locally (on macOS all pass except `verify/copilot-sdk`, which needs Linux's `unshare` and runs in CI, and `scripts/ci/packages-pack.test.mjs`'s offline install, which fails the same way on `main` at `46e6721`); pushed as #76
 - [x] This file moved `ongoing/` → `done/` (Status `done`) in the last work commit, and the plan's todo table updated
 - [ ] Two code-review rounds run on the pull request (`/code-review high --max-findings default`, then `medium` and `low` after more than 6 confirmed findings, otherwise `low`), with every finding fixed or explained in a commit message
 - [ ] Copy reviewed with `/anthropic-skills:writing-review` after the code changes, with its findings fixed and the rubric scores in the pull request description
@@ -75,7 +75,8 @@ The workflow itself, proved by the deliberate failure in the tasks.
 - `.github/workflows/book-build.yml` runs on pushes to `main` and on every pull request, on `ubuntu-24.04`, with `permissions: contents: read`, `persist-credentials: false` and no secret or environment. Its setup is `ci.yml`'s `checks` job's, except the user-namespace step, which only the Copilot harness's examples need.
 - After `pnpm install --frozen-lockfile` it runs `check:book`, `book:switch-report`, the figure staleness test (`test/figures.test.ts`) and the build, then uploads `apps/manual/dist/` as `book-dist`, its only artifact, kept 7 days, failing when the folder is empty. T9's deploy reads that name.
 - The source register and glossary checks have no command of their own: `check:book` runs them with the outline, the analogy register and the listings. `check:book` reads the committed SVGs and never redraws a figure, so the workflow runs the figure test as well.
-- The workflow has no path filter. The book's checks read fact-check logs under `docs/`, the listed files in `verify/` and their harness pins, `pnpm-workspace.yaml` and each package's `typecheck` script and tsconfig, so a filter that missed one would let a pull request break the book unchecked. The steps after the install took 8.6 seconds locally, far below the five-minute limit the risk above sets for adding a filter.
+- The workflow has no path filter. The book's checks read fact-check logs under `docs/`, the listed files in `verify/` and their harness pins, `pnpm-workspace.yaml` and each package's `typecheck` script and tsconfig, so a filter that missed one would let a pull request break the book unchecked. The steps after the install took 8.6 seconds locally, far below the five-minute limit the risk above sets for adding a filter. `ci.yml`'s `checks` job already runs `pnpm test`, which includes the figure test and `book:switch-report`, so both run twice on each pull request, about 4 seconds; we kept them so that `book-build.yml` alone vouches for the artifact T9 deploys (our choice).
 - `gh actions-lock` v0.4.1 added the workflow's four actions to `actions.lock` at the commits already locked for `ci.yml` and `release.yml`, and `gh actions-lock --verify` passes. The repository's tooling has no actionlint; a local actionlint 1.7.12 reported nothing on the workflow.
-- The book has no written chapter yet, so its only checked citations are the glossary's register sources. Changing one to an id the register lacks fails `check:book` locally, naming the file and the id; the draft pull request that proves it in CI is still to come.
+- The book has no written chapter yet, so its only checked citations are the glossary's register sources. Changing one to an id the register lacks fails `check:book`, naming the file and the id. Draft pull request #77 did that in CI: three glossary entries share the changed source, and [its run](https://github.com/laudebugs/buildanagent/actions/runs/44559753914) failed at `check:book` with three problems, one per entry. #77 is closed and its branch deleted.
 - Fact-check rows 350–362 in the book's log; row 357 corrects an unmeasured timing in the first draft.
+- Root gate, rerun after the first review: `pnpm check` and `pnpm typecheck` pass, and `pnpm -r --no-bail test` passes for every package except `verify/copilot-sdk`. `node --test scripts/ci/*.test.mjs` runs 138 tests: 135 pass, 2 skip and 1 fails. The failure, the packed packages' offline install, fails the same way in a checkout of `46e6721`, because corepack fetches pnpm 12.21.0 in the test's fresh home and that pnpm finds no offline metadata.
