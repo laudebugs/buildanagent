@@ -71,8 +71,8 @@ export interface ErrorResult extends ResultBase {
 
 /**
  * A run that stopped before it finished, for a reason `stoppedBy` names. `clarification`: a tool from
- * `clarificationTool()` asked the user a question. Add the answer to `context` as a user message and pass it to
- * `continueRun()`.
+ * `clarificationTool()` asked the user a question. To go on, add the answer to `context` as a user message and pass the
+ * context to `continueRun()`.
  */
 export interface StoppedResult extends ResultBase {
   readonly stopReason: "stopped";
