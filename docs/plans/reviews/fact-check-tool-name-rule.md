@@ -52,4 +52,10 @@ These rows check the `gpt-5.4-mini` entry in [`catalog.json`](../../../packages/
 | 20 | The model takes images and reasons | ✅ | Model page: "Input modalities: text, image" and "Reasoning token support" |
 | 21 | B5's outcome: OpenAI's newer models bill 30-minute and 12-hour cache writes | ✅ | Prompt caching guide, as in row 18; it adds that the 12-hour lifetime is offered "in the Responses API" only |
 
-**Totals:** 21 claims: 16 ✅, 1 ✏️, 4 ⚠️.
+## The owner's acceptance (2026-11-19)
+
+| # | Claim | Verdict | Source and reason |
+| --- | --- | --- | --- |
+| 22 | The owner accepted ADR 0011 | ✅ | Owner's answer, 2026-11-19: "accepted". The ADR's status and its index row now read Accepted |
+
+**Totals:** 22 claims: 17 ✅, 1 ✏️, 4 ⚠️.

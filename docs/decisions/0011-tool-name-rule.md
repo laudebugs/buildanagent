@@ -1,6 +1,6 @@
 # 0011. Check canonical tool names against `^[A-Za-z0-9_-]{1,64}$`, and sanitise reversibly per adapter
 
-- **Status:** Proposed. Todo B7 confirmed the rule against both first providers on 2026-11-19, so the rule is in force for the adapter todos B8 and B9 until the owner accepts this record.
+- **Status:** Accepted (owner, 2026-11-19). Todo B7 had confirmed the rule against both first providers the same day, and the owner then answered "accepted".
 - **Date:** 2026-11-18
 - **Plan:** [build-sdk.md, D12](../plans/build-sdk.md#d12-a-per-adapter-name-table-first-then-a-canonical-rule-and-reversible-sanitising)
 
