@@ -6,5 +6,5 @@
     // The smoke test imports astro.config.mjs to render through the processor the build uses.
     "allowJs": true
   },
-  "include": ["src/**/*.ts", "scripts/**/*.ts", "test/**/*.ts", "vitest.config.ts"]
+  "include": ["src/**/*.ts", "scripts/**/*.ts", "figures/**/*.ts", "test/**/*.ts", "vitest.config.ts"]
 }

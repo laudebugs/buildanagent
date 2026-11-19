@@ -441,6 +441,68 @@
   opacity: 0.7;
 }
 
+/* The marks figures/lib/svgkit.ts draws. It measures labels at these font sizes, and every committed figure file
+   embeds these rules, so a change here makes each figure stale until figures:build redraws it. */
+.fig-text--heading {
+  font-size: 14px;
+  font-weight: 600;
+}
+
+.fig-text--muted {
+  fill: var(--panel-comment);
+}
+
+.fig-text--accent {
+  fill: var(--panel-terracotta);
+}
+
+.fig-line--muted {
+  stroke: var(--panel-comment);
+}
+
+.fig-line--dashed {
+  stroke-dasharray: 5 4;
+}
+
+.fig-paper {
+  fill: var(--panel-background);
+  stroke: var(--panel-text);
+  stroke-width: 1.5;
+}
+
+.fig-paper--muted {
+  stroke: var(--panel-comment);
+}
+
+.fig-paper--accent {
+  stroke: var(--panel-terracotta);
+}
+
+.fig-head {
+  fill: var(--panel-text);
+}
+
+.fig-head--muted {
+  fill: var(--panel-comment);
+}
+
+.fig-head--accent {
+  fill: var(--panel-terracotta);
+}
+
+/* The note under an analogy illustration's caption that says where the analogy breaks. */
+.figure__breaks {
+  margin-top: 0.35rem;
+  font-size: var(--size-note);
+  line-height: 1.5;
+  color: var(--color-text-soft);
+}
+
+.figure__breaks .label {
+  margin-right: 0.5rem;
+  color: var(--color-accent);
+}
+
 .stepper {
   padding: 0.9rem 1rem 1rem;
   border-top: 1px solid var(--panel-border);
