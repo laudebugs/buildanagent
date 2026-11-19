@@ -456,7 +456,7 @@ The owner chose to cover every topic group the coverage review named (2026-11-19
 | Topic | Research todo | Lands in | Why there |
 | --- | --- | --- | --- |
 | Retrieval and long-term memory | [U18](../todos/done/U18-research-retrieval-and-long-term-memory.md); report: [retrieval-and-memory.md](../research/memory/retrieval-and-memory.md) | T36, a chapter | A chapter of its own, after the session log and context chapter, because it spans retrieval design, stores, failure modes and evaluation |
-| Agent-to-agent protocols (A2A) | [U19](../todos/ready/U19-research-a2a.md) | T37, a section of T21 | A2A is an interoperability protocol beside MCP, so it belongs in the chapter that already explains MCP; one section keeps Chapter T21 from waiting on research |
+| Agent-to-agent protocols (A2A) | [U19](../todos/done/U19-research-a2a.md); report: [agent-to-agent-protocols.md](../research/a2a/agent-to-agent-protocols.md) | T37, a section of T21 | A2A is an interoperability protocol beside MCP, so it belongs in the chapter that already explains MCP; one section keeps Chapter T21 from waiting on research |
 | Voice and realtime agents | [U20](../todos/ready/U20-research-voice-and-realtime.md) | T38, a section of T35 | Voice and realtime change how a person interacts with a running agent, which is Chapter T35's subject |
 | Fine-tuning versus prompting | [U21](../todos/done/U21-research-fine-tuning-vs-prompting.md); report: [fine-tuning-vs-prompting.md](../research/fine-tuning/fine-tuning-vs-prompting.md) | T39, a section of T11 | The question arises the moment a reader chooses a model, which Chapter T11 teaches |
 
@@ -513,7 +513,7 @@ The owner chose to cover every topic group the coverage review named (2026-11-19
 | [T43](../todos/ready/T43-example-store-recall-expire.md) | Example: store, recall and expire a fact across runs on LangChain's store | T5, U18 | M |
 | [T44](../todos/ready/T44-example-context-memory.md) | Example: context-block memory that survives eviction and stays inside one agent | T5, U18 | M |
 | [U18](../todos/done/U18-research-retrieval-and-long-term-memory.md) | Research: retrieval and long-term memory, for the book | None | L |
-| [U19](../todos/ready/U19-research-a2a.md) | Research: agent-to-agent protocols (a2a), for the book | None | L |
+| [U19](../todos/done/U19-research-a2a.md) | Research: agent-to-agent protocols (a2a), for the book | None | L |
 | [U20](../todos/ready/U20-research-voice-and-realtime.md) | Research: voice and realtime agents, for the book | None | L |
 | [U21](../todos/done/U21-research-fine-tuning-vs-prompting.md) | Research: fine-tuning versus prompting, for the book | None | L |
 | [T10](../todos/ready/T10-chapter-call-workflow-loop.md) | Chapter: Use the least autonomy that works: a call, a workflow, then a loop | T5, T7, T26 | M |
