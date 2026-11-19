@@ -125,7 +125,7 @@ Every pull request is reviewed with `/code-review` in two rounds before it merge
 3. **Second round.** If the first round counted more than 6 findings, the second round is two reviews: run `/code-review medium <PR#>` and fix its findings, then run `/code-review low <PR#>` and fix those. If it counted 6 or fewer, the second round is one review: run `/code-review low <PR#>` and fix its findings.
 4. **Merge** under the [Git](#git) rules, once every review in both rounds, the [writing review](#every-piece-of-copy-is-drafted-with-the-writing-skill-and-reviewed-once-the-code-is-done) and, for documents, the fact-check are done and their findings fixed or explained.
 
-Run the reviews without `--comment`, so findings stay out of PR comments. The fix commits keep the finding-by-finding record on the pull request, and the squash commit's message carries one line per round to `main` ([Git](#git)). On a pull request from someone without these skills, a maintainer runs the rounds and pushes the fixes or asks the author for them.
+Run the reviews without `--comment`, so findings stay out of PR comments. The fix commits keep the finding-by-finding record on the pull request, and the squash commit's message carries one line per review to `main` ([Git](#git)). On a pull request from someone without these skills, a maintainer runs the rounds and pushes the fixes or asks the author for them.
 
 ## Every piece of copy is drafted with the writing skill and reviewed once the code is done
 
