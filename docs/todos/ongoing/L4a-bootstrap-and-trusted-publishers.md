@@ -3,7 +3,7 @@
 | Field | Value |
 | --- | --- |
 | ID | `L4a` |
-| Status | `ready` |
+| Status | `ongoing` |
 | Plan | [Publish and docs §4](../../plans/publish-and-docs.md#4-round-l-and-its-todos) |
 | Round / milestone | Round L (publish and docs, added 2026-11-19) |
 | Depends on | [B4](../done/B4-gateway-runtime.md), [B8](../done/B8-anthropic-adapter.md), [L3](../done/L3-release-workflow.md) |
