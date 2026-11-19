@@ -171,3 +171,14 @@ The writing review changed fourteen passages: it split three paragraphs that hel
 | 109 | A failed prefix check on the 5.5 models may return a 400 error or none | § Thinking | ✅ | Row 85; the fix dropped "at all" |
 | 110 | The four ⚠️ rows still read as ours: row 16 sits under "We recommend", row 31 under "We recommend", row 57 under "In our view" and row 75 under "We recommend" | Whole chapter | ✅ | Re-read against the chapter after the review's fixes on 2026-11-19 |
 | 111 | The token sentence of the usage section, "the small units a model reads and writes, each a word, part of a word or a character", matches its source | § Usage | ✅ | Row 97 |
+
+## Tally
+
+| Verdict | Rows |
+| --- | --- |
+| ✅ confirmed | 105 |
+| ✏️ corrected | 2 (rows 38 and 108) |
+| ⚠️ unverified, our judgement or recommendation, marked as ours in the text | 4 (rows 16, 31, 57 and 75) |
+| Total | 111 |
+
+Five ✅ rows (21, 32, 59, 76 and 96) also record a draft sentence that was reworded before its section's commit, so no wrong claim was ever committed; Chapter 1's log treats such rows the same way (its row 71).

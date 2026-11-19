@@ -26,8 +26,8 @@ export default function draw(): Figure {
 
   figure.group("second", () => {
     figure.text({ x: RIGHT + CARD.width / 2, y: 24 }, "request 2", { style: "heading" });
-    const again = figure.box(card(RIGHT, 40), { label: ["user", "Find it"] });
-    const call = figure.box(card(RIGHT, 90), { label: ["assistant", "calls lookup"] });
+    figure.box(card(RIGHT, 40), { label: ["user", "Find it"] });
+    figure.box(card(RIGHT, 90), { label: ["assistant", "calls lookup"] });
     const result = figure.box(card(RIGHT, 140), { label: ["tool", "found"] });
     const reply = figure.box(card(RIGHT, 220), { label: ["assistant", "Here it is."], tone: "accent" });
     figure.connect(result, reply, { tone: "muted" });
