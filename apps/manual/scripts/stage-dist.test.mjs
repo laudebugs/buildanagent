@@ -1,12 +1,22 @@
 // Tests for stage-dist.mjs: every rule that refuses an artifact, on zips written here, and a clean artifact staged
 // with main's _headers. Run with `node --test scripts/*.test.mjs` from apps/manual, as its `test` script does.
 import assert from "node:assert/strict";
+import { spawnSync } from "node:child_process";
 import { existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, symlinkSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { after, test } from "node:test";
+import { fileURLToPath } from "node:url";
 import { crc32, deflateRawSync } from "node:zlib";
-import { ArtifactError, LIMITS, readEntries, stageDownload, stageZip } from "./stage-dist.mjs";
+import {
+  ArtifactError,
+  LIMITS,
+  PREVIEW_HEADER,
+  previewHeaders,
+  readEntries,
+  stageDownload,
+  stageZip,
+} from "./stage-dist.mjs";
 
 const work = mkdtempSync(join(tmpdir(), "stage-dist-"));
 after(() => rmSync(work, { recursive: true, force: true }));
@@ -199,4 +209,58 @@ test("an existing dist/ is never written into", () => {
   const dist = freshDir();
   mkdirSync(dist);
   assert.throws(() => stageZip(zip(SITE), dist, MAIN_HEADERS), /already exists/);
+});
+
+test("a preview gets main's _headers with X-Robots-Tag: noindex added to its /* rule, and production never does", () => {
+  const preview = freshDir();
+  stageZip(zip(SITE), preview, MAIN_HEADERS, { preview: true });
+  assert.equal(
+    readFileSync(join(preview, "_headers"), "utf8"),
+    "/*\n  X-Robots-Tag: noindex\n  X-Content-Type-Options: nosniff\n",
+  );
+  const production = freshDir();
+  stageZip(zip(SITE), production, MAIN_HEADERS);
+  assert.doesNotMatch(readFileSync(join(production, "_headers"), "utf8"), /X-Robots-Tag/);
+  assert.equal(PREVIEW_HEADER, "X-Robots-Tag: noindex");
+});
+
+test("the preview variant of the real public/_headers keeps every line of it and adds exactly one", () => {
+  const app = fileURLToPath(new URL("..", import.meta.url));
+  const source = readFileSync(join(app, "public", "_headers"), "utf8");
+  const variant = previewHeaders(source);
+  assert.equal(variant.split("\n").length, source.split("\n").length + 1);
+  assert.equal(variant.replace(`  ${PREVIEW_HEADER}\n`, ""), source);
+  assert.match(variant, /^\/\*\n {2}X-Robots-Tag: noindex\n {2}Content-Security-Policy:/m);
+});
+
+test("the preview variant refuses a _headers without exactly one /* rule, or one that sets X-Robots-Tag", () => {
+  assert.throws(() => previewHeaders("/_astro/*\n  Cache-Control: x\n"), /exactly one "\/\*" rule, not 0/);
+  assert.throws(() => previewHeaders("/*\n  A: b\n/*\n  C: d\n"), /not 2/);
+  assert.throws(() => previewHeaders("/*\n  X-Robots-Tag: all\n"), /must not set X-Robots-Tag/);
+  // A refused variant writes nothing.
+  const bad = join(work, "bad-headers");
+  writeFileSync(bad, "/_astro/*\n  Cache-Control: x\n");
+  const dist = freshDir();
+  assert.throws(() => stageZip(zip(SITE), dist, bad, { preview: true }));
+  assert.equal(existsSync(dist), false);
+});
+
+test("the command takes --preview as its last argument", () => {
+  const script = fileURLToPath(new URL("./stage-dist.mjs", import.meta.url));
+  const download = join(work, "cli-download");
+  mkdirSync(download);
+  writeFileSync(join(download, "book-dist.zip"), zip(SITE));
+  const dist = freshDir();
+  const result = spawnSync(process.execPath, [script, download, dist, MAIN_HEADERS, "--preview"], {
+    encoding: "utf8",
+    env: { PATH: process.env.PATH ?? "" },
+  });
+  assert.equal(result.status, 0, result.stderr);
+  assert.match(result.stdout, /plus X-Robots-Tag: noindex/);
+  assert.match(readFileSync(join(dist, "_headers"), "utf8"), /X-Robots-Tag: noindex/);
+  const wrong = spawnSync(process.execPath, [script, download, freshDir(), MAIN_HEADERS, "--prod"], {
+    encoding: "utf8",
+    env: { PATH: process.env.PATH ?? "" },
+  });
+  assert.equal(wrong.status, 2);
 });

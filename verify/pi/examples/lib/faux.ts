@@ -16,6 +16,7 @@ import {
   SessionManager,
   SettingsManager,
 } from "@earendil-works/pi-coding-agent";
+import { live, liveSteps } from "./live.ts";
 import { recordedSteps } from "./transcript.ts";
 
 export { fauxAssistantMessage, fauxText, fauxToolCall };
@@ -23,8 +24,9 @@ export { fauxAssistantMessage, fauxText, fauxToolCall };
 /** Create a session whose model replies with the scripted steps, in order. */
 export async function fauxSession(steps: FauxResponseStep[], options: Partial<CreateAgentSessionOptions> = {}) {
   const faux = fauxProvider();
-  // recordedSteps() returns the steps unchanged unless the runner preloaded the transcript recorder.
-  faux.setResponses(recordedSteps(steps));
+  // recordedSteps() returns the steps unchanged unless the runner preloaded the transcript recorder. A live run
+  // (scripts/live/) answers each step from a real provider instead of the script.
+  faux.setResponses(recordedSteps(live ? liveSteps(live) : steps));
   // authPath and modelsPath default to files under ~/.pi/agent; keep both out of the run.
   const modelRuntime = await ModelRuntime.create({
     refreshOnCreate: false,

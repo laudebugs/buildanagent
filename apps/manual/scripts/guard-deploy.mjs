@@ -13,10 +13,12 @@
 // follows a .wrangler/deploy/config.json redirect found the same way. The workflow passes --config wrangler.jsonc,
 // which skips that search; this check keeps the guard and Wrangler reading the same file if a call ever drops it.
 //
-// Usage: node scripts/guard-deploy.mjs [app directory], which defaults to apps/manual.
+// Usage: node scripts/guard-deploy.mjs [app directory] [--preview]. The directory defaults to apps/manual. With
+// --preview, dist/_headers must be the preview variant that stage-dist.mjs --preview writes; without it, an exact copy.
 import { existsSync, readFileSync } from "node:fs";
 import { dirname, join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
+import { PREVIEW_HEADER, previewHeaders } from "./stage-dist.mjs";
 
 export const DOMAIN = "manual.buildanagent.fyi";
 const ASSETS_DIRECTORY = "./dist";
@@ -74,20 +76,23 @@ function nextSignificant(text, from) {
 /**
  * Returns one message for each of the seven rules the config breaks, or none. `headers` describes the `_headers`
  * files: `source` is public/_headers from main, and `deployed` is the copy in the assets directory; each is the
- * file's text, or null when it is missing.
+ * file's text, or null when it is missing. With `preview` true, `deployed` must be the preview variant of `source`.
  */
-export function problemsIn(config, headers) {
+export function problemsIn(config, headers, { preview = false } = {}) {
   const problems = [];
   const routes = config.routes;
   const route = Array.isArray(routes) && routes.length === 1 ? routes[0] : undefined;
   const exactRoute =
     route !== null &&
     typeof route === "object" &&
-    Object.keys(route).sort().join() === "custom_domain,pattern" &&
+    Object.keys(route).sort().join() === "custom_domain,pattern,previews_enabled" &&
     route.pattern === DOMAIN &&
-    route.custom_domain === true;
+    route.custom_domain === true &&
+    route.previews_enabled === true;
   if (!exactRoute) {
-    problems.push(`"routes" must be exactly [{ "pattern": "${DOMAIN}", "custom_domain": true }]`);
+    problems.push(
+      `"routes" must be exactly [{ "pattern": "${DOMAIN}", "custom_domain": true, "previews_enabled": true }]`,
+    );
   }
   if ("main" in config) {
     problems.push('"main" must be absent: the book is an assets-only Worker with no code');
@@ -102,16 +107,27 @@ export function problemsIn(config, headers) {
   if (config.workers_dev !== false) {
     problems.push('"workers_dev" must be false, so the custom domain is the only production address');
   }
-  if (config.preview_urls !== true) {
-    problems.push('"preview_urls" must be true, or pull-request previews on workers.dev are turned off');
+  if (config.preview_urls !== false) {
+    problems.push('"preview_urls" must be false, so previews are served only on the custom domain, never workers.dev');
   }
   if (headers.source === null) {
     problems.push("public/_headers must exist: it holds the content security policy");
-  } else if (headers.deployed !== headers.source) {
-    problems.push(
-      `${ASSETS_DIRECTORY}/_headers must be a copy of public/_headers from main; ` +
-        (headers.deployed === null ? "it is missing" : "it differs"),
-    );
+  } else {
+    let expected;
+    try {
+      expected = preview ? previewHeaders(headers.source) : headers.source;
+    } catch (error) {
+      expected = null;
+      problems.push(`public/_headers has no preview variant: ${error.message}`);
+    }
+    const what = preview
+      ? `public/_headers from main with ${PREVIEW_HEADER} added, for a preview`
+      : "a copy of public/_headers from main";
+    if (expected !== null && headers.deployed !== expected) {
+      problems.push(
+        `${ASSETS_DIRECTORY}/_headers must be ${what}; ${headers.deployed === null ? "it is missing" : "it differs"}`,
+      );
+    }
   }
   return problems;
 }
@@ -139,7 +155,7 @@ export function strayConfigs(appDir) {
 }
 
 // Reads the config and both _headers files from the app directory and returns the problems.
-export function checkApp(appDir) {
+export function checkApp(appDir, { preview = false } = {}) {
   const stray = strayConfigs(resolve(appDir));
   if (stray.length > 0) return stray;
   const configPath = join(appDir, "wrangler.jsonc");
@@ -154,20 +170,32 @@ export function checkApp(appDir) {
     return ["wrangler.jsonc must hold an object"];
   }
   const read = (path) => (existsSync(path) ? readFileSync(path, "utf8") : null);
-  return problemsIn(config, {
-    source: read(join(appDir, "public", "_headers")),
-    deployed: read(join(appDir, ASSETS_DIRECTORY, "_headers")),
-  });
+  return problemsIn(
+    config,
+    {
+      source: read(join(appDir, "public", "_headers")),
+      deployed: read(join(appDir, ASSETS_DIRECTORY, "_headers")),
+    },
+    { preview },
+  );
 }
 
 function main() {
-  const appDir = resolve(process.argv[2] ?? fileURLToPath(new URL("..", import.meta.url)));
-  const problems = checkApp(appDir);
+  const args = process.argv.slice(2);
+  const preview = args.includes("--preview");
+  const rest = args.filter((arg) => arg !== "--preview");
+  if (rest.length > 1 || rest.some((arg) => arg.startsWith("--"))) {
+    console.error("Usage: node scripts/guard-deploy.mjs [app directory] [--preview]");
+    process.exit(2);
+  }
+  const appDir = resolve(rest[0] ?? fileURLToPath(new URL("..", import.meta.url)));
+  const problems = checkApp(appDir, { preview });
   if (problems.length > 0) {
     console.error(`Deploy refused: the Worker's config breaks the book's deploy rules.\n- ${problems.join("\n- ")}`);
     process.exit(1);
   }
-  console.log(`Deploy guard passed: an assets-only Worker on ${DOMAIN}, with main's _headers in ${ASSETS_DIRECTORY}.`);
+  const kind = preview ? `main's _headers plus ${PREVIEW_HEADER}` : "main's _headers";
+  console.log(`Deploy guard passed: an assets-only Worker on ${DOMAIN}, with ${kind} in ${ASSETS_DIRECTORY}.`);
 }
 
 if (process.argv[1] && resolve(process.argv[1]) === fileURLToPath(import.meta.url)) main();

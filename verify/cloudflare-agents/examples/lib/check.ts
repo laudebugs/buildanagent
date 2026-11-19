@@ -47,6 +47,8 @@ const content = (turn: Turn): LanguageModelV4Content[] =>
  */
 export function scripted(turns: Turn[] | ((n: number, req: LanguageModelV4CallOptions) => Turn)) {
   const requests: LanguageModelV4CallOptions[] = [];
+  // A live run (scripts/live/) asks the host for each answer instead of playing the turns.
+  if (typeof __LIVE_MODEL__ !== "undefined" && __LIVE_MODEL__) return { model: liveModel(requests), requests };
   const next = (options: LanguageModelV4CallOptions) => {
     requests.push(options);
     const n = requests.length - 1;
@@ -77,6 +79,56 @@ export function scripted(turns: Turn[] | ((n: number, req: LanguageModelV4CallOp
     },
   });
   return { model, requests };
+}
+
+// esbuild's define sets this to true in a live run's bundle (scripts/run-examples.mjs --live); elsewhere it is undeclared.
+declare const __LIVE_MODEL__: boolean | undefined;
+
+/** The host that answers a live run's model calls, outside workerd (scripts/workerd.mjs, scripts/live-model.mjs). */
+const LIVE_MODEL_URL = "http://live-model.invalid/";
+
+/** One call's answer from the host: the provider's content, finish reason, usage and warnings. */
+async function liveAnswer(options: LanguageModelV4CallOptions) {
+  const { abortSignal: _signal, ...sent } = options;
+  const response = await fetch(LIVE_MODEL_URL, { method: "POST", body: JSON.stringify(sent) });
+  const text = await response.text();
+  if (!response.ok) throw new Error(`live model: ${text.slice(0, 300)}`);
+  const answer = JSON.parse(text);
+  return answer as Awaited<ReturnType<MockLanguageModelV4["doGenerate"]>>;
+}
+
+/**
+ * The model a live run's scripted() returns: each call, generated or streamed, is one generate call on the host, and
+ * a streamed call replays that answer as a stream. Every request is recorded in `requests`, as the script's are.
+ */
+function liveModel(requests: LanguageModelV4CallOptions[]) {
+  return new MockLanguageModelV4({
+    doGenerate: async (options) => {
+      requests.push(options);
+      return liveAnswer(options);
+    },
+    doStream: async (options) => {
+      requests.push(options);
+      const answer = await liveAnswer(options);
+      const parts: any[] = answer.content.flatMap((part: any, i: number) =>
+        part.type === "text"
+          ? [
+              { type: "text-start", id: `t${i}` },
+              { type: "text-delta", id: `t${i}`, delta: part.text },
+              { type: "text-end", id: `t${i}` },
+            ]
+          : part.type === "reasoning"
+            ? [
+                { type: "reasoning-start", id: `r${i}` },
+                { type: "reasoning-delta", id: `r${i}`, delta: part.text },
+                { type: "reasoning-end", id: `r${i}` },
+              ]
+            : [part],
+      );
+      const finish = { type: "finish", finishReason: answer.finishReason, usage: answer.usage };
+      return { stream: simulateReadableStream({ chunks: [...parts, finish] }) };
+    },
+  });
 }
 
 /** Text of a UIMessage's text parts. */

@@ -2,6 +2,7 @@
 import type { LanguageModelV4CallOptions, LanguageModelV4Content, LanguageModelV4Usage } from "@ai-sdk/provider";
 import { simulateReadableStream } from "ai";
 import { MockLanguageModelV4 } from "ai/test";
+import { live, liveModel } from "./live.ts";
 // Attaches the transcript recorder to ai/test's mock model when the runner preloads it (scripts/transcripts/).
 import "./transcript.ts";
 
@@ -44,6 +45,8 @@ export function scripted(
 ) {
   const usage = options.usage ?? defaultUsage;
   const requests: LanguageModelV4CallOptions[] = [];
+  // A live run (scripts/live/) sends the same calls to a real provider instead of playing the turns.
+  if (live) return { model: liveModel(live, requests), requests };
   const next = (options: LanguageModelV4CallOptions) => {
     requests.push(options);
     const n = requests.length - 1;

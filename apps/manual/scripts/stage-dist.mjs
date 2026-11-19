@@ -1,6 +1,6 @@
 // Checks the book-dist artifact that book-build.yml uploaded and unpacks it into dist/ for the deploy workflow.
 //
-// The artifact may come from any pull request, a fork's included, so nothing in it is trusted (book plan BK15). The
+// The artifact comes from a branch of this repository, but its contents are not trusted (book plan BK15). The
 // workflow downloads it unextracted, and this script reads the zip itself instead of letting a general extractor
 // write wherever the archive's names point. It refuses the whole artifact, before writing anything, when an entry:
 //
@@ -17,11 +17,13 @@
 //
 // It also refuses an artifact without index.html or 404.html, and an entry whose data fails its CRC-32 or size.
 // It skips the artifact's own _headers file, refuses a `_headers` directory or anything under one, and writes main's
-// public/_headers in its place, so a pull request cannot change the headers.
+// public/_headers in its place, so a pull request cannot change the headers. With --preview it adds
+// `X-Robots-Tag: noindex` to that copy's `/*` rule, because Cloudflare adds the header only to workers.dev previews,
+// not to previews on a custom domain such as pr-<n>.manual.buildanagent.fyi. Production never gets it.
 //
-// Usage: node scripts/stage-dist.mjs <download directory> <dist directory> <_headers file>. The download directory
-// must hold exactly one file, the zip that actions/download-artifact saved with skip-decompress.
-import { copyFileSync, existsSync, lstatSync, mkdirSync, readdirSync, readFileSync, writeFileSync } from "node:fs";
+// Usage: node scripts/stage-dist.mjs <download directory> <dist directory> <_headers file> [--preview]. The download
+// directory must hold exactly one file, the zip that actions/download-artifact saved with skip-decompress.
+import { existsSync, lstatSync, mkdirSync, readdirSync, readFileSync, writeFileSync } from "node:fs";
 import { dirname, join, relative, resolve, sep } from "node:path";
 import { fileURLToPath } from "node:url";
 import { crc32, inflateRawSync } from "node:zlib";
@@ -36,6 +38,22 @@ export const LIMITS = {
 };
 
 const REQUIRED = ["index.html", "404.html"];
+
+/** The header a preview adds to every page, so search engines leave previews out of their index. */
+export const PREVIEW_HEADER = "X-Robots-Tag: noindex";
+
+/**
+ * Returns main's `_headers` text with PREVIEW_HEADER added as the first header of its `/*` rule. Throws unless the
+ * file has exactly one `/*` rule and no X-Robots-Tag of its own, so the preview copy is always main's plus one line.
+ */
+export function previewHeaders(text) {
+  const lines = text.split("\n");
+  const rules = lines.flatMap((line, i) => (line === "/*" ? [i] : []));
+  if (rules.length !== 1) throw new Error(`main's _headers must have exactly one "/*" rule, not ${rules.length}`);
+  if (/^\s*X-Robots-Tag:/im.test(text)) throw new Error("main's _headers must not set X-Robots-Tag itself");
+  lines.splice(rules[0] + 1, 0, `  ${PREVIEW_HEADER}`);
+  return lines.join("\n");
+}
 const ALLOWED_UNDERSCORE = new Set(["_astro", "_headers"]);
 
 export class ArtifactError extends Error {
@@ -181,11 +199,14 @@ export function readEntry(zip, entry) {
 
 /**
  * Checks the zip, then writes it into `distDir`, which must not exist yet, with `headersFile` as `distDir/_headers`
- * in place of the artifact's own. Nothing is written unless every entry passes. Returns the number of files written.
+ * in place of the artifact's own, or its preview variant when `preview` is true. Nothing is written unless every
+ * entry passes. Returns the number of files written.
  */
-export function stageZip(zip, distDir, headersFile) {
+export function stageZip(zip, distDir, headersFile, { preview = false } = {}) {
   const entries = readEntries(zip);
   const contents = entries.map((entry) => readEntry(zip, entry));
+  const headers = readFileSync(headersFile, "utf8");
+  const staged = preview ? previewHeaders(headers) : headers;
   const root = resolve(distDir);
   if (existsSync(root)) throw new ArtifactError(`${distDir} already exists`);
   entries.forEach((entry, i) => {
@@ -195,28 +216,33 @@ export function stageZip(zip, distDir, headersFile) {
     mkdirSync(dirname(target), { recursive: true });
     writeFileSync(target, contents[i], { flag: "wx", mode: 0o644 });
   });
-  copyFileSync(headersFile, join(root, "_headers"));
+  writeFileSync(join(root, "_headers"), staged, { flag: "wx", mode: 0o644 });
   return entries.length + 1;
 }
 
 /** Finds the one zip in the download directory and stages it. */
-export function stageDownload(downloadDir, distDir, headersFile) {
+export function stageDownload(downloadDir, distDir, headersFile, options = {}) {
   const names = readdirSync(downloadDir);
   if (names.length !== 1) throw new ArtifactError(`expected one file in the download, found ${names.length}`);
   const zipPath = join(downloadDir, names[0]);
   if (!lstatSync(zipPath).isFile()) throw new ArtifactError(`${names[0]} is not a plain file`);
-  return stageZip(readFileSync(zipPath), distDir, headersFile);
+  return stageZip(readFileSync(zipPath), distDir, headersFile, options);
 }
 
 function main() {
-  const [downloadDir, distDir, headersFile] = process.argv.slice(2);
-  if (!downloadDir || !distDir || !headersFile) {
-    console.error("Usage: node scripts/stage-dist.mjs <download directory> <dist directory> <_headers file>");
+  const args = process.argv.slice(2);
+  const preview = args.at(-1) === "--preview";
+  const [downloadDir, distDir, headersFile, ...rest] = preview ? args.slice(0, -1) : args;
+  if (!downloadDir || !distDir || !headersFile || rest.length > 0) {
+    console.error(
+      "Usage: node scripts/stage-dist.mjs <download directory> <dist directory> <_headers file> [--preview]",
+    );
     process.exit(2);
   }
   try {
-    const count = stageDownload(downloadDir, distDir, headersFile);
-    console.log(`Staged ${count} files into ${distDir}, with main's _headers.`);
+    const count = stageDownload(downloadDir, distDir, headersFile, { preview });
+    const kind = preview ? `main's _headers plus ${PREVIEW_HEADER}` : "main's _headers";
+    console.log(`Staged ${count} files into ${distDir}, with ${kind}.`);
   } catch (error) {
     if (!(error instanceof ArtifactError)) throw error;
     console.error(error.message);
