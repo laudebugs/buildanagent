@@ -565,6 +565,13 @@ declare function replayPairs(pairs: RecordedPair[]): ScriptedModel;   // rejects
 - `endRun(runId, error)` ends the spans of a run whose `result` rejected, because such a run sends no `run_end`.
 - The run, model-call and tool spans follow the in-process conventions of [the fact-check log](reviews/fact-check-otel-observer.md), rows B17-2 to B17-4.
 
+**Revision (B15, 2026-11-19).** B15 adds signed pauses with these choices, each recorded in [its outcome](../todos/done/B15-signed-pauses.md#outcome):
+- `RunResult` gains `AwaitingApprovalResult` (`stopReason: "awaiting_approval"`, `pending`), `Context` gains `pending`, and `AgentEvent` gains `approval_request`, which follows the paused call's `tool_call_start`; the paused call gets no tool result and no `tool_call_end`. The step's other calls run or are denied as usual, and a pause wins over a finished answer in the same step.
+- `RunOptions` gains `signer` (default `ephemeralSigner()`). Request ids come from `idGenerator`; a request whose id repeats, or whose signing throws, blocks its call with a `hook_error` whose `hook` is `signer` and whose text holds only the safety package's error code.
+- `createPendingRequest(fields, signer, options?)` takes an optional third argument, the safety package's `SignPendingOptions`, so a caller can fix the id and time. Its fields add an unsigned `reason`. The SDK also re-exports `SafetyError`, `isSafetyError()`, `HmacSignerOptions` and `SignPendingOptions`, because the re-exported signers throw `SafetyError`.
+- The SDK vendors the safety package's `bytes.ts`, `signer.ts` and `pending.ts` beside B10's copies. Until B15b, `continueRun()` throws `invalid_run_options` for a context with pending requests.
+- The owner decided on 2026-11-19 to keep D5's request kinds, `"approval" | "clarification"`, with no `"plan"` kind ([SG5](close-sdk-gaps.md#sg5-a-plan-approval-keeps-its-own-signature-separate-from-d5s-signed-request-kinds-accepted)).
+
 ### 3.4 The seams P2 consumes
 
 The harness plan should use these names as written; P4 checks that it does ([implementation plans §3](implementation-plans.md#3-the-review-p4)). The first six are the seams of [harness guide §1][hg1]; the rest are what its sketches assume from the SDK.
@@ -619,7 +626,7 @@ The guide says to start with the gateway and the test model, because every other
 | [B12](../todos/done/B12-parallel-tools.md) | Parallel tool scheduling, per-resource serialisation and sibling cancellation | B11 | M |
 | [B13](../todos/done/B13-interceptors-observers.md) | The six interceptors and observers | B11 | M |
 | [B14](../todos/done/B14-budget-progress.md) | Pre-emptive USD budget, progress detection and the depth cap | B5, B13, E1 | M |
-| [B15](../todos/ongoing/B15-signed-pauses.md) | Signed pauses in the loop on the safety package's signers, and `createPendingRequest` | B13, E3 | M |
+| [B15](../todos/done/B15-signed-pauses.md) | Signed pauses in the loop on the safety package's signers, and `createPendingRequest` | B13, E3 | M |
 | [B15b](../todos/ready/B15b-continue-run.md) | `continueRun`, `blockingApprovals()` and the clarification pause | B15 | M |
 | [B16](../todos/done/B16-steering.md) | Steering and follow-up with delivery receipts | B11 | S |
 
