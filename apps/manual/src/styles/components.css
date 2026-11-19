@@ -402,8 +402,8 @@
   color: var(--color-accent);
 }
 
-/* Figure marks. SVG presentation attributes cannot read custom properties, so figures colour their parts through
-   these classes, and a figure follows the panel of the current mode. */
+/* Figure marks. Figures colour their parts through these classes instead of fill and stroke attributes, so every
+   figure colour lives in a stylesheet the style test reads, and a figure follows the panel of the current mode. */
 .fig-text {
   fill: var(--panel-text);
   font-family: var(--font-code);
