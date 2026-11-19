@@ -39,7 +39,7 @@ Say in the gateway's catalog docs what a caller must do to price a fine-tuned mo
 - [x] Draft the TSDoc and the README paragraph with `/anthropic-skills:writing`.
 - [x] Use a tuned model id in the sample written the way OpenAI writes one (`ft:<base>:<org>::<suffix>`), and give it an `asOf` date and source page.
 - [x] Add a test that a catalog spread from `defaultCatalog` with a tuned entry prices both the tuned model and a shipped model, and that a catalog holding only the tuned entry leaves the shipped model's price unknown.
-- [x] Fact-check every claim in the new copy against the gateway's code and the provider's pricing page, into U21's fact-check log (rows B21-1 to B21-8).
+- [x] Fact-check every claim in the new copy against the gateway's code and the provider's pricing page, into U21's fact-check log (rows B21-1 to B21-13).
 - [ ] Review the copy with `/anthropic-skills:writing-review` and fix every finding, once the code-review rounds are done.
 
 ## Acceptance criteria

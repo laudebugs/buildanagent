@@ -264,7 +264,7 @@ These rows check the claims in the gateway README's tuned-model paragraph and sa
 | B21-5 | README paragraph, entry note | A tuned model has the base model's limits | The model page lists fine-tuning as "Supported" but gives no limits for tuned snapshots, so the sample states the limits are the base model's rather than OpenAI's figure for the tuned model. | ⚠️ |
 | B21-6 | Sample, `id` | A tuned model's id has the form `ft:<base>:<org>::<suffix>` | [OpenAI, SFT](https://developers.openai.com/api/docs/guides/supervised-fine-tuning) shows `ft:gpt-4.1-nano-2025-04-14:openai::BTz2REMH`; the sample's `my-org` and `AbC123xy` are placeholders in the same slots. | ✅ |
 | B21-7 | README paragraph, `catalog.ts` comments | The shipped catalog lists no tuned model and `createModel()` prices an unlisted model as unknown | `packages/gateway/src/catalog.json` holds four ids, none an `ft:` id; the new test `tuned-model-catalog.test.ts` asserts `basis: "unknown"` for the tuned id against `defaultCatalog`. | ✅ |
-| B21-8 | README paragraph, `catalog.ts` comments | A passed catalog replaces the shipped one, so a catalog holding only the tuned entry leaves every other model unpriced | The same test: with `[tunedMini]` alone, `gpt-5.4-mini` prices as `unknown` with `total: null`; with the spread, both models price from the catalog. | ✅ |
+| B21-8 | README paragraph, `catalog.ts` comments | A passed catalog replaces the shipped one, so a catalog holding only the tuned entry leaves every other model unpriced | The same test: with `[tuned]` alone, `gpt-5.4-mini` prices as `unknown` with `total: null`; with the spread, both models price from the catalog. | ✅ |
 
 ### B21 first code-review round, checked (2026-11-19)
 
