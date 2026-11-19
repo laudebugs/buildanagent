@@ -63,7 +63,9 @@ export interface OtelObserverOptions {
    * The context the run's span starts in, passed to the tracer as `startSpan`'s third argument: the caller's own
    * span, such as an incoming request's. Every run the observer serves starts in this one context, so when it
    * belongs to one request, create one observer for each request. Left out, the run's span starts in whatever the
-   * tracer treats as its default, which for an OpenTelemetry tracer is the active context.
+   * tracer treats as its default, which for an OpenTelemetry tracer is the active context. A run that a tool starts
+   * is another run to the observer, with the same `parentContext`: its span is not a child of the calling tool's
+   * span, because events carry no parent run id.
    */
   readonly parentContext?: unknown;
   /**
@@ -230,28 +232,33 @@ class Projection {
       },
       spans.childContext,
     );
+    // Registered before any content is written, so a throw below leaves a span the run's end can still close.
+    this.#replace(spans.model, event);
+    spans.model = span;
     if (this.#captureContent) {
       span.setAttribute(A.systemInstructions, systemInstructionsJson(context.system));
       span.setAttribute(A.inputMessages, inputMessagesJson(context.messages));
     }
-    spans.model = span;
   }
 
   #endModelCall(event: Extract<AgentEvent, { type: "model_call_end" }>, spans: RunSpans): void {
     const span = spans.model;
     if (span === undefined) return;
+    spans.model = undefined;
     const { message } = event;
     // No `gen_ai.response.model`: `message.model` is the model the request named, not the one the provider says
     // answered, so writing it would claim a measurement the gateway does not make.
-    span.setAttribute(A.responseFinishReasons, [FINISH_REASONS[message.stopReason]]);
-    setUsage(span, message.usage);
-    if (message.error !== undefined) {
-      const { kind, status } = message.error;
-      failed(span, message.error.message, this.#captureContent, status === undefined ? kind : String(status));
+    try {
+      span.setAttribute(A.responseFinishReasons, [FINISH_REASONS[message.stopReason]]);
+      setUsage(span, message.usage);
+      if (message.error !== undefined) {
+        const { kind, status } = message.error;
+        failed(span, message.error.message, this.#captureContent, status === undefined ? kind : String(status));
+      }
+      if (this.#captureContent) span.setAttribute(A.outputMessages, outputMessagesJson(message.content));
+    } finally {
+      span.end(millis(event.timestamp));
     }
-    if (this.#captureContent) span.setAttribute(A.outputMessages, outputMessagesJson(message.content));
-    span.end(millis(event.timestamp));
-    spans.model = undefined;
   }
 
   #startTool(event: Extract<AgentEvent, { type: "tool_call_start" }>, spans: RunSpans): void {
@@ -269,21 +276,39 @@ class Projection {
       },
       spans.childContext,
     );
-    if (this.#captureContent) span.setAttribute(A.toolCallArguments, jsonValue(event.input));
+    this.#replace(spans.tools.get(event.callId), event);
     spans.tools.set(event.callId, span);
+    if (this.#captureContent) span.setAttribute(A.toolCallArguments, jsonValue(event.input));
   }
 
   #endTool(event: Extract<AgentEvent, { type: "tool_call_end" }>, spans: RunSpans): void {
     const span = spans.tools.get(event.callId);
     if (span === undefined) return;
-    if (event.result.isError === true) failed(span, "the tool returned an error", true, "tool_error");
-    if (this.#captureContent) {
-      // A `beforeToolCall` gate may have replaced the model's input; the span records what the tool ran with.
-      if ("input" in event) span.setAttribute(A.toolCallArguments, jsonValue(event.input));
-      span.setAttribute(A.toolCallResult, jsonValue(resultParts(event.result.content)));
-    }
-    span.end(millis(event.timestamp));
     spans.tools.delete(event.callId);
+    try {
+      if (event.result.isError === true) failed(span, "the tool returned an error", true, "tool_error");
+      if (this.#captureContent) {
+        // A `beforeToolCall` gate may have replaced the model's input; the span records what the tool ran with.
+        if ("input" in event) span.setAttribute(A.toolCallArguments, jsonValue(event.input));
+        span.setAttribute(A.toolCallResult, jsonValue(resultParts(event.result.content)));
+      }
+    } finally {
+      span.end(millis(event.timestamp));
+    }
+  }
+
+  /** Ends a span that a new call with the same key is about to displace, so it is exported and not lost. */
+  #replace(open: SpanLike | undefined, event: AgentEvent): void {
+    if (open !== undefined) this.#abort(open, "a new call started before this one finished", millis(event.timestamp));
+  }
+
+  /** Marks an unfinished span failed and ends it, even when marking it throws. */
+  #abort(span: SpanLike, message: string, end: number | undefined): void {
+    try {
+      failed(span, message, true);
+    } finally {
+      span.end(end);
+    }
   }
 
   #endRun(event: Extract<AgentEvent, { type: "run_end" }>, spans: RunSpans): void {
@@ -308,19 +333,24 @@ class Projection {
 
   /**
    * Ends a run's open call spans as failed, marks its own span with `mark`, ends it and forgets the run. The run is
-   * forgotten and its span ended even when the tracer throws partway, so a failing tracer leaks nothing.
+   * forgotten and every span ended even when the tracer throws partway, so a failing tracer leaks nothing. The first
+   * error is rethrown after all of them have been tried.
    */
   #close(runId: string, spans: RunSpans, end: number | undefined, mark: () => void): void {
     this.#runs.delete(runId);
-    try {
-      for (const span of [...(spans.model === undefined ? [] : [spans.model]), ...spans.tools.values()]) {
-        failed(span, "the run ended before this call finished", true);
-        span.end(end);
+    const open = [...(spans.model === undefined ? [] : [spans.model]), ...spans.tools.values()];
+    const errors: unknown[] = [];
+    const attempt = (step: () => void): void => {
+      try {
+        step();
+      } catch (error) {
+        errors.push(error);
       }
-      mark();
-    } finally {
-      spans.agent.end(end);
-    }
+    };
+    for (const span of open) attempt(() => this.#abort(span, "the run ended before this call finished", end));
+    attempt(mark);
+    attempt(() => spans.agent.end(end));
+    if (errors.length > 0) throw errors[0];
   }
 }
 

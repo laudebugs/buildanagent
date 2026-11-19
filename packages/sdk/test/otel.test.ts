@@ -271,6 +271,80 @@ test("a childContext that throws still ends the run's span", async () => {
   assert.deepEqual(ended, ["invoke_agent"]);
 });
 
+test("a chat span whose input content fails to write is still ended when its call ends", async () => {
+  const ended: string[] = [];
+  const tracer: TracerLike = {
+    startSpan(name) {
+      return {
+        setAttribute(key) {
+          if (key === GEN_AI_ATTRIBUTES.inputMessages) throw new Error("cannot serialise");
+        },
+        end: () => ended.push(name),
+      };
+    },
+  };
+  await drivenRun(
+    [text("Hi.")],
+    {},
+    { observers: [otelObserver({ tracer, captureContent: true, childContext: (parent) => parent })] },
+  );
+  assert.deepEqual(ended, ["chat scripted-model", "invoke_agent"]);
+});
+
+test("ending a run ends every open span even when marking the first one throws", async () => {
+  const ended: string[] = [];
+  const tracer: TracerLike = {
+    startSpan(name) {
+      return {
+        setAttribute: () => undefined,
+        setStatus() {
+          if (name.startsWith("execute_tool")) throw new Error("status refused");
+        },
+        end: () => ended.push(name),
+      };
+    },
+  };
+  const observer = otelObserver({ tracer, childContext: (parent) => parent });
+  const broken = defineTool({
+    name: "broken",
+    description: "Returns a malformed result.",
+    inputSchema: { type: "object" },
+    // @ts-expect-error: a tool must return a result with content
+    async execute() {
+      return { text: "no content" };
+    },
+  });
+  const { model } = scripted([toolCall("broken", {})]);
+  const started = run({
+    model,
+    system: SYSTEM,
+    input: "Go.",
+    tools: [broken],
+    observers: [observer],
+    ...determinism(),
+  });
+  await started.result.then(
+    () => assert.fail("the run should reject"),
+    () => undefined,
+  );
+  assert.throws(() => observer.endRun(started.id, new Error("boom")), /status refused/);
+  assert.deepEqual(ended, ["chat scripted-model", "execute_tool broken", "invoke_agent"]);
+});
+
+test("a second call with the same id ends the first span instead of losing it", () => {
+  const ended: string[] = [];
+  const tracer: TracerLike = {
+    startSpan: (name) => ({ setAttribute: () => undefined, setStatus: () => undefined, end: () => ended.push(name) }),
+  };
+  const observer = otelObserver({ tracer, childContext: (parent) => parent });
+  const at = { timestamp: "2026-11-19T12:00:00.000Z", runId: "r1", seq: 0 };
+  const start = (type: string, extra: object) => observer({ ...at, type, ...extra } as unknown as AgentEvent);
+  start("run_start", { model: { provider: "p", id: "m" } });
+  start("tool_call_start", { callId: "c", tool: "one", input: {} });
+  start("tool_call_start", { callId: "c", tool: "two", input: {} });
+  assert.deepEqual(ended, ["execute_tool one"]);
+});
+
 /** A tracer that records every span name, attribute name and status the observer writes. */
 function recordingTracer() {
   const attributeNames = new Set<string>();
