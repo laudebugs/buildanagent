@@ -5,7 +5,7 @@
 | Field | Value |
 | --- | --- |
 | ID | `T12` |
-| Status | `ready` |
+| Status | `ongoing` |
 | Plan | [Book plan §4.1](../../plans/build-book.md#41-part-i-foundations-for-developers-new-to-agents) |
 | Round / milestone | Round T (textbook), MT |
 | Depends on | [T5](../done/T5-book-interactive-listings.md), [T6](../done/T6-book-flat-figures.md), [T26](../done/T26-book-checked-inline-code.md) |
