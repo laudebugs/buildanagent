@@ -6,7 +6,7 @@
 | Status | `ready` |
 | Plan | [Build SDK §4, Stage 3](../../plans/build-sdk.md#43-stage-3-builds-the-loop-its-tools-hooks-budget-and-signed-pauses) |
 | Round / milestone | Round B (build SDK), M5 |
-| Depends on | [B11](B11-loop-core.md) |
+| Depends on | [B11](../done/B11-loop-core.md) |
 | Size | M |
 
 ## Goal
