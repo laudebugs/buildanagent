@@ -11,6 +11,8 @@ Run each from the repo root.
 | `pnpm --filter @buildanagent/manual build` | Builds the site into `apps/manual/dist/` and indexes the chapters with Pagefind |
 | `pnpm --filter @buildanagent/manual dev` | Serves the site locally while you edit |
 | `pnpm --filter @buildanagent/manual test` | Runs the offline tests, including a full build into a temporary folder |
+| `pnpm --filter @buildanagent/manual typecheck` | Type-checks the app's TypeScript with the root `tsc` setup |
+| `pnpm --filter @buildanagent/manual check:book` | Syncs Astro's content types and validates each chapter's front matter; T3 adds the book's checks |
 | `pnpm --filter @buildanagent/manual tokens` | Regenerates `src/styles/tokens.css` from `book-tokens.json` |
 
 ## The tokens come from one JSON file

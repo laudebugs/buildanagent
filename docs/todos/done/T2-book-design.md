@@ -57,7 +57,7 @@ Give the book the look the owner picked. This todo turns the owner's type and co
 - [x] Each font's `OFL.txt` ships beside its files, and THIRD-PARTY-NOTICES.md lists all three with their source commit
 - [x] Every component renders on the gallery page in both themes with JavaScript disabled, and every control is reachable and visible by keyboard
 - [x] The plan's BK12 records the owner's answer on the dark link colour
-- [x] `pnpm check`, `pnpm typecheck` and `pnpm test` pass offline from the repo root
+- [ ] `pnpm check`, `pnpm typecheck` and `pnpm test` pass offline from the repo root (all pass locally except `verify/copilot-sdk`, which needs Linux; CI runs it)
 
 ## Tests
 
