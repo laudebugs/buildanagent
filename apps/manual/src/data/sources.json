@@ -119,5 +119,24 @@
     "asOf": "November 2026",
     "version": "ai@7.0.162",
     "verifiedIn": "apps/manual/fact-checks/call-workflow-loop.md"
+  },
+  {
+    "id": "anthropic-working-with-messages",
+    "title": "Using the Messages API",
+    "publisher": "Claude API documentation",
+    "url": "https://platform.claude.com/docs/en/build-with-claude/working-with-messages",
+    "kind": "docs",
+    "asOf": "November 2026",
+    "verifiedIn": "apps/manual/fact-checks/talking-to-a-model.md"
+  },
+  {
+    "id": "ai-sdk-prompts",
+    "title": "Prompts",
+    "publisher": "AI SDK documentation",
+    "url": "https://ai-sdk.dev/docs/foundations/prompts",
+    "kind": "docs",
+    "asOf": "November 2026",
+    "version": "ai@7.0.162",
+    "verifiedIn": "apps/manual/fact-checks/talking-to-a-model.md"
   }
 ]

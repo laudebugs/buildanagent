@@ -22,5 +22,13 @@
     "chapter": "call-workflow-loop",
     "illustration": null,
     "breaks": "A simulator answers the pilot's controls; a scripted mock replays only what was scripted, so it cannot surprise you the way a real model can."
+  },
+  {
+    "id": "pharmacist-slip",
+    "concept": "stateless call",
+    "analogy": "a pharmacist who sees only the prescription slip in front of them",
+    "chapter": "talking-to-a-model",
+    "illustration": null,
+    "breaks": "The model can be handed far more than a slip, and everything it is handed costs tokens."
   }
 ]

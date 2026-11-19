@@ -22,28 +22,30 @@ import { check, scripted, systemText } from "./lib/check.ts";
 
 // The OpenAI provider page shows a system message inside `messages` without the opt-in (F-finding).
 {
+  // #region system-in-messages
   const { model } = scripted(["unused"]);
   let error: unknown;
   try {
     await generateText({
       model,
       messages: [
-        { role: "system", content: "You are a helpful assistant." },
+        { role: "system", content: "You are a helpful assistant." }, // book:note system-role
         { role: "user", content: "Tell me a joke." },
       ],
     });
   } catch (e) {
-    error = e;
+    error = e; // book:note rejected
   }
   check(InvalidPromptError.isInstance(error), "a system message in `messages` throws InvalidPromptError by default");
 
   const ok = await generateText({
     model: scripted(["A joke."]).model,
-    allowSystemInMessages: true,
+    allowSystemInMessages: true, // book:note opt-in
     messages: [
       { role: "system", content: "You are a helpful assistant." },
       { role: "user", content: "Tell me a joke." },
     ],
   });
   check(ok.text === "A joke.", "allowSystemInMessages: true accepts it");
+  // #endregion
 }
