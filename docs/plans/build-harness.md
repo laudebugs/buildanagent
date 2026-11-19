@@ -1,15 +1,15 @@
-# Plan: build our agent harness as four packages around one session log, in 54 todos that start on the SDK's seams
+# Plan: build our agent harness as four packages around one session log, in 55 todos that start on the SDK's seams
 
-- **Status:** Draft (P2, 2026-11-18), revised on 2026-11-18 with the fixes from the [P4 review](reviews/plan-review.md), and on 2026-11-18 for three deployment targets ([ADR 0033](../decisions/0033-three-deployment-targets.md), [coding agent plan §4](build-coding-agent.md#4-changes-to-the-sdk-and-harness-plans)): stage 8 (§4.8) adds todos N41–N49. Revised on 2026-11-19 (plan review 2) to apply [ADR 0043](../decisions/0043-standalone-safety-core.md) and the [close-sdk-gaps plan](close-sdk-gaps.md), Anthropic's thinking prefix check (HD3), MCP tool pinning (HD14) and the owner's HD8 amendment.
+- **Status:** Draft (P2, 2026-11-18), revised on 2026-11-18 with the fixes from the [P4 review](reviews/plan-review.md), and on 2026-11-18 for three deployment targets ([ADR 0033](../decisions/0033-three-deployment-targets.md), [coding agent plan §4](build-coding-agent.md#4-changes-to-the-sdk-and-harness-plans)): stage 8 (§4.8) adds todos N41–N49. Revised on 2026-11-19 (plan review 2) to apply [ADR 0043](../decisions/0043-standalone-safety-core.md) and the [close-sdk-gaps plan](close-sdk-gaps.md), Anthropic's thinking prefix check (HD3), MCP tool pinning (HD14) and the owner's HD8 amendment. Revised on 2026-11-19 from the [retrieval and memory report][u18] (U18), whose twelve proposed changes the owner approved that day: HD17 and todo N52 add file-based long-term memory, N21 gains read-only `grep` and `glob` built-ins, HD11 is amended so a memory delete reaches the session log ([ADR 0056](../decisions/0056-file-based-memory-and-log-purge.md)), and HD17 records the memory side of the untrusted-source decision that plan review 2 proposes as HD16.
 - **Date:** 2026-11-18
 - **Asked for by:** the project owner (2026-11-18), through the [implementation plans](implementation-plans.md#2-what-each-plan-contains)
 - **Builds on:** the [harness guide][hg] (G2b), its [reference architecture][hg12] and its [twelve open decisions][hg13], and the [SDK plan][sdk] (P1), whose [seams][sdk34] this plan consumes by name
-- **Decision records:** [ADRs 0012–0021](../decisions/README.md), beside the SDK's 0001–0011
+- **Decision records:** [ADRs 0012–0021](../decisions/README.md), beside the SDK's 0001–0011, and [ADR 0056](../decisions/0056-file-based-memory-and-log-purge.md) for HD17 and the HD11 amendment
 - **Todos:** Round N ("build harness") on the [todo board](../todos/README.md); §4 lists them.
 
 The harness is the layer that moves agent results most: with the model held fixed, Pass@1 across seven harnesses differed by up to 24.3 points, and cost among mature harnesses differed by up to 3× ([harness guide, introduction][hg]). The [harness guide][hg] settles the design in five parts. One append-only, tree-shaped session log is the only source of truth, and context layers are added from the cheapest upward. The permission pipeline, the sandbox and the credential boundary stay three components the host owns. One typed protocol sits under every interface, and evals report cost beside pass rate against mini-swe-agent.
 
-The guide left twelve decisions open, and the [SDK plan][sdk] has since fixed the loop, the event union and eleven named seams the harness must use as written ([SDK plan §3.4][sdk34]). This plan makes the twelve decisions plus three the guide did not list, lays out four packages with their public APIs, and turns the architecture into 54 todos, each one reviewable batch tested offline. Of the 54, 41 come from P2 and P4 (N1–N40 with N38b), 12 were added on 2026-11-18 for portability (N41–N49 with N46a/b, N47a/b and N48a/b), and N50 is a verification todo added in plan review 2. Where the harness needed more than the SDK plan provided, §3.6 lists it, and P4 moved those needs into the SDK plan. In one sentence: **build the session log first, fill the SDK's interceptors with the context, tool and permission layers, add the sandbox, credentials and protocol, and judge every removable component by cost per task beside pass rate.**
+The guide left twelve decisions open, and the [SDK plan][sdk] has since fixed the loop, the event union and eleven named seams the harness must use as written ([SDK plan §3.4][sdk34]). This plan makes the twelve decisions plus four the guide did not list, lays out four packages with their public APIs, and turns the architecture into 55 todos, each one reviewable batch tested offline. Of the 55, 41 come from P2 and P4 (N1–N40 with N38b), 12 were added on 2026-11-18 for portability (N41–N49 with N46a/b, N47a/b and N48a/b), N50 is a verification todo added in plan review 2, and N52, the memory extension, came from U18 on 2026-11-19. N51 is left free for the vault todo that the [agent connectors report](../research/connectors/agent-connectors.md) proposes. Where the harness needed more than the SDK plan provided, §3.6 lists it, and P4 moved those needs into the SDK plan. In one sentence: **build the session log first, fill the SDK's interceptors with the context, tool and permission layers, add the sandbox, credentials and protocol, and judge every removable component by cost per task beside pass rate.**
 
 ## 1. Goal and non-goals
 
@@ -42,7 +42,7 @@ The goal covers every recommendation in the guide's design sections, §2 to §11
 
 ## 2. Decisions
 
-Decisions HD1 to HD12 answer the twelve open decisions of [harness guide §13][hg13], in the same order. HD13 and HD14 are decisions the guide's sketch left implicit: the package split and the MCP client's base. HD15 records the credential proxy's first shape. The `HD` prefix keeps these apart from the SDK plan's D1–D12 and from the `H` todos. Statuses follow the SDK plan's three: **Decided**, **Decided, provisional** (a named todo checks it), and **Accepted (owner, 2026-11-18)** for HD4, HD5, HD8 and HD11 ([SDK plan §2][sdk2]). No decision still waits on the owner.
+Decisions HD1 to HD12 answer the twelve open decisions of [harness guide §13][hg13], in the same order. HD13 and HD14 are decisions the guide's sketch left implicit: the package split and the MCP client's base. HD15 records the credential proxy's first shape, and HD17 adds long-term memory as a file-based extension (U18). HD16 is not in this plan: plan review 2 proposes it for untrusted-source tools, and it still waits on the owner. The `HD` prefix keeps these apart from the SDK plan's D1–D12 and from the `H` todos. Statuses follow the SDK plan's three: **Decided**, **Decided, provisional** (a named todo checks it), and **Accepted (owner, 2026-11-18)** for HD4, HD5, HD8 and HD11 ([SDK plan §2][sdk2]). HD17 and the HD11 amendment were accepted by the owner on 2026-11-19. No decision in this plan still waits on the owner.
 
 Three decisions merge with the SDK's. For each, this plan references P1's choice and adds only the harness side: HD5 builds on SDK D5, HD7 on SDK D3 and HD9 on SDK D9.
 
@@ -58,11 +58,12 @@ Three decisions merge with the SDK's. For each, this plan references P1's choice
 | HD8 | Eval suite seed | 30 tasks: 20 recreated real failures from this repo's history and 10 triage tasks shared with P3; k = 5. Amended: 20 repository tasks now, plus 10 coding-agent tasks (W12) before W8's baseline | Accepted (owner, 2026-11-18); amended (owner, 2026-11-19) | none: eval data |
 | HD9 | Budget timing (with SDK D9) | SDK D9's check per call, plus a session cap, a pre-checked summary call and an 80% warning | Decided | [0009](../decisions/0009-pre-emptive-budget.md), whose consequences record the session cap |
 | HD10 | Completion check | Configured checks, else discovered `package.json` scripts, run in the sandbox after `done`; flagged diff patterns are recorded, not fatal | Decided, provisional (N38) | none: tunable defaults |
-| HD11 | Retention and transcript schema | No automatic deletion by default; opt-in archive or purge; `EntryBase` and the entry type names are stable per `formatVersion` | Accepted (owner, 2026-11-18) | [0018](../decisions/0018-retention-and-transcript-schema.md) |
+| HD11 | Retention and transcript schema | No automatic deletion by default; opt-in archive or purge; `EntryBase` and the entry type names are stable per `formatVersion`. Amended: a memory delete marks the log entries that carry the fact, and a targeted purge or the retention purge removes them | Accepted (owner, 2026-11-18); amended (owner, 2026-11-19) | [0018](../decisions/0018-retention-and-transcript-schema.md), amended by [0056](../decisions/0056-file-based-memory-and-log-purge.md) |
 | HD12 | Approval modes | Path-based ask rules, scoped sticky allowances and grouped approvals; no classifier allows except through the host callback | Decided (harness side) | [0019](../decisions/0019-permission-pipeline-and-approval-modes.md) |
 | HD13 | Package split | Four packages: `protocol`, `harness` with subpath exports per component, `cli` and `evals` | Decided | [0012](../decisions/0012-harness-packages.md) |
 | HD14 | MCP client base | `@modelcontextprotocol/client` 2.4.0 behind our `McpConnection` interface | Decided, provisional (N24) | [0021](../decisions/0021-mcp-client-base.md) |
 | HD15 | Credential proxy shape | Default-deny egress; credentials injected on local reverse-proxy routes by sentinel; no TLS interception | Decided | [0020](../decisions/0020-default-sandbox-backend.md), whose decision records the proxy shape |
+| HD17 | Long-term memory | A removable extension: a `memory` tool over `.agents/memory/`, sourced records that expire unless a check renews them, an index capped at 200 lines or 25 KB, and low-trust records from sessions that read untrusted content | Accepted (owner, 2026-11-19) | [0056](../decisions/0056-file-based-memory-and-log-purge.md) |
 
 ### HD1. One entry per content block, written from the SDK's end events (provisional)
 
@@ -182,6 +183,8 @@ N8, N9 and N10 test the first rule, N25 the third, and B8 surfaces the 400 as a 
 
 **What the owner still supplies.** A retention period, once a product needs one. Agent AD8 makes the agent's shadow and later stages refuse to start without it ([agent guide §10][ag10]).
 
+**Amendment (owner, 2026-11-19): a memory delete reaches the session log.** The [retrieval and memory report][u18-changes] proposed twelve plan changes, and the owner approved all twelve on 2026-11-19. Change 7 amends this decision, and [ADR 0056](../decisions/0056-file-based-memory-and-log-purge.md) records it beside ADR 0018, which stays as written. The default is unchanged: nothing is deleted automatically. A memory delete (HD17) now also marks every log entry that carries the deleted fact, and a marked entry leaves the log in one of two ways. The retention purge deletes its whole session, as before. A targeted purge removes it sooner: it rewrites the session into a new file, as a `formatVersion` migration does, with each marked entry's content removed and its `EntryBase` kept, so the tree still resolves. An `archive` keeps marked entries until the targeted purge runs. Without the marks, a fact deleted from memory would still sit in the entry that recorded its write. Zep warns that deleted episode data "may still exist" in nodes shared with other episodes, and Claude Code's transcript sweep leaves its memory files alone ([retrieval and memory report][u18-forget]). N52 builds the marks and the targeted purge.
+
 ### HD12. Three middle-ground modes, and no classifier allow outside the host callback
 
 **Options.** Path-based ask rules only, grouped approvals, a per-session allowance, and whether a classifier may approve at all ([harness guide §13, decision 12][hg13]).
@@ -222,6 +225,21 @@ The pipeline's permission modes are `default`, `accept_edits`, `read_only`, `byp
 
 **Evidence.** Injection at the egress proxy keeps secrets out of the sandbox, and practitioners scope each injected credential by host and method ([harness guide §6][hg6]). Claude's `mask` degrades to `deny` on macOS and Windows, a sign that TLS interception is the hard part ([harness guide §6][hg6]). `srt` refuses allowed names that resolve to private ranges, and we copy the rule ([harness guide §6][hg6]). A CA inside every sandbox image is work the first consumers do not need, so (a) waits for a tool that cannot take a base URL.
 
+### HD17. Long-term memory is a file-based extension of sourced records that expire unless a check renews them (accepted)
+
+**Accepted by the owner on 2026-11-19.** The [retrieval and memory report][u18-changes] proposed twelve plan changes, and the owner approved all twelve on 2026-11-19. Change 5 is this decision.
+
+**Options.** (a) No long-term memory until an eval failure calls for it, the guide's staged path. (b) A memory service, such as AgentCore Memory or Zep. (c) Files under the project, written through one tool, as Anthropic's memory tool, Claude Code's auto memory and Letta's MemFS do ([retrieval and memory report][u18-file]).
+
+**Choice: (c), as an extension that is off until a host loads it.** N52 builds it.
+- **Tool.** One `memory` tool with the commands `view`, `create`, `str_replace`, `delete` and `rename`, over paths under `.agents/memory/` only. The extension resolves every path to its canonical form and refuses one that leaves the directory, because Anthropic's docs warn that "Your implementation must validate every path in every command to prevent directory traversal attacks" ([Claude, memory tool](https://platform.claude.com/docs/en/agents-and-tools/tool-use/memory-tool)). Each call is an ordinary tool call, so each write already appears in the session log as an entry.
+- **Records.** One record per durable fact, with a subject, the fact, a source (a `file:line`, a URL or the user's own words), a type (`project`, `task` or `preference`), a created date, a last-validated date, an expiry and a trust level.
+- **Recall.** At session start the extension loads an index of one line per record, capped at 200 lines or 25 KB, whichever comes first, as Claude Code caps `MEMORY.md`. The agent finds the rest with the `grep` and `glob` built-ins (N21). A recalled record is a claim about the past, so its `view` result shows its source and last-validated date beside the fact.
+- **Forgetting.** A project fact expires 90 days after its last successful validation, a task record expires when its session ends, and a preference lasts until the user changes it. Reading a record never renews it, following Copilot's rule that "Simply retrieving a memory does not reset this period" ([retrieval and memory report][u18-forget]); N52 decides how a successful check renews `validated`. A delete removes the record and its index line in one step, and it marks the log entries that wrote or returned the record (HD11's amendment).
+- **Untrusted input.** Once a tool result from a tool whose `outputTrust` is `"untrusted"` enters a session, every memory write in that session is stored as low-trust. A low-trust record expires before any trusted record of its type, at a period N52 sets, and the index labels it. The memory tool cannot write procedural memory, meaning skills, context files and rules, because its paths stay inside `.agents/memory/`. This is the memory side of the untrusted-source decision that [plan review 2](reviews/plan-review-2.md#6-eleven-owner-actions-are-still-open-and-only-one-a-test-project-for-n50-touches-waves-15) proposes as HD16, and the owner approved widening HD16's scope to it on 2026-11-19. HD16, once decided, applies the same rule to `write` and `edit` on procedural paths.
+
+**Evidence.** Long inputs degrade well before the window, so an agent should carry a small core and search for the rest ([retrieval and memory report][u18]). MINJA planted records in memory through queries alone, and later sessions obeyed them in 76.8% of attempts, which is why writes carry a source and a trust level ([retrieval and memory report][u18]). Copilot checks a memory's citations before using it and expires memories after 90 days by default ([retrieval and memory report][u18-recall]). A file store also gives rollback through git history and needs no index for a few hundred records. None of our eight SDKs expires a memory inside the process, so the expiry belongs in our harness ([retrieval and memory report][u18-sdks]).
+
 ## 3. Package and module layout
 
 ### 3.1 Four packages under `packages/`, beside the SDK's two
@@ -239,16 +257,17 @@ packages/
   harness/                      @buildanagent/harness
     package.json                exports: ".", "./session", "./context", "./tools", "./mcp",
                                 "./permissions", "./sandbox", "./sandbox/srt", "./sandbox/docker",
-                                "./credentials", "./extensions", "./telemetry", "./server",
+                                "./credentials", "./extensions", "./memory", "./telemetry", "./server",
                                 "./ablation", "./testing"
     src/session/                SessionStore (memory, jsonl), SessionLock, runner, rebuild, replay
     src/context/                write cap, masking, summarizer, mid-turn, overflow retry, policy composer
-    src/tools/                  ToolRegistry, tool search, built-ins (read, write, edit, bash, fetch)
+    src/tools/                  ToolRegistry, tool search, built-ins (read, write, edit, bash, fetch, grep, glob)
     src/mcp/                    McpConnection, per-server negotiation, McpManager
     src/permissions/            rules, PermissionPipeline, approvals, code-initiated calls, KeyStore, sticky allowances
     src/sandbox/                SandboxClient, none backend, spawnEnv, escalation; srt/ and docker/
     src/credentials/            EgressProxy, sentinel routes, proxiedFetch, secret scrubber
     src/extensions/             Extension, composition, TrustStore, extensions.lock.json, skills, context files
+    src/memory/                 memory extension: the memory tool, records, index, expiry, purge marks (HD17)
     src/telemetry/              projectSpans(), harness attribute names, budget meter
     src/completion/             completion checks and diff flags
     src/server/                 Dispatcher, inProcessTransport(), stdioTransport()
@@ -401,7 +420,7 @@ interface ToolRegistry {
 }
 type ToolWrapper<H = unknown> = (tool: RegisteredTool, hostContext: H) => ToolDefinition<any, any>; // write cap, shadow mode, sandbox binding; the turn's host context
 declare function toolSearchTool(registry: ToolRegistry): ToolDefinition<{ query: string }, { activated: string[] }>;
-declare function builtinTools(sandbox: Sandbox, proxy?: EgressProxy): RegisteredTool[];  // read, write, edit, bash, fetch
+declare function builtinTools(sandbox: Sandbox, proxy?: EgressProxy): RegisteredTool[];  // read, write, edit, bash, fetch, grep, glob
 
 // @buildanagent/harness/mcp (guide §4; HD14)
 interface McpServerConfig {
@@ -523,6 +542,13 @@ declare function loadProjectExtensions(root: string, options: { trust: TrustStor
 // headless and untrusted: skip; a content hash that differs from extensions.lock.json refuses the load
 declare function discoverSkills(cwd: string): Promise<Array<{ name: string; description: string; path: string }>>; // .agents/skills up to the repo root
 declare function contextFiles(cwd: string): Promise<Array<{ path: string; text: string }>>;  // AGENTS.md, CLAUDE.md; outside the trust gate, labelled untrusted
+
+// @buildanagent/harness/memory (HD17; N52)
+interface MemoryRecord {
+  subject: string; fact: string; source: string; type: "project" | "task" | "preference";
+  created: string; validated: string; expires: string | null; trust: "trusted" | "low";  // ISO dates; null: until changed
+}
+declare function memoryExtension(options: { root: string; clock?: () => Date }): Extension;  // .agents/memory/ under root; the memory tool and the session-start index
 
 // @buildanagent/protocol (guide §8; HD6)
 type Id = number | string;
@@ -686,7 +712,7 @@ The guide says to start with the log, because context layers, pauses, replay, th
 | [N18](../todos/ready/N18-sandbox-escalation.md) | Sandbox escalation state machine | N15, N13 | M |
 | [N19](../todos/ready/N19-sandbox-measurement.md) | Measure `srt` and Docker cold start and per-call overhead (HD4) | N16, N17 | S |
 | [N20](../todos/ready/N20-credential-proxy.md) | Credential proxy: default-deny egress, sentinel routes, gated fetch, secret scrub | N15 | M |
-| [N21](../todos/ready/N21-builtin-tools.md) | Built-in tools: `read`, `write`, `edit`, `bash` and `fetch` through the sandbox | N11, N15, N20, N8 | M |
+| [N21](../todos/ready/N21-builtin-tools.md) | Built-in tools: `read`, `write`, `edit`, `bash`, `fetch` and the read-only `grep` and `glob` through the sandbox | N11, N15, N20, N8 | M |
 
 ### 4.5 Stage 5 adds extensions, skills and the MCP client
 
@@ -696,6 +722,7 @@ The guide says to start with the log, because context layers, pauses, replay, th
 | [N23](../todos/ready/N23-skills-context-files.md) | Skills, context files and the plan-file convention | N22, N9 | S |
 | [N24](../todos/ready/N24-mcp-stdio.md) | MCP client over stdio: per-server negotiation, canonical names, deferred exposure | N11, N12 | M |
 | [N25](../todos/ready/N25-mcp-http-background.md) | MCP streamable HTTP, legacy SSE and background connect | N24 | M |
+| [N52](../todos/ready/N52-memory-extension.md) | File-based memory extension: the `memory` tool, sourced records, the capped index, expiry and purge marks (HD17; added 2026-11-19) | N21, N23, N33 | M |
 
 ### 4.6 Stage 6 puts the protocol, its transports and the CLI over the harness
 
@@ -807,12 +834,13 @@ The owner answered HD4, HD5, HD8 and HD11 on 2026-11-18. N19's measurement is th
 
 ### 6.3 Where Round N slots into the roadmap
 
-Round N interleaves with Round B in the build phase, starting from B1 and B2, and a new milestone, "M6 Our agent harness", covers N1 to N49 (with N46a/b, N47a/b and N48a/b); N38b is deferred with the triage agent under M7b. *(Revised in plan review 2, 2026-11-19: the milestone first covered N1 to N40 with N38b.)* Most of Round N waits for the SDK's loop, but the log and the sandbox do not:
+Round N interleaves with Round B in the build phase, starting from B1 and B2, and a new milestone, "M6 Our agent harness", covers N1 to N49 (with N46a/b, N47a/b and N48a/b), N50 and N52; N38b is deferred with the triage agent under M7b. *(Revised in plan review 2, 2026-11-19: the milestone first covered N1 to N40 with N38b.)* Most of Round N waits for the SDK's loop, but the log and the sandbox do not:
 - **After B1 and B2:** the scaffold, entries, store, lock and HEAD (N1 to N5), the sandbox interface and backends (N15 to N17, N19) and the credential proxy (N20), which need only the workspace and the gateway's types.
 - **After B11 and B15:** the protocol package (N26), whose union names `AgentEvent` and `SignedPendingRequest`.
 - **After B12 and B13:** the runner (N6), context layers 1 and 2 (N8), the registry (N11), the pipeline (N12), the built-in tools (N21), extensions (N22) and the MCP client (N24, N25).
 - **After B15b and B16:** rebuild and resume (N7), signed approvals (N13, N14), code-initiated calls (N40), escalation (N18) and the dispatcher (N27 to N30).
 - **After B14 and B17:** the summary layer (N9 and N10) and the telemetry projection (N31).
+- **After N21, N23 and N33:** the memory extension (N52), added on 2026-11-19 from U18.
 - **After B19 and B20:** the harness capstone (N35), whose `initialize` capabilities need B20's list, and the eval stage.
 - **After A17 and A19:** the 10 shared triage tasks (N38b), the one harness todo that waits for Round A.
 - **After Round E (M5e):** E2 gates rebuild and resume (N7) and code-initiated calls (N40), and E7 gates the portability suite (N45). The owner lifted Round E's hold on 2026-11-19, so these gates wait only on E's own order ([close-sdk-gaps plan §4](close-sdk-gaps.md#4-round-e-and-its-todos)).
@@ -823,6 +851,12 @@ The roadmap graph gains one line, `B1 ─► N1 … N40 ─► N41–N49 ─► 
 Round N closes when the triage capstone pauses, resumes in a second process and replays byte for byte from its log, and when the first eval report sets our harness beside mini-swe-agent on cost and pass^k. As of 2026-11-19, B1 and B2 are done, so N1 has every dependency done.
 
 [hg]: ../guides/agent-harness.md
+[u18]: ../research/memory/retrieval-and-memory.md
+[u18-changes]: ../research/memory/retrieval-and-memory.md#twelve-proposed-changes-await-the-owners-decision
+[u18-file]: ../research/memory/retrieval-and-memory.md#a-file-is-enough-for-one-agent-and-one-user-and-a-service-earns-its-price-at-many-users-or-temporal-questions
+[u18-recall]: ../research/memory/retrieval-and-memory.md#recall-a-short-index-every-session-search-for-the-rest-and-check-each-record-before-acting-on-it
+[u18-forget]: ../research/memory/retrieval-and-memory.md#forget-by-an-expiry-that-only-a-successful-check-renews-and-delete-from-every-copy
+[u18-sdks]: ../research/memory/retrieval-and-memory.md#all-eight-sdks-retrieve-through-tools-six-ship-long-term-memory-and-none-expires-it-in-the-process
 [p4-4]: reviews/plan-review.md#4-needs-reconciliation-24-change-upstream-3-drop-1-is-already-covered
 [hg2]: ../guides/agent-harness.md#2-the-session-log-should-be-one-append-only-tree-of-typed-entries-with-head-a-writer-lock-and-pauses-as-entries
 [hg3]: ../guides/agent-harness.md#3-context-policy-should-run-five-removable-layers-cheapest-first-and-keep-every-compaction-visible-and-reversible

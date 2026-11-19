@@ -160,6 +160,14 @@ Python `google-adk` 2.14.1 is ADK's primary implementation. The guide's [TypeScr
 
 For this page, I searched the 2.5.0 `.d.ts` files for 27 names. The 10 names the draft lists as missing, such as `LiteLlm` and `rewind`, are absent. The 17 names it lists as documented only for Python or as TypeScript-only, such as `runLive` and `ChromeBuiltInLlm`, are declared. I re-read the Python source for F10 and F11 only. The other Python entries rest on class names that the S7a check found, and no Python code ran.
 
+## U18 memory findings: the TypeScript memory service cannot delete (2026-11-19)
+
+The retrieval and memory research (U18) read the memory typings of `@google/adk` 2.5.0 on 2026-11-19 and compared them with Python ADK 2.14.1, and the owner approved recording what it found ([U18 report](../../research/memory/retrieval-and-memory.md#all-eight-sdks-retrieve-through-tools-six-ship-long-term-memory-and-none-expires-it-in-the-process); [SDK notes](../../research/memory/notes/sdks-cloudflare-adk-copilot-pi.md)). These findings add to the parity count above without changing it.
+
+**M1. `BaseMemoryService` has no delete method.** The TypeScript interface declares only `addSessionToMemory` and `searchMemory` (`dist/types/memory/base_memory_service.d.ts:37–52`), and no memory typing in the package names a delete. Python ADK 2.14.1 declares `delete_memory` on its base service ([ADK Python source at tag v2.14.1](https://github.com/google/adk-python/blob/v2.14.1/src/google/adk/memory/base_memory_service.py)). A TypeScript agent cannot forget a memory through ADK.
+
+**M2. The in-memory service matches whole lowercase words only.** The adk-js guide says matching "is whole-word, so `flight` does not match `flights`" (`source/adk-js/docs/guides/memory/index.md:66`), so a recall query must use words that appear in the stored events. No example tests `InMemoryMemoryService` yet.
+
 ## What we could not verify
 
 Five areas stayed outside the offline harness:

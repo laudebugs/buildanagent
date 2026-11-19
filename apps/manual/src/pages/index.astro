@@ -1,0 +1,13 @@
+---
+import { getCollection } from "astro:content";
+import BaseLayout from "../layouts/BaseLayout.astro";
+
+const chapters = await getCollection("chapters");
+---
+
+<BaseLayout title="Build an agent" description="A textbook on building an AI agent.">
+  <h1>Build an agent</h1>
+  <ol>
+    {chapters.map((chapter) => <li><a href={`/${chapter.id}/`}>{chapter.data.title}</a></li>)}
+  </ol>
+</BaseLayout>

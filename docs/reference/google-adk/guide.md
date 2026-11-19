@@ -96,6 +96,8 @@ On `InMemorySessionService`, all four behaved as documented. A tool's `context.s
 
 Persistent backends exist in TypeScript too, `DatabaseSessionService` and `VertexAiSessionService`, though the docs tag their sections Python only (section 13).
 
+Memory that spans sessions goes through a `BaseMemoryService`, which in TypeScript can only add a session and search: it has no delete method, unlike Python ADK 2.14.1. `InMemoryMemoryService` matches whole lowercase words, so `flight` does not match `flights` (fact-check M1 and M2, as of November 2026).
+
 ## 7. Callbacks and plugins share hook names, but not parameter names
 
 ADK has two layers of hooks. **Agent callbacks** are options on one `LlmAgent`: before and after the agent, the model call and each tool call (`docs/callbacks/types-of-callbacks.md`). A before-callback that returns a value replaces the step, and an after-callback that returns a value replaces the result. **[verified: 05]**

@@ -68,7 +68,7 @@ Round T (the textbook, added 2026-11-19) needs nothing from Rounds B, N or E to 
      └─► T3 ─► T4 ─► T5 ─┬─► T26 ─┐          │
               T2, T3 ─► T6 ─► T8 (with T4) ─► T7
                          ├─► T27  │
-                         └─► T28–T34, T40–T42 (examples; T41 also after U18)
+                         └─► T28–T34, T40–T44 (examples; T41, T43 and T44 also after U18)
                                   ├─► chapters, each after T26, T6 or T7, and its example todo
  U18 ─► T36   U19 ─► T37 (in T21)   U20 ─► T38 (in T35)   U21 ─► T39 (in T11)
 ```
@@ -96,9 +96,9 @@ Round E also feeds later todos, which list it in **Depends on**: E1 ─► B10 a
 | M5e The SDK gaps as a safety package (added 2026-11-18; approved, hold lifted 2026-11-19) | E1–E7 | `@buildanagent/agent-safety` on `agents` 0.33.0 and `ai` 7.0.162: typed write outcomes, effect identity, signed approvals, plan approvals, a pre-call cost cap, a BYOK guard and stores on four targets, built from [close-sdk-gaps.md](close-sdk-gaps.md) |
 | Q Code quality checks (added 2026-11-19) | Q1, Q2 | The strict compiler flags, Biome caps and a portability test (Q1), then unused-code, boundary, duplication and todo-id checks (Q2), as [`docs/guidelines/`](../guidelines/README.md) requires; Q1 is done and Q2 can start now |
 | L Publish and docs (added 2026-11-19) | L1–L3, L4a, L4b, L5–L8 | Built `dist/` packages, Changesets and trusted publishing, then an alpha of the gateway and SDK on every package change, from 0.1.0-alpha.0 (L4b, done); the docs at `docs.buildanagent.fyi` on Starlight and the website at `buildanagent.fyi`, both on Cloudflare ([publish-and-docs.md](publish-and-docs.md)); L1, L5 and L7 can start now |
-| MT The textbook (added 2026-11-19; approved 2026-11-19) | T1–T42, U18–U21 | `@buildanagent/manual` at `apps/manual`, a public two-part textbook deployed to manual.buildanagent.fyi, built from [build-book.md](build-book.md). It depends on no other round to start; its chapters switch to our own packages as Rounds B, N and E land |
+| MT The textbook (added 2026-11-19; approved 2026-11-19) | T1–T44, U18–U21 | `@buildanagent/manual` at `apps/manual`, a public two-part textbook deployed to manual.buildanagent.fyi, built from [build-book.md](build-book.md). It depends on no other round to start; its chapters switch to our own packages as Rounds B, N and E land |
 | M5 Our agent SDK (next phase) | B1–B20, B15b, B19b | `@buildanagent/gateway` and `@buildanagent/sdk` in `packages/`, built from [build-sdk.md](build-sdk.md) |
-| M6 Our agent harness (next phase) | N1–N40, N41–N49 (portability, added 2026-11-18), N50 (Cloudflare egress verification, added 2026-11-19) | `@buildanagent/protocol`, `harness`, `cli` and `evals`, built from [build-harness.md](build-harness.md); it starts after B1–B2 and interleaves with Round B (§6 of the plan); N38b is deferred with M7b |
+| M6 Our agent harness (next phase) | N1–N40, N41–N49 (portability, added 2026-11-18), N50 (Cloudflare egress verification, added 2026-11-19), N52 (file-based memory, added 2026-11-19) | `@buildanagent/protocol`, `harness`, `cli` and `evals`, built from [build-harness.md](build-harness.md); it starts after B1–B2 and interleaves with Round B (§6 of the plan); N38b is deferred with M7b |
 | M7 Our coding agent (next phase, added 2026-11-18) | W1–W12 (W12 added 2026-11-19) | `@buildanagent/coding-agent`, a personal cloud coding agent built from [build-coding-agent.md](build-coding-agent.md): on Cloudflare first (W4–W8), then AWS (W9) and Vercel (W10); W4 needs the portability todos N46a and N46b |
 | M7b The triage agent (deferred 2026-11-18) | A1–A24, N38b | `@buildanagent/triage-agent`, built from [build-agent.md](build-agent.md) when its round resumes ([ADR 0032](../decisions/0032-personal-coding-agent-first.md)) |
 | M8 Our agent platform (next phase, added 2026-11-18) | F1–F16 | `@buildanagent/platform`, built from [build-agent-platform.md](build-agent-platform.md): a multi-user platform that generates agents on Cloudflare `agents` 0.33.0 or `ai` 7.0.162, gates them, and deploys them into the user's own Cloudflare or Vercel account |

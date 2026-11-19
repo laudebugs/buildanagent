@@ -18,7 +18,7 @@ The repo is documentation only for now. The research compares vendor agent SDKs,
 | [SECURITY.md](SECURITY.md) | How to report a vulnerability privately, and what is in scope |
 | [docs/guidelines/](docs/guidelines/README.md) | The coding and documentation rules for our packages: strict, portable TypeScript; one home per concept and small functions; offline, deterministic tests; plain-English docs and tested examples |
 | [docs/plans/](docs/plans/) | The plans and roadmap: SDK references, comparison, skills, build guides, implementation plans, and the [personal cloud coding agent](docs/plans/build-coding-agent.md) that is the first agent to build, the multi-user [agent platform](docs/plans/build-agent-platform.md) that follows it, and the plan to [close seven SDK gaps](docs/plans/close-sdk-gaps.md) with a standalone safety package first |
-| [docs/plans/build-book.md](docs/plans/build-book.md) | The plan for a public textbook on building an agent, at `apps/manual` and manual.buildanagent.fyi: two parts, checked listings from `verify/`, generated figures, and 46 todos |
+| [docs/plans/build-book.md](docs/plans/build-book.md) | The plan for a public textbook on building an agent, at `apps/manual` and manual.buildanagent.fyi: two parts, checked listings from `verify/`, generated figures, and 48 todos |
 | [docs/todos/](docs/todos/) | The todo board: every planned batch of work, by state |
 | [docs/comparison/deep-comparison.md](docs/comparison/deep-comparison.md) | The same triage agent built on all eight SDKs, the design trade-offs, and lessons for our own SDK, harness and agent |
 | [docs/comparison/typescript-gaps.md](docs/comparison/typescript-gaps.md) | What each TypeScript SDK lacks, has in weaker form, or has documented only for its primary language (Python, mostly), with sources on both sides |
@@ -29,6 +29,7 @@ The repo is documentation only for now. The research compares vendor agent SDKs,
 | [docs/research/agents/](docs/research/agents/) | Research for agents we might build on our stack: how a job-search agent could automate finding roles, people and applications within LinkedIn's, Indeed's, Google's and email law's limits; notes, a report and a fact-check |
 | [docs/research/browser-use/](docs/research/browser-use/) | Browser use for our agents: page representations and libraries, hosted browsers per deployment target, vendor computer-use tools and SDK support, prompt injection and login safety, browser evals, and proposed plan changes; notes, report and fact-check |
 | [docs/research/connectors/](docs/research/connectors/) | Connectors for our agents and platform: how ten platforms offer them, MCP 2026-07-28 authorization and token custody, build-or-buy infrastructure, and a recommended design; notes, a report and a fact-check |
+| [docs/research/memory/](docs/research/memory/) | Retrieval and long-term memory: when an agent should retrieve instead of carrying context, keyword, vector and hybrid search and their failure modes, how memory that outlives a task is written, recalled and forgotten, and what our eight SDKs offer in TypeScript; notes, a report and a fact-check |
 | [docs/research/reversible-actions/](docs/research/reversible-actions/) | Making agent actions safe to fail, retry or reverse: server-side rollback per tool call and sagas for multistep actions and rewind versus data rollback, with notes, a report and a fact-check per round |
 | [docs/research/agent-ui/](docs/research/agent-ui/) | Deep research on agent UIs: protocols (AG-UI, A2UI, MCP Apps), web frameworks, terminal and editor UIs, patterns beyond chat, and the UI contracts of our eight SDKs, plus a report on Vercel Labs' UI SDK; notes, syntheses and a fact-check |
 | [docs/research/agent-sdk/](docs/research/agent-sdk/), [agent-harness/](docs/research/agent-harness/), [agent/](docs/research/agent/) | Deep research on building an agent SDK, an agent harness and an agent: notes, a synthesis with design decisions, and a fact-check log each |
@@ -58,20 +59,20 @@ Each SDK gets a reference folder under `docs/reference/<sdk>/` (guide, fact-chec
 
 ## Development
 
-The repo is a pnpm workspace (Node 22, pnpm 10.34.9). Our own packages live in `packages/`: `@buildanagent/gateway` and `@buildanagent/sdk`, which are scaffolds as of November 2026. Each SDK harness under `verify/` is also a workspace package.
+The repo is a pnpm workspace (Node 22, pnpm 10.34.9). Our own packages live in `packages/`: `@buildanagent/gateway` and `@buildanagent/sdk`, which are scaffolds as of November 2026. Each SDK harness under `verify/` is also a workspace package. The textbook, `@buildanagent/manual` in `apps/manual`, is a private workspace package that builds a static Astro site with Pagefind search. `pnpm --filter @buildanagent/manual build` writes the site to `apps/manual/dist/`. The book needs Node 22.23.4 or later.
 
 ```bash
 pnpm install        # install every package and harness
 pnpm check          # Biome lint and format check
 pnpm typecheck      # type-check every package
-pnpm test           # run our packages' tests and every harness's verified examples offline
+pnpm test           # run our packages' and the book's tests and every harness's verified examples offline
 ```
 
 See [AGENTS.md](AGENTS.md#coding-standards) for the coding standards.
 
 ## Licence
 
-You may use our code (scripts, our packages in `packages/`, the `verify/` harnesses and their examples, workflows and configs) under [Apache-2.0](LICENSE-APACHE) or [MIT](LICENSE-MIT), at your option. Our documentation is licensed under [CC BY 4.0](LICENSE-DOCS), and [LICENSE](LICENSE) says which files fall under which licence. The upstream docs mirrored under `docs/reference/*/source/` keep their own licences, listed in [THIRD-PARTY-NOTICES.md](THIRD-PARTY-NOTICES.md).
+You may use our code (scripts, our packages in `packages/`, the `verify/` harnesses and their examples, the book's code in `apps/manual/`, workflows and configs) under [Apache-2.0](LICENSE-APACHE) or [MIT](LICENSE-MIT), at your option. The book's files adapted from the owner's garment engineering textbook are Apache-2.0 only. Our documentation, the book's prose and figures included, is licensed under [CC BY 4.0](LICENSE-DOCS), and [LICENSE](LICENSE) says which files fall under which licence. The upstream docs mirrored under `docs/reference/*/source/` keep their own licences, listed in [THIRD-PARTY-NOTICES.md](THIRD-PARTY-NOTICES.md).
 
 ## For AI agents
 

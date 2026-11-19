@@ -1,6 +1,6 @@
-# Third-party notices: nine mirrored doc sets keep their upstream licences
+# Third-party notices: nine mirrored doc sets keep their upstream licences, and the book credits the garment engineering textbook
 
-This repository contains upstream documentation that other projects wrote. Our own code and docs are licensed as [LICENSE](LICENSE) describes, but that licence does not cover the mirrors under `docs/reference/*/source/`. Each mirror is an unmodified copy of upstream files at a recorded tag or commit, and each keeps its upstream licence file beside it. If you reuse a mirrored file, follow the licence in its row below.
+This repository contains upstream documentation that other projects wrote. Our own code and docs are licensed as [LICENSE](LICENSE) describes, but that licence does not cover the mirrors under `docs/reference/*/source/`. Each mirror is an unmodified copy of upstream files at a recorded tag or commit, and each keeps its upstream licence file beside it. If you reuse a mirrored file, follow the licence in its row below. The book also adapts code from the owner's garment engineering textbook, and those files carry Apache-2.0 alone instead of our usual choice of two licences.
 
 ## Each mirror's licence comes from its upstream repository
 
@@ -17,6 +17,16 @@ The rows below come from each mirror's `_manifest.json` (repository, tag, commit
 | [`docs/reference/google-adk/source/adk-js/`](docs/reference/google-adk/source/adk-js/) | [google/adk-js](https://github.com/google/adk-js) | `main-v2.5.0` (`b1b94c0d501c`) | Apache-2.0 ([LICENSE](docs/reference/google-adk/source/adk-js/LICENSE)) |
 | [`docs/reference/cloudflare-agents/source/agents/`](docs/reference/cloudflare-agents/source/agents/) | [cloudflare/agents](https://github.com/cloudflare/agents) | `agents@0.33.0` (`5684e278e44a`), `@cloudflare/think@0.23.0` (`be1749221ab3`), `@cloudflare/ai-chat@0.12.2` (`fc7f59fb00e7`) | MIT ([LICENSE](docs/reference/cloudflare-agents/source/agents/LICENSE)) |
 | [`docs/reference/cloudflare-agents/source/cloudflare-docs/`](docs/reference/cloudflare-agents/source/cloudflare-docs/) | [cloudflare/cloudflare-docs](https://github.com/cloudflare/cloudflare-docs) | `production` branch, commit `6897a9fa0c11` | CC BY 4.0 ([LICENSE](docs/reference/cloudflare-agents/source/cloudflare-docs/LICENSE)); MIT (code, [LICENSE-CODE](docs/reference/cloudflare-agents/source/cloudflare-docs/LICENSE-CODE)); see [ATTRIBUTION.md](docs/reference/cloudflare-agents/source/cloudflare-docs/ATTRIBUTION.md) |
+
+## The book reuses code from the garment engineering textbook, under Apache-2.0 only
+
+The book in `apps/manual/` copies or adapts code from the owner's garment engineering textbook, the private repository `tajistudios/garment-engineering-textbook`. The owner gave permission to reuse that code here on 2026-11-19, and asked for this credit ([ADR 0054](docs/decisions/0054-reuse-garment-textbook-code.md)). The repository has no licence file of its own, so every derived file is published under the Apache License, Version 2.0 only ([LICENSE-APACHE](LICENSE-APACHE)), not under the Apache-2.0 OR MIT terms of our other code. Each derived file opens with a header comment that names its source, the commit and that licence. The table lists every derived file:
+
+| File here | Source file | Commit | What it takes |
+|---|---|---|---|
+| [`apps/manual/astro.config.mjs`](apps/manual/astro.config.mjs) | `astro.config.mjs` | `bca44b0` | The render-input hash that deletes Astro's content cache when a Markdown plugin or its data changes, and the dev-server restart on those files |
+
+No file here copies the textbook repository's personal or account data, or text from its agent rules.
 
 ## Quotations elsewhere are short, attributed excerpts
 

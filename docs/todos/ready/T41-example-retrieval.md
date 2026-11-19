@@ -8,18 +8,19 @@
 | Status | `ready` |
 | Plan | [Book plan §5, BK20](../../plans/build-book.md#bk20-new-verify-examples-fill-the-gaps-the-coverage-review-found-accepted) |
 | Round / milestone | Round T (textbook), MT |
-| Depends on | [T5](T5-book-interactive-listings.md), [U18](U18-research-retrieval-and-long-term-memory.md) |
+| Depends on | [T5](T5-book-interactive-listings.md), [U18](../done/U18-research-retrieval-and-long-term-memory.md) |
 | Size | M |
 
 ## Goal
 
-Write a new type-checked, mock-run example in `verify/vercel-ai-sdk/examples/` so Chapter T36 ("Retrieval and long-term memory") has code behind its subject. The example shows a search tool over a small fixture corpus, using keyword search or a vector index with deterministic embeddings. The model cites the tool's results, and a check confirms that a wrong top result misleads it. The plan's code review found the gap: Chapter T36 teaches retrieval, and no example retrieves. The `search` tools in `claude-agent-sdk/04-max-turns.ts` and `openai-agents-sdk/08-max-turns.ts` return a fixed "3 hits" to test a turn cap. U18 decides which form the book should show.
+Write a new type-checked, mock-run example in `verify/vercel-ai-sdk/examples/` so Chapter T36 ("Retrieval and long-term memory") has code behind its subject. The example shows a search tool that ranks a fixture of about ten short documents with BM25, written inside the example. The model cites the tool's results, and four checks show where keyword search works and where it fails. The plan's code review found the gap: Chapter T36 teaches retrieval, and no example retrieves. The `search` tools in `claude-agent-sdk/04-max-turns.ts` and `openai-agents-sdk/08-max-turns.ts` return a fixed "3 hits" to test a turn cap. U18 recommended hand-written BM25, because it needs no new dependency and is the strongest keyword baseline, and the owner approved that form on 2026-11-19.
 
 ## Context
 
 - [Book plan BK20](../../plans/build-book.md#bk20-new-verify-examples-fill-the-gaps-the-coverage-review-found-accepted) and Chapter T36's todo, [T36](T36-chapter-retrieval-and-long-term-memory.md)
 - [AGENTS.md, process for documenting an SDK](../../../AGENTS.md#process-for-documenting-an-sdk): behavioural examples, mock models, and no host-touching tools
 - The harness's README and `examples/lib/` helpers
+- [U18's report](../../research/memory/retrieval-and-memory.md#three-new-examples-would-give-the-chapter-its-listings-led-by-t41s-keyword-search), the recommended form and its four checks
 
 ## Scope
 
@@ -36,9 +37,10 @@ Write a new type-checked, mock-run example in `verify/vercel-ai-sdk/examples/` s
 
 ## Tasks
 
-- [ ] Read U18's recommendation first, and pick keyword search or a vector index with deterministic, scripted embeddings; use no embedding API and no new dependency unless the owner approves one.
-- [ ] Keep the fixture corpus small and in the harness's `fixtures/`, and assert with `check()` which documents the tool returns for each query.
-- [ ] Script a turn where the top result is wrong, and assert that the model's answer follows it, so the chapter can show the failure mode.
+- [ ] Write BM25 scoring in the example itself, with no embedding API and no new dependency; if hand-written scoring grows too long, propose `minisearch` to the owner instead of adding it.
+- [ ] Keep a fixture of about ten short documents in the harness's `fixtures/`, and assert with `check()` which documents the tool returns for each query.
+- [ ] Assert four behaviours with `check()`: an exact identifier, such as an error code, ranks its document first; a paraphrase that shares no words with its document misses; a tenant filter inside the query keeps another tenant's near-duplicate out of the top results; and a planted document ranked first misleads the scripted model, whose answer follows it.
+- [ ] Optionally, add a hybrid variant that fuses the BM25 list with cosine scores from `MockEmbeddingModelV4` by reciprocal rank fusion at k = 60. If you write it, label the mock vectors in the example and its README line as a stand-in for semantic search.
 - [ ] Run the harness's `pnpm test` twice, and commit its updated `results/` and transcript.
 - [ ] Draft the example's header comment and README line with `/anthropic-skills:writing`, fact-check each claim about the SDK against its pinned `.d.ts` or reference, then review the copy with `/anthropic-skills:writing-review` and fix every finding.
 
