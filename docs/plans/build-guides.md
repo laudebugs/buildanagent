@@ -134,6 +134,10 @@ The owner asked how other agent platforms offer connectors (integrations a user 
 
 The owner asked how our agents will handle tasks that need a web browser. U15 found that they can do so without changing the architecture we accepted: the loop and every credential stay outside the sandbox, and the browser's traffic leaves through the same egress allowlist as `bash`. [`browser-use.md`](../research/browser-use/browser-use.md) recommends a logged-out headless Chromium inside the coding agent's existing sandbox, used to check its own UI work, and a hosted browser over a CDP WebSocket for open-web browsing and the platform's agents, behind one `BrowserProvider` seam. As of November 2026 that means Cloudflare Browser Run on Cloudflare, AgentCore Browser on AWS, and Browser Run over CDP from Vercel. The model should see accessibility snapshots, with screenshots only on request. Prompt injection from web content is unsolved, so the allowlist and the absence of credentials are the boundary, not the model, and only self-hosted, deterministically graded suites such as WebArena-Verified can gate a release. The report proposes seventeen changes for the owner, led by ADR 0043 and a fix to the Cloudflare sandbox backend (N46b), without which no HTTPS request leaves the sandbox. Its fact-check is [`fact-check-browser-use.md`](../research/browser-use/fact-check-browser-use.md).
 
+### U16: Watch and take over the browser (added 2026-11-19)
+
+The owner asked whether a user can stream the agent's browser, watch it and take over. Hosted browsers already ship live view and handoff, but the in-sandbox browser that U15 recommends for the coding agent has neither. U16 adds a section to [`browser-use.md`](../research/browser-use/browser-use.md#a-person-can-watch-and-take-over-the-in-sandbox-browser-through-the-loops-durable-object-with-no-sandbox-port-opened): the loop's Durable Object, which already holds the only CDP connection, relays screencast frames to the viewer and sends the viewer's input back, so the sandbox opens no port. Takeover is a tool call that pauses the turn and returns a fresh snapshot, and the model never sees what the person typed. Viewers join with short-lived, single-use tickets enforced in the Durable Object, and each join and leave goes into the session log. The report proposes this as change 18; its claims are logged in [`fact-check-browser-use.md`](../research/browser-use/fact-check-browser-use.md).
+
 ## 5. Todos
 
 | ID | Title | Depends on |
@@ -158,6 +162,7 @@ The owner asked how our agents will handle tasks that need a web browser. U15 fo
 | U13 | Research a job search automation agent (done: [job-search-agent.md](../research/agents/job-search-agent.md)) | U12 |
 | U14 | Research connectors for our agents and platform (done: [agent-connectors.md](../research/connectors/agent-connectors.md)) | U12 |
 | U15 | Research browser use for our agents (done: [browser-use.md](../research/browser-use/browser-use.md)) | U12 |
+| U16 | Research watching and taking over the agent's browser (done: [browser-use.md](../research/browser-use/browser-use.md#a-person-can-watch-and-take-over-the-in-sandbox-browser-through-the-loops-durable-object-with-no-sandbox-port-opened)) | U15 |
 | G1b | Guide: building an agent SDK (done: [docs/guides/agent-sdk.md](../guides/agent-sdk.md)) | G1a, H3, R1 |
 | G2a | Deep research: building an agent harness (done) | G1a |
 | G2b | Guide: building an agent harness (done: [docs/guides/agent-harness.md](../guides/agent-harness.md)) | G2a, G1b, H3 |
