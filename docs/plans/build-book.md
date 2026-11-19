@@ -520,7 +520,7 @@ The three research rounds behind the sections each confirmed its placement, and 
 | [T8](../todos/done/T8-book-ci.md) | The book's build workflow: every check, no secrets, `dist/` as an artifact | T4, T6 | S |
 | [T9](../todos/ready/T9-book-deploy.md) | Deploy to manual.buildanagent.fyi from GitHub Actions: guard, switch and branch previews | T2, T8 | M |
 | [T26](../todos/ready/T26-book-checked-inline-code.md) | Checked inline code: identifiers resolve to listings, transcripts or the pinned `.d.ts` | T5 | M |
-| [T27](../todos/ready/T27-book-live-run.md) | An occasional live run against real APIs, with flow diffs and the last-comparison date | T5 | M |
+| [T27](../todos/ongoing/T27-book-live-run.md) | An occasional live run against real APIs, with flow diffs and the last-comparison date | T5 | M |
 | [T28](../todos/ready/T28-example-streaming-usage.md) | Example: streaming with usage and the four token classes | T5 | M |
 | [T29](../todos/ready/T29-example-retries-caching-budget.md) | Example: retries, prompt caching and a pre-call budget | T5 | M |
 | [T30](../todos/ready/T30-example-deferred-tools-and-skills.md) | Example: deferred tools and skills | T5 | M |
