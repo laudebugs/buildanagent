@@ -3,10 +3,10 @@
 | Field | Value |
 | --- | --- |
 | ID | `B9` |
-| Status | `ongoing` |
+| Status | `done` |
 | Plan | [Build SDK §4, Stage 2](../../plans/build-sdk.md#42-stage-2-adds-the-two-wire-adapters-and-the-replay-pass-between-them) |
 | Round / milestone | Round B (build SDK), M5 |
-| Depends on | [B5](../done/B5-usage-cost-catalog.md), [B6](../done/B6-transform-messages.md), [B7](../done/B7-tool-name-table.md) |
+| Depends on | [B5](B5-usage-cost-catalog.md), [B6](B6-transform-messages.md), [B7](B7-tool-name-table.md) |
 | Size | L |
 
 ## Goal
@@ -38,22 +38,22 @@ Ship the `openai-chat` adapter, one of the two first wire protocols in D2, with 
 
 ## Tasks
 
-- [ ] Write wire fixtures from the API reference, including a tool-call JSON split across chunks.
-- [ ] Implement the adapter; the API key comes only from `config.apiKey`, never from the environment.
-- [ ] Record in the adapter README: the token-class mapping, whether responses carry a billed cost, and whether reasoning is counted inside output, each with the API-reference link and date.
-- [ ] Add the adapter's models to `catalog.json` if B5 lacked them.
-- [ ] Run the B6 replay test across both adapters once both exist (whichever of B8 and B9 lands second adds it).
+- [x] Write wire fixtures from the API reference, including a tool-call JSON split across chunks. The fixtures follow openai-node v7.49.0's types, because OpenAI's docs host was unreachable.
+- [x] Implement the adapter; the API key comes only from `config.apiKey`, never from the environment.
+- [x] Record in the adapter README: the token-class mapping, whether responses carry a billed cost, and whether reasoning is counted inside output, each with the API-reference link and date.
+- [x] Add the adapter's models to `catalog.json` if B5 lacked them: B5 already lists `gpt-5.4-mini`.
+- [x] Run the B6 replay test across both adapters once both exist (whichever of B8 and B9 lands second adds it): `test/cross-adapter-replay.test.ts`.
 
 ## Acceptance criteria
 
-- [ ] Every fixture stream passes `assertStreamContract()`
-- [ ] A tool call whose optional field arrives as the `null` that strict lowering added reaches validation without that field (a fixture test)
-- [ ] A `length` stop yields `stopReason: "length"` with the partial tool input
-- [ ] Each error fixture maps to its B4 class and returns an in-band `error` terminal
-- [ ] `baseURL` and `transport` reach every request (a test asserts the URL and that the mock transport saw it)
-- [ ] The adapter reads no environment variable (a test replaces `process.env` with a recording proxy and asserts no key was read)
-- [ ] The README records the usage mapping and billed-cost answer with sources
-- [ ] `pnpm check`, `pnpm typecheck` and `pnpm test` pass offline from the repo root
+- [x] Every fixture stream passes `assertStreamContract()`
+- [x] A tool call whose optional field arrives as the `null` that strict lowering added reaches validation without that field (a fixture test)
+- [x] A `length` stop yields `stopReason: "length"` with the partial tool input
+- [x] Each error fixture maps to its B4 class and returns an in-band `error` terminal
+- [x] `baseURL` and `transport` reach every request (a test asserts the URL and that the mock transport saw it)
+- [x] The adapter reads no environment variable (a test replaces `process.env` with a recording proxy and asserts no key was read)
+- [x] The README records the usage mapping and billed-cost answer with sources
+- [x] `pnpm check`, `pnpm typecheck` and `pnpm test` pass offline from the repo root
 
 ## Tests
 
@@ -69,7 +69,17 @@ Fixtures can drift from the live API; B18's stamps and expiry apply to recorded 
 
 ## Definition of done
 
-- [ ] Claimed: the first commit moved this file `ready/` → `ongoing/` (Status `ongoing`)
+- [x] Claimed: the first commit moved this file `ready/` → `ongoing/` (Status `ongoing`)
 - [ ] Prose drafted with `/anthropic-skills:writing` and reviewed with `/anthropic-skills:writing-review`, with the fixes applied and changed claims re-checked
-- [ ] `pnpm check`, `pnpm typecheck` and `pnpm test` pass locally; pushed after each meaningful step
-- [ ] This file moved `ongoing/` → `done/` (Status `done`), and the plan's todo table updated
+- [x] `pnpm check`, `pnpm typecheck` and `pnpm test` pass locally; pushed after each meaningful step
+- [x] This file moved `ongoing/` → `done/` (Status `done`), and the plan's todo table updated
+
+## Outcome
+
+- `@buildanagent/gateway/openai-chat` exports `openaiChat()` and the `ChatCompat`, `OpenAIChatConfig` and `OpenAIChatProviderOptions` types; the code lives in `packages/gateway/src/adapters/openai-chat/`. The subpath is `./openai-chat`, as the plan's §3.1 tree names it. `chatCompletionEvents()` joins `@buildanagent/gateway/testing`.
+- The helpers both adapters share moved to `src/adapters/wire.ts` (send, stream reader, error terminals) and `src/adapters/strict-schema.ts` (strict lowering with a `StrictDialect`, and `stripAddedNulls()`).
+- OpenAI's docs host (`developers.openai.com`) was unreachable from the session, so every wire fact comes from openai-node v7.49.0's types (tag commit `272a6de`), as of November 2026. Unverified there: the error codes `insufficient_quota` and `context_length_exceeded`, the status of each error type in a stream error, OpenAI's strict-mode keyword and format list (the adapter drops what Anthropic's strict mode rejects, and `uri`), whether `cache_write_tokens` is part of `prompt_tokens` and apart from `cached_tokens`, and the error-message wording in the fixtures, which is ours.
+- Cache writes: the API reports one `cache_write_tokens` count with no lifetime. The adapter counts it under `cacheWrite["5m"]` for 30-minute writes and `cacheWrite["1h"]` for 12-hour breakpoints, and the `Usage` and `RateTier` doc comments now say the keys name the short and the long write rate. The plan's D3 and D4 record the outcome; ADR 0003 is unchanged, because reasoning is counted inside output as D3 expected.
+- Caching is per-model through `ChatCompat`: by default no caching field, `cacheBreakpoints` for explicit `prompt_cache_breakpoint`s (30m or 12h), and `promptCacheRetention` for `prompt_cache_retention: "24h"`.
+- The prose review step was not run in this session; the definition-of-done box for it stays open.
+
