@@ -1,8 +1,19 @@
 import assert from "node:assert/strict";
-import { classifyError, createModel, type ErrorKind, type GatewayEvent } from "@buildanagent/gateway";
+import {
+  type AssistantMessage,
+  classifyError,
+  createModel,
+  type ErrorKind,
+  emptyUsage,
+  type GatewayEvent,
+  type ModelAdapter,
+  type ModelEvent,
+  type ModelRef,
+  type Usage,
+} from "@buildanagent/gateway";
 import { assertStreamContract } from "@buildanagent/gateway/testing";
 import { afterEach, test, vi } from "vitest";
-import { collect, context, FailingAdapter, recordingSleep } from "./adapters.ts";
+import { collect, context, FailingAdapter, recordingSleep, TEST_CAPS } from "./adapters.ts";
 
 afterEach(() => {
   vi.useRealTimers();
@@ -146,8 +157,88 @@ test("classifyError sorts HTTP failures into the four kinds", () => {
     [{ status: 400, message: "prompt is too long: 210000 tokens > 200000 maximum" }, "overflow"],
     [{ status: 400, code: "context_length_exceeded" }, "overflow"],
     [{ status: 400, message: "invalid request" }, "fatal"],
+    [
+      { status: 429, code: "RESOURCE_EXHAUSTED", message: "Resource has been exhausted (e.g. check quota)." },
+      "retryable",
+    ],
+    [{ status: 429, message: "Request too large for gpt-x on tokens per min" }, "retryable"],
+    [{ status: 429, code: "insufficient_quota", message: "You exceeded your current quota" }, "quota"],
+    [{ status: 501 }, "fatal"],
+    [{ status: 505 }, "fatal"],
     [{ status: 401 }, "fatal"],
     [{ status: 404 }, "fatal"],
   ];
   for (const [failure, kind] of cases) assert.equal(classifyError(failure), kind, JSON.stringify(failure));
+});
+
+/** An adapter whose attempts are given as async generators, for failures the FailingAdapter double can't express. */
+function scriptedAdapter(
+  attempts: ((model: ModelRef) => AsyncGenerator<ModelEvent>)[],
+): ModelAdapter & { calls: number } {
+  return {
+    specificationVersion: "v1",
+    api: "test-api",
+    provider: "test",
+    defaultCaps: TEST_CAPS,
+    calls: 0,
+    stream(model) {
+      const attempt = attempts[this.calls];
+      this.calls += 1;
+      if (attempt === undefined) throw new Error("no attempt scripted");
+      return attempt(model);
+    },
+  };
+}
+
+const usage = (uncachedInput: number, output: number): Usage => ({ ...emptyUsage(), uncachedInput, output });
+
+function errorMessage(model: ModelRef, kind: ErrorKind, u: Usage): AssistantMessage {
+  const cost = { total: null, basis: "unknown", currency: "USD" } as const;
+  return { role: "assistant", content: [], model, stopReason: "error", error: { kind, message: kind }, usage: u, cost };
+}
+
+test("a stream that throws before output is retried, and one that keeps throwing ends with an error terminal", async () => {
+  const adapter = scriptedAdapter([
+    // biome-ignore lint/correctness/useYield: the attempt fails before it yields anything
+    async function* () {
+      throw new TypeError("fetch failed");
+    },
+    async function* () {
+      yield { type: "start" };
+      throw new TypeError("fetch failed");
+    },
+  ]);
+  const model = createModel({ adapter, id: "m", retries: 1, sleep: recordingSleep().sleep });
+
+  const events = await assertStreamContract(model.stream(context));
+
+  assert.equal(adapter.calls, 2);
+  assert.equal(retriesOf(events).length, 1);
+  const last = events.at(-1);
+  assert.equal(last?.type, "error");
+  assert.deepEqual(last?.type === "error" && last.message.error, { kind: "retryable", message: "fetch failed" });
+});
+
+test("the final message counts the usage of the failed attempts as well as the last one", async () => {
+  const adapter = scriptedAdapter([
+    async function* (model) {
+      yield { type: "start" };
+      yield { type: "error", message: errorMessage(model, "retryable", usage(150, 0)) };
+    },
+    async function* (model) {
+      yield { type: "start" };
+      const message: AssistantMessage = {
+        ...errorMessage(model, "retryable", usage(150, 7)),
+        stopReason: "stop",
+      };
+      delete message.error;
+      yield { type: "done", message };
+    },
+  ]);
+  const model = createModel({ adapter, id: "m", sleep: recordingSleep().sleep });
+
+  const result = await model.complete(context);
+
+  assert.equal(result.usage.uncachedInput, 300);
+  assert.equal(result.usage.output, 7);
 });

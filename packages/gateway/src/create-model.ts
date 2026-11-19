@@ -71,7 +71,7 @@ export function createModel(options: CreateModelOptions): Model {
     const params = await transformParams(middleware, { context, options: streamOptions });
     const request = { adapter, ref, context: params.context, options: params.options, onRequest };
     yield* wrapStream(middleware, params, () =>
-      withRetries((n) => startAttempt(request, n), params.options.signal, settings),
+      withRetries((n) => startAttempt(request, n), ref, params.options.signal, settings),
     );
   }
 

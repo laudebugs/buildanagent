@@ -4,8 +4,10 @@ import { join, relative } from "node:path";
 import { fileURLToPath } from "node:url";
 import {
   createModel,
+  emptyUsage,
   type GatewayErrorCode,
   isGatewayError,
+  type ModelAdapter,
   type PriceCatalog,
   type RequestDump,
 } from "@buildanagent/gateway";
@@ -92,7 +94,8 @@ test("onRequest receives each attempt's full request, with the wire body after o
   for (const [i, dump] of dumps.entries()) {
     assert.equal(dump.attempt, i + 1);
     assert.deepEqual(dump.model, { api: "test-http", provider: "test-http", id: "m" });
-    assert.equal(dump.context, context);
+    assert.deepEqual(dump.context, context);
+    assert.notEqual(dump.context, context, "the dump holds a copy, not the caller's object");
     assert.deepEqual(dump.options, { maxOutputTokens: 50 });
     assert.deepEqual(dump.body, JSON.parse(requests[i]?.body ?? "null"));
     assert.deepEqual((dump.body as { metadata: unknown }).metadata, { tag: "rewritten" });
@@ -198,4 +201,28 @@ test("no gateway source outside the offline guards reads the environment", () =>
       ),
     );
   assert.deepEqual(offenders, []);
+});
+
+test("an adapter that yields start before it builds its body is dumped once, with the body", async () => {
+  const dumps: unknown[] = [];
+  const adapter: ModelAdapter = {
+    specificationVersion: "v1",
+    api: "test-api",
+    provider: "test",
+    defaultCaps: TEST_CAPS,
+    async *stream(model, _context, options) {
+      yield { type: "start" };
+      options.onPayload?.({ prompt: "hi" });
+      const cost = { total: null, basis: "unknown", currency: "USD" } as const;
+      yield {
+        type: "done",
+        message: { role: "assistant", content: [], model, stopReason: "stop", usage: emptyUsage(), cost },
+      };
+    },
+  };
+  const model = createModel({ adapter, id: "m", onRequest: (dump) => dumps.push(dump.body) });
+
+  await model.complete(context);
+
+  assert.deepEqual(dumps, [{ prompt: "hi" }]);
 });

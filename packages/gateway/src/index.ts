@@ -39,4 +39,4 @@ export type {
   Usage,
   WireTool,
 } from "./types.ts";
-export { emptyUsage, totalInput } from "./usage.ts";
+export { addUsage, emptyUsage, totalInput } from "./usage.ts";

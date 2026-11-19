@@ -15,18 +15,24 @@ export interface FailedRequest {
   message?: string;
 }
 
-// Quota and billing errors are final even when the status is 429, because waiting does not refill a budget.
-const QUOTA = /insufficient_quota|quota|billing|credit balance|payment/i;
-const OVERFLOW = /context[ _-]?(length|window)|prompt is too long|maximum context|request too large/i;
+// Quota and billing errors are final even when the status is 429, because waiting does not refill a budget. Only
+// explicit billing codes and phrases count: a rate-limit message that merely mentions "quota" stays retryable.
+const QUOTA = /insufficient_quota|exceeded your current quota|credit balance is too low|billing_hard_limit/i;
+// A per-minute "request too large" 429 is a rate limit, not a full context, so only context phrases count here.
+const OVERFLOW = /context[ _-]?(length|window)|prompt is too long|maximum context/i;
+// Other 5xx statuses, such as 501 and 505, are permanent.
 const RETRYABLE_STATUSES = new Set([408, 409, 425, 429, 500, 502, 503, 504, 529]);
 
-/** Returns the error kind for a failed request. Unknown failures are `fatal`, so nothing is retried by accident. */
+/**
+ * Returns the error kind for a failed request. A request that got no response is `retryable`, because it failed in
+ * transit; a response whose status the gateway doesn't know is `fatal`, so nothing is retried by accident.
+ */
 export function classifyError(failure: FailedRequest): ErrorKind {
   const text = `${failure.code ?? ""} ${failure.message ?? ""}`;
   if (failure.status === 402 || QUOTA.test(text)) return "quota";
   if (failure.status === 413 || OVERFLOW.test(text)) return "overflow";
   // No status means the request failed in transit (a reset connection or DNS failure), which is safe to retry.
   if (failure.status === undefined) return "retryable";
-  if (RETRYABLE_STATUSES.has(failure.status) || failure.status >= 500) return "retryable";
+  if (RETRYABLE_STATUSES.has(failure.status)) return "retryable";
   return "fatal";
 }

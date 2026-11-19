@@ -50,6 +50,8 @@ A call that fails before the model has streamed any content is retried twice by 
 
 Three rules keep a retry from doing harm. First, once a content event has reached you, the gateway never retries, because a second attempt would replay text you have already seen. Second, only errors of kind `retryable` are retried, such as a rate limit or an overloaded server. A `quota` error, a context `overflow` or a `fatal` error ends the call at once, because waiting will not fix it. Third, aborting the signal during a wait ends the stream at once with `stopReason: "aborted"`.
 
+A failed attempt still costs tokens, so the final message's `usage` adds up every attempt, not only the last. An adapter whose stream throws, for example on a dropped connection, is treated like one that ends with an error: the call is retried or ends with an `error` event, and `stream()` itself never throws.
+
 Adapters sort a failed request into these four kinds with `classifyError()`, from its HTTP status and the provider's error code or message.
 
 ## Middleware wraps every call, first one outermost
@@ -60,7 +62,7 @@ A `ModelMiddleware` can rewrite the request with `transformParams` and watch or 
 
 `onPayload` in the stream options lets you inspect or replace the wire body just before an adapter sends it. Return the new body, or `undefined` to send the body unchanged.
 
-`onRequest` in `createModel()` receives the full request of each attempt before it is sent: the attempt number, the model, the context, the stream options and the wire body after `onPayload`. Log it when a step misbehaves, and you see what the provider saw.
+`onRequest` in `createModel()` receives the full request of each attempt before it is sent: the attempt number, the model, the context, the stream options and the wire body after `onPayload`. The dump is a copy, so changing the context after the call doesn't change what it shows. Log it when a step misbehaves, and you see what the provider saw.
 
 ## Tests run offline
 

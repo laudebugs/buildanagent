@@ -4,13 +4,15 @@
  *
  * The gateway hands the adapter its own `onPayload`, which runs the caller's hook and then dumps the body it returns,
  * so the dump shows what was actually sent. An adapter with no wire body never calls `onPayload`; its dump, with
- * `body: undefined`, goes out before its first event instead. Either way each attempt is dumped once, before any of
- * its events reach the caller.
+ * `body: undefined`, goes out before its first event after `start` instead, so an adapter that yields `start` before
+ * it builds its body is still dumped with the body. Either way each attempt is dumped once, before any of its content
+ * reaches the caller.
  */
 import type { DumpedOptions, RequestDump } from "./runtime-types.ts";
 import type { ModelAdapter, ModelEvent, StreamOptions } from "./spec.ts";
 import type { ModelContext, ModelRef } from "./types.ts";
 
+/** One model call's request, which every attempt of the call sends again. */
 export interface AttemptRequest {
   readonly adapter: ModelAdapter;
   readonly ref: ModelRef;
@@ -26,7 +28,7 @@ function dumpedOptions(options: StreamOptions): DumpedOptions {
 
 async function* dumpBeforeFirstEvent(events: AsyncIterable<ModelEvent>, ensureDumped: () => void) {
   for await (const event of events) {
-    ensureDumped();
+    if (event.type !== "start") ensureDumped();
     yield event;
   }
   ensureDumped();
@@ -37,8 +39,11 @@ export function startAttempt(request: AttemptRequest, n: number): AsyncIterable<
   const { adapter, ref, context, options, onRequest } = request;
   let dumped = false;
   const dump = (body: unknown): void => {
+    if (dumped) return;
     dumped = true;
-    onRequest?.({ attempt: n, model: ref, context, options: dumpedOptions(options), body });
+    // A copy, so a caller that changes the context after the call can't rewrite what an earlier attempt sent.
+    if (onRequest)
+      onRequest(structuredClone({ attempt: n, model: ref, context, options: dumpedOptions(options), body }));
   };
   const callerHook = options.onPayload;
   const onPayload = (body: unknown): unknown => {
