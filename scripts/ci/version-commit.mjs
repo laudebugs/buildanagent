@@ -15,8 +15,8 @@
 // that can run beside another needs its own. The script makes the commit that holds <head>'s tree on <base>, checks
 // through the REST API that GitHub verified its signature and that its tree and parent match, and only then moves
 // <branch> to it. When <branch> already holds a verified commit with that tree on <base>, it changes nothing, so a rerun
-// doesn't restart the checks. --replace-own-only makes it refuse to move a <branch> whose head has another headline than
-// <head>, such as a commit someone pushed to the pull request by hand.
+// doesn't restart the checks. --replace-own-only makes it refuse to move a <branch> whose head isn't a commit GitHub made
+// for it with <head>'s headline, such as a commit someone pushed or amended by hand.
 import { execFileSync, spawnSync } from "node:child_process";
 import { fileURLToPath } from "node:url";
 import { parseRawDiff } from "./version-pr.mjs";
@@ -101,11 +101,26 @@ export function commitProblem(commit, { tree, base }) {
 }
 
 /**
+ * Says whether GitHub's commit `commit` looks like one this script made: GitHub committed and verified it, and its
+ * headline is `local`'s. A commit someone amended or pushed with git has another committer, and one made in GitHub's
+ * web editor, or by its "Update branch" button, has another headline.
+ */
+function madeByThisScript(commit, local) {
+  const headline = String(commit.message ?? "").split("\n")[0];
+  return (
+    commit.verification?.verified === true &&
+    commit.committer?.email === "noreply@github.com" &&
+    headline === local.message.headline
+  );
+}
+
+/**
  * Makes the verified commit on `staging` and moves `branch` to it. `local` describes the checked commit as `{ base,
  * tree, message, fileChanges }`. Returns `{ sha, created }`; throws, leaving `branch` as it was, when GitHub's commit
  * isn't verified or doesn't match. `staging` is moved to `base` first and deleted at the end, so it must be a branch
  * that nothing else uses. With `replaceOwnOnly`, it also throws, before writing anything, when `branch` exists and its
- * head's headline differs from `local`'s, because someone else's commits would then be lost. `log` receives progress
+ * head isn't a commit this script made with `local`'s headline, and before moving `branch` when it moved meanwhile,
+ * because someone else's commits would then be lost. `log` receives progress
  * lines.
  */
 export function publishVersionCommit({
@@ -128,7 +143,7 @@ export function publishVersionCommit({
       return { sha: current.object.sha, created: false };
     }
     const headline = String(head.message ?? "").split("\n")[0];
-    if (replaceOwnOnly && headline !== local.message.headline) {
+    if (replaceOwnOnly && !madeByThisScript(head, local)) {
       throw new Error(
         `${branch}'s head ${current.object.sha} ("${headline}") isn't a commit this workflow made, so ${branch} stays ` +
           "as it was: merge or close its pull request, or delete the branch, and run the workflow again",
@@ -158,6 +173,12 @@ export function publishVersionCommit({
       throw new Error(`createCommitOnBranch returned no commit: ${JSON.stringify(response?.errors ?? response)}`);
     const problem = commitProblem(getCommit(sha), local);
     if (problem) throw new Error(`${problem}, so ${branch} stays as it was`);
+    if (replaceOwnOnly) {
+      // Narrows the window in which a push to the branch, made while the commit above was built, would be lost.
+      const now = apiCall(run, { path: `repos/${repo}/git/ref/heads/${branch}`, missingOk: true });
+      if (now?.object.sha !== current?.object.sha)
+        throw new Error(`${branch} moved while the commit was made, so it stays`);
+    }
     setBranch(run, repo, branch, sha);
     log(`${branch} now holds the verified commit ${sha}.`);
     return { sha, created: true };

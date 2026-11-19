@@ -70,7 +70,8 @@ jobs:
       - name: Bump the harness's pins
         env:
           HARNESS: ${{ matrix.harness }}
-        run: node scripts/ci/sdk-updates.mjs apply "$HARNESS" > bumps.md
+          BUMPS: ${{ matrix.bumps }}
+        run: node scripts/ci/sdk-updates.mjs apply "$HARNESS" "$BUMPS" > bumps.md
       - name: Install the new releases
         id: install
         continue-on-error: true

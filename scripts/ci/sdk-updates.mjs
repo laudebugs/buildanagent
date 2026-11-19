@@ -3,7 +3,9 @@
 // miniflare's dated -beta builds) may also move to a newer prerelease of the same major version.
 //
 //   node scripts/ci/sdk-updates.mjs plan            JSON matrix of harnesses with updates, for GitHub Actions
-//   node scripts/ci/sdk-updates.mjs apply <harness> rewrites verify/<harness>/package.json, prints the bumps
+//   node scripts/ci/sdk-updates.mjs apply <harness> <bumps>
+//                                                   writes the plan's <bumps> into verify/<harness>/package.json and
+//                                                   prints them
 //   node scripts/ci/sdk-updates.mjs check <harness> <base> <head> <bumps>
 //                                                   checks that the commit <head> on <base> changes only what an
 //                                                   update of <harness> to the plan's <bumps> may, and prints what is
@@ -209,6 +211,15 @@ function plainEntry(lines) {
 // repository or a local path would let a tampered lockfile install code that npm doesn't hold under that name.
 const REGISTRY_RESOLUTION = /^ {4}resolution: \{integrity: sha512-[A-Za-z0-9+/]+={0,2}\}$/;
 
+/**
+ * Says whether a line of a new snapshot names a registry version, or an npm alias of one, for each dependency. A
+ * snapshot's dependencies pick the packages entries pnpm installs, so a `link:` or `file:` there would install a path.
+ */
+function snapshotLine(line) {
+  const value = /^ {6}(?:'[^']+'|[^\s:'"]+): (.*)$/.exec(line)?.[1];
+  return value === undefined || /^[A-Za-z0-9@._/()+~^-]+$/.test(value);
+}
+
 /** Says whether a packages entry's body has exactly one resolution, and that one REGISTRY_RESOLUTION. */
 function registryResolved(lines) {
   const resolutions = lines.filter((line) => /^ {4}resolution:/.test(line));
@@ -239,7 +250,9 @@ function lockEntries(section, body) {
 // resolution of a peer across the workspace, so bumping one harness can move a peer that another harness installs.
 const OWN_VALUE = /^( {8}(?:specifier|version): )(.*)$/;
 const PEER_SUFFIX = /^( {8}version: [^(\s]+)(\(.*)$/;
-const PLAIN_VALUE = /^[A-Za-z0-9@._/()+~^:*-]+$/;
+// A registry version, with the peers pnpm resolved it against in parentheses. No `link:`, `file:` or URL, which would
+// install a path or a download in place of the registry's package.
+const REGISTRY_VERSION = /^\d+\.\d+\.\d+(?:-[0-9A-Za-z.-]+)?(?:\([^\s:]*\))?$/;
 
 /**
  * Says what is wrong with one importer's new entry, or returns "". `pattern` matches each line whose second group may
@@ -250,10 +263,14 @@ function importerProblem(name, prior, entry, pattern) {
   if (entry.key !== prior.key || mask(entry.lines) !== mask(prior.lines)) {
     return pattern ? `changes more of the ${name} importer than an update may` : `changes the ${name} importer`;
   }
-  const values = pattern ? entry.lines.map((line) => pattern.exec(line)?.[2]).filter((v) => v !== undefined) : [];
-  return values.every((value) => PLAIN_VALUE.test(value))
+  const old = trimBlank(prior.lines).split("\n");
+  const changed = trimBlank(entry.lines)
+    .split("\n")
+    .filter((line, i) => line !== old[i]);
+  const valid = pattern === OWN_VALUE ? REGISTRY_VERSION : /^\([^\s:]*\)$/;
+  return changed.every((line) => valid.test(pattern.exec(line)?.[2] ?? ""))
     ? ""
-    : `the ${name} importer holds a version pnpm doesn't write`;
+    : `the ${name} importer points a dependency at something other than a registry version`;
 }
 
 /**
@@ -308,6 +325,8 @@ export function lockfileProblems(before, after, harness) {
         if (entry.key !== prior.key || entry.body !== prior.body) problems.push(`${file}: changes ${section} ${name}`);
       } else if (!plainEntry(entry.lines)) {
         problems.push(`${file}: the new ${section} entry ${name} holds a line pnpm doesn't write`);
+      } else if (section === "snapshots" && !entry.lines.every(snapshotLine)) {
+        problems.push(`${file}: the new snapshot ${name} depends on something other than a registry version`);
       } else if (section === "packages" && !registryResolved(entry.lines)) {
         problems.push(`${file}: the new package ${name} doesn't resolve from the npm registry by its integrity alone`);
       }
@@ -379,11 +398,21 @@ async function plan() {
   process.stdout.write(`${JSON.stringify({ include })}\n`);
 }
 
-async function apply(harness) {
+/**
+ * Writes the plan job's `bumpsText` into the harness's package.json. It takes the plan's versions rather than asking the
+ * registry again, because the check holds the patch to them, and a release that crossed the age cutoff in between
+ * would otherwise fail the update. The registry is read only for each version's publish date in the summary.
+ */
+async function apply(harness, bumpsText) {
   if (!harnesses().includes(harness)) throw new Error(`no harness named ${harness}`);
   const file = manifestPath(harness);
   const manifest = JSON.parse(readFileSync(file, "utf8"));
-  const bumps = await bumpsFor(harness);
+  const bumps = [];
+  for (const { name, version } of parseBumps(bumpsText)) {
+    if (!Object.hasOwn(manifest.dependencies ?? {}, name)) throw new Error(`${name} isn't a dependency of ${harness}`);
+    const published = (await registryEntry(name)).time?.[version] ?? "unknown";
+    bumps.push({ name, from: manifest.dependencies[name], to: version, published });
+  }
   for (const b of bumps) manifest.dependencies[b.name] = b.to;
   writeFileSync(file, `${JSON.stringify(manifest, null, 2)}\n`);
   for (const b of bumps)
@@ -392,13 +421,15 @@ async function apply(harness) {
 
 const [command, arg, ...rest] = process.argv.slice(2);
 if (command === "plan") await plan();
-else if (command === "apply" && arg) await apply(arg);
+else if (command === "apply" && arg && rest.length === 1) await apply(arg, rest[0]);
 else if (command === "check" && arg && rest.length === 3) {
   const problems = checkUpdate(process.cwd(), arg, ...rest);
   for (const problem of problems) process.stderr.write(`::error::sdk-updates check: ${problem}\n`);
   if (problems.length > 0) process.exit(1);
   process.stdout.write(`The ${arg} update changes only its pins, its results and the lockfile.\n`);
 } else if (command !== undefined) {
-  process.stderr.write("usage: sdk-updates.mjs plan | apply <harness> | check <harness> <base> <head> <bumps>\n");
+  process.stderr.write(
+    "usage: sdk-updates.mjs plan | apply <harness> <bumps> | check <harness> <base> <head> <bumps>\n",
+  );
   process.exit(2);
 }

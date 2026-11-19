@@ -321,6 +321,21 @@ describe("lockfileProblems", () => {
       (t) => t.replace("\nsnapshots:", "  evil@1.0.0:\n   x: 1\n\nsnapshots:"),
       /badly indented/,
     ],
+    [
+      "points the harness's dependency at a local path",
+      (t) => t.replace("version: 1.1.0(peer@2.0.0)", "version: link:results/evil"),
+      /verify\/pi importer points a dependency at something other than a registry version/,
+    ],
+    [
+      "points another harness's peer at a local path",
+      (t) => t.replace("version: 3.0.0(peer@2.0.0)", "version: 3.0.0(peer@file:x)"),
+      /verify\/other importer points a dependency/,
+    ],
+    [
+      "gives a new snapshot a local dependency",
+      (t) => t.replace("      peer: 2.0.0", "      peer: link:../../verify/pi/results"),
+      /snapshot pi-ai@1\.1\.0\(peer@2\.0\.0\) depends on something other than a registry version/,
+    ],
     ["uses a tab", (t) => t.replace("hasBin: true", "hasBin:\ttrue"), /tab or a carriage return/],
   ]) {
     test(`refuses a lockfile that ${name}`, () => {
@@ -394,6 +409,12 @@ describe("sdk-updates.yml", () => {
     assert.equal(push.if, "steps.commit.outputs.changed == 'true'");
     assert.doesNotMatch(push.run, /git push|x-access-token|gh pr merge|--auto/);
     assert.ok(push.run.indexOf("version-commit.mjs") < push.run.indexOf("gh pr list"));
+  });
+
+  test("the update job writes the plan's bumps rather than asking the registry again", () => {
+    const step = jobs.update.steps.find((s) => /sdk-updates\.mjs apply/.test(s.run ?? ""));
+    assert.equal(step.run, 'node scripts/ci/sdk-updates.mjs apply "$HARNESS" "$BUMPS" > bumps.md');
+    assert.equal(step.env.BUMPS, `\${{ matrix.bumps }}`);
   });
 
   test("runs only from main, and opens the other harnesses' pull requests when one harness's update fails", () => {

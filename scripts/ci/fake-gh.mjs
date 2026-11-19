@@ -56,7 +56,8 @@ if (method === "GET" && (match = /^repos\\/o\\/r\\/git\\/commits\\/([0-9a-f]{40}
   const [tree, ...parents] = git(["log", "-1", "--format=%T %P", match[1]]).split(" ").filter(Boolean);
   const verified = signed().includes(match[1]) && !process.env.UNVERIFIED;
   const message = git(["log", "-1", "--format=%B", match[1]]);
-  out({ sha: match[1], message, tree: { sha: tree }, parents: parents.map((p) => ({ sha: p })),
+  const [name, email] = git(["log", "-1", "--format=%cn%n%ce", match[1]]).split("\\n");
+  out({ sha: match[1], message, committer: { name, email }, tree: { sha: tree }, parents: parents.map((p) => ({ sha: p })),
     verification: { verified, reason: verified ? "valid" : "unsigned" } });
 }
 if (method === "POST" && route === "graphql") {

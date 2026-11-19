@@ -57,10 +57,15 @@ const graphqlError = (message) => ({
   stdout: JSON.stringify({ errors: [{ message }] }),
   stderr: `gh: ${message}`,
 });
-const commit = (sha, { verified = true, tree = TREE, parents = [BASE], reason, message = "" } = {}) =>
+const GITHUB = { name: "GitHub", email: "noreply@github.com" };
+const commit = (
+  sha,
+  { verified = true, tree = TREE, parents = [BASE], reason, message = "", committer = GITHUB } = {},
+) =>
   json({
     sha,
     message,
+    committer,
     tree: { sha: tree },
     parents: parents.map((p) => ({ sha: p })),
     verification: { verified, reason: reason ?? (verified ? "valid" : "unsigned") },
@@ -331,6 +336,43 @@ describe("publishVersionCommit with its own staging branch, as sdk-updates.yml c
     );
     const result = publishVersionCommit({ run: gh.run, repo, branch: update, local, staging, replaceOwnOnly: true });
     assert.deepEqual(result, { sha: NEW, created: true });
+  });
+
+  test("with replaceOwnOnly, refuses a commit with the update's headline that someone amended", () => {
+    const amended = { name: "maintainer", email: "maintainer@example.invalid" };
+    const gh = fakeGh({
+      [`GET repos/${repo}/git/ref/heads/${update}`]: json({ object: { sha: OLD } }),
+      [`GET repos/${repo}/git/commits/${OLD}`]: commit(OLD, {
+        parents: ["e".repeat(40)],
+        message: local.message.headline,
+        committer: amended,
+      }),
+    });
+    assert.throws(
+      () => publishVersionCommit({ run: gh.run, repo, branch: update, local, staging, replaceOwnOnly: true }),
+      /isn't a commit this workflow made/,
+    );
+    assert.equal(gh.calls.length, 2);
+  });
+
+  test("with replaceOwnOnly, leaves the branch alone when it moves while the commit is made", () => {
+    let reads = 0;
+    const gh = fakeGh(
+      routes({
+        [`GET repos/${repo}/git/ref/heads/${update}`]: () =>
+          json({ object: { sha: reads++ === 0 ? OLD : "f".repeat(40) } }),
+        [`GET repos/${repo}/git/commits/${OLD}`]: commit(OLD, {
+          parents: ["e".repeat(40)],
+          message: local.message.headline,
+        }),
+      }),
+    );
+    assert.throws(
+      () => publishVersionCommit({ run: gh.run, repo, branch: update, local, staging, replaceOwnOnly: true }),
+      /deps\/sdk-pi moved while the commit was made/,
+    );
+    assert.ok(!gh.keys().some((key) => key.startsWith(`PATCH repos/${repo}/git/refs/heads/${update}`)));
+    assert.equal(gh.keys().at(-1), `DELETE repos/${repo}/git/refs/heads/${staging}`);
   });
 
   test("with replaceOwnOnly, refuses before any write to replace a commit someone pushed by hand", () => {
