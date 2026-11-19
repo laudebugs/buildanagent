@@ -14,20 +14,14 @@ import type { LanguageModelV4, LanguageModelV4CallOptions } from "@ai-sdk/provid
 import { APICallError, generateText, RetryError, wrapLanguageModel } from "ai";
 import { MockLanguageModelV4 } from "ai/test";
 import { check } from "./lib/check.ts";
+import { costNanos, NANOS_PER_DOLLAR, SONNET_5_5 } from "./lib/rates.ts";
 
 // #region prices
-const PRICE_PER_MILLION = { input: 2, cacheRead: 0.1, cacheWrite: 2.5, output: 10 };
-const BUDGET_USD = 0.03;
+const BUDGET_NANOS = 30_000_000; // $0.03
 const MAX_OUTPUT_TOKENS = 500;
 const ANSWER_TOKENS = 20;
 const tokensIn = (text: string) => Math.ceil(text.length / 4);
-type Tokens = { input: number; cacheRead: number; cacheWrite: number; output: number };
-const usd = (t: Tokens) =>
-  (t.input * PRICE_PER_MILLION.input +
-    t.cacheRead * PRICE_PER_MILLION.cacheRead +
-    t.cacheWrite * PRICE_PER_MILLION.cacheWrite +
-    t.output * PRICE_PER_MILLION.output) /
-  1e6;
+const dollars = (nanos: number) => nanos / NANOS_PER_DOLLAR;
 // #endregion
 
 // The cached prefix is the system messages; everything after them is the call's own text.
@@ -40,8 +34,8 @@ const restOf = (p: LanguageModelV4CallOptions) =>
   JSON.stringify(p.prompt.filter((m) => m.role !== "system").map((m) => m.content));
 
 class BudgetExceededError extends Error {
-  constructor(readonly projectedUsd: number) {
-    super(`projected $${projectedUsd.toFixed(4)}`);
+  constructor(readonly projectedNanos: number) {
+    super(`projected $${dollars(projectedNanos).toFixed(4)}`);
   }
 }
 
@@ -55,17 +49,17 @@ function withBudget(inner: LanguageModelV4) {
       specificationVersion: "v4",
       wrapGenerate: async ({ doGenerate, params }) => {
         // Worst case: the prefix is written to the cache, the rest is uncached, and the answer fills maxOutputTokens.
-        ledger.projected = usd({
-          input: tokensIn(restOf(params)),
+        ledger.projected = costNanos(SONNET_5_5, {
+          noCache: tokensIn(restOf(params)),
           cacheRead: 0,
           cacheWrite: tokensIn(prefixOf(params)),
           output: params.maxOutputTokens ?? MAX_OUTPUT_TOKENS,
         });
-        if (ledger.spent + ledger.projected > BUDGET_USD) throw new BudgetExceededError(ledger.projected);
+        if (ledger.spent + ledger.projected > BUDGET_NANOS) throw new BudgetExceededError(ledger.projected);
         const result = await doGenerate();
         const u = result.usage;
-        ledger.spent += usd({
-          input: u.inputTokens.noCache ?? 0,
+        ledger.spent += costNanos(SONNET_5_5, {
+          noCache: u.inputTokens.noCache ?? 0,
           cacheRead: u.inputTokens.cacheRead ?? 0,
           cacheWrite: u.inputTokens.cacheWrite ?? 0,
           output: u.outputTokens.total ?? 0,
@@ -161,7 +155,12 @@ const spentBefore = ledger.spent;
 const second = await ask(model, "And for exchanges?");
 const cacheRead = second.usage.inputTokenDetails.cacheReadTokens; // book:note cache-read
 // #endregion
-const uncachedCost = usd({ input: tokensIn(policy), cacheRead: 0, cacheWrite: 0, output: ANSWER_TOKENS });
+const uncachedCost = costNanos(SONNET_5_5, {
+  noCache: tokensIn(policy),
+  cacheRead: 0,
+  cacheWrite: 0,
+  output: ANSWER_TOKENS,
+});
 check(
   first.usage.inputTokenDetails.cacheWriteTokens === tokensIn(policy),
   "the first call writes the prefix to the cache",
@@ -170,16 +169,16 @@ check(cacheRead === tokensIn(policy), `the same prefix, sent again, reports cach
 const cachedCost = ledger.spent - spentBefore;
 check(
   cachedCost < uncachedCost / 5,
-  `the cached call costs under a fifth of an uncached one ($${cachedCost.toFixed(5)})`,
+  `the cached call costs under a fifth of an uncached one ($${dollars(cachedCost).toFixed(5)})`,
 );
 
 // A long prefix with a short answer: the projection prices the prefix as a cache write and uses the call's own limit.
 await ask(model, "Hi", policy, { maxOutputTokens: 20 });
 // Literal check: 3,973 prefix tokens at $2.50, 8 question tokens at $2 and 20 output tokens at $10, per million.
-const shortCall = (3973 * 2.5 + 8 * 2 + 20 * 10) / 1e6;
+const shortCall = 3973 * 2_500 + 8 * 2_000 + 20 * 10_000;
 check(
-  Math.abs(ledger.projected - shortCall) < 1e-9,
-  `a long prefix with a short answer projects $${ledger.projected.toFixed(7)}, not the input-rate $${((3973 * 2 + 16 + 200) / 1e6).toFixed(7)}`,
+  ledger.projected === shortCall,
+  `a long prefix with a short answer projects $${dollars(ledger.projected).toFixed(7)}, not the input-rate $${dollars(3973 * 2_000 + 8 * 2_000 + 20 * 10_000).toFixed(7)}`,
 );
 
 // #region refuse
@@ -187,10 +186,13 @@ check(
 const callsBefore = attempts;
 const refused = await ask(model, "Summarise.", longPolicy).catch((e) => e);
 check(
-  refused instanceof BudgetExceededError && refused.projectedUsd < BUDGET_USD,
-  `a call that fits the budget alone ($${ledger.projected.toFixed(4)}) is refused ...`,
+  refused instanceof BudgetExceededError && refused.projectedNanos < BUDGET_NANOS,
+  `a call that fits the budget alone ($${dollars(ledger.projected).toFixed(4)}) is refused ...`,
 );
-check(ledger.spent + ledger.projected > BUDGET_USD, `... because $${ledger.spent.toFixed(4)} is already spent`);
+check(
+  ledger.spent + ledger.projected > BUDGET_NANOS,
+  `... because $${dollars(ledger.spent).toFixed(4)} is already spent`,
+);
 check(attempts === callsBefore, "the refused call never reached the model"); // book:note refused
 // #endregion
 
@@ -243,10 +245,10 @@ check(
 );
 const wireRefused = await ask(wire.model, "Summarise.", longPolicy).catch((e) => e);
 check(
-  wireRefused instanceof BudgetExceededError && wireRefused.projectedUsd < BUDGET_USD,
-  `over the Messages format, a call that fits the budget alone ($${wire.ledger.projected.toFixed(4)}) is refused ...`,
+  wireRefused instanceof BudgetExceededError && wireRefused.projectedNanos < BUDGET_NANOS,
+  `over the Messages format, a call that fits the budget alone ($${dollars(wire.ledger.projected).toFixed(4)}) is refused ...`,
 );
 check(
-  wire.ledger.spent + wire.ledger.projected > BUDGET_USD && wireRequests === 3,
-  `... because $${wire.ledger.spent.toFixed(4)} is already spent, and no request was sent`,
+  wire.ledger.spent + wire.ledger.projected > BUDGET_NANOS && wireRequests === 3,
+  `... because $${dollars(wire.ledger.spent).toFixed(4)} is already spent, and no request was sent`,
 );
