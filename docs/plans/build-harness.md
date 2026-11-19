@@ -373,7 +373,7 @@ declare function runTurn<H>(session: Session, harness: Harness<H>, options: Turn
 // then turn_start with the system prompt, block entries on model_call_end, tool_result on tool_call_end, usage, turn_end.
 ```
 
-**Revision (plan review 2, 2026-11-19): the effect scope's tenant.** [E2](../todos/ready/E2-effect-identity-crash-rule.md)'s `EffectScope` needs a `tenant`, and the key hashes it. The harness reads `tenant` from its config as a plain string, with the default `"local"` for single-user hosts, and the N7 and N40 revisions pass it with the session key, the branch and the tool call id. A multi-user host sets one tenant per user, as SG3 scopes business keys.
+**Revision (plan review 2, 2026-11-19): the effect scope's tenant.** [E2](../todos/done/E2-effect-identity-crash-rule.md)'s `EffectScope` needs a `tenant`, and the key hashes it. The harness reads `tenant` from its config as a plain string, with the default `"local"` for single-user hosts, and the N7 and N40 revisions pass it with the session key, the branch and the tool call id. A multi-user host sets one tenant per user, as SG3 scopes business keys.
 
 **Revision (2026-11-18): `Scheduler`.** Off-host hosts cannot keep a timer alive between requests, so todo N41 adds one seam beside `SessionStore` and `SessionLock` ([storage-and-wake note](../research/deployment/storage-and-wake.md)):
 

@@ -1,5 +1,6 @@
-// The contract between test/cloudflare-approval.test.ts, which runs in Node, and the Worker in approval-agent.ts,
-// which runs in workerd. It holds types only, so the Node side type-checks without the Workers globals.
+// The contract between the Cloudflare tests, which run in Node, and their Workers, approval-agent.ts and
+// interrupted-agent.ts, which run in workerd. It holds types only, so the Node side type-checks without the Workers
+// globals.
 
 /** What a scenario changes between the pause and the approval. */
 export type Change =
@@ -30,4 +31,16 @@ export interface Report {
 export interface Played extends Report {
   readonly streamed: string[];
   readonly outcomes: { kind: string; reason: string }[];
+}
+
+/** What the interrupted-write Worker returns: what the agent stored for the interrupted call, and what the model read. */
+export interface Repaired {
+  /** How the turn that followed the repair ended. */
+  readonly status: string;
+  /** The stored `send_email` part after the repair. */
+  readonly stored: { readonly state: string; readonly output?: unknown; readonly errorText?: string | undefined };
+  /** The output of each tool result in the model's requests. */
+  readonly modelRead: unknown[];
+  /** How often `send_email` ran, which must be never. */
+  readonly sent: number;
 }

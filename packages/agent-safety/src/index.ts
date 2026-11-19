@@ -1,10 +1,14 @@
 /**
- * `@buildanagent/agent-safety`: the safety core. Typed write outcomes that the harness can act on and the model can
- * read, the canonical input hash that approvals sign and effect records store, and the signers and signed pending
- * requests that make an approval fail closed, and the egress guard and route check that keep every model call on the
+ * `@buildanagent/agent-safety`: the safety core. It holds typed write outcomes that the harness can act on and the
+ * model can read; the canonical input hash that approvals sign and effect records store; the signers and signed
+ * pending requests that make an approval fail closed; `guardedWrite()` and the effect records that keep a crash or a
+ * regenerated turn from repeating a write; and the egress guard and route check that keep every model call on the
  * user's own key. This entry imports no third-party SDK; the adapters for `ai` and Cloudflare `agents` live in the
  * `./ai`, `./byok` and `./agents` subpaths.
  */
+
+export { type EffectScope, effectKey } from "./effect-key.js";
+export { type EffectClaim, type EffectRecord, type EffectStore, memoryEffectStore } from "./effect-store.js";
 export {
   CLOUDFLARE_NO_WHOLESALE_HEADER,
   CREDENTIAL_HEADERS,
@@ -14,6 +18,7 @@ export {
   egressGuard,
 } from "./egress.js";
 export { isSafetyError, SafetyError, type SafetyErrorCode } from "./errors.js";
+export { type GuardedWriteOptions, guardedWrite, type WriteDedupe } from "./guarded-write.js";
 export { canonicalInputHash } from "./hash.js";
 export { type KeyRing, type KeyStore, parseKeyRing, signerFromKeyStore } from "./key-store.js";
 export {

@@ -11,6 +11,7 @@
  * model provider's key or base URL is empty, malformed or points at a gateway that may bill another credential.
  * `egress_refused`: a model request would leave for another host or carry another credential. `default_provider`: code
  * resolved a string model id, or another default provider is set, so a call could reach a gateway nobody configured.
+ * `invalid_effect`: a guarded write's scope, business key or options break a rule.
  */
 export type SafetyErrorCode =
   | "invalid_outcome"
@@ -19,7 +20,8 @@ export type SafetyErrorCode =
   | "invalid_pending"
   | "invalid_byok_config"
   | "egress_refused"
-  | "default_provider";
+  | "default_provider"
+  | "invalid_effect";
 
 // A registered symbol, so the guard still works when two copies of the package are bundled.
 const SAFETY_ERROR = Symbol.for("buildanagent.agent-safety.SafetyError");

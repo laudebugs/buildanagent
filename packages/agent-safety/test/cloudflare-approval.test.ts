@@ -1,80 +1,30 @@
 import assert from "node:assert/strict";
-import { mkdtempSync, rmSync } from "node:fs";
-import { builtinModules } from "node:module";
-import { tmpdir } from "node:os";
-import { join } from "node:path";
 import { fileURLToPath } from "node:url";
-import { build, type Plugin } from "esbuild";
-import { convertV4MiniflareOptions, Log, LogLevel, Miniflare } from "miniflare";
 import { afterAll, beforeAll, test } from "vitest";
+import { startWorker, type TestWorker } from "./miniflare.js";
 import type { Change, Played } from "./workerd/scenario.js";
 
 // The Worker runs in workerd, Cloudflare's runtime, through Miniflare: a real `AIChatAgent` Durable Object with
 // SQLite storage, answered over its WebSocket. Every outbound request is refused, so nothing leaves the machine.
 const ENTRY = fileURLToPath(new URL("./workerd/approval-agent.ts", import.meta.url));
-// The date of the pinned workerd release, as in the Cloudflare verify harness.
-const COMPAT_DATE = "2026-11-03";
-const BUILTINS = new Set(builtinModules.filter((name) => !name.startsWith("_")));
 const KEY_RING = JSON.stringify({ current: "k1", keys: { k1: "d29ya2VyZC1hcHByb3ZhbC1rZXktMzItYnl0ZXMtLS0" } });
 const REFUND = { order: 4417, amount: 250 };
 
-// Bare Node built-ins that a dependency imports without the `node:` prefix resolve to workerd's nodejs_compat modules.
-const nodeBuiltins: Plugin = {
-  name: "node-builtins",
-  setup(b) {
-    b.onResolve({ filter: /^[a-z_/]+$/ }, (args) => {
-      const name = args.path.replace(/\/$/, "");
-      return BUILTINS.has(name) ? { path: `node:${name}`, external: true } : undefined;
-    });
-  },
-};
-
-const outDir = mkdtempSync(join(tmpdir(), "agent-safety-workerd-"));
-const blocked: string[] = [];
-let mf: Miniflare | undefined;
+let worker: TestWorker | undefined;
 
 beforeAll(async () => {
-  const outfile = join(outDir, "worker.mjs");
-  await build({
-    entryPoints: [ENTRY],
-    outfile,
-    bundle: true,
-    format: "esm",
-    platform: "browser",
-    target: "es2022",
-    conditions: ["workerd", "worker", "browser"],
-    mainFields: ["browser", "module", "main"],
-    external: ["cloudflare:*", "node:*"],
-    plugins: [nodeBuiltins],
-    logLevel: "silent",
-  });
-  const options = {
-    log: new Log(LogLevel.WARN),
-    modules: true,
-    scriptPath: outfile,
-    modulesRoot: outDir,
-    compatibilityDate: COMPAT_DATE,
-    compatibilityFlags: ["nodejs_compat"],
-    bindings: { APPROVAL_KEYS: KEY_RING },
-    durableObjects: { RefundAgent: { className: "RefundAgent", useSQLite: true } },
-    outboundService: (request: Request) => {
-      blocked.push(new URL(request.url).hostname);
-      return new Response("network disabled in this test", { status: 403 });
-    },
-  };
-  mf = new Miniflare(convertV4MiniflareOptions(options as never));
-  await mf.ready;
+  worker = await startWorker(ENTRY, ["RefundAgent"], { APPROVAL_KEYS: KEY_RING });
 }, 60_000);
 
 afterAll(async () => {
-  await mf?.dispose();
-  rmSync(outDir, { recursive: true, force: true });
+  const blocked = worker?.blocked ?? [];
+  await worker?.dispose();
   assert.deepEqual(blocked, [], "the Worker tried to reach the network");
 });
 
 async function play(change: Change): Promise<Played> {
-  assert.ok(mf, "Miniflare started");
-  const response = await mf.dispatchFetch(`http://localhost/${change}`);
+  assert.ok(worker, "Miniflare started");
+  const response = await worker.dispatch(`/${change}`);
   const body = await response.text();
   assert.equal(response.status, 200, body);
   const played = JSON.parse(body) as Played;
