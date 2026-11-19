@@ -535,6 +535,13 @@ declare function recordPairs(model: Model, stamp: RecordingStamp): { model: Mode
 declare function replayPairs(pairs: RecordedPair[]): ScriptedModel;   // rejects expired or mismatched stamps
 ```
 
+**Revision (B11, 2026-11-19).** B11 builds the loop with these departures from the sketch above, each recorded in [its outcome](../todos/done/B11-loop-core.md#outcome):
+- `Context` has no `pending` yet, and `RunResult` has no `budget`, `no_progress` or pause variants yet, because `SignedPendingRequest`, the budget and progress detection arrive with B14 and B15. The `error` variant is its own member, whose `error` is required.
+- `ResultBase.messages` holds only the messages a run added; `context.messages` holds the whole conversation.
+- `AgentEvent` declares only the types the loop emits: `hook_error`, `context_transformed`, `approval_request`, `steer_applied` and `raw` join it with the todos that emit them. `warning.code` is `"max_steps" | "model_warning"`, the second carrying a gateway `warning`. `model_call_start.request` is a `ModelCallRequest` (model, context, options), because the loop can't see the gateway's per-attempt `RequestDump`.
+- `RunOptions` holds `model`, `tools`, `output`, `maxSteps`, `signal`, `modelOptions`, `clock` and `idGenerator`; the other options arrive with their todos. `Run` has `id`, `result`, `abort()` and iteration, and B13 and B16 add `on()`, `steer()` and `followUp()`.
+- `RunStoppedError` and `UnexpectedModelCallError` extend `SdkError`, and the gateway's `StreamContractError` and `ModelRequestsDisabledError` extend `GatewayError`, so each package keeps one error class ([typescript.md](../guidelines/typescript.md#each-package-has-one-error-class-with-a-typed-code)).
+
 ### 3.4 The seams P2 consumes
 
 The harness plan should use these names as written; P4 checks that it does ([implementation plans §3](implementation-plans.md#3-the-review-p4)). The first six are the seams of [harness guide §1][hg1]; the rest are what its sketches assume from the SDK.
@@ -583,7 +590,7 @@ The guide says to start with the gateway and the test model, because every other
 | ID | Title | Depends on | Size |
 | --- | --- | --- | --- |
 | [B10](../todos/done/B10-tool-runtime.md) | Tool definitions, the validation pipeline and the validator check (D7) | B3, B7, E1 | M |
-| [B11](../todos/ready/B11-loop-core.md) | Loop core: `run`, the closed event union, stop reasons, aborts and `runOrThrow` | B4, B10 | L |
+| [B11](../todos/done/B11-loop-core.md) | Loop core: `run`, the closed event union, stop reasons, aborts and `runOrThrow` | B4, B10 | L |
 | [B12](../todos/ready/B12-parallel-tools.md) | Parallel tool scheduling, per-resource serialisation and sibling cancellation | B11 | M |
 | [B13](../todos/ready/B13-interceptors-observers.md) | The six interceptors and observers | B11 | M |
 | [B14](../todos/ready/B14-budget-progress.md) | Pre-emptive USD budget, progress detection and the depth cap | B5, B13, E1 | M |

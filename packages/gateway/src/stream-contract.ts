@@ -9,16 +9,21 @@
  * 5. A gateway `retry` event comes after `start` and before any block event, because output is never retried.
  * 6. A `warning` may come anywhere between `start` and the terminal event. It is not output, so a retry may follow it.
  */
+import { GatewayError } from "./errors.js";
 import type { GatewayEvent } from "./runtime-types.js";
 import type { ModelEvent } from "./spec.js";
 
-export class StreamContractError extends Error {
+/**
+ * Thrown by `assertStreamContract()` at the first event that breaks the stream rule. It is a `GatewayError` with code
+ * `stream_contract`, so `isGatewayError()` recognises it too.
+ */
+export class StreamContractError extends GatewayError {
   override readonly name = "StreamContractError";
   /** Position of the offending event in the stream, or the stream length when the stream ended early. */
   readonly position: number;
 
   constructor(message: string, position: number) {
-    super(message);
+    super("stream_contract", message);
     this.position = position;
   }
 }

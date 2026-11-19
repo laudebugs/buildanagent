@@ -1,8 +1,10 @@
 import assert from "node:assert/strict";
 import { test } from "vitest";
 import { lookupOrderTool } from "../examples/lookup-order-tool.js";
+import { answerOrderQuestion } from "../examples/order-agent.js";
 import { refundTool } from "../examples/refund-tool.js";
 import { runToolCall } from "../src/tools/pipeline.js";
+import { scripted, text, toolCall } from "./run-helpers.js";
 import { call, pipelineContext, textOf } from "./tool-helpers.js";
 
 test("the lookup_order example returns the order's status to the model", async () => {
@@ -30,4 +32,31 @@ test("the refund example reports an issued refund as an applied outcome", async 
   const result = await runToolCall(call("refund_create", { order: 42 }), [tool], pipelineContext());
   assert.equal(result.isError, false);
   assert.match(textOf(result.content), /^The refund_create call took effect\./);
+});
+
+test("the order agent example streams the answer after looking the order up", async () => {
+  const { adapter, model } = scripted([toolCall("lookup_order", { order: 42 }), text("Order 42 has shipped.")]);
+  let streamed = "";
+  const outcome = await answerOrderQuestion(
+    model,
+    async (id) => ({ id, status: "shipped" }),
+    "Where is 42?",
+    (t) => {
+      streamed += t;
+    },
+  );
+  adapter.assertComplete();
+  assert.equal(outcome, "Order 42 has shipped.");
+  assert.equal(streamed, "Order 42 has shipped.");
+});
+
+test("the order agent example reports a run that reached its step cap", async () => {
+  const { model } = scripted(Array.from({ length: 5 }, () => toolCall("lookup_order", { order: 42 })));
+  const outcome = await answerOrderQuestion(
+    model,
+    async (id) => ({ id, status: "shipped" }),
+    "Loop",
+    () => undefined,
+  );
+  assert.equal(outcome, "the run stopped early: max_steps");
 });

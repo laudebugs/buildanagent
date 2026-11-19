@@ -1,5 +1,6 @@
 import assert from "node:assert/strict";
 import {
+  addCost,
   addUsage,
   type Cost,
   createModel,
@@ -365,6 +366,29 @@ test("adding an unreported usage record gives an unreported sum", () => {
   assert.equal(addUsage(usage({ output: 1 }), unreportedUsage()).unreported, true);
   assert.equal(addUsage(unreportedUsage(), usage({ output: 1 })).unreported, true);
   assert.equal(addUsage(usage({ output: 1 }), usage({ output: 1 })).unreported, undefined);
+});
+
+test("adding two catalog costs sums them and keeps the later catalog date", () => {
+  const a: Cost = { total: 1, basis: "catalog", currency: "USD", catalogAsOf: "2026-10-01" };
+  const b: Cost = { total: 2, basis: "catalog", currency: "USD", catalogAsOf: "2026-11-01" };
+  assert.deepEqual(addCost(a, b), { total: 3, basis: "catalog", currency: "USD", catalogAsOf: "2026-11-01" });
+});
+
+test("adding two provider bills gives a provider bill", () => {
+  const bill: Cost = { total: 1, basis: "provider", currency: "USD" };
+  assert.deepEqual(addCost(bill, bill), { total: 2, basis: "provider", currency: "USD" });
+});
+
+test("adding a provider bill to a catalog estimate gives a catalog estimate", () => {
+  const bill: Cost = { total: 1, basis: "provider", currency: "USD" };
+  const estimate: Cost = { total: 2, basis: "catalog", currency: "USD" };
+  assert.deepEqual(addCost(bill, estimate), { total: 3, basis: "catalog", currency: "USD" });
+});
+
+test("adding an unknown cost gives an unknown cost", () => {
+  const known: Cost = { total: 1, basis: "catalog", currency: "USD" };
+  assert.deepEqual(addCost(known, UNKNOWN), UNKNOWN);
+  assert.deepEqual(addCost(UNKNOWN, known), UNKNOWN);
 });
 
 test("the input estimate skips a call whose usage is unreported and counts characters instead", () => {

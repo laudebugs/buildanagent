@@ -24,6 +24,7 @@ import {
   type Usage,
   unreportedUsage,
 } from "@buildanagent/gateway";
+import { SdkError } from "../errors.js";
 
 /** One scripted model response. */
 export interface AssistantScript {
@@ -65,8 +66,16 @@ export interface ScriptedModelOptions {
 
 const DEFAULT_CAPS: ModelCaps = { contextWindow: 200_000, maxOutputTokens: 32_000, images: true, reasoning: true };
 
-export class UnexpectedModelCallError extends Error {
+/**
+ * Thrown when a `ScriptedModel` is called after its last scripted step. It is an `SdkError` with code
+ * `unexpected_model_call`, so `isSdkError()` recognises it too.
+ */
+export class UnexpectedModelCallError extends SdkError {
   override readonly name = "UnexpectedModelCallError";
+
+  constructor(message: string) {
+    super("unexpected_model_call", message);
+  }
 }
 
 function deepFreeze<T>(value: T): T {
@@ -134,6 +143,7 @@ export class ScriptedModel implements ModelAdapter {
   readonly #chunkSize: number;
   readonly #nextId: () => string;
   #used = 0;
+  #overRuns = 0;
 
   constructor(steps: ScriptStep[], options: ScriptedModelOptions = {}) {
     const chunkSize = options.chunkSize ?? 4;
@@ -152,8 +162,17 @@ export class ScriptedModel implements ModelAdapter {
     return this.#calls;
   }
 
-  /** Throws if any scripted step was never used. Call it in test teardown. */
+  /**
+   * Throws if any scripted step was never used, or if the model was called after its last step. Call it in test
+   * teardown: `createModel()` turns an over-run's `UnexpectedModelCallError` into a failed call, so a run reports it
+   * as an `error` result, and only this check makes the test fail.
+   */
   assertComplete(): void {
+    if (this.#overRuns > 0) {
+      throw new UnexpectedModelCallError(
+        `ScriptedModel: called ${this.#overRuns} more time(s) than its ${this.#steps.length} scripted steps allow`,
+      );
+    }
     const remaining = this.#steps.length - this.#used;
     if (remaining > 0) {
       throw new Error(`ScriptedModel: ${remaining} of ${this.#steps.length} scripted steps were never called`);
@@ -172,6 +191,7 @@ export class ScriptedModel implements ModelAdapter {
 
   // The error surfaces when the caller reads the stream, like any other stream failure, not when it calls stream().
   #overRun(callNumber: number): AsyncIterable<ModelEvent> {
+    this.#overRuns += 1;
     const error = new UnexpectedModelCallError(
       `ScriptedModel: call ${callNumber} has no scripted step (the script has ${this.#steps.length})`,
     );

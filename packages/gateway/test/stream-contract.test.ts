@@ -1,5 +1,11 @@
 import assert from "node:assert/strict";
-import { assertStreamContract, type GatewayEvent, type ModelEvent, StreamContractError } from "@buildanagent/gateway";
+import {
+  assertStreamContract,
+  type GatewayEvent,
+  isGatewayError,
+  type ModelEvent,
+  StreamContractError,
+} from "@buildanagent/gateway";
 import { test } from "vitest";
 import { message, streamOf, validEvents } from "./fixtures.js";
 
@@ -106,6 +112,13 @@ test("reports the position of the offending event", async () => {
         streamOf([{ type: "start" }, { type: "done", message: message("stop") }, { type: "start" }]),
       ),
     (error: unknown) => error instanceof StreamContractError && error.position === 2,
+  );
+});
+
+test("StreamContractError is a GatewayError with code stream_contract", async () => {
+  await assert.rejects(
+    () => assertStreamContract(streamOf([{ type: "done", message: message("stop") }])),
+    (error: unknown) => isGatewayError(error) && error.code === "stream_contract",
   );
 });
 
