@@ -87,7 +87,7 @@ Ids are kebab-case and unique across the book for each kind. A table must hold a
 
 ## A listing shows a region of a real file
 
-A chapter quotes runnable code with a leaf directive, two colons, that names a file and a region in it:
+A listing shows only code that CI type-checks and runs, because the build cuts it from a real file instead of taking it from the chapter. The chapter names the file and a region in it with a leaf directive, written with two colons:
 
 ```markdown
 ::listing[One model call]{#one-call file="verify/vercel-ai-sdk/examples/01-generate-text.ts" region="call"}
@@ -102,17 +102,21 @@ const result = await generateText({ model, instructions: "You are terse.", promp
 // #endregion
 ```
 
-The build cuts the lines between the markers, drops any markers of regions nested inside, removes the indentation the lines share and highlights them with Shiki. The caption shows the number, such as "Listing 1.1", then the caption text, the file's path, the line range in the file and the pinned version of the harness's main package, such as `ai@7.0.162` as of November 2026. Each code line also shows its own number in the file. Without `region`, the listing shows the whole file without its markers. References use the same id as any listing, `[[lst:one-call]]`.
+The build cuts the lines between the markers, drops any markers of regions nested inside, removes the indentation the lines share and highlights them with Shiki. The caption line shows the number, such as "Listing 1.1", then the caption you wrote, the file's path, the line range and the pinned version of the harness's main package, such as `ai@7.0.162` as of November 2026. Each code line also shows its own number in the file. Without `region`, the listing shows the whole file without its markers. References use the same id as any listing, `[[lst:one-call]]`.
 
-`file` is a path from the repository root. Region names are kebab-case, unique in their file, and an `// #endregion` may repeat its name (`// #endregion call`). The build finds markers line by line without parsing the code, so a line inside a template literal or a block comment that starts with `// #region` also counts as a marker. [`src/data/harnesses.json`](src/data/harnesses.json) maps each `verify/` harness to the package whose pin the caption shows, such as `ai` for `verify/vercel-ai-sdk`, and the pin comes from that harness's `package.json`. The weekly SDK-update job rewrites those pins, so the caption follows it; prose that names a version still says "as of <month year>".
+Region names are kebab-case and unique in their file, and an `// #endregion` may repeat its name (`// #endregion call`). The build finds markers line by line without parsing the code, so a line inside a template literal or a block comment that starts with `// #region` also counts as a marker.
+
+The pin comes from the harness's own `package.json`. [`src/data/harnesses.json`](src/data/harnesses.json) names each `verify/` harness's main package, such as `ai` for `verify/vercel-ai-sdk`. The weekly SDK-update job rewrites those pins, so each caption follows the harness's current pin; prose that names a version still says "as of <month year>".
 
 The book loads every listing before it renders a page, so `check:book` and the build fail on the same problems, each named with the chapter's file and the directive's line. A listing fails when:
 
 - its file is missing, its path is not a plain path from the repository root (it is absolute, or holds `./`, `..` or `//`), or the file resolves through a symbolic link to a place outside the repository;
-- the file is not TypeScript (`.ts`, `.tsx`, `.mts` or `.cts`), or no workspace package's `typecheck` covers it. The file's nearest `package.json` must match a glob in `pnpm-workspace.yaml` that no `!` glob cancels, and one `tsc -p <config>` in that package's `typecheck` script must hold the file in its program. The check asks TypeScript itself, running the manual's own `tsc` (its exact `typescript` devDependency) as `tsc -p <config> --listFilesOnly`, so `extends`, `files`, `include` and `exclude` apply exactly as in `pnpm typecheck`, and a file that an included example imports counts as covered;
+- the file is not TypeScript (`.ts`, `.tsx`, `.mts` or `.cts`), or no workspace package's `typecheck` covers it, as the next paragraph explains;
 - the file sits in no harness that `harnesses.json` lists, or the harness's `package.json` lacks the main package or pins it as a range instead of an exact version;
 - the region is missing, empty or malformed (an unnamed or repeated `#region`, an `#endregion` without its `#region` or naming another one, a `#region` never closed), and such a message also names the file's own line;
 - the directive lacks a caption or `file`, or takes an attribute other than `id`, `file` and `region`.
+
+A file counts as covered when `pnpm typecheck` would check it. Its nearest `package.json` must match a glob in `pnpm-workspace.yaml` that no `!` glob cancels, and one `tsc -p <config>` in that package's `typecheck` script must hold the file in its program. To decide, the check runs the manual's own `tsc`, from its exact `typescript` devDependency, as `tsc -p <config> --listFilesOnly`. TypeScript therefore applies `extends`, `files`, `include` and `exclude` itself, and a file that an included example imports also counts.
 
 Five of these rules are our choices, not BK9's: an exact pin, TypeScript files only, paths from the repository root only, a file inside a harness that `harnesses.json` lists, and no attribute but `id`, `file` and `region`, which catches a misspelt `region`. Because of the harness rule, a listing from `packages/` fails as "in no harness", so the todo that moves a chapter's listings to our own packages must widen that rule first.
 

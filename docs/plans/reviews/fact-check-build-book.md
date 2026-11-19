@@ -533,4 +533,12 @@ These rows check the claims in T4's code comments, the app's README, the harness
 | 317 | `extends` takes a path that may use Node.js-style resolution, or since TypeScript 5.0 a list of them, and a relative path in a base config resolves from that base config's directory | `src/book/typecheck-coverage.ts` | ✅ | The [TSConfig reference](https://www.typescriptlang.org/tsconfig/), `extends`: "a path to another configuration file to inherit from. The path may use Node.js style resolution", and row 299's quote on relative paths; the [TypeScript 5.0 release notes](https://www.typescriptlang.org/docs/handbook/release-notes/typescript-5-0.html) add multiple entries. The sibling-base test's `exclude` works only as `../a/examples/x.ts` |
 | 318 | Editing a config anywhere in the `extends` chain, such as a sibling `../shared/tsconfig.base.json`, makes the next load list the program again | `src/book/typecheck-coverage.ts` | ✅ | The key hashes each chain file's real path and content (`extendsChain`); the test "the key follows extends to a sibling base config" sees the edited base's `exclude` |
 
-**Totals:** 318 claims: 280 ✅, 38 ✏️, 0 ⚠️.
+### T4's writing review
+
+The writing review reworded T4's prose; this row re-checks the one claim its fixes stated anew.
+
+| # | Claim | Where | Verdict | Source and reason |
+| --- | --- | --- | --- | --- |
+| 319 | A file that an included example imports counts as covered, because it is in the program `tsc --listFilesOnly` prints | The app's README | ✅ | Row 308's source; the test "a file only one harness imports is covered there" in `test/typecheck-coverage.test.ts` finds `verify/a/lib/y.ts`, outside `include`, covered through `a`'s import |
+
+**Totals:** 319 claims: 281 ✅, 38 ✏️, 0 ⚠️.

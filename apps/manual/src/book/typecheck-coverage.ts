@@ -59,12 +59,12 @@ export function manualTsc(): string | undefined {
   return undefined;
 }
 
-// Programs shared by every load in this process, each as the real paths of its files, so the two loads of one build
-// (the config's and the pages') and repeated `check:book` loads run tsc once per config. The key is the config's real
-// path and the real path and content of every config in its `extends` chain, so a different config, or any edit to
-// the chain, lists the program again. An edit outside the chain can change a program too, as when an example stops
-// importing a file; a running process then keeps the old answer until the chain changes, and a new build or
-// `check:book` run sees the edit.
+// Every load in this process shares these programs, each stored as the real paths of its files, so the two loads of
+// one build (the config's and the pages') and repeated `check:book` loads run tsc once per config. The key is the
+// config's real path and the real path and content of every config in its `extends` chain, so a different config, or
+// any edit to the chain, lists the program again. An edit outside the chain can change a program too, as when an
+// example stops importing a file; a running process then keeps the old answer until the chain changes, and a new
+// build or `check:book` run sees the edit.
 const programs = new Map<string, ReadonlySet<string>>();
 
 /** A tsconfig's text without comments and trailing commas, enough to read its `extends`. */
