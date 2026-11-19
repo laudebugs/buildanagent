@@ -497,8 +497,9 @@
 }
 
 /* A generated figure keeps its natural size, so its labels stay at the 12 px label size on every screen, and its
-   stage scrolls sideways where the panel is narrower than the drawing (BK11). The drawing sits at the start of the
-   stage, not centred by the grid, so a reader can scroll to both of its edges. */
+   stage scrolls sideways where the panel is narrower than the drawing (BK11). The stage is a block, not the grid that
+   centres other figures: a drawing that fits is centred by its auto margins, and one that overflows starts at the
+   stage's edge, so a reader can scroll to both of its sides. */
 .figure__panel {
   timeline-scope: --figure-scroll;
 }
@@ -534,8 +535,9 @@
   color: var(--panel-comment);
 }
 
-/* The timeline sits in its own rule after the animation: the `animation` shorthand resets `animation-timeline`, and
-   the build's CSS minifier would otherwise fold both into one shorthand that browsers reject. */
+/* The timeline sits in its own rule after the animation, because the `animation` shorthand resets
+   `animation-timeline`. In one rule, the build's CSS minifier folds both into a single shorthand that holds the
+   timeline; CSS Animations 2's grammar allows that, but Chrome 157 rejects it and the hint never shows. */
 @supports (animation-timeline: scroll()) {
   .figure__scroll-hint {
     animation: figure-scroll-hint linear both;

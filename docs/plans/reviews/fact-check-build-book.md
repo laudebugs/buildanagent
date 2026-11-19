@@ -589,4 +589,10 @@ The medium review of PR #71 found that the scroll hint showed when nothing scrol
 | 345 | The build's CSS minifier folds `animation` and `animation-timeline` in one rule into an `animation` shorthand that holds the timeline, which Chrome rejects, so the timeline sits in a later rule | `components.css` | ✅ | Ours: the built CSS read `animation:linear both figure-scroll-hint --figure-scroll`, and the hint never showed until the timeline moved to its own rule. MDN's [`animation-timeline`](https://developer.mozilla.org/en-US/docs/Web/CSS/Reference/Properties/animation-timeline) page: "The animation-timeline property is included in the animation shorthand as a reset-only value" (a secondary source) |
 | 346 | Every scrolling stage keeps `tabindex="0"`, because CSS cannot make an element focusable only while it overflows; a figure that fits is then a named tab stop that scrolls nothing | BK11, README | ✅ | Ours: focusability comes from the `tabindex` attribute, which no CSS property sets; scoping it needs a script, which BK11 rules out |
 
-**Totals:** 346 claims: 307 ✅, 39 ✏️, 0 ⚠️.
+### T6's second review round, low effort
+
+| # | Claim | Where | Verdict | Source and reason |
+| --- | --- | --- | --- | --- |
+| 347 | Row 345, corrected: the primary source does not make `animation-timeline` reset-only in the `animation` shorthand; the shorthand's grammar includes `<single-animation-timeline>`. Chrome 157 still rejects the shorthand the minifier wrote, so the timeline stays in its own rule | Row 345, `components.css` | ✏️ | [CSS Animations Level 2, §4.12, the `animation` shorthand](https://drafts.csswg.org/css-animations-2/#animation-shorthand), Editor's Draft of 18 August 2026, and §4.10 of the Working Draft of 2 June 2023: both grammars end in `|| <single-animation-timeline>`. MDN's "reset-only value" does not match them. The shorthand still resets the timeline when it omits it, as it does every sub-property; the comment now says the grammar allows the minifier's shorthand and Chrome rejects it |
+
+**Totals:** 347 claims: 307 ✅, 40 ✏️, 0 ⚠️.
