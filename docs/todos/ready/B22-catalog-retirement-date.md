@@ -6,7 +6,7 @@
 | Status | `ready` |
 | Plan | [Build SDK §4.5](../../plans/build-sdk.md#45-two-catalog-todos-from-the-fine-tuning-research-added-2026-11-19) |
 | Round / milestone | Round B (build SDK), M5 |
-| Depends on | [B5](../done/B5-usage-cost-catalog.md), [B21](B21-catalog-tuned-model-docs.md) |
+| Depends on | [B5](../done/B5-usage-cost-catalog.md), [B21](../done/B21-catalog-tuned-model-docs.md) |
 | Size | S |
 
 ## Goal
@@ -33,7 +33,7 @@ Give `CatalogEntry` an optional retirement date, and make `scripts/ci/catalog-st
 **Out of scope** (and which todo covers it)
 
 - Refusing to call a retired model: the provider's own error already does that, and a refusal would need its own decision
-- The tuned-model docs: [B21](B21-catalog-tuned-model-docs.md)
+- The tuned-model docs: [B21](../done/B21-catalog-tuned-model-docs.md)
 
 ## Tasks
 

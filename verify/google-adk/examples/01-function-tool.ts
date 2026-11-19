@@ -11,27 +11,27 @@ const executed: string[] = [];
 const getOrderStatus = new FunctionTool({
   name: "get_order_status",
   description: "Look up an order by id.",
-  parameters: z.object({ orderId: z.string().describe("The order id.") }),
+  parameters: z.object({ orderId: z.string().describe("The order id.") }), // book:note schema
   execute: ({ orderId }) => {
-    executed.push(orderId);
+    executed.push(orderId); // book:note execute
     return `order ${orderId} shipped`;
   },
 });
 // #endregion
-
+// #region retry
 // Call 1 sends a number where the schema wants a string; call 2 retries with a string; call 3 answers.
 const model = new ScriptedLlm((req, n) =>
   n === 1
-    ? callTool("get_order_status", { orderId: 42 })
+    ? callTool("get_order_status", { orderId: 42 }) // book:note bad-call
     : n === 2
-      ? callTool("get_order_status", { orderId: "A-1" })
+      ? callTool("get_order_status", { orderId: "A-1" }) // book:note retry
       : say(afterTool(req) ? "Your order A-1 has shipped." : "unexpected"),
 );
 const agent = new LlmAgent({ name: "support", model, instruction: "Answer order questions.", tools: [getOrderStatus] });
 const runner = new InMemoryRunner({ agent, appName: "orders" });
 const session = await runner.sessionService.createSession({ appName: "orders", userId: "u1" });
 const events = await turn(runner, session.id, "Where is order A-1?");
-
+// #endregion
 const decl = (model.requests[0].config?.tools?.[0] as any)?.functionDeclarations?.[0];
 check(offered(model.requests[0]).join() === "get_order_status", "the model is offered the tool by name");
 check(
