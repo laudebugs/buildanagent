@@ -1,8 +1,10 @@
 /**
  * `@buildanagent/sdk`: the agent loop over `@buildanagent/gateway`. This entry holds the loop (`run()`,
- * `continueRun()`, `runOrThrow()`), its events and results, and the tools: their definitions, schemas, results and
- * write outcomes. Hooks, signed pauses and budgets are planned in the SDK plan §3.3.
+ * `continueRun()`, `runOrThrow()`), its events and results, the tools (their definitions, schemas, results and write
+ * outcomes) and the hooks: six interceptors that can change a run and observers that only watch it. Signed pauses and
+ * budgets are planned in the SDK plan §3.3.
  */
+export { composeInterceptors } from "./compose.js";
 export { isSdkError, RunStoppedError, SdkError, type SdkErrorCode } from "./errors.js";
 export {
   AGENT_EVENT_TYPES,
@@ -13,10 +15,29 @@ export {
   type WarningCode,
 } from "./events.js";
 export type {
+  CallOptions,
+  ContextEvent,
+  GateDecision,
+  HookEventBase,
+  Interceptors,
+  MaybePromise,
+  ModelCallEvent,
+  ModelCallPatch,
+  ModelResultEvent,
+  Observer,
+  OrNothing,
+  StepEvent,
+  StopDecision,
+  ToolCallEvent,
+  ToolResultEvent,
+  ToolResultPatch,
+} from "./hooks.js";
+export type {
   Context,
   DoneResult,
   EndedResult,
   ErrorResult,
+  NoProgressResult,
   ResultBase,
   RunError,
   RunResult,

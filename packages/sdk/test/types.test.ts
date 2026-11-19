@@ -4,6 +4,7 @@ import {
   AGENT_EVENT_TYPES,
   type AgentEvent,
   type DoneResult,
+  type Interceptors,
   outputTool,
   type RunResult,
   run,
@@ -48,4 +49,26 @@ test("an error result always carries its run error", () => {
   type ErrorVariant = Extract<RunResult, { stopReason: "error" }>;
   const required: undefined extends ErrorVariant["error"] ? false : true = true;
   assert.equal(required, true);
+});
+
+test("a no_progress result carries its reason", () => {
+  type NoProgress = Extract<RunResult, { stopReason: "no_progress" }>;
+  const required: undefined extends NoProgress["reason"] ? false : true = true;
+  assert.equal(required, true);
+});
+
+test("a hook may be a plain function, an async one, or return nothing", () => {
+  const hooks: Interceptors = {
+    beforeModelCall: () => {},
+    afterToolCall: async () => {},
+    shouldStop: () => false,
+    transformContext: (e) => e.messages,
+  };
+  assert.equal(Object.keys(hooks).length, 4);
+});
+
+test("a gate that returns no decision is a compile error", () => {
+  // @ts-expect-error: a gate must return allow, deny or ask
+  const hooks: Interceptors = { beforeToolCall: async () => {} };
+  assert.equal(typeof hooks.beforeToolCall, "function");
 });

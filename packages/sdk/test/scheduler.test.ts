@@ -448,7 +448,7 @@ test("a call the gate blocks is not executed and keeps its place in the results"
   const probe = new Probe();
   const ctx = probe.context({
     async gate({ call: { callId } }) {
-      return callId === "a" ? { content: [{ type: "text", text: "denied" }], isError: true } : undefined;
+      return callId === "a" ? { blocked: { content: [{ type: "text", text: "denied" }], isError: true } } : undefined;
     },
   });
   const running = runToolCalls(assistant([probeCall("a"), probeCall("b")]), [probe.tool()], ctx);

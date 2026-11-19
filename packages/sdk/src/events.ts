@@ -62,10 +62,26 @@ export type AgentEventBody =
     }
   | { readonly type: "tool_call_start"; readonly callId: string; readonly tool: string; readonly input: unknown }
   | { readonly type: "tool_call_update"; readonly callId: string; readonly details: unknown }
-  /** `result` is what the model reads for the call. */
-  | { readonly type: "tool_call_end"; readonly callId: string; readonly result: ToolResult }
+  /**
+   * `result` is what the model reads for the call, after `afterToolCall` has had its say. `input` is present only
+   * when a `beforeToolCall` gate replaced the model's input, and holds the input the gate gave the call instead.
+   */
+  | {
+      readonly type: "tool_call_end";
+      readonly callId: string;
+      readonly result: ToolResult;
+      readonly input?: unknown;
+    }
+  /** `transformContext` returned the messages for one model call: `before` messages in, `after` messages out. */
+  | { readonly type: "context_transformed"; readonly before: number; readonly after: number }
   /** The model is retrying a failed request; `attempt` is 1 for the first retry. */
   | { readonly type: "retry"; readonly attempt: number; readonly delayMs: number; readonly error: string }
+  /**
+   * An interceptor or an observer threw. `hook` names it (`beforeToolCall`, `observer` and so on) and `error` is the
+   * thrown message. The run goes on or fails by the interceptors' `onFailure` setting; a failed observer never
+   * affects it.
+   */
+  | { readonly type: "hook_error"; readonly hook: string; readonly error: string }
   | { readonly type: "warning"; readonly code: WarningCode; readonly detail: string }
   | { readonly type: "error"; readonly error: RunError }
   | { readonly type: "abort"; readonly reason?: string };
@@ -90,6 +106,8 @@ export const AGENT_EVENT_TYPES = Object.freeze([
   "tool_input_end",
   "warning",
   "model_call_end",
+  "context_transformed",
+  "hook_error",
   "tool_call_start",
   "tool_call_update",
   "tool_call_end",
