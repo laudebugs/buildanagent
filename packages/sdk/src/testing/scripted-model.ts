@@ -171,6 +171,11 @@ export class ScriptedModel implements ModelAdapter {
     yield { type: "start" };
     let index = 0;
     for (const scripted of script.content) {
+      // Checked before the call id is drawn, so an abort leaves the id sequence and the image blocks untouched.
+      if (signal?.aborted) {
+        yield { type: "error", message: messageOf(run, "aborted") };
+        return;
+      }
       const block = this.#withCallId(scripted);
       if (block.type === "image") {
         run.content.push(block);
@@ -195,10 +200,6 @@ export class ScriptedModel implements ModelAdapter {
     run: RunState,
     signal: AbortSignal | undefined,
   ): AsyncGenerator<ModelEvent, boolean> {
-    if (signal?.aborted) {
-      yield { type: "error", message: messageOf(run, "aborted") };
-      return false;
-    }
     const kind = block.type === "tool_call" ? "tool_input" : block.type;
     const text = block.type === "tool_call" ? JSON.stringify(block.input ?? {}) : block.text;
     yield { type: `${kind}_start`, index };
