@@ -1,5 +1,5 @@
 import assert from "node:assert/strict";
-import { cpSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
+import { cpSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join, relative, sep } from "node:path";
 import { fileURLToPath } from "node:url";
@@ -23,11 +23,16 @@ afterAll(() => {
   for (const dir of dirs) rmSync(dir, { recursive: true, force: true });
 });
 
-test("the book's figures hold only Chapter 1's figure, and the fixtures hold their own", () => {
+test("the book's figures hold only Chapter 1's figure, and the fixtures hold their own, isometric ones too", () => {
   const ids = (root: string) => figureScripts(root).map((figure) => `${figure.chapter}/${figure.id}`);
   assert.deepEqual(ids(BOOK_FIGURES), ["call-workflow-loop/who-decides"]);
-  assert.deepEqual(ids(FIXTURE_FIGURES), ["first/ticket-rail"]);
-  assert.deepEqual(ids(SITE_FIGURES), ["call-workflow-loop/ticket-rail", "call-workflow-loop/who-decides"]);
+  assert.deepEqual(ids(FIXTURE_FIGURES), ["first/loop-bench", "first/tally-counter", "first/ticket-rail"]);
+  assert.deepEqual(ids(SITE_FIGURES), [
+    "call-workflow-loop/loop-bench",
+    "call-workflow-loop/tally-counter",
+    "call-workflow-loop/ticket-rail",
+    "call-workflow-loop/who-decides",
+  ]);
 });
 
 test("the package's figures:build script redraws every folder this test checks", () => {
@@ -39,16 +44,30 @@ test("the package's figures:build script redraws every folder this test checks",
   );
 });
 
+// The fixture folders hold isometric figures, whose painter's order takes a few seconds to settle once per run (the
+// registry keeps each drawing), so their checks get a longer limit than Vitest's default 5 seconds on a loaded machine.
 for (const root of ROOTS) {
-  test(`every committed figure under ${relative(app, root).split(sep).join("/")} is what its script draws now`, async () => {
-    assert.deepEqual(await staleFigures(root), []);
-  });
+  test(
+    `every committed figure under ${relative(app, root).split(sep).join("/")} is what its script draws now`,
+    async () => {
+      assert.deepEqual(await staleFigures(root), []);
+    },
+    root === BOOK_FIGURES ? undefined : 60_000,
+  );
+}
+
+/** Copies the fixture's flat ticket rail, script and SVG, into `root`; the test rewrites its import of svgkit. */
+function copyTicketRail(root: string): void {
+  mkdirSync(join(root, "first"));
+  for (const file of ["ticket-rail.ts", "ticket-rail.svg"]) {
+    cpSync(join(FIXTURE_FIGURES, "first", file), join(root, "first", file));
+  }
 }
 
 test("changing a figure script without rerunning figures:build makes its SVG stale, naming the script", async () => {
   const root = mkdtempSync(join(tmpdir(), "figures-"));
   dirs.push(root);
-  cpSync(FIXTURE_FIGURES, root, { recursive: true });
+  copyTicketRail(root);
   const script = join(root, "first/ticket-rail.ts");
   const kit = join(BOOK_FIGURES, "lib/svgkit.ts");
   writeFileSync(
@@ -66,7 +85,7 @@ test("changing a figure script without rerunning figures:build makes its SVG sta
 test("an SVG without a script beside it is reported", async () => {
   const root = mkdtempSync(join(tmpdir(), "figures-"));
   dirs.push(root);
-  cpSync(FIXTURE_FIGURES, root, { recursive: true });
+  copyTicketRail(root);
   rmSync(join(root, "first/ticket-rail.ts"));
   assert.deepEqual(
     (await staleFigures(root)).map((problem) => problem.replace(/^.*first\//, "")),
@@ -74,10 +93,39 @@ test("an SVG without a script beside it is reported", async () => {
   );
 });
 
+test("an SVG left beside an isometric figure, or a fragment beside a flat one, is reported", async () => {
+  const root = mkdtempSync(join(tmpdir(), "figures-"));
+  dirs.push(root);
+  copyTicketRail(root);
+  // The copied isometric script imports isokit by its absolute path, and the folder is a module scope, so the copy
+  // loads the same IsoFigure class the registry checks against.
+  writeFileSync(join(root, "package.json"), '{ "type": "module" }\n');
+  const rail = join(root, "first/ticket-rail.ts");
+  const svgkit = join(BOOK_FIGURES, "lib/svgkit.js");
+  writeFileSync(rail, readFileSync(rail, "utf8").replace(/from "[^"]*svgkit\.js"/, `from "${svgkit}"`));
+  const bench = join(FIXTURE_FIGURES, "first/loop-bench");
+  const isokit = join(BOOK_FIGURES, "lib/isokit.js");
+  writeFileSync(
+    join(root, "first/loop-bench.ts"),
+    readFileSync(`${bench}.ts`, "utf8").replace(/from "[^"]*isokit\.js"/, `from "${isokit}"`),
+  );
+  cpSync(`${bench}.html`, join(root, "first/loop-bench.html"));
+  writeFileSync(join(root, "first/loop-bench.svg"), "<svg></svg>\n");
+  writeFileSync(join(root, "first/ticket-rail.html"), "<figure></figure>\n");
+  // The copied fragment names the copy's path in its header, so it is stale too; only the left-over files matter here.
+  const leftOver = (await staleFigures(root))
+    .filter((problem) => !problem.includes(" is stale: "))
+    .map((problem) => problem.replace(/^.*first\//, ""));
+  assert.deepEqual(leftOver, [
+    "loop-bench.svg is left over: loop-bench.ts draws an HTML fragment, not this file; delete it",
+    "ticket-rail.html is left over: ticket-rail.ts draws an SVG, not this file; delete it",
+  ]);
+}, 60_000);
+
 test("drawing the same figure twice writes the same bytes", async () => {
   const [figure] = figureScripts(BOOK_FIGURES);
   assert.ok(figure);
-  assert.equal(await drawFigure(figure), await drawFigure(figure));
+  assert.deepEqual(await drawFigure(figure), await drawFigure(figure));
 });
 
 const figure = () => new Figure({ id: "sample", width: 200, height: 100 });
@@ -194,7 +242,7 @@ test("inlining drops the style, names the drawing and can prefix every id", () =
 });
 
 test("the fixture's figure scripts live where the registry expects them", () => {
-  const [ticket] = figureScripts(FIXTURE_FIGURES);
+  const ticket = figureScripts(FIXTURE_FIGURES).find((script) => script.id === "ticket-rail");
   assert.equal(ticket?.source, "apps/manual/test/fixtures/book/figures/first/ticket-rail.ts");
   assert.equal(fileURLToPath(new URL("./fixtures/book/figures/first/ticket-rail.svg", import.meta.url)), ticket?.svg);
 });

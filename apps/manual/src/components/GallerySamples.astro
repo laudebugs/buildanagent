@@ -1,4 +1,7 @@
 ---
+import { existsSync } from "node:fs";
+import { figureFiles } from "../book/figures.js";
+import { contentDirs } from "../book/load.js";
 import AnnotationMarker from "./AnnotationMarker.astro";
 import ChapterHead from "./ChapterHead.astro";
 import Citation from "./Citation.astro";
@@ -25,6 +28,10 @@ interface Props {
 }
 
 const { prefix } = Astro.props;
+// The isometric sample: the book's loop bench once T10 draws it, or, under BOOK_FIXTURE_DIR, the site fixture's. The
+// book has none yet, so a production build leaves the item out.
+const isometricFigures = contentDirs().figuresDir;
+const hasIsometric = existsSync(figureFiles(isometricFigures, "call-workflow-loop", "loop-bench").fragment);
 const id = (name: string) => `${prefix}-${name}`;
 
 const parts: ContentsPart[] = [
@@ -248,6 +255,25 @@ const events: ReplayEvent[] = [
     alt="Three columns of boxes joined by arrows: a call, a workflow and a loop. Under each, a note says who decides the next step: your code, your code, and the model."
   />
 </div>
+
+{
+  hasIsometric && (
+    <div class="gallery__item">
+      <h3>Isometric figure, inlined from its fragment</h3>
+      <GeneratedFigure
+        kind="viewer"
+        figuresDir={isometricFigures}
+        chapter="call-workflow-loop"
+        figure="loop-bench"
+        id={id("figure-isometric")}
+        idPrefix={`${prefix}-`}
+        number="1.7"
+        caption="The agent loop's bench: context, model and tool, each with a lamp."
+        alt="An isometric bench with three stations: a stack of three context pages, a round model with a cap, and a tool block. Each station has a small lamp; the lamp on the context stack is lit."
+      />
+    </div>
+  )
+}
 
 <div class="gallery__item">
   <h3>Glossary card</h3>
