@@ -21,6 +21,7 @@ Write the chapter "The session log and context policy" (`the-session-log-and-con
 - ADRs [0013](../../decisions/0013-log-entry-per-content-block.md) and [0014](../../decisions/0014-session-writer-lock.md)
 - [Anthropic, Effective harnesses for long-running agents](https://www.anthropic.com/engineering/effective-harnesses-for-long-running-agents)
 - [Main report](../../research/agent-sdks-and-harness-design.md): external state artifacts as memory for long-running work
+- [Agent research papers, provenance section](../../research/papers/agent-research-papers.md#trustworthy-agent-provenance-needs-a-replayable-transaction-log-per-criterion-verifiers-the-generator-cannot-see-and-a-staged-gate-before-any-demo-based-score-counts) (U22): Hou et al. (arXiv 2611.23234) found that agent-output datasets keep patches and commits but drop the failed retries, fallbacks and abandoned sessions that drive cost and reliability, and Wong (arXiv 2611.23678) computes governance metrics from an append-only trial ledger; both bear on why the log keeps every entry. U22's rows for both papers are ⚠️ (secondary summary, rows 96–101), so re-read each abstract and log a ✅ row before citing it; Hou et al. was submitted on 11 August 2026, not in November.
 - [Book plan BK21 and BK22](../../plans/build-book.md#bk21-every-section-is-fact-checked-before-the-next-is-drafted-accepted): the per-section workflow and the voice rules
 - `apps/manual/README.md` (from T3–T7 and T26): front matter, citations, listings, notes, tabs, replays, checked inline code, figures and the analogy register
 
