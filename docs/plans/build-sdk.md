@@ -662,7 +662,7 @@ The fine-tuning research (U21) found that the gateway prices a tuned model corre
 | ID | Title | Depends on | Size |
 | --- | --- | --- | --- |
 | [B21](../todos/done/B21-catalog-tuned-model-docs.md) | Document how a tuned model gets a price: a catalog entry in a catalog that lists every model | B5 | S |
-| [B22](../todos/ready/B22-catalog-retirement-date.md) | An optional retirement date on catalog entries, with a CI warning 90 days before it | B5, B21 | S |
+| [B22](../todos/done/B22-catalog-retirement-date.md) | An optional retirement date on catalog entries, with a CI warning 90 days before it | B5, B21 | S |
 
 ## 5. Test strategy
 
