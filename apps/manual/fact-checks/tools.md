@@ -142,12 +142,13 @@ The first code-review round (high) found that the identity section praised a sin
 | 86 | SWE-bench Verified is a set of 500 real GitHub issues from Python projects that people checked by hand | § The model learns a tool | ✅ | [SWE-bench Verified dataset card](https://huggingface.co/datasets/princeton-nlp/SWE-bench_Verified), read 2026-11-19: "a subset of 500 samples from the SWE-bench test set, which have been human-validated for quality", "500 test Issue-Pull Request pairs from popular Python repositories" |
 | 87 | The source register's title for `anthropic-writing-tools` is the page's own title, "Writing effective tools for AI agents" | `sources.json` | ✅ | The page's `<title>` reads "Writing effective tools for AI agents \ Anthropic", fetched 2026-11-19; its heading reads "Writing effective tools for agents — with agents". The register's "for AI agents—with agents" mixed the two, and the log's research answer, which said "for agents", now matches the title |
 | 88 | The identity section's second paragraph opens "The trouble starts with where arguments come from" and makes the same claims as before | § Identity | ✅ | Row 53, unchanged; the new head sentence states no fact. It replaces a sentence frame Chapter 1 had used |
+| 89 | The writing review of the high review's fixes reworded rows 75, 77, 80, 85 and 86 (the SWE-bench gloss became its own sentence, the clerk's break and the OpenAI exceptions were split, and the closure warning and downstream check were recast) without changing a claim | § The model learns a tool, § A failed call, § Identity | ✅ | Re-read each sentence against the source of its row on 2026-11-19: the dataset card (row 86), `dist/tool.mjs:701-823` (row 85), `01-function-tool.ts:14-17` (row 80), `09-triage-agent.ts:14` (row 75) and OWASP prevention item 7 (row 77) |
 
 ## Tally
 
 | Verdict | Rows |
 | --- | --- |
-| ✅ confirmed | 82 |
+| ✅ confirmed | 83 |
 | ✏️ corrected | 3 (rows 26, 63 and 68) |
 | ⚠️ unverified, our recommendation, marked as ours in the text | 3 (rows 16, 36 and 45) |
-| Total | 88 |
+| Total | 89 |
