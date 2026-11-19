@@ -3,10 +3,10 @@
 | Field | Value |
 | --- | --- |
 | ID | `U16` |
-| Status | `ongoing` |
+| Status | `done` |
 | Plan | [Build guides §4d, U16](../../plans/build-guides.md#u16-watch-and-take-over-the-browser-added-2026-11-19) |
 | Round / milestone | Research (added 2026-11-19) |
-| Depends on | [U15](../done/U15-research-browser-use.md) |
+| Depends on | [U15](U15-research-browser-use.md) |
 | Size | M |
 
 ## Goal
@@ -21,9 +21,9 @@ The owner asked on 2026-11-19 whether a user can stream the agent's browser, wat
 
 ## Definition of done
 
-- [ ] Claimed: the first commit created this file in `ongoing/` (Status `ongoing`)
-- [ ] Prose drafted with `/anthropic-skills:writing`, fact-checked against primary sources, and changed claims re-checked against their sources
-- [ ] `pnpm check`, `pnpm typecheck` and `pnpm test` pass locally; pushed after each meaningful step
-- [ ] This file moved `ongoing/` → `done/` (Status `done`) in the last work commit, and the plan's todo table updated
+- [x] Claimed: the first commit created this file in `ongoing/` (Status `ongoing`)
+- [x] Prose drafted with `/anthropic-skills:writing`, fact-checked against primary sources, and changed claims re-checked against their sources
+- [x] `pnpm check`, `pnpm typecheck` and `pnpm test` pass locally; pushed after each meaningful step
+- [x] This file moved `ongoing/` → `done/` (Status `done`) in the last work commit, and the plan's todo table updated
 - [ ] Two code-review rounds run on the pull request (`/code-review high --max-findings default`, then `medium` and `low` after more than 6 confirmed findings, otherwise `low`), with every finding fixed or explained in a commit message
 - [ ] Copy reviewed with `/anthropic-skills:writing-review` after the code changes, with its findings fixed and the rubric scores in the pull request description
