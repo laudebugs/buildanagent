@@ -3,7 +3,6 @@
  * an audit can each be written and tested alone. A run takes one `Interceptors` object, and the joined one is it.
  */
 import type { Message, ModelContext } from "@buildanagent/gateway";
-import { SdkError } from "./errors.js";
 import {
   checkDecision,
   checkMessages,
@@ -21,7 +20,6 @@ import type {
   StopDecision,
   ToolResultPatch,
 } from "./hooks.js";
-import { blockingHandlerOf, withBlockingHandler } from "./pauses.js";
 
 type Hook<K extends keyof Interceptors> = NonNullable<Interceptors[K]>;
 
@@ -156,9 +154,6 @@ const stop =
  * `"continue"` only when every object sets it to `"continue"`; an object that leaves it unset counts as
  * `"fail_closed"`. One lenient object therefore never loosens the others, and a join of a gate with a lenient audit
  * hook fails closed. Set `"continue"` on all of them, and the gate then fails open too.
- *
- * An object from `blockingApprovals()` passes its handler on to the joined object. Joining two of them throws an
- * `SdkError` with code `invalid_run_options`, because a request can have only one answer.
  */
 export function composeInterceptors(...sets: readonly Interceptors[]): Interceptors {
   const lenient = sets.every((set) => (set.onFailure ?? "fail_closed") === "continue");
@@ -170,14 +165,7 @@ export function composeInterceptors(...sets: readonly Interceptors[]): Intercept
     afterToolCall: hooksOf(sets, "afterToolCall"),
     shouldStop: hooksOf(sets, "shouldStop"),
   };
-  const handlers = sets.flatMap((set) => {
-    const handler = blockingHandlerOf(set);
-    return handler === undefined ? [] : [handler];
-  });
-  if (handlers.length > 1) {
-    throw new SdkError("invalid_run_options", "composeInterceptors() can join only one blockingApprovals() object");
-  }
-  const joined: Interceptors = {
+  return {
     ...(hooks.transformContext.length === 0 ? {} : { transformContext: transform(hooks.transformContext) }),
     ...(hooks.beforeModelCall.length === 0 ? {} : { beforeModelCall: before(hooks.beforeModelCall) }),
     ...(hooks.afterModelCall.length === 0 ? {} : { afterModelCall: after(hooks.afterModelCall) }),
@@ -186,6 +174,4 @@ export function composeInterceptors(...sets: readonly Interceptors[]): Intercept
     ...(hooks.shouldStop.length === 0 ? {} : { shouldStop: stop(hooks.shouldStop) }),
     onFailure: lenient && sets.length > 0 ? "continue" : "fail_closed",
   };
-  const [handler] = handlers;
-  return handler === undefined ? joined : withBlockingHandler(joined, handler);
 }

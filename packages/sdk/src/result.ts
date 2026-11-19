@@ -14,9 +14,8 @@ export interface Context {
   readonly system: string;
   readonly messages: readonly Message[];
   /**
-   * The signed requests of a run that paused, `awaiting_approval` or `clarification_requested`: the same ones as
-   * `result.pending`. Each one's tool call is in `messages` without a result. Absent for every other stop reason.
-   * `continueRun()` refuses a context whose last assistant message has a call with no result and no request here.
+   * The signed requests of a run that ended `awaiting_approval`, the same ones as `result.pending`. Each one's tool
+   * call is in `messages` without a result. Absent for every other stop reason.
    */
   readonly pending?: readonly SignedPendingRequest[];
   /**
@@ -107,8 +106,10 @@ export interface ErrorResult extends ResultBase {
 }
 
 /**
- * A run that stopped before it finished, because a `shouldStop` hook ended it. `stoppedBy` is the `reason` the hook
- * gave, or `"hook"` when it returned `true`.
+ * A run that stopped before it finished, for a reason `stoppedBy` names. `clarification`: a tool from
+ * `clarificationTool()` asked the user a question. Any other value is the `reason` a `shouldStop` hook gave, or
+ * `"hook"` when it returned `true`. To go on, add the answer to `context` as a user message and pass the
+ * context to `continueRun()`.
  */
 export interface StoppedResult extends ResultBase {
   readonly stopReason: "stopped";
@@ -120,23 +121,11 @@ export interface StoppedResult extends ResultBase {
  * that waits, in model order; `context.pending` holds the same requests and `context.pendingInputs` the input each
  * one signs. Those calls did not run and have no result in the transcript; the step's other calls ran or were denied
  * as usual. Each request's signature covers its id, kind, call id, tool, input hash and policy version, so store the
- * requests and their inputs with the context, show them to a person, and pass each answer to `continueRun()` as a
- * `Resolution`, which checks it against its request and input before the call runs. When a tool asked a question in
- * the same step, its clarification request is in `pending` too.
+ * requests and their inputs with the context, show them to a person, and check each answer against its request and
+ * input before the call runs.
  */
 export interface AwaitingApprovalResult extends ResultBase {
   readonly stopReason: "awaiting_approval";
-  readonly pending: readonly SignedPendingRequest[];
-}
-
-/**
- * A run that paused because a tool, such as one from `clarificationTool()`, asked the user a question and no call
- * waits for an approval. `pending` holds one signed request of kind `clarification` for each question, in model
- * order, with the question in `question`. The asking call has no result in the transcript. Pass the user's answer to
- * `continueRun()` as `{ requestId, answer }`, and the model reads the answer as the call's result.
- */
-export interface ClarificationRequestedResult extends ResultBase {
-  readonly stopReason: "clarification_requested";
   readonly pending: readonly SignedPendingRequest[];
 }
 
@@ -144,7 +133,6 @@ export interface ClarificationRequestedResult extends ResultBase {
 export type RunResult<S = unknown> =
   | DoneResult<S>
   | AwaitingApprovalResult
-  | ClarificationRequestedResult
   | BudgetResult
   | EndedResult
   | ErrorResult
