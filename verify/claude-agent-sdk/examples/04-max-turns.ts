@@ -16,9 +16,9 @@ const srv = createSdkMcpServer({
 // #region max-turns
 const { result, thrown } = await collect(
   query({
-    prompt: "Search for refund policy and summarise.",
+    prompt: "Search for refund policy and summarise.", // book:note task
     // maxTurns: 1 leaves no turn for the final answer after the tool call.
-    options: { mcpServers: { kb: srv }, allowedTools: ["mcp__kb__search", "ToolSearch"], maxTurns: 1 },
+    options: { mcpServers: { kb: srv }, allowedTools: ["mcp__kb__search", "ToolSearch"], maxTurns: 1 }, // book:note max-turns
   }),
 );
 // #endregion

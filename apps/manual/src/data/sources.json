@@ -277,5 +277,71 @@
     "asOf": "November 2026",
     "version": "v0.21.0",
     "verifiedIn": "apps/manual/fact-checks/tools.md"
+  },
+  {
+    "id": "ai-sdk-loop-control",
+    "title": "Loop Control",
+    "publisher": "AI SDK documentation",
+    "url": "https://ai-sdk.dev/docs/agents/loop-control",
+    "kind": "docs",
+    "version": "ai@7.0.162",
+    "asOf": "November 2026",
+    "verifiedIn": "apps/manual/fact-checks/stopping-and-structured-output.md"
+  },
+  {
+    "id": "langgraph-graph-api",
+    "title": "Graph API overview",
+    "publisher": "LangChain documentation",
+    "url": "https://docs.langchain.com/oss/javascript/langgraph/graph-api",
+    "kind": "docs",
+    "asOf": "November 2026",
+    "verifiedIn": "apps/manual/fact-checks/stopping-and-structured-output.md"
+  },
+  {
+    "id": "claude-agent-sdk-agent-loop",
+    "title": "How the agent loop works",
+    "publisher": "Claude Agent SDK documentation",
+    "url": "https://code.claude.com/docs/en/agent-sdk/agent-loop",
+    "kind": "docs",
+    "asOf": "November 2026",
+    "verifiedIn": "apps/manual/fact-checks/stopping-and-structured-output.md"
+  },
+  {
+    "id": "openai-agents-running-agents",
+    "title": "Running Agents",
+    "publisher": "OpenAI Agents SDK documentation",
+    "url": "https://github.com/openai/openai-agents-js/blob/v0.21.0/docs/src/content/docs/guides/running-agents.mdx",
+    "kind": "docs",
+    "version": "v0.21.0",
+    "asOf": "November 2026",
+    "verifiedIn": "apps/manual/fact-checks/stopping-and-structured-output.md"
+  },
+  {
+    "id": "ai-sdk-generating-structured-data",
+    "title": "Generating Structured Data",
+    "publisher": "AI SDK documentation",
+    "url": "https://ai-sdk.dev/docs/ai-sdk-core/generating-structured-data",
+    "kind": "docs",
+    "version": "ai@7.0.162",
+    "asOf": "November 2026",
+    "verifiedIn": "apps/manual/fact-checks/stopping-and-structured-output.md"
+  },
+  {
+    "id": "claude-agent-sdk-structured-outputs",
+    "title": "Get structured output from agents",
+    "publisher": "Claude Agent SDK documentation",
+    "url": "https://code.claude.com/docs/en/agent-sdk/structured-outputs",
+    "kind": "docs",
+    "asOf": "November 2026",
+    "verifiedIn": "apps/manual/fact-checks/stopping-and-structured-output.md"
+  },
+  {
+    "id": "anthropic-structured-outputs",
+    "title": "Structured outputs",
+    "publisher": "Claude API documentation",
+    "url": "https://platform.claude.com/docs/en/build-with-claude/structured-outputs",
+    "kind": "docs",
+    "asOf": "November 2026",
+    "verifiedIn": "apps/manual/fact-checks/stopping-and-structured-output.md"
   }
 ]
