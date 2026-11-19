@@ -8,7 +8,7 @@
 | Status | `ready` |
 | Plan | [Book plan §4.1](../../plans/build-book.md#41-part-i-foundations-for-developers-new-to-agents) |
 | Round / milestone | Round T (textbook), MT |
-| Depends on | [T5](../done/T5-book-interactive-listings.md), [T6](../done/T6-book-flat-figures.md), [T26](../done/T26-book-checked-inline-code.md), [T28](T28-example-streaming-usage.md) |
+| Depends on | [T5](../done/T5-book-interactive-listings.md), [T6](../done/T6-book-flat-figures.md), [T26](../done/T26-book-checked-inline-code.md), [T28](../done/T28-example-streaming-usage.md) |
 | Size | M |
 
 ## Goal
@@ -32,7 +32,7 @@ Write the chapter "Talking to a model: messages, streams, tokens, instructions a
 
 - `apps/manual/src/content/chapters/talking-to-a-model.md`, with `switchTo: [B4, B5]` and `opening: code` in its front matter
 - Sections: Messages, roles and a stateless call; Streams of deltas that fold into one authoritative message; Usage, the four token classes and cost; The system prompt: short and frozen (agent guide §4); Choosing a model: start with the most capable, then try smaller ones against evals (OpenAI guide); Reasoning and thinking blocks, and why they go back unchanged (SDK guide §2; harness plan HD3)
-- Listings and at least one replay from: `verify/vercel-ai-sdk/examples/01-generate-text.ts`, `verify/vercel-ai-sdk/examples/06-streaming.ts`, `verify/langchain/examples/08-streaming.ts`, `verify/copilot-sdk/examples/05-streaming.ts`, the streaming-and-usage example from [T28](T28-example-streaming-usage.md)
+- Listings and at least one replay from: `verify/vercel-ai-sdk/examples/01-generate-text.ts`, `verify/vercel-ai-sdk/examples/06-streaming.ts`, `verify/langchain/examples/08-streaming.ts`, `verify/copilot-sdk/examples/05-streaming.ts`, `verify/vercel-ai-sdk/examples/10-streaming-usage.ts` from [T28](../done/T28-example-streaming-usage.md)
 - Figures: a flat figure of a transcript of messages with roles; a flat figure of a stream of deltas folding into one message, with the four token classes; a flat analogy illustration of the taxi meter
 - Exercise: Price a recorded run from its usage, then rerun it with a smaller model and compare the cost and the checks.
 - `apps/manual/fact-checks/talking-to-a-model.md`, the chapter's claims log
@@ -93,6 +93,7 @@ The book's build and `check:book` in the CI `book` job; the harness tests for an
 ## Risks and open questions
 
 - A source may not answer the research question; record the gap as a follow-up research todo instead of answering from memory.
+- **A replay cannot price a run yet.** A transcript has no usage field. Its model ids become `model-1`, `model-2`, so neither replay of T28's examples shows token classes, prices or which call used the tuned model. The exercise "Price a recorded run from its usage" therefore works from the listing and the example's `check()` lines. Propose a follow-up todo that adds each response's usage and the model's own id to the transcript format (`scripts/transcripts/` and the AI SDK's `lib/transcript.ts`); T28 leaves T5's format unchanged.
 - An analogy can mislead a newcomer more than no analogy; the vetting task and the "where it breaks" note catch it. A weak analogy is dropped, or goes back to the owner with a proposed replacement, instead of being forced in.
 
 ## Definition of done

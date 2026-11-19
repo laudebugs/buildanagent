@@ -79,4 +79,4 @@ Write a new type-checked, mock-run example in `verify/claude-agent-sdk/examples/
 - **No transcript.** The harness mocks over HTTP and has no transcript recorder yet, so these examples record none; [T49](../ready/T49-book-http-mock-transcripts.md) adds one, and Chapter T21 lists the regions without a replay until then.
 - **Results committed.** `results/run-examples.json` gains entries for `08-deferred-tools.ts` and `09-skills.ts`, with the neutral `/home/user/agent-speak/` path, so the results-drift check passes after `pnpm test`.
 - **Observations of 0.3.327, not in its `.d.ts`.** `ToolSearch` is not offered when nothing is deferred, a skill is listed only with `settingSources: ["project"]`, and `tools: []` turns deferral off (the guide's note), so example 08 keeps `ToolSearch` with `tools: ["ToolSearch"]`.
-- Fact-check rows 535–550 in `docs/plans/reviews/fact-check-build-book.md` cover the claims, with our choices and inferences marked as ours. Row 550 corrects row 549.
+- Fact-check rows 549–564 in `docs/plans/reviews/fact-check-build-book.md` cover the claims, with our choices and inferences marked as ours. Row 564 corrects row 563.
