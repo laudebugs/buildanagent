@@ -38,6 +38,10 @@ export interface ModelRef {
 export interface Usage {
   uncachedInput: number;
   cacheRead: number;
+  /**
+   * Cache writes at the short and the long lifetime. The keys name Anthropic's 5-minute and 1-hour writes; the
+   * OpenAI-compatible adapter counts its 30-minute writes under `"5m"`.
+   */
   cacheWrite: { "5m": number; "1h": number };
   output: number;
   /** The part of `output` spent on reasoning. */

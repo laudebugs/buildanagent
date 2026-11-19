@@ -34,6 +34,11 @@
       "types": "./dist/adapters/anthropic/index.d.ts",
       "default": "./dist/adapters/anthropic/index.js"
     },
+    "./openai-chat": {
+      "source": "./src/adapters/openai-chat/index.ts",
+      "types": "./dist/adapters/openai-chat/index.d.ts",
+      "default": "./dist/adapters/openai-chat/index.js"
+    },
     "./testing": {
       "source": "./src/testing/index.ts",
       "types": "./dist/testing/index.d.ts",
@@ -54,6 +59,10 @@
       "./anthropic": {
         "types": "./dist/adapters/anthropic/index.d.ts",
         "default": "./dist/adapters/anthropic/index.js"
+      },
+      "./openai-chat": {
+        "types": "./dist/adapters/openai-chat/index.d.ts",
+        "default": "./dist/adapters/openai-chat/index.js"
       },
       "./testing": {
         "types": "./dist/testing/index.d.ts",

@@ -7,7 +7,8 @@
  *   asks for thinking: signed Anthropic thinking is replayed either way, because the API checks it against its
  *   signature rather than the model's caps, and dropping it would lose a turn's reasoning for a model the catalog
  *   merely doesn't mark as reasoning.
- * - Tool names go through the run's `ToolNameMap`; tools are sent strict when their schema can be (strict-schema.ts).
+ * - Tool names go through the run's `ToolNameMap`; tools are sent strict when their schema can be
+ *   (`../strict-schema.ts`).
  * - Caching puts at most three `cache_control` breakpoints, on the system prompt, the last tool and the last block
  *   of the last user message, below the API's limit of 4 (Prompt caching,
  *   https://platform.claude.com/docs/en/build-with-claude/prompt-caching, as of November 2026).
@@ -18,15 +19,25 @@ import { createToolNameMap, TOOL_NAME_RULES, type ToolNameMap } from "../../name
 import type { ModelEvent, StreamOptions } from "../../spec.js";
 import { transformMessages } from "../../transform-messages.js";
 import type { ContentBlock, Message, ModelCaps, ModelContent, ModelContext, ModelRef, WireTool } from "../../types.js";
-import { lowerToStrict, STRICT_LIMITS } from "./strict-schema.js";
+import { lowerToStrict, type StrictDialect } from "../strict-schema.js";
+import { isObject, type Json } from "../wire.js";
 
-type Json = Record<string, unknown>;
 type Warning = Extract<ModelEvent, { type: "warning" }>;
 
 /** A prefix on an `OpaqueToken` value that marks a `redacted_thinking` block's `data`, not a thinking signature. */
 export const REDACTED_THINKING_PREFIX = "redacted_thinking:";
 
 const SAMPLING_PARAMETERS = ["temperature", "top_p", "top_k"] as const;
+
+// Strict tool use keeps optional properties optional and takes these string formats (Structured outputs, "JSON Schema
+// limitations"); the request-wide limits are from its "Schema complexity limits" section.
+const STRICT_DIALECT: StrictDialect = {
+  optional: "keep",
+  formats: new Set(["date-time", "time", "date", "duration", "email", "hostname", "uri", "ipv4", "ipv6", "uuid"]),
+  objectRoot: false,
+};
+/** The request-wide limits on strict schemas: strict tools, optional properties and union-typed parameters. */
+const STRICT_LIMITS = { tools: 20, optional: 24, unions: 16 } as const;
 
 /** What the adapter reads from `providerOptions.anthropic`. */
 export interface AnthropicProviderOptions {
@@ -50,10 +61,6 @@ export interface RequestPlan {
   readonly names: ToolNameMap;
   /** The TTL the breakpoints asked for, used when a response reports cache writes without their split. */
   readonly cacheTtl: "5m" | "1h";
-}
-
-function isObject(value: unknown): value is Json {
-  return typeof value === "object" && value !== null && !Array.isArray(value);
 }
 
 /** Reads `providerOptions.anthropic`, ignoring fields of the wrong type. */
@@ -162,7 +169,7 @@ function encodeTools(tools: readonly WireTool[], names: ToolNameMap, cacheContro
       name: names.sanitize(tool.name),
       ...(tool.description ? { description: tool.description } : {}),
     };
-    const strict = lowerToStrict(tool.inputSchema);
+    const strict = lowerToStrict(tool.inputSchema, STRICT_DIALECT);
     const fits =
       strict !== undefined &&
       used.tools < STRICT_LIMITS.tools &&

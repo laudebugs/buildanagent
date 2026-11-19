@@ -1,6 +1,6 @@
 # Fact-check log: browser-use report
 
-The browser-use report holds up, and its recommendation stands: the coding agent's first browser belongs inside the existing sandbox, logged out and under the sandbox's egress allowlist, with ADR 0045 as the owner's first decision, and the U16 viewer relay holds on Cloudflare with the limits that open problem 8 records. Of the 348 rows below, 226 are confirmed, 76 needed a correction and 46 rest on inference, on absence or on pages that state less than the claim. The rows come from seven rounds:
+The browser-use report holds up, and its recommendation stands: the coding agent's first browser belongs inside the existing sandbox, logged out and under the sandbox's egress allowlist, with ADR 0045 as the owner's first decision, and the U16 viewer relay holds on Cloudflare with the limits that open problem 8 records. Of the 349 rows below, 226 are confirmed, 76 needed a correction and 47 rest on inference, on absence, on pages that state less than the claim or on pages that could not be read. The rows come from eight rounds:
 
 - **Rows 1–261:** the fact-check round, 18 November 2026.
 - **Rows 262–276:** the editorial review that followed it.
@@ -9,6 +9,7 @@ The browser-use report holds up, and its recommendation stands: the coding agent
 - **Rows 335–340:** the first code-review round.
 - **Rows 341–344:** the second code-review round, at medium.
 - **Rows 345–348:** the writing review of the U16 copy.
+- **Row 349:** a later re-try of the OpenAI help page that row 316 couldn't read.
 
 The largest correction concerns the Cloudflare finding behind change 2. The page we quoted covers Sandbox SDK 0.x only, while npm's `latest` has been SDK 1.0 since 30 September 2026, which replaces `interceptHttps` with per-host `interceptOutboundHttps`. HTTPS under `enableInternet = false` still needs interception on both, so the finding stands with both API names.
 
@@ -19,14 +20,14 @@ The other corrections fall into four groups:
 - **Quotations, citations and figures:** quotations that did not match their source (Checkly, Meta, Steel, SeeAct), citations that did not support the claim (NIST CAISI, TechInformed, skills.sh), session limits and prices.
 - **Editorial review:** the title, the cheapest path on AWS, the exact versions to pin, the metadata rules for AWS and Google Cloud, and primary sources for change 16's method filters.
 
-- **Date:** 2026-11-18; rows 277–348 on 2026-11-19
+- **Date:** 2026-11-18; rows 277–349 on 2026-11-19
 - **Document checked:** [browser-use.md](browser-use.md)
 - **Method:**
   - **Who checked:** five checkers split the report by section and opened the primary source for every number, version, date, status, quotation and behavioural claim. The editorial review's fixes were checked the same way (rows 262–276).
-  - **How pages were fetched:** with `curl` through the session proxy on 2026-11-18. Vendor docs were read as their Markdown variants where offered (Cloudflare `/index.md` pages and `llms-full.txt`; Anthropic, OpenAI, Vercel and Claude Code `.md` pages; Browserbase, Browser Use, Anchor, Kernel and Steel `llms-full.txt`), and arXiv papers through their abstract and HTML pages. Fetched pages were read as data. Pages that refused us, and how each was handled, are listed under [Link check](#link-check).
+  - **How pages were fetched:** with `curl` through the session proxy on 2026-11-18. Vendor docs were read as their Markdown variants where offered (Cloudflare `/index.md` pages and `llms-full.txt`; Anthropic, OpenAI, Vercel and Claude Code `.md` pages; Browserbase, Browser Use, Anchor, Kernel and Steel `llms-full.txt`), and arXiv papers through their abstract and HTML pages. Fetched pages were read as data. Pages that refused us, and how each was handled, are listed under [Link check](#link-check). On 2026-11-19, row 349 also tried Playwright's Chromium.
   - **Packages and typings:** versions, dates and licences come from the npm registry and PyPI JSON, and typings from npm tarballs unpacked into fresh scratch directories and read, never run. Star counts come from shields.io badges because the GitHub API was blocked.
   - **Repository claims:** plans, todos, ADRs and SDK pins were read from this repository as it stands on 2026-11-18. The research notes were not used.
-- **Legend:** ✅ confirmed as written · ✏️ corrected in the report · ✏️ (citation) the claim was right but its cited source did not carry it, so the citation was replaced or added · ✏️ (design) our own design changed, with no outside claim to check · ⚠️ inferred, an absence claim, or confirmed only in part · ⚠️ (inferred) the report now marks the claim as our inference. A row with a **Now:** clause records a change to the report, whatever its verdict, and quotes or describes the new wording.
+- **Legend:** ✅ confirmed as written · ✏️ corrected in the report · ✏️ (citation) the claim was right but its cited source did not carry it, so the citation was replaced or added · ✏️ (design) our own design changed, with no outside claim to check · ⚠️ inferred, an absence claim, confirmed only in part, or unread because the source refused us · ⚠️ (inferred) the report now marks the claim as our inference. A row with a **Now:** clause records a change to the report, whatever its verdict, and quotes or describes the new wording.
 - **Where:** a section's short name and paragraph (Snapshots ¶3), a table and row (Price table, row 2), or a bare table name when the claim itself names the row (SDK table), a plan change (Plan table, change 7) or an open problem (Open problems, item 1), or another document and its entry (build-guides U16). The short names are Intro; Snapshots, with the Libraries table; Hosted, with the Price table; Vendor, with the Vendor table, the SDK table and the SDK sources line; Coding; Injection, with its subsections Injection figures, Designs, Logins, Egress and Screenshots; Benchmarks; Open problems; Plan changes, with the Plan table; Conclusion; Terms, the paragraph that defines the report's terms; and Watch, the watch-and-take-over section with its Cloudflare, E2B and Vercel items. Paragraph numbers count prose paragraphs within the section or subsection and skip tables and source lines.
 
 ## Introduction
@@ -470,6 +471,14 @@ The `/anthropic-skills:writing-review` round on pull request #28 found 23 proble
 | 346 | Open problem 8 names a change for each of its four problems, and marks the unauthenticated debugging port as our reading | Open problems, item 8; build-guides U16 | ✏️ | The item attached "change 18 measures the stream" to the simultaneous-input problem, dropped the single writer's condition (row 337), and named no change for the debugging port, whose lack of authentication is our reading (row 336). **Now:** "change 18 measures it first" follows the frame-size problem; "change 18 makes the task's Durable Object the single writer while no sandbox process drives the browser"; "Because Chromium's debugging port has no authentication on our reading, … change 18 does not close this gap, so ADR 0045 should record it as an accepted risk". build-guides U16 says "on the report's reading Chromium's debugging port has no authentication" |
 | 347 | A tenant's hosted-browser handoff must be completed by the signed-in tenant user, because Browserless warns that an interactive-link holder "can also choose **Done**" | Plan table, change 14 | ✏️ (design) | The rule sat in the last Watch paragraph, outside the section's stated scope, and in no plan change. The quotation is row 322's. **Now:** change 14 adds "a handoff completed only by the signed-in tenant user, since Browserless warns that an interactive-link holder 'can also choose **Done**'" |
 | 348 | Change 18 folds into ADR 0045, so the owner's first decision also settles watching and takeover | Conclusion ¶2 | ✅ | Change 18's New ADR cell reads "no; fold into ADR 0045 with change 1" (row 332). **Now:** Conclusion ¶2 adds "Change 18 would fold into the same record, so the decision also settles whether the owner can watch and take over that browser" |
+
+## OpenAI help page re-tried (2026-11-19)
+
+Row 316 rests on a search summary because help.openai.com refused the U16 session. This row tries the page again with a real browser.
+
+| # | Claim | Where | Verdict | Source |
+|---|---|---|---|---|
+| 349 | Row 316: search summaries say ChatGPT agent "doesn't capture passwords or sensitive data you manually enter" during takeover | Watch ¶8 | ⚠️ | Still unread at the source. On 2026-11-19, [the help article](https://help.openai.com/en/articles/11752874-chatgpt-agent) and OpenAI's launch post returned 403 to `curl`, and the article returned 403 with a "Just a moment..." challenge page to Playwright's Chromium. The quotation stays marked as a search summary |
 
 ## Link check
 

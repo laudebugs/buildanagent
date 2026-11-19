@@ -19,8 +19,10 @@ export interface FailedRequest {
 // explicit billing codes and phrases count: a rate-limit message that merely mentions "quota" stays retryable.
 // Anthropic's `enforced_spend_limit_reached` is a 429 for a monthly tier threshold (Messages API reference, Errors,
 // https://platform.claude.com/docs/en/api/messages/create, as of November 2026), so waiting does not clear it.
+// OpenAI's billing 429s carry a code that names the cause, and "retrying billing, spend, or quota errors won't restore
+// API access" (Error codes, https://developers.openai.com/api/docs/guides/error-codes, as of November 2026).
 const QUOTA =
-  /insufficient_quota|exceeded your current quota|credit balance is too low|billing_hard_limit|enforced_spend_limit_reached/i;
+  /insufficient_quota|exceeded your current quota|credit balance is too low|billing_hard_limit|enforced_spend_limit_reached|credit_balance_exhausted|(organization|project)_spend_limit_exceeded|organization_usage_limit_exceeded/i;
 // A per-minute "request too large" 429 is a rate limit, not a full context, so only context phrases count here.
 const OVERFLOW = /context[ _-]?(length|window)|prompt is too long|maximum context/i;
 // Other 5xx statuses, such as 501 and 505, are permanent.

@@ -1,8 +1,9 @@
 /**
  * `@buildanagent/gateway/testing`: test doubles for the gateway.
  *
- * It exposes the offline guards, `allowModelRequests()`, `assertStreamContract()`, `mockTransport()` and
- * `seededRandom()`; `startMockServer()` is planned here (SDK plan §3.2).
+ * It exposes the offline guards, `allowModelRequests()`, `assertStreamContract()`, `mockTransport()` with its
+ * `serverSentEvents()` and `chatCompletionEvents()` body writers, and `seededRandom()`; `startMockServer()` is planned
+ * here (SDK plan §3.2).
  */
 
 export {
@@ -20,6 +21,7 @@ export {
   PROVIDER_KEY_VARIABLES,
 } from "./guards.js";
 export {
+  chatCompletionEvents,
   type MockTransport,
   mockTransport,
   type RecordedRequest,

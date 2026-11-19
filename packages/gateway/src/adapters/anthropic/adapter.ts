@@ -10,20 +10,15 @@
  * request that carries it (Prefix checks on thinking blocks,
  * https://platform.claude.com/docs/en/build-with-claude/preserved-thinking/prefix-checks, as of November 2026).
  */
-import { isTransportFailure } from "../../classify.js";
-import { isGatewayError } from "../../errors.js";
 import { fnv1a } from "../../names.js";
 import { type ResolvedProviderConfig, resolveProviderConfig } from "../../provider-config.js";
-import { assertModelRequestAllowed, ModelRequestsDisabledError } from "../../request-policy.js";
 import type { ProviderConfig } from "../../runtime-types.js";
 import type { ModelAdapter, ModelEvent, StreamOptions } from "../../spec.js";
-import { readServerSentEvents } from "../../sse.js";
 import type { ContentBlock, Message, ModelCaps, ModelContext, ModelRef } from "../../types.js";
-import { abortedEvent, failureEvent, failureFromResponse, isPrefixMismatch } from "./failure.js";
-import { anthropicOptions, buildRequest, type RequestPlan } from "./request.js";
+import { type Json, payloadOf, readEventStream, sendRequest } from "../wire.js";
+import { failureEvent, failureFromResponse, isPrefixMismatch } from "./failure.js";
+import { anthropicOptions, buildRequest } from "./request.js";
 import { MessageAssembler } from "./response.js";
-
-type Json = Record<string, unknown>;
 
 /** The Messages API version every request pins. */
 export const ANTHROPIC_VERSION = "2026-10-21";
@@ -140,74 +135,6 @@ function requestFor(state: AdapterState, body: unknown, signal: AbortSignal | un
   return new Request(url, { method: "POST", headers, body: JSON.stringify(body), ...(signal ? { signal } : {}) });
 }
 
-/**
- * Sends one HTTP request. A transport that throws becomes an `error` terminal unless the throw is a guard's; only a
- * transport failure, by the rule the retries use, may be retried, and any other throw is `fatal`.
- */
-async function* send(
-  state: AdapterState,
-  model: ModelRef,
-  body: Json,
-  options: StreamOptions,
-): AsyncGenerator<ModelEvent, Response | undefined> {
-  const replaced = options.onPayload ? options.onPayload(body) : undefined;
-  const request = requestFor(state, replaced === undefined ? body : replaced, options.signal);
-  assertModelRequestAllowed(state.config.transport);
-  try {
-    return await state.config.transport(request);
-  } catch (thrown) {
-    if (isGatewayError(thrown) || thrown instanceof ModelRequestsDisabledError) throw thrown;
-    if (options.signal?.aborted) yield abortedEvent(model);
-    else yield thrownFailureEvent(model, thrown);
-    return undefined;
-  }
-}
-
-/** The `error` terminal for a throw: retryable only for a transport failure, and `fatal` for a bug or bad data. */
-function thrownFailureEvent(model: ModelRef, thrown: unknown, partial?: ReturnType<MessageAssembler["partial"]>) {
-  const message = thrown instanceof Error ? `${thrown.name}: ${thrown.message}` : String(thrown);
-  return failureEvent(model, { message, ...(isTransportFailure(thrown) ? {} : { kind: "fatal" }) }, partial);
-}
-
-/** Feeds each server-sent event to the assembler; returns true once it has yielded the terminal. */
-async function* pump(
-  body: ReadableStream<Uint8Array>,
-  assembler: MessageAssembler,
-): AsyncGenerator<ModelEvent, boolean> {
-  for await (const sse of readServerSentEvents(body)) {
-    const data: unknown = JSON.parse(sse.data);
-    if (typeof data !== "object" || data === null) continue;
-    const named = (data as Json).type;
-    for (const event of assembler.handle(typeof named === "string" ? named : sse.event, data as Json)) {
-      yield event;
-      if (event.type === "done" || event.type === "error") return true;
-    }
-  }
-  return false;
-}
-
-/** Reads a 200 stream to its terminal. A stream that breaks or ends early ends in an `error` terminal. */
-async function* readMessage(response: Response, model: ModelRef, plan: RequestPlan, signal: AbortSignal | undefined) {
-  const assembler = new MessageAssembler(model, plan.names, plan.cacheTtl);
-  if (response.body === null) {
-    yield failureEvent(model, { message: "the response has no body" });
-    return;
-  }
-  try {
-    if (yield* pump(response.body, assembler)) return;
-  } catch (thrown) {
-    if (signal?.aborted) {
-      yield abortedEvent(model, assembler.partial());
-      return;
-    }
-    // A broken connection may work on a retry; malformed event data, a SyntaxError, will not parse on one either.
-    yield thrownFailureEvent(model, thrown, assembler.partial());
-    return;
-  }
-  // No status and no terminal: the connection closed early, which a retry may fix.
-  yield failureEvent(model, { message: "the stream ended before message_stop" }, assembler.partial());
-}
-
 async function* streamMessage(
   state: AdapterState,
   model: ModelRef,
@@ -221,10 +148,12 @@ async function* streamMessage(
   const key = conversationKey(context, options);
   for (;;) {
     const dropBlock = state.dropBlock.has(key);
-    const response = yield* send(state, model, withBinding(plan.body, dropBlock), options);
+    const request = requestFor(state, payloadOf(withBinding(plan.body, dropBlock), options), options.signal);
+    const response = yield* sendRequest(state.config.transport, request, model, options.signal);
     if (response === undefined) return;
     if (response.ok) {
-      yield* readMessage(response, model, plan, options.signal);
+      const assembler = new MessageAssembler(model, plan.names, plan.cacheTtl);
+      yield* readEventStream(response, model, assembler, options.signal);
       return;
     }
     const failure = await failureFromResponse(response);
@@ -253,8 +182,9 @@ async function* streamMessage(
  *
  * `providerOptions.anthropic` takes a `conversationId`, which marks requests of one conversation, and an `extraBody`,
  * whose fields join the request body wherever the adapter sets no field of the same name. Without a
- * `conversationId`, the adapter tells conversations apart by their system prompt and the text of their first message, so conversations that share
- * both also share the `drop_block` setting; pass a `conversationId` for each conversation to keep them apart. The
+ * `conversationId`, the adapter tells conversations apart by their system prompt and the text of their first
+ * message, so conversations that share both also share the `drop_block` setting; pass a `conversationId` for each
+ * conversation to keep them apart. The
  * adapter remembers the last 1,000 conversations that needed `drop_block`. `temperature`, `top_p` and `top_k` are
  * never sent, because this API version rejects them; the call streams a `warning` instead.
  */

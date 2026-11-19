@@ -71,6 +71,7 @@ Prices change often; the catalog states its `asOf` date, and the owner may later
 - `src/cost.ts` holds `priceUsage()`, `projectCost()`, `estimateInputTokens()` and `projectCallCost()`; `Model.price()` prices with the model's entry, and `createModel()` defaults to the shipped catalog.
 - The retry loop prices each attempt before summing, so failed attempts count and each pays its own tier.
 - For B9: OpenAI's newer models bill 30-minute and 12-hour cache writes, while `Usage.cacheWrite` has `5m` and `1h` keys. `gpt-5.4-mini` has no cache-write charge, so the shipped entry avoids the mismatch; B9 decides the mapping for models that do charge.
+- The `gpt-5.4-mini` entry and the cache-write point above were re-read on OpenAI's live pages on 2026-11-19 and hold; rows 17–21 of the [tool-name fact-check log](../../plans/reviews/fact-check-tool-name-rule.md#the-price-catalogs-openai-entry-2026-11-19) record them.
 
 ## History
 
