@@ -72,7 +72,7 @@ An aborted run's transcript stays well formed: every tool call has a result, and
 
 ## Three guards stop a runaway run
 
-A run that loops or overspends costs real money, so the SDK ships three guards. Each has a default, and each is an option of `run()` and `continueRun()`.
+A run that loops or overspends costs real money, so the SDK ships three guards. Each is an option of `run()` and `continueRun()`, and the table gives its default (the budget has none).
 
 | Guard | Default | Change it with |
 | --- | --- | --- |
@@ -86,7 +86,9 @@ These numbers are provisional. Recorded runs will retune them.
 
 Before every model call, the run projects the most that call can cost and compares the spend so far plus that projection with `budgetUsd`. If the call could pass the cap, the run ends with `stopReason: "budget"` and never sends it. The projection comes from the gateway's `projectCallCost()`: the previous call's reported input, plus a character-based estimate of the messages added since, at the model's input rate, plus the call's `maxOutputTokens` (or the model's own limit) at its output rate. The SDK re-exports the function, so code that calls `Model.complete()` outside the loop projects with the same formula.
 
-Because the projection assumes the model may use its whole output allowance, the run stops early rather than late. On the SDK's scripted 30-step run, with caps placed just above the spend after `k` calls, the pre-emptive check overshot the cap by $0 on every cap and sent 9.3 calls on average. A check that runs after each response overshot by $0.0105 on average, almost the whole call that crossed the cap. The cost of the early stop is cap left unspent: $0.054 on average in that run, set by how far `maxOutputTokens` sits above the output the model actually writes. Lower `maxOutputTokens` in `modelOptions` to tighten the projection.
+Because the projection assumes the model may use its whole output allowance, the run stops early rather than late.
+
+On the SDK's scripted 30-step run, with caps placed just above the spend after `k` calls, the pre-emptive check overshot the cap by $0 on every cap and sent 9.3 calls on average. A check that runs after each response overshot by $0.0105 on average, almost the whole call that crossed the cap. The cost of the early stop is cap left unspent: $0.054 on average in that run, set by how far `maxOutputTokens` sits above the output the model actually writes. Lower `maxOutputTokens` in `modelOptions` to tighten the projection.
 
 The cap counts the calls the run itself makes. A `continueRun()` does not count the cost of the context it starts from.
 
@@ -112,7 +114,7 @@ async execute(input, ctx) {
 }
 ```
 
-Pass `signal: ctx.signal` so the child stops when the parent's call is aborted. The parent's `budgetUsd` counts only the parent's own model calls, so give each child a budget of its own. A tool running at `depth === maxDepth` that does this makes `run()` throw `max_depth_exceeded`. Since the throw happens inside `execute`, the model reads it as an error result and can answer without the sub-agent.
+Pass `signal: ctx.signal` so the child stops when the parent's call is aborted. The parent's `budgetUsd` counts only the parent's own model calls, so give each child a budget of its own. A tool running at `depth === maxDepth` that starts a child run this way makes `run()` throw `max_depth_exceeded`. Since the throw happens inside `execute`, the model reads it as an error result and can answer without the sub-agent.
 
 ## A run streams one closed set of events
 

@@ -72,7 +72,9 @@ The thresholds are provisional (D11); P2's recorded runs retune them.
 Each criterion and the test that covers it:
 
 - Next call over the cap ends `budget` before the call: `test/budget.test.ts`, "a run whose next call would cross the cap", checks that the scripted model saw exactly ten calls.
-- Overshoot: the last test of `test/budget.test.ts` runs 29 caps on a 30-step scripted run and prints both variants. Pre-emptive: overshoot $0 on every cap (at most one call's projection error, $0.057), 9.3 calls sent on average, $0.054 of cap left unspent on average. Post-response check (a `shouldStop` that stops once the spend reaches the cap): mean overshoot $0.0105, worst $0.0147, which is nearly the whole call that crossed the cap.
+- Overshoot: the last test of `test/budget.test.ts` runs 29 caps on a 30-step scripted run and prints both variants.
+  - The pre-emptive check overshot by $0 on every cap, within the allowed one call's projection error ($0.057). It sent 9.3 calls on average and left $0.054 of cap unspent on average.
+  - The post-response check (a `shouldStop` that stops once the spend reaches the cap) overshot by $0.0105 on average and $0.0147 at worst, nearly the whole call that crossed the cap.
 - Unknown price: "a budgeted run on an unknown-price model" asserts `error.kind: "unknown_price"`, zero steps and zero calls; a second test covers a call whose cost comes back unknown mid-run.
 - One formula: "the SDK's projectCallCost is the gateway's" asserts the two exports are one function and that the blocked call's `projectedUsd` equals `projectCallCost()` over the context and options the interceptor saw; the overshoot test calls the SDK's export.
 - Progress: `test/progress.test.ts` covers three identical failures (key order ignored) against two, a success breaking the streak, five calls on one `progressKey` against four, the reset on success, other keys not counting, the thresholds, `progress: false` and `continueRun()`.
@@ -96,6 +98,6 @@ The SDK-gaps revision of 2026-11-18 (ADR 0043) moved `projectCallCost()` to the 
 ## Definition of done
 
 - [x] Claimed: the first commit moved this file `ready/` → `ongoing/` (Status `ongoing`)
-- [ ] Prose drafted with `/anthropic-skills:writing` and reviewed with `/anthropic-skills:writing-review`, with the fixes applied and changed claims re-checked
+- [x] Prose drafted with `/anthropic-skills:writing` and reviewed with `/anthropic-skills:writing-review`, with the fixes applied and changed claims re-checked
 - [x] `pnpm check`, `pnpm typecheck` and `pnpm test` pass locally; pushed after each meaningful step
 - [x] This file moved `ongoing/` → `done/` (Status `done`), and the plan's todo table updated
