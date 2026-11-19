@@ -1,0 +1,52 @@
+{
+  "name": "openai-user-data-pattern-format",
+  "source": "https://developers.openai.com/api/docs/guides/structured-outputs",
+  "section": "Supported properties, string restrictions: user_data",
+  "checkedOn": "2026-11-19",
+  "schema": {
+    "type": "object",
+    "properties": {
+      "name": {
+        "type": "string",
+        "description": "The name of the user"
+      },
+      "username": {
+        "type": "string",
+        "description": "The username of the user. Must start with @",
+        "pattern": "^@[a-zA-Z0-9_]+$"
+      },
+      "email": {
+        "type": "string",
+        "description": "The email of the user",
+        "format": "email"
+      }
+    },
+    "additionalProperties": false,
+    "required": ["name", "username", "email"]
+  },
+  "valid": [
+    {
+      "name": "Ada",
+      "username": "@ada_l",
+      "email": "ada@example.com"
+    }
+  ],
+  "invalid": [
+    {
+      "value": {
+        "name": "Ada",
+        "username": "ada",
+        "email": "ada@example.com"
+      },
+      "paths": ["/username"]
+    },
+    {
+      "value": {
+        "name": "Ada",
+        "username": "@ada",
+        "email": "not-an-email"
+      },
+      "paths": ["/email"]
+    }
+  ]
+}
