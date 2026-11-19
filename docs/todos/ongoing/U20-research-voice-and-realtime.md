@@ -5,7 +5,7 @@
 | Field | Value |
 | --- | --- |
 | ID | `U20` |
-| Status | `ready` |
+| Status | `ongoing` |
 | Plan | [Book plan §4.3, BK19](../../plans/build-book.md#43-four-topics-need-research-before-they-are-written) |
 | Round / milestone | Round U (research), for Round T (textbook), MT |
 | Depends on | None |
@@ -13,7 +13,7 @@
 
 ## Goal
 
-Research voice and realtime agents so the book can teach it from checked sources instead of memory. The owner chose to cover it (2026-11-19), and the repo has little on it. The result feeds a section of Chapter T35, todo [T38](T38-section-voice-and-realtime.md). **Research question:** How do voice and realtime agents differ from text agents in the loop, latency, interruption and tool calls, and what do our SDKs offer in TypeScript?
+Research voice and realtime agents so the book can teach it from checked sources instead of memory. The owner chose to cover it (2026-11-19), and the repo has little on it. The result feeds a section of Chapter T35, todo [T38](../ready/T38-section-voice-and-realtime.md). **Research question:** How do voice and realtime agents differ from text agents in the loop, latency, interruption and tool calls, and what do our SDKs offer in TypeScript?
 
 ## Context
 
@@ -26,8 +26,8 @@ Research voice and realtime agents so the book can teach it from checked sources
 
 **In scope**
 
-- `docs/research/agent-ui/notes/` with the raw notes
-- A report in `docs/research/agent-ui/` that answers the research question, with a fact-check file beside it
+- `docs/research/voice/notes/` with the raw notes
+- A report in `docs/research/voice/` that answers the research question, with a fact-check file beside it
 - A short list of recommended `verify/` examples, if any, for the book chapter or section
 
 **Out of scope** (and which todo covers it)
@@ -66,7 +66,7 @@ None beyond `pnpm check` and the link check; the report is prose.
 
 ## Definition of done
 
-- [ ] Claimed: the first commit moved this file `ready/` → `ongoing/` (Status `ongoing`)
+- [x] Claimed: the first commit moved this file `ready/` → `ongoing/` (Status `ongoing`)
 - [ ] Prose drafted with `/anthropic-skills:writing`, and changed claims re-checked against their sources
 - [ ] `pnpm check`, `pnpm typecheck` and `pnpm test` pass locally; pushed after each meaningful step
 - [ ] This file moved `ongoing/` → `done/` (Status `done`) in the last work commit, and the plan's todo table updated
