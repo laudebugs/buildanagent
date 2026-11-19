@@ -1,0 +1,8 @@
+{
+  "error": {
+    "message": "Rate limit reached for gpt-5.4-mini in organization org-test on tokens per min (TPM): Limit 200000, Used 199000, Requested 2400. Please try again in 420ms.",
+    "type": "tokens",
+    "param": null,
+    "code": "rate_limit_exceeded"
+  }
+}

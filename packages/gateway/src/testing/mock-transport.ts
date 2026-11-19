@@ -140,3 +140,11 @@ export function mockTransport(api: WireApi, script: WireScript): MockTransport {
 export function serverSentEvents(events: readonly { readonly type: string }[]): string {
   return events.map((event) => `event: ${event.type}\ndata: ${JSON.stringify(event)}\n\n`).join("");
 }
+
+/**
+ * Writes Chat Completions chunks as a server-sent event stream: one unnamed `data:` event per chunk, then the
+ * `data: [DONE]` event that ends an OpenAI stream.
+ */
+export function chatCompletionEvents(chunks: readonly object[]): string {
+  return `${chunks.map((chunk) => `data: ${JSON.stringify(chunk)}\n\n`).join("")}data: [DONE]\n\n`;
+}
