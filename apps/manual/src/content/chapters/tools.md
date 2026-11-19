@@ -3,7 +3,7 @@ title: "Tools: schemas, validation, errors the model can read, and identity it c
 summary: A tool is a contract between your code and a model. The model learns it from a name, a description and a schema; your SDK checks every argument, a failed call comes back as a message the model can act on, and the user's identity comes from the signed-in session, never from the model.
 opening: incident
 sources: [anthropic-how-tool-use-works, anthropic-writing-tools, claude-agent-sdk-custom-tools, owasp-llm06-excessive-agency, openai-agents-context]
-glossary: [tool, agent-loop, prompt-injection, trusted-context]
+glossary: [tool, agent-loop, mcp, prompt-injection, trusted-context]
 switchTo: [B10]
 ---
 
@@ -19,7 +19,7 @@ Three parts of a tool definition reach the model, and one part stays with you. T
 
 ::::tabs
 :::listing[OpenAI Agents SDK]{#tool-openai file="verify/openai-agents-sdk/examples/02-function-tool.ts" region="function-tool"}
-::note[A Zod schema: one string box, `city`. The SDK turns it into the JSON Schema the model reads.]{#schema}
+::note[A schema written with Zod, a TypeScript library for declaring and checking data shapes: one string box, `city`. The SDK turns it into the JSON Schema the model reads.]{#schema}
 ::note[Your code. The model never sees this function, only the name, description and schema above it.]{#execute}
 :::
 :::listing[Google ADK]{#tool-adk file="verify/google-adk/examples/01-function-tool.ts" region="function-tool"}
@@ -27,25 +27,27 @@ Three parts of a tool definition reach the model, and one part stays with you. T
 ::note[Your code, which runs only after the arguments pass the schema.]{#execute}
 :::
 :::listing[Pi]{#tool-pi file="verify/pi/examples/02-custom-tool.ts" region="custom-tool"}
-::note[Pi takes a TypeBox schema, which is JSON Schema already.]{#schema}
+::note[Pi takes a schema built with TypeBox, a TypeScript library whose schemas are JSON Schema already.]{#schema}
 ::note[Your code, with the tool call's id first and the checked arguments second. It returns `content` for the model and `details` for your own records.]{#execute}
 :::
 :::listing[Claude Agent SDK]{#tool-claude file="verify/claude-agent-sdk/examples/02-custom-tool.ts" region="custom-tool"}
-::note[A Zod raw shape: an object of fields, not a `z.object`. The SDK's in-process MCP server offers it to the model.]{#schema}
+::note[A Zod raw shape: an object of fields, not a `z.object`. The SDK offers it to the model through an MCP server that runs in your process. MCP, the Model Context Protocol, is an open standard for connecting AI applications to the systems where data lives.]{#schema}
 ::note[The handler, your code, which receives the arguments after Zod has checked them.]{#handler}
 :::
 ::::
 
 The four listings differ in syntax and agree on the contract. Each names the tool, describes it in a sentence and declares one or two typed inputs, and each keeps the work in a function the model cannot read. The schema is also the form the model actually receives. In ADK, the example's checks confirm that the Zod object becomes a function declaration whose `orderId` field is a required string.
 
-Because the description is the only instruction on the form, its wording changes what the model does. Anthropic's advice is to describe a tool the way "you would describe your tool to a new hire on your team", making explicit the context you would otherwise assume, and to name inputs without ambiguity: "instead of a parameter named `user`, try a parameter named `user_id`{checked=row-14}" [@anthropic-writing-tools]. Anthropic reports that Claude Sonnet 3.5 reached state-of-the-art performance on the SWE-bench Verified evaluation "after we made precise refinements to tool descriptions". The one-sentence descriptions in these listings are fine for a weather demo. For a tool that touches money or customer data, we recommend writing the three or four sentences a new colleague would need, including when not to call it.
+Because the description is the only instruction on the form, its wording changes what the model does. Anthropic's advice is to describe a tool the way "you would describe your tool to a new hire on your team", making explicit the context you would otherwise assume, and to name inputs without ambiguity: "instead of a parameter named `user`, try a parameter named `user_id`{checked=row-14}" [@anthropic-writing-tools]. Anthropic reports that Claude Sonnet 3.5 reached state-of-the-art performance on SWE-bench Verified, a set of 500 real GitHub issues from Python projects that people checked by hand, "after we made precise refinements to tool descriptions". The one-sentence descriptions in these listings are fine for a weather demo. For a tool that touches money or customer data, we recommend writing the three or four sentences a new colleague would need, including when not to call it.
 
-A post office clerk, though, checks every box and hands the form back when you wrote a word where a date belongs. A schema checks nothing. It only describes the boxes, so a model can still fill one wrongly, and each SDK plays the clerk instead, checking the model's arguments before your function runs:
+A schema checks nothing by itself. It only describes the boxes, so a model can still fill one wrongly, and each SDK checks the model's arguments against the schema before your function runs:
 
 - **OpenAI Agents SDK** parses the arguments with the Zod schema, and it insists on its `strict`{checked=row-12} mode for a Zod schema, which makes the SDK reject arguments that do not match.
 - **ADK** applies the Zod object with `parse()`. A call that does not match never reaches `execute`, and keys the schema does not declare are dropped.
 - **Pi** first coerces common slips, such as `"42"` sent for a number, then validates against the schema.
 - **Claude Agent SDK** validates with Zod inside its in-process MCP server, so the handler receives checked arguments.
+
+Here the form and the SDK part ways. A clerk reads what you wrote as well as where you wrote it, and asks you a question when an answer makes no sense. The SDK asks only whether each box holds the right type. Any string passes as an `orderId`, so an order number the model invented would reach the function in [[lst:tool-adk]], which reports every order it is given as shipped. Checking that a value is real, and that it belongs to the user, stays your function's job, as the identity section shows.
 
 [[lst:weather-run]] runs the OpenAI tool from the first tab through one full call. The replay shows exactly what crosses the boundary in each direction.
 
@@ -71,7 +73,7 @@ You feed a coin into :analogy[a vending machine that hands back your coin with a
 ::svg{alt="A vending machine with two rows of snacks, A1 to B3, and a coin slot. An arrow from you inserting one large coin points at the slot. The return tray, highlighted, holds your coin, back, and an arrow leads from it to a note that says exact change only, try two small coins. Text between them reads: the machine says what to try next."}
 :::
 
-A tool call fails in the same two ways a coin can. The model can send arguments that break the schema, like a coin of the wrong size, or your function can throw, like a machine that is out of stock. By default, in every SDK in this chapter, neither failure ends the run. The SDK catches it, turns it into a tool result, and sends that result to the model on its next turn, so the model reads the failure the way it reads any other result and decides what to do. [[lst:adk-retry]] scripts the first kind of failure, and its replay shows the whole exchange.
+A tool call fails in the same two ways a coin can. The model can send arguments that break the schema, like a coin of the wrong size, or your function can throw, like a machine that is out of stock. By default, in every SDK in this chapter, neither failure ends the run. The exceptions we found are both in the OpenAI Agents SDK. A tool that declares an `outputSchema`{checked=row-85} gets no default error handler, so a throw ends the run unless the tool sets its own, and an asynchronous schema check that fails ends the run too. Otherwise the SDK catches the failure, turns it into a tool result, and sends that result to the model on its next turn, so the model reads the failure the way it reads any other result and decides what to do. [[lst:adk-retry]] scripts the first kind of failure, and its replay shows the whole exchange.
 
 :::listing[A call that breaks the schema, and the retry that follows]{#adk-retry file="verify/google-adk/examples/01-function-tool.ts" region="retry" replay}
 ::note[The scripted model's first call sends `orderId` as the number 42, where [[lst:tool-adk]] asks for a string.]{#bad-call}
@@ -130,7 +132,7 @@ Pi builds that split into the result itself. A Pi tool returns `content` for the
 
 At :analogy[passport control]{#passport-control}, you can tell the officer any name you like. The officer reads your passport instead, a document someone else issued and the officer can check against your face, and your claim at the desk changes nothing. Ada's ticket from the start of this chapter is a claim at the desk. When a lookup takes an email argument, the model decides whose record to read, and it decides from text that Ada wrote.
 
-The mechanism is simple and unforgiving. Every argument in a tool call is text the model wrote after reading its whole context: the user's message, earlier tool results, perhaps a web page or an email a tool fetched. Some of that text comes from people other than the signed-in user, and some may carry instructions planted for the model to follow, the attack called prompt injection. So any argument that names whose data a tool reads or changes is a choice made under the influence of whoever wrote the context. OWASP's guidance on excessive agency names the fix: "Execute extensions in user's context", so that actions "taken on behalf of a user are executed on downstream systems in the context of that specific user", and "Implement authorization in downstream systems rather than relying on an LLM to decide if an action is allowed or not" [@owasp-llm06-excessive-agency].
+The trouble starts with where arguments come from. Every argument in a tool call is text the model wrote after reading its whole context: the user's message, earlier tool results, perhaps a web page or an email a tool fetched. Some of that text comes from people other than the signed-in user, and some may carry instructions planted for the model to follow, the attack called prompt injection. So any argument that names whose data a tool reads or changes is a choice made under the influence of whoever wrote the context. OWASP's guidance on excessive agency names the fix: "Execute extensions in user's context", so that actions "taken on behalf of a user are executed on downstream systems in the context of that specific user", and "Implement authorization in downstream systems rather than relying on an LLM to decide if an action is allowed or not" [@owasp-llm06-excessive-agency].
 
 In code, the fix has two halves. First, the schema loses its identity field: a lookup of the signed-in customer's orders asks for no customer at all. Second, the tool's function reads the identity from trusted context, a value your code set from the authenticated session and handed to the tool outside its arguments. The model cannot write that value, and it sees it only if your code chooses to show it. Each SDK in this chapter offers a route, though they differ in how much they give you, as [[tbl:trusted-context]] shows.
 
@@ -146,6 +148,10 @@ In code, the fix has two halves. First, the schema loses its identity field: a l
 The OpenAI Agents SDK is the most explicit about the boundary. Its documentation says the object behind `RunContext` "is not sent to the LLM. It is purely local", and lists "Data about the run (user name, IDs, etc.)" among its uses [@openai-agents-context]. The same page warns against a tempting shortcut. Hiding a tool from the model with an `isEnabled`{checked=row-58} check decides which tools the model sees, but those checks "run before the model produces tool or handoff arguments, so they cannot authorize a model-generated argument or resource selection". The authorization belongs inside `execute`.
 
 Two of our capstones already work this way, and their checks show it. The ADK capstone's `lookup_customer`{checked=row-59} declares no parameters and reads "user:customer_id" from session state; its scripted model tries to smuggle in another customer's id, the plain Zod object drops the extra key, and the checks confirm that the lookup ran for the signed-in customer and that "the other customer's record never reaches the model" (`verify/google-adk/examples/08-triage-agent.ts`). The Copilot capstone's `lookup_orders`{checked=row-60} closes over a customer object "set by our auth layer" and ignores the id its mock sends (`verify/copilot-sdk/examples/09-triage-agent.ts`). Do not read the dropped key as the defence, though. A schema that kept unknown keys would pass the smuggled id to the function, which would still be safe only because it never reads it. The defence is that identity comes from the session.
+
+Copy the Copilot capstone's pattern, not its scope. Its `customer`{checked=row-75} is a constant at the top of the file, which is safe only because the script serves one made-up customer. A server must build the tool, or the object it closes over, for each request, from that request's authenticated session. A tool built once at module level hands one user's identity to every request. A tool that closes over a variable each request overwrites is worse, because two overlapping requests can each read the other's user.
+
+Some tools cannot drop every id, because the model has to say which record it means. One of the six capstones from the opening offers `lookupOrder({ orderId })`{checked=row-76}, and an order number is a fair thing for a customer to type. Such a tool keeps the id and checks it against the session. Its `execute` loads order 4417, compares the order's customer with the signed-in customer, and on a mismatch returns "No order 4417 belongs to this customer" instead of the record. OWASP states the rule in general form: "Enforce the complete mediation principle so that all requests made to downstream systems via extensions are validated against security policies" [@owasp-llm06-excessive-agency]. Where you can, put that check in the downstream system itself, such as a query that fetches only the session customer's orders, so a tool that forgets the check still cannot read another customer's order.
 
 One difference matters more than the likeness. A traveller carries the passport and hands it to the officer. In an agent, the model never holds the passport at all: your code reads the identity from the signed-in session and gives it straight to the tool, so nothing the model writes, and nothing written to the model, can stand in for it. For Ada, the fixed lookup takes no email, returns her own plan and tickets, and has no way to fetch Bob's. If the model asks about Bob anyway, the right reply, written as the error section above recommends, says that the tool reads only the signed-in customer's account and that the request should go to a person.
 

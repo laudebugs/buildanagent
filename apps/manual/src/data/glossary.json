@@ -96,7 +96,7 @@
   {
     "id": "trusted-context",
     "term": "trusted context",
-    "definition": "Data your code sets from the signed-in session and hands to a tool outside its arguments, such as the user's id. The model neither sees nor writes it, so it cannot choose whose data the tool touches.",
+    "definition": "Data your code sets from the signed-in session and hands to a tool outside its arguments, such as the user's id. The model cannot write it, and sees it only if your code puts it in the prompt, so the model cannot choose whose data the tool touches.",
     "sources": ["openai-agents-context", "owasp-llm06-excessive-agency"]
   }
 ]

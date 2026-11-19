@@ -51,10 +51,28 @@ Give Chapter 3, "Tools: schemas, validation, errors the model can read, and iden
 - [ ] `check:book`, the manual's `test` and `build`, `figures:build` with no stale figure, and `figures:audit` pass
 - [ ] `pnpm check`, `pnpm typecheck` and `pnpm test` pass offline from the repo root, and the results-drift check reports no drift
 
+## Tests
+
+The listing-rule tests in `apps/manual/test/`, the new examples in `packages/sdk/test/examples.test.ts`, the figure staleness test and the book's CI job.
+
+## Docs to update
+
+- [Book plan](../../plans/build-book.md): the §4.1 row for Chapter 3's examples
+- `packages/sdk/README.md`, if an example shows a use of `defineTool()` that the README lacks
+- The chapter's source register entries, for any source our tabs' prose cites
+
+## Risks and open questions
+
+- Tabs double the code a reader can open at each step, and the prose must still read as one argument. Keep each paragraph about the step, and name an SDK only where the tabs differ.
+- Listing numbers shift, because each tabs block numbers every listing in it and ours comes first. The build computes every number and reference, so only hand-written text that counts listings needs checking.
+- Our identity tab closes over the customer because `ToolContext` carries no app-defined data as of B10. The chapter warns that a server must build such a tool per request, so the example must do that rather than close over a module-level constant. Whether `ToolContext` should gain a trusted-context field is an open question for a B-series todo, which the owner decides.
+- Our packages are alpha (a `0.1.0-alpha` release as of November 2026), so their APIs may change under the chapter. The type-check and the results-drift check catch each change, but each one then needs a chapter update.
+
 ## Definition of done
 
 - [ ] Claimed: the first commit moved this file `ready/` → `ongoing/` (Status `ongoing`)
 - [ ] Prose drafted with `/anthropic-skills:writing`, and changed claims re-checked against their sources
+- [ ] `pnpm check`, `pnpm typecheck` and `pnpm test` pass locally; pushed after each meaningful step
 - [ ] This file moved `ongoing/` → `done/` (Status `done`) in the last work commit, and the plan's todo table updated
-- [ ] Two code-review rounds run on the pull request, with every finding fixed or explained in a commit message
+- [ ] Two code-review rounds run on the pull request (`/code-review high --max-findings default`, then `medium` and `low` after more than 6 confirmed findings, otherwise `low`), with every finding fixed or explained in a commit message
 - [ ] Copy reviewed with `/anthropic-skills:writing-review` after the code changes, with its findings fixed and the rubric scores in the pull request description

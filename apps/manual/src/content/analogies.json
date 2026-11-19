@@ -29,7 +29,7 @@
     "analogy": "a form at a counter with labelled boxes",
     "chapter": "tools",
     "illustration": null,
-    "breaks": "A clerk reads the boxes and checks them too; a schema only describes them, so the model can still fill a box wrongly and the SDK must validate every field."
+    "breaks": "A clerk reads what you wrote and asks what you meant when an answer makes no sense; the SDK checks only that each box holds the right type, so a well-formed but invented value passes and your function must check that it is real."
   },
   {
     "id": "vending-machine",
@@ -45,6 +45,6 @@
     "analogy": "passport control, where the officer reads your passport, not what you claim at the desk",
     "chapter": "tools",
     "illustration": null,
-    "breaks": "A traveller carries the passport and hands it over; in an agent, your code reads the identity from the signed-in session, and the model never sees or carries the passport."
+    "breaks": "A traveller carries the passport and hands it over; in an agent, your code reads the identity from the signed-in session and hands it to the tool, so the model never carries it and sees it only if your code shows it."
   }
 ]
