@@ -2,7 +2,7 @@
 
 The SDK runs your agent's loop over [`@buildanagent/gateway`](../gateway/README.md): it calls the model, runs the tools the model asks for, and stops when the work is done. Its testing export lets you test that agent offline against a scripted model, with no API key.
 
-As of November 2026 the package holds the loop, tool definitions, hooks, signed pauses for approval and the testing export. Resuming a pause comes next.
+As of November 2026 the package holds the loop, tool definitions, hooks, signed pauses for approval and their resumption, and the testing export.
 
 ## Install the alpha with `pnpm add @buildanagent/sdk@alpha`
 
@@ -432,6 +432,7 @@ Hooks add two `SdkError` codes:
 - **`hook_failed`**: an interceptor threw while the run fails closed. The run catches it and reports a `hook` error result, so it never reaches your code.
 - **`run_stopped`**: the error is a `RunStoppedError` from `runOrThrow()`.
 - **`unexpected_model_call`**: the error is an `UnexpectedModelCallError` from `ScriptedModel`.
+- **`invalid_recording`, `recording_expired` and `recording_mismatch`**: the error is a `RecordingError` from `recordPairs()` or `replayPairs()`, for a malformed recording, an expired one, or one that differs from the replay.
 
 ## Test against a strict scripted model
 
@@ -457,6 +458,49 @@ const model = new ScriptedModel(
 ```
 
 A step is either a fixed response or a function that builds one from the request. A response stops with `"tool_calls"` when it contains a tool call and with `"stop"` otherwise. Setting `error` ends the stream with an error instead. Set `usage` to the token counts the response reports; counts you leave out are zero. A response without `usage` acts like a provider that reported none: its usage is marked `unreported`, so `createModel()` prices it as unknown rather than free. Pass `usage: {}` to report zero tokens.
+
+## `autoResponder()` drives an agent without a script, and never calls a host tool
+
+`autoResponder()` returns a step that behaves like a cooperative model. On a request whose conversation has no tool call yet, it calls one offered tool: the one the user's text names, or else the first. It fills the tool's input with `synthesizeInput(schema)`, which picks `const`, the first `enum` value, `default`, the first `anyOf` branch, or a plain value of the schema's type, such as `"example"` or the `minimum`. On every later request it answers in text.
+
+The step never calls a tool named in `DEFAULT_DENIED_TOOLS`: `bash`, `exec_command`, `shell`, `write`, `edit` and `delete`. It matches the whole name, ignoring case, because one of our verification runs let OpenAI's `exec_command` through a filter that checked only the tool's kind. When a denied tool is the only tool offered, the step answers in text instead. `denyTools` adds names or regular expressions to the list, and nothing removes the defaults. One step answers one call, so this model calls a tool and then answers:
+
+```ts
+const model = new ScriptedModel([autoResponder({ denyTools: [/^deploy/] }), autoResponder()]);
+```
+
+## Record a real model once, then replay it offline with `replayPairs()`
+
+`recordPairs(model, { providerVersion, expiresAt })` wraps a model and records each call as a pair: the normalised request (model, context and options) and every event the call streamed. Pass `recorder.model` to `run()`, then write `recorder.pairs()` to a fixture as JSON. Each pair is stamped with the SDK version, the model's API, provider and id, the provider version you name, the recording time and the expiry.
+
+A pair holds the gateway's transcript types, not wire bytes, so it survives changes to an adapter's wire format. It also holds no credential. The recorder leaves out every property named like a credential header (`authorization`, `x-api-key`, `api-key`, `x-goog-api-key`, `proxy-authorization`, `cf-aig-authorization` or a cookie) or `apiKey`, at any depth and in any spelling. `retry` events stay out, because a replay can't reproduce them.
+
+`replayPairs(pairs)` returns a `ReplayModel`, a `ScriptedModel` that streams each pair's events exactly as they were recorded. Wrap it with `createModel()` under the recorded id, so the replayed calls are priced from the same catalog entry:
+
+```ts
+const replay = replayPairs(JSON.parse(fixture), { expect: { providerVersion: "2026-10-21" } });
+const model = createModel({ adapter: replay, id: replay.modelId });
+```
+
+Given the same clock and ids, the replayed run streams the same events as the recorded one. A replay refuses four kinds of drift, each with a `RecordingError`, an `SdkError`:
+
+- **`recording_expired`:** the clock has reached the stamp's `expiresAt`. Record the fixture again.
+- **`recording_mismatch` on the stamp:** the pairs disagree on their stamp, a field differs from `expect`, or the SDK that recorded them is on another release line (another minor version under 0.x).
+- **`recording_mismatch` on a request:** a call sent a request other than the recorded one. The run ends `error`, and `replay.assertComplete()` throws the error, which names the first field that differs.
+- **`invalid_recording`:** the pairs are empty or malformed.
+
+## Scripted doubles stand in for the approver and an MCP server
+
+`scriptedApprovals(answers)` answers the run's approval requests in order, through `blockingApprovals()`, so a test drives the real signing and checking path. Join it with a gate that returns `ask`. Each answer takes the id of the request it answers, so give a `requestId` only to test an answer that names the wrong request. `requests` holds every request the run raised, and `assertComplete()` throws when an answer went unused or a request came after the last answer, which the run denied:
+
+```ts
+const approvals = scriptedApprovals([{ decision: "allow" }, { decision: "deny", reason: "not today" }]);
+run({ model, system, input, tools, interceptors: composeInterceptors(gate, approvals), signer: testSigner() });
+```
+
+`testSigner()` signs with a fixed, published key whose id is `TEST_KEY_ID`, so a pause signed in one test process verifies in another and can be checked into a fixture. Anyone can forge its signatures, so use it only in tests.
+
+`scriptedMcpServer({ name, tools })` builds the tools an MCP server would lend an agent. Each tool is named `mcp__<server>__<tool>`, has `kind: "dynamic"` and `firstParty: false`, and returns its scripted results one call at a time. `calls` records every call, and `assertComplete()` throws when a result went unused or a call came after the last one.
 
 ## Tests give the same result every run
 

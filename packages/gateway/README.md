@@ -339,4 +339,13 @@ import { mockTransport, serverSentEvents } from "@buildanagent/gateway/testing";
 const transport = mockTransport("anthropic-messages", [{ body: serverSentEvents(events), chunkSize: 7 }]);
 ```
 
+To test a client that needs a socket, such as one in another process, start a server with `startMockServer({ api, script, log })`. It plays the script as `mockTransport()` does, on `127.0.0.1` by default, and refuses to bind to any address outside 127.0.0.0/8 or `::1`. A request to another path or past the end of the script gets a 400 error body. With `log`, the server appends one JSON line per request, and every credential header in the log and in `requests` reads `[redacted]`. Pass the server's `transport` with `baseURL: server.url`, so an in-process adapter reaches the server while real model requests are off:
+
+```ts
+const server = await startMockServer({ api: "anthropic-messages", script, log: "requests.jsonl" });
+const adapter = anthropic({ apiKey: "test", baseURL: server.url, transport: server.transport });
+```
+
+The server needs Node's `http` module, which it imports only when it starts, so the testing export still loads on every target. `stripCredentials()`, `redactHeaders()` and `CREDENTIAL_HEADERS` are the same strippers the SDK's recorder uses.
+
 Next: [@buildanagent/sdk](../sdk/README.md), which tests an agent against a scripted model.
