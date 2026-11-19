@@ -1,5 +1,11 @@
 # @buildanagent/gateway
 
+## 0.1.0-alpha.11
+
+### Minor Changes
+
+- adddc21: Add an optional `retires` date to `CatalogEntry`, for the day a provider says a model stops answering. `parseCatalog()` checks it like `asOf`.
+
 ## 0.1.0-alpha.10
 
 No changes in this release.
