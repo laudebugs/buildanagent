@@ -328,6 +328,15 @@
     "verifiedIn": "apps/manual/fact-checks/memory-and-sessions.md"
   },
   {
+    "id": "claude-code-sessions",
+    "title": "Manage sessions",
+    "publisher": "Claude Code documentation",
+    "url": "https://code.claude.com/docs/en/sessions",
+    "kind": "docs",
+    "asOf": "November 2026",
+    "verifiedIn": "apps/manual/fact-checks/memory-and-sessions.md"
+  },
+  {
     "id": "claude-agent-sdk-hosting",
     "title": "Hosting the Agent SDK",
     "publisher": "Claude Agent SDK documentation",

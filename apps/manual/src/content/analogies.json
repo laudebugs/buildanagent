@@ -85,7 +85,7 @@
     "analogy": "a patient's chart that travels with them between shifts",
     "chapter": "memory-and-sessions",
     "illustration": "patients-chart",
-    "breaks": "A nurse skims the chart for what matters tonight; the model is sent the whole session on every call and pays for every token of it."
+    "breaks": "A nurse skims the chart for what matters tonight; your code sends the model the whole session on every call, and the provider bills you for every token of it."
   },
   {
     "id": "bookmark",

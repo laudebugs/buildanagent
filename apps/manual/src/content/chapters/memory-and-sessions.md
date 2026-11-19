@@ -2,7 +2,7 @@
 title: "Memory within a task: sessions, threads and resuming"
 summary: A model keeps nothing between calls, so an agent's memory is a session that your SDK or your code stores and sends back. This chapter shows how sessions and threads carry a conversation between runs, what a resume in a fresh process brings back and what it drops, who may use a session id, and where each of eight SDKs keeps its state.
 opening: analogy
-sources: [openai-agents-sessions, langgraph-checkpointers, langgraph-persistence, claude-agent-sdk-hosting, claude-agent-sdk-sessions, openai-agents-human-in-the-loop, cloudflare-agents-routing, cloudflare-agents-state, adk-session-state]
+sources: [openai-agents-sessions, langgraph-checkpointers, langgraph-persistence, claude-agent-sdk-hosting, claude-agent-sdk-sessions, claude-code-sessions, openai-agents-human-in-the-loop, cloudflare-agents-routing, cloudflare-agents-state, adk-session-state]
 glossary: [session, checkpointer, trusted-context, prompt-injection, approval]
 switchTo: [N3, N6]
 ---
@@ -13,7 +13,7 @@ At seven in the evening a nurse starts her shift on a ward she left twelve hours
 ::svg{alt="A hospital chart for bed 12 on a clipboard, with three entries: 12:00 fever 38.9, 14:00 antibiotic, and allergy: penicillin, which is highlighted. On the left, the day shift writes in the chart; on the right, the night shift reads it. A note under the chart says the night nurse remembers nothing of the day; she reads the chart."}
 :::
 
-A model meets every request the way that nurse meets bed 12. [[ch:talking-to-a-model]] showed that the model keeps nothing between calls, so a conversation lasts only because your code sends it again. Within one run, the agent loop does that resending for you. Between runs, the job falls to whatever keeps the chart: the user comes back tomorrow, the server restarts overnight, or an approval waits an hour for a person to click. This chapter follows the chart through five SDKs' examples and then all eight SDKs. It shows how a session carries a conversation from one run to the next, how a run is saved and resumed in a fresh process, and where each SDK keeps its state. By the end you can choose where your agent's sessions live, say what a resume brings back and what it drops, and make sure that a resumed session belongs to the user who asked for it.
+A model meets every request the way that nurse meets bed 12. [[ch:talking-to-a-model]] showed that the model keeps nothing between calls, so a conversation lasts only because your code sends it again. Within one run, the agent loop does that resending for you. Between runs, the job falls to whatever keeps the chart: the user comes back tomorrow, the server restarts overnight, or an approval waits an hour for a person to click. This chapter follows the chart through six SDKs' examples and then all eight SDKs. It shows how a session carries a conversation from one run to the next, how a run is saved and resumed in a fresh process, and where each SDK keeps its state. By the end you can choose where your agent's sessions live, say what a resume brings back and what it drops, and make sure that a resumed session belongs to the user who asked for it.
 
 ## A session keeps the conversation between runs, and a thread id names it
 
@@ -37,7 +37,7 @@ LangChain calls the same idea a thread and stores it in a checkpointer. The `thr
 
 The replay follows the thread through four calls. The first sends "I am Ada."; the second, on the same thread, sends "Who am I?", and the check on line 21 confirms that the model saw three messages: the introduction, its answer and the new question. The call on line 22 names thread `"b"`, which starts empty. Its request carries "Who am I?" alone, and the scripted model answers "I don't know your name." A script wrote that reply, but a real model on thread `"b"` would have nothing more to go on. The last call names no thread. Its request still reaches the model, which answers "Hello.", and only after that answer does the call throw an error that names the missing `thread_id`, raised by the checkpointer when it tries to save. So a forgotten `thread_id` costs a model call before it fails.
 
-The chart and the session part ways on cost. A nurse skims the chart for what matters tonight, but the model is sent the whole session on every call and bills every token of it. A session that runs for weeks therefore becomes a long and expensive request, and [[ch:the-session-log-and-context]] shows how to shorten one without losing what it holds. Before any of that, a session has a plainer job: it has to last until the next run asks for it, and that run may start in another process entirely.
+The chart and the session part ways on cost. A nurse skims the chart for what matters tonight, but your code sends the model the whole session on every call, and the provider bills you for every token of it. A session that runs for weeks therefore becomes a long and expensive request, and [[ch:the-session-log-and-context]] shows how to shorten one without losing what it holds. Before any of that, a session has a plainer job: it has to last until the next run asks for it, and that run may start in another process entirely.
 
 ## Saving and resuming a run: the saved state comes back, and your code supplies the rest
 
@@ -80,7 +80,7 @@ The Copilot row comes from `verify/copilot-sdk/examples/06-resume-session.ts`: a
 Picture Ada's support chat, stored as session `5b3f2c1a-8d4e-4f6b-9a7c-2e1d0f9b8a6c` and reached at a URL that holds that id. Bob, signed in as himself, copies the id from a shared screenshot and sends it with his own message. What happens next depends on where the session lives:
 
 - **LangChain's `MemorySaver`** files snapshots by `thread_id` alone, so Bob's call loads Ada's thread.
-- **The Claude Agent SDK** resumes any session whose transcript is on that machine: Claude Code "searches beyond the current project directory to find the ID" [@claude-agent-sdk-sessions].
+- **The Claude Agent SDK** looks for the id in every project under one config directory, `~/.claude` unless `CLAUDE_CONFIG_DIR`{checked=row-97} names another. When the current project lacks it, Claude Code "searches beyond the current project directory to find the ID" [@claude-agent-sdk-sessions] and resumes the transcript if exactly one other project holds it [@claude-code-sessions]. So if Ada and Bob share that directory, Bob's call loads Ada's session.
 - **Cloudflare Agents** routes a request for `/agents/<class>/<name>` to the agent of that name, so the name in the URL picks the agent unless your Worker checks it first [@cloudflare-agents-routing].
 - **ADK's in-memory session service** files each session under its app, its user id and its own id, so a lookup with Bob's user id finds no session with Ada's id, provided your code takes the user id from Bob's sign-in and never from the request.
 
@@ -89,9 +89,9 @@ None of these SDKs is wrong. A session id finds a session and proves nothing abo
 1. Generate each session id on the server, randomly, and never accept a new id the client invents.
 2. Record the owner when you create the session, and look sessions up by owner and id together, as ADK does and as Cloudflare's routing guide does by refusing any agent name other than `user-${user.id}`{checked=row-41}.
 3. Answer a missing session and someone else's session with the same "not found", so the response does not confirm that Ada's id exists.
-4. Keep transcripts and snapshots where only the server can read them, per user where the SDK allows it, as the next part explains.
+4. Keep transcripts and snapshots where only the server can read them, in a separate store for each user where the SDK allows it.
 
-Anthropic's hosting guide shows the second rule in its own example: the session id to resume is "looked up from your database by user" [@claude-agent-sdk-hosting].
+Anthropic's hosting guide shows the second rule in its own example: the session id to resume is "looked up from your database by user" [@claude-agent-sdk-hosting]. The same guide shows the fourth. For a container shared by several tenants, it says to point `CLAUDE_CONFIG_DIR`{checked=row-99} "at a per-tenant directory" and to build each path so "each tenant gets a path no other tenant can read". Because Claude Code keeps transcripts under that directory's `projects/` folder, Bob's process then has no copy of Ada's transcript to find. We keep the ownership check as well, because the separate directory protects Ada only if your server picks it from the signed-in user, never from the request.
 
 ### A resumed run trusts whatever was saved
 
@@ -113,9 +113,9 @@ The top band empties at 3:01. Its three defaults hold every session in your proc
 | SDK | Default store | A store that survives a restart | Who makes the id | Lookup scoped by user |
 | --- | --- | --- | --- | --- |
 | OpenAI Agents SDK | `MemorySession`, in process memory | OpenAI's Conversations API, or your own `Session` | The SDK, a random UUID, unless you pass one | No; your own `Session` decides |
-| Claude Agent SDK | JSONL files under `~/.claude/projects/` | A `SessionStore` that mirrors them | Claude Code, a UUID, unless you pass one | No; any id on the machine resumes |
+| Claude Agent SDK | JSONL files under `~/.claude/projects/` | A `SessionStore` that mirrors them | Claude Code, a UUID, unless you pass one | No; any id under the same config directory resumes |
 | LangChain | `MemorySaver`, in process memory | A database checkpointer, such as Postgres | Your code: the `thread_id` | No |
-| Google ADK | `InMemorySessionService` | Database and Vertex AI session services | The SDK, a random UUID, unless you pass one | Yes: app, user and session id together |
+| Google ADK | `InMemorySessionService` | Database and Vertex AI session services | The SDK, a random UUID, unless you pass one | Yes for `getSession`{checked=row-103}: app, user and session id together; `listSessions` needs the user passed |
 | Cloudflare Agents | The agent's own SQLite database | The same; it is already durable | Your code or the URL: the agent's name | No; your Worker checks the name |
 | Pi | A JSONL tree under `~/.pi/agent/sessions/` | The same files, or a folder you choose | The SDK, a time-ordered UUID, unless you pass one | No; a session opens by its file path |
 | GitHub Copilot SDK | The runtime's disk under `~/.copilot` | The same, under the `baseDirectory`{checked=row-64} you set | The runtime, unless you pass one | No user parameter in `resumeSession`{checked=row-64} |
@@ -140,7 +140,7 @@ Two of the eight keep more than a conversation. ADK and Cloudflare also hold *st
 
 The ADK listing turns the scoping question into keys, and its four prefixes come from ADK's state guide [@adk-session-state]. The prefix decides who else can read a value, so a tool that writes a customer's address under `app:` hands it to every other user of the app. Cloudflare's agent is the 3:01 survivor. Each agent instance is a Durable Object, a small stateful server that Cloudflare runs once per name, with its own SQLite database. Its `setState` "Saves to SQLite (persistent)" and "Broadcasts to all connected clients" [@cloudflare-agents-state]. The state comes back after Cloudflare evicts the agent from memory, because it never lived only there, while the same instance's ordinary class fields, such as the listing's `changes` array, start empty again.
 
-Read the table by its last column before you choose. Only ADK checks the user on every lookup, and only because it asks for the user id; every other SDK leaves the check to you, which the previous section's four rules supply. For the rest, we match the store to where the agent runs: memory for a test, a database for a server that restarts, and the platform's own storage where the platform gives each agent one.
+Read the table by its last column before you choose. Only ADK scopes a session lookup by user: `getSession`{checked=row-104} asks for the user id, though `listSessions` returns every user's sessions unless your code passes one. Every other SDK leaves the check to you, which the previous section's four rules supply. For the rest, we match the store to where the agent runs: memory for a test, a database for a server that restarts, and the platform's own storage where the platform gives each agent one.
 
 ## Long-term memory needs a different store, and a later chapter
 
