@@ -23,6 +23,16 @@ An agent loop calls a model until it stops [@alpha-docs; @beta-paper]. The agent
 
 See [[fig:ticket-rail]], [[tbl:stop-reasons]] and [[lst:hello]] in [[ch:second]]; [[ch:third]] is not written yet. At re:Invent the colon stays text.
 
+The loop keeps count of its steps the way :analogy[a tally counter]{#tally-counter} does, as [[fig:tally-counter]] shows, and [[fig:loop-bench]] lights each station of the loop in turn.
+
+:::figure[A tally counter: one click for every step the loop takes]{#tally-counter analogy="tally-counter"}
+::viewer{alt="A hand tally counter on a small bench. Its window reads 0003, and its plunger, lit in the accent colour, rises from the top of the housing beside a reset knob."}
+:::
+
+:::figure[The agent loop's bench: context, model and tool, each with a lamp]{#loop-bench}
+::viewer{alt="An isometric bench with three stations: a stack of three context pages, a round model with a cap, and a tool block. Each station has a small lamp; the lamp on the context stack is lit, and the card's readout says step 1 of 3, context."}
+:::
+
 ## Exercises
 
 1. Run the loop and count its steps.

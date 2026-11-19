@@ -201,7 +201,8 @@ const cases: readonly Case[] = [
   },
   {
     rule: "a chapter that names a later chapter's analogy fails",
-    change: (dir) => editJson(dir, "analogies.json", (a) => [{ ...a[0], chapter: "second", illustration: null }]),
+    change: (dir) =>
+      editJson(dir, "analogies.json", (a) => [{ ...a[0], chapter: "second", illustration: null }, ...a.slice(1)]),
     file: FIRST,
     message: /analogy "kitchen-ticket-rail" belongs to second, which comes later/,
   },
@@ -329,7 +330,7 @@ const cases: readonly Case[] = [
   {
     rule: "an unknown directive fails",
     change: firstChapter((t) => t.replace("## Exercises", ":::aside\nA note.\n:::\n\n## Exercises")),
-    file: `${FIRST}:26`,
+    file: `${FIRST}:36`,
     message: /unknown directive :::aside/,
   },
   // Generated figures and analogy illustrations (BK11, BK22).
@@ -343,7 +344,8 @@ const cases: readonly Case[] = [
     rule: "a figure that holds prose beside its drawing fails",
     change: firstChapter((t) => t.replace("::svg{", "A drawing of the rail.\n\n::svg{")),
     file: `${FIRST}:14`,
-    message: /figure "ticket-rail" must hold one generated drawing, written ::svg\{alt="…"\}, and nothing else/,
+    message:
+      /figure "ticket-rail" must hold one generated drawing, written ::svg\{alt="…"\} or ::viewer\{alt="…"\}, and nothing else/,
   },
   {
     rule: "a figure whose generated drawing is missing fails, naming the script to write",
@@ -361,7 +363,7 @@ const cases: readonly Case[] = [
   {
     rule: "a drawing outside a figure fails",
     change: firstChapter((t) => t.replace("## Exercises", '::svg{alt="A loose drawing."}\n\n## Exercises')),
-    file: `${FIRST}:26`,
+    file: `${FIRST}:36`,
     message: /::svg must sit inside a :::figure block/,
   },
   {
@@ -396,14 +398,14 @@ const cases: readonly Case[] = [
           ':::figure[The rail up close]{#rail-detail}\n::svg{alt="The rail."}\n:::\n\n## Exercises',
         ),
       );
-      editJson(dir, "analogies.json", (a) => [{ ...a[0], illustration: "rail-detail" }]);
+      editJson(dir, "analogies.json", (a) => [{ ...a[0], illustration: "rail-detail" }, ...a.slice(1)]);
     },
     file: `${FIRST}:14`,
     message: /gives that analogy "rail-detail" as its illustration; set its illustration to "ticket-rail"/,
   },
   {
     rule: "an analogy figure whose register entry has no illustration fails",
-    change: (dir) => editJson(dir, "analogies.json", (a) => [{ ...a[0], illustration: null }]),
+    change: (dir) => editJson(dir, "analogies.json", (a) => [{ ...a[0], illustration: null }, ...a.slice(1)]),
     file: `${FIRST}:14`,
     message: /gives that analogy no illustration; set its illustration to "ticket-rail"/,
   },
@@ -713,13 +715,13 @@ const cases: readonly Case[] = [
   {
     rule: "a chapter that does not end with Exercises fails",
     change: firstChapter((t) => `${t}\n## Further reading\n\nMore.\n`),
-    file: `${FIRST}:30`,
+    file: `${FIRST}:40`,
     message: /the chapter must end with an "## Exercises" section/,
   },
   {
     rule: "an Exercises section without a list fails",
     change: firstChapter((t) => t.replace("1. Run the loop and count its steps.", "Run the loop.")),
-    file: `${FIRST}:26`,
+    file: `${FIRST}:36`,
     message: /the "Exercises" section needs a list of exercises/,
   },
   // Notes, tabs and replays (BK9, T5).

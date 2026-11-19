@@ -4,3 +4,6 @@ dist/
 
 # Upstream font files, downloaded by scripts/fetch-fonts.mjs; only the subsets in public/fonts/ are committed
 fonts/upstream/
+
+# Wrangler's local state from `wrangler dev`
+.wrangler/
