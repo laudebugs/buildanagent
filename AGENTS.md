@@ -157,10 +157,10 @@ Writing findings are counted apart from code findings, and the pull request desc
 
 When you delegate work to a subagent, choose its model by the kind of work (the owner's rule, 2026-11-19):
 
-- **Opus 5.5:** book chapters and their research, including each chapter's fact-checks, writing review and `/anthropic-skills:writing` fixes; anything security-sensitive, such as secrets, deploys, untrusted input or live API runs; every first-round `/code-review high`; and tooling builds that need real design work.
+- **Opus 5.5:** book chapters, with their research, fact-checks, writing review and `/anthropic-skills:writing` fixes; security-sensitive work (secrets, deploys, untrusted input, live API runs); every first-round `/code-review high`; and tooling builds that need real design work.
 - **Sonnet 5.5:** builds that follow an established pattern, such as a new example in an existing harness; the `/code-review medium` and `low` reviews; and the fact-checks, `/anthropic-skills:writing-review` passes and writing fixes of every other pull request.
 - **Sonnet 5.5 or Haiku 5.5:** mechanical chores, such as merging `main`, renumbering fact-check rows, link checks and drafting pull request descriptions.
 
-When two bullets fit, the first one wins. The session that coordinates the work, and any session that runs `/code-review high`, stays on Opus 5.5 with no other default subagent model set: the code-review skill sets no model for its own subagents, so they inherit the session's. This holds when a maintainer reviews a contributor's pull request too. Ask the owner before using Fable 5.2 for this work.
+When two bullets fit, the first one wins. Ask the owner before using Fable 5.2 for this work. The session that coordinates the work, and any session that runs `/code-review high`, stays on Opus 5.5 with no other default subagent model set, even when a maintainer reviews a contributor's pull request: the code-review skill sets no model for its own subagents, so they inherit the session's.
 
-In our judgement the split keeps quality, because the smaller models take only bounded work. The Opus first review checks every build, and the medium, low and writing reviews add to that review rather than replace it.
+We judge that the split keeps quality, because the smaller models take only bounded work. The Opus first review checks every build, and the medium, low and writing reviews add to that review rather than replace it.
