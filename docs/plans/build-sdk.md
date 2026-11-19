@@ -166,11 +166,11 @@ Each decision answers one open decision in [guide §12][g12], in the same order,
 
 **Evidence.** The HN synthesis asks for this policy and a default depth cap, after loop and recursion anecdotes ([HN §4.1][hn41]). The guide's settling test replays recorded runs. None exist until the harness records them, so the numbers are a starting point that B14 makes configurable and N39 retunes. The defaults hash on `run_start` records the values in use ([guide §10][g10]).
 
-### D12. A per-adapter name table first, then a canonical rule and reversible sanitising (provisional)
+### D12. A per-adapter name table first, then a canonical rule and reversible sanitising
 
 **Options.** The 64-character `[A-Za-z0-9_-]` floor from the tools note, or a rule built from a per-provider table ([guide §12, decision 12][g12]).
 
-**Choice.** B7 builds the table from each D2 provider's API reference before any naming code is written. Until then, the canonical rule is `^[A-Za-z0-9_-]{1,64}$`, checked when a tool is defined, with a thrown programmer error on a violation. Each adapter maps canonical names to its wire form reversibly and keeps the map for the run, and namespaced names such as `mcp__<server>__<tool>` follow the same rule. If the table shows a provider stricter than the floor, B7 tightens the canonical rule; if every provider is looser, the floor stays, because the strictest provider sets it.
+**Choice.** The canonical rule is `^[A-Za-z0-9_-]{1,64}$`, checked when a tool is defined, with a thrown programmer error on a violation. B7 built the table from each D2 provider's API reference, and it keeps this floor, because the strictest provider sets it. Each adapter maps canonical names to its wire form reversibly and keeps the map for the run, and namespaced names such as `mcp__<server>__<tool>` follow the same rule. If a later provider is stricter than the floor, its adapter's map sanitises names to that provider's rule.
 
 **Evidence.** The floor is an assumption without a per-provider table, which the research lists among its open limits ([SDK research §7][sr7]; [tools note, implication 9][n-tools-impl]). Names are namespaced by source and sanitised to the strictest provider, and tool order stays stable for prompt caching ([tools note §8][n-tools-8]).
 

@@ -8,6 +8,7 @@ import {
   TOOL_NAME_RULES,
   type ToolNameRule,
 } from "@buildanagent/gateway";
+import { seededRandom } from "@buildanagent/gateway/testing";
 import { test } from "vitest";
 
 // Tool names from the eight triage capstones in verify/*/examples, plus the Claude SDK's MCP-namespaced forms.
@@ -26,19 +27,8 @@ const CAPSTONE_NAMES = [
 
 const CANONICAL_CHARS = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789_-";
 
-// mulberry32: a seeded generator, so the generated names are the same on every run.
-function seeded(seed: number): () => number {
-  let state = seed;
-  return () => {
-    state = (state + 0x6d2b79f5) | 0;
-    let t = Math.imul(state ^ (state >>> 15), 1 | state);
-    t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t;
-    return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
-  };
-}
-
 function generateNames(count: number, alphabet: string, maxLength: number, seed: number): string[] {
-  const random = seeded(seed);
+  const random = seededRandom(seed);
   const names = new Set<string>();
   while (names.size < count) {
     const length = 1 + Math.floor(random() * maxLength);
@@ -139,19 +129,49 @@ test("two names that sanitise alike keep distinct wire names", () => {
   assert.equal(map.restore(b), "search/web");
 });
 
-test("a name that equals another tool's wire name gets its own wire name", () => {
-  const map = createToolNameMap(TOOL_NAME_RULES.anthropicMessages);
-  const taken = map.sanitize("search.web");
-  const clash = map.sanitize(taken);
-  assert.notEqual(clash, taken);
-  assert.equal(map.restore(taken), "search.web");
-  assert.equal(map.restore(clash), taken);
+test("a name that equals another tool's wire name keeps itself, and the hashed name is salted", () => {
+  const taken = createToolNameMap(TOOL_NAME_RULES.anthropicMessages).sanitize("search.web");
+  const map = createToolNameMap(TOOL_NAME_RULES.anthropicMessages, ["search.web", taken]);
+  assert.equal(map.sanitize(taken), taken);
+  const salted = map.sanitize("search.web");
+  assert.notEqual(salted, taken);
+  assert.equal(map.restore(taken), taken);
+  assert.equal(map.restore(salted), "search.web");
 });
 
-test("restore returns a wire name the map never produced unchanged", () => {
+test("wire names do not depend on the order the tool set is registered or sanitised in", () => {
+  const taken = createToolNameMap(tightRule).sanitize("search.web");
+  const tools = ["search.web", taken, "search/web", "lookup_customer", `x${"y".repeat(80)}`];
+  const reversed = [...tools].reverse();
+  const first = createToolNameMap(tightRule, tools);
+  const second = createToolNameMap(tightRule, reversed);
+  const firstWires = new Map(tools.map((name) => [name, first.sanitize(name)]));
+  const secondWires = new Map(reversed.map((name) => [name, second.sanitize(name)]));
+  assert.deepEqual(firstWires, new Map(tools.map((name) => [name, secondWires.get(name)])));
+  assert.equal(firstWires.get(taken), taken, "a name that meets the rule keeps itself");
+  assert.equal(firstWires.get("lookup_customer"), "lookup_customer");
+});
+
+test("sanitize refuses a valid name whose wire name an earlier call gave to another tool", () => {
+  const map = createToolNameMap(TOOL_NAME_RULES.anthropicMessages);
+  const taken = map.sanitize("search.web");
+  assert.throws(
+    () => map.sanitize(taken),
+    (error) => isGatewayError(error) && error.code === "invalid_tool_name",
+  );
+  assert.equal(map.restore(taken), "search.web");
+});
+
+test("restore returns undefined for a wire name the map never issued", () => {
   const map = createToolNameMap(TOOL_NAME_RULES.anthropicMessages);
   map.sanitize("lookup_customer");
-  assert.equal(map.restore("invented_tool"), "invented_tool");
+  assert.equal(map.restore("invented_tool"), undefined);
+});
+
+test("restore does not resolve a tool's raw name when the map hashed it", () => {
+  const map = createToolNameMap(TOOL_NAME_RULES.anthropicMessages, ["search.web"]);
+  assert.notEqual(map.sanitize("search.web"), "search.web");
+  assert.equal(map.restore("search.web"), undefined);
 });
 
 test("two maps built from one rule give the same wire names in the same order", () => {
@@ -161,17 +181,30 @@ test("two maps built from one rule give the same wire names in the same order", 
   assert.deepEqual(names.map(first.sanitize), names.map(second.sanitize));
 });
 
-test("createToolNameMap rejects a rule that cannot hold the hash suffix", () => {
+test("createToolNameMap rejects a rule that cannot hold the hash suffix, whatever its maxLength", () => {
   const bad: ToolNameRule[] = [
     { ...tightRule, maxLength: 9 },
     { ...tightRule, maxLength: 12.5 },
     { ...tightRule, characters: "A-Z" },
     { ...tightRule, characters: "z-a" },
+    { ...tightRule, characters: "a-e0-9_" },
+    { ...tightRule, characters: "A-F0-9_", maxLength: 10 },
+    { ...tightRule, characters: "a-f0-8_" },
   ];
   for (const rule of bad) {
     assert.throws(
       () => createToolNameMap(rule),
       (error) => isGatewayError(error) && error.code === "invalid_options",
+    );
+  }
+});
+
+test("createToolNameMap rejects characters that would change the character class", () => {
+  for (const characters of ["^a-z0-9_", "a-z0-9_[", "a-z0-9_]", "a-z0-9_\\d", "a-z]|[0-9_"]) {
+    assert.throws(
+      () => createToolNameMap({ ...tightRule, characters }),
+      (error) => isGatewayError(error) && error.code === "invalid_options" && /must not start with/.test(error.message),
+      characters,
     );
   }
 });
