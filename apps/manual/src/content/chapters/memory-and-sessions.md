@@ -142,6 +142,14 @@ The ADK listing turns the scoping question into keys, and its four prefixes come
 
 Read the table by its last column before you choose. Only ADK checks the user on every lookup, and only because it asks for the user id; every other SDK leaves the check to you, which the previous section's four rules supply. For the rest, we match the store to where the agent runs: memory for a test, a database for a server that restarts, and the platform's own storage where the platform gives each agent one.
 
+## Long-term memory needs a different store, and a later chapter
+
+A session remembers one conversation, however many runs it spans. Ada's ticket about a double charge can stay open for a week and a dozen runs, and every run sees the whole thread. Now suppose she writes again in March about something else, and you want the agent to know that she prefers replies in Portuguese. That fact belongs to Ada, not to November's ticket, so it needs a store that outlives any one session. LangChain's documentation draws the same line: a checkpointer keeps "short-term, thread-scoped memory", while a store keeps "long-term, cross-thread memory, including user preferences, facts, and shared knowledge" [@langgraph-persistence]. ADK's `user:` keys from the last section sit on that line, shared by every session of one user.
+
+Long-term memory raises questions that a session never does. Which facts are worth keeping? When should the agent recall one, and when forget it? And how does it check a recalled fact against its source before acting on it? [[ch:retrieval-and-long-term-memory]] answers them. Before it, [[ch:the-session-log-and-context]] returns to the session itself, as a tree of entries that can branch and be compacted without losing what it holds.
+
+Until then, treat the session as the chart for the task in hand. Your server keeps it where it survives the restarts you expect, looks it up by the user who owns it, and expects a resume to bring back the conversation and little else. The next chapter writes a pause into that chart: a tool call that waits, inside a saved session, until a person approves it.
+
 ## Exercises
 
 1. Placeholder until the exercises are written.
