@@ -1,0 +1,52 @@
+# Builds the book in apps/manual with no secrets, runs every book check, and uploads apps/manual/dist/ as the only
+# artifact. It is the build half of DS3's build and deploy split (book plan BK14 and BK15): T9's book-deploy.yml reads
+# the book-dist artifact on workflow_run and trusts nothing else from this run.
+#
+# No path filter: the book reads files from all over the repository. check:book reads fact-check logs under docs/,
+# listings read verify/ files and their harness pins, and the type-check coverage rule reads pnpm-workspace.yaml and
+# each package's tsconfig. A filter that missed one of these would skip a pull request that breaks the book. The
+# whole run takes about a minute after the install.
+name: book-build
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: book-build-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v7.0.1
+        with:
+          persist-credentials: false
+      - uses: pnpm/action-setup@v6.1.1 # pnpm's version comes from packageManager
+      - uses: actions/setup-node@v7.1.0
+        with:
+          node-version-file: .nvmrc
+          cache: pnpm
+      # ci.yml's user-namespace step is left out: only the Copilot harness's examples need it, and none run here.
+      - run: pnpm install --frozen-lockfile
+      # The outline, the source register, the glossary, the analogy register, the listings and every chapter, against
+      # the build's own rules. The register and glossary checks have no command of their own; they run here.
+      - run: pnpm --filter @buildanagent/manual check:book
+      - run: pnpm --filter @buildanagent/manual book:switch-report
+      # check:book reads the committed SVGs, so a figure whose script changed without figures:build passes it; this
+      # test redraws every figure and fails on a stale one.
+      - name: Figures match their scripts
+        run: pnpm --filter @buildanagent/manual exec vitest run test/figures.test.ts
+      - run: pnpm --filter @buildanagent/manual build
+      - uses: actions/upload-artifact@v7.0.2
+        with:
+          name: book-dist
+          path: apps/manual/dist/
+          if-no-files-found: error
+          retention-days: 7
