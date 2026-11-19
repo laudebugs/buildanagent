@@ -583,6 +583,5 @@ for (const { rule, change, outline, file, message } of cases) {
     // The build names the file, and the line when the check does: a book-load problem by the file's path, a render
     // failure by the chapter's full path and its line in the file.
     assert.ok(error.includes(file), `the build's error should name ${file}:\n${error}`);
-    // Each listing case runs tsc twice, once per path, which can outlast Vitest's 5 s default on a busy machine.
-  }, 20_000);
+  });
 }

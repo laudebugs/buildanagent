@@ -515,4 +515,13 @@ These rows check the claims in T4's code comments, the app's README, the harness
 | 309 | A `pnpm-workspace.yaml` glob that starts with `!` excludes packages, and `!./packages/legacy` means `!packages/legacy` | `src/book/typecheck-coverage.ts`, the app's README | ✅ | [pnpm-workspace.yaml](https://pnpm.io/pnpm-workspace_yaml): the example `'!**/test/**'` excludes "packages that are inside test directories", and the page says the `./` prefix makes no difference |
 | 310 | The real harnesses still pass the coverage check when TypeScript decides it | `test/listings.test.ts` | ✅ | The test resolving all 39 marked regions passes with the `tsc`-based check |
 
-**Totals:** 310 claims: 274 ✅, 36 ✏️, 0 ⚠️.
+### T4's second review round
+
+| # | Claim | Where | Verdict | Source and reason |
+| --- | --- | --- | --- | --- |
+| 311 | The manual pins `typescript` 7.0.2 as an exact devDependency, the same version the repository root pins | `apps/manual/package.json` | ✅ | The root `package.json` has `"typescript": "7.0.2"`; `pnpm add -D typescript@7.0.2 --save-exact` reused the lockfile's resolution |
+| 312 | The coverage check runs only the manual's own `tsc`, and a missing one is one problem, not a crash | `src/book/typecheck-coverage.ts`, row 307 | ✅ | Our choice. `manualTsc()` stops at the `@buildanagent/manual` package and returns its `node_modules/.bin/tsc` or nothing; `test/typecheck-coverage.test.ts` gets "cannot run tsc to list verify/demo-sdk/tsconfig.json … run pnpm install" from a missing binary |
+| 313 | Configs with the same tsconfig chain hold the same files at the same paths relative to them, except files reached only through an import | `src/book/typecheck-coverage.ts` | ✅ | Our inference from row 299's source: "All relative paths found in the configuration file will be resolved relative to the configuration file they originated in", and `include` and `exclude` are such paths; the comment names the import exception |
+| 314 | Sharing programs across loads cut the manual's tests from 16.6 s to about 4.5 s | The second review round's commit | ✅ | `/usr/bin/time -p` on 2026-11-19: `npx vitest run` took 16.60 s at `bcd184d`; after the fix `pnpm test` took 4.46 s and 4.29 s, with 153 tests passing |
+
+**Totals:** 314 claims: 278 ✅, 36 ✏️, 0 ⚠️.

@@ -79,6 +79,9 @@ importers:
       mdast-util-to-hast:
         specifier: 13.2.1
         version: 13.2.1
+      typescript:
+        specifier: 7.0.2
+        version: 7.0.2
       vfile:
         specifier: 6.0.3
         version: 6.0.3
