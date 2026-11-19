@@ -68,7 +68,7 @@ function contentOf(message: unknown): ContentBlock[] {
 
 /**
  * The queue between a caller and the loop. The caller adds with `steer()` and `followUp()`; the loop takes with
- * `takeSteers()` and `takeFollowUps()` at a step boundary, and closes the queue when the run has its outcome.
+ * `take()` at a step boundary, and closes the queue when the run has its outcome.
  */
 export class SteeringQueue {
   readonly #runId: string;
@@ -80,8 +80,18 @@ export class SteeringQueue {
     this.#runId = runId;
   }
 
-  /** Queues a message. The promise rejects, never throws, for an unusable message or a run that has ended. */
+  /**
+   * Queues a message. The promise rejects, never throws, for an unusable message or a run that has ended. A caller who
+   * ignores the promise must not crash the process when the run ends first, so a rejection is always marked handled;
+   * a caller who awaits it still sees it.
+   */
   add(kind: DeliveryKind, message: string | readonly ContentBlock[]): Promise<DeliveryReceipt> {
+    const receipt = this.#enqueue(kind, message);
+    receipt.catch(() => undefined);
+    return receipt;
+  }
+
+  #enqueue(kind: DeliveryKind, message: string | readonly ContentBlock[]): Promise<DeliveryReceipt> {
     let content: ContentBlock[];
     try {
       content = contentOf(message);
@@ -106,14 +116,22 @@ export class SteeringQueue {
     return this.#queue.length > 0;
   }
 
-  /** Removes and returns the waiting steers, in the order they were sent. */
-  takeSteers(): Delivery[] {
-    return this.#take("steer");
-  }
-
-  /** Removes and returns the waiting follow-ups, in the order they were sent. */
-  takeFollowUps(): Delivery[] {
-    return this.#take("follow_up");
+  /**
+   * Removes and returns the waiting steers, and the waiting follow-ups too when `withFollowUps` is set, all in the
+   * order they were sent.
+   */
+  take(withFollowUps: boolean): Delivery[] {
+    const taken = this.#queue.filter((entry) => withFollowUps || entry.kind === "steer");
+    this.#queue = this.#queue.filter((entry) => !taken.includes(entry));
+    return taken.map((entry) => ({
+      kind: entry.kind,
+      message: entry.message,
+      deliver: (stepIndex) => {
+        const receipt: DeliveryReceipt = { id: entry.id, kind: entry.kind, message: entry.message, stepIndex };
+        entry.resolve(receipt);
+        return receipt;
+      },
+    }));
   }
 
   /** Ends the queue: every message still waiting is rejected, and later calls are too. */
@@ -122,20 +140,6 @@ export class SteeringQueue {
     const waiting = this.#queue;
     this.#queue = [];
     for (const entry of waiting) entry.reject(undelivered(entry.kind));
-  }
-
-  #take(kind: DeliveryKind): Delivery[] {
-    const taken = this.#queue.filter((entry) => entry.kind === kind);
-    this.#queue = this.#queue.filter((entry) => entry.kind !== kind);
-    return taken.map((entry) => ({
-      kind,
-      message: entry.message,
-      deliver: (stepIndex) => {
-        const receipt: DeliveryReceipt = { id: entry.id, kind, message: entry.message, stepIndex };
-        entry.resolve(receipt);
-        return receipt;
-      },
-    }));
   }
 }
 

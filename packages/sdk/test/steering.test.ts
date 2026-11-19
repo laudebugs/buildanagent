@@ -369,3 +369,55 @@ test("a blank message or text block is refused, and a block keeps only its own f
   const { result } = await drive(started);
   assert.deepEqual(result.messages[1], { role: "user", content: [{ type: "text", text: "Be brief." }] });
 });
+
+test("a follow-up and a later steer that meet at one boundary are applied in the order they were sent", async () => {
+  let started: Run | undefined;
+  const { adapter, model } = scripted([
+    () => {
+      void started?.followUp("first sent");
+      return text("Answer.");
+    },
+    text("Next."),
+    text("Last."),
+  ]);
+  started = run({
+    model,
+    system: SYSTEM,
+    input: "Go.",
+    observers: [
+      (event) => {
+        // The follow-up is waiting and the run was kept going for it; this steer arrives before the next step.
+        if (event.type === "step_end") void started?.steer("second sent");
+      },
+    ],
+    ...determinism(),
+  });
+  const { events } = await drive(started);
+  assert.deepEqual(
+    applied(events).map((event) => event.receipt.id.split(":").pop()),
+    ["message-1", "message-2"],
+  );
+  assert.deepEqual(userTexts(adapter.calls[1]?.context.messages ?? []), ["Go.", "first sent", "second sent"]);
+});
+
+test("a steer or follow-up that nobody awaits never becomes an unhandled rejection", async () => {
+  const unhandled: unknown[] = [];
+  const record = (reason: unknown) => unhandled.push(reason);
+  process.on("unhandledRejection", record);
+  try {
+    let started: Run | undefined;
+    const { model } = scripted([
+      () => {
+        void started?.followUp("never applied");
+        return text("Done.");
+      },
+    ]);
+    started = run({ model, system: SYSTEM, input: "Go.", maxSteps: 1, ...determinism() });
+    await drive(started);
+    void started.steer("after the end");
+    await new Promise((resolve) => setTimeout(resolve, 20));
+  } finally {
+    process.off("unhandledRejection", record);
+  }
+  assert.deepEqual(unhandled, []);
+});

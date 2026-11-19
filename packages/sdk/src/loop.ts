@@ -437,12 +437,9 @@ function withVerdict(state: LoopState, natural: Outcome | undefined, verdict: St
  */
 function applySteering(state: LoopState): void {
   const { steering } = state.setup;
-  const batch = steering.takeSteers();
-  if (state.releaseFollowUps) {
-    state.releaseFollowUps = false;
-    batch.push(...steering.takeFollowUps());
-  }
-  for (const delivery of batch) {
+  const withFollowUps = state.releaseFollowUps;
+  state.releaseFollowUps = false;
+  for (const delivery of steering.take(withFollowUps)) {
     // A copy, so a caller who changes a receipt's message cannot change the transcript.
     state.append({ role: "user", content: delivery.message.map((block) => ({ ...block })) });
     state.send({ type: "steer_applied", receipt: delivery.deliver(state.stepIndex) });
