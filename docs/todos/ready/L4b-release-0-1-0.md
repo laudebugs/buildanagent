@@ -11,7 +11,7 @@
 
 ## Goal
 
-Ship the first public release, 0.1.0, once a model call works, within 2 days of L4a adding the trusted publishers ([PB1](../../plans/publish-and-docs.md#pb1-ship-010-once-a-model-call-works-accepted), ADR 0047).
+Ship the first public release, 0.1.0, once a model call works, through the trusted publishers the owner adds the same day ([PB1](../../plans/publish-and-docs.md#pb1-ship-010-once-a-model-call-works-accepted), ADR 0047).
 
 ## Context
 
@@ -25,7 +25,7 @@ Ship the first public release, 0.1.0, once a model call works, within 2 days of 
 - A changeset for 0.1.0 summarising what the release offers: the transcript, `createModel()`, the Anthropic adapter, `ScriptedModel`
 - `pnpm changeset version` run in this pull request, so it carries both packages at 0.1.0 and their first `CHANGELOG.md` entries; merging it makes `release.yml` publish them through trusted publishing
 - Switching on L2's changeset gate and L3's "Version packages" pull request, so every later release goes through them
-- The owner adds a trusted publisher to each package (user `laudebugs`, repository `buildanagent`, workflow `release.yml`, environment `release`) on the day this pull request merges, because a trusted publisher expires unless it publishes within 2 days
+- The owner adds a trusted publisher to each package (user `laudebugs`, repository `buildanagent`, workflow `release.yml`, environment `release`) before this pull request merges and on the same day, because merging starts the publish and a trusted publisher expires unless it publishes within 2 days
 - Both READMEs gain install instructions
 
 **Out of scope** (and which todo covers it)
@@ -51,7 +51,7 @@ Both READMEs and CHANGELOGs, the roadmap, the plan's todo table.
 
 ## Risks and open questions
 
-If L4b can't merge within 2 days of L4a's trusted-publisher setup, the trusted publishers expire; the owner re-adds them on npmjs.com before L4b merges.
+If L4b can't merge within 2 days of the owner adding the trusted publishers, they expire; the owner re-adds them on npmjs.com before L4b merges.
 
 ## Definition of done
 

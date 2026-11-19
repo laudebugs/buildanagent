@@ -105,7 +105,7 @@ The switch needs no manual step. A tag that `release.yml` pushes with `GITHUB_TO
 
 ## 4. Round L and its todos
 
-Round L runs beside Round B. L5 and L7 can start now; L1 starts after Q1. The release takes two todos, so each fits one pull request: L4a makes the packages public after B4, B8 and L3, and L4b adds the trusted publishers and publishes 0.1.0 within the 2 days that follow.
+Round L runs beside Round B. L1, L5 and L7 can start now. The release takes two todos, so each fits one pull request: L4a makes the packages public after B4, B8 and L3, and L4b adds the trusted publishers and publishes 0.1.0 within the 2 days that follow.
 
 | Todo | What it delivers | Depends on | Size |
 | --- | --- | --- | --- |
@@ -123,11 +123,11 @@ B20's README type-checking, `llms.txt`, `defaultsHash` and second export diff st
 
 ## 5. Risks
 
-1. **A trusted publisher added too early expires.** It must publish within 2 days, so the owner adds both publishers in L4b, on the day `release.yml` publishes 0.1.0. Until then `latest` points at the deprecated placeholder, so `pnpm add @buildanagent/sdk` installs it with a deprecation warning ([PB2](#pb2-changesets-in-one-fixed-group-published-only-from-ci-accepted)).
+1. **A trusted publisher added too early expires.** It must publish within 2 days, so the owner adds both publishers in L4b, on the day `release.yml` publishes 0.1.0. Until then `latest` points at the deprecated placeholder, so `pnpm add @buildanagent/sdk` installs `0.0.0-bootstrap.0` and marks it deprecated (fact-check row 74; [PB2](#pb2-changesets-in-one-fixed-group-published-only-from-ci-accepted)).
 2. **The `source` condition could leak.** A published `package.json` that kept the `source` condition would point users' tooling at `src/` files the tarball doesn't hold. `publishConfig.exports` strips it, and an L1 test packs each package and resolves every entry with a `source` condition set.
 3. **TypeDoc lags TypeScript.** Pinning TypeScript 6.0.3 for TypeDoc means the reference could disagree with how TypeScript 7 reads a type. L6's check builds the reference and type-checks the packages, so a mismatch surfaces in CI.
 4. **The pins may move.** Astro, Starlight and Wrangler release weekly. Each todo re-pins to the newest release at least a week old when it starts.
 
 ## 6. Conclusion
 
-Round L puts our packages on npm with provenance and our docs on `docs.buildanagent.fyi`, using the setup Lamina PDF already runs. L5 and L7 can start now and L1 starts after Q1; 0.1.0 ships as soon as B4 and B8 are done and the owner has set up npm, GitHub and Cloudflare as §3 lists.
+Round L puts our packages on npm with provenance and our docs on `docs.buildanagent.fyi`, using the setup Lamina PDF already runs. L1, L5 and L7 can start now; 0.1.0 ships as soon as B4 and B8 are done and the owner has set up npm, GitHub and Cloudflare as §3 lists.
