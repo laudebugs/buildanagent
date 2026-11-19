@@ -2,8 +2,8 @@
 
 <!--
 Copy this file to docs/todos/ready/<ID>-<kebab-slug>.md (for example S3a-openai-verify.md).
-One todo is one batch of commits pushed to main. If the work is bigger than one reviewable
-batch, split it into several todos (S3a, S3b, …) and chain them with "Depends on".
+One todo is one pull request, squash-merged into main. If the work is bigger than one reviewable
+pull request, split it into several todos (S3a, S3b, …) and chain them with "Depends on".
 Keep the section order; write "None" for a section that doesn't apply.
 -->
 
@@ -61,6 +61,8 @@ What could go wrong, what's unknown, and who decides.
 ## Definition of done
 
 - [ ] Claimed: the first commit moved this file `ready/` → `ongoing/` (Status `ongoing`)
-- [ ] Prose drafted with `/anthropic-skills:writing` and reviewed with `/anthropic-skills:writing-review`, with the fixes applied and changed claims re-checked
+- [ ] Prose drafted with `/anthropic-skills:writing`, and changed claims re-checked against their sources
 - [ ] `pnpm check`, `pnpm typecheck` and `pnpm test` pass locally; pushed after each meaningful step
-- [ ] This file moved `ongoing/` → `done/` (Status `done`), and the plan's todo table updated
+- [ ] This file moved `ongoing/` → `done/` (Status `done`) in the last work commit, and the plan's todo table updated
+- [ ] Two code-review rounds run on the pull request (`/code-review high --max-findings default`, then `medium` and `low` after more than 6 confirmed findings, otherwise `low`), with every finding fixed or explained in a commit message
+- [ ] Copy reviewed with `/anthropic-skills:writing-review` after the code changes, with its findings fixed and the rubric scores in the pull request description
