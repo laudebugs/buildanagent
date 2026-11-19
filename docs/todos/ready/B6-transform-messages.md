@@ -6,7 +6,7 @@
 | Status | `ready` |
 | Plan | [Build SDK §4, Stage 2](../../plans/build-sdk.md#42-stage-2-adds-the-two-wire-adapters-and-the-replay-pass-between-them) |
 | Round / milestone | Round B (build SDK), M5 |
-| Depends on | [B3](B3-scripted-model.md) |
+| Depends on | [B3](../done/B3-scripted-model.md) |
 | Size | M |
 
 ## Goal
