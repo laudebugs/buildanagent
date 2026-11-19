@@ -8,7 +8,7 @@
 | Status | `ready` |
 | Plan | [Build coding agent §5](../../plans/build-coding-agent.md#52-round-w-builds-the-coding-agent) |
 | Round / milestone | Round W (build the coding agent), M7 |
-| Depends on | [W3](W3-github-app-identity.md), [W5](W5-control-plane-ingress.md), [E2](E2-effect-identity-crash-rule.md) |
+| Depends on | [W3](W3-github-app-identity.md), [W5](W5-control-plane-ingress.md), [E2](../ongoing/E2-effect-identity-crash-rule.md) |
 | Size | M |
 
 ## Goal
@@ -18,7 +18,7 @@ Deliver every task as a draft pull request from `agent/<task-id>`, and follow up
 ## Context
 
 - [Copilot diff review report](../../research/agent-ui/copilot-diff-review.md): the draft pull request as the approval point.
-- [E2](E2-effect-identity-crash-rule.md): `guardedWrite()` and `effectKey()`, which own write identity and the crash rule; this todo uses them and builds no key scheme of its own (owner, 2026-11-19: "E2 owns it; W6 uses it").
+- [E2](../ongoing/E2-effect-identity-crash-rule.md): `guardedWrite()` and `effectKey()`, which own write identity and the crash rule; this todo uses them and builds no key scheme of its own (owner, 2026-11-19: "E2 owns it; W6 uses it").
 - [Server rollback report](../../research/reversible-actions/server-rollback.md#tool-call-ids-make-good-idempotency-keys-only-after-they-are-persisted-and-scoped): idempotency keys for the push and the API call.
 
 ## Scope

@@ -5,7 +5,7 @@
 | Field | Value |
 | --- | --- |
 | ID | `E2` |
-| Status | `ready` |
+| Status | `ongoing` |
 | Plan | [Close SDK gaps §4](../../plans/close-sdk-gaps.md#4-round-e-and-its-todos) |
 | Round / milestone | Round E (close the SDK gaps), M5e |
 | Depends on | [E1](../done/E1-safety-core-outcomes.md) |
@@ -21,7 +21,7 @@ Give every write an identity before it runs and an outcome after it runs, and tr
 - [Rewind report, the first fields to add](../../research/reversible-actions/rewind-vs-rollback.md#two-ledgers-and-the-first-fields-to-add): the crash test this todo adds, and why "exactly once" means "once, if nothing crashes" until it passes.
 - [Rewind report, triage table](../../research/reversible-actions/rewind-vs-rollback.md#triage-needs-undo-windows-for-t1-approval-for-anything-that-leaves-the-org-and-a-saga-only-once-money-moves): business keys such as `refund:{orderId}`, because a regenerated turn emits a fresh call id.
 - [Storage-and-wake note](../../research/deployment/storage-and-wake.md): wakes arrive at least once, so every target needs this rule.
-- [ADR 0036](../../decisions/0036-loop-outside-sandbox-and-pr-approval.md) and [W6](W6-pr-delivery.md): the coding agent already persists an idempotency key before each push and API call; `guardedWrite` is the shared form of that rule.
+- [ADR 0036](../../decisions/0036-loop-outside-sandbox-and-pr-approval.md) and [W6](../ready/W6-pr-delivery.md): the coding agent already persists an idempotency key before each push and API call; `guardedWrite` is the shared form of that rule.
 
 ## Scope
 
@@ -109,7 +109,7 @@ The package README (the write rule in one paragraph, and the list of tools that 
 
 ## Definition of done
 
-- [ ] Claimed: the first commit moved this file `ready/` → `ongoing/` (Status `ongoing`)
+- [x] Claimed: the first commit moved this file `ready/` → `ongoing/` (Status `ongoing`)
 - [ ] Prose drafted with `/anthropic-skills:writing` and reviewed with `/anthropic-skills:writing-review`, with the fixes applied and changed claims re-checked
 - [ ] `pnpm check`, `pnpm typecheck` and `pnpm test` pass locally; pushed after each meaningful step
 - [ ] This file moved `ongoing/` → `done/` (Status `done`), and the plan's todo table updated

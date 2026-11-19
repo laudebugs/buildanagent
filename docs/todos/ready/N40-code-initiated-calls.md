@@ -6,7 +6,7 @@
 | Status | `ready` |
 | Plan | [Build harness §4, Stage 3](../../plans/build-harness.md#43-stage-3-adds-the-registry-the-permission-pipeline-signed-approvals-and-code-initiated-calls) |
 | Round / milestone | Round N (build harness), M6 |
-| Depends on | [N13](N13-signed-approvals.md), [N14](N14-sticky-grouped-quorum.md), [B15](../done/B15-signed-pauses.md), [E2](E2-effect-identity-crash-rule.md) |
+| Depends on | [N13](N13-signed-approvals.md), [N14](N14-sticky-grouped-quorum.md), [B15](../done/B15-signed-pauses.md), [E2](../ongoing/E2-effect-identity-crash-rule.md) |
 | Size | M |
 
 ## Goal
@@ -76,7 +76,7 @@ Gap 2 of the [close-sdk-gaps plan](../../plans/close-sdk-gaps.md#3-each-gap-the-
 - [ ] `invokeTool()` derives the effect key from the `code_call` entry id, or from the tool's business key when it declares one, and a resumed call finds the same key.
 - [ ] A compensation runs through `invokeTool()` with its own key and writes a linked record naming the call it compensates.
 
-The business key is the tool's `effect.businessKey` from the [B10](../done/B10-tool-runtime.md) revision, and the key function is [E2](E2-effect-identity-crash-rule.md)'s `effectKey()`. The owner accepted SG3 on 2026-11-18, so E2 is in **Depends on**. The `EffectScope` this todo passes to E2 takes `tenant` from the harness config (default `"local"`), with the session key, the branch and the tool call id, as [N7](N7-rebuild-resume-replay.md) does (plan review 2, 2026-11-19).
+The business key is the tool's `effect.businessKey` from the [B10](../done/B10-tool-runtime.md) revision, and the key function is [E2](../ongoing/E2-effect-identity-crash-rule.md)'s `effectKey()`. The owner accepted SG3 on 2026-11-18, so E2 is in **Depends on**. The `EffectScope` this todo passes to E2 takes `tenant` from the harness config (default `"local"`), with the session key, the branch and the tool call id, as [N7](N7-rebuild-resume-replay.md) does (plan review 2, 2026-11-19).
 
 ## Definition of done
 

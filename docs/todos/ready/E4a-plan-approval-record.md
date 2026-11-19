@@ -8,7 +8,7 @@
 | Status | `ready` |
 | Plan | [Close SDK gaps §4](../../plans/close-sdk-gaps.md#4-round-e-and-its-todos) |
 | Round / milestone | Round E (close the SDK gaps), M5e |
-| Depends on | [E2](E2-effect-identity-crash-rule.md), [E3](../done/E3-signed-approvals-third-party.md) |
+| Depends on | [E2](../ongoing/E2-effect-identity-crash-rule.md), [E3](../done/E3-signed-approvals-third-party.md) |
 | Size | M |
 
 ## Goal
