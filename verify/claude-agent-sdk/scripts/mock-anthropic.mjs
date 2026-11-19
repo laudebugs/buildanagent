@@ -5,10 +5,12 @@
 // Scripted behaviour per request:
 //   1. If the last user turn contains tool_result blocks -> reply with final text (end_turn).
 //   2. Else, if a StructuredOutput tool is offered -> call it with values synthesised from its schema.
-//   3. Else, if an MCP/custom tool (name starts with "mcp__") is offered -> call one with
+//   3. Else, if the prompt carries a "[use-skill:<name>]" marker and the Skill tool is offered -> call
+//      Skill once with that name (reads a SKILL.md, a read-only file in the example's temp directory).
+//   4. Else, if an MCP/custom tool (name starts with "mcp__") is offered -> call one with
 //      schema-synthesised arguments (preferring a tool the prompt names). Deferred MCP tools are
 //      first loaded with ToolSearch("select:<name>"), as a real model would.
-//   4. Else -> reply with plain text.
+//   5. Else -> reply with plain text.
 // Every request is appended to $MOCK_LOG (JSONL) so tests can assert on what the CLI sent.
 //
 // Usage: node scripts/mock-anthropic.mjs [port]   (or import { startMock })
@@ -59,6 +61,11 @@ function plan(body) {
   const names = toolNamesById(msgs);
   const results = lastContent.filter((b) => b.type === "tool_result");
   const calledSoFar = new Set(Object.values(names));
+
+  // A skill the prompt asks for by marker is read once, the way a model reads a skill it recognises.
+  const skillTool = tools.find((t) => t.name === "Skill");
+  const skillName = JSON.stringify(msgs).match(/\[use-skill:([A-Za-z0-9_:-]+)\]/)?.[1];
+  if (skillTool && skillName && !calledSoFar.has("Skill")) return { tool: skillTool, input: { skill: skillName } };
 
   const structured = tools.find((t) => t.name === "StructuredOutput");
   const ranRealTool = results.some((b) => !["ToolSearch", "StructuredOutput"].includes(names[b.tool_use_id]));
