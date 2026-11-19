@@ -5,7 +5,7 @@
 | Field | Value |
 | --- | --- |
 | ID | `T8` |
-| Status | `ongoing` |
+| Status | `done` |
 | Plan | [Book plan §5, BK14](../../plans/build-book.md#bk14-one-ci-job-builds-the-book-and-runs-every-check-proposed) |
 | Round / milestone | Round T (textbook), MT |
 | Depends on | [T4](../done/T4-book-listings.md), [T6](../done/T6-book-flat-figures.md) |
@@ -35,17 +35,17 @@ Fail a pull request that breaks the book, and hand the deploy workflow a built s
 
 ## Tasks
 
-- [ ] Write `book-build.yml` on `ubuntu-24.04`, with `permissions: contents: read`, `persist-credentials: false`, no secrets and the same setup steps as `ci.yml`'s `checks` job.
-- [ ] Run `pnpm --filter @buildanagent/manual check:book` and the build, then upload `apps/manual/dist/` as the workflow's only artifact.
-- [ ] Run `gh actions-lock` for the new workflow, and commit the lockfile.
+- [x] Write `book-build.yml` on `ubuntu-24.04`, with `permissions: contents: read`, `persist-credentials: false`, no secrets and the same setup steps as `ci.yml`'s `checks` job.
+- [x] Run `pnpm --filter @buildanagent/manual check:book` and the build, then upload `apps/manual/dist/` as the workflow's only artifact.
+- [x] Run `gh actions-lock` for the new workflow, and commit the lockfile.
 - [ ] Open a draft pull request with a deliberately broken citation to see the workflow fail, then revert it.
 
 ## Acceptance criteria
 
 - [ ] `book-build.yml` runs on every pull request and push to `main`, references no secret, and passes on `main`
-- [ ] Its only artifact is `apps/manual/dist/`
+- [x] Its only artifact is `apps/manual/dist/`
 - [ ] A pull request with an unknown citation fails the workflow
-- [ ] `gh actions-lock --verify` passes
+- [x] `gh actions-lock --verify` passes
 - [ ] `pnpm check`, `pnpm typecheck` and `pnpm test` pass offline from the repo root
 
 ## Tests
@@ -64,8 +64,18 @@ The workflow itself, proved by the deliberate failure in the tasks.
 ## Definition of done
 
 - [x] Claimed: the first commit moved this file `ready/` → `ongoing/` (Status `ongoing`)
-- [ ] Prose drafted with `/anthropic-skills:writing`, and changed claims re-checked against their sources
+- [x] Prose drafted with `/anthropic-skills:writing`, and changed claims re-checked against their sources
 - [ ] `pnpm check`, `pnpm typecheck` and `pnpm test` pass locally; pushed after each meaningful step
-- [ ] This file moved `ongoing/` → `done/` (Status `done`) in the last work commit, and the plan's todo table updated
+- [x] This file moved `ongoing/` → `done/` (Status `done`) in the last work commit, and the plan's todo table updated
 - [ ] Two code-review rounds run on the pull request (`/code-review high --max-findings default`, then `medium` and `low` after more than 6 confirmed findings, otherwise `low`), with every finding fixed or explained in a commit message
 - [ ] Copy reviewed with `/anthropic-skills:writing-review` after the code changes, with its findings fixed and the rubric scores in the pull request description
+
+## Outcome
+
+- `.github/workflows/book-build.yml` runs on pushes to `main` and on every pull request, on `ubuntu-24.04`, with `permissions: contents: read`, `persist-credentials: false` and no secret or environment. Its setup is `ci.yml`'s `checks` job's, except the user-namespace step, which only the Copilot harness's examples need.
+- After `pnpm install --frozen-lockfile` it runs `check:book`, `book:switch-report`, the figure staleness test (`test/figures.test.ts`) and the build, then uploads `apps/manual/dist/` as `book-dist`, its only artifact, kept 7 days, failing when the folder is empty. T9's deploy reads that name.
+- The source register and glossary checks have no command of their own: `check:book` runs them with the outline, the analogy register and the listings. `check:book` reads the committed SVGs and never redraws a figure, so the workflow runs the figure test as well.
+- The workflow has no path filter. The book's checks read fact-check logs under `docs/`, the listed files in `verify/` and their harness pins, `pnpm-workspace.yaml` and each package's `typecheck` script and tsconfig, so a filter that missed one would let a pull request break the book unchecked. The steps after the install took 8.6 seconds locally, far below the five-minute limit the risk above sets for adding a filter.
+- `gh actions-lock` v0.4.1 added the workflow's four actions to `actions.lock` at the commits already locked for `ci.yml` and `release.yml`, and `gh actions-lock --verify` passes. The repository's tooling has no actionlint; a local actionlint 1.7.12 reported nothing on the workflow.
+- The book has no written chapter yet, so its only checked citations are the glossary's register sources. Changing one to an id the register lacks fails `check:book` locally, naming the file and the id; the draft pull request that proves it in CI is still to come.
+- Fact-check rows 350–362 in the book's log; row 357 corrects an unmeasured timing in the first draft.

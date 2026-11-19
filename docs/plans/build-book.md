@@ -515,7 +515,7 @@ The three research rounds behind the sections each confirmed its placement, and 
 | [T5](../todos/ready/T5-book-interactive-listings.md) | Interactive listings: annotations, SDK tabs, recorded-run replay and the transcript recorder | T4 | L |
 | [T6](../todos/done/T6-book-flat-figures.md) | Flat figure pipeline: generated SVGs, analogy illustrations, numbering, themes and the staleness test | T2, T3 | M |
 | [T7](../todos/ready/T7-book-isometric-figures.md) | Isometric and interactive figures: the vendored anatomy skill, its audits and inline fragments | T6, T8 | M |
-| [T8](../todos/ongoing/T8-book-ci.md) | The book's build workflow: every check, no secrets, `dist/` as an artifact | T4, T6 | S |
+| [T8](../todos/done/T8-book-ci.md) | The book's build workflow: every check, no secrets, `dist/` as an artifact | T4, T6 | S |
 | [T9](../todos/ready/T9-book-deploy.md) | Deploy to manual.buildanagent.fyi from GitHub Actions: guard, switch and branch previews | T2, T8 | M |
 | [T26](../todos/ready/T26-book-checked-inline-code.md) | Checked inline code: identifiers resolve to listings, transcripts or the pinned `.d.ts` | T5 | M |
 | [T27](../todos/ready/T27-book-live-run.md) | An occasional live run against real APIs, with flow diffs and the last-comparison date | T5 | M |
