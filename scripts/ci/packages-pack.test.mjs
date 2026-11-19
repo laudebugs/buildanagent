@@ -3,9 +3,12 @@
 // entry to dist/ from a temp install, with and without `--conditions=source` (ADR 0050, as corrected by ADR 0051). The
 // pack tests skip unless the installed pnpm is the `packageManager` version. Offline: `pnpm pack` and the build it
 // runs read only the workspace. The test leaves the repo as it found it: it removes each package's dist/ and licence
-// copies unless they were there before it ran. Run with `node --test scripts/ci/*.test.mjs`.
+// copies unless they were there before it ran. It ends with the release's install check: a fresh project installs
+// both tarballs with pnpm, offline, and makes one model call through the Anthropic adapter against a mock server on
+// the loopback interface. The install check lives here, not in its own file, because `node --test` runs files in
+// parallel and two files packing the same folders would race on dist/. Run with `node --test scripts/ci/*.test.mjs`.
 import assert from "node:assert/strict";
-import { execFileSync } from "node:child_process";
+import { execFile, execFileSync } from "node:child_process";
 import {
   existsSync,
   mkdirSync,
@@ -16,10 +19,12 @@ import {
   rmSync,
   writeFileSync,
 } from "node:fs";
+import { createServer } from "node:http";
 import { tmpdir } from "node:os";
 import path from "node:path";
 import { after, before, test } from "node:test";
 import { fileURLToPath } from "node:url";
+import { promisify } from "node:util";
 
 const root = path.resolve(fileURLToPath(new URL("../..", import.meta.url)));
 const packageDirs = readdirSync(path.join(root, "packages"), { withFileTypes: true })
@@ -94,7 +99,7 @@ before(() => {
     const dest = path.join(install, "node_modules", manifest.name);
     mkdirSync(dest, { recursive: true });
     run("tar", ["-xzf", tarball, "-C", dest, "--strip-components=1"]);
-    packed.set(manifest.name, { dir, manifest, files, dest });
+    packed.set(manifest.name, { dir, manifest, files, dest, tarball });
   }
 });
 
@@ -218,3 +223,103 @@ for (const conditions of [[], ["--conditions=source"]]) {
     }
   });
 }
+
+// The program the fresh project runs: one call to the mock server, whose URL comes in as its only argument. It prints
+// the reply's text and stop reason, and checks that the SDK's testing export loads from the installed package.
+const CALL_PROGRAM = `
+import { createModel } from "@buildanagent/gateway";
+import { anthropic } from "@buildanagent/gateway/anthropic";
+import { ScriptedModel } from "@buildanagent/sdk/testing";
+
+if (typeof ScriptedModel !== "function") throw new Error("ScriptedModel did not load");
+const model = createModel({ adapter: anthropic({ apiKey: "sk-test-not-a-real-key", baseURL: process.argv[2] }), id: "claude-opus-5-5" });
+const message = await model.complete({ messages: [{ role: "user", content: [{ type: "text", text: "Hello" }] }], tools: [] });
+console.log(JSON.stringify({ content: message.content, stopReason: message.stopReason, output: message.usage.output }));
+`;
+
+// One Anthropic Messages stream, in the shape the gateway's own fixtures record.
+const STREAM = [
+  {
+    type: "message_start",
+    message: {
+      id: "msg_install_check",
+      type: "message",
+      role: "assistant",
+      model: "claude-opus-5-5",
+      content: [],
+      stop_reason: null,
+      usage: { input_tokens: 5, output_tokens: 1 },
+    },
+  },
+  { type: "content_block_start", index: 0, content_block: { type: "text", text: "" } },
+  { type: "content_block_delta", index: 0, delta: { type: "text_delta", text: "Hi from the mock" } },
+  { type: "content_block_stop", index: 0 },
+  { type: "message_delta", delta: { stop_reason: "end_turn" }, usage: { output_tokens: 4 } },
+  { type: "message_stop" },
+]
+  .map((event) => `event: ${event.type}\ndata: ${JSON.stringify(event)}\n\n`)
+  .join("");
+
+packTest(
+  "a fresh project installs both tarballs offline and makes one call through the Anthropic adapter",
+  async () => {
+    const sdk = packed.get("@buildanagent/sdk");
+    const gateway = packed.get("@buildanagent/gateway");
+    const app = path.join(work, "fresh-project");
+    mkdirSync(app);
+    // As `pnpm add @buildanagent/sdk@<tag> @buildanagent/gateway@<tag>` would, with the registry swapped for the two
+    // tarballs: the override points the SDK's own dependency on the gateway at the gateway's tarball.
+    writeFileSync(
+      path.join(app, "package.json"),
+      JSON.stringify({
+        name: "fresh-project",
+        private: true,
+        type: "module",
+        dependencies: {
+          "@buildanagent/sdk": `file:${sdk.tarball}`,
+          "@buildanagent/gateway": `file:${gateway.tarball}`,
+        },
+        pnpm: { overrides: { "@buildanagent/gateway": `file:${gateway.tarball}` } },
+      }),
+    );
+    writeFileSync(path.join(app, "call.mjs"), CALL_PROGRAM);
+    run("pnpm", ["install", "--offline", "--store-dir", path.join(work, "store")], { cwd: app });
+    const installed = (name) =>
+      JSON.parse(readFileSync(path.join(app, "node_modules", name, "package.json"), "utf8")).version;
+    assert.equal(installed("@buildanagent/sdk"), sdk.manifest.version);
+    assert.equal(installed("@buildanagent/gateway"), gateway.manifest.version);
+
+    const requests = [];
+    const server = createServer((request, response) => {
+      let body = "";
+      request.on("data", (chunk) => {
+        body += chunk;
+      });
+      request.on("end", () => {
+        requests.push({ url: request.url, headers: request.headers, body: JSON.parse(body) });
+        response.writeHead(200, { "content-type": "text/event-stream" });
+        response.end(STREAM);
+      });
+    });
+    await new Promise((resolve) => server.listen(0, "127.0.0.1", resolve));
+    try {
+      const { port } = server.address();
+      const { stdout } = await promisify(execFile)(process.execPath, ["call.mjs", `http://127.0.0.1:${port}`], {
+        cwd: app,
+        env,
+        encoding: "utf8",
+      });
+      assert.deepEqual(JSON.parse(stdout), {
+        content: [{ type: "text", text: "Hi from the mock" }],
+        stopReason: "stop",
+        output: 4,
+      });
+    } finally {
+      server.close();
+    }
+    assert.equal(requests.length, 1);
+    assert.equal(requests[0].url, "/v1/messages");
+    assert.equal(requests[0].headers["x-api-key"], "sk-test-not-a-real-key");
+    assert.equal(requests[0].body.model, "claude-opus-5-5");
+  },
+);
