@@ -124,7 +124,7 @@ It works on Cloudflare's documented primitives. The DO holds an outbound WebSock
 - Each CDP frame arrives at the DO as an *incoming* message, base64 JSON. That counts toward the 20:1 request billing and resets the 30 s CPU budget, so per-frame CPU is the JSON parse plus base64 decode. At 30 fps that is about 1.5 requests per second after the 20:1 ratio, far below the 1,000 rps soft limit.
 - The 32 MiB cap is irrelevant to screencast frames, which are JPEGs well under that (an inference; see Gaps for sizes).
 - Bandwidth is the real budget. Cap `maxWidth`/`maxHeight` at the viewport, use JPEG quality 60–75, pace acks at 10–30 fps, and stop the screencast when no viewer is connected (`Page.stopScreencast`). With no viewer, the DO can then drop the CDP socket between model steps and hibernate.
-- The loop already holds a CDP connection to drive the browser. The viewer stream can share that socket on the same page target, so the browser needs no second debugging client.
+- The loop already holds a CDP connection to drive the browser. The viewer stream can share that socket on the same page target, so the browser needs no second debugging client. (Superseded: fact-check row 337 notes that W12 may drive the browser through a sandbox command with its own CDP session, and Chromium's debugging port accepts any sandbox process.)
 
 ### Gaps
 - I did not find a Cloudflare limit on outgoing WebSocket bytes per second from a DO, or a stated egress price for DO WebSocket traffic.

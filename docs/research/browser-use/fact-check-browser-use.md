@@ -1,6 +1,6 @@
 # Fact-check log: browser-use report
 
-The browser-use report holds up, and its recommendation stands: the coding agent's first browser belongs inside the existing sandbox, logged out and under the sandbox's egress allowlist, with ADR 0045 as the owner's first decision. Of the 340 rows below, 225 are confirmed, 70 needed a correction and 45 rest on inference, on absence or on pages that state less than the claim. Rows 1–261 come from the fact-check round, rows 262–276 from the editorial review that followed it, rows 277–331 from the U16 watch-and-take-over round on 19 November 2026, rows 332–334 from the renumbering pass the same day, which moved the report's proposed ADRs to 0045–0047 after ADRs 0043 and 0044 were accepted, and rows 335–340 from the first code-review round.
+The browser-use report holds up, and its recommendation stands: the coding agent's first browser belongs inside the existing sandbox, logged out and under the sandbox's egress allowlist, with ADR 0045 as the owner's first decision. Of the 344 rows below, 225 are confirmed, 73 needed a correction and 46 rest on inference, on absence or on pages that state less than the claim. Rows 1–261 come from the fact-check round, rows 262–276 from the editorial review that followed it, rows 277–331 from the U16 watch-and-take-over round on 19 November 2026, rows 332–334 from the renumbering pass the same day, which moved the report's proposed ADRs to 0045–0047 after ADRs 0043 and 0044 were accepted, rows 335–340 from the first code-review round, and rows 341–344 from the second round's medium review.
 
 The largest correction concerns the Cloudflare finding behind change 2. The page we quoted covers Sandbox SDK 0.x only, while npm's `latest` has been SDK 1.0 since 30 September 2026, which replaces `interceptHttps` with per-host `interceptOutboundHttps`. HTTPS under `enableInternet = false` still needs interception on both, so the finding stands with both API names.
 
@@ -11,7 +11,7 @@ The other corrections fall into four groups:
 - **Quotations, citations and figures:** quotations that did not match their source (Checkly, Meta, Steel, SeeAct), citations that did not support the claim (NIST CAISI, TechInformed, skills.sh), session limits and prices.
 - **Editorial review:** the title, the cheapest path on AWS, the exact versions to pin, the metadata rules for AWS and Google Cloud, and primary sources for change 16's method filters.
 
-- **Date:** 2026-11-18; rows 277–340 on 2026-11-19
+- **Date:** 2026-11-18; rows 277–344 on 2026-11-19
 - **Document checked:** [browser-use.md](browser-use.md)
 - **Method:**
   - **Who checked:** five checkers split the report by section and opened the primary source for every number, version, date, status, quotation and behavioural claim. The editorial review's fixes were checked the same way (rows 262–276).
@@ -19,7 +19,7 @@ The other corrections fall into four groups:
   - **Packages and typings:** versions, dates and licences come from the npm registry and PyPI JSON, and typings from npm tarballs unpacked into fresh scratch directories and read, never run. Star counts come from shields.io badges because the GitHub API was blocked.
   - **Repository claims:** plans, todos, ADRs and SDK pins were read from this repository as it stands on 2026-11-18. The research notes were not used.
 - **Legend:** ✅ confirmed as written · ✏️ corrected in the report · ✏️ (citation) the claim was right but its cited source did not carry it, so the citation was replaced or added · ⚠️ inferred, an absence claim, or confirmed only in part. A row with a **Now:** clause records a change to the report, whatever its verdict, and quotes or describes the new wording.
-- **Where:** a section's short name and paragraph (Snapshots ¶3), a table and row (Price table, row 2), or a bare table name when the claim itself names the row (SDK table), a plan change (Plan table, change 7) or an open problem (Open problems, item 1). The short names are Intro; Snapshots, with the Libraries table; Hosted, with the Price table; Vendor, with the Vendor table, the SDK table and the SDK sources line; Coding; Injection, with its subsections Injection figures, Designs, Logins, Egress and Screenshots; Benchmarks; Open problems; Plan changes, with the Plan table; and Conclusion. Paragraph numbers count prose paragraphs within the section or subsection and skip tables and source lines.
+- **Where:** a section's short name and paragraph (Snapshots ¶3), a table and row (Price table, row 2), or a bare table name when the claim itself names the row (SDK table), a plan change (Plan table, change 7) or an open problem (Open problems, item 1). The short names are Intro; Snapshots, with the Libraries table; Hosted, with the Price table; Vendor, with the Vendor table, the SDK table and the SDK sources line; Coding; Injection, with its subsections Injection figures, Designs, Logins, Egress and Screenshots; Benchmarks; Open problems; Plan changes, with the Plan table; Conclusion; Terms, the paragraph that defines the report's terms; and Watch, the watch-and-take-over section with its Cloudflare, E2B and Vercel items. Paragraph numbers count prose paragraphs within the section or subsection and skip tables and source lines.
 
 ## Introduction
 
@@ -440,6 +440,17 @@ The first `/code-review high` round on pull request #28 found seven real problem
 | 338 | Puppeteer's `page.screencast()` and `Page.record()` are described from 25.18.1, newer than change 7's 25.17.0 pin | Watch ¶3 | ✏️ | npm `puppeteer` `time`: 25.18.1 published 2026-11-17; change 7 pins 25.17.0 (2026-11-10). **Now:** the sentence says the release is newer than the pin and was not checked against it |
 | 339 | Change 18 sits outside the plan table's priority order and ranks with changes 6–9 | Plan table, intro | ✏️ | The intro said "The rows run in priority order", but change 18 was appended after the platform rows. **Now:** it says change 18 sits outside that order and ranks with changes 6–9 |
 | 340 | The build-guides U15 and U16 entries match the report | [build-guides.md](../../plans/build-guides.md) | ✏️ | U15 said "seventeen changes"; U16 said the Durable Object "already holds the only CDP connection" and that "the sandbox opens no port". **Now:** U15 notes that U16 added an eighteenth; U16 says "would hold", "on Cloudflare the sandbox opens no port", names what E2B and Vercel need, and adds the no-sign-in rule |
+
+## Second code-review round, medium (2026-11-19)
+
+The `/code-review medium` review found seven real problems. These rows log the claims its fixes changed. It also moved the Steel and Playwright links from `main` to the commit and tag the text names, added Terms and Watch to the Where legend, and marked the superseded line in the research notes.
+
+| # | Claim | Where | Verdict | Source |
+|---|---|---|---|---|
+| 341 | An outbound socket keeps the Durable Object in memory for up to 15 minutes after its last I/O, and new I/O can extend that | Watch ¶6 | ✏️ | [DO WebSockets](https://developers.cloudflare.com/durable-objects/best-practices/websockets/index.md): "an open outbound WebSocket connection prevents eviction for up to 15 minutes … Starting another I/O operation later can extend the Durable Object's time in memory". The draft said the object "stays awake and billed while it streams". **Now:** it gives the 15-minute limit and adds a keepalive or a takeover cap below 15 minutes, in Watch ¶6, change 18 and open problem 8 |
+| 342 | Chrome sends screencast frames only when the page changes | Watch ¶6 | ⚠️ (inferred) | The protocol describes `Page.screencastFrame` as a "Compressed image data requested by the `startScreencast`" without a fixed rate ([browser_protocol.json](https://raw.githubusercontent.com/ChromeDevTools/devtools-protocol/master/json/browser_protocol.json)); the change-driven behaviour is our reading, marked as inference |
+| 343 | A reconnecting viewer mints a fresh single-use ticket, and the Durable Object keeps the control slot for that user | Watch ¶6 | ✏️ (design) | Our design; the draft left reconnection undefined after a forced code update. **Now:** stated in Watch ¶6 |
+| 344 | Ticket mints are logged as `viewer_ticket_issued`, beside `viewer_joined` and `viewer_left` | Watch ¶10; Plan table, change 18; build-guides U16 | ✏️ (design) | The draft listed three events under two names. **Now:** three entry types, and change 18 names N2 for the session-entry schema |
 
 ## Link check
 
