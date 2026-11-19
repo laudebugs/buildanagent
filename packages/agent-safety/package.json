@@ -36,6 +36,11 @@
       "source": "./src/agents/index.ts",
       "types": "./dist/agents/index.d.ts",
       "default": "./dist/agents/index.js"
+    },
+    "./testing": {
+      "source": "./src/testing.ts",
+      "types": "./dist/testing.d.ts",
+      "default": "./dist/testing.js"
     }
   },
   "publishConfig": {
@@ -51,6 +56,10 @@
       "./agents": {
         "types": "./dist/agents/index.d.ts",
         "default": "./dist/agents/index.js"
+      },
+      "./testing": {
+        "types": "./dist/testing.d.ts",
+        "default": "./dist/testing.js"
       }
     }
   },

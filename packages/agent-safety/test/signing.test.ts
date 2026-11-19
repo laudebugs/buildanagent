@@ -16,10 +16,9 @@ import {
   type SignedPendingRequest,
   signerFromKeyStore,
   signPending,
-  TEST_KEY_ID,
-  testSigner,
   verifyResolution,
 } from "@buildanagent/agent-safety";
+import { TEST_KEY_ID, testSigner } from "@buildanagent/agent-safety/testing";
 import { test } from "vitest";
 import { constantTimeEqual, fromBase64Url, toBase64Url } from "../src/bytes.js";
 
@@ -321,4 +320,36 @@ test("the memory store keeps copies and hands each request out once", async () =
   const taken = await store.take("call_1");
   assert.equal(taken?.tool, "refund");
   assert.equal(await store.take("call_1"), undefined);
+});
+
+test("the memory store drops a request once it is older than maxAgeMs, so an approval after that finds nothing", async () => {
+  let time = 0;
+  const store = memoryPendingStore({ maxAgeMs: 1000, now: () => time });
+  const first = await pending(testSigner());
+  await store.put(first);
+  await store.put({ ...first, callId: "call_2" });
+  time = 999;
+  assert.equal((await store.take("call_2"))?.callId, "call_2", "a young request is still there");
+  time = 1000;
+  assert.equal(await store.take("call_1"), undefined, "an expired request is gone");
+  await store.put(first);
+  time = 1500;
+  await store.put({ ...first, callId: "call_3" });
+  assert.equal((await store.take("call_1"))?.id, first.id, "a request put again ages from its new put");
+});
+
+test("a signer signs a view's own bytes, so different DataViews never share a MAC", async () => {
+  const signer = hmacSigner({ keys: { a: KEY_A }, current: "a" });
+  const loose = signer as unknown as { sign(payload: unknown): Promise<string> };
+  const a = await loose.sign(new DataView(Uint8Array.of(1, 2, 3).buffer));
+  assert.notEqual(a, await loose.sign(new DataView(Uint8Array.of(4, 5, 6).buffer)));
+  assert.equal(a, await signer.sign(Uint8Array.of(1, 2, 3)));
+  const wide = Uint16Array.of(0x0102, 0x0304);
+  assert.equal(await loose.sign(wide), await signer.sign(new Uint8Array(wide.buffer)));
+});
+
+test("the root entry doesn't export the fixed-key test signer; only ./testing does", async () => {
+  const root: Record<string, unknown> = await import("@buildanagent/agent-safety");
+  assert.equal("testSigner" in root, false);
+  assert.equal("TEST_KEY_ID" in root, false);
 });

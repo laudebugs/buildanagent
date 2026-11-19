@@ -49,8 +49,12 @@ function checkKeyId(keyId: unknown, what: string): string {
 
 /** A signer over `keyFor`, which returns the key for an id it holds and `undefined` for any other. */
 function macSigner(keyId: string, keyFor: (id: string) => Promise<CryptoKey> | undefined): ApprovalSigner {
-  const mac = async (key: Promise<CryptoKey>, payload: Uint8Array) =>
-    new Uint8Array(await crypto.subtle.sign("HMAC", await key, new Uint8Array(payload)));
+  // A copy of the view's own bytes: `new Uint8Array(view)` would read a DataView as empty and convert a wider typed
+  // array element by element, so two different payloads could share a MAC.
+  const bytesOf = (payload: ArrayBufferView) =>
+    new Uint8Array(payload.buffer, payload.byteOffset, payload.byteLength).slice();
+  const mac = async (key: Promise<CryptoKey>, payload: ArrayBufferView) =>
+    new Uint8Array(await crypto.subtle.sign("HMAC", await key, bytesOf(payload)));
   return Object.freeze({
     keyId,
     async sign(payload: Uint8Array): Promise<string> {
@@ -143,18 +147,4 @@ export function ephemeralSigner(): ApprovalSigner {
     });
   }
   return ephemeral;
-}
-
-/** The key id of `testSigner()`. */
-export const TEST_KEY_ID = "test-fixed-key";
-// Public on purpose: tests in any process, and fixtures checked into the repo, must produce the same signatures.
-const TEST_KEY = new TextEncoder().encode("buildanagent testSigner fixed key, never for production");
-
-/**
- * A signer with a fixed, published key, for tests and fixtures: every process produces the same signatures, so a
- * signed pause can be checked into a test. Anyone can forge its signatures. Never use it outside tests, and never add
- * its key id, `test-fixed-key`, to a real key ring.
- */
-export function testSigner(): ApprovalSigner {
-  return hmacSigner({ keys: { [TEST_KEY_ID]: TEST_KEY }, current: TEST_KEY_ID });
 }

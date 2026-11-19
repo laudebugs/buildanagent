@@ -126,8 +126,8 @@ function isWellFormed(value: unknown): value is SignedPendingRequest {
 }
 
 /**
- * The bytes a pending request's signature covers: a JSON array of a fixed tag and D5's six fields, in order, with
- * `null` for an absent policy version. Every field is a well-formed string, so `JSON.stringify` writes the same bytes
+ * The bytes a pending request's signature covers: a JSON array of a fixed tag, then the request id, kind, call id,
+ * tool name, input hash and policy version, in that order, with `null` for an absent policy version. Every field is a well-formed string, so `JSON.stringify` writes the same bytes
  * on every runtime.
  */
 export function pendingPayload(
@@ -150,8 +150,8 @@ function checkFields(fields: PendingFields, id: unknown): void {
 }
 
 /**
- * Signs a pending request for a tool call. It hashes the input with `canonicalInputHash()`, signs D5's fields with
- * the signer's current key, and returns the request to store. The input itself isn't stored.
+ * Signs a pending request for a tool call. It hashes the input with `canonicalInputHash()`, signs the six fields
+ * `pendingPayload()` lists with the signer's current key, and returns the request to store. The input itself isn't stored.
  *
  * Throws a `SafetyError`, code `invalid_pending`, for a blank or malformed field, and code `invalid_input` for an
  * input with no canonical JSON form.

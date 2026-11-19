@@ -2,13 +2,14 @@ import assert from "node:assert/strict";
 import type { LanguageModelV4CallOptions, LanguageModelV4Content, LanguageModelV4StreamPart } from "@ai-sdk/provider";
 import {
   hmacSigner,
+  isSafetyError,
   memoryPendingStore,
   type PendingStore,
   type Recheck,
   type SignedPendingRequest,
-  testSigner,
 } from "@buildanagent/agent-safety";
 import { type ApprovalRejection, settleDeniedApprovals, signedToolApproval } from "@buildanagent/agent-safety/ai";
+import { testSigner } from "@buildanagent/agent-safety/testing";
 import {
   generateText,
   InvalidToolApprovalSignatureError,
@@ -19,9 +20,11 @@ import {
   type ToolApprovalConfiguration,
   tool,
   type UIMessage,
+  validateUIMessages,
 } from "ai";
 import { MockLanguageModelV4, simulateReadableStream } from "ai/test";
 import { test } from "vitest";
+import { z } from "zod";
 
 const USAGE = {
   inputTokens: { total: 10, noCache: 10, cacheRead: undefined, cacheWrite: undefined },
@@ -482,6 +485,109 @@ test("an onRejected that throws still runs nothing: the error propagates instead
   assert.equal(agent.executed.length, 0);
 });
 
+test("an onRejected that throws is called once, with the real cause, and its error propagates", async () => {
+  const agent = refundAgent();
+  const { model } = scripted([{ call: "call_1" }, "unused"]);
+  const history = await pause(agent, model);
+  const request = await storedRequest(agent.store);
+  await agent.store.put({ ...request, signature: request.signature.split("").reverse().join("") });
+  const seen: ApprovalRejection[] = [];
+  const toolApproval = signedToolApproval({
+    signer: testSigner(),
+    store: agent.store,
+    policy: { refund: "user-approval" },
+    recheck: async () => "allow",
+    onRejected: (rejection) => {
+      seen.push(rejection);
+      if (seen.length === 1) throw new Error("audit log failed once");
+    },
+  });
+  await assert.rejects(
+    generateText({ model, messages: approve(history), tools: agent.tools, toolApproval }),
+    /audit log failed once/,
+  );
+  assert.deepEqual(
+    seen.map((r) => r.cause),
+    ["signature_invalid"],
+    "a throwing hook is not called again as an error",
+  );
+  assert.equal(agent.executed.length, 0);
+});
+
+/** A refund tool whose context schema gives `limit` a default, and a policy that asks above the limit. */
+function limitAgent() {
+  const executed: unknown[] = [];
+  const refund = tool({
+    inputSchema: jsonSchema<{ order: number; amount: number }>({ type: "object" }),
+    contextSchema: z.object({ limit: z.number().default(100) }),
+    execute: async (input) => executed.push(input),
+  });
+  const tools = { refund };
+  const store = memoryPendingStore();
+  const toolApproval = signedToolApproval<typeof tools>({
+    signer: testSigner(),
+    store,
+    policy: { refund: (input, { toolContext }) => (input.amount > toolContext.limit ? "user-approval" : "approved") },
+    recheck: async () => "allow",
+  });
+  return { tools, store, toolApproval, executed };
+}
+
+test("a per-tool policy sees the tool context parsed by its contextSchema, defaults included", async () => {
+  const agent = limitAgent();
+  const { model } = scripted([{ call: "call_1" }, "unused"]);
+  await generateText({
+    model,
+    messages: PROMPT,
+    tools: agent.tools,
+    toolsContext: { refund: {} } as never,
+    toolApproval: agent.toolApproval,
+  });
+  assert.equal(agent.executed.length, 0, "$250 is over the default limit of 100, so the call waits");
+  assert.ok((await agent.store.take("call_1")) !== undefined, "the pause was signed");
+});
+
+test("a tool context that fails its contextSchema fails the approval step, as it would without the adapter", async () => {
+  const agent = limitAgent();
+  const { model } = scripted([{ call: "call_1" }, "unused"]);
+  await assert.rejects(
+    generateText({
+      model,
+      messages: PROMPT,
+      tools: agent.tools,
+      toolsContext: { refund: { limit: "lots" } } as never,
+      toolApproval: agent.toolApproval,
+    }),
+    (error) => isSafetyError(error) && error.code === "invalid_input",
+  );
+  assert.equal(agent.executed.length, 0);
+});
+
+test("settleDeniedApprovals writes parts that ai's own UI message validator accepts", async () => {
+  const messages = [
+    {
+      id: "m1",
+      role: "assistant",
+      parts: [
+        {
+          type: "tool-refund",
+          toolCallId: "call_1",
+          state: "approval-responded",
+          input: REFUND,
+          approval: { id: "a1", approved: true, reason: "fine by me" },
+        },
+      ],
+    },
+  ] as UIMessage[];
+  const settled = settleDeniedApprovals(messages, new Set(["call_1"]));
+  assert.deepEqual((settled[0]?.parts[0] as { approval?: unknown } | undefined)?.approval, {
+    id: "a1",
+    approved: false,
+    reason: "fine by me",
+  });
+  await validateUIMessages({ messages: settled });
+});
+
 test("settleDeniedApprovals moves only the named approval-responded parts to output-denied", () => {
   const approval = { id: "a1", approved: true };
   const messages = [
@@ -504,8 +610,8 @@ test("settleDeniedApprovals moves only the named approval-responded parts to out
   );
   assert.deepEqual(
     (settled[1]?.parts[0] as { approval?: unknown } | undefined)?.approval,
-    approval,
-    "the approval is kept",
+    { ...approval, approved: false },
+    "the approval keeps its id and is marked denied",
   );
   assert.equal(
     (messages[1]?.parts[0] as { state?: string } | undefined)?.state,

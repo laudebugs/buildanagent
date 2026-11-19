@@ -34,7 +34,7 @@ export {
   type VerifyResolutionOptions,
   verifyResolution,
 } from "./pending.js";
-export { memoryPendingStore, type PendingStore } from "./pending-store.js";
+export { type MemoryPendingStoreOptions, memoryPendingStore, type PendingStore } from "./pending-store.js";
 export { type OutcomePayload, type RenderedOutcome, renderOutcome } from "./render.js";
 export {
   type ApprovalSigner,
@@ -42,6 +42,4 @@ export {
   type HmacSignerOptions,
   hmacSigner,
   MIN_KEY_BYTES,
-  TEST_KEY_ID,
-  testSigner,
 } from "./signer.js";

@@ -123,11 +123,15 @@ const signer = hmacSigner(parseKeyRing(env.APPROVAL_KEYS));
 
 `hmacSigner()` signs with the `current` key and verifies with any key in the ring. To rotate, add a new key and make it current, then remove the old one once no unanswered pause names it. Your platform's secret tooling does the rotation; the signer only reads the ring. `signerFromKeyStore()` builds the same signer from any `KeyStore`, an object whose `load()` returns the ring.
 
-The signers compare signatures in constant time, copy the keys you pass, and keep them inside Web Crypto. No error message, log line or signer property holds a key's bytes. For tests, `testSigner()` signs with a fixed, published key, so its signatures are the same in every process; anyone can forge them, so never use it outside tests.
+The signers compare signatures in constant time, copy the keys you pass, and keep them inside Web Crypto. No error message, log line or signer property holds a key's bytes. For tests, `testSigner()` signs with a fixed, published key, so its signatures are the same in every process. Anyone can forge them, so it lives in its own subpath, `@buildanagent/agent-safety/testing`, which only test code should import.
 
 ## Keep pending requests where the resume can find them
 
 A `PendingStore` holds each signed pending request from the pause until the resume, and needs two methods: `put()` and `take()`. `memoryPendingStore()` keeps them in memory, for tests and single-process hosts. On a serverless host, back the store with storage that outlives the isolate, such as Durable Object storage. The store needn't be trusted, because the adapter verifies every request it takes before the request counts.
+
+`take()` must remove and return a request in one atomic step. If it reads and then deletes, two copies of one approval that arrive together can both get the request, and the call runs twice. Durable Object storage is atomic within one object; elsewhere, use an atomic operation such as Redis `GETDEL` or SQL `DELETE ... RETURNING`.
+
+The adapter takes a request whenever its call comes back approved, even when the check then fails. A forged approval therefore uses up the real one, and the model has to ask again. A call the person denies, or never answers, is never taken, so expire old requests: `memoryPendingStore()` drops each one 24 hours after it was stored (set `maxAgeMs` to change that), and a durable store should do the same. Expiry also lets you prune an old key once no stored request names it.
 
 ## On Cloudflare, settle denied approvals before the next turn
 
@@ -137,7 +141,7 @@ Pass the adapter as `toolApproval` to the `streamText` call in your `AIChatAgent
 const messages = settleDeniedApprovals(this.messages, deniedCallIds);
 ```
 
-It marks those parts as denied and keeps each person's approval as given. Store the result if it changed, then convert it for the model.
+It moves those parts to `output-denied` and marks their approval `approved: false`, the form `ai`'s own UI message validator requires for that state; each approval keeps its id and the person's reason. Store the result if it changed, then convert it for the model.
 
 ## Sign and verify a pause without an SDK
 
@@ -145,6 +149,6 @@ The adapter rests on two functions in the root entry, which any host can call. `
 
 ## The root entry loads without any third-party SDK
 
-`@buildanagent/agent-safety` imports no third-party SDK, so it runs anywhere Web Crypto does: Node 22, Cloudflare Workers and other edge runtimes. Adapters for other SDKs live in subpaths. `./ai` needs `ai` and `@ai-sdk/provider-utils`, which are optional peer dependencies. `./agents` will hold adapters that need Cloudflare `agents` itself, and it holds none yet, because `AIChatAgent` works through the `./ai` adapters.
+`@buildanagent/agent-safety` imports no third-party SDK, so it runs anywhere Web Crypto does: Node 22, Cloudflare Workers and other edge runtimes. Adapters for other SDKs live in subpaths. `./ai` needs `ai` and `@ai-sdk/provider-utils`, which are optional peer dependencies. `./agents` will hold adapters that need Cloudflare `agents` itself, and it holds none yet, because `AIChatAgent` works through the `./ai` adapters. `./testing` holds only `testSigner()`, and imports no third-party SDK either.
 
 To see how the model runs these tools, read the [SDK's README](../sdk/README.md).

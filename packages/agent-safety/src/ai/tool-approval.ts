@@ -7,14 +7,9 @@
  * `streamText`, so one adapter serves both. The `ai` imports are type-only, so this subpath loads without `ai`.
  */
 import type { ModelMessage, ToolApprovalConfiguration, ToolApprovalStatus, ToolSet } from "ai";
+import { SafetyError } from "../errors.js";
 import { writeOutcome } from "../outcome.js";
-import {
-  type Recheck,
-  type RejectionCause,
-  type SignedPendingRequest,
-  signPending,
-  verifyResolution,
-} from "../pending.js";
+import { type Recheck, type RejectionCause, signPending, verifyResolution } from "../pending.js";
 import type { PendingStore } from "../pending-store.js";
 import { renderOutcome } from "../render.js";
 import type { ApprovalSigner } from "../signer.js";
@@ -71,7 +66,9 @@ interface Call {
 }
 interface ApprovalArgs {
   readonly toolCall: Call;
-  readonly tools: Readonly<Record<string, { readonly needsApproval?: unknown }>> | undefined;
+  readonly tools:
+    | Readonly<Record<string, { readonly needsApproval?: unknown; readonly contextSchema?: unknown }>>
+    | undefined;
   readonly toolsContext: Readonly<Record<string, unknown>> | undefined;
   readonly runtimeContext: unknown;
   readonly messages: readonly ModelMessage[];
@@ -85,12 +82,58 @@ function normalize(status: unknown): Status {
   return status as Status;
 }
 
+function own<T>(record: Readonly<Record<string, T>> | undefined, key: string): T | undefined {
+  return record != null && Object.hasOwn(record, key) ? record[key] : undefined;
+}
+
+type Validated = { readonly ok: true; readonly value: unknown } | { readonly ok: false; readonly cause: unknown };
+
+const AI_SCHEMA = Symbol.for("vercel.ai.schema");
+
+/**
+ * Validates `value` against a tool's `contextSchema` the way `ai` 7.0.162's `asSchema` reads one: an `ai` schema
+ * object, a Standard Schema such as Zod's, or a function that returns either. Parsing can apply defaults and
+ * transforms, so the policy must see the parsed value, as it would without the adapter.
+ */
+async function validateSchema(schema: unknown, value: unknown): Promise<Validated> {
+  try {
+    if (typeof schema === "object" && schema !== null && (schema as Record<symbol, unknown>)[AI_SCHEMA] === true) {
+      const validate = (schema as { validate?: (value: unknown) => unknown }).validate;
+      if (validate == null) return { ok: true, value };
+      const result = (await validate(value)) as { success: boolean; value?: unknown; error?: unknown };
+      return result.success ? { ok: true, value: result.value } : { ok: false, cause: result.error };
+    }
+    if ((typeof schema === "object" || typeof schema === "function") && schema !== null && "~standard" in schema) {
+      const standard = (schema as { "~standard": { validate(value: unknown): unknown } })["~standard"];
+      const result = (await standard.validate(value)) as { value?: unknown; issues?: unknown };
+      return "value" in result ? { ok: true, value: result.value } : { ok: false, cause: result.issues };
+    }
+    if (typeof schema === "function") return validateSchema((schema as () => unknown)(), value);
+    return { ok: false, cause: new TypeError("contextSchema is not a schema") };
+  } catch (cause) {
+    return { ok: false, cause };
+  }
+}
+
+/** The tool's context as `ai` hands it to a per-tool policy or `needsApproval`: checked against its `contextSchema`. */
+async function toolContext(args: ApprovalArgs): Promise<unknown> {
+  const name = args.toolCall.toolName;
+  const context = own(args.toolsContext, name);
+  const schema = own(args.tools, name)?.contextSchema;
+  if (schema == null) return context;
+  const result = await validateSchema(schema, context);
+  if (result.ok) return result.value;
+  // `ai` throws here too, so the approval step fails as it would without the adapter.
+  throw new SafetyError("invalid_input", `the context of the tool ${JSON.stringify(name)} fails its contextSchema`, {
+    cause: result.cause,
+  });
+}
+
 async function deprecatedNeedsApproval(args: ApprovalArgs): Promise<boolean> {
-  const { toolCall, tools, toolsContext, messages } = args;
-  const tool = tools !== undefined && Object.hasOwn(tools, toolCall.toolName) ? tools[toolCall.toolName] : undefined;
-  const needs = tool?.needsApproval;
+  const { toolCall, tools, messages } = args;
+  const needs = own(tools, toolCall.toolName)?.needsApproval;
   if (typeof needs !== "function") return needs === true;
-  const context = toolsContext?.[toolCall.toolName];
+  const context = await toolContext(args);
   return (
     (await (needs as PolicyFunction)(toolCall.input, { toolCallId: toolCall.toolCallId, messages, context })) === true
   );
@@ -103,15 +146,18 @@ async function policyStatus(policy: unknown, args: ApprovalArgs): Promise<Status
   if (typeof policy === "function") {
     status = normalize(await (policy as PolicyFunction)(args));
   } else {
-    const entries = (policy ?? {}) as Record<string, unknown>;
-    const entry = Object.hasOwn(entries, toolCall.toolName) ? entries[toolCall.toolName] : undefined;
-    const options = {
-      toolCallId: toolCall.toolCallId,
-      messages: args.messages,
-      toolContext: args.toolsContext?.[toolCall.toolName],
-      runtimeContext: args.runtimeContext,
-    };
-    status = normalize(typeof entry === "function" ? await (entry as PolicyFunction)(toolCall.input, options) : entry);
+    const entry = own((policy ?? {}) as Record<string, unknown>, toolCall.toolName);
+    if (typeof entry === "function") {
+      const options = {
+        toolCallId: toolCall.toolCallId,
+        messages: args.messages,
+        toolContext: await toolContext(args),
+        runtimeContext: args.runtimeContext,
+      };
+      status = normalize(await (entry as PolicyFunction)(toolCall.input, options));
+    } else {
+      status = normalize(entry);
+    }
   }
   if (status.type === "not-applicable" && (await deprecatedNeedsApproval(args))) return { type: "user-approval" };
   return status;
@@ -151,60 +197,64 @@ function denial(tool: string, reason: "APPROVAL_NOT_VERIFIED" | "POLICY_DENIED",
   }
 }
 
-interface Resume {
-  readonly options: SignedToolApprovalOptions<ToolSet, unknown>;
-  readonly args: ApprovalArgs;
-  readonly reject: (cause: ApprovalRejectionCause, extra?: Partial<ApprovalRejection>) => Promise<ToolApprovalStatus>;
+/** What the resume decided: the status for `ai`, and, for a denial, what `onRejected` receives. */
+interface Decision {
+  readonly status: ToolApprovalStatus;
+  readonly rejection?: ApprovalRejection;
 }
 
-type Verified =
-  | { readonly ok: true; readonly pending: SignedPendingRequest }
-  | { readonly ok: false; readonly status: ToolApprovalStatus };
+type Options = SignedToolApprovalOptions<ToolSet, unknown>;
 
-async function verifyStored({ options, args, reject }: Resume): Promise<Verified> {
+function notVerified(
+  args: ApprovalArgs,
+  cause: ApprovalRejectionCause,
+  extra: Partial<ApprovalRejection> = {},
+): Decision {
+  const { toolCallId: callId, toolName: tool } = args.toolCall;
+  return {
+    status: denial(tool, "APPROVAL_NOT_VERIFIED", NOT_VERIFIED_NEXT),
+    rejection: { callId, tool, cause, ...extra },
+  };
+}
+
+/**
+ * The second call for an approved call: take and verify the stored request, re-run current policy, then `recheck`.
+ * Every failure denies. It never calls `onRejected`, so a hook that throws can't be mistaken for a failed step.
+ */
+async function resume(options: Options, args: ApprovalArgs): Promise<Decision> {
   const { toolCall } = args;
   const pending = await options.store.take(toolCall.toolCallId);
-  if (pending === undefined) return { ok: false, status: await reject("unknown_request") };
+  if (pending === undefined) return notVerified(args, "unknown_request");
   const call = { callId: toolCall.toolCallId, tool: toolCall.toolName, input: toolCall.input };
   const check = await verifyResolution(
     pending,
     { requestId: pending.id, decision: "allow" },
     { signer: options.signer, call },
   );
-  if (!check.ok) return { ok: false, status: await reject(check.cause, { requestId: pending.id }) };
-  return { ok: true, pending };
-}
-
-/** The second call for an approved call: verify, re-run current policy, then `recheck`. Every failure denies. */
-async function resume(context: Resume): Promise<ToolApprovalStatus> {
-  const { options, args } = context;
-  const stored = await verifyStored(context);
-  if (!stored.ok) return stored.status;
-  const verified = stored.pending;
+  if (!check.ok) return notVerified(args, check.cause, { requestId: pending.id });
   const now = await policyStatus(options.policy, args);
   const policyDeny = now.type === "denied" ? (now.reason ?? "the approval policy now denies this call") : undefined;
-  const recheck = policyDeny === undefined ? await options.recheck(verified, args.toolCall.input) : undefined;
+  const recheck = policyDeny === undefined ? await options.recheck(pending, toolCall.input) : undefined;
   const deny = policyDeny ?? (typeof recheck === "object" && recheck !== null ? recheck.deny : undefined);
   if (deny !== undefined || recheck !== "allow") {
     const why = deny ?? "the policy check did not allow it";
-    await options.onRejected?.({
-      callId: args.toolCall.toolCallId,
-      tool: args.toolCall.toolName,
-      cause: "policy_denied",
-      requestId: verified.id,
-    });
-    return denial(
-      args.toolCall.toolName,
-      "POLICY_DENIED",
-      `Tell the user that current policy blocks this call: ${why}`,
-    );
+    const next = `Tell the user that current policy blocks this call: ${why}`;
+    return {
+      status: denial(toolCall.toolName, "POLICY_DENIED", next),
+      rejection: {
+        callId: toolCall.toolCallId,
+        tool: toolCall.toolName,
+        cause: "policy_denied",
+        requestId: pending.id,
+      },
+    };
   }
   // `ai` runs a call whose status here is anything but `denied`, so only a full pass returns `approved`.
-  return { type: "approved" };
+  return { status: { type: "approved" } };
 }
 
 /** The first call: ask the policy, and sign and store a pending request when it wants a person. */
-async function pause(options: SignedToolApprovalOptions<ToolSet, unknown>, args: ApprovalArgs): Promise<Status> {
+async function pause(options: Options, args: ApprovalArgs): Promise<Status> {
   const status = await policyStatus(options.policy, args);
   if (status.type !== "user-approval") return status;
   const { toolCall } = args;
@@ -245,18 +295,17 @@ export function signedToolApproval<TOOLS extends ToolSet, RUNTIME_CONTEXT = unkn
   // The policy is only ever called with the arguments `ai` gave the adapter, so erasing its generics loses nothing.
   const loose = options as unknown as SignedToolApprovalOptions<ToolSet, unknown>;
   const approve = async (args: ApprovalArgs): Promise<ToolApprovalStatus> => {
-    const { toolCallId: callId, toolName: tool } = args.toolCall;
-    const reject = async (cause: ApprovalRejectionCause, extra: Partial<ApprovalRejection> = {}) => {
-      await loose.onRejected?.({ callId, tool, cause, ...extra });
-      return denial(tool, "APPROVAL_NOT_VERIFIED", NOT_VERIFIED_NEXT);
-    };
-    if (!isApprovedResume(args.messages, callId)) return pause(loose, args);
+    if (!isApprovedResume(args.messages, args.toolCall.toolCallId)) return pause(loose, args);
+    let decision: Decision;
     try {
-      return await resume({ options: loose, args, reject });
+      decision = await resume(loose, args);
     } catch (error) {
       // Fail closed: a store, signer, policy or recheck that throws denies the call instead of letting it run.
-      return reject("error", { error });
+      decision = notVerified(args, "error", { error });
     }
+    // Outside the try, so onRejected runs once per denial, and an error it throws propagates as it is.
+    if (decision.rejection !== undefined) await loose.onRejected?.(decision.rejection);
+    return decision.status;
   };
   // `ai` accepts a generic approval function for any tool set; its parameter type names the set's generics.
   return approve as unknown as ToolApprovalConfiguration<TOOLS, RUNTIME_CONTEXT>;

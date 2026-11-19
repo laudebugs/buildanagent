@@ -4,7 +4,7 @@
   "extends": "../../../../tsconfig.packages.json",
   "compilerOptions": {
     "lib": ["es2024"],
-    "types": ["node", "@cloudflare/workers-types"],
+    "types": ["@cloudflare/workers-types"],
     "allowImportingTsExtensions": true
   },
   "include": ["approval-agent.ts", "scenario.ts"]

@@ -2,7 +2,7 @@
 
 On 2026-11-19, this log checked every factual claim about third-party code and standards that E3's code, tests and `packages/agent-safety/README.md` rely on. Registry dates come from `https://registry.npmjs.org/<package>`, read with curl that day. Behaviour claims come from the pinned packages' built files in this workspace, cited by file and line as installed, and from the package's tests, which run offline in Node 22 and in workerd. The standards were read from the RFC Editor's text. A claim backed by a passing test in `packages/agent-safety/test/` says **[verified]**.
 
-**Totals:** 26 claims: 26 ✅, 0 ✏️, 0 ⚠️.
+**Totals:** 29 claims: 29 ✅, 0 ✏️, 0 ⚠️.
 
 ## Pins
 
@@ -29,6 +29,9 @@ The five new dev dependencies are the versions `verify/cloudflare-agents` alread
 | E3-12 | `collectToolApprovals` reads approval responses only from the last message, and only when it is a `tool` message, and skips an approved call that already has a result | ✅ | `ai/dist/index.js` 2406–2450; the replay test drops the call's result to make the SDK collect the approval again **[verified]** |
 | E3-13 | With `experimental_toolApprovalSecret` set, the SDK checks its own signature before `toolApproval` and throws `InvalidToolApprovalSignatureError` for a missing or wrong one, which covers the call's id, tool and input but no key id | ✅ | `ai/dist/index.js` 4989–5005; `test/ai-approval.test.ts` changes the input and catches the error **[verified]** |
 | E3-14 | `streamText` streams a `tool-output-denied` chunk, in `fullStream` and in the UI message stream, for a call denied at that second check | ✅ | `ai/dist/index.js` 9592–9598, and a scratch run of `streamText` and `toUIMessageStream()` over a denied approval printed the chunk in both |
+| E3-27 | Before a per-tool approval function or `needsApproval` sees a tool's context, `ai` validates it against the tool's `contextSchema`, so defaults and transforms apply and an invalid context throws; a generic `toolApproval` function gets the raw `toolsContext` | ✅ | `ai/dist/index.js` 2837–2846 (`validateToolContext`) and 3949–3985 (`resolveToolApproval`, raw for a function at 3950–3956); `test/ai-approval.test.ts` pauses a call only under a Zod default and rejects an invalid context **[verified]**. Added by the first code review, which found the adapter passed the raw context |
+| E3-28 | `ai`'s UI message types and validator accept an `output-denied` tool part only with `approval.approved: false` | ✅ | `ai/dist/index.d.ts` 2132–2145 and `ai/dist/index.js` 11267 (`approvalDeniedSchema`) and 11434–11440; `test/ai-approval.test.ts` runs `validateUIMessages` on a settled part **[verified]**. Added by the first code review, which found `settleDeniedApprovals()` kept `approved: true` |
+| E3-29 | A person's denial never reaches `toolApproval`: `collectToolApprovals` sorts it into the denied list, and only the approved list goes through `validateApprovedToolApprovals` | ✅ | `ai/dist/index.js` 2443–2444, 5300–5302 (`generateText`) and 9573–9576 (`streamText`). So a denied pause is never taken from the store, which is why `memoryPendingStore()` expires requests |
 
 ## Cloudflare's `AIChatAgent` (`agents` 0.33.0, `@cloudflare/ai-chat` 0.12.2)
 

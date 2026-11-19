@@ -5,8 +5,8 @@
 
 /**
  * Why a `SafetyError` was thrown. `invalid_outcome`: a write outcome breaks a rule. `invalid_input`: a tool input has
- * no canonical JSON form. `invalid_key_ring`: a signer's keys or key ids can't be used. `invalid_pending`: the fields
- * of a pending request can't be signed.
+ * no canonical JSON form, or a tool's context fails its `contextSchema`. `invalid_key_ring`: a signer's keys or key
+ * ids can't be used. `invalid_pending`: the fields of a pending request can't be signed.
  */
 export type SafetyErrorCode = "invalid_outcome" | "invalid_input" | "invalid_key_ring" | "invalid_pending";
 
