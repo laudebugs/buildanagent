@@ -133,8 +133,11 @@ class LoopState {
   releaseFollowUps = false;
   /** The signed requests of the calls that gates paused, in model order. */
   readonly pending: SignedPendingRequest[] = [];
-  /** The input each pending request signs, by request id. */
-  readonly pendingInputs: Record<string, unknown> = {};
+  /**
+   * The input each pending request signs, by request id. It has no prototype, because an id comes from the host's
+   * `idGenerator` and `"__proto__"` must be stored as a key like any other.
+   */
+  readonly pendingInputs: Record<string, unknown> = Object.create(null);
 
   constructor(setup: LoopSetup, emit: Emit, drain: Drain) {
     this.setup = setup;

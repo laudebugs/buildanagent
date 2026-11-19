@@ -280,6 +280,28 @@ test("a generator that repeats one id still pauses every call, each under its ow
   );
 });
 
+test("a request id that names an Object.prototype member still maps to its own input", async () => {
+  // A generator is the host's code, so an id such as "__proto__" must not rewrite the record's prototype.
+  const ids = ["run-1", "__proto__"];
+  const { result } = await drive(
+    run({
+      model: scripted([calls(["refund", { order: 7 }, "c1"])]).model,
+      system: "You handle refunds.",
+      input: "Refund order 7.",
+      tools: [recordingTool("refund").tool],
+      interceptors: ASK_REFUNDS,
+      signer: SIGNER,
+      clock: determinism().clock,
+      idGenerator: () => ids.shift() ?? "later",
+    }),
+  );
+  const paused = awaiting(result);
+  assert.equal(paused.pending[0]?.id, "__proto__");
+  const inputs = paused.context.pendingInputs ?? {};
+  assert.equal(Object.hasOwn(inputs, "__proto__"), true);
+  assert.deepEqual(Object.getOwnPropertyDescriptor(inputs, "__proto__")?.value, { order: 7 });
+});
+
 test("a pause signs the coerced input the call would run with, and the context and event hold that input", async () => {
   const { result, events } = await pausedRun([calls(["refund", { order: "5" }, "c1"])]);
   const paused = awaiting(result);
