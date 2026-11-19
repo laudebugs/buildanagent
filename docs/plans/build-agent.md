@@ -279,7 +279,7 @@ packages/
 
 **Dependencies.** `@buildanagent/sdk`, `@buildanagent/gateway`, `@buildanagent/harness` and `@buildanagent/evals` (`workspace:*`), and `zod` 4.6.7 for tool and output schemas, a version already in the lockfile. A3 checks that Zod's schemas satisfy the SDK's `inputSchema` type, `StandardSchemaV1 & StandardJSONSchemaV1`, and falls back to raw JSON Schema validated by the SDK's D7 validator if they do not. The real helpdesk adapter adds no SDK; it calls `fetch` through the egress proxy. Every new pin follows [AGENTS.md "Versions"](../../AGENTS.md#coding-standards).
 
-**Tooling.** The same as the SDK's and harness's: ESM, `tsconfig.base.json`, `node:test` through tsx, `typecheck` and `test` scripts picked up by the root ([SDK plan §3.1][sp31]). The Inspect task has its own exact-pinned `requirements.txt` and runs only in the opt-in eval job.
+**Tooling.** The same as the SDK's and harness's: ESM, `tsconfig.base.json`, Vitest ([ADR 0046](../decisions/0046-vitest-test-runner.md)), `typecheck` and `test` scripts picked up by the root ([SDK plan §3.1][sp31]). The Inspect task has its own exact-pinned `requirements.txt` and runs only in the opt-in eval job.
 
 ### 3.2 Trusted run context, helpdesk and tool contracts
 

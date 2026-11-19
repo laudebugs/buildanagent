@@ -36,7 +36,7 @@ Create the four harness packages beside the SDK's two, each building, type-check
 
 ## Tasks
 
-- [ ] Copy the SDK packages' `package.json` scripts (`typecheck`: `tsc -p`, `test`: `tsx --test`).
+- [ ] Copy the SDK packages' `package.json` scripts (`typecheck`: `tsc -p`, `test`: `vitest run`) and their `vitest.config.ts`, which loads the shared offline setup ([ADR 0046](../../decisions/0046-vitest-test-runner.md)).
 - [ ] Add `workspace:*` dependencies on `@buildanagent/sdk`, `@buildanagent/gateway` and `@buildanagent/protocol` where §3.1 lists them.
 - [ ] Add one smoke test per package that imports its root export.
 - [ ] Check that Biome covers the new folders without config changes.

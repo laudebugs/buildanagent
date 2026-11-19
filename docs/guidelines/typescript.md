@@ -1,6 +1,6 @@
 # TypeScript: strict, portable, named and documented
 
-These rules apply to every TypeScript file in `packages/`. The `verify/*` harnesses follow [AGENTS.md coding standards](../../AGENTS.md#coding-standards) instead, because they test other people's SDKs. The rules adapt Lamina PDF's `typescript.md` to two decisions of ours: tests run on `node:test` through tsx ([SDK plan §3.1](../plans/build-sdk.md#31-two-packages-under-a-new-top-level-packages-directory)), and our private packages export their `src/` TypeScript directly until todo B20 decides how we publish.
+These rules apply to every TypeScript file in `packages/`. The `verify/*` harnesses follow [AGENTS.md coding standards](../../AGENTS.md#coding-standards) instead, because they test other people's SDKs. The rules adapt Lamina PDF's `typescript.md` to one decision of ours: our private packages export their `src/` TypeScript directly until todo B20 decides how we publish. Tests run on Vitest, as Lamina's do ([ADR 0046](../decisions/0046-vitest-test-runner.md)).
 
 ## Compiler settings are strict, and only erasable syntax is allowed
 
