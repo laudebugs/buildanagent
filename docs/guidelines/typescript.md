@@ -5,7 +5,7 @@ These rules apply to every TypeScript file in `packages/`. The `verify/*` harnes
 ## Compiler settings are strict, and only erasable syntax is allowed
 
 - **MUST:** every package extends the root `tsconfig.base.json`, and `pnpm typecheck` passes for `src/` and `test/`.
-- **MUST:** the base config turns on `strict`, `noUncheckedIndexedAccess`, `exactOptionalPropertyTypes`, `noImplicitOverride`, `noFallthroughCasesInSwitch`, `noUnusedLocals`, `noUnusedParameters`, `isolatedModules`, `verbatimModuleSyntax` and `erasableSyntaxOnly`. As of November 2026 it sets only `strict`, `noImplicitOverride` and `noFallthroughCasesInSwitch`; until the [compiler follow-up](README.md#known-gaps) lands, write code as if the other seven were on, because the compiler doesn't yet catch them.
+- **MUST:** the base config turns on `strict`, `noUncheckedIndexedAccess`, `exactOptionalPropertyTypes`, `noImplicitOverride`, `noFallthroughCasesInSwitch`, `noUnusedLocals`, `noUnusedParameters`, `isolatedModules`, `verbatimModuleSyntax` and `erasableSyntaxOnly`. As of November 2026 it sets only `strict`, `noImplicitOverride` and `noFallthroughCasesInSwitch`; until [Q1](../todos/ready/Q1-strict-compiler-and-lint.md) lands, write code as if the other seven were on, because the compiler doesn't yet catch them.
 - **MUST NOT:** use `enum`, `namespace` or constructor parameter properties, which `erasableSyntaxOnly` forbids. Use string-literal unions and `as const` objects.
 - **MUST:** write type-only imports as `import type { … }`, as `verbatimModuleSyntax` requires.
 
@@ -16,7 +16,7 @@ Our SDK and harness must run on local Node, Cloudflare, AWS and Vercel ([ADR 003
 - **MUST NOT:** import `node:*` modules or use `Buffer`, `process`, `__dirname` or `require` in a package's `src/`. Bytes are `Uint8Array`, text goes through `TextEncoder` and `TextDecoder`, and randomness and crypto go through `globalThis.crypto`.
 - **MUST NOT:** use DOM-only globals (`window`, `document`, `localStorage`) in `src/`.
 - **SHOULD:** take anything environment-specific (a transport, a store, a clock) as an option, so the caller supplies it.
-- Test files and the offline guards in a package's `src/testing/` (`guards.ts` and `setup.ts`) may use Node APIs such as `process.env`, because they guard our Node test process. The rest of a `testing` export, such as `ScriptedModel`, stays portable, because users run it on every target. A portability test enforces the rule once the [lint follow-up](README.md#known-gaps) lands.
+- Test files and the offline guards in a package's `src/testing/` (`guards.ts` and `setup.ts`) may use Node APIs such as `process.env`, because they guard our Node test process. The rest of a `testing` export, such as `ScriptedModel`, stays portable, because users run it on every target. A portability test enforces the rule once [Q1](../todos/ready/Q1-strict-compiler-and-lint.md) lands.
 
 ## Biome lints and formats, and caps each function's size
 

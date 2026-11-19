@@ -109,7 +109,7 @@ The repo is a pnpm workspace. Run every command from the repo root unless a READ
 - **Running third-party code.** Spawn it with an allowlisted environment (`PATH`, a temp `HOME`, `TMPDIR`, `LANG` plus what the run needs), never `...process.env`, and block outbound network where the harness allows. Inherited credentials once sent a doc example to a real provider.
 - **Our packages follow the guidelines.** Code in `packages/` follows [`docs/guidelines/`](docs/guidelines/README.md): strict and portable TypeScript, one error class per package, named and documented exports, small functions, offline and deterministic tests, plain-English package docs and tested examples. Read the guideline for your change before you start, and update the guideline in its own pull request if you think a rule is wrong.
 - **Never patch code just to make a test pass.** When a test fails, find out why: fix the product if it is wrong, or change the test and say why in the commit message ([maintainability](docs/guidelines/maintainability.md#never-patch-code-just-to-make-a-test-pass)).
-- **Comments say why, without todo ids.** A comment explains an invariant, a decision or a workaround, and cites decisions by id (`D3`, `HD15`); todo ids belong in commit messages and plans, not in `packages/*/src`.
+- **Comments say why, without todo ids.** A comment explains an invariant, a decision or a workaround. An internal comment may cite a decision by id (`D3`, `HD15`); an exported symbol's TSDoc may not, because users read it. Todo ids belong in commit messages and plans, not in `packages/*/src`.
 - **Before you commit.** `pnpm check`, `pnpm typecheck` and `pnpm test` must pass.
 
 ## Git
