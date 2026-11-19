@@ -8,7 +8,7 @@
 | Status | `ready` |
 | Plan | [Close SDK gaps §4](../../plans/close-sdk-gaps.md#4-round-e-and-its-todos) |
 | Round / milestone | Round E (close the SDK gaps), M5e |
-| Depends on | [E1](E1-safety-core-outcomes.md), [B5](B5-usage-cost-catalog.md) |
+| Depends on | [E1](E1-safety-core-outcomes.md), [B5](../ongoing/B5-usage-cost-catalog.md) |
 | Size | M |
 
 ## Goal
@@ -46,7 +46,7 @@ declare function costGuard(opts: { capUsd: number; spend: Spend; catalog: CostCa
 class BudgetExceeded extends Error { readonly projectedUsd: number; readonly spentUsd: number }
 ```
 
-Before each call, the middleware estimates the input tokens from the `params.prompt` it receives, with B14's rule (the previous call's reported input plus a character estimate of new messages), and prices it with the gateway's token-level `projectCost()` from the [B5 revision](B5-usage-cost-catalog.md). It cannot call `projectCallCost()` itself, because that function takes our gateway's `Model` and `ModelContext`, not an AI SDK prompt. If `spent + projected > capUsd`, it throws `BudgetExceeded` without calling the provider. `ai`'s retry wrapper retries only an `APICallError` or `GatewayError` marked retryable, so the error reaches the caller of `generateText`, or `streamText`'s `onError`, on the first attempt; the caller treats it as a stop. After each call, the guard adds the reported cost; on `doStream` it reads usage from the stream's final `finish` part through a `TransformStream`. The catalog lookup maps `model.provider` and `model.modelId` to a catalog entry, and a model with no catalog price is refused before any call, the same rule as B14's `unknown_price`.
+Before each call, the middleware estimates the input tokens from the `params.prompt` it receives, with B14's rule (the previous call's reported input plus a character estimate of new messages), and prices it with the gateway's token-level `projectCost()` from the [B5 revision](../ongoing/B5-usage-cost-catalog.md). It cannot call `projectCallCost()` itself, because that function takes our gateway's `Model` and `ModelContext`, not an AI SDK prompt. If `spent + projected > capUsd`, it throws `BudgetExceeded` without calling the provider. `ai`'s retry wrapper retries only an `APICallError` or `GatewayError` marked retryable, so the error reaches the caller of `generateText`, or `streamText`'s `onError`, on the first attempt; the caller treats it as a stop. After each call, the guard adds the reported cost; on `doStream` it reads usage from the stream's final `finish` part through a `TransformStream`. The catalog lookup maps `model.provider` and `model.modelId` to a catalog entry, and a model with no catalog price is refused before any call, the same rule as B14's `unknown_price`.
 
 ## Tasks
 

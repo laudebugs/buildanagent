@@ -3,7 +3,7 @@
 | Field | Value |
 | --- | --- |
 | ID | `B5` |
-| Status | `ready` |
+| Status | `ongoing` |
 | Plan | [Build SDK §4, Stage 1](../../plans/build-sdk.md#41-stage-1-builds-the-gateway-types-and-the-scripted-model-that-every-later-todo-tests-against) |
 | Round / milestone | Round B (build SDK), M5 |
 | Depends on | [B4](../done/B4-gateway-runtime.md) |
