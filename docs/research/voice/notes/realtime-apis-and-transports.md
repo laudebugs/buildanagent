@@ -229,14 +229,14 @@ Function calling must be handled by the client. `behavior: NON_BLOCKING` makes a
 
 ### Takeaway
 
-As of 2026-11-19 the Claude API documents **no audio input, audio output, speech or realtime/voice API**. No such page is listed in the docs index (`platform.claude.com/docs/llms.txt`, 1,001 lines). The only "transcript" hit is a compliance page about session transcripts. The features overview lists vision (images) and PDF support but no audio. The models overview says all current models take "text and image input, text output". Voice exists only as a **product** feature in the Claude apps. The help centre documents "voice mode" as beta on mobile, desktop and web, with hands-free and push-to-talk modes. That same page says the user's "speech is converted to text", which suggests a chained (STT, then text model, then TTS) design. That is an inference from the help page, not an Anthropic architecture statement.
+As of 2026-11-19 the Claude API documents **no audio input, audio output, speech or realtime/voice API**. No such page is listed in the docs index (`platform.claude.com/llms.txt`, 1,001 lines). The only "transcript" hit is a compliance page about session transcripts. The features overview lists vision (images) and PDF support but no audio. The models overview says all current models take "text and image input, text output". Voice exists only as a **product** feature in the Claude apps. The help centre documents "voice mode" as beta on mobile, desktop and web, with hands-free and push-to-talk modes. That same page says the user's "speech is converted to text", which suggests a chained (STT, then text model, then TTS) design. That is an inference from the help page, not an Anthropic architecture statement.
 
 ### Cited Findings
 
-- **Docs index** [docs] https://platform.claude.com/docs/llms.txt: a case-insensitive grep for `audio|voice|speech|realtime|real-time|transcri|tts` matched one line: "- [Session transcripts](https://platform.claude.com/docs/en/manage-claude/compliance-sessions.md) - Retrieve session transcripts". **Audio, voice and realtime API pages: not found in llms.txt as of 2026-11-19.**
+- **Docs index** [docs] https://platform.claude.com/llms.txt: a case-insensitive grep for `audio|voice|speech|realtime|real-time|transcri|tts` matched one line: "- [Session transcripts](https://platform.claude.com/docs/en/manage-claude/compliance-sessions.md) - Retrieve session transcripts". **Audio, voice and realtime API pages: not found in llms.txt as of 2026-11-19.**
 - **Features overview** [docs] https://platform.claude.com/docs/en/build-with-claude/overview.md lists "[Vision (images)] | Claude can read and analyze images that you send to it." and "[PDF support] | Send PDFs to Claude so it can read the text, pictures, charts and tables in them." **Audio or speech features: not found in the features overview as of 2026-11-19.**
-- **Model modalities** [docs] https://platform.claude.com/docs/en/about-claude/models/overview.md: "All current models support text and image input, text output, multilingual capabilities, vision, and tool use."
-- **Voice mode (product, not API)** [docs] https://support.claude.com/en/articles/11101966-using-voice-mode-on-claude-mobile-apps (page title "Use voice mode"): "Voice mode is a beta feature available to all plans (Free, Pro, Max, Ultra, Team, and Enterprise) on Claude Mobile (iOS and Android), Claude Desktop, and the web, but is built to work best from your phone."
+- **Model modalities** [docs] https://platform.claude.com/docs/en/models/overview.md: "All current models support text and image input, text output, multilingual capabilities, vision, and tool use."
+- **Voice mode (product, not API)** [docs] https://support.claude.com/en/articles/11101966-use-voice-mode (page title "Use voice mode"): "Voice mode is a beta feature available to all plans (Free, Pro, Max, Ultra, Team, and Enterprise) on Claude Mobile (iOS and Android), Claude Desktop, and the web, but is built to work best from your phone."
 - **Turn-taking modes in the product** [docs] same page: "In hands-free mode, Claude listens continuously and responds to natural pauses in your speech." And: "If Claude does interrupt you, simply start speaking again—Claude will stop and listen." Push-to-talk: "In this mode, you hold a button while speaking and release it when you're done."
 - **Speech converted to text** [docs] same page: "By default, we don't keep the audio from your voice conversations. Your speech is converted to text, the recording is deleted, and the transcript is saved in your chat history."
 - **Tools add delay in voice** [docs] same page: "Note: Not every result can be shown on screen in voice mode, and using several tools at once can add a short delay."
@@ -356,10 +356,10 @@ Google Gemini
 - `gemini-speech-generation.md` -> https://aistudio.google.com/docs/speech-generation.md
 
 Anthropic
-- `anthropic-llms.txt` -> https://platform.claude.com/docs/llms.txt
+- `anthropic-llms.txt` -> https://platform.claude.com/llms.txt
 - `anthropic-features-overview.md` -> https://platform.claude.com/docs/en/build-with-claude/overview.md
-- `anthropic-models-overview.md` -> https://platform.claude.com/docs/en/about-claude/models/overview.md
-- `anthropic-help-voice-mode.html` (+ `anthropic-help-voice-mode.txt`, tag-stripped) -> https://support.claude.com/en/articles/11101966-using-voice-mode-on-claude-mobile-apps
+- `anthropic-models-overview.md` -> https://platform.claude.com/docs/en/models/overview.md
+- `anthropic-help-voice-mode.html` (+ `anthropic-help-voice-mode.txt`, tag-stripped) -> https://support.claude.com/en/articles/11101966-use-voice-mode
 
 Specs
 - `rfc6455.txt` -> https://www.rfc-editor.org/rfc/rfc6455.txt
