@@ -21,10 +21,11 @@ on:
 permissions: {}
 
 jobs:
-  # Decides what this run deploys. It names no environment and holds no Cloudflare secret, so it has no secrets check. A push to main deploys only if it is still main's newest
-  # commit, so a build that finished late never replaces a newer one. A pull request's preview needs the pull
-  # request's number, which comes from the API, never from the artifact; a commit that is no longer an open pull
-  # request's head gets no preview. A closed pull request's number also comes from the API.
+  # Decides what this run deploys. It names no environment and holds no Cloudflare secret, so it has no secrets
+  # check. A push to main deploys only if it is still main's newest commit, so a build that finished late never
+  # replaces a newer one. A pull request's preview needs the pull request's number, which comes from the API, never
+  # from the artifact; a commit that is no longer an open pull request's head gets no preview. A closed pull
+  # request's number also comes from the API.
   resolve:
     if: github.event.workflow_run.conclusion == 'success'
     runs-on: ubuntu-24.04
@@ -165,6 +166,8 @@ jobs:
       needs.resolve.outputs.previews != '[]'
     # One job per pull request whose head is this commit; nearly always exactly one.
     strategy:
+      # One pull request's failure must not cancel another's job.
+      fail-fast: false
       matrix:
         number: ${{ fromJSON(needs.resolve.outputs.previews) }}
     runs-on: ubuntu-24.04
@@ -210,6 +213,8 @@ jobs:
       github.event.workflow_run.event == 'pull_request' &&
       needs.resolve.outputs.deletions != '[]'
     strategy:
+      # One pull request's failure must not cancel another's job.
+      fail-fast: false
       matrix:
         number: ${{ fromJSON(needs.resolve.outputs.deletions) }}
     runs-on: ubuntu-24.04

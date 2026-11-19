@@ -89,9 +89,14 @@ describe("book-deploy.yml's triggers and jobs", () => {
     assert.deepEqual(jobs.preview.concurrency, jobs["delete-preview"].concurrency);
     // Keyed by pull request, not branch: two pull requests from one branch never replace each other's waiting run.
     assert.equal(jobs.preview.concurrency.group, `book-preview-pr-\${{ matrix.number }}`);
-    assert.deepEqual(jobs.preview.strategy.matrix, { number: `\${{ fromJSON(needs.resolve.outputs.previews) }}` });
-    assert.deepEqual(jobs["delete-preview"].strategy.matrix, {
-      number: `\${{ fromJSON(needs.resolve.outputs.deletions) }}`,
+    // fail-fast: false, so one pull request's failed job never cancels another's.
+    assert.deepEqual(jobs.preview.strategy, {
+      "fail-fast": false,
+      matrix: { number: `\${{ fromJSON(needs.resolve.outputs.previews) }}` },
+    });
+    assert.deepEqual(jobs["delete-preview"].strategy, {
+      "fail-fast": false,
+      matrix: { number: `\${{ fromJSON(needs.resolve.outputs.deletions) }}` },
     });
     assert.match(jobs.preview.if, /needs\.resolve\.outputs\.previews != '\[\]'/);
     assert.match(jobs["delete-preview"].if, /needs\.resolve\.outputs\.deletions != '\[\]'/);
@@ -130,6 +135,16 @@ describe("what touches code and secrets", () => {
       const guard = at(/guard-deploy\.mjs/);
       const wrangler = at(/wrangler (deploy|preview)/);
       assert.ok(download < stage && stage < guard && guard < wrangler, `${name}: download, stage, guard, Wrangler`);
+    }
+  });
+
+  // Comments wrap at 120 columns, as Biome wraps the code; script lines and expressions may run longer.
+  test("no comment in either book workflow runs past 120 columns", () => {
+    for (const file of ["book-deploy.yml", "book-pr-closed.yml"]) {
+      const long = readFileSync(join(workflows, file), "utf8")
+        .split("\n")
+        .filter((line) => /^\s*#/.test(line) && line.length > 120);
+      assert.deepEqual(long, [], file);
     }
   });
 
