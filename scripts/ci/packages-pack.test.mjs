@@ -258,11 +258,21 @@ packTest("every packed declaration file imports only its own dist/ files or othe
 // fails the test, so the list is cut once pi-schema ships a fix.
 const SOURCE_CONDITION_FAILURES = ["@buildanagent/sdk"];
 
+// The entries that fail to import in this install, which holds no optional peer, because they exist to wrap one: the
+// safety package's `./byok` imports `@ai-sdk/anthropic` and `@ai-sdk/openai` at load and its README says so. The
+// failure must be ERR_MODULE_NOT_FOUND naming one of the package's declared optional peers. Every other entry,
+// the root entry included, must import. An entry listed here that imports again fails the test.
+const OPTIONAL_PEER_FAILURES = ["@buildanagent/agent-safety/byok"];
+
 for (const conditions of [[], ["--conditions=source"]]) {
   const label = conditions.length ? "with --conditions=source" : "with no extra condition";
   packTest(`Node imports every packed entry from dist/ ${label}`, (t) => {
     const failed = [];
+    const missingPeer = [];
     for (const [name, { manifest, dest }] of packed) {
+      const optionalPeers = Object.entries(manifest.peerDependenciesMeta ?? {})
+        .filter(([, meta]) => meta.optional)
+        .map(([peer]) => peer);
       // A dependency with a broken `source` condition can't load under it. An entry that reaches such a dependency
       // may fail to import only with an error naming that dependency; every other entry must import. The run with no
       // extra condition imports them all.
@@ -272,6 +282,8 @@ for (const conditions of [[], ["--conditions=source"]]) {
         const tolerated = JSON.stringify(broken);
         const script = `const url = import.meta.resolve(${JSON.stringify(specifier)});
 try { await import(url); } catch (error) {
+  const peer = error?.code === "ERR_MODULE_NOT_FOUND" ? ${JSON.stringify(optionalPeers)}.find((dep) => String(error.message).includes(\`'\${dep}'\`)) : undefined;
+  if (peer !== undefined) { console.error(\`missing peer: \${peer}\`); console.log(url); process.exit(0); }
   const named = ${tolerated}.find((dep) => String(error?.stack ?? error).includes(dep));
   if (named === undefined) throw error;
   console.error(\`broken source: \${named}\`);
@@ -283,6 +295,12 @@ console.log(url);`;
           env,
         });
         assert.equal(child.status, 0, `${specifier} failed to import ${label}: ${child.stderr}`);
+        const absent = /^missing peer: (.+)$/m.exec(child.stderr)?.[1];
+        if (absent) {
+          missingPeer.push(specifier);
+          t.diagnostic(`${specifier}: not imported ${label}, because its optional peer ${absent} is not installed`);
+          continue;
+        }
         const skipped = /^broken source: (.+)$/m.exec(child.stderr)?.[1];
         if (skipped) {
           failed.push(specifier);
@@ -294,6 +312,7 @@ console.log(url);`;
       }
     }
     assert.deepEqual(failed, conditions.length ? SOURCE_CONDITION_FAILURES : []);
+    assert.deepEqual(missingPeer, OPTIONAL_PEER_FAILURES);
   });
 }
 
