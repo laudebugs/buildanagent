@@ -7,9 +7,9 @@ import { check, scripted } from "./lib/check.ts";
 {
   // #region text-stream
   const { model } = scripted(["Streams arrive in pieces."]);
-  const result = streamText({ model, prompt: "Stream something." });
+  const result = streamText({ model, prompt: "Stream something." }); // book:note returns-at-once
   const chunks: string[] = [];
-  for await (const chunk of result.textStream) chunks.push(chunk);
+  for await (const chunk of result.textStream) chunks.push(chunk); // book:note deltas
   // #endregion
   check(chunks.length > 1, `textStream yields several chunks (${chunks.length})`);
   check(chunks.join("") === "Streams arrive in pieces.", "the chunks join to the full text");

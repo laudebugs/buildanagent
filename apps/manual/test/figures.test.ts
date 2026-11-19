@@ -23,12 +23,17 @@ afterAll(() => {
   for (const dir of dirs) rmSync(dir, { recursive: true, force: true });
 });
 
-test("the book's figures hold Chapter 1's three, and the fixtures hold their own, isometric ones too", () => {
+test("the book's figures hold its chapters' figures, and the fixtures hold their own, isometric ones too", () => {
   const ids = (root: string) => figureScripts(root).map((figure) => `${figure.chapter}/${figure.id}`);
   assert.deepEqual(ids(BOOK_FIGURES), [
     "call-workflow-loop/loop-bench",
     "call-workflow-loop/ticket-rail",
     "call-workflow-loop/who-decides",
+    "talking-to-a-model/resent-history",
+    "talking-to-a-model/stream-fold",
+    "talking-to-a-model/taxi-meter",
+    "tools/tool-round-trip",
+    "tools/vending-machine",
   ]);
   assert.deepEqual(ids(FIXTURE_FIGURES), ["first/loop-bench", "first/tally-counter", "first/ticket-rail"]);
   assert.deepEqual(ids(SITE_FIGURES), [

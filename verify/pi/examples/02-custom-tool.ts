@@ -10,9 +10,9 @@ const weather = defineTool({
   name: "get_temperature",
   label: "Temperature",
   description: "Get the current temperature for a city",
-  parameters: Type.Object({ city: Type.String() }),
+  parameters: Type.Object({ city: Type.String() }), // book:note schema
   execute: async (_id, params) => {
-    calls.push(params);
+    calls.push(params); // book:note execute
     return { content: [{ type: "text", text: `21°C in ${params.city}` }], details: {} };
   },
 });

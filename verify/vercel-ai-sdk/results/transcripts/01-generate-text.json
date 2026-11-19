@@ -80,13 +80,13 @@
     },
     {
       "kind": "check",
-      "line": 38,
+      "line": 39,
       "message": "a system message in `messages` throws InvalidPromptError by default",
       "pass": true
     },
     {
       "kind": "request",
-      "line": 40,
+      "line": 41,
       "model": "model-2",
       "repeated": 0,
       "messages": [
@@ -113,7 +113,7 @@
     },
     {
       "kind": "response",
-      "line": 40,
+      "line": 41,
       "model": "model-2",
       "message": {
         "role": "assistant",
@@ -128,7 +128,7 @@
     },
     {
       "kind": "check",
-      "line": 48,
+      "line": 49,
       "message": "allowSystemInMessages: true accepts it",
       "pass": true
     }

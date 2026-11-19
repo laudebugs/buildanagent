@@ -8,7 +8,7 @@
 | Status | `ready` |
 | Plan | [Book plan §4.3, BK19](../../plans/build-book.md#43-four-topics-need-research-before-they-are-written) |
 | Round / milestone | Round T (textbook), MT |
-| Depends on | [U21](../done/U21-research-fine-tuning-vs-prompting.md), [T11](T11-chapter-talking-to-a-model.md), [T28](../done/T28-example-streaming-usage.md) |
+| Depends on | [U21](../done/U21-research-fine-tuning-vs-prompting.md), [T11](../done/T11-chapter-talking-to-a-model.md), [T28](../done/T28-example-streaming-usage.md) |
 | Size | S |
 
 ## Goal
@@ -21,7 +21,7 @@ U21's report settled the scope, and the owner approved its proposed changes on 2
 
 - [U21](../done/U21-research-fine-tuning-vs-prompting.md)'s [report](../../research/fine-tuning/fine-tuning-vs-prompting.md) and [fact-check](../../research/fine-tuning/fact-check-fine-tuning-vs-prompting.md), including the [MAP reread](../../research/fine-tuning/notes/map-reread.md): MAP's 70% is 14 of 20 interviewed teams, not a survey figure
 - [T28](../done/T28-example-streaming-usage.md): the listing, a tuned model priced against a cached prompt, offline
-- Chapter T11's todo, [T11](T11-chapter-talking-to-a-model.md), and its fact-check file `apps/manual/fact-checks/talking-to-a-model.md`
+- Chapter T11's todo, [T11](../done/T11-chapter-talking-to-a-model.md), and its fact-check file `apps/manual/fact-checks/talking-to-a-model.md`
 - [Book plan BK21 and BK22](../../plans/build-book.md#bk21-every-section-is-fact-checked-before-the-next-is-drafted-accepted)
 
 ## Scope
