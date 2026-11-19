@@ -12,6 +12,7 @@ const script = () =>
     .respond(new AIMessage("Here it is."));
 
 {
+  // #region updates
   const nodes: string[] = [];
   for await (const chunk of await createAgent({ model: script(), tools: [lookup] }).stream(
     { messages: [{ role: "user", content: "Find it" }] },
@@ -19,6 +20,7 @@ const script = () =>
   )) {
     nodes.push(...Object.keys(chunk));
   }
+  // #endregion
   check(
     JSON.stringify(nodes) === '["model_request","tools","model_request"]',
     `"updates" yields one chunk per step: ${nodes.join(", ")}`,

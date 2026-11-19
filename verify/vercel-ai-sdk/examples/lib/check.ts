@@ -3,10 +3,12 @@ import type { LanguageModelV4CallOptions, LanguageModelV4Content } from "@ai-sdk
 import { simulateReadableStream } from "ai";
 import { MockLanguageModelV4 } from "ai/test";
 
+// #region check
 export function check(cond: unknown, msg: string): asserts cond {
   if (!cond) throw new Error(`ASSERTION FAILED: ${msg}`);
   console.log(`ok - ${msg}`);
 }
+// #endregion
 
 /** One scripted model turn: plain text, or tool calls (input given as an object). */
 export type Turn = string | { tools: { name: string; input: unknown; id?: string }[] };
@@ -32,6 +34,7 @@ const content = (turn: Turn): LanguageModelV4Content[] =>
  * both generate and stream calls, and records every request in `requests`. Running past the
  * script throws, so a test fails if the loop makes more model calls than expected.
  */
+// #region scripted
 export function scripted(turns: Turn[] | ((n: number) => Turn)) {
   const requests: LanguageModelV4CallOptions[] = [];
   const next = (options: LanguageModelV4CallOptions) => {
@@ -65,6 +68,7 @@ export function scripted(turns: Turn[] | ((n: number) => Turn)) {
   });
   return { model, requests };
 }
+// #endregion
 
 /** Text of every system message in a request. */
 export const systemText = (req: LanguageModelV4CallOptions) =>

@@ -5,6 +5,7 @@ import { generateText, InvalidPromptError } from "ai";
 import { check, scripted, systemText } from "./lib/check.ts";
 
 {
+  // #region call
   const { model, requests } = scripted(["Hello from the mock."]);
   const result = await generateText({ model, instructions: "You are terse.", prompt: "Say hello." });
   check(result.text === "Hello from the mock.", "result.text is the model's answer");
@@ -12,6 +13,7 @@ import { check, scripted, systemText } from "./lib/check.ts";
   check(result.finishReason === "stop", "finishReason is 'stop'");
   check(result.usage.inputTokens === 10 && result.usage.outputTokens === 5, "usage reports input and output tokens");
   check(systemText(requests[0]) === "You are terse.", "instructions arrive as the system message");
+  // #endregion
 }
 
 // The OpenAI provider page shows a system message inside `messages` without the opt-in (F-finding).

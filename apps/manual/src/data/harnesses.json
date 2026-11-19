@@ -1,0 +1,10 @@
+{
+  "verify/claude-agent-sdk": "@anthropic-ai/claude-agent-sdk",
+  "verify/cloudflare-agents": "agents",
+  "verify/copilot-sdk": "@github/copilot-sdk",
+  "verify/google-adk": "@google/adk",
+  "verify/langchain": "langchain",
+  "verify/openai-agents-sdk": "@openai/agents",
+  "verify/pi": "@earendil-works/pi-coding-agent",
+  "verify/vercel-ai-sdk": "ai"
+}

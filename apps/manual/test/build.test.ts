@@ -175,6 +175,22 @@ test("a chapter page shows its number from the outline and its numbered source l
   );
 });
 
+test("a chapter page shows a listing cut from a verify/ example, with the pin its harness's package.json holds", () => {
+  const html = chapter();
+  const manifest = JSON.parse(readFileSync(join(app, "../../verify/vercel-ai-sdk/package.json"), "utf8"));
+  assert.match(html, /<a href="\/call-workflow-loop\/#lst-one-call" class="xref">Listing 1\.1<\/a> makes one call/);
+  assert.match(
+    html,
+    /<span class="listing__number number">Listing 1\.1<\/span><span class="listing__title">One model call/,
+  );
+  assert.ok(html.includes('<span class="listing__path">verify/vercel-ai-sdk/examples/01-generate-text.ts</span>'));
+  assert.ok(html.includes(`<span class="listing__pin">ai@${manifest.dependencies.ai}</span>`));
+  assert.match(
+    html,
+    /<span class="line__number" aria-hidden="true">9<\/span><span class="tok-keyword">const<\/span> \{ model, requests \}/,
+  );
+});
+
 test("the contents list every chapter in the outline, linking only the written ones", () => {
   const html = readFileSync(join(out, "index.html"), "utf8");
   assert.equal((html.match(/class="contents__chapter"/g) ?? []).length, 18);

@@ -29,6 +29,7 @@ const escalate = tool({
     return "escalated";
   },
 });
+// #region injection-guardrail
 const noInjection: InputGuardrail = {
   name: "No prompt injection",
   runInParallel: false,
@@ -37,6 +38,7 @@ const noInjection: InputGuardrail = {
     tripwireTriggered: /ignore (all|previous) instructions/i.test(JSON.stringify(input)),
   }),
 };
+// #endregion
 const Triage = z.object({
   category: z.enum(["bug", "billing", "question"]),
   priority: z.enum(["low", "medium", "high"]),

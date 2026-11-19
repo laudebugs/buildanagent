@@ -24,9 +24,11 @@ const warnings: string[] = [];
 {
   warnings.length = 0;
   const { model } = forever();
+  // #region step-cap
   const result = await new ToolLoopAgent({ model, tools: { ping }, stopWhen: isStepCount(3) }).generate({
     prompt: "Loop.",
   });
+  // #endregion
   check(result.steps.length === 3, "isStepCount(3) stops after 3 steps");
   check(warnings.length === 0, "an explicit stopWhen logs no warning");
 }
@@ -37,12 +39,14 @@ const warnings: string[] = [];
     { tools: [{ name: "finalAnswer", input: { answer: "42" } }] },
     "never reached",
   ]);
+  // #region stop-when
   const agent = new ToolLoopAgent({
     model,
     tools: { ping, finalAnswer },
     stopWhen: [hasToolCall("finalAnswer"), isStepCount(10)],
   });
   const result = await agent.generate({ prompt: "Answer." });
+  // #endregion
   check(result.steps.length === 2, "hasToolCall('finalAnswer') stops right after that tool's step");
   check(result.staticToolResults.at(-1)?.output === "42", "the final tool result is on the result");
 }
