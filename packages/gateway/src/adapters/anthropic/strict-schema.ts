@@ -106,7 +106,9 @@ function strictFailure(node: Json, isObjectSchema: boolean): string | undefined 
 
 function lowerNode(node: unknown, counts: Counts): unknown {
   if (!isObject(node) || counts.failure !== undefined) return node;
-  const isObjectSchema = node.type === "object" || isObject(node.properties);
+  // A nullable object, `type: ["object", "null"]`, is an object too and needs the same treatment.
+  const isObjectSchema =
+    node.type === "object" || (Array.isArray(node.type) && node.type.includes("object")) || isObject(node.properties);
   const failure = strictFailure(node, isObjectSchema);
   if (failure !== undefined) {
     counts.failure = failure;

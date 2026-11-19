@@ -27,7 +27,8 @@ export interface StreamOptions {
   providerOptions?: Record<string, unknown>;
   /**
    * The model's caps. `createModel()` sets them on every call to the caps it resolved, from its catalog or the
-   * adapter's `defaultCaps`, after middleware has run. An adapter called directly without them uses its
+   * adapter's `defaultCaps`, after middleware has run, so a `Model`'s options (`ModelCallOptions`) leave them out and
+   * any `caps` a caller or middleware passes anyway is replaced. An adapter called directly without them uses its
    * `defaultCaps`.
    */
   caps?: ModelCaps;

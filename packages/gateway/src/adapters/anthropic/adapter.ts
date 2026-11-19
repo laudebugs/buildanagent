@@ -18,7 +18,7 @@ import { assertModelRequestAllowed, ModelRequestsDisabledError } from "../../req
 import type { ProviderConfig } from "../../runtime-types.ts";
 import type { ModelAdapter, ModelEvent, StreamOptions } from "../../spec.ts";
 import { readServerSentEvents } from "../../sse.ts";
-import type { ModelCaps, ModelContext, ModelRef } from "../../types.ts";
+import type { ContentBlock, Message, ModelCaps, ModelContext, ModelRef } from "../../types.ts";
 import { abortedEvent, failureEvent, failureFromResponse, isPrefixMismatch } from "./failure.ts";
 import { anthropicOptions, buildRequest, type RequestPlan } from "./request.ts";
 import { MessageAssembler } from "./response.ts";
@@ -80,7 +80,17 @@ interface AdapterState {
 function conversationKey(context: ModelContext, options: StreamOptions): string {
   const id = anthropicOptions(options).conversationId;
   if (id !== undefined) return `id:${id}`;
-  return `fp:${fnv1a(JSON.stringify([context.system, context.messages[0] ?? null]))}`;
+  return `fp:${fnv1a(JSON.stringify([context.system, fingerprintOf(context.messages[0])]))}`;
+}
+
+/**
+ * The part of a message the fingerprint hashes: its role and each block's text, or the block's type for any other
+ * block. An image's base64 data stays out, so a large image never gets stringified on every call.
+ */
+function fingerprintOf(message: Message | undefined): unknown {
+  if (message === undefined) return null;
+  const blocks: readonly ContentBlock[] = message.content;
+  return [message.role, blocks.map((block) => (block.type === "text" ? block.text : `[${block.type}]`))];
 }
 
 /** The body with the binding setting, which the API accepts only beside adaptive thinking. */
@@ -242,9 +252,11 @@ async function* streamMessage(
  * merged with the adapter's beta, and a caller `x-api-key` or `authorization` is dropped.
  *
  * `providerOptions.anthropic` takes a `conversationId`, which marks requests of one conversation, and an `extraBody`
- * merged into the request body. Without a `conversationId`, the adapter tells conversations apart by their system
- * prompt and first message and remembers the last 1,000 that needed `drop_block`. `temperature`, `top_p` and `top_k`
- * are never sent, because this API version rejects them; the call streams a `warning` instead.
+ * merged into the request body under the fields the adapter sets itself. Without a `conversationId`, the adapter
+ * tells conversations apart by their system prompt and the text of their first message, so conversations that share
+ * both also share the `drop_block` setting; pass a `conversationId` for each conversation to keep them apart. The
+ * adapter remembers the last 1,000 conversations that needed `drop_block`. `temperature`, `top_p` and `top_k` are
+ * never sent, because this API version rejects them; the call streams a `warning` instead.
  */
 export function anthropic(config: ProviderConfig): ModelAdapter {
   const state: AdapterState = {

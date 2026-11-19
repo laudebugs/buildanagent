@@ -9,8 +9,8 @@ import { GatewayError } from "./errors.ts";
 import { transformParams, wrapStream } from "./middleware.ts";
 import { startAttempt } from "./request-dump.ts";
 import { abortableSleep, type RetrySettings, withRetries } from "./retry.ts";
-import type { CreateModelOptions, GatewayEvent, Model } from "./runtime-types.ts";
-import type { ModelAdapter, StreamOptions } from "./spec.ts";
+import type { CreateModelOptions, GatewayEvent, Model, ModelCallOptions } from "./runtime-types.ts";
+import type { ModelAdapter } from "./spec.ts";
 import type { ModelCaps, ModelContext, Usage } from "./types.ts";
 
 const DEFAULT_RETRIES = 2;
@@ -75,7 +75,7 @@ export function createModel(options: CreateModelOptions): Model {
   };
   const onRequest = options.onRequest?.bind(options);
 
-  async function* stream(context: ModelContext, streamOptions: StreamOptions = {}): AsyncGenerator<GatewayEvent> {
+  async function* stream(context: ModelContext, streamOptions: ModelCallOptions = {}): AsyncGenerator<GatewayEvent> {
     const params = await transformParams(middleware, { context, options: streamOptions });
     const request = { adapter, ref, context: params.context, options: params.options, caps, onRequest };
     yield* wrapStream(middleware, params, () =>

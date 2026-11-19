@@ -39,6 +39,7 @@ export type {
   GatewayEvent,
   MiddlewareParams,
   Model,
+  ModelCallOptions,
   ModelMiddleware,
   ProviderConfig,
   RequestDump,

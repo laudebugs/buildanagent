@@ -37,6 +37,12 @@ export type GatewayEvent =
       error: string;
     };
 
+/**
+ * The options of one call through a `Model`: the adapter's `StreamOptions` without `caps`, which `createModel()` sets
+ * itself from the caps it resolved.
+ */
+export type ModelCallOptions = Omit<StreamOptions, "caps">;
+
 /** The stream options a request dump records: everything except the abort signal and the payload hook. */
 export type DumpedOptions = Omit<StreamOptions, "signal" | "onPayload" | "caps">;
 
@@ -54,7 +60,7 @@ export interface RequestDump {
 /** The request a middleware may rewrite: the context and the stream options. */
 export interface MiddlewareParams {
   context: ModelContext;
-  options: StreamOptions;
+  options: ModelCallOptions;
 }
 
 /**
@@ -69,7 +75,7 @@ export interface ModelMiddleware {
   wrapStream?(e: {
     next: () => AsyncIterable<GatewayEvent>;
     context: ModelContext;
-    options: StreamOptions;
+    options: ModelCallOptions;
   }): AsyncIterable<GatewayEvent>;
 }
 
@@ -105,9 +111,9 @@ export interface Model {
   /** The context window and output limit, from the catalog or the adapter's defaults. */
   readonly caps: ModelCaps;
   /** Streams one call. A failed call ends with an `error` event; only a middleware that throws makes this throw. */
-  stream(context: ModelContext, options?: StreamOptions): AsyncIterable<GatewayEvent>;
+  stream(context: ModelContext, options?: ModelCallOptions): AsyncIterable<GatewayEvent>;
   /** Reads `stream()` to its end and returns the final message, including a failed call's message. */
-  complete(context: ModelContext, options?: StreamOptions): Promise<AssistantMessage>;
+  complete(context: ModelContext, options?: ModelCallOptions): Promise<AssistantMessage>;
   /**
    * Prices one request's usage with the model's catalog entry, choosing the rate tier by that request's input. A
    * model the catalog lacks gets `{ total: null, basis: "unknown" }`. To re-price a retried call, price each request

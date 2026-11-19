@@ -35,7 +35,11 @@ export interface AnthropicProviderOptions {
    * the adapter recognises a conversation by its system prompt and first message.
    */
   readonly conversationId?: string;
-  /** Fields merged into the request body last, such as `thinking` or `output_config`. Sampling fields are dropped. */
+  /**
+   * Extra fields for the request body, such as `output_config` or `thinking: { display: "summarized" }`. The fields
+   * the adapter sets itself (`model`, `max_tokens`, `stream`, `system`, `messages`, `tools`, and `thinking.type` for a
+   * reasoning model) win over these, and sampling fields are dropped; either streams an `unsupported_option` warning.
+   */
   readonly extraBody?: Readonly<Record<string, unknown>>;
 }
 
@@ -209,6 +213,41 @@ function samplingWarning(dropped: readonly string[]): Warning[] {
   ];
 }
 
+// Body fields the adapter always sets from the context and options, so an `extraBody` field of the same name is
+// ignored. `thinking` is owned only when the caps ask for it, and then only its `type`.
+const ADAPTER_FIELDS = ["model", "max_tokens", "stream", "system", "messages", "tools"] as const;
+
+/**
+ * The adapter's own fields over the caller's extras, and the names of the extras they overrode. A caller's `thinking`
+ * keeps its other fields, such as `display`, under the adapter's `type: "adaptive"`.
+ */
+function mergeExtras(own: Json, extras: Json, ownsThinking: boolean): { body: Json; overridden: string[] } {
+  const overridden: string[] = ADAPTER_FIELDS.filter((key) => key in extras);
+  const body: Json = { ...extras, ...own };
+  for (const key of ADAPTER_FIELDS) if (!(key in own)) delete body[key];
+  if (ownsThinking) {
+    const extra = extras.thinking;
+    if (extra !== undefined && !(isObject(extra) && (extra.type === undefined || extra.type === "adaptive"))) {
+      overridden.push("thinking.type");
+    }
+    body.thinking = { ...(isObject(extra) ? extra : {}), type: "adaptive" };
+  }
+  return { body, overridden };
+}
+
+function overrideWarning(overridden: readonly string[]): Warning[] {
+  if (overridden.length === 0) return [];
+  return [
+    {
+      type: "warning",
+      code: "unsupported_option",
+      message:
+        `providerOptions.anthropic.extraBody cannot set ${overridden.join(", ")}, ` +
+        "which the adapter sets itself, so the request was sent with the adapter's value.",
+    },
+  ];
+}
+
 /** Builds one call's request body. The adapter adds the thinking-binding setting to it before each HTTP request. */
 export function buildRequest(
   model: ModelRef,
@@ -228,21 +267,20 @@ export function buildRequest(
       ? undefined
       : [{ type: "text", text: context.system, ...(cacheControl ? { cache_control: cacheControl } : {}) }];
   const { rest, dropped } = withoutSampling(anthropicOptions(options).extraBody ?? {});
-  const body: Json = {
+  const own: Json = {
     model: model.id,
     max_tokens: options.maxOutputTokens ?? caps.maxOutputTokens,
     stream: true,
     ...(system ? { system } : {}),
     messages: wireMessages,
     ...(tools.length > 0 ? { tools } : {}),
-    ...(caps.reasoning ? { thinking: { type: "adaptive" } } : {}),
-    ...rest,
   };
+  const { body, overridden } = mergeExtras(own, rest, caps.reasoning);
   const droppedAll =
     options.temperature === undefined ? dropped : ["temperature", ...dropped.filter((d) => d !== "temperature")];
   return {
     body,
-    warnings: samplingWarning(droppedAll),
+    warnings: [...samplingWarning(droppedAll), ...overrideWarning(overridden)],
     names,
     cacheTtl: options.cacheRetention === "long" ? "1h" : "5m",
   };

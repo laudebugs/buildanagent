@@ -138,6 +138,33 @@ test("a request with no sampling option streams no warning", async () => {
   assert.deepEqual(warnings(events), []);
 });
 
+test("extraBody cannot override the fields the adapter sets, and one warning names them", async () => {
+  const { events, transport } = await run([streamed("text.sse")], hello, {
+    providerOptions: {
+      anthropic: {
+        extraBody: { stream: false, model: "other", thinking: { type: "disabled", display: "summarized" }, x: 1 },
+      },
+    },
+  });
+  const body = bodyOf(transport);
+  assert.equal(body.stream, true);
+  assert.equal(body.model, MODEL.id);
+  assert.deepEqual(body.thinking, { type: "adaptive", display: "summarized" });
+  assert.equal(body.x, 1);
+  const sent = warnings(events);
+  assert.equal(sent.length, 1);
+  assert.equal(sent[0]?.code, "unsupported_option");
+  assert.match(sent[0]?.message ?? "", /model, stream, thinking\.type/);
+});
+
+test("extraBody can add to thinking without a warning", async () => {
+  const { events, transport } = await run([streamed("text.sse")], hello, {
+    providerOptions: { anthropic: { extraBody: { thinking: { display: "summarized" } } } },
+  });
+  assert.deepEqual(bodyOf(transport).thinking, { type: "adaptive", display: "summarized" });
+  assert.deepEqual(warnings(events), []);
+});
+
 test("the body streams, sets max_tokens from the catalog and turns on adaptive thinking", async () => {
   const { transport } = await run([streamed("text.sse")]);
   const body = bodyOf(transport);
@@ -342,6 +369,33 @@ test("a tool whose object schema declares no properties is sent without strict",
   assert.deepEqual(tool?.input_schema, { type: "object" });
 });
 
+test("a nullable object, typed as a type array, is lowered and checked as an object", async () => {
+  const nullable = {
+    name: "maybe",
+    description: "",
+    inputSchema: {
+      type: "object",
+      properties: {
+        open: { type: ["object", "null"], additionalProperties: { type: "string" } },
+        closed: { type: ["object", "null"], properties: { a: { type: "string" } } },
+      },
+    },
+  };
+  const open = await run([streamed("text.sse")], { ...hello, tools: [nullable] });
+  const [openTool] = bodyOf(open.transport).tools as Record<string, unknown>[];
+  assert.equal("strict" in (openTool ?? {}), false, "an object allowing additional properties cannot be strict");
+
+  const closedOnly = {
+    ...nullable,
+    inputSchema: { ...nullable.inputSchema, properties: { closed: nullable.inputSchema.properties.closed } },
+  };
+  const closed = await run([streamed("text.sse")], { ...hello, tools: [closedOnly] });
+  type Lowered = { strict?: boolean; input_schema: { properties: { closed: { additionalProperties?: unknown } } } };
+  const [closedTool] = bodyOf(closed.transport).tools as Lowered[];
+  assert.equal(closedTool?.strict, true);
+  assert.equal(closedTool?.input_schema.properties.closed.additionalProperties, false);
+});
+
 test("strict lowering adds no null, so an optional field the model leaves out reaches validation absent", async () => {
   const { transport, terminal } = await run([streamed("parallel-tools.sse")], { ...hello, tools: [weatherTool] });
   const [tool] = bodyOf(transport).tools as { input_schema: { properties: Record<string, { type: unknown }> } }[];
@@ -535,6 +589,31 @@ test("a conversationId keeps drop_block across a changed first message", async (
   assert.deepEqual(bodyOf(transport, 2).thinking, DROP_BLOCK);
 });
 
+test("an image's data stays out of the conversation fingerprint", async () => {
+  const transport = mockTransport("anthropic-messages", [
+    failed(400, "error-bound-to-different-conversation.json"),
+    streamed("text.sse"),
+    streamed("text.sse"),
+  ]);
+  const adapter = anthropic({ apiKey: KEY, transport });
+  const withImage = (data: string): ModelContext => ({
+    ...hello,
+    messages: [
+      {
+        role: "user",
+        content: [
+          { type: "text", text: "Look" },
+          { type: "image", mediaType: "image/png", data },
+        ],
+      },
+    ],
+  });
+  await assertStreamContract(adapter.stream(MODEL, withImage("aaaa"), { caps: CAPS }));
+  // Only the image data differs, so the fingerprint, which never reads it, matches the first conversation's.
+  await assertStreamContract(adapter.stream(MODEL, withImage("bbbb"), { caps: CAPS }));
+  assert.deepEqual(bodyOf(transport, 2).thinking, DROP_BLOCK);
+});
+
 test("each HTTP request of a drop_block retry is dumped, both under the same attempt", async () => {
   const transport = mockTransport("anthropic-messages", [
     failed(400, "error-bound-to-different-conversation.json"),
@@ -553,6 +632,23 @@ test("each HTTP request of a drop_block retry is dumped, both under the same att
   );
   const thinking = dumps.map((dump) => (dump.body as { thinking?: unknown } | undefined)?.thinking);
   assert.deepEqual(thinking, [{ type: "adaptive" }, DROP_BLOCK]);
+});
+
+test("a sampling warning streamed before the request adds no body-less dump", async () => {
+  const transport = mockTransport("anthropic-messages", [
+    failed(400, "error-bound-to-different-conversation.json"),
+    streamed("text.sse"),
+  ]);
+  const dumps: RequestDump[] = [];
+  const model = createModel({
+    adapter: anthropic({ apiKey: KEY, transport }),
+    id: MODEL.id,
+    onRequest: (dump) => dumps.push(dump),
+  });
+  await assertStreamContract(model.stream(hello, { temperature: 0.2 }));
+  assert.equal(transport.requests.length, 2);
+  assert.equal(dumps.length, 2, "one dump per HTTP request");
+  for (const [i, dump] of dumps.entries()) assert.deepEqual(dump.body, bodyOf(transport, i));
 });
 
 test("the adapter remembers drop_block for the 1,000 most recently used conversations", async () => {
