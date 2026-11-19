@@ -5,7 +5,7 @@
 | Field | Value |
 | --- | --- |
 | ID | `U18` |
-| Status | `ongoing` |
+| Status | `done` |
 | Plan | [Book plan §4.3, BK19](../../plans/build-book.md#43-four-topics-need-research-before-they-are-written) |
 | Round / milestone | Round U (research), for Round T (textbook), MT |
 | Depends on | None |
@@ -13,7 +13,7 @@
 
 ## Goal
 
-Research retrieval and long-term memory so the book can teach it from checked sources instead of memory. The owner chose to cover it (2026-11-19), and the repo has little on it. The result feeds a chapter, todo [T36](T36-chapter-retrieval-and-long-term-memory.md). **Research question:** When should an agent retrieve (through tools, keyword or vector search) instead of carrying context, how should memory that outlives a task be written, recalled and forgotten, and what do our eight SDKs offer for each in TypeScript?
+Research retrieval and long-term memory so the book can teach it from checked sources instead of memory. The owner chose to cover it (2026-11-19), and the repo has little on it. The result feeds a chapter, todo [T36](../ready/T36-chapter-retrieval-and-long-term-memory.md). **Research question:** When should an agent retrieve (through tools, keyword or vector search) instead of carrying context, how should memory that outlives a task be written, recalled and forgotten, and what do our eight SDKs offer for each in TypeScript?
 
 ## Context
 
@@ -40,17 +40,17 @@ Research retrieval and long-term memory so the book can teach it from checked so
 
 ## Tasks
 
-- [ ] Gather primary sources first: specifications, official docs, repositories and papers; mark anything taken from a search summary or a secondary write-up as such.
-- [ ] Draft each section of the report with `/anthropic-skills:writing`, and fact-check that section's claims into the fact-check file before drafting the next (the owner's per-section rule).
-- [ ] Run `/anthropic-skills:writing-review` on the whole report, fix every finding with `/anthropic-skills:writing`, and re-check every claim a fix touched.
-- [ ] Write "as of <month year>" for every version, star count and spec status.
+- [x] Gather primary sources first: specifications, official docs, repositories and papers; mark anything taken from a search summary or a secondary write-up as such.
+- [x] Draft each section of the report with `/anthropic-skills:writing`, and fact-check that section's claims into the fact-check file before drafting the next (the owner's per-section rule).
+- [x] Run `/anthropic-skills:writing-review` on the whole report, fix every finding with `/anthropic-skills:writing`, and re-check every claim a fix touched.
+- [x] Write "as of <month year>" for every version, star count and spec status.
 
 ## Acceptance criteria
 
-- [ ] The report answers the research question in its thesis, with every factual claim cited
-- [ ] The fact-check file logs every claim as ✅, ✏️ or ⚠️, with a tally
-- [ ] The report names what the book should teach and which examples, if any, should be written
-- [ ] Every relative link resolves
+- [x] The report answers the research question in its thesis, with every factual claim cited
+- [x] The fact-check file logs every claim as ✅, ✏️ or ⚠️, with a tally
+- [x] The report names what the book should teach and which examples, if any, should be written
+- [x] Every relative link resolves
 - [ ] `pnpm check`, `pnpm typecheck` and `pnpm test` pass offline from the repo root
 
 ## Tests
@@ -69,9 +69,13 @@ None beyond `pnpm check` and the link check; the report is prose.
 
 ## Definition of done
 
-- [ ] Claimed: the first commit moved this file `ready/` → `ongoing/` (Status `ongoing`)
-- [ ] Prose drafted with `/anthropic-skills:writing`, and changed claims re-checked against their sources
+- [x] Claimed: the first commit moved this file `ready/` → `ongoing/` (Status `ongoing`)
+- [x] Prose drafted with `/anthropic-skills:writing`, and changed claims re-checked against their sources
 - [ ] `pnpm check`, `pnpm typecheck` and `pnpm test` pass locally; pushed after each meaningful step
-- [ ] This file moved `ongoing/` → `done/` (Status `done`) in the last work commit, and the plan's todo table updated
+- [x] This file moved `ongoing/` → `done/` (Status `done`) in the last work commit, and the plan's todo table updated
 - [ ] Two code-review rounds run on the pull request (`/code-review high --max-findings default`, then `medium` and `low` after more than 6 confirmed findings, otherwise `low`), with every finding fixed or explained in a commit message
 - [ ] Copy reviewed with `/anthropic-skills:writing-review` after the code changes, with its findings fixed and the rubric scores in the pull request description
+
+## Outcome
+
+The report is [retrieval-and-memory.md](../../research/memory/retrieval-and-memory.md), with its [fact-check log](../../research/memory/fact-check-retrieval-and-memory.md) (147 claims: 118 ✅, 14 ✏️, 15 ⚠️). It recommends T41's scope and two new examples, and proposes twelve plan changes for the owner to decide. `pnpm check` and `pnpm typecheck` pass. `pnpm test` passes for every package except `verify/copilot-sdk`, whose harness needs Linux's `unshare` and refuses to run on macOS; CI runs it on Linux, so the offline-gate box stays open until CI is green. The review boxes stay open until the pull request's rounds finish.
