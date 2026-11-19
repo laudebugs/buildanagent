@@ -13,7 +13,7 @@
 
 ## Goal
 
-Write a new type-checked, mock-run example in `verify/vercel-ai-sdk/examples/` that shows a search tool over a small fixture corpus, keyword or vector with deterministic embeddings, whose results the model cites, and a check that a wrong top result misleads it, so Chapter T36 ("Retrieval and long-term memory") has code behind its subject. The coverage review found the gap: Chapter T36 teaches retrieval, and no example retrieves; U18 decides which form the book should show.
+Write a new type-checked, mock-run example in `verify/vercel-ai-sdk/examples/` that shows a search tool over a small fixture corpus, keyword or vector with deterministic embeddings, whose results the model cites, and a check that a wrong top result misleads it, so Chapter T36 ("Retrieval and long-term memory") has code behind its subject. The plan's code review found the gap: Chapter T36 teaches retrieval, and no example retrieves: the `search` tools in `claude-agent-sdk/04-max-turns.ts` and `openai-agents-sdk/08-max-turns.ts` return a fixed "3 hits" to test a turn cap. U18 decides which form the book should show.
 
 ## Context
 

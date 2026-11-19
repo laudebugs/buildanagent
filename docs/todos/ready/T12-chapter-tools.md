@@ -43,7 +43,7 @@ Write the chapter "Tools: schemas, validation, errors the model can read, and id
 | --- | --- | --- | --- |
 | tool schema | a form at a counter with labelled boxes | the model can still fill a box wrongly, so the SDK validates every field | none |
 | error returned as data | a vending machine that hands back your coin with a note: exact change only | a model may ignore the note, so the error must say what to try next | flat |
-| identity from trusted context | a hotel key card that opens only your room, whatever you say at the desk | the identity comes from the host's session, not from anything the user or the model holds | none |
+| identity from trusted context | passport control: a border officer who reads your passport, not what you claim at the desk | the host reads the identity from the signed-in session, and the model never sees or carries the passport | none |
 
 **Out of scope** (and which todo covers it)
 

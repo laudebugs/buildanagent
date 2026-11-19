@@ -226,4 +226,20 @@ The first code-review round (high) on pull request #37 confirmed 19 findings. Th
 | 143 | After the two replacements the chapter and section todos still plan 61 analogies, every one distinct | BK22 | ✅ | The same script as row 108, rerun |
 | 144 | ADR 0053's status is Accepted, a value the decisions README allows, and the file list stays a Proposed part of the plan's BK16 | ADR 0053, BK16 | ✏️ | [Decisions README](../../decisions/README.md), "Status"; the ADR had a split status |
 
-**Totals:** 144 claims: 126 ✅, 18 ✏️, 0 ⚠️.
+
+## Eighth pass: the second code review of #37
+
+The second code-review round (medium) on #37, at `725315a`, confirmed five findings. These rows check each claim a fix added or changed.
+
+| # | Claim | Where | Verdict | Source and reason |
+| --- | --- | --- | --- | --- |
+| 145 | T40 and T42 each use one harness, `openai-agents-sdk`, and add no dependency | T40, T42 | ✏️ | T40 had offered the AI SDK's `computerToolset_20260801` as a fallback, which lives only in `verify/vercel-ai-sdk` and `verify/cloudflare-agents`, and T42 had offered the Claude Agent SDK's subagents; both contradicted their scope. Both alternatives are gone |
+| 146 | The harness's scripted model "calls only function tools you define, never hosted, computer, shell, apply-patch or sandbox tools" | T40 | ✅ | [OpenAI Agents SDK fact-check](../../reference/openai-agents-sdk/fact-check.md), line 38 |
+| 147 | `ScriptedModel` in `@openai/agents-core` 0.21.0 has helpers only for function calls and assistant messages, and the runner sends a `computer_call` output to the agent's `computerTool` or fails with "Model produced computer action without a computer tool." | T40 | ✅ | `dist/testing/scriptedModel.d.ts` (`functionCall`, `assistantMessage`, `modelResponse`); `dist/runner/modelOutputs.js` line 506 |
+| 148 | No example retrieves: the `search` tools in `claude-agent-sdk/04-max-turns.ts` and `openai-agents-sdk/08-max-turns.ts` return a fixed "3 hits" to test a turn cap | T41 | ✅ | Both files, lines 8–13 and 9–13 |
+| 149 | No example uses a subagent as a tool to isolate context: `03-handoff.ts` hands the conversation over, and `google-adk/02-workflow-agents.ts` runs sub-agents in sequence or in parallel over shared session state | T42 | ✏️ | T42 had called `03-handoff.ts` "the only multi-agent example"; `02-workflow-agents.ts` header (lines 1–2) and its `SequentialAgent` and `ParallelAgent` imports show otherwise |
+| 150 | The plan's code review, not the coverage review, found the gaps T40–T42 fill | T40, T41, T42 | ✏️ | BK20 and commit `725315a`; the three todos' goals had credited the coverage review |
+| 151 | The owner replaced T12's analogy for identity from trusted context with passport control, and the valet key stays with the credential boundary | BK22, T12 | ✅ | Owner's answer, 2026-11-19: "a border officer who reads your passport, not what you claim at the desk" |
+| 152 | After the replacement the todos still plan 61 analogies, all distinct; the nearest image, T22's club door list, explains a different concept (rule order, not identity) | BK22 | ✅ | The row 108 script, rerun, plus a scan of travel and checkpoint images across all chapters |
+
+**Totals:** 152 claims: 131 ✅, 21 ✏️, 0 ⚠️.

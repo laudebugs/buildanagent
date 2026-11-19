@@ -13,7 +13,7 @@
 
 ## Goal
 
-Write a new type-checked, mock-run example in `verify/openai-agents-sdk/examples/` that shows an orchestrator that calls a subagent as a tool, the subagent working in its own context and returning only a summary, and the token usage of each, so Chapter T17 ("Choosing the shape: buy, adopt or build, how to plan, and when subagents pay") has code behind its subject. The coverage review found the gap: Chapter T17 teaches subagents and their cost, and the only multi-agent example, `03-handoff.ts`, hands the conversation over instead of isolating context.
+Write a new type-checked, mock-run example in `verify/openai-agents-sdk/examples/` that shows an orchestrator that calls a subagent as a tool, the subagent working in its own context and returning only a summary, and the token usage of each, so Chapter T17 ("Choosing the shape: buy, adopt or build, how to plan, and when subagents pay") has code behind its subject. The plan's code review found the gap: Chapter T17 teaches subagents and their cost, and no example uses a subagent as a tool to isolate context: `openai-agents-sdk/03-handoff.ts` hands the conversation over, and `google-adk/02-workflow-agents.ts` runs sub-agents in a fixed sequence or in parallel over shared session state.
 
 ## Context
 
@@ -36,7 +36,7 @@ Write a new type-checked, mock-run example in `verify/openai-agents-sdk/examples
 
 ## Tasks
 
-- [ ] Use the pinned SDK's agents-as-tools pattern (`agent.asTool()` in `@openai/agents` 0.21.0) or the Claude Agent SDK's subagents, whichever its reference documents better.
+- [ ] Use the pinned SDK's agents-as-tools pattern, `agent.asTool()` in `@openai/agents` 0.21.0 (`agent.d.ts`), with both agents on `ScriptedModel`.
 - [ ] Assert with `check()` that the subagent's messages never enter the orchestrator's transcript, that only the summary does, and that the usage of both runs is reported.
 - [ ] Script both models so the example shows the token multiplier the chapter cites without a real model.
 - [ ] Run the harness's `pnpm test` twice, and commit its updated `results/` and transcript.
