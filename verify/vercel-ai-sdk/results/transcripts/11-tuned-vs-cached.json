@@ -101,49 +101,49 @@
     },
     {
       "kind": "check",
-      "line": 63,
+      "line": 48,
       "message": "the uncached base call costs $0.00216",
       "pass": true
     },
     {
       "kind": "check",
-      "line": 64,
+      "line": 49,
       "message": "the base call with its prefix cached costs $0.00096",
       "pass": true
     },
     {
       "kind": "check",
-      "line": 65,
+      "line": 50,
       "message": "the tuned call costs $0.00112",
       "pass": true
     },
     {
       "kind": "check",
-      "line": 66,
+      "line": 51,
       "message": "the tuned model pays twice the base rate on every token class",
       "pass": true
     },
     {
       "kind": "check",
-      "line": 70,
+      "line": 55,
       "message": "the uncached base call costs more than the tuned call",
       "pass": true
     },
     {
       "kind": "check",
-      "line": 71,
+      "line": 56,
       "message": "the cached base call costs less than the tuned call",
       "pass": true
     },
     {
       "kind": "check",
-      "line": 72,
+      "line": 57,
       "message": "against the uncached prompt, a $30 training run breaks even after 28,847 requests",
       "pass": true
     },
     {
       "kind": "check",
-      "line": 76,
+      "line": 61,
       "message": "against the cached prompt, the training run never breaks even",
       "pass": true
     }

@@ -10,7 +10,7 @@ The SDK runs its tool loop in-process and gets models from provider instances (`
 - **Each run** gets a temp working directory with `fixtures/`, an allowlisted environment and a timeout.
 - **Extraction** fills the docs' `__MODEL__` and `__PROVIDER_IMPORT__` placeholders the way ai-sdk.dev renders them by default: the gateway string `"anthropic/claude-sonnet-5.5"` and no provider import.
 - **Our examples** (`examples/`) build their own scripted `MockLanguageModelV4` (`examples/lib/check.ts`) and assert one documented behavior each.
-- **Usage and price** (`10-streaming-usage.ts`, `11-tuned-vs-cached.ts`) script a streamed call whose final usage holds all four token classes (`examples/lib/usage-mock.ts`), then price it in whole nano-dollars from a rate table dated November 2026. The second prices a tuned model against a cached prompt; it creates no tuning job.
+- **Usage and price** (`10-streaming-usage.ts`, `11-tuned-vs-cached.ts`) pass `scripted()` a usage object that holds all four token classes, then price it in whole nano-dollars from the rate tables in `examples/lib/rates.ts` and the second example, dated November 2026. The second prices a tuned model against a cached prompt and creates no tuning job.
 
 ## Region markers feed the book's listings
 
@@ -21,6 +21,8 @@ Some examples carry `// #region <name>` and `// #endregion` comments, which chan
 `pnpm test` also writes `results/transcripts/<example>.json` for each example that calls the mock model. The transcript holds each request the example sent, each answer and each `check()` with its result, and, when the call stack shows it, the example line that led to each event.
 
 `scripts/run-examples.mjs` preloads the recorder from [`scripts/transcripts/`](../../scripts/transcripts/), which records each `check()` from the `ok - ` line it prints, and only when the call stack shows `check()` printed it. `examples/lib/transcript.ts` attaches the recorder to `ai/test`'s `MockLanguageModelV4` through its prototype, so `lib/check.ts`'s listed `check` and `scripted` regions hold no recorder code. Streamed calls in `06-streaming.ts` start inside the stream's own machinery, so their requests and answers carry no example line.
+
+A transcript holds no usage, and it names each model `model-1`, `model-2` and so on, so a replay of the two pricing examples shows their requests, answers and `check()` lines but not the token classes, the prices or which call used the tuned model. The chapter reads those from the listing. Adding each call's usage to the format is a follow-up to T5's work, listed in T11's risks.
 
 Recording only reads what the mock already holds, so it changes no verdict. The writer replaces the run's own directories, and the ids, timestamps and durations the SDK generated, with placeholders. An id the mock's script chose stays as written, and so does everything else an example scripts, such as a tool's input. Two runs on any machine therefore write the same bytes.
 

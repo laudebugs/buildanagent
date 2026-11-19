@@ -93,6 +93,7 @@ The book's build and `check:book` in the CI `book` job; the harness tests for an
 ## Risks and open questions
 
 - A source may not answer the research question; record the gap as a follow-up research todo instead of answering from memory.
+- **A replay cannot price a run yet.** A transcript has no usage field, and its model ids become `model-1`, `model-2`, so neither replay of T28's examples shows token classes, prices or which call used the tuned model. The exercise "Price a recorded run from its usage" therefore works from the listing and the example's `check()` lines. Propose a follow-up todo that adds each response's usage and the model's own id to the transcript format (`scripts/transcripts/` and the AI SDK's `lib/transcript.ts`); T28 leaves T5's format unchanged.
 - An analogy can mislead a newcomer more than no analogy; the vetting task and the "where it breaks" note catch it. A weak analogy is dropped, or goes back to the owner with a proposed replacement, instead of being forced in.
 
 ## Definition of done

@@ -31,7 +31,7 @@
         "parts": [
           {
             "type": "text",
-            "text": "Prompt caching bills a read at a tenth of the input rate."
+            "text": "Prompt caching bills a cache read at 0.05x the input rate."
           }
         ]
       },
@@ -39,55 +39,61 @@
     },
     {
       "kind": "check",
-      "line": 40,
-      "message": "the streamed deltas fold into the one message",
+      "line": 27,
+      "message": "the text arrives in several deltas (11)",
       "pass": true
     },
     {
       "kind": "check",
-      "line": 41,
+      "line": 28,
+      "message": "the deltas join to the whole answer",
+      "pass": true
+    },
+    {
+      "kind": "check",
+      "line": 29,
       "message": "result.text equals the folded deltas",
       "pass": true
     },
     {
       "kind": "check",
-      "line": 42,
+      "line": 30,
       "message": "input tokens total the three input classes (3,000)",
       "pass": true
     },
     {
       "kind": "check",
-      "line": 43,
+      "line": 31,
       "message": "usage reports the uncached input tokens (1,000)",
       "pass": true
     },
     {
       "kind": "check",
-      "line": 44,
+      "line": 32,
       "message": "usage reports the cache-read tokens (1,500)",
       "pass": true
     },
     {
       "kind": "check",
-      "line": 45,
+      "line": 33,
       "message": "usage reports the cache-write tokens (500)",
       "pass": true
     },
     {
       "kind": "check",
-      "line": 46,
+      "line": 34,
       "message": "usage reports the output tokens (200)",
       "pass": true
     },
     {
       "kind": "check",
-      "line": 47,
+      "line": 35,
       "message": "the four classes cost 5,400,000 nano-dollars ($0.0054)",
       "pass": true
     },
     {
       "kind": "check",
-      "line": 48,
+      "line": 36,
       "message": "billing every input token at the uncached rate would cost more",
       "pass": true
     }
