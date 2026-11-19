@@ -34,7 +34,7 @@ Wrap Anthropic's `srt` sandbox runtime as the OS-tier backend, translate our pol
 
 ## Tasks
 
-- [ ] Pin `@anthropic-ai/sandbox-runtime` 0.0.82, the newest release a week old on 2026-11-18 (0.0.83 qualifies from 2026-11-20), and record its version, its Apache-2.0 license and its Beta Research Preview status in the README, with a note that the settings format is pre-1.0. *(Revised in plan review 2, 2026-11-19: the repository moved from `anthropic-experimental` to `anthropics`.)*
+- [ ] Pin `@anthropic-ai/sandbox-runtime` 0.0.82, the newest release at least a week old on 2026-11-18 (0.0.83 qualifies from 2026-11-20), and record its version, its Apache-2.0 license and its Beta Research Preview status in the README, with a note that the settings format is pre-1.0. *(Revised in plan review 2, 2026-11-19: the repository moved from `anthropic-experimental` to `anthropics`.)*
 - [ ] Detect a missing binary or unsupported platform and throw `SandboxUnavailableError`.
 - [ ] Spawn `srt` with `spawnEnv()` plus only the settings-file path, never `...process.env` (AGENTS.md, "Running third-party code").
 

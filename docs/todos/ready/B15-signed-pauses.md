@@ -61,7 +61,7 @@ Make every pause a signed record: a gate that returns `ask` ends the run with a 
 
 ## Risks and open questions
 
-- Pending owner confirmation (plan review 2 §6, decision 2): the safety package owning `SignedPendingRequest` and `Resolution`, which ADR 0043 does not list. If the owner declines, this todo defines both types and E3 keeps a structural copy.
+- Pending owner confirmation (plan review 2 §6, decision 2): whether the safety package owns `SignedPendingRequest` and `Resolution`, which ADR 0043 does not list. If the owner declines, this todo defines both types and E3 keeps a structural copy.
 
 The owner accepted D5 with an ephemeral default and an optional `signer` (ADR 0005); the harness always passes `hmacSigner()` (ADR 0015).
 

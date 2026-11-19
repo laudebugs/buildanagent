@@ -13,7 +13,7 @@
 
 ## Goal
 
-Add ten coding-agent tasks to N38's seed suite, so the suite reaches thirty tasks at k = 5 before W8 publishes the coding agent's baseline. HD8 asked for thirty tasks, ten of them triage tasks from the deferred Round A. On 2026-11-19 the owner amended it: "20 now, plus coding tasks". N38 ships the twenty repository tasks, and this todo fills the other ten with the failures a coding agent actually meets.
+Add ten coding-agent tasks to N38's seed suite, so the suite reaches thirty tasks at k = 5 before W8 publishes the coding agent's baseline. HD8 asked for thirty tasks, ten of them triage tasks from the deferred Round A. On 2026-11-19 the owner amended it: "20 now, plus coding tasks". N38 ships the twenty repository tasks, and this todo fills the other ten with the failures a coding agent meets.
 
 ## Context
 
@@ -68,7 +68,7 @@ HD8's amendment note in the harness plan (with the final task list), and the cod
 ## Risks and open questions
 
 - Ten tasks added to twenty still sit near the floor of the 20–50 range that HD8's evidence cites, so the suite catches only large regressions.
-- A task that needs live GitHub must use the fake GitHub from the coding agent's end-to-end test, never a real repository.
+- A task that would otherwise need live GitHub must use the fake GitHub from the coding agent's end-to-end test, never a real repository.
 
 ## Definition of done
 

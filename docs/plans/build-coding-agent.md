@@ -45,7 +45,7 @@ The agent serves one person. The model key is one secret held by the host and ad
 
 ### CA2. The coding agent replaces triage as the first agent (accepted)
 
-**Accepted by the owner on 2026-11-18.** The coding agent becomes M7's agent. The triage plan, its decisions and its todos stay on the board, each marked deferred, so the work can resume without rework. One harness todo depended on triage: N38b adds ten triage tasks to HD8's seed suite after A17 and A19. N38b is deferred with them, and N38's twenty repository tasks become the coding agent's first eval suite (W8). HD8 was first left unchanged, so the suite ran at twenty tasks; the amendment below restores thirty with W12 ([ADR 0045](../decisions/0045-hd8-coding-agent-eval-tasks.md)).
+**Accepted by the owner on 2026-11-18.** The coding agent becomes M7's agent. The triage plan, its decisions and its todos stay on the board, each marked deferred, so the work can resume without rework. One harness todo depended on triage: N38b adds ten triage tasks to HD8's seed suite after A17 and A19. N38b is deferred with them, and N38's twenty repository tasks become the coding agent's first eval suite (W8). HD8 was first left unchanged, so the suite stood at twenty tasks; the amendment below restores thirty with W12 ([ADR 0045](../decisions/0045-hd8-coding-agent-eval-tasks.md)).
 
 **Amended (owner, 2026-11-19):** "20 now, plus coding tasks". N38's twenty repository tasks ship first, and [W12](../todos/ready/W12-coding-agent-eval-tasks.md) adds ten coding-agent tasks, so the suite reaches thirty before W8 publishes its baseline. When Round A resumes, N38b adds its ten triage tasks on top ([harness plan, HD8][hp-hd8]).
 

@@ -1,6 +1,6 @@
 # Roadmap: from eight verified SDK references to reviewed plans for our own agent stack
 
-- **Status:** Phase complete (2026-11-18); M5–M7 are the next phase. On 2026-11-18 the owner made a personal cloud coding agent M7 and deferred the triage agent ([ADR 0032](../decisions/0032-personal-coding-agent-first.md)), and added a multi-user agent platform as M8 and M9 ([ADR 0037](../decisions/0037-multi-user-agent-platform.md)). **The SDK, the harness and Round E are being built:** on 2026-11-18 the owner said "let's not build anything first". On 2026-11-19 the owner lifted that hold for the SDK and harness ("SDK and harness only") and then for all of Round E ("Lift hold on all of E"), one pull request per todo, merged when CI passes. Round B (M5) is under way, Round N (M6) interleaves with it from B1 and B2, and Round E (M5e) runs beside both ([close-sdk-gaps.md](close-sdk-gaps.md)). Rounds W, F and A stay on hold, and no todo in them starts until the owner says go; each W and F todo carries a hold banner.
+- **Status:** Phase complete (2026-11-18); M5–M7 are the next phase. On 2026-11-18 the owner made a personal cloud coding agent M7 and deferred the triage agent ([ADR 0032](../decisions/0032-personal-coding-agent-first.md)), and added a multi-user agent platform as M8 and M9 ([ADR 0037](../decisions/0037-multi-user-agent-platform.md)). **The SDK, the harness and Round E are being built:** on 2026-11-18 the owner said "let's not build anything first". On 2026-11-19 the owner lifted that hold for the SDK and harness ("SDK and harness only") and then for all of Round E ("Lift hold on all of E"). Each todo gets one pull request, merged when CI passes. Round B (M5) is under way, Round N (M6) interleaves with it from B1 and B2, and Round E (M5e) runs beside both ([close-sdk-gaps.md](close-sdk-gaps.md)). Rounds W, F and A stay on hold, and no todo in them starts until the owner says go; each W and F todo carries a hold banner.
 - **Date:** 2026-11-18
 - **Asked for by:** the project owner (2026-11-18)
 - **Plans:** [SDK references](sdk-references.md) · [SDK comparison](sdk-comparison.md) · [agent skills](agent-skills.md) · [build guides](build-guides.md) · [implementation plans](implementation-plans.md) · [CI](ci.md)
@@ -61,7 +61,7 @@ Round E (close the SDK gaps, added 2026-11-18) builds the safety package on the 
            └─► E5 (after B5) ──────┘
 ```
 
-Round E also feeds later todos, which list it in **Depends on**: E1 ─► B10 and B14, E3 ─► B15, E2 ─► N7, N40 and W6, and E7 ─► N45. Plan review 2 added two more edges: N50 ─► N46b (Cloudflare egress, which also waits for the owner's ruling) and W12 ─► W8 (the ten coding-agent eval tasks).
+Round E also feeds later todos, which list it in **Depends on**: E1 ─► B10 and B14, E3 ─► B15, E2 ─► N7, N40 and W6, and E7 ─► N45. Plan review 2 also added two edges outside Round E: N50 ─► N46b (Cloudflare egress, which also waits for the owner's decision) and W12 ─► W8 (the ten coding-agent eval tasks).
 
 - **SDK references first.** S3 (OpenAI) and then S4 (Vercel) follow the eight-step process in [AGENTS.md](../../AGENTS.md#process-for-documenting-an-sdk). Each SDK splits into a verification todo (a) and a reference-docs todo (b).
 - **Comparison after all four references.** C1 (the feature table) and C2 (the deep comparison) need every reference's verified facts.

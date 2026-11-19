@@ -25,7 +25,7 @@ Add the remote transports and connect servers in the background, waiting at the 
 - Streamable HTTP through `McpConnection`, and SSE for legacy-era servers only: HTTP+SSE has been deprecated since 2025-03-26, and the 2026-07-28 revision formally classes it Deprecated ([MCP 2026-07-28 changelog](https://modelcontextprotocol.io/specification/2026-07-28/changelog), as of November 2026)
 - HTTP servers reached through the egress proxy's allowlist (N20)
 - Background connect; the first prompt waits up to 10 seconds only for `direct` servers
-- Tool-list changes diffed against a pin, never re-registered silently. Tool definitions are pinned in N22's `extensions.lock.json` format, and this todo owns the MCP entries. A new or changed tool starts disabled, is announced in a `role: "system"` message (HD3's append-only rule) and needs an approval before the model can call it. `tools` stays as built at session start
+- Tool-list changes diffed against a pin, never re-registered silently. Tool definitions are pinned in N22's `extensions.lock.json` format, and this todo owns the MCP entries. A new or changed tool starts disabled, is announced in a `role: "system"` message (HD3's append-only rule) and needs an approval before the model can call it. The `tools` array sent to the model stays as built at session start
 - List-change notifications from both eras: `notifications/tools/list_changed` from legacy servers, and the opt-in `subscriptions/listen` stream (`toolsListChanged`) from 2026-07-28 servers, with a dropped stream re-issued
 
 **Out of scope** (and which todo covers it)

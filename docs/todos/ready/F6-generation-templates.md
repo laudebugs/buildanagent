@@ -26,7 +26,7 @@ Write one generation template per target: project layout, safety-package wiring,
 
 - A template for `agents` 0.33.0 and one for `ai` 7.0.162
 - Graders for each template's agent shape: a tool-using agent with approval-gated writes
-- An explicit approval policy in every template: the template sets it, never the SDK's default. The safety package carries the tool pins and tiers the policy reads ([agent connectors report](../../research/connectors/agent-connectors.md), plan-change item 10; plan review 2, 2026-11-19)
+- An explicit approval policy in every template: the template sets it, never the SDK's default. The safety package carries the tool pins and the tool tiers that the policy reads ([agent connectors report](../../research/connectors/agent-connectors.md), plan-change item 10; plan review 2, 2026-11-19)
 
 **Out of scope**
 

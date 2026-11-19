@@ -44,7 +44,7 @@ Build the two cheap context layers: cap every tool result at write time and spil
 - [ ] A 200 KiB tool result reaches the model as at most 64 KiB plus a spill path, and the spill file holds the full text
 - [ ] No stored entry changes when masking applies
 - [ ] The request prefix stays byte-identical between cutoff moves
-- [ ] When the cutoff moves on an Anthropic model with preserved thinking, the replayed request carries no thinking block after the first changed message (a scripted test inspects the request)
+- [ ] When the cutoff moves on an Anthropic model with preserved thinking, the replayed request carries no thinking block after the first masked message (a scripted test inspects the request)
 - [ ] Switching either layer off in options removes its effect and leaves the run passing
 - [ ] `pnpm check`, `pnpm typecheck` and `pnpm test` pass offline from the repo root
 

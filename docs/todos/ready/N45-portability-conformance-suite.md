@@ -36,7 +36,7 @@ Collect every portability case into one suite that any target's implementations 
 - [ ] Add HD2's settling test with a lease-only staleness rule for off-host locks
 - [ ] Add the at-least-once wake rule
 - [ ] Import E2's `EffectStore` conformance cases for the write rule instead of restating it here (see the revision below)
-- [ ] Add the egress cases: non-allowlisted host, loopback, and `169.254.169.254` and other metadata addresses
+- [ ] Add the egress cases: a non-allowlisted host, loopback, and metadata addresses such as `169.254.169.254`
 - [ ] Run it in `pnpm test` against the local implementations
 
 ## Acceptance criteria

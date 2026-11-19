@@ -1,6 +1,6 @@
 # Plan: close seven SDK gaps with a standalone safety package first, then fold it into our SDK and harness
 
-- **Status:** Approved; being built (2026-11-19). The owner accepted SG1–SG5 on 2026-11-18 and 2026-11-19 and approved the reviewed todos. The owner first put the plan on hold ("Approve plan, don't start yet"), then lifted the hold on 2026-11-19 for all of Round E ("Lift hold on all of E"), so Round E is built as part of the SDK and harness build.
+- **Status:** Approved; being built (2026-11-19). The owner accepted SG1–SG5 on 2026-11-18 and 2026-11-19 and approved the reviewed todos. The owner first put the plan on hold ("Approve plan, don't start yet"), then lifted the hold on 2026-11-19 for all of Round E ("Lift hold on all of E"), so Round E is now built beside the SDK and harness.
 - **Date:** 2026-11-18
 - **Asked for by:** the project owner (2026-11-18): "Let's make detailed todos for these gaps. And review all them before beginning work on them."
 - **Builds on:** the [server rollback report][sr], the [sagas report][sg], the [rewind versus rollback report][rr], the [portable agents report][pa], the [agent-building platforms report][abp] and the [feature table][ft]
@@ -54,7 +54,7 @@ The amended todos in §3 make our SDK and harness use the same package once Roun
 
 ### SG2. Round E may start before Round B, after B1 and B5 (accepted, hold lifted)
 
-**Accepted by the owner on 2026-11-19** as the ordering, first with a hold: "Approve plan, don't start yet."
+**Accepted by the owner on 2026-11-19** as the ordering, at first with a hold: "Approve plan, don't start yet."
 
 **Amended (owner, 2026-11-19):** the owner lifted the hold for all of Round E ("Lift hold on all of E"). Round E is part of the SDK and harness build, and its todos start by the ordering below.
 
@@ -86,11 +86,11 @@ The server rollback report proposes four failure outcomes, `not_applied`, `compe
 | 6 | One code base on local Node, Cloudflare, AWS and Vercel | The harness, fully: [N41](../todos/ready/N41-scheduler-wake.md)–[N49](../todos/ready/N49-hosted-sandbox-measurement.md) with the [N45](../todos/ready/N45-portability-conformance-suite.md) suite ([ADR 0033](../decisions/0033-three-deployment-targets.md)) | [E7](../todos/ready/E7-safety-portability.md); a revision to N45 adds the safety stores to the suite |
 | 7 | The user's own key, with no silent fallback | Partly: our gateway takes an explicit `apiKey` ([build-sdk.md §3.2][sdk-32]); [F9](../todos/ready/F9-byok.md) and [ADR 0040](../decisions/0040-tenant-cloud-connections-and-byok.md) for the platform. The AI SDK has three silent paths: a provider key from the environment, a base URL from the environment, and string model ids that route through Vercel AI Gateway | [E6](../todos/ready/E6-byok-no-fallback.md); revisions to [B4](../todos/ready/B4-gateway-runtime.md) and F9 |
 
-[F5](../todos/ready/F5-agent-safety-package.md) keeps its place in the platform plan, but its scope moves into Round E. A revision makes F5 depend on E7, which closes the round, instead of B15, and narrows it to releasing the package for the generation templates. Under ADR 0043 the signer comes from E3, and PF5's text in the platform plan says so since plan review 2 (2026-11-19).
+[F5](../todos/ready/F5-agent-safety-package.md) keeps its place in the platform plan, but its scope moves into Round E. A revision makes F5 depend on E7, which closes the round, instead of B15, and narrows it to releasing the package for the generation templates. Under ADR 0043 the signer comes from E3, and PF5's text in the platform plan has said so since plan review 2 (2026-11-19).
 
 Two more revisions follow from SG1, which the owner accepted on 2026-11-18. [B5](../todos/ready/B5-usage-cost-catalog.md) exports `projectCallCost()` and the token-level `projectCost()` it calls, so E5 and B14 share one formula. [B10](../todos/ready/B10-tool-runtime.md) also adds an optional `effect` declaration to `ToolDefinition`, which the N7 and N40 revisions read to tell a write from a read. Because the owner accepted ADR 0043, [B14](../todos/ready/B14-budget-progress.md) and [B15](../todos/ready/B15-signed-pauses.md) carry revisions too: B14 imports `projectCallCost()` from the gateway, and B15 imports the signer and input hash from the safety package and depends on E3.
 
-**Revision (plan review 2, 2026-11-19).** Four clarifications follow. First, E1 builds `canonicalInputHash()`, because E2, B10 and B14 need it before E3 runs, so B14 also depends on E1. Second, the safety package owns `SignedPendingRequest` and `Resolution`, and the SDK re-exports them (E3 records this as pending owner confirmation). Third, the package's root export imports no third-party SDK, and the `ai` and `agents` adapters live in `./ai` and `./agents` subpaths (E1; owner to confirm). Fourth, W6 uses E2's `guardedWrite()` for its pushes and pull requests, the owner's choice of 2026-11-19 ("E2 owns it; W6 uses it").
+**Revision (plan review 2, 2026-11-19).** Four clarifications follow. First, E1 builds `canonicalInputHash()`, because E2, B10 and B14 need it before E3 runs; B14 therefore also depends on E1. Second, the safety package owns `SignedPendingRequest` and `Resolution`, and the SDK re-exports them (E3 records this as pending owner confirmation). Third, the package's root export imports no third-party SDK, and the `ai` and `agents` adapters live in `./ai` and `./agents` subpaths (E1; owner to confirm). Fourth, W6 uses E2's `guardedWrite()` for its pushes and pull requests, the owner's choice of 2026-11-19 ("E2 owns it; W6 uses it").
 
 ## 4. Round E and its todos
 

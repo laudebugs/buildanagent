@@ -11,7 +11,7 @@
 
 ## Goal
 
-Find out, on a real Cloudflare sandbox, how an allowlisted HTTPS request can leave it and how a credential can be added outside it, so N46b builds on measured behaviour rather than on docs that changed under it. The owner chose to research this first (2026-11-19, "Research it first"). As written, N46b compiles `EgressPolicy` to `enableInternet = false`, `allowedHosts` and `outboundByHost`. Those options were removed in `@cloudflare/sandbox` 1.0, and the 0.x model already blocked every HTTPS request without interception. This todo produces the evidence and a proposed ADR; the owner decides.
+On a real Cloudflare sandbox, find out how an allowlisted HTTPS request can leave the sandbox and how a host outside it can add a credential, so N46b builds on measured behaviour rather than on docs that changed under it. As written, N46b compiles `EgressPolicy` to `enableInternet = false`, `allowedHosts` and `outboundByHost`. `@cloudflare/sandbox` 1.0 removed those options, and even on 0.x every HTTPS request failed with internet off and no interception. The owner chose to measure before building (2026-11-19, "Research it first"). This todo produces the evidence and a proposed ADR; the owner decides.
 
 ## Context
 
@@ -26,8 +26,8 @@ Find out, on a real Cloudflare sandbox, how an allowlisted HTTPS request can lea
 **In scope**
 
 Tests against `@cloudflare/sandbox` 1.0.3 and the Durable Object Container API, on a real sandbox:
-- (a) Whether HTTPS to an allowlisted host works with internet off and no interception. The expected result is that it fails.
-- (b) `interceptOutboundHttps()` per host, with the credential added in the intercept handler outside the sandbox, and the interception CA installed in the sandbox's trust stores for npm, git, curl and Node.
+- (a) Whether HTTPS to an allowlisted host works with internet off and no interception. We expect it to fail.
+- (b) Whether per-host `interceptOutboundHttps()` works, with the credential added in the intercept handler outside the sandbox, and the interception CA installed in the sandbox's trust stores for npm, git, curl and Node.
 - (c) Whether a denied host fails closed.
 - (d) Whether loopback and cloud metadata addresses, such as `169.254.169.254`, are blocked.
 - (e) The 128-intercept-entry limit: what happens at entry 129, and whether one wildcard entry can stand in for many hosts.
@@ -44,7 +44,7 @@ Two outputs:
 
 ## Tasks
 
-- [ ] Create a disposable Cloudflare account or test project for this todo alone. Use no real credentials: the injected "credential" is a dummy token checked by a test echo server.
+- [ ] Use a disposable Cloudflare account or test project, which the owner provides, for this todo alone. Use no real credentials: the injected "credential" is a dummy token checked by a test echo server.
 - [ ] Pin `@cloudflare/sandbox` 1.0.3 and the Containers tooling exactly, under the one-week rule, in a scratch verify project.
 - [ ] Run cases (a) to (e) and record each request, response and error verbatim.
 - [ ] For (b), install the CA and check each client in turn: `npm install` from the registry, `git clone` over HTTPS, `curl`, and Node's `fetch`.
@@ -55,10 +55,10 @@ Two outputs:
 ## Acceptance criteria
 
 - [ ] Each of cases (a) to (e) has a recorded result: pass, fail or not testable, with the evidence.
-- [ ] The findings note states which `EgressPolicy` compile N46b should use, and what it costs in trust-store setup per client.
+- [ ] The findings note states how N46b should compile `EgressPolicy`, and what that costs in trust-store setup per client.
 - [ ] The proposed ADR text names the decision, the options and the evidence, and limits any change to the Cloudflare backend.
 - [ ] No real credential was used, and the disposable project is deleted.
-- [ ] `pnpm check`, `pnpm typecheck` and `pnpm test` pass offline (the repo-wide gate; this todo adds no package code)
+- [ ] `pnpm check`, `pnpm typecheck` and `pnpm test` pass offline (the repo-wide gate; this todo adds no package code).
 
 ## Tests
 

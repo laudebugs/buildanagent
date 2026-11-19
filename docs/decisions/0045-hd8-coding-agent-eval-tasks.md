@@ -6,7 +6,7 @@
 
 ## Context
 
-HD8 chose a 30-task seed suite at k = 5: 20 recreated failures from this repo's history and 10 triage tasks. [ADR 0032](0032-personal-coding-agent-first.md) deferred the triage agent and, with it, todo N38b, which builds the 10 triage tasks. ADR 0032 kept HD8 "unchanged", so the suite ran at 20 tasks, the floor of the 20–50 range that HD8's own evidence cites. Plan review 2 asked the owner how large the suite should be while triage is deferred ([plan review 2, D4](../plans/reviews/plan-review-2.md#2-the-owner-settled-four-questions-on-2026-11-19)).
+HD8 chose a 30-task seed suite at k = 5: 20 recreated failures from this repo's history and 10 triage tasks. [ADR 0032](0032-personal-coding-agent-first.md) deferred the triage agent and, with it, todo N38b, which builds the 10 triage tasks. ADR 0032 kept HD8 "unchanged", so HD8's suite stood at 20 tasks, the floor of the 20–50 range that HD8's own evidence cites. Plan review 2 asked the owner how large the suite should be while triage is deferred ([plan review 2, D4](../plans/reviews/plan-review-2.md#2-the-owner-settled-four-questions-on-2026-11-19)).
 
 ## Decision
 

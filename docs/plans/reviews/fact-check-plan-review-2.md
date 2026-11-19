@@ -1,6 +1,6 @@
 # Fact-check: plan review 2 and the edits it applied
 
-This log checks every factual claim in [plan-review-2.md](plan-review-2.md), the new external claims that commit `3ad33f6` adds to the plans and todos, and the review's build order against the todo files, on 2026-11-19. Repo claims were read on branch `docs/plan-review-2` at `3ad33f6`, and pre-review claims at `9c374f7` (the review's base, `4feea36`, holds the same 195 todos). External claims were checked on 2026-11-19 against the primary source: platform.claude.com docs, developers.cloudflare.com, modelcontextprotocol.io, the npm registry (`npm view`), GitHub's advisory database (`gh api /advisories`), the sandbox-runtime repository and the nodejs/Release `schedule.json`. Each correction was made in place and has its own ✏️ row. The owner's answers were given in this session's question dialog and are confirmed from it (row 15). The research reviewer's working table is not in the repo, so the claims that rest on its classifications are ⚠️ (rows 7 and 32).
+This log checks every factual claim in [plan-review-2.md](plan-review-2.md), the new external claims that commit `3ad33f6` adds to the plans and todos, and the review's build order against the todo files, on 2026-11-19. Repo claims were read on branch `docs/plan-review-2` at `3ad33f6`, and pre-review claims at `9c374f7` (the review's base, `4feea36`, holds the same 195 todos). External claims were checked on 2026-11-19 against the primary source: platform.claude.com docs, developers.cloudflare.com, modelcontextprotocol.io, the npm registry (`npm view`), GitHub's advisory database (`gh api /advisories`), the sandbox-runtime repository and the nodejs/Release `schedule.json`. Each correction was made in place and has its own ✏️ row. The owner's answers were given in this session's question dialog and are confirmed from it (row 15). The research reviewer's working table is not in the repo, so the claims that rest on its classifications are ⚠️ (rows 7 and 32), as is row 8, a process claim. Of the 84 claims, 66 hold, 15 were corrected in place and 3 stay unconfirmed.
 
 ## Counts and the todo graph
 
@@ -119,4 +119,5 @@ This log checks every factual claim in [plan-review-2.md](plan-review-2.md), the
 ## Not checked
 
 - The research reviewer's classification of each row (rows 7 and 32): its table is not in the repo.
+- Whether every finding was checked against the line it cites (row 8): a process claim, so only the findings that cite a file were re-checked.
 - Whether `drop_block` behaves as documented (rows 37 and 84): no live request to the Anthropic API was made.

@@ -67,7 +67,7 @@ Prices change often; the catalog states its `asOf` date, and the owner may later
 
 ## History
 
-The SDK-gaps revision of 2026-11-18 ([ADR 0043](../../decisions/0043-standalone-safety-core.md), accepted; gap 5 of the [close-sdk-gaps plan](../../plans/close-sdk-gaps.md#3-each-gap-the-todos-that-cover-it-and-what-changes)) moved the cost projection here; plan review 2 (2026-11-19) folded it into the sections above.
+The SDK-gaps revision of 2026-11-18 moved the cost projection here, for gap 5 of the [close-sdk-gaps plan](../../plans/close-sdk-gaps.md#3-each-gap-the-todos-that-cover-it-and-what-changes) under the accepted [ADR 0043](../../decisions/0043-standalone-safety-core.md); plan review 2 (2026-11-19) folded it into the sections above.
 
 ## Definition of done
 

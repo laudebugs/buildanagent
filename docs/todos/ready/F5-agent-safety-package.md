@@ -33,7 +33,7 @@ Release `@buildanagent/agent-safety`, which Round E builds, for the generation t
 **Out of scope**
 
 - Compensation logic for specific tools (per generated agent)
-- The guarantees themselves, built in Round E: the five outcomes `applied`, `not_applied`, `compensated`, `partial` and `unknown` (E1), effect identity (E2), the signer from E3, plan approvals (E4a, E4b), the cost guard (E5), the BYOK guard (E6) and the stores (E7)
+- The guarantees themselves, built in Round E: the five outcomes `applied`, `not_applied`, `compensated`, `partial` and `unknown` (E1), effect identity (E2), the signer (E3), plan approvals (E4a, E4b), the cost guard (E5), the BYOK guard (E6) and the stores (E7)
 
 ## Tasks
 
