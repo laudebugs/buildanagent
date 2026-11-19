@@ -11,6 +11,7 @@ import { existsSync, mkdirSync, mkdtempSync, readFileSync, realpathSync, rmSync,
 import { homedir, tmpdir } from "node:os";
 import { basename, dirname, extname, join, relative, sep } from "node:path";
 import { fileURLToPath } from "node:url";
+import { findSecret } from "../live/redact.ts";
 import { TRANSCRIPT_FORMAT } from "./events.ts";
 
 export { TRANSCRIPT_FORMAT };
@@ -32,6 +33,9 @@ export const MOCK_PACKAGES = {
 
 /** Where a harness keeps the transcript of one example. */
 export const transcriptPath = (harnessDir, example) => join(harnessDir, "results", "transcripts", `${example}.json`);
+
+/** Where a harness keeps the transcript of one example's live run (scripts/live/run.mjs). */
+export const liveTranscriptPath = (harnessDir, example) => join(harnessDir, "results", "live", `${example}.json`);
 
 const toPosix = (path) => path.split(sep).join("/");
 const harnessOf = (harnessDir) => toPosix(relative(REPO_ROOT, harnessDir));
@@ -193,11 +197,18 @@ export const serialise = (transcript) => `${JSON.stringify(transcript, null, 2)}
  * temporary working and home directories the example ran in, and `outDir` overrides where the file goes. An example
  * whose model calls never reached the recorded mock layer gets no transcript. When it had one committed, the stale
  * file is deleted and the problem printed, so the results-drift check reports it instead of passing on an old run.
+ *
+ * `live`, `{ provider, model, secrets }`, marks the transcript of a live run (scripts/live/run.mjs), which goes to
+ * `results/live/` and names the provider and model. A real model chose every tool-call id in it, so none is kept as
+ * written. A live transcript that holds one of `secrets` or the shape of a key, an account id or a request id
+ * (scripts/live/redact.ts) is not written at all, and the problem names only the shape it matched.
  */
-export function writeTranscript({ harnessDir, exampleFile, rawFile, cwd, home, outDir }) {
+export function writeTranscript({ harnessDir, exampleFile, rawFile, cwd, home, outDir, live }) {
   const example = basename(exampleFile, extname(exampleFile));
-  const file = outDir === undefined ? transcriptPath(harnessDir, example) : join(outDir, `${example}.json`);
-  const events = existsSync(rawFile) ? (JSON.parse(readFileSync(rawFile, "utf8")).events ?? []) : [];
+  const defaultPath = live === undefined ? transcriptPath : liveTranscriptPath;
+  const file = outDir === undefined ? defaultPath(harnessDir, example) : join(outDir, `${example}.json`);
+  const recorded = existsSync(rawFile) ? (JSON.parse(readFileSync(rawFile, "utf8")).events ?? []) : [];
+  const events = live === undefined ? recorded : recorded.map(({ scripted: _scripted, ...event }) => event);
   if (!events.some((event) => event.kind === "request")) {
     if (existsSync(file)) {
       rmSync(file);
@@ -214,10 +225,18 @@ export function writeTranscript({ harnessDir, exampleFile, rawFile, cwd, home, o
     harness: harnessOf(harnessDir),
     pin: pinOf(harnessDir),
     mock: mockOf(harnessDir),
+    ...(live === undefined ? {} : { live: { provider: live.provider, model: live.model } }),
     events: normalise(compactRequests(events), { cwd, home }),
   };
+  const text = serialise(transcript);
+  const secret = live === undefined ? undefined : findSecret(text, live.secrets ?? []);
+  if (secret !== undefined) {
+    if (existsSync(file)) rmSync(file);
+    console.error(`transcript: ${example}'s live transcript held ${secret}, so it is not written`);
+    return undefined;
+  }
   mkdirSync(dirname(file), { recursive: true });
-  writeFileSync(file, serialise(transcript));
+  writeFileSync(file, text);
   return file;
 }
 
@@ -230,8 +249,8 @@ export function transcriptRun(args, env) {
   args.push("--import", fileURLToPath(new URL("./record.mjs", import.meta.url)));
   env.TRANSCRIPT_FILE = raw;
   return {
-    write: ({ harnessDir, exampleFile, cwd }) => {
-      const written = writeTranscript({ harnessDir, exampleFile, rawFile: raw, cwd, home: env.HOME });
+    write: ({ harnessDir, exampleFile, cwd, outDir, live }) => {
+      const written = writeTranscript({ harnessDir, exampleFile, rawFile: raw, cwd, home: env.HOME, outDir, live });
       rmSync(dirname(raw), { recursive: true, force: true });
       return written;
     },
@@ -239,6 +258,11 @@ export function transcriptRun(args, env) {
 }
 
 const ROLES = new Set(["system", "user", "assistant", "tool"]);
+/**
+ * The characters a tool's name and its arguments' keys may use. The live run's issue and pull request quote them, so
+ * a transcript that a real model or package code wrote can't smuggle Markdown or a mention in through them.
+ */
+const NAME = /^[A-Za-z0-9_.-]{1,128}$/;
 const PART_TYPES = new Set(["text", "reasoning", "tool-call", "tool-result", "other"]);
 
 /** The problems with a transcript's shape, each a sentence naming where; an empty list means it is well formed. */
@@ -262,6 +286,16 @@ export function transcriptProblems(transcript) {
     }
     m.parts.forEach((part, i) => {
       if (!PART_TYPES.has(part?.type)) fail(`${where}.parts[${i}]`, `has type ${JSON.stringify(part?.type)}`);
+      // A tool result may leave its tool unnamed, as a LangChain tool message without a name does.
+      const unnamed = part?.type === "tool-result" && part.name === "";
+      if ((part?.type === "tool-call" || part?.type === "tool-result") && !unnamed && !NAME.test(String(part.name))) {
+        fail(`${where}.parts[${i}]`, "names a tool outside [A-Za-z0-9_.-]");
+      }
+      if (part?.type === "tool-call" && part.input && typeof part.input === "object" && !Array.isArray(part.input)) {
+        if (!Object.keys(part.input).every((key) => NAME.test(key))) {
+          fail(`${where}.parts[${i}]`, "has an argument key outside [A-Za-z0-9_.-]");
+        }
+      }
     });
   };
   transcript.events.forEach((event, i) => {
@@ -272,6 +306,9 @@ export function transcriptProblems(transcript) {
     if (event.kind === "request") {
       if (typeof event.model !== "string") fail(where, "names no model");
       if (!(Number.isInteger(event.repeated) && event.repeated >= 0)) fail(where, "has no count of repeated messages");
+      if (Array.isArray(event.tools) && !event.tools.every((tool) => NAME.test(String(tool)))) {
+        fail(where, "offers a tool whose name is outside [A-Za-z0-9_.-]");
+      }
       if (!Array.isArray(event.messages)) fail(where, "has no messages");
       else
         event.messages.forEach((m, j) => {

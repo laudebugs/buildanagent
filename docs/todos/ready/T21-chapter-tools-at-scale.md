@@ -8,7 +8,7 @@
 | Status | `ready` |
 | Plan | [Book plan §4.2](../../plans/build-book.md#42-part-ii-in-depth-for-experienced-builders) |
 | Round / milestone | Round T (textbook), MT |
-| Depends on | [T5](../done/T5-book-interactive-listings.md), [T6](../done/T6-book-flat-figures.md), [T26](../done/T26-book-checked-inline-code.md), [T30](T30-example-deferred-tools-and-skills.md) |
+| Depends on | [T5](../done/T5-book-interactive-listings.md), [T6](../done/T6-book-flat-figures.md), [T26](../done/T26-book-checked-inline-code.md), [T30](../done/T30-example-deferred-tools-and-skills.md) |
 | Size | M |
 
 ## Goal
@@ -30,7 +30,7 @@ Write the chapter "Tools at scale: the registry, deferred tools, MCP and skills"
 
 - `apps/manual/src/content/chapters/tools-at-scale.md`, with `switchTo: [N11, N21–N25]` and `opening: fact` in its front matter
 - Sections: One registry that names, defers and gates every tool; Deferred tools: load a tool's definition only when needed; MCP after 2026-07-28: stateless requests, `server/discover`, multi round-trip requests (`input_required`), and the deprecation of Roots, Sampling, Logging and dynamic client registration; Skills: procedures loaded on demand; Connector OAuth and token custody moved to the permissions chapter, after the credential boundary
-- Listings and at least one replay from: `verify/vercel-ai-sdk/examples/08-mcp-tools.ts`, `verify/cloudflare-agents/examples/07-mcp.ts`, `verify/copilot-sdk/examples/07-mcp-server.ts`, `verify/pi/examples/03-tool-selection.ts`, the deferred-tools and skills examples from [T30](T30-example-deferred-tools-and-skills.md)
+- Listings and at least one replay from: `verify/vercel-ai-sdk/examples/08-mcp-tools.ts`, `verify/cloudflare-agents/examples/07-mcp.ts`, `verify/copilot-sdk/examples/07-mcp-server.ts`, `verify/pi/examples/03-tool-selection.ts`, the deferred-tools and skills examples from [T30](../done/T30-example-deferred-tools-and-skills.md)
 - Figures: a flat figure of one registry naming, deferring and gating built-in, MCP and extension tools; a flat analogy illustration of the hardware store's back room
 - Exercise: Defer half the tools and measure the prompt's size before and after.
 - `apps/manual/fact-checks/tools-at-scale.md`, the chapter's claims log

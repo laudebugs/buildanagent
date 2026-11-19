@@ -57,7 +57,21 @@
 /* Theme toggle */
 
 .theme-toggle {
+  justify-content: center;
+  min-width: 2.25rem;
+  padding-inline: 0.25rem;
   color: var(--color-text-muted);
+}
+
+.theme-toggle__icon {
+  display: none;
+  width: 1.15rem;
+  height: 1.15rem;
+}
+
+.theme-toggle[data-mode="dark"] .theme-toggle__icon--sun,
+.theme-toggle[data-mode="light"] .theme-toggle__icon--moon {
+  display: block;
 }
 
 .theme-toggle:hover {
@@ -220,6 +234,19 @@
 
 .listing__pin {
   margin-left: auto;
+}
+
+/* A listing the live run leaves out says so on a line of its own, under the path and pin. */
+.listing__verified {
+  flex-basis: 100%;
+  color: var(--panel-comment);
+}
+
+/* The line at the top of every page with a listing: how its listings were verified, and when last compared live. */
+.listing-verification {
+  margin: 0 0 1.5rem;
+  color: var(--color-text-muted);
+  font-size: var(--size-label);
 }
 
 .listing__code {

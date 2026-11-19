@@ -24,6 +24,10 @@ Recording only reads what the mock already holds, so it changes no verdict. The 
 
 Commit the transcripts with the change that alters them, unlike a regenerated `run-examples.json`, which holds local paths and is restored before committing. CI's results-drift check fails when a committed transcript differs from the one a fresh run writes, and the book's replays read these files ([replays](../../apps/manual/README.md#a-replay-steps-through-a-recorded-run)).
 
+## A live run sends one example to a real provider
+
+The book's occasional live run ([`scripts/live/`](../../scripts/live/), started only by `.github/workflows/live-run.yml`) calls `scripts/run-examples.mjs examples --only <example> --live`. In that mode `examples/lib/live.ts`, which `lib/check.ts` imports before the recorder, replaces the `_generate` of `fakeModel()`'s class. Every fake model then sends its calls, with the tools bound to it, to the pinned `@langchain/anthropic` or `@langchain/openai`, and still counts them in `callCount` and `calls`. The key is passed explicitly, the output is capped at the run's `maxTokens`, a provider tool is refused, and the cost guard checks each call before it is sent. The answer keeps only the provider's content, tool calls and usage, and the transcript goes to `results/live/<example>.json`. Without `--live`, nothing in the live mode runs, so `pnpm test` and the committed transcripts are unchanged.
+
 ## Scripts
 
 | Command | Does |

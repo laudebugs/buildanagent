@@ -17,6 +17,11 @@ const { Content, headings } = await render(chapter);
 // The number and the neighbouring chapters come from the outline, never from the collection's file order (BK5).
 const number = book.bySlug.get(chapter.id)?.number;
 const { previous, next } = neighbours(book, chapter.id);
+const listed = (book.index.written.get(chapter.id)?.blocks ?? []).flatMap((block) =>
+  block.kind === "listing" && block.source !== undefined ? [block.source.path] : [],
+);
+const hasFileListing = listed.length > 0;
+const hasComparedListing = listed.some((path) => book.live.compared.has(path));
 ---
 
 <ChapterLayout
@@ -30,6 +35,8 @@ const { previous, next } = neighbours(book, chapter.id);
   previous={previous}
   next={next}
   sources={chapter.data.sources}
+  hasFileListing={hasFileListing}
+  hasComparedListing={hasComparedListing}
 >
   <Content />
 </ChapterLayout>

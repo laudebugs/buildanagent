@@ -76,6 +76,17 @@ const COMPONENTS = [
   "theme-toggle",
 ];
 
+test("the gallery shows the page line in its three states", () => {
+  const html = gallery();
+  for (const line of [
+    /Listings on this page are verified against mock models; not yet compared with live APIs\./,
+    /Listings on this page are verified against mock models; last compared with live APIs on\s*<time datetime="2026-12-01">1 December 2026<\/time>\./,
+    /Listings on this page are verified against mock models only\./,
+  ]) {
+    assert.match(html, line);
+  }
+});
+
 test("the gallery renders every component once in the light theme and once in the dark", () => {
   const html = gallery();
   assert.match(html, /<section class="gallery__theme layout" data-theme="light"/);
@@ -189,6 +200,13 @@ test("a chapter page shows a listing cut from a verify/ example, with the pin it
   );
   assert.ok(html.includes('<span class="listing__path">verify/vercel-ai-sdk/examples/01-generate-text.ts</span>'));
   assert.ok(html.includes(`<span class="listing__pin">ai@${manifest.dependencies.ai}</span>`));
+  // The live run compares none of this chapter's files, so each listing and the page say only mock models verify them.
+  assert.ok(html.includes('<span class="listing__verified">Verified against mock models only</span>'));
+  assert.match(
+    html,
+    /<p class="listing-verification"[^>]*>\s*Listings on this page are verified against mock models only\.\s*<\/p>/,
+  );
+  assert.doesNotMatch(html, /compared with live APIs/);
   assert.match(
     html,
     /<span class="line__number" aria-hidden="true">9<\/span><span class="tok-keyword">const<\/span> \{ model, requests \}/,
@@ -372,6 +390,39 @@ test("every response asks for HTTPS for a year, subdomains included, without joi
   assert.doesNotMatch(rules, /preload/);
   for (const name of ["X-Content-Type-Options: nosniff", "Referrer-Policy: strict-origin-when-cross-origin"]) {
     assert.ok(all.includes(`  ${name}\n`), name);
+  }
+});
+
+test("the theme toggle is an icon button whose name says what a press does, and the stylesheet picks the icon", () => {
+  const html = gallery();
+  const button = html.match(/<button[^>]*data-theme-toggle[^>]*>[\s\S]*?<\/button>/)?.[0] ?? "";
+  assert.match(button, /aria-label="Switch theme"/);
+  assert.match(button, /theme-toggle__icon--sun/);
+  assert.match(button, /theme-toggle__icon--moon/);
+  assert.equal((button.match(/aria-hidden="true"/g) ?? []).length, 2, "each icon is hidden from screen readers");
+  assert.doesNotMatch(button, />\s*Switch theme\s*</, "the button holds no visible text");
+  const css = files(".css")
+    .map((path) => readFileSync(join(out, path), "utf8"))
+    .join("");
+  assert.match(css, /\.theme-toggle\[data-mode=dark\] \.theme-toggle__icon--sun/);
+  assert.match(css, /\.theme-toggle\[data-mode=light\] \.theme-toggle__icon--moon/);
+});
+
+test("every page ends with a footer that links to the repository and the author's profiles", () => {
+  const links = [
+    "https://github.com/laudebugs/buildanagent",
+    "https://x.com/laudebugs",
+    "https://github.com/laudebugs",
+  ];
+  for (const { path, html } of pages()) {
+    const footer = html.match(/<footer class="site-footer">[\s\S]*?<\/footer>/)?.[0] ?? "";
+    assert.ok(
+      html.indexOf("</main>") < html.indexOf(footer) && footer !== "",
+      `${path}: no footer after the main text`,
+    );
+    for (const href of links)
+      assert.ok(footer.includes(`href="${href}"`), `${path}: the footer does not link to ${href}`);
+    assert.doesNotMatch(footer, /target="_blank"/, `${path}: an off-site link opens a new window`);
   }
 });
 
