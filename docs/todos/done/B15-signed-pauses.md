@@ -48,7 +48,7 @@ Make every pause a signed record: a gate that returns `ask` ends the run with a 
 - [x] Rotating from key `a` to key `b` still verifies a request signed with `a` when both are in the ring, and an unknown key id fails verification
 - [x] A pause signed through the SDK and one signed directly by the package for the same fields produce byte-identical payloads (E3's matching test)
 - [x] The SDK defines no signer, hash or pending-record type of its own: its exports for them are re-exports (a test compares identities)
-- [x] The signed-request kinds stay as D5 defines them: the owner chose on 2026-11-19 to keep plan approvals on their own signature ([SG5](../../plans/close-sdk-gaps.md#sg5-a-plan-approval-keeps-its-own-signature-separate-from-d5s-signed-request-kinds-accepted)), and to revisit a `"plan"` kind when this todo starts
+- [x] The signed-request kinds stay as D5 defines them: the owner chose on 2026-11-19 to keep plan approvals on their own signature ([SG5](../../plans/close-sdk-gaps.md#sg5-a-plan-approval-keeps-its-own-signature-separate-from-d5s-signed-request-kinds-accepted)) (the owner answered the revisit when this todo started)
 - [x] `pnpm check`, `pnpm typecheck` and `pnpm test` pass offline from the repo root
 
 ## Tests
@@ -80,7 +80,7 @@ On 2026-11-19, when B15 started, the owner answered the SG5 revisit by keeping D
 ## Definition of done
 
 - [x] Claimed: the first commit moved this file `ready/` → `ongoing/` (Status `ongoing`)
-- [ ] Prose drafted with `/anthropic-skills:writing` and reviewed with `/anthropic-skills:writing-review`, with the fixes applied and changed claims re-checked
+- [x] Prose drafted with `/anthropic-skills:writing` and reviewed with `/anthropic-skills:writing-review`, with the fixes applied and changed claims re-checked
 - [x] `pnpm check`, `pnpm typecheck` and `pnpm test` pass locally; pushed after each meaningful step
 - [x] This file moved `ongoing/` → `done/` (Status `done`), and the plan's todo table updated
 
