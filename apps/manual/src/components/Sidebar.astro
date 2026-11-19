@@ -2,7 +2,9 @@
 import Contents from "./Contents.astro";
 import type { ContentsPart, PageHeading } from "./types.js";
 
-// The chapter sidebar: the page's own headings, then the whole contents behind a disclosure that needs no script.
+// The chapter sidebar: the page's own headings, then the whole contents behind a disclosure that needs no script. Each
+// is its own navigation landmark, so on a wide page the layout can set "On this page" in a rail right of the article
+// while "All chapters" stays on the left; the wrapper then steps aside with display: contents.
 interface Props {
   readonly headings: readonly PageHeading[];
   readonly parts: readonly ContentsPart[];
@@ -12,10 +14,10 @@ interface Props {
 const { headings, parts, current } = Astro.props;
 ---
 
-<nav class="sidebar" aria-label="Chapter">
+<div class="sidebar">
   {
     headings.length > 0 && (
-      <div class="sidebar__section">
+      <nav class="sidebar__section sidebar__on-page" aria-label="On this page">
         <h2 class="sidebar__heading label">On this page</h2>
         <ol class="sidebar__toc">
           {headings.map((heading) => (
@@ -24,11 +26,13 @@ const { headings, parts, current } = Astro.props;
             </li>
           ))}
         </ol>
-      </div>
+      </nav>
     )
   }
-  <details class="sidebar__section">
-    <summary>All chapters</summary>
-    <Contents parts={parts} current={current} />
-  </details>
-</nav>
+  <nav class="sidebar__section sidebar__chapters" aria-label="All chapters">
+    <details>
+      <summary>All chapters</summary>
+      <Contents parts={parts} current={current} />
+    </details>
+  </nav>
+</div>

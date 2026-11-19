@@ -62,7 +62,12 @@ test("the chapter layout switches its columns with container queries, not viewpo
     assert.doesNotMatch(text, /@media[^{]*width/, `${path} switches on the viewport's width`);
   }
   assert.match(all, /@container layout \(min-width: 64rem\)\s*\{\s*\.chapter-body/);
-  assert.match(all, /@container layout \(min-width: 73rem\)\s*\{\s*\.article \.sidenote/);
+  assert.match(all, /\.article\s*\{\s*container: article \/ inline-size;/);
+  assert.match(all, /@container article \(min-width: 59\.5rem\)\s*\{\s*\.article \.sidenote/);
+  assert.match(
+    all,
+    /@container layout \(min-width: 83rem\)\s*\{\s*\.chapter-body\s*\{\s*grid-template-columns: 11rem minmax\(0, 1fr\) 15rem;/,
+  );
   assert.match(all, /@container listing-replay \(min-width: 52rem\)\s*\{\s*\.listing-replay > \*/);
 });
 
@@ -109,4 +114,24 @@ test("a page with no chapter centres one column the width of the measure", () =>
     const text = readFileSync(new URL(`pages/${page}.astro`, src), "utf8");
     assert.match(text, /<div class="page page--single">/, `${page}.astro`);
   }
+});
+
+// From 83rem "On this page" sits in a sticky rail of its own right of the article and "All chapters" keeps the left
+// column. Breakouts stay inside the article's column, so they can never pass under the rail; printed, both go.
+test("on a wide page the page's headings move to a sticky right rail, and print drops the navigation", () => {
+  const css = readFileSync(new URL("styles/layout.css", src), "utf8").replace(/\/\*[\s\S]*?\*\//g, "");
+  const wide = css.slice(css.indexOf("@container layout (min-width: 83rem)"), css.indexOf("@media print"));
+  assert.match(wide, /\.chapter-body > \.sidebar\s*\{\s*display: contents;/);
+  assert.match(
+    wide,
+    /\.chapter-body > \.sidebar > \.sidebar__section\s*\{\s*position: sticky;\s*top: 1\.5rem;\s*grid-row: 1;/,
+  );
+  assert.match(wide, /\.sidebar__chapters\s*\{\s*grid-column: 1;/);
+  assert.match(wide, /\.sidebar__on-page\s*\{\s*grid-column: 3;/);
+  assert.match(wide, /\.chapter-body > \.article\s*\{\s*grid-column: 2;\s*grid-row: 1;/);
+  // No breakout spans past the article's column.
+  assert.doesNotMatch(css, /grid-column: (2|1) \/ (-1|4)/);
+  const print = css.slice(css.indexOf("@media print"));
+  assert.match(print, /\.chapter-body > \.sidebar\s*\{\s*display: none;/);
+  assert.match(print, /\.chapter-body > \.article\s*\{\s*grid-column: 1;/);
 });

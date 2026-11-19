@@ -165,6 +165,20 @@ test("the chapter page and each gallery theme are layout containers, so the colu
   assert.equal((gallery().match(/class="gallery__theme layout"/g) ?? []).length, 2);
 });
 
+test("a chapter page's sidebar holds two navigation landmarks, its headings before the whole contents", () => {
+  const html = chapter();
+  assert.match(
+    html,
+    /<div class="sidebar"><nav class="sidebar__section sidebar__on-page" aria-label="On this page"><h2 class="sidebar__heading label">On this page<\/h2><ol class="sidebar__toc"><li><a href="#/,
+  );
+  assert.match(
+    html,
+    /<nav class="sidebar__section sidebar__chapters" aria-label="All chapters"><details><summary>All chapters<\/summary>/,
+  );
+  // The sidebar comes before the article, so the page's navigation keeps its place in the reading and tab order.
+  assert.ok(html.indexOf('class="sidebar"') < html.indexOf('class="article"'));
+});
+
 test("the built stylesheet carries the generated tokens and the self-hosted font faces", () => {
   const css = files(".css")
     .map((path) => readFileSync(join(out, path), "utf8"))

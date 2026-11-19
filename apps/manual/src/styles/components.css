@@ -919,9 +919,11 @@
   }
 }
 
-/* Side notes sit in the article flow, and float right of the prose once the column has room for both: from 73rem,
-   the sum of the sidebar, the measure, the side note and two gaps. The right margin carries the float in from the
-   column's edge to 2.5rem past the measure, so the note sits beside the text it explains, not at the far edge. */
+/* Side notes sit in the article flow, and float right of the prose once the article has room for both: from 59.5rem,
+   the sum of the measure, a gap and the side note. The query asks the article, not the page, because the columns
+   around it change: beside the left sidebar alone a 73rem layout reaches it, but with the "On this page" rail on the
+   right it takes a 90.5rem layout. The right margin carries the float in from the article's edge to 2.5rem past the
+   measure, so the note sits beside the text it explains, not at the far edge. */
 
 .sidenote {
   margin: 1.25rem 0;
@@ -942,7 +944,7 @@
   margin-bottom: 0;
 }
 
-@container layout (min-width: 73rem) {
+@container article (min-width: 59.5rem) {
   .article .sidenote {
     float: right;
     clear: right;
