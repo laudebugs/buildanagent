@@ -169,6 +169,38 @@ The replay shows a request's new messages only. When a request resends messages 
 
 A replay fails when the transcript is missing or malformed, when it records another file, and when it was recorded at a pin other than the harness's current one. The pin check covers both the harness's main package and the package its recorder attaches to, which the transcript names as `mock`, and rerunning the harness's `pnpm test` fixes a stale pin. Six harnesses record transcripts: `vercel-ai-sdk`, `pi`, `openai-agents-sdk`, `langchain`, `google-adk` and `cloudflare-agents`. An example that calls no model, such as `cloudflare-agents/examples/01-state.ts`, has no transcript, and the Claude Agent SDK and Copilot SDK wait for [T49](../../docs/todos/ready/T49-book-http-mock-transcripts.md). The transcript format lives in [`scripts/transcripts/events.ts`](../../scripts/transcripts/events.ts), with its recorder and writer beside it.
 
+## The live run compares the listed examples with real APIs, only when the owner starts it
+
+Every listing runs against a mock model, and CI never holds a provider key. Once in a while the owner checks that the mocks still behave like the real APIs, with a workflow that only they can start and approve ([book plan BK18](../../docs/plans/build-book.md#bk18-an-occasional-live-run-compares-real-flows-with-the-mock-transcripts-accepted)). `.github/workflows/live-run.yml` runs the examples in [`src/data/live-examples.json`](src/data/live-examples.json) against the real APIs and compares each run's flow with the example's mock transcript. A pull request then records the date in [`src/data/live-comparison.json`](src/data/live-comparison.json), which every page with a file listing shows.
+
+### What a page says
+
+A chapter page with at least one file listing opens with "Listings on this page are verified against mock models; last compared with live APIs on 1 December 2026", or with "not yet compared with live APIs" before the first complete run. A listing whose file the live list leaves out adds "Verified against mock models only" to its caption. Every `google-adk` listing carries that caption, because the harness's pinned TypeScript release reaches only Gemini, and adding a provider package or a Gemini key is a separate change the owner approves. The build reads both files when it loads the book, fails on a date that is not `YYYY-MM-DD`, and clears its content cache when either file changes.
+
+### What the owner sets up once
+
+The workflow relies on these exact names:
+
+1. **The `live-run` environment**, with the owner as its required reviewer and **Protected branches only** as its deployment branches, which here means `main`. Its first step reads the environment through GitHub's API and stops the run if either rule is gone.
+2. **Two environment secrets in `live-run`**: `ANTHROPIC_API_KEY` and `OPENAI_API_KEY`. No other provider key appears in the workflow, and no other workflow names either one. GitHub releases them to the job only after the owner approves it. An Anthropic key that belongs to no workspace also needs an `anthropic-workspace-id` header, which the live run doesn't send, so use a key scoped to one workspace, ideally one with its own spend limit.
+3. **The pull request token**, `SDK_UPDATES_TOKEN` or else `RELEASE_PR_TOKEN`, the repository secrets `sdk-updates.yml` already uses ([CI plan §3c](../../docs/plans/ci.md#3c-weekly-sdk-updates-added-2026-11-19)), so `ci.yml` runs on the results pull request.
+
+### How to start a run and read its results
+
+Start it from **Actions → live-run → Run workflow** on `main`, or with `gh workflow run live-run.yml --ref main`, then approve the `live-run` deployment when GitHub asks. Its live job runs each listed example through its harness's `scripts/run-examples.mjs --live`, one after another, and its report job, which holds no key, does the rest:
+
+- **The run's summary and report** show each example's outcome, its checks passed, its model calls and the amount spent, against the $1.00 cap and the $0.50 target.
+- **An issue**, opened only when a flow differs, lists each difference by example: a changed sequence of tool calls (by name and argument keys), a changed stop reason, or a `check()` that changed result or did not run. Text, argument values, ids and timing never count. A real model varies between runs, so a difference is a prompt to look at the live transcript beside the mock one, not proof that a mock is wrong. The run stays green either way.
+- **A pull request** from `live-run/results` holds the live transcripts in `verify/<sdk>/results/live/<example>.json` and, when every listed example ran, the new date. Merge it to move the date on every listing page.
+
+### What a run may cost
+
+The owner's rule is that a run may cost at most $1.00 and should aim for less than $0.50. Before every model call, the harness's live mode projects the call's cost from the gateway's price catalog: every input token at the dearest input rate, plus the call's whole `maxTokens` at the output rate. When the spend so far plus that projection would pass $1.00, the call never goes out, the run stops, and the report names the call. The list as committed projects $0.2207 a run, at the catalog's prices as of November 2026, counting twice each example's mock model calls at 8,000 input tokens each. The three Anthropic examples run on `claude-haiku-5-5` with 1,024 output tokens a call, and the two OpenAI examples on `gpt-5.4-mini` with 2,048.
+
+### Changing the live list
+
+An example may join the list when its harness has a live mode and a mock transcript, its tools are in-process functions with no host access, and its provider is one its harness's pinned packages reach. Five harnesses have a live mode: `vercel-ai-sdk`, `langchain`, `pi`, `openai-agents-sdk` and `cloudflare-agents`. The Claude Agent SDK and Copilot SDK record no mock transcript yet ([T49](../../docs/todos/ready/T49-book-http-mock-transcripts.md)), so a live run of theirs would have nothing to compare with. After an edit, run `node --test scripts/ci/live-run.test.mjs`: it fails until the recorded `projection` matches the list, and it names the figures to write. An example whose checks test the mock's exact wording will differ on every run, so prefer examples whose checks test the flow, as the five triage capstones do.
+
 ## A figure is a script that draws an SVG, and the build inlines it
 
 Each flat figure is a TypeScript script, and the SVG it writes is committed beside it. A test redraws every figure and fails when a committed SVG differs from what its script draws now, so a figure cannot drift from its script. The build inlines the SVG instead of linking it, so the figure takes the page's colours in both themes and needs no JavaScript. To add a figure to a chapter:

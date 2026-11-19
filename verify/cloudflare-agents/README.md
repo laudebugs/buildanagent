@@ -39,6 +39,12 @@ Recording only reads what the mock already holds, so it changes no verdict. The 
 
 Commit the transcripts with the change that alters them, unlike a regenerated `run-examples.json`, which holds local paths and is restored before committing. CI's results-drift check fails when a committed transcript differs from the one a fresh run writes, and the book's replays read these files ([replays](../../apps/manual/README.md#a-replay-steps-through-a-recorded-run)).
 
+## A live run sends one example to a real provider
+
+The book's occasional live run ([`scripts/live/`](../../scripts/live/), started only by `.github/workflows/live-run.yml`) calls `scripts/run-examples.mjs examples --only <example> --live`. In that mode esbuild builds the bundle with `__LIVE_MODEL__` set, so `scripted()` in `examples/lib/check.ts` posts each call's options to `http://live-model.invalid/` instead of playing its turns. `scripts/workerd.mjs` hands that request to `scripts/live-model.mjs`, in the Node.js process that runs workerd, which calls the pinned `@ai-sdk/anthropic` or `@ai-sdk/openai`. The key therefore stays in that process and never enters workerd; importing the live mode deletes it from the environment before workerd starts. A streamed call is one generate call on the host, which the bundle replays as a stream.
+
+Think adds its workspace tools (`read`, `ls`, `find`, `grep`, `write`, `edit` and `delete`) to every turn. They act on the Agent's own storage, not the host, but the live run withholds them all the same, so a real model sees only the example's tools. Any remaining provider-defined tool, or a tool named like a shell or an editor, stops the call. Each call is capped at the run's `maxTokens` and checked by the cost guard, and the transcript goes to `results/live/<example>.json`. Without `--live`, nothing in the live mode runs, so `pnpm test` and the committed transcripts are unchanged.
+
 ## Scripts
 
 | Command | Does |
