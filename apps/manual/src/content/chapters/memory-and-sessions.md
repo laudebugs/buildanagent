@@ -2,7 +2,7 @@
 title: "Memory within a task: sessions, threads and resuming"
 summary: A model keeps nothing between calls, so an agent's memory is a session that your SDK or your code stores and sends back. This chapter shows how sessions and threads carry a conversation between runs, what a resume in a fresh process brings back and what it drops, who may use a session id, and where each of eight SDKs keeps its state.
 opening: analogy
-sources: [openai-agents-sessions, langgraph-checkpointers, langgraph-persistence, claude-agent-sdk-hosting, claude-agent-sdk-sessions, openai-agents-human-in-the-loop, cloudflare-agents-routing, cloudflare-agents-state]
+sources: [openai-agents-sessions, langgraph-checkpointers, langgraph-persistence, claude-agent-sdk-hosting, claude-agent-sdk-sessions, openai-agents-human-in-the-loop, cloudflare-agents-routing, cloudflare-agents-state, adk-session-state]
 glossary: [session, checkpointer, trusted-context, prompt-injection, approval]
 switchTo: [N3, N6]
 ---
@@ -98,6 +98,49 @@ Anthropic's hosting guide shows the second rule in its own example: the session 
 A resumed run treats the saved state as fact, because it has no way to tell. The history goes back to the model as earlier turns, so whatever the session holds keeps shaping every later call. In our reading, that includes a tool result that once carried instructions planted for the model, the prompt injection of [[ch:tools]]: once it is in the session, it rides along on every resume, long after the run that fetched it. A paused run trusts more. A `RunState` restores the approvals already given and your app's context, the very object that the trusted context of [[ch:tools]] placed the user's id in. OpenAI's guide is blunt about it: `RunState.fromString()`{checked=row-28} "restores that state; the method does not authenticate the snapshot or the person submitting it" [@openai-agents-human-in-the-loop]. A snapshot that a browser stored and sent back could therefore carry another user's id, or an approval nobody gave.
 
 The guide's remedy is the one we follow: keep the snapshot in storage that only the server reads, send the person approving a call only the details they need and an opaque id, and "Do not accept replacement tool calls, arguments, approval records, or serialized state from the client." Cloudflare's agents need the same care in another place. An agent's state syncs to every connected client, and the state guide says plainly that "Any client can call setState() to push updates" [@cloudflare-agents-state], unless the agent rejects the change in `validateStateChange`{checked=row-49} or marks the connection read-only. A chart is trusted because only staff write in it. The same has to hold for a session before an agent acts on what it reads there, and an approval, the subject of the next chapter, is the first thing it will act on.
+
+## State lives in eight places, one per SDK
+
+Suppose you ship a new version of your agent at three in the morning, and every process restarts. Which conversations are still there at 3:01? The answer depends on the SDK, because each of the eight SDKs this book verifies keeps its state in a different place by default. [[fig:state-places]] sorts them into three groups.
+
+:::figure[Where each SDK keeps a session by default, as of November 2026]{#state-places}
+::svg{alt="Eight boxes in three bands. In memory, lost when the process restarts: OpenAI Agents SDK, MemorySession; LangChain, MemorySaver; Google ADK, InMemorySessionService. On the host's disk, lost with the machine: Claude Agent SDK, ~/.claude/projects; Pi, ~/.pi/agent/sessions; Copilot SDK, ~/.copilot. Elsewhere, as durable as that store: Cloudflare Agents, the agent's own SQLite; Vercel AI SDK, the messages you keep."}
+:::
+
+The top band empties at 3:01. Its three defaults hold every session in your process's memory, and each SDK says so: OpenAI calls `MemorySession` "intended for demos or tests", LangChain says `MemorySaver` "does not persist between restarts", and ADK's state guide says its `user:` and `app:` keys are "Stored by `InMemory`{checked=row-55} but lost on restart" [@adk-session-state]. The middle band survives a process restart and dies with the machine: Claude's hosting guide warns that its transcripts do not survive "a container restart, a scale-down, or a move to a different node" [@claude-agent-sdk-hosting]. The bottom band survives both, for opposite reasons. Cloudflare keeps each agent's state in a database the platform gives that agent, while the Vercel AI SDK keeps nothing: the `messages` array your code passes back is the whole state, so it lasts exactly as long as the database you put it in. [[tbl:state-table]] adds the durable option for each default, who makes the session's id and whether a lookup is scoped by user, the question from the previous section.
+
+:::table[Where each SDK keeps a session, who names it, and whether a lookup checks the user, as of November 2026]{#state-table}
+| SDK | Default store | A store that survives a restart | Who makes the id | Lookup scoped by user |
+| --- | --- | --- | --- | --- |
+| OpenAI Agents SDK | `MemorySession`, in process memory | OpenAI's Conversations API, or your own `Session` | The SDK, a random UUID, unless you pass one | No; your own `Session` decides |
+| Claude Agent SDK | JSONL files under `~/.claude/projects/` | A `SessionStore` that mirrors them | Claude Code, a UUID, unless you pass one | No; any id on the machine resumes |
+| LangChain | `MemorySaver`, in process memory | A database checkpointer, such as Postgres | Your code: the `thread_id` | No |
+| Google ADK | `InMemorySessionService` | Database and Vertex AI session services | The SDK, a random UUID, unless you pass one | Yes: app, user and session id together |
+| Cloudflare Agents | The agent's own SQLite database | The same; it is already durable | Your code or the URL: the agent's name | No; your Worker checks the name |
+| Pi | A JSONL tree under `~/.pi/agent/sessions/` | The same files, or a folder you choose | The SDK, a time-ordered UUID, unless you pass one | No; a session opens by its file path |
+| GitHub Copilot SDK | The runtime's disk under `~/.copilot` | The same, under the `baseDirectory`{checked=row-64} you set | The runtime, unless you pass one | No user parameter in `resumeSession`{checked=row-64} |
+| Vercel AI SDK | Nothing; you keep `messages` | Whatever store you write them to | Your code | Your code |
+:::
+
+Two of the eight keep more than a conversation. ADK and Cloudflare also hold *state*, named values that tools and your code read and write beside the messages, and both scope or store it in ways worth seeing. Switch tabs to compare them.
+
+::::tabs
+:::listing[Google ADK]{#state-adk file="verify/google-adk/examples/04-sessions-state.ts" region="state-prefixes"}
+::note[A key with no prefix belongs to this session alone.]{#session-key}
+::note[A `user:` key is shared by every session of the same user in the same app. The example's checks find Alice's second session reading the note from her first, and Bob's session reading none.]{#user-key}
+::note[An `app:` key is shared by every user of the app, so one user's data must never go here. Bob's new session reads a total of 2, both of them Alice's notes.]{#app-key}
+::note[A `temp:` key lasts one invocation, the work from one user message to the final answer, and is dropped after it.]{#temp-key}
+:::
+:::listing[Cloudflare Agents]{#state-cloudflare file="verify/cloudflare-agents/examples/01-state.ts" region="counter-agent"}
+::note[An agent's first read of `this.state` saves `initialState` to its database, and that first save fires `onStateChanged`, a surprise the example's checks record.]{#initial-state}
+::note[`setState` saves the new state to the agent's SQLite database and sends it to every connected client.]{#set-state}
+::note[The hook runs after each change, with the source `"server"` when your code made it. A change pushed by a client arrives here with that client's connection as the source.]{#on-change}
+:::
+::::
+
+The ADK listing turns the scoping question into keys, and its four prefixes come from ADK's state guide [@adk-session-state]. The prefix decides who else can read a value, so a tool that writes a customer's address under `app:` hands it to every other user of the app. Cloudflare's agent is the 3:01 survivor. Each agent instance is a Durable Object, a small stateful server that Cloudflare runs once per name, with its own SQLite database, and `setState` "Saves to SQLite (persistent)" and "Broadcasts to all connected clients" [@cloudflare-agents-state]. The state comes back after Cloudflare evicts the agent from memory, because it never lived only there, while the same instance's ordinary class fields, such as the listing's `changes` array, start empty again.
+
+Read the table by its last column before you choose. Only ADK checks the user on every lookup, and only because it asks for the user id; every other SDK leaves the check to you, which the previous section's four rules supply. For the rest, we match the store to where the agent runs: memory for a test, a database for a server that restarts, and the platform's own storage where the platform gives each agent one.
 
 ## Exercises
 
