@@ -33,7 +33,7 @@ U20's report settled the scope, and the owner approved its proposed changes on 2
   1. **The loop is a session driven by events.** Name the three shapes (speech-to-speech, chained pipeline, and a speaking front model that delegates) and show that the tool loop survives inside each. The number to remember is the 208 ms gap people leave between turns.
   2. **Turn detection predicts the end of a turn.** Show the trade between a short silence threshold and a late reply, with OpenAI's 500 ms default and the robot study's drop from 2.7 s to 1.5 s, and name push-to-talk as the simple escape.
   3. **Barge-in stops the speech, settles the tools and keeps only the heard words.** Show truncation to `audio_end_ms`, the opposite defaults of Gemini and GPT-Live for tools in flight, and the yield-or-hold trade, with GPT-4o realtime's 0.23 s stop beside its 93% reply rate to background speech.
-  4. **Tools must not silence the agent.** Show announcing, background calls and delegation to a text agent, and close on τ-Voice's 85% against 31–51% as the reason to read back consequential arguments.
+  4. **Tools must not silence the agent.** Show announcing, background calls and delegation to a text agent, and close on τ-Voice's 85% against 31–51% as the reason for U20's proposed rule to read back consequential arguments.
 - A link to the vendor guides for transports and audio formats, which the section does not cover
 - The listings from [T46](T46-example-realtime-session.md) and [T47](T47-example-voice-pipeline.md); truncation itself is explained in prose, because it needs the real transport
 - Rows for the section in `apps/manual/fact-checks/agents-people-can-watch.md`

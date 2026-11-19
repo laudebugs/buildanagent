@@ -77,4 +77,12 @@ On 2026-11-19 the owner approved every change the A2A report (U19) and the voice
 | 40 | HD1 writes only completed blocks, so a reply cut off by the listener has no entry of its own | HD6 note | ✅ | HD1: one `message_block` entry per block on `model_call_end`, and "Deltas … are never written" |
 | 41 | No plan we searched has an agent that speaks | HD6 note | ⚠️ | U20's [plans notes](../../research/voice/notes/our-plans.md) and its change 4; an absence claim from a search. Re-run on `main` at `0af2a14` with a case-insensitive search for "voice" or "speech" in `docs/plans/`: it finds the book plan, its log and the SDK references plan, which name the topic but plan no speaking agent |
 
-**Totals:** 41 claims: 34 ✅, 1 ✏️, 6 ⚠️.
+
+## First code-review round of PR #67, re-checked (2026-11-19)
+
+| # | Claim | Where | Verdict | Source and reason |
+| --- | --- | --- | --- | --- |
+| 42 | Row 38: N13's signed pause is "the pause U19 proposes for MCP's `input_required` too" | §1 | ✏️ | U19 proposes no MCP pause. The [source-update report](../../research/source-update-2026-11-19.md#proposed-plan-changes) proposes that a server's input request pause the turn through N13 (its MCP section and its N24 row), and its conclusion lists that as one of four decisions still open for the owner. **Now:** §1 cites the source-update report's proposal and says it awaits the owner's decision |
+| 43 | Row 36: "nothing we build has an outside caller yet" | §1 | ✏️ | U19 says only that the coding agent "has no outside caller yet", and its platform note expects hosted products as future callers. **Now:** "the coding agent, the first agent we build, has no outside caller yet" |
+
+**Totals:** 43 claims: 34 ✅, 3 ✏️, 6 ⚠️.

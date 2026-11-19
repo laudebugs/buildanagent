@@ -30,10 +30,10 @@ U21's report settled the scope, and the owner approved its proposed changes on 2
 
 - One section in `apps/manual/src/content/chapters/talking-to-a-model.md`
 - Four points, in this order (owner decision 2026-11-19):
-  1. **Tuning changes how a model behaves more than what it knows.** In controlled studies retrieval beats tuning for facts, and tuning on new facts raises hallucination, although two MAP teams tuned for domain knowledge. For formats, labels and tone, tuning works.
-  2. **Prompt and measure first, and tune to move one job to a smaller model.** All three providers put prompting and evals first, careful prompting beat tuned specialists in medicine, and in U21's reading the agent-tuning papers buy a small model that does one agent's job.
-  3. **A tuned model is a new model with its own price and a short life.** It costs up to twice the base rate per token on OpenAI, it retires with its base model 16 to 30 months after that model's release, and, by U21's conclusion, it needs the safety evals of a new model.
-  4. **Deployed agents mostly prompt.** In MAP, 14 of 20 interviewed teams used no fine-tuning or reinforcement learning. The vendors that train agent models with reinforcement learning tie them to their own harness.
+  1. **Tuning changes how a model behaves more than what it knows.** In controlled studies retrieval beats tuning for facts, and tuning on new facts raises hallucination, although two MAP teams tuned for domain knowledge. For formats, labels and tone, tuning works (Ovadia et al.; Gekhman et al.; OpenAI's matrix; MAP).
+  2. **Prompt and measure first, and tune to move one job to a smaller model.** All three providers put prompting and evals first, careful prompting beat tuned specialists in medicine, and in U21's reading the agent-tuning papers buy a small model that does one agent's job (Medprompt; GEPA; FireAct; SWE-RL).
+  3. **A tuned model is a new model with its own price and a short life.** It costs up to twice the base rate per token on OpenAI, it retires with its base model 16 to 30 months after that model's release, and, by U21's conclusion, it needs the safety evals of a new model (OpenAI pricing and deprecations; Google model versions; Qi et al.).
+  4. **Deployed agents mostly prompt.** In MAP, 14 of 20 interviewed teams prompted off-the-shelf models, and the teams that tuned gave latency, volume, domain knowledge or cost as their reasons. The vendors that train agent models with reinforcement learning tie them to their own harness (MAP; Cursor; Cognition).
 - The provider status of November 2026 (OpenAI closing its tuning service, Anthropic offering none in its own API, Google alone tuning its current models) in one dated note, so a later edition changes one place; every vendor result labelled as one
 - The listing from [T28](T28-example-streaming-usage.md)'s tuned-versus-cached pricing example
 - Rows for the section in `apps/manual/fact-checks/talking-to-a-model.md`

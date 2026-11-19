@@ -473,4 +473,15 @@ On 2026-11-19 the owner approved every change proposed by the A2A report (U19, s
 | 287 | The plan now has 52 todos: eleven tooling, sixteen examples, four research rounds, eighteen chapters and three sections | Status, intro, BK20, plans index, README | ✅ | The §5 table has 52 linked rows, and 11 + 16 + 4 + 18 + 3 = 52; the examples are T28–T34 (7), T40–T44 (5) and T45–T48 (4) |
 | 288 | Every §5 row matches its todo's **Depends on**, with T37 on T45, T38 on T46 and T47, and T39 on T28 | §5 | ✅ | A script compared the 52 rows with the 52 todo files: 0 mismatches |
 
-**Totals:** 288 claims: 256 ✅, 32 ✏️, 0 ⚠️.
+
+### The first code-review round of PR #67
+
+The review found two teach points that dropped a report's label or clause, so row 282's "item by item" overstated the match. These rows correct it after a word-for-word re-comparison of all 13 points.
+
+| # | Claim | Where | Verdict | Source and reason |
+| --- | --- | --- | --- | --- |
+| 289 | T38's fourth difference closes on τ-Voice's figures as the reason for a rule to read back consequential arguments | T38 | ✏️ | U20 Teach item 4 calls it "our rule", a proposal of the report, and the draft dropped the label. **Now:** "the reason for U20's proposed rule to read back consequential arguments" |
+| 290 | T39's fourth point: in MAP, 14 of 20 interviewed teams prompted off-the-shelf models, and the teams that tuned gave latency, volume, domain knowledge or cost as their reasons | T39 | ✏️ | U21 Teach item 4 word for word. The draft dropped the second clause and paraphrased the first; it also dropped the source list that ends each of U21's four items, which T39 now carries |
+| 291 | Row 282, corrected: after the fixes in rows 289 and 290, T37's five steps, T38's four differences and T39's four points carry their reports' claims, labels and clauses | T37–T39 | ✏️ | Re-compared word for word with U19 Teach items 1–5, U20 Teach items 1–4 and U21 Teach items 1–4 on 2026-11-19. T37 had dropped nothing; its added sentences come from U19's Examples section and change 4. Row 282's "item by item" held only for T37 |
+
+**Totals:** 291 claims: 256 ✅, 35 ✏️, 0 ⚠️.
