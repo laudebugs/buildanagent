@@ -114,8 +114,10 @@ export interface ModelCallPatch {
 
 /**
  * What `beforeToolCall` decides. `allow` runs the call, with `input` in place of the model's when given; the
- * replacement must pass the tool's schema. `deny` blocks the call, and the model reads the `reason`. `ask` asks a
- * person; until runs can pause, it blocks the call like `deny` with a message that says approval isn't available.
+ * replacement must pass the tool's schema. `deny` blocks the call, and the model reads the `reason`. `ask` pauses
+ * the call for a person: the run signs a pending request for it with the run's `signer`, and ends
+ * `awaiting_approval` once the step's other calls have their results. `reason` is shown to the approver and isn't
+ * signed; `policyVersion` is signed.
  */
 export type GateDecision =
   | { readonly decision: "allow"; readonly input?: unknown; readonly reason?: string }
@@ -162,8 +164,8 @@ export interface Interceptors {
   /**
    * The gate: decides whether a tool call runs, once for each call that passed validation, one call at a time in
    * model order, and before any call of the step executes. With no `beforeToolCall`, no gate stands in the way and
-   * every registered tool is allowed. A gate that returns `ask` pauses the run once pauses exist; until then `ask`
-   * blocks the call. A gate that throws denies the call unless `onFailure` is `"continue"`. A gate must return a
+   * every registered tool is allowed. A gate that returns `ask` pauses the call, and the run ends `awaiting_approval`
+   * with a signed pending request for it. A gate that throws denies the call unless `onFailure` is `"continue"`. A gate must return a
    * decision: returning nothing throws an `SdkError` with code `invalid_hook_result`.
    */
   readonly beforeToolCall?: (e: ToolCallEvent) => MaybePromise<GateDecision>;

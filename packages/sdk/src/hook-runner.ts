@@ -6,6 +6,10 @@
  * Failure policy (D6): a hook that throws is reported as a `hook_error` event. Under `fail_closed`, the default, a
  * failed gate denies its call, a failed `afterToolCall` withholds the result, and any other failed hook throws a
  * `HookFailure`, which the loop turns into an `error` result. Under `continue` the failed hook is skipped.
+ *
+ * A gate's `ask` pauses its call (D5): the runner signs a pending request through the one signing path, emits
+ * `approval_request` and hands the request to the loop. A pause that can't be signed never pauses unsigned: the call
+ * is blocked instead, whatever `onFailure` says.
  */
 import type { AssistantMessage, Message, ModelContext, ModelRef, Usage } from "@buildanagent/gateway";
 import { isSdkError, SdkError } from "./errors.js";
@@ -21,9 +25,13 @@ import {
   type StopVerdict,
 } from "./hook-checks.js";
 import type { CallOptions, GateDecision, HookEventBase, Interceptors, ModelCallPatch } from "./hooks.js";
+import { signPause } from "./pauses.js";
 import type { Clock } from "./testing/determinism.js";
 import { type AnyTool, type GateOutcome, isContentList, type PipelineContext } from "./tools/pipeline.js";
 import type { ToolCall, ToolResult } from "./tools/types.js";
+import { isSafetyError } from "./vendor/agent-safety/errors.js";
+import type { SignedPendingRequest } from "./vendor/agent-safety/pending.js";
+import type { ApprovalSigner } from "./vendor/agent-safety/signer.js";
 
 /** Thrown inside a run when a hook failed while the run fails closed; the loop ends the run with an `error` result. */
 export class HookFailure extends SdkError {
@@ -68,7 +76,16 @@ export interface HookRunnerSetup {
   /** The index of the model call in progress. */
   stepIndex(): number;
   send(body: AgentEventBody): void;
+  /** Signs the pending request a gate's `ask` writes. */
+  readonly signer: ApprovalSigner;
+  /** Makes each pending request's id. */
+  readonly nextId: () => string;
+  /** Receives each signed pending request, in model order. */
+  onPause(request: SignedPendingRequest): void;
 }
+
+/** The decision of a gate that asks for a person. */
+type AskDecision = Extract<GateDecision, { decision: "ask" }>;
 
 function blocked(text: string, details: Record<string, unknown>): ToolResult {
   return { content: [{ type: "text", text }], isError: true, details };
@@ -77,17 +94,18 @@ function blocked(text: string, details: Record<string, unknown>): ToolResult {
 /** The pipeline hooks that the interceptors fill, left out when no interceptor needs them. */
 export type PipelineHooks = Pick<PipelineContext, "gate" | "after">;
 
-function gateOutcome(tool: string, decision: GateDecision): GateOutcome | undefined {
+function gateOutcome(tool: string, decision: Exclude<GateDecision, AskDecision>): GateOutcome | undefined {
   if (decision.decision === "allow")
     return decision.input === undefined ? undefined : { input: thawedCopy(decision.input) };
-  if (decision.decision === "deny") {
-    return { blocked: blocked(`Tool call "${tool}" was denied: ${decision.reason}`, { decision: "deny" }) };
-  }
-  const why = decision.reason === undefined ? "" : ` (${decision.reason})`;
-  const text = `Tool call "${tool}" needs approval${why}, and this run can't ask for it, so it was not run.`;
-  return {
-    blocked: blocked(text, { decision: "ask", ...(decision.reason === undefined ? {} : { reason: decision.reason }) }),
-  };
+  return { blocked: blocked(`Tool call "${tool}" was denied: ${decision.reason}`, { decision: "deny" }) };
+}
+
+/**
+ * Why a pause could not be signed, as reports may show it: the safety package's error code, or a fixed word. A custom
+ * signer's own message is never passed on, because nothing stops it from quoting key material.
+ */
+function unsignedCause(error: unknown): string {
+  return isSafetyError(error) ? error.code : "signer_failed";
 }
 
 /** Runs one run's interceptors. */
@@ -95,6 +113,7 @@ export class HookRunner {
   readonly #setup: HookRunnerSetup;
   readonly #hooks: Interceptors;
   readonly #continues: boolean;
+  readonly #requestIds = new Set<string>();
 
   constructor(setup: HookRunnerSetup) {
     this.#setup = setup;
@@ -168,7 +187,55 @@ export class HookRunner {
     });
     const guarded = await this.#guard("beforeToolCall", () => hook(event), failed);
     if (guarded.status === "skipped") return undefined;
-    return guarded.status === "closed" ? guarded.value : gateOutcome(tool.name, checkDecision(guarded.value));
+    if (guarded.status === "closed") return guarded.value;
+    const decision = checkDecision(guarded.value);
+    return decision.decision === "ask"
+      ? this.#pause(call, tool.name, input.input, decision)
+      : gateOutcome(tool.name, decision);
+  }
+
+  /**
+   * Signs the pending request for a call a gate asked about, reports it and hands it to the loop. The request signs
+   * the input the gate saw, which is the input the call would run with. If signing fails, the call is blocked: a pause
+   * that no signature covers is never written.
+   */
+  async #pause(call: ToolCall, tool: string, input: unknown, decision: AskDecision): Promise<GateOutcome> {
+    const { signer, nextId, clock } = this.#setup;
+    const { reason, policyVersion } = decision;
+    let request: SignedPendingRequest;
+    try {
+      request = await signPause(
+        {
+          kind: "approval",
+          callId: call.callId,
+          tool,
+          input,
+          ...(policyVersion === undefined ? {} : { policyVersion }),
+          ...(reason === undefined ? {} : { reason }),
+        },
+        signer,
+        { generateId: nextId, now: () => new Date(clock.now()) },
+      );
+    } catch (error) {
+      return this.#unsigned(tool, unsignedCause(error));
+    }
+    // A resolution names its request by id, so two pending requests of one run must never share one.
+    if (this.#requestIds.has(request.id)) return this.#unsigned(tool, "duplicate_request_id");
+    this.#requestIds.add(request.id);
+    this.#setup.onPause(request);
+    this.#setup.send({ type: "approval_request", request });
+    return { paused: request };
+  }
+
+  /** Blocks a call whose pause could not be signed, and reports why without the signer's own message. */
+  #unsigned(tool: string, cause: string): GateOutcome {
+    this.#setup.send({
+      type: "hook_error",
+      hook: "signer",
+      error: `the approval request could not be signed (${cause})`,
+    });
+    const text = `Tool call "${tool}" needs approval, but its approval request could not be signed, so it was not run.`;
+    return { blocked: blocked(text, { decision: "ask", error: cause }) };
   }
 
   async #afterTool(input: { call: ToolCall; tool: AnyTool; input: unknown; result: ToolResult }): Promise<ToolResult> {
