@@ -1,5 +1,5 @@
 {
-  "name": "@buildanagent/book",
+  "name": "@buildanagent/manual",
   "version": "0.0.0",
   "private": true,
   "description": "The buildanagent textbook on building an agent, published at manual.buildanagent.fyi.",

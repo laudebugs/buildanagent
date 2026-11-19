@@ -34,7 +34,7 @@ importers:
         specifier: 2.9.0
         version: 2.9.0
 
-  apps/book:
+  apps/manual:
     dependencies:
       '@astrojs/markdown-remark':
         specifier: 7.3.8

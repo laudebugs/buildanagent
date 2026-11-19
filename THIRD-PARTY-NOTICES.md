@@ -20,11 +20,11 @@ The rows below come from each mirror's `_manifest.json` (repository, tag, commit
 
 ## The book reuses code from the garment engineering textbook, under Apache-2.0 only
 
-The book in `apps/book/` copies or adapts code from the owner's garment engineering textbook, the private repository `tajistudios/garment-engineering-textbook`. The owner gave permission to reuse that code here on 2026-11-19, and asked for this credit ([ADR 0054](docs/decisions/0054-reuse-garment-textbook-code.md)). The repository has no licence file of its own, so every derived file is published under the Apache License, Version 2.0 only ([LICENSE-APACHE](LICENSE-APACHE)), not under the Apache-2.0 OR MIT terms of our other code. Each derived file opens with a header comment that names its source, the commit and that licence. The table lists every derived file:
+The book in `apps/manual/` copies or adapts code from the owner's garment engineering textbook, the private repository `tajistudios/garment-engineering-textbook`. The owner gave permission to reuse that code here on 2026-11-19, and asked for this credit ([ADR 0054](docs/decisions/0054-reuse-garment-textbook-code.md)). The repository has no licence file of its own, so every derived file is published under the Apache License, Version 2.0 only ([LICENSE-APACHE](LICENSE-APACHE)), not under the Apache-2.0 OR MIT terms of our other code. Each derived file opens with a header comment that names its source, the commit and that licence. The table lists every derived file:
 
 | File here | Source file | Commit | What it takes |
 |---|---|---|---|
-| [`apps/book/astro.config.mjs`](apps/book/astro.config.mjs) | `astro.config.mjs` | `bca44b0` | The render-input hash that deletes Astro's content cache when a Markdown plugin or its data changes, and the dev-server restart on those files |
+| [`apps/manual/astro.config.mjs`](apps/manual/astro.config.mjs) | `astro.config.mjs` | `bca44b0` | The render-input hash that deletes Astro's content cache when a Markdown plugin or its data changes, and the dev-server restart on those files |
 
 No file here copies the garment repository's personal or account data, or text from its agent rules.
 
