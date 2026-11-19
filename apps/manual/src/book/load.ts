@@ -4,6 +4,8 @@ import { fileURLToPath } from "node:url";
 import { outline as bookOutline } from "../outline.js";
 import { type Analogy, checkAnalogies } from "./analogies.js";
 import { type BookIndex, indexChapters } from "./book-index.js";
+import { CodeNames } from "./code-names.js";
+import { FactCheckLogs } from "./fact-check-log.js";
 import { checkGlossary, type GlossaryEntry } from "./glossary.js";
 import { listingContext } from "./listings.js";
 import { type LiveRuns, readLiveRuns } from "./live-runs.js";
@@ -11,6 +13,8 @@ import { checkOutline, type NumberedChapter, numberChapters } from "./outline-ru
 import type { Outline } from "./outline-types.js";
 import { ProblemList } from "./problems.js";
 import { checkSources, type Source } from "./sources.js";
+import { nearestTsconfig } from "./standard-library.js";
+import { transcriptPathOf } from "./transcripts.js";
 
 /** Where a book's content lives. The real book's inputs come from `bookInputs()`; the tests pass fixture books. */
 export interface BookInputs {
@@ -58,6 +62,10 @@ export interface Book {
   readonly analogies: ReadonlyMap<string, Analogy>;
   readonly index: BookIndex;
   readonly live: LiveRuns;
+  /** What the inline-code check reads for this load: listed names, transcript values and package exports. */
+  readonly code: CodeNames;
+  /** The fact-check logs this load's markers cite, each read once. */
+  readonly logs: FactCheckLogs;
 }
 
 /**
@@ -223,6 +231,8 @@ export function loadBook(inputs: BookInputs = bookInputs()): Book {
     analogies: new Map(analogies.map((entry) => [entry.id, entry])),
     index,
     live,
+    code: new CodeNames(inputs.repoRoot),
+    logs: new FactCheckLogs(),
   };
 }
 
@@ -246,8 +256,8 @@ function checkIllustrations(
  * What every chapter's rendered output depends on beyond its own file: which chapters exist, their numbers, the
  * numbered blocks in each, the lines and pin each listing shows, and the line offset of each body, which error lines
  * depend on, and the live run's list and date. Astro caches a chapter until the chapter itself changes, so `astro.config.mjs` clears the cache when this
- * text changes, as when a figure is added to one chapter and another chapter refers to it, or when a listed file or
- * its harness's pin changes.
+ * text changes, as when a figure is added to one chapter and another chapter refers to it, when a listed file or
+ * its harness's pin changes, or when a package a listing imports resolves to another version.
  */
 export function renderDependencies(book: Book): string {
   return JSON.stringify({
@@ -263,7 +273,30 @@ export function renderDependencies(book: Book): string {
       // A front-matter edit moves every line below it, and the plugins add this offset to each error's line.
       bodyLineOffset: book.index.written.get(chapter.slug)?.bodyLineOffset ?? null,
     })),
+    // The packages the listings import, at the versions their harnesses resolve, decide which .d.ts exports inline
+    // code resolves to; astro.config.mjs hashes the logs and transcripts the check reads (checkedCodeFiles).
+    packages: book.code.packageLabels(book.index.written.values()),
   });
+}
+
+/**
+ * The files the inline-code check reads that no listing shows, from the repository root: each written chapter's
+ * fact-check log, each listed example's transcript, which a listing without `replay` still offers, and the nearest
+ * tsconfig.json above each listed file, whose `lib` and `types` pick the standard library. Only the files
+ * that exist are named. `astro.config.mjs` hashes them with its other render inputs and watches them under
+ * `astro dev`.
+ */
+export function checkedCodeFiles(book: Book): string[] {
+  const files = new Set<string>();
+  for (const { chapter } of book.index.written.values())
+    files.add(join(book.inputs.factChecksDir, `${chapter.slug}.md`));
+  for (const block of book.index.blocks.values()) {
+    if (block.source === undefined) continue;
+    files.add(join(book.inputs.repoRoot, transcriptPathOf(block.source.harness, block.source.path)));
+    const config = nearestTsconfig(join(book.inputs.repoRoot, block.source.path), book.inputs.repoRoot);
+    if (config !== undefined) files.add(config);
+  }
+  return [...files].filter((file) => existsSync(file)).sort();
 }
 
 /**

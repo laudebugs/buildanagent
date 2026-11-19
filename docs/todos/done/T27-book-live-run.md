@@ -103,4 +103,4 @@ The live run is built and tested offline; the owner has not run it yet, so every
 - **Each page states its own case.** A page with a listing the live run covers gives the last comparison's date, or says none has run; a page whose listings the run all leaves out says "Listings on this page are verified against mock models only".
 - **Owner decisions.** The owner approved the per-provider jobs and turned administrator bypass off on `live-run` (2026-11-19). Two choices remain: an Anthropic key that belongs to no workspace needs an `anthropic-workspace-id` header that the run doesn't send, so the key in `live-run` should be scoped to one workspace; and whether to add an example whose checks test the mock's exact text, which would differ on every run.
 
-Fact-check rows 479–492 record the claims, and rows 493–499 the first review round's corrections.
+Fact-check rows 514–527 record the claims, and rows 528–534 the first review round's corrections.

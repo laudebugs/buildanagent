@@ -29,11 +29,11 @@ The loop keeps count of its steps the way :analogy[a tally counter]{#tally-count
 ::viewer{alt="An isometric bench with three stations: a stack of three context pages, a round model with a cap, and a tool block. Each station has a small lamp; the lamp on the context stack is lit, and the card's readout says step 1 of 3, context."}
 :::
 
-[[lst:one-call]] makes one call.
+[[lst:one-call]] makes one call with `generateText`, and `result.finishReason` says why the model stopped; `streamText` streams the answer instead.
 
 ::listing[One model call]{#one-call file="verify/vercel-ai-sdk/examples/01-generate-text.ts" region="call" replay}
 
-The same loop in two SDKs:
+The same loop in two SDKs, where `stopWhen` and `Agent` set who decides:
 
 :::tabs
 ::listing[AI SDK]{#loop-ai-sdk file="verify/vercel-ai-sdk/examples/02-tool-loop.ts" region="loop"}
