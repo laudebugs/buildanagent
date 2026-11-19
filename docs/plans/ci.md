@@ -80,3 +80,4 @@ The owner asked on 2026-11-19 to lock our GitHub Actions the way Lamina PDF does
 ## 6. Open questions
 
 - None.
+
