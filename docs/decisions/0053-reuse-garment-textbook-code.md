@@ -1,0 +1,23 @@
+# 0053. Reuse the garment textbook's code for the book, credited, without its personal data or agent rules
+
+- **Status:** Accepted (owner, 2026-11-19) for the permission, the exclusions and the licence; the list of files is Proposed
+- **Date:** 2026-11-19
+- **Plan:** [Book plan, BK16](../plans/build-book.md#bk16-reuse-the-garment-textbooks-code-credited-without-its-personal-data-or-rules-accepted-adr-0053)
+
+## Context
+
+The owner owns `tajistudios/garment-engineering-textbook`, a private Astro textbook that our GitHub credentials can read. It already solves several of the book's problems: citations that fail the build, a glossary with first-use links, captioned figures checked at build time, a figure staleness test and a deploy guard. The repository has no licence file, so its code is all rights reserved unless its owner says otherwise. It also commits personal and account data: reader emails, Access application IDs and AUD tags. On 2026-11-19 the owner said its code may be reused, credited in THIRD-PARTY-NOTICES.md, and that its committed personal data and its `CLAUDE.md` rules are never copied.
+
+## Decision
+
+- **Permission.** Book todos may copy and adapt code from the garment repository, read at a recorded commit, under the owner's permission.
+- **Licence (accepted, owner, 2026-11-19: "Apache 2.0").** Code copied or adapted from the garment repository is published here under Apache-2.0 only, not under our usual Apache-2.0 OR MIT. [LICENSE](../../LICENSE) records the exception.
+- **Credit.** Each todo that copies a file adds it to a garment-repository section of [THIRD-PARTY-NOTICES.md](../../THIRD-PARTY-NOTICES.md), with the source path and commit. Each derived file opens with a header comment that names its origin, the source path and commit, and its Apache-2.0 licence.
+- **Exclusions.** No todo copies the repository's reader emails, Access IDs, AUD tags or other account identifiers, or any text from its `CLAUDE.md`. No todo reads its `docs/todos/` or deploy configuration, where that data lives.
+- **The list (proposed).** The citation and glossary plugins, the figure plugin, the strict content schema, the render-input cache hash, the SVG font-subset helper and the deploy guard are reused. So are the deploy workflow's concurrency, switch and clean install. The [plan's table](../plans/build-book.md#bk16-reuse-the-garment-textbooks-code-credited-without-its-personal-data-or-rules-accepted-adr-0053) maps each to its todo.
+
+## Consequences
+
+- Todos T1, T3, T6 and T9 carry the copying, and their reviews check the header comments, the notices and the exclusions.
+- The garment skills under its `.agents/skills/` carry their own MIT licences, so anything taken from them follows those licences instead of this permission.
+- Files derived from the garment repository carry a different licence from the rest of our code, so T1 adds the exception to LICENSE, and every review of a copying todo checks the header comment and the notices entry.
