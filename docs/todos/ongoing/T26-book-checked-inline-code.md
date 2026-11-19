@@ -5,7 +5,7 @@
 | Field | Value |
 | --- | --- |
 | ID | `T26` |
-| Status | `ready` |
+| Status | `ongoing` |
 | Plan | [Book plan §5, BK17](../../plans/build-book.md#bk17-code-in-the-prose-is-checked-like-code-in-a-listing-accepted) |
 | Round / milestone | Round T (textbook), MT |
 | Depends on | [T5](../done/T5-book-interactive-listings.md) |
