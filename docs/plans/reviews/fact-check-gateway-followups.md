@@ -1,0 +1,24 @@
+# Fact-check: gateway follow-ups on unreported usage and retry-after
+
+This log checks the new factual claims in the gateway's README, the SDK's README, the changeset and the source comments of the pull request that prices unreported usage as unknown and honours retry-after hints. Both follow-ups came out of the review of the OpenAI adapter (#49). Every claim was read on 2026-11-19 from the official docs pages as Markdown (each URL with `.md` appended), from RFC 9110, and from the SDK sources installed in the workspace: openai-node v7.49.0 and anthropic-sdk-typescript v0.129.0.
+
+## Retry-after headers
+
+| # | Claim | Where | Verdict | Source and reason |
+| --- | --- | --- | --- | --- |
+| 1 | Anthropic's `retry-after` header holds the number of seconds to wait before a retry | README "Retries", `anthropic/failure.ts`, `wire.ts` | ✅ | [Rate limits](https://platform.claude.com/docs/en/api/rate-limits), response headers table: "The number of seconds to wait until you can retry the request", as of November 2026 |
+| 2 | Not every Anthropic 429 carries `retry-after`, and the spend-cap 429 never does | README "Retries", `anthropic/failure.ts` | ✅ | Same table: "Not every 429 carries it; the spend-cap 429 never does"; [Errors](https://platform.claude.com/docs/en/api/errors), 429 entry, as of November 2026 |
+| 3 | OpenAI's `Retry-After` is the minimum number of seconds to wait | README "Retries", `openai-chat/failure.ts`, `wire.ts` | ✅ | [Rate limits](https://developers.openai.com/api/docs/guides/rate-limits), headers table: "The minimum number of seconds to wait before retrying a temporary rate-limit error, when present", as of November 2026 |
+| 4 | OpenAI sends `Retry-After` on 429s for a temporary rate limit and on 503s for an overloaded model | README "Retries", `openai-chat/failure.ts` | ✅ | Same page: "`Retry-After` may be present on `429` responses caused by a temporary rate limit and `503` responses caused by temporary model overload"; [Error codes](https://developers.openai.com/api/docs/guides/error-codes), `slow_down` and `server_is_overloaded` rows, as of November 2026 |
+| 5 | A `Retry-After` value is either an HTTP date or a number of seconds | README "Retries", `wire.ts` | ✅ | [RFC 9110, section 10.2.3](https://www.rfc-editor.org/rfc/rfc9110#section-10.2.3): `Retry-After = HTTP-date / delay-seconds`. OpenAI's own Go example parses both forms (Rate limits, "Retrying with exponential backoff"). Neither provider's page shows a date; the adapters accept one because the header's definition allows it |
+| 6 | The official TypeScript SDKs read `retry-after-ms`, in milliseconds, before `retry-after` | README "Retries", `wire.ts` | ✅ | openai-node v7.49.0 `src/client.ts` lines 2176–2194 and anthropic-sdk-typescript v0.129.0 `src/client.ts` from line 1471. Neither provider's docs page names `retry-after-ms`; the SDK source says it "may not be standard" |
+| 7 | A hint never makes a quota, billing or other action-needed error worth retrying | README "Retries", changeset | ✅ | OpenAI Rate limits: "It does not mean that quota, billing, or other errors that require user action can be resolved by retrying"; the gateway retries only `retryable` errors |
+| 8 | OpenAI advises stopping, not retrying sooner, when a server delay exceeds the client's maximum | not claimed; recorded for the design | ⚠️ | Rate limits: "If a valid server delay exceeds the supported or configured maximum retry delay, stop retrying and defer the request rather than retrying sooner." The gateway caps the wait at 60 s and retries, as the task asked. A follow-up could end the call instead and leave `error.retryAfterMs` for the caller |
+
+## Unreported usage
+
+| # | Claim | Where | Verdict | Source and reason |
+| --- | --- | --- | --- | --- |
+| 9 | Anthropic's `message_start` reports only the first few output tokens, and the final, cumulative count arrives on `message_delta` | README Anthropic "Usage", `anthropic/response.ts` | ✅ | [Streaming messages](https://platform.claude.com/docs/en/build-with-claude/streaming), as of November 2026: the examples show `message_start` with `output_tokens` of 1 to 3 and `message_delta` with the final count, and "The token counts shown in the `usage` field of the `message_delta` event are *cumulative*" |
+| 10 | A Chat Completions stream reports usage only in a final chunk, which `stream_options.include_usage` asks for | README OpenAI "Usage" | ✅ | Unchanged claim from the adapter's response module, which cites openai-node v7.49.0 `ChatCompletionChunk` |
+| 11 | An HTTP error response bills no tokens, so it counts as zero tokens rather than unreported usage | README "Every message carries its cost", `wire.ts` | ⚠️ | Neither provider's errors page says whether a failed request is billed. The rule keeps the gateway's earlier behaviour, so a retried 429 still has a known cost; the error body carries no usage to read |

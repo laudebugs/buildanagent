@@ -18,7 +18,7 @@ Name the tag. A plain `pnpm add @buildanagent/gateway` installs `0.0.0-bootstrap
 
 A conversation is a list of `Message`s: user messages, assistant messages and tool results. Their content is a short list of blocks (`text`, `reasoning`, `image` and `tool_call`), so your code never handles a provider's wire format. A reasoning block may carry a signature that only the model that wrote it accepts.
 
-Every `AssistantMessage` records its model, why it stopped (`stopReason`), any typed `error`, its `Usage` and its `Cost`. `Usage` has no field named `input`, because providers disagree on whether input includes cached tokens. The uncached part is `uncachedInput`, and `totalInput()` adds the cache reads and cache writes to it. `Cost.total` is `null` when the price is unknown, never a guessed zero.
+Every `AssistantMessage` records its model, why it stopped (`stopReason`), any typed `error`, its `Usage` and its `Cost`. `Usage` has no field named `input`, because providers disagree on whether input includes cached tokens. The uncached part is `uncachedInput`, and `totalInput()` adds the cache reads and cache writes to it. `Cost.total` is `null` when the price is unknown, never a guessed zero. When a provider sends no usage for a response, its `Usage` has `unreported: true`: the counts are then incomplete, and the gateway prices the response as unknown. An adapter you write can build such a record with `unreportedUsage()`.
 
 ## A transcript recorded on one model replays on another
 
@@ -78,7 +78,7 @@ The gateway prices each response from the price catalog, so every `AssistantMess
 
 - `"provider"`: the adapter reported a total the provider billed, and that total wins over the catalog.
 - `"catalog"`: the gateway multiplied each token class by its catalog rate, and `catalogAsOf` gives the date those rates were copied.
-- `"unknown"`: the catalog doesn't list the model, or an attempt's stream threw before it reported usage, so `total` is `null`. The gateway never guesses a zero, because a budget that counts an unknown price as free never stops.
+- `"unknown"`: the catalog doesn't list the model, or the provider never reported the usage, so `total` is `null`. Usage goes unreported when a stream throws, breaks off before its usage arrives, or ends without the usage chunk a server should send. The gateway never guesses a zero, because a budget that counts an unknown price as free never stops. An HTTP error response is the one failure that counts as zero tokens, because the provider sent an error instead of a reply.
 
 A retried call's cost sums its attempts, and the sum takes the weakest basis among them. It is `"unknown"` if any attempt's cost is unknown, and `"catalog"`, with `catalogAsOf`, if any attempt was priced from the catalog. It is `"provider"` only when the provider billed every attempt.
 
@@ -158,7 +158,7 @@ The [Messages API reference](https://platform.claude.com/docs/en/api/messages/cr
 | `output_tokens` | `output` |
 | `output_tokens_details.thinking_tokens` | `reasoning` |
 
-Reasoning is counted inside output. The reference calls `output_tokens` "the inclusive, authoritative total used for billing" and says `thinking_tokens` is "always ≤ `output_tokens`". When streaming, `thinking_tokens` arrives only on the final `message_delta` ([extended thinking](https://platform.claude.com/docs/en/build-with-claude/extended-thinking), as of November 2026), and the adapter reads it there. A response that reports cache writes without the TTL split counts them at the TTL the request asked for.
+Reasoning is counted inside output. The reference calls `output_tokens` "the inclusive, authoritative total used for billing" and says `thinking_tokens` is "always ≤ `output_tokens`". When streaming, `thinking_tokens` arrives only on the final `message_delta` ([extended thinking](https://platform.claude.com/docs/en/build-with-claude/extended-thinking), as of November 2026), and the adapter reads it there. A response that reports cache writes without the TTL split counts them at the TTL the request asked for. A stream that sends no usage at all has unreported usage. So does a finished reply whose `message_delta` carries no usage, because `message_start` reports only the first few output tokens and the final count arrives on `message_delta` ([streaming](https://platform.claude.com/docs/en/build-with-claude/streaming), as of November 2026).
 
 Responses carry no billed price, as of November 2026: the reference's `usage` object holds token counts only. The adapter therefore reports an unknown cost, and `createModel()` prices the usage from the catalog.
 
@@ -221,7 +221,7 @@ A schema strict mode cannot express goes out unchanged without `strict`. Three k
 | --- | --- | --- |
 | `maxTokensField` | `"max_completion_tokens"` | the server reads only `max_tokens` |
 | `systemRole` | `"system"` | the model wants the system prompt as a `developer` message |
-| `streamUsage` | `true` | the server rejects `stream_options`; its replies then report no usage |
+| `streamUsage` | `true` | the server rejects `stream_options`; its replies then report no usage, so their cost is unknown |
 | `strictTools` | `true` | the server rejects `strict` tools |
 | `temperature` | `true` | the model rejects `temperature`; a `temperature` you set then streams a `warning` instead |
 | `cacheBreakpoints` | `false` | the model takes explicit cache breakpoints, as OpenAI's do from `gpt-5.6` |
@@ -247,6 +247,8 @@ A chat completion's `usage` counts the whole prompt in `prompt_tokens`, with the
 
 Reasoning is counted inside output: `max_completion_tokens` bounds "visible output tokens and reasoning tokens" together, and the reference says rejected prediction tokens are, "like reasoning tokens", counted in the completion tokens for billing.
 
+A reply that ends without the usage chunk has unreported usage, so `createModel()` prices it as unknown. That happens when a server ignores `stream_options`, when `streamUsage` is off, or when a stream fails before the chunk arrives.
+
 Chat Completions writes only 30-minute cache entries, so every write counts under `"5m"`, the key for the short cache-write rate, and an OpenAI catalog entry stores its 30-minute rate there. Models before `gpt-5.6` add no cache-write charge, so for `gpt-5.4-mini` that rate is the uncached input rate.
 
 Responses carry no billed price, as of November 2026: the usage object holds token counts only. The adapter therefore reports an unknown cost, and `createModel()` prices the usage from the catalog.
@@ -267,9 +269,11 @@ Every adapter takes a `ProviderConfig` whose `apiKey` you pass in. The gateway n
 
 A call that fails before the model has streamed any content is retried twice by default. The first retry waits 2 seconds and the second waits 4, and each retry streams a `retry` event with the attempt number, the delay and the error. Each wait doubles and is capped at 60 seconds. Set `retries` to change the count, or to 0 to turn retries off.
 
+When the provider says how long to wait, the gateway waits at least that long, up to the same 60-second cap. Both adapters read the error response's `retry-after` header, in seconds or as an HTTP date counted from the response's `date` header. They also read `retry-after-ms`, in milliseconds, which the official TypeScript SDKs read first. The hint goes on the message as `error.retryAfterMs`. Before a retry, the gateway waits for the longer of its backoff and the hint. The `retry` event's `delayMs` shows that wait. Anthropic sends `retry-after` on some 429s ([rate limits](https://platform.claude.com/docs/en/api/rate-limits), as of November 2026), and OpenAI on 429s for a temporary rate limit and 503s for an overloaded model ([rate limits](https://developers.openai.com/api/docs/guides/rate-limits), as of November 2026). A hint never makes a `quota`, `overflow` or `fatal` error retryable.
+
 Three rules keep a retry from doing harm. First, once a content event has reached you, the gateway never retries, because a second attempt would replay text you have already seen. Second, only errors of kind `retryable` are retried, such as a rate limit or an overloaded server. A `quota` error, a context `overflow` or a `fatal` error ends the call at once, because waiting will not fix it. Third, aborting the signal during a wait ends the stream at once with `stopReason: "aborted"`.
 
-A failed attempt still costs tokens, so the final message's `usage` and `cost` add up every attempt, not only the last, and `lastAttemptUsage` keeps the last attempt's usage on its own. If any attempt's cost is unknown, the total is unknown too. An attempt whose stream threw reported no usage, so it adds no tokens, but its cost is unknown, because the request may have reached the provider and been billed before the stream failed.
+A failed attempt still costs tokens, so the final message's `usage` and `cost` add up every attempt, not only the last, and `lastAttemptUsage` keeps the last attempt's usage on its own. If any attempt's cost is unknown, the total is unknown too, and if any attempt's usage is unreported, the summed usage is unreported as well. An attempt whose stream threw reported no usage, so it adds no tokens, but its cost is unknown, because the request may have reached the provider and been billed before the stream failed.
 
 An adapter whose stream throws, for example on a dropped connection, is treated like one that ends with an error. A failed fetch, or a response body cut off mid-stream, is retried, and any other throw ends the call with a `fatal` error event, so an adapter's failure never makes `stream()` throw. A throwing `onRequest` hook runs inside the attempt, so it also ends the call with a `fatal` error. A middleware that throws runs outside the call, so its error makes `stream()` throw.
 
