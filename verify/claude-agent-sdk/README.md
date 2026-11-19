@@ -19,7 +19,7 @@ Some examples carry `// #region <name>` and `// #endregion` comments, which chan
 Both read the mock's request log through `examples/lib/mock-log.ts` and assert on what each request carried.
 
 - `08-deferred-tools.ts` shows that a tool's definition reaches the model only after the model calls `ToolSearch`. The default run sends three MCP tools by name only, then one full definition after the search. A second run sets `alwaysLoad: true` on the server and sends all three up front. The run leaves `ToolSearch` as the only built-in tool (`tools: ["ToolSearch"]`).
-- `09-skills.ts` writes two skills into a temp directory and enables one with `skills: ["lisbon-weather"]`. The first request lists that skill's name and description and nothing of its body. The body arrives in the `Skill` tool's result and then appears in every later request. The skill left out of `skills` never reaches the model. `settingSources: ["project"]` is required: without it the CLI lists no skill.
+- `09-skills.ts` writes two skills into a temp directory and enables one with `skills: ["lisbon-weather"]`. The first request lists that skill's name and description and nothing of its body. The body arrives in the `Skill` tool's result and then is in every later request. The skill left out of `skills` never reaches the model. `settingSources: ["project"]` is required: without it the CLI lists no skill.
 
 The mock chooses which tool to load and which skill to read, as a stand-in for the model's judgement, so these examples assert what the SDK sends and when, not that a model chooses well. Both carry `// #region` and `// book:note` markers for the book.
 

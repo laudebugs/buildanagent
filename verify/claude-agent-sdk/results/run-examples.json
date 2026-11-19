@@ -93,9 +93,9 @@
     "outcome": "ran",
     "patchedPlaceholders": false,
     "exit": 0,
-    "ms": 1361,
+    "ms": 586,
     "modelRequests": 2,
     "toolResults": 1,
-    "tail": "ok - every request offers only: Skill, DeferredToolPlaceholder\nok - the skill left out of `skills` never reached the model\nok - the first request lists the skill's name and description\nok - the first request does not carry the skill's body\nok - the model called the Skill tool\nok - after the call, the body appears in every request"
+    "tail": "ok - every request offers only: Skill, DeferredToolPlaceholder\nok - the skill left out of `skills` never reached the model\nok - the first request lists the skill's name and description\nok - the first request does not carry the skill's body\nok - the model called the Skill tool\nok - after the call, the body is in every request"
   }
 ]
