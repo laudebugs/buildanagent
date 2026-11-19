@@ -1,82 +1,82 @@
 [
   {
     "id": "01-hello-agent",
-    "file": "/Users/laudebugs/git/agent-speak-wt/u21/verify/openai-agents-sdk/examples/01-hello-agent.ts",
+    "file": "/home/user/agent-speak/verify/openai-agents-sdk/examples/01-hello-agent.ts",
     "outcome": "ran",
     "exit": 0,
-    "ms": 1838,
+    "ms": 14393,
     "modelCalls": 0,
     "tail": "ok - finalOutput holds the final text\nok - lastAgent is the agent that answered\nok - one model call for a text-only answer\nok - instructions reach the model as system instructions\nok - assertComplete() passes when every scripted step was consumed"
   },
   {
     "id": "02-function-tool",
-    "file": "/Users/laudebugs/git/agent-speak-wt/u21/verify/openai-agents-sdk/examples/02-function-tool.ts",
+    "file": "/home/user/agent-speak/verify/openai-agents-sdk/examples/02-function-tool.ts",
     "outcome": "ran",
     "exit": 0,
-    "ms": 1517,
+    "ms": 14315,
     "modelCalls": 0,
     "tail": "ok - execute() received the parsed arguments\nok - the tool is offered to the model\nok - the second request carries the tool result\nok - the final answer follows the tool result"
   },
   {
     "id": "03-handoff",
-    "file": "/Users/laudebugs/git/agent-speak-wt/u21/verify/openai-agents-sdk/examples/03-handoff.ts",
+    "file": "/home/user/agent-speak/verify/openai-agents-sdk/examples/03-handoff.ts",
     "outcome": "ran",
     "exit": 0,
-    "ms": 1519,
+    "ms": 14350,
     "modelCalls": 0,
     "tail": "ok - a handoff is a tool named transfer_to_<agent name, case kept>\nok - lastAgent is the specialist after the handoff\nok - the specialist's answer is the final output"
   },
   {
     "id": "04-guardrails",
-    "file": "/Users/laudebugs/git/agent-speak-wt/u21/verify/openai-agents-sdk/examples/04-guardrails.ts",
+    "file": "/home/user/agent-speak/verify/openai-agents-sdk/examples/04-guardrails.ts",
     "outcome": "ran",
     "exit": 0,
-    "ms": 1484,
+    "ms": 14374,
     "modelCalls": 0,
     "tail": "ok - a tripped input guardrail throws InputGuardrailTripwireTriggered\nok - with runInParallel: false the model is never called\nok - a tripped output guardrail throws OutputGuardrailTripwireTriggered"
   },
   {
     "id": "05-approval-resume",
-    "file": "/Users/laudebugs/git/agent-speak-wt/u21/verify/openai-agents-sdk/examples/05-approval-resume.ts",
+    "file": "/home/user/agent-speak/verify/openai-agents-sdk/examples/05-approval-resume.ts",
     "outcome": "ran",
     "exit": 0,
-    "ms": 2008,
+    "ms": 1801,
     "modelCalls": 0,
     "tail": "ok - the run pauses with one interruption\nok - the tool does not execute before approval\nok - after approve() and resume, the tool executes once\nok - the resumed run finishes\nok - after reject(), the tool never executes\nok - the model receives the rejection and still finishes"
   },
   {
     "id": "06-session",
-    "file": "/Users/laudebugs/git/agent-speak-wt/u21/verify/openai-agents-sdk/examples/06-session.ts",
+    "file": "/home/user/agent-speak/verify/openai-agents-sdk/examples/06-session.ts",
     "outcome": "ran",
     "exit": 0,
-    "ms": 1937,
+    "ms": 4320,
     "modelCalls": 0,
     "tail": "ok - the second request includes the first run's user message\nok - the second request includes the first run's answer\nok - the session stores both turns\nok - the second run answers"
   },
   {
     "id": "07-structured-output",
-    "file": "/Users/laudebugs/git/agent-speak-wt/u21/verify/openai-agents-sdk/examples/07-structured-output.ts",
+    "file": "/home/user/agent-speak/verify/openai-agents-sdk/examples/07-structured-output.ts",
     "outcome": "ran",
     "exit": 0,
-    "ms": 2004,
+    "ms": 3653,
     "modelCalls": 0,
     "tail": "ok - finalOutput is the parsed, typed object\nok - the model receives a JSON Schema output type\nok - output that fails the schema throws ModelBehaviorError"
   },
   {
     "id": "08-max-turns",
-    "file": "/Users/laudebugs/git/agent-speak-wt/u21/verify/openai-agents-sdk/examples/08-max-turns.ts",
+    "file": "/home/user/agent-speak/verify/openai-agents-sdk/examples/08-max-turns.ts",
     "outcome": "ran",
     "exit": 0,
-    "ms": 1740,
+    "ms": 3821,
     "modelCalls": 0,
     "tail": "ok - exceeding maxTurns throws MaxTurnsExceededError\nok - the error carries the run state\nok - the loop stops after one model call with maxTurns: 1"
   },
   {
     "id": "09-triage-agent",
-    "file": "/Users/laudebugs/git/agent-speak-wt/u21/verify/openai-agents-sdk/examples/09-triage-agent.ts",
+    "file": "/home/user/agent-speak/verify/openai-agents-sdk/examples/09-triage-agent.ts",
     "outcome": "ran",
     "exit": 0,
-    "ms": 780,
+    "ms": 3281,
     "modelCalls": 0,
     "tail": "ok - escalation pauses for approval\nok - lookup ran and the rejected escalation never did\nok - the run ends with a typed triage result\nok - the input guardrail blocks injection before any model call\ntriage: {\"category\":\"bug\",\"priority\":\"high\",\"summary\":\"Checkout returns 500.\"}"
   }
