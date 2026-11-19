@@ -207,4 +207,4 @@ Directory: the session scratchpad `u20/sources/`
 - voiceaiandvoiceagents-guide.html -> https://voiceaiandvoiceagents.com/
 - mdn-mediatrackconstraints.html -> https://developer.mozilla.org/en-US/docs/Web/API/MediaTrackConstraints
 
-Plain-text extracts used for grepping, made from the HTML above, are in the sibling folder `.../scratchpad/u20/txt/`.
+The fact-checker made tag-stripped plain-text copies of the HTML pages above to search them; anyone can remake them from the URLs listed.
