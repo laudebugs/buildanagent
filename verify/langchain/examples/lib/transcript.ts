@@ -14,6 +14,7 @@ import {
   record,
   recordCallers,
   recording,
+  toolCallIds,
 } from "../../../../scripts/transcripts/events.ts";
 
 type Block = Record<string, unknown> & { type?: string };
@@ -112,7 +113,8 @@ function attach(): void {
       if (derived && typeof answer.content === "string") derivedTexts.add(answer.content);
       const message = messageOf(answer);
       const finish = message.parts.some((part) => part.type === "tool-call") ? "tool-calls" : "stop";
-      record({ kind: "response", model, message, finish });
+      // The answer is the queued one: its tool-call ids are the script's, or the fake model's own counter.
+      record({ kind: "response", model, message, finish, scripted: toolCallIds(message) });
     }
     return result;
   };

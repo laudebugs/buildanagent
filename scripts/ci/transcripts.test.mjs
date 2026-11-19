@@ -2,7 +2,7 @@
 // `node --test scripts/ci/*.test.mjs`. A committed transcript must be well formed, written exactly as the writer
 // writes it, and free of anything that ties it to one machine or one run.
 import assert from "node:assert/strict";
-import { execFileSync } from "node:child_process";
+import { execFileSync, spawnSync } from "node:child_process";
 import { existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { homedir, hostname, tmpdir, userInfo } from "node:os";
 import { join } from "node:path";
@@ -70,7 +70,15 @@ for (const file of committed) {
     assert.ok(existsSync(join(root, transcript.file)), `${transcript.file} does not exist`);
     assert.equal(transcript.pin, pinOf(join(root, harness)), "the pin differs from the harness's package.json");
     assert.equal(transcript.mock, mockOf(join(root, harness)), "the mock layer's version differs from package.json");
-    for (const pattern of [/\/Users\//, /\/home\//, /\/private\//, /\/var\/folders\//, /\/tmp\//, /[A-Z]:\\/]) {
+    // A temporary directory a run makes has mkdtemp's six random characters; an example's own "/tmp/x" does not.
+    for (const pattern of [
+      /\/Users\//,
+      /\/home\//,
+      /\/private\//,
+      /\/var\/folders\//,
+      /\/tmp\/[\w.]+-\w{6}\b/,
+      /[A-Z]:\\/,
+    ]) {
       assert.doesNotMatch(text, pattern);
     }
     for (const pattern of machinePatterns()) assert.doesNotMatch(text, pattern);
@@ -83,51 +91,126 @@ test("normalise() replaces machine paths and the SDK's generated ids, times and 
   const generated = "toolu_01ABCdefGHIjklMNO";
   const uuid = "0f8fad5b-d9cb-469f-a165-70867728950e";
   const text = (value) => ({ type: "text", text: value });
-  const response = (parts) => ({
-    kind: "response",
-    model: "model-1",
-    message: { role: "assistant", parts },
-    finish: "stop",
-  });
   const out = normalise(
     [
-      response([
-        text(`${cwd}/notes.txt, ${cwd}-other, ${home}/.config and ${root}README.md`),
-        text("the runner ran at 2026-11-19T10:00:00Z on build host runner-1"),
-        {
-          type: "tool-call",
-          id: generated,
-          name: "t",
-          input: { customerId: "cust_0123456789abcdef", date: "2026-11-19" },
+      {
+        kind: "response",
+        model: "model-1",
+        message: {
+          role: "assistant",
+          parts: [
+            text(`${cwd}/notes.txt, ${cwd}-other, ${home}/.config and ${root}README.md`),
+            text("the runner ran at 2026-11-19T10:00:00Z on build host runner-1"),
+            { type: "tool-call", id: "call_handoff", name: "t", input: { customerId: "cust_0123456789abcdef" } },
+            { type: "tool-call", id: "call_weather_1", name: "t", input: { date: "2026-11-19" } },
+            { type: "tool-call", id: generated, name: "t", input: {} },
+            {
+              type: "other",
+              kind: "sdk",
+              value: { timestamp: 1763546400000, durationMs: 42, run: uuid, at: "2026-11-19T10:00:00Z" },
+            },
+          ],
         },
-        {
-          type: "tool-result",
-          id: "call_1",
-          name: "t",
-          output: { id: "order-000123456789", at: "2026-11-19T10:00:00Z" },
-        },
-        {
-          type: "other",
-          kind: "sdk",
-          value: { timestamp: 1763546400000, durationMs: 42, run: uuid, at: "2026-11-19T10:00:00Z" },
-        },
-        { type: "tool-call", id: "short", name: "t", input: {} },
-      ]),
+        finish: "stop",
+        scripted: ["call_handoff", "call_weather_1"],
+      },
+      {
+        kind: "request",
+        model: "model-1",
+        repeated: 0,
+        messages: [
+          {
+            role: "tool",
+            parts: [{ type: "tool-result", id: generated, name: "t", output: { id: "order-000123456789" } }],
+          },
+          { role: "tool", parts: [{ type: "tool-result", id: "c1", name: "t", output: "short, but not scripted" }] },
+        ],
+        tools: [],
+      },
     ],
     { cwd, home },
   );
   assert.deepEqual(out[0].message.parts, [
-    text("<cwd>/notes.txt, <tmp>/example-cwd-other, <home>/.config and <repo>/README.md"),
+    text(`<cwd>/notes.txt, ${cwd}-other, <home>/.config and <repo>/README.md`),
     text("the runner ran at 2026-11-19T10:00:00Z on build host runner-1"),
-    { type: "tool-call", id: "<id-1>", name: "t", input: { customerId: "cust_0123456789abcdef", date: "2026-11-19" } },
-    { type: "tool-result", id: "call_1", name: "t", output: { id: "order-000123456789", at: "2026-11-19T10:00:00Z" } },
+    { type: "tool-call", id: "call_handoff", name: "t", input: { customerId: "cust_0123456789abcdef" } },
+    { type: "tool-call", id: "call_weather_1", name: "t", input: { date: "2026-11-19" } },
+    { type: "tool-call", id: "<id-1>", name: "t", input: {} },
     {
       type: "other",
       kind: "sdk",
       value: { timestamp: "<time>", durationMs: "<duration>", run: "<uuid-1>", at: "<time>" },
     },
-    { type: "tool-call", id: "short", name: "t", input: {} },
   ]);
+  assert.equal("scripted" in out[0], false, "the scripted list is not written");
+  assert.deepEqual(
+    out[1].messages.map((m) => m.parts[0].id),
+    ["<id-1>", "<id-2>"],
+    "a call's result keeps its call's placeholder, and an unscripted id is replaced whatever its length",
+  );
+});
+
+test("normalise() leaves a scripted /tmp path alone and replaces only the run's own directories", () => {
+  const before = process.env.TMPDIR;
+  process.env.TMPDIR = "/tmp";
+  try {
+    const out = normalise(
+      [
+        {
+          kind: "response",
+          model: "model-1",
+          message: {
+            role: "assistant",
+            parts: [{ type: "text", text: "wrote /tmp/report.txt from /tmp/run-AbC123/in" }],
+          },
+          finish: "stop",
+        },
+      ],
+      { cwd: "/tmp/run-AbC123", home: "/tmp/home-XyZ789" },
+    );
+    assert.equal(out[0].message.parts[0].text, "wrote /tmp/report.txt from <cwd>/in");
+  } finally {
+    if (before === undefined) delete process.env.TMPDIR;
+    else process.env.TMPDIR = before;
+  }
+});
+
+/** Runs a throwaway example under the recorder, from a temporary directory, and returns the events it recorded. */
+function recordedEvents(source) {
+  const dir = mkdtempSync(join(tmpdir(), "transcript-probe-"));
+  try {
+    const example = join(dir, "probe.ts");
+    writeFileSync(example, source);
+    const raw = join(dir, "events.json");
+    spawnSync(
+      process.execPath,
+      ["--import", "tsx", "--import", join(root, "scripts/transcripts/record.mjs"), example],
+      {
+        cwd: root,
+        env: { PATH: process.env.PATH, TRANSCRIPT_FILE: raw, NODE_NO_WARNINGS: "1" },
+        encoding: "utf8",
+      },
+    );
+    return JSON.parse(readFileSync(raw, "utf8")).events;
+  } finally {
+    rmSync(dir, { recursive: true, force: true });
+  }
+}
+
+test("the recorder counts only the checks that check() reports, not text an example prints or throws", () => {
+  const check = JSON.stringify(join(root, "verify/vercel-ai-sdk/examples/lib/check.ts"));
+  const events = recordedEvents(
+    `import { check } from ${check};\n` +
+      'console.log("ok - fake");\n' +
+      'check(true, "real");\n' +
+      'check(false, "fails");\n',
+  );
+  assert.deepEqual(events, [
+    { kind: "check", line: 3, message: "real", pass: true },
+    { kind: "check", line: 4, message: "fails", pass: false },
+  ]);
+  const forged = recordedEvents('console.log("ok - fake");\nthrow new Error("ASSERTION FAILED: forged");\n');
+  assert.deepEqual(forged, []);
 });
 
 test("compactRequests() keeps only what is new since the same model's previous request", () => {

@@ -75,9 +75,10 @@ const escapeRegExp = (text) => text.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
 /**
  * The machine's directories a run can leak into an event, each with its placeholder, as patterns that match only a
  * whole path: one that starts a string or follows a space, quote or similar, and ends at a `/` or where a path ends.
- * Longer paths come first, so a temporary directory inside the home directory is replaced as a whole. Both spellings
- * of each path count, because macOS reaches its temporary directory through a symbolic link. User and host names are
- * left alone outside these paths, because an example's own text can hold the same words.
+ * They are the run's own temporary working and home directories, the repository and the user's home directory, longer
+ * ones first. Both spellings of each path count, because macOS reaches its temporary directory through a symbolic
+ * link. The system's temporary directory itself is left alone, because on Linux it is `/tmp`, which an example's
+ * own text can name, and so are user and host names outside these paths.
  */
 function machinePaths({ cwd, home }) {
   const pairs = [];
@@ -88,7 +89,6 @@ function machinePaths({ cwd, home }) {
   add(cwd, "<cwd>");
   add(home, "<home>");
   add(REPO_ROOT, "<repo>");
-  add(tmpdir(), "<tmp>");
   add(homedir(), "<home>");
   return pairs
     .filter(([path]) => path.length > 1)
@@ -101,16 +101,15 @@ const ISO_TIME = /\b\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(?:\.\d+)?(?:Z|[+-]\d{2}:
 /** Keys whose values are clock readings or how long something took, in what an SDK adds to a part. */
 const TIME_KEY = /^(?:timestamp|createdAt|created_at|updatedAt|startedAt|endedAt|completedAt|expiresAt)$/;
 const DURATION_KEY = /(?:^ms$|Ms$|_ms$|^duration|Duration$|^elapsed|^latency)/;
-/** An id an example wrote itself, such as `call_1` or `approval-2`, which stays as it is. */
-const SCRIPTED_ID = /^[A-Za-z]+[_-]?\d{1,6}$/;
 
 /**
  * Returns a copy of the events that two runs on any two machines write identically. Three rules apply, each only
- * where it belongs. First, a machine directory anywhere becomes `<cwd>`, `<home>`, `<repo>` or `<tmp>`. Second, the
- * id of a tool call or a tool result becomes `<id-N>`, numbered by first appearance so a call still matches its
- * result, unless it is at most eleven characters long or shaped like `call_1`, as ids an example scripts are. Third,
- * inside an `other` part, which holds what an SDK adds, timestamps become `<time>`, durations `<duration>` and UUIDs
- * `<uuid-N>`. Text, tool inputs and tool outputs keep their dates and ids, because the example wrote them.
+ * where it belongs. First, a machine directory anywhere becomes `<cwd>`, `<home>` or `<repo>`. Second, the id of a
+ * tool call or a tool result stays as written when the mock's script chose it, as each response's `scripted` list
+ * says; any other id, one the SDK generated, becomes `<id-N>`, numbered by first appearance so a call still matches
+ * its result. Third, inside an `other` part, which holds what an SDK adds, timestamps become `<time>`, durations
+ * `<duration>` and UUIDs `<uuid-N>`. Text, tool inputs and tool outputs keep their dates and ids, because the example
+ * wrote them. The `scripted` lists themselves are not written.
  */
 export function normalise(events, context) {
   const paths = machinePaths(context);
@@ -121,8 +120,10 @@ export function normalise(events, context) {
     return names.get(original);
   };
   const machine = (text) => paths.reduce((out, [pattern, to]) => out.replace(pattern, to), text);
-  const id = (value) =>
-    typeof value === "string" && value.length > 11 && !SCRIPTED_ID.test(value) ? placeholder("id", value) : value;
+  const scripted = new Set(
+    events.flatMap((event) => (event.kind === "response" && Array.isArray(event.scripted) ? event.scripted : [])),
+  );
+  const id = (value) => (typeof value === "string" && !scripted.has(value) ? placeholder("id", value) : value);
   // Generic values keep everything but machine paths; SDK values also lose clock readings, durations and UUIDs.
   const walk = (value, generated, key) => {
     if (Array.isArray(value)) return value.map((item) => walk(item, generated, undefined));
@@ -146,7 +147,10 @@ export function normalise(events, context) {
   const message = (m) => (m && Array.isArray(m.parts) ? { ...m, parts: m.parts.map(part) } : walk(m, false));
   return events.map((event) => {
     if (event.kind === "request") return { ...walk(event, false), messages: event.messages.map(message) };
-    if (event.kind === "response") return { ...walk(event, false), message: message(event.message) };
+    if (event.kind === "response") {
+      const { scripted: _scripted, ...rest } = event;
+      return { ...walk(rest, false), message: message(event.message) };
+    }
     return walk(event, false);
   });
 }

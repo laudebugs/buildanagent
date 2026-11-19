@@ -11,6 +11,7 @@ import {
   type Part,
   record,
   recording,
+  toolCallIds,
 } from "../../../../scripts/transcripts/events.ts";
 
 function partOf(part: GeminiPart): Part {
@@ -64,7 +65,9 @@ export function recordedLlm(llm: { prototype: { generateContentAsync: Generate }
     for await (const response of generate.call(this, request, stream)) {
       const message = response.content ? messageOf(response.content) : { role: "assistant" as const, parts: [] };
       const finish = message.parts.some((part) => part.type === "tool-call") ? "tool-calls" : "stop";
-      record({ kind: "response", model, message: { ...message, role: "assistant" }, finish });
+      // The scripted model answers with exactly what its script returns, function-call ids included.
+      const answer: Message = { ...message, role: "assistant" };
+      record({ kind: "response", model, message: answer, finish, scripted: toolCallIds(answer) });
       yield response;
     }
   };

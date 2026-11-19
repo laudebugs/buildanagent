@@ -28,7 +28,17 @@ export interface Message {
  */
 export type TranscriptEvent =
   | { kind: "request"; model: string; messages: Message[]; tools: string[] }
-  | { kind: "response"; model: string; message: Message; finish: string };
+  | {
+      kind: "response";
+      model: string;
+      message: Message;
+      finish: string;
+      /**
+       * The tool-call ids in this answer that the example's script chose, which the writer keeps as written; any other
+       * id, one the SDK generated, becomes a placeholder. The writer does not write this list.
+       */
+      scripted?: string[];
+    };
 
 /** The recorder that `record.mjs` installs when the runner preloads it. */
 interface Recorder {
@@ -65,6 +75,11 @@ export function recordCallers(proto: object, methods: readonly string[]): void {
       return atCaller(() => method.apply(this, args));
     };
   }
+}
+
+/** The ids of the tool calls in a scripted answer, for a response's `scripted` list. */
+export function toolCallIds(message: Message): string[] {
+  return message.parts.flatMap((part) => (part.type === "tool-call" ? [part.id] : []));
 }
 
 /** A tool-call input as the model wrote it: JSON text is parsed, anything else is kept. */

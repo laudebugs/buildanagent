@@ -6,17 +6,22 @@
 //
 // The recorder also records each check() itself, so no listed helper carries recorder code: every harness's check()
 // prints "ok - <message>" when it passes and throws "ASSERTION FAILED: <message>" when it fails. The recorder reads
-// that line on its way to the console and that error on its way out of the process, and changes neither.
+// that line on its way to the console and that error on its way out of the process, and changes neither. It counts
+// them only when the call stack shows they came from check() in the harness's examples/lib/, so an example cannot
+// forge a check by printing the same text.
 //
 // The mock layer finds the recorder at globalThis[Symbol.for("buildanagent.transcript")]; recording only reads what
 // the mock already holds, so it cannot change what an example does or whether its checks pass.
 import { AsyncLocalStorage } from "node:async_hooks";
-import { writeFileSync } from "node:fs";
+import { realpathSync, writeFileSync } from "node:fs";
 import { resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 
 const out = process.env.TRANSCRIPT_FILE;
 const example = process.argv[1] ? resolve(process.argv[1]) : undefined;
+// A stack names a file by its real path, which differs from the argument when a directory on the way is a symbolic
+// link, as macOS's temporary directory is.
+const exampleReal = example === undefined ? undefined : realpathSync(example);
 
 /** A copy of `value` that JSON can hold: no functions, cycles, bigints or binary data, and `undefined` dropped. */
 function plain(value, seen = new WeakSet()) {
@@ -53,7 +58,7 @@ function lineIn(stack) {
     const match = FRAME.exec(frame.trim());
     if (!match) continue;
     const path = match[1].startsWith("file://") ? fileURLToPath(match[1]) : match[1];
-    if (path === example) return Number(match[2]);
+    if (path === example || path === exampleReal) return Number(match[2]);
   }
   return undefined;
 }
@@ -69,6 +74,16 @@ function exampleLine() {
 
 const CHECK_PASSED = "ok - ";
 const CHECK_FAILED = "ASSERTION FAILED: ";
+/** A stack frame in a harness's own `check()`, in `examples/lib/`: only that function's lines count as checks. */
+const CHECK_FRAME = /^at check \((?:file:\/\/)?\/.*\/examples\/lib\/[^/]+\.ts:\d+:\d+\)$/;
+
+/**
+ * Whether the frame `depth` below the top of `stack` is a harness's `check()`. An example that prints "ok - …" or
+ * throws "ASSERTION FAILED: …" itself is not that function, so it records no check.
+ */
+function fromCheck(stack, depth) {
+  return CHECK_FRAME.test((stack.split("\n")[depth] ?? "").trim());
+}
 
 if (out) {
   const events = [];
@@ -89,14 +104,17 @@ if (out) {
   };
   const log = console.log;
   console.log = function (...args) {
-    if (args.length === 1 && typeof args[0] === "string" && args[0].startsWith(CHECK_PASSED)) {
+    // The stack's frames: the error line, this function, then whoever called console.log.
+    const passed = args.length === 1 && typeof args[0] === "string" && args[0].startsWith(CHECK_PASSED);
+    if (passed && fromCheck(new Error().stack ?? "", 2)) {
       push({ kind: "check", message: args[0].slice(CHECK_PASSED.length), pass: true }, exampleLine());
     }
     return log.apply(this, args);
   };
   process.on("uncaughtExceptionMonitor", (error) => {
     const message = error instanceof Error ? error.message : "";
-    if (message.startsWith(CHECK_FAILED)) {
+    // The error's frames: its message, then the function that threw it.
+    if (message.startsWith(CHECK_FAILED) && fromCheck(error.stack ?? "", 1)) {
       push({ kind: "check", message: message.slice(CHECK_FAILED.length), pass: false }, lineIn(error.stack ?? ""));
     }
   });

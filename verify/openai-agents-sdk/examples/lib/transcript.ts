@@ -11,6 +11,7 @@ import {
   parsed,
   record,
   recording,
+  toolCallIds,
 } from "../../../../scripts/transcripts/events.ts";
 
 type Item = Record<string, unknown> & { type?: string; role?: string };
@@ -79,12 +80,9 @@ function recordRequest(model: object, request: ModelRequest): void {
 function recordResponse(model: object, output: readonly unknown[]): void {
   const messages = (output as Item[]).map(message);
   const finish = messages.some((m) => m.parts.some((part) => part.type === "tool-call")) ? "tool-calls" : "stop";
-  record({
-    kind: "response",
-    model: nameOf(model),
-    message: { role: "assistant", parts: messages.flatMap((m) => m.parts) },
-    finish,
-  });
+  const answer: Message = { role: "assistant", parts: messages.flatMap((m) => m.parts) };
+  // ScriptedModel answers with exactly the items its script holds, call ids included.
+  record({ kind: "response", model: nameOf(model), message: answer, finish, scripted: toolCallIds(answer) });
 }
 
 /** Wraps ScriptedModel's two entry points; a renamed one fails here instead of recording nothing. */

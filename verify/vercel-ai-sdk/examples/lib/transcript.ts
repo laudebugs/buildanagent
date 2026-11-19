@@ -17,6 +17,7 @@ import {
   parsed,
   record,
   recording,
+  toolCallIds,
 } from "../../../../scripts/transcripts/events.ts";
 
 /** A tool result's value: the AI SDK wraps it as `{ type: "json" | "text" | …, value }`. */
@@ -82,7 +83,8 @@ function recordRequest(model: object, options: LanguageModelV4CallOptions): void
 
 function recordResponse(model: object, content: LanguageModelV4Content[], finish: string): void {
   const message: Message = { role: "assistant", parts: content.map(contentPart) };
-  record({ kind: "response", model: nameOf(model), message, finish });
+  // The scripted model answers with exactly what its script holds, ids included.
+  record({ kind: "response", model: nameOf(model), message, finish, scripted: toolCallIds(message) });
 }
 
 /** Wraps a mock's generate function so it records each request and its answer. */
@@ -121,24 +123,28 @@ function recordedStream(model: object, stream: Stream): Stream {
 /**
  * MockLanguageModelV4's constructor assigns `doGenerate` and `doStream` to the instance. A setter of the same name on
  * the prototype receives each assignment and stores the wrapped function on the instance instead, so the class and
- * the code that builds a mock stay as ai/test ships them. If the constructor stops assigning them, attach() fails.
+ * the code that builds a mock stay as ai/test ships them. If a new mock's methods are not the wrappers, attach() fails.
  */
 function attach(): void {
   const proto = MockLanguageModelV4.prototype as unknown as Record<string, unknown>;
-  const wrappers: Record<string, (model: object, fn: Generate & Stream) => unknown> = {
+  const wrappers = new WeakSet<object>();
+  const wraps: Record<string, (model: object, fn: Generate & Stream) => object> = {
     doGenerate: recordedGenerate,
     doStream: recordedStream,
   };
-  for (const [name, wrap] of Object.entries(wrappers)) {
+  for (const [name, wrap] of Object.entries(wraps)) {
     Object.defineProperty(proto, name, {
       configurable: true,
       set(this: object, value: Generate & Stream) {
-        Object.defineProperty(this, name, { value: wrap(this, value), writable: true, configurable: true });
+        const wrapped = wrap(this, value);
+        wrappers.add(wrapped);
+        Object.defineProperty(this, name, { value: wrapped, writable: true, configurable: true });
       },
     });
   }
+  // A new mock must hold the wrapped functions themselves, which only the setters above make.
   const probe = new MockLanguageModelV4();
-  if (!Object.hasOwn(probe, "doGenerate") || !Object.hasOwn(probe, "doStream")) {
+  if (!wrappers.has(probe.doGenerate) || !wrappers.has(probe.doStream)) {
     throw new Error("transcript recorder: MockLanguageModelV4 no longer assigns doGenerate and doStream");
   }
 }

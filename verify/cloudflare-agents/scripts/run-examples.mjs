@@ -15,6 +15,7 @@
 //   - Our examples (examples/*.ts): each exports `test(env, h)`, which asserts behavior; pass = ok.
 // Usage: node scripts/run-examples.mjs [dir=extracted] [--only id1,id2]
 import { spawn } from "node:child_process";
+import { randomUUID } from "node:crypto";
 import { existsSync } from "node:fs";
 import { mkdir, mkdtemp, readdir, readFile, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
@@ -34,15 +35,15 @@ const MARKER = "[verify-harness] mock model call";
 const TRANSCRIPT_LINE = "__TRANSCRIPT__";
 
 /**
- * Writes the transcript of one of our examples from workerd's output: the recorder's lines and each check's "ok - "
- * line, in the order workerd printed them, then the failed check, if one ended the run. workerd keeps no stack that
+ * Writes the transcript of one of our examples from workerd's output: the recorder's lines, which carry this run's
+ * marker, in the order workerd printed them, then the failed check, if one ended the run. workerd keeps no stack that
  * names the example's lines, so these events carry none.
  */
-async function writeWorkerTranscript(t, out, error, cwd) {
+async function writeWorkerTranscript(t, out, error, cwd, nonce) {
   const events = [];
+  const prefix = `${TRANSCRIPT_LINE}${nonce}:`;
   for (const line of out.split("\n")) {
-    if (line.startsWith(TRANSCRIPT_LINE)) events.push(JSON.parse(line.slice(TRANSCRIPT_LINE.length)));
-    else if (line.startsWith("ok - ")) events.push({ kind: "check", message: line.slice(5), pass: true });
+    if (line.startsWith(prefix)) events.push(JSON.parse(line.slice(prefix.length)));
   }
   const failed = /ASSERTION FAILED: (.*)/.exec(error ?? "")?.[1];
   if (failed !== undefined) events.push({ kind: "check", message: failed, pass: false });
@@ -162,7 +163,10 @@ async function runOne(t) {
   const work = join(WORK, t.id);
   await mkdir(work, { recursive: true });
   const started = Date.now();
-  const b = await bundle(resolve(t.path), work);
+  // Our own examples record a transcript, under a marker that is new for every run (examples/lib/transcript.ts).
+  const nonce = randomUUID();
+  const define = ownExamples ? { __TRANSCRIPT_NONCE__: JSON.stringify(nonce) } : {};
+  const b = await bundle(resolve(t.path), work, { define });
   const base = { id: t.id, page: t.page, line: t.line, durableObjects };
   if (!b.ok) {
     const missing = b.error.match(/Could not resolve "([^"]+)"/)?.[1];
@@ -187,7 +191,7 @@ async function runOne(t) {
   const modelCalls = run.out.split(MARKER).length - 1;
   const line = run.out.split("\n").find((l) => l.startsWith("__RESULT__"));
   const r = line ? JSON.parse(line.slice("__RESULT__".length)) : null;
-  if (ownExamples && !run.timedOut) await writeWorkerTranscript(t, run.out, r?.error, work);
+  if (ownExamples && !run.timedOut) await writeWorkerTranscript(t, run.out, r?.error, work, nonce);
   const tail = run.out
     .split("\n")
     .filter((l) => l && !l.startsWith("__RESULT__") && !l.includes(MARKER) && !l.startsWith(TRANSCRIPT_LINE))

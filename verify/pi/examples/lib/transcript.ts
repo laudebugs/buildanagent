@@ -11,6 +11,7 @@ import {
   record,
   recordCallers,
   recording,
+  toolCallIds,
 } from "../../../../scripts/transcripts/events.ts";
 
 type Block = { type: string; text?: string; thinking?: string; id?: string; name?: string; arguments?: unknown };
@@ -92,7 +93,10 @@ export function recordedSteps(steps: FauxResponseStep[]): FauxResponseStep[] {
     record({ kind: "request", model, messages: context.messages.map(messageOf), tools: toolsOf(context.messages) });
     const answer: AssistantMessage = typeof step === "function" ? await step(context, options, state, fauxModel) : step;
     const message = messageOf(answer);
-    record({ kind: "response", model, message, finish: answer.stopReason });
+    // A scripted step's ids are the script's, except those pi-ai's fauxToolCall() made up when the step gave none: its
+    // randomId() writes them as "<prefix>:<Date.now()>:<random>", so they differ on every run.
+    const scripted = toolCallIds(message).filter((id) => !/^[a-z]+:\d+:[a-z0-9]+$/.test(id));
+    record({ kind: "response", model, message, finish: answer.stopReason, scripted });
     return answer;
   });
 }
