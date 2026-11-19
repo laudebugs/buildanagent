@@ -24,6 +24,12 @@
     "sources": ["anthropic-building-effective-agents"]
   },
   {
+    "id": "mock-model",
+    "term": "mock model",
+    "definition": "A stand-in for a model provider that returns answers written in advance, so code that calls a model runs offline, gives the same result on every run and costs nothing.",
+    "sources": ["ai-sdk-testing"]
+  },
+  {
     "id": "harness",
     "term": "harness",
     "definition": "The program around a model that turns it into a working agent: it runs the loop, calls the tools, keeps the session log and enforces the agent's limits. Pi, OpenCode, Claude Code and Codex are harnesses.",

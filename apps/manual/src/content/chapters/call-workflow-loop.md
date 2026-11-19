@@ -2,8 +2,8 @@
 title: "Use the least autonomy that works: a call, a workflow, then a loop"
 summary: Three support requests need three shapes of program, one model call, a fixed workflow and an agent loop, and one question picks between them. Who decides the next step, your code or the model?
 opening: scenario
-sources: [anthropic-building-effective-agents, ai-sdk-generate-text, adk-sequential-agents, anthropic-how-tool-use-works, pi-how-pi-works, openai-practical-guide-to-building-agents]
-glossary: [agent, workflow, agent-loop, stop-condition, harness]
+sources: [anthropic-building-effective-agents, ai-sdk-generate-text, adk-sequential-agents, anthropic-how-tool-use-works, pi-how-pi-works, openai-practical-guide-to-building-agents, ai-sdk-testing]
+glossary: [agent, workflow, agent-loop, stop-condition, harness, mock-model]
 switchTo: [B11]
 ---
 
@@ -122,6 +122,16 @@ The summary request is a call, the draft-and-review request is a workflow, and t
 Each step up the list buys flexibility with control, and the sources say so plainly. Anthropic notes that agentic systems "often trade latency and cost for better task performance", and that "the autonomous nature of agents means higher costs, and the potential for compounding errors" [@anthropic-building-effective-agents]. OpenAI's guide to building agents draws the same line from the other side. Agents earn their place in "workflows where traditional deterministic and rule-based approaches fall short", and where they do not, "a deterministic solution may suffice" [@openai-practical-guide-to-building-agents]. A loop that answers one order-status question in two model calls may take six on a harder order, and a wrong turn in its third step carries into its fourth.
 
 The shapes also combine, and we recommend combining them. A real order-status feature need not be a loop from end to end. Your code can check who is asking and load their orders before any model call, run one capped loop for the part where the next lookup depends on the last, and send the reply itself once the loop ends. Everything that must happen the same way every time stays in code, and the model decides only the steps that no one could write down in advance. That split is the least autonomy that works, and it is the habit this book builds on from here.
+
+## How these examples run without a key
+
+Every listing in this book runs against a mock model, and so can you, with no API key and no bill. A pilot practises an engine fire in :analogy[a flight simulator]{#flight-simulator}, where the fire breaks out exactly when the instructor scripted it and nobody gets hurt. A mock model plays the same part for code: it stands in for the provider and plays back answers written in advance. The AI SDK's testing guide names the problem it solves, "Testing language models can be challenging, because they are non-deterministic and calling them is slow and expensive", and the SDK ships mock models for it, `MockLanguageModelV4` among them [@ai-sdk-testing].
+
+::listing[The scripted mock behind this chapter's AI SDK listings]{#scripted-mock file="verify/vercel-ai-sdk/examples/lib/check.ts" region="scripted"}
+
+[[lst:scripted-mock]] wraps that mock model in a helper of our own. `scripted` takes a list of turns, each either text or a set of tool calls, plays them back in order, and records every request the code sends in `requests`. When the loop asks for a turn the script lacks, the helper throws, so an example fails if its loop makes more model calls than you planned. The other harnesses follow the same plan with their own parts: the ADK listing's `ScriptedLlm`{checked=row-68} subclasses ADK's model class, because ADK 2.5.0 ships no test model, and Pi's listing runs on pi-ai's own faux provider. Each of these three harnesses also records every example's run, and CI fails when a recording no longer matches its code, so the replays in this chapter show what the code really does today.
+
+The analogy breaks where a simulator is at its best. A flight simulator models the aircraft and answers whatever the pilot does, but a scripted mock can give only the answers someone wrote for it in advance. A passing example therefore proves that your code handles the answers you scripted; it cannot prove that a real model will give them. [[ch:testing-offline-and-a-first-agent]] covers what such tests can and cannot show.
 
 ## Exercises
 

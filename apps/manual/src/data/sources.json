@@ -109,5 +109,15 @@
     "asOf": "November 2026",
     "version": "v1.5.2",
     "verifiedIn": "apps/manual/fact-checks/call-workflow-loop.md"
+  },
+  {
+    "id": "ai-sdk-testing",
+    "title": "Testing",
+    "publisher": "AI SDK documentation",
+    "url": "https://ai-sdk.dev/docs/ai-sdk-core/testing",
+    "kind": "docs",
+    "asOf": "November 2026",
+    "version": "ai@7.0.162",
+    "verifiedIn": "apps/manual/fact-checks/call-workflow-loop.md"
   }
 ]
