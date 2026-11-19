@@ -5,7 +5,7 @@
 | Field | Value |
 | --- | --- |
 | ID | `E3` |
-| Status | `ongoing` |
+| Status | `done` |
 | Plan | [Close SDK gaps §4](../../plans/close-sdk-gaps.md#4-round-e-and-its-todos) |
 | Round / milestone | Round E (close the SDK gaps), M5e |
 | Depends on | [E1](../done/E1-safety-core-outcomes.md) |
@@ -20,7 +20,7 @@ Make every approval on the two verified third-party SDKs signed, fail closed on 
 - [build-sdk.md, D5](../../plans/build-sdk.md#d5-a-pluggable-signer-with-key-ids-an-ephemeral-default-and-no-unsigned-resume-accepted-with-hd5): the signer contract this todo implements, and the fields it signs.
 - [ADR 0043](../../decisions/0043-standalone-safety-core.md) (accepted): why the signer lives in this package.
 - [ADR 0035](../../decisions/0035-read-only-key-store.md): a read-only `KeyStore` backs the key ring on serverless hosts.
-- [N13](N13-signed-approvals.md): the harness's acceptance criteria, which this todo mirrors for the third-party SDKs.
+- [N13](../ready/N13-signed-approvals.md): the harness's acceptance criteria, which this todo mirrors for the third-party SDKs.
 - [Cloudflare reference §9](../../reference/cloudflare-agents/guide.md#9-tool-approval-reuses-the-ai-sdks-needsapproval-and-the-client-answers-over-the-chat-protocol) and [Vercel AI SDK reference §7](../../reference/vercel-ai-sdk/guide.md#7-approval-is-a-call-level-policy-not-a-flag-on-the-tool): each SDK's approval gate, and Vercel's `experimental_toolApprovalSecret`, without which a client can forge approvals.
 
 ## Scope
@@ -71,21 +71,21 @@ Both SDKs give the adapter one hook. `ai` 7.0.162 re-runs the call's `toolApprov
 
 ## Tasks
 
-- [ ] Write `hmacSigner()`, `ephemeralSigner()`, the fixed-key test signer and the pending record over E1's `canonicalInputHash()`, with key rotation. B18's `testSigner()` re-exports the fixed-key test signer.
-- [ ] Write the `ai` adapter over `toolApproval`, and test that it runs again on resume before `execute` (`validateApprovedToolApprovals`, `ai` 7.0.162).
-- [ ] Use the same adapter in a Cloudflare `AIChatAgent` test agent answered through the `cf_agent_tool_approval` frame, tested in workerd. A tool that keeps the deprecated `needsApproval` gets the same wrapping.
-- [ ] Write a cross-process test: pause in one process, resolve in another with only the key ring shared.
+- [x] Write `hmacSigner()`, `ephemeralSigner()`, the fixed-key test signer and the pending record over E1's `canonicalInputHash()`, with key rotation. B18's `testSigner()` re-exports the fixed-key test signer.
+- [x] Write the `ai` adapter over `toolApproval`, and test that it runs again on resume before `execute` (`validateApprovedToolApprovals`, `ai` 7.0.162).
+- [x] Use the same adapter in a Cloudflare `AIChatAgent` test agent answered through the `cf_agent_tool_approval` frame, tested in workerd. A tool that keeps the deprecated `needsApproval` gets the same wrapping.
+- [x] Write a cross-process test: pause in one process, resolve in another with only the key ring shared.
 
 ## Acceptance criteria
 
-- [ ] On both SDKs, an approval response with a tampered signature, an unknown key id, a changed input or an unknown request id runs nothing (an `execute` spy records zero calls), and the model or client sees a denial it can answer with a fresh request.
-- [ ] On both SDKs, a policy change between pause and resume makes `recheck` deny, and the model receives a `not_applied` outcome; the tool's `execute` is never called (a spy records zero calls).
-- [ ] A pause signed in one process verifies in another that loads the same key ring and has no other shared state.
-- [ ] Rotating from key `a` to key `b` still verifies a pause signed with `a` while `a` is in the ring.
-- [ ] `ephemeralSigner()` signs and verifies within one process, and a second process cannot verify its signatures.
-- [ ] The `SignedPendingRequest` and `Resolution` types match build-sdk.md §3.3 field for field, checked by a type test.
-- [ ] Payloads signed by this package and by B15's tests for the same fields are byte-identical (checked once B15 exists; until then, against a fixture of D5's field order).
-- [ ] `pnpm check`, `pnpm typecheck` and `pnpm test` pass offline from the repo root.
+- [x] On both SDKs, an approval response with a tampered signature, an unknown key id, a changed input or an unknown request id runs nothing (an `execute` spy records zero calls), and the model or client sees a denial it can answer with a fresh request.
+- [x] On both SDKs, a policy change between pause and resume makes `recheck` deny, and the model receives a `not_applied` outcome; the tool's `execute` is never called (a spy records zero calls).
+- [x] A pause signed in one process verifies in another that loads the same key ring and has no other shared state.
+- [x] Rotating from key `a` to key `b` still verifies a pause signed with `a` while `a` is in the ring.
+- [x] `ephemeralSigner()` signs and verifies within one process, and a second process cannot verify its signatures.
+- [x] The `SignedPendingRequest` and `Resolution` types match build-sdk.md §3.3 field for field, checked by a type test.
+- [x] Payloads signed by this package and by B15's tests for the same fields are byte-identical (checked once B15 exists; until then, against a fixture of D5's field order).
+- [x] `pnpm check`, `pnpm typecheck` and `pnpm test` pass offline from the repo root.
 
 ## Tests
 
@@ -106,5 +106,32 @@ History: plan review 2 (2026-11-19) moved `canonicalInputHash()` to E1, added `e
 
 - [x] Claimed: the first commit moved this file `ready/` → `ongoing/` (Status `ongoing`)
 - [ ] Prose drafted with `/anthropic-skills:writing` and reviewed with `/anthropic-skills:writing-review`, with the fixes applied and changed claims re-checked
-- [ ] `pnpm check`, `pnpm typecheck` and `pnpm test` pass locally; pushed after each meaningful step
-- [ ] This file moved `ongoing/` → `done/` (Status `done`), and the plan's todo table updated
+- [x] `pnpm check`, `pnpm typecheck` and `pnpm test` pass locally; pushed after each meaningful step
+- [x] This file moved `ongoing/` → `done/` (Status `done`), and the plan's todo table updated
+
+## Outcome
+
+The root entry of `@buildanagent/agent-safety` now exports the `ApprovalSigner` interface, `hmacSigner()`, `ephemeralSigner()`, `testSigner()` (key id `test-fixed-key`), `signPending()`, `verifyResolution()`, `pendingPayload()`, the `SignedPendingRequest`, `Resolution` and `Recheck` types, `PendingStore` with `memoryPendingStore()`, and `KeyStore` with `parseKeyRing()` and `signerFromKeyStore()`. `./ai` adds `signedToolApproval()` and `settleDeniedApprovals()`. The third-party claims are logged in [the E3 fact-check](../../plans/reviews/fact-check-signed-approvals.md). The writing review runs after the code-review rounds, so its box stays open until then.
+
+Each criterion and the test that covers it:
+
+- Tampered signature, unknown key id, changed input and unknown request run nothing, and the model reads a `not_applied` denial: `test/ai-approval.test.ts` for `generateText` and `streamText`, and `test/cloudflare-approval.test.ts` in workerd, each with an `execute` spy. Both suites also show the model answering a denial with a fresh request that runs once approved.
+- A policy change makes `recheck` deny with a `not_applied` outcome: the same two files.
+- Cross-process: `test/cross-process.test.ts` pauses in one Node process and resumes in another that shares only the key ring, passed as a secret string; an `ephemeralSigner()` pause fails closed there.
+- Rotation: `test/signing.test.ts` and the last test in `test/ai-approval.test.ts`.
+- Type match: `test/pending-types.test.ts` compares each type with §3.3's text.
+- Byte-identical payloads: `test/fixtures/signed-pending.json` pins the payload and signature, and `test/signing.test.ts` checks the signature against `node:crypto`'s HMAC. B15 imports the same functions, so its payloads match by construction.
+
+Judgement calls:
+
+- **The payload** is the JSON array `["buildanagent.pending.v1", id, kind, callId, tool, inputHash, policyVersion ?? null]` in UTF-8. The tag is not a seventh field; it keeps a pending request's signature from verifying as another record's, such as E4a's plan record, under a shared key. `question`, `reason` and `createdAt` are unsigned, as D5 lists.
+- **Signatures** are HMAC-SHA-256 as unpadded base64url. `verify()` refuses non-canonical base64url, recomputes the MAC and compares it in constant time. Keys must be at least 32 bytes, are copied, and stay in non-extractable `CryptoKey`s; errors name key ids only.
+- **`ephemeralSigner()` is one key per process**, not per call, so the SDK's default can resume a pause in the process that made it.
+- **The fixed-key test signer is in the root export**, as the scope says, with a published key and a warning. A `./testing` subpath would keep it out of production imports; that is for review.
+- **A pending request is used once.** `PendingStore` has `put()` and `take()`, so a replayed approval finds nothing, and a forged attempt also burns the real request, which fails closed.
+- **Resume is detected from the history**: the call's approval request appears in the messages and the last message approves it. The adapter then re-runs the policy, denies on `denied`, and calls `recheck`. Every failure, including a thrown error, returns `denied`.
+- **`needsApproval` still applies.** A generic `toolApproval` function makes `ai` skip `needsApproval`, so the adapter applies it when the policy has no answer.
+- **A Cloudflare finding.** `agents` 0.33.0 drops the `tool-output-denied` chunk for a part already `approval-responded`, so the client never sees the denial and the next model step failed with `AI_MissingToolResultsError`. `settleDeniedApprovals()` in `./ai` marks those parts denied before the next turn. Reporting it upstream is a follow-up.
+- **`src/` reads the bare `crypto` global**, the same object as `globalThis.crypto`, because the Workers types declare it as a `const` and the worker type-checks `src/` against them. The SDK's vendored `errors.ts` and `hash.ts` follow, with an empty changeset; the SDK vendors nothing new, because B15 needs the signer files only once the safety package publishes or B15 vendors them itself.
+- **The workerd test** bundles a Worker with esbuild and runs it through Miniflare, reusing `verify/cloudflare-agents`' pins; `test/workerd/tsconfig.json` type-checks it against the Workers types. E7 can grow this into the whole suite.
+- **The README** explains the persistent key ring for serverless hosts in plain words, without the ADR number that the todo's "Docs to update" names, because the docs guideline keeps decision ids out of reader text.

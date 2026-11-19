@@ -21,4 +21,4 @@ The owner wants the SDK gaps closed and tested before anything big is built. The
 
 ## Notes
 
-- 2026-11-19 (owner decision): the package also owns the `SignedPendingRequest` and `Resolution` types, which this record did not list, and our SDK re-exports them. Plan review 2 proposed it ([§6, action 2](../plans/reviews/plan-review-2.md#6-eleven-owner-actions-are-still-open-and-only-one-a-test-project-for-n50-touches-waves-15)), and [E3](../todos/ongoing/E3-signed-approvals-third-party.md) builds them. The decision above is otherwise unchanged.
+- 2026-11-19 (owner decision): the package also owns the `SignedPendingRequest` and `Resolution` types, which this record did not list, and our SDK re-exports them. Plan review 2 proposed it ([§6, action 2](../plans/reviews/plan-review-2.md#6-eleven-owner-actions-are-still-open-and-only-one-a-test-project-for-n50-touches-waves-15)), and [E3](../todos/done/E3-signed-approvals-third-party.md) builds them. The decision above is otherwise unchanged.
