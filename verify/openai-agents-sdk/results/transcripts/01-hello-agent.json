@@ -1,0 +1,81 @@
+{
+  "format": 1,
+  "example": "01-hello-agent",
+  "file": "verify/openai-agents-sdk/examples/01-hello-agent.ts",
+  "harness": "verify/openai-agents-sdk",
+  "pin": "@openai/agents@0.21.0",
+  "events": [
+    {
+      "kind": "request",
+      "line": 9,
+      "model": "model-1",
+      "repeated": 0,
+      "messages": [
+        {
+          "role": "system",
+          "parts": [
+            {
+              "type": "text",
+              "text": "Greet the user in one sentence."
+            }
+          ]
+        },
+        {
+          "role": "user",
+          "parts": [
+            {
+              "type": "text",
+              "text": "Say hello."
+            }
+          ]
+        }
+      ],
+      "tools": []
+    },
+    {
+      "kind": "response",
+      "line": 9,
+      "model": "model-1",
+      "message": {
+        "role": "assistant",
+        "parts": [
+          {
+            "type": "text",
+            "text": "Hello from the agent."
+          }
+        ]
+      },
+      "finish": "stop"
+    },
+    {
+      "kind": "check",
+      "line": 11,
+      "message": "finalOutput holds the final text",
+      "pass": true
+    },
+    {
+      "kind": "check",
+      "line": 12,
+      "message": "lastAgent is the agent that answered",
+      "pass": true
+    },
+    {
+      "kind": "check",
+      "line": 13,
+      "message": "one model call for a text-only answer",
+      "pass": true
+    },
+    {
+      "kind": "check",
+      "line": 14,
+      "message": "instructions reach the model as system instructions",
+      "pass": true
+    },
+    {
+      "kind": "check",
+      "line": 19,
+      "message": "assertComplete() passes when every scripted step was consumed",
+      "pass": true
+    }
+  ]
+}

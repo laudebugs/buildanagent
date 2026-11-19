@@ -16,13 +16,14 @@ import {
   SessionManager,
   SettingsManager,
 } from "@earendil-works/pi-coding-agent";
+import { record, recordedSteps } from "./transcript.ts";
 
 export { fauxAssistantMessage, fauxText, fauxToolCall };
 
 /** Create a session whose model replies with the scripted steps, in order. */
 export async function fauxSession(steps: FauxResponseStep[], options: Partial<CreateAgentSessionOptions> = {}) {
   const faux = fauxProvider();
-  faux.setResponses(steps);
+  faux.setResponses(recordedSteps(steps));
   // authPath and modelsPath default to files under ~/.pi/agent; keep both out of the run.
   const modelRuntime = await ModelRuntime.create({
     refreshOnCreate: false,
@@ -41,6 +42,7 @@ export async function fauxSession(steps: FauxResponseStep[], options: Partial<Cr
 }
 
 export function check(cond: unknown, msg: string): asserts cond {
+  record({ kind: "check", message: msg, pass: Boolean(cond) });
   if (!cond) throw new Error(`ASSERTION FAILED: ${msg}`);
   console.log(`ok - ${msg}`);
 }

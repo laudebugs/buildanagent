@@ -1,0 +1,108 @@
+{
+  "format": 1,
+  "example": "06-session",
+  "file": "verify/openai-agents-sdk/examples/06-session.ts",
+  "harness": "verify/openai-agents-sdk",
+  "pin": "@openai/agents@0.21.0",
+  "events": [
+    {
+      "kind": "request",
+      "line": 14,
+      "model": "model-1",
+      "repeated": 0,
+      "messages": [
+        {
+          "role": "user",
+          "parts": [
+            {
+              "type": "text",
+              "text": "Remember the codeword PELICAN."
+            }
+          ]
+        }
+      ],
+      "tools": []
+    },
+    {
+      "kind": "response",
+      "line": 14,
+      "model": "model-1",
+      "message": {
+        "role": "assistant",
+        "parts": [
+          {
+            "type": "text",
+            "text": "Noted: PELICAN."
+          }
+        ]
+      },
+      "finish": "stop"
+    },
+    {
+      "kind": "request",
+      "line": 15,
+      "model": "model-1",
+      "repeated": 1,
+      "messages": [
+        {
+          "role": "assistant",
+          "parts": [
+            {
+              "type": "text",
+              "text": "Noted: PELICAN."
+            }
+          ]
+        },
+        {
+          "role": "user",
+          "parts": [
+            {
+              "type": "text",
+              "text": "What was the codeword?"
+            }
+          ]
+        }
+      ],
+      "tools": []
+    },
+    {
+      "kind": "response",
+      "line": 15,
+      "model": "model-1",
+      "message": {
+        "role": "assistant",
+        "parts": [
+          {
+            "type": "text",
+            "text": "The codeword was PELICAN."
+          }
+        ]
+      },
+      "finish": "stop"
+    },
+    {
+      "kind": "check",
+      "line": 19,
+      "message": "the second request includes the first run's user message",
+      "pass": true
+    },
+    {
+      "kind": "check",
+      "line": 20,
+      "message": "the second request includes the first run's answer",
+      "pass": true
+    },
+    {
+      "kind": "check",
+      "line": 22,
+      "message": "the session stores both turns",
+      "pass": true
+    },
+    {
+      "kind": "check",
+      "line": 23,
+      "message": "the second run answers",
+      "pass": true
+    }
+  ]
+}

@@ -1,0 +1,244 @@
+{
+  "format": 1,
+  "example": "03-human-in-the-loop",
+  "file": "verify/langchain/examples/03-human-in-the-loop.ts",
+  "harness": "verify/langchain",
+  "pin": "langchain@1.6.1",
+  "events": [
+    {
+      "kind": "request",
+      "model": "model-1",
+      "repeated": 0,
+      "messages": [
+        {
+          "role": "user",
+          "parts": [
+            {
+              "type": "text",
+              "text": "Delete old records"
+            }
+          ]
+        }
+      ],
+      "tools": [
+        "execute_sql"
+      ]
+    },
+    {
+      "kind": "response",
+      "model": "model-1",
+      "message": {
+        "role": "assistant",
+        "parts": [
+          {
+            "type": "text",
+            "text": "Delete old records"
+          },
+          {
+            "type": "tool-call",
+            "id": "call_sql",
+            "name": "execute_sql",
+            "input": {
+              "query": "DELETE FROM old"
+            }
+          }
+        ]
+      },
+      "finish": "tool-calls"
+    },
+    {
+      "kind": "check",
+      "line": 37,
+      "message": "approve: the run interrupts with the execute_sql action request",
+      "pass": true
+    },
+    {
+      "kind": "check",
+      "line": 38,
+      "message": "approve: the tool has not run before the decision",
+      "pass": true
+    },
+    {
+      "kind": "request",
+      "model": "model-1",
+      "repeated": 1,
+      "messages": [
+        {
+          "role": "assistant",
+          "parts": [
+            {
+              "type": "text",
+              "text": "Delete old records"
+            },
+            {
+              "type": "tool-call",
+              "id": "call_sql",
+              "name": "execute_sql",
+              "input": {
+                "query": "DELETE FROM old"
+              }
+            }
+          ]
+        },
+        {
+          "role": "tool",
+          "parts": [
+            {
+              "type": "tool-result",
+              "id": "call_sql",
+              "name": "execute_sql",
+              "output": "3 rows deleted"
+            }
+          ]
+        }
+      ],
+      "tools": [
+        "execute_sql"
+      ]
+    },
+    {
+      "kind": "response",
+      "model": "model-1",
+      "message": {
+        "role": "assistant",
+        "parts": [
+          {
+            "type": "text",
+            "text": "Done."
+          }
+        ]
+      },
+      "finish": "stop"
+    },
+    {
+      "kind": "check",
+      "line": 46,
+      "message": "approve: the tool runs exactly once after resuming",
+      "pass": true
+    },
+    {
+      "kind": "check",
+      "line": 47,
+      "message": "approve: the model then answers",
+      "pass": true
+    },
+    {
+      "kind": "request",
+      "model": "model-2",
+      "repeated": 0,
+      "messages": [
+        {
+          "role": "user",
+          "parts": [
+            {
+              "type": "text",
+              "text": "Delete old records"
+            }
+          ]
+        }
+      ],
+      "tools": [
+        "execute_sql"
+      ]
+    },
+    {
+      "kind": "response",
+      "model": "model-2",
+      "message": {
+        "role": "assistant",
+        "parts": [
+          {
+            "type": "text",
+            "text": "Delete old records"
+          },
+          {
+            "type": "tool-call",
+            "id": "call_sql",
+            "name": "execute_sql",
+            "input": {
+              "query": "DELETE FROM old"
+            }
+          }
+        ]
+      },
+      "finish": "tool-calls"
+    },
+    {
+      "kind": "check",
+      "line": 37,
+      "message": "reject: the run interrupts with the execute_sql action request",
+      "pass": true
+    },
+    {
+      "kind": "check",
+      "line": 38,
+      "message": "reject: the tool has not run before the decision",
+      "pass": true
+    },
+    {
+      "kind": "request",
+      "model": "model-2",
+      "repeated": 1,
+      "messages": [
+        {
+          "role": "assistant",
+          "parts": [
+            {
+              "type": "text",
+              "text": "Delete old records"
+            },
+            {
+              "type": "tool-call",
+              "id": "call_sql",
+              "name": "execute_sql",
+              "input": {
+                "query": "DELETE FROM old"
+              }
+            }
+          ]
+        },
+        {
+          "role": "tool",
+          "parts": [
+            {
+              "type": "tool-result",
+              "id": "call_sql",
+              "name": "execute_sql",
+              "output": "User rejected the tool call for `execute_sql` with id call_sql",
+              "error": true
+            }
+          ]
+        }
+      ],
+      "tools": [
+        "execute_sql"
+      ]
+    },
+    {
+      "kind": "response",
+      "model": "model-2",
+      "message": {
+        "role": "assistant",
+        "parts": [
+          {
+            "type": "text",
+            "text": "Done."
+          }
+        ]
+      },
+      "finish": "stop"
+    },
+    {
+      "kind": "check",
+      "line": 51,
+      "message": "reject: the tool never runs",
+      "pass": true
+    },
+    {
+      "kind": "check",
+      "line": 53,
+      "message": "reject: the model receives a tool message about the rejection",
+      "pass": true
+    }
+  ]
+}

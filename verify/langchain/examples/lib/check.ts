@@ -1,7 +1,9 @@
 // Shared helpers for the verified LangChain examples.
 import type { BaseMessage } from "@langchain/core/messages";
+import { record } from "./transcript.ts";
 
 export function check(cond: unknown, msg: string): asserts cond {
+  record({ kind: "check", message: msg, pass: Boolean(cond) });
   if (!cond) throw new Error(`ASSERTION FAILED: ${msg}`);
   console.log(`ok - ${msg}`);
 }

@@ -1,0 +1,152 @@
+{
+  "format": 1,
+  "example": "03-tool-selection",
+  "file": "verify/pi/examples/03-tool-selection.ts",
+  "harness": "verify/pi",
+  "pin": "@earendil-works/pi-coding-agent@1.5.2",
+  "events": [
+    {
+      "kind": "check",
+      "line": 7,
+      "message": "tools: [...] selects a read-only set",
+      "pass": true
+    },
+    {
+      "kind": "check",
+      "line": 15,
+      "message": "excludeTools removes tools from the defaults",
+      "pass": true
+    },
+    {
+      "kind": "check",
+      "line": 23,
+      "message": "noTools: \"builtin\" leaves no built-in tools",
+      "pass": true
+    },
+    {
+      "kind": "request",
+      "model": "model-4",
+      "repeated": 0,
+      "messages": [
+        {
+          "role": "system",
+          "parts": [
+            {
+              "type": "text",
+              "text": ""
+            },
+            {
+              "type": "other",
+              "kind": "sections",
+              "value": [
+                "preamble",
+                "tools",
+                "rules",
+                "docs",
+                "project_context",
+                "cwd"
+              ]
+            }
+          ]
+        },
+        {
+          "role": "user",
+          "parts": [
+            {
+              "type": "text",
+              "text": "List the files."
+            }
+          ]
+        }
+      ],
+      "tools": [
+        "read"
+      ]
+    },
+    {
+      "kind": "response",
+      "model": "model-4",
+      "message": {
+        "role": "assistant",
+        "parts": [
+          {
+            "type": "tool-call",
+            "id": "<id-1>",
+            "name": "ls",
+            "input": {
+              "path": "."
+            }
+          }
+        ]
+      },
+      "finish": "toolUse"
+    },
+    {
+      "kind": "request",
+      "model": "model-4",
+      "repeated": 2,
+      "messages": [
+        {
+          "role": "assistant",
+          "parts": [
+            {
+              "type": "tool-call",
+              "id": "<id-1>",
+              "name": "ls",
+              "input": {
+                "path": "."
+              }
+            }
+          ]
+        },
+        {
+          "role": "tool",
+          "parts": [
+            {
+              "type": "tool-result",
+              "id": "<id-1>",
+              "name": "ls",
+              "output": "Tool ls not found",
+              "error": true
+            }
+          ]
+        }
+      ],
+      "tools": [
+        "read"
+      ]
+    },
+    {
+      "kind": "response",
+      "model": "model-4",
+      "message": {
+        "role": "assistant",
+        "parts": [
+          {
+            "type": "text",
+            "text": "ls is unavailable; stopping."
+          }
+        ]
+      },
+      "finish": "stop"
+    },
+    {
+      "kind": "check",
+      "line": 39,
+      "message": "calling an inactive tool yields an error tool result",
+      "pass": true
+    },
+    {
+      "kind": "check",
+      "line": 40,
+      "message": "the error says the tool was not found",
+      "pass": true
+    },
+    {
+      "kind": "check",
+      "line": 41,
+      "message": "the loop continues to another model request",
+      "pass": true
+    }
+  ]
+}

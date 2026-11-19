@@ -1,0 +1,199 @@
+{
+  "format": 1,
+  "example": "08-streaming",
+  "file": "verify/langchain/examples/08-streaming.ts",
+  "harness": "verify/langchain",
+  "pin": "langchain@1.6.1",
+  "events": [
+    {
+      "kind": "request",
+      "model": "model-1",
+      "repeated": 0,
+      "messages": [
+        {
+          "role": "user",
+          "parts": [
+            {
+              "type": "text",
+              "text": "Find it"
+            }
+          ]
+        }
+      ],
+      "tools": [
+        "lookup"
+      ]
+    },
+    {
+      "kind": "response",
+      "model": "model-1",
+      "message": {
+        "role": "assistant",
+        "parts": [
+          {
+            "type": "text",
+            "text": "Find it"
+          },
+          {
+            "type": "tool-call",
+            "id": "call_l",
+            "name": "lookup",
+            "input": {}
+          }
+        ]
+      },
+      "finish": "tool-calls"
+    },
+    {
+      "kind": "request",
+      "model": "model-1",
+      "repeated": 1,
+      "messages": [
+        {
+          "role": "assistant",
+          "parts": [
+            {
+              "type": "text",
+              "text": "Find it"
+            },
+            {
+              "type": "tool-call",
+              "id": "call_l",
+              "name": "lookup",
+              "input": {}
+            }
+          ]
+        },
+        {
+          "role": "tool",
+          "parts": [
+            {
+              "type": "tool-result",
+              "id": "call_l",
+              "name": "lookup",
+              "output": "found"
+            }
+          ]
+        }
+      ],
+      "tools": [
+        "lookup"
+      ]
+    },
+    {
+      "kind": "response",
+      "model": "model-1",
+      "message": {
+        "role": "assistant",
+        "parts": [
+          {
+            "type": "text",
+            "text": "Here it is."
+          }
+        ]
+      },
+      "finish": "stop"
+    },
+    {
+      "kind": "check",
+      "line": 24,
+      "message": "\"updates\" yields one chunk per step: model_request, tools, model_request",
+      "pass": true
+    },
+    {
+      "kind": "request",
+      "model": "model-2",
+      "repeated": 0,
+      "messages": [
+        {
+          "role": "user",
+          "parts": [
+            {
+              "type": "text",
+              "text": "Find it"
+            }
+          ]
+        }
+      ],
+      "tools": [
+        "lookup"
+      ]
+    },
+    {
+      "kind": "response",
+      "model": "model-2",
+      "message": {
+        "role": "assistant",
+        "parts": [
+          {
+            "type": "text",
+            "text": "Find it"
+          },
+          {
+            "type": "tool-call",
+            "id": "call_l",
+            "name": "lookup",
+            "input": {}
+          }
+        ]
+      },
+      "finish": "tool-calls"
+    },
+    {
+      "kind": "request",
+      "model": "model-2",
+      "repeated": 1,
+      "messages": [
+        {
+          "role": "assistant",
+          "parts": [
+            {
+              "type": "text",
+              "text": "Find it"
+            },
+            {
+              "type": "tool-call",
+              "id": "call_l",
+              "name": "lookup",
+              "input": {}
+            }
+          ]
+        },
+        {
+          "role": "tool",
+          "parts": [
+            {
+              "type": "tool-result",
+              "id": "call_l",
+              "name": "lookup",
+              "output": "found"
+            }
+          ]
+        }
+      ],
+      "tools": [
+        "lookup"
+      ]
+    },
+    {
+      "kind": "response",
+      "model": "model-2",
+      "message": {
+        "role": "assistant",
+        "parts": [
+          {
+            "type": "text",
+            "text": "Here it is."
+          }
+        ]
+      },
+      "finish": "stop"
+    },
+    {
+      "kind": "check",
+      "line": 37,
+      "message": "\"values\" yields growing full states: 1, 2, 3, 4",
+      "pass": true
+    }
+  ]
+}

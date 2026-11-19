@@ -1,0 +1,120 @@
+{
+  "format": 1,
+  "example": "07-middleware",
+  "file": "verify/langchain/examples/07-middleware.ts",
+  "harness": "verify/langchain",
+  "pin": "langchain@1.6.1",
+  "events": [
+    {
+      "kind": "request",
+      "model": "model-1",
+      "repeated": 0,
+      "messages": [
+        {
+          "role": "user",
+          "parts": [
+            {
+              "type": "text",
+              "text": "Restart the api"
+            }
+          ]
+        }
+      ],
+      "tools": [
+        "restart_service"
+      ]
+    },
+    {
+      "kind": "response",
+      "model": "model-1",
+      "message": {
+        "role": "assistant",
+        "parts": [
+          {
+            "type": "text",
+            "text": "Restart the api"
+          },
+          {
+            "type": "tool-call",
+            "id": "call_r",
+            "name": "restart_service",
+            "input": {
+              "service": "api"
+            }
+          }
+        ]
+      },
+      "finish": "tool-calls"
+    },
+    {
+      "kind": "request",
+      "model": "model-1",
+      "repeated": 1,
+      "messages": [
+        {
+          "role": "assistant",
+          "parts": [
+            {
+              "type": "text",
+              "text": "Restart the api"
+            },
+            {
+              "type": "tool-call",
+              "id": "call_r",
+              "name": "restart_service",
+              "input": {
+                "service": "api"
+              }
+            }
+          ]
+        },
+        {
+          "role": "tool",
+          "parts": [
+            {
+              "type": "tool-result",
+              "id": "call_r",
+              "name": "",
+              "output": "Blocked: change freeze"
+            }
+          ]
+        }
+      ],
+      "tools": [
+        "restart_service"
+      ]
+    },
+    {
+      "kind": "response",
+      "model": "model-1",
+      "message": {
+        "role": "assistant",
+        "parts": [
+          {
+            "type": "text",
+            "text": "I could not restart it."
+          }
+        ]
+      },
+      "finish": "stop"
+    },
+    {
+      "kind": "check",
+      "line": 43,
+      "message": "wrapToolCall can block a tool by returning its own ToolMessage",
+      "pass": true
+    },
+    {
+      "kind": "check",
+      "line": 45,
+      "message": "the model receives the middleware's message",
+      "pass": true
+    },
+    {
+      "kind": "check",
+      "line": 46,
+      "message": "hooks run in loop order: beforeModel, wrapToolCall:restart_service, beforeModel, afterAgent",
+      "pass": true
+    }
+  ]
+}

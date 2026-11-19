@@ -1,0 +1,114 @@
+{
+  "format": 1,
+  "example": "09-long-term-store",
+  "file": "verify/langchain/examples/09-long-term-store.ts",
+  "harness": "verify/langchain",
+  "pin": "langchain@1.6.1",
+  "events": [
+    {
+      "kind": "request",
+      "model": "model-1",
+      "repeated": 0,
+      "messages": [
+        {
+          "role": "user",
+          "parts": [
+            {
+              "type": "text",
+              "text": "I like tea"
+            }
+          ]
+        }
+      ],
+      "tools": [
+        "remember"
+      ]
+    },
+    {
+      "kind": "response",
+      "model": "model-1",
+      "message": {
+        "role": "assistant",
+        "parts": [
+          {
+            "type": "text",
+            "text": "I like tea"
+          },
+          {
+            "type": "tool-call",
+            "id": "call_m",
+            "name": "remember",
+            "input": {
+              "fact": "likes tea"
+            }
+          }
+        ]
+      },
+      "finish": "tool-calls"
+    },
+    {
+      "kind": "request",
+      "model": "model-1",
+      "repeated": 1,
+      "messages": [
+        {
+          "role": "assistant",
+          "parts": [
+            {
+              "type": "text",
+              "text": "I like tea"
+            },
+            {
+              "type": "tool-call",
+              "id": "call_m",
+              "name": "remember",
+              "input": {
+                "fact": "likes tea"
+              }
+            }
+          ]
+        },
+        {
+          "role": "tool",
+          "parts": [
+            {
+              "type": "tool-result",
+              "id": "call_m",
+              "name": "remember",
+              "output": "stored: likes tea"
+            }
+          ]
+        }
+      ],
+      "tools": [
+        "remember"
+      ]
+    },
+    {
+      "kind": "response",
+      "model": "model-1",
+      "message": {
+        "role": "assistant",
+        "parts": [
+          {
+            "type": "text",
+            "text": "Noted."
+          }
+        ]
+      },
+      "finish": "stop"
+    },
+    {
+      "kind": "check",
+      "line": 29,
+      "message": "runtime.store.put() wrote to the store passed to createAgent",
+      "pass": true
+    },
+    {
+      "kind": "check",
+      "line": 30,
+      "message": "the runtime store is LangGraph's store, which has no mget()",
+      "pass": true
+    }
+  ]
+}

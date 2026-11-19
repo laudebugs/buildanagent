@@ -9,6 +9,7 @@ import { existsSync } from "node:fs";
 import { cp, mkdir, mkdtemp, readdir, readFile, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join, resolve } from "node:path";
+import { recorderArgs, writeTranscript } from "../../../scripts/transcripts/write.mjs";
 
 const dir = resolve(process.argv[2] && !process.argv[2].startsWith("--") ? process.argv[2] : "extracted");
 const ownExamples = !dir.endsWith("extracted");
@@ -75,6 +76,12 @@ async function runOne(t) {
   };
   const args = ["--import", TSX];
   if (!ownExamples) args.push("--import", join(root, "scripts/faux-preload.mjs"));
+  // Our own examples also record their model exchange and checks as a transcript (results/transcripts/).
+  const raw = ownExamples ? join(await mkdtemp(join(tmpdir(), "transcript-")), "events.json") : undefined;
+  if (raw) {
+    args.push(...recorderArgs());
+    env.TRANSCRIPT_FILE = raw;
+  }
   args.push(resolve(t.file));
   const started = Date.now();
   const result = await new Promise((done) => {
@@ -93,6 +100,7 @@ async function runOne(t) {
   });
   const fauxCalls = (result.out.match(/Faux model:/g) ?? []).length;
   const blocked = /network disabled \(blocked ([^)]+)\)/.exec(result.out)?.[1];
+  if (raw) writeTranscript({ harnessDir: root, exampleFile: resolve(t.file), rawFile: raw, cwd, home: env.HOME });
   // "ran" = exit 0 and the faux model answered; "ran-no-model" = exit 0 without a model reply.
   // Our own examples assert their behaviour, so exit 0 is a pass.
   const outcome = result.timedOut

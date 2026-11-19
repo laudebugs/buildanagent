@@ -1,0 +1,122 @@
+{
+  "format": 1,
+  "example": "02-function-tool",
+  "file": "verify/openai-agents-sdk/examples/02-function-tool.ts",
+  "harness": "verify/openai-agents-sdk",
+  "pin": "@openai/agents@0.21.0",
+  "events": [
+    {
+      "kind": "request",
+      "line": 26,
+      "model": "model-1",
+      "repeated": 0,
+      "messages": [
+        {
+          "role": "user",
+          "parts": [
+            {
+              "type": "text",
+              "text": "Weather in Lisbon?"
+            }
+          ]
+        }
+      ],
+      "tools": [
+        "get_weather"
+      ]
+    },
+    {
+      "kind": "response",
+      "line": 26,
+      "model": "model-1",
+      "message": {
+        "role": "assistant",
+        "parts": [
+          {
+            "type": "tool-call",
+            "id": "call_1",
+            "name": "get_weather",
+            "input": {
+              "city": "Lisbon"
+            }
+          }
+        ]
+      },
+      "finish": "tool-calls"
+    },
+    {
+      "kind": "request",
+      "line": 26,
+      "model": "model-1",
+      "repeated": 1,
+      "messages": [
+        {
+          "role": "assistant",
+          "parts": [
+            {
+              "type": "tool-call",
+              "id": "call_1",
+              "name": "get_weather",
+              "input": {
+                "city": "Lisbon"
+              }
+            }
+          ]
+        },
+        {
+          "role": "tool",
+          "parts": [
+            {
+              "type": "tool-result",
+              "id": "call_1",
+              "name": "get_weather",
+              "output": "Lisbon: sunny"
+            }
+          ]
+        }
+      ],
+      "tools": [
+        "get_weather"
+      ]
+    },
+    {
+      "kind": "response",
+      "line": 26,
+      "model": "model-1",
+      "message": {
+        "role": "assistant",
+        "parts": [
+          {
+            "type": "text",
+            "text": "It is sunny in Lisbon."
+          }
+        ]
+      },
+      "finish": "stop"
+    },
+    {
+      "kind": "check",
+      "line": 29,
+      "message": "execute() received the parsed arguments",
+      "pass": true
+    },
+    {
+      "kind": "check",
+      "line": 30,
+      "message": "the tool is offered to the model",
+      "pass": true
+    },
+    {
+      "kind": "check",
+      "line": 35,
+      "message": "the second request carries the tool result",
+      "pass": true
+    },
+    {
+      "kind": "check",
+      "line": 39,
+      "message": "the final answer follows the tool result",
+      "pass": true
+    }
+  ]
+}

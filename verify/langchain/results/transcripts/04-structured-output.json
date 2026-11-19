@@ -1,0 +1,63 @@
+{
+  "format": 1,
+  "example": "04-structured-output",
+  "file": "verify/langchain/examples/04-structured-output.ts",
+  "harness": "verify/langchain",
+  "pin": "langchain@1.6.1",
+  "events": [
+    {
+      "kind": "request",
+      "model": "model-1",
+      "repeated": 0,
+      "messages": [
+        {
+          "role": "user",
+          "parts": [
+            {
+              "type": "text",
+              "text": "I was charged twice!"
+            }
+          ]
+        }
+      ],
+      "tools": [
+        "Triage"
+      ]
+    },
+    {
+      "kind": "response",
+      "model": "model-1",
+      "message": {
+        "role": "assistant",
+        "parts": [
+          {
+            "type": "text",
+            "text": "I was charged twice!"
+          },
+          {
+            "type": "tool-call",
+            "id": "fake_tc_1",
+            "name": "Triage",
+            "input": {
+              "category": "billing",
+              "urgent": true
+            }
+          }
+        ]
+      },
+      "finish": "tool-calls"
+    },
+    {
+      "kind": "check",
+      "line": 16,
+      "message": "structuredResponse is the parsed, typed object",
+      "pass": true
+    },
+    {
+      "kind": "check",
+      "line": 17,
+      "message": "the structured-output tool call ends the run",
+      "pass": true
+    }
+  ]
+}

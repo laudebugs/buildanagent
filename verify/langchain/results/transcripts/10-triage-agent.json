@@ -1,0 +1,228 @@
+{
+  "format": 1,
+  "example": "10-triage-agent",
+  "file": "verify/langchain/examples/10-triage-agent.ts",
+  "harness": "verify/langchain",
+  "pin": "langchain@1.6.1",
+  "events": [
+    {
+      "kind": "request",
+      "model": "model-1",
+      "repeated": 0,
+      "messages": [
+        {
+          "role": "system",
+          "parts": [
+            {
+              "type": "text",
+              "text": "Look up the customer, then classify the issue."
+            }
+          ]
+        },
+        {
+          "role": "user",
+          "parts": [
+            {
+              "type": "text",
+              "text": "Customer user@example.com says checkout fails with a 500. Triage it."
+            }
+          ]
+        }
+      ],
+      "tools": [
+        "lookup_customer",
+        "escalate",
+        "Triage"
+      ]
+    },
+    {
+      "kind": "response",
+      "model": "model-1",
+      "message": {
+        "role": "assistant",
+        "parts": [
+          {
+            "type": "text",
+            "text": "Look up the customer, then classify the issue.-Customer user@example.com says checkout fails with a 500. Triage it."
+          },
+          {
+            "type": "tool-call",
+            "id": "c1",
+            "name": "lookup_customer",
+            "input": {
+              "email": "user@example.com"
+            }
+          }
+        ]
+      },
+      "finish": "tool-calls"
+    },
+    {
+      "kind": "request",
+      "model": "model-1",
+      "repeated": 2,
+      "messages": [
+        {
+          "role": "assistant",
+          "parts": [
+            {
+              "type": "text",
+              "text": "Look up the customer, then classify the issue.-Customer user@example.com says checkout fails with a 500. Triage it."
+            },
+            {
+              "type": "tool-call",
+              "id": "c1",
+              "name": "lookup_customer",
+              "input": {
+                "email": "user@example.com"
+              }
+            }
+          ]
+        },
+        {
+          "role": "tool",
+          "parts": [
+            {
+              "type": "tool-result",
+              "id": "c1",
+              "name": "lookup_customer",
+              "output": {
+                "email": "user@example.com",
+                "plan": "pro",
+                "openTickets": 2
+              }
+            }
+          ]
+        }
+      ],
+      "tools": [
+        "lookup_customer",
+        "escalate",
+        "Triage"
+      ]
+    },
+    {
+      "kind": "response",
+      "model": "model-1",
+      "message": {
+        "role": "assistant",
+        "parts": [
+          {
+            "type": "text",
+            "text": "Look up the customer, then classify the issue.-Customer user@example.com says checkout fails with a 500. Triage it.-Look up the customer, then classify the issue.-Customer user@example.com says checkout fails with a 500. Triage it.-{\"email\":\"user@example.com\",\"plan\":\"pro\",\"openTickets\":2}"
+          },
+          {
+            "type": "tool-call",
+            "id": "c2",
+            "name": "escalate",
+            "input": {
+              "reason": "checkout 500"
+            }
+          }
+        ]
+      },
+      "finish": "tool-calls"
+    },
+    {
+      "kind": "check",
+      "line": 68,
+      "message": "the run pauses at escalate",
+      "pass": true
+    },
+    {
+      "kind": "check",
+      "line": 69,
+      "message": "the lookup ran; escalate has not",
+      "pass": true
+    },
+    {
+      "kind": "request",
+      "model": "model-1",
+      "repeated": 4,
+      "messages": [
+        {
+          "role": "assistant",
+          "parts": [
+            {
+              "type": "text",
+              "text": "Look up the customer, then classify the issue.-Customer user@example.com says checkout fails with a 500. Triage it.-Look up the customer, then classify the issue.-Customer user@example.com says checkout fails with a 500. Triage it.-{\"email\":\"user@example.com\",\"plan\":\"pro\",\"openTickets\":2}"
+            },
+            {
+              "type": "tool-call",
+              "id": "c2",
+              "name": "escalate",
+              "input": {
+                "reason": "checkout 500"
+              }
+            }
+          ]
+        },
+        {
+          "role": "tool",
+          "parts": [
+            {
+              "type": "tool-result",
+              "id": "c2",
+              "name": "escalate",
+              "output": "User rejected the tool call for `escalate` with id c2",
+              "error": true
+            }
+          ]
+        }
+      ],
+      "tools": [
+        "lookup_customer",
+        "escalate",
+        "Triage"
+      ]
+    },
+    {
+      "kind": "response",
+      "model": "model-1",
+      "message": {
+        "role": "assistant",
+        "parts": [
+          {
+            "type": "text",
+            "text": "Look up the customer, then classify the issue.-Customer user@example.com says checkout fails with a 500. Triage it.-Look up the customer, then classify the issue.-Customer user@example.com says checkout fails with a 500. Triage it.-{\"email\":\"user@example.com\",\"plan\":\"pro\",\"openTickets\":2}-Look up the customer, then classify the issue.-Customer user@example.com says checkout fails with a 500. Triage it.-Look up the customer, then classify the issue.-Customer user@example.com says checkout fails with a 500. Triage it.-{\"email\":\"user@example.com\",\"plan\":\"pro\",\"openTickets\":2}-User rejected the tool call for `escalate` with id c2"
+          },
+          {
+            "type": "tool-call",
+            "id": "c3",
+            "name": "Triage",
+            "input": {
+              "category": "bug",
+              "priority": "high",
+              "summary": "Checkout returns 500."
+            }
+          }
+        ]
+      },
+      "finish": "tool-calls"
+    },
+    {
+      "kind": "check",
+      "line": 72,
+      "message": "the rejected escalation never runs",
+      "pass": true
+    },
+    {
+      "kind": "check",
+      "line": 73,
+      "message": "the agent returns a typed triage record",
+      "pass": true
+    },
+    {
+      "kind": "check",
+      "line": 77,
+      "message": "the audit middleware saw the lookup",
+      "pass": true
+    },
+    {
+      "kind": "check",
+      "line": 78,
+      "message": "three model calls: lookup, escalate request, triage",
+      "pass": true
+    }
+  ]
+}

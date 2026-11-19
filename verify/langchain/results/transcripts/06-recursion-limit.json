@@ -1,0 +1,895 @@
+{
+  "format": 1,
+  "example": "06-recursion-limit",
+  "file": "verify/langchain/examples/06-recursion-limit.ts",
+  "harness": "verify/langchain",
+  "pin": "langchain@1.6.1",
+  "events": [
+    {
+      "kind": "request",
+      "model": "model-1",
+      "repeated": 0,
+      "messages": [
+        {
+          "role": "user",
+          "parts": [
+            {
+              "type": "text",
+              "text": "Loop."
+            }
+          ]
+        }
+      ],
+      "tools": [
+        "ping"
+      ]
+    },
+    {
+      "kind": "response",
+      "model": "model-1",
+      "message": {
+        "role": "assistant",
+        "parts": [
+          {
+            "type": "text",
+            "text": "Loop."
+          },
+          {
+            "type": "tool-call",
+            "id": "fake_tc_1",
+            "name": "ping",
+            "input": {}
+          }
+        ]
+      },
+      "finish": "tool-calls"
+    },
+    {
+      "kind": "request",
+      "model": "model-1",
+      "repeated": 1,
+      "messages": [
+        {
+          "role": "assistant",
+          "parts": [
+            {
+              "type": "text",
+              "text": "Loop."
+            },
+            {
+              "type": "tool-call",
+              "id": "fake_tc_1",
+              "name": "ping",
+              "input": {}
+            }
+          ]
+        },
+        {
+          "role": "tool",
+          "parts": [
+            {
+              "type": "tool-result",
+              "id": "fake_tc_1",
+              "name": "ping",
+              "output": "pong"
+            }
+          ]
+        }
+      ],
+      "tools": [
+        "ping"
+      ]
+    },
+    {
+      "kind": "response",
+      "model": "model-1",
+      "message": {
+        "role": "assistant",
+        "parts": [
+          {
+            "type": "text",
+            "text": "Loop.-Loop.-pong"
+          },
+          {
+            "type": "tool-call",
+            "id": "fake_tc_2",
+            "name": "ping",
+            "input": {}
+          }
+        ]
+      },
+      "finish": "tool-calls"
+    },
+    {
+      "kind": "request",
+      "model": "model-1",
+      "repeated": 3,
+      "messages": [
+        {
+          "role": "assistant",
+          "parts": [
+            {
+              "type": "text",
+              "text": "Loop.-Loop.-pong"
+            },
+            {
+              "type": "tool-call",
+              "id": "fake_tc_2",
+              "name": "ping",
+              "input": {}
+            }
+          ]
+        },
+        {
+          "role": "tool",
+          "parts": [
+            {
+              "type": "tool-result",
+              "id": "fake_tc_2",
+              "name": "ping",
+              "output": "pong"
+            }
+          ]
+        }
+      ],
+      "tools": [
+        "ping"
+      ]
+    },
+    {
+      "kind": "response",
+      "model": "model-1",
+      "message": {
+        "role": "assistant",
+        "parts": [
+          {
+            "type": "text",
+            "text": "Loop.-Loop.-pong-Loop.-Loop.-pong-pong"
+          },
+          {
+            "type": "tool-call",
+            "id": "fake_tc_3",
+            "name": "ping",
+            "input": {}
+          }
+        ]
+      },
+      "finish": "tool-calls"
+    },
+    {
+      "kind": "request",
+      "model": "model-1",
+      "repeated": 5,
+      "messages": [
+        {
+          "role": "assistant",
+          "parts": [
+            {
+              "type": "text",
+              "text": "Loop.-Loop.-pong-Loop.-Loop.-pong-pong"
+            },
+            {
+              "type": "tool-call",
+              "id": "fake_tc_3",
+              "name": "ping",
+              "input": {}
+            }
+          ]
+        },
+        {
+          "role": "tool",
+          "parts": [
+            {
+              "type": "tool-result",
+              "id": "fake_tc_3",
+              "name": "ping",
+              "output": "pong"
+            }
+          ]
+        }
+      ],
+      "tools": [
+        "ping"
+      ]
+    },
+    {
+      "kind": "response",
+      "model": "model-1",
+      "message": {
+        "role": "assistant",
+        "parts": [
+          {
+            "type": "text",
+            "text": "Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong"
+          },
+          {
+            "type": "tool-call",
+            "id": "fake_tc_4",
+            "name": "ping",
+            "input": {}
+          }
+        ]
+      },
+      "finish": "tool-calls"
+    },
+    {
+      "kind": "request",
+      "model": "model-1",
+      "repeated": 7,
+      "messages": [
+        {
+          "role": "assistant",
+          "parts": [
+            {
+              "type": "text",
+              "text": "Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong"
+            },
+            {
+              "type": "tool-call",
+              "id": "fake_tc_4",
+              "name": "ping",
+              "input": {}
+            }
+          ]
+        },
+        {
+          "role": "tool",
+          "parts": [
+            {
+              "type": "tool-result",
+              "id": "fake_tc_4",
+              "name": "ping",
+              "output": "pong"
+            }
+          ]
+        }
+      ],
+      "tools": [
+        "ping"
+      ]
+    },
+    {
+      "kind": "response",
+      "model": "model-1",
+      "message": {
+        "role": "assistant",
+        "parts": [
+          {
+            "type": "text",
+            "text": "Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-pong"
+          },
+          {
+            "type": "tool-call",
+            "id": "fake_tc_5",
+            "name": "ping",
+            "input": {}
+          }
+        ]
+      },
+      "finish": "tool-calls"
+    },
+    {
+      "kind": "request",
+      "model": "model-1",
+      "repeated": 9,
+      "messages": [
+        {
+          "role": "assistant",
+          "parts": [
+            {
+              "type": "text",
+              "text": "Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-pong"
+            },
+            {
+              "type": "tool-call",
+              "id": "fake_tc_5",
+              "name": "ping",
+              "input": {}
+            }
+          ]
+        },
+        {
+          "role": "tool",
+          "parts": [
+            {
+              "type": "tool-result",
+              "id": "fake_tc_5",
+              "name": "ping",
+              "output": "pong"
+            }
+          ]
+        }
+      ],
+      "tools": [
+        "ping"
+      ]
+    },
+    {
+      "kind": "response",
+      "model": "model-1",
+      "message": {
+        "role": "assistant",
+        "parts": [
+          {
+            "type": "text",
+            "text": "Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-pong-pong"
+          },
+          {
+            "type": "tool-call",
+            "id": "fake_tc_6",
+            "name": "ping",
+            "input": {}
+          }
+        ]
+      },
+      "finish": "tool-calls"
+    },
+    {
+      "kind": "request",
+      "model": "model-1",
+      "repeated": 11,
+      "messages": [
+        {
+          "role": "assistant",
+          "parts": [
+            {
+              "type": "text",
+              "text": "Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-pong-pong"
+            },
+            {
+              "type": "tool-call",
+              "id": "fake_tc_6",
+              "name": "ping",
+              "input": {}
+            }
+          ]
+        },
+        {
+          "role": "tool",
+          "parts": [
+            {
+              "type": "tool-result",
+              "id": "fake_tc_6",
+              "name": "ping",
+              "output": "pong"
+            }
+          ]
+        }
+      ],
+      "tools": [
+        "ping"
+      ]
+    },
+    {
+      "kind": "response",
+      "model": "model-1",
+      "message": {
+        "role": "assistant",
+        "parts": [
+          {
+            "type": "text",
+            "text": "Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-pong-pong-pong"
+          },
+          {
+            "type": "tool-call",
+            "id": "fake_tc_7",
+            "name": "ping",
+            "input": {}
+          }
+        ]
+      },
+      "finish": "tool-calls"
+    },
+    {
+      "kind": "request",
+      "model": "model-1",
+      "repeated": 13,
+      "messages": [
+        {
+          "role": "assistant",
+          "parts": [
+            {
+              "type": "text",
+              "text": "Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-pong-pong-pong"
+            },
+            {
+              "type": "tool-call",
+              "id": "fake_tc_7",
+              "name": "ping",
+              "input": {}
+            }
+          ]
+        },
+        {
+          "role": "tool",
+          "parts": [
+            {
+              "type": "tool-result",
+              "id": "fake_tc_7",
+              "name": "ping",
+              "output": "pong"
+            }
+          ]
+        }
+      ],
+      "tools": [
+        "ping"
+      ]
+    },
+    {
+      "kind": "response",
+      "model": "model-1",
+      "message": {
+        "role": "assistant",
+        "parts": [
+          {
+            "type": "text",
+            "text": "Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-pong-pong-pong-pong"
+          },
+          {
+            "type": "tool-call",
+            "id": "fake_tc_8",
+            "name": "ping",
+            "input": {}
+          }
+        ]
+      },
+      "finish": "tool-calls"
+    },
+    {
+      "kind": "request",
+      "model": "model-1",
+      "repeated": 15,
+      "messages": [
+        {
+          "role": "assistant",
+          "parts": [
+            {
+              "type": "text",
+              "text": "Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-pong-pong-pong-pong"
+            },
+            {
+              "type": "tool-call",
+              "id": "fake_tc_8",
+              "name": "ping",
+              "input": {}
+            }
+          ]
+        },
+        {
+          "role": "tool",
+          "parts": [
+            {
+              "type": "tool-result",
+              "id": "fake_tc_8",
+              "name": "ping",
+              "output": "pong"
+            }
+          ]
+        }
+      ],
+      "tools": [
+        "ping"
+      ]
+    },
+    {
+      "kind": "response",
+      "model": "model-1",
+      "message": {
+        "role": "assistant",
+        "parts": [
+          {
+            "type": "text",
+            "text": "Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-pong-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-pong-pong-pong-pong-pong"
+          },
+          {
+            "type": "tool-call",
+            "id": "fake_tc_9",
+            "name": "ping",
+            "input": {}
+          }
+        ]
+      },
+      "finish": "tool-calls"
+    },
+    {
+      "kind": "request",
+      "model": "model-1",
+      "repeated": 17,
+      "messages": [
+        {
+          "role": "assistant",
+          "parts": [
+            {
+              "type": "text",
+              "text": "Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-pong-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-pong-pong-pong-pong-pong"
+            },
+            {
+              "type": "tool-call",
+              "id": "fake_tc_9",
+              "name": "ping",
+              "input": {}
+            }
+          ]
+        },
+        {
+          "role": "tool",
+          "parts": [
+            {
+              "type": "tool-result",
+              "id": "fake_tc_9",
+              "name": "ping",
+              "output": "pong"
+            }
+          ]
+        }
+      ],
+      "tools": [
+        "ping"
+      ]
+    },
+    {
+      "kind": "response",
+      "model": "model-1",
+      "message": {
+        "role": "assistant",
+        "parts": [
+          {
+            "type": "text",
+            "text": "Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-pong-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-pong-pong-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-pong-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-pong-pong-pong-pong-pong-pong"
+          },
+          {
+            "type": "tool-call",
+            "id": "fake_tc_10",
+            "name": "ping",
+            "input": {}
+          }
+        ]
+      },
+      "finish": "tool-calls"
+    },
+    {
+      "kind": "request",
+      "model": "model-1",
+      "repeated": 19,
+      "messages": [
+        {
+          "role": "assistant",
+          "parts": [
+            {
+              "type": "text",
+              "text": "Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-pong-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-pong-pong-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-pong-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-pong-pong-pong-pong-pong-pong"
+            },
+            {
+              "type": "tool-call",
+              "id": "fake_tc_10",
+              "name": "ping",
+              "input": {}
+            }
+          ]
+        },
+        {
+          "role": "tool",
+          "parts": [
+            {
+              "type": "tool-result",
+              "id": "fake_tc_10",
+              "name": "ping",
+              "output": "pong"
+            }
+          ]
+        }
+      ],
+      "tools": [
+        "ping"
+      ]
+    },
+    {
+      "kind": "response",
+      "model": "model-1",
+      "message": {
+        "role": "assistant",
+        "parts": [
+          {
+            "type": "text",
+            "text": "Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-pong-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-pong-pong-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-pong-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-pong-pong-pong-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-pong-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-pong-pong-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-pong-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-pong-pong-pong-pong-pong-pong-pong"
+          },
+          {
+            "type": "tool-call",
+            "id": "fake_tc_11",
+            "name": "ping",
+            "input": {}
+          }
+        ]
+      },
+      "finish": "tool-calls"
+    },
+    {
+      "kind": "request",
+      "model": "model-1",
+      "repeated": 21,
+      "messages": [
+        {
+          "role": "assistant",
+          "parts": [
+            {
+              "type": "text",
+              "text": "Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-pong-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-pong-pong-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-pong-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-pong-pong-pong-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-pong-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-pong-pong-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-pong-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-pong-pong-pong-pong-pong-pong-pong"
+            },
+            {
+              "type": "tool-call",
+              "id": "fake_tc_11",
+              "name": "ping",
+              "input": {}
+            }
+          ]
+        },
+        {
+          "role": "tool",
+          "parts": [
+            {
+              "type": "tool-result",
+              "id": "fake_tc_11",
+              "name": "ping",
+              "output": "pong"
+            }
+          ]
+        }
+      ],
+      "tools": [
+        "ping"
+      ]
+    },
+    {
+      "kind": "response",
+      "model": "model-1",
+      "message": {
+        "role": "assistant",
+        "parts": [
+          {
+            "type": "text",
+            "text": "Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-pong-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-pong-pong-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-pong-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-pong-pong-pong-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-pong-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-pong-pong-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-pong-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-pong-pong-pong-pong-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-pong-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-pong-pong-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-pong-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-pong-pong-pong-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-pong-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-pong-pong-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-pong-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-pong-pong-pong-pong-pong-pong-pong-pong"
+          },
+          {
+            "type": "tool-call",
+            "id": "fake_tc_12",
+            "name": "ping",
+            "input": {}
+          }
+        ]
+      },
+      "finish": "tool-calls"
+    },
+    {
+      "kind": "request",
+      "model": "model-1",
+      "repeated": 23,
+      "messages": [
+        {
+          "role": "assistant",
+          "parts": [
+            {
+              "type": "text",
+              "text": "Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-pong-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-pong-pong-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-pong-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-pong-pong-pong-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-pong-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-pong-pong-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-pong-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-pong-pong-pong-pong-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-pong-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-pong-pong-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-pong-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-pong-pong-pong-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-pong-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-pong-pong-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-pong-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-pong-pong-pong-pong-pong-pong-pong-pong"
+            },
+            {
+              "type": "tool-call",
+              "id": "fake_tc_12",
+              "name": "ping",
+              "input": {}
+            }
+          ]
+        },
+        {
+          "role": "tool",
+          "parts": [
+            {
+              "type": "tool-result",
+              "id": "fake_tc_12",
+              "name": "ping",
+              "output": "pong"
+            }
+          ]
+        }
+      ],
+      "tools": [
+        "ping"
+      ]
+    },
+    {
+      "kind": "response",
+      "model": "model-1",
+      "message": {
+        "role": "assistant",
+        "parts": [
+          {
+            "type": "text",
+            "text": "Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-pong-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-pong-pong-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-pong-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-pong-pong-pong-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-pong-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-pong-pong-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-pong-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-pong-pong-pong-pong-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-pong-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-pong-pong-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-pong-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-pong-pong-pong-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-pong-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-pong-pong-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-pong-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-pong-pong-pong-pong-pong-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-pong-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-pong-pong-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-pong-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-pong-pong-pong-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-pong-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-pong-pong-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-pong-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-pong-pong-pong-pong-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-pong-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-pong-pong-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-pong-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-pong-pong-pong-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-pong-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-pong-pong-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-pong-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-Loop.-Loop.-pong-Loop.-Loop.-pong-pong-pong-pong-pong-pong-pong-pong-pong-pong-pong-pong"
+          },
+          {
+            "type": "tool-call",
+            "id": "fake_tc_13",
+            "name": "ping",
+            "input": {}
+          }
+        ]
+      },
+      "finish": "tool-calls"
+    },
+    {
+      "kind": "check",
+      "line": 30,
+      "message": "the default limit throws GraphRecursionError",
+      "pass": true
+    },
+    {
+      "kind": "check",
+      "line": 31,
+      "message": "the default limit is 25",
+      "pass": true
+    },
+    {
+      "kind": "check",
+      "line": 32,
+      "message": "25 super-steps allow 13 model calls (got 13)",
+      "pass": true
+    },
+    {
+      "kind": "request",
+      "model": "model-2",
+      "repeated": 0,
+      "messages": [
+        {
+          "role": "user",
+          "parts": [
+            {
+              "type": "text",
+              "text": "Loop."
+            }
+          ]
+        }
+      ],
+      "tools": [
+        "ping"
+      ]
+    },
+    {
+      "kind": "response",
+      "model": "model-2",
+      "message": {
+        "role": "assistant",
+        "parts": [
+          {
+            "type": "text",
+            "text": "Loop."
+          },
+          {
+            "type": "tool-call",
+            "id": "fake_tc_61",
+            "name": "ping",
+            "input": {}
+          }
+        ]
+      },
+      "finish": "tool-calls"
+    },
+    {
+      "kind": "request",
+      "model": "model-2",
+      "repeated": 1,
+      "messages": [
+        {
+          "role": "assistant",
+          "parts": [
+            {
+              "type": "text",
+              "text": "Loop."
+            },
+            {
+              "type": "tool-call",
+              "id": "fake_tc_61",
+              "name": "ping",
+              "input": {}
+            }
+          ]
+        },
+        {
+          "role": "tool",
+          "parts": [
+            {
+              "type": "tool-result",
+              "id": "fake_tc_61",
+              "name": "ping",
+              "output": "pong"
+            }
+          ]
+        }
+      ],
+      "tools": [
+        "ping"
+      ]
+    },
+    {
+      "kind": "response",
+      "model": "model-2",
+      "message": {
+        "role": "assistant",
+        "parts": [
+          {
+            "type": "text",
+            "text": "Loop.-Loop.-pong"
+          },
+          {
+            "type": "tool-call",
+            "id": "fake_tc_62",
+            "name": "ping",
+            "input": {}
+          }
+        ]
+      },
+      "finish": "tool-calls"
+    },
+    {
+      "kind": "request",
+      "model": "model-2",
+      "repeated": 3,
+      "messages": [
+        {
+          "role": "assistant",
+          "parts": [
+            {
+              "type": "text",
+              "text": "Loop.-Loop.-pong"
+            },
+            {
+              "type": "tool-call",
+              "id": "fake_tc_62",
+              "name": "ping",
+              "input": {}
+            }
+          ]
+        },
+        {
+          "role": "tool",
+          "parts": [
+            {
+              "type": "tool-result",
+              "id": "fake_tc_62",
+              "name": "ping",
+              "output": "pong"
+            }
+          ]
+        }
+      ],
+      "tools": [
+        "ping"
+      ]
+    },
+    {
+      "kind": "response",
+      "model": "model-2",
+      "message": {
+        "role": "assistant",
+        "parts": [
+          {
+            "type": "text",
+            "text": "Loop.-Loop.-pong-Loop.-Loop.-pong-pong"
+          },
+          {
+            "type": "tool-call",
+            "id": "fake_tc_63",
+            "name": "ping",
+            "input": {}
+          }
+        ]
+      },
+      "finish": "tool-calls"
+    },
+    {
+      "kind": "check",
+      "line": 36,
+      "message": "recursionLimit: 5 stops after 3 model calls (got 3)",
+      "pass": true
+    }
+  ]
+}

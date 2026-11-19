@@ -1,0 +1,188 @@
+{
+  "format": 1,
+  "example": "09-triage-agent",
+  "file": "verify/openai-agents-sdk/examples/09-triage-agent.ts",
+  "harness": "verify/openai-agents-sdk",
+  "pin": "@openai/agents@0.21.0",
+  "events": [
+    {
+      "kind": "request",
+      "line": 66,
+      "model": "model-1",
+      "repeated": 0,
+      "messages": [
+        {
+          "role": "system",
+          "parts": [
+            {
+              "type": "text",
+              "text": "Look up the customer, then classify the issue."
+            }
+          ]
+        },
+        {
+          "role": "user",
+          "parts": [
+            {
+              "type": "text",
+              "text": "Customer user@example.com says checkout fails with a 500. Triage it."
+            }
+          ]
+        }
+      ],
+      "tools": [
+        "lookup_customer",
+        "escalate"
+      ]
+    },
+    {
+      "kind": "response",
+      "line": 66,
+      "model": "model-1",
+      "message": {
+        "role": "assistant",
+        "parts": [
+          {
+            "type": "tool-call",
+            "id": "c1",
+            "name": "lookup_customer",
+            "input": {
+              "email": "user@example.com"
+            }
+          }
+        ]
+      },
+      "finish": "tool-calls"
+    },
+    {
+      "kind": "request",
+      "line": 66,
+      "model": "model-1",
+      "repeated": 2,
+      "messages": [
+        {
+          "role": "assistant",
+          "parts": [
+            {
+              "type": "tool-call",
+              "id": "c1",
+              "name": "lookup_customer",
+              "input": {
+                "email": "user@example.com"
+              }
+            }
+          ]
+        },
+        {
+          "role": "tool",
+          "parts": [
+            {
+              "type": "tool-result",
+              "id": "c1",
+              "name": "lookup_customer",
+              "output": "{\"email\":\"user@example.com\",\"plan\":\"pro\",\"openTickets\":2}"
+            }
+          ]
+        }
+      ],
+      "tools": [
+        "lookup_customer",
+        "escalate"
+      ]
+    },
+    {
+      "kind": "response",
+      "line": 66,
+      "model": "model-1",
+      "message": {
+        "role": "assistant",
+        "parts": [
+          {
+            "type": "tool-call",
+            "id": "c2",
+            "name": "escalate",
+            "input": {
+              "reason": "checkout 500"
+            }
+          }
+        ]
+      },
+      "finish": "tool-calls"
+    },
+    {
+      "kind": "check",
+      "line": 67,
+      "message": "escalation pauses for approval",
+      "pass": true
+    },
+    {
+      "kind": "request",
+      "line": 70,
+      "model": "model-1",
+      "repeated": 4,
+      "messages": [
+        {
+          "role": "assistant",
+          "parts": [
+            {
+              "type": "tool-call",
+              "id": "c2",
+              "name": "escalate",
+              "input": {
+                "reason": "checkout 500"
+              }
+            }
+          ]
+        },
+        {
+          "role": "tool",
+          "parts": [
+            {
+              "type": "tool-result",
+              "id": "c2",
+              "name": "escalate",
+              "output": "Tool execution was not approved."
+            }
+          ]
+        }
+      ],
+      "tools": [
+        "lookup_customer",
+        "escalate"
+      ]
+    },
+    {
+      "kind": "response",
+      "line": 70,
+      "model": "model-1",
+      "message": {
+        "role": "assistant",
+        "parts": [
+          {
+            "type": "text",
+            "text": "{\"category\":\"bug\",\"priority\":\"high\",\"summary\":\"Checkout returns 500.\"}"
+          }
+        ]
+      },
+      "finish": "stop"
+    },
+    {
+      "kind": "check",
+      "line": 71,
+      "message": "lookup ran and the rejected escalation never did",
+      "pass": true
+    },
+    {
+      "kind": "check",
+      "line": 75,
+      "message": "the run ends with a typed triage result",
+      "pass": true
+    },
+    {
+      "kind": "check",
+      "line": 89,
+      "message": "the input guardrail blocks injection before any model call",
+      "pass": true
+    }
+  ]
+}

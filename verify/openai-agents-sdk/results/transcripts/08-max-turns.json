@@ -1,0 +1,66 @@
+{
+  "format": 1,
+  "example": "08-max-turns",
+  "file": "verify/openai-agents-sdk/examples/08-max-turns.ts",
+  "harness": "verify/openai-agents-sdk",
+  "pin": "@openai/agents@0.21.0",
+  "events": [
+    {
+      "kind": "request",
+      "line": 21,
+      "model": "model-1",
+      "repeated": 0,
+      "messages": [
+        {
+          "role": "user",
+          "parts": [
+            {
+              "type": "text",
+              "text": "Search forever."
+            }
+          ]
+        }
+      ],
+      "tools": [
+        "search"
+      ]
+    },
+    {
+      "kind": "response",
+      "line": 21,
+      "model": "model-1",
+      "message": {
+        "role": "assistant",
+        "parts": [
+          {
+            "type": "tool-call",
+            "id": "c1",
+            "name": "search",
+            "input": {
+              "q": "a"
+            }
+          }
+        ]
+      },
+      "finish": "tool-calls"
+    },
+    {
+      "kind": "check",
+      "line": 25,
+      "message": "exceeding maxTurns throws MaxTurnsExceededError",
+      "pass": true
+    },
+    {
+      "kind": "check",
+      "line": 26,
+      "message": "the error carries the run state",
+      "pass": true
+    },
+    {
+      "kind": "check",
+      "line": 27,
+      "message": "the loop stops after one model call with maxTurns: 1",
+      "pass": true
+    }
+  ]
+}
