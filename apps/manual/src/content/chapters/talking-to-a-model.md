@@ -2,7 +2,7 @@
 title: "Talking to a model: messages, streams, tokens, instructions and model choice"
 summary: A model call sends the whole conversation and gets back one message, often as a stream of pieces, with a bill in four token classes. This chapter reads each part of that exchange, then shows what belongs in the system prompt, how to choose a model, and why thinking goes back to the model untouched.
 opening: code
-sources: [anthropic-working-with-messages, ai-sdk-prompts, anthropic-how-tool-use-works, ai-sdk-generating-text, ai-sdk-stream-text, langchain-streaming, copilot-streaming-events, anthropic-pricing, anthropic-thinking, anthropic-prompt-caching, anthropic-effective-context-engineering, anthropic-prefix-checks, openai-practical-guide-to-building-agents]
+sources: [anthropic-working-with-messages, ai-sdk-prompts, anthropic-how-tool-use-works, ai-sdk-generating-text, ai-sdk-stream-text, langchain-streaming, copilot-streaming-events, anthropic-pricing, anthropic-thinking, anthropic-prompt-caching, anthropic-effective-context-engineering, anthropic-prefix-checks, openai-practical-guide-to-building-agents, anthropic-preserved-thinking]
 glossary: []
 switchTo: [B4, B5]
 ---
@@ -147,6 +147,40 @@ Price [[lst:stream-usage]]'s call on Opus 5.5 and the same four classes cost $0.
 A smaller model is the right choice only when it still passes. OpenAI's guide notes that "a simple retrieval or intent classification task may be handled by a smaller, faster model, while harder tasks like deciding whether to approve a refund may benefit from a more capable model", and that one workflow may use "a variety of models for different tasks" [@openai-practical-guide-to-building-agents]. The order-status agent of Chapter 1 shows the split. Sorting a message into "where is my order" or "something else" is classification, which a small model may handle. Deciding what to tell a customer whose parcel is held at customs is judgement, which may need the large one. We recommend comparing models by the cost of each task that passes your evals, not by the price of a call, because a cheap model that fails one task in five sends that task to a second attempt or to a person.
 
 The casting analogy breaks at rehearsal. An understudy improves with every run-through, but a model keeps nothing between calls, so the hundredth run of an eval meets the same model as the first. What improves between runs is everything around the model, the prompt and the evals that judge it, which is why the evals have to exist before the swap. This book's listings cannot run that comparison for you, since every model in them is a mock that plays back answers someone wrote. [[ch:testing-offline-and-a-first-agent]] shows what such checks prove and what only a real model can.
+
+## Thinking comes back with a signature, and it goes back unchanged
+
+:::listing[A response that thought first: a thinking block, with its signature, before the text]{#thinking-block}
+```json
+{
+  "content": [
+    {
+      "type": "thinking",
+      "thinking": "Let me break this down. The question has two parts, so I'll start with the simpler one and use its result to constrain the second...",
+      "signature": "WaUjzkypQ2mUEVM36O2Txu...."
+    },
+    {
+      "type": "text",
+      "text": "Based on my analysis..."
+    }
+  ]
+}
+```
+:::
+
+[[lst:thinking-block]] is the content of a Claude response from a model that reasoned before it answered, as Anthropic's thinking guide prints it. The text block at the bottom is the answer. Above it sits a thinking block with two fields. The first, `thinking`{checked=row-81}, holds a summary of the model's reasoning, never its raw chain of thought. The second, `signature`{checked=row-80}, is "an encrypted copy of the full reasoning that you pass back unchanged in multi-turn and tool-use conversations" [@anthropic-thinking]. On Claude 5 and later models, thinking is on by default and its text is hidden unless you ask for it, so a thinking block often arrives with an empty `thinking`{checked=row-81} field and a full `signature`{checked=row-80}. You are still billed for every token of the full reasoning, as the usage section showed.
+
+A thinking block matters most in the middle of a tool call. When the model asks for a tool, it pauses the response it is building, and when your code returns the tool's result, the model carries on with that same response. Its earlier reasoning therefore has to come back with the result. Anthropic's rule is exact: "Pass every `thinking`{checked=row-81} block back to the API complete and unmodified, alongside the `tool_use`{checked=row-83} block it accompanied." Inside the latest assistant message you may not rearrange, edit or partly drop the thinking blocks, and the API rejects a modified block with a 400 error [@anthropic-thinking].
+
+The signature also explains why the system prompt section asked you to freeze the front of the request. Each signature records a fingerprint of everything that came before its block: `system`, `tools` and every earlier message [@anthropic-prefix-checks]. Change any of them and the blocks after the change fail the prefix check. On Claude Opus, Sonnet and Haiku 5.5, as of November 2026, a failed check may return a 400 error, or it may return no error at all. In that second case the stale blocks reach the model anyway: "Claude reads them like any other input, you're billed for them, and Claude works from reasoning about content that has since changed." The same page reduces the defence to three habits:
+
+1. "Send each assistant turn back exactly as the API returned it, including thinking blocks whose text is empty."
+2. "Build `system` and `tools` once for each conversation, and send that copy every time."
+3. "Put every update in a new message at the end, and leave it there."
+
+Two lessons from earlier sections meet here. From streaming: a thinking block streams as a run of thinking deltas closed by one signature delta, and Anthropic advises using your SDK's message-accumulation helper "instead of concatenating deltas yourself" [@anthropic-thinking], because only the folded message carries the block exactly as the API expects it back. From model choice: when you switch a conversation to another model, keep sending the whole history, thinking included. A block the new model cannot read "never causes an error"; the API drops it for that request and does not bill it. A move from Claude Sonnet 5.5 to Haiku 5.5, for example, loses Sonnet's reasoning for Haiku's turns, yet a later move back to Sonnet reads it again, because the API never changes your messages. Anthropic's advice is blunt: "don't remove thinking, and don't keep a separate history for each model" [@anthropic-preserved-thinking].
+
+An SDK that keeps the session for you keeps these blocks for you too. The Copilot SDK's complete `"assistant.message"` event, for one, carries a `reasoningOpaque`{checked=row-91} field described as "Encrypted extended thinking (Anthropic models); session-bound" [@copilot-streaming-events]. Code that builds its own requests, as this book's harness will, has to follow the three habits itself. The harness's plan adopts them as rules: send each assistant turn back exactly as returned, build `system` and `tools` once per session, and announce a mid-session tool change in a system message instead of editing `tools`. So the chapter ends where it began: your program tells the model what the model said a moment ago, and from now on that includes what it thought, word for word.
 
 ## Exercises
 
