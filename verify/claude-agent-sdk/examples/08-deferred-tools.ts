@@ -1,5 +1,5 @@
 // Deferred tools: a tool's definition reaches the model only when the model asks for it.
-// With tool search on (the default), the SDK sends the names of MCP tools but not their schemas.
+// With tool search on (the default), the CLI names each MCP tool in a system-role message but sends no schema.
 // The model loads one by calling the built-in ToolSearch tool; `alwaysLoad` opts a server out.
 // The mock model stands in for that choice, so this run is deterministic and offline. The tools
 // are read-only and in-process, and the run keeps every other built-in tool out of the model's reach.
@@ -7,7 +7,7 @@
 import { createSdkMcpServer, query, tool } from "@anthropic-ai/claude-agent-sdk";
 import { z } from "zod";
 import { check, collect } from "./lib/collect.ts";
-import { modelRequests } from "./lib/mock-log.ts";
+import { HOST_TOOLS, modelRequests } from "./lib/mock-log.ts";
 
 const handled: string[] = [];
 const noteCall = (name: string) => async () => {
@@ -60,8 +60,9 @@ const loaded = second.tools.filter(isWeatherTool);
 check(loaded.length === 1, "after ToolSearch, exactly one of the three definitions reached the model"); // book:note one-loaded
 // #endregion
 
+const everLoaded = new Set(deferredRequests.flatMap((r) => r.tools.filter(isWeatherTool).map((t) => t.name)));
 check(
-  deferredRequests.every((r) => r.tools.filter(isWeatherTool).length <= 1),
+  everLoaded.size === 1 && everLoaded.has(loaded[0].name),
   "the other two definitions never reached the model in any request",
 );
 check(handled.length === 1 && `mcp__weather__${handled[0]}` === loaded[0].name, "only the loaded tool's handler ran");
@@ -89,4 +90,8 @@ const size = (tools: unknown[]) => JSON.stringify(tools).length;
 check(
   size(loaded) < size(eagerRequests[0].tools),
   "one loaded definition is smaller than the three definitions alwaysLoad sends up front",
+);
+check(
+  ![...deferredRequests, ...eagerRequests].some((r) => r.tools.some((t) => HOST_TOOLS.includes(t.name))),
+  "no request offers a host tool (Bash, Edit, Write, Read...)",
 );

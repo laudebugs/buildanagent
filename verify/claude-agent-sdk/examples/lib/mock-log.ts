@@ -32,3 +32,6 @@ export function modelRequests(from = 0): ModelRequest[] {
       blocks: (body.messages ?? []).flatMap((m: { content: unknown }) => (Array.isArray(m.content) ? m.content : [])),
     }));
 }
+
+/** Built-in tools that touch the host; no example may offer the model any of them. */
+export const HOST_TOOLS = ["Bash", "Edit", "Write", "Read", "NotebookEdit", "WebFetch", "WebSearch"];

@@ -3,10 +3,10 @@
 // exercises the real agent loop, tool dispatch, hooks and permissions with a scripted model.
 //
 // Scripted behaviour per request:
-//   1. If the last user turn contains tool_result blocks -> reply with final text (end_turn).
-//   2. Else, if a StructuredOutput tool is offered -> call it with values synthesised from its schema.
-//   3. Else, if the prompt carries a "[use-skill:<name>]" marker and the Skill tool is offered -> call
-//      Skill once with that name (reads a SKILL.md, a read-only file in the example's temp directory).
+//   1. If the prompt carries a "[use-skill:<name>]" marker and the Skill tool is offered -> call Skill
+//      once with that name (reads a SKILL.md, a read-only file in the example's temp directory).
+//   2. Else, if the last user turn contains tool_result blocks -> reply with final text (end_turn).
+//   3. Else, if a StructuredOutput tool is offered -> call it with values synthesised from its schema.
 //   4. Else, if an MCP/custom tool (name starts with "mcp__") is offered -> call one with
 //      schema-synthesised arguments (preferring a tool the prompt names). Deferred MCP tools are
 //      first loaded with ToolSearch("select:<name>"), as a real model would.

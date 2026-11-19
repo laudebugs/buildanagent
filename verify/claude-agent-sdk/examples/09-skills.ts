@@ -1,6 +1,6 @@
 // Skills: the model sees a skill's name and description up front and reads its body only on demand.
 // A skill is a folder with a SKILL.md file. The CLI lists each enabled skill's name and description
-// in the system prompt, and the built-in Skill tool reads the body into the conversation when the
+// in a system-role message at the start of the conversation, and the built-in Skill tool reads the body into the conversation when the
 // model calls it. The `skills` option is a context filter, not a sandbox: it hides the other skills
 // from the model but leaves their files on disk. The mock model reads the skill its prompt marks
 // with [use-skill:<name>], the way a model reads a skill it recognises. Skill files are written into
@@ -11,7 +11,7 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { query } from "@anthropic-ai/claude-agent-sdk";
 import { check, collect } from "./lib/collect.ts";
-import { modelRequests } from "./lib/mock-log.ts";
+import { HOST_TOOLS, modelRequests } from "./lib/mock-log.ts";
 
 const project = mkdtempSync(join(tmpdir(), "skills-project-"));
 
@@ -50,6 +50,10 @@ check(result?.subtype === "success", "run finished with success");
 check(
   first.tools.some((t) => t.name === "Skill"),
   "the first request offers the Skill tool",
+);
+check(
+  !requests.some((r) => r.tools.some((t) => HOST_TOOLS.includes(t.name))),
+  "no request offers a host tool (Bash, Edit, Write, Read...)",
 );
 check(
   !requests.some((r) => r.text.includes("tax-forms") || r.text.includes("Never mention the audit")),
