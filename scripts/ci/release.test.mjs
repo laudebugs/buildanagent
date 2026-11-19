@@ -183,6 +183,13 @@ describe("release.yml", () => {
     assert.match(runs, /git diff --cached --binary --no-renames > "\$RUNNER_TEMP\/version\/version\.patch"/);
     const upload = version.steps.find((s) => s.uses?.startsWith("actions/upload-artifact"));
     assert.equal(upload.with.name, "version-commit");
+    // Changesets could append its own `base=` to its step's output file, so the base comes from a step that runs first.
+    assert.equal(version.outputs.base, `\${{ steps.base.outputs.base }}`);
+    const baseIndex = version.steps.findIndex((s) => s.id === "base");
+    const firstThirdParty = version.steps.findIndex((s) => /pnpm/.test(`${s.uses ?? ""} ${s.run ?? ""}`));
+    assert.ok(baseIndex >= 0 && baseIndex < firstThirdParty, "the base is recorded before pnpm is set up");
+    assert.equal(version.steps[baseIndex].run, 'echo "base=$(git rev-parse HEAD)" >> "$GITHUB_OUTPUT"');
+    assert.doesNotMatch(version.steps.find((s) => s.id === "version").run, /base=/);
   });
 
   test("the version-pr job runs no third-party code, and only its last step holds RELEASE_PR_TOKEN", () => {
@@ -197,9 +204,13 @@ describe("release.yml", () => {
     const uses = job.steps.filter((s) => s.uses).map((s) => s.uses.replace(/@.*/, ""));
     assert.deepEqual(uses, ["actions/checkout", "actions/download-artifact"]);
     const checkout = job.steps[0];
-    assert.deepEqual(checkout.with, { ref: `\${{ needs.version.outputs.base }}`, "persist-credentials": false });
+    // main's history, so the step can check that the version job's base is on main before it checks it out.
+    assert.deepEqual(checkout.with, { ref: "main", "fetch-depth": 0, "persist-credentials": false });
     const [, , commit, push] = job.steps;
     assert.equal(commit.env, undefined, "the step that runs node holds no token");
+    // The patch goes into the index alone, so node runs the base's scripts, never ones the patch rewrote.
+    assert.match(commit.run, /git apply --cached --binary/);
+    assert.doesNotMatch(commit.run, /--index/);
     assert.match(commit.run, /^ *node scripts\/ci\/version-pr\.mjs prepare "\$BASE" HEAD "\$RUNNER_TEMP\/pr"$/m);
     const nodeCalls = job.steps.flatMap((s) => (s.run ?? "").match(/\bnode\b.*$/gm) ?? []);
     assert.deepEqual(nodeCalls, ['node scripts/ci/version-pr.mjs prepare "$BASE" HEAD "$RUNNER_TEMP/pr"']);
@@ -209,6 +220,10 @@ describe("release.yml", () => {
     const pushes = push.run.match(/git push.*$/gm);
     assert.deepEqual(pushes, ['git push --quiet --force "$remote" "HEAD:refs/heads/$BRANCH"']);
     assert.match(push.run, /gh pr merge "\$number" --repo "\$REPO" --auto --squash/);
+    assert.ok(
+      push.run.indexOf('gh api "repos/$REPO/branches/main"') < push.run.indexOf("gh pr merge"),
+      "the step checks that main requires the checks status before it turns on auto-merge",
+    );
   });
 
   test("version-pr.mjs imports nothing but node: modules and the scripts beside it", () => {
@@ -634,7 +649,8 @@ describe("release.yml's scripts, run for real", () => {
 
   // A stand-in for `pnpm changeset version` in pre mode: it fails when any token reached it, moves every pending
   // changeset into .changeset/pre/, and bumps both packages to the next prerelease, with a changelog section, when one
-  // of them names a package. With EVIL set, it also edits a package's source, as a compromised dependency might.
+  // of them names a package. With EVIL set, it also edits a package's source, as a compromised dependency might, and
+  // with EVIL=checker it also replaces the version-commit check with one that passes everything.
   const FAKE_PNPM = `#!/usr/bin/env node
 const fs = require("node:fs");
 if (Object.keys(process.env).some((key) => /TOKEN/.test(key))) { console.error("a token reached pnpm"); process.exit(3); }
@@ -655,10 +671,21 @@ if (bump) for (const pkg of ["gateway", "sdk"]) {
   fs.writeFileSync(log, "## " + manifest.version + "\\n\\n- a change\\n\\n" + fs.readFileSync(log, "utf8"));
 }
 if (process.env.EVIL) fs.writeFileSync("packages/gateway/src/index.js", "steal();\\n");
+if (process.env.EVIL === "base") fs.appendFileSync(process.env.GITHUB_OUTPUT, "base=" + "f".repeat(40) + "\\n");
+if (process.env.EVIL === "checker") {
+  fs.writeFileSync("scripts/ci/version-pr.mjs", [
+    'import { mkdirSync, writeFileSync } from "node:fs";',
+    "const dir = process.argv[5];",
+    "mkdirSync(dir, { recursive: true });",
+    'writeFileSync(dir + "/title", "chore(release): version packages");',
+    'writeFileSync(dir + "/body.md", "");',
+  ].join("\\n") + "\\n");
+}
 `;
 
   // A stand-in for gh that logs each call to $GH_LOG and answers as GitHub would: `pr list` prints $EXISTING_PR,
-  // `pr create` prints the new pull request's URL, and `pr view` prints $AUTO_MERGE, whether auto-merge is on.
+  // `pr create` prints the new pull request's URL, `pr view` prints $AUTO_MERGE, whether auto-merge is on, and the
+  // branch lookup prints $REQUIRED_CHECKS, whether main requires the checks status (nothing when it requires none).
   const FAKE_GH = `#!/bin/sh
 printf '%s\\n' "$*" >> "$GH_LOG"
 [ "$GH_TOKEN" = "secret" ] || { echo "gh got no token" >&2; exit 4; }
@@ -666,6 +693,7 @@ case "$1 $2" in
   "pr list") printf '%s\\n' "$EXISTING_PR" ;;
   "pr create") echo "https://github.com/o/r/pull/42" ;;
   "pr view") echo "\${AUTO_MERGE:-false}" ;;
+  "api repos/o/r/branches/main") echo "\${REQUIRED_CHECKS-true}" ;;
 esac
 `;
 
@@ -728,27 +756,38 @@ esac
         .map((line) => line.split(/=(.*)/s).slice(0, 2)),
     );
 
-  // Runs the version job's script in `work`, which stands for its checkout of the newest main.
+  // Runs the version job's base and version steps in `work`, which stands for its checkout of the newest main. Each
+  // step gets its own output file, as on GitHub, and `outputs` are the job's, as its `outputs:` map names them.
   function runVersionStep({ work, dir, env }, extraEnv = {}) {
-    const script = jobs.version.steps.find((s) => s.id === "version").run;
     const runner = path.join(dir, "runner");
     mkdirSync(runner, { recursive: true });
-    const output = path.join(dir, "version-output");
-    writeFileSync(output, "");
-    const result = spawnSync("bash", ["-e", "-c", script], {
-      cwd: work,
-      env: { ...env, RUNNER_TEMP: runner, GITHUB_OUTPUT: output, ...extraEnv },
-      encoding: "utf8",
-    });
-    return { ...result, outputs: outputs(output) };
+    const step = (id) => {
+      const output = path.join(dir, `${id}-output`);
+      writeFileSync(output, "");
+      const result = spawnSync("bash", ["-e", "-c", jobs.version.steps.find((s) => s.id === id).run], {
+        cwd: work,
+        env: { ...env, RUNNER_TEMP: runner, GITHUB_OUTPUT: output, ...extraEnv },
+        encoding: "utf8",
+      });
+      return { ...result, outputs: outputs(output) };
+    };
+    const base = step("base");
+    assert.equal(base.status, 0, base.stderr);
+    const result = step("version");
+    const job = Object.fromEntries(
+      Object.entries(jobs.version.outputs).map(([name, expr]) => {
+        const [, id, key] = /steps\.(\w+)\.outputs\.(\w+)/.exec(expr);
+        return [name, (id === "base" ? base : result).outputs[key]];
+      }),
+    );
+    return { ...result, outputs: Object.fromEntries(Object.entries(job).filter(([, v]) => v !== undefined)) };
   }
 
-  // Runs the version-pr job's two steps in a fresh clone checked out at `base`, as its checkout is, with the version
-  // job's patch where download-artifact puts it. The push step runs only when the commit step passed.
+  // Runs the version-pr job's two steps in a fresh clone of main, as its checkout is, with the version job's patch
+  // where download-artifact puts it. The push step runs only when the commit step passed.
   function runVersionPr(repo, base, extraEnv = {}) {
     const clone = path.join(repo.dir, `pr-${Math.random().toString(36).slice(2)}`);
-    repo.git(repo.dir, "clone", "-q", repo.remote, clone);
-    repo.git(clone, "checkout", "-q", base);
+    repo.git(repo.dir, "clone", "-q", "-b", "main", repo.remote, clone);
     const runner = path.join(repo.dir, "runner");
     rmSync(path.join(runner, "pr"), { recursive: true, force: true });
     const log = path.join(repo.dir, "gh-log");
@@ -789,6 +828,7 @@ esac
     assert.deepEqual(run.gh, [
       `pr list --repo o/r --head ${branch} --base main --state open --json number --jq .[0].number // empty`,
       `pr create --repo o/r --base main --head ${branch} --title chore(release): version packages to 0.1.0-alpha.1 --body-file ${path.join(repo.dir, "runner", "pr", "body.md")}`,
+      `api repos/o/r/branches/main --jq ${jobs["version-pr"].steps[3].run.match(/--jq '([^']+)'\)\n *if \[ "\$required"/)[1]}`,
       "pr view 42 --repo o/r --json autoMergeRequest --jq .autoMergeRequest != null",
       "pr merge 42 --repo o/r --auto --squash",
     ]);
@@ -843,6 +883,53 @@ esac
     assert.match(run.commit.stderr, /M packages\/gateway\/src\/index\.js: a version commit doesn't change this file/);
     assert.equal(run.push, undefined);
     assert.equal(spawnSync("git", ["rev-parse", "--verify", branch], { cwd: repo.remote }).status, 128);
+  });
+
+  test("refuses a patch that rewrites the check itself, because node runs the base's scripts", () => {
+    const repo = setup({ changesets: { "brave-cats.md": changeset } });
+    const main = repo.git(repo.remote, "rev-parse", "main").trim();
+    assert.equal(runVersionStep(repo, { EVIL: "checker" }).status, 0);
+    const run = runVersionPr(repo, main);
+    assert.notEqual(run.commit.status, 0, run.commit.stdout);
+    assert.match(run.commit.stderr, /M scripts\/ci\/version-pr\.mjs: a version commit doesn't change this file/);
+    assert.equal(run.push, undefined);
+    assert.equal(spawnSync("git", ["rev-parse", "--verify", branch], { cwd: repo.remote }).status, 128);
+  });
+
+  test("Changesets can't change the job's base by writing to its step's output", () => {
+    const repo = setup({ changesets: { "brave-cats.md": changeset } });
+    const main = repo.git(repo.remote, "rev-parse", "main").trim();
+    const version = runVersionStep(repo, { EVIL: "base" });
+    assert.equal(version.status, 0, version.stderr);
+    assert.equal(version.outputs.base, main);
+  });
+
+  test("refuses a base that isn't a commit on main, and pushes nothing", () => {
+    const repo = setup({ changesets: { "brave-cats.md": changeset } });
+    assert.equal(runVersionStep(repo).status, 0);
+    // A commit GitHub serves but main doesn't hold, such as a fork's pull request head.
+    repo.write("packages/gateway/src/index.js", "steal();\n");
+    repo.git(repo.work, "commit", "-qam", "elsewhere");
+    repo.git(repo.work, "push", "-q", "origin", "HEAD:refs/pull/1/head");
+    const elsewhere = repo.git(repo.work, "rev-parse", "HEAD").trim();
+    for (const base of [elsewhere, "main", "--help"]) {
+      const run = runVersionPr(repo, base);
+      assert.notEqual(run.commit.status, 0, base);
+      assert.match(run.commit.stdout, /The version job's base, '.*', isn't a commit on main/, base);
+      assert.equal(run.push, undefined, base);
+    }
+  });
+
+  test("leaves auto-merge off and fails when main doesn't require the checks status", () => {
+    const repo = setup({ changesets: { "brave-cats.md": changeset } });
+    const main = repo.git(repo.remote, "rev-parse", "main").trim();
+    runVersionStep(repo);
+    for (const required of ["", "false"]) {
+      const run = runVersionPr(repo, main, { REQUIRED_CHECKS: required });
+      assert.equal(run.push.status, 1, JSON.stringify(required));
+      assert.match(run.push.stdout, /main doesn't require the checks status/);
+      assert.ok(!run.gh.some((call) => call.startsWith("pr merge")), run.gh);
+    }
   });
 
   test("empty changesets get a pull request that names no version", () => {

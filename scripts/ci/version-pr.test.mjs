@@ -148,6 +148,11 @@ describe("version-pr.mjs", () => {
       ["a deleted pre.json in pre mode", (r) => r.git("rm", "-q", ".changeset/pre.json"), /D \.changeset\/pre\.json/],
       ["an executable", (r) => chmodSync(path.join(r.dir, "packages/sdk/CHANGELOG.md"), 0o755), /mode 100755/],
       ["an unhidden package", (r) => r.write("packages/manual/package.json", manifest("manual", "1.0.0")), /manual/],
+      [
+        "a private package's version",
+        (r) => r.write("packages/manual/package.json", manifest("manual", "0.0.1", { private: true })),
+        /M packages\/manual\/package\.json: a version commit doesn't change this file/,
+      ],
     ];
     for (const [name, edit, reason] of cases) {
       const r = repo();
@@ -247,16 +252,29 @@ describe("version-pr.mjs", () => {
 
 describe("auto-merge-guard.yml", () => {
   const { jobs } = guard;
-  const [checkout, decide, disable] = jobs.guard.steps;
+  const [checkout, decide] = jobs.guard.steps;
+  const [disable] = jobs.disable.steps;
 
-  test("runs on pull_request_target when auto-merge is turned on, and only then", () => {
-    assert.deepEqual(guard.on, { pull_request_target: { types: ["auto_merge_enabled"] } });
+  test("runs when auto-merge is turned on, and again when a pull request with it on changes", () => {
+    assert.deepEqual(guard.on, {
+      pull_request_target: { types: ["auto_merge_enabled", "synchronize", "edited", "reopened"] },
+    });
     assert.deepEqual(guard.permissions, {});
-    assert.deepEqual(Object.keys(jobs), ["guard"]);
+    assert.deepEqual(Object.keys(jobs), ["guard", "disable"]);
+    // Auto-merge stays on when someone with write access pushes or changes the base, so those events are checked too.
+    assert.equal(
+      jobs.guard.if,
+      "github.event.action == 'auto_merge_enabled' || github.event.pull_request.auto_merge != null",
+    );
   });
 
-  test("holds only GITHUB_TOKEN with pull-requests: write, and never checks out the pull request's code", () => {
-    assert.deepEqual(jobs.guard.permissions, { contents: "read", "pull-requests": "write" });
+  test("holds only GITHUB_TOKEN, never checks out the pull request's code, and writes only in a job that runs gh", () => {
+    assert.deepEqual(jobs.guard.permissions, { contents: "read" });
+    // GitHub lets people with write access to the repository turn auto-merge off.
+    assert.deepEqual(jobs.disable.permissions, { contents: "write", "pull-requests": "write" });
+    assert.equal(jobs.disable.steps.length, 1);
+    assert.equal(disable.uses, undefined);
+    assert.doesNotMatch(disable.run, /\bnode\b|\bgit\b/);
     assert.doesNotMatch(guardText, /secrets\./);
     assert.equal(disable.env.GH_TOKEN, `\${{ github.token }}`);
     assert.match(checkout.uses, /^actions\/checkout@/);
@@ -264,10 +282,7 @@ describe("auto-merge-guard.yml", () => {
     assert.deepEqual(checkout.with, { "fetch-depth": 0, "persist-credentials": false });
     assert.equal(jobs.guard.steps.filter((s) => s.uses).length, 1);
     // The pull request's commits are fetched as data and read only through git.
-    assert.match(
-      decide.run,
-      /git fetch --quiet --no-tags origin "\+refs\/pull\/\$\{NUMBER\}\/head:refs\/remotes\/pr\/head"/,
-    );
+    assert.match(decide.run, /git fetch --quiet --no-tags origin "\+\$\{HEAD_SHA\}:refs\/remotes\/pr\/head"/);
     assert.match(decide.run, /^ *node scripts\/ci\/version-pr\.mjs guard origin\/main refs\/remotes\/pr\/head/m);
     assert.doesNotMatch(guardText, /pnpm|npx|npm |node_modules/);
   });
@@ -276,24 +291,36 @@ describe("auto-merge-guard.yml", () => {
     for (const step of jobs.guard.steps) assert.doesNotMatch(step.run ?? "", /\$\{\{/, step.name);
     assert.equal(decide.env.HEAD_REF, `\${{ github.event.pull_request.head.ref }}`);
     assert.equal(decide.env.HEAD_REPO, `\${{ github.event.pull_request.head.repo.full_name }}`);
+    assert.equal(decide.env.HEAD_SHA, `\${{ github.event.pull_request.head.sha }}`);
   });
 
   test("turns auto-merge off on anything but a clear keep, a failed check included", () => {
-    assert.equal(disable.if, "always() && steps.decide.outputs.action != 'keep'");
+    assert.equal(jobs.disable.needs, "guard");
+    assert.equal(
+      jobs.disable.if,
+      "always() && needs.guard.result != 'skipped' && needs.guard.outputs.action != 'keep'",
+    );
+    assert.equal(jobs.guard.outputs.action, `\${{ steps.decide.outputs.action }}`);
     assert.match(disable.run, /^gh pr merge "\$NUMBER" --repo "\$REPO" --disable-auto$/m);
     assert.match(decide.run, /set -euo pipefail/);
   });
 
   // Runs the guard's decide step for real: a bare remote holds main and the pull request's head under
-  // refs/pull/7/head, as GitHub keeps it, and the step runs in a clone of main.
-  function runDecide(edit, prEnv) {
+  // refs/pull/7/head, as GitHub keeps it, and the step runs in a clone of main on the event's head commit. With
+  // `stale`, refs/pull/7/head still names the commit before the one the event names.
+  function runDecide(edit, prEnv, { stale } = {}) {
     const r = repo();
+    if (stale) {
+      r.version();
+      r.commit();
+    }
     edit(r);
     r.commit();
     const remote = path.join(r.dir, "..", `${path.basename(r.dir)}-remote.git`);
     dirs.push(remote);
     r.git("init", "-q", "--bare", remote);
-    r.git("push", "-q", remote, "main", "work:refs/pull/7/head");
+    r.git("push", "-q", remote, "main", `${stale ? "work~1" : "work"}:refs/pull/7/head`, "work:refs/heads/later");
+    const headSha = r.git("rev-parse", "work").trim();
     const clone = `${remote}-clone`;
     dirs.push(clone);
     r.git("clone", "-q", "-b", "main", remote, clone);
@@ -310,6 +337,7 @@ describe("auto-merge-guard.yml", () => {
         GITHUB_OUTPUT: output,
         GITHUB_STEP_SUMMARY: summary,
         NUMBER: "7",
+        HEAD_SHA: headSha,
         HEAD_REF: RELEASE_BRANCH,
         HEAD_REPO: "o/r",
         BASE_REF: "main",
@@ -348,8 +376,14 @@ describe("auto-merge-guard.yml", () => {
     }
   });
 
-  test("leaves no action when the check can't run, so the next step turns auto-merge off", () => {
-    const run = runDecide((r) => r.version(), { NUMBER: "8" });
+  test("checks the commit the event names, even when refs/pull/N/head hasn't caught up", () => {
+    const run = runDecide((r) => r.write("packages/gateway/src/index.ts", "steal();\n"), {}, { stale: true });
+    assert.equal(run.action, "disable");
+    assert.match(run.summary, /- M packages\/gateway\/src\/index\.ts: a version commit doesn't change this file/);
+  });
+
+  test("leaves no action when the check can't run, so the next job turns auto-merge off", () => {
+    const run = runDecide((r) => r.version(), { HEAD_SHA: "0".repeat(40) });
     assert.notEqual(run.status, 0);
     assert.equal(run.action, undefined);
   });
@@ -372,6 +406,11 @@ describe("this checkout on main", () => {
     assert.match(release.jobs.version.if, /needs\.plan\.outputs\.needs_version == 'true'/);
     assert.match(release.jobs.pack.if, /needs\.plan\.outputs\.publish == 'true'/);
     assert.match(release.jobs.publish.if, /needs\.pack\.result == 'success'/);
+  });
+
+  test("versions only the public packages, never a private one such as agent-safety", () => {
+    const { packages } = gitChange(root, "HEAD", "HEAD");
+    assert.deepEqual(packages.map((pkg) => pkg.name).sort(), ["@buildanagent/gateway", "@buildanagent/sdk"]);
   });
 
   test("its real version commit passes the version-pr check and the changeset gate", { skip }, () => {
@@ -416,6 +455,14 @@ describe("this checkout on main", () => {
     const { entries, read, packages } = gitChange(dir, "main", "HEAD");
     const result = checkVersionChange(entries, read, packages);
     assert.deepEqual(result.problems, []);
+    // Changesets leaves private packages, such as agent-safety and manual, alone.
+    const versioned = packages.map((pkg) => `${pkg.dir}/`);
+    for (const { path: file } of entries.filter((e) => e.path.startsWith("packages/"))) {
+      assert.ok(
+        versioned.some((dir) => file.startsWith(dir)),
+        `changeset version changed ${file}`,
+      );
+    }
     assert.deepEqual(result.consumed, pending.sort());
     const pre = readPreState(root);
     assert.equal(pre.mode, "pre");
