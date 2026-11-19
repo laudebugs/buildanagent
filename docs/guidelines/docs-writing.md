@@ -29,7 +29,7 @@ Draft with `/anthropic-skills:writing` and review with `/anthropic-skills:writin
 ## Show code only from tested files
 
 - **MUST:** put a sentence that says what the code does before every code block.
-- **MUST:** a code block of more than a few lines comes from a tested example file, which [examples.md](examples.md) governs, so the docs never show code that no longer runs.
+- **MUST:** a code block of more than five lines comes from a tested example file, which [examples.md](examples.md) governs, so the docs never show code that no longer runs. Until the first `examples/` folder exists, a README may show a longer block; [Known gaps](README.md#known-gaps) tracks it.
 
 ## Reviewer checklist
 

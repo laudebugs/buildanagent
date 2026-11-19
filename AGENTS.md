@@ -101,7 +101,7 @@ Rules that apply throughout:
 The repo is a pnpm workspace. Run every command from the repo root unless a README says otherwise.
 
 - **Toolchain.** Node 22 (`.nvmrc`) and pnpm 10.34.9 (`packageManager` in `package.json`). Install with `pnpm install` at the root; never use npm or yarn, and never commit a `package-lock.json`.
-- **Workspace layout.** `pnpm-workspace.yaml` lists `verify/*`. Shared dev tools (TypeScript, tsx, `@types/node`, Biome) live in the root `package.json`. Each package declares only the runtime dependencies it imports, because pnpm does not hoist undeclared packages.
+- **Workspace layout.** `pnpm-workspace.yaml` lists `packages/*` and `verify/*`. Shared dev tools (TypeScript, tsx, `@types/node`, Biome) live in the root `package.json`. Each package declares only the runtime dependencies it imports, because pnpm does not hoist undeclared packages.
 - **Versions.** Pin every dependency exactly (`.npmrc` sets `save-exact`). Choose releases at least one week old (changed from two weeks on 2026-11-18). One exception overrides the age rule: when a pinned dependency has a known vulnerability, move it to the latest release that fixes it, however new, and record the alert in the upgrade commit. Allow dependency build scripts only through `onlyBuiltDependencies` in `pnpm-workspace.yaml`.
 - **TypeScript.** ESM everywhere (`"type": "module"`). Packages extend `tsconfig.base.json` (strict, ES2024). Harness scripts are `.mjs`; example programs are `.ts`, run with tsx.
 - **Lint and format.** Biome checks JS, TS and JSON (`biome.json`): 2-space indent, double quotes, semicolons, trailing commas, 120 columns. Biome skips Markdown and mirrored upstream sources. `noExplicitAny` is off only in `verify/*/examples`.

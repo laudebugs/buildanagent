@@ -21,7 +21,7 @@ These rules keep `packages/` easy to change as the SDK and harness grow. They ad
 ## Names and comments explain the code, not its history
 
 - **MUST:** name files and tests for what they do, never for the review or todo that created them.
-- **MUST:** comments explain why the code is the way it is: an invariant, a plan decision or a workaround, cited by decision id (`D3`, `HD15`) or plan section. Todo ids belong in commit messages and plans, not in `src/`, because a todo is done once and its id stops meaning anything to the next reader.
+- **MUST:** comments explain why the code is the way it is: an invariant, a plan decision or a workaround. An internal comment may cite a decision by id (`D3`, `HD15`) or plan section; an exported symbol's TSDoc may not, because users read it ([typescript.md](typescript.md#public-apis-are-designed-as-types-first-and-every-export-is-documented)). Todo ids belong in commit messages and plans, not in `src/`, because a todo is done once and its id stops meaning anything to the next reader.
 
 ## Never patch code just to make a test pass
 

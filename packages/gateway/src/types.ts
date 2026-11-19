@@ -32,7 +32,7 @@ export interface ModelRef {
 }
 
 /**
- * Token counts for one model response (D3). There is deliberately no field named `input`: providers disagree on
+ * Token counts for one model response. There is deliberately no field named `input`: providers disagree on
  * whether "input" includes cached tokens, so the uncached part says so in its name and `totalInput()` sums the parts.
  */
 export interface Usage {
@@ -46,7 +46,7 @@ export interface Usage {
   raw: unknown;
 }
 
-/** The price of one response (D4). `total` is `null` when the price is unknown, never a guessed zero. */
+/** The price of one response. `total` is `null` when the price is unknown, never a guessed zero. */
 export interface Cost {
   total: number | null;
   basis: "provider" | "catalog" | "unknown";
@@ -87,7 +87,7 @@ export interface ModelContext {
   tools: WireTool[];
 }
 
-/** The window and output limit the context layers and the budget (D9) need; filled from the price catalog. */
+/** The context window and output limit that context trimming and the budget need; filled from the price catalog. */
 export interface ModelCaps {
   contextWindow: number;
   maxOutputTokens: number;

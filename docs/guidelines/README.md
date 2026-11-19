@@ -11,3 +11,14 @@ These guidelines hold the coding and documentation rules for `packages/` in one 
 | [examples.md](examples.md) | write an example a reader will copy: public imports only, no test scaffolding, always tested |
 
 **MUST** and **SHOULD** mark rules. Text without either is advice.
+
+## Known gaps
+
+Some code and docs on `main` predate these rules. Each gap below has an owner, so a reviewer can tell an old gap from a new violation:
+
+| Gap | Rule | Closed by |
+| --- | --- | --- |
+| `tsconfig.base.json` lacks seven of the ten required flags | [typescript.md](typescript.md#compiler-settings-are-strict-and-only-erasable-syntax-is-allowed) | the compiler and lint follow-up pull request |
+| Biome doesn't yet enforce the complexity and length caps, `useThrowOnlyError` or a portability check; `assertStreamContract()` and `ScriptedModel`'s stream method are near or past the caps | [typescript.md](typescript.md#biome-lints-and-formats-and-caps-each-functions-size) | the same follow-up, which splits those two functions |
+| `StreamContractError`, `ModelRequestsDisabledError` and `UnexpectedModelCallError` carry no `code` and no `isX()` guard | [typescript.md](typescript.md#each-package-has-one-error-class-with-a-typed-code) | the gateway's and SDK's error classes, added with the SDK's `errors.ts` |
+| The SDK README's `ScriptedModel` block and the gateway README's `assertStreamContract()` block are not from tested example files | [docs-writing.md](docs-writing.md#show-code-only-from-tested-files) | the first `examples/` folder, with the SDK capstone |

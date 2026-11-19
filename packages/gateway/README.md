@@ -16,8 +16,8 @@ A provider adapter implements one method, `stream()`. The stream it returns foll
 
 1. `start` comes first, once.
 2. Each content block runs `*_start`, then any number of `*_delta`, then `*_end`, and keeps one kind.
-3. Exactly one final event, `done` or `error`, ends the stream.
-4. An `error` event has `stopReason` `"error"` or `"aborted"` and carries the content and usage so far. A `done` event has neither stop reason, and every block it started has ended.
+3. Exactly one terminal event, `done` or `error`, ends the stream.
+4. An error terminal has `stopReason` `"error"` or `"aborted"` and carries the content and usage so far. A `done` terminal has neither stop reason, and every block it started has ended.
 
 This check reads a stream and throws a `StreamContractError` at the first broken rule:
 
@@ -27,7 +27,7 @@ import { assertStreamContract } from "@buildanagent/gateway/testing";
 const events = await assertStreamContract(adapter.stream(model, context, {}));
 ```
 
-`complete()` folds a stream into its final message. It returns an `error` message instead of throwing, so a failed call still gives you its partial content and usage.
+`complete()` folds a stream into its terminal message. It returns an error terminal's message instead of throwing, so a failed call still gives you its partial content and usage.
 
 ## Tests run offline
 
