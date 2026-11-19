@@ -4,7 +4,7 @@ import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 import { totalInput } from "@buildanagent/gateway";
 import type { AgentEvent, RunResult } from "@buildanagent/sdk";
-import { defineTool } from "@buildanagent/sdk";
+import { defineTool, isSdkError, run } from "@buildanagent/sdk";
 import {
   GEN_AI_ATTRIBUTES,
   GEN_AI_CONTENT_ATTRIBUTES,
@@ -17,8 +17,8 @@ import { sequentialIds } from "@buildanagent/sdk/testing";
 import { context, type Span, SpanStatusCode, trace } from "@opentelemetry/api";
 import { InMemorySpanExporter, type ReadableSpan, SimpleSpanProcessor, TracerProvider } from "@opentelemetry/sdk-trace";
 import { expect, test } from "vitest";
-import { drivenRun } from "./hook-helpers.js";
-import { lookup, text, toolCall } from "./run-helpers.js";
+import { drivenRun, SYSTEM } from "./hook-helpers.js";
+import { determinism, lookup, scripted, text, toolCall } from "./run-helpers.js";
 
 const USAGE_ONE = { uncachedInput: 100, cacheRead: 40, cacheWrite: { "5m": 10, "1h": 5 }, output: 30, reasoning: 7 };
 const USAGE_TWO = { uncachedInput: 20, cacheRead: 150, cacheWrite: { "5m": 0, "1h": 0 }, output: 12, reasoning: 0 };
@@ -112,13 +112,13 @@ test("each model call's input_tokens equals totalInput() of its usage, and the a
   assert.equal(root[GEN_AI_ATTRIBUTES.usageOutputTokens], 42);
 });
 
-test("a call's finish reason and response model are recorded", async () => {
+test("a call's finish reason is recorded, and no response model the provider did not report", async () => {
   const { exporter, observer } = setup();
   await toolRun(observer);
   const chats = byOperation(exporter.getFinishedSpans(), "chat");
   assert.deepEqual((chats[0] as ReadableSpan).attributes[GEN_AI_ATTRIBUTES.responseFinishReasons], ["tool_calls"]);
   assert.deepEqual((chats[1] as ReadableSpan).attributes[GEN_AI_ATTRIBUTES.responseFinishReasons], ["stop"]);
-  assert.equal((chats[0] as ReadableSpan).attributes[GEN_AI_ATTRIBUTES.responseModel], "scripted-model");
+  for (const chat of chats) assert.equal("gen_ai.response.model" in chat.attributes, false);
 });
 
 test("no content attribute appears on any span unless captureContent is true", async () => {
@@ -160,6 +160,117 @@ test("captureContent: true records the prompt, the messages and the tool's argum
   );
 });
 
+test("captureContent: true records the input a beforeToolCall gate replaced, not the model's", async () => {
+  const { exporter, observer } = setup({ captureContent: true });
+  await drivenRun(
+    [toolCall("lookup", { order: 1, key: "sk-secret" }), text("Shipped.")],
+    { beforeToolCall: async () => ({ decision: "allow", input: { order: 1 } }) },
+    { tools: [lookup], observers: [observer] },
+  );
+  const tool = (byOperation(exporter.getFinishedSpans(), "execute_tool")[0] as ReadableSpan).attributes;
+  assert.deepEqual(JSON.parse(String(tool[GEN_AI_ATTRIBUTES.toolCallArguments])), { order: 1 });
+});
+
+test("with content off, a failed span's status carries no error message", async () => {
+  const { exporter, observer } = setup();
+  await drivenRun(
+    [{ content: [], error: { kind: "fatal", message: "bad request: the user's SSN is 078-05-1120", status: 400 } }],
+    {},
+    { observers: [observer] },
+  );
+  const spans = exporter.getFinishedSpans();
+  for (const span of spans) assert.equal(span.status.message, undefined, span.name);
+  assert.equal(JSON.stringify(spans.map((span) => [span.attributes, span.status])).includes("078-05-1120"), false);
+  const { exporter: capturing, observer: withContent } = setup({ captureContent: true });
+  await drivenRun(
+    [{ content: [], error: { kind: "fatal", message: "bad request", status: 400 } }],
+    {},
+    {
+      observers: [withContent],
+    },
+  );
+  assert.equal(byOperation(capturing.getFinishedSpans(), "chat")[0]?.status.message, "bad request");
+});
+
+test("endRun() ends the spans of a run that threw, and a second call does nothing", async () => {
+  const { exporter, observer } = setup();
+  const broken = defineTool({
+    name: "broken",
+    description: "Returns a malformed result.",
+    inputSchema: { type: "object" },
+    // @ts-expect-error: a tool must return a result with content
+    async execute() {
+      return { text: "no content" };
+    },
+  });
+  const { model } = scripted([toolCall("broken", {})]);
+  const started = run({
+    model,
+    system: SYSTEM,
+    input: "Go.",
+    tools: [broken],
+    observers: [observer],
+    ...determinism(),
+  });
+  const error = await started.result.then(
+    () => assert.fail("the run should reject"),
+    (thrown: unknown) => thrown,
+  );
+  assert.ok(isSdkError(error) && error.code === "invalid_tool_result");
+  assert.equal(byOperation(exporter.getFinishedSpans(), "invoke_agent").length, 0, "no run_end came");
+  observer.endRun(started.id, error);
+  observer.endRun(started.id, error);
+  const spans = exporter.getFinishedSpans();
+  const agent = byOperation(spans, "invoke_agent");
+  assert.equal(agent.length, 1);
+  assert.equal(agent[0]?.status.code, SpanStatusCode.ERROR);
+  assert.equal(agent[0]?.attributes[GEN_AI_ATTRIBUTES.errorType], "invalid_tool_result");
+  assert.equal(byOperation(spans, "chat").length, 1);
+});
+
+test("a tracer that throws while a run ends still ends the run's span", async () => {
+  const ended: string[] = [];
+  let thrown = 0;
+  const tracer: TracerLike = {
+    startSpan(name) {
+      return {
+        setAttribute(key) {
+          if (key === GEN_AI_ATTRIBUTES.usageInputTokens && name.startsWith("invoke_agent")) {
+            thrown += 1;
+            throw new Error("exporter is down");
+          }
+        },
+        end: () => ended.push(name),
+      };
+    },
+  };
+  // A failure while an observer handles run_end is dropped rather than reported, so the test counts the throw.
+  await drivenRun(
+    [{ ...text("Hi."), usage: USAGE_TWO }],
+    {},
+    {
+      observers: [otelObserver({ tracer, childContext: (parent) => parent })],
+    },
+  );
+  assert.equal(thrown, 1);
+  assert.deepEqual(ended, ["chat scripted-model", "invoke_agent"]);
+});
+
+test("a childContext that throws still ends the run's span", async () => {
+  const ended: string[] = [];
+  const tracer: TracerLike = {
+    startSpan(name) {
+      return { setAttribute: () => undefined, end: () => ended.push(name) };
+    },
+  };
+  const childContext = () => {
+    throw new Error("bad cast");
+  };
+  const { events } = await drivenRun([text("Hi.")], {}, { observers: [otelObserver({ tracer, childContext })] });
+  assert.ok(events.some((event) => event.type === "hook_error" && event.error.includes("bad cast")));
+  assert.deepEqual(ended, ["invoke_agent"]);
+});
+
 /** A tracer that records every span name, attribute name and status the observer writes. */
 function recordingTracer() {
   const attributeNames = new Set<string>();
@@ -194,7 +305,7 @@ test("every attribute name the observer writes comes from GEN_AI_ATTRIBUTES, con
       return { content: [{ type: "text", text: "no" }], isError: true };
     },
   });
-  const observer = otelObserver({ tracer, captureContent: true, agentName: "a" });
+  const observer = otelObserver({ tracer, captureContent: true, agentName: "a", childContext: (parent) => parent });
   await drivenRun(
     [
       { ...toolCall("fail", {}), usage: USAGE_ONE },
@@ -266,7 +377,7 @@ test("the caller's trace context reaches the run's span, and flush() flushes the
   assert.equal(flushed, 0);
   await observer.flush();
   assert.equal(flushed, 1);
-  await otelObserver({ tracer }).flush();
+  await otelObserver({ tracer, childContext: (parent) => parent }).flush();
 });
 
 test("a tracer that throws is reported as a hook_error and the run still finishes", async () => {
@@ -275,7 +386,11 @@ test("a tracer that throws is reported as a hook_error and the run still finishe
       throw new Error("tracer is down");
     },
   };
-  const { events, result } = await drivenRun([text("Hi.")], {}, { observers: [otelObserver({ tracer })] });
+  const { events, result } = await drivenRun(
+    [text("Hi.")],
+    {},
+    { observers: [otelObserver({ tracer, childContext: () => undefined })] },
+  );
   assert.equal(result.stopReason, "done" satisfies RunResult["stopReason"]);
   assert.ok(events.some((event) => event.type === "hook_error" && event.error.includes("tracer is down")));
 });

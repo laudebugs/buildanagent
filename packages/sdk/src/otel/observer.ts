@@ -2,7 +2,7 @@
  * The OpenTelemetry observer: projects a run's events onto GenAI spans. One `invoke_agent` span covers the run, a
  * `chat` span covers each model call and an `execute_tool` span covers each tool call, both children of the run's
  * span. The observer only watches, like every observer: a tracer that throws is reported as a `hook_error` event
- * and never touches the run.
+ * and never touches the run, and the run's own spans are still ended and forgotten.
  *
  * The observer writes to the tracer the caller passes and nowhere else. It imports nothing from OpenTelemetry, so
  * `@opentelemetry/api` is the caller's dependency, and the trace context it needs comes in as options, not from an
@@ -51,24 +51,28 @@ export interface OtelObserverOptions {
   /** The tracer that receives the spans. The observer exports nowhere else. */
   readonly tracer: TracerLike;
   /**
-   * Whether to record content: the system prompt, the messages of each call and each tool's arguments and result.
-   * Off by default, because content can hold secrets and personal data that a trace backend should not receive.
+   * Whether to record content: the system prompt, the messages of each call, each tool's arguments and result, and
+   * the message of each error as its span's status description. Off by default, because content can hold secrets
+   * and personal data that a trace backend should not receive. An error's message can quote any of them, so with
+   * content off a failed span gets only its error status and `error.type`.
    */
   readonly captureContent?: boolean;
   /** The agent's name: it names the `invoke_agent` span and sets `gen_ai.agent.name`. */
   readonly agentName?: string;
   /**
    * The context the run's span starts in, passed to the tracer as `startSpan`'s third argument: the caller's own
-   * span, such as an incoming request's. Left out, the run's span starts a new trace in whatever the tracer treats
-   * as its default.
+   * span, such as an incoming request's. Every run the observer serves starts in this one context, so when it
+   * belongs to one request, create one observer for each request. Left out, the run's span starts in whatever the
+   * tracer treats as its default, which for an OpenTelemetry tracer is the active context.
    */
   readonly parentContext?: unknown;
   /**
-   * Makes the context a child span starts in from the run's span. With OpenTelemetry's API, pass
-   * `(span) => trace.setSpan(context.active(), span as Span)`. Left out, the spans of model and tool calls get no
-   * parent, because the observer cannot build a context without `@opentelemetry/api`.
+   * Makes the context a child span starts in from the run's span, so the spans of model and tool calls are children
+   * of the run's span in its trace. With OpenTelemetry's API, pass
+   * `(span) => trace.setSpan(context.active(), span as Span)`. It is required because the observer imports nothing
+   * from OpenTelemetry and so cannot build a context itself.
    */
-  readonly childContext?: (parent: SpanLike) => unknown;
+  readonly childContext: (parent: SpanLike) => unknown;
   /**
    * Flushes the exporter behind the tracer, such as `() => provider.forceFlush()`. `flush()` on the observer calls
    * it, so a Worker can pass `observer.flush()` to `waitUntil` and keep its spans from dying with the request.
@@ -76,10 +80,17 @@ export interface OtelObserverOptions {
   readonly forceFlush?: () => Promise<unknown>;
 }
 
-/** The observer `otelObserver()` returns: an `Observer` that can also flush its exporter. */
+/** The observer `otelObserver()` returns: an `Observer` that can also flush its exporter and end a run that threw. */
 export type OtelObserver = Observer & {
   /** Resolves once the exporter behind the tracer has flushed, or at once when `forceFlush` was not passed. */
   flush(): Promise<void>;
+  /**
+   * Ends the open spans of a run whose `result` rejected, as failed, and forgets the run. A run that throws, for a
+   * programmer error such as a tool that returns a malformed result, sends no `run_end`, so without this call its
+   * spans are never exported. `error.type` is the error's `code` when it has one, such as an `SdkError`'s, and its
+   * `name` otherwise. An unknown run id, or a run that already ended, does nothing.
+   */
+  endRun(runId: string, error?: unknown): void;
 };
 
 interface RunSpans {
@@ -94,9 +105,20 @@ function millis(timestamp: string): number | undefined {
   return Number.isNaN(value) ? undefined : value;
 }
 
-function failed(span: SpanLike, message: string, errorType?: string): void {
+/** Marks a span failed. `message` is free text, so it goes in only when `withMessage`, which content capture sets. */
+function failed(span: SpanLike, message: string, withMessage: boolean, errorType?: string): void {
   if (errorType !== undefined) span.setAttribute(A.errorType, errorType);
-  span.setStatus?.({ code: STATUS_ERROR, message });
+  span.setStatus?.(withMessage ? { code: STATUS_ERROR, message } : { code: STATUS_ERROR });
+}
+
+/** The low-cardinality `error.type` of a thrown value: its `code`, then its `name`, then the conventions' `_OTHER`. */
+function errorTypeOf(error: unknown): string {
+  if (typeof error === "object" && error !== null) {
+    const { code, name } = error as { code?: unknown; name?: unknown };
+    if (typeof code === "string" && code !== "") return code;
+    if (typeof name === "string" && name !== "") return name;
+  }
+  return "_OTHER";
 }
 
 /**
@@ -180,7 +202,14 @@ class Projection {
       },
       this.#options.parentContext,
     );
-    const childContext = this.#options.childContext?.(agent);
+    let childContext: unknown;
+    try {
+      childContext = this.#options.childContext(agent);
+    } catch (error) {
+      // The run's span would otherwise stay open for ever, since the run is never registered to end it.
+      agent.end(millis(event.timestamp));
+      throw error;
+    }
     this.#runs.set(event.runId, { agent, childContext, model: undefined, tools: new Map() });
   }
 
@@ -212,12 +241,13 @@ class Projection {
     const span = spans.model;
     if (span === undefined) return;
     const { message } = event;
-    span.setAttribute(A.responseModel, message.model.id);
+    // No `gen_ai.response.model`: `message.model` is the model the request named, not the one the provider says
+    // answered, so writing it would claim a measurement the gateway does not make.
     span.setAttribute(A.responseFinishReasons, [FINISH_REASONS[message.stopReason]]);
     setUsage(span, message.usage);
     if (message.error !== undefined) {
       const { kind, status } = message.error;
-      failed(span, message.error.message, status === undefined ? kind : String(status));
+      failed(span, message.error.message, this.#captureContent, status === undefined ? kind : String(status));
     }
     if (this.#captureContent) span.setAttribute(A.outputMessages, outputMessagesJson(message.content));
     span.end(millis(event.timestamp));
@@ -246,38 +276,69 @@ class Projection {
   #endTool(event: Extract<AgentEvent, { type: "tool_call_end" }>, spans: RunSpans): void {
     const span = spans.tools.get(event.callId);
     if (span === undefined) return;
-    if (event.result.isError === true) failed(span, "the tool returned an error", "tool_error");
-    if (this.#captureContent) span.setAttribute(A.toolCallResult, jsonValue(resultParts(event.result.content)));
+    if (event.result.isError === true) failed(span, "the tool returned an error", true, "tool_error");
+    if (this.#captureContent) {
+      // A `beforeToolCall` gate may have replaced the model's input; the span records what the tool ran with.
+      if ("input" in event) span.setAttribute(A.toolCallArguments, jsonValue(event.input));
+      span.setAttribute(A.toolCallResult, jsonValue(resultParts(event.result.content)));
+    }
     span.end(millis(event.timestamp));
     spans.tools.delete(event.callId);
   }
 
   #endRun(event: Extract<AgentEvent, { type: "run_end" }>, spans: RunSpans): void {
-    const end = millis(event.timestamp);
-    // A run that ends mid-call leaves spans open. Close them as failed rather than leak them.
-    for (const span of [...(spans.model === undefined ? [] : [spans.model]), ...spans.tools.values()]) {
-      failed(span, "the run ended before this call finished");
-      span.end(end);
-    }
     const { result } = event;
-    setUsage(spans.agent, result.usage);
-    if (result.stopReason === "error") failed(spans.agent, result.error.message, result.error.kind);
-    spans.agent.end(end);
-    this.#runs.delete(event.runId);
+    this.#close(event.runId, spans, millis(event.timestamp), () => {
+      setUsage(spans.agent, result.usage);
+      if (result.stopReason === "error") {
+        failed(spans.agent, result.error.message, this.#captureContent, result.error.kind);
+      }
+    });
+  }
+
+  /** Ends a run that threw, as `OtelObserver.endRun` describes. */
+  abandon(runId: string, error: unknown): void {
+    const spans = this.#runs.get(runId);
+    if (spans === undefined) return;
+    const message = error instanceof Error ? error.message : String(error);
+    this.#close(runId, spans, undefined, () => {
+      failed(spans.agent, message, this.#captureContent, errorTypeOf(error));
+    });
+  }
+
+  /**
+   * Ends a run's open call spans as failed, marks its own span with `mark`, ends it and forgets the run. The run is
+   * forgotten and its span ended even when the tracer throws partway, so a failing tracer leaks nothing.
+   */
+  #close(runId: string, spans: RunSpans, end: number | undefined, mark: () => void): void {
+    this.#runs.delete(runId);
+    try {
+      for (const span of [...(spans.model === undefined ? [] : [spans.model]), ...spans.tools.values()]) {
+        failed(span, "the run ended before this call finished", true);
+        span.end(end);
+      }
+      mark();
+    } finally {
+      spans.agent.end(end);
+    }
   }
 }
 
 /**
  * Creates an observer that projects a run's events onto OpenTelemetry GenAI spans. Pass it in `run()`'s
- * `observers`. One observer can serve many runs, because it keeps each run's spans apart by run id.
+ * `observers`: an observer added later with `run.on()` misses `run_start`, so it records nothing for that run. One
+ * observer can serve many runs, because it keeps each run's spans apart by run id.
  *
- * Without `captureContent`, no span holds a prompt, a message, a tool argument or a tool result.
+ * Without `captureContent`, no span holds a prompt, a message, a tool argument, a tool result or an error message.
  */
 export function otelObserver(options: OtelObserverOptions): OtelObserver {
   const projection = new Projection(options);
   return Object.assign((event: AgentEvent) => projection.handle(event), {
     async flush(): Promise<void> {
       await options.forceFlush?.();
+    },
+    endRun(runId: string, error?: unknown): void {
+      projection.abandon(runId, error);
     },
   });
 }

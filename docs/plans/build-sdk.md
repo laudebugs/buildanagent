@@ -509,7 +509,7 @@ interface TracerLike { startSpan(name: string, options?: { kind?: number; attrib
 interface SpanLike { setAttribute(name: string, value: string | number | boolean | string[]): unknown; setStatus?(status: { code: number; message?: string }): unknown; end(endTime?: number): void }
 declare const GEN_AI_ATTRIBUTES: Readonly<Record<string, string>>;     // the gen_ai.* names, shared with the harness projection
 declare const SEMCONV_GENAI_COMMIT: "d28355d";                          // the pinned convention commit (harness HD7)
-declare function otelObserver(options: { tracer: TracerLike; captureContent?: boolean; agentName?: string; parentContext?: unknown; childContext?: (parent: SpanLike) => unknown; forceFlush?: () => Promise<unknown> }): Observer & { flush(): Promise<void> }; // content off by default; revised in B17
+declare function otelObserver(options: { tracer: TracerLike; captureContent?: boolean; agentName?: string; parentContext?: unknown; childContext: (parent: SpanLike) => unknown; forceFlush?: () => Promise<unknown> }): Observer & { flush(): Promise<void>; endRun(runId: string, error?: unknown): void }; // content off by default; revised in B17
 
 // @buildanagent/sdk/testing (guide §8; SDK decision 14)
 interface AssistantScript {                    // added in B3, which found AssistantScript used but undefined
@@ -561,7 +561,8 @@ declare function replayPairs(pairs: RecordedPair[]): ScriptedModel;   // rejects
 - A receipt rejects with `SdkError` code `undelivered_message` when the run ends before the message is applied. `receipt.id` is `<runId>:message-<n>`.
 
 **Revision (B17, 2026-11-19).** B17 adds the OTel observer with these choices, each recorded in [its outcome](../todos/done/B17-otel-observer.md#outcome):
-- `TracerLike.startSpan` takes a third `context` argument and a span `kind`, and `SpanLike` gains an optional `setStatus`, so a real OpenTelemetry `Tracer` fits without a wrapper. The observer gets the trace context through `parentContext` and `childContext`, not from ambient storage.
+- `TracerLike.startSpan` takes a third `context` argument and a span `kind`, and `SpanLike` gains an optional `setStatus`, so a real OpenTelemetry `Tracer` fits without a wrapper. The observer gets the trace context through `parentContext` and a required `childContext`, not from ambient storage, so its model and tool spans always join the run's trace.
+- `endRun(runId, error)` ends the spans of a run whose `result` rejected, because such a run sends no `run_end`.
 - The run, model-call and tool spans follow the in-process conventions of [fact-check B17-2 to B17-4](reviews/fact-check-otel-observer.md).
 
 ### 3.4 The seams P2 consumes

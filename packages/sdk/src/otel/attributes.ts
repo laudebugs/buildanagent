@@ -18,7 +18,6 @@ export const GEN_AI_ATTRIBUTES = Object.freeze({
   requestModel: "gen_ai.request.model",
   requestMaxTokens: "gen_ai.request.max_tokens",
   requestTemperature: "gen_ai.request.temperature",
-  responseModel: "gen_ai.response.model",
   responseFinishReasons: "gen_ai.response.finish_reasons",
   usageInputTokens: "gen_ai.usage.input_tokens",
   usageOutputTokens: "gen_ai.usage.output_tokens",
