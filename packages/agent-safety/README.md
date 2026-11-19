@@ -127,7 +127,7 @@ The signers compare signatures in constant time, copy the keys you pass, and kee
 
 ## Keep pending requests where the resume can find them
 
-A `PendingStore` holds each signed pending request from the pause until the resume, and needs two methods: `put()` and `take()`. `memoryPendingStore()` keeps them in memory, for tests and single-process hosts. On a serverless host, back the store with storage that outlives the isolate, such as Durable Object storage. The store needn't be trusted, because the adapter verifies every request it takes before the request counts.
+A `PendingStore` holds each signed pending request from the pause until the resume, and needs two methods: `put()` and `take()`. `memoryPendingStore()` keeps them in memory, for tests and single-process hosts. On a serverless host, back the store with storage that outlives the isolate, such as Durable Object storage. The store needn't be trusted, because the adapter verifies every request it takes before the request counts. It is keyed by call id alone, so use one store per conversation, or make sure your model's call ids are unique across the conversations that share one: two pauses with the same id replace each other, and the first one's approval fails closed.
 
 `take()` must remove and return a request in one atomic step. If it reads and then deletes, two copies of one approval that arrive together can both get the request, and the call runs twice. Durable Object storage is atomic within one object; elsewhere, use an atomic operation such as Redis `GETDEL` or SQL `DELETE ... RETURNING`.
 

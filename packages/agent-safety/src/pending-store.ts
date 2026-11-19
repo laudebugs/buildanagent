@@ -13,6 +13,10 @@ import type { SignedPendingRequest } from "./pending.js";
  * both receive it and both run the call. Durable Object storage gives that within one object; elsewhere use an atomic
  * primitive, such as Redis `GETDEL` or SQL `DELETE ... RETURNING`, never a read followed by a delete.
  *
+ * A store is keyed by call id alone, so give each conversation its own store, or a Durable Object per chat, unless
+ * your model's call ids are unique across every conversation that shares it. Two pauses with one id replace each other,
+ * and the first one's approval then fails closed.
+ *
  * A record is taken whenever its call comes back approved, even when the check then fails, so a forged approval uses
  * up the real one and the model has to ask again. A call the person denies, or never answers, is never taken: expire
  * records after a while, as `memoryPendingStore()` does, so the store doesn't grow without bound and the keys that

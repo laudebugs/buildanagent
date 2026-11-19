@@ -9,7 +9,9 @@ import { type ApprovalSigner, hmacSigner } from "./signer.js";
 
 /** A key ring: every key a signer may verify with, by id, and the id of the key that signs. */
 export interface KeyRing {
+  /** Every key the signer may verify with, by key id. Each key is 32 or more random bytes. */
   readonly keys: Readonly<Record<string, Uint8Array>>;
+  /** The id of the key that signs, which must be one of `keys`. */
   readonly current: string;
 }
 
@@ -19,8 +21,14 @@ export interface KeyRing {
  * leaves both out.
  */
 export interface KeyStore {
+  /** Returns the current ring. */
   load(): Promise<KeyRing>;
+  /** Adds a new key, makes it `current` and returns its id. Leave it out for a read-only store. */
   rotate?(): Promise<string>;
+  /**
+   * Removes every key whose id is not in `inUse`, the ids that unresolved pauses still name, and returns the removed
+   * ids. A pause whose key is gone fails closed, so pass every id a stored pending request names.
+   */
   prune?(inUse: Set<string>): Promise<string[]>;
 }
 
