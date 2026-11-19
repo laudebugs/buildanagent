@@ -324,6 +324,55 @@ const cases: readonly Case[] = [
     file: `${FIRST}:36`,
     message: /unknown directive :::aside/,
   },
+  // Boxes.
+  {
+    rule: "a box without an id fails",
+    change: firstChapter((t) => t.replace("## Exercises", ":::box[A box]\nText.\n:::\n\n## Exercises")),
+    file: `${FIRST}:36`,
+    message: /a box needs a kebab-case id, written :::box\[Title\]\{#some-id\}/,
+  },
+  {
+    rule: "a box whose id is not kebab-case fails",
+    change: firstChapter((t) => t.replace("## Exercises", ":::box[A box]{#A_Box}\nText.\n:::\n\n## Exercises")),
+    file: `${FIRST}:36`,
+    message: /a box needs a kebab-case id/,
+  },
+  {
+    rule: "a box given an attribute other than its id fails",
+    change: firstChapter((t) =>
+      t.replace("## Exercises", ':::box[A box]{#a-box tone="warm"}\nText.\n:::\n\n## Exercises'),
+    ),
+    file: `${FIRST}:36`,
+    message: /a box takes no attribute but its id, not tone/,
+  },
+  {
+    rule: "a box without a title fails",
+    change: firstChapter((t) => t.replace("## Exercises", ":::box{#a-box}\nText.\n:::\n\n## Exercises")),
+    file: `${FIRST}:36`,
+    message: /a box needs a title, written :::box\[Title\]\{#a-box\}/,
+  },
+  {
+    rule: "an empty box fails",
+    change: firstChapter((t) => t.replace("## Exercises", ":::box[A box]{#a-box}\n:::\n\n## Exercises")),
+    file: `${FIRST}:36`,
+    message: /a box must hold its content/,
+  },
+  {
+    rule: "a box that holds a heading fails at the heading",
+    change: firstChapter((t) =>
+      t.replace("## Exercises", ":::box[A box]{#a-box}\n### Inside\n\nText.\n:::\n\n## Exercises"),
+    ),
+    file: `${FIRST}:37`,
+    message: /a box may hold no heading and no other box; its title is its heading/,
+  },
+  {
+    rule: "a box inside a box fails at the inner box",
+    change: firstChapter((t) =>
+      t.replace("## Exercises", "::::box[Outer]{#outer}\n:::box[Inner]{#inner}\nText.\n:::\n::::\n\n## Exercises"),
+    ),
+    file: `${FIRST}:37`,
+    message: /a box may hold no heading and no other box/,
+  },
   // Generated figures and analogy illustrations (BK11, BK22).
   {
     rule: "a figure whose drawing has no alt text fails with its line",

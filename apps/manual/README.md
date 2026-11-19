@@ -172,6 +172,22 @@ The replay shows a request's new messages only. When a request resends messages 
 
 A replay fails when the transcript is missing or malformed, when it records another file, and when it was recorded at a pin other than the harness's current one. The pin check covers both the harness's main package and the package its recorder attaches to, which the transcript names as `mock`, and rerunning the harness's `pnpm test` fixes a stale pin. Six harnesses record transcripts: `vercel-ai-sdk`, `pi`, `openai-agents-sdk`, `langchain`, `google-adk` and `cloudflare-agents`. An example that calls no model, such as `cloudflare-agents/examples/01-state.ts`, has no transcript, and the Claude Agent SDK and Copilot SDK wait for [T49](../../docs/todos/ready/T49-book-http-mock-transcripts.md). The transcript format lives in [`scripts/transcripts/events.ts`](../../scripts/transcripts/events.ts), with its recorder and writer beside it.
 
+## A box sets a passage apart from the chapter's argument
+
+A box holds material that a reader can skip without losing the thread, such as Chapter 1's account of how the examples run without a key. Write it as a `:::box` container with a title and an id:
+
+```markdown
+:::box[How these examples run without a key]{#how-these-examples-run-without-a-key}
+Every listing in this book runs against a mock model, …
+
+::listing[The scripted mock behind this chapter's AI SDK listings]{#scripted-mock file="verify/vercel-ai-sdk/examples/lib/check.ts" region="scripted"}
+:::
+```
+
+The page renders the box as an `<aside>` whose `aria-labelledby` names its title. The title becomes a heading one level below the heading the box follows, as a tab heading does, and the heading carries the box's id, so a link to `#how-these-examples-run-without-a-key` lands on the title. The chapter's "On this page" list shows only level-2 headings, so a box after a section's heading stays out of it. Inside, a box takes any Markdown: paragraphs, citations, glossary terms, analogies, references and file listings, which are numbered and checked like any other. A `:::listing` container with notes fits inside too, once the box's fence has four colons, `::::box`. The box draws a card border in the rule colour on the page background, so a listing inside keeps its own panel in both themes. In print the border takes the muted text colour, and the title stays on the same page as the text after it. The box needs no script and writes no inline style.
+
+A box fails when its id is missing or not kebab-case, when it takes any other attribute, when its title is missing or blank, when it holds nothing, and when it holds a heading or another box. These rules are our choices: the title stays the one heading a box gives the page's outline.
+
 ## The live run compares the listed examples with real APIs, only when the owner starts it
 
 Every listing runs against a mock model, and CI never holds a provider key. Once in a while the owner checks that the mocks still behave like the real APIs, with a workflow that only they can start and approve ([book plan BK18](../../docs/plans/build-book.md#bk18-an-occasional-live-run-compares-real-flows-with-the-mock-transcripts-accepted)). `.github/workflows/live-run.yml` runs the examples in [`src/data/live-examples.json`](src/data/live-examples.json) against the real APIs and compares each run's flow with the example's mock transcript. A pull request then records the date in [`src/data/live-comparison.json`](src/data/live-comparison.json), which pages show beside the listings the live run covers.
@@ -402,7 +418,7 @@ Each component in `src/components/` renders its full content with no script. A f
 - **Layout:** `SiteHeader`, `ChapterHead` (the wide title), `Sidebar` with `Contents`, the article column in `layouts/ChapterLayout.astro`, and `PrevNext`. The columns switch with container queries on the `.layout` element, not with viewport media queries, so the layout follows the width it is given: the sidebar joins at 64rem and the side-note margin at 69rem.
 - **Code:** `ListingBlock` with `AnnotationMarker` and `Annotations`; `Tabs` with `TabPanel`, which show every panel under its own heading until `scripts/tabs.ts` builds the tab list; `Replay` with `StepControls`, which `scripts/steps.ts` steps through. A chapter's notes, `:::tabs` and replays render the same markup from `listing-html.ts` and `replay-html.ts`, and `ChapterLayout` loads both scripts.
 - **Figures:** `FigureFrame` on grid paper, which becomes the isometric stepper when it has steps; `scripts/steps.ts` then shows one step at a time and dims the figure parts of the others. `GeneratedFigure` puts a figure from `figures/` in a `FigureFrame`, inlined as a chapter's is; the gallery uses it.
-- **Prose:** `SideNote`, `GlossaryCard`, `GlossaryTerm` (its card opens on hover and focus and stays open while the pointer is on it, and `scripts/glossary.ts` lets Escape close it), `Citation` and `SearchBox`.
+- **Prose:** `SideNote`, `GlossaryCard`, `GlossaryTerm` (its card opens on hover and focus and stays open while the pointer is on it, and `scripts/glossary.ts` lets Escape close it), `Citation` and `SearchBox`. A chapter's box has no component: the Markdown pipeline writes its `<aside>` ([A box sets a passage apart](#a-box-sets-a-passage-apart-from-the-chapters-argument)).
 - **Theme:** `ThemeToggle`, driven by `public/scripts/theme.js`, which applies a stored choice before the first paint. The button shows a sun in the dark theme and a moon in the light one, and its accessible name gives its action, "Switch to light theme" or "Switch to dark theme". Both follow the system setting while the reader has stored no choice.
 
 The gallery at `/gallery/` renders every component in both themes, one above the other at full width, so each shows the layout at the width a reader sees it. It stays out of the search index and carries `noindex`. Its citation and glossary samples link to the `/sources/` and `/glossary/` pages. The owner compares the gallery with the reference board after any design change.

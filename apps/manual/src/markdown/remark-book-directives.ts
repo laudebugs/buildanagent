@@ -5,6 +5,7 @@ import { isFileListing, isNumberedKind, NUMBERED_KINDS, type NumberedKind } from
 import type { ListingSource } from "../book/listings.js";
 import type { Book } from "../book/load.js";
 import { noteNumbers } from "../book/notes.js";
+import { KEBAB_ID } from "../book/outline-rules.js";
 import { replayEvents } from "../book/transcripts.js";
 import { captionParts, listingCodeHtml, NOTES_LABEL } from "../components/listing-html.js";
 import { replayHtml } from "../components/replay-html.js";
@@ -31,7 +32,8 @@ type LeafDirective = Extract<RootContent, { type: "leafDirective" }>;
  * book index has already cut and checked, highlighted with Shiki, under a caption with its number, path, line range
  * and pin; written as a `:::listing` container, it holds `::note[Text]{#id}` notes for the lines marked
  * `// book:note <id>`, and with `replay` it adds the recorded run of its example. `:::tabs` holds file listings from
- * different harnesses, one tab each. `:analogy[label]{#id}` marks a use of a registered analogy. Any other directive
+ * different harnesses, one tab each. `:::box[Title]{#id}` sets a passage apart as an `<aside>` under its own heading.
+ * `:analogy[label]{#id}` marks a use of a registered analogy. Any other directive
  * fails, except a bare text directive such as the `:Invent` in "re:Invent" or the `:tools` in `[[ch:tools]]`, which
  * is put back as the text it was.
  */
@@ -40,7 +42,7 @@ export function remarkBookDirectives(options: { readonly book: Book }) {
   return async (tree: Root, file: VFile): Promise<void> => {
     const { outline } = checkedChapter(file);
     const listings: Promise<void>[] = [];
-    const tabDepths = tabHeadingDepths(tree);
+    const depths = nestedHeadingDepths(tree);
     walk(tree, (node) => {
       // A directive this plugin built, such as a tab panel or a listing's figure, already names its element.
       if (node.type === "containerDirective" && node.data?.hName !== undefined) return undefined;
@@ -50,7 +52,8 @@ export function remarkBookDirectives(options: { readonly book: Book }) {
         return figure;
       }
       if (node.type === "containerDirective" && isNumberedKind(node.name)) return numbered(node, node.name, file);
-      if (node.type === "containerDirective" && node.name === "tabs") return tabs(node, file, tabDepths.get(node) ?? 3);
+      if (node.type === "containerDirective" && node.name === "tabs") return tabs(node, file, depths.get(node) ?? 3);
+      if (node.type === "containerDirective" && node.name === "box") return box(node, file, depths.get(node) ?? 3);
       if (node.type === "textDirective" && node.name === "analogy") return analogy(node, book, outline.number, file);
       if (node.type === "textDirective" && isBare(node)) return restored(node);
       if (node.type === "containerDirective" || node.type === "leafDirective" || node.type === "textDirective") {
@@ -167,18 +170,60 @@ function mergeText(parent: Parent): void {
 }
 
 /**
- * The heading level of each `:::tabs` block's tab headings: one below the heading the block follows, so the headings
- * keep the page's outline without JavaScript. A block before the chapter's first heading sits under the chapter's
- * title, a level-1 heading, so its tabs are level 2. Levels stop at 6.
+ * The heading level of each `:::tabs` block's tab headings and each `:::box`'s title: one below the heading the block
+ * follows, so the headings keep the page's outline without JavaScript. A block before the chapter's first heading sits
+ * under the chapter's title, a level-1 heading, so its headings are level 2. Levels stop at 6.
  */
-function tabHeadingDepths(tree: Root): Map<RootContent, number> {
+function nestedHeadingDepths(tree: Root): Map<RootContent, number> {
   const depths = new Map<RootContent, number>();
   let current = 1;
   visit(tree, (node) => {
     if (node.type === "heading") current = node.depth;
-    if (node.type === "containerDirective" && node.name === "tabs") depths.set(node, Math.min(current + 1, 6));
+    if (node.type === "containerDirective" && (node.name === "tabs" || node.name === "box")) {
+      depths.set(node, Math.min(current + 1, 6));
+    }
   });
   return depths;
+}
+
+/**
+ * `:::box[Title]{#id}` as an `<aside>` named by its title, which becomes a heading one level below the heading the box
+ * follows, with the box's id, so a link to `#id` lands on the title. The box holds any Markdown but a heading or
+ * another box, so its title stays the one heading the page's outline gets from it; a file listing inside it is numbered
+ * and checked like any other. A box takes no attribute but its id.
+ */
+function box(node: ContainerDirective, file: VFile, depth: number): ContainerDirective {
+  const id = node.attributes?.id;
+  if (id === undefined || id === null || !KEBAB_ID.test(id)) {
+    return failAt(file, "a box needs a kebab-case id, written :::box[Title]{#some-id}", node);
+  }
+  const extra = Object.keys(node.attributes ?? {}).find((name) => name !== "id");
+  if (extra !== undefined) return failAt(file, `a box takes no attribute but its id, not ${extra}`, node);
+  const labelIndex = node.children.findIndex((child) => child.type === "paragraph" && child.data?.directiveLabel);
+  const label = node.children[labelIndex] as Paragraph | undefined;
+  if (label === undefined || isBlank(label.children)) {
+    return failAt(file, `a box needs a title, written :::box[Title]{#${id}}`, node);
+  }
+  const body = node.children.filter((_, i) => i !== labelIndex);
+  if (body.length === 0) return failAt(file, "a box must hold its content", node);
+  let inner = undefined as RootContent | undefined;
+  visit({ type: "root", children: body } satisfies Root, (child) => {
+    if (inner !== undefined) return;
+    if (child.type === "heading" || (child.type === "containerDirective" && child.name === "box")) inner = child;
+  });
+  if (inner !== undefined) {
+    return failAt(file, "a box may hold no heading and no other box; its title is its heading", inner);
+  }
+  const heading: Paragraph = {
+    type: "paragraph",
+    data: { hName: `h${depth}`, hProperties: { className: ["box__heading"], id } },
+    children: label.children,
+  };
+  return {
+    ...node,
+    children: [heading, ...body],
+    data: { hName: "aside", hProperties: { className: ["box"], ariaLabelledBy: [id] } },
+  };
 }
 
 /** Listings inside `:::tabs`, whose tab heading shows their caption, so their own caption leaves it out. */
