@@ -128,5 +128,17 @@
     "term": "trusted context",
     "definition": "Data your code sets from the signed-in session and hands to a tool outside its arguments, such as the user's id. The model cannot write it, and sees it only if your code puts it in the prompt, so the model cannot choose whose data the tool touches.",
     "sources": ["openai-agents-context", "owasp-llm06-excessive-agency"]
+  },
+  {
+    "id": "session",
+    "term": "session",
+    "definition": "The stored history of one conversation: every message, tool call and tool result so far. An SDK or your code loads it before a run and adds the run's new items after it, so the next run's model call can carry everything said before.",
+    "sources": ["openai-agents-sessions"]
+  },
+  {
+    "id": "checkpointer",
+    "term": "checkpointer",
+    "definition": "LangGraph's store for a thread's state. It saves a snapshot of the graph's state under the run's thread_id at each step, so a later call with the same thread_id carries on from the last snapshot.",
+    "sources": ["langgraph-checkpointers"]
   }
 ]

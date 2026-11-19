@@ -78,5 +78,21 @@
     "chapter": "tools",
     "illustration": null,
     "breaks": "A traveller carries the passport and hands it over; in an agent, your code reads the identity from the signed-in session and hands it to the tool, so the model never carries it and sees it only if your code shows it."
+  },
+  {
+    "id": "patients-chart",
+    "concept": "session",
+    "analogy": "a patient's chart that travels with them between shifts",
+    "chapter": "memory-and-sessions",
+    "illustration": "patients-chart",
+    "breaks": "A nurse skims the chart for what matters tonight; the model is sent the whole session on every call and pays for every token of it."
+  },
+  {
+    "id": "bookmark",
+    "concept": "resume",
+    "analogy": "a bookmark",
+    "chapter": "memory-and-sessions",
+    "illustration": null,
+    "breaks": "A bookmark restores only your place; a resumed run must also restore pending approvals and tool state, and most SDKs bring back the conversation alone."
   }
 ]

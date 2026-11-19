@@ -5,10 +5,10 @@ import { check, collect } from "./lib/collect.ts";
 
 // #region resume
 const first = await collect(query({ prompt: "Remember the codeword PELICAN.", options: { maxTurns: 2 } }));
-const sessionId = first.result?.session_id;
+const sessionId = first.result?.session_id; // book:note session-id
 check(sessionId, "first run returned a session_id");
 
-const second = await collect(query({ prompt: "What was the codeword?", options: { resume: sessionId, maxTurns: 2 } }));
+const second = await collect(query({ prompt: "What was the codeword?", options: { resume: sessionId, maxTurns: 2 } })); // book:note resume
 // #endregion
 check(second.result?.subtype === "success", "resumed run succeeded");
 check(second.result?.session_id === sessionId, "resume keeps the same session_id");
