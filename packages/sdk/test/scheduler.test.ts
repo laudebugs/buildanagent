@@ -85,7 +85,7 @@ test("two different tools that return the same key never overlap", async () => {
   await running;
 });
 
-test("a call without a key is not queued behind a keyed call", async () => {
+test("a call with a different key is not queued behind a keyed call", async () => {
   const probe = new Probe();
   const running = runToolCalls(
     assistant([probeCall("a", "file"), probeCall("b", "file"), probeCall("c")]),
@@ -97,6 +97,21 @@ test("a call without a key is not queued behind a keyed call", async () => {
   // `c` has the empty key, a different resource from "file".
   await probe.started("c");
   assert.deepEqual(probe.log, ["start a", "start c"]);
+  for (const id of ["a", "b", "c"]) probe.release(id);
+  await running;
+});
+
+test("a call to a tool without a resourceKey is not queued behind a keyed call", async () => {
+  const probe = new Probe();
+  const running = runToolCalls(
+    assistant([probeCall("a", "file"), probeCall("b", "file"), probeCall("c", undefined, "free")]),
+    [probe.tool(byKey), probe.tool({ name: "free" })],
+    probe.context(),
+  );
+  await Promise.all([probe.started("a"), probe.started("c")]);
+  await flush();
+  // A keyed call waits one turn for its lane, so `c` may start first; only `b` must wait.
+  assert.deepEqual([...probe.log].sort(), ["start a", "start c"]);
   for (const id of ["a", "b", "c"]) probe.release(id);
   await running;
 });
@@ -171,6 +186,25 @@ test("one sequential tool also holds back the parallel calls of its step", async
   assert.deepEqual(probe.log, ["start a", "end a", "start b", "end b", "start c", "end c"]);
 });
 
+test("a sequential tool holds back its step even when its own call fails validation", async () => {
+  const probe = new Probe();
+  const sequential = probe.tool({ name: "sequential", executionMode: "sequential" });
+  const running = runToolCalls(
+    assistant([call("sequential", {}, "s"), probeCall("a"), probeCall("b")]),
+    [probe.tool(), sequential],
+    probe.context(),
+  );
+  await probe.started("a");
+  await flush();
+  assert.deepEqual(probe.log, ["start a"]);
+  probe.release("a");
+  await probe.started("b");
+  probe.release("b");
+  const results = await running;
+  assert.equal(results[0]?.result.isError, true);
+  assert.deepEqual(probe.log, ["start a", "end a", "start b", "end b"]);
+});
+
 test("a readOnlyHint without firstParty does not make a call read-only", async () => {
   const probe = new Probe();
   const mcpStyle = probe.tool({ ...byKey, annotations: { readOnlyHint: true } });
@@ -201,6 +235,24 @@ test("a first-party readOnlyHint lets calls that share a key run together", asyn
 test("a first-party readOnlyHint is not read-only when it is false", async () => {
   const probe = new Probe();
   const writer = probe.tool({ ...byKey, firstParty: true, annotations: { readOnlyHint: false } });
+  const running = runToolCalls(assistant([probeCall("a", "file"), probeCall("b", "file")]), [writer], probe.context());
+  await probe.started("a");
+  await flush();
+  assert.deepEqual(probe.log, ["start a"]);
+  probe.release("a");
+  await probe.started("b");
+  probe.release("b");
+  await running;
+});
+
+test("a first-party readOnlyHint is ignored for a tool that declares an effect", async () => {
+  const probe = new Probe();
+  const writer = probe.tool({
+    ...byKey,
+    firstParty: true,
+    annotations: { readOnlyHint: true },
+    effect: { kind: "write" },
+  });
   const running = runToolCalls(assistant([probeCall("a", "file"), probeCall("b", "file")]), [writer], probe.context());
   await probe.started("a");
   await flush();
@@ -304,7 +356,7 @@ test("a tool that throws an ordinary error cancels no sibling", async () => {
   assert.match(textOf(results[1]?.result.content ?? []), /database offline/);
 });
 
-test("after a programmer error, results before the failing call in model order are still passed on", async () => {
+test("after a programmer error, every other call's result is still passed on, in model order", async () => {
   const probe = new Probe();
   const delivered: string[] = [];
   const ctx = probe.context({ onResult: ({ call: { callId } }) => delivered.push(callId) });
@@ -315,13 +367,16 @@ test("after a programmer error, results before the failing call in model order a
   );
   const outcome = assert.rejects(running);
   await Promise.all([probe.started("a"), probe.started("c")]);
-  probe.release("a");
   probe.release("c");
+  await flush();
+  // `c` ran, but its result waits for `a`, which comes before it.
+  assert.deepEqual(delivered, []);
+  probe.release("a");
   await outcome;
-  assert.deepEqual(delivered, ["a"]);
+  assert.deepEqual(delivered, ["a", "c"]);
 });
 
-test("a call queued behind a failing sibling is not run", async () => {
+test("a call queued behind a failing sibling is not run, and still gets a result", async () => {
   const probe = new Probe();
   const failing = defineTool({
     name: "malformed_keyed",
@@ -333,13 +388,19 @@ test("a call queued behind a failing sibling is not run", async () => {
       return { text: "no content" };
     },
   });
+  const delivered: ToolCallResult[] = [];
   const running = runToolCalls(
     assistant([call("malformed_keyed", {}, "a"), probeCall("b", "file")]),
     [failing as AnyTool, probe.tool(byKey)],
-    probe.context(),
+    probe.context({ onResult: (entry) => delivered.push(entry) }),
   );
   await assert.rejects(running, (error) => isSdkError(error));
   assert.deepEqual(probe.log, []);
+  assert.deepEqual(
+    delivered.map(({ call: { callId } }) => callId),
+    ["b"],
+  );
+  assert.match(textOf(delivered[0]?.result.content ?? []), /another call in the same step failed/);
 });
 
 test("an aborted run gives every call a result, and none that had not started runs", async () => {
@@ -437,6 +498,41 @@ test("a resourceKey that throws is a programmer error", async () => {
     () => runToolCalls(assistant([probeCall("a")]), [tool], probe.context()),
     (error) => isSdkError(error) && error.code === "invalid_tool_definition",
   );
+});
+
+test("a resourceKey that throws for a later call still gives the calls checked before it a result", async () => {
+  const probe = new Probe();
+  const keyless = probe.tool({
+    name: "keyless",
+    resourceKey: () => {
+      throw new Error("no key");
+    },
+  });
+  const delivered: ToolCallResult[] = [];
+  const started: string[] = [];
+  const ctx = probe.context({
+    onStart: ({ callId }) => started.push(callId),
+    onResult: (entry) => delivered.push(entry),
+  });
+  await assert.rejects(
+    () =>
+      runToolCalls(
+        assistant([call("missing", {}, "x"), probeCall("a"), probeCall("k", undefined, "keyless"), probeCall("z")]),
+        [probe.tool(), keyless],
+        ctx,
+      ),
+    (error) => isSdkError(error) && error.code === "invalid_tool_definition",
+  );
+  assert.deepEqual(started, ["x", "a", "k"]);
+  assert.deepEqual(
+    delivered.map(({ call: { callId }, result }) => [callId, result.isError]),
+    [
+      ["x", true],
+      ["a", true],
+    ],
+  );
+  assert.match(textOf(delivered[1]?.result.content ?? []), /was not run/);
+  assert.deepEqual(probe.log, []);
 });
 
 test("defineTool rejects an executionMode that is neither parallel nor sequential", () => {

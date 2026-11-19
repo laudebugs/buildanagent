@@ -272,9 +272,10 @@ async function prepareCall(
   return { kind: "ready", call, tool, input: checked.input, key };
 }
 
-// Only a first-party tool's hint counts: an MCP server's annotations are claims by someone we don't control.
+// Only a first-party tool's hint counts: an MCP server's annotations are claims by someone we don't control. A tool
+// with an `effect` changes the world whatever its hint says, so it always queues as a writer.
 function isTrustedReadOnly(tool: AnyTool): boolean {
-  return tool.firstParty === true && tool.annotations?.readOnlyHint === true;
+  return tool.firstParty === true && tool.annotations?.readOnlyHint === true && tool.effect === undefined;
 }
 
 // Relays the run's cancellation to the signal the batch's tools receive, which a failing sibling can also fire.
@@ -303,11 +304,11 @@ async function runReady(item: Ready, ctx: PipelineContext, batch: AbortControlle
 // Starts every ready call by the scheduling rules and returns, in model order, the promise of each call's result.
 function start(
   prepared: readonly Prepared[],
+  sequential: boolean,
   ctx: PipelineContext,
   batch: AbortController,
 ): Promise<Settled<ToolResult>>[] {
   const ready = prepared.filter((item): item is Ready => item.kind === "ready");
-  const sequential = ready.some((item) => item.tool.executionMode === "sequential");
   const scheduled = schedule(
     ready.map((item) => ({
       ...(item.key === undefined ? {} : { key: item.key }),
@@ -326,12 +327,14 @@ function start(
 
 /**
  * Runs the calls of one step. Each call is checked and gated one at a time, in model order, before any call executes.
- * The calls that passed then start together, except that a sequential tool makes the whole step run one call at a
- * time, and calls that share a `resourceKey` queue in model order. Results reach `ctx.onResult` in model order, each
- * as soon as every result before it is in.
+ * The calls that passed then start together, except that a call to a sequential tool makes the whole step run one
+ * call at a time, even when that call itself fails a check, and calls that share a `resourceKey` queue in model
+ * order. Results reach `ctx.onResult` in model order, each as soon as every result before it is in.
  *
  * A programmer error (an `SdkError`) in one call fires the signal the other calls hold, waits for them to stop, and
- * is then thrown, after the results that come before the failing call in model order have been passed on.
+ * is then thrown, after every other call's result has been passed on: a call after the failing one may have run and
+ * written. A programmer error while the calls are checked, such as a `resourceKey` that throws, is thrown after the
+ * calls already checked get their results, so every call that started has one, except the call that failed.
  */
 async function runCalls(
   calls: readonly ToolCall[],
@@ -341,36 +344,49 @@ async function runCalls(
 ): Promise<ToolCallResult[]> {
   const byName = toolsByName(tools);
   const prepared: Prepared[] = [];
-  for (const call of calls) {
-    ctx.onStart?.(call);
-    prepared.push(await prepareCall(call, early(call), byName, ctx));
+  try {
+    for (const call of calls) {
+      ctx.onStart?.(call);
+      prepared.push(await prepareCall(call, early(call), byName, ctx));
+    }
+  } catch (error) {
+    // None of these calls has executed, and none will.
+    for (const item of prepared) {
+      const result = item.kind === "done" ? item.result : notRun(item.call, item.tool, "sibling_failed");
+      ctx.onResult?.({ call: item.call, result });
+    }
+    throw error;
   }
+  const sequential = calls.some((call) => byName.get(call.name)?.executionMode === "sequential");
   const { batch, release } = batchController(ctx.signal);
   try {
-    return await deliver(prepared, start(prepared, ctx, batch), ctx);
+    return await deliver(prepared, start(prepared, sequential, ctx, batch), ctx);
   } finally {
     release();
   }
 }
 
-// Passes each result on in model order, as soon as every result before it is in. After a failure it waits for the
-// other calls, which the failing call has cancelled, so none is left running when the error propagates.
+// Passes each result on in model order, as soon as every result before it is in. A failed call has already cancelled
+// the others; the loop still waits for each of them and passes its result on, so none is left running and a write
+// that happened is recorded, and then the first error is thrown.
 async function deliver(
   prepared: readonly Prepared[],
   running: readonly Promise<Settled<ToolResult>>[],
   ctx: PipelineContext,
 ): Promise<ToolCallResult[]> {
   const results: ToolCallResult[] = [];
+  let failure: { readonly error: unknown } | undefined;
   for (const [index, pending] of running.entries()) {
     const settled = await pending;
     if (!settled.ok) {
-      await Promise.all(running);
-      throw settled.error;
+      failure ??= { error: settled.error };
+      continue;
     }
     const entry = { call: (prepared[index] as Prepared).call, result: settled.value };
     results.push(entry);
     ctx.onResult?.(entry);
   }
+  if (failure !== undefined) throw failure.error;
   return results;
 }
 

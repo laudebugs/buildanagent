@@ -68,7 +68,10 @@ export interface ToolEffect<I> {
  * whoever wrote the tool, so the scheduler trusts it only for a tool marked `firstParty`.
  */
 export interface ToolAnnotations {
-  /** The tool changes nothing. With `firstParty`, its calls that share a `resourceKey` run together. */
+  /**
+   * The tool changes nothing. With `firstParty`, its calls that share a `resourceKey` run together, unless the tool
+   * also declares an `effect`, which wins.
+   */
   readonly readOnlyHint?: boolean;
 }
 
@@ -156,7 +159,7 @@ export interface ToolDefinition<I = unknown, S = unknown> {
   /**
    * True for a tool you wrote, false (the default) for one that came from a server you don't control, such as an MCP
    * tool. Only a first-party tool's `readOnlyHint` changes how its calls are scheduled: read-only calls that share a
-   * `resourceKey` run together, and wait only for the writers before them.
+   * `resourceKey` run together, and wait only for the writers before them. A tool with an `effect` is never read-only.
    */
   readonly firstParty?: boolean;
   /**
