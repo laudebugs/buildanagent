@@ -4,7 +4,7 @@ Instructions for AI coding agents (Claude Code, Codex, OpenCode, Pi, etc.) worki
 
 ## Project
 
-**buildanagent** researches, and will later build, an AI agent and our own agent harness/SDK. The first agent is a personal cloud coding agent for the owner, deployed on Cloudflare first, with the SDK and harness also proved on AWS and Vercel ([coding agent plan](docs/plans/build-coding-agent.md)). After it comes a multi-user platform that turns a user's description into a checked agent deployed in the user's own cloud ([agent platform plan](docs/plans/build-agent-platform.md)). The repo is mostly documentation. Our own code lives in `packages/` (the gateway and SDK, scaffolded empty in todo B1); the only other code is the per-SDK verification harnesses under `verify/`.
+**buildanagent** researches, and will later build, an AI agent and our own agent harness/SDK. The first agent is a personal cloud coding agent for the owner, deployed on Cloudflare first, with the SDK and harness also proved on AWS and Vercel ([coding agent plan](docs/plans/build-coding-agent.md)). After it comes a multi-user platform that turns a user's description into a checked agent deployed in the user's own cloud ([agent platform plan](docs/plans/build-agent-platform.md)). The gateway and SDK publish to npm under `@buildanagent`, from 0.1.0 once a model call works, and their docs go to `docs.buildanagent.fyi` ([publish and docs plan](docs/plans/publish-and-docs.md)). The repo is mostly documentation. Our own code lives in `packages/` (the gateway and SDK, scaffolded empty in todo B1); the only other code is the per-SDK verification harnesses under `verify/`.
 
 ## Layout
 
