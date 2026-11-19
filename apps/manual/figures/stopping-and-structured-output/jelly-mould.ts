@@ -12,7 +12,7 @@ export default function draw(): Figure {
     { label: ["the mould: the schema", "category, urgent: true or false"], tone: "accent" },
   );
 
-  const jellies = [
+  const jellies: readonly { x: number; label: string[]; note: [string, string]; dashed: boolean }[] = [
     { x: 20, label: ["billing", "urgent: true"], note: ["right shape,", "right answer"], dashed: false },
     { x: 185, label: ["bug", "urgent: false"], note: ["right shape,", "wrong answer"], dashed: false },
     { x: 350, label: ["refund", "no urgent field"], note: ["did not set:", "rejected"], dashed: true },
@@ -25,8 +25,9 @@ export default function draw(): Figure {
         { label: jelly.label, dashed: jelly.dashed, tone: jelly.dashed ? "muted" : "text" },
       );
       figure.connect(mould, box, { tone: "muted", dashed: jelly.dashed });
-      figure.text({ x: jelly.x + 75, y: 208 }, jelly.note[0], { tone: "muted" });
-      figure.text({ x: jelly.x + 75, y: 224 }, jelly.note[1], { tone: "muted" });
+      const [first, second] = jelly.note;
+      figure.text({ x: jelly.x + 75, y: 208 }, first, { tone: "muted" });
+      figure.text({ x: jelly.x + 75, y: 224 }, second, { tone: "muted" });
     }
   });
 
