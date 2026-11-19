@@ -12,7 +12,8 @@
 // - is one of the files Cloudflare's asset server treats as configuration (`_redirects`, `_routes.json`,
 //   `_worker.js`), or any other top-level name starting with `_` except `_astro` and `_headers`;
 // - is larger than 25 MiB, Cloudflare's limit for one asset;
-// - pushes the archive past 20,000 files, the Workers Free plan's limit per Worker version, or past 100 MiB unpacked.
+// - pushes the archive past 20,000 files, the Workers Free plan's limit per Worker version, or past our own cap of
+//   100 MiB unpacked.
 //
 // It also refuses an artifact without index.html or 404.html, and an entry whose data fails its CRC-32 or size.
 // It skips the artifact's own _headers file, refuses a `_headers` directory or anything under one, and writes main's
@@ -86,7 +87,7 @@ export function checkName(name) {
  * alone can settle. Throws an ArtifactError on the first broken rule.
  */
 export function readEntries(zip) {
-  if (zip.length > LIMITS.totalBytes) throw new ArtifactError(`the zip is ${zip.length} bytes`);
+  if (zip.length > LIMITS.totalBytes) throw new ArtifactError(`the zip is ${zip.length} bytes, over the 100 MiB cap`);
   const end = findEndOfCentralDirectory(zip);
   if (zip.readUInt16LE(end + 4) !== 0 || zip.readUInt16LE(end + 6) !== 0) {
     throw new ArtifactError("the zip spans several disks");
@@ -146,9 +147,10 @@ export function readEntries(zip) {
       dirs.add(path);
       continue;
     }
-    if (uncompressedSize > LIMITS.fileBytes) throw new ArtifactError(`"${path}" is ${uncompressedSize} bytes`);
+    if (uncompressedSize > LIMITS.fileBytes)
+      throw new ArtifactError(`"${path}" is ${uncompressedSize} bytes, over the 25 MiB limit for one asset`);
     total += uncompressedSize;
-    if (total > LIMITS.totalBytes) throw new ArtifactError(`the site unpacks to more than ${LIMITS.totalBytes} bytes`);
+    if (total > LIMITS.totalBytes) throw new ArtifactError(`the site unpacks to more than the 100 MiB cap`);
     files.add(path);
     // The artifact's own _headers is never written: stageZip puts main's copy there.
     if (path !== "_headers") entries.push({ path, method, crc, compressedSize, uncompressedSize, localOffset });

@@ -765,4 +765,14 @@ The high review of PR #81 led to the owner's branch rule on `book-preview`, a st
 | 441 | HSTS with `includeSubDomains` covers the sending host and the names under it, not its parent or siblings; `preload` is a separate list that needs `includeSubDomains` and a year's `max-age`; browsers ignore the header over HTTP | `_headers`, README | ✅ | [MDN, Strict-Transport-Security](https://developer.mozilla.org/en-US/docs/Web/HTTP/Reference/Headers/Strict-Transport-Security): a policy for `secure.example.com` "also applies to `login.secure.example.com` … But it does not apply to `example.com` or `insecure.example.com`" |
 | 442 | If `resolve`'s lookup of `main`'s newest commit fails, the step fails and production does not deploy | Todo, README | ✅ | `scripts/book-deploy.test.mjs` runs the step under `bash -e` with a stand-in `gh` that fails: the exit status is non-zero and `newest` is never `true` |
 
-**Totals:** 442 claims: 388 ✅, 54 ✏️, 0 ⚠️.
+### T9's writing review
+
+The writing review reworded the README's deploy and owner sections, both workflows' comments, the guard's and artifact check's messages, BK15's as-built note, AGENTS.md's sentence and the Outcome. These rows re-check the claims those fixes touched or added.
+
+| # | Claim | Where | Verdict | Source and reason |
+| --- | --- | --- | --- | --- |
+| 443 | The reworded copy keeps the claims of rows 409–442: `resolve` runs first and gates the other three jobs, the guard's seven rules are six config settings plus the `_headers` match, and both environments allow protected branches only | README, Outcome, BK15, AGENTS.md, workflows | ✅ | Each rewritten sentence matched to its row; `needs: resolve` on `production`, `preview` and `delete-preview`; `problemsIn` in `guard-deploy.mjs` pushes six config messages and one `_headers` message; rows 434 and 436 |
+| 444 | The book sets no cookies and has no sign-in; its one stored value, the theme choice, sits in `localStorage`, which a fork's preview on its own hostname cannot read | README | ✅ | No match for `cookie` in `apps/manual/src`, `public` or `astro.config.mjs`; `public/scripts/theme.js` calls `localStorage.getItem` and `setItem`; each preview is its own `workers.dev` hostname (row 419), so its origin differs from the book's |
+| 445 | The artifact check's messages name the limits it applies: 25 MiB per asset, Cloudflare's, and the 100 MiB cap, our own | `stage-dist.mjs`, Outcome | ✅ | `LIMITS.fileBytes` is `25 * 1024 * 1024` and `LIMITS.totalBytes` is `100 * 1024 * 1024`; row 420 confirms only the per-file and file-count limits as Cloudflare's |
+
+**Totals:** 445 claims: 391 ✅, 54 ✏️, 0 ⚠️.

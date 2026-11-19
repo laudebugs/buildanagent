@@ -8,9 +8,9 @@
 # the resolve job looks up through GitHub's API. wrangler.jsonc, public/_headers, the guard and Wrangler itself all
 # come from main's checkout.
 #
-# Each Cloudflare token lives in a GitHub environment, whose secrets reach only the jobs that name it. The job that
-# reads the GitHub API holds no Cloudflare secret, and the jobs that hold one call no GitHub API but the artifact
-# download. The owner's setup, and how to pause production, are in apps/manual/README.md.
+# Each Cloudflare token lives in a GitHub environment, whose secrets reach only the jobs that name it. Only the resolve
+# job reads GitHub's API, and it holds no Cloudflare secret; the jobs that hold one touch GitHub only to download the
+# artifact. The owner's setup, and how to pause production, are in apps/manual/README.md.
 name: book-deploy
 
 on:
@@ -58,7 +58,7 @@ jobs:
             # If the API call fails, the step fails and nothing deploys.
             tip=$(gh api "repos/$REPO/commits/main" --jq .sha)
             if [ "$tip" = "$HEAD_SHA" ]; then newest=true
-            else echo "::notice::$HEAD_SHA is no longer main's newest commit ($tip), so its run deploys instead."; fi
+            else echo "::notice::$HEAD_SHA is no longer main's newest commit; the run for $tip deploys that commit instead."; fi
           elif [ "$WORKFLOW" = book-build ] && [ "$EVENT" = pull_request ]; then
             # Open pull requests into this repository whose head is still this commit.
             previews=$(gh api "repos/$REPO/commits/$HEAD_SHA/pulls" --jq "[.[] | select(.state == \"open\" and .head.sha == \"$HEAD_SHA\" and .base.repo.full_name == \"$REPO\") | .number] | @json")

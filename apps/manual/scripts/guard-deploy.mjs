@@ -5,8 +5,8 @@
 // (LICENSE, THIRD-PARTY-NOTICES.md).
 //
 // Refuses a deploy or a preview of the book unless wrangler.jsonc still describes an assets-only Worker on the one
-// custom domain (book plan BK15). The deploy workflow runs it from main's checkout, after the built site is in dist/
-// and main's public/_headers has been copied over it, so a drifted config fails here and not on the live site.
+// custom domain (book plan BK15). The deploy workflow runs it from main's checkout, after stage-dist.mjs has put the
+// built site and main's public/_headers in dist/, so a drifted config fails here and not on the live site.
 //
 // It also refuses when Wrangler could read another config. Without --config, Wrangler 4.160.1 looks for wrangler.json
 // in the current directory and every directory above it before it looks for wrangler.jsonc, then wrangler.toml, and
@@ -164,9 +164,7 @@ function main() {
   const appDir = resolve(process.argv[2] ?? fileURLToPath(new URL("..", import.meta.url)));
   const problems = checkApp(appDir);
   if (problems.length > 0) {
-    console.error(
-      `Deploy refused: wrangler.jsonc no longer matches the book's deploy rules.\n- ${problems.join("\n- ")}`,
-    );
+    console.error(`Deploy refused: the Worker's config breaks the book's deploy rules.\n- ${problems.join("\n- ")}`);
     process.exit(1);
   }
   console.log(`Deploy guard passed: an assets-only Worker on ${DOMAIN}, with main's _headers in ${ASSETS_DIRECTORY}.`);
