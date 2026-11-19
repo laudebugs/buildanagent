@@ -136,8 +136,8 @@ export interface ToolDefinition<I = unknown, S = unknown> {
   readonly inputSchema: ToolSchema<I>;
   /**
    * Whether the model is sent this tool. `direct` (the default) sends it with every model call. A `deferred` or
-   * `hidden` tool is left out of every request, and a call the model makes to it anyway gets the unknown-tool error
-   * result.
+   * `hidden` tool is left out of every request unless a `beforeModelCall` interceptor names it in `activeTools`, and
+   * a call the model makes to a tool that request didn't send gets the unknown-tool error result.
    */
   readonly exposure?: ToolExposure;
   /** Marks a tool that changes the world. A tool without it counts as read-only. */

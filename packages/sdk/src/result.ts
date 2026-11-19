@@ -19,9 +19,9 @@ export interface RunError {
   /**
    * `overflow`: the request was larger than the model's context window. `quota`: the account is out of quota or
    * credit. `retryable`: a temporary failure that outlasted the model's retries. `fatal`: any other failure, such as a
-   * rejected request.
+   * rejected request. `hook`: an interceptor threw while the run fails closed, and `message` says which one.
    */
-  readonly kind: NonNullable<AssistantMessage["error"]>["kind"];
+  readonly kind: NonNullable<AssistantMessage["error"]>["kind"] | "hook";
   readonly message: string;
   /** The provider's HTTP status, when the failure came with one. */
   readonly status?: number;
@@ -63,7 +63,13 @@ export interface EndedResult extends ResultBase {
   readonly stopReason: "max_steps" | "aborted";
 }
 
-/** A run that ended because a model call failed. */
+/** A run that a `shouldStop` hook ended with `{ stop: "no_progress" }`, which gave `reason`. */
+export interface NoProgressResult extends ResultBase {
+  readonly stopReason: "no_progress";
+  readonly reason: string;
+}
+
+/** A run that ended because a model call failed, or because an interceptor failed while the run fails closed. */
 export interface ErrorResult extends ResultBase {
   readonly stopReason: "error";
   readonly error: RunError;
@@ -71,7 +77,8 @@ export interface ErrorResult extends ResultBase {
 
 /**
  * A run that stopped before it finished, for a reason `stoppedBy` names. `clarification`: a tool from
- * `clarificationTool()` asked the user a question. To go on, add the answer to `context` as a user message and pass the
+ * `clarificationTool()` asked the user a question. Any other value is the `reason` a `shouldStop` hook gave, or
+ * `"hook"` when it returned `true`. To go on, add the answer to `context` as a user message and pass the
  * context to `continueRun()`.
  */
 export interface StoppedResult extends ResultBase {
@@ -80,7 +87,7 @@ export interface StoppedResult extends ResultBase {
 }
 
 /** What a run returns. Check `stopReason` before you read the fields of one variant. */
-export type RunResult<S = unknown> = DoneResult<S> | EndedResult | ErrorResult | StoppedResult;
+export type RunResult<S = unknown> = DoneResult<S> | EndedResult | ErrorResult | NoProgressResult | StoppedResult;
 
 /** Every run result except `done`, which `runOrThrow()` turns into a `RunStoppedError`. */
 export type UnfinishedResult = Exclude<RunResult, DoneResult<unknown>>;
