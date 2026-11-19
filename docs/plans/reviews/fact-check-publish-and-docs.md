@@ -215,7 +215,7 @@ Each row checks a claim in [ADR 0051](../../decisions/0051-dist-build-correction
 
 ## Re-checked on the live pages (2026-11-19)
 
-Earlier sessions that day couldn't reach `docs.npmjs.com`, `docs.github.com` or `webpack.js.org`, so rows 58, 69, 73, 79, 103–110, 116–119, 124, 125 and 128 cite those sites' source repositories. Row 57 likewise cites the `nodejs/node` repository rather than `nodejs.org`, and row 76 cites memory. Rows 23, 29 and 114 stayed ⚠️ with no page checked, and row 73 stayed ⚠️ because its source states less than the claim. Later on 2026-11-19 each of those sites, `nodejs.org` and `developers.cloudflare.com` loaded with `curl`, and each row below re-reads one of those claims on the live page. The original rows stay as they were, except row 118, corrected in place by row 156.
+Each row below re-reads on the live page a claim that earlier sessions on 2026-11-19 could check only indirectly. Those sessions couldn't reach `docs.npmjs.com`, `docs.github.com` or `webpack.js.org`, so rows 58, 69, 73, 79, 103–110, 116–119, 124, 125 and 128 cite those sites' source repositories. Row 57 likewise cites the `nodejs/node` repository rather than `nodejs.org`, and row 76 cites memory. Rows 23, 29 and 114 stayed ⚠️ with no page checked, and row 73 stayed ⚠️ because its source states less than the claim. Later that day those sites, and also `nodejs.org` and `developers.cloudflare.com`, loaded with `curl`. The original rows stay as they were, except row 118, corrected in place by row 156.
 
 | # | Claim | Verdict | Source and reason |
 | --- | --- | --- | --- |
