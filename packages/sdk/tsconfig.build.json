@@ -7,7 +7,7 @@
     "customConditions": [],
     "noEmit": false,
     "declaration": true,
-    "declarationMap": true,
+    "inlineSources": true,
     "sourceMap": true,
     "rootDir": "src",
     "outDir": "dist"

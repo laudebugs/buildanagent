@@ -1,6 +1,6 @@
 # 0050. Publish built dist/ files with types first, and keep a source export condition for the workspace
 
-- **Status:** Accepted (owner, 2026-11-19)
+- **Status:** Accepted (owner, 2026-11-19); superseded in part by [0051](0051-dist-build-corrections-from-l1.md) (proposed, 2026-11-19)
 - **Date:** 2026-11-19
 - **Plan:** [publish-and-docs.md, PB3](../plans/publish-and-docs.md#pb3-built-dist-packages-with-a-source-condition-for-the-workspace-accepted)
 

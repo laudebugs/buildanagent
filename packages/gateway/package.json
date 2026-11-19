@@ -12,6 +12,7 @@
   "homepage": "https://github.com/laudebugs/buildanagent/tree/main/packages/gateway#readme",
   "type": "module",
   "sideEffects": [
+    "./src/testing/setup.ts",
     "./dist/testing/setup.js"
   ],
   "engines": {
@@ -66,7 +67,7 @@
     }
   },
   "scripts": {
-    "build": "tsc -p tsconfig.build.json",
+    "build": "node ../../scripts/clean-dist.mjs && tsc -p tsconfig.build.json",
     "prepack": "node ../../scripts/copy-licenses.mjs",
     "typecheck": "tsc -p tsconfig.json",
     "test": "vitest run"

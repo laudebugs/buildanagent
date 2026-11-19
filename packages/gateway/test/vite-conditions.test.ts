@@ -1,5 +1,5 @@
 import assert from "node:assert/strict";
-import { readdirSync, realpathSync } from "node:fs";
+import { existsSync, readdirSync, realpathSync } from "node:fs";
 import { createRequire } from "node:module";
 import { join } from "node:path";
 import { fileURLToPath, pathToFileURL } from "node:url";
@@ -17,9 +17,12 @@ async function viteDefaultServerConditions(): Promise<readonly string[]> {
   return vite.defaultServerConditions;
 }
 
+// A package is a directory with a package.json; only those with a Vitest config are checked, so a stray folder
+// under packages/ (an editor's, or one left by a removed package) doesn't fail the test.
 const configs = readdirSync(packagesDir, { withFileTypes: true })
-  .filter((entry) => entry.isDirectory())
-  .map((entry) => join(packagesDir, entry.name, "vitest.config.ts"));
+  .filter((entry) => entry.isDirectory() && existsSync(join(packagesDir, entry.name, "package.json")))
+  .map((entry) => join(packagesDir, entry.name, "vitest.config.ts"))
+  .filter((file) => existsSync(file));
 
 test("every package's Vitest config lists source, then Vite's default server conditions", async () => {
   const defaults = await viteDefaultServerConditions();

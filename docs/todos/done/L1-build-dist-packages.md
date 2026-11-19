@@ -64,7 +64,8 @@ Vitest's resolver must honour `source` for workspace packages through `ssr.resol
 
 - Specifiers: relative imports use `.js`. TypeScript 7.0.2's `rewriteRelativeImportExtensions` was rejected because it leaves `./x.ts` in emitted `.d.ts` files.
 - The Risks question resolved the other way round: `ssr.resolve.conditions` does reach `src/` for imports, but Vitest 5.1.0 resolves a bare `setupFiles` entry when it loads the config, with Node's default conditions. Each package's `setupFiles` therefore lists `test/setup.ts`, which imports `@buildanagent/gateway/testing/setup`.
-- The gateway's `sideEffects` lists `./dist/testing/setup.js` instead of `false`, because importing the setup installs the offline guards.
+- The gateway's `sideEffects` lists `./src/testing/setup.ts` and `./dist/testing/setup.js` instead of `false`, because importing the setup installs the offline guards.
+- The first code review changed the build: source maps inline their sources, declaration maps are off because they point at `src/`, and each build empties `dist/` first. [ADR 0051](../../decisions/0051-dist-build-corrections-from-l1.md) records these and the other corrections to ADR 0050.
 - The pack test is `scripts/ci/packages-pack.test.mjs`, which CI's `node --test scripts/ci/*.test.mjs` step runs. It builds both packages itself. The Vite conditions test is `packages/gateway/test/vite-conditions.test.ts`.
 
 ## Definition of done
