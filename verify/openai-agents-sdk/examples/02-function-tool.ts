@@ -10,8 +10,8 @@ const calls: Array<{ city: string }> = [];
 const weather = tool({
   name: "get_weather",
   description: "Gets the weather for a city.",
-  parameters: z.object({ city: z.string() }),
-  execute: async ({ city }) => {
+  parameters: z.object({ city: z.string() }), // book:note schema
+  execute: async ({ city }) => { // book:note execute
     calls.push({ city });
     return `${city}: sunny`;
   },
@@ -19,11 +19,11 @@ const weather = tool({
 // #endregion
 // #region run
 const model = new ScriptedModel([
-  [functionCall("get_weather", { city: "Lisbon" }, { callId: "call_1" })],
+  [functionCall("get_weather", { city: "Lisbon" }, { callId: "call_1" })], // book:note script
   [assistantMessage("It is sunny in Lisbon.")],
 ]);
-const agent = new Agent({ name: "Weather", model, tools: [weather] });
-const result = await runner.run(agent, "Weather in Lisbon?");
+const agent = new Agent({ name: "Weather", model, tools: [weather] }); // book:note agent
+const result = await runner.run(agent, "Weather in Lisbon?"); // book:note run
 // #endregion
 
 check(calls.length === 1 && calls[0].city === "Lisbon", "execute() received the parsed arguments");

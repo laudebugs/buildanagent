@@ -119,5 +119,14 @@
     "asOf": "November 2026",
     "version": "ai@7.0.162",
     "verifiedIn": "apps/manual/fact-checks/call-workflow-loop.md"
+  },
+  {
+    "id": "anthropic-writing-tools",
+    "title": "Writing effective tools for AI agents—with agents",
+    "publisher": "Anthropic",
+    "url": "https://www.anthropic.com/engineering/writing-tools-for-agents",
+    "kind": "post",
+    "asOf": "November 2026",
+    "verifiedIn": "apps/manual/fact-checks/tools.md"
   }
 ]

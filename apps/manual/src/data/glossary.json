@@ -86,5 +86,11 @@
     "expansion": "Model Context Protocol",
     "definition": "An open standard for connecting AI applications to the systems where data lives, through one protocol instead of a custom integration for each source.",
     "sources": ["anthropic-model-context-protocol"]
+  },
+  {
+    "id": "tool",
+    "term": "tool",
+    "definition": "A function your code offers a model by name, description and input schema. The model asks for a call with arguments; your code checks them, runs the function and sends the result back to the model.",
+    "sources": ["anthropic-how-tool-use-works"]
   }
 ]

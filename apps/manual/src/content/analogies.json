@@ -22,5 +22,13 @@
     "chapter": "call-workflow-loop",
     "illustration": null,
     "breaks": "A simulator answers the pilot's controls; a scripted mock replays only what was scripted, so it cannot surprise you the way a real model can."
+  },
+  {
+    "id": "counter-form",
+    "concept": "tool schema",
+    "analogy": "a form at a counter with labelled boxes",
+    "chapter": "tools",
+    "illustration": null,
+    "breaks": "A clerk reads the boxes and checks them too; a schema only describes them, so the model can still fill a box wrongly and the SDK must validate every field."
   }
 ]
