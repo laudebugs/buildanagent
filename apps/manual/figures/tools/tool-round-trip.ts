@@ -39,7 +39,7 @@ export default function draw(): Figure {
 
     // The retry passes, so the function runs and its result goes back to the model.
     const run = figure.box(cell(LEFT, 3), { label: ["passes: execute()", "runs in your process"] });
-    figure.curve({ x: RIGHT.x, y: ROWS[2] + 34 }, { x: 262, y: ROWS[2] + 40 }, { x: LEFT.x + LEFT.width, y: 280 });
+    figure.curve({ x: RIGHT.x, y: retry.y + 34 }, { x: 262, y: retry.y + 40 }, { x: LEFT.x + LEFT.width, y: 280 });
     const reads = figure.box(cell(RIGHT, 3), { label: ["reads the result:", "order A-1 shipped"], tone: "muted" });
     figure.connect(run, reads);
   });

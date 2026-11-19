@@ -16,7 +16,10 @@ export default function draw(): Figure {
       figure.box({ x: 36 + index * 50, y: 98, width: 42, height: 36 }, { label, tone: "muted" });
     }
     figure.box({ x: 186, y: 52, width: 46, height: 82 }, { label: ["coin", "slot"] });
-    figure.box({ x: 36, y: 172, width: 192, height: 56 }, { label: ["return tray:", "your coin, back"], tone: "accent" });
+    figure.box(
+      { x: 36, y: 172, width: 192, height: 56 },
+      { label: ["return tray:", "your coin, back"], tone: "accent" },
+    );
     figure.dot({ x: 60, y: 200 }, 8, "amber");
   });
 
