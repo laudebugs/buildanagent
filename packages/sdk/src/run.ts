@@ -10,6 +10,7 @@ import type { AgentEvent, AgentEventBody } from "./events.js";
 import type { CallOptions, Interceptors, Observer } from "./hooks.js";
 import { type LoopSetup, runLoop } from "./loop.js";
 import { ObserverBus } from "./observers.js";
+import { isSigner } from "./pauses.js";
 import { type ProgressCheck, type ProgressPolicy, progressCheck, resolveProgress } from "./progress.js";
 import type { Context, DoneResult, RunResult } from "./result.js";
 import { type DeliveryReceipt, SteeringQueue } from "./steering.js";
@@ -17,6 +18,7 @@ import type { Clock } from "./testing/determinism.js";
 import { preparedSchemaOf } from "./tools/define.js";
 import type { AnyTool } from "./tools/pipeline.js";
 import type { ToolContext, ToolDefinition } from "./tools/types.js";
+import { type ApprovalSigner, ephemeralSigner } from "./vendor/agent-safety/signer.js";
 import { SDK_VERSION } from "./version.js";
 
 /** The step cap's default, counted in model calls. */
@@ -100,8 +102,20 @@ export interface RunOptions<S = unknown> {
   readonly observerTimeoutMs?: number;
   /** Stamps each event's `timestamp`, and is passed to tools. Defaults to the system clock. */
   readonly clock?: Clock;
-  /** Makes the run's id. Defaults to `crypto.randomUUID()`. */
+  /**
+   * Makes the run's id, then the id of each pending request the run signs. A request id that repeats the run's id or
+   * an earlier request's id is replaced by `crypto.randomUUID()`, so a generator that always returns one id still
+   * pauses every call; return a fresh id on every call to keep request ids deterministic. Defaults to
+   * `crypto.randomUUID()`.
+   */
   readonly idGenerator?: () => string;
+  /**
+   * Signs the pending request a run writes when a `beforeToolCall` gate returns `ask`. The default,
+   * `ephemeralSigner()`, holds a random key that lives only in this process, so only this process can verify its
+   * pauses: on a serverless host, or anywhere a pause may resume in another process, pass `hmacSigner()` over a key
+   * ring you keep. A pause that can't be signed is never written unsigned; its call is blocked instead.
+   */
+  readonly signer?: ApprovalSigner;
 }
 
 /** What `run()` takes besides the shared options. */
@@ -126,8 +140,9 @@ export interface Run<S = unknown> extends AsyncIterable<AgentEvent> {
   readonly result: Promise<RunResult<S>>;
   /**
    * Stops the run. A model call in flight ends, a running tool sees its `signal` fire, and calls that haven't started
-   * get an error result instead. The run then ends with `stopReason: "aborted"`. Does nothing once the run has its
-   * outcome and is ending, which is before `agent_settled`.
+   * get an error result instead. The run then ends with `stopReason: "aborted"`, unless a gate already paused a call
+   * in the step, which ends it `awaiting_approval`, because that call's signed request still waits. Does nothing once
+   * the run has its outcome and is ending, which is before `agent_settled`.
    */
   abort(reason?: string): void;
   /**
@@ -392,6 +407,13 @@ function setupOf(
   if (!Number.isInteger(maxSteps) || maxSteps < 1) {
     throw new SdkError("invalid_run_options", `maxSteps must be a positive integer, got ${maxSteps}`);
   }
+  const signer = options.signer ?? ephemeralSigner();
+  if (!isSigner(signer)) {
+    throw new SdkError(
+      "invalid_run_options",
+      "signer must be an ApprovalSigner, such as hmacSigner() or ephemeralSigner()",
+    );
+  }
   const budgetUsd = checkBudgetOption(options.budgetUsd);
   const tools = toolsOf(options);
   const { depth, maxDepth } = depthsOf(options);
@@ -402,8 +424,11 @@ function setupOf(
       `the output tool "${options.output.name}" must be sent to the model, so its exposure must be "direct"`,
     );
   }
+  const nextId = options.idGenerator ?? randomIds;
   return {
-    runId: (options.idGenerator ?? randomIds)(),
+    runId: nextId(),
+    nextId,
+    signer,
     model: options.model,
     system: context.system,
     history: context.messages,
@@ -457,8 +482,15 @@ export function run<S = unknown>(options: RunOptions<S> & RunInput): Run<S> {
  * Goes on with a conversation from a result's `context`, or one you rebuilt from your own store. It runs like
  * `run()`, from the last message in the context, and `result.messages` holds only the messages it adds. The context
  * is sent as it stands, so add a user message to one that ends with the model's answer, such as a `done` result's.
+ * Throws an `SdkError` with code `invalid_run_options` for a context with `pending` requests, which this version
+ * can't resume yet.
  */
 export function continueRun<S = unknown>(context: Context, options: RunOptions<S>): Run<S> {
+  // Resuming a pause needs its resolutions checked against their signed requests first. Until continueRun() can do
+  // that, a paused context is refused, so a call that waits for a person is never silently dropped or answered.
+  if (context?.pending !== undefined && context.pending.length > 0) {
+    throw new SdkError("invalid_run_options", "continueRun() can't resume a context with pending requests yet");
+  }
   return new RunHandle<S>(setupOf(options, context, []), options.signal, observersOf(options));
 }
 

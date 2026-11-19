@@ -82,7 +82,7 @@ async function* runAttempt(model: ModelRef, attempt: Attempt, withStart = true):
 export class FailingAdapter implements ModelAdapter {
   readonly specificationVersion = "v1";
   readonly api = "test-api";
-  readonly provider = "test";
+  readonly provider: string = "test";
   readonly defaultCaps: ModelCaps = TEST_CAPS;
   readonly calls: StreamOptions[] = [];
   readonly #attempts: Attempt[];

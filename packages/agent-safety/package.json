@@ -36,6 +36,11 @@
       "source": "./src/agents/index.ts",
       "types": "./dist/agents/index.d.ts",
       "default": "./dist/agents/index.js"
+    },
+    "./testing": {
+      "source": "./src/testing.ts",
+      "types": "./dist/testing.d.ts",
+      "default": "./dist/testing.js"
     }
   },
   "publishConfig": {
@@ -51,6 +56,10 @@
       "./agents": {
         "types": "./dist/agents/index.d.ts",
         "default": "./dist/agents/index.js"
+      },
+      "./testing": {
+        "types": "./dist/testing.d.ts",
+        "default": "./dist/testing.js"
       }
     }
   },
@@ -58,7 +67,7 @@
     "build": "node ../../scripts/clean-dist.mjs && tsc -p tsconfig.build.json",
     "prepack": "pnpm run build && node ../../scripts/copy-licenses.mjs",
     "prepublishOnly": "node ../../scripts/refuse-local-publish.mjs",
-    "typecheck": "tsc -p tsconfig.json",
+    "typecheck": "tsc -p tsconfig.json && tsc -p test/workerd/tsconfig.json",
     "test": "vitest run"
   },
   "peerDependencies": {
@@ -77,7 +86,12 @@
     "@ai-sdk/provider": "4.0.35",
     "@ai-sdk/provider-utils": "5.0.74",
     "@buildanagent/gateway": "workspace:*",
+    "@cloudflare/ai-chat": "0.12.2",
+    "@cloudflare/workers-types": "5.20261103.1",
+    "agents": "0.33.0",
     "ai": "7.0.162",
+    "esbuild": "0.28.2",
+    "miniflare": "5.20261103.0-beta",
     "zod": "4.6.7"
   }
 }

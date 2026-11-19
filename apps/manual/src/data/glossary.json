@@ -130,6 +130,18 @@
     "sources": ["openai-agents-context", "owasp-llm06-excessive-agency"]
   },
   {
+    "id": "stop-reason",
+    "term": "stop reason",
+    "definition": "Why a model response or an agent run ended. A response carries the model's own reason, such as a finished answer, a tool call or the output limit; a run's reason also covers a cap or a stop condition, which some SDKs report as a result field and others as a thrown error.",
+    "sources": ["claude-agent-sdk-agent-loop", "ai-sdk-loop-control"]
+  },
+  {
+    "id": "structured-output",
+    "term": "structured output",
+    "definition": "An answer that a model returns as data matching a schema your code supplies, such as JSON with named and typed fields. The SDK parses the answer and checks its shape; whether its values are true is still for your code to check.",
+    "sources": ["ai-sdk-generating-structured-data", "anthropic-structured-outputs"]
+  },
+  {
     "id": "session",
     "term": "session",
     "definition": "The stored history of one conversation: every message, tool call and tool result so far. An SDK or your code loads it before a run and adds the run's new items after it, so the next run's model call can carry everything said before.",

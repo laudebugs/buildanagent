@@ -17,10 +17,10 @@ const loopForever = () => {
 async function attempt(config?: { recursionLimit: number }) {
   const model = loopForever();
   try {
-    await createAgent({ model, tools: [ping] }).invoke({ messages: [{ role: "user", content: "Loop." }] }, config);
+    await createAgent({ model, tools: [ping] }).invoke({ messages: [{ role: "user", content: "Loop." }] }, config); // book:note limit
     return { error: undefined, calls: model.callCount };
   } catch (e) {
-    return { error: e, calls: model.callCount };
+    return { error: e, calls: model.callCount }; // book:note thrown
   }
 }
 // #endregion

@@ -59,7 +59,8 @@ const RUN_STOPPED_ERROR = Symbol.for("buildanagent.sdk.RunStoppedError");
 
 /**
  * Thrown by `runOrThrow()` for a run that ended any way other than `done`, such as one that reached `maxSteps`. It
- * carries the whole result, and the context to continue from. It is an `SdkError` with code `run_stopped`.
+ * carries the whole result, and the context to continue from; `continueRun()` refuses a paused run's context until it
+ * can resume pauses. It is an `SdkError` with code `run_stopped`.
  */
 export class RunStoppedError extends SdkError {
   override readonly name = "RunStoppedError";

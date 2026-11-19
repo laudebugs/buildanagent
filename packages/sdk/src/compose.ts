@@ -83,7 +83,8 @@ const after =
 
 /**
  * Asks each gate in turn and keeps the strictest answer: the first `deny` wins at once, an `ask` outranks an `allow`,
- * and a replacement input from one gate is what the later gates see. A gate that throws makes the whole check fail.
+ * and a replacement input from one gate is what the later gates see. The answer carries the last replacement, an
+ * `ask`'s included, so a pause signs the input the call would run with. A gate that throws makes the whole check fail.
  */
 const gate =
   (hooks: readonly Hook<"beforeToolCall">[]): Hook<"beforeToolCall"> =>
@@ -94,9 +95,12 @@ const gate =
       const decision = checkDecision(await hook({ ...e, input }));
       if (decision.decision === "deny") return decision;
       if (decision.decision === "ask") asked ??= decision;
-      else if (decision.input !== undefined) input = decision.input;
+      if (decision.input !== undefined) input = decision.input;
     }
-    return asked ?? { decision: "allow", ...(input === e.input ? {} : { input }) };
+    const replaced = input === e.input ? {} : { input };
+    // An ask carries the input the later gates saw, so the pause is signed over the input the call would run with.
+    if (asked !== undefined) return { ...asked, ...replaced };
+    return { decision: "allow", ...replaced };
   };
 
 /** Applies the patches in order: each hook sees the result with the earlier patches applied. */
@@ -139,7 +143,8 @@ const stop =
  *   the system prompt, messages and options the earlier ones set. A field left `undefined` keeps the earlier value.
  * - `afterModelCall`: each hook sees the message the one before returned.
  * - `beforeToolCall`: the strictest decision wins. The first `deny` ends the check, an `ask` beats `allow`, and an
- *   input one gate replaces is the input the next gate sees.
+ *   input one gate replaces is the input the next gate sees. When a gate asks, the `ask` carries the last
+ *   replacement, so the pending request is signed over the input the call would run with.
  * - `afterToolCall`: the patches are applied in order, each hook seeing the result so far.
  * - `shouldStop`: the first `stop` wins; failing that, the first `continue`.
  *

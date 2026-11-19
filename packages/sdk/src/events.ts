@@ -8,6 +8,7 @@ import type { AssistantMessage, ContentBlock, DumpedOptions, ModelContext, Model
 import type { RunError, RunResult } from "./result.js";
 import type { DeliveryReceipt } from "./steering.js";
 import type { ToolResult } from "./tools/types.js";
+import type { SignedPendingRequest } from "./vendor/agent-safety/pending.js";
 
 /** The fields every event carries. `seq` counts the run's events from 0; `stepIndex` counts its model calls from 0. */
 export interface EventBase {
@@ -83,9 +84,18 @@ export type AgentEventBody =
    */
   | { readonly type: "steer_applied"; readonly receipt: DeliveryReceipt }
   /**
-   * An interceptor or an observer threw. `hook` names it (`beforeToolCall`, `observer` and so on) and `error` is the
-   * thrown message. The run goes on or fails by the interceptors' `onFailure` setting; a failed observer never
-   * affects it.
+   * A gate returned `ask` and the run signed a pending request for the call, which waits for a person. `input` is
+   * the input the request signs and the call would run with once approved: the model's input after coercion,
+   * `repair` and any gate's replacement, so show the approver this, not the model's raw arguments. It comes once every
+   * call of the step has been gated, after the call's `tool_call_start` and before any call of the step runs, and the
+   * call gets no `tool_call_end`: it doesn't run in this run. The run ends `awaiting_approval` after the step.
+   */
+  | { readonly type: "approval_request"; readonly request: SignedPendingRequest; readonly input: unknown }
+  /**
+   * An interceptor or an observer threw, or a pause could not be signed. `hook` names it (`beforeToolCall`,
+   * `observer`, `signer` and so on) and `error` is the thrown message; for `signer` it is a fixed text with the
+   * safety package's error code, never the signer's own message. The run goes on or fails by the interceptors'
+   * `onFailure` setting; a failed observer never affects it, and a call whose pause could not be signed is blocked.
    */
   | { readonly type: "hook_error"; readonly hook: string; readonly error: string }
   | { readonly type: "warning"; readonly code: WarningCode; readonly detail: string }
@@ -116,6 +126,7 @@ export const AGENT_EVENT_TYPES = Object.freeze([
   "hook_error",
   "steer_applied",
   "tool_call_start",
+  "approval_request",
   "tool_call_update",
   "tool_call_end",
   "step_end",

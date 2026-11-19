@@ -2,6 +2,11 @@
  * The price catalog: per-model rates, limits, the date they were copied and where from (D4). `catalog.json` ships
  * with the package; a caller may pass its own catalog instead. Nothing here fetches prices at run time, so cost never
  * depends on the network.
+ *
+ * A fine-tuned model is a new model id with its own rates, so the shipped catalog lists none and the gateway prices
+ * one as unknown. To price it, pass a catalog with an entry for it. A catalog you pass replaces the shipped one, so it
+ * must also list every other model you use: spread `defaultCatalog.models` into it, or those models lose their prices
+ * and fall back to the adapter's default limits and image and reasoning flags.
  */
 import shipped from "./catalog.json" with { type: "json" };
 import { GatewayError } from "./errors.js";
@@ -30,7 +35,14 @@ export interface CatalogSources {
   readonly maxOutputTokens: string;
 }
 
-/** One model in the price catalog: its rates, its limits, and the date and pages they were copied from. */
+/**
+ * One model in the price catalog: its rates, its limits, and the date and pages they were copied from.
+ *
+ * A fine-tuned model needs its own entry. Its `id` is the exact id the provider gives the tuned model, such as OpenAI's
+ * `ft:<base>:<org>::<suffix>`, and its `rates` are the tuned rates, which usually differ from the base model's. Set
+ * `images` and `reasoning` as well, or the adapter's defaults apply. Record the `asOf` date and the provider's pricing
+ * page in `sources`, as for any entry.
+ */
 export interface CatalogEntry {
   readonly provider: string;
   readonly id: string;
@@ -185,7 +197,10 @@ export function parseCatalog(value: unknown): PriceCatalog {
   return { models };
 }
 
-/** The catalog that ships with the gateway. `createModel()` uses it unless you pass your own. */
+/**
+ * The catalog that ships with the gateway. `createModel()` uses it unless you pass your own, which replaces it. It
+ * lists base models only, so a fine-tuned model has an unknown price until you add an entry for it.
+ */
 export const defaultCatalog: PriceCatalog = parseCatalog(shipped);
 
 /** The entry for one model, or `undefined` when the catalog doesn't list it. */

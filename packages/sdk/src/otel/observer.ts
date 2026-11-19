@@ -181,6 +181,9 @@ class Projection {
       case "tool_call_end":
         this.#endTool(event, spans);
         break;
+      case "approval_request":
+        this.#pauseTool(event, spans);
+        break;
       case "run_end":
         this.#endRun(event, spans);
         break;
@@ -296,6 +299,17 @@ class Projection {
     } finally {
       span.end(millis(event.timestamp));
     }
+  }
+
+  /**
+   * Ends the span of a call a gate paused. The call didn't fail, so the span carries no error; it records nothing of
+   * the signed request, whose signature and key id belong in the host's own store, not in telemetry.
+   */
+  #pauseTool(event: Extract<AgentEvent, { type: "approval_request" }>, spans: RunSpans): void {
+    const span = spans.tools.get(event.request.callId);
+    if (span === undefined) return;
+    spans.tools.delete(event.request.callId);
+    span.end(millis(event.timestamp));
   }
 
   /** Ends a span that a new call with the same key is about to displace, so it is exported and not lost. */

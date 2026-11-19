@@ -4,14 +4,26 @@
  * usage, the cost and a context the run can continue from.
  */
 import type { AssistantMessage, Cost, Message, Usage } from "@buildanagent/gateway";
+import type { SignedPendingRequest } from "./vendor/agent-safety/pending.js";
 
 /**
- * A run's conversation as plain JSON: the system prompt and every message so far. Store it anywhere and pass it to
- * `continueRun()` to go on from where the run stopped.
+ * A run's conversation as plain JSON: the system prompt, every message so far and, for a run that paused, the signed
+ * requests it waits on. Store it anywhere and pass it to `continueRun()` to go on from where the run stopped.
  */
 export interface Context {
   readonly system: string;
   readonly messages: readonly Message[];
+  /**
+   * The signed requests of a run that ended `awaiting_approval`, the same ones as `result.pending`. Each one's tool
+   * call is in `messages` without a result. Absent for every other stop reason.
+   */
+  readonly pending?: readonly SignedPendingRequest[];
+  /**
+   * The input each pending request signs, by request id: the input its call would run with once approved, after
+   * coercion, `repair` and any gate's replacement, which can differ from the call's arguments in `messages`. Show
+   * the approver this input, and check an answer against it. Absent when `pending` is.
+   */
+  readonly pendingInputs?: Readonly<Record<string, unknown>>;
 }
 
 /** Why a model call failed, copied from the failed message's `error`. */
@@ -104,9 +116,23 @@ export interface StoppedResult extends ResultBase {
   readonly stoppedBy: string;
 }
 
+/**
+ * A run that paused because a `beforeToolCall` gate returned `ask`. `pending` holds one signed request for each call
+ * that waits, in model order; `context.pending` holds the same requests and `context.pendingInputs` the input each
+ * one signs. Those calls did not run and have no result in the transcript; the step's other calls ran or were denied
+ * as usual. Each request's signature covers its id, kind, call id, tool, input hash and policy version, so store the
+ * requests and their inputs with the context, show them to a person, and check each answer against its request and
+ * input before the call runs.
+ */
+export interface AwaitingApprovalResult extends ResultBase {
+  readonly stopReason: "awaiting_approval";
+  readonly pending: readonly SignedPendingRequest[];
+}
+
 /** What a run returns. Check `stopReason` before you read the fields of one variant. */
 export type RunResult<S = unknown> =
   | DoneResult<S>
+  | AwaitingApprovalResult
   | BudgetResult
   | EndedResult
   | ErrorResult
