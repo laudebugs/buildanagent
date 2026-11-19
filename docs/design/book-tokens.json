@@ -1,5 +1,5 @@
 {
-  "$comment": "Design tokens for apps/book (manual.buildanagent.fyi). Source of truth for todo T2, which generates the CSS custom properties from this file and tests every pair below. Decided by the owner on 2026-11-19 (book plan BK12). Contrast ratios are WCAG 2.x, computed from the hex values.",
+  "$comment": "Design tokens for apps/manual (manual.buildanagent.fyi). Source of truth for todo T2, which generates the CSS custom properties from this file and tests every pair below. Decided by the owner on 2026-11-19 (book plan BK12). Contrast ratios are WCAG 2.x, computed from the hex values.",
   "version": 1,
   "decided": "2026-11-19",
   "color": {

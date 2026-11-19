@@ -27,7 +27,7 @@ Make code in the prose as checked as code in listings, by the owner's decision. 
 
 - A remark plugin that finds identifier-like inline code in chapter prose
 - Resolution against the chapter's listings, their transcripts and the `.d.ts` exports of the packages those listings import
-- The hand-checked marker, `` `name`{checked=row-N} ``, checked against `apps/book/fact-checks/<slug>.md`
+- The hand-checked marker, `` `name`{checked=row-N} ``, checked against `apps/manual/fact-checks/<slug>.md`
 - A small, tested list of patterns that skip the check: file paths, shell commands, numbers and plain values
 
 **Out of scope** (and which todo covers it)
@@ -58,7 +58,7 @@ Vitest tests for the plugin with one fixture per resolution source and one per f
 
 ## Docs to update
 
-- `apps/book/README.md`: the rule, the marker and the skip list
+- `apps/manual/README.md`: the rule, the marker and the skip list
 - The plan's BK17 if the marker syntax changes
 
 ## Risks and open questions

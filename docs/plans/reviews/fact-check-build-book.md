@@ -87,7 +87,7 @@ Each row checks that a document records the owner's words as given on 2026-11-19
 | # | Claim | Where | Verdict | Source and reason |
 | --- | --- | --- | --- | --- |
 | 54 | A textbook on how to build an agent, with images and example code from this repository, in two parts | BK1, ADR 0052 | ✅ | Owner's decisions, quoted |
-| 55 | The book lives at `apps/book` and is published on Cloudflare at manual.buildanagent.fyi; public, no sign-in; prose CC BY 4.0, code Apache-2.0 OR MIT | BK2, ADR 0052 | ✅ | Owner's decisions, quoted |
+| 55 | The book lives at `apps/manual` and is published on Cloudflare at manual.buildanagent.fyi; public, no sign-in; prose CC BY 4.0, code Apache-2.0 OR MIT | BK2, ADR 0052 | ✅ | Owner's decisions, quoted |
 | 56 | Code comes from `verify/` now and switches to `packages/` as its todos land | BK8, ADR 0052 | ✅ | Owner's decision, quoted |
 | 57 | Figures mix flat SVG diagrams with a few interactive isometric centerpieces | BK10 | ✅ | Owner's decision, quoted; row 13 corrects where the skill lives |
 | 58 | Three directions A, B and C are on the canvas, unpicked; then four warm variations of C, C1–C4, after the owner liked C's layout with warmer colours and other fonts; the design todo's first task is the pick | BK12, T2 | ✅ | Owner's decision and the owner's addition, both 2026-11-19 |
@@ -276,12 +276,19 @@ On 2026-11-19 the owner approved the plan, which #37 then merged as `138527e`, a
 | 170 | Regenerating the todos changed only the banner lines and the analogy wording | Todos | ✅ | `git diff` over `docs/todos/ready/`: 46 files, and every changed line is the banner, the analogy table's lead-in, or analogy wording in a goal, task, acceptance criterion or risk |
 | 171 | The owner approved the plan before #37 merged, and the merge followed from it | This section's introduction | ✏️ | The first draft said the owner approved the plan after #37 merged; "If green merge" made the approval the condition for the merge, and `git log` shows `138527e` as the merge. The writing review's other fixes reworded rows 163, 164 and 166's sentences in the plan and todos and were re-checked against the same sources, with no change in substance |
 
+## Eleventh pass: the rename to `apps/manual`
+
+| # | Claim | Where | Verdict | Source and reason |
+|---|---|---|---|---|
+| 172 | The book's app is `apps/manual` and its package `@buildanagent/manual` | BK2; ADR 0055; plan, todos, tokens file, AGENTS.md, README | ✏️ | The owner renamed it on 2026-11-19: "Let's make it @buildanagent/manual and apps/manual". Every `apps/book` and `@buildanagent/book` outside ADR 0052's accepted text now reads `apps/manual` and `@buildanagent/manual`; BK2 keeps the owner's original quote and adds the rename |
+| 173 | ADR 0050's index row says its corrections are pending in proposed 0051 | `docs/decisions/README.md` | ✏️ | #37's renumbering (row 162) changed this row on `main` to "proposed 0052" by mistake, because the line names main's 0051 without its file name. Main's correction record is `0051-dist-build-corrections-from-l1.md`, so the row reads 0051 again |
+
 ## Re-checked at the primary source (2026-11-19)
 
 Row 105 took MAP's figure from the U17 report's reading of the paper, a secondary source. This row reads the abstract itself.
 
 | # | Claim | Where | Verdict | Source and reason |
 | --- | --- | --- | --- | --- |
-| 172 | Row 105: MAP found that "70% rely on prompting off-the-shelf models instead of weight tuning" | U21 | ✅ | [arXiv 2512.04123](https://arxiv.org/abs/2512.04123), abstract of v4 (4 June 2026), read with `curl` on 2026-11-19: "70% rely on prompting off-the-shelf models instead of weight tuning". U21 still reads the paper's body for its method |
+| 174 | Row 105: MAP found that "70% rely on prompting off-the-shelf models instead of weight tuning" | U21 | ✅ | [arXiv 2512.04123](https://arxiv.org/abs/2512.04123), abstract of v4 (4 June 2026), read with `curl` on 2026-11-19: "70% rely on prompting off-the-shelf models instead of weight tuning". U21 still reads the paper's body for its method |
 
-**Totals:** 172 claims: 149 ✅, 23 ✏️, 0 ⚠️.
+**Totals:** 174 claims: 149 ✅, 25 ✏️, 0 ⚠️.

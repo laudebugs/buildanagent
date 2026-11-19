@@ -38,7 +38,7 @@ Let a chapter include code only from a file that CI type-checks and runs. The `:
 ## Tasks
 
 - [ ] Write the directive with `remark-directive`, reading files relative to the repo root.
-- [ ] Map each `verify/<sdk>` harness to its main package (for example `ai` for `vercel-ai-sdk`) in one table in `apps/book/src/data/harnesses.json`, and read the pin from that harness's `package.json`.
+- [ ] Map each `verify/<sdk>` harness to its main package (for example `ai` for `vercel-ai-sdk`) in one table in `apps/manual/src/data/harnesses.json`, and read the pin from that harness's `package.json`.
 - [ ] Add `// #region` and `// #endregion` comments to the examples §4.1 of the plan names; run that harness's `pnpm test` to confirm the results do not change.
 - [ ] Write the tsconfig-coverage check and the missing-file, missing-region and missing-package failures.
 - [ ] Write `book:switch-report` and run it in `pnpm test` as a report that never fails.
@@ -57,7 +57,7 @@ Vitest tests for the directive on fixture files, one per failure. The region mar
 
 ## Docs to update
 
-- `apps/book/README.md`: how to add a listing and a region
+- `apps/manual/README.md`: how to add a listing and a region
 - The `verify/<sdk>/README.md` of each harness whose examples gain markers, with one line on why they are there
 
 ## Risks and open questions
