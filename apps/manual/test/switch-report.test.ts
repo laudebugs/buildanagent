@@ -30,8 +30,8 @@ test("the switch report says so when no chapter is written or a chapter waits on
 });
 
 // The script runs in a child process under tsx, which compiles it and then loads the whole real book, about 3 seconds on
-// an idle machine. CI runs every package's tests at once, which pushed it past Vitest's 5-second default, so it gets a
-// longer limit.
+// an idle machine. CI runs every package's tests at once, which pushed it past Vitest's 5-second default, so the test
+// gets a longer limit.
 test("book:switch-report runs on the real book and exits 0", { timeout: 60_000 }, async () => {
   const app = fileURLToPath(new URL("..", import.meta.url));
   const tsx = fileURLToPath(import.meta.resolve("tsx/cli"));
