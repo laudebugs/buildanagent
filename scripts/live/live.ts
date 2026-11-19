@@ -178,11 +178,11 @@ export async function guardedCall<T>(
 }
 
 /**
- * Passes a streamed answer through and settles its cost guard however the stream ends. When a part that `isFinish`
- * picks out arrives, the guard settles at once with the usage `usageOf` reads from it, so a reader that stops after
- * the finish part without cancelling still pays; a stream that ends without one settles with the last usage seen. A
- * stream that fails, or that the reader cancels first, settles with no usage, which records the call's projection:
- * every input token at the dearest rate and the whole output allowance. The guard settles once whatever happens.
+ * Passes a streamed answer through and settles its cost guard however the stream ends. A part that `isFinish` picks
+ * out settles the guard at once with the usage `usageOf` reads from it, so a reader that stops after the finish part
+ * without cancelling still pays. A stream that ends without a finish part settles with the last usage seen. A stream
+ * that fails, or that the reader cancels first, settles with no usage, which records the call's projection: every
+ * input token at the dearest rate and the whole output allowance. The guard settles once whatever happens.
  */
 export function guardStream<T>(
   stream: ReadableStream<T>,

@@ -56,10 +56,10 @@ export function protectionProblems(environment, protectedBranches, owner) {
 }
 
 /**
- * One report from the provider jobs' reports. Each entry is `{ provider, report }`, with the provider taken from the
- * artifact's name (`live-anthropic`, `live-openai`), never from the report, which a job that ran package code wrote:
- * a provider's job can't claim another provider's examples or completion. `completed` lists the providers whose own
- * report says it ran every example.
+ * Merges the provider jobs' reports into one. Each entry is `{ provider, report }`. The provider comes from the
+ * artifact's name (`live-anthropic`, `live-openai`), never from the report, because a job that ran package code wrote
+ * the report. A provider's job therefore can't claim another provider's examples or completion. `completed` lists the
+ * providers whose own report says it ran every example.
  */
 export function mergeReports(entries) {
   const known = entries.filter(({ provider }) => provider in KEY_NAMES);
@@ -87,8 +87,8 @@ export function artifactProvider(dir) {
 }
 
 /**
- * The date file's contents after a run: `date`, the date the report job computed, when every provider the list names
- * had its own artifact and that artifact's report says its job completed; otherwise unchanged.
+ * The date file's contents after a run. They hold `date`, the date the report job computed, once every provider the
+ * list names has its own artifact whose report says its job completed; otherwise they stay unchanged.
  */
 export function dateAfter(report, date, current, config) {
   if (!DATE.test(date)) throw new Error(`${date} is not a YYYY-MM-DD date`);
