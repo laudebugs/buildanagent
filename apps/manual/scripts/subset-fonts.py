@@ -8,8 +8,8 @@
 # fonts/sources.json lists the families, their files and their served names.
 #
 # A subset is a Modified Version under the SIL Open Font License 1.1. None of the three licences names a Reserved Font
-# Name, but Google Sans Code's TRADEMARKS.md keeps the "Google" mark off modified versions, so its subsets get the
-# neutral family name "Manual Code" in their file names and in their name tables, and lose Google's vendor id. The
+# Name, but Google Sans Code's TRADEMARKS.md keeps the "Google" mark off modified versions. Its subsets therefore get
+# the neutral family name "Manual Code" in their file names and in their name tables, and lose Google's vendor id. The
 # copyright, trademark notice, designer and licence records stay as the OFL requires.
 import json
 import shutil

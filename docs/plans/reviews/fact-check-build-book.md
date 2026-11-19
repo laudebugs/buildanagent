@@ -375,4 +375,13 @@ The fixes for the first code-review round added these claims to BK12, THIRD-PART
 | 229 | On a smaller Latin subset, Literata's roman took 125,796 bytes with full axes, 116,524 with weight limited to 300–700, and 65,596 with weight 400–700 and optical size 12–36 | App README | ✅ | fontTools 4.68.0 `instancer.instantiateVariableFont` after subsetting, run during T2 on 2026-11-19 |
 | 230 | A WOFF2 file has a 48-byte header and a table directory of variable-length entries, then one Brotli stream; `name` is known-table index 5, and `glyf` and `loca` are transformed unless their version is 3, other tables unless it is 0 | `test/woff2-names.ts` | ✅ | [W3C WOFF 2.0](https://www.w3.org/TR/WOFF2/), read 2026-11-19: the header's fields sum to 48 bytes, and the TableDirectory and Known Table Tags sections give the flags byte, the tag indexes and the transformation-version rule; the reader decodes "Manual Code" as name ID 1 of both committed subsets |
 
-**Totals:** 230 claims: 203 ✅, 27 ✏️, 0 ⚠️.
+### T2's writing review
+
+The writing review reworded or corrected these claims in the app's README and its component gallery.
+
+| # | Claim | Where | Verdict | Source and reason |
+| --- | --- | --- | --- | --- |
+| 231 | Four checks in three test files guard the token file: `tokens.test.ts` (stale CSS, a one-mode token), `contrast.test.ts` (recomputed ratios) and `styles.test.ts` (no hex colour, decorative tokens on borders and backgrounds only) | App README | ✅ | The README said "Four tests"; the three files hold those checks among their `test()` blocks (`test/tokens.test.ts` lines 6 and 14, `test/contrast.test.ts` lines 43–92, `test/styles.test.ts` lines 23 and 33), so the wording now counts checks and files |
+| 232 | In the gallery's type sample, the arrows → ← come from the Literata subset and the box-drawing characters from the code face | `GallerySamples.astro` | ✏️ | The sample said "Arrows → ← ↔ and box drawing ┌─┐ │ └─┘ come from the subsets" inside a Literata paragraph. fontTools 4.68.0 read the committed cmaps: Literata's roman has → and ← but no ↔ and no box drawing, and Manual Code's roman has the box drawing but no ↔. The sample drops ↔ and sets the box drawing in `<code>`, which uses the code face |
+
+**Totals:** 232 claims: 204 ✅, 28 ✏️, 0 ⚠️.

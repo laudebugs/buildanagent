@@ -187,7 +187,7 @@
       ]
     },
     "decorativeOnly": {
-      "$comment": "Fail 4.5:1 and 3:1; use only for dividers, panel borders and grid lines, never for text, focus rings or figure lines that carry meaning. Each colour is named as <set>.<key> and measured on the background it sits on.",
+      "$comment": "These colours fail both 4.5:1 and 3:1, so use them only for dividers, panel borders and grid lines, never for text, focus rings or figure lines that carry meaning. Each colour is named as <set>.<key> and measured on the background it sits on.",
       "contrast": [
         {
           "color": "light.rule",
@@ -295,7 +295,7 @@
     "selfHosted": true
   },
   "size": {
-    "$comment": "px. The desktop values are the reference page at 1280 px wide; the phone values apply at 360 px (proposed by T2 and accepted by the owner on 2026-11-19). The generated CSS converts both to rem and scales between them with the viewport width",
+    "$comment": "px. The desktop values come from the reference page at 1280 px wide; the phone values apply at 360 px (proposed by T2 and accepted by the owner on 2026-11-19). The generated CSS converts both to rem and scales between them with the viewport width",
     "viewport": {
       "phone": 360,
       "desktop": 1280

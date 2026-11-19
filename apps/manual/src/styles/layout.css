@@ -113,8 +113,8 @@
   }
 }
 
-/* From 69rem, the sum of the sidebar, the article, the side-note margin and two gaps, the margin right of the
-   article holds the side notes; a 1280 px page reaches it. */
+/* The margin right of the article holds the side notes from 69rem, the sum of the sidebar, the article, the side-note
+   margin and two gaps. A 1280 px page reaches that width. */
 @container layout (min-width: 69rem) {
   .chapter-body {
     grid-template-columns: 11rem minmax(0, var(--measure)) var(--side-note-width);

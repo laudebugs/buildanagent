@@ -211,9 +211,9 @@ The table lives as data in [`docs/design/book-tokens.json`](../design/book-token
 - **Layout widths:** a 1152 px page, a 608 px article column, a 240 px side-note margin and a gutter from 16 to 40 px.
 - **The font files.** The code face is served as Manual Code, the neutral name its subsets need under Google Sans Code's `TRADEMARKS.md`.
 
-The owner also kept Literata's name for its subsets (2026-11-19: "Keep 'Literata'"). Its OFL names no Reserved Font Name and its folder in google/fonts has no `TRADEMARKS.md`, so only Google Sans Code needs a neutral name; Literata's trademark notice stays in its name table (fact-check rows 225–226).
+The owner also kept Literata's name for its subsets (2026-11-19: "Keep 'Literata'"). Its OFL names no Reserved Font Name, and its folder in google/fonts has no `TRADEMARKS.md`, so only Google Sans Code needs a neutral name. Literata's trademark notice stays in its name table (fact-check rows 225–226).
 
-The CSS custom properties are generated from the JSON file by `apps/manual/scripts/generate-tokens.ts`, and the app's tests recompute every recorded ratio from the colours the CSS ships ([`apps/manual/README.md`](../../apps/manual/README.md)).
+`apps/manual/scripts/generate-tokens.ts` generates the CSS custom properties from the JSON file, and the app's tests recompute every recorded ratio from the colours the CSS ships ([`apps/manual/README.md`](../../apps/manual/README.md)).
 
 ### BK13. PDF and EPUB come later (proposed)
 
