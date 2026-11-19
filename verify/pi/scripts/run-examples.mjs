@@ -2,13 +2,16 @@
 // Doc blocks and upstream SDK programs run unmodified under scripts/faux-preload.mjs, which injects the
 // faux provider into every ModelRuntime. Each run gets a temp cwd (with fixtures/), a temp
 // PI_CODING_AGENT_DIR whose settings select the faux model, and a timeout.
-// Usage: node scripts/run-examples.mjs [dir=extracted] [--only id1,id2]
+// Usage: node scripts/run-examples.mjs [dir=extracted] [--only id1,id2] [--live]
+// --live, which only scripts/live/run.mjs passes, runs one of our examples against a real provider
+// (scripts/live/harness.mjs).
 // For a directory other than extracted/, every *.ts file is run (our own examples, which wire faux themselves).
 import { spawn } from "node:child_process";
 import { existsSync } from "node:fs";
 import { cp, mkdir, mkdtemp, readdir, readFile, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join, resolve } from "node:path";
+import { liveMode } from "../../../scripts/live/harness.mjs";
 import { transcriptRun } from "../../../scripts/transcripts/write.mjs";
 
 const dir = resolve(process.argv[2] && !process.argv[2].startsWith("--") ? process.argv[2] : "extracted");
@@ -16,6 +19,7 @@ const ownExamples = !dir.endsWith("extracted");
 const only = process.argv.includes("--only")
   ? new Set(process.argv[process.argv.indexOf("--only") + 1].split(","))
   : null;
+const liveRun = liveMode();
 const TIMEOUT_MS = Number(process.env.EXAMPLE_TIMEOUT_MS ?? 60000);
 const CONCURRENCY = Number(process.env.EXAMPLE_CONCURRENCY ?? 4);
 const root = resolve(".");
@@ -73,6 +77,7 @@ async function runOne(t) {
     NODE_NO_WARNINGS: "1",
     PI_CODING_AGENT_DIR: agentDir,
     FAUX_READ_FILE: "notes.txt",
+    ...liveRun?.env,
   };
   const args = ["--import", TSX];
   if (!ownExamples) args.push("--import", join(root, "scripts/faux-preload.mjs"));
@@ -96,7 +101,7 @@ async function runOne(t) {
   });
   const fauxCalls = (result.out.match(/Faux model:/g) ?? []).length;
   const blocked = /network disabled \(blocked ([^)]+)\)/.exec(result.out)?.[1];
-  transcript?.write({ harnessDir: root, exampleFile: resolve(t.file), cwd });
+  transcript?.write({ harnessDir: root, exampleFile: resolve(t.file), cwd, ...liveRun?.transcript });
   // "ran" = exit 0 and the faux model answered; "ran-no-model" = exit 0 without a model reply.
   // Our own examples assert their behaviour, so exit 0 is a pass.
   const outcome = result.timedOut
@@ -113,7 +118,7 @@ async function runOne(t) {
     exit: result.exit,
     ms: Date.now() - started,
     fauxReplies: fauxCalls,
-    tail: result.out.trim().split("\n").slice(-8).join("\n").slice(-1200),
+    tail: (liveRun?.redact ?? String)(result.out.trim().split("\n").slice(-8).join("\n").slice(-1200)),
   };
 }
 
@@ -126,6 +131,8 @@ await Promise.all(
       const r = await runOne(t);
       results.push(r);
       console.log(`${r.outcome.padEnd(10)} ${r.id}${r.reason ? ` (${r.reason})` : ""}`);
+      // A live run's caller reports the example's last lines, already redacted, when it fails.
+      if (liveRun && r.outcome !== "ran") console.log(r.tail);
     }
   }),
 );

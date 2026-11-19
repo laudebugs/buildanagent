@@ -1,5 +1,7 @@
 // Shared helpers for the verified LangChain examples.
 import type { BaseMessage } from "@langchain/core/messages";
+// In a live run (scripts/live/), sends fakeModel()'s calls to a real provider; first, so the recorder wraps them.
+import "./live.ts";
 // Attaches the transcript recorder to fakeModel() when the runner preloads it (scripts/transcripts/).
 import "./transcript.ts";
 

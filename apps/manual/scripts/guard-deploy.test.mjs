@@ -8,6 +8,7 @@ import { join } from "node:path";
 import { after, describe, test } from "node:test";
 import { fileURLToPath } from "node:url";
 import { checkApp, DOMAIN, parseJsonc, problemsIn, strayConfigs } from "./guard-deploy.mjs";
+import { previewHeaders } from "./stage-dist.mjs";
 
 const app = fileURLToPath(new URL("..", import.meta.url));
 const committed = parseJsonc(readFileSync(join(app, "wrangler.jsonc"), "utf8"));
@@ -51,7 +52,9 @@ describe("the committed config", () => {
     assert.deepEqual(problemsIn(committed, HEADERS), []);
   });
 
-  test("names an assets-only Worker with an empty previews block", () => {
+  test("names an assets-only Worker with an empty previews block, served on the custom domain only", () => {
+    assert.deepEqual(committed.routes, [{ pattern: DOMAIN, custom_domain: true, previews_enabled: true }]);
+    assert.equal(committed.preview_urls, false);
     assert.equal(committed.name, "buildanagent-manual");
     assert.deepEqual(committed.previews, {});
     assert.equal(committed.build, undefined);
@@ -63,14 +66,16 @@ describe("each rule refuses on its own", () => {
     ["a second route", (c) => c.routes.push({ pattern: "other.buildanagent.fyi", custom_domain: true }), /"routes"/],
     ["a route that is not a custom domain", (c) => (c.routes[0].custom_domain = false), /"routes"/],
     ["another domain", (c) => (c.routes[0].pattern = "evil.example.com"), /"routes"/],
-    ["a route that also serves previews", (c) => (c.routes[0].previews_enabled = true), /"routes"/],
+    ["a route without previews", (c) => delete c.routes[0].previews_enabled, /"routes"/],
+    ["a route with previews off", (c) => (c.routes[0].previews_enabled = false), /"routes"/],
+    ["a route that serves only previews", (c) => (c.routes[0].enabled = false), /"routes"/],
     ["no routes", (c) => delete c.routes, /"routes"/],
     ["a main entry", (c) => (c.main = "src/worker.ts"), /"main" must be absent/],
     ["another assets directory", (c) => (c.assets.directory = "./public"), /"assets.directory"/],
     ["single-page fallback", (c) => (c.assets.not_found_handling = "single-page-application"), /not_found_handling/],
     ["workers.dev in production", (c) => (c.workers_dev = true), /"workers_dev"/],
     ["workers_dev left to its default", (c) => delete c.workers_dev, /"workers_dev"/],
-    ["previews off", (c) => (c.preview_urls = false), /"preview_urls"/],
+    ["previews on workers.dev", (c) => (c.preview_urls = true), /"preview_urls"/],
     ["preview_urls left to its default", (c) => delete c.preview_urls, /"preview_urls"/],
   ];
   for (const [name, change, pattern] of cases) {
@@ -99,6 +104,25 @@ describe("each rule refuses on its own", () => {
     assert.match(problemsIn(committed, { ...HEADERS, deployed: "/*\n  X: z\n" })[0], /it differs/);
   });
 
+  test("a preview's dist/_headers must be main's plus X-Robots-Tag: noindex, and production's must not be", () => {
+    const variant = "/*\n  X-Robots-Tag: noindex\n  X: y\n";
+    assert.deepEqual(problemsIn(committed, { ...HEADERS, deployed: variant }, { preview: true }), []);
+    // The plain copy is refused for a preview, and the preview variant for production.
+    assert.match(problemsIn(committed, HEADERS, { preview: true })[0], /with X-Robots-Tag: noindex added.*differs/);
+    assert.match(problemsIn(committed, { ...HEADERS, deployed: variant })[0], /a copy of public\/_headers.*differs/);
+    // So is a variant with anything more in it.
+    const more = "/*\n  X-Robots-Tag: noindex\n  X: y\n  Y: z\n";
+    assert.match(problemsIn(committed, { ...HEADERS, deployed: more }, { preview: true })[0], /differs/);
+  });
+
+  test("a public/_headers with no preview variant refuses a preview", () => {
+    const source = "/_astro/*\n  X: y\n";
+    const problems = problemsIn(committed, { source, deployed: source }, { preview: true });
+    assert.deepEqual(problems, [
+      'public/_headers has no preview variant: main\'s _headers must have exactly one "/*" rule, not 0',
+    ]);
+  });
+
   test("the domain is the book's", () => {
     assert.equal(DOMAIN, "manual.buildanagent.fyi");
   });
@@ -114,8 +138,8 @@ describe("the command", () => {
     if (headers.deployed !== null) writeFileSync(join(dir, "dist", "_headers"), headers.deployed);
     return dir;
   }
-  const run = (dir) =>
-    spawnSync(process.execPath, [join(app, "scripts", "guard-deploy.mjs"), dir], {
+  const run = (dir, ...flags) =>
+    spawnSync(process.execPath, [join(app, "scripts", "guard-deploy.mjs"), dir, ...flags], {
       encoding: "utf8",
       env: { PATH: process.env.PATH ?? "" },
     });
@@ -127,6 +151,20 @@ describe("the command", () => {
     const result = run(dir);
     assert.equal(result.status, 0, result.stderr);
     assert.match(result.stdout, /Deploy guard passed/);
+  });
+
+  test("with --preview, passes only on the preview variant of main's _headers", () => {
+    const dir = appWith({ config: readFileSync(join(app, "wrangler.jsonc"), "utf8") });
+    const source = readFileSync(join(app, "public", "_headers"), "utf8");
+    writeFileSync(join(dir, "public", "_headers"), source);
+    writeFileSync(join(dir, "dist", "_headers"), source);
+    assert.equal(run(dir, "--preview").status, 1);
+    writeFileSync(join(dir, "dist", "_headers"), previewHeaders(source));
+    const result = run(dir, "--preview");
+    assert.equal(result.status, 0, result.stderr);
+    assert.match(result.stdout, /plus X-Robots-Tag: noindex/);
+    assert.equal(run(dir).status, 1, "production refuses the preview variant");
+    assert.equal(run(dir, "--prod").status, 2);
   });
 
   test("refuses, listing every problem, and exits 1", () => {

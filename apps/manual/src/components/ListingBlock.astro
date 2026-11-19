@@ -12,16 +12,18 @@ interface Props {
   readonly pin: string;
   readonly lines: readonly ListingLine[];
   readonly notes?: readonly ListingNote[];
+  /** Whether the live run leaves this listing's file out, so only mock models verify it. */
+  readonly mockOnly?: boolean;
 }
 
-const { id, number, path, pin, lines, notes = [] } = Astro.props;
+const { id, number, path, pin, lines, notes = [], mockOnly = false } = Astro.props;
 const noteNumber = new Map(notes.map((note, index) => [note.id, index + 1]));
 ---
 
 <figure class="listing panel" id={id} aria-labelledby={`${id}-caption`}>
   <figcaption class="listing__caption" id={`${id}-caption`}>
     <span class="listing__number">Listing {number}</span>
-    {captionParts(path, lines, pin).map((part) => <span class={part.className}>{part.text}</span>)}
+    {captionParts(path, lines, pin, mockOnly).map((part) => <span class={part.className}>{part.text}</span>)}
   </figcaption>
   <Fragment set:html={listingCodeHtml(id, number, lines, noteNumber)} />
   <Annotations listingId={id} notes={notes} />

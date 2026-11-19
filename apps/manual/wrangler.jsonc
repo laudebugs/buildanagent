@@ -14,13 +14,15 @@
     // A path the build did not write gets dist/404.html with status 404.
     "not_found_handling": "404-page"
   },
-  // Cloudflare creates the DNS record and certificate for a custom domain.
-  "routes": [{ "pattern": "manual.buildanagent.fyi", "custom_domain": true }],
+  // Cloudflare creates the DNS record and certificate for a custom domain. previews_enabled also serves each preview
+  // on it, as pr-<n>.manual.buildanagent.fyi, with a wildcard record and certificate that Cloudflare creates; the
+  // change takes effect at the next `wrangler deploy`, which the production job runs.
+  "routes": [{ "pattern": "manual.buildanagent.fyi", "custom_domain": true, "previews_enabled": true }],
   // One production address: the custom domain, not <name>.<subdomain>.workers.dev.
   "workers_dev": false,
-  // Previews are served on workers.dev, and a new Worker's preview setting starts from workers_dev, so without this
-  // line pull-request previews would be off.
-  "preview_urls": true,
+  // No previews on workers.dev either: they would be a second, public address for every preview. Set explicitly,
+  // because Wrangler leaves the dashboard's setting unchanged when the key is absent.
+  "preview_urls": false,
   // `wrangler preview` needs this block. An assets-only Worker has no bindings, so it stays empty.
   "previews": {}
 }

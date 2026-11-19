@@ -297,7 +297,7 @@ function fileListing(
               children: label,
             } satisfies PhrasingContent,
           ]),
-      ...captionParts(source.path, source.lines, source.pin).map(
+      ...captionParts(source.path, source.lines, source.pin, !book.live.compared.has(source.path)).map(
         ({ className, text }): PhrasingContent => ({
           type: "text",
           value: text,
