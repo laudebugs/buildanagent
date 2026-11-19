@@ -1,8 +1,10 @@
 /**
  * `@agent-speak/gateway/testing`: test doubles for the gateway.
  *
- * B1 exposes only the offline guard. B4 adds `mockTransport()`, `startMockServer()` and `allowModelRequests()`.
+ * It exposes the offline guards and `assertStreamContract()`. B4 adds `mockTransport()`, `startMockServer()` and `allowModelRequests()`.
  */
+
+export { assertStreamContract, StreamContractError } from "../stream-contract.ts";
 export {
   assertNoProviderKeys,
   guardedFetch,

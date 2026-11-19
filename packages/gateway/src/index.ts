@@ -1,6 +1,18 @@
-/**
- * `@agent-speak/gateway`: the model gateway.
- *
- * B1 only scaffolds the package. B2 adds the core types, the v1 model spec and the stream contract.
- */
-export const GATEWAY_PACKAGE = "@agent-speak/gateway";
+/** `@agent-speak/gateway`: the model gateway's transcript, model spec, stream rule and helpers. */
+export { complete } from "./complete.ts";
+export type { ModelAdapter, ModelEvent, StreamOptions } from "./spec.ts";
+export { assertStreamContract, StreamContractError } from "./stream-contract.ts";
+export type {
+  AssistantMessage,
+  ContentBlock,
+  Cost,
+  Message,
+  ModelCaps,
+  ModelContent,
+  ModelContext,
+  ModelRef,
+  OpaqueToken,
+  Usage,
+  WireTool,
+} from "./types.ts";
+export { emptyUsage, totalInput } from "./usage.ts";

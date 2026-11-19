@@ -1,0 +1,111 @@
+import "@agent-speak/gateway/testing/setup";
+import assert from "node:assert/strict";
+import { test } from "node:test";
+import { assertStreamContract, type ModelEvent, StreamContractError } from "@agent-speak/gateway";
+import { message, streamOf, validEvents } from "./fixtures.ts";
+
+const rejects = (events: ModelEvent[], pattern: RegExp) =>
+  assert.rejects(
+    () => assertStreamContract(streamOf(events)),
+    (error: unknown) => error instanceof StreamContractError && pattern.test(error.message),
+  );
+
+test("a valid stream passes and every event is returned", async () => {
+  const events = validEvents();
+  assert.deepEqual(await assertStreamContract(streamOf(events)), events);
+});
+
+test("an error terminal with partial content passes", async () => {
+  await assertStreamContract(
+    streamOf([
+      { type: "start" },
+      { type: "text_start", index: 0 },
+      { type: "text_delta", index: 0, delta: "Hal" },
+      { type: "error", message: message("aborted", [{ type: "text", text: "Hal" }]) },
+    ]),
+  );
+});
+
+test("rejects a delta before its start", () =>
+  rejects(
+    [{ type: "start" }, { type: "text_delta", index: 0, delta: "x" }, { type: "done", message: message("stop") }],
+    /before index 0 started/,
+  ));
+
+test("rejects a delta after its end", () =>
+  rejects(
+    [
+      { type: "start" },
+      { type: "text_start", index: 0 },
+      { type: "text_end", index: 0, block: { type: "text", text: "" } },
+      { type: "text_delta", index: 0, delta: "x" },
+      { type: "done", message: message("stop") },
+    ],
+    /after index 0 ended/,
+  ));
+
+test("rejects two terminals", () =>
+  rejects(
+    [{ type: "start" }, { type: "done", message: message("stop") }, { type: "done", message: message("stop") }],
+    /followed the terminal/,
+  ));
+
+test("rejects a stream with no terminal", () =>
+  rejects([{ type: "start" }, { type: "text_start", index: 0 }], /ended without a done or error/));
+
+test("rejects an error terminal with stopReason stop", () =>
+  rejects(
+    [{ type: "start" }, { type: "error", message: message("stop") }],
+    /needs stopReason error or aborted, got stop/,
+  ));
+
+test("rejects a done terminal with stopReason error", () =>
+  rejects(
+    [{ type: "start" }, { type: "done", message: message("error") }],
+    /done terminal cannot have stopReason error/,
+  ));
+
+test("rejects a stream that does not begin with start", () =>
+  rejects([{ type: "done", message: message("stop") }], /must begin with start/));
+
+test("rejects a second start", () =>
+  rejects([{ type: "start" }, { type: "start" }, { type: "done", message: message("stop") }], /start appeared twice/));
+
+test("rejects mixed kinds on one index", () =>
+  rejects(
+    [
+      { type: "start" },
+      { type: "text_start", index: 0 },
+      { type: "reasoning_delta", index: 0, delta: "x" },
+      { type: "done", message: message("stop") },
+    ],
+    /started as text but got reasoning_delta/,
+  ));
+
+test("rejects a reused index", () =>
+  rejects(
+    [
+      { type: "start" },
+      { type: "text_start", index: 0 },
+      { type: "text_end", index: 0, block: { type: "text", text: "" } },
+      { type: "text_start", index: 0 },
+      { type: "done", message: message("stop") },
+    ],
+    /index 0 started twice/,
+  ));
+
+test("rejects done with an open block", () =>
+  rejects(
+    [{ type: "start" }, { type: "text_start", index: 0 }, { type: "done", message: message("stop") }],
+    /open blocks at index 0/,
+  ));
+
+test("reports the position of the offending event", async () => {
+  await assert.rejects(
+    () =>
+      assertStreamContract(
+        streamOf([{ type: "start" }, { type: "done", message: message("stop") }, { type: "start" }]),
+      ),
+    (error: unknown) => error instanceof StreamContractError && error.position === 2,
+  );
+});
