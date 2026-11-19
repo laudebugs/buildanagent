@@ -447,7 +447,7 @@ The owner chose to cover every topic group the coverage review named (2026-11-19
 | --- | --- | --- | --- |
 | Retrieval and long-term memory | [U18](../todos/done/U18-research-retrieval-and-long-term-memory.md); report: [retrieval-and-memory.md](../research/memory/retrieval-and-memory.md) | T36, a chapter | A chapter of its own, after the session log and context chapter, because it spans retrieval design, stores, failure modes and evaluation |
 | Agent-to-agent protocols (A2A) | [U19](../todos/ready/U19-research-a2a.md) | T37, a section of T21 | A2A is an interoperability protocol beside MCP, so it belongs in the chapter that already explains MCP; one section keeps Chapter T21 from waiting on research |
-| Voice and realtime agents | [U20](../todos/ongoing/U20-research-voice-and-realtime.md) | T38, a section of T35 | Voice and realtime change how a person interacts with a running agent, which is Chapter T35's subject |
+| Voice and realtime agents | [U20](../todos/ongoing/U20-research-voice-and-realtime.md); report: [voice-and-realtime.md](../research/voice/voice-and-realtime.md) | T38, a section of T35 | Voice and realtime change how a person interacts with a running agent, which is Chapter T35's subject |
 | Fine-tuning versus prompting | [U21](../todos/ready/U21-research-fine-tuning-vs-prompting.md) | T39, a section of T11 | The question arises the moment a reader chooses a model, which Chapter T11 teaches |
 
 ### 4.4 Where each topic of the coverage review lands
