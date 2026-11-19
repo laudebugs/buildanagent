@@ -1,0 +1,26 @@
+// The book's Worker: static assets only, with no Worker code (book plan BK15, ADR 0053). The deploy workflow reads
+// this file from main, and scripts/guard-deploy.mjs refuses a deploy when the settings it checks drift.
+{
+  "$schema": "./node_modules/wrangler/config-schema.json",
+  // The owner creates this Worker once by hand, because the stored tokens hold Workers Editor, which cannot create
+  // one (README, "What the owner sets up").
+  "name": "buildanagent-manual",
+  // The newest date the pinned Wrangler's local runtime accepts, so `wrangler dev` starts; an assets-only Worker
+  // runs no code, so the date changes nothing it serves.
+  "compatibility_date": "2026-11-17",
+  // No "main": nothing runs but Cloudflare's asset server.
+  "assets": {
+    "directory": "./dist",
+    // A path the build did not write gets dist/404.html with status 404.
+    "not_found_handling": "404-page"
+  },
+  // Cloudflare creates the DNS record and certificate for a custom domain.
+  "routes": [{ "pattern": "manual.buildanagent.fyi", "custom_domain": true }],
+  // One production address: the custom domain, not <name>.<subdomain>.workers.dev.
+  "workers_dev": false,
+  // Previews are served on workers.dev, and a new Worker's preview setting starts from workers_dev, so without this
+  // line pull-request previews would be off.
+  "preview_urls": true,
+  // `wrangler preview` needs this block. An assets-only Worker has no bindings, so it stays empty.
+  "previews": {}
+}

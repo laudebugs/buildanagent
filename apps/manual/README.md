@@ -18,6 +18,7 @@ Run each from the repo root.
 | `pnpm --filter @buildanagent/manual anatomy:css` | Regenerates `src/styles/anatomy.css` from the vendored anatomy kit's `iso.css` |
 | `pnpm --filter @buildanagent/manual figures:build` | Runs every figure script, the book's and the two fixture books', and writes its SVG or fragment beside it |
 | `pnpm --filter @buildanagent/manual figures:audit` | Proves every isometric figure with the anatomy skill's geometry audit and its line check in both themes; needs Chrome |
+| `pnpm --filter @buildanagent/manual exec wrangler dev` | Serves the built `dist/` locally as Cloudflare would, with the `_headers` rules and the 404 page; it needs no Cloudflare login |
 
 ## The outline places the chapter and gives it its number
 
@@ -331,3 +332,50 @@ Each component in `src/components/` renders its full content with no script. A f
 - **Theme:** `ThemeToggle`, driven by `public/scripts/theme.js`, which applies a stored choice before the first paint. The button's label names its action, "Switch to light theme" or "Switch to dark theme", and follows the system setting while the reader has stored no choice.
 
 The gallery at `/gallery/` renders every component in both themes, one above the other at full width, so each shows the layout at the width a reader sees it. It stays out of the search index and carries `noindex`. Its citation and glossary samples link to the `/sources/` and `/glossary/` pages. The owner compares the gallery with the reference board after any design change.
+
+## The book deploys from main's workflow, and a pull request only ever gets a preview
+
+GitHub Actions publishes the book, not Cloudflare's own Git integration. Two workflows split the work so that no pull request can change a job that holds a Cloudflare token ([book plan BK15](../../docs/plans/build-book.md#bk15-an-assets-only-worker-on-a-custom-domain-behind-a-guard-and-a-switch-proposed)). First, `book-build.yml` builds the site with no secrets on every pull request and every push to `main`, and uploads `dist/` as the `book-dist` artifact. Second, `book-deploy.yml` runs after each build finishes. GitHub always runs that second workflow from the file on `main`, so editing it on a branch changes nothing until the branch merges.
+
+`book-deploy.yml` never checks out or runs a pull request's code. It takes the artifact and the build's commit SHA from the triggering run, and everything else from `main`: `wrangler.jsonc`, `public/_headers`, the scripts and Wrangler itself. It has four jobs. `resolve` runs first and decides which of the other three runs:
+
+1. **`resolve`** names no environment and holds no Cloudflare secret, so it has no secrets check. It asks GitHub's API whether a push is still `main`'s newest commit, which open pull requests have the build's commit as their head, or which closed pull request a `book-pr-closed` run belongs to. If the API call fails, the job fails and nothing deploys.
+2. **`production`** deploys to manual.buildanagent.fyi with `wrangler deploy`, from the `book-production` environment. It runs only for a push to `main` from this repository, only while the variable `BOOK_DEPLOY_ENABLED` is `true`, and only for `main`'s newest commit. A fork's branch named `main` never reaches it, and a running deploy is never cancelled.
+3. **`preview`** runs `wrangler preview --name pr-<number>` from the `book-preview` environment, for each open pull request into this repository whose head is the build's commit, a fork's included. A push to `main` gets no preview, because it already deploys production or is held back on purpose. The preview lives on `workers.dev` at `pr-<number>-buildanagent-manual.<account subdomain>.workers.dev`, which Cloudflare serves with `X-Robots-Tag: noindex`. Preview URLs are public, like the book.
+4. **`delete-preview`** runs `wrangler preview delete` from the `book-preview` environment when a pull request closes.
+
+Each pull request has its own queue, shared by its previews and its deletion. A preview and its deletion therefore never overlap, and no other pull request's run can replace one that is waiting.
+
+Before Wrangler runs, `scripts/stage-dist.mjs` checks the artifact, because a pull request's build may have put anything in it. The script reads the zip itself and refuses the whole artifact if an entry escapes `dist/`, is a symbolic link or a dot file, is a file Cloudflare reads as configuration (such as `_redirects`), or breaks Cloudflare's limits of 25 MiB per file and 20,000 files. It skips the artifact's own `_headers`, refuses a `_headers` directory, and writes `main`'s copy in its place.
+
+Next, `scripts/guard-deploy.mjs` refuses a deploy unless seven rules hold. Six are settings in `wrangler.jsonc`: exactly the one custom-domain route, no `main`, `assets.directory: "./dist"`, `not_found_handling: "404-page"`, `workers_dev: false` and `preview_urls: true`. The seventh is that `dist/_headers` matches `public/_headers`. Without `--config`, Wrangler looks for a `wrangler.json` in this directory and every one above it before it reads `wrangler.jsonc`, so every Wrangler call passes `--config wrangler.jsonc`. The guard also refuses when any other Wrangler config, or a `.wrangler/deploy/config.json` redirect, sits in `apps/manual/` or a directory above it. The guard is adapted from the owner's garment engineering textbook and is licensed Apache-2.0 only ([THIRD-PARTY-NOTICES.md](../../THIRD-PARTY-NOTICES.md)).
+
+Deleting a preview needs a third workflow, `book-pr-closed.yml`, because GitHub runs a `pull_request` workflow from the pull request's merge commit, so an unmerged branch supplies the file. A job there that held the preview token would run whatever a branch wrote into it, and a fork's run gets no secrets, so a fork's preview would never be deleted. `book-pr-closed.yml` therefore holds no secret and does nothing but finish. Its run starts `book-deploy.yml` from `main`, which finds the closed pull request through the API and deletes its preview.
+
+Every page gets the headers in [`public/_headers`](public/_headers). The content security policy allows only the book's own origin: scripts, styles, fonts, fetches and Pagefind's worker all come from it, and no inline script or style runs. Pagefind's search also needs `'wasm-unsafe-eval'` to compile its WebAssembly, and `data:` images for its search icon. `Strict-Transport-Security` keeps browsers on HTTPS for a year, for manual.buildanagent.fyi and any name under it; it leaves out `preload`. Files under `/_astro/`, whose names carry a content hash, are cached for a year.
+
+**A fork's preview runs the fork's own code in the browser.** The artifact is the fork's build, so its pages and scripts are whatever the fork wrote. They are served same-origin on the preview's own `workers.dev` hostname, under the account's subdomain, and the content security policy allows them there as it allows the book's own. BK15 accepted this so that every pull request, a fork's included, gets a preview. The book sets no cookies and has no sign-in, so a fork's script on a preview finds nothing of the book's to read.
+
+## What the owner sets up
+
+The owner creates every piece below; the workflows only use them, by these exact names. Until a piece exists, the job that needs it stops at its first step, which names the missing secret and links here. This repository can therefore merge the workflows before the setup is done.
+
+| Where | Name | What it holds or allows |
+| --- | --- | --- |
+| Cloudflare | the `buildanagent.fyi` zone | In the account both tokens belong to. `manual.buildanagent.fyi` must have no CNAME record, because Cloudflare refuses a custom domain on a hostname that has one |
+| Cloudflare | the Worker `buildanagent-manual` | Created once by hand, or by one first deploy with a short-lived token that has Workers Admin. Workers Editor cannot create a Worker, so neither stored token needs Admin |
+| GitHub environment | `book-production` | Deployment branches: protected branches only, which here means `main`. Secrets `CLOUDFLARE_API_TOKEN` and `CLOUDFLARE_ACCOUNT_ID` |
+| GitHub environment | `book-preview` | Deployment branches: protected branches only, which here means `main`. Secrets `CLOUDFLARE_API_TOKEN` and `CLOUDFLARE_ACCOUNT_ID`, its own token |
+| Production token, in `book-production` | An account-owned API token | Account › Workers › Editor, plus Zone › Workers Routes › Write on the `buildanagent.fyi` zone. Once the custom domain is attached, the zone permission can be removed until the domain changes |
+| Preview token, in `book-preview` | An account-owned API token | Account › Workers › Editor, scoped to the Worker `buildanagent-manual`, with no zone permission |
+| GitHub repository variable | `BOOK_DEPLOY_ENABLED` | `true` turns production deploys on |
+
+`CLOUDFLARE_ACCOUNT_ID` is the ID of the account that owns the zone and the Worker. Both tokens are account-owned, because Wrangler needs that kind for per-Worker permissions. Cloudflare's [Workers roles](https://developers.cloudflare.com/workers/authorization/workers/) page lists what each role allows.
+
+**`book-preview` must allow protected branches only, like `book-production`.** Its token holds Editor on the book's Worker, which can also deploy to production. Without the rule, any workflow on a branch of this repository could name `book-preview` and read that token. `book-deploy.yml` runs from `main`, so the rule leaves its previews working. The owner set it on 2026-11-19.
+
+One risk remains, accepted: the preview job handles a fork's artifact while it holds that token. Cloudflare's Workers roles have no permission for previews alone, so the token could also deploy the production Worker. The artifact check, the guard and `main`'s own Wrangler stand between the fork's files and the token, and no code from the artifact ever runs in the job.
+
+Before the first deploy, check by name that each environment holds both secrets and that both allow only protected branches. Then watch the first production deploy and one pull request's preview: the site should serve the book with the `_headers` values, and the preview should carry `X-Robots-Tag: noindex`.
+
+**To pause production,** set `BOOK_DEPLOY_ENABLED` to anything other than `true`, or delete it. Pushes to `main` still build the book and pull requests still get previews; the `production` job is skipped until the variable is `true` again.
