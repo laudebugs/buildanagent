@@ -13,6 +13,7 @@ export type SdkErrorCode =
   | "invalid_tool_result"
   | "invalid_run_options"
   | "invalid_model_stream"
+  | "max_depth_exceeded"
   | "invalid_hook_result"
   | "hook_failed"
   | "run_stopped"
@@ -26,7 +27,8 @@ const SDK_ERROR = Symbol.for("buildanagent.sdk.SdkError");
  * exposure, `executionMode` or `resourceKey` is unusable, or two tools share a name. `invalid_tool_result`: a tool's
  * `execute` returned a malformed result or write outcome. `invalid_run_options`: `run()` or `continueRun()` got an
  * option it can't use, such as a model that isn't from `createModel()`. `invalid_model_stream`: a model's stream ended
- * without a final message. `invalid_hook_result`: an interceptor returned something its type does not allow, such as
+ * without a final message. `max_depth_exceeded`: a tool started a run nested deeper than `maxDepth` allows.
+ * `invalid_hook_result`: an interceptor returned something its type does not allow, such as
  * a gate that returned no decision, or a replacement input that fails the tool's schema. `hook_failed`: an interceptor
  * threw while the run fails closed. The run catches it and ends with an `error` result whose `error.kind` is `hook`,
  * so it never reaches your code. `run_stopped`: `runOrThrow()` was given a run that did not finish (a
