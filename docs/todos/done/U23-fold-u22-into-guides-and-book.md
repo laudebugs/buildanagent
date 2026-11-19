@@ -3,7 +3,7 @@
 | Field | Value |
 | --- | --- |
 | ID | `U23` |
-| Status | `ongoing` |
+| Status | `done` |
 | Plan | [Build guides §4d, U23](../../plans/build-guides.md#u23-fold-u22-into-the-build-guides-and-the-books-todos-added-2026-11-19) |
 | Round / milestone | Research (added 2026-11-19) |
 | Depends on | [U22](../done/U22-survey-agent-research-papers.md) |
@@ -35,16 +35,16 @@ The owner asked to review every SDK-reference and book todo against U22's findin
 
 ## Tasks
 
-- [ ] Review the eight SDK references, three comparison docs and three build guides against U22 (done: `sdk-references-mapping.md`).
-- [ ] Review every book todo against U22 (done: `book-todos-mapping.md`).
-- [ ] Apply the real, cited additions/corrections the mapping found, re-verifying any weaker claim first.
-- [ ] Fact-check each changed document's touched claims; log corrections.
-- [ ] Review the whole of each changed document with `/anthropic-skills:writing-review`; fix and re-check.
+- [x] Review the eight SDK references, three comparison docs and three build guides against U22 (done: `sdk-references-mapping.md`).
+- [x] Review every book todo against U22 (done: `book-todos-mapping.md`).
+- [x] Apply the real, cited additions/corrections the mapping found, re-verifying any weaker claim first.
+- [x] Fact-check each changed document's touched claims; log corrections.
+- [x] Review the whole of each changed document with `/anthropic-skills:writing-review`; fix and re-check.
 
 ## Acceptance criteria
 
-- [ ] Every claim added or corrected cites its U22 section or primary source, and every relative link and anchor resolves.
-- [ ] `pnpm check`, `pnpm typecheck` and `pnpm test` pass.
+- [x] Every claim added or corrected cites its U22 section or primary source, and every relative link and anchor resolves.
+- [x] `pnpm check`, `pnpm typecheck` and `pnpm test` pass.
 
 ## Tests
 
@@ -60,9 +60,9 @@ None (documentation only); `pnpm check`, `pnpm typecheck` and `pnpm test` must s
 
 ## Definition of done
 
-- [ ] Claimed: the first commit created this file in `ongoing/` (Status `ongoing`)
-- [ ] Prose drafted with `/anthropic-skills:writing`, fact-checked against primary sources, and changed claims re-checked against their sources
-- [ ] `pnpm check`, `pnpm typecheck` and `pnpm test` pass locally; pushed after each meaningful step
-- [ ] This file moved `ongoing/` → `done/` (Status `done`) in the last work commit, and the plan's todo table updated
+- [x] Claimed: the first commit created this file in `ongoing/` (Status `ongoing`)
+- [x] Prose drafted with `/anthropic-skills:writing`, fact-checked against primary sources, and changed claims re-checked against their sources
+- [x] `pnpm check`, `pnpm typecheck` and `pnpm test` pass locally; pushed after each meaningful step
+- [x] This file moved `ongoing/` → `done/` (Status `done`) in the last work commit, and the plan's todo table updated
 - [ ] Two code-review rounds run on the pull request (`/code-review high --max-findings default`, then `medium` and `low` after more than 6 confirmed findings, otherwise `low`), with every finding fixed or explained in a commit message
 - [ ] Copy reviewed with `/anthropic-skills:writing-review` after the code changes, with its findings fixed and the rubric scores in the pull request description
