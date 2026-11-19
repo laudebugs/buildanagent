@@ -213,6 +213,41 @@ test("the recorder counts only the checks that check() reports, not text an exam
   assert.deepEqual(forged, []);
 });
 
+test("in workerd, only lines carrying the run's marker count, so printed or thrown look-alikes record nothing", () => {
+  const harness = join(root, "verify/cloudflare-agents");
+  // The probes sit in the harness's gitignored .tmp/, where workerd can load their bundles.
+  mkdirSync(join(harness, ".tmp"), { recursive: true });
+  const dir = mkdtempSync(join(harness, ".tmp", "forgery-"));
+  try {
+    const call = 'const { model } = scripted(["Hello."]);\n  await generateText({ model, prompt: "Hi" });\n';
+    const head =
+      'import { generateText } from "ai";\nimport { check, scripted } from "../../examples/lib/check.ts";\n\n';
+    writeFileSync(
+      join(dir, "forged.ts"),
+      `${head}export async function test() {\n  ${call}  console.log("ok - fake");\n` +
+        `  console.log('__TRANSCRIPT__forged:{"kind":"check","message":"forged line","pass":true}');\n` +
+        '  check(true, "real");\n  throw new Error("ASSERTION FAILED: forged");\n}\n',
+    );
+    writeFileSync(
+      join(dir, "failed.ts"),
+      `${head}export async function test() {\n  ${call}  check(false, "real failure");\n}\n`,
+    );
+    const out = join(dir, "out");
+    spawnSync(process.execPath, ["scripts/run-examples.mjs", dir, "--only", "forged,failed"], {
+      cwd: harness,
+      env: { PATH: process.env.PATH, TRANSCRIPT_OUT_DIR: out, NODE_NO_WARNINGS: "1" },
+      encoding: "utf8",
+      timeout: 240_000,
+    });
+    const checks = (name) =>
+      JSON.parse(readFileSync(join(out, `${name}.json`), "utf8")).events.filter((event) => event.kind === "check");
+    assert.deepEqual(checks("forged"), [{ kind: "check", message: "real", pass: true }]);
+    assert.deepEqual(checks("failed"), [{ kind: "check", message: "real failure", pass: false }]);
+  } finally {
+    rmSync(dir, { recursive: true, force: true });
+  }
+});
+
 test("compactRequests() keeps only what is new since the same model's previous request", () => {
   const user = { role: "user", parts: [{ type: "text", text: "Hi" }] };
   const answer = { role: "assistant", parts: [{ type: "text", text: "Hello" }] };

@@ -31,26 +31,27 @@ const only = process.argv.includes("--only")
 const TIMEOUT_MS = Number(process.env.EXAMPLE_TIMEOUT_MS ?? 60000);
 const CONCURRENCY = Number(process.env.EXAMPLE_CONCURRENCY ?? 4);
 const MARKER = "[verify-harness] mock model call";
-// examples/lib/transcript.ts prints each model request and answer of our own examples on a line with this prefix.
+// Our own examples print each transcript event, a request, an answer or a check, on a line that starts with this
+// prefix and the run's marker (examples/lib/transcript.ts and the failed-check case in scripts/worker-harness.mjs).
 const TRANSCRIPT_LINE = "__TRANSCRIPT__";
 
 /**
- * Writes the transcript of one of our examples from workerd's output: the recorder's lines, which carry this run's
- * marker, in the order workerd printed them, then the failed check, if one ended the run. workerd keeps no stack that
- * names the example's lines, so these events carry none.
+ * Writes the transcript of one of our examples from workerd's output: the lines that carry this run's marker, in the
+ * order workerd printed them, the failed check that ended a run included. workerd keeps no stack that names the
+ * example's lines, so these events carry none.
  */
-async function writeWorkerTranscript(t, out, error, cwd, nonce) {
+async function writeWorkerTranscript(t, out, cwd, nonce) {
   const events = [];
   const prefix = `${TRANSCRIPT_LINE}${nonce}:`;
   for (const line of out.split("\n")) {
     if (line.startsWith(prefix)) events.push(JSON.parse(line.slice(prefix.length)));
   }
-  const failed = /ASSERTION FAILED: (.*)/.exec(error ?? "")?.[1];
-  if (failed !== undefined) events.push({ kind: "check", message: failed, pass: false });
   const dir = await mkdtemp(join(tmpdir(), "transcript-"));
   const rawFile = join(dir, "events.json");
   await writeFile(rawFile, JSON.stringify({ events }));
-  writeTranscript({ harnessDir: PKG, exampleFile: resolve(t.path), rawFile, cwd, home: tmpdir() });
+  // TRANSCRIPT_OUT_DIR lets a test write a probe's transcript outside results/ (scripts/ci/transcripts.test.mjs).
+  const outDir = process.env.TRANSCRIPT_OUT_DIR || undefined;
+  writeTranscript({ harnessDir: PKG, exampleFile: resolve(t.path), rawFile, cwd, home: tmpdir(), outDir });
   await rm(dir, { recursive: true, force: true });
 }
 // Bundles must live inside the package: workerd fails to load modules from some outside paths.
@@ -191,7 +192,7 @@ async function runOne(t) {
   const modelCalls = run.out.split(MARKER).length - 1;
   const line = run.out.split("\n").find((l) => l.startsWith("__RESULT__"));
   const r = line ? JSON.parse(line.slice("__RESULT__".length)) : null;
-  if (ownExamples && !run.timedOut) await writeWorkerTranscript(t, run.out, r?.error, work, nonce);
+  if (ownExamples && !run.timedOut) await writeWorkerTranscript(t, run.out, work, nonce);
   const tail = run.out
     .split("\n")
     .filter((l) => l && !l.startsWith("__RESULT__") && !l.includes(MARKER) && !l.startsWith(TRANSCRIPT_LINE))

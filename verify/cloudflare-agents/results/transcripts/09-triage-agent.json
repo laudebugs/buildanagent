@@ -150,7 +150,7 @@
     },
     {
       "kind": "check",
-      "message": "approval moved the escalation to output-available",
+      "message": "approval moved the escalation to output-available, and the continued turn answered",
       "pass": true
     },
     {

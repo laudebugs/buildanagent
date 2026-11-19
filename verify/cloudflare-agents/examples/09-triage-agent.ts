@@ -130,7 +130,7 @@ export async function test(env: Env, h: Harness) {
     async () => (await agent.pending())[0]?.state === "output-available" && (await agent.answered()),
     5000,
   );
-  check(done, "approval moved the escalation to output-available");
+  check(done, "approval moved the escalation to output-available, and the continued turn answered");
   r = await agent.report();
   check(r.escalations.join() === "C-9:outage", "the escalate tool ran exactly once, after approval");
   ws.close();
