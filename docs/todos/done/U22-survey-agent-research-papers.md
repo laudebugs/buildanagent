@@ -3,7 +3,7 @@
 | Field | Value |
 | --- | --- |
 | ID | `U22` |
-| Status | `ongoing` |
+| Status | `done` |
 | Plan | [Build guides §4d, U22](../../plans/build-guides.md#u22-survey-ai-agent-research-papers-added-2026-11-19) |
 | Round / milestone | Research (added 2026-11-19) |
 | Depends on | None |
@@ -35,17 +35,17 @@ The owner asked on 2026-11-19 to survey AI agent research papers, starting from 
 
 ## Tasks
 
-- [ ] Fetch and triage the arXiv query's 50 results.
-- [ ] Run broader searches per topic cluster (architectures/reasoning, tool use, multi-agent, evals/benchmarks, safety), covering peer-reviewed venues.
-- [ ] Map findings onto our plans and ADRs (what a later todo would change).
-- [ ] Draft the report with `/anthropic-skills:writing`, fact-checking each section against its primary source as soon as that section is drafted.
-- [ ] Review the whole report with `/anthropic-skills:writing-review`, fix findings, re-check touched claims.
-- [ ] Update `README.md`, `AGENTS.md` and `docs/plans/build-guides.md`.
+- [x] Fetch and triage the arXiv query's 50 results.
+- [x] Run broader searches per topic cluster (architectures/reasoning, tool use, multi-agent, evals/benchmarks, safety), covering peer-reviewed venues.
+- [x] Map findings onto our plans and ADRs (what a later todo would change).
+- [x] Draft the report with `/anthropic-skills:writing`, fact-checking each section against its primary source as soon as that section is drafted.
+- [x] Review the whole report with `/anthropic-skills:writing-review`, fix findings, re-check touched claims.
+- [x] Update `README.md`, `AGENTS.md` and `docs/plans/build-guides.md`.
 
 ## Acceptance criteria
 
-- [ ] `docs/research/papers/agent-research-papers.md` and `docs/research/papers/fact-check-agent-research-papers.md` exist, with every factual claim cited to a primary source and every relative link and anchor resolving.
-- [ ] `pnpm check`, `pnpm typecheck` and `pnpm test` pass.
+- [x] `docs/research/papers/agent-research-papers.md` and `docs/research/papers/fact-check-agent-research-papers.md` exist, with every factual claim cited to a primary source and every relative link and anchor resolving.
+- [x] `pnpm check`, `pnpm typecheck` and `pnpm test` pass.
 
 ## Tests
 
@@ -62,9 +62,9 @@ None (documentation only); `pnpm check`, `pnpm typecheck` and `pnpm test` must s
 
 ## Definition of done
 
-- [ ] Claimed: the first commit moved this file `ready/` → `ongoing/` (Status `ongoing`)
-- [ ] Prose drafted with `/anthropic-skills:writing`, and changed claims re-checked against their sources
-- [ ] `pnpm check`, `pnpm typecheck` and `pnpm test` pass locally; pushed after each meaningful step
-- [ ] This file moved `ongoing/` → `done/` (Status `done`) in the last work commit, and the plan's todo table updated
+- [x] Claimed: the first commit moved this file `ready/` → `ongoing/` (Status `ongoing`)
+- [x] Prose drafted with `/anthropic-skills:writing`, and changed claims re-checked against their sources
+- [x] `pnpm check`, `pnpm typecheck` and `pnpm test` pass locally; pushed after each meaningful step
+- [x] This file moved `ongoing/` → `done/` (Status `done`) in the last work commit, and the plan's todo table updated
 - [ ] Two code-review rounds run on the pull request (`/code-review high --max-findings default`, then `medium` and `low` after more than 6 confirmed findings, otherwise `low`), with every finding fixed or explained in a commit message
 - [ ] Copy reviewed with `/anthropic-skills:writing-review` after the code changes, with its findings fixed and the rubric scores in the pull request description
