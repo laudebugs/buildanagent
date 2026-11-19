@@ -520,7 +520,8 @@ describe("the comment jobs", () => {
 describe("the preview's URL check", () => {
   const record = jobs.preview.steps.find((step) => step.id === "record");
   const ALIAS = "https://pr-7.manual.buildanagent.fyi";
-  const VERSION = "https://1a2b3c4d-pr-7.manual.buildanagent.fyi";
+  // The form Wrangler 4.160.1 printed for PR #89 (run 44588564990): an 8-hex-digit deployment id, no -pr-<n>.
+  const VERSION = "https://40f313de.manual.buildanagent.fyi";
 
   // Runs the record step on Wrangler output lines and returns its result and the URL file, if it wrote one.
   function recordWith(lines, number = "7") {
@@ -550,6 +551,21 @@ describe("the preview's URL check", () => {
     assert.equal(result.outputs.found, "true");
   });
 
+  test("keeps the URLs Wrangler 4.160.1 printed for pull request #89, a bare 8-hex-digit id on the custom domain", () => {
+    const alias = "https://pr-89.manual.buildanagent.fyi";
+    const result = recordWith([entry([alias], ["https://40f313de.manual.buildanagent.fyi"])], "89");
+    assert.equal(result.status, 0, result.stderr);
+    assert.equal(result.urls, `${alias}\nhttps://40f313de.manual.buildanagent.fyi\n`);
+    assert.equal(result.outputs.found, "true");
+  });
+
+  test("keeps any 8 lowercase hex digits as the commit's id", () => {
+    for (const id of ["00000000", "ffffffff", "0123abcd"]) {
+      const result = recordWith([entry([ALIAS], [`https://${id}.manual.buildanagent.fyi`])]);
+      assert.equal(result.outputs.found, "true", id);
+    }
+  });
+
   const hostile = [
     ["another host", "https://pr-7.manual.buildanagent.fyi.evil.example", VERSION],
     ["a sibling site", "https://pr-7.buildanagent.fyi", VERSION],
@@ -559,14 +575,25 @@ describe("the preview's URL check", () => {
     ["user info", "https://evil@pr-7.manual.buildanagent.fyi", VERSION],
     ["a port", "https://pr-7.manual.buildanagent.fyi:8443", VERSION],
     ["a newline", `${ALIAS}\nhttps://evil.example`, VERSION],
-    ["a commit URL on another host", ALIAS, "https://1a2b3c4d-pr-7.evil.example"],
-    ["a commit URL for another pull request", ALIAS, "https://1a2b3c4d-pr-77.manual.buildanagent.fyi"],
-    ["a quote", ALIAS, 'https://1a2b"3c-pr-7.manual.buildanagent.fyi'],
-    ["a space", ALIAS, "https://1a2b 3c-pr-7.manual.buildanagent.fyi"],
-    ["capitals", ALIAS, "https://1A2B3C4D-pr-7.manual.buildanagent.fyi"],
-    ["markdown", ALIAS, "https://[x](https://evil.example)-pr-7.manual.buildanagent.fyi"],
+    ["a commit URL on another host", ALIAS, "https://40f313de.evil.example"],
+    ["a commit URL under another host", ALIAS, "https://40f313de.manual.buildanagent.fyi.evil.example"],
+    ["a commit URL on a sibling site", ALIAS, "https://40f313de.buildanagent.fyi"],
+    ["a commit URL over http", ALIAS, "http://40f313de.manual.buildanagent.fyi"],
+    ["a commit URL with a path", ALIAS, `${VERSION}/x`],
+    ["production as the commit URL", ALIAS, "https://manual.buildanagent.fyi"],
+    ["the docs' <id>-pr-<n> form", ALIAS, "https://1a2b3c4d-pr-7.manual.buildanagent.fyi"],
+    ["another pull request's alias as the commit URL", ALIAS, "https://pr-8.manual.buildanagent.fyi"],
+    ["7 hex digits", ALIAS, "https://40f313d.manual.buildanagent.fyi"],
+    ["9 hex digits", ALIAS, "https://40f313de0.manual.buildanagent.fyi"],
+    ["uppercase hex", ALIAS, "https://40F313DE.manual.buildanagent.fyi"],
+    ["a letter past f", ALIAS, "https://40f313dg.manual.buildanagent.fyi"],
+    ["an extra label", ALIAS, "https://x.40f313de.manual.buildanagent.fyi"],
+    ["an extra label after the id", ALIAS, "https://40f313de.x.manual.buildanagent.fyi"],
+    ["a quote", ALIAS, 'https://40f3"3de.manual.buildanagent.fyi'],
+    ["a space", ALIAS, "https://40f3 3de.manual.buildanagent.fyi"],
+    ["markdown", ALIAS, "https://[x](https://evil.example).manual.buildanagent.fyi"],
     ["a newline in the commit URL", ALIAS, `${VERSION}\n- [click](https://evil.example)`],
-    ["a very long label", ALIAS, `https://${"a".repeat(5000)}-pr-7.manual.buildanagent.fyi`],
+    ["a very long label", ALIAS, `https://${"a".repeat(5000)}.manual.buildanagent.fyi`],
     ["the alias as the commit URL", ALIAS, ALIAS],
   ];
   for (const [name, alias, version] of hostile) {
@@ -603,7 +630,8 @@ describe("the comment script", () => {
   const SHA = "c".repeat(40);
   const REPO = "owner/repo";
   const ALIAS = "https://pr-7.manual.buildanagent.fyi";
-  const VERSION = "https://1a2b3c4d-pr-7.manual.buildanagent.fyi";
+  // The form Wrangler 4.160.1 printed for PR #89 (run 44588564990): an 8-hex-digit deployment id, no -pr-<n>.
+  const VERSION = "https://40f313de.manual.buildanagent.fyi";
   const bot = { login: "github-actions[bot]", type: "Bot" };
   const BODY = [
     "<!-- book-preview -->",
@@ -714,13 +742,13 @@ if (data !== undefined) {
     const state = gh.read();
     state.pull = { state: "open", head: { sha: NEXT } };
     writeFileSync(join(gh.dir, "state.json"), JSON.stringify(state));
-    const next = "https://9f8e7d6c-pr-7.manual.buildanagent.fyi";
+    const next = "https://9f8e7d6c.manual.buildanagent.fyi";
     const result = run(gh, { HEAD_SHA: NEXT, signalText: `${ALIAS}\n${next}\n` });
     assert.equal(result.status, 0, result.stdout + result.stderr);
     const { comments } = gh.read();
     assert.equal(comments.length, 1);
     assert.match(comments[0].body, /of ddddddd\n/);
-    assert.match(comments[0].body, /This commit only: https:\/\/9f8e7d6c-pr-7\./);
+    assert.match(comments[0].body, /This commit only: https:\/\/9f8e7d6c\.manual\./);
     assert.equal(writes(gh).at(-1).method, "PATCH");
     assert.equal(writes(gh).at(-1).path, "repos/owner/repo/issues/comments/100");
   });
@@ -759,11 +787,19 @@ if (data !== undefined) {
 
   for (const [name, text] of [
     ["another alias", `https://pr-8.manual.buildanagent.fyi\n${VERSION}\n`],
-    ["another host", `${ALIAS}\nhttps://1a2b3c4d-pr-7.evil.example\n`],
+    ["another host", `${ALIAS}\nhttps://40f313de.evil.example\n`],
     ["a third line", `${ALIAS}\n${VERSION}\n- [click](https://evil.example)\n`],
-    ["a quote", `${ALIAS}\nhttps://1a"2b-pr-7.manual.buildanagent.fyi\n`],
+    ["a quote", `${ALIAS}\nhttps://40f3"3de.manual.buildanagent.fyi\n`],
     ["one line", `${ALIAS}\n`],
-    ["a long file", `${ALIAS}\nhttps://${"a".repeat(300)}-pr-7.manual.buildanagent.fyi\n`],
+    ["a long file", `${ALIAS}\nhttps://${"a".repeat(300)}.manual.buildanagent.fyi\n`],
+    ["production as the commit URL", `${ALIAS}\nhttps://manual.buildanagent.fyi\n`],
+    ["the alias as the commit URL", `${ALIAS}\n${ALIAS}\n`],
+    ["the docs' <id>-pr-<n> form", `${ALIAS}\nhttps://1a2b3c4d-pr-7.manual.buildanagent.fyi\n`],
+    ["7 hex digits", `${ALIAS}\nhttps://40f313d.manual.buildanagent.fyi\n`],
+    ["9 hex digits", `${ALIAS}\nhttps://40f313de0.manual.buildanagent.fyi\n`],
+    ["uppercase hex", `${ALIAS}\nhttps://40F313DE.manual.buildanagent.fyi\n`],
+    ["an extra label", `${ALIAS}\nhttps://x.40f313de.manual.buildanagent.fyi\n`],
+    ["a commit URL on a sibling site", `${ALIAS}\nhttps://40f313de.buildanagent.fyi\n`],
   ]) {
     test(`re-checks the handed-on file and refuses ${name}, warning without failing`, () => {
       const gh = fakeGh({ pull: open, comments: [] });

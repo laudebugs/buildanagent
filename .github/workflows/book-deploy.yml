@@ -218,7 +218,9 @@ jobs:
             --message "Pull request #$NUMBER at $HEAD_SHA" --ignore-base-config
       # Runs only after a successful preview, so a failed one never hands on an old URL. Keeps only the two URLs of
       # the exact forms below; jq first drops any string with a character a URL of ours cannot hold, a newline
-      # included, so one string never reads as two lines. A miss warns and leaves the job green.
+      # included, so one string never reads as two lines. A miss warns and leaves the job green. The commit's URL
+      # is <8 hex digits>.manual.buildanagent.fyi, as Wrangler 4.160.1 printed it in run 44588564990, not the
+      # <id>-pr-<n> form Cloudflare's docs give.
       - name: Record the preview's URLs
         id: record
         env:
@@ -233,10 +235,10 @@ jobs:
               if [ "${url%/}" = "https://pr-$NUMBER.manual.buildanagent.fyi" ]; then alias=${url%/}; fi
             done < <(jq -r 'select(.type == "preview") | (.preview_urls // [])[] | strings | select(test("\\A[a-z0-9:/.-]{1,200}\\z"))' "$OUTPUT_FILE")
             while IFS= read -r url; do
-              if [[ "${url%/}" =~ ^https://[a-z0-9][a-z0-9-]{0,39}-pr-$NUMBER\.manual\.buildanagent\.fyi$ ]]; then version=${url%/}; fi
+              if [[ "${url%/}" =~ ^https://[0-9a-f]{8}\.manual\.buildanagent\.fyi$ ]]; then version=${url%/}; fi
             done < <(jq -r 'select(.type == "preview") | (.deployment_urls // [])[] | strings | select(test("\\A[a-z0-9:/.-]{1,200}\\z"))' "$OUTPUT_FILE")
           fi
-          if [ -z "$alias" ] || [ -z "$version" ]; then
+          if [ -z "$alias" ] || [ -z "$version" ] || [ "$version" = "$alias" ]; then
             echo "::warning::Wrangler reported no preview URL on manual.buildanagent.fyi for pr-$NUMBER, so the pull request gets no comment. The production deploy after a change to the custom domain's previews publishes them."
             echo "found=false" >> "$GITHUB_OUTPUT"
             exit 0
@@ -370,7 +372,8 @@ jobs:
             [ "$(wc -c < "$SIGNAL")" -le 200 ] && [ "$(wc -l < "$SIGNAL")" -eq 2 ] || stop "the URL file is not two short lines."
             { IFS= read -r got; IFS= read -r version; } < "$SIGNAL"
             [ "$got" = "$alias" ] || stop "the preview URL is not $alias."
-            [[ "$version" =~ ^https://[a-z0-9][a-z0-9-]{0,39}-pr-$NUMBER\.manual\.buildanagent\.fyi$ ]] || stop "the commit's URL is not of the expected form."
+            [[ "$version" =~ ^https://[0-9a-f]{8}\.manual\.buildanagent\.fyi$ ]] || stop "the commit's URL is not of the expected form."
+            [ "$version" != "$alias" ] || stop "the commit's URL is the preview URL."
             # Only the newest commit of a pull request that is still open may set the comment.
             state=$(gh api "repos/$REPO/pulls/$NUMBER" --jq '.state + " " + .head.sha') || stop "the pull request could not be read."
             [ "$state" = "open $HEAD_SHA" ] || { echo "::notice::Pull request #$NUMBER is closed or has a newer commit, so its comment is unchanged."; exit 0; }
