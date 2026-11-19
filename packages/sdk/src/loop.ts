@@ -18,10 +18,12 @@ import {
   type Message,
   type Model,
   type ModelContext,
+  projectCallCost,
   type StreamOptions,
   type Usage,
   type WireTool,
 } from "@buildanagent/gateway";
+import { checkBudget, unknownPriceError } from "./budget.js";
 import { isSdkError, SdkError } from "./errors.js";
 import type { AgentEventBody } from "./events.js";
 import type { StopVerdict } from "./hook-checks.js";
@@ -35,10 +37,6 @@ import type { ToolCall } from "./tools/types.js";
 
 /** The `stoppedBy` of a run that a clarification tool stopped. */
 const CLARIFICATION = "clarification";
-
-// The depth cap's defaults (D11). Nested runs pass their own depth once the depth cap is configurable.
-const TOP_LEVEL_DEPTH = 0;
-const DEFAULT_MAX_DEPTH = 2;
 
 /**
  * The cost of no model call: an exact zero. Its basis is `provider` because `addCost()` keeps the other cost's basis
@@ -62,6 +60,11 @@ export interface LoopSetup {
   readonly tools: readonly AnyTool[];
   readonly output: AnyTool | undefined;
   readonly maxSteps: number;
+  /** The most the run's model calls may cost, in USD, or `undefined` for no cap (D9). */
+  readonly budgetUsd?: number;
+  /** How deeply this run is nested inside other agents' tool calls, and the deepest nesting allowed (D11). */
+  readonly depth: number;
+  readonly maxDepth: number;
   readonly modelOptions: CallOptions;
   readonly interceptors: Interceptors;
   readonly signal: AbortSignal;
@@ -81,6 +84,13 @@ export type Drain = () => Promise<void>;
 type Outcome =
   | { readonly stopReason: "done"; readonly output: unknown }
   | { readonly stopReason: "max_steps" | "aborted" }
+  | {
+      readonly stopReason: "budget";
+      readonly reason: string;
+      readonly budgetUsd: number;
+      readonly spentUsd: number;
+      readonly projectedUsd: number;
+    }
   | { readonly stopReason: "error"; readonly error: RunError }
   | { readonly stopReason: "stopped"; readonly stoppedBy: string }
   | { readonly stopReason: "no_progress"; readonly reason: string };
@@ -271,13 +281,41 @@ function withheld(original: AssistantMessage): AssistantMessage {
 }
 
 /**
+ * The budget check before a call (D9): the outcome that ends the run when the spend so far plus the call's projected
+ * cost would pass `budgetUsd`, or `undefined` when the call may go out. It checks the request as it will be sent,
+ * after the interceptors have changed it, and projects with the model the request names.
+ */
+function budgetBlock(state: LoopState, request: Request): Outcome | undefined {
+  const { budgetUsd } = state.setup;
+  if (budgetUsd === undefined) return undefined;
+  const projected = projectCallCost(request.model, request.context, request.options);
+  const verdict = checkBudget(budgetUsd, state.cost, projected);
+  switch (verdict.kind) {
+    case "allow":
+      return undefined;
+    case "unknown":
+      return { stopReason: "error", error: verdict.error };
+    case "exceeded":
+      return {
+        stopReason: "budget",
+        reason: verdict.reason,
+        budgetUsd,
+        spentUsd: verdict.spentUsd,
+        projectedUsd: verdict.projectedUsd,
+      };
+  }
+}
+
+/**
  * Makes one model call, streams its events and records the response. The call's usage and cost are the model's own
  * message's, so an `afterModelCall` replacement changes what the run goes on with, never what it is billed. When
  * `afterModelCall` fails and the run fails closed, a withheld stand-in is recorded before the run ends, so the
  * transcript and `model_call_end` still account for the billed call and none of its tool calls run.
  */
-async function callModel(state: LoopState): Promise<AssistantMessage> {
+async function callModel(state: LoopState): Promise<AssistantMessage | { readonly blocked: Outcome }> {
   const request = await buildRequest(state);
+  const blocked = budgetBlock(state, request);
+  if (blocked !== undefined) return { blocked };
   state.active = request.active;
   const original = await streamRequest(state, request);
   state.steps += 1;
@@ -314,8 +352,8 @@ async function runTools(state: LoopState, message: AssistantMessage): Promise<re
     runId,
     signal,
     clock,
-    depth: TOP_LEVEL_DEPTH,
-    maxDepth: DEFAULT_MAX_DEPTH,
+    depth: state.setup.depth,
+    maxDepth: state.setup.maxDepth,
     ...state.hooks.pipelineHooks(),
     onStart: (call: ToolCall) =>
       state.send({ type: "tool_call_start", callId: call.callId, tool: call.name, input: call.input }),
@@ -409,9 +447,13 @@ async function runStep(state: LoopState): Promise<Outcome | undefined> {
   state.send({ type: "step_start" });
   let outcome: Outcome | undefined;
   try {
-    const message = await callModel(state);
-    const results = await runTools(state, message);
-    outcome = await decide(state, message, results);
+    const called = await callModel(state);
+    if ("blocked" in called) {
+      outcome = called.blocked;
+    } else {
+      const results = await runTools(state, called);
+      outcome = await decide(state, called, results);
+    }
   } catch (error) {
     outcome = failedOutcome(state, error);
   }
@@ -474,7 +516,9 @@ async function finish(state: LoopState, outcome: Outcome): Promise<RunResult> {
  */
 export async function runLoop(setup: LoopSetup, emit: Emit, drain: Drain): Promise<RunResult> {
   const state = new LoopState(setup, emit, drain);
-  let outcome: Outcome | undefined;
+  // A budget needs a price to check against, so a model without one is refused before it is called (D4).
+  const refused = setup.budgetUsd === undefined ? undefined : unknownPriceError(setup.model);
+  let outcome: Outcome | undefined = refused === undefined ? undefined : { stopReason: "error", error: refused };
   while (outcome === undefined) {
     outcome = setup.signal.aborted ? { stopReason: "aborted" } : await runStep(state);
   }

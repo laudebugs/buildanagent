@@ -20,8 +20,9 @@ export interface RunError {
    * `overflow`: the request was larger than the model's context window. `quota`: the account is out of quota or
    * credit. `retryable`: a temporary failure that outlasted the model's retries. `fatal`: any other failure, such as a
    * rejected request. `hook`: an interceptor threw while the run fails closed, and `message` says which one.
+   * `unknown_price`: the run has a `budgetUsd`, but a price it needs is unknown, so it can't check the spend.
    */
-  readonly kind: NonNullable<AssistantMessage["error"]>["kind"] | "hook";
+  readonly kind: NonNullable<AssistantMessage["error"]>["kind"] | "hook" | "unknown_price";
   readonly message: string;
   /** The provider's HTTP status, when the failure came with one. */
   readonly status?: number;
@@ -69,6 +70,18 @@ export interface NoProgressResult extends ResultBase {
   readonly reason: string;
 }
 
+/**
+ * A run that ended before a model call because that call could have taken the spend past `budgetUsd`. `spentUsd` is
+ * what the run's earlier calls cost, and `projectedUsd` the most the refused call could have cost.
+ */
+export interface BudgetResult extends ResultBase {
+  readonly stopReason: "budget";
+  readonly reason: string;
+  readonly budgetUsd: number;
+  readonly spentUsd: number;
+  readonly projectedUsd: number;
+}
+
 /** A run that ended because a model call failed, or because an interceptor failed while the run fails closed. */
 export interface ErrorResult extends ResultBase {
   readonly stopReason: "error";
@@ -87,7 +100,13 @@ export interface StoppedResult extends ResultBase {
 }
 
 /** What a run returns. Check `stopReason` before you read the fields of one variant. */
-export type RunResult<S = unknown> = DoneResult<S> | EndedResult | ErrorResult | NoProgressResult | StoppedResult;
+export type RunResult<S = unknown> =
+  | DoneResult<S>
+  | BudgetResult
+  | EndedResult
+  | ErrorResult
+  | NoProgressResult
+  | StoppedResult;
 
 /** Every run result except `done`, which `runOrThrow()` turns into a `RunStoppedError`. */
 export type UnfinishedResult = Exclude<RunResult, DoneResult<unknown>>;

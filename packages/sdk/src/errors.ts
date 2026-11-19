@@ -13,6 +13,7 @@ export type SdkErrorCode =
   | "invalid_tool_result"
   | "invalid_run_options"
   | "invalid_model_stream"
+  | "max_depth_exceeded"
   | "invalid_hook_result"
   | "hook_failed"
   | "run_stopped"
@@ -31,6 +32,7 @@ const SDK_ERROR = Symbol.for("buildanagent.sdk.SdkError");
  * threw while the run fails closed. The run catches it and ends with an `error` result whose `error.kind` is `hook`,
  * so it never reaches your code. `run_stopped`: `runOrThrow()` was given a run that did not finish (a
  * `RunStoppedError`).
+ * `max_depth_exceeded`: a tool started a run nested deeper than `maxDepth` allows.
  * `unexpected_model_call`: a `ScriptedModel` was called more times than its script allows (an
  * `UnexpectedModelCallError`).
  */

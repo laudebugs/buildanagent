@@ -48,6 +48,9 @@ export function preparedSchemaOf(tool: ToolDefinition<unknown, unknown>): Prepar
   if (tool.resourceKey !== undefined && typeof tool.resourceKey !== "function") {
     throw invalid(`tool "${name}": resourceKey must be a function`);
   }
+  if (tool.progressKey !== undefined && typeof tool.progressKey !== "function") {
+    throw invalid(`tool "${name}": progressKey must be a function`);
+  }
   const schema = prepareSchema(name, tool.inputSchema);
   prepared.set(tool, schema);
   return schema;
@@ -58,7 +61,7 @@ export function preparedSchemaOf(tool: ToolDefinition<unknown, unknown>): Prepar
  *
  * Throws an `SdkError`, code `invalid_tool_definition`, when the name breaks the tool-name rule (1 to 64 characters
  * from `A-Z`, `a-z`, `0-9`, `_` and `-`), the description or `execute` is missing, `exposure` is not one of its three
- * values, `executionMode` is neither `parallel` nor `sequential`, `resourceKey` is not a function, a raw JSON Schema
+ * values, `executionMode` is neither `parallel` nor `sequential`, `resourceKey` or `progressKey` is not a function, a raw JSON Schema
  * does not compile or names a draft other than 2020-12 or 7, or a Standard Schema cannot describe itself as JSON
  * Schema.
  */

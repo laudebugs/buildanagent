@@ -4,20 +4,26 @@
  * non-streaming caller drive one loop.
  */
 import type { ContentBlock, Message, Model } from "@buildanagent/gateway";
+import { checkBudgetOption } from "./budget.js";
+import { composeInterceptors } from "./compose.js";
 import { RunStoppedError, SdkError } from "./errors.js";
 import type { AgentEvent, AgentEventBody } from "./events.js";
 import type { CallOptions, Interceptors, Observer } from "./hooks.js";
 import { type LoopSetup, runLoop } from "./loop.js";
 import { ObserverBus } from "./observers.js";
+import { type ProgressPolicy, progressInterceptors, resolveProgress } from "./progress.js";
 import type { Context, DoneResult, RunResult } from "./result.js";
 import type { Clock } from "./testing/determinism.js";
 import { preparedSchemaOf } from "./tools/define.js";
 import type { AnyTool } from "./tools/pipeline.js";
-import type { ToolDefinition } from "./tools/types.js";
+import type { ToolContext, ToolDefinition } from "./tools/types.js";
 import { SDK_VERSION } from "./version.js";
 
 /** The step cap's default, counted in model calls. */
 const DEFAULT_MAX_STEPS = 20;
+
+/** The depth cap's default (D11): a top-level run, its subagents and their subagents may run, and no deeper. */
+const DEFAULT_MAX_DEPTH = 2;
 
 /** How long the run waits, by default, for an observer to catch up before it drops it. */
 const DEFAULT_OBSERVER_TIMEOUT_MS = 10_000;
@@ -46,6 +52,29 @@ export interface RunOptions<S = unknown> {
    * ends with `stopReason: "max_steps"` and emits a `warning` event with `code: "max_steps"`.
    */
   readonly maxSteps?: number;
+  /**
+   * The most the run's model calls may cost, in USD. Before each call the run projects its cost with
+   * `projectCallCost()` and, if the spend so far plus that projection would pass the cap, ends with
+   * `stopReason: "budget"` without making the call (D9). The cap counts the calls this run makes, not the cost of the
+   * history a `continueRun()` starts from. A budgeted run on a model whose price is unknown ends `error` with
+   * `error.kind: "unknown_price"` before its first call, because it could not tell what it spent. Without it, a run
+   * has no cap.
+   */
+  readonly budgetUsd?: number;
+  /**
+   * The default progress policy: the run ends `no_progress` after 3 identical failing tool calls in a row, or after 5
+   * calls to a tool with one `progressKey` and no success between them (D11). Pass numbers to change either
+   * threshold, or `false` to turn the policy off.
+   */
+  readonly progress?: ProgressPolicy | false;
+  /**
+   * How deeply this run is nested inside other agents' tool calls. Default 0. A tool that starts a run of its own
+   * passes `depth: ctx.depth + 1` and `maxDepth: ctx.maxDepth`; `run()` throws an `SdkError` with code
+   * `max_depth_exceeded` when `depth` is above `maxDepth`, which the tool's caller reads as an error result.
+   */
+  readonly depth?: number;
+  /** The deepest nesting allowed, which tools read as `ctx.maxDepth`. Default 2. */
+  readonly maxDepth?: number;
   /** Aborts the run, like `run.abort()`. */
   readonly signal?: AbortSignal;
   /** Options for every model call, such as `maxOutputTokens`. The run passes its own abort signal. */
@@ -281,6 +310,50 @@ function toolsOf(options: RunOptions<unknown>): AnyTool[] {
   return tools;
 }
 
+function isCount(value: unknown): value is number {
+  return typeof value === "number" && Number.isInteger(value) && value >= 0;
+}
+
+/**
+ * The `depth` and `maxDepth` options for a run that a tool starts: one level deeper than the tool's own run, under
+ * the same cap. Spread it into the nested `run()`; the nested run throws `max_depth_exceeded` when the tool was
+ * already at `maxDepth`.
+ */
+export function nestedRunDepth(ctx: Pick<ToolContext, "depth" | "maxDepth">): { depth: number; maxDepth: number } {
+  return { depth: ctx.depth + 1, maxDepth: ctx.maxDepth };
+}
+
+/** Checks `depth` and `maxDepth`, and refuses a run nested deeper than the cap allows (D11). */
+function depthsOf(options: RunOptions<unknown>): { depth: number; maxDepth: number } {
+  const { depth = 0, maxDepth = DEFAULT_MAX_DEPTH } = options;
+  if (!isCount(depth) || !isCount(maxDepth)) {
+    throw new SdkError(
+      "invalid_run_options",
+      `depth and maxDepth must be whole numbers, 0 or more, got ${String(depth)} and ${String(maxDepth)}`,
+    );
+  }
+  if (depth > maxDepth) {
+    throw new SdkError("max_depth_exceeded", `a run at depth ${depth} is deeper than maxDepth ${maxDepth} allows`);
+  }
+  return { depth, maxDepth };
+}
+
+/**
+ * The run's interceptors: the caller's, then the default progress policy, which joins last so a caller's
+ * `{ continue }` can't keep a stuck run going. The policy takes the caller's `onFailure`, so it never loosens or
+ * tightens it. `skip` is the number of messages before the run's own.
+ */
+function interceptorsOf(options: RunOptions<unknown>, tools: readonly AnyTool[], skip: number): Interceptors {
+  const own = checkInterceptors(options.interceptors ?? {});
+  const policy = resolveProgress(options.progress);
+  if (policy === undefined) return own;
+  const progress = progressInterceptors(tools, policy, skip);
+  return composeInterceptors(own, {
+    ...progress,
+    ...(own.onFailure === undefined ? {} : { onFailure: own.onFailure }),
+  });
+}
+
 function setupOf(options: RunOptions<unknown>, context: Context, input: readonly Message[]): Omit<LoopSetup, "signal"> {
   if (!isModel(options.model)) {
     throw new SdkError(
@@ -292,7 +365,9 @@ function setupOf(options: RunOptions<unknown>, context: Context, input: readonly
   if (!Number.isInteger(maxSteps) || maxSteps < 1) {
     throw new SdkError("invalid_run_options", `maxSteps must be a positive integer, got ${maxSteps}`);
   }
+  const budgetUsd = checkBudgetOption(options.budgetUsd);
   const tools = toolsOf(options);
+  const { depth, maxDepth } = depthsOf(options);
   if (options.output !== undefined && (options.output.exposure ?? "direct") !== "direct") {
     throw new SdkError(
       "invalid_run_options",
@@ -308,8 +383,11 @@ function setupOf(options: RunOptions<unknown>, context: Context, input: readonly
     tools,
     output: options.output as AnyTool | undefined,
     maxSteps,
+    ...(budgetUsd === undefined ? {} : { budgetUsd }),
+    depth,
+    maxDepth,
     modelOptions: options.modelOptions ?? {},
-    interceptors: checkInterceptors(options.interceptors ?? {}),
+    interceptors: interceptorsOf(options, tools, context.messages.length + input.length),
     clock: options.clock ?? systemClock,
   };
 }
