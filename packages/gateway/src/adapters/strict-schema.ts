@@ -11,10 +11,10 @@
  *   unless the dialect keeps them. Anthropic rejects them (Structured outputs, "JSON Schema limitations",
  *   https://platform.claude.com/docs/en/build-with-claude/structured-outputs, as of November 2026).
  *
- * OpenAI's strict mode accepts the numeric constraints and `minItems`/`maxItems`, rejects `allOf`, `if`/`then`/`else`
- * and the `dependent*` keywords, requires every property, and limits a schema's size: 5,000 properties, 10 levels of
- * nesting, 1,000 enum values and 120,000 characters of names and values, among others (Structured model outputs, "Supported schemas",
- * https://developers.openai.com/api/docs/guides/structured-outputs#supported-schemas, as of November 2026). Its
+ * OpenAI's strict mode requires every property (Structured model outputs, "Supported schemas",
+ * https://developers.openai.com/api/docs/guides/structured-outputs#supported-schemas, as of November 2026). It
+ * accepts the numeric constraints and `minItems`/`maxItems`, rejects `allOf`, `if`/`then`/`else` and the
+ * `dependent*` keywords, and limits a schema's size, for example to 5,000 properties and 10 levels of nesting. Its
  * dialect therefore writes an optional property as a required one that also accepts `null`. The removed constraints
  * are not lost: the SDK validates every call against the original schema, after `stripAddedNulls()`.
  */

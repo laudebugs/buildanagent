@@ -70,7 +70,7 @@ Fixtures can drift from the live API; B18's stamps and expiry apply to recorded 
 ## Definition of done
 
 - [x] Claimed: the first commit moved this file `ready/` → `ongoing/` (Status `ongoing`)
-- [ ] Prose drafted with `/anthropic-skills:writing` and reviewed with `/anthropic-skills:writing-review`, with the fixes applied and changed claims re-checked
+- [x] Prose drafted with `/anthropic-skills:writing` and reviewed with `/anthropic-skills:writing-review`, with the fixes applied and changed claims re-checked
 - [x] `pnpm check`, `pnpm typecheck` and `pnpm test` pass locally; pushed after each meaningful step
 - [x] This file moved `ongoing/` → `done/` (Status `done`), and the plan's todo table updated
 
@@ -82,5 +82,5 @@ Fixtures can drift from the live API; B18's stamps and expiry apply to recorded 
 - Cache writes: the API reports one `cache_write_tokens` count, and Chat Completions writes only 30-minute entries, so the adapter counts every write under `cacheWrite["5m"]`. The `Usage` and `RateTier` doc comments say the keys name the short and the long write rate. The plan's D3 and D4 record the outcome; ADR 0003 is unchanged, because reasoning is counted inside output as D3 expected.
 - Caching is per-model through `ChatCompat`: by default no caching field, `cacheBreakpoints` for explicit 30-minute `prompt_cache_breakpoint`s (a `"long"` retention streams a warning), and `promptCacheRetention` for `prompt_cache_retention: "24h"`.
 - Strict tools follow OpenAI's supported-schemas list: numeric constraints and `minItems`/`maxItems` are kept, and `allOf`, `if`/`then`/`else`, `dependent*` and `prefixItems`, or a schema over the size limits, send the tool without strict.
-- The prose review step was not run in this session; the definition-of-done box for it stays open.
+- Reviews: three code reviews (high: 11 findings, 10 fixed and 1 left for `createModel()` pricing; medium: 5, all fixed; low: none) and one writing review, whose fixes changed copy only. The pull request description lists each review.
 

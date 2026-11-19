@@ -9,8 +9,8 @@
  * - Chat Completions writes only 30-minute cache entries, so every write counts under `Usage.cacheWrite["5m"]`, the
  *   key for the short cache-write rate; an OpenAI catalog entry stores its 30-minute rate there.
  * - `completion_tokens` is the output, and `completion_tokens_details.reasoning_tokens` the part of it spent on
- *   reasoning: `max_completion_tokens` bounds "visible output tokens and reasoning tokens" together, and the type
- *   says rejected prediction tokens are, "like reasoning tokens", counted in the completion tokens for billing.
+ *   reasoning: `max_completion_tokens` bounds "visible output tokens and reasoning tokens" together, and the
+ *   reference says rejected prediction tokens are, "like reasoning tokens", counted in the completion tokens for billing.
  *
  * The usage object holds token counts only, so a reply carries no billed price and the cost comes from the catalog.
  */

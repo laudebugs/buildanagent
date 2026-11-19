@@ -4,11 +4,11 @@
  * stream that already returned 200 reports a later error as a chunk whose `error` field holds the same object, or as
  * an SSE event named `error` (`src/core/streaming.ts`); both as of November 2026.
  *
- * OpenAI's error-code guide (https://developers.openai.com/api/docs/guides/error-codes, as of November 2026) sends
- * billing, spend and usage limits as 429s whose `code` names the cause (`credit_balance_exhausted`,
- * `organization_spend_limit_exceeded` and so on) and whose `type` can be `insufficient_quota`, and says retrying them
- * won't restore access. `classifyError()` reads the code and the type, so those are `quota` errors even at 429, while
- * a 429 `rate_limit_error` such as `slow_down` stays retryable. `context_length_exceeded`, which the fixtures use for
+ * OpenAI sends billing, spend and usage limits as 429s, and retrying them "won't restore API access" (Error codes,
+ * https://developers.openai.com/api/docs/guides/error-codes, as of November 2026). Their `code` names the cause, such
+ * as `credit_balance_exhausted`, and their `type` can be `insufficient_quota`. `classifyError()` reads the code and
+ * the type, so these are `quota` errors even at 429, while a 429 `rate_limit_error` such as `slow_down` stays
+ * retryable. `context_length_exceeded`, which the fixtures use for
  * an over-long prompt, is not on that page, so its wording is unverified; the classifier also matches the phrase
  * "maximum context".
  */
