@@ -598,7 +598,7 @@ describe("the preview's URL check", () => {
   ];
   const NO_PREVIEW = /::warning::Wrangler reported no preview URL on manual\.buildanagent\.fyi for pr-7/;
   const NO_COMMIT_URL =
-    /::warning::Wrangler reported pr-7's preview URL but no commit URL of the form https:\/\/<8 lowercase hex>\.manual\.buildanagent\.fyi; it listed \d+ deployment URL\(s\), all rejected\. Cloudflare may have changed the deployment id's form/;
+    /::warning::Wrangler reported pr-7's preview URL but no commit URL of the form https:\/\/<8 lowercase hex>\.manual\.buildanagent\.fyi\. It listed \d+ deployment URL\(s\), all rejected\. Cloudflare may have changed the deployment id's form/;
   for (const [name, alias, version] of hostile) {
     test(`refuses ${name}, so no URL file and no comment`, () => {
       const result = recordWith([entry([alias], [version])]);
@@ -618,7 +618,7 @@ describe("the preview's URL check", () => {
     assert.equal(result.urls, null);
     assert.equal(result.outputs.found, "false");
     assert.match(result.stdout, NO_COMMIT_URL);
-    assert.match(result.stdout, /it listed 2 deployment URL\(s\)/);
+    assert.match(result.stdout, /It listed 2 deployment URL\(s\)/);
     assert.doesNotMatch(result.stdout, NO_PREVIEW);
     assert.doesNotMatch(result.stdout, /1a2b3c4d/);
   });
@@ -628,7 +628,7 @@ describe("the preview's URL check", () => {
     assert.equal(result.urls, null);
     assert.equal(result.outputs.found, "false");
     assert.match(result.stdout, NO_COMMIT_URL);
-    assert.match(result.stdout, /it listed 0 deployment URL\(s\)/);
+    assert.match(result.stdout, /It listed 0 deployment URL\(s\)/);
   });
 
   test("neither the alias nor the commit URL keeps the no-preview warning alone", () => {
