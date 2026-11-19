@@ -13,7 +13,8 @@ try {
   check(events.includes("message_update") && events.includes("message_end"), "streams message_update then message_end");
   check(events.at(-1) === "agent_settled", "agent_settled is the last event of the run");
   check(
-    JSON.stringify(session.getActiveToolNames()) === JSON.stringify(["read", "bash", "edit", "write"]), // book:note tools
+    JSON.stringify(session.getActiveToolNames()) === // book:note tools
+      JSON.stringify(["read", "bash", "edit", "write"]),
     "default active tools are read, bash, edit, write",
   );
 } finally {

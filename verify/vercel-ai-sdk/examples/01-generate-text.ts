@@ -7,7 +7,11 @@ import { check, scripted, systemText } from "./lib/check.ts";
 {
   // #region call
   const { model, requests } = scripted(["Hello from the mock."]); // book:note mock
-  const result = await generateText({ model, instructions: "You are terse.", prompt: "Say hello." }); // book:note request
+  const result = await generateText({
+    model,
+    instructions: "You are terse.", // book:note request
+    prompt: "Say hello.",
+  });
   check(result.text === "Hello from the mock.", "result.text is the model's answer");
   check(result.steps.length === 1, "one step without tools");
   check(result.finishReason === "stop", "finishReason is 'stop'"); // book:note finish

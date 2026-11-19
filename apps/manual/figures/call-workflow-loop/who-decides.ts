@@ -28,11 +28,12 @@ export default function draw(): Figure {
 
   figure.group("workflow", () => {
     figure.text({ x: centre(1), y: 28 }, "A workflow", { style: "heading" });
-    const first = figure.box(cell(1, 0), { label: "step 1: model" });
-    const second = figure.box(cell(1, 1), { label: "step 2: tool" });
-    const third = figure.box(cell(1, 2), { label: "step 3: model" });
-    figure.connect(first, second);
-    figure.connect(second, third);
+    // Chapter 1's workflow: two model calls in an order the code fixed, a writer and then a reviewer.
+    const writer = figure.box(cell(1, 0), { label: "writer model" });
+    const reviewer = figure.box(cell(1, 1), { label: "reviewer model" });
+    const answer = figure.box(cell(1, 2), { label: "answer", tone: "muted" });
+    figure.connect(writer, reviewer);
+    figure.connect(reviewer, answer);
   });
 
   figure.group("loop", () => {

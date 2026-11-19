@@ -7,7 +7,8 @@ import { afterAll, beforeAll, test } from "vitest";
 
 // Renders a chapter through the processor astro.config.mjs gives Astro, so the test fails if the config stops using
 // the book's pipeline. The config loads the site fixture through BOOK_FIXTURE_DIR, as the build test does, so the
-// test reads a chapter that holds every feature it checks. Loading the config also runs its render-input check, the step every build runs first.
+// test reads a chapter that holds every feature it checks. Loading the config also runs its render-input check, the
+// step every build runs first.
 const site = fileURLToPath(new URL("./fixtures/site/", import.meta.url));
 const chapter = new URL("./fixtures/site/chapters/call-workflow-loop.md", import.meta.url);
 let rendered: { code: string; metadata: { headings: { depth: number; slug: string; text: string }[] } };
