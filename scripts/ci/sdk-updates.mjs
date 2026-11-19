@@ -44,8 +44,10 @@ function compare(a, b) {
   return comparePre(a.pre, b.pre);
 }
 
-/** The newest release of `name` that is at least MIN_AGE_DAYS old and on the same channel as `pinned`. */
-export function newestEligible(pinned, versions, times, now = Date.now()) {
+/**
+ * The newest release that is at least MIN_AGE_DAYS old, on the same channel as `pinned`, and not deprecated.
+ */
+export function newestEligible(pinned, versions, times, now = Date.now(), deprecated = new Set()) {
   const pin = parse(pinned);
   if (!pin) return undefined;
   const cutoff = now - MIN_AGE_DAYS * 24 * 60 * 60 * 1000;
@@ -53,7 +55,7 @@ export function newestEligible(pinned, versions, times, now = Date.now()) {
   for (const version of versions) {
     const v = parse(version);
     const published = Date.parse(times[version] ?? "");
-    if (!v || Number.isNaN(published) || published > cutoff) continue;
+    if (!v || deprecated.has(version) || Number.isNaN(published) || published > cutoff) continue;
     if (v.pre !== undefined && (pin.pre === undefined || v.nums[0] !== pin.nums[0])) continue;
     if (compare(v, pin) <= 0) continue;
     if (!best || compare(v, best.parsed) > 0) best = { version, parsed: v, published: times[version] };
@@ -84,7 +86,9 @@ async function bumpsFor(harness) {
   const bumps = [];
   for (const [name, pinned] of Object.entries(manifest.dependencies ?? {})) {
     const entry = await registryEntry(name);
-    const next = newestEligible(pinned, Object.keys(entry.versions ?? {}), entry.time ?? {});
+    const versions = entry.versions ?? {};
+    const deprecated = new Set(Object.keys(versions).filter((v) => versions[v]?.deprecated));
+    const next = newestEligible(pinned, Object.keys(versions), entry.time ?? {}, Date.now(), deprecated);
     if (next) bumps.push({ name, from: pinned, to: next.version, published: next.published });
   }
   return bumps;

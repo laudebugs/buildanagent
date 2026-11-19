@@ -55,29 +55,37 @@ jobs:
       - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
         with:
           node-version-file: .nvmrc
-          cache: pnpm
+          # No dependency cache: this job runs untrusted new releases, and a cache it saved would be restored
+          # by later runs on main.
       - name: Allow unprivileged user namespaces
         run: sudo sysctl -w kernel.apparmor_restrict_unprivileged_userns=0
       - name: Bump the harness's pins
         run: node scripts/ci/sdk-updates.mjs apply "${{ matrix.harness }}" > bumps.md
-      - run: pnpm install --no-frozen-lockfile
+      - name: Install the new releases
+        id: install
+        continue-on-error: true
+        run: pnpm install --no-frozen-lockfile
       - name: Fetch the Claude docs mirror (gitignored)
         if: matrix.harness == 'claude-agent-sdk'
         run: pnpm -C verify/claude-agent-sdk run fetch-docs
       - name: Verify the harness against the new releases
         id: verify
+        if: steps.install.outcome == 'success'
         continue-on-error: true
         run: pnpm -C "verify/${{ matrix.harness }}" run verify
       - name: Compare results with the committed run
         id: drift
+        if: steps.install.outcome == 'success'
         continue-on-error: true
         run: node scripts/ci/results-drift.mjs > drift.txt 2>&1
       - name: Write the patch and the summary
         env:
           HARNESS: ${{ matrix.harness }}
+          INSTALL: ${{ steps.install.outcome }}
           VERIFY: ${{ steps.verify.outcome }}
           DRIFT: ${{ steps.drift.outcome }}
         run: |
+          touch drift.txt
           git diff --binary -- "verify/$HARNESS" pnpm-lock.yaml > update.patch
           {
             echo "Bumps \`verify/$HARNESS\` to the newest releases that are at least a week old (AGENTS.md, Versions)."
@@ -86,6 +94,7 @@ jobs:
             echo "| --- | --- | --- | --- |"
             cat bumps.md
             echo
+            echo "- \`pnpm install\`: **$INSTALL**"
             echo "- \`pnpm -C verify/$HARNESS run verify\`: **$VERIFY**"
             echo "- Results drift against the committed run: **$([ "$DRIFT" = success ] && echo none || echo yes)**"
             echo
@@ -129,6 +138,7 @@ jobs:
           PATCH: ${{ runner.temp }}/update/update.patch
           SUMMARY: ${{ runner.temp }}/update/summary.md
         run: |
+          if [ ! -s "$PATCH" ]; then echo "No change to propose for $HARNESS."; exit 0; fi
           branch="deps/sdk-$HARNESS"
           title="chore(deps): update the $HARNESS harness's SDK pins"
           git config user.name "github-actions[bot]"

@@ -48,7 +48,11 @@ The owner asked on 2026-11-19 for a weekly check that opens a pull request when 
 - **Update, without write access.** For each harness with an update, a job bumps its pins, runs `pnpm install` and the harness's `verify`, compares the results with the committed run, and uploads a patch with a summary. This job runs the new releases' code, so its token is read-only and its checkout keeps no credentials.
 - **Open the pull request.** A last job applies the patch on `deps/sdk-<harness>` and opens or updates one pull request per harness, with the bumps, the verify outcome and the drift in the description. It installs and runs nothing. The pull request then goes through the same reviews as any other, including re-mirroring the docs at the new tag and fact-checking what changed.
 - **Owner setup.** The repository must allow GitHub Actions to create pull requests (Settings → Actions → General). A pull request opened with the default `GITHUB_TOKEN` doesn't trigger `ci.yml`, so the workflow uses a `SDK_UPDATES_TOKEN` secret when one exists, for example a fine-grained token with contents and pull-request write access to this repository; without it, someone starts CI by pushing to the branch.
-- **Tests.** `scripts/ci/sdk-updates.test.mjs` covers the version choice offline, and `ci.yml` runs it on every push.
+- **No shared cache from untrusted code.** The update job runs without the pnpm cache: a cache it saved could be restored by later runs on main, so a tampered store from a bad release would reach CI.
+- **Failures still open a pull request.** If `pnpm install` or `verify` fails, the pull request still opens, with the failure in its description. A run that finds nothing to change opens nothing.
+- **Lockfile conflicts.** Several harnesses share packages, such as `ai` and `@ai-sdk/openai`, so merging one harness's pull request can leave the others conflicting on `pnpm-lock.yaml`. The next weekly run rebuilds each open branch from `main`, or a person reruns the workflow by hand.
+- **Pinned actions.** The workflow reuses ci.yml's pins and adds `actions/download-artifact` v8.0.2, whose tag commit is dated 2026-10-07, more than a week before it was pinned.
+- **Tests.** `scripts/ci/sdk-updates.test.mjs` covers the version choice offline, including deprecated releases, and `ci.yml` runs it on every push.
 
 ## 4. Todos
 

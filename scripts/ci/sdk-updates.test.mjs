@@ -35,3 +35,7 @@ test("a prerelease pin may move to a newer stable release or a prerelease of its
 test("an unparseable pin is left alone", () => {
   assert.equal(newestEligible("latest", versions, times, NOW), undefined);
 });
+
+test("skips a deprecated release", () => {
+  assert.equal(newestEligible("1.0.0", versions, times, NOW, new Set(["1.1.0"])), undefined);
+});
