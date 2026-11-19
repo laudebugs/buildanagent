@@ -545,6 +545,12 @@ declare function replayPairs(pairs: RecordedPair[]): ScriptedModel;   // rejects
 
 **Revision (B12, 2026-11-19).** B12 adds two things to the sketch: `annotations: { readOnlyHint }` on `ToolDefinition`, which gives the sketch's `readOnlyHint` a home, and the `not_run` failure reason `sibling_failed`. A step's calls start together and their results are appended in model order; see [its outcome](../todos/done/B12-parallel-tools.md#outcome).
 
+**Revision (B13, 2026-11-19).** B13 adds the interceptors and observers with these departures from the sketch above, each recorded in [its outcome](../todos/done/B13-interceptors-observers.md#outcome):
+- `onFailure` covers all six interceptors and defaults to `fail_closed`: a gate denies, `afterToolCall` withholds the result, and the others end the run with `error.kind: "hook"`. `RunResult` gains `no_progress` with a required `reason`, and `RunError.kind` gains `"hook"`.
+- `activeTools` is the complete list of tools a request sends, for that call only. `afterToolCall` takes a patch without `outcome`. Until B15, `ask` blocks the call like `deny`.
+- `composeInterceptors()` joins interceptor objects, and `Interceptors` hooks may be plain or `async`. Each observer has its own queue, and the run waits for the queues before `agent_settled` and before it settles.
+- `SdkError` gains the codes `invalid_hook_result` and `hook_failed`, and the loop starts one microtask after `run()` so `run.on()` sees every event but `run_start`.
+
 ### 3.4 The seams P2 consumes
 
 The harness plan should use these names as written; P4 checks that it does ([implementation plans §3](implementation-plans.md#3-the-review-p4)). The first six are the seams of [harness guide §1][hg1]; the rest are what its sketches assume from the SDK.
@@ -597,7 +603,7 @@ The guide says to start with the gateway and the test model, because every other
 | [B11b](../todos/ready/B11b-turn-retries.md) | Turn-level retries: the loop retries a retryable error that ends a turn (added 2026-11-19, a B11 follow-up) | B11 | M |
 | [B11c](../todos/ready/B11c-raw-provider-events.md) | Raw provider events: `includeRaw` and the `raw` event, from the adapters up to the loop (added 2026-11-19, a B11 follow-up) | B11, B4, B8, B9 | L |
 | [B12](../todos/done/B12-parallel-tools.md) | Parallel tool scheduling, per-resource serialisation and sibling cancellation | B11 | M |
-| [B13](../todos/ongoing/B13-interceptors-observers.md) | The six interceptors and observers | B11 | M |
+| [B13](../todos/done/B13-interceptors-observers.md) | The six interceptors and observers | B11 | M |
 | [B14](../todos/ready/B14-budget-progress.md) | Pre-emptive USD budget, progress detection and the depth cap | B5, B13, E1 | M |
 | [B15](../todos/ready/B15-signed-pauses.md) | Signed pauses in the loop on the safety package's signers, and `createPendingRequest` | B13, E3 | M |
 | [B15b](../todos/ready/B15b-continue-run.md) | `continueRun`, `blockingApprovals()` and the clarification pause | B15 | M |

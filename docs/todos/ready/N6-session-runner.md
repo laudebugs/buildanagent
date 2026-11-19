@@ -6,7 +6,7 @@
 | Status | `ready` |
 | Plan | [Build harness §4, Stage 1](../../plans/build-harness.md#41-stage-1-builds-the-session-log-from-its-entry-union-to-rebuild-and-replay) |
 | Round / milestone | Round N (build harness), M6 |
-| Depends on | [N5](N5-head-fork-revert.md), [B13](../ongoing/B13-interceptors-observers.md) |
+| Depends on | [N5](N5-head-fork-revert.md), [B13](../done/B13-interceptors-observers.md) |
 | Size | M |
 
 ## Goal

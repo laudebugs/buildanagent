@@ -2,7 +2,7 @@
 
 The SDK runs your agent's loop over [`@buildanagent/gateway`](../gateway/README.md): it calls the model, runs the tools the model asks for, and stops when the work is done. Its testing export lets you test that agent offline against a scripted model, with no API key.
 
-As of November 2026 the package holds the loop, tool definitions and the testing export. Hooks, approvals and budgets come next.
+As of November 2026 the package holds the loop, tool definitions, hooks and the testing export. Approvals and budgets come next.
 
 ## Install the alpha with `pnpm add @buildanagent/sdk@alpha`
 
@@ -42,9 +42,10 @@ A failed model call or a failing tool never makes a run throw. The run ends with
 
 - **`done`**: the model answered without calling a tool, or an output tool accepted its answer. A text answer cut off at `maxOutputTokens` also ends `done`, so check whether the last message's `stopReason` is `"length"` before you show it as complete.
 - **`max_steps`**: the run made `maxSteps` model calls, 20 by default, and the model still wanted to go on. The run also emits a `warning` event with `code: "max_steps"`, so a cap that cut a run short shows up in your logs.
-- **`error`**: a model call failed. `result.error` copies the failure's `kind`, `message` and HTTP `status`. Its `kind` is `overflow` for a request too large for the model's window, `quota` for an account out of credit, `retryable` for a temporary failure that outlasted the gateway's retries, and `fatal` otherwise.
+- **`error`**: a model call failed. `result.error` copies the failure's `kind`, `message` and HTTP `status`. Its `kind` is `overflow` for a request too large for the model's window, `quota` for an account out of credit, `retryable` for a temporary failure that outlasted the gateway's retries, `hook` for an interceptor that threw while the run fails closed, and `fatal` otherwise.
 - **`aborted`**: you aborted the run.
-- **`stopped`**: a tool from `clarificationTool()` asked the user a question, and `result.stoppedBy` is `"clarification"`.
+- **`stopped`**: a tool from `clarificationTool()` asked the user a question, and `result.stoppedBy` is `"clarification"`; or a `shouldStop` hook ended the run, and `result.stoppedBy` is the reason it gave.
+- **`no_progress`**: a `shouldStop` hook ended the run with `{ stop: "no_progress", reason }`, and `result.reason` repeats the reason.
 
 `maxSteps` counts model calls, so an output call that fails its schema spends one of them. The tool calls of the last allowed response still run, so every call in the transcript has a result.
 
@@ -78,11 +79,64 @@ The events come in two layers. The delta layer streams each content block by its
 - **`step_start`** and **`step_end`** wrap one model call and its tool calls; `step_end.stopCheck` says whether the run goes on.
 - **`model_call_start`** carries the request, and **`model_call_end`** the final message.
 - **`tool_call_start`**, **`tool_call_update`** and **`tool_call_end`** follow each tool call; `tool_call_end.result` is what the model reads.
+- **`context_transformed`** reports the message counts before and after `transformContext` for one model call.
+- **`hook_error`** reports an interceptor or an observer that threw, with the hook's name and the message.
 - **`retry`** reports a failed request the gateway is retrying, and **`warning`** reports a reached cap or a model warning.
 - **`error`** and **`abort`** report a failed call and an abort request.
 - **`agent_settled`** fires once nothing is running any more, retries and tools included. **`run_end`** follows it and carries the result.
 
 `AGENT_EVENT_TYPES` lists every type at run time, and a run emits no other. The union is closed, so a `switch` over `event.type` can be exhaustive.
+
+## Hooks change a run at six moments, and observers only watch
+
+A hook is a function that takes one event object. Interceptors can change, block or replace something; observers can only watch. Pass interceptors as one object in the `interceptors` option, and observers in `observers` or through `run.on()`.
+
+### A step calls the interceptors in one fixed order
+
+Each model call goes through the same moments, and each interceptor owns one of them:
+
+1. **`transformContext`** returns the messages to send for this call. Use it to mask old tool output or summarise a long conversation. The view reaches that one request. The next call's event, `result.messages` and `result.context` all keep the full history, and each call emits a `context_transformed` event.
+2. **`beforeModelCall`** returns a patch for the request: a `system` prompt, `messages`, `options`, another `model`, or `activeTools`. A patch lasts for that call only.
+3. The model call runs.
+4. **`afterModelCall`** returns `{ message }` to replace the response. The transcript, `model_call_end` and the tool calls that run all use the replacement, while usage and cost stay the model's own.
+5. For each tool call, **`beforeToolCall`** decides whether it runs, and **`afterToolCall`** edits the result.
+6. **`shouldStop`** decides whether the run ends.
+
+Every event carries `runId`, `stepIndex`, `signal` and `timestamp`, and the two tool hooks add `callId`. Pass `signal` on to any I/O your hook does. The event's data is frozen, so a hook that tries to change it throws a `TypeError`. Return a replacement instead.
+
+`activeTools` lists the tools to send, and only those. A tool whose `exposure` is `"deferred"` or `"hidden"` is sent when you name it, so a tool-search step can reveal a tool for the next request. Tools always go out in definition order, whatever order your list has, and a name that matches no tool throws `invalid_hook_result`. A call to a tool the request did not send gets the unknown-tool error.
+
+### A gate decides each tool call
+
+`beforeToolCall` returns `{ decision: "allow" }`, `{ decision: "deny", reason }` or `{ decision: "ask" }`. An `allow` may carry a new `input`, which must pass the tool's schema. A `deny` reaches the model as an error result that states the reason. Until runs can pause for approval, `ask` blocks the call the same way, with a message that says approval isn't available. The model never sees a silent block.
+
+The run asks about one call at a time, in the order the model sent them, and no call of the step starts until every gate has answered. Without a `beforeToolCall`, every registered tool is allowed. A gate must return a decision: returning nothing throws `invalid_hook_result`, so a forgotten `return` can't pass for permission.
+
+`afterToolCall` returns a patch of `content`, `details`, `structured`, `isError` or `terminate`. The patched result is what the model reads and what `tool_call_end` reports. It runs for calls that executed, a tool that threw included, and not for calls that never ran, such as an unknown tool, invalid input or a denied call. To change a write's `outcome`, replace `content` instead.
+
+### `shouldStop` ends a run, or keeps it going
+
+It returns `true` or `{ stop: "hook", reason }` to end the run `stopped`, with the reason as `stoppedBy` (`"hook"` for `true`). It returns `{ stop: "no_progress", reason }` to end it `no_progress`. It returns `{ continue: "text or blocks" }` to keep going a run whose model answered in text, with your content added as a user message; at the step cap the run ends `max_steps` instead. `false` leaves the decision to the run. A run that has already finished, failed, been aborted or asked a question keeps that outcome.
+
+### A throwing interceptor fails closed
+
+By default a hook that throws stops the unsafe thing, and the run emits a `hook_error` event:
+
+- A failed `beforeToolCall` denies the call.
+- A failed `afterToolCall` withholds the result, so a redaction that crashed can't leak the original.
+- A failed `transformContext`, `beforeModelCall`, `afterModelCall` or `shouldStop` ends the run with `stopReason: "error"` and `error.kind: "hook"`. If the run was aborted, it ends `aborted` instead.
+
+Set `onFailure: "continue"` to skip a failed hook and go on as if it had returned nothing. A hook that returns the wrong shape is a different case: it is a bug in your code, so the run's `result` rejects with `invalid_hook_result` whatever `onFailure` says.
+
+### `composeInterceptors()` joins several objects
+
+A run takes one `Interceptors` object, so `composeInterceptors(a, b)` joins a context policy, a permission check and an audit. For a moment that several define, the hooks run in the order given. `transformContext` passes the messages through each hook in turn. `beforeModelCall` merges the patches, a later field replacing an earlier one. `afterModelCall` and `afterToolCall` chain, each hook seeing the result so far. For gates the strictest answer wins: the first `deny` ends the check, an `ask` beats an `allow`, and an input one gate replaces is the input the next gate sees. For `shouldStop` the first stop wins, then the first continue. The joined `onFailure` is `"continue"` only when every object that sets it says so.
+
+### Observers watch without changing anything
+
+An observer is `(event) => void | Promise<void>`. Each one sees every event in order, and waits for its own promise before it gets the next. Observers don't wait for each other, so one slow observer delays only itself. The `observers` option sees events from `run_start`. `run.on(observer)` returns a function that removes it, and drops events still queued for it. Call it right after `run()` to see every event but `run_start`.
+
+An observer that throws or rejects becomes a `hook_error` event with `hook: "observer"`, and never changes the run. The one exception is an observer that fails while handling `run_end`: nothing may follow that event, so the failure is dropped. The run waits for observers to handle `agent_settled` and `run_end` before it settles, so an observer's promise must settle.
 
 ## Define a tool with `defineTool()`
 
@@ -179,6 +233,8 @@ The SDK throws only for programmer errors, never for a failure the model caused.
 - **`invalid_tool_result`**: `execute` returned something other than a tool result, or an invalid outcome. A text block needs a string `text`, and an image block a string `mediaType` and `data`. The run's `result` rejects with this error, and iterating the run throws it after the last event.
 - **`invalid_run_options`**: `run()` or `continueRun()` got a model that isn't from `createModel()`, a `maxSteps` that isn't a positive integer, or an output tool whose `exposure` isn't `"direct"`.
 - **`invalid_model_stream`**: a model's stream ended without a final message, which only a broken adapter does.
+- **`invalid_hook_result`**: an interceptor returned something its type forbids, such as a gate that returned no decision, an `activeTools` list that names no tool, or a replacement input that fails the tool's schema. The run's `result` rejects with this error.
+- **`hook_failed`**: an interceptor threw while the run fails closed. The run catches it and reports a `hook` error result, so it never reaches your code.
 - **`run_stopped`**: the error is a `RunStoppedError` from `runOrThrow()`.
 - **`unexpected_model_call`**: the error is an `UnexpectedModelCallError` from `ScriptedModel`.
 

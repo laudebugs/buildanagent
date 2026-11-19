@@ -3,10 +3,12 @@
  * its events to anyone who iterates it and settles `result` with the same run's outcome, so the streaming and the
  * non-streaming caller drive one loop.
  */
-import type { ContentBlock, Message, Model, ModelCallOptions } from "@buildanagent/gateway";
+import type { ContentBlock, Message, Model } from "@buildanagent/gateway";
 import { RunStoppedError, SdkError } from "./errors.js";
 import type { AgentEvent, AgentEventBody } from "./events.js";
+import type { CallOptions, Interceptors, Observer } from "./hooks.js";
 import { type LoopSetup, runLoop } from "./loop.js";
+import { ObserverBus } from "./observers.js";
 import type { Context, DoneResult, RunResult } from "./result.js";
 import type { Clock } from "./testing/determinism.js";
 import { preparedSchemaOf } from "./tools/define.js";
@@ -39,7 +41,19 @@ export interface RunOptions<S = unknown> {
   /** Aborts the run, like `run.abort()`. */
   readonly signal?: AbortSignal;
   /** Options for every model call, such as `maxOutputTokens`. The run passes its own abort signal. */
-  readonly modelOptions?: Omit<ModelCallOptions, "signal">;
+  readonly modelOptions?: CallOptions;
+  /**
+   * The interceptors: hooks that can change the run at six moments. A run takes one object; join several with
+   * `composeInterceptors()`. See `Interceptors` for the order and for what a failing hook does.
+   */
+  readonly interceptors?: Interceptors;
+  /**
+   * Observers, which receive every event from `run_start` on and can't change the run. Each observer sees the events in
+   * order and waits for its own promises, but observers don't wait for each other. An observer that throws becomes a
+   * `hook_error` event. The run waits for every observer to handle the last event before it settles, so an observer's
+   * promise must settle.
+   */
+  readonly observers?: readonly Observer[];
   /** Stamps each event's `timestamp`, and is passed to tools. Defaults to the system clock. */
   readonly clock?: Clock;
   /** Makes the run's id. Defaults to `crypto.randomUUID()`. */
@@ -71,6 +85,50 @@ export interface Run<S = unknown> extends AsyncIterable<AgentEvent> {
    * get an error result instead. The run then ends with `stopReason: "aborted"`. Does nothing once the run has ended.
    */
   abort(reason?: string): void;
+  /**
+   * Adds an observer that receives the events from now on, in order, and returns the function that removes it. An
+   * event that was queued for it but not yet handled is dropped when you remove it. Add it right after `run()` to
+   * see every event but `run_start`, which `run()` emits before it returns; to see that one too, pass the observer
+   * in the `observers` option.
+   */
+  on(observer: Observer): () => void;
+}
+
+function messageOf(error: unknown): string {
+  return error instanceof Error ? error.message : String(error);
+}
+
+function checkObserver(observer: unknown): void {
+  if (typeof observer !== "function") {
+    throw new SdkError("invalid_run_options", `an observer must be a function, got ${typeof observer}`);
+  }
+}
+
+const HOOK_NAMES = [
+  "transformContext",
+  "beforeModelCall",
+  "afterModelCall",
+  "beforeToolCall",
+  "afterToolCall",
+  "shouldStop",
+] as const;
+
+/** Checks the interceptors option once, so a misspelt or mistyped hook fails at `run()` and not mid-run. */
+function checkInterceptors(interceptors: Interceptors): Interceptors {
+  if (typeof interceptors !== "object" || interceptors === null) {
+    throw new SdkError("invalid_run_options", "interceptors must be an object of hooks");
+  }
+  for (const name of HOOK_NAMES) {
+    const hook: unknown = interceptors[name];
+    if (hook !== undefined && typeof hook !== "function") {
+      throw new SdkError("invalid_run_options", `interceptors.${name} must be a function, got ${typeof hook}`);
+    }
+  }
+  const { onFailure } = interceptors;
+  if (onFailure !== undefined && onFailure !== "fail_closed" && onFailure !== "continue") {
+    throw new SdkError("invalid_run_options", `interceptors.onFailure must be "fail_closed" or "continue"`);
+  }
+  return interceptors;
 }
 
 function reasonOf(reason: unknown): string | undefined {
@@ -84,14 +142,19 @@ class RunHandle<S> implements Run<S> {
   readonly #events: AgentEvent[] = [];
   readonly #controller = new AbortController();
   readonly #clock: Clock;
+  readonly #bus: ObserverBus;
   #waiters: (() => void)[] = [];
   #ended = false;
   #failure: { readonly error: unknown } | undefined;
   #stepIndex = 0;
 
-  constructor(setup: Omit<LoopSetup, "signal">, signal: AbortSignal | undefined) {
+  constructor(setup: Omit<LoopSetup, "signal">, signal: AbortSignal | undefined, observers: readonly Observer[]) {
     this.id = setup.runId;
     this.#clock = setup.clock;
+    this.#bus = new ObserverBus((hook, error) =>
+      this.#push({ type: "hook_error", hook, error: messageOf(error) }, this.#stepIndex),
+    );
+    for (const observer of observers) this.#bus.add(observer);
     const emit = (body: AgentEventBody, stepIndex: number) => this.#push(body, stepIndex);
     const { model } = setup;
     const versions = { sdkVersion: SDK_VERSION, specVersion: "v1" as const, defaultsHash: "", capabilities: [] };
@@ -99,7 +162,11 @@ class RunHandle<S> implements Run<S> {
     const forwardAbort = () => this.abort(reasonOf(signal?.reason));
     if (signal?.aborted) forwardAbort();
     else signal?.addEventListener("abort", forwardAbort, { once: true });
-    const loop = runLoop({ ...setup, signal: this.#controller.signal }, emit);
+    // The loop starts after this turn, so an observer added with `run.on()` straight after `run()` sees every event
+    // after `run_start`, and a `run.abort()` straight after it stops the run before its first model call.
+    const loop = Promise.resolve().then(() =>
+      runLoop({ ...setup, signal: this.#controller.signal }, emit, () => this.#bus.flush()),
+    );
     // The loop's result type is `RunResult<unknown>`; only the output tool, whose type is `S`, fills `output`.
     this.result = loop as Promise<RunResult<S>>;
     // Handling the rejection here also keeps a caller who only iterates from an unhandled rejection: iteration
@@ -114,6 +181,11 @@ class RunHandle<S> implements Run<S> {
     if (this.#ended || this.#controller.signal.aborted) return;
     this.#push(reason === undefined ? { type: "abort" } : { type: "abort", reason }, this.#stepIndex);
     this.#controller.abort(reason);
+  }
+
+  on(observer: Observer): () => void {
+    checkObserver(observer);
+    return this.#bus.add(observer);
   }
 
   [Symbol.asyncIterator](): AsyncIterator<AgentEvent> {
@@ -137,7 +209,9 @@ class RunHandle<S> implements Run<S> {
   #push(body: AgentEventBody, stepIndex: number): void {
     this.#stepIndex = stepIndex;
     const base = { runId: this.id, seq: this.#events.length, stepIndex, timestamp: this.#clock.now() };
-    this.#events.push({ ...base, ...body });
+    const event = { ...base, ...body } as AgentEvent;
+    this.#events.push(event);
+    this.#bus.deliver(event);
     this.#wake();
   }
 
@@ -206,12 +280,19 @@ function setupOf(options: RunOptions<unknown>, context: Context, input: readonly
     system: context.system,
     history: context.messages,
     input,
-    tools: tools.filter((tool) => (tool.exposure ?? "direct") === "direct"),
+    tools,
     output: options.output as AnyTool | undefined,
     maxSteps,
     modelOptions: options.modelOptions ?? {},
+    interceptors: checkInterceptors(options.interceptors ?? {}),
     clock: options.clock ?? systemClock,
   };
+}
+
+function observersOf(options: RunOptions<unknown>): readonly Observer[] {
+  const observers = options.observers ?? [];
+  for (const observer of observers) checkObserver(observer);
+  return observers;
 }
 
 /**
@@ -224,7 +305,7 @@ export function run<S = unknown>(options: RunOptions<S> & RunInput): Run<S> {
   const content = typeof options.input === "string" ? [{ type: "text" as const, text: options.input }] : options.input;
   const input: Message = { role: "user", content: [...content] };
   const setup = setupOf(options, { system: options.system, messages: options.history ?? [] }, [input]);
-  return new RunHandle<S>(setup, options.signal);
+  return new RunHandle<S>(setup, options.signal, observersOf(options));
 }
 
 /**
@@ -233,7 +314,7 @@ export function run<S = unknown>(options: RunOptions<S> & RunInput): Run<S> {
  * is sent as it stands, so add a user message to one that ends with the model's answer, such as a `done` result's.
  */
 export function continueRun<S = unknown>(context: Context, options: RunOptions<S>): Run<S> {
-  return new RunHandle<S>(setupOf(options, context, []), options.signal);
+  return new RunHandle<S>(setupOf(options, context, []), options.signal, observersOf(options));
 }
 
 /**

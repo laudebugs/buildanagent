@@ -4,9 +4,9 @@
  * becomes an error result and never throws; only a programmer error, such as a malformed tool result, throws an
  * `SdkError`.
  *
- * The gate and `afterToolCall` steps hold their places in the order below, and the interceptors fill them in: until
- * then every call is allowed and every result passes through unchanged. A step's calls are checked and gated one at a
- * time, in model order, and then scheduled together (see `runCalls`).
+ * The gate runs after validation and `after` runs after `execute`. The run's interceptors fill them (`beforeToolCall`
+ * and `afterToolCall`), and a pipeline without them allows every call and keeps every result. A step's calls are
+ * checked and gated one at a time, in model order, and then scheduled together (see `runCalls`).
  */
 import type { AssistantMessage, ModelContent } from "@buildanagent/gateway";
 import { SdkError } from "../errors.js";
@@ -30,14 +30,26 @@ export interface PipelineContext {
   readonly clock: Clock;
   /**
    * The gate: asked once for each call that passed validation, one call at a time in model order, and before any call
-   * of the step executes. It returns a result to block the call, or `undefined` to let it run. Without a gate every
-   * call is allowed.
+   * of the step executes. It returns `{ blocked }` to stop the call with that result, `{ input }` to run it with
+   * another input, which must pass the tool's schema, or `undefined` to let it run as it is. Without a gate every call
+   * is allowed.
    */
   gate?(e: {
     readonly call: ToolCall;
     readonly tool: AnyTool;
     readonly input: unknown;
-  }): Promise<ToolResult | undefined>;
+  }): Promise<GateOutcome | undefined>;
+  /**
+   * Called with the result of each call that executed, and returns the result to use in its place. It runs inside the
+   * call's own task, so a sibling is never left running while it works, and a programmer error it throws cancels the
+   * siblings like one from `execute`.
+   */
+  after?(e: {
+    readonly call: ToolCall;
+    readonly tool: AnyTool;
+    readonly input: unknown;
+    readonly result: ToolResult;
+  }): Promise<ToolResult>;
   /** Called for each call of a message before its result is worked out, whether or not the call will run. */
   onStart?(call: ToolCall): void;
   /** Receives a tool's progress updates. */
@@ -53,6 +65,9 @@ export interface PipelineContext {
    */
   onExecuted?(call: ToolCall): void;
 }
+
+/** What a gate decides besides letting a call run unchanged. */
+export type GateOutcome = { readonly blocked: ToolResult } | { readonly input: unknown };
 
 /** One tool call and the result the model will read for it. */
 export interface ToolCallResult {
@@ -83,7 +98,8 @@ function isModelContent(block: unknown): block is ModelContent {
   return type === "image" && typeof mediaType === "string" && typeof data === "string";
 }
 
-function isContentList(content: unknown): content is readonly ModelContent[] {
+/** True for a list of text and image blocks, the only content a tool result may carry. */
+export function isContentList(content: unknown): content is readonly ModelContent[] {
   return Array.isArray(content) && content.every(isModelContent);
 }
 
@@ -239,6 +255,28 @@ function resourceKeyOf(tool: AnyTool, input: unknown): string | undefined {
   return key;
 }
 
+// Asks the gate about one call. A replacement input is checked against the tool's schema again, because the gate is
+// user code and a call must never run with input its own tool would have rejected.
+async function gateCall(
+  call: ToolCall,
+  tool: AnyTool,
+  input: unknown,
+  ctx: PipelineContext,
+): Promise<{ readonly blocked: ToolResult } | { readonly input: unknown }> {
+  const outcome = await ctx.gate?.({ call, tool, input });
+  if (outcome === undefined) return { input };
+  if ("blocked" in outcome) return outcome;
+  const checked = await preparedSchemaOf(tool).validate(outcome.input);
+  if (!checked.ok) {
+    const issues = checked.issues.map((issue) => `${issue.path} ${issue.message}`.trim()).join("; ");
+    throw new SdkError(
+      "invalid_hook_result",
+      `beforeToolCall replaced the input of tool "${tool.name}" with input its schema rejects: ${issues}`,
+    );
+  }
+  return { input: checked.value };
+}
+
 // Everything that happens before execution, for one call: name, cancellation, input checks, resource key, and the
 // gate. A call that fails any of them is `Done` with the result the model reads.
 async function prepareCall(
@@ -265,11 +303,10 @@ async function prepareCall(
   const checked = await checkInput(tool, call);
   if (!checked.ok) return { kind: "done", call, result: checked.result };
   if (ctx.signal.aborted) return { kind: "done", call, result: notRun(call, tool, "run_aborted") };
-  const key = resourceKeyOf(tool, checked.input);
   // Each call's gate settles before the next call's is asked, and every gate before any call executes.
-  const blocked = await ctx.gate?.({ call, tool, input: checked.input });
-  if (blocked !== undefined) return { kind: "done", call, result: blocked };
-  return { kind: "ready", call, tool, input: checked.input, key };
+  const gated = await gateCall(call, tool, checked.input, ctx);
+  if ("blocked" in gated) return { kind: "done", call, result: gated.blocked };
+  return { kind: "ready", call, tool, input: gated.input, key: resourceKeyOf(tool, gated.input) };
 }
 
 // Only a first-party tool's hint counts: an MCP server's annotations are claims by someone we don't control. A tool
@@ -294,7 +331,9 @@ async function runReady(item: Ready, ctx: PipelineContext, batch: AbortControlle
     return notRun(item.call, item.tool, ctx.signal.aborted ? "run_aborted" : "sibling_failed");
   }
   try {
-    return await execute(item.tool, item.call, item.input, { ...ctx, signal: batch.signal });
+    const result = await execute(item.tool, item.call, item.input, { ...ctx, signal: batch.signal });
+    if (ctx.after === undefined) return result;
+    return await ctx.after({ call: item.call, tool: item.tool, input: item.input, result });
   } catch (error) {
     batch.abort(error);
     throw error;
@@ -350,17 +389,22 @@ async function runCalls(
       prepared.push(await prepareCall(call, early(call), byName, ctx));
     }
   } catch (error) {
-    // None of these calls has executed, and none will.
+    // None of these calls has executed, and none will. The first error is the one thrown, so a receiver that throws
+    // here must not hide it or stop the other calls from getting their results.
     for (const item of prepared) {
       const result = item.kind === "done" ? item.result : notRun(item.call, item.tool, "sibling_failed");
-      ctx.onResult?.({ call: item.call, result });
+      try {
+        ctx.onResult?.({ call: item.call, result });
+      } catch {
+        // Not rethrown: the error being handled is thrown below.
+      }
     }
     throw error;
   }
   const sequential = calls.some((call) => byName.get(call.name)?.executionMode === "sequential");
   const { batch, release } = batchController(ctx.signal);
   try {
-    return await deliver(prepared, start(prepared, sequential, ctx, batch), ctx);
+    return await deliver(prepared, start(prepared, sequential, ctx, batch), ctx, batch);
   } finally {
     release();
   }
@@ -368,11 +412,13 @@ async function runCalls(
 
 // Passes each result on in model order, as soon as every result before it is in. A failed call has already cancelled
 // the others; the loop still waits for each of them and passes its result on, so none is left running and a write
-// that happened is recorded, and then the first error is thrown.
+// that happened is recorded, and then the first error is thrown. A receiver that throws is a failed call too: it
+// cancels the siblings, and the results after it are still passed on.
 async function deliver(
   prepared: readonly Prepared[],
   running: readonly Promise<Settled<ToolResult>>[],
   ctx: PipelineContext,
+  batch: AbortController,
 ): Promise<ToolCallResult[]> {
   const results: ToolCallResult[] = [];
   let failure: { readonly error: unknown } | undefined;
@@ -384,7 +430,12 @@ async function deliver(
     }
     const entry = { call: (prepared[index] as Prepared).call, result: settled.value };
     results.push(entry);
-    ctx.onResult?.(entry);
+    try {
+      ctx.onResult?.(entry);
+    } catch (error) {
+      failure ??= { error };
+      batch.abort(error);
+    }
   }
   if (failure !== undefined) throw failure.error;
   return results;

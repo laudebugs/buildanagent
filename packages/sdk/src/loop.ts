@@ -2,10 +2,10 @@
  * The step loop: one model call, then the tool calls it asked for, then the stop check, until a stop reason holds
  * (agent-SDK guide §3). The non-streaming result is built from the same run, so there is one loop for both modes.
  *
- * Each step runs transform → before → stream → after → tools → stop. The transform, before and after moments are
- * where the interceptors plug in (D6); until they exist the request is the transcript as it stands and the response
- * is kept unchanged. Every outcome is a stop reason, never an exception: only a programmer error, such as a malformed
- * tool result, throws.
+ * Each step runs transform → before → stream → after → tools → stop. Those moments are where the interceptors
+ * plug in (D6); a run without interceptors sends the transcript as it stands and keeps each response unchanged.
+ * Every outcome is a stop reason, never an exception: only a programmer error, such as a malformed tool result,
+ * throws.
  */
 import {
   type AssistantMessage,
@@ -17,7 +17,6 @@ import {
   type GatewayEvent,
   type Message,
   type Model,
-  type ModelCallOptions,
   type ModelContext,
   type StreamOptions,
   type Usage,
@@ -25,6 +24,9 @@ import {
 } from "@buildanagent/gateway";
 import { SdkError } from "./errors.js";
 import type { AgentEventBody } from "./events.js";
+import type { StopVerdict } from "./hook-checks.js";
+import { HookFailure, HookRunner } from "./hook-runner.js";
+import type { CallOptions, Interceptors, ModelCallPatch } from "./hooks.js";
 import type { RunError, RunResult } from "./result.js";
 import type { Clock } from "./testing/determinism.js";
 import { toWireTool } from "./tools/define.js";
@@ -53,11 +55,15 @@ export interface LoopSetup {
   readonly history: readonly Message[];
   /** The messages the run starts by adding, such as the user's input. */
   readonly input: readonly Message[];
-  /** The tools the model is sent, in definition order; only these can run. */
+  /**
+   * Every tool the run knows, in definition order. A request sends the ones whose exposure is `direct`, or the ones
+   * `activeTools` names, and only the tools a request sent can run.
+   */
   readonly tools: readonly AnyTool[];
   readonly output: AnyTool | undefined;
   readonly maxSteps: number;
-  readonly modelOptions: Omit<ModelCallOptions, "signal">;
+  readonly modelOptions: CallOptions;
+  readonly interceptors: Interceptors;
   readonly signal: AbortSignal;
   readonly clock: Clock;
 }
@@ -65,12 +71,16 @@ export interface LoopSetup {
 /** Sends one event; the run adds the `EventBase` fields. */
 export type Emit = (body: AgentEventBody, stepIndex: number) => void;
 
+/** Resolves once every observer has handled the events sent so far. */
+export type Drain = () => Promise<void>;
+
 /** How a run ended, before its usage, cost and messages are attached. */
 type Outcome =
   | { readonly stopReason: "done"; readonly output: unknown }
   | { readonly stopReason: "max_steps" | "aborted" }
   | { readonly stopReason: "error"; readonly error: RunError }
-  | { readonly stopReason: "stopped"; readonly stoppedBy: string };
+  | { readonly stopReason: "stopped"; readonly stoppedBy: string }
+  | { readonly stopReason: "no_progress"; readonly reason: string };
 
 /** What changes while a run goes on. */
 class LoopState {
@@ -78,19 +88,39 @@ class LoopState {
   readonly emit: Emit;
   readonly messages: Message[];
   readonly added: Message[];
-  readonly wireTools: WireTool[];
+  readonly drain: Drain;
+  readonly hooks: HookRunner;
+  readonly #wire: ReadonlyMap<AnyTool, WireTool>;
+  /** The tools the latest request sent; the tool calls of its response may run only these. */
+  active: readonly AnyTool[] = [];
   steps = 0;
   stepIndex = 0;
   usage: Usage = emptyUsage();
+  lastUsage: Usage | undefined;
   cost: Cost | undefined;
   output: unknown;
 
-  constructor(setup: LoopSetup, emit: Emit) {
+  constructor(setup: LoopSetup, emit: Emit, drain: Drain) {
     this.setup = setup;
     this.emit = emit;
+    this.drain = drain;
     this.messages = [...setup.history, ...setup.input];
     this.added = [...setup.input];
-    this.wireTools = setup.tools.map(toWireTool);
+    this.#wire = new Map(setup.tools.map((tool) => [tool, toWireTool(tool)]));
+    this.hooks = new HookRunner({
+      interceptors: setup.interceptors,
+      runId: setup.runId,
+      signal: setup.signal,
+      clock: setup.clock,
+      stepIndex: () => this.stepIndex,
+      send: (body) => this.send(body),
+    });
+  }
+
+  /** The wire form of each of `tools`, as a request sends them. */
+  wireOf(tools: readonly AnyTool[]): WireTool[] {
+    // Every tool of the run was lowered in the constructor, and a request names only the run's tools.
+    return tools.map((tool) => this.#wire.get(tool) as WireTool);
   }
 
   send(body: AgentEventBody): void {
@@ -107,7 +137,7 @@ class LoopState {
  * The stream options a request event records: everything but the payload hook, the abort signal and the caps, as the
  * gateway's own request dump leaves them out. An untyped caller may still pass a signal or caps in `modelOptions`.
  */
-function dumpedOptions(options: Omit<ModelCallOptions, "signal">): DumpedOptions {
+function dumpedOptions(options: CallOptions): DumpedOptions {
   const { onPayload: _onPayload, signal: _signal, caps: _caps, ...rest } = options as StreamOptions;
   return rest;
 }
@@ -142,24 +172,89 @@ function forward(state: LoopState, event: GatewayEvent): AssistantMessage | unde
   }
 }
 
-/** Makes one model call, streams its events and records the response. */
-async function callModel(state: LoopState): Promise<AssistantMessage> {
-  const { model, system, modelOptions, signal } = state.setup;
-  const context: ModelContext = { system, messages: [...state.messages], tools: state.wireTools };
-  state.send({
-    type: "model_call_start",
-    request: { model: model.ref, context, options: dumpedOptions(modelOptions) },
+/** One model call as it will be sent, after `transformContext` and `beforeModelCall`. */
+interface Request {
+  readonly model: Model;
+  readonly context: ModelContext;
+  readonly options: CallOptions;
+  readonly active: readonly AnyTool[];
+}
+
+/** The tools a request sends unless `beforeModelCall` names others: the ones whose exposure is `direct`. */
+function directTools(tools: readonly AnyTool[]): AnyTool[] {
+  return tools.filter((tool) => (tool.exposure ?? "direct") === "direct");
+}
+
+/** The tools `names` picks, in definition order whatever order `names` is in. */
+function toolsNamed(tools: readonly AnyTool[], names: readonly string[]): AnyTool[] {
+  const unknown = names.filter((name) => !tools.some((tool) => tool.name === name));
+  if (unknown.length > 0) {
+    throw new SdkError("invalid_hook_result", `activeTools names unknown tools: ${unknown.join(", ")}`);
+  }
+  return tools.filter((tool) => names.includes(tool.name));
+}
+
+function patched(state: LoopState, request: Request, patch: ModelCallPatch): Request {
+  const active = patch.activeTools === undefined ? request.active : toolsNamed(state.setup.tools, patch.activeTools);
+  const { system, messages } = request.context;
+  return {
+    model: patch.model ?? request.model,
+    options: patch.options ?? request.options,
+    active,
+    context: {
+      system: patch.system ?? system,
+      messages: patch.messages === undefined ? messages : [...patch.messages],
+      tools: state.wireOf(active),
+    },
+  };
+}
+
+/**
+ * Builds one call's request: the transcript, or the view `transformContext` returns for this call alone, then the
+ * changes `beforeModelCall` asks for. The run's own transcript is never replaced by either.
+ */
+async function buildRequest(state: LoopState): Promise<Request> {
+  const { model, system, modelOptions, tools } = state.setup;
+  const view = await state.hooks.transformContext({
+    system,
+    messages: state.messages,
+    model: model.ref,
+    lastUsage: state.lastUsage,
   });
+  const active = directTools(tools);
+  const context = { system, messages: [...(view ?? state.messages)], tools: state.wireOf(active) };
+  const request: Request = { model, context, options: modelOptions, active };
+  const patch = await state.hooks.beforeModelCall({ context, options: modelOptions });
+  return patch === undefined ? request : patched(state, request, patch);
+}
+
+/** Streams one request, re-emitting its events, and returns the model's final message. */
+async function streamRequest(state: LoopState, request: Request): Promise<AssistantMessage> {
+  const { model, context, options } = request;
+  state.send({ type: "model_call_start", request: { model: model.ref, context, options: dumpedOptions(options) } });
   let message: AssistantMessage | undefined;
-  for await (const event of model.stream(context, { ...modelOptions, signal })) {
+  for await (const event of model.stream(context, { ...options, signal: state.setup.signal })) {
     message = forward(state, event) ?? message;
   }
   if (message === undefined) {
     throw new SdkError("invalid_model_stream", "the model's stream ended without a done or error event");
   }
+  return message;
+}
+
+/**
+ * Makes one model call, streams its events and records the response. The call's usage and cost are the model's own
+ * message's, so an `afterModelCall` replacement changes what the run goes on with, never what it is billed.
+ */
+async function callModel(state: LoopState): Promise<AssistantMessage> {
+  const request = await buildRequest(state);
+  state.active = request.active;
+  const original = await streamRequest(state, request);
   state.steps += 1;
-  state.usage = addUsage(state.usage, message.usage);
-  state.cost = state.cost === undefined ? message.cost : addCost(state.cost, message.cost);
+  state.usage = addUsage(state.usage, original.usage);
+  state.lastUsage = original.usage;
+  state.cost = state.cost === undefined ? original.cost : addCost(state.cost, original.cost);
+  const message = await state.hooks.afterModelCall(original);
   state.append(message);
   state.send({ type: "model_call_end", message });
   return message;
@@ -177,13 +272,14 @@ function toolMessage(entry: ToolCallResult): Message {
 
 /** Runs the response's tool calls as the pipeline schedules them, recording each result in model order. */
 async function runTools(state: LoopState, message: AssistantMessage): Promise<readonly ToolCallResult[]> {
-  const { runId, signal, clock, tools, output } = state.setup;
-  return runToolCalls(message, tools, {
+  const { runId, signal, clock, output } = state.setup;
+  return runToolCalls(message, state.active, {
     runId,
     signal,
     clock,
     depth: TOP_LEVEL_DEPTH,
     maxDepth: DEFAULT_MAX_DEPTH,
+    ...state.hooks.pipelineHooks(),
     onStart: (call: ToolCall) =>
       state.send({ type: "tool_call_start", callId: call.callId, tool: call.name, input: call.input }),
     onUpdate: (callId, details) => state.send({ type: "tool_call_update", callId, details }),
@@ -228,12 +324,59 @@ function stopCheck(
   return undefined;
 }
 
+/**
+ * What `shouldStop` changes about the stop check. A finished answer or an error stands whatever the hook says; the
+ * hook can end a run that would go on, and can keep going a run the model ended by answering in text, until the
+ * step cap.
+ */
+function withVerdict(state: LoopState, natural: Outcome | undefined, verdict: StopVerdict): Outcome | undefined {
+  if (natural !== undefined && verdict.kind !== "continue") return natural;
+  switch (verdict.kind) {
+    case "stop":
+      return { stopReason: "stopped", stoppedBy: verdict.stoppedBy };
+    case "no_progress":
+      return { stopReason: "no_progress", reason: verdict.reason };
+    case "continue":
+      if (natural === undefined) return undefined;
+      if (state.steps >= state.setup.maxSteps) return { stopReason: "max_steps" };
+      state.append({ role: "user", content: verdict.content });
+      return undefined;
+    default:
+      return natural;
+  }
+}
+
+/** The stop check after one step, then the `shouldStop` hook where it may change it. */
+async function decide(
+  state: LoopState,
+  message: AssistantMessage,
+  results: readonly ToolCallResult[],
+): Promise<Outcome | undefined> {
+  const natural = stopCheck(state, message, results);
+  const endedByAnswer = natural?.stopReason === "done" && results.length === 0;
+  if (natural !== undefined && !endedByAnswer) return natural;
+  const verdict = await state.hooks.shouldStop({ messages: state.messages, lastMessage: message });
+  return withVerdict(state, natural, verdict);
+}
+
+/** The outcome of a hook that failed while the run fails closed. A failure caused by an abort ends the run aborted. */
+function failedOutcome(state: LoopState, error: unknown): Outcome {
+  if (!(error instanceof HookFailure)) throw error;
+  if (state.setup.signal.aborted) return { stopReason: "aborted" };
+  return { stopReason: "error", error: { kind: "hook", message: error.message } };
+}
+
 async function runStep(state: LoopState): Promise<Outcome | undefined> {
   state.stepIndex = state.steps;
   state.send({ type: "step_start" });
-  const message = await callModel(state);
-  const results = await runTools(state, message);
-  const outcome = stopCheck(state, message, results);
+  let outcome: Outcome | undefined;
+  try {
+    const message = await callModel(state);
+    const results = await runTools(state, message);
+    outcome = await decide(state, message, results);
+  } catch (error) {
+    outcome = failedOutcome(state, error);
+  }
   state.send({ type: "step_end", stopCheck: outcome === undefined ? "continue" : "stop" });
   return outcome;
 }
@@ -267,15 +410,23 @@ function resultOf(state: LoopState, outcome: Outcome): RunResult {
   return { ...base, ...outcome } as RunResult;
 }
 
-function finish(state: LoopState, outcome: Outcome): RunResult {
+/**
+ * Ends the run: the settle event comes once every observer has seen what came before it, and `run_end` after that, so
+ * an observer's `hook_error` can never follow either, and the result is returned only once observers have seen the
+ * last event.
+ */
+async function finish(state: LoopState, outcome: Outcome): Promise<RunResult> {
   if (outcome.stopReason === "aborted") closeAborted(state);
   if (outcome.stopReason === "max_steps") {
     state.send({ type: "warning", code: "max_steps", detail: `the run reached maxSteps (${state.setup.maxSteps})` });
   }
   if (outcome.stopReason === "error") state.send({ type: "error", error: outcome.error });
+  await state.drain();
   state.send({ type: "agent_settled" });
+  await state.drain();
   const result = resultOf(state, outcome);
   state.send({ type: "run_end", result });
+  await state.drain();
   return result;
 }
 
@@ -283,8 +434,8 @@ function finish(state: LoopState, outcome: Outcome): RunResult {
  * Runs the loop to a stop reason and returns the result. It throws only for a programmer error, after the results
  * already received are in the transcript.
  */
-export async function runLoop(setup: LoopSetup, emit: Emit): Promise<RunResult> {
-  const state = new LoopState(setup, emit);
+export async function runLoop(setup: LoopSetup, emit: Emit, drain: Drain): Promise<RunResult> {
+  const state = new LoopState(setup, emit, drain);
   let outcome: Outcome | undefined;
   while (outcome === undefined) {
     outcome = setup.signal.aborted ? { stopReason: "aborted" } : await runStep(state);
