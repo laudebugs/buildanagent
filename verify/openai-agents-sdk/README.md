@@ -14,6 +14,12 @@ The SDK runs its agent loop in-process and resolves model names through a defaul
 
 Some examples carry `// #region <name>` and `// #endregion` comments, which change no behaviour. The book's `::listing` directive shows the code between them, so a chapter quotes only code that `pnpm test` type-checks and runs. Rename or remove a region only together with the chapters that list it, because `check:book` fails on a region that no longer exists ([how to add a listing](../../apps/manual/README.md#a-listing-shows-a-region-of-a-real-file)).
 
+## Transcripts record each example's run for the book's replays
+
+`pnpm test` also writes `results/transcripts/<example>.json` for each example that calls the mock model. A transcript records each request the example sent, each response, and each `check()` with its result, with the example line that led to each event when the call stack shows it. `examples/lib/transcript.ts`, which `lib/check.ts` imports, wraps `@openai/agents/testing`'s `ScriptedModel`, and `scripts/run-examples.mjs` preloads the recorder from [`scripts/transcripts/`](../../scripts/transcripts/). Recording only reads what the mock already holds, so it changes no verdict. The writer replaces paths, timestamps, durations and generated ids with placeholders, so two runs on any machine write the same bytes. A handoff's call id is generated at run time, so the transcript shows it as `<id-1>`.
+
+Commit the transcripts with the change that alters them, unlike a regenerated `run-examples.json`, which holds local paths and is restored before committing. CI's results-drift check fails when a committed transcript differs from the one a fresh run writes, and the book's replays read these files ([replays](../../apps/manual/README.md#a-replay-steps-through-a-recorded-run)).
+
 ## Scripts
 
 | Command | Does |

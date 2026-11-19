@@ -15,6 +15,12 @@ The SDK runs its tool loop in-process and gets models from provider instances (`
 
 Some examples carry `// #region <name>` and `// #endregion` comments, which change no behaviour. The book's `::listing` directive shows the code between them, so a chapter quotes only code that `pnpm test` type-checks and runs. Rename or remove a region only together with the chapters that list it, because `check:book` fails on a region that no longer exists ([how to add a listing](../../apps/manual/README.md#a-listing-shows-a-region-of-a-real-file)).
 
+## Transcripts record each example's run for the book's replays
+
+`pnpm test` also writes `results/transcripts/<example>.json` for each example that calls the mock model. A transcript records each request the example sent, each response, and each `check()` with its result, with the example line that led to each event when the call stack shows it. `examples/lib/check.ts` attaches the recorder to `ai/test`'s `MockLanguageModelV4`, outside the listed `scripted` region, and `scripts/run-examples.mjs` preloads the recorder from [`scripts/transcripts/`](../../scripts/transcripts/). Recording only reads what the mock already holds, so it changes no verdict. The writer replaces paths, timestamps, durations and generated ids with placeholders, so two runs on any machine write the same bytes. Streamed calls in `06-streaming.ts` start inside the stream's own machinery, so their requests and responses carry no example line.
+
+Commit the transcripts with the change that alters them, unlike a regenerated `run-examples.json`, which holds local paths and is restored before committing. CI's results-drift check fails when a committed transcript differs from the one a fresh run writes, and the book's replays read these files ([replays](../../apps/manual/README.md#a-replay-steps-through-a-recorded-run)).
+
 ## Scripts
 
 | Command | Does |
