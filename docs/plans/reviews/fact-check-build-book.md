@@ -260,12 +260,28 @@ The writing review (`/anthropic-skills:writing-review`) of the plan, the three A
 
 | 162 | The book's ADRs are 0052–0054 | ADR index, plan, todos, AGENTS.md | ✏️ | After #37 was first opened, `main` gained ADR 0051 (`0051-dist-build-corrections-from-l1.md`, from L1); on rebase the book's records moved from 0051–0053 to 0052–0054, and every reference was updated, leaving main's 0051 untouched |
 
+## Tenth pass: the owner's approval and optional analogies
+
+On 2026-11-19 the owner approved the plan, which #37 then merged as `138527e`, and relaxed BK22's analogy rule. The follow-up change records both in the plan, the index, the roadmap and the regenerated todos, and these rows check its claims.
+
+| # | Claim | Where | Verdict | Source and reason |
+| --- | --- | --- | --- | --- |
+| 163 | Asked to approve the plan, the owner said "If green merge" and then "Then continue work", so the plan is approved as of 2026-11-19 | Status, §7, plans index, roadmap, todos | ✅ | Owner's answers, 2026-11-19 |
+| 164 | All 46 book todos (T1–T42 and U18–U21) carried the "On hold" banner, and each now carries a one-line history note instead | Todos | ✅ | `grep -l` on `main` at `138527e` finds the banner in 46 files; after regenerating, it finds none and finds the history note in 46 |
+| 165 | The history note follows the precedent of Round E's lifted hold, which replaced its banner with a "History" line citing the owner's words | Todos | ✅ | Line 3 of `docs/todos/ready/E1-safety-core-outcomes.md` through `E7-safety-portability.md` |
+| 166 | The owner made analogies optional: "For analogies, we don't have to use one for every chapter/concept" | BK22, chapter and section todos | ✅ | Owner's answer, 2026-11-19 |
+| 167 | The approved pool still holds 61 analogies, all distinct | BK22 | ✅ | The row 108 script, rerun on the regenerated todos: 61 analogies, 61 distinct |
+| 168 | No plan text or todo now asks for an analogy for every core concept, and the voice check no longer scores one | BK22, §4, risk 8, chapter and section todos | ✅ | `grep "core concept"` over the plan and `docs/todos/ready/` finds no match |
+| 169 | AGENTS.md does not state the per-concept analogy rule, so it needs no change | AGENTS.md | ✅ | `grep -i analog AGENTS.md` finds no match |
+| 170 | Regenerating the todos changed only the banner lines and the analogy wording | Todos | ✅ | `git diff` over `docs/todos/ready/`: 46 files, and every changed line is the banner, the analogy table's lead-in, or analogy wording in a goal, task, acceptance criterion or risk |
+| 171 | The owner approved the plan before #37 merged, and the merge followed from it | This section's introduction | ✏️ | The first draft said the owner approved the plan after #37 merged; "If green merge" made the approval the condition for the merge, and `git log` shows `138527e` as the merge. The writing review's other fixes reworded rows 163, 164 and 166's sentences in the plan and todos and were re-checked against the same sources, with no change in substance |
+
 ## Re-checked at the primary source (2026-11-19)
 
 Row 105 took MAP's figure from the U17 report's reading of the paper, a secondary source. This row reads the abstract itself.
 
 | # | Claim | Where | Verdict | Source and reason |
 | --- | --- | --- | --- | --- |
-| 163 | Row 105: MAP found that "70% rely on prompting off-the-shelf models instead of weight tuning" | U21 | ✅ | [arXiv 2512.04123](https://arxiv.org/abs/2512.04123), abstract of v4 (4 June 2026), read with `curl` on 2026-11-19: "70% rely on prompting off-the-shelf models instead of weight tuning". U21 still reads the paper's body for its method |
+| 172 | Row 105: MAP found that "70% rely on prompting off-the-shelf models instead of weight tuning" | U21 | ✅ | [arXiv 2512.04123](https://arxiv.org/abs/2512.04123), abstract of v4 (4 June 2026), read with `curl` on 2026-11-19: "70% rely on prompting off-the-shelf models instead of weight tuning". U21 still reads the paper's body for its method |
 
-**Totals:** 163 claims: 141 ✅, 22 ✏️, 0 ⚠️.
+**Totals:** 172 claims: 149 ✅, 23 ✏️, 0 ⚠️.

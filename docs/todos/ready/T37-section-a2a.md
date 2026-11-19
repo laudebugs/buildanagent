@@ -1,6 +1,6 @@
 # T37: Section: agent-to-agent protocols (A2A) in Chapter T21
 
-> **On hold (2026-11-19): do not start until the owner approves the [book plan](../../plans/build-book.md).** The plan is a draft for the owner's review.
+> **History:** the book plan held its todos on 2026-11-19 until the owner approved it, and the owner approved it the same day ("If green merge", then "Then continue work"), so this todo starts once its **Depends on** are done ([book plan §7](../../plans/build-book.md#7-round-t-can-start-the-owner-approved-the-plan-on-2026-11-19)).
 
 | Field | Value |
 | --- | --- |
@@ -29,7 +29,7 @@ Add one section to Chapter T21 ("Tools at scale: the registry, deferred tools, M
 - Listings, if the report recommends an example and a later todo writes it
 - Rows for the section in `apps/book/fact-checks/tools-at-scale.md`
 
-**Analogy** (BK22): A2A, as firms contracting through a standard purchase order. Where the analogy breaks: an A2A task can stream updates and ask for more input, which a purchase order never does. No illustration unless the section needs one.
+**Analogy** (BK22): A2A, as firms contracting through a standard purchase order. Where the analogy breaks: an A2A task can stream updates and ask for more input, which a purchase order never does. Use it only if it makes the concept clearer than plain explanation. No illustration unless the section needs one.
 
 **Out of scope** (and which todo covers it)
 
@@ -38,7 +38,7 @@ Add one section to Chapter T21 ("Tools at scale: the registry, deferred tools, M
 
 ## Tasks
 
-- [ ] Draft the section with `/anthropic-skills:writing`, opening with its analogy, then the mechanism and a "Where the analogy breaks" note; register the analogy in `analogies.json`.
+- [ ] Draft the section with `/anthropic-skills:writing`. If the analogy makes the concept clearer, open with it, then the mechanism and a "Where the analogy breaks" note, and register it in `analogies.json`; otherwise explain the concept plainly.
 - [ ] Fact-check every claim in the section against its primary source into `apps/book/fact-checks/tools-at-scale.md` before any further edit, and commit the section together with its fact-check rows (BK21).
 - [ ] Run `/anthropic-skills:writing-review` on the whole chapter with the voice check, fix every finding with `/anthropic-skills:writing`, and re-check every claim a fix touched.
 
