@@ -53,13 +53,9 @@ test("the package's figures:build script redraws every folder this test checks",
 // Every folder holds isometric figures, whose painter's order takes a few seconds to settle once per run (the registry
 // keeps each drawing), so each check gets a longer limit than Vitest's default 5 seconds on a loaded machine.
 for (const root of ROOTS) {
-  test(
-    `every committed figure under ${relative(app, root).split(sep).join("/")} is what its script draws now`,
-    async () => {
-      assert.deepEqual(await staleFigures(root), []);
-    },
-    60_000,
-  );
+  test(`every committed figure under ${relative(app, root).split(sep).join("/")} is what its script draws now`, async () => {
+    assert.deepEqual(await staleFigures(root), []);
+  }, 60_000);
 }
 
 /**
