@@ -5,7 +5,7 @@ These rules apply to every TypeScript file in `packages/`. The `verify/*` harnes
 ## Compiler settings are strict, and only erasable syntax is allowed
 
 - **MUST:** every package extends the root `tsconfig.packages.json`, and `pnpm typecheck` passes for `src/` and `test/`.
-- **MUST:** the packages config turns on ten flags: `strict`, `noImplicitOverride` and `noFallthroughCasesInSwitch` from `tsconfig.base.json`, plus `noUncheckedIndexedAccess`, `exactOptionalPropertyTypes`, `noUnusedLocals`, `noUnusedParameters`, `isolatedModules`, `verbatimModuleSyntax` and `erasableSyntaxOnly`. The `verify/*` harnesses extend only the base config, because they type-check upstream doc examples that the stricter seven would reject.
+- **MUST:** the packages config turns on ten flags: `strict`, `noImplicitOverride` and `noFallthroughCasesInSwitch` from `tsconfig.base.json`, plus `noUncheckedIndexedAccess`, `exactOptionalPropertyTypes`, `noUnusedLocals`, `noUnusedParameters`, `isolatedModules`, `verbatimModuleSyntax` and `erasableSyntaxOnly`. The `verify/*` harnesses extend only the base config, because these rules cover `packages/` alone and the harnesses' own examples don't meet the stricter seven (as of November 2026, 18 errors in `verify/vercel-ai-sdk`).
 - **MUST NOT:** use `enum`, `namespace` or constructor parameter properties, which `erasableSyntaxOnly` forbids. Use string-literal unions and `as const` objects.
 - **MUST:** write type-only imports as `import type { … }`, as `verbatimModuleSyntax` requires.
 
@@ -22,7 +22,7 @@ Our SDK and harness must run on local Node, Cloudflare, AWS and Vercel ([ADR 003
 
 - **MUST:** Biome is the only linter and formatter, with the root `biome.json`'s `recommended` preset. `pnpm check` passes.
 - **MUST:** turn a rule off inline only with `// biome-ignore lint/<group>/<rule>: <reason>`, and give the reason.
-- **MUST:** a function has a cognitive complexity of at most 15 and at most 60 lines, and code throws only `Error` subclasses. Test files are exempt from the length cap, because one `test` callback can hold a whole scenario. Biome reports each of these as an error in `packages/`, along with default exports and DOM-only globals in `src/`.
+- **MUST:** a function has a cognitive complexity of at most 15 and at most 60 lines, and code throws only `Error` subclasses. Test files are exempt from the length cap, because one `test` callback can hold a whole scenario. Biome reports each of these as an error anywhere in `packages/`, and default exports too, except in `vitest.config.ts`. In `src/`, outside the offline guards, it also rejects the DOM-only globals and the Node globals `Buffer`, `process`, `require`, `__dirname` and `__filename`.
 
 ## Names follow one convention per kind
 
