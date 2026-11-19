@@ -16,6 +16,7 @@ const GPT: ModelRef = { api: "openai-chat", provider: "openai", id: "gpt-5.4" };
 const GPT_MINI: ModelRef = { api: "openai-chat", provider: "openai", id: "gpt-5.4-mini" };
 const CAPS: ModelCaps = { contextWindow: 200_000, maxOutputTokens: 8_192, images: true, reasoning: true };
 const TEXT_ONLY: ModelCaps = { ...CAPS, images: false };
+const NO_REASONING: ModelCaps = { ...CAPS, reasoning: false };
 const ID_RULE = /^[A-Za-z0-9_-]{1,64}$/;
 
 function assistant(
@@ -169,6 +170,35 @@ test("when reasoning must go, the kept thinking blocks are the newest unbroken r
   assert.deepEqual(kept, [thinking(OPUS, "a2"), thinking(OPUS, "a3"), thinking(OPUS, "")]);
 });
 
+test("an OpenAI-compatible target keeps reasoning older than a dropped block", () => {
+  const transcript: Message[] = [
+    user("one"),
+    assistant(GPT, [thinking(GPT, "g1"), { type: "text", text: "1" }]),
+    user("two"),
+    assistant(OPUS, [thinking(OPUS, "a1"), { type: "text", text: "2" }]),
+    user("three"),
+    assistant(GPT, [thinking(GPT, "g2"), { type: "text", text: "3" }]),
+  ];
+  assert.deepEqual(blocksOf(transformMessages(transcript, GPT, CAPS), "reasoning"), [
+    thinking(GPT, "g1"),
+    thinking(GPT, "g2"),
+  ]);
+});
+
+test("a target without reasoning gets no reasoning blocks, and a turn of only reasoning is dropped", () => {
+  const transcript: Message[] = [
+    user("one"),
+    assistant(OPUS, [thinking(OPUS, "a1"), { type: "text", text: "1" }]),
+    user("two"),
+    assistant(OPUS, [thinking(OPUS, "a2")]),
+  ];
+  assert.deepEqual(transformMessages(transcript, SONNET, NO_REASONING), [
+    user("one"),
+    assistant(OPUS, [{ type: "text", text: "1" }]),
+    user("two"),
+  ]);
+});
+
 // Rule: tool-call ids are remapped to the target's charset ------------------------------------------------------------
 
 test("tool-call ids outside the charset are remapped, and their results follow", () => {
@@ -261,20 +291,14 @@ test("an aborted turn in the middle is skipped together with the results of its 
   ]);
 });
 
-test("a result from an aborted turn never answers an earlier call with the same id", () => {
+test("an aborted turn's call with a repeated id never takes the result a completed turn is waiting for", () => {
   const transcript: Message[] = [
     user("Go."),
     assistant(GPT, [call("call_0")], "tool_calls"),
-    user("again"),
     assistant(GPT, [call("call_0")], "aborted"),
-    result("call_0", "from-aborted"),
+    result("call_0", "real"),
   ];
-  const output = transformMessages(transcript, GPT, CAPS);
-  assert.equal(JSON.stringify(output).includes("from-aborted"), false);
-  const synthetic = output[2];
-  assert.ok(synthetic?.role === "tool");
-  assert.equal(synthetic.callId, "call_0");
-  assert.equal(synthetic.isError, true);
+  assert.deepEqual(transformMessages(transcript, GPT, CAPS), [user("Go."), transcript[1], result("call_0", "real")]);
 });
 
 // Rule: orphaned tool calls get a synthetic error result -------------------------------------------------------------
@@ -332,6 +356,101 @@ test("a dropped empty assistant message leaves the previous turn's results paire
   ]);
 });
 
+test("a result recorded after a later assistant turn moves next to its call", () => {
+  const transcript: Message[] = [
+    user("Read it."),
+    assistant(OPUS, [call("toolu_01")], "tool_calls"),
+    user("Still there?"),
+    assistant(OPUS, [{ type: "text", text: "Waiting for the file." }]),
+    result("toolu_01", "late"),
+  ];
+  assert.deepEqual(transformMessages(transcript, OPUS, CAPS), [
+    user("Read it."),
+    transcript[1],
+    result("toolu_01", "late"),
+    user("Still there?"),
+    transcript[3],
+  ]);
+});
+
+test("a late result answers the newest turn that reused its call id", () => {
+  const transcript: Message[] = [
+    user("one"),
+    assistant(GPT, [call("call_0")], "tool_calls"),
+    user("two"),
+    assistant(GPT, [call("call_0")], "tool_calls"),
+    result("call_0", "late"),
+  ];
+  const output = transformMessages(transcript, GPT, CAPS);
+  assert.deepEqual(output[2], result("call_0", "No result was recorded for this tool call.", true));
+  assert.deepEqual(output.at(-1), result("call_0_2", "late"));
+});
+
+// Message shape -------------------------------------------------------------------------------------------------------
+
+test("adjacent assistant messages merge into one, keeping the earlier message's leading thinking", () => {
+  const transcript: Message[] = [
+    user("Hi"),
+    assistant(OPUS, [thinking(OPUS, "a1")]),
+    assistant(OPUS, [thinking(OPUS, "a2"), { type: "text", text: "Hello." }]),
+  ];
+  assert.deepEqual(transformMessages(transcript, SONNET, CAPS), [
+    user("Hi"),
+    assistant(OPUS, [thinking(OPUS, "a1"), thinking(OPUS, "a2"), { type: "text", text: "Hello." }]),
+  ]);
+});
+
+test("merging assistant messages drops later thinking that would follow text, and for Anthropic all older", () => {
+  const transcript: Message[] = [
+    user("Hi"),
+    assistant(OPUS, [thinking(OPUS, "a1"), { type: "text", text: "1" }]),
+    assistant(OPUS, [thinking(OPUS, "a2"), { type: "text", text: "2" }]),
+  ];
+  assert.deepEqual(transformMessages(transcript, SONNET, CAPS), [
+    user("Hi"),
+    assistant(OPUS, [
+      { type: "text", text: "1" },
+      { type: "text", text: "2" },
+    ]),
+  ]);
+});
+
+test("empty text blocks are dropped, so no message carries one", () => {
+  const transcript: Message[] = [
+    user("Hi"),
+    assistant(GPT, [thinking(GPT, "x"), { type: "text", text: "" }]),
+    {
+      role: "user",
+      content: [
+        { type: "text", text: "" },
+        { type: "text", text: "Hello?" },
+      ],
+    },
+  ];
+  const output = transformMessages(transcript, OPUS, CAPS);
+  assert.deepEqual(output, [
+    {
+      role: "user",
+      content: [
+        { type: "text", text: "Hi" },
+        { type: "text", text: "Hello?" },
+      ],
+    },
+  ]);
+});
+
+test("an opening user message the pass empties is replaced by a placeholder, so the output starts with a user", () => {
+  const transcript: Message[] = [
+    { role: "user", content: [call("call|bad")] },
+    assistant(GPT, [{ type: "text", text: "Done." }]),
+  ];
+  assert.deepEqual(transformMessages(transcript, GPT, CAPS), [user("(continued)"), transcript[1]]);
+});
+
+test("a transcript left with nothing to send returns an empty array", () => {
+  assert.deepEqual(transformMessages([user("")], GPT, CAPS), []);
+});
+
 // Purity and idempotence ---------------------------------------------------------------------------------------------
 
 test("the input transcript is deep-equal before and after the call", () => {
@@ -375,7 +494,7 @@ function generateBlock(random: () => number, serial: number): ContentBlock {
   if (roll < 0.3) return thinking(pick(random, MODELS), text, `s${serial}`);
   if (roll < 0.4) return { type: "reasoning", text };
   if (roll < 0.7) return call(pick(random, IDS));
-  return { type: "text", text: `a${serial}` };
+  return { type: "text", text: random() < 0.2 ? "" : `a${serial}` };
 }
 
 function generateContent(random: () => number, serial: number): ContentBlock[] {
@@ -417,15 +536,24 @@ function generatedRuns(): GeneratedRun[] {
     run,
     transcript: generate(random),
     target: MODELS[run % MODELS.length] as ModelRef,
-    caps: run % 3 === 0 ? TEXT_ONLY : CAPS,
+    caps: run % 3 === 0 ? TEXT_ONLY : run % 5 === 0 ? NO_REASONING : CAPS,
   }));
 }
 
 /**
- * Throws unless every call has one result right after its turn, ids are unique and valid, no result is stray, user
- * messages alternate with the rest and carry only text and images, and every reasoning block suits the target.
+ * Throws unless every call has one result right after its turn, ids are unique and valid, no result is stray, no two
+ * user or assistant messages are adjacent, user messages carry only text and images, the output opens with a user
+ * message when the input had one, no text block is empty, and every reasoning block suits the target.
  */
-function assertValidTranscript(messages: readonly Message[], target: ModelRef, caps: ModelCaps): void {
+function assertValidTranscript(
+  messages: readonly Message[],
+  input: readonly Message[],
+  target: ModelRef,
+  caps: ModelCaps,
+): void {
+  if (messages.length > 0 && input.some((message) => message.role === "user")) {
+    assert.equal(messages[0]?.role, "user", "the output starts with a user message");
+  }
   const seen = new Set<string>();
   let open: string[] = [];
   let inResults = false;
@@ -440,7 +568,7 @@ function assertValidTranscript(messages: readonly Message[], target: ModelRef, c
       continue;
     }
     assert.deepEqual(open, [], "every call has a result");
-    assertMessageShape(message, previous, target);
+    assertMessageShape(message, previous, target, caps);
     open =
       message.role === "assistant" ? message.content.flatMap((b) => (b.type === "tool_call" ? [b.callId] : [])) : [];
     for (const id of open) {
@@ -456,10 +584,17 @@ function assertValidTranscript(messages: readonly Message[], target: ModelRef, c
 }
 
 /** Throws unless a user or assistant message is non-empty, may be sent, and carries reasoning the target accepts. */
-function assertMessageShape(message: Message, previous: Message["role"] | undefined, target: ModelRef): void {
+function assertMessageShape(
+  message: Message,
+  previous: Message["role"] | undefined,
+  target: ModelRef,
+  caps: ModelCaps,
+): void {
   if (message.role === "tool") return;
   assert.ok(message.content.length > 0, "no message is empty");
+  assert.ok(!message.content.some((block) => block.type === "text" && block.text === ""), "no text block is empty");
   if (message.role === "assistant") {
+    assert.notEqual(previous, "assistant", "no two assistant messages are adjacent");
     assert.ok(message.stopReason !== "error" && message.stopReason !== "aborted");
   } else {
     assert.notEqual(previous, "user", "no two user messages are adjacent");
@@ -467,6 +602,7 @@ function assertMessageShape(message: Message, previous: Message["role"] | undefi
   }
   for (const block of message.content) {
     if (block.type !== "reasoning") continue;
+    assert.ok(caps.reasoning, "a target without reasoning gets none");
     if (target.api === "anthropic-messages") assert.ok(block.signature, "Anthropic gets only signed thinking");
     else assert.ok(block.signature !== undefined || block.text !== "", "unsigned reasoning has text");
   }
@@ -481,7 +617,7 @@ function reasoningKeys(messages: readonly Message[]): string[] {
 test("for generated transcripts the output is a valid transcript for the target", () => {
   for (const { run, transcript, target, caps } of generatedRuns()) {
     assert.doesNotThrow(
-      () => assertValidTranscript(transformMessages(transcript, target, caps), target, caps),
+      () => assertValidTranscript(transformMessages(transcript, target, caps), transcript, target, caps),
       `run ${run}`,
     );
   }
@@ -502,13 +638,31 @@ test("for generated transcripts a second pass changes nothing", () => {
   }
 });
 
-test("for generated transcripts the kept thinking is the newest unbroken run of the completed turns' thinking", () => {
+function isSubsequence(part: readonly string[], whole: readonly string[]): boolean {
+  let next = 0;
+  for (const item of whole) if (item === part[next]) next += 1;
+  return next === part.length;
+}
+
+test("for generated transcripts an Anthropic target keeps the newest unbroken run of completed turns' thinking", () => {
   for (const { run, transcript, target, caps } of generatedRuns()) {
+    if (target.api !== "anthropic-messages") continue;
     const completed = transcript.filter(
       (m) => m.role === "assistant" && m.stopReason !== "error" && m.stopReason !== "aborted",
     );
     const all = reasoningKeys(completed);
     const kept = reasoningKeys(transformMessages(transcript, target, caps));
     assert.deepEqual(kept, all.slice(all.length - kept.length), `run ${run} keeps the newest unbroken run`);
+  }
+});
+
+test("for generated transcripts any other target keeps completed turns' thinking in its original order", () => {
+  for (const { run, transcript, target, caps } of generatedRuns()) {
+    if (target.api === "anthropic-messages") continue;
+    const completed = transcript.filter(
+      (m) => m.role === "assistant" && m.stopReason !== "error" && m.stopReason !== "aborted",
+    );
+    const kept = reasoningKeys(transformMessages(transcript, target, caps));
+    assert.ok(isSubsequence(kept, reasoningKeys(completed)), `run ${run} keeps thinking in order`);
   }
 });

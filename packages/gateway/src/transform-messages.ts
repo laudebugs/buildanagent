@@ -1,7 +1,8 @@
 /**
  * The replay pass that makes a transcript recorded on one model safe to send to another (SDK plan §3.2; guide §2;
  * HD3 rule 1). It runs before every request, so it must be pure, deterministic and idempotent. As the transcript
- * grows, the thinking it sends for older turns only ever loses a leading run, which Anthropic's prefix check allows.
+ * grows, the thinking it sends an Anthropic target for older turns only ever loses a leading run, which Anthropic's
+ * rule on omitted thinking allows.
  */
 import type { ContentBlock, Message, ModelCaps, ModelContent, ModelRef } from "./types.ts";
 
@@ -15,12 +16,14 @@ const TOOL_CALL_ID_PATTERN = /^[A-Za-z0-9_-]{1,64}$/;
 const TOOL_CALL_ID_INVALID_CHARS = /[^A-Za-z0-9_-]/g;
 const TOOL_CALL_ID_MAX_LENGTH = 64;
 
-// Anthropic accepts thinking signed by any of its models and drops, without billing, the blocks it cannot read, but
-// it rejects a thinking block that has no signature.
+// Anthropic drops, without billing, the thinking blocks the target model cannot read, and verifies each block by its
+// signature. It lets a request omit earlier turns' thinking, but not a block between two that it keeps.
 const ANTHROPIC_API = "anthropic-messages";
 
 const IMAGE_PLACEHOLDER = "(image omitted: this model does not accept images)";
 const MISSING_RESULT_TEXT = "No result was recorded for this tool call.";
+// Anthropic requires the first message to come from the user, so an emptied opening user message leaves this note.
+const CONTINUED_TEXT = "(continued)";
 
 /**
  * Prepares a transcript for one target model, so a conversation recorded on any provider can be sent to it. The
@@ -30,50 +33,71 @@ const MISSING_RESULT_TEXT = "No result was recorded for this tool call.";
  *
  * 1. It skips assistant turns that ended in an error or an abort, together with the tool results that answer their
  *    calls, so a resumed call issues them again.
- * 2. It drops reasoning written by another provider, and strips a signature the target cannot verify. An Anthropic
- *    target keeps every Anthropic-signed block unchanged, even one whose text is empty, and drops every block it
- *    cannot send signed. Any other target keeps the text of a block it cannot verify, unless the text is empty. When
- *    reasoning must go, the pass also drops every older reasoning block, so the blocks it keeps are the newest
- *    unbroken run.
+ * 2. It drops every reasoning block when `caps.reasoning` is false. Otherwise it drops reasoning written by another
+ *    provider, and strips a signature the target cannot verify. An Anthropic target keeps every Anthropic-signed
+ *    block unchanged, even one whose text is empty, and drops every block it cannot send signed; when one must go, it
+ *    also drops every older reasoning block, because Anthropic lets a request omit earlier thinking but not a block
+ *    between two it keeps. Any other target keeps the text of a block it cannot verify, unless the text is empty.
  * 3. It replaces each image with a short text note when `caps.images` is false.
  * 4. It rewrites tool-call ids that are not 1–64 letters, digits, `_` or `-`, or that repeat an earlier id, and
  *    updates each matching tool result.
- * 5. It moves each tool result next to its call, drops results that answer no call, and gives every call that lacks
- *    a result a synthetic error result.
+ * 5. It moves each tool result next to its call, however much later the result appears, drops results that answer
+ *    no call, and gives every call that lacks a result a synthetic error result. A result answers the newest earlier
+ *    call with its id from a completed turn, and answers a skipped turn's call only when no such call is waiting.
  *
- * It also keeps each message to the shape both providers accept: a user message carries no reasoning or tool calls,
- * a message left with no content is dropped, and user messages that end up adjacent are merged into one.
+ * It also keeps each message to the shape both providers accept. A user message carries no reasoning or tool calls,
+ * no message carries an empty text block, and a message left with no content is dropped. Adjacent user messages are
+ * merged into one, and so are adjacent assistant messages: the merged message takes the later one's stop reason,
+ * usage and cost, and drops the later one's reasoning if the earlier one has text or tool calls, so reasoning never
+ * follows a block it did not follow before. If the input holds a user message, the output starts with one, using a
+ * short placeholder note when the opening user message was emptied. An input left with nothing to send returns `[]`.
  *
  * Running the pass on its own output returns the same transcript.
  */
 export function transformMessages(messages: readonly Message[], target: ModelRef, caps: ModelCaps): Message[] {
-  const cleaned = messages.map(withoutAssistantBlocks);
-  const reasoned = applyReasoningRules(cleaned, target);
-  const pictured = caps.images ? reasoned : reasoned.map(withoutImages);
-  return mergeUserMessages(pairToolCalls(pictured));
+  const cleaned = messages.map((message) => withSendableBlocks(message, caps));
+  const reasoned = caps.reasoning ? applyReasoningRules(cleaned, target) : cleaned;
+  const merged = mergeAdjacentMessages(pairToolCalls(reasoned), target);
+  return startWithUser(
+    merged,
+    messages.some((message) => message.role === "user"),
+  );
 }
 
 function isFailedTurn(message: Message): boolean {
   return message.role === "assistant" && (message.stopReason === "error" || message.stopReason === "aborted");
 }
 
-/** Removes reasoning and tool calls from a user message: neither provider accepts them there. */
-function withoutAssistantBlocks(message: Message): Message {
-  if (message.role !== "user") return message;
-  if (!message.content.some(isAssistantOnly)) return message;
-  return { ...message, content: message.content.filter((block) => !isAssistantOnly(block)) };
+// Blocks -------------------------------------------------------------------------------------------------------------
+
+/**
+ * Removes the blocks no target accepts in this message: reasoning and tool calls in a user message, empty text, and
+ * reasoning when the target does not reason. Replaces images when the target takes none.
+ */
+function withSendableBlocks(message: Message, caps: ModelCaps): Message {
+  if (message.role === "tool") return caps.images ? message : { ...message, content: message.content.map(imageToText) };
+  const content = message.content.flatMap((block) => sendableBlock(block, message.role === "user", caps));
+  return { ...message, content };
 }
 
-function isAssistantOnly(block: ContentBlock): boolean {
-  return block.type === "reasoning" || block.type === "tool_call";
+function sendableBlock(block: ContentBlock, inUserMessage: boolean, caps: ModelCaps): ContentBlock[] {
+  if (block.type === "text") return block.text === "" ? [] : [block];
+  if (block.type === "image") return [caps.images ? block : imageToText(block)];
+  if (block.type === "tool_call") return inUserMessage ? [] : [block];
+  return inUserMessage || !caps.reasoning ? [] : [block];
+}
+
+function imageToText<T extends ContentBlock>(block: T): T | Block<"text"> {
+  return block.type === "image" ? { type: "text", text: IMAGE_PLACEHOLDER } : block;
 }
 
 // Reasoning ----------------------------------------------------------------------------------------------------------
 
 /**
- * Judges every reasoning block in a completed assistant turn, then drops each one at or before the newest dropped
- * block. A view may leave out the oldest run of thinking blocks, never one in the middle (HD3 rule 1). Keeping the
- * newest run means a later drop only ever removes blocks older than itself, so older thinking leaves as a leading run.
+ * Judges every reasoning block in a completed assistant turn. For an Anthropic target it then drops each one at or
+ * before the newest dropped block, because a request may omit the oldest run of thinking blocks, never one in the
+ * middle (HD3 rule 1). Keeping the newest run means a later drop only ever removes blocks older than itself, so older
+ * thinking leaves as a leading run. Other targets check no such order, so they lose only the blocks judged unsendable.
  * Failed turns are skipped later, so their reasoning is not judged and does not count as a drop.
  */
 function applyReasoningRules(messages: readonly Message[], target: ModelRef): Message[] {
@@ -84,7 +108,7 @@ function applyReasoningRules(messages: readonly Message[], target: ModelRef): Me
       if (block.type === "reasoning") verdicts.push(judgeReasoning(block, message.model, target));
     }
   }
-  const lastDropped = verdicts.lastIndexOf(undefined);
+  const lastDropped = target.api === ANTHROPIC_API ? verdicts.lastIndexOf(undefined) : -1;
   let position = 0;
   const keep = (): Block<"reasoning"> | undefined => {
     const verdict = verdicts[position];
@@ -115,118 +139,90 @@ function signatureFits(signature: NonNullable<Block<"reasoning">["signature"]>, 
   return target.api === ANTHROPIC_API || signature.model === target.id;
 }
 
-// Images -------------------------------------------------------------------------------------------------------------
-
-function withoutImages(message: Message): Message {
-  if (message.role === "tool") return { ...message, content: message.content.map(imageToText) };
-  return { ...message, content: message.content.map(imageToText) };
-}
-
-function imageToText<T extends ContentBlock>(block: T): T | Block<"text"> {
-  return block.type === "image" ? { type: "text", text: IMAGE_PLACEHOLDER } : block;
-}
-
 // Tool calls and results ---------------------------------------------------------------------------------------------
 
-interface PendingCall {
+interface Call {
   readonly original: string;
   readonly id: string;
-  /** Counts assistant turns, so a result can prefer the newest turn that made a call with its id. */
+  /** The index of the assistant message that made the call, so a result can prefer the newest turn. */
   readonly turn: number;
   /** True for a call from a failed turn: a result that answers it is dropped with the turn. */
   readonly skipped: boolean;
   answered: boolean;
+  result?: ToolMessage;
+}
+
+/** A completed assistant turn with its calls in order, each of which later gets its result. */
+interface Turn {
+  readonly message: AssistantMessage;
+  readonly calls: readonly Call[];
 }
 
 /**
- * One assistant turn's calls, the results that answer them, and the other messages that arrive before the next turn.
- * Failed turns and assistant messages left with no content add no turn of their own; a failed turn's calls join the
- * open segment only to absorb their results. The messages before the first assistant turn form a segment with no
- * calls of its own.
+ * Pairs every result with a call made before it, across the whole transcript, then writes each completed turn
+ * followed by its calls' results in call order. User messages keep their place; a tool result appears only after the
+ * turn it answers.
  */
-interface Segment {
-  readonly calls: PendingCall[];
-  readonly results: ToolMessage[];
-  readonly held: Message[];
-}
-
 function pairToolCalls(messages: readonly Message[]): Message[] {
   const allocateId = idAllocator();
-  const output: Message[] = [];
-  let segment: Segment = { calls: [], results: [], held: [] };
-  let turn = 0;
-  for (const message of messages) {
-    if (message.role === "assistant") {
-      turn += 1;
-      if (isFailedTurn(message)) {
-        absorbFailedTurn(message, segment, turn);
-      } else if (message.content.length > 0) {
-        // An emptied message never reaches this branch, so it leaves the segment open for the previous turn's results.
-        closeSegment(segment, output);
-        segment = { calls: [], results: [], held: [] };
-        output.push(openTurn(message, segment, turn, allocateId));
+  const calls: Call[] = [];
+  const turns = new Map<number, Turn>();
+  messages.forEach((message, index) => {
+    if (message.role === "tool") {
+      answer(calls, message);
+    } else if (message.role === "assistant" && isFailedTurn(message)) {
+      for (const block of message.content) {
+        if (block.type !== "tool_call") continue;
+        calls.push({ original: block.callId, id: block.callId, turn: index, skipped: true, answered: false });
       }
-    } else if (message.role === "tool") {
-      answer(segment, message);
-    } else if (message.content.length > 0) {
-      segment.held.push(message);
+    } else if (message.role === "assistant" && message.content.length > 0) {
+      const turn = openTurn(message, index, allocateId);
+      calls.push(...turn.calls);
+      turns.set(index, turn);
     }
-  }
-  closeSegment(segment, output);
+  });
+  const output: Message[] = [];
+  messages.forEach((message, index) => {
+    const turn = turns.get(index);
+    if (turn !== undefined) {
+      output.push(turn.message, ...turn.calls.map((call) => call.result ?? syntheticResult(call.id)));
+    } else if (message.role === "user" && message.content.length > 0) {
+      output.push(message);
+    }
+  });
   return output;
 }
 
-/** Adds a failed turn's calls to the open segment, so the results that answer them are dropped with the turn. */
-function absorbFailedTurn(message: AssistantMessage, segment: Segment, turn: number): void {
-  for (const block of message.content) {
-    if (block.type !== "tool_call") continue;
-    segment.calls.push({ original: block.callId, id: block.callId, turn, skipped: true, answered: false });
-  }
-}
-
-function openTurn(
-  message: AssistantMessage,
-  segment: Segment,
-  turn: number,
-  allocateId: (id: string) => string,
-): AssistantMessage {
-  return { ...message, content: message.content.map((block) => remapCall(block, segment, turn, allocateId)) };
-}
-
-function remapCall(
-  block: ContentBlock,
-  segment: Segment,
-  turn: number,
-  allocateId: (id: string) => string,
-): ContentBlock {
-  if (block.type !== "tool_call") return block;
-  const id = allocateId(block.callId);
-  segment.calls.push({ original: block.callId, id, turn, skipped: false, answered: false });
-  return id === block.callId ? block : { ...block, callId: id };
+function openTurn(message: AssistantMessage, index: number, allocateId: (id: string) => string): Turn {
+  const calls: Call[] = [];
+  const content = message.content.map((block): ContentBlock => {
+    if (block.type !== "tool_call") return block;
+    const id = allocateId(block.callId);
+    calls.push({ original: block.callId, id, turn: index, skipped: false, answered: false });
+    return id === block.callId ? block : { ...block, callId: id };
+  });
+  return { message: { ...message, content }, calls };
 }
 
 /**
- * Matches a result to an unanswered call with its id, preferring the newest turn and, within it, the first call, so
- * a repeated id pairs its results in order and a failed turn's result never answers an earlier call.
+ * Gives a result to an unanswered earlier call with its id. A completed turn's call beats a skipped one, so a failed
+ * turn never takes a result a completed turn is waiting for; then the newest turn wins and, within it, the first
+ * call, so a repeated id pairs its results in order.
  */
-function answer(segment: Segment, result: ToolMessage): void {
-  let call: PendingCall | undefined;
-  for (const pending of segment.calls) {
-    if (pending.answered || pending.original !== result.callId) continue;
-    if (call === undefined || pending.turn > call.turn) call = pending;
+function answer(calls: readonly Call[], result: ToolMessage): void {
+  let best: Call | undefined;
+  for (const call of calls) {
+    if (call.answered || call.original !== result.callId) continue;
+    if (best === undefined || outranks(call, best)) best = call;
   }
-  if (call === undefined) return;
-  call.answered = true;
-  if (call.skipped) return;
-  segment.results.push(call.id === result.callId ? result : { ...result, callId: call.id });
+  if (best === undefined) return;
+  best.answered = true;
+  if (!best.skipped) best.result = best.id === result.callId ? result : { ...result, callId: best.id };
 }
 
-function closeSegment(segment: Segment, output: Message[]): void {
-  output.push(...segment.results);
-  for (const call of segment.calls) {
-    if (!call.answered && !call.skipped) output.push(syntheticResult(call.id));
-  }
-  output.push(...segment.held);
+function outranks(call: Call, best: Call): boolean {
+  if (call.skipped !== best.skipped) return !call.skipped;
+  return call.turn > best.turn;
 }
 
 function syntheticResult(callId: string): ToolMessage {
@@ -234,19 +230,72 @@ function syntheticResult(callId: string): ToolMessage {
   return { role: "tool", callId, content, isError: true };
 }
 
-/** Concatenates the content of adjacent user messages, so the output never holds two user messages in a row. */
-function mergeUserMessages(messages: readonly Message[]): Message[] {
-  const output: Message[] = [];
+// Message shape ------------------------------------------------------------------------------------------------------
+
+/**
+ * Merges adjacent messages of the same role. When a merge drops reasoning and the target is Anthropic, every older
+ * reasoning block goes too, as in the reasoning rule, and a second merge joins the messages that leaves adjacent.
+ * That merge drops no reasoning, because none is left at or before the first merge's drop.
+ */
+function mergeAdjacentMessages(messages: readonly Message[], target: ModelRef): Message[] {
+  const first = mergeOnce(messages);
+  if (first.droppedThrough < 0 || target.api !== ANTHROPIC_API) return first.merged;
+  return mergeOnce(withoutReasoningThrough(first.merged, first.droppedThrough)).merged;
+}
+
+interface MergeResult {
+  readonly merged: Message[];
+  /** The index of the newest merged message that lost reasoning, or -1. */
+  readonly droppedThrough: number;
+}
+
+/** Joins each run of adjacent user or assistant messages into one, and drops messages left with no content. */
+function mergeOnce(messages: readonly Message[]): MergeResult {
+  const merged: Message[] = [];
+  let droppedThrough = -1;
   for (const message of messages) {
-    const last = output.at(-1);
+    if (message.role !== "tool" && message.content.length === 0) continue;
+    const last = merged.at(-1);
     if (message.role === "user" && last?.role === "user") {
-      const merged: UserMessage = { role: "user", content: [...last.content, ...message.content] };
-      output[output.length - 1] = merged;
+      const joined: UserMessage = { role: "user", content: [...last.content, ...message.content] };
+      merged[merged.length - 1] = joined;
+    } else if (message.role === "assistant" && last?.role === "assistant") {
+      const { joined, dropped } = joinAssistant(last, message);
+      merged[merged.length - 1] = joined;
+      if (dropped) droppedThrough = merged.length - 1;
     } else {
-      output.push(message);
+      merged.push(message);
     }
   }
-  return output;
+  return { merged, droppedThrough };
+}
+
+/**
+ * Appends a later assistant message to an earlier one. The later reasoning is dropped when the earlier message has
+ * text or tool calls, since it would otherwise follow them. Kept reasoning was judged against its own message's
+ * model, so the merged message keeps the earlier model when the earlier message carries reasoning.
+ */
+function joinAssistant(
+  earlier: AssistantMessage,
+  later: AssistantMessage,
+): { joined: AssistantMessage; dropped: boolean } {
+  const hasBody = earlier.content.some((block) => block.type !== "reasoning");
+  const appended = hasBody ? later.content.filter((block) => block.type !== "reasoning") : later.content;
+  const model = earlier.content.some((block) => block.type === "reasoning") ? earlier.model : later.model;
+  const joined: AssistantMessage = { ...later, model, content: [...earlier.content, ...appended] };
+  return { joined, dropped: appended.length < later.content.length };
+}
+
+function withoutReasoningThrough(messages: readonly Message[], through: number): Message[] {
+  return messages.map((message, index) => {
+    if (index > through || message.role !== "assistant") return message;
+    return { ...message, content: message.content.filter((block) => block.type !== "reasoning") };
+  });
+}
+
+function startWithUser(messages: Message[], inputHadUser: boolean): Message[] {
+  if (!inputHadUser || messages.length === 0 || messages[0]?.role === "user") return messages;
+  return [{ role: "user", content: [{ type: "text", text: CONTINUED_TEXT }] }, ...messages];
 }
 
 /**
