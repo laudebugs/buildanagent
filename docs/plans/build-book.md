@@ -1,4 +1,4 @@
-# Plan: write a two-part textbook on building an agent, published from `apps/book` to manual.buildanagent.fyi
+# Plan: write a two-part textbook on building an agent, published from `apps/manual` to manual.buildanagent.fyi
 
 - **Status:** Approved (2026-11-19). The owner answered the design, licence, vendoring and Cloudflare questions, then asked for a review, including a check that the outline covers every part of building an agent. Asked to approve the reviewed plan, the owner said "If green merge" and then "Then continue work", so its 46 todos now start once their **Depends on** are done (§7).
 - **Date:** 2026-11-19
@@ -7,7 +7,7 @@
 - **Decision records:** [ADR 0052](../decisions/0052-book-in-apps-on-cloudflare.md) (accepted, owner), [ADR 0053](../decisions/0053-book-stack-and-deploy.md) (proposed), [ADR 0054](../decisions/0054-reuse-garment-textbook-code.md) (accepted for the permission, the exclusions and the Apache-2.0 licence; proposed for the list)
 - **Todos:** Round T ("textbook") on the [todo board](../todos/README.md); §5 lists them.
 
-This repository already holds most of what a book on building agents needs. It has three guides, a research report with a fact-check log, eight SDK references, and 70 example programs that type-check and run offline against mock models. But these sources are written for the engineers who will build our stack, and they assume the reader knows how an agent works. The owner wants a textbook for two readers: developers new to agents, and experienced builders who want the design reasons. The owner's garment engineering textbook shows what goes wrong when a book like this grows by hand: chapters numbered by hand needed about fifty redirects after renumbering, and figure numbers were typed into captions. **This plan builds the book as a static Astro site in `apps/book` whose chapter, figure and listing numbers, citations, glossary links and code listings are all computed and checked at build time. It deploys the site as an assets-only Worker on manual.buildanagent.fyi. After eleven tooling todos, ten new examples and four research rounds, it writes eighteen chapters in the owner's "call, then workflow, then loop" order, each fact-checked section by section.**
+This repository already holds most of what a book on building agents needs. It has three guides, a research report with a fact-check log, eight SDK references, and 70 example programs that type-check and run offline against mock models. But these sources are written for the engineers who will build our stack, and they assume the reader knows how an agent works. The owner wants a textbook for two readers: developers new to agents, and experienced builders who want the design reasons. The owner's garment engineering textbook shows what goes wrong when a book like this grows by hand: chapters numbered by hand needed about fifty redirects after renumbering, and figure numbers were typed into captions. **This plan builds the book as a static Astro site in `apps/manual` whose chapter, figure and listing numbers, citations, glossary links and code listings are all computed and checked at build time. It deploys the site as an assets-only Worker on manual.buildanagent.fyi. After eleven tooling todos, ten new examples and four research rounds, it writes eighteen chapters in the owner's "call, then workflow, then loop" order, each fact-checked section by section.**
 
 ## 1. Goal and non-goals
 
@@ -26,9 +26,9 @@ This repository already holds most of what a book on building agents needs. It h
 | ID | Decision | Status | ADR |
 | --- | --- | --- | --- |
 | BK1 | A textbook in two parts, with explanatory figures and code from this repository; Part I runs "call, then workflow, then loop" | Accepted (owner, 2026-11-19) | [0052](../decisions/0052-book-in-apps-on-cloudflare.md) |
-| BK2 | The book lives at `apps/book`, public on Cloudflare at manual.buildanagent.fyi, with prose under CC BY 4.0 and code under Apache-2.0 OR MIT | Accepted (owner, 2026-11-19) | [0052](../decisions/0052-book-in-apps-on-cloudflare.md) |
+| BK2 | The book lives at `apps/manual`, public on Cloudflare at manual.buildanagent.fyi, with prose under CC BY 4.0 and code under Apache-2.0 OR MIT | Accepted (owner, 2026-11-19) | [0052](../decisions/0052-book-in-apps-on-cloudflare.md) |
 | BK3 | A static Astro 7.4.11 site with no adapter, Markdown through a unified pipeline, Pagefind 1.6.0 search and Wrangler 4.160.1 | Proposed | [0053](../decisions/0053-book-stack-and-deploy.md) |
-| BK4 | `apps/*` joins the pnpm workspace, and the book is the private package `@buildanagent/book` | Proposed | [0053](../decisions/0053-book-stack-and-deploy.md) |
+| BK4 | `apps/*` joins the pnpm workspace, and the book is the private package `@buildanagent/manual` | Proposed | [0053](../decisions/0053-book-stack-and-deploy.md) |
 | BK5 | The outline lives in code, slugs carry no numbers, and the build numbers chapters, figures, listings and tables | Proposed | none |
 | BK6 | A source register whose every entry points at the fact-check that verified it, with citations that fail the build when unknown | Proposed | none |
 | BK7 | A glossary kept as data, with the first use of each term linked in every chapter | Proposed | none |
@@ -56,9 +56,11 @@ This repository already holds most of what a book on building agents needs. It h
 
 Part I assumes a developer who has called a model API but never built an agent. Each of its chapters ends with a working program the reader can run offline. Part II assumes a reader who has shipped an agent on some SDK and wants to know why ours makes the choices it does; its chapters follow the layers of the [reference architecture][main-arch] and the [SDK][g-sdk] and [harness][g-harness] guides. §4 gives the outline.
 
-### BK2. `apps/book`, public on Cloudflare at manual.buildanagent.fyi (accepted, ADR 0052)
+### BK2. `apps/manual`, public on Cloudflare at manual.buildanagent.fyi (accepted, ADR 0052)
 
 **The owner's decisions (2026-11-19):** "It lives at `apps/book` in this monorepo and is published on Cloudflare at the domain manual.buildanagent.fyi." And: "Public, no sign-in; book prose CC BY 4.0 like our docs (see LICENSE-DOCS), code Apache-2.0 OR MIT."
+
+**Renamed by the owner (2026-11-19):** "Let's make it @buildanagent/manual and apps/manual". The app is `apps/manual` and the private package `@buildanagent/manual`; the site, its domain and every decision below are unchanged ([ADR 0055](../decisions/0055-name-the-book-app-manual.md)).
 
 `apps/` holds the deployable sites, beside `packages/` for libraries and `verify/` for harnesses. The book is one of three sites on the buildanagent.fyi zone, and each links to the other two in its header and footer:
 
@@ -66,7 +68,7 @@ Part I assumes a developer who has called a model API but never built an agent. 
 | --- | --- | --- | --- |
 | buildanagent.fyi | `apps/site` | The project website: what buildanagent is, the packages, links | [DS2](publish-and-docs.md#ds2-two-sites-on-cloudflare-accepted) |
 | docs.buildanagent.fyi | `apps/docs` | The library docs on Starlight, with the API reference | [DS1](publish-and-docs.md#ds1-starlight-docs-with-a-generated-api-reference-accepted) |
-| manual.buildanagent.fyi | `apps/book` | This textbook on building an agent | this plan |
+| manual.buildanagent.fyi | `apps/manual` | This textbook on building an agent | this plan |
 
 The book teaches how agents work and why ours are built as they are; the docs say how to use our packages; the website points at both. T1 lists the book's prose and figures under the documentation terms in [LICENSE](../../LICENSE), and the book's code and figure generators under the code terms.
 
@@ -91,9 +93,9 @@ Chapters are plain `.md` files. Our citation, glossary and figure plugins are re
 
 **Evidence.** Astro 7.4.11 requires Node 22.23.4 or later (`engines`), and our `.nvmrc` names only the major version, `22`, so T1 confirms that CI and local installs resolve to 22.23.4 or later. `@astrojs/check` 0.9.12 accepts TypeScript 5 or 6 as a peer, while the root pins TypeScript 7.0.2 (fact-check row 10). T1 therefore type-checks the book's `.ts` files with the root `tsc` and records whether `astro check` can run at all.
 
-### BK4. `apps/*` joins the workspace as `@buildanagent/book` (proposed)
+### BK4. `apps/*` joins the workspace as `@buildanagent/manual` (proposed)
 
-Whichever of [L5](../todos/ready/L5-docs-app.md), [L7](../todos/ready/L7-website-app.md) or T1 lands first adds `apps/*` to `pnpm-workspace.yaml` ([DS2](publish-and-docs.md#ds2-two-sites-on-cloudflare-accepted)), so T1 adds it only if it is missing. T1 creates `apps/book/package.json` as a private package named `@buildanagent/book`, the naming `apps/docs` and `apps/site` use, with exact pins, Astro 7.4.11 shared with `apps/docs`, and these scripts:
+Whichever of [L5](../todos/ready/L5-docs-app.md), [L7](../todos/ready/L7-website-app.md) or T1 lands first adds `apps/*` to `pnpm-workspace.yaml` ([DS2](publish-and-docs.md#ds2-two-sites-on-cloudflare-accepted)), so T1 adds it only if it is missing. T1 creates `apps/manual/package.json` as a private package named `@buildanagent/manual`, the naming `apps/docs` and `apps/site` use, with exact pins, Astro 7.4.11 shared with `apps/docs`, and these scripts:
 
 - `build`: `astro build && pagefind --site dist`;
 - `check:book`: the content checks of BK5–BK9;
@@ -106,7 +108,7 @@ The root's `pnpm typecheck` and `pnpm test` then cover the book with no change t
 
 ### BK5. The outline lives in code, and the build computes every number (proposed)
 
-**Choice.** `apps/book/src/outline.ts` lists the parts and, for each, the chapter slugs in order. A chapter file lives at `src/content/chapters/<slug>.md`, and its URL is `/<slug>/`. The build derives the chapter number from the slug's position in the outline, and a rehype plugin numbers figures, listings and tables in the order they appear (Figure 3.2, Listing 3.4). Authors refer to them by id, `[[fig:tool-call-round-trip]]`, and the build replaces each reference with a numbered link; an unknown id fails the build. A chapter in the outline whose file is missing shows as plain text in the contents, as in the garment book.
+**Choice.** `apps/manual/src/outline.ts` lists the parts and, for each, the chapter slugs in order. A chapter file lives at `src/content/chapters/<slug>.md`, and its URL is `/<slug>/`. The build derives the chapter number from the slug's position in the outline, and a rehype plugin numbers figures, listings and tables in the order they appear (Figure 3.2, Listing 3.4). Authors refer to them by id, `[[fig:tool-call-round-trip]]`, and the build replaces each reference with a numbered link; an unknown id fails the build. A chapter in the outline whose file is missing shows as plain text in the contents, as in the garment book.
 
 **Why.** Slugs without numbers let a chapter move without breaking a link. The garment book's numbered slugs needed about fifty redirect entries after four renumbering todos (`astro.config.mjs` at commit `bca44b0`; fact-check row 21).
 
@@ -114,7 +116,7 @@ The root's `pnpm typecheck` and `pnpm test` then cover the book with no change t
 
 ### BK6. A source register tied to our fact-checks, with citations that fail the build (proposed)
 
-**Choice.** `apps/book/src/data/sources.json` holds one entry per source:
+**Choice.** `apps/manual/src/data/sources.json` holds one entry per source:
 
 - `id`, a stable kebab-case name such as `claw-swe-bench`;
 - `title`, `url` and `kind` (docs, repo, paper, spec or post);
@@ -128,7 +130,7 @@ Chapters cite with `[@claw-swe-bench]`, which the build turns into a link to `/s
 
 ### BK7. A glossary kept as data, with first uses linked (proposed)
 
-`apps/book/src/data/glossary.json` holds each term's definition, its aliases and its source ids. A remark plugin, adapted from the garment book's `remark-terms.mjs`, links the first use of each term in a chapter to `/glossary/#<term>`, with a hover card and `aria-describedby` text. The check fails when a chapter tags a term that has no entry, or when a definition cites an unknown source. The glossary reuses the repo's own terms (loop, harness, gateway, session log, interceptor, approval, sandbox), so one term means one thing across the book and the guides.
+`apps/manual/src/data/glossary.json` holds each term's definition, its aliases and its source ids. A remark plugin, adapted from the garment book's `remark-terms.mjs`, links the first use of each term in a chapter to `/glossary/#<term>`, with a hover card and `aria-describedby` text. The check fails when a chapter tags a term that has no entry, or when a definition cites an unknown source. The glossary reuses the repo's own terms (loop, harness, gateway, session log, interceptor, approval, sandbox), so one term means one thing across the book and the guides.
 
 ### BK8. Code from `verify/` now, our own SDK as its todos land (accepted)
 
@@ -166,7 +168,7 @@ The anatomy skill is installed for the owner's agents but not committed under [`
 
 ### BK11. Generated, checked, inlined figures that work without JavaScript (proposed)
 
-**Flat figures.** Each lives in `apps/book/figures/<chapter>/<figure>.ts`, a script that writes an SVG with a small helper module adapted from the garment book's `svgkit.py`. Fonts are embedded as a subset data URI, and drawing a glyph outside the subset throws, which prevents silent missing glyphs. A Vitest staleness test redraws every figure and fails when a committed SVG differs byte for byte, as the garment book's `figure_staleness.py` does. The build inlines each SVG instead of loading it in an `<img>`, so the figure's colours come from the page's CSS custom properties and follow the light and dark themes.
+**Flat figures.** Each lives in `apps/manual/figures/<chapter>/<figure>.ts`, a script that writes an SVG with a small helper module adapted from the garment book's `svgkit.py`. Fonts are embedded as a subset data URI, and drawing a glyph outside the subset throws, which prevents silent missing glyphs. A Vitest staleness test redraws every figure and fails when a committed SVG differs byte for byte, as the garment book's `figure_staleness.py` does. The build inlines each SVG instead of loading it in an `<img>`, so the figure's colours come from the page's CSS custom properties and follow the light and dark themes.
 
 **Isometric figures.** Each is built with the vendored anatomy skill. Before a chapter embeds one, `node build.mjs --audit` must print `audit passed`, and `scripts/lines.mjs` must print `line ends: 0` on the light and dark pages ([anatomy, verify][anatomy]). These checks need headless Chrome, so they run in CI's book job (BK14).
 
@@ -203,17 +205,17 @@ Round T ships the web book only. Because numbering, citations and listings are c
 
 ### BK14. One CI job builds the book and runs every check (proposed)
 
-T8 adds `book-build.yml`, the build half of BK15's DS3 split, on GitHub-hosted runners, beside [`ci.yml`](../../.github/workflows/ci.yml). It runs on every pull request and push to `main` with no secrets, installs with `--frozen-lockfile` and runs `check:book`, the source and glossary checks, the listing checks and `book:switch-report`. It then builds the site, which fails on any unknown citation, reference, glossary term or missing caption, and runs the anatomy audits and line check in headless Chrome. The existing `checks` job already runs the book's typecheck and tests through the root scripts, and its results-drift step covers the transcripts. Any action the job adds goes into [`actions.lock`](../../.github/workflows/actions.lock) ([CI plan §3d](ci.md#3d-actions-locked-by-a-lockfile-added-2026-11-19)). No step needs a secret or the network beyond the install, and the workflow uploads only `apps/book/dist/` for the deploy workflow.
+T8 adds `book-build.yml`, the build half of BK15's DS3 split, on GitHub-hosted runners, beside [`ci.yml`](../../.github/workflows/ci.yml). It runs on every pull request and push to `main` with no secrets, installs with `--frozen-lockfile` and runs `check:book`, the source and glossary checks, the listing checks and `book:switch-report`. It then builds the site, which fails on any unknown citation, reference, glossary term or missing caption, and runs the anatomy audits and line check in headless Chrome. The existing `checks` job already runs the book's typecheck and tests through the root scripts, and its results-drift step covers the transcripts. Any action the job adds goes into [`actions.lock`](../../.github/workflows/actions.lock) ([CI plan §3d](ci.md#3d-actions-locked-by-a-lockfile-added-2026-11-19)). No step needs a secret or the network beyond the install, and the workflow uploads only `apps/manual/dist/` for the deploy workflow.
 
 ### BK15. An assets-only Worker on a custom domain, behind a guard and a switch (proposed)
 
-**Configuration.** `apps/book/wrangler.jsonc` names an assets-only Worker with no `main`, `assets.directory` set to `./dist`, and `routes: [{ "pattern": "manual.buildanagent.fyi", "custom_domain": true }]`. A custom domain makes the Worker the origin, and Cloudflare creates the DNS record and certificate ([Cloudflare, custom domains][cf-cd]). The config sets `not_found_handling: "404-page"`, as DS3's sites do, so a missing page serves the book's 404 page. It sets `workers_dev: false`, so the site has one production address. It also sets `preview_urls: true`. Previews are served on `workers.dev`, and a new Worker's preview setting starts from its `workers_dev` value, so without this line the previews would be off ([DS3](publish-and-docs.md#ds3-workers-static-assets-and-a-preview-per-pull-request-accepted)). The file is JSONC, where the docs and website use TOML, because "Cloudflare recommends using `wrangler.jsonc` for new projects, and some newer Wrangler features will only be available to projects using a JSON config file" ([Cloudflare, Wrangler configuration][cf-wcfg]). The guard reused from the garment book also parses JSONC with no dependency. Security headers, including a content security policy that allows only the site's own scripts, come from a `_headers` file in the assets directory, which Workers static assets support ([Cloudflare, headers][cf-headers]).
+**Configuration.** `apps/manual/wrangler.jsonc` names an assets-only Worker with no `main`, `assets.directory` set to `./dist`, and `routes: [{ "pattern": "manual.buildanagent.fyi", "custom_domain": true }]`. A custom domain makes the Worker the origin, and Cloudflare creates the DNS record and certificate ([Cloudflare, custom domains][cf-cd]). The config sets `not_found_handling: "404-page"`, as DS3's sites do, so a missing page serves the book's 404 page. It sets `workers_dev: false`, so the site has one production address. It also sets `preview_urls: true`. Previews are served on `workers.dev`, and a new Worker's preview setting starts from its `workers_dev` value, so without this line the previews would be off ([DS3](publish-and-docs.md#ds3-workers-static-assets-and-a-preview-per-pull-request-accepted)). The file is JSONC, where the docs and website use TOML, because "Cloudflare recommends using `wrangler.jsonc` for new projects, and some newer Wrangler features will only be available to projects using a JSON config file" ([Cloudflare, Wrangler configuration][cf-wcfg]). The guard reused from the garment book also parses JSONC with no dependency. Security headers, including a content security policy that allows only the site's own scripts, come from a `_headers` file in the assets directory, which Workers static assets support ([Cloudflare, headers][cf-headers]).
 
-**Guard.** `apps/book/scripts/guard-deploy.mjs`, adapted from the garment book's guard, refuses to deploy unless the config has exactly that route, no `main`, `assets.directory: "./dist"`, `not_found_handling: "404-page"`, `workers_dev: false`, `preview_urls: true` and a `_headers` file.
+**Guard.** `apps/manual/scripts/guard-deploy.mjs`, adapted from the garment book's guard, refuses to deploy unless the config has exactly that route, no `main`, `assets.directory: "./dist"`, `not_found_handling: "404-page"`, `workers_dev: false`, `preview_urls: true` and a `_headers` file.
 
 **Workflows: the build and deploy split of DS3 (owner, 2026-11-19: "We'll set up gh actions with cloudflare").** The book deploys from GitHub Actions with Wrangler, not through Cloudflare's Workers Builds. It follows the pattern the [publish-and-docs plan's DS3](publish-and-docs.md#ds3-workers-static-assets-and-a-preview-per-pull-request-accepted) sets for the docs and the website, so no pull request can edit the job that holds a Cloudflare token:
 
-- **Build, `book-build.yml`,** on `pull_request` and pushes to `main`. It builds the book with no secrets, runs every book check, and uploads only `apps/book/dist/` as an artifact. Nothing else in the artifact is trusted.
+- **Build, `book-build.yml`,** on `pull_request` and pushes to `main`. It builds the book with no secrets, runs every book check, and uploads only `apps/manual/dist/` as an artifact. Nothing else in the artifact is trusted.
 - **Deploy, `book-deploy.yml`,** on `workflow_run` after the build. GitHub always runs this workflow's definition from `main`. It downloads the artifact, takes `wrangler.jsonc`, `_headers` and the guard script from `main`, and never checks out or runs the pull request's code.
   - **Production:** only when the triggering run was a `push` to `main` from this repository (`github.event.workflow_run.event == 'push'` and `github.event.workflow_run.head_repository.full_name == github.repository`), and only while the repository variable `BOOK_DEPLOY_ENABLED` is `true`. The job runs in the `book-production` environment, in a concurrency group that never cancels a running deploy, and runs the guard before `wrangler deploy`.
   - **Every other run gets a preview:** `wrangler preview --name pr-<number>` in the `book-preview` environment. The job finds the pull request through `GET /repos/{repo}/commits/{head_sha}/pulls`, never from the artifact, and a closed pull request's preview is deleted with `wrangler preview delete`.
@@ -240,7 +242,7 @@ Both tokens are account-owned, the kind Wrangler needs for granular Workers perm
 
 **Owner setup so far (2026-11-19).** The book's three GitHub environments exist: `book-preview`, `book-production` and `live-run`, the last for BK18's live run. `book-preview` and `book-production` each hold `CLOUDFLARE_API_TOKEN` and `CLOUDFLARE_ACCOUNT_ID`. `book-production` and `live-run` allow only protected branches, which here means `main`, and `live-run` has the owner as required reviewer and holds `ANTHROPIC_API_KEY` and `OPENAI_API_KEY` (fact-check rows 113 and 124).
 
-Wrangler reads `CLOUDFLARE_API_TOKEN` and `CLOUDFLARE_ACCOUNT_ID` from the environment ([Cloudflare, system environment variables][cf-env]). Each job's first step checks that its environment's secrets are set and fails with a message that names the missing secret and points to `apps/book/README.md`, so a half-finished setup never deploys.
+Wrangler reads `CLOUDFLARE_API_TOKEN` and `CLOUDFLARE_ACCOUNT_ID` from the environment ([Cloudflare, system environment variables][cf-env]). Each job's first step checks that its environment's secrets are set and fails with a message that names the missing secret and points to `apps/manual/README.md`, so a half-finished setup never deploys.
 
 ### BK16. Reuse the garment textbook's code, credited, without its personal data or rules (accepted, ADR 0054)
 
@@ -351,7 +353,7 @@ Where no SDK can show a behaviour offline, the example todo records the limit in
 Every chapter, section todo and research report follows these steps in order:
 
 1. Draft one section with `/anthropic-skills:writing`.
-2. Fact-check every claim in that section against its primary source into the chapter's log, `apps/book/fact-checks/<slug>.md`, as ✅, ✏️ or ⚠️, and commit the section with its rows before drafting the next section.
+2. Fact-check every claim in that section against its primary source into the chapter's log, `apps/manual/fact-checks/<slug>.md`, as ✅, ✏️ or ⚠️, and commit the section with its rows before drafting the next section.
 3. When every section is drafted, review the whole chapter with `/anthropic-skills:writing-review`, with BK22's voice check.
 4. Fix every finding with `/anthropic-skills:writing`.
 5. Re-check every claim a fix touched, and log the re-checks.
@@ -368,7 +370,7 @@ Every chapter, section todo and research report follows these steps in order:
 
 - **Analogy, then mechanism.** A concept that uses an analogy opens with one concrete, everyday image, followed at once by the precise mechanism. The analogy introduces; the technical text carries every fact, and facts still need sources. An analogy needs no source, but it must not mislead.
 - **Where the analogy breaks.** Each analogy gets a short note saying where it stops being true.
-- **One analogy per concept, never reused.** A concept keeps its analogy through the chapter, with no mixed metaphors, and an analogy explains one concept only, across the whole book. A later chapter may refer back to a concept's analogy by name but may not invent a near-duplicate. A register, `apps/book/src/content/analogies.json`, lists concept, analogy, chapter, illustration and where it breaks. T3's check fails on a duplicate analogy or on an analogy reused for a second concept.
+- **One analogy per concept, never reused.** A concept keeps its analogy through the chapter, with no mixed metaphors, and an analogy explains one concept only, across the whole book. A later chapter may refer back to a concept's analogy by name but may not invent a near-duplicate. A register, `apps/manual/src/content/analogies.json`, lists concept, analogy, chapter, illustration and where it breaks. T3's check fails on a duplicate analogy or on an analogy reused for a second concept.
 - **Analogy illustrations.** These are a figure kind beside the technical figures, drawn in the book's design (tokens from [`docs/design/book-tokens.json`](../design/book-tokens.json)), flat or isometric under BK10 and BK11, with alt text, a caption and both themes. T6 and T7 add the kind. Analogy illustrations never double as technical figures: by the owner's decision of 2026-11-19, T10's kitchen ticket rail and T22's lab glovebox are separate flat illustrations placed just before those chapters' isometric centerpieces (BK10).
 - **Openings vary.** A chapter opens with one of six types: a scenario, an incident, a question, a surprising fact, a piece of code or transcript, or an analogy. No two consecutive chapters share a type, and no type opens more than a quarter of the chapters; §4 assigns each type three times across the eighteen chapters. Sections vary their openings too.
 - **A voice check in every writing review.** Beside the 5Cs, the review of each chapter scores the voice:
@@ -457,7 +459,7 @@ The owner chose to cover every topic group the coverage review named (2026-11-19
 
 | ID | Title | Depends on | Size |
 | --- | --- | --- | --- |
-| [T1](../todos/ready/T1-book-scaffold.md) | Scaffold `apps/book`: workspace wiring, pins, a static build and Pagefind | None | M |
+| [T1](../todos/ready/T1-book-scaffold.md) | Scaffold `apps/manual`: workspace wiring, pins, a static build and Pagefind | None | M |
 | [T2](../todos/ready/T2-book-design.md) | The owner's design as tokens and components: C's layout, C4 pages, theme-following panels and three fonts | T1 | M |
 | [T3](../todos/ready/T3-book-content-model.md) | Content model: outline, numbering, source register, glossary, analogy register and chapter checks | T1 | L |
 | [T4](../todos/ready/T4-book-listings.md) | Code listings from real file regions, with path, lines and pin | T3 | M |
@@ -509,7 +511,7 @@ Chapters are listed in reading order. The longest chain runs T1 → T3 → T4 �
 
 ## 6. Ten risks, each with the todo that handles it
 
-1. **The tool versions move fast.** Astro, Wrangler and the adapter each shipped several releases in the week before 2026-11-19 (BK3). T1 re-pins under the one-week rule, and the weekly SDK-update job could later cover `apps/book`.
+1. **The tool versions move fast.** Astro, Wrangler and the adapter each shipped several releases in the week before 2026-11-19 (BK3). T1 re-pins under the one-week rule, and the weekly SDK-update job could later cover `apps/manual`.
 2. **TypeScript 7 may not check Astro files.** `@astrojs/check` 0.9.12 accepts TypeScript 5 or 6 only (BK3). If T1 finds `astro check` unusable, `.astro` components stay small and logic moves into `.ts` modules that the root `tsc` checks.
 3. **Transcripts may not be deterministic.** Some harnesses mock at the HTTP layer and emit ids and timestamps. T5 normalises them, and a harness whose transcript still varies between runs gets no replay until it is fixed.
 4. **Anatomy figures are slow to audit.** The skill's own notes report a 17-minute full audit for one 3D figure ([anatomy, verify][anatomy]). The book's centerpieces are flat isometric figures without turning groups, and T7 measures the job's time before T8's job adds the audits.

@@ -18,16 +18,16 @@ Add one section to Chapter T35 ("Agents people can watch: UIs, browsers and taki
 ## Context
 
 - [U20](U20-research-voice-and-realtime.md)'s report and fact-check
-- Chapter T35's todo, [T35](T35-chapter-agents-people-can-watch.md), and its fact-check file `apps/book/fact-checks/agents-people-can-watch.md`
+- Chapter T35's todo, [T35](T35-chapter-agents-people-can-watch.md), and its fact-check file `apps/manual/fact-checks/agents-people-can-watch.md`
 - [Book plan BK21 and BK22](../../plans/build-book.md#bk21-every-section-is-fact-checked-before-the-next-is-drafted-accepted)
 
 ## Scope
 
 **In scope**
 
-- One section in `apps/book/src/content/chapters/agents-people-can-watch.md`
+- One section in `apps/manual/src/content/chapters/agents-people-can-watch.md`
 - Listings, if the report recommends an example and a later todo writes it
-- Rows for the section in `apps/book/fact-checks/agents-people-can-watch.md`
+- Rows for the section in `apps/manual/fact-checks/agents-people-can-watch.md`
 
 **Analogy** (BK22): voice interruption, as a phone call where either side can cut in. Where the analogy breaks: the agent must cancel speech and tool calls already in flight when the person cuts in. Use it only if it makes the concept clearer than plain explanation. No illustration unless the section needs one.
 
@@ -39,13 +39,13 @@ Add one section to Chapter T35 ("Agents people can watch: UIs, browsers and taki
 ## Tasks
 
 - [ ] Draft the section with `/anthropic-skills:writing`. If the analogy makes the concept clearer, open with it, then the mechanism and a "Where the analogy breaks" note, and register it in `analogies.json`; otherwise explain the concept plainly.
-- [ ] Fact-check every claim in the section against its primary source into `apps/book/fact-checks/agents-people-can-watch.md` before any further edit, and commit the section together with its fact-check rows (BK21).
+- [ ] Fact-check every claim in the section against its primary source into `apps/manual/fact-checks/agents-people-can-watch.md` before any further edit, and commit the section together with its fact-check rows (BK21).
 - [ ] Run `/anthropic-skills:writing-review` on the whole chapter with the voice check, fix every finding with `/anthropic-skills:writing`, and re-check every claim a fix touched.
 
 ## Acceptance criteria
 
 - [ ] The chapter still builds with every check passing, the analogy check included
-- [ ] `apps/book/fact-checks/agents-people-can-watch.md` has the section's rows and the re-check rows, with an updated tally
+- [ ] `apps/manual/fact-checks/agents-people-can-watch.md` has the section's rows and the re-check rows, with an updated tally
 - [ ] The pull request records the 5C and voice scores, before and after
 - [ ] `pnpm check`, `pnpm typecheck` and `pnpm test` pass offline from the repo root
 

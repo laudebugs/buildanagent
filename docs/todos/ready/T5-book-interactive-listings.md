@@ -60,7 +60,7 @@ Vitest tests for the note and tab directives and the replay's static rendering; 
 
 ## Docs to update
 
-- `apps/book/README.md`: notes, tabs and replays
+- `apps/manual/README.md`: notes, tabs and replays
 - Each covered harness's README: the transcripts folder
 - [AGENTS.md](../../../AGENTS.md) layout: `results/transcripts/` is committed with the other results
 

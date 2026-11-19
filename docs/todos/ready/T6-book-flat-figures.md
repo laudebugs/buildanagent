@@ -25,8 +25,8 @@ Give chapters a way to add flat diagrams that stay correct. Each figure is a com
 
 **In scope**
 
-- `apps/book/figures/lib/svgkit.ts`, a TypeScript port of the garment helper
-- One script per figure under `apps/book/figures/<chapter>/`, and a `figures:build` script
+- `apps/manual/figures/lib/svgkit.ts`, a TypeScript port of the garment helper
+- One script per figure under `apps/manual/figures/<chapter>/`, and a `figures:build` script
 - The staleness test, and the figure plugin with numbering, inline SVG, alt text and caption rules
 - One sample figure for Chapter 1 that exercises every helper
 - A second figure kind, `analogy`, for analogy illustrations (BK22): the same tokens from `docs/design/book-tokens.json`, alt text, caption and both themes, with a caption that names the register entry and links to its "where the analogy breaks" note
@@ -60,7 +60,7 @@ Vitest: the staleness test over every figure, plus unit tests for `svgkit.ts` an
 
 ## Docs to update
 
-- `apps/book/README.md`: how to add a figure
+- `apps/manual/README.md`: how to add a figure
 - THIRD-PARTY-NOTICES.md
 
 ## Risks and open questions

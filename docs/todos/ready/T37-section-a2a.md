@@ -18,16 +18,16 @@ Add one section to Chapter T21 ("Tools at scale: the registry, deferred tools, M
 ## Context
 
 - [U19](U19-research-a2a.md)'s report and fact-check
-- Chapter T21's todo, [T21](T21-chapter-tools-at-scale.md), and its fact-check file `apps/book/fact-checks/tools-at-scale.md`
+- Chapter T21's todo, [T21](T21-chapter-tools-at-scale.md), and its fact-check file `apps/manual/fact-checks/tools-at-scale.md`
 - [Book plan BK21 and BK22](../../plans/build-book.md#bk21-every-section-is-fact-checked-before-the-next-is-drafted-accepted)
 
 ## Scope
 
 **In scope**
 
-- One section in `apps/book/src/content/chapters/tools-at-scale.md`
+- One section in `apps/manual/src/content/chapters/tools-at-scale.md`
 - Listings, if the report recommends an example and a later todo writes it
-- Rows for the section in `apps/book/fact-checks/tools-at-scale.md`
+- Rows for the section in `apps/manual/fact-checks/tools-at-scale.md`
 
 **Analogy** (BK22): A2A, as firms contracting through a standard purchase order. Where the analogy breaks: an A2A task can stream updates and ask for more input, which a purchase order never does. Use it only if it makes the concept clearer than plain explanation. No illustration unless the section needs one.
 
@@ -39,13 +39,13 @@ Add one section to Chapter T21 ("Tools at scale: the registry, deferred tools, M
 ## Tasks
 
 - [ ] Draft the section with `/anthropic-skills:writing`. If the analogy makes the concept clearer, open with it, then the mechanism and a "Where the analogy breaks" note, and register it in `analogies.json`; otherwise explain the concept plainly.
-- [ ] Fact-check every claim in the section against its primary source into `apps/book/fact-checks/tools-at-scale.md` before any further edit, and commit the section together with its fact-check rows (BK21).
+- [ ] Fact-check every claim in the section against its primary source into `apps/manual/fact-checks/tools-at-scale.md` before any further edit, and commit the section together with its fact-check rows (BK21).
 - [ ] Run `/anthropic-skills:writing-review` on the whole chapter with the voice check, fix every finding with `/anthropic-skills:writing`, and re-check every claim a fix touched.
 
 ## Acceptance criteria
 
 - [ ] The chapter still builds with every check passing, the analogy check included
-- [ ] `apps/book/fact-checks/tools-at-scale.md` has the section's rows and the re-check rows, with an updated tally
+- [ ] `apps/manual/fact-checks/tools-at-scale.md` has the section's rows and the re-check rows, with an updated tally
 - [ ] The pull request records the 5C and voice scores, before and after
 - [ ] `pnpm check`, `pnpm typecheck` and `pnpm test` pass offline from the repo root
 
