@@ -1,5 +1,6 @@
 // Offline checks for the release workflow: the shape of .github/workflows/release.yml, which must never read an npm
-// token and must publish only from a push to main, and the decisions scripts/ci/release-plan.mjs makes. The plan
+// token, must version and publish only from a push to main and must keep prereleases off `latest`, and the decisions
+// scripts/ci/release-plan.mjs makes, including the plan this checkout gives once it is on main. The plan
 // tests stub the registry, so nothing here touches the network. Run with `node --test scripts/ci/*.test.mjs`.
 import assert from "node:assert/strict";
 import { mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
@@ -13,7 +14,9 @@ import {
   formatOutputs,
   hasGitHubRelease,
   isPublished,
+  needsVersion,
   planRelease,
+  readPreState,
   releaseNotes,
 } from "./release-plan.mjs";
 
@@ -84,6 +87,15 @@ describe("release.yml", () => {
     assert.match(step.run, /if ref=\$\(gh api "repos\/\$REPO\/git\/ref\/tags\/\$TAG"/);
     assert.match(step.run, /elif ! grep -q "HTTP 404"/);
     assert.match(step.run, /gh api "repos\/\$REPO\/git\/tags\/\$existing" --jq \.object\.sha/);
+    assert.match(step.run, /if \[ "\$PRERELEASE" = "true" \]; then flags\+=\(--prerelease\); fi/);
+    assert.match(step.run, /--target "\$SHA"/, "the release tags the commit that was packed");
+    assert.doesNotMatch(step.run, /GITHUB_SHA/);
+  });
+
+  test("the publish job refuses a prerelease under latest and a stable release under anything else", () => {
+    const step = jobs.publish.steps.find((s) => s.name === "Check the toolchain and that no npm token is present");
+    assert.match(step.run, /\[ "\$DIST_TAG" != "latest" \]/);
+    assert.match(step.run, /ok=\$\(\[ "\$DIST_TAG" = "latest" \]/);
   });
 
   test("the tarballs outlive the release environment's 30-day approval wait", () => {
@@ -96,35 +108,76 @@ describe("release.yml", () => {
     assert.match(step.run, /for pkg in gateway sdk; do/);
     assert.match(
       step.run,
-      /npm publish "\$RELEASE_DIR\/buildanagent-\$pkg-\$VERSION\.tgz" --access public --provenance/,
+      /npm publish "\$RELEASE_DIR\/buildanagent-\$pkg-\$VERSION\.tgz" --tag "\$DIST_TAG" --access public --provenance/,
     );
+    assert.equal(jobs.publish.env.DIST_TAG, `\${{ needs.pack.outputs.dist_tag }}`);
     const [first] = jobs.publish.steps;
     assert.match(first.run, /^echo "registry=https:\/\/registry\.npmjs\.org\/" > "\$RUNNER_TEMP\/npmrc"$/m);
     assert.match(first.run, /^ {2}echo "NPM_CONFIG_USERCONFIG=\$RUNNER_TEMP\/npmrc"$/m);
   });
 
-  test("only the publish job can mint an OIDC token, and only the docs job can start workflows", () => {
+  test("only the publish job can mint an OIDC token, only it and the version job can write, and only docs dispatches", () => {
     for (const [name, job] of Object.entries(jobs)) {
       const permissions = job.permissions ?? workflow.permissions;
       if (name !== "publish") assert.equal(permissions["id-token"], undefined, name);
       if (name !== "docs") assert.equal(permissions.actions, undefined, name);
+      if (name !== "publish" && name !== "version") assert.notEqual(permissions.contents, "write", name);
     }
     assert.deepEqual(jobs.docs.permissions, { actions: "write" });
+    assert.deepEqual(jobs.version.permissions, { contents: "write" });
   });
 
-  test('the "Version packages" pull request stays off until L4b', () => {
-    assert.match(jobs["version-pr"].if, /^false && /);
+  test("there is no Version packages pull request: the version job pushes to main", () => {
+    assert.equal(jobs["version-pr"], undefined);
+    const { version } = jobs;
+    assert.match(version.if, /github\.event_name == 'push' && github\.ref == 'refs\/heads\/main'/);
+    assert.match(version.if, /needs\.plan\.outputs\.needs_version == 'true'/);
+    assert.match(
+      version.if,
+      /!startsWith\(github\.event\.head_commit\.message, 'chore\(release\): version packages'\)/,
+    );
+    const checkout = version.steps.find((s) => s.uses?.startsWith("actions/checkout"));
+    assert.deepEqual(checkout.with, { ref: "main", "fetch-depth": 0, "persist-credentials": false });
+    const step = version.steps.find((s) => s.id === "push");
+    // It versions the newest main, only when something is still pending, and starts no other workflow run.
+    assert.match(step.run, /git reset --quiet --hard origin\/main/);
+    assert.match(step.run, /node scripts\/ci\/release-plan\.mjs needs-version/);
+    assert.match(step.run, /git commit --quiet -m "chore\(release\): version packages to \$version \[skip ci\]"/);
+    assert.match(step.run, /git push --quiet "\$remote" HEAD:main/);
+    assert.match(step.run, /::error::main's branch protection refused the version commit/);
+    assert.match(version.steps.at(-1).run, /node scripts\/ci\/release-plan\.mjs plan \| tee -a "\$GITHUB_OUTPUT"/);
   });
 
-  test("the docs deploy is skipped while docs-deploy.yml is missing", () => {
-    assert.equal(jobs.docs.if, "needs.plan.outputs.docs_deploy == 'true'");
+  test("releases run one at a time and are never cancelled", () => {
+    assert.deepEqual(workflow.concurrency, { group: "release", "cancel-in-progress": false });
+  });
+
+  test("pack releases the version job's commit and plan when it ran, and the run's own otherwise", () => {
+    const { pack } = jobs;
+    assert.deepEqual(pack.needs, ["plan", "version"]);
+    assert.equal(pack.outputs.sha, `\${{ needs.version.outputs.sha || github.sha }}`);
+    for (const key of ["version", "tag", "publish", "dist_tag", "prerelease", "docs_deploy", "node"]) {
+      assert.equal(pack.outputs[key], `\${{ needs.version.outputs.${key} || needs.plan.outputs.${key} }}`, key);
+      assert.ok(jobs.version.outputs[key], `the version job lacks the ${key} output`);
+      assert.ok(jobs.plan.outputs[key], `the plan job lacks the ${key} output`);
+    }
+    const checkout = pack.steps.find((s) => s.uses?.startsWith("actions/checkout"));
+    assert.equal(checkout.with.ref, pack.outputs.sha);
+    // A job that needs a skipped job is skipped too, unless its `if:` starts from !cancelled().
+    for (const name of ["pack", "publish", "docs"]) assert.match(jobs[name].if, /^\$\{\{ !cancelled\(\) && /, name);
+  });
+
+  test("the docs deploy is skipped for a prerelease and while docs-deploy.yml is missing", () => {
+    assert.match(jobs.docs.if, /needs\.pack\.outputs\.docs_deploy == 'true'/);
+    assert.match(jobs.docs.if, /needs\.pack\.outputs\.prerelease == 'false'/);
+    assert.match(jobs.docs.if, /needs\.publish\.result == 'success'/);
     assert.match(jobs.docs.steps[0].run, /gh workflow run docs-deploy\.yml .*-f tag="\$TAG"/);
   });
 
   test("a workflow_dispatch runs only the plan and the pack (a dry run)", () => {
     assert.match(jobs.pack.if, /github\.event_name == 'workflow_dispatch'/);
     assert.equal(jobs.pack.permissions, undefined, "pack keeps the read-only default");
-    for (const name of ["version-pr", "publish"]) assert.match(jobs[name].if, /github\.event_name == 'push'/, name);
+    for (const name of ["version", "publish"]) assert.match(jobs[name].if, /github\.event_name == 'push'/, name);
     // The docs job needs publish, so it is skipped whenever publish is.
     assert.ok(jobs.docs.needs.includes("publish"));
   });
@@ -136,7 +189,7 @@ describe("release-plan.mjs", () => {
     for (const dir of dirs) rmSync(dir, { recursive: true, force: true });
   });
 
-  function fixture({ version = "0.1.0", private: isPrivate = false, changesets = [], docsDeploy = false } = {}) {
+  function fixture({ version = "0.1.0", private: isPrivate = false, changesets = [], docsDeploy = false, pre } = {}) {
     const dir = mkdtempSync(path.join(tmpdir(), "release-plan-"));
     dirs.push(dir);
     for (const pkg of ["gateway", "sdk"]) {
@@ -151,6 +204,12 @@ describe("release-plan.mjs", () => {
     mkdirSync(path.join(dir, ".changeset"));
     writeFileSync(path.join(dir, ".changeset", "README.md"), "# Changesets\n");
     for (const name of changesets) writeFileSync(path.join(dir, ".changeset", name), "---\n---\n");
+    if (pre) {
+      writeFileSync(path.join(dir, ".changeset", "pre.json"), JSON.stringify(pre));
+      // Changesets 3 moves the changesets a prerelease consumed here; they are not pending.
+      mkdirSync(path.join(dir, ".changeset", "pre"));
+      writeFileSync(path.join(dir, ".changeset", "pre", "consumed.md"), "---\n---\n");
+    }
     mkdirSync(path.join(dir, ".github", "workflows"), { recursive: true });
     if (docsDeploy) writeFileSync(path.join(dir, ".github", "workflows", "docs-deploy.yml"), "name: docs-deploy\n");
     writeFileSync(path.join(dir, ".nvmrc"), "22\n");
@@ -222,7 +281,29 @@ describe("release-plan.mjs", () => {
     assert.equal(calls.length, 0);
   });
 
-  test("waits for the Version packages pull request while changesets are pending", async () => {
+  // The plan this checkout gives once it is on main, before anything is published: npm holds only the placeholders, so
+  // the merge publishes the checkout's version. In L4b that is 0.1.0-alpha.0 under `alpha`. It skips while the
+  // checkout has changesets pending, because the version job then versions them before anything publishes.
+  test("this checkout, on main, publishes its version under its dist-tag", {
+    skip: needsVersion(root) ? "the checkout has changesets to version" : false,
+  }, async () => {
+    const { fetchImpl, calls } = registry();
+    const plan = await planRelease({ root, repo, fetchImpl });
+    const pre = readPreState(root);
+    assert.equal(plan.publish, true, plan.reason);
+    assert.equal(plan.version, realVersion);
+    assert.equal(plan.tag, `v${realVersion}`);
+    assert.deepEqual(plan.toPublish, ["@buildanagent/gateway", "@buildanagent/sdk"]);
+    assert.equal(plan.distTag, pre?.mode === "pre" ? pre.tag : "latest");
+    assert.equal(plan.prerelease, pre?.mode === "pre");
+    assert.deepEqual(calls, [
+      `https://registry.npmjs.org/@buildanagent%2fgateway/${realVersion}`,
+      `https://registry.npmjs.org/@buildanagent%2fsdk/${realVersion}`,
+    ]);
+    assert.ok(releaseNotes({ root, version: realVersion }).includes("First public release"));
+  });
+
+  test("waits for the version job while changesets are pending", async () => {
     const plan = await planRelease({
       root: fixture({ changesets: ["brave-cats.md"] }),
       fetchImpl: registry().fetchImpl,
@@ -283,11 +364,71 @@ describe("release-plan.mjs", () => {
     await assert.rejects(isPublished("@buildanagent/sdk", "0.1.0", registry([], 429).fetchImpl), /answered 429/);
   });
 
-  test("refuses prereleases and mismatched versions", async () => {
+  const alpha = { mode: "pre", tag: "alpha" };
+
+  test("in pre mode, publishes the prerelease under the pre tag and leaves the consumed changesets alone", async () => {
+    const plan = await planRelease({
+      root: fixture({ version: "0.1.0-alpha.3", pre: alpha }),
+      fetchImpl: registry().fetchImpl,
+    });
+    assert.equal(plan.publish, true);
+    assert.equal(plan.pending, false);
+    assert.equal(plan.needsVersion, false);
+    assert.equal(plan.distTag, "alpha");
+    assert.equal(plan.prerelease, true);
+    assert.equal(plan.tag, "v0.1.0-alpha.3");
+    const outputs = formatOutputs(plan);
+    assert.match(outputs, /^dist_tag=alpha$/m);
+    assert.match(outputs, /^prerelease=true$/m);
+    assert.match(outputs, /^needs_version=false$/m);
+  });
+
+  test("outside pre mode, publishes under latest", async () => {
+    const plan = await planRelease({ root: fixture(), fetchImpl: registry().fetchImpl });
+    assert.equal(plan.distTag, "latest");
+    assert.equal(plan.prerelease, false);
+  });
+
+  test("refuses a stable version in pre mode, a prerelease outside it, and another pre tag", async () => {
+    const { fetchImpl } = registry();
+    await assert.rejects(planRelease({ root: fixture({ pre: alpha }), fetchImpl }), /isn't a alpha prerelease/);
     await assert.rejects(
-      planRelease({ root: fixture({ version: "0.2.0-beta.0" }), fetchImpl: registry().fetchImpl }),
-      /not a plain x\.y\.z version/,
+      planRelease({ root: fixture({ version: "0.1.0-alpha.0" }), fetchImpl }),
+      /not a plain x\.y\.z version, and \.changeset\/pre\.json isn't in pre mode/,
     );
+    await assert.rejects(
+      planRelease({ root: fixture({ version: "0.1.0-beta.0", pre: alpha }), fetchImpl }),
+      /isn't a alpha prerelease/,
+    );
+  });
+
+  test("refuses a pre.json whose tag can't be a prerelease dist-tag", () => {
+    for (const tag of ["latest", "", "1.0.0", "Alpha"]) {
+      assert.throws(() => readPreState(fixture({ pre: { mode: "pre", tag } })), /can't be an npm dist-tag/, tag);
+    }
+    assert.throws(() => readPreState(fixture({ pre: { mode: "beta", tag: "alpha" } })), /has mode beta/);
+    assert.equal(readPreState(fixture()), undefined);
+  });
+
+  test("asks for a version while changesets are pending or pre mode is exiting, and publishes nothing then", async () => {
+    const { fetchImpl, calls } = registry();
+    const pending = await planRelease({
+      root: fixture({ version: "0.1.0-alpha.0", pre: alpha, changesets: ["a.md"] }),
+      fetchImpl,
+    });
+    assert.equal(pending.needsVersion, true);
+    assert.equal(pending.publish, false);
+    // pnpm changeset pre exit leaves the prerelease version until the next version run.
+    const exiting = fixture({ version: "0.1.0-alpha.4", pre: { mode: "exit", tag: "alpha" } });
+    assert.equal(needsVersion(exiting), true);
+    const plan = await planRelease({ root: exiting, fetchImpl });
+    assert.equal(plan.publish, false);
+    assert.match(plan.reason, /pre mode is exiting/);
+    assert.equal(calls.length, 0);
+    assert.equal(needsVersion(fixture({ version: "0.1.0-alpha.0", pre: alpha })), false);
+  });
+
+  test("refuses mismatched versions", async () => {
     const root = fixture();
     writeFileSync(
       path.join(root, "packages", "sdk", "package.json"),
