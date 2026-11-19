@@ -3,7 +3,7 @@
 | Field | Value |
 | --- | --- |
 | ID | `B9` |
-| Status | `ready` |
+| Status | `ongoing` |
 | Plan | [Build SDK §4, Stage 2](../../plans/build-sdk.md#42-stage-2-adds-the-two-wire-adapters-and-the-replay-pass-between-them) |
 | Round / milestone | Round B (build SDK), M5 |
 | Depends on | [B5](../done/B5-usage-cost-catalog.md), [B6](../done/B6-transform-messages.md), [B7](../done/B7-tool-name-table.md) |
