@@ -15,7 +15,8 @@
     "build": "pnpm -r --if-present build",
     "typecheck": "pnpm -r --if-present typecheck",
     "test": "pnpm -r --if-present test",
-    "verify": "pnpm -r --if-present verify"
+    "verify": "pnpm -r --if-present verify",
+    "fact-check-logs": "node scripts/ci/fact-check-log.mjs"
   },
   "devDependencies": {
     "@biomejs/biome": "2.6.4",

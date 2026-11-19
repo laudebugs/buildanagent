@@ -36,6 +36,9 @@ jobs:
         run: sudo sysctl -w kernel.apparmor_restrict_unprivileged_userns=0
       - run: pnpm install --frozen-lockfile
       - run: pnpm check
+      # Row ids, verdicts, row citations and totals lines of docs/plans/reviews/fact-check-*.md; needs no install.
+      # A wrong totals line is fixed with `pnpm fact-check-logs --write`.
+      - run: node scripts/ci/fact-check-log.mjs
       - run: pnpm typecheck
       - run: pnpm test
       # packages-pack.test.mjs builds and packs both packages, so this step also checks what npm would get.
