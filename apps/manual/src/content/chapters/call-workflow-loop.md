@@ -2,8 +2,8 @@
 title: "Use the least autonomy that works: a call, a workflow, then a loop"
 summary: Three support requests need three shapes of program, one model call, a fixed workflow and an agent loop, and one question picks between them. Who decides the next step, your code or the model?
 opening: scenario
-sources: [anthropic-building-effective-agents, ai-sdk-generate-text, adk-sequential-agents, anthropic-how-tool-use-works]
-glossary: [agent, workflow, agent-loop, stop-condition]
+sources: [anthropic-building-effective-agents, ai-sdk-generate-text, adk-sequential-agents, anthropic-how-tool-use-works, pi-how-pi-works]
+glossary: [agent, workflow, agent-loop, stop-condition, harness]
 switchTo: [B11]
 ---
 
@@ -86,6 +86,20 @@ Here the analogy breaks, and the break teaches the most important fact in this c
 Step through the replay of [[lst:tool-loop]] and you can watch the five steps happen. The first request carries the user's question and the tool list. The model answers with a tool call, `weather` with the city Lisbon, and finishes with `"tool-calls"` instead of `"stop"`. `generateText` runs the tool, whose schema fills in the default unit, and the second request carries the model's call and the `tool_result`{checked=row-28}: Lisbon, 21 degrees, Celsius. The model then answers in text, finishes with `"stop"`, and the loop ends after two model calls.
 
 A loop needs a way to end that does not depend on the model alone, and the AI SDK makes that point the hard way. `stopWhen` sets the stop condition, and `isStepCount(5)` stops the loop after five steps even if the model keeps asking for tools [@ai-sdk-generate-text]. Leave `stopWhen` out, and `generateText` uses its default, `isStepCount(1)`. The same example shows what that default does: the tool still runs in the first step, but no second model call follows, so the model never reads the weather and the final text is empty. We recommend that every loop state its own cap rather than trust a default, because the defaults differ from one SDK to the next, as [[ch:stopping-and-structured-output]] shows. With a cap in place the loop is sure to end: if the model never stops asking for tools, the cap stops it.
+
+## A harness runs the same loop behind one method call
+
+You will not always drive the loop step by step yourself. A harness is the program around a model that runs the loop for you, calls the tools and keeps the session. Pi is one. Its documentation describes the loop in its own words: Pi builds a model request from the system prompt, the conversation so far and the available tools, records the model's response, runs each tool call and records the results. "If tool results or queued messages require another model request, Pi starts another turn. Otherwise, the run ends." [@pi-how-pi-works] That is the five-step cycle again, behind a single method.
+
+:::listing[A harness: one prompt runs the whole loop]{#pi-hello file="verify/pi/examples/01-hello-session.ts" region="hello" replay}
+::note[`fauxSession` builds a Pi session on pi-ai's faux provider, scripted to answer "Hello from Pi."]{#faux}
+::note[`session.prompt()` runs the loop and resolves once the run has finished.]{#prompt}
+::note[The session starts with four tools active: `read`, `bash`, `edit` and `write`.]{#tools}
+:::
+
+In [[lst:pi-hello]] the scripted model answers with text at once, so the loop ends after one model request, and the example's checks confirm it. The events the session emits arrive in order, `message_update` and `message_end` while the answer streams, then `agent_settled` once Pi has nothing left to do. The replay shows the single request going out with Pi's system prompt and the user's "Say hello.", and the answer coming back.
+
+The last note deserves a second look. As of November 2026, a Pi session made this way starts with four tools active, and two of them, `bash` and `write`, can run commands and change files on the machine that runs the agent. The mock in this listing never calls them. A real model could, which is why handing the model the next step also hands it whatever the tools can reach, a question [[ch:approvals-guardrails-and-injection]] and [[ch:permissions-sandboxes-and-credentials]] take up. Who decides the next step in Pi? The model does, exactly as in [[lst:tool-loop]]; the harness only runs the steps the model chooses.
 
 ## Exercises
 

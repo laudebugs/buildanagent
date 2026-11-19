@@ -99,5 +99,15 @@
     "kind": "docs",
     "asOf": "November 2026",
     "verifiedIn": "apps/manual/fact-checks/call-workflow-loop.md"
+  },
+  {
+    "id": "pi-how-pi-works",
+    "title": "How Pi Works",
+    "publisher": "Pi documentation",
+    "url": "https://github.com/earendil-works/pi/blob/v1.5.2/packages/coding-agent/docs/how-pi-works.md",
+    "kind": "docs",
+    "asOf": "November 2026",
+    "version": "v1.5.2",
+    "verifiedIn": "apps/manual/fact-checks/call-workflow-loop.md"
   }
 ]
