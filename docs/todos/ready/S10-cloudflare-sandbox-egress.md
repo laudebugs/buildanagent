@@ -17,7 +17,7 @@ Find out, on a real Cloudflare sandbox, how an allowlisted HTTPS request can lea
 
 - [Browser-use fact-check](../../research/browser-use/fact-check-browser-use.md), rows 112, 114 and 117: on SDK 0.x, outbound rules apply to HTTPS only with `interceptHttps`, HTTPS fails while `enableInternet` is `false`, and `outboundByHost` covers HTTP only.
 - [Cloudflare Containers, outbound traffic](https://developers.cloudflare.com/containers/configuration/outbound-traffic/): `interceptOutboundHttp()` and `interceptOutboundHttps()`, and the container-wide rule that only intercepted traffic leaves.
-- [Migrate to the Durable Object Container API](https://developers.cloudflare.com/containers/guides/migrate-to-durable-object-container-api/): what replaced `outbound`, `outboundByHost`, `allowedHosts` and `interceptHttps` in 1.0.
+- [Migrate from Sandbox SDK 0.x: outbound rules](https://developers.cloudflare.com/sandbox/sdk/migrate/outbound-traffic/): what replaced `outbound`, `outboundByHost`, `allowedHosts` and `interceptHttps` in 1.0.
 - [ADR 0020](../../decisions/0020-default-sandbox-backend.md) and [HD15](../../plans/build-harness.md#hd15-the-credential-proxy-injects-on-reverse-proxy-routes-not-by-intercepting-tls): our current "no TLS interception" rule, which this todo may propose to change for the Cloudflare backend only.
 - [N46b](N46b-cloudflare-sandbox-backend.md): the backend that waits for this todo and the owner's decision.
 

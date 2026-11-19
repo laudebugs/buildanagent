@@ -95,9 +95,9 @@ Three decisions merge with the SDK's. For each, this plan references P1's choice
 1. When a layer edits or removes an earlier message, the view drops every thinking block after the edit point. A view may leave out the oldest run of thinking blocks, the newest run or all of them, never one in between.
 2. The harness builds `system` and `tools` once per session.
 3. A tool change mid-session is announced in a `role: "system"` message, not by changing `tools` (N25).
-4. On a 400 that says a block is "bound to a different conversation", the adapter retries once with `thinking.block_binding.prefix_mismatch_behavior: "drop_block"` (beta header `thinking-binding-controls-2026-08-01`).
+4. On a 400 that says a block is "bound to a different conversation", the adapter retries with `thinking.block_binding.prefix_mismatch_behavior: "drop_block"` (beta header `thinking-binding-controls-2026-08-01`) and sends that setting on every later request of the same session, because the setting acts only on the request that carries it.
 
-N8, N9 and N10 test the first rule, N25 the third, and B8 surfaces the 400 as a typed error kind. N39's ablation records the extra cost of the dropped blocks.
+N8, N9 and N10 test the first rule, N25 the third, and B8 surfaces the 400 as a typed error kind. N39's ablation is where the extra cost of the dropped blocks gets measured, though N39 does not list that arm yet.
 
 ### HD4. `srt` for interactive runs and Docker for headless runs (accepted)
 

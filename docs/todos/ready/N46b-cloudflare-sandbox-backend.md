@@ -20,7 +20,7 @@ Implement the Cloudflare side of the portable seams and pass the N45 conformance
 - [Portable agents report, sandboxes](../../research/deployment/portable-agents.md#four-hosted-sandboxes-meet-our-three-hard-rules-and-e2b-should-come-first): Cloudflare Sandbox's egress model.
 - [ADR 0033](../../decisions/0033-three-deployment-targets.md): the target table.
 - [S10](S10-cloudflare-sandbox-egress.md): the measured egress behaviour of Sandbox SDK 1.0 and the owner's decision on interception.
-- [Cloudflare Containers, outbound traffic](https://developers.cloudflare.com/containers/configuration/outbound-traffic/) and [the Durable Object Container API migration](https://developers.cloudflare.com/containers/guides/migrate-to-durable-object-container-api/): the 1.0 API, as of November 2026.
+- [Cloudflare Containers, outbound traffic](https://developers.cloudflare.com/containers/configuration/outbound-traffic/) and [Sandbox SDK 0.x migration, outbound rules](https://developers.cloudflare.com/sandbox/sdk/migrate/outbound-traffic/): the 1.0 API, as of November 2026.
 
 ## Scope
 
