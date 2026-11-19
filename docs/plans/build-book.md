@@ -184,6 +184,8 @@ The anatomy skill is installed for the owner's agents but not committed under [`
 
 **Isometric figures.** Each is built with the vendored anatomy skill. Before a chapter embeds one, `node build.mjs --audit` must print `audit passed`, and `scripts/lines.mjs` must print `line ends: 0` on the light and dark pages ([anatomy, verify][anatomy]). These checks need headless Chrome, so they run in CI's book job (BK14).
 
+**T6's result (2026-11-19).** A flat figure is `figures/<chapter>/<id>.ts`, drawn with `figures/lib/svgkit.ts`, and `figures:build` writes its SVG beside it. The kit reads the character map of the committed Manual Code subset, so a label with a glyph outside it throws, naming the glyph (fact-check rows 296–298). The kit also throws when a mark leaves the canvas, a label overflows its box, two labels overlap, or a line crosses a label. A chapter places the figure as `:::figure[Caption]{#id}` holding one `::svg{alt="…"}`, and the build inlines it on the figure panel without the file's `<style>`, so its `fig-*` classes take the page's panel tokens and no inline style reaches the page (row 301). An analogy illustration adds `analogy="<register id>"`: the entry must name the figure as its illustration and the caption must start with the analogy's name, and the page links the caption to the entry's break note. Each committed SVG still embeds the font as a data URI and both modes' tokens, so it renders on its own, at about 61 KB a figure (row 299).
+
 **Interactive figures, and rules for every figure.** An interactive figure is an HTML fragment inlined in the chapter, with no iframe and with its ids prefixed. Its first paint is a complete static figure, and scripts only add motion and controls. Every figure needs alt text and a caption, or the build fails, and a figure's facts cite the register like the prose does. No figure is AI-generated, and a source image is copied only when its licence allows; otherwise we redraw it.
 
 ### BK12. The owner picked direction C's layout, C4's page colours and panels that follow the theme (accepted)
@@ -507,7 +509,7 @@ The three research rounds behind the sections each confirmed its placement, and 
 | [T3](../todos/done/T3-book-content-model.md) | Content model: outline, numbering, source register, glossary, analogy register and chapter checks | T1 | L |
 | [T4](../todos/ready/T4-book-listings.md) | Code listings from real file regions, with path, lines and pin | T3 | M |
 | [T5](../todos/ready/T5-book-interactive-listings.md) | Interactive listings: annotations, SDK tabs, recorded-run replay and the transcript recorder | T4 | L |
-| [T6](../todos/ongoing/T6-book-flat-figures.md) | Flat figure pipeline: generated SVGs, analogy illustrations, numbering, themes and the staleness test | T2, T3 | M |
+| [T6](../todos/done/T6-book-flat-figures.md) | Flat figure pipeline: generated SVGs, analogy illustrations, numbering, themes and the staleness test | T2, T3 | M |
 | [T7](../todos/ready/T7-book-isometric-figures.md) | Isometric and interactive figures: the vendored anatomy skill, its audits and inline fragments | T6, T8 | M |
 | [T8](../todos/ready/T8-book-ci.md) | The book's build workflow: every check, no secrets, `dist/` as an artifact | T4, T6 | S |
 | [T9](../todos/ready/T9-book-deploy.md) | Deploy to manual.buildanagent.fyi from GitHub Actions: guard, switch and branch previews | T2, T8 | M |

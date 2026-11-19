@@ -8,7 +8,7 @@
 | Status | `ready` |
 | Plan | [Book plan §4.2](../../plans/build-book.md#42-part-ii-in-depth-for-experienced-builders) |
 | Round / milestone | Round T (textbook), MT |
-| Depends on | [U18](../done/U18-research-retrieval-and-long-term-memory.md), [T5](T5-book-interactive-listings.md), [T6](../ongoing/T6-book-flat-figures.md), [T26](T26-book-checked-inline-code.md), [T41](T41-example-retrieval.md), [T43](T43-example-store-recall-expire.md), [T44](T44-example-context-memory.md) |
+| Depends on | [U18](../done/U18-research-retrieval-and-long-term-memory.md), [T5](T5-book-interactive-listings.md), [T6](../done/T6-book-flat-figures.md), [T26](T26-book-checked-inline-code.md), [T41](T41-example-retrieval.md), [T43](T43-example-store-recall-expire.md), [T44](T44-example-context-memory.md) |
 | Size | M |
 
 ## Goal
