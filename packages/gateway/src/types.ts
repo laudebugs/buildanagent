@@ -14,7 +14,7 @@ export interface OpaqueToken {
 /** One block of message content. */
 export type ContentBlock =
   | { type: "text"; text: string }
-  /** Valid only for the model that made it; `transformMessages()` (B6) drops or converts it for other models. */
+  /** Valid only for the model that made it; `transformMessages()` drops or converts it for other models. */
   | { type: "reasoning"; text: string; signature?: OpaqueToken }
   | { type: "image"; mediaType: string; data: string }
   | { type: "tool_call"; callId: string; name: string; input: unknown };
@@ -32,7 +32,7 @@ export interface ModelRef {
 }
 
 /**
- * Token counts for one model response (D3). There is deliberately no field named `input`: providers disagree on
+ * Token counts for one model response. There is deliberately no field named `input`: providers disagree on
  * whether "input" includes cached tokens, so the uncached part says so in its name and `totalInput()` sums the parts.
  */
 export interface Usage {
@@ -46,7 +46,7 @@ export interface Usage {
   raw: unknown;
 }
 
-/** The price of one response (D4). `total` is `null` when the price is unknown, never a guessed zero. */
+/** The price of one response. `total` is `null` when the price is unknown, never a guessed zero. */
 export interface Cost {
   total: number | null;
   basis: "provider" | "catalog" | "unknown";
@@ -71,7 +71,7 @@ export type Message =
 
 /**
  * A tool as one model call sends it: a name, a description and a JSON Schema for the input. The SDK's
- * `defineTool()` (B10) lowers its Standard Schema or JSON Schema input to this shape.
+ * `defineTool()` lowers its Standard Schema or JSON Schema input to this shape.
  */
 export interface WireTool {
   name: string;
@@ -87,7 +87,7 @@ export interface ModelContext {
   tools: WireTool[];
 }
 
-/** The window and output limit the context layers and the budget (D9) need; filled from the catalog (B5). */
+/** The context window and output limit that context trimming and the budget need; filled from the price catalog. */
 export interface ModelCaps {
   contextWindow: number;
   maxOutputTokens: number;
