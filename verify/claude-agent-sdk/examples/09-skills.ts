@@ -66,5 +66,5 @@ check(
   later[0]?.blocks.some((b) => b.type === "tool_use" && b.name === "Skill"),
   "the model called the Skill tool",
 );
-check(later.length > 0 && later.every((r) => r.text.includes(body)), "after the call, the body rides in every request"); // book:note body-stays
+check(later.length > 0 && later.every((r) => r.text.includes(body)), "after the call, the body appears in every request"); // book:note body-stays
 // #endregion

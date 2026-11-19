@@ -1,7 +1,7 @@
 // Deferred tools: a tool's definition reaches the model only when the model asks for it.
 // With tool search on (the default), the CLI names each MCP tool in a system-role message but sends no schema.
 // The model loads one by calling the built-in ToolSearch tool; `alwaysLoad` opts a server out.
-// The mock model stands in for that choice, so this run is deterministic and offline. The tools
+// The mock model makes that choice, so this run is deterministic and offline. The tools
 // are read-only and in-process, and the run keeps every other built-in tool out of the model's reach.
 // Docs: tool-search.md, custom-tools.md (alwaysLoad: sdk.d.ts, McpSdkServerConfigWithInstance)
 import { createSdkMcpServer, query, tool } from "@anthropic-ai/claude-agent-sdk";
