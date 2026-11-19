@@ -7,7 +7,7 @@
 | ID | `A3` |
 | Status | `ready` |
 | Plan | [Build agent §4, Stage 1](../../plans/build-agent.md#41-stage-1-builds-the-trusted-run-context-the-helpdesk-boundary-and-the-ten-tools) |
-| Round / milestone | Round A (build agent), M7 |
+| Round / milestone | Round A (build agent), M7b |
 | Depends on | [A2](A2-trusted-context-helpdesk.md), [B10](B10-tool-runtime.md), [N11](N11-tool-registry.md) |
 | Size | M |
 

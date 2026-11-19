@@ -40,6 +40,7 @@ Summarise the discarded span between turns with Pi's recall-first template, writ
 
 - [ ] Version the template; store `promptVersion` on the entry.
 - [ ] Script the summary model's reply with `ScriptedModel` and assert the request it received.
+- [ ] Apply [HD3](../../plans/build-harness.md#hd3-layers-1-2-3-and-5-on-by-default-and-a-budget-capped-at-200k-tokens-provisional)'s append-only rule for signed thinking (plan review 2, 2026-11-19): after a compaction, the request view keeps no thinking block that followed the summarised span.
 
 ## Acceptance criteria
 
@@ -48,6 +49,7 @@ Summarise the discarded span between turns with Pi's recall-first template, writ
 - [ ] `beforeCompact` returning a summary replaces ours, and the entry records it
 - [ ] A summary whose projected cost would cross the session cap is skipped and logged
 - [ ] Originals stay in the file and `rerunFrom` an entry before the compaction works
+- [ ] After a compaction on an Anthropic model with preserved thinking, the next request carries no thinking block after the edit point (a scripted test inspects the request)
 - [ ] `pnpm check`, `pnpm typecheck` and `pnpm test` pass offline from the repo root
 
 ## Tests

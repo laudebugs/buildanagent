@@ -11,11 +11,11 @@
 
 ## Goal
 
-Assemble the 20 repository tasks of HD8's accepted seed suite, run them at k = 5 on our harness and on mini-swe-agent, and publish the first report with discordance, so every later change has a baseline. N38b adds the 10 shared triage tasks once Round A has them.
+Assemble the 20 repository tasks of HD8's accepted seed suite, run them at k = 5 on our harness and on mini-swe-agent, and publish the first report with discordance, so every later change has a baseline. Under the owner's HD8 amendment of 2026-11-19, [W12](W12-coding-agent-eval-tasks.md) adds 10 coding-agent tasks to reach 30 before W8's baseline, and N38b adds the 10 shared triage tasks once Round A has them.
 
 ## Context
 
-- [HD8](../../plans/build-harness.md#hd8-a-30-task-seed-suite-from-real-failures-and-triage-tasks-at-k--5-accepted): the decision and its evidence
+- [HD8](../../plans/build-harness.md#hd8-a-30-task-seed-suite-of-20-repository-and-10-coding-agent-tasks-at-k--5-accepted-amended): the decision and its evidence
 - [HD10](../../plans/build-harness.md#hd10-configured-or-discovered-checks-run-in-the-sandbox-after-done-with-flags-recorded-provisional): tuning the completion flags
 - [harness guide §10](../../guides/agent-harness.md#10-evals-should-run-on-inspect-against-mini-swe-agent-and-report-cost-per-task-beside-pass-rate): 20–50 real-failure tasks; what they can and cannot detect
 

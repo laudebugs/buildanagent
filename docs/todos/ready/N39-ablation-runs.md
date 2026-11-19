@@ -38,6 +38,7 @@ Run the settling tests the guide names on recorded and live data: each context l
 ## Tasks
 
 - [ ] Hold model, tasks, prices and limits fixed across arms; change one flag per arm.
+- [ ] On an Anthropic model with preserved thinking, add an arm that measures the cost of the thinking blocks HD3's append-only rule drops after a layer 2–4 edit (plan review 2, 2026-11-19).
 
 ## Acceptance criteria
 

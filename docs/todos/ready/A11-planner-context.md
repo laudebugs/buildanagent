@@ -7,7 +7,7 @@
 | ID | `A11` |
 | Status | `ready` |
 | Plan | [Build agent §4, Stage 3](../../plans/build-agent.md#43-stage-3-runs-the-three-roles-as-linked-turns-and-proves-the-workflow-in-a-capstone) |
-| Round / milestone | Round A (build agent), M7 |
+| Round / milestone | Round A (build agent), M7b |
 | Depends on | [A10](A10-reader-context.md), [A4](A4-read-internal-tools.md), [A7](A7-policy-store-kill-switch.md), [A9](A9-context-taint.md) |
 | Size | M |
 

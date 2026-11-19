@@ -22,10 +22,11 @@ Add the remote transports and connect servers in the background, waiting at the 
 
 **In scope**
 
-- Streamable HTTP and legacy SSE through `McpConnection`
+- Streamable HTTP through `McpConnection`, and SSE for legacy-era servers only: HTTP+SSE has been deprecated since 2025-03-26, and the 2026-07-28 revision formally classes it Deprecated ([MCP 2026-07-28 changelog](https://modelcontextprotocol.io/specification/2026-07-28/changelog), as of November 2026)
 - HTTP servers reached through the egress proxy's allowlist (N20)
 - Background connect; the first prompt waits up to 10 seconds only for `direct` servers
-- `tools/list_changed` notifications re-registering tools at the next turn boundary
+- Tool-list changes diffed against a pin, never re-registered silently. Tool definitions are pinned in N22's `extensions.lock.json` format, and this todo owns the MCP entries. A new or changed tool starts disabled, is announced in a `role: "system"` message (HD3's append-only rule) and needs an approval before the model can call it. The `tools` array sent to the model stays as built at session start
+- List-change notifications from both eras: `notifications/tools/list_changed` from legacy servers, and the opt-in `subscriptions/listen` stream (`toolsListChanged`) from 2026-07-28 servers, with a dropped stream re-issued
 
 **Out of scope** (and which todo covers it)
 
@@ -34,12 +35,16 @@ Add the remote transports and connect servers in the background, waiting at the 
 ## Tasks
 
 - [ ] Serve a local HTTP MCP server in tests on 127.0.0.1.
+- [ ] Write the pin format for MCP tool definitions on N22's lock file, and the diff that classifies each tool as unchanged, new or changed.
+- [ ] Subscribe through `subscriptions/listen` on 2026-07-28 servers, and test a dropped stream with a re-issued request.
 
 ## Acceptance criteria
 
 - [ ] A deferred HTTP server that takes 30 s to answer does not delay the first model call
 - [ ] A direct server that answers in 2 s is listed in the first request
 - [ ] A tool-list change applies at the next turn, never mid-turn
+- [ ] A changed or new tool is disabled, announced in a system message and callable only after an approval; an unchanged tool stays enabled
+- [ ] A tool-list change never changes the `tools` array sent to the model mid-session (a scripted test inspects every request)
 - [ ] `pnpm check`, `pnpm typecheck` and `pnpm test` pass offline from the repo root
 
 ## Tests
@@ -53,6 +58,8 @@ Add the remote transports and connect servers in the background, waiting at the 
 ## Risks and open questions
 
 Remote servers hold their own credentials; the harness passes none unless a credential route names the host.
+
+History: plan review 2 (2026-11-19) replaced the silent re-register on `tools/list_changed` with the diff against a pin (agent connectors report, plan-change item 4), added `subscriptions/listen`, marked SSE legacy-only and tied tool changes to HD3's append-only rule.
 
 ## Definition of done
 

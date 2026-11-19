@@ -27,11 +27,12 @@ Put usage and cost on every assistant message, including failed attempts, so the
 - Pricing of failed attempts
 - A test that warns when an entry's `asOf` is older than 90 days
 - The portable `cacheRetention` option, passed to adapters
+- `projectCost({ inputTokens, maxOutputTokens }, entry)` over one catalog entry, and `projectCallCost(model, context, options)`, which estimates the input and then calls it (ADR 0043: moved here from B14, so B14's loop check and E5's AI SDK guard share one formula)
 
 **Out of scope** (and which todo covers it)
 
 - Per-adapter cache breakpoints (B8, B9)
-- The pre-emptive budget check (B14)
+- The pre-emptive budget check that calls `projectCallCost()` (B14)
 
 ## Tasks
 
@@ -40,6 +41,7 @@ Put usage and cost on every assistant message, including failed attempts, so the
 - [ ] Fold cost onto each `AssistantMessage`; accumulate failed attempts into the call's cost.
 - [ ] Return `{ total: null, basis: "unknown" }` for a model missing from the catalog.
 - [ ] Prefer a provider-billed total when the adapter reports one.
+- [ ] Export `projectCost()` and `projectCallCost()` from `cost.ts`. E5 sees an AI SDK prompt, not a `ModelContext`, so it calls `projectCost()` directly.
 
 ## Acceptance criteria
 
@@ -48,6 +50,7 @@ Put usage and cost on every assistant message, including failed attempts, so the
 - [ ] Two failed attempts and one success yield a cost that includes all three
 - [ ] The staleness test warns on an entry dated more than 90 days before the test clock
 - [ ] Every catalog entry carries `contextWindow` and `maxOutputTokens`, each with its source URL (a schema test)
+- [ ] `projectCallCost()` and `projectCost()` agree on one scripted context
 - [ ] `pnpm check`, `pnpm typecheck` and `pnpm test` pass offline from the repo root
 
 ## Tests
@@ -62,14 +65,9 @@ Put usage and cost on every assistant message, including failed attempts, so the
 
 Prices change often; the catalog states its `asOf` date, and the owner may later want a different refresh cadence.
 
-## Revision (2026-11-18, SDK gaps)
+## History
 
-Gap 5 of the [close-sdk-gaps plan](../../plans/close-sdk-gaps.md#3-each-gap-the-todos-that-cover-it-and-what-changes) needs one cost formula for our loop and for the safety package's AI SDK guard, [E5](E5-pre-call-cost-guard.md). The guard sees an AI SDK prompt, not a `ModelContext`, so it cannot call `projectCallCost(model, context, options)` directly. If the owner accepts [ADR 0043](../../decisions/0043-standalone-safety-core.md), this todo also:
-
-- [ ] Exports `projectCost({ inputTokens, maxOutputTokens }, entry)` over one catalog entry, and `projectCallCost()` (moved here from B14) that estimates the input and then calls it.
-- [ ] Adds a test that `projectCallCost()` and `projectCost()` agree on one scripted context.
-
-The owner accepted [ADR 0043](../../decisions/0043-standalone-safety-core.md) on 2026-11-18, so this revision is in force.
+The SDK-gaps revision of 2026-11-18 moved the cost projection here, for gap 5 of the [close-sdk-gaps plan](../../plans/close-sdk-gaps.md#3-each-gap-the-todos-that-cover-it-and-what-changes) under the accepted [ADR 0043](../../decisions/0043-standalone-safety-core.md); plan review 2 (2026-11-19) folded it into the sections above.
 
 ## Definition of done
 

@@ -36,12 +36,14 @@ Add the two remaining triggers: compact inside a turn when the next call would c
 
 - [ ] Script a model step that returns `error.kind: "overflow"`, then a success.
 - [ ] If need 4 is not yet in the SDK, end the turn and start a new one from the rebuilt context, and note it in the README.
+- [ ] Apply [HD3](../../plans/build-harness.md#hd3-layers-1-2-3-and-5-on-by-default-and-a-budget-capped-at-200k-tokens-provisional)'s append-only rule for signed thinking (plan review 2, 2026-11-19) to mid-turn and overflow compaction: the rebuilt request drops every thinking block after the edit point.
 
 ## Acceptance criteria
 
 - [ ] A 100K-window scripted session compacts mid-turn once when crossing 90%
 - [ ] A 1M-window session does not compact mid-turn by default
 - [ ] An overflow error leads to exactly one compaction and one retry; a second overflow ends the turn with `stopReason: "error"`
+- [ ] After a mid-turn or overflow compaction on an Anthropic model with preserved thinking, the retried request carries no thinking block after the edit point
 - [ ] `pnpm check`, `pnpm typecheck` and `pnpm test` pass offline from the repo root
 
 ## Tests

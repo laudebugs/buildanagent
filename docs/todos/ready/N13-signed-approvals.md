@@ -26,7 +26,7 @@ Make every approval a signed pause in the log that survives restarts and resumes
 
 - `approval_requested` and `approval_resolved` entry types, added to the union and schema
 - `fileKeyStore()` with `load`, `rotate`, `prune`; mode `0600`; outside the sandbox and the log
-- `hmacSigner()` passed on every `run` and `continueRun`
+- `hmacSigner()` passed on every `run` and `continueRun`, imported from `@buildanagent/sdk`, which re-exports it from `@buildanagent/agent-safety` (E3; ADR 0043, noted in plan review 2, 2026-11-19)
 - `Approvals.pending()` and `Approvals.resolve()`: append the resolution, re-run the pipeline on each allow, then `continueRun`
 - `ResolveOptions` with `budgetUsd`, `signal` and `hostContext`, passed to the resumed run like a turn's (R9)
 - `approval/list` data for the protocol (wired in N27)

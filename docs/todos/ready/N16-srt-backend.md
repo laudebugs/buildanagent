@@ -16,7 +16,7 @@ Wrap Anthropic's `srt` sandbox runtime as the OS-tier backend, translate our pol
 ## Context
 
 - [harness guide §6](../../guides/agent-harness.md#6-the-sandbox-and-the-credential-boundary-are-separate-components-and-the-host-not-the-model-owns-both): `srt` defaults, network via proxy sockets, private-range refusal
-- [sandbox-runtime repository](https://github.com/anthropic-experimental/sandbox-runtime)
+- [sandbox-runtime repository](https://github.com/anthropics/sandbox-runtime): the npm package `@anthropic-ai/sandbox-runtime`, whose bin is `srt`. Its README calls it a "Beta Research Preview" whose APIs and configuration formats may change (as of November 2026)
 - [HD4](../../plans/build-harness.md#hd4-srt-for-interactive-runs-and-docker-for-headless-runs-accepted): the decision and its evidence
 
 ## Scope
@@ -34,7 +34,7 @@ Wrap Anthropic's `srt` sandbox runtime as the OS-tier backend, translate our pol
 
 ## Tasks
 
-- [ ] Pick an `srt` release at least a week old, record its version and license in the README.
+- [ ] Pin `@anthropic-ai/sandbox-runtime` 0.0.82, the newest release at least a week old on 2026-11-18 (0.0.83 qualifies from 2026-11-20), and record its version, its Apache-2.0 license and its Beta Research Preview status in the README, with a note that the settings format is pre-1.0. *(Revised in plan review 2, 2026-11-19: the repository moved from `anthropic-experimental` to `anthropics`.)*
 - [ ] Detect a missing binary or unsupported platform and throw `SandboxUnavailableError`.
 - [ ] Spawn `srt` with `spawnEnv()` plus only the settings-file path, never `...process.env` (AGENTS.md, "Running third-party code").
 

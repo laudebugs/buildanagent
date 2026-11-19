@@ -1,5 +1,7 @@
 # F8: Vercel connection and deploy adapter
 
+> **On hold (owner, 2026-11-19): do not start until the owner says go.** The owner lifted the build hold for the SDK, harness and Round E only ([roadmap](../../plans/roadmap.md)).
+
 | Field | Value |
 | --- | --- |
 | ID | `F8` |

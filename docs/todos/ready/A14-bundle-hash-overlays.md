@@ -7,7 +7,7 @@
 | ID | `A14` |
 | Status | `ready` |
 | Plan | [Build agent §4, Stage 3](../../plans/build-agent.md#43-stage-3-runs-the-three-roles-as-linked-turns-and-proves-the-workflow-in-a-capstone) |
-| Round / milestone | Round A (build agent), M7 |
+| Round / milestone | Round A (build agent), M7b |
 | Depends on | [A13](A13-triage-workflow.md) |
 | Size | S |
 

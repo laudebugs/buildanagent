@@ -7,7 +7,7 @@
 | ID | `A20` |
 | Status | `ready` |
 | Plan | [Build agent §4, Stage 4](../../plans/build-agent.md#44-stage-4-builds-the-eval-suite-and-the-release-gate-then-runs-them-live-once-the-owners-inputs-arrive) |
-| Round / milestone | Round A (build agent), M7 |
+| Round / milestone | Round A (build agent), M7b |
 | Depends on | [A18](A18-release-gate-baseline.md), [A19](A19-owner-eval-inputs.md), [N37](N37-inspect-bridge.md) |
 | Size | M |
 

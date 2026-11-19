@@ -27,7 +27,7 @@ Keep every credential outside the sandbox: a host-side, default-deny egress prox
 - `CONNECT` only to allowlisted names whose resolved addresses are outside loopback, link-local, private and metadata ranges
 - Credential routes: sentinel match, method check, header injection, forward over HTTPS
 - `EgressProxy.fetch` for in-process tools
-- `scrubSecrets()` applied before every append
+- `scrubSecrets()` applied before every append. When hosted-browser, CDP or OAuth connector tools exist, it also covers their tokens and session URLs (plan review 2, 2026-11-19)
 - An egress log entry per request (host, method, status, bytes), never headers
 
 **Out of scope** (and which todo covers it)

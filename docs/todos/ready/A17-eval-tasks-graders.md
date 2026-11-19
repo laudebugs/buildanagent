@@ -7,7 +7,7 @@
 | ID | `A17` |
 | Status | `ready` |
 | Plan | [Build agent §4, Stage 4](../../plans/build-agent.md#44-stage-4-builds-the-eval-suite-and-the-release-gate-then-runs-them-live-once-the-owners-inputs-arrive) |
-| Round / milestone | Round A (build agent), M7 |
+| Round / milestone | Round A (build agent), M7b |
 | Depends on | [A15](A15-agent-capstone.md), [N36](N36-eval-reports-replay.md) |
 | Size | M |
 

@@ -1,6 +1,6 @@
 # Plan: turn the build guides into detailed, reviewed plans for our SDK, harness and agent (Round P)
 
-- **Status:** Done (2026-11-18). P1 done: [build-sdk.md](build-sdk.md); P2 done: [build-harness.md](build-harness.md); P3 done: [build-agent.md](build-agent.md); P4 done: [plan review](reviews/plan-review.md), 39 findings, 38 fixed and 1 fixed in part). The phase is complete; building starts from these plans.
+- **Status:** Done (2026-11-18). P1 done: [build-sdk.md](build-sdk.md); P2 done: [build-harness.md](build-harness.md); P3 done: [build-agent.md](build-agent.md); P4 done: [plan review](reviews/plan-review.md), 39 findings, 38 fixed and 1 fixed in part). The phase is complete. The build phase works from six plans: the [SDK](build-sdk.md), the [harness](build-harness.md), the [SDK gaps](close-sdk-gaps.md), the [coding agent](build-coding-agent.md), the [agent platform](build-agent-platform.md) and the deferred triage [agent](build-agent.md). **Revision (plan review 2, 2026-11-19):** the todo ranges in §4 now include the todos added after P4. The later plans carry their own ranges: Round E is E1–E7 with E4a and E4b ([close-sdk-gaps.md](close-sdk-gaps.md)), Round W is W1–W12 and Round F is F1–F18.
 - **Date:** 2026-11-18
 - **Asked for by:** the project owner (2026-11-18): break the research into very detailed plans, and review every plan
 - **Builds on:** the three [build guides](build-guides.md) (Round G)
@@ -34,8 +34,8 @@ The findings and fixes go into `docs/plans/reviews/plan-review.md`. The phase en
 
 | ID | Title | Depends on |
 | --- | --- | --- |
-| P1 | Plan: our agent SDK (done: [build-sdk.md](build-sdk.md), [ADRs](../decisions/README.md), todos B1–B20) | G1b |
-| P2 | Plan: our agent harness (done: [build-harness.md](build-harness.md), ADRs 0012–0021, todos N1–N39) | G2b, P1 |
+| P1 | Plan: our agent SDK (done: [build-sdk.md](build-sdk.md), [ADRs](../decisions/README.md), todos B1–B20 with B15b and B19b) | G1b |
+| P2 | Plan: our agent harness (done: [build-harness.md](build-harness.md), ADRs 0012–0021, todos N1–N50 with N38b, N46a/b, N47a/b and N48a/b) | G2b, P1 |
 | P3 | Plan: our agent (done: [build-agent.md](build-agent.md), ADRs 0022–0031, todos A1–A24) | G3b, P2 |
 | P4 | Review all three plans together, and fix the findings (done: [plan-review.md](reviews/plan-review.md)) | P1, P2, P3 |
 

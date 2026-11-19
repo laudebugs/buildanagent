@@ -21,7 +21,7 @@ This log checks every factual claim in [build-coding-agent.md](../build-coding-a
 | 8 | U11 calls the snapshot cache the largest new design | ✅ | Portable agents report: "The snapshot cache is the largest new design" |
 | 9 | Cloud Run sandboxes and Azure dynamic sessions allow egress only on or off and fail the allowlist rule | ✅ | Portable agents report, sandbox table rows for both |
 | 10 | The SDK's `ProviderConfig` takes `apiKey` as a string | ✅ | [SDK plan §3.2](../build-sdk.md#32-gateway-api): `interface ProviderConfig { apiKey: string; … }` |
-| 11 | N38b adds ten triage tasks after A17 and A19; N38 runs twenty repository tasks | ✅ | [Harness plan, HD8](../build-harness.md#hd8-a-30-task-seed-suite-from-real-failures-and-triage-tasks-at-k--5-accepted) and the §4.7 todo table |
+| 11 | N38b adds ten triage tasks after A17 and A19; N38 runs twenty repository tasks | ✅ | [Harness plan, HD8](../build-harness.md#hd8-a-30-task-seed-suite-of-20-repository-and-10-coding-agent-tasks-at-k--5-accepted-amended) and the §4.7 todo table |
 | 12 | HD8 runs at k = 5 with a $3 cap, which is mini-swe-agent's default | ✅ | HD8, "Choice" and "Evidence" |
 | 13 | U11's per-target table maps Cloudflare to DO SQLite, AWS to DynamoDB with a conditional write and lease row, Vercel to Postgres; it is inference and untested | ✅ | Portable agents report, per-target table and the sentence before it |
 | 14 | Cloudflare Sandbox can be driven only from Workers | ✅ | Portable agents report, quoting Cloudflare: "If your application runs outside of the Workers ecosystem, it cannot interact with sandboxes directly" |

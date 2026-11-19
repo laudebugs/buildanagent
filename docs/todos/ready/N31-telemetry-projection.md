@@ -37,7 +37,7 @@ Project OTel `gen_ai.*` spans from stored entries, with an approval-wait span, c
 
 ## Tasks
 
-- [ ] Test with `@opentelemetry/sdk-trace-base` 2.12.0's in-memory exporter as a dev dependency.
+- [ ] First confirm the in-memory span exporter's export name in `@opentelemetry/sdk-trace` 2.12.1. Then test with that exporter as an exact-pinned dev dependency. *(Revised in plan review 2, 2026-11-19: `@opentelemetry/sdk-trace-base` is deprecated in favour of `@opentelemetry/sdk-trace`, the line the OTLP exporter 0.223.2 already pulls.)*
 - [ ] Import the SDK's attribute module; define no `gen_ai.*` name in the harness.
 
 ## Acceptance criteria

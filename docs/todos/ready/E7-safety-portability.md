@@ -1,13 +1,13 @@
 # E7: The safety stores on Cloudflare, AWS and Vercel, and the package tests in workerd
 
-> **On hold (owner, 2026-11-19): do not start until the owner says go.** The owner approved Round E's reviewed todos but said "Approve plan, don't start yet" ([SG2](../../plans/close-sdk-gaps.md#sg2-round-e-may-start-before-round-b-after-b1-and-b5-and-only-once-the-owner-says-go-accepted-on-hold)).
+> **History:** the owner held Round E on 2026-11-19 ("Approve plan, don't start yet") and lifted the hold the same day ("Lift hold on all of E"), so this todo starts once its **Depends on** are done ([SG2](../../plans/close-sdk-gaps.md#sg2-round-e-may-start-before-round-b-after-b1-and-b5-accepted-hold-lifted)).
 
 | Field | Value |
 | --- | --- |
 | ID | `E7` |
 | Status | `ready` |
 | Plan | [Close SDK gaps §4](../../plans/close-sdk-gaps.md#4-round-e-and-its-todos) |
-| Round / milestone | Round E (close the SDK gaps) |
+| Round / milestone | Round E (close the SDK gaps), M5e |
 | Depends on | [E4b](E4b-ordered-plan-execution.md), [E5](E5-pre-call-cost-guard.md), [E6](E6-byok-no-fallback.md) |
 | Size | M |
 
