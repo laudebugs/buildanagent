@@ -168,6 +168,14 @@ The retrieval and memory research (U18) read the memory typings of `@google/adk`
 
 **M2. The in-memory service matches whole lowercase words only.** The adk-js guide says matching "is whole-word, so `flight` does not match `flights`" (`source/adk-js/docs/guides/memory/index.md:66`), so a recall query must use words that appear in the stored events. No example tests `InMemoryMemoryService` yet.
 
+## U19 A2A findings: the `basePath` default drifts, and the guide uses the old card path (2026-11-19)
+
+The A2A research (U19) read the A2A code of `@google/adk` 2.5.0 on 2026-11-19, and the owner approved recording what it found (owner decision 2026-11-19; [A2A report](../../research/a2a/agent-to-agent-protocols.md#one-of-our-eight-sdks-ships-a2a-in-typescript-and-it-speaks-03-not-10); [SDK notes](../../research/a2a/notes/sdk-support.md#google-adk-googleadk-250)). Neither finding changes the counts above. No example has run either path yet; T45 will.
+
+**A1. `ToA2aOptions.basePath` documents a default the code does not use.** The typing says "The base path for the A2A RPC URL (default: "a2a")" (`dist/types/a2a/agent_to_a2a.d.ts:39`), but the code sets `const basePath = options.basePath || ""` (`dist/esm/a2a/agent_to_a2a.js:82`) and mounts the card, `/rest` and `/jsonrpc` under it (`:116`, `:120`, `:128`). An unset `basePath` therefore serves the endpoints at the root, not under `/a2a`. A caller who builds URLs from the documented default reaches nothing.
+
+**A2. The agents guide's `RemoteA2AAgent` example uses the pre-0.3 card path.** It passes `agentCard: 'https://billing-agent.example.invalid/.well-known/agent.json'` (`source/adk-js/docs/guides/agents/index.md:333`). ADK itself serves the card at `.well-known/agent-card.json`: it re-exports `AGENT_CARD_PATH` from `@a2a-js/sdk` (`dist/types/a2a/a2a_remote_agent.d.ts:6` and `:12`), and `@a2a-js/sdk` 0.3.14 declares that value (`dist/index.d.ts:15`). The error is minor, because the URL names an example host.
+
 ## What we could not verify
 
 Five areas stayed outside the offline harness:

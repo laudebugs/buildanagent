@@ -81,6 +81,8 @@ Function-only graphs need no model at all, so they test cheaply. `Workflow` also
 
 > **Gotcha.** Constructing a `Workflow` logs "Class Workflow is experimental and may change in the future." (seen in example 03's output). The `.d.ts` carries no `@experimental` tag, so an editor shows nothing, and the graphs overview tags the feature "TypeScript v2.0.0" with an experimental note for Kotlin only (`docs/graphs/index.md`). Only the retry page warns that the TypeScript workflow APIs behind retries and timeouts are experimental (`docs/graphs/retry.md`). Treat the whole graph runtime as experimental in 2.5.0 (fact-check F8).
 
+An agent can also delegate to a remote agent over A2A. `RemoteA2AAgent` is an ordinary `BaseAgent` that calls one, and `toA2a()` serves an agent as an A2A server, both from `@google/adk/a2a` on protocol 0.3 as of November 2026. Two details differ from the docs and typings (fact-check A1 and A2). `ToA2aOptions.basePath` documents a default of `"a2a"`, but the code mounts the endpoints at the root, so set `basePath` yourself. The agents guide's example also points at the old `/.well-known/agent.json` card path, while ADK serves `/.well-known/agent-card.json`. The [A2A report](../../research/a2a/agent-to-agent-protocols.md#one-of-our-eight-sdks-ships-a2a-in-typescript-and-it-speaks-03-not-10) covers the rest, and the book's example T45 runs both ends offline.
+
 ## 6. Session state is scoped by key prefix, and changes go through events
 
 State keys carry their scope in a prefix (`docs/sessions/state.md`, "State Prefixes"):
