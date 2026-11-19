@@ -158,7 +158,12 @@ test("the harness table names every verify/ harness and a main package its packa
   }
 });
 
-test("every region marked in a verify/ example resolves to a listing with its harness's pin", () => {
+// Slow by design: the first listing in each harness runs that harness's real `tsc -p <config> --listFilesOnly` to
+// check that its typecheck covers the file. The test takes about 2 seconds on an idle machine, and it ran past
+// Vitest's 5-second default under the parallel `pnpm test`, so this one test gets 30 seconds.
+test("every region marked in a verify/ example resolves to a listing with its harness's pin", {
+  timeout: 30_000,
+}, () => {
   let regions = 0;
   for (const harness of real.harnesses.harnesses.keys()) {
     const dir = join(repoRoot, harness, "examples");
