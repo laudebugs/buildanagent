@@ -188,9 +188,10 @@ jobs:
         run: |
           set -euo pipefail
           date=$(date -u +%F)
-          reports=()
-          for report in "$RUNNER_TEMP"/live/live-*/live-report.json; do [ -f "$report" ] && reports+=("$report"); done
-          node scripts/ci/live-run.mjs merge "$RUNNER_TEMP/report.json" "${reports[@]}"
+          # Each report counts for the provider its artifact's directory names, not for what the report claims.
+          dirs=()
+          for dir in "$RUNNER_TEMP"/live/live-*/; do [ -f "$dir/live-report.json" ] && dirs+=("${dir%/}"); done
+          node scripts/ci/live-run.mjs merge "$RUNNER_TEMP/report.json" "${dirs[@]}"
           base=$(git rev-parse HEAD)
           # --cached leaves the working tree at main's commit, so the checks run as main holds them.
           for patch in "$RUNNER_TEMP"/live/live-*/live.patch; do

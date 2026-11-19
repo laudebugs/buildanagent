@@ -178,14 +178,17 @@ export async function guardedCall<T>(
 }
 
 /**
- * Passes a streamed answer through and settles its cost guard however the stream ends: with the usage `usageOf` reads
- * from the parts once it finishes, or, when it fails or the reader cancels it, with no usage, which records the call's
- * projection, every input token at the dearest rate and the whole output allowance.
+ * Passes a streamed answer through and settles its cost guard however the stream ends. When a part that `isFinish`
+ * picks out arrives, the guard settles at once with the usage `usageOf` reads from it, so a reader that stops after
+ * the finish part without cancelling still pays; a stream that ends without one settles with the last usage seen. A
+ * stream that fails, or that the reader cancels first, settles with no usage, which records the call's projection:
+ * every input token at the dearest rate and the whole output allowance. The guard settles once whatever happens.
  */
 export function guardStream<T>(
   stream: ReadableStream<T>,
   guard: LiveCall,
   usageOf: (part: T) => TokenUsage | undefined,
+  isFinish: (part: T) => boolean = () => false,
 ): ReadableStream<T> {
   const reader = stream.getReader();
   let usage: TokenUsage | undefined;
@@ -205,6 +208,7 @@ export function guardStream<T>(
         return;
       }
       usage = usageOf(next.value) ?? usage;
+      if (isFinish(next.value)) guard.settle(usage);
       controller.enqueue(next.value);
     },
     async cancel(reason) {

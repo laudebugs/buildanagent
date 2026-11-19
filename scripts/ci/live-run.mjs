@@ -5,11 +5,12 @@
 //       Fails unless the live-run environment, as GitHub's API returned it, still requires the owner's review, lets
 //       no administrator bypass that, and allows only protected branches, and unless main is the only protected
 //       branch. Each provider's job runs this before it receives its key.
-//   node scripts/ci/live-run.mjs merge <out.json> <report.json>...
-//       Merges the provider jobs' reports into one, which the date step and the issue and pull request read.
+//   node scripts/ci/live-run.mjs merge <out.json> <artifact-dir>...
+//       Merges the provider jobs' reports into one, which the date step and the issue and pull request read. Each
+//       report counts for the provider its artifact's directory names, live-<provider>, whatever the report claims.
 //   node scripts/ci/live-run.mjs date <report.json> <YYYY-MM-DD>
-//       Records the date in apps/manual/src/data/live-comparison.json when the merged report shows every listed
-//       provider's job complete. The report job passes the date it computed itself.
+//       Records the date in apps/manual/src/data/live-comparison.json when every listed provider's own artifact
+//       reports its job complete. The report job passes the date it computed itself.
 //   node scripts/ci/live-run.mjs check <base> <head> <YYYY-MM-DD>
 //       Fails unless the commit <base>..<head> changes only listed examples' live transcripts, each well formed and
 //       free of anything shaped like a key or an account or request id, and the date file, set to that date.
@@ -18,9 +19,9 @@
 //       job wrote can go into an issue or a pull request without becoming Markdown or a notification.
 import { execFileSync } from "node:child_process";
 import { readFileSync, writeFileSync } from "node:fs";
-import { join } from "node:path";
+import { basename, join } from "node:path";
 import { fileURLToPath } from "node:url";
-import { exampleOf, REPO_ROOT, readLiveConfig } from "../live/config.mjs";
+import { exampleOf, KEY_NAMES, REPO_ROOT, readLiveConfig } from "../live/config.mjs";
 import { findSecret } from "../live/redact.ts";
 import { transcriptProblems } from "../transcripts/write.mjs";
 
@@ -54,29 +55,46 @@ export function protectionProblems(environment, protectedBranches, owner) {
   return problems;
 }
 
-/** One report from the provider jobs' reports: their examples and spend together, against the run's cap. */
-export function mergeReports(reports) {
+/**
+ * One report from the provider jobs' reports. Each entry is `{ provider, report }`, with the provider taken from the
+ * artifact's name (`live-anthropic`, `live-openai`), never from the report, which a job that ran package code wrote:
+ * a provider's job can't claim another provider's examples or completion. `completed` lists the providers whose own
+ * report says it ran every example.
+ */
+export function mergeReports(entries) {
+  const known = entries.filter(({ provider }) => provider in KEY_NAMES);
+  const reports = known.map(({ report }) => report ?? {});
   return {
-    providers: reports.flatMap((report) => report.providers ?? []),
+    providers: known.map(({ provider }) => provider),
+    completed: known.filter(({ report }) => report?.complete === true).map(({ provider }) => provider),
     cap: reports[0]?.runCap ?? 1,
     runCap: reports[0]?.runCap ?? 1,
     target: reports[0]?.target ?? 0.5,
     spent: reports.reduce((sum, report) => sum + (Number.isFinite(report.spent) ? report.spent : 0), 0),
-    complete: reports.length > 0 && reports.every((report) => report.complete === true),
+    complete: known.length > 0 && known.every(({ report }) => report?.complete === true),
     aborted: reports.find((report) => report.aborted)?.aborted ?? null,
-    examples: reports.flatMap((report) => report.examples ?? []),
+    // Each job's examples count only for its own provider.
+    examples: known.flatMap(({ provider, report }) =>
+      (Array.isArray(report?.examples) ? report.examples : []).filter((example) => example?.provider === provider),
+    ),
   };
 }
 
+/** The provider an artifact directory belongs to, from its name, `live-<provider>`; undefined for any other name. */
+export function artifactProvider(dir) {
+  const match = /^live-([a-z]+)$/.exec(basename(dir));
+  return match && match[1] in KEY_NAMES ? match[1] : undefined;
+}
+
 /**
- * The date file's contents after a run: `date`, the date the report job computed, when the merged report covers
- * every provider the list names and each provider's job completed; otherwise unchanged.
+ * The date file's contents after a run: `date`, the date the report job computed, when every provider the list names
+ * had its own artifact and that artifact's report says its job completed; otherwise unchanged.
  */
 export function dateAfter(report, date, current, config) {
   if (!DATE.test(date)) throw new Error(`${date} is not a YYYY-MM-DD date`);
   const listed = new Set(config.examples.map((example) => example.provider));
-  const covered = [...listed].every((provider) => report?.providers?.includes(provider));
-  return covered && report?.complete === true ? { lastCompared: date } : current;
+  const completed = Array.isArray(report?.completed) ? report.completed : [];
+  return [...listed].every((provider) => completed.includes(provider)) ? { lastCompared: date } : current;
 }
 
 /** The problems with one changed file of the results commit; `read(path)` returns its new contents. */
@@ -132,8 +150,12 @@ function main(argv) {
     return problems.length === 0 ? 0 : 1;
   }
   if (command === "merge") {
-    const [out, ...reports] = args;
-    writeFileSync(out, `${JSON.stringify(mergeReports(reports.map(json)), null, 2)}\n`);
+    const [out, ...dirs] = args;
+    const entries = dirs.map((dir) => ({
+      provider: artifactProvider(dir),
+      report: json(join(dir, "live-report.json")),
+    }));
+    writeFileSync(out, `${JSON.stringify(mergeReports(entries), null, 2)}\n`);
     return 0;
   }
   if (command === "date") {

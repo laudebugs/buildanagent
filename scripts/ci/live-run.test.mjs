@@ -28,7 +28,15 @@ import { findSecret, redact } from "../live/redact.ts";
 import { childSpend } from "../live/run.mjs";
 import { transcriptProblems, writeTranscript } from "../transcripts/write.mjs";
 import { compareAll, compareFlows, diffMarkdown, flowOf } from "./live-diff.mjs";
-import { changeProblems, DATE_FILE, dateAfter, fenced, mergeReports, protectionProblems } from "./live-run.mjs";
+import {
+  artifactProvider,
+  changeProblems,
+  DATE_FILE,
+  dateAfter,
+  fenced,
+  mergeReports,
+  protectionProblems,
+} from "./live-run.mjs";
 import { STUB_IDS, startStub, turnsFromTranscript } from "./live-stub.mjs";
 
 const root = fileURLToPath(new URL("../../", import.meta.url));
@@ -424,10 +432,22 @@ test("the run reads an example's ledger as a claim, and stops when it can't", ()
   rmSync(dir, { recursive: true, force: true });
 });
 
-test("a streamed answer settles its guard when it finishes, fails or is cancelled", async () => {
+test("a streamed answer settles its guard once: at the finish part, or on an error or a cancel", async () => {
   const settled = [];
-  const guard = { settle: (usage) => settled.push(usage ?? "projection") };
-  const usageOf = (part) => (part.type === "finish" ? { uncachedInput: 1, output: 2 } : undefined);
+  // A guard settles once, as beginCall()'s does; later calls are ignored.
+  const once = () => {
+    let done = false;
+    return {
+      settle: (usage) => {
+        if (done) return;
+        done = true;
+        settled.push(usage ?? "projection");
+      },
+    };
+  };
+  const finishUsage = { uncachedInput: 1, output: 2 };
+  const usageOf = (part) => (part.type === "finish" ? finishUsage : undefined);
+  const isFinish = (part) => part.type === "finish";
   const parts = (list, fail) =>
     new ReadableStream({
       start(controller) {
@@ -441,13 +461,26 @@ test("a streamed answer settles its guard when it finishes, fails or is cancelle
     for await (const part of stream) out.push(part);
     return out;
   };
-  assert.equal((await read(guardStream(parts([{ type: "text" }, { type: "finish" }]), guard, usageOf))).length, 2);
-  await assert.rejects(read(guardStream(parts([{ type: "text" }], true), guard, usageOf)), /connection reset/);
+  // Read to the end.
+  const whole = guardStream(parts([{ type: "text" }, { type: "finish" }]), once(), usageOf, isFinish);
+  assert.equal((await read(whole)).length, 2);
+  // Fail part way.
+  await assert.rejects(read(guardStream(parts([{ type: "text" }], true), once(), usageOf, isFinish)), /reset/);
+  // Cancel before the finish part.
   const endless = new ReadableStream({ pull: (controller) => controller.enqueue({ type: "text" }) });
-  const reader = guardStream(endless, guard, usageOf).getReader();
-  await reader.read();
-  await reader.cancel("the caller stopped reading");
-  assert.deepEqual(settled, [{ uncachedInput: 1, output: 2 }, "projection", "projection"]);
+  const cancelled = guardStream(endless, once(), usageOf, isFinish).getReader();
+  await cancelled.read();
+  await cancelled.cancel("the caller stopped reading");
+  // Stop reading after the finish part, without cancelling or reaching the end.
+  const afterFinish = new ReadableStream({
+    start(controller) {
+      controller.enqueue({ type: "finish" });
+    },
+    pull: (controller) => controller.enqueue({ type: "text" }),
+  });
+  const stopped = guardStream(afterFinish, once(), usageOf, isFinish).getReader();
+  assert.equal((await stopped.read()).value.type, "finish");
+  assert.deepEqual(settled, [finishUsage, "projection", "projection", finishUsage]);
 });
 
 // --- The flow comparison ----------------------------------------------------------------------------------------
@@ -563,17 +596,45 @@ test("the pre-run check passes the environment as set up and stops when its prot
 });
 
 const reportOf = (providers, complete) => ({ providers, runCap: 1, target: 0.5, spent: 0.1, complete, examples: [] });
+const entry = (dir, report) => ({ provider: artifactProvider(dir), report });
 
-test("the date moves to the report job's own date only after every provider's job completed", () => {
+test("the date moves to the report job's own date only after every provider's own job completed", () => {
   const before = { lastCompared: "2026-11-30" };
-  const both = mergeReports([reportOf(["anthropic"], true), reportOf(["openai"], true)]);
+  const both = mergeReports([
+    entry("/tmp/live/live-anthropic", reportOf(["anthropic"], true)),
+    entry("/tmp/live/live-openai", reportOf(["openai"], true)),
+  ]);
   assert.ok(close(both.spent, 0.2));
+  assert.deepEqual(both.completed, ["anthropic", "openai"]);
   assert.deepEqual(dateAfter(both, "2026-12-01", before, config), { lastCompared: "2026-12-01" });
-  const one = mergeReports([reportOf(["anthropic"], true)]);
-  assert.equal(dateAfter(one, "2026-12-01", before, config), before, "the OpenAI job never reported");
-  const partial = mergeReports([reportOf(["anthropic"], true), reportOf(["openai"], false)]);
+  const one = mergeReports([entry("/tmp/live/live-anthropic", reportOf(["anthropic"], true))]);
+  assert.equal(dateAfter(one, "2026-12-01", before, config), before, "the OpenAI job left no artifact");
+  const partial = mergeReports([
+    entry("/tmp/live/live-anthropic", reportOf(["anthropic"], true)),
+    entry("/tmp/live/live-openai", reportOf(["openai"], false)),
+  ]);
   assert.equal(dateAfter(partial, "2026-12-01", before, config), before);
   assert.throws(() => dateAfter(both, "yesterday", before, config));
+});
+
+test("a provider's job can't claim another provider's completion or examples", () => {
+  const before = { lastCompared: "2026-11-30" };
+  const other = { file: "verify/vercel-ai-sdk/examples/09-triage-agent.ts", provider: "anthropic", outcome: "ran" };
+  // A compromised OpenAI job claims both providers ran, with an Anthropic example, and the Anthropic job failed.
+  const forged = { ...reportOf(["anthropic", "openai"], true), examples: [other] };
+  const merged = mergeReports([
+    entry("/tmp/live/live-openai", forged),
+    entry("/tmp/live/live-anthropic", reportOf(["anthropic"], false)),
+  ]);
+  assert.deepEqual(merged.providers, ["openai", "anthropic"]);
+  assert.deepEqual(merged.completed, ["openai"]);
+  assert.deepEqual(merged.examples, [], "the OpenAI job's report may list only OpenAI examples");
+  assert.equal(dateAfter(merged, "2026-12-01", before, config), before);
+  // An artifact without the Anthropic job's own directory counts for nothing, whatever it claims.
+  const alone = mergeReports([entry("/tmp/live/live-openai", forged), entry("/tmp/live/live-other", forged)]);
+  assert.deepEqual(alone.providers, ["openai"]);
+  assert.equal(dateAfter(alone, "2026-12-01", before, config), before);
+  assert.equal(artifactProvider("/tmp/live/live-anthropic-extra"), undefined, "the directory name must be exact");
 });
 
 test("the results commit may change only listed live transcripts and the date file", () => {

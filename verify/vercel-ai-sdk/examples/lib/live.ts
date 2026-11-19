@@ -101,7 +101,12 @@ export function liveModel(config: LiveConfig, requests: LanguageModelV4CallOptio
       );
       // The guard settles when the stream finishes, fails or is cancelled (live.ts).
       return {
-        stream: guardStream(kept, guard, (part) => (part.type === "finish" ? tokensOf(part.usage) : undefined)),
+        stream: guardStream(
+          kept,
+          guard,
+          (part) => (part.type === "finish" ? tokensOf(part.usage) : undefined),
+          (part) => part.type === "finish",
+        ),
       };
     },
   });
