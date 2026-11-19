@@ -2,7 +2,7 @@
 title: "Talking to a model: messages, streams, tokens, instructions and model choice"
 summary: A model call sends the whole conversation and gets back one message, often as a stream of pieces, with a bill in four token classes. This chapter reads each part of that exchange, then shows what belongs in the system prompt, how to choose a model, and why thinking goes back to the model untouched.
 opening: code
-sources: [anthropic-working-with-messages, ai-sdk-prompts, anthropic-how-tool-use-works, ai-sdk-generating-text, ai-sdk-stream-text, langchain-streaming, copilot-streaming-events]
+sources: [anthropic-working-with-messages, ai-sdk-prompts, anthropic-how-tool-use-works, ai-sdk-generating-text, ai-sdk-stream-text, langchain-streaming, copilot-streaming-events, anthropic-pricing, anthropic-thinking, anthropic-prompt-caching]
 glossary: []
 switchTo: [B4, B5]
 ---
@@ -77,6 +77,36 @@ The ticker's lesson holds in every SDK, though each one cuts the stream at its o
 The Copilot SDK draws the line between the two kinds of event most sharply. Its documentation calls each delta "ephemeral": "streamed in real time but **not** persisted to the session log" and "Not replayed on session resume". The complete `"assistant.message"`, by contrast, is persisted [@copilot-streaming-events]. The example's own checks make the same point from the other side. With streaming on, the session emitted two deltas that join to the final message; with streaming off, it emitted none, and the final message was the same. Streaming changes how early you see the answer, never what the answer is.
 
 The ticker breaks down at that last step. A news crawl reports facts that already happened, while a delta is provisional: the stream can stop short or end in an error, and only the message at the end says what the model finished saying. We recommend that your code show deltas to people as they arrive but store, bill and act on the final message alone. This book's own gateway, `@buildanagent/gateway`, builds that rule into its stream: as of November 2026, every stream ends with exactly one closing event, `"done"` or `"error"`, and that event carries the assistant message, with whatever content arrived before a failure.
+
+## Every call runs a meter, and tokens fall into four classes with four prices
+
+Think of :analogy[a taxi meter that runs on both legs of the trip]{#taxi-meter}. It ticks on the way out, while your request rides to the model, and it keeps ticking on the way back, while the answer rides home, as [[fig:taxi-meter]] shows. A model call is billed the same way: you pay for the input tokens you send and for the output tokens you get back, each class at its own rate.
+
+:::figure[A taxi meter that runs on both legs of the trip: input tokens on the way out, output tokens on the way back]{#taxi-meter analogy="taxi-meter"}
+::svg{alt="A taxi travels between two boxes, your code on the left and the model on the right. An arrow out to the model is labelled out: 3,000 input tokens, and an arrow back is labelled back: 200 output tokens. Below, the meter reads out leg: $0.0034, back leg: $0.0020, fare: $0.0054."}
+:::
+
+The input leg has more fare classes than a taxi does. A provider counts input three ways: tokens read from its prompt cache, tokens written to that cache for later calls, and the rest, which it reads uncached. With the output, that makes four token classes, and the bill for one call is each class's count times its rate, summed. The AI SDK reports the three input classes as `noCacheTokens`, `cacheReadTokens` and `cacheWriteTokens` in `usage.inputTokenDetails`, and the output beside them in `usage.outputTokens` [@ai-sdk-stream-text]. [[lst:stream-usage]] streams one answer, reads its usage and prices it.
+
+:::listing[A streamed call's usage, priced class by class]{#stream-usage file="verify/vercel-ai-sdk/examples/10-streaming-usage.ts" region="stream-usage" replay}
+::note[The usage arrives with the stream's last part, so this promise resolves only once the stream has ended.]{#usage-at-end}
+::note[The three input classes. The mock reports 1,000 uncached, 1,500 read from the cache and 500 written to it.]{#input-classes}
+::note[Each class times its own rate, from [[lst:sonnet-rates]]: the call costs 5,400,000 nano-dollars, or $0.0054.]{#price-the-classes}
+:::
+
+::listing[Claude Sonnet 5.5's rates as of November 2026, in nano-dollars per token]{#sonnet-rates file="verify/vercel-ai-sdk/examples/lib/rates.ts" region="rates"}
+
+The rates in [[lst:sonnet-rates]] are Anthropic's published prices for Claude Sonnet 5.5, as of November 2026. Per million tokens, an uncached input token costs $2, a five-minute cache write $2.50, a cache read $0.10 and an output token $10 [@anthropic-pricing]. Work the sum by hand once and the four classes stop being abstract. The 1,000 uncached tokens cost $0.002, the 1,500 cache reads $0.00015, the 500 cache writes $0.00125 and the 200 output tokens $0.002, which totals $0.0054. Billed as if none of the 3,000 input tokens touched the cache, the same call would cost $0.008, and the example's last check confirms that the cached bill is lower. [[fig:stream-fold]] puts the whole call on one page: the deltas, the message they fold into, and the usage that came with the stream's last part.
+
+:::figure[One streamed call: eleven deltas fold into one message, and the usage splits into four priced classes]{#stream-fold}
+::svg{alt="Eleven small boxes hold the deltas Prompt, caching, bills, a, cache, read, at, 0.05x, the, input and rate. An arrow labelled fold leads to one assistant message: Prompt caching bills a cache read at 0.05x the input rate. Below, four boxes give the usage: uncached 1,000 tokens $0.00200, cache read 1,500 tokens $0.00015, cache write 500 tokens $0.00125, and output 200 tokens $0.00200, for a total of $0.0054."}
+:::
+
+Two of those prices explain most agent bills. First, output costs five times as much as uncached input for this model, so a long answer adds up quickly. Second, an agent's input grows with every call, because every call resends the conversation, and that resent front of the request is what the cache discounts. Anthropic bills a cache read on Claude Sonnet 5.5 and Opus 5.5 at 0.05 times the base input price, and on most other models at 0.1 times. A five-minute cache write costs 1.25 times the base price, which, in Anthropic's words, pays off "after one cache read" [@anthropic-pricing]. Thinking, which the last section covers, goes on the output side of the meter: Anthropic bills the tokens a model spends reasoning "as output tokens, even when the thinking text isn't returned to you" [@anthropic-thinking], and the AI SDK counts them in `usage.outputTokenDetails.reasoningTokens`{checked=row-48} [@ai-sdk-stream-text].
+
+The replay beside [[lst:stream-usage]] shows the request, the answer and every check passing, but not the counts themselves. This book's transcripts record no usage yet, so the counts in this section come from the example's checks, which assert each one.
+
+The taxi stops matching at the cache. A taxi has no fare for a stretch of road it drove an hour ago, but a model provider does: a cached input token is billed at a fraction of the uncached rate, and only while the cache holds it. By default a cache entry lives at least five minutes, and each read refreshes it [@anthropic-prompt-caching], so the discount rewards a conversation that keeps its front unchanged. The next section is about the part of the front that should never change.
 
 ## Exercises
 

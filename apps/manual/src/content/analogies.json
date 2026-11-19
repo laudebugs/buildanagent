@@ -38,5 +38,13 @@
     "chapter": "talking-to-a-model",
     "illustration": null,
     "breaks": "The deltas are provisional; the message at the end is the one that counts."
+  },
+  {
+    "id": "taxi-meter",
+    "concept": "tokens and cost",
+    "analogy": "a taxi meter that runs on both legs of the trip",
+    "chapter": "talking-to-a-model",
+    "illustration": "taxi-meter",
+    "breaks": "Cached input is billed at a discount; a taxi has no such fare."
   }
 ]

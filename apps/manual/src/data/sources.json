@@ -177,5 +177,32 @@
     "asOf": "November 2026",
     "version": "v1.0.31",
     "verifiedIn": "apps/manual/fact-checks/talking-to-a-model.md"
+  },
+  {
+    "id": "anthropic-pricing",
+    "title": "Pricing",
+    "publisher": "Claude API documentation",
+    "url": "https://platform.claude.com/docs/en/about-claude/pricing",
+    "kind": "docs",
+    "asOf": "November 2026",
+    "verifiedIn": "apps/manual/fact-checks/talking-to-a-model.md"
+  },
+  {
+    "id": "anthropic-thinking",
+    "title": "Thinking",
+    "publisher": "Claude API documentation",
+    "url": "https://platform.claude.com/docs/en/build-with-claude/thinking",
+    "kind": "docs",
+    "asOf": "November 2026",
+    "verifiedIn": "apps/manual/fact-checks/talking-to-a-model.md"
+  },
+  {
+    "id": "anthropic-prompt-caching",
+    "title": "Prompt caching",
+    "publisher": "Claude API documentation",
+    "url": "https://platform.claude.com/docs/en/build-with-claude/prompt-caching",
+    "kind": "docs",
+    "asOf": "November 2026",
+    "verifiedIn": "apps/manual/fact-checks/talking-to-a-model.md"
   }
 ]

@@ -14,7 +14,7 @@ const { model } = scripted([ANSWER], { usage: usageOf(TOKENS), modelId: "claude-
 const result = streamText({ model, prompt: "What does a cache read cost?" });
 const chunks: string[] = [];
 for await (const chunk of result.textStream) chunks.push(chunk);
-const usage = await result.totalUsage;
+const usage = await result.usage; // book:note usage-at-end
 const { noCacheTokens, cacheReadTokens, cacheWriteTokens } = usage.inputTokenDetails; // book:note input-classes
 const nanos = costNanos(SONNET_5_5, {
   noCache: noCacheTokens ?? 0,
