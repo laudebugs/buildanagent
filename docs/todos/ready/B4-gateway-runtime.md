@@ -67,6 +67,14 @@ Wrap any adapter in the gateway's shared behaviour (explicit model resolution, s
 
 The error classifier needs each adapter's status codes; B8 and B9 extend its table.
 
+## Revision (2026-11-18, SDK gaps)
+
+Gap 7 of the [close-sdk-gaps plan](../../plans/close-sdk-gaps.md#3-each-gap-the-todos-that-cover-it-and-what-changes) asks for proof that the gateway never falls back to another credential. Add one acceptance criterion:
+
+- [ ] With decoy provider key variables set in the test process, `createModel()` sends only `ProviderConfig.apiKey`, a missing `apiKey` fails before any request, and no code path reads a key from the environment (a recording transport checks every request).
+
+The safety package's [E6](E6-byok-no-fallback.md) asserts the same rule for the AI SDK's providers.
+
 ## Definition of done
 
 - [ ] Claimed: the first commit moved this file `ready/` → `ongoing/` (Status `ongoing`)

@@ -1,17 +1,17 @@
-# U13: Research browser use for our agents
+# U15: Research browser use for our agents
 
 | Field | Value |
 | --- | --- |
-| ID | `U13` |
+| ID | `U15` |
 | Status | `done` |
-| Plan | [Build guides §4d, U13](../../plans/build-guides.md#u13-browser-use-added-2026-11-18) |
+| Plan | [Build guides §4d, U15](../../plans/build-guides.md#u15-browser-use-added-2026-11-18) |
 | Round / milestone | Research (added 2026-11-18) |
 | Depends on | [U12](U12-map-the-agent-building-platform-market.md) |
 | Size | L |
 
 ## Goal
 
-The owner asked on 2026-11-18 how our agents will handle tasks that need a web browser. U13 researches browser use as of November 2026, primary sources first, and says what it means for the coding agent plan, the agent platform plan and their ADRs.
+The owner asked on 2026-11-18 how our agents will handle tasks that need a web browser. U15 researches browser use as of November 2026, primary sources first, and says what it means for the coding agent plan, the agent platform plan and their ADRs.
 
 ## Deliverables
 

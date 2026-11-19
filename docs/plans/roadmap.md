@@ -1,6 +1,6 @@
 # Roadmap: from eight verified SDK references to reviewed plans for our own agent stack
 
-- **Status:** Phase complete (2026-11-18); M5–M7 are the next phase. On 2026-11-18 the owner made a personal cloud coding agent M7 and deferred the triage agent ([ADR 0032](../decisions/0032-personal-coding-agent-first.md)), and added a multi-user agent platform as M8 and M9 ([ADR 0037](../decisions/0037-multi-user-agent-platform.md))
+- **Status:** Phase complete (2026-11-18); M5–M7 are the next phase. On 2026-11-18 the owner made a personal cloud coding agent M7 and deferred the triage agent ([ADR 0032](../decisions/0032-personal-coding-agent-first.md)), and added a multi-user agent platform as M8 and M9 ([ADR 0037](../decisions/0037-multi-user-agent-platform.md)) **Nothing is being built yet:** on 2026-11-18 the owner said "let's not build anything first", and on 2026-11-19 approved Round E's reviewed todos but put them on hold until the owner says go ([close-sdk-gaps.md](close-sdk-gaps.md)). No todo in Rounds B, N, W, F or E starts until the owner says go.
 - **Date:** 2026-11-18
 - **Asked for by:** the project owner (2026-11-18)
 - **Plans:** [SDK references](sdk-references.md) · [SDK comparison](sdk-comparison.md) · [agent skills](agent-skills.md) · [build guides](build-guides.md) · [implementation plans](implementation-plans.md) · [CI](ci.md)
@@ -45,10 +45,21 @@ Round F (the agent platform, added 2026-11-18) starts its engine-free stage duri
 
 ```
  B1 ─► F1, F3 ─► F2, F4, F13, F14 ─► F7, F8 ─► F9
- B15 ─► F5 ─► F6 (with F3)
+ E7 ─► F5 ─► F6 (with F3)   (F5's scope moved to Round E on 2026-11-18)
  W3 ─► F10;  N43, N46b, N47b ─► F11
  W4, W5, F6, F10, F11 ─► F12 ─► F15 ─► F16 (M8) ─► F17 (AWS), F18 (our SDK, after B20 and N45) (M9)
 ```
+
+Round E (close the SDK gaps, added 2026-11-18) builds the safety package on the verified third-party SDKs before our own SDK exists. **Approved by the owner on 2026-11-19, and on hold until the owner says go** ([close-sdk-gaps.md](close-sdk-gaps.md)):
+
+```
+ B1 ─► E1 ─┬─► E2 ─┬─► E4a ─► E4b ─┐
+           ├─► E3 ─┘               ├─► E7
+           ├─► E6 ─────────────────┤
+           └─► E5 (after B5) ──────┘
+```
+
+Round E also feeds four later todos, which now list it in **Depends on**: E1 ─► B10, E3 ─► B15, E2 ─► N7 and N40, and E7 ─► N45.
 
 - **SDK references first.** S3 (OpenAI) and then S4 (Vercel) follow the eight-step process in [AGENTS.md](../../AGENTS.md#process-for-documenting-an-sdk). Each SDK splits into a verification todo (a) and a reference-docs todo (b).
 - **Comparison after all four references.** C1 (the feature table) and C2 (the deep comparison) need every reference's verified facts.
@@ -68,6 +79,7 @@ Round F (the agent platform, added 2026-11-18) starts its engine-free stage duri
 | M3 Build guides (done 2026-11-18) | G1–G3, H1–H3, R1 | Researched guides to building an agent SDK, a harness and an agent, informed by the Hacker News practitioner research and with secondary claims re-checked against primary sources |
 | X CI and dependency security (done 2026-11-18) | X1, X2 | Checks on every push, a nightly verify with drift and audit gates, and Dependabot scoped to our manifests |
 | M4 Reviewed plans (done 2026-11-18) | P1–P4 | Detailed implementation plans, reviewed together, ready for the build phase |
+| M5e The SDK gaps as a safety package (added 2026-11-18; approved, on hold until the owner says go) | E1–E7 | `@agent-speak/agent-safety` on `agents` 0.33.0 and `ai` 7.0.162: typed write outcomes, effect identity, signed approvals, plan approvals, a pre-call cost cap, a BYOK guard and stores on four targets, built from [close-sdk-gaps.md](close-sdk-gaps.md) |
 | M5 Our agent SDK (next phase) | B1–B20, B15b, B19b | `@agent-speak/gateway` and `@agent-speak/sdk` in `packages/`, built from [build-sdk.md](build-sdk.md) once P4 accepts it |
 | M6 Our agent harness (next phase) | N1–N40, N41–N49 (portability, added 2026-11-18) | `@agent-speak/protocol`, `harness`, `cli` and `evals`, built from [build-harness.md](build-harness.md); it starts after B1–B2 and interleaves with Round B (§6 of the plan); N38b is deferred with M7b |
 | M7 Our coding agent (next phase, added 2026-11-18) | W1–W11 | `@agent-speak/coding-agent`, a personal cloud coding agent built from [build-coding-agent.md](build-coding-agent.md): on Cloudflare first (W4–W8), then AWS (W9) and Vercel (W10); W4 needs the portability todos N46a and N46b |

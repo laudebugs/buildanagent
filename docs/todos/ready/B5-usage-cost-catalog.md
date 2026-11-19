@@ -62,6 +62,15 @@ Put usage and cost on every assistant message, including failed attempts, so the
 
 Prices change often; the catalog states its `asOf` date, and the owner may later want a different refresh cadence.
 
+## Revision (2026-11-18, SDK gaps)
+
+Gap 5 of the [close-sdk-gaps plan](../../plans/close-sdk-gaps.md#3-each-gap-the-todos-that-cover-it-and-what-changes) needs one cost formula for our loop and for the safety package's AI SDK guard, [E5](E5-pre-call-cost-guard.md). The guard sees an AI SDK prompt, not a `ModelContext`, so it cannot call `projectCallCost(model, context, options)` directly. If the owner accepts [ADR 0043](../../decisions/0043-standalone-safety-core.md), this todo also:
+
+- [ ] Exports `projectCost({ inputTokens, maxOutputTokens }, entry)` over one catalog entry, and `projectCallCost()` (moved here from B14) that estimates the input and then calls it.
+- [ ] Adds a test that `projectCallCost()` and `projectCost()` agree on one scripted context.
+
+The owner accepted [ADR 0043](../../decisions/0043-standalone-safety-core.md) on 2026-11-18, so this revision is in force.
+
 ## Definition of done
 
 - [ ] Claimed: the first commit moved this file `ready/` → `ongoing/` (Status `ongoing`)

@@ -63,6 +63,13 @@ Stop runaway runs before they spend: check the USD cap before each model call, s
 
 The thresholds are provisional (D11); P2's recorded runs retune them.
 
+## Revision (2026-11-18, SDK gaps)
+
+[ADR 0043](../../decisions/0043-standalone-safety-core.md), accepted by the owner on 2026-11-18, moves `projectCallCost()` to the gateway, beside the catalog, so the loop and the safety package's AI SDK guard ([E5](E5-pre-call-cost-guard.md)) share one formula. [B5](B5-usage-cost-catalog.md)'s revision now exports it, with the token-level `projectCost()` it calls.
+
+- [ ] The loop imports `projectCallCost()` from `@agent-speak/gateway` instead of defining it, and this todo's overshoot test runs unchanged against the imported function.
+- [ ] The SDK's public exports re-export `projectCallCost()` from the gateway, so the harness's summary layer keeps one import path.
+
 ## Definition of done
 
 - [ ] Claimed: the first commit moved this file `ready/` → `ongoing/` (Status `ongoing`)

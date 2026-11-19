@@ -6,7 +6,7 @@
 | Status | `ready` |
 | Plan | [Build agent platform §5.1](../../plans/build-agent-platform.md#51-stage-f-a-builds-everything-that-needs-no-engine) |
 | Round / milestone | Round F (build the agent platform), M8 |
-| Depends on | [B15](B15-signed-pauses.md) |
+| Depends on | [E7](E7-safety-portability.md) |
 | Size | M |
 
 ## Goal
@@ -55,6 +55,10 @@ The package README.
 ## Risks and open questions
 
 Both SDKs move; the package pins exact versions (ADR 0038).
+
+## Revision (2026-11-18, SDK gaps)
+
+The [close-sdk-gaps plan](../../plans/close-sdk-gaps.md) moves this todo's scope into Round E, so the package can ship before our SDK. E1–E7 now build the outcomes, effect identity, signed approvals, plan approvals, cost guard, BYOK guard and stores. This todo narrows to releasing `@agent-speak/agent-safety` for the generation templates (F6): a versioned README, the exact SDK pins and a changelog. **Depends on** changes from B15 to [E7](E7-safety-portability.md), which closes Round E after E1–E6 and supplies the Durable Object store this todo's tasks name. The acceptance criteria above stay and are met by those todos' tests.
 
 ## Definition of done
 

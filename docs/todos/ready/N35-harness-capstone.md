@@ -66,6 +66,14 @@ Run the SDK's triage capstone inside the harness end to end, resume its approval
 
 If B19's capstone changes shape, adapt the tools, not the rows.
 
+## Revision (2026-11-18, SDK gaps)
+
+The rewind report found that the capstone has no crash test, so "exactly once" in our plans means "once, if nothing crashes" ([rewind report](../../research/reversible-actions/rewind-vs-rollback.md#two-ledgers-and-the-first-fields-to-add)). Gap 2 of the [close-sdk-gaps plan](../../plans/close-sdk-gaps.md#3-each-gap-the-todos-that-cover-it-and-what-changes) adds:
+
+- [ ] Kill the harness process after a fake external system accepts a write and before its `tool_result` is appended; the resumed session reconciles to `applied` and sends nothing twice.
+
+The rule under test comes from the [N7](N7-rebuild-resume-replay.md) revision, which N35 already follows through its dependencies.
+
 ## Definition of done
 
 - [ ] Claimed: the first commit moved this file `ready/` → `ongoing/` (Status `ongoing`)

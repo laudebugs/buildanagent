@@ -6,7 +6,7 @@
 | Status | `ready` |
 | Plan | [Build SDK §4, Stage 3](../../plans/build-sdk.md#43-stage-3-builds-the-loop-its-tools-hooks-budget-and-signed-pauses) |
 | Round / milestone | Round B (build SDK), M5 |
-| Depends on | [B3](B3-scripted-model.md), [B7](B7-tool-name-table.md) |
+| Depends on | [B3](B3-scripted-model.md), [B7](B7-tool-name-table.md), [E1](E1-safety-core-outcomes.md) |
 | Size | M |
 
 ## Goal
@@ -67,6 +67,16 @@ ADR 0007 (if the check changes it), `packages/sdk/README.md`. The plan's todo ta
 ## Risks and open questions
 
 Coercion rules (for example string to number) are ours; keep them minimal and listed in the README.
+
+## Revision (2026-11-18, SDK gaps)
+
+Gap 1 of the [close-sdk-gaps plan](../../plans/close-sdk-gaps.md#3-each-gap-the-todos-that-cover-it-and-what-changes) gives every write a typed outcome. When this todo defines `ToolResult`, add an optional `outcome?: WriteOutcome` field, typed by the safety package's [E1](E1-safety-core-outcomes.md), and these criteria:
+
+- [ ] A tool that returns `outcome` with any kind except `applied` has `isError` set for the model, and the model-facing content includes the outcome sentence.
+- [ ] `outcome` round-trips through a `context` JSON serialisation.
+- [ ] `ToolDefinition` gains an optional `effect?: { kind: "write"; businessKey?(input: I): string }`. A tool without it counts as read-only for the crash rule in the [N7](N7-rebuild-resume-replay.md) and [N40](N40-code-initiated-calls.md) revisions, which read this field.
+
+The owner accepted [ADR 0043](../../decisions/0043-standalone-safety-core.md) and SG3, including this `effect` field, on 2026-11-18, so this revision is in force and E1 is in **Depends on**.
 
 ## Definition of done
 

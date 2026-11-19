@@ -125,13 +125,13 @@ No non-goal or open question mentions web browsing. Web access appears only as n
 - **Unadopted egress features.** The cloud-agent gap table lists, for "Credential proxy and egress": "a 'never attach' list; live policy updates; method filters such as Codex's GET, HEAD and OPTIONS mode…; blocked-request reports in the PR". — `docs/research/deployment/portable-agents.md` "Cloud coding agents are a control plane around a disposable VM". The coding agent plan does not list these.
 - **The web UI non-goal (about the agent's UI, not browsing).** "A web UI. The pull request is the review surface, and the CLI attaches over WebSocket (W7)." — `docs/plans/build-coding-agent.md` §1
 - **The browser-sandbox scope call.** "the browser backend should wait until a product needs it". — `docs/research/deployment/portable-agents.md` "Fifteen plan changes follow"
-- **U13 itself.** Goal: "The owner asked on 2026-11-18 how our agents will handle tasks that need a web browser. U13 researches browser use as of November 2026, primary sources first, and says what it means for the coding agent plan, the agent platform plan and their ADRs." Deliverables include "Index entries in `README.md`, `AGENTS.md` and the build-guides plan". The Plan field links `build-guides.md#u13-browser-use-added-2026-11-18`. — `docs/todos/ongoing/U13-research-browser-use.md`
+- **U15 itself.** Goal: "The owner asked on 2026-11-18 how our agents will handle tasks that need a web browser. U15 researches browser use as of November 2026, primary sources first, and says what it means for the coding agent plan, the agent platform plan and their ADRs." Deliverables include "Index entries in `README.md`, `AGENTS.md` and the build-guides plan". The Plan field links `build-guides.md#u15-browser-use-added-2026-11-18`. — `docs/todos/ongoing/U15-research-browser-use.md`
 
 ### Inferences
 - Codex's GET/HEAD/OPTIONS method mode is a ready-made policy for a read-only research browser, and it maps onto HD15's per-route `methods` and Vercel's method matchers.
 
 ### Gaps
-- The anchor `build-guides.md#u13-browser-use-added-2026-11-18` does not resolve yet. `docs/plans/build-guides.md` has no U13 section, and a grep for "U13" and "browser use" in it, `README.md`, `AGENTS.md` and `docs/todos/README.md` found nothing. U13 must add it.
+- The anchor `build-guides.md#u15-browser-use-added-2026-11-18` does not resolve yet. `docs/plans/build-guides.md` has no U15 section, and a grep for "U15" and "browser use" in it, `README.md`, `AGENTS.md` and `docs/todos/README.md` found nothing. U15 must add it.
 
 ## Q5. Which todos are affected, and what do they deliver?
 
@@ -178,7 +178,7 @@ ADRs 0001–0042 exist, so the next free number is **0043**. No other branch on 
 - "**Sections:** Context (the question and the evidence, in a few sentences), Decision (what we chose), Consequences (what changes, what follows, and who acts)." — same
 - "**Changes:** never rewrite an accepted record. Write a new one and mark the old one superseded." — same
 - **The index row format** is `| [NNNN](file.md) | Decision | Status | [Plan anchor](...) |`. The last row is 0042, and "ADRs 0022–0031 record the triage agent's decisions. ADR 0032 defers that agent, so they stay as written". — `docs/decisions/README.md` "Index"
-- **Git check.** `git ls-tree` over every remote branch (`origin/main`, `origin/claude/zen-allen-25p088`) found no file `docs/decisions/004[3-9]*`. HEAD is `d7d0a9a Claim U13: research browser use for our agents`.
+- **Git check.** `git ls-tree` over every remote branch (`origin/main`, `origin/claude/zen-allen-25p088`) found no file `docs/decisions/004[3-9]*`. HEAD is `d7d0a9a Claim U15: research browser use for our agents`.
 - **The plan convention.** Each plan's decision table has `# | Decision | Status | ADR` columns, and some decisions carry "none" for ADR (for example CA7–CA9, PF3, PF5, PF10–PF12). — `docs/plans/build-coding-agent.md` §2; `docs/plans/build-agent-platform.md` §2
 - **The superseding rule in practice.** A change after N19 "is a new ADR that supersedes this one, because an accepted record is never rewritten." — `docs/decisions/0020-default-sandbox-backend.md`
 

@@ -6,7 +6,7 @@
 | Status | `ready` |
 | Plan | [Build SDK §4, Stage 3](../../plans/build-sdk.md#43-stage-3-builds-the-loop-its-tools-hooks-budget-and-signed-pauses) |
 | Round / milestone | Round B (build SDK), M5 |
-| Depends on | [B13](B13-interceptors-observers.md) |
+| Depends on | [B13](B13-interceptors-observers.md), [E3](E3-signed-approvals-third-party.md) |
 | Size | M |
 
 ## Goal
@@ -59,6 +59,14 @@ Make every pause a signed record: a gate that returns `ask` ends the run with a 
 ## Risks and open questions
 
 None open. The owner accepted D5 with an ephemeral default and an optional `signer` (ADR 0005); the harness always passes `hmacSigner()` (ADR 0015).
+
+## Revision (2026-11-18, SDK gaps)
+
+[ADR 0043](../../decisions/0043-standalone-safety-core.md), accepted by the owner on 2026-11-18, puts the signer and the canonical input hash in `@agent-speak/agent-safety`, which [E3](E3-signed-approvals-third-party.md) builds with the shapes of [build-sdk.md §3.3](../../plans/build-sdk.md#33-sdk-api). D5's contract and ADR 0005's rules do not change.
+
+- [ ] `hmacSigner()`, `ephemeralSigner()` and the input hash are imported from the safety package, not defined here; the SDK re-exports them.
+- [ ] A pause signed through the SDK and one signed directly by the package for the same fields produce byte-identical payloads (E3's matching test).
+- [ ] The signed-request kinds stay as D5 defines them: the owner chose on 2026-11-19 to keep plan approvals on their own signature ([SG5](../../plans/close-sdk-gaps.md#sg5-a-plan-approval-keeps-its-own-signature-separate-from-d5s-signed-request-kinds-accepted)), and to revisit a `"plan"` kind when this todo starts.
 
 ## Definition of done
 
