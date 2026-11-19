@@ -27,16 +27,17 @@ const CAPSTONE_NAMES = [
 
 const CANONICAL_CHARS = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789_-";
 
+// No two generated names differ only in case, because the map salts the later of such a pair.
 function generateNames(count: number, alphabet: string, maxLength: number, seed: number): string[] {
   const random = seededRandom(seed);
-  const names = new Set<string>();
+  const names = new Map<string, string>();
   while (names.size < count) {
     const length = 1 + Math.floor(random() * maxLength);
     let name = "";
     for (let i = 0; i < length; i++) name += alphabet[Math.floor(random() * alphabet.length)] ?? "_";
-    names.add(name);
+    if (!names.has(name.toLowerCase())) names.set(name.toLowerCase(), name);
   }
-  return [...names];
+  return [...names.values()];
 }
 
 function rejectsName(name: string): void {
@@ -152,14 +153,54 @@ test("wire names do not depend on the order the tool set is registered or saniti
   assert.equal(firstWires.get("lookup_customer"), "lookup_customer");
 });
 
-test("sanitize refuses a valid name whose wire name an earlier call gave to another tool", () => {
+test("a valid name first seen after its string was issued as a hashed wire name is salted, not refused", () => {
   const map = createToolNameMap(TOOL_NAME_RULES.anthropicMessages);
   const taken = map.sanitize("search.web");
-  assert.throws(
-    () => map.sanitize(taken),
-    (error) => isGatewayError(error) && error.code === "invalid_tool_name",
-  );
+  const late = map.sanitize(taken);
+  assert.notEqual(late, taken);
+  assert.match(late, /_[0-9a-f]{8}$/);
+  assert.equal(map.sanitize("search.web"), taken, "the earlier wire name does not move");
+  assert.equal(map.sanitize(taken), late, "the late name keeps its salted wire name");
   assert.equal(map.restore(taken), "search.web");
+  assert.equal(map.restore(late), taken);
+});
+
+test("a valid name passed up front keeps itself, while the same name first seen later keeps itself only if free", () => {
+  const upFront = createToolNameMap(TOOL_NAME_RULES.openaiChat, ["lookup_customer"]);
+  assert.equal(upFront.sanitize("lookup_customer"), "lookup_customer");
+  const late = createToolNameMap(TOOL_NAME_RULES.openaiChat);
+  late.sanitize("search.web");
+  assert.equal(late.sanitize("lookup_customer"), "lookup_customer");
+});
+
+for (const order of [
+  ["lookupCustomer", "lookupcustomer"],
+  ["lookupcustomer", "lookupCustomer"],
+]) {
+  test(`names that differ only in case get wire names that differ by more than case (${order.join(", ")})`, () => {
+    const upFront = createToolNameMap(TOOL_NAME_RULES.anthropicMessages, order);
+    assert.equal(upFront.sanitize("lookupCustomer"), "lookupCustomer", "the name that sorts first keeps itself");
+    const salted = upFront.sanitize("lookupcustomer");
+    assert.match(salted, /^lookupcustomer_[0-9a-f]{8}$/);
+    assert.equal(upFront.restore(salted), "lookupcustomer");
+
+    const late = createToolNameMap(TOOL_NAME_RULES.anthropicMessages);
+    const [first = "", second = ""] = order;
+    assert.equal(late.sanitize(first), first, "the name sanitised first keeps itself");
+    const lateWire = late.sanitize(second);
+    assert.notEqual(lateWire.toLowerCase(), first.toLowerCase());
+    assert.equal(late.restore(lateWire), second);
+  });
+}
+
+test("a hashed wire name is salted when it matches an issued wire name ignoring case", () => {
+  const wire = createToolNameMap(TOOL_NAME_RULES.anthropicMessages).sanitize("search.web");
+  const upper = wire.toUpperCase();
+  const map = createToolNameMap(TOOL_NAME_RULES.anthropicMessages, [upper, "search.web"]);
+  assert.equal(map.sanitize(upper), upper);
+  const salted = map.sanitize("search.web");
+  assert.notEqual(salted.toLowerCase(), wire.toLowerCase());
+  assert.equal(map.restore(salted), "search.web");
 });
 
 test("restore returns undefined for a wire name the map never issued", () => {
@@ -197,6 +238,40 @@ test("createToolNameMap rejects a rule that cannot hold the hash suffix, whateve
       (error) => isGatewayError(error) && error.code === "invalid_options",
     );
   }
+});
+
+test("createToolNameMap rejects a - that forms an unintended range", () => {
+  for (const characters of ["a-z0-9-_", "_-a0-9", "a--", "0-z_", "A-z0-9_", "a-z0-9_-f"]) {
+    assert.throws(
+      () => createToolNameMap({ ...tightRule, characters }),
+      (error) => isGatewayError(error) && error.code === "invalid_options" && /-/.test(error.message),
+      characters,
+    );
+  }
+});
+
+test("createToolNameMap accepts a - first, last or inside a letter or digit range", () => {
+  for (const characters of ["-a-z0-9_", "a-z0-9_-", "A-Za-z0-9_-", "a-f0-9_"]) {
+    createToolNameMap({ ...tightRule, characters });
+  }
+});
+
+test("TOOL_NAME_RULES and CANONICAL_TOOL_NAME are frozen", () => {
+  assert.ok(Object.isFrozen(TOOL_NAME_RULES));
+  for (const rule of Object.values(TOOL_NAME_RULES)) assert.ok(Object.isFrozen(rule));
+  assert.ok(Object.isFrozen(CANONICAL_TOOL_NAME));
+  // Test files are ES modules, so these writes run in strict mode and throw.
+  assert.throws(() => {
+    (TOOL_NAME_RULES.openaiChat as { maxLength: number }).maxLength = 128;
+  }, TypeError);
+  assert.throws(() => {
+    (TOOL_NAME_RULES as { openaiChat: ToolNameRule }).openaiChat = TOOL_NAME_RULES.anthropicMessages;
+  }, TypeError);
+  assert.throws(() => {
+    CANONICAL_TOOL_NAME.lastIndex = 3;
+  }, TypeError);
+  assert.equal(TOOL_NAME_RULES.openaiChat.maxLength, 64);
+  assert.ok(CANONICAL_TOOL_NAME.test("lookup_customer"));
 });
 
 test("createToolNameMap rejects characters that would change the character class", () => {

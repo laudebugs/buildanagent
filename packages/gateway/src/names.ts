@@ -8,7 +8,7 @@ import { GatewayError } from "./errors.ts";
  * The canonical tool-name rule: 1 to 64 ASCII letters, digits, underscores or hyphens. It is the strictest
  * intersection of the first providers' rules, so a canonical name reaches either of them unchanged.
  */
-export const CANONICAL_TOOL_NAME: RegExp = /^[A-Za-z0-9_-]{1,64}$/;
+export const CANONICAL_TOOL_NAME: RegExp = Object.freeze(/^[A-Za-z0-9_-]{1,64}$/);
 
 /** True when `name` meets the canonical tool-name rule. */
 export function isCanonicalName(name: string): boolean {
@@ -43,47 +43,48 @@ export interface ToolNameRule {
 }
 
 // Each rule is copied from the provider's own reference, as of November 2026; names.md records the exact wording.
-/** The tool-name rules of the two first wire protocols, Anthropic Messages and OpenAI Chat Completions. */
+/** The tool-name rules of the two first wire protocols, Anthropic Messages and OpenAI Chat Completions. Frozen. */
 export const TOOL_NAME_RULES: {
   readonly anthropicMessages: ToolNameRule;
   readonly openaiChat: ToolNameRule;
-} = {
+} = Object.freeze({
   // Messages API reference, Tool object: `pattern: ^[a-zA-Z0-9_-]{1,128}$`.
-  anthropicMessages: {
+  anthropicMessages: Object.freeze({
     api: "anthropic-messages",
     characters: "A-Za-z0-9_-",
     maxLength: 128,
     source: "https://platform.claude.com/docs/en/api/messages/create",
     checkedOn: "2026-11-19",
-  },
+  }),
   // FunctionDefinition.name: "Must be a-z, A-Z, 0-9, or contain underscores and dashes, with a maximum length of 64".
-  // The API reference host was unreachable from the build environment, so the rule comes from the doc comment in
-  // OpenAI's official TypeScript SDK, which is generated from the same API specification.
-  openaiChat: {
+  // OpenAI's TypeScript SDK at v7.49.0 carries the same words in src/resources/shared.ts.
+  openaiChat: Object.freeze({
     api: "openai-chat",
     characters: "A-Za-z0-9_-",
     maxLength: 64,
-    source: "https://github.com/openai/openai-node/blob/v7.49.0/src/resources/shared.ts",
+    source: "https://developers.openai.com/api/reference/resources/chat/subresources/completions/methods/create",
     checkedOn: "2026-11-19",
-  },
-};
+  }),
+});
 
 /**
  * A run's map between canonical tool names and one protocol's wire names. `sanitize()` gives the wire name for a
  * tool, and `restore()` turns a wire name the model sent back into the tool's name.
  *
- * A name that already meets the rule always keeps itself as its wire name. The wire names of the names passed to
- * `createToolNameMap()` depend only on that set of names, not on their order or on the order of `sanitize()` calls.
- * A name first seen by `sanitize()` gets its wire name when it is first seen, and keeps it for the life of the map.
+ * No two wire names are equal or differ only in case, because neither first provider says whether tool names are
+ * case-sensitive. When every name is passed to `createToolNameMap()` up front, a name that meets the rule keeps
+ * itself, unless it differs only in case from a name that sorts before it. Those wire names depend only on the set
+ * of names, not on its order or on the order of `sanitize()` calls. A name first seen later by `sanitize()` keeps
+ * itself if it meets the rule and no issued wire name matches it, ignoring case; otherwise it gets a salted hash
+ * suffix. Every name keeps its first wire name for the life of the map, because that name may already have been sent.
  */
 export interface ToolNameMap {
   /**
-   * The wire name for `name`. A name that already meets the rule comes back unchanged. Any other name has its
-   * disallowed characters replaced by `_`, is cut to fit, and ends in `_` and an 8-digit hex hash of the name, so
-   * two names never share a wire name. One map always gives one name the same wire name.
-   *
-   * Throws a `GatewayError` with code `invalid_tool_name` when `name` meets the rule but an earlier `sanitize()` call
-   * already gave its wire name to another tool. Passing every tool name to `createToolNameMap()` avoids this.
+   * The wire name for `name`. A name that meets the rule comes back unchanged unless an issued wire name matches it,
+   * ignoring case. Any other name has its disallowed characters replaced by `_`, is cut to fit, and ends in `_` and
+   * an 8-digit hex hash. The hash is of the name alone at first; when that wire name is taken, it is retried as a
+   * hash of the name and an attempt counter until it is free, so two names never share a wire name. One map always
+   * gives one name the same wire name.
    */
   sanitize(name: string): string;
   /**
@@ -106,6 +107,38 @@ function fnv1a(text: string): string {
   return (hash >>> 0).toString(16).padStart(8, "0");
 }
 
+const isDigit = (c: string): boolean => c >= "0" && c <= "9";
+const isLower = (c: string): boolean => c >= "a" && c <= "z";
+const isUpper = (c: string): boolean => c >= "A" && c <= "Z";
+
+// A stray "-" silently makes a range, as "9-_" would in "a-z0-9-_", so "-" may only start or end the characters
+// or join two digits, two lowercase letters or two uppercase letters.
+function checkDashes(rule: ToolNameRule): void {
+  const chars = rule.characters;
+  for (let i = 0; i < chars.length; ) {
+    const from = chars.charAt(i);
+    if (chars.charAt(i + 1) === "-" && i + 2 < chars.length && from !== "-") {
+      const to = chars.charAt(i + 2);
+      const sameKind =
+        (isDigit(from) && isDigit(to)) || (isLower(from) && isLower(to)) || (isUpper(from) && isUpper(to));
+      if (!sameKind) {
+        throw new GatewayError(
+          "invalid_options",
+          `tool-name rule ${rule.api}: range ${from}-${to} must join two digits or two letters of the same case`,
+        );
+      }
+      i += 3;
+    } else if (from === "-" && i !== 0 && i !== chars.length - 1) {
+      throw new GatewayError(
+        "invalid_options",
+        `tool-name rule ${rule.api}: a - outside a range must be the first or last character`,
+      );
+    } else {
+      i += 1;
+    }
+  }
+}
+
 function checkRule(rule: ToolNameRule): { valid: RegExp; invalid: RegExp } {
   if (!Number.isInteger(rule.maxLength) || rule.maxLength <= HASH_SUFFIX_LENGTH) {
     throw new GatewayError("invalid_options", `tool-name rule ${rule.api}: maxLength must be an integer above 9`);
@@ -118,6 +151,7 @@ function checkRule(rule: ToolNameRule): { valid: RegExp; invalid: RegExp } {
       `tool-name rule ${rule.api}: characters must not start with ^ or contain [, ] or a backslash`,
     );
   }
+  checkDashes(rule);
   let valid: RegExp;
   let invalid: RegExp;
   let allowed: RegExp;
@@ -148,12 +182,16 @@ function byCodeUnits(a: string, b: string): number {
  * Keep one map for a whole run, so every request sends the same wire names and the prompt cache stays valid.
  *
  * Throws a `GatewayError` with code `invalid_options` when the rule is too short to hold a hash suffix, its
- * characters are not a plain character-class body, or they exclude `_` or a hex digit.
+ * characters are not a plain character-class body, or they exclude `_` or a hex digit. In `characters`, a `-` must
+ * be the first or last character or join two digits, two lowercase letters or two uppercase letters.
  */
 export function createToolNameMap(rule: ToolNameRule, names: Iterable<string> = []): ToolNameMap {
   const { valid, invalid } = checkRule(rule);
   const toWire = new Map<string, string>();
   const fromWire = new Map<string, string>();
+  // Issued wire names, lowercased, so no two wire names differ only in case.
+  const issuedFolded = new Set<string>();
+  const isTaken = (wire: string): boolean => issuedFolded.has(wire.toLowerCase());
 
   function hashed(name: string, attempt: number): string {
     const hash = fnv1a(attempt === 0 ? name : `${name}\u0000${attempt}`);
@@ -163,33 +201,28 @@ export function createToolNameMap(rule: ToolNameRule, names: Iterable<string> = 
   function assign(name: string, wire: string): string {
     toWire.set(name, wire);
     fromWire.set(wire, name);
+    issuedFolded.add(wire.toLowerCase());
     return wire;
   }
 
   function sanitize(name: string): string {
     const known = toWire.get(name);
     if (known !== undefined) return known;
-    if (valid.test(name)) {
-      const holder = fromWire.get(name);
-      if (holder !== undefined) {
-        throw new GatewayError(
-          "invalid_tool_name",
-          `tool name ${JSON.stringify(name)} is already the wire name of ${JSON.stringify(holder)}; ` +
-            "pass every tool name to createToolNameMap() so names that meet the rule keep themselves",
-        );
-      }
-      return assign(name, name);
-    }
-    let attempt = 0;
+    const meetsRule = valid.test(name);
+    if (meetsRule && !isTaken(name)) return assign(name, name);
+    // A name that meets the rule but whose string, ignoring case, was already issued starts salted: the earlier
+    // wire name may already have been sent, so it must not move.
+    let attempt = meetsRule ? 1 : 0;
     let wire = hashed(name, attempt);
     // A taken wire name belongs to another tool, so salt the hash until it is free.
-    while (fromWire.has(wire)) wire = hashed(name, ++attempt);
+    while (isTaken(wire)) wire = hashed(name, ++attempt);
     return assign(name, wire);
   }
 
-  // Names that meet the rule claim themselves first, so a hashed name that collides with one is the one salted.
+  // Names that meet the rule claim themselves first, so a hashed name that collides with one is the one salted. Of
+  // names that differ only in case, the first in sorted order claims itself and the others are salted.
   const unique = [...new Set(names)].sort(byCodeUnits);
-  for (const name of unique) if (valid.test(name)) assign(name, name);
+  for (const name of unique) if (valid.test(name) && !isTaken(name)) assign(name, name);
   for (const name of unique) sanitize(name);
 
   return {

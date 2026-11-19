@@ -65,7 +65,7 @@ A provider page may be unreachable from the build environment; record it as unch
 ## Outcome
 
 - `packages/gateway/src/names.md` holds the table. As of November 2026, Anthropic Messages allows `^[a-zA-Z0-9_-]{1,128}$` and OpenAI Chat Completions allows the same characters at up to 64, so the canonical rule stays `^[A-Za-z0-9_-]{1,64}$`. ADR 0011 has a status note, not a superseding rule.
-- The OpenAI row comes from `FunctionDefinition.name` in OpenAI's official TypeScript SDK, because `platform.openai.com` and `developers.openai.com` did not resolve from the build environment. Neither provider states a case rule. `names.md` lists both as unchecked.
+- The OpenAI row comes from `FunctionDefinition.name` in the Chat Completions API reference on `developers.openai.com`, which the medium review round reached on 2026-11-19 after it first failed to resolve; OpenAI's TypeScript SDK at v7.49.0 has the same words. Neither provider states a case rule, so the name map salts names that differ only in case. The [fact-check log](../../plans/reviews/fact-check-tool-name-rule.md) records each claim.
 - `src/names.ts` exports `CANONICAL_TOOL_NAME`, `isCanonicalName()`, `assertCanonicalName()` (a `GatewayError` with the new code `invalid_tool_name`), `TOOL_NAME_RULES`, and `createToolNameMap()`, whose `sanitize()` and `restore()` replace the per-adapter pair the scope named: an adapter builds one map from its rule and keeps it for the run.
 - Every canonical name passes through both first protocols unchanged, so the hash-suffix path is tested under a stricter 16-character rule.
 - For B8, B9 and B10: the adapters build their map from `TOOL_NAME_RULES.anthropicMessages` and `TOOL_NAME_RULES.openaiChat`, and `defineTool()` calls `assertCanonicalName()`.

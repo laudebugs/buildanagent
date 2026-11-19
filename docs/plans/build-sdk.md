@@ -321,6 +321,7 @@ declare function allowModelRequests(allowed: boolean): void;  // false: any non-
 declare function mockTransport(api: "anthropic-messages" | "openai-chat", script: WireScript): Transport;
 declare function startMockServer(options: { api: string; script: WireScript; log?: string }): Promise<{ url: string; close(): Promise<void> }>; // 127.0.0.1 only
 declare function assertStreamContract(events: AsyncIterable<ModelEvent>): Promise<ModelEvent[]>;
+declare function seededRandom(seed: number): () => number;   // added in B3; moved here from @buildanagent/sdk/testing in B7, its one entry point
 ```
 
 ### 3.3 SDK API
@@ -519,7 +520,6 @@ declare function testSigner(): ApprovalSigner;               // re-exports E3's 
 declare function scriptedApprovals(resolutions: Resolution[]): Interceptors;
 declare function fixedClock(start: string, stepMs?: number): Clock;
 declare function sequentialIds(prefix?: string): () => string;
-declare function seededRandom(seed: number): () => number;   // added in B3: the seeded random the todo asks for
 declare function recordPairs(model: Model, stamp: RecordingStamp): { model: Model; pairs(): RecordedPair[] };
 declare function replayPairs(pairs: RecordedPair[]): ScriptedModel;   // rejects expired or mismatched stamps
 ```
