@@ -1,6 +1,6 @@
 # T6: Flat figure pipeline: generated SVGs, numbering, themes and the staleness test
 
-> **On hold (2026-11-19): do not start until the owner approves the [book plan](../../plans/build-book.md).** The plan is a draft for the owner's review.
+> **History:** the owner put the book's todos on hold on 2026-11-19 pending approval of the book plan, and approved the plan the same day ("If green merge", then "Then continue work"), so this todo starts once its **Depends on** are done ([book plan §7](../../plans/build-book.md#7-round-t-can-start-the-owner-approved-the-plan-on-2026-11-19)).
 
 | Field | Value |
 | --- | --- |
