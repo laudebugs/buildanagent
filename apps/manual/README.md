@@ -177,7 +177,7 @@ A replay fails when the transcript is missing or malformed, when it records anot
 A box holds material that a reader can skip without losing the thread, such as Chapter 1's account of how the examples run without a key. Write it as a `:::box` container with a title and an id:
 
 ```markdown
-:::box[How these examples run without a key]{#how-these-examples-run-without-a-key}
+:::box[How these examples run without a key]{#how-these-examples-run-without-a-key top}
 Every listing in this book runs against a mock model, …
 
 ::listing[The scripted mock behind this chapter's AI SDK listings]{#scripted-mock file="verify/vercel-ai-sdk/examples/lib/check.ts" region="scripted"}
