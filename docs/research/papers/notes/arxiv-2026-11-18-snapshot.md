@@ -54,19 +54,19 @@ Relevance tags: **[R]** relevant to our SDK/harness/coding-agent/platform plans 
 47. [R] arXiv:2611.22841. Verifying Agents in Rubric-Graded Environments. Dücker et al. 17 Nov 2026. cs.AI. 2,464-criterion investment-banking meta-evaluation dataset; "Gandalf" open-source verifier matches/beats baselines at lower cost. Relevant to grading/verification design, same cluster as #40.
 48. [-] arXiv:2611.22746. LaFlash. Choi et al. 17 Nov 2026. cs.AR.
 49. [-] arXiv:2611.22648. EDA: Observe, Verify, and Assess for Evidence-Grounded Multimodal Depression Analysis. Fu et al. 17 Nov 2026. cs.AI.
-50. [-] arXiv:2611.22632. Groups of AI agents underuse resources despite shared evidence of increased capacity. Ezaki, Imura, Nishinari. 17 Nov 2026. cs.MA. Language-model agents leave simulated server capacity unused even after recovery is reported. Multi-agent coordination failure mode.
+50. [R] arXiv:2611.22632. Groups of AI agents underuse resources despite shared evidence of increased capacity. Ezaki, Imura, Nishinari. 17 Nov 2026. cs.MA. Language-model agents leave simulated server capacity unused even after recovery is reported. Multi-agent coordination failure mode; became one of the two headline papers in the report's multi-agent section alongside #9.
 
 ## Triage summary
 
-- **[R] (follow up, ~14 papers):** 9, 12, 13, 15, 19, 24, 25, 26, 32, 33, 35, 37, 39, 40, 47.
-- **[~] (cite if it fits, ~11 papers):** 3, 10, 14, 22, 27, 30, 31, 38, 41, 43, 44, 46, 50.
+- **[R] (follow up, ~15 papers):** 9, 12, 13, 15, 19, 24, 25, 26, 32, 33, 35, 37, 39, 40, 47, 50 (updated 2026-11-19: #50 moved here from [~] after it became a headline multi-agent paper in the report; see the "Multi-agent safety" line below).
+- **[~] (cite if it fits, ~10 papers):** 3, 10, 14, 22, 27, 30, 31, 38, 41, 43, 44, 46.
 - **[-] (out of scope, ~25 papers):** the remainder — domain applications (power electronics, trading, theorem proving, translation, medical dialogue, astrophysics, physics textbooks, audio, education, contact-center, depression analysis), pure hardware/OS work, or robotics/human-teaming studies outside our LLM-coding-agent scope.
 
 The [R] cluster splits into:
 - **Coding-agent cost and verification:** 12 (cost), 26 (truthful completion), 35 (runtime transaction schema).
 - **Tool/skill security and authority:** 13 (skill control-flow integrity), 24 (capability modeling), 33 (authority escalation in CI/CD).
 - **Platform governance and evaluation:** 15 (capability framework, halo effect), 19 (governed experimentation), 39 (shadow-mode doc maintenance), 40 and 47 (rubric/NL-criteria verification).
-- **Multi-agent safety:** 9 (concealment).
+- **Multi-agent safety:** 9 (concealment), 50 (resource underuse).
 - **Sandboxing/environments:** 32 (EnvAgent/ENVBENCH).
 - **Cross-org trust:** 37 (Agent Trust Infrastructure).
 - **Self-improvement:** 25 (GUARD).
