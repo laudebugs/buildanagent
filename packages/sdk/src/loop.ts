@@ -31,6 +31,7 @@ import { HookFailure, HookRunner } from "./hook-runner.js";
 import type { CallOptions, Interceptors, ModelCallPatch } from "./hooks.js";
 import type { ProgressCheck } from "./progress.js";
 import type { RunError, RunResult } from "./result.js";
+import type { SteeringQueue } from "./steering.js";
 import type { Clock } from "./testing/determinism.js";
 import { toWireTool } from "./tools/define.js";
 import { type AnyTool, runToolCalls, type ToolCallResult } from "./tools/pipeline.js";
@@ -70,6 +71,8 @@ export interface LoopSetup {
   readonly interceptors: Interceptors;
   /** The default progress policy, run after the caller's `shouldStop`, or `undefined` when it is off (D11). */
   readonly progress?: ProgressCheck;
+  /** The messages a caller queued with `steer()` and `followUp()`, applied only at step boundaries. */
+  readonly steering: SteeringQueue;
   readonly signal: AbortSignal;
   readonly clock: Clock;
 }
@@ -115,6 +118,8 @@ class LoopState {
   lastUsage: Usage | undefined;
   cost: Cost | undefined;
   output: unknown;
+  /** Set when the run was kept going to deliver a follow-up, so the next step boundary applies the follow-ups too. */
+  releaseFollowUps = false;
 
   constructor(setup: LoopSetup, emit: Emit, drain: Drain) {
     this.setup = setup;
@@ -425,6 +430,36 @@ function withVerdict(state: LoopState, natural: Outcome | undefined, verdict: St
   }
 }
 
+/**
+ * Applies the queued messages before a model call: every steer, and the follow-ups too once the run was kept going to
+ * deliver them. Each becomes a user message and a `steer_applied` event, in the order it was sent, and its receipt
+ * resolves with the index of the step about to run.
+ */
+function applySteering(state: LoopState): void {
+  const { steering } = state.setup;
+  const batch = steering.takeSteers();
+  if (state.releaseFollowUps) {
+    state.releaseFollowUps = false;
+    batch.push(...steering.takeFollowUps());
+  }
+  for (const delivery of batch) {
+    state.append({ role: "user", content: delivery.message });
+    state.send({ type: "steer_applied", receipt: delivery.deliver(state.stepIndex) });
+  }
+}
+
+/**
+ * Keeps a run that its model ended by answering going, when a message is waiting and the step cap leaves room for
+ * one more call: a steer comes first, and follow-ups wait for the next time the run would end. Any other outcome
+ * stands, and the messages still waiting are rejected when the run ends.
+ */
+function withQueued(state: LoopState, outcome: Outcome | undefined): Outcome | undefined {
+  const { steering, maxSteps } = state.setup;
+  if (outcome?.stopReason !== "done" || !steering.hasPending() || state.steps >= maxSteps) return outcome;
+  state.releaseFollowUps = !steering.hasSteers();
+  return undefined;
+}
+
 /** The stop check after one step, then the `shouldStop` hook where it may change it. */
 async function decide(
   state: LoopState,
@@ -435,7 +470,8 @@ async function decide(
   const endedByAnswer = natural?.stopReason === "done" && results.length === 0;
   if (natural !== undefined && !endedByAnswer) return natural;
   const verdict = await state.hooks.shouldStop({ messages: state.messages, lastMessage: message });
-  return withVerdict(state, natural, await withProgress(state, verdict));
+  const outcome = withVerdict(state, natural, await withProgress(state, verdict));
+  return endedByAnswer ? withQueued(state, outcome) : outcome;
 }
 
 /**
@@ -460,6 +496,7 @@ async function runStep(state: LoopState): Promise<Outcome | undefined> {
   state.send({ type: "step_start" });
   let outcome: Outcome | undefined;
   try {
+    applySteering(state);
     const called = await callModel(state);
     if ("blocked" in called) {
       outcome = called.blocked;
@@ -535,5 +572,7 @@ export async function runLoop(setup: LoopSetup, emit: Emit, drain: Drain): Promi
   while (outcome === undefined) {
     outcome = setup.signal.aborted ? { stopReason: "aborted" } : await runStep(state);
   }
+  // The run has its outcome, so a message still waiting can no longer reach a model call.
+  setup.steering.close();
   return finish(state, outcome);
 }

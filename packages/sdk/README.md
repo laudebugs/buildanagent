@@ -116,6 +116,22 @@ async execute(input, ctx) {
 
 Pass `signal: ctx.signal` so the child stops when the parent's call is aborted. The parent's `budgetUsd` counts only the parent's own model calls, so give each child a budget of its own. A tool running at `depth === maxDepth` that starts a child run this way makes `run()` throw `max_depth_exceeded`. Since the throw happens inside `execute`, the model reads it as an error result and can answer without the sub-agent.
 
+## Steer a running agent with `run.steer()`, or queue a follow-up with `run.followUp()`
+
+Both methods queue a user message and return a promise for a `DeliveryReceipt`. The loop applies queued messages only at a step boundary, so a model call or tool batch that is running is never cut. A steer is applied before the run's next model call: a steer sent while a batch of tool calls runs waits for the whole batch, and the model reads it after the tool results.
+
+```ts
+const started = run({ model, system, input, tools });
+const receipt = await started.steer("Use order 2 instead.");
+console.log(receipt.stepIndex); // the model call that first saw the message
+```
+
+A follow-up waits until the run would otherwise end. When the model answers without a tool call and a message is waiting, the run adds the waiting messages and makes one more model call, so a follow-up sent before the run ends extends it by one step. A waiting steer goes first, and follow-ups wait for the next time the run would end. The extra call counts against `maxSteps`: a run already at the cap ends as it would have.
+
+A receipt resolves once its message is in the transcript. It holds an `id` that is unique within the run, the `kind` (`"steer"` or `"follow_up"`), the `message` as content blocks and the `stepIndex`. The run also emits one `steer_applied` event for each message, carrying the same receipt. A message is a non-empty string or a non-empty list of text and image blocks, and messages are applied in the order they were sent.
+
+The promise rejects with an `SdkError` whose code is `undelivered_message` when the run ends before it applies the message. That happens when you call after the run has its outcome, when an abort or any stop reason other than a text answer ends the run, and when a run ends by calling its output tool. It rejects with `invalid_run_options` for an empty message or a block that isn't text or an image.
+
 ## A run streams one closed set of events
 
 Iterating a run yields its events. Each iteration starts from the run's first event, so you can start iterating at any time, even after the run has ended. Every event carries the run's `runId`, a `seq` that counts events from 0, a `stepIndex` that counts model calls from 0, and a `timestamp` from the run's clock.
@@ -127,6 +143,7 @@ The events come in two layers. The delta layer streams each content block by its
 - **`model_call_start`** carries the request, and **`model_call_end`** the final message.
 - **`tool_call_start`**, **`tool_call_update`** and **`tool_call_end`** follow each tool call; `tool_call_end.result` is what the model reads. When a `beforeToolCall` gate replaced the model's input, `tool_call_end.input` holds the input the call got instead.
 - **`context_transformed`** reports the message counts before and after `transformContext` for one model call.
+- **`steer_applied`** reports a queued steer or follow-up that entered the transcript, with its receipt.
 - **`hook_error`** reports an interceptor or an observer that threw, with the hook's name and the message.
 - **`retry`** reports a failed request the gateway is retrying, and **`warning`** reports a reached cap or a model warning.
 - **`error`** and **`abort`** report a failed call and an abort request.
@@ -282,6 +299,7 @@ The SDK throws only for programmer errors, never for a failure the model caused.
 - **`invalid_tool_result`**: `execute` returned something other than a tool result, or an invalid outcome. A text block needs a string `text`, and an image block a string `mediaType` and `data`. The run's `result` rejects with this error, and iterating the run throws it after the last event.
 - **`invalid_run_options`**: `run()` or `continueRun()` got a model that isn't from `createModel()`, a `maxSteps` that isn't a positive integer, an output tool whose `exposure` isn't `"direct"`, a `budgetUsd` that isn't a non-negative number, a `progress` threshold that isn't a positive integer, or a `depth` or `maxDepth` that isn't a whole number.
 - **`max_depth_exceeded`**: a tool started a run nested deeper than `maxDepth` allows.
+- **`undelivered_message`**: `steer()` or `followUp()` rejects with it when the run ended before it could apply the message.
 - **`invalid_model_stream`**: a model's stream ended without a final message, which only a broken adapter does.
 Hooks add two `SdkError` codes:
 

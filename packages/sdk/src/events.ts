@@ -6,6 +6,7 @@
  */
 import type { AssistantMessage, ContentBlock, DumpedOptions, ModelContext, ModelRef } from "@buildanagent/gateway";
 import type { RunError, RunResult } from "./result.js";
+import type { DeliveryReceipt } from "./steering.js";
 import type { ToolResult } from "./tools/types.js";
 
 /** The fields every event carries. `seq` counts the run's events from 0; `stepIndex` counts its model calls from 0. */
@@ -81,6 +82,11 @@ export type AgentEventBody =
    * thrown message. The run goes on or fails by the interceptors' `onFailure` setting; a failed observer never
    * affects it.
    */
+  /**
+   * A queued steer or follow-up entered the transcript as a user message, before the model call named by
+   * `receipt.stepIndex`. `receipt.kind` tells the two apart.
+   */
+  | { readonly type: "steer_applied"; readonly receipt: DeliveryReceipt }
   | { readonly type: "hook_error"; readonly hook: string; readonly error: string }
   | { readonly type: "warning"; readonly code: WarningCode; readonly detail: string }
   | { readonly type: "error"; readonly error: RunError }
@@ -108,6 +114,7 @@ export const AGENT_EVENT_TYPES = Object.freeze([
   "model_call_end",
   "context_transformed",
   "hook_error",
+  "steer_applied",
   "tool_call_start",
   "tool_call_update",
   "tool_call_end",
