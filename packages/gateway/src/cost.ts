@@ -141,8 +141,8 @@ export function estimateInputTokens(context: ModelContext): number {
 }
 
 /**
- * The most the next call can cost, priced as `projectCost()` prices it: over `estimateInputTokens(context)` and the call's
- * `maxOutputTokens`, or the model's own output limit when the options leave it out. Priced with the model's catalog
+ * The most the next call can cost, priced as `projectCost()` prices it: over `estimateInputTokens(context)` and the
+ * call's `maxOutputTokens`, or the model's own output limit when the options leave it out. Priced with the model's catalog
  * entry, so a model the catalog lacks projects `{ total: null, basis: "unknown" }`.
  */
 export function projectCallCost(model: Model, context: ModelContext, options: StreamOptions = {}): Cost {
