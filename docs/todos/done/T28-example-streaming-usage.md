@@ -19,10 +19,10 @@ The same todo also writes the listing for Section T39 (fine-tuning versus prompt
 
 ## Context
 
-- [Book plan BK20](../../plans/build-book.md#bk20-new-verify-examples-fill-the-gaps-the-coverage-review-found-accepted) and Chapter T11's todo, [T11](T11-chapter-talking-to-a-model.md)
+- [Book plan BK20](../../plans/build-book.md#bk20-new-verify-examples-fill-the-gaps-the-coverage-review-found-accepted) and Chapter T11's todo, [T11](../ready/T11-chapter-talking-to-a-model.md)
 - [AGENTS.md, process for documenting an SDK](../../../AGENTS.md#process-for-documenting-an-sdk): behavioural examples, mock models, and no host-touching tools
 - The harness's README and `examples/lib/` helpers
-- [U21 report, Examples](../../research/fine-tuning/fine-tuning-vs-prompting.md#one-offline-example-would-give-the-section-its-listing-and-no-example-should-call-a-tuning-api): the tuned-versus-cached example, its token counts, its four checks and its dated price table; Section T39's todo, [T39](T39-section-fine-tuning-vs-prompting.md)
+- [U21 report, Examples](../../research/fine-tuning/fine-tuning-vs-prompting.md#one-offline-example-would-give-the-section-its-listing-and-no-example-should-call-a-tuning-api): the tuned-versus-cached example, its token counts, its four checks and its dated price table; Section T39's todo, [T39](../ready/T39-section-fine-tuning-vs-prompting.md)
 
 ## Scope
 
@@ -38,7 +38,7 @@ The same todo also writes the listing for Section T39 (fine-tuning versus prompt
 - Chapter T11's prose (its own todo)
 - Our own packages' versions of the same behaviour (the chapter's switch todos)
 - Any listing that creates a real tuning job: it needs a network and a provider account, and OpenAI no longer accepts new organisations for tuning (U21)
-- Section T39's prose ([T39](T39-section-fine-tuning-vs-prompting.md))
+- Section T39's prose ([T39](../ready/T39-section-fine-tuning-vs-prompting.md))
 
 ## Tasks
 
