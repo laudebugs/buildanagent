@@ -1,2 +1,19 @@
-/** `@buildanagent/sdk/otel`: the OpenTelemetry observer. `otelObserver()` is planned here (SDK plan §3.3). */
-export {};
+/**
+ * `@buildanagent/sdk/otel`: the OpenTelemetry observer. `otelObserver()` projects a run's events onto `gen_ai.*`
+ * spans, with content off unless the caller turns it on, and exports only to the tracer the caller passes.
+ */
+export {
+  GEN_AI_ATTRIBUTES,
+  GEN_AI_CONTENT_ATTRIBUTES,
+  GEN_AI_OPERATIONS,
+  SEMCONV_GENAI_COMMIT,
+} from "./attributes.js";
+export {
+  type AttributeValueLike,
+  type OtelObserver,
+  type OtelObserverOptions,
+  otelObserver,
+  type SpanLike,
+  type SpanOptionsLike,
+  type TracerLike,
+} from "./observer.js";
