@@ -13,6 +13,7 @@ Instructions for AI coding agents (Claude Code, Codex, OpenCode, Pi, etc.) worki
 - `packages/`: our own packages. `gateway/` is `@buildanagent/gateway` (the model gateway) and `sdk/` is `@buildanagent/sdk` (the loop over it); the harness plan adds `packages/harness` and others beside them. Each package runs `tsc -p` for `typecheck` and `tsx --test` for `test`, and every test file first imports `@buildanagent/gateway/testing/setup`, which blocks non-loopback `fetch` and fails if a provider key variable is set.
 - `verify/<sdk>/`: per-SDK verification harness (Node, exact-pinned deps). `pnpm run verify` type-checks and runs doc examples against a mock model; `pnpm test` runs our own examples in `examples/`. Generated folders (`extracted/`, `.tmp/`) are gitignored, while `results/` is committed.
 - `.github/workflows/`: `ci.yml` runs `pnpm check`, `pnpm typecheck`, `pnpm test` and the results-drift check (`scripts/ci/results-drift.mjs`) on every push; `verify.yml` runs every harness's full verify and `pnpm audit` nightly.
+- `docs/guidelines/`: the coding and documentation rules for `packages/`: TypeScript (`typescript.md`), maintainability (`maintainability.md`), testing (`testing.md`), reader-facing docs (`docs-writing.md`) and examples (`examples.md`), adapted from the owner's Lamina PDF repo.
 - `docs/decisions/`: architecture decision records (ADRs) for lasting choices in the build plans; the format is in its README.
 - `docs/plans/`: the plans and the [roadmap](docs/plans/roadmap.md); each plan starts with a status line and lists its todos.
 - `docs/todos/`: the todo board. A todo's folder (`ready/`, `ongoing/`, `done/`) is its state; new todos start from `docs/todos/TEMPLATE.md`.
@@ -106,6 +107,9 @@ The repo is a pnpm workspace. Run every command from the repo root unless a READ
 - **Lint and format.** Biome checks JS, TS and JSON (`biome.json`): 2-space indent, double quotes, semicolons, trailing commas, 120 columns. Biome skips Markdown and mirrored upstream sources. `noExplicitAny` is off only in `verify/*/examples`.
 - **Tool paths.** Never hard-code `node_modules` paths. Resolve tools with `import.meta.resolve("tsx")` or by walking up to the nearest `node_modules/.bin`.
 - **Running third-party code.** Spawn it with an allowlisted environment (`PATH`, a temp `HOME`, `TMPDIR`, `LANG` plus what the run needs), never `...process.env`, and block outbound network where the harness allows. Inherited credentials once sent a doc example to a real provider.
+- **Our packages follow the guidelines.** Code in `packages/` follows [`docs/guidelines/`](docs/guidelines/README.md): strict and portable TypeScript, one error class per package, named and documented exports, small functions, offline and deterministic tests, plain-English package docs and tested examples. Read the guideline for your change before you start, and update the guideline in its own pull request if you think a rule is wrong.
+- **Never patch code just to make a test pass.** When a test fails, find out why: fix the product if it is wrong, or change the test and say why in the commit message ([maintainability](docs/guidelines/maintainability.md#never-patch-code-just-to-make-a-test-pass)).
+- **Comments say why, without todo ids.** A comment explains an invariant, a decision or a workaround, and cites decisions by id (`D3`, `HD15`); todo ids belong in commit messages and plans, not in `packages/*/src`.
 - **Before you commit.** `pnpm check`, `pnpm typecheck` and `pnpm test` must pass.
 
 ## Git
@@ -113,7 +117,7 @@ The repo is a pnpm workspace. Run every command from the repo root unless a READ
 - **One pull request per piece of work** (changed from direct pushes to `main` on 2026-11-18). Branch from the latest `main`, named for the work (`todo/<id>-<slug>`, or `docs/<slug>` for work without a todo), push the branch, and open a pull request against `main`.
 - **Squash-merge when ready:** CI (`ci.yml`) passes, the todo's definition of done is met, and every finding is fixed or explained in a commit message. That covers the findings of each [code-review round](#every-pull-request-gets-two-rounds-of-code-review), of the [writing review](#every-piece-of-copy-is-drafted-with-the-writing-skill-and-reviewed-once-the-code-is-done) and, for documents, of the fact-check. The squash commit's message is the PR title, a summary of the change, and one line per review giving its effort, its finding count and how many were fixed. Delete the branch after the merge; this session's token cannot delete remote branches, so the owner deletes them or turns on the repository's "Automatically delete head branches" setting.
 - Snapshots of unfinished work go to the work's own branch, not to separate `wip/*` branches.
-- Commit messages: imperative mood, with a short summary line.
+- **Conventional Commits** for commit messages and pull request titles: `type(scope): summary` in the imperative mood, with `type` one of `feat`, `fix`, `docs`, `test`, `refactor`, `chore` or `ci`, and `scope` the package or area (`feat(gateway): add createModel retries`). The pull request title becomes the squash commit's first line.
 - Never commit secrets or `.env` files.
 
 ## Every pull request gets two rounds of code review

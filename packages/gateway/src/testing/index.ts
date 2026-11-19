@@ -1,7 +1,7 @@
 /**
  * `@buildanagent/gateway/testing`: test doubles for the gateway.
  *
- * It exposes the offline guards, `allowModelRequests()` and `assertStreamContract()`. B4 adds `mockTransport()`, `startMockServer()` and `allowModelRequests()`.
+ * It exposes the offline guards, `allowModelRequests()` and `assertStreamContract()`; `mockTransport()` and `startMockServer()` are planned here (SDK plan §3.2).
  */
 
 export {

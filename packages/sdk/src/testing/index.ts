@@ -1,7 +1,7 @@
 /**
  * `@buildanagent/sdk/testing`: the strict scripted test model and deterministic seams.
  *
- * B18 adds `autoResponder`, seam doubles and record and replay.
+ * `autoResponder`, seam doubles and record and replay are planned here (SDK plan §3.3).
  */
 export { type Clock, fixedClock, seededRandom, sequentialIds } from "./determinism.ts";
 export {

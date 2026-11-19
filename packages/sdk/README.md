@@ -1,17 +1,19 @@
 # @buildanagent/sdk
 
-The buildanagent SDK runs the agent loop over [`@buildanagent/gateway`](../gateway/README.md): tools, hooks, signed pauses and budgets. As of November 2026 it holds only its testing export (todo B3); the loop arrives from B10 onward. The design is in the [SDK plan §3.3](../../docs/plans/build-sdk.md#33-sdk-api).
+The SDK runs your agent's loop over [`@buildanagent/gateway`](../gateway/README.md): it calls the model, runs the tools the model asks for, and stops when the work is done. Its testing export lets you test that agent offline against a scripted model, with no API key.
 
-## Testing: a strict scripted model, not a lenient mock
+As of November 2026 the package holds only the testing export. The loop, tools, hooks, approvals and budgets are next.
 
-`@buildanagent/sdk/testing` exports `ScriptedModel`, the model every loop, tool, hook and pause test drives. It implements the gateway's `ModelAdapter`, so a test can pass it anywhere a real adapter goes, and it fails loudly when a test's expectations drift:
+## Test against a strict scripted model
 
-- **Over-run throws.** A call past the last scripted step throws `UnexpectedModelCallError`.
-- **Under-run fails.** `assertComplete()` throws if any step was never called; call it in teardown.
-- **Requests are snapshots.** `calls` holds a cloned, deeply frozen `RecordedRequest` per call, taken when the call is made, so later changes to the caller's context never show up in it.
-- **Streams look real.** Text, reasoning and tool-input JSON arrive in deltas of `chunkSize` characters (default 4), and the abort signal is checked between deltas. An abort ends the stream with an `error` terminal whose `stopReason` is `"aborted"`, carrying the text so far.
+`ScriptedModel` plays back the responses you script, one per model call. It fails loudly when your test's expectations drift:
 
-A step is either a fixed `AssistantScript` or a responder that builds one from the recorded request:
+- **Too many calls throw.** A call past the last scripted step throws `UnexpectedModelCallError`.
+- **Unused steps fail.** `assertComplete()` throws if any step was never called; call it when the test ends.
+- **Requests are snapshots.** `calls` holds a frozen copy of each request, taken when the call was made, so later changes to your conversation never show up in it.
+- **Streams look real.** Text, reasoning and tool-call input arrive in small pieces (4 characters by default), and an abort is checked between pieces.
+
+This test model answers a refund request with a tool call, then reads the conversation it is sent the second time:
 
 ```ts
 import { ScriptedModel, sequentialIds } from "@buildanagent/sdk/testing";
@@ -25,10 +27,10 @@ const model = new ScriptedModel(
 );
 ```
 
-A script's `stopReason` defaults to `"tool_calls"` when its content has a tool call, and to `"stop"` otherwise. Setting `error` ends the stream with an `error` terminal instead. Every stream passes the gateway's `assertStreamContract()`.
+A step is either a fixed response or a function that builds one from the request. A response stops with `"tool_calls"` when it contains a tool call and with `"stop"` otherwise. Setting `error` ends the stream with an error instead.
 
-## Tests are deterministic and offline
+## Tests give the same result every run
 
-Nothing in the testing export reads `Date.now()` or `Math.random()`. `fixedClock(start, stepMs)` returns an ISO 8601 clock, `sequentialIds(prefix)` returns `prefix-1`, `prefix-2` and so on, and `seededRandom(seed)` returns a seeded generator. The same script with the same clock and ids produces deep-equal events on every run.
+Nothing in the testing export reads the system clock or `Math.random()`. `fixedClock(start, stepMs)` returns a clock that advances by a fixed step, `sequentialIds(prefix)` returns `prefix-1`, `prefix-2` and so on, and `seededRandom(seed)` returns random numbers you can repeat. The same script with the same clock and ids streams the same events every time.
 
-Every test file starts with `import "@buildanagent/gateway/testing/setup"`. The setup blocks `fetch` to non-loopback hosts, fails if a provider key variable is set, and calls `allowModelRequests(false)`, so any adapter whose transport is not marked as a mock throws before it sends.
+Start each test file with `import "@buildanagent/gateway/testing/setup"`, which keeps the test offline.
