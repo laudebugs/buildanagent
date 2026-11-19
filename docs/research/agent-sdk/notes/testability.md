@@ -106,7 +106,7 @@ The resulting layering:
 
 ## Design implications for our SDK
 
-Ship in `@buildanagent/sdk/testing`:
+Ship in `@agent-speak/sdk/testing`:
 1. **`ScriptedModel`** with fixed steps, `responder`, `stream`, `streamResponder` and `error(err, retryAdvice)` steps. It gets `calls`/`firstCall`/`lastCall` as frozen, detached snapshots, `remainingSteps` and `assertComplete()`, and it throws a typed `UnexpectedModelCallError` on over-run. Evidence: OpenAI's complete design (OAI.d.ts:12-126), the AI SDK's silent `undefined` and `mockValues` repeat (AIT.js:148, 370-373), and our `scripted()` wrapper that had to add a throw (`check.ts:30-42`).
 2. **Finite-by-construction scripts.** Accept a `responder` with `maxCalls` instead of requiring N copies, and reject infinite iterables. Evidence: `Array.from` at OAI.mjs:108 and our 500/200-step workarounds (`scripted-model.mjs:62-66`; `faux-model.mjs:79-84`).
 3. **Built-in responders**: `autoResponder({ denyTools, preferNamed, outputSchema })`, with schema-synthesised arguments, a host-tool deny list matched by name and capability, and structured-output answers. Evidence: `synth()` and the three-rule policy copied four times (§1), plus the `exec_command` near-miss (`docs/reference/openai-agents-sdk/fact-check.md:36`). Prior art is Pydantic AI's `TestModel`.

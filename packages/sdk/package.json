@@ -4,7 +4,7 @@
   "private": true,
   "license": "Apache-2.0 OR MIT",
   "type": "module",
-  "description": "The agent-speak SDK: the agent loop, tools, hooks, signed pauses and budgets over the gateway.",
+  "description": "The buildanagent SDK: the agent loop, tools, hooks, signed pauses and budgets over the gateway.",
   "exports": {
     ".": "./src/index.ts",
     "./otel": "./src/otel/index.ts",

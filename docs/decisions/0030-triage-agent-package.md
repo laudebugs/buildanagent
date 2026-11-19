@@ -2,7 +2,7 @@
 
 - **Status:** Accepted (P4 review, 2026-11-18)
 - **Date:** 2026-11-18
-- **Plan:** [build-agent.md, AD13](../plans/build-agent.md#ad13-one-private-package-agent-speaktriage-agent-with-one-subpath-per-removable-component)
+- **Plan:** [build-agent.md, AD13](../plans/build-agent.md#ad13-one-private-package-buildanagenttriage-agent-with-one-subpath-per-removable-component)
 
 ## Context
 

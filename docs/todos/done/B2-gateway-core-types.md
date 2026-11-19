@@ -78,3 +78,5 @@ The `ContentBlock` set may need a block kind the adapters reveal (for example ci
 - **`WireTool`** was used in `ModelContext` but defined nowhere in the plans. B2 defines it as `{ name; description; inputSchema }`, with `inputSchema` a JSON Schema object, and adds the line to §3.2.
 - `assertStreamContract()` enforces two rules beyond the five this todo listed: a `done` terminal may not carry `stopReason` `"error"` or `"aborted"`, and every block a `done` stream started must have ended. Each has a test.
 - **Tests:** 27 pass in the gateway: 14 for the stream contract, 6 for `complete()` and usage including the type test, 2 for package boundaries, and 5 from B1. Adding an `input` field to `Usage` fails `pnpm typecheck`, checked by hand.
+
+**Renamed 2026-11-19.** This todo created its packages under the `@agent-speak/` scope; [#27](https://github.com/laudebugs/buildanagent/pull/27) renamed them to `@buildanagent/`, and this file now uses the new names.

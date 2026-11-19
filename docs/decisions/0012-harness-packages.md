@@ -10,7 +10,7 @@ The harness guide defines one typed protocol package first, wants the CLI to be 
 
 ## Decision
 
-`@buildanagent/protocol` holds the typed union, the session-entry union, framing and generated JSON Schema. Its emitted JavaScript imports nothing at run time; it declares `@buildanagent/gateway` and `@buildanagent/sdk` as dependencies for types only, and never depends on the harness. `@buildanagent/harness` holds the session log, context policy, registry, MCP client, permissions, sandbox, credentials, extensions, telemetry, ablation and dispatcher, each behind its own subpath export. `@buildanagent/cli` is the `agent-speak` binary and a client of the in-process transport. `@buildanagent/evals` holds reports, trajectory conversion and the offline replay suite, with the Inspect task beside it in Python. All four live in `packages/` beside the SDK's two.
+`@buildanagent/protocol` holds the typed union, the session-entry union, framing and generated JSON Schema. Its emitted JavaScript imports nothing at run time; it declares `@buildanagent/gateway` and `@buildanagent/sdk` as dependencies for types only, and never depends on the harness. `@buildanagent/harness` holds the session log, context policy, registry, MCP client, permissions, sandbox, credentials, extensions, telemetry, ablation and dispatcher, each behind its own subpath export. `@buildanagent/cli` is the `buildanagent` binary and a client of the in-process transport. `@buildanagent/evals` holds reports, trajectory conversion and the offline replay suite, with the Inspect task beside it in Python. All four live in `packages/` beside the SDK's two.
 
 ## Consequences
 

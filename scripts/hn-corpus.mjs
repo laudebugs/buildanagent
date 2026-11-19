@@ -50,7 +50,7 @@ const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 
 async function get(url, tries = 4) {
   for (let i = 0; i < tries; i++) {
-    const res = await fetch(url, { headers: { "user-agent": "agent-speak-research/1.0" } });
+    const res = await fetch(url, { headers: { "user-agent": "buildanagent-research/1.0" } });
     if (res.ok) return res.json();
     await sleep(1000 * 2 ** i);
   }

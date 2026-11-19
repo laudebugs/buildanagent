@@ -8,7 +8,7 @@
 
 ## What we are building
 
-agent-speak ends this phase with four things:
+buildanagent ends this phase with four things:
 1. **A verified reference for each of eight agent SDKs:** the Claude Agent SDK, Pi, the OpenAI Agents SDK, the Vercel AI SDK, LangChain.js, Cloudflare Agents, Google ADK and the GitHub Copilot SDK. Each reference type-checks every doc example and runs the complete ones offline.
 2. **A comparison** of those SDKs: one feature table, one deep comparison built on the same support-triage agent in all eight, and a TypeScript gap report.
 3. **One agent skill per SDK,** so coding agents working in this repo know how to use each SDK correctly.

@@ -76,3 +76,5 @@ Low. CI may need the `packages/` paths added to any path filters; check `.github
 - `@buildanagent/gateway/testing/setup` installs the offline guards from `src/testing/guards.ts`: `fetch` to any non-loopback host throws, and a set `ANTHROPIC_API_KEY` or `OPENAI_API_KEY` fails the run. The `./testing/setup` subpath is an addition to §3.1's export list, so other packages can import the setup by name.
 - Eight tests pass: five in the gateway (package import, the blocked `fetch("https://example.com")`, loopback pass-through, loopback detection, the key check) and three in the SDK.
 - `pnpm-lock.yaml` gained only the two importer entries, and CI has no path filters to change.
+
+**Renamed 2026-11-19.** This todo created its packages under the `@agent-speak/` scope; [#27](https://github.com/laudebugs/buildanagent/pull/27) renamed them to `@buildanagent/`, and this file now uses the new names.

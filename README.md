@@ -1,4 +1,4 @@
-# agent-speak
+# buildanagent
 
 Research for building our own AI agent and agent harness/SDK, and eventually the code.
 

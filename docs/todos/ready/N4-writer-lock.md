@@ -25,7 +25,7 @@ Enforce one writer per session with a lock file that fails fast, survives a cras
 
 - `fileLock({ dir, leaseMs, renewMs })` implementing `SessionLock`
 - Lease renewal, release, and stale detection (lapsed lease and dead pid on the same host)
-- `agent-speak session unlock --force` as a library function the CLI calls later
+- `buildanagent session unlock --force` as a library function the CLI calls later
 - The crash test
 
 **Out of scope** (and which todo covers it)

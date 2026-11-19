@@ -108,7 +108,7 @@ Three decisions merge with the SDK's. For each, this plan references P1's choice
 
 [SDK D5][sdk-d5] covers the SDK side: key-id signers, an `ephemeralSigner()` default and a fail-closed resume.
 
-**Harness side: the key.** The harness's deployment model is one host process per session. That process may restart between a pause and its resolution, and the resolving process may differ from the one that wrote the pause. An ephemeral key would strand every pause across a restart, so the harness never relies on the SDK default. It keeps a key ring in a `KeyStore` outside every sandbox and outside the session log, by default `$XDG_STATE_HOME/agent-speak/keys.json` with mode `0600`. It passes `hmacSigner({ keys, current })` on every `run` and `continueRun`. Rotation adds a new current key; an old key stays in the ring until no unresolved `approval_requested` entry names its `keyId`, and `keys prune` removes it then.
+**Harness side: the key.** The harness's deployment model is one host process per session. That process may restart between a pause and its resolution, and the resolving process may differ from the one that wrote the pause. An ephemeral key would strand every pause across a restart, so the harness never relies on the SDK default. It keeps a key ring in a `KeyStore` outside every sandbox and outside the session log, by default `$XDG_STATE_HOME/buildanagent/keys.json` with mode `0600`. It passes `hmacSigner({ keys, current })` on every `run` and `continueRun`. Rotation adds a new current key; an old key stays in the ring until no unresolved `approval_requested` entry names its `keyId`, and `keys prune` removes it then.
 
 **Harness side: the pause path.** Every `ask` ends the run in the SDK's `awaiting_approval` state: the harness writes the `SignedPendingRequest` as an `approval_requested` entry before it asks any client, and it never uses `blockingApprovals()`. On resume, the harness re-runs its permission pipeline on each approved call and turns the approval into a denial if current policy now denies it. The SDK then verifies the signature and runs the allowed call without calling `beforeToolCall` again (SDK §3.3, `continueRun`).
 
@@ -188,7 +188,7 @@ The pipeline's permission modes are `default`, `accept_edits`, `read_only`, `byp
 
 **Options.** (a) One `@buildanagent/harness` package with everything. (b) A package per component, as many as ten. (c) A protocol package, a harness package with subpath exports per component, a CLI package and an evals package.
 
-**Choice: (c).** `@buildanagent/protocol` holds the typed union, the session-entry union it carries, the framing and the generated JSON Schema. Its emitted JavaScript imports nothing at run time, so a client in any language can depend on its schema alone; it declares `@buildanagent/gateway` and `@buildanagent/sdk` as dependencies only for the transcript and pause types. `@buildanagent/harness` depends on it, never the reverse. `@buildanagent/harness` holds the session log, context policy, registry, MCP client, permissions, sandbox, credentials, extensions, telemetry and the dispatcher, each behind its own subpath. `@buildanagent/cli` is the `agent-speak` binary and a client of the in-process transport. `@buildanagent/evals` holds the report builder, the trajectory converter and the offline replay suite; the Inspect task lives beside it in Python.
+**Choice: (c).** `@buildanagent/protocol` holds the typed union, the session-entry union it carries, the framing and the generated JSON Schema. Its emitted JavaScript imports nothing at run time, so a client in any language can depend on its schema alone; it declares `@buildanagent/gateway` and `@buildanagent/sdk` as dependencies only for the transcript and pause types. `@buildanagent/harness` depends on it, never the reverse. `@buildanagent/harness` holds the session log, context policy, registry, MCP client, permissions, sandbox, credentials, extensions, telemetry and the dispatcher, each behind its own subpath. `@buildanagent/cli` is the `buildanagent` binary and a client of the in-process transport. `@buildanagent/evals` holds the report builder, the trajectory converter and the offline replay suite; the Inspect task lives beside it in Python.
 
 **Evidence.** The guide defines the protocol package first, and generates TypeScript and JSON Schema from one union, so that clients need nothing else ([harness guide §8][hg8]). The CLI must be a replaceable client, because practitioners blame UI flicker and CPU on a harness apart from its model ([harness guide §8][hg8]). Subpath exports keep each removable component importable, and ablatable, on its own without the cost of ten `package.json` files, the same trade the SDK plan made for adapters ([SDK plan, D1][sdk-d1]).
 
@@ -240,7 +240,7 @@ packages/
     src/server/                 Dispatcher, inProcessTransport(), stdioTransport()
     src/ablation.ts             AblationConfig and its hash
     src/testing/                fakeSandbox(), memoryStore(), scriptedClient(), conformance suites
-  cli/                          @buildanagent/cli        bin: agent-speak
+  cli/                          @buildanagent/cli        bin: buildanagent
   evals/                        @buildanagent/evals      (private)
     src/                        reports, mini-swe-agent trajectories, offline replay suite
     inspect/                    harness_task.py, requirements.txt (Python, outside pnpm)
@@ -427,7 +427,7 @@ declare function createPermissionPipeline(config: PermissionConfig, registry: To
 declare const defaultAskRules: Rule[];      // test deletions and skips, hooks, CI config, rules files (HD12)
 
 interface KeyStore { load(): Promise<{ keys: Record<string, Uint8Array>; current: string }>; rotate(): Promise<string>; prune(inUse: Set<string>): Promise<string[]> }
-declare function fileKeyStore(path?: string): KeyStore;   // default $XDG_STATE_HOME/agent-speak/keys.json, mode 0600
+declare function fileKeyStore(path?: string): KeyStore;   // default $XDG_STATE_HOME/buildanagent/keys.json, mode 0600
 interface ResolveOptions<H = unknown> {   // Revision (R9): the resume path takes the same budget and signal as a turn
   sticky?: "run" | "session"; group?: boolean;   // refused for a tool whose approvalReuse forbids it (R8)
   budgetUsd?: number; signal?: AbortSignal; hostContext?: H;
@@ -744,7 +744,7 @@ Five suites run in `pnpm test`; each takes a factory, so a new implementation pa
 
 ### 5.3 Playback and resume tests prove the log is the only source of truth
 
-The determinism test runs a scripted session, plays it back with no model and no tool calls, and requires byte-identical entries and an identical rebuilt `Context`. The resume test serialises nothing but the JSONL file, starts a second process through `agent-speak rpc`, and resolves a pending approval there. The crash test kills a turn between the user entry and the first model call and checks that the user entry survives, which is LangGraph's "never accepted" versus "lost" case ([harness guide §2][hg2]).
+The determinism test runs a scripted session, plays it back with no model and no tool calls, and requires byte-identical entries and an identical rebuilt `Context`. The resume test serialises nothing but the JSONL file, starts a second process through `buildanagent rpc`, and resolves a pending approval there. The crash test kills a turn between the user entry and the first model call and checks that the user entry survives, which is LangGraph's "never accepted" versus "lost" case ([harness guide §2][hg2]).
 
 ### 5.4 The harness triage capstone checks the whole stack against the SDK's capstone
 

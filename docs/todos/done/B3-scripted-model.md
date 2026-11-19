@@ -85,3 +85,5 @@ Ship the strict scripted test model before any loop code, because every later te
   - An `image` block in a script goes into the final message without stream events, because the stream rule has no image events.
   - An aborted stream keeps the text streamed so far, but no partial tool call.
 - **Tests:** 31 in the gateway, 4 of them new for the request switch, and 14 in the SDK, 11 of them new for `ScriptedModel` and the determinism helpers.
+
+**Renamed 2026-11-19.** This todo created its packages under the `@agent-speak/` scope; [#27](https://github.com/laudebugs/buildanagent/pull/27) renamed them to `@buildanagent/`, and this file now uses the new names.

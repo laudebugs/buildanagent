@@ -17,7 +17,7 @@ Create the `@buildanagent/triage-agent` package with its subpath exports, script
 
 ## Context
 
-- [AD13](../../plans/build-agent.md#ad13-one-private-package-agent-speaktriage-agent-with-one-subpath-per-removable-component): the package and its subpaths
+- [AD13](../../plans/build-agent.md#ad13-one-private-package-buildanagenttriage-agent-with-one-subpath-per-removable-component): the package and its subpaths
 - [build-agent.md §3.1](../../plans/build-agent.md#31-one-package-under-packages-beside-the-sdks-and-harnesss): the layout and dependencies
 - [build-agent.md §5.1](../../plans/build-agent.md#51-every-role-runs-offline-on-the-scripted-model-and-no-model-can-reach-the-host): the offline setup every test imports
 

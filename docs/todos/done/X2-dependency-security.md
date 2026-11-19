@@ -16,7 +16,7 @@ Clear the 19 Dependabot alerts on main (7 high, 9 moderate, 3 low, as of 2026-11
 ## Context
 
 - The policy in [AGENTS.md](../../../AGENTS.md#coding-standards): pins at least one week old, except that a known vulnerability calls for the latest fixed release
-- `github.com/laudebugs/agent-speak/security/dependabot`, or `pnpm audit` locally
+- `github.com/laudebugs/buildanagent/security/dependabot`, or `pnpm audit` locally
 
 ## Scope
 

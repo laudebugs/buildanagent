@@ -10,7 +10,7 @@ Harness decision 5 merges with SDK decision 5 (ADR 0005). The SDK defaults to a 
 
 ## Decision
 
-The harness keeps a key ring in a `KeyStore` outside every sandbox and outside the session log (by default `$XDG_STATE_HOME/agent-speak/keys.json`, mode `0600`) and passes `hmacSigner({ keys, current })` on every run and resume. Rotation adds a current key; an old key stays until no unresolved `approval_requested` entry names it. Every `ask` ends the run `awaiting_approval`, and the harness writes the `approval_requested` entry before any client sees the request; it never uses `blockingApprovals()`. On resume the SDK verifies signatures and the harness re-runs its pipeline on each approved call, letting a deny win.
+The harness keeps a key ring in a `KeyStore` outside every sandbox and outside the session log (by default `$XDG_STATE_HOME/buildanagent/keys.json`, mode `0600`) and passes `hmacSigner({ keys, current })` on every run and resume. Rotation adds a current key; an old key stays until no unresolved `approval_requested` entry names it. Every `ask` ends the run `awaiting_approval`, and the harness writes the `approval_requested` entry before any client sees the request; it never uses `blockingApprovals()`. On resume the SDK verifies signatures and the harness re-runs its pipeline on each approved call, letting a deny win.
 
 ## Consequences
 

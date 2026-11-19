@@ -1,6 +1,6 @@
 # @buildanagent/sdk
 
-The agent-speak SDK runs the agent loop over [`@buildanagent/gateway`](../gateway/README.md): tools, hooks, signed pauses and budgets. As of November 2026 it holds only its testing export (todo B3); the loop arrives from B10 onward. The design is in the [SDK plan §3.3](../../docs/plans/build-sdk.md#33-sdk-api).
+The buildanagent SDK runs the agent loop over [`@buildanagent/gateway`](../gateway/README.md): tools, hooks, signed pauses and budgets. As of November 2026 it holds only its testing export (todo B3); the loop arrives from B10 onward. The design is in the [SDK plan §3.3](../../docs/plans/build-sdk.md#33-sdk-api).
 
 ## Testing: a strict scripted model, not a lenient mock
 
