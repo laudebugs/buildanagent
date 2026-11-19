@@ -2,6 +2,7 @@ import assert from "node:assert/strict";
 import {
   assertStreamContract,
   complete,
+  createModel,
   type ModelContext,
   type ModelEvent,
   type ModelRef,
@@ -234,4 +235,20 @@ test("an abort before a tool call draws no call id, so the next call's ids stay 
     name: "lookup",
     input: {},
   });
+});
+
+test("ScriptedModel runs through createModel with its default caps and its strict script", async () => {
+  const adapter = new ScriptedModel([textStep("hi")]);
+  const model = createModel({ adapter, id: "scripted-model" });
+  assert.deepEqual(model.ref, ref);
+  assert.deepEqual(model.caps, { contextWindow: 200_000, maxOutputTokens: 32_000, images: true, reasoning: true });
+  const events = await assertStreamContract(model.stream(context()));
+  assert.equal(events.at(-1)?.type, "done");
+  adapter.assertComplete();
+});
+
+test("ScriptedModel's caps option sets the caps createModel reports", () => {
+  const caps = { contextWindow: 8000, maxOutputTokens: 1000, images: false, reasoning: false };
+  const model = createModel({ adapter: new ScriptedModel([], { caps }), id: "scripted-model" });
+  assert.deepEqual(model.caps, caps);
 });

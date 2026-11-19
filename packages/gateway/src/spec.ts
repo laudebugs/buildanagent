@@ -1,5 +1,5 @@
 /** The single-method model spec every provider adapter implements (SDK plan §3.2; SDK decision 1). */
-import type { AssistantMessage, ContentBlock, ModelContext, ModelRef } from "./types.ts";
+import type { AssistantMessage, ContentBlock, ModelCaps, ModelContext, ModelRef } from "./types.ts";
 
 /** The events one model call streams. Exactly one terminal event, `done` or `error`, ends every stream. */
 export type ModelEvent =
@@ -19,7 +19,10 @@ export interface StreamOptions {
   cacheRetention?: "none" | "short" | "long";
   /** Escape hatch only. */
   providerOptions?: Record<string, unknown>;
-  /** Inspect or replace the request body before it is sent. */
+  /**
+   * Inspect or replace the request body before it is sent. Return the body to send, or `undefined` to send it
+   * unchanged. An adapter calls it once per HTTP request, just before sending.
+   */
   onPayload?(body: unknown): unknown;
 }
 
@@ -29,5 +32,7 @@ export interface ModelAdapter {
   readonly api: string;
   /** Vendor and catalog entry. */
   readonly provider: string;
+  /** Caps for a model the catalog does not list. Without them, `createModel()` needs a catalog entry. */
+  readonly defaultCaps?: ModelCaps;
   stream(model: ModelRef, context: ModelContext, options: StreamOptions): AsyncIterable<ModelEvent>;
 }

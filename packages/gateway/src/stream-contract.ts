@@ -6,7 +6,9 @@
  * 3. Exactly one terminal event, `done` or `error`, ends the stream, and nothing follows it.
  * 4. An `error` terminal's message has `stopReason` `"error"` or `"aborted"`; a `done` terminal's has neither, and
  *    every block it started has ended.
+ * 5. A gateway `retry` event comes after `start` and before any block event, because output is never retried.
  */
+import type { GatewayEvent } from "./runtime-types.ts";
 import type { ModelEvent } from "./spec.ts";
 
 export class StreamContractError extends Error {
@@ -23,7 +25,7 @@ export class StreamContractError extends Error {
 type BlockKind = "text" | "reasoning" | "tool_input";
 type BlockPhase = "start" | "delta" | "end";
 
-function blockPhase(type: ModelEvent["type"]): { kind: BlockKind; phase: BlockPhase } | undefined {
+function blockPhase(type: GatewayEvent["type"]): { kind: BlockKind; phase: BlockPhase } | undefined {
   const match = /^(text|reasoning|tool_input)_(start|delta|end)$/.exec(type);
   if (!match) return undefined;
   return { kind: match[1] as BlockKind, phase: match[2] as BlockPhase };
@@ -31,16 +33,17 @@ function blockPhase(type: ModelEvent["type"]): { kind: BlockKind; phase: BlockPh
 
 /** Tracks one stream's state and checks each event against the stream rule. */
 class StreamChecker {
-  readonly seen: ModelEvent[] = [];
+  readonly seen: GatewayEvent[] = [];
   readonly #open = new Map<number, BlockKind>();
   readonly #closed = new Set<number>();
   #terminal = false;
+  #output = false;
 
   get ended(): boolean {
     return this.#terminal;
   }
 
-  check(event: ModelEvent): void {
+  check(event: GatewayEvent): void {
     const position = this.seen.length;
     this.seen.push(event);
     const fail = (message: string): never => {
@@ -51,11 +54,14 @@ class StreamChecker {
       this.#checkTerminal(event, fail);
       return;
     }
+    if (event.type === "retry" && this.#output) fail("a retry arrived after output was streamed");
     const block = blockPhase(event.type);
-    if (block) this.#checkBlock((event as { index: number }).index, block.kind, block.phase, fail);
+    if (!block) return;
+    this.#output = true;
+    this.#checkBlock((event as { index: number }).index, block.kind, block.phase, fail);
   }
 
-  #checkOrder(event: ModelEvent, position: number, fail: (message: string) => never): void {
+  #checkOrder(event: GatewayEvent, position: number, fail: (message: string) => never): void {
     if (this.#terminal) fail("an event followed the terminal event");
     if (position === 0 && event.type !== "start") fail("the stream must begin with start");
     if (position > 0 && event.type === "start") fail("start appeared twice");
@@ -90,12 +96,19 @@ class StreamChecker {
   }
 }
 
-/** Consumes the stream, throws `StreamContractError` at the first violation, and returns every event it read. */
-export async function assertStreamContract(events: AsyncIterable<ModelEvent>): Promise<ModelEvent[]> {
+/**
+ * Consumes the stream, throws `StreamContractError` at the first violation, and returns every event it read. It
+ * checks an adapter's stream and a `Model.stream()` with its `retry` events alike.
+ */
+export async function assertStreamContract<E extends GatewayEvent>(events: AsyncIterable<E>): Promise<E[]> {
   const checker = new StreamChecker();
-  for await (const event of events) checker.check(event);
+  const seen: E[] = [];
+  for await (const event of events) {
+    checker.check(event);
+    seen.push(event);
+  }
   if (!checker.ended) {
     throw new StreamContractError("the stream ended without a done or error event", checker.seen.length);
   }
-  return checker.seen;
+  return seen;
 }

@@ -17,7 +17,7 @@ export function message(
   };
 }
 
-export async function* streamOf(events: ModelEvent[]): AsyncIterable<ModelEvent> {
+export async function* streamOf<E = ModelEvent>(events: E[]): AsyncIterable<E> {
   for (const event of events) yield event;
 }
 

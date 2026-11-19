@@ -1,5 +1,5 @@
 import assert from "node:assert/strict";
-import { assertStreamContract, type ModelEvent, StreamContractError } from "@buildanagent/gateway";
+import { assertStreamContract, type GatewayEvent, type ModelEvent, StreamContractError } from "@buildanagent/gateway";
 import { test } from "vitest";
 import { message, streamOf, validEvents } from "./fixtures.ts";
 
@@ -108,3 +108,31 @@ test("reports the position of the offending event", async () => {
     (error: unknown) => error instanceof StreamContractError && error.position === 2,
   );
 });
+
+const retry: GatewayEvent = { type: "retry", attempt: 1, delayMs: 2000, error: "overloaded" };
+
+test("a retry event between start and the first block passes", async () => {
+  const [start, ...rest] = validEvents();
+  const events: GatewayEvent[] = [start as GatewayEvent, retry, ...rest];
+  assert.deepEqual(await assertStreamContract(streamOf(events)), events);
+});
+
+test("rejects a retry event before start", () =>
+  assert.rejects(
+    () => assertStreamContract(streamOf<GatewayEvent>([retry, ...validEvents()])),
+    /must begin with start/,
+  ));
+
+test("rejects a retry event after output", () =>
+  assert.rejects(
+    () =>
+      assertStreamContract(
+        streamOf<GatewayEvent>([
+          { type: "start" },
+          { type: "text_start", index: 0 },
+          retry,
+          { type: "error", message: message("error") },
+        ]),
+      ),
+    /retry arrived after output/,
+  ));
