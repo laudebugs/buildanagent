@@ -31,7 +31,7 @@ Fail a pull request that breaks the book, and hand the deploy workflow a built s
 **Out of scope** (and which todo covers it)
 
 - The anatomy audits, which [T7](../ready/T7-book-isometric-figures.md) adds to this workflow
-- Deploys and previews ([T9](../ongoing/T9-book-deploy.md))
+- Deploys and previews ([T9](T9-book-deploy.md))
 
 ## Tasks
 
@@ -42,7 +42,7 @@ Fail a pull request that breaks the book, and hand the deploy workflow a built s
 
 ## Acceptance criteria
 
-- [ ] `book-build.yml` runs on every pull request and push to `main`, references no secret, and passes on `main` (it passed on #76; the first run on `main` after the merge confirms the rest)
+- [x] `book-build.yml` runs on every pull request and push to `main`, references no secret, and passes on `main` (it passed on #76, and [its first run on `main`](https://github.com/laudebugs/buildanagent/actions/runs/44561633583) passed on `fec8e35`)
 - [x] Its only artifact is `apps/manual/dist/`
 - [x] A pull request with an unknown citation fails the workflow (#77)
 - [x] `gh actions-lock --verify` passes
@@ -79,5 +79,6 @@ The workflow itself, proved by the deliberate failure in the tasks.
 - `ci.yml`'s `pnpm test` already includes the figure test and `book:switch-report`, so both run twice on each pull request, for about 4 seconds. We chose to keep them so that `book-build.yml` alone vouches for the artifact T9 deploys.
 - `gh actions-lock` v0.4.1 added the workflow's four actions to `actions.lock` at the commits already locked for `ci.yml` and `release.yml`, and `gh actions-lock --verify` passes. The repository's tooling has no actionlint; a local actionlint 1.7.12 reported nothing on the workflow.
 - The book has no written chapter yet, so its only checked citations are the glossary's register sources. Changing one to an id the register lacks fails `check:book`, naming the file and the id. Draft pull request #77 did that in CI: three glossary entries share the changed source, and [its run](https://github.com/laudebugs/buildanagent/actions/runs/44559753914) failed at `check:book` with three problems, one per entry. #77 is closed and its branch deleted.
+- The first `book-build` run on `main`, [run 44561633583](https://github.com/laudebugs/buildanagent/actions/runs/44561633583), passed on the merge commit `fec8e35`, a `push` event, so every acceptance criterion is now met (fact-check row 370).
 - The book's log holds fact-check rows 350–369. Row 357 corrects an unmeasured timing in the first draft, and row 364 corrects the one-line edit instruction for the deliberate failure.
 - Root gate, rerun after the first review: `pnpm check` and `pnpm typecheck` pass, and `pnpm -r --no-bail test` passes for every package except `verify/copilot-sdk`. `node --test scripts/ci/*.test.mjs` runs 138 tests: 135 pass, 2 skip and 1 fails. The failing test, the packed packages' offline install, fails the same way in a checkout of `46e6721`, because corepack fetches pnpm 12.21.0 in the test's fresh home and that pnpm finds no offline metadata.
