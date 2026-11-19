@@ -2,13 +2,16 @@
 // Doc examples run unmodified under scripts/scripted-preload.mjs, which swaps the default model
 // provider for a scripted one and blocks non-local network access. Each run gets a temp cwd
 // (with fixtures/), an allowlisted environment with tracing disabled, and a timeout.
-// Usage: node scripts/run-examples.mjs [dir=extracted] [--only id1,id2]
+// Usage: node scripts/run-examples.mjs [dir=extracted] [--only id1,id2] [--live]
+// --live, which only scripts/live/run.mjs passes, runs one of our examples against a real provider
+// (scripts/live/harness.mjs).
 // For a directory other than extracted/, every *.ts file is run (our own examples).
 import { spawn } from "node:child_process";
 import { existsSync } from "node:fs";
 import { cp, mkdir, mkdtemp, readdir, readFile, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { dirname, join, resolve } from "node:path";
+import { liveMode } from "../../../scripts/live/harness.mjs";
 import { transcriptRun } from "../../../scripts/transcripts/write.mjs";
 
 const dir = resolve(process.argv[2] && !process.argv[2].startsWith("--") ? process.argv[2] : "extracted");
@@ -16,6 +19,7 @@ const ownExamples = !dir.endsWith("extracted");
 const only = process.argv.includes("--only")
   ? new Set(process.argv[process.argv.indexOf("--only") + 1].split(","))
   : null;
+const liveRun = liveMode();
 const TIMEOUT_MS = Number(process.env.EXAMPLE_TIMEOUT_MS ?? 60000);
 const CONCURRENCY = Number(process.env.EXAMPLE_CONCURRENCY ?? 4);
 const root = resolve(".");
@@ -78,11 +82,14 @@ async function runOne(t) {
     NODE_NO_WARNINGS: "1",
     OPENAI_AGENTS_DISABLE_TRACING: "1",
     SCRIPTED_LOG: log,
+    ...liveRun?.env,
   };
   const args = ["--import", TSX];
   if (!ownExamples) args.push("--import", join(root, "scripts/scripted-preload.mjs"));
   // Our own examples also record their model exchange and checks as a transcript (results/transcripts/).
   const transcript = ownExamples ? transcriptRun(args, env) : undefined;
+  // A live run swaps @openai/agents/testing's ScriptedModel for one that calls the live provider (examples/lib/live.ts).
+  if (liveRun) args.push("--import", join(root, "examples/lib/live-register.mjs"));
   args.push(resolve(t.file));
   const started = Date.now();
   const result = await new Promise((done) => {
@@ -101,7 +108,7 @@ async function runOne(t) {
   });
   const modelCalls = existsSync(log) ? Number(await readFile(log, "utf8")) : 0;
   const blocked = /network disabled \(blocked ([^)]+)\)/.exec(result.out)?.[1];
-  transcript?.write({ harnessDir: root, exampleFile: resolve(t.file), cwd });
+  transcript?.write({ harnessDir: root, exampleFile: resolve(t.file), cwd, ...liveRun?.transcript });
   // Our own examples assert their behaviour, so exit 0 is a pass.
   const outcome = result.timedOut
     ? "timeout"
@@ -117,7 +124,7 @@ async function runOne(t) {
     ms: Date.now() - started,
     modelCalls,
     blockedHost: blocked,
-    tail: result.out.trim().split("\n").slice(-8).join("\n").slice(-1200),
+    tail: (liveRun?.redact ?? String)(result.out.trim().split("\n").slice(-8).join("\n").slice(-1200)),
   };
 }
 
@@ -130,6 +137,8 @@ await Promise.all(
       const r = await runOne(t);
       results.push(r);
       console.log(`${r.outcome.padEnd(13)} ${r.id}${r.reason ? ` (${r.reason})` : ""}`);
+      // A live run's caller reports the example's last lines, already redacted, when it fails.
+      if (liveRun && r.outcome !== "ran") console.log(r.tail);
     }
   }),
 );
