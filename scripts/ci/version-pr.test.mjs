@@ -19,8 +19,15 @@ import path from "node:path";
 import { after, describe, test } from "node:test";
 import { fileURLToPath } from "node:url";
 import { parse } from "yaml";
-import { runGate } from "./changeset-gate.mjs";
-import { needsVersion, pendingChangesets, planRelease, readPreState } from "./release-plan.mjs";
+import { runGate, statusEnv } from "./changeset-gate.mjs";
+import {
+  needsVersion,
+  pendingChangesets,
+  planRelease,
+  preModeMismatch,
+  readPreState,
+  versionedPackageNames,
+} from "./release-plan.mjs";
 import {
   checkVersionChange,
   gitChange,
@@ -417,8 +424,9 @@ describe("this checkout on main", () => {
     const changeset = path.join(root, "node_modules", ".bin", "changeset");
     assert.ok(existsSync(changeset), "run pnpm install first");
     const dir = temp("version-pr-real-");
-    // Only the files Changesets reads: the workspace's manifests, the changelogs and .changeset/.
-    const files = execFileSync(
+    // Only the files Changesets reads: the workspace's manifests, the changelogs and .changeset/, plus the pending
+    // changesets themselves, which may not be in git yet.
+    const tracked = execFileSync(
       "git",
       [
         "ls-files",
@@ -434,6 +442,7 @@ describe("this checkout on main", () => {
     )
       .split("\n")
       .filter(Boolean);
+    const files = [...new Set([...tracked, ...pending.map((name) => `.changeset/${name}`)])];
     for (const file of files) {
       mkdirSync(path.dirname(path.join(dir, file)), { recursive: true });
       writeFileSync(path.join(dir, file), readFileSync(path.join(root, file)));
@@ -464,30 +473,52 @@ describe("this checkout on main", () => {
       );
     }
     assert.deepEqual(result.consumed, pending.sort());
-    // An empty changeset (`pnpm changeset --empty`, for a change users don't see) bumps nothing, so when every pending
-    // changeset is empty the version commit only consumes them and names no version.
-    const bumps = pending.some((name) => namesAPackage(readFileSync(path.join(root, ".changeset", name), "utf8")));
+    // An empty changeset (`pnpm changeset --empty`, for a change users don't see) bumps nothing, and so does one that
+    // gives its packages `none`, so when no pending changeset bumps a package the version commit only consumes them and
+    // names no version. Leaving pre mode bumps the prereleases to their plain version even without one.
+    const pre = readPreState(root);
+    const names = versionedPackageNames(root);
+    const bumps =
+      pre?.mode === "exit" ||
+      pending.some((name) => bumpsAPackage(readFileSync(path.join(root, ".changeset", name), "utf8"), names));
     assert.equal(result.bumped, bumps);
     if (bumps) {
-      const pre = readPreState(root);
-      assert.equal(pre.mode, "pre");
-      assert.match(result.version, new RegExp(`^\\d+\\.\\d+\\.\\d+-${pre.tag}\\.\\d+$`));
+      assert.equal(preModeMismatch(result.version, pre?.mode === "pre" ? pre : undefined), undefined);
       assert.equal(prTitle(result), `chore(release): version packages to ${result.version}`);
     } else {
       assert.equal(prTitle(result), "chore(release): consume changesets that bump no package");
     }
     // The gate in ci.yml passes a bump without a changeset and without running changeset status. A commit that only
-    // consumes empty changesets changes no shipped file, so the gate leaves it to changeset status, which passes when no
-    // package changed; the stub stands in for it.
+    // consumes changesets changes no shipped file, so the gate leaves it to the real `changeset status`, which must pass.
     const calls = [];
-    const code = runGate({ root: dir, base: "main", log: () => {}, runStatus: (base) => calls.push(base) && 0 });
+    const runStatus = (base) => {
+      calls.push(base);
+      symlinkSync(path.join(root, "node_modules"), path.join(dir, "node_modules"));
+      try {
+        const status = spawnSync(changeset, ["status", `--since=${base}`], {
+          cwd: dir,
+          env: statusEnv(env, dir),
+          encoding: "utf8",
+        });
+        assert.equal(status.status, 0, status.stderr + status.stdout);
+        return status.status;
+      } finally {
+        rmSync(path.join(dir, "node_modules"));
+      }
+    };
+    const code = runGate({ root: dir, base: "main", log: () => {}, runStatus });
     assert.deepEqual({ code, calls }, { code: 0, calls: bumps ? [] : ["main"] });
     assert.equal(needsVersion(dir), false, "nothing is pending once the pull request merges");
   });
 });
 
-/** Whether a changeset's front matter names a package to bump; an empty changeset's front matter holds nothing. */
-function namesAPackage(text) {
-  const frontMatter = /^---\n([\s\S]*?)\n?---/.exec(text)?.[1] ?? "";
-  return frontMatter.split("\n").some((line) => line.trim() !== "");
+/**
+ * Whether a changeset releases one of the `versioned` packages, read as Changesets reads it (@changesets/parse): the
+ * front matter between the `---` lines is YAML mapping package names to `major`, `minor`, `patch` or `none`, so CRLF,
+ * quotes and comments work, and `none` releases nothing.
+ */
+function bumpsAPackage(text, versioned) {
+  const frontMatter = /\s*---([\s\S]*?)\r?\n\s*---(\s*(?:\n|$))/.exec(text)?.[1] ?? "";
+  const releases = parse(frontMatter) ?? {};
+  return Object.entries(releases).some(([name, type]) => versioned.includes(name) && type !== "none");
 }
