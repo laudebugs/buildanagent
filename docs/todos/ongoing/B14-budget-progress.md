@@ -3,7 +3,7 @@
 | Field | Value |
 | --- | --- |
 | ID | `B14` |
-| Status | `ready` |
+| Status | `ongoing` |
 | Plan | [Build SDK §4, Stage 3](../../plans/build-sdk.md#43-stage-3-builds-the-loop-its-tools-hooks-budget-and-signed-pauses) |
 | Round / milestone | Round B (build SDK), M5 |
 | Depends on | [B5](../done/B5-usage-cost-catalog.md), [B13](../done/B13-interceptors-observers.md), [E1](../done/E1-safety-core-outcomes.md) |
