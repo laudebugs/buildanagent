@@ -83,7 +83,7 @@ describe("book-deploy.yml's triggers and jobs", () => {
     assert.deepEqual(jobs.production.concurrency, { group: "book-production", "cancel-in-progress": false });
   });
 
-  test("a preview needs a pull_request run, and the previews and deletions share one queue per branch", () => {
+  test("a preview needs a pull_request run, and each pull request's previews and deletion share one queue", () => {
     assert.match(jobs.preview.if, /github\.event\.workflow_run\.event == 'pull_request'/);
     assert.match(jobs["delete-preview"].if, /github\.event\.workflow_run\.name == 'book-pr-closed'/);
     assert.deepEqual(jobs.preview.concurrency, jobs["delete-preview"].concurrency);

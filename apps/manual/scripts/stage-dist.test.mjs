@@ -146,7 +146,10 @@ test("encrypted entries, other compression methods and broken data are refused",
 
 test("a repeated name, or a file used as a directory, is refused", () => {
   refuses([...SITE, { name: "index.html", data: "again" }], /appears twice/);
-  refuses([...SITE, { name: "index.html/inner.html", data: "x" }], /under the file|both a file and a directory/);
+  refuses(
+    [...SITE, { name: "index.html/inner.html", data: "x" }],
+    /"index\.html\/inner\.html" sits under the file "index\.html"/,
+  );
 });
 
 test("an artifact without index.html or 404.html is refused", () => {

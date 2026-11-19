@@ -153,7 +153,6 @@ export function readEntries(zip) {
     // The artifact's own _headers is never written: stageZip puts main's copy there.
     if (path !== "_headers") entries.push({ path, method, crc, compressedSize, uncompressedSize, localOffset });
   }
-  for (const file of files) if (dirs.has(file)) throw new ArtifactError(`"${file}" is both a file and a directory`);
   for (const file of REQUIRED) if (!files.has(file)) throw new ArtifactError(`${file} is missing`);
   return entries;
 }
