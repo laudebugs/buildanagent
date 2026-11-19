@@ -1,4 +1,4 @@
-# 0051. Publish a two-part textbook from a new `apps/book`, public on Cloudflare at manual.buildanagent.fyi
+# 0052. Publish a two-part textbook from a new `apps/book`, public on Cloudflare at manual.buildanagent.fyi
 
 - **Status:** Accepted (owner, 2026-11-19)
 - **Date:** 2026-11-19
@@ -18,5 +18,5 @@ The repository holds three build guides, a research report, eight SDK references
 ## Consequences
 
 - Whichever of todos L5, L7 or T1 lands first adds `apps/*` to `pnpm-workspace.yaml`. T1 lists `apps/book` in [LICENSE](../../LICENSE) under both terms. [AGENTS.md](../../AGENTS.md) and the [README](../../README.md) gain a line for `apps/`.
-- Because the book is public, it needs no Worker code, no Access policy and no reader data. [ADR 0052](0052-book-stack-and-deploy.md) records the stack and deploy that follow.
+- Because the book is public, it needs no Worker code, no Access policy and no reader data. [ADR 0053](0053-book-stack-and-deploy.md) records the stack and deploy that follow.
 - The owner sets up the Cloudflare zone and the GitHub environments, tokens and secrets; todo T9's workflow then attaches manual.buildanagent.fyi as a custom domain on its first deploy.

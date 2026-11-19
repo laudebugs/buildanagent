@@ -4,7 +4,7 @@
 - **Date:** 2026-11-19
 - **Asked for by:** the project owner (2026-11-19): "A textbook on how to build an agent, with images that explain how agents work and example code from this repository."
 - **Builds on:** the three [build guides](../guides/), the [main research report][main], the eight [SDK references](../reference/), the [comparison docs](../comparison/), the plans and ADRs, the [publish-and-docs plan](publish-and-docs.md) for the docs and website beside the book, the verified examples in `verify/*/examples/`, and the owner's garment engineering textbook repository, read at commit `bca44b0` (BK16)
-- **Decision records:** [ADR 0051](../decisions/0051-book-in-apps-on-cloudflare.md) (accepted, owner), [ADR 0052](../decisions/0052-book-stack-and-deploy.md) (proposed), [ADR 0053](../decisions/0053-reuse-garment-textbook-code.md) (accepted for the permission, the exclusions and the Apache-2.0 licence; proposed for the list)
+- **Decision records:** [ADR 0052](../decisions/0052-book-in-apps-on-cloudflare.md) (accepted, owner), [ADR 0053](../decisions/0053-book-stack-and-deploy.md) (proposed), [ADR 0054](../decisions/0054-reuse-garment-textbook-code.md) (accepted for the permission, the exclusions and the Apache-2.0 licence; proposed for the list)
 - **Todos:** Round T ("textbook") on the [todo board](../todos/README.md); §5 lists them.
 
 This repository already holds most of what a book on building agents needs. It has three guides, a research report with a fact-check log, eight SDK references, and 70 example programs that type-check and run offline against mock models. But these sources are written for the engineers who will build our stack, and they assume the reader knows how an agent works. The owner wants a textbook for two readers: developers new to agents, and experienced builders who want the design reasons. The owner's garment engineering textbook shows what goes wrong when a book like this grows by hand: chapters numbered by hand needed about fifty redirects after renumbering, and figure numbers were typed into captions. **This plan builds the book as a static Astro site in `apps/book` whose chapter, figure and listing numbers, citations, glossary links and code listings are all computed and checked at build time. It deploys the site as an assets-only Worker on manual.buildanagent.fyi. After eleven tooling todos, ten new examples and four research rounds, it writes eighteen chapters in the owner's "call, then workflow, then loop" order, each fact-checked section by section.**
@@ -25,10 +25,10 @@ This repository already holds most of what a book on building agents needs. It h
 
 | ID | Decision | Status | ADR |
 | --- | --- | --- | --- |
-| BK1 | A textbook in two parts, with explanatory figures and code from this repository; Part I runs "call, then workflow, then loop" | Accepted (owner, 2026-11-19) | [0051](../decisions/0051-book-in-apps-on-cloudflare.md) |
-| BK2 | The book lives at `apps/book`, public on Cloudflare at manual.buildanagent.fyi, with prose under CC BY 4.0 and code under Apache-2.0 OR MIT | Accepted (owner, 2026-11-19) | [0051](../decisions/0051-book-in-apps-on-cloudflare.md) |
-| BK3 | A static Astro 7.4.11 site with no adapter, Markdown through a unified pipeline, Pagefind 1.6.0 search and Wrangler 4.160.1 | Proposed | [0052](../decisions/0052-book-stack-and-deploy.md) |
-| BK4 | `apps/*` joins the pnpm workspace, and the book is the private package `@buildanagent/book` | Proposed | [0052](../decisions/0052-book-stack-and-deploy.md) |
+| BK1 | A textbook in two parts, with explanatory figures and code from this repository; Part I runs "call, then workflow, then loop" | Accepted (owner, 2026-11-19) | [0052](../decisions/0052-book-in-apps-on-cloudflare.md) |
+| BK2 | The book lives at `apps/book`, public on Cloudflare at manual.buildanagent.fyi, with prose under CC BY 4.0 and code under Apache-2.0 OR MIT | Accepted (owner, 2026-11-19) | [0052](../decisions/0052-book-in-apps-on-cloudflare.md) |
+| BK3 | A static Astro 7.4.11 site with no adapter, Markdown through a unified pipeline, Pagefind 1.6.0 search and Wrangler 4.160.1 | Proposed | [0053](../decisions/0053-book-stack-and-deploy.md) |
+| BK4 | `apps/*` joins the pnpm workspace, and the book is the private package `@buildanagent/book` | Proposed | [0053](../decisions/0053-book-stack-and-deploy.md) |
 | BK5 | The outline lives in code, slugs carry no numbers, and the build numbers chapters, figures, listings and tables | Proposed | none |
 | BK6 | A source register whose every entry points at the fact-check that verified it, with citations that fail the build when unknown | Proposed | none |
 | BK7 | A glossary kept as data, with the first use of each term linked in every chapter | Proposed | none |
@@ -39,8 +39,8 @@ This repository already holds most of what a book on building agents needs. It h
 | BK12 | Direction C's layout, C4's page colours, code and figure panels that follow the theme, and Instrument Serif, Literata and Google Sans Code | Accepted (owner, 2026-11-19) | none |
 | BK13 | PDF and EPUB export come after Round T | Proposed | none |
 | BK14 | One build workflow, `book-build.yml`, builds the book with no secrets and runs every book check on each pull request | Proposed | none |
-| BK15 | Deploy as an assets-only Worker with a custom domain through DS3's build and deploy split, with a guard script, a deploy switch and a preview per pull request | Proposed | [0052](../decisions/0052-book-stack-and-deploy.md) |
-| BK16 | Reuse the garment textbook's code where it fits, under Apache-2.0 and credited, and copy none of its personal data or agent rules | Accepted (owner, 2026-11-19) for the permission, the exclusions and the licence; the list is Proposed | [0053](../decisions/0053-reuse-garment-textbook-code.md) |
+| BK15 | Deploy as an assets-only Worker with a custom domain through DS3's build and deploy split, with a guard script, a deploy switch and a preview per pull request | Proposed | [0053](../decisions/0053-book-stack-and-deploy.md) |
+| BK16 | Reuse the garment textbook's code where it fits, under Apache-2.0 and credited, and copy none of its personal data or agent rules | Accepted (owner, 2026-11-19) for the permission, the exclusions and the licence; the list is Proposed | [0054](../decisions/0054-reuse-garment-textbook-code.md) |
 | BK17 | Inline code in a chapter must resolve to a listing, a recorded transcript or the pinned `.d.ts`, or cite a hand-checked fact-check row | Accepted (owner, 2026-11-19) | none |
 | BK18 | An occasional live run, started by hand with the owner's Anthropic and OpenAI keys and capped at $1.00, compares real flows with the mock transcripts; CI never calls a provider | Accepted (owner, 2026-11-19) | none |
 | BK19 | Every topic group in the coverage review gets a home; four topics get research todos first | Accepted (owner, 2026-11-19) | none |
@@ -56,7 +56,7 @@ This repository already holds most of what a book on building agents needs. It h
 
 Part I assumes a developer who has called a model API but never built an agent. Each of its chapters ends with a working program the reader can run offline. Part II assumes a reader who has shipped an agent on some SDK and wants to know why ours makes the choices it does; its chapters follow the layers of the [reference architecture][main-arch] and the [SDK][g-sdk] and [harness][g-harness] guides. §4 gives the outline.
 
-### BK2. `apps/book`, public on Cloudflare at manual.buildanagent.fyi (accepted, ADR 0051)
+### BK2. `apps/book`, public on Cloudflare at manual.buildanagent.fyi (accepted, ADR 0052)
 
 **The owner's decisions (2026-11-19):** "It lives at `apps/book` in this monorepo and is published on Cloudflare at the domain manual.buildanagent.fyi." And: "Public, no sign-in; book prose CC BY 4.0 like our docs (see LICENSE-DOCS), code Apache-2.0 OR MIT."
 
@@ -242,11 +242,11 @@ Both tokens are account-owned, the kind Wrangler needs for granular Workers perm
 
 Wrangler reads `CLOUDFLARE_API_TOKEN` and `CLOUDFLARE_ACCOUNT_ID` from the environment ([Cloudflare, system environment variables][cf-env]). Each job's first step checks that its environment's secrets are set and fails with a message that names the missing secret and points to `apps/book/README.md`, so a half-finished setup never deploys.
 
-### BK16. Reuse the garment textbook's code, credited, without its personal data or rules (accepted, ADR 0053)
+### BK16. Reuse the garment textbook's code, credited, without its personal data or rules (accepted, ADR 0054)
 
 **The owner's decision (2026-11-19):** the owner owns `tajistudios/garment-engineering-textbook`, a private repository our credentials can read, and said its code may be reused, credited in [THIRD-PARTY-NOTICES.md](../../THIRD-PARTY-NOTICES.md). Its committed personal data (reader emails, Access IDs) and its `CLAUDE.md` rules are never copied.
 
-The repository has no licence file, so its code is reusable only under this permission (fact-check row 20). We read it at commit `bca44b0` on 2026-11-19. The list below is Proposed; ADR 0053 records the permission, the licence and the exclusions, not the list:
+The repository has no licence file, so its code is reusable only under this permission (fact-check row 20). We read it at commit `bca44b0` on 2026-11-19. The list below is Proposed; ADR 0054 records the permission, the licence and the exclusions, not the list:
 
 | Reuse (adapt and credit) | Book todo |
 | --- | --- |

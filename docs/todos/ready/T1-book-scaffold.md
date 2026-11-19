@@ -18,9 +18,9 @@ Create the book's package so every later Round T todo has a site to build into. 
 ## Context
 
 - [Book plan BK3 and BK4](../../plans/build-book.md#bk3-a-static-astro-site-with-no-adapter-a-unified-markdown-pipeline-and-pagefind-proposed): the stack, the pins and the scripts.
-- [ADR 0051](../../decisions/0051-book-in-apps-on-cloudflare.md) and [ADR 0052](../../decisions/0052-book-stack-and-deploy.md): the folder, the licences and the stack.
+- [ADR 0052](../../decisions/0052-book-in-apps-on-cloudflare.md) and [ADR 0053](../../decisions/0053-book-stack-and-deploy.md): the folder, the licences and the stack.
 - [AGENTS.md coding standards](../../../AGENTS.md#coding-standards): exact pins, releases at least a week old, pnpm only, `onlyBuiltDependencies`.
-- The garment repository's `astro.config.mjs` at commit `bca44b0`: the render-input hash that clears Astro's content cache ([ADR 0053](../../decisions/0053-reuse-garment-textbook-code.md)).
+- The garment repository's `astro.config.mjs` at commit `bca44b0`: the render-input hash that clears Astro's content cache ([ADR 0054](../../decisions/0054-reuse-garment-textbook-code.md)).
 
 ## Scope
 
@@ -45,7 +45,7 @@ Create the book's package so every later Round T todo has a site to build into. 
 - [ ] Write `astro.config.mjs` with the render-input hash adapted from the garment repository, with a header comment naming its origin, the source commit and its Apache-2.0 licence, and add the THIRD-PARTY-NOTICES.md section.
 - [ ] Add `data-pagefind-body` to the chapter layout only, and a search page that loads Pagefind's UI.
 - [ ] Try `astro check` under the root's TypeScript 7.0.2; if it fails, type-check the book's `.ts` files with `tsc -p` and record the result in the plan's risks.
-- [ ] Add `apps/book` to LICENSE: prose and figures under CC BY 4.0; code and figure generators under Apache-2.0 OR MIT, except files derived from the garment repository, which are Apache-2.0 only (the owner's answer, 2026-11-19: "Apache 2.0"; [ADR 0053](../../decisions/0053-reuse-garment-textbook-code.md)).
+- [ ] Add `apps/book` to LICENSE: prose and figures under CC BY 4.0; code and figure generators under Apache-2.0 OR MIT, except files derived from the garment repository, which are Apache-2.0 only (the owner's answer, 2026-11-19: "Apache 2.0"; [ADR 0054](../../decisions/0054-reuse-garment-textbook-code.md)).
 
 ## Acceptance criteria
 

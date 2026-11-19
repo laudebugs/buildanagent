@@ -17,11 +17,11 @@ Publish the book from GitHub Actions. An assets-only Worker serves the built sit
 
 ## Context
 
-- [Book plan BK2 and BK15](../../plans/build-book.md#bk15-an-assets-only-worker-on-a-custom-domain-behind-a-guard-and-a-switch-proposed), including the table of what the owner sets up, and [ADR 0052](../../decisions/0052-book-stack-and-deploy.md).
+- [Book plan BK2 and BK15](../../plans/build-book.md#bk15-an-assets-only-worker-on-a-custom-domain-behind-a-guard-and-a-switch-proposed), including the table of what the owner sets up, and [ADR 0053](../../decisions/0053-book-stack-and-deploy.md).
 - Cloudflare docs: [GitHub Actions](https://developers.cloudflare.com/workers/ci-cd/external-cicd/github-actions/), [custom domains](https://developers.cloudflare.com/workers/configuration/routing/custom-domains/), [authorization](https://developers.cloudflare.com/workers/authorization/), [Workers authorization](https://developers.cloudflare.com/workers/authorization/workers/), [Previews](https://developers.cloudflare.com/workers/previews/), [Previews examples](https://developers.cloudflare.com/workers/previews/examples/), [`_headers`](https://developers.cloudflare.com/workers/static-assets/headers/).
 - [GitHub, environments](https://docs.github.com/en/actions/reference/workflows-and-actions/deployments-and-environments): environment secrets reach only jobs that reference the environment.
 - [Publish-and-docs plan, DS3](../../plans/publish-and-docs.md#ds3-workers-static-assets-and-a-preview-per-pull-request-accepted) and [L8](L8-cloudflare-deploys.md): the same split for the docs and the website. L8 uses repository secrets; the book uses the owner's two environments and Cloudflare's current role names (BK15).
-- The garment repository at commit `bca44b0`: `scripts/guard-deploy.mjs` and the deploy workflow's concurrency, switch and clean install ([ADR 0053](../../decisions/0053-reuse-garment-textbook-code.md)); copy none of its account identifiers.
+- The garment repository at commit `bca44b0`: `scripts/guard-deploy.mjs` and the deploy workflow's concurrency, switch and clean install ([ADR 0054](../../decisions/0054-reuse-garment-textbook-code.md)); copy none of its account identifiers.
 - The `/wrangler` and `/workers-best-practices` skills.
 
 ## Scope

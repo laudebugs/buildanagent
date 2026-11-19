@@ -18,7 +18,7 @@ Make the build responsible for every number, citation and glossary link, so chap
 ## Context
 
 - [Book plan BK5–BK7](../../plans/build-book.md#bk5-the-outline-lives-in-code-and-the-build-computes-every-number-proposed): the outline, the numbering, the register and the glossary.
-- The garment repository at commit `bca44b0`: `src/content.config.ts`, `src/lib/markdown/remark-citations.mjs`, `src/lib/citations.mjs`, `src/lib/markdown/remark-terms.mjs`, `src/lib/terms.mjs` and `src/lib/markdown/split-text.mjs` ([ADR 0053](../../decisions/0053-reuse-garment-textbook-code.md)).
+- The garment repository at commit `bca44b0`: `src/content.config.ts`, `src/lib/markdown/remark-citations.mjs`, `src/lib/citations.mjs`, `src/lib/markdown/remark-terms.mjs`, `src/lib/terms.mjs` and `src/lib/markdown/split-text.mjs` ([ADR 0054](../../decisions/0054-reuse-garment-textbook-code.md)).
 - Our fact-check logs, which the register points at: [`docs/research/fact-check-2026-11-18.md`](../../research/fact-check-2026-11-18.md), each `docs/reference/<sdk>/fact-check.md` and the `fact-check-*.md` files beside each research report.
 
 ## Scope

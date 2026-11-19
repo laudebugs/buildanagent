@@ -18,7 +18,7 @@ Give chapters a way to add flat diagrams that stay correct. Each figure is a com
 ## Context
 
 - [Book plan BK10 and BK11](../../plans/build-book.md#bk10-flat-diagrams-and-a-few-isometric-centerpieces-accepted).
-- The garment repository at commit `bca44b0`: `scripts/figures/svgkit.py` (embedded font subset, glyph check, checked lines and arrowheads), `scripts/tests/figure_staleness.py` and `src/lib/markdown/rehype-figures.mjs` ([ADR 0053](../../decisions/0053-reuse-garment-textbook-code.md)).
+- The garment repository at commit `bca44b0`: `scripts/figures/svgkit.py` (embedded font subset, glyph check, checked lines and arrowheads), `scripts/tests/figure_staleness.py` and `src/lib/markdown/rehype-figures.mjs` ([ADR 0054](../../decisions/0054-reuse-garment-textbook-code.md)).
 - T2's tokens, which the figures' colours use.
 
 ## Scope

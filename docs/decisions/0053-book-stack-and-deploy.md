@@ -1,4 +1,4 @@
-# 0052. Build the book as a static Astro site, checked at build time, and deploy it as an assets-only Worker
+# 0053. Build the book as a static Astro site, checked at build time, and deploy it as an assets-only Worker
 
 - **Status:** Proposed
 - **Date:** 2026-11-19
@@ -6,7 +6,7 @@
 
 ## Context
 
-[ADR 0051](0051-book-in-apps-on-cloudflare.md) puts a public book at `apps/book` and on Cloudflare. The owner's garment engineering textbook runs Astro 7.4.2 with `@astrojs/cloudflare` 14.4.2, Wrangler 4.153.0 and Pagefind 1.5.2 at commit `bca44b0`. It needs the adapter and a Worker only to check sign-in in front of its pages. Cloudflare documents a static Astro build deployed with an `assets.directory` and no `main` ([Cloudflare, Astro](https://developers.cloudflare.com/workers/framework-guides/web-apps/astro/)). It also documents custom domains through `routes` with `custom_domain: true` ([custom domains](https://developers.cloudflare.com/workers/configuration/routing/custom-domains/)), and per-branch Previews through `wrangler preview`, from Wrangler 4.135.0 ([Previews](https://developers.cloudflare.com/workers/previews/)).
+[ADR 0052](0052-book-in-apps-on-cloudflare.md) puts a public book at `apps/book` and on Cloudflare. The owner's garment engineering textbook runs Astro 7.4.2 with `@astrojs/cloudflare` 14.4.2, Wrangler 4.153.0 and Pagefind 1.5.2 at commit `bca44b0`. It needs the adapter and a Worker only to check sign-in in front of its pages. Cloudflare documents a static Astro build deployed with an `assets.directory` and no `main` ([Cloudflare, Astro](https://developers.cloudflare.com/workers/framework-guides/web-apps/astro/)). It also documents custom domains through `routes` with `custom_domain: true` ([custom domains](https://developers.cloudflare.com/workers/configuration/routing/custom-domains/)), and per-branch Previews through `wrangler preview`, from Wrangler 4.135.0 ([Previews](https://developers.cloudflare.com/workers/previews/)).
 
 ## Decision
 
