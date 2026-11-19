@@ -8,7 +8,7 @@ import {
   staleCatalogEntries,
 } from "@buildanagent/gateway";
 import { test } from "vitest";
-import { FAKE_RATES, fakeEntry } from "./fixtures.ts";
+import { FAKE_RATES, fakeEntry } from "./fixtures.js";
 
 const shippedJson: unknown = JSON.parse(readFileSync(new URL("../src/catalog.json", import.meta.url), "utf8"));
 

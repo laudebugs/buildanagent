@@ -3,8 +3,8 @@
  * the real wire format with no socket. It records every request it receives, and it can split a response body into
  * chunks anywhere, including inside a multi-byte character or a tool call's JSON.
  */
-import { GatewayError } from "../errors.ts";
-import { markMockTransport } from "../request-policy.ts";
+import { GatewayError } from "../errors.js";
+import { markMockTransport } from "../request-policy.js";
 
 /** The wire protocols a mock transport can stand in for. */
 export type WireApi = "anthropic-messages" | "openai-chat";

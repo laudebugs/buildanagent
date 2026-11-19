@@ -3,7 +3,7 @@
  *
  * `autoResponder`, seam doubles and record and replay are planned here (SDK plan §3.3).
  */
-export { type Clock, fixedClock, sequentialIds } from "./determinism.ts";
+export { type Clock, fixedClock, sequentialIds } from "./determinism.js";
 export {
   type AssistantScript,
   type RecordedRequest,
@@ -11,4 +11,4 @@ export {
   type ScriptedModelOptions,
   type ScriptStep,
   UnexpectedModelCallError,
-} from "./scripted-model.ts";
+} from "./scripted-model.js";

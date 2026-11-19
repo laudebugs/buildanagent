@@ -2,16 +2,16 @@
  * `createModel()`: binds an adapter to one model id and wraps it in the gateway's shared behaviour (SDK plan §3.2;
  * SDK decisions 4, 13). The order, outside in: middleware, then retries, then the request dump, then the adapter.
  */
-import { type CatalogEntry, defaultCatalog, findCatalogEntry, parseCatalog } from "./catalog.ts";
-import { complete } from "./complete.ts";
-import { priceUsage } from "./cost.ts";
-import { GatewayError } from "./errors.ts";
-import { transformParams, wrapStream } from "./middleware.ts";
-import { startAttempt } from "./request-dump.ts";
-import { abortableSleep, type RetrySettings, withRetries } from "./retry.ts";
-import type { CreateModelOptions, GatewayEvent, Model, ModelCallOptions } from "./runtime-types.ts";
-import type { ModelAdapter } from "./spec.ts";
-import type { ModelCaps, ModelContext, Usage } from "./types.ts";
+import { type CatalogEntry, defaultCatalog, findCatalogEntry, parseCatalog } from "./catalog.js";
+import { complete } from "./complete.js";
+import { priceUsage } from "./cost.js";
+import { GatewayError } from "./errors.js";
+import { transformParams, wrapStream } from "./middleware.js";
+import { startAttempt } from "./request-dump.js";
+import { abortableSleep, type RetrySettings, withRetries } from "./retry.js";
+import type { CreateModelOptions, GatewayEvent, Model, ModelCallOptions } from "./runtime-types.js";
+import type { ModelAdapter } from "./spec.js";
+import type { ModelCaps, ModelContext, Usage } from "./types.js";
 
 const DEFAULT_RETRIES = 2;
 const DEFAULT_INITIAL_DELAY_MS = 2000;

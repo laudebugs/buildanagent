@@ -9,12 +9,12 @@
  * and `tool_use` blocks become tool calls. Server-tool blocks carry nothing this transcript can replay, so they are
  * skipped.
  */
-import type { ToolNameMap } from "../../names.ts";
-import type { ModelEvent } from "../../spec.ts";
-import type { AssistantMessage, ContentBlock, ModelRef, Usage } from "../../types.ts";
-import { failureEvent, failureFrom, terminalMessage } from "./failure.ts";
-import { REDACTED_THINKING_PREFIX } from "./request.ts";
-import { anthropicUsage, mergeUsage } from "./usage.ts";
+import type { ToolNameMap } from "../../names.js";
+import type { ModelEvent } from "../../spec.js";
+import type { AssistantMessage, ContentBlock, ModelRef, Usage } from "../../types.js";
+import { failureEvent, failureFrom, terminalMessage } from "./failure.js";
+import { REDACTED_THINKING_PREFIX } from "./request.js";
+import { anthropicUsage, mergeUsage } from "./usage.js";
 
 type Json = Record<string, unknown>;
 type Warning = Extract<ModelEvent, { type: "warning" }>;

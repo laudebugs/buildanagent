@@ -14,11 +14,11 @@
  * - `temperature`, `top_p` and `top_k` are never sent: on API version 2026-10-21 any of them is a 400 "even at the
  *   parameter's default value" (https://platform.claude.com/docs/en/api/migration-2026-10-21, as of November 2026).
  */
-import { createToolNameMap, TOOL_NAME_RULES, type ToolNameMap } from "../../names.ts";
-import type { ModelEvent, StreamOptions } from "../../spec.ts";
-import { transformMessages } from "../../transform-messages.ts";
-import type { ContentBlock, Message, ModelCaps, ModelContent, ModelContext, ModelRef, WireTool } from "../../types.ts";
-import { lowerToStrict, STRICT_LIMITS } from "./strict-schema.ts";
+import { createToolNameMap, TOOL_NAME_RULES, type ToolNameMap } from "../../names.js";
+import type { ModelEvent, StreamOptions } from "../../spec.js";
+import { transformMessages } from "../../transform-messages.js";
+import type { ContentBlock, Message, ModelCaps, ModelContent, ModelContext, ModelRef, WireTool } from "../../types.js";
+import { lowerToStrict, STRICT_LIMITS } from "./strict-schema.js";
 
 type Json = Record<string, unknown>;
 type Warning = Extract<ModelEvent, { type: "warning" }>;

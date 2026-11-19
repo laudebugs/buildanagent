@@ -11,9 +11,9 @@
  * dump per HTTP request, with the body. Either way every attempt is dumped before any of its content reaches the
  * caller.
  */
-import type { DumpedOptions, ModelCallOptions, RequestDump } from "./runtime-types.ts";
-import type { ModelAdapter, ModelEvent, StreamOptions } from "./spec.ts";
-import type { ModelCaps, ModelContext, ModelRef } from "./types.ts";
+import type { DumpedOptions, ModelCallOptions, RequestDump } from "./runtime-types.js";
+import type { ModelAdapter, ModelEvent, StreamOptions } from "./spec.js";
+import type { ModelCaps, ModelContext, ModelRef } from "./types.js";
 
 /** One model call's request, which every attempt of the call sends again. */
 export interface AttemptRequest {

@@ -13,7 +13,7 @@ import {
 } from "@buildanagent/gateway";
 import { assertStreamContract } from "@buildanagent/gateway/testing";
 import { afterEach, test, vi } from "vitest";
-import { collect, context, FailingAdapter, recordingSleep, TEST_CAPS } from "./adapters.ts";
+import { collect, context, FailingAdapter, recordingSleep, TEST_CAPS } from "./adapters.js";
 
 afterEach(() => {
   vi.useRealTimers();

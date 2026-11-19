@@ -10,15 +10,15 @@ export {
   ModelRequestsDisabledError,
   markMockTransport,
   setModelRequestsAllowed as allowModelRequests,
-} from "../request-policy.ts";
-export { assertStreamContract, StreamContractError } from "../stream-contract.ts";
+} from "../request-policy.js";
+export { assertStreamContract, StreamContractError } from "../stream-contract.js";
 export {
   assertNoProviderKeys,
   guardedFetch,
   installTestGuards,
   isLoopbackHost,
   PROVIDER_KEY_VARIABLES,
-} from "./guards.ts";
+} from "./guards.js";
 export {
   type MockTransport,
   mockTransport,
@@ -27,5 +27,5 @@ export {
   type WireApi,
   type WireResponse,
   type WireScript,
-} from "./mock-transport.ts";
-export { seededRandom } from "./random.ts";
+} from "./mock-transport.js";
+export { seededRandom } from "./random.js";

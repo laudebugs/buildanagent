@@ -5,10 +5,10 @@
  * errors add `error.details.error_code`. A stream that already returned 200 reports a later error as an `error`
  * event with the same `error` object and no status of its own.
  */
-import { classifyError, type ErrorKind } from "../../classify.ts";
-import type { ModelEvent } from "../../spec.ts";
-import type { AssistantMessage, ContentBlock, ModelErrorCode, ModelRef, Usage } from "../../types.ts";
-import { emptyUsage } from "../../usage.ts";
+import { classifyError, type ErrorKind } from "../../classify.js";
+import type { ModelEvent } from "../../spec.js";
+import type { AssistantMessage, ContentBlock, ModelErrorCode, ModelRef, Usage } from "../../types.js";
+import { emptyUsage } from "../../usage.js";
 
 type Json = Record<string, unknown>;
 

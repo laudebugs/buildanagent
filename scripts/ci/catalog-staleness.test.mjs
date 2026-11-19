@@ -1,9 +1,13 @@
 // Offline tests for catalog-staleness.mjs; run with `node --test scripts/ci/*.test.mjs`.
 import assert from "node:assert/strict";
 import { test } from "node:test";
-// Node 22 strips the types from the gateway's TypeScript source, so the test can compare against the real rule.
-import { staleCatalogEntries } from "../../packages/gateway/src/catalog.ts";
+import { tsImport } from "tsx/esm/api";
 import { staleWarnings } from "./catalog-staleness.mjs";
+
+// The test compares against the gateway's real rule, read from its TypeScript source. tsx loads it, because the
+// source's relative imports use `.js` specifiers for the dist/ build, which Node's own type stripping doesn't map
+// back to `.ts` files.
+const { staleCatalogEntries } = await tsImport("../../packages/gateway/src/catalog.ts", import.meta.url);
 
 const NOW = Date.parse("2026-11-19T12:00:00Z");
 const entry = (id, asOf) => ({ provider: "test", id, asOf, sources: { rates: "https://provider.test/pricing" } });

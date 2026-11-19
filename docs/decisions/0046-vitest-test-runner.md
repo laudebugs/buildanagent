@@ -3,6 +3,7 @@
 - **Status:** Accepted (owner, 2026-11-19)
 - **Date:** 2026-11-19
 - **Plan:** [SDK plan §3.1, Tooling](../plans/build-sdk.md#31-two-packages-under-a-new-top-level-packages-directory), revised by this record
+- **Note (2026-11-19):** each package's `setupFiles` now lists a local `./test/setup.ts`, which imports `@buildanagent/gateway/testing/setup`, because Vitest 5.1.0 resolves a bare `setupFiles` entry without the workspace's `source` condition ([ADR 0051](0051-dist-build-corrections-from-l1.md), proposed).
 
 ## Context
 

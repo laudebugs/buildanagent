@@ -4,7 +4,7 @@
  * depends on the network.
  */
 import shipped from "./catalog.json" with { type: "json" };
-import { GatewayError } from "./errors.ts";
+import { GatewayError } from "./errors.js";
 
 /**
  * The USD price per million tokens of each token class, for requests up to `upToInputTokens` input tokens.

@@ -2,16 +2,73 @@
   "name": "@buildanagent/gateway",
   "version": "0.0.0",
   "private": true,
-  "license": "Apache-2.0 OR MIT",
-  "type": "module",
   "description": "Model gateway for the buildanagent SDK: provider adapters, streaming, retries and cost accounting.",
+  "license": "Apache-2.0 OR MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/laudebugs/buildanagent.git",
+    "directory": "packages/gateway"
+  },
+  "homepage": "https://github.com/laudebugs/buildanagent/tree/main/packages/gateway#readme",
+  "type": "module",
+  "sideEffects": [
+    "./src/testing/setup.ts",
+    "./dist/testing/setup.js"
+  ],
+  "engines": {
+    "node": ">=22"
+  },
+  "files": [
+    "dist",
+    "LICENSE",
+    "LICENSE-APACHE",
+    "LICENSE-MIT"
+  ],
   "exports": {
-    ".": "./src/index.ts",
-    "./anthropic": "./src/adapters/anthropic/index.ts",
-    "./testing": "./src/testing/index.ts",
-    "./testing/setup": "./src/testing/setup.ts"
+    ".": {
+      "source": "./src/index.ts",
+      "types": "./dist/index.d.ts",
+      "default": "./dist/index.js"
+    },
+    "./anthropic": {
+      "source": "./src/adapters/anthropic/index.ts",
+      "types": "./dist/adapters/anthropic/index.d.ts",
+      "default": "./dist/adapters/anthropic/index.js"
+    },
+    "./testing": {
+      "source": "./src/testing/index.ts",
+      "types": "./dist/testing/index.d.ts",
+      "default": "./dist/testing/index.js"
+    },
+    "./testing/setup": {
+      "source": "./src/testing/setup.ts",
+      "types": "./dist/testing/setup.d.ts",
+      "default": "./dist/testing/setup.js"
+    }
+  },
+  "publishConfig": {
+    "exports": {
+      ".": {
+        "types": "./dist/index.d.ts",
+        "default": "./dist/index.js"
+      },
+      "./anthropic": {
+        "types": "./dist/adapters/anthropic/index.d.ts",
+        "default": "./dist/adapters/anthropic/index.js"
+      },
+      "./testing": {
+        "types": "./dist/testing/index.d.ts",
+        "default": "./dist/testing/index.js"
+      },
+      "./testing/setup": {
+        "types": "./dist/testing/setup.d.ts",
+        "default": "./dist/testing/setup.js"
+      }
+    }
   },
   "scripts": {
+    "build": "node ../../scripts/clean-dist.mjs && tsc -p tsconfig.build.json",
+    "prepack": "pnpm run build && node ../../scripts/copy-licenses.mjs",
     "typecheck": "tsc -p tsconfig.json",
     "test": "vitest run"
   }
