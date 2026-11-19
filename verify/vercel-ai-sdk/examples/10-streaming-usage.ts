@@ -1,5 +1,5 @@
-// A streamed answer folds into one message, and its final usage splits the input into three classes (tokens
-// read from the cache, tokens written to it, and the rest) next to the output. Each class has its own price,
+// A streamed answer folds into one message. Its final usage splits the input into three classes (tokens read
+// from the cache, tokens written to it, and the rest) next to the output. Each class has its own price,
 // so the bill is a sum over four classes. The rates are Claude Sonnet 5.5's (see lib/rates.ts).
 // Docs: ai-sdk-core/generating-text.mdx ("streamText"), reference/ai-sdk-core/stream-text.mdx
 import { streamText } from "ai";

@@ -35,7 +35,7 @@ const content = (turn: Turn): LanguageModelV4Content[] =>
  * A MockLanguageModelV4 (ai/test, docs: ai-sdk-core/testing) that plays `turns` in order, for
  * both generate and stream calls, and records every request in `requests`. Running past the
  * script throws, so a test fails if the loop makes more model calls than expected. Each turn reports `options.usage`
- * (10 input and 5 output tokens by default) and the model answers to `options.modelId`.
+ * (10 input and 5 output tokens by default) and the model reports `options.modelId` as its id.
  */
 // #region scripted
 export function scripted(

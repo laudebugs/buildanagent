@@ -22,7 +22,7 @@ Some examples carry `// #region <name>` and `// #endregion` comments, which chan
 
 `scripts/run-examples.mjs` preloads the recorder from [`scripts/transcripts/`](../../scripts/transcripts/), which records each `check()` from the `ok - ` line it prints, and only when the call stack shows `check()` printed it. `examples/lib/transcript.ts` attaches the recorder to `ai/test`'s `MockLanguageModelV4` through its prototype, so `lib/check.ts`'s listed `check` and `scripted` regions hold no recorder code. Streamed calls in `06-streaming.ts` start inside the stream's own machinery, so their requests and answers carry no example line.
 
-A transcript holds no usage, and it names each model `model-1`, `model-2` and so on, so a replay of the two pricing examples shows their requests, answers and `check()` lines but not the token classes, the prices or which call used the tuned model. The chapter reads those from the listing. Adding each call's usage to the format is a follow-up to T5's work, listed in T11's risks.
+A transcript holds no usage, and it names each model `model-1`, `model-2` and so on, so a replay of the two pricing examples shows their requests, answers and `check()` lines but not the token classes, the prices or which call used the tuned model. The chapter reads those from the listing. T11's risks list a follow-up to T5's work that adds each call's usage to the format.
 
 Recording only reads what the mock already holds, so it changes no verdict. The writer replaces the run's own directories, and the ids, timestamps and durations the SDK generated, with placeholders. An id the mock's script chose stays as written, and so does everything else an example scripts, such as a tool's input. Two runs on any machine therefore write the same bytes.
 
