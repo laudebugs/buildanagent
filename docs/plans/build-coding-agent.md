@@ -5,7 +5,7 @@
 - **Asked for by:** the project owner (2026-11-18): "just personal with our own api key", and "we want to deploy it to at least two cloud platforms or three".
 - **Builds on:** the [SDK plan][sdk] (P1), the [harness plan][hp] (P2), the [portable agents report][pa] (U11), the [storage-and-wake note][sw], the [agent-building platforms report][abp] (U12) and the [Copilot diff review report][cdr] (U8)
 - **Decision records:** [ADRs 0032–0036](../decisions/README.md)
-- **Todos:** Round W ("build the coding agent") and the portability todos N41–N49 on the [todo board](../todos/README.md); §5 lists them.
+- **Todos:** Round W ("build the coding agent") and the portability todos N41–N50 on the [todo board](../todos/README.md); §5 lists them.
 
 Six cloud coding agents, from Claude Code on the web to Devin, share one shape: a control plane owns the session and the credentials, each task runs in a disposable VM, an egress proxy enforces an allowlist, and a branch or pull request is the output ([portable agents report][pa-cca]). Our harness plan already covers what happens inside that VM. The parts outside it, a control plane, a GitHub identity, PR delivery and triggers, appear in no plan. Our stack also runs on one host today: the harness is tied to it in six places, and storage and wake are the hard part of moving it ([portable agents report][pa-sdk]; [storage-and-wake note][sw]). The coding agent in this plan serves one person, the owner, on the owner's own repositories and model key. It runs on Cloudflare first, and every seam it adds is proved on AWS and Vercel too. **This plan runs our loop in a Durable Object outside the sandbox, gives the sandbox no credentials, delivers every task as a draft pull request the owner merges, and proves the SDK and harness on three clouds with one conformance suite.**
 
@@ -45,7 +45,7 @@ The agent serves one person. The model key is one secret held by the host and ad
 
 ### CA2. The coding agent replaces triage as the first agent (accepted)
 
-**Accepted by the owner on 2026-11-18.** The coding agent becomes M7's agent. The triage plan, its decisions and its todos stay on the board, each marked deferred, so the work can resume without rework. One harness todo depended on triage: N38b adds ten triage tasks to HD8's seed suite after A17 and A19. N38b is deferred with them, and N38's twenty repository tasks become the coding agent's first eval suite (W8). HD8 was first left unchanged, so the suite ran at twenty tasks; the amendment below restores thirty with W12.
+**Accepted by the owner on 2026-11-18.** The coding agent becomes M7's agent. The triage plan, its decisions and its todos stay on the board, each marked deferred, so the work can resume without rework. One harness todo depended on triage: N38b adds ten triage tasks to HD8's seed suite after A17 and A19. N38b is deferred with them, and N38's twenty repository tasks become the coding agent's first eval suite (W8). HD8 was first left unchanged, so the suite ran at twenty tasks; the amendment below restores thirty with W12 ([ADR 0045](../decisions/0045-hd8-coding-agent-eval-tasks.md)).
 
 **Amended (owner, 2026-11-19):** "20 now, plus coding tasks". N38's twenty repository tasks ship first, and [W12](../todos/ready/W12-coding-agent-eval-tasks.md) adds ten coding-agent tasks, so the suite reaches thirty before W8 publishes its baseline. When Round A resumes, N38b adds its ten triage tasks on top ([harness plan, HD8][hp-hd8]).
 
@@ -100,7 +100,7 @@ Claude Code on the web snapshots its environment after a setup script and rebuil
 
 ### CA9. Cloud-mode evals count provisioning time and infra failures apart (decided)
 
-HD8's eval suite runs tasks locally against mini-swe-agent at k = 5 with a $3 cap ([harness plan, HD8][hp-hd8]). A cloud agent adds sandbox start and network faults, which no vendor publishes figures for ([portable agents report][pa-cca]). W8 runs the same twenty repository tasks through the deployed agent and reports wall time with provisioning separated out, infra failures apart from task failures, and cost beside pass^k.
+HD8's eval suite runs tasks locally against mini-swe-agent at k = 5 with a $3 cap ([harness plan, HD8][hp-hd8]). A cloud agent adds sandbox start and network faults, which no vendor publishes figures for ([portable agents report][pa-cca]). W8 runs the thirty-task suite (N38's twenty repository tasks and W12's ten coding-agent tasks, per the HD8 amendment) through the deployed agent and reports wall time with provisioning separated out, infra failures apart from task failures, and cost beside pass^k.
 
 ### CA10. A read-only cloud secret can back the key ring (accepted)
 
@@ -208,7 +208,7 @@ Round W starts after the harness's stage 7 and the portability stage: W1 needs o
 [sdk]: build-sdk.md
 [sdk-32]: build-sdk.md#32-gateway-api
 [hp]: build-harness.md
-[hp-hd8]: build-harness.md#hd8-a-30-task-seed-suite-from-real-failures-and-triage-tasks-at-k--5-accepted
+[hp-hd8]: build-harness.md#hd8-a-30-task-seed-suite-of-20-repository-and-10-coding-agent-tasks-at-k--5-accepted-amended
 [hp-51]: build-harness.md#51-every-test-runs-offline-on-the-sdks-scripted-model-and-no-test-touches-the-host
 [pa]: ../research/deployment/portable-agents.md
 [pa-rt]: ../research/deployment/portable-agents.md#runtimes-split-into-an-isolate-tier-and-a-process-tier

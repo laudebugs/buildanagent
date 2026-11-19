@@ -17,7 +17,7 @@ Add the agent's 10 classification-slice tasks to HD8's seed suite when Round A r
 
 ## Context
 
-- [HD8](../../plans/build-harness.md#hd8-a-30-task-seed-suite-from-real-failures-and-triage-tasks-at-k--5-accepted): 20 repository tasks and 10 coding-agent tasks (W12), to which this todo adds 10 shared triage tasks, k = 5 (amended by the owner, 2026-11-19)
+- [HD8](../../plans/build-harness.md#hd8-a-30-task-seed-suite-of-20-repository-and-10-coding-agent-tasks-at-k--5-accepted-amended): 20 repository tasks and 10 coding-agent tasks (W12), to which this todo adds 10 shared triage tasks, k = 5 (amended by the owner, 2026-11-19)
 - [agent plan AD6](../../plans/build-agent.md#ad6-the-owner-names-the-policy-writer-and-two-labelling-leads-and-the-judge-and-simulator-run-on-the-other-provider-accepted): the classification slice and who labels it
 - [agent plan AD8](../../plans/build-agent.md#ad8-code-appends-the-ai-label-spans-hash-identifiers-and-later-stages-need-a-retention-period-accepted-with-hd11): the repo holds only synthetic and de-identified tickets
 - [P4 review R22](../../plans/reviews/plan-review.md#23-buildability-the-graph-is-sound-and-one-cross-round-task-source-is-unscheduled): why N38 was split
@@ -55,7 +55,7 @@ None in `pnpm test` beyond a check that the task-id list resolves against the ag
 
 ## Docs to update
 
-HD8 in [build-harness.md](../../plans/build-harness.md#hd8-a-30-task-seed-suite-from-real-failures-and-triage-tasks-at-k--5-accepted) if the mini-swe-agent route changes the suite; the plan's todo table in [build-harness.md §4](../../plans/build-harness.md#4-rounds-and-todos).
+HD8 in [build-harness.md](../../plans/build-harness.md#hd8-a-30-task-seed-suite-of-20-repository-and-10-coding-agent-tasks-at-k--5-accepted-amended) if the mini-swe-agent route changes the suite; the plan's todo table in [build-harness.md §4](../../plans/build-harness.md#4-rounds-and-todos).
 
 ## Risks and open questions
 

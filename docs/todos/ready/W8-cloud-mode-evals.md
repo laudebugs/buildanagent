@@ -17,7 +17,7 @@ Run the thirty-task seed suite, N38's twenty repository tasks plus W12's ten cod
 
 ## Context
 
-- [Harness plan, HD8](../../plans/build-harness.md#hd8-a-30-task-seed-suite-from-real-failures-and-triage-tasks-at-k--5-accepted): the suite, k and the $3 cap.
+- [Harness plan, HD8](../../plans/build-harness.md#hd8-a-30-task-seed-suite-of-20-repository-and-10-coding-agent-tasks-at-k--5-accepted-amended): the suite, k and the $3 cap.
 
 ## Scope
 

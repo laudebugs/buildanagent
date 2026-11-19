@@ -17,7 +17,7 @@ Add ten coding-agent tasks to N38's seed suite, so the suite reaches thirty task
 
 ## Context
 
-- [HD8 and its amendment](../../plans/build-harness.md#hd8-a-30-task-seed-suite-from-real-failures-and-triage-tasks-at-k--5-accepted): the suite size, k = 5, the per-trial guarantees and the $3 cap.
+- [HD8 and its amendment](../../plans/build-harness.md#hd8-a-30-task-seed-suite-of-20-repository-and-10-coding-agent-tasks-at-k--5-accepted-amended): the suite size, k = 5, the per-trial guarantees and the $3 cap.
 - [N38](N38-seed-suite-baseline.md): the task format, graders and report this todo extends.
 - [W2](W2-coding-tool-profile.md): the coding tool profile and the completion check the tasks exercise.
 - [CA2](../../plans/build-coding-agent.md#ca2-the-coding-agent-replaces-triage-as-the-first-agent-accepted): why the coding agent replaced triage as the first agent.

@@ -42,6 +42,7 @@ Make a transcript recorded on one provider replay safely on another, through one
 
 - [ ] Each of the five rules has a passing test
 - [ ] A transcript replayed to another Anthropic model keeps every thinking block and signature unchanged; a replay to an OpenAI-compatible target still strips them
+- [ ] A same-provider replay keeps a thinking block whose text is empty, byte for byte (HD3 rule 1)
 - [ ] When the pass drops thinking blocks, the kept blocks form one unbroken run from the oldest or to the newest
 - [ ] The input array is deep-equal before and after the call
 - [ ] A transcript with a tool call and no result gains a synthetic `isError` result

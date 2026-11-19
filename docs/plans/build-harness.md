@@ -92,7 +92,7 @@ Three decisions merge with the SDK's. For each, this plan references P1's choice
 
 **Revision (plan review 2, 2026-11-19): the request view stays append-only for signed thinking.** Anthropic models with preserved thinking (Claude Opus, Sonnet and Haiku 5.5, and Fable and Mythos 5.1–5.2) run a prefix check on every thinking block sent back. If the request changes `system`, `tools` or an earlier message, every thinking block after the change fails the check, which is a 400 on Fable 5.2 and Mythos 5.x and a possible 400 on the others; when no error comes back, the stale blocks reach the model and are billed ([Anthropic, preserved thinking prefix checks](https://platform.claude.com/docs/en/build-with-claude/preserved-thinking/prefix-checks), as of November 2026). Layers 2, 3 and 4 edit earlier messages, so on these models the request view follows five rules:
 
-1. When a layer edits or removes an earlier message, the view drops every thinking block after the edit point. A view may leave out the oldest run of thinking blocks, the newest run or all of them, never one in between.
+1. The view sends each assistant turn back exactly as the API returned it, including thinking blocks whose text is empty. When a layer edits or removes an earlier message, the view drops every thinking block after the edit point. A view may leave out the oldest run of thinking blocks, the newest run or all of them, never one in between.
 2. The harness builds `system` and `tools` once per session.
 3. A tool change mid-session is announced in a `role: "system"` message, not by changing `tools` (N25).
 4. On a 400 that says a block is "bound to a different conversation", the adapter retries with `thinking.block_binding.prefix_mismatch_behavior: "drop_block"` (beta header `thinking-binding-controls-2026-08-01`) and sends that setting on every later request of the same conversation (the same branch of the session log), because the setting acts only on the request that carries it.
@@ -140,7 +140,7 @@ N8, N9 and N10 test the first rule, N25 the third, and B8 surfaces the 400 as a 
 
 **Evidence.** The conventions are Development-only and had no tags on 2026-11-18, so a version means a commit ([harness guide §9][hg9]; [observability note §2][n-obs-2]). OTel's `input_tokens` "SHOULD include cached tokens", and no convention names cost, so the cost attribute is ours to name ([harness guide §9][hg9]). SDK D3 already ran the guide's settling test, writing the projection and the cost fold against both conventions ([SDK plan, D3][sdk-d3]). Cost keeps its `basis`, because Claude calls its costs "client-side estimates, not authoritative billing data" ([harness guide §9][hg9]).
 
-### HD8. A 30-task seed suite from real failures and triage tasks, at k = 5 (accepted)
+### HD8. A 30-task seed suite of 20 repository and 10 coding-agent tasks, at k = 5 (accepted, amended)
 
 **Accepted by the owner on 2026-11-18.**
 
@@ -152,7 +152,7 @@ N8, N9 and N10 test the first rule, N25 the third, and B8 surfaces the 400 as a 
 
 **What the owner still supplies.** The budget for each live run, which N37's live script refuses to start without.
 
-**Amended (owner, 2026-11-19):** N38 ships 20 repository tasks; [W12](../todos/ready/W12-coding-agent-eval-tasks.md) adds 10 coding-agent tasks to reach 30 before W8 publishes its baseline; the 10 triage tasks (N38b) return with Round A. The owner's answer was "20 now, plus coding tasks". When Round A resumes, N38b adds its 10 triage tasks on top of the 30.
+**Amended (owner, 2026-11-19; [ADR 0045](../decisions/0045-hd8-coding-agent-eval-tasks.md)):** N38 ships 20 repository tasks; [W12](../todos/ready/W12-coding-agent-eval-tasks.md) adds 10 coding-agent tasks to reach 30 before W8 publishes its baseline; the 10 triage tasks (N38b) return with Round A. The owner's answer was "20 now, plus coding tasks". When Round A resumes, N38b adds its 10 triage tasks on top of the 30.
 
 ### HD9. SDK D9's per-call check, plus a session cap and a pre-checked summary call (with SDK D9)
 
@@ -818,7 +818,7 @@ Round N interleaves with Round B in the build phase, starting from B1 and B2, an
 - **After Round E (M5e):** E2 gates rebuild and resume (N7) and code-initiated calls (N40), and E7 gates the portability suite (N45). The owner lifted Round E's hold on 2026-11-19, so these gates wait only on E's own order ([close-sdk-gaps plan §4](close-sdk-gaps.md#4-round-e-and-its-todos)).
 - **Stage 8, after N4, N13, N15, N20 and N29:** the scheduler (N41), the read-only key store (N42), the remote sandbox extensions (N43) and the Web-stream transport (N44), then N45 and the per-target adapters (N46a to N48b) and N49's measurement. N46b also waits for N50 and the owner's decision on Cloudflare egress.
 
-The roadmap graph gains one line, `B1 ─► N1 … N40 ─► N41–N50 ─► M6`, with branches from B2 to N2, from B13 to N6, from B15b and E2 to N7, from E7 to N45, from N50 to N46b and from A19 to N38b. The deferred triage round (M7b) would start after N1 and need N35 for its capstone.
+The roadmap graph gains one line, `B1 ─► N1 … N40 ─► N41–N49 ─► M6`, with N50 starting at once (it depends on nothing) and feeding N46b, and with branches from B2 to N2, from B13 to N6, from B15b and E2 to N7, from E7 to N45 and from W12 and A19 to N38b. The deferred triage round (M7b) would start after N1 and need N35 for its capstone.
 
 Round N closes when the triage capstone pauses, resumes in a second process and replays byte for byte from its log, and when the first eval report sets our harness beside mini-swe-agent on cost and pass^k. As of 2026-11-19, B1 and B2 are done, so N1 has every dependency done.
 

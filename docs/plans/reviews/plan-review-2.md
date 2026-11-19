@@ -2,7 +2,7 @@
 
 - **Status:** Findings recorded and fixes applied (2026-11-19). The owner answered four questions in this review; §6 lists the decisions still open.
 - **Date:** 2026-11-19
-- **Scope:** the SDK plan ([build-sdk.md][sdk], Round B), the harness plan ([build-harness.md][har], Round N), the plan that closes the SDK gaps ([close-sdk-gaps.md][gaps], Round E), and the parts of the coding agent plan ([build-coding-agent.md][ca], Round W) and the platform plan ([build-agent-platform.md][pf], Round F) that amend them. It also covers the [roadmap][road], the todo board and ADRs 0001–0044.
+- **Scope:** the SDK plan ([build-sdk.md][sdk], Round B), the harness plan ([build-harness.md][har], Round N), the plan that closes the SDK gaps ([close-sdk-gaps.md][gaps], Round E), and the parts of the coding agent plan ([build-coding-agent.md][ca], Round W) and the platform plan ([build-agent-platform.md][pf], Round F) that amend them. It also covers the [roadmap][road], the todo board and ADRs 0001–0044, and adds ADR 0045.
 - **Base:** `main` at `4feea36` (B1–B3 merged), plus the rename to `@buildanagent/*` in pull request #27.
 - **Fact-check:** [fact-check-plan-review-2.md](fact-check-plan-review-2.md)
 
@@ -30,7 +30,7 @@ The research review classified each recommendation rather than grading it. Of th
 | D1 | Round E is on hold, yet B10, B15, N7, N40 and N45 depend on it (G1) | "Lift hold on all of E" | [SG2][gaps], the [roadmap][road] and every E todo now say Round E is being built with the SDK and harness. Rounds W, F and A keep their hold, which their todos now carry as a banner (G2). |
 | D2 | N46b's HTTPS needs TLS interception, which ADR 0020 and HD15 rule out (R43) | "Research it first" | A new verification todo, N50, tests Sandbox SDK 1.0's egress on a real sandbox. N46b depends on N50 and waits for the owner's ruling on its result. ADR 0020 and HD15 are unchanged. |
 | D3 | W6 plans its own idempotency keys beside E2 (G12, O1) | "E2 owns it; W6 uses it" | W6 depends on E2 and runs its pushes and pull requests through `guardedWrite()`. U14's change 7 is closed because Round E covers it. |
-| D4 | HD8's 30-task suite lost its 10 triage tasks when triage was deferred | "20 now, plus coding tasks" | HD8 carries a dated amendment. N38 ships 20 tasks, and a new todo, W12, adds 10 coding-agent tasks before W8 publishes its baseline. N38b adds the triage tasks when Round A resumes. |
+| D4 | HD8's 30-task suite lost its 10 triage tasks when triage was deferred | "20 now, plus coding tasks" | HD8 carries a dated amendment, recorded in [ADR 0045](../../decisions/0045-hd8-coding-agent-eval-tasks.md). N38 ships 20 tasks, and a new todo, W12, adds 10 coding-agent tasks before W8 publishes its baseline. N38b adds the triage tasks when Round A resumes. |
 
 ## 3. The blockers: a hold that stopped the build, a check that breaks the context layers and an egress API that no longer exists
 

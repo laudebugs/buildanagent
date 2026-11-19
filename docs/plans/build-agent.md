@@ -748,7 +748,7 @@ Round A closes when the triage agent passes its capstone offline, when the relea
 [hp55]: build-harness.md#55-the-eval-harness-compares-cost-and-passk-against-mini-swe-agent-in-three-suites
 [hp-hd1]: build-harness.md#hd1-one-entry-per-content-block-written-from-the-sdks-end-events-provisional
 [hp-hd5]: build-harness.md#hd5-the-harness-always-passes-hmacsigner-over-a-persistent-key-ring-accepted-with-sdk-d5
-[hp-hd8]: build-harness.md#hd8-a-30-task-seed-suite-from-real-failures-and-triage-tasks-at-k--5-accepted
+[hp-hd8]: build-harness.md#hd8-a-30-task-seed-suite-of-20-repository-and-10-coding-agent-tasks-at-k--5-accepted-amended
 [hp-hd9]: build-harness.md#hd9-sdk-d9s-per-call-check-plus-a-session-cap-and-a-pre-checked-summary-call-with-sdk-d9
 [hp-hd11]: build-harness.md#hd11-keep-transcripts-until-the-owner-sets-a-retention-period-and-keep-the-entry-base-stable-accepted
 [hp-hd12]: build-harness.md#hd12-three-middle-ground-modes-and-no-classifier-allow-outside-the-host-callback

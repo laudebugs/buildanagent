@@ -58,7 +58,7 @@ Two outputs:
 - [ ] The findings note states which `EgressPolicy` compile N46b should use, and what it costs in trust-store setup per client.
 - [ ] The proposed ADR text names the decision, the options and the evidence, and limits any change to the Cloudflare backend.
 - [ ] No real credential was used, and the disposable project is deleted.
-- [ ] `pnpm check` passes.
+- [ ] `pnpm check`, `pnpm typecheck` and `pnpm test` pass offline (the repo-wide gate; this todo adds no package code)
 
 ## Tests
 
