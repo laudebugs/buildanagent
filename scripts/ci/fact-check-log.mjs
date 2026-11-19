@@ -9,6 +9,10 @@
 // - the `**Totals:** N claims: a ✅, b ✏️, c ⚠️.` line disagrees with the rows. A log without a totals line has its
 //   rows checked and no totals.
 //
+// A citation of another log's rows is skipped, since this log cannot check it: `row X` after a todo id or "its"/"their"
+// before "fact-check", after a link to another .md file or a link that says fact-check, or followed by "of" or "in" and
+// a fact-check name.
+//
 // `--write` rewrites each totals line from the rows instead of failing on it; the other checks still fail, and a
 // log with any other problem is left unwritten.
 // Pass log paths to check only those; with none it checks every docs/plans/reviews/fact-check-*.md.
