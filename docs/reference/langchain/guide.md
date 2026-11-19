@@ -102,6 +102,8 @@ Long-term memory uses a store passed to `createAgent`. Tools reach it as `runtim
 
 > **Gotcha.** `ToolRuntime` from `@langchain/core/tools` declares `store` as core's key-value `BaseStore`, which has `mget()` and `mset()` but no `get()` or `put()`. The docs call `runtime.store.get(...)` and `put(...)` in 31 blocks, which therefore fail to type-check, although they work at run time. Cast to LangGraph's store type, as example 09 does (fact-check F4).
 
+> **Gotcha.** Import `InMemoryStore` from `@langchain/langgraph`. The name exported by `langchain` is core's key-value store, which `createAgent` does not accept. To give the store semantic search, pass `index: { dims, embeddings }`; the docs' `index: { embed, dims }` form fails to type-check, and nothing in the process expires an item (fact-check M1–M3, as of November 2026).
+
 ## 9. The recursion limit counts graph steps, not model calls
 
 LangGraph stops a run after 25 super-steps by default and throws `GraphRecursionError` (`langgraph/graph-api.mdx`). **[verified: 06]** Each model call and each tools step counts as a super-step, so the default allowed 13 model calls in our test, and `recursionLimit: 5` allowed 3. **[verified: 06]** Pass `recursionLimit` at the top level of the invocation config, not under `configurable`. For limits that read naturally in model calls, use `modelCallLimitMiddleware` or `toolCallLimitMiddleware` instead.

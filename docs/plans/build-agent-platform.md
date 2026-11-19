@@ -60,6 +60,8 @@ The personal coding agent stays personal ([ADR 0032](../decisions/0032-personal-
 
 A tenant is the unit of isolation. Each tenant's tasks run in Durable Objects named by tenant and task, its secrets are encrypted under a tenant key, and its sandboxes are never shared.
 
+**Revision (2026-11-19): memory is per tenant.** The [retrieval and memory report][u18] (U18) proposed twelve plan changes, and the owner approved all twelve on 2026-11-19; change 12 adds this note. The report names three signals that a memory service is worth its price, and the platform shows the first from its first tenant: many end users, each with an isolated profile. No Round F todo builds memory yet. When one does, each tenant gets its own memory namespace, and the retriever applies the tenant filter inside the query, before ranking, never to the results. Cloudflare's Vectorize applies a metadata filter before it takes the top-k, and OWASP's ASI06 describes how a loose namespace filter lets an attacker's near-duplicate pull "another tenant's sensitive chunk into retrieval" ([retrieval and memory report][u18-filter]).
+
 ### PF2. Our SDK by default once it ships, plus verified third-party SDKs (accepted)
 
 **Accepted by the owner on 2026-11-18:** "Ours, plus verified third-party".
@@ -221,6 +223,8 @@ Five risks remain, and each has a todo that settles it:
 Stage F-a starts once the owner says go (every F todo is on hold; owner, 2026-11-19): F1 and F3, which need only B1, are the first todos to open. M8 ships when F16 passes, and M9 follows when our SDK and harness are complete.
 
 [abp]: ../research/deployment/agent-building-platforms.md
+[u18]: ../research/memory/retrieval-and-memory.md#a-file-is-enough-for-one-agent-and-one-user-and-a-service-earns-its-price-at-many-users-or-temporal-questions
+[u18-filter]: ../research/memory/retrieval-and-memory.md#retrieved-text-and-stored-memory-are-untrusted-input-so-filter-before-ranking-and-record-each-records-source
 [abp-sec]: ../research/deployment/agent-building-platforms.md#approvals-are-common-but-signed-approvals-and-side-effect-undo-exist-nowhere
 [abp-appr]: ../research/deployment/agent-building-platforms.md#approvals-are-common-but-signed-approvals-and-side-effect-undo-exist-nowhere
 [abp-test]: ../research/deployment/agent-building-platforms.md#testing-a-generated-agent-before-showing-it-is-the-least-served-step

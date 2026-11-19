@@ -117,6 +117,8 @@ A session stores the conversation between runs; pass it as `run(agent, input, { 
 
 The server-side sessions need an OpenAI API key and the Responses API, so the offline harness skips their doc examples (fact-check, Tier 2). As an alternative to sessions, `conversationId` and `previousResponseId` let OpenAI's servers hold the history (`running-agents.mdx`).
 
+Sessions hold history, not long-term memory. For memory that outlives a conversation, sandbox agents take a `memory()` capability that distils past runs into memory files over a `MemoryStore`, and it forgets by keeping only the newest conversations once `maxRawMemoriesForConsolidation` is exceeded (`guides/sandbox-agents/memory.mdx`). No example tests it yet (fact-check M1 and M2, as of November 2026).
+
 ## 10. A Zod `outputType` turns the final answer into a typed object
 
 Set `outputType` to a Zod schema, and the model receives a JSON Schema output type while `finalOutput` arrives parsed and typed:
