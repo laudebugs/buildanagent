@@ -2,7 +2,7 @@
 title: "Tools: schemas, validation, errors the model can read, and identity it cannot fake"
 summary: A tool is a contract between your code and a model. The model learns it from a name, a description and a schema; your SDK checks every argument, a failed call comes back as a message the model can act on, and the user's identity comes from the signed-in session, never from the model.
 opening: incident
-sources: [anthropic-how-tool-use-works, anthropic-writing-tools]
+sources: [anthropic-how-tool-use-works, anthropic-writing-tools, claude-agent-sdk-custom-tools]
 glossary: [tool, agent-loop]
 switchTo: [B10]
 ---
@@ -62,6 +62,45 @@ That call went well. [[fig:tool-round-trip]] traces the case the next section is
 :::figure[One tool call's round trip: the schema goes to the model, the SDK checks the call, and only a valid call runs]{#tool-round-trip}
 ::svg{alt="Two lanes, your code and its SDK on the left, the model on the right. The schema, orderId is a string, goes to the model, which sees the name, description and schema and calls the tool with orderId 42. The SDK validates the arguments; the call fails, and an error result saying expected string goes back to the model. The model retries with orderId A-1, which passes: execute runs in your process, and the model reads the result, order A-1 shipped."}
 :::
+
+## A failed call comes back as a result the model can read, and it should say what to try next
+
+You feed a coin into :analogy[a vending machine that hands back your coin with a note]{#vending-machine}, and the coin drops into the return tray with a slip that reads "exact change only". Nothing jammed, nobody had to call a technician, and you know your next move: find two smaller coins. Compare the machine that swallows the coin, or the one that blinks "E-17". [[fig:vending-machine]] shows the helpful machine.
+
+:::figure[A vending machine that hands back your coin with a note: the failure comes back with what to try next]{#vending-machine analogy="vending-machine"}
+::svg{alt="A vending machine with two rows of snacks, A1 to B3, and a coin slot. An arrow from you inserting one large coin points at the slot. The return tray, highlighted, holds your coin, back, and an arrow leads from it to a note that says exact change only, try two small coins. Text between them reads: the machine says what to try next."}
+:::
+
+A tool call fails in the same two ways a coin can. The model can send arguments that break the schema, like a coin of the wrong size, or your function can throw, like a machine that is out of stock. By default, in every SDK in this chapter, neither failure ends the run. The SDK catches it, turns it into a tool result, and sends that result to the model on its next turn, so the model reads the failure the way it reads any other result and decides what to do. [[lst:adk-retry]] scripts the first kind of failure, and its replay shows the whole exchange.
+
+:::listing[A call that breaks the schema, and the retry that follows]{#adk-retry file="verify/google-adk/examples/01-function-tool.ts" region="retry" replay}
+::note[The scripted model's first call sends `orderId` as the number 42, where [[lst:tool-adk]] asks for a string.]{#bad-call}
+::note[Its second call sends the string `"A-1"`. A script retries because its author wrote it to; a real model decides for itself, from the error it reads.]{#retry}
+:::
+
+Step through the replay. The first call reaches ADK with `{ "orderId": 42 }`, and the Zod check rejects it before `execute` runs. ADK does not throw out of the loop. It wraps the failure as "Error in tool 'get_order_status'", followed by Zod's issue list, whose message reads "Invalid input: expected string, received number", and sends it back under an `error`{checked=row-28} key. The second call sends `"A-1"`, passes the check and runs the function, whose output comes back as "order A-1 shipped". The model then answers, after three model calls in all. The example's checks confirm each step: the failed arguments came back as an error, "not as an exception", and the function body ran only for the valid call.
+
+What the model reads after a failure depends on the SDK, and the defaults differ more than the tool definitions did. [[tbl:tool-errors]] sets them side by side, as of November 2026.
+
+:::table[What the model reads when a tool call fails, by default]{#tool-errors}
+| SDK | The arguments break the schema | The function throws |
+| --- | --- | --- |
+| OpenAI Agents SDK | One fixed sentence: "An error occurred while running the tool. Please try again." | The same sentence |
+| Google ADK | An error field: "Error in tool '…'" and Zod's issues | An error field: "Error in tool '…'" and the thrown message |
+| Pi | "Validation failed for tool …", each failing field, and the arguments received | The thrown message, marked as an error |
+| Claude Agent SDK | An error result from the in-process MCP server, starting "MCP error -32602: Input validation error" | The raw exception message, marked as an error |
+:::
+
+The OpenAI default deserves a second look, because it hides the cause on purpose. Its code says the default "returns a fixed message without inspecting the exception", so an internal detail such as a database host or a stack trace never reaches the model. The price is a model that learns nothing about what to change. To tell it more, a tool sets `errorFunction`{checked=row-31}, which receives the error and returns the text the model reads. The other three SDKs pass the cause through by default. The Claude row's first cell comes from reading the SDK's bundled code, not from a run, because our harness has no example that sends it invalid arguments.
+
+You can do better than any of these defaults by writing the error yourself. Anthropic's advice is to "prompt-engineer your error responses to clearly communicate specific and actionable improvements, rather than opaque error codes or tracebacks" [@anthropic-writing-tools]. The Claude Agent SDK's documentation makes the same point about its handlers: return the failure with `isError: true`{checked=row-33}, and "You can add context the raw exception lacks, such as which request failed or what to try instead" [@claude-agent-sdk-custom-tools]. Pi takes the same flag on a tool's result, and an OpenAI tool can simply return the message as its output. Compare two errors for an order lookup that finds nothing:
+
+- "Not found."
+- "No order 4417 belongs to this customer. Ask the customer to confirm the order number; do not guess one."
+
+The second is the vending machine's note. It names the cause, gives the next step, and rules out the tempting wrong step, which for a model is to invent a plausible order. We recommend that every error a tool returns say what to try next, and, where a wrong next step is likely, what not to do; no source we found measures how much each part helps.
+
+The vending machine stops matching at the reader of the note. You read "exact change only" and go looking for coins. A model may skim the error, retry the same arguments, or answer as though the call had worked, and the replay above retries correctly only because its script says so. So the note has to be specific enough to act on, and the loop still needs the cap from [[ch:call-workflow-loop]]: a model that retries the same broken call forever never stops asking for tools.
 
 ## Exercises
 

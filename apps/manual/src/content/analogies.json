@@ -30,5 +30,13 @@
     "chapter": "tools",
     "illustration": null,
     "breaks": "A clerk reads the boxes and checks them too; a schema only describes them, so the model can still fill a box wrongly and the SDK must validate every field."
+  },
+  {
+    "id": "vending-machine",
+    "concept": "error returned as data",
+    "analogy": "a vending machine that hands back your coin with a note",
+    "chapter": "tools",
+    "illustration": "vending-machine",
+    "breaks": "You read the note and act on it; a model may ignore an error, so the error must say exactly what to try next, and the loop still needs a cap."
   }
 ]

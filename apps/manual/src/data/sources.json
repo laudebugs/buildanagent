@@ -128,5 +128,14 @@
     "kind": "post",
     "asOf": "November 2026",
     "verifiedIn": "apps/manual/fact-checks/tools.md"
+  },
+  {
+    "id": "claude-agent-sdk-custom-tools",
+    "title": "Give Claude custom tools",
+    "publisher": "Claude Agent SDK documentation",
+    "url": "https://code.claude.com/docs/en/agent-sdk/custom-tools",
+    "kind": "docs",
+    "asOf": "November 2026",
+    "verifiedIn": "apps/manual/fact-checks/tools.md"
   }
 ]
