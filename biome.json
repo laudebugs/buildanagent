@@ -14,7 +14,8 @@
       "!**/pnpm-lock.yaml",
       "!**/*.md",
       "!**/verify/*/extracted",
-      "!**/verify/*/.tmp"
+      "!**/verify/*/.tmp",
+      "!apps/manual/**/figures/**/*.svg"
     ]
   },
   "formatter": {

@@ -5,7 +5,8 @@
 # - `plan` reads the checkout, the npm registry and the GitHub releases (scripts/ci/release-plan.mjs).
 # - When changesets are pending, `version` runs `pnpm changeset version` with a read-only token and hands the result
 #   to `version-pr`. That job runs no third-party code: it checks the commit with scripts/ci/version-pr.mjs, then,
-#   with the RELEASE_PR_TOKEN secret, force-pushes it to `changeset-release/main`, opens or updates the pull request
+#   with the RELEASE_PR_TOKEN secret, makes it again through GitHub's API so that GitHub signs it
+#   (scripts/ci/version-commit.mjs), force-updates `changeset-release/main` to it, opens or updates the pull request
 #   and turns on auto-merge. Every changeset merged before the pull request merges joins it.
 # - When the pull request merges, its squash commit reaches main with nothing pending and a version npm lacks, so
 #   `pack` builds the tarballs from that commit, and `publish` uploads them under the pre-mode dist-tag (`alpha`) or
@@ -122,14 +123,16 @@ jobs:
           if-no-files-found: error
           retention-days: 1
 
-  # Pushes the version commit to changeset-release/main and keeps the "Version packages" pull request open with
+  # Puts the version commit on changeset-release/main and keeps the "Version packages" pull request open with
   # auto-merge on. This is the only job that reads RELEASE_PR_TOKEN, a fine-grained token for this repository with
   # Contents and Pull requests write. A push and a pull request made with GITHUB_TOKEN would start ci.yml's runs only
   # after someone approved them, and its merge would start no release run. The job runs no third-party code: no pnpm,
-  # no npx and nothing from node_modules, only git, gh and scripts/ci/version-pr.mjs, which imports only node: modules.
-  # The token is in the environment of the last step alone, after the commit has been checked. The version job ran
-  # third-party code, so its base and patch are untrusted: the base must be a commit on main, and the patch goes into
-  # the index alone, so the checker that runs is main's, never one the patch rewrote.
+  # no npx and nothing from node_modules, only git, gh and scripts/ci/version-pr.mjs and version-commit.mjs, which
+  # import only node: modules and the scripts beside them. The token is in the environment of the last step alone,
+  # after the commit has been checked. That step makes the commit again through GitHub's API rather than pushing it
+  # with git, so that GitHub signs it and main's "Require signed commits" rule lets the pull request merge. The version
+  # job ran third-party code, so its base and patch are untrusted: the base must be a commit on main, and the patch
+  # goes into the index alone, so the checker that runs is main's, never one the patch rewrote.
   version-pr:
     name: Open or update the Version packages pull request
     needs: version
@@ -167,7 +170,7 @@ jobs:
           git commit --quiet --no-verify -m "chore(release): version packages"
           node scripts/ci/version-pr.mjs prepare "$BASE" HEAD "$RUNNER_TEMP/pr"
           git commit --quiet --no-verify --amend -F "$RUNNER_TEMP/pr/title"
-      - name: Push the branch, open or update the pull request and turn on auto-merge
+      - name: Commit through the API, open or update the pull request and turn on auto-merge
         env:
           GH_TOKEN: ${{ secrets.RELEASE_PR_TOKEN }}
           REPO: ${{ github.repository }}
@@ -179,16 +182,12 @@ jobs:
             exit 1
           fi
           title=$(cat "$RUNNER_TEMP/pr/title")
-          remote="https://x-access-token:${GH_TOKEN}@github.com/${REPO}.git"
-          # Pushing the same tree on the same base again would restart the pull request's checks for nothing.
-          if git fetch --quiet --depth=2 "$remote" "refs/heads/$BRANCH" 2> /dev/null &&
-            [ "$(git rev-parse 'FETCH_HEAD^{tree}')" = "$(git rev-parse 'HEAD^{tree}')" ] &&
-            [ "$(git rev-parse 'FETCH_HEAD~1')" = "$BASE" ]; then
-            echo "$BRANCH already holds this version commit."
-          else
-            # Force-updates this one branch only; it holds nothing but the latest version commit.
-            git push --quiet --force "$remote" "HEAD:refs/heads/$BRANCH"
-          fi
+          # A commit pushed with git is unsigned, and main's ruleset requires signed commits, so the checked commit is
+          # made again through GitHub's API, which signs it. The script runs as the base holds it, since the patch
+          # went into the index alone. It writes only this branch, which holds nothing but the latest version
+          # commit, and its own staging branch. It fails unless GitHub verified the new commit. When the branch already
+          # holds that verified commit, it leaves the branch alone, so a rerun doesn't restart the checks.
+          node scripts/ci/version-commit.mjs "$BASE" HEAD "$BRANCH"
           number=$(gh pr list --repo "$REPO" --head "$BRANCH" --base main --state open --json number --jq '.[0].number // empty')
           if [ -z "$number" ]; then
             url=$(gh pr create --repo "$REPO" --base main --head "$BRANCH" --title "$title" --body-file "$RUNNER_TEMP/pr/body.md")

@@ -5,7 +5,7 @@
 // tests stub the registry, so nothing here touches the network. Run with `node --test scripts/ci/*.test.mjs`.
 import assert from "node:assert/strict";
 import { execFileSync, spawnSync } from "node:child_process";
-import { chmodSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
+import { chmodSync, existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import path from "node:path";
 import { after, describe, test } from "node:test";
@@ -212,13 +212,19 @@ describe("release.yml", () => {
     assert.match(commit.run, /git apply --cached --binary/);
     assert.doesNotMatch(commit.run, /--index/);
     assert.match(commit.run, /^ *node scripts\/ci\/version-pr\.mjs prepare "\$BASE" HEAD "\$RUNNER_TEMP\/pr"$/m);
+    // The token step runs node only on version-commit.mjs, from the base's working tree, after the check passed.
     const nodeCalls = job.steps.flatMap((s) => (s.run ?? "").match(/\bnode\b.*$/gm) ?? []);
-    assert.deepEqual(nodeCalls, ['node scripts/ci/version-pr.mjs prepare "$BASE" HEAD "$RUNNER_TEMP/pr"']);
-    assert.doesNotMatch(push.run, /\bnode\b/);
+    assert.deepEqual(nodeCalls, [
+      'node scripts/ci/version-pr.mjs prepare "$BASE" HEAD "$RUNNER_TEMP/pr"',
+      'node scripts/ci/version-commit.mjs "$BASE" HEAD "$BRANCH"',
+    ]);
     assert.equal(push.env.BRANCH, "changeset-release/main");
-    // Force-updates the release branch only, and never main.
-    const pushes = push.run.match(/git push.*$/gm);
-    assert.deepEqual(pushes, ['git push --quiet --force "$remote" "HEAD:refs/heads/$BRANCH"']);
+    // git pushes nothing: the commit is made through the API, so that GitHub signs it.
+    assert.doesNotMatch(push.run, /git push|x-access-token/);
+    assert.ok(
+      push.run.indexOf("version-commit.mjs") < push.run.indexOf("gh pr list"),
+      "the branch holds the verified commit before the pull request is opened or updated",
+    );
     assert.match(push.run, /gh pr merge "\$number" --repo "\$REPO" --auto --squash/);
     assert.ok(
       push.run.indexOf('gh api "repos/$REPO/branches/main"') < push.run.indexOf("gh pr merge"),
@@ -226,7 +232,7 @@ describe("release.yml", () => {
     );
   });
 
-  test("version-pr.mjs imports nothing but node: modules and the scripts beside it", () => {
+  test("version-pr.mjs and version-commit.mjs import nothing but node: modules and the scripts beside them", () => {
     const seen = new Set();
     const visit = (file) => {
       if (seen.has(file)) return;
@@ -240,7 +246,13 @@ describe("release.yml", () => {
       assert.doesNotMatch(text, /\bimport\(/, `${file} has a dynamic import`);
     };
     visit("version-pr.mjs");
-    assert.deepEqual([...seen].sort(), ["changeset-gate.mjs", "release-plan.mjs", "version-pr.mjs"]);
+    visit("version-commit.mjs");
+    assert.deepEqual([...seen].sort(), [
+      "changeset-gate.mjs",
+      "release-plan.mjs",
+      "version-commit.mjs",
+      "version-pr.mjs",
+    ]);
   });
 
   test("releases run one at a time and are never cancelled, and a dry run waits apart from them", () => {
@@ -686,19 +698,100 @@ if (process.env.EVIL === "checker") {
   // A stand-in for gh that logs each call to $GH_LOG and answers as GitHub would: `pr list` prints $EXISTING_PR,
   // `pr create` prints the new pull request's URL, `pr view` prints $AUTO_MERGE, whether auto-merge is on, and the
   // branch lookup prints $REQUIRED_CHECKS, whether main requires the checks status (nothing when it requires none).
-  const FAKE_GH = `#!/bin/sh
-printf '%s\\n' "$*" >> "$GH_LOG"
-[ "$GH_TOKEN" = "secret" ] || { echo "gh got no token" >&2; exit 4; }
-case "$1 $2" in
-  "pr list") printf '%s\\n' "$EXISTING_PR" ;;
-  "pr create") echo "https://github.com/o/r/pull/42" ;;
-  "pr view") echo "\${AUTO_MERGE:-false}" ;;
-  "api repos/o/r/branches/main") echo "\${REQUIRED_CHECKS-true}" ;;
-esac
+  // The git ref and commit endpoints and GraphQL's createCommitOnBranch act on the bare repository $FAKE_REMOTE. A
+  // commit made through createCommitOnBranch is listed in $FAKE_REMOTE/signed and reads as verified, unless
+  // $UNVERIFIED is set; a commit pushed with git reads as unsigned, as on GitHub.
+  const FAKE_GH = `#!/usr/bin/env node
+const { execFileSync } = require("node:child_process");
+const fs = require("node:fs");
+const path = require("node:path");
+const args = process.argv.slice(2);
+fs.appendFileSync(process.env.GH_LOG, args.join(" ") + "\\n");
+if (process.env.GH_TOKEN !== "secret") { console.error("gh got no token"); process.exit(4); }
+const remote = process.env.FAKE_REMOTE;
+const git = (argv, opts = {}) => execFileSync("git", argv, { cwd: remote, encoding: "utf8", ...opts }).trim();
+const sha = (ref) => { try { return git(["rev-parse", "--verify", "--quiet", ref + "^{commit}"]); } catch { return ""; } };
+const signedFile = path.join(remote, "signed");
+const signed = () => (fs.existsSync(signedFile) ? fs.readFileSync(signedFile, "utf8").split("\\n") : []);
+const out = (value) => { console.log(JSON.stringify(value)); process.exit(0); };
+const fail = (status, message) => { console.error("gh: " + message + " (HTTP " + status + ")"); process.exit(1); };
+const pr = args[0] + " " + args[1];
+if (pr === "pr list") { console.log(process.env.EXISTING_PR ?? ""); process.exit(0); }
+if (pr === "pr create") { console.log("https://github.com/o/r/pull/42"); process.exit(0); }
+if (pr === "pr view") { console.log(process.env.AUTO_MERGE || "false"); process.exit(0); }
+if (args[0] !== "api") process.exit(0);
+if (args[1] === "repos/o/r/branches/main") { console.log(process.env.REQUIRED_CHECKS ?? "true"); process.exit(0); }
+const method = args[args.indexOf("--method") + 1];
+const route = args[args.indexOf("--method") + 2];
+const body = args.includes("--input") ? JSON.parse(fs.readFileSync(0, "utf8")) : undefined;
+let match;
+if (method === "GET" && (match = /^repos\\/o\\/r\\/git\\/ref\\/(heads\\/.+)$/.exec(route))) {
+  const found = sha("refs/" + match[1]);
+  if (!found) fail(404, "Not Found");
+  out({ ref: "refs/" + match[1], object: { type: "commit", sha: found } });
+}
+if (method === "POST" && route === "repos/o/r/git/refs") {
+  if (sha(body.ref)) fail(422, "Reference already exists");
+  git(["update-ref", body.ref, body.sha]);
+  out({ ref: body.ref, object: { sha: body.sha } });
+}
+if (method === "PATCH" && (match = /^repos\\/o\\/r\\/git\\/refs\\/(heads\\/.+)$/.exec(route))) {
+  if (!sha("refs/" + match[1])) fail(422, "Reference does not exist");
+  if (body.force !== true) fail(422, "Update is not a fast forward");
+  git(["update-ref", "refs/" + match[1], body.sha]);
+  out({ ref: "refs/" + match[1], object: { sha: body.sha } });
+}
+if (method === "DELETE" && (match = /^repos\\/o\\/r\\/git\\/refs\\/(heads\\/.+)$/.exec(route))) {
+  if (!sha("refs/" + match[1])) fail(422, "Reference does not exist");
+  git(["update-ref", "-d", "refs/" + match[1]]);
+  process.exit(0);
+}
+if (method === "GET" && (match = /^repos\\/o\\/r\\/git\\/commits\\/([0-9a-f]{40})$/.exec(route))) {
+  const [tree, ...parents] = git(["log", "-1", "--format=%T %P", match[1]]).split(" ").filter(Boolean);
+  const verified = signed().includes(match[1]) && !process.env.UNVERIFIED;
+  out({ sha: match[1], tree: { sha: tree }, parents: parents.map((p) => ({ sha: p })),
+    verification: { verified, reason: verified ? "valid" : "unsigned" } });
+}
+if (method === "POST" && route === "graphql") {
+  const input = body.variables.input;
+  const ref = "refs/heads/" + input.branch.branchName;
+  if (input.branch.repositoryNameWithOwner !== "o/r") fail(422, "wrong repository");
+  // $MOVED_HEAD stands for another writer that moved the branch after the script set it.
+  if (process.env.MOVED_HEAD || sha(ref) !== input.expectedHeadOid) {
+    // gh 2.89.0 exits 1 when a GraphQL response holds errors, with the response on stdout and each message on stderr.
+    const message = "Expected branch to point to " + input.expectedHeadOid;
+    console.log(JSON.stringify({ errors: [{ message }] }));
+    console.error("gh: " + message);
+    process.exit(1);
+  }
+  const index = path.join(remote, "fake-index");
+  // update-index wants a work tree; an empty one is enough, because nothing here reads or writes files.
+  const work = fs.mkdtempSync(path.join(remote, "fake-work-"));
+  const env = { ...process.env, GIT_INDEX_FILE: index, GIT_WORK_TREE: work };
+  git(["read-tree", input.expectedHeadOid], { env });
+  for (const { path: file } of input.fileChanges.deletions ?? []) git(["update-index", "--force-remove", file], { env });
+  for (const { path: file, contents } of input.fileChanges.additions ?? []) {
+    const blob = git(["hash-object", "-w", "--stdin"], { input: Buffer.from(contents, "base64") });
+    git(["update-index", "--add", "--cacheinfo", "100644," + blob + "," + file], { env });
+  }
+  const tree = git(["write-tree"], { env });
+  fs.rmSync(index);
+  fs.rmSync(work, { recursive: true });
+  const message = [input.message.headline, input.message.body].filter(Boolean).join("\\n\\n");
+  const commit = git(["commit-tree", tree, "-p", input.expectedHeadOid, "-m", message], {
+    env: { ...process.env, GIT_AUTHOR_NAME: "owner", GIT_AUTHOR_EMAIL: "owner@example.invalid",
+      GIT_COMMITTER_NAME: "GitHub", GIT_COMMITTER_EMAIL: "noreply@github.com" },
+  });
+  git(["update-ref", ref, commit]);
+  fs.appendFileSync(signedFile, commit + "\\n");
+  out({ data: { createCommitOnBranch: { commit: { oid: commit } } } });
+}
+console.error("fake gh: unexpected call " + args.join(" "));
+process.exit(5);
 `;
 
   // A repository whose main holds both packages at 0.1.0-alpha.0 in alpha pre mode, plus `changesets`, pushed to a
-  // bare remote that the push step's token URL is rewritten to.
+  // bare remote that the fake gh treats as the repository on GitHub.
   function setup({ changesets = {}, pre = { mode: "pre", tag: "alpha" } } = {}) {
     const dir = temp();
     const remote = path.join(dir, "remote.git");
@@ -707,10 +800,7 @@ esac
     mkdirSync(bin);
     executable(path.join(bin, "pnpm"), FAKE_PNPM);
     executable(path.join(bin, "gh"), FAKE_GH);
-    writeFileSync(
-      path.join(dir, "gitconfig"),
-      `[user]\n\tname = test\n\temail = test@example.invalid\n[url "${remote}"]\n\tinsteadOf = https://x-access-token:secret@github.com/o/r.git\n`,
-    );
+    writeFileSync(path.join(dir, "gitconfig"), "[user]\n\tname = test\n\temail = test@example.invalid\n");
     const env = {
       PATH: `${bin}${path.delimiter}${process.env.PATH}`,
       HOME: dir,
@@ -738,7 +828,7 @@ esac
     write(".changeset/config.json", JSON.stringify({ changedFilePatterns: ["src/**", "package.json"] }));
     write(".changeset/pre.json", JSON.stringify(pre));
     for (const [name, text] of Object.entries(changesets)) write(`.changeset/${name}`, text);
-    for (const script of ["release-plan.mjs", "changeset-gate.mjs", "version-pr.mjs"]) {
+    for (const script of ["release-plan.mjs", "changeset-gate.mjs", "version-pr.mjs", "version-commit.mjs"]) {
       write(`scripts/ci/${script}`, readFileSync(path.join(root, "scripts/ci", script), "utf8"));
     }
     git(work, "add", "-A");
@@ -799,7 +889,7 @@ esac
     if (commitRun.status !== 0) return { commit: commitRun, gh: [] };
     const pushRun = spawnSync("bash", ["-e", "-c", push.run], {
       cwd: clone,
-      env: { ...env, ...push.env, GH_TOKEN: "secret", REPO: "o/r", GH_LOG: log, ...extraEnv },
+      env: { ...env, ...push.env, GH_TOKEN: "secret", REPO: "o/r", GH_LOG: log, FAKE_REMOTE: repo.remote, ...extraEnv },
       encoding: "utf8",
     });
     return { commit: commitRun, push: pushRun, gh: readFileSync(log, "utf8").split("\n").filter(Boolean) };
@@ -807,6 +897,14 @@ esac
 
   const changeset = '---\n"@buildanagent/gateway": patch\n---\n\nFix a thing.\n';
   const branch = "changeset-release/main";
+  const staging = "changeset-release/staging";
+  // The fake gh's log, split into GitHub API calls (method and route) and everything else.
+  const apiCalls = (gh) => gh.filter((call) => call.startsWith("api --method ")).map((call) => call.slice(13));
+  const prCalls = (gh) => gh.filter((call) => !call.startsWith("api --method "));
+  const signedCommits = (repo) => {
+    const file = path.join(repo.remote, "signed");
+    return existsSync(file) ? readFileSync(file, "utf8").split("\n").filter(Boolean) : [];
+  };
 
   test("a merged changeset opens a Version packages pull request with auto-merge, and main stays as it was", () => {
     const repo = setup({ changesets: { "brave-cats.md": changeset } });
@@ -825,7 +923,21 @@ esac
       JSON.parse(repo.git(repo.remote, "show", `${branch}:packages/sdk/package.json`)).version,
       "0.1.0-alpha.1",
     );
-    assert.deepEqual(run.gh, [
+    // The commit is made on the staging branch, checked, and only then put on the release branch.
+    const created = repo.git(repo.remote, "rev-parse", branch).trim();
+    assert.deepEqual(apiCalls(run.gh), [
+      `GET repos/o/r/git/ref/heads/${branch}`,
+      `GET repos/o/r/git/ref/heads/${staging}`,
+      "POST repos/o/r/git/refs --input -",
+      "POST graphql --input -",
+      `GET repos/o/r/git/commits/${created}`,
+      `GET repos/o/r/git/ref/heads/${branch}`,
+      "POST repos/o/r/git/refs --input -",
+      `DELETE repos/o/r/git/refs/heads/${staging}`,
+    ]);
+    assert.ok(signedCommits(repo).includes(created), "the branch holds the commit GitHub signed");
+    assert.equal(spawnSync("git", ["rev-parse", "--verify", staging], { cwd: repo.remote }).status, 128);
+    assert.deepEqual(prCalls(run.gh), [
       `pr list --repo o/r --head ${branch} --base main --state open --json number --jq .[0].number // empty`,
       `pr create --repo o/r --base main --head ${branch} --title chore(release): version packages to 0.1.0-alpha.1 --body-file ${path.join(repo.dir, "runner", "pr", "body.md")}`,
       `api repos/o/r/branches/main --jq ${jobs["version-pr"].steps[3].run.match(/--jq '([^']+)'\)\n *if \[ "\$required"/)[1]}`,
@@ -863,6 +975,59 @@ esac
     const again = runVersionPr(repo, main, open);
     assert.equal(again.push.status, 0, again.push.stderr);
     assert.match(again.push.stdout, /already holds this version commit/);
+    assert.deepEqual(apiCalls(again.gh), [
+      `GET repos/o/r/git/ref/heads/${branch}`,
+      `GET repos/o/r/git/commits/${repo.git(repo.remote, "rev-parse", branch).trim()}`,
+    ]);
+  });
+
+  // Pull request #70's case: its branch held the right version commit, pushed with git and so unsigned, and the
+  // ruleset blocked the merge. The next run replaces it with the same tree on the same base, signed.
+  test("replaces an unsigned version commit with a verified one, even when the tree is the same", () => {
+    const repo = setup({ changesets: { "brave-cats.md": changeset } });
+    const main = repo.git(repo.remote, "rev-parse", "main").trim();
+    assert.equal(runVersionStep(repo).status, 0);
+    const clone = path.join(repo.dir, "unsigned");
+    repo.git(repo.dir, "clone", "-q", "-b", "main", repo.remote, clone);
+    repo.git(clone, "apply", "--index", "--binary", path.join(repo.dir, "runner", "version", "version.patch"));
+    repo.git(clone, "commit", "-qm", "chore(release): version packages to 0.1.0-alpha.1");
+    repo.git(clone, "push", "-q", "origin", `HEAD:refs/heads/${branch}`);
+    const unsigned = repo.git(repo.remote, "rev-parse", branch).trim();
+    const run = runVersionPr(repo, main, { EXISTING_PR: "42", AUTO_MERGE: "true" });
+    assert.equal(run.push.status, 0, run.push.stderr);
+    const replaced = repo.git(repo.remote, "rev-parse", branch).trim();
+    assert.notEqual(replaced, unsigned);
+    assert.ok(signedCommits(repo).includes(replaced));
+    assert.equal(
+      repo.git(repo.remote, "rev-parse", `${replaced}^{tree}`).trim(),
+      repo.git(repo.remote, "rev-parse", `${unsigned}^{tree}`).trim(),
+    );
+    assert.equal(repo.git(repo.remote, "log", "-1", "--format=%P", branch).trim(), main);
+    assert.ok(apiCalls(run.gh).includes(`PATCH repos/o/r/git/refs/heads/${branch} --input -`), run.gh);
+  });
+
+  test("fails, and leaves the branch and the pull request alone, when createCommitOnBranch reports an error", () => {
+    const repo = setup({ changesets: { "brave-cats.md": changeset } });
+    const main = repo.git(repo.remote, "rev-parse", "main").trim();
+    assert.equal(runVersionStep(repo).status, 0);
+    const run = runVersionPr(repo, main, { MOVED_HEAD: "1" });
+    assert.equal(run.push.status, 1);
+    assert.match(run.push.stderr, /POST graphql failed: gh: Expected branch to point to [0-9a-f]{40}/);
+    assert.equal(spawnSync("git", ["rev-parse", "--verify", branch], { cwd: repo.remote }).status, 128);
+    assert.equal(spawnSync("git", ["rev-parse", "--verify", staging], { cwd: repo.remote }).status, 128);
+    assert.deepEqual(prCalls(run.gh), [], "no pull request is opened or changed");
+  });
+
+  test("fails, and leaves the branch and the pull request alone, when GitHub doesn't verify the commit", () => {
+    const repo = setup({ changesets: { "brave-cats.md": changeset } });
+    const main = repo.git(repo.remote, "rev-parse", "main").trim();
+    assert.equal(runVersionStep(repo).status, 0);
+    const run = runVersionPr(repo, main, { UNVERIFIED: "1" });
+    assert.equal(run.push.status, 1);
+    assert.match(run.push.stderr, /GitHub didn't verify the signature of [0-9a-f]{40} \(reason: unsigned\)/);
+    assert.equal(spawnSync("git", ["rev-parse", "--verify", branch], { cwd: repo.remote }).status, 128);
+    assert.equal(spawnSync("git", ["rev-parse", "--verify", staging], { cwd: repo.remote }).status, 128);
+    assert.deepEqual(prCalls(run.gh), [], "no pull request is opened or changed");
   });
 
   test("turns auto-merge back on when someone turned it off", () => {

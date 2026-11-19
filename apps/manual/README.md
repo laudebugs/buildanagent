@@ -15,6 +15,7 @@ Run each from the repo root.
 | `pnpm --filter @buildanagent/manual check:book` | Checks the outline, the three registers and every chapter against the build's own rules, without building |
 | `pnpm --filter @buildanagent/manual book:switch-report` | Lists each written chapter's `switchTo` todos and which are done; `test` runs it too, and it never fails |
 | `pnpm --filter @buildanagent/manual tokens` | Regenerates `src/styles/tokens.css` from `book-tokens.json` |
+| `pnpm --filter @buildanagent/manual figures:build` | Runs every figure script, the book's and the two fixture books', and writes its SVG beside it |
 
 ## The outline places the chapter and gives it its number
 
@@ -70,7 +71,7 @@ Mark a numbered block with a container directive, its caption in brackets and it
 
 ```markdown
 :::figure[The loop runs until a stop condition holds]{#tool-call-round-trip}
-…the figure…
+::svg{alt="What the drawing shows"}
 :::
 
 :::table[How each SDK stops the loop]{#stop-defaults}
@@ -83,7 +84,7 @@ Mark a numbered block with a container directive, its caption in brackets and it
 :::
 ```
 
-Ids are kebab-case and unique across the book for each kind. A table must hold a table and a `:::listing` a code block, and every block needs a caption. Refer to a block with `[[fig:tool-call-round-trip]]`, `[[tbl:stop-defaults]]` or `[[lst:one-call]]`, and to a chapter with `[[ch:tools]]`. The build replaces each reference with a numbered link such as "Figure 3.2"; a reference to a planned chapter shows its number without a link. An unknown id or a malformed reference fails with the file and line. Inside code, both reference and citation syntax stay as written. A `:::listing` with its code in the chapter suits a snippet that runs nowhere; code a reader should trust comes from a real file through `::listing`, described next. Generated figures arrive with T6.
+Ids are kebab-case and unique across the book for each kind. A table must hold a table and a `:::listing` a code block, and every block needs a caption. Refer to a block with `[[fig:tool-call-round-trip]]`, `[[tbl:stop-defaults]]` or `[[lst:one-call]]`, and to a chapter with `[[ch:tools]]`. The build replaces each reference with a numbered link such as "Figure 3.2"; a reference to a planned chapter shows its number without a link. An unknown id or a malformed reference fails with the file and line. Inside code, both reference and citation syntax stay as written. A `:::listing` with its code in the chapter suits a snippet that runs nowhere; code a reader should trust comes from a real file through `::listing`, described next. A figure holds its generated drawing, as [the figures section](#a-figure-is-a-script-that-draws-an-svg-and-the-build-inlines-it) describes.
 
 ## A listing shows a region of a real file
 
@@ -122,6 +123,48 @@ Five of these rules are our choices, not BK9's: an exact pin, TypeScript files o
 
 To add a listing, mark the region in the example, run that harness's `pnpm test` to confirm its results do not change, then write the directive and run `check:book`. Renaming or deleting a region breaks every chapter that lists it, and `check:book` names each one. When a chapter's `switchTo` todos are all done, `book:switch-report` says the chapter is ready to move its listings to our own packages.
 
+## A figure is a script that draws an SVG, and the build inlines it
+
+Each flat figure is a TypeScript script, and the SVG it writes is committed beside it. A test redraws every figure and fails when a committed SVG differs from what its script draws now, so a figure cannot drift from its script. The build inlines the SVG instead of linking it, so the figure takes the page's colours in both themes and needs no JavaScript. To add a figure to a chapter:
+
+1. Write `figures/<chapter slug>/<figure id>.ts`. Its default export draws the figure with [`figures/lib/svgkit.ts`](figures/lib/svgkit.ts) and returns it; [`figures/call-workflow-loop/who-decides.ts`](figures/call-workflow-loop/who-decides.ts) is the sample.
+2. Run `pnpm --filter @buildanagent/manual figures:build`, which writes `<figure id>.svg` beside every script. Commit both files.
+3. Place the figure in the chapter with its caption, its id and its alt text:
+
+   ```markdown
+   :::figure[A call, a workflow and a loop differ in who decides the next step]{#who-decides}
+   ::svg{alt="Three columns of boxes joined by arrows: a call, a workflow and a loop."}
+   :::
+   ```
+
+The kit throws while drawing, naming the figure, when a mark breaks one of its rules:
+
+- A label uses a character that the embedded code font lacks, such as `↺`; the message names the character and its code point. The font is the upright Manual Code subset in `public/fonts/`, so the check matches what readers see.
+- The figure is wider than 520 units, the widest a chapter's figure panel shows whole at desktop widths. This limit is our choice.
+- A mark leaves the canvas, a label is wider or taller than its box leaves room for, two labels overlap, or a line or curve crosses a label.
+- `connect()` joins two boxes that overlap or share no band across the gap between them, or an arrow is shorter than twice its head.
+- An id does not start with `<figure id>--`. Inlined figures share the page's id space, and kebab-case ids never hold `--`, so two figures cannot clash.
+
+The figure colours its marks with the `fig-*` classes in `src/styles/components.css`, never with colour attributes. The kit measures labels at those classes' font sizes. Each committed SVG also embeds the code font as a data URI and the panel tokens of both modes, so the file renders on its own, for example in a pull request. The build drops that `<style>` element when it inlines the figure, because the page serves the same font and tokens and its content security policy allows no inline style. A change to the kit, the `fig-*` rules, the tokens or the code font therefore makes the figures stale: rerun `figures:build`. The font makes each committed SVG about 61 KB, but no page carries it.
+
+A page shows a figure at its natural size, so its labels stay at 12 px, the approved phone label size, on every screen (BK11). Where the panel is narrower than the figure, as on a phone, the drawing keeps its size and the panel's drawing area, the stage, scrolls sideways. A figure never splits into a second drawing, and none of this needs JavaScript. The note "Scroll sideways to see the whole figure →" shows under the drawing exactly when the stage overflows, because the note's animation runs on the stage's scroll timeline, which stays inactive while nothing scrolls. A browser without scroll-driven animations never shows the note, but the stage still scrolls. The stage takes keyboard focus on every screen, since CSS cannot make it focusable only while it overflows, and the figure's caption names it for screen readers.
+
+The inlined drawing may hold only what the kit writes: `g`, `rect`, `path`, `circle` and `text` elements, the kit's attributes, and links to ids inside the figure. A script, an image, a `foreignObject`, a second `<style>`, an event handler or a link elsewhere fails the build, so a hand-edited SVG cannot put script or outside content on a page.
+
+The build and `check:book` fail, with the chapter's file and line, when a figure lacks its alt text or its caption, or holds anything besides one `::svg`. They also fail when its SVG is missing or was drawn for another figure. Figure numbers come from the outline, like every other block's.
+
+### An analogy illustration names its register entry
+
+An analogy illustration is a figure marked with the analogy it draws (BK22):
+
+```markdown
+:::figure[A kitchen ticket rail: the cook works one ticket at a time]{#ticket-rail analogy="kitchen-ticket-rail"}
+::svg{alt="Three order tickets hang from a rail…"}
+:::
+```
+
+The register entry must name this figure as its `illustration`, and the caption must start with the analogy's name. The page then adds a link from the caption to a note under it that says where the analogy breaks, taken from the entry's `breaks`. The build fails when the entry is missing or names another figure, when the caption starts with anything else, and when a figure that an entry names as its illustration lacks the mark. The sample is `test/fixtures/book/figures/first/ticket-rail.ts`. The site fixture places the same drawing, so the build test checks it on a built page. Both fixtures register the analogy in their own `analogies.json`. The analogy belongs to Chapter 1, whose todo adds it to the book's register when it writes the chapter.
+
 ## Glossary terms link on their first use
 
 [`src/data/glossary.json`](src/data/glossary.json) holds each term's definition in plain text, its spellings (`match`, the term itself when omitted) and at least one register source. A chapter tags a term by listing its id in `glossary`. The build links the term's first use to `/glossary/#<id>` and gives screen readers the definition through `aria-describedby`; later uses stay plain. Terms match any case and a plural, while an abbreviation (`"kind": "abbr"`, with its `expansion`) matches its exact case. A tagged id that the glossary lacks fails the check, and so does a tagged term that the chapter's text never uses.
@@ -141,13 +184,13 @@ Analogies are optional (BK22). A chapter that uses one first registers it in [`s
 }
 ```
 
-The chapter then marks each use with `:analogy[the ticket rail]{#kitchen-ticket-rail}`. A later chapter refers back to the same analogy by the same id; it may not name an analogy from a later chapter. `illustration` is the id of a figure in that chapter, or `null`. The check compares analogies and concepts without case, punctuation or a leading article. It fails on the same analogy listed twice, on an analogy that explains a second concept, on a concept given a second analogy, and on a chapter that names an id the register lacks. It cannot tell that two different phrasings describe nearly the same image, such as a kitchen ticket rail and a waiter's order spike, so reviewers catch near-duplicates when they vet a chapter's analogies.
+The chapter then marks each use with `:analogy[the ticket rail]{#kitchen-ticket-rail}`. A later chapter refers back to the same analogy by the same id; it may not name an analogy from a later chapter. `illustration` is the id of a figure in that chapter, or `null`; that figure carries the analogy's mark, as the figures section describes. The check compares analogies and concepts without case, punctuation or a leading article. It fails on the same analogy listed twice, on an analogy that explains a second concept, on a concept given a second analogy, and on a chapter that names an id the register lacks. It cannot tell that two different phrasings describe nearly the same image, such as a kitchen ticket rail and a waiter's order spike, so reviewers catch near-duplicates when they vet a chapter's analogies.
 
 ## The content model lives in `src/book/`
 
 The outline checks, the three registers, the index that numbers blocks and the listing resolver live in `src/book/`, and the Markdown plugins that use them in `src/markdown/`. `check:book` loads the outline and the three registers, then renders every chapter through the build's own plugins and prints each problem as `file:line: message`. The tests run the same plugins on the fixture book in `test/fixtures/book/`, with one failing fixture for each rule `check:book` applies. That directory is also its own repository root, holding a workspace of one harness, `verify/demo-sdk`, whose example the second chapter lists. When the content model, a plugin, the outline, a register, another chapter's numbered blocks, a body's line offset, a listed file or its harness's pin change, `astro.config.mjs` clears Astro's content cache, so no chapter keeps stale numbers, links, listings or error lines.
 
-The build reads chapters from `src/content/chapters/` and their logs from `fact-checks/`, unless `BOOK_FIXTURE_DIR` names a directory that holds `chapters/` and `fact-checks/`. Only the tests set it, pointing it at `test/fixtures/site/` because the book has no chapter of its own yet, and any build that uses it says so on stderr. The citation and glossary plugins, the strict schema and the text splitter are adapted from the owner's garment engineering textbook and are licensed Apache-2.0 only ([THIRD-PARTY-NOTICES.md](../../THIRD-PARTY-NOTICES.md)).
+The build reads chapters from `src/content/chapters/` and their logs from `fact-checks/`, unless `BOOK_FIXTURE_DIR` names a directory that holds `chapters/`, `fact-checks/`, `figures/` and `analogies.json`; the build then reads all four from there. Only the tests set it, pointing it at `test/fixtures/site/` because the book has no chapter of its own yet, and any build that uses it says so on stderr. The book's `figures/` therefore holds only the book's own figures; the site fixture's scripts draw Chapter 1's figure and the ticket rail by importing their scripts. The citation, glossary and figure plugins, the strict schema, the text splitter, the figure kit and its staleness check are adapted from the owner's garment engineering textbook and are licensed Apache-2.0 only ([THIRD-PARTY-NOTICES.md](../../THIRD-PARTY-NOTICES.md)).
 
 ## The tokens come from one JSON file
 
@@ -212,7 +255,7 @@ Each component in `src/components/` renders its full content with no script. A f
 
 - **Layout:** `SiteHeader`, `ChapterHead` (the wide title), `Sidebar` with `Contents`, the article column in `layouts/ChapterLayout.astro`, and `PrevNext`. The columns switch with container queries on the `.layout` element, not with viewport media queries, so the layout follows the width it is given: the sidebar joins at 64rem and the side-note margin at 69rem.
 - **Code:** `ListingBlock` with `AnnotationMarker` and `Annotations`; `Tabs` with `TabPanel`, which show every panel under its own heading until `scripts/tabs.ts` builds the tab list; `Replay` with `StepControls`, which `scripts/steps.ts` steps through.
-- **Figures:** `FigureFrame` on grid paper, which becomes the isometric stepper when it has steps; `scripts/steps.ts` then shows one step at a time and dims the figure parts of the others.
+- **Figures:** `FigureFrame` on grid paper, which becomes the isometric stepper when it has steps; `scripts/steps.ts` then shows one step at a time and dims the figure parts of the others. `GeneratedFigure` puts a figure from `figures/` in a `FigureFrame`, inlined as a chapter's is; the gallery uses it.
 - **Prose:** `SideNote`, `GlossaryCard`, `GlossaryTerm` (its card opens on hover and focus and stays open while the pointer is on it, and `scripts/glossary.ts` lets Escape close it), `Citation` and `SearchBox`.
 - **Theme:** `ThemeToggle`, driven by `public/scripts/theme.js`, which applies a stored choice before the first paint. The button's label names its action, "Switch to light theme" or "Switch to dark theme", and follows the system setting while the reader has stored no choice.
 

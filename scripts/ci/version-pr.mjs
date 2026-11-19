@@ -24,7 +24,7 @@ import { fileURLToPath } from "node:url";
 import { classifyChange } from "./changeset-gate.mjs";
 import { changesetPackages, isPendingChangeset, parsePreState } from "./release-plan.mjs";
 
-/** The branch release.yml pushes the version commit to, and the only head branch the guard lets auto-merge. */
+/** The branch that holds release.yml's version commit, and the only head branch the guard lets auto-merge. */
 export const RELEASE_BRANCH = "changeset-release/main";
 /** The branch the Version packages pull request merges into. */
 export const BASE_BRANCH = "main";

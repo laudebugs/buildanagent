@@ -1,27 +1,45 @@
 ---
+import { SCROLL_HINT } from "../book/figures.js";
 import StepControls from "./StepControls.astro";
 import type { FigureStep } from "./types.js";
 
 // A figure on the grid-paper panel, with its number and caption under it. Given steps, it becomes the isometric
 // stepper: every step is listed under the figure, and src/scripts/steps.ts shows one at a time and dims the parts
-// (data-step-part) that belong to other steps.
+// (data-step-part) that belong to other steps. Given `scroll`, as a generated figure is, the drawing keeps its natural
+// size and the stage scrolls sideways, with a hint, where the panel is narrower than the drawing; the stage's
+// attributes match SCROLL_STAGE in src/book/figures.ts, which chapter figures use.
 interface Props {
   readonly id: string;
   readonly number: string;
   readonly caption: string;
   readonly steps?: readonly FigureStep[];
   readonly class?: string;
+  readonly scroll?: boolean;
 }
 
-const { id, number, caption, steps = [], class: className } = Astro.props;
+const { id, number, caption, steps = [], class: className, scroll = false } = Astro.props;
 const stepped = steps.length > 1;
 ---
 
 <figure class:list={["figure", className]} id={id} aria-labelledby={`${id}-caption`}>
-  <div class="panel" data-steps={stepped ? "single" : undefined}>
-    <div class="figure__stage panel--grid">
-      <slot />
-    </div>
+  <div class:list={["panel", { figure__panel: scroll }]} data-steps={stepped ? "single" : undefined}>
+    {
+      scroll ? (
+        <div
+          class="figure__stage figure__stage--scroll panel--grid"
+          tabindex="0"
+          role="group"
+          aria-labelledby={`${id}-caption`}
+        >
+          <slot />
+        </div>
+      ) : (
+        <div class="figure__stage panel--grid">
+          <slot />
+        </div>
+      )
+    }
+    {scroll && <p class="figure__scroll-hint">{SCROLL_HINT}</p>}
     {
       stepped && (
         <div class="stepper">

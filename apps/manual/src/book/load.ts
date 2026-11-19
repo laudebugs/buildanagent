@@ -20,6 +20,8 @@ export interface BookInputs {
   readonly chaptersDir: string;
   /** The directory that holds each written chapter's fact-check log, `<slug>.md` (BK21). */
   readonly factChecksDir: string;
+  /** The directory that holds each generated figure, `<slug>/<figure id>.svg`, beside the script that draws it. */
+  readonly figuresDir: string;
   readonly sourcesFile: string;
   readonly glossaryFile: string;
   readonly analogiesFile: string;
@@ -70,27 +72,50 @@ function appRoot(): string {
 const FIXTURE_WARNED = Symbol.for("@buildanagent/manual:fixture-warned");
 const shared = globalThis as { [FIXTURE_WARNED]?: boolean };
 
+/** The directories and files that change when a build reads a fixture book instead of the real one. */
+export interface ContentDirs {
+  readonly chaptersDir: string;
+  readonly factChecksDir: string;
+  readonly figuresDir: string;
+  readonly analogiesFile: string;
+}
+
+/** The book's own figures, `figures/<chapter>/<id>.ts` and the SVG each writes, whatever `BOOK_FIXTURE_DIR` says. */
+export function bookFiguresDir(app: string = appRoot()): string {
+  return join(app, "figures");
+}
+
 /**
- * Where the build reads chapters and their fact-check logs: `src/content/chapters/` and `fact-checks/`, unless
- * `BOOK_FIXTURE_DIR` names a directory holding `chapters/` and `fact-checks/`. Only the site's build test sets it, to
- * build one fixture chapter while the book has none of its own, so a process that uses it says so once on stderr. A
- * relative value resolves against the app's directory. `src/content.config.ts` reads the same directories, so the
- * collection and the content model always see the same files.
+ * Where the build reads chapters, their fact-check logs, their figures and the analogy register: the book's own, unless
+ * `BOOK_FIXTURE_DIR` names a fixture directory holding `chapters/`, `fact-checks/`, `figures/` and `analogies.json`.
+ * Only the site's build test sets it, to build fixture chapters while the book has none of its own, so a process that
+ * uses it says so once on stderr. A relative value resolves against the app's directory. `src/content.config.ts`
+ * reads the same chapters, so the collection and the content model always see the same files.
  */
-export function contentDirs(app: string = appRoot()): { readonly chaptersDir: string; readonly factChecksDir: string } {
+export function contentDirs(app: string = appRoot()): ContentDirs {
   const fixture = process.env.BOOK_FIXTURE_DIR;
   if (fixture === undefined || fixture === "") {
-    return { chaptersDir: join(app, "src/content/chapters"), factChecksDir: join(app, "fact-checks") };
+    return {
+      chaptersDir: join(app, "src/content/chapters"),
+      factChecksDir: join(app, "fact-checks"),
+      figuresDir: bookFiguresDir(app),
+      analogiesFile: join(app, "src/content/analogies.json"),
+    };
   }
   const dir = resolve(app, fixture);
   if (!shared[FIXTURE_WARNED]) {
     shared[FIXTURE_WARNED] = true;
     console.warn(`BOOK_FIXTURE_DIR is set: building the fixture chapters in ${dir}, not the book's own`);
   }
-  return { chaptersDir: join(dir, "chapters"), factChecksDir: join(dir, "fact-checks") };
+  return {
+    chaptersDir: join(dir, "chapters"),
+    factChecksDir: join(dir, "fact-checks"),
+    figuresDir: join(dir, "figures"),
+    analogiesFile: join(dir, "analogies.json"),
+  };
 }
 
-/** The real book's inputs: `src/outline.ts`, the chapters, their fact-check logs and the three registers. */
+/** The real book's inputs: `src/outline.ts`, the chapters with their fact-check logs and figures, and the registers. */
 export function bookInputs(): BookInputs {
   const app = appRoot();
   return {
@@ -99,7 +124,6 @@ export function bookInputs(): BookInputs {
     ...contentDirs(app),
     sourcesFile: join(app, "src/data/sources.json"),
     glossaryFile: join(app, "src/data/glossary.json"),
-    analogiesFile: join(app, "src/content/analogies.json"),
     harnessesFile: join(app, "src/data/harnesses.json"),
     repoRoot: join(app, "../.."),
   };

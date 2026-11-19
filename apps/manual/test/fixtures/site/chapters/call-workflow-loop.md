@@ -7,10 +7,16 @@ glossary: [agent-loop]
 switchTo: []
 ---
 
-An agent loop calls a model and runs its tools until a stop condition holds [@anthropic-building-effective-agents]. [[fig:fixture-loop]] draws it, and [[ch:tools]] comes later.
+An agent loop calls a model and runs its tools until a stop condition holds [@anthropic-building-effective-agents]. [[fig:who-decides]] compares it with a call and a workflow, and [[ch:tools]] comes later.
 
-:::figure[The loop, as a placeholder]{#fixture-loop}
-A placeholder for the figure.
+:::figure[A call, a workflow and a loop differ in who decides the next step]{#who-decides}
+::svg{alt="Three columns of boxes joined by arrows. A call runs your code, then the model, then an answer. A workflow runs three fixed steps in order. A loop sends the model's request to a tool and the result back to the model, which ends with an answer when it is done. Under each column, a note says who decides the next step: your code, your code, and the model."}
+:::
+
+Picture a kitchen: :analogy[a ticket rail]{#kitchen-ticket-rail} holds the orders, as [[fig:ticket-rail]] draws it.
+
+:::figure[A kitchen ticket rail: the cook works one ticket at a time]{#ticket-rail analogy="kitchen-ticket-rail"}
+::svg{alt="Three order tickets hang from a rail. The cook's ticket, on the left, sends an arrow down to the pantry and gets one back; a dashed arrow leads from it to the pass, where finished dishes go."}
 :::
 
 [[lst:one-call]] makes one call.

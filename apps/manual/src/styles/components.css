@@ -447,6 +447,129 @@
   opacity: 0.7;
 }
 
+/* The marks figures/lib/svgkit.ts draws. It measures labels at these font sizes, and every committed figure file
+   embeds these rules, so a change here makes each figure stale until figures:build redraws it. */
+.fig-text--heading {
+  font-size: 14px;
+  font-weight: 600;
+}
+
+.fig-text--muted {
+  fill: var(--panel-comment);
+}
+
+.fig-text--accent {
+  fill: var(--panel-terracotta);
+}
+
+.fig-line--muted {
+  stroke: var(--panel-comment);
+}
+
+.fig-line--dashed {
+  stroke-dasharray: 5 4;
+}
+
+.fig-paper {
+  fill: var(--panel-background);
+  stroke: var(--panel-text);
+  stroke-width: 1.5;
+}
+
+.fig-paper--muted {
+  stroke: var(--panel-comment);
+}
+
+.fig-paper--accent {
+  stroke: var(--panel-terracotta);
+}
+
+.fig-head {
+  fill: var(--panel-text);
+}
+
+.fig-head--muted {
+  fill: var(--panel-comment);
+}
+
+.fig-head--accent {
+  fill: var(--panel-terracotta);
+}
+
+/* A generated figure keeps its natural size, so its labels stay at the 12 px label size on every screen, and its
+   stage scrolls sideways where the panel is narrower than the drawing (BK11). The stage is a block, not the grid that
+   centres other figures: a drawing that fits is centred by its auto margins, and one that overflows starts at the
+   stage's edge, so a reader can scroll to both of its sides. */
+.figure__panel {
+  timeline-scope: --figure-scroll;
+}
+
+.figure__stage--scroll {
+  display: block;
+  overflow-x: auto;
+  scroll-timeline: --figure-scroll inline;
+}
+
+.figure__stage--scroll svg.fig {
+  width: auto;
+  max-width: none;
+  margin-inline: auto;
+}
+
+.figure__stage--scroll:focus-visible {
+  outline: 2px solid var(--color-accent);
+  outline-offset: 2px;
+}
+
+/* The scroll hint shows exactly when the stage overflows, with no script: its animation runs on the stage's scroll
+   timeline, and a scroll timeline is inactive while its container has nothing to scroll, so the hint keeps the hidden
+   base style below. A browser without scroll-driven animations never shows the hint, and the stage still scrolls. */
+.figure__scroll-hint {
+  visibility: hidden;
+  max-height: 0;
+  overflow: hidden;
+  margin: 0;
+  padding: 0 1rem;
+  font-family: var(--font-code);
+  font-size: var(--size-label);
+  color: var(--panel-comment);
+}
+
+/* The timeline sits in its own rule after the animation, because the `animation` shorthand resets
+   `animation-timeline`. In one rule, the build's CSS minifier folds both into a single shorthand that holds the
+   timeline; CSS Animations 2's grammar allows that, but Chrome 157 rejects it and the hint never shows. */
+@supports (animation-timeline: scroll()) {
+  .figure__scroll-hint {
+    animation: figure-scroll-hint linear both;
+  }
+
+  .figure__panel .figure__scroll-hint {
+    animation-timeline: --figure-scroll;
+  }
+}
+
+@keyframes figure-scroll-hint {
+  from,
+  to {
+    visibility: visible;
+    max-height: 4rem;
+    padding-block: 0.4rem 0.6rem;
+  }
+}
+
+/* The note under an analogy illustration's caption that says where the analogy breaks. */
+.figure__breaks {
+  margin-top: 0.35rem;
+  font-size: var(--size-note);
+  line-height: 1.5;
+  color: var(--color-text-soft);
+}
+
+.figure__breaks .label {
+  margin-right: 0.5rem;
+  color: var(--color-accent);
+}
+
 .stepper {
   padding: 0.9rem 1rem 1rem;
   border-top: 1px solid var(--panel-border);
