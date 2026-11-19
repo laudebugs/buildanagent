@@ -8,10 +8,12 @@ const model = new ScriptedModel([
   [assistantMessage("Noted: PELICAN.")],
   [assistantMessage("The codeword was PELICAN.")],
 ]);
+// #region session
 const agent = new Agent({ name: "Memory", model });
 const session = new MemorySession();
 await runner.run(agent, "Remember the codeword PELICAN.", { session });
 const second = await runner.run(agent, "What was the codeword?", { session });
+// #endregion
 
 const input = JSON.stringify(model.lastCall?.request.input);
 check(input.includes("Remember the codeword PELICAN."), "the second request includes the first run's user message");

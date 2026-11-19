@@ -8,6 +8,7 @@ import { check, scripted } from "./lib/check.ts";
 
 function setup() {
   const executed: string[] = [];
+  // #region approval-policy
   const issueRefund = tool({
     description: "Refund an order",
     inputSchema: z.object({ orderId: z.string() }),
@@ -18,12 +19,14 @@ function setup() {
   });
   const { model, requests } = scripted([{ tools: [{ name: "issueRefund", input: { orderId: "A-1" } }] }, "Done."]);
   const agent = new ToolLoopAgent({ model, tools: { issueRefund }, toolApproval: { issueRefund: "user-approval" } });
+  // #endregion
   return { agent, executed, requests };
 }
 
 async function decide(approved: boolean) {
   const { agent, executed, requests } = setup();
   const messages: ModelMessage[] = [{ role: "user", content: "Refund order A-1" }];
+  // #region approval-response
   const first = await agent.generate({ messages });
   const asks = first.content.filter((p) => p.type === "tool-approval-request");
   check(asks.length === 1 && !asks[0].isAutomatic, "the first call ends with one manual approval request");
@@ -36,6 +39,7 @@ async function decide(approved: boolean) {
   }));
   messages.push({ role: "tool", content: responses });
   const second = await agent.generate({ messages });
+  // #endregion
   return { second, executed, requests };
 }
 

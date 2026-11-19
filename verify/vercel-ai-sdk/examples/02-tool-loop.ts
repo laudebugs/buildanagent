@@ -5,6 +5,7 @@ import { generateText, isStepCount, tool } from "ai";
 import { z } from "zod";
 import { check, scripted } from "./lib/check.ts";
 
+// #region tool
 const calls: unknown[] = [];
 const weather = tool({
   description: "Get the weather for a city",
@@ -14,6 +15,7 @@ const weather = tool({
     return { city: input.city, temperature: 21, unit: input.unit };
   },
 });
+// #endregion
 const script = () => scripted([{ tools: [{ name: "weather", input: { city: "Lisbon" } }] }, "It is 21C in Lisbon."]);
 
 // Default stopWhen is isStepCount(1): the tool runs, but no second model call follows.
@@ -28,6 +30,7 @@ const script = () => scripted([{ tools: [{ name: "weather", input: { city: "Lisb
 // isStepCount(5): the loop continues until the model answers.
 {
   calls.length = 0;
+  // #region loop
   const { model, requests } = script();
   const result = await generateText({
     model,
@@ -35,6 +38,7 @@ const script = () => scripted([{ tools: [{ name: "weather", input: { city: "Lisb
     stopWhen: isStepCount(5),
     prompt: "Weather in Lisbon?",
   });
+  // #endregion
   check(
     JSON.stringify(calls) === JSON.stringify([{ city: "Lisbon", unit: "C" }]),
     "execute() gets parsed input with schema defaults applied",

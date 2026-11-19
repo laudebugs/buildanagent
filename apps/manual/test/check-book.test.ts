@@ -1,5 +1,6 @@
 import assert from "node:assert/strict";
-import { rmSync } from "node:fs";
+import { mkdtempSync, rmSync, symlinkSync, writeFileSync } from "node:fs";
+import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { afterAll, beforeAll, test, vi } from "vitest";
 import { checkBook } from "../src/book/check-book.js";
@@ -9,10 +10,11 @@ import {
   buildError,
   edit,
   editJson,
+  FIXTURE_DIR,
   FIXTURE_OUTLINE,
   fixtureInputs,
-  mutatedFixture,
   removeFixture,
+  resetFixture,
 } from "./book-fixture.js";
 
 // Every rule check:book applies has a failing fixture here: a copy of the fixture book with one thing broken. Each
@@ -31,6 +33,13 @@ interface Case {
 const FIRST = "chapters/first.md";
 const SECOND = "chapters/second.md";
 const firstChapter = (change: (text: string) => string) => (dir: string) => edit(dir, FIRST, change);
+// The second chapter's ::listing, on line 18, shows the region "greet" of the fixture harness's example.
+const LISTING = `${SECOND}:18`;
+const EXAMPLE = "verify/demo-sdk/examples/01-hello.ts";
+const HARNESS_MANIFEST = "verify/demo-sdk/package.json";
+const listingLine = (change: (text: string) => string) => (dir: string) =>
+  edit(dir, SECOND, (text) => text.replace(/^::listing.*$/m, (line) => change(line)));
+const example = (change: (text: string) => string) => (dir: string) => edit(dir, EXAMPLE, change);
 const withOpenings = (...openings: Outline[number]["chapters"][number]["opening"][]): Outline => [
   {
     title: "Part A",
@@ -269,6 +278,181 @@ const cases: readonly Case[] = [
     file: `${FIRST}:26`,
     message: /unknown directive :::aside/,
   },
+  // Listings from real files (BK9).
+  {
+    rule: "a listing whose file was deleted fails with its line",
+    change: (dir) => rmSync(join(dir, EXAMPLE)),
+    file: LISTING,
+    message: /listing "greet": verify\/demo-sdk\/examples\/01-hello\.ts is not a file/,
+  },
+  {
+    rule: "a listing whose region was renamed in the file fails",
+    change: example((t) => t.replace("// #region greet", "// #region greeting")),
+    file: LISTING,
+    message: /01-hello\.ts has no region "greet"; its regions are call, greeting, message/,
+  },
+  {
+    rule: "a listing of a file outside every checked tsconfig.json fails",
+    change: listingLine((l) => l.replace(EXAMPLE, "verify/demo-sdk/scripts/tool.ts").replace('"greet"', '"tool"')),
+    file: LISTING,
+    message:
+      /scripts\/tool\.ts is outside every tsconfig\.json .*: verify\/demo-sdk\/tsconfig\.json does not include it/,
+  },
+  {
+    rule: "a listing of a file that a base tsconfig's exclude removes fails, as tsc inherits the exclude",
+    change: (dir) => {
+      writeFileSync(join(dir, "verify/demo-sdk/tsconfig.base.json"), '{ "exclude": ["examples/01-hello.ts"] }\n');
+      writeFileSync(
+        join(dir, "verify/demo-sdk/tsconfig.json"),
+        '{ "extends": "./tsconfig.base.json", "include": ["examples/**/*.ts"] }\n',
+      );
+    },
+    file: LISTING,
+    message: /01-hello\.ts is outside every tsconfig\.json .*: verify\/demo-sdk\/tsconfig\.json does not include it/,
+  },
+  {
+    rule: "a listing of a package that a ! glob removes from the pnpm workspace fails",
+    change: (dir) => edit(dir, "pnpm-workspace.yaml", (t) => `${t}  - "!verify/demo-sdk"\n`),
+    file: LISTING,
+    message: /outside every tsconfig\.json .*: verify\/demo-sdk is not a package of pnpm-workspace\.yaml/,
+  },
+  {
+    rule: "a listing of a symbolic link to a file outside the repository fails",
+    change: (dir) => {
+      symlinkSync(join(FIXTURE_DIR, EXAMPLE), join(dir, "verify/demo-sdk/examples/02-linked.ts"));
+      listingLine((l) => l.replace("01-hello.ts", "02-linked.ts"))(dir);
+    },
+    file: LISTING,
+    message: /02-linked\.ts resolves through a symbolic link to a file outside the repository/,
+  },
+  {
+    rule: "a listing through a symbolic link to a directory outside the repository fails",
+    change: (dir) => {
+      symlinkSync(join(FIXTURE_DIR, "verify/demo-sdk/examples"), join(dir, "verify/demo-sdk/examples/outside"));
+      listingLine((l) => l.replace("examples/01-hello.ts", "examples/outside/01-hello.ts"))(dir);
+    },
+    file: LISTING,
+    message: /examples\/outside\/01-hello\.ts resolves through a symbolic link to a file outside the repository/,
+  },
+  {
+    rule: "a listing whose path starts with ./ fails",
+    change: listingLine((l) => l.replace(EXAMPLE, `./${EXAMPLE}`)),
+    file: LISTING,
+    message: /must be a path from the repository root, without \.\/, \.\., \/\/ or a leading \//,
+  },
+  {
+    rule: "a listing of a package outside the pnpm workspace fails",
+    change: (dir) => edit(dir, "pnpm-workspace.yaml", (t) => t.replace('"verify/*"', '"apps/*"')),
+    file: LISTING,
+    message: /outside every tsconfig\.json .*: verify\/demo-sdk is not a package of pnpm-workspace\.yaml/,
+  },
+  {
+    rule: "a listing of a package whose typecheck script runs no tsc fails",
+    change: (dir) =>
+      edit(dir, HARNESS_MANIFEST, (t) => t.replace('"typecheck": "tsc -p tsconfig.json"', '"typecheck": "true"')),
+    file: LISTING,
+    message: /verify\/demo-sdk\/package\.json has no typecheck script that runs tsc/,
+  },
+  {
+    rule: "a listing of a file that is not TypeScript fails",
+    change: (dir) => {
+      writeFileSync(
+        join(dir, "verify/demo-sdk/examples/02-plain.mjs"),
+        "// #region greet\nexport {};\n// #endregion\n",
+      );
+      listingLine((l) => l.replace("01-hello.ts", "02-plain.mjs"))(dir);
+    },
+    file: LISTING,
+    message: /02-plain\.mjs is not TypeScript, so no typecheck checks it/,
+  },
+  {
+    rule: "a listing outside every harness in the harness table fails",
+    change: (dir) => writeFileSync(join(dir, "harnesses.json"), "{}\n"),
+    file: LISTING,
+    message: /01-hello\.ts is in no harness that harnesses\.json lists/,
+  },
+  {
+    rule: "a listing whose harness lacks its main package fails",
+    change: (dir) => edit(dir, HARNESS_MANIFEST, (t) => t.replace('"demo-sdk": "1.2.3"', '"other-sdk": "1.2.3"')),
+    file: LISTING,
+    message: /verify\/demo-sdk\/package\.json does not depend on demo-sdk, the main package harnesses\.json names/,
+  },
+  {
+    rule: "a listing whose main package is not pinned exactly fails",
+    change: (dir) => edit(dir, HARNESS_MANIFEST, (t) => t.replace('"1.2.3"', '"^1.2.3"')),
+    file: LISTING,
+    message: /pins demo-sdk as "\^1\.2\.3", not an exact version/,
+  },
+  {
+    rule: "a harness table entry without a package fails",
+    change: (dir) =>
+      writeFileSync(join(dir, "harnesses.json"), '{ "verify/demo-sdk": "demo-sdk", "verify/other": "" }'),
+    file: "harnesses.json",
+    message: /verify\/other: a harness needs its main package's name/,
+  },
+  {
+    rule: "a listing without a file fails",
+    change: listingLine((l) => l.replace(/ file="[^"]*"/, "")),
+    file: LISTING,
+    message: /::listing needs the file it shows/,
+  },
+  {
+    rule: "a listing with an unknown attribute fails",
+    change: listingLine((l) => l.replace("region=", "regoin=")),
+    file: LISTING,
+    message: /::listing does not take "regoin"; it takes id, file and region/,
+  },
+  {
+    rule: "a listing whose path leaves the repository fails",
+    change: listingLine((l) => l.replace(EXAMPLE, `../${EXAMPLE}`)),
+    file: LISTING,
+    message: /must be a path from the repository root, without \.\/, \.\., \/\/ or a leading \//,
+  },
+  {
+    rule: "a region without its #endregion fails with the file's line",
+    change: example((t) => t.replace("// #endregion\n\n{", "\n{")),
+    file: LISTING,
+    message: /01-hello\.ts:2: #region greet has no #endregion/,
+  },
+  {
+    rule: "a region name used twice in one file fails",
+    change: example((t) => t.replace("// #region call", "// #region greet")),
+    file: LISTING,
+    message: /01-hello\.ts:11: #region greet appears twice/,
+  },
+  {
+    rule: "an #endregion without its #region fails",
+    change: example((t) => `${t}// #endregion\n`),
+    file: LISTING,
+    message: /01-hello\.ts:16: #endregion has no #region before it/,
+  },
+  {
+    rule: "an #endregion that names another region fails",
+    change: example((t) => t.replace("// #endregion message", "// #endregion greet")),
+    file: LISTING,
+    message: /01-hello\.ts:6: #endregion greet closes #region message/,
+  },
+  {
+    rule: "a region that is not kebab-case fails",
+    change: example((t) => t.replace("// #region call", "// #region Call_Site")),
+    file: LISTING,
+    message: /01-hello\.ts:11: #region needs a kebab-case name, as in \/\/ #region tool-loop; got "Call_Site"/,
+  },
+  {
+    rule: "an empty region fails",
+    change: (dir) => {
+      example((t) => `${t}// #region empty\n\n// #endregion\n`)(dir);
+      listingLine((l) => l.replace('"greet"', '"empty"'))(dir);
+    },
+    file: LISTING,
+    message: /01-hello\.ts has an empty region "empty"/,
+  },
+  {
+    rule: "a listing without a caption fails",
+    change: listingLine((l) => l.replace("[Greeting the reader]", "")),
+    file: LISTING,
+    message: /a listing needs a caption, written ::listing\[Caption\]\{#greet file="…"\}/,
+  },
   // Citations (BK6).
   {
     rule: "a citation of an unknown id fails with its line",
@@ -363,7 +547,8 @@ const cases: readonly Case[] = [
   },
 ];
 
-const dirs: string[] = [];
+const caseDir = mkdtempSync(join(tmpdir(), "book-cases-"));
+const dirs: string[] = [caseDir];
 beforeAll(() => {
   // Astro's renderer logs each failed render before rethrowing it; the assertions below read the errors instead.
   vi.spyOn(console, "error").mockImplementation(() => undefined);
@@ -384,8 +569,8 @@ test("the real book passes check:book", async () => {
 
 for (const { rule, change, outline, file, message } of cases) {
   test(rule, async () => {
-    const dir = mutatedFixture(change ?? (() => undefined));
-    dirs.push(dir);
+    // The cases run one after another in one directory, reset to the fixture before each.
+    const dir = resetFixture(caseDir, change ?? (() => undefined));
     const inputs = fixtureInputs(dir, outline);
     const problems = (await checkBook(inputs)).map(formatProblem);
     // One rule broken, one problem: the fixture must not trip any other rule.

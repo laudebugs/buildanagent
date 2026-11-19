@@ -10,6 +10,10 @@ Offline verification harness for the LangChain.js v1 agent docs and our examples
 - **Extraction** drops `:::python` blocks from the mixed-language pages and keeps every TypeScript block, including the code-sample snippets the pages import.
 - **Our examples** (`examples/`) use LangChain's own `fakeModel()` from `langchain`.
 
+## Region markers feed the book's listings
+
+Some examples carry `// #region <name>` and `// #endregion` comments, which change no behaviour. The book's `::listing` directive shows the code between them, so a chapter quotes only code that `pnpm test` type-checks and runs. Rename or remove a region only together with the chapters that list it, because `check:book` fails on a region that no longer exists ([how to add a listing](../../apps/manual/README.md#a-listing-shows-a-region-of-a-real-file)).
+
 ## Scripts
 
 | Command | Does |

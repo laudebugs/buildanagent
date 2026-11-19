@@ -12,6 +12,7 @@ async function run(streaming: boolean) {
     onPermissionRequest: approveAll,
     streaming,
   });
+  // #region deltas
   const deltas: string[] = [];
   let final = "";
   session.on("assistant.message_delta", (e) => deltas.push(e.data.deltaContent));
@@ -19,6 +20,7 @@ async function run(streaming: boolean) {
   const idle = new Promise<void>((resolve) => session.on("session.idle", () => resolve()));
   await session.send({ prompt: "Tell me a short story\nmock-reply: Once upon a time, the end." });
   await idle;
+  // #endregion
   await session.disconnect();
   return { deltas, final };
 }

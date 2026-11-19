@@ -202,6 +202,12 @@
   color: var(--panel-terracotta);
 }
 
+/* A listing from a chapter's ::listing directive also has a caption, between its number and its path. */
+.listing__title {
+  color: var(--panel-text);
+  font-family: var(--font-body);
+}
+
 .listing__path {
   color: var(--panel-text);
   overflow-wrap: anywhere;

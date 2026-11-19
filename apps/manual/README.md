@@ -13,6 +13,7 @@ Run each from the repo root.
 | `pnpm --filter @buildanagent/manual test` | Runs the offline tests, including a full build into a temporary folder |
 | `pnpm --filter @buildanagent/manual typecheck` | Type-checks the app's TypeScript with the root `tsc` setup |
 | `pnpm --filter @buildanagent/manual check:book` | Checks the outline, the three registers and every chapter against the build's own rules, without building |
+| `pnpm --filter @buildanagent/manual book:switch-report` | Lists each written chapter's `switchTo` todos and which are done; `test` runs it too, and it never fails |
 | `pnpm --filter @buildanagent/manual tokens` | Regenerates `src/styles/tokens.css` from `book-tokens.json` |
 
 ## The outline places the chapter and gives it its number
@@ -82,7 +83,44 @@ Mark a numbered block with a container directive, its caption in brackets and it
 :::
 ```
 
-Ids are kebab-case and unique across the book for each kind. A table must hold a table and a listing a code block, and every block needs a caption. Refer to a block with `[[fig:tool-call-round-trip]]`, `[[tbl:stop-defaults]]` or `[[lst:one-call]]`, and to a chapter with `[[ch:tools]]`. The build replaces each reference with a numbered link such as "Figure 3.2"; a reference to a planned chapter shows its number without a link. An unknown id or a malformed reference fails with the file and line. Inside code, both reference and citation syntax stay as written. Listings from real files arrive with T4's `::listing` directive, and generated figures with T6.
+Ids are kebab-case and unique across the book for each kind. A table must hold a table and a `:::listing` a code block, and every block needs a caption. Refer to a block with `[[fig:tool-call-round-trip]]`, `[[tbl:stop-defaults]]` or `[[lst:one-call]]`, and to a chapter with `[[ch:tools]]`. The build replaces each reference with a numbered link such as "Figure 3.2"; a reference to a planned chapter shows its number without a link. An unknown id or a malformed reference fails with the file and line. Inside code, both reference and citation syntax stay as written. A `:::listing` with its code in the chapter suits a snippet that runs nowhere; code a reader should trust comes from a real file through `::listing`, described next. Generated figures arrive with T6.
+
+## A listing shows a region of a real file
+
+A listing shows only code that CI type-checks and runs, because the build cuts it from a real file instead of taking it from the chapter. The chapter names the file and a region in it with a leaf directive, written with two colons:
+
+```markdown
+::listing[One model call]{#one-call file="verify/vercel-ai-sdk/examples/01-generate-text.ts" region="call"}
+```
+
+The file marks the region with comments on their own lines, which change nothing when the example runs:
+
+```ts
+// #region call
+const { model, requests } = scripted(["Hello from the mock."]);
+const result = await generateText({ model, instructions: "You are terse.", prompt: "Say hello." });
+// #endregion
+```
+
+The build cuts the lines between the markers, drops any markers of regions nested inside, removes the indentation the lines share and highlights them with Shiki. The caption line shows the number, such as "Listing 1.1", then the caption you wrote, the file's path, the line range and the pinned version of the harness's main package, such as `ai@7.0.162` as of November 2026. Each code line also shows its own number in the file. Without `region`, the listing shows the whole file without its markers. References use the same id as any listing, `[[lst:one-call]]`.
+
+Region names are kebab-case and unique in their file, and an `// #endregion` may repeat its name (`// #endregion call`). The build finds markers line by line without parsing the code, so a line inside a template literal or a block comment that starts with `// #region` also counts as a marker.
+
+The pin comes from the harness's own `package.json`. [`src/data/harnesses.json`](src/data/harnesses.json) names each `verify/` harness's main package, such as `ai` for `verify/vercel-ai-sdk`. The weekly SDK-update job rewrites those pins, so each caption follows the harness's current pin; prose that names a version still says "as of <month year>".
+
+The book loads every listing before it renders a page, so `check:book` and the build fail on the same problems, each named with the chapter's file and the directive's line. A listing fails when:
+
+- its file is missing, its path is not a plain path from the repository root (it is absolute, or holds `./`, `..` or `//`), or the file resolves through a symbolic link to a place outside the repository;
+- the file is not TypeScript (`.ts`, `.tsx`, `.mts` or `.cts`), or no workspace package's `typecheck` covers it, as the next paragraph explains;
+- the file sits in no harness that `harnesses.json` lists, or the harness's `package.json` lacks the main package or pins it as a range instead of an exact version;
+- the region is missing, empty or malformed (an unnamed or repeated `#region`, an `#endregion` without its `#region` or naming another one, a `#region` never closed), and such a message also names the file's own line;
+- the directive lacks a caption or `file`, or takes an attribute other than `id`, `file` and `region`.
+
+A file counts as covered when `pnpm typecheck` would check it. Its nearest `package.json` must match a glob in `pnpm-workspace.yaml` that no `!` glob cancels, and one `tsc -p <config>` in that package's `typecheck` script must hold the file in its program. To decide, the check runs the manual's own `tsc`, from its exact `typescript` devDependency, as `tsc -p <config> --listFilesOnly`. TypeScript therefore applies `extends`, `files`, `include` and `exclude` itself, and a file that an included example imports also counts.
+
+Five of these rules are our choices, not BK9's: an exact pin, TypeScript files only, paths from the repository root only, a file inside a harness that `harnesses.json` lists, and no attribute but `id`, `file` and `region`, which catches a misspelt `region`. Because of the harness rule, a listing from `packages/` fails as "in no harness", so the todo that moves a chapter's listings to our own packages must widen that rule first.
+
+To add a listing, mark the region in the example, run that harness's `pnpm test` to confirm its results do not change, then write the directive and run `check:book`. Renaming or deleting a region breaks every chapter that lists it, and `check:book` names each one. When a chapter's `switchTo` todos are all done, `book:switch-report` says the chapter is ready to move its listings to our own packages.
 
 ## Glossary terms link on their first use
 
@@ -107,7 +145,7 @@ The chapter then marks each use with `:analogy[the ticket rail]{#kitchen-ticket-
 
 ## The content model lives in `src/book/`
 
-The outline checks, the three registers and the index that numbers blocks live in `src/book/`, and the Markdown plugins that use them in `src/markdown/`. `check:book` loads the outline and the three registers, then renders every chapter through the build's own plugins and prints each problem as `file:line: message`. The tests run the same plugins on the fixture book in `test/fixtures/book/`, with one failing fixture for each rule `check:book` applies. When the content model, a plugin, the outline, a register, another chapter's numbered blocks or a body's line offset change, `astro.config.mjs` clears Astro's content cache, so no chapter keeps stale numbers, links or error lines.
+The outline checks, the three registers, the index that numbers blocks and the listing resolver live in `src/book/`, and the Markdown plugins that use them in `src/markdown/`. `check:book` loads the outline and the three registers, then renders every chapter through the build's own plugins and prints each problem as `file:line: message`. The tests run the same plugins on the fixture book in `test/fixtures/book/`, with one failing fixture for each rule `check:book` applies. That directory is also its own repository root, holding a workspace of one harness, `verify/demo-sdk`, whose example the second chapter lists. When the content model, a plugin, the outline, a register, another chapter's numbered blocks, a body's line offset, a listed file or its harness's pin change, `astro.config.mjs` clears Astro's content cache, so no chapter keeps stale numbers, links, listings or error lines.
 
 The build reads chapters from `src/content/chapters/` and their logs from `fact-checks/`, unless `BOOK_FIXTURE_DIR` names a directory that holds `chapters/` and `fact-checks/`. Only the tests set it, pointing it at `test/fixtures/site/` because the book has no chapter of its own yet, and any build that uses it says so on stderr. The citation and glossary plugins, the strict schema and the text splitter are adapted from the owner's garment engineering textbook and are licensed Apache-2.0 only ([THIRD-PARTY-NOTICES.md](../../THIRD-PARTY-NOTICES.md)).
 

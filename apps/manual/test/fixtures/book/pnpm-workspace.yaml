@@ -1,0 +1,3 @@
+# The fixture repository's workspace: the listing check needs the listed file's package to be one of these.
+packages:
+  - "verify/*"

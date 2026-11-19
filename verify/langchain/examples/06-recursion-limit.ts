@@ -13,6 +13,7 @@ const loopForever = () => {
   return m;
 };
 
+// #region attempt
 async function attempt(config?: { recursionLimit: number }) {
   const model = loopForever();
   try {
@@ -22,6 +23,7 @@ async function attempt(config?: { recursionLimit: number }) {
     return { error: e, calls: model.callCount };
   }
 }
+// #endregion
 
 {
   const { error, calls } = await attempt();

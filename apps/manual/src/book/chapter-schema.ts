@@ -13,7 +13,7 @@ import { KEBAB_ID } from "./outline-rules.js";
 import { OPENING_TYPES } from "./outline-types.js";
 
 /** A todo id such as `B11`, `E4a` or `N46b`. */
-const TODO_ID = /^[A-Z]\d+[a-z]?$/;
+export const TODO_ID = /^[A-Z]\d+[a-z]?$/;
 
 /** A chapter's front matter. The chapter's number and part come from `src/outline.ts`, never from here. */
 export const chapterSchema = z.strictObject({

@@ -10,6 +10,7 @@ import { check, type Harness } from "./lib/check.ts";
 type Counter = { count: number };
 type Env = { CounterAgent: DurableObjectNamespace<CounterAgent>; LegacyAgent: DurableObjectNamespace<LegacyAgent> };
 
+// #region counter-agent
 export class CounterAgent extends Agent<Env, Counter> {
   override initialState: Counter = { count: 0 };
   changes: { count: number; source: string }[] = [];
@@ -28,6 +29,7 @@ export class CounterAgent extends Agent<Env, Counter> {
     return this.state.count;
   }
 }
+// #endregion
 
 /** Uses the deprecated hook name, which the .d.ts says still works until the next major. */
 export class LegacyAgent extends Agent<Env, Counter> {

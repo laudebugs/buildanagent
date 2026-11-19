@@ -3,11 +3,13 @@
 import { query } from "@anthropic-ai/claude-agent-sdk";
 import { check, collect } from "./lib/collect.ts";
 
+// #region resume
 const first = await collect(query({ prompt: "Remember the codeword PELICAN.", options: { maxTurns: 2 } }));
 const sessionId = first.result?.session_id;
 check(sessionId, "first run returned a session_id");
 
 const second = await collect(query({ prompt: "What was the codeword?", options: { resume: sessionId, maxTurns: 2 } }));
+// #endregion
 check(second.result?.subtype === "success", "resumed run succeeded");
 check(second.result?.session_id === sessionId, "resume keeps the same session_id");
 // The mock logs every request; the resumed request must include the first prompt.

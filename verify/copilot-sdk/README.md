@@ -28,6 +28,10 @@ The Copilot runtime is a coding agent with shell, file-edit and web tools, so ev
 
 The harness runs on Linux only (user and network namespaces).
 
+## Region markers feed the book's listings
+
+Some examples carry `// #region <name>` and `// #endregion` comments, which change no behaviour. The book's `::listing` directive shows the code between them, so a chapter quotes only code that `pnpm test` type-checks and runs. Rename or remove a region only together with the chapters that list it, because `check:book` fails on a region that no longer exists ([how to add a listing](../../apps/manual/README.md#a-listing-shows-a-region-of-a-real-file)).
+
 ## Scripts
 
 | Command | Does |
