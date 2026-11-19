@@ -84,7 +84,8 @@ export interface AssistantMessage {
     /**
      * How long the provider asked the caller to wait before retrying, in milliseconds, read from the error
      * response's `retry-after-ms` or `retry-after` header. Left out when the response sent neither or sent a value
-     * that isn't a valid delay. `createModel()` waits at least this long, up to 60 seconds, before it retries.
+     * that isn't a valid delay. `createModel()` waits at least this long before it retries. A hint over 60 seconds
+     * gets no retry: the call ends with this error, so the caller can wait and call again.
      */
     retryAfterMs?: number;
   };

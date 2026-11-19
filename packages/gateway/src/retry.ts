@@ -12,6 +12,9 @@
  *   retry sends the same request and an adapter warns about it each time.
  * - A failure's `error.retryAfterMs`, which an adapter reads from the provider's retry-after header, sets the least
  *   wait: the gateway waits for the longer of the backoff and the hint. Each wait is capped at 60 s.
+ * - A hint longer than that cap ends the call with the failure, hint kept, and no `retry` event. OpenAI's rate-limit
+ *   guide says to stop rather than retry sooner when a server delay exceeds the client's maximum
+ *   (https://developers.openai.com/api/docs/guides/rate-limits, as of November 2026).
  */
 
 import { classifyError, isTransportFailure } from "./classify.js";
@@ -203,14 +206,26 @@ function abortedTerminal(failure: AssistantMessage, call: CallState, cost: Cost,
 }
 
 /**
- * The wait before retry `n`: the exponential backoff, or the provider's hint when it asks for longer. The cap keeps a
- * long retry count or a large hint from waiting hours, or overflowing setTimeout's 32-bit delay.
+ * The terminal for a retryable failure whose hint asks for longer than the cap. Like `abortedTerminal`, it keeps every
+ * failed attempt's usage, but it keeps the error too, `retryAfterMs` included, so the caller can wait and call again.
  */
-function retryDelay(initialDelayMs: number, n: number, hintMs: number | undefined): number {
-  const backoff = initialDelayMs * BACKOFF_FACTOR ** (n - 1);
-  // A NaN hint from a hand-written adapter is no hint; an infinite one waits the cap.
-  const hint = hintMs === undefined || Number.isNaN(hintMs) ? 0 : hintMs;
-  return Math.min(Math.max(backoff, hint), MAX_RETRY_DELAY_MS);
+function deferredTerminal(failure: AssistantMessage, call: CallState, cost: Cost, retried: boolean): GatewayEvent {
+  const message = { ...failure, usage: call.carried, cost };
+  return { type: "error", message: retried ? { ...message, lastAttemptUsage: failure.usage } : message };
+}
+
+/** A NaN hint from a hand-written adapter is no hint. */
+function hintOf(failure: AssistantMessage): number {
+  const hintMs = failure.error?.retryAfterMs;
+  return hintMs === undefined || Number.isNaN(hintMs) ? 0 : hintMs;
+}
+
+/**
+ * The wait before retry `n`: the exponential backoff, or the provider's hint when it asks for longer. The cap keeps a
+ * long retry count from waiting hours, or overflowing setTimeout's 32-bit delay; a hint over the cap never gets here.
+ */
+function retryDelay(initialDelayMs: number, n: number, hintMs: number): number {
+  return Math.min(Math.max(initialDelayMs * BACKOFF_FACTOR ** (n - 1), hintMs), MAX_RETRY_DELAY_MS);
 }
 
 /** Runs `attempt(1)`, then retries per `settings`. `attempt(n)` must start a fresh request each time it is called. */
@@ -244,7 +259,13 @@ export async function* withRetries(
       yield abortedTerminal(outcome.failure, call, carriedCost, n > 1);
       return;
     }
-    const delayMs = retryDelay(settings.initialDelayMs, n, outcome.failure.error?.retryAfterMs);
+    const hintMs = hintOf(outcome.failure);
+    // Waiting less than the provider asked would only fail again, so a hint over the cap ends the call.
+    if (hintMs > MAX_RETRY_DELAY_MS) {
+      yield deferredTerminal(outcome.failure, call, carriedCost, n > 1);
+      return;
+    }
+    const delayMs = retryDelay(settings.initialDelayMs, n, hintMs);
     yield { type: "retry", attempt: n, delayMs, error: outcome.failure.error?.message ?? "retryable error" };
     await settings.sleep(delayMs, signal);
     if (signal?.aborted) {

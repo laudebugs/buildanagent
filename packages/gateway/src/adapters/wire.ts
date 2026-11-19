@@ -133,6 +133,19 @@ export function thrownTerminal(model: ModelRef, thrown: unknown, partial: Partia
 // A delay in seconds, as `retry-after` sends it, or in milliseconds, as `retry-after-ms` does: a non-negative decimal.
 const DELAY = /^\d+(\.\d+)?$/;
 
+// The three HTTP-date forms of RFC 9110, section 5.6.7: IMF-fixdate, the obsolete RFC 850 form, and asctime, which
+// has no zone and means GMT. `Date.parse` alone would also take text such as "-5" or "5, 10" as a date.
+const GMT_DATE = /^[A-Z][a-z]{2,8}, (\d{2} [A-Z][a-z]{2} \d{4}|\d{2}-[A-Z][a-z]{2}-\d{2}) \d{2}:\d{2}:\d{2} GMT$/;
+const ASCTIME_DATE = /^[A-Z][a-z]{2} [A-Z][a-z]{2} [ \d]\d \d{2}:\d{2}:\d{2} \d{4}$/;
+
+/** The time an HTTP-date names, in milliseconds since the epoch, or `NaN` for any other text. */
+function httpDate(value: string | null): number {
+  if (value === null) return Number.NaN;
+  const text = value.trim();
+  if (GMT_DATE.test(text)) return Date.parse(text);
+  return ASCTIME_DATE.test(text) ? Date.parse(`${text} GMT`) : Number.NaN;
+}
+
 /**
  * How long a failed response asks the caller to wait before retrying, in milliseconds, or `undefined` when it gives
  * no valid delay. `retry-after-ms` wins over `retry-after`, as in the official TypeScript SDKs (openai-node v7.49.0
@@ -140,7 +153,8 @@ const DELAY = /^\d+(\.\d+)?$/;
  * Anthropic's and OpenAI's rate-limit pages say (https://platform.claude.com/docs/en/api/rate-limits and
  * https://developers.openai.com/api/docs/guides/rate-limits, as of November 2026), or an HTTP date (RFC 9110,
  * section 10.2.3). A date counts from the response's own `date` header, so the delay depends on no local clock, and
- * a response without one gives no delay.
+ * a response without one gives no delay. Any other value, such as a negative number or the comma-joined values of a
+ * repeated header, gives no delay.
  */
 export function retryAfterMs(headers: Headers): number | undefined {
   const millis = headers.get("retry-after-ms")?.trim();
@@ -148,8 +162,8 @@ export function retryAfterMs(headers: Headers): number | undefined {
   const value = headers.get("retry-after")?.trim();
   if (value === undefined || value === "") return undefined;
   if (DELAY.test(value)) return Number(value) * 1000;
-  const until = Date.parse(value);
-  const sent = Date.parse(headers.get("date") ?? "");
+  const until = httpDate(value);
+  const sent = httpDate(headers.get("date"));
   if (Number.isNaN(until) || Number.isNaN(sent)) return undefined;
   return Math.max(0, until - sent);
 }

@@ -9,9 +9,11 @@
  * and `tool_use` blocks become tool calls. Server-tool blocks carry nothing this transcript can replay, so they are
  * skipped.
  *
- * Usage arrives on `message_start` and, with the authoritative output count, on the final `message_delta`. A stream
- * that sent no usage object at all has `unreported` usage, and so does a finished reply whose `message_delta`s carried
- * none, because its output count is then missing. An error mid-stream keeps whatever usage `message_start` reported.
+ * Usage arrives on `message_start` and, with the authoritative output count, on the final `message_delta`. The usage
+ * is `unreported` when that count is missing: for a stream that sent no usage, for a finished reply whose
+ * `message_delta`s reported no `output_tokens`, and for a stream that breaks off or sends an `error` event after a
+ * content block began. Such usage keeps the counts `message_start` reported. A stream that fails before any content
+ * block keeps those counts as reported, because no output was made after them.
  */
 import type { ToolNameMap } from "../../names.js";
 import type { ModelEvent } from "../../spec.js";
@@ -54,8 +56,10 @@ export class MessageAssembler implements StreamReader {
   readonly #closed = new Map<number, ContentBlock>();
   readonly #transformations = new Set<string>();
   #usage: Json = {};
-  // Whether any event carried a usage object, and whether a `message_delta` did, with the final output count.
+  // Whether any event carried a usage object, whether a content block began after `message_start`'s output count,
+  // and whether a `message_delta` reported the final output count.
   #usageSeen = false;
+  #outputSeen = false;
   #finalUsageSeen = false;
   #stopReason = "";
   #stopDetails: unknown;
@@ -79,6 +83,7 @@ export class MessageAssembler implements StreamReader {
   }
 
   #dispatch(type: string, data: Json): ModelEvent[] {
+    if (type === "content_block_start" || type === "content_block_delta") this.#outputSeen = true;
     switch (type) {
       case "message_start":
         return this.#messageStart(data);
@@ -106,9 +111,16 @@ export class MessageAssembler implements StreamReader {
     return { content, usage: this.usage() };
   }
 
-  /** The usage so far: `unreported` until an event has carried a usage object. */
+  /** The usage so far: `unreported` when output began and no `message_delta` has reported its final count yet. */
   usage(): Usage {
-    return this.#usageSeen ? anthropicUsage(this.#usage, this.#cacheTtl) : unreportedUsage();
+    return this.#usageWith(this.#outputSeen);
+  }
+
+  #usageWith(outputMade: boolean): Usage {
+    if (!this.#usageSeen) return unreportedUsage();
+    const counted = anthropicUsage(this.#usage, this.#cacheTtl);
+    // Without the final count, the output is the one `message_start` sent before any output was made.
+    return this.#finalUsageSeen || !outputMade ? counted : { ...counted, unreported: true };
   }
 
   #messageStart(data: Json): ModelEvent[] {
@@ -226,7 +238,7 @@ export class MessageAssembler implements StreamReader {
     if (delta.stop_details !== undefined) this.#stopDetails = delta.stop_details;
     if (isObject(data.usage)) {
       this.#usageSeen = true;
-      this.#finalUsageSeen = true;
+      if (typeof data.usage.output_tokens === "number") this.#finalUsageSeen = true;
     }
     this.#usage = mergeUsage(this.#usage, data.usage);
     return this.#transformationWarnings(data.input_transformations ?? delta.input_transformations);
@@ -239,9 +251,9 @@ export class MessageAssembler implements StreamReader {
   }
 
   #terminal(): ModelEvent[] {
-    const { content, usage: counted } = this.partial();
-    // Without a `message_delta` usage, the output count is the one `message_start` sent before any output was made.
-    const usage: Usage = this.#finalUsageSeen ? counted : { ...counted, unreported: true };
+    // A finished reply always needs the final count, even one that streamed no content block.
+    const { content } = this.partial();
+    const usage = this.#usageWith(true);
     if (this.#stopReason === "refusal") {
       const details = isObject(this.#stopDetails) ? this.#stopDetails : {};
       const category = str(details.category) || "no category";

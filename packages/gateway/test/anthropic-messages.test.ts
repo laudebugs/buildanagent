@@ -900,7 +900,39 @@ test("createModel prices a stream that reported no usage as unknown, not as a kn
   assert.deepEqual(message.cost, { total: null, basis: "unknown", currency: "USD" });
 });
 
-test("an error mid-stream keeps the usage message_start reported", async () => {
+/** The text fixture cut off after its first text delta, before `message_delta` and `message_stop`. */
+function textCutOff(): string {
+  const events = fixture("text.sse").split("\n\n");
+  const firstDelta = events.findIndex((event) => event.includes("content_block_delta"));
+  return events.slice(0, firstDelta + 1).join("\n\n");
+}
+
+test("a stream that breaks off after its output began has unreported usage", async () => {
+  const { terminal } = await run([{ body: textCutOff() }]);
+  assert.equal(terminal.stopReason, "error");
+  assert.equal(terminal.usage.unreported, true);
+  assert.equal(terminal.usage.uncachedInput, 25);
+});
+
+test("createModel prices a stream cut off mid-reply as unknown, not from message_start's output count", async () => {
+  const transport = mockTransport("anthropic-messages", [{ body: textCutOff() }]);
+  const model = createModel({ adapter: anthropic({ apiKey: KEY, transport }), id: MODEL.id });
+  const message = await model.complete(hello);
+  assert.deepEqual(message.cost, { total: null, basis: "unknown", currency: "USD" });
+});
+
+test("a message_delta whose usage has no output_tokens leaves the usage unreported", async () => {
+  const body = fixture("text.sse").replace(
+    /"usage":\{"input_tokens":25,"cache_creation_input_tokens":2051,"cache_read_input_tokens":4096,"output_tokens":12,.*\}\}$/m,
+    '"usage":{"input_tokens":25}}',
+  );
+  assert.notEqual(body, fixture("text.sse"));
+  const { terminal } = await run([{ body }]);
+  assert.equal(terminal.stopReason, "stop");
+  assert.equal(terminal.usage.unreported, true);
+});
+
+test("an error mid-stream before any content keeps the usage message_start reported", async () => {
   const { terminal } = await run([streamed("overloaded-mid-stream.sse")]);
   assert.equal(terminal.usage.unreported, undefined);
   assert.ok(terminal.usage.uncachedInput > 0);
