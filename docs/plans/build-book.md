@@ -555,13 +555,14 @@ The three research rounds behind the sections each confirmed its placement, and 
 | [T48](../todos/ready/T48-example-a2a-1-0.md) | Example: A2A 1.0 delegation, once a pinned SDK ships 1.0 support (on hold) | T45 | M |
 | [T49](../todos/ready/T49-book-http-mock-transcripts.md) | Transcripts for the Claude Agent SDK and Copilot SDK, whose mocks answer over HTTP | T5 | M |
 | [T50](../todos/ready/T50-chapter-call-workflow-loop-on-our-sdk.md) | Add our own SDK to Chapter 1's listings as tabs (BK8) | T10, B11 | M |
+| [T52](../todos/ready/T52-chapter-tools-on-our-sdk.md) | Add our own SDK to Chapter 3's tool listings as tabs (BK8) | T12, B10, T50 | M |
 | [U18](../todos/done/U18-research-retrieval-and-long-term-memory.md) | Research: retrieval and long-term memory, for the book | None | L |
 | [U19](../todos/done/U19-research-a2a.md) | Research: agent-to-agent protocols (a2a), for the book | None | L |
 | [U20](../todos/done/U20-research-voice-and-realtime.md) | Research: voice and realtime agents, for the book | None | L |
 | [U21](../todos/done/U21-research-fine-tuning-vs-prompting.md) | Research: fine-tuning versus prompting, for the book | None | L |
 | [T10](../todos/done/T10-chapter-call-workflow-loop.md) | Chapter: Use the least autonomy that works: a call, a workflow, then a loop | T5, T7, T26 | M |
 | [T11](../todos/ready/T11-chapter-talking-to-a-model.md) | Chapter: Talking to a model: messages, streams, tokens, instructions and model choice | T5, T6, T26, T28 | M |
-| [T12](../todos/ongoing/T12-chapter-tools.md) | Chapter: Tools: schemas, validation, errors the model can read, and identity it cannot fake | T5, T6, T26 | M |
+| [T12](../todos/done/T12-chapter-tools.md) | Chapter: Tools: schemas, validation, errors the model can read, and identity it cannot fake | T5, T6, T26 | M |
 | [T13](../todos/ready/T13-chapter-stopping-and-structured-output.md) | Chapter: Stopping: caps, stop conditions and structured output | T5, T6, T26 | M |
 | [T15](../todos/ready/T15-chapter-memory-and-sessions.md) | Chapter: Memory within a task: sessions, threads and resuming | T5, T6, T26 | M |
 | [T14](../todos/ready/T14-chapter-approvals-guardrails-and-injection.md) | Chapter: Asking before acting: approvals, guardrails and prompt injection | T5, T6, T26 | M |
