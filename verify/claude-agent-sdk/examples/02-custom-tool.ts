@@ -14,11 +14,11 @@ const weather = createSdkMcpServer({
       "get_temperature",
       "Get the current temperature at a location",
       {
-        latitude: z.number(),
+        latitude: z.number(), // book:note schema
         longitude: z.number(),
       },
       async (args) => {
-        calls.push(args);
+        calls.push(args); // book:note handler
         return { content: [{ type: "text", text: "Temperature: 21°C" }] };
       },
     ),
@@ -32,7 +32,7 @@ const { messages, result } = await collect(
     prompt: "What's the temperature in Lisbon?",
     options: {
       mcpServers: { weather },
-      allowedTools: ["mcp__weather__get_temperature"], // tool names are mcp__<server>__<tool>
+      allowedTools: ["mcp__weather__get_temperature"], // book:note allowed
       maxTurns: 4,
     },
   }),
