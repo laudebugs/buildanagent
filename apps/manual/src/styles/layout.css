@@ -1,7 +1,7 @@
 /* Direction C's page: a header, a wide title, a full-width figure panel, then the article column with the contents
-   sidebar on its left and side notes in its right margin, and previous and next links at the foot. The columns respond
-   to the width of their layout container, not the viewport, so the same layout holds in a page and in the gallery,
-   which shows it inside each theme's section. */
+   sidebar on its left and side notes floated beside the prose, and previous and next links at the foot. The columns
+   respond to the width of their layout container, not the viewport, so the same layout holds in a page and in the
+   gallery, which shows it inside each theme's section. */
 
 .layout {
   container: layout / inline-size;
@@ -12,6 +12,13 @@
   max-width: calc(var(--page-width) + 2 * var(--gutter));
   margin-inline: auto;
   padding-inline: var(--gutter);
+}
+
+/* A page with no chapter, such as the contents, the glossary, the sources, search and the 404 page, has no sidebar and
+   no listing or figure to widen for, so its title and text share one column the width of the measure, centred under
+   the header, instead of sitting at the left of the chapter page's width with the rest of a wide screen empty. */
+.page--single {
+  max-width: calc(var(--measure) + 2 * var(--gutter));
 }
 
 /* Header */

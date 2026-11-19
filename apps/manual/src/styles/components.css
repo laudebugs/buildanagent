@@ -415,10 +415,20 @@
 }
 
 /* A numbered table starts at the column's edge like a figure, without the browser's 40px figure indent, which pushed
-   it past a phone's screen. A table wider than the narrowest phones scrolls sideways inside its figure, not the page. */
+   it past a phone's screen. A table wider than the narrowest phones scrolls sideways inside its region, not the page;
+   the region takes focus, named by the caption, so a keyboard can scroll it, and its ring sits inside its edge, where
+   the region's own clipping cannot hide it. */
 .table {
   margin: 1.75rem 0;
+}
+
+.table__scroll {
   overflow-x: auto;
+}
+
+.table__scroll:focus-visible {
+  outline: 2px solid var(--color-accent);
+  outline-offset: -2px;
 }
 
 .figure__stage {
@@ -762,14 +772,17 @@
   }
 }
 
-/* Replay controls over a recorded run. The panel is a column: its header, the events, which scroll inside the panel
-   once they outgrow it, and the controls, which stay in view under them. */
+/* Replay controls over a recorded run. The panel is a column: its header, the events, which scroll inside the panel,
+   and the controls, which stay in view under them. Its height is fixed, not a maximum, so revealing an event never
+   moves what follows the run, and the reader's next button stays where it was: 24rem holds about a dozen short
+   events, and 70% of the small viewport height leaves room on a landscape phone to see the controls and a line of the
+   page around them. Both numbers are ours. */
 
 .replay {
   container: replay / inline-size;
   display: flex;
   flex-direction: column;
-  max-block-size: min(32rem, 80svh);
+  block-size: min(24rem, 70svh);
   margin: 1.75rem 0;
 }
 
@@ -901,8 +914,8 @@
 
   .listing-replay > .replay {
     contain: size;
+    block-size: auto;
     min-block-size: 18rem;
-    max-block-size: none;
   }
 }
 
@@ -1063,7 +1076,8 @@
   .replay,
   .listing-replay > .replay {
     contain: none;
-    max-block-size: none;
+    block-size: auto;
+    min-block-size: 0;
   }
 
   .replay__scroll {

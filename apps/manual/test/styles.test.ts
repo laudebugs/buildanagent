@@ -65,3 +65,48 @@ test("the chapter layout switches its columns with container queries, not viewpo
   assert.match(all, /@container layout \(min-width: 73rem\)\s*\{\s*\.article \.sidenote/);
   assert.match(all, /@container listing-replay \(min-width: 52rem\)\s*\{\s*\.listing-replay > \*/);
 });
+
+// A run beside its listing is exactly as tall as the listing card: size containment keeps a long run from stretching
+// the row, and the row's stretch gives the run the card's height, never less than 18rem. Under its listing the run has
+// a fixed height, not a maximum, so revealing an event never moves the page below it. Printed, no height limit stays.
+test("a run matches its listing's height side by side, keeps a fixed height stacked and drops both limits in print", () => {
+  const css = readFileSync(new URL("styles/components.css", src), "utf8").replace(/\/\*[\s\S]*?\*\//g, "");
+  const rule = (selector: string, from = 0): string => {
+    const start = css.indexOf(`${selector} {`, from);
+    assert.ok(start >= 0, `no rule for ${selector}`);
+    return css.slice(start, css.indexOf("}", start));
+  };
+  const stacked = rule(".replay");
+  assert.match(stacked, /block-size: min\(24rem, 70svh\);/);
+  assert.doesNotMatch(stacked, /max-block-size/);
+
+  const query = css.indexOf("@container listing-replay (min-width: 52rem)");
+  assert.ok(query >= 0);
+  const beside = rule(".listing-replay > .replay", query);
+  assert.match(beside, /contain: size;/);
+  assert.match(beside, /block-size: auto;/);
+  assert.match(beside, /min-block-size: 18rem;/);
+
+  const print = css.indexOf("@media print");
+  assert.ok(print >= 0);
+  const printed = rule(".listing-replay > .replay", print);
+  assert.match(printed, /contain: none;/);
+  assert.match(printed, /block-size: auto;/);
+  assert.match(printed, /min-block-size: 0;/);
+  assert.match(rule(".replay__scroll", print), /overflow: visible;/);
+});
+
+test("a table scrolls inside its own region, which shows a focus ring", () => {
+  const css = readFileSync(new URL("styles/components.css", src), "utf8");
+  assert.match(css, /\.table__scroll\s*\{\s*overflow-x: auto;/);
+  assert.match(css, /\.table__scroll:focus-visible\s*\{\s*outline: 2px solid var\(--color-accent\);/);
+});
+
+test("a page with no chapter centres one column the width of the measure", () => {
+  const css = readFileSync(new URL("styles/layout.css", src), "utf8");
+  assert.match(css, /\.page--single\s*\{\s*max-width: calc\(var\(--measure\) \+ 2 \* var\(--gutter\)\);/);
+  for (const page of ["index", "glossary", "sources", "search", "404"]) {
+    const text = readFileSync(new URL(`pages/${page}.astro`, src), "utf8");
+    assert.match(text, /<div class="page page--single">/, `${page}.astro`);
+  }
+});
