@@ -1,8 +1,8 @@
 # @buildanagent/agent-safety
 
-When a tool changes the world, such as sending an email or issuing a refund, your agent must know exactly what happened, and a person must approve exactly what runs. This package gives every write one of five typed outcomes, hashes tool inputs the same way on every runtime, signs approvals so a forged or stale one runs nothing, and keeps every model call on the user's own key.
+When a tool changes the world, such as sending an email or issuing a refund, your agent must know exactly what happened, and a person must approve exactly what runs. This package gives every write one of five typed outcomes and an identity that a crash can't repeat, hashes tool inputs the same way on every runtime, signs approvals so a forged or stale one runs nothing, and keeps every model call on the user's own key.
 
-As of November 2026 the package is not on npm yet. It holds the write outcomes, `renderOutcome()`, `canonicalInputHash()`, the approval signers, adapters for the Vercel AI SDK, which also serve Cloudflare's `AIChatAgent`, and the guards that keep model calls on the user's key. Effect keys and plan approvals come next.
+As of November 2026 the package is not on npm yet. It holds the write outcomes, `renderOutcome()`, `canonicalInputHash()`, the approval signers, the adapters for the Vercel AI SDK, which also serve Cloudflare's `AIChatAgent`, the guards that keep model calls on the user's key, and `guardedWrite()`, which keeps a crash or a regenerated turn from repeating a write. Plan approvals come next.
 
 ## A failed write reports one of five outcomes
 
@@ -79,6 +79,70 @@ Any changed value gives a different hash. A property set to `undefined` counts a
 - a bigint or a function;
 - an object that isn't plain, such as a `Date`;
 - an object or array that contains itself.
+
+## A write gets its identity before it runs, and a crash leaves it `unknown`
+
+A crash or a regenerated model turn can repeat an email, an application or a refund. The process may die after the payment API accepted a refund and before the agent recorded it, and a harness that regenerates the lost turn gets a fresh tool call id for the same refund. `guardedWrite()` closes both gaps with one rule. It stores an effect record before the write runs and settles it with the outcome after, and it treats a record that never settled as `unknown`, never as an error to retry:
+
+```ts
+const outcome = await guardedWrite({
+  store, scope: { tenant, session, branch, toolCallId }, businessKey: `refund:${input.orderId}`,
+  operation: "refund_create", input, dedupe: "idempotency_key",
+  run: (key) => payments.refunds.create(input, { idempotencyKey: key }),
+  toOutcome: (refund) => writeOutcome({ kind: "applied", operation: "refund_create", next: `Tell the user ${refund.id} is issued` }),
+  reconcile: async (key) => ((await payments.refunds.findByKey(key)) ? appliedOutcome : "not_found"),
+});
+```
+
+`guardedWrite()` answers each call from the record it finds under the write's effect key:
+
+| Record found | What `guardedWrite()` does | Outcome |
+| --- | --- | --- |
+| None | Stores a `started` record, runs `run(key)` and settles the record | The tool's own, from `toOutcome` |
+| `settled` | Runs nothing | The stored outcome |
+| Same key, another input or operation | Sends nothing | `not_applied`, retry `never`, reason `IDEMPOTENCY_KEY_REUSED` |
+| `started`, lease still live | Runs nothing and calls no hook, because another attempt may be running | `unknown`, retry `same_key`, reason `IN_PROGRESS` |
+| `started`, lease lapsed | Calls `reconcile(key)`: a found write returns its outcome, and `"not_found"` runs the write once under the same key | Whatever `reconcile` finds |
+| `started`, lease lapsed, no `reconcile` | Runs nothing | `unknown`, retry `reconcile_first`, reason `WRITE_INTERRUPTED` |
+
+The two refusals follow the IETF `Idempotency-Key` draft, which answers a reused key with a different payload with 422 and a retry of a request still running with 409. Two settled outcomes are not final. A `not_applied` outcome that allows a `same_key` retry, such as a declined card reported through `onError`, runs again under the same key, because it changed nothing. A settled `unknown` outcome goes to `reconcile`, like a lapsed lease. If `run` throws and the tool gives no `onError`, the write settles as `unknown`, because the request may have reached the system. No option lets a caller choose the key, so an `unknown` write never runs again under a fresh one.
+
+## Declare a business key for every tool that sends, submits, pays or deletes
+
+`effectKey()` hashes the scope into the key that `run` receives. With a business key, the hash covers only the tenant and that key. A regenerated turn, a new session and a forked branch then all map to the same effect, and one tenant is one user, so the same refund or email is blocked across all of that user's sessions. Without a business key, the hash covers the tenant, session, branch and tool call id, and a regenerated turn's fresh call id starts a fresh write. These tools therefore need a business key:
+
+- **Send:** an email, a chat message or a reply, keyed by the thread and draft, such as `email:{threadId}:{draftId}`.
+- **Submit:** a job application or a form, keyed by what it is for, such as `apply:{jobId}`.
+- **Pay:** a refund, a charge or a credit, keyed by the order, such as `refund:{orderId}`.
+- **Delete:** a record or a file, keyed by its id, such as `delete:{documentId}`.
+
+The key is 64 hex digits, never the business key's own text. Stripe caps an idempotency key at 255 characters and asks callers to keep email addresses and other personal identifiers out of it, and a hash meets both rules.
+
+## Say how a retry finds the first attempt with `dedupe`
+
+Every guarded write declares `dedupe`, which tells `guardedWrite()` what the external system can do with the key:
+
+- **`idempotency_key`:** the system dedupes by the key `run` sends, as Stripe does with its `Idempotency-Key` header. `reconcile` is optional.
+- **`reconcile`:** the system ignores keys, but `reconcile` can find the write by a field the tool sets, such as a message id header. The hook is required.
+- **`unknown_only`:** the system offers neither. An interrupted attempt stays `unknown` with retry `never`, and the model is told to ask a person to check. Put such a tool behind an approval, so a person sees it before it runs.
+
+## Keep effect records in a store that outlives the process
+
+An `EffectStore` holds the records and needs four methods: `begin()`, `takeOver()`, `settle()` and `get()`. Each must be atomic, because every change is a compare-and-set on the record's attempt number; without that, two processes that resume one crashed write could both run it. In SQL, `INSERT ... ON CONFLICT DO NOTHING` and `UPDATE ... WHERE attempt = ?` give that. On Cloudflare, a Durable Object is single-threaded, so a store there can read and write a record with no other `await` between the two. `memoryEffectStore()` keeps records in memory, for tests and single-process hosts, and forgets them when the process ends. Keep records at least as long as a business key can come back and longer than the external API keeps its keys: Stripe's API v1 may prune a key after 24 hours and then treats a reused key as a new request. A durable store proves itself with the cases `effectStoreConformance()` returns from `./testing`, which import no test runner.
+
+Set `leaseMs` longer than the slowest write. A call that meets a live lease reports `IN_PROGRESS`, and once the lease lapses, the attempt counts as crashed. The default is five minutes.
+
+## On Cloudflare, repair an interrupted write as `unknown`
+
+`AIChatAgent` (`@cloudflare/ai-chat` 0.12.2) repairs a tool call left without a result before each turn, such as one whose `execute()` died with an evicted isolate. Its default repair stores an error, "The tool call was interrupted before a result was recorded.", which the model reads as a failure it may retry. For a write, override `repairInterruptedToolPart` with `repairInterruptedWrite()` from `./ai`:
+
+```ts
+protected override repairInterruptedToolPart(part: UIMessage["parts"][number]) {
+  return repairInterruptedWrite(part, new Set(["send_email", "refund"])) ?? super.repairInterruptedToolPart(part);
+}
+```
+
+The listed tools' parts then settle as `output-available` with an `unknown` outcome, and other tools keep the default repair. Convert the stored messages with your tools, `convertToModelMessages(this.messages, { tools })`, so each tool's `toModelOutput` hands the outcome to the model through `toAiToolResult()`. When the model calls the tool again for the same business key, `guardedWrite()` finds the started record and reconciles it.
 
 ## An approved call runs only after its signed pause verifies
 
@@ -182,6 +246,6 @@ A route through Cloudflare AI Gateway passes only with `byok_only: true` and its
 
 ## The root entry loads without any third-party SDK
 
-`@buildanagent/agent-safety` imports no third-party SDK, so it runs anywhere Web Crypto does: Node 22, Cloudflare Workers and other edge runtimes. Adapters for other SDKs live in subpaths. `./ai` needs `ai` and `@ai-sdk/provider-utils`, and `./byok` needs `@ai-sdk/anthropic` and `@ai-sdk/openai`; all four are optional peer dependencies. `egressGuard()` and `checkModelRoutes()` sit in the root entry, so a host without the AI SDK can use them. `./agents` will hold adapters that need Cloudflare `agents` itself, and it holds none yet, because `AIChatAgent` works through the `./ai` adapters. `./testing` holds only `testSigner()`, and imports no third-party SDK either.
+`@buildanagent/agent-safety` imports no third-party SDK, so it runs anywhere Web Crypto does: Node 22, Cloudflare Workers and other edge runtimes. Adapters for other SDKs live in subpaths. `./ai` needs `ai` and `@ai-sdk/provider-utils`, and `./byok` needs `@ai-sdk/anthropic` and `@ai-sdk/openai`; all four are optional peer dependencies. `egressGuard()` and `checkModelRoutes()` sit in the root entry, so a host without the AI SDK can use them. `./agents` will hold adapters that need Cloudflare `agents` itself, and it holds none yet, because `AIChatAgent` works through the `./ai` adapters. `./testing` holds `testSigner()` and the `EffectStore` conformance cases, and imports no third-party SDK either.
 
 To see how the model runs these tools, read the [SDK's README](../sdk/README.md).
