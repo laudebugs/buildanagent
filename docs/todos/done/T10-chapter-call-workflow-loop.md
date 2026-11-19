@@ -5,7 +5,7 @@
 | Field | Value |
 | --- | --- |
 | ID | `T10` |
-| Status | `ongoing` |
+| Status | `done` |
 | Plan | [Book plan §4.1](../../plans/build-book.md#41-part-i-foundations-for-developers-new-to-agents) |
 | Round / milestone | Round T (textbook), MT |
 | Depends on | [T5](../done/T5-book-interactive-listings.md), [T7](../done/T7-book-isometric-figures.md), [T26](../done/T26-book-checked-inline-code.md) |
@@ -53,31 +53,31 @@ Write the chapter "Use the least autonomy that works: a call, a workflow, then a
 
 ## Tasks
 
-- [ ] Answer the research question in a short note at the top of the fact-check file, from the sources above only, before drafting.
-- [ ] Add register entries for every source the chapter cites, each pointing at the fact-check log that verified it; add a fact-check row first for any source no log covers.
-- [ ] Add `// #region` and `// book:note` markers to the examples the chapter uses, and confirm each harness's `pnpm test` and the results-drift check still pass.
-- [ ] Vet each planned analogy: say what it explains and check it does not imply anything false. The owner approved the analogies (2026-11-19). If one misleads or `analogies.json` already uses it, drop it or propose a replacement to the owner; a new or swapped-in analogy needs the owner's approval.
-- [ ] Outline the chapter's sections, each with a one-line head, and note the planned opening type.
-- [ ] For each section, in order: draft it with `/anthropic-skills:writing`; then fact-check every claim it makes against its primary source into `apps/manual/fact-checks/call-workflow-loop.md` as ✅, ✏️ or ⚠️, before drafting the next section; commit the section and its rows together (BK21).
-- [ ] Use an analogy from the table above where it makes a concept clearer: open the concept with it, follow it at once with the precise mechanism, and add its "Where the analogy breaks" note. Where plain explanation works better, drop the planned analogy. Register every analogy the chapter uses in `apps/manual/src/content/analogies.json` (BK22).
-- [ ] Run `/anthropic-skills:writing-review` on the whole chapter, with the voice check: a vivid opening of the planned type that differs from the previous chapter's, a concrete example or scenario in every section, varied cadence, second person where it helps, and no stock phrasing repeated from earlier chapters (BK22).
-- [ ] Fix every finding with `/anthropic-skills:writing`, re-check every claim a fix touched, and log the re-checks in `apps/manual/fact-checks/call-workflow-loop.md`.
-- [ ] Draw the figures and analogy illustrations with T6's pipeline and the centerpiece with T7's, each with alt text and a caption that cites the register. Name the centerpiece `figures/call-workflow-loop/loop-bench.ts`, or change the id in `GallerySamples.astro`: the component gallery shows that figure once per theme as its isometric sample and leaves the item out until it exists (T7).
-- [ ] Tag the chapter's glossary terms and add missing entries.
+- [x] Answer the research question in a short note at the top of the fact-check file, from the sources above only, before drafting.
+- [x] Add register entries for every source the chapter cites, each pointing at the fact-check log that verified it; add a fact-check row first for any source no log covers.
+- [x] Add `// #region` and `// book:note` markers to the examples the chapter uses, and confirm each harness's `pnpm test` and the results-drift check still pass.
+- [x] Vet each planned analogy: say what it explains and check it does not imply anything false. The owner approved the analogies (2026-11-19). If one misleads or `analogies.json` already uses it, drop it or propose a replacement to the owner; a new or swapped-in analogy needs the owner's approval.
+- [x] Outline the chapter's sections, each with a one-line head, and note the planned opening type.
+- [x] For each section, in order: draft it with `/anthropic-skills:writing`; then fact-check every claim it makes against its primary source into `apps/manual/fact-checks/call-workflow-loop.md` as ✅, ✏️ or ⚠️, before drafting the next section; commit the section and its rows together (BK21).
+- [x] Use an analogy from the table above where it makes a concept clearer: open the concept with it, follow it at once with the precise mechanism, and add its "Where the analogy breaks" note. Where plain explanation works better, drop the planned analogy. Register every analogy the chapter uses in `apps/manual/src/content/analogies.json` (BK22).
+- [x] Run `/anthropic-skills:writing-review` on the whole chapter, with the voice check: a vivid opening of the planned type that differs from the previous chapter's, a concrete example or scenario in every section, varied cadence, second person where it helps, and no stock phrasing repeated from earlier chapters (BK22).
+- [x] Fix every finding with `/anthropic-skills:writing`, re-check every claim a fix touched, and log the re-checks in `apps/manual/fact-checks/call-workflow-loop.md`.
+- [x] Draw the figures and analogy illustrations with T6's pipeline and the centerpiece with T7's, each with alt text and a caption that cites the register. Name the centerpiece `figures/call-workflow-loop/loop-bench.ts`, or change the id in `GallerySamples.astro`: the component gallery shows that figure once per theme as its isometric sample and leaves the item out until it exists (T7).
+- [x] Tag the chapter's glossary terms and add missing entries.
 
 ## Acceptance criteria
 
-- [ ] The chapter builds with no unknown citation, reference or glossary term, and every listing comes from a checked file
-- [ ] Every API identifier in the chapter's inline code resolves to a listing, a transcript or a pinned `.d.ts`, or carries a hand-checked marker citing a ✅ or ✏️ row of the chapter's fact-check log (BK17)
-- [ ] At least one listing uses a tier 1, 2 or 3 interaction, and the page reads in full with JavaScript off
-- [ ] Every figure, analogy illustrations included, is generated, passes the staleness test, and has alt text, a caption and both themes
-- [ ] The centerpiece prints `audit passed` and `line ends: 0` in `figures:audit`
-- [ ] Every version the prose names says "as of <month year>"
-- [ ] `apps/manual/fact-checks/call-workflow-loop.md` has one block of rows per section, each committed with its section before the next section's draft, plus the re-check rows for the review's fixes, with a ✅/✏️/⚠️ tally
-- [ ] Every analogy the chapter uses comes from the table above or has the owner's approval, opens its concept and has a "Where the analogy breaks" note; every one is in `src/content/analogies.json`, and `check:book` passes its duplicate and reuse checks
-- [ ] The front matter's `opening` is `scenario`, and `check:book` passes its opening-rotation check
+- [x] The chapter builds with no unknown citation, reference or glossary term, and every listing comes from a checked file
+- [x] Every API identifier in the chapter's inline code resolves to a listing, a transcript or a pinned `.d.ts`, or carries a hand-checked marker citing a ✅ or ✏️ row of the chapter's fact-check log (BK17)
+- [x] At least one listing uses a tier 1, 2 or 3 interaction, and the page reads in full with JavaScript off
+- [x] Every figure, analogy illustrations included, is generated, passes the staleness test, and has alt text, a caption and both themes
+- [x] The centerpiece prints `audit passed` and `line ends: 0` in `figures:audit`
+- [x] Every version the prose names says "as of <month year>"
+- [x] `apps/manual/fact-checks/call-workflow-loop.md` has one block of rows per section, each committed with its section before the next section's draft, plus the re-check rows for the review's fixes, with a ✅/✏️/⚠️ tally
+- [x] Every analogy the chapter uses comes from the table above or has the owner's approval, opens its concept and has a "Where the analogy breaks" note; every one is in `src/content/analogies.json`, and `check:book` passes its duplicate and reuse checks
+- [x] The front matter's `opening` is `scenario`, and `check:book` passes its opening-rotation check
 - [ ] The pull request records the writing review's 5C scores and its voice scores, before and after
-- [ ] `pnpm check`, `pnpm typecheck` and `pnpm test` pass offline from the repo root
+- [x] `pnpm check`, `pnpm typecheck` and `pnpm test` pass offline from the repo root
 
 ## Tests
 
@@ -95,9 +95,27 @@ The book's build and `check:book` in the CI `book` job; the harness tests for an
 
 ## Definition of done
 
-- [ ] Claimed: the first commit moved this file `ready/` → `ongoing/` (Status `ongoing`)
-- [ ] Prose drafted with `/anthropic-skills:writing`, and changed claims re-checked against their sources
-- [ ] `pnpm check`, `pnpm typecheck` and `pnpm test` pass locally; pushed after each meaningful step
-- [ ] This file moved `ongoing/` → `done/` (Status `done`) in the last work commit, and the plan's todo table updated
+- [x] Claimed: the first commit moved this file `ready/` → `ongoing/` (Status `ongoing`)
+- [x] Prose drafted with `/anthropic-skills:writing`, and changed claims re-checked against their sources
+- [ ] `pnpm check`, `pnpm typecheck` and `pnpm test` pass locally; pushed after each meaningful step (not pushed: the coordinating session pushes)
+- [x] This file moved `ongoing/` → `done/` (Status `done`) in the last work commit, and the plan's todo table updated
 - [ ] Two code-review rounds run on the pull request (`/code-review high --max-findings default`, then `medium` and `low` after more than 6 confirmed findings, otherwise `low`), with every finding fixed or explained in a commit message
-- [ ] Copy reviewed with `/anthropic-skills:writing-review` after the code changes, with its findings fixed and the rubric scores in the pull request description
+- [x] Copy reviewed with `/anthropic-skills:writing-review` after the code changes, with its findings fixed and the rubric scores in the pull request description
+
+## Outcome
+
+- **The chapter.** `apps/manual/src/content/chapters/call-workflow-loop.md` opens with the planned scenario, three support requests on a Monday, and has six sections, each fact-checked and committed with its rows before the next was drafted:
+  1. *Start with one model call, and stop there if it does the job:* one `generateText` call with three notes and a replay.
+  2. *When you know the steps in advance, write them down as a workflow:* a writer-then-reviewer chain on ADK's `SequentialAgent`, with notes, a replay and the 2.5.0 deprecation dated November 2026.
+  3. *The loop: a model calls tools until a stop condition holds:* Anthropic's five-step tool-use cycle, the ticket-rail illustration, the isometric bench, the AI SDK weather tool and tool loop with notes and a replay, and `stopWhen` with its one-step default.
+  4. *A harness runs the same loop behind one method call:* Pi's `session.prompt()`, with notes, a replay and its four default tools.
+  5. *Choose the shape by asking who decides the next step:* the who-decides figure, a table of the three shapes, our four questions, and our recommendation to combine the shapes.
+  6. *How these examples run without a key:* the todo's box, written as a short section because the book has no box component; it lists the AI SDK `scripted` helper from `examples/lib/check.ts`.
+  The exercises turn the ADK workflow into a `LoopAgent` with predicted call counts, give the AI SDK loop a second lookup under two caps, and sort three tasks.
+- **Listings.** Six file listings, five of them interactive: notes on four, replays on four (`01-generate-text`, `02-workflow-agents`, `02-tool-loop`, `01-hello-session`). New `// book:note` markers in those four examples; each harness's `pnpm test` passes and `results-drift.mjs` reports no drift, so no transcript changed.
+- **Figures.** The kitchen ticket rail moved from the fixture book into `figures/call-workflow-loop/ticket-rail.ts` unchanged, and both fixtures now re-export it. The new centerpiece `figures/call-workflow-loop/loop-bench.ts` is a bench with a context rack, a model call, a tool and two trays, labelled context, append, model call, tool, `tool_result` and answer, and it lights six steps in the order of the AI SDK loop's transcript. It prints `audit passed` and `line ends: 0` in both themes. `who-decides` is reused unchanged. The gallery now shows the book's own bench.
+- **Analogies.** All three planned analogies are used and registered: the kitchen ticket rail (agent loop, illustrated), the assembly line (fixed workflow) and the flight simulator (mock model). The ticket rail's break note says "context" where the todo said "transcript", the chapter's term for the same thing. None was dropped and none needs the owner.
+- **Registers.** Five new sources, each verified in the chapter's log: the AI SDK `generateText` reference and testing page, ADK's sequential-agent page (now on adk.dev), Anthropic's "How tool use works" and Pi's "How Pi Works" at `v1.5.2`. Two new glossary terms, `stop-condition` and `mock-model`; the chapter tags six.
+- **Fact-check.** `apps/manual/fact-checks/call-workflow-loop.md` opens with the research question's answer and holds 84 rows in seven blocks, the last of them the re-checks after the writing review: 78 ✅, 3 ✏️ and 3 ⚠️, each ⚠️ an opinion marked as ours in the text. The sources measure no workflow against a loop on one task with the model held fixed, so the chapter claims no measured gain for either.
+- **Writing review** (5Cs, then BK22's voice check), before → after: coherence 4 → 5, continuity 4 → 5, clarity 4 → 5, concision 4 → 5, cadence 4 → 5. Voice: opening 5 → 5, a concrete example in every section 5 → 5, cadence and second person 4 → 5, no stock phrasing 3 → 5.
+- **Checks.** `pnpm check`, `pnpm typecheck`, the manual's build, test (300 tests) and `check:book`, `figures:build` with no stale figure, `figures:audit` and the three touched harnesses' `pnpm test` pass. `pnpm -r --no-bail test` passes for every package except `verify/copilot-sdk`, which needs Linux's `unshare` here as on `main`. Its first run timed out the manual's real-book `check:book` test at Vitest's 5-second default, because that test now renders this chapter; the test now takes 60 seconds, as the figure tests do. A trial merge with `main` at `afc9ea2` (T27, T28 and #88) merged cleanly and passed `check:book` and the manual's 305 tests.
