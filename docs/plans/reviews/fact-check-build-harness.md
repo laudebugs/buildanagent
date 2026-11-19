@@ -1,4 +1,4 @@
-# Fact-check: the harness plan's U18 changes
+# Fact-check: the harness plan's U18, U19 and U20 changes
 
 This log checks the claims that the owner's U18 decisions added to [build-harness.md](../build-harness.md), [ADR 0056](../../decisions/0056-file-based-memory-and-log-purge.md), todos [N21](../../todos/ready/N21-builtin-tools.md) and [N52](../../todos/ready/N52-memory-extension.md), and owner action 5 of [plan review 2](plan-review-2.md). The harness plan's earlier claims were checked in the [P4 review](plan-review.md) and in [plan review 2's log](fact-check-plan-review-2.md). Claims were checked on 2026-11-19. Repo claims were read on branch `docs/u18-decisions`, off `main` at `0c51291`. SDK claims come from the pinned typings in `verify/*/node_modules`, and research claims from the [retrieval and memory report](../../research/memory/retrieval-and-memory.md) and its [fact-check](../../research/memory/fact-check-retrieval-and-memory.md). Anthropic's memory tool page was fetched on 2026-11-19.
 
@@ -59,4 +59,22 @@ Legend: ✅ confirmed · ✏️ corrected while drafting · ⚠️ a number or d
 | 29 | Zep's warning concerns nodes shared with other episodes | HD11 amendment | ✏️ | The draft said "derived nodes". Zep's page says deleting an episode "does not regenerate the names or summaries of nodes shared with other episodes" (U18 report, Forget ¶3; U18 fact-check row 86). **Now:** "in nodes shared with other episodes" |
 | 30 | The index cap matches the one Claude Code applies to `MEMORY.md` | HD17, Recall | ✅ | Reworded only; row 10's source still holds |
 
-**Totals:** 30 claims: 26 ✅, 1 ✏️, 3 ⚠️.
+## The owner's U19 and U20 decisions (2026-11-19)
+
+On 2026-11-19 the owner approved every change the A2A report (U19) and the voice report (U20) proposed. Four touch the harness: U19's change 4 (the remote-agent `outputTrust` default in §3.3, todo N11 and HD16's scope in plan review 2), U19's change 5 (the A2A non-goal in §1) and U20's change 5 (the voice note after HD6). These rows check the claims those edits add, against the two reports, their fact-checks and the harness plan at `main` `0af2a14`.
+
+| # | Claim | Where | Verdict | Source and reason |
+| --- | --- | --- | --- | --- |
+| 31 | The owner approved all seven of U19's changes and all eight of U20's on 2026-11-19 | Status, §1, §3.3, HD6, plan review 2 | ✅ | The owner's decision of 2026-11-19 ("owner decision 2026-11-19") |
+| 32 | Before this change the registry defaulted `outputTrust` to `"untrusted"` for `mcp:*` only, and N11 said the same | §3.3, N11 | ✅ | §3.3's `RegisteredTool` comment and N11's scope line at `0af2a14` |
+| 33 | LLM judges caught manipulated Agent Cards with recall as low as 25.8% | §3.3 revision | ✅ | Row 85 of [U19's fact-check](../../research/a2a/fact-check-agent-to-agent-protocols.md) for [arXiv 2611.18887v1](https://arxiv.org/abs/2611.18887): recall "from 25.8% to 92.3%" across nine judges |
+| 34 | `ToolSource` has four kinds, `"builtin"`, `"extension"`, `mcp:*` and `"client"`, so the registry cannot tell from the source alone that a tool calls a remote agent | §3.3 revision, N11 | ⚠️ | The type is in §3.3. That N11 needs a new source or a flag is our inference, left for N11 to settle |
+| 35 | HD16 is still a proposal in plan review 2, so its widened scope is recorded in the proposal, not as a decision | Plan review 2, owner action 5 | ✅ | [Plan review 2](plan-review-2.md#6-eleven-owner-actions-are-still-open-and-only-one-a-test-project-for-n50-touches-waves-15), row 5; §2 of this plan says HD16 "still waits on the owner" |
+| 36 | U19's rule: call an agent over A2A only when someone else owns it, and expose one only when an outside caller needs it; nothing we build has an outside caller yet | §1 | ✅ | [U19 report, When](../../research/a2a/agent-to-agent-protocols.md#call-another-agent-over-a2a-only-when-someone-else-owns-it-and-expose-one-only-when-an-outside-caller-needs-it), rule 5 and its last paragraph: the coding agent "has no outside caller yet" |
+| 37 | A2A 1.0 pauses a task in `TASK_STATE_INPUT_REQUIRED` and `TASK_STATE_AUTH_REQUIRED`, and the client obtains credentials out of band | §1 | ✅ | The [connector notes](../../research/connectors/notes/protocol-auth-security.md), line 264, citing A2A 1.0.1 §4.5 and §7: credentials are obtained "Out-of-Band", and in-task auth uses `TASK_STATE_AUTH_REQUIRED` |
+| 38 | Mapping both states onto N13's signed pause, the pause U19 proposes for MCP's `input_required` too | §1 | ⚠️ | U19's change 5, as proposed; no todo has built either mapping, so it stays a design for later work |
+| 39 | HD6's v1 methods include `turn/interrupt` and `turn/steer`, and ADR 0016 sends new methods behind the `experimental` gate first | HD6 note | ✅ | HD6's method list; [ADR 0016](../../decisions/0016-protocol-json-rpc-framing.md), Consequences: "New methods ship behind the `experimental` gate first" |
+| 40 | HD1 writes only completed blocks, so a reply cut off by the listener has no entry of its own | HD6 note | ✅ | HD1: one `message_block` entry per block on `model_call_end`, and "Deltas … are never written" |
+| 41 | No plan we searched has an agent that speaks | HD6 note | ⚠️ | U20's [plans notes](../../research/voice/notes/our-plans.md) and its change 4; an absence claim from a search. Re-run on `main` at `0af2a14` with a case-insensitive search for "voice" or "speech" in `docs/plans/`: it finds the book plan, its log and the SDK references plan, which name the topic but plan no speaking agent |
+
+**Totals:** 41 claims: 34 ✅, 1 ✏️, 6 ⚠️.
