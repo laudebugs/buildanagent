@@ -68,20 +68,19 @@ The id charset per provider comes from B7's table; until then, use the canonical
 
 Judgement calls:
 
-- When thinking must be dropped for an Anthropic target, the pass keeps the newest unbroken run: it drops every reasoning block at or before the newest dropped one. Keeping the newest run means a later drop only ever removes older blocks, so as the transcript grows, older thinking leaves the request only as a leading run, which Anthropic allows ("omit prior turns' thinking, but not a block between two that you keep", Thinking docs as of November 2026). Other targets check no such order, so they lose only the blocks judged unsendable (medium review round). The pass is idempotent.
+- When thinking must be dropped for an Anthropic target, the pass keeps the newest unbroken run: it drops every reasoning block at or before the newest dropped one. A later drop then only ever removes older blocks. As the transcript grows, older thinking leaves the request only as a leading run, which Anthropic allows: "outside tool use, omit prior turns' thinking, but not a block between two that you keep" ([Thinking](https://platform.claude.com/docs/en/build-with-claude/thinking), as of November 2026). Other targets check no such order, so they lose only the blocks judged unsendable. The medium review round chose this rule.
 - When `caps.reasoning` is `false`, every reasoning block is dropped; that is not a drop under the newest-run rule, since none is kept.
-- Errored turns are skipped before the reasoning rule runs, so a skipped turn's thinking does not count as a drop. The results that answer a skipped turn's calls are dropped with it, but a result goes to a skipped turn's call only when no completed turn's call with its id is waiting (changed in the medium review round, which reversed the first round's rule that the newest turn always won).
-- `"aborted"` turns are skipped like `"error"` turns, as Pi does.
+- A failed turn is one that stopped with `"error"` or `"aborted"`; Pi skips both. Failed turns are skipped before the reasoning rule runs, so a failed turn's thinking does not count as a drop. The results that answer a failed turn's calls are dropped with it, but a result goes to a failed turn's call only when no completed turn's call with its id is waiting. The medium review round set this order, reversing the first round's rule that the newest turn always won.
 - Same provider means the same `api` and `provider`. An Anthropic target keeps any Anthropic signature and drops every block it cannot send signed, recorded unsigned or stripped, so the newest-run rule covers those drops too. Any other target keeps a signature only from the same model id, and keeps the reasoning text unsigned otherwise. An unsigned block with empty text is dropped for every target.
 - Tool-call ids use B7's canonical rule `^[A-Za-z0-9_-]{1,64}$` (`isCanonicalName` in `names.ts`) for every target; repeats get a `_2`, `_3` suffix.
 - Beyond the five rules, the pass moves each result next to its call, drops results that answer no call, strips reasoning and tool calls from user messages (without counting them for the newest-run rule), drops empty text blocks and any message left with no content, and merges adjacent user messages and adjacent assistant messages, because both providers reject those shapes.
-- Results are paired across the whole transcript: a result recorded after a later turn still moves next to its call and replaces the synthetic error. A result answers the newest earlier completed-turn call with its id.
+- Results are paired across the whole transcript: a result recorded after a later turn still moves next to its call and replaces the synthetic error. Among the waiting calls with its id from completed turns, a result goes to the newest one made before it.
 - Merging assistant messages keeps the later message's stop reason, usage and cost. When the earlier message has text or tool calls, the later message's reasoning is dropped, so reasoning never follows a block it did not follow before; for an Anthropic target that counts as a drop under the newest-run rule.
 - If the input has a user message, the output starts with one; a `(continued)` text block stands in when the pass empties the opening user message. An input left with nothing to send returns `[]`.
 
 ## Definition of done
 
 - [x] Claimed: the first commit moved this file `ready/` → `ongoing/` (Status `ongoing`)
-- [ ] Prose drafted with `/anthropic-skills:writing` and reviewed with `/anthropic-skills:writing-review`, with the fixes applied and changed claims re-checked
+- [x] Prose drafted with `/anthropic-skills:writing` and reviewed with `/anthropic-skills:writing-review`, with the fixes applied and changed claims re-checked
 - [x] `pnpm check`, `pnpm typecheck` and `pnpm test` pass locally; pushed after each meaningful step
 - [x] This file moved `ongoing/` → `done/` (Status `done`), and the plan's todo table updated

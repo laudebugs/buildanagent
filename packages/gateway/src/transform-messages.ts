@@ -1,8 +1,8 @@
 /**
  * The replay pass that makes a transcript recorded on one model safe to send to another (SDK plan §3.2; guide §2;
  * HD3 rule 1). It runs before every request, so it must be pure, deterministic and idempotent. As the transcript
- * grows, the thinking it sends an Anthropic target for older turns only ever loses a leading run, which Anthropic's
- * rule on omitted thinking allows.
+ * grows, an Anthropic target loses older turns' thinking only as a leading run, which Anthropic's rule on omitted
+ * thinking allows.
  */
 import { isCanonicalName } from "./names.ts";
 import type { ContentBlock, Message, ModelCaps, ModelContent, ModelRef } from "./types.ts";
@@ -18,7 +18,7 @@ const TOOL_CALL_ID_INVALID_CHARS = /[^A-Za-z0-9_-]/g;
 const TOOL_CALL_ID_MAX_LENGTH = 64;
 
 // Anthropic drops, without billing, the thinking blocks the target model cannot read, and verifies each block by its
-// signature. It lets a request omit earlier turns' thinking, but not a block between two that it keeps.
+// signature. Outside tool use, a request may omit earlier turns' thinking, but not a block between two kept blocks.
 const ANTHROPIC_API = "anthropic-messages";
 
 const IMAGE_PLACEHOLDER = "(image omitted: this model does not accept images)";
@@ -33,12 +33,13 @@ const CONTINUED_TEXT = "(continued)";
  * It applies five rules:
  *
  * 1. It skips assistant turns that ended in an error or an abort, together with the tool results that answer their
- *    calls, so a resumed call issues them again.
+ *    calls, so a resumed request asks the model again.
  * 2. It drops every reasoning block when `caps.reasoning` is false. Otherwise it drops reasoning written by another
  *    provider, and strips a signature the target cannot verify. An Anthropic target keeps every Anthropic-signed
- *    block unchanged, even one whose text is empty, and drops every block it cannot send signed; when one must go, it
- *    also drops every older reasoning block, because Anthropic lets a request omit earlier thinking but not a block
- *    between two it keeps. Any other target keeps the text of a block it cannot verify, unless the text is empty.
+ *    block unchanged, even one whose text is empty, and drops every block it cannot send signed. When one block must
+ *    go, every older reasoning block goes with it, because Anthropic lets a request omit earlier thinking but not a
+ *    block between two kept blocks. Any other target keeps the text of a block it cannot verify, unless the text is
+ *    empty.
  * 3. It replaces each image with a short text note when `caps.images` is false.
  * 4. It rewrites tool-call ids that are not 1–64 letters, digits, `_` or `-`, or that repeat an earlier id, and
  *    updates each matching tool result.
