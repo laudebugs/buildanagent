@@ -1,6 +1,6 @@
 # 0015. Have the harness always sign pauses with a persistent, host-only key ring, and make every approval a pause first
 
-- **Status:** Superseded by [0035](0035-read-only-key-store.md) (2026-11-18); accepted by the owner on 2026-11-18
+- **Status:** Superseded by [0035](0035-read-only-key-store.md) (2026-11-18); accepted by the owner on 2026-11-18; names amended by [0044](0044-rename-to-buildanagent.md) (2026-11-19)
 - **Date:** 2026-11-18
 - **Plan:** [build-harness.md, HD5](../plans/build-harness.md#hd5-the-harness-always-passes-hmacsigner-over-a-persistent-key-ring-accepted-with-sdk-d5)
 
@@ -10,7 +10,7 @@ Harness decision 5 merges with SDK decision 5 (ADR 0005). The SDK defaults to a 
 
 ## Decision
 
-The harness keeps a key ring in a `KeyStore` outside every sandbox and outside the session log (by default `$XDG_STATE_HOME/buildanagent/keys.json`, mode `0600`) and passes `hmacSigner({ keys, current })` on every run and resume. Rotation adds a current key; an old key stays until no unresolved `approval_requested` entry names it. Every `ask` ends the run `awaiting_approval`, and the harness writes the `approval_requested` entry before any client sees the request; it never uses `blockingApprovals()`. On resume the SDK verifies signatures and the harness re-runs its pipeline on each approved call, letting a deny win.
+The harness keeps a key ring in a `KeyStore` outside every sandbox and outside the session log (by default `$XDG_STATE_HOME/agent-speak/keys.json`, mode `0600`) and passes `hmacSigner({ keys, current })` on every run and resume. Rotation adds a current key; an old key stays until no unresolved `approval_requested` entry names it. Every `ask` ends the run `awaiting_approval`, and the harness writes the `approval_requested` entry before any client sees the request; it never uses `blockingApprovals()`. On resume the SDK verifies signatures and the harness re-runs its pipeline on each approved call, letting a deny win.
 
 ## Consequences
 

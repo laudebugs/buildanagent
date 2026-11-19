@@ -194,3 +194,12 @@ Each correction is in the report; the four research notes keep their original te
 24. **Todo id (row 53).** Change 7 now names N29.
 
 Two earlier documents changed with this round. The [agent-harness fact-check](../agent-harness/fact-check.md#daytona-isolation-re-checked-u11-2026-11-18) has a new dated section that supersedes R1's Daytona row, and the [harness guide §6](../../guides/agent-harness.md#6-the-sandbox-and-the-credential-boundary-are-separate-components-and-the-host-not-the-model-owns-both) and the permissions note now describe Daytona's classes, each with a note. None of these corrections changes the report's recommendation: the seams stay seven, the support order stays E2B, Cloudflare and Vercel, and the browser stays a relayed backend.
+
+## Rename to buildanagent (2026-11-19)
+
+[ADR 0044](../../decisions/0044-rename-to-buildanagent.md) renamed the project and its npm scope, so the report and its notes' current-plan claims changed with it. Each earlier row keeps the text it confirmed at the time.
+
+| # | Claim | Verdict | Source and reason |
+| --- | --- | --- | --- |
+| R1 | HD5's key ring sits at `$XDG_STATE_HOME/agent-speak/keys.json` (row 40) | ✏️ | Now `$XDG_STATE_HOME/buildanagent/keys.json` in HD5 and in portable-agents.md, by ADR 0044 |
+| R2 | Package names in the report use the `@agent-speak/` scope | ✏️ | Now `@buildanagent/`, by ADR 0044; the names' meaning is unchanged |

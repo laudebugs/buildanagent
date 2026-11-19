@@ -57,5 +57,6 @@ Each file records one lasting decision: what we chose, why, and what follows fro
 | [0041](0041-platform-github-app.md) | Deliver platform code through one public GitHub App, with tokens bound to the task's tenant | Accepted (owner, 2026-11-18) | [PF8](../plans/build-agent-platform.md#pf8-one-public-github-app-installed-by-each-user-accepted-adr-0041) |
 | [0042](0042-generated-code-isolation.md) | Run generated code only in a fresh hosted sandbox per task, deny egress by default, and reject stdio MCP commands | Accepted (owner, 2026-11-18) | [PF9](../plans/build-agent-platform.md#pf9-generated-code-runs-only-in-a-fresh-hosted-sandbox-accepted-adr-0042) |
 | [0043](0043-standalone-safety-core.md) | Build the signer, effect identity, outcomes and plan approval in a standalone safety package that our SDK later imports | Accepted (owner, 2026-11-18) | [SG1](../plans/close-sdk-gaps.md#sg1-the-safety-core-is-a-standalone-package-that-our-sdk-later-imports-accepted-adr-0043) |
+| [0044](0044-rename-to-buildanagent.md) | Rename the project, its npm scope and every name derived from it from agent-speak to buildanagent | Accepted (owner, 2026-11-19) | owner decision, [#27](https://github.com/laudebugs/buildanagent/pull/27) |
 
 ADRs 0022–0031 record the triage agent's decisions. ADR 0032 defers that agent, so they stay as written and take effect if its round resumes.

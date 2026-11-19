@@ -1,6 +1,6 @@
 # 0043. Build the signer, effect identity, outcomes and plan approval in a standalone safety package that our SDK later imports
 
-- **Status:** Accepted (owner, 2026-11-18), including `EffectStore` as the eighth portable seam
+- **Status:** Accepted (owner, 2026-11-18), including `EffectStore` as the eighth portable seam; names amended by [0044](0044-rename-to-buildanagent.md) (2026-11-19)
 - **Date:** 2026-11-18
 - **Plan:** [close-sdk-gaps.md, SG1](../plans/close-sdk-gaps.md#sg1-the-safety-core-is-a-standalone-package-that-our-sdk-later-imports-accepted-adr-0043)
 
@@ -10,7 +10,7 @@ The owner wants the SDK gaps closed and tested before anything big is built. The
 
 ## Decision
 
-`@buildanagent/agent-safety` becomes a third workspace package with no dependency on `@buildanagent/sdk`. It holds the `ApprovalSigner` interface and its signers, the canonical input hash, the effect identity and store, the five write outcomes and the plan approval. It depends only on `@buildanagent/gateway`, for the price catalog and for `projectCallCost()`, which moves from B14 to B5. Our SDK imports the signer and hashing from the package instead of defining them, with the interface shapes that [build-sdk.md §3.3](../plans/build-sdk.md#33-sdk-api) gives them. ADR 0005's rules stay as written: key ids, a fail-closed resume that no option turns off, and the same signed fields. The package's `EffectStore` becomes an eighth portable seam beside ADR 0033's seven, held to the same conformance suite (N45).
+`@agent-speak/agent-safety` becomes a third workspace package with no dependency on `@agent-speak/sdk`. It holds the `ApprovalSigner` interface and its signers, the canonical input hash, the effect identity and store, the five write outcomes and the plan approval. It depends only on `@agent-speak/gateway`, for the price catalog and for `projectCallCost()`, which moves from B14 to B5. Our SDK imports the signer and hashing from the package instead of defining them, with the interface shapes that [build-sdk.md §3.3](../plans/build-sdk.md#33-sdk-api) gives them. ADR 0005's rules stay as written: key ids, a fail-closed resume that no option turns off, and the same signed fields. The package's `EffectStore` becomes an eighth portable seam beside ADR 0033's seven, held to the same conformance suite (N45).
 
 ## Consequences
 

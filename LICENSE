@@ -25,7 +25,8 @@ Mirrored third-party docs: their own licences
   the source repository and the tag or commit it was copied from.
   THIRD-PARTY-NOTICES.md lists every mirror and its licence.
 
-Copyright (c) 2026 The buildanagent contributors.
+Copyright (c) 2026 The buildanagent contributors (named agent-speak until
+2026-11-19).
 
 Contributions to this repository are accepted under the same terms: code
 under Apache-2.0 OR MIT, documentation under CC BY 4.0.
