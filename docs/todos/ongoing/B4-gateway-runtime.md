@@ -3,7 +3,7 @@
 | Field | Value |
 | --- | --- |
 | ID | `B4` |
-| Status | `ready` |
+| Status | `ongoing` |
 | Plan | [Build SDK §4, Stage 1](../../plans/build-sdk.md#41-stage-1-builds-the-gateway-types-and-the-scripted-model-that-every-later-todo-tests-against) |
 | Round / milestone | Round B (build SDK), M5 |
 | Depends on | [B3](../done/B3-scripted-model.md) |
@@ -73,7 +73,7 @@ Gap 7 of the [close-sdk-gaps plan](../../plans/close-sdk-gaps.md#3-each-gap-the-
 
 - [ ] With decoy provider key variables set in the test process, `createModel()` sends only `ProviderConfig.apiKey`, a missing `apiKey` fails before any request, and no code path reads a key from the environment (a recording transport checks every request).
 
-The safety package's [E6](E6-byok-no-fallback.md) asserts the same rule for the AI SDK's providers.
+The safety package's [E6](../ready/E6-byok-no-fallback.md) asserts the same rule for the AI SDK's providers.
 
 ## Definition of done
 

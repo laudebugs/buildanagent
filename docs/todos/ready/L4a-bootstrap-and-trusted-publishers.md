@@ -6,7 +6,7 @@
 | Status | `ready` |
 | Plan | [Publish and docs §4](../../plans/publish-and-docs.md#4-round-l-and-its-todos) |
 | Round / milestone | Round L (publish and docs, added 2026-11-19) |
-| Depends on | [B4](B4-gateway-runtime.md), [B8](B8-anthropic-adapter.md), [L3](L3-release-workflow.md) |
+| Depends on | [B4](../ongoing/B4-gateway-runtime.md), [B8](B8-anthropic-adapter.md), [L3](L3-release-workflow.md) |
 
 The filename predates the 2026-11-19 change, when the owner's hand-run bootstrap moved the trusted publishers to L4b; it stays so links keep working. L4a still waits for L3, because `release.yml` must exist before the packages go public.
 | Size | S |
