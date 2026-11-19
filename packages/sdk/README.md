@@ -34,7 +34,7 @@ for await (const event of started) {
 const result = await started.result;
 ```
 
-`model` comes from `createModel()` in the gateway, and a bare model id is a type error. A tool whose `exposure` is `"deferred"` or `"hidden"` is never sent to the model, and a call to it gets the unknown-tool error.
+`model` comes from `createModel()` in the gateway, and a bare model id is a type error. A tool whose `exposure` is `"deferred"` or `"hidden"` is sent to the model only when a `beforeModelCall` interceptor names it in `activeTools`, and a call to a tool the request didn't send gets the unknown-tool error.
 
 ### Every run ends with a stop reason
 
@@ -78,7 +78,7 @@ The events come in two layers. The delta layer streams each content block by its
 - **`run_start`** comes first, with the SDK's version, the spec version and the model.
 - **`step_start`** and **`step_end`** wrap one model call and its tool calls; `step_end.stopCheck` says whether the run goes on.
 - **`model_call_start`** carries the request, and **`model_call_end`** the final message.
-- **`tool_call_start`**, **`tool_call_update`** and **`tool_call_end`** follow each tool call; `tool_call_end.result` is what the model reads.
+- **`tool_call_start`**, **`tool_call_update`** and **`tool_call_end`** follow each tool call; `tool_call_end.result` is what the model reads. When a `beforeToolCall` gate replaced the model's input, `tool_call_end.input` holds the input the call got instead.
 - **`context_transformed`** reports the message counts before and after `transformContext` for one model call.
 - **`hook_error`** reports an interceptor or an observer that threw, with the hook's name and the message.
 - **`retry`** reports a failed request the gateway is retrying, and **`warning`** reports a reached cap or a model warning.
@@ -124,19 +124,19 @@ By default a hook that throws stops the unsafe thing, and the run emits a `hook_
 
 - A failed `beforeToolCall` denies the call.
 - A failed `afterToolCall` withholds the result, so a redaction that crashed can't leak the original.
-- A failed `transformContext`, `beforeModelCall`, `afterModelCall` or `shouldStop` ends the run with `stopReason: "error"` and `error.kind: "hook"`. If the run was aborted, it ends `aborted` instead.
+- A failed `transformContext`, `beforeModelCall`, `afterModelCall` or `shouldStop` ends the run with `stopReason: "error"` and `error.kind: "hook"`. If the run was aborted, it ends `aborted` instead. When `afterModelCall` fails, the transcript and `model_call_end` hold an empty stand-in with `stopReason: "error"` and the call's usage and cost, so the response is withheld but the billed call is still on record.
 
 Set `onFailure: "continue"` to skip a failed hook and go on as if it had returned nothing. A hook that returns the wrong shape is a different case: it is a bug in your code, so the run's `result` rejects with `invalid_hook_result` whatever `onFailure` says.
 
 ### `composeInterceptors()` joins several objects
 
-A run takes one `Interceptors` object, so `composeInterceptors(a, b)` joins a context policy, a permission check and an audit. For a moment that several define, the hooks run in the order given. `transformContext` passes the messages through each hook in turn. `beforeModelCall` merges the patches, a later field replacing an earlier one. `afterModelCall` and `afterToolCall` chain, each hook seeing the result so far. For gates the strictest answer wins: the first `deny` ends the check, an `ask` beats an `allow`, and an input one gate replaces is the input the next gate sees. For `shouldStop` the first stop wins, then the first continue. The joined `onFailure` is `"continue"` only when every object that sets it says so.
+A run takes one `Interceptors` object, so `composeInterceptors(a, b)` joins a context policy, a permission check and an audit. For a moment that several define, the hooks run in the order given. `transformContext` passes the messages through each hook in turn. `beforeModelCall` merges the patches, a later field replacing an earlier one. `afterModelCall` and `afterToolCall` chain, each hook seeing the result so far. For gates the strictest answer wins: the first `deny` ends the check, an `ask` beats an `allow`, and an input one gate replaces is the input the next gate sees. For `shouldStop` the first stop wins, then the first continue. Each hook's return value is checked as if it ran alone, so a gate that returns nothing throws `invalid_hook_result` even when another gate allows the call. The joined `onFailure` is `"continue"` only when every object that sets it says so.
 
 ### Observers watch without changing anything
 
 An observer is `(event) => void | Promise<void>`. Each one sees every event in order, and waits for its own promise before it gets the next. Observers don't wait for each other, so one slow observer delays only itself. The `observers` option sees events from `run_start`. `run.on(observer)` returns a function that removes it, and drops events still queued for it. Call it right after `run()` to see every event but `run_start`.
 
-An observer that throws or rejects becomes a `hook_error` event with `hook: "observer"`, and never changes the run. The one exception is an observer that fails while handling `run_end`: nothing may follow that event, so the failure is dropped. The run waits for observers to handle `agent_settled` and `run_end` before it settles, so an observer's promise must settle.
+An observer that throws or rejects becomes a `hook_error` event with `hook: "observer"`, and never changes the run. The one exception is an observer that fails while handling `run_end`: nothing may follow that event, so the failure is dropped. The run waits for observers to handle `agent_settled` and `run_end` before it settles, for at most `observerTimeoutMs` (default 10000) each time. An observer that hasn't caught up by then is removed and reported as a `hook_error`, so an observer whose promise never settles can't hold the run open. Each observer gets a frozen copy of the event, so it can't change the run's own data.
 
 ## Define a tool with `defineTool()`
 

@@ -8,7 +8,7 @@
  * `HookFailure`, which the loop turns into an `error` result. Under `continue` the failed hook is skipped.
  */
 import type { AssistantMessage, Message, ModelContext, ModelRef, Usage } from "@buildanagent/gateway";
-import { SdkError } from "./errors.js";
+import { isSdkError, SdkError } from "./errors.js";
 import type { AgentEventBody } from "./events.js";
 import { frozenCopy } from "./freeze.js";
 import {
@@ -208,6 +208,9 @@ export class HookRunner {
     try {
       return { status: "ok", value: await call() };
     } catch (error) {
+      // A wrong return shape is a programmer error whatever the policy, even when a joined hook found it inside
+      // `composeInterceptors()`: skipping or closing on it would let a typo in a gate pass silently.
+      if (isSdkError(error) && error.code === "invalid_hook_result") throw error;
       this.#setup.send({ type: "hook_error", hook, error: messageOf(error) });
       if (this.#continues) return { status: "skipped" };
       if (closed === undefined) throw new HookFailure(hook, error);

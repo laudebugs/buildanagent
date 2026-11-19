@@ -548,7 +548,7 @@ declare function replayPairs(pairs: RecordedPair[]): ScriptedModel;   // rejects
 **Revision (B13, 2026-11-19).** B13 adds the interceptors and observers with these departures from the sketch above, each recorded in [its outcome](../todos/done/B13-interceptors-observers.md#outcome):
 - `onFailure` covers all six interceptors and defaults to `fail_closed`: a gate denies, `afterToolCall` withholds the result, and the others end the run with `error.kind: "hook"`. `RunResult` gains `no_progress` with a required `reason`, and `RunError.kind` gains `"hook"`.
 - `activeTools` is the complete list of tools a request sends, for that call only. `afterToolCall` takes a patch without `outcome`. Until B15, `ask` blocks the call like `deny`.
-- `composeInterceptors()` joins interceptor objects, and `Interceptors` hooks may be plain or `async`. Each observer has its own queue, and the run waits for the queues before `agent_settled` and before it settles.
+- `composeInterceptors()` joins interceptor objects, and `Interceptors` hooks may be plain or `async`. Each observer has its own queue, and the run waits for the queues before `agent_settled` and before it settles, for at most `observerTimeoutMs` each time.
 - `SdkError` gains the codes `invalid_hook_result` and `hook_failed`, and the loop starts one microtask after `run()` so `run.on()` sees every event but `run_start`.
 
 ### 3.4 The seams P2 consumes

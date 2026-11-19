@@ -71,7 +71,10 @@ export interface LoopSetup {
 /** Sends one event; the run adds the `EventBase` fields. */
 export type Emit = (body: AgentEventBody, stepIndex: number) => void;
 
-/** Resolves once every observer has handled the events sent so far. */
+/**
+ * Resolves once every observer has handled the events sent so far. The loop calls it only once it has its outcome,
+ * and the run treats the first call as the point after which an abort no longer counts.
+ */
 export type Drain = () => Promise<void>;
 
 /** How a run ended, before its usage, cost and messages are attached. */
@@ -242,9 +245,36 @@ async function streamRequest(state: LoopState, request: Request): Promise<Assist
   return message;
 }
 
+/** Adds a model call's response to the transcript and reports it. */
+function record(state: LoopState, message: AssistantMessage): void {
+  state.append(message);
+  state.send({ type: "model_call_end", message });
+}
+
+/**
+ * What the transcript holds for a response whose `afterModelCall` failed while the run fails closed: no content, so a
+ * check that crashed can't let the response through, but the call's usage and cost, which were billed. Its error stop
+ * reason makes the replay pass skip it if the run is continued.
+ */
+function withheld(original: AssistantMessage): AssistantMessage {
+  const { model, usage, cost, lastAttemptUsage } = original;
+  return {
+    role: "assistant",
+    content: [],
+    model,
+    stopReason: "error",
+    error: { kind: "fatal", message: "the response was withheld, because its afterModelCall check failed" },
+    usage,
+    ...(lastAttemptUsage === undefined ? {} : { lastAttemptUsage }),
+    cost,
+  };
+}
+
 /**
  * Makes one model call, streams its events and records the response. The call's usage and cost are the model's own
- * message's, so an `afterModelCall` replacement changes what the run goes on with, never what it is billed.
+ * message's, so an `afterModelCall` replacement changes what the run goes on with, never what it is billed. When
+ * `afterModelCall` fails and the run fails closed, a withheld stand-in is recorded before the run ends, so the
+ * transcript and `model_call_end` still account for the billed call and none of its tool calls run.
  */
 async function callModel(state: LoopState): Promise<AssistantMessage> {
   const request = await buildRequest(state);
@@ -254,9 +284,14 @@ async function callModel(state: LoopState): Promise<AssistantMessage> {
   state.usage = addUsage(state.usage, original.usage);
   state.lastUsage = original.usage;
   state.cost = state.cost === undefined ? original.cost : addCost(state.cost, original.cost);
-  const message = await state.hooks.afterModelCall(original);
-  state.append(message);
-  state.send({ type: "model_call_end", message });
+  let message: AssistantMessage;
+  try {
+    message = await state.hooks.afterModelCall(original);
+  } catch (error) {
+    if (error instanceof HookFailure) record(state, withheld(original));
+    throw error;
+  }
+  record(state, message);
   return message;
 }
 
@@ -288,7 +323,8 @@ async function runTools(state: LoopState, message: AssistantMessage): Promise<re
       if (output !== undefined && entry.call.name === output.name && entry.result.isError !== true) {
         state.output = entry.result.structured;
       }
-      state.send({ type: "tool_call_end", callId: entry.call.callId, result: entry.result });
+      const ranWith = "input" in entry ? { input: entry.input } : {};
+      state.send({ type: "tool_call_end", callId: entry.call.callId, result: entry.result, ...ranWith });
     },
   });
 }
@@ -411,9 +447,9 @@ function resultOf(state: LoopState, outcome: Outcome): RunResult {
 }
 
 /**
- * Ends the run: the settle event comes once every observer has seen what came before it, and `run_end` after that, so
- * an observer's `hook_error` can never follow either, and the result is returned only once observers have seen the
- * last event.
+ * Ends the run: the settle event comes once every observer has seen what came before it, and `run_end` after that.
+ * An observer's failure while handling `agent_settled` is reported between the two; one while handling `run_end` is
+ * dropped, so `run_end` stays the last event. The result is returned only once observers have seen it.
  */
 async function finish(state: LoopState, outcome: Outcome): Promise<RunResult> {
   if (outcome.stopReason === "aborted") closeAborted(state);

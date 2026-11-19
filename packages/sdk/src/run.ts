@@ -19,6 +19,9 @@ import { SDK_VERSION } from "./version.js";
 /** The step cap's default, counted in model calls. */
 const DEFAULT_MAX_STEPS = 20;
 
+/** How long the run waits, by default, for an observer to catch up before it drops it. */
+const DEFAULT_OBSERVER_TIMEOUT_MS = 10_000;
+
 const systemClock: Clock = { now: () => new Date().toISOString() };
 const randomIds = (): string => globalThis.crypto.randomUUID();
 
@@ -26,7 +29,10 @@ const randomIds = (): string => globalThis.crypto.randomUUID();
 export interface RunOptions<S = unknown> {
   /** The model, from `createModel()`. */
   readonly model: Model;
-  /** The tools the model may call. Tools whose `exposure` is `deferred` or `hidden` are not sent. */
+  /**
+   * The tools the model may call. Tools whose `exposure` is `deferred` or `hidden` are not sent unless a
+   * `beforeModelCall` interceptor names them in `activeTools`.
+   */
   readonly tools?: readonly ToolDefinition<unknown, unknown>[];
   /**
    * A tool from `outputTool()` whose input is the final answer. It is sent with the other tools; once the model calls
@@ -50,10 +56,16 @@ export interface RunOptions<S = unknown> {
   /**
    * Observers, which receive every event from `run_start` on and can't change the run. Each observer sees the events in
    * order and waits for its own promises, but observers don't wait for each other. An observer that throws becomes a
-   * `hook_error` event. The run waits for every observer to handle the last event before it settles, so an observer's
-   * promise must settle.
+   * `hook_error` event. The run waits for every observer to handle the last event before it settles, for at most
+   * `observerTimeoutMs` each time it waits; an observer that hasn't caught up by then is removed and reported as a
+   * `hook_error`.
    */
   readonly observers?: readonly Observer[];
+  /**
+   * The longest the run waits for its observers each time it waits for them: before `agent_settled`, before
+   * `run_end` and before it settles. Default 10000. It bounds an observer whose promise never settles.
+   */
+  readonly observerTimeoutMs?: number;
   /** Stamps each event's `timestamp`, and is passed to tools. Defaults to the system clock. */
   readonly clock?: Clock;
   /** Makes the run's id. Defaults to `crypto.randomUUID()`. */
@@ -82,7 +94,8 @@ export interface Run<S = unknown> extends AsyncIterable<AgentEvent> {
   readonly result: Promise<RunResult<S>>;
   /**
    * Stops the run. A model call in flight ends, a running tool sees its `signal` fire, and calls that haven't started
-   * get an error result instead. The run then ends with `stopReason: "aborted"`. Does nothing once the run has ended.
+   * get an error result instead. The run then ends with `stopReason: "aborted"`. Does nothing once the run has its
+   * outcome and is ending, which is before `agent_settled`.
    */
   abort(reason?: string): void;
   /**
@@ -145,15 +158,20 @@ class RunHandle<S> implements Run<S> {
   readonly #bus: ObserverBus;
   #waiters: (() => void)[] = [];
   #ended = false;
+  /** Set once the loop has its outcome and starts to end the run, so `abort()` no longer does anything. */
+  #settled = false;
+  /** Set by `run_end`: nothing may follow it, so a late observer report is dropped. */
+  #closed = false;
   #failure: { readonly error: unknown } | undefined;
   #stepIndex = 0;
 
-  constructor(setup: Omit<LoopSetup, "signal">, signal: AbortSignal | undefined, observers: readonly Observer[]) {
+  constructor(setup: Omit<LoopSetup, "signal">, signal: AbortSignal | undefined, watch: ObserverSetup) {
     this.id = setup.runId;
     this.#clock = setup.clock;
-    this.#bus = new ObserverBus((hook, error) =>
-      this.#push({ type: "hook_error", hook, error: messageOf(error) }, this.#stepIndex),
-    );
+    this.#bus = new ObserverBus((hook, error) => {
+      if (!this.#closed) this.#push({ type: "hook_error", hook, error: messageOf(error) }, this.#stepIndex);
+    }, watch.timeoutMs);
+    const { observers } = watch;
     for (const observer of observers) this.#bus.add(observer);
     const emit = (body: AgentEventBody, stepIndex: number) => this.#push(body, stepIndex);
     const { model } = setup;
@@ -164,9 +182,13 @@ class RunHandle<S> implements Run<S> {
     else signal?.addEventListener("abort", forwardAbort, { once: true });
     // The loop starts after this turn, so an observer added with `run.on()` straight after `run()` sees every event
     // after `run_start`, and a `run.abort()` straight after it stops the run before its first model call.
-    const loop = Promise.resolve().then(() =>
-      runLoop({ ...setup, signal: this.#controller.signal }, emit, () => this.#bus.flush()),
-    );
+    // The loop drains the observers only once it has its outcome (`finish()`), so the first drain is also where an
+    // abort stops mattering: it could no longer change the outcome, only add an `abort` event after it.
+    const drain = () => {
+      this.#settled = true;
+      return this.#bus.flush();
+    };
+    const loop = Promise.resolve().then(() => runLoop({ ...setup, signal: this.#controller.signal }, emit, drain));
     // The loop's result type is `RunResult<unknown>`; only the output tool, whose type is `S`, fills `output`.
     this.result = loop as Promise<RunResult<S>>;
     // Handling the rejection here also keeps a caller who only iterates from an unhandled rejection: iteration
@@ -178,7 +200,7 @@ class RunHandle<S> implements Run<S> {
   }
 
   abort(reason?: string): void {
-    if (this.#ended || this.#controller.signal.aborted) return;
+    if (this.#settled || this.#ended || this.#controller.signal.aborted) return;
     this.#push(reason === undefined ? { type: "abort" } : { type: "abort", reason }, this.#stepIndex);
     this.#controller.abort(reason);
   }
@@ -208,6 +230,7 @@ class RunHandle<S> implements Run<S> {
 
   #push(body: AgentEventBody, stepIndex: number): void {
     this.#stepIndex = stepIndex;
+    if (body.type === "run_end") this.#closed = true;
     const base = { runId: this.id, seq: this.#events.length, stepIndex, timestamp: this.#clock.now() };
     const event = { ...base, ...body } as AgentEvent;
     this.#events.push(event);
@@ -289,10 +312,20 @@ function setupOf(options: RunOptions<unknown>, context: Context, input: readonly
   };
 }
 
-function observersOf(options: RunOptions<unknown>): readonly Observer[] {
+/** The observers a run starts with, and how long it waits for them. */
+interface ObserverSetup {
+  readonly observers: readonly Observer[];
+  readonly timeoutMs: number;
+}
+
+function observersOf(options: RunOptions<unknown>): ObserverSetup {
   const observers = options.observers ?? [];
   for (const observer of observers) checkObserver(observer);
-  return observers;
+  const timeoutMs = options.observerTimeoutMs ?? DEFAULT_OBSERVER_TIMEOUT_MS;
+  if (typeof timeoutMs !== "number" || !Number.isFinite(timeoutMs) || timeoutMs <= 0) {
+    throw new SdkError("invalid_run_options", `observerTimeoutMs must be a positive number, got ${timeoutMs}`);
+  }
+  return { observers, timeoutMs };
 }
 
 /**

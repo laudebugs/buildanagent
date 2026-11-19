@@ -258,3 +258,24 @@ test("afterToolCall runs for a tool that threw, and sees the error result", asyn
   );
   assert.deepEqual(seen, [true]);
 });
+
+test("tool_call_end carries the input a gate put in place of the model's, and only then", async () => {
+  const lookup = recorder("lookup");
+  const replaced = await drivenRun(
+    [CALL, text("Done.")],
+    { beforeToolCall: async () => ({ decision: "allow", input: { order: 2 } }) },
+    { tools: [lookup.tool] },
+  );
+  const end = replaced.events.find((event) => event.type === "tool_call_end");
+  assert.deepEqual(end?.type === "tool_call_end" ? end.input : "missing", { order: 2 });
+  assert.deepEqual(lookup.inputs, [{ order: 2 }]);
+  const kept = await drivenRun(
+    [CALL, text("Done.")],
+    { beforeToolCall: async () => ({ decision: "allow" }) },
+    {
+      tools: [recorder("lookup").tool],
+    },
+  );
+  const plain = kept.events.find((event) => event.type === "tool_call_end");
+  assert.equal(plain !== undefined && "input" in plain, false);
+});

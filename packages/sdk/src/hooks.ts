@@ -154,7 +154,8 @@ export interface Interceptors {
   readonly beforeModelCall?: (e: ModelCallEvent) => MaybePromise<OrNothing<ModelCallPatch>>;
   /**
    * Replaces the model's response. The transcript and the `model_call_end` event hold the replacement, and its tool
-   * calls are the ones that run. The call's usage and cost stay those of the model's own response.
+   * calls are the ones that run. The call's usage and cost stay those of the model's own response. If it throws
+   * while the run fails closed, both hold an empty stand-in with `stopReason: "error"` and that usage and cost.
    */
   readonly afterModelCall?: (e: ModelResultEvent) => MaybePromise<OrNothing<{ readonly message?: AssistantMessage }>>;
   /**

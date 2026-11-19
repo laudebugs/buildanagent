@@ -231,3 +231,82 @@ test("an observer that isn't a function rejects run() with invalid_run_options",
     (error) => isSdkError(error) && error.code === "invalid_run_options",
   );
 });
+
+test("an observer that calls abort() while the run ends adds no abort event and leaves the outcome", async () => {
+  for (const type of ["agent_settled", "run_end"] as const) {
+    const { started } = hookedRun([text("Done.")], {});
+    started.on((event) => {
+      if (event.type === type) started.abort("too late");
+    });
+    const { events, result } = await drive(started);
+    assert.equal(result.stopReason, "done");
+    assert.deepEqual(typesOf(events).slice(-2), ["agent_settled", "run_end"], type);
+    assert.equal(
+      events.some((event) => event.type === "abort"),
+      false,
+      type,
+    );
+  }
+});
+
+test("an observer whose promise never settles is removed after observerTimeoutMs, and the run still settles", async () => {
+  const { events: seen, observer } = collector();
+  const { events, result } = await drivenRun(
+    [text("Done.")],
+    {},
+    {
+      observerTimeoutMs: 5,
+      observers: [(event) => (event.type === "step_end" ? new Promise<void>(() => {}) : undefined), observer],
+    },
+  );
+  assert.equal(result.stopReason, "done");
+  const failed = events.find((event) => event.type === "hook_error");
+  assert.match(failed?.type === "hook_error" ? failed.error : "", /did not handle a step_end event within 5 ms/);
+  assert.deepEqual(typesOf(events).slice(-2), ["agent_settled", "run_end"]);
+  assert.deepEqual(seen, events);
+});
+
+test("an observer gets a frozen copy of each event, so it can't change the run's result", async () => {
+  const { events, result } = await drivenRun(
+    [text("Done.")],
+    {},
+    {
+      observers: [
+        (event) => {
+          if (event.type === "run_end") (event.result.messages as unknown[]).length = 0;
+        },
+      ],
+    },
+  );
+  assert.equal(result.messages.length, 2);
+  const failed = events.find((event) => event.type === "hook_error");
+  assert.equal(failed, undefined, "a run_end failure is dropped");
+});
+
+test("an observer that mutates an event mid-run fails, and the transcript keeps its messages", async () => {
+  const { events, result } = await drivenRun(
+    [toolCall("lookup", { order: 1 }), text("Done.")],
+    {},
+    {
+      tools: [lookup],
+      observers: [
+        (event) => {
+          if (event.type === "model_call_end") (event.message.content as unknown[]).push({ type: "text", text: "x" });
+        },
+      ],
+    },
+  );
+  assert.equal(result.stopReason, "done");
+  assert.ok(events.some((event) => event.type === "hook_error" && /not extensible/.test(event.error)));
+  const first = result.messages[1];
+  assert.equal(first?.role === "assistant" ? first.content.length : undefined, 1);
+});
+
+test("an observerTimeoutMs that isn't a positive number rejects run() with invalid_run_options", () => {
+  for (const observerTimeoutMs of [0, -1, Number.NaN, Number.POSITIVE_INFINITY]) {
+    assert.throws(
+      () => hookedRun([text("Done.")], {}, { observerTimeoutMs }),
+      (error) => isSdkError(error) && error.code === "invalid_run_options",
+    );
+  }
+});

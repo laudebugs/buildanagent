@@ -2,8 +2,8 @@
 import assert from "node:assert/strict";
 import type { Interceptors } from "@buildanagent/sdk";
 import { test } from "vitest";
-import { drivenRun } from "./hook-helpers.js";
-import { lookup, text, toolCall } from "./run-helpers.js";
+import { drivenRun, recorder } from "./hook-helpers.js";
+import { lookup, text, toolCall, typesOf } from "./run-helpers.js";
 
 function boom(): never {
   throw new Error("boom");
@@ -95,4 +95,25 @@ test("a hook that returns the wrong shape rejects the run, whatever onFailure sa
     transformContext: (async () => "no") as never,
   });
   await assert.rejects(started.result, { code: "invalid_hook_result" });
+});
+
+test("a failed afterModelCall records a withheld stand-in, so the billed call stays on record and nothing runs", async () => {
+  const tool = recorder("lookup");
+  const { events, result } = await drivenRun(
+    [toolCall("lookup", { order: 1 }), text("Done.")],
+    { afterModelCall: boom },
+    {
+      tools: [tool.tool],
+    },
+  );
+  assert.equal(result.stopReason, "error");
+  assert.deepEqual(tool.inputs, []);
+  const types = typesOf(events);
+  assert.ok(types.indexOf("model_call_end") > types.indexOf("hook_error"));
+  const end = events.find((event) => event.type === "model_call_end");
+  const recorded = result.messages.at(-1);
+  assert.deepEqual(end?.type === "model_call_end" ? end.message : undefined, recorded);
+  assert.deepEqual(recorded?.role === "assistant" ? [recorded.content, recorded.stopReason] : undefined, [[], "error"]);
+  assert.equal(result.steps, 1);
+  assert.deepEqual(recorded?.role === "assistant" ? recorded.usage : undefined, result.usage);
 });

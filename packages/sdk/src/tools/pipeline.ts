@@ -73,6 +73,8 @@ export type GateOutcome = { readonly blocked: ToolResult } | { readonly input: u
 export interface ToolCallResult {
   readonly call: ToolCall;
   readonly result: ToolResult;
+  /** The input the gate put in place of the model's, present only when the gate replaced it. */
+  readonly input?: unknown;
 }
 
 function toolsByName(tools: readonly AnyTool[]): ReadonlyMap<string, AnyTool> {
@@ -227,6 +229,8 @@ interface Ready {
   readonly call: ToolCall;
   readonly tool: AnyTool;
   readonly input: unknown;
+  /** True when the gate replaced the model's input with `input`. */
+  readonly replaced: boolean;
   readonly key: string | undefined;
 }
 
@@ -262,7 +266,7 @@ async function gateCall(
   tool: AnyTool,
   input: unknown,
   ctx: PipelineContext,
-): Promise<{ readonly blocked: ToolResult } | { readonly input: unknown }> {
+): Promise<{ readonly blocked: ToolResult } | { readonly input: unknown; readonly replaced?: true }> {
   const outcome = await ctx.gate?.({ call, tool, input });
   if (outcome === undefined) return { input };
   if ("blocked" in outcome) return outcome;
@@ -274,7 +278,7 @@ async function gateCall(
       `beforeToolCall replaced the input of tool "${tool.name}" with input its schema rejects: ${issues}`,
     );
   }
-  return { input: checked.value };
+  return { input: checked.value, replaced: true };
 }
 
 // Everything that happens before execution, for one call: name, cancellation, input checks, resource key, and the
@@ -306,7 +310,8 @@ async function prepareCall(
   // Each call's gate settles before the next call's is asked, and every gate before any call executes.
   const gated = await gateCall(call, tool, checked.input, ctx);
   if ("blocked" in gated) return { kind: "done", call, result: gated.blocked };
-  return { kind: "ready", call, tool, input: gated.input, key: resourceKeyOf(tool, gated.input) };
+  const replaced = "replaced" in gated;
+  return { kind: "ready", call, tool, input: gated.input, replaced, key: resourceKeyOf(tool, gated.input) };
 }
 
 // Only a first-party tool's hint counts: an MCP server's annotations are claims by someone we don't control. A tool
@@ -428,7 +433,9 @@ async function deliver(
       failure ??= { error: settled.error };
       continue;
     }
-    const entry = { call: (prepared[index] as Prepared).call, result: settled.value };
+    const item = prepared[index] as Prepared;
+    const replaced = item.kind === "ready" && item.replaced ? { input: item.input } : {};
+    const entry: ToolCallResult = { call: item.call, result: settled.value, ...replaced };
     results.push(entry);
     try {
       ctx.onResult?.(entry);

@@ -1,9 +1,9 @@
 // composeInterceptors: the order hooks run in, and how their answers combine.
 import assert from "node:assert/strict";
 import type { Message } from "@buildanagent/gateway";
-import { composeInterceptors, type ToolCallEvent } from "@buildanagent/sdk";
+import { composeInterceptors, type GateDecision, isSdkError, type ToolCallEvent } from "@buildanagent/sdk";
 import { test } from "vitest";
-import { drivenRun, lastText, recorder, sentTools } from "./hook-helpers.js";
+import { drivenRun, hookedRun, lastText, recorder, sentTools } from "./hook-helpers.js";
 import { lookup, text, toolCall } from "./run-helpers.js";
 import { textOf } from "./tool-helpers.js";
 
@@ -148,4 +148,64 @@ test("a composed activeTools still sends tools in definition order", async () =>
   const composed = composeInterceptors({ beforeModelCall: async () => ({ activeTools: ["search_orders", "lookup"] }) });
   const { adapter } = await drivenRun([text("Done.")], composed, { tools: [lookup, search.tool] });
   assert.deepEqual(sentTools(adapter.calls[0] ?? { context: { tools: [] } }), ["lookup", "search_orders"]);
+});
+
+// A joined gate that skipped a member's bad answer would let a forgotten return pass for permission.
+for (const [label, bad] of [
+  ["nothing", undefined],
+  ["a misspelt decision", { decision: "Deny", reason: "no" }],
+] as const) {
+  for (const onFailure of ["fail_closed", "continue"] as const) {
+    test(`a joined gate that returns ${label} rejects the run, even beside an allow, with onFailure ${onFailure}`, async () => {
+      const lookupTool = recorder("lookup");
+      const composed = composeInterceptors(
+        { beforeToolCall: async () => ({ decision: "allow" }), onFailure },
+        { beforeToolCall: (async () => bad) as unknown as () => Promise<GateDecision>, onFailure },
+      );
+      const { started } = hookedRun([CALL, text("Done.")], composed, { tools: [lookupTool.tool] });
+      await assert.rejects(started.result, (error) => isSdkError(error) && error.code === "invalid_hook_result");
+      assert.deepEqual(lookupTool.inputs, []);
+    });
+  }
+}
+
+test("a joined hook checks every member's return, so a bad transformContext between good ones is loud", async () => {
+  const composed = composeInterceptors(
+    { transformContext: (async () => "no") as never, onFailure: "continue" },
+    { transformContext: async () => [user("fine")], onFailure: "continue" },
+  );
+  const { started } = hookedRun([text("Done.")], composed);
+  await assert.rejects(started.result, (error) => isSdkError(error) && error.code === "invalid_hook_result");
+});
+
+test("a beforeModelCall field set to undefined keeps the value an earlier hook set", async () => {
+  const seen: (string | undefined)[] = [];
+  const composed = composeInterceptors(
+    { beforeModelCall: async () => ({ system: "S", options: { maxOutputTokens: 7 } }) },
+    {
+      beforeModelCall: async (e) => {
+        seen.push(e.context.system, String(e.options.maxOutputTokens));
+        return { system: undefined, messages: [user("only this")] } as never;
+      },
+    },
+  );
+  const { adapter } = await drivenRun([text("Done.")], composed);
+  assert.deepEqual(seen, ["S", "7"]);
+  assert.equal(adapter.calls[0]?.context.system, "S");
+  assert.equal(adapter.calls[0]?.options.maxOutputTokens, 7);
+  assert.equal(lastText(adapter.calls[0]?.context.messages ?? []), "only this");
+});
+
+test("an afterToolCall field set to undefined keeps the content an earlier hook set", async () => {
+  const lookupTool = recorder("lookup");
+  const composed = composeInterceptors(
+    { afterToolCall: async () => ({ content: [{ type: "text", text: "redacted" }] }) },
+    { afterToolCall: async () => ({ content: undefined, details: { audited: true } }) as never },
+  );
+  const { events } = await drivenRun([CALL, text("Done.")], composed, { tools: [lookupTool.tool] });
+  const end = events.find((event) => event.type === "tool_call_end");
+  assert.deepEqual(end?.type === "tool_call_end" ? [textOf(end.result.content), end.result.details] : undefined, [
+    "redacted",
+    { audited: true },
+  ]);
 });

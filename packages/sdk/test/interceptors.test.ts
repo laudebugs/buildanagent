@@ -237,6 +237,13 @@ test("a continue at the step cap ends the run max_steps", async () => {
   assert.equal(result.stopReason, "max_steps");
 });
 
+test("a continue whose blocks aren't text or image rejects the run with invalid_hook_result", async () => {
+  const { started } = hookedRun([text("First."), text("Second.")], {
+    shouldStop: (async () => ({ continue: [{ text: "go on" }] })) as never,
+  });
+  await assert.rejects(started.result, (error) => isSdkError(error) && error.code === "invalid_hook_result");
+});
+
 test("context_transformed comes after step_start and before model_call_start", async () => {
   const { events } = await drivenRun([text("Done.")], { transformContext: async (e) => e.messages });
   assert.deepEqual(typesOf(events).slice(0, 4), ["run_start", "step_start", "context_transformed", "model_call_start"]);

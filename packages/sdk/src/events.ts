@@ -62,8 +62,16 @@ export type AgentEventBody =
     }
   | { readonly type: "tool_call_start"; readonly callId: string; readonly tool: string; readonly input: unknown }
   | { readonly type: "tool_call_update"; readonly callId: string; readonly details: unknown }
-  /** `result` is what the model reads for the call, after `afterToolCall` has had its say. */
-  | { readonly type: "tool_call_end"; readonly callId: string; readonly result: ToolResult }
+  /**
+   * `result` is what the model reads for the call, after `afterToolCall` has had its say. `input` is present only
+   * when a `beforeToolCall` gate replaced the model's input, and holds the input the gate gave the call instead.
+   */
+  | {
+      readonly type: "tool_call_end";
+      readonly callId: string;
+      readonly result: ToolResult;
+      readonly input?: unknown;
+    }
   /** `transformContext` returned the messages for one model call: `before` messages in, `after` messages out. */
   | { readonly type: "context_transformed"; readonly before: number; readonly after: number }
   /** The model is retrying a failed request; `attempt` is 1 for the first retry. */

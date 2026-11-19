@@ -5,6 +5,7 @@
 import type { AssistantMessage, ContentBlock, Message, Model } from "@buildanagent/gateway";
 import { SdkError } from "./errors.js";
 import type { GateDecision, ModelCallPatch, StopDecision } from "./hooks.js";
+import { isContentList } from "./tools/pipeline.js";
 
 function invalid(hook: string, problem: string): never {
   throw new SdkError("invalid_hook_result", `${hook} ${problem}`);
@@ -85,9 +86,13 @@ export type StopVerdict =
   | { readonly kind: "no_progress"; readonly reason: string }
   | { readonly kind: "continue"; readonly content: ContentBlock[] };
 
+// The continue content becomes a user message in the transcript, so a malformed block would fail a later request far
+// from the hook that returned it.
 function continueContent(value: string | readonly ContentBlock[]): ContentBlock[] {
   if (typeof value === "string") return [{ type: "text", text: value }];
-  if (!Array.isArray(value)) invalid("shouldStop", "returned a continue that is neither text nor a list of blocks");
+  if (!isContentList(value)) {
+    invalid("shouldStop", "returned a continue that is neither text nor a list of text and image blocks");
+  }
   return [...value];
 }
 

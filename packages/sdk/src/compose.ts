@@ -3,6 +3,14 @@
  * an audit can each be written and tested alone. A run takes one `Interceptors` object, and the joined one is it.
  */
 import type { Message, ModelContext } from "@buildanagent/gateway";
+import {
+  checkDecision,
+  checkMessages,
+  checkModelPatch,
+  checkReplacement,
+  checkResultPatch,
+  checkStopDecision,
+} from "./hook-checks.js";
 import type {
   GateDecision,
   Interceptors,
@@ -19,26 +27,39 @@ function hooksOf<K extends Exclude<keyof Interceptors, "onFailure">>(sets: reado
   return sets.flatMap((set) => (set[name] === undefined ? [] : [set[name] as Hook<K>]));
 }
 
+// Each joined hook checks what every one of its hooks returns, as the run checks a hook used alone, so a hook's wrong
+// return shape is never hidden by the hooks around it. The checks throw `invalid_hook_result`, which the run rethrows
+// whatever `onFailure` says.
+
+/** The fields of `patch` that are set: a field set to `undefined` doesn't erase what an earlier hook set. */
+function definedFields<T extends object>(patch: T): Partial<T> {
+  return Object.fromEntries(Object.entries(patch).filter(([, value]) => value !== undefined)) as Partial<T>;
+}
+
 /** Passes the messages through each `transformContext` in turn: the second sees the first's view. */
 const transform =
   (hooks: readonly Hook<"transformContext">[]): Hook<"transformContext"> =>
   async (e) => {
     let messages: readonly Message[] = e.messages;
-    for (const hook of hooks) messages = await hook({ ...e, messages });
+    for (const hook of hooks) messages = checkMessages("transformContext", await hook({ ...e, messages }));
     return messages;
   };
 
-/** Merges the patches in order: a later field wins, and each hook sees the system and messages set before it. */
+/**
+ * Merges the patches in order: a later field wins, and each hook sees the system prompt, messages and options set
+ * before it. `context.tools` stays the list the run would send, because only the run can lower a tool it activates.
+ */
 const before =
   (hooks: readonly Hook<"beforeModelCall">[]): Hook<"beforeModelCall"> =>
   async (e) => {
     let event: ModelCallEvent = e;
     let merged: ModelCallPatch | undefined;
     for (const hook of hooks) {
-      const patch = await hook(event);
+      const patch = checkModelPatch(await hook(event));
       if (patch === undefined) continue;
-      merged = { ...merged, ...patch };
-      event = { ...event, context: contextAfter(event.context, patch) };
+      const fields = definedFields(patch);
+      merged = { ...merged, ...fields };
+      event = { ...event, context: contextAfter(event.context, fields), options: fields.options ?? event.options };
     }
     return merged;
   };
@@ -56,7 +77,7 @@ const after =
   (hooks: readonly Hook<"afterModelCall">[]): Hook<"afterModelCall"> =>
   async (e) => {
     let message = e.message;
-    for (const hook of hooks) message = (await hook({ ...e, message }))?.message ?? message;
+    for (const hook of hooks) message = checkReplacement(await hook({ ...e, message })) ?? message;
     return { message };
   };
 
@@ -70,10 +91,10 @@ const gate =
     let input = e.input;
     let asked: GateDecision | undefined;
     for (const hook of hooks) {
-      const decision = await hook({ ...e, input });
-      if (decision?.decision === "deny") return decision;
-      if (decision?.decision === "ask") asked ??= decision;
-      else if (decision?.decision === "allow" && decision.input !== undefined) input = decision.input;
+      const decision = checkDecision(await hook({ ...e, input }));
+      if (decision.decision === "deny") return decision;
+      if (decision.decision === "ask") asked ??= decision;
+      else if (decision.input !== undefined) input = decision.input;
     }
     return asked ?? { decision: "allow", ...(input === e.input ? {} : { input }) };
   };
@@ -85,10 +106,11 @@ const afterTool =
     let result = e.result;
     let merged: ToolResultPatch | undefined;
     for (const hook of hooks) {
-      const patch = await hook({ ...e, result });
+      const patch = checkResultPatch(await hook({ ...e, result }));
       if (patch === undefined) continue;
-      merged = { ...merged, ...patch };
-      result = { ...result, ...patch };
+      const fields = definedFields(patch) as ToolResultPatch;
+      merged = { ...merged, ...fields };
+      result = { ...result, ...fields };
     }
     return merged;
   };
@@ -100,6 +122,7 @@ const stop =
     let keepGoing: StopDecision = false;
     for (const hook of hooks) {
       const decision = await hook(e);
+      checkStopDecision(decision);
       if (typeof decision === "object" && "continue" in decision) {
         if (keepGoing === false) keepGoing = decision;
       } else if (decision !== false) return decision;
@@ -113,14 +136,16 @@ const stop =
  *
  * - `transformContext`: the messages pass through each hook in turn.
  * - `beforeModelCall`: the patches are merged in order, a later field replacing an earlier one, and each hook sees
- *   the system prompt and messages the earlier ones set.
+ *   the system prompt, messages and options the earlier ones set. A field left `undefined` keeps the earlier value.
  * - `afterModelCall`: each hook sees the message the one before returned.
  * - `beforeToolCall`: the strictest decision wins. The first `deny` ends the check, an `ask` beats `allow`, and an
  *   input one gate replaces is the input the next gate sees.
  * - `afterToolCall`: the patches are applied in order, each hook seeing the result so far.
  * - `shouldStop`: the first `stop` wins; failing that, the first `continue`.
  *
- * A hook that throws fails the moment it belongs to, because the joined hook is one function. The joined `onFailure` is
+ * Each hook's return value is checked as if the hook ran alone, so a wrong shape, such as a gate that returns nothing,
+ * throws an `SdkError` with code `invalid_hook_result` whatever the other hooks return. A hook that throws fails the
+ * moment it belongs to, because the joined hook is one function. The joined `onFailure` is
  * `"continue"` only when every object that sets it says so; otherwise the run fails closed.
  */
 export function composeInterceptors(...sets: readonly Interceptors[]): Interceptors {
