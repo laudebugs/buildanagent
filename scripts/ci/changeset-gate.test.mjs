@@ -244,6 +244,23 @@ describe("changeset-gate.mjs", () => {
 
     const changeset = '---\n"@x/a": patch\n---\n\nFix a thing.\n';
 
+    test("the Version packages pull request passes in pre mode without a new changeset", () => {
+      // What release.yml's version job pushes to changeset-release/main: the package moves to the next alpha, its
+      // changeset moves into .changeset/pre/, and no top-level changeset is added.
+      const { dir, write, commit } = repo({
+        ".changeset/pre.json": JSON.stringify({ mode: "pre", tag: "alpha" }),
+        "packages/a/package.json": manifest("0.1.0-alpha.0"),
+        "packages/a/CHANGELOG.md": "## 0.1.0-alpha.0\n\n- first\n",
+        ".changeset/brave-cats.md": changeset,
+      });
+      write("packages/a/package.json", manifest("0.1.0-alpha.1"));
+      write("packages/a/CHANGELOG.md", "## 0.1.0-alpha.1\n\n- Fix a thing.\n\n## 0.1.0-alpha.0\n\n- first\n");
+      rmSync(path.join(dir, ".changeset/brave-cats.md"));
+      write(".changeset/pre/brave-cats.md", changeset);
+      commit();
+      assert.deepEqual(gate(dir), { code: 0, calls: [] });
+    });
+
     test("a src/ change with a changeset runs changeset status, whose failure fails the gate", () => {
       const { dir, write, commit } = repo();
       write("packages/a/src/index.ts", "export const a = 2;\n");
