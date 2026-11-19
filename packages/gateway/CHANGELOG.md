@@ -12,4 +12,4 @@
   - **`transformMessages()`.** Prepares a transcript recorded on one model for another: it drops failed turns and reasoning the target can't read, and pairs every tool call with its result.
   - **The tool-name rule.** `createToolNameMap()` and `TOOL_NAME_RULES` keep one tool name valid for every provider.
   - **Two adapters.** `anthropic()` from `@buildanagent/gateway/anthropic` speaks the Anthropic Messages API, and `openaiChat()` from `@buildanagent/gateway/openai-chat` speaks Chat Completions to OpenAI and to servers that copy it.
-  - **Offline testing.** `@buildanagent/gateway/testing` holds `mockTransport()`, the stream-contract check and seeded randomness, and importing `@buildanagent/gateway/testing/setup` keeps a test file offline: it blocks requests to other hosts and stops a run that finds a provider API key.
+  - **Offline testing.** `@buildanagent/gateway/testing` holds `mockTransport()`, the stream-contract check and seeded randomness, and importing `@buildanagent/gateway/testing/setup` keeps a test file offline: it blocks requests to any host but the local machine and stops a run that finds a provider API key.
