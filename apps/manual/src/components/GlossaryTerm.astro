@@ -1,0 +1,24 @@
+---
+import GlossaryCard from "./GlossaryCard.astro";
+
+// A term's first use in a chapter: a link to its glossary entry, with its card on hover and focus. The card's text
+// is the link's accessible description, so a screen reader hears the definition without opening anything.
+interface Props {
+  readonly term: string;
+  readonly slug: string;
+  readonly definition: string;
+  /** Unique on the page, because a page can show the same term twice. */
+  readonly id: string;
+}
+
+const { term, slug, definition, id } = Astro.props;
+---
+
+<span class="glossary-term">
+  <a class="glossary-term__link" href={`/glossary/#${slug}`} aria-describedby={id}><slot>{term}</slot></a>
+  <GlossaryCard inline class="glossary-term__card" id={id} role="tooltip" term={term} slug={slug} definition={definition} />
+</span>
+
+<script>
+  import "../scripts/glossary.ts";
+</script>

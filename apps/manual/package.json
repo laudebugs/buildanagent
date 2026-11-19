@@ -12,6 +12,7 @@
     "dev": "astro dev",
     "build": "astro build && pagefind --site dist",
     "check:book": "astro sync",
+    "tokens": "tsx scripts/generate-tokens.ts",
     "typecheck": "tsc -p tsconfig.json",
     "test": "vitest run"
   },

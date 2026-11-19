@@ -1,16 +1,37 @@
 ---
+import ChapterHead from "../components/ChapterHead.astro";
+import PrevNext from "../components/PrevNext.astro";
+import Sidebar from "../components/Sidebar.astro";
+import type { ChapterLink, ContentsPart, PageHeading } from "../components/types.js";
 import BaseLayout from "./BaseLayout.astro";
 import type { PageProps } from "./page-props.js";
 
-type Props = PageProps;
+// Direction C's chapter page: the wide title, the figure panel (the "figure" slot), then the sidebar, the article
+// column with its side notes, and the previous and next links.
+type Props = PageProps & {
+  readonly label?: string;
+  readonly lede?: string;
+  readonly headings?: readonly PageHeading[];
+  readonly parts?: readonly ContentsPart[];
+  readonly current?: string;
+  readonly previous?: ChapterLink;
+  readonly next?: ChapterLink;
+};
 
-const { title, description } = Astro.props;
+const { title, description, label, lede, headings = [], parts = [], current, previous, next } = Astro.props;
 ---
 
 <BaseLayout title={title} description={description}>
-  <!-- Only a chapter's body carries data-pagefind-body, so search indexes chapters and skips every other page. -->
-  <article data-pagefind-body>
-    <h1>{title}</h1>
-    <slot />
-  </article>
+  <div class="page layout">
+    <ChapterHead label={label} title={title} lede={lede} />
+    {Astro.slots.has("figure") && <div class="chapter-figure"><slot name="figure" /></div>}
+    <div class="chapter-body">
+      <Sidebar headings={headings} parts={parts} current={current} />
+      <!-- Only a chapter's body carries data-pagefind-body, so search indexes chapters and skips every other page. -->
+      <article class="article" data-pagefind-body>
+        <slot />
+      </article>
+    </div>
+    <PrevNext previous={previous} next={next} />
+  </div>
 </BaseLayout>

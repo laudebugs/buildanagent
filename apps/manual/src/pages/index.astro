@@ -1,13 +1,18 @@
 ---
 import { getCollection } from "astro:content";
+import ChapterHead from "../components/ChapterHead.astro";
+import Contents from "../components/Contents.astro";
+import { contentsParts } from "../components/contents-parts.js";
 import BaseLayout from "../layouts/BaseLayout.astro";
 
-const chapters = await getCollection("chapters");
+const parts = contentsParts(await getCollection("chapters"));
 ---
 
 <BaseLayout title="Build an agent" description="A textbook on building an AI agent.">
-  <h1>Build an agent</h1>
-  <ol>
-    {chapters.map((chapter) => <li><a href={`/${chapter.id}/`}>{chapter.data.title}</a></li>)}
-  </ol>
+  <div class="page">
+    <ChapterHead title="Build an agent" lede="A textbook on building an AI agent." />
+    <nav aria-label="Contents" class="article">
+      <Contents parts={parts} />
+    </nav>
+  </div>
 </BaseLayout>

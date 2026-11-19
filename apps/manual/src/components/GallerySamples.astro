@@ -1,0 +1,258 @@
+---
+import AnnotationMarker from "./AnnotationMarker.astro";
+import ChapterHead from "./ChapterHead.astro";
+import Citation from "./Citation.astro";
+import Contents from "./Contents.astro";
+import FigureFrame from "./FigureFrame.astro";
+import GlossaryCard from "./GlossaryCard.astro";
+import GlossaryTerm from "./GlossaryTerm.astro";
+import ListingBlock from "./ListingBlock.astro";
+import PrevNext from "./PrevNext.astro";
+import Replay from "./Replay.astro";
+import SearchBox from "./SearchBox.astro";
+import Sidebar from "./Sidebar.astro";
+import SideNote from "./SideNote.astro";
+import TabPanel from "./TabPanel.astro";
+import Tabs from "./Tabs.astro";
+import ThemeToggle from "./ThemeToggle.astro";
+import type { ContentsPart, FigureStep, ListingLine, ListingNote, ReplayEvent } from "./types.js";
+
+// Every component with sample data, for the gallery page. The page renders this twice, once per theme, so every id
+// takes the prefix.
+interface Props {
+  readonly prefix: string;
+}
+
+const { prefix } = Astro.props;
+const id = (name: string) => `${prefix}-${name}`;
+
+const parts: ContentsPart[] = [
+  {
+    title: "Part I · Foundations",
+    chapters: [
+      { number: 1, title: "Use the least autonomy that works", href: "/gallery/" },
+      { number: 2, title: "Talking to a model", href: "/welcome/" },
+      { number: 3, title: "Tools" },
+    ],
+  },
+  {
+    title: "Part II · In depth",
+    chapters: [{ number: 8, title: "Choosing the shape" }],
+  },
+];
+
+const lines: ListingLine[] = [
+  {
+    number: 12,
+    tokens: [{ text: "// #region loop", kind: "comment" }],
+  },
+  {
+    number: 13,
+    tokens: [
+      { text: "const", kind: "keyword" },
+      { text: " result = " },
+      { text: "await", kind: "keyword" },
+      { text: " generateText({" },
+    ],
+  },
+  { number: 14, tokens: [{ text: "  model," }] },
+  {
+    number: 15,
+    tokens: [{ text: "  prompt: " }, { text: '"What is the weather in Lisbon?"', kind: "string" }, { text: "," }],
+  },
+  {
+    number: 16,
+    tokens: [{ text: "  stopWhen: " }, { text: "stepCountIs(5)", kind: "highlight" }, { text: "," }],
+    highlight: true,
+    note: "stop",
+  },
+  { number: 17, tokens: [{ text: "  tools: { weather }," }], note: "tools" },
+  { number: 18, tokens: [{ text: "});" }] },
+];
+const notes: ListingNote[] = [
+  { id: "stop", text: "The loop stops after five steps even if the model keeps asking for tools." },
+  { id: "tools", text: "The model sees each tool's name, description and input schema." },
+];
+
+const steps: FigureStep[] = [
+  { id: "context", title: "Context", text: "The harness assembles the messages the model will read." },
+  { id: "model", title: "Model call", text: "The model answers with text or with a tool call." },
+  { id: "tool", title: "Tool result", text: "The harness runs the tool and appends its result to the log." },
+];
+
+const events: ReplayEvent[] = [
+  { kind: "user", role: "user", body: "What is the weather in Lisbon?" },
+  { kind: "model", role: "model", body: 'tool_call weather({ city: "Lisbon" })' },
+  { kind: "tool", role: "tool", body: 'tool_result { "tempC": 19, "sky": "clear" }' },
+  { kind: "model", role: "model", body: "It is 19 °C and clear in Lisbon." },
+  { kind: "check", role: "check", body: "check(result.steps.length === 2) ✓" },
+];
+---
+
+<div class="gallery__item">
+  <h3>Header controls: search box and theme toggle</h3>
+  <div class="controls">
+    <SearchBox id={id("search")} />
+    <ThemeToggle />
+  </div>
+</div>
+
+<div class="gallery__item">
+  <h3>Layout: wide title, figure panel with the isometric stepper, sidebar, article with side notes</h3>
+  <ChapterHead
+    label="Part I · Chapter 1"
+    title="Use the least autonomy that works"
+    lede="One model call, then a fixed workflow in code, then the loop, in that order."
+  />
+  <FigureFrame
+    id={id("figure-loop")}
+    number="1.1"
+    caption="The agent loop: the harness builds the context, calls the model, runs the tool it asks for and appends the result."
+    steps={steps}
+  >
+    <svg viewBox="0 0 480 220" role="img" aria-labelledby={id("figure-loop-alt")}>
+      <title id={id("figure-loop-alt")}>
+        Three isometric blocks in a row, labelled context, model call and tool result, joined by arrows that loop back
+        to the context.
+      </title>
+      <g data-step-part="context">
+        <path d="M40 120 l50 -28 l50 28 l-50 28 z" class="fig-amber" />
+        <path d="M40 120 v40 l50 28 v-40 z" class="fig-shade" />
+        <path d="M140 120 v40 l-50 28 v-40 z" class="fig-shade-deep" />
+        <text x="90" y="210" text-anchor="middle" class="fig-text">context</text>
+      </g>
+      <g data-step-part="model">
+        <path d="M190 100 l50 -28 l50 28 l-50 28 z" class="fig-terracotta" />
+        <path d="M190 100 v40 l50 28 v-40 z" class="fig-shade" />
+        <path d="M290 100 v40 l-50 28 v-40 z" class="fig-shade-deep" />
+        <text x="240" y="190" text-anchor="middle" class="fig-text">model call</text>
+      </g>
+      <g data-step-part="tool">
+        <path d="M340 120 l50 -28 l50 28 l-50 28 z" class="fig-olive" />
+        <path d="M340 120 v40 l50 28 v-40 z" class="fig-shade" />
+        <path d="M440 120 v40 l-50 28 v-40 z" class="fig-shade-deep" />
+        <text x="390" y="210" text-anchor="middle" class="fig-text">tool result</text>
+      </g>
+      <path d="M145 110 L185 98 M295 98 L335 110 M390 80 C390 20 90 20 90 80" class="fig-line" />
+    </svg>
+  </FigureFrame>
+  <div class="chapter-body">
+    <Sidebar headings={[{ slug: id("loop"), text: "The loop" }]} parts={parts} current="/gallery/" />
+    <div class="article">
+      <h2 id={id("loop")}>The loop</h2>
+      <p>
+        An agent is a loop: the model calls tools until a stop condition holds<Citation
+          id="anthropic-building-agents"
+          label="1"
+          title="Anthropic, Building effective agents"
+        />. The <GlossaryTerm
+          id={id("term-harness")}
+          term="harness"
+          slug="harness"
+          definition="The code around the model that runs the loop, the tools and the session log."
+        /> decides when the loop stops.
+      </p>
+      <SideNote label="Where the analogy breaks">
+        <p>A kitchen ticket rail never rewrites a ticket; a harness may compact its context.</p>
+      </SideNote>
+      <p>
+        Each step appends to the session log, so a run can be replayed later. <a href="/welcome/">A plain link</a> is
+        underlined in both modes.
+      </p>
+    </div>
+  </div>
+  <PrevNext
+    previous={{ href: "/gallery/", title: "Welcome to the book" }}
+    next={{ href: "/gallery/", title: "Talking to a model" }}
+  />
+</div>
+
+<div class="gallery__item">
+  <h3>Contents</h3>
+  <Contents parts={parts} current="/gallery/" />
+</div>
+
+<div class="gallery__item">
+  <h3>Listing block with annotation markers</h3>
+  <ListingBlock
+    id={id("listing-loop")}
+    number="1.2"
+    path="verify/vercel-ai-sdk/examples/02-tool-loop.ts"
+    pin="ai@7.0.162"
+    lines={lines}
+    notes={notes}
+  />
+  <p>
+    A marker can also stand alone in the prose: <AnnotationMarker href={`#${id("listing-loop")}-note-stop`} number={1} />
+  </p>
+</div>
+
+<div class="gallery__item">
+  <h3>Tabs</h3>
+  <Tabs label="SDK">
+    <TabPanel id={id("tab-ai-sdk")} title="AI SDK">
+      <ListingBlock
+        id={id("listing-tab-a")}
+        number="1.3"
+        path="verify/vercel-ai-sdk/examples/03-tool-approval.ts"
+        pin="ai@7.0.162"
+        lines={[{ number: 8, tokens: [{ text: "needsApproval", kind: "keyword" }, { text: ": true," }] }]}
+      />
+    </TabPanel>
+    <TabPanel id={id("tab-openai")} title="OpenAI Agents SDK">
+      <ListingBlock
+        id={id("listing-tab-b")}
+        number="1.4"
+        path="verify/openai-agents-sdk/examples/05-approval-resume.ts"
+        pin="@openai/agents@0.21.0"
+        lines={[{ number: 21, tokens: [{ text: "needsApproval", kind: "keyword" }, { text: ": async () => true," }] }]}
+      />
+    </TabPanel>
+  </Tabs>
+</div>
+
+<div class="gallery__item">
+  <h3>Replay controls</h3>
+  <Replay
+    id={id("replay")}
+    title="Recorded run"
+    source="verify/vercel-ai-sdk/results/transcripts/02-tool-loop.json"
+    events={events}
+  />
+</div>
+
+<div class="gallery__item">
+  <h3>Figure frame without steps</h3>
+  <FigureFrame id={id("figure-flat")} number="1.5" caption="A flat figure: a model call returns one message.">
+    <svg viewBox="0 0 320 80" role="img" aria-labelledby={id("figure-flat-alt")}>
+      <title id={id("figure-flat-alt")}>A box labelled request with an arrow to a box labelled response.</title>
+      <rect x="10" y="20" width="110" height="40" rx="4" class="fig-line" />
+      <text x="65" y="45" text-anchor="middle" class="fig-text">request</text>
+      <path d="M125 40 H190 m-8 -6 l8 6 l-8 6" class="fig-line fig-line--accent" />
+      <rect x="200" y="20" width="110" height="40" rx="4" class="fig-line" />
+      <text x="255" y="45" text-anchor="middle" class="fig-text">response</text>
+    </svg>
+  </FigureFrame>
+</div>
+
+<div class="gallery__item">
+  <h3>Glossary card</h3>
+  <GlossaryCard
+    term="Session log"
+    slug="session-log"
+    definition="An append-only record of every message, tool call and result in a run, shaped as a tree so a run can fork."
+  />
+</div>
+
+<div class="gallery__item">
+  <h3>Type</h3>
+  <p class="label">Label in the code face</p>
+  <h2>Section head in Instrument Serif</h2>
+  <p>
+    Body text in Literata, with <em>italic</em>, <strong>bold</strong> and <code>inline code</code>. The arrows → ←
+    come from the Literata subset, and box drawing <code>┌─┐ │ └─┘</code> from the code face.
+  </p>
+  <p class="text-soft">Soft text for ledes and notes.</p>
+  <p class="text-muted">Muted text for labels and numbers.</p>
+  <p class="text-accent">Accent text for labels.</p>
+</div>

@@ -1,16 +1,32 @@
 ---
 import { getCollection, render } from "astro:content";
+import { contentsParts } from "../components/contents-parts.js";
 import ChapterLayout from "../layouts/ChapterLayout.astro";
 
 export async function getStaticPaths() {
   const chapters = await getCollection("chapters");
-  return chapters.map((chapter) => ({ params: { slug: chapter.id }, props: { chapter } }));
+  const parts = contentsParts(chapters);
+  return chapters.map((chapter, index) => ({
+    params: { slug: chapter.id },
+    props: { chapter, number: index + 1, parts, previous: chapters[index - 1], next: chapters[index + 1] },
+  }));
 }
 
-const { chapter } = Astro.props;
-const { Content } = await render(chapter);
+const { chapter, number, parts, previous, next } = Astro.props;
+const { Content, headings } = await render(chapter);
+const link = (entry: typeof previous) => entry && { href: `/${entry.id}/`, title: entry.data.title };
 ---
 
-<ChapterLayout title={chapter.data.title} description={chapter.data.description}>
+<ChapterLayout
+  title={chapter.data.title}
+  description={chapter.data.description}
+  label={`Chapter ${number}`}
+  lede={chapter.data.description}
+  headings={headings.filter((heading) => heading.depth === 2)}
+  parts={parts}
+  current={`/${chapter.id}/`}
+  previous={link(previous)}
+  next={link(next)}
+>
   <Content />
 </ChapterLayout>

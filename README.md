@@ -72,7 +72,7 @@ See [AGENTS.md](AGENTS.md#coding-standards) for the coding standards.
 
 ## Licence
 
-You may use our code (scripts, our packages in `packages/`, the `verify/` harnesses and their examples, the book's code in `apps/manual/`, workflows and configs) under [Apache-2.0](LICENSE-APACHE) or [MIT](LICENSE-MIT), at your option. The book's files adapted from the owner's garment engineering textbook are Apache-2.0 only. Our documentation, the book's prose and figures included, is licensed under [CC BY 4.0](LICENSE-DOCS), and [LICENSE](LICENSE) says which files fall under which licence. The upstream docs mirrored under `docs/reference/*/source/` keep their own licences, listed in [THIRD-PARTY-NOTICES.md](THIRD-PARTY-NOTICES.md).
+You may use our code (scripts, our packages in `packages/`, the `verify/` harnesses and their examples, the book's code in `apps/manual/`, workflows and configs) under [Apache-2.0](LICENSE-APACHE) or [MIT](LICENSE-MIT), at your option. The book's files adapted from the owner's garment engineering textbook are Apache-2.0 only, and the book's fonts in `apps/manual/public/fonts/` keep the SIL Open Font License 1.1. Our documentation, the book's prose and figures included, is licensed under [CC BY 4.0](LICENSE-DOCS), and [LICENSE](LICENSE) says which files fall under which licence. The upstream docs mirrored under `docs/reference/*/source/` keep their own licences, listed in [THIRD-PARTY-NOTICES.md](THIRD-PARTY-NOTICES.md).
 
 ## For AI agents
 

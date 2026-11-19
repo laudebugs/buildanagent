@@ -1,0 +1,14 @@
+---
+// The search box: a plain GET form to the search page, so it works without JavaScript.
+interface Props {
+  readonly id?: string;
+}
+
+const { id = "site-search" } = Astro.props;
+---
+
+<form class="search-box" role="search" action="/search/" method="get">
+  <label class="visually-hidden" for={id}>Search the book</label>
+  <input class="search-box__input" id={id} type="search" name="q" placeholder="Search the book" autocomplete="off" />
+  <button class="control" type="submit">Search</button>
+</form>
