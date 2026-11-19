@@ -1,6 +1,6 @@
 # `@buildanagent/manual`: the textbook at manual.buildanagent.fyi
 
-The book is a static Astro site with Pagefind search, built from the [book plan](../../docs/plans/build-book.md). This README covers what a contributor needs to write a chapter and to change the book's look. **A chapter is ready when `check:book` passes, because that check runs the same rules as the build**: the build computes every chapter, figure, listing and table number and checks every citation, glossary tag and analogy. For the look, it covers where the design tokens come from, where each token may be used, how the fonts are made, and which components exist. Every colour, font and size on a page comes from one file, [`docs/design/book-tokens.json`](../../docs/design/book-tokens.json), so a design change starts there and never in the CSS.
+The book is a static Astro site with Pagefind search, built from the [book plan](../../docs/plans/build-book.md). This README first covers writing a chapter. The build computes every chapter, figure, listing and table number and checks every citation, glossary tag and analogy, so **a chapter is ready when `check:book` passes, because that check runs the same rules as the build**. The README then covers the book's look: where the design tokens come from, where each token may be used, how the fonts are made, and which components exist. Every colour, font and size on a page comes from one file, [`docs/design/book-tokens.json`](../../docs/design/book-tokens.json), so a design change starts there and never in the CSS.
 
 ## Commands
 
@@ -17,11 +17,11 @@ Run each from the repo root.
 
 ## The outline places the chapter and gives it its number
 
-Each chapter lives at `src/content/chapters/<slug>.md`, and its page is `/<slug>/`. Its fact-check log lives at `fact-checks/<slug>.md`, and `check:book` fails without it ([`fact-checks/README.md`](fact-checks/README.md)). Its slug must appear in [`src/outline.ts`](src/outline.ts), which lists the two parts and their chapters in reading order. The chapter's number is its position there, counted across both parts, so moving a chapter in the outline renumbers it, its figures, listings and tables, and every reference to them. The contents page lists every chapter in the outline, as plain text until its file exists.
+Each chapter lives at `src/content/chapters/<slug>.md`, and its page is `/<slug>/`. Its slug must appear in [`src/outline.ts`](src/outline.ts), which lists the two parts and their chapters in reading order. The chapter's number is its position there, counted across both parts, so moving a chapter in the outline renumbers it, its figures, listings and tables, and every reference to them. The contents page lists every chapter in the outline, as plain text until its file exists. Each chapter also needs its fact-check log at `fact-checks/<slug>.md`, and `check:book` fails without it ([`fact-checks/README.md`](fact-checks/README.md)).
 
 The outline also gives each chapter its opening type: `scenario`, `incident`, `question`, `fact`, `code` or `analogy`. `check:book` fails when two consecutive chapters share an opening type, or when one type opens more than a quarter of the chapters, rounded up.
 
-## The front matter is strict
+## The front matter is strict, and the chapter ends with exercises
 
 The front matter takes exactly these six keys, and any other key, a misspelt one included, fails the check:
 
@@ -61,7 +61,7 @@ Each register entry names the fact-check log that verified it:
 }
 ```
 
-`kind` is `docs`, `repo`, `paper`, `spec` or `post`, and an optional `version` holds a tag or commit. `verifiedIn` is a path from the repository root to a fact-check log: a `fact-check*.md` file under `docs/research/` or `docs/plans/reviews/`, a `docs/reference/<sdk>/fact-check.md`, or a chapter's own log in `apps/manual/fact-checks/`. That log must contain the URL, whether as an inline link, a bare URL or a reference-style definition. To cite a new source, first add its row to the chapter's fact-check log, `apps/manual/fact-checks/<slug>.md`, then add the entry with that log as `verifiedIn`. Set `"secondary": true` when the check rests on a search summary or a secondary write-up; the sources page then says so.
+`kind` is `docs`, `repo`, `paper`, `spec` or `post`, and an optional `version` holds a tag or commit. `verifiedIn` is a path from the repository root, and it must name a fact-check log. Four kinds count: a `fact-check*.md` file under `docs/research/` or in `docs/plans/reviews/`, a `docs/reference/<sdk>/fact-check.md`, and a chapter's own log in `apps/manual/fact-checks/`. That log must contain the URL, whether as an inline link, a bare URL or a reference-style definition. To cite a new source, first add its row to the chapter's fact-check log, `apps/manual/fact-checks/<slug>.md`, then add the entry with that log as `verifiedIn`. Set `"secondary": true` when the check rests on a search summary or a secondary write-up; the sources page then says so.
 
 ## References name an id, and the build writes the number
 
@@ -103,11 +103,13 @@ Analogies are optional (BK22). A chapter that uses one first registers it in [`s
 }
 ```
 
-The chapter then marks each use with `:analogy[the ticket rail]{#kitchen-ticket-rail}`. A later chapter refers back to the same analogy by the same id; it may not name an analogy from a later chapter. `illustration` is the id of a figure in that chapter, or `null`. The check compares analogies and concepts without case, punctuation or a leading article. It fails on the same analogy listed twice, on an analogy that explains a second concept, on a concept given a second analogy, and on a chapter that names an id the register lacks. It cannot tell that two different phrasings describe nearly the same image, such as a ticket rail and an order spike, so reviewers catch near-duplicates when they vet a chapter's analogies.
+The chapter then marks each use with `:analogy[the ticket rail]{#kitchen-ticket-rail}`. A later chapter refers back to the same analogy by the same id; it may not name an analogy from a later chapter. `illustration` is the id of a figure in that chapter, or `null`. The check compares analogies and concepts without case, punctuation or a leading article. It fails on the same analogy listed twice, on an analogy that explains a second concept, on a concept given a second analogy, and on a chapter that names an id the register lacks. It cannot tell that two different phrasings describe nearly the same image, such as a kitchen ticket rail and a waiter's order spike, so reviewers catch near-duplicates when they vet a chapter's analogies.
 
 ## The content model lives in `src/book/`
 
-The outline checks, the three registers and the index that numbers blocks live in `src/book/`, and the Markdown plugins that use them in `src/markdown/`. `check:book` loads the outline and the three registers, then renders every chapter through the build's own plugins and prints each problem as `file:line: message`. The tests run the same plugins on the fixture book in `test/fixtures/book/`, with one failing fixture for each rule `check:book` applies. When the content model, a plugin, the outline, a register or another chapter's numbered blocks change, `astro.config.mjs` clears Astro's content cache, so no chapter keeps stale numbers or links. The build reads chapters from `src/content/chapters/` and their logs from `fact-checks/`, unless `BOOK_FIXTURE_DIR` names a directory that holds `chapters/` and `fact-checks/`. Only the tests set it, pointing it at `test/fixtures/site/` because the book has no chapter of its own yet, and any build that uses it says so on stderr. The citation and glossary plugins, the strict schema and the text splitter are adapted from the owner's garment engineering textbook and are licensed Apache-2.0 only ([THIRD-PARTY-NOTICES.md](../../THIRD-PARTY-NOTICES.md)).
+The outline checks, the three registers and the index that numbers blocks live in `src/book/`, and the Markdown plugins that use them in `src/markdown/`. `check:book` loads the outline and the three registers, then renders every chapter through the build's own plugins and prints each problem as `file:line: message`. The tests run the same plugins on the fixture book in `test/fixtures/book/`, with one failing fixture for each rule `check:book` applies. When the content model, a plugin, the outline, a register, another chapter's numbered blocks or a body's line offset change, `astro.config.mjs` clears Astro's content cache, so no chapter keeps stale numbers, links or error lines.
+
+The build reads chapters from `src/content/chapters/` and their logs from `fact-checks/`, unless `BOOK_FIXTURE_DIR` names a directory that holds `chapters/` and `fact-checks/`. Only the tests set it, pointing it at `test/fixtures/site/` because the book has no chapter of its own yet, and any build that uses it says so on stderr. The citation and glossary plugins, the strict schema and the text splitter are adapted from the owner's garment engineering textbook and are licensed Apache-2.0 only ([THIRD-PARTY-NOTICES.md](../../THIRD-PARTY-NOTICES.md)).
 
 ## The tokens come from one JSON file
 

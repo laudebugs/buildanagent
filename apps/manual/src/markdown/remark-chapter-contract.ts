@@ -59,7 +59,7 @@ function checkExercises(tree: Root, file: VFile): void {
   const sections = tree.children.filter((node): node is Heading => node.type === "heading" && node.depth === 2);
   const last = sections.at(-1);
   if (last === undefined || plain(last).trim() !== "Exercises") {
-    failAt(file, 'a chapter ends with an "## Exercises" section', last);
+    failAt(file, 'the chapter must end with an "## Exercises" section', last);
   }
   const after = tree.children.slice(tree.children.indexOf(last) + 1);
   if (!after.some((node) => node.type === "list")) {

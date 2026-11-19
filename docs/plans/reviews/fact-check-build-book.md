@@ -435,4 +435,14 @@ The fixes for the first code-review round added these claims to the plan's T3 no
 | 263 | A build loads the book twice, once for `astro.config.mjs` and once in the pages' prerender bundle, and with `BOOK_FIXTURE_DIR` set it prints the fixture warning once | `src/book/load.ts`, `astro.config.mjs`, the T3 todo's Outcome | ✅ | Row 239: the pages' copy of `load.ts` runs from `dist/.prerender/chunks/`, apart from the config's. `BOOK_FIXTURE_DIR=test/fixtures/site astro build` on 2026-11-19 printed "BOOK_FIXTURE_DIR is set" once, now that the flag lives on `globalThis` |
 | 264 | Row 258's linear scan holds for the pattern that may cross a line break, `/\[\[[^\]]{0,200}\]\]/g` | `rehype-numbering.ts`, `citations.ts` | ✏️ | Node 24 on 2026-11-19: 20,000 copies of `[[` took 27 ms, and 20,000 of `[[` followed by a newline took 14 ms. Row 258 quoted the earlier pattern, which also stopped at a newline and so let a malformed citation or reference that crossed one pass as text |
 
-**Totals:** 264 claims: 235 ✅, 29 ✏️, 0 ⚠️.
+### T3's writing review
+
+The writing review reworded T3's prose; these rows re-check the claims its fixes touched.
+
+| # | Claim | Where | Verdict | Source and reason |
+| --- | --- | --- | --- | --- |
+| 265 | A glossary tag that names no entry fails the check, as a tagged term the text never uses does | BK7 (T3's result) | ✏️ | The note said a tagged term fails "as an untagged id does", but an untagged id fails nothing. The fixtures "a chapter tagging an unknown glossary term fails" and "a chapter tagging a glossary term its text never uses fails" in `test/check-book.test.ts` each produce one problem |
+| 266 | One of the repository's fact-check logs checked every source on `/sources/`, and each entry names its log | `src/pages/sources.astro` | ✅ | Every register entry's `verifiedIn` must be a fact-check log that contains its URL (rows 243 and 259), and the page prints `verifiedIn` under each entry |
+| 267 | `astro.config.mjs` clears the content cache when the outline, a register, a chapter's numbered blocks or a body's line offset change | AGENTS.md, the app's README, BK5 (T3's result) | ✅ | `astro.config.mjs` hashes `src/outline.ts`, `src/data/`, `src/content/analogies.json`, `src/book/` and `src/markdown/`, then `renderDependencies(book)`, which holds each chapter's blocks and `bodyLineOffset` (`src/book/load.ts`); the dependency test in `test/content-model.test.ts` changes the digest with a longer front matter |
+
+**Totals:** 267 claims: 237 ✅, 30 ✏️, 0 ⚠️.

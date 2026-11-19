@@ -72,7 +72,10 @@ export function remarkTerms(options: { readonly book: Book }) {
     );
     const unused = tagged.filter((entry) => !done.has(entry.id)).map((entry) => entry.id);
     if (unused.length > 0) {
-      failAt(file, `front matter: glossary tags ${unused.join(", ")}, but the chapter's text never uses them`);
+      failAt(
+        file,
+        `front matter: glossary tags ${unused.join(", ")}, but the chapter's text never uses ${unused.length === 1 ? "it" : "them"}`,
+      );
     }
     tree.children.push(definitionList(used));
   };

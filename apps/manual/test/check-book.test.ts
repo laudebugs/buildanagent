@@ -347,13 +347,13 @@ const cases: readonly Case[] = [
     rule: "a chapter tagging a glossary term its text never uses fails",
     change: firstChapter((t) => t.replace("glossary: [agent-loop, mcp]", "glossary: [agent-loop, mcp, harness]")),
     file: FIRST,
-    message: /glossary tags harness, but the chapter's text never uses them/,
+    message: /glossary tags harness, but the chapter's text never uses it$/,
   },
   {
     rule: "a chapter that does not end with Exercises fails",
     change: firstChapter((t) => `${t}\n## Further reading\n\nMore.\n`),
     file: `${FIRST}:30`,
-    message: /a chapter ends with an "## Exercises" section/,
+    message: /the chapter must end with an "## Exercises" section/,
   },
   {
     rule: "an Exercises section without a list fails",

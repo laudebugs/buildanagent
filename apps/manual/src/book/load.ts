@@ -10,7 +10,7 @@ import type { Outline } from "./outline-types.js";
 import { ProblemList } from "./problems.js";
 import { checkSources, type Source } from "./sources.js";
 
-/** Where a book's content lives. The real book's come from `bookInputs()`; the tests pass fixture books. */
+/** Where a book's content lives. The real book's inputs come from `bookInputs()`; the tests pass fixture books. */
 export interface BookInputs {
   readonly outline: Outline;
   /** The file the outline comes from, for messages. */

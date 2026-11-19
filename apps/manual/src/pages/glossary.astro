@@ -12,7 +12,10 @@ const entries = [...book.glossary.values()].sort((a, b) => a.term.localeCompare(
 
 <BaseLayout title="Glossary" description="The terms the book uses, each with one meaning across every chapter.">
   <div class="page">
-    <ChapterHead title="Glossary" />
+    <ChapterHead
+      title="Glossary"
+      lede="Each term means one thing in every chapter, and a chapter links its first use of a term here."
+    />
     <div class="article">
       <dl>
         {
