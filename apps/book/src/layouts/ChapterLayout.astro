@@ -1,0 +1,18 @@
+---
+import BaseLayout from "./BaseLayout.astro";
+
+interface Props {
+  title: string;
+  description: string;
+}
+
+const { title, description } = Astro.props;
+---
+
+<BaseLayout title={title} description={description}>
+  <!-- Only a chapter's body carries data-pagefind-body, so search indexes chapters and skips every other page. -->
+  <article data-pagefind-body>
+    <h1>{title}</h1>
+    <slot />
+  </article>
+</BaseLayout>
