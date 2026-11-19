@@ -1,0 +1,25 @@
+---
+import { readableDate } from "../book/live-runs.js";
+
+// The line at the top of every page with a file listing (book plan BK18): its listings run against mock models, and
+// the live run last compared them with the real APIs on this date, or has not yet.
+interface Props {
+  /** The last complete live comparison, as `YYYY-MM-DD`, or null before the first one. */
+  readonly lastCompared: string | null;
+}
+
+const { lastCompared } = Astro.props;
+---
+
+<p class="listing-verification">
+  {
+    lastCompared === null ? (
+      "Listings on this page are verified against mock models; not yet compared with live APIs."
+    ) : (
+      <>
+        Listings on this page are verified against mock models; last compared with live APIs on{" "}
+        <time datetime={lastCompared}>{readableDate(lastCompared)}</time>.
+      </>
+    )
+  }
+</p>

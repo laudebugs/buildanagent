@@ -188,6 +188,15 @@ test("a chapter page shows a listing cut from a verify/ example, with the pin it
   );
   assert.ok(html.includes('<span class="listing__path">verify/vercel-ai-sdk/examples/01-generate-text.ts</span>'));
   assert.ok(html.includes(`<span class="listing__pin">ai@${manifest.dependencies.ai}</span>`));
+  // The live run leaves 01-generate-text.ts out, and the page states when the live run last compared its listings.
+  assert.ok(html.includes('<span class="listing__verified">Verified against mock models only</span>'));
+  const { lastCompared } = JSON.parse(readFileSync(join(app, "src/data/live-comparison.json"), "utf8"));
+  assert.match(
+    html,
+    lastCompared === null
+      ? /<p class="listing-verification"[^>]*>\s*Listings on this page are verified against mock models; not yet compared with live APIs\.\s*<\/p>/
+      : new RegExp(`<time datetime="${lastCompared}">`),
+  );
   assert.match(
     html,
     /<span class="line__number" aria-hidden="true">9<\/span><span class="tok-keyword">const<\/span> \{ model, requests \}/,

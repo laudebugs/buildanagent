@@ -37,6 +37,8 @@ export function fixtureInputs(dir: string = FIXTURE_DIR, outline: Outline = FIXT
     glossaryFile: join(dir, "glossary.json"),
     analogiesFile: join(dir, "analogies.json"),
     harnessesFile: join(dir, "harnesses.json"),
+    liveExamplesFile: join(dir, "live-examples.json"),
+    liveComparisonFile: join(dir, "live-comparison.json"),
     repoRoot: dir,
   };
 }
