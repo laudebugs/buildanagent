@@ -2,7 +2,7 @@
 
 The gateway lets your agent call any model through one transcript and one stream format, so switching providers never changes your agent code. Use it directly to call a model, or through `@buildanagent/sdk`, which runs the agent loop on top of it.
 
-As of November 2026 the package holds the transcript types, the stream checker, `complete()`, `createModel()` with its retries and middleware, the price catalog that puts a cost on every message, and `transformMessages()`, which prepares a transcript for the model you send it to. The Anthropic and OpenAI adapters are next.
+As of November 2026 the package holds the transcript types, the stream checker, `complete()`, `createModel()` with its retries and middleware, the price catalog that puts a cost on every message, the tool-name rule, and `transformMessages()`, which prepares a transcript for the model you send it to. The Anthropic and OpenAI adapters are next.
 
 ## A conversation is a list of messages you own
 
@@ -94,6 +94,25 @@ A caller that holds a token count instead of a `ModelContext` calls `projectCost
 ## One caching option covers every provider
 
 The `cacheRetention` stream option sets how long the provider keeps the prompt cache: `"none"`, `"short"` or `"long"`. The gateway passes it to the adapter unchanged, and each adapter maps it to its provider's own cache controls. Leave it out to keep the adapter's default.
+
+## One tool name works with every provider
+
+A tool name must be 1 to 64 characters from `A-Z`, `a-z`, `0-9`, `_` and `-`. This canonical rule is the strictest intersection of the first providers' rules: OpenAI Chat Completions allows 64 characters, and Anthropic Messages allows the same characters at up to 128. [`src/names.md`](src/names.md) lists each provider's rule with its source and the date it was checked, as of November 2026. Names from other sources follow the same rule, so an MCP tool is named `mcp__<server>__<tool>`.
+
+`assertCanonicalName(name)` throws a `GatewayError` with code `invalid_tool_name` for a name that breaks the rule. Call it when you define a tool, so a bad name fails there rather than when a provider rejects the request:
+
+```ts
+import { assertCanonicalName } from "@buildanagent/gateway";
+
+assertCanonicalName("lookup_customer"); // passes
+assertCanonicalName("lookup customer"); // throws: the space is not allowed
+```
+
+An adapter turns each tool name into its provider's wire name with a `ToolNameMap`, and turns the names the model sends back into your tool names. Build one with `createToolNameMap(rule, names)`, passing the run's tool names, and keep it for the whole run, so every request sends the same wire names and the prompt cache stays valid. `sanitize(name)` gives a tool's wire name, and `restore(wireName)` reverses it. For a name the map never issued, `restore()` returns `undefined`, so a tool the model invented never reaches one of your tools.
+
+The map changes a name only when it must. A name the rule accepts keeps itself. Any other name has its disallowed characters replaced by `_`, is cut to fit, and ends in `_` and an 8-digit hash of the name. If that wire name is taken, the map salts the hash: it hashes the name with an attempt counter, counting up until the wire name is free. Because neither provider says whether names are case-sensitive, the map also never issues two wire names that differ only in case. Of two such names passed up front, the one that sorts later is salted. The map sorts the names you pass up front, so their wire names depend only on that set, not on its order. A name that `sanitize()` first sees later keeps itself if the rule accepts it and no issued wire name matches it, ignoring case. Otherwise the map salts it, because the earlier wire name may already have been sent. Every name keeps the wire name it gets first.
+
+`TOOL_NAME_RULES` holds the rules of the two first wire protocols. Every canonical name meets both, so with these providers `sanitize()` changes only a name that differs in case alone from another. The map matters for a provider with a stricter rule: pass its `ToolNameRule` to `createToolNameMap()`.
 
 ## Your key is the only key the gateway sends
 

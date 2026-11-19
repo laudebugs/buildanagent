@@ -17,6 +17,15 @@ export { complete } from "./complete.ts";
 export { estimateInputTokens, type ProjectedTokens, priceUsage, projectCallCost, projectCost } from "./cost.ts";
 export { createModel } from "./create-model.ts";
 export { GatewayError, type GatewayErrorCode, isGatewayError } from "./errors.ts";
+export {
+  assertCanonicalName,
+  CANONICAL_TOOL_NAME,
+  createToolNameMap,
+  isCanonicalName,
+  TOOL_NAME_RULES,
+  type ToolNameMap,
+  type ToolNameRule,
+} from "./names.ts";
 export { type ResolvedProviderConfig, resolveProviderConfig } from "./provider-config.ts";
 export {
   assertModelRequestAllowed,

@@ -7,11 +7,11 @@ import {
   type ModelEvent,
   type ModelRef,
 } from "@buildanagent/gateway";
+import { seededRandom } from "@buildanagent/gateway/testing";
 import {
   type AssistantScript,
   fixedClock,
   ScriptedModel,
-  seededRandom,
   sequentialIds,
   UnexpectedModelCallError,
 } from "@buildanagent/sdk/testing";
