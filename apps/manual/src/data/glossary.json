@@ -1,0 +1,78 @@
+[
+  {
+    "id": "agent",
+    "term": "agent",
+    "definition": "A system in which a model directs its own steps: it chooses which tools to call, reads their results and decides what to do next, until the task is done or a limit stops it.",
+    "sources": ["anthropic-building-effective-agents"]
+  },
+  {
+    "id": "agent-loop",
+    "term": "agent loop",
+    "definition": "The cycle that runs an agent: send the context to the model, run the tools it calls, add their results to the context, and repeat until the model answers without a tool call or a stop condition, such as a step limit, ends the run.",
+    "sources": ["anthropic-building-effective-agents"]
+  },
+  {
+    "id": "workflow",
+    "term": "workflow",
+    "definition": "A fixed sequence of model calls and tools that the code lays out in advance. Unlike an agent, the model never chooses the next step.",
+    "sources": ["anthropic-building-effective-agents"]
+  },
+  {
+    "id": "harness",
+    "term": "harness",
+    "definition": "The program around a model that turns it into a working agent: it runs the loop, calls the tools, keeps the session log and enforces the agent's limits. Pi, OpenCode, Claude Code and Codex are harnesses.",
+    "sources": ["vercel-agent-harnesses"]
+  },
+  {
+    "id": "session-log",
+    "term": "session log",
+    "definition": "The ordered record of a session: each message, tool call and tool result as it happened. A harness can rebuild a run from it, so a turn that crashed or timed out resumes instead of starting over.",
+    "sources": ["vercel-agent-harnesses"]
+  },
+  {
+    "id": "model-gateway",
+    "term": "model gateway",
+    "match": ["model gateway", "gateway"],
+    "definition": "The layer between an agent and its model providers. It gives the agent one way to call many providers and handles shared concerns such as retries and prompt caching. Vercel's AI Gateway is a hosted example.",
+    "sources": ["vercel-ai-gateway-faq"]
+  },
+  {
+    "id": "approval",
+    "term": "approval",
+    "match": ["tool approval", "approval"],
+    "definition": "A pause before a tool call runs, in which a person or a rule approves or denies it. The agent waits for the answer, and a denied call returns a denial to the model instead of running.",
+    "sources": ["ai-sdk-tool-approvals"]
+  },
+  {
+    "id": "guardrail",
+    "term": "guardrail",
+    "definition": "A check that runs beside the agent to catch unsafe or off-policy input, output or tool use. Guardrails work in layers, because no single one is enough, and they add to access controls rather than replace them.",
+    "sources": ["openai-practical-guide-to-building-agents"]
+  },
+  {
+    "id": "sandbox",
+    "term": "sandbox",
+    "definition": "An isolated environment, such as a microVM, where an agent runs code it wrote or code nobody has vetted, kept apart from the machine that runs the agent.",
+    "sources": ["vercel-sandbox"]
+  },
+  {
+    "id": "prompt-injection",
+    "term": "prompt injection",
+    "definition": "An attack that hides instructions in content the agent reads, such as a web page or an email, so the model follows them as if they came from the user. It works because trusted and untrusted text share one context.",
+    "sources": ["willison-lethal-trifecta"]
+  },
+  {
+    "id": "lethal-trifecta",
+    "term": "lethal trifecta",
+    "definition": "Three capabilities that are dangerous together: access to private data, exposure to untrusted content, and a way to communicate externally. An attacker can trick an agent that has all three into sending the private data to them.",
+    "sources": ["willison-lethal-trifecta"]
+  },
+  {
+    "id": "mcp",
+    "term": "MCP",
+    "kind": "abbr",
+    "expansion": "Model Context Protocol",
+    "definition": "An open standard for connecting AI applications to the systems where data lives, through one protocol instead of a custom integration for each source.",
+    "sources": ["anthropic-model-context-protocol"]
+  }
+]

@@ -8,7 +8,7 @@
 | Status | `ready` |
 | Plan | [Book plan §5, BK10 and BK11](../../plans/build-book.md#bk11-generated-checked-inlined-figures-that-work-without-javascript-proposed) |
 | Round / milestone | Round T (textbook), MT |
-| Depends on | [T2](../done/T2-book-design.md), [T3](T3-book-content-model.md) |
+| Depends on | [T2](../done/T2-book-design.md), [T3](../done/T3-book-content-model.md) |
 | Size | M |
 
 ## Goal

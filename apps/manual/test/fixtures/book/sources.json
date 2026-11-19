@@ -1,0 +1,22 @@
+[
+  {
+    "id": "alpha-docs",
+    "title": "Alpha docs",
+    "publisher": "Alpha",
+    "url": "https://example.com/alpha/loop",
+    "kind": "docs",
+    "asOf": "November 2026",
+    "version": "v1.2.3",
+    "verifiedIn": "apps/manual/fact-checks/first.md"
+  },
+  {
+    "id": "beta-paper",
+    "title": "Beta paper",
+    "publisher": "Beta",
+    "url": "https://example.org/beta/",
+    "kind": "paper",
+    "asOf": "October 2026",
+    "verifiedIn": "apps/manual/fact-checks/first.md",
+    "secondary": true
+  }
+]

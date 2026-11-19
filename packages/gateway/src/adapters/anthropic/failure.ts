@@ -4,10 +4,21 @@
  * November 2026). An error body is `{ "type": "error", "error": { "type", "message" }, "request_id" }`, and some
  * errors add `error.details.error_code`. A stream that already returned 200 reports a later error as an `error`
  * event with the same `error` object and no status of its own.
+ *
+ * A 429 may carry a `retry-after` header that gives the number of seconds to wait before a retry; the
+ * spend-cap 429 never does (Rate limits, response headers, https://platform.claude.com/docs/en/api/rate-limits, as of
+ * November 2026). The adapter puts the hint on the error as `retryAfterMs`.
  */
 import type { ModelEvent } from "../../spec.js";
 import type { ModelRef } from "../../types.js";
-import { failureTerminal, isObject, type PartialReply, readErrorBody, type WireFailure } from "../wire.js";
+import {
+  failureTerminal,
+  isObject,
+  type PartialReply,
+  readErrorBody,
+  retryAfterMs,
+  type WireFailure,
+} from "../wire.js";
 
 // The HTTP status each error type stands for, so a stream error classifies like the HTTP error it would have been.
 const STATUS_OF_TYPE: Readonly<Record<string, number>> = {
@@ -42,10 +53,17 @@ export function failureFrom(body: unknown, status: number | undefined, fallback:
   };
 }
 
-/** Reads a failed HTTP response's error body; a body that is not JSON keeps its text as the message. */
+/**
+ * Reads a failed HTTP response's error body and its retry-after hint; a body that is not JSON keeps its text as the
+ * message.
+ */
 export async function failureFromResponse(response: Response): Promise<WireFailure> {
   const { body, text } = await readErrorBody(response);
-  return failureFrom(body, response.status, text || `HTTP ${response.status}`);
+  const wait = retryAfterMs(response.headers);
+  return {
+    ...failureFrom(body, response.status, text || `HTTP ${response.status}`),
+    ...(wait === undefined ? {} : { retryAfterMs: wait }),
+  };
 }
 
 /** True for the prefix-check 400, which the adapter answers by retrying with `drop_block`. */

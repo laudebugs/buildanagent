@@ -36,7 +36,7 @@ Create the book's package so every later Round T todo has a site to build into. 
 **Out of scope** (and which todo covers it)
 
 - The design tokens and components ([T2](T2-book-design.md))
-- The content model and its checks ([T3](../ready/T3-book-content-model.md))
+- The content model and its checks ([T3](T3-book-content-model.md))
 - CI and deploy ([T8](../ready/T8-book-ci.md), [T9](../ready/T9-book-deploy.md))
 
 ## Tasks

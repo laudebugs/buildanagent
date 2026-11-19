@@ -1,32 +1,34 @@
 ---
 import { getCollection, render } from "astro:content";
-import { contentsParts } from "../components/contents-parts.js";
+import { getBook } from "../book/load.js";
+import { contentsParts, neighbours } from "../components/contents-parts.js";
 import ChapterLayout from "../layouts/ChapterLayout.astro";
+
+const book = getBook();
 
 export async function getStaticPaths() {
   const chapters = await getCollection("chapters");
-  const parts = contentsParts(chapters);
-  return chapters.map((chapter, index) => ({
-    params: { slug: chapter.id },
-    props: { chapter, number: index + 1, parts, previous: chapters[index - 1], next: chapters[index + 1] },
-  }));
+  return chapters.map((chapter) => ({ params: { slug: chapter.id }, props: { chapter } }));
 }
 
-const { chapter, number, parts, previous, next } = Astro.props;
+const { chapter } = Astro.props;
 const { Content, headings } = await render(chapter);
-const link = (entry: typeof previous) => entry && { href: `/${entry.id}/`, title: entry.data.title };
+// The number and the neighbouring chapters come from the outline, never from the collection's file order (BK5).
+const number = book.bySlug.get(chapter.id)?.number;
+const { previous, next } = neighbours(book, chapter.id);
 ---
 
 <ChapterLayout
   title={chapter.data.title}
-  description={chapter.data.description}
+  description={chapter.data.summary}
   label={`Chapter ${number}`}
-  lede={chapter.data.description}
+  lede={chapter.data.summary}
   headings={headings.filter((heading) => heading.depth === 2)}
-  parts={parts}
+  parts={contentsParts(book)}
   current={`/${chapter.id}/`}
-  previous={link(previous)}
-  next={link(next)}
+  previous={previous}
+  next={next}
+  sources={chapter.data.sources}
 >
   <Content />
 </ChapterLayout>

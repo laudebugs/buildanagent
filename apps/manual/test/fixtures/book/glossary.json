@@ -1,0 +1,22 @@
+[
+  {
+    "id": "agent-loop",
+    "term": "agent loop",
+    "definition": "The cycle that calls a model and runs its tools until it stops.",
+    "sources": ["alpha-docs"]
+  },
+  {
+    "id": "harness",
+    "term": "harness",
+    "definition": "The program around a model that runs its loop.",
+    "sources": ["alpha-docs", "beta-paper"]
+  },
+  {
+    "id": "mcp",
+    "term": "MCP",
+    "kind": "abbr",
+    "expansion": "Model Context Protocol",
+    "definition": "An open standard for connecting AI applications to data.",
+    "sources": ["beta-paper"]
+  }
+]
