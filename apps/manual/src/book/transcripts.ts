@@ -52,7 +52,8 @@ const transcriptSchema = z.object({
 });
 
 export type Transcript = z.infer<typeof transcriptSchema>;
-type TranscriptMessage = z.infer<typeof message>;
+/** One message of a transcript: its role and its parts. */
+export type TranscriptMessage = z.infer<typeof message>;
 type TranscriptPart = z.infer<typeof part>;
 
 /** Where a harness keeps the transcript of the example in `path`, from the repository root. */
