@@ -71,6 +71,12 @@ export interface PipelineContext {
    * may have happened even when its result then throws an `SdkError`.
    */
   onExecuted?(call: ToolCall): void;
+  /**
+   * True when every call already holds the input a verified approval signed: each runs with that input exactly, once
+   * it still passes the tool's schema, and no gate is asked. Coercion and `repair` are skipped, because they ran
+   * before the input was signed.
+   */
+  readonly approved?: boolean;
 }
 
 /** What a gate decides besides letting a call run unchanged. */
@@ -92,6 +98,8 @@ export interface ToolCallResult {
   readonly result: ToolResult;
   /** The input the gate put in place of the model's, present only when the gate replaced it. */
   readonly input?: unknown;
+  /** The input the call executed with, present only for a call that executed. */
+  readonly ranWith?: unknown;
 }
 
 function toolsByName(tools: readonly AnyTool[]): ReadonlyMap<string, AnyTool> {
@@ -335,6 +343,7 @@ async function prepareCall(
   }
   // Checked before validation, so a cancelled run starts no `repair`, and again after, because `repair` may await.
   if (ctx.signal.aborted) return { kind: "done", call, result: notRun(call, tool, "run_aborted") };
+  if (ctx.approved === true) return prepareApproved(call, tool);
   const checked = await checkInput(tool, call);
   if (!checked.ok) return { kind: "done", call, result: checked.result };
   if (ctx.signal.aborted) return { kind: "done", call, result: notRun(call, tool, "run_aborted") };
@@ -344,6 +353,23 @@ async function prepareCall(
   if ("paused" in gated) return { kind: "paused", call, tool, request: gated.paused, input: gated.input };
   const replaced = "replaced" in gated;
   return { kind: "ready", call, tool, input: gated.input, replaced, key: resourceKeyOf(tool, gated.input) };
+}
+
+// A call whose input a verified approval signed runs with that input as it is. It is checked against the schema once
+// more, because the tool may have changed since the pause, but the checked value never replaces it.
+async function prepareApproved(call: ToolCall, tool: AnyTool): Promise<Prepared> {
+  const checked = await preparedSchemaOf(tool).validate(call.input);
+  if (!checked.ok) {
+    const failure: ToolFailure = {
+      kind: "invalid_input",
+      tool: tool.name,
+      callId: call.callId,
+      input: call.input,
+      issues: checked.issues,
+    };
+    return { kind: "done", call, result: failed(failure, tool) };
+  }
+  return { kind: "ready", call, tool, input: call.input, replaced: false, key: resourceKeyOf(tool, call.input) };
 }
 
 // Only a first-party tool's hint counts: an MCP server's annotations are claims by someone we don't control. A tool
@@ -477,7 +503,8 @@ async function deliver(
     }
     const item = prepared[index] as Prepared;
     const replaced = item.kind === "ready" && item.replaced ? { input: item.input } : {};
-    const entry: ToolCallResult = { call: item.call, result: settled.value, ...replaced };
+    const ran = item.kind === "ready" ? { ranWith: item.input } : {};
+    const entry: ToolCallResult = { call: item.call, result: settled.value, ...replaced, ...ran };
     results.push(entry);
     try {
       ctx.onResult?.(entry);

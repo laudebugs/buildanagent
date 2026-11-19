@@ -9,8 +9,10 @@
  *
  * A gate's `ask` pauses its call (D5): the runner signs a pending request through the one signing path, over the
  * input the call would run with, and hands the request and that input to the pipeline, which reports the pause once
- * every call of the step has been gated. A pause that can't be signed never pauses unsigned: the call is blocked
- * instead, whatever `onFailure` says.
+ * every call of the step has been gated. Under `blockingApprovals()` the runner instead emits the request, waits for
+ * the handler's answer, checks it against the request, and allows or denies the call. A tool's clarification question
+ * is signed through the same path. A pause that can't be signed never pauses unsigned: the call is blocked instead,
+ * whatever `onFailure` says.
  */
 import type { AssistantMessage, Message, ModelContext, ModelRef, Usage } from "@buildanagent/gateway";
 import { isSdkError, SdkError } from "./errors.js";
@@ -26,13 +28,18 @@ import {
   type StopVerdict,
 } from "./hook-checks.js";
 import type { CallOptions, GateDecision, HookEventBase, Interceptors, ModelCallPatch } from "./hooks.js";
-import { signPause } from "./pauses.js";
+import { type ApprovalHandler, blockingHandlerOf, signPause } from "./pauses.js";
 import type { Clock } from "./testing/determinism.js";
 import { preparedSchemaOf } from "./tools/define.js";
 import { type AnyTool, type GateOutcome, isContentList, type PipelineContext } from "./tools/pipeline.js";
 import type { ToolCall, ToolResult } from "./tools/types.js";
 import { isSafetyError, type SafetyErrorCode } from "./vendor/agent-safety/errors.js";
-import type { SignedPendingRequest } from "./vendor/agent-safety/pending.js";
+import {
+  type PendingFields,
+  type Resolution,
+  type SignedPendingRequest,
+  verifyResolution,
+} from "./vendor/agent-safety/pending.js";
 import type { ApprovalSigner } from "./vendor/agent-safety/signer.js";
 
 /** Thrown inside a run when a hook failed while the run fails closed; the loop ends the run with an `error` result. */
@@ -91,6 +98,15 @@ function blocked(text: string, details: Record<string, unknown>): ToolResult {
   return { content: [{ type: "text", text }], isError: true, details };
 }
 
+/** The error result of a call a person denied, with their reason when they gave one. */
+export function denied(tool: string, reason: string | undefined, requestId: string, by: string | undefined): ToolResult {
+  const text =
+    reason === undefined || reason === ""
+      ? `Tool call "${tool}" was denied by the approver.`
+      : `Tool call "${tool}" was denied: ${reason}`;
+  return blocked(text, { decision: "deny", requestId, ...(by === undefined ? {} : { by }) });
+}
+
 /** The pipeline hooks that the interceptors fill, left out when no interceptor needs them. */
 export type PipelineHooks = Pick<PipelineContext, "gate" | "after">;
 
@@ -116,17 +132,69 @@ function unsignedCause(error: unknown): string {
   return isSafetyError(error) && SAFETY_CODES.includes(error.code) ? error.code : "signer_failed";
 }
 
+/** The reason a request carries when `continueRun()` asks again for a call whose earlier request failed its check. */
+const REISSUED_REASON = "The earlier request for this call could not be verified, so it needs a new answer.";
+
+/** Resolves to `ABORTED` once `signal` fires, or to what `promise` resolves to if that comes first. */
+const ABORTED = Symbol("aborted");
+async function unlessAborted<T>(promise: Promise<T>, signal: AbortSignal): Promise<T | typeof ABORTED> {
+  let stop: (() => void) | undefined;
+  const aborted = new Promise<typeof ABORTED>((resolve) => {
+    stop = () => resolve(ABORTED);
+    if (signal.aborted) stop();
+    else signal.addEventListener("abort", stop, { once: true });
+  });
+  try {
+    return await Promise.race([promise, aborted]);
+  } finally {
+    if (stop !== undefined) signal.removeEventListener("abort", stop);
+  }
+}
+
 /** Runs one run's interceptors. */
 export class HookRunner {
   readonly #setup: HookRunnerSetup;
   readonly #hooks: Interceptors;
   readonly #continues: boolean;
   readonly #requestIds = new Set<string>();
+  readonly #blocking: ApprovalHandler | undefined;
 
   constructor(setup: HookRunnerSetup) {
     this.#setup = setup;
     this.#hooks = setup.interceptors;
     this.#continues = setup.interceptors.onFailure === "continue";
+    this.#blocking = blockingHandlerOf(setup.interceptors);
+  }
+
+  /**
+   * Marks request ids that already wait in the context a `continueRun()` started from, so a request this run signs
+   * never takes one of them.
+   */
+  reserveRequestIds(ids: Iterable<string>): void {
+    for (const id of ids) this.#requestIds.add(id);
+  }
+
+  /**
+   * The gate `continueRun()` puts in front of a call whose stored request failed its check: the run's own gate is
+   * asked as for a new call, but the call never runs. A deny still blocks it and an `ask` pauses it as usual, and an
+   * `allow`, or no gate at all, pauses it too, with a new request over the input the gate allowed.
+   */
+  reissueGate(): NonNullable<PipelineContext["gate"]> {
+    return async (e) => {
+      // A call asked again never blocks on a handler: its new request is returned with the context.
+      const outcome = this.#hooks.beforeToolCall === undefined ? undefined : await this.#gate(e, false);
+      if (outcome !== undefined && ("blocked" in outcome || "paused" in outcome)) return outcome;
+      const input = outcome === undefined ? e.input : outcome.input;
+      return this.#sign(e.tool.name, { kind: "approval", callId: e.call.callId, tool: e.tool.name, input, reason: REISSUED_REASON }, input);
+    };
+  }
+
+  /**
+   * Signs the clarification request of a call whose tool asked the user `question`, over the input the tool ran
+   * with. A question that can't be signed blocks the call, as an approval does.
+   */
+  clarify(call: ToolCall, input: unknown, question: string): Promise<GateOutcome> {
+    return this.#sign(call.name, { kind: "clarification", callId: call.callId, tool: call.name, input, question }, input);
   }
 
   /** The gate and the after-hook, for the tool pipeline. */
@@ -182,7 +250,10 @@ export class HookRunner {
     return guarded.status === "ok" ? checkStopDecision(guarded.value) : { kind: "none" };
   }
 
-  async #gate(input: { call: ToolCall; tool: AnyTool; input: unknown }): Promise<GateOutcome | undefined> {
+  async #gate(
+    input: { call: ToolCall; tool: AnyTool; input: unknown },
+    block = true,
+  ): Promise<GateOutcome | undefined> {
     const hook = this.#hooks.beforeToolCall;
     if (hook === undefined) return undefined;
     const { call, tool } = input;
@@ -198,7 +269,7 @@ export class HookRunner {
     if (guarded.status === "closed") return guarded.value;
     const decision = checkDecision(guarded.value);
     return decision.decision === "ask"
-      ? this.#pause(call, tool, input.input, decision)
+      ? this.#pause(call, tool, input.input, decision, block)
       : gateOutcome(tool.name, decision);
   }
 
@@ -206,34 +277,87 @@ export class HookRunner {
    * Signs the pending request for a call a gate asked about and returns it with the input it signs. That input is the
    * one the call would run with: the checked input the gate saw, or the `ask`'s own replacement, which must pass the
    * tool's schema like an `allow`'s. If signing fails, the call is blocked: a pause that no signature covers is never
-   * written.
+   * written. Under `blockingApprovals()`, the request is emitted and answered here instead.
    */
-  async #pause(call: ToolCall, tool: AnyTool, seen: unknown, decision: AskDecision): Promise<GateOutcome> {
-    const { signer, clock } = this.#setup;
+  async #pause(
+    call: ToolCall,
+    tool: AnyTool,
+    seen: unknown,
+    decision: AskDecision,
+    block: boolean,
+  ): Promise<GateOutcome | undefined> {
     const { reason, policyVersion } = decision;
     const input = thawedCopy(decision.input === undefined ? seen : await this.#replacement(tool, decision.input));
+    const fields: PendingFields = {
+      kind: "approval",
+      callId: call.callId,
+      tool: tool.name,
+      input,
+      ...(policyVersion === undefined ? {} : { policyVersion }),
+      // Display text only, so a blank reason is left out rather than failing the signature.
+      ...(reason === undefined || reason === "" ? {} : { reason }),
+    };
+    const outcome = await this.#sign(tool.name, fields, input);
+    if (!block || this.#blocking === undefined || !("paused" in outcome)) return outcome;
+    return this.#waitFor(this.#blocking, call, tool.name, outcome.paused, input, decision.input === undefined);
+  }
+
+  /** Signs one pending request through the one signing path, or blocks the call when it can't be signed. */
+  async #sign(tool: string, fields: PendingFields, input: unknown): Promise<GateOutcome> {
+    const { signer, clock } = this.#setup;
     let request: SignedPendingRequest;
     try {
-      request = await signPause(
-        {
-          kind: "approval",
-          callId: call.callId,
-          tool: tool.name,
-          input,
-          ...(policyVersion === undefined ? {} : { policyVersion }),
-          // Display text only, so a blank reason is left out rather than failing the signature.
-          ...(reason === undefined || reason === "" ? {} : { reason }),
-        },
-        signer,
-        { generateId: () => this.#requestId(), now: () => new Date(clock.now()) },
-      );
+      request = await signPause(fields, signer, {
+        generateId: () => this.#requestId(),
+        now: () => new Date(clock.now()),
+      });
     } catch (error) {
-      return this.#unsigned(tool.name, unsignedCause(error));
+      return this.#unsigned(tool, unsignedCause(error));
     }
     // A resolution names its request by id, so two pending requests of one run must never share one.
-    if (this.#requestIds.has(request.id)) return this.#unsigned(tool.name, "duplicate_request_id");
+    if (this.#requestIds.has(request.id)) return this.#unsigned(tool, "duplicate_request_id");
     this.#requestIds.add(request.id);
     return { paused: request, input };
+  }
+
+  /**
+   * The blocking form of a pause: emit the signed request, wait for the handler, and check its answer against the
+   * request before the call may run. Every failure denies the call; nothing here lets it run unanswered.
+   */
+  async #waitFor(
+    handler: ApprovalHandler,
+    call: ToolCall,
+    tool: string,
+    request: SignedPendingRequest,
+    input: unknown,
+    unchanged: boolean,
+  ): Promise<GateOutcome | undefined> {
+    const { signal, signer } = this.#setup;
+    this.#setup.send({ type: "approval_request", request, input });
+    const refuse = (why: string, error: string): GateOutcome => {
+      this.#setup.send({ type: "hook_error", hook: "blockingApprovals", error });
+      return { blocked: blocked(`Tool call "${tool}" was not run, because ${why}.`, { decision: "ask", requestId: request.id }) };
+    };
+    let answer: unknown;
+    try {
+      answer = await unlessAborted(Promise.resolve(handler(request, Object.freeze({ input, signal }))), signal);
+    } catch (error) {
+      return refuse("its approval handler failed", messageOf(error));
+    }
+    if (answer === ABORTED) {
+      const text = `Tool call "${tool}" was not run, because the run was aborted while it waited for approval.`;
+      return { blocked: blocked(text, { decision: "ask", requestId: request.id }) };
+    }
+    const check = await verifyResolution(request, answer as Resolution, {
+      signer,
+      call: { callId: call.callId, tool, input },
+    });
+    if (!check.ok) return refuse("its approval could not be verified", `the approval was refused (${check.cause})`);
+    const resolution = check.resolution;
+    // An unchanged input is the checked one the gate saw, which the pipeline runs as it is; a replacement is passed on.
+    if ("decision" in resolution && resolution.decision === "allow") return unchanged ? undefined : { input };
+    const reason = "reason" in resolution && typeof resolution.reason === "string" ? resolution.reason : undefined;
+    return { blocked: denied(tool, reason, request.id, resolution.by) };
   }
 
   /**
