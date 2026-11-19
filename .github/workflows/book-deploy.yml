@@ -1,8 +1,8 @@
 # Deploys the book that book-build.yml built: production to manual.buildanagent.fyi for a push to main, a preview at
 # pr-<n>.manual.buildanagent.fyi for every pull request from a branch of this repository, and deletion of a closed
 # pull request's preview. A fork's pull request gets no preview; a maintainer can push its change to a branch here.
-# Each preview's URLs go into one comment on its pull request. It is the deploy half of DS3's build and deploy split
-# (book plan BK15, ADR 0053).
+# Each preview's URLs go into one comment on its pull request. This workflow is the deploy half of DS3's build and
+# deploy split (book plan BK15, ADR 0053).
 #
 # GitHub runs a workflow_run workflow from the file on the default branch, so a pull request that edits this file
 # changes nothing until it merges. No job checks out or runs the pull request's code. From the triggering run it takes
