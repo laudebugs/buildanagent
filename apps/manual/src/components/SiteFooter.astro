@@ -1,0 +1,24 @@
+---
+// The repository and the author's profiles. The sibling sites (buildanagent.fyi and docs.buildanagent.fyi) join this
+// list when apps/site and apps/docs exist; book plan §3 has each site link to the other two.
+const links = [
+  { label: "GitHub repository", href: "https://github.com/laudebugs/buildanagent" },
+  { label: "X: @laudebugs", href: "https://x.com/laudebugs" },
+  { label: "GitHub: laudebugs", href: "https://github.com/laudebugs" },
+];
+---
+
+<footer class="site-footer">
+  <div class="page site-footer__inner">
+    <p class="site-footer__about">Build an agent</p>
+    <nav class="site-footer__nav" aria-label="Repository and author">
+      {
+        links.map((link) => (
+          <a href={link.href} rel="noopener">
+            {link.label}
+          </a>
+        ))
+      }
+    </nav>
+  </div>
+</footer>
