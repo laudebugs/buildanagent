@@ -198,8 +198,23 @@ test("references read lists and ranges, and skip another log's rows", () => {
 test("a row named after this log, or after a link to another kind of file, is checked", () => {
   assert.deepEqual(references("this fact-check row 5"), ["5"]);
   assert.deepEqual(references("see the fact-check, row 6"), ["6"]);
-  assert.deepEqual(references("[the plan](../build-book.md), row 7"), ["7"]);
+  assert.deepEqual(references("[the plan](../build-book.md), row 7"), []);
+  assert.deepEqual(references("[the plan](../build-book.md#rows) row 7"), []);
+  assert.deepEqual(references("[the config](../tsconfig.json), row 7"), ["7"]);
+  assert.deepEqual(references("see the plan, row 7"), ["7"]);
   assert.deepEqual(references("a row, a 12-factor app, rows of numbers"), []);
+});
+
+test("references stay linear on input built to make a pattern backtrack", () => {
+  // The first input once ran for minutes; the bound is coarse, about a thousand times what a linear scan needs.
+  const inputs = [
+    `${"[a](fact-check".repeat(3000)} row 5`,
+    "row 5 [x](y) ".repeat(5000),
+    "[a](fact-check row 5 ".repeat(5000),
+  ];
+  const started = performance.now();
+  for (const input of inputs) references(input);
+  assert.ok(performance.now() - started < 5000, "references took more than 5 s on adversarial input");
 });
 
 test("a wrong totals line fails, and the fixed text carries the computed line", () => {

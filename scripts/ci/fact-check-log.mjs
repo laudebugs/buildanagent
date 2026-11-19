@@ -121,16 +121,25 @@ export function readRows(text) {
 
 // Text just before `row` that names another log, whose rows these are:
 // - a todo id, "its" or "their" before "fact-check": "U18 fact-check row 85", "its fact-check row 93";
+// - a link to any other Markdown file, which the row refers to: "[the plan](../build-book.md), row 7";
 // - a link to a fact-check file, or one whose text says fact-check: "[U12 fact-check](…), rows 88 and 90",
 //   "[fact-check-browser-use.md](…) rows 112";
 // - "its" or "their" alone, for the log the sentence just named: "its row 90".
 // Or text just after it: "Row 85 of [U19's fact-check](…)". "This fact-check row 5" names this log and is checked.
-const LINK_TO_LOG = String.raw`\[[^\]]*\]\([^)]*fact-check[^)]*\)|\[[^\]]*fact-check[^\]]*\]\([^)]*\)`;
+const LINK_TO_LOG = [
+  String.raw`\[[^\]]*\]\([^)#]*\.md(?:#[^)]*)?\)`,
+  String.raw`\[[^\]]*\]\([^)]*fact-check[^)]*\)`,
+  String.raw`\[[^\]]*fact-check[^\]]*\]\([^)]*\)`,
+].join("|");
 const ANOTHER_LOG_BEFORE = new RegExp(
   String.raw`(?:(?:\b${TODO}(?:'s)?|\bits|\btheir)\s+fact-check|${LINK_TO_LOG}|\bits|\btheir)[\s,]*$`,
   "i",
 );
 const ANOTHER_LOG_AFTER = /^\s+(?:of|in)\s+\[?[^|]{0,40}?fact-check/i;
+// Both patterns are tried on a bounded slice around a citation, so a row's cost grows with its length, not with its
+// length squared; no link or phrase that decides a citation runs longer than the first.
+const LOOK_BEHIND = 300;
+const LOOK_AHEAD = 80;
 
 /**
  * Every id of this log's rows that a row's text cites, with ranges expanded; a range that cannot be expanded is
@@ -139,8 +148,9 @@ const ANOTHER_LOG_AFTER = /^\s+(?:of|in)\s+\[?[^|]{0,40}?fact-check/i;
 export function references(text) {
   const ids = [];
   for (const match of text.matchAll(REFERENCE)) {
-    const before = text.slice(0, match.index);
-    const after = text.slice(match.index + match[0].length);
+    const before = text.slice(Math.max(0, match.index - LOOK_BEHIND), match.index);
+    const end = match.index + match[0].length;
+    const after = text.slice(end, end + LOOK_AHEAD);
     if (ANOTHER_LOG_BEFORE.test(before) || ANOTHER_LOG_AFTER.test(after)) continue;
     // Read id, separator, id, …; a range separator joins the id before it and the id after it into a range.
     const list = match[1];
