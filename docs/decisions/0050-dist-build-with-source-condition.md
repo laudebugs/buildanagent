@@ -1,6 +1,7 @@
 # 0050. Publish built dist/ files with types first, and keep a source export condition for the workspace
 
 - **Status:** Accepted (owner, 2026-11-19)
+- **Note (2026-11-19):** [ADR 0051](0051-dist-build-corrections-from-l1.md), proposed and awaiting the owner's acceptance, records corrections to this decision found in todo L1. This record is marked superseded in part only once the owner accepts 0051.
 - **Date:** 2026-11-19
 - **Plan:** [publish-and-docs.md, PB3](../plans/publish-and-docs.md#pb3-built-dist-packages-with-a-source-condition-for-the-workspace-accepted)
 

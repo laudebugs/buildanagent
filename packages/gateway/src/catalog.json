@@ -1,0 +1,120 @@
+{
+  "models": [
+    {
+      "provider": "anthropic",
+      "id": "claude-opus-5-5",
+      "rates": [
+        {
+          "upToInputTokens": null,
+          "uncachedInput": 4,
+          "cacheRead": 0.2,
+          "cacheWrite": {
+            "5m": 5,
+            "1h": 8
+          },
+          "output": 20
+        }
+      ],
+      "contextWindow": 1000000,
+      "maxOutputTokens": 128000,
+      "images": true,
+      "reasoning": true,
+      "asOf": "2026-11-19",
+      "sources": {
+        "rates": "https://platform.claude.com/docs/en/about-claude/pricing",
+        "contextWindow": "https://platform.claude.com/docs/en/about-claude/models/overview",
+        "maxOutputTokens": "https://platform.claude.com/docs/en/about-claude/models/overview"
+      }
+    },
+    {
+      "provider": "anthropic",
+      "id": "claude-sonnet-5-5",
+      "rates": [
+        {
+          "upToInputTokens": null,
+          "uncachedInput": 2,
+          "cacheRead": 0.1,
+          "cacheWrite": {
+            "5m": 2.5,
+            "1h": 4
+          },
+          "output": 10
+        }
+      ],
+      "contextWindow": 1000000,
+      "maxOutputTokens": 128000,
+      "images": true,
+      "reasoning": true,
+      "asOf": "2026-11-19",
+      "sources": {
+        "rates": "https://platform.claude.com/docs/en/about-claude/pricing",
+        "contextWindow": "https://platform.claude.com/docs/en/about-claude/models/overview",
+        "maxOutputTokens": "https://platform.claude.com/docs/en/about-claude/models/overview"
+      }
+    },
+    {
+      "provider": "anthropic",
+      "id": "claude-haiku-5-5",
+      "rates": [
+        {
+          "upToInputTokens": 100000,
+          "uncachedInput": 0.1,
+          "cacheRead": 0.01,
+          "cacheWrite": {
+            "5m": 0.125,
+            "1h": 0.2
+          },
+          "output": 0.5
+        },
+        {
+          "upToInputTokens": null,
+          "uncachedInput": 0.5,
+          "cacheRead": 0.05,
+          "cacheWrite": {
+            "5m": 0.625,
+            "1h": 1
+          },
+          "output": 2.5
+        }
+      ],
+      "contextWindow": 1000000,
+      "maxOutputTokens": 128000,
+      "images": true,
+      "reasoning": true,
+      "asOf": "2026-11-19",
+      "sources": {
+        "rates": "https://platform.claude.com/docs/en/about-claude/pricing",
+        "contextWindow": "https://platform.claude.com/docs/en/about-claude/models/overview",
+        "maxOutputTokens": "https://platform.claude.com/docs/en/about-claude/models/overview"
+      },
+      "note": "The pricing page's long context section prices a prompt over 100,000 input tokens, cache reads and writes included, at the higher tier."
+    },
+    {
+      "provider": "openai",
+      "id": "gpt-5.4-mini",
+      "rates": [
+        {
+          "upToInputTokens": null,
+          "uncachedInput": 0.75,
+          "cacheRead": 0.075,
+          "cacheWrite": {
+            "5m": 0.75,
+            "1h": 0.75
+          },
+          "output": 4.5
+        }
+      ],
+      "contextWindow": 272000,
+      "maxOutputTokens": 128000,
+      "images": true,
+      "reasoning": true,
+      "asOf": "2026-11-19",
+      "sources": {
+        "rates": "https://developers.openai.com/api/docs/pricing",
+        "contextWindow": "https://developers.openai.com/api/docs/models/gpt-5.4-mini",
+        "maxOutputTokens": "https://developers.openai.com/api/docs/models/gpt-5.4-mini"
+      },
+      "note": "The cache-write rates are the uncached input rate: the prompt caching guide (https://developers.openai.com/api/docs/guides/prompt-caching) lists no additional cache-write charge for models before GPT-5.6. contextWindow records the model page's 272,000-token input limit, not its 400,000-token context window, because a request can send no more input than that."
+    }
+  ]
+}

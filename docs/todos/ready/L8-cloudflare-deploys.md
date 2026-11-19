@@ -27,13 +27,14 @@ Deploy `apps/site` to `buildanagent.fyi` and `apps/docs` to `docs.buildanagent.f
 - Wrangler pinned (4.160.1 on 2026-11-19, or newer and at least a week old; Previews need 4.135.0 or later)
 - `docs-build.yml` and `site-build.yml` on `pull_request` and pushes to `main`: build the site with no secrets and upload only `dist/` as an artifact
 - `docs-deploy.yml` and `site-deploy.yml` on `workflow_run` after their build workflow, which GitHub always runs from `main`:
+  - Run in `environment: cloudflare`, whose deployment branches are limited to `main` and which holds `CLOUDFLARE_API_TOKEN` and `CLOUDFLARE_ACCOUNT_ID` ([plan §3](../../plans/publish-and-docs.md#3-what-the-owner-sets-up)).
   - Download the artifact, take `wrangler.toml` from `main`, and never check out or run the pull request's code.
   - Deploy production only when `github.event.workflow_run.event == 'push'`, `github.event.workflow_run.head_repository.full_name == github.repository` and the head branch is `main`.
   - Otherwise run `wrangler preview`, and find the pull request for the comment from `GET /repos/{repo}/commits/{head_sha}/pulls`, never from the artifact.
 - Confirming the deploy token's permissions against Cloudflare's docs, and recording them in the CI plan
 - The docs' version policy, DS4, in `docs-deploy.yml`:
   - The `workflow_run` path deploys `main` to `docs.buildanagent.fyi` while no release tag exists, and to `next.docs.buildanagent.fyi` (marked unreleased and `noindex`) once one does.
-  - The `workflow_dispatch` path, which `release.yml` starts with the tag, builds the docs at that tag and deploys production.
+  - The `workflow_dispatch` path, which `release.yml` starts on `main` with `-f tag=v<version>`, builds the docs at that tag and deploys production. The input must be named `tag`, because `release.yml` sends `-f tag=v<version>`; until this workflow exists, `release.yml` skips the dispatch ([CI plan §3f](../../plans/ci.md#3f-releases-through-npm-trusted-publishing-added-2026-11-19)).
 
 **Out of scope** (and which todo covers it)
 

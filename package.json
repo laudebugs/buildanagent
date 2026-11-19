@@ -12,15 +12,18 @@
     "check": "biome check .",
     "lint": "biome lint .",
     "format": "biome format --write .",
+    "build": "pnpm -r --if-present build",
     "typecheck": "pnpm -r --if-present typecheck",
     "test": "pnpm -r --if-present test",
     "verify": "pnpm -r --if-present verify"
   },
   "devDependencies": {
     "@biomejs/biome": "2.6.4",
+    "@changesets/cli": "3.0.3",
     "@types/node": "26.6.6",
     "tsx": "4.23.15",
     "typescript": "7.0.2",
-    "vitest": "5.1.0"
+    "vitest": "5.1.0",
+    "yaml": "2.9.0"
   }
 }

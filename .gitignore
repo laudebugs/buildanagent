@@ -13,3 +13,9 @@ docs/research/practitioners/.raw/
 # Deep-research working folders; the filed copies live under docs/research/<round>/
 research_notes/
 reports/
+
+# Package builds (pnpm build) and the licence copies each package's prepack script makes
+packages/*/dist/
+packages/*/LICENSE
+packages/*/LICENSE-APACHE
+packages/*/LICENSE-MIT

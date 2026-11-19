@@ -1,0 +1,268 @@
+# Publishes @buildanagent/gateway and @buildanagent/sdk to npm through trusted publishing, with provenance, and keeps
+# the "Version packages" pull request up to date (publish-and-docs PB2, ADR 0047).
+#
+# - A push to main runs `plan`, which reads the checkout, the npm registry and the GitHub releases
+#   (scripts/ci/release-plan.mjs). With
+#   pending changesets, `version-pr` opens or updates the "Version packages" pull request; it is off until L4b.
+#   Merging that pull request is the next push to main: no changesets are pending, npm lacks the new version, so
+#   `pack` builds the tarballs and `publish` uploads them, tags the release and starts the docs deploy.
+# - A workflow_dispatch is a dry run: `plan` and `pack` run, and nothing else, because `version-pr` and `publish`
+#   require a push to main.
+#
+# No job reads an npm token, and none is stored. The publish job authenticates with its OIDC token alone, so a
+# missing or wrong trusted publisher on npmjs.com makes `npm publish` fail with ENEEDAUTH instead of falling back.
+name: release
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+# One release at a time, and never cancelled: a cancelled publish could leave the gateway out without the SDK.
+concurrency:
+  group: release
+  cancel-in-progress: false
+
+jobs:
+  plan:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    outputs:
+      version: ${{ steps.plan.outputs.version }}
+      tag: ${{ steps.plan.outputs.tag }}
+      publish: ${{ steps.plan.outputs.publish }}
+      pending: ${{ steps.plan.outputs.pending }}
+      docs_deploy: ${{ steps.plan.outputs.docs_deploy }}
+      node: ${{ steps.plan.outputs.node }}
+    steps:
+      - uses: actions/checkout@v7.0.1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@v7.1.0
+        with:
+          node-version-file: .nvmrc
+      - id: plan
+        # GH_TOKEN is the run's read-only GITHUB_TOKEN, for the check that the GitHub release exists.
+        env:
+          GH_TOKEN: ${{ github.token }}
+        # pipefail, because a `run` step without `shell:` doesn't set it, and a failed plan must fail the job.
+        run: |
+          set -o pipefail
+          node scripts/ci/release-plan.mjs plan | tee -a "$GITHUB_OUTPUT"
+
+  # Opens or updates the "Version packages" pull request from the pending changesets.
+  # Off until L4b, because the owner said "Changesets wait until we publish". To switch it on, change `false &&` to
+  # `true &&` in the `if:` below, the same one-line switch as ci.yml's changesets job.
+  # The pull request is opened with GITHUB_TOKEN, so its ci.yml runs start in an approval-required state and a person
+  # with write access approves them from the merge box. That keeps release.yml free of stored secrets; the release
+  # pull request needs the owner's review anyway.
+  version-pr:
+    name: Open or update the "Version packages" pull request
+    needs: plan
+    if: false && github.event_name == 'push' && needs.plan.outputs.pending == 'true'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    permissions:
+      contents: write
+      pull-requests: write
+    steps:
+      # Full history, so the release branch can be rebuilt from main; no persisted token while pnpm installs.
+      - uses: actions/checkout@v7.0.1
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+      - uses: pnpm/action-setup@v6.1.1 # pnpm's version comes from packageManager
+      # No dependency cache in a job that can push: npm's trusted-publishing docs say "never use caching in release
+      # builds".
+      - uses: actions/setup-node@v7.1.0
+        with:
+          node-version-file: .nvmrc
+      # The root's own devDependencies hold @changesets/cli; nothing else is needed to version.
+      - run: pnpm install --frozen-lockfile --filter .
+      - run: pnpm changeset version
+      - name: Push the release branch and open or update the pull request
+        env:
+          GH_TOKEN: ${{ github.token }}
+          REPO: ${{ github.repository }}
+        run: |
+          branch="changeset-release/main"
+          title="chore(release): version packages"
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git switch -C "$branch"
+          git add -A
+          git commit -m "$title"
+          git push --force "https://x-access-token:${GH_TOKEN}@github.com/${REPO}.git" "$branch"
+          {
+            echo "Merging this pull request publishes the versions below to npm through release.yml, tags the release and starts the docs deploy."
+            echo
+            echo '```'
+            git diff --stat origin/main
+            echo '```'
+          } > "$RUNNER_TEMP/body.md"
+          if [ -n "$(gh pr list --repo "$REPO" --head "$branch" --state open --json number --jq '.[].number')" ]; then
+            gh pr edit "$branch" --repo "$REPO" --title "$title" --body-file "$RUNNER_TEMP/body.md"
+          else
+            gh pr create --repo "$REPO" --head "$branch" --base main --title "$title" --body-file "$RUNNER_TEMP/body.md"
+          fi
+
+  # Builds and packs both packages with a read-only token. Each package's `prepack` builds dist/, so this job runs our
+  # build scripts; the publish job then uploads these tarballs without installing or running anything.
+  pack:
+    needs: plan
+    if: github.event_name == 'workflow_dispatch' || needs.plan.outputs.publish == 'true'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v7.0.1
+        with:
+          persist-credentials: false
+      - uses: pnpm/action-setup@v6.1.1
+      # No dependency cache: what ships must come from a clean install.
+      - uses: actions/setup-node@v7.1.0
+        with:
+          node-version-file: .nvmrc
+      - run: pnpm install --frozen-lockfile --filter . --filter "./packages/*"
+      - run: pnpm --filter "./packages/*" test
+      - name: Pack both packages
+        run: |
+          mkdir -p "$RUNNER_TEMP/release"
+          for pkg in gateway sdk; do
+            pnpm --dir "packages/$pkg" pack --pack-destination "$RUNNER_TEMP/release"
+          done
+      - name: Write the release notes
+        if: needs.plan.outputs.publish == 'true'
+        run: node scripts/ci/release-plan.mjs notes "$RUNNER_TEMP/release/release-notes.md"
+      - name: Summarise the run
+        env:
+          VERSION: ${{ needs.plan.outputs.version }}
+          PUBLISH: ${{ needs.plan.outputs.publish }}
+          EVENT: ${{ github.event_name }}
+        run: |
+          {
+            if [ "$EVENT" = "workflow_dispatch" ]; then echo "Dry run: built and packed $VERSION; nothing was published."; fi
+            echo "Plan says publish: **$PUBLISH**"
+            for file in "$RUNNER_TEMP"/release/*.tgz; do
+              echo
+              echo "\`$(basename "$file")\`"
+              echo '```'
+              tar -tzf "$file"
+              echo '```'
+            done
+          } >> "$GITHUB_STEP_SUMMARY"
+      - uses: actions/upload-artifact@v7.0.2
+        with:
+          name: release
+          path: ${{ runner.temp }}/release
+          if-no-files-found: error
+          # As long as the `release` environment can hold the publish job waiting for approval (30 days).
+          retention-days: 30
+
+  # Uploads the tarballs to npm through trusted publishing. Only a push to main gets here, and the `release`
+  # environment holds the job until the owner approves it. The job checks nothing out and installs nothing but npm.
+  publish:
+    needs: [plan, pack]
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main' && needs.plan.outputs.publish == 'true'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    environment: release
+    permissions:
+      contents: write # the tag and the GitHub release
+      id-token: write # the OIDC token npm exchanges for a short-lived publish token
+    env:
+      VERSION: ${{ needs.plan.outputs.version }}
+      TAG: ${{ needs.plan.outputs.tag }}
+    steps:
+      # npm then reads only this file, which names the registry and holds no credentials, so there is no token to
+      # fall back on. The paths go through $GITHUB_ENV because a job's `env:` can't read the `runner` context.
+      - name: Write an npm config with no credentials
+        run: |
+          echo "registry=https://registry.npmjs.org/" > "$RUNNER_TEMP/npmrc"
+          {
+            echo "RELEASE_DIR=$RUNNER_TEMP/release"
+            echo "NPM_CONFIG_USERCONFIG=$RUNNER_TEMP/npmrc"
+            echo "NPM_CONFIG_GLOBALCONFIG=$RUNNER_TEMP/npmrc"
+          } >> "$GITHUB_ENV"
+      # No registry-url: setup-node would write an .npmrc that reads NODE_AUTH_TOKEN.
+      - uses: actions/setup-node@v7.1.0
+        with:
+          node-version: ${{ needs.plan.outputs.node }}
+          package-manager-cache: false
+      - uses: actions/download-artifact@v8.0.2
+        with:
+          name: release
+          path: ${{ runner.temp }}/release
+      # Node 22 ships npm 10, and trusted publishing needs npm 11.5.1 or later.
+      - run: npm install --global npm@11.21.2
+      - name: Check the toolchain and that no npm token is present
+        run: |
+          node -e '
+            const [major, minor] = process.versions.node.split(".").map(Number);
+            if (major < 22 || (major === 22 && minor < 14)) throw new Error(`trusted publishing needs Node 22.14.0 or later, found ${process.version}`);
+          '
+          test "$(npm --version)" = "11.21.2"
+          # Names only: printing a matching line would put its value, which may not be masked, in the log.
+          if env | cut -d= -f1 | grep -iE '^(NODE_AUTH_TOKEN|NPM_TOKEN|NPM_CONFIG_.*(AUTH|TOKEN).*)$'; then
+            echo "::error::An npm token is set. release.yml publishes through trusted publishing only."
+            exit 1
+          fi
+      # A rerun after a partial failure skips what npm already holds. npm adds provenance on its own only from a public
+      # repository; `--provenance` makes the publish fail instead of shipping a release without it.
+      - name: Publish each tarball, gateway first
+        run: |
+          set -euo pipefail
+          for pkg in gateway sdk; do
+            status=$(curl -sS --retry 3 -o /dev/null -w '%{http_code}' "https://registry.npmjs.org/@buildanagent%2f$pkg/$VERSION")
+            case "$status" in
+              200) echo "@buildanagent/$pkg@$VERSION is already on npm; skipping it."; continue ;;
+              404) ;;
+              *) echo "::error::The registry answered $status for @buildanagent/$pkg@$VERSION."; exit 1 ;;
+            esac
+            npm publish "$RELEASE_DIR/buildanagent-$pkg-$VERSION.tgz" --access public --provenance
+          done
+      # Creating the release creates the tag at this commit. A tag that `release.yml` pushes with GITHUB_TOKEN starts
+      # no workflow, so the docs deploy is started by the next job instead.
+      - name: Tag the release and create its GitHub release
+        env:
+          GH_TOKEN: ${{ github.token }}
+          REPO: ${{ github.repository }}
+        run: |
+          if gh release view "$TAG" --repo "$REPO" > /dev/null 2>&1; then
+            echo "The GitHub release $TAG already exists."
+            exit 0
+          fi
+          # Branch on gh's exit status: on an error, gh prints the error body to stdout and skips --jq.
+          if ref=$(gh api "repos/$REPO/git/ref/tags/$TAG" --jq '.object.type + " " + .object.sha' 2> "$RUNNER_TEMP/tag-error"); then
+            read -r type existing <<< "$ref"
+            # An annotated tag's ref points at the tag object, so peel it to the commit.
+            if [ "$type" = "tag" ]; then existing=$(gh api "repos/$REPO/git/tags/$existing" --jq .object.sha); fi
+            if [ "$existing" != "$GITHUB_SHA" ]; then
+              echo "::error::The tag $TAG already points at $existing, not $GITHUB_SHA."
+              exit 1
+            fi
+          elif ! grep -q "HTTP 404" "$RUNNER_TEMP/tag-error"; then
+            cat "$RUNNER_TEMP/tag-error"
+            echo "::error::Couldn't tell whether the tag $TAG exists."
+            exit 1
+          fi
+          gh release create "$TAG" --repo "$REPO" --target "$GITHUB_SHA" --title "$TAG" --notes-file "$RELEASE_DIR/release-notes.md"
+
+  # Deploys the docs for the new tag (DS4). A workflow_dispatch sent with GITHUB_TOKEN still creates a run, unlike the
+  # tag push. Skipped, not failed, while docs-deploy.yml doesn't exist yet (L8).
+  docs:
+    needs: [plan, publish]
+    if: needs.plan.outputs.docs_deploy == 'true'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    permissions:
+      actions: write
+    steps:
+      - name: Start the docs deploy for the release tag
+        env:
+          GH_TOKEN: ${{ github.token }}
+          REPO: ${{ github.repository }}
+          TAG: ${{ needs.plan.outputs.tag }}
+        run: gh workflow run docs-deploy.yml --repo "$REPO" --ref main -f tag="$TAG"

@@ -54,13 +54,31 @@ export interface Cost {
   catalogAsOf?: string;
 }
 
+/**
+ * A failure an adapter can name in provider-neutral terms. `"thinking_prefix_mismatch"`: the provider rejected a
+ * reasoning block because the transcript before it changed after the block was written.
+ */
+export type ModelErrorCode = "thinking_prefix_mismatch";
+
 export interface AssistantMessage {
   role: "assistant";
   content: ContentBlock[];
   model: ModelRef;
   stopReason: "stop" | "length" | "tool_calls" | "error" | "aborted";
-  error?: { kind: "retryable" | "overflow" | "quota" | "fatal"; message: string; status?: number };
+  error?: {
+    kind: "retryable" | "overflow" | "quota" | "fatal";
+    message: string;
+    status?: number;
+    /** A provider-neutral name for a failure the caller may want to handle on its own, when the adapter knows one. */
+    code?: ModelErrorCode;
+  };
+  /** The tokens of every attempt the call made, failed attempts included, because the provider bills them all. */
   usage: Usage;
+  /**
+   * The usage of the attempt that produced this message alone. `createModel()` sets it when a call was retried, so
+   * `usage` sums several requests; it is absent when `usage` is one request's.
+   */
+  lastAttemptUsage?: Usage;
   cost: Cost;
 }
 
@@ -89,6 +107,7 @@ export interface ModelContext {
 
 /** The context window and output limit that context trimming and the budget need; filled from the price catalog. */
 export interface ModelCaps {
+  /** The most input tokens one request can send, which is below the full window when the provider caps input. */
   contextWindow: number;
   maxOutputTokens: number;
   images: boolean;

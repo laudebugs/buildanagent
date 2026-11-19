@@ -31,6 +31,10 @@ A step is either a fixed response or a function that builds one from the request
 
 ## Tests give the same result every run
 
-Nothing in the testing export reads the system clock or `Math.random()`. `fixedClock(start, stepMs)` returns a clock that advances by a fixed step, `sequentialIds(prefix)` returns `prefix-1`, `prefix-2` and so on, and `seededRandom(seed)` returns random numbers you can repeat. The same script with the same clock and ids streams the same events every time.
+Nothing in the testing export reads the system clock or `Math.random()`. `fixedClock(start, stepMs)` returns a clock that advances by a fixed step, and `sequentialIds(prefix)` returns `prefix-1`, `prefix-2` and so on. For random numbers you can repeat, import `seededRandom(seed)` from `@buildanagent/gateway/testing`. The same script with the same clock and ids streams the same events every time.
 
 Start each test file with `import "@buildanagent/gateway/testing/setup"`, which keeps the test offline.
+
+## Build the SDK with its dependencies
+
+The SDK compiles against the gateway's built `dist/*.d.ts`, so build both from the repo root with `pnpm --filter "@buildanagent/sdk..." build`, which builds the gateway first. `pnpm build` builds every package in the same order. On a clean checkout, `pnpm build` or `pnpm pack` run inside `packages/sdk` fails, because the gateway has no `dist/` yet. Tests and type-checks need no build.

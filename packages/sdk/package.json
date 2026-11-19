@@ -1,16 +1,62 @@
 {
   "name": "@buildanagent/sdk",
   "version": "0.0.0",
-  "private": true,
-  "license": "Apache-2.0 OR MIT",
-  "type": "module",
   "description": "The buildanagent SDK: the agent loop, tools, hooks, signed pauses and budgets over the gateway.",
+  "license": "Apache-2.0 OR MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/laudebugs/buildanagent.git",
+    "directory": "packages/sdk"
+  },
+  "homepage": "https://github.com/laudebugs/buildanagent/tree/main/packages/sdk#readme",
+  "type": "module",
+  "sideEffects": false,
+  "engines": {
+    "node": ">=22"
+  },
+  "files": [
+    "dist",
+    "LICENSE",
+    "LICENSE-APACHE",
+    "LICENSE-MIT"
+  ],
   "exports": {
-    ".": "./src/index.ts",
-    "./otel": "./src/otel/index.ts",
-    "./testing": "./src/testing/index.ts"
+    ".": {
+      "source": "./src/index.ts",
+      "types": "./dist/index.d.ts",
+      "default": "./dist/index.js"
+    },
+    "./otel": {
+      "source": "./src/otel/index.ts",
+      "types": "./dist/otel/index.d.ts",
+      "default": "./dist/otel/index.js"
+    },
+    "./testing": {
+      "source": "./src/testing/index.ts",
+      "types": "./dist/testing/index.d.ts",
+      "default": "./dist/testing/index.js"
+    }
+  },
+  "publishConfig": {
+    "exports": {
+      ".": {
+        "types": "./dist/index.d.ts",
+        "default": "./dist/index.js"
+      },
+      "./otel": {
+        "types": "./dist/otel/index.d.ts",
+        "default": "./dist/otel/index.js"
+      },
+      "./testing": {
+        "types": "./dist/testing/index.d.ts",
+        "default": "./dist/testing/index.js"
+      }
+    }
   },
   "scripts": {
+    "build": "node ../../scripts/clean-dist.mjs && tsc -p tsconfig.build.json",
+    "prepack": "pnpm run build && node ../../scripts/copy-licenses.mjs",
+    "prepublishOnly": "node ../../scripts/refuse-local-publish.mjs",
     "typecheck": "tsc -p tsconfig.json",
     "test": "vitest run"
   },

@@ -3,7 +3,7 @@
 | Field | Value |
 | --- | --- |
 | ID | `Q1` |
-| Status | `ready` |
+| Status | `done` |
 | Plan | [Guidelines, Known gaps](../../guidelines/README.md#known-gaps) |
 | Round / milestone | Q (code quality, added 2026-11-19) |
 | Depends on | [B3](../done/B3-scripted-model.md) |
@@ -35,11 +35,11 @@ Make the compiler and Biome enforce the [TypeScript guideline](../../guidelines/
 
 ## Acceptance criteria
 
-- [ ] `pnpm typecheck` passes with all ten flags on for `packages/*`
-- [ ] `pnpm check` fails on a function in `packages/*/src` over complexity 15 or 60 lines, and on a `throw` of a non-`Error` (one test case each, removed after checking)
-- [ ] The portability test fails when a `node:fs` import is added to `packages/gateway/src/types.ts`, and passes on `main`'s code
-- [ ] The first two Known gaps rows are removed
-- [ ] `pnpm check`, `pnpm typecheck` and `pnpm test` pass offline
+- [x] `pnpm typecheck` passes with all ten flags on for `packages/*`
+- [x] `pnpm check` fails on a function in `packages/*/src` over complexity 15 or 60 lines, and on a `throw` of a non-`Error` (one test case each, removed after checking)
+- [x] The portability test fails when a `node:fs` import is added to `packages/gateway/src/types.ts`, and passes on `main`'s code
+- [x] The first two Known gaps rows are removed
+- [x] `pnpm check`, `pnpm typecheck` and `pnpm test` pass offline
 
 ## Tests
 
@@ -55,9 +55,9 @@ The portability test, under `packages/gateway/test/`.
 
 ## Definition of done
 
-- [ ] Claimed: the first commit moved this file `ready/` → `ongoing/` (Status `ongoing`)
-- [ ] Prose drafted with `/anthropic-skills:writing`, and changed claims re-checked against their sources
-- [ ] `pnpm check`, `pnpm typecheck` and `pnpm test` pass locally; pushed after each meaningful step
-- [ ] This file moved `ongoing/` → `done/` (Status `done`) in the last work commit, and the plan's todo table updated
-- [ ] Two code-review rounds run on the pull request (`/code-review high --max-findings default`, then `medium` and `low` after more than 6 confirmed findings, otherwise `low`), with every finding fixed or explained in a commit message
-- [ ] Copy reviewed with `/anthropic-skills:writing-review` after the code changes, with its findings fixed and the rubric scores in the pull request description
+- [x] Claimed: the first commit moved this file `ready/` → `ongoing/` (Status `ongoing`)
+- [x] Prose drafted with `/anthropic-skills:writing`, and changed claims re-checked against their sources
+- [x] `pnpm check`, `pnpm typecheck` and `pnpm test` pass locally; pushed after each meaningful step
+- [x] This file moved `ongoing/` → `done/` (Status `done`) in the last work commit, and the plan's todo table updated
+- [x] Two code-review rounds run on the pull request (`/code-review high --max-findings default`, then `medium` and `low` after more than 6 confirmed findings, otherwise `low`), with every finding fixed or explained in a commit message
+- [x] Copy reviewed with `/anthropic-skills:writing-review` after the code changes, with its findings fixed and the rubric scores in the pull request description

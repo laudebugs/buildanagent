@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import { complete, emptyUsage, totalInput, type Usage } from "@buildanagent/gateway";
 import { test } from "vitest";
-import { message, streamOf, validEvents } from "./fixtures.ts";
+import { message, streamOf, validEvents } from "./fixtures.js";
 
 test("complete() returns the done terminal's message", async () => {
   const events = validEvents();

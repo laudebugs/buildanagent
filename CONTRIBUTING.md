@@ -22,6 +22,14 @@ pnpm test        # run every harness's examples offline
 
 We squash-merge a pull request once CI passes and its review findings are fixed. Branch names, commit messages and the merge rules are in [AGENTS.md](AGENTS.md#git).
 
+## Add a changeset when you change a package's behaviour
+
+Run `pnpm changeset` when your pull request changes what users of `@buildanagent/gateway` or `@buildanagent/sdk` get, and commit the file it writes. Both packages share one version. Under 0.x, a change that breaks the API is a `minor` bump whose summary starts with "Breaking Changes". Both packages are public, so Changesets versions them, but CI asks for a changeset only from the first release on. From then, CI fails a pull request that changes a package's `src/`, `package.json` or `tsconfig.build.json` without one. If such a change gives users nothing new, such as an internal rename, run `pnpm changeset --empty` instead. The details are in [`.changeset/README.md`](.changeset/README.md).
+
+## Releases publish from CI, never from your machine
+
+Only `.github/workflows/release.yml` publishes the packages, through npm trusted publishing, so nobody needs an npm token. Each package's `prepublishOnly` script makes `npm publish` or `pnpm publish` fail in its folder, so a publish from your machine stops before it uploads anything. Once releases are switched on, a push to `main` with pending changesets opens or updates a "Version packages" pull request. Merging it publishes the new version after the owner approves the `release` environment, then tags it `v<version>` and creates a GitHub release from the changelogs. To check that both packages build and pack without publishing anything, start the workflow by hand (`gh workflow run release.yml`): a manual run is always a dry run. The details are in the [CI plan](docs/plans/ci.md#3f-releases-through-npm-trusted-publishing-added-2026-11-19).
+
 ## Every pull request gets two rounds of code review
 
 The first round is one `/code-review high --max-findings default` on the pull request. If it confirms more than 6 findings, the second round is two reviews, `/code-review medium` and then `/code-review low`; otherwise it is one `/code-review low`. Each round's findings are fixed in new commits that list each finding and its fix. Copy, meaning any text a person reads, is drafted with `/anthropic-skills:writing` and checked with `/anthropic-skills:writing-review` after the code changes. If you don't use these Claude Code skills, a maintainer runs the reviews on your pull request and pushes the fixes or asks you for them. The details are in [AGENTS.md](AGENTS.md#every-pull-request-gets-two-rounds-of-code-review).

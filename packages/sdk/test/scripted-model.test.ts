@@ -2,15 +2,16 @@ import assert from "node:assert/strict";
 import {
   assertStreamContract,
   complete,
+  createModel,
   type ModelContext,
   type ModelEvent,
   type ModelRef,
 } from "@buildanagent/gateway";
+import { seededRandom } from "@buildanagent/gateway/testing";
 import {
   type AssistantScript,
   fixedClock,
   ScriptedModel,
-  seededRandom,
   sequentialIds,
   UnexpectedModelCallError,
 } from "@buildanagent/sdk/testing";
@@ -54,9 +55,10 @@ test("mutating the context after a call leaves calls[0] unchanged", async () => 
   const ctx = context("original");
   await complete(model.stream(ref, ctx, { temperature: 0.2 }));
   ctx.messages.push({ role: "user", content: [{ type: "text", text: "later" }] });
-  (ctx.messages[0] as { content: { type: "text"; text: string }[] }).content[0].text = "changed";
+  (ctx.messages[0] as unknown as { content: [{ type: "text"; text: string }] }).content[0].text = "changed";
   ctx.system = "changed";
   const recorded = model.calls[0];
+  assert.ok(recorded, "the call was recorded");
   assert.equal(recorded.context.system, "be brief");
   assert.equal(recorded.context.messages.length, 1);
   assert.deepEqual(recorded.context.messages[0], { role: "user", content: [{ type: "text", text: "original" }] });
@@ -196,4 +198,57 @@ test("fixedClock, sequentialIds and seededRandom are deterministic", () => {
   assert.deepEqual(valuesA, [b(), b(), b()]);
   assert.ok(valuesA.every((v) => v >= 0 && v < 1));
   assert.throws(() => fixedClock("not a date"), RangeError);
+});
+
+test("an abort before an image block still ends the stream with an aborted error", async () => {
+  const controller = new AbortController();
+  const model = new ScriptedModel([
+    {
+      content: [
+        { type: "text", text: "a" },
+        { type: "image", mediaType: "image/png", data: "AAAA" },
+      ],
+    },
+  ]);
+  const events: ModelEvent[] = [];
+  for await (const event of model.stream(ref, context(), { signal: controller.signal })) {
+    events.push(event);
+    if (event.type === "text_end") controller.abort();
+  }
+  const terminal = events.at(-1);
+  assert.equal(terminal?.type, "error");
+  assert.equal(terminal?.type === "error" && terminal.message.stopReason, "aborted");
+});
+
+test("an abort before a tool call draws no call id, so the next call's ids stay in sequence", async () => {
+  const controller = new AbortController();
+  controller.abort();
+  const toolStep: AssistantScript = { content: [{ type: "tool_call", callId: "", name: "lookup", input: {} }] };
+  const model = new ScriptedModel([toolStep, toolStep], { idGenerator: sequentialIds("c") });
+  await collect(model.stream(ref, context(), { signal: controller.signal }));
+  const events = await collect(model.stream(ref, context(), {}));
+  const terminal = events.at(-1);
+  assert.equal(terminal?.type, "done");
+  assert.deepEqual(terminal?.type === "done" && terminal.message.content[0], {
+    type: "tool_call",
+    callId: "c-1",
+    name: "lookup",
+    input: {},
+  });
+});
+
+test("ScriptedModel runs through createModel with its default caps and its strict script", async () => {
+  const adapter = new ScriptedModel([textStep("hi")]);
+  const model = createModel({ adapter, id: "scripted-model" });
+  assert.deepEqual(model.ref, ref);
+  assert.deepEqual(model.caps, { contextWindow: 200_000, maxOutputTokens: 32_000, images: true, reasoning: true });
+  const events = await assertStreamContract(model.stream(context()));
+  assert.equal(events.at(-1)?.type, "done");
+  adapter.assertComplete();
+});
+
+test("ScriptedModel's caps option sets the caps createModel reports", () => {
+  const caps = { contextWindow: 8000, maxOutputTokens: 1000, images: false, reasoning: false };
+  const model = createModel({ adapter: new ScriptedModel([], { caps }), id: "scripted-model" });
+  assert.deepEqual(model.caps, caps);
 });

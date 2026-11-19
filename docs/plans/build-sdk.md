@@ -33,7 +33,7 @@ The goal covers every recommendation in the guide's design sections, §2 to §10
 - **A durable-engine adapter (Temporal and similar).** The guide keeps durable engines as adapters over the log, and the per-tool `execution` setting is the only hook they need now ([guide §3][g3]). The adapter needs the harness's log, so it waits for P2.
 - **Adapters beyond the first two wire protocols**, including OpenAI Responses. Decision D2 defers them, with a reason.
 - **An automatic per-request model router.** Practitioners report that switching models mid-session busts the cache, so the gateway offers a per-subagent model setting instead ([guide §2][g2]; [HN §4.1][hn41]).
-- **Publishing to npm.** Both packages stay `private: true` until 0.1.0. *Revised 2026-11-19 by [ADR 0047](../decisions/0047-first-release-and-trusted-publishing.md): the owner chose to publish 0.1.0 once a model call works, after B4 and B8, instead of waiting for an outside consumer.*
+- **Publishing to npm.** Both packages stay `private: true` until 0.1.0. *Revised 2026-11-19 by [ADR 0047](../decisions/0047-first-release-and-trusted-publishing.md): the owner chose to publish 0.1.0 once a model call works, after B4 and B8, instead of waiting for an outside consumer. Revised again 2026-11-19 by todo L4a, which dropped `private` at 0.0.0, before 0.1.0: the release plan never publishes 0.0.0, and each package's `prepublishOnly` script refuses a publish from a developer's machine ([CI plan §3f](ci.md#3f-releases-through-npm-trusted-publishing-added-2026-11-19)).*
 - **A client-tool pause kind.** The harness defers the third host-tool pattern, so `ToolResult.pause` carries only `clarification` for now (§6.2).
 
 ## 2. Decisions
@@ -56,7 +56,7 @@ Each decision answers one open decision in [guide §12][g12], in the same order,
 | D9 | Budget timing | Check the USD cap before each model call, against a projected cost | Decided | [0009](../decisions/0009-pre-emptive-budget.md) |
 | D10 | Run outcomes | A discriminated `RunResult` union plus a `runOrThrow()` helper | Decided | [0010](../decisions/0010-run-outcomes.md) |
 | D11 | Progress-detection defaults | Three identical failing calls end the run with `no_progress`; a depth cap of 2 | Decided, provisional (N39) | none: tunable defaults |
-| D12 | Tool-name rule | A per-adapter name table, a canonical rule of `^[A-Za-z0-9_-]{1,64}$` checked at definition, and reversible sanitising per adapter | Decided, provisional (B7) | [0011](../decisions/0011-tool-name-rule.md) |
+| D12 | Tool-name rule | A per-adapter name table, a canonical rule of `^[A-Za-z0-9_-]{1,64}$` checked at definition, and reversible sanitising per adapter | Decided; B7 confirmed the floor against both providers (2026-11-19) | [0011](../decisions/0011-tool-name-rule.md) |
 
 ### D1. Two packages, because the gateway has consumers that never run the loop
 
@@ -146,7 +146,7 @@ Each decision answers one open decision in [guide §12][g12], in the same order,
 
 **Choice: before each call.** The loop projects the next call's cost: the input estimate times the model's input rate, plus `maxOutputTokens` (the call's option, else `Model.caps.maxOutputTokens`) times the output rate. B14 exports the projection as `projectCallCost()`, so a caller that uses `Model.complete()` outside the loop, such as the harness's summary layer, applies the same formula ([harness plan, HD9][har-hd9]). If the spend plus the projection exceeds the cap, the run ends with `stopReason: "budget"` before the call. The input estimate is the previous call's reported total input plus a character-based estimate of the messages added since. Actual cost is still recorded after each call, so any remaining overshoot shows in the result.
 
-**Revision (plan review 2, 2026-11-19).** Under [ADR 0043](../decisions/0043-standalone-safety-core.md), `projectCallCost()` and the token-level `projectCost()` it calls move to `@buildanagent/gateway`, beside the catalog ([B5](../todos/ready/B5-usage-cost-catalog.md)). The loop and the safety package's AI SDK guard ([E5](../todos/ready/E5-pre-call-cost-guard.md)) then share one formula. B14's check imports `projectCallCost()` from the gateway, and the SDK re-exports it for the harness's summary layer.
+**Revision (plan review 2, 2026-11-19).** Under [ADR 0043](../decisions/0043-standalone-safety-core.md), `projectCallCost()` and the token-level `projectCost()` it calls move to `@buildanagent/gateway`, beside the catalog ([B5](../todos/done/B5-usage-cost-catalog.md)). The loop and the safety package's AI SDK guard ([E5](../todos/ready/E5-pre-call-cost-guard.md)) then share one formula. B14's check imports `projectCallCost()` from the gateway, and the SDK re-exports it for the harness's summary layer.
 
 **Evidence.** Claude's `maxBudgetUsd` acts only after the response that crosses it, and harness decision 18 asks for a pre-emptive check ([guide §3][g3]). The HN synthesis makes the same change, because loops cause the runaway-cost anecdotes ([HN §4.1][hn41]). Inspect checks cost limits at each `generate()`, which matches the pre-emptive rule ([harness guide §10][hg10]). The guide's settling test measures overshoot on our longest recorded runs. We have none yet, so B14 instead asserts a bound with the scripted model: with the pre-emptive check, the overshoot is at most the error of one call's projection, and a post-response check would overshoot by a full call. N39 reruns the measurement on recorded runs.
 
@@ -166,13 +166,15 @@ Each decision answers one open decision in [guide §12][g12], in the same order,
 
 **Evidence.** The HN synthesis asks for this policy and a default depth cap, after loop and recursion anecdotes ([HN §4.1][hn41]). The guide's settling test replays recorded runs. None exist until the harness records them, so the numbers are a starting point that B14 makes configurable and N39 retunes. The defaults hash on `run_start` records the values in use ([guide §10][g10]).
 
-### D12. A per-adapter name table first, then a canonical rule and reversible sanitising (provisional)
+### D12. A per-adapter name table first, then a canonical rule and reversible sanitising
 
 **Options.** The 64-character `[A-Za-z0-9_-]` floor from the tools note, or a rule built from a per-provider table ([guide §12, decision 12][g12]).
 
-**Choice.** B7 builds the table from each D2 provider's API reference before any naming code is written. Until then, the canonical rule is `^[A-Za-z0-9_-]{1,64}$`, checked when a tool is defined, with a thrown programmer error on a violation. Each adapter maps canonical names to its wire form reversibly and keeps the map for the run, and namespaced names such as `mcp__<server>__<tool>` follow the same rule. If the table shows a provider stricter than the floor, B7 tightens the canonical rule; if every provider is looser, the floor stays, because the strictest provider sets it.
+**Choice.** The canonical rule is `^[A-Za-z0-9_-]{1,64}$`, checked when a tool is defined, with a thrown programmer error on a violation. B7 built the table from each D2 provider's API reference and kept this floor, because the strictest provider, OpenAI Chat Completions, allows exactly it. Each adapter maps canonical names to its wire form reversibly and keeps the map for the run, and namespaced names such as `mcp__<server>__<tool>` follow the same rule. If a later provider is stricter than the floor, its adapter's map sanitises names to that provider's rule.
 
 **Evidence.** The floor is an assumption without a per-provider table, which the research lists among its open limits ([SDK research §7][sr7]; [tools note, implication 9][n-tools-impl]). Names are namespaced by source and sanitised to the strictest provider, and tool order stays stable for prompt caching ([tools note §8][n-tools-8]).
+
+**Revision (B7, 2026-11-19).** The table in [`packages/gateway/src/names.md`](../../packages/gateway/src/names.md) keeps the floor. As of November 2026, Anthropic Messages allows the same characters at up to 128, and OpenAI Chat Completions allows them at up to 64, so the strictest provider sets the 64-character limit ([ADR 0011, status note](../decisions/0011-tool-name-rule.md#status-note-todo-b7-2026-11-19)).
 
 ## 3. Package and module layout
 
@@ -244,7 +246,8 @@ type Message =
 interface AssistantMessage {
   role: "assistant"; content: ContentBlock[]; model: ModelRef;
   stopReason: "stop" | "length" | "tool_calls" | "error" | "aborted";
-  error?: { kind: "retryable" | "overflow" | "quota" | "fatal"; message: string; status?: number };
+  error?: { kind: "retryable" | "overflow" | "quota" | "fatal"; message: string; status?: number;
+            code?: "thinking_prefix_mismatch" };       // code added in B8, for the prefix-check 400 (HD3 rule 4)
   usage: Usage; cost: Cost;
 }
 
@@ -273,6 +276,7 @@ type ModelEvent =
   | { type: "text_start" | "reasoning_start" | "tool_input_start"; index: number }
   | { type: "text_delta" | "reasoning_delta" | "tool_input_delta"; index: number; delta: string }
   | { type: "text_end" | "reasoning_end" | "tool_input_end"; index: number; block: ContentBlock }
+  | { type: "warning"; code: string; message: string } // added in B8: a dropped option or an HD3 rule 5 entry; not output
   | { type: "done"; message: AssistantMessage }    // exactly one terminal event
   | { type: "error"; message: AssistantMessage };  // stopReason "error" | "aborted"
 interface StreamOptions {
@@ -319,6 +323,7 @@ declare function allowModelRequests(allowed: boolean): void;  // false: any non-
 declare function mockTransport(api: "anthropic-messages" | "openai-chat", script: WireScript): Transport;
 declare function startMockServer(options: { api: string; script: WireScript; log?: string }): Promise<{ url: string; close(): Promise<void> }>; // 127.0.0.1 only
 declare function assertStreamContract(events: AsyncIterable<ModelEvent>): Promise<ModelEvent[]>;
+declare function seededRandom(seed: number): () => number;   // added in B3; moved here from @buildanagent/sdk/testing in B7, its one entry point
 ```
 
 ### 3.3 SDK API
@@ -517,7 +522,6 @@ declare function testSigner(): ApprovalSigner;               // re-exports E3's 
 declare function scriptedApprovals(resolutions: Resolution[]): Interceptors;
 declare function fixedClock(start: string, stepMs?: number): Clock;
 declare function sequentialIds(prefix?: string): () => string;
-declare function seededRandom(seed: number): () => number;   // added in B3: the seeded random the todo asks for
 declare function recordPairs(model: Model, stamp: RecordingStamp): { model: Model; pairs(): RecordedPair[] };
 declare function replayPairs(pairs: RecordedPair[]): ScriptedModel;   // rejects expired or mismatched stamps
 ```
@@ -553,16 +557,16 @@ The guide says to start with the gateway and the test model, because every other
 | [B1](../todos/done/B1-sdk-workspace-scaffold.md) | Scaffold `packages/gateway` and `packages/sdk` in the workspace | P4 | S |
 | [B2](../todos/done/B2-gateway-core-types.md) | Gateway core types, the v1 model spec, the stream contract and `complete()` | B1 | M |
 | [B3](../todos/done/B3-scripted-model.md) | `ScriptedModel`, chunked streams, determinism options and `allowModelRequests` | B2 | M |
-| [B4](../todos/ready/B4-gateway-runtime.md) | Gateway runtime: `createModel`, retries, middleware, `onPayload` and the request dump | B3 | M |
-| [B5](../todos/ready/B5-usage-cost-catalog.md) | Usage, the cost catalog and fold, and the caching policy | B4 | M |
+| [B4](../todos/done/B4-gateway-runtime.md) | Gateway runtime: `createModel`, retries, middleware, `onPayload` and the request dump | B3 | M |
+| [B5](../todos/done/B5-usage-cost-catalog.md) | Usage, the cost catalog and fold, and the caching policy | B4 | M |
 
 ### 4.2 Stage 2 adds the two wire adapters and the replay pass between them
 
 | ID | Title | Depends on | Size |
 | --- | --- | --- | --- |
-| [B6](../todos/ready/B6-transform-messages.md) | The cross-provider `transformMessages` pass | B3 | M |
-| [B7](../todos/ready/B7-tool-name-table.md) | Per-provider tool-name table and the canonical name rule | B1 | S |
-| [B8](../todos/ready/B8-anthropic-adapter.md) | Anthropic Messages adapter and its mock transport | B5, B6, B7 | L |
+| [B6](../todos/done/B6-transform-messages.md) | The cross-provider `transformMessages` pass | B3 | M |
+| [B7](../todos/done/B7-tool-name-table.md) | Per-provider tool-name table and the canonical name rule | B1 | S |
+| [B8](../todos/done/B8-anthropic-adapter.md) | Anthropic Messages adapter and its mock transport | B5, B6, B7 | L |
 | [B9](../todos/ready/B9-openai-chat-adapter.md) | OpenAI-compatible Chat Completions adapter and its mock transport | B5, B6, B7 | L |
 
 ### 4.3 Stage 3 builds the loop, its tools, hooks, budget and signed pauses
