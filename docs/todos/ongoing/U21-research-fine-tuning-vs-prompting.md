@@ -5,7 +5,7 @@
 | Field | Value |
 | --- | --- |
 | ID | `U21` |
-| Status | `ready` |
+| Status | `ongoing` |
 | Plan | [Book plan §4.3, BK19](../../plans/build-book.md#43-four-topics-need-research-before-they-are-written) |
 | Round / milestone | Round U (research), for Round T (textbook), MT |
 | Depends on | None |
@@ -66,7 +66,7 @@ None beyond `pnpm check` and the link check; the report is prose.
 
 ## Definition of done
 
-- [ ] Claimed: the first commit moved this file `ready/` → `ongoing/` (Status `ongoing`)
+- [x] Claimed: the first commit moved this file `ready/` → `ongoing/` (Status `ongoing`)
 - [ ] Prose drafted with `/anthropic-skills:writing`, and changed claims re-checked against their sources
 - [ ] `pnpm check`, `pnpm typecheck` and `pnpm test` pass locally; pushed after each meaningful step
 - [ ] This file moved `ongoing/` → `done/` (Status `done`) in the last work commit, and the plan's todo table updated
