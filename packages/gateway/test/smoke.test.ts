@@ -1,11 +1,11 @@
 import "@agent-speak/gateway/testing/setup";
 import assert from "node:assert/strict";
 import { test } from "node:test";
-import { GATEWAY_PACKAGE } from "@agent-speak/gateway";
+import * as gateway from "@agent-speak/gateway";
 import { assertNoProviderKeys, guardedFetch, isLoopbackHost } from "@agent-speak/gateway/testing";
 
 test("the gateway imports by its package name", () => {
-  assert.equal(GATEWAY_PACKAGE, "@agent-speak/gateway");
+  assert.equal(typeof gateway.complete, "function");
 });
 
 test("the installed guard blocks fetch to a non-loopback host", async () => {
