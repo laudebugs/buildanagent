@@ -64,8 +64,8 @@ export default function draw(): Figure {
 
   figure.group("uncapped", () => {
     figure.box(
-      { x: 60, y: 232, width: 400, height: 36 },
-      { label: "no default cap: Pi, Claude Agent SDK, Copilot SDK", tone: "accent" },
+      { x: 24, y: 232, width: 472, height: 36 },
+      { label: "no default cap: Pi, Claude Agent SDK; none exposed: Copilot SDK", tone: "accent" },
     );
   });
 

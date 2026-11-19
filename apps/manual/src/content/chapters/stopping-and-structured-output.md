@@ -49,13 +49,13 @@ A bus company at least counts every stop the same way. SDKs do not, so the same 
 | Google ADK `Runner`{checked=row-20} | `maxLlmCalls`{checked=row-20} | 500 | Model calls | Throws `LlmCallsLimitExceededError`{checked=row-20} |
 | Claude Agent SDK `query()` | `maxTurns` | No limit | Turns | Yields an `"error_max_turns"` result, then throws |
 | Pi | None | No limit | | |
-| GitHub Copilot SDK | None | No limit | | |
+| GitHub Copilot SDK | None exposed | None you can set | | Your code ends the run with `session.abort()`{checked=row-76} |
 :::
 
 [[fig:default-caps]] puts the same defaults on one scale, in model calls, the unit a bill counts. Because the defaults span more than two orders of magnitude, the scale is logarithmic: 1, 10 and 100 sit the same distance apart.
 
 :::figure[The SDKs' default caps on one scale, from one model call to five hundred]{#default-caps}
-::svg{alt="A horizontal logarithmic scale of model calls, marked 1, 10, 100 and 500. Six default caps sit on it: the AI SDK's generateText at 1, the OpenAI Agents SDK's run and Cloudflare Think at 10, LangChain's createAgent at 13, the AI SDK's ToolLoopAgent at 20, and Google ADK at 500. A box below the scale says that Pi, the Claude Agent SDK and the GitHub Copilot SDK set no default cap."}
+::svg{alt="A horizontal logarithmic scale of model calls, marked 1, 10, 100 and 500. Six default caps sit on it: the AI SDK's generateText at 1, the OpenAI Agents SDK's run and Cloudflare Think at 10, LangChain's createAgent at 13, the AI SDK's ToolLoopAgent at 20, and Google ADK at 500. A box below the scale says that Pi and the Claude Agent SDK set no default cap, and that the GitHub Copilot SDK exposes none."}
 :::
 
 Two entries hide a catch. The Copilot SDK's `sendAndWait`{checked=row-23} gives up waiting after 60 seconds by default, but its type declarations say the timeout "does not abort in-flight agent work", so it is no cap on the loop. And the AI SDK's own docs say what its twenty-step default is for: "a safety measure to prevent runaway loops that could result in excessive API calls and costs" [@ai-sdk-loop-control]. A safety net has to suit every task, so it is sized for none of yours.

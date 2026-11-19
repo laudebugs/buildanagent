@@ -54,7 +54,7 @@ svg{--font-code:"Manual Code",ui-monospace, "SF Mono", Menlo, Consolas, monospac
 <circle cx="480" cy="170" r="4" class="fig-terracotta"/>
 </g>
 <g id="default-caps--uncapped">
-<rect x="60" y="232" width="400" height="36" rx="4" class="fig-paper fig-paper--accent"/>
-<text x="260" y="254.2" text-anchor="middle" class="fig-text">no default cap: Pi, Claude Agent SDK, Copilot SDK</text>
+<rect x="24" y="232" width="472" height="36" rx="4" class="fig-paper fig-paper--accent"/>
+<text x="260" y="254.2" text-anchor="middle" class="fig-text">no default cap: Pi, Claude Agent SDK; none exposed: Copilot SDK</text>
 </g>
 </svg>

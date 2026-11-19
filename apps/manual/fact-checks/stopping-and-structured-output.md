@@ -133,12 +133,13 @@ The high review of pull request #118 changed the sentences below. Each row re-ch
 | 79 | The mould's break: a real mould shapes the jelly while it sets, while most SDKs check the answer's shape only after the model has written it, so an answer that does not fit is rejected or retried rather than reshaped | § A schema | ✅ | Row 62, unchanged in substance. The sentence frame "The pour is where the jelly mould misleads" repeated Chapter 2's "Rehearsal is where the casting habit stops fitting"; the new one also avoids Chapter 1's "The analogy breaks at" and Chapter 3's "Here the comparison runs out" |
 | 80 | An answer `{"category":"bug","urgent":false}` for the same ticket would pass every check and be wrong | § A schema | ✅ | Row 46's reasoning stands. The answer is our illustration, introduced as "A third answer would fare worse" in the text since the writing review (row 71) |
 | 81 | Read the run's stop reason before its answer: a run the model ended, one your condition ended and one a cap cut off can all return text, and only the first two are finished | § Two stop reasons | ⚠️ | Our rule, marked "The rule this section leaves you with is ours" in the text. Row 38's reasoning stands: rows 28 and 34 and the [SDK guide §3](../../../docs/guides/agent-sdk.md#3-the-loop-should-be-one-in-process-pure-function-capped-in-model-calls-that-ends-with-a-stop-reason). No source measures how often callers miss a capped run |
+| 82 | The caps table and figure no longer group the Copilot SDK with Pi and Claude as having "no limit": the table row reads "None exposed", "None you can set", and that your code ends the run with `session.abort()`; the figure's box and alt text say Pi and the Claude Agent SDK set no default cap and the Copilot SDK exposes none | § A cap ends the run | ✅ | Same evidence as row 76: `@github/copilot-sdk@1.0.31` exposes no cap option, and `dist/session.d.ts:326-344` declares `abort()`. The change only stops the table and figure from reading as a claim about the Copilot runtime (medium review of PR #118, M1) |
 
 ## Tally
 
 | Verdict | Rows |
 | --- | --- |
-| ✅ confirmed | 74 |
+| ✅ confirmed | 75 |
 | ✏️ corrected | 4 (rows 7, 38, 46 and 65) |
 | ⚠️ unverified, our recommendation, marked as ours in the text | 3 (rows 26, 63 and 81) |
-| Total | 81 |
+| Total | 82 |
