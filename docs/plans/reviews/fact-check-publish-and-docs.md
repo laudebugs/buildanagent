@@ -1,6 +1,6 @@
 # Fact-check: publish and docs
 
-This log checks every factual claim in [publish-and-docs.md](../publish-and-docs.md), ADRs 0047–0050 and todos L1–L8, on 2026-11-19. External facts were read from the npm registry, npm's docs and Cloudflare's docs that day; repo claims were read from `main` at `eddc212`; Lamina PDF claims from `laudebugs/laminapdf` at `7b4b37b`.
+This log checks every factual claim in [publish-and-docs.md](../publish-and-docs.md), ADRs 0047–0050 and todos L1–L8 (L4 later split into L4a and L4b), on 2026-11-19. External facts were read from the npm registry, npm's docs and Cloudflare's docs that day; repo claims were read from `main` at `eddc212`; Lamina PDF claims from `laudebugs/laminapdf` at `7b4b37b`.
 
 ## Owner decisions
 
@@ -74,6 +74,10 @@ This log checks every factual claim in [publish-and-docs.md](../publish-and-docs
 | 41 | Our documentation is licensed CC BY 4.0 | ✅ | `LICENSE` and `LICENSE-DOCS` |
 | 42 | A pull request opened with `GITHUB_TOKEN` doesn't trigger `ci.yml` | ✅ | [CI plan §3c](../ci.md#3c-weekly-sdk-updates-added-2026-11-19), which records GitHub's rule |
 
+## Checked while fixing the high-effort review
+
+| # | Claim | Verdict | Source and reason |
+| --- | --- | --- | --- |
 | 43 | Cloudflare creates a Custom Domain's DNS record and issues its certificate | ✅ | [Custom Domains](https://developers.cloudflare.com/workers/configuration/routing/custom-domains/), read 2026-11-19: "Cloudflare will create DNS records and issue necessary certificates on your behalf" |
 | 44 | pnpm's `publishConfig` can override `exports` when it packs | ✅ | [pnpm package.json docs](https://pnpm.io/package_json#publishconfig), read 2026-11-19: the overridable fields include `exports` |
 | 45 | Changesets' `privatePackages` takes `version` and `tag` booleans | ✅ | [Changesets config schema](https://github.com/changesets/changesets/blob/main/packages/config/schema.json) on `main`, read 2026-11-19 |
@@ -81,9 +85,34 @@ This log checks every factual claim in [publish-and-docs.md](../publish-and-docs
 | 47 | Fork pull requests get no preview | ✏️ | With the deploy moved to a `workflow_run` workflow, fork pull requests get previews; corrected in DS3, ADR 0049 and L8 |
 | 48 | The TypeScript guideline's line reads "export `src/` until B20 decides" | ✏️ | This PR had already changed it to "until todo L1"; PB3, ADR 0050 and L1 now quote the new line |
 
+## The owner's answers
+
+| # | Claim | Verdict | Source and reason |
+| --- | --- | --- | --- |
 | 49 | The owner accepted PB3 and ADR 0050 | ✅ | Owner's answer, 2026-11-19: "Accept" |
 | 50 | The owner accepted DS3 and ADR 0049's deploy design | ✅ | Owner's answer, 2026-11-19: "Accept", applied to the `workflow_run` split |
 | 51 | The owner chose DS4: the docs follow `main` until 0.1.0, then releases | ✅ | Owner's answer, 2026-11-19: "main until 0.1.0, then releases" |
 | 52 | The owner allowed a one-time token for the first publish if npm needs it | ✅ | Owner's answer, 2026-11-19: "Yes, one-time token if needed" |
 
-**Totals:** 52 claims: 46 ✅, 3 ✏️, 3 ⚠️.
+## Checked while fixing the medium-effort review
+
+| # | Claim | Verdict | Source and reason |
+| --- | --- | --- | --- |
+| 53 | Both sites turn off `workers_dev` and still get Preview URLs | ✏️ | Previews are served on `workers.dev`, and a new Worker's `preview_urls` "initial value depends on `workers_dev`" ([Wrangler configuration](https://developers.cloudflare.com/workers/wrangler/configuration/), read 2026-11-19). Corrected: both `wrangler.toml` files set `preview_urls = true` (plan DS3, ADR 0049, L8) |
+| 54 | A `workers.dev` Preview URL sends `X-Robots-Tag: noindex` | ✅ | [Previews](https://developers.cloudflare.com/workers/previews/), read 2026-11-19 |
+| 55 | Vitest's `resolve.conditions` makes Node tests read `source` | ✏️ | Vitest 5.1.0 resolves Vite 8.3.8 here; Vite's `resolve.conditions` defaults to the client conditions and `ssr.resolve.conditions` to `defaultServerConditions`, `['module', 'node', 'development\|production']` ([Vite SSR options](https://vite.dev/config/ssr-options#ssr-resolve-conditions), and the installed `vite` package's export). Corrected to `ssr.resolve.conditions` with `source` before the three defaults (PB3, ADR 0050, L1) |
+| 56 | `vitest/config` re-exports `defaultServerConditions` | ✏️ | It doesn't (checked by importing it, 2026-11-19), and pnpm blocks an undeclared `vite` import, so L1 spells out the list and tests it against Vite's |
+| 57 | Export conditions match in object order, so `source` must precede `types` in the workspace's `exports` | ✅ | Node's packages docs: "key order is significant. During condition matching, earlier entries have higher priority" (`nodejs/node` `doc/api/packages.md`, read 2026-11-19). Corrects ADR 0050's "types first" for the workspace; "types first" stays for `publishConfig.exports` |
+| 58 | Publishing sets `latest` unless `--tag` is given | ✅ | npm's `npm-dist-tag` docs: "Publishing a package sets the `latest` tag to the published version unless the `--tag` option is used" (`npm/cli` docs, read 2026-11-19) |
+| 59 | A package's first publish under `--tag bootstrap` leaves `latest` unset | ⚠️ | npm's docs don't cover a package's first publish, and the registry may point `latest` at it; the plan deprecates the placeholder at once and 0.1.0 takes `latest` within 2 days |
+| 60 | A tag pushed by `release.yml` with `GITHUB_TOKEN` starts the docs deploy | ✏️ | Events from `GITHUB_TOKEN` create no new runs, except that "`workflow_dispatch` and `repository_dispatch` events always create workflow runs" ([GitHub docs](https://docs.github.com/en/actions/concepts/security/github_token), read 2026-11-19). Corrected: `release.yml` dispatches `docs-deploy.yml` with the tag (DS4, L3, L8) |
+| 61 | A pull request opened with `GITHUB_TOKEN` doesn't trigger `ci.yml` (row 42) | ✏️ | The same GitHub page now says such a pull request's runs start in an approval-required state, which a person with write access approves; L3's risk is updated |
+| 62 | A `workflow_run` deploy can tell `main` from a pull request by its head branch | ✏️ | A fork's branch can be named `main`. Corrected: production deploys need `workflow_run.event == 'push'` and `head_repository.full_name == github.repository`, and the preview's pull request comes from the API by `head_sha`, not the artifact (DS3, ADR 0049, L8) |
+| 63 | The bootstrap job can publish with provenance | ✏️ | Provenance needs the OIDC token, so the job now has `id-token: write` (PB2, ADR 0047, L3) |
+| 64 | L2's criteria can all pass while the packages are private | ✏️ | With `privatePackages.version: false`, `changeset version` bumps nothing; the bump check moves to a throwaway branch with `private` removed (L2, L3) |
+| 65 | B20 still owns the undocumented-export diff and a changelog test | ✏️ | L6 owns the first export diff and changesets write the changelogs; B20's scope and criteria now keep only the second diff and check for a changeset |
+| 66 | One todo, L4, ships the first release | ✏️ | Its steps span more than one pull request, so L4 is split into L4a (public packages, bootstrap, trusted publishers) and L4b (0.1.0, the changeset gate, removing the bootstrap path); row 22's "todo L4" now means L4a |
+| 67 | ADR 0049's index row names DS2 and DS3 | ✏️ | The ADR covers DS2 to DS4; the index row now says so |
+| 68 | The plan's package versions are dated "on 2026-11-19" | ✏️ | Now "as of November 2026" with npm cited, as AGENTS.md requires |
+
+**Totals:** 68 claims: 49 ✅, 15 ✏️, 4 ⚠️.

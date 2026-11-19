@@ -23,12 +23,12 @@ Deploy `apps/site` to `buildanagent.fyi` and `apps/docs` to `docs.buildanagent.f
 
 **In scope**
 
-- A `wrangler.toml` per app: `[assets] directory = "./dist"`, `not_found_handling = "404-page"`, a custom domain with `custom_domain = true`, `workers_dev = false`; the docs app also has `[env.next]` for `next.docs.buildanagent.fyi`
+- A `wrangler.toml` per app: `[assets] directory = "./dist"`, `not_found_handling = "404-page"`, a custom domain with `custom_domain = true`, `workers_dev = false`, `preview_urls = true` (Previews are served on `workers.dev`, and a new Worker's `preview_urls` starts from `workers_dev`); the docs app also has `[env.next]` for `next.docs.buildanagent.fyi`
 - Wrangler pinned (4.160.1 on 2026-11-19, or newer and at least a week old; Previews need 4.135.0 or later)
-- `docs-build.yml` and `site-build.yml` on `pull_request` and pushes to `main`: build the site with no secrets and upload `dist/` and the pull request number as an artifact
-- `docs-deploy.yml` and `site-deploy.yml` on `workflow_run` after their build workflow, which GitHub always runs from `main`: download the artifact, take `wrangler.toml` from `main`, never check out or run the pull request's code, and run `wrangler preview` for a pull request or `wrangler deploy` for `main`
+- `docs-build.yml` and `site-build.yml` on `pull_request` and pushes to `main`: build the site with no secrets and upload only `dist/` as an artifact
+- `docs-deploy.yml` and `site-deploy.yml` on `workflow_run` after their build workflow, which GitHub always runs from `main`: download the artifact, take `wrangler.toml` from `main`, and never check out or run the pull request's code. Deploy production only when `github.event.workflow_run.event == 'push'`, `github.event.workflow_run.head_repository.full_name == github.repository` and the head branch is `main`; otherwise run `wrangler preview`, and find the pull request for the comment from `GET /repos/{repo}/commits/{head_sha}/pulls`, never from the artifact
 - Confirming the deploy token's permissions against Cloudflare's docs, and recording them in the CI plan
-- The docs' version policy, DS4: `main` deploys `docs.buildanagent.fyi` until 0.1.0 ships; after it, release tags deploy production and `main` deploys `next.docs.buildanagent.fyi`, marked unreleased and `noindex`
+- The docs' version policy, DS4: `docs-deploy.yml`'s `workflow_run` path deploys `main` to `docs.buildanagent.fyi` while no release tag exists, and to `next.docs.buildanagent.fyi` (marked unreleased and `noindex`) once one does; its `workflow_dispatch` path, which `release.yml` starts with the tag, builds the docs at that tag and deploys production
 
 **Out of scope** (and which todo covers it)
 
@@ -39,7 +39,8 @@ Deploy `apps/site` to `buildanagent.fyi` and `apps/docs` to `docs.buildanagent.f
 - [ ] A pull request that changes `apps/docs` gets a Preview URL in a comment, from a `workflow_run` deploy that never ran the pull request's code with secrets
 - [ ] Editing a deploy workflow on a pull request's branch changes nothing that runs with the secrets
 - [ ] A push to `main` updates `buildanagent.fyi`, and `docs.buildanagent.fyi` serves the docs over HTTPS
-- [ ] A fork's pull request builds both sites and gets previews
+- [ ] A fork's pull request builds both sites and gets previews, and a fork pull request from a branch named `main` gets a preview, not a production deploy
+- [ ] A `workflow_dispatch` of `docs-deploy.yml` with a tag deploys that tag's docs to production; with no tag present, a push to `main` deploys production, and with one present it deploys `next.docs.buildanagent.fyi`
 - [ ] Every new workflow and action is in `.github/workflows/actions.lock`: run `gh actions-lock`, or copy verified entries and check each tag's commit with `git ls-remote` ([CI plan §3d](../../plans/ci.md#3d-actions-locked-by-a-lockfile-added-2026-11-19)); `ci.yml`'s `lockfile` job passes
 - [ ] `pnpm check`, `pnpm typecheck` and `pnpm test` pass offline from the repo root
 

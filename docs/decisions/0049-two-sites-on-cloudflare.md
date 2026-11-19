@@ -10,7 +10,7 @@ The owner said on 2026-11-19 "We'll use cloudflare to deploy docs and the websit
 
 ## Decision
 
-`apps/site` serves `buildanagent.fyi` and `apps/docs` serves `docs.buildanagent.fyi`. Each deploys as Workers static assets, with its custom domain in its `wrangler.toml` and `workers_dev` off. A pull request's sites build in a workflow with no secrets, and deploy as Cloudflare Previews from a separate `workflow_run` workflow that GitHub always runs from `main`. Only that workflow holds the Cloudflare token, and it never checks out or runs the pull request's code. The docs serve `main` until 0.1.0 ships, then the latest release, with `main` at `next.docs.buildanagent.fyi`.
+`apps/site` serves `buildanagent.fyi` and `apps/docs` serves `docs.buildanagent.fyi`. Each deploys as Workers static assets, with its custom domain in its `wrangler.toml`, `workers_dev` off and `preview_urls` on, because Previews are served on `workers.dev`. A pull request's sites build in a workflow with no secrets, and deploy as Cloudflare Previews from a separate `workflow_run` workflow that GitHub always runs from `main`. Only that workflow holds the Cloudflare token, and it never checks out or runs the pull request's code. It deploys production only for a `push` run from this repository to `main`, and it finds a preview's pull request from the run's `head_sha` through the API, not from the artifact. The docs serve `main` until 0.1.0 ships, then the latest release, with `main` at `next.docs.buildanagent.fyi`; `release.yml` starts the release deploy with a `workflow_dispatch`, which GitHub runs even when `GITHUB_TOKEN` sends it.
 
 ## Consequences
 

@@ -10,7 +10,7 @@ Our packages export `src/*.ts`, which suits private packages that Vitest and tsx
 
 ## Decision
 
-Each published package builds `dist/` with `tsc` (`module` and `moduleResolution` `NodeNext`, declarations on), uses `.js` specifiers in relative imports, and declares `exports` with `types` first, `files: ["dist"]`, `sideEffects: false` and `engines.node`. A `source` condition in each export points at `src/*.ts`, and the workspace's Vitest (`resolve.conditions`) and TypeScript (`customConditions`) configs name it, so tests and type-checks need no build. The condition never ships: `publishConfig.exports` lists only `types` and `default`, which pnpm puts in the packed `package.json`. The build ignores it: each `tsconfig.build.json` sets `customConditions: []`, and packages build in dependency order.
+Each published package builds `dist/` with `tsc` (`module` and `moduleResolution` `NodeNext`, declarations on), uses `.js` specifiers in relative imports, and sets `files: ["dist"]`, `sideEffects: false` and `engines.node`. In the workspace's `exports`, each entry lists `source` (pointing at `src/*.ts`), then `types`, then `default`: TypeScript and Node take the first condition that matches, so `source` must come first. The workspace's Vitest (`ssr.resolve.conditions`, with `source` before Vite's server defaults) and TypeScript (`customConditions`) configs name it, so tests and type-checks need no build. The condition never ships: `publishConfig.exports` lists only `types` first and then `default`, which pnpm puts in the packed `package.json`. The build ignores it: each `tsconfig.build.json` sets `customConditions: []`, and packages build in dependency order.
 
 ## Consequences
 
