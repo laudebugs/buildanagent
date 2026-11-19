@@ -117,6 +117,17 @@
       }
     },
     {
+      "includes": ["apps/manual/**/*.astro"],
+      "linter": {
+        "rules": {
+          "correctness": {
+            "noUnusedVariables": "off",
+            "noUnusedImports": "off"
+          }
+        }
+      }
+    },
+    {
       "includes": ["**/vitest.config.ts"],
       "linter": {
         "rules": {
