@@ -39,7 +39,8 @@ Say in the gateway's catalog docs what a caller must do to price a fine-tuned mo
 - [x] Draft the TSDoc and the README paragraph with `/anthropic-skills:writing`.
 - [x] Use a tuned model id in the sample written the way OpenAI writes one (`ft:<base>:<org>::<suffix>`), and give it an `asOf` date and source page.
 - [x] Add a test that a catalog spread from `defaultCatalog` with a tuned entry prices both the tuned model and a shipped model, and that a catalog holding only the tuned entry leaves the shipped model's price unknown.
-- [ ] Fact-check every claim in the new copy against the gateway's code and the provider's pricing page, into U21's fact-check log (done: rows B21-1 to B21-8), then review the copy with `/anthropic-skills:writing-review` and fix every finding.
+- [x] Fact-check every claim in the new copy against the gateway's code and the provider's pricing page, into U21's fact-check log (rows B21-1 to B21-8).
+- [ ] Review the copy with `/anthropic-skills:writing-review` and fix every finding, once the code-review rounds are done.
 
 ## Acceptance criteria
 
@@ -75,4 +76,5 @@ The new test in `packages/gateway/test/`, and the root `pnpm test`.
 - `catalog.ts`'s module comment, `CatalogEntry` and `defaultCatalog` now say that a tuned model needs its own entry and that a passed catalog replaces the shipped one.
 - The gateway README's catalog section has a paragraph and a sample entry for a tuned GPT-4.1 mini, dated 2026-11-19 and sourced to OpenAI's pricing page, built on the `defaultCatalog` spread.
 - `packages/gateway/test/tuned-model-catalog.test.ts` holds the same entry and checks the three cases. An empty changeset covers the change.
-- Eight claims are logged as rows B21-1 to B21-8 in [the U21 fact-check log](../../research/fine-tuning/fact-check-fine-tuning-vs-prompting.md#b21-copy-checked-2026-11-19). Two are ⚠️: that OpenAI adds no cache-write fee for tuned GPT-4.1 mini, and that a tuned model keeps the base model's limits.
+- Eight claims are logged as rows B21-1 to B21-8 in [the U21 fact-check log](../../research/fine-tuning/fact-check-fine-tuning-vs-prompting.md#b21-copy-checked-2026-11-19). Two are ⚠️: that OpenAI adds no cache-write fee for tuned GPT-4.1 mini, and that a tuned model keeps the base model's limits. The first code-review round confirmed the cache-write claim (row B21-9), so only the limits stay unverified.
+- After that round, the sample also sets `images` and `reasoning`, carries its `note`, and says OpenAI marks GPT-4.1 mini deprecated, and a test fails when the README's entry differs from the tested one (rows B21-9 to B21-13).

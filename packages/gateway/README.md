@@ -93,7 +93,9 @@ const catalog = parseCatalog({ models: [...defaultCatalog.models, myEntry] });
 const model = createModel({ adapter, id: "my-model", catalog });
 ```
 
-A fine-tuned model is a new model id with its own rates, and the shipped catalog lists none, so the gateway prices one as `"unknown"` until you add an entry for it. Give the entry the exact id your provider returned, the tuned rates, today's date as `asOf`, and the provider's pricing page as the rates source. Keep the spread of `defaultCatalog.models`: a catalog that holds only the tuned entry leaves every other model you use with an unknown price. This sample prices a tuned GPT-4.1 mini next to the shipped models. Its rates are an example copied from OpenAI's pricing page on 2026-11-19, which lists tuned GPT-4.1 mini at twice the base rates, so check the page before you rely on them, and its limits are the base model's:
+A fine-tuned model is a new model id with its own rates, and the shipped catalog lists none, so the gateway prices one as `"unknown"` until you add an entry for it. Give the entry the exact id your provider returned, the tuned rates, today's date as `asOf`, and the provider's pricing page as the rates source. Set its limits and its `images` and `reasoning` flags too, because without an entry, or with the flags left out, the model gets the adapter's defaults, and the OpenAI adapter's defaults send no images. Keep the spread of `defaultCatalog.models`: a catalog that holds only the tuned entry leaves every other model you use with an unknown price and with the adapter's default limits and flags in place of its own.
+
+This sample prices a tuned GPT-4.1 mini next to the shipped models. Its rates are an example copied from OpenAI's pricing page on 2026-11-19, which lists tuned GPT-4.1 mini at twice the base rates, so check the page before you rely on them. Its limits and flags are the base model's, because OpenAI's model page and fine-tuning guide give none for a tuned model. As of November 2026, OpenAI marks GPT-4.1 mini deprecated and has closed fine-tuning to new users, so the sample shows the shape of an entry rather than a model to start tuning:
 
 ```ts
 import { createModel, defaultCatalog, parseCatalog, type CatalogEntry } from "@buildanagent/gateway";
@@ -101,15 +103,26 @@ import { createModel, defaultCatalog, parseCatalog, type CatalogEntry } from "@b
 const tuned: CatalogEntry = {
   provider: "openai",
   id: "ft:gpt-4.1-mini-2025-04-14:my-org::AbC123xy",
-  rates: [{ upToInputTokens: null, uncachedInput: 0.8, cacheRead: 0.2, cacheWrite: { "5m": 0.8, "1h": 0.8 }, output: 3.2 }],
+  rates: [
+    {
+      upToInputTokens: null,
+      uncachedInput: 0.8,
+      cacheRead: 0.2,
+      cacheWrite: { "5m": 0.8, "1h": 0.8 },
+      output: 3.2,
+    },
+  ],
   contextWindow: 1_047_576,
   maxOutputTokens: 32_768,
+  images: true,
+  reasoning: false,
   asOf: "2026-11-19",
   sources: {
     rates: "https://developers.openai.com/api/docs/pricing",
     contextWindow: "https://developers.openai.com/api/docs/models/gpt-4.1-mini",
     maxOutputTokens: "https://developers.openai.com/api/docs/models/gpt-4.1-mini",
   },
+  note: "Tuned rates copied on 2026-11-19. A cache write costs the uncached input rate. The limits and flags are the base model's.",
 };
 
 const catalog = parseCatalog({ models: [...defaultCatalog.models, tuned] });
