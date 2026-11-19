@@ -29,7 +29,7 @@ importers:
 
   packages/sdk:
     dependencies:
-      '@agent-speak/gateway':
+      '@buildanagent/gateway':
         specifier: workspace:*
         version: link:../gateway
 

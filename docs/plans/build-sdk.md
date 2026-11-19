@@ -11,7 +11,7 @@ The [agent-SDK guide][g] already settles the design: one in-process loop as a pu
 
 ## 1. Goal and non-goals
 
-**Goal.** At the end of Round B, `@agent-speak/gateway` and `@agent-speak/sdk` build, type-check and pass `pnpm test` offline in this workspace. Together they implement the six components of the [reference architecture][g11]: the gateway, the loop, the tool runtime, the hook bus with its OTel observer, the closed event stream, and the `testing` exports. A triage capstone written against them meets the contract that every reference capstone meets ([deep comparison §1][dc-same]). Every component stays removable, as [AGENTS.md](../../AGENTS.md#planned-architecture-when-code-starts) requires.
+**Goal.** At the end of Round B, `@buildanagent/gateway` and `@buildanagent/sdk` build, type-check and pass `pnpm test` offline in this workspace. Together they implement the six components of the [reference architecture][g11]: the gateway, the loop, the tool runtime, the hook bus with its OTel observer, the closed event stream, and the `testing` exports. A triage capstone written against them meets the contract that every reference capstone meets ([deep comparison §1][dc-same]). Every component stays removable, as [AGENTS.md](../../AGENTS.md#planned-architecture-when-code-starts) requires.
 
 The goal covers every recommendation in the guide's design sections, §2 to §10. The table maps each section to the todos that build it:
 
@@ -45,7 +45,7 @@ Each decision answers one open decision in [guide §12][g12], in the same order,
 
 | # | Decision | Choice | Status | ADR |
 | --- | --- | --- | --- | --- |
-| D1 | Package split | Two packages, `@agent-speak/gateway` and `@agent-speak/sdk`, each with a `testing` subpath, under `packages/` | Decided | [0001](../decisions/0001-two-packages-gateway-and-sdk.md) |
+| D1 | Package split | Two packages, `@buildanagent/gateway` and `@buildanagent/sdk`, each with a `testing` subpath, under `packages/` | Decided | [0001](../decisions/0001-two-packages-gateway-and-sdk.md) |
 | D2 | First wire protocols | Anthropic Messages and OpenAI-compatible Chat Completions; adapters call `fetch` directly | Accepted (owner, 2026-11-18) | [0002](../decisions/0002-first-wire-protocols.md) |
 | D3 | Token fields | Separate classes; the field is named `uncachedInput`, never `input` | Decided | [0003](../decisions/0003-token-usage-fields.md) |
 | D4 | Cost catalog | A versioned JSON catalog in the gateway, overridable; a provider-billed total wins; an unknown price blocks a budgeted run | Decided | [0004](../decisions/0004-cost-catalog-and-basis.md) |
@@ -60,9 +60,9 @@ Each decision answers one open decision in [guide §12][g12], in the same order,
 
 ### D1. Two packages, because the gateway has consumers that never run the loop
 
-**Options.** (a) One package, `@agent-speak/sdk`, with subpath exports for the gateway and `testing`. (b) Two packages: a gateway and a loop, as pi-ai and pi-agent-core are split. (c) One package per provider adapter, as `@ai-sdk/*` are split.
+**Options.** (a) One package, `@buildanagent/sdk`, with subpath exports for the gateway and `testing`. (b) Two packages: a gateway and a loop, as pi-ai and pi-agent-core are split. (c) One package per provider adapter, as `@ai-sdk/*` are split.
 
-**Choice: (b).** `@agent-speak/gateway` holds the transcript types, the `ModelAdapter` spec, the gateway runtime, usage and cost, and the adapters as subpath exports. `@agent-speak/sdk` holds the loop, tools, hooks, events, the OTel observer and the `testing` export, and it depends on the gateway. Each package has a `./testing` subpath. The gateway's holds mock transports and `allowModelRequests`; the SDK's holds `ScriptedModel` and the seam doubles, and it re-exports the gateway's.
+**Choice: (b).** `@buildanagent/gateway` holds the transcript types, the `ModelAdapter` spec, the gateway runtime, usage and cost, and the adapters as subpath exports. `@buildanagent/sdk` holds the loop, tools, hooks, events, the OTel observer and the `testing` export, and it depends on the gateway. Each package has a `./testing` subpath. The gateway's holds mock transports and `allowModelRequests`; the SDK's holds `ScriptedModel` and the seam doubles, and it re-exports the gateway's.
 
 **Evidence.** The guide's rule is to split if any consumer needs the gateway without the loop ([guide §12, decision 1][g12]). Three planned consumers do. First, the harness's summarisation layer makes one model call with no tools ([harness guide §3][hg3]). Second, the agent's reader and drafter are model contexts with no tools ([agent guide §9][ag9]). Third, the eval bridge needs only the base-URL override ([guide §8][g8]). The provider spec must also carry its own version, as Vercel's `specificationVersion` does, so a split lets the gateway release apart from the loop ([guide §9][g9]). Option (c) multiplies packages before we have more than two adapters; subpath exports keep the adapters tree-shakable without that cost.
 
@@ -88,7 +88,7 @@ Each decision answers one open decision in [guide §12][g12], in the same order,
 
 **Options.** Price tables from a catalog shipped in the package, fetched at run time, or supplied by the caller; refresh on release or on a schedule; and whether a provider-billed total overrides the catalog, as Pi's `totalFromProvider` does ([guide §12, decision 4][g12]).
 
-**Choice.** `@agent-speak/gateway` ships `catalog.json`, which gives each model its tiered rates per token class, an `asOf` date and a source URL. A caller can pass its own catalog. When a response carries a billed total, `cost.basis` is `"provider"` and that total wins. Otherwise the catalog prices the usage (`basis: "catalog"`). A model missing from the catalog gets `basis: "unknown"` and `total: null`. A run with a USD cap refuses to start on an unknown price and ends with `stopReason: "error"`. The catalog is refreshed in every minor release, and a test warns when an entry's `asOf` is older than 90 days. Failed attempts are priced too.
+**Choice.** `@buildanagent/gateway` ships `catalog.json`, which gives each model its tiered rates per token class, an `asOf` date and a source URL. A caller can pass its own catalog. When a response carries a billed total, `cost.basis` is `"provider"` and that total wins. Otherwise the catalog prices the usage (`basis: "catalog"`). A model missing from the catalog gets `basis: "unknown"` and `total: null`. A run with a USD cap refuses to start on an unknown price and ends with `stopReason: "error"`. The catalog is refreshed in every minor release, and a test warns when an entry's `asOf` is older than 90 days. Failed attempts are priced too.
 
 **Evidence.** Cost carries a `basis` flag and comes from a catalog with tiered rates, and failed attempts count, as OpenAI's retry accounting shows ([guide §2][g2]; [SDK decision 5][sr6]). mini-swe-agent raises when it cannot price a model ([harness research §5][har5]). A budget that silently prices at zero would be the same failure in a quieter form, so a budgeted run with an unknown price fails closed. The guide asks which first providers return a billed cost. Neither D2 protocol is known to return one, but nobody has checked, so B8 and B9 check each API reference and fixture and record the answer. The provider-wins rule costs nothing to keep if neither does. Run-time fetching would make cost depend on the network, which contradicts the "nothing reaches outside by default" rule ([guide §9][g9]).
 
@@ -176,7 +176,7 @@ Our own code goes in `packages/`, apart from `verify/`. The `verify/*` packages 
 
 ```text
 packages/
-  gateway/                      @agent-speak/gateway
+  gateway/                      @buildanagent/gateway
     package.json                exports: ".", "./anthropic", "./openai-chat", "./testing"
     src/
       types.ts                  Message, ContentBlock, ModelContent, ModelContext, ModelCaps, Usage, Cost, ModelEvent
@@ -191,7 +191,7 @@ packages/
       adapters/openai-chat/     Chat Completions: SSE parser, compat flags
       testing/                  mockTransport(), startMockServer(), allowModelRequests()
     README.md  CHANGELOG.md
-  sdk/                          @agent-speak/sdk
+  sdk/                          @buildanagent/sdk
     package.json                exports: ".", "./otel", "./testing"
     src/
       run.ts                    Context, run(), continueRun(), runOrThrow(), the Run object
@@ -208,7 +208,7 @@ packages/
     README.md  CHANGELOG.md
 ```
 
-**Dependencies.** The gateway has no runtime dependencies, and it uses `fetch`, Web Streams and Web Crypto from Node 22. Nothing in the gateway names an SDK type, so the dependency runs one way: `Context`, which holds the SDK's `SignedPendingRequest`, lives in `@agent-speak/sdk`, and the gateway's own request shape is `ModelContext`. The SDK depends on the gateway (`workspace:*`), on `@earendil-works/pi-schema` 1.5.2 (D7) and on `@standard-schema/spec` 1.1.0 for types, which the lockfile already holds. The OTel observer accepts a structural `Tracer` interface, so `@opentelemetry/api` is not a runtime dependency; its tests use `@opentelemetry/sdk-trace-base` 2.12.0, a version already in the lockfile, as an exact-pinned dev dependency. Every new pin follows [AGENTS.md "Versions"](../../AGENTS.md#coding-standards): an exact version at least a week old, or the latest fixed release when an advisory applies.
+**Dependencies.** The gateway has no runtime dependencies, and it uses `fetch`, Web Streams and Web Crypto from Node 22. Nothing in the gateway names an SDK type, so the dependency runs one way: `Context`, which holds the SDK's `SignedPendingRequest`, lives in `@buildanagent/sdk`, and the gateway's own request shape is `ModelContext`. The SDK depends on the gateway (`workspace:*`), on `@earendil-works/pi-schema` 1.5.2 (D7) and on `@standard-schema/spec` 1.1.0 for types, which the lockfile already holds. The OTel observer accepts a structural `Tracer` interface, so `@opentelemetry/api` is not a runtime dependency; its tests use `@opentelemetry/sdk-trace-base` 2.12.0, a version already in the lockfile, as an exact-pinned dev dependency. Every new pin follows [AGENTS.md "Versions"](../../AGENTS.md#coding-standards): an exact version at least a week old, or the latest fixed release when an advisory applies.
 
 **Tooling.** Both packages are ESM, extend `tsconfig.base.json`, and run tests with `node:test` through tsx (`tsx --test`), so no test framework is added. Each package's `typecheck` script runs `tsc -p`, and its `test` script runs its tests, so the root `pnpm typecheck` and `pnpm test` pick them up unchanged. Biome already covers `packages/`. `noExplicitAny` stays on there, because it is off only in `verify/*/examples`.
 
@@ -217,7 +217,7 @@ packages/
 The signatures below revise [guide §11][g11] where a decision changes them. Each revision is marked with its decision or reason.
 
 ```ts
-// @agent-speak/gateway: transcript (guide §2; SDK decision 2)
+// @buildanagent/gateway: transcript (guide §2; SDK decision 2)
 type ContentBlock =
   | { type: "text"; text: string }
   | { type: "reasoning"; text: string; signature?: OpaqueToken }          // valid only for the model that made it
@@ -296,12 +296,12 @@ interface ModelMiddleware {            // Revision: no wrapGenerate, because com
 declare function transformMessages(messages: Message[], target: ModelRef, caps: ModelCaps): Message[];
 
 // Adapters, one subpath each (D2)
-// import { anthropic } from "@agent-speak/gateway/anthropic";
+// import { anthropic } from "@buildanagent/gateway/anthropic";
 declare function anthropic(config: ProviderConfig): ModelAdapter;
-// import { openaiChat } from "@agent-speak/gateway/openai-chat";
+// import { openaiChat } from "@buildanagent/gateway/openai-chat";
 declare function openaiChat(config: ProviderConfig & { compat?: ChatCompat }): ModelAdapter;
 
-// @agent-speak/gateway/testing (SDK decision 14)
+// @buildanagent/gateway/testing (SDK decision 14)
 declare function allowModelRequests(allowed: boolean): void;  // false: any non-mock transport throws
 declare function mockTransport(api: "anthropic-messages" | "openai-chat", script: WireScript): Transport;
 declare function startMockServer(options: { api: string; script: WireScript; log?: string }): Promise<{ url: string; close(): Promise<void> }>; // 127.0.0.1 only
@@ -311,7 +311,7 @@ declare function assertStreamContract(events: AsyncIterable<ModelEvent>): Promis
 ### 3.3 SDK API
 
 ```ts
-// @agent-speak/sdk: tools (guide §4; SDK decisions 9–11; D7, D11, D12)
+// @buildanagent/sdk: tools (guide §4; SDK decisions 9–11; D7, D11, D12)
 interface Clock { now(): string }                    // ISO 8601; fixedClock() in testing
 interface ToolDefinition<I, S> {
   name: string;                                       // canonical rule, D12
@@ -471,14 +471,14 @@ declare function projectCallCost(model: Model, context: ModelContext, options?: 
 // Versioning (D8; guide §10): the strings run_start.capabilities carries; the SDK README lists each one
 declare const CAPABILITIES: readonly string[];
 
-// @agent-speak/sdk/otel (guide §5)
+// @buildanagent/sdk/otel (guide §5)
 interface TracerLike { startSpan(name: string, options?: { attributes?: Record<string, unknown>; startTime?: number }): SpanLike }
 interface SpanLike { setAttribute(name: string, value: unknown): void; end(endTime?: number): void }
 declare const GEN_AI_ATTRIBUTES: Readonly<Record<string, string>>;     // the gen_ai.* names, shared with the harness projection
 declare const SEMCONV_GENAI_COMMIT: "d28355d";                          // the pinned convention commit (harness HD7)
 declare function otelObserver(options: { tracer: TracerLike; captureContent?: boolean }): Observer; // content off by default
 
-// @agent-speak/sdk/testing (guide §8; SDK decision 14)
+// @buildanagent/sdk/testing (guide §8; SDK decision 14)
 interface AssistantScript {                    // added in B3, which found AssistantScript used but undefined
   content: ContentBlock[]; stopReason?: "stop" | "length" | "tool_calls"; // default: tool_calls if content has a tool call, else stop
   error?: NonNullable<AssistantMessage["error"]>; usage?: Partial<Omit<Usage, "raw">>; // error ends the stream with an error terminal

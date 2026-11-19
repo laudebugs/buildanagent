@@ -176,7 +176,7 @@ The capstone [`08-triage-agent.ts`](../../../verify/google-adk/examples/08-triag
 4. **`beforeToolCallback`.** A name pattern refuses host tools as a second line of defense, and no host tool is ever offered. **[verified: 08]**
 
 ```bash
-pnpm install && pnpm --filter @agent-speak/verify-google-adk test
+pnpm install && pnpm --filter @buildanagent/verify-google-adk test
 ```
 
 ## 13. Eight runnable examples back the [verified] claims
@@ -214,4 +214,4 @@ The comparison runs both ways. `ChromeBuiltInLlm`, `WebMCPToolset` and `RoutedLl
 
 ## Conclusion: build on `LlmAgent` and `requireConfirmation`, and check every output yourself
 
-ADK's TypeScript package suits teams that want Google's agent model, Gemini-first, inside a Node.js process. Its core held offline: `LlmAgent` and `Runner`, function tools, sessions with scoped state, both hook layers, tool confirmation and the graph `Workflow` all behaved as documented in eight examples, apart from the two gaps below. The package is stronger than its Python-first docs suggest: it ships `requireConfirmation`, `App` plugins and 13 other features that the docs document only for Python. In two places, it enforces less than the docs promise. `outputSchema` is never enforced, and tool calls in one turn run one at a time. The orchestration layer is also in transition, with the workflow agents deprecated and their replacement experimental. Before you deploy, re-validate structured output, put `requireConfirmation` on state-changing tools, lower `maxLlmCalls` and choose a persistent session service. Then copy [`08-triage-agent.ts`](../../../verify/google-adk/examples/08-triage-agent.ts), swap in your tools and schema, and run `pnpm --filter @agent-speak/verify-google-adk test` to confirm the gate still holds.
+ADK's TypeScript package suits teams that want Google's agent model, Gemini-first, inside a Node.js process. Its core held offline: `LlmAgent` and `Runner`, function tools, sessions with scoped state, both hook layers, tool confirmation and the graph `Workflow` all behaved as documented in eight examples, apart from the two gaps below. The package is stronger than its Python-first docs suggest: it ships `requireConfirmation`, `App` plugins and 13 other features that the docs document only for Python. In two places, it enforces less than the docs promise. `outputSchema` is never enforced, and tool calls in one turn run one at a time. The orchestration layer is also in transition, with the workflow agents deprecated and their replacement experimental. Before you deploy, re-validate structured output, put `requireConfirmation` on state-changing tools, lower `maxLlmCalls` and choose a persistent session service. Then copy [`08-triage-agent.ts`](../../../verify/google-adk/examples/08-triage-agent.ts), swap in your tools and schema, and run `pnpm --filter @buildanagent/verify-google-adk test` to confirm the gate still holds.

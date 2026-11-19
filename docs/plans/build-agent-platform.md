@@ -86,7 +86,7 @@ The third check answers the strongest warning in the research. In the Darwin Gö
 
 ### PF5. One safety package inside every generated agent (proposed)
 
-Generated agents import one versioned package, planned as `@agent-speak/agent-safety`, instead of receiving fresh safety code from each generation. It provides three things. First, signed approvals: it signs each pause with the SDK's `hmacSigner()` (todo B15; under the proposed [ADR 0043](../decisions/0043-standalone-safety-core.md), the package's own signer from E3) and wraps the target SDK's own gate, `needsApproval` in Cloudflare `agents` and `toolApproval` in the AI SDK ([Vercel AI SDK skill](../../.agents/skills/vercel-ai-sdk/SKILL.md)). Second, idempotency keys: every outward write carries a key persisted before the call and scoped to `(tenant, session, branch, tool_call_id)` ([server rollback report][sr]). Third, typed outcomes: each write reports one of the four outcome kinds our research proposed, `not_applied`, `compensated`, `partial` or `unknown` ([server rollback report][sr-out]). No platform in U12's survey documents signed approvals or side-effect undo ([agent-building platforms report][abp-appr]), so the package carries two of the platform's five openings.
+Generated agents import one versioned package, planned as `@buildanagent/agent-safety`, instead of receiving fresh safety code from each generation. It provides three things. First, signed approvals: it signs each pause with the SDK's `hmacSigner()` (todo B15; under the proposed [ADR 0043](../decisions/0043-standalone-safety-core.md), the package's own signer from E3) and wraps the target SDK's own gate, `needsApproval` in Cloudflare `agents` and `toolApproval` in the AI SDK ([Vercel AI SDK skill](../../.agents/skills/vercel-ai-sdk/SKILL.md)). Second, idempotency keys: every outward write carries a key persisted before the call and scoped to `(tenant, session, branch, tool_call_id)` ([server rollback report][sr]). Third, typed outcomes: each write reports one of the four outcome kinds our research proposed, `not_applied`, `compensated`, `partial` or `unknown` ([server rollback report][sr-out]). No platform in U12's survey documents signed approvals or side-effect undo ([agent-building platforms report][abp-appr]), so the package carries two of the platform's five openings.
 
 ### PF6. Users connect their own clouds with scoped, expiring credentials (accepted, ADR 0040)
 
@@ -176,11 +176,11 @@ Round F splits by what it needs. Stage F-a needs only the SDK workspace and runs
 
 | Todo | Delivers | Depends on | Size |
 | --- | --- | --- | --- |
-| [F1](../todos/ready/F1-platform-tenancy.md) | `@agent-speak/platform` package, the tenant model and per-tenant key encryption | B1 | M |
+| [F1](../todos/ready/F1-platform-tenancy.md) | `@buildanagent/platform` package, the tenant model and per-tenant key encryption | B1 | M |
 | [F2](../todos/ready/F2-github-sign-in.md) | GitHub sign-in and sessions | F1 | S |
 | [F3](../todos/ready/F3-gate-type-check-and-mock-tests.md) | The gate's type-check and mock-model checks, with the verify runners factored out | B1 | M |
 | [F4](../todos/ready/F4-hidden-grader-evals.md) | Hidden-grader eval runner and signed gate reports | F3 | M |
-| [F5](../todos/ready/F5-agent-safety-package.md) | `@agent-speak/agent-safety` with adapters for `agents` 0.33.0 and `ai` 7.0.162 (scope moved to Round E, [close-sdk-gaps plan](close-sdk-gaps.md); revised 2026-11-18) | E7 | M |
+| [F5](../todos/ready/F5-agent-safety-package.md) | `@buildanagent/agent-safety` with adapters for `agents` 0.33.0 and `ai` 7.0.162 (scope moved to Round E, [close-sdk-gaps plan](close-sdk-gaps.md); revised 2026-11-18) | E7 | M |
 | [F6](../todos/ready/F6-generation-templates.md) | Generation templates for Cloudflare `agents` and the AI SDK | F3, F5 | M |
 | [F7](../todos/ready/F7-cloudflare-connection-and-deploy.md) | Cloudflare connection and deploy adapter | F1, F4 | M |
 | [F8](../todos/ready/F8-vercel-connection-and-deploy.md) | Vercel connection and deploy adapter | F1, F4 | M |

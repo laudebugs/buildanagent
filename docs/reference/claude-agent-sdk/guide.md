@@ -263,7 +263,7 @@ The capstone [`07-triage-agent.ts`](../../../verify/claude-agent-sdk/examples/07
 6. **Bound the run.** Set `maxTurns` and `maxBudgetUsd`, then branch on `result.subtype`.
 
 ```bash
-pnpm install && pnpm --filter @agent-speak/verify-claude-agent-sdk test
+pnpm install && pnpm --filter @buildanagent/verify-claude-agent-sdk test
 ```
 
 ## 16. Seven runnable examples back every [verified] claim

@@ -69,7 +69,7 @@ Cloudflare's contribution is the **runtime**, not a novel loop.
 
 **Lesson:** for many long-lived, mostly idle, per-user agents, put the session in an actor with its own database and make wake-from-hibernation cheap. Persisting the exact system prompt string is a small trick that protects prompt-cache hits across restarts.
 
-## Cross-cutting patterns to adopt in agent-speak
+## Cross-cutting patterns to adopt in buildanagent
 
 1. **Layer the packages** like Pi: model API → loop core → product (tools, sessions, UI). Ship the loop core as its own module.
 2. **Use an event-sourced session with branching.** Pi's tree-shaped JSONL makes compaction reversible and forking free. Codex and Cloudflare expose resume and fork as first-class API calls.

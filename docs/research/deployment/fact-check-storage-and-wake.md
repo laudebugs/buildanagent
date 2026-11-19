@@ -23,5 +23,6 @@ This log checks every factual claim in [storage-and-wake.md](storage-and-wake.md
 | 17 | `SessionStore` and `SessionLock` are new seams this note proposes, with a conditional append keyed by `seq` | ✏️ | Found by the U11 review. [Harness plan §3.2](../../plans/build-harness.md#32-session-log-api) already defines `SessionStore.append(key, entries, { expectedLastId })`, idempotent by id with a compare-and-swap on the last id, and `SessionLock { acquire(key) }` with `fileLock()` as its only implementation. The note now says two seams exist and need off-host implementations, and only `Scheduler.wake` is new |
 | 18 | The plan already defines `KeyStore` with `load()`, `rotate()` and `prune()` | ✅ | [Harness plan §3.4](../../plans/build-harness.md#34-permission-approval-and-sandbox-apis), `interface KeyStore`; the optional `rotate()`/`prune()` proposal is U11 change 4 |
 | 19 | `fileLock()` takes `leaseMs` and `renewMs`, so it renews on an in-process timer | ✅ | Harness plan §3.2, `fileLock` signature, read with HD2's renewal rule |
+| 20 | The default key ring path in HD5 and this note: `$XDG_STATE_HOME/agent-speak/keys.json` (row 6) | ✏️ | Renamed 2026-11-19 by [ADR 0044](../../decisions/0044-rename-to-buildanagent.md): the path is now `$XDG_STATE_HOME/buildanagent/keys.json` in HD5 and in storage-and-wake.md. Row 6 keeps the text it confirmed at the time |
 
-**Totals:** 17 ✅, 2 ✏️, 0 ⚠️.
+**Totals:** 17 ✅, 3 ✏️, 0 ⚠️.

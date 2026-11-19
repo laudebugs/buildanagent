@@ -45,7 +45,7 @@ Build `verify/langchain/`, the offline harness for LangChain.js v1 agents, and r
 
 ## Acceptance criteria
 
-- [x] `pnpm --filter @agent-speak/verify-langchain test` passes offline
+- [x] `pnpm --filter @buildanagent/verify-langchain test` passes offline
 - [x] `pnpm run verify` regenerates every result file
 - [x] Every Tier 1 mismatch is classified
 - [x] Root checks pass

@@ -1,6 +1,6 @@
 # Security policy: report vulnerabilities privately through GitHub
 
-agent-speak is mostly documentation, but it also runs code: verification harnesses that install third-party SDKs and execute their doc examples, plus scripts and CI workflows. A flaw in that code could leak a credential or run untrusted code on a contributor's machine or a CI runner. If you find one, report it privately through GitHub so we can fix it before the details are public.
+buildanagent is mostly documentation, but it also runs code: verification harnesses that install third-party SDKs and execute their doc examples, plus scripts and CI workflows. A flaw in that code could leak a credential or run untrusted code on a contributor's machine or a CI runner. If you find one, report it privately through GitHub so we can fix it before the details are public.
 
 ## Report through the repository's Security tab
 

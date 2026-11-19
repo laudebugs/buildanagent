@@ -80,5 +80,5 @@ try {
 Use pi-ai's `fauxProvider()`: queue `fauxAssistantMessage([...])` responses with `fauxToolCall(name, args)` and `fauxText(text)`, register it with `modelRuntime.registerNativeProvider(faux.provider)` on a `ModelRuntime.create({ refreshOnCreate: false, authPath, modelsPath: null })`, and pass `faux.getModel()` as the model. A response can also be a function `(context, options, state, model) => AssistantMessage`, which lets a test inspect what the model received; `faux.state.callCount` counts model calls, and `session.getActiveToolNames()` lists active tools. `fauxSession()` in [`verify/pi/examples/lib/faux.ts`](../../../verify/pi/examples/lib/faux.ts) wires this up. Run one new file offline, without touching committed results, from `verify/pi`: `node scripts/run-examples.mjs <dir> --only <name>` (it prints only the outcome; run the file with tsx to see its output). Run the verified examples with:
 
 ```bash
-pnpm --filter @agent-speak/verify-pi test
+pnpm --filter @buildanagent/verify-pi test
 ```

@@ -1,10 +1,10 @@
 {
-  "name": "@agent-speak/gateway",
+  "name": "@buildanagent/gateway",
   "version": "0.0.0",
   "private": true,
   "license": "Apache-2.0 OR MIT",
   "type": "module",
-  "description": "Model gateway for the agent-speak SDK: provider adapters, streaming, retries and cost accounting.",
+  "description": "Model gateway for the buildanagent SDK: provider adapters, streaming, retries and cost accounting.",
   "exports": {
     ".": "./src/index.ts",
     "./testing": "./src/testing/index.ts",

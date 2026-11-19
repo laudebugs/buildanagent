@@ -1,6 +1,6 @@
 # 0001. Ship the SDK as two packages, a gateway and a loop, under `packages/`
 
-- **Status:** Accepted (P4 review, 2026-11-18)
+- **Status:** Accepted (P4 review, 2026-11-18); names amended by [0044](0044-rename-to-buildanagent.md) (2026-11-19)
 - **Date:** 2026-11-18
 - **Plan:** [build-sdk.md, D1](../plans/build-sdk.md#d1-two-packages-because-the-gateway-has-consumers-that-never-run-the-loop)
 

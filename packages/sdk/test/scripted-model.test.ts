@@ -1,4 +1,4 @@
-import "@agent-speak/gateway/testing/setup";
+import "@buildanagent/gateway/testing/setup";
 import assert from "node:assert/strict";
 import { test } from "node:test";
 import {
@@ -7,7 +7,7 @@ import {
   type ModelContext,
   type ModelEvent,
   type ModelRef,
-} from "@agent-speak/gateway";
+} from "@buildanagent/gateway";
 import {
   type AssistantScript,
   fixedClock,
@@ -15,7 +15,7 @@ import {
   seededRandom,
   sequentialIds,
   UnexpectedModelCallError,
-} from "@agent-speak/sdk/testing";
+} from "@buildanagent/sdk/testing";
 
 const ref: ModelRef = { api: "scripted", provider: "scripted", id: "scripted-model" };
 const context = (text = "hello"): ModelContext => ({

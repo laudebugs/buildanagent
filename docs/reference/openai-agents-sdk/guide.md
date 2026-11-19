@@ -176,7 +176,7 @@ The capstone [`09-triage-agent.ts`](../../../verify/openai-agents-sdk/examples/0
 4. **Approval.** The run pauses at `escalate`, a person rejects it through the serialised `RunState`, and the run still finishes with a typed result. The escalation never executes. **[verified: 09]**
 
 ```bash
-pnpm install && pnpm --filter @agent-speak/verify-openai-agents-sdk test
+pnpm install && pnpm --filter @buildanagent/verify-openai-agents-sdk test
 ```
 
 ## 17. Nine runnable examples back every [verified] claim
@@ -195,4 +195,4 @@ pnpm install && pnpm --filter @agent-speak/verify-openai-agents-sdk test
 
 ## Conclusion: own the gates and the defaults, and the SDK does the rest
 
-The OpenAI Agents SDK suits teams that want an in-process loop with first-class approvals, guardrails and handoffs, and tests that run offline without a key. Its docs are accurate, too: all 16 agent options and the `maxTurns` default match the package, and 178 of its 182 doc sources compile cleanly. What a team must add is its own view of the defaults: decide where traces go, which history store to trust, and which tools may act without a person. To start, copy [`09-triage-agent.ts`](../../../verify/openai-agents-sdk/examples/09-triage-agent.ts), swap in your tools, put `needsApproval` on the ones that change state, and run `pnpm --filter @agent-speak/verify-openai-agents-sdk test` to confirm the gates still hold.
+The OpenAI Agents SDK suits teams that want an in-process loop with first-class approvals, guardrails and handoffs, and tests that run offline without a key. Its docs are accurate, too: all 16 agent options and the `maxTurns` default match the package, and 178 of its 182 doc sources compile cleanly. What a team must add is its own view of the defaults: decide where traces go, which history store to trust, and which tools may act without a person. To start, copy [`09-triage-agent.ts`](../../../verify/openai-agents-sdk/examples/09-triage-agent.ts), swap in your tools, put `needsApproval` on the ones that change state, and run `pnpm --filter @buildanagent/verify-openai-agents-sdk test` to confirm the gates still hold.

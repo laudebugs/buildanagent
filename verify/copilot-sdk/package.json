@@ -1,5 +1,5 @@
 {
-  "name": "@agent-speak/verify-copilot-sdk",
+  "name": "@buildanagent/verify-copilot-sdk",
   "private": true,
   "license": "Apache-2.0 OR MIT",
   "type": "module",

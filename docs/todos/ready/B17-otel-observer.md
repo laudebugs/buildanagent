@@ -22,7 +22,7 @@ Project the event stream onto OTel GenAI spans through one built-in observer, wi
 
 **In scope**
 
-- `otelObserver({ tracer, captureContent })` in `@agent-speak/sdk/otel`
+- `otelObserver({ tracer, captureContent })` in `@buildanagent/sdk/otel`
 - Spans for `invoke_agent`, each model call and `execute_tool`, with usage attributes summed per D3
 - Content attributes (`gen_ai.tool.call.arguments`, results, messages) only with `captureContent: true`
 - A structural `TracerLike` type, so `@opentelemetry/api` is not a runtime dependency
@@ -45,7 +45,7 @@ Project the event stream onto OTel GenAI spans through one built-in observer, wi
 - [ ] `gen_ai.usage.input_tokens` equals `totalInput()` for each call
 - [ ] No content attribute appears unless `captureContent` is true (a test checks every span's keys)
 - [ ] `@opentelemetry/api` is absent from `packages/sdk` runtime dependencies
-- [ ] `@agent-speak/sdk/otel` exports `GEN_AI_ATTRIBUTES` and `SEMCONV_GENAI_COMMIT`, and every span attribute name the observer writes comes from `GEN_AI_ATTRIBUTES` (a test)
+- [ ] `@buildanagent/sdk/otel` exports `GEN_AI_ATTRIBUTES` and `SEMCONV_GENAI_COMMIT`, and every span attribute name the observer writes comes from `GEN_AI_ATTRIBUTES` (a test)
 - [ ] `pnpm check`, `pnpm typecheck` and `pnpm test` pass offline from the repo root
 
 ## Tests

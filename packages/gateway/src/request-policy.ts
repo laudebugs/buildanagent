@@ -6,7 +6,7 @@
  */
 import type { Transport } from "./runtime-types.ts";
 
-const MOCK_TRANSPORT = Symbol.for("agent-speak.gateway.mockTransport");
+const MOCK_TRANSPORT = Symbol.for("buildanagent.gateway.mockTransport");
 
 let modelRequestsAllowed = true;
 

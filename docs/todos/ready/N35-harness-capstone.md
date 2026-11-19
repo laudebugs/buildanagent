@@ -25,7 +25,7 @@ Run the SDK's triage capstone inside the harness end to end, resume its approval
 
 - `packages/harness/examples/triage-session.ts` using the B19 capstone's tools on the harness
 - Approved, rejected and policy-changed-after-pause cases
-- A second process (`agent-speak rpc`) resolving the pause
+- A second process (`buildanagent rpc`) resolving the pause
 - Playback and the byte-identical check
 - An HD1 note: file size, playback fidelity and resume code size at per-delta, per-block and per-message granularity
 - Recorded sessions saved as offline replay fixtures for N36
@@ -39,7 +39,7 @@ Run the SDK's triage capstone inside the harness end to end, resume its approval
 
 - [ ] Port B19's capstone tools into `packages/harness/examples/triage-session.ts` and register them with no built-ins.
 - [ ] Run the approved, rejected and policy-changed-after-pause cases on `ScriptedModel` through `runTurn()`.
-- [ ] Resolve the pause from a second process over `agent-speak rpc`, and check the call ran once.
+- [ ] Resolve the pause from a second process over `buildanagent rpc`, and check the call ran once.
 - [ ] Play the session back and compare the files byte for byte.
 - [ ] Scan every entry and span for the provider key and the injected credential.
 - [ ] Write the per-delta and per-message recorders as test-only observers; keep only per-block in the package, and write the HD1 note.

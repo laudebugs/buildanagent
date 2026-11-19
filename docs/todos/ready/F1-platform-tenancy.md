@@ -1,4 +1,4 @@
-# F1: `@agent-speak/platform` package, the tenant model and per-tenant key encryption
+# F1: `@buildanagent/platform` package, the tenant model and per-tenant key encryption
 
 | Field | Value |
 | --- | --- |

@@ -11,7 +11,7 @@
 
 ## Goal
 
-Define every `SessionEntry` type from §3.2 on the SDK's transcript types, in `@agent-speak/protocol` so the protocol never imports the harness, generate its JSON Schema, and mark the stable surface that practitioners' own tools may rely on.
+Define every `SessionEntry` type from §3.2 on the SDK's transcript types, in `@buildanagent/protocol` so the protocol never imports the harness, generate its JSON Schema, and mark the stable surface that practitioners' own tools may rely on.
 
 ## Context
 
@@ -24,12 +24,12 @@ Define every `SessionEntry` type from §3.2 on the SDK's transcript types, in `@
 
 **In scope**
 
-- `packages/protocol/src/entries.ts`: `EntryBase`, `Origin` and every entry type except `approval_requested` and `approval_resolved`, which N13 adds, and `code_call`, which N40 adds; `@agent-speak/harness/session` re-exports them
+- `packages/protocol/src/entries.ts`: `EntryBase`, `Origin` and every entry type except `approval_requested` and `approval_resolved`, which N13 adds, and `code_call`, which N40 adds; `@buildanagent/harness/session` re-exports them
 - `turn_start.system`, so a rebuilt context carries the frozen system prompt (R6)
 - `session_header.product` and the namespaced `product_record` entry, documented as outside HD11's stable surface (agent AH8)
 - `permission_decision`, written by N12 on every `decide()` (agent AH9)
 - `tool_result.trust` and `subagent_link.stepId` (agent AH10, AH3)
-- `@agent-speak/gateway` as a `dependencies` entry of `@agent-speak/protocol`, used for types only
+- `@buildanagent/gateway` as a `dependencies` entry of `@buildanagent/protocol`, used for types only
 - A runtime list `SESSION_ENTRY_TYPES` and a type test that it matches the union
 - `schema/session-entry.schema.json`, generated and committed, with a test that fails when it is stale
 - `formatVersion: 1` and a `parseEntry()` that rejects unknown future versions
@@ -42,7 +42,7 @@ Define every `SessionEntry` type from §3.2 on the SDK's transcript types, in `@
 
 ## Tasks
 
-- [ ] Import `ContentBlock`, `ModelContent`, `ModelRef`, `Usage`, `Cost` and `AssistantMessage` from `@agent-speak/gateway` unchanged, as type-only imports.
+- [ ] Import `ContentBlock`, `ModelContent`, `ModelRef`, `Usage`, `Cost` and `AssistantMessage` from `@buildanagent/gateway` unchanged, as type-only imports.
 - [ ] Type `turn_end.stopReason` as a string union copied from the SDK plan §3.3 until B11 exports `RunResult`, then switch to the import.
 - [ ] Write the schema generator script, or reuse N26's generator if N26 lands first.
 - [ ] Mark the stable fields with a `@stable` JSDoc tag.
@@ -54,7 +54,7 @@ Define every `SessionEntry` type from §3.2 on the SDK's transcript types, in `@
 - [ ] The schema test fails after a field is added to a type without regenerating
 - [ ] A `usage` entry accepts `cost.total: null`
 - [ ] `product_record` and `permission_decision` entries validate against the schema, and `session_header.product` is optional
-- [ ] `@agent-speak/harness/session` re-exports the union, and no file in `packages/protocol` imports from `@agent-speak/harness`
+- [ ] `@buildanagent/harness/session` re-exports the union, and no file in `packages/protocol` imports from `@buildanagent/harness`
 - [ ] `pnpm check`, `pnpm typecheck` and `pnpm test` pass offline from the repo root
 
 ## Tests

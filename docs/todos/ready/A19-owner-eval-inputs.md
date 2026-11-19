@@ -44,7 +44,7 @@ Collect the inputs only the owner can supply for the real eval suite, de-identif
 - [ ] 30 real tasks exist in the agreed location, balanced across the seven slices
 - [ ] Every task has two labels that agree
 - [ ] Every committed real task has a checklist record showing it passed, and a scan, run before each commit against the raw tickets, finds none of their email addresses, phone numbers or order ids in the repository
-- [ ] N38b can read the 10 classification tasks through `@agent-speak/triage-agent/evals`
+- [ ] N38b can read the 10 classification tasks through `@buildanagent/triage-agent/evals`
 - [ ] `pnpm check`, `pnpm typecheck` and `pnpm test` pass offline from the repo root
 
 ## Tests

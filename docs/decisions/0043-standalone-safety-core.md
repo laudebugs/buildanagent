@@ -1,6 +1,6 @@
 # 0043. Build the signer, effect identity, outcomes and plan approval in a standalone safety package that our SDK later imports
 
-- **Status:** Accepted (owner, 2026-11-18), including `EffectStore` as the eighth portable seam
+- **Status:** Accepted (owner, 2026-11-18), including `EffectStore` as the eighth portable seam; names amended by [0044](0044-rename-to-buildanagent.md) (2026-11-19)
 - **Date:** 2026-11-18
 - **Plan:** [close-sdk-gaps.md, SG1](../plans/close-sdk-gaps.md#sg1-the-safety-core-is-a-standalone-package-that-our-sdk-later-imports-accepted-adr-0043)
 

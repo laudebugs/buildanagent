@@ -11,7 +11,7 @@ The SDKs we studied already run a loop, call tools, stream and keep sessions, so
 
 ## 1. Goal and non-goals
 
-**Goal.** At the end of Round E, `@agent-speak/agent-safety` passes `pnpm test` offline and gives an agent on `agents` 0.33.0 or `ai` 7.0.162 one guarantee per gap:
+**Goal.** At the end of Round E, `@buildanagent/agent-safety` passes `pnpm test` offline and gives an agent on `agents` 0.33.0 or `ai` 7.0.162 one guarantee per gap:
 
 - typed write outcomes;
 - crash-safe write identity;
@@ -46,7 +46,7 @@ The amended todos in §3 make our SDK and harness use the same package once Roun
 
 **Options.** Build the guarantees inside our SDK (Round B) and have the safety package import them, as [F5](../todos/ready/F5-agent-safety-package.md) does today by depending on [B15](../todos/ready/B15-signed-pauses.md). Or build them in a package with no dependency on the loop, which the SDK then imports.
 
-**Choice: a standalone core.** `@agent-speak/agent-safety` holds the signer, the canonical input hash, the effect identity, the outcome types and the plan approval. It depends only on `@agent-speak/gateway` for the price catalog and the cost projection. Our SDK imports the signer and hashing from it instead of defining them, and `projectCallCost()` moves from the loop (B14) to the gateway beside the catalog (B5). D5's contract does not change: the `ApprovalSigner` and `SignedPendingRequest` shapes of [build-sdk.md §3.3][sdk-33], key ids, a fail-closed resume and the same signed fields ([build-sdk.md, D5][d5]).
+**Choice: a standalone core.** `@buildanagent/agent-safety` holds the signer, the canonical input hash, the effect identity, the outcome types and the plan approval. It depends only on `@buildanagent/gateway` for the price catalog and the cost projection. Our SDK imports the signer and hashing from it instead of defining them, and `projectCallCost()` moves from the loop (B14) to the gateway beside the catalog (B5). D5's contract does not change: the `ApprovalSigner` and `SignedPendingRequest` shapes of [build-sdk.md §3.3][sdk-33], key ids, a fail-closed resume and the same signed fields ([build-sdk.md, D5][d5]).
 
 **Evidence.** F5 depends on B15, and B15 is the seventh todo on Round B's longest chain (B1 → B2 → B3 → B4 → B11 → B13 → B15), so today the package cannot start until most of our SDK exists ([build-sdk.md §4.3][sdk-43]). The owner wants to test these guarantees before building anything big, which needs a package that runs on SDKs we have already verified. Two copies of a signer or a cost formula would drift, and the plans already rely on one formula for the loop and the harness's summary layer ([build-sdk.md, D9][d9]).
 

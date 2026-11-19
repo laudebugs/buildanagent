@@ -49,7 +49,7 @@ Build `verify/openai-agents-sdk/`, the offline harness for `@openai/agents`, and
 
 ## Acceptance criteria
 
-- [x] `pnpm --filter @agent-speak/verify-openai-agents-sdk test` passes offline
+- [x] `pnpm --filter @buildanagent/verify-openai-agents-sdk test` passes offline
 - [x] `pnpm run verify` inside the package regenerates every result file
 - [x] Every Tier 1 api-mismatch is classified as a docs, SDK or harness issue
 - [x] `pnpm check` and `pnpm typecheck` pass at the root

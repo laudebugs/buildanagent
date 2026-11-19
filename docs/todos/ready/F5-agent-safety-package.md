@@ -1,4 +1,4 @@
-# F5: `@agent-speak/agent-safety` with adapters for `agents` 0.33.0 and `ai` 7.0.162
+# F5: `@buildanagent/agent-safety` with adapters for `agents` 0.33.0 and `ai` 7.0.162
 
 | Field | Value |
 | --- | --- |
@@ -58,7 +58,7 @@ Both SDKs move; the package pins exact versions (ADR 0038).
 
 ## Revision (2026-11-18, SDK gaps)
 
-The [close-sdk-gaps plan](../../plans/close-sdk-gaps.md) moves this todo's scope into Round E, so the package can ship before our SDK. E1–E7 now build the outcomes, effect identity, signed approvals, plan approvals, cost guard, BYOK guard and stores. This todo narrows to releasing `@agent-speak/agent-safety` for the generation templates (F6): a versioned README, the exact SDK pins and a changelog. **Depends on** changes from B15 to [E7](E7-safety-portability.md), which closes Round E after E1–E6 and supplies the Durable Object store this todo's tasks name. The acceptance criteria above stay and are met by those todos' tests.
+The [close-sdk-gaps plan](../../plans/close-sdk-gaps.md) moves this todo's scope into Round E, so the package can ship before our SDK. E1–E7 now build the outcomes, effect identity, signed approvals, plan approvals, cost guard, BYOK guard and stores. This todo narrows to releasing `@buildanagent/agent-safety` for the generation templates (F6): a versioned README, the exact SDK pins and a changelog. **Depends on** changes from B15 to [E7](E7-safety-portability.md), which closes Round E after E1–E6 and supplies the Durable Object store this todo's tasks name. The acceptance criteria above stay and are met by those todos' tests.
 
 ## Definition of done
 

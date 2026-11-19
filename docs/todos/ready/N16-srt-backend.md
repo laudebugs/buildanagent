@@ -40,7 +40,7 @@ Wrap Anthropic's `srt` sandbox runtime as the OS-tier backend, translate our pol
 
 ## Acceptance criteria
 
-- [ ] On a host with `srt`, `pnpm --filter @agent-speak/harness test:sandbox` passes the conformance suite
+- [ ] On a host with `srt`, `pnpm --filter @buildanagent/harness test:sandbox` passes the conformance suite
 - [ ] A write outside `writeRoots` returns a `SandboxDenial`, not an exception
 - [ ] Without `srt`, provisioning throws `SandboxUnavailableError` and nothing runs
 - [ ] The spawned `srt` process's environment holds only `spawnEnv()` names (a test records the spawn options)

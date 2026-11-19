@@ -1,8 +1,8 @@
-import "@agent-speak/gateway/testing/setup";
+import "@buildanagent/gateway/testing/setup";
 import assert from "node:assert/strict";
 import { afterEach, test } from "node:test";
-import { assertModelRequestAllowed, modelRequestsAreAllowed, type Transport } from "@agent-speak/gateway";
-import { allowModelRequests, ModelRequestsDisabledError, markMockTransport } from "@agent-speak/gateway/testing";
+import { assertModelRequestAllowed, modelRequestsAreAllowed, type Transport } from "@buildanagent/gateway";
+import { allowModelRequests, ModelRequestsDisabledError, markMockTransport } from "@buildanagent/gateway/testing";
 
 const realTransport: Transport = async () => new Response("never");
 
