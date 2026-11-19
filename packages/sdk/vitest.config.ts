@@ -16,5 +16,8 @@ export default defineConfig({
   test: {
     include: ["test/**/*.test.ts"],
     setupFiles: ["./test/setup.ts"],
+    // `@opentelemetry/api` 1.9.1 and the packages built on it resolve to builds that Node cannot load under the
+    // `module` condition above (the ES build imports its own files without extensions), so Vite bundles them.
+    deps: { optimizer: { ssr: { enabled: true, include: ["@opentelemetry/api", "@opentelemetry/sdk-trace"] } } },
   },
 });

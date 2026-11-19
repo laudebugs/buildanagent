@@ -54,5 +54,29 @@
     "chapter": "talking-to-a-model",
     "illustration": null,
     "breaks": "A model does not improve with rehearsal; only the prompt and the evals do."
+  },
+  {
+    "id": "counter-form",
+    "concept": "tool schema",
+    "analogy": "a form at a counter with labelled boxes",
+    "chapter": "tools",
+    "illustration": null,
+    "breaks": "A clerk reads what you wrote and asks what you meant when an answer makes no sense; the SDK checks only that each box holds the right type, so a well-formed but invented value passes and your function must check that it is real."
+  },
+  {
+    "id": "vending-machine",
+    "concept": "error returned as data",
+    "analogy": "a vending machine that hands back your coin with a note",
+    "chapter": "tools",
+    "illustration": "vending-machine",
+    "breaks": "You read the note and act on it; a model may ignore an error, so the error must say exactly what to try next, and the loop still needs a cap."
+  },
+  {
+    "id": "passport-control",
+    "concept": "identity from trusted context",
+    "analogy": "passport control, where the officer reads your passport, not what you claim at the desk",
+    "chapter": "tools",
+    "illustration": null,
+    "breaks": "A traveller carries the passport and hands it over; in an agent, your code reads the identity from the signed-in session and hands it to the tool, so the model never carries it and sees it only if your code shows it."
   }
 ]

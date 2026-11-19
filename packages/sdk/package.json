@@ -1,6 +1,6 @@
 {
   "name": "@buildanagent/sdk",
-  "version": "0.1.0-alpha.7",
+  "version": "0.1.0-alpha.8",
   "description": "The buildanagent SDK: the agent loop, tools, hooks, signed pauses and budgets over the gateway.",
   "license": "Apache-2.0 OR MIT",
   "repository": {
@@ -68,6 +68,8 @@
   "devDependencies": {
     "@buildanagent/agent-safety": "workspace:*",
     "@cfworker/json-schema": "4.1.6",
+    "@opentelemetry/api": "1.9.1",
+    "@opentelemetry/sdk-trace": "2.12.1",
     "miniflare": "5.20261103.0-beta",
     "zod": "4.6.7"
   }
