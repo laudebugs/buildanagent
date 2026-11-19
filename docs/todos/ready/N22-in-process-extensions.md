@@ -31,7 +31,7 @@ Let TypeScript extensions add interceptors, observers and tools under declared c
 **Out of scope** (and which todo covers it)
 
 - Skills (N23)
-- MCP servers (N24)
+- MCP servers (N24), and pinning MCP tool definitions, which N25 owns on this lock file's format
 
 ## Tasks
 

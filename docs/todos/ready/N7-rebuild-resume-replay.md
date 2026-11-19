@@ -67,6 +67,7 @@ Gap 2 of the [close-sdk-gaps plan](../../plans/close-sdk-gaps.md#3-each-gap-the-
 
 - [ ] On resume, an open call to a tool that declares itself a write gets a result with `outcome.kind: "unknown"` and `retry: "reconcile_first"`, not an aborted error; read-only tools keep the aborted error.
 - [ ] A resumed run whose model re-proposes the same write reaches the same effect key and sends nothing twice (the fake system counts requests per key).
+- [ ] The `EffectScope` passed to E2 takes `tenant` from the harness config, a plain string whose default is `"local"` for single-user hosts, plus the session key, the branch and the tool call id ([build-harness.md §3.2](../../plans/build-harness.md#32-session-log-api); added in plan review 2, 2026-11-19).
 
 The effect key and store come from the safety package's [E2](E2-effect-identity-crash-rule.md), and a tool declares itself a write through the `effect` field the [B10](B10-tool-runtime.md) revision adds. The owner accepted SG3 on 2026-11-18, so E2 is in **Depends on**.
 

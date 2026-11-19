@@ -1,5 +1,7 @@
 # F3: The gate's type-check and mock-model checks, with the verify runners factored out
 
+> **On hold (owner, 2026-11-19): do not start until the owner says go.** The owner lifted the build hold for the SDK, harness and Round E only ([roadmap](../../plans/roadmap.md)).
+
 | Field | Value |
 | --- | --- |
 | ID | `F3` |

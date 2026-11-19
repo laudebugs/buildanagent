@@ -47,6 +47,8 @@ The agent serves one person. The model key is one secret held by the host and ad
 
 **Accepted by the owner on 2026-11-18.** The coding agent becomes M7's agent. The triage plan, its decisions and its todos stay on the board, each marked deferred, so the work can resume without rework. One harness todo depended on triage: N38b adds ten triage tasks to HD8's seed suite after A17 and A19. N38b is deferred with them, and N38's twenty repository tasks become the coding agent's first eval suite (W8). HD8 itself is unchanged, so its suite runs at twenty tasks until N38b resumes.
 
+**Amended (owner, 2026-11-19):** "20 now, plus coding tasks". N38's twenty repository tasks ship first, and [W12](../todos/ready/W12-coding-agent-eval-tasks.md) adds ten coding-agent tasks, so the suite reaches thirty before W8 publishes its baseline. When Round A resumes, N38b adds its ten triage tasks on top ([harness plan, HD8][hp-hd8]).
+
 ### CA3. Cloudflare first, then AWS and Vercel, behind one conformance suite (accepted)
 
 **Accepted by the owner on 2026-11-18:** "deploy it to at least two cloud platforms or three", with all of Cloudflare as the first.
@@ -58,8 +60,11 @@ The agent serves one person. The model key is one secret held by the host and ad
 | `Scheduler.wake` | in-process timer | Durable Object alarm | EventBridge Scheduler one-time schedule | Workflow `sleep()` and hooks |
 | `KeyStore` | key file (HD5) | Worker secret or Secrets Store | Secrets Manager | secret environment variable |
 | `SandboxClient` | `srt`, Docker | Cloudflare Sandbox (E2B as a swap) | E2B | Vercel Sandbox |
-| `EgressPolicy` | HD15 proxy | `outboundByHost` handler | E2B egress Secrets | firewall `transform`, `subnets.allow` banned |
+| `EgressPolicy` | HD15 proxy | per-host `interceptOutboundHttp()` / `interceptOutboundHttps()` on the Durable Object Container API; HTTPS design set by S10 and the owner | E2B egress Secrets | firewall `transform`, `subnets.allow` banned |
 | Transport | stdio | WebSocket on the Durable Object | Lambda response streaming | WebSocket (beta) or SSE |
+| `EffectStore` | `memoryEffectStore()` | Durable Object SQLite | DynamoDB, conditional put | Postgres, insert on conflict do nothing |
+
+**Revision (plan review 2, 2026-11-19).** The `EffectStore` row applies [ADR 0043](../decisions/0043-standalone-safety-core.md), which makes it the eighth portable seam; [E2](../todos/ready/E2-effect-identity-crash-rule.md) builds the local store and [E7](../todos/ready/E7-safety-portability.md) the three cloud stores. The Cloudflare `EgressPolicy` cell changed because `@cloudflare/sandbox` 1.0 removed `outboundByHost`; [S10](../todos/ready/S10-cloudflare-sandbox-egress.md) tests the replacement before N46b builds it.
 
 The table follows U11's per-target mapping, which is our inference from each platform's docs and untested ([portable agents report][pa-sdk]). The conformance suite (N45) makes it a test: every implementation in a column must pass the same cases, including HD2's settling test and the three rules of the [storage-and-wake note][sw-rules].
 
@@ -127,7 +132,7 @@ owner ── CLI / GitHub label ──► Worker (control plane, ingress, dedup)
 - **Task runner (W4).** One Durable Object per task runs a harness session. Model calls are waits on `fetch`, which do not count against Workers' CPU limit; alarms run for at most 15 minutes, so a long turn ends each step with a wake ([portable agents report][pa-rt]).
 - **Sandbox (W2, N46b).** The sandbox gets the repository, the built-in tools' commands and an allowlist for package registries. It holds no credential; the egress route adds them.
 - **Delivery (W6).** The agent commits to `agent/<task-id>`, opens a draft pull request with a summary and a link to the session, and follows up on review comments through the webhook. Base-branch conflicts emit no webhook, so W6 checks for them before each follow-up ([portable agents report][pa-cca]).
-- **Side effects.** The agent's only outward writes are git pushes and GitHub API calls. Each carries an idempotency key persisted before the call, scoped to the session, branch and tool call id, so a replayed wake cannot open a second pull request ([server rollback report][sr]).
+- **Side effects.** The agent's only outward writes are git pushes and GitHub API calls. Each runs through [E2](../todos/ready/E2-effect-identity-crash-rule.md)'s `guardedWrite()`, which persists an effect record keyed by `effectKey()` before the call, so a replayed wake cannot open a second pull request ([server rollback report][sr]). Opening a pull request uses the business key repository + branch, so a regenerated turn maps to the same effect. *(Revised in plan review 2, 2026-11-19: the owner chose "E2 owns it; W6 uses it", replacing this plan's own key scheme.)*
 
 ## 4. Changes to the SDK and harness plans
 
@@ -159,14 +164,15 @@ Two harness non-goals change. "A WebSocket or HTTP-with-SSE transport" leaves th
 | [N42](../todos/ready/N42-read-only-key-store.md) | Optional `rotate()` and `prune()`, and a secret-backed `KeyStore` | N13 | S |
 | [N43](../todos/ready/N43-remote-sandbox-egress-policy.md) | Remote `SandboxClient` extensions and `EgressPolicy` compiled per backend | N15, N20 | M |
 | [N44](../todos/ready/N44-web-stream-websocket-transport.md) | stdio over Web streams and a WebSocket transport | N29 | M |
-| [N45](../todos/ready/N45-portability-conformance-suite.md) | One conformance suite over the seven seams; local implementations pass | N41, N42, N43, N44 | M |
+| [N45](../todos/ready/N45-portability-conformance-suite.md) | One conformance suite over the eight seams (`EffectStore` added by ADR 0043); local implementations pass | N41, N42, N43, N44, E7 | M |
 | [N46a](../todos/ready/N46a-cloudflare-state-adapters.md) | Cloudflare store, lock, scheduler, key store and workerd smoke test | N45 | M |
-| [N46b](../todos/ready/N46b-cloudflare-sandbox-backend.md) | Cloudflare Sandbox backend and `outboundByHost` egress | N45 | M |
+| [N46b](../todos/ready/N46b-cloudflare-sandbox-backend.md) | Cloudflare Sandbox backend and per-host outbound interception egress, blocked on the owner's decision after S10 | N45, S10 | M |
 | [N47a](../todos/ready/N47a-aws-state-adapters.md) | DynamoDB store and lock, EventBridge Scheduler wake, Secrets Manager key store | N45 | M |
 | [N47b](../todos/ready/N47b-e2b-sandbox-backend.md) | E2B backend and egress Secrets | N45 | M |
 | [N48a](../todos/ready/N48a-vercel-state-adapters.md) | Postgres store and lock, Workflow wake, environment key store | N45 | M |
 | [N48b](../todos/ready/N48b-vercel-sandbox-backend.md) | Vercel Sandbox backend and firewall `transform` | N45 | M |
 | [N49](../todos/ready/N49-hosted-sandbox-measurement.md) | Cold start, snapshot and per-call overhead on the three hosted backends | N46b, N47b, N48b, N19 | S |
+| [S10](../todos/ready/S10-cloudflare-sandbox-egress.md) | Verify Cloudflare Sandbox 1.0 egress on a real sandbox, and draft an ADR for the owner (added in plan review 2, 2026-11-19) | None | M |
 
 ### 5.2 Round W builds the coding agent
 
@@ -177,12 +183,13 @@ Two harness non-goals change. "A WebSocket or HTTP-with-SSE transport" leaves th
 | [W3](../todos/ready/W3-github-app-identity.md) | GitHub App token minting, repository allowlist and the git egress route | N43, W1 | M |
 | [W4](../todos/ready/W4-durable-object-task-runner.md) | Task runner on a Durable Object, with wake and resume onto a fresh sandbox | W2, N46a, N46b | M |
 | [W5](../todos/ready/W5-control-plane-ingress.md) | Control-plane Worker and the ingress design | W4 | M |
-| [W6](../todos/ready/W6-pr-delivery.md) | Draft pull request delivery and review follow-ups | W3, W5 | M |
+| [W6](../todos/ready/W6-pr-delivery.md) | Draft pull request delivery and review follow-ups, with writes through E2's `guardedWrite()` | W3, W5, E2 | M |
 | [W7](../todos/ready/W7-cli-attach.md) | CLI attach over WebSocket | N44, W5 | M |
-| [W8](../todos/ready/W8-cloud-mode-evals.md) | Cloud-mode evals against mini-swe-agent | W6, N38, N49 | M |
+| [W8](../todos/ready/W8-cloud-mode-evals.md) | Cloud-mode evals against mini-swe-agent | W6, N38, N49, W12 | M |
 | [W9](../todos/ready/W9-deploy-aws.md) | The coding agent on AWS | W8, N47a, N47b | M |
 | [W10](../todos/ready/W10-deploy-vercel.md) | The coding agent on Vercel | W8, N48a, N48b | M |
 | [W11](../todos/ready/W11-snapshot-cache.md) | Snapshot-cache ADR and, if W8's numbers justify it, the cache | W8 | M |
+| [W12](../todos/ready/W12-coding-agent-eval-tasks.md) | Ten coding-agent eval tasks that bring the seed suite to thirty (HD8, amended 2026-11-19) | N38, W2 | M |
 
 ## 6. Every test runs offline, and the end-to-end test proves the sandbox never sees a credential
 
@@ -196,7 +203,7 @@ Four risks remain, and each has a todo that settles it:
 3. **Pinned sandbox SDKs move fast.** `e2b` 2.64.0 and `@vercel/sandbox` 4.0.0 were under a week old on 2026-11-18, so N47b and N48b pin the previous releases, 2.63.0 and 3.9.1, under the one-week rule ([portable agents report][pa-sbx]).
 4. **The git route must parse pushes correctly.** W3 tests it against real `git push` traffic recorded offline, and the default-branch ruleset stays as the second layer (CA5).
 
-Round W starts after the harness's stage 7 and the portability stage: W1 needs only N1, but W4 needs the Cloudflare adapters. The roadmap's M7 becomes "Our coding agent" (W1–W11), and the triage round moves to a deferred milestone. The next step is the SDK's B1, unchanged; the first new todo to open is N41, once N4 is done.
+Round W starts after the harness's stage 7 and the portability stage: W1 needs only N1, but W4 needs the Cloudflare adapters. The roadmap's M7 becomes "Our coding agent" (W1–W11), and the triage round moves to a deferred milestone. As of 2026-11-19, B1–B3 are done, Rounds B, N and E are being built, and Round W stays on hold until the owner says go; the first new harness todo this plan adds, N41, opens once N4 is done.
 
 [sdk]: build-sdk.md
 [sdk-32]: build-sdk.md#32-gateway-api

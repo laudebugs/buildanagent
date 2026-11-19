@@ -37,12 +37,14 @@ Build the two cheap context layers: cap every tool result at write time and spil
 
 - [ ] Never alter stored entries when masking; operate on the request view only.
 - [ ] Test that the masked view's prefix is identical across the 7 steps between cutoff moves.
+- [ ] Apply [HD3](../../plans/build-harness.md#hd3-layers-1-2-3-and-5-on-by-default-and-a-budget-capped-at-200k-tokens-provisional)'s append-only rule for signed thinking (plan review 2, 2026-11-19): when the mask cutoff moves, the request view drops every thinking block after the first masked message, so no block that follows an edit is sent with its old signature.
 
 ## Acceptance criteria
 
 - [ ] A 200 KiB tool result reaches the model as at most 64 KiB plus a spill path, and the spill file holds the full text
 - [ ] No stored entry changes when masking applies
 - [ ] The request prefix stays byte-identical between cutoff moves
+- [ ] When the cutoff moves on an Anthropic model with preserved thinking, the replayed request carries no thinking block after the first changed message (a scripted test inspects the request)
 - [ ] Switching either layer off in options removes its effect and leaves the run passing
 - [ ] `pnpm check`, `pnpm typecheck` and `pnpm test` pass offline from the repo root
 

@@ -23,7 +23,7 @@ Finish the `testing` exports so users of the SDK, and the harness, can test agen
 **In scope**
 
 - `autoResponder()` with a default host-tool deny list matched by name (`bash`, `exec_command`, `shell`, `write`, `edit`, `delete`)
-- `testSigner()`, `scriptedApprovals()` and scripted doubles for the approval and MCP seams
+- `testSigner()`, which re-exports [E3](E3-signed-approvals-third-party.md)'s fixed-key test signer (plan review 2, 2026-11-19), `scriptedApprovals()` and scripted doubles for the approval and MCP seams
 - `recordPairs()` and `replayPairs()` at the normalised request and response boundary, stamped with SDK, provider and model versions and an expiry
 - `startMockServer()` bound to 127.0.0.1, writing a JSONL request log
 

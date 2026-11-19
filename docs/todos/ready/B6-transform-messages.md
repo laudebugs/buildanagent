@@ -22,7 +22,7 @@ Make a transcript recorded on one provider replay safely on another, through one
 
 **In scope**
 
-- Drop reasoning from a different model and strip foreign signatures
+- Drop reasoning from a different provider and strip foreign signatures. For a same-provider Anthropic target, pass thinking blocks through unchanged: Anthropic drops the ones it cannot read without billing them ([Anthropic, extended thinking](https://platform.claude.com/docs/en/build-with-claude/thinking), as of November 2026). When the pass must drop thinking blocks, it drops only a leading or trailing run, never one in between (plan review 2, 2026-11-19)
 - Remap tool-call ids to the target's charset
 - Replace images for text-only models
 - Skip errored turns
@@ -41,6 +41,8 @@ Make a transcript recorded on one provider replay safely on another, through one
 ## Acceptance criteria
 
 - [ ] Each of the five rules has a passing test
+- [ ] A transcript replayed to another Anthropic model keeps every thinking block and signature unchanged; a replay to an OpenAI-compatible target still strips them
+- [ ] When the pass drops thinking blocks, the kept blocks form one unbroken run from the oldest or to the newest
 - [ ] The input array is deep-equal before and after the call
 - [ ] A transcript with a tool call and no result gains a synthetic `isError` result
 - [ ] Running the pass twice gives the same output as running it once

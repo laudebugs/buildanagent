@@ -24,7 +24,10 @@ Ship the `anthropic-messages` adapter, one of the two first wire protocols in D2
 
 **In scope**
 
-- `anthropic(config)` in `@buildanagent/gateway/anthropic`, over `fetch` through `ProviderConfig.transport`
+- `anthropic(config)` in `@buildanagent/gateway/anthropic`, over `fetch` through `ProviderConfig.transport`, sending a pinned `anthropic-version: 2026-10-21` header
+- Sampling parameters: never send `temperature`, `top_p` or `top_k` to Anthropic. On `2026-10-21` any of them returns a 400, even at its default value, so the adapter drops them with a `warning` ([Anthropic, migration to 2026-10-21](https://platform.claude.com/docs/en/api/migration-2026-10-21), as of November 2026)
+- Thinking usage: thinking tokens count inside `output_tokens`, and `usage.output_tokens_details.thinking_tokens` arrives only on the final `message_delta` when streaming ([Anthropic, extended thinking](https://platform.claude.com/docs/en/build-with-claude/extended-thinking))
+- The thinking prefix check (HD3): a 400 that says a block is "bound to a different conversation" maps to a typed error kind, and the adapter retries once with `thinking.block_binding.prefix_mismatch_behavior: "drop_block"` (beta header `thinking-binding-controls-2026-08-01`) ([Anthropic, prefix checks](https://platform.claude.com/docs/en/build-with-claude/preserved-thinking/prefix-checks))
 - An SSE parser that emits `ModelEvent`s passing `assertStreamContract()`
 - Request encoding: system, messages after `transformMessages`, tools lowered to strict form with names sanitised (B7); the nulls that strict lowering adds are stripped from the model's arguments before validation
 - Caching: cache breakpoints on the system prompt, the last tool and the last user or tool-result block, at most 4
@@ -36,6 +39,7 @@ Ship the `anthropic-messages` adapter, one of the two first wire protocols in D2
 
 - Live calls to the real API (an opt-in script outside `pnpm test`, if wanted)
 - Other protocols (deferred by D2)
+- Computer-use toolsets such as `computer_toolset_20260801` (a later round, with the logged-in browsing ADR)
 
 ## Tasks
 
@@ -48,6 +52,11 @@ Ship the `anthropic-messages` adapter, one of the two first wire protocols in D2
 ## Acceptance criteria
 
 - [ ] Every fixture stream passes `assertStreamContract()`
+- [ ] Every request carries `anthropic-version: 2026-10-21`, and the README records the pin
+- [ ] A request with `temperature`, `top_p` or `top_k` set reaches the wire without them and emits one warning
+- [ ] Two fixtures pin the content-placement 400s of `2026-10-21`: a `document` block in an assistant message, and `citations` on a user text block
+- [ ] A fixture where `thinking_tokens` arrives only on the last `message_delta` maps into `Usage.reasoning`
+- [ ] A fixture 400 "bound to a different conversation" surfaces as its typed error kind, and the one retry carries `drop_block`
 - [ ] A tool call whose optional field arrives as the `null` that strict lowering added reaches validation without that field (a fixture test)
 - [ ] A `length` stop yields `stopReason: "length"` with the partial tool input
 - [ ] Each error fixture maps to its B4 class and returns an in-band `error` terminal
@@ -65,6 +74,8 @@ Ship the `anthropic-messages` adapter, one of the two first wire protocols in D2
 `packages/gateway/README.md` and an adapter section; ADR 0003 if the reasoning check changes D3. The plan's todo table in [build-sdk.md §4](../../plans/build-sdk.md#4-rounds-and-todos).
 
 ## Risks and open questions
+
+History: plan review 2 (2026-11-19) pinned the API version, dropped sampling parameters, and added the thinking-usage, content-placement and prefix-check fixtures and the computer-use exclusion.
 
 Fixtures can drift from the live API; B18's stamps and expiry apply to recorded pairs, and a live smoke script stays opt-in. Size L: split the caching work into its own todo if the batch grows.
 

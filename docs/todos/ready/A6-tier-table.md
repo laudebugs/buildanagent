@@ -7,7 +7,7 @@
 | ID | `A6` |
 | Status | `ready` |
 | Plan | [Build agent §4, Stage 2](../../plans/build-agent.md#42-stage-2-compiles-the-tier-table-into-the-pipeline-and-adds-the-kill-switch-the-quorum-and-the-taint-rule) |
-| Round / milestone | Round A (build agent), M7 |
+| Round / milestone | Round A (build agent), M7b |
 | Depends on | [A3](A3-tool-contract-lint.md), [N12](N12-permission-pipeline.md) |
 | Size | M |
 

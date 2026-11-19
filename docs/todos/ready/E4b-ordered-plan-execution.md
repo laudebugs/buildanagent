@@ -1,13 +1,13 @@
 # E4b: Ordered plan execution: compensable steps, the pivot, the compensation log and the outcome
 
-> **On hold (owner, 2026-11-19): do not start until the owner says go.** The owner approved Round E's reviewed todos but said "Approve plan, don't start yet" ([SG2](../../plans/close-sdk-gaps.md#sg2-round-e-may-start-before-round-b-after-b1-and-b5-and-only-once-the-owner-says-go-accepted-on-hold)).
+> **History:** the owner held Round E on 2026-11-19 ("Approve plan, don't start yet") and lifted the hold the same day ("Lift hold on all of E"), so this todo starts once its **Depends on** are done ([SG2](../../plans/close-sdk-gaps.md#sg2-round-e-may-start-before-round-b-after-b1-and-b5-accepted-hold-lifted)).
 
 | Field | Value |
 | --- | --- |
 | ID | `E4b` |
 | Status | `ready` |
 | Plan | [Close SDK gaps §4](../../plans/close-sdk-gaps.md#4-round-e-and-its-todos) |
-| Round / milestone | Round E (close the SDK gaps) |
+| Round / milestone | Round E (close the SDK gaps), M5e |
 | Depends on | [E4a](E4a-plan-approval-record.md) |
 | Size | M |
 
@@ -32,7 +32,7 @@ Run an approved plan in order, compensate the steps before the pivot if anything
 
 **Out of scope** (and which todo covers it)
 
-- A durable engine: the plan state lives in the `EffectStore`, and a host's wake mechanism resumes it (E7, N41)
+- A durable engine, and long waits beyond one process. They stay out of scope until a host provides a wake (N41 for our harness) and a todo adds plan-state persistence; E7's stores and `EffectStore` (`begin`, `settle`, `get`) hold effect records, not plan state
 - Compensation code for specific tools (each agent)
 
 ## Design notes
@@ -78,7 +78,7 @@ The package README (the refund-then-email walk-through, and the cancel rules).
 
 ## Risks and open questions
 
-- A plan step that is long-running belongs on a wake, not in one request. The first version runs plans inside one host process or Durable Object; long waits come with E7.
+- A plan step that is long-running belongs on a wake, not in one request. This todo runs plans inside one host process or Durable Object. Waits that outlive the process are out of scope until a host provides a wake (N41) and plan state persists somewhere; E7 provides neither. *(Corrected in plan review 2, 2026-11-19: this line first said long waits come with E7.)*
 - The rewind report advises no saga machinery for the deferred triage agent's v1, because it has no money-moving step yet ([rewind report](../../research/reversible-actions/rewind-vs-rollback.md#triage-needs-undo-windows-for-t1-approval-for-anything-that-leaves-the-org-and-a-saga-only-once-money-moves)). This todo builds the machinery for the package; an agent without a pivot need not use it, and each component stays removable.
 
 ## Definition of done

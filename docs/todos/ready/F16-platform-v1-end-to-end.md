@@ -1,5 +1,7 @@
 # F16: M8 end to end: describe, build, gate and deploy to Cloudflare and Vercel
 
+> **On hold (owner, 2026-11-19): do not start until the owner says go.** The owner lifted the build hold for the SDK, harness and Round E only ([roadmap](../../plans/roadmap.md)).
+
 | Field | Value |
 | --- | --- |
 | ID | `F16` |

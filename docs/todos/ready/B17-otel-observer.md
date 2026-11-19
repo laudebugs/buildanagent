@@ -36,7 +36,7 @@ Project the event stream onto OTel GenAI spans through one built-in observer, wi
 ## Tasks
 
 - [ ] Keep attribute names in one constants file, exported as `GEN_AI_ATTRIBUTES` beside `SEMCONV_GENAI_COMMIT = "d28355d"`, the commit harness HD7 pins.
-- [ ] Test with `@opentelemetry/sdk-trace-base` 2.12.0 and an in-memory exporter, as an exact-pinned dev dependency.
+- [ ] First confirm the in-memory span exporter's export name in `@opentelemetry/sdk-trace` 2.12.1. Then test with `@opentelemetry/sdk-trace` 2.12.1 and that exporter, as an exact-pinned dev dependency. *(Revised in plan review 2, 2026-11-19: npm marks every `@opentelemetry/sdk-trace-base` release deprecated in favour of `@opentelemetry/sdk-trace`, and `@opentelemetry/exporter-trace-otlp-http` 0.223.2 already depends on `@opentelemetry/sdk-trace` 2.12.1.)*
 - [ ] Take the trace context explicitly rather than from ambient `AsyncLocalStorage`, and expose `flush()` so a Worker can pass it to `waitUntil` (added 2026-11-18, [ADR 0033](../../decisions/0033-three-deployment-targets.md))
 
 ## Acceptance criteria

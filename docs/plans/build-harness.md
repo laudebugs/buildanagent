@@ -1,6 +1,6 @@
-# Plan: build our agent harness as four packages around one session log, in 41 todos that start on the SDK's seams
+# Plan: build our agent harness as four packages around one session log, in 53 todos that start on the SDK's seams
 
-- **Status:** Draft (P2, 2026-11-18), revised on 2026-11-18 with the fixes from the [P4 review](reviews/plan-review.md), and on 2026-11-18 for three deployment targets ([ADR 0033](../decisions/0033-three-deployment-targets.md), [coding agent plan §4](build-coding-agent.md#4-changes-to-the-sdk-and-harness-plans)): stage 8 (§4.8) adds todos N41–N49.
+- **Status:** Draft (P2, 2026-11-18), revised on 2026-11-18 with the fixes from the [P4 review](reviews/plan-review.md), and on 2026-11-18 for three deployment targets ([ADR 0033](../decisions/0033-three-deployment-targets.md), [coding agent plan §4](build-coding-agent.md#4-changes-to-the-sdk-and-harness-plans)): stage 8 (§4.8) adds todos N41–N49. Revised on 2026-11-19 (plan review 2) to apply [ADR 0043](../decisions/0043-standalone-safety-core.md) and the [close-sdk-gaps plan](close-sdk-gaps.md), Anthropic's thinking prefix check (HD3), MCP tool pinning (HD14) and the owner's HD8 amendment.
 - **Date:** 2026-11-18
 - **Asked for by:** the project owner (2026-11-18), through the [implementation plans](implementation-plans.md#2-what-each-plan-contains)
 - **Builds on:** the [harness guide][hg] (G2b), its [reference architecture][hg12] and its [twelve open decisions][hg13], and the [SDK plan][sdk] (P1), whose [seams][sdk34] this plan consumes by name
@@ -9,7 +9,7 @@
 
 The harness is the layer that moves agent results most: with the model held fixed, Pass@1 across seven harnesses differed by up to 24.3 points, and cost among mature harnesses differed by up to 3× ([harness guide, introduction][hg]). The [harness guide][hg] settles the design in five parts. One append-only, tree-shaped session log is the only source of truth, and context layers are added from the cheapest upward. The permission pipeline, the sandbox and the credential boundary stay three components the host owns. One typed protocol sits under every interface, and evals report cost beside pass rate against mini-swe-agent.
 
-The guide left twelve decisions open, and the [SDK plan][sdk] has since fixed the loop, the event union and eleven named seams the harness must use as written ([SDK plan §3.4][sdk34]). This plan makes the twelve decisions plus three the guide did not list, lays out four packages with their public APIs, and turns the architecture into 41 todos, each one reviewable batch tested offline. Where the harness needed more than the SDK plan provided, §3.6 lists it, and P4 moved those needs into the SDK plan. In one sentence: **build the session log first, fill the SDK's interceptors with the context, tool and permission layers, add the sandbox, credentials and protocol, and judge every removable component by cost per task beside pass rate.**
+The guide left twelve decisions open, and the [SDK plan][sdk] has since fixed the loop, the event union and eleven named seams the harness must use as written ([SDK plan §3.4][sdk34]). This plan makes the twelve decisions plus three the guide did not list, lays out four packages with their public APIs, and turns the architecture into 53 todos, each one reviewable batch tested offline: 41 from P2 and P4 (N1–N40 with N38b), and 12 added on 2026-11-18 for portability (N41–N49 with N46a/b, N47a/b and N48a/b). Where the harness needed more than the SDK plan provided, §3.6 lists it, and P4 moved those needs into the SDK plan. In one sentence: **build the session log first, fill the SDK's interceptors with the context, tool and permission layers, add the sandbox, credentials and protocol, and judge every removable component by cost per task beside pass rate.**
 
 ## 1. Goal and non-goals
 
@@ -55,7 +55,7 @@ Three decisions merge with the SDK's. For each, this plan references P1's choice
 | HD5 | Approval signing key (with SDK D5) | The harness always passes `hmacSigner()` over a persistent, host-only key ring; every approval is a pause first | Accepted (owner, 2026-11-18); storage and rotation revised by ADR 0035 | [0015](../decisions/0015-harness-approval-key-ring.md), superseded by [0035](../decisions/0035-read-only-key-store.md) |
 | HD6 | Protocol framing | Strict JSON-RPC 2.0 with the `jsonrpc` field; v1 ships twelve methods and three server requests | Decided | [0016](../decisions/0016-protocol-json-rpc-framing.md) |
 | HD7 | Telemetry commit and cost attribute (with SDK D3) | Pin semconv-genai `d28355d`; name cost `buildanagent.cost.usd` with `buildanagent.cost.basis`; sum classes only in the projection | Decided | [0017](../decisions/0017-telemetry-convention-pin-and-cost-attributes.md) |
-| HD8 | Eval suite seed | 30 tasks: 20 recreated real failures from this repo's history and 10 triage tasks shared with P3; k = 5 | Accepted (owner, 2026-11-18) | none: eval data |
+| HD8 | Eval suite seed | 30 tasks: 20 recreated real failures from this repo's history and 10 triage tasks shared with P3; k = 5. Amended: 20 repository tasks now, plus 10 coding-agent tasks (W12) before W8's baseline | Accepted (owner, 2026-11-18); amended (owner, 2026-11-19) | none: eval data |
 | HD9 | Budget timing (with SDK D9) | SDK D9's check per call, plus a session cap, a pre-checked summary call and an 80% warning | Decided | [0009](../decisions/0009-pre-emptive-budget.md), whose consequences record the session cap |
 | HD10 | Completion check | Configured checks, else discovered `package.json` scripts, run in the sandbox after `done`; flagged diff patterns are recorded, not fatal | Decided, provisional (N38) | none: tunable defaults |
 | HD11 | Retention and transcript schema | No automatic deletion by default; opt-in archive or purge; `EntryBase` and the entry type names are stable per `formatVersion` | Accepted (owner, 2026-11-18) | [0018](../decisions/0018-retention-and-transcript-schema.md) |
@@ -90,6 +90,15 @@ Three decisions merge with the SDK's. For each, this plan references P1's choice
 
 **Evidence.** The cheap layers carry most of the measured value: masking matched LLM summarization's solve rate at about half the raw agent's cost ([harness guide §3][hg3]). The gain from context management fell from 35.7 to 2.7 points as windows grew from 32K to 128K, so the mid-turn layer earns least on large windows ([harness guide §3][hg3]). Practitioners report a quality threshold of 200–300K tokens on 1M-token models, so the cap starts at the low end; Pi reserves 16,384 tokens below the window for its trigger ([harness guide §3][hg3]). The 64 KiB cap is Codex's persistence bound, and the 500-character mask and the 8-message step are Cloudflare Think's ([sessions note §5][n-sess-5]; [harness guide §3][hg3]). The layer-3 default stays on despite the decay result because a 1M-window session without it ends in an overflow error, and practitioners object to compaction they cannot see more than to compaction itself ([harness guide §3][hg3]). N39 runs the guide's settling test: each layer on and off on the seed suite, scored on cost and pass^k.
 
+**Revision (plan review 2, 2026-11-19): the request view stays append-only for signed thinking.** Anthropic models with preserved thinking (Claude Opus, Sonnet and Haiku 5.5, and Fable and Mythos 5.1–5.2) run a prefix check on every thinking block sent back. If the request changes `system`, `tools` or an earlier message, every thinking block after the change fails the check, which is a 400 on some models ([Anthropic, preserved thinking prefix checks](https://platform.claude.com/docs/en/build-with-claude/preserved-thinking/prefix-checks), as of November 2026). Layers 2, 3 and 4 edit earlier messages, so on these models the request view follows four rules:
+
+1. When a layer edits or removes an earlier message, the view drops every thinking block after the edit point. A view may leave out the oldest run of thinking blocks, the newest run or all of them, never one in between.
+2. The harness builds `system` and `tools` once per session.
+3. A tool change mid-session is announced in a `role: "system"` message, not by changing `tools` (N25).
+4. On a 400 that says a block is "bound to a different conversation", the adapter retries once with `thinking.block_binding.prefix_mismatch_behavior: "drop_block"` (beta header `thinking-binding-controls-2026-08-01`).
+
+N8, N9 and N10 test the first rule, N25 the third, and B8 surfaces the 400 as a typed error kind. N39's ablation records the extra cost of the dropped blocks.
+
 ### HD4. `srt` for interactive runs and Docker for headless runs (accepted)
 
 **Accepted by the owner on 2026-11-18.**
@@ -104,7 +113,7 @@ Three decisions merge with the SDK's. For each, this plan references P1's choice
 
 ### HD5. The harness always passes `hmacSigner()` over a persistent key ring (accepted, with SDK D5)
 
-**Accepted by the owner on 2026-11-18.** **Revision (2026-11-18):** [ADR 0035](../decisions/0035-read-only-key-store.md), also accepted by the owner, supersedes ADR 0015. It makes `KeyStore.rotate()` and `prune()` optional so a read-only cloud secret can back the ring; the rest of this decision stands (N42).
+**Accepted by the owner on 2026-11-18.** **Revision (2026-11-18):** [ADR 0035](../decisions/0035-read-only-key-store.md), also accepted by the owner, supersedes ADR 0015. It makes `KeyStore.rotate()` and `prune()` optional so a read-only cloud secret can back the ring; the rest of this decision stands (N42). **Revision (plan review 2, 2026-11-19):** under [ADR 0043](../decisions/0043-standalone-safety-core.md), `hmacSigner()` is defined in `@buildanagent/agent-safety` ([E3](../todos/ready/E3-signed-approvals-third-party.md)) and reaches the harness through the SDK's re-export, so N13 keeps importing it from `@buildanagent/sdk`.
 
 [SDK D5][sdk-d5] covers the SDK side: key-id signers, an `ephemeralSigner()` default and a fail-closed resume.
 
@@ -141,6 +150,8 @@ Three decisions merge with the SDK's. For each, this plan references P1's choice
 **Evidence.** Anthropic recommends 20–50 tasks drawn from real failures with outcome graders and a clean environment per trial, and practitioners add that such a suite catches only large regressions ([harness guide §10][hg10]). Public benchmarks are a weak guide, and the durable asset is our own failures ([harness guide §10][hg10]). The repository's commit history holds real failures with a ready grader, which is the check that failed. Lifting resource caps on Terminal-Bench 2.0 cut infra errors from 5.8% to 0.5%, so the guarantee is pinned and recorded ([harness guide §10][hg10]). The $3 cap is mini-swe-agent's default, which keeps the baseline comparison fair ([observability note §6][n-obs-6]). k = 5 matches the agent guide's pass^5 gate ([agent guide §10][ag10]).
 
 **What the owner still supplies.** The budget for each live run, which N37's live script refuses to start without.
+
+**Amended (owner, 2026-11-19):** N38 ships 20 repository tasks; [W12](../todos/ready/W12-coding-agent-eval-tasks.md) adds 10 coding-agent tasks to reach 30 before W8 publishes its baseline; the 10 triage tasks (N38b) return with Round A. The owner's answer was "20 now, plus coding tasks". When Round A resumes, N38b adds its 10 triage tasks on top of the 30.
 
 ### HD9. SDK D9's per-call check, plus a session cap and a pre-checked summary call (with SDK D9)
 
@@ -200,6 +211,8 @@ The pipeline's permission modes are `default`, `accept_edits`, `read_only`, `byp
 
 **Evidence.** The client must negotiate per server between the 2026-07-28 revision and the legacy era, because mixing eras in one aggregate client drops the fleet to legacy ([harness guide §4][hg4]). The 2.4.0 client's type declarations include the `server/discover` method that the 2026-07-28 revision uses for that probe, although its sibling `@modelcontextprotocol/core` 2.4.0 still names `2025-11-25` its latest version (observed in the installed packages on 2026-11-18; [harness guide §4][hg4]). Version 2.4.0 is Apache-2.0, already in our lockfile through `verify/cloudflare-agents`, and its `@modelcontextprotocol/server` sibling gives the conformance tests a real server. Option (c) would pull in the `ai` package, and option (a) means writing stdio, streamable HTTP, SSE and OAuth transports ourselves. N24 checks that the client probes with `server/discover` and falls back to `initialize` per server; if it does not, N24 adds the probe on our side and records the gap.
 
+**Revision (plan review 2, 2026-11-19): MCP tool definitions are pinned.** N25 no longer re-registers tools silently when a server's tool list changes. Tool definitions are pinned in N22's lock-file format. A new or changed tool starts disabled, is announced in a system message under HD3's append-only rule, and needs an approval before the model can call it. In the 2026-07-28 revision, list-change notifications arrive only on an opt-in `subscriptions/listen` stream, and HTTP+SSE is deprecated, so N25 keeps SSE for legacy servers only ([MCP 2026-07-28 changelog](https://modelcontextprotocol.io/specification/2026-07-28/changelog), as of November 2026; [agent connectors report](../research/connectors/agent-connectors.md)).
+
 ### HD15. The credential proxy injects on reverse-proxy routes, not by intercepting TLS
 
 **Options.** (a) A TLS-intercepting proxy with a per-session CA that swaps a sentinel for the real credential, as Claude's `mask` mode does. (b) A default-deny `CONNECT` proxy for name filtering, plus local reverse-proxy routes that add credentials.
@@ -246,13 +259,13 @@ packages/
     inspect/                    harness_task.py, requirements.txt (Python, outside pnpm)
 ```
 
-**Dependencies.** `protocol` depends on `@buildanagent/gateway` and `@buildanagent/sdk` (`workspace:*`) for types only. N26 checks that its emitted JavaScript imports neither. pnpm resolves a type import only from a declared dependency, so the dependency is declared even though nothing loads at run time ([AGENTS.md "Workspace layout"](../../AGENTS.md#coding-standards)). `harness` depends on `@buildanagent/sdk`, `@buildanagent/gateway` and `@buildanagent/protocol` (`workspace:*`), and on `@modelcontextprotocol/client` 2.4.0 (HD14). The `srt` and Docker backends spawn the `srt` and `docker` binaries and add no npm dependency; N16 records which `srt` release it was tested against. `cli` depends on `harness` and, for the optional OTLP exporter, on `@opentelemetry/exporter-trace-otlp-http` 0.223.2 and `@opentelemetry/sdk-trace-base` 2.12.0, both already in the lockfile. Dev dependencies: `@modelcontextprotocol/server` 2.4.0 for MCP tests and a JSON Schema generator that N26 pins. Every new pin follows [AGENTS.md "Versions"](../../AGENTS.md#coding-standards).
+**Dependencies.** `protocol` depends on `@buildanagent/gateway` and `@buildanagent/sdk` (`workspace:*`) for types only. N26 checks that its emitted JavaScript imports neither. pnpm resolves a type import only from a declared dependency, so the dependency is declared even though nothing loads at run time ([AGENTS.md "Workspace layout"](../../AGENTS.md#coding-standards)). `harness` depends on `@buildanagent/sdk`, `@buildanagent/gateway` and `@buildanagent/protocol` (`workspace:*`), and on `@modelcontextprotocol/client` 2.4.0 (HD14). The `srt` and Docker backends spawn the `srt` and `docker` binaries and add no npm dependency; N16 records which `srt` release it was tested against. `cli` depends on `harness` and, for the optional OTLP exporter, on `@opentelemetry/exporter-trace-otlp-http` 0.223.2 and `@opentelemetry/sdk-trace` 2.12.1, both already in the lockfile; the exporter itself depends on `sdk-trace` 2.12.1. *(Revision, plan review 2, 2026-11-19: the plan first named `@opentelemetry/sdk-trace-base` 2.12.0, which npm marks deprecated in favour of `sdk-trace`, as of November 2026.)* Dev dependencies: `@modelcontextprotocol/server` 2.4.0 for MCP tests and a JSON Schema generator that N26 pins. Every new pin follows [AGENTS.md "Versions"](../../AGENTS.md#coding-standards).
 
 **Tooling.** The same as the SDK's: ESM, `tsconfig.base.json`, `node:test` through tsx, `typecheck` and `test` scripts picked up by the root ([SDK plan §3.1][sdk31]). The Python Inspect task has its own `requirements.txt` with exact pins and runs only in the opt-in eval job.
 
 ### 3.2 Session log API
 
-Every type below uses the SDK plan's names unchanged. `ContentBlock`, `ModelContent`, `ModelRef`, `Usage` and `Cost` come from `@buildanagent/gateway`, and `SignedPendingRequest`, `Resolution`, `RunResult` and `Context` from `@buildanagent/sdk`. The entry union lives in `@buildanagent/protocol` (HD13), and the harness re-exports it. Revisions of the [guide's sketch][hg12] are marked.
+Every type below uses the SDK plan's names unchanged. `ContentBlock`, `ModelContent`, `ModelRef`, `Usage` and `Cost` come from `@buildanagent/gateway`, and `SignedPendingRequest`, `Resolution`, `RunResult` and `Context` from `@buildanagent/sdk`, which re-exports the first two from `@buildanagent/agent-safety` ([ADR 0043](../decisions/0043-standalone-safety-core.md)). The entry union lives in `@buildanagent/protocol` (HD13), and the harness re-exports it. Revisions of the [guide's sketch][hg12] are marked.
 
 ```ts
 // @buildanagent/protocol entries, re-exported by @buildanagent/harness/session (guide §2; HD1, HD2, HD11, HD13)
@@ -336,6 +349,8 @@ declare function runTurn<H>(session: Session, harness: Harness<H>, options: Turn
 // writes the input message_block entries durably before the first model call (guide §2), labelled inputOrigin,
 // then turn_start with the system prompt, block entries on model_call_end, tool_result on tool_call_end, usage, turn_end.
 ```
+
+**Revision (plan review 2, 2026-11-19): the effect scope's tenant.** [E2](../todos/ready/E2-effect-identity-crash-rule.md)'s `EffectScope` needs a `tenant`, and the key hashes it. The harness reads `tenant` from its config as a plain string, with the default `"local"` for single-user hosts, and the N7 and N40 revisions pass it with the session key, the branch and the tool call id. A multi-user host sets one tenant per user, as SG3 scopes business keys.
 
 **Revision (2026-11-18): `Scheduler`.** Off-host hosts cannot keep a timer alive between requests, so todo N41 adds one seam beside `SessionStore` and `SessionLock` ([storage-and-wake note](../research/deployment/storage-and-wake.md)):
 
@@ -426,7 +441,8 @@ declare function createPermissionPipeline(config: PermissionConfig, registry: To
 // deny rules, hooks and a host callback with no allow rules start cleanly
 declare const defaultAskRules: Rule[];      // test deletions and skips, hooks, CI config, rules files (HD12)
 
-interface KeyStore { load(): Promise<{ keys: Record<string, Uint8Array>; current: string }>; rotate(): Promise<string>; prune(inUse: Set<string>): Promise<string[]> }
+interface KeyStore { load(): Promise<{ keys: Record<string, Uint8Array>; current: string }>; rotate?(): Promise<string>; prune?(inUse: Set<string>): Promise<string[]> }
+// Revision (plan review 2): rotate and prune are optional, so a read-only secret can back the ring (ADR 0035; N42)
 declare function fileKeyStore(path?: string): KeyStore;   // default $XDG_STATE_HOME/buildanagent/keys.json, mode 0600
 interface ResolveOptions<H = unknown> {   // Revision (R9): the resume path takes the same budget and signal as a turn
   sticky?: "run" | "session"; group?: boolean;   // refused for a tool whose approvalReuse forbids it (R8)
@@ -485,7 +501,7 @@ declare function startEgressProxy(options: { allow: string[]; routes?: Credentia
 declare function scrubSecrets(entry: SessionEntry, secrets: readonly string[]): SessionEntry; // applied before every append
 ```
 
-**Revision (2026-11-18): remote backends.** Todo N43 extends `SandboxClient` with `resume(id)`, `snapshot` and `pause` capability flags, `stops` computed from the applied policy and a post-provision policy read-back, and replaces the proxy URL with an `EgressPolicy { allow, routes }` that each backend compiles: the HD15 proxy locally, `outboundByHost` on Cloudflare, egress Secrets on E2B and the firewall `transform` on Vercel, where `subnets.allow` is banned ([portable agents report](../research/deployment/portable-agents.md#four-hosted-sandboxes-meet-our-three-hard-rules-and-e2b-should-come-first)). N42 makes `KeyStore.rotate()` and `prune()` optional, as ADR 0035 decides.
+**Revision (2026-11-18): remote backends.** Todo N43 extends `SandboxClient` with `resume(id)`, `snapshot` and `pause` capability flags, `stops` computed from the applied policy and a post-provision policy read-back, and replaces the proxy URL with an `EgressPolicy { allow, routes }` that each backend compiles: the HD15 proxy locally, `outboundByHost` on Cloudflare, egress Secrets on E2B and the firewall `transform` on Vercel, where `subnets.allow` is banned ([portable agents report](../research/deployment/portable-agents.md#four-hosted-sandboxes-meet-our-three-hard-rules-and-e2b-should-come-first)). N42 makes `KeyStore.rotate()` and `prune()` optional, as ADR 0035 decides. *(Revision, plan review 2, 2026-11-19: `@cloudflare/sandbox` 1.0 removed `outboundByHost` and `allowedHosts`, so N46b targets the Durable Object Container API's `interceptOutboundHttp()` and `interceptOutboundHttps()`. Its HTTPS design waits for S10 and the owner's decision on ADR 0020's "no TLS interception".)*
 
 ### 3.5 Extension, protocol, telemetry, eval and ablation APIs
 
@@ -552,6 +568,7 @@ declare function createHarness<H = unknown>(options: HarnessOptions): Promise<Ha
 declare function createDispatcher(harness: Harness, options?: { queueSize?: number }): Dispatcher;   // 128
 declare function inProcessTransport(dispatcher: Dispatcher): ClientConnection;
 declare function stdioTransport(dispatcher: Dispatcher, io: { stdin: NodeJS.ReadableStream; stdout: NodeJS.WritableStream }): Promise<void>;
+// Revision (plan review 2): N44 retypes io over Web ReadableStream and WritableStream, with a Node adapter, so the transport runs off Node
 
 // @buildanagent/harness/telemetry (guide §9; HD7). SEMCONV_GENAI_COMMIT and GEN_AI_ATTRIBUTES come from @buildanagent/sdk/otel.
 declare function projectSpans(entries: AsyncIterable<SessionEntry>, options: {
@@ -607,7 +624,7 @@ P1 left two questions for P2 ([implementation plans §6](implementation-plans.md
 The harness needed thirteen things the SDK plan did not state. P4 moved twelve into the SDK plan and dropped one, so no harness todo carries a workaround ([plan review §4][p4-4]). The twelve fall into three groups, each tested in the SDK todo named:
 - **Hooks and events (B13), four needs.** `transformContext` returns a per-call view, and the loop keeps the full history (1). `ContextEvent` carries `system`, `messages`, `model` and `lastUsage` (2). `tool_call_end.result` is the result after `afterToolCall`, so the log stores what the model saw (5). `activeTools` may name deferred tools, and tools go out in definition order (8).
 - **Resume (B6, B11, B15b), three needs.** `RunError.kind` marks `"overflow"`, and `continueRun` drops a trailing errored assistant message and re-issues the call, which layer 5 needs (4). `Context` is plain JSON that a caller may build from its store (6). A verified `allow` runs without `beforeToolCall`, and the harness re-checks policy before it resolves (7, HD5).
-- **Gateway, budget, steering, telemetry and versioning, five needs.** `Model.caps` carries `contextWindow` and `maxOutputTokens` (3; B4, B5). `projectCallCost()` is exported for the summary call (9; B14). `@buildanagent/sdk/otel` exports `GEN_AI_ATTRIBUTES` and `SEMCONV_GENAI_COMMIT` (10; B17). `CAPABILITIES` lists the strings `run_start.capabilities` carries (11; B20). `DeliveryReceipt` carries `kind`, `message` and `stepIndex`, and `steer_applied` fires for both kinds (12; B16).
+- **Gateway, budget, steering, telemetry and versioning, five needs.** `Model.caps` carries `contextWindow` and `maxOutputTokens` (3; B4, B5). `projectCallCost()` is exported for the summary call (9; defined in the gateway by B5 under ADR 0043, and re-exported by the SDK). `@buildanagent/sdk/otel` exports `GEN_AI_ATTRIBUTES` and `SEMCONV_GENAI_COMMIT` (10; B17). `CAPABILITIES` lists the strings `run_start.capabilities` carries (11; B20). `DeliveryReceipt` carries `kind`, `message` and `stepIndex`, and `steer_applied` fires for both kinds (12; B16).
 
 The thirteenth, a client-tool pause kind for the third host-tool pattern, was dropped for Rounds B and N because §1 defers that pattern; the SDK plan records it as a later item.
 
@@ -624,7 +641,7 @@ The agent plan also needs two mechanisms beyond the five hooks. `Harness.invokeT
 
 ## 4. Rounds and todos
 
-Round N runs in seven stages. Every todo has a file in [`docs/todos/ready/`](../todos/ready/), written from [the template](../todos/TEMPLATE.md), and every todo's acceptance criteria include the repo-wide gate: `pnpm check`, `pnpm typecheck` and `pnpm test` pass offline.
+Round N runs in eight stages. Every todo has a file in [`docs/todos/ready/`](../todos/ready/), written from [the template](../todos/TEMPLATE.md), and every todo's acceptance criteria include the repo-wide gate: `pnpm check`, `pnpm typecheck` and `pnpm test` pass offline.
 
 ### 4.1 Stage 1 builds the session log, from its entry union to rebuild and replay
 
@@ -638,7 +655,7 @@ The guide says to start with the log, because context layers, pauses, replay, th
 | [N4](../todos/ready/N4-writer-lock.md) | Writer lock with a lease, and the crash test (HD2) | N3 | M |
 | [N5](../todos/ready/N5-head-fork-revert.md) | HEAD, checkout, fork, revert and migration by pointer | N4 | M |
 | [N6](../todos/ready/N6-session-runner.md) | Session runner: SDK events to entries, user entry first | N5, B13 | M |
-| [N7](../todos/ready/N7-rebuild-resume-replay.md) | Context rebuild, resume, playback and re-run from an entry | N6, B15b | M |
+| [N7](../todos/ready/N7-rebuild-resume-replay.md) | Context rebuild, resume, playback and re-run from an entry | N6, B15b, E2 | M |
 
 ### 4.2 Stage 2 adds the five context layers, cheapest first
 
@@ -656,7 +673,7 @@ The guide says to start with the log, because context layers, pauses, replay, th
 | [N12](../todos/ready/N12-permission-pipeline.md) | Permission pipeline: order, rules, modes and the no-match default | N11, B13 | M |
 | [N13](../todos/ready/N13-signed-approvals.md) | Signed approvals in the log: key ring, pause, resume with re-evaluation | N12, N7 | M |
 | [N14](../todos/ready/N14-sticky-grouped-quorum.md) | Sticky allowances, grouped approvals and the quorum hook | N13 | M |
-| [N40](../todos/ready/N40-code-initiated-calls.md) | Code-initiated tool calls: `Harness.invokeTool()` and the `code_call` entry | N13, N14, B15 | M |
+| [N40](../todos/ready/N40-code-initiated-calls.md) | Code-initiated tool calls: `Harness.invokeTool()` and the `code_call` entry | N13, N14, B15, E2 | M |
 
 ### 4.4 Stage 4 adds the sandbox backends and the credential proxy
 
@@ -716,14 +733,15 @@ No todo is size L. The longest dependency chain runs N1 → N2 → N3 → N4 →
 | [N42](../todos/ready/N42-read-only-key-store.md) | Optional `rotate()` and `prune()`, and a secret-backed `KeyStore` | N13 | S |
 | [N43](../todos/ready/N43-remote-sandbox-egress-policy.md) | Remote `SandboxClient` extensions and `EgressPolicy` compiled per backend | N15, N20 | M |
 | [N44](../todos/ready/N44-web-stream-websocket-transport.md) | stdio over Web streams and a WebSocket transport | N29 | M |
-| [N45](../todos/ready/N45-portability-conformance-suite.md) | One conformance suite over the seven portable seams | N41, N42, N43, N44 | M |
+| [N45](../todos/ready/N45-portability-conformance-suite.md) | One conformance suite over the eight portable seams (`EffectStore` is the eighth, ADR 0043) | N41, N42, N43, N44, E7 | M |
 | [N46a](../todos/ready/N46a-cloudflare-state-adapters.md) | Cloudflare store, lock, scheduler, key store and workerd smoke test | N45 | M |
-| [N46b](../todos/ready/N46b-cloudflare-sandbox-backend.md) | Cloudflare Sandbox backend and `outboundByHost` egress | N45 | M |
+| [N46b](../todos/ready/N46b-cloudflare-sandbox-backend.md) | Cloudflare Sandbox backend and per-host outbound interception egress, blocked on the owner's decision after S10 | N45, S10 | M |
 | [N47a](../todos/ready/N47a-aws-state-adapters.md) | DynamoDB store and lock, EventBridge Scheduler wake, Secrets Manager key store | N45 | M |
 | [N47b](../todos/ready/N47b-e2b-sandbox-backend.md) | E2B backend and egress Secrets | N45 | M |
 | [N48a](../todos/ready/N48a-vercel-state-adapters.md) | Postgres store and lock, Workflow wake, environment key store | N45 | M |
 | [N48b](../todos/ready/N48b-vercel-sandbox-backend.md) | Vercel Sandbox backend and firewall `transform` | N45 | M |
 | [N49](../todos/ready/N49-hosted-sandbox-measurement.md) | Cold start, snapshot and per-call overhead on the hosted backends | N46b, N47b, N48b, N19 | S |
+| [S10](../todos/ready/S10-cloudflare-sandbox-egress.md) | Verify Cloudflare Sandbox 1.0 egress on a real sandbox, and draft an ADR for the owner (added in plan review 2, 2026-11-19) | None | M |
 
 ## 5. Test strategy
 
@@ -788,7 +806,7 @@ The owner answered HD4, HD5, HD8 and HD11 on 2026-11-18. N19's measurement is th
 
 ### 6.3 Where Round N slots into the roadmap
 
-Round N follows Round B in the build phase, and a new milestone, "M6 Our agent harness", covers N1 to N40 with N38b. Most of Round N waits for the SDK's loop, but the log and the sandbox do not:
+Round N follows Round B in the build phase, and a new milestone, "M6 Our agent harness", covers N1 to N49 (with N46a/b, N47a/b and N48a/b); N38b is deferred with the triage agent under M7b. *(Revised in plan review 2, 2026-11-19: the milestone first covered N1 to N40 with N38b.)* Most of Round N waits for the SDK's loop, but the log and the sandbox do not:
 - **After B1 and B2:** the scaffold, entries, store, lock and HEAD (N1 to N5), the sandbox interface and backends (N15 to N17, N19) and the credential proxy (N20), which need only the workspace and the gateway's types.
 - **After B11 and B15:** the protocol package (N26), whose union names `AgentEvent` and `SignedPendingRequest`.
 - **After B12 and B13:** the runner (N6), context layers 1 and 2 (N8), the registry (N11), the pipeline (N12), the built-in tools (N21), extensions (N22) and the MCP client (N24, N25).
@@ -796,10 +814,12 @@ Round N follows Round B in the build phase, and a new milestone, "M6 Our agent h
 - **After B14 and B17:** the summary layer (N9 and N10) and the telemetry projection (N31).
 - **After B19 and B20:** the harness capstone (N35), whose `initialize` capabilities need B20's list, and the eval stage.
 - **After A17 and A19:** the 10 shared triage tasks (N38b), the one harness todo that waits for Round A.
+- **After Round E (M5e):** E2 gates rebuild and resume (N7) and code-initiated calls (N40), and E7 gates the portability suite (N45). The owner lifted Round E's hold on 2026-11-19, so these gates wait only on E's own order ([close-sdk-gaps plan §4](close-sdk-gaps.md#4-round-e-and-its-todos)).
+- **Stage 8, after N4, N13, N15, N20 and N29:** the scheduler (N41), the read-only key store (N42), the remote sandbox extensions (N43) and the Web-stream transport (N44), then N45 and the per-target adapters (N46a to N48b) and N49's measurement. N46b also waits for S10 and the owner's decision on Cloudflare egress.
 
-The roadmap graph gains one line, `B2 ─► N1 … N40 ─► M6`, with branches from B13 to N6, from B15b to N7 and from A19 to N38b. P3's agent round starts after N1 and needs N35 for its capstone.
+The roadmap graph gains one line, `B2 ─► N1 … N40 ─► N41–N49 ─► M6`, with branches from B13 to N6, from B15b and E2 to N7, from E7 to N45 and from A19 to N38b. P3's agent round starts after N1 and needs N35 for its capstone.
 
-Round N closes when the triage capstone pauses, resumes in a second process and replays byte for byte from its log, and when the first eval report sets our harness beside mini-swe-agent on cost and pass^k. The next step is N1, once B1 and B2 are done.
+Round N closes when the triage capstone pauses, resumes in a second process and replays byte for byte from its log, and when the first eval report sets our harness beside mini-swe-agent on cost and pass^k. As of 2026-11-19, B1 and B2 are done, so N1 has every dependency done.
 
 [hg]: ../guides/agent-harness.md
 [p4-4]: reviews/plan-review.md#4-needs-reconciliation-24-change-upstream-3-drop-1-is-already-covered

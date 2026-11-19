@@ -1,10 +1,10 @@
 # Plan: build our agent SDK as two workspace packages, a gateway and a loop, in 22 todos tested offline against a scripted model
 
-- **Status:** Draft (P1, 2026-11-18), revised on 2026-11-18 with the fixes from the [P4 review](reviews/plan-review.md), and on 2026-11-18 for three deployment targets: notes in D5 and D7, and tasks added to B10 and B17 ([ADR 0033](../decisions/0033-three-deployment-targets.md)).
+- **Status:** Draft (P1, 2026-11-18), revised on 2026-11-18 with the fixes from the [P4 review](reviews/plan-review.md), and on 2026-11-18 for three deployment targets: notes in D5 and D7, and tasks added to B10 and B17 ([ADR 0033](../decisions/0033-three-deployment-targets.md)). Revised on 2026-11-19 (plan review 2) to apply [ADR 0043](../decisions/0043-standalone-safety-core.md) and the [close-sdk-gaps plan](close-sdk-gaps.md): the signer, the input hash and the pending record now come from `@buildanagent/agent-safety`, the cost projection from the gateway, and Round E feeds B10, B14 and B15.
 - **Date:** 2026-11-18
 - **Asked for by:** the project owner (2026-11-18), through the [implementation plans](implementation-plans.md#2-what-each-plan-contains)
 - **Builds on:** the [agent-SDK guide][g] (G1b), its [reference architecture][g11] and its [twelve open decisions][g12], plus the six seams that the [harness guide §1][hg1] needs from the SDK
-- **Decision records:** [ADRs 0001–0011](../decisions/README.md)
+- **Decision records:** [ADRs 0001–0011](../decisions/README.md), and [ADR 0043](../decisions/0043-standalone-safety-core.md) (accepted, owner, 2026-11-18), which the [close-sdk-gaps plan](close-sdk-gaps.md) applies to D5, D9 and §3
 - **Todos:** Round B ("build SDK") on the [todo board](../todos/README.md); §4 lists them.
 
 The [agent-SDK guide][g] already settles the design: one in-process loop as a pure streaming function over a versioned single-method model gateway, every failure and pause returned to the caller as data, and a strict scripted test model shipped from the first release. The guide still left twelve decisions open, ranging from the package split to the tool-name rule ([guide §12][g12]). The harness plan (P2) will also build on this SDK through six seams, so any gap here becomes a workaround there ([harness guide §1][hg1]). This plan makes the twelve decisions and turns the reference architecture into two packages and 22 todos, each one reviewable batch with checkable acceptance criteria. It also gives the test strategy that keeps every todo offline. Nine decisions follow from the evidence, and the owner accepted the other three, D2, D5 and D8, on 2026-11-18 (§2). In one sentence: **build the gateway and the scripted test model first, then the loop, tools, hooks and pauses on top of them, and finish with a triage capstone that passes the same contract the eight reference capstones pass, so P2 can start on stable seams.**
@@ -84,6 +84,8 @@ Each decision answers one open decision in [guide §12][g12], in the same order,
 
 **Evidence.** The guide's settling test is to write the OTel projection and the cost fold against both conventions and keep the one with fewer conversions. With separate classes, the cost fold multiplies each class by its own rate and needs no conversion, while the OTel projection needs one sum ([harness research §7][har7]). With a total, the cost fold must subtract both cache classes from `input` on every message. Separate classes therefore need fewer conversions. The ambiguity of `input` caused the disagreement in the first place, since two SDKs use the same name for different sums ([SDK research §1][sr1]). A name that states its meaning removes it. Both D2 protocols are expected to count reasoning tokens inside output tokens, but nobody has checked their API references. B8 and B9 check it against each adapter's raw usage and record the result in the adapter README.
 
+**Revision (plan review 2, 2026-11-19).** Anthropic's docs answer the question for B8: thinking tokens count inside `output_tokens`, and `usage.output_tokens_details.thinking_tokens` reports how many of the billed output tokens were reasoning. When streaming, that field arrives only on the final `message_delta` ([Anthropic, extended thinking](https://platform.claude.com/docs/en/build-with-claude/extended-thinking), as of November 2026). B8 adds a fixture for it, and B9 still checks the OpenAI-compatible side.
+
 ### D4. Prices come from a versioned catalog, and a provider-billed total overrides it
 
 **Options.** Price tables from a catalog shipped in the package, fetched at run time, or supplied by the caller; refresh on release or on a schedule; and whether a provider-billed total overrides the catalog, as Pi's `totalFromProvider` does ([guide §12, decision 4][g12]).
@@ -105,6 +107,8 @@ Each decision answers one open decision in [guide §12][g12], in the same order,
 **Outcome.** The harness, the first multi-process host, always passes `hmacSigner()` over a persistent key ring ([harness plan, HD5][har-hd5]; [ADR 0015](../decisions/0015-harness-approval-key-ring.md)). The SDK default therefore stays `ephemeralSigner()`, which serves single-process library users, and `signer` stays optional.
 
 **Note (2026-11-18).** `ephemeralSigner()` cannot resume a pause on any serverless host, because an isolate or function may be recycled between the pause and its resume. The SDK's docs say so; hosts on Cloudflare, AWS or Vercel pass `hmacSigner()` over a persistent `KeyStore` ([ADR 0035](../decisions/0035-read-only-key-store.md); [portable agents report](../research/deployment/portable-agents.md#the-sdk-travels-the-harness-is-bound-to-one-host-in-six-places)).
+
+**Revision (plan review 2, 2026-11-19).** [ADR 0043](../decisions/0043-standalone-safety-core.md) (accepted) moves this decision's code into `@buildanagent/agent-safety` without changing its rules, fields or shapes. The package defines the `ApprovalSigner` interface, the signers `hmacSigner()` and `ephemeralSigner()`, `canonicalInputHash()`, and the `SignedPendingRequest` and `Resolution` types. [E1](../todos/ready/E1-safety-core-outcomes.md) builds the hash and [E3](../todos/ready/E3-signed-approvals-third-party.md) the rest. The SDK re-exports all of them, so callers keep the import paths in §3.3, and B15 imports them instead of defining them.
 
 ### D6. Our six moment-named interceptors, with run-level hooks as observers
 
@@ -142,6 +146,8 @@ Each decision answers one open decision in [guide §12][g12], in the same order,
 
 **Choice: before each call.** The loop projects the next call's cost: the input estimate times the model's input rate, plus `maxOutputTokens` (the call's option, else `Model.caps.maxOutputTokens`) times the output rate. B14 exports the projection as `projectCallCost()`, so a caller that uses `Model.complete()` outside the loop, such as the harness's summary layer, applies the same formula ([harness plan, HD9][har-hd9]). If the spend plus the projection exceeds the cap, the run ends with `stopReason: "budget"` before the call. The input estimate is the previous call's reported total input plus a character-based estimate of the messages added since. Actual cost is still recorded after each call, so any remaining overshoot shows in the result.
 
+**Revision (plan review 2, 2026-11-19).** Under [ADR 0043](../decisions/0043-standalone-safety-core.md), `projectCallCost()` and the token-level `projectCost()` it calls move to `@buildanagent/gateway`, beside the catalog ([B5](../todos/ready/B5-usage-cost-catalog.md)). The loop and the safety package's AI SDK guard ([E5](../todos/ready/E5-pre-call-cost-guard.md)) then share one formula. B14's check imports `projectCallCost()` from the gateway, and the SDK re-exports it for the harness's summary layer.
+
 **Evidence.** Claude's `maxBudgetUsd` acts only after the response that crosses it, and harness decision 18 asks for a pre-emptive check ([guide §3][g3]). The HN synthesis makes the same change, because loops cause the runaway-cost anecdotes ([HN §4.1][hn41]). Inspect checks cost limits at each `generate()`, which matches the pre-emptive rule ([harness guide §10][hg10]). The guide's settling test measures overshoot on our longest recorded runs. We have none yet, so B14 instead asserts a bound with the scripted model: with the pre-emptive check, the overshoot is at most the error of one call's projection, and a post-response check would overshoot by a full call. N39 reruns the measurement on recorded runs.
 
 ### D10. A discriminated result union, plus `runOrThrow()` for callers who want exceptions
@@ -172,6 +178,8 @@ Each decision answers one open decision in [guide §12][g12], in the same order,
 
 ### 3.1 Two packages under a new top-level `packages/` directory
 
+**Revision (plan review 2, 2026-11-19).** [ADR 0043](../decisions/0043-standalone-safety-core.md) adds a third package beside these two, `@buildanagent/agent-safety`, which Round E builds and the SDK imports. The tree and the Dependencies paragraph below show it.
+
 Our own code goes in `packages/`, apart from `verify/`. The `verify/*` packages are harnesses for third-party SDKs with their own scripts, results and drift checks. Product code that P2 and P3 extend should not share their folder or their nightly verify job. `packages/` is also the pnpm convention, and P2 and P3 can add `packages/harness` and `packages/agent` beside these two. B1 adds `packages/*` to `pnpm-workspace.yaml`; this plan leaves the file unchanged.
 
 ```text
@@ -185,7 +193,7 @@ packages/
       complete.ts               complete(): folds stream() into one AssistantMessage
       gateway.ts                createModel(), retries, middleware, onPayload, request dump
       transform-messages.ts     the cross-provider replay pass
-      usage.ts  cost.ts  catalog.json
+      usage.ts  cost.ts  catalog.json   cost.ts: price(), projectCost() and projectCallCost() (B5; ADR 0043)
       names.ts                  canonical tool-name rule, per-adapter sanitising
       adapters/anthropic/       Messages: SSE parser, cache breakpoints, strict lowering
       adapters/openai-chat/     Chat Completions: SSE parser, compat flags
@@ -199,16 +207,20 @@ packages/
       events.ts                 the closed AgentEvent union and its runtime list
       tools/                    defineTool(), outputTool(), pipeline, scheduler, error formatter
       hooks.ts                  Interceptors, Observer, hook_error handling
-      budget.ts  progress.ts    D9 (with projectCallCost()) and D11
-      pauses.ts                 SignedPendingRequest, signers, createPendingRequest(), resolutions, blockingApprovals()
+      budget.ts  progress.ts    D9 (imports projectCallCost() from the gateway) and D11
+      pauses.ts                 re-exports SignedPendingRequest, Resolution, signers and canonicalInputHash from agent-safety;
+                                createPendingRequest(), blockingApprovals()
       errors.ts                 SdkError base with isInstance markers
       otel/                     otelObserver(): gen_ai.* spans, content off
       testing/                  ScriptedModel, autoResponder, seam doubles, record and replay
     reference-loop/             a readable loop of a few hundred lines, tested like the real one
     README.md  CHANGELOG.md
+  agent-safety/                 @buildanagent/agent-safety (Round E, ADR 0043)
+    package.json                exports: "." (the core, no third-party imports), "./ai", "./agents"
+    src/                        outcomes, canonicalInputHash (E1); effect identity (E2); signers, pending record (E3)
 ```
 
-**Dependencies.** The gateway has no runtime dependencies, and it uses `fetch`, Web Streams and Web Crypto from Node 22. Nothing in the gateway names an SDK type, so the dependency runs one way: `Context`, which holds the SDK's `SignedPendingRequest`, lives in `@buildanagent/sdk`, and the gateway's own request shape is `ModelContext`. The SDK depends on the gateway (`workspace:*`), on `@earendil-works/pi-schema` 1.5.2 (D7) and on `@standard-schema/spec` 1.1.0 for types, which the lockfile already holds. The OTel observer accepts a structural `Tracer` interface, so `@opentelemetry/api` is not a runtime dependency; its tests use `@opentelemetry/sdk-trace-base` 2.12.0, a version already in the lockfile, as an exact-pinned dev dependency. Every new pin follows [AGENTS.md "Versions"](../../AGENTS.md#coding-standards): an exact version at least a week old, or the latest fixed release when an advisory applies.
+**Dependencies.** The gateway has no runtime dependencies, and it uses `fetch`, Web Streams and Web Crypto from Node 22. Nothing in the gateway names an SDK type, so the dependency runs one way: `Context`, which holds the `SignedPendingRequest` the SDK re-exports, lives in `@buildanagent/sdk`, and the gateway's own request shape is `ModelContext`. The safety package depends only on the gateway, and its root export imports no third-party SDK ([E1](../todos/ready/E1-safety-core-outcomes.md)). The SDK depends on the gateway and on `@buildanagent/agent-safety` (both `workspace:*`, the safety package through its root export only), on `@earendil-works/pi-schema` 1.5.2 (D7) and on `@standard-schema/spec` 1.1.0 for types, which the lockfile already holds. The OTel observer accepts a structural `Tracer` interface, so `@opentelemetry/api` is not a runtime dependency; its tests use `@opentelemetry/sdk-trace` 2.12.1 as an exact-pinned dev dependency. That version is already in the lockfile, because `@opentelemetry/exporter-trace-otlp-http` 0.223.2 depends on it. *(Revision, plan review 2, 2026-11-19: the plan first named `@opentelemetry/sdk-trace-base` 2.12.0, but npm marks every `sdk-trace-base` release deprecated in favour of `sdk-trace`, as of November 2026.)* Every new pin follows [AGENTS.md "Versions"](../../AGENTS.md#coding-standards): an exact version at least a week old, or the latest fixed release when an advisory applies.
 
 **Tooling.** Both packages are ESM, extend `tsconfig.base.json`, and run tests with `node:test` through tsx (`tsx --test`), so no test framework is added. Each package's `typecheck` script runs `tsc -p`, and its `test` script runs its tests, so the root `pnpm typecheck` and `pnpm test` pick them up unchanged. Biome already covers `packages/`. `noExplicitAny` stays on there, because it is off only in `verify/*/examples`.
 
@@ -264,7 +276,8 @@ type ModelEvent =
   | { type: "done"; message: AssistantMessage }    // exactly one terminal event
   | { type: "error"; message: AssistantMessage };  // stopReason "error" | "aborted"
 interface StreamOptions {
-  signal?: AbortSignal; maxOutputTokens?: number; temperature?: number;
+  signal?: AbortSignal; maxOutputTokens?: number;
+  temperature?: number;                            // provider-optional: B8 drops it for Anthropic with a warning (revision, plan review 2)
   cacheRetention?: "none" | "short" | "long";      // one portable caching policy
   providerOptions?: Record<string, unknown>;       // escape hatch only
   onPayload?(body: unknown): unknown;              // inspect or replace the request body
@@ -327,6 +340,7 @@ interface ToolDefinition<I, S> {
   repair?(e: { input: unknown; issues: SchemaIssue[] }): Promise<unknown | undefined>;
   formatError?(e: ToolFailure): ModelContent[];       // overrides the default "do not substitute a mock" text
   redactErrors?: boolean;                             // default false: replace a thrown error's message with a fixed line
+  effect?: { kind: "write"; businessKey?(input: I): string };  // revision (ADR 0043, SG3; B10): absent means read-only for the crash rule
   execute(input: I, ctx: ToolContext): Promise<ToolResult<S>>;
 }
 interface ToolContext {
@@ -338,6 +352,7 @@ interface ToolResult<S> {
   content: ModelContent[]; details?: unknown; structured?: S;
   isError?: boolean; terminate?: boolean;
   pause?: { kind: "clarification"; question: string }; // Revision: the clarification pause starts in a tool
+  outcome?: WriteOutcome;                              // revision (ADR 0043, SG3; B10): typed by agent-safety (E1)
 }
 declare function defineTool<I, S>(definition: ToolDefinition<I, S>): ToolDefinition<I, S>;
 declare function outputTool<S>(options: { name: string; schema: StandardSchemaV1<S> & StandardJSONSchemaV1 }): ToolDefinition<S, S>;
@@ -390,7 +405,9 @@ interface RunError {
   message: string; status?: number;
 }
 
-// Pauses (guide §7; SDK decision 8; D5)
+// Pauses (guide §7; SDK decision 8; D5). Revision (ADR 0043, plan review 2): SignedPendingRequest, Resolution,
+// ApprovalSigner, ephemeralSigner, hmacSigner and canonicalInputHash are defined in @buildanagent/agent-safety
+// (E1, E3) and re-exported here unchanged; createPendingRequest and blockingApprovals stay in the SDK.
 interface SignedPendingRequest {
   id: string; kind: "approval" | "clarification"; callId: string; tool: string;
   inputHash: string; policyVersion?: string; question?: string; reason?: string;
@@ -465,7 +482,8 @@ type AgentEvent = EventBase & (
 );
 interface EventBase { runId: string; seq: number; stepIndex: number; timestamp: string }
 
-// Budget (D9): the projection the loop uses, exported for calls made outside it
+// Budget (D9): the projection the loop uses, exported for calls made outside it.
+// Revision (ADR 0043, plan review 2): defined in @buildanagent/gateway (B5) and re-exported here.
 declare function projectCallCost(model: Model, context: ModelContext, options?: StreamOptions): Cost;
 
 // Versioning (D8; guide §10): the strings run_start.capabilities carries; the SDK README lists each one
@@ -495,7 +513,7 @@ declare class ScriptedModel implements ModelAdapter {
 }
 declare class UnexpectedModelCallError extends Error {}  // thrown on over-run
 declare function autoResponder(options?: { denyTools?: Array<string | RegExp> }): ScriptStep; // default deny list covers host tools
-declare function testSigner(): ApprovalSigner;
+declare function testSigner(): ApprovalSigner;               // re-exports E3's fixed-key test signer (revision, plan review 2)
 declare function scriptedApprovals(resolutions: Resolution[]): Interceptors;
 declare function fixedClock(start: string, stepMs?: number): Clock;
 declare function sequentialIds(prefix?: string): () => string;
@@ -551,12 +569,12 @@ The guide says to start with the gateway and the test model, because every other
 
 | ID | Title | Depends on | Size |
 | --- | --- | --- | --- |
-| [B10](../todos/ready/B10-tool-runtime.md) | Tool definitions, the validation pipeline and the validator check (D7) | B3, B7 | M |
+| [B10](../todos/ready/B10-tool-runtime.md) | Tool definitions, the validation pipeline and the validator check (D7) | B3, B7, E1 | M |
 | [B11](../todos/ready/B11-loop-core.md) | Loop core: `run`, the closed event union, stop reasons, aborts and `runOrThrow` | B4, B10 | L |
 | [B12](../todos/ready/B12-parallel-tools.md) | Parallel tool scheduling, per-resource serialisation and sibling cancellation | B11 | M |
 | [B13](../todos/ready/B13-interceptors-observers.md) | The six interceptors and observers | B11 | M |
-| [B14](../todos/ready/B14-budget-progress.md) | Pre-emptive USD budget, progress detection and the depth cap | B5, B13 | M |
-| [B15](../todos/ready/B15-signed-pauses.md) | Signers, canonical hashing, the signed pending record and `createPendingRequest` | B13 | M |
+| [B14](../todos/ready/B14-budget-progress.md) | Pre-emptive USD budget, progress detection and the depth cap | B5, B13, E1 | M |
+| [B15](../todos/ready/B15-signed-pauses.md) | Signed pauses in the loop on the safety package's signers, and `createPendingRequest` | B13, E3 | M |
 | [B15b](../todos/ready/B15b-continue-run.md) | `continueRun`, `blockingApprovals()` and the clarification pause | B15 | M |
 | [B16](../todos/ready/B16-steering.md) | Steering and follow-up with delivery receipts | B11 | S |
 
@@ -570,7 +588,7 @@ The guide says to start with the gateway and the test model, because every other
 | [B19b](../todos/ready/B19b-reference-loop.md) | The readable reference loop, passing the capstone | B19 | M |
 | [B20](../todos/ready/B20-versioning-docs.md) | Versioning policy, defaults hash, compiled docs, `llms.txt` and the export diffs | B17, B19 | M |
 
-The longest dependency chain runs B1 → B2 → B3 → B4 → B11 → B13 → B15 → B15b → B18 → B19 → B20, eleven todos. B6, B7, B10 and B19b can run beside it. Three todos stay size L: the two adapters (B8, B9) and the loop core (B11).
+The longest dependency chain runs B1 → B2 → B3 → B4 → B11 → B13 → B15 → B15b → B18 → B19 → B20, eleven todos. B6, B7, B10 and B19b can run beside it. Round E feeds this stage: E1 ─► B10 and B14, and E3 ─► B15 ([close-sdk-gaps plan §4](close-sdk-gaps.md#4-round-e-and-its-todos)). Weighted by size, E1 → B10 is as long as B4, so E1 sits on the loop's critical path. Three todos stay size L: the two adapters (B8, B9) and the loop core (B11).
 
 ## 5. Test strategy
 
@@ -620,6 +638,7 @@ Model quality and tool selection belong to evals with a real model, which the ha
 - **The provisional defaults may be wrong.** D7, D11 and D12 rest on checks that B7, B10 and N39's recorded runs perform. Mitigation: each is a setting, each change gets a changelog entry and a setting that keeps the old value, and the defaults hash on `run_start` records which values a run used ([guide §10][g10]).
 - **Scope creep from the harness side.** Compaction, permissions and the session log are tempting to start inside the loop. Mitigation: the non-goals in §1, and the fact that every such feature lands in the SDK only as an interceptor or an event.
 - **Node version.** Pi-schema declares `node >=22.19.0`, and `.nvmrc` says `22`. B1 checks the resolved CI version and pins `.nvmrc` to a matching minor if needed.
+- **Node 22 reaches end of life on 2027-04-30** ([Node.js release schedule](https://raw.githubusercontent.com/nodejs/Release/main/schedule.json), as of November 2026). Node 24 is in maintenance and Node 26 is Active LTS. Mitigation: move the workspace to Node 24 or 26 before that date, in its own todo, and re-check pi-schema's and `srt`'s `engines` fields then. *(Added in plan review 2, 2026-11-19.)*
 
 ### 6.2 No question is open, and one item waits for a later round
 
@@ -630,9 +649,9 @@ Model quality and tool selection belong to evals with a real model, which the ha
 
 ### 6.3 Where Round B slots into the roadmap
 
-Round B starts after P4 closes, and it is the first round of the build phase, because the [roadmap](roadmap.md) stops the current phase at the reviewed plans. A new milestone, "M5 Our agent SDK", covers B1 to B20 with B15b and B19b. The harness round does not wait for the loop: it starts after B1 and B2, and each later harness stage waits for the SDK todos it consumes ([harness plan §6.3][har-63]). The roadmap gains one line for Round B, `P4 ─► B1 … B20 ─► M5`, and the harness plan owns the `B2 ─► N1` branch.
+Round B starts after P4 closes, and it is the first round of the build phase, because the [roadmap](roadmap.md) stops the current phase at the reviewed plans. A new milestone, "M5 Our agent SDK", covers B1 to B20 with B15b and B19b. The harness round does not wait for the loop: it starts after B1 and B2, and each later harness stage waits for the SDK todos it consumes ([harness plan §6.3][har-63]). The roadmap gains one line for Round B, `P4 ─► B1 … B20 ─► M5`, and the harness plan owns the `B2 ─► N1` branch. **Revision (plan review 2, 2026-11-19):** Round B also depends on Round E (M5e), which the owner released for building on 2026-11-19: E1 ─► B10 and B14, and E3 ─► B15. Round E starts after B1, so it runs beside B4–B9.
 
-Round B closes when the triage capstone passes on our own SDK with the contract the eight references pass, and the harness can import every seam in §3.4 by the name this plan gives it. The next step is B1.
+Round B closes when the triage capstone passes on our own SDK with the contract the eight references pass, and the harness can import every seam in §3.4 by the name this plan gives it. As of 2026-11-19, B1–B3 are done, and B4, B6, B7 and E1 have every dependency done.
 
 [g]: ../guides/agent-sdk.md
 [p4-4]: reviews/plan-review.md#4-needs-reconciliation-24-change-upstream-3-drop-1-is-already-covered

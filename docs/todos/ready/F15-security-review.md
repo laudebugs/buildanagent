@@ -1,5 +1,7 @@
 # F15: Security review and abuse tests before sign-ups open
 
+> **On hold (owner, 2026-11-19): do not start until the owner says go.** The owner lifted the build hold for the SDK, harness and Round E only ([roadmap](../../plans/roadmap.md)).
+
 | Field | Value |
 | --- | --- |
 | ID | `F15` |
@@ -11,7 +13,7 @@
 
 ## Goal
 
-Attack the platform before anyone outside signs up: sandbox escape, egress, MCP-config injection, grader access and cross-tenant reads.
+Attack the platform before anyone outside signs up: sandbox escape, egress, MCP-config injection, grader access and cross-tenant reads. The MCP attack classes also cover tool poisoning, tool shadowing, rug pulls (a tool that changes after approval) and SSRF through OAuth discovery fetches ([agent connectors report](../../research/connectors/agent-connectors.md), plan-change item 11; added in plan review 2, 2026-11-19).
 
 ## Context
 
@@ -33,7 +35,7 @@ Attack the platform before anyone outside signs up: sandbox escape, egress, MCP-
 ## Tasks
 
 - [ ] Write the threat model from the plan's §3.
-- [ ] Write attack fixtures for each class.
+- [ ] Write attack fixtures for each class, including tool poisoning, shadowing, rug pulls and OAuth-discovery SSRF.
 - [ ] Fix or record every finding before F16.
 
 ## Acceptance criteria

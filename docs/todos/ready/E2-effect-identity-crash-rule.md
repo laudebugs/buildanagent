@@ -1,13 +1,13 @@
 # E2: Effect identity, the persist-before-execute rule and the crash test
 
-> **On hold (owner, 2026-11-19): do not start until the owner says go.** The owner approved Round E's reviewed todos but said "Approve plan, don't start yet" ([SG2](../../plans/close-sdk-gaps.md#sg2-round-e-may-start-before-round-b-after-b1-and-b5-and-only-once-the-owner-says-go-accepted-on-hold)).
+> **History:** the owner held Round E on 2026-11-19 ("Approve plan, don't start yet") and lifted the hold the same day ("Lift hold on all of E"), so this todo starts once its **Depends on** are done ([SG2](../../plans/close-sdk-gaps.md#sg2-round-e-may-start-before-round-b-after-b1-and-b5-accepted-hold-lifted)).
 
 | Field | Value |
 | --- | --- |
 | ID | `E2` |
 | Status | `ready` |
 | Plan | [Close SDK gaps §4](../../plans/close-sdk-gaps.md#4-round-e-and-its-todos) |
-| Round / milestone | Round E (close the SDK gaps) |
+| Round / milestone | Round E (close the SDK gaps), M5e |
 | Depends on | [E1](E1-safety-core-outcomes.md) |
 | Size | M |
 
@@ -50,7 +50,7 @@ declare function effectKey(scope: EffectScope, businessKey?: string): string;
 
 interface EffectRecord {
   key: string; scope: EffectScope; businessKey?: string;
-  operation: string; inputHash: string;             // canonical hash, the same function D5 signs
+  operation: string; inputHash: string;             // canonicalInputHash() from E1, the same function D5 signs
   state: "started" | "settled";
   outcome?: WriteOutcome;                           // set when settled
   startedAt: string; leaseUntil: string; settledAt?: string; // a started record is live until its lease lapses

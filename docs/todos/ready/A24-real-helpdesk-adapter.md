@@ -7,7 +7,7 @@
 | ID | `A24` |
 | Status | `ready` |
 | Plan | [Build agent §4, Stage 5](../../plans/build-agent.md#45-stage-5-builds-the-rollout-machinery-that-shadow-canary-and-release-will-need) |
-| Round / milestone | Round A (build agent), M7 |
+| Round / milestone | Round A (build agent), M7b |
 | Depends on | [A22](A22-shadow-metrics.md), [N20](N20-credential-proxy.md) |
 | Size | M |
 

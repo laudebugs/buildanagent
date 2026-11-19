@@ -1,5 +1,7 @@
 # F4: Hidden-grader eval runner and signed gate reports
 
+> **On hold (owner, 2026-11-19): do not start until the owner says go.** The owner lifted the build hold for the SDK, harness and Round E only ([roadmap](../../plans/roadmap.md)).
+
 | Field | Value |
 | --- | --- |
 | ID | `F4` |

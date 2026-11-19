@@ -11,7 +11,7 @@
 
 ## Goal
 
-Assemble the 20 repository tasks of HD8's accepted seed suite, run them at k = 5 on our harness and on mini-swe-agent, and publish the first report with discordance, so every later change has a baseline. N38b adds the 10 shared triage tasks once Round A has them.
+Assemble the 20 repository tasks of HD8's accepted seed suite, run them at k = 5 on our harness and on mini-swe-agent, and publish the first report with discordance, so every later change has a baseline. Under the owner's HD8 amendment of 2026-11-19, [W12](W12-coding-agent-eval-tasks.md) adds 10 coding-agent tasks to reach 30 before W8's baseline, and N38b adds the 10 shared triage tasks once Round A has them.
 
 ## Context
 

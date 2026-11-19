@@ -1,6 +1,6 @@
 # Plan: close seven SDK gaps with a standalone safety package first, then fold it into our SDK and harness
 
-- **Status:** Approved, on hold (2026-11-19). The owner accepted SG1–SG5 on 2026-11-18 and 2026-11-19 and approved the reviewed todos, but said "Approve plan, don't start yet": no todo in this plan starts until the owner says go. This follows the owner's broader call of 2026-11-18, "let's not build anything first".
+- **Status:** Approved; being built (2026-11-19). The owner accepted SG1–SG5 on 2026-11-18 and 2026-11-19 and approved the reviewed todos. The owner first put the plan on hold ("Approve plan, don't start yet"), then lifted the hold on 2026-11-19 for all of Round E ("Lift hold on all of E"), so Round E is built as part of the SDK and harness build.
 - **Date:** 2026-11-18
 - **Asked for by:** the project owner (2026-11-18): "Let's make detailed todos for these gaps. And review all them before beginning work on them."
 - **Builds on:** the [server rollback report][sr], the [sagas report][sg], the [rewind versus rollback report][rr], the [portable agents report][pa], the [agent-building platforms report][abp] and the [feature table][ft]
@@ -35,7 +35,7 @@ The amended todos in §3 make our SDK and harness use the same package once Roun
 | ID | Decision | Status | ADR |
 | --- | --- | --- | --- |
 | SG1 | The safety core is a standalone package that our SDK later imports | Accepted (owner, 2026-11-18) | [0043](../decisions/0043-standalone-safety-core.md) |
-| SG2 | Round E may start before Round B, after B1 and B5, and only once the owner says go | Accepted (owner, 2026-11-19); on hold until the owner says go | none |
+| SG2 | Round E may start before Round B, after B1 and B5 | Accepted (owner, 2026-11-19); hold lifted (owner, 2026-11-19) | none |
 | SG3 | A write reports one of five outcomes, and `unknown` is never retried with a fresh key | Accepted (owner, 2026-11-18) | none |
 | SG4 | Generated agents' model calls never go through Vercel AI Gateway | Accepted (owner, 2026-11-18) | none; narrows [0040](../decisions/0040-tenant-cloud-connections-and-byok.md), follow-up below |
 | SG5 | A plan approval keeps its own signature, separate from D5's signed-request kinds | Accepted (owner, 2026-11-19) | none |
@@ -52,11 +52,13 @@ The amended todos in §3 make our SDK and harness use the same package once Roun
 
 **What changes.** ADR 0001 gains a third package, ADR 0009's "exported `projectCallCost()` (todo B14)" becomes "exported from the gateway (todo B5)", and ADR 0005's interface moves package without changing its rules or its shape. ADR 0033's seven portable seams gain an eighth, `EffectStore`, which N45's suite runs on every target. ADR 0043 records all four. The owner accepted it on 2026-11-18, so those consequences now hold, while ADRs 0001, 0005, 0009 and 0033 keep their own text.
 
-### SG2. Round E may start before Round B, after B1 and B5, and only once the owner says go (accepted, on hold)
+### SG2. Round E may start before Round B, after B1 and B5 (accepted, hold lifted)
 
-**Accepted by the owner on 2026-11-19** as the ordering, with a hold: "Approve plan, don't start yet." Round E stays in `ready/`, and no E todo starts until the owner says go.
+**Accepted by the owner on 2026-11-19** as the ordering, first with a hold: "Approve plan, don't start yet."
 
-Round E depends on [B1](../todos/done/B1-sdk-workspace-scaffold.md), which creates `packages/`, and on [B5](../todos/ready/B5-usage-cost-catalog.md), which ships the catalog that E5 needs. B5 sits at the end of the gateway chain (B1 → B2 → B3 → B4 → B5), and that chain needs none of the loop. E1–E4b and E6 need only B1, so they can run beside B2–B5. No todo in this plan or its amendments starts until the owner says go. The owner approved the reviewed set on 2026-11-19 but put it on hold, following the instruction of 2026-11-18, "let's not build anything first".
+**Amended (owner, 2026-11-19):** the owner lifted the hold for all of Round E ("Lift hold on all of E"). Round E is part of the SDK and harness build, and its todos start by the ordering below.
+
+Round E depends on [B1](../todos/done/B1-sdk-workspace-scaffold.md), which creates `packages/`, and on [B5](../todos/ready/B5-usage-cost-catalog.md), which ships the catalog that E5 needs. B5 sits at the end of the gateway chain (B1 → B2 → B3 → B4 → B5), and that chain needs none of the loop. E1–E4b and E6 need only B1, so they can run beside B2–B5, and E5 waits for B5. The amended B and N todos in §3 start when their own **Depends on** are done.
 
 ### SG3. A write reports one of five outcomes, and `unknown` is never retried with a fresh key (accepted)
 
@@ -84,9 +86,11 @@ The server rollback report proposes four failure outcomes, `not_applied`, `compe
 | 6 | One code base on local Node, Cloudflare, AWS and Vercel | The harness, fully: [N41](../todos/ready/N41-scheduler-wake.md)–[N49](../todos/ready/N49-hosted-sandbox-measurement.md) with the [N45](../todos/ready/N45-portability-conformance-suite.md) suite ([ADR 0033](../decisions/0033-three-deployment-targets.md)) | [E7](../todos/ready/E7-safety-portability.md); a revision to N45 adds the safety stores to the suite |
 | 7 | The user's own key, with no silent fallback | Partly: our gateway takes an explicit `apiKey` ([build-sdk.md §3.2][sdk-32]); [F9](../todos/ready/F9-byok.md) and [ADR 0040](../decisions/0040-tenant-cloud-connections-and-byok.md) for the platform. The AI SDK has three silent paths: a provider key from the environment, a base URL from the environment, and string model ids that route through Vercel AI Gateway | [E6](../todos/ready/E6-byok-no-fallback.md); revisions to [B4](../todos/ready/B4-gateway-runtime.md) and F9 |
 
-[F5](../todos/ready/F5-agent-safety-package.md) keeps its place in the platform plan, but its scope moves into Round E. A revision makes F5 depend on E7, which closes the round, instead of B15, and narrows it to releasing the package for the generation templates. PF5's text in the platform plan still names B15's `hmacSigner()`; under ADR 0043 the signer comes from E3.
+[F5](../todos/ready/F5-agent-safety-package.md) keeps its place in the platform plan, but its scope moves into Round E. A revision makes F5 depend on E7, which closes the round, instead of B15, and narrows it to releasing the package for the generation templates. Under ADR 0043 the signer comes from E3, and PF5's text in the platform plan says so since plan review 2 (2026-11-19).
 
 Two more revisions follow from SG1, which the owner accepted on 2026-11-18. [B5](../todos/ready/B5-usage-cost-catalog.md) exports `projectCallCost()` and the token-level `projectCost()` it calls, so E5 and B14 share one formula. [B10](../todos/ready/B10-tool-runtime.md) also adds an optional `effect` declaration to `ToolDefinition`, which the N7 and N40 revisions read to tell a write from a read. Because the owner accepted ADR 0043, [B14](../todos/ready/B14-budget-progress.md) and [B15](../todos/ready/B15-signed-pauses.md) carry revisions too: B14 imports `projectCallCost()` from the gateway, and B15 imports the signer and input hash from the safety package and depends on E3.
+
+**Revision (plan review 2, 2026-11-19).** Four clarifications follow. First, E1 builds `canonicalInputHash()`, because E2, B10 and B14 need it before E3 runs, so B14 also depends on E1. Second, the safety package owns `SignedPendingRequest` and `Resolution`, and the SDK re-exports them (E3 records this as pending owner confirmation). Third, the package's root export imports no third-party SDK, and the `ai` and `agents` adapters live in `./ai` and `./agents` subpaths (E1; owner to confirm). Fourth, W6 uses E2's `guardedWrite()` for its pushes and pull requests, the owner's choice of 2026-11-19 ("E2 owns it; W6 uses it").
 
 ## 4. Round E and its todos
 
@@ -116,9 +120,9 @@ Every acceptance criterion in Round E runs offline: against the AI SDK's `MockLa
 1. **The third-party SDKs move.** E3, E5 and E6 wrap documented hooks (`needsApproval`, `toolApproval`, `wrapLanguageModel`, explicit provider keys), and the package pins exact versions, following ADR 0038 ([ADR 0038](../decisions/0038-generated-agent-sdk-policy.md)).
 2. **A model outside the middleware escapes the cap.** In `ai` 7.0.162, `generateText` and `streamText` call the step model's `doGenerate` or `doStream` on every step and every retry, so a `wrapLanguageModel` middleware sees each provider request (fact-check rows 37–38). A `prepareStep` that returns an unwrapped model, or a string model id, bypasses it, so E5 wraps the whole provider and E6 refuses string ids.
 3. **Outcome wording is untested on models.** No published study measures how models respond to outcome fields ([server rollback report][sr-out]). E1's eval tasks are the first measurement.
-4. **The hold may outlast the pins.** Round E is approved but on hold. If it starts after `agents` 0.33.0 or `ai` 7.0.162 have moved on, E1's first task re-pins them under ADR 0038 and reruns their verify harnesses before any E todo builds on them.
+4. **The pins may have moved.** Round E was on hold until 2026-11-19. If `agents` 0.33.0 or `ai` 7.0.162 have moved on when E1 starts, E1's first task re-pins them under ADR 0038 and reruns their verify harnesses before any E todo builds on them.
 
-Round E fits the roadmap beside Round B: B1 ─► E1 … E7, with E5 after B5, once the owner lifts the hold. The folded-in revisions in §3 run when their own todos come up in Rounds B, N and F.
+Round E fits the roadmap beside Round B: B1 ─► E1 … E7, with E5 after B5. The owner lifted the hold on 2026-11-19. The folded-in revisions in §3 run when their own todos come up in Rounds B, N and F.
 
 [sr]: ../research/reversible-actions/server-rollback.md
 [sr-out]: ../research/reversible-actions/server-rollback.md#after-a-rollback-tell-the-model-one-of-four-outcomes-in-the-result-body
