@@ -7,6 +7,7 @@
   "description": "Model gateway for the buildanagent SDK: provider adapters, streaming, retries and cost accounting.",
   "exports": {
     ".": "./src/index.ts",
+    "./anthropic": "./src/adapters/anthropic/index.ts",
     "./testing": "./src/testing/index.ts",
     "./testing/setup": "./src/testing/setup.ts"
   },

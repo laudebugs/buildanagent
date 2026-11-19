@@ -5,8 +5,7 @@
  * billed total wins over the catalog, and a model the catalog lacks has an unknown price, never a guessed zero.
  */
 import type { CatalogEntry, RateTier } from "./catalog.ts";
-import type { Model } from "./runtime-types.ts";
-import type { StreamOptions } from "./spec.ts";
+import type { Model, ModelCallOptions } from "./runtime-types.ts";
 import type { AssistantMessage, ContentBlock, Cost, Message, ModelContext, Usage } from "./types.ts";
 import { emptyUsage, totalInput } from "./usage.ts";
 
@@ -145,7 +144,7 @@ export function estimateInputTokens(context: ModelContext): number {
  * call's `maxOutputTokens`, or the model's own output limit when the options leave it out. Priced with the model's catalog
  * entry, so a model the catalog lacks projects `{ total: null, basis: "unknown" }`.
  */
-export function projectCallCost(model: Model, context: ModelContext, options: StreamOptions = {}): Cost {
+export function projectCallCost(model: Model, context: ModelContext, options: ModelCallOptions = {}): Cost {
   const tokens = {
     inputTokens: estimateInputTokens(context),
     maxOutputTokens: options.maxOutputTokens ?? model.caps.maxOutputTokens,

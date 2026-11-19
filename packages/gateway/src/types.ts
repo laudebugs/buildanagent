@@ -54,12 +54,24 @@ export interface Cost {
   catalogAsOf?: string;
 }
 
+/**
+ * A failure an adapter can name in provider-neutral terms. `"thinking_prefix_mismatch"`: the provider rejected a
+ * reasoning block because the transcript before it changed after the block was written.
+ */
+export type ModelErrorCode = "thinking_prefix_mismatch";
+
 export interface AssistantMessage {
   role: "assistant";
   content: ContentBlock[];
   model: ModelRef;
   stopReason: "stop" | "length" | "tool_calls" | "error" | "aborted";
-  error?: { kind: "retryable" | "overflow" | "quota" | "fatal"; message: string; status?: number };
+  error?: {
+    kind: "retryable" | "overflow" | "quota" | "fatal";
+    message: string;
+    status?: number;
+    /** A provider-neutral name for a failure the caller may want to handle on its own, when the adapter knows one. */
+    code?: ModelErrorCode;
+  };
   /** The tokens of every attempt the call made, failed attempts included, because the provider bills them all. */
   usage: Usage;
   /**

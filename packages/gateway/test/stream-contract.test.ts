@@ -136,3 +136,33 @@ test("rejects a retry event after output", () =>
       ),
     /retry arrived after output/,
   ));
+
+test("a warning between start and the terminal passes", async () => {
+  await assertStreamContract(
+    streamOf<ModelEvent>([
+      { type: "start" },
+      { type: "warning", code: "unsupported_option", message: "dropped temperature" },
+      { type: "done", message: message("stop") },
+    ]),
+  );
+});
+
+test("rejects a warning before start", () =>
+  rejects(
+    [
+      { type: "warning", code: "unsupported_option", message: "x" },
+      { type: "done", message: message("stop") },
+    ],
+    /must begin with start/,
+  ));
+
+test("a retry after a warning passes, because a warning is not output", async () => {
+  await assertStreamContract(
+    streamOf<GatewayEvent>([
+      { type: "start" },
+      { type: "warning", code: "unsupported_option", message: "x" },
+      { type: "retry", attempt: 1, delayMs: 0, error: "overloaded" },
+      { type: "done", message: message("stop") },
+    ]),
+  );
+});

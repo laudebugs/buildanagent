@@ -8,11 +8,13 @@
  *   counts the usage and cost of every attempt, because the provider bills failed attempts too. Each attempt is
  *   priced on its own before the sum, because a tiered rate depends on that request's input alone (D4).
  * - A stream that throws is treated like one that ends with an `error` event, so the caller always gets a terminal.
+ * - A warning an earlier attempt already streamed, with the same code and message, is not streamed again, because a
+ *   retry sends the same request and an adapter warns about it each time.
  * - Each wait is capped at 60 s. The provider's retry-after hint isn't used yet: adapters see the response headers,
  *   and no event carries a hint to the gateway.
  */
 
-import { classifyError } from "./classify.ts";
+import { classifyError, isTransportFailure } from "./classify.ts";
 import { foldCost } from "./cost.ts";
 import type { GatewayEvent, Sleep } from "./runtime-types.ts";
 import type { ModelEvent } from "./spec.ts";
@@ -83,10 +85,27 @@ interface CallState {
   carried: Usage;
   /** The cost of the failed attempts so far, added the same way; `undefined` until an attempt has failed. */
   carriedCost: Cost | undefined;
+  /** The code and message of each warning the earlier attempts streamed. */
+  readonly warned: Set<string>;
+}
+
+/** One attempt's progress: whether content has reached the caller, and the warnings it streamed. */
+interface AttemptProgress {
+  seen: boolean;
+  readonly warned: Set<string>;
+}
+
+/** True for a warning an earlier attempt streamed; any other warning is recorded as this attempt's. */
+function isRepeatedWarning(event: ModelEvent, call: CallState, output: AttemptProgress): boolean {
+  if (event.type !== "warning") return false;
+  const key = JSON.stringify([event.code, event.message]);
+  if (call.warned.has(key)) return true;
+  output.warned.add(key);
+  return false;
 }
 
 function isBlockEvent(event: ModelEvent): boolean {
-  return event.type !== "start" && event.type !== "done" && event.type !== "error";
+  return event.type !== "start" && event.type !== "warning" && event.type !== "done" && event.type !== "error";
 }
 
 /** The final message: this attempt's usage and `cost`, with the failed attempts' usage and cost added. */
@@ -100,11 +119,6 @@ function withCarried(message: AssistantMessage, call: CallState, cost: Cost): As
 function withCarriedUsage(event: GatewayEvent, call: CallState): GatewayEvent {
   if (event.type !== "done" && event.type !== "error") return event;
   return { ...event, message: withCarried(event.message, call, foldCost(event.message, call.price)) };
-}
-
-/** True for the errors `fetch` throws when a request never gets a response. */
-function isTransportFailure(thrown: unknown): boolean {
-  return thrown instanceof TypeError && /fetch|network|socket|connect/i.test(thrown.message);
 }
 
 /**
@@ -132,13 +146,14 @@ async function* forwardEvents(
   events: AsyncIterable<ModelEvent>,
   call: CallState,
   mayRetry: boolean,
-  output: { seen: boolean },
+  output: AttemptProgress,
 ): AsyncGenerator<GatewayEvent, AttemptOutcome> {
   for await (const event of events) {
     if (event.type === "start") {
       if (call.started) continue;
       call.started = true;
     }
+    if (isRepeatedWarning(event, call, output)) continue;
     if (event.type === "error" && mayRetry && !output.seen && event.message.error?.kind === "retryable") {
       return { retry: true, failure: event.message, cost: foldCost(event.message, call.price) };
     }
@@ -154,13 +169,15 @@ async function* runAttempt(
   call: CallState,
   mayRetry: boolean,
 ): AsyncGenerator<GatewayEvent, AttemptOutcome> {
-  const output = { seen: false };
+  const output: AttemptProgress = { seen: false, warned: new Set() };
   let failure: AssistantMessage;
   try {
     return yield* forwardEvents(events, call, mayRetry, output);
   } catch (thrown) {
     // A thrown stream is a failure like any other: it ends in an `error` terminal and may be retried.
     failure = thrownFailure(thrown, call);
+  } finally {
+    for (const key of output.warned) call.warned.add(key);
   }
   // The failure's unknown cost is final: pricing its zero usage would claim a known zero.
   if (mayRetry && !output.seen && failure.error?.kind === "retryable") {
@@ -199,6 +216,7 @@ export async function* withRetries(
     started: false,
     carried: emptyUsage(),
     carriedCost: undefined,
+    warned: new Set(),
   };
   for (let n = 1; ; n += 1) {
     const outcome = yield* runAttempt(attempt(n), call, n <= settings.retries);

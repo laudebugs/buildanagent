@@ -17,7 +17,10 @@ export interface FailedRequest {
 
 // Quota and billing errors are final even when the status is 429, because waiting does not refill a budget. Only
 // explicit billing codes and phrases count: a rate-limit message that merely mentions "quota" stays retryable.
-const QUOTA = /insufficient_quota|exceeded your current quota|credit balance is too low|billing_hard_limit/i;
+// Anthropic's `enforced_spend_limit_reached` is a 429 for a monthly tier threshold (Messages API reference, Errors,
+// https://platform.claude.com/docs/en/api/messages/create, as of November 2026), so waiting does not clear it.
+const QUOTA =
+  /insufficient_quota|exceeded your current quota|credit balance is too low|billing_hard_limit|enforced_spend_limit_reached/i;
 // A per-minute "request too large" 429 is a rate limit, not a full context, so only context phrases count here.
 const OVERFLOW = /context[ _-]?(length|window)|prompt is too long|maximum context/i;
 // Other 5xx statuses, such as 501 and 505, are permanent.
@@ -35,4 +38,13 @@ export function classifyError(failure: FailedRequest): ErrorKind {
   if (failure.status === undefined) return "retryable";
   if (RETRYABLE_STATUSES.has(failure.status)) return "retryable";
   return "fatal";
+}
+
+/**
+ * True for the errors a `fetch` throws when a request gets no response, or when its body breaks off: undici names a
+ * failed request "fetch failed" and a body cut short "terminated". Any other throw is a bug or a guard, so the
+ * gateway never retries it.
+ */
+export function isTransportFailure(thrown: unknown): boolean {
+  return thrown instanceof TypeError && /fetch|network|socket|connect|terminated/i.test(thrown.message);
 }

@@ -49,6 +49,15 @@ test("a model without a catalog entry gets the adapter's default caps", () => {
   assert.deepEqual(model.caps, TEST_CAPS);
 });
 
+test("a Model's options have no caps, and caps passed anyway are replaced by the resolved ones", async () => {
+  const adapter = new FailingAdapter([{ reply: "ok" }]);
+  const model = createModel({ adapter, id: "unlisted", catalog });
+  const wrong = { ...TEST_CAPS, maxOutputTokens: 1 };
+  // @ts-expect-error createModel() sets caps itself, so a Model's options leave them out.
+  await model.complete(context, { caps: wrong });
+  assert.deepEqual(adapter.calls[0]?.caps, model.caps);
+});
+
 test("a model with no catalog entry and no adapter defaults is refused", () => {
   const { defaultCaps: _defaults, ...bare } = new FailingAdapter([]);
   const adapter = { ...bare, stream: () => ({ async *[Symbol.asyncIterator]() {} }) };
