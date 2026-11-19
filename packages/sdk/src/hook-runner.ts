@@ -98,6 +98,14 @@ function blocked(text: string, details: Record<string, unknown>): ToolResult {
   return { content: [{ type: "text", text }], isError: true, details };
 }
 
+/**
+ * A resolution's optional `reason` or `by`, kept only when it is a string. A resolution comes unchecked from the
+ * host's store or handler, so any other value is dropped rather than shown to the model as `null` or `[object Object]`.
+ */
+export function textOf(value: unknown): string | undefined {
+  return typeof value === "string" ? value : undefined;
+}
+
 /** The error result of a call a person denied, with their reason when they gave one. */
 export function denied(
   tool: string,
@@ -366,16 +374,22 @@ export class HookRunner {
       const text = `Tool call "${tool}" was not run, because the run was aborted while it waited for approval.`;
       return { blocked: blocked(text, { decision: "ask", requestId: request.id }) };
     }
-    const check = await verifyResolution(request, answer as Resolution, {
-      signer,
-      call: { callId: call.callId, tool, input },
-    });
+    let check: Awaited<ReturnType<typeof verifyResolution>>;
+    try {
+      check = await verifyResolution(request, answer as Resolution, {
+        signer,
+        call: { callId: call.callId, tool, input },
+      });
+    } catch {
+      // A custom signer whose verify() throws fails the check; its message may hold anything, so it isn't passed on.
+      return refuse("its approval could not be verified", "the approval was refused (error)");
+    }
     if (!check.ok) return refuse("its approval could not be verified", `the approval was refused (${check.cause})`);
     const resolution = check.resolution;
     // An unchanged input is the checked one the gate saw, which the pipeline runs as it is; a replacement is passed on.
     if ("decision" in resolution && resolution.decision === "allow") return unchanged ? undefined : { input };
-    const reason = "reason" in resolution && typeof resolution.reason === "string" ? resolution.reason : undefined;
-    return { blocked: denied(tool, reason, request.id, resolution.by) };
+    const reason = "reason" in resolution ? textOf(resolution.reason) : undefined;
+    return { blocked: denied(tool, reason, request.id, textOf(resolution.by)) };
   }
 
   /**

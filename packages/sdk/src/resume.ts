@@ -7,7 +7,7 @@
 import type { AssistantMessage, Message } from "@buildanagent/gateway";
 import { SdkError } from "./errors.js";
 import type { AgentEventBody, ResolutionRejectionCause } from "./events.js";
-import { denied } from "./hook-runner.js";
+import { denied, textOf } from "./hook-runner.js";
 import type { Context } from "./result.js";
 import type { ToolCall, ToolResult } from "./tools/types.js";
 import {
@@ -262,15 +262,19 @@ async function verdictOf(
   recheck: Recheck | undefined,
   ctx: JudgeContext,
 ): Promise<Verdict> {
-  if ("answer" in resolution) {
+  const by = textOf(resolution.by);
+  // The verified request's kind decides, never the resolution's fields: a resolution that carries both an `answer`
+  // and a `decision` passes the check for either kind, and an approval must never take a host's text as its result.
+  if (request.kind === "clarification") {
     const result: ToolResult = {
-      content: [{ type: "text", text: resolution.answer }],
-      details: { requestId: request.id, ...(resolution.by === undefined ? {} : { by: resolution.by }) },
+      content: [{ type: "text", text: (resolution as { answer: string }).answer }],
+      details: { requestId: request.id, ...(by === undefined ? {} : { by }) },
     };
     return { kind: "result", call, result };
   }
-  if (resolution.decision === "deny") {
-    return { kind: "result", call, result: denied(call.name, resolution.reason, request.id, resolution.by) };
+  const decision = resolution as Extract<Resolution, { decision: unknown }>;
+  if (decision.decision === "deny") {
+    return { kind: "result", call, result: denied(call.name, textOf(decision.reason), request.id, by) };
   }
   const blocked = recheck === undefined ? undefined : await policyBlock(recheck, request, input, ctx);
   if (blocked !== undefined) {

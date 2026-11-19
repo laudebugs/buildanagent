@@ -456,7 +456,7 @@ async function runTools(state: LoopState, message: AssistantMessage): Promise<re
  * it ends `awaiting_approval` when any waits for an approval, or `clarification_requested` when all wait for answers.
  */
 function pausedOutcome(state: LoopState, message: AssistantMessage): Outcome {
-  const order = message.content.flatMap((block) => (block.type === "tool_call" ? [block.callId] : []));
+  const order = callOrderOf(message);
   const pending = [...state.pending].sort((a, b) => order.indexOf(a.callId) - order.indexOf(b.callId));
   const approval = pending.some((request) => request.kind === "approval");
   return {
@@ -474,10 +474,10 @@ function runErrorOf(message: AssistantMessage): RunError {
 }
 
 /**
- * The stop check after one step. A pause, including a question for the user, or a finished answer wins over an abort that came
- * too late to change it; otherwise an abort stops the run before the step cap does. A pause wins over a finished
- * answer too, because its call is still waiting. A text answer cut off at the output limit
- * also counts as finished: its message keeps `stopReason: "length"`.
+ * The stop check after one step. A pause, including a question for the user, or a finished answer wins over an abort
+ * that came too late to change it; otherwise an abort stops the run before the step cap does. A pause wins over a
+ * finished answer too, because its call is still waiting. A text answer cut off at the output limit also counts as
+ * finished: its message keeps `stopReason: "length"`.
  */
 function stopCheck(
   state: LoopState,
@@ -659,13 +659,46 @@ function batchOf(message: AssistantMessage, calls: readonly ToolCall[]): Assista
   return { ...message, content: [...calls], stopReason: "tool_calls" };
 }
 
+/** The call ids of `message`'s tool calls, in model order. */
+function callOrderOf(message: AssistantMessage): string[] {
+  return message.content.flatMap((block) => (block.type === "tool_call" ? [block.callId] : []));
+}
+
+/**
+ * Puts the tool messages `list` gained from `from` on in the model's order of their calls, as a step records them.
+ * A resume settles its calls by verdict, so without this a denial could come before an approval the model made first.
+ */
+function inModelOrder(list: Message[], from: number, order: readonly string[]): void {
+  const rank = (entry: Message) => (entry.role === "tool" ? order.indexOf(entry.callId) : order.length);
+  const tail = list.splice(from).sort((a, b) => rank(a) - rank(b));
+  list.push(...tail);
+}
+
 /**
  * Acts on the verdicts for a resumed context's waiting calls, before the run's first model call, which none of this
- * counts as. Verified answers and denials reach the model as results; verified approvals run, without the gate, with
- * the input their requests sign; requests that still wait stay pending; and calls whose checks failed ask again,
- * through the gate but never running. Returns the paused outcome when any call still waits.
+ * counts as, and records their results in the model's order. Returns the paused outcome when any call still waits,
+ * and `done` when none does and an approved call's result ends the run, as `terminate` does in a step.
  */
 async function resume(state: LoopState, setup: ResumeSetup): Promise<Outcome | undefined> {
+  const { message } = setup;
+  const from = { messages: state.messages.length, added: state.added.length };
+  try {
+    return await settle(state, setup);
+  } finally {
+    if (message !== undefined) {
+      const order = callOrderOf(message);
+      inModelOrder(state.messages, from.messages, order);
+      inModelOrder(state.added, from.added, order);
+    }
+  }
+}
+
+/**
+ * Verified answers and denials reach the model as results; verified approvals run, without the gate, with the input
+ * their requests sign; requests that still wait stay pending; and calls whose checks failed ask again, through the
+ * gate but never running.
+ */
+async function settle(state: LoopState, setup: ResumeSetup): Promise<Outcome | undefined> {
   const { signer } = state.setup;
   state.hooks.reserveRequestIds(setup.open.map((entry) => entry.request.id));
   const verdicts = await judgeOpenCalls(setup, { signer, send: (body) => state.send(body) });
@@ -679,11 +712,13 @@ async function resume(state: LoopState, setup: ResumeSetup): Promise<Outcome | u
   const { message } = setup;
   if (message === undefined) return undefined;
   const run = of("run").map((verdict) => verdict.call);
+  let ran: readonly ToolCallResult[] = [];
   if (run.length > 0) {
     const { after } = state.hooks.pipelineHooks();
     const ctx = { ...pipelineOf(state, asks), approved: true, ...(after === undefined ? {} : { after }) };
+    // A verified request names its tool, and the run signed it only for a call to a tool its request had sent.
     const results = await runToolCalls(batchOf(message, run), state.setup.tools, ctx);
-    if (asks.length > 0) await askUser(state, results, asks);
+    ran = asks.length > 0 ? await askUser(state, results, asks) : results;
   }
   for (const { request, input } of of("wait")) {
     state.pending.push(request);
@@ -692,9 +727,13 @@ async function resume(state: LoopState, setup: ResumeSetup): Promise<Outcome | u
   const again = of("reissue").map((verdict) => verdict.call);
   if (again.length > 0) {
     const ctx = { ...pipelineOf(state, asks), gate: state.hooks.reissueGate() };
-    await runToolCalls(batchOf(message, again), state.setup.tools, ctx);
+    // Nothing verified these calls, so only the tools a request sends by default may ask again: a stored context
+    // can't get a new signed request for a tool the model is never sent.
+    await runToolCalls(batchOf(message, again), directTools(state.setup.tools), ctx);
   }
-  return state.pending.length > 0 ? pausedOutcome(state, message) : undefined;
+  if (state.pending.length > 0) return pausedOutcome(state, message);
+  const ends = ran.some(({ result }) => result.terminate === true && !result.isError);
+  return ends ? { stopReason: "done", output: state.output } : undefined;
 }
 
 /** `resume()`, with a hook that failed while the run fails closed ending the run as a step's failure would. */

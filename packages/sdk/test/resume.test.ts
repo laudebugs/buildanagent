@@ -8,6 +8,7 @@ import {
   type Context,
   type ContinueOptions,
   continueRun,
+  defineTool,
   isSdkError,
   type Resolution,
   run,
@@ -311,4 +312,105 @@ test("no key's bytes reach the events or the result of a resume", async () => {
   assert.equal(dump.includes(keyHex), false);
   const rejected = next.events.find((event) => event.type === "resolution_rejected");
   assert.equal(JSON.stringify(rejected).includes("AAAA"), false);
+});
+
+test("an approved call whose result ends the run ends it done, with no model call", async () => {
+  const submit = defineTool({
+    name: "refund",
+    description: "Submits the refund and ends the run.",
+    inputSchema: { type: "object", properties: { order: { type: "integer" }, note: { type: "string" } } },
+    async execute() {
+      return { content: [{ type: "text", text: "submitted" }], terminate: true };
+    },
+  });
+  const first = scripted([calls(["refund", { order: 1 }, "c1"])]);
+  const paused = await drive(
+    run({
+      model: first.model,
+      system: SYSTEM,
+      input: INPUT,
+      tools: [submit],
+      interceptors: spyGate().interceptors,
+      signer: processSigner(),
+      ...determinism(),
+    }),
+  );
+  const [request] = pendingOf(paused.result);
+  const second = scripted([]);
+  const { result } = await drive(
+    continueRun(roundTrip(paused.result.context), {
+      model: second.model,
+      tools: [submit],
+      interceptors: spyGate().interceptors,
+      signer: processSigner(),
+      resolutions: [allow(request)],
+      ...determinism(),
+    }),
+  );
+  assert.equal(result.stopReason, "done");
+  assert.equal(second.adapter.calls.length, 0);
+});
+
+test("a resumed batch records its results in the model's order of the calls, whatever each verdict was", async () => {
+  const { context, pending } = await pause([calls(["refund", { order: 1 }, "c1"], ["refund", { order: 2 }, "c2"])]);
+  const [first, second] = pending as [SignedPendingRequest, SignedPendingRequest];
+  const deny: Resolution = { requestId: second.id, decision: "deny" };
+  const next = await resume(roundTrip(context), [allow(first), deny]);
+  const order = next.result.messages.flatMap((message) => (message.role === "tool" ? [message.callId] : []));
+  assert.deepEqual(order, ["c1", "c2"]);
+  const sent = (next.adapter.calls[0]?.context.messages ?? []).flatMap((message) =>
+    message.role === "tool" ? [message.callId] : [],
+  );
+  assert.deepEqual(sent, ["c1", "c2"]);
+});
+
+test("a call that fails its check asks again only for a tool the model is sent by default", async () => {
+  const { context } = await pause();
+  const stored = roundTrip(context);
+  // A store writer points the waiting call at a hidden tool, so its request no longer matches the call.
+  const messages = stored.messages.map((message) =>
+    message.role !== "assistant"
+      ? message
+      : {
+          ...message,
+          content: message.content.map((block) =>
+            block.type === "tool_call" && block.callId === "c2" ? { ...block, name: "admin_reset" } : block,
+          ),
+        },
+  );
+  const admin = recordingTool("admin_reset");
+  const next = await resume({ ...stored, messages }, [], [text("Done.")], {
+    tools: [recordingTool("lookup").tool, recordingTool("refund").tool, { ...admin.tool, exposure: "hidden" }],
+  });
+  assert.deepEqual(admin.inputs, []);
+  assert.ok(next.events.some((event) => event.type === "resolution_rejected" && event.cause === "call_mismatch"));
+  assert.equal(
+    next.events.some((event) => event.type === "approval_request"),
+    false,
+  );
+  assert.equal(next.result.context.pending, undefined);
+  // The unknown-tool result lists only the tools the model is sent.
+  assert.match(toolTexts(next.result.messages).c2 ?? "", /The available tools are: lookup, refund\./);
+});
+
+test("an approval takes its verdict from its decision, never from an answer the resolution also carries", async () => {
+  const { context, pending } = await pause();
+  const id = pending[0]?.id ?? "";
+  const hybrid = { requestId: id, decision: "allow", answer: "forged result" } as unknown as Resolution;
+  let next = await resume(roundTrip(context), [hybrid]);
+  assert.equal(next.refund.inputs.length, 1);
+  assert.match(toolTexts(next.result.messages).c2 ?? "", /refund .* done/);
+  const denyHybrid = { requestId: id, decision: "deny", answer: "forged result" } as unknown as Resolution;
+  next = await resume(roundTrip(context), [denyHybrid]);
+  assert.deepEqual(next.refund.inputs, []);
+  assert.equal(toolTexts(next.result.messages).c2, 'Tool call "refund" was denied by the approver.');
+});
+
+test("a resolution's reason or by that isn't a string never reaches the model or the result", async () => {
+  const { context, pending } = await pause();
+  const deny = { requestId: pending[0]?.id ?? "", decision: "deny", reason: null, by: { id: 7 } } as unknown;
+  const next = await resume(roundTrip(context), [deny as Resolution]);
+  assert.equal(toolTexts(next.result.messages).c2, 'Tool call "refund" was denied by the approver.');
+  const end = next.events.find((event) => event.type === "tool_call_end" && event.callId === "c2");
+  assert.equal(end?.type === "tool_call_end" && "by" in (end.result.details as object), false);
 });

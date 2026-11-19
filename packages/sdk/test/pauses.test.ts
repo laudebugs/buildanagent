@@ -123,3 +123,34 @@ test("blockingApprovals() takes a function, and only one joins", () => {
     (error) => isSdkError(error) && error.code === "invalid_run_options",
   );
 });
+
+test("a signer whose verify() throws denies the call without passing its message on, and the run goes on", async () => {
+  const real = processSigner();
+  const signer = {
+    keyId: real.keyId,
+    sign: (payload: Uint8Array) => real.sign(payload),
+    verify: async (): Promise<boolean> => {
+      throw new Error("kms said: token abc123");
+    },
+  };
+  const refund = recordingTool("refund");
+  const { model } = scripted([calls(["refund", { order: 1 }, "c1"]), text("Done.")]);
+  const { result, events } = await drive(
+    run({
+      model,
+      system: "You handle refunds.",
+      input: "Refund order 1.",
+      tools: [refund.tool],
+      interceptors: composeInterceptors(
+        spyGate().interceptors,
+        blockingApprovals((request) => ({ requestId: request.id, decision: "allow" })),
+      ),
+      signer,
+      ...determinism(),
+    }),
+  );
+  assert.deepEqual(refund.inputs, []);
+  assert.equal(result.stopReason, "done");
+  assert.ok(events.some((event) => event.type === "hook_error" && event.hook === "blockingApprovals"));
+  assert.equal(JSON.stringify({ events, result }).includes("abc123"), false);
+});

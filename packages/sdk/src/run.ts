@@ -513,9 +513,11 @@ export function run<S = unknown>(options: RunOptions<S> & RunInput): Run<S> {
  *   the call's result;
  * - a request no resolution names still waits;
  * - a request or resolution that fails its check runs nothing, emits `resolution_rejected`, and the call asks again
- *   with a new request: the gate is asked as for a new call, and the call pauses even when the gate allows it.
+ *   with a new approval request: the gate is asked as for a new call, and the call pauses even when the gate allows
+ *   it. A call to a tool the model isn't sent by default gets the unknown-tool error result instead.
  *
- * Settling the requests is not a step. When a call still waits, the run ends paused again without a model call.
+ * Settling the requests is not a step. When a call still waits, the run ends paused again without a model call, and
+ * when none does and an approved call's result sets `terminate`, the run ends `done` without one.
  * Each request answers once per context, but the SDK can't see other processes: mark a request used in your store
  * before you resume it, so a second resume of the same stored context is refused there.
  *
