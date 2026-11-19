@@ -18,7 +18,7 @@ The ⚠️ rows fall into two groups. Twelve are our own inference, drawn in the
 
 ## Link check
 
-LINKCHECK-PLACEHOLDER
+Every relative link and anchor in the report, this log and the notes resolves. A script extracts each Markdown link target that is not `http(s):` or `mailto:`, resolves it against the file's folder, and matches each `#anchor` against GitHub-style slugs of the target's headings. On 2026-11-19 it checked 16 links in the report (12 distinct targets, 3 of them with anchors), 13 in this log and 9 in the notes, with no failures. External links were fetched during the fact-check and returned their pages. Four old addresses redirect, and the report cites the address the reader will land on or records the redirect: OpenAI's distillation and RFT guides (row 42), Google's Vertex AI tuning and pricing pages (rows 50 and 54) and the Gemini API tuning page (row 49).
 
 ## Rows by section
 

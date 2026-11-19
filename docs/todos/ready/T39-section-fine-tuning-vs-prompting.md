@@ -8,16 +8,16 @@
 | Status | `ready` |
 | Plan | [Book plan §4.3, BK19](../../plans/build-book.md#43-four-topics-need-research-before-they-are-written) |
 | Round / milestone | Round T (textbook), MT |
-| Depends on | [U21](../ongoing/U21-research-fine-tuning-vs-prompting.md), [T11](T11-chapter-talking-to-a-model.md) |
+| Depends on | [U21](../done/U21-research-fine-tuning-vs-prompting.md), [T11](T11-chapter-talking-to-a-model.md) |
 | Size | S |
 
 ## Goal
 
-Add one section to Chapter T11 ("Talking to a model: messages, streams, tokens, instructions and model choice") from research todo [U21](../ongoing/U21-research-fine-tuning-vs-prompting.md)'s report. It is a section, not a chapter: the question arises the moment a reader chooses a model, which Chapter T11 teaches.
+Add one section to Chapter T11 ("Talking to a model: messages, streams, tokens, instructions and model choice") from research todo [U21](../done/U21-research-fine-tuning-vs-prompting.md)'s report. It is a section, not a chapter: the question arises the moment a reader chooses a model, which Chapter T11 teaches.
 
 ## Context
 
-- [U21](../ongoing/U21-research-fine-tuning-vs-prompting.md)'s report and fact-check
+- [U21](../done/U21-research-fine-tuning-vs-prompting.md)'s report and fact-check
 - Chapter T11's todo, [T11](T11-chapter-talking-to-a-model.md), and its fact-check file `apps/manual/fact-checks/talking-to-a-model.md`
 - [Book plan BK21 and BK22](../../plans/build-book.md#bk21-every-section-is-fact-checked-before-the-next-is-drafted-accepted)
 

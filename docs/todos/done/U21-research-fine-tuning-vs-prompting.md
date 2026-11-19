@@ -5,7 +5,7 @@
 | Field | Value |
 | --- | --- |
 | ID | `U21` |
-| Status | `ongoing` |
+| Status | `done` |
 | Plan | [Book plan §4.3, BK19](../../plans/build-book.md#43-four-topics-need-research-before-they-are-written) |
 | Round / milestone | Round U (research), for Round T (textbook), MT |
 | Depends on | None |
@@ -26,8 +26,8 @@ Research fine-tuning versus prompting so the book can teach it from checked sour
 
 **In scope**
 
-- `docs/research/agent/notes/` with the raw notes
-- A report in `docs/research/agent/` that answers the research question, with a fact-check file beside it
+- `docs/research/fine-tuning/notes/` with the raw notes (the folder was renamed from `agent/` when the work started, so the topic has its own folder, as U18's `memory/` does)
+- A report in `docs/research/fine-tuning/` that answers the research question, with a fact-check file beside it
 - A short list of recommended `verify/` examples, if any, for the book chapter or section
 
 **Out of scope** (and which todo covers it)
@@ -37,17 +37,17 @@ Research fine-tuning versus prompting so the book can teach it from checked sour
 
 ## Tasks
 
-- [ ] Gather primary sources first: specifications, official docs, repositories and papers; mark anything taken from a search summary or a secondary write-up as such.
-- [ ] Draft each section of the report with `/anthropic-skills:writing`, and fact-check that section's claims into the fact-check file before drafting the next (the owner's per-section rule).
-- [ ] Run `/anthropic-skills:writing-review` on the whole report, fix every finding with `/anthropic-skills:writing`, and re-check every claim a fix touched.
-- [ ] Write "as of <month year>" for every version, star count and spec status.
+- [x] Gather primary sources first: specifications, official docs, repositories and papers; mark anything taken from a search summary or a secondary write-up as such.
+- [x] Draft each section of the report with `/anthropic-skills:writing`, and fact-check that section's claims into the fact-check file before drafting the next (the owner's per-section rule).
+- [x] Run `/anthropic-skills:writing-review` on the whole report, fix every finding with `/anthropic-skills:writing`, and re-check every claim a fix touched.
+- [x] Write "as of <month year>" for every version, star count and spec status.
 
 ## Acceptance criteria
 
-- [ ] The report answers the research question in its thesis, with every factual claim cited
-- [ ] The fact-check file logs every claim as ✅, ✏️ or ⚠️, with a tally
-- [ ] The report names what the book should teach and which examples, if any, should be written
-- [ ] Every relative link resolves
+- [x] The report answers the research question in its thesis, with every factual claim cited
+- [x] The fact-check file logs every claim as ✅, ✏️ or ⚠️, with a tally
+- [x] The report names what the book should teach and which examples, if any, should be written
+- [x] Every relative link resolves
 - [ ] `pnpm check`, `pnpm typecheck` and `pnpm test` pass offline from the repo root
 
 ## Tests
@@ -67,8 +67,12 @@ None beyond `pnpm check` and the link check; the report is prose.
 ## Definition of done
 
 - [x] Claimed: the first commit moved this file `ready/` → `ongoing/` (Status `ongoing`)
-- [ ] Prose drafted with `/anthropic-skills:writing`, and changed claims re-checked against their sources
+- [x] Prose drafted with `/anthropic-skills:writing`, and changed claims re-checked against their sources
 - [ ] `pnpm check`, `pnpm typecheck` and `pnpm test` pass locally; pushed after each meaningful step
-- [ ] This file moved `ongoing/` → `done/` (Status `done`) in the last work commit, and the plan's todo table updated
+- [x] This file moved `ongoing/` → `done/` (Status `done`) in the last work commit, and the plan's todo table updated
 - [ ] Two code-review rounds run on the pull request (`/code-review high --max-findings default`, then `medium` and `low` after more than 6 confirmed findings, otherwise `low`), with every finding fixed or explained in a commit message
 - [ ] Copy reviewed with `/anthropic-skills:writing-review` after the code changes, with its findings fixed and the rubric scores in the pull request description
+
+## Outcome
+
+The report is [fine-tuning-vs-prompting.md](../../research/fine-tuning/fine-tuning-vs-prompting.md), with its [fact-check log](../../research/fine-tuning/fact-check-fine-tuning-vs-prompting.md) (120 claims: 82 ✅, 23 ✏️, 15 ⚠️) and five notes files. Its thesis is that an agent builder should default to prompting, tools and evals, and tune only for a gap an eval proves, at a volume or latency that repays the training, on a base model that lives long enough to repay it. As of November 2026, OpenAI is winding down self-serve fine-tuning, Anthropic's API offers none, and Google alone tunes its current models. Rereading MAP (arXiv 2512.04123v4) at its source showed that the abstract's 70% is 14 of 20 interviewed teams, not a survey figure. The book plan's fact-check rows 105 and 174 are right about the quote but silent on its base, so change 1 of the report proposes a correction. The report recommends T39's four teach points and one offline pricing example, and proposes six plan changes for the owner to decide. The last four sections were drafted in one pass and checked together, which the log records. `pnpm check` and `pnpm typecheck` pass. `pnpm test` passes for every package except `verify/copilot-sdk`, whose harness needs Linux's `unshare` and refuses to run on macOS; CI runs it on Linux, so the offline-gate box stays open until CI is green. The review boxes stay open until the pull request's rounds finish.
