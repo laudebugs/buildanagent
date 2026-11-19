@@ -34,7 +34,7 @@ Publish new versions only from a reviewed release pull request, through npm trus
 
 ## Acceptance criteria
 
-- [ ] A dry run on `main` builds and packs both packages and publishes nothing
+- [x] A dry run on `main` builds and packs both packages and publishes nothing (checked 2026-11-19, after the merge)
 - [ ] On a throwaway branch with `private` removed and the "Version packages" step switched on, a merged changeset opens the pull request; on `main` it stays off until L4b
 - [x] The publish job has no npm token and fails closed when trusted publishing isn't configured; no job in `release.yml` reads an npm token
 - [ ] Every new workflow and action is in `.github/workflows/actions.lock`: run `gh actions-lock`, or copy verified entries and check each tag's commit with `git ls-remote` ([CI plan §3d](../../plans/ci.md#3d-actions-locked-by-a-lockfile-added-2026-11-19)); `ci.yml`'s `lockfile` job passes
@@ -58,7 +58,7 @@ A pull request opened with `GITHUB_TOKEN` starts its `ci.yml` runs in an approva
 
 - **Criteria evidence.** `scripts/ci/release.test.mjs` checks the no-token rule, the publish job's runner, environment, permissions and push-to-`main` condition, and the `version-pr` off switch (`false &&`, which L4b changes to `true &&`). The plan also refuses `private` packages and version 0.0.0, so L4a's merge publishes nothing. Each `actions.lock` entry was checked with `git ls-remote`; `ci.yml`'s `lockfile` job first runs on this pull request.
 - **Reruns.** The first code review found that a run which failed after the npm uploads left the release untagged. The plan now keeps publishing while the GitHub release `v<version>` is missing, the publish job skips what npm holds, and the tarballs are kept 30 days, as long as an approval can wait.
-- **Dry run.** [Run 44502245024](https://github.com/laudebugs/buildanagent/actions/runs/44502245024), from this branch, built and packed both packages and skipped `version-pr`, `publish` and `docs`. The criterion asks for a dry run on `main`, which can run only after the merge.
+- **Dry run.** [Run 44502245024](https://github.com/laudebugs/buildanagent/actions/runs/44502245024), from this branch, built and packed both packages and skipped `version-pr`, `publish` and `docs`. The criterion asks for a dry run on `main`, which could run only after the merge. It passed on 2026-11-19: [run 44505430717](https://github.com/laudebugs/buildanagent/actions/runs/44505430717), a `workflow_dispatch` on `main`, ran `plan` and `pack` successfully and skipped `version-pr`, `publish` and `docs`. The push that merged L3, [run 44505312929](https://github.com/laudebugs/buildanagent/actions/runs/44505312929), ran only `plan` and published nothing. L4a recorded both.
 - **Not done here.** The throwaway-branch test of the "Version packages" pull request would open a real pull request, so it waits for L4b, or for the owner to allow a throwaway one.
 - **The risk's answer.** The release pull request uses `GITHUB_TOKEN`, and a person approves its CI runs from the merge box. That keeps `release.yml` free of stored secrets, and the owner reviews that pull request anyway.
 

@@ -190,6 +190,38 @@ describe("release-plan.mjs", () => {
     assert.match(plan.reason, /0\.0\.0/);
   });
 
+  // These tests read this checkout's own package.json files. The first never skips: a `private` field that came back
+  // would make every release plan skip with a green run, and a package without the guard would let `npm publish` in
+  // its folder upload 0.0.0.
+  const manifests = ["gateway", "sdk"].map((pkg) => ({
+    pkg,
+    manifest: JSON.parse(readFileSync(path.join(root, "packages", pkg, "package.json"), "utf8")),
+  }));
+  test("this checkout's packages are public and refuse a publish from their folder", () => {
+    for (const { pkg, manifest } of manifests) {
+      assert.equal(manifest.private, undefined, `packages/${pkg}/package.json has a private field`);
+      assert.equal(
+        manifest.scripts?.prepublishOnly,
+        "node ../../scripts/refuse-local-publish.mjs",
+        `packages/${pkg}/package.json lost the prepublishOnly guard`,
+      );
+    }
+  });
+
+  // The 0.0.0 rule against the checkout. It skips once the "Version packages" pull request moves the packages off
+  // 0.0.0, when the rule no longer applies.
+  const realVersion = manifests[0].manifest.version;
+  test("this checkout's public packages at 0.0.0 publish nothing and ask no registry", {
+    skip: realVersion === "0.0.0" ? false : `the packages are at ${realVersion}`,
+  }, async () => {
+    const { fetchImpl, calls } = registry();
+    const plan = await planRelease({ root, repo, fetchImpl });
+    assert.equal(plan.publish, false);
+    assert.equal(plan.version, "0.0.0");
+    assert.match(plan.reason, /0\.0\.0, which is never released/);
+    assert.equal(calls.length, 0);
+  });
+
   test("waits for the Version packages pull request while changesets are pending", async () => {
     const plan = await planRelease({
       root: fixture({ changesets: ["brave-cats.md"] }),

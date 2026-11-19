@@ -6,7 +6,7 @@
 | Status | `ready` |
 | Plan | [Publish and docs §4](../../plans/publish-and-docs.md#4-round-l-and-its-todos) |
 | Round / milestone | Round L (publish and docs, added 2026-11-19) |
-| Depends on | [L4a](L4a-bootstrap-and-trusted-publishers.md) |
+| Depends on | [L4a](../done/L4a-bootstrap-and-trusted-publishers.md) |
 | Size | S |
 
 ## Goal
@@ -52,6 +52,8 @@ Both READMEs and CHANGELOGs, the roadmap, the plan's todo table.
 ## Risks and open questions
 
 If L4b can't merge within 2 days of the owner adding the trusted publishers, they expire; the owner re-adds them on npmjs.com before L4b merges.
+
+The changeset gate, once switched on, fails any pull request that runs `pnpm changeset version`, because that command edits each `package.json` and deletes the changesets it consumed. A local run on 2026-11-19 failed that way with "Some packages have been changed but no changesets were found". As scoped, this pull request runs the command, and so does every "Version packages" pull request. So before switching the gate on, make it skip `changeset-release/main`, the "Version packages" branch. Then choose how 0.1.0 gets its bump. Either this pull request adds only the 0.1.0 changeset and the "Version packages" pull request runs the command, or this pull request keeps the bump and a follow-up pull request switches the gate on ([CI plan §3e](../../plans/ci.md#3e-a-changeset-check-off-until-the-first-release-added-2026-11-19)).
 
 ## Definition of done
 

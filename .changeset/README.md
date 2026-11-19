@@ -20,9 +20,9 @@ The gateway and the SDK form one `fixed` group, so a bump to either moves both t
 
 Both packages stay at 0.x, so a change that breaks the API is a `minor` bump, never a `major` one. Its summary starts with "Breaking Changes" and says what breaks and how to migrate. A `patch` never breaks the API. The rule is decision D8 in the [SDK plan](../docs/plans/build-sdk.md#d8-0x-with-a-changelog-that-marks-breaking-changes-and-two-export-diffs-in-ci-accepted) and [ADR 0008](../docs/decisions/0008-versioning-and-doc-checks.md).
 
-## Nothing is versioned while the packages are private
+## Both packages are versioned, and the harnesses never are
 
-Both packages are still `private`, and `privatePackages` in `config.json` tells Changesets to skip private packages. Until they drop `private`, `pnpm changeset` finds no package to choose, and `pnpm changeset version` leaves both at 0.0.0. The harnesses under `verify/` are never versioned.
+Both packages dropped `private` in todo L4a, so `pnpm changeset` offers them and `pnpm changeset version` moves them off 0.0.0 once a changeset is pending. `privatePackages` in `config.json` still tells Changesets to skip private packages. That setting today affects only the harnesses under `verify/`, and it will also skip the private apps and packages the plans add. The harnesses are also listed in `ignore`, so they are never versioned.
 
 ## CI checks for a changeset once publishing starts
 

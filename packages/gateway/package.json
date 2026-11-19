@@ -1,7 +1,6 @@
 {
   "name": "@buildanagent/gateway",
   "version": "0.0.0",
-  "private": true,
   "description": "Model gateway for the buildanagent SDK: provider adapters, streaming, retries and cost accounting.",
   "license": "Apache-2.0 OR MIT",
   "repository": {
@@ -69,6 +68,7 @@
   "scripts": {
     "build": "node ../../scripts/clean-dist.mjs && tsc -p tsconfig.build.json",
     "prepack": "pnpm run build && node ../../scripts/copy-licenses.mjs",
+    "prepublishOnly": "node ../../scripts/refuse-local-publish.mjs",
     "typecheck": "tsc -p tsconfig.json",
     "test": "vitest run"
   }
