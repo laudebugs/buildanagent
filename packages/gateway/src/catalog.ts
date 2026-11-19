@@ -173,8 +173,9 @@ export function parseCatalog(value: unknown): PriceCatalog {
   const models = catalog.models.map((entry, i) => parseEntry(entry, `models[${i}]`));
   const seen = new Set<string>();
   for (const { provider, id } of models) {
-    const key = `${provider}/${id}`;
-    if (seen.has(key)) fail("models", `lists ${key} twice`);
+    // A plain `provider/id` join would collide, because both may contain "/".
+    const key = JSON.stringify([provider, id]);
+    if (seen.has(key)) fail("models", `lists ${provider}/${id} twice`);
     seen.add(key);
   }
   return { models };

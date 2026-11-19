@@ -275,7 +275,19 @@ test("projectCallCost() and projectCost() agree on one scripted context", () => 
   const inputTokens = estimateInputTokens(firstTurn);
   const expected = projectCost({ inputTokens, maxOutputTokens: model.caps.maxOutputTokens }, entry);
   assert.deepEqual(projectCallCost(model, firstTurn), expected);
-  assert.equal(expected.total, (inputTokens * 2 + model.caps.maxOutputTokens * 16) / 1_000_000);
+  // The fake 1h cache-write rate, $8, is the tier's highest input rate.
+  assert.equal(expected.total, (inputTokens * 8 + model.caps.maxOutputTokens * 16) / 1_000_000);
+});
+
+test("a projection prices input at the tier's highest input rate, cache writes included", () => {
+  const tokens = { inputTokens: 1_000_000, maxOutputTokens: 0 };
+  // Uncached $2 against a 5m cache write of $2.50 and a 1h cache write of $4, as on a real catalog entry.
+  const writesCostMore = fakeEntry({ rates: [{ ...FAKE_RATES, cacheWrite: { "5m": 2.5, "1h": 4 } }] });
+  assert.equal(projectCost(tokens, writesCostMore).total, 4);
+  const fiveMinuteDearest = fakeEntry({ rates: [{ ...FAKE_RATES, cacheWrite: { "5m": 3, "1h": 1 } }] });
+  assert.equal(projectCost(tokens, fiveMinuteDearest).total, 3);
+  const uncachedDearest = fakeEntry({ rates: [{ ...FAKE_RATES, cacheWrite: { "5m": 1, "1h": 1 } }] });
+  assert.equal(projectCost(tokens, uncachedDearest).total, 2);
 });
 
 test("projectCallCost() uses the call's maxOutputTokens over the model's limit", () => {
@@ -289,4 +301,35 @@ test("projectCallCost() and projectCost() project an unknown price for a model t
   const { model } = pricedModel([], "unlisted");
   assert.equal(projectCallCost(model, firstTurn).total, null);
   assert.equal(projectCost({ inputTokens: 1, maxOutputTokens: 1 }, undefined).basis, "unknown");
+});
+
+test("a call aborted after its first attempt carries no lastAttemptUsage", async () => {
+  const controller = new AbortController();
+  controller.abort();
+  const { model } = pricedModel([{ fail: "retryable", usage: usage({ uncachedInput: 10 }) }, { reply: "never" }]);
+  const result = await model.complete(context, { signal: controller.signal });
+  assert.equal(result.stopReason, "aborted");
+  assert.equal(result.usage.uncachedInput, 10);
+  assert.equal("lastAttemptUsage" in result, false);
+});
+
+test("a call aborted after a retry keeps its last attempt's usage apart", async () => {
+  const controller = new AbortController();
+  const adapter = new FailingAdapter([
+    { fail: "retryable", usage: usage({ uncachedInput: 10 }) },
+    { fail: "retryable", usage: usage({ uncachedInput: 20 }) },
+    { reply: "never" },
+  ]);
+  // The abort lands during the second backoff, after both failed attempts were carried.
+  let sleeps = 0;
+  const sleep = async (): Promise<void> => {
+    sleeps += 1;
+    if (sleeps === 2) controller.abort();
+  };
+  const result = await createModel({ adapter, id: "priced", catalog, sleep }).complete(context, {
+    signal: controller.signal,
+  });
+  assert.equal(result.stopReason, "aborted");
+  assert.equal(result.usage.uncachedInput, 30);
+  assert.equal(result.lastAttemptUsage?.uncachedInput, 20);
 });

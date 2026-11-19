@@ -174,17 +174,15 @@ async function* runAttempt(
   return { retry: false };
 }
 
-/** The terminal for a call aborted between attempts. It keeps every failed attempt's usage and drops the error. */
-function abortedTerminal(failure: AssistantMessage, call: CallState, cost: Cost): GatewayEvent {
+/**
+ * The terminal for a call aborted between attempts. It keeps every failed attempt's usage and drops the error.
+ * `call.carried` already includes `failure`, so `lastAttemptUsage` is set only when `retried` says earlier attempts
+ * were carried too, as `withCarried` does.
+ */
+function abortedTerminal(failure: AssistantMessage, call: CallState, cost: Cost, retried: boolean): GatewayEvent {
   const { error: _error, ...rest } = failure;
-  const message = {
-    ...rest,
-    stopReason: "aborted" as const,
-    usage: call.carried,
-    cost,
-    lastAttemptUsage: failure.usage,
-  };
-  return { type: "error", message };
+  const message = { ...rest, stopReason: "aborted" as const, usage: call.carried, cost };
+  return { type: "error", message: retried ? { ...message, lastAttemptUsage: failure.usage } : message };
 }
 
 /** Runs `attempt(1)`, then retries per `settings`. `attempt(n)` must start a fresh request each time it is called. */
@@ -214,7 +212,7 @@ export async function* withRetries(
       yield { type: "start" };
     }
     if (signal?.aborted) {
-      yield abortedTerminal(outcome.failure, call, carriedCost);
+      yield abortedTerminal(outcome.failure, call, carriedCost, n > 1);
       return;
     }
     // The cap keeps a long retry count from waiting hours, or overflowing setTimeout's 32-bit delay.
@@ -222,7 +220,7 @@ export async function* withRetries(
     yield { type: "retry", attempt: n, delayMs, error: outcome.failure.error?.message ?? "retryable error" };
     await settings.sleep(delayMs, signal);
     if (signal?.aborted) {
-      yield abortedTerminal(outcome.failure, call, carriedCost);
+      yield abortedTerminal(outcome.failure, call, carriedCost, n > 1);
       return;
     }
   }

@@ -72,6 +72,16 @@ test("two entries for one model are rejected", () => {
   rejects({ models: [fakeEntry(), fakeEntry()] }, /lists test\/priced twice/);
 });
 
+test("entries whose provider/id joins match are still two different models", () => {
+  const nested = {
+    models: [
+      fakeEntry({ provider: "openrouter/meta", id: "llama" }),
+      fakeEntry({ provider: "openrouter", id: "meta/llama" }),
+    ],
+  };
+  assert.equal(parseCatalog(nested).models.length, 2);
+});
+
 test("findCatalogEntry() matches on provider and id", () => {
   const catalog = { models: [fakeEntry(), fakeEntry({ provider: "other" })] };
   assert.equal(findCatalogEntry(catalog, "other", "priced")?.provider, "other");

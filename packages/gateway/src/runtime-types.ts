@@ -109,8 +109,10 @@ export interface Model {
   /** Reads `stream()` to its end and returns the final message, including a failed call's message. */
   complete(context: ModelContext, options?: StreamOptions): Promise<AssistantMessage>;
   /**
-   * Prices one response's usage with the model's catalog entry. A model the catalog lacks gets
-   * `{ total: null, basis: "unknown" }`. Every message `stream()` ends with is already priced this way, unless the
+   * Prices one request's usage with the model's catalog entry, choosing the rate tier by that request's input. A
+   * model the catalog lacks gets `{ total: null, basis: "unknown" }`. To re-price a retried call, price each request
+   * apart, such as `message.lastAttemptUsage ?? message.usage` for the last one: its summed `usage` could select the
+   * wrong tier. You rarely need to, because `message.cost` already covers every attempt, priced this way unless the
    * provider reported a billed total.
    */
   price(usage: Usage): Cost;

@@ -50,15 +50,26 @@ export interface ProjectedTokens {
 }
 
 /**
- * The most one call can cost: every input token at the uncached rate, in the tier the input selects, plus
- * `maxOutputTokens` at the output rate. Without an entry, the result is `{ total: null, basis: "unknown" }`.
+ * The most one call can cost: every input token at the highest input rate in the tier the input selects (the
+ * uncached rate or either cache-write rate, whichever costs most), plus `maxOutputTokens` at the output rate. Without
+ * an entry, the result is `{ total: null, basis: "unknown" }`.
  */
 export function projectCost(tokens: ProjectedTokens, entry: CatalogEntry | undefined): Cost {
-  return priceUsage(projectedUsage(tokens), entry);
+  return projectWith(tokens, (usage) => priceUsage(usage, entry));
 }
 
-function projectedUsage(tokens: ProjectedTokens): Usage {
-  return { ...emptyUsage(), uncachedInput: tokens.inputTokens, output: tokens.maxOutputTokens };
+// Every input token is put in one class at a time and the dearest result wins. The tier depends only on total input,
+// which is the same in each candidate, so this prices the input at the tier's highest input rate without reading the
+// rates themselves; `Model.price()` keeps its catalog entry private.
+function projectWith(tokens: ProjectedTokens, price: (usage: Usage) => Cost): Cost {
+  const base = { ...emptyUsage(), output: tokens.maxOutputTokens };
+  const n = tokens.inputTokens;
+  const candidates = [
+    price({ ...base, uncachedInput: n }),
+    price({ ...base, cacheWrite: { "5m": n, "1h": 0 } }),
+    price({ ...base, cacheWrite: { "5m": 0, "1h": n } }),
+  ];
+  return candidates.reduce((most, cost) => ((cost.total ?? -1) > (most.total ?? -1) ? cost : most));
 }
 
 // Anthropic's models overview puts 1M tokens at roughly 2.5M Unicode characters on its current tokenizer, as of
@@ -112,8 +123,9 @@ function lastReportedCall(messages: readonly Message[]): number {
  * Estimates the input tokens of sending `context`. When an earlier assistant message reports its usage, the estimate
  * is that request's total input and output plus a character-based estimate of the messages after it; otherwise every
  * part of the context is estimated from its characters. A retried call counts only its last attempt, through
- * `lastAttemptUsage`, because its summed `usage` would count the same prompt once per attempt. The estimate errs high,
- * so a budget check errs towards stopping.
+ * `lastAttemptUsage`, because its summed `usage` would count the same prompt once per attempt. The reported usage
+ * stands in for the system prompt and tools, so the estimate assumes they are unchanged since that request: if you
+ * grow them, the growth is not counted. Otherwise the estimate errs high, so a budget check errs towards stopping.
  */
 export function estimateInputTokens(context: ModelContext): number {
   const last = lastReportedCall(context.messages);
@@ -129,7 +141,7 @@ export function estimateInputTokens(context: ModelContext): number {
 }
 
 /**
- * The most the next call can cost: `projectCost()` over `estimateInputTokens(context)` and the call's
+ * The most the next call can cost, priced as `projectCost()` prices it: over `estimateInputTokens(context)` and the call's
  * `maxOutputTokens`, or the model's own output limit when the options leave it out. Priced with the model's catalog
  * entry, so a model the catalog lacks projects `{ total: null, basis: "unknown" }`.
  */
@@ -138,5 +150,5 @@ export function projectCallCost(model: Model, context: ModelContext, options: St
     inputTokens: estimateInputTokens(context),
     maxOutputTokens: options.maxOutputTokens ?? model.caps.maxOutputTokens,
   };
-  return model.price(projectedUsage(tokens));
+  return projectWith(tokens, (usage) => model.price(usage));
 }
