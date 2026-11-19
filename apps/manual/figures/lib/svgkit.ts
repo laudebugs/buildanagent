@@ -135,6 +135,27 @@ const FILL_CLASS: Readonly<Record<Fill, string>> = {
 /** How far an arrowhead reaches back from its tip, and the half-angle of its point. */
 const HEAD = 8;
 const HEAD_ANGLE = 0.4;
+/** How far before the tip a shaft stops, so it ends inside the head and never shows past the point. */
+const SHAFT_INSET = HEAD * Math.cos(HEAD_ANGLE) * 0.9;
+
+/**
+ * The widest figure the kit draws, in its own units, which are CSS pixels: the page shows a figure at its natural
+ * size, so its labels never shrink below the 12 px phone label size, and its panel scrolls sideways where the figure
+ * is wider than the panel. At desktop widths a chapter's figure stage leaves 526 px for the drawing (the 38rem article
+ * column, less the panel's 1 px border and 2.5rem of padding on each side), so a figure up to 520 wide shows whole
+ * there. The limit is our choice (BK11).
+ */
+export const MAX_FIGURE_WIDTH = 520;
+
+/** The classes of a stroked line: its tone, and the dash pattern when `dashed`. */
+const lineClass = (base: string, tone: string, dashed: boolean): string =>
+  `${base}${tone}${dashed ? " fig-line--dashed" : ""}`;
+
+/** The point `SHAFT_INSET` back from `tip` along `angle`, where a shaft ending in an arrowhead stops. */
+const shaftEnd = (tip: Point, angle: number): Point => ({
+  x: tip.x - SHAFT_INSET * Math.cos(angle),
+  y: tip.y - SHAFT_INSET * Math.sin(angle),
+});
 /** The space a label keeps from its box's sides, and the line height of a label with several lines. */
 const BOX_PADDING = 8;
 const LINE_HEIGHT = 1.35;
@@ -166,6 +187,12 @@ export class Figure {
   constructor({ id, width, height }: FigureOptions) {
     if (!KEBAB_ID.test(id)) throw new FigureError(`figure id "${id}" is not kebab-case`);
     if (!(width > 0 && height > 0)) throw new FigureError(`figure "${id}" needs a positive width and height`);
+    if (width > MAX_FIGURE_WIDTH) {
+      throw new FigureError(
+        `figure "${id}" is ${width} wide; no figure may be wider than ${MAX_FIGURE_WIDTH}, the width a chapter's ` +
+          "figure stage shows without scrolling",
+      );
+    }
     this.id = id;
     this.width = width;
     this.height = height;
@@ -199,7 +226,9 @@ export class Figure {
     }
   }
 
-  /** An id for a part of this figure: `<figure id>--<name>`. Kebab-case ids never hold "--", so no two figures clash. */
+  /**
+   * An id for a part of this figure: `<figure id>--<name>`. Kebab-case ids never hold "--", so no two figures clash.
+   */
   idFor(name: string): string {
     if (!KEBAB_ID.test(name)) this.#fail(`id name "${name}" is not kebab-case`);
     const id = `${this.id}--${name}`;
@@ -268,7 +297,7 @@ export class Figure {
     this.#inside({ x: rect.x + rect.width, y: rect.y + rect.height }, "a box");
     if (!(rect.width > 0 && rect.height > 0)) this.#fail("a box needs a positive width and height");
     this.#parts.push(
-      `<rect x="${num(rect.x)}" y="${num(rect.y)}" width="${num(rect.width)}" height="${num(rect.height)}" rx="4" class="fig-paper${TONE_PAPER[tone]}${dashed ? " fig-line--dashed" : ""}"/>`,
+      `<rect x="${num(rect.x)}" y="${num(rect.y)}" width="${num(rect.width)}" height="${num(rect.height)}" rx="4" class="${lineClass("fig-paper", TONE_PAPER[tone], dashed)}"/>`,
     );
     const lines =
       options.label === undefined ? [] : typeof options.label === "string" ? [options.label] : options.label;
@@ -314,7 +343,7 @@ export class Figure {
     });
     this.#stroke(`a line from (${num(points[0]?.x ?? 0)}, ${num(points[0]?.y ?? 0)})`, points);
     const d = points.map((point, index) => `${index === 0 ? "M" : "L"}${num(point.x)} ${num(point.y)}`).join(" ");
-    this.#parts.push(`<path d="${d}" class="fig-line${TONE_LINE[tone]}${dashed ? " fig-line--dashed" : ""}"/>`);
+    this.#parts.push(`<path d="${d}" class="${lineClass("fig-line", TONE_LINE[tone], dashed)}"/>`);
   }
 
   /** A filled arrowhead with its tip at `tip`, pointing along `angle` (radians). */
@@ -341,9 +370,7 @@ export class Figure {
     const length = Math.hypot(to.x - from.x, to.y - from.y);
     if (length < 2 * HEAD) this.#fail(`an arrow ${num(length)} long is shorter than twice its head (${2 * HEAD})`);
     const angle = Math.atan2(to.y - from.y, to.x - from.x);
-    const inset = HEAD * Math.cos(HEAD_ANGLE) * 0.9;
-    const end = { x: to.x - inset * Math.cos(angle), y: to.y - inset * Math.sin(angle) };
-    this.line([from, end], options);
+    this.line([from, shaftEnd(to, angle)], options);
     this.#head(to, angle, tone);
   }
 
@@ -388,12 +415,8 @@ export class Figure {
   ): void {
     const { tone = "text", dashed = false, arrow = true } = options;
     for (const point of [from, control, to]) this.#inside(point, "a curve's point");
-    let end = to;
     const angle = Math.atan2(to.y - control.y, to.x - control.x);
-    if (arrow) {
-      const inset = HEAD * Math.cos(HEAD_ANGLE) * 0.9;
-      end = { x: to.x - inset * Math.cos(angle), y: to.y - inset * Math.sin(angle) };
-    }
+    const end = arrow ? shaftEnd(to, angle) : to;
     // The curve is checked against labels as 16 straight pieces, close enough at a figure's scale.
     const at = (t: number): Point => ({
       x: (1 - t) ** 2 * from.x + 2 * (1 - t) * t * control.x + t ** 2 * end.x,
@@ -404,7 +427,7 @@ export class Figure {
       Array.from({ length: 17 }, (_, i) => at(i / 16)),
     );
     this.#parts.push(
-      `<path d="M${num(from.x)} ${num(from.y)} Q${num(control.x)} ${num(control.y)} ${num(end.x)} ${num(end.y)}" class="fig-line${TONE_LINE[tone]}${dashed ? " fig-line--dashed" : ""}"/>`,
+      `<path d="M${num(from.x)} ${num(from.y)} Q${num(control.x)} ${num(control.y)} ${num(end.x)} ${num(end.y)}" class="${lineClass("fig-line", TONE_LINE[tone], dashed)}"/>`,
     );
     if (arrow) this.#head(to, angle, tone);
   }

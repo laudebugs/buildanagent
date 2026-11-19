@@ -1,5 +1,5 @@
 import assert from "node:assert/strict";
-import { mkdtempSync, readFileSync, rmSync, symlinkSync, writeFileSync } from "node:fs";
+import { mkdirSync, mkdtempSync, readFileSync, rmSync, symlinkSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { afterAll, beforeAll, test, vi } from "vitest";
@@ -261,6 +261,24 @@ const cases: readonly Case[] = [
     message: /\[\[chapter three\]\] is not a reference/,
   },
   {
+    rule: "a figure whose caption is only spaces fails",
+    change: firstChapter((t) => t.replace(/:::figure\[[^\]]*\]/, ":::figure[ ]")),
+    file: `${FIRST}:14`,
+    message: /a figure needs a caption/,
+  },
+  {
+    rule: "a table whose caption is only spaces fails",
+    change: firstChapter((t) => t.replace(":::table[How the loop stops]", ":::table[   ]")),
+    file: `${FIRST}:18`,
+    message: /a table needs a caption/,
+  },
+  {
+    rule: "a chapter-code listing whose caption is only spaces fails",
+    change: (dir) => edit(dir, SECOND, (t) => t.replace(":::listing[Saying hello]", ":::listing[ ]")),
+    file: `${SECOND}:10`,
+    message: /a listing needs a caption, written :::listing\[Caption\]/,
+  },
+  {
     rule: "a figure without a caption fails",
     change: firstChapter((t) => t.replace(/:::figure\[[^\]]*\]/, ":::figure")),
     file: `${FIRST}:14`,
@@ -358,6 +376,36 @@ const cases: readonly Case[] = [
     change: firstChapter((t) => t.replace("[A kitchen ticket rail:", "[The rail:")),
     file: `${FIRST}:14`,
     message: /the caption of figure "ticket-rail" must start with the analogy's name, "a kitchen ticket rail"/,
+  },
+  {
+    rule: "a figure that a later chapter's analogy names as its illustration must carry the mark",
+    change: (dir) => {
+      const svg = readFileSync(join(dir, "figures/first/ticket-rail.svg"), "utf8").replace(
+        /ticket-rail/g,
+        "rail-detail",
+      );
+      mkdirSync(join(dir, "figures/second"), { recursive: true });
+      writeFileSync(join(dir, "figures/second/rail-detail.svg"), svg);
+      edit(dir, SECOND, (t) =>
+        t.replace(
+          "## Exercises",
+          ':::figure[The rail up close]{#rail-detail}\n::svg{alt="The rail."}\n:::\n\n## Exercises',
+        ),
+      );
+      editJson(dir, "analogies.json", (a) => [
+        ...a,
+        {
+          id: "order-spike",
+          concept: "a work queue",
+          analogy: "a waiter's order spike",
+          chapter: "third",
+          illustration: "rail-detail",
+          breaks: "A spike holds paper; a queue holds messages.",
+        },
+      ]);
+    },
+    file: `${SECOND}:20`,
+    message: /figure "rail-detail" illustrates the analogy order-spike in analogies\.json; mark it/,
   },
   {
     rule: "a figure that illustrates a registered analogy without saying so fails",
@@ -533,6 +581,12 @@ const cases: readonly Case[] = [
     },
     file: LISTING,
     message: /01-hello\.ts has an empty region "empty"/,
+  },
+  {
+    rule: "a listing whose caption is only spaces fails",
+    change: listingLine((l) => l.replace("[Greeting the reader]", "[  ]")),
+    file: LISTING,
+    message: /a listing needs a caption, written ::listing\[Caption\]\{#greet file="…"\}/,
   },
   {
     rule: "a listing without a caption fails",

@@ -9,10 +9,10 @@
 // the caption and the number (remark-book-directives and rehype-numbering), so this plugin keeps the other two rules:
 // it inlines the figure's generated SVG and fails without alt text.
 import { existsSync, readFileSync } from "node:fs";
-import { relative } from "node:path";
+import { relative, sep } from "node:path";
 import type { Paragraph, Parent, Root, RootContent } from "mdast";
 import type { VFile } from "vfile";
-import { figureFiles, inlineSvg } from "../book/figures.js";
+import { captionId, FIGURES_BUILD, figureFiles, inlineSvg, SCROLL_HINT, SCROLL_STAGE } from "../book/figures.js";
 import type { Book } from "../book/load.js";
 import { checkedChapter } from "./chapter-file.js";
 import { failAt } from "./fail.js";
@@ -32,7 +32,7 @@ export function figureAnalogies(file: VFile): Map<string, string> {
 }
 
 const isDrawing = (node: RootContent): node is LeafDirective => node.type === "leafDirective" && node.name === DRAWING;
-const isFigure = (node: Parent): boolean =>
+const isFigure = (node: Parent | RootContent): node is ContainerDirective =>
   node.type === "containerDirective" && (node as ContainerDirective).name === "figure";
 const isLabel = (node: RootContent): boolean => node.type === "paragraph" && node.data?.directiveLabel === true;
 
@@ -48,7 +48,7 @@ export function remarkFigures(options: { readonly book: Book }) {
   return (tree: Root, file: VFile): void => {
     const { outline } = checkedChapter(file);
     visitParents(tree, (node, parent) => {
-      if (node.type === "containerDirective" && node.name === "figure") {
+      if (isFigure(node)) {
         return figure(node, { book, slug: outline.slug, file });
       }
       if (isDrawing(node) && !isFigure(parent)) {
@@ -115,12 +115,11 @@ function drawingHtml(
     return failAt(file, `figure "${id}" needs alt text that says what its drawing shows: ::svg{alt="…"}`, node);
   }
   const { svg, script } = figureFiles(book.inputs.figuresDir, slug, id);
-  const name = (path: string) => relative(book.inputs.repoRoot, path);
+  const name = (path: string) => relative(book.inputs.repoRoot, path).split(sep).join("/");
   if (!existsSync(svg)) {
     return failAt(
       file,
-      `figure "${id}" has no drawing at ${name(svg)}; write ${name(script)} and run ` +
-        "pnpm --filter @buildanagent/manual figures:build",
+      `figure "${id}" has no drawing at ${name(svg)}; write ${name(script)} and run ${FIGURES_BUILD}`,
       node,
     );
   }
@@ -129,17 +128,24 @@ function drawingHtml(
     html = inlineSvg(readFileSync(svg, "utf8"), { figureId: id, alt });
   } catch (error) {
     const reason = error instanceof Error ? error.message : String(error);
-    return failAt(file, `${name(svg)} cannot be inlined: ${reason}; redraw it with figures:build`, node);
+    return failAt(file, `${name(svg)} cannot be inlined: ${reason}; redraw it with ${FIGURES_BUILD}`, node);
   }
-  // The panel and the grid paper match the FigureFrame component, so a chapter's figure looks like the gallery's.
+  // The panel matches the FigureFrame component's scrolling stage, so a chapter's figure looks like the gallery's. The
+  // drawing keeps its natural size, and the stage scrolls sideways where the panel is narrower (BK11); the stage takes
+  // keyboard focus so a reader without a pointer can scroll it, and the caption names it.
   return {
     type: "paragraph",
-    data: { hName: "div", hProperties: { className: ["panel"] } },
+    data: { hName: "div", hProperties: { className: ["panel", "figure__panel"] } },
     children: [
       {
         type: "emphasis",
-        data: { hName: "div", hProperties: { className: ["figure__stage", "panel--grid"] } },
+        data: { hName: "div", hProperties: SCROLL_STAGE(captionId(id)) },
         children: [{ type: "html", value: html }],
+      },
+      {
+        type: "emphasis",
+        data: { hName: "p", hProperties: { className: ["figure__scroll-hint"] } },
+        children: [{ type: "text", value: SCROLL_HINT }],
       },
     ],
     ...(node.position ? { position: node.position } : {}),

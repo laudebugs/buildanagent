@@ -11,7 +11,8 @@ const KNOWN_TAGS = ["cmap", "head", "hhea", "hmtx", "maxp", "name", "OS/2", "pos
 function readBase128(bytes: Uint8Array, start: number): [value: number, next: number] {
   let value = 0;
   for (let i = start; i < start + 5; i += 1) {
-    const byte = bytes[i] ?? 0;
+    const byte = bytes[i];
+    if (byte === undefined) throw new Error("the WOFF2 table directory ends inside a number");
     value = value * 128 + (byte & 0x7f);
     if ((byte & 0x80) === 0) return [value, i + 1];
   }
@@ -29,7 +30,8 @@ function tableDirectory(bytes: Uint8Array, view: DataView): [entries: TableEntry
   const entries: TableEntry[] = [];
   let at = 48;
   for (let i = 0; i < count; i += 1) {
-    const flags = bytes[at] ?? 0;
+    const flags = bytes[at];
+    if (flags === undefined) throw new Error(`the WOFF2 table directory ends after ${i} of its ${count} entries`);
     at += 1;
     const index = flags & 0x3f;
     const transform = flags >> 6;
@@ -48,19 +50,42 @@ function tableDirectory(bytes: Uint8Array, view: DataView): [entries: TableEntry
   return [entries, at];
 }
 
+type Tables = Map<string, { readonly bytes: Uint8Array; readonly transformed: boolean }>;
+
+// Each font's tables, decompressed once: the figure kit reads the character map and the advances of one font for
+// every label it draws.
+const decompressed = new WeakMap<Uint8Array, Tables>();
+
 /** Every table of a WOFF2 font, decompressed and keyed by tag. A transformed table keeps its transformed bytes. */
-function woff2Tables(file: Uint8Array): Map<string, { readonly bytes: Uint8Array; readonly transformed: boolean }> {
+function woff2Tables(file: Uint8Array): Tables {
+  const cached = decompressed.get(file);
+  if (cached !== undefined) return cached;
+  if (file.byteLength < 48) throw new Error("not a WOFF2 file: shorter than its 48-byte header");
   const view = new DataView(file.buffer, file.byteOffset, file.byteLength);
   if (view.getUint32(0) !== 0x774f4632) throw new Error("not a WOFF2 file");
   const [entries, start] = tableDirectory(file, view);
   const stream = brotliDecompressSync(file.subarray(start, start + view.getUint32(20)));
-  const tables = new Map<string, { readonly bytes: Uint8Array; readonly transformed: boolean }>();
+  const tables: Tables = new Map();
   let offset = 0;
   for (const entry of entries) {
+    if (offset + entry.length > stream.byteLength) {
+      throw new Error(`the WOFF2 font's ${entry.tag} table runs past the end of its decompressed data`);
+    }
     tables.set(entry.tag, { bytes: stream.subarray(offset, offset + entry.length), transformed: entry.transformed });
     offset += entry.length;
   }
+  decompressed.set(file, tables);
   return tables;
+}
+
+/** Runs `read` over one table, turning a read past its end into an error that names the table. */
+function reading<T>(tag: string, read: () => T): T {
+  try {
+    return read();
+  } catch (error) {
+    if (error instanceof RangeError) throw new Error(`the ${tag} table is shorter than its own fields say`);
+    throw error;
+  }
 }
 
 function table(file: Uint8Array, tag: string): DataView {
@@ -73,6 +98,10 @@ function table(file: Uint8Array, tag: string): DataView {
 /** The font's name records on the Windows platform (3), keyed by name id. */
 export function woff2Names(file: Uint8Array): Map<number, string> {
   const view = table(file, "name");
+  return reading("name", () => nameRecords(view));
+}
+
+function nameRecords(view: DataView): Map<number, string> {
   const bytes = new Uint8Array(view.buffer, view.byteOffset, view.byteLength);
   const count = view.getUint16(2);
   const storage = view.getUint16(4);
@@ -127,12 +156,18 @@ function format4(cmap: DataView, at: number, map: Map<number, number>): void {
   }
 }
 
+/** The highest Unicode code point; a format 12 group past it, or running backwards, is corrupt. */
+const MAX_CODE_POINT = 0x10ffff;
+
 function format12(cmap: DataView, at: number, map: Map<number, number>): void {
   const groups = cmap.getUint32(at + 12);
   for (let g = 0; g < groups; g += 1) {
     const group = at + 16 + g * 12;
     const start = cmap.getUint32(group);
     const end = cmap.getUint32(group + 4);
+    if (end < start || end > MAX_CODE_POINT) {
+      throw new Error(`the cmap table's group ${g + 1} runs from ${start} to ${end}, outside Unicode`);
+    }
     const first = cmap.getUint32(group + 8);
     for (let code = start; code <= end; code += 1) map.set(code, first + code - start);
   }
@@ -141,10 +176,9 @@ function format12(cmap: DataView, at: number, map: Map<number, number>): void {
 /** The font's character map: each code point it can draw, and the glyph that draws it. */
 export function woff2CharacterMap(file: Uint8Array): Map<number, number> {
   const cmap = table(file, "cmap");
-  const at = unicodeSubtable(cmap);
+  const at = reading("cmap", () => unicodeSubtable(cmap));
   const map = new Map<number, number>();
-  if (cmap.getUint16(at) === 12) format12(cmap, at, map);
-  else format4(cmap, at, map);
+  reading("cmap", () => (cmap.getUint16(at) === 12 ? format12(cmap, at, map) : format4(cmap, at, map)));
   return map;
 }
 
@@ -153,12 +187,12 @@ export function woff2Advances(file: Uint8Array): Map<number, number> {
   const head = table(file, "head");
   const hhea = table(file, "hhea");
   const hmtx = table(file, "hmtx");
-  const unitsPerEm = head.getUint16(18);
-  const metrics = hhea.getUint16(34);
+  const unitsPerEm = reading("head", () => head.getUint16(18));
+  const metrics = reading("hhea", () => hhea.getUint16(34));
   const advances = new Map<number, number>();
   for (const [code, glyph] of woff2CharacterMap(file)) {
     // Glyphs past the last full metric share its advance (the hmtx table's rule for monospaced tails).
-    const advance = hmtx.getUint16(Math.min(glyph, metrics - 1) * 4);
+    const advance = reading("hmtx", () => hmtx.getUint16(Math.min(glyph, metrics - 1) * 4));
     advances.set(code, advance / unitsPerEm);
   }
   return advances;

@@ -564,4 +564,17 @@ These rows check the claims that T6 adds to its todo's outcome, `apps/manual/REA
 | 334 | The sample analogy figure and its register entry stay in the fixture book, so the book's register claims no analogy before T10 writes Chapter 1 | Outcome, README | ✅ | Ours, as the T6 brief asked when a real entry would claim T10's analogy early |
 | 335 | Both samples render with the panel colours of each theme, and stay legible at 200% zoom | Outcome | ✅ | Ours: headless Chrome screenshots of a fixture build, the chapter page in light and with `--force-dark-mode`, at 1280 px and at 640 px with a device scale of 2, which is how a 1280 px window lays out at 200%; the analogy figure through a page holding a light and a dark `[data-theme]` section |
 
-**Totals:** 335 claims: 297 ✅, 38 ✏️, 0 ⚠️.
+### T6's first review round and the owner's phone decision
+
+These rows check the claims that the fixes for PR #71's first code review add to BK10, BK11, the app's README, the kit's comments and T6's Outcome, after the merge of `main` `65677cb`. Measurements come from headless Chrome on a fixture build, with the chapter page in an iframe of the stated width.
+
+| # | Claim | Where | Verdict | Source and reason |
+| --- | --- | --- | --- | --- |
+| 336 | At desktop widths a chapter's figure stage leaves 526 px for the drawing: the 38rem column, less the panel's 1 px border and 2.5rem of padding a side; a 520-unit limit therefore shows every figure whole there | BK11, `svgkit.ts`, README | ✅ | `tokens.css` `--measure: 38rem`; `components.css` `.panel` `border: 1px` and `.figure__stage` `padding: clamp(1rem, 4vw, 2.5rem)`; Chrome at 1280 px: stage `clientWidth` 606 and `scrollWidth` 606 for both figures. The limit of 520 is our choice (ours) |
+| 337 | The scroll hint shows while the panel's content is under 37.5rem (600 px), the room a 520-unit figure needs with 2.5rem of padding a side, and stays hidden at desktop widths | BK11, `components.css` | ✅ | 520 + 2 × 40 = 600. Chrome: the hint's `display` is `none` at 1280 px and `block` at 360 px. The threshold is our choice (ours) |
+| 338 | At 360 px every label of both sample figures renders at 12 px, and each panel scrolls sideways | BK11, Outcome | ✅ | Chrome at 360 px: the smallest of the 35 labels is 12.00 px (font size times the SVG's screen scale); each stage is 326 px wide and scrolls to 552. Our measurement (ours) |
+| 339 | The approved phone label size is 12 px | BK11, README, figure tests | ✅ | `docs/design/book-tokens.json`, `size.code.label`: `phone` 12, `desktop` 12 |
+| 340 | Figures scroll sideways on phones below the width at which labels would drop under the phone label size, with a visible hint, one drawing per figure and no JavaScript, and the kit checks a maximum width | BK10, BK11 | ✅ | The owner's decision of 2026-11-19, as relayed with the first review round's findings |
+| 341 | The figure kit writes only `g`, `rect`, `path`, `circle` and `text` inside its root, with the attributes the inliner allows | README, `figures.ts` | ✅ | `figures/lib/svgkit.ts`: those are the only element names its template strings write after the `<style>`; the attribute list matches what `text()`, `box()`, `line()`, `#head()`, `curve()`, `dot()` and `group()` write |
+
+**Totals:** 341 claims: 303 ✅, 38 ✏️, 0 ⚠️.

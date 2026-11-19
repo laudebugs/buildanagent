@@ -496,6 +496,47 @@
   fill: var(--panel-terracotta);
 }
 
+/* A generated figure keeps its natural size, so its labels stay at the 12 px label size on every screen, and its
+   stage scrolls sideways where the panel is narrower than the drawing (BK11). The drawing sits at the start of the
+   stage, not centred by the grid, so a reader can scroll to both of its edges. */
+.figure__panel {
+  container: figure-panel / inline-size;
+}
+
+.figure__stage--scroll {
+  display: block;
+  overflow-x: auto;
+}
+
+.figure__stage--scroll svg.fig {
+  width: auto;
+  max-width: none;
+  margin-inline: auto;
+}
+
+.figure__stage--scroll:focus-visible {
+  outline: 2px solid var(--color-accent);
+  outline-offset: 2px;
+}
+
+/* The scroll hint shows while the panel's content is narrower than 37.5rem (600 px), the room the kit's widest figure
+   (520 px) needs with the stage's widest padding of 2.5rem a side. A chapter's 38rem column leaves 606 px, so the hint
+   stays hidden at desktop widths. */
+.figure__scroll-hint {
+  display: none;
+  margin: 0;
+  padding: 0.4rem 1rem 0.6rem;
+  font-family: var(--font-code);
+  font-size: var(--size-label);
+  color: var(--panel-comment);
+}
+
+@container figure-panel (width < 37.5rem) {
+  .figure__scroll-hint {
+    display: block;
+  }
+}
+
 /* The note under an analogy illustration's caption that says where the analogy breaks. */
 .figure__breaks {
   margin-top: 0.35rem;

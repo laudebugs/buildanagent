@@ -23,7 +23,7 @@ const second = await renderLikeAstro(book, "second");
 test("an analogy figure inlines its drawing, names its analogy and links its caption to where the analogy breaks", () => {
   assert.match(
     first,
-    /<figure id="fig-ticket-rail" class="numbered figure"[^>]*data-analogy="kitchen-ticket-rail"><div class="panel"><div class="figure__stage panel--grid"><svg [^>]*data-figure="ticket-rail" role="img" aria-label="Three order tickets hang from a rail\./,
+    /<figure id="fig-ticket-rail" class="numbered figure"[^>]*data-analogy="kitchen-ticket-rail"><div class="panel figure__panel"><div class="figure__stage figure__stage--scroll panel--grid" tabindex="0" role="group" aria-labelledby="fig-ticket-rail--caption"><svg [^>]*data-figure="ticket-rail" role="img" aria-label="Three order tickets hang from a rail\./,
   );
   assert.doesNotMatch(first, /<style|data:font/);
   assert.match(
@@ -39,7 +39,7 @@ test("an analogy figure inlines its drawing, names its analogy and links its cap
 test("figures, tables and listings are numbered from the chapter's place in the outline", () => {
   assert.match(
     first,
-    /<figure id="fig-ticket-rail"[^>]*>[\s\S]*<figcaption class="figure__caption"><span class="number figure__number label">Figure 1\.1<\/span> A kitchen ticket rail/,
+    /<figure id="fig-ticket-rail"[^>]*>[\s\S]*<figcaption class="figure__caption" id="fig-ticket-rail--caption"><span class="number figure__number label">Figure 1\.1<\/span> A kitchen ticket rail/,
   );
   assert.match(first, /<figcaption><span class="number">Table 1\.1<\/span> How the loop stops<\/figcaption><table>/);
   assert.match(second, /<figcaption><span class="number">Listing 2\.1<\/span> Saying hello<\/figcaption><pre/);

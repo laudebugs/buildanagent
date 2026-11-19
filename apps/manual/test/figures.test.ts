@@ -1,28 +1,46 @@
 import assert from "node:assert/strict";
 import { cpSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
-import { join } from "node:path";
+import { join, relative, sep } from "node:path";
 import { fileURLToPath } from "node:url";
 import { afterAll, test } from "vitest";
-import { drawFigure, FIGURE_ROOTS, figureScripts, staleFigures } from "../figures/lib/registry.js";
-import { Figure, FigureError, missingGlyphs, num } from "../figures/lib/svgkit.js";
+import { BOOK_FIGURES, drawFigure, figureScripts, staleFigures } from "../figures/lib/registry.js";
+import { Figure, FigureError, MAX_FIGURE_WIDTH, missingGlyphs, num } from "../figures/lib/svgkit.js";
 import { inlineSvg } from "../src/book/figures.js";
+import { readTokens } from "../src/design/tokens.js";
 
 // The staleness test redraws every figure in memory and compares it with the committed SVG byte for byte, as the
 // garment textbook's figure_staleness.py does; the unit tests check each rule the figure kit enforces.
+
+const app = fileURLToPath(new URL("..", import.meta.url));
+const FIXTURE_FIGURES = fileURLToPath(new URL("./fixtures/book/figures/", import.meta.url));
+const SITE_FIGURES = fileURLToPath(new URL("./fixtures/site/figures/", import.meta.url));
+// The folders the package's figures:build script names: the book's own and the two fixture books'.
+const ROOTS = [BOOK_FIGURES, FIXTURE_FIGURES, SITE_FIGURES];
 
 const dirs: string[] = [];
 afterAll(() => {
   for (const dir of dirs) rmSync(dir, { recursive: true, force: true });
 });
 
-test("the figure roots hold the book's sample and the fixture book's analogy illustration", () => {
-  const ids = FIGURE_ROOTS.flatMap((root) => figureScripts(root).map((figure) => `${figure.chapter}/${figure.id}`));
-  assert.deepEqual(ids, ["call-workflow-loop/who-decides", "first/ticket-rail"]);
+test("the book's figures hold only Chapter 1's figure, and the fixtures hold their own", () => {
+  const ids = (root: string) => figureScripts(root).map((figure) => `${figure.chapter}/${figure.id}`);
+  assert.deepEqual(ids(BOOK_FIGURES), ["call-workflow-loop/who-decides"]);
+  assert.deepEqual(ids(FIXTURE_FIGURES), ["first/ticket-rail"]);
+  assert.deepEqual(ids(SITE_FIGURES), ["call-workflow-loop/ticket-rail", "call-workflow-loop/who-decides"]);
 });
 
-for (const root of FIGURE_ROOTS) {
-  test(`every committed figure under ${root.split("/apps/manual/")[1]} is what its script draws now`, async () => {
+test("the package's figures:build script redraws every folder this test checks", () => {
+  const scripts = JSON.parse(readFileSync(join(app, "package.json"), "utf8")).scripts as Record<string, string>;
+  const named = (scripts["figures:build"] ?? "").split(" ").slice(2);
+  assert.deepEqual(
+    named,
+    ROOTS.map((root) => relative(app, root).split(sep).join("/").replace(/\/$/, "")),
+  );
+});
+
+for (const root of ROOTS) {
+  test(`every committed figure under ${relative(app, root).split(sep).join("/")} is what its script draws now`, async () => {
     assert.deepEqual(await staleFigures(root), []);
   });
 }
@@ -30,9 +48,9 @@ for (const root of FIGURE_ROOTS) {
 test("changing a figure script without rerunning figures:build makes its SVG stale, naming the script", async () => {
   const root = mkdtempSync(join(tmpdir(), "figures-"));
   dirs.push(root);
-  cpSync(FIGURE_ROOTS[1] ?? "", root, { recursive: true });
+  cpSync(FIXTURE_FIGURES, root, { recursive: true });
   const script = join(root, "first/ticket-rail.ts");
-  const kit = join(FIGURE_ROOTS[0] ?? "", "lib/svgkit.ts");
+  const kit = join(BOOK_FIGURES, "lib/svgkit.ts");
   writeFileSync(
     script,
     readFileSync(script, "utf8")
@@ -48,7 +66,7 @@ test("changing a figure script without rerunning figures:build makes its SVG sta
 test("an SVG without a script beside it is reported", async () => {
   const root = mkdtempSync(join(tmpdir(), "figures-"));
   dirs.push(root);
-  cpSync(FIGURE_ROOTS[1] ?? "", root, { recursive: true });
+  cpSync(FIXTURE_FIGURES, root, { recursive: true });
   rmSync(join(root, "first/ticket-rail.ts"));
   assert.deepEqual(
     (await staleFigures(root)).map((problem) => problem.replace(/^.*first\//, "")),
@@ -57,7 +75,7 @@ test("an SVG without a script beside it is reported", async () => {
 });
 
 test("drawing the same figure twice writes the same bytes", async () => {
-  const [figure] = figureScripts(FIGURE_ROOTS[0] ?? "");
+  const [figure] = figureScripts(BOOK_FIGURES);
   assert.ok(figure);
   assert.equal(await drawFigure(figure), await drawFigure(figure));
 });
@@ -176,7 +194,66 @@ test("inlining drops the style, names the drawing and can prefix every id", () =
 });
 
 test("the fixture's figure scripts live where the registry expects them", () => {
-  const [ticket] = figureScripts(FIGURE_ROOTS[1] ?? "");
+  const [ticket] = figureScripts(FIXTURE_FIGURES);
   assert.equal(ticket?.source, "apps/manual/test/fixtures/book/figures/first/ticket-rail.ts");
   assert.equal(fileURLToPath(new URL("./fixtures/book/figures/first/ticket-rail.svg", import.meta.url)), ticket?.svg);
+});
+
+// A kit SVG with one thing slipped into its drawing, as a hand edit or a crafted file might.
+function crafted(insert: string): string {
+  const f = figure();
+  f.group("parts", () => f.text({ x: 100, y: 50 }, "model"));
+  return f.toSvg("figures/x/sample.ts").replace("</svg>", `${insert}\n</svg>`);
+}
+
+test("inlining lets through only the elements and attributes the kit writes", () => {
+  const inline = (svg: string) => inlineSvg(svg, { figureId: "sample", alt: "x" });
+  const cases: [string, RegExp][] = [
+    ['<script>alert("x")</script>', /a <script> element, which the figure kit never draws/],
+    ['<foreignObject width="10" height="10"></foreignObject>', /a <foreignObject> element/],
+    ['<image href="https://example.com/x.png"/>', /a <image> element/],
+    ["<style>text{fill:red}</style>", /a <style> element/],
+    ['<rect x="1" y="1" width="2" height="2" onclick="alert(1)"/>', /its <rect> has an event handler, onclick/],
+    [
+      '<path d="M0 0" href="https://example.com/"/>',
+      /its <path> links to https:\/\/example\.com\/, not to an id in it/,
+    ],
+    ['<path d="M0 0" xlink:href="#other--x"/>', /links to #other--x, not to an id in it/],
+    ['<rect x="1" y="1" width="2" height="2" style="fill:red"/>', /a style attribute, which the kit never writes/],
+    ["<!-- a comment -->", /not an element the kit writes/],
+    ["<g>", /its <g> is never closed/],
+    ["<text>&nbsp;</text>", /an entity the kit never writes/],
+    ["<rect x=1 />", /its <rect> tag is malformed/],
+  ];
+  for (const [insert, message] of cases) assert.throws(() => inline(crafted(insert)), message, insert);
+  assert.throws(
+    () => inline(crafted("").replace('class="fig"', 'class="fig" onload="alert(1)"')),
+    /its <svg> has a onload attribute/,
+  );
+});
+
+test("inlining rewrites #id links with the id prefix, as it does ids", () => {
+  const svg = crafted('<path d="M0 0" href="#sample--parts"/>');
+  assert.match(inlineSvg(svg, { figureId: "sample", alt: "x", idPrefix: "dark-" }), /href="#dark-sample--parts"/);
+});
+
+test("no figure may be wider than the stage shows whole at desktop widths", () => {
+  assert.equal(MAX_FIGURE_WIDTH, 520);
+  assert.doesNotThrow(() => new Figure({ id: "wide", width: 520, height: 10 }));
+  assert.throws(
+    () => new Figure({ id: "wider", width: 521, height: 10 }),
+    /figure "wider" is 521 wide; no figure may be wider than 520/,
+  );
+});
+
+// On a 360 px phone the figure keeps its natural size and its panel scrolls, so a label renders at its CSS size,
+// which must not fall under the approved phone label size.
+test("labels render at no less than the phone label size, because a figure never shrinks", () => {
+  const css = readFileSync(join(app, "src/styles/components.css"), "utf8");
+  const labelPx = Number(/\.fig-text \{[^}]*font-size: (\d+)px/.exec(css)?.[1]);
+  assert.ok(labelPx >= readTokens().size.code.label.phone, `labels are ${labelPx}px`);
+  const natural = /\.figure__stage--scroll svg\.fig \{([^}]*)\}/.exec(css)?.[1] ?? "";
+  assert.match(natural, /width: auto;/);
+  assert.match(natural, /max-width: none;/);
+  assert.match(css, /\.figure__stage--scroll \{[^}]*overflow-x: auto;/);
 });

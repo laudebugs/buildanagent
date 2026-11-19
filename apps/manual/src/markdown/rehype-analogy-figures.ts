@@ -2,6 +2,7 @@ import type { Element, ElementContent, Root } from "hast";
 import { visit } from "unist-util-visit";
 import type { VFile } from "vfile";
 import { normalizePhrase } from "../book/analogies.js";
+import { captionId } from "../book/figures.js";
 import type { Book } from "../book/load.js";
 import { checkedChapter } from "./chapter-file.js";
 import { failAt } from "./fail.js";
@@ -26,7 +27,7 @@ function textOf(nodes: readonly ElementContent[]): string {
 export function rehypeAnalogyFigures(options: { readonly book: Book }) {
   const { book } = options;
   return (tree: Root, file: VFile): void => {
-    const { outline } = checkedChapter(file);
+    checkedChapter(file);
     const marks = figureAnalogies(file);
     visit(tree, "element", (node) => {
       if (node.tagName !== "figure" || node.properties.dataNumbered !== "figure") return;
@@ -35,12 +36,11 @@ export function rehypeAnalogyFigures(options: { readonly book: Book }) {
         (child): child is Element => child.type === "element" && child.tagName === "figcaption",
       );
       if (caption === undefined) return;
-      styleCaption(caption);
+      styleCaption(caption, id);
       const analogyId = marks.get(id);
       if (analogyId === undefined) {
-        const illustrated = [...book.analogies.values()].find(
-          (entry) => entry.illustration === id && entry.chapter === outline.slug,
-        );
+        // Figure ids are unique across the book, so an entry from any chapter that names this id means this figure.
+        const illustrated = [...book.analogies.values()].find((entry) => entry.illustration === id);
         if (illustrated !== undefined) {
           failAt(
             file,
@@ -57,8 +57,10 @@ export function rehypeAnalogyFigures(options: { readonly book: Book }) {
 }
 
 /** Gives a Markdown figure's caption the classes the FigureFrame component's caption has. */
-function styleCaption(caption: Element): void {
+function styleCaption(caption: Element, id: string): void {
   caption.properties.className = ["figure__caption"];
+  // The figure's scrolling stage is named by this id (remark-figures).
+  caption.properties.id = captionId(id);
   const number = caption.children.find((child) => hasClass(child, "number"));
   if (number?.type === "element") number.properties.className = ["number", "figure__number", "label"];
 }

@@ -2,9 +2,9 @@
 // draws with every helper in svgkit.ts, so a change to the kit shows up here first.
 import { Figure, type Rect } from "../lib/svgkit.js";
 
-const COLUMN = 190;
-const GAP = 20;
-const BOX = { width: 130, height: 40 };
+const COLUMN = 160;
+const GAP = 10;
+const BOX = { width: 120, height: 40 };
 const ROWS = [50, 130, 210];
 
 /** A box in a column, centred, on one of the three rows. */
@@ -14,7 +14,7 @@ function cell(column: number, row: number): Rect {
 }
 
 export default function draw(): Figure {
-  const figure = new Figure({ id: "who-decides", width: 630, height: 300 });
+  const figure = new Figure({ id: "who-decides", width: 520, height: 300 });
   const centre = (column: number) => 10 + column * (COLUMN + GAP) + COLUMN / 2;
 
   figure.group("call", () => {
@@ -45,7 +45,7 @@ export default function draw(): Figure {
     const right = model.x + model.width;
     figure.curve(
       { x: right, y: tool.y + 20 },
-      { x: right + 34, y: 110 },
+      { x: right + 26, y: 110 },
       { x: right, y: model.y + 22 },
       { tone: "accent" },
     );
@@ -61,7 +61,7 @@ export default function draw(): Figure {
     figure.line(
       [
         { x: 10, y: 256 },
-        { x: 620, y: 256 },
+        { x: 510, y: 256 },
       ],
       { tone: "muted", dashed: true },
     );

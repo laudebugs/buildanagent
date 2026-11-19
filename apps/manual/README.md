@@ -15,7 +15,7 @@ Run each from the repo root.
 | `pnpm --filter @buildanagent/manual check:book` | Checks the outline, the three registers and every chapter against the build's own rules, without building |
 | `pnpm --filter @buildanagent/manual book:switch-report` | Lists each written chapter's `switchTo` todos and which are done; `test` runs it too, and it never fails |
 | `pnpm --filter @buildanagent/manual tokens` | Regenerates `src/styles/tokens.css` from `book-tokens.json` |
-| `pnpm --filter @buildanagent/manual figures:build` | Runs every figure script and writes its SVG beside it |
+| `pnpm --filter @buildanagent/manual figures:build` | Runs every figure script, the book's and the two fixture books', and writes its SVG beside it |
 
 ## The outline places the chapter and gives it its number
 
@@ -140,11 +140,16 @@ Each flat figure is a TypeScript script, and the SVG it writes is committed besi
 The kit throws while drawing, naming the figure, when a mark breaks one of its rules:
 
 - A label uses a character that the embedded code font lacks, such as `↺`; the message names the character and its code point. The font is the upright Manual Code subset in `public/fonts/`, so the check matches what readers see.
+- The figure is wider than 520, the widest a chapter's figure panel shows whole at desktop widths; this limit is our choice.
 - A mark leaves the canvas, a label is wider or taller than its box leaves room for, two labels overlap, or a line or curve crosses a label.
 - `connect()` joins two boxes that overlap or share no band across the gap between them, or an arrow is shorter than twice its head.
 - An id does not start with `<figure id>--`. Inlined figures share the page's id space, and kebab-case ids never hold `--`, so two figures cannot clash.
 
-The figure colours its marks with the `fig-*` classes in `src/styles/components.css`, never with colour attributes. The kit measures labels at those classes' font sizes. Each committed SVG also embeds the code font as a data URI and the panel tokens of both modes, so the file renders on its own, for example in a pull request. The build drops that `<style>` element when it inlines the figure, because the page serves the same font and tokens and its content security policy allows no inline style. A change to the kit, the `fig-*` rules, the tokens or the code font therefore makes the figures stale: rerun `figures:build`.
+The figure colours its marks with the `fig-*` classes in `src/styles/components.css`, never with colour attributes. The kit measures labels at those classes' font sizes. Each committed SVG also embeds the code font as a data URI and the panel tokens of both modes, so the file renders on its own, for example in a pull request. The build drops that `<style>` element when it inlines the figure, because the page serves the same font and tokens and its content security policy allows no inline style. A change to the kit, the `fig-*` rules, the tokens or the code font therefore makes the figures stale: rerun `figures:build`. The font makes each committed SVG about 61 KB, but no page carries it.
+
+A page shows a figure at its natural size, so its labels stay at 12 px, the approved phone label size, on every screen (BK11). Where the panel is narrower than the figure, as on a phone, the drawing keeps its size and the panel scrolls sideways, with the note "Scroll sideways to see the whole figure →" under it; a figure never splits into a second drawing, and none of this needs JavaScript. The scrolling stage takes keyboard focus, and the figure's caption names it for screen readers.
+
+The inlined drawing may hold only what the kit writes: `g`, `rect`, `path`, `circle` and `text` elements, the kit's attributes, and links to ids inside the figure. A script, an image, a `foreignObject`, a second `<style>`, an event handler or a link elsewhere fails the build, so a hand-edited SVG cannot put script or outside content on a page.
 
 The build and `check:book` fail, with the chapter's file and line, when a figure lacks its alt text or its caption, or holds anything besides one `::svg`. They also fail when its SVG is missing or was drawn for another figure. Figure numbers come from the outline, like every other block's.
 
@@ -158,7 +163,7 @@ An analogy illustration is a figure marked with the analogy it draws (BK22):
 :::
 ```
 
-The register entry must name this figure as its `illustration`, and the caption must start with the analogy's name. The page then adds a link from the caption to a note under it that says where the analogy breaks, taken from the entry's `breaks`. The build fails when the entry is missing or names another figure, when the caption starts with anything else, and when a figure that an entry names as its illustration lacks the mark. The fixture book's `figures/first/ticket-rail.ts`, under `test/fixtures/book/`, is the sample. It stays in the fixture book because the analogy belongs to Chapter 1, whose todo registers it when the chapter is written.
+The register entry must name this figure as its `illustration`, and the caption must start with the analogy's name. The page then adds a link from the caption to a note under it that says where the analogy breaks, taken from the entry's `breaks`. The build fails when the entry is missing or names another figure, when the caption starts with anything else, and when a figure that an entry names as its illustration lacks the mark. The fixture book's `figures/first/ticket-rail.ts`, under `test/fixtures/book/`, is the sample, and the site fixture places the same drawing, so the build test checks it on a built page. Both fixtures register the analogy in their own `analogies.json`, because it belongs to Chapter 1, whose todo registers it in the book's register when the chapter is written.
 
 ## Glossary terms link on their first use
 
@@ -185,7 +190,7 @@ The chapter then marks each use with `:analogy[the ticket rail]{#kitchen-ticket-
 
 The outline checks, the three registers, the index that numbers blocks and the listing resolver live in `src/book/`, and the Markdown plugins that use them in `src/markdown/`. `check:book` loads the outline and the three registers, then renders every chapter through the build's own plugins and prints each problem as `file:line: message`. The tests run the same plugins on the fixture book in `test/fixtures/book/`, with one failing fixture for each rule `check:book` applies. That directory is also its own repository root, holding a workspace of one harness, `verify/demo-sdk`, whose example the second chapter lists. When the content model, a plugin, the outline, a register, another chapter's numbered blocks, a body's line offset, a listed file or its harness's pin change, `astro.config.mjs` clears Astro's content cache, so no chapter keeps stale numbers, links, listings or error lines.
 
-The build reads chapters from `src/content/chapters/` and their logs from `fact-checks/`, unless `BOOK_FIXTURE_DIR` names a directory that holds `chapters/` and `fact-checks/`. Only the tests set it, pointing it at `test/fixtures/site/` because the book has no chapter of its own yet, and any build that uses it says so on stderr. Figures always come from `figures/`, because the site fixture stands in for Chapter 1 and uses Chapter 1's sample figure. The citation, glossary and figure plugins, the strict schema, the text splitter, the figure kit and its staleness check are adapted from the owner's garment engineering textbook and are licensed Apache-2.0 only ([THIRD-PARTY-NOTICES.md](../../THIRD-PARTY-NOTICES.md)).
+The build reads chapters from `src/content/chapters/` and their logs from `fact-checks/`, unless `BOOK_FIXTURE_DIR` names a directory that holds `chapters/`, `fact-checks/`, `figures/` and `analogies.json`; the build then reads all four from there. Only the tests set it, pointing it at `test/fixtures/site/` because the book has no chapter of its own yet, and any build that uses it says so on stderr. The book's `figures/` therefore holds only the book's own figures; the site fixture's scripts draw Chapter 1's figure and the ticket rail by importing their scripts. The citation, glossary and figure plugins, the strict schema, the text splitter, the figure kit and its staleness check are adapted from the owner's garment engineering textbook and are licensed Apache-2.0 only ([THIRD-PARTY-NOTICES.md](../../THIRD-PARTY-NOTICES.md)).
 
 ## The tokens come from one JSON file
 

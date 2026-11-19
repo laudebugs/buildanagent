@@ -4,22 +4,17 @@
 // As a file derived from that repository, this file is licensed under Apache-2.0 only, not Apache-2.0 OR MIT
 // (LICENSE, THIRD-PARTY-NOTICES.md).
 import { existsSync, readdirSync, readFileSync } from "node:fs";
-import { basename, dirname, join, relative } from "node:path";
+import { basename, join, relative, sep } from "node:path";
 import { fileURLToPath, pathToFileURL } from "node:url";
+import { FIGURES_BUILD, figureFiles } from "../../src/book/figures.js";
 import { KEBAB_ID } from "../../src/book/outline-rules.js";
 import { Figure, FigureError } from "./svgkit.js";
 
 const APP = fileURLToPath(new URL("../../", import.meta.url));
 const REPO = join(APP, "../..");
 
-/**
- * The folders that hold figure scripts: the book's own, `figures/<chapter>/<id>.ts`, and the fixture book's, whose
- * analogy illustration the content-model tests render. `figures:build` and the staleness test cover both.
- */
-export const FIGURE_ROOTS: readonly string[] = [join(APP, "figures"), join(APP, "test/fixtures/book/figures")];
-
-/** The command that redraws every figure, as messages name it. */
-export const FIGURES_BUILD = "pnpm --filter @buildanagent/manual figures:build";
+/** The book's own figure scripts, `figures/<chapter>/<id>.ts`. Fixture books name their own folders. */
+export const BOOK_FIGURES = join(APP, "figures");
 
 /** One figure script and the SVG it writes beside it. */
 export interface FigureScript {
@@ -31,8 +26,8 @@ export interface FigureScript {
   readonly source: string;
 }
 
-/** A path from the repository root, for messages and the SVG's header. */
-export const fromRepo = (file: string): string => relative(REPO, file);
+/** A path from the repository root with `/` separators on every platform, for messages and the SVG's header. */
+export const fromRepo = (file: string): string => relative(REPO, file).split(sep).join("/");
 
 /**
  * Every figure script under `root`: each `.ts` file in a chapter folder, outside `lib/`. A file elsewhere, or a name
@@ -51,8 +46,8 @@ export function figureScripts(root: string): FigureScript[] {
         `${fromRepo(join(root, path))}: a figure script lives at figures/<chapter>/<figure-id>.ts, both kebab-case`,
       );
     }
-    const script = join(root, path);
-    found.push({ id, chapter, script, svg: join(dirname(script), `${id}.svg`), source: fromRepo(script) });
+    const { script, svg } = figureFiles(root, chapter, id);
+    found.push({ id, chapter, script, svg, source: fromRepo(script) });
   }
   return found;
 }
