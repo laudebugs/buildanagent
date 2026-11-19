@@ -41,7 +41,7 @@ The goal covers every recommendation in the guide's design sections, §2 to §10
 Each decision answers one open decision in [guide §12][g12], in the same order, and lists the options, the choice and the evidence. Three statuses appear:
 - **Decided** means the evidence settles the decision, and its ADR records it as Proposed until P4 accepts it.
 - **Decided, provisional** means the choice holds until a named todo checks it.
-- **Accepted (owner, 2026-11-18)** means the choice depended on facts outside the evidence, such as budgets, accounts or plans for outside users, and the owner confirmed it. D12's **Accepted (owner, 2026-11-19)** means the owner confirmed it once B7 had checked it. No decision still waits on the owner.
+- **Accepted (owner, 2026-11-18)** means the choice depended on facts outside the evidence, such as budgets, accounts or plans for outside users, and the owner confirmed it. D12 reads **Accepted (owner, 2026-11-19)** because the owner confirmed it after todo B7 confirmed its rule. No decision still waits on the owner.
 
 | # | Decision | Choice | Status | ADR |
 | --- | --- | --- | --- | --- |
