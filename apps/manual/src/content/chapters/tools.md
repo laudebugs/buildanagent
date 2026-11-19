@@ -102,6 +102,30 @@ The second is the vending machine's note. It names the cause, gives the next ste
 
 The vending machine stops matching at the reader of the note. You read "exact change only" and go looking for coins. A model may skim the error, retry the same arguments, or answer as though the call had worked, and the replay above retries correctly only because its script says so. So the note has to be specific enough to act on, and the loop still needs the cap from [[ch:call-workflow-loop]]: a model that retries the same broken call forever never stops asking for tools.
 
+## Offer a few tools shaped like the work, with clear names and results worth their tokens
+
+Suppose your shop's API has three endpoints for orders, one to list a customer's orders, one to fetch an order and one to fetch a shipment, and you wrap each in a tool. To answer "where is my order?", the model must now call all three in the right order, carry ids from one result into the next call, and read three payloads, most of whose fields it never needed. Anthropic names this pattern as "a common error": "tools that merely wrap existing software functionality or API endpoints" [@anthropic-writing-tools]. Its advice runs the other way: "We recommend building a few thoughtful tools targeting specific high-impact workflows". The ADK listing's `get_order_status` is that shape in miniature. It takes the one thing the model knows, an order id, and returns the one thing the customer asked, its status.
+
+Anthropic's post gives three consolidations of the same kind:
+
+- `schedule_event`{checked=row-41}, which "finds availability and schedules an event", in place of `list_users`{checked=row-41}, `list_events`{checked=row-41} and `create_event`{checked=row-41};
+- `search_logs`{checked=row-41}, which "only returns relevant log lines and some surrounding context", in place of `read_logs`{checked=row-41};
+- `get_customer_context`{checked=row-41}, which "compiles all of a customer's recent & relevant information all at once", in place of three lookups by id.
+
+Each consolidated tool moves work out of the model's context and into your code, where looping, joining and filtering cost nothing in tokens. The post also warns that "Too many tools or overlapping tools can also distract agents from pursuing efficient strategies."
+
+Consolidation has a limit that we set at the side effect. A tool that both reads an order and refunds it cannot be marked read-only, and the marking matters: in the Claude Agent SDK, `readOnlyHint`{checked=row-44} "Controls whether the tool can be called in parallel with other read-only tools" [@claude-agent-sdk-custom-tools]. A refund also needs a gate that a lookup does not, as [[ch:approvals-guardrails-and-injection]] shows. We recommend splitting tools by what they change first, then consolidating within each side.
+
+Names matter once tools come from more than one place, because a model choosing between two tools called "search" has only their descriptions to go on. Anthropic recommends namespacing, "grouping related tools under common prefixes", by service, such as `asana_search`{checked=row-46} and `jira_search`{checked=row-46}, and by resource. The Claude Agent SDK namespaces every tool it gets over MCP, as [[lst:claude-allowed]] shows.
+
+:::listing[A namespaced tool: the server's name becomes part of the tool's]{#claude-allowed file="verify/claude-agent-sdk/examples/02-custom-tool.ts" region="allowed-tools"}
+::note[The tool from [[lst:tool-claude]] reaches the model as `mcp__weather__get_temperature`: the prefix "mcp", then the key you gave the server in `mcpServers`, then the tool's own name, joined by double underscores.]{#allowed}
+:::
+
+A result deserves the same care as a schema, because every token of it lands in the context and stays there for the rest of the run. Anthropic asks tools to "return only high signal information" and to drop "low-level technical identifiers", and reports that "merely resolving arbitrary alphanumeric UUIDs to more semantically meaningful and interpretable language … significantly improves Claude's precision in retrieval tasks by reducing hallucinations." For results that can grow, it suggests "some combination of pagination, range selection, filtering, and/or truncation with sensible default parameter values", and notes that Claude Code caps tool responses "to 25,000 tokens by default". A `response_format`{checked=row-49} input with "concise" and "detailed" values lets the model choose. In the post's Slack example, the concise form used about a third of the tokens of the detailed one.
+
+Pi builds that split into the result itself. A Pi tool returns `content` for the model and `details` for your logs and interface, as [[lst:tool-pi]] does, so a record can carry everything you want to keep while the model reads one line. The rule behind it is the one this section started from: the model should see the fields that inform its next action, and your code should keep the rest.
+
 ## Exercises
 
 1. Drafted with the last section.
