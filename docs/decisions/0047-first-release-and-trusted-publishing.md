@@ -3,6 +3,7 @@
 - **Status:** Accepted (owner, 2026-11-19)
 - **Date:** 2026-11-19
 - **Plan:** [publish-and-docs.md, PB1 and PB2](../plans/publish-and-docs.md#pb1-ship-010-once-a-model-call-works-accepted)
+- **Note (2026-11-19):** npm did need the packages to exist first, and the owner ran the bootstrap by hand from their own machine, without provenance, instead of through a `bootstrap` job. So L4a now only makes the packages public, and L4b adds the trusted publishers. [PB2](../plans/publish-and-docs.md#pb2-changesets-in-one-fixed-group-published-only-from-ci-accepted) records the details; the decision below stands, except that its bootstrap path ran by hand.
 
 ## Context
 

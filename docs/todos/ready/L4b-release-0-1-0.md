@@ -11,7 +11,7 @@
 
 ## Goal
 
-Ship the first public release, 0.1.0, once a model call works, within 2 days of L4a adding the trusted publishers ([PB1](../../plans/publish-and-docs.md#pb1-ship-010-once-a-model-call-works-accepted), ADR 0047).
+Ship the first public release, 0.1.0, once a model call works, through the trusted publishers the owner adds the same day ([PB1](../../plans/publish-and-docs.md#pb1-ship-010-once-a-model-call-works-accepted), ADR 0047).
 
 ## Context
 
@@ -25,7 +25,7 @@ Ship the first public release, 0.1.0, once a model call works, within 2 days of 
 - A changeset for 0.1.0 summarising what the release offers: the transcript, `createModel()`, the Anthropic adapter, `ScriptedModel`
 - `pnpm changeset version` run in this pull request, so it carries both packages at 0.1.0 and their first `CHANGELOG.md` entries; merging it makes `release.yml` publish them through trusted publishing
 - Switching on L2's changeset gate and L3's "Version packages" pull request, so every later release goes through them
-- Removing the `bootstrap` job from `release.yml`; straight after the publish, the owner revokes the bootstrap token and deletes `NPM_BOOTSTRAP_TOKEN`
+- The owner adds a trusted publisher to each package (user `laudebugs`, repository `buildanagent`, workflow `release.yml`, environment `release`) on the day this pull request merges, before the merge. Merging starts the publish, and a trusted publisher expires unless it publishes within 2 days
 - Both READMEs gain install instructions
 
 **Out of scope** (and which todo covers it)
@@ -36,7 +36,7 @@ Ship the first public release, 0.1.0, once a model call works, within 2 days of 
 
 - [ ] `npm view @buildanagent/gateway@0.1.0` and `npm view @buildanagent/sdk@0.1.0` return the release, npmjs.com shows provenance for both, and `latest` points at 0.1.0
 - [ ] A fresh project installs `@buildanagent/sdk@0.1.0` and makes one model call against a mock server through the Anthropic adapter, offline
-- [ ] `release.yml` has no `bootstrap` job, and the repository has no `NPM_BOOTSTRAP_TOKEN` secret
+- [ ] npmjs.com shows a trusted publisher for both packages, naming `release.yml` and the `release` environment
 - [ ] A changeset-free change to `packages/*/src` fails CI after the release
 - [ ] The release's `workflow_dispatch` deploys the 0.1.0 docs to `docs.buildanagent.fyi`, and the next push to `main` deploys `next.docs.buildanagent.fyi` (once L8 has landed; otherwise L8 checks it)
 - [ ] `pnpm check`, `pnpm typecheck` and `pnpm test` pass offline from the repo root
@@ -51,7 +51,7 @@ Both READMEs and CHANGELOGs, the roadmap, the plan's todo table.
 
 ## Risks and open questions
 
-If L4b can't merge within 2 days of L4a's trusted-publisher setup, the trusted publishers expire; the owner re-adds them on npmjs.com before L4b merges.
+If L4b can't merge within 2 days of the owner adding the trusted publishers, they expire; the owner re-adds them on npmjs.com before L4b merges.
 
 ## Definition of done
 

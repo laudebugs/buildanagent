@@ -1,6 +1,6 @@
 # Publish the SDK to npm and its docs to two Cloudflare sites
 
-- **Status:** Ready (2026-11-19). That day the owner decided to publish under `@buildanagent`, to ship 0.1.0 once a model call works, to build the docs on Astro Starlight and to serve two sites on Cloudflare. They accepted every decision below the same day. Round L's todos are ready; none has started.
+- **Status:** Ready (2026-11-19). That day the owner decided to publish under `@buildanagent`, to ship 0.1.0 once a model call works, to build the docs on Astro Starlight and to serve two sites on Cloudflare. They accepted every decision below the same day. Round L's todos are ready; none has started. On 2026-11-19 the owner also published deprecated placeholders of both packages, so npm already holds them ([PB2](#pb2-changesets-in-one-fixed-group-published-only-from-ci-accepted)).
 
 The owner reserved the `@buildanagent` scope on npm and said, on 2026-11-19, "We can start publishing as soon as we're ready to". The same day they asked for library docs ("We also need to build documentation for the libraries") and named where they live ("We'll use cloudflare to deploy docs and the website - buildanagent.fyi"). This plan turns those decisions into Round L, nine todos in two strands. One strand takes `@buildanagent/gateway` and `@buildanagent/sdk` from private source packages to a 0.1.0 release with provenance; the other stands up the website at `buildanagent.fyi` and the docs at `docs.buildanagent.fyi`. The plan adapts Lamina PDF's working setup (`laudebugs/laminapdf` at `7b4b37b`): built `dist/` packages, a fixed Changesets group, npm trusted publishing, and Starlight docs on Cloudflare Workers static assets.
 
@@ -27,7 +27,7 @@ The owner reserved the `@buildanagent` scope on npm and said, on 2026-11-19, "We
 
 ### PB1. Ship 0.1.0 once a model call works (accepted)
 
-**Accepted by the owner on 2026-11-19:** "0.1.0 once a model call works". For the first publish, the owner also answered "Yes, one-time token if needed": if npm needs a package to exist before a trusted publisher can be added, the bootstrap path in PB2 runs once.
+**Accepted by the owner on 2026-11-19:** "0.1.0 once a model call works". For the first publish, the owner also answered "Yes, one-time token if needed": if npm needs a package to exist before a trusted publisher can be added, the bootstrap path in PB2 runs once. npm does need it, and the owner ran the bootstrap from their own machine on 2026-11-19, as PB2 records.
 
 The first release waits for two todos: B4 builds `createModel()` with retries, and B8 builds the Anthropic adapter. With both, a published package can call a real model; without them, it holds only types and a test model. B8 depends on B5, B6 and B7, so the release also carries the cost catalog, the message transform and the tool-name table. ADR 0008's 0.x rule applies from this release: a minor version may break the API, and only with a "Breaking Changes" changelog entry ([D8](build-sdk.md#d8-0x-with-a-changelog-that-marks-breaking-changes-and-two-export-diffs-in-ci-accepted)).
 
@@ -39,13 +39,12 @@ The first release waits for two todos: B4 builds `createModel()` with retries, a
 - **Changesets wait until we publish.** The owner said "Changesets wait until we publish", so L2 adds the config and tooling but no CI gate. The gate that requires a changeset, and the "Version packages" pull request, turn on in L4b, with the 0.1.0 changeset as the first one.
 - **Changelog.** `changeset version` writes each package's `CHANGELOG.md`. A change that breaks the API must be a `minor` bump under 0.x and must say "Breaking Changes" in its changeset, which D8 requires.
 - **Trusted publishing.** A release job publishes with npm trusted publishing: npm exchanges the workflow's OIDC token for a short-lived publish token, so no npm token is stored. npm requires a GitHub-hosted runner, `id-token: write`, npm CLI 11.5.1 or later and Node 22.14.0 or later, and it adds provenance attestations by default ([npm docs](https://docs.npmjs.com/trusted-publishers)). Our `.nvmrc` resolves to the newest Node 22, which ships npm 10, so the release job installs npm 11.5.1 or later before it publishes.
-- **The first publish.** npm's docs don't say whether a package must exist before a trusted publisher can be added, and a new trusted publisher expires unless it publishes within 2 days ([npm docs](https://docs.npmjs.com/trusted-publishers)). If npm requires an existing package, L4a bootstraps each package once, in four steps:
-  1. A manually triggered `bootstrap` job in `release.yml` reads a temporary `NPM_BOOTSTRAP_TOKEN` secret and publishes a `0.0.0-bootstrap.0` placeholder with `--provenance` under the `bootstrap` dist-tag. The job needs `id-token: write`, because provenance comes from the workflow's OIDC token.
-  2. The placeholder is deprecated at once, with a message to wait for 0.1.0. npm sets `latest` on a publish unless `--tag` is given ([npm docs](https://docs.npmjs.com/cli/v11/commands/npm-dist-tag)), but the registry may still point `latest` at a package's first version.
-  3. The owner adds the trusted publisher, and within the 2 days `release.yml` publishes 0.1.0 itself through trusted publishing, so 0.1.0 takes `latest`.
-  4. Straight after, the owner revokes the token and deletes the secret, and the `bootstrap` job is removed.
+- **The first publish has already run.** npm's `trust` docs list a prerequisite: "The package you're configuring must already exist on the npm registry" (`npm/cli` `docs/lib/content/commands/npm-trust.md` at `787f152`, read 2026-11-19). A new trusted publisher also expires unless it publishes within 2 days ([npm docs](https://docs.npmjs.com/trusted-publishers)). So, on 2026-11-19, the owner published placeholders of both packages from their own machine instead of through a CI `bootstrap` job. As of November 2026, npm shows the same state for each package:
+  - Two versions, `0.0.0-bootstrap.0` and `0.0.0-stage`, both deprecated with the message "Placeholder only; install 0.1.0 or later."
+  - The `bootstrap` and `latest` dist-tags both point at `0.0.0-bootstrap.0`, so the first publish did set `latest`.
+  - No provenance, because the placeholders didn't come from a workflow.
 
-  The normal publish job never sees a token.
+  The bootstrap path in [ADR 0047](../decisions/0047-first-release-and-trusted-publishing.md) therefore needs no CI job and no `NPM_BOOTSTRAP_TOKEN`. On release day the owner adds each trusted publisher, and `release.yml` then publishes 0.1.0 through trusted publishing within the 2 days, so 0.1.0 takes `latest`. The publish job never sees a token.
 - **The release flow.** From L4b on, every push to `main` makes the release workflow open or update a "Version packages" pull request from the pending changesets. Merging that pull request publishes the new versions and tags them. It goes through the same two code-review rounds as any other pull request.
 
 ### PB3. Built `dist/` packages, with a `source` condition for the workspace (accepted)
@@ -99,22 +98,22 @@ The switch needs no manual step. A tag that `release.yml` pushes with `GITHUB_TO
 
 ## 3. What the owner sets up
 
-1. **npm.** After the first publish exists (L4a says how), add a trusted publisher to each package on npmjs.com: user `laudebugs`, repository `buildanagent`, workflow `release.yml`, environment `release`. A new trusted publisher must complete its first publish within 2 days, or it expires ([npm docs](https://docs.npmjs.com/trusted-publishers)).
+1. **npm.** Both packages exist, because the owner published their placeholders on 2026-11-19 ([PB2](#pb2-changesets-in-one-fixed-group-published-only-from-ci-accepted)). On L4b's release day, not earlier, add a trusted publisher to each package on npmjs.com: user `laudebugs`, repository `buildanagent`, workflow `release.yml`, environment `release`. A new trusted publisher must complete its first publish within 2 days, or it expires ([npm docs](https://docs.npmjs.com/trusted-publishers)).
 2. **GitHub.** Create the `release` environment with the owner as required reviewer. Keep "Allow GitHub Actions to create and approve pull requests" on, for the "Version packages" pull request.
-3. **Cloudflare.** Add the `buildanagent.fyi` zone to the Cloudflare account. Create an API token for Wrangler deploys, and save it and the account id as the `CLOUDFLARE_API_TOKEN` and `CLOUDFLARE_ACCOUNT_ID` secrets. Grant the token Workers Scripts edit and Zone Workers Routes edit on the zone. These permissions come from Lamina PDF's `wrangler.toml` and are not yet confirmed against Cloudflare's docs; L8 confirms them. Once a Worker has a custom domain, Cloudflare creates its DNS record and issues its certificate ([Cloudflare docs](https://developers.cloudflare.com/workers/configuration/routing/custom-domains/)).
+3. **Cloudflare.** Add the `buildanagent.fyi` zone to the Cloudflare account. Create an API token for Wrangler deploys, and save it and the account id as the `CLOUDFLARE_API_TOKEN` and `CLOUDFLARE_ACCOUNT_ID` secrets of a GitHub environment named `cloudflare`, whose deployment branches are limited to `main`. L8's deploy jobs name `environment: cloudflare`. They should still deploy pull-request Previews, because GitHub runs a `workflow_run` job on the default branch, but nobody has tried it yet, so L8's criteria check it. Grant the token Workers Scripts edit and Zone Workers Routes edit on the zone. These permissions come from Lamina PDF's `wrangler.toml` and are not yet confirmed against Cloudflare's docs; L8 confirms them. Once a Worker has a custom domain, Cloudflare creates its DNS record and issues its certificate ([Cloudflare docs](https://developers.cloudflare.com/workers/configuration/routing/custom-domains/)).
 4. **Actions lockfile.** Each new workflow and action, including the four site workflows and `release.yml`, needs an entry in `.github/workflows/actions.lock` ([CI plan §3d](ci.md#3d-actions-locked-by-a-lockfile-added-2026-11-19)). The implementer runs `gh actions-lock`, or copies verified entries and checks each with `git ls-remote`.
 
 ## 4. Round L and its todos
 
-Round L runs beside Round B. L5 and L7 can start now; L1 starts after Q1. The release takes two todos, so each fits one pull request: L4a bootstraps the packages and adds the trusted publishers after B4, B8 and L3, and L4b publishes 0.1.0 within the 2 days that follow.
+Round L runs beside Round B. L1, L5 and L7 can start now. The release takes two todos, so each fits one pull request: L4a makes the packages public after B4, B8 and L3, and L4b adds the trusted publishers and publishes 0.1.0 within the 2 days that follow.
 
 | Todo | What it delivers | Depends on | Size |
 | --- | --- | --- | --- |
 | [L1](../todos/ready/L1-build-dist-packages.md) | `tsc` builds `dist/` for both packages, with `types`-first exports and a `source` condition | Q1 | M |
 | [L2](../todos/ready/L2-changesets.md) | Changesets config, a fixed group, and a CI check for missing changesets, switched on in L4b | L1 | S |
-| [L3](../todos/ready/L3-release-workflow.md) | `release.yml`: trusted publishing with provenance, the bootstrap job, and the "Version packages" pull request, switched on in L4b | L2 | M |
-| [L4a](../todos/ready/L4a-bootstrap-and-trusted-publishers.md) | Drop `private`, bootstrap the packages if npm needs it, add the trusted publishers | B4, B8, L3 | S |
-| [L4b](../todos/ready/L4b-release-0-1-0.md) | Publish 0.1.0 through trusted publishing, switch on the changeset gate, remove the bootstrap path | L4a | S |
+| [L3](../todos/ready/L3-release-workflow.md) | `release.yml`: trusted publishing with provenance and the "Version packages" pull request, switched on in L4b | L2 | M |
+| [L4a](../todos/ready/L4a-bootstrap-and-trusted-publishers.md) | Drop `private`, and check that the placeholders and dist-tags are as PB2 records | B4, B8, L3 | S |
+| [L4b](../todos/ready/L4b-release-0-1-0.md) | Add the trusted publishers, publish 0.1.0 through trusted publishing, switch on the changeset gate | L4a | S |
 | [L5](../todos/ready/L5-docs-app.md) | `apps/docs` on Starlight, with the docs structure and the first pages | B3 | M |
 | [L6](../todos/ready/L6-api-reference.md) | The API reference from TSDoc, and TypeDoc's undocumented-export check | L1, L5 | M |
 | [L7](../todos/ready/L7-website-app.md) | `apps/site`, the website for `buildanagent.fyi` | None | S |
@@ -124,11 +123,11 @@ B20's README type-checking, `llms.txt`, `defaultsHash` and second export diff st
 
 ## 5. Risks
 
-1. **npm may need the package to exist before a trusted publisher can be added.** npm's docs describe the setup on a package's settings page. If a new package can't be configured beforehand, the bootstrap path in [PB2](#pb2-changesets-in-one-fixed-group-published-only-from-ci-accepted) publishes a placeholder first, and 0.1.0 still goes out through trusted publishing within the 2-day window.
+1. **A trusted publisher added too early expires.** It must publish within 2 days, so the owner adds both publishers in L4b, on the day `release.yml` publishes 0.1.0. Until then `latest` points at the deprecated placeholder, so `pnpm add @buildanagent/sdk` installs `0.0.0-bootstrap.0` and marks it deprecated ([fact-check row 74](reviews/fact-check-publish-and-docs.md); [PB2](#pb2-changesets-in-one-fixed-group-published-only-from-ci-accepted)).
 2. **The `source` condition could leak.** A published `package.json` that kept the `source` condition would point users' tooling at `src/` files the tarball doesn't hold. `publishConfig.exports` strips it, and an L1 test packs each package and resolves every entry with a `source` condition set.
 3. **TypeDoc lags TypeScript.** Pinning TypeScript 6.0.3 for TypeDoc means the reference could disagree with how TypeScript 7 reads a type. L6's check builds the reference and type-checks the packages, so a mismatch surfaces in CI.
 4. **The pins may move.** Astro, Starlight and Wrangler release weekly. Each todo re-pins to the newest release at least a week old when it starts.
 
 ## 6. Conclusion
 
-Round L puts our packages on npm with provenance and our docs on `docs.buildanagent.fyi`, using the setup Lamina PDF already runs. L5 and L7 can start now and L1 starts after Q1; 0.1.0 ships as soon as B4 and B8 are done and the owner has set up npm, GitHub and Cloudflare as §3 lists.
+Round L puts our packages on npm with provenance and our docs on `docs.buildanagent.fyi`, using the setup Lamina PDF already runs. L1, L5 and L7 can start now; 0.1.0 ships as soon as B4 and B8 are done and the owner has set up npm, GitHub and Cloudflare as §3 lists.

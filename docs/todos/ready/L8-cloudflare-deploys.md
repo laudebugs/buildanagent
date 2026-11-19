@@ -27,6 +27,7 @@ Deploy `apps/site` to `buildanagent.fyi` and `apps/docs` to `docs.buildanagent.f
 - Wrangler pinned (4.160.1 on 2026-11-19, or newer and at least a week old; Previews need 4.135.0 or later)
 - `docs-build.yml` and `site-build.yml` on `pull_request` and pushes to `main`: build the site with no secrets and upload only `dist/` as an artifact
 - `docs-deploy.yml` and `site-deploy.yml` on `workflow_run` after their build workflow, which GitHub always runs from `main`:
+  - Run in `environment: cloudflare`, whose deployment branches are limited to `main` and which holds `CLOUDFLARE_API_TOKEN` and `CLOUDFLARE_ACCOUNT_ID` ([plan §3](../../plans/publish-and-docs.md#3-what-the-owner-sets-up)).
   - Download the artifact, take `wrangler.toml` from `main`, and never check out or run the pull request's code.
   - Deploy production only when `github.event.workflow_run.event == 'push'`, `github.event.workflow_run.head_repository.full_name == github.repository` and the head branch is `main`.
   - Otherwise run `wrangler preview`, and find the pull request for the comment from `GET /repos/{repo}/commits/{head_sha}/pulls`, never from the artifact.

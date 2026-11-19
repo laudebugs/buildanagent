@@ -115,4 +115,15 @@ This log checks every factual claim in [publish-and-docs.md](../publish-and-docs
 | 67 | ADR 0049's index row names DS2 and DS3 | ✏️ | The ADR covers DS2 to DS4; the index row now says so |
 | 68 | The plan's package versions are dated "on 2026-11-19" | ✏️ | Now "as of November 2026" with npm cited, as AGENTS.md requires |
 
-**Totals:** 68 claims: 49 ✅, 15 ✏️, 4 ⚠️.
+## Checked after the owner's npm bootstrap (2026-11-19)
+
+| # | Claim | Verdict | Source and reason |
+| --- | --- | --- | --- |
+| 69 | npm needs a package to exist before a trusted publisher can be added | ✅ | `npm/cli` `docs/lib/content/commands/npm-trust.md` at `787f152`, read 2026-11-19: "Package must exist: The package you're configuring must already exist on the npm registry." Answers risk 1, which the plan now replaces |
+| 70 | Row 59: a package's first publish under `--tag bootstrap` leaves `latest` unset | ✏️ | `npm view @buildanagent/gateway dist-tags` and the same for the SDK, 2026-11-19: `latest` and `bootstrap` both point at `0.0.0-bootstrap.0`. The plan now says the first publish set `latest` |
+| 71 | Each package holds `0.0.0-bootstrap.0` and `0.0.0-stage`, deprecated with "Placeholder only; install 0.1.0 or later." | ✅ | `npm view @buildanagent/<pkg> versions dist-tags deprecated --json`, 2026-11-19 |
+| 72 | The placeholders carry provenance | ✏️ | The owner published them from their own machine, not a workflow, so they have none; L4a's criterion now checks versions, dist-tags and the deprecation instead |
+| 73 | A `workflow_run` job in an environment limited to `main` can deploy pull-request Previews | ⚠️ | GitHub's events docs list `workflow_run`'s `GITHUB_REF` as "Default branch" (`github/docs` `content/actions/reference/workflows-and-actions/events-that-trigger-workflows.md`, read 2026-11-19), so the job's ref is `main`. Whether the environment's branch rule checks that ref hasn't been tried on this repository, so L8's acceptance criteria check it |
+| 74 | Until 0.1.0, `pnpm add @buildanagent/sdk` installs the deprecated placeholder | ✅ | `pnpm add @buildanagent/sdk` in a temp project, 2026-11-19: it added `0.0.0-bootstrap.0`, printed as deprecated |
+
+**Totals:** 74 claims: 52 ✅, 17 ✏️, 5 ⚠️.
