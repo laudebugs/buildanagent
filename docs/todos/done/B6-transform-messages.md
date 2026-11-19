@@ -68,12 +68,12 @@ The id charset per provider comes from B7's table; until then, use the canonical
 
 Judgement calls:
 
-- When thinking must be dropped, the pass keeps the newest unbroken run: it drops every reasoning block at or before the newest dropped one. Keeping the newest run is the only choice that stays stable as the transcript grows, so the request view of an earlier turn never changes between requests.
-- Errored turns are skipped before the reasoning rule runs, so a skipped turn's thinking does not count as a drop.
+- When thinking must be dropped, the pass keeps the newest unbroken run: it drops every reasoning block at or before the newest dropped one. Keeping the newest run means a later drop only ever removes older blocks, so as the transcript grows, older thinking leaves the request only as a leading run, which Anthropic's prefix check allows. The pass is idempotent.
+- Errored turns are skipped before the reasoning rule runs, so a skipped turn's thinking does not count as a drop. The results that answer a skipped turn's calls are dropped with it, even when an earlier unanswered call has the same id.
 - `"aborted"` turns are skipped like `"error"` turns, as Pi does.
-- Same provider means the same `api` and `provider`. An Anthropic target keeps any Anthropic signature; any other target keeps a signature only from the same model id, and keeps the reasoning text unsigned otherwise. An unsigned block with empty text is dropped.
+- Same provider means the same `api` and `provider`. An Anthropic target keeps any Anthropic signature and drops every block it cannot send signed, recorded unsigned or stripped, so the newest-run rule covers those drops too. Any other target keeps a signature only from the same model id, and keeps the reasoning text unsigned otherwise. An unsigned block with empty text is dropped for every target.
 - Tool-call ids use the canonical rule `^[A-Za-z0-9_-]{1,64}$` for every target until B7's table lands; repeats get a `_2`, `_3` suffix.
-- Beyond the five rules, the pass moves each result next to its call, drops results that answer no call, and drops an assistant message left with no content, because both providers reject those shapes.
+- Beyond the five rules, the pass moves each result next to its call, drops results that answer no call, strips reasoning and tool calls from user messages (without counting them for the newest-run rule), drops any message left with no content and merges adjacent user messages, because both providers reject those shapes. Dropping an emptied assistant message does not end the previous turn, so its later results still pair.
 - `caps.reasoning` is not used.
 
 ## Definition of done

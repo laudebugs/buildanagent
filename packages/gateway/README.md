@@ -20,13 +20,15 @@ const messages = transformMessages(transcript, model.ref, model.caps);
 
 The pass returns a new array and leaves your transcript as it was, so you keep the full record. It changes five things:
 
-- **Failed turns.** It leaves out every assistant message that stopped with `"error"` or `"aborted"`. A resumed call then asks the model again instead of building on a half-written answer.
-- **Reasoning.** A reasoning signature is valid only for the provider, and often only for the model, that wrote it. The pass drops reasoning that another provider wrote and removes any signature the target cannot check. An Anthropic model accepts thinking from any Anthropic model, so an Anthropic target gets every Anthropic thinking block exactly as recorded, empty ones included.
+- **Failed turns.** It leaves out every assistant message that stopped with `"error"` or `"aborted"`, and the tool results that answer its calls. A resumed call then asks the model again instead of building on a half-written answer.
+- **Reasoning.** A reasoning signature is valid only for the provider, and often only for the model, that wrote it. The pass drops reasoning that another provider wrote and removes any signature the target cannot check. An Anthropic model accepts thinking from any Anthropic model, so an Anthropic target gets every Anthropic-signed thinking block exactly as recorded, empty ones included. Anthropic rejects a thinking block without a signature, so an Anthropic target gets no unsigned reasoning. Another target keeps the text of reasoning it cannot verify, unless the text is empty.
 - **Images.** For a model that takes no images (`caps.images` is `false`), each image becomes a short text note.
 - **Tool-call ids.** Each id must be 1 to 64 letters, digits, `_` or `-`, and must not repeat. The pass rewrites any id that breaks the rule and updates the result that answers it.
 - **Tool results.** Each result moves next to the call it answers, and a result that answers no call is dropped. A call that never got a result gets a synthetic one with `isError: true`, because providers reject a call left unanswered.
 
-When the pass must drop reasoning, it also drops every reasoning block before the newest one it drops, so the blocks it keeps are the newest unbroken run. Anthropic checks each thinking block against everything sent before it, and a gap in the middle would fail that check. The pass gives the same answer for the same transcript every time, and running it on its own output changes nothing, so an earlier message looks the same in every request.
+The pass also keeps every message to a shape both providers accept. It removes reasoning and tool calls from user messages, drops any message left with no content, and merges user messages that end up next to each other into one.
+
+When the pass must drop reasoning, it also drops every reasoning block before the newest one it drops, so the blocks it keeps are the newest unbroken run. Anthropic checks each thinking block against everything sent before it, and a gap in the middle would fail that check. The pass gives the same answer for the same transcript every time, and running it on its own output changes nothing. As the transcript grows, a later drop can remove older thinking, but only ever as a leading run, which that check allows.
 
 ## Every stream follows one rule
 
