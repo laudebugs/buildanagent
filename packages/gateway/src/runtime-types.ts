@@ -1,6 +1,7 @@
 /** Gateway runtime types (SDK plan §3.2; SDK decisions 4, 13). */
+import type { PriceCatalog } from "./catalog.ts";
 import type { ModelAdapter, ModelEvent, StreamOptions } from "./spec.ts";
-import type { AssistantMessage, ModelCaps, ModelContext, ModelRef } from "./types.ts";
+import type { AssistantMessage, Cost, ModelCaps, ModelContext, ModelRef, Usage } from "./types.ts";
 
 /** How an adapter sends HTTP. Defaults to `globalThis.fetch`. */
 export type Transport = (request: Request) => Promise<Response>;
@@ -72,21 +73,6 @@ export interface ModelMiddleware {
   }): AsyncIterable<GatewayEvent>;
 }
 
-/** One model's limits as the price catalog records them. Missing `images` or `reasoning` come from the adapter. */
-export interface CatalogEntry {
-  provider: string;
-  id: string;
-  contextWindow: number;
-  maxOutputTokens: number;
-  images?: boolean;
-  reasoning?: boolean;
-}
-
-/** The catalog `createModel()` reads a model's caps from. Rates are added with pricing. */
-export interface PriceCatalog {
-  readonly models: readonly CatalogEntry[];
-}
-
 /** Waits `ms` milliseconds, or less if `signal` aborts first. It must resolve, not reject, on abort. */
 export type Sleep = (ms: number, signal: AbortSignal | undefined) => Promise<void>;
 
@@ -101,7 +87,10 @@ export interface CreateModelOptions {
   initialRetryDelayMs?: number;
   /** First is outermost. */
   middleware?: readonly ModelMiddleware[];
-  /** Where `caps` come from. A model missing from it gets the adapter's default caps. */
+  /**
+   * Where `caps` and prices come from. Defaults to the catalog that ships with the gateway; a catalog you pass
+   * replaces it. A model missing from it gets the adapter's default caps and an unknown price.
+   */
   catalog?: PriceCatalog;
   /** Receives the full request before each attempt is sent. */
   onRequest?(dump: RequestDump): void;
@@ -118,4 +107,10 @@ export interface Model {
   stream(context: ModelContext, options?: StreamOptions): AsyncIterable<GatewayEvent>;
   /** Reads `stream()` to its end and returns the final message, including a failed call's message. */
   complete(context: ModelContext, options?: StreamOptions): Promise<AssistantMessage>;
+  /**
+   * Prices one response's usage with the model's catalog entry. A model the catalog lacks gets
+   * `{ total: null, basis: "unknown" }`. Every message `stream()` ends with is already priced this way, unless the
+   * provider reported a billed total.
+   */
+  price(usage: Usage): Cost;
 }

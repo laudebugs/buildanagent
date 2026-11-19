@@ -2,14 +2,16 @@
  * `createModel()`: binds an adapter to one model id and wraps it in the gateway's shared behaviour (SDK plan §3.2;
  * SDK decisions 4, 13). The order, outside in: middleware, then retries, then the request dump, then the adapter.
  */
+import { type CatalogEntry, defaultCatalog, findCatalogEntry } from "./catalog.ts";
 import { complete } from "./complete.ts";
+import { priceUsage } from "./cost.ts";
 import { GatewayError } from "./errors.ts";
 import { transformParams, wrapStream } from "./middleware.ts";
 import { startAttempt } from "./request-dump.ts";
 import { abortableSleep, type RetrySettings, withRetries } from "./retry.ts";
-import type { CreateModelOptions, GatewayEvent, Model, PriceCatalog } from "./runtime-types.ts";
+import type { CreateModelOptions, GatewayEvent, Model } from "./runtime-types.ts";
 import type { ModelAdapter, StreamOptions } from "./spec.ts";
-import type { ModelCaps, ModelContext } from "./types.ts";
+import type { ModelCaps, ModelContext, Usage } from "./types.ts";
 
 const DEFAULT_RETRIES = 2;
 const DEFAULT_INITIAL_DELAY_MS = 2000;
@@ -31,8 +33,7 @@ function nonNegativeInteger(name: string, value: number | undefined, fallback: n
 }
 
 /** The catalog entry's limits, with the adapter's defaults for anything the entry leaves out. */
-function resolveCaps(adapter: ModelAdapter, id: string, catalog: PriceCatalog | undefined): ModelCaps {
-  const entry = catalog?.models.find((m) => m.provider === adapter.provider && m.id === id);
+function resolveCaps(adapter: ModelAdapter, id: string, entry: CatalogEntry | undefined): ModelCaps {
   const defaults = adapter.defaultCaps;
   if (entry) {
     return {
@@ -58,12 +59,15 @@ export function createModel(options: CreateModelOptions): Model {
   const { adapter, id } = options;
   assertAdapter(adapter);
   const ref = { api: adapter.api, provider: adapter.provider, id };
-  const caps = resolveCaps(adapter, id, options.catalog);
+  const entry = findCatalogEntry(options.catalog ?? defaultCatalog, adapter.provider, id);
+  const caps = resolveCaps(adapter, id, entry);
+  const price = (usage: Usage) => priceUsage(usage, entry);
   const middleware = [...(options.middleware ?? [])];
   const settings: RetrySettings = {
     retries: nonNegativeInteger("retries", options.retries, DEFAULT_RETRIES),
     initialDelayMs: nonNegativeInteger("initialRetryDelayMs", options.initialRetryDelayMs, DEFAULT_INITIAL_DELAY_MS),
     sleep: options.sleep ?? abortableSleep,
+    price,
   };
   const onRequest = options.onRequest?.bind(options);
 
@@ -80,5 +84,6 @@ export function createModel(options: CreateModelOptions): Model {
     caps,
     stream,
     complete: (context, streamOptions) => complete(stream(context, streamOptions)),
+    price,
   };
 }

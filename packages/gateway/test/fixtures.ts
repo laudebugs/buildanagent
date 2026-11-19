@@ -1,4 +1,4 @@
-import type { AssistantMessage, ContentBlock, ModelEvent } from "@buildanagent/gateway";
+import type { AssistantMessage, CatalogEntry, ContentBlock, ModelEvent, RateTier } from "@buildanagent/gateway";
 import { emptyUsage } from "@buildanagent/gateway";
 
 export function message(
@@ -36,4 +36,31 @@ export function validEvents(): ModelEvent[] {
     { type: "tool_input_end", index: 1, block: call },
     { type: "done", message: message("tool_calls", [text, call]) },
   ];
+}
+
+/** One rate tier with clearly fake prices, in USD per million tokens. */
+export const FAKE_RATES: RateTier = {
+  upToInputTokens: null,
+  uncachedInput: 2,
+  cacheRead: 0.5,
+  cacheWrite: { "5m": 4, "1h": 8 },
+  output: 16,
+};
+
+/** A catalog entry with fake prices for a fake model; `overrides` replaces any field. */
+export function fakeEntry(overrides: Partial<CatalogEntry> = {}): CatalogEntry {
+  return {
+    provider: "test",
+    id: "priced",
+    rates: [FAKE_RATES],
+    contextWindow: 1000,
+    maxOutputTokens: 100,
+    asOf: "2026-11-01",
+    sources: {
+      rates: "https://provider.test/pricing",
+      contextWindow: "https://provider.test/models",
+      maxOutputTokens: "https://provider.test/models",
+    },
+    ...overrides,
+  };
 }

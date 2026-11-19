@@ -6,6 +6,7 @@ import {
   type AssistantMessage,
   assertModelRequestAllowed,
   type ContentBlock,
+  type Cost,
   classifyError,
   type ErrorKind,
   emptyUsage,
@@ -17,6 +18,7 @@ import {
   type ProviderConfig,
   resolveProviderConfig,
   type StreamOptions,
+  type Usage,
 } from "@buildanagent/gateway";
 import { markMockTransport } from "@buildanagent/gateway/testing";
 
@@ -28,11 +30,23 @@ export const context: ModelContext = {
   tools: [],
 };
 
+/** What an attempt's terminal message reports. Both default to zero usage and an unknown cost. */
+interface Billing {
+  usage?: Usage;
+  cost?: Cost;
+}
+
 /** One scripted attempt: a reply, or a failure before or after the first text delta. */
-export type Attempt = { reply: string } | { fail: ErrorKind; afterOutput?: boolean; message?: string };
+export type Attempt = ({ reply: string } | { fail: ErrorKind; afterOutput?: boolean; message?: string }) & Billing;
 
 function terminal(model: ModelRef, content: ContentBlock[], attempt: Attempt): ModelEvent {
-  const base = { role: "assistant", content, model, usage: emptyUsage(), cost: { total: null, basis: "unknown" } };
+  const base = {
+    role: "assistant",
+    content,
+    model,
+    usage: attempt.usage ?? emptyUsage(),
+    cost: attempt.cost ?? { total: null, basis: "unknown", currency: "USD" },
+  };
   if ("reply" in attempt) return { type: "done", message: { ...base, stopReason: "stop" } as AssistantMessage };
   const error = { kind: attempt.fail, message: attempt.message ?? `${attempt.fail} failure` };
   return { type: "error", message: { ...base, stopReason: "error", error } as AssistantMessage };

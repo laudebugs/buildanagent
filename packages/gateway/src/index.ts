@@ -1,6 +1,17 @@
-/** `@buildanagent/gateway`: the model gateway's transcript, model spec, stream rule, runtime and helpers. */
+/** `@buildanagent/gateway`: the model gateway's transcript, model spec, stream rule, runtime, price catalog and helpers. */
+export {
+  type CatalogEntry,
+  type CatalogSources,
+  defaultCatalog,
+  findCatalogEntry,
+  type PriceCatalog,
+  parseCatalog,
+  type RateTier,
+  staleCatalogEntries,
+} from "./catalog.ts";
 export { classifyError, type ErrorKind, type FailedRequest } from "./classify.ts";
 export { complete } from "./complete.ts";
+export { estimateInputTokens, type ProjectedTokens, priceUsage, projectCallCost, projectCost } from "./cost.ts";
 export { createModel } from "./create-model.ts";
 export { GatewayError, type GatewayErrorCode, isGatewayError } from "./errors.ts";
 export { type ResolvedProviderConfig, resolveProviderConfig } from "./provider-config.ts";
@@ -11,14 +22,12 @@ export {
   modelRequestsAreAllowed,
 } from "./request-policy.ts";
 export type {
-  CatalogEntry,
   CreateModelOptions,
   DumpedOptions,
   GatewayEvent,
   MiddlewareParams,
   Model,
   ModelMiddleware,
-  PriceCatalog,
   ProviderConfig,
   RequestDump,
   Sleep,

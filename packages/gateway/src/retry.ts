@@ -5,13 +5,15 @@
  *   been streamed, a retry would replay output the caller has already seen, so the failure is final.
  * - The backoff is exponential (2 s, then 4 s by default, as Vercel's AI SDK) and ends early when the signal aborts.
  * - The caller sees one `start`, then one `retry` event per retry, then the last attempt's events. The final message
- *   counts the usage of every attempt, because the provider bills failed attempts too.
+ *   counts the usage and cost of every attempt, because the provider bills failed attempts too. Each attempt is
+ *   priced on its own before the sum, because a tiered rate depends on that request's input alone (D4).
  * - A stream that throws is treated like one that ends with an `error` event, so the caller always gets a terminal.
  * - Each wait is capped at 60 s. The provider's retry-after hint isn't used yet: adapters see the response headers,
  *   and no event carries a hint to the gateway.
  */
 
 import { classifyError } from "./classify.ts";
+import { foldCost } from "./cost.ts";
 import type { GatewayEvent, Sleep } from "./runtime-types.ts";
 import type { ModelEvent } from "./spec.ts";
 import type { AssistantMessage, Cost, ModelRef, Usage } from "./types.ts";
@@ -22,6 +24,8 @@ export interface RetrySettings {
   readonly retries: number;
   readonly initialDelayMs: number;
   readonly sleep: Sleep;
+  /** Prices one attempt's usage; a provider-billed total skips it. */
+  readonly price: (usage: Usage) => Cost;
 }
 
 const BACKOFF_FACTOR = 2;
@@ -60,6 +64,7 @@ type AttemptOutcome = { readonly retry: false } | { readonly retry: true; readon
 interface CallState {
   readonly ref: ModelRef;
   readonly signal: AbortSignal | undefined;
+  readonly price: (usage: Usage) => Cost;
   started: boolean;
   /** The usage of the failed attempts so far; the final message adds it, because the provider billed them too. */
   carried: Usage;
@@ -80,7 +85,7 @@ function withCarriedUsage(event: GatewayEvent, call: CallState): GatewayEvent {
     message: {
       ...message,
       usage: addUsage(call.carried, message.usage),
-      cost: addCost(call.carriedCost, message.cost),
+      cost: addCost(call.carriedCost, foldCost(message, call.price)),
     },
   };
 }
@@ -164,12 +169,19 @@ export async function* withRetries(
   signal: AbortSignal | undefined,
   settings: RetrySettings,
 ): AsyncGenerator<GatewayEvent> {
-  const call: CallState = { ref, signal, started: false, carried: emptyUsage(), carriedCost: ZERO_COST };
+  const call: CallState = {
+    ref,
+    signal,
+    price: settings.price,
+    started: false,
+    carried: emptyUsage(),
+    carriedCost: ZERO_COST,
+  };
   for (let n = 1; ; n += 1) {
     const outcome = yield* runAttempt(attempt(n), call, n <= settings.retries);
     if (!outcome.retry) return;
     call.carried = addUsage(call.carried, outcome.failure.usage);
-    call.carriedCost = addCost(call.carriedCost, outcome.failure.cost);
+    call.carriedCost = addCost(call.carriedCost, foldCost(outcome.failure, call.price));
     // The stream rule puts `start` first, so a failure that arrived without one still gets it before the retry.
     if (!call.started) {
       call.started = true;
