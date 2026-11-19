@@ -38,6 +38,16 @@ Later readers, including AI agents, act on these documents, so every new or rewr
 
 The details of each step, the fact-check log format and the four rules for citing claims are in [AGENTS.md](AGENTS.md#every-document-is-drafted-fact-checked-and-reviewed-before-it-merges).
 
+## Changing a workflow's actions
+
+The workflows name each action by its release tag (`actions/checkout@v7.0.1`), and `.github/workflows/actions.lock` records the commit that tag resolved to. When you add a workflow, or add or change an action in one:
+
+1. Install the extension: `gh extension install github/gh-actions-lock --pin v0.4.1`.
+2. Run `gh actions-lock` at the repo root.
+3. Commit `.github/workflows/actions.lock` with the workflow change.
+
+CI's `lockfile` job runs `gh actions-lock --verify` on every pull request and fails if the two disagree. If it reports that a locked commit has moved, the action's maintainer has moved its tag: find out why before you relock.
+
 ## Your contribution is licensed under the repo's own terms
 
 By opening a pull request, you agree to license your contribution under the repo's own terms: code under Apache-2.0 OR MIT, and documentation under CC BY 4.0 ([LICENSE](LICENSE)). Leave the mirrored upstream docs under `docs/reference/*/source/` unchanged; their fetch scripts regenerate them, and they keep their own licences ([THIRD-PARTY-NOTICES.md](THIRD-PARTY-NOTICES.md)).

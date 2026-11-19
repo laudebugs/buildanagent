@@ -12,8 +12,14 @@ updates:
     open-pull-requests-limit: 0
     exclude-paths:
       - "docs/reference/**"
+  # Weekly version updates for the actions, at least seven days old, as in Lamina PDF. An update rewrites the
+  # tag in the workflow and its entry in .github/workflows/actions.lock together.
   - package-ecosystem: "github-actions"
     directory: "/"
     schedule:
       interval: "weekly"
-    open-pull-requests-limit: 0
+    cooldown:
+      default-days: 7
+    groups:
+      actions-minor-patch:
+        update-types: ["minor", "patch"]

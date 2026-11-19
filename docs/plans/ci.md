@@ -54,6 +54,16 @@ The owner asked on 2026-11-19 for a weekly check that opens a pull request when 
 - **Pinned actions.** The workflow reuses ci.yml's pins and adds `actions/download-artifact` v8.0.2, whose tag commit is dated 2026-10-07, more than a week before it was pinned.
 - **Tests.** `scripts/ci/sdk-updates.test.mjs` covers the version choice offline, including deprecated releases, and `ci.yml` runs it on every push.
 
+## 3d. Actions locked by a lockfile (added 2026-11-19)
+
+The owner asked on 2026-11-19 to lock our GitHub Actions the way Lamina PDF does, with GitHub's workflow lockfile, which became generally available on 2026-10-28 ([GitHub changelog](https://github.blog/changelog/2026-10-28-github-actions-workflow-lockfiles-are-generally-available/)). It replaces the commit SHAs in our `uses:` lines, which [§3](#what-x1-built-2026-11-18) records.
+
+- **Tags in the workflows, commits in the lockfile.** Each `uses:` line names a release tag (`actions/checkout@v7.0.1`). `.github/workflows/actions.lock` records the commit each tag resolved to and the ids of the owning account and repository, so GitHub refuses a run if a tag moves or a repository changes hands.
+- **How this lockfile was made.** `gh actions-lock` needs GitHub's API for every action's repository, which the session that wrote it couldn't reach. All five actions we use, at the versions we pin, are in Lamina PDF's verified lockfile (`laudebugs/laminapdf` at `7b4b37b`), so their entries were copied from it, in the format the tool writes. Each tag's commit was checked against the action's own repository with `git ls-remote`, and all five matched; pnpm's annotated tag peels to the locked commit.
+- **Verified on every pull request.** `ci.yml`'s `lockfile` job installs `gh-actions-lock` v0.4.1 and runs `gh actions-lock --verify`. The job also proves the copied entries: it fails if any of them doesn't match what the tool would write.
+- **Updates.** Dependabot now proposes action updates weekly, at least seven days old, grouped for minor and patch releases. An update rewrites the tag and the lockfile entry together. A new workflow, or a new action in one, needs `gh actions-lock` run by hand ([CONTRIBUTING.md](../../CONTRIBUTING.md#changing-a-workflows-actions)).
+- **Owner setup.** Once `main` passes with the lockfile, turn on the **Require lockfile** policy (Settings → Actions → General), so GitHub refuses any workflow run the lockfile doesn't cover.
+
 ## 4. Todos
 
 | ID | Title | Depends on |
