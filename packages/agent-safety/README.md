@@ -96,9 +96,9 @@ When the policy asks for a person, the adapter signs a pending request and keeps
 3. The call's id, tool and input match what was signed, so an edited input fails.
 4. Your policy doesn't deny the call now, and `recheck` allows it.
 
-Any other answer denies the call, and its `execute` never runs. No option turns these checks off. The model receives a `not_applied` outcome as the denial's reason, in the same shape `toAiToolResult()` gives, so it can tell the user or ask again with a fresh call. A tool that still sets the deprecated `needsApproval` gets the same signing when your policy says nothing about it.
+If any check fails, the adapter denies the call, and its `execute` never runs. No option turns these checks off. The model receives a `not_applied` outcome as the denial's reason, in the same shape `toAiToolResult()` gives, so it can tell the user or ask again with a fresh call. A tool that still sets the deprecated `needsApproval` gets the same signing when your policy says nothing about it.
 
-Keep the AI SDK's own `experimental_toolApprovalSecret` set as well. It is a second check, signed with one secret and no key id, and it throws `InvalidToolApprovalSignatureError` on a bad signature instead of denying the call.
+Keep the AI SDK's own `experimental_toolApprovalSecret` set as well. That setting adds a second check, signed with one secret and no key id. On a bad signature it throws `InvalidToolApprovalSignatureError` instead of denying the call.
 
 ## `recheck` lets current policy stop an approved call
 
@@ -127,7 +127,7 @@ The signers compare signatures in constant time, copy the keys you pass, and kee
 
 ## Keep pending requests where the resume can find them
 
-A `PendingStore` holds each signed pending request from the pause until the resume, and needs two methods: `put()` and `take()`. `memoryPendingStore()` keeps them in memory, for tests and single-process hosts. On a serverless host, back the store with storage that outlives the isolate, such as Durable Object storage. The store needn't be trusted, because the adapter verifies every request it takes before the request counts. It is keyed by call id alone, so use one store per conversation, or make sure your model's call ids are unique across the conversations that share one: two pauses with the same id replace each other, and the first one's approval fails closed.
+A `PendingStore` holds each signed pending request from the pause until the resume, and needs two methods: `put()` and `take()`. `memoryPendingStore()` keeps them in memory, for tests and single-process hosts. On a serverless host, back the store with storage that outlives the isolate, such as Durable Object storage. The store needn't be trusted, because the adapter verifies every request it takes before the request counts. The store keys requests by call id alone, so two pauses with one id replace each other, and the first one's approval fails closed. Use one store per conversation, or make sure your model's call ids are unique across the conversations that share a store.
 
 `take()` must remove and return a request in one atomic step. If it reads and then deletes, two copies of one approval that arrive together can both get the request, and the call runs twice. Durable Object storage is atomic within one object; elsewhere, use an atomic operation such as Redis `GETDEL` or SQL `DELETE ... RETURNING`.
 
@@ -141,7 +141,7 @@ Pass the adapter as `toolApproval` to the `streamText` call in your `AIChatAgent
 const messages = settleDeniedApprovals(this.messages, deniedCallIds);
 ```
 
-It moves those parts to `output-denied` and marks their approval `approved: false`, the form `ai`'s own UI message validator requires for that state; each approval keeps its id and the person's reason. Store the result if it changed, then convert it for the model.
+`settleDeniedApprovals()` moves those parts to `output-denied` and marks their approval `approved: false`, the form `ai`'s own UI message validator requires for that state; each approval keeps its id and the person's reason. Store the result if it changed, then convert it for the model.
 
 ## Sign and verify a pause without an SDK
 

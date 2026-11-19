@@ -105,13 +105,13 @@ History: plan review 2 (2026-11-19) moved `canonicalInputHash()` to E1, added `e
 ## Definition of done
 
 - [x] Claimed: the first commit moved this file `ready/` → `ongoing/` (Status `ongoing`)
-- [ ] Prose drafted with `/anthropic-skills:writing` and reviewed with `/anthropic-skills:writing-review`, with the fixes applied and changed claims re-checked
+- [x] Prose drafted with `/anthropic-skills:writing` and reviewed with `/anthropic-skills:writing-review`, with the fixes applied and changed claims re-checked
 - [x] `pnpm check`, `pnpm typecheck` and `pnpm test` pass locally; pushed after each meaningful step
 - [x] This file moved `ongoing/` → `done/` (Status `done`), and the plan's todo table updated
 
 ## Outcome
 
-The root entry of `@buildanagent/agent-safety` now exports the `ApprovalSigner` interface, `hmacSigner()`, `ephemeralSigner()`, `signPending()`, `verifyResolution()`, `pendingPayload()`, the `SignedPendingRequest`, `Resolution` and `Recheck` types, `PendingStore` with `memoryPendingStore()`, and `KeyStore` with `parseKeyRing()` and `signerFromKeyStore()`. `./ai` adds `signedToolApproval()` and `settleDeniedApprovals()`, and `./testing` holds `testSigner()` (key id `test-fixed-key`). The third-party claims are logged in [the E3 fact-check](../../plans/reviews/fact-check-signed-approvals.md). The writing review runs after the code-review rounds, so its box stays open until then.
+The root entry of `@buildanagent/agent-safety` now exports the `ApprovalSigner` interface, `hmacSigner()`, `ephemeralSigner()`, `signPending()`, `verifyResolution()`, `pendingPayload()`, the `SignedPendingRequest`, `Resolution` and `Recheck` types, `PendingStore` with `memoryPendingStore()`, and `KeyStore` with `parseKeyRing()` and `signerFromKeyStore()`. `./ai` adds `signedToolApproval()` and `settleDeniedApprovals()`, and `./testing` holds `testSigner()` (key id `test-fixed-key`). The third-party claims are logged in [the E3 fact-check](../../plans/reviews/fact-check-signed-approvals.md). The code-review rounds and the writing review are done, and their findings are fixed or explained in the pull request.
 
 Each criterion and the test that covers it:
 
@@ -132,6 +132,6 @@ Judgement calls:
 - **Resume is detected from the history**: the call's approval request appears in the messages and the last message approves it. The adapter then re-runs the policy, denies on `denied`, and calls `recheck`. Every failure, including a thrown error, returns `denied`.
 - **`needsApproval` still applies.** A generic `toolApproval` function makes `ai` skip `needsApproval`, so the adapter applies it when the policy has no answer.
 - **A Cloudflare finding.** `agents` 0.33.0 drops the `tool-output-denied` chunk for a part already `approval-responded`, so the client never sees the denial and the next model step failed with `AI_MissingToolResultsError`. `settleDeniedApprovals()` in `./ai` marks those parts denied before the next turn. Reporting it upstream is a follow-up.
-- **`src/` reads the bare `crypto` global**, the same object as `globalThis.crypto`, because the Workers types declare it as a `const` and the worker type-checks `src/` against them. The SDK's vendored `errors.ts` and `hash.ts` follow, with an empty changeset; the SDK vendors nothing new, because B15 needs the signer files only once the safety package publishes or B15 vendors them itself.
+- **`src/` reads the bare `crypto` global**, the same object as `globalThis.crypto`, because the Workers types declare it as a `const` and the worker type-checks `src/` against them. The SDK's vendored `errors.ts` and `hash.ts` follow, with an empty changeset. The SDK vendors no new files: B15 needs the signer files only after the safety package publishes, or when B15 vendors them itself.
 - **The workerd test** bundles a Worker with esbuild and runs it through Miniflare, reusing `verify/cloudflare-agents`' pins; `test/workerd/tsconfig.json` type-checks it against the Workers types. E7 can grow this into the whole suite.
 - **The README** explains the persistent key ring for serverless hosts in plain words, without the ADR number that the todo's "Docs to update" names, because the docs guideline keeps decision ids out of reader text.
