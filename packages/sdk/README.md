@@ -37,4 +37,4 @@ Start each test file with `import "@buildanagent/gateway/testing/setup"`, which 
 
 ## Build the SDK with its dependencies
 
-The SDK compiles against the gateway's built `dist/*.d.ts`, so build both from the repo root with `pnpm --filter "@buildanagent/sdk..." build`, which builds the gateway first. `pnpm build` builds every package in the same order. Running `pnpm build` inside `packages/sdk` on a clean checkout fails, because the gateway has no `dist/` yet. Tests and type-checks need no build.
+The SDK compiles against the gateway's built `dist/*.d.ts`, so build both from the repo root with `pnpm --filter "@buildanagent/sdk..." build`, which builds the gateway first. `pnpm build` builds every package in the same order. On a clean checkout, `pnpm build` or `pnpm pack` run inside `packages/sdk` fails, because the gateway has no `dist/` yet. Tests and type-checks need no build.

@@ -66,7 +66,7 @@ Vitest's resolver must honour `source` for workspace packages through `ssr.resol
 - The Risks question resolved the other way round: `ssr.resolve.conditions` does reach `src/` for imports, but Vitest 5.1.0 resolves a bare `setupFiles` entry when it loads the config, with Node's default conditions. Each package's `setupFiles` therefore lists `test/setup.ts`, which imports `@buildanagent/gateway/testing/setup`.
 - The gateway's `sideEffects` lists `./src/testing/setup.ts` and `./dist/testing/setup.js` instead of `false`, because importing the setup installs the offline guards.
 - The first code review changed the build: source maps inline their sources, declaration maps are off because they point at `src/`, and each build empties `dist/` first. [ADR 0051](../../decisions/0051-dist-build-corrections-from-l1.md) records these and the other corrections to ADR 0050.
-- The pack test is `scripts/ci/packages-pack.test.mjs`, which CI's `node --test scripts/ci/*.test.mjs` step runs. It builds both packages itself. The Vite conditions test is `packages/gateway/test/vite-conditions.test.ts`.
+- The pack test is `scripts/ci/packages-pack.test.mjs`, which CI's `node --test scripts/ci/*.test.mjs` step runs. It packs both packages, and each `prepack` script builds its package first (found in the low code review). The Vite conditions test is `packages/gateway/test/vite-conditions.test.ts`.
 
 ## Definition of done
 
@@ -74,5 +74,5 @@ Vitest's resolver must honour `source` for workspace packages through `ssr.resol
 - [x] Prose drafted with `/anthropic-skills:writing`, and changed claims re-checked against their sources
 - [x] `pnpm check`, `pnpm typecheck` and `pnpm test` pass locally; pushed after each meaningful step
 - [x] This file moved `ongoing/` → `done/` (Status `done`) in the last work commit, and the plan's todo table updated
-- [ ] Two code-review rounds run on the pull request (`/code-review high --max-findings default`, then `medium` and `low` after more than 6 confirmed findings, otherwise `low`), with every finding fixed or explained in a commit message
-- [ ] Copy reviewed with `/anthropic-skills:writing-review` after the code changes, with its findings fixed and the rubric scores in the pull request description
+- [x] Two code-review rounds run on the pull request (`/code-review high --max-findings default`, then `medium` and `low` after more than 6 confirmed findings, otherwise `low`), with every finding fixed or explained in a commit message
+- [x] Copy reviewed with `/anthropic-skills:writing-review` after the code changes, with its findings fixed and the rubric scores in the pull request description
