@@ -475,7 +475,7 @@ describe("this checkout on main", () => {
     assert.deepEqual(result.consumed, pending.sort());
     // An empty changeset (`pnpm changeset --empty`, for a change users don't see) bumps nothing, and so does one that
     // gives its packages `none`, so when no pending changeset bumps a package the version commit only consumes them and
-    // names no version. Leaving pre mode bumps the prereleases to their plain version even without one.
+    // names no version. Leaving pre mode bumps the prereleases to their plain version even with no changeset.
     const pre = readPreState(root);
     const names = versionedPackageNames(root);
     const bumps =
