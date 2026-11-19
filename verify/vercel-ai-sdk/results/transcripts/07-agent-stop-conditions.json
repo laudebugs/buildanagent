@@ -1,0 +1,1019 @@
+{
+  "format": 1,
+  "example": "07-agent-stop-conditions",
+  "file": "verify/vercel-ai-sdk/examples/07-agent-stop-conditions.ts",
+  "harness": "verify/vercel-ai-sdk",
+  "pin": "ai@7.0.162",
+  "mock": "ai@7.0.162",
+  "events": [
+    {
+      "kind": "request",
+      "line": 17,
+      "model": "model-1",
+      "repeated": 0,
+      "messages": [
+        {
+          "role": "user",
+          "parts": [
+            {
+              "type": "text",
+              "text": "Loop."
+            }
+          ]
+        }
+      ],
+      "tools": [
+        "ping"
+      ]
+    },
+    {
+      "kind": "response",
+      "line": 17,
+      "model": "model-1",
+      "message": {
+        "role": "assistant",
+        "parts": [
+          {
+            "type": "tool-call",
+            "id": "call_1",
+            "name": "ping",
+            "input": {}
+          }
+        ]
+      },
+      "finish": "tool-calls"
+    },
+    {
+      "kind": "request",
+      "line": 17,
+      "model": "model-1",
+      "repeated": 2,
+      "messages": [
+        {
+          "role": "tool",
+          "parts": [
+            {
+              "type": "tool-result",
+              "id": "call_1",
+              "name": "ping",
+              "output": "pong"
+            }
+          ]
+        }
+      ],
+      "tools": [
+        "ping"
+      ]
+    },
+    {
+      "kind": "response",
+      "line": 17,
+      "model": "model-1",
+      "message": {
+        "role": "assistant",
+        "parts": [
+          {
+            "type": "tool-call",
+            "id": "call_2",
+            "name": "ping",
+            "input": {}
+          }
+        ]
+      },
+      "finish": "tool-calls"
+    },
+    {
+      "kind": "request",
+      "line": 17,
+      "model": "model-1",
+      "repeated": 4,
+      "messages": [
+        {
+          "role": "tool",
+          "parts": [
+            {
+              "type": "tool-result",
+              "id": "call_2",
+              "name": "ping",
+              "output": "pong"
+            }
+          ]
+        }
+      ],
+      "tools": [
+        "ping"
+      ]
+    },
+    {
+      "kind": "response",
+      "line": 17,
+      "model": "model-1",
+      "message": {
+        "role": "assistant",
+        "parts": [
+          {
+            "type": "tool-call",
+            "id": "call_3",
+            "name": "ping",
+            "input": {}
+          }
+        ]
+      },
+      "finish": "tool-calls"
+    },
+    {
+      "kind": "request",
+      "line": 17,
+      "model": "model-1",
+      "repeated": 6,
+      "messages": [
+        {
+          "role": "tool",
+          "parts": [
+            {
+              "type": "tool-result",
+              "id": "call_3",
+              "name": "ping",
+              "output": "pong"
+            }
+          ]
+        }
+      ],
+      "tools": [
+        "ping"
+      ]
+    },
+    {
+      "kind": "response",
+      "line": 17,
+      "model": "model-1",
+      "message": {
+        "role": "assistant",
+        "parts": [
+          {
+            "type": "tool-call",
+            "id": "call_4",
+            "name": "ping",
+            "input": {}
+          }
+        ]
+      },
+      "finish": "tool-calls"
+    },
+    {
+      "kind": "request",
+      "line": 17,
+      "model": "model-1",
+      "repeated": 8,
+      "messages": [
+        {
+          "role": "tool",
+          "parts": [
+            {
+              "type": "tool-result",
+              "id": "call_4",
+              "name": "ping",
+              "output": "pong"
+            }
+          ]
+        }
+      ],
+      "tools": [
+        "ping"
+      ]
+    },
+    {
+      "kind": "response",
+      "line": 17,
+      "model": "model-1",
+      "message": {
+        "role": "assistant",
+        "parts": [
+          {
+            "type": "tool-call",
+            "id": "call_5",
+            "name": "ping",
+            "input": {}
+          }
+        ]
+      },
+      "finish": "tool-calls"
+    },
+    {
+      "kind": "request",
+      "line": 17,
+      "model": "model-1",
+      "repeated": 10,
+      "messages": [
+        {
+          "role": "tool",
+          "parts": [
+            {
+              "type": "tool-result",
+              "id": "call_5",
+              "name": "ping",
+              "output": "pong"
+            }
+          ]
+        }
+      ],
+      "tools": [
+        "ping"
+      ]
+    },
+    {
+      "kind": "response",
+      "line": 17,
+      "model": "model-1",
+      "message": {
+        "role": "assistant",
+        "parts": [
+          {
+            "type": "tool-call",
+            "id": "call_6",
+            "name": "ping",
+            "input": {}
+          }
+        ]
+      },
+      "finish": "tool-calls"
+    },
+    {
+      "kind": "request",
+      "line": 17,
+      "model": "model-1",
+      "repeated": 12,
+      "messages": [
+        {
+          "role": "tool",
+          "parts": [
+            {
+              "type": "tool-result",
+              "id": "call_6",
+              "name": "ping",
+              "output": "pong"
+            }
+          ]
+        }
+      ],
+      "tools": [
+        "ping"
+      ]
+    },
+    {
+      "kind": "response",
+      "line": 17,
+      "model": "model-1",
+      "message": {
+        "role": "assistant",
+        "parts": [
+          {
+            "type": "tool-call",
+            "id": "call_7",
+            "name": "ping",
+            "input": {}
+          }
+        ]
+      },
+      "finish": "tool-calls"
+    },
+    {
+      "kind": "request",
+      "line": 17,
+      "model": "model-1",
+      "repeated": 14,
+      "messages": [
+        {
+          "role": "tool",
+          "parts": [
+            {
+              "type": "tool-result",
+              "id": "call_7",
+              "name": "ping",
+              "output": "pong"
+            }
+          ]
+        }
+      ],
+      "tools": [
+        "ping"
+      ]
+    },
+    {
+      "kind": "response",
+      "line": 17,
+      "model": "model-1",
+      "message": {
+        "role": "assistant",
+        "parts": [
+          {
+            "type": "tool-call",
+            "id": "call_8",
+            "name": "ping",
+            "input": {}
+          }
+        ]
+      },
+      "finish": "tool-calls"
+    },
+    {
+      "kind": "request",
+      "line": 17,
+      "model": "model-1",
+      "repeated": 16,
+      "messages": [
+        {
+          "role": "tool",
+          "parts": [
+            {
+              "type": "tool-result",
+              "id": "call_8",
+              "name": "ping",
+              "output": "pong"
+            }
+          ]
+        }
+      ],
+      "tools": [
+        "ping"
+      ]
+    },
+    {
+      "kind": "response",
+      "line": 17,
+      "model": "model-1",
+      "message": {
+        "role": "assistant",
+        "parts": [
+          {
+            "type": "tool-call",
+            "id": "call_9",
+            "name": "ping",
+            "input": {}
+          }
+        ]
+      },
+      "finish": "tool-calls"
+    },
+    {
+      "kind": "request",
+      "line": 17,
+      "model": "model-1",
+      "repeated": 18,
+      "messages": [
+        {
+          "role": "tool",
+          "parts": [
+            {
+              "type": "tool-result",
+              "id": "call_9",
+              "name": "ping",
+              "output": "pong"
+            }
+          ]
+        }
+      ],
+      "tools": [
+        "ping"
+      ]
+    },
+    {
+      "kind": "response",
+      "line": 17,
+      "model": "model-1",
+      "message": {
+        "role": "assistant",
+        "parts": [
+          {
+            "type": "tool-call",
+            "id": "call_10",
+            "name": "ping",
+            "input": {}
+          }
+        ]
+      },
+      "finish": "tool-calls"
+    },
+    {
+      "kind": "request",
+      "line": 17,
+      "model": "model-1",
+      "repeated": 20,
+      "messages": [
+        {
+          "role": "tool",
+          "parts": [
+            {
+              "type": "tool-result",
+              "id": "call_10",
+              "name": "ping",
+              "output": "pong"
+            }
+          ]
+        }
+      ],
+      "tools": [
+        "ping"
+      ]
+    },
+    {
+      "kind": "response",
+      "line": 17,
+      "model": "model-1",
+      "message": {
+        "role": "assistant",
+        "parts": [
+          {
+            "type": "tool-call",
+            "id": "call_11",
+            "name": "ping",
+            "input": {}
+          }
+        ]
+      },
+      "finish": "tool-calls"
+    },
+    {
+      "kind": "request",
+      "line": 17,
+      "model": "model-1",
+      "repeated": 22,
+      "messages": [
+        {
+          "role": "tool",
+          "parts": [
+            {
+              "type": "tool-result",
+              "id": "call_11",
+              "name": "ping",
+              "output": "pong"
+            }
+          ]
+        }
+      ],
+      "tools": [
+        "ping"
+      ]
+    },
+    {
+      "kind": "response",
+      "line": 17,
+      "model": "model-1",
+      "message": {
+        "role": "assistant",
+        "parts": [
+          {
+            "type": "tool-call",
+            "id": "call_12",
+            "name": "ping",
+            "input": {}
+          }
+        ]
+      },
+      "finish": "tool-calls"
+    },
+    {
+      "kind": "request",
+      "line": 17,
+      "model": "model-1",
+      "repeated": 24,
+      "messages": [
+        {
+          "role": "tool",
+          "parts": [
+            {
+              "type": "tool-result",
+              "id": "call_12",
+              "name": "ping",
+              "output": "pong"
+            }
+          ]
+        }
+      ],
+      "tools": [
+        "ping"
+      ]
+    },
+    {
+      "kind": "response",
+      "line": 17,
+      "model": "model-1",
+      "message": {
+        "role": "assistant",
+        "parts": [
+          {
+            "type": "tool-call",
+            "id": "call_13",
+            "name": "ping",
+            "input": {}
+          }
+        ]
+      },
+      "finish": "tool-calls"
+    },
+    {
+      "kind": "request",
+      "line": 17,
+      "model": "model-1",
+      "repeated": 26,
+      "messages": [
+        {
+          "role": "tool",
+          "parts": [
+            {
+              "type": "tool-result",
+              "id": "call_13",
+              "name": "ping",
+              "output": "pong"
+            }
+          ]
+        }
+      ],
+      "tools": [
+        "ping"
+      ]
+    },
+    {
+      "kind": "response",
+      "line": 17,
+      "model": "model-1",
+      "message": {
+        "role": "assistant",
+        "parts": [
+          {
+            "type": "tool-call",
+            "id": "call_14",
+            "name": "ping",
+            "input": {}
+          }
+        ]
+      },
+      "finish": "tool-calls"
+    },
+    {
+      "kind": "request",
+      "line": 17,
+      "model": "model-1",
+      "repeated": 28,
+      "messages": [
+        {
+          "role": "tool",
+          "parts": [
+            {
+              "type": "tool-result",
+              "id": "call_14",
+              "name": "ping",
+              "output": "pong"
+            }
+          ]
+        }
+      ],
+      "tools": [
+        "ping"
+      ]
+    },
+    {
+      "kind": "response",
+      "line": 17,
+      "model": "model-1",
+      "message": {
+        "role": "assistant",
+        "parts": [
+          {
+            "type": "tool-call",
+            "id": "call_15",
+            "name": "ping",
+            "input": {}
+          }
+        ]
+      },
+      "finish": "tool-calls"
+    },
+    {
+      "kind": "request",
+      "line": 17,
+      "model": "model-1",
+      "repeated": 30,
+      "messages": [
+        {
+          "role": "tool",
+          "parts": [
+            {
+              "type": "tool-result",
+              "id": "call_15",
+              "name": "ping",
+              "output": "pong"
+            }
+          ]
+        }
+      ],
+      "tools": [
+        "ping"
+      ]
+    },
+    {
+      "kind": "response",
+      "line": 17,
+      "model": "model-1",
+      "message": {
+        "role": "assistant",
+        "parts": [
+          {
+            "type": "tool-call",
+            "id": "call_16",
+            "name": "ping",
+            "input": {}
+          }
+        ]
+      },
+      "finish": "tool-calls"
+    },
+    {
+      "kind": "request",
+      "line": 17,
+      "model": "model-1",
+      "repeated": 32,
+      "messages": [
+        {
+          "role": "tool",
+          "parts": [
+            {
+              "type": "tool-result",
+              "id": "call_16",
+              "name": "ping",
+              "output": "pong"
+            }
+          ]
+        }
+      ],
+      "tools": [
+        "ping"
+      ]
+    },
+    {
+      "kind": "response",
+      "line": 17,
+      "model": "model-1",
+      "message": {
+        "role": "assistant",
+        "parts": [
+          {
+            "type": "tool-call",
+            "id": "call_17",
+            "name": "ping",
+            "input": {}
+          }
+        ]
+      },
+      "finish": "tool-calls"
+    },
+    {
+      "kind": "request",
+      "line": 17,
+      "model": "model-1",
+      "repeated": 34,
+      "messages": [
+        {
+          "role": "tool",
+          "parts": [
+            {
+              "type": "tool-result",
+              "id": "call_17",
+              "name": "ping",
+              "output": "pong"
+            }
+          ]
+        }
+      ],
+      "tools": [
+        "ping"
+      ]
+    },
+    {
+      "kind": "response",
+      "line": 17,
+      "model": "model-1",
+      "message": {
+        "role": "assistant",
+        "parts": [
+          {
+            "type": "tool-call",
+            "id": "call_18",
+            "name": "ping",
+            "input": {}
+          }
+        ]
+      },
+      "finish": "tool-calls"
+    },
+    {
+      "kind": "request",
+      "line": 17,
+      "model": "model-1",
+      "repeated": 36,
+      "messages": [
+        {
+          "role": "tool",
+          "parts": [
+            {
+              "type": "tool-result",
+              "id": "call_18",
+              "name": "ping",
+              "output": "pong"
+            }
+          ]
+        }
+      ],
+      "tools": [
+        "ping"
+      ]
+    },
+    {
+      "kind": "response",
+      "line": 17,
+      "model": "model-1",
+      "message": {
+        "role": "assistant",
+        "parts": [
+          {
+            "type": "tool-call",
+            "id": "call_19",
+            "name": "ping",
+            "input": {}
+          }
+        ]
+      },
+      "finish": "tool-calls"
+    },
+    {
+      "kind": "request",
+      "line": 17,
+      "model": "model-1",
+      "repeated": 38,
+      "messages": [
+        {
+          "role": "tool",
+          "parts": [
+            {
+              "type": "tool-result",
+              "id": "call_19",
+              "name": "ping",
+              "output": "pong"
+            }
+          ]
+        }
+      ],
+      "tools": [
+        "ping"
+      ]
+    },
+    {
+      "kind": "response",
+      "line": 17,
+      "model": "model-1",
+      "message": {
+        "role": "assistant",
+        "parts": [
+          {
+            "type": "tool-call",
+            "id": "call_20",
+            "name": "ping",
+            "input": {}
+          }
+        ]
+      },
+      "finish": "tool-calls"
+    },
+    {
+      "kind": "check",
+      "line": 18,
+      "message": "default: the agent stops after 20 steps",
+      "pass": true
+    },
+    {
+      "kind": "check",
+      "line": 19,
+      "message": "default: hitting the cap logs a warning",
+      "pass": true
+    },
+    {
+      "kind": "request",
+      "line": 28,
+      "model": "model-2",
+      "repeated": 0,
+      "messages": [
+        {
+          "role": "user",
+          "parts": [
+            {
+              "type": "text",
+              "text": "Loop."
+            }
+          ]
+        }
+      ],
+      "tools": [
+        "ping"
+      ]
+    },
+    {
+      "kind": "response",
+      "line": 28,
+      "model": "model-2",
+      "message": {
+        "role": "assistant",
+        "parts": [
+          {
+            "type": "tool-call",
+            "id": "call_21",
+            "name": "ping",
+            "input": {}
+          }
+        ]
+      },
+      "finish": "tool-calls"
+    },
+    {
+      "kind": "request",
+      "line": 28,
+      "model": "model-2",
+      "repeated": 2,
+      "messages": [
+        {
+          "role": "tool",
+          "parts": [
+            {
+              "type": "tool-result",
+              "id": "call_21",
+              "name": "ping",
+              "output": "pong"
+            }
+          ]
+        }
+      ],
+      "tools": [
+        "ping"
+      ]
+    },
+    {
+      "kind": "response",
+      "line": 28,
+      "model": "model-2",
+      "message": {
+        "role": "assistant",
+        "parts": [
+          {
+            "type": "tool-call",
+            "id": "call_22",
+            "name": "ping",
+            "input": {}
+          }
+        ]
+      },
+      "finish": "tool-calls"
+    },
+    {
+      "kind": "request",
+      "line": 28,
+      "model": "model-2",
+      "repeated": 4,
+      "messages": [
+        {
+          "role": "tool",
+          "parts": [
+            {
+              "type": "tool-result",
+              "id": "call_22",
+              "name": "ping",
+              "output": "pong"
+            }
+          ]
+        }
+      ],
+      "tools": [
+        "ping"
+      ]
+    },
+    {
+      "kind": "response",
+      "line": 28,
+      "model": "model-2",
+      "message": {
+        "role": "assistant",
+        "parts": [
+          {
+            "type": "tool-call",
+            "id": "call_23",
+            "name": "ping",
+            "input": {}
+          }
+        ]
+      },
+      "finish": "tool-calls"
+    },
+    {
+      "kind": "check",
+      "line": 32,
+      "message": "isStepCount(3) stops after 3 steps",
+      "pass": true
+    },
+    {
+      "kind": "check",
+      "line": 33,
+      "message": "an explicit stopWhen logs no warning",
+      "pass": true
+    },
+    {
+      "kind": "request",
+      "line": 48,
+      "model": "model-3",
+      "repeated": 0,
+      "messages": [
+        {
+          "role": "user",
+          "parts": [
+            {
+              "type": "text",
+              "text": "Answer."
+            }
+          ]
+        }
+      ],
+      "tools": [
+        "ping",
+        "finalAnswer"
+      ]
+    },
+    {
+      "kind": "response",
+      "line": 48,
+      "model": "model-3",
+      "message": {
+        "role": "assistant",
+        "parts": [
+          {
+            "type": "tool-call",
+            "id": "call_24",
+            "name": "ping",
+            "input": {}
+          }
+        ]
+      },
+      "finish": "tool-calls"
+    },
+    {
+      "kind": "request",
+      "line": 48,
+      "model": "model-3",
+      "repeated": 2,
+      "messages": [
+        {
+          "role": "tool",
+          "parts": [
+            {
+              "type": "tool-result",
+              "id": "call_24",
+              "name": "ping",
+              "output": "pong"
+            }
+          ]
+        }
+      ],
+      "tools": [
+        "ping",
+        "finalAnswer"
+      ]
+    },
+    {
+      "kind": "response",
+      "line": 48,
+      "model": "model-3",
+      "message": {
+        "role": "assistant",
+        "parts": [
+          {
+            "type": "tool-call",
+            "id": "call_25",
+            "name": "finalAnswer",
+            "input": {
+              "answer": "42"
+            }
+          }
+        ]
+      },
+      "finish": "tool-calls"
+    },
+    {
+      "kind": "check",
+      "line": 50,
+      "message": "hasToolCall('finalAnswer') stops right after that tool's step",
+      "pass": true
+    },
+    {
+      "kind": "check",
+      "line": 51,
+      "message": "the final tool result is on the result",
+      "pass": true
+    }
+  ]
+}

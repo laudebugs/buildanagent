@@ -115,13 +115,59 @@ The book loads every listing before it renders a page, so `check:book` and the b
 - the file is not TypeScript (`.ts`, `.tsx`, `.mts` or `.cts`), or no workspace package's `typecheck` covers it, as the next paragraph explains;
 - the file sits in no harness that `harnesses.json` lists, or the harness's `package.json` lacks the main package or pins it as a range instead of an exact version;
 - the region is missing, empty or malformed (an unnamed or repeated `#region`, an `#endregion` without its `#region` or naming another one, a `#region` never closed), and such a message also names the file's own line;
-- the directive lacks a caption or `file`, or takes an attribute other than `id`, `file` and `region`.
+- the directive lacks a caption or `file`, or takes an attribute other than `id`, `file`, `region` and `replay`, the last of which takes no value.
 
 A file counts as covered when `pnpm typecheck` would check it. Its nearest `package.json` must match a glob in `pnpm-workspace.yaml` that no `!` glob cancels, and one `tsc -p <config>` in that package's `typecheck` script must hold the file in its program. To decide, the check runs the manual's own `tsc`, from its exact `typescript` devDependency, as `tsc -p <config> --listFilesOnly`. TypeScript therefore applies `extends`, `files`, `include` and `exclude` itself, and a file that an included example imports also counts.
 
-Five of these rules are our choices, not BK9's: an exact pin, TypeScript files only, paths from the repository root only, a file inside a harness that `harnesses.json` lists, and no attribute but `id`, `file` and `region`, which catches a misspelt `region`. Because of the harness rule, a listing from `packages/` fails as "in no harness", so the todo that moves a chapter's listings to our own packages must widen that rule first.
+Five of these rules are our choices, not BK9's: an exact pin, TypeScript files only, paths from the repository root only, a file inside a harness that `harnesses.json` lists, and no attribute but `id`, `file`, `region` and `replay`, which catches a misspelt `region`. Because of the harness rule, a listing from `packages/` fails as "in no harness", so the todo that moves a chapter's listings to our own packages must widen that rule first.
 
 To add a listing, mark the region in the example, run that harness's `pnpm test` to confirm its results do not change, then write the directive and run `check:book`. Renaming or deleting a region breaks every chapter that lists it, and `check:book` names each one. When a chapter's `switchTo` todos are all done, `book:switch-report` says the chapter is ready to move its listings to our own packages.
+
+## Notes, SDK tabs and replays make a listing interactive
+
+A file listing can carry three kinds of interaction, BK9's tiers, and each one reads in full with JavaScript turned off. All three build on the same `::listing`, so `check:book` and the build check them as they check the listing, and each problem names the chapter's file and line.
+
+### Notes explain marked lines
+
+An example marks a line by ending it with a `// book:note <id>` comment. The chapter then writes the listing as a container and gives one note for each marker:
+
+```markdown
+:::listing[The loop runs until the model answers]{#tool-loop file="verify/vercel-ai-sdk/examples/02-tool-loop.ts" region="loop"}
+::note[The model's first answer asks for the tool.]{#first-call}
+::note[The loop stops when the model answers with text.]{#stop}
+:::
+```
+
+The build takes each marker off its line, highlights the line and puts a numbered marker at its end. The marker links to its note, and the notes form a numbered list under the code, in the order of their markers in the file. A note is Markdown, so citations, glossary terms and references in it work as in a paragraph. Because the marker sits on the line itself, a note follows its line when the file changes around it.
+
+A listing fails when a note names an id that no marker in its lines carries, when a marker in its lines has no note, when a note repeats an id or lacks text, and when the container holds anything but notes. A marker fails, with the file's own line, when its id is not kebab-case, when its id appears twice in the file, or when it stands on a line of its own instead of ending a line of code. One rule is our choice: a listing that gives no notes shows its marked lines plainly, so one chapter can annotate a region that another lists bare. Like region markers, a marker is found by its text, so `// book:note` inside a string also counts.
+
+### Tabs show one concept in several SDKs
+
+A `:::tabs` block holds two or more file listings, usually from different harnesses:
+
+```markdown
+:::tabs
+::listing[AI SDK]{#approval-ai file="verify/vercel-ai-sdk/examples/03-tool-approval.ts" region="approval-response"}
+::listing[OpenAI Agents SDK]{#approval-openai file="verify/openai-agents-sdk/examples/05-approval-resume.ts" region="approve-resume"}
+:::
+```
+
+Each listing keeps its own number, path and pin, and its caption names its tab. Without JavaScript the listings follow one another, each under a heading made from its caption, one level below the heading the block follows. Because the heading shows the caption, the caption line below it shows only the number, path, lines and pin. The chapter's "On this page" list leaves these headings out. With JavaScript, `scripts/tabs.ts` turns those headings into a tab list that the arrow keys, Home and End move through. The block fails when it holds anything but file listings, holds fewer than two, or has a caption of its own.
+
+### A replay steps through a recorded run
+
+Add `replay` to a file listing, and the page shows the recorded run of its example beside the code:
+
+```markdown
+::listing[One model call]{#one-call file="verify/vercel-ai-sdk/examples/01-generate-text.ts" region="call" replay}
+```
+
+The run comes from `verify/<sdk>/results/transcripts/<example>.json`, which the harness's `pnpm test` writes and CI's results-drift check keeps current, so a replay cannot drift from its code. Without JavaScript the replay lists every event of the run: the messages the example sent, the model's answers, each tool call and result, and each `check()` with its outcome. With JavaScript, `scripts/steps.ts` reveals one event at a time, with back, next, restart and play, and marks the listing line that each event came from. Each event also says where it came from, with or without JavaScript: "line 6" for a line the listing shows, "line 42, outside this listing" for one it leaves out, and "no source line" when the transcript names none. Neither script makes a network request, and `test/page-scripts.test.ts` checks that in happy-dom.
+
+The replay shows a request's new messages only. When a request resends messages the replay already showed, as when a handoff gives the conversation to another agent, they fold into one "History" event that counts them. A part that the format has no shape for, such as Pi's system prompt sections or the text LangChain's fake model makes up, shows under a name a reader can follow. A body longer than 600 characters stops there and says how many more it holds, a limit that is our choice.
+
+A replay fails when the transcript is missing or malformed, when it records another file, and when it was recorded at a pin other than the harness's current one. The pin check covers both the harness's main package and the package its recorder attaches to, which the transcript names as `mock`, and rerunning the harness's `pnpm test` fixes a stale pin. Six harnesses record transcripts: `vercel-ai-sdk`, `pi`, `openai-agents-sdk`, `langchain`, `google-adk` and `cloudflare-agents`. An example that calls no model, such as `cloudflare-agents/examples/01-state.ts`, has no transcript, and the Claude Agent SDK and Copilot SDK wait for [T49](../../docs/todos/ready/T49-book-http-mock-transcripts.md). The transcript format lives in [`scripts/transcripts/events.ts`](../../scripts/transcripts/events.ts), with its recorder and writer beside it.
 
 ## A figure is a script that draws an SVG, and the build inlines it
 
@@ -188,7 +234,7 @@ The chapter then marks each use with `:analogy[the ticket rail]{#kitchen-ticket-
 
 ## The content model lives in `src/book/`
 
-The outline checks, the three registers, the index that numbers blocks and the listing resolver live in `src/book/`, and the Markdown plugins that use them in `src/markdown/`. `check:book` loads the outline and the three registers, then renders every chapter through the build's own plugins and prints each problem as `file:line: message`. The tests run the same plugins on the fixture book in `test/fixtures/book/`, with one failing fixture for each rule `check:book` applies. That directory is also its own repository root, holding a workspace of one harness, `verify/demo-sdk`, whose example the second chapter lists. When the content model, a plugin, the outline, a register, another chapter's numbered blocks, a body's line offset, a listed file or its harness's pin change, `astro.config.mjs` clears Astro's content cache, so no chapter keeps stale numbers, links, listings or error lines.
+The outline checks, the three registers, the index that numbers blocks and the listing resolver live in `src/book/`, and the Markdown plugins that use them in `src/markdown/`. `check:book` loads the outline and the three registers, then renders every chapter through the build's own plugins and prints each problem as `file:line: message`. The tests run the same plugins on the fixture book in `test/fixtures/book/`, with one failing fixture for each rule `check:book` applies. That directory is also its own repository root, holding a workspace of one harness, `verify/demo-sdk`, whose example the second chapter lists. When the content model, a plugin, the outline, a register, another chapter's numbered blocks, a body's line offset, a listed file, its harness's pin or a replayed transcript change, `astro.config.mjs` clears Astro's content cache, so no chapter keeps stale numbers, links, listings or error lines.
 
 The build reads chapters from `src/content/chapters/` and their logs from `fact-checks/`, unless `BOOK_FIXTURE_DIR` names a directory that holds `chapters/`, `fact-checks/`, `figures/` and `analogies.json`; the build then reads all four from there. Only the tests set it, pointing it at `test/fixtures/site/` because the book has no chapter of its own yet, and any build that uses it says so on stderr. The book's `figures/` therefore holds only the book's own figures; the site fixture's scripts draw Chapter 1's figure and the ticket rail by importing their scripts. The citation, glossary and figure plugins, the strict schema, the text splitter, the figure kit and its staleness check are adapted from the owner's garment engineering textbook and are licensed Apache-2.0 only ([THIRD-PARTY-NOTICES.md](../../THIRD-PARTY-NOTICES.md)).
 
@@ -254,7 +300,7 @@ Literata stays variable on both its axes, optical size (7â€“72) and weight (200â
 Each component in `src/components/` renders its full content with no script. A few then add behaviour as progressive enhancement, and their buttons render with `hidden` until the script shows them:
 
 - **Layout:** `SiteHeader`, `ChapterHead` (the wide title), `Sidebar` with `Contents`, the article column in `layouts/ChapterLayout.astro`, and `PrevNext`. The columns switch with container queries on the `.layout` element, not with viewport media queries, so the layout follows the width it is given: the sidebar joins at 64rem and the side-note margin at 69rem.
-- **Code:** `ListingBlock` with `AnnotationMarker` and `Annotations`; `Tabs` with `TabPanel`, which show every panel under its own heading until `scripts/tabs.ts` builds the tab list; `Replay` with `StepControls`, which `scripts/steps.ts` steps through.
+- **Code:** `ListingBlock` with `AnnotationMarker` and `Annotations`; `Tabs` with `TabPanel`, which show every panel under its own heading until `scripts/tabs.ts` builds the tab list; `Replay` with `StepControls`, which `scripts/steps.ts` steps through. A chapter's notes, `:::tabs` and replays render the same markup from `listing-html.ts` and `replay-html.ts`, and `ChapterLayout` loads both scripts.
 - **Figures:** `FigureFrame` on grid paper, which becomes the isometric stepper when it has steps; `scripts/steps.ts` then shows one step at a time and dims the figure parts of the others. `GeneratedFigure` puts a figure from `figures/` in a `FigureFrame`, inlined as a chapter's is; the gallery uses it.
 - **Prose:** `SideNote`, `GlossaryCard`, `GlossaryTerm` (its card opens on hover and focus and stays open while the pointer is on it, and `scripts/glossary.ts` lets Escape close it), `Citation` and `SearchBox`.
 - **Theme:** `ThemeToggle`, driven by `public/scripts/theme.js`, which applies a stored choice before the first paint. The button's label names its action, "Switch to light theme" or "Switch to dark theme", and follows the system setting while the reader has stored no choice.

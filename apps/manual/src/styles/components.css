@@ -256,6 +256,11 @@
   border-left-color: var(--panel-terracotta);
 }
 
+/* The line a replay's current event came from, marked by an amber bar (the panel's keyword colour) as the run steps. */
+.line[data-current-line] {
+  border-left-color: var(--panel-amber);
+}
+
 .tok-keyword {
   color: var(--panel-amber);
 }
@@ -701,6 +706,13 @@
   white-space: pre-wrap;
 }
 
+/* Where an event came from: the listed line it highlights, or why it highlights none. */
+.replay__where {
+  display: block;
+  color: var(--panel-comment);
+  font-size: var(--size-label);
+}
+
 .replay[data-enhanced] .replay__event[data-future] {
   display: none;
 }
@@ -713,6 +725,33 @@
 
 .replay .controls__status {
   color: var(--panel-comment);
+}
+
+/* A listing and its recorded run stay together, side by side once the column is wide enough for both. */
+.listing-replay {
+  container-type: inline-size;
+  margin: 1.75rem 0;
+}
+
+.listing-replay > * {
+  margin: 0;
+}
+
+.listing-replay > * + * {
+  margin-top: 0.75rem;
+}
+
+@container (min-width: 56rem) {
+  .listing-replay {
+    display: grid;
+    grid-template-columns: minmax(0, 3fr) minmax(0, 2fr);
+    gap: 0.75rem;
+    align-items: start;
+  }
+
+  .listing-replay > * + * {
+    margin-top: 0;
+  }
 }
 
 /* Side notes sit in the article flow, and float into the right margin once the page has one. */

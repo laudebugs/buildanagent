@@ -194,6 +194,28 @@ test("a chapter page shows a listing cut from a verify/ example, with the pin it
   );
 });
 
+test("a chapter page shows SDK tabs and a replay that read in full without JavaScript, and loads their script", () => {
+  const html = chapter();
+  const tabs = html.slice(html.indexOf('<div class="tabs" data-label="SDK">'));
+  assert.deepEqual(
+    [...tabs.matchAll(/<h2 class="tabs__heading"[^>]*>([^<]+)<\/h2>/g)].map((m) => m[1]),
+    ["AI SDK", "OpenAI Agents SDK"],
+  );
+  assert.ok(tabs.includes('<span class="listing__path">verify/openai-agents-sdk/examples/02-function-tool.ts</span>'));
+  const transcript = JSON.parse(
+    readFileSync(join(app, "../../verify/vercel-ai-sdk/results/transcripts/01-generate-text.json"), "utf8"),
+  );
+  const replay = html.slice(
+    html.indexOf('id="lst-one-call-replay"'),
+    html.indexOf("</section>", html.indexOf('id="lst-one-call-replay"')),
+  );
+  assert.ok(replay.includes("verify/vercel-ai-sdk/results/transcripts/01-generate-text.json"));
+  const checks = transcript.events.filter((event: { kind: string }) => event.kind === "check").length;
+  assert.equal((replay.match(/data-kind="check"/g) ?? []).length, checks, "every check of the run is listed");
+  assert.match(replay, /data-step-controls[^>]* hidden/);
+  assert.match(html, /<script type="module" src="\/_astro\/[^"]+\.js"><\/script>/, "the page loads its script by URL");
+});
+
 test("the contents list every chapter in the outline, linking only the written ones", () => {
   const html = readFileSync(join(out, "index.html"), "utf8");
   assert.equal((html.match(/class="contents__chapter"/g) ?? []).length, 18);

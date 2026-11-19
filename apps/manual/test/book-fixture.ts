@@ -41,6 +41,29 @@ export function fixtureInputs(dir: string = FIXTURE_DIR, outline: Outline = FIXT
   };
 }
 
+/**
+ * The fixture's interactive listings, which `withInteractive` adds to the second chapter after its file listing on
+ * line 18: a listing with three notes and a replay (lines 20–24), and two tabs from two harnesses (lines 26–29).
+ * They stay out of the committed chapter, so each of T4's failing fixtures still breaks exactly one listing.
+ */
+export const INTERACTIVE = `
+:::listing[Three steps, each with a note]{#noted file="verify/demo-sdk/examples/02-notes.ts" region="steps" replay}
+::note[The first step names the reader.]{#name}
+::note[The second greets them with [[lst:greet]].]{#greet}
+::note[The third prints the greeting.]{#print}
+:::
+
+:::tabs
+::listing[demo-sdk]{#hello-demo file="verify/demo-sdk/examples/01-hello.ts" region="call"}
+::listing[other-sdk]{#hello-other file="verify/other-sdk/examples/01-other.ts" region="call"}
+:::
+`;
+
+/** Adds the interactive listings to a fixture copy's second chapter. */
+export function withInteractive(dir: string): void {
+  edit(dir, "chapters/second.md", (text) => text.replace(/^(::listing\[Greeting.*)$/m, `$1\n${INTERACTIVE}`));
+}
+
 /** Copies the fixture book to a fresh temporary directory, applies `change` and returns the directory. */
 export function mutatedFixture(change: (dir: string) => void): string {
   const dir = mkdtempSync(join(tmpdir(), "book-fixture-"));

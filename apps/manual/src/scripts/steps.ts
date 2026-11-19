@@ -1,6 +1,7 @@
 // Progressive enhancement for the figure stepper and the replay of a recorded run. Both render every step in the
 // HTML, so the page is complete without this script. With it, the stepper shows one step at a time and dims the
-// figure parts of the other steps, and the replay reveals events up to the current one, with an optional autoplay.
+// figure parts of the other steps, and the replay reveals events up to the current one, with an optional autoplay, and
+// marks the line of its listing that the current event names. It makes no network request.
 
 interface Steps {
   readonly root: HTMLElement;
@@ -27,11 +28,21 @@ function render(steps: Steps): void {
     const parts = (part.dataset.stepPart ?? "").split(/\s+/);
     part.toggleAttribute("data-dimmed", current !== undefined && !parts.includes(current));
   }
+  markLine(root, items[index]?.dataset.line);
   if (steps.status) steps.status.textContent = `${steps.unit} ${index + 1} of ${items.length}`;
   const back = button(root, "back");
   const next = button(root, "next");
   disable(back, index === 0, next);
   disable(next, index === items.length - 1, back);
+}
+
+// A replay beside a listing marks the listing line that led to the current event, when the transcript names one.
+function markLine(root: HTMLElement, line: string | undefined): void {
+  const listing = root.dataset.listing ? document.getElementById(root.dataset.listing) : null;
+  if (!listing) return;
+  for (const marked of listing.querySelectorAll("[data-current-line]")) marked.removeAttribute("data-current-line");
+  if (line !== undefined)
+    listing.querySelector(`.line[data-line="${CSS.escape(line)}"]`)?.setAttribute("data-current-line", "");
 }
 
 // A disabled button drops keyboard focus to the page, so focus moves to the other button first.

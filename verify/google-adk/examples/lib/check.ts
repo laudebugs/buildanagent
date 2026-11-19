@@ -4,6 +4,7 @@
 import type { BaseLlmConnection, Event, LlmRequest, LlmResponse, Runner } from "@google/adk";
 import { BaseLlm } from "@google/adk";
 import type { Content, Part } from "@google/genai";
+import { recordedLlm } from "./transcript.ts";
 
 export function check(cond: unknown, msg: string): asserts cond {
   if (!cond) throw new Error(`ASSERTION FAILED: ${msg}`);
@@ -28,6 +29,9 @@ export class ScriptedLlm extends BaseLlm {
     throw new Error("live connections are not scripted");
   }
 }
+
+// Attaches the transcript recorder to ScriptedLlm when the runner preloads it (scripts/transcripts/).
+recordedLlm(ScriptedLlm);
 
 let seq = 0;
 /** A model turn that calls one function. */

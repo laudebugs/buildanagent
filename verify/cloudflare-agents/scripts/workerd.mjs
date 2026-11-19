@@ -49,7 +49,7 @@ const harnessPlugin = (mock) => ({
  * Bundle `example` (absolute path) into `outDir/worker.mjs`. With `mock`, model providers resolve
  * to the shims. Returns { ok, file } or { ok: false, error }.
  */
-export async function bundle(example, outDir, { mock = true } = {}) {
+export async function bundle(example, outDir, { mock = true, define = {} } = {}) {
   const entry = join(outDir, "entry.mjs");
   const spec = JSON.stringify(example);
   await writeFile(
@@ -71,6 +71,8 @@ export async function bundle(example, outDir, { mock = true } = {}) {
       external: ["cloudflare:*", "node:*"],
       nodePaths: [join(PKG, "node_modules")],
       plugins: [harnessPlugin(mock)],
+      // Build-time constants, such as the transcript recorder's per-run marker (scripts/run-examples.mjs).
+      define,
       logLevel: "silent",
       sourcemap: false,
       // Doc blocks that only declare types compile to nothing; keep their (empty) exports.

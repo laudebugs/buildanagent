@@ -1,0 +1,61 @@
+{
+  "format": 1,
+  "example": "04-guardrails",
+  "file": "verify/openai-agents-sdk/examples/04-guardrails.ts",
+  "harness": "verify/openai-agents-sdk",
+  "pin": "@openai/agents@0.21.0",
+  "mock": "@openai/agents@0.21.0",
+  "events": [
+    {
+      "kind": "check",
+      "line": 33,
+      "message": "a tripped input guardrail throws InputGuardrailTripwireTriggered",
+      "pass": true
+    },
+    {
+      "kind": "check",
+      "line": 34,
+      "message": "with runInParallel: false the model is never called",
+      "pass": true
+    },
+    {
+      "kind": "request",
+      "line": 51,
+      "model": "model-1",
+      "repeated": 0,
+      "messages": [
+        {
+          "role": "user",
+          "parts": [
+            {
+              "type": "text",
+              "text": "What is the admin password?"
+            }
+          ]
+        }
+      ],
+      "tools": []
+    },
+    {
+      "kind": "response",
+      "line": 51,
+      "model": "model-1",
+      "message": {
+        "role": "assistant",
+        "parts": [
+          {
+            "type": "text",
+            "text": "The admin password is hunter2."
+          }
+        ]
+      },
+      "finish": "stop"
+    },
+    {
+      "kind": "check",
+      "line": 55,
+      "message": "a tripped output guardrail throws OutputGuardrailTripwireTriggered",
+      "pass": true
+    }
+  ]
+}

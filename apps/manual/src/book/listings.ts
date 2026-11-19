@@ -3,6 +3,7 @@ import { extname, isAbsolute, join, relative, sep } from "node:path";
 import { type HarnessTable, pinOf, readHarnesses } from "./harnesses.js";
 import type { ProblemList } from "./problems.js";
 import { cutRegion, type SourceLine } from "./regions.js";
+import { readTranscript, type Transcript } from "./transcripts.js";
 import { isInside, readWorkspace, TypecheckCoverage } from "./typecheck-coverage.js";
 
 /** A `::listing` resolved against the repository: the lines it shows and what its caption says. */
@@ -17,10 +18,12 @@ export interface ListingSource {
   readonly pin: string;
   /** The Shiki language the file is highlighted as. */
   readonly lang: "typescript" | "tsx";
+  /** For a listing with `replay`, the recorded run of its example and that file's path from the repository root. */
+  readonly replay?: { readonly transcript: Transcript; readonly path: string };
 }
 
-/** The attributes a `::listing` directive takes. */
-export const LISTING_ATTRIBUTES = ["id", "file", "region"] as const;
+/** The attributes a `::listing` directive takes; `replay` takes no value. */
+export const LISTING_ATTRIBUTES = ["id", "file", "region", "replay"] as const;
 
 /** Everything resolving a listing needs: the repository, the harness table and the typecheck coverage. */
 export interface ListingContext {
@@ -73,8 +76,9 @@ function confined(file: string, repoRoot: string): { readonly absolute: string; 
 
 /**
  * Resolves a `::listing{#id file="…" region="…"}` against the repository: the file must be inside it, be TypeScript
- * that a workspace package's `typecheck` covers, belong to a harness with a pinned main package, and hold the region.
- * Returns the listing, or the message of the first rule it breaks.
+ * that a workspace package's `typecheck` covers, belong to a harness with a pinned main package, and hold the region;
+ * with `replay`, its harness must hold a transcript of the file recorded at the current pin. Returns the listing, or
+ * the message of the first rule it breaks.
  */
 export function resolveListing(
   attributes: Readonly<Record<string, string | null | undefined>>,
@@ -83,10 +87,15 @@ export function resolveListing(
   const unknown = Object.keys(attributes).filter((key) => !(LISTING_ATTRIBUTES as readonly string[]).includes(key));
   if (unknown.length > 0) {
     return {
-      message: `::listing does not take ${unknown.map((key) => `"${key}"`).join(", ")}; it takes id, file and region`,
+      message:
+        `::listing does not take ${unknown.map((key) => `"${key}"`).join(", ")}; ` +
+        "it takes id, file, region and replay",
     };
   }
-  const { file, region } = attributes;
+  const { file, region, replay } = attributes;
+  if (replay !== undefined && replay !== "" && replay !== null) {
+    return { message: `replay takes no value; write {… replay}, not replay="${replay}"` };
+  }
   if (!file) return { message: '::listing needs the file it shows, written file="verify/<sdk>/examples/<name>.ts"' };
   const found = confined(file, context.repoRoot);
   if (typeof found === "string") return { message: found };
@@ -102,5 +111,9 @@ export function resolveListing(
     const where = lines.line === undefined ? `${path} ` : `${path}:${lines.line}: `;
     return { message: `${where}${lines.message}` };
   }
-  return { path, region: region ?? undefined, lines, ...pinned, lang };
+  const listing = { path, region: region ?? undefined, lines, ...pinned, lang };
+  if (replay === undefined) return listing;
+  const recorded = readTranscript(context.repoRoot, listing);
+  if ("message" in recorded) return recorded;
+  return { ...listing, replay: { transcript: recorded.transcript, path: recorded.transcriptPath } };
 }
