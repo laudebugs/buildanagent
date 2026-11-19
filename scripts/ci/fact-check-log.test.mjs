@@ -61,8 +61,8 @@ test("the id pattern takes legacy numbers, todo ids and branch names", () => {
 test("a malformed or repeated id fails", () => {
   const rows = [legacy[0], "| T31 | A claim | T31 | ✅ | A source |", "| 1 | Again | BK1 | ✅ | A source |"];
   assert.deepEqual(messages(log(rows, null)), [
-    'has the id "T31"; use a legacy number, <todo id>-<n> such as T31-2, or <branch>-<n> such as docs/fix-links-1, ' +
-      "where the branch starts with a lower-case letter, holds letters, digits, ., _, - and /, " +
+    'has the id "T31"; use a legacy number, <todo id>-<n> such as T31-2, or <branch>-<n> such as docs/fix-links-1. ' +
+      "A branch starts with a lower-case letter, holds letters, digits, ., _, - and /, " +
       "and ends in a letter, digit or _",
     "repeats row 1, first used on line 7",
   ]);

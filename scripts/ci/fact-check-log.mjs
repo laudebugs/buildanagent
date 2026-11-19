@@ -9,9 +9,10 @@
 // - the `**Totals:** N claims: a ✅, b ✏️, c ⚠️.` line disagrees with the rows. A log without a totals line has its
 //   rows checked and no totals.
 //
-// A citation of another log's rows is skipped, since this log cannot check it: `row X` after a todo id or "its"/"their"
-// before "fact-check", after a link to another .md file or a link that says fact-check, or followed by "of" or "in" and
-// a fact-check name.
+// The check skips a `row X` that cites another log's rows, which this log cannot verify. It skips the citation when
+// - a todo id, or "its" or "their", comes before "fact-check",
+// - a link to another .md file, or a link whose text says fact-check, comes before it, or
+// - "of" or "in" and a fact-check name come after it.
 //
 // `--write` rewrites each totals line from the rows instead of failing on it; the other checks still fail, and a
 // log with any other problem is left unwritten.
@@ -231,7 +232,7 @@ export function checkLog(text) {
         line: row.line,
         message:
           `has the id "${row.id}"; use a legacy number, <todo id>-<n> such as T31-2, or <branch>-<n> such as ` +
-          "docs/fix-links-1, where the branch starts with a lower-case letter, holds letters, digits, ., _, - and /, " +
+          "docs/fix-links-1. A branch starts with a lower-case letter, holds letters, digits, ., _, - and /, " +
           "and ends in a letter, digit or _",
       });
     } else if (seen.has(row.id)) {
@@ -304,8 +305,8 @@ function main(argv) {
   }
   if (failed) {
     console.error(
-      "\nFact-check logs: fix the rows above. Run `pnpm fact-check-logs --write` to rewrite a totals line; " +
-        "never renumber rows.",
+      "\nFact-check logs: fix the rows above. Run `pnpm fact-check-logs --write` to rewrite a totals line, " +
+        "and never renumber a row.",
     );
     process.exit(1);
   }
