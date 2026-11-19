@@ -8,7 +8,7 @@
 | Status | `ready` |
 | Plan | [Book plan §5, BK12](../../plans/build-book.md#bk12-the-owner-picked-direction-cs-layout-c4s-page-colours-and-panels-that-follow-the-theme-accepted) |
 | Round / milestone | Round T (textbook), MT |
-| Depends on | [T1](../ongoing/T1-book-scaffold.md) |
+| Depends on | [T1](../done/T1-book-scaffold.md) |
 | Size | M |
 
 ## Goal
