@@ -5,7 +5,7 @@
 | Field | Value |
 | --- | --- |
 | ID | `T4` |
-| Status | `ready` |
+| Status | `ongoing` |
 | Plan | [Book plan §5, BK8 and BK9](../../plans/build-book.md#bk9-listings-come-from-real-regions-and-become-interactive-in-three-tiers-accepted-the-mechanism-is-proposed) |
 | Round / milestone | Round T (textbook), MT |
 | Depends on | [T3](../done/T3-book-content-model.md) |
@@ -33,7 +33,7 @@ Let a chapter include code only from a file that CI type-checks and runs. The `:
 
 **Out of scope** (and which todo covers it)
 
-- Annotations, tabs and replays ([T5](T5-book-interactive-listings.md))
+- Annotations, tabs and replays ([T5](../ready/T5-book-interactive-listings.md))
 
 ## Tasks
 

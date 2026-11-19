@@ -33,7 +33,7 @@ Make code in the prose as checked as code in listings, by the owner's decision. 
 **Out of scope** (and which todo covers it)
 
 - Checking prose claims about behaviour: each chapter's fact-check log does that (BK17)
-- Listings themselves ([T4](T4-book-listings.md))
+- Listings themselves ([T4](../ongoing/T4-book-listings.md))
 
 ## Tasks
 

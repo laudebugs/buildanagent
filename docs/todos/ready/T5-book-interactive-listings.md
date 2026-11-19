@@ -8,7 +8,7 @@
 | Status | `ready` |
 | Plan | [Book plan §5, BK9](../../plans/build-book.md#bk9-listings-come-from-real-regions-and-become-interactive-in-three-tiers-accepted-the-mechanism-is-proposed) |
 | Round / milestone | Round T (textbook), MT |
-| Depends on | [T4](T4-book-listings.md) |
+| Depends on | [T4](../ongoing/T4-book-listings.md) |
 | Size | L |
 
 ## Goal
