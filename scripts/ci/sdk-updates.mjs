@@ -4,10 +4,17 @@
 //
 //   node scripts/ci/sdk-updates.mjs plan            JSON matrix of harnesses with updates, for GitHub Actions
 //   node scripts/ci/sdk-updates.mjs apply <harness> rewrites verify/<harness>/package.json, prints the bumps
+//   node scripts/ci/sdk-updates.mjs check <harness> <base> <head>
+//                                                   checks that the commit <head> on <base> changes only what an
+//                                                   update of <harness> may, and prints what is wrong
 //
-// The script only reads the npm registry and edits package.json; it installs and runs nothing.
+// The script only reads the npm registry, edits package.json and reads git; it installs and runs nothing. It imports
+// only node: modules and version-pr.mjs, which imports only node: modules and the two scripts beside it, because
+// sdk-updates.yml runs `check` in the job that later holds the token able to write the update branch.
+import { execFileSync } from "node:child_process";
 import { readdirSync, readFileSync, writeFileSync } from "node:fs";
 import path from "node:path";
+import { parseRawDiff } from "./version-pr.mjs";
 
 const MIN_AGE_DAYS = 7;
 const REGISTRY = "https://registry.npmjs.org";
@@ -63,6 +70,45 @@ export function newestEligible(pinned, versions, times, now = Date.now(), deprec
   return best && { version: best.version, published: best.published };
 }
 
+const REGULAR_FILE = "100644";
+
+/**
+ * Says what is wrong with an SDK update of `harness`, given its change as parseRawDiff entries. The change comes from a
+ * job that ran the new releases' code, so it may touch only what that job means to change: the harness's
+ * package.json, its committed results and the workspace lockfile. Each file it adds or edits must be a regular,
+ * non-executable file, because createCommitOnBranch can't set a file's mode. Returns a list of problems, empty when
+ * the change is one an update may make.
+ */
+export function updateProblems(entries, harness) {
+  if (!/^[a-z0-9][a-z0-9-]*$/.test(harness)) return [`${JSON.stringify(harness)} isn't a harness name`];
+  const problems = entries.length === 0 ? ["the change is empty"] : [];
+  const results = `verify/${harness}/results/`;
+  for (const { status, path: file, dstMode } of entries) {
+    const where = `${status} ${file}`;
+    const inResults = file.startsWith(results) && file.length > results.length;
+    const edited = file === "pnpm-lock.yaml" || file === `verify/${harness}/package.json`;
+    if (!["A", "M", "D"].includes(status)) problems.push(`${where}: only additions, edits and deletions are allowed`);
+    else if (!inResults && !(edited && status === "M")) {
+      problems.push(
+        `${where}: an update may edit only verify/${harness}/package.json and pnpm-lock.yaml, and change ${results}`,
+      );
+    } else if (status !== "D" && dstMode !== REGULAR_FILE) {
+      problems.push(`${where}: must be a regular, non-executable file (mode ${dstMode})`);
+    }
+  }
+  return problems;
+}
+
+/** Reads the change from `base` to `head` in the git checkout at `root` and returns updateProblems for it. */
+function checkUpdate(root, harness, base, head) {
+  const diff = execFileSync("git", ["diff", "--raw", "-z", "--no-renames", "--no-abbrev", base, head], {
+    cwd: root,
+    encoding: "utf8",
+    maxBuffer: 64 * 1024 * 1024,
+  });
+  return updateProblems(parseRawDiff(diff), harness);
+}
+
 async function registryEntry(name) {
   const res = await fetch(`${REGISTRY}/${name.replace("/", "%2F")}`, { headers: { accept: "application/json" } });
   if (!res.ok) throw new Error(`npm registry: ${name}: HTTP ${res.status}`);
@@ -114,10 +160,15 @@ async function apply(harness) {
     process.stdout.write(`| \`${b.name}\` | ${b.from} | ${b.to} | ${b.published.slice(0, 10)} |\n`);
 }
 
-const [command, arg] = process.argv.slice(2);
+const [command, arg, ...rest] = process.argv.slice(2);
 if (command === "plan") await plan();
 else if (command === "apply" && arg) await apply(arg);
-else if (command !== undefined) {
-  process.stderr.write("usage: sdk-updates.mjs plan | apply <harness>\n");
+else if (command === "check" && arg && rest.length === 2) {
+  const problems = checkUpdate(process.cwd(), arg, ...rest);
+  for (const problem of problems) process.stderr.write(`::error::sdk-updates check: ${problem}\n`);
+  if (problems.length > 0) process.exit(1);
+  process.stdout.write(`The ${arg} update changes only its pins, its results and the lockfile.\n`);
+} else if (command !== undefined) {
+  process.stderr.write("usage: sdk-updates.mjs plan | apply <harness> | check <harness> <base> <head>\n");
   process.exit(2);
 }

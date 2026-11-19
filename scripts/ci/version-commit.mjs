@@ -1,22 +1,26 @@
-// Recreates the checked version commit on GitHub through the API, so that GitHub signs it and the ruleset's "Require
-// signed commits" lets the Version packages pull request merge. A commit pushed with plain git is unsigned. GraphQL's
-// createCommitOnBranch makes a commit that GitHub signs, authored by the token's owner, but it appends to a branch's
-// head, and GitHub's docs don't say what happens to an open pull request whose branch first moves back to the base. So
-// the commit is made on a staging branch that starts at the checked base, and the release branch then moves to it.
-// release.yml runs this in the version-pr job's last step, the only one that holds RELEASE_PR_TOKEN, so it imports
-// only node: modules and version-pr.mjs, which imports only node: modules and the two scripts beside it.
+// Recreates a checked commit on GitHub through the API, so that GitHub signs it and the ruleset's "Require signed
+// commits" lets its pull request merge. A commit pushed with plain git is unsigned. GraphQL's createCommitOnBranch makes
+// a commit that GitHub signs, authored by the token's owner, but it appends to a branch's head, and GitHub's docs don't
+// say what happens to an open pull request whose branch first moves back to the base. So the commit is made on a
+// staging branch that starts at the checked base, and the pull request's branch then moves to it.
+// release.yml runs this for the Version packages commit in the version-pr job's last step, the only one that holds
+// RELEASE_PR_TOKEN, and sdk-updates.yml runs it for each harness's update commit in the open-pr job's last step, the
+// only one that holds its token. So it imports only node: modules and version-pr.mjs, which imports only node: modules
+// and the two scripts beside it.
 //
-//   node scripts/ci/version-commit.mjs <base> <head> <branch>
+//   node scripts/ci/version-commit.mjs <base> <head> <branch> [<staging>]
 //
-// <head> is the local version commit, whose only parent must be <base>; REPO names the repository and gh reads the
-// token from GH_TOKEN. The script makes the commit that holds <head>'s tree on <base>, checks through the REST API that
-// GitHub verified its signature and that its tree and parent match, and only then moves <branch> to it. When <branch>
-// already holds a verified commit with that tree on <base>, it changes nothing, so a rerun doesn't restart the checks.
+// <head> is the local commit, whose only parent must be <base>; REPO names the repository and gh reads the token from
+// GH_TOKEN. <staging> is the branch the commit is made on first, changeset-release/staging unless given; each caller
+// that can run beside another needs its own. The script makes the commit that holds <head>'s tree on <base>, checks
+// through the REST API that GitHub verified its signature and that its tree and parent match, and only then moves
+// <branch> to it. When <branch> already holds a verified commit with that tree on <base>, it changes nothing, so a rerun
+// doesn't restart the checks.
 import { execFileSync, spawnSync } from "node:child_process";
 import { fileURLToPath } from "node:url";
 import { parseRawDiff } from "./version-pr.mjs";
 
-/** The branch the commit is made on before the release branch moves to it. Nothing else uses it. */
+/** The branch the Version packages commit is made on before the release branch moves to it. Nothing else uses it. */
 export const STAGING_BRANCH = "changeset-release/staging";
 
 const CREATE_COMMIT = `mutation ($input: CreateCommitOnBranchInput!) {
@@ -96,12 +100,14 @@ export function commitProblem(commit, { tree, base }) {
 }
 
 /**
- * Makes the verified commit and moves `branch` to it. `local` describes the checked commit as `{ base, tree, message,
- * fileChanges }`. Returns `{ sha, created }`; throws, leaving `branch` as it was, when GitHub's commit isn't verified
- * or doesn't match. `log` receives progress lines.
+ * Makes the verified commit on `staging` and moves `branch` to it. `local` describes the checked commit as `{ base,
+ * tree, message, fileChanges }`. Returns `{ sha, created }`; throws, leaving `branch` as it was, when GitHub's commit
+ * isn't verified or doesn't match. `staging` is moved to `base` first and deleted at the end, so it must be a branch
+ * that nothing else uses. `log` receives progress lines.
  */
-export function publishVersionCommit({ run, repo, branch, local, log = () => {} }) {
+export function publishVersionCommit({ run, repo, branch, local, staging = STAGING_BRANCH, log = () => {} }) {
   const { base } = local;
+  if (!staging || staging === branch) throw new Error(`the staging branch must differ from ${branch}`);
   const getCommit = (sha) => apiCall(run, { path: `repos/${repo}/git/commits/${sha}` });
   const current = apiCall(run, { path: `repos/${repo}/git/ref/heads/${branch}`, missingOk: true });
   if (current && commitProblem(getCommit(current.object.sha), local) === "") {
@@ -110,7 +116,7 @@ export function publishVersionCommit({ run, repo, branch, local, log = () => {} 
   }
   try {
     // Inside the try, so that a staging branch that GitHub created but gh failed to report is still deleted.
-    setBranch(run, repo, STAGING_BRANCH, base);
+    setBranch(run, repo, staging, base);
     const response = apiCall(run, {
       method: "POST",
       path: "graphql",
@@ -118,7 +124,7 @@ export function publishVersionCommit({ run, repo, branch, local, log = () => {} 
         query: CREATE_COMMIT,
         variables: {
           input: {
-            branch: { repositoryNameWithOwner: repo, branchName: STAGING_BRANCH },
+            branch: { repositoryNameWithOwner: repo, branchName: staging },
             expectedHeadOid: base,
             message: local.message,
             fileChanges: local.fileChanges,
@@ -136,10 +142,10 @@ export function publishVersionCommit({ run, repo, branch, local, log = () => {} 
     return { sha, created: true };
   } finally {
     try {
-      apiCall(run, { method: "DELETE", path: `repos/${repo}/git/refs/heads/${STAGING_BRANCH}`, missingOk: true });
+      apiCall(run, { method: "DELETE", path: `repos/${repo}/git/refs/heads/${staging}`, missingOk: true });
     } catch (error) {
       // A leftover staging branch is harmless: the next run moves it back to its base before committing.
-      console.error(`::warning::couldn't delete ${STAGING_BRANCH}: ${error.message}`);
+      console.error(`::warning::couldn't delete ${staging}: ${error.message}`);
     }
   }
 }
@@ -167,14 +173,14 @@ function runGh(args, input) {
 }
 
 if (process.argv[1] === fileURLToPath(import.meta.url)) {
-  const [base, head, branch] = process.argv.slice(2);
+  const [base, head, branch, staging = STAGING_BRANCH, ...extra] = process.argv.slice(2);
   const repo = process.env.REPO;
   try {
-    if (!base || !head || !branch || !repo) {
-      throw new Error("usage: REPO=<owner/name> version-commit.mjs <base> <head> <branch>");
+    if (!base || !head || !branch || !repo || extra.length > 0) {
+      throw new Error("usage: REPO=<owner/name> version-commit.mjs <base> <head> <branch> [<staging>]");
     }
     const local = localCommit(process.cwd(), base, head);
-    publishVersionCommit({ run: runGh, repo, branch, local, log: console.log });
+    publishVersionCommit({ run: runGh, repo, branch, local, staging, log: console.log });
   } catch (error) {
     console.error(`::error::version-commit: ${error.message}`);
     process.exit(1);

@@ -283,6 +283,52 @@ describe("publishVersionCommit", () => {
   });
 });
 
+describe("publishVersionCommit with its own staging branch, as sdk-updates.yml calls it", () => {
+  const update = "deps/sdk-pi";
+  const staging = "deps/staging/sdk-pi";
+  const routes = (overrides = {}) => ({
+    [`GET repos/${repo}/git/ref/heads/${update}`]: notFound,
+    [`GET repos/${repo}/git/ref/heads/${staging}`]: notFound,
+    [`POST repos/${repo}/git/refs`]: (body) => json({ ref: body.ref, object: { sha: body.sha } }),
+    "POST graphql": json({ data: { createCommitOnBranch: { commit: { oid: NEW } } } }),
+    [`GET repos/${repo}/git/commits/${NEW}`]: commit(NEW),
+    [`DELETE repos/${repo}/git/refs/heads/${staging}`]: {},
+    ...overrides,
+  });
+
+  test("makes the commit on the given staging branch and never touches the release's", () => {
+    const gh = fakeGh(routes());
+    const result = publishVersionCommit({ run: gh.run, repo, branch: update, local, staging });
+    assert.deepEqual(result, { sha: NEW, created: true });
+    assert.ok(!gh.keys().some((key) => key.includes(STAGING_BRANCH)), "the release's staging branch is left alone");
+    assert.deepEqual(gh.calls[2].body, { ref: `refs/heads/${staging}`, sha: BASE });
+    assert.equal(gh.calls[3].body.variables.input.branch.branchName, staging);
+    assert.deepEqual(gh.calls[6].body, { ref: `refs/heads/${update}`, sha: NEW });
+    assert.equal(gh.keys().at(-1), `DELETE repos/${repo}/git/refs/heads/${staging}`);
+  });
+
+  test("fails, deleting its own staging branch and leaving the update branch alone, when GitHub doesn't verify", () => {
+    const gh = fakeGh(routes({ [`GET repos/${repo}/git/commits/${NEW}`]: commit(NEW, { verified: false }) }));
+    assert.throws(
+      () => publishVersionCommit({ run: gh.run, repo, branch: update, local, staging }),
+      /didn't verify the signature/,
+    );
+    assert.equal(gh.keys().filter((key) => key === `POST repos/${repo}/git/refs`).length, 1, "only staging");
+    assert.equal(gh.keys().at(-1), `DELETE repos/${repo}/git/refs/heads/${staging}`);
+  });
+
+  test("refuses a staging branch that is the branch itself, before any call", () => {
+    for (const bad of [update, ""]) {
+      const gh = fakeGh({});
+      assert.throws(
+        () => publishVersionCommit({ run: gh.run, repo, branch: update, local, staging: bad }),
+        /the staging branch must differ from deps\/sdk-pi/,
+      );
+      assert.equal(gh.calls.length, 0);
+    }
+  });
+});
+
 describe("localCommit", () => {
   const dirs = [];
   after(() => {
