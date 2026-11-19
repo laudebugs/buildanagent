@@ -43,7 +43,7 @@ Write the chapter "The session log and context policy" (`the-session-log-and-con
 | --- | --- | --- | --- |
 | session log tree | a choose-your-own-adventure book that keeps every path taken | forks come from the harness and the user, and every path stays readable | none |
 | context window | a desk with limited space | the model cannot open the drawer; only the harness decides what goes on the desk | flat |
-| compaction | clearing the desk into a labelled folder with a summary note on top | the summary is written by a model and can drop facts, so the original entries stay in the log | none |
+| compaction | a TV show's "previously on" recap | the recap is written by a model and can drop facts, so the original entries stay in the log and a later turn can reread them | none |
 
 **Out of scope** (and which todo covers it)
 
@@ -55,7 +55,7 @@ Write the chapter "The session log and context policy" (`the-session-log-and-con
 - [ ] Answer the research question in a short note at the top of the fact-check file, from the sources above only, before drafting.
 - [ ] Add register entries for every source the chapter cites, each pointing at the fact-check log that verified it; add a fact-check row first for any source no log covers.
 - [ ] Add `// #region` markers and `// book:note` markers to the examples the chapter uses, and confirm each harness's `pnpm test` and the results-drift check still pass.
-- [ ] Vet each planned analogy: say what it explains, check it does not imply anything false, and replace it if it does or if `analogies.json` already uses it.
+- [ ] Vet each planned analogy: say what it explains and check it does not imply anything false. The owner approved the analogies (2026-11-19), so if one misleads or `analogies.json` already uses it, propose a replacement to the owner instead of changing it.
 - [ ] Outline the chapter's sections, each with a one-line head, and note the planned opening type.
 - [ ] For each section, in order: draft it with `/anthropic-skills:writing`; then fact-check every claim it makes against its primary source into `apps/book/fact-checks/the-session-log-and-context.md` as ✅, ✏️ or ⚠️, before drafting the next section; commit the section and its rows together (BK21).
 - [ ] Open each core concept with its analogy from the table above, follow it at once with the precise mechanism, and add its "Where the analogy breaks" note; register every analogy in `apps/book/src/content/analogies.json` (BK22).
@@ -90,7 +90,7 @@ The book's build and `check:book` in the CI `book` job; the harness tests for an
 ## Risks and open questions
 
 - A source may not answer the research question; record the gap as a follow-up research todo instead of answering from memory.
-- An analogy can mislead a newcomer more than no analogy; the vetting task and the "where it breaks" note are there to catch it, and a weak analogy is dropped, not forced.
+- An analogy can mislead a newcomer more than no analogy; the vetting task and the "where it breaks" note are there to catch it, and a weak analogy goes back to the owner with a proposed replacement, not forced.
 
 ## Definition of done
 

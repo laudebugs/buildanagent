@@ -1,6 +1,6 @@
 # Fact-check: the book plan
 
-This log checks the factual claims in [build-book.md](../build-book.md), ADRs [0051](../../decisions/0051-book-in-apps-on-cloudflare.md), [0052](../../decisions/0052-book-stack-and-deploy.md) and [0053](../../decisions/0053-reuse-garment-textbook-code.md), and todos T1–T25. Claims were checked on 2026-11-19 against four kinds of source. Repo claims were read at `origin/main` `eddc212`. Package claims come from `npm view <package> time`, `engines`, `peerDependencies` and the packed `.d.ts`. Cloudflare claims come from developers.cloudflare.com, read through Cloudflare's documentation search. Garment textbook claims come from `tajistudios/garment-engineering-textbook` at commit `bca44b0`, read with `gh api`. Design choices that are our own proposals are not facts and have no row. Rows follow the numbers the plan cites, so some ranges hold related claims in order.
+This log checks the factual claims in [build-book.md](../build-book.md), ADRs [0051](../../decisions/0051-book-in-apps-on-cloudflare.md), [0052](../../decisions/0052-book-stack-and-deploy.md) and [0053](../../decisions/0053-reuse-garment-textbook-code.md), and todos T1–T42 and U18–U21. Claims were checked on 2026-11-19 against four kinds of source. Repo claims were read at `main` `eddc212` in the first passes and at `ea70a57` from the sixth pass on. Package claims come from `npm view <package> time`, `engines`, `peerDependencies` and the packed `.d.ts`. Cloudflare claims come from developers.cloudflare.com, read through Cloudflare's documentation search. Garment textbook claims come from `tajistudios/garment-engineering-textbook` at commit `bca44b0`, read with `gh api`. Design choices that are our own proposals are not facts and have no row. Rows follow the numbers the plan cites, so some ranges hold related claims in order.
 
 ## Package versions and compatibility
 
@@ -155,8 +155,8 @@ These rows check the claims added for the revised outline (§4), BK1 and BK18–
 | 101 | The 12-factor report names ingress as the one gap it exposes | T24 | ✅ | [Report title](../../research/external-designs/twelve-factor-agents.md) and its factor 11 row |
 | 102 | The main report has the section "Planning should start as ReAct and earn every extra agent", and calls external state artifacts the most effective memory for long-running work | T17, T20, U18 | ✅ | `docs/research/agent-sdks-and-harness-design.md` lines 107 and 111 |
 | 103 | The browser-use report has a watch-and-take-over section and a section making the network and the credential the boundary; the agent UI research says every agent UI projects one sequenced event log | T35 | ✅ | `docs/research/browser-use/browser-use.md` headings at lines 116 and 146; `docs/research/agent-ui/agent-ui-research.md` line 12 |
-| 104 | The highest research todo is U16 on `main` (`eddc212`) and U17 on `docs/research-source-update` (`c3afbf6`), so the next free IDs are U18–U21 | BK19 | ✅ | `git ls-tree` of both branches |
-| 105 | MAP found that "70% rely on prompting off-the-shelf models instead of weight tuning" | U21 | ✅ | The U17 source-update report on `docs/research-source-update`, line 26, quoting [arXiv 2512.04123](https://arxiv.org/abs/2512.04123); a secondary reading of the paper's abstract, so U21 rereads the paper |
+| 104 | The highest research todo is U17, on `main` through #36 (`ea70a57`), so the next free IDs are U18–U21 | BK19 | ✅ | `docs/todos/done/` on `main` at `ea70a57`; row 133 records the correction |
+| 105 | MAP found that "70% rely on prompting off-the-shelf models instead of weight tuning" | U21 | ✅ | The U17 [source-update report](../../research/source-update-2026-11-19.md), line 26, quoting [arXiv 2512.04123](https://arxiv.org/abs/2512.04123); a secondary reading of the paper's abstract, so U21 rereads the paper |
 | 106 | The OpenAI TypeScript SDK lacks the voice pipeline, and the harness pins `@openai/agents-realtime` 0.21.0 | U20 | ✅ | [TypeScript gaps](../../comparison/typescript-gaps.md) heading; `verify/openai-agents-sdk/package.json` |
 | 107 | A2A's latest released version is 1.0.0 | U19 | ✅ | [A2A specification](https://a2a-protocol.org/latest/specification/): "Latest Released Version 1.0.0" |
 | 108 | The chapter and section todos plan 61 analogies, every analogy and every concept distinct | BK22, §4 | ✅ | A script over the todos' analogy tables |
@@ -204,4 +204,26 @@ This pass rebased the plan onto `main` at `ea70a57`, after #35 (`dc2fdb5`) and U
 | 129 | `apps/docs` pins Astro 7.4.11, and DS2 has `pnpm-workspace.yaml` add `apps/*` | BK4, T1 | ✅ | [DS1](../publish-and-docs.md#ds1-starlight-docs-with-a-generated-api-reference-accepted) and [L5](../../todos/ready/L5-docs-app.md); [DS2](../publish-and-docs.md#ds2-two-sites-on-cloudflare-accepted): "`pnpm-workspace.yaml` adds `apps/*`" |
 | 130 | Starlight uses Pagefind for its search | BK4 | ✅ | `npm view @astrojs/starlight@0.42.10 dependencies` lists `pagefind` `^1.5.2` and `@pagefind/default-ui` |
 
-**Totals:** 130 claims: 118 ✅, 12 ✏️, 0 ⚠️.
+
+## Seventh pass: the first code review of #37
+
+The first code-review round (high) on pull request #37 confirmed 19 findings. These rows check each claim a fix added or changed.
+
+| # | Claim | Where | Verdict | Source and reason |
+| --- | --- | --- | --- | --- |
+| 131 | The three listing tiers, and live editing as a later fourth, are the owner's decision, so BK9 is Accepted and only its mechanism is Proposed | BK9 | ✏️ | The owner's addition of 2026-11-19 set the tiers; BK9 had been marked Proposed throughout |
+| 132 | A flow difference in the live run opens an issue and never fails CI | BK18 | ✅ | The owner's decision of 2026-11-19, already in T27's risks; BK18's accepted paragraph now says it too |
+| 133 | U17 is on `main` through #36 (`ea70a57`), not only on `docs/research-source-update` | BK19, T21, U21, rows 104–105 | ✏️ | `docs/todos/done/U17-research-source-update.md` and `docs/research/source-update-2026-11-19.md` exist on `main` at `ea70a57`; the plan, row 104, row 105 and the two todos now link the merged report |
+| 134 | T1 adds the Apache-2.0 exception to LICENSE; this branch does not change LICENSE | ADR 0053 | ✏️ | `git diff main -- LICENSE` is empty; the ADR had said LICENSE "records the exception" |
+| 135 | `apps/` holds the docs and website too, and whichever of L5, L7 or T1 lands first adds `apps/*` | ADR 0051 | ✏️ | [ADR 0049](../../decisions/0049-two-sites-on-cloudflare.md) and [DS2](../publish-and-docs.md#ds2-two-sites-on-cloudflare-accepted); ADR 0051 had called the book the folder's first entry and had T1 add `apps/*` |
+| 136 | T8 writes `book-build.yml` rather than adding a job to `ci.yml` | ADR 0052 | ✏️ | BK14 and T8 since the sixth pass |
+| 137 | Cloudflare recommends `wrangler.jsonc` for new projects, and some newer Wrangler features need a JSON config | BK15, ADR 0052, T9 | ✅ | [Wrangler configuration](https://developers.cloudflare.com/workers/wrangler/configuration/): "Cloudflare recommends using `wrangler.jsonc` for new projects, and some newer Wrangler features will only be available to projects using a JSON config file" |
+| 138 | DS3's sites set `not_found_handling = "404-page"`, `workers_dev = false` and `preview_urls = true`, and a new Worker's `preview_urls` starts from its `workers_dev` value | BK15, T9 | ✅ | [DS3](../publish-and-docs.md#ds3-workers-static-assets-and-a-preview-per-pull-request-accepted); row 42 |
+| 139 | Every pull request, a fork's included, gets a preview, because the deploy workflow never runs pull-request code | T9 | ✏️ | T9's goal still said only same-repository branches get previews; BK15, row 127 and DS3 say forks do |
+| 140 | The owner replaced two analogies: compaction becomes "a TV show's 'previously on' recap" and the unknown outcome becomes "a dropped phone order" | BK22, T20, T23 | ✅ | Owner's answers, 2026-11-19; the desk stays with the context window and the parcel's tracking history with tracing |
+| 141 | `@openai/agents` 0.21.0 has `computerTool`, a `Computer` type and `Agent.asTool()`, and `@ai-sdk/anthropic` 4.0.96 declares `computerToolset_20260801` | T40, T42 | ✅ | `verify/openai-agents-sdk/node_modules/@openai/agents-core/dist/` (`computerTool`, `type Computer`, `agent.d.ts` line 404); `verify/vercel-ai-sdk/node_modules/@ai-sdk/anthropic/dist/index.d.ts` |
+| 142 | No `verify/` harness pins a browser driver | BK20, T40 | ✅ | No `verify/*/package.json` names `playwright` or `puppeteer` |
+| 143 | After the two replacements the chapter and section todos still plan 61 analogies, every one distinct | BK22 | ✅ | The same script as row 108, rerun |
+| 144 | ADR 0053's status is Accepted, a value the decisions README allows, and the file list stays a Proposed part of the plan's BK16 | ADR 0053, BK16 | ✏️ | [Decisions README](../../decisions/README.md), "Status"; the ADR had a split status |
+
+**Totals:** 144 claims: 126 ✅, 18 ✏️, 0 ⚠️.

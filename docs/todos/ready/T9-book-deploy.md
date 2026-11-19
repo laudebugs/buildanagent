@@ -13,7 +13,7 @@
 
 ## Goal
 
-Publish the book from GitHub Actions. An assets-only Worker serves the built site on the custom domain manual.buildanagent.fyi, and a guard script refuses a deploy whose configuration drifts. A repository variable switches deploys on, and branches in this repository get public previews on `workers.dev`. The owner creates the Cloudflare and GitHub pieces; this todo writes against their names, documents them exactly, and fails closed when one is missing.
+Publish the book from GitHub Actions. An assets-only Worker serves the built site on the custom domain manual.buildanagent.fyi, and a guard script refuses a deploy whose configuration drifts. A repository variable switches deploys on, and every pull request, a fork's included, gets a public preview on `workers.dev` from a deploy run that never runs its code. The owner creates the Cloudflare and GitHub pieces; this todo writes against their names, documents them exactly, and fails closed when one is missing.
 
 ## Context
 
@@ -28,7 +28,7 @@ Publish the book from GitHub Actions. An assets-only Worker serves the built sit
 
 **In scope**
 
-- `apps/book/wrangler.jsonc`: assets-only, `./dist`, the custom-domain route, `workers_dev: false`, `preview_urls: true`
+- `apps/book/wrangler.jsonc`: assets-only, `./dist`, the custom-domain route, `not_found_handling: "404-page"`, `workers_dev: false`, `preview_urls: true`; JSONC because Cloudflare recommends it for new projects (BK15)
 - `public/_headers` with a content security policy, `X-Content-Type-Options`, `Referrer-Policy` and long caching for hashed assets
 - `scripts/guard-deploy.mjs` and its tests, and a secrets check that runs first in every job
 - `book-deploy.yml`, the deploy half of DS3's split: on `workflow_run` after `book-build.yml`, run from `main`, deploy production behind `BOOK_DEPLOY_ENABLED` in `book-production`, and preview every other run in `book-preview`, deleting a closed pull request's preview
@@ -47,7 +47,7 @@ Publish the book from GitHub Actions. An assets-only Worker serves the built sit
 - [ ] Write the owner's checklist into `apps/book/README.md` from BK15's table: environment names (`book-production`, `book-preview`), which branches may deploy to each, the secret names (`CLOUDFLARE_API_TOKEN`, `CLOUDFLARE_ACCOUNT_ID`), each token's exact permissions as listed in BK15, the one-time Worker creation with Admin rights, and the variable `BOOK_DEPLOY_ENABLED`.
 - [ ] Check that manual.buildanagent.fyi has no CNAME record, since Cloudflare refuses a custom domain there.
 - [ ] Write `wrangler.jsonc` and `_headers`, and build locally with `pnpm exec wrangler dev` to check headers and routes.
-- [ ] Port the guard from the garment repository with a header comment naming its origin, commit and Apache-2.0 licence. It parses JSONC and refuses unless the config has exactly the one custom-domain route, no `main`, `workers_dev: false`, `assets.directory: "./dist"` and a `_headers` file.
+- [ ] Port the guard from the garment repository with a header comment naming its origin, commit and Apache-2.0 licence. It parses JSONC and refuses unless the config has exactly the one custom-domain route, no `main`, `assets.directory: "./dist"`, `not_found_handling: "404-page"`, `workers_dev: false`, `preview_urls: true` and a `_headers` file.
 - [ ] Write a first step for each job that checks its environment's secrets and fails with a message naming the missing secret and pointing to the README checklist.
 - [ ] Write `book-deploy.yml` on `workflow_run` after `book-build.yml`, following [DS3](../../plans/publish-and-docs.md#ds3-workers-static-assets-and-a-preview-per-pull-request-accepted): GitHub runs its definition from `main`. It downloads the `dist/` artifact, takes `wrangler.jsonc`, `_headers` and the guard from `main`, and never checks out or runs the pull request's code.
 - [ ] Production job: only when `github.event.workflow_run.event == 'push'`, `github.event.workflow_run.head_repository.full_name == github.repository`, the head branch is `main` and `vars.BOOK_DEPLOY_ENABLED == 'true'`; `environment: book-production`; `concurrency` with `cancel-in-progress: false`; the secrets check, the guard, then `wrangler deploy`.
@@ -58,7 +58,7 @@ Publish the book from GitHub Actions. An assets-only Worker serves the built sit
 
 - [ ] `apps/book/README.md` lists every environment, protection rule, secret, token permission and variable the owner must create, by exact name
 - [ ] With a secret missing, the job fails at its first step with a message naming that secret; with `BOOK_DEPLOY_ENABLED` unset, a push to `main` skips the deploy job
-- [ ] The guard fails on each of its five rules, in its tests
+- [ ] The guard fails on each of its seven rules, in its tests
 - [ ] After the owner's setup, https://manual.buildanagent.fyi/ serves the built book with the `_headers` values present
 - [ ] A pull request gets a `workers.dev` preview that carries `X-Robots-Tag: noindex`, from a deploy run that never ran the pull request's code with secrets; closing it deletes the preview. A fork's pull request gets a preview too, and a fork's branch named `main` gets a preview, never a production deploy
 - [ ] Editing `book-deploy.yml` on a pull request's branch changes nothing that runs with the secrets

@@ -6,7 +6,7 @@
 | --- | --- |
 | ID | `T5` |
 | Status | `ready` |
-| Plan | [Book plan §5, BK9](../../plans/build-book.md#bk9-listings-come-from-real-regions-and-become-interactive-in-three-tiers-proposed) |
+| Plan | [Book plan §5, BK9](../../plans/build-book.md#bk9-listings-come-from-real-regions-and-become-interactive-in-three-tiers-accepted-the-mechanism-is-proposed) |
 | Round / milestone | Round T (textbook), MT |
 | Depends on | [T4](T4-book-listings.md) |
 | Size | L |
@@ -17,7 +17,7 @@ Make code blocks interactive in the three tiers the owner asked for, all built f
 
 ## Context
 
-- [Book plan BK9](../../plans/build-book.md#bk9-listings-come-from-real-regions-and-become-interactive-in-three-tiers-proposed): the owner's tiers and tier 4, which stays later.
+- [Book plan BK9](../../plans/build-book.md#bk9-listings-come-from-real-regions-and-become-interactive-in-three-tiers-accepted-the-mechanism-is-proposed): the owner's tiers and tier 4, which stays later.
 - Each harness's mock layer: `verify/vercel-ai-sdk/examples/lib/check.ts` (`MockLanguageModelV4` and `check()`), `verify/pi/examples/lib/faux.ts`, and the mock Messages API in `verify/claude-agent-sdk/scripts/mock-anthropic.mjs`.
 - `scripts/ci/results-drift.mjs` and each harness's `results/run-examples.json`: how CI already fails on changed results.
 

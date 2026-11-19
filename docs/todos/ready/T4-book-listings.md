@@ -6,7 +6,7 @@
 | --- | --- |
 | ID | `T4` |
 | Status | `ready` |
-| Plan | [Book plan §5, BK8 and BK9](../../plans/build-book.md#bk9-listings-come-from-real-regions-and-become-interactive-in-three-tiers-proposed) |
+| Plan | [Book plan §5, BK8 and BK9](../../plans/build-book.md#bk9-listings-come-from-real-regions-and-become-interactive-in-three-tiers-accepted-the-mechanism-is-proposed) |
 | Round / milestone | Round T (textbook), MT |
 | Depends on | [T3](T3-book-content-model.md) |
 | Size | M |

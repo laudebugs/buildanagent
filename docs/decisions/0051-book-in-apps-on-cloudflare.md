@@ -10,13 +10,13 @@ The repository holds three build guides, a research report, eight SDK references
 
 ## Decision
 
-- A new top-level folder, `apps/`, holds deployable sites. The book is its first entry, at `apps/book`, beside `packages/` for our libraries and `verify/` for the harnesses.
+- The top-level folder `apps/` holds deployable sites, beside `packages/` for our libraries and `verify/` for the harnesses. The book lives at `apps/book`, beside the docs (`apps/docs`) and the website (`apps/site`) that [ADR 0049](0049-two-sites-on-cloudflare.md) places there.
 - The book is published on Cloudflare at manual.buildanagent.fyi, open to everyone, with no sign-in.
 - The book's prose and figures are licensed CC BY 4.0, like `docs/`; its code and figure generators are licensed Apache-2.0 OR MIT, like the rest of our code.
 - Listings come from `verify/*/examples` until our own packages replace them chapter by chapter.
 
 ## Consequences
 
-- Todo T1 adds `apps/*` to `pnpm-workspace.yaml` and lists `apps/book` in [LICENSE](../../LICENSE) under both terms. [AGENTS.md](../../AGENTS.md) and the [README](../../README.md) gain a line for `apps/`.
+- Whichever of todos L5, L7 or T1 lands first adds `apps/*` to `pnpm-workspace.yaml`. T1 lists `apps/book` in [LICENSE](../../LICENSE) under both terms. [AGENTS.md](../../AGENTS.md) and the [README](../../README.md) gain a line for `apps/`.
 - Because the book is public, it needs no Worker code, no Access policy and no reader data. [ADR 0052](0052-book-stack-and-deploy.md) records the stack and deploy that follow.
 - The owner sets up the Cloudflare zone and the GitHub environments, tokens and secrets; todo T9's workflow then attaches manual.buildanagent.fyi as a custom domain on its first deploy.

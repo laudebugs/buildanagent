@@ -39,7 +39,7 @@ Add one section to Chapter T35 ("Agents people can watch: UIs, browsers and taki
 ## Tasks
 
 - [ ] Draft the section with `/anthropic-skills:writing`, opening with its analogy, then the mechanism and a "Where the analogy breaks" note; register the analogy in `analogies.json`.
-- [ ] Fact-check every claim in the section against its primary source into `apps/book/fact-checks/agents-people-can-watch.md` before any further edit.
+- [ ] Fact-check every claim in the section against its primary source into `apps/book/fact-checks/agents-people-can-watch.md` before any further edit, and commit the section together with its fact-check rows (BK21).
 - [ ] Run `/anthropic-skills:writing-review` on the whole chapter with the voice check, fix every finding with `/anthropic-skills:writing`, and re-check every claim a fix touched.
 
 ## Acceptance criteria

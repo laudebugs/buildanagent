@@ -1,6 +1,6 @@
 # 0053. Reuse the garment textbook's code for the book, credited, without its personal data or agent rules
 
-- **Status:** Accepted (owner, 2026-11-19) for the permission, the exclusions and the licence; the list of files is Proposed
+- **Status:** Accepted (owner, 2026-11-19)
 - **Date:** 2026-11-19
 - **Plan:** [Book plan, BK16](../plans/build-book.md#bk16-reuse-the-garment-textbooks-code-credited-without-its-personal-data-or-rules-accepted-adr-0053)
 
@@ -11,10 +11,10 @@ The owner owns `tajistudios/garment-engineering-textbook`, a private Astro textb
 ## Decision
 
 - **Permission.** Book todos may copy and adapt code from the garment repository, read at a recorded commit, under the owner's permission.
-- **Licence (accepted, owner, 2026-11-19: "Apache 2.0").** Code copied or adapted from the garment repository is published here under Apache-2.0 only, not under our usual Apache-2.0 OR MIT. [LICENSE](../../LICENSE) records the exception.
+- **Licence (accepted, owner, 2026-11-19: "Apache 2.0").** Code copied or adapted from the garment repository is published here under Apache-2.0 only, not under our usual Apache-2.0 OR MIT. Todo T1 adds the exception to [LICENSE](../../LICENSE).
 - **Credit.** Each todo that copies a file adds it to a garment-repository section of [THIRD-PARTY-NOTICES.md](../../THIRD-PARTY-NOTICES.md), with the source path and commit. Each derived file opens with a header comment that names its origin, the source path and commit, and its Apache-2.0 licence.
 - **Exclusions.** No todo copies the repository's reader emails, Access IDs, AUD tags or other account identifiers, or any text from its `CLAUDE.md`. No todo reads its `docs/todos/` or deploy configuration, where that data lives.
-- **The list (proposed).** The citation and glossary plugins, the figure plugin, the strict content schema, the render-input cache hash, the SVG font-subset helper and the deploy guard are reused. So are the deploy workflow's concurrency, switch and clean install. The [plan's table](../plans/build-book.md#bk16-reuse-the-garment-textbooks-code-credited-without-its-personal-data-or-rules-accepted-adr-0053) maps each to its todo.
+- **Which files.** The plan's [BK16](../plans/build-book.md#bk16-reuse-the-garment-textbooks-code-credited-without-its-personal-data-or-rules-accepted-adr-0053) proposes the files to reuse and maps each to its todo. That list is a proposal under this record, not part of it.
 
 ## Consequences
 

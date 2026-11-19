@@ -43,7 +43,7 @@ Write the chapter "Side effects that can fail: outcomes, idempotency and plan ap
 | Concept | Analogy | Where the analogy breaks | Illustration |
 | --- | --- | --- | --- |
 | idempotency key | a raffle ticket stub: one stub, one prize, however often you show it | the key must be stored before the call, or a crash loses it and the write can repeat | none |
-| unknown outcome | a letter posted without tracking | the agent can often ask the other side what happened, which the letter's sender cannot | none |
+| unknown outcome | a dropped phone order: the line cuts out mid-order and you cannot tell whether the restaurant got it, so you check before ordering again | a restaurant has no order number to look up; an agent's write should carry an idempotency key the other side can be asked about | none |
 | persist before execute | writing the order in the ledger before the courier leaves | the ledger entry records intent, not success; the result is a second entry | flat |
 | saga | booking a trip: if the flight falls through, cancel the hotel | some steps cannot be undone, so the plan needs one pivot after which nothing is compensated | none |
 
@@ -57,7 +57,7 @@ Write the chapter "Side effects that can fail: outcomes, idempotency and plan ap
 - [ ] Answer the research question in a short note at the top of the fact-check file, from the sources above only, before drafting.
 - [ ] Add register entries for every source the chapter cites, each pointing at the fact-check log that verified it; add a fact-check row first for any source no log covers.
 - [ ] Add `// #region` markers and `// book:note` markers to the examples the chapter uses, and confirm each harness's `pnpm test` and the results-drift check still pass.
-- [ ] Vet each planned analogy: say what it explains, check it does not imply anything false, and replace it if it does or if `analogies.json` already uses it.
+- [ ] Vet each planned analogy: say what it explains and check it does not imply anything false. The owner approved the analogies (2026-11-19), so if one misleads or `analogies.json` already uses it, propose a replacement to the owner instead of changing it.
 - [ ] Outline the chapter's sections, each with a one-line head, and note the planned opening type.
 - [ ] For each section, in order: draft it with `/anthropic-skills:writing`; then fact-check every claim it makes against its primary source into `apps/book/fact-checks/side-effects-that-can-fail.md` as ✅, ✏️ or ⚠️, before drafting the next section; commit the section and its rows together (BK21).
 - [ ] Open each core concept with its analogy from the table above, follow it at once with the precise mechanism, and add its "Where the analogy breaks" note; register every analogy in `apps/book/src/content/analogies.json` (BK22).
@@ -91,7 +91,7 @@ The book's build and `check:book` in the CI `book` job; the harness tests for an
 ## Risks and open questions
 
 - A source may not answer the research question; record the gap as a follow-up research todo instead of answering from memory.
-- An analogy can mislead a newcomer more than no analogy; the vetting task and the "where it breaks" note are there to catch it, and a weak analogy is dropped, not forced.
+- An analogy can mislead a newcomer more than no analogy; the vetting task and the "where it breaks" note are there to catch it, and a weak analogy goes back to the owner with a proposed replacement, not forced.
 
 ## Definition of done
 

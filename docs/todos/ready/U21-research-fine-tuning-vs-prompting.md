@@ -18,7 +18,7 @@ Research fine-tuning versus prompting so the book can teach it from checked sour
 ## Context
 
 - [Book plan §4.3 and BK19](../../plans/build-book.md#43-four-topics-need-research-before-they-are-written): why this topic needs research first and where it lands
-- Pan et al., "Measuring Agents in Production" ([arXiv 2512.04123](https://arxiv.org/abs/2512.04123)), cited in the U17 source-update report: "70% rely on prompting off-the-shelf models instead of weight tuning"
+- Pan et al., "Measuring Agents in Production" ([arXiv 2512.04123](https://arxiv.org/abs/2512.04123)), cited in the U17 [source-update report](../../research/source-update-2026-11-19.md): "70% rely on prompting off-the-shelf models instead of weight tuning"
 - [OpenAI, A practical guide to building agents](https://cdn.openai.com/business-guides-and-resources/a-practical-guide-to-building-agents.pdf), "Selecting your models"
 - [AGENTS.md, the five document steps](../../../AGENTS.md#every-document-is-drafted-fact-checked-and-reviewed-before-it-merges), including the per-section fact-check rule
 

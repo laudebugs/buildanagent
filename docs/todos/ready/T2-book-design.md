@@ -20,7 +20,7 @@ Give the book the look the owner picked. This todo turns the owner's type and co
 - [Book plan BK12](../../plans/build-book.md#bk12-the-owner-picked-direction-cs-layout-c4s-page-colours-and-panels-that-follow-the-theme-accepted): the owner's pick, with every token value and the measured contrast ratios.
 - The owner's design canvas, board "Reference design" (a private page): the layout this todo reproduces.
 - The font files and licences in [google/fonts](https://github.com/google/fonts): `ofl/instrumentserif/`, `ofl/literata/` and `ofl/googlesanscode/`, each with `OFL.txt`; Google Sans Code also has `TRADEMARKS.md`.
-- [Book plan BK9](../../plans/build-book.md#bk9-listings-come-from-real-regions-and-become-interactive-in-three-tiers-proposed) and [BK11](../../plans/build-book.md#bk11-generated-checked-inlined-figures-that-work-without-javascript-proposed): the listing, tab, annotation, replay and figure components need styles.
+- [Book plan BK9](../../plans/build-book.md#bk9-listings-come-from-real-regions-and-become-interactive-in-three-tiers-accepted-the-mechanism-is-proposed) and [BK11](../../plans/build-book.md#bk11-generated-checked-inlined-figures-that-work-without-javascript-proposed): the listing, tab, annotation, replay and figure components need styles.
 - The `/fixing-accessibility` and `/web-typography` skills: contrast, focus and type checks.
 
 ## Scope
