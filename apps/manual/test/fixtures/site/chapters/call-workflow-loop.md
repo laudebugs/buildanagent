@@ -13,6 +13,10 @@ An agent loop calls a model and runs its tools until a stop condition holds [@an
 ::svg{alt="Three columns of boxes joined by arrows. A call runs your code, then the model, then an answer. A workflow runs three fixed steps in order. A loop sends the model's request to a tool and the result back to the model, which ends with an answer when it is done. Under each column, a note says who decides the next step: your code, your code, and the model."}
 :::
 
+[[lst:one-call]] makes one call.
+
+::listing[One model call]{#one-call file="verify/vercel-ai-sdk/examples/01-generate-text.ts" region="call"}
+
 ## How the loop stops
 
 | Stop | When |

@@ -22,6 +22,7 @@ const system = (m: ScriptedLlm, i = 0) => String(m.requests[i]?.config?.systemIn
 
 // Sequential: the writer's output lands in state.draft, and the reviewer's instruction reads {draft}.
 {
+  // #region sequential
   const writerModel = new ScriptedLlm(() => say("DRAFT-TEXT"));
   const reviewerModel = new ScriptedLlm(() => say("LGTM"));
   const writer = new LlmAgent({ name: "writer", model: writerModel, instruction: "Write.", outputKey: "draft" });
@@ -30,6 +31,7 @@ const system = (m: ScriptedLlm, i = 0) => String(m.requests[i]?.config?.systemIn
   const runner = new InMemoryRunner({ agent: pipeline, appName: "seq" });
   const s = await runner.sessionService.createSession({ appName: "seq", userId: "u1" });
   const events = await turn(runner, s.id, "Write a haiku.");
+  // #endregion
   check(events.map((e) => e.author).join() === "writer,reviewer", "SequentialAgent runs its sub-agents in order");
   check(
     system(reviewerModel).includes("Review this: DRAFT-TEXT"),
@@ -68,9 +70,11 @@ const system = (m: ScriptedLlm, i = 0) => String(m.requests[i]?.config?.systemIn
 
 // Loop: maxIterations bounds the loop; exit_loop (escalate) ends it early.
 {
+  // #region loop
   const model = new ScriptedLlm(() => say("again"));
   const step = new LlmAgent({ name: "step", model, instruction: "Iterate." });
   const loop = new LoopAgent({ name: "loop", subAgents: [step], maxIterations: 3 });
+  // #endregion
   const runner = new InMemoryRunner({ agent: loop, appName: "loop" });
   const s = await runner.sessionService.createSession({ appName: "loop", userId: "u1" });
   await turn(runner, s.id, "Go.");

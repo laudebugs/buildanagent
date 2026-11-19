@@ -1,16 +1,17 @@
-# Publishes @buildanagent/gateway and @buildanagent/sdk to npm through trusted publishing, with provenance, on every
-# push to main that brings a package change (publish-and-docs PB2, ADR 0047).
+# Publishes @buildanagent/gateway and @buildanagent/sdk to npm through trusted publishing, with provenance. Changes
+# reach npm through a "Version packages" pull request that GitHub auto-merges (publish-and-docs PB2, ADR 0047,
+# docs/plans/ci.md §3f).
 #
 # - `plan` reads the checkout, the npm registry and the GitHub releases (scripts/ci/release-plan.mjs).
-# - `version` is switched off. It ran `pnpm changeset version` on the newest main and pushed the version commit; a
-#   follow-up pull request replaces it with an auto-merged "Version packages" pull request (docs/plans/ci.md §3f).
-#   Until then, a push that brings changesets publishes nothing, and they wait. The first publish, 0.1.0-alpha.0,
-#   needs no version commit: the pull request that set up pre mode versioned it.
-# - When npm lacks the planned version, `pack` builds the tarballs from the release commit, and `publish` uploads them
-#   under the pre-mode dist-tag (`alpha`) or `latest`, tags the release, marking a prerelease as one, and `docs` starts
-#   the docs deploy for a stable release.
-# - A workflow_dispatch is a dry run: `plan` and `pack` run, and nothing else, because `version` and `publish`
-#   require a push to main.
+# - When changesets are pending, `version` runs `pnpm changeset version` with a read-only token and hands the result
+#   to `version-pr`. That job runs no third-party code: it checks the commit with scripts/ci/version-pr.mjs, then,
+#   with the RELEASE_PR_TOKEN secret, force-pushes it to `changeset-release/main`, opens or updates the pull request
+#   and turns on auto-merge. Every changeset merged before the pull request merges joins it.
+# - When the pull request merges, its squash commit reaches main with nothing pending and a version npm lacks, so
+#   `pack` builds the tarballs from that commit, and `publish` uploads them under the pre-mode dist-tag (`alpha`) or
+#   `latest`, tags the release, marking a prerelease as one, and `docs` starts the docs deploy for a stable release.
+# - A workflow_dispatch is a dry run: `plan` and `pack` run, and nothing else, because `version`, `version-pr` and
+#   `publish` require a push to main.
 #
 # No job reads an npm token, and none is stored. The publish job authenticates with its OIDC token alone, so a
 # missing or wrong trusted publisher on npmjs.com makes `npm publish` fail with ENEEDAUTH instead of falling back.
@@ -21,13 +22,13 @@ on:
     branches: [main]
   workflow_dispatch:
 
-permissions:
-  contents: read
+# Nothing by default; each job asks for what it needs.
+permissions: {}
 
 # One release at a time, and never cancelled: a cancelled publish could leave the gateway out without the SDK. GitHub
-# keeps one run waiting and cancels an older waiting one, which loses nothing: the run that waited last plans a commit
-# that holds every change merged before it. A workflow_dispatch dry run waits in its own group, so it can never cancel
-# a waiting push run.
+# keeps one run waiting and cancels an older waiting one, which loses nothing: the run that waited last versions or
+# plans a commit that holds every change merged before it. A workflow_dispatch dry run waits in its own group, so it
+# can never cancel a waiting push run.
 concurrency:
   group: release-${{ github.event_name }}
   cancel-in-progress: false
@@ -36,6 +37,8 @@ jobs:
   plan:
     runs-on: ubuntu-24.04
     timeout-minutes: 5
+    permissions:
+      contents: read
     outputs:
       version: ${{ steps.plan.outputs.version }}
       tag: ${{ steps.plan.outputs.tag }}
@@ -61,139 +64,175 @@ jobs:
           set -o pipefail
           node scripts/ci/release-plan.mjs plan | tee -a "$GITHUB_OUTPUT"
 
-  # Switched off by the `false &&` in its `if:`, because it runs third-party code (pnpm install and Changesets) in a
-  # job whose token can push to main, and main's branch protection may refuse that push. The follow-up in
-  # docs/plans/ci.md §3f replaces it with a job that opens an auto-merged "Version packages" pull request with a
-  # dedicated token. The rest of this comment describes the job as written.
-  #
-  # Turns the pending changesets into the next version and pushes it to main, so every package change merged to main
-  # publishes (the owner's decision of 2026-11-19). In Changesets pre mode the version is the next prerelease, such as
-  # 0.1.0-alpha.1. The commit is pushed with GITHUB_TOKEN, and a push made with that token starts no workflow run, so
-  # the commit can't start another release; the `if:` also skips a run whose head commit is a version commit. Runs
-  # wait for each other (the `release-push` concurrency group), and the job versions the newest main, not the commit that
-  # started the run, so two quick merges publish two versions in order, and a run whose changesets an earlier run
-  # already versioned pushes nothing.
+  # Turns the pending changesets into the next version, such as 0.1.0-alpha.1 in pre mode, and uploads the change as
+  # a patch. It runs third-party code, pnpm and Changesets, so it holds only a read-only GITHUB_TOKEN, and checkout
+  # keeps no credentials. It versions the newest main, not the commit that started the run, so a run that waited
+  # behind another includes every changeset merged before it.
   version:
-    name: Version the pending changesets and push them to main
+    name: Version the pending changesets
     needs: plan
     if: >-
-      false &&
-      github.event_name == 'push' && github.ref == 'refs/heads/main' && needs.plan.outputs.needs_version == 'true' &&
-      !startsWith(github.event.head_commit.message, 'chore(release): version packages')
+      github.event_name == 'push' && github.ref == 'refs/heads/main' && needs.plan.outputs.needs_version == 'true'
     runs-on: ubuntu-24.04
     timeout-minutes: 10
     permissions:
-      contents: write # the version commit
+      contents: read
     outputs:
-      sha: ${{ steps.push.outputs.sha }}
-      version: ${{ steps.plan.outputs.version }}
-      tag: ${{ steps.plan.outputs.tag }}
-      publish: ${{ steps.plan.outputs.publish }}
-      dist_tag: ${{ steps.plan.outputs.dist_tag }}
-      prerelease: ${{ steps.plan.outputs.prerelease }}
-      docs_deploy: ${{ steps.plan.outputs.docs_deploy }}
-      node: ${{ steps.plan.outputs.node }}
+      base: ${{ steps.base.outputs.base }}
+      changed: ${{ steps.version.outputs.changed }}
     steps:
-      # Full history, so the version commit can go on top of the newest main; no persisted token while pnpm installs.
+      # Full history, so Changesets can name each changeset's commit in the changelog.
       - uses: actions/checkout@v7.0.1
         with:
           ref: main
           fetch-depth: 0
           persist-credentials: false
+      # The base is recorded in its own step, before any third-party code runs: a later step could append its own
+      # `base=` line to that step's $GITHUB_OUTPUT, but this step's file is read when the step ends.
+      - name: Record the commit the version starts from
+        id: base
+        run: echo "base=$(git rev-parse HEAD)" >> "$GITHUB_OUTPUT"
       - uses: pnpm/action-setup@v6.1.1 # pnpm's version comes from packageManager
-      # No dependency cache in a job that can push: npm's trusted-publishing docs say "never use caching in release
-      # builds".
+      # No dependency cache in a release job: npm's trusted-publishing docs say "never use caching in release builds".
       - uses: actions/setup-node@v7.1.0
         with:
           node-version-file: .nvmrc
       # The root's own devDependencies hold @changesets/cli; nothing else is needed to version.
       - run: pnpm install --frozen-lockfile --filter .
-      - name: Version the packages and push the commit to main
-        id: push
-        env:
-          GH_TOKEN: ${{ github.token }}
-          REPO: ${{ github.repository }}
+      - name: Version the packages and write the change as a patch
+        id: version
+        run: |
+          set -euo pipefail
+          pnpm changeset version
+          git add -A
+          mkdir -p "$RUNNER_TEMP/version"
+          if git diff --cached --quiet; then
+            echo "pnpm changeset version changed nothing, so there is no version commit."
+            echo "changed=false" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+          git diff --cached --binary --no-renames > "$RUNNER_TEMP/version/version.patch"
+          git diff --cached --stat
+          echo "changed=true" >> "$GITHUB_OUTPUT"
+      - if: steps.version.outputs.changed == 'true'
+        uses: actions/upload-artifact@v7.0.2
+        with:
+          name: version-commit
+          path: ${{ runner.temp }}/version
+          if-no-files-found: error
+          retention-days: 1
+
+  # Pushes the version commit to changeset-release/main and keeps the "Version packages" pull request open with
+  # auto-merge on. This is the only job that reads RELEASE_PR_TOKEN, a fine-grained token for this repository with
+  # Contents and Pull requests write. A push and a pull request made with GITHUB_TOKEN would start ci.yml's runs only
+  # after someone approved them, and its merge would start no release run. The job runs no third-party code: no pnpm,
+  # no npx and nothing from node_modules, only git, gh and scripts/ci/version-pr.mjs, which imports only node: modules.
+  # The token is in the environment of the last step alone, after the commit has been checked. The version job ran
+  # third-party code, so its base and patch are untrusted: the base must be a commit on main, and the patch goes into
+  # the index alone, so the checker that runs is main's, never one the patch rewrote.
+  version-pr:
+    name: Open or update the Version packages pull request
+    needs: version
+    if: needs.version.outputs.changed == 'true'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    permissions:
+      contents: read
+    env:
+      BASE: ${{ needs.version.outputs.base }}
+    steps:
+      - uses: actions/checkout@v7.0.1
+        with:
+          ref: main
+          fetch-depth: 0
+          persist-credentials: false
+      - uses: actions/download-artifact@v8.0.2
+        with:
+          name: version-commit
+          path: ${{ runner.temp }}/version
+      # The patch came from a job that ran third-party code, so it is checked before anything is pushed: it may change
+      # only what a version commit changes (scripts/ci/version-pr.mjs).
+      - name: Commit the version and check that it changes only versions
         run: |
           set -euo pipefail
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          remote="https://x-access-token:${GH_TOKEN}@github.com/${REPO}.git"
-          # A merge can land on main while this job versions, so a rejected push starts again from the newest main.
-          for attempt in 1 2 3; do
-            git fetch --quiet origin main
-            git reset --quiet --hard origin/main
-            # A plain assignment, so that a crash fails the step under `set -e` instead of reading as "nothing to do".
-            needs=$(node scripts/ci/release-plan.mjs needs-version)
-            if [ "$needs" != "true" ]; then
-              echo "Nothing to version at $(git rev-parse HEAD): an earlier run versioned these changesets."
-              break
-            fi
-            before=$(node -p 'require("./packages/gateway/package.json").version')
-            # Changesets and its dependencies run without the token that can push to main.
-            env -u GH_TOKEN pnpm changeset version
-            version=$(node -p 'require("./packages/gateway/package.json").version')
-            git add -A
-            if git diff --cached --quiet; then
-              echo "pnpm changeset version changed nothing, so there is no version commit to push."
-              break
-            fi
-            # [skip ci] keeps ci.yml off this commit; its changes were checked on the pull requests that made them.
-            # Empty changesets move into .changeset/pre/ without a bump, and that commit mustn't claim a version.
-            if [ "$version" = "$before" ]; then
-              git commit --quiet -m "chore(release): consume changesets that bump no package [skip ci]"
-            else
-              git commit --quiet -m "chore(release): version packages to $version [skip ci]"
-            fi
-            if git push --quiet "$remote" HEAD:main 2> "$RUNNER_TEMP/push-error"; then
-              echo "Pushed the version commit for $version."
-              break
-            fi
-            cat "$RUNNER_TEMP/push-error"
-            if grep -qiE 'protected branch|GH006|GH013|rule violation|required status check' "$RUNNER_TEMP/push-error"; then
-              echo "::error::main's branch protection refused the version commit. Let GitHub Actions bypass the rule for main, or switch release.yml back to a \"Version packages\" pull request (docs/plans/ci.md §3f)."
-              exit 1
-            fi
-            if [ "$attempt" = 3 ]; then
-              echo "::error::The version commit was rejected three times; the next push to main versions the changesets."
-              exit 1
-            fi
-            echo "main moved while this job versioned it; starting again from the newest main."
-          done
-          echo "sha=$(git rev-parse HEAD)" >> "$GITHUB_OUTPUT"
-      # Plans again on the commit the job ended on, which the pack and publish jobs then release.
-      - id: plan
+          if ! [[ "$BASE" =~ ^[0-9a-f]{40}$ ]] || ! git merge-base --is-ancestor "$BASE" HEAD; then
+            echo "::error::The version job's base, '$BASE', isn't a commit on main."
+            exit 1
+          fi
+          git checkout --quiet --detach "$BASE"
+          # --cached leaves the working tree at the base commit, so the check below runs the base's scripts.
+          git apply --cached --binary "$RUNNER_TEMP/version/version.patch"
+          git commit --quiet --no-verify -m "chore(release): version packages"
+          node scripts/ci/version-pr.mjs prepare "$BASE" HEAD "$RUNNER_TEMP/pr"
+          git commit --quiet --no-verify --amend -F "$RUNNER_TEMP/pr/title"
+      - name: Push the branch, open or update the pull request and turn on auto-merge
         env:
-          GH_TOKEN: ${{ github.token }}
+          GH_TOKEN: ${{ secrets.RELEASE_PR_TOKEN }}
+          REPO: ${{ github.repository }}
+          BRANCH: changeset-release/main
         run: |
-          set -o pipefail
-          node scripts/ci/release-plan.mjs plan | tee -a "$GITHUB_OUTPUT"
+          set -euo pipefail
+          if [ -z "$GH_TOKEN" ]; then
+            echo "::error::The RELEASE_PR_TOKEN secret is missing, so the Version packages pull request can't be opened (docs/plans/ci.md §3f)."
+            exit 1
+          fi
+          title=$(cat "$RUNNER_TEMP/pr/title")
+          remote="https://x-access-token:${GH_TOKEN}@github.com/${REPO}.git"
+          # Pushing the same tree on the same base again would restart the pull request's checks for nothing.
+          if git fetch --quiet --depth=2 "$remote" "refs/heads/$BRANCH" 2> /dev/null &&
+            [ "$(git rev-parse 'FETCH_HEAD^{tree}')" = "$(git rev-parse 'HEAD^{tree}')" ] &&
+            [ "$(git rev-parse 'FETCH_HEAD~1')" = "$BASE" ]; then
+            echo "$BRANCH already holds this version commit."
+          else
+            # Force-updates this one branch only; it holds nothing but the latest version commit.
+            git push --quiet --force "$remote" "HEAD:refs/heads/$BRANCH"
+          fi
+          number=$(gh pr list --repo "$REPO" --head "$BRANCH" --base main --state open --json number --jq '.[0].number // empty')
+          if [ -z "$number" ]; then
+            url=$(gh pr create --repo "$REPO" --base main --head "$BRANCH" --title "$title" --body-file "$RUNNER_TEMP/pr/body.md")
+            number=${url##*/}
+          else
+            gh pr edit "$number" --repo "$REPO" --title "$title" --body-file "$RUNNER_TEMP/pr/body.md"
+          fi
+          # gh merges at once instead of turning on auto-merge when nothing blocks the merge, so without a required
+          # `checks` status on main the pull request would merge before CI ran.
+          required=$(gh api "repos/$REPO/branches/main" --jq '.protection.required_status_checks | select(.enforcement_level != "off") | (.contexts // []) + [.checks[]?.context] | any(. == "checks")')
+          if [ "$required" != "true" ]; then
+            echo "::error::main doesn't require the checks status, so auto-merge would merge pull request #$number before CI passes. It stays open without auto-merge (docs/plans/ci.md §3f)."
+            exit 1
+          fi
+          auto=$(gh pr view "$number" --repo "$REPO" --json autoMergeRequest --jq '.autoMergeRequest != null')
+          if [ "$auto" != "true" ]; then
+            gh pr merge "$number" --repo "$REPO" --auto --squash
+          fi
+          echo "Pull request #$number: $title, with auto-merge on." >> "$GITHUB_STEP_SUMMARY"
 
   # Builds and packs both packages with a read-only token. Each package's `prepack` builds dist/, so this job runs our
-  # build scripts; the publish job then uploads these tarballs without installing or running anything.
-  # When the version job ran, the release is the commit it ended on and its plan; otherwise the run's own commit and
-  # the first plan. The jobs after this one read the release from this job's outputs.
+  # build scripts; the publish job then uploads these tarballs without installing or running anything. The release is
+  # the run's own commit, which on a push is the squash commit of a merged Version packages pull request.
   pack:
-    needs: [plan, version]
-    # !cancelled(), because a job that needs a skipped job is skipped unless its `if:` says otherwise.
+    needs: plan
     if: >-
       ${{ !cancelled() && needs.plan.result == 'success' &&
-      (needs.version.result == 'success' || needs.version.result == 'skipped') &&
-      (github.event_name == 'workflow_dispatch' || (needs.version.outputs.publish || needs.plan.outputs.publish) == 'true') }}
+      (github.event_name == 'workflow_dispatch' || needs.plan.outputs.publish == 'true') }}
     runs-on: ubuntu-24.04
     timeout-minutes: 15
+    permissions:
+      contents: read
     outputs:
-      sha: ${{ needs.version.outputs.sha || github.sha }}
-      version: ${{ needs.version.outputs.version || needs.plan.outputs.version }}
-      tag: ${{ needs.version.outputs.tag || needs.plan.outputs.tag }}
-      publish: ${{ needs.version.outputs.publish || needs.plan.outputs.publish }}
-      dist_tag: ${{ needs.version.outputs.dist_tag || needs.plan.outputs.dist_tag }}
-      prerelease: ${{ needs.version.outputs.prerelease || needs.plan.outputs.prerelease }}
-      docs_deploy: ${{ needs.version.outputs.docs_deploy || needs.plan.outputs.docs_deploy }}
-      node: ${{ needs.version.outputs.node || needs.plan.outputs.node }}
+      sha: ${{ github.sha }}
+      version: ${{ needs.plan.outputs.version }}
+      tag: ${{ needs.plan.outputs.tag }}
+      publish: ${{ needs.plan.outputs.publish }}
+      dist_tag: ${{ needs.plan.outputs.dist_tag }}
+      prerelease: ${{ needs.plan.outputs.prerelease }}
+      docs_deploy: ${{ needs.plan.outputs.docs_deploy }}
+      node: ${{ needs.plan.outputs.node }}
     steps:
       - uses: actions/checkout@v7.0.1
         with:
-          ref: ${{ needs.version.outputs.sha || github.sha }}
           persist-credentials: false
       - uses: pnpm/action-setup@v6.1.1
       # No dependency cache: what ships must come from a clean install.
@@ -209,12 +248,12 @@ jobs:
             pnpm --dir "packages/$pkg" pack --pack-destination "$RUNNER_TEMP/release"
           done
       - name: Write the release notes
-        if: (needs.version.outputs.publish || needs.plan.outputs.publish) == 'true'
+        if: needs.plan.outputs.publish == 'true'
         run: node scripts/ci/release-plan.mjs notes "$RUNNER_TEMP/release/release-notes.md"
       - name: Summarise the run
         env:
-          VERSION: ${{ needs.version.outputs.version || needs.plan.outputs.version }}
-          PUBLISH: ${{ needs.version.outputs.publish || needs.plan.outputs.publish }}
+          VERSION: ${{ needs.plan.outputs.version }}
+          PUBLISH: ${{ needs.plan.outputs.publish }}
           EVENT: ${{ github.event_name }}
         run: |
           {
@@ -304,8 +343,8 @@ jobs:
             exit 1
           fi
       # A re-run of an older run could otherwise publish an older version after a newer one and move the dist-tag
-      # back, so the job publishes only the version main holds now. A normal run always matches: only the version
-      # job changes main's version, and runs wait for each other.
+      # back, so the job publishes only the version main holds now. A normal run always matches: only a merged Version
+      # packages pull request changes main's version, and runs wait for each other.
       - name: Refuse a version main has moved past
         env:
           GH_TOKEN: ${{ github.token }}
@@ -332,8 +371,8 @@ jobs:
             esac
             npm publish "$RELEASE_DIR/buildanagent-$pkg-$VERSION.tgz" --tag "$DIST_TAG" --access public --provenance
           done
-      # Creating the release creates the tag at the released commit, which is the version job's commit when it ran. A tag that `release.yml` pushes with GITHUB_TOKEN starts
-      # no workflow, so the docs deploy is started by the next job instead.
+      # Creating the release creates the tag at the released commit, the run's own. A tag that `release.yml` pushes
+      # with GITHUB_TOKEN starts no workflow, so the docs deploy is started by the next job instead.
       - name: Tag the release and create its GitHub release
         env:
           GH_TOKEN: ${{ github.token }}

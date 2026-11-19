@@ -13,6 +13,7 @@ const srv = createSdkMcpServer({
     })),
   ],
 });
+// #region max-turns
 const { result, thrown } = await collect(
   query({
     prompt: "Search for refund policy and summarise.",
@@ -20,6 +21,7 @@ const { result, thrown } = await collect(
     options: { mcpServers: { kb: srv }, allowedTools: ["mcp__kb__search", "ToolSearch"], maxTurns: 1 },
   }),
 );
+// #endregion
 check(result?.subtype === "error_max_turns", "result subtype is error_max_turns");
 check(!("result" in (result ?? {})) || (result as any).result === undefined, "no `result` text on the error variant");
 check(

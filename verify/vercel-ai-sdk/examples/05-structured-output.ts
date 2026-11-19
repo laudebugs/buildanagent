@@ -7,16 +7,20 @@ import { generateText, NoObjectGeneratedError, NoOutputGeneratedError, Output, t
 import { z } from "zod";
 import { check, scripted } from "./lib/check.ts";
 
+// #region schema
 const schema = z.object({ category: z.enum(["billing", "bug", "other"]), urgent: z.boolean() });
+// #endregion
 
 {
   const { model, requests } = scripted([JSON.stringify({ category: "billing", urgent: true })]);
+  // #region output-object
   const result = await generateText({
     model,
     output: Output.object({ schema, name: "triage", description: "Ticket triage" }),
     prompt: "I was charged twice!",
   });
   const out: { category: "billing" | "bug" | "other"; urgent: boolean } = result.output;
+  // #endregion
   check(out.category === "billing" && out.urgent, "result.output is the parsed, typed object");
   const fmt = requests[0].responseFormat;
   check(fmt?.type === "json" && fmt.name === "triage", "the request asks for JSON with the schema's name");

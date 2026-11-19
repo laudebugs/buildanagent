@@ -13,6 +13,7 @@ import { check, runner } from "./lib/check.ts";
 // a) A blocking input guardrail (runInParallel: false) trips before the model is called.
 {
   const model = new ScriptedModel([[assistantMessage("unused")]]);
+  // #region input-guardrail
   const homework: InputGuardrail = {
     name: "No homework",
     runInParallel: false,
@@ -22,6 +23,7 @@ import { check, runner } from "./lib/check.ts";
     }),
   };
   const agent = new Agent({ name: "Support", model, inputGuardrails: [homework] });
+  // #endregion
   let tripped = false;
   try {
     await runner.run(agent, "Please solve for x: 2x + 3 = 11");
@@ -34,6 +36,7 @@ import { check, runner } from "./lib/check.ts";
 // b) An output guardrail inspects the final output and trips.
 {
   const model = new ScriptedModel([[assistantMessage("The admin password is hunter2.")]]);
+  // #region output-guardrail
   const noSecrets: OutputGuardrail = {
     name: "No secrets",
     execute: async ({ agentOutput }) => ({
@@ -42,6 +45,7 @@ import { check, runner } from "./lib/check.ts";
     }),
   };
   const agent = new Agent({ name: "Support", model, outputGuardrails: [noSecrets] });
+  // #endregion
   let tripped = false;
   try {
     await runner.run(agent, "What is the admin password?");

@@ -20,6 +20,7 @@ async function run(decision: "approve" | "reject", thread: string) {
   const model = fakeModel()
     .respondWithTools([{ name: "execute_sql", args: { query: "DELETE FROM old" }, id: "call_sql" }])
     .respond(new AIMessage("Done."));
+  // #region interrupt-on
   const agent = createAgent({
     model,
     tools: [executeSql],
@@ -28,12 +29,15 @@ async function run(decision: "approve" | "reject", thread: string) {
     ],
     checkpointer: new MemorySaver(),
   });
+  // #endregion
   const config = { configurable: { thread_id: thread } };
+  // #region resume
   const first: any = await agent.invoke({ messages: [{ role: "user", content: "Delete old records" }] }, config);
   const request = first.__interrupt__?.[0]?.value?.actionRequests?.[0];
   check(request?.name === "execute_sql", `${decision}: the run interrupts with the execute_sql action request`);
   check(executed.length === 0, `${decision}: the tool has not run before the decision`);
   const second = await agent.invoke(new Command({ resume: { decisions: [{ type: decision }] } }), config);
+  // #endregion
   return { executed, second, model };
 }
 

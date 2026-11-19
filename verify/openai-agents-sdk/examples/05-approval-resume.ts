@@ -8,6 +8,7 @@ import { check, runner } from "./lib/check.ts";
 
 function setup() {
   const executed: string[] = [];
+  // #region needs-approval
   const refund = tool({
     name: "issue_refund",
     description: "Refund an order",
@@ -18,6 +19,7 @@ function setup() {
       return `refunded ${orderId}`;
     },
   });
+  // #endregion
   const model = new ScriptedModel([
     [functionCall("issue_refund", { orderId: "A-1" }, { callId: "call_refund" })],
     [assistantMessage("Done.")],
@@ -29,6 +31,7 @@ function setup() {
 // a) Approve.
 {
   const { agent, model, executed } = setup();
+  // #region approve-resume
   const first = await runner.run(agent, "Refund order A-1");
   check(
     first.interruptions.length === 1 && first.interruptions[0].name === "issue_refund",
@@ -39,6 +42,7 @@ function setup() {
   const state = await RunState.fromString(agent, saved);
   state.approve(first.interruptions[0]);
   const resumed = await runner.run(agent, state);
+  // #endregion
   check(JSON.stringify(executed) === JSON.stringify(["A-1"]), "after approve() and resume, the tool executes once");
   check(resumed.finalOutput === "Done.", "the resumed run finishes");
   model.assertComplete();

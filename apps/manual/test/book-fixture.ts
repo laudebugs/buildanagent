@@ -7,7 +7,10 @@ import { type Book, type BookInputs, loadBook } from "../src/book/load.js";
 import type { Outline } from "../src/book/outline-types.js";
 import { markdownOptionsFor } from "../src/markdown/options.js";
 
-/** The committed fixture book: two written chapters and one planned one, with small registers. */
+/**
+ * The committed fixture book: two written chapters and one planned one, with small registers. The directory is also
+ * its own repository root, with a workspace of one harness, `verify/demo-sdk`, whose example a listing shows.
+ */
 export const FIXTURE_DIR = fileURLToPath(new URL("./fixtures/book/", import.meta.url));
 
 /** The fixture's outline: `first` and `second` are written, `third` is planned. */
@@ -33,6 +36,7 @@ export function fixtureInputs(dir: string = FIXTURE_DIR, outline: Outline = FIXT
     sourcesFile: join(dir, "sources.json"),
     glossaryFile: join(dir, "glossary.json"),
     analogiesFile: join(dir, "analogies.json"),
+    harnessesFile: join(dir, "harnesses.json"),
     repoRoot: dir,
   };
 }
@@ -40,6 +44,18 @@ export function fixtureInputs(dir: string = FIXTURE_DIR, outline: Outline = FIXT
 /** Copies the fixture book to a fresh temporary directory, applies `change` and returns the directory. */
 export function mutatedFixture(change: (dir: string) => void): string {
   const dir = mkdtempSync(join(tmpdir(), "book-fixture-"));
+  cpSync(FIXTURE_DIR, dir, { recursive: true });
+  change(dir);
+  return dir;
+}
+
+/**
+ * Resets `dir` to a fresh copy of the fixture book and applies `change`. Cases that run one after another can reuse
+ * one directory this way, so the coverage check's programs, keyed by each tsconfig's real path and its extends chain,
+ * are listed once for every case that leaves the harness's tsconfig alone.
+ */
+export function resetFixture(dir: string, change: (dir: string) => void): string {
+  rmSync(dir, { recursive: true, force: true });
   cpSync(FIXTURE_DIR, dir, { recursive: true });
   change(dir);
   return dir;

@@ -3,10 +3,9 @@
 //
 //   node scripts/ci/changeset-gate.mjs [base]    base defaults to origin/main
 //
-// No pull request carries such a bump today: release.yml's version job is switched off, and the follow-up in
-// docs/plans/ci.md §3f turns it back on to open an auto-merged "Version packages" pull request, which this exception
-// lets through. The exception also covers a hand-made bump. `pnpm changeset status --since=<base>` alone fails such a bump, because the bump edits each
-// package.json and consumes the changesets, so the gate first asks whether the change is only a bump:
+// The auto-merged "Version packages" pull request that release.yml opens carries such a bump, and so may a hand-made
+// one (docs/plans/ci.md §3f). `pnpm changeset status --since=<base>` alone fails such a bump, because the bump edits
+// each package.json and consumes the changesets, so the gate first asks whether the change is only a bump:
 // - among the files `changedFilePatterns` in .changeset/config.json counts as shipped, only package.json files changed;
 // - every versioned package's package.json changed, because the fixed group moves them together, and each differs
 //   from the base in its `version` field and nowhere else;

@@ -45,3 +45,39 @@ export function listingHtml(
     })
     .join("");
 }
+
+/** A listing's line range as its caption shows it: "line 5" for one line, "lines 3–7" for several. */
+export function lineRange(lines: readonly { readonly number: number }[]): string {
+  const first = lines[0]?.number ?? 0;
+  const last = lines.at(-1)?.number ?? first;
+  return first === last ? `line ${first}` : `lines ${first}–${last}`;
+}
+
+/**
+ * The caption's parts after the number and the title, in order: the path, the line range and the pin, each with its
+ * class. `ListingBlock` and the `::listing` directive both render these, so a listing's caption reads the same in
+ * the gallery and in a chapter.
+ */
+export function captionParts(
+  path: string,
+  lines: readonly { readonly number: number }[],
+  pin: string,
+): readonly { readonly className: string; readonly text: string }[] {
+  return [
+    { className: "listing__path", text: path },
+    { className: "listing__lines", text: lineRange(lines) },
+    { className: "listing__pin", text: pin },
+  ];
+}
+
+/** The listing's code panel: a keyboard-scrollable `<pre>` labelled with the listing's number, holding its lines. */
+export function listingCodeHtml(
+  listingId: string,
+  number: string,
+  lines: readonly ListingLine[],
+  noteNumbers: ReadonlyMap<string, number>,
+): string {
+  const label = escapeHtml(`Code of listing ${number}`);
+  const code = listingHtml(listingId, lines, noteNumbers);
+  return `<pre class="listing__code" tabindex="0" aria-label="${label}"><code>${code}</code></pre>`;
+}

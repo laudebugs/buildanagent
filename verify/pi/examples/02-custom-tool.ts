@@ -4,6 +4,7 @@ import { defineTool } from "@earendil-works/pi-coding-agent";
 import { Type } from "typebox";
 import { check, fauxAssistantMessage, fauxSession, fauxText, fauxToolCall } from "./lib/faux.ts";
 
+// #region custom-tool
 const calls: unknown[] = [];
 const weather = defineTool({
   name: "get_temperature",
@@ -15,7 +16,9 @@ const weather = defineTool({
     return { content: [{ type: "text", text: `21°C in ${params.city}` }], details: {} };
   },
 });
+// #endregion
 
+// #region session
 const { session, faux } = await fauxSession(
   [
     fauxAssistantMessage([fauxToolCall("get_temperature", { city: "Lisbon" })], { stopReason: "toolUse" }),
@@ -23,6 +26,7 @@ const { session, faux } = await fauxSession(
   ],
   { customTools: [weather] },
 );
+// #endregion
 const events: string[] = [];
 session.subscribe((e) => events.push(e.type));
 try {

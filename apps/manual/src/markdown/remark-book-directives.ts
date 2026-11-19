@@ -1,9 +1,12 @@
-import type { Paragraph, Parent, Root, RootContent } from "mdast";
+import type { Html, Paragraph, Parent, PhrasingContent, Root, RootContent } from "mdast";
 import type { VFile } from "vfile";
 import { isNumberedKind, NUMBERED_KINDS, type NumberedKind } from "../book/book-index.js";
+import type { ListingSource } from "../book/listings.js";
 import type { Book } from "../book/load.js";
+import { captionParts, listingCodeHtml } from "../components/listing-html.js";
 import { checkedChapter } from "./chapter-file.js";
 import { failAt } from "./fail.js";
+import { highlightListing } from "./highlight.js";
 
 /** What each numbered kind must hold: a table, a fenced code block, or anything at all for a figure. */
 const REQUIRED_CONTENT: Record<NumberedKind, RootContent["type"] | undefined> = {
@@ -15,20 +18,29 @@ const REQUIRED_CONTENT: Record<NumberedKind, RootContent["type"] | undefined> = 
 // remark-directive's types add these node types to mdast's content unions.
 type ContainerDirective = Extract<RootContent, { type: "containerDirective" }>;
 type TextDirective = Extract<RootContent, { type: "textDirective" }>;
+type LeafDirective = Extract<RootContent, { type: "leafDirective" }>;
 
 /**
  * Turns the book's directives into HTML-ready nodes. `:::figure[Caption]{#id}`, `:::listing[…]{#id}` and
  * `:::table[…]{#id}` become a `<figure>` with an id such as `fig-<id>`, a caption and an empty number that the
- * numbering plugin fills in. `:analogy[label]{#id}` marks a use of a registered analogy. Any other directive fails,
+ * numbering plugin fills in. `::listing[Caption]{#id file="…" region="…"}` shows a region of a real file, which the
+ * book index has already cut and checked, highlighted with Shiki, under a caption with its number, path, line range
+ * and pin. `:analogy[label]{#id}` marks a use of a registered analogy. Any other directive fails,
  * except a bare text directive such as the `:Invent` in "re:Invent" or the `:tools` in `[[ch:tools]]`, which is put
  * back as the text it was.
  */
 export function remarkBookDirectives(options: { readonly book: Book }) {
   const { book } = options;
-  return (tree: Root, file: VFile): void => {
+  return async (tree: Root, file: VFile): Promise<void> => {
     const { outline } = checkedChapter(file);
+    const listings: Promise<void>[] = [];
     walk(tree, (node) => {
       if (node.type === "containerDirective" && isNumberedKind(node.name)) return numbered(node, node.name, file);
+      if (node.type === "leafDirective" && node.name === "listing") {
+        const { figure, code } = fileListing(node, book, outline.slug, file);
+        listings.push(code);
+        return figure;
+      }
       if (node.type === "textDirective" && node.name === "analogy") return analogy(node, book, outline.number, file);
       if (node.type === "textDirective" && isBare(node)) return restored(node);
       if (node.type === "containerDirective" || node.type === "leafDirective" || node.type === "textDirective") {
@@ -38,6 +50,7 @@ export function remarkBookDirectives(options: { readonly book: Book }) {
       return undefined;
     });
     mergeText(tree);
+    await Promise.all(listings);
   };
 }
 
@@ -130,4 +143,72 @@ function mergeText(parent: Parent): void {
     merged.push(child);
   }
   parent.children = merged as typeof parent.children;
+}
+
+/**
+ * A `::listing` as a figure: a caption that the numbering plugin completes with "Listing 3.2", then the listing's path,
+ * line range and pin, and the code. The caption parts and the code panel come from `listing-html.ts`, which the
+ * ListingBlock component also uses, so the listing takes the panel's colours and shows each line's number in the file.
+ * The code arrives as raw HTML that `highlighted` fills in once Shiki has tokenised the lines; raw HTML reaches the
+ * page after Astro's own highlighter has run, so Astro does not highlight it again.
+ */
+function fileListing(
+  node: LeafDirective,
+  book: Book,
+  slug: string,
+  file: VFile,
+): { readonly figure: ContainerDirective; readonly code: Promise<void> } {
+  const id = node.attributes?.id ?? "";
+  const block = book.index.written.get(slug)?.blocks.find((found) => found.kind === "listing" && found.id === id);
+  if (block?.source === undefined) {
+    return failAt(file, `the book index has no listing "${id}" from a file; rerun the build`, node);
+  }
+  if (node.children.length === 0) {
+    return failAt(file, `a listing needs a caption, written ::listing[Caption]{#${id} file="…"}`, node);
+  }
+  const { source, number } = block;
+  const domId = `${NUMBERED_KINDS.listing.prefix}-${id}`;
+  const caption: Paragraph = {
+    type: "paragraph",
+    data: { hName: "figcaption", hProperties: { className: ["listing__caption"], id: `${domId}-caption` } },
+    children: [
+      { type: "text", value: "", data: { hName: "span", hProperties: { className: ["listing__number", "number"] } } },
+      {
+        type: "emphasis",
+        data: { hName: "span", hProperties: { className: ["listing__title"] } },
+        children: node.children,
+      },
+      ...captionParts(source.path, source.lines, source.pin).map(
+        ({ className, text }): PhrasingContent => ({
+          type: "text",
+          value: text,
+          data: { hName: "span", hProperties: { className: [className] } },
+        }),
+      ),
+    ],
+  };
+  const html: Html = { type: "html", value: "" };
+  const figure: ContainerDirective = {
+    type: "containerDirective",
+    name: "listing",
+    attributes: node.attributes ?? {},
+    children: [caption, html],
+    data: {
+      hName: "figure",
+      hProperties: {
+        id: domId,
+        className: ["numbered", "listing", "panel"],
+        dataNumbered: "listing",
+        dataNumberedId: id,
+        ariaLabelledBy: [`${domId}-caption`],
+      },
+    },
+    ...(node.position ? { position: node.position } : {}),
+  };
+  return { figure, code: highlighted(html, source, number, domId) };
+}
+
+/** Fills the listing's HTML node with its code panel once Shiki has tokenised the lines. */
+async function highlighted(html: Html, source: ListingSource, number: string, domId: string): Promise<void> {
+  html.value = listingCodeHtml(domId, number, await highlightListing(source), new Map());
 }

@@ -35,7 +35,7 @@ Make the build responsible for every number, citation and glossary link, so chap
 
 **Out of scope** (and which todo covers it)
 
-- Listings ([T4](../ready/T4-book-listings.md))
+- Listings ([T4](../done/T4-book-listings.md))
 - Figure drawing ([T6](T6-book-flat-figures.md))
 
 ## Tasks
