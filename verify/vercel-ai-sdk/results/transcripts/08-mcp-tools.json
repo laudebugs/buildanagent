@@ -1,0 +1,127 @@
+{
+  "format": 1,
+  "example": "08-mcp-tools",
+  "file": "verify/vercel-ai-sdk/examples/08-mcp-tools.ts",
+  "harness": "verify/vercel-ai-sdk",
+  "pin": "ai@7.0.162",
+  "events": [
+    {
+      "kind": "check",
+      "line": 49,
+      "message": "client.tools() exposes the server's tools by name",
+      "pass": true
+    },
+    {
+      "kind": "request",
+      "line": 54,
+      "model": "model-1",
+      "repeated": 0,
+      "messages": [
+        {
+          "role": "user",
+          "parts": [
+            {
+              "type": "text",
+              "text": "Where is order A-1?"
+            }
+          ]
+        }
+      ],
+      "tools": [
+        "lookup_order"
+      ]
+    },
+    {
+      "kind": "response",
+      "line": 54,
+      "model": "model-1",
+      "message": {
+        "role": "assistant",
+        "parts": [
+          {
+            "type": "tool-call",
+            "id": "call_1",
+            "name": "lookup_order",
+            "input": {
+              "orderId": "A-1"
+            }
+          }
+        ]
+      },
+      "finish": "tool-calls"
+    },
+    {
+      "kind": "request",
+      "line": 54,
+      "model": "model-1",
+      "repeated": 1,
+      "messages": [
+        {
+          "role": "assistant",
+          "parts": [
+            {
+              "type": "tool-call",
+              "id": "call_1",
+              "name": "lookup_order",
+              "input": {
+                "orderId": "A-1"
+              }
+            }
+          ]
+        },
+        {
+          "role": "tool",
+          "parts": [
+            {
+              "type": "tool-result",
+              "id": "call_1",
+              "name": "lookup_order",
+              "output": [
+                {
+                  "type": "text",
+                  "text": "order A-1: shipped"
+                }
+              ]
+            }
+          ]
+        }
+      ],
+      "tools": [
+        "lookup_order"
+      ]
+    },
+    {
+      "kind": "response",
+      "line": 54,
+      "model": "model-1",
+      "message": {
+        "role": "assistant",
+        "parts": [
+          {
+            "type": "text",
+            "text": "Your order shipped."
+          }
+        ]
+      },
+      "finish": "stop"
+    },
+    {
+      "kind": "check",
+      "line": 55,
+      "message": "the client initialises, then sends tools/call",
+      "pass": true
+    },
+    {
+      "kind": "check",
+      "line": 59,
+      "message": "the MCP result goes back to the model",
+      "pass": true
+    },
+    {
+      "kind": "check",
+      "line": 60,
+      "message": "the loop completes with the model's answer",
+      "pass": true
+    }
+  ]
+}

@@ -1,0 +1,225 @@
+{
+  "format": 1,
+  "example": "09-triage-agent",
+  "file": "verify/vercel-ai-sdk/examples/09-triage-agent.ts",
+  "harness": "verify/vercel-ai-sdk",
+  "pin": "ai@7.0.162",
+  "events": [
+    {
+      "kind": "request",
+      "line": 49,
+      "model": "model-1",
+      "repeated": 0,
+      "messages": [
+        {
+          "role": "system",
+          "parts": [
+            {
+              "type": "text",
+              "text": "You triage support tickets. Look up the order before acting. Never refund without approval."
+            }
+          ]
+        },
+        {
+          "role": "user",
+          "parts": [
+            {
+              "type": "text",
+              "text": "I was charged twice for order A-1."
+            }
+          ]
+        }
+      ],
+      "tools": [
+        "lookupOrder",
+        "issueRefund"
+      ]
+    },
+    {
+      "kind": "response",
+      "line": 49,
+      "model": "model-1",
+      "message": {
+        "role": "assistant",
+        "parts": [
+          {
+            "type": "tool-call",
+            "id": "call_1",
+            "name": "lookupOrder",
+            "input": {
+              "orderId": "A-1"
+            }
+          }
+        ]
+      },
+      "finish": "tool-calls"
+    },
+    {
+      "kind": "request",
+      "line": 49,
+      "model": "model-1",
+      "repeated": 2,
+      "messages": [
+        {
+          "role": "assistant",
+          "parts": [
+            {
+              "type": "tool-call",
+              "id": "call_1",
+              "name": "lookupOrder",
+              "input": {
+                "orderId": "A-1"
+              }
+            }
+          ]
+        },
+        {
+          "role": "tool",
+          "parts": [
+            {
+              "type": "tool-result",
+              "id": "call_1",
+              "name": "lookupOrder",
+              "output": {
+                "status": "delivered",
+                "amount": 40
+              }
+            }
+          ]
+        }
+      ],
+      "tools": [
+        "lookupOrder",
+        "issueRefund"
+      ]
+    },
+    {
+      "kind": "response",
+      "line": 49,
+      "model": "model-1",
+      "message": {
+        "role": "assistant",
+        "parts": [
+          {
+            "type": "tool-call",
+            "id": "call_2",
+            "name": "issueRefund",
+            "input": {
+              "orderId": "A-1",
+              "reason": "charged twice"
+            }
+          }
+        ]
+      },
+      "finish": "tool-calls"
+    },
+    {
+      "kind": "check",
+      "line": 50,
+      "message": "instructions are the system message",
+      "pass": true
+    },
+    {
+      "kind": "check",
+      "line": 51,
+      "message": "both tools are offered",
+      "pass": true
+    },
+    {
+      "kind": "check",
+      "line": 53,
+      "message": "step 1 looks up the order",
+      "pass": true
+    },
+    {
+      "kind": "check",
+      "line": 55,
+      "message": "the refund waits for approval",
+      "pass": true
+    },
+    {
+      "kind": "check",
+      "line": 56,
+      "message": "no refund before approval",
+      "pass": true
+    },
+    {
+      "kind": "request",
+      "line": 63,
+      "model": "model-1",
+      "repeated": 4,
+      "messages": [
+        {
+          "role": "assistant",
+          "parts": [
+            {
+              "type": "tool-call",
+              "id": "call_2",
+              "name": "issueRefund",
+              "input": {
+                "orderId": "A-1",
+                "reason": "charged twice"
+              }
+            }
+          ]
+        },
+        {
+          "role": "tool",
+          "parts": [
+            {
+              "type": "tool-result",
+              "id": "call_2",
+              "name": "issueRefund",
+              "output": {
+                "refunded": "A-1"
+              }
+            }
+          ]
+        }
+      ],
+      "tools": [
+        "lookupOrder",
+        "issueRefund"
+      ]
+    },
+    {
+      "kind": "response",
+      "line": 63,
+      "model": "model-1",
+      "message": {
+        "role": "assistant",
+        "parts": [
+          {
+            "type": "text",
+            "text": "{\"category\":\"billing\",\"action\":\"refunded\",\"summary\":\"Refunded A-1 after a double charge.\"}"
+          }
+        ]
+      },
+      "finish": "stop"
+    },
+    {
+      "kind": "check",
+      "line": 64,
+      "message": "after approval the refund runs exactly once",
+      "pass": true
+    },
+    {
+      "kind": "check",
+      "line": 65,
+      "message": "the agent returns a typed triage record",
+      "pass": true
+    },
+    {
+      "kind": "check",
+      "line": 69,
+      "message": "three model calls in all: lookup, refund request, final answer",
+      "pass": true
+    },
+    {
+      "kind": "check",
+      "line": 70,
+      "message": "the final call asks for JSON",
+      "pass": true
+    }
+  ]
+}
