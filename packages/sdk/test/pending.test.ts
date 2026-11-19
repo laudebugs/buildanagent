@@ -5,8 +5,10 @@ import assert from "node:assert/strict";
 import * as safety from "@buildanagent/agent-safety";
 import { testSigner } from "@buildanagent/agent-safety/testing";
 import {
+  type AgentEvent,
   type ApprovalSigner,
   type AwaitingApprovalResult,
+  composeInterceptors,
   continueRun,
   createPendingRequest,
   defineTool,
@@ -251,17 +253,141 @@ test("a pause that can't be signed blocks its call, and no report carries the si
   adapter.assertComplete();
 });
 
-test("a pause whose id repeats an earlier request's is blocked, never paused under a shared id", async () => {
-  const { result, events } = await pausedRun([calls(["refund", { order: 1 }, "c1"], ["refund", { order: 2 }, "c2"])], {
-    idGenerator: () => "same",
+test("a generator that repeats one id still pauses every call, each under its own request id", async () => {
+  // A host may tie the run to its session with a fixed id; that once made only the run id, so it must not block pauses.
+  const started = run({
+    model: scripted([calls(["refund", { order: 1 }, "c1"], ["refund", { order: 2 }, "c2"])]).model,
+    system: "You handle refunds.",
+    input: "Refund orders 1 and 2.",
+    tools: [recordingTool("refund").tool],
+    interceptors: ASK_REFUNDS,
+    signer: SIGNER,
+    clock: determinism().clock,
+    idGenerator: () => "session-1",
   });
+  const { result, events } = await drive(started);
   const paused = awaiting(result);
+  assert.equal(started.id, "session-1");
   assert.deepEqual(
     paused.pending.map((request) => request.callId),
-    ["c1"],
+    ["c1", "c2"],
   );
+  const ids = paused.pending.map((request) => request.id);
+  assert.equal(new Set([...ids, "session-1"]).size, 3);
+  assert.equal(
+    events.some((event) => event.type === "hook_error"),
+    false,
+  );
+});
+
+test("a pause signs the coerced input the call would run with, and the context and event hold that input", async () => {
+  const { result, events } = await pausedRun([calls(["refund", { order: "5" }, "c1"])]);
+  const paused = awaiting(result);
+  const [request] = paused.pending as [SignedPendingRequest];
+  assert.equal(request.inputHash, await safety.canonicalInputHash({ order: 5 }));
+  assert.deepEqual(paused.context.pendingInputs, { [request.id]: { order: 5 } });
+  const event = events.find((e) => e.type === "approval_request");
+  assert.deepEqual(event?.type === "approval_request" && event.input, { order: 5 });
+  const check = await safety.verifyResolution(
+    request,
+    { requestId: request.id, decision: "allow" },
+    { signer: SIGNER, call: { callId: "c1", tool: "refund", input: paused.context.pendingInputs?.[request.id] } },
+  );
+  assert.equal(check.ok, true);
+});
+
+test("composed gates pause over an earlier gate's replacement, the input the asking gate saw", async () => {
+  const seen: unknown[] = [];
+  const interceptors = composeInterceptors(
+    { beforeToolCall: () => ({ decision: "allow", input: { order: 99 } }) },
+    {
+      beforeToolCall: (e) => {
+        seen.push(e.input);
+        return { decision: "ask", reason: "refunds need a manager" };
+      },
+    },
+  );
+  const { result, refund } = await pausedRun([calls(["refund", { order: 1 }, "c1"])], { interceptors });
+  const paused = awaiting(result);
+  const [request] = paused.pending as [SignedPendingRequest];
+  assert.deepEqual(seen, [{ order: 99 }]);
+  assert.equal(request.inputHash, await safety.canonicalInputHash({ order: 99 }));
+  assert.deepEqual(paused.context.pendingInputs?.[request.id], { order: 99 });
+  assert.deepEqual(refund.inputs, []);
+});
+
+test("an ask whose own input fails the tool's schema is a programmer error, not a pause", async () => {
+  await assert.rejects(
+    pausedRun([calls(["refund", { order: 1 }, "c1"])], {
+      interceptors: { beforeToolCall: () => ({ decision: "ask", input: { order: "x" } }) },
+    }),
+    (error) => isSdkError(error) && error.code === "invalid_hook_result",
+  );
+});
+
+test("an ask with a blank reason pauses without one, and a bad policyVersion is the gate's error", async () => {
+  const { result } = await pausedRun([calls(["refund", { order: 1 }, "c1"])], {
+    interceptors: { beforeToolCall: () => ({ decision: "ask", reason: "" }) },
+  });
+  assert.equal("reason" in ((awaiting(result).pending as [SignedPendingRequest])[0] ?? {}), false);
+  await assert.rejects(
+    pausedRun([calls(["refund", { order: 1 }, "c1"])], {
+      interceptors: { beforeToolCall: () => ({ decision: "ask", policyVersion: "" }) },
+    }),
+    (error) => isSdkError(error) && error.code === "invalid_hook_result",
+  );
+});
+
+test("a step that fails while its calls are checked reports no pause for a call it then gives a result", async () => {
+  const broken = defineTool({
+    name: "broken",
+    description: "A tool whose resource key throws.",
+    inputSchema: { type: "object", properties: {} },
+    resourceKey: () => {
+      throw new Error("no key");
+    },
+    async execute() {
+      return { content: [{ type: "text", text: "never" }] };
+    },
+  });
+  const refund = recordingTool("refund");
+  const started = run({
+    model: scripted([calls(["refund", { order: 1 }, "c1"], ["broken", {}, "c2"])]).model,
+    system: "You handle refunds.",
+    input: "Refund order 1.",
+    tools: [refund.tool, broken],
+    interceptors: ASK_REFUNDS,
+    signer: SIGNER,
+    ...determinism(),
+  });
+  const events: AgentEvent[] = [];
+  await assert.rejects(async () => {
+    for await (const event of started) events.push(event);
+  }, /resourceKey threw/);
+  assert.ok(events.some((event) => event.type === "tool_call_end" && event.callId === "c1"));
+  assert.equal(
+    events.some((event) => event.type === "approval_request"),
+    false,
+  );
+});
+
+test("a forged safety error's code never reaches a report", async () => {
+  const forged: ApprovalSigner = {
+    keyId: "forged",
+    sign: async () => {
+      throw Object.assign(new Error("x"), {
+        [Symbol.for("buildanagent.agent-safety.SafetyError")]: true,
+        code: "leaked key 0xDEADBEEF",
+      });
+    },
+    verify: async () => false,
+  };
+  const { result, events } = await pausedRun([calls(["refund", { order: 1 }, "c1"]), text("I couldn't.")], {
+    signer: forged,
+  });
+  assert.equal(JSON.stringify({ events, result }).includes("DEADBEEF"), false);
   const failure = events.find((event) => event.type === "hook_error");
-  assert.match(failure?.type === "hook_error" ? failure.error : "", /duplicate_request_id/);
+  assert.match(failure?.type === "hook_error" ? failure.error : "", /\(signer_failed\)/);
 });
 
 test("continueRun() refuses a paused context until it can check resolutions", async () => {

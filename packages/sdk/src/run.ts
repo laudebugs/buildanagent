@@ -103,8 +103,9 @@ export interface RunOptions<S = unknown> {
   /** Stamps each event's `timestamp`, and is passed to tools. Defaults to the system clock. */
   readonly clock?: Clock;
   /**
-   * Makes the run's id, then the id of each pending request the run signs. It must return a fresh id on every call:
-   * a call whose request would repeat an earlier request's id is blocked instead of paused. Defaults to
+   * Makes the run's id, then the id of each pending request the run signs. A request id that repeats the run's id or
+   * an earlier request's id is replaced by `crypto.randomUUID()`, so a generator that always returns one id still
+   * pauses every call; return a fresh id on every call to keep request ids deterministic. Defaults to
    * `crypto.randomUUID()`.
    */
   readonly idGenerator?: () => string;
@@ -139,8 +140,9 @@ export interface Run<S = unknown> extends AsyncIterable<AgentEvent> {
   readonly result: Promise<RunResult<S>>;
   /**
    * Stops the run. A model call in flight ends, a running tool sees its `signal` fire, and calls that haven't started
-   * get an error result instead. The run then ends with `stopReason: "aborted"`. Does nothing once the run has its
-   * outcome and is ending, which is before `agent_settled`.
+   * get an error result instead. The run then ends with `stopReason: "aborted"`, unless a gate already paused a call
+   * in the step, which ends it `awaiting_approval`, because that call's signed request still waits. Does nothing once
+   * the run has its outcome and is ending, which is before `agent_settled`.
    */
   abort(reason?: string): void;
   /**

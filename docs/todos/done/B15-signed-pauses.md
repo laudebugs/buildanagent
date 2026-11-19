@@ -69,7 +69,7 @@ The owner accepted D5 with an ephemeral default and an optional `signer` (ADR 00
 
 **Answered (owner, 2026-11-19), the SG5 revisit:** keep the signed-request kinds as D5 defines them, `"approval"` and `"clarification"`, with no `"plan"` kind. Plan approvals stay on E4a's own signature ([SG5](../../plans/close-sdk-gaps.md#sg5-a-plan-approval-keeps-its-own-signature-separate-from-d5s-signed-request-kinds-accepted)).
 
-A composed gate that replaces the input and a later gate that asks pause the call over the model's original input, because `composeInterceptors()` drops an earlier `allow`'s input when a later gate asks. The approver sees and signs the input the model sent. B15b, which runs the approved call, should decide whether the replacement should carry over.
+**Resolved in the first code review:** a composed gate that replaced the input and a later gate that asked once paused the call over the model's original input, because `composeInterceptors()` dropped the earlier `allow`'s input. An approved call would then have run without the earlier gate's replacement. The composed `ask` now carries the replacement, an `ask` may carry an `input` of its own, and every pause signs the input the call would run with, which `context.pendingInputs` and the `approval_request` event hold.
 
 ## History
 

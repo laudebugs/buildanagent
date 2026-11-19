@@ -106,7 +106,11 @@ type Outcome =
   | { readonly stopReason: "error"; readonly error: RunError }
   | { readonly stopReason: "stopped"; readonly stoppedBy: string }
   | { readonly stopReason: "no_progress"; readonly reason: string }
-  | { readonly stopReason: "awaiting_approval"; readonly pending: readonly SignedPendingRequest[] };
+  | {
+      readonly stopReason: "awaiting_approval";
+      readonly pending: readonly SignedPendingRequest[];
+      readonly pendingInputs: Readonly<Record<string, unknown>>;
+    };
 
 /** What changes while a run goes on. */
 class LoopState {
@@ -129,6 +133,8 @@ class LoopState {
   releaseFollowUps = false;
   /** The signed requests of the calls that gates paused, in model order. */
   readonly pending: SignedPendingRequest[] = [];
+  /** The input each pending request signs, by request id. */
+  readonly pendingInputs: Record<string, unknown> = {};
 
   constructor(setup: LoopSetup, emit: Emit, drain: Drain) {
     this.setup = setup;
@@ -146,7 +152,6 @@ class LoopState {
       send: (body) => this.send(body),
       signer: setup.signer,
       nextId: setup.nextId,
-      onPause: (request) => this.pending.push(request),
     });
   }
 
@@ -378,6 +383,11 @@ async function runTools(state: LoopState, message: AssistantMessage): Promise<re
     onStart: (call: ToolCall) =>
       state.send({ type: "tool_call_start", callId: call.callId, tool: call.name, input: call.input }),
     onUpdate: (callId, details) => state.send({ type: "tool_call_update", callId, details }),
+    onPause: ({ request, input }) => {
+      state.pending.push(request);
+      state.pendingInputs[request.id] = input;
+      state.send({ type: "approval_request", request, input });
+    },
     onResult: (entry) => {
       state.append(toolMessage(entry));
       if (output !== undefined && entry.call.name === output.name && entry.result.isError !== true) {
@@ -411,7 +421,9 @@ function stopCheck(
   if (message.stopReason === "aborted") return { stopReason: "aborted" };
   // A paused call is still waiting, so the run can't count as finished, and the pause is signed and stored with the
   // context, so it outlasts an abort that came while the step's other calls ran.
-  if (state.pending.length > 0) return { stopReason: "awaiting_approval", pending: [...state.pending] };
+  if (state.pending.length > 0) {
+    return { stopReason: "awaiting_approval", pending: [...state.pending], pendingInputs: { ...state.pendingInputs } };
+  }
   const finished = results.length === 0 || results.some(({ result }) => result.terminate === true && !result.isError);
   if (finished) return { stopReason: "done", output: state.output };
   // Until runs can pause for an answer, a clarification question stops the run, so the model never goes on as if the
@@ -548,7 +560,10 @@ function closeAborted(state: LoopState): void {
 }
 
 function resultOf(state: LoopState, outcome: Outcome): RunResult {
-  const pending = outcome.stopReason === "awaiting_approval" ? { pending: [...outcome.pending] } : {};
+  const pending =
+    outcome.stopReason === "awaiting_approval"
+      ? { pending: [...outcome.pending], pendingInputs: { ...outcome.pendingInputs } }
+      : {};
   const base = {
     messages: state.added,
     context: { system: state.setup.system, messages: state.messages, ...pending },

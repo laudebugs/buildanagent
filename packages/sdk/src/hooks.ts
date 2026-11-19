@@ -117,12 +117,14 @@ export interface ModelCallPatch {
  * replacement must pass the tool's schema. `deny` blocks the call, and the model reads the `reason`. `ask` pauses
  * the call for a person: the run signs a pending request for it with the run's `signer`, and ends
  * `awaiting_approval` once the step's other calls have their results. `reason` is shown to the approver and isn't
- * signed; `policyVersion` is signed.
+ * signed; `policyVersion` is signed. An `ask` may carry an `input`, which must pass the tool's schema like an
+ * `allow`'s: the request is then signed over it, because it is the input the call would run with once approved.
+ * `composeInterceptors()` passes an earlier gate's replacement on this way when a later gate asks.
  */
 export type GateDecision =
   | { readonly decision: "allow"; readonly input?: unknown; readonly reason?: string }
   | { readonly decision: "deny"; readonly reason: string }
-  | { readonly decision: "ask"; readonly reason?: string; readonly policyVersion?: string };
+  | { readonly decision: "ask"; readonly input?: unknown; readonly reason?: string; readonly policyVersion?: string };
 
 /**
  * Changes to a tool's result. Each field present replaces the result's own. A replaced `outcome` is not available

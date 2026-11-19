@@ -64,6 +64,8 @@ Make every pause resumable from any process: `continueRun` verifies the signed r
 
 ## Risks and open questions
 
+An approved call must run with the input its request signs, which `context.pendingInputs` holds by request id, not with the call's arguments in `messages`: coercion, `repair` and a gate's replacement can change it. A context stored without `pending` passes B15's guard, and the gateway then answers its open call with "No result was recorded for this tool call", so decide whether `continueRun()` should refuse a context whose last assistant message has calls with no results.
+
 A hand-built `Context` may omit a field a result carries. The JSON round-trip test and the hand-built test share one fixture, so any such field shows up as a failing diff.
 
 ## Definition of done

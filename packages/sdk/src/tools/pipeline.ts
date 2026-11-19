@@ -31,9 +31,10 @@ export interface PipelineContext {
   readonly clock: Clock;
   /**
    * The gate: asked once for each call that passed validation, one call at a time in model order, and before any call
-   * of the step executes. It returns `{ blocked }` to stop the call with that result, `{ paused }` to hold the call
-   * for a person with no result at all, `{ input }` to run it with another input, which must pass the tool's schema,
-   * or `undefined` to let it run as it is. Without a gate every call is allowed.
+   * of the step executes. It returns `{ blocked }` to stop the call with that result, `{ paused, input }` to hold the
+   * call for a person with no result at all, with the signed request and the input it signs, `{ input }` to run it
+   * with another input, which must pass the tool's schema, or `undefined` to let it run as it is. Without a gate every
+   * call is allowed.
    */
   gate?(e: {
     readonly call: ToolCall;
@@ -61,6 +62,11 @@ export interface PipelineContext {
    */
   onResult?(entry: ToolCallResult): void;
   /**
+   * Receives each call the gate paused, with its signed request and the input that request signs, in model order and
+   * only once every call of the message has been gated.
+   */
+  onPause?(entry: PausedCall): void;
+  /**
    * Called as soon as a tool's `execute` returns or throws, before the result is checked, so the run knows a write
    * may have happened even when its result then throws an `SdkError`.
    */
@@ -70,8 +76,15 @@ export interface PipelineContext {
 /** What a gate decides besides letting a call run unchanged. */
 export type GateOutcome =
   | { readonly blocked: ToolResult }
-  | { readonly paused: SignedPendingRequest }
+  | { readonly paused: SignedPendingRequest; readonly input: unknown }
   | { readonly input: unknown };
+
+/** A tool call a gate paused: its signed request, and the input the request signs. */
+export interface PausedCall {
+  readonly call: ToolCall;
+  readonly request: SignedPendingRequest;
+  readonly input: unknown;
+}
 
 /** One tool call and the result the model will read for it. */
 export interface ToolCallResult {
@@ -250,6 +263,9 @@ interface Paused {
   readonly kind: "paused";
   readonly call: ToolCall;
   readonly tool: AnyTool;
+  readonly request: SignedPendingRequest;
+  /** The input the request signs, which the call would run with once approved. */
+  readonly input: unknown;
 }
 
 type Prepared = Ready | Done | Paused;
@@ -279,7 +295,7 @@ async function gateCall(
   ctx: PipelineContext,
 ): Promise<
   | { readonly blocked: ToolResult }
-  | { readonly paused: SignedPendingRequest }
+  | { readonly paused: SignedPendingRequest; readonly input: unknown }
   | { readonly input: unknown; readonly replaced?: true }
 > {
   const outcome = await ctx.gate?.({ call, tool, input });
@@ -325,7 +341,7 @@ async function prepareCall(
   // Each call's gate settles before the next call's is asked, and every gate before any call executes.
   const gated = await gateCall(call, tool, checked.input, ctx);
   if ("blocked" in gated) return { kind: "done", call, result: gated.blocked };
-  if ("paused" in gated) return { kind: "paused", call, tool };
+  if ("paused" in gated) return { kind: "paused", call, tool, request: gated.paused, input: gated.input };
   const replaced = "replaced" in gated;
   return { kind: "ready", call, tool, input: gated.input, replaced, key: resourceKeyOf(tool, gated.input) };
 }
@@ -392,7 +408,7 @@ function start(
  * The calls that passed then start together, except that a call to a sequential tool makes the whole step run one
  * call at a time, even when that call itself fails a check, and calls that share a `resourceKey` queue in model
  * order. Results reach `ctx.onResult` in model order, each as soon as every result before it is in. A call the gate
- * paused gets no result and is left out.
+ * paused gets no result and is left out; each one reaches `ctx.onPause`, in model order, once every call is gated.
  *
  * A programmer error (an `SdkError`) in one call fires the signal the other calls hold, waits for them to stop, and
  * is then thrown, after every other call's result has been passed on: a call after the failing one may have run and
@@ -415,7 +431,7 @@ async function runCalls(
   } catch (error) {
     // None of these calls has executed, and none will. The first error is the one thrown, so a receiver that throws
     // here must not hide it or stop the other calls from getting their results.
-    // A paused call gets a not-run result here too: the run is failing, so its pause is never returned.
+    // A paused call gets a not-run result here too: the run is failing, so its pause is never reported or returned.
     for (const item of prepared) {
       const result = item.kind === "done" ? item.result : notRun(item.call, item.tool, "sibling_failed");
       try {
@@ -425,6 +441,11 @@ async function runCalls(
       }
     }
     throw error;
+  }
+  // Reported only now, once every call has been gated, so a step that fails while its calls are checked never reports
+  // a pause and then gives the same call a result.
+  for (const item of prepared) {
+    if (item.kind === "paused") ctx.onPause?.({ call: item.call, request: item.request, input: item.input });
   }
   const sequential = calls.some((call) => byName.get(call.name)?.executionMode === "sequential");
   const { batch, release } = batchController(ctx.signal);
@@ -479,7 +500,7 @@ export async function runToolCall(
   tools: readonly AnyTool[],
   ctx: PipelineContext,
 ): Promise<ToolResult> {
-  const { onStart: _start, onResult: _result, ...quiet } = ctx;
+  const { onStart: _start, onResult: _result, onPause: _pause, ...quiet } = ctx;
   const [entry] = await runCalls([call], () => undefined, tools, quiet);
   if (entry === undefined)
     throw new SdkError("invalid_hook_result", `runToolCall() can't pause the call "${call.name}"`);

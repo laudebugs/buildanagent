@@ -84,11 +84,13 @@ export type AgentEventBody =
    */
   | { readonly type: "steer_applied"; readonly receipt: DeliveryReceipt }
   /**
-   * A gate returned `ask` and the run signed a pending request for the call, which waits for a person. It follows the
-   * call's `tool_call_start`, and the call gets no `tool_call_end`: it doesn't run in this run. The run ends
-   * `awaiting_approval` after the step.
+   * A gate returned `ask` and the run signed a pending request for the call, which waits for a person. `input` is
+   * the input the request signs and the call would run with once approved: the model's input after coercion,
+   * `repair` and any gate's replacement, so show the approver this, not the model's raw arguments. It comes once every
+   * call of the step has been gated, after the call's `tool_call_start` and before any call of the step runs, and the
+   * call gets no `tool_call_end`: it doesn't run in this run. The run ends `awaiting_approval` after the step.
    */
-  | { readonly type: "approval_request"; readonly request: SignedPendingRequest }
+  | { readonly type: "approval_request"; readonly request: SignedPendingRequest; readonly input: unknown }
   /**
    * An interceptor or an observer threw, or a pause could not be signed. `hook` names it (`beforeToolCall`,
    * `observer`, `signer` and so on) and `error` is the thrown message; for `signer` it is a fixed text with the
