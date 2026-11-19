@@ -1,12 +1,17 @@
 // CI's changeset gate. It fails a pull request that changes a package's shipped files without a changeset, except
-// when the change is a version bump that `pnpm changeset version` made, as in every "Version packages" pull request.
+// when the change is a version bump of the kind `pnpm changeset version` makes.
 //
 //   node scripts/ci/changeset-gate.mjs [base]    base defaults to origin/main
 //
-// `pnpm changeset status --since=<base>` alone fails a version bump, because the bump edits each package.json and
-// deletes the changesets it consumed, so the gate first asks whether the change is only a bump:
+// release.yml pushes its version commits straight to main, so no pull request carries one today. The exception is
+// kept for a hand-made bump, and for the fallback in docs/plans/ci.md §3f, where release.yml opens a version pull
+// request again. `pnpm changeset status --since=<base>` alone fails such a bump, because the bump edits each
+// package.json and consumes the changesets, so the gate first asks whether the change is only a bump:
 // - among the files `changedFilePatterns` in .changeset/config.json counts as shipped, only package.json files changed;
-// - each changed package.json differs from the base in its `version` field and nowhere else;
+// - every versioned package's package.json changed, because the fixed group moves them together, and each differs
+//   from the base in its `version` field and nowhere else;
+// - they all move to one new version, later than each base version, so a bump can't split the group or move a
+//   dist-tag back to an older version;
 // - each bumped package's CHANGELOG.md has a `## <new version>` section, which `changeset version` writes.
 // A bump passes without a changeset. Anything else, a bump that also touches src/ included, goes to
 // `pnpm changeset status`, which fails it unless a changeset was added.
@@ -14,7 +19,7 @@ import { execFileSync, spawnSync } from "node:child_process";
 import { existsSync, readdirSync, readFileSync } from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
-import { changelogSection } from "./release-plan.mjs";
+import { changelogSection, compareVersions } from "./release-plan.mjs";
 
 /** Turns a Changesets file pattern (`src/**`, `package.json`) into a regular expression over a package's paths. */
 export function patternToRegExp(pattern) {
@@ -64,26 +69,36 @@ function sortKeys(value) {
 
 /**
  * Decides whether a change is a version bump that needs no changeset. `shipped` lists the shipped files it touched,
- * and `read(file, side)` returns a file's text on the "base" or "head" side, or undefined where it doesn't exist.
- * Returns `{ bump: true, reason }` or `{ bump: false, reason }`.
+ * `read(file, side)` returns a file's text on the "base" or "head" side, or undefined where it doesn't exist, and
+ * `packageDirs` lists the versioned packages, which must all move together. Returns `{ bump: true, reason }` or
+ * `{ bump: false, reason }`.
  */
-export function classifyChange(shipped, read) {
+export function classifyChange(shipped, read, packageDirs) {
   if (shipped.length === 0) return { bump: false, reason: "no shipped file changed" };
   const others = shipped.filter((file) => path.posix.basename(file) !== "package.json");
   if (others.length > 0) return { bump: false, reason: `shipped files other than package.json changed: ${others}` };
+  const unbumped = packageDirs.filter((dir) => !shipped.includes(`${dir}/package.json`));
+  if (unbumped.length > 0) return { bump: false, reason: `the bump leaves out ${unbumped}` };
+  const versions = new Set();
   for (const file of shipped) {
     const before = read(file, "base");
     const after = read(file, "head");
     if (after === undefined) return { bump: false, reason: `${file} was deleted` };
     const head = JSON.parse(after);
-    if (!isVersionOnlyChange(before === undefined ? undefined : JSON.parse(before), head)) {
+    const base = before === undefined ? undefined : JSON.parse(before);
+    if (!isVersionOnlyChange(base, head)) {
       return { bump: false, reason: `${file} changed in more than its version` };
     }
+    if (compareVersions(head.version, base.version) <= 0) {
+      return { bump: false, reason: `${file} moved back from ${base.version} to ${head.version}` };
+    }
+    versions.add(head.version);
     const changelog = read(path.posix.join(path.posix.dirname(file), "CHANGELOG.md"), "head");
     if (changelog === undefined || changelogSection(changelog, head.version) === undefined) {
       return { bump: false, reason: `${file} moved to ${head.version}, but its CHANGELOG.md has no section for it` };
     }
   }
+  if (versions.size > 1) return { bump: false, reason: `the packages moved to different versions: ${[...versions]}` };
   return { bump: true, reason: `only versions changed: ${shipped}` };
 }
 
@@ -105,7 +120,8 @@ export function runGate({ root, base = "origin/main", runStatus = defaultRunStat
   const mergeBase = git("merge-base", base, "HEAD").trim();
   const changed = git("diff", "--name-only", "--no-renames", mergeBase, "HEAD").split("\n").filter(Boolean);
   const { changedFilePatterns } = JSON.parse(readFileSync(path.join(root, ".changeset", "config.json"), "utf8"));
-  const shipped = shippedChanges(changed, versionedPackageDirs(root), changedFilePatterns);
+  const packageDirs = versionedPackageDirs(root);
+  const shipped = shippedChanges(changed, packageDirs, changedFilePatterns);
   // Both sides come from git, so an uncommitted edit in the working tree can't change the verdict.
   const read = (file, side) => {
     const result = spawnSync("git", ["show", `${side === "head" ? "HEAD" : mergeBase}:${file}`], {
@@ -114,7 +130,7 @@ export function runGate({ root, base = "origin/main", runStatus = defaultRunStat
     });
     return result.status === 0 ? result.stdout : undefined;
   };
-  const verdict = classifyChange(shipped, read);
+  const verdict = classifyChange(shipped, read, packageDirs);
   if (verdict.bump) {
     log(`changeset-gate: a version bump needs no changeset (${verdict.reason}).`);
     return 0;

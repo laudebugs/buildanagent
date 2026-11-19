@@ -68,6 +68,32 @@ export function needsVersion(root) {
   return pendingChangesets(root).length > 0 || readPreState(root)?.mode === "exit";
 }
 
+/**
+ * Orders two semver versions by semver precedence: negative when `a` comes first, positive when `b` does, 0 when equal.
+ * A prerelease comes before its plain version (0.1.0-alpha.9 < 0.1.0), and numeric identifiers compare as numbers
+ * (alpha.10 > alpha.9). Build metadata isn't accepted, because our versions never carry it.
+ */
+export function compareVersions(a, b) {
+  const parse = (version) => {
+    const match = /^(\d+)\.(\d+)\.(\d+)(?:-([0-9A-Za-z-]+(?:\.[0-9A-Za-z-]+)*))?$/.exec(version);
+    if (!match) throw new Error(`${JSON.stringify(version)} is not a semver version`);
+    return { core: match.slice(1, 4).map(Number), pre: match[4]?.split(".") ?? [] };
+  };
+  const x = parse(a);
+  const y = parse(b);
+  for (let i = 0; i < 3; i++) if (x.core[i] !== y.core[i]) return x.core[i] - y.core[i];
+  if (x.pre.length === 0 || y.pre.length === 0) return y.pre.length - x.pre.length;
+  for (let i = 0; i < Math.min(x.pre.length, y.pre.length); i++) {
+    const [p, q] = [x.pre[i], y.pre[i]];
+    if (p === q) continue;
+    const [pNum, qNum] = [/^\d+$/.test(p), /^\d+$/.test(q)];
+    if (pNum && qNum) return Number(p) - Number(q);
+    if (pNum !== qNum) return pNum ? -1 : 1;
+    return p < q ? -1 : 1;
+  }
+  return x.pre.length - y.pre.length;
+}
+
 /** Asks the registry whether `name@version` exists: true on 200, false on 404, and an error on anything else. */
 export async function isPublished(name, version, fetchImpl = fetch) {
   const url = `${REGISTRY}/${name.replace("/", "%2f")}/${version}`;

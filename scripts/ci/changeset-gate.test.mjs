@@ -89,7 +89,34 @@ describe("changeset-gate.mjs", () => {
       { "packages/a/package.json": manifest("0.0.0") },
       { "packages/a/package.json": manifest("0.1.0"), "packages/a/CHANGELOG.md": "# @x/a\n\n## 0.1.0\n\n- first\n" },
     );
-    assert.equal(classifyChange(["packages/a/package.json"], read).bump, true);
+    assert.equal(classifyChange(["packages/a/package.json"], read, ["packages/a"]).bump, true);
+  });
+
+  test("passes a bump only when the whole fixed group moves forward to one version", () => {
+    const base = {
+      "packages/a/package.json": manifest("0.1.0-alpha.1"),
+      "packages/b/package.json": manifest("0.1.0-alpha.1"),
+    };
+    const head = (a, b) => ({
+      "packages/a/package.json": manifest(a),
+      "packages/a/CHANGELOG.md": `## ${a}\n\n- x\n`,
+      "packages/b/package.json": manifest(b),
+      "packages/b/CHANGELOG.md": `## ${b}\n\n- x\n`,
+    });
+    const both = ["packages/a/package.json", "packages/b/package.json"];
+    const dirs = ["packages/a", "packages/b"];
+    const verdict = (shipped, a, b) => classifyChange(shipped, files(base, head(a, b)), dirs);
+    assert.equal(verdict(both, "0.1.0-alpha.2", "0.1.0-alpha.2").bump, true);
+    const cases = [
+      [verdict(["packages/b/package.json"], "0.1.0-alpha.1", "0.1.0-alpha.5"), /leaves out packages\/a/],
+      [verdict(both, "0.1.0-alpha.2", "0.1.0-alpha.3"), /different versions/],
+      [verdict(both, "0.1.0-alpha.0", "0.1.0-alpha.0"), /moved back from 0\.1\.0-alpha\.1 to 0\.1\.0-alpha\.0/],
+      [verdict(both, "0.0.9", "0.0.9"), /moved back/],
+    ];
+    for (const [result, reason] of cases) {
+      assert.equal(result.bump, false, String(reason));
+      assert.match(result.reason, reason);
+    }
   });
 
   test("sends everything else to changeset status", () => {
@@ -103,7 +130,7 @@ describe("changeset-gate.mjs", () => {
       [["packages/a/package.json"], files(base, {}), /deleted/],
     ];
     for (const [shipped, read, reason] of cases) {
-      const verdict = classifyChange(shipped, read);
+      const verdict = classifyChange(shipped, read, ["packages/a"]);
       assert.equal(verdict.bump, false, String(reason));
       assert.match(verdict.reason, reason);
     }
