@@ -54,6 +54,77 @@
           }
         }
       }
+    },
+    {
+      "includes": ["packages/**"],
+      "linter": {
+        "rules": {
+          "complexity": {
+            "noExcessiveCognitiveComplexity": {
+              "level": "error",
+              "options": {
+                "maxAllowedComplexity": 15
+              }
+            },
+            "noExcessiveLinesPerFunction": {
+              "level": "error",
+              "options": {
+                "maxLines": 60
+              }
+            }
+          },
+          "style": {
+            "useThrowOnlyError": "error",
+            "noDefaultExport": "error"
+          }
+        }
+      }
+    },
+    {
+      "includes": ["packages/*/src/**", "!packages/*/src/testing/guards.ts", "!packages/*/src/testing/setup.ts"],
+      "linter": {
+        "rules": {
+          "style": {
+            "noRestrictedGlobals": {
+              "level": "error",
+              "options": {
+                "deniedGlobals": {
+                  "window": "Shared packages must run outside browsers; take what you need as a parameter.",
+                  "document": "Shared packages must run outside browsers.",
+                  "localStorage": "Shared packages must not persist state; let the caller store it.",
+                  "sessionStorage": "Shared packages must not persist state; let the caller store it.",
+                  "location": "Shared packages must not depend on a page URL; pass it in.",
+                  "Buffer": "Node-only: use Uint8Array.",
+                  "process": "Node-only: pass configuration in from the caller.",
+                  "require": "ESM-only: use import.",
+                  "__dirname": "Node-only and CommonJS-only: resolve paths in the caller.",
+                  "__filename": "Node-only and CommonJS-only: resolve paths in the caller."
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    {
+      "includes": ["packages/**/test/**", "packages/**/*.test.ts"],
+      "linter": {
+        "rules": {
+          "complexity": {
+            "noExcessiveLinesPerFunction": "off"
+          }
+        }
+      }
+    },
+    {
+      "includes": ["**/vitest.config.ts"],
+      "linter": {
+        "rules": {
+          "style": {
+            "noDefaultExport": "off"
+          }
+        }
+      }
     }
   ]
 }

@@ -11,71 +11,91 @@ import type { ModelEvent } from "./spec.ts";
 
 export class StreamContractError extends Error {
   override readonly name = "StreamContractError";
-  constructor(
-    message: string,
-    /** Position of the offending event in the stream, or the stream length when the stream ended early. */
-    readonly position: number,
-  ) {
+  /** Position of the offending event in the stream, or the stream length when the stream ended early. */
+  readonly position: number;
+
+  constructor(message: string, position: number) {
     super(message);
+    this.position = position;
   }
 }
 
 type BlockKind = "text" | "reasoning" | "tool_input";
+type BlockPhase = "start" | "delta" | "end";
 
-function blockPhase(type: ModelEvent["type"]): { kind: BlockKind; phase: "start" | "delta" | "end" } | undefined {
+function blockPhase(type: ModelEvent["type"]): { kind: BlockKind; phase: BlockPhase } | undefined {
   const match = /^(text|reasoning|tool_input)_(start|delta|end)$/.exec(type);
   if (!match) return undefined;
-  return { kind: match[1] as BlockKind, phase: match[2] as "start" | "delta" | "end" };
+  return { kind: match[1] as BlockKind, phase: match[2] as BlockPhase };
+}
+
+/** Tracks one stream's state and checks each event against the stream rule. */
+class StreamChecker {
+  readonly seen: ModelEvent[] = [];
+  readonly #open = new Map<number, BlockKind>();
+  readonly #closed = new Set<number>();
+  #terminal = false;
+
+  get ended(): boolean {
+    return this.#terminal;
+  }
+
+  check(event: ModelEvent): void {
+    const position = this.seen.length;
+    this.seen.push(event);
+    const fail = (message: string): never => {
+      throw new StreamContractError(`${message} (event ${position}: ${event.type})`, position);
+    };
+    this.#checkOrder(event, position, fail);
+    if (event.type === "done" || event.type === "error") {
+      this.#checkTerminal(event, fail);
+      return;
+    }
+    const block = blockPhase(event.type);
+    if (block) this.#checkBlock((event as { index: number }).index, block.kind, block.phase, fail);
+  }
+
+  #checkOrder(event: ModelEvent, position: number, fail: (message: string) => never): void {
+    if (this.#terminal) fail("an event followed the terminal event");
+    if (position === 0 && event.type !== "start") fail("the stream must begin with start");
+    if (position > 0 && event.type === "start") fail("start appeared twice");
+  }
+
+  #checkTerminal(event: Extract<ModelEvent, { type: "done" | "error" }>, fail: (message: string) => never): void {
+    this.#terminal = true;
+    const { stopReason } = event.message;
+    const failed = stopReason === "error" || stopReason === "aborted";
+    if (event.type === "error" && !failed)
+      fail(`an error terminal needs stopReason error or aborted, got ${stopReason}`);
+    if (event.type === "done" && failed) fail(`a done terminal cannot have stopReason ${stopReason}`);
+    if (event.type === "done" && this.#open.size > 0) {
+      fail(`done arrived with open blocks at index ${[...this.#open.keys()].join(", ")}`);
+    }
+  }
+
+  #checkBlock(index: number, kind: BlockKind, phase: BlockPhase, fail: (message: string) => never): void {
+    if (phase === "start") {
+      if (this.#open.has(index) || this.#closed.has(index)) fail(`index ${index} started twice`);
+      this.#open.set(index, kind);
+      return;
+    }
+    if (this.#closed.has(index)) fail(`a ${kind}_${phase} arrived after index ${index} ended`);
+    const openKind = this.#open.get(index);
+    if (openKind === undefined) fail(`a ${kind}_${phase} arrived before index ${index} started`);
+    if (openKind !== kind) fail(`index ${index} started as ${openKind} but got ${kind}_${phase}`);
+    if (phase === "end") {
+      this.#open.delete(index);
+      this.#closed.add(index);
+    }
+  }
 }
 
 /** Consumes the stream, throws `StreamContractError` at the first violation, and returns every event it read. */
 export async function assertStreamContract(events: AsyncIterable<ModelEvent>): Promise<ModelEvent[]> {
-  const seen: ModelEvent[] = [];
-  const open = new Map<number, BlockKind>();
-  const closed = new Set<number>();
-  let terminal = false;
-
-  for await (const event of events) {
-    const position = seen.length;
-    seen.push(event);
-    const fail = (message: string): never => {
-      throw new StreamContractError(`${message} (event ${position}: ${event.type})`, position);
-    };
-
-    if (terminal) fail("an event followed the terminal event");
-    if (position === 0 && event.type !== "start") fail("the stream must begin with start");
-    if (position > 0 && event.type === "start") fail("start appeared twice");
-
-    if (event.type === "done" || event.type === "error") {
-      terminal = true;
-      const { stopReason } = event.message;
-      const failed = stopReason === "error" || stopReason === "aborted";
-      if (event.type === "error" && !failed)
-        fail(`an error terminal needs stopReason error or aborted, got ${stopReason}`);
-      if (event.type === "done" && failed) fail(`a done terminal cannot have stopReason ${stopReason}`);
-      if (event.type === "done" && open.size > 0)
-        fail(`done arrived with open blocks at index ${[...open.keys()].join(", ")}`);
-      continue;
-    }
-
-    const block = blockPhase(event.type);
-    if (!block) continue; // start
-    const { index } = event as { index: number };
-    if (block.phase === "start") {
-      if (open.has(index) || closed.has(index)) fail(`index ${index} started twice`);
-      open.set(index, block.kind);
-      continue;
-    }
-    if (closed.has(index)) fail(`a ${block.kind}_${block.phase} arrived after index ${index} ended`);
-    const kind = open.get(index);
-    if (kind === undefined) fail(`a ${block.kind}_${block.phase} arrived before index ${index} started`);
-    if (kind !== block.kind) fail(`index ${index} started as ${kind} but got ${block.kind}_${block.phase}`);
-    if (block.phase === "end") {
-      open.delete(index);
-      closed.add(index);
-    }
+  const checker = new StreamChecker();
+  for await (const event of events) checker.check(event);
+  if (!checker.ended) {
+    throw new StreamContractError("the stream ended without a done or error event", checker.seen.length);
   }
-
-  if (!terminal) throw new StreamContractError("the stream ended without a done or error event", seen.length);
-  return seen;
+  return checker.seen;
 }

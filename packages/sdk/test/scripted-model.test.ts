@@ -54,9 +54,10 @@ test("mutating the context after a call leaves calls[0] unchanged", async () => 
   const ctx = context("original");
   await complete(model.stream(ref, ctx, { temperature: 0.2 }));
   ctx.messages.push({ role: "user", content: [{ type: "text", text: "later" }] });
-  (ctx.messages[0] as { content: { type: "text"; text: string }[] }).content[0].text = "changed";
+  (ctx.messages[0] as unknown as { content: [{ type: "text"; text: string }] }).content[0].text = "changed";
   ctx.system = "changed";
   const recorded = model.calls[0];
+  assert.ok(recorded, "the call was recorded");
   assert.equal(recorded.context.system, "be brief");
   assert.equal(recorded.context.messages.length, 1);
   assert.deepEqual(recorded.context.messages[0], { role: "user", content: [{ type: "text", text: "original" }] });
@@ -196,4 +197,41 @@ test("fixedClock, sequentialIds and seededRandom are deterministic", () => {
   assert.deepEqual(valuesA, [b(), b(), b()]);
   assert.ok(valuesA.every((v) => v >= 0 && v < 1));
   assert.throws(() => fixedClock("not a date"), RangeError);
+});
+
+test("an abort before an image block still ends the stream with an aborted error", async () => {
+  const controller = new AbortController();
+  const model = new ScriptedModel([
+    {
+      content: [
+        { type: "text", text: "a" },
+        { type: "image", mediaType: "image/png", data: "AAAA" },
+      ],
+    },
+  ]);
+  const events: ModelEvent[] = [];
+  for await (const event of model.stream(ref, context(), { signal: controller.signal })) {
+    events.push(event);
+    if (event.type === "text_end") controller.abort();
+  }
+  const terminal = events.at(-1);
+  assert.equal(terminal?.type, "error");
+  assert.equal(terminal?.type === "error" && terminal.message.stopReason, "aborted");
+});
+
+test("an abort before a tool call draws no call id, so the next call's ids stay in sequence", async () => {
+  const controller = new AbortController();
+  controller.abort();
+  const toolStep: AssistantScript = { content: [{ type: "tool_call", callId: "", name: "lookup", input: {} }] };
+  const model = new ScriptedModel([toolStep, toolStep], { idGenerator: sequentialIds("c") });
+  await collect(model.stream(ref, context(), { signal: controller.signal }));
+  const events = await collect(model.stream(ref, context(), {}));
+  const terminal = events.at(-1);
+  assert.equal(terminal?.type, "done");
+  assert.deepEqual(terminal?.type === "done" && terminal.message.content[0], {
+    type: "tool_call",
+    callId: "c-1",
+    name: "lookup",
+    input: {},
+  });
 });
