@@ -152,3 +152,15 @@ Copy is any text a person reads: documentation, READMEs, plans, ADRs, todos, pul
 4. If a writing fix changed code, run one more `/code-review low <PR#>` and fix its findings. Then run `/anthropic-skills:writing-review` once more on only the copy those last fixes changed, and fix its findings. The process stops there: anything a further pass would find goes in the pull request description as a follow-up.
 
 Writing findings are counted apart from code findings, and the pull request description records the rubric scores before and after. Every document also goes through the five steps in [Every document is drafted, fact-checked and reviewed before it merges](#every-document-is-drafted-fact-checked-and-reviewed-before-it-merges), wherever it lives in the repo.
+
+## Subagents run on the model their work needs
+
+When you delegate work to a subagent, choose its model by the kind of work (the owner's rule, 2026-11-19):
+
+- **Opus 5.5:** book chapters, with their research, fact-checks, writing review and `/anthropic-skills:writing` fixes; security-sensitive work (secrets, deploys, untrusted input, live API runs); every first-round `/code-review high`; and tooling builds that need real design work.
+- **Sonnet 5.5:** builds that follow an established pattern, such as a new example in an existing harness; the `/code-review medium` and `low` reviews; and the fact-checks, `/anthropic-skills:writing-review` passes and writing fixes of every other pull request.
+- **Sonnet 5.5 or Haiku 5.5:** mechanical chores, such as merging `main`, renumbering fact-check rows, link checks and drafting pull request descriptions.
+
+When two bullets fit, the first one wins. Ask the owner before using Fable 5.2 for this work. The session that coordinates the work, and any session that runs `/code-review high`, stays on Opus 5.5 with no other default subagent model set, even when a maintainer reviews a contributor's pull request: the code-review skill sets no model for its own subagents, so they inherit the session's.
+
+We judge that the split keeps quality, because the smaller models take only bounded work. The Opus first review checks every build, and the medium, low and writing reviews add to that review rather than replace it.
