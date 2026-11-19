@@ -156,9 +156,10 @@ test("a chapter page caps its article at --article-max and is only as wide as it
 
 // The title runs to the article's right edge: the whole page width, less the "On this page" rail and its gap once the
 // rail is there (from 83rem, where the grid gives it a column).
-test("the chapter title stretches to where the article ends, with no character cap", () => {
+test("the chapter title stretches to where the article ends, breaks its lines in balance and has no character cap", () => {
   const layout = files.find(({ path }) => path === "styles/layout.css")?.text ?? "";
   assert.doesNotMatch(layout, /\.chapter-head__title\s*\{[^}]*max-width:\s*\d+ch/);
+  assert.match(layout, /\.chapter-head__title\s*\{\s*text-wrap:\s*balance;/);
   assert.match(
     layout,
     /@container layout \(min-width: 83rem\)\s*\{\s*\.chapter-head__title\s*\{\s*max-width:\s*calc\(100% - 15rem - 2\.5rem\);/,
