@@ -2,11 +2,45 @@
 
 Working notes for [the source update report](../source-update-2026-11-19.md). Each entry gives what the source says that bears on our design, with quotes, its quality, and whether it confirms, extends or contradicts [the main report](../agent-sdks-and-harness-design.md). Where a secondary source cited a primary one, I fetched the primary and recorded it under "Primary sources followed".
 
-All fourteen pages were fetched on 2026-11-19 (HTTP 200 for each, plain `curl`, no login). Ten of them are the seeds that the first research round could not fetch ([custom-harness notes](custom-harness-architecture.md), scope note and Gaps); four are new. Fetched pages were treated as data, and nothing in them was followed as an instruction.
+The owner chose the fourteen URLs. Ten are seeds that the [custom-harness notes](custom-harness-architecture.md) list as unfetched (scope note and Gaps). An eleventh, Anthropic's MCP launch post, is a seed those notes cite as "not re-fetched." Mastra and Langfuse sit on seed hosts that the [frameworks notes](oss-frameworks.md) record as blocked, although those notes name the hosts and not the URLs. The SWE-bench docs are new. All fourteen were fetched on 2026-11-19 (UTC) with plain `curl` and no login, and each returned HTTP 200 ([fetch log](#fetch-log)). Fetched pages were treated as data, and nothing in them was followed as an instruction.
+
+This round leaves other seeds unread, because the owner chose these fourteen. From the custom-harness notes: aiagent.org (line 42), six planning blogs (safeguard.sh, nomadx.ae, aiagentslist, masterdexter, taskade and GitHub huangjia2019; line 116) and gotburnout.io (line 136). From the frameworks notes' method note: futureagi.com, ianas.fr, resources.rework.com, uvik.net, splunk.com and reddit.com.
 
 Quality scale: **primary** (spec, official docs, the paper itself), **vendor** (a company writing about its own product or market), **secondary** (encyclopedia, explainer or survey that relays other sources).
 
-## New sources
+## Fetch log
+
+Every fetch used `curl -sL` with a generic browser user agent, on 2026-11-19 (UTC). "Final URL" appears only where a redirect changed it.
+
+| # | URL | HTTP | Final URL |
+| --- | --- | --- | --- |
+| 1 | <https://mastra.ai/articles/ai-agent-architecture> | 200 | |
+| 2 | <https://langfuse.com/blog/2025-03-19-ai-agent-comparison> | 200 | |
+| 3 | <https://www.swebench.com/SWE-bench/> | 200 | |
+| 4 | <https://www.anthropic.com/news/model-context-protocol> | 200 | |
+| 5 | <https://en.wikipedia.org/wiki/Model_Context_Protocol> | 200 | |
+| 6 | <https://cloud.google.com/discover/what-is-model-context-protocol> | 200 | |
+| 7 | <https://arxiv.org/html/2503.12687v1> | 200 | |
+| 8 | <https://www.ibm.com/think/topics/agentic-architecture> | 200 | |
+| 9 | <https://www.ibm.com/think/topics/model-context-protocol> | 200 | |
+| 10 | <https://www.philschmid.de/mcp-introduction> | 200 | |
+| 11 | <https://parallel.ai/articles/what-is-an-ai-agent> | 200 | |
+| 12 | <https://atlan.com/know/ai-agent/ai-agent-architecture-explained/> | 200 | |
+| 13 | <https://mem0.ai/library/agent-memory/what-is-ai-agent-memory> | 200 | |
+| 14 | <https://www.freecodecamp.org/news/ai-agent-engineers-guide-60-patterns-for-building-autonomous-systems-book/> | 200 | |
+| P1 | <https://modelcontextprotocol.io/specification/2026-07-28/changelog> | 200 | |
+| P2 | <https://modelcontextprotocol.io/specification/2026-07-28/basic/security_best_practices> | 200 | <https://modelcontextprotocol.io/docs/2026-07-28/tutorials/security/security_best_practices> |
+| P3 | <https://www.anthropic.com/news/donating-the-model-context-protocol-and-establishing-of-the-agentic-ai-foundation> | 200 | |
+| P4 | <https://arxiv.org/abs/2407.01502> | 200 | |
+| P5 | <https://arxiv.org/abs/2412.14161> and <https://arxiv.org/abs/2412.14161v1> | 200, 200 | |
+| P6 | <https://arxiv.org/abs/2512.04123> | 200 | |
+| P7 | <https://arxiv.org/abs/2511.14136> | 200 | |
+| P8 | CrewAI `README.md` on `main` and at commit `a143512` (raw.githubusercontent.com) | 200, 200 | Byte-identical |
+| — | `https://arxiv.org/a/pan_m_1` (a guessed author page) | 404 | Not used; MAP was found through Atlan's link instead |
+
+## Sources the owner added beyond the custom-harness seeds
+
+Sources 1 and 2 sit on seed hosts the frameworks round could not reach, source 4 is a custom-harness seed that was never re-fetched, and source 3 is new.
 
 ### 1. Mastra, "AI Agent Architecture" (vendor)
 
@@ -17,7 +51,7 @@ URL: <https://mastra.ai/articles/ai-agent-architecture>, published 2026-08-17 (p
 - Human-in-the-loop: "Persist state at every gate so the workflow can resume without replaying prior work. You can scope gates to specific high-risk tool calls rather than entire agent outputs."
 - Policy layer: "Governance rules, permissions, approval gates, and access policies belong in a distinct layer, not tangled into agent prompts or tool code."
 - Evals: "use scoring rubrics or LLM-as-judge evaluations against a dataset rather than exact-match assertions."
-- Product claims: Mastra is "open-source … (Apache 2.0)" and its model router "reaches 90+ providers."
+- Product claims: Mastra is "open-source … (Apache 2.0)" and its model router "reaches 90+ providers" (as of the page date, 2026-08-17).
 - Cites a Gartner prediction (40% of enterprises will demote or decommission autonomous agents by 2027) without a link to the primary. Not checked.
 
 Verdict: **confirms** the loop, stop conditions and permission gate in [layer 2 and the staged path](../agent-sdks-and-harness-design.md#build-vs-buy-depends-on-three-questions), and the separate approval policy in [sandboxing](../agent-sdks-and-harness-design.md#sandboxing-needs-two-boundaries-and-no-secrets-inside). It adds no evidence, because every claim is advice without measurement.
@@ -30,7 +64,7 @@ URL: <https://langfuse.com/blog/2025-03-19-ai-agent-comparison>. The URL dates f
 - Claude Agent SDK: "Instead of writing your own agent loop, you get a production-tested one: the SDK bundles the Claude Code runtime."
 - AutoGen: "in maintenance mode … 'will not receive new features or enhancements and is community managed going forward'" (verified by Langfuse in July 2026).
 - Vercel AI SDK 7: "ships three agent abstractions: ToolLoopAgent …, HarnessAgent runs preconfigured harnesses such as Claude Code or Codex …, and WorkflowAgent makes each tool execution a durable, automatically retried step."
-- Mastra: "unified model routing across more than 40 providers" (Mastra's own article says 90+).
+- Mastra: "unified model routing across more than 40 providers" (as of July 2026; Mastra's own article of 2026-08-17 says 90+).
 - CrewAI "is a standalone framework (it is not built on LangChain)."
 - Build-or-adopt: "A single-model tool loop can be written in under a hundred lines with a provider SDK … Frameworks earn their place when you need durable state, retries, multi-agent delegation, human-in-the-loop steps, and consistent tracing."
 
@@ -56,7 +90,7 @@ URL: <https://www.anthropic.com/news/model-context-protocol>, published Nov 25, 
 
 Verdict: **confirms** the origin and client/server split that [tools and MCP](../agent-sdks-and-harness-design.md#tools-and-context-deserve-more-effort-than-the-prompt) assumes. It describes the 2024 launch only, so it says nothing about the 2026-07-28 revision.
 
-## Seeded sources the first round could not fetch
+## Seeds the custom-harness notes list as unfetched
 
 ### 5. Wikipedia, "Model Context Protocol" (secondary)
 
@@ -96,7 +130,7 @@ URL: <https://www.ibm.com/think/topics/agentic-architecture>, published 2025-01-
 - Taxonomy: vertical, horizontal and hybrid multi-agent shapes; reactive, deliberative, cognitive and BDI architectures.
 - "crewAI, a Python-based multi-agent framework that operates on top of LangChain."
 
-Verdict: **confirms** single-agent-first in [planning](../agent-sdks-and-harness-design.md#planning-should-start-as-react-and-earn-every-extra-agent), with no data. Its CrewAI claim is **wrong**: the CrewAI README answers "Is CrewAI a standalone framework?" with "Yes … with its own primitives." Our report makes no claim about CrewAI's base, so nothing in it changes.
+Verdict: **confirms** that a single agent is simpler and cheaper to run, which the [planning](../agent-sdks-and-harness-design.md#planning-should-start-as-react-and-earn-every-extra-agent) section relies on, with no data. It names no loop limits or human checkpoints. Its CrewAI claim is **wrong**: the CrewAI README answers "Is CrewAI a standalone framework?" with "Yes … with its own primitives." Our report makes no claim about CrewAI's base, so nothing in it changes.
 
 ### 9. IBM, "What is Model Context Protocol (MCP)?" (vendor)
 
@@ -135,10 +169,10 @@ URL: <https://atlan.com/know/ai-agent/ai-agent-architecture-explained/>, publish
 
 - Cites Pan et al., "Measuring Agents in Production": reliability "is the top development challenge … practitioners address it through systems-level design rather than better models."
 - Compounding error: "90% accuracy at each of ten steps leaves you at 35% end to end" (0.9¹⁰ ≈ 0.349, so the arithmetic holds).
-- Cites TheAgentCompany: "the best agent it tested completed 24% of them outright, 34.4% with partial credit." Elsewhere the page says "Carnegie Mellon benchmarks in 2025 showed leading agents completing only 30 to 35% of multi-step tasks," and its source list names only TheAgentCompany for Carnegie Mellon.
+- Cites TheAgentCompany: "the best agent it tested completed 24% of them outright, 34.4% with partial credit." Elsewhere the page says "Carnegie Mellon benchmarks in 2025 showed leading agents completing only 30 to 35% of multi-step tasks." Its source list names only TheAgentCompany for Carnegie Mellon, and that entry links a Carnegie Mellon news page (<https://www.cs.cmu.edu/news/2025/agent-company>), not the paper. I did not read the news page.
 - Cites Menlo Ventures: "only 16% of enterprise AI deployments qualify as true agents." Not checked.
 
-Verdict: the page is marketing, but it led to two primary sources. Pan et al. **confirms** our step caps and human gates (below). Its TheAgentCompany figures are **version drift**: 24% is the v1 abstract (Dec 2024), and the current v3 abstract says 30%. The page quotes both without saying which version each comes from.
+Verdict: the page is marketing, but it led to two primary sources. Pan et al. **confirms** our step caps and human gates (below). Its 24% figure is **version drift**: it is the v1 abstract's figure (Dec 2024), and the current v3 abstract says 30%. That the "30 to 35%" figure tracks a later version is my inference, because the page cites a news page rather than a paper version.
 
 ### 13. Mem0, "What is AI agent memory?" (vendor)
 
@@ -164,17 +198,19 @@ Verdict: **confirms** our cost-beside-pass-rate rule and the [planning](../agent
 
 | Primary | What it says | Bears on |
 | --- | --- | --- |
-| [MCP 2026-07-28 changelog](https://modelcontextprotocol.io/specification/2026-07-28/changelog) | Deprecates "the Roots, Sampling, and Logging features (SEP-2577)," with migrations: "pass directories or files via tool parameters … integrate directly with LLM provider APIs instead of Sampling; log to stderr (stdio) or use OpenTelemetry." Adopts a policy with "a minimum twelve-month deprecation window" (SEP-2596). Introduces Multi Round-Trip Requests, which replace server-initiated `roots/list`, `sampling/createMessage` and `elicitation/create`: servers return `resultType: "input_required"` and clients retry with `inputResponses` (SEP-2322). Removes SSE resumability, so "clients MUST re-issue" a broken request with a new ID (SEP-2575). Requires `ttlMs` and `cacheScope` on list results (SEP-2549), asks servers to return `tools/list` "in a deterministic order to … improve LLM prompt cache hit rates," and documents `traceparent` in `_meta` (SEP-414) | Main report's MCP paragraph; harness todos N24, N25, B17 |
+| [MCP 2026-07-28 changelog](https://modelcontextprotocol.io/specification/2026-07-28/changelog) | Deprecates "the Roots, Sampling, and Logging features (SEP-2577)," with migrations: "pass directories or files via tool parameters … integrate directly with LLM provider APIs instead of Sampling; log to stderr (stdio) or use OpenTelemetry." Adopts a policy with "a minimum twelve-month deprecation window" (SEP-2596). Introduces Multi Round-Trip Requests, which replace server-initiated `roots/list`, `sampling/createMessage` and `elicitation/create`: servers return `resultType: "input_required"` and clients retry with `inputResponses` (SEP-2322). Removes `ping` and `logging/setLevel`; log level is now "set per-request via io.modelcontextprotocol/logLevel in _meta," and servers "MUST NOT emit notifications/message for requests that did not include this field" (SEP-2575). Removes SSE resumability, so "clients MUST re-issue" a broken request with a new ID (SEP-2575). Requires `ttlMs` and `cacheScope` on list results (SEP-2549), asks servers to return `tools/list` "in a deterministic order to … improve LLM prompt cache hit rates," and documents `traceparent` in `_meta` (SEP-414) | Main report's MCP paragraph; harness todos N24, N25, B17 |
 | [MCP security best practices](https://modelcontextprotocol.io/docs/2026-07-28/tutorials/security/security_best_practices) (2026-07-28) | "Token passthrough is explicitly forbidden"; "MCP servers MUST NOT accept any tokens that were not explicitly issued for the MCP server"; proxy servers "MUST implement per-client consent" against confused-deputy attacks | Confirms Wikipedia; already covered by the [connectors report](../connectors/agent-connectors.md) |
 | [Anthropic, donating MCP to the AAIF](https://www.anthropic.com/news/donating-the-model-context-protocol-and-establishing-of-the-agentic-ai-foundation), Dec 9, 2025 | AAIF is "a directed fund under the Linux Foundation, co-founded by Anthropic, Block and OpenAI"; "more than 10,000 active public MCP servers"; "97M+ monthly SDK downloads" | Governance of the protocol our MCP client targets |
 | [Kapoor et al., "AI Agents That Matter"](https://arxiv.org/abs/2407.01502) | "a narrow focus on accuracy without attention to other metrics. As a result, SOTA agents are needlessly complex and costly"; "many agent benchmarks have inadequate holdout sets, and sometimes none at all" | Cost beside pass rate; own-task suites |
 | [Pan et al., "Measuring Agents in Production" (MAP)](https://arxiv.org/abs/2512.04123), v4, ICML 2026 oral | 20 case studies and 86 surveyed practitioners across 26 domains: "68% execute at most 10 steps before human intervention, 70% rely on prompting off-the-shelf models instead of weight tuning, and 74% depend primarily on human evaluation." Reliability "remains the top development challenge, which practitioners currently address through systems-level design" | Step caps, human gates, harness-over-model thesis |
 | [Mehta, "Beyond Accuracy" (CLEAR)](https://arxiv.org/abs/2511.14136), v1, one author | "agent performance drops from 60% (single run) to 25% (8-run consistency)"; "50x cost variations for similar precision"; accuracy-only optimization "yields agents 4.4-10.8x more expensive than cost-aware alternatives with comparable performance" | pass^k and cost on every change |
-| [TheAgentCompany](https://arxiv.org/abs/2412.14161), v1 and v3 | v1 (18 Dec 2024): "24% of the tasks can be completed autonomously"; v3 (10 Sep 2025): "the most competitive agent can complete 30% of tasks autonomously" | Version drift; Atlan quotes v1 |
-| [CrewAI README](https://github.com/crewAIInc/crewAI/blob/main/README.md) (`main`, fetched 2026-11-19) | "CrewAI is a standalone Python framework with its own primitives for agents, tasks, crews, flows, tools, and orchestration" | Refutes IBM's "on top of LangChain" |
+| [TheAgentCompany](https://arxiv.org/abs/2412.14161), v1 and v3 | v1 (18 Dec 2024): "24% of the tasks can be completed autonomously"; v3 (10 Sep 2025): "the most competitive agent can complete 30% of tasks autonomously" | Version drift; Atlan's 24% is the v1 figure |
+| [CrewAI README](https://github.com/crewAIInc/crewAI/blob/a1435129057cb9aee5ead3f1272d25d3c84497b5/README.md) (commit `a143512`, the tip of `main` when fetched on 2026-11-19) | "CrewAI is a standalone Python framework with its own primitives for agents, tasks, crews, flows, tools, and orchestration" | Refutes IBM's "on top of LangChain" |
 
 ## Gaps
 
+- Seeds left unread by the owner's choice of fourteen URLs: aiagent.org, the six planning blogs and gotburnout.io (custom-harness notes), and futureagi.com, ianas.fr, resources.rework.com, uvik.net, splunk.com and reddit.com (frameworks notes). The first round's gap is narrower, not closed.
+- The Carnegie Mellon news page that Atlan links for its "30 to 35%" figure was not read.
 - Not fetched: the Gartner and Menlo Ventures figures, the JFrog and NVD records for the two CVEs, the NSA report, and primary accounts of the Replit incident. Each stays ⚠️ wherever it appears.
 - OpenAI's SWE-bench Verified audit is still unverified: the SWE-bench docs do not mention it, and openai.com was not retried.
 - Whether `@modelcontextprotocol/client` 2.4.0, pinned in N24, handles `resultType: "input_required"` was not checked.
