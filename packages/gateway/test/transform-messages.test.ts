@@ -8,6 +8,7 @@ import {
   type ModelRef,
   transformMessages,
 } from "@buildanagent/gateway";
+import { seededRandom } from "@buildanagent/gateway/testing";
 import { test } from "vitest";
 
 const OPUS: ModelRef = { api: "anthropic-messages", provider: "anthropic", id: "claude-opus-5-5" };
@@ -466,18 +467,6 @@ test("the input transcript is deep-equal before and after the call", () => {
 });
 
 // Property-style checks over generated transcripts --------------------------------------------------------------------
-
-/** A small seeded generator (mulberry32), so every run sees the same transcripts. */
-function seededRandom(seed: number): () => number {
-  let state = seed >>> 0;
-  return () => {
-    state = (state + 0x6d2b79f5) >>> 0;
-    let t = state;
-    t = Math.imul(t ^ (t >>> 15), t | 1);
-    t ^= t + Math.imul(t ^ (t >>> 7), t | 61);
-    return ((t ^ (t >>> 14)) >>> 0) / 4_294_967_296;
-  };
-}
 
 const MODELS = [OPUS, SONNET, GPT, GPT_MINI];
 const IDS = ["toolu_01", "call_0", "call|weird/id", "", `fc_${"z".repeat(80)}`, "toolu_01_2"];

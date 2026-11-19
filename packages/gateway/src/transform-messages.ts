@@ -4,6 +4,7 @@
  * grows, the thinking it sends an Anthropic target for older turns only ever loses a leading run, which Anthropic's
  * rule on omitted thinking allows.
  */
+import { isCanonicalName } from "./names.ts";
 import type { ContentBlock, Message, ModelCaps, ModelContent, ModelRef } from "./types.ts";
 
 type Block<T extends ContentBlock["type"]> = Extract<ContentBlock, { type: T }>;
@@ -11,8 +12,8 @@ type AssistantMessage = Extract<Message, { role: "assistant" }>;
 type ToolMessage = Extract<Message, { role: "tool" }>;
 type UserMessage = Extract<Message, { role: "user" }>;
 
-// The canonical tool-call id rule. A per-provider table may narrow it later; until then every target gets this one.
-const TOOL_CALL_ID_PATTERN = /^[A-Za-z0-9_-]{1,64}$/;
+// Every target gets tool-call ids that meet the canonical tool-name rule (names.ts). These two constants rebuild an id
+// that breaks it, so they must stay in step with that rule.
 const TOOL_CALL_ID_INVALID_CHARS = /[^A-Za-z0-9_-]/g;
 const TOOL_CALL_ID_MAX_LENGTH = 64;
 
@@ -305,7 +306,7 @@ function startWithUser(messages: Message[], inputHadUser: boolean): Message[] {
 function idAllocator(): (original: string) => string {
   const taken = new Set<string>();
   return (original) => {
-    const base = TOOL_CALL_ID_PATTERN.test(original) ? original : sanitizeId(original);
+    const base = isCanonicalName(original) ? original : sanitizeId(original);
     let id = base;
     for (let n = 2; taken.has(id); n += 1) {
       const suffix = `_${n}`;
