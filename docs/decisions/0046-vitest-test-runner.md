@@ -6,7 +6,7 @@
 
 ## Context
 
-The SDK plan chose `node:test` through tsx so that no test framework was added. ADR 0033 then required every portable seam to pass one conformance suite on local Node, Cloudflare, AWS and Vercel. Cloudflare's supported way to run tests inside workerd is `@cloudflare/vitest-plugin`, which runs Vitest test files in the Workers runtime through Miniflare ([Cloudflare docs](https://developers.cloudflare.com/workers/testing/vitest-integration/), updated 2026-08-20; plugin 1.8.5 on npm as of 2026-11-19). With `node:test`, we would build and maintain our own workerd runner. Lamina PDF, whose practices the [guidelines](../guidelines/README.md) adopt, also tests on Vitest.
+The SDK plan chose `node:test` through tsx so that no test framework was added. ADR 0033 then required every portable seam to pass one conformance suite on local Node, Cloudflare, AWS and Vercel. Cloudflare's supported way to run tests inside workerd is `@cloudflare/vitest-plugin`. It runs Vitest test files in the Workers runtime through Miniflare ([Cloudflare docs](https://developers.cloudflare.com/workers/testing/vitest-integration/), updated 2026-08-20), and its latest release is 1.8.5 as of 2026-11-19. With `node:test`, we would build and maintain our own workerd runner. Lamina PDF, whose practices the [guidelines](../guidelines/README.md) adopt, also tests on Vitest.
 
 ## Decision
 
