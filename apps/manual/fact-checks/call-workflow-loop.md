@@ -159,12 +159,13 @@ The first code review (high) found four wrong or misleading passages and a figur
 | 97 | Anthropic's test and OpenAI's overlap without matching: a refund decision can need judgement in one fixed step, while a task with an unknown number of lookups needs a loop even when each lookup is simple | § Choose the shape | ⚠️ | Our reading, marked "In our reading" in the text; it compares row 23 with row 96, and no source compares the two tests |
 | 98 | [[fig:who-decides]]'s workflow column shows the chapter's workflow: a writer model, then a reviewer model, then an answer | § Choose the shape, [[fig:who-decides]] | ✏️ | The figure's workflow column read "step 1: model", "step 2: tool", "step 3: model", which matches no workflow in the chapter. Redrawn as two model calls, as in [[lst:workflow]] and its replay (row 18), with the alt text to match (`figures/call-workflow-loop/who-decides.ts`) |
 | 99 | Rewrapping the lines with `// book:note` markers past 120 columns in three examples changed no behaviour | Listings | ✅ | `verify/vercel-ai-sdk/examples/01-generate-text.ts`, `verify/google-adk/examples/02-workflow-agents.ts` and `verify/pi/examples/01-hello-session.ts`: each harness's `pnpm test` passes, and the regenerated transcripts differ from the committed ones only in `line` fields (the AI SDK checks moved 4 lines down, the ADK events 9). The Pi transcript is unchanged. Rows 10, 18 and 75 now cite the new lines |
+| 100 | After the writing review of these fixes, the reworded sentences keep their claims: the run lives on only in what your code kept (row 87), the request carries Pi's system prompt and four tools next to "Say hello." (row 92), and the refund and lookup contrast stays marked "In our reading" (row 97) | § A harness; § Choose the shape | ✅ | Re-read against the same sources on 2026-11-19; the review split sentences and changed no claim |
 
 ## Tally
 
 | Verdict | Rows |
 | --- | --- |
-| ✅ confirmed | 88 |
+| ✅ confirmed | 89 |
 | ✏️ corrected | 7 (rows 26, 42, 61, 70, 85, 86 and 98) |
 | ⚠️ unverified, our judgement or recommendation, marked as ours in the text | 4 (rows 11, 41, 63 and 97) |
-| Total | 99 |
+| Total | 100 |
