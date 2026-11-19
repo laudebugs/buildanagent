@@ -31,8 +31,8 @@ Make the SDK's behaviour traceable across releases and its docs impossible to dr
 
 **Out of scope** (and which todo covers it)
 
-- Publishing (the owner accepted D8: packages stay `private: true` until an outside consumer needs them)
-- A docs website
+- Publishing (todos L1–L4: the owner decided on 2026-11-19 to publish 0.1.0 once a model call works, ADR 0047)
+- A docs website and the undocumented-export check (todos L5 and L6, ADR 0048)
 
 ## Tasks
 
@@ -61,6 +61,13 @@ Both READMEs and CHANGELOGs; AGENTS.md if the commit gate changes. The plan's to
 ## Risks and open questions
 
 Generated docs must come from the same commit as the package; never from a branch (guide §10).
+
+## Revision (2026-11-19, publishing and docs)
+
+The owner decided on 2026-11-19 to publish under `@buildanagent` and to build docs on Astro Starlight ([publish-and-docs.md](../../plans/publish-and-docs.md)). Three changes follow for B20:
+- **The undocumented-export diff moves to L6.** TypeDoc's `notDocumented` validation, run over each package's `exports`, fails on an export without TSDoc. B20 keeps the other diff: documented names missing from the `.d.ts`.
+- **The changelogs come from Changesets (L2).** B20's "Breaking Changes" rule stays, written into each changeset's summary instead of edited by hand.
+- **Publishing and the docs website are no longer out of scope by the owner's choice.** They are Round L's todos. B20 still owns `defaultsHash`, `CAPABILITIES`, the `experimental_` lint, the README type-check and `llms.txt`.
 
 ## Definition of done
 
