@@ -1,9 +1,12 @@
 /**
  * `@buildanagent/sdk`: the agent loop over `@buildanagent/gateway`. This entry holds the loop (`run()`,
  * `continueRun()`, `runOrThrow()`), its events and results, the tools (their definitions, schemas, results and write
- * outcomes) and the hooks: six interceptors that can change a run and observers that only watch it. Signed pauses and
- * budgets are planned in the SDK plan §3.3.
+ * outcomes) and the hooks: six interceptors that can change a run and observers that only watch it. The loop also
+ * holds the run's guards: a USD budget checked before each call, progress detection and a depth cap. Signed pauses are
+ * planned in the SDK plan §3.3.
  */
+// Re-exported so a caller that calls `Model.complete()` outside the loop projects a cost with the loop's own formula.
+export { projectCallCost } from "@buildanagent/gateway";
 export { composeInterceptors } from "./compose.js";
 export { isSdkError, RunStoppedError, SdkError, type SdkErrorCode } from "./errors.js";
 export {
@@ -32,7 +35,9 @@ export type {
   ToolResultEvent,
   ToolResultPatch,
 } from "./hooks.js";
+export { DEFAULT_PROGRESS, type ProgressPolicy } from "./progress.js";
 export type {
+  BudgetResult,
   Context,
   DoneResult,
   EndedResult,
@@ -44,7 +49,7 @@ export type {
   StoppedResult,
   UnfinishedResult,
 } from "./result.js";
-export { continueRun, type Run, type RunInput, type RunOptions, run, runOrThrow } from "./run.js";
+export { continueRun, nestedRunDepth, type Run, type RunInput, type RunOptions, run, runOrThrow } from "./run.js";
 export {
   type ClarificationToolOptions,
   clarificationTool,

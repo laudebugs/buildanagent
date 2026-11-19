@@ -18,7 +18,7 @@ Refuse a model call before it is sent when its projected cost would push a run o
 ## Context
 
 - [build-sdk.md, D9](../../plans/build-sdk.md#d9-the-usd-cap-is-checked-before-each-model-call-against-a-projected-cost): the projection formula and the overshoot bound.
-- [B14](B14-budget-progress.md): the same check in our loop, and its overshoot test, which this todo copies.
+- [B14](../done/B14-budget-progress.md): the same check in our loop, and its overshoot test, which this todo copies.
 - [ADR 0043](../../decisions/0043-standalone-safety-core.md) (proposed): `projectCallCost()` moves to the gateway beside B5's catalog, so the loop and this guard share one formula.
 - [Cloudflare reference §8](../../reference/cloudflare-agents/guide.md#8-aichatagent-and-think-both-run-the-vercel-ai-sdk-loop-and-they-differ-in-who-calls-it): both Cloudflare agent classes run the AI SDK loop, so one guard covers both SDKs.
 - The AI SDK's `wrapLanguageModel()` and middleware pages in our mirror (`docs/reference/vercel-ai-sdk/source/content/docs/07-reference/01-ai-sdk-core/60-wrap-language-model.mdx` and `docs/03-ai-sdk-core/40-middleware.mdx`): `wrapGenerate` and `wrapStream` wrap the model's `doGenerate` and `doStream`.

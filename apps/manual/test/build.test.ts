@@ -269,6 +269,22 @@ test("a chapter page shows SDK tabs and a replay that read in full without JavaS
   assert.match(html, /<script type="module" src="\/_astro\/[^"]+\.js"><\/script>/, "the page loads its script by URL");
 });
 
+test('a box marked top has a level-2 title, listed in the page\'s "On this page"', () => {
+  const html = chapter();
+  assert.match(
+    html,
+    /<aside class="box" aria-labelledby="where-steps-go"><h2 class="box__heading" id="where-steps-go">/,
+  );
+  const toc = html.slice(
+    html.indexOf('<ol class="sidebar__toc">'),
+    html.indexOf("</ol>", html.indexOf("sidebar__toc")),
+  );
+  assert.match(
+    toc,
+    /<a href="#how-the-loop-stops">How the loop stops<\/a><\/li><li><a href="#where-steps-go">Where each step goes<\/a>/,
+  );
+});
+
 test("the contents list every chapter in the outline, linking only the written ones", () => {
   const html = readFileSync(join(out, "index.html"), "utf8");
   assert.equal((html.match(/class="contents__chapter"/g) ?? []).length, 18);

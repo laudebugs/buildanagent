@@ -17,13 +17,13 @@ test("the switch report lists each chapter's switchTo todos and which are done",
     { slug: "second", number: 2, switchTo: ["B12"], done: [] },
   ]);
   assert.deepEqual(formatSwitches(switches), [
-    "Chapter 1 (first): B11 done; ready to move to our own packages.",
-    "Chapter 2 (second): B12 not done; keeps its verify/ listings.",
+    "Chapter 1 (first): B11 done; ready for tabs on our own packages.",
+    "Chapter 2 (second): B12 not done; its verify/ listings wait for our own packages.",
   ]);
 });
 
 test("the switch report says so when no chapter is written or a chapter waits on nothing", () => {
-  assert.deepEqual(formatSwitches([]), ["No chapter is written yet, so no chapter has listings to switch."]);
+  assert.deepEqual(formatSwitches([]), ["No chapter is written yet, so no chapter has listings that could gain tabs."]);
   assert.deepEqual(formatSwitches([{ slug: "tools", number: 3, switchTo: [], done: [] }]), [
     "Chapter 3 (tools): lists no switchTo todos.",
   ]);
@@ -36,7 +36,7 @@ test("book:switch-report runs on the real book and exits 0", async () => {
     cwd: app,
     env: { PATH: process.env.PATH ?? "", HOME: tmpdir(), TMPDIR: tmpdir(), LANG: "C.UTF-8" },
   });
-  assert.match(stdout, /^book:switch-report: which chapters can move their listings to our own packages\n/);
+  assert.match(stdout, /^book:switch-report: which chapters can add our own packages' listings as tabs\n/);
 });
 
 test("a chapter whose front matter fails the schema is reported, not read loosely", () => {

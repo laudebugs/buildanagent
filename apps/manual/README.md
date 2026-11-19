@@ -44,9 +44,9 @@ switchTo: [B11]
 - `opening` must be the type the outline plans for this chapter. To change it, change the outline, which reruns the rotation check.
 - `sources` lists the register ids the chapter relies on, in the order its source list shows them; it needs at least one.
 - `glossary` lists the glossary ids whose first use the chapter links; it may be empty.
-- `switchTo` lists the todos whose code will replace the chapter's `verify/` listings; it may be empty.
+- `switchTo` lists the todos whose code will join the chapter's `verify/` listings as a first tab, while the `verify/` listings stay (BK8); it may be empty.
 
-The chapter's last `##` section is `## Exercises`, and it holds a list. The layout adds the chapter's sources after it, so the chapter has no sources section of its own.
+The chapter's last `##` section is `## Exercises`, and it holds a list and nothing else: `check:book` fails on a paragraph or a box after the list, since either would render inside the exercises. The layout adds the chapter's sources after it, so the chapter has no sources section of its own.
 
 ## Citations point at the source register
 
@@ -122,9 +122,9 @@ The book loads every listing before it renders a page, so `check:book` and the b
 
 A file counts as covered when `pnpm typecheck` would check it. Its nearest `package.json` must match a glob in `pnpm-workspace.yaml` that no `!` glob cancels, and one `tsc -p <config>` in that package's `typecheck` script must hold the file in its program. To decide, the check runs the manual's own `tsc`, from its exact `typescript` devDependency, as `tsc -p <config> --listFilesOnly`. TypeScript therefore applies `extends`, `files`, `include` and `exclude` itself, and a file that an included example imports also counts.
 
-Five of these rules are our choices, not BK9's: an exact pin, TypeScript files only, paths from the repository root only, a file inside a harness that `harnesses.json` lists, and no attribute but `id`, `file`, `region` and `replay`, which catches a misspelt `region`. Because of the harness rule, a listing from `packages/` fails as "in no harness", so the todo that moves a chapter's listings to our own packages must widen that rule first.
+Five of these rules are our choices, not BK9's: an exact pin, TypeScript files only, paths from the repository root only, a file inside a harness that `harnesses.json` lists, and no attribute but `id`, `file`, `region` and `replay`, which catches a misspelt `region`. Because of the harness rule, a listing from `packages/` fails as "in no harness", so the todo that adds our own packages' listings to a chapter as tabs must widen that rule first.
 
-To add a listing, mark the region in the example, run that harness's `pnpm test` to confirm its results do not change, then write the directive and run `check:book`. Renaming or deleting a region breaks every chapter that lists it, and `check:book` names each one. When a chapter's `switchTo` todos are all done, `book:switch-report` says the chapter is ready to move its listings to our own packages.
+To add a listing, mark the region in the example, run that harness's `pnpm test` to confirm its results do not change, then write the directive and run `check:book`. Renaming or deleting a region breaks every chapter that lists it, and `check:book` names each one. When a chapter's `switchTo` todos are all done, `book:switch-report` says the chapter is ready for tabs on our own packages (BK8).
 
 ## Notes, SDK tabs and replays make a listing interactive
 
@@ -173,6 +173,45 @@ A listing and its replay share a row whenever the pair is at least 52rem wide, a
 The replay shows a request's new messages only. When a request resends messages the replay already showed, as when a handoff gives the conversation to another agent, they fold into one "History" event that counts them. A part that the format has no shape for, such as Pi's system prompt sections or the text LangChain's fake model makes up, shows under a name a reader can follow. A body longer than 600 characters stops there and says how many more it holds, a limit that is our choice.
 
 A replay fails when the transcript is missing or malformed, when it records another file, and when it was recorded at a pin other than the harness's current one. The pin check covers both the harness's main package and the package its recorder attaches to, which the transcript names as `mock`, and rerunning the harness's `pnpm test` fixes a stale pin. Six harnesses record transcripts: `vercel-ai-sdk`, `pi`, `openai-agents-sdk`, `langchain`, `google-adk` and `cloudflare-agents`. An example that calls no model, such as `cloudflare-agents/examples/01-state.ts`, has no transcript, and the Claude Agent SDK and Copilot SDK wait for [T49](../../docs/todos/ready/T49-book-http-mock-transcripts.md). The transcript format lives in [`scripts/transcripts/events.ts`](../../scripts/transcripts/events.ts), with its recorder and writer beside it.
+
+## A box sets a passage apart from the chapter's argument
+
+A box holds material that a reader can skip without losing the thread, such as Chapter 1's account of how the examples run without a key. Write it as a `:::box` container with a title and an id:
+
+```markdown
+:::box[How these examples run without a key]{#how-these-examples-run-without-a-key top}
+Every listing in this book runs against a mock model, …
+
+::listing[The scripted mock behind this chapter's AI SDK listings]{#scripted-mock file="verify/vercel-ai-sdk/examples/lib/check.ts" region="scripted"}
+:::
+```
+
+The page renders the box as an `<aside>` whose `aria-labelledby` names its title, and the title is a heading that carries the box's id, so a link to `#how-these-examples-run-without-a-key` lands on the title. The `top` flag sets the title's level:
+
+- A box marked `top`, written `:::box[Title]{#id top}`, is a top-level box: its title is a level-2 heading, so the box stands beside the chapter's sections and the chapter's "On this page" list shows it. `top` is a bare flag with no value, and the box must sit directly in the chapter, not inside another block. Chapter 1's box is marked `top`.
+- A box without `top` sits inside its section, wherever it falls: its title is a heading one level below the heading the box follows, as a tab heading is. "On this page" shows only level-2 headings, so it leaves the box out. A box that ends a section, or follows another box, is still one level down.
+
+Position never decides the level; only `top` does. Two examples:
+
+```md
+## A section
+
+Text.
+
+:::box[A side note]{#a-side-note}
+Skippable material, an h3 under the section.
+:::
+
+:::box[How these examples run]{#how-these-examples-run top}
+Skippable material at the chapter's top level, an h2 listed in "On this page".
+:::
+```
+
+To move a box into its section, drop `top`; to lift it to the top level, add it.
+
+Inside, a box takes any Markdown: paragraphs, citations, glossary terms, analogies, references and file listings, which are numbered and checked like any other. A `:::listing` container with notes fits inside too, once the box's fence has four colons, `::::box`. So does a `:::tabs` block inside a `::::box`, and its tab headings sit one level below the box's title. The box draws a thin card border in the rule colour, which is decorative. A 4px left rule in the muted text colour marks its boundary, at 7.22:1 on the light page and 6.94:1 on the dark one, above WCAG 1.4.11's 3:1. A listing inside keeps its own panel in both themes. In print the border takes the muted text colour, and the title stays on the same page as the text after it. The box needs no script and writes no inline style.
+
+A box fails when its id is missing or not kebab-case, when it takes any attribute but its id and `top`, when `top` has a value (`top=x`), when a `top` box sits inside another block, when its title is missing or blank, when it holds nothing, and when it holds a heading or another box. It also fails when its id repeats another id on the page, such as `#exercises` (the slug of `## Exercises`) or `#lst-greet` (the id of Listing `greet`). The check covers every id on the page, from heading slugs to ids in a listing's raw HTML, so two boxes cannot share an id either. These rules are our choices. The heading rule keeps the title as the one heading a box adds to the page's outline.
 
 ## The live run compares the listed examples with real APIs, only when the owner starts it
 
@@ -282,7 +321,7 @@ The register entry must name this figure as its `illustration`, and the caption 
 
 ## An isometric figure is drawn with the anatomy skill and proved by its audits
 
-A few chapters get an isometric centerpiece, an interactive drawing of a small machine (BK10). Each is a script like a flat figure, but it draws with the anatomy skill vendored in [`.agents/skills/anatomy/`](../../.agents/skills/anatomy/SKILL.md), pinned at upstream commit `1482e84` ([THIRD-PARTY-NOTICES.md](../../THIRD-PARTY-NOTICES.md)). Read the skill's `SKILL.md` and `references/craft.md` before designing one. To add an isometric figure to a chapter:
+A few chapters get an isometric centerpiece, an interactive drawing of a small machine (BK10). Each is a script like a flat figure, but it draws with the anatomy skill vendored in [`.agents/skills/anatomy/`](../../.agents/skills/anatomy/SKILL.md), pinned at upstream commit `1482e84` ([THIRD-PARTY-NOTICES.md](../../THIRD-PARTY-NOTICES.md)). Read the skill's `SKILL.md` and `references/craft.md` before designing one. One rule in them gives way to the book's: the skill allows at most one engraved label in a drawing, but a book figure may label each of its real parts, by the owner's decision of 2026-11-19 ([BK10](../../docs/plans/build-book.md#bk10-flat-diagrams-and-a-few-isometric-centerpieces-accepted)). To add an isometric figure to a chapter:
 
 1. Write `figures/<chapter slug>/<figure id>.ts`. Its default export builds the camera with the kit's `fitProjection`, makes the audit's `recorder`, draws every part through `IsoParts` from [`figures/lib/isokit.ts`](figures/lib/isokit.ts), and returns an `IsoFigure` with the card's title, hint and readout. `IsoParts` draws each slab or cylinder with the kit and records the same shape for the audit, so the audit checks what the page shows. A part whose name starts with `stand.` is the ground, and every other part must rest on one that leads to it. Chapter 1's [`loop-bench.ts`](figures/call-workflow-loop/loop-bench.ts) is the book's centerpiece, and the fixture book's smaller [`loop-bench.ts`](test/fixtures/book/figures/first/loop-bench.ts) is the sample the tests use.
 2. Run `figures:build`, which writes `<figure id>.html`, the kit's card around the drawing, beside the script. Commit both files; the staleness test covers fragments as it covers SVGs.
@@ -404,7 +443,7 @@ Each component in `src/components/` renders its full content with no script. A f
 - **Layout:** `SiteHeader`, `ChapterHead` (the wide title), `Sidebar` with `Contents`, the article column in `layouts/ChapterLayout.astro`, and `PrevNext`. The columns switch with container queries on the `.layout` element, not with viewport media queries, so the layout follows the width it is given: the sidebar joins at 64rem, holding "On this page" above "All chapters". From 83rem "On this page" moves to a sticky 15rem rail right of the article while "All chapters" keeps the left column, so the prose sits between the two and the page's headings use the space right of it. The 83rem is the sidebar, the rail, their gaps and a 52rem article, so the rail never stacks a listing and its run. The article stops at `--article-max`, 59.5rem (the measure, a gap and a side note). A chapter page is therefore at most 90.5rem wide (the sidebar, the article, the rail and their gaps) and centred. On a wide screen the prose ends 20rem (320 px) before the rail instead of leaving a wide empty band, and the title and figure panel line up with the columns under them. Side notes float beside the prose whenever the article itself is at least 59.5rem wide, the measure, a gap and the note: from a 73rem layout beside the sidebar alone, and from 90.5rem once the rail is there. Printed, the page drops both navigation lists. A page with no chapter (the contents, glossary, sources, search and 404 pages) has neither sidebar nor wide blocks, so `.page--single` narrows it to one column the width of the measure, centred under the header. Prose and headings keep the measure, while listings, listing-and-run pairs, figures, tables and tab blocks take the whole article column and clear any side note. They stop at the rail's edge rather than pass under it, so the sticky rail never covers one.
 - **Code:** `ListingBlock` with `AnnotationMarker` and `Annotations`; `Tabs` with `TabPanel`, which show every panel under its own heading until `scripts/tabs.ts` builds the tab list; `Replay` with `StepControls`, which `scripts/steps.ts` steps through. A chapter's notes, `:::tabs` and replays render the same markup from `listing-html.ts` and `replay-html.ts`, and `ChapterLayout` loads both scripts.
 - **Figures:** `FigureFrame` on grid paper, which becomes the isometric stepper when it has steps; `scripts/steps.ts` then shows one step at a time and dims the figure parts of the others. `GeneratedFigure` puts a figure from `figures/` in a `FigureFrame`, inlined as a chapter's is; the gallery uses it.
-- **Prose:** `SideNote`, `GlossaryCard`, `GlossaryTerm` (its card opens on hover and focus and stays open while the pointer is on it, and `scripts/glossary.ts` lets Escape close it), `Citation` and `SearchBox`.
+- **Prose:** `SideNote`, `GlossaryCard`, `GlossaryTerm` (its card opens on hover and focus and stays open while the pointer is on it, and `scripts/glossary.ts` lets Escape close it), `Citation` and `SearchBox`. A chapter's box has no component: the Markdown pipeline writes its `<aside>` ([A box sets a passage apart](#a-box-sets-a-passage-apart-from-the-chapters-argument)).
 - **Theme:** `ThemeToggle`, driven by `public/scripts/theme.js`, which applies a stored choice before the first paint. The button shows a sun in the dark theme and a moon in the light one, and its accessible name gives its action, "Switch to light theme" or "Switch to dark theme". Both follow the system setting while the reader has stored no choice.
 
 The gallery at `/gallery/` renders every component in both themes, one above the other at full width, so each shows the layout at the width a reader sees it. It stays out of the search index and carries `noindex`. Its citation and glossary samples link to the `/sources/` and `/glossary/` pages. The owner compares the gallery with the reference board after any design change.

@@ -12,7 +12,7 @@ const source = new URL(entry.includes("/src/") ? "./" : "../src/", entry);
 
 test("each vendored safety file is identical to its source in the safety package", () => {
   const files = readdirSync(vendored).filter((name) => name.endsWith(".ts"));
-  assert.deepEqual(files.sort(), ["errors.ts", "outcome.ts", "render.ts"]);
+  assert.deepEqual(files.sort(), ["errors.ts", "hash.ts", "outcome.ts", "render.ts"]);
   for (const file of files) {
     const copy = readFileSync(new URL(file, vendored), "utf8");
     assert.equal(copy, readFileSync(new URL(file, source), "utf8"), `src/vendor/agent-safety/${file} has drifted`);

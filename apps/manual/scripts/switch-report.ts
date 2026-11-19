@@ -1,11 +1,12 @@
 // `pnpm --filter @buildanagent/manual book:switch-report`: for each written chapter, the todos in its `switchTo` and
-// which of them are done, so we know which chapters can move their listings from verify/ to our own packages (BK8).
+// which of them are done, so we know which chapters can add our own packages' listings as tabs beside their verify/
+// listings, which stay (BK8).
 // It is a report, not a check: `pnpm test` runs it, and it exits 0 even when the book does not load, which
 // `check:book` reports instead.
 import { loadBook } from "../src/book/load.js";
 import { chapterSwitches, formatSwitches } from "../src/book/switch-report.js";
 
-console.log("book:switch-report: which chapters can move their listings to our own packages");
+console.log("book:switch-report: which chapters can add our own packages' listings as tabs");
 try {
   for (const line of formatSwitches(chapterSwitches(loadBook()))) console.log(`  ${line}`);
 } catch (error) {

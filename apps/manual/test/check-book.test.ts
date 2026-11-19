@@ -324,6 +324,111 @@ const cases: readonly Case[] = [
     file: `${FIRST}:36`,
     message: /unknown directive :::aside/,
   },
+  // Boxes.
+  {
+    rule: "a box without an id fails",
+    change: firstChapter((t) => t.replace("## Exercises", ":::box[A box]\nText.\n:::\n\n## Exercises")),
+    file: `${FIRST}:36`,
+    message: /a box needs a kebab-case id, written :::box\[Title\]\{#some-id\}/,
+  },
+  {
+    rule: "a box whose id is not kebab-case fails",
+    change: firstChapter((t) => t.replace("## Exercises", ":::box[A box]{#A_Box}\nText.\n:::\n\n## Exercises")),
+    file: `${FIRST}:36`,
+    message: /a box needs a kebab-case id/,
+  },
+  {
+    rule: "a box given an attribute other than its id fails",
+    change: firstChapter((t) =>
+      t.replace("## Exercises", ':::box[A box]{#a-box tone="warm"}\nText.\n:::\n\n## Exercises'),
+    ),
+    file: `${FIRST}:36`,
+    message: /a box takes no attribute but its id and the bare flag top, not tone/,
+  },
+  {
+    rule: "a box given top a value fails",
+    change: firstChapter((t) => t.replace("## Exercises", ":::box[A box]{#a-box top=x}\nText.\n:::\n\n## Exercises")),
+    file: `${FIRST}:36`,
+    message: /top takes no value; write :::box\[Title\]\{#a-box top\}, not top=x/,
+  },
+  {
+    rule: "a top box inside another block fails",
+    change: firstChapter((t) =>
+      t.replace("## Exercises", "> :::box[A box]{#a-box top}\n> Text.\n> :::\n\n## Exercises"),
+    ),
+    file: `${FIRST}:36`,
+    message: /a box marked top must sit directly in the chapter, not inside another block/,
+  },
+  {
+    rule: "a box without a title fails",
+    change: firstChapter((t) => t.replace("## Exercises", ":::box{#a-box}\nText.\n:::\n\n## Exercises")),
+    file: `${FIRST}:36`,
+    message: /a box needs a title, written :::box\[Title\]\{#a-box\}/,
+  },
+  {
+    rule: "an empty box fails",
+    change: firstChapter((t) => t.replace("## Exercises", ":::box[A box]{#a-box}\n:::\n\n## Exercises")),
+    file: `${FIRST}:36`,
+    message: /a box must hold its content/,
+  },
+  {
+    rule: "a box that holds a heading fails at the heading",
+    change: firstChapter((t) =>
+      t.replace("## Exercises", ":::box[A box]{#a-box}\n### Inside\n\nText.\n:::\n\n## Exercises"),
+    ),
+    file: `${FIRST}:37`,
+    message: /a box may hold no heading and no other box; its title is its heading/,
+  },
+  {
+    rule: "a box inside a box fails at the inner box",
+    change: firstChapter((t) =>
+      t.replace("## Exercises", "::::box[Outer]{#outer}\n:::box[Inner]{#inner}\nText.\n:::\n::::\n\n## Exercises"),
+    ),
+    file: `${FIRST}:37`,
+    message: /a box may hold no heading and no other box/,
+  },
+  // Ids: a box's id must not repeat any other id on the page (H2 of PR #99's review).
+  {
+    rule: "a box whose id is a heading's slug fails",
+    change: firstChapter((t) => t.replace("## Exercises", ":::box[A box]{#exercises}\nText.\n:::\n\n## Exercises")),
+    file: `${FIRST}:40`,
+    message: /the id "exercises" is used twice on the page, by a box and by a heading/,
+  },
+  {
+    rule: "a box whose id is a listing's id fails",
+    change: (dir) =>
+      edit(dir, SECOND, (t) => t.replace("## Exercises", ":::box[A box]{#lst-greet}\nText.\n:::\n\n## Exercises")),
+    file: `${SECOND}:20`,
+    message: /the id "lst-greet" is used twice on the page, by the listing "greet" and by a box/,
+  },
+  {
+    rule: "a box whose id is a figure's id fails",
+    change: firstChapter((t) =>
+      t.replace("## Exercises", ":::box[A box]{#fig-ticket-rail}\nText.\n:::\n\n## Exercises"),
+    ),
+    file: `${FIRST}:36`,
+    message: /the id "fig-ticket-rail" is used twice on the page, by the figure "ticket-rail" and by a box/,
+  },
+  {
+    rule: "two boxes with one id fail",
+    change: firstChapter((t) =>
+      t.replace("## Exercises", ":::box[One]{#a-box}\nText.\n:::\n\n:::box[Two]{#a-box}\nText.\n:::\n\n## Exercises"),
+    ),
+    file: `${FIRST}:40`,
+    message: /the id "a-box" is used twice on the page, by a box and by a box/,
+  },
+  {
+    rule: "a box after the exercises fails",
+    change: firstChapter((t) => `${t.trimEnd()}\n\n:::box[Late]{#late}\nText.\n:::\n`),
+    file: `${FIRST}:40`,
+    message: /the "Exercises" section holds only its list; move the :::box above "## Exercises"/,
+  },
+  {
+    rule: "a paragraph after the exercises fails",
+    change: firstChapter((t) => `${t.trimEnd()}\n\nA closing word.\n`),
+    file: `${FIRST}:40`,
+    message: /the "Exercises" section holds only its list; move the paragraph above "## Exercises"/,
+  },
   // Generated figures and analogy illustrations (BK11, BK22).
   {
     rule: "a figure whose drawing has no alt text fails with its line",

@@ -4,7 +4,7 @@ import { parseFrontmatter } from "@astrojs/markdown-remark";
 import { chapterSchema, TODO_ID } from "./chapter-schema.js";
 import type { Book } from "./load.js";
 
-/** One written chapter's switch to our own packages: the todos it waits on, and which of them are done. */
+/** One written chapter's tabs on our own packages: the todos they wait on, and which of them are done. */
 export interface ChapterSwitch {
   readonly slug: string;
   readonly number: number;
@@ -29,7 +29,7 @@ export function doneTodos(repoRoot: string): ReadonlySet<string> {
 
 /**
  * Each written chapter's `switchTo` todos and which of them have reached `docs/todos/done/` (BK8). A chapter whose
- * todos are all done can move its listings from `verify/` to our own packages.
+ * todos are all done can add our own packages' listings as tabs, and its `verify/` listings stay beside them.
  */
 export function chapterSwitches(book: Book): ChapterSwitch[] {
   const done = doneTodos(book.inputs.repoRoot);
@@ -44,14 +44,16 @@ export function chapterSwitches(book: Book): ChapterSwitch[] {
 
 /** The report's lines, one per written chapter, in reading order. */
 export function formatSwitches(switches: readonly ChapterSwitch[]): string[] {
-  if (switches.length === 0) return ["No chapter is written yet, so no chapter has listings to switch."];
+  if (switches.length === 0) return ["No chapter is written yet, so no chapter has listings that could gain tabs."];
   return switches.map(({ slug, number, switchTo, done, invalid }) => {
     const head = `Chapter ${number} (${slug}):`;
     if (invalid) return `${head} its front matter fails the schema, so its switchTo cannot be read; run check:book.`;
     if (switchTo.length === 0) return `${head} lists no switchTo todos.`;
     const todos = switchTo.map((id) => `${id} ${done.includes(id) ? "done" : "not done"}`).join(", ");
     const verdict =
-      done.length === switchTo.length ? "ready to move to our own packages" : "keeps its verify/ listings";
+      done.length === switchTo.length
+        ? "ready for tabs on our own packages"
+        : "its verify/ listings wait for our own packages";
     return `${head} ${todos}; ${verdict}.`;
   });
 }

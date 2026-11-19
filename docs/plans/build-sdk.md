@@ -551,6 +551,11 @@ declare function replayPairs(pairs: RecordedPair[]): ScriptedModel;   // rejects
 - `composeInterceptors()` joins interceptor objects, and `Interceptors` hooks may be plain or `async`. Each observer has its own queue, and the run waits for the queues before `agent_settled` and before it settles, for at most `observerTimeoutMs` each time.
 - `SdkError` gains the codes `invalid_hook_result` and `hook_failed`, and the loop starts one microtask after `run()` so `run.on()` sees every event but `run_start`.
 
+**Revision (B14, 2026-11-19).** B14 adds the three guards with these departures from the sketch above, each recorded in [its outcome](../todos/done/B14-budget-progress.md#outcome):
+- `RunResult` gains `budget` (with `reason`, `budgetUsd`, `spentUsd` and `projectedUsd`), and `RunError.kind` gains `"unknown_price"`. `RunOptions` gains `budgetUsd`, `progress` (`{ maxIdenticalFailures: 3, maxSameKeyCalls: 5 }` or `false`), `depth` and `maxDepth` (default 2); `ToolDefinition` gains `progressKey()`.
+- The progress policy is a `shouldStop` interceptor that `run()` joins after the caller's own, so a caller's `{ continue }` cannot keep a stuck run going. It hashes inputs with the SDK's vendored copy of `canonicalInputHash()`.
+- `run()` throws `SdkError` code `max_depth_exceeded` for a run whose `depth` is above `maxDepth`, and `nestedRunDepth(ctx)` builds a child run's options.
+
 ### 3.4 The seams P2 consumes
 
 The harness plan should use these names as written; P4 checks that it does ([implementation plans §3](implementation-plans.md#3-the-review-p4)). The first six are the seams of [harness guide §1][hg1]; the rest are what its sketches assume from the SDK.
@@ -604,7 +609,7 @@ The guide says to start with the gateway and the test model, because every other
 | [B11c](../todos/ready/B11c-raw-provider-events.md) | Raw provider events: `includeRaw` and the `raw` event, from the adapters up to the loop (added 2026-11-19, a B11 follow-up) | B11, B4, B8, B9 | L |
 | [B12](../todos/done/B12-parallel-tools.md) | Parallel tool scheduling, per-resource serialisation and sibling cancellation | B11 | M |
 | [B13](../todos/done/B13-interceptors-observers.md) | The six interceptors and observers | B11 | M |
-| [B14](../todos/ready/B14-budget-progress.md) | Pre-emptive USD budget, progress detection and the depth cap | B5, B13, E1 | M |
+| [B14](../todos/done/B14-budget-progress.md) | Pre-emptive USD budget, progress detection and the depth cap | B5, B13, E1 | M |
 | [B15](../todos/ready/B15-signed-pauses.md) | Signed pauses in the loop on the safety package's signers, and `createPendingRequest` | B13, E3 | M |
 | [B15b](../todos/ready/B15b-continue-run.md) | `continueRun`, `blockingApprovals()` and the clarification pause | B15 | M |
 | [B16](../todos/ready/B16-steering.md) | Steering and follow-up with delivery receipts | B11 | S |
