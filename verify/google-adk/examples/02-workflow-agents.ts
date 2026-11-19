@@ -25,9 +25,18 @@ const system = (m: ScriptedLlm, i = 0) => String(m.requests[i]?.config?.systemIn
   // #region sequential
   const writerModel = new ScriptedLlm(() => say("DRAFT-TEXT"));
   const reviewerModel = new ScriptedLlm(() => say("LGTM"));
-  const writer = new LlmAgent({ name: "writer", model: writerModel, instruction: "Write.", outputKey: "draft" });
-  const reviewer = new LlmAgent({ name: "reviewer", model: reviewerModel, instruction: "Review this: {draft}" });
-  const pipeline = new SequentialAgent({ name: "pipeline", subAgents: [writer, reviewer] });
+  const writer = new LlmAgent({
+    name: "writer",
+    model: writerModel,
+    instruction: "Write.",
+    outputKey: "draft", // book:note writer
+  });
+  const reviewer = new LlmAgent({
+    name: "reviewer",
+    model: reviewerModel,
+    instruction: "Review this: {draft}", // book:note reviewer
+  });
+  const pipeline = new SequentialAgent({ name: "pipeline", subAgents: [writer, reviewer] }); // book:note order
   const runner = new InMemoryRunner({ agent: pipeline, appName: "seq" });
   const s = await runner.sessionService.createSession({ appName: "seq", userId: "u1" });
   const events = await turn(runner, s.id, "Write a haiku.");

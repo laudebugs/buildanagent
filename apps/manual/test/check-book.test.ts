@@ -1029,9 +1029,11 @@ test("the fixture book with notes, tabs and a replay passes check:book and the b
   assert.equal(await buildError(fixtureInputs(dir)), undefined);
 });
 
+// The real book now renders Chapter 1, whose six listings load the TypeScript compiler and each package's types. That
+// took about 3 seconds alone and timed out at Vitest's default 5 seconds while every package's tests ran at once.
 test("the real book passes check:book", async () => {
   assert.deepEqual((await checkBook()).map(formatProblem), []);
-});
+}, 60_000);
 
 for (const { rule, change, outline, file, message } of cases) {
   test(rule, async () => {
