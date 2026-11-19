@@ -111,7 +111,22 @@ The repo is a pnpm workspace. Run every command from the repo root unless a READ
 ## Git
 
 - **One pull request per piece of work** (changed from direct pushes to `main` on 2026-11-18). Branch from the latest `main`, named for the work (`todo/<id>-<slug>`, or `docs/<slug>` for work without a todo), push the branch, and open a pull request against `main`.
-- **Squash-merge when ready:** CI (`ci.yml`) passes, the todo's definition of done is met, and review findings are fixed. The squash commit's message is the PR title plus a summary of the change. Delete the branch after the merge; this session's token cannot delete remote branches, so the owner deletes them or turns on the repository's "Automatically delete head branches" setting.
+- **Squash-merge when ready:** CI (`ci.yml`) passes, the todo's definition of done is met, and the findings of every review round in [Every pull request gets two rounds of code review](#every-pull-request-gets-two-rounds-of-code-review) are fixed. The squash commit's message is the PR title plus a summary of the change. Delete the branch after the merge; this session's token cannot delete remote branches, so the owner deletes them or turns on the repository's "Automatically delete head branches" setting.
 - Snapshots of unfinished work go to the work's own branch, not to separate `wip/*` branches.
 - Commit messages: imperative mood, with a short summary line.
 - Never commit secrets or `.env` files.
+
+## Every pull request gets two rounds of code review
+
+Every pull request is reviewed with `/code-review` at least twice before it merges (the owner's rule, 2026-11-19), whether a person or an agent wrote it. The first round decides how the second goes:
+
+1. **First round, high effort.** After you open the pull request, run `/code-review high <PR#>`.
+2. **Fix the findings.** Fix each finding in a new commit whose message lists the findings it addresses and how each was fixed, or why one was left. The review is then recorded in the branch history, and the squash merge keeps the pull request tidy.
+3. **Second round, chosen by the count.** If the first round found more than 6 issues, run `/code-review medium <PR#>`, fix its findings the same way, then run `/code-review low <PR#>` and fix those. If it found 6 or fewer, run `/code-review low <PR#>` and fix its findings.
+4. **Merge** once every finding is fixed or explained in a commit message and CI passes.
+
+Run the reviews without `--comment`, so findings live in commit messages rather than PR comments.
+
+## Every piece of copy is drafted with the writing skill and reviewed once the code is done
+
+Copy is any text a person reads: documentation, READMEs, plans, ADRs, todos, pull request descriptions, page text and doc comments longer than one line. Draft all of it with `/anthropic-skills:writing`. When the pull request's code changes are finished, run `/anthropic-skills:writing-review` on every piece of copy the pull request adds or changes, including its description, then fix each finding with `/anthropic-skills:writing`. Writing findings are counted apart from code findings, and the pull request description records the rubric scores before and after. This rule covers all copy; documents under `docs/` also go through the fact-check steps in [Every document is drafted, fact-checked and reviewed before it merges](#every-document-is-drafted-fact-checked-and-reviewed-before-it-merges).

@@ -22,6 +22,10 @@ pnpm test        # run every harness's examples offline
 
 We squash-merge a pull request once CI passes and its review findings are fixed. Branch names, commit messages and the merge rules are in [AGENTS.md](AGENTS.md#git).
 
+## Every pull request gets two rounds of code review
+
+The first round runs `/code-review high` on the pull request. If it finds more than 6 issues, the second round is `/code-review medium` followed by `/code-review low`; otherwise it is `/code-review low`. Fix each round's findings in new commits that list each finding and its fix. Copy, meaning any text a person reads, is drafted with `/anthropic-skills:writing` and checked with `/anthropic-skills:writing-review` once the code changes are done. The details are in [AGENTS.md](AGENTS.md#every-pull-request-gets-two-rounds-of-code-review).
+
 ## Draft, fact-check and review every document before it merges
 
 Later readers, including AI agents, act on these documents, so every new or rewritten document goes through five steps:
