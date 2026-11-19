@@ -1,6 +1,6 @@
 # T2: The owner's design as tokens and components: C's layout, C4 pages, theme-following panels and three fonts
 
-> **On hold (2026-11-19): do not start until the owner approves the [book plan](../../plans/build-book.md).** The plan is a draft for the owner's review.
+> **History:** the book plan held its todos on 2026-11-19 until the owner approved it, and the owner approved it the same day ("If green merge", then "Then continue work"), so this todo starts once its **Depends on** are done ([book plan §7](../../plans/build-book.md#7-round-t-can-start-the-owner-approved-the-plan-on-2026-11-19)).
 
 | Field | Value |
 | --- | --- |

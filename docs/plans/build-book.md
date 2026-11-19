@@ -1,6 +1,6 @@
 # Plan: write a two-part textbook on building an agent, published from `apps/book` to manual.buildanagent.fyi
 
-- **Status:** Draft (2026-11-19), for the owner's review. The owner has answered the design, licence, vendoring and Cloudflare questions, and wants a review before approving, including a check that the outline covers every part of building an agent. No Round T todo starts until the owner approves this plan; each todo carries that banner.
+- **Status:** Approved (2026-11-19). The owner answered the design, licence, vendoring and Cloudflare questions, then asked for a review, including a check that the outline covers every part of building an agent. Asked to approve the reviewed plan, the owner said "If green merge" and then "Then continue work", so its 46 todos now start once their **Depends on** are done (§7).
 - **Date:** 2026-11-19
 - **Asked for by:** the project owner (2026-11-19): "A textbook on how to build an agent, with images that explain how agents work and example code from this repository."
 - **Builds on:** the three [build guides](../guides/), the [main research report][main], the eight [SDK references](../reference/), the [comparison docs](../comparison/), the plans and ADRs, the [publish-and-docs plan](publish-and-docs.md) for the docs and website beside the book, the verified examples in `verify/*/examples/`, and the owner's garment engineering textbook repository, read at commit `bca44b0` (BK16)
@@ -46,7 +46,7 @@ This repository already holds most of what a book on building agents needs. It h
 | BK19 | Every topic group in the coverage review gets a home; four topics get research todos first | Accepted (owner, 2026-11-19) | none |
 | BK20 | New `verify/` examples fill the example gaps the coverage review found | Accepted (owner, 2026-11-19) | none |
 | BK21 | Every section is fact-checked before the next is drafted, then the whole chapter is reviewed and fixed | Accepted (owner, 2026-11-19) | none |
-| BK22 | The writing is not dry: varied openings, one distinct analogy per core concept with its limits, and illustrated analogies | Accepted (owner, 2026-11-19) | none |
+| BK22 | The writing is not dry: varied openings, distinct analogies with their limits, used where they make a concept clearer, and illustrated analogies | Accepted (owner, 2026-11-19); analogies made optional (owner, 2026-11-19) | none |
 
 ### BK1. A textbook in two parts, with figures and code from this repository (accepted)
 
@@ -360,11 +360,13 @@ Every chapter, section todo and research report follows these steps in order:
 
 ### BK22. Lively writing: varied openings, distinct analogies and illustrated analogies (accepted)
 
-**The analogies are approved (owner, 2026-11-19):** "analogies are okay". The owner reviewed the 61 analogies proposed for the 18 chapters and three sections (§4 and each chapter todo) and kept them, with three replacements the owner gave the same day after the plan's code review found near-duplicates. Compaction becomes "a TV show's 'previously on' recap", so the desk stays with the context window alone. The unknown outcome becomes "a dropped phone order: the line cuts out mid-order and you can't tell whether the restaurant got it, so you check before ordering again", so the parcel's tracking history stays with tracing alone. A third answer the same day, after the code review's second round, replaced the hotel key card for identity from trusted context with passport control: "a border officer who reads your passport, not what you claim at the desk"; the valet key stays with the credential boundary. The count is still 61, and every analogy is still distinct. If a later vetting finds an analogy misleading, the builder proposes a replacement to the owner rather than changing it.
+**The analogies are approved (owner, 2026-11-19):** "analogies are okay". The owner reviewed the 61 analogies proposed for the 18 chapters and three sections (§4 and each chapter todo) and kept them, with three replacements the owner gave the same day after the plan's code review found near-duplicates. Compaction becomes "a TV show's 'previously on' recap", so the desk stays with the context window alone. The unknown outcome becomes "a dropped phone order: the line cuts out mid-order and you can't tell whether the restaurant got it, so you check before ordering again", so the parcel's tracking history stays with tracing alone. A third answer the same day, after the code review's second round, replaced the hotel key card for identity from trusted context with passport control: "a border officer who reads your passport, not what you claim at the desk"; the valet key stays with the credential boundary. The count is still 61, and every analogy is still distinct. If a later vetting finds an analogy misleading, the builder drops it or proposes a replacement to the owner, rather than changing it.
 
 **The owner's rules (2026-11-19):** "We'll also need to make the writing not dry, and whenever we can use an analogy to explain a concept, let's lean on that. And also add illustrations for our analogies as needed." And: "don't repeat openings often, or analogies." For the book these rules take precedence over the writing skill's limit of one metaphor per passage.
 
-- **Analogy, then mechanism.** Each core concept opens with one concrete, everyday analogy, followed at once by the precise mechanism. The analogy introduces; the technical text carries every fact, and facts still need sources. An analogy needs no source, but it must not mislead.
+**Analogies are optional (owner, 2026-11-19):** "For analogies, we don't have to use one for every chapter/concept". A chapter uses an analogy only where it makes a concept clearer, and a chapter may have none. So the 61 approved analogies form a pool: a chapter may drop a planned analogy when plain explanation works better, but adding a new analogy or swapping one in still needs the owner. The rules below still hold for every analogy a chapter uses, and the openings still rotate.
+
+- **Analogy, then mechanism.** A concept that uses an analogy opens with one concrete, everyday image, followed at once by the precise mechanism. The analogy introduces; the technical text carries every fact, and facts still need sources. An analogy needs no source, but it must not mislead.
 - **Where the analogy breaks.** Each analogy gets a short note saying where it stops being true.
 - **One analogy per concept, never reused.** A concept keeps its analogy through the chapter, with no mixed metaphors, and an analogy explains one concept only, across the whole book. A later chapter may refer back to a concept's analogy by name but may not invent a near-duplicate. A register, `apps/book/src/content/analogies.json`, lists concept, analogy, chapter, illustration and where it breaks. T3's check fails on a duplicate analogy or on an analogy reused for a second concept.
 - **Analogy illustrations.** These are a figure kind beside the technical figures, drawn in the book's design (tokens from [`docs/design/book-tokens.json`](../design/book-tokens.json)), flat or isometric under BK10 and BK11, with alt text, a caption and both themes. T6 and T7 add the kind. Analogy illustrations never double as technical figures: by the owner's decision of 2026-11-19, T10's kitchen ticket rail and T22's lab glovebox are separate flat illustrations placed just before those chapters' isometric centerpieces (BK10).
@@ -373,12 +375,11 @@ Every chapter, section todo and research report follows these steps in order:
   - a vivid opening of the planned type, different from the previous chapter's;
   - a concrete example or scenario in every section;
   - varied cadence, and second person where it helps;
-  - an analogy for every core concept;
   - no stock phrasing repeated across chapters, such as the same sentence frames or the same transitions opening paragraphs.
 
   The pull request records the voice scores beside the 5C scores, before and after.
 
-Each chapter todo lists its planned analogies with where each breaks and whether it gets an illustration, all distinct across the book, for the owner to review.
+Each chapter todo lists its planned analogies with where each breaks and whether it gets an illustration, all distinct across the book. The owner approved the lists, and each chapter draws from its own.
 
 ## 3. Every chapter is written section by section, each fact-checked before the next
 
@@ -386,7 +387,7 @@ A chapter is a document, so it goes through the [five steps](../../AGENTS.md#eve
 
 ## 4. Eighteen chapters, three research-fed sections, and a home for every topic
 
-The owner's arc for Part I is "Call, then workflow, then loop" (BK1). Chapters appear below in reading order, which differs from todo order in two places: memory (T15) comes before approvals (T14), because a safe resume needs saved session state, and the two Part II chapters added on 2026-11-19, T35 and T36, sit where their subjects belong. Each row names the chapter's opening type, what it covers, the `verify/` examples it uses (new ones come from §5's example todos), and the todos whose code later replaces them. The chapter todos add the sources and one analogy per core concept, distinct across the book (BK22).
+The owner's arc for Part I is "Call, then workflow, then loop" (BK1). Chapters appear below in reading order, which differs from todo order in two places: memory (T15) comes before approvals (T14), because a safe resume needs saved session state, and the two Part II chapters added on 2026-11-19, T35 and T36, sit where their subjects belong. Each row names the chapter's opening type, what it covers, the `verify/` examples it uses (new ones come from §5's example todos), and the todos whose code later replaces them. The chapter todos add the sources and a pool of planned analogies, distinct across the book, that a chapter uses where an analogy makes a concept clearer (BK22).
 
 ### 4.1 Part I: foundations, for developers new to agents
 
@@ -515,11 +516,11 @@ Chapters are listed in reading order. The longest chain runs T1 → T3 → T4 �
 5. **Deploys wait on the owner's setup.** The zone, both GitHub environments, their secrets and the deploy switch are the owner's to create (BK15). T9 can merge before they exist, because each job stops with a named missing secret, but nothing deploys until they do.
 6. **The live run costs money and handles keys.** T27 runs real model calls on the owner's Anthropic and OpenAI keys, in the seven harnesses with a pinned path to one of them; `google-adk` stays mock-only. The workflow runs only by hand, only from `main`, only after the owner approves the protected environment, and the pre-call cap stops any run at $1.00. Model output varies between runs, so it compares flows and opens an issue on a difference instead of failing CI (BK18).
 7. **A deploy job must never run pull-request code.** DS3's split keeps the tokens in `book-deploy.yml`, which GitHub runs from `main` and which only downloads the built `dist/`, so a pull request, a fork's included, cannot reach a token. The preview token is also separate, holds Editor on the book's Worker only, and has no zone permission (BK15).
-8. **An analogy can mislead.** A vivid analogy can teach a newcomer something false. Each chapter todo vets its analogies before drafting and writes where each breaks, and the owner reviews the planned analogies before the chapters start.
+8. **An analogy can mislead.** A vivid analogy can teach a newcomer something false. Each chapter todo vets its analogies before drafting and writes where each breaks. Because analogies are optional (BK22), a chapter can drop one that misleads instead of forcing it in.
 9. **Research may change the outline.** U18–U21 may find that a section needs a chapter, or that a chapter is too thin. The section todos propose such changes to the owner instead of overfilling.
 10. **Displayed pins change weekly.** The SDK-update job moves the pins in `verify/`, and a listing's displayed pin changes with them. The book reads the pin at build time, so the page and the code agree, but prose that names a version needs its "as of" date, which each chapter todo's acceptance criteria require.
 
-## 7. Round T can start as soon as the owner approves it
+## 7. Round T can start: the owner approved the plan on 2026-11-19
 
 Round T needs nothing from Rounds B, N or E to start: T1 needs only the workspace, and the chapters use `verify/` code. It runs beside them as milestone MT on the [roadmap](roadmap.md):
 
@@ -533,7 +534,7 @@ Round T needs nothing from Rounds B, N or E to start: T1 needs only the workspac
  U18 ─► T36   U19 ─► T37 (in T21)   U20 ─► T38 (in T35)   U21 ─► T39 (in T11)
 ```
 
-The owner's review starts it: once the owner approves this plan, T1 can begin, and T2 already has the owner's design. Once Rounds B, N and E land the todos each chapter names in `switchTo`, follow-up todos move those chapters' listings to our own packages. The book then documents the stack this repository builds, in code that CI checks on every push.
+The owner approved this plan on 2026-11-19 ("If green merge", then "Then continue work"), so T1 can begin now, and T2 already has the owner's design. Once Rounds B, N and E land the todos each chapter names in `switchTo`, follow-up todos move those chapters' listings to our own packages. The book then documents the stack this repository builds, in code that CI checks on every push.
 
 [main]: ../research/agent-sdks-and-harness-design.md
 [main-arch]: ../research/agent-sdks-and-harness-design.md#a-reference-architecture-in-eight-swappable-layers
