@@ -241,4 +241,32 @@ Each row below re-reads on the live page a claim that earlier sessions on 2026-1
 | 159 | Row 125: a job can wait up to 30 days for an environment approval | ✅ | [GitHub, Actions limits](https://docs.github.com/en/actions/reference/limits), read 2026-11-19: "Gate approval time", "A workflow may wait for up to 30 days on environment approvals" |
 | 160 | Rows 76 and 79: a bundler that trusts `sideEffects: false` may drop a bare import of a side-effect file | ✅ | [webpack, tree shaking](https://webpack.js.org/guides/tree-shaking/), read 2026-11-19: a CSS file "imported for its side effect alone needs to be added to the side effect list so it will not be unintentionally dropped", and "an array can be provided instead" of `false` |
 
-**Totals:** 160 claims: 122 ✅, 30 ✏️, 8 ⚠️.
+## L4b: automated alpha releases (2026-11-19)
+
+Rows 161–181 check the claims L4b added to the plan, CI plan §3e–3f, `.changeset/README.md`, `CONTRIBUTING.md`, the package READMEs and the todo. Changesets claims were read from `@changesets/cli` 3.0.3 as installed in the workspace, npm claims from npm 11.21.2's source, and GitHub claims from docs.github.com that day.
+
+| # | Claim | Verdict | Source and reason |
+| --- | --- | --- | --- |
+| 161 | The owner said "let's make the releases automated too. Let's keep it alpha for now until we're ready to publish" | ✅ | Owner's message, 2026-11-19, relayed to the L4b session |
+| 162 | The owner chose "Changesets pre mode" and "alpha, latest stays placeholder" | ✅ | Owner's answers, 2026-11-19, relayed to the L4b session |
+| 163 | The owner said "let's make the publishes run on every change to the package" | ✅ | Owner's message, 2026-11-19, relayed to the L4b session; it replaced the "Version packages" pull request flow |
+| 164 | The owner created the `release` environment and added both trusted publishers on 2026-11-19 | ⚠️ | Owner's statements, relayed to the L4b session. The session couldn't read the environment's settings or npm's publisher settings, so the required reviewer and branch limit are unconfirmed |
+| 165 | `pnpm changeset pre enter alpha` writes `.changeset/pre.json` as `{ "mode": "pre", "tag": "alpha" }`, and the next `pnpm changeset version` gives both packages 0.1.0-alpha.0 | ✅ | Local run on L4b's branch, 2026-11-19 |
+| 166 | In pre mode, Changesets 3 moves the changesets `changeset version` consumed into `.changeset/pre/` instead of deleting them | ✅ | `@changesets/apply-release-plan` (with `@changesets/cli` 3.0.3), `dist/index.mjs`: when `preState.mode === "pre"`, it renames each changeset into `.changeset/pre/`; the local run left both there |
+| 167 | `pnpm changeset pre exit` sets `"mode": "exit"`, and the next `pnpm changeset version` uses the changesets in `pre/` for the changelog, then deletes them and `pre.json` | ✅ | `@changesets/pre` `exitPre` writes `mode: "exit"`; the CLI's exit message says the `pre/` changesets "will be used as changelogs for the normal versions"; `@changesets/read` reads `pre/`; `apply-release-plan` removes `pre.json` in exit mode and deletes consumed changesets outside pre mode |
+| 168 | A second changeset in pre mode versions both packages to 0.1.0-alpha.1 | ✅ | Local run on a throwaway branch of L4b, 2026-11-19 |
+| 169 | `pnpm changeset status --since=origin/main` exits 1 on L4b's branch, and `scripts/ci/changeset-gate.mjs` passes it | ✅ | Local runs, 2026-11-19; the gate also failed the branch once a commit added a `src/` edit without a changeset |
+| 170 | npm 11.21.2 refuses to publish a prerelease without `--tag` | ✅ | npm 11.21.2 `lib/commands/publish.js`, lines 129–131: "You must specify a tag using --tag when publishing a prerelease version." |
+| 171 | A push made with `GITHUB_TOKEN` starts no workflow run | ✅ | [GitHub, `GITHUB_TOKEN`](https://docs.github.com/en/actions/concepts/security/github_token), read 2026-11-19: "if a workflow run pushes code using the repository's `GITHUB_TOKEN`, a new workflow will not run even when the repository contains a workflow configured to run when `push` events occur" |
+| 172 | `[skip ci]` in a commit message skips the `push` and `pull_request` workflows for it | ✅ | [GitHub, skipping workflow runs](https://docs.github.com/en/actions/how-tos/manage-workflow-runs/skip-workflow-runs), read 2026-11-19: "Workflows that would otherwise be triggered using `on: push` or `on: pull_request` won't be triggered" |
+| 173 | A concurrency group runs one run at a time, keeps one pending, and cancels an older pending run | ✅ | [GitHub, workflow syntax](https://docs.github.com/en/actions/reference/workflows-and-actions/workflow-syntax), read 2026-11-19: "any existing `pending` job or workflow in the same concurrency group will be canceled and the new queued job or workflow will take its place" |
+| 174 | A job that needs a skipped job is skipped unless its `if:` says otherwise | ✅ | Same page: "If a job fails or is skipped, all jobs that need it are skipped unless the jobs use a conditional expression that causes the job to continue" |
+| 175 | `gh release create --prerelease` marks the release as a prerelease | ✅ | `gh release create --help`, gh 2.89.0: "-p, --prerelease  Mark the release as a prerelease" |
+| 176 | npm's provenance for a version job's release names the run's merge commit, not the version commit | ⚠️ | Inferred from the OIDC token naming `GITHUB_SHA`; not checked against a real attestation. The first alpha has no version commit, so the first check comes with 0.1.0-alpha.1 |
+| 177 | The packed SDK depends on exactly `@buildanagent/gateway@0.1.0-alpha.0` | ✅ | `scripts/ci/packages-pack.test.mjs` with pnpm 10.34.9, 2026-11-19: the packed `package.json` names the gateway's version |
+| 178 | A fresh project installs both 0.1.0-alpha.0 tarballs with `pnpm install --offline` and makes one call through the Anthropic adapter against a mock server | ✅ | The same test file, 2026-11-19, with pnpm 10.34.9 and an allowlisted environment |
+| 179 | CI plan §3f said the plan refuses prerelease versions because the job publishes to `latest` only | ✏️ | Superseded by rows 161–162: the plan now accepts a prerelease whose identifier is `pre.json`'s tag while in pre mode, publishes it under that tag, and refuses any other pairing |
+| 180 | PB2 said 0.1.0 would take `latest` on its first publish | ✏️ | Superseded by row 162: the first release is 0.1.0-alpha.0 under `alpha`, and `latest` stays on `0.0.0-bootstrap.0` until the first stable release |
+| 181 | PB2 and CI plan §3f said each release goes through a "Version packages" pull request | ✏️ | Superseded by row 163: `release.yml` versions on `main` and publishes in the same run; L3's `version-pr` job is gone |
+
+**Totals:** 181 claims: 138 ✅, 33 ✏️, 10 ⚠️.

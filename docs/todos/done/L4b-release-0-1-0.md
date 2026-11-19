@@ -3,7 +3,7 @@
 | Field | Value |
 | --- | --- |
 | ID | `L4b` |
-| Status | `ongoing` |
+| Status | `done` |
 | Plan | [Publish and docs §4](../../plans/publish-and-docs.md#4-round-l-and-its-todos) |
 | Round / milestone | Round L (publish and docs, added 2026-11-19) |
 | Depends on | [L4a](../done/L4a-bootstrap-and-trusted-publishers.md) |
@@ -12,6 +12,8 @@
 ## Goal
 
 Ship the first public release, 0.1.0, once a model call works, through the trusted publishers the owner adds the same day ([PB1](../../plans/publish-and-docs.md#pb1-ship-010-once-a-model-call-works-accepted), ADR 0047).
+
+**Changed by the owner on 2026-11-19, while L4b was in progress.** The owner said "let's make the releases automated too. Let's keep it alpha for now until we're ready to publish", chose "Changesets pre mode" and "alpha, latest stays placeholder", and then said "let's make the publishes run on every change to the package". So the first release is 0.1.0-alpha.0 under npm's `alpha` dist-tag, and every later package change publishes the next alpha with no "Version packages" pull request. The scope and criteria below keep their original wording; the [outcome](#outcome) says how each was met under the new plan.
 
 ## Context
 
@@ -34,12 +36,12 @@ Ship the first public release, 0.1.0, once a model call works, through the trust
 
 ## Acceptance criteria
 
-- [ ] `npm view @buildanagent/gateway@0.1.0` and `npm view @buildanagent/sdk@0.1.0` return the release, npmjs.com shows provenance for both, and `latest` points at 0.1.0
-- [ ] A fresh project installs `@buildanagent/sdk@0.1.0` and makes one model call against a mock server through the Anthropic adapter, offline
-- [ ] npmjs.com shows a trusted publisher for both packages, naming `release.yml` and the `release` environment
-- [ ] A changeset-free change to `packages/*/src` fails CI after the release
-- [ ] The release's `workflow_dispatch` (`docs-deploy.yml` with `tag=v0.1.0`) deploys the 0.1.0 docs to `docs.buildanagent.fyi`, and the next push to `main` deploys `next.docs.buildanagent.fyi` (once L8 has landed; otherwise L8 checks it)
-- [ ] `pnpm check`, `pnpm typecheck` and `pnpm test` pass offline from the repo root
+- [ ] `npm view @buildanagent/gateway@0.1.0` and `npm view @buildanagent/sdk@0.1.0` return the release, npmjs.com shows provenance for both, and `latest` points at 0.1.0. Under the owner's change: `npm view` returns 0.1.0-alpha.0 for both, with provenance, `alpha` points at it and `latest` stays on `0.0.0-bootstrap.0`. Checked after the merge publishes
+- [x] A fresh project installs `@buildanagent/sdk@0.1.0` and makes one model call against a mock server through the Anthropic adapter, offline. Met for the packed 0.1.0-alpha.0 tarballs, which are what `release.yml` uploads: `scripts/ci/packages-pack.test.mjs` installs them with `pnpm install --offline` and calls a mock server on the loopback interface. A check against the registry waits for the publish
+- [ ] npmjs.com shows a trusted publisher for both packages, naming `release.yml` and the `release` environment. The owner says both are added; this session can't read npm's settings
+- [x] A changeset-free change to `packages/*/src` fails CI after the release. Checked locally on this branch and in `scripts/ci/changeset-gate.test.mjs`; the first `pull_request` run is this pull request's
+- [ ] The release's `workflow_dispatch` (`docs-deploy.yml` with `tag=v0.1.0`) deploys the 0.1.0 docs to `docs.buildanagent.fyi`, and the next push to `main` deploys `next.docs.buildanagent.fyi` (once L8 has landed; otherwise L8 checks it). Moves to the first stable release: `release.yml` starts no docs deploy for a prerelease, and L8 must treat only a stable tag as a release ([DS4](../../plans/publish-and-docs.md#ds4-the-docs-follow-main-until-010-then-releases-accepted))
+- [x] `pnpm check`, `pnpm typecheck` and `pnpm test` pass offline from the repo root
 
 ## Tests
 
@@ -57,9 +59,25 @@ The changeset gate, once switched on, fails any pull request that runs `pnpm cha
 
 ## Definition of done
 
-- [ ] Claimed: the first commit moved this file `ready/` → `ongoing/` (Status `ongoing`)
-- [ ] Prose drafted with `/anthropic-skills:writing`, and changed claims re-checked against their sources
-- [ ] `pnpm check`, `pnpm typecheck` and `pnpm test` pass locally; pushed after each meaningful step
-- [ ] This file moved `ongoing/` → `done/` (Status `done`) in the last work commit, and the plan's todo table updated
+- [x] Claimed: the first commit moved this file `ready/` → `ongoing/` (Status `ongoing`)
+- [x] Prose drafted with `/anthropic-skills:writing`, and changed claims re-checked against their sources
+- [x] `pnpm check`, `pnpm typecheck` and `pnpm test` pass locally; pushed after each meaningful step
+- [x] This file moved `ongoing/` → `done/` (Status `done`) in the last work commit, and the plan's todo table updated
 - [ ] Two code-review rounds run on the pull request (`/code-review high --max-findings default`, then `medium` and `low` after more than 6 confirmed findings, otherwise `low`), with every finding fixed or explained in a commit message
 - [ ] Copy reviewed with `/anthropic-skills:writing-review` after the code changes, with its findings fixed and the rubric scores in the pull request description
+
+## Outcome
+
+Merging this pull request publishes 0.1.0-alpha.0 of both packages under npm's `alpha` dist-tag. The branch enters Changesets pre mode with the tag `alpha`, adds one changeset per package and runs `pnpm changeset version`. So `main` gets both packages at 0.1.0-alpha.0, their first `CHANGELOG.md` entries and no pending changeset. On that checkout, `release-plan.mjs plan` asks for no version and publishes 0.1.0-alpha.0 under `alpha` as a prerelease; a test in `scripts/ci/release.test.mjs` asserts that plan on the real files.
+
+- **The gate.** `ci.yml`'s `changesets` job is on, and it runs `scripts/ci/changeset-gate.mjs`. The script passes a change whose shipped files are only `package.json` files that differ from the base in `version` alone, each with a `CHANGELOG.md` section for the new version. Every other change goes to `pnpm changeset status`. This option keeps this pull request passing with the gate on, where the todo's two listed options would have needed a second pull request, and a `src/` change without a changeset still fails ([CI plan §3e](../../plans/ci.md#3e-a-changeset-check-off-until-the-first-release-added-2026-11-19)).
+- **Automatic releases.** `release.yml` lost its `version-pr` job. On a push to `main` with a changeset pending, its `version` job versions the newest `main`, pushes `chore(release): version packages to <version> [skip ci]` with `GITHUB_TOKEN` and plans again, and `pack` and `publish` release that commit. The plan accepts only an `alpha` prerelease while in pre mode, and only x.y.z outside it, and the dist-tag comes from `pre.json` ([CI plan §3f](../../plans/ci.md#3f-releases-through-npm-trusted-publishing-added-2026-11-19)).
+- **Leaving alpha.** A pull request that runs `pnpm changeset pre exit` makes the next run publish a stable version under `latest` ([`.changeset/README.md`](../../../.changeset/README.md#leave-alpha-with-pnpm-changeset-pre-exit)).
+- **Docs.** Both READMEs say to install with `@alpha`. The plan, CI plan, roadmap, `CONTRIBUTING.md`, `AGENTS.md` and `.changeset/README.md` describe the new flow, and the fact-check log gains rows 161–181.
+
+The owner's steps:
+
+1. **Before the merge, on the day of it:** add each package's trusted publisher on npmjs.com, with user `laudebugs`, repository `buildanagent`, workflow `release.yml`, environment `release`, and `npm publish` ticked under **Allowed actions**. The owner reports this done on 2026-11-19, so merge by 2026-11-21, or re-add them first.
+2. **Before the second release:** make sure `main`'s branch protection lets GitHub Actions push the version commit, or the version job fails and says so. This session couldn't read the protection rules.
+3. **After the merge:** approve the `publish` job in the `release` environment, if it requires approval. Removing that rule makes every later publish unattended.
+4. **Once 0.1.0-alpha.0 is out:** optionally set each package's publishing access to "Require two-factor authentication and disallow tokens".

@@ -1,6 +1,6 @@
 # Changesets: one file per user-facing change, versioned as one group
 
-Add a changeset to every pull request that changes what users of `@buildanagent/gateway` or `@buildanagent/sdk` get. A changeset is a small Markdown file in this folder that names the bump and says what changed. When a release is cut, `pnpm changeset version` turns the pending changesets into new versions and `CHANGELOG.md` entries, and deletes them. [Changesets](https://github.com/changesets/changesets) does the work; `config.json` holds our settings.
+Add a changeset to every pull request that changes what users of `@buildanagent/gateway` or `@buildanagent/sdk` get. A changeset is a small Markdown file in this folder that names the bump and says what changed. Once your pull request merges, `release.yml` runs `pnpm changeset version`, which turns the pending changesets into a new version and `CHANGELOG.md` entries, and publishes that version to npm. [Changesets](https://github.com/changesets/changesets) does the versioning; `config.json` holds our settings.
 
 ## Add a changeset with `pnpm changeset`
 
@@ -24,8 +24,24 @@ Both packages stay at 0.x, so a change that breaks the API is a `minor` bump, ne
 
 Both packages dropped `private` in todo L4a, so `pnpm changeset` offers them and `pnpm changeset version` moves them off 0.0.0 once a changeset is pending. `privatePackages` in `config.json` still tells Changesets to skip private packages. That setting today affects only the harnesses under `verify/`, and it will also skip the private apps and packages the plans add. The harnesses are also listed in `ignore`, so they are never versioned.
 
-## CI checks for a changeset once publishing starts
+## Every merged changeset publishes an alpha
 
-CI's `changesets` job runs `pnpm changeset status --since=origin/main` and fails a pull request that changes a package's shipped files without a changeset. `changedFilePatterns` in `config.json` lists those files: everything under `src/`, plus `package.json` and `tsconfig.build.json`. The last two count because a dependency bump or a build setting reaches users as surely as a code change. Changes anywhere else, such as docs, tests outside `src/` or workflows, need none. The job stays off until the first release.
+The owner decided on 2026-11-19: "let's make the releases automated too. Let's keep it alpha for now until we're ready to publish", and then "let's make the publishes run on every change to the package". So the repo is in Changesets pre mode with the tag `alpha`, which `pnpm changeset pre enter alpha` set up in `pre.json`, and a release needs no pull request of its own:
+
+1. Your pull request adds a changeset and merges.
+2. `release.yml` runs `pnpm changeset version` on `main`, which moves both packages to the next prerelease, such as `0.1.0-alpha.1`. In pre mode, Changesets 3 moves the changesets it consumed into `pre/` instead of deleting them, because they become the changelog of the stable release.
+3. The workflow pushes that version commit to `main` and publishes both packages under npm's `alpha` dist-tag, then tags the release `v<version>` and marks its GitHub release as a prerelease.
+
+`latest` stays on the deprecated placeholder `0.0.0-bootstrap.0` until the first stable release, so users install with `pnpm add @buildanagent/sdk@alpha`. The details are in the [CI plan](../docs/plans/ci.md#3f-releases-through-npm-trusted-publishing-added-2026-11-19).
+
+## Leave alpha with `pnpm changeset pre exit`
+
+When the owner is ready for a stable release, open a pull request that runs `pnpm changeset pre exit`, which sets `"mode": "exit"` in `pre.json`. Changesets then asks you to review the changesets in `pre/`, because the next version uses them as the stable release's changelog; keep only those that matter to users of the stable version. Once that pull request merges, `release.yml` runs `pnpm changeset version`, which gives both packages a plain version such as `0.1.0` and deletes `pre.json` and the changesets in `pre/`. It then publishes that version under `latest`, which moves `latest` off the placeholder.
+
+## CI checks for a changeset
+
+CI's `changesets` job fails a pull request that changes a package's shipped files without a changeset. `changedFilePatterns` in `config.json` lists those files: everything under `src/`, plus `package.json` and `tsconfig.build.json`. The last two count because a dependency bump or a build setting reaches users as surely as a code change. Changes anywhere else, such as docs, tests outside `src/` or workflows, need none.
+
+The job runs `scripts/ci/changeset-gate.mjs`, which lets one kind of change through without a changeset: a version bump that `pnpm changeset version` made. Such a change touches no shipped file except `package.json` files, each differing from `main` only in `version`, with a `CHANGELOG.md` section for the new version. Every other change goes to `pnpm changeset status --since=origin/main`, which fails it unless a changeset was added. A bump that also changes `src/` is no exception.
 
 When a pull request touches those files but users get nothing new, as with an internal rename or a devDependency bump, run `pnpm changeset --empty`. It writes a changeset that names no package, which satisfies the check and adds nothing to the changelog.
