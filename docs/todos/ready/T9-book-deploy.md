@@ -8,7 +8,7 @@
 | Status | `ready` |
 | Plan | [Book plan §5, BK15](../../plans/build-book.md#bk15-an-assets-only-worker-on-a-custom-domain-behind-a-guard-and-a-switch-proposed) |
 | Round / milestone | Round T (textbook), MT |
-| Depends on | [T2](../done/T2-book-design.md), [T8](T8-book-ci.md) |
+| Depends on | [T2](../done/T2-book-design.md), [T8](../done/T8-book-ci.md) |
 | Size | M |
 
 ## Goal

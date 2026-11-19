@@ -26,6 +26,8 @@ export interface PipelineContext {
   readonly depth: number;
   readonly maxDepth: number;
   readonly clock: Clock;
+  /** Called for each call of a message before its result is worked out, whether or not the call will run. */
+  onStart?(call: ToolCall): void;
   /** Receives a tool's progress updates. */
   onUpdate?(callId: string, details: unknown): void;
   /**
@@ -236,6 +238,7 @@ export async function runToolCalls(
   toolsByName(tools);
   const results: ToolCallResult[] = [];
   for (const call of calls) {
+    ctx.onStart?.(call);
     const entry = { call, result: unrunnable(message, call, tools) ?? (await runToolCall(call, tools, ctx)) };
     results.push(entry);
     ctx.onResult?.(entry);

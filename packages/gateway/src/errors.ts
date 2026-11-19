@@ -1,6 +1,8 @@
 /**
  * `GatewayError`: the gateway's error for programmer errors, such as a missing key, invalid options, a malformed
- * catalog, a tool name outside the canonical rule, or a request a mock transport's script did not expect.
+ * catalog, a tool name outside the canonical rule, or a request a mock transport's script did not expect. Two
+ * subclasses keep their own names for the cases callers catch by class: `StreamContractError` and
+ * `ModelRequestsDisabledError`.
  */
 
 /** Why a `GatewayError` was thrown. */
@@ -10,17 +12,21 @@ export type GatewayErrorCode =
   | "invalid_options"
   | "invalid_catalog"
   | "invalid_tool_name"
-  | "unexpected_request";
+  | "unexpected_request"
+  | "stream_contract"
+  | "model_requests_disabled";
 
 // A registered symbol, so the guard still works when two copies of the package are bundled.
 const GATEWAY_ERROR = Symbol.for("buildanagent.gateway.GatewayError");
 
 /**
  * Thrown for a mistake in how the gateway is called. A failed model call is never thrown: it ends its stream with an
- * `error` event instead.
+ * `error` event instead. `stream_contract`: a stream broke the stream rule (`StreamContractError`).
+ * `model_requests_disabled`: a real request was attempted while `allowModelRequests(false)` is in force
+ * (`ModelRequestsDisabledError`).
  */
 export class GatewayError extends Error {
-  override readonly name = "GatewayError";
+  override readonly name: string = "GatewayError";
   readonly code: GatewayErrorCode;
 
   constructor(code: GatewayErrorCode, message: string, options?: ErrorOptions) {
