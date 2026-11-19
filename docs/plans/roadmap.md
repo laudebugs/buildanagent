@@ -3,7 +3,7 @@
 - **Status:** Phase complete (2026-11-18); M5–M7 are the next phase. On 2026-11-18 the owner made a personal cloud coding agent M7 and deferred the triage agent ([ADR 0032](../decisions/0032-personal-coding-agent-first.md)), and added a multi-user agent platform as M8 and M9 ([ADR 0037](../decisions/0037-multi-user-agent-platform.md)). **The SDK, the harness and Round E are being built:** on 2026-11-18 the owner said "let's not build anything first". On 2026-11-19 the owner lifted that hold for the SDK and harness ("SDK and harness only") and then for all of Round E ("Lift hold on all of E"). Each todo gets one pull request, merged when CI passes. Round B (M5) is under way, Round N (M6) interleaves with it from B1 and B2, and Round E (M5e) runs beside both ([close-sdk-gaps.md](close-sdk-gaps.md)). Rounds W, F and A stay on hold, and no todo in them starts until the owner says go; each W and F todo carries a hold banner.
 - **Date:** 2026-11-18
 - **Asked for by:** the project owner (2026-11-18)
-- **Plans:** [SDK references](sdk-references.md) · [SDK comparison](sdk-comparison.md) · [agent skills](agent-skills.md) · [build guides](build-guides.md) · [implementation plans](implementation-plans.md) · [CI](ci.md)
+- **Plans:** [SDK references](sdk-references.md) · [SDK comparison](sdk-comparison.md) · [agent skills](agent-skills.md) · [build guides](build-guides.md) · [implementation plans](implementation-plans.md) · [CI](ci.md) · [the book](build-book.md)
 - **Done so far (2026-11-18):** this phase is complete. Milestones M1–M4 and X below: eight [SDK references](../reference/), the [comparison](../comparison/), eight [skills](../../.agents/skills/), the research rounds, the three [build guides](../guides/), and the three reviewed plans ([SDK](build-sdk.md), [harness](build-harness.md), [agent](build-agent.md)). The next phase builds M5, M5e and M6 now; M7 and M8 wait for the owner's go.
 
 ## What we are building
@@ -61,6 +61,18 @@ Round E (close the SDK gaps, added 2026-11-18) builds the safety package on the 
            └─► E5 (after B5) ──────┘
 ```
 
+Round T (the textbook, added 2026-11-19) needs nothing from Rounds B, N or E to start, because its chapters use the `verify/` examples. It waits for the owner to approve the [book plan](build-book.md); the owner has already picked the design that T2 builds ([BK12](build-book.md#bk12-the-owner-picked-direction-cs-layout-c4s-page-colours-and-panels-that-follow-the-theme-accepted)). Each chapter later moves to our own packages once the Round B, N and E todos it names have landed ([BK8](build-book.md#bk8-code-from-verify-now-our-own-sdk-as-its-todos-land-accepted)):
+
+```
+ T1 ─┬─► T2 ─────────────────────────────────┬─► T9 (deploy)
+     └─► T3 ─► T4 ─► T5 ─┬─► T26 ─┐          │
+              T2, T3 ─► T6 ─► T8 (with T4) ─► T7
+                         ├─► T27  │
+                         └─► T28–T34, T40–T42 (examples; T41 also after U18)
+                                  ├─► chapters, each after T26, T6 or T7, and its example todo
+ U18 ─► T36   U19 ─► T37 (in T21)   U20 ─► T38 (in T35)   U21 ─► T39 (in T11)
+```
+
 Round E also feeds later todos, which list it in **Depends on**: E1 ─► B10 and B14, E3 ─► B15, E2 ─► N7, N40 and W6, and E7 ─► N45. Plan review 2 also added two edges outside Round E: N50 ─► N46b (Cloudflare egress, which also waits for the owner's decision) and W12 ─► W8 (the ten coding-agent eval tasks).
 
 - **SDK references first.** S3 (OpenAI) and then S4 (Vercel) follow the eight-step process in [AGENTS.md](../../AGENTS.md#process-for-documenting-an-sdk). Each SDK splits into a verification todo (a) and a reference-docs todo (b).
@@ -84,6 +96,7 @@ Round E also feeds later todos, which list it in **Depends on**: E1 ─► B10 a
 | M5e The SDK gaps as a safety package (added 2026-11-18; approved, hold lifted 2026-11-19) | E1–E7 | `@buildanagent/agent-safety` on `agents` 0.33.0 and `ai` 7.0.162: typed write outcomes, effect identity, signed approvals, plan approvals, a pre-call cost cap, a BYOK guard and stores on four targets, built from [close-sdk-gaps.md](close-sdk-gaps.md) |
 | Q Code quality checks (added 2026-11-19) | Q1, Q2 | The strict compiler flags, Biome caps and a portability test (Q1), then unused-code, boundary, duplication and todo-id checks (Q2), as [`docs/guidelines/`](../guidelines/README.md) requires; Q1 is done and Q2 can start now |
 | L Publish and docs (added 2026-11-19) | L1–L3, L4a, L4b, L5–L8 | Built `dist/` packages, Changesets and trusted publishing, then 0.1.0 of the gateway and SDK once B4 and B8 are done; the docs at `docs.buildanagent.fyi` on Starlight and the website at `buildanagent.fyi`, both on Cloudflare ([publish-and-docs.md](publish-and-docs.md)); L1, L5 and L7 can start now |
+| MT The textbook (added 2026-11-19; draft, for the owner's review) | T1–T42, U18–U21 | `@buildanagent/book` at `apps/book`, a public two-part textbook deployed to manual.buildanagent.fyi, built from [build-book.md](build-book.md). It depends on no other round to start; its chapters switch to our own packages as Rounds B, N and E land |
 | M5 Our agent SDK (next phase) | B1–B20, B15b, B19b | `@buildanagent/gateway` and `@buildanagent/sdk` in `packages/`, built from [build-sdk.md](build-sdk.md) |
 | M6 Our agent harness (next phase) | N1–N40, N41–N49 (portability, added 2026-11-18), N50 (Cloudflare egress verification, added 2026-11-19) | `@buildanagent/protocol`, `harness`, `cli` and `evals`, built from [build-harness.md](build-harness.md); it starts after B1–B2 and interleaves with Round B (§6 of the plan); N38b is deferred with M7b |
 | M7 Our coding agent (next phase, added 2026-11-18) | W1–W12 (W12 added 2026-11-19) | `@buildanagent/coding-agent`, a personal cloud coding agent built from [build-coding-agent.md](build-coding-agent.md): on Cloudflare first (W4–W8), then AWS (W9) and Vercel (W10); W4 needs the portability todos N46a and N46b |

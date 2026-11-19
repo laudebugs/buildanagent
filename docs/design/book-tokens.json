@@ -1,0 +1,210 @@
+{
+  "$comment": "Design tokens for apps/book (manual.buildanagent.fyi). Source of truth for todo T2, which generates the CSS custom properties from this file and tests every pair below. Decided by the owner on 2026-11-19 (book plan BK12). Contrast ratios are WCAG 2.x, computed from the hex values.",
+  "version": 1,
+  "decided": "2026-11-19",
+  "color": {
+    "light": {
+      "$comment": "C4 Clay and Cream, light page",
+      "values": {
+        "background": "#FAF3E8",
+        "text": "#2A1E16",
+        "textSoft": "#4A3B2F",
+        "textMuted": "#5E4E40",
+        "rule": "#E4D6C2",
+        "accent": "#B04E29",
+        "link": "#8A3519"
+      },
+      "contrast": [
+        {
+          "text": "text",
+          "on": "background",
+          "ratio": 14.7
+        },
+        {
+          "text": "textSoft",
+          "on": "background",
+          "ratio": 9.73
+        },
+        {
+          "text": "textMuted",
+          "on": "background",
+          "ratio": 7.22
+        },
+        {
+          "text": "accent",
+          "on": "background",
+          "ratio": 4.8
+        },
+        {
+          "text": "link",
+          "on": "background",
+          "ratio": 7.32
+        }
+      ]
+    },
+    "dark": {
+      "$comment": "C4's brown page, dark mode. link is #F2C2A4 (owner, 2026-11-19), a paler shade than the accent so links and accent labels differ; links keep an underline because neither link colour reaches 3:1 against body text.",
+      "values": {
+        "background": "#2A1E16",
+        "text": "#F4EADC",
+        "textSoft": "#D9C9B6",
+        "textMuted": "#B8A794",
+        "rule": "#45352A",
+        "accent": "#E8A27C",
+        "link": "#F2C2A4"
+      },
+      "contrast": [
+        {
+          "text": "text",
+          "on": "background",
+          "ratio": 13.62
+        },
+        {
+          "text": "textSoft",
+          "on": "background",
+          "ratio": 10.02
+        },
+        {
+          "text": "textMuted",
+          "on": "background",
+          "ratio": 6.94
+        },
+        {
+          "text": "accent",
+          "on": "background",
+          "ratio": 7.63
+        },
+        {
+          "text": "link",
+          "on": "background",
+          "ratio": 10.05
+        }
+      ]
+    },
+    "panelLight": {
+      "$comment": "Code and figure panels in light mode (owner, 2026-11-19): one shade darker than the page, framed by the light rule as a border, with deeper syntax colours. comment also serves labels and line numbers; amber is keywords, olive strings, terracotta highlights.",
+      "values": {
+        "background": "#F3EADB",
+        "text": "#2A1E16",
+        "comment": "#6B5B4D",
+        "amber": "#8A4F00",
+        "olive": "#4B5E1F",
+        "terracotta": "#A3401C",
+        "grid": "#EADFCC",
+        "border": "#E4D6C2"
+      },
+      "contrast": [
+        {
+          "text": "text",
+          "on": "background",
+          "ratio": 13.59
+        },
+        {
+          "text": "comment",
+          "on": "background",
+          "ratio": 5.45
+        },
+        {
+          "text": "amber",
+          "on": "background",
+          "ratio": 5.5
+        },
+        {
+          "text": "olive",
+          "on": "background",
+          "ratio": 6.03
+        },
+        {
+          "text": "terracotta",
+          "on": "background",
+          "ratio": 5.32
+        }
+      ]
+    },
+    "panelDark": {
+      "$comment": "Code and figure panels in dark mode: C1 Ember (owner, 2026-11-19).",
+      "values": {
+        "background": "#17110D",
+        "text": "#F2E8DC",
+        "comment": "#A8968A",
+        "amber": "#F2A541",
+        "terracotta": "#E2704B",
+        "olive": "#C9D68E",
+        "grid": "#251B14"
+      },
+      "contrast": [
+        {
+          "text": "text",
+          "on": "background",
+          "ratio": 15.46
+        },
+        {
+          "text": "comment",
+          "on": "background",
+          "ratio": 6.59
+        },
+        {
+          "text": "amber",
+          "on": "background",
+          "ratio": 9.12
+        },
+        {
+          "text": "olive",
+          "on": "background",
+          "ratio": 12.02
+        },
+        {
+          "text": "terracotta",
+          "on": "background",
+          "ratio": 5.93
+        }
+      ]
+    },
+    "decorativeOnly": {
+      "$comment": "Fail 4.5:1 and 3:1; use only for dividers, panel borders and grid lines, never for text, focus rings or figure lines that carry meaning",
+      "light.rule": 1.3,
+      "dark.rule": 1.39,
+      "panelLight.background on light.background": 1.08,
+      "panelLight.grid": 1.11,
+      "panelDark.grid": 1.11
+    }
+  },
+  "font": {
+    "display": {
+      "family": "Instrument Serif",
+      "use": "titles, section heads, chapter links",
+      "licence": "OFL-1.1"
+    },
+    "body": {
+      "family": "Literata",
+      "use": "body text, notes",
+      "licence": "OFL-1.1"
+    },
+    "code": {
+      "family": "Google Sans Code",
+      "use": "listings, labels, figure captions",
+      "licence": "OFL-1.1",
+      "$comment": "Subset files get neutral names (its TRADEMARKS.md restricts the name on modified versions)"
+    },
+    "selfHosted": true
+  },
+  "size": {
+    "$comment": "px at the reference page's 1280 px width; T2 converts to rem and sets the phone scale",
+    "display": {
+      "title": 80,
+      "section": 40,
+      "chapterLink": 26
+    },
+    "body": {
+      "lede": 21,
+      "text": 19,
+      "note": 15,
+      "lineHeight": 1.7
+    },
+    "code": {
+      "listing": 13.5,
+      "label": 12
+    }
+  },
+  "source": "The owner's design canvas, board 'Reference design' (private)."
+}
