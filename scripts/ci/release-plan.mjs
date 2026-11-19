@@ -6,9 +6,9 @@
 //   node scripts/ci/release-plan.mjs needs-version prints true when `pnpm changeset version` has work to do
 //   node scripts/ci/release-plan.mjs notes <file>  writes the changelog section of the current version to <file>
 //
-// The plan asks for a version when changesets are pending, or when .changeset/pre.json is in "exit" mode. release.yml's
-// `version` job, which ran `pnpm changeset version` and pushed the result to main, is switched off until a "Version
-// packages" pull request replaces it (docs/plans/ci.md §3f), so until then such a plan publishes nothing.
+// The plan asks for a version when changesets are pending, or when .changeset/pre.json is in "exit" mode. Such a plan
+// publishes nothing: release.yml's `version` and `version-pr` jobs turn the changesets into a "Version packages" pull
+// request, and the release publishes once that pull request merges (docs/plans/ci.md §3f).
 // The plan publishes only when every one of these holds, and says which one failed otherwise:
 // - no package is `private` (none has been since L4a, and a test in release.test.mjs fails if the field comes back);
 // - nothing needs versioning, because pending changesets must become a version first;
