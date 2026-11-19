@@ -1,0 +1,10 @@
+[
+  {
+    "id": "kitchen-ticket-rail",
+    "concept": "agent loop",
+    "analogy": "a kitchen ticket rail",
+    "chapter": "first",
+    "illustration": "ticket-rail",
+    "breaks": "A cook remembers yesterday's orders; a model sees only its context."
+  }
+]

@@ -1,0 +1,74 @@
+[
+  {
+    "id": "anthropic-building-effective-agents",
+    "title": "Building effective agents",
+    "publisher": "Anthropic",
+    "url": "https://www.anthropic.com/engineering/building-effective-agents",
+    "kind": "post",
+    "asOf": "November 2026",
+    "verifiedIn": "docs/research/agent/fact-check.md"
+  },
+  {
+    "id": "anthropic-model-context-protocol",
+    "title": "Introducing the Model Context Protocol",
+    "publisher": "Anthropic",
+    "url": "https://www.anthropic.com/news/model-context-protocol",
+    "kind": "post",
+    "asOf": "November 2026",
+    "verifiedIn": "docs/research/fact-check-source-update-2026-11-19.md"
+  },
+  {
+    "id": "openai-practical-guide-to-building-agents",
+    "title": "A practical guide to building agents",
+    "publisher": "OpenAI",
+    "url": "https://cdn.openai.com/business-guides-and-resources/a-practical-guide-to-building-agents.pdf",
+    "kind": "docs",
+    "asOf": "November 2026",
+    "verifiedIn": "docs/research/agent/fact-check.md"
+  },
+  {
+    "id": "ai-sdk-tool-approvals",
+    "title": "Tool Approvals",
+    "publisher": "AI SDK documentation",
+    "url": "https://ai-sdk.dev/docs/agents/tool-approvals.md",
+    "kind": "docs",
+    "asOf": "November 2026",
+    "verifiedIn": "docs/research/connectors/fact-check-agent-connectors.md"
+  },
+  {
+    "id": "vercel-agent-harnesses",
+    "title": "Running Agent Harnesses Durably on Vercel",
+    "publisher": "Vercel",
+    "url": "https://vercel.com/docs/agent-harnesses.md",
+    "kind": "docs",
+    "asOf": "November 2026",
+    "verifiedIn": "docs/research/deployment/fact-check-portable-agents.md"
+  },
+  {
+    "id": "vercel-ai-gateway-faq",
+    "title": "AI Gateway FAQ",
+    "publisher": "Vercel",
+    "url": "https://vercel.com/docs/ai-gateway/faq",
+    "kind": "docs",
+    "asOf": "November 2026",
+    "verifiedIn": "docs/research/deployment/fact-check-agent-building-platforms.md"
+  },
+  {
+    "id": "vercel-sandbox",
+    "title": "Vercel Sandbox",
+    "publisher": "Vercel",
+    "url": "https://vercel.com/docs/sandbox",
+    "kind": "docs",
+    "asOf": "November 2026",
+    "verifiedIn": "docs/research/browser-use/fact-check-browser-use.md"
+  },
+  {
+    "id": "willison-lethal-trifecta",
+    "title": "The lethal trifecta for AI agents: private data, untrusted content, and external communication",
+    "publisher": "Simon Willison",
+    "url": "https://simonwillison.net/2025/Jun/16/the-lethal-trifecta/",
+    "kind": "post",
+    "asOf": "November 2026",
+    "verifiedIn": "docs/research/agent/fact-check.md"
+  }
+]

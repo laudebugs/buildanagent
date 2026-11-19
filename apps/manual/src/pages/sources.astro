@@ -1,0 +1,37 @@
+---
+import { getBook } from "../book/load.js";
+import ChapterHead from "../components/ChapterHead.astro";
+import BaseLayout from "../layouts/BaseLayout.astro";
+
+const book = getBook();
+
+// Every register entry, in the register's order. Each anchor is the id chapters cite with [@id].
+const sources = [...book.sources.values()];
+---
+
+<BaseLayout title="Sources" description="Every source the book cites, and the fact-check log that verified it.">
+  <div class="page">
+    <ChapterHead title="Sources" />
+    <div class="article">
+      <p>
+        One of the repository's fact-check logs checked every source below, and each entry names its log. Versions and
+        pages change, so each entry also says when it was read.
+      </p>
+      <ul>
+        {
+          sources.map((source) => (
+            <li id={source.id}>
+              <a href={source.url}>{source.title}</a>, {source.publisher} ({source.kind}
+              {source.version ? `, ${source.version}` : ""}), as of {source.asOf}. Checked in <code>{source.verifiedIn}</code>.
+              {source.secondary && (
+                <p class="secondary-note">
+                  That check rests on a search summary or a secondary write-up, not on the source itself.
+                </p>
+              )}
+            </li>
+          ))
+        }
+      </ul>
+    </div>
+  </div>
+</BaseLayout>

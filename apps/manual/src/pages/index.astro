@@ -1,11 +1,15 @@
 ---
-import { getCollection } from "astro:content";
+import { getBook } from "../book/load.js";
 import ChapterHead from "../components/ChapterHead.astro";
 import Contents from "../components/Contents.astro";
 import { contentsParts } from "../components/contents-parts.js";
 import BaseLayout from "../layouts/BaseLayout.astro";
 
-const parts = contentsParts(await getCollection("chapters"));
+const book = getBook();
+
+// The contents come from the outline, not from the chapter files, so a planned chapter shows in its place, as plain
+// text until its file exists (BK5).
+const parts = contentsParts(book);
 ---
 
 <BaseLayout title="Build an agent" description="A textbook on building an AI agent.">

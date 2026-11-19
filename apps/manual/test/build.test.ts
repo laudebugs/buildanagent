@@ -9,7 +9,9 @@ import { afterAll, beforeAll, test } from "vitest";
 
 // Builds the site into a temporary folder once, then checks the pages the build writes: the gallery renders every
 // component in both themes with its script-only controls hidden, and no page loads anything from another origin.
+// The book has no chapter yet, so the build reads one fixture chapter, written as Chapter 1, through BOOK_FIXTURE_DIR.
 const app = fileURLToPath(new URL("..", import.meta.url));
+const fixtureBook = fileURLToPath(new URL("./fixtures/site/", import.meta.url));
 let out = "";
 
 function nearestBin(name: string): string {
@@ -30,6 +32,7 @@ beforeAll(async () => {
     TMPDIR: tmpdir(),
     LANG: process.env.LANG ?? "C.UTF-8",
     ASTRO_TELEMETRY_DISABLED: "1",
+    BOOK_FIXTURE_DIR: fixtureBook,
   };
   await promisify(execFile)(nearestBin("astro"), ["build", "--outDir", out], { cwd: app, env });
   rmSync(home, { recursive: true, force: true });
@@ -41,6 +44,10 @@ afterAll(() => {
 
 function files(extension: string): string[] {
   return readdirSync(out, { recursive: true, encoding: "utf8" }).filter((path) => path.endsWith(extension));
+}
+
+function chapter(): string {
+  return readFileSync(join(out, "call-workflow-loop", "index.html"), "utf8");
 }
 
 function gallery(): string {
@@ -136,16 +143,13 @@ test("no page links to a site page that does not exist", () => {
   for (const { path, html } of pages()) {
     for (const [, href = ""] of html.matchAll(/<a\b[^>]*\shref="(\/[^"#?]*)/g)) {
       if (href.startsWith("/fonts/") || href.startsWith("/pagefind/")) continue;
-      // The gallery's citation and glossary samples link to the source register and the glossary, the pages the
-      // content model adds; every other page must link only to pages the build writes.
-      if (path === "gallery/index.html" && (href === "/sources/" || href === "/glossary/")) continue;
       assert.ok(built.has(href), `${path} links to ${href}, which the build does not write`);
     }
   }
 });
 
 test("the chapter page and each gallery theme are layout containers, so the columns follow their width", () => {
-  assert.match(readFileSync(join(out, "welcome", "index.html"), "utf8"), /class="page layout"/);
+  assert.match(chapter(), /class="page layout"/);
   assert.equal((gallery().match(/class="gallery__theme layout"/g) ?? []).length, 2);
 });
 
@@ -158,4 +162,33 @@ test("the built stylesheet carries the generated tokens and the self-hosted font
   for (const family of ["Instrument Serif", "Literata", "Manual Code"]) {
     assert.match(css, new RegExp(`font-family:\\s*"?${family}"?`), `the CSS declares ${family}`);
   }
+});
+
+test("a chapter page shows its number from the outline and its numbered source list", () => {
+  const html = chapter();
+  assert.match(html, /<p class="chapter-head__label label">Chapter 1<\/p>/);
+  assert.match(html, /<span class="number">Figure 1\.1<\/span> The loop, as a placeholder/);
+  assert.match(html, /\[<a href="\/sources\/#anthropic-building-effective-agents"[^>]*class="cite">1<\/a>\]/);
+  assert.match(
+    html,
+    /<section class="chapter-sources"[^>]*><h2 id="sources">Sources<\/h2><ol><li><a href="\/sources\/#anthropic-building-effective-agents">Building effective agents<\/a>, Anthropic<\/li><\/ol><\/section>/,
+  );
+});
+
+test("the contents list every chapter in the outline, linking only the written ones", () => {
+  const html = readFileSync(join(out, "index.html"), "utf8");
+  assert.equal((html.match(/class="contents__chapter"/g) ?? []).length, 18);
+  assert.match(html, /<a href="\/call-workflow-loop\/">Use the least autonomy that works/);
+  assert.match(html, /<span class="contents__planned">Tools: schemas/);
+});
+
+test("the site header links to the glossary and the sources, and both pages exist", () => {
+  const html = readFileSync(join(out, "index.html"), "utf8");
+  assert.match(html, /<a href="\/glossary\/">Glossary<\/a>/);
+  assert.match(html, /<a href="\/sources\/">Sources<\/a>/);
+  assert.match(readFileSync(join(out, "glossary", "index.html"), "utf8"), /<dt id="agent-loop">/);
+  assert.match(
+    readFileSync(join(out, "sources", "index.html"), "utf8"),
+    /<li id="anthropic-building-effective-agents">/,
+  );
 });
