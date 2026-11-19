@@ -89,6 +89,6 @@ Round E also feeds four later todos, which now list it in **Depends on**: E1 ─
 
 ## How each todo is worked
 
-- **One todo is one pull request, squash-merged into `main`** (from 2026-11-18; before that, todos were pushed to `main` directly). Move the todo `ready/` → `ongoing/` in the first commit and `ongoing/` → `done/` in the last, push the branch after each meaningful step, and merge once CI passes ([AGENTS.md, Git](../../AGENTS.md#git)).
+- **One todo is one pull request, squash-merged into `main`** (from 2026-11-18; before that, todos were pushed to `main` directly). Move the todo `ready/` → `ongoing/` in the first commit and `ongoing/` → `done/` in the last work commit before the pull request opens, push the branch after each meaningful step, and merge after the two code-review rounds, the writing review and CI pass ([AGENTS.md, Git](../../AGENTS.md#git); [code review](../../AGENTS.md#every-pull-request-gets-two-rounds-of-code-review)).
 - **Prose goes through the writing skills.** Draft with `/anthropic-skills:writing`, review with `/anthropic-skills:writing-review`, apply the fixes, then re-check every changed claim against its source.
 - **Code goes through the local checks.** `pnpm check`, `pnpm typecheck` and `pnpm test` pass before every push ([AGENTS.md coding standards](../../AGENTS.md#coding-standards)).
