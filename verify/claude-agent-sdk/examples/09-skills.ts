@@ -1,7 +1,7 @@
 // Skills: the model sees a skill's name and description up front and reads its body only on demand.
 // A skill is a folder with a SKILL.md file. The CLI lists each enabled skill's name and description
-// in a system-role message at the start of the conversation, and the built-in Skill tool reads the body into the conversation when the
-// model calls it. The `skills` option is a context filter, not a sandbox: it hides the other skills
+// in a system-role message at the start of the conversation, and the built-in Skill tool reads the
+// body into the conversation when the model calls it. The `skills` option is a context filter, not a sandbox: it hides the other skills
 // from the model but leaves their files on disk. The mock model reads the skill its prompt marks
 // with [use-skill:<name>], the way a model reads a skill it recognises. Skill files are written into
 // a temp directory, and `tools: ["Skill"]` leaves the model no Bash, Edit or Read to call.

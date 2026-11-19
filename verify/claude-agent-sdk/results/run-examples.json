@@ -71,10 +71,10 @@
     "outcome": "ran",
     "patchedPlaceholders": false,
     "exit": 0,
-    "ms": 4842,
+    "ms": 761,
     "modelRequests": 2,
     "toolResults": 1,
-    "tail": "ok - PreToolUse hook saw the lookup tool call\nok - `tools: []` removed the built-in Bash/Edit tools\nok - auto-approved lookup never reached canUseTool\nok - agent finished successfully\nok - structured_output matches the Triage schema\ntriage: {\"category\":\"bug\",\"priority\":\"low\",\"summary\":\"example\"}"
+    "tail": "ok - PreToolUse hook saw the lookup tool call\nok - every request offers only: mcp__support__*, StructuredOutput, DeferredToolPlaceholder\nok - auto-approved lookup never reached canUseTool\nok - agent finished successfully\nok - structured_output matches the Triage schema\ntriage: {\"category\":\"bug\",\"priority\":\"low\",\"summary\":\"example\"}"
   },
   {
     "id": "08-deferred-tools",
@@ -82,10 +82,10 @@
     "outcome": "ran",
     "patchedPlaceholders": false,
     "exit": 0,
-    "ms": 1448,
+    "ms": 1185,
     "modelRequests": 5,
     "toolResults": 4,
-    "tail": "ok - the tool result went back to the model\nok - alwaysLoad run finished with success\nok - alwaysLoad: all three definitions are in the first request\nok - alwaysLoad: with nothing left to defer, ToolSearch is not offered and the model never calls it\nok - one loaded definition is smaller than the three definitions alwaysLoad sends up front\nok - no request offers a host tool (Bash, Edit, Write, Read...)"
+    "tail": "ok - the tool result went back to the model\nok - alwaysLoad run finished with success\nok - alwaysLoad: all three definitions are in the first request\nok - alwaysLoad: with nothing left to defer, ToolSearch is not offered and the model never calls it\nok - one loaded definition is smaller than the three definitions alwaysLoad sends up front\nok - every request offers only: ToolSearch, DeferredToolPlaceholder, mcp__weather__*"
   },
   {
     "id": "09-skills",
@@ -93,9 +93,9 @@
     "outcome": "ran",
     "patchedPlaceholders": false,
     "exit": 0,
-    "ms": 913,
+    "ms": 886,
     "modelRequests": 2,
     "toolResults": 1,
-    "tail": "ok - no request offers a host tool (Bash, Edit, Write, Read...)\nok - the skill left out of `skills` never reached the model\nok - the first request lists the skill's name and description\nok - the first request does not carry the skill's body\nok - the model called the Skill tool\nok - after the call, the body rides in every request"
+    "tail": "ok - every request offers only: Skill, DeferredToolPlaceholder\nok - the skill left out of `skills` never reached the model\nok - the first request lists the skill's name and description\nok - the first request does not carry the skill's body\nok - the model called the Skill tool\nok - after the call, the body rides in every request"
   }
 ]
