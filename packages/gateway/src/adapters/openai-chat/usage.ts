@@ -15,12 +15,15 @@
  * The usage object holds token counts only, so a reply carries no billed price and the cost comes from the catalog.
  */
 import type { Usage } from "../../types.js";
-import { emptyUsage } from "../../usage.js";
+import { unreportedUsage } from "../../usage.js";
 import { count, isObject } from "../wire.js";
 
-/** The gateway's `Usage` for a Chat Completions usage object; a reply without one reports zero tokens. */
+/**
+ * The gateway's `Usage` for a Chat Completions usage object. A reply without one, from a server that ignores
+ * `stream_options.include_usage` or a stream that ended before its usage chunk, has `unreported` usage.
+ */
 export function openaiUsage(raw: unknown): Usage {
-  if (!isObject(raw)) return emptyUsage(raw ?? null);
+  if (!isObject(raw)) return unreportedUsage(raw ?? null);
   const prompt = isObject(raw.prompt_tokens_details) ? raw.prompt_tokens_details : {};
   const completion = isObject(raw.completion_tokens_details) ? raw.completion_tokens_details : {};
   const cacheRead = count(prompt.cached_tokens);

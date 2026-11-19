@@ -11,10 +11,21 @@
  * retryable. `context_length_exceeded`, which the fixtures use for
  * an over-long prompt, is not on that page, so its wording is unverified; the classifier also matches the phrase
  * "maximum context".
+ *
+ * A 429 for a temporary rate limit and a 503 for an overloaded model may carry `Retry-After`, "the minimum number of
+ * seconds to wait before retrying" (Rate limits, https://developers.openai.com/api/docs/guides/rate-limits, as of
+ * November 2026). The adapter puts the hint on the error as `retryAfterMs`.
  */
 import type { ModelEvent } from "../../spec.js";
 import type { ModelRef } from "../../types.js";
-import { failureTerminal, isObject, type PartialReply, readErrorBody, type WireFailure } from "../wire.js";
+import {
+  failureTerminal,
+  isObject,
+  type PartialReply,
+  readErrorBody,
+  retryAfterMs,
+  type WireFailure,
+} from "../wire.js";
 
 // The HTTP status each error type stands for, so a stream error, which has no status, classifies like the HTTP error
 // it would have been. A type not listed here classifies as a failure in transit, which is retryable.
@@ -40,10 +51,17 @@ export function failureFrom(body: unknown, status: number | undefined, fallback:
   };
 }
 
-/** Reads a failed HTTP response's error body; a body that is not JSON keeps its text as the message. */
+/**
+ * Reads a failed HTTP response's error body and its retry-after hint; a body that is not JSON keeps its text as the
+ * message.
+ */
 export async function failureFromResponse(response: Response): Promise<WireFailure> {
   const { body, text } = await readErrorBody(response);
-  return failureFrom(body, response.status, text || `HTTP ${response.status}`);
+  const wait = retryAfterMs(response.headers);
+  return {
+    ...failureFrom(body, response.status, text || `HTTP ${response.status}`),
+    ...(wait === undefined ? {} : { retryAfterMs: wait }),
+  };
 }
 
 /** The `error` terminal for a failure, with any partial content and usage the attempt reached. */

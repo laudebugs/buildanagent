@@ -63,4 +63,4 @@ export type {
   Usage,
   WireTool,
 } from "./types.js";
-export { addUsage, emptyUsage, totalInput } from "./usage.js";
+export { addUsage, emptyUsage, totalInput, unreportedUsage } from "./usage.js";

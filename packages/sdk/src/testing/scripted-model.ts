@@ -22,6 +22,7 @@ import {
   type ModelRef,
   type StreamOptions,
   type Usage,
+  unreportedUsage,
 } from "@buildanagent/gateway";
 
 /** One scripted model response. */
@@ -31,6 +32,11 @@ export interface AssistantScript {
   stopReason?: "stop" | "length" | "tool_calls";
   /** Ends the stream with an `error` terminal (`stopReason: "error"`) after streaming `content`. */
   error?: NonNullable<AssistantMessage["error"]>;
+  /**
+   * The token counts the response reports; counts left out are zero. Leave `usage` itself out to script a provider
+   * that reports none: the message's usage is then `unreported`, and `createModel()` prices it as unknown. Pass
+   * `usage: {}` for a response that reports zero tokens.
+   */
   usage?: Partial<Omit<Usage, "raw">>;
 }
 
@@ -174,7 +180,8 @@ export class ScriptedModel implements ModelAdapter {
 
   async *#run(step: ScriptStep, request: RecordedRequest, signal: AbortSignal | undefined): AsyncGenerator<ModelEvent> {
     const script = typeof step === "function" ? await step(request) : step;
-    const run: RunState = { model: request.model, content: [], usage: { ...emptyUsage(), ...script.usage, raw: null } };
+    const usage = script.usage === undefined ? unreportedUsage() : { ...emptyUsage(), ...script.usage, raw: null };
+    const run: RunState = { model: request.model, content: [], usage };
     yield { type: "start" };
     let index = 0;
     for (const scripted of script.content) {

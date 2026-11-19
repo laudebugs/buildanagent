@@ -300,3 +300,98 @@ test("each retry wait is capped at 60 seconds", async () => {
   await createModel({ adapter, id: "m", retries: 8, sleep }).complete(context);
   assert.deepEqual(delays, [2000, 4000, 8000, 16000, 32000, 60000, 60000, 60000]);
 });
+
+test("a retry waits for the provider's retry-after hint when it is longer than the backoff", async () => {
+  const adapter = new FailingAdapter([{ fail: "retryable", retryAfterMs: 7000 }, { reply: "ok" }]);
+  const { sleep, delays } = recordingSleep();
+  const events = await collect(createModel({ adapter, id: "m", sleep }).stream(context));
+  assert.deepEqual(delays, [7000]);
+  assert.equal(retriesOf(events)[0]?.delayMs, 7000);
+});
+
+test("a retry-after hint shorter than the backoff keeps the backoff", async () => {
+  const adapter = new FailingAdapter([{ fail: "retryable", retryAfterMs: 500 }, { reply: "ok" }]);
+  const { sleep, delays } = recordingSleep();
+  await createModel({ adapter, id: "m", sleep }).complete(context);
+  assert.deepEqual(delays, [2000]);
+});
+
+test("a retry-after hint of exactly 60 seconds still retries after 60 seconds", async () => {
+  const adapter = new FailingAdapter([{ fail: "retryable", retryAfterMs: 60_000 }, { reply: "ok" }]);
+  const { sleep, delays } = recordingSleep();
+  const message = await createModel({ adapter, id: "m", sleep }).complete(context);
+  assert.deepEqual(delays, [60_000]);
+  assert.equal(message.stopReason, "stop");
+});
+
+test.each([120_000, Number.POSITIVE_INFINITY])(
+  "a retry-after hint of %d ms, over the 60-second cap, ends the call without a retry",
+  async (hintMs) => {
+    const adapter = new FailingAdapter([{ fail: "retryable", retryAfterMs: hintMs }, { reply: "never sent" }]);
+    const { sleep, delays } = recordingSleep();
+    const events = await assertStreamContract(createModel({ adapter, id: "m", sleep }).stream(context));
+    assert.equal(adapter.calls.length, 1);
+    assert.deepEqual(delays, []);
+    assert.deepEqual(retriesOf(events), []);
+    const last = events.at(-1);
+    assert.equal(last?.type, "error");
+    const message = last?.type === "error" ? last.message : undefined;
+    assert.equal(message?.stopReason, "error");
+    assert.equal(message?.error?.kind, "retryable");
+    assert.equal(message?.error?.retryAfterMs, hintMs);
+  },
+);
+
+test("a hint over the cap after an earlier retry keeps every attempt's usage and cost", async () => {
+  const usage = { ...emptyUsage(), uncachedInput: 10 };
+  const cost = { total: 0.01, basis: "provider", currency: "USD" } as const;
+  const adapter = new FailingAdapter([
+    { fail: "retryable", usage, cost },
+    { fail: "retryable", retryAfterMs: 90_000, usage, cost },
+    { reply: "never sent" },
+  ]);
+  const { sleep, delays } = recordingSleep();
+  const message = await createModel({ adapter, id: "m", sleep }).complete(context);
+  assert.equal(adapter.calls.length, 2);
+  assert.deepEqual(delays, [2000]);
+  assert.equal(message.error?.retryAfterMs, 90_000);
+  assert.equal(message.usage.uncachedInput, 20);
+  assert.equal(message.lastAttemptUsage?.uncachedInput, 10);
+  assert.equal(message.cost.total, 0.02);
+});
+
+test("an abort before a hint over the cap ends the call as aborted", async () => {
+  const controller = new AbortController();
+  controller.abort();
+  const adapter = new FailingAdapter([{ fail: "retryable", retryAfterMs: 120_000 }]);
+  const message = await createModel({ adapter, id: "m", sleep: recordingSleep().sleep }).complete(context, {
+    signal: controller.signal,
+  });
+  assert.equal(message.stopReason, "aborted");
+});
+
+test.each(["quota", "overflow", "fatal"] as const)(
+  "a %s error with a retry-after hint is not retried",
+  async (kind) => {
+    const adapter = new FailingAdapter([{ fail: kind, retryAfterMs: 1000 }]);
+    const { sleep, delays } = recordingSleep();
+    const message = await createModel({ adapter, id: "m", sleep }).complete(context);
+    assert.equal(adapter.calls.length, 1);
+    assert.deepEqual(delays, []);
+    assert.equal(message.error?.retryAfterMs, 1000);
+  },
+);
+
+test("aborting during a retry-after wait ends the stream with stopReason aborted", async () => {
+  const controller = new AbortController();
+  const adapter = new FailingAdapter([{ fail: "retryable", retryAfterMs: 30_000 }, { reply: "never sent" }]);
+  const delays: number[] = [];
+  const sleep = async (ms: number) => {
+    delays.push(ms);
+    controller.abort();
+  };
+  const message = await createModel({ adapter, id: "m", sleep }).complete(context, { signal: controller.signal });
+  assert.deepEqual(delays, [30_000]);
+  assert.equal(message.stopReason, "aborted");
+  assert.equal(adapter.calls.length, 1);
+});

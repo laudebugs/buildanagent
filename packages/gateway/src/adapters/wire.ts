@@ -2,6 +2,10 @@
  * What every wire adapter shares: sending one HTTP request through the caller's transport, reading a server-sent
  * event stream to its terminal, and turning a failed request, a broken stream or an abort into an `error` terminal.
  * A failed model call never throws; only a guard's error or a `GatewayError` does.
+ *
+ * Usage: an attempt that ends without a usage report has `unreported` usage, so `createModel()` prices it as unknown.
+ * The one exception is an HTTP error response, which counts as zero tokens: the provider answered with an error
+ * instead of a reply, and its body reports no usage to read.
  */
 import { classifyError, type ErrorKind, isTransportFailure } from "../classify.js";
 import { isGatewayError } from "../errors.js";
@@ -10,7 +14,7 @@ import type { Transport } from "../runtime-types.js";
 import type { ModelEvent, StreamOptions } from "../spec.js";
 import { readServerSentEvents, type ServerSentEvent } from "../sse.js";
 import type { AssistantMessage, ContentBlock, ModelErrorCode, ModelRef, Usage } from "../types.js";
-import { emptyUsage } from "../usage.js";
+import { emptyUsage, unreportedUsage } from "../usage.js";
 
 /** A JSON object as the adapters read it off the wire. */
 export type Json = Record<string, unknown>;
@@ -31,6 +35,8 @@ export interface WireFailure {
   readonly message: string;
   /** Sets the kind outright, for a failure that no status describes, such as a refusal inside a 200 stream. */
   readonly kind?: ErrorKind;
+  /** How long the response's `retry-after-ms` or `retry-after` header asked the caller to wait, in milliseconds. */
+  readonly retryAfterMs?: number;
 }
 
 /** True for a JSON object, not an array or `null`. */
@@ -58,7 +64,10 @@ export function parseToolInput(text: string, empty: unknown = {}): unknown {
   }
 }
 
-/** An assistant message with an unknown cost, which `createModel()` prices from the catalog. */
+/**
+ * An assistant message with an unknown cost, which `createModel()` prices from the catalog. Without `partial.usage`,
+ * the provider reported no usage, so the message's usage is `unreported`.
+ */
 export function terminalMessage(
   model: ModelRef,
   partial: PartialReply,
@@ -71,7 +80,7 @@ export function terminalMessage(
     model,
     stopReason,
     ...(error ? { error } : {}),
-    usage: partial.usage ?? emptyUsage(),
+    usage: partial.usage ?? unreportedUsage(),
     cost: { total: null, basis: "unknown", currency: "USD" },
   };
 }
@@ -84,6 +93,7 @@ export function abortedEvent(model: ModelRef, partial: PartialReply = {}): Extra
 /**
  * The `error` terminal for a failure. A failure with no HTTP status, such as an error event inside a 200 stream,
  * classifies like the status its type stands for in `statusOfType`. The message starts with the error code or type.
+ * A failure with a status is an HTTP error response, so without `partial.usage` it reports zero tokens.
  */
 export function failureTerminal(
   model: ModelRef,
@@ -108,14 +118,54 @@ export function failureTerminal(
     message: label ? `${label}: ${failure.message}` : failure.message,
     ...(failure.status === undefined ? {} : { status: failure.status }),
     ...(code ? { code } : {}),
+    ...(failure.retryAfterMs === undefined ? {} : { retryAfterMs: failure.retryAfterMs }),
   };
-  return { type: "error", message: terminalMessage(model, partial, "error", error) };
+  const reply = failure.status === undefined || partial.usage ? partial : { ...partial, usage: emptyUsage() };
+  return { type: "error", message: terminalMessage(model, reply, "error", error) };
 }
 
 /** The `error` terminal for a throw: retryable only for a transport failure, and `fatal` for a bug or bad data. */
 export function thrownTerminal(model: ModelRef, thrown: unknown, partial: PartialReply = {}) {
   const message = thrown instanceof Error ? `${thrown.name}: ${thrown.message}` : String(thrown);
   return failureTerminal(model, { message, ...(isTransportFailure(thrown) ? {} : { kind: "fatal" }) }, {}, partial);
+}
+
+// A delay in seconds, as `retry-after` sends it, or in milliseconds, as `retry-after-ms` does: a non-negative decimal.
+const DELAY = /^\d+(\.\d+)?$/;
+
+// The three HTTP-date forms of RFC 9110, section 5.6.7: IMF-fixdate, the obsolete RFC 850 form, and asctime, which
+// has no zone and means GMT. `Date.parse` alone would also take text such as "-5" or "5, 10" as a date.
+const GMT_DATE = /^[A-Z][a-z]{2,8}, (\d{2} [A-Z][a-z]{2} \d{4}|\d{2}-[A-Z][a-z]{2}-\d{2}) \d{2}:\d{2}:\d{2} GMT$/;
+const ASCTIME_DATE = /^[A-Z][a-z]{2} [A-Z][a-z]{2} [ \d]\d \d{2}:\d{2}:\d{2} \d{4}$/;
+
+/** The time an HTTP-date names, in milliseconds since the epoch, or `NaN` for any other text. */
+function httpDate(value: string | null): number {
+  if (value === null) return Number.NaN;
+  const text = value.trim();
+  if (GMT_DATE.test(text)) return Date.parse(text);
+  return ASCTIME_DATE.test(text) ? Date.parse(`${text} GMT`) : Number.NaN;
+}
+
+/**
+ * How long a failed response asks the caller to wait before retrying, in milliseconds, or `undefined` when it gives
+ * no valid delay. `retry-after-ms` wins over `retry-after`, as in the official TypeScript SDKs (openai-node v7.49.0
+ * and anthropic-sdk-typescript v0.129.0, `src/client.ts`, as of November 2026). `retry-after` holds seconds, as
+ * Anthropic's and OpenAI's rate-limit pages say (https://platform.claude.com/docs/en/api/rate-limits and
+ * https://developers.openai.com/api/docs/guides/rate-limits, as of November 2026), or an HTTP date (RFC 9110,
+ * section 10.2.3). A date counts from the response's own `date` header, so the delay depends on no local clock, and
+ * a response without one gives no delay. Any other value, such as a negative number or the comma-joined values of a
+ * repeated header, gives no delay.
+ */
+export function retryAfterMs(headers: Headers): number | undefined {
+  const millis = headers.get("retry-after-ms")?.trim();
+  if (millis !== undefined && DELAY.test(millis)) return Number(millis);
+  const value = headers.get("retry-after")?.trim();
+  if (value === undefined || value === "") return undefined;
+  if (DELAY.test(value)) return Number(value) * 1000;
+  const until = httpDate(value);
+  const sent = httpDate(headers.get("date"));
+  if (Number.isNaN(until) || Number.isNaN(sent)) return undefined;
+  return Math.max(0, until - sent);
 }
 
 /** A failed response's body, parsed as JSON when it is JSON, and its text. */
