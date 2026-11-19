@@ -194,6 +194,15 @@ test("a chapter page shows a listing cut from a verify/ example, with the pin it
   );
 });
 
+test("a chapter page builds with inline code that its listings and their packages' .d.ts files hold", () => {
+  const html = chapter();
+  // `generateText` and `result.finishReason` are in the listed region, and `stopWhen` and `Agent` in the tabs'
+  // regions; only the .d.ts of ai, which the listed file imports, exports `streamText`.
+  assert.match(html, /makes one call with <code>generateText<\/code>, and <code>result\.finishReason<\/code> says/);
+  assert.match(html, /<code>streamText<\/code> streams the answer instead/);
+  assert.match(html, /where <code>stopWhen<\/code> and <code>Agent<\/code> set who decides/);
+});
+
 test("a chapter page shows SDK tabs and a replay that read in full without JavaScript, and loads their script", () => {
   const html = chapter();
   const tabs = html.slice(html.indexOf('<div class="tabs" data-label="SDK">'));

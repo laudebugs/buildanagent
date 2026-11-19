@@ -64,6 +64,49 @@ export function withInteractive(dir: string): void {
   edit(dir, "chapters/second.md", (text) => text.replace(/^(::listing\[Greeting.*)$/m, `$1\n${INTERACTIVE}`));
 }
 
+/**
+ * A fixture example that imports the fixture's own package, `demo-sdk`, for the inline-code check. It stays out of the
+ * committed harness, because the manual's typecheck covers the fixture's examples and no `node_modules` holds the
+ * package there; `withSdk` writes it into a fixture copy.
+ */
+export const SDK_EXAMPLE = `// A fixture example that imports the fixture's installed package.
+import { createAgent } from "demo-sdk";
+
+// #region run
+const agent = createAgent({ name: "greeter" });
+const result = await agent.run("Greet the reader.");
+console.log(result.text);
+// #endregion
+
+export const unlisted = "outsideRegion";
+`;
+
+/** The line of the second chapter where `withSdk` lists the example above. */
+export const SDK_LISTING_LINE = 20;
+/** The line where `prose` adds its paragraph, once `withSdk` has listed the example. */
+export const PROSE_LINE = 22;
+
+/**
+ * Installs the fixture's package, committed under `installed/demo-sdk` because Git ignores every `node_modules`, into
+ * the demo harness of a fixture copy, writes `SDK_EXAMPLE` beside the harness's other examples, and lists its region
+ * in the second chapter after the file listing on line 18.
+ */
+export function withSdk(dir: string): void {
+  cpSync(join(dir, "installed/demo-sdk"), join(dir, "verify/demo-sdk/node_modules/demo-sdk"), { recursive: true });
+  writeFileSync(join(dir, "verify/demo-sdk/examples/03-sdk.ts"), SDK_EXAMPLE);
+  edit(dir, "chapters/second.md", (text) =>
+    text.replace(
+      /^(::listing\[Greeting.*)$/m,
+      '$1\n\n::listing[Running an agent]{#run file="verify/demo-sdk/examples/03-sdk.ts" region="run"}',
+    ),
+  );
+}
+
+/** Adds a paragraph to the second chapter just before its exercises, on `PROSE_LINE` once `withSdk` has run. */
+export function prose(dir: string, paragraph: string): void {
+  edit(dir, "chapters/second.md", (text) => text.replace("## Exercises", `${paragraph}\n\n## Exercises`));
+}
+
 /** Copies the fixture book to a fresh temporary directory, applies `change` and returns the directory. */
 export function mutatedFixture(change: (dir: string) => void): string {
   const dir = mkdtempSync(join(tmpdir(), "book-fixture-"));

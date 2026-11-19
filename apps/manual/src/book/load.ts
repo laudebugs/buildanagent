@@ -1,15 +1,18 @@
+import { createHash } from "node:crypto";
 import { existsSync, readFileSync } from "node:fs";
 import { dirname, join, relative, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 import { outline as bookOutline } from "../outline.js";
 import { type Analogy, checkAnalogies } from "./analogies.js";
 import { type BookIndex, indexChapters } from "./book-index.js";
+import { CodeNames } from "./code-names.js";
 import { checkGlossary, type GlossaryEntry } from "./glossary.js";
 import { listingContext } from "./listings.js";
 import { checkOutline, type NumberedChapter, numberChapters } from "./outline-rules.js";
 import type { Outline } from "./outline-types.js";
 import { ProblemList } from "./problems.js";
 import { checkSources, type Source } from "./sources.js";
+import { transcriptPathOf } from "./transcripts.js";
 
 /** Where a book's content lives. The real book's inputs come from `bookInputs()`; the tests pass fixture books. */
 export interface BookInputs {
@@ -50,6 +53,8 @@ export interface Book {
   readonly glossary: ReadonlyMap<string, GlossaryEntry>;
   readonly analogies: ReadonlyMap<string, Analogy>;
   readonly index: BookIndex;
+  /** What the inline-code check reads for this load: listed names, transcript values, package exports and log rows. */
+  readonly code: CodeNames;
 }
 
 /**
@@ -205,6 +210,7 @@ export function loadBook(inputs: BookInputs = bookInputs()): Book {
     glossary: new Map(glossary.map((entry) => [entry.id, entry])),
     analogies: new Map(analogies.map((entry) => [entry.id, entry])),
     index,
+    code: new CodeNames(inputs.repoRoot),
   };
 }
 
@@ -228,12 +234,12 @@ function checkIllustrations(
  * What every chapter's rendered output depends on beyond its own file: which chapters exist, their numbers, the
  * numbered blocks in each, the lines and pin each listing shows, and the line offset of each body, which error lines
  * depend on. Astro caches a chapter until the chapter itself changes, so `astro.config.mjs` clears the cache when this
- * text changes, as when a figure is added to one chapter and another chapter refers to it, or when a listed file or
- * its harness's pin changes.
+ * text changes, as when a figure is added to one chapter and another chapter refers to it, when a listed file or
+ * its harness's pin changes, or when a file the inline-code check reads changes.
  */
 export function renderDependencies(book: Book): string {
-  return JSON.stringify(
-    book.chapters.map((chapter) => ({
+  return JSON.stringify({
+    chapters: book.chapters.map((chapter) => ({
       slug: chapter.slug,
       number: chapter.number,
       blocks:
@@ -243,13 +249,37 @@ export function renderDependencies(book: Book): string {
       // A front-matter edit moves every line below it, and the plugins add this offset to each error's line.
       bodyLineOffset: book.index.written.get(chapter.slug)?.bodyLineOffset ?? null,
     })),
-  );
+    // The inline-code check also reads each chapter's fact-check log, each listed example's transcript and the pins
+    // that decide which .d.ts files its imports reach, so an edit to any of them renders every chapter again.
+    inlineCode: checkedCodeFiles(book).map((file) => [relative(book.inputs.repoRoot, file), digest(file)]),
+  });
+}
+
+const digest = (file: string): string => createHash("sha256").update(readFileSync(file)).digest("hex");
+
+/**
+ * The files the inline-code check reads beyond the listed files themselves, from the repository root: each written
+ * chapter's fact-check log, each listed example's transcript, each listing harness's `package.json`, and the
+ * workspace's lockfile, which pins the packages those imports re-export from. Only the files that exist are named.
+ */
+export function checkedCodeFiles(book: Book): string[] {
+  const files = new Set<string>();
+  for (const { chapter } of book.index.written.values())
+    files.add(join(book.inputs.factChecksDir, `${chapter.slug}.md`));
+  for (const block of book.index.blocks.values()) {
+    if (block.source === undefined) continue;
+    files.add(join(book.inputs.repoRoot, transcriptPathOf(block.source.harness, block.source.path)));
+    files.add(join(book.inputs.repoRoot, block.source.harness, "package.json"));
+  }
+  if (files.size > 0) files.add(join(book.inputs.repoRoot, "pnpm-lock.yaml"));
+  return [...files].filter((file) => existsSync(file)).sort();
 }
 
 /**
- * The files the book's listings read, from the repository root: each listed file, its harness's `package.json`,
- * whose pin the caption shows, and the transcript a replay shows. Under `astro dev` an edit to one of them restarts
- * the server when it changes what a listing shows.
+ * The files the book's listings and its inline-code check read, from the repository root: each listed file, its
+ * harness's `package.json`, whose pin the caption shows, the transcript a replay shows, and the files
+ * `checkedCodeFiles` names. Under `astro dev` an edit to one of them restarts the server when it changes what a
+ * listing shows or what inline code resolves to.
  */
 export function listedFiles(book: Book): string[] {
   const files = new Set<string>();
@@ -259,5 +289,6 @@ export function listedFiles(book: Book): string[] {
     files.add(join(book.inputs.repoRoot, block.source.harness, "package.json"));
     if (block.source.replay) files.add(join(book.inputs.repoRoot, block.source.replay.path));
   }
+  for (const file of checkedCodeFiles(book)) files.add(file);
   return [...files].sort();
 }

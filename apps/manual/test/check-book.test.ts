@@ -13,9 +13,12 @@ import {
   FIXTURE_DIR,
   FIXTURE_OUTLINE,
   fixtureInputs,
+  PROSE_LINE,
+  prose,
   removeFixture,
   resetFixture,
   withInteractive,
+  withSdk,
 } from "./book-fixture.js";
 
 // Every rule check:book applies has a failing fixture here: a copy of the fixture book with one thing broken. Each
@@ -51,6 +54,28 @@ const interactive = (change: (dir: string) => void) => (dir: string) => {
 };
 const noted = (change: (text: string) => string) => (dir: string) => edit(dir, NOTED, change);
 const interactiveChapter = (change: (text: string) => string) => interactive((dir) => edit(dir, SECOND, change));
+// withSdk lists an example that imports the fixture's installed package, demo-sdk, and prose adds a paragraph to the
+// second chapter on PROSE_LINE; withRows gives the second chapter's fact-check log three rows, one per verdict.
+const SECOND_LOG = "apps/manual/fact-checks/second.md";
+const withRows = (dir: string) =>
+  edit(
+    dir,
+    SECOND_LOG,
+    (text) =>
+      `${text}\n| # | Claim | Where | Verdict | Source and reason |\n| --- | --- | --- | --- | --- |\n` +
+      "| 1 | maxTurns caps the run | § Exercises | ✅ | agent.d.ts |\n" +
+      "| 2 | maxTurns was misnamed | § Exercises | ✏️ | agent.d.ts |\n" +
+      "| 3 | maxTurns defaults to 10 | § Exercises | ⚠️ | none |\n",
+  );
+const sdkProse =
+  (paragraph: string, more: (dir: string) => void = () => undefined) =>
+  (dir: string) => {
+    withSdk(dir);
+    withRows(dir);
+    prose(dir, paragraph);
+    more(dir);
+  };
+const AT_PROSE = `${SECOND}:${PROSE_LINE}`;
 const withOpenings = (...openings: Outline[number]["chapters"][number]["opening"][]): Outline => [
   {
     title: "Part A",
@@ -808,6 +833,85 @@ const cases: readonly Case[] = [
     change: interactiveChapter((t) => t.replace(":::tabs\n", ":::tabs[SDKs]\n")),
     file: `${SECOND}:26`,
     message: /:::tabs takes no caption/,
+  },
+  // Inline code is checked like a listing (BK17).
+  {
+    rule: "inline code naming what no listing, transcript or .d.ts holds fails, naming the three places searched",
+    change: sdkProse("The agent calls `notAnywhere`."),
+    file: AT_PROSE,
+    message: new RegExp(
+      "inline code `notAnywhere` names `notAnywhere`, which none of the three places holds: the chapter's listings " +
+        String.raw`\(verify/demo-sdk/examples/01-hello\.ts#greet, verify/demo-sdk/examples/03-sdk\.ts#run\), ` +
+        String.raw`their transcripts \(none recorded\) and the \.d\.ts exports of the packages they import ` +
+        String.raw`\(demo-sdk@1\.2\.3\)\. .*\{checked=row-N\}, where row N of apps/manual/fact-checks/second\.md is ✅ or ✏️`,
+    ),
+  },
+  {
+    rule: "inline code in a chapter with no file listing fails, saying it has nothing to search",
+    change: firstChapter((t) => t.replace("Lowercase mcp", "`notAnywhere` and lowercase mcp")),
+    file: `${FIRST}:12`,
+    message:
+      /the chapter's listings \(it includes none\), their transcripts \(none recorded\) and the \.d\.ts exports of the packages they import \(they import none\)/,
+  },
+  {
+    rule: "a name the listed file holds outside the listed region fails",
+    change: sdkProse("The example exports `unlisted`."),
+    file: AT_PROSE,
+    message: /inline code `unlisted` names `unlisted`, which none of the three places holds/,
+  },
+  {
+    rule: "a member path fails on the one name that resolves nowhere",
+    change: sdkProse("The run returns `result.steps`."),
+    file: AT_PROSE,
+    message: /inline code `result\.steps` names `steps`, which none/,
+  },
+  {
+    rule: "a name a package's .d.ts declares but its entry does not export fails",
+    change: sdkProse("The package hides `internalHelper`."),
+    file: AT_PROSE,
+    message: /inline code `internalHelper` names `internalHelper`, which none/,
+  },
+  {
+    rule: "an option a package's types declare as a member, not an export, fails without a marker",
+    change: sdkProse("The agent takes `maxTurns`."),
+    file: AT_PROSE,
+    message: /inline code `maxTurns` names `maxTurns`, which none/,
+  },
+  {
+    rule: "a marker citing a row the fact-check log does not have fails",
+    change: sdkProse("The agent takes `maxTurns`{checked=row-9}."),
+    file: AT_PROSE,
+    message: /`maxTurns`\{checked=row-9\} cites row 9, which apps\/manual\/fact-checks\/second\.md does not have/,
+  },
+  {
+    rule: "a marker citing an unverified row fails",
+    change: sdkProse("The agent takes `maxTurns`{checked=row-3}."),
+    file: AT_PROSE,
+    message:
+      /`maxTurns`\{checked=row-3\} cites row 3 of apps\/manual\/fact-checks\/second\.md, whose verdict is ⚠️; a marker needs ✅ or ✏️/,
+  },
+  {
+    rule: "a marker citing a row the log numbers twice fails",
+    change: sdkProse("The agent takes `maxTurns`{checked=row-1}.", (dir) =>
+      edit(dir, SECOND_LOG, (t) => t.replace("| 2 | maxTurns", "| 1 | maxTurns")),
+    ),
+    file: AT_PROSE,
+    message: /cites row 1, which apps\/manual\/fact-checks\/second\.md numbers more than once/,
+  },
+  {
+    rule: "a malformed marker fails",
+    change: sdkProse("The agent takes `maxTurns`{checked=3}."),
+    file: AT_PROSE,
+    message: /\{checked=3\} after `maxTurns` is not a marker; write \{checked=row-N\}/,
+  },
+  {
+    rule: "a listed import whose .d.ts cannot be found fails",
+    change: sdkProse("The agent calls `createAgent`.", (dir) =>
+      rmSync(join(dir, "verify/demo-sdk/node_modules"), { recursive: true }),
+    ),
+    file: AT_PROSE,
+    message:
+      /verify\/demo-sdk\/examples\/03-sdk\.ts imports demo-sdk, whose \.d\.ts cannot be found from verify\/demo-sdk; run pnpm install/,
   },
 ];
 

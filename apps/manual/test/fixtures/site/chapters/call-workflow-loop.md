@@ -19,11 +19,11 @@ Picture a kitchen: :analogy[a ticket rail]{#kitchen-ticket-rail} holds the order
 ::svg{alt="Three order tickets hang from a rail. The cook's ticket, on the left, sends an arrow down to the pantry and gets one back; a dashed arrow leads from it to the pass, where finished dishes go."}
 :::
 
-[[lst:one-call]] makes one call.
+[[lst:one-call]] makes one call with `generateText`, and `result.finishReason` says why the model stopped; `streamText` streams the answer instead.
 
 ::listing[One model call]{#one-call file="verify/vercel-ai-sdk/examples/01-generate-text.ts" region="call" replay}
 
-The same loop in two SDKs:
+The same loop in two SDKs, where `stopWhen` and `Agent` set who decides:
 
 :::tabs
 ::listing[AI SDK]{#loop-ai-sdk file="verify/vercel-ai-sdk/examples/02-tool-loop.ts" region="loop"}
