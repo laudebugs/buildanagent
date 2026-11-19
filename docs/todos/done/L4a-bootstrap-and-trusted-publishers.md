@@ -53,16 +53,16 @@ The registry may point `latest` at the placeholder until 0.1.0 ships, so `npm in
 
 ## Outcome
 
-Both packages are public, and merging that publishes nothing. On the checkout, `release-plan.mjs plan` prints `publish=false` with the reason "the packages are still at 0.0.0, which is never released".
+Both packages are public, and merging this change publishes nothing. On the checkout, `release-plan.mjs plan` prints `publish=false` with the reason "the packages are still at 0.0.0, which is never released".
 
 - **What keyed off `private`.** Five things, each checked after the change:
   - The release plan's `private` check no longer fires, and its 0.0.0 rule stops the run. Two new tests in `scripts/ci/release.test.mjs` read the checkout's own `package.json` files. One fails at any version if either sets `private` or loses its publish guard. The other runs the plan, fails if it would publish or ask the registry at 0.0.0, and skips once the packages leave 0.0.0.
   - `ci.yml`'s `changesets` job stays `if: false`. Locally, this change fails `pnpm changeset status --since=origin/main`, because it edits each `package.json`. With this change as the base, a docs-only commit passes and a `src/` edit without a changeset fails. The job also fails any pull request that runs `pnpm changeset version`, L4b's own as planned and every "Version packages" one, so [L4b](../ready/L4b-release-0-1-0.md#risks-and-open-questions) must settle that before it switches the job on.
-  - `privatePackages` in `.changeset/config.json` now affects only the `verify/` harnesses, which `ignore` also lists.
+  - `privatePackages` in `.changeset/config.json` today affects only the `verify/` harnesses, which `ignore` also lists. Once the plans add private apps and packages, it skips those too.
   - The pack test in `scripts/ci/packages-pack.test.mjs` passes unchanged with pnpm 10.34.9.
   - `private` also made `npm publish` refuse to run in a package folder. The first code review added a `prepublishOnly` guard, `scripts/refuse-local-publish.mjs`, so a publish from a developer's machine still fails; `release.yml` publishes tarballs, which run no lifecycle scripts.
 - **The npm placeholders.** `npm view <package> versions dist-tags deprecated --json`, on 2026-11-19, gave the same answer for `@buildanagent/gateway` and `@buildanagent/sdk`: versions `0.0.0-bootstrap.0` and `0.0.0-stage`; dist-tags `latest` and `bootstrap` both on `0.0.0-bootstrap.0`; deprecated "Placeholder only; install 0.1.0 or later." That matches [PB2](../../plans/publish-and-docs.md#pb2-changesets-in-one-fixed-group-published-only-from-ci-accepted).
-- **Docs.** [CI plan §3f](../../plans/ci.md#3f-releases-through-npm-trusted-publishing-added-2026-11-19) records npm's prerequisite that a package exist before a trusted publisher can be added, and the first dry run on `main`. §3e, the `.changeset` README and the `ci.yml` comment no longer say the packages are private. The fact-check log gains rows 127–134, and [L3](L3-release-workflow.md) records its dry run on `main`.
+- **Docs.** [CI plan §3f](../../plans/ci.md#3f-releases-through-npm-trusted-publishing-added-2026-11-19) records npm's prerequisite that a package exist before a trusted publisher can be added, and the first dry run on `main`. It also records the publish guard, and §3e records the gate's conflict with `pnpm changeset version`. §3e, the `.changeset` README, `CONTRIBUTING.md`, the SDK plan and the `ci.yml` comment no longer say the packages are private. [L4b](../ready/L4b-release-0-1-0.md#risks-and-open-questions) records the gate's conflict as a risk. The fact-check log gains rows 127–139, and [L3](L3-release-workflow.md) records its dry run on `main`.
 
 ## Definition of done
 
@@ -70,5 +70,5 @@ Both packages are public, and merging that publishes nothing. On the checkout, `
 - [x] Prose drafted with `/anthropic-skills:writing`, and changed claims re-checked against their sources
 - [x] `pnpm check`, `pnpm typecheck` and `pnpm test` pass locally; pushed after each meaningful step
 - [x] This file moved `ongoing/` → `done/` (Status `done`) in the last work commit, and the plan's todo table updated
-- [ ] Two code-review rounds run on the pull request (`/code-review high --max-findings default`, then `medium` and `low` after more than 6 confirmed findings, otherwise `low`), with every finding fixed or explained in a commit message
-- [ ] Copy reviewed with `/anthropic-skills:writing-review` after the code changes, with its findings fixed and the rubric scores in the pull request description
+- [x] Two code-review rounds run on the pull request (`/code-review high --max-findings default`, then `medium` and `low` after more than 6 confirmed findings, otherwise `low`), with every finding fixed or explained in a commit message
+- [x] Copy reviewed with `/anthropic-skills:writing-review` after the code changes, with its findings fixed and the rubric scores in the pull request description

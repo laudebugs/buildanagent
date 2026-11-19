@@ -190,9 +190,9 @@ describe("release-plan.mjs", () => {
     assert.match(plan.reason, /0\.0\.0/);
   });
 
-  // This checkout's own package.json files. A `private` field that came back would make every release plan skip with
-  // a green run, and a package folder without the guard would let `npm publish` there upload 0.0.0, so neither test
-  // skips.
+  // These tests read this checkout's own package.json files. The first never skips: a `private` field that came back
+  // would make every release plan skip with a green run, and a package without the guard would let `npm publish` in
+  // its folder upload 0.0.0.
   const manifests = ["gateway", "sdk"].map((pkg) => ({
     pkg,
     manifest: JSON.parse(readFileSync(path.join(root, "packages", pkg, "package.json"), "utf8")),
