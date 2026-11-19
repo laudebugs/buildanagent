@@ -116,27 +116,29 @@ The run asks about one call at a time, in the order the model sent them, and no 
 
 ### `shouldStop` ends a run, or keeps it going
 
-It returns `true` or `{ stop: "hook", reason }` to end the run `stopped`, with the reason as `stoppedBy` (`"hook"` for `true`). It returns `{ stop: "no_progress", reason }` to end it `no_progress`. It returns `{ continue: "text or blocks" }` to keep going a run whose model answered in text, with your content added as a user message; at the step cap the run ends `max_steps` instead. `false` leaves the decision to the run. A run that has already finished, failed, been aborted or asked a question keeps that outcome.
+It returns `true` or `{ stop: "hook", reason }` to end the run `stopped`, with the reason as `stoppedBy` (`"hook"` for `true`). It returns `{ stop: "no_progress", reason }` to end it `no_progress`. It returns `{ continue: "text or blocks" }` to keep going a run whose model answered in text, with your content added as a user message. If the step called tools, the run goes on anyway and the content is not added. At the step cap the run ends `max_steps` instead. `false` leaves the decision to the run. A run that has already finished, failed, been aborted or asked a question keeps that outcome.
 
 ### A throwing interceptor fails closed
 
 By default a hook that throws stops the unsafe thing, and the run emits a `hook_error` event:
 
 - A failed `beforeToolCall` denies the call.
-- A failed `afterToolCall` withholds the result, so a redaction that crashed can't leak the original.
+- A failed `afterToolCall` withholds the result, so a redaction that crashed can't leak the original. The stand-in tells the model the tool ran and keeps a write's outcome, so the model does not retry a write that was applied.
 - A failed `transformContext`, `beforeModelCall`, `afterModelCall` or `shouldStop` ends the run with `stopReason: "error"` and `error.kind: "hook"`. If the run was aborted, it ends `aborted` instead. When `afterModelCall` fails, the transcript and `model_call_end` hold an empty stand-in with `stopReason: "error"` and the call's usage and cost, so the response is withheld but the billed call is still on record.
 
 Set `onFailure: "continue"` to skip a failed hook and go on as if it had returned nothing. A hook that returns the wrong shape is a different case: it is a bug in your code, so the run's `result` rejects with `invalid_hook_result` whatever `onFailure` says.
 
 ### `composeInterceptors()` joins several objects
 
-A run takes one `Interceptors` object, so `composeInterceptors(a, b)` joins a context policy, a permission check and an audit. For a moment that several define, the hooks run in the order given. `transformContext` passes the messages through each hook in turn. `beforeModelCall` merges the patches, a later field replacing an earlier one. `afterModelCall` and `afterToolCall` chain, each hook seeing the result so far. For gates the strictest answer wins: the first `deny` ends the check, an `ask` beats an `allow`, and an input one gate replaces is the input the next gate sees. For `shouldStop` the first stop wins, then the first continue. Each hook's return value is checked as if it ran alone, so a gate that returns nothing throws `invalid_hook_result` even when another gate allows the call. The joined `onFailure` is `"continue"` only when every object that sets it says so.
+A run takes one `Interceptors` object, so `composeInterceptors(a, b)` joins a context policy, a permission check and an audit. For a moment that several define, the hooks run in the order given. `transformContext` passes the messages through each hook in turn. `beforeModelCall` merges the patches, a later field replacing an earlier one. `afterModelCall` and `afterToolCall` chain, each hook seeing the result so far. For gates the strictest answer wins: the first `deny` ends the check, an `ask` beats an `allow`, and an input one gate replaces is the input the next gate sees. For `shouldStop` the first stop wins, then the first continue. Each hook's return value is checked as if it ran alone, so a gate that returns nothing throws `invalid_hook_result` even when another gate allows the call. The joined `onFailure` is `"continue"` only when every object sets it to `"continue"`; an object that leaves it unset counts as `"fail_closed"`.
 
 ### Observers watch without changing anything
 
 An observer is `(event) => void | Promise<void>`. Each one sees every event in order, and waits for its own promise before it gets the next. Observers don't wait for each other, so one slow observer delays only itself. The `observers` option sees events from `run_start`. `run.on(observer)` returns a function that removes it, and drops events still queued for it. Call it right after `run()` to see every event but `run_start`.
 
-An observer that throws or rejects becomes a `hook_error` event with `hook: "observer"`, and never changes the run. The one exception is an observer that fails while handling `run_end`: nothing may follow that event, so the failure is dropped. The run waits for observers to handle `agent_settled` and `run_end` before it settles, for at most `observerTimeoutMs` (default 10000) each time. An observer that hasn't caught up by then is removed and reported as a `hook_error`, so an observer whose promise never settles can't hold the run open. Each observer gets a frozen copy of the event, so it can't change the run's own data.
+An observer that throws or rejects becomes a `hook_error` event with `hook: "observer"`, and never changes the run. The one exception is an observer that fails while handling `run_end`: nothing may follow that event, so the failure is dropped. 
+
+The run waits for observers to handle `agent_settled` and `run_end` before it settles, for at most `observerTimeoutMs` each time, a number from 1 to 2147483647 that defaults to 10000. An observer that hasn't caught up by then is removed and reported as a `hook_error`, so an observer whose promise never settles can't hold the run open. Each observer gets a frozen copy of the event, so it can't change the run's own data.
 
 ## Define a tool with `defineTool()`
 
@@ -233,6 +235,8 @@ The SDK throws only for programmer errors, never for a failure the model caused.
 - **`invalid_tool_result`**: `execute` returned something other than a tool result, or an invalid outcome. A text block needs a string `text`, and an image block a string `mediaType` and `data`. The run's `result` rejects with this error, and iterating the run throws it after the last event.
 - **`invalid_run_options`**: `run()` or `continueRun()` got a model that isn't from `createModel()`, a `maxSteps` that isn't a positive integer, or an output tool whose `exposure` isn't `"direct"`.
 - **`invalid_model_stream`**: a model's stream ended without a final message, which only a broken adapter does.
+Hooks add two `SdkError` codes:
+
 - **`invalid_hook_result`**: an interceptor returned something its type forbids, such as a gate that returned no decision, an `activeTools` list that names no tool, or a replacement input that fails the tool's schema. The run's `result` rejects with this error.
 - **`hook_failed`**: an interceptor threw while the run fails closed. The run catches it and reports a `hook` error result, so it never reaches your code.
 - **`run_stopped`**: the error is a `RunStoppedError` from `runOrThrow()`.
