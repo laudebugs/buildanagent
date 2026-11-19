@@ -50,43 +50,43 @@
     },
     {
       "kind": "check",
-      "line": 11,
+      "line": 15,
       "message": "result.text is the model's answer",
       "pass": true
     },
     {
       "kind": "check",
-      "line": 12,
+      "line": 16,
       "message": "one step without tools",
       "pass": true
     },
     {
       "kind": "check",
-      "line": 13,
+      "line": 17,
       "message": "finishReason is 'stop'",
       "pass": true
     },
     {
       "kind": "check",
-      "line": 14,
+      "line": 18,
       "message": "usage reports input and output tokens",
       "pass": true
     },
     {
       "kind": "check",
-      "line": 15,
+      "line": 19,
       "message": "instructions arrive as the system message",
       "pass": true
     },
     {
       "kind": "check",
-      "line": 34,
+      "line": 38,
       "message": "a system message in `messages` throws InvalidPromptError by default",
       "pass": true
     },
     {
       "kind": "request",
-      "line": 36,
+      "line": 40,
       "model": "model-2",
       "repeated": 0,
       "messages": [
@@ -113,7 +113,7 @@
     },
     {
       "kind": "response",
-      "line": 36,
+      "line": 40,
       "model": "model-2",
       "message": {
         "role": "assistant",
@@ -128,7 +128,7 @@
     },
     {
       "kind": "check",
-      "line": 44,
+      "line": 48,
       "message": "allowSystemInMessages: true accepts it",
       "pass": true
     }

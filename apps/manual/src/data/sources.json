@@ -70,5 +70,54 @@
     "kind": "post",
     "asOf": "November 2026",
     "verifiedIn": "docs/research/agent/fact-check.md"
+  },
+  {
+    "id": "ai-sdk-generate-text",
+    "title": "generateText",
+    "publisher": "AI SDK documentation",
+    "url": "https://ai-sdk.dev/docs/reference/ai-sdk-core/generate-text",
+    "kind": "docs",
+    "asOf": "November 2026",
+    "version": "ai@7.0.162",
+    "verifiedIn": "apps/manual/fact-checks/call-workflow-loop.md"
+  },
+  {
+    "id": "adk-sequential-agents",
+    "title": "Sequential template workflow agent",
+    "publisher": "Agent Development Kit documentation",
+    "url": "https://adk.dev/agents/workflow-agents/sequential-agents/",
+    "kind": "docs",
+    "asOf": "November 2026",
+    "version": "@google/adk@2.5.0",
+    "verifiedIn": "apps/manual/fact-checks/call-workflow-loop.md"
+  },
+  {
+    "id": "anthropic-how-tool-use-works",
+    "title": "How tool use works",
+    "publisher": "Claude API documentation",
+    "url": "https://platform.claude.com/docs/en/agents-and-tools/tool-use/how-tool-use-works",
+    "kind": "docs",
+    "asOf": "November 2026",
+    "verifiedIn": "apps/manual/fact-checks/call-workflow-loop.md"
+  },
+  {
+    "id": "pi-how-pi-works",
+    "title": "How Pi Works",
+    "publisher": "Pi documentation",
+    "url": "https://github.com/earendil-works/pi/blob/v1.5.2/packages/coding-agent/docs/how-pi-works.md",
+    "kind": "docs",
+    "asOf": "November 2026",
+    "version": "v1.5.2",
+    "verifiedIn": "apps/manual/fact-checks/call-workflow-loop.md"
+  },
+  {
+    "id": "ai-sdk-testing",
+    "title": "Testing",
+    "publisher": "AI SDK documentation",
+    "url": "https://ai-sdk.dev/docs/ai-sdk-core/testing",
+    "kind": "docs",
+    "asOf": "November 2026",
+    "version": "ai@7.0.162",
+    "verifiedIn": "apps/manual/fact-checks/call-workflow-loop.md"
   }
 ]
