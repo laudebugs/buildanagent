@@ -392,6 +392,39 @@ test("every response asks for HTTPS for a year, subdomains included, without joi
   }
 });
 
+test("the theme toggle is an icon button whose name says what a press does, and the stylesheet picks the icon", () => {
+  const html = gallery();
+  const button = html.match(/<button[^>]*data-theme-toggle[^>]*>[\s\S]*?<\/button>/)?.[0] ?? "";
+  assert.match(button, /aria-label="Switch theme"/);
+  assert.match(button, /theme-toggle__icon--sun/);
+  assert.match(button, /theme-toggle__icon--moon/);
+  assert.equal((button.match(/aria-hidden="true"/g) ?? []).length, 2, "each icon is hidden from screen readers");
+  assert.doesNotMatch(button, />\s*Switch theme\s*</, "the button holds no visible text");
+  const css = files(".css")
+    .map((path) => readFileSync(join(out, path), "utf8"))
+    .join("");
+  assert.match(css, /\.theme-toggle\[data-mode=dark\] \.theme-toggle__icon--sun/);
+  assert.match(css, /\.theme-toggle\[data-mode=light\] \.theme-toggle__icon--moon/);
+});
+
+test("every page ends with a footer that links to the repository and the author's profiles", () => {
+  const links = [
+    "https://github.com/laudebugs/buildanagent",
+    "https://x.com/laudebugs",
+    "https://github.com/laudebugs",
+  ];
+  for (const { path, html } of pages()) {
+    const footer = html.match(/<footer class="site-footer">[\s\S]*?<\/footer>/)?.[0] ?? "";
+    assert.ok(
+      html.indexOf("</main>") < html.indexOf(footer) && footer !== "",
+      `${path}: no footer after the main text`,
+    );
+    for (const href of links)
+      assert.ok(footer.includes(`href="${href}"`), `${path}: the footer does not link to ${href}`);
+    assert.doesNotMatch(footer, /target="_blank"/, `${path}: an off-site link opens a new window`);
+  }
+});
+
 test("the content security policy allows only the book's own origin, with no inline code", () => {
   const csp = policy();
   assert.deepEqual(csp.get("default-src"), ["'none'"]);
