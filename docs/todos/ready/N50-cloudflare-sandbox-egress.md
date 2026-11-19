@@ -39,7 +39,7 @@ Two outputs:
 **Out of scope** (and which todo covers it)
 
 - Building the backend (N46b)
-- Accepting or numbering the ADR (the owner; the next free number is 0045 as of 2026-11-19)
+- Accepting or numbering the ADR (the owner; the next free number is 0046 as of 2026-11-19)
 - Browser traffic inside the sandbox (a later browser-use todo)
 
 ## Tasks

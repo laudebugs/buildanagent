@@ -152,7 +152,7 @@ N8, N9 and N10 test the first rule, N25 the third, and B8 surfaces the 400 as a 
 
 **What the owner still supplies.** The budget for each live run, which N37's live script refuses to start without.
 
-**Amended (owner, 2026-11-19; [ADR 0045](../decisions/0045-hd8-coding-agent-eval-tasks.md)):** N38 ships 20 repository tasks; [W12](../todos/ready/W12-coding-agent-eval-tasks.md) adds 10 coding-agent tasks to reach 30 before W8 publishes its baseline; the 10 triage tasks (N38b) return with Round A. The owner's answer was "20 now, plus coding tasks". When Round A resumes, N38b adds its 10 triage tasks on top of the 30.
+**Amended (owner, 2026-11-19; [ADR 0045](../decisions/0045-hd8-coding-agent-eval-tasks.md)):** N38 ships 20 repository tasks; [W12](../todos/ready/W12-coding-agent-eval-tasks.md) adds 10 coding-agent tasks to reach 30 before W8 publishes its baseline. The owner's answer was "20 now, plus coding tasks". When Round A resumes, N38b adds its 10 triage tasks on top of the 30.
 
 ### HD9. SDK D9's per-call check, plus a session cap and a pre-checked summary call (with SDK D9)
 

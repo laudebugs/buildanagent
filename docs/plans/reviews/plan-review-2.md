@@ -98,7 +98,7 @@ The remaining U14 and U15 changes wait for the rounds that need them. No W todo 
 
 With D1 applied, these waves are the schedule for the work the owner has released. Each wave holds the todos whose dependencies have all finished. The list leaves out the held rounds (W, F, A) and N38b.
 
-| Wave | SDK (B) | Harness (N) and verification (S) | Safety core (E) |
+| Wave | SDK (B) | Harness (N) | Safety core (E) |
 | --- | --- | --- | --- |
 | 1 | B4, B6, B7 | N1, N50 | E1 |
 | 2 | B5, B10 | N2, N15 | E2, E3, E6 |
@@ -122,7 +122,7 @@ The longest chain to a usable SDK (B19) runs E1 → B10 → B11 → B13 → B15 
 | 3 | Confirm that ADR 0043's "depends only on the gateway" means the package's root export | G7 | E1 (can proceed on this reading) |
 | 4 | Add status pointers to ADR 0043 on ADRs 0001, 0005, 0009 and 0033 | G11 | Nothing |
 | 5 | A harness decision, HD16, on defaults for untrusted-source tools: tiers, `approvalReuse`, taint and URL checks. N11 still reuses approvals by default for every tool | R30, R45, R50 | N11's defaults for MCP and browser tools |
-| 6 | An ADR (0045 or later) on who holds runtime connector tokens, and a vault decision beside HD15 | R31, R35 | The proposed F19 (U14's change 9) and the platform's connectors (M8) |
+| 6 | An ADR (0046 or later) on who holds runtime connector tokens, and a vault decision beside HD15 | R31, R35 | The proposed F19 (U14's change 9) and the platform's connectors (M8) |
 | 7 | An amendment to ADR 0005 for an approval deadline and default action | R17 | Platform v1 |
 | 8 | An ADR for a logged-out browser inside the coding agent's sandbox | R42 | U15's browser verification todo |
 | 9 | Whether "export as an MCP server" becomes a platform package | R18, R40 | Nothing yet |
