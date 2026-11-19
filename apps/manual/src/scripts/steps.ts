@@ -29,6 +29,7 @@ function render(steps: Steps): void {
     part.toggleAttribute("data-dimmed", current !== undefined && !parts.includes(current));
   }
   markLine(root, items[index]?.dataset.line);
+  reveal(items[index]);
   if (steps.status) steps.status.textContent = `${steps.unit} ${index + 1} of ${items.length}`;
   const back = button(root, "back");
   const next = button(root, "next");
@@ -43,6 +44,21 @@ function markLine(root: HTMLElement, line: string | undefined): void {
   for (const marked of listing.querySelectorAll("[data-current-line]")) marked.removeAttribute("data-current-line");
   if (line !== undefined)
     listing.querySelector(`.line[data-line="${CSS.escape(line)}"]`)?.setAttribute("data-current-line", "");
+}
+
+// A replay's events scroll inside its panel, so the current event is scrolled into view there. Only the panel's own
+// scroll position changes, never the page's, and the scroll is instant when the reader prefers reduced motion.
+function reveal(item: HTMLElement | undefined): void {
+  const scroller = item?.closest<HTMLElement>("[data-step-scroll]");
+  if (!item || !scroller || scroller.scrollHeight <= scroller.clientHeight) return;
+  const box = scroller.getBoundingClientRect();
+  const event = item.getBoundingClientRect();
+  let offset = 0;
+  if (event.top < box.top || event.height > box.height) offset = event.top - box.top;
+  else if (event.bottom > box.bottom) offset = event.bottom - box.bottom;
+  if (offset === 0) return;
+  const reduce = window.matchMedia?.("(prefers-reduced-motion: reduce)").matches ?? false;
+  scroller.scrollTo({ top: scroller.scrollTop + offset, behavior: reduce ? "auto" : "smooth" });
 }
 
 // A disabled button drops keyboard focus to the page, so focus moves to the other button first.

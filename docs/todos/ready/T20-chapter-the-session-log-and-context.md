@@ -47,7 +47,7 @@ Write the chapter "The session log and context policy" (`the-session-log-and-con
 
 **Out of scope** (and which todo covers it)
 
-- Moving the listings to our own packages: a follow-up todo once its switch todos (N2–N10) are done (BK8)
+- Adding our own packages' listings as tabs beside the third-party ones: a follow-up todo once the chapter's `switchTo` todos (N2–N10) are done (BK8)
 - New research: a gap becomes a follow-up research todo
 
 ## Tasks
