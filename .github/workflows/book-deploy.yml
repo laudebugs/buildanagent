@@ -1,6 +1,7 @@
-# Deploys the book that book-build.yml built: production to manual.buildanagent.fyi for a push to main, a preview on
-# workers.dev for every pull request, a fork's included, and deletion of a closed pull request's preview. It is the
-# deploy half of DS3's build and deploy split (book plan BK15, ADR 0053).
+# Deploys the book that book-build.yml built: production to manual.buildanagent.fyi for a push to main, a preview at
+# pr-<n>.manual.buildanagent.fyi for every pull request from a branch of this repository, and deletion of a closed
+# pull request's preview. A fork's pull request gets no preview; a maintainer can push its change to a branch here.
+# It is the deploy half of DS3's build and deploy split (book plan BK15, ADR 0053).
 #
 # GitHub runs a workflow_run workflow from the file on the default branch, so a pull request that edits this file
 # changes nothing until it merges. No job checks out or runs the pull request's code. From the triggering run it takes
@@ -24,8 +25,8 @@ jobs:
   # Decides what this run deploys. It names no environment and holds no Cloudflare secret, so it has no secrets
   # check. A push to main deploys only if it is still main's newest commit, so a build that finished late never
   # replaces a newer one. A pull request's preview needs the pull request's number, which comes from the API, never
-  # from the artifact; a commit that is no longer an open pull request's head gets no preview. A closed pull
-  # request's number also comes from the API.
+  # from the artifact; a commit that is no longer an open pull request's head gets no preview, and neither does a
+  # pull request whose head branch lives in a fork. A closed pull request's number also comes from the API.
   resolve:
     if: github.event.workflow_run.conclusion == 'success'
     runs-on: ubuntu-24.04
@@ -60,12 +61,12 @@ jobs:
             if [ "$tip" = "$HEAD_SHA" ]; then newest=true
             else echo "::notice::$HEAD_SHA is no longer main's newest commit; the run for $tip deploys that commit instead."; fi
           elif [ "$WORKFLOW" = book-build ] && [ "$EVENT" = pull_request ]; then
-            # Open pull requests into this repository whose head is still this commit.
-            previews=$(gh api "repos/$REPO/commits/$HEAD_SHA/pulls" --jq "[.[] | select(.state == \"open\" and .head.sha == \"$HEAD_SHA\" and .base.repo.full_name == \"$REPO\") | .number] | @json")
-            [ "$previews" != "[]" ] || echo "::notice::No open pull request has $HEAD_SHA as its head, so no preview."
+            # Open pull requests from a branch of this repository into it, whose head is still this commit.
+            previews=$(gh api "repos/$REPO/commits/$HEAD_SHA/pulls" --jq "[.[] | select(.state == \"open\" and .head.sha == \"$HEAD_SHA\" and .base.repo.full_name == \"$REPO\" and .head.repo.full_name == \"$REPO\") | .number] | @json")
+            [ "$previews" != "[]" ] || echo "::notice::No open pull request from a branch of $REPO has $HEAD_SHA as its head, so no preview."
           elif [ "$WORKFLOW" = book-pr-closed ] && [ "$EVENT" = pull_request ]; then
             # The commits endpoint omits closed, unmerged pull requests, so search the recently closed ones instead.
-            deletions=$(gh api "repos/$REPO/pulls?state=closed&sort=updated&direction=desc&per_page=100" --jq "[.[] | select(.head.sha == \"$HEAD_SHA\") | .number] | @json")
+            deletions=$(gh api "repos/$REPO/pulls?state=closed&sort=updated&direction=desc&per_page=100" --jq "[.[] | select(.head.sha == \"$HEAD_SHA\" and .head.repo.full_name == \"$REPO\") | .number] | @json")
             [ "$deletions" != "[]" ] || echo "::notice::No recently closed pull request has $HEAD_SHA as its head."
           fi
           for list in "$previews" "$deletions"; do
@@ -142,11 +143,9 @@ jobs:
           node-version-file: .nvmrc
       - &install
         run: pnpm install --frozen-lockfile --filter @buildanagent/manual
-      - &stage-dist
-        name: Check the artifact and put main's _headers in it
+      - name: Check the artifact and put main's _headers in it
         run: node apps/manual/scripts/stage-dist.mjs "$RUNNER_TEMP/book-dist" apps/manual/dist apps/manual/public/_headers
-      - &guard
-        name: Guard the config
+      - name: Guard the config
         run: node apps/manual/scripts/guard-deploy.mjs
       # --config skips Wrangler's search up the directory tree, so it reads the file the guard checked.
       - name: Deploy
@@ -190,8 +189,12 @@ jobs:
       - *setup-pnpm
       - *setup-node
       - *install
-      - *stage-dist
-      - *guard
+      # As production's, but the preview's _headers adds X-Robots-Tag: noindex, which Cloudflare adds only to
+      # previews on workers.dev, never to ones on a custom domain.
+      - name: Check the artifact and put main's _headers, marked noindex, in it
+        run: node apps/manual/scripts/stage-dist.mjs "$RUNNER_TEMP/book-dist" apps/manual/dist apps/manual/public/_headers --preview
+      - name: Guard the config
+        run: node apps/manual/scripts/guard-deploy.mjs --preview
       # --ignore-base-config keeps main's wrangler.jsonc the whole configuration, whatever the dashboard holds.
       - name: Deploy the preview
         working-directory: apps/manual

@@ -10,6 +10,10 @@
 # Strict-Transport-Security tells a browser to use HTTPS only, for a year. Its includeSubDomains covers the names
 # under the host that sends it, such as anything.manual.buildanagent.fyi, not the sibling sites. No preload: joining
 # the browsers' preload list is a separate, slow-to-undo choice for the whole zone.
+#
+# A preview, at pr-<n>.manual.buildanagent.fyi, also gets X-Robots-Tag: noindex as the first header of the /* rule:
+# stage-dist.mjs --preview adds it, and Cloudflare adds it only to previews on workers.dev. HTTPS-only suits the
+# previews too, since Cloudflare gives them a certificate. Keep exactly one /* rule and no X-Robots-Tag here.
 /*
   Content-Security-Policy: default-src 'none'; script-src 'self' 'wasm-unsafe-eval'; style-src 'self'; img-src 'self' data:; font-src 'self'; connect-src 'self'; worker-src 'self'; form-action 'self'; base-uri 'none'; frame-ancestors 'none'
   Strict-Transport-Security: max-age=31536000; includeSubDomains

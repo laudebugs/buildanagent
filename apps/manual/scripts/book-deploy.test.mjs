@@ -1,8 +1,7 @@
 // Offline checks for the book's deploy workflows, .github/workflows/book-deploy.yml and book-pr-closed.yml: what
 // triggers them, what each job may do, which steps see a Cloudflare secret, and how the secrets check and the resolve
 // step behave when run under bash. The resolve step runs against a stand-in `gh` that answers from fixtures through
-// jq, so its jq filters run too and nothing touches the network. Run with `node --test scripts/*.test.mjs` from
-// apps/manual.
+// jq, so its jq filters run too and nothing touches the network. Run with `node --test scripts/*.test.mjs` from apps/manual.
 import assert from "node:assert/strict";
 import { spawnSync } from "node:child_process";
 import { chmodSync, mkdirSync, mkdtempSync, readdirSync, readFileSync, rmSync, writeFileSync } from "node:fs";
@@ -150,15 +149,18 @@ describe("what touches code and secrets", () => {
 
   test("the deploy jobs share one definition of each common step, written once as a YAML anchor", () => {
     const [production, preview, deletion] = ["production", "preview", "delete-preview"].map((n) => jobs[n].steps);
-    assert.deepEqual(preview.slice(0, -1), production.slice(0, -1));
-    assert.deepEqual(deletion.slice(0, -1), [
-      production[0],
-      production[1],
-      production[3],
-      production[4],
-      production[5],
-    ]);
-    assert.equal((deployText.match(/^ {6}- &[a-z-]+$/gm) ?? []).length, 8);
+    assert.deepEqual(preview.slice(0, 6), production.slice(0, 6));
+    assert.deepEqual(deletion.slice(0, 5), [production[0], production[1], production[3], production[4], production[5]]);
+    assert.equal((deployText.match(/^ {6}- &[a-z-]+$/gm) ?? []).length, 6);
+  });
+
+  test("a preview stages and guards the noindex variant of _headers, and production the plain copy", () => {
+    const runs = (name) => jobs[name].steps.map((step) => step.run ?? "");
+    assert.ok(runs("preview").some((r) => /stage-dist\.mjs .* apps\/manual\/public\/_headers --preview$/.test(r)));
+    assert.ok(runs("preview").includes("node apps/manual/scripts/guard-deploy.mjs --preview"));
+    assert.ok(runs("production").some((r) => /stage-dist\.mjs .*_headers$/.test(r)));
+    assert.ok(runs("production").includes("node apps/manual/scripts/guard-deploy.mjs"));
+    assert.doesNotMatch(runs("production").join("\n"), /--preview/);
   });
 
   test("every Wrangler call names wrangler.jsonc, so Wrangler reads the file the guard checked", () => {
@@ -179,9 +181,8 @@ describe("what touches code and secrets", () => {
         assert.deepEqual(readers, [], `${name} reads no secret`);
         continue;
       }
-      const last = job.steps.length - 1;
-      assert.deepEqual(readers, [0, last], name);
-      assert.match(job.steps[last].run, /pnpm exec wrangler/);
+      const wrangler = job.steps.findIndex((step) => /pnpm exec wrangler/.test(step.run ?? ""));
+      assert.deepEqual(readers, [0, wrangler], name);
       for (const index of readers) {
         for (const secret of SECRETS) assert.equal(job.steps[index].env[secret], `\${{ secrets.${secret} }}`);
       }
@@ -348,17 +349,28 @@ describe("the resolve step", () => {
     assert.deepEqual(result.outputs, { newest: "false", previews: "[]", deletions: "[]" });
   });
 
+  const head = (sha, repo = REPO) => ({ sha, repo: { full_name: repo } });
+  const base = { repo: { full_name: REPO } };
   const pulls = [
-    { number: 7, state: "open", head: { sha: SHA }, base: { repo: { full_name: REPO } } },
-    { number: 8, state: "closed", head: { sha: SHA }, base: { repo: { full_name: REPO } } },
-    { number: 9, state: "open", head: { sha: OTHER }, base: { repo: { full_name: REPO } } },
-    { number: 10, state: "open", head: { sha: SHA }, base: { repo: { full_name: "fork/repo" } } },
+    { number: 7, state: "open", head: head(SHA), base },
+    { number: 8, state: "closed", head: head(SHA), base },
+    { number: 9, state: "open", head: head(OTHER), base },
+    { number: 10, state: "open", head: head(SHA), base: { repo: { full_name: "fork/repo" } } },
+    { number: 12, state: "open", head: head(SHA, "fork/repo"), base },
+    { number: 13, state: "open", head: { sha: SHA, repo: null }, base },
   ];
 
-  test("a pull request run previews only open pull requests into this repository whose head is the commit", () => {
+  test("a pull request run previews only open pull requests from a branch of this repository, at the commit", () => {
     const result = run({}, { [`repos/owner/repo/commits/${SHA}/pulls`]: pulls });
     assert.equal(result.status, 0, result.stderr);
     assert.deepEqual(result.outputs, { newest: "false", previews: "[7]", deletions: "[]" });
+  });
+
+  test("a fork's pull request gets no preview, even into this repository", () => {
+    const result = run({ HEAD_REPO: "fork/repo" }, { [`repos/owner/repo/commits/${SHA}/pulls`]: pulls.slice(4) });
+    assert.equal(result.status, 0, result.stderr);
+    assert.equal(result.outputs.previews, "[]");
+    assert.match(result.stdout, /from a branch of owner\/repo/);
   });
 
   test("a pull request run whose commit no open pull request has as its head previews nothing", () => {
@@ -372,11 +384,13 @@ describe("the resolve step", () => {
       { WORKFLOW: "book-pr-closed" },
       {
         "repos/owner/repo/pulls?state=closed&sort=updated&direction=desc&per_page=100": [
-          { number: 8, head: { sha: SHA } },
-          { number: 11, head: { sha: OTHER } },
+          { number: 8, head: head(SHA) },
+          { number: 11, head: head(OTHER) },
+          { number: 12, head: head(SHA, "fork/repo") },
         ],
       },
     );
+    // A fork's pull request never had a preview, so it has none to delete.
     assert.deepEqual(result.outputs, { newest: "false", previews: "[]", deletions: "[8]" });
   });
 
