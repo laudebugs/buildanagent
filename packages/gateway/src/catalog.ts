@@ -63,8 +63,8 @@ export interface CatalogEntry {
   /**
    * The date the provider says the model stops answering, as `YYYY-MM-DD`. Copy it from the provider's own
    * deprecations page, and record that page in `note`. Leave it out when the provider has published no date: a
-   * "not sooner than" floor is not a retirement date. A tuned model retires with its base model, so give it the
-   * base model's date. Like the rates, the date is a copy as of `asOf`. The gateway never refuses a model because
+   * "not sooner than" floor is not a retirement date. OpenAI retires a tuned model with its base model, so give such
+   * an entry the base model's date. Like the rates, the date is a copy as of `asOf`. The gateway never refuses a model because
    * of it. The gateway's own CI warns when an entry in the shipped catalog retires within 90 days, but nothing
    * checks the dates in a catalog you pass.
    */
