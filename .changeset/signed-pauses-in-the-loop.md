@@ -1,0 +1,5 @@
+---
+"@buildanagent/sdk": minor
+---
+
+Breaking Changes: a `beforeToolCall` gate that returns `ask` now pauses its call instead of blocking it. The run ends with the new stop reason `awaiting_approval`, whose `AwaitingApprovalResult` carries `pending`, one signed `SignedPendingRequest` per waiting call; `context.pending` holds the same requests, and the new `approval_request` event reports each one. A `switch` over `RunResult["stopReason"]` or `AgentEvent["type"]` that was exhaustive needs a case for each, and code that relied on `ask` blocking the call must now handle the pause. `continueRun()` throws `invalid_run_options` for a context with pending requests until it can resume them. New: the `signer` run option (default `ephemeralSigner()`), `createPendingRequest()`, which signs the same record outside a run, and re-exports of `ApprovalSigner`, `ephemeralSigner()`, `hmacSigner()`, `canonicalInputHash()`, `SignedPendingRequest`, `Resolution`, `SignPendingOptions`, `SafetyError` and `isSafetyError()` from the safety package, unchanged.
