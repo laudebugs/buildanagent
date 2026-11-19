@@ -3,7 +3,7 @@
 | Field | Value |
 | --- | --- |
 | ID | `Q1` |
-| Status | `ready` |
+| Status | `ongoing` |
 | Plan | [Guidelines, Known gaps](../../guidelines/README.md#known-gaps) |
 | Round / milestone | Q (code quality, added 2026-11-19) |
 | Depends on | [B3](../done/B3-scripted-model.md) |

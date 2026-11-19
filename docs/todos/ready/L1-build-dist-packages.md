@@ -6,7 +6,7 @@
 | Status | `ready` |
 | Plan | [Publish and docs §4](../../plans/publish-and-docs.md#4-round-l-and-its-todos) |
 | Round / milestone | Round L (publish and docs, added 2026-11-19) |
-| Depends on | [Q1](Q1-strict-compiler-and-lint.md) |
+| Depends on | [Q1](../ongoing/Q1-strict-compiler-and-lint.md) |
 | Size | M |
 
 ## Goal
