@@ -3,7 +3,7 @@
 | Field | Value |
 | --- | --- |
 | ID | `L3` |
-| Status | `ongoing` |
+| Status | `done` |
 | Plan | [Publish and docs §4](../../plans/publish-and-docs.md#4-round-l-and-its-todos) |
 | Round / milestone | Round L (publish and docs, added 2026-11-19) |
 | Depends on | [L2](../done/L2-changesets.md) |
@@ -36,9 +36,9 @@ Publish new versions only from a reviewed release pull request, through npm trus
 
 - [ ] A dry run on `main` builds and packs both packages and publishes nothing
 - [ ] On a throwaway branch with `private` removed and the "Version packages" step switched on, a merged changeset opens the pull request; on `main` it stays off until L4b
-- [ ] The publish job has no npm token and fails closed when trusted publishing isn't configured; no job in `release.yml` reads an npm token
+- [x] The publish job has no npm token and fails closed when trusted publishing isn't configured; no job in `release.yml` reads an npm token
 - [ ] Every new workflow and action is in `.github/workflows/actions.lock`: run `gh actions-lock`, or copy verified entries and check each tag's commit with `git ls-remote` ([CI plan §3d](../../plans/ci.md#3d-actions-locked-by-a-lockfile-added-2026-11-19)); `ci.yml`'s `lockfile` job passes
-- [ ] `pnpm check`, `pnpm typecheck` and `pnpm test` pass offline from the repo root
+- [x] `pnpm check`, `pnpm typecheck` and `pnpm test` pass offline from the repo root
 
 ## Tests
 
@@ -52,11 +52,20 @@ CI plan (a new release section), CONTRIBUTING.md, AGENTS.md's `.github/workflows
 
 A pull request opened with `GITHUB_TOKEN` starts its `ci.yml` runs in an approval-required state, which a person with write access approves ([GitHub docs](https://docs.github.com/en/actions/concepts/security/github_token)); say whether the release pull request uses that, or the `SDK_UPDATES_TOKEN` pattern from the SDK-updates workflow.
 
+## Outcome
+
+`.github/workflows/release.yml` plans each run with `scripts/ci/release-plan.mjs`, packs both packages with a read-only token, and publishes the tarballs, gateway first, from a `publish` job in the `release` environment. That job has only `contents: write` and `id-token: write`, checks nothing out, installs npm 11.21.2 and reads an npm config with no credentials, so a missing trusted publisher ends in ENEEDAUTH. It then creates the `v<version>` tag and GitHub release, and a `docs` job with only `actions: write` starts `docs-deploy.yml` once that file exists. The [CI plan §3f](../../plans/ci.md#3f-releases-through-npm-trusted-publishing-added-2026-11-19) has the details and the owner's setup.
+
+- **Criteria evidence.** `scripts/ci/release.test.mjs` checks the no-token rule, the publish job's runner, environment, permissions and push-to-`main` condition, and the `version-pr` off switch (`false &&`, which L4b changes to `true &&`). The plan also refuses `private` packages and version 0.0.0, so L4a's merge publishes nothing. Each `actions.lock` entry was checked with `git ls-remote`; `ci.yml`'s `lockfile` job first runs on this pull request.
+- **Dry run.** [Run 44502245024](https://github.com/laudebugs/buildanagent/actions/runs/44502245024), from this branch, built and packed both packages and skipped `version-pr`, `publish` and `docs`. The criterion asks for a dry run on `main`, which can run only after the merge.
+- **Not done here.** The throwaway-branch test of the "Version packages" pull request would open a real pull request, so it waits for L4b, or for the owner to allow a throwaway one.
+- **The risk's answer.** The release pull request uses `GITHUB_TOKEN`, and a person approves its CI runs from the merge box. That keeps `release.yml` free of stored secrets, and the owner reviews that pull request anyway.
+
 ## Definition of done
 
-- [ ] Claimed: the first commit moved this file `ready/` → `ongoing/` (Status `ongoing`)
-- [ ] Prose drafted with `/anthropic-skills:writing`, and changed claims re-checked against their sources
-- [ ] `pnpm check`, `pnpm typecheck` and `pnpm test` pass locally; pushed after each meaningful step
-- [ ] This file moved `ongoing/` → `done/` (Status `done`) in the last work commit, and the plan's todo table updated
+- [x] Claimed: the first commit moved this file `ready/` → `ongoing/` (Status `ongoing`)
+- [x] Prose drafted with `/anthropic-skills:writing`, and changed claims re-checked against their sources
+- [x] `pnpm check`, `pnpm typecheck` and `pnpm test` pass locally; pushed after each meaningful step
+- [x] This file moved `ongoing/` → `done/` (Status `done`) in the last work commit, and the plan's todo table updated
 - [ ] Two code-review rounds run on the pull request (`/code-review high --max-findings default`, then `medium` and `low` after more than 6 confirmed findings, otherwise `low`), with every finding fixed or explained in a commit message
 - [ ] Copy reviewed with `/anthropic-skills:writing-review` after the code changes, with its findings fixed and the rubric scores in the pull request description
