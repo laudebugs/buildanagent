@@ -124,11 +124,25 @@ The claims log for [`call-workflow-loop.md`](../src/content/chapters/call-workfl
 | 76 | The exercise runs offline and its predictions can be checked: a `LoopAgent` of the writer and a reviewer with `EXIT_LOOP` and `maxIterations: 3` makes 2, 4 and 6 model calls when the reviewer approves the first draft, the second, or none | § Exercises, 1 | ✅ | A scratch example run in `verify/google-adk` on 2026-11-19 and then deleted printed "calls 2", "calls 4" and "calls 6". The chapter does not print these answers |
 | 77 | `pnpm test` in each harness type-checks and runs its examples, and fails on a failing check | § Exercises, 1 and 2 | ✅ | `verify/google-adk/package.json` and `verify/vercel-ai-sdk/package.json`: `test` runs `tsc` then `scripts/run-examples.mjs`; `check()` throws "ASSERTION FAILED" on a false condition (`examples/lib/check.ts`) |
 
+## Re-checks after the writing review
+
+The writing review rewrote nine passages. Each row below re-checks a claim one of them touched, against the same source as before.
+
+| # | Claim | Where | Verdict | Source and reason |
+| --- | --- | --- | --- | --- |
+| 78 | The Anthropic quotes on agents, now split into two sentences, still read verbatim, and the order-status request fits "open-ended problems where it's difficult or impossible to predict the required number of steps" | § The loop | ✅ | [Building effective agents](https://www.anthropic.com/engineering/building-effective-agents), re-read 2026-11-19: both quotes verbatim (rows 22 and 23). The fit is our reading of the scenario: the order's parcel count, and so the number of lookups, is unknown before the first lookup |
+| 79 | In the AI SDK replay, the second request carries the model's call and the tool result (Lisbon, 21, Celsius) | § The loop | ✅ | Row 36. The review replaced `tool_result`, Anthropic's block name, with "tool result" here, because the AI SDK names the part `tool-result` (row 28) |
+| 80 | The AI SDK's default stop condition shows why a loop needs an end that does not depend on the model alone | § The loop | ✅ | Rows 38 and 39: under the default `isStepCount(1)` the loop ends after one step whatever the model asked for |
+| 81 | Handing the model the next step hands it whatever its tools reach, and the approvals and permissions chapters show how to fence that in | § A harness | ✅ | Rows 49 and 50 for the tools; [book plan §4](../../../docs/plans/build-book.md#4-eighteen-chapters-three-research-fed-sections-and-a-home-for-every-topic): Chapter 6 covers approvals and guardrails, and Chapter 14 permissions, sandboxes and credentials |
+| 82 | Each step from a call to a workflow to a loop gains flexibility and gives up control | § Choose the shape | ✅ | Rows 56 and 60: workflows keep "predefined code paths" and agents "dynamically direct their own processes", which "trade latency and cost for better task performance" |
+| 83 | Every listing runs against a mock model, so a reader can run each one with no key and no bill | § Without a key | ✅ | Rows 1 and 64, unchanged by the rewording |
+| 84 | The three ⚠️ rows still read as ours: row 11 sits under "In our view", row 41 under "We recommend" and row 63 under "we recommend combining them" | Whole chapter | ✅ | Re-read against the chapter after the review's fixes on 2026-11-19 |
+
 ## Tally
 
 | Verdict | Rows |
 | --- | --- |
-| ✅ confirmed | 71 |
+| ✅ confirmed | 78 |
 | ✏️ corrected | 3 (rows 26, 42 and 70) |
 | ⚠️ unverified, our judgement or recommendation, marked as ours in the text | 3 (rows 11, 41 and 63) |
-| Total | 77 |
+| Total | 84 |
