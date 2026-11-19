@@ -563,7 +563,7 @@ declare function replayPairs(pairs: RecordedPair[]): ScriptedModel;   // rejects
 **Revision (B17, 2026-11-19).** B17 adds the OTel observer with these choices, each recorded in [its outcome](../todos/done/B17-otel-observer.md#outcome):
 - `TracerLike.startSpan` takes a third `context` argument and a span `kind`, and `SpanLike` gains an optional `setStatus`, so a real OpenTelemetry `Tracer` fits without a wrapper. The observer gets the trace context through `parentContext` and a required `childContext`, not from ambient storage, so its model and tool spans always join the run's trace.
 - `endRun(runId, error)` ends the spans of a run whose `result` rejected, because such a run sends no `run_end`.
-- The run, model-call and tool spans follow the in-process conventions of [fact-check B17-2 to B17-4](reviews/fact-check-otel-observer.md).
+- The run, model-call and tool spans follow the in-process conventions of [the fact-check log](reviews/fact-check-otel-observer.md), rows B17-2 to B17-4.
 
 ### 3.4 The seams P2 consumes
 

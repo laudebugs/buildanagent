@@ -69,7 +69,7 @@ The GenAI conventions are at Development stability; the constants file isolates 
 
 ## Outcome
 
-`@buildanagent/sdk/otel` exports `otelObserver()`, which returns an `Observer` with `flush()` and `endRun()` methods, plus `GEN_AI_ATTRIBUTES`, `GEN_AI_CONTENT_ATTRIBUTES`, `GEN_AI_OPERATIONS`, `SEMCONV_GENAI_COMMIT` and the structural types `TracerLike`, `SpanLike`, `SpanOptionsLike`, `AttributeValueLike`, `OtelObserver` and `OtelObserverOptions`. The code is in `packages/sdk/src/otel/` (`attributes.ts`, `content.ts`, `observer.ts`). The package gains two exact-pinned dev dependencies, `@opentelemetry/sdk-trace` 2.12.1 and `@opentelemetry/api` 1.9.1 (the sdk's peer, which the tests also call), and no runtime dependency. The changeset is `.changeset/otel-observer.md`, a `minor` bump. Its claims are logged as rows B17-1 to B17-21 in [the fact-check log](../../plans/reviews/fact-check-otel-observer.md).
+`@buildanagent/sdk/otel` exports `otelObserver()`, which returns an `Observer` with `flush()` and `endRun()` methods. It also exports `GEN_AI_ATTRIBUTES`, `GEN_AI_CONTENT_ATTRIBUTES`, `GEN_AI_OPERATIONS`, `SEMCONV_GENAI_COMMIT` and the structural types `TracerLike`, `SpanLike`, `SpanOptionsLike`, `AttributeValueLike`, `OtelObserver` and `OtelObserverOptions`. The code is in `packages/sdk/src/otel/` (`attributes.ts`, `content.ts`, `observer.ts`). The package gains two exact-pinned dev dependencies, `@opentelemetry/sdk-trace` 2.12.1 and `@opentelemetry/api` 1.9.1 (the sdk's peer, which the tests also call), and no runtime dependency. The changeset is `.changeset/otel-observer.md`, a `minor` bump. Its claims are logged as rows B17-1 to B17-21 in [the fact-check log](../../plans/reviews/fact-check-otel-observer.md).
 
 Decisions:
 
@@ -81,6 +81,9 @@ Decisions:
 - Content (system instructions, messages, tool arguments and results, and error messages as status descriptions) is written only with `captureContent: true`, as JSON strings in the conventions' parts format where it is structured; image bytes are never written. Tool arguments are the input the tool ran with, after any `beforeToolCall` replacement.
 - `gen_ai.response.model` is left out, because the gateway reports only the requested model (changed in code review).
 - One observer keeps state per `runId`, so it can serve several runs. A run that ends with spans still open closes them with an error status.
+- A call that starts before the previous one with the same key finished ends the displaced span as failed, so it is exported and not lost (changed in code review).
+- Closing a run ends every span even when the tracer throws partway, then rethrows the first error, so a failing tracer leaks no span and the host still sees a `hook_error` (changed in code review).
+- A run that a tool starts is another run to the observer: its span starts in `parentContext`, not under the calling tool's span, because events carry no parent run id. The README and the `parentContext` TSDoc say so.
 - The cost attribute is left out, as the scope says.
 - `vitest.config.ts` has Vitest bundle `@opentelemetry/api` and `sdk-trace`, because the api's ES build imports its own files without extensions and the tests run Node under the `module` condition (fact-check row B17-21).
 

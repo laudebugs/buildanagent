@@ -213,7 +213,7 @@ The run waits for observers to handle `agent_settled` and `run_end` before it se
 
 ## Export a run as OpenTelemetry spans with `otelObserver()`
 
-`otelObserver()` turns a run's events into spans that follow the OpenTelemetry GenAI conventions, and it sends them only to the tracer you pass. Import it from `@buildanagent/sdk/otel` and add it to `observers`. An observer added later with `run.on()` misses `run_start`, so it records nothing for that run:
+`otelObserver()` turns a run's events into spans that follow the OpenTelemetry GenAI conventions, and it sends them only to the tracer you pass. Import it from `@buildanagent/sdk/otel` and add it to `observers`. Pass it in `observers`, not to `run.on()` later: an observer added late misses `run_start` and records nothing for that run.
 
 ```ts
 import { otelObserver } from "@buildanagent/sdk/otel";
@@ -228,7 +228,7 @@ const telemetry = otelObserver({
 const started = run({ model, system, input, observers: [telemetry] });
 ```
 
-A run produces one `invoke_agent` span, one `chat` span for each model call and one `execute_tool` span for each tool call. The model and tool spans are children of the run's span. Each span starts and ends at the timestamps of its events, so a run on a fixed clock gives the same trace every time.
+A run produces one `invoke_agent` span, one `chat` span for each model call and one `execute_tool` span for each tool call. The model and tool spans are children of the run's span. Each span starts and ends at the timestamps of its events, so a run on a fixed clock gives the same span times every time.
 
 The observer imports nothing from OpenTelemetry. `tracer` needs only a `startSpan(name, options, context)` method, which an OpenTelemetry `Tracer` has, and `@opentelemetry/api` stays your own dependency. Two options carry the trace context explicitly, so nothing depends on an ambient `AsyncLocalStorage`, which some runtimes lack:
 
@@ -241,7 +241,9 @@ Spans hold no content unless you ask. With `captureContent: true`, the `chat` sp
 
 `telemetry.flush()` calls your `forceFlush`. On Cloudflare Workers, pass it to `ctx.waitUntil()` so spans survive the end of the request. An observer that throws, a tracer included, becomes a `hook_error` event and never changes the run, like any observer.
 
-A run whose `result` rejects, for a programmer error such as a tool that returns a malformed result, sends no `run_end`, so its spans stay open. Call `telemetry.endRun(started.id, error)` in your `catch` to end them as failed and let the observer forget the run.
+A run's `result` rejects for a programmer error, such as a tool that returns a malformed result. That run sends no `run_end`, so its spans stay open. Call `telemetry.endRun(started.id, error)` in your `catch` to end them as failed and let the observer forget the run.
+
+One limit applies to nested runs. A run that a tool starts is another run to the observer, so its span starts in `parentContext` and is not a child of the calling tool's span, because events carry no parent run id.
 
 The names come from one constants file. `GEN_AI_ATTRIBUTES` holds every attribute name the observer writes, and `SEMCONV_GENAI_COMMIT` (`"d28355d"`) names the commit of `open-telemetry/semantic-conventions-genai` they follow. The conventions are at Development stability as of November 2026, so a rename upstream changes only that file. Your tests can import the same constants.
 

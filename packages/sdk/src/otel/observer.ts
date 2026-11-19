@@ -90,7 +90,8 @@ export type OtelObserver = Observer & {
    * Ends the open spans of a run whose `result` rejected, as failed, and forgets the run. A run that throws, for a
    * programmer error such as a tool that returns a malformed result, sends no `run_end`, so without this call its
    * spans are never exported. `error.type` is the error's `code` when it has one, such as an `SdkError`'s, and its
-   * `name` otherwise. An unknown run id, or a run that already ended, does nothing.
+   * `name` otherwise. It ends every span, then rethrows the first error a tracer threw. An unknown run id, or a run
+   * that already ended, does nothing.
    */
   endRun(runId: string, error?: unknown): void;
 };
