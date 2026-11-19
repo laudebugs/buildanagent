@@ -26,4 +26,6 @@ Both packages are still `private`, and `privatePackages` in `config.json` tells 
 
 ## CI checks for a changeset once publishing starts
 
-CI's `changesets` job runs `pnpm changeset status --since=origin/main` and fails a pull request that changes `packages/*/src` without a changeset. Changes anywhere else, such as docs, tests outside `src/` or workflows, need none. The job stays off until the first release.
+CI's `changesets` job runs `pnpm changeset status --since=origin/main` and fails a pull request that changes a package's shipped files without a changeset. Those files are the ones `changedFilePatterns` in `config.json` lists: everything under `src/`, `package.json` and `tsconfig.build.json`, because a dependency bump or a build setting reaches users as surely as a code change. Changes anywhere else, such as docs, tests outside `src/` or workflows, need none. The job stays off until the first release.
+
+When a pull request touches those files but users get nothing new, as with an internal rename or a devDependency bump, run `pnpm changeset --empty`. It writes a changeset that names no package, which satisfies the check and adds nothing to the changelog.

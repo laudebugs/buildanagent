@@ -24,7 +24,7 @@ We squash-merge a pull request once CI passes and its review findings are fixed.
 
 ## Add a changeset when you change a package's behaviour
 
-Run `pnpm changeset` when your pull request changes what users of `@buildanagent/gateway` or `@buildanagent/sdk` get, and commit the file it writes. Both packages share one version. Under 0.x, a change that breaks the API is a `minor` bump whose summary starts with "Breaking Changes". While both packages are private, Changesets skips them and CI doesn't ask for a changeset; from the first release on, CI fails a pull request that changes `packages/*/src` without one. The details are in [`.changeset/README.md`](.changeset/README.md).
+Run `pnpm changeset` when your pull request changes what users of `@buildanagent/gateway` or `@buildanagent/sdk` get, and commit the file it writes. Both packages share one version. Under 0.x, a change that breaks the API is a `minor` bump whose summary starts with "Breaking Changes". While both packages are private, Changesets skips them and CI doesn't ask for a changeset; from the first release on, CI fails a pull request that changes a package's `src/`, `package.json` or `tsconfig.build.json` without one. If such a change gives users nothing new, such as an internal rename, run `pnpm changeset --empty` instead. The details are in [`.changeset/README.md`](.changeset/README.md).
 
 ## Every pull request gets two rounds of code review
 

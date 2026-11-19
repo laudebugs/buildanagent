@@ -161,5 +161,9 @@ Each row checks a claim in [ADR 0051](../../decisions/0051-dist-build-correction
 | 96 | `changeset status --since` fails when a versioned package changed and no changeset was added since the ref | ✅ | `dist/status.mjs` in `@changesets/cli` 3.0.3, and runs 44497925125 (fail) and 44498147370 (pass) on `test/L2-gate` |
 | 97 | `changedFilePatterns` patterns are matched against paths relative to each package's folder | ✅ | `getChangedPackagesSinceRef` in `@changesets/git` 4.0.1 slices the package folder off each path before matching |
 | 98 | Changesets' `ignore` accepts globs such as `@buildanagent/verify-*` | ✅ | `@changesets/config` 4.0.1 expands `ignore` with picomatch against the workspace's package names |
+| 99 | PB2: "L2 adds the config and tooling but no CI gate" | ✏️ | L2 adds the gate switched off (`if: false`), so it can be tested now and switched on with one line in L4b. PB2 now says so |
+| 100 | `changedFilePatterns: ["src/**"]` catches every change that reaches users | ✏️ | The first code review showed a `package.json`-only change, such as a runtime dependency bump, passes `changeset status --since`. Corrected: the patterns add `package.json` and `tsconfig.build.json`; a local run with `private` dropped failed on a `package.json`-only change |
+| 101 | `pnpm changeset --empty` writes a changeset that names no package and clears the check | ✅ | `status.mjs` in `@changesets/cli` 3.0.3 suggests `changeset add --empty`; locally, with `private` dropped, it wrote a changeset with empty frontmatter and `status --since` then exited 0 |
+| 102 | A `pull_request` run's merge commit gives the same `status --since=origin/main` result as a push | ✅ | Reproduced locally on a merge commit of the branch into `origin/main`, built as GitHub builds the merge ref; not yet seen on a GitHub `pull_request` run (L4b) |
 
-**Totals:** 98 claims: 71 ✅, 22 ✏️, 5 ⚠️.
+**Totals:** 102 claims: 73 ✅, 24 ✏️, 5 ⚠️.

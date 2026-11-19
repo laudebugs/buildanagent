@@ -49,7 +49,8 @@ jobs:
       # pnpm test rewrites results/run-examples.json; fail only if something other than timings changed.
       - run: node scripts/ci/results-drift.mjs
 
-  # Fails when a change to packages/*/src comes without a changeset; changes anywhere else, docs included, need none.
+  # Fails when a change to a package's src/, package.json or tsconfig.build.json (changedFilePatterns in
+  # .changeset/config.json) comes without a changeset; changes anywhere else, docs included, need none.
   # Off until the first release, because the owner said "Changesets wait until we publish". To switch it on,
   # change `if: false` to `if: true`. Changesets skips private packages, so the check can only fail once the
   # packages drop `private`.
