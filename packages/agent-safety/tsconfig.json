@@ -8,5 +8,5 @@
   },
   "include": ["src/**/*.ts", "test/**/*.ts", "vitest.config.ts"],
   // The Worker runs in workerd and type-checks against the Workers globals instead, in test/workerd/tsconfig.json.
-  "exclude": ["test/workerd/approval-agent.ts"]
+  "exclude": ["test/workerd/approval-agent.ts", "test/workerd/interrupted-agent.ts"]
 }
