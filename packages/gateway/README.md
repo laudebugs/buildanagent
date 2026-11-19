@@ -2,7 +2,7 @@
 
 The gateway lets your agent call any model through one transcript and one stream format, so switching providers never changes your agent code. Use it directly to call a model, or through `@buildanagent/sdk`, which runs the agent loop on top of it.
 
-As of November 2026 the package holds the transcript types, the stream checker, `complete()`, `createModel()` with its retries and middleware, and the price catalog that puts a cost on every message. The Anthropic and OpenAI adapters are next.
+As of November 2026 the package holds the transcript types, the stream checker, `complete()`, `createModel()` with its retries and middleware, the price catalog that puts a cost on every message, and the tool-name rule. The Anthropic and OpenAI adapters are next.
 
 ## A conversation is a list of messages you own
 
@@ -74,6 +74,23 @@ A caller that holds a token count instead of a `ModelContext` calls `projectCost
 ## One caching option covers every provider
 
 The `cacheRetention` stream option sets how long the provider keeps the prompt cache: `"none"`, `"short"` or `"long"`. The gateway passes it to the adapter unchanged, and each adapter maps it to its provider's own cache controls. Leave it out to keep the adapter's default.
+
+## One tool name works with every provider
+
+A tool name must be 1 to 64 characters from `A-Z`, `a-z`, `0-9`, `_` and `-`. This canonical rule is the strictest of the first providers' rules: OpenAI Chat Completions allows 64 characters, and Anthropic Messages allows the same characters at up to 128. [`src/names.md`](src/names.md) lists each provider's rule with its source and the date it was checked, as of November 2026. Names from other sources follow the same rule, so an MCP tool is named `mcp__<server>__<tool>`.
+
+`assertCanonicalName(name)` throws a `GatewayError` with code `invalid_tool_name` for a name that breaks the rule, so a bad name fails when you define the tool rather than when a provider rejects the request:
+
+```ts
+import { assertCanonicalName } from "@buildanagent/gateway";
+
+assertCanonicalName("lookup_customer"); // passes
+assertCanonicalName("lookup customer"); // throws: the space is not allowed
+```
+
+An adapter turns each name into its provider's wire name with a `ToolNameMap`, and turns the names the model sends back into your tool names. Build one with `createToolNameMap(rule)` and keep it for the whole run, so every request sends the same names and the prompt cache stays valid. `sanitize(name)` returns a name the rule accepts unchanged. Any other name has its disallowed characters replaced by `_`, is cut to fit, and ends in `_` and an 8-digit hash of the whole name, so two names never share a wire name. `restore(wireName)` reverses it, and returns a name the map never produced unchanged, so a tool the model invented still shows up as an unknown tool.
+
+`TOOL_NAME_RULES` holds the rules of the two first wire protocols. Every canonical name meets both, so with these providers `sanitize()` changes nothing. The map matters for a provider with a stricter rule: pass its `ToolNameRule` to `createToolNameMap()`.
 
 ## Your key is the only key the gateway sends
 

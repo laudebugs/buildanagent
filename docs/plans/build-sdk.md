@@ -56,7 +56,7 @@ Each decision answers one open decision in [guide §12][g12], in the same order,
 | D9 | Budget timing | Check the USD cap before each model call, against a projected cost | Decided | [0009](../decisions/0009-pre-emptive-budget.md) |
 | D10 | Run outcomes | A discriminated `RunResult` union plus a `runOrThrow()` helper | Decided | [0010](../decisions/0010-run-outcomes.md) |
 | D11 | Progress-detection defaults | Three identical failing calls end the run with `no_progress`; a depth cap of 2 | Decided, provisional (N39) | none: tunable defaults |
-| D12 | Tool-name rule | A per-adapter name table, a canonical rule of `^[A-Za-z0-9_-]{1,64}$` checked at definition, and reversible sanitising per adapter | Decided, provisional (B7) | [0011](../decisions/0011-tool-name-rule.md) |
+| D12 | Tool-name rule | A per-adapter name table, a canonical rule of `^[A-Za-z0-9_-]{1,64}$` checked at definition, and reversible sanitising per adapter | Decided; B7 confirmed the floor against both providers (2026-11-19) | [0011](../decisions/0011-tool-name-rule.md) |
 
 ### D1. Two packages, because the gateway has consumers that never run the loop
 
@@ -173,6 +173,8 @@ Each decision answers one open decision in [guide §12][g12], in the same order,
 **Choice.** B7 builds the table from each D2 provider's API reference before any naming code is written. Until then, the canonical rule is `^[A-Za-z0-9_-]{1,64}$`, checked when a tool is defined, with a thrown programmer error on a violation. Each adapter maps canonical names to its wire form reversibly and keeps the map for the run, and namespaced names such as `mcp__<server>__<tool>` follow the same rule. If the table shows a provider stricter than the floor, B7 tightens the canonical rule; if every provider is looser, the floor stays, because the strictest provider sets it.
 
 **Evidence.** The floor is an assumption without a per-provider table, which the research lists among its open limits ([SDK research §7][sr7]; [tools note, implication 9][n-tools-impl]). Names are namespaced by source and sanitised to the strictest provider, and tool order stays stable for prompt caching ([tools note §8][n-tools-8]).
+
+**Revision (B7, 2026-11-19).** The table in [`packages/gateway/src/names.md`](../../packages/gateway/src/names.md) keeps the floor. As of November 2026, Anthropic Messages allows the same characters at up to 128, and OpenAI Chat Completions allows them at up to 64, so the strictest provider sets the 64-character limit ([ADR 0011, status note](../decisions/0011-tool-name-rule.md#status-note-todo-b7-2026-11-19)).
 
 ## 3. Package and module layout
 
@@ -561,7 +563,7 @@ The guide says to start with the gateway and the test model, because every other
 | ID | Title | Depends on | Size |
 | --- | --- | --- | --- |
 | [B6](../todos/ready/B6-transform-messages.md) | The cross-provider `transformMessages` pass | B3 | M |
-| [B7](../todos/ongoing/B7-tool-name-table.md) | Per-provider tool-name table and the canonical name rule | B1 | S |
+| [B7](../todos/done/B7-tool-name-table.md) | Per-provider tool-name table and the canonical name rule | B1 | S |
 | [B8](../todos/ready/B8-anthropic-adapter.md) | Anthropic Messages adapter and its mock transport | B5, B6, B7 | L |
 | [B9](../todos/ready/B9-openai-chat-adapter.md) | OpenAI-compatible Chat Completions adapter and its mock transport | B5, B6, B7 | L |
 
