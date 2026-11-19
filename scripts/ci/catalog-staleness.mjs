@@ -20,6 +20,8 @@ export function staleWarnings(catalog, now, maxAgeDays = 90) {
     );
 }
 
+const plural = (days) => (days === 1 ? "1 day" : `${days} days`);
+
 /**
  * One warning per entry whose `retires` date is `withinDays` days or less after the calendar day of `now`, or already
  * past. Counting from the start of `now`'s UTC day makes "90 days away" a whole-day rule, so the hour the check runs
@@ -32,7 +34,7 @@ export function retirementWarnings(catalog, now, withinDays = 90) {
     .filter((e) => e.retires !== undefined && Date.parse(`${e.retires}T00:00:00Z`) - today <= withinDays * DAY_MS)
     .map((e) => {
       const days = Math.round((Date.parse(`${e.retires}T00:00:00Z`) - today) / DAY_MS);
-      const when = days < 0 ? `${-days} days ago` : days === 0 ? "today" : `in ${days} days`;
+      const when = days < 0 ? `${plural(-days)} ago` : days === 0 ? "today" : `in ${plural(days)}`;
       return (
         `price catalog: ${e.provider}/${e.id} is recorded as retiring on ${e.retires} (${when}), as of ${e.asOf}; ` +
         `check the provider's deprecations page and refresh the entry`

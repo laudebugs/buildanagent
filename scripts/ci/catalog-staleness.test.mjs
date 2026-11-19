@@ -47,6 +47,13 @@ test("warns about a retirement date that is today or past, and says so", () => {
   assert.match(gone, /test\/gone .*\(10 days ago\)/);
 });
 
+test("a date one day away or one day past reads as one day, not one days", () => {
+  const catalog = { models: [retiring("tomorrow", "2026-11-20"), retiring("yesterday", "2026-11-18")] };
+  const [tomorrow, yesterday] = retirementWarnings(catalog, NOW);
+  assert.match(tomorrow, /\(in 1 day\)/);
+  assert.match(yesterday, /\(1 day ago\)/);
+});
+
 test("the warning asks for a refresh and entries without a date are skipped", () => {
   const catalog = { models: [entry("undated", "2026-11-19"), retiring("dated", "2027-01-01")] };
   assert.deepEqual(retirementWarnings(catalog, NOW), [
