@@ -255,6 +255,7 @@ interface ModelAdapter {
   stream(model: ModelRef, context: ModelContext, options: StreamOptions): AsyncIterable<ModelEvent>;
 }
 interface ModelContext { system: string; messages: Message[]; tools: WireTool[] } // what one call sends
+interface WireTool { name: string; description: string; inputSchema: Record<string, unknown> } // a JSON Schema object; added in B2, which found WireTool used but undefined
 type ModelEvent =
   | { type: "start" }
   | { type: "text_start" | "reasoning_start" | "tool_input_start"; index: number }
@@ -478,9 +479,17 @@ declare const SEMCONV_GENAI_COMMIT: "d28355d";                          // the p
 declare function otelObserver(options: { tracer: TracerLike; captureContent?: boolean }): Observer; // content off by default
 
 // @agent-speak/sdk/testing (guide §8; SDK decision 14)
+interface AssistantScript {                    // added in B3, which found AssistantScript used but undefined
+  content: ContentBlock[]; stopReason?: "stop" | "length" | "tool_calls"; // default: tool_calls if content has a tool call, else stop
+  error?: NonNullable<AssistantMessage["error"]>; usage?: Partial<Omit<Usage, "raw">>; // error ends the stream with an error terminal
+}
+interface RecordedRequest {                    // added in B3: a frozen, detached snapshot taken when the call is made
+  readonly model: ModelRef; readonly context: ModelContext;
+  readonly options: Readonly<Pick<StreamOptions, "maxOutputTokens" | "temperature" | "cacheRetention" | "providerOptions">>;
+}
 type ScriptStep = AssistantScript | ((request: RecordedRequest) => AssistantScript | Promise<AssistantScript>);
 declare class ScriptedModel implements ModelAdapter {
-  constructor(steps: ScriptStep[], options?: { chunkSize?: number; ref?: Partial<ModelRef> });
+  constructor(steps: ScriptStep[], options?: { chunkSize?: number; ref?: Partial<ModelRef>; idGenerator?: () => string }); // idGenerator added in B3: fills missing tool-call ids
   readonly calls: readonly RecordedRequest[];   // frozen, detached snapshots
   assertComplete(): void;                       // throws if steps remain
 }
@@ -490,6 +499,7 @@ declare function testSigner(): ApprovalSigner;
 declare function scriptedApprovals(resolutions: Resolution[]): Interceptors;
 declare function fixedClock(start: string, stepMs?: number): Clock;
 declare function sequentialIds(prefix?: string): () => string;
+declare function seededRandom(seed: number): () => number;   // added in B3: the seeded random the todo asks for
 declare function recordPairs(model: Model, stamp: RecordingStamp): { model: Model; pairs(): RecordedPair[] };
 declare function replayPairs(pairs: RecordedPair[]): ScriptedModel;   // rejects expired or mismatched stamps
 ```
@@ -522,9 +532,9 @@ The guide says to start with the gateway and the test model, because every other
 
 | ID | Title | Depends on | Size |
 | --- | --- | --- | --- |
-| [B1](../todos/ready/B1-sdk-workspace-scaffold.md) | Scaffold `packages/gateway` and `packages/sdk` in the workspace | P4 | S |
-| [B2](../todos/ready/B2-gateway-core-types.md) | Gateway core types, the v1 model spec, the stream contract and `complete()` | B1 | M |
-| [B3](../todos/ready/B3-scripted-model.md) | `ScriptedModel`, chunked streams, determinism options and `allowModelRequests` | B2 | M |
+| [B1](../todos/done/B1-sdk-workspace-scaffold.md) | Scaffold `packages/gateway` and `packages/sdk` in the workspace | P4 | S |
+| [B2](../todos/done/B2-gateway-core-types.md) | Gateway core types, the v1 model spec, the stream contract and `complete()` | B1 | M |
+| [B3](../todos/done/B3-scripted-model.md) | `ScriptedModel`, chunked streams, determinism options and `allowModelRequests` | B2 | M |
 | [B4](../todos/ready/B4-gateway-runtime.md) | Gateway runtime: `createModel`, retries, middleware, `onPayload` and the request dump | B3 | M |
 | [B5](../todos/ready/B5-usage-cost-catalog.md) | Usage, the cost catalog and fold, and the caching policy | B4 | M |
 

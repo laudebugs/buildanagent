@@ -1,0 +1,200 @@
+import "@agent-speak/gateway/testing/setup";
+import assert from "node:assert/strict";
+import { test } from "node:test";
+import {
+  assertStreamContract,
+  complete,
+  type ModelContext,
+  type ModelEvent,
+  type ModelRef,
+} from "@agent-speak/gateway";
+import {
+  type AssistantScript,
+  fixedClock,
+  ScriptedModel,
+  seededRandom,
+  sequentialIds,
+  UnexpectedModelCallError,
+} from "@agent-speak/sdk/testing";
+
+const ref: ModelRef = { api: "scripted", provider: "scripted", id: "scripted-model" };
+const context = (text = "hello"): ModelContext => ({
+  system: "be brief",
+  messages: [{ role: "user", content: [{ type: "text", text }] }],
+  tools: [{ name: "lookup", description: "Look up an order", inputSchema: { type: "object" } }],
+});
+const textStep = (text: string): AssistantScript => ({ content: [{ type: "text", text }] });
+
+async function collect(events: AsyncIterable<ModelEvent>): Promise<ModelEvent[]> {
+  const out: ModelEvent[] = [];
+  for await (const event of events) out.push(event);
+  return out;
+}
+
+test("a script with two steps called three times throws UnexpectedModelCallError on the third call", async () => {
+  const model = new ScriptedModel([textStep("one"), textStep("two")]);
+  await complete(model.stream(ref, context(), {}));
+  await complete(model.stream(ref, context(), {}));
+  await assert.rejects(() => complete(model.stream(ref, context(), {})), UnexpectedModelCallError);
+});
+
+test("a script with two steps called once fails assertComplete()", async () => {
+  const model = new ScriptedModel([textStep("one"), textStep("two")]);
+  await complete(model.stream(ref, context(), {}));
+  assert.throws(() => model.assertComplete(), /1 of 2 scripted steps were never called/);
+});
+
+test("a fully used script passes assertComplete()", async () => {
+  const model = new ScriptedModel([textStep("one")]);
+  await complete(model.stream(ref, context(), {}));
+  assert.doesNotThrow(() => model.assertComplete());
+});
+
+test("mutating the context after a call leaves calls[0] unchanged", async () => {
+  const model = new ScriptedModel([textStep("ok")]);
+  const ctx = context("original");
+  await complete(model.stream(ref, ctx, { temperature: 0.2 }));
+  ctx.messages.push({ role: "user", content: [{ type: "text", text: "later" }] });
+  (ctx.messages[0] as { content: { type: "text"; text: string }[] }).content[0].text = "changed";
+  ctx.system = "changed";
+  const recorded = model.calls[0];
+  assert.equal(recorded.context.system, "be brief");
+  assert.equal(recorded.context.messages.length, 1);
+  assert.deepEqual(recorded.context.messages[0], { role: "user", content: [{ type: "text", text: "original" }] });
+  assert.equal(recorded.options.temperature, 0.2);
+  assert.ok(Object.isFrozen(recorded) && Object.isFrozen(recorded.context.messages[0]));
+  assert.throws(() => {
+    (recorded.context.messages as unknown[]).push("x");
+  }, TypeError);
+});
+
+test("two runs of the same script with fixedClock and sequentialIds emit deep-equal events", async () => {
+  const run = async () => {
+    const clock = fixedClock("2026-11-19T00:00:00.000Z", 1000);
+    const nextId = sequentialIds("call");
+    const model = new ScriptedModel(
+      [
+        (request) => ({
+          content: [
+            { type: "text", text: `It is ${clock.now()} and you said ${JSON.stringify(request.context.messages[0])}` },
+            { type: "tool_call", callId: "", name: "lookup", input: { order: 42, note: "chunk me please" } },
+          ],
+        }),
+        textStep("done"),
+      ],
+      { idGenerator: nextId },
+    );
+    const first = await collect(model.stream(ref, context(), {}));
+    const second = await collect(model.stream(ref, context(), {}));
+    return [...first, ...second];
+  };
+  assert.deepEqual(await run(), await run());
+});
+
+test("text and tool-input JSON arrive in chunkSize deltas, and missing call ids are generated", async () => {
+  const model = new ScriptedModel(
+    [
+      {
+        content: [
+          { type: "text", text: "abcdefghij" },
+          { type: "tool_call", callId: "", name: "lookup", input: { id: 7 } },
+        ],
+      },
+    ],
+    { chunkSize: 3, idGenerator: sequentialIds("c") },
+  );
+  const events = await collect(model.stream(ref, context(), {}));
+  const textDeltas = events.filter((e) => e.type === "text_delta").map((e) => (e as { delta: string }).delta);
+  assert.deepEqual(textDeltas, ["abc", "def", "ghi", "j"]);
+  const toolDeltas = events.filter((e) => e.type === "tool_input_delta").map((e) => (e as { delta: string }).delta);
+  assert.equal(toolDeltas.join(""), '{"id":7}');
+  assert.ok(toolDeltas.every((d) => d.length <= 3));
+  const terminal = events.at(-1);
+  assert.equal(terminal?.type, "done");
+  if (terminal?.type === "done") {
+    assert.equal(terminal.message.stopReason, "tool_calls");
+    assert.deepEqual(terminal.message.content[1], {
+      type: "tool_call",
+      callId: "c-1",
+      name: "lookup",
+      input: { id: 7 },
+    });
+  }
+});
+
+test("aborting between chunks ends the stream with an error terminal whose stopReason is aborted", async () => {
+  const controller = new AbortController();
+  const model = new ScriptedModel([textStep("abcdefghijklmnop")], { chunkSize: 2 });
+  const events: ModelEvent[] = [];
+  for await (const event of model.stream(ref, context(), { signal: controller.signal })) {
+    events.push(event);
+    if (event.type === "text_delta" && events.filter((e) => e.type === "text_delta").length === 2) controller.abort();
+  }
+  const terminal = events.at(-1);
+  assert.equal(terminal?.type, "error");
+  if (terminal?.type === "error") {
+    assert.equal(terminal.message.stopReason, "aborted");
+    assert.deepEqual(terminal.message.content, [{ type: "text", text: "abcd" }]);
+  }
+  await assertStreamContract(
+    (async function* () {
+      yield* events;
+    })(),
+  );
+});
+
+test("a scripted error ends with an error terminal that complete() returns", async () => {
+  const model = new ScriptedModel([
+    {
+      content: [{ type: "text", text: "partial" }],
+      error: { kind: "retryable", message: "overloaded", status: 529 },
+      usage: { uncachedInput: 5, output: 2 },
+    },
+  ]);
+  const message = await complete(model.stream(ref, context(), {}));
+  assert.equal(message.stopReason, "error");
+  assert.equal(message.error?.status, 529);
+  assert.equal(message.usage.uncachedInput, 5);
+});
+
+test("every ScriptedModel stream passes assertStreamContract()", async () => {
+  const scripts: AssistantScript[] = [
+    textStep(""),
+    textStep("hi"),
+    {
+      content: [
+        { type: "reasoning", text: "think" },
+        { type: "text", text: "answer" },
+      ],
+    },
+    { content: [{ type: "tool_call", callId: "x", name: "lookup", input: {} }] },
+    { content: [{ type: "text", text: "cut" }], stopReason: "length" },
+    { content: [{ type: "text", text: "oops" }], error: { kind: "fatal", message: "bad request", status: 400 } },
+  ];
+  for (const chunkSize of [1, 4, 100]) {
+    const model = new ScriptedModel(scripts, { chunkSize });
+    for (let i = 0; i < scripts.length; i++) await assertStreamContract(model.stream(ref, context(), {}));
+    model.assertComplete();
+  }
+});
+
+test("a responder step receives the frozen recorded request", async () => {
+  const model = new ScriptedModel([
+    (request) => textStep(`tools: ${request.context.tools.map((t) => t.name).join(",")}`),
+  ]);
+  const message = await complete(model.stream(ref, context(), {}));
+  assert.deepEqual(message.content, [{ type: "text", text: "tools: lookup" }]);
+});
+
+test("fixedClock, sequentialIds and seededRandom are deterministic", () => {
+  const clock = fixedClock("2026-11-19T10:00:00.000Z", 500);
+  assert.deepEqual([clock.now(), clock.now()], ["2026-11-19T10:00:00.000Z", "2026-11-19T10:00:00.500Z"]);
+  const ids = sequentialIds("evt");
+  assert.deepEqual([ids(), ids()], ["evt-1", "evt-2"]);
+  const a = seededRandom(7);
+  const b = seededRandom(7);
+  const valuesA = [a(), a(), a()];
+  assert.deepEqual(valuesA, [b(), b(), b()]);
+  assert.ok(valuesA.every((v) => v >= 0 && v < 1));
+  assert.throws(() => fixedClock("not a date"), RangeError);
+});

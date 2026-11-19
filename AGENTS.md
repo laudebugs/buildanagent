@@ -4,12 +4,13 @@ Instructions for AI coding agents (Claude Code, Codex, OpenCode, Pi, etc.) worki
 
 ## Project
 
-**agent-speak** researches, and will later build, an AI agent and our own agent harness/SDK. The first agent is a personal cloud coding agent for the owner, deployed on Cloudflare first, with the SDK and harness also proved on AWS and Vercel ([coding agent plan](docs/plans/build-coding-agent.md)). After it comes a multi-user platform that turns a user's description into a checked agent deployed in the user's own cloud ([agent platform plan](docs/plans/build-agent-platform.md)). The repo is mostly documentation. The only code is the per-SDK verification harnesses under `verify/`.
+**agent-speak** researches, and will later build, an AI agent and our own agent harness/SDK. The first agent is a personal cloud coding agent for the owner, deployed on Cloudflare first, with the SDK and harness also proved on AWS and Vercel ([coding agent plan](docs/plans/build-coding-agent.md)). After it comes a multi-user platform that turns a user's description into a checked agent deployed in the user's own cloud ([agent platform plan](docs/plans/build-agent-platform.md)). The repo is mostly documentation. Our own code lives in `packages/` (the gateway and SDK, scaffolded empty in todo B1); the only other code is the per-SDK verification harnesses under `verify/`.
 
 ## Layout
 
 - `README.md`: project overview and doc index.
 - `docs/reference/<sdk>/`: per-SDK reference (`guide.md`, `fact-check.md`, `README.md`). `source/` holds mirrored upstream docs. The Pi mirror is committed (MIT); the Claude mirror is gitignored because those docs are not openly licensed, so regenerate it with `pnpm run fetch-docs`.
+- `packages/`: our own packages. `gateway/` is `@agent-speak/gateway` (the model gateway) and `sdk/` is `@agent-speak/sdk` (the loop over it); the harness plan adds `packages/harness` and others beside them. Each package runs `tsc -p` for `typecheck` and `tsx --test` for `test`, and every test file first imports `@agent-speak/gateway/testing/setup`, which blocks non-loopback `fetch` and fails if a provider key variable is set.
 - `verify/<sdk>/`: per-SDK verification harness (Node, exact-pinned deps). `pnpm run verify` type-checks and runs doc examples against a mock model; `pnpm test` runs our own examples in `examples/`. Generated folders (`extracted/`, `.tmp/`) are gitignored, while `results/` is committed.
 - `.github/workflows/`: `ci.yml` runs `pnpm check`, `pnpm typecheck`, `pnpm test` and the results-drift check (`scripts/ci/results-drift.mjs`) on every push; `verify.yml` runs every harness's full verify and `pnpm audit` nightly.
 - `docs/decisions/`: architecture decision records (ADRs) for lasting choices in the build plans; the format is in its README.
@@ -25,6 +26,7 @@ Instructions for AI coding agents (Claude Code, Codex, OpenCode, Pi, etc.) worki
   - `deployment/`: deploying our agents anywhere: portable agents and cloud coding agents (`portable-agents.md`), the storage-and-wake problem behind its seams (`storage-and-wake.md`), and the market for agent-building platforms (`agent-building-platforms.md`). Each report has its own `fact-check-*.md`.
   - `agents/`: research for agents we might build on our stack: a job-search agent (`job-search-agent.md`). Each report has its own `fact-check-*.md`.
   - `browser-use/`: how our agents should use a web browser (`browser-use.md`): page representations, hosted browsers, vendor computer-use tools, browser security, evals and proposed plan changes. It has its own `fact-check-browser-use.md`.
+  - `connectors/`: connectors for our agents and platform (`agent-connectors.md`): how platforms offer them, MCP authorization and token custody, build-or-buy infrastructure and a recommended design. It has its own `fact-check-*.md`.
   - `harness-architectures.md`: source-level notes on Pi, Codex, OpenAI Agents SDK sandbox agents and Cloudflare Agents/Think.
   - `fact-check-2026-11-18.md`: verification log for the main report.
   - `notes/`: raw research notes behind the report. Treat them as working material; the report and fact-check log supersede them where they disagree.
@@ -32,7 +34,7 @@ Instructions for AI coding agents (Claude Code, Codex, OpenCode, Pi, etc.) worki
 ## Working from the plans
 
 - Pick the next todo whose **Depends on** are all in `docs/todos/done/`, following the [roadmap](docs/plans/roadmap.md).
-- Do each todo on its own branch and pull request (see [Git](#git)). Move the todo to `ongoing/` in the first commit and to `done/` in the last, and push the branch after each meaningful step.
+- Do each todo on its own branch and pull request (see [Git](#git)). Move the todo to `ongoing/` in the first commit and to `done/` in the last work commit, before you open the pull request. The review-fix commits that follow may tick the todo's review checkboxes and update its outcome, but they don't move it back. Push the branch after each meaningful step.
 
 ## Every document is drafted, fact-checked and reviewed before it merges
 
@@ -84,8 +86,8 @@ Every SDK reference follows the same eight steps. `docs/reference/claude-agent-s
    - Diff the documented API surface (functions, options, unions, message types) against the package's `.d.ts` files or source.
 5. **Write behavioral examples.** Add small programs in `verify/<sdk>/examples/`, each asserting one documented behavior, plus a capstone that builds a complete agent. `pnpm test` must pass offline.
 6. **Write the reference.** Draft `guide.md` and `fact-check.md` with the `/anthropic-skills:writing` skill: thesis-first introductions, headings that state conclusions, one term per concept, endings on the conclusion or action.
-7. **Review.** Run `/anthropic-skills:writing-review` on both documents.
-8. **Fix and ship.** Apply the review fixes. Re-check every changed claim against the source, rerun `pnpm run verify`, then commit and push.
+7. **Open the pull request and review it.** Rerun `pnpm run verify`, open the pull request, and run the [two code-review rounds](#every-pull-request-gets-two-rounds-of-code-review) on it, harness code included.
+8. **Writing review, fix and ship.** Once the code is final, run `/anthropic-skills:writing-review` on `guide.md`, `fact-check.md` and the pull request description, apply the fixes, re-check every changed claim against the source, and merge under the [Git](#git) rules.
 
 Rules that apply throughout:
 - Pin SDK versions exactly in `verify/<sdk>/package.json`; reference docs state the version they were checked against.
@@ -109,7 +111,29 @@ The repo is a pnpm workspace. Run every command from the repo root unless a READ
 ## Git
 
 - **One pull request per piece of work** (changed from direct pushes to `main` on 2026-11-18). Branch from the latest `main`, named for the work (`todo/<id>-<slug>`, or `docs/<slug>` for work without a todo), push the branch, and open a pull request against `main`.
-- **Squash-merge when ready:** CI (`ci.yml`) passes, the todo's definition of done is met, and review findings are fixed. The squash commit's message is the PR title plus a summary of the change. Delete the branch after the merge; this session's token cannot delete remote branches, so the owner deletes them or turns on the repository's "Automatically delete head branches" setting.
+- **Squash-merge when ready:** CI (`ci.yml`) passes, the todo's definition of done is met, and every finding is fixed or explained in a commit message. That covers the findings of each [code-review round](#every-pull-request-gets-two-rounds-of-code-review), of the [writing review](#every-piece-of-copy-is-drafted-with-the-writing-skill-and-reviewed-once-the-code-is-done) and, for documents, of the fact-check. The squash commit's message is the PR title, a summary of the change, and one line per review giving its effort, its finding count and how many were fixed. Delete the branch after the merge; this session's token cannot delete remote branches, so the owner deletes them or turns on the repository's "Automatically delete head branches" setting.
 - Snapshots of unfinished work go to the work's own branch, not to separate `wip/*` branches.
 - Commit messages: imperative mood, with a short summary line.
 - Never commit secrets or `.env` files.
+
+## Every pull request gets two rounds of code review
+
+Every pull request is reviewed with `/code-review` in two rounds before it merges (the owner's rule, 2026-11-19), whoever wrote it. The first round is one review; its finding count decides whether the second round is one review or two:
+
+1. **First round: one high-effort review.** After you open the pull request, run `/code-review high <PR#> --max-findings default`. The flag matters, because the skill otherwise keeps the cap from its last run. The round's finding count is the number of findings you confirm as real, whether you then fix them or explain why they stay. A finding you show to be false, with the reason in a commit message, doesn't count.
+2. **Fix the findings.** Fix one review's findings in one new commit, or in one commit per finding. Each message lists every finding it fixes and how, or why one was left.
+3. **Second round.** If the first round counted more than 6 findings, the second round is two reviews: run `/code-review medium <PR#>` and fix its findings, then run `/code-review low <PR#>` and fix those. If it counted 6 or fewer, the second round is one review: run `/code-review low <PR#>` and fix its findings.
+4. **Merge** under the [Git](#git) rules, once every review in both rounds, the [writing review](#every-piece-of-copy-is-drafted-with-the-writing-skill-and-reviewed-once-the-code-is-done) and, for documents, the fact-check are done and their findings fixed or explained.
+
+Run the reviews without `--comment`, so findings stay out of PR comments. The fix commits keep the finding-by-finding record on the pull request, and the squash commit's message carries one line per review to `main` ([Git](#git)). On a pull request from someone without these skills, a maintainer runs the rounds and pushes the fixes or asks the author for them.
+
+## Every piece of copy is drafted with the writing skill and reviewed once the code is done
+
+Copy is any text a person reads: documentation, READMEs, plans, ADRs, todos, pull request descriptions, page text and doc comments longer than one line. Draft all of it with `/anthropic-skills:writing`. The writing review comes last, so it reads the copy in its final state:
+
+1. Finish the code changes, including every code-review round's fixes.
+2. Run `/anthropic-skills:writing-review` on every piece of copy the pull request adds or changes, including its description.
+3. Fix each finding with `/anthropic-skills:writing`, in commits recorded like code-review fixes. A fix that changes only copy, doc comments included, needs no further code review.
+4. If a writing fix changed code, run one more `/code-review low <PR#>` and fix its findings. Then run `/anthropic-skills:writing-review` once more on only the copy those last fixes changed, and fix its findings. The process stops there: anything a further pass would find goes in the pull request description as a follow-up.
+
+Writing findings are counted apart from code findings, and the pull request description records the rubric scores before and after. Every document also goes through the five steps in [Every document is drafted, fact-checked and reviewed before it merges](#every-document-is-drafted-fact-checked-and-reviewed-before-it-merges), wherever it lives in the repo.

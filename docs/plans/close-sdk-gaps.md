@@ -56,7 +56,7 @@ The amended todos in §3 make our SDK and harness use the same package once Roun
 
 **Accepted by the owner on 2026-11-19** as the ordering, with a hold: "Approve plan, don't start yet." Round E stays in `ready/`, and no E todo starts until the owner says go.
 
-Round E depends on [B1](../todos/ready/B1-sdk-workspace-scaffold.md), which creates `packages/`, and on [B5](../todos/ready/B5-usage-cost-catalog.md), which ships the catalog that E5 needs. B5 sits at the end of the gateway chain (B1 → B2 → B3 → B4 → B5), and that chain needs none of the loop. E1–E4b and E6 need only B1, so they can run beside B2–B5. No todo in this plan or its amendments starts until the owner says go. The owner approved the reviewed set on 2026-11-19 but put it on hold, following the instruction of 2026-11-18, "let's not build anything first".
+Round E depends on [B1](../todos/done/B1-sdk-workspace-scaffold.md), which creates `packages/`, and on [B5](../todos/ready/B5-usage-cost-catalog.md), which ships the catalog that E5 needs. B5 sits at the end of the gateway chain (B1 → B2 → B3 → B4 → B5), and that chain needs none of the loop. E1–E4b and E6 need only B1, so they can run beside B2–B5. No todo in this plan or its amendments starts until the owner says go. The owner approved the reviewed set on 2026-11-19 but put it on hold, following the instruction of 2026-11-18, "let's not build anything first".
 
 ### SG3. A write reports one of five outcomes, and `unknown` is never retried with a fresh key (accepted)
 

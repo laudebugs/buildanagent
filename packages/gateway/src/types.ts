@@ -1,0 +1,96 @@
+/**
+ * The provider-neutral transcript the gateway, the adapters, the test model and the loop share
+ * (SDK plan §3.2; SDK decisions 2 and 3; D3, D4).
+ */
+
+/** A provider-issued token that is valid only for the model that produced it, such as a reasoning signature. */
+export interface OpaqueToken {
+  api: string;
+  provider: string;
+  model: string;
+  value: string;
+}
+
+/** One block of message content. */
+export type ContentBlock =
+  | { type: "text"; text: string }
+  /** Valid only for the model that made it; `transformMessages()` (B6) drops or converts it for other models. */
+  | { type: "reasoning"; text: string; signature?: OpaqueToken }
+  | { type: "image"; mediaType: string; data: string }
+  | { type: "tool_call"; callId: string; name: string; input: unknown };
+
+/** What a tool result may carry. */
+export type ModelContent = Extract<ContentBlock, { type: "text" | "image" }>;
+
+/** Identifies one model behind one wire protocol and one vendor. */
+export interface ModelRef {
+  /** Wire protocol, for example `"anthropic-messages"`. */
+  api: string;
+  /** Vendor and price-catalog entry. */
+  provider: string;
+  id: string;
+}
+
+/**
+ * Token counts for one model response (D3). There is deliberately no field named `input`: providers disagree on
+ * whether "input" includes cached tokens, so the uncached part says so in its name and `totalInput()` sums the parts.
+ */
+export interface Usage {
+  uncachedInput: number;
+  cacheRead: number;
+  cacheWrite: { "5m": number; "1h": number };
+  output: number;
+  /** The part of `output` spent on reasoning. */
+  reasoning: number;
+  /** The provider's usage object, unchanged. */
+  raw: unknown;
+}
+
+/** The price of one response (D4). `total` is `null` when the price is unknown, never a guessed zero. */
+export interface Cost {
+  total: number | null;
+  basis: "provider" | "catalog" | "unknown";
+  currency: "USD";
+  catalogAsOf?: string;
+}
+
+export interface AssistantMessage {
+  role: "assistant";
+  content: ContentBlock[];
+  model: ModelRef;
+  stopReason: "stop" | "length" | "tool_calls" | "error" | "aborted";
+  error?: { kind: "retryable" | "overflow" | "quota" | "fatal"; message: string; status?: number };
+  usage: Usage;
+  cost: Cost;
+}
+
+export type Message =
+  | { role: "user"; content: ContentBlock[] }
+  | AssistantMessage
+  | { role: "tool"; callId: string; content: ModelContent[]; isError: boolean };
+
+/**
+ * A tool as one model call sends it: a name, a description and a JSON Schema for the input. The SDK's
+ * `defineTool()` (B10) lowers its Standard Schema or JSON Schema input to this shape.
+ */
+export interface WireTool {
+  name: string;
+  description: string;
+  /** A JSON Schema object describing the tool's input. */
+  inputSchema: Record<string, unknown>;
+}
+
+/** What one model call sends. */
+export interface ModelContext {
+  system: string;
+  messages: Message[];
+  tools: WireTool[];
+}
+
+/** The window and output limit the context layers and the budget (D9) need; filled from the catalog (B5). */
+export interface ModelCaps {
+  contextWindow: number;
+  maxOutputTokens: number;
+  images: boolean;
+  reasoning: boolean;
+}

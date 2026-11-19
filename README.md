@@ -26,6 +26,7 @@ The repo is documentation only for now. The research compares vendor agent SDKs,
 | [docs/research/deployment/](docs/research/deployment/) | Deploying our agents anywhere: the seams that make the harness portable, the storage-and-wake problem, hosted sandboxes, WebContainers, what a cloud coding agent needs, and the market for agent-building platforms; notes, reports and fact-checks |
 | [docs/research/agents/](docs/research/agents/) | Research for agents we might build on our stack: how a job-search agent could automate finding roles, people and applications within LinkedIn's, Indeed's, Google's and email law's limits; notes, a report and a fact-check |
 | [docs/research/browser-use/](docs/research/browser-use/) | Browser use for our agents: page representations and libraries, hosted browsers per deployment target, vendor computer-use tools and SDK support, prompt injection and login safety, browser evals, and proposed plan changes; notes, report and fact-check |
+| [docs/research/connectors/](docs/research/connectors/) | Connectors for our agents and platform: how ten platforms offer them, MCP 2026-07-28 authorization and token custody, build-or-buy infrastructure, and a recommended design; notes, a report and a fact-check |
 | [docs/research/reversible-actions/](docs/research/reversible-actions/) | Making agent actions safe to fail, retry or reverse: server-side rollback per tool call and sagas for multistep actions and rewind versus data rollback, with notes, a report and a fact-check per round |
 | [docs/research/agent-ui/](docs/research/agent-ui/) | Deep research on agent UIs: protocols (AG-UI, A2UI, MCP Apps), web frameworks, terminal and editor UIs, patterns beyond chat, and the UI contracts of our eight SDKs, plus a report on Vercel Labs' UI SDK; notes, syntheses and a fact-check |
 | [docs/research/agent-sdk/](docs/research/agent-sdk/), [agent-harness/](docs/research/agent-harness/), [agent/](docs/research/agent/) | Deep research on building an agent SDK, an agent harness and an agent: notes, a synthesis with design decisions, and a fact-check log each |
@@ -54,20 +55,20 @@ Each SDK gets a reference folder under `docs/reference/<sdk>/` (guide, fact-chec
 
 ## Development
 
-The repo is a pnpm workspace (Node 22, pnpm 10.28.0). Each SDK harness under `verify/` is a workspace package.
+The repo is a pnpm workspace (Node 22, pnpm 10.28.0). Our own packages live in `packages/`: `@agent-speak/gateway` and `@agent-speak/sdk`, which are scaffolds as of November 2026. Each SDK harness under `verify/` is also a workspace package.
 
 ```bash
-pnpm install        # install every harness
+pnpm install        # install every package and harness
 pnpm check          # Biome lint and format check
 pnpm typecheck      # type-check every package
-pnpm test           # run every harness's verified examples offline
+pnpm test           # run our packages' tests and every harness's verified examples offline
 ```
 
 See [AGENTS.md](AGENTS.md#coding-standards) for the coding standards.
 
 ## Licence
 
-You may use our code (scripts, the `verify/` harnesses and their examples, workflows and configs) under [Apache-2.0](LICENSE-APACHE) or [MIT](LICENSE-MIT), at your option. Our documentation is licensed under [CC BY 4.0](LICENSE-DOCS), and [LICENSE](LICENSE) says which files fall under which licence. The upstream docs mirrored under `docs/reference/*/source/` keep their own licences, listed in [THIRD-PARTY-NOTICES.md](THIRD-PARTY-NOTICES.md).
+You may use our code (scripts, our packages in `packages/`, the `verify/` harnesses and their examples, workflows and configs) under [Apache-2.0](LICENSE-APACHE) or [MIT](LICENSE-MIT), at your option. Our documentation is licensed under [CC BY 4.0](LICENSE-DOCS), and [LICENSE](LICENSE) says which files fall under which licence. The upstream docs mirrored under `docs/reference/*/source/` keep their own licences, listed in [THIRD-PARTY-NOTICES.md](THIRD-PARTY-NOTICES.md).
 
 ## For AI agents
 
