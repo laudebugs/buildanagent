@@ -36,6 +36,8 @@ import type { Clock } from "./testing/determinism.js";
 import { toWireTool } from "./tools/define.js";
 import { type AnyTool, runToolCalls, type ToolCallResult } from "./tools/pipeline.js";
 import type { ToolCall } from "./tools/types.js";
+import type { SignedPendingRequest } from "./vendor/agent-safety/pending.js";
+import type { ApprovalSigner } from "./vendor/agent-safety/signer.js";
 
 /** The `stoppedBy` of a run that a clarification tool stopped. */
 const CLARIFICATION = "clarification";
@@ -75,6 +77,10 @@ export interface LoopSetup {
   readonly steering: SteeringQueue;
   readonly signal: AbortSignal;
   readonly clock: Clock;
+  /** Signs the pending request of each call a gate asks about (D5). */
+  readonly signer: ApprovalSigner;
+  /** Makes each pending request's id. */
+  readonly nextId: () => string;
 }
 
 /** Sends one event; the run adds the `EventBase` fields. */
@@ -99,7 +105,12 @@ type Outcome =
     }
   | { readonly stopReason: "error"; readonly error: RunError }
   | { readonly stopReason: "stopped"; readonly stoppedBy: string }
-  | { readonly stopReason: "no_progress"; readonly reason: string };
+  | { readonly stopReason: "no_progress"; readonly reason: string }
+  | {
+      readonly stopReason: "awaiting_approval";
+      readonly pending: readonly SignedPendingRequest[];
+      readonly pendingInputs: Readonly<Record<string, unknown>>;
+    };
 
 /** What changes while a run goes on. */
 class LoopState {
@@ -120,6 +131,13 @@ class LoopState {
   output: unknown;
   /** Set when the run was kept going to deliver a follow-up, so the next step boundary applies the follow-ups too. */
   releaseFollowUps = false;
+  /** The signed requests of the calls that gates paused, in model order. */
+  readonly pending: SignedPendingRequest[] = [];
+  /**
+   * The input each pending request signs, by request id. It has no prototype, because an id comes from the host's
+   * `idGenerator` and `"__proto__"` must be stored as a key like any other.
+   */
+  readonly pendingInputs: Record<string, unknown> = Object.create(null);
 
   constructor(setup: LoopSetup, emit: Emit, drain: Drain) {
     this.setup = setup;
@@ -135,6 +153,8 @@ class LoopState {
       clock: setup.clock,
       stepIndex: () => this.stepIndex,
       send: (body) => this.send(body),
+      signer: setup.signer,
+      nextId: setup.nextId,
     });
   }
 
@@ -366,6 +386,11 @@ async function runTools(state: LoopState, message: AssistantMessage): Promise<re
     onStart: (call: ToolCall) =>
       state.send({ type: "tool_call_start", callId: call.callId, tool: call.name, input: call.input }),
     onUpdate: (callId, details) => state.send({ type: "tool_call_update", callId, details }),
+    onPause: ({ request, input }) => {
+      state.pending.push(request);
+      state.pendingInputs[request.id] = input;
+      state.send({ type: "approval_request", request, input });
+    },
     onResult: (entry) => {
       state.append(toolMessage(entry));
       if (output !== undefined && entry.call.name === output.name && entry.result.isError !== true) {
@@ -385,8 +410,9 @@ function runErrorOf(message: AssistantMessage): RunError {
 }
 
 /**
- * The stop check after one step. A finished answer, or a question for the user, wins over an abort that came too late
- * to change it; otherwise an abort stops the run before the step cap does. A text answer cut off at the output limit
+ * The stop check after one step. A pause, a finished answer or a question for the user wins over an abort that came
+ * too late to change it; otherwise an abort stops the run before the step cap does. A pause wins over a finished
+ * answer too, because its call is still waiting. A text answer cut off at the output limit
  * also counts as finished: its message keeps `stopReason: "length"`.
  */
 function stopCheck(
@@ -396,6 +422,11 @@ function stopCheck(
 ): Outcome | undefined {
   if (message.stopReason === "error") return { stopReason: "error", error: runErrorOf(message) };
   if (message.stopReason === "aborted") return { stopReason: "aborted" };
+  // A paused call is still waiting, so the run can't count as finished, and the pause is signed and stored with the
+  // context, so it outlasts an abort that came while the step's other calls ran.
+  if (state.pending.length > 0) {
+    return { stopReason: "awaiting_approval", pending: [...state.pending], pendingInputs: { ...state.pendingInputs } };
+  }
   const finished = results.length === 0 || results.some(({ result }) => result.terminate === true && !result.isError);
   if (finished) return { stopReason: "done", output: state.output };
   // Until runs can pause for an answer, a clarification question stops the run, so the model never goes on as if the
@@ -532,9 +563,13 @@ function closeAborted(state: LoopState): void {
 }
 
 function resultOf(state: LoopState, outcome: Outcome): RunResult {
+  const pending =
+    outcome.stopReason === "awaiting_approval"
+      ? { pending: [...outcome.pending], pendingInputs: { ...outcome.pendingInputs } }
+      : {};
   const base = {
     messages: state.added,
-    context: { system: state.setup.system, messages: state.messages },
+    context: { system: state.setup.system, messages: state.messages, ...pending },
     usage: state.usage,
     cost: state.cost ?? { ...NO_COST },
     steps: state.steps,

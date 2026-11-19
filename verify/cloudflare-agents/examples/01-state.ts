@@ -12,15 +12,15 @@ type Env = { CounterAgent: DurableObjectNamespace<CounterAgent>; LegacyAgent: Du
 
 // #region counter-agent
 export class CounterAgent extends Agent<Env, Counter> {
-  override initialState: Counter = { count: 0 };
+  override initialState: Counter = { count: 0 }; // book:note initial-state
   changes: { count: number; source: string }[] = [];
 
   increment() {
-    this.setState({ count: this.state.count + 1 });
+    this.setState({ count: this.state.count + 1 }); // book:note set-state
     return this.state.count;
   }
   override onStateChanged(state: Counter | undefined, source: unknown) {
-    this.changes.push({ count: state?.count ?? -1, source: source === "server" ? "server" : "client" });
+    this.changes.push({ count: state?.count ?? -1, source: source === "server" ? "server" : "client" }); // book:note on-change
   }
   history() {
     return this.changes;
