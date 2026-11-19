@@ -1,6 +1,6 @@
 # Fact-check: the tool-name rule
 
-This log checks the provider claims that todo B7 adds, on 2026-11-19: the table in [`names.md`](../../../packages/gateway/src/names.md), the status note in [ADR 0011](../../decisions/0011-tool-name-rule.md#status-note-todo-b7-2026-11-19) and the revision to [D12](../build-sdk.md#d12-a-per-adapter-name-table-first-then-a-canonical-rule-and-reversible-sanitising). Anthropic's claims were read from the Markdown rendering of its Messages API reference and from its define-tools guide that day. OpenAI's claims were read from the Markdown rendering of its Chat Completions API reference on `developers.openai.com` and from `openai/openai-node` at tag `v7.49.0`. The last two sections re-read the OpenAI claims on the live pages later the same day, and check the price catalog's OpenAI entry, which has no fact-check log of its own.
+This log checks the provider claims that todo B7 adds, on 2026-11-19: the table in [`names.md`](../../../packages/gateway/src/names.md), the status note in [ADR 0011](../../decisions/0011-tool-name-rule.md#status-note-todo-b7-2026-11-19) and the revision to [D12](../build-sdk.md#d12-a-per-adapter-name-table-first-then-a-canonical-rule-and-reversible-sanitising-accepted). Anthropic's claims were read from the Markdown rendering of its Messages API reference and from its define-tools guide that day. OpenAI's claims were read from the Markdown rendering of its Chat Completions API reference on `developers.openai.com` and from `openai/openai-node` at tag `v7.49.0`. The next two sections re-read the OpenAI claims on the live pages later the same day, and check the price catalog's OpenAI entry, which has no fact-check log of its own. The last section records the owner's acceptance of ADR 0011.
 
 ## Anthropic Messages
 
@@ -56,6 +56,6 @@ These rows check the `gpt-5.4-mini` entry in [`catalog.json`](../../../packages/
 
 | # | Claim | Verdict | Source and reason |
 | --- | --- | --- | --- |
-| 22 | The owner accepted ADR 0011 | ✅ | Owner's answer, 2026-11-19: "accepted". The ADR's status and its index row now read Accepted |
+| 22 | The owner accepted ADR 0011 | ✅ | Owner's answer, 2026-11-19: "accepted". The ADR's status, its index row and D12's row in the SDK plan now read Accepted |
 
 **Totals:** 22 claims: 17 ✅, 1 ✏️, 4 ⚠️.

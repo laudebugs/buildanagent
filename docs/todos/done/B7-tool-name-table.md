@@ -15,7 +15,7 @@ Replace the assumed 64-character floor with a table built from each first provid
 
 ## Context
 
-- [D12](../../plans/build-sdk.md#d12-a-per-adapter-name-table-first-then-a-canonical-rule-and-reversible-sanitising)
+- [D12](../../plans/build-sdk.md#d12-a-per-adapter-name-table-first-then-a-canonical-rule-and-reversible-sanitising-accepted)
 - [tools note §8](../../research/agent-sdk/notes/tools.md#8-names-should-be-namespaced-by-source-and-sanitized-to-the-strictest-provider): namespacing and sanitising to the strictest provider
 
 ## Scope

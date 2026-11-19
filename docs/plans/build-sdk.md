@@ -7,7 +7,7 @@
 - **Decision records:** [ADRs 0001–0011](../decisions/README.md), and [ADR 0043](../decisions/0043-standalone-safety-core.md) (accepted, owner, 2026-11-18), which the [close-sdk-gaps plan](close-sdk-gaps.md) applies to D5, D9 and §3
 - **Todos:** Round B ("build SDK") on the [todo board](../todos/README.md); §4 lists them.
 
-The [agent-SDK guide][g] already settles the design: one in-process loop as a pure streaming function over a versioned single-method model gateway, every failure and pause returned to the caller as data, and a strict scripted test model shipped from the first release. The guide still left twelve decisions open, ranging from the package split to the tool-name rule ([guide §12][g12]). The harness plan (P2) will also build on this SDK through six seams, so any gap here becomes a workaround there ([harness guide §1][hg1]). This plan makes the twelve decisions and turns the reference architecture into two packages and 22 todos, each one reviewable batch with checkable acceptance criteria. It also gives the test strategy that keeps every todo offline. Nine decisions follow from the evidence, and the owner accepted the other three, D2, D5 and D8, on 2026-11-18 (§2). In one sentence: **build the gateway and the scripted test model first, then the loop, tools, hooks and pauses on top of them, and finish with a triage capstone that passes the same contract the eight reference capstones pass, so P2 can start on stable seams.**
+The [agent-SDK guide][g] already settles the design: one in-process loop as a pure streaming function over a versioned single-method model gateway, every failure and pause returned to the caller as data, and a strict scripted test model shipped from the first release. The guide still left twelve decisions open, ranging from the package split to the tool-name rule ([guide §12][g12]). The harness plan (P2) will also build on this SDK through six seams, so any gap here becomes a workaround there ([harness guide §1][hg1]). This plan makes the twelve decisions and turns the reference architecture into two packages and 22 todos, each one reviewable batch with checkable acceptance criteria. It also gives the test strategy that keeps every todo offline. Nine decisions follow from the evidence, and the owner accepted the other three, D2, D5 and D8, on 2026-11-18. The owner also accepted D12 on 2026-11-19, after todo B7 confirmed its rule (§2). In one sentence: **build the gateway and the scripted test model first, then the loop, tools, hooks and pauses on top of them, and finish with a triage capstone that passes the same contract the eight reference capstones pass, so P2 can start on stable seams.**
 
 ## 1. Goal and non-goals
 
@@ -41,7 +41,7 @@ The goal covers every recommendation in the guide's design sections, §2 to §10
 Each decision answers one open decision in [guide §12][g12], in the same order, and lists the options, the choice and the evidence. Three statuses appear:
 - **Decided** means the evidence settles the decision, and its ADR records it as Proposed until P4 accepts it.
 - **Decided, provisional** means the choice holds until a named todo checks it.
-- **Accepted (owner, 2026-11-18)** means the choice depended on facts outside the evidence, such as budgets, accounts or plans for outside users, and the owner confirmed it. No decision still waits on the owner.
+- **Accepted (owner, 2026-11-18)** means the choice depended on facts outside the evidence, such as budgets, accounts or plans for outside users, and the owner confirmed it. D12's **Accepted (owner, 2026-11-19)** means the owner confirmed it once B7 had checked it. No decision still waits on the owner.
 
 | # | Decision | Choice | Status | ADR |
 | --- | --- | --- | --- | --- |
@@ -56,7 +56,7 @@ Each decision answers one open decision in [guide §12][g12], in the same order,
 | D9 | Budget timing | Check the USD cap before each model call, against a projected cost | Decided | [0009](../decisions/0009-pre-emptive-budget.md) |
 | D10 | Run outcomes | A discriminated `RunResult` union plus a `runOrThrow()` helper | Decided | [0010](../decisions/0010-run-outcomes.md) |
 | D11 | Progress-detection defaults | Three identical failing calls end the run with `no_progress`; a depth cap of 2 | Decided, provisional (N39) | none: tunable defaults |
-| D12 | Tool-name rule | A per-adapter name table, a canonical rule of `^[A-Za-z0-9_-]{1,64}$` checked at definition, and reversible sanitising per adapter | Decided; B7 confirmed the floor against both providers (2026-11-19) | [0011](../decisions/0011-tool-name-rule.md) |
+| D12 | Tool-name rule | A per-adapter name table, a canonical rule of `^[A-Za-z0-9_-]{1,64}$` checked at definition, and reversible sanitising per adapter | Accepted (owner, 2026-11-19), after B7 confirmed the floor against both providers | [0011](../decisions/0011-tool-name-rule.md) |
 
 ### D1. Two packages, because the gateway has consumers that never run the loop
 
@@ -170,7 +170,7 @@ Each decision answers one open decision in [guide §12][g12], in the same order,
 
 **Evidence.** The HN synthesis asks for this policy and a default depth cap, after loop and recursion anecdotes ([HN §4.1][hn41]). The guide's settling test replays recorded runs. None exist until the harness records them, so the numbers are a starting point that B14 makes configurable and N39 retunes. The defaults hash on `run_start` records the values in use ([guide §10][g10]).
 
-### D12. A per-adapter name table first, then a canonical rule and reversible sanitising
+### D12. A per-adapter name table first, then a canonical rule and reversible sanitising (accepted)
 
 **Options.** The 64-character `[A-Za-z0-9_-]` floor from the tools note, or a rule built from a per-provider table ([guide §12, decision 12][g12]).
 
@@ -644,7 +644,7 @@ Model quality and tool selection belong to evals with a real model, which the ha
 
 - **The interfaces could change under the harness.** P4 found fourteen seams the harness and agent plans needed beyond §3.4, and this plan now carries them ([plan review §4][p4-4]). A later need may still appear. Mitigation: §3.4 lists every seam by name, and the 0.x policy (D8) allows a breaking minor release with a changelog entry.
 - **Adapter fixtures may drift from the live APIs.** Mock transports test our parser against our fixtures, not against the provider. Mitigation: B18 stamps every recorded pair with an SDK, provider and model version and an expiry, and replay rejects expired pairs ([guide §8][g8]). A live check against a real endpoint stays opt-in and outside `pnpm test`.
-- **The provisional defaults may be wrong.** D7, D11 and D12 rest on checks that B7, B10 and N39's recorded runs perform. Mitigation: each is a setting, each change gets a changelog entry and a setting that keeps the old value, and the defaults hash on `run_start` records which values a run used ([guide §10][g10]).
+- **The provisional defaults may be wrong.** D7 and D11 rest on checks that B10 and N39's recorded runs perform. Mitigation: each is a setting, each change gets a changelog entry and a setting that keeps the old value, and the defaults hash on `run_start` records which values a run used ([guide §10][g10]).
 - **Scope creep from the harness side.** Compaction, permissions and the session log are tempting to start inside the loop. Mitigation: the non-goals in §1, and the fact that every such feature lands in the SDK only as an interceptor or an event.
 - **Node version.** Pi-schema declares `node >=22.19.0`, and `.nvmrc` says `22`. B1 checks the resolved CI version and pins `.nvmrc` to a matching minor if needed.
 - **Node 22 reaches end of life on 2027-04-30** ([Node.js release schedule](https://raw.githubusercontent.com/nodejs/Release/main/schedule.json), as of November 2026). Node 24 is in maintenance and Node 26 is Active LTS. Mitigation: move the workspace to Node 24 or 26 before that date, in its own todo, and re-check pi-schema's and `srt`'s `engines` fields then. *(Added in plan review 2, 2026-11-19.)*
