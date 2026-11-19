@@ -39,3 +39,12 @@ export function classifyError(failure: FailedRequest): ErrorKind {
   if (RETRYABLE_STATUSES.has(failure.status)) return "retryable";
   return "fatal";
 }
+
+/**
+ * True for the errors a `fetch` throws when a request gets no response, or when its body breaks off: undici names a
+ * failed request "fetch failed" and a body cut short "terminated". Any other throw is a bug or a guard, so the
+ * gateway never retries it.
+ */
+export function isTransportFailure(thrown: unknown): boolean {
+  return thrown instanceof TypeError && /fetch|network|socket|connect|terminated/i.test(thrown.message);
+}

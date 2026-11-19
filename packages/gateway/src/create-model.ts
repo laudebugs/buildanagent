@@ -77,7 +77,7 @@ export function createModel(options: CreateModelOptions): Model {
 
   async function* stream(context: ModelContext, streamOptions: StreamOptions = {}): AsyncGenerator<GatewayEvent> {
     const params = await transformParams(middleware, { context, options: streamOptions });
-    const request = { adapter, ref, context: params.context, options: params.options, onRequest };
+    const request = { adapter, ref, context: params.context, options: params.options, caps, onRequest };
     yield* wrapStream(middleware, params, () =>
       withRetries((n) => startAttempt(request, n), ref, params.options.signal, settings),
     );

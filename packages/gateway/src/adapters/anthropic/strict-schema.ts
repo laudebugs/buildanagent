@@ -4,7 +4,8 @@
  * https://platform.claude.com/docs/en/build-with-claude/structured-outputs, as of November 2026):
  *
  * - every object needs `additionalProperties: false`, and an object with any other `additionalProperties` cannot be
- *   strict;
+ *   strict. An object that declares neither `properties` nor `additionalProperties` accepts any keys, and adding
+ *   `additionalProperties: false` would let the model send only `{}`, so it cannot be strict either;
  * - `not` is unsupported, and `oneOf` must be written as `anyOf`;
  * - numeric constraints, string length constraints and array constraints beyond `minItems` of 0 or 1 are unsupported.
  *
@@ -93,14 +94,24 @@ function countObject(node: Json, counts: Counts): void {
   counts.optional += properties.filter((name) => !required.has(name)).length;
 }
 
+/** Why strict mode cannot express this node itself, or `undefined` when it can. */
+function strictFailure(node: Json, isObjectSchema: boolean): string | undefined {
+  if ("not" in node) return "uses not";
+  if (!isObjectSchema) return undefined;
+  if ("additionalProperties" in node) {
+    return node.additionalProperties === false ? undefined : "allows additional properties";
+  }
+  return isObject(node.properties) ? undefined : "declares no properties";
+}
+
 function lowerNode(node: unknown, counts: Counts): unknown {
   if (!isObject(node) || counts.failure !== undefined) return node;
   const isObjectSchema = node.type === "object" || isObject(node.properties);
-  if ("not" in node) counts.failure = "uses not";
-  else if (isObjectSchema && "additionalProperties" in node && node.additionalProperties !== false) {
-    counts.failure = "allows additional properties";
+  const failure = strictFailure(node, isObjectSchema);
+  if (failure !== undefined) {
+    counts.failure = failure;
+    return node;
   }
-  if (counts.failure !== undefined) return node;
   const lowered: Json = {};
   for (const [key, value] of Object.entries(node)) {
     if (dropsKey(key, value)) continue;

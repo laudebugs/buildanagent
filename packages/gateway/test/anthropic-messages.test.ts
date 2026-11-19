@@ -18,16 +18,23 @@ import {
   type Message,
   type ModelContext,
   type ModelEvent,
+  type RequestDump,
   type StreamOptions,
   TOOL_NAME_RULES,
 } from "@buildanagent/gateway";
 import { anthropic } from "@buildanagent/gateway/anthropic";
 import { markMockTransport, mockTransport, type WireResponse } from "@buildanagent/gateway/testing";
 import { test } from "vitest";
+import { fakeEntry } from "./fixtures.ts";
 
 const FIXTURES = fileURLToPath(new URL("./fixtures/anthropic-messages/", import.meta.url));
 const MODEL = { api: "anthropic-messages", provider: "anthropic", id: "claude-opus-5-5" };
 const KEY = "sk-test-not-a-real-key";
+// The caps createModel() hands the adapter for MODEL, for tests that call stream() directly.
+const CAPS = createModel({
+  adapter: anthropic({ apiKey: KEY, transport: mockTransport("anthropic-messages", []) }),
+  id: MODEL.id,
+}).caps;
 
 function fixture(name: string): string {
   return readFileSync(`${FIXTURES}${name}`, "utf8");
@@ -51,7 +58,7 @@ const hello: ModelContext = {
 async function run(script: WireResponse[], context: ModelContext = hello, options: StreamOptions = {}) {
   const transport = mockTransport("anthropic-messages", script);
   const adapter = anthropic({ apiKey: KEY, transport });
-  const events = await assertStreamContract(adapter.stream(MODEL, context, options));
+  const events = await assertStreamContract(adapter.stream(MODEL, context, { caps: CAPS, ...options }));
   return { events, transport, adapter, terminal: terminalOf(events) };
 }
 
@@ -104,8 +111,8 @@ test("every request carries anthropic-version 2026-10-21 and the thinking-bindin
 test("baseURL and transport reach every request", async () => {
   const transport = mockTransport("anthropic-messages", [streamed("text.sse"), streamed("text.sse")]);
   const adapter = anthropic({ apiKey: KEY, baseURL: "http://127.0.0.1:9/proxy/", transport });
-  await assertStreamContract(adapter.stream(MODEL, hello, {}));
-  await assertStreamContract(adapter.stream(MODEL, hello, {}));
+  await assertStreamContract(adapter.stream(MODEL, hello, { caps: CAPS }));
+  await assertStreamContract(adapter.stream(MODEL, hello, { caps: CAPS }));
   assert.deepEqual(
     transport.requests.map((request) => request.url),
     ["http://127.0.0.1:9/proxy/v1/messages", "http://127.0.0.1:9/proxy/v1/messages"],
@@ -143,6 +150,42 @@ test("the body streams, sets max_tokens from the catalog and turns on adaptive t
 test("maxOutputTokens sets max_tokens", async () => {
   const { transport } = await run([streamed("text.sse")], hello, { maxOutputTokens: 512 });
   assert.equal(bodyOf(transport).max_tokens, 512);
+});
+
+test("createModel hands the adapter the caps of the caller's catalog", async () => {
+  const transport = mockTransport("anthropic-messages", [streamed("text.sse")]);
+  const catalog = {
+    models: [fakeEntry({ provider: "anthropic", id: "claude-private", maxOutputTokens: 4_096, reasoning: true })],
+  };
+  const model = createModel({ adapter: anthropic({ apiKey: KEY, transport }), id: "claude-private", catalog });
+  await assertStreamContract(model.stream(hello));
+  assert.equal(bodyOf(transport).max_tokens, 4_096);
+  assert.deepEqual(bodyOf(transport).thinking, { type: "adaptive" });
+});
+
+test("a direct stream() call without caps uses the adapter's defaultCaps, not the catalog", async () => {
+  const transport = mockTransport("anthropic-messages", [streamed("text.sse")]);
+  const adapter = anthropic({ apiKey: KEY, transport });
+  await assertStreamContract(adapter.stream(MODEL, hello, {}));
+  assert.equal(bodyOf(transport).max_tokens, adapter.defaultCaps?.maxOutputTokens);
+  assert.equal("thinking" in bodyOf(transport), false);
+});
+
+test("caller headers are lower-cased, their key headers dropped and their betas merged", async () => {
+  const transport = mockTransport("anthropic-messages", [streamed("text.sse")]);
+  const headers = {
+    "X-Api-Key": "sk-caller-header",
+    Authorization: "Bearer caller",
+    "Anthropic-Beta": "files-api-2025-04-14",
+    "X-Trace": "t-1",
+  };
+  const adapter = anthropic({ apiKey: KEY, transport, headers });
+  await assertStreamContract(adapter.stream(MODEL, hello, { caps: CAPS }));
+  const sent = transport.requests[0]?.headers ?? {};
+  assert.equal(sent["x-api-key"], KEY);
+  assert.equal("authorization" in sent, false);
+  assert.equal(sent["anthropic-beta"], "files-api-2025-04-14,thinking-binding-controls-2026-08-01");
+  assert.equal(sent["x-trace"], "t-1");
 });
 
 const history: Message[] = [
@@ -206,6 +249,18 @@ test("history encodes as thinking, tool_use and one user message of tool_result 
       ],
     },
   ]);
+});
+
+test("signed thinking is replayed for a model not marked as reasoning, and no thinking field is sent", async () => {
+  const { transport } = await run(
+    [streamed("text.sse")],
+    { system: "s", messages: history, tools: [weatherTool] },
+    { caps: { ...CAPS, reasoning: false }, cacheRetention: "none" },
+  );
+  const body = bodyOf(transport);
+  assert.equal("thinking" in body, false);
+  const messages = body.messages as { content: unknown[] }[];
+  assert.deepEqual(messages[1]?.content[0], { type: "thinking", thinking: "", signature: "sig-1" });
 });
 
 test("an image block encodes as a base64 image source", async () => {
@@ -277,6 +332,14 @@ test("a tool whose schema allows additional properties is sent without strict", 
   const [tool] = bodyOf(transport).tools as Record<string, unknown>[];
   assert.equal("strict" in (tool ?? {}), false);
   assert.deepEqual(tool?.input_schema, open.inputSchema);
+});
+
+test("a tool whose object schema declares no properties is sent without strict", async () => {
+  const bare = { name: "note", description: "", inputSchema: { type: "object" } };
+  const { transport } = await run([streamed("text.sse")], { ...hello, tools: [bare] });
+  const [tool] = bodyOf(transport).tools as Record<string, unknown>[];
+  assert.equal("strict" in (tool ?? {}), false);
+  assert.deepEqual(tool?.input_schema, { type: "object" });
 });
 
 test("strict lowering adds no null, so an optional field the model leaves out reaches validation absent", async () => {
@@ -397,7 +460,7 @@ test("a refusal ends in a fatal error terminal that names its category", async (
   const { terminal } = await run([streamed("refusal.sse")]);
   assert.equal(terminal.stopReason, "error");
   assert.equal(terminal.error?.kind, "fatal");
-  assert.match(terminal.error?.message ?? "", /refusal \(cyber\)/);
+  assert.match(terminal.error?.message ?? "", /^refusal \(cyber\): /);
 });
 
 test("a thinking_mismatch_allowed entry in a 200 response becomes a warning event", async () => {
@@ -407,6 +470,15 @@ test("a thinking_mismatch_allowed entry in a 200 response becomes a warning even
   assert.equal(sent.length, 1);
   assert.equal(sent[0]?.code, "thinking_mismatch_allowed");
   assert.match(sent[0]?.message ?? "", /^messages\.1\.content\.0:/);
+});
+
+test("a pause_turn stop warns that the paused turn cannot be resumed", async () => {
+  const sse = fixture("text.sse").replace('"stop_reason":"end_turn"', '"stop_reason":"pause_turn"');
+  const { events, terminal } = await run([{ body: sse }]);
+  assert.equal(terminal.stopReason, "stop");
+  const [warning] = warnings(events);
+  assert.equal(warning?.code, "pause_turn");
+  assert.match(warning?.message ?? "", /cannot resume the paused turn/);
 });
 
 // The prefix check ---------------------------------------------------------------------------------------------------
@@ -435,13 +507,13 @@ test("every later request of that conversation carries drop_block, and other con
     streamed("text.sse"),
   ]);
   const adapter = anthropic({ apiKey: KEY, transport });
-  await assertStreamContract(adapter.stream(MODEL, hello, {}));
+  await assertStreamContract(adapter.stream(MODEL, hello, { caps: CAPS }));
   const later: ModelContext = {
     ...hello,
     messages: [...hello.messages, { role: "user", content: [{ type: "text", text: "more" }] }],
   };
-  await assertStreamContract(adapter.stream(MODEL, later, {}));
-  await assertStreamContract(adapter.stream(MODEL, { ...hello, system: "Another conversation." }, {}));
+  await assertStreamContract(adapter.stream(MODEL, later, { caps: CAPS }));
+  await assertStreamContract(adapter.stream(MODEL, { ...hello, system: "Another conversation." }, { caps: CAPS }));
   assert.deepEqual(bodyOf(transport, 2).thinking, DROP_BLOCK);
   assert.deepEqual(bodyOf(transport, 3).thinking, { type: "adaptive" });
 });
@@ -453,7 +525,7 @@ test("a conversationId keeps drop_block across a changed first message", async (
     streamed("text.sse"),
   ]);
   const adapter = anthropic({ apiKey: KEY, transport });
-  const options = { providerOptions: { anthropic: { conversationId: "c-1" } } };
+  const options = { caps: CAPS, providerOptions: { anthropic: { conversationId: "c-1" } } };
   await assertStreamContract(adapter.stream(MODEL, hello, options));
   const compacted: ModelContext = {
     ...hello,
@@ -461,6 +533,46 @@ test("a conversationId keeps drop_block across a changed first message", async (
   };
   await assertStreamContract(adapter.stream(MODEL, compacted, options));
   assert.deepEqual(bodyOf(transport, 2).thinking, DROP_BLOCK);
+});
+
+test("each HTTP request of a drop_block retry is dumped, both under the same attempt", async () => {
+  const transport = mockTransport("anthropic-messages", [
+    failed(400, "error-bound-to-different-conversation.json"),
+    streamed("text.sse"),
+  ]);
+  const dumps: RequestDump[] = [];
+  const model = createModel({
+    adapter: anthropic({ apiKey: KEY, transport }),
+    id: MODEL.id,
+    onRequest: (dump) => dumps.push(dump),
+  });
+  await assertStreamContract(model.stream(hello));
+  assert.deepEqual(
+    dumps.map((dump) => dump.attempt),
+    [1, 1],
+  );
+  const thinking = dumps.map((dump) => (dump.body as { thinking?: unknown } | undefined)?.thinking);
+  assert.deepEqual(thinking, [{ type: "adaptive" }, DROP_BLOCK]);
+});
+
+test("the adapter remembers drop_block for the 1,000 most recently used conversations", async () => {
+  const mismatchThenText = [failed(400, "error-bound-to-different-conversation.json"), { body: fixture("text.sse") }];
+  // 1,001 conversations that each need drop_block, then one request each for the oldest and the newest.
+  const script = [...Array.from({ length: 1_001 }, () => mismatchThenText).flat(), ...mismatchThenText.slice(1, 2)];
+  const transport = mockTransport("anthropic-messages", [...script, ...script.slice(-1)]);
+  const adapter = anthropic({ apiKey: KEY, transport });
+  const drain = async (conversationId: string) => {
+    const options = { caps: CAPS, providerOptions: { anthropic: { conversationId } } };
+    for await (const _ of adapter.stream(MODEL, hello, options)) {
+      // Drain.
+    }
+  };
+  for (let i = 0; i <= 1_000; i += 1) await drain(`c-${i}`);
+  await drain("c-0");
+  await drain("c-1000");
+  const last = transport.requests.length - 1;
+  assert.deepEqual(bodyOf(transport, last - 1).thinking, { type: "adaptive" }, "c-0 was forgotten");
+  assert.deepEqual(bodyOf(transport, last).thinking, DROP_BLOCK, "c-1000 is remembered");
 });
 
 test("a second prefix-check 400 ends in an error terminal with code thinking_prefix_mismatch", async () => {
@@ -550,6 +662,21 @@ test("createModel retries a mid-stream overload and prices the reply from the ca
   assert.equal(message.usage.uncachedInput, 55);
 });
 
+test("an option warning streams once per call across two retries", async () => {
+  const transport = mockTransport("anthropic-messages", [
+    failed(529, "error-overloaded.json"),
+    failed(529, "error-overloaded.json"),
+    streamed("text.sse"),
+  ]);
+  const model = createModel({ adapter: anthropic({ apiKey: KEY, transport }), id: MODEL.id, sleep: async () => {} });
+  const events = await assertStreamContract(model.stream(hello, { temperature: 0.2 }));
+  assert.equal(events.filter((event) => event.type === "retry").length, 2);
+  assert.deepEqual(
+    events.filter((event) => event.type === "warning").map((event) => event.code),
+    ["unsupported_option"],
+  );
+});
+
 test("a stream that ends before message_stop is a retryable error terminal with the partial content", async () => {
   const cut = fixture("text.sse").split("event: content_block_stop")[0] ?? "";
   const { terminal } = await run([{ body: cut, chunkSize: 4 }]);
@@ -562,8 +689,21 @@ test("a transport that throws ends in a retryable error terminal", async () => {
     throw new TypeError("fetch failed");
   };
   const adapter = anthropic({ apiKey: KEY, transport: markMockTransport(transport) });
-  const terminal = terminalOf(await assertStreamContract(adapter.stream(MODEL, hello, {})));
+  const terminal = terminalOf(await assertStreamContract(adapter.stream(MODEL, hello, { caps: CAPS })));
   assert.equal(terminal.error?.kind, "retryable");
+});
+
+test("a transport that throws a ReferenceError fails on the first attempt", async () => {
+  let calls = 0;
+  const transport = async (): Promise<Response> => {
+    calls += 1;
+    throw new ReferenceError("config is not defined");
+  };
+  const adapter = anthropic({ apiKey: KEY, transport: markMockTransport(transport) });
+  const model = createModel({ adapter, id: MODEL.id, sleep: async () => {} });
+  const terminal = terminalOf(await assertStreamContract(model.stream(hello)));
+  assert.equal(calls, 1);
+  assert.equal(terminal.error?.kind, "fatal");
 });
 
 test("an abort mid-stream ends in an aborted terminal with the content so far", async () => {
@@ -571,7 +711,7 @@ test("an abort mid-stream ends in an aborted terminal with the content so far", 
   const transport = mockTransport("anthropic-messages", [streamed("text.sse", 16)]);
   const adapter = anthropic({ apiKey: KEY, transport });
   const events: ModelEvent[] = [];
-  for await (const event of adapter.stream(MODEL, hello, { signal: controller.signal })) {
+  for await (const event of adapter.stream(MODEL, hello, { caps: CAPS, signal: controller.signal })) {
     events.push(event);
     if (event.type === "text_delta") controller.abort();
   }
@@ -614,7 +754,7 @@ test("the adapter reads no environment variable", async () => {
   try {
     const transport = mockTransport("anthropic-messages", [streamed("reasoning.sse")]);
     const adapter = anthropic({ apiKey: KEY, transport });
-    for await (const _ of adapter.stream(MODEL, hello, {})) {
+    for await (const _ of adapter.stream(MODEL, hello, { caps: CAPS })) {
       // Drain the stream with the recording proxy in place.
     }
   } finally {
@@ -628,7 +768,7 @@ test("a request past the end of the mock script throws unexpected_request", asyn
   const adapter = anthropic({ apiKey: KEY, transport });
   await assert.rejects(
     async () => {
-      for await (const _ of adapter.stream(MODEL, hello, {})) {
+      for await (const _ of adapter.stream(MODEL, hello, { caps: CAPS })) {
         // Drain.
       }
     },

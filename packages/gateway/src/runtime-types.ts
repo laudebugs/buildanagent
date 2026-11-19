@@ -38,9 +38,9 @@ export type GatewayEvent =
     };
 
 /** The stream options a request dump records: everything except the abort signal and the payload hook. */
-export type DumpedOptions = Omit<StreamOptions, "signal" | "onPayload">;
+export type DumpedOptions = Omit<StreamOptions, "signal" | "onPayload" | "caps">;
 
-/** The full request of one attempt, as `onRequest` receives it. */
+/** The full request of one HTTP request of an attempt, as `onRequest` receives it. */
 export interface RequestDump {
   /** 1 for the first attempt, 2 for the first retry, and so on. */
   readonly attempt: number;

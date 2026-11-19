@@ -236,7 +236,8 @@ export class MessageAssembler {
       const details = isObject(this.#stopDetails) ? this.#stopDetails : {};
       const category = str(details.category) || "no category";
       const message = `refusal (${category}): ${str(details.explanation) || "the model declined the request"}`;
-      return [failureEvent(this.#model, { type: "refusal", message, kind: "fatal" }, { content, usage })];
+      // No `type`: failureEvent prefixes the type to the message, which already starts with "refusal".
+      return [failureEvent(this.#model, { message, kind: "fatal" }, { content, usage })];
     }
     const stopReason = STOP_REASONS[this.#stopReason] ?? "stop";
     const warnings: Warning[] =
@@ -246,7 +247,8 @@ export class MessageAssembler {
               type: "warning",
               code: "pause_turn",
               message:
-                "The provider paused a long-running turn; send the reply back as it is to let the model continue.",
+                "The provider paused a long-running server-tool turn. This adapter dropped the turn's server-tool " +
+                "blocks, so it cannot resume the paused turn; the reply holds only the content before the pause.",
             },
           ]
         : [];

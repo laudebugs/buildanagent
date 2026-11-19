@@ -26,8 +26,15 @@ export interface StreamOptions {
   /** Escape hatch only. */
   providerOptions?: Record<string, unknown>;
   /**
+   * The model's caps. `createModel()` sets them on every call to the caps it resolved, from its catalog or the
+   * adapter's `defaultCaps`, after middleware has run. An adapter called directly without them uses its
+   * `defaultCaps`.
+   */
+  caps?: ModelCaps;
+  /**
    * Inspect or replace the request body before it is sent. Return the body to send, or `undefined` to send it
-   * unchanged. An adapter calls it once per HTTP request, just before sending.
+   * unchanged. An adapter calls it once per HTTP request, just before sending, so an adapter that sends a second
+   * request within one attempt calls it twice.
    */
   onPayload?(body: unknown): unknown;
 }

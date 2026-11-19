@@ -3,7 +3,10 @@
  * https://platform.claude.com/docs/en/api/messages/create, as of November 2026).
  *
  * - Messages pass through `transformMessages()` first; tool results become `tool_result` blocks in a user message,
- *   all results of one turn in one message, as the tool-use docs ask.
+ *   all results of one turn in one message, as the tool-use docs ask. `caps.reasoning` decides only whether the body
+ *   asks for thinking: signed Anthropic thinking is replayed either way, because the API checks it against its
+ *   signature rather than the model's caps, and dropping it would lose a turn's reasoning for a model the catalog
+ *   merely doesn't mark as reasoning.
  * - Tool names go through the run's `ToolNameMap`; tools are sent strict when their schema can be (strict-schema.ts).
  * - Caching puts at most three `cache_control` breakpoints, on the system prompt, the last tool and the last block
  *   of the last user message, below the API's limit of 4 (Prompt caching,
@@ -213,7 +216,8 @@ export function buildRequest(
   options: StreamOptions,
   caps: ModelCaps,
 ): RequestPlan {
-  const messages = transformMessages(context.messages, model, caps);
+  // Replay keeps signed thinking whatever caps.reasoning says; the caps decide only the `thinking` field below.
+  const messages = transformMessages(context.messages, model, { ...caps, reasoning: true });
   const names = createToolNameMap(TOOL_NAME_RULES.anthropicMessages, toolNames(context, messages));
   const cacheControl = cacheControlFor(options.cacheRetention);
   const wireMessages = encodeMessages(messages, names);

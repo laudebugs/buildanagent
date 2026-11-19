@@ -39,7 +39,7 @@ A provider adapter implements one method, `stream()`. The stream it returns foll
 3. Exactly one terminal event, `done` or `error`, ends the stream.
 4. An error terminal has `stopReason` `"error"` or `"aborted"` and carries the content and usage so far. A `done` terminal has neither stop reason, and every block it started has ended.
 
-A `warning` event may come anywhere between `start` and the terminal. It reports something the call survived, such as an option the provider would reject, with a snake_case `code` and a `message`. A warning is not output, so the gateway still retries a call that has only warned.
+A `warning` event may come anywhere between `start` and the terminal. It reports something the call survived, such as an option the provider would reject, with a snake_case `code` and a `message`. A warning is not output, so the gateway still retries a call that has only warned, and a retry does not stream again a warning with the same code and message.
 
 This check reads a stream and throws a `StreamContractError` at the first broken rule:
 
@@ -129,7 +129,7 @@ const model = createModel({ adapter: anthropic({ apiKey }), id: "claude-opus-5-5
 
 Version 2026-10-21 returns a 400 for `temperature`, `top_p` or `top_k` at any value, so the adapter never sends them. When you set one, the call streams a `warning` with code `unsupported_option` instead. The same version rejects a `document` block in an assistant message and `citations` on a user text block; the transcript has neither, and the adapter reports the 400 as a `fatal` error if a body you rewrite adds one.
 
-Each request runs `transformMessages()` first, so a transcript from any model can be sent. Tool results become `tool_result` blocks, and the results of one turn share one user message. Tool names pass through a `ToolNameMap`, and the names the model sends back are restored. Each tool goes out with `strict: true` when its schema allows it: the adapter adds `additionalProperties: false` to every object and removes the keywords strict mode rejects, such as `minimum` and `maxLength` ([structured outputs, JSON Schema limitations](https://platform.claude.com/docs/en/build-with-claude/structured-outputs), as of November 2026). Optional properties stay optional, because strict mode accepts them, so the model never sends a `null` that lowering added. A tool whose schema strict mode cannot express, or that would pass the request-wide limits of 20 strict tools, 24 optional properties or 16 union-typed parameters, goes out without `strict`. The SDK still validates every call against your original schema.
+Each request runs `transformMessages()` first, so a transcript from any model can be sent. The adapter keeps signed Anthropic thinking in the transcript even for a model whose caps say it does not reason, because the API checks a thinking block against its signature; the caps decide only whether the request asks for thinking. Tool results become `tool_result` blocks, and the results of one turn share one user message. Tool names pass through a `ToolNameMap`, and the names the model sends back are restored. Each tool goes out with `strict: true` when its schema allows it: the adapter adds `additionalProperties: false` to every object and removes the keywords strict mode rejects, such as `minimum` and `maxLength` ([structured outputs, JSON Schema limitations](https://platform.claude.com/docs/en/build-with-claude/structured-outputs), as of November 2026). Optional properties stay optional, because strict mode accepts them, so the model never sends a `null` that lowering added. A tool whose schema strict mode cannot express, such as an object that declares neither `properties` nor `additionalProperties`, or that would pass the request-wide limits of 20 strict tools, 24 optional properties or 16 union-typed parameters, goes out without `strict`. The SDK still validates every call against your original schema.
 
 Caching puts up to three breakpoints, on the system prompt, the last tool and the last block of the last user message, below the API's limit of four. `"short"` asks for the 5-minute cache, `"long"` for the 1-hour cache, and `"none"` sends no breakpoint ([prompt caching](https://platform.claude.com/docs/en/build-with-claude/prompt-caching), as of November 2026).
 
@@ -152,7 +152,7 @@ Responses carry no billed price, as of November 2026: the reference's `usage` ob
 
 ### Stop reasons and errors map onto the gateway's
 
-`end_turn`, `stop_sequence` and `pause_turn` end with `"stop"`, and `pause_turn` adds a `warning`, because the provider paused a long-running turn. `tool_use` ends with `"tool_calls"`. `max_tokens` and `model_context_window_exceeded` end with `"length"`, and a tool call cut off by the limit keeps its partial JSON as a string in `input`. A `refusal` ends in a `fatal` error that names the refusal's category.
+`end_turn`, `stop_sequence` and `pause_turn` end with `"stop"`. `pause_turn` adds a `warning`: the provider paused a long-running server-tool turn, and because the adapter drops server-tool blocks, it cannot resume that turn. `tool_use` ends with `"tool_calls"`. `max_tokens` and `model_context_window_exceeded` end with `"length"`, and a tool call cut off by the limit keeps its partial JSON as a string in `input`. A `refusal` ends in a `fatal` error that names the refusal's category.
 
 A failed request ends in an `error` terminal, never a throw. The adapter reads the error body's `error.type`, `error.message` and `error.details.error_code`, and `classifyError()` sorts it into the four kinds. An error event inside a stream that already returned 200 classifies like the HTTP status its type stands for, so a mid-stream `overloaded_error` is `retryable` and the gateway retries it while no content has arrived ([errors](https://platform.claude.com/docs/en/api/errors), as of November 2026).
 
@@ -163,9 +163,11 @@ Anthropic's current models check each thinking block you send back against every
 - **A 200 that let a failed block through.** Every request sends the `thinking-binding-controls-2026-08-01` beta header, so the response lists each such block in `input_transformations`. Each `thinking_mismatch_allowed` entry becomes a `warning` with code `thinking_mismatch_allowed`.
 - **A 400 that says a block "is bound to a different conversation".** The adapter streams a `warning` with code `thinking_prefix_mismatch` and sends the request once more with `thinking.block_binding.prefix_mismatch_behavior: "drop_block"`. The API applies that setting only to the request that carries it, so the adapter sends it on every later request of the same conversation. If the retry fails the same way, the call ends in a `fatal` error with `code: "thinking_prefix_mismatch"`.
 
-The adapter recognises a conversation by its system prompt and first message. Pass `providerOptions: { anthropic: { conversationId } }` to name it yourself, for example when compaction rewrites the first message. `providerOptions.anthropic.extraBody` adds fields to the request body, such as `thinking: { type: "adaptive", display: "summarized" }` to stream readable reasoning.
+The adapter recognises a conversation by a hash of its system prompt and first message, so two conversations that share both share the `drop_block` setting. Pass `providerOptions: { anthropic: { conversationId } }` to name each conversation yourself, which also keeps one alive when compaction rewrites its first message. The adapter remembers the 1,000 most recently used conversations that need `drop_block`; one it has forgotten pays one more 400 and is remembered again. `providerOptions.anthropic.extraBody` adds fields to the request body, such as `thinking: { type: "adaptive", display: "summarized" }` to stream readable reasoning.
 
-For a model in the catalog with `reasoning: true`, the adapter sends `thinking: { type: "adaptive" }`. A model the catalog lacks gets the adapter's default caps, which send no thinking setting, so the model's own default applies.
+The adapter reads the model's caps from `options.caps`, which `createModel()` sets from its catalog, your own catalog included. For a model with `reasoning: true`, the adapter sends `thinking: { type: "adaptive" }`. A model the catalog lacks gets the adapter's default caps, which send no thinking setting, so the model's own default applies; a direct `adapter.stream()` call without `caps` gets the same defaults.
+
+Headers in `config.headers` are sent with lower-case names. An `anthropic-beta` header is merged with the adapter's beta, and an `x-api-key` or `authorization` header is dropped, so `apiKey` stays the only key sent.
 
 ## Your key is the only key the gateway sends
 
@@ -179,7 +181,7 @@ Three rules keep a retry from doing harm. First, once a content event has reache
 
 A failed attempt still costs tokens, so the final message's `usage` and `cost` add up every attempt, not only the last, and `lastAttemptUsage` keeps the last attempt's usage on its own. If any attempt's cost is unknown, the total is unknown too. An attempt whose stream threw reported no usage, so it adds no tokens, but its cost is unknown, because the request may have reached the provider and been billed before the stream failed.
 
-An adapter whose stream throws, for example on a dropped connection, is treated like one that ends with an error. A failed fetch is retried, and any other throw ends the call with a `fatal` error event, so an adapter's failure never makes `stream()` throw. A throwing `onRequest` hook runs inside the attempt, so it also ends the call with a `fatal` error. A middleware that throws runs outside the call, so its error makes `stream()` throw.
+An adapter whose stream throws, for example on a dropped connection, is treated like one that ends with an error. A failed fetch, or a response body cut off mid-stream, is retried, and any other throw ends the call with a `fatal` error event, so an adapter's failure never makes `stream()` throw. A throwing `onRequest` hook runs inside the attempt, so it also ends the call with a `fatal` error. A middleware that throws runs outside the call, so its error makes `stream()` throw.
 
 Adapters sort a failed request into the four kinds, `retryable`, `quota`, `overflow` and `fatal`, with `classifyError()`, from its HTTP status and the provider's error code or message.
 
@@ -191,7 +193,7 @@ A `ModelMiddleware` can rewrite the request with `transformParams` and watch or 
 
 `onPayload` in the stream options lets you inspect or replace the wire body just before an adapter sends it. Return the new body, or `undefined` to send the body unchanged.
 
-`onRequest` in `createModel()` receives the full request of each attempt before it is sent: the attempt number, the model, the context, the stream options and the wire body after `onPayload`. The dump is a copy, so changing the context after the call doesn't change what it shows. Log it when a step misbehaves, and you see what the provider saw.
+`onRequest` in `createModel()` receives the full request of each attempt before it is sent, once for each HTTP request, so an Anthropic attempt that retries with `drop_block` is dumped twice under the same attempt number. Each dump holds the attempt number, the model, the context, the stream options and the wire body after `onPayload`. The dump is a copy, so changing the context after the call doesn't change what it shows. Log it when a step misbehaves, and you see what the provider saw.
 
 ## Tests run offline
 
