@@ -564,7 +564,7 @@ The three research rounds behind the sections each confirmed its placement, and 
 | [T10](../todos/done/T10-chapter-call-workflow-loop.md) | Chapter: Use the least autonomy that works: a call, a workflow, then a loop | T5, T7, T26 | M |
 | [T11](../todos/done/T11-chapter-talking-to-a-model.md) | Chapter: Talking to a model: messages, streams, tokens, instructions and model choice | T5, T6, T26, T28 | M |
 | [T12](../todos/done/T12-chapter-tools.md) | Chapter: Tools: schemas, validation, errors the model can read, and identity it cannot fake | T5, T6, T26 | M |
-| [T13](../todos/ready/T13-chapter-stopping-and-structured-output.md) | Chapter: Stopping: caps, stop conditions and structured output | T5, T6, T26 | M |
+| [T13](../todos/ongoing/T13-chapter-stopping-and-structured-output.md) | Chapter: Stopping: caps, stop conditions and structured output | T5, T6, T26 | M |
 | [T15](../todos/ready/T15-chapter-memory-and-sessions.md) | Chapter: Memory within a task: sessions, threads and resuming | T5, T6, T26 | M |
 | [T14](../todos/ready/T14-chapter-approvals-guardrails-and-injection.md) | Chapter: Asking before acting: approvals, guardrails and prompt injection | T5, T6, T26 | M |
 | [T16](../todos/ready/T16-chapter-testing-offline-and-a-first-agent.md) | Chapter: Testing offline, and a first complete agent | T5, T6, T26 | M |
