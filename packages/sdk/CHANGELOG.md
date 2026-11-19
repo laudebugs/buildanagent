@@ -1,5 +1,13 @@
 # @buildanagent/sdk
 
+## 0.1.0-alpha.11
+
+### Patch Changes
+
+- e58c676: `SafetyErrorCode` gains `invalid_effect`, the code a guarded write's scope, business key or options throw when they break a rule. The SDK never throws it yet, but a `switch` over every code now needs a case for it.
+- Updated dependencies [adddc21]
+  - @buildanagent/gateway@0.1.0-alpha.11
+
 ## 0.1.0-alpha.10
 
 ### Minor Changes
