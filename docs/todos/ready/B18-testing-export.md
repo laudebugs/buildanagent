@@ -58,6 +58,8 @@ Finish the `testing` exports so users of the SDK, and the harness, can test agen
 
 Record and replay must never capture real credentials; the header strip is tested.
 
+Recordings hold no `raw` provider events ([B11c](B11c-raw-provider-events.md)): they sit outside the normalized boundary, so the "same event log" check compares the log without them.
+
 ## Definition of done
 
 - [ ] Claimed: the first commit moved this file `ready/` → `ongoing/` (Status `ongoing`)
