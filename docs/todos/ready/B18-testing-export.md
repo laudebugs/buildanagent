@@ -6,7 +6,7 @@
 | Status | `ready` |
 | Plan | [Build SDK §4, Stage 4](../../plans/build-sdk.md#44-stage-4-ships-telemetry-the-testing-exports-the-capstone-and-the-docs-checks) |
 | Round / milestone | Round B (build SDK), M5 |
-| Depends on | [B8](../ongoing/B8-anthropic-adapter.md), [B9](B9-openai-chat-adapter.md), [B15b](B15b-continue-run.md) |
+| Depends on | [B8](../done/B8-anthropic-adapter.md), [B9](B9-openai-chat-adapter.md), [B15b](B15b-continue-run.md) |
 | Size | M |
 
 ## Goal

@@ -246,7 +246,8 @@ type Message =
 interface AssistantMessage {
   role: "assistant"; content: ContentBlock[]; model: ModelRef;
   stopReason: "stop" | "length" | "tool_calls" | "error" | "aborted";
-  error?: { kind: "retryable" | "overflow" | "quota" | "fatal"; message: string; status?: number };
+  error?: { kind: "retryable" | "overflow" | "quota" | "fatal"; message: string; status?: number;
+            code?: "thinking_prefix_mismatch" };       // code added in B8, for the prefix-check 400 (HD3 rule 4)
   usage: Usage; cost: Cost;
 }
 
@@ -275,6 +276,7 @@ type ModelEvent =
   | { type: "text_start" | "reasoning_start" | "tool_input_start"; index: number }
   | { type: "text_delta" | "reasoning_delta" | "tool_input_delta"; index: number; delta: string }
   | { type: "text_end" | "reasoning_end" | "tool_input_end"; index: number; block: ContentBlock }
+  | { type: "warning"; code: string; message: string } // added in B8: a dropped option or an HD3 rule 5 entry; not output
   | { type: "done"; message: AssistantMessage }    // exactly one terminal event
   | { type: "error"; message: AssistantMessage };  // stopReason "error" | "aborted"
 interface StreamOptions {
@@ -564,7 +566,7 @@ The guide says to start with the gateway and the test model, because every other
 | --- | --- | --- | --- |
 | [B6](../todos/done/B6-transform-messages.md) | The cross-provider `transformMessages` pass | B3 | M |
 | [B7](../todos/done/B7-tool-name-table.md) | Per-provider tool-name table and the canonical name rule | B1 | S |
-| [B8](../todos/ongoing/B8-anthropic-adapter.md) | Anthropic Messages adapter and its mock transport | B5, B6, B7 | L |
+| [B8](../todos/done/B8-anthropic-adapter.md) | Anthropic Messages adapter and its mock transport | B5, B6, B7 | L |
 | [B9](../todos/ready/B9-openai-chat-adapter.md) | OpenAI-compatible Chat Completions adapter and its mock transport | B5, B6, B7 | L |
 
 ### 4.3 Stage 3 builds the loop, its tools, hooks, budget and signed pauses
