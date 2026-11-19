@@ -50,7 +50,7 @@ The gateway prices each response from the price catalog, so every `AssistantMess
 
 A retried call's cost sums its attempts, and the sum takes the weakest basis among them. It is `"unknown"` if any attempt's cost is unknown, and `"catalog"`, with `catalogAsOf`, if any attempt was priced from the catalog. It is `"provider"` only when the provider billed every attempt.
 
-Some models charge more for long prompts. Their entries list several rate tiers, and each request pays the tier its total input selects, cache reads and writes included. The gateway prices each attempt of a call on its own before it adds them up, so a retried call pays each request's own tier. `model.price(usage)` applies the same rates to any usage you hold.
+Some models charge more for long prompts. Their entries list several rate tiers, and each request pays the tier its total input selects, cache reads and writes included. The gateway prices each attempt of a call on its own before it adds them up, so a retried call pays each request's own tier. `model.price(usage)` applies the same rates to one request's usage.
 
 `createModel()` uses the catalog that ships with the package, `defaultCatalog`, unless you pass your own. A catalog you pass replaces the shipped one, so spread the shipped entries into it to keep them:
 
@@ -67,7 +67,7 @@ Prices change often, so refresh the shipped catalog before every minor release. 
 
 ## You can project a call's cost before you send it
 
-`projectCallCost(model, context, options)` returns the most the next call can cost, so a budget can stop a run before the call that would cross its cap. It prices every input token at the uncached rate and the full output limit at the output rate: the call's `maxOutputTokens`, or else the model's. The input comes from `estimateInputTokens(context)`. When an earlier assistant message in the context reports its usage, the estimate starts from that request's input and output and adds the messages that came after it. A retried call's `usage` sums every attempt, so the estimate reads its `lastAttemptUsage`, the usage of the one request that produced the message. Otherwise it estimates the whole context from its length in characters. Each estimate errs high, so a budget errs towards stopping.
+`projectCallCost(model, context, options)` returns the most the next call can cost, so a budget can stop a run before the call that would cross its cap. It prices every input token at the highest input rate in its tier, the uncached rate or either cache-write rate, and the full output limit at the output rate: the call's `maxOutputTokens`, or else the model's. The input comes from `estimateInputTokens(context)`. When an earlier assistant message in the context reports its usage, the estimate starts from that request's input and output and adds the messages that came after it. A retried call's `usage` sums every attempt, so the estimate reads its `lastAttemptUsage`, the usage of the one request that produced the message. Otherwise it estimates the whole context from its length in characters. The estimate assumes the system prompt and tools are unchanged since that request, so grow them and the growth goes uncounted. Otherwise each estimate errs high, so a budget errs towards stopping.
 
 A caller that holds a token count instead of a `ModelContext` calls `projectCost({ inputTokens, maxOutputTokens }, entry)` directly, with an entry from `findCatalogEntry()`. Both functions use one formula, so they return the same cost for the same tokens.
 
