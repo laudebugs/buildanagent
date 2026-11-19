@@ -48,15 +48,16 @@ test("the package's figures:build script redraws every folder this test checks",
   );
 });
 
-// The fixture folders hold isometric figures, whose painter's order takes a few seconds to settle once per run (the
-// registry keeps each drawing), so their checks get a longer limit than Vitest's default 5 seconds on a loaded machine.
+// Every folder holds isometric figures (the book's own since Chapter 1's loop bench), whose painter's order takes a few
+// seconds to settle once per run (the registry keeps each drawing), so each check gets a longer limit than Vitest's
+// default 5 seconds on a loaded machine, such as CI running every package's tests at once.
 for (const root of ROOTS) {
   test(
     `every committed figure under ${relative(app, root).split(sep).join("/")} is what its script draws now`,
     async () => {
       assert.deepEqual(await staleFigures(root), []);
     },
-    root === BOOK_FIGURES ? undefined : 60_000,
+    60_000,
   );
 }
 
