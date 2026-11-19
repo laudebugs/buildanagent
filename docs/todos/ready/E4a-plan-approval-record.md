@@ -8,7 +8,7 @@
 | Status | `ready` |
 | Plan | [Close SDK gaps §4](../../plans/close-sdk-gaps.md#4-round-e-and-its-todos) |
 | Round / milestone | Round E (close the SDK gaps), M5e |
-| Depends on | [E2](E2-effect-identity-crash-rule.md), [E3](E3-signed-approvals-third-party.md) |
+| Depends on | [E2](E2-effect-identity-crash-rule.md), [E3](../done/E3-signed-approvals-third-party.md) |
 | Size | M |
 
 ## Goal
@@ -20,7 +20,7 @@ Let a person approve a whole multi-step plan once, before its first step, when o
 - [Sagas report, approval before the first step](../../research/reversible-actions/sagas.md#approval-belongs-before-the-first-compensable-step-and-covers-the-whole-plan): why one approval must cover every step's exact arguments.
 - [Sagas report, the pivot](../../research/reversible-actions/sagas.md#the-refund-is-the-pivot-so-the-email-must-come-after-it): the order rule (compensable steps, then the pivot, then steps that can be retried).
 - [Rewind report, refunds as a pivot](../../research/reversible-actions/rewind-vs-rollback.md#triage-needs-undo-windows-for-t1-approval-for-anything-that-leaves-the-org-and-a-saga-only-once-money-moves): hashing the order version and amount at approval time, and failing closed if either changed ("reread values").
-- [E3](E3-signed-approvals-third-party.md): the signer this record reuses.
+- [E3](../done/E3-signed-approvals-third-party.md): the signer this record reuses.
 
 ## Scope
 

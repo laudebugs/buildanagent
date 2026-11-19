@@ -1,0 +1,32 @@
+{
+  "input": {
+    "order": 4417,
+    "amount": 250,
+    "note": "Ünïcødé ✓"
+  },
+  "request": {
+    "id": "req_1",
+    "kind": "approval",
+    "callId": "call_1",
+    "tool": "refund",
+    "inputHash": "5fd8634afff311f2716ea276be0584171e8c3d69491876f27ff7044e1c7f4f9b",
+    "policyVersion": "policy-7",
+    "keyId": "test-fixed-key",
+    "signature": "gPgwkt3vEqjXFPJ6ab0o3BLbCsDeYaB7Ains3tAQkrI",
+    "createdAt": "2026-11-19T12:00:00.000Z"
+  },
+  "payload": "[\"buildanagent.pending.v1\",\"req_1\",\"approval\",\"call_1\",\"refund\",\"5fd8634afff311f2716ea276be0584171e8c3d69491876f27ff7044e1c7f4f9b\",\"policy-7\"]",
+  "withoutPolicyVersion": {
+    "request": {
+      "id": "req_1",
+      "kind": "approval",
+      "callId": "call_1",
+      "tool": "refund",
+      "inputHash": "5fd8634afff311f2716ea276be0584171e8c3d69491876f27ff7044e1c7f4f9b",
+      "keyId": "test-fixed-key",
+      "signature": "ov3QTG__6SkHDKBUOV0T3WvY0bjkxFOJopAxEVHC9UQ",
+      "createdAt": "2026-11-19T12:00:00.000Z"
+    },
+    "payload": "[\"buildanagent.pending.v1\",\"req_1\",\"approval\",\"call_1\",\"refund\",\"5fd8634afff311f2716ea276be0584171e8c3d69491876f27ff7044e1c7f4f9b\",null]"
+  }
+}
