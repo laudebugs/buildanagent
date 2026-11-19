@@ -161,11 +161,21 @@ The first code review (high) found four wrong or misleading passages and a figur
 | 99 | Rewrapping the lines with `// book:note` markers past 120 columns in three examples changed no behaviour | Listings | ✅ | `verify/vercel-ai-sdk/examples/01-generate-text.ts`, `verify/google-adk/examples/02-workflow-agents.ts` and `verify/pi/examples/01-hello-session.ts`: each harness's `pnpm test` passes, and the regenerated transcripts differ from the committed ones only in `line` fields (the AI SDK checks moved 4 lines down, the ADK events 9). The Pi transcript is unchanged. Rows 10, 18 and 75 now cite the new lines |
 | 100 | After the writing review of these fixes, the reworded sentences keep their claims: the run lives on only in what your code kept (row 87), the request carries Pi's system prompt and four tools next to "Say hello." (row 92), and the refund and lookup contrast stays marked "In our reading" (row 97) | § A harness; § Choose the shape | ✅ | Re-read against the same sources on 2026-11-19; the review split sentences and changed no claim |
 
+## Re-checks after the owner's decisions of 2026-11-19
+
+The owner decided on 2026-11-19 that the book gets a box and that the bench's readout says `tool_result`. The chapter's last section before the exercises became a box, and the bench's fourth readout changed. Each row below checks a claim those changes touched.
+
+| # | Claim | Where | Verdict | Source and reason |
+| --- | --- | --- | --- | --- |
+| 101 | "How these examples run without a key" is now a box, an `<aside>` labelled by its title, and its title keeps the id `how-these-examples-run-without-a-key`, so note 1 of [[lst:one-call]], which now calls it "The box", still links to it near the end of the chapter | § One call, note 1; the box | ✅ | The built page (`apps/manual/dist/call-workflow-loop/index.html`, 2026-11-19) holds `<aside class="box" aria-labelledby="how-these-examples-run-without-a-key">`, whose `<h3>` carries that id, and note 1's link `href="#how-these-examples-run-without-a-key"`. The box comes after § Choose the shape and before § Exercises, so "near the end of this chapter" still holds |
+| 102 | The box's text and its listing, [[lst:scripted-mock]], are unchanged, so rows 64–73 still check its claims | The box | ✅ | `git diff` of the chapter against `main` before this change: the section's heading became the box's fence and title, and a closing fence follows its last paragraph; no sentence and no directive inside changed |
+| 103 | The bench's fourth step reads "4/6 · tool_result: 21C", naming the part as its drawn label `tool_result` does and as the prose names Anthropic's block (row 28); the 21C is the tool's result in the AI SDK loop's transcript | § The loop, [[fig:loop-bench]] | ✅ | `figures/call-workflow-loop/loop-bench.ts`, `STEPS[3]`, and its rebuilt `loop-bench.html`; the drawn label is `parts.label("tool_result", …)` in the same file. `verify/vercel-ai-sdk/results/transcripts/02-tool-loop.json` holds the `tool-result` part with `"temperature": 21` and `"unit": "C"` for Lisbon (row 36). The alt text describes only the first step's readout, so it needs no change |
+
 ## Tally
 
 | Verdict | Rows |
 | --- | --- |
-| ✅ confirmed | 89 |
+| ✅ confirmed | 92 |
 | ✏️ corrected | 7 (rows 26, 42, 61, 70, 85, 86 and 98) |
 | ⚠️ unverified, our judgement or recommendation, marked as ours in the text | 4 (rows 11, 41, 63 and 97) |
-| Total | 100 |
+| Total | 103 |
