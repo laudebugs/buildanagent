@@ -1,0 +1,151 @@
+{
+  "format": 1,
+  "example": "11-tuned-vs-cached",
+  "file": "verify/vercel-ai-sdk/examples/11-tuned-vs-cached.ts",
+  "harness": "verify/vercel-ai-sdk",
+  "pin": "ai@7.0.162",
+  "mock": "ai@7.0.162",
+  "events": [
+    {
+      "kind": "request",
+      "model": "model-1",
+      "repeated": 0,
+      "messages": [
+        {
+          "role": "user",
+          "parts": [
+            {
+              "type": "text",
+              "text": "Classify this ticket."
+            }
+          ]
+        }
+      ],
+      "tools": []
+    },
+    {
+      "kind": "response",
+      "model": "model-1",
+      "message": {
+        "role": "assistant",
+        "parts": [
+          {
+            "type": "text",
+            "text": "An answer of 300 tokens."
+          }
+        ]
+      },
+      "finish": "stop"
+    },
+    {
+      "kind": "request",
+      "model": "model-2",
+      "repeated": 0,
+      "messages": [
+        {
+          "role": "user",
+          "parts": [
+            {
+              "type": "text",
+              "text": "Classify this ticket."
+            }
+          ]
+        }
+      ],
+      "tools": []
+    },
+    {
+      "kind": "response",
+      "model": "model-2",
+      "message": {
+        "role": "assistant",
+        "parts": [
+          {
+            "type": "text",
+            "text": "An answer of 300 tokens."
+          }
+        ]
+      },
+      "finish": "stop"
+    },
+    {
+      "kind": "request",
+      "model": "model-3",
+      "repeated": 0,
+      "messages": [
+        {
+          "role": "user",
+          "parts": [
+            {
+              "type": "text",
+              "text": "Classify this ticket."
+            }
+          ]
+        }
+      ],
+      "tools": []
+    },
+    {
+      "kind": "response",
+      "model": "model-3",
+      "message": {
+        "role": "assistant",
+        "parts": [
+          {
+            "type": "text",
+            "text": "An answer of 300 tokens."
+          }
+        ]
+      },
+      "finish": "stop"
+    },
+    {
+      "kind": "check",
+      "line": 48,
+      "message": "the uncached base call costs $0.00216",
+      "pass": true
+    },
+    {
+      "kind": "check",
+      "line": 49,
+      "message": "the base call with its prefix cached costs $0.00096",
+      "pass": true
+    },
+    {
+      "kind": "check",
+      "line": 50,
+      "message": "the tuned call costs $0.00112",
+      "pass": true
+    },
+    {
+      "kind": "check",
+      "line": 51,
+      "message": "the tuned model pays twice the base rate on every token class",
+      "pass": true
+    },
+    {
+      "kind": "check",
+      "line": 55,
+      "message": "the uncached base call costs more than the tuned call",
+      "pass": true
+    },
+    {
+      "kind": "check",
+      "line": 56,
+      "message": "the cached base call costs less than the tuned call",
+      "pass": true
+    },
+    {
+      "kind": "check",
+      "line": 57,
+      "message": "against the uncached prompt, a $30 training run breaks even after 28,847 requests",
+      "pass": true
+    },
+    {
+      "kind": "check",
+      "line": 61,
+      "message": "against the cached prompt, the training run never breaks even",
+      "pass": true
+    }
+  ]
+}

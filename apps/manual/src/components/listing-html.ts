@@ -57,20 +57,26 @@ export function lineRange(lines: readonly { readonly number: number }[]): string
   return first === last ? `line ${first}` : `lines ${first}–${last}`;
 }
 
+/** What the caption of a listing that the live run leaves out says (book plan BK18). */
+export const MOCK_ONLY = "Verified against mock models only";
+
 /**
  * The caption's parts after the number and the title, in order: the path, the line range and the pin, each with its
- * class. `ListingBlock` and the `::listing` directive both render these, so a listing's caption reads the same in
- * the gallery and in a chapter.
+ * class, and for a listing that the live run leaves out (`mockOnly`), a last part that says only mock models verify
+ * it. `ListingBlock` and the `::listing` directive both render these, so a listing's caption reads the same in the
+ * gallery and in a chapter.
  */
 export function captionParts(
   path: string,
   lines: readonly { readonly number: number }[],
   pin: string,
+  mockOnly = false,
 ): readonly { readonly className: string; readonly text: string }[] {
   return [
     { className: "listing__path", text: path },
     { className: "listing__lines", text: lineRange(lines) },
     { className: "listing__pin", text: pin },
+    ...(mockOnly ? [{ className: "listing__verified", text: MOCK_ONLY }] : []),
   ];
 }
 

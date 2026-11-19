@@ -1,7 +1,8 @@
 // Shared helpers for the verified AI SDK examples: an assertion helper and a scripted mock model.
-import type { LanguageModelV4CallOptions, LanguageModelV4Content } from "@ai-sdk/provider";
+import type { LanguageModelV4CallOptions, LanguageModelV4Content, LanguageModelV4Usage } from "@ai-sdk/provider";
 import { simulateReadableStream } from "ai";
 import { MockLanguageModelV4 } from "ai/test";
+import { live, liveModel } from "./live.ts";
 // Attaches the transcript recorder to ai/test's mock model when the runner preloads it (scripts/transcripts/).
 import "./transcript.ts";
 
@@ -15,7 +16,7 @@ export function check(cond: unknown, msg: string): asserts cond {
 /** One scripted model turn: plain text, or tool calls (input given as an object). */
 export type Turn = string | { tools: { name: string; input: unknown; id?: string }[] };
 
-const usage = {
+const defaultUsage: LanguageModelV4Usage = {
   inputTokens: { total: 10, noCache: 10, cacheRead: undefined, cacheWrite: undefined },
   outputTokens: { total: 5, text: 5, reasoning: undefined },
 };
@@ -34,11 +35,18 @@ const content = (turn: Turn): LanguageModelV4Content[] =>
 /**
  * A MockLanguageModelV4 (ai/test, docs: ai-sdk-core/testing) that plays `turns` in order, for
  * both generate and stream calls, and records every request in `requests`. Running past the
- * script throws, so a test fails if the loop makes more model calls than expected.
+ * script throws, so a test fails if the loop makes more model calls than expected. Each turn reports `options.usage`
+ * (10 input and 5 output tokens by default) and the model reports `options.modelId` as its id.
  */
 // #region scripted
-export function scripted(turns: Turn[] | ((n: number) => Turn)) {
+export function scripted(
+  turns: Turn[] | ((n: number) => Turn),
+  options: { usage?: LanguageModelV4Usage; modelId?: string } = {},
+) {
+  const usage = options.usage ?? defaultUsage;
   const requests: LanguageModelV4CallOptions[] = [];
+  // A live run (scripts/live/) sends the same calls to a real provider instead of playing the turns.
+  if (live) return { model: liveModel(live, requests), requests };
   const next = (options: LanguageModelV4CallOptions) => {
     requests.push(options);
     const n = requests.length - 1;
@@ -49,6 +57,7 @@ export function scripted(turns: Turn[] | ((n: number) => Turn)) {
   const finish = (turn: Turn) =>
     ({ unified: typeof turn === "string" ? "stop" : "tool-calls", raw: undefined }) as const;
   const model = new MockLanguageModelV4({
+    ...(options.modelId === undefined ? {} : { modelId: options.modelId }),
     doGenerate: async (options) => {
       const turn = next(options);
       return { content: content(turn), finishReason: finish(turn), usage, warnings: [] };

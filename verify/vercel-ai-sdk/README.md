@@ -10,6 +10,7 @@ The SDK runs its tool loop in-process and gets models from provider instances (`
 - **Each run** gets a temp working directory with `fixtures/`, an allowlisted environment and a timeout.
 - **Extraction** fills the docs' `__MODEL__` and `__PROVIDER_IMPORT__` placeholders the way ai-sdk.dev renders them by default: the gateway string `"anthropic/claude-sonnet-5.5"` and no provider import.
 - **Our examples** (`examples/`) build their own scripted `MockLanguageModelV4` (`examples/lib/check.ts`) and assert one documented behavior each.
+- **Usage and price** (`10-streaming-usage.ts`, `11-tuned-vs-cached.ts`) pass `scripted()` a usage object that holds all four token classes, then price it in whole nano-dollars from the rate tables in `examples/lib/rates.ts` and the second example, dated November 2026. The second prices a tuned model against a cached prompt and creates no tuning job.
 - **The retries, caching and budget example** (`examples/12-retries-caching-budget.ts`) shows three behaviours: a retry after a retryable error (with `retry-after-ms: "0"`, so no real wait), cache-read tokens on a repeated prefix, and a `wrapLanguageModel` budget that refuses a call before it reaches the model. It runs each twice: against a scripted model, and through `@ai-sdk/anthropic` with a stub `fetch` that answers in the Messages wire format, so it needs no network or mock server. Only the scripted run leaves its request and answer in the transcript. The recorder attaches to `ai/test`'s mock model, which `createAnthropic` bypasses, so the Messages-format run records only its `check()` results. Prices are Claude Sonnet 5.5's as of November 2026.
 
 ## Region markers feed the book's listings
@@ -22,9 +23,15 @@ Some examples carry `// #region <name>` and `// #endregion` comments, which chan
 
 `scripts/run-examples.mjs` preloads the recorder from [`scripts/transcripts/`](../../scripts/transcripts/), which records each `check()` from the `ok - ` line it prints, and only when the call stack shows `check()` printed it. `examples/lib/transcript.ts` attaches the recorder to `ai/test`'s `MockLanguageModelV4` through its prototype, so `lib/check.ts`'s listed `check` and `scripted` regions hold no recorder code. Streamed calls in `06-streaming.ts` start inside the stream's own machinery, so their requests and answers carry no example line.
 
+A transcript holds no usage, and it names each model `model-1`, `model-2` and so on, so a replay of the two pricing examples shows their requests, answers and `check()` lines but not the token classes, the prices or which call used the tuned model. The chapter reads those from the listing. T11's risks list a follow-up to T5's work that adds each call's usage to the format.
+
 Recording only reads what the mock already holds, so it changes no verdict. The writer replaces the run's own directories, and the ids, timestamps and durations the SDK generated, with placeholders. An id the mock's script chose stays as written, and so does everything else an example scripts, such as a tool's input. Two runs on any machine therefore write the same bytes.
 
 Commit the transcripts with the change that alters them, unlike a regenerated `run-examples.json`, which holds local paths and is restored before committing. CI's results-drift check fails when a committed transcript differs from the one a fresh run writes, and the book's replays read these files ([replays](../../apps/manual/README.md#a-replay-steps-through-a-recorded-run)).
+
+## A live run sends one example to a real provider
+
+The book's occasional live run ([`scripts/live/`](../../scripts/live/), started only by `.github/workflows/live-run.yml`) calls `scripts/run-examples.mjs examples --only <example> --live`. In that mode `scripted()` in `examples/lib/check.ts` returns the `MockLanguageModelV4` from `examples/lib/live.ts` instead of playing its turns, so the listed `scripted` region holds the two lines that make the switch. That model records each request in `requests`, as the script's does, and forwards the call to the pinned `@ai-sdk/anthropic` or `@ai-sdk/openai` with the key passed explicitly. Each call has its output capped at the run's `maxTokens`, is refused when it offers a provider-defined tool, and goes through the cost guard first. The answer keeps only its content, finish reason, usage and warnings, so no response header or id reaches the transcript, which goes to `results/live/<example>.json`. Without `--live`, nothing in the live mode runs, so `pnpm test` and the committed transcripts are unchanged.
 
 ## Scripts
 

@@ -95,11 +95,18 @@ export class AIMock extends WorkerEntrypoint {
 export default { fetch() { return new Response("Workers AI mock"); } };
 `;
 
+/** The host a live run's scripted() model asks for each answer; outboundService hands it to `liveModel`. */
+export const LIVE_MODEL_HOST = "live-model.invalid";
+
 /**
- * Start a Miniflare instance for a bundled Worker. `durableObjects` maps binding name to class.
+ * Start a Miniflare instance for a bundled Worker. `durableObjects` maps binding name to class. `liveModel`, given
+ * only in a live run, answers the Worker's requests to LIVE_MODEL_HOST from the host process.
  * Returns { mf, blocked } where `blocked` collects refused outbound hosts.
  */
-export function start(file, { durableObjects = {}, compatibilityFlags = ["nodejs_compat"], vars = {}, onEvict } = {}) {
+export function start(
+  file,
+  { durableObjects = {}, compatibilityFlags = ["nodejs_compat"], vars = {}, onEvict, liveModel } = {},
+) {
   const blocked = [];
   let mf;
   const options = {
@@ -136,6 +143,8 @@ export function start(file, { durableObjects = {}, compatibilityFlags = ["nodejs
           // Loopback requests (an Agent's MCP client calling this Worker's own /mcp) are served
           // by the example Worker itself; nothing leaves the machine.
           if (["localhost", "127.0.0.1", "[::1]"].includes(host)) return mf.dispatchFetch(request);
+          // A live run's model call, answered by the host process, which holds the key (scripts/live-model.mjs).
+          if (liveModel && host === LIVE_MODEL_HOST) return liveModel(request);
           blocked.push(host);
           return new Response(`verify harness: network disabled (blocked ${host})`, { status: 403 });
         },
