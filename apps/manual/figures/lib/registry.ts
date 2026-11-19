@@ -37,8 +37,9 @@ export function figureScripts(root: string): FigureScript[] {
   if (!existsSync(root)) return [];
   const found: FigureScript[] = [];
   for (const path of readdirSync(root, { recursive: true, encoding: "utf8" }).sort()) {
-    if (!path.endsWith(".ts") || path.startsWith(`lib/`) || path === "lib") continue;
+    // readdirSync names nested files with the platform's separator, so split on both before reading the folders.
     const parts = path.split(/[\\/]/);
+    if (!path.endsWith(".ts") || parts[0] === "lib") continue;
     const [chapter = "", file = ""] = parts;
     const id = basename(file, ".ts");
     if (parts.length !== 2 || !KEBAB_ID.test(chapter) || !KEBAB_ID.test(id)) {

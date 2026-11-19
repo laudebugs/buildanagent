@@ -500,12 +500,13 @@
    stage scrolls sideways where the panel is narrower than the drawing (BK11). The drawing sits at the start of the
    stage, not centred by the grid, so a reader can scroll to both of its edges. */
 .figure__panel {
-  container: figure-panel / inline-size;
+  timeline-scope: --figure-scroll;
 }
 
 .figure__stage--scroll {
   display: block;
   overflow-x: auto;
+  scroll-timeline: --figure-scroll inline;
 }
 
 .figure__stage--scroll svg.fig {
@@ -519,21 +520,38 @@
   outline-offset: 2px;
 }
 
-/* The scroll hint shows while the panel's content is narrower than 37.5rem (600 px), the room the kit's widest figure
-   (520 px) needs with the stage's widest padding of 2.5rem a side. A chapter's 38rem column leaves 606 px, so the hint
-   stays hidden at desktop widths. */
+/* The scroll hint shows exactly when the stage overflows, with no script: its animation runs on the stage's scroll
+   timeline, and a scroll timeline is inactive while its container has nothing to scroll, so the hint keeps the hidden
+   base style below. A browser without scroll-driven animations never shows the hint, and the stage still scrolls. */
 .figure__scroll-hint {
-  display: none;
+  visibility: hidden;
+  max-height: 0;
+  overflow: hidden;
   margin: 0;
-  padding: 0.4rem 1rem 0.6rem;
+  padding: 0 1rem;
   font-family: var(--font-code);
   font-size: var(--size-label);
   color: var(--panel-comment);
 }
 
-@container figure-panel (width < 37.5rem) {
+/* The timeline sits in its own rule after the animation: the `animation` shorthand resets `animation-timeline`, and
+   the build's CSS minifier would otherwise fold both into one shorthand that browsers reject. */
+@supports (animation-timeline: scroll()) {
   .figure__scroll-hint {
-    display: block;
+    animation: figure-scroll-hint linear both;
+  }
+
+  .figure__panel .figure__scroll-hint {
+    animation-timeline: --figure-scroll;
+  }
+}
+
+@keyframes figure-scroll-hint {
+  from,
+  to {
+    visibility: visible;
+    max-height: 4rem;
+    padding-block: 0.4rem 0.6rem;
   }
 }
 

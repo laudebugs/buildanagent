@@ -256,4 +256,8 @@ test("labels render at no less than the phone label size, because a figure never
   assert.match(natural, /width: auto;/);
   assert.match(natural, /max-width: none;/);
   assert.match(css, /\.figure__stage--scroll \{[^}]*overflow-x: auto;/);
+  // The hint follows the stage's own overflow through its scroll timeline, not a width guessed in a container query.
+  assert.match(css, /\.figure__stage--scroll \{[^}]*scroll-timeline: --figure-scroll inline;/);
+  assert.match(css, /\.figure__panel \.figure__scroll-hint \{\s*animation-timeline: --figure-scroll;/);
+  assert.doesNotMatch(css, /@container figure-panel/);
 });
