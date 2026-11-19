@@ -25,9 +25,11 @@ Make `@buildanagent/gateway` and `@buildanagent/sdk` publishable: compiled JavaS
 
 - A `tsconfig.build.json` per package: `module` and `moduleResolution` `NodeNext`, `declaration`, `declarationMap`, `sourceMap`, `outDir: dist`, `src/` only, and `customConditions: []` so the build never follows `source`
 - Relative imports rewritten from `.ts` to `.js` specifiers; `allowImportingTsExtensions` off for the build
-- `exports` whose every entry, including `./testing` and `./testing/setup`, lists `source`, then `types`, then `default`: TypeScript and Node take the first condition that matches, so `source` must come before `types`. `publishConfig.exports` lists only `types`, then `default`, so the packed `package.json` has no `source` condition and keeps "types first"
+- `exports` whose every entry, including `./testing` and `./testing/setup`, lists `source`, then `types`, then `default`. TypeScript and Node take the first condition that matches, so `source` must come before `types`
+- `publishConfig.exports` that lists only `types`, then `default`, so the packed `package.json` has no `source` condition and keeps "types first"
 - `files: ["dist"]`, `sideEffects: false`, `engines.node: ">=22"`, `repository`, `homepage`, `license`
-- `customConditions: ["source"]` in `tsconfig.base.json`, and in each `vitest.config.ts` `ssr.resolve.conditions: ["source", "module", "node", "development|production"]`. Vite 8, which Vitest 5.1.0 runs on, replaces its defaults with the list you give, and Node tests resolve through the SSR environment. The three entries after `source` are Vite 8's `defaultServerConditions`, spelled out because `vitest/config` doesn't re-export them and pnpm won't let a package import `vite` without declaring it
+- `customConditions: ["source"]` in `tsconfig.base.json`
+- `ssr.resolve.conditions: ["source", "module", "node", "development|production"]` in each `vitest.config.ts`. Vitest 5.1.0 runs on Vite 8, which replaces its defaults with the list you give, and Node tests resolve through the SSR environment. The three entries after `source` are Vite 8's `defaultServerConditions`, spelled out because `vitest/config` doesn't re-export them and pnpm won't let a package import `vite` without declaring it
 - A `build` script in each package, and a root `pnpm build` that runs `pnpm -r build`, which builds in dependency order
 - `LICENSE`, `LICENSE-APACHE` and `LICENSE-MIT` copied into each package by a `prepack` script, and listed in `files`
 

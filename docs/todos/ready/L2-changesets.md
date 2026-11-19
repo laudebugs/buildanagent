@@ -36,7 +36,7 @@ Record every user-facing change as a changeset, version the gateway and SDK toge
 
 - [ ] `pnpm changeset` writes a changeset, and `pnpm changeset status` lists both packages in one fixed group
 - [ ] On a throwaway branch with `private` removed from both packages, never merged, `pnpm changeset version` bumps both to the same version and writes both `CHANGELOG.md` files; the pull request description records the run
-- [ ] With the step switched on on a test branch, a pull request that edits `packages/gateway/src` without a changeset fails, and passes once one is added; on `main` the step stays off until L4b
+- [ ] On a test branch with the step switched on, a pull request that edits `packages/gateway/src` without a changeset fails, and passes once one is added; on `main` the step stays off until L4b
 - [ ] `pnpm changeset version` on `main`, with the packages still private, leaves both at 0.0.0
 - [ ] A pull request that edits only `docs/` needs no changeset
 - [ ] `pnpm check`, `pnpm typecheck` and `pnpm test` pass offline from the repo root

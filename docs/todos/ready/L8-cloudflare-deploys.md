@@ -26,9 +26,14 @@ Deploy `apps/site` to `buildanagent.fyi` and `apps/docs` to `docs.buildanagent.f
 - A `wrangler.toml` per app: `[assets] directory = "./dist"`, `not_found_handling = "404-page"`, a custom domain with `custom_domain = true`, `workers_dev = false`, `preview_urls = true` (Previews are served on `workers.dev`, and a new Worker's `preview_urls` starts from `workers_dev`); the docs app also has `[env.next]` for `next.docs.buildanagent.fyi`
 - Wrangler pinned (4.160.1 on 2026-11-19, or newer and at least a week old; Previews need 4.135.0 or later)
 - `docs-build.yml` and `site-build.yml` on `pull_request` and pushes to `main`: build the site with no secrets and upload only `dist/` as an artifact
-- `docs-deploy.yml` and `site-deploy.yml` on `workflow_run` after their build workflow, which GitHub always runs from `main`: download the artifact, take `wrangler.toml` from `main`, and never check out or run the pull request's code. Deploy production only when `github.event.workflow_run.event == 'push'`, `github.event.workflow_run.head_repository.full_name == github.repository` and the head branch is `main`; otherwise run `wrangler preview`, and find the pull request for the comment from `GET /repos/{repo}/commits/{head_sha}/pulls`, never from the artifact
+- `docs-deploy.yml` and `site-deploy.yml` on `workflow_run` after their build workflow, which GitHub always runs from `main`:
+  - Download the artifact, take `wrangler.toml` from `main`, and never check out or run the pull request's code.
+  - Deploy production only when `github.event.workflow_run.event == 'push'`, `github.event.workflow_run.head_repository.full_name == github.repository` and the head branch is `main`.
+  - Otherwise run `wrangler preview`, and find the pull request for the comment from `GET /repos/{repo}/commits/{head_sha}/pulls`, never from the artifact.
 - Confirming the deploy token's permissions against Cloudflare's docs, and recording them in the CI plan
-- The docs' version policy, DS4: `docs-deploy.yml`'s `workflow_run` path deploys `main` to `docs.buildanagent.fyi` while no release tag exists, and to `next.docs.buildanagent.fyi` (marked unreleased and `noindex`) once one does; its `workflow_dispatch` path, which `release.yml` starts with the tag, builds the docs at that tag and deploys production
+- The docs' version policy, DS4, in `docs-deploy.yml`:
+  - The `workflow_run` path deploys `main` to `docs.buildanagent.fyi` while no release tag exists, and to `next.docs.buildanagent.fyi` (marked unreleased and `noindex`) once one does.
+  - The `workflow_dispatch` path, which `release.yml` starts with the tag, builds the docs at that tag and deploys production.
 
 **Out of scope** (and which todo covers it)
 

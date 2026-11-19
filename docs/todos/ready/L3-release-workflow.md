@@ -23,7 +23,7 @@ Publish new versions only from a reviewed release pull request, through npm trus
 **In scope**
 
 - `.github/workflows/release.yml`: on push to `main`, open or update the "Version packages" pull request from pending changesets (switched on in L4b); on merge of that pull request, build, pack and publish
-- A manual `bootstrap` job, used only if npm needs a package to exist before a trusted publisher can be added: it reads a temporary `NPM_BOOTSTRAP_TOKEN` secret and publishes `0.0.0-bootstrap.0` of each package with `--provenance` under the `bootstrap` dist-tag. It has its own `permissions: id-token: write, contents: read`, because provenance needs the OIDC token. It is separate from the publish job, and L4b removes it
+- A manual `bootstrap` job, used only if npm needs a package to exist before a trusted publisher can be added: it reads a temporary `NPM_BOOTSTRAP_TOKEN` secret and publishes `0.0.0-bootstrap.0` of each package with `--provenance` under the `bootstrap` dist-tag. Separate from the publish job, it has its own `permissions: id-token: write, contents: read`, because provenance needs the OIDC token; L4b removes it
 - The publish job: GitHub-hosted runner, `environment: release`, `permissions: id-token: write, contents: write`, npm 11.5.1 or later installed explicitly, `npm publish` of each packed tarball, gateway first
 - A git tag per published version, and a GitHub release with the changelog section
 - After tagging, `gh workflow run docs-deploy.yml -f tag=<tag>` with `permissions: actions: write`, so the docs deploy for the release (DS4); a `workflow_dispatch` creates a run even when `GITHUB_TOKEN` sends it, unlike the tag push
@@ -36,7 +36,7 @@ Publish new versions only from a reviewed release pull request, through npm trus
 ## Acceptance criteria
 
 - [ ] A dry run on `main` builds and packs both packages and publishes nothing
-- [ ] With the "Version packages" step switched on on a throwaway branch with `private` removed, a merged changeset opens the pull request; on `main` it stays off until L4b
+- [ ] On a throwaway branch with `private` removed and the "Version packages" step switched on, a merged changeset opens the pull request; on `main` it stays off until L4b
 - [ ] The publish job has no npm token and fails closed when trusted publishing isn't configured; only the manual `bootstrap` job reads a token
 - [ ] Every new workflow and action is in `.github/workflows/actions.lock`: run `gh actions-lock`, or copy verified entries and check each tag's commit with `git ls-remote` ([CI plan §3d](../../plans/ci.md#3d-actions-locked-by-a-lockfile-added-2026-11-19)); `ci.yml`'s `lockfile` job passes
 - [ ] `pnpm check`, `pnpm typecheck` and `pnpm test` pass offline from the repo root
