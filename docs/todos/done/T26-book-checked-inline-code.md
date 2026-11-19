@@ -42,7 +42,7 @@ Make code in the prose as checked as code in listings, by the owner's decision. 
 - [x] Collect the values in each listing's transcript: tool names, message roles, stop reasons and `check()` messages.
 - [x] Read the export names of each imported package's `.d.ts` from the harness's `node_modules`, without hard-coding paths (resolve them as [AGENTS.md](../../../AGENTS.md#coding-standards) requires).
 - [x] Write the marker check: the cited row must exist in the chapter's fact-check file and be ✅ or ✏️.
-- [x] Fail the build on an unresolved identifier, naming the chapter, the line and the three places searched.
+- [x] Fail the build on an unresolved identifier, naming the chapter, the line and the four places searched (the fourth, the standard library, by the owner's decision of 2026-11-19).
 
 ## Acceptance criteria
 

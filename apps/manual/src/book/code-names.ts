@@ -46,14 +46,17 @@ export interface NameSource {
   readonly names: ReadonlySet<string>;
 }
 
-/** The three places a chapter's inline code resolves to: its listings, their transcripts and their packages. */
+/**
+ * Three of the places a chapter's inline code resolves to: its listings, their transcripts and their packages. The
+ * fourth, the standard library, is read only for a name these three lack (`libraries`).
+ */
 export interface ChapterNames {
   readonly listings: readonly NameSource[];
   readonly transcripts: readonly NameSource[];
   readonly packages: readonly NameSource[];
 }
 
-/** Whether a name is in any of a chapter's three places. */
+/** Whether a name is in a chapter's listings, their transcripts or their packages; the library is checked apart. */
 export const hasName = (names: ChapterNames, name: string): boolean =>
   [...names.listings, ...names.transcripts, ...names.packages].some((source) => source.names.has(name));
 
