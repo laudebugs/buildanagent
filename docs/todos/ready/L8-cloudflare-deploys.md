@@ -34,7 +34,7 @@ Deploy `apps/site` to `buildanagent.fyi` and `apps/docs` to `docs.buildanagent.f
 - Confirming the deploy token's permissions against Cloudflare's docs, and recording them in the CI plan
 - The docs' version policy, DS4, in `docs-deploy.yml`:
   - The `workflow_run` path deploys `main` to `docs.buildanagent.fyi` while no release tag exists, and to `next.docs.buildanagent.fyi` (marked unreleased and `noindex`) once one does.
-  - The `workflow_dispatch` path, which `release.yml` starts on `main` with `-f tag=v<version>`, builds the docs at that tag and deploys production. `release.yml` skips that step while `docs-deploy.yml` doesn't exist, so the input must be named `tag` ([CI plan §3f](../../plans/ci.md#3f-releases-through-npm-trusted-publishing-added-2026-11-19)).
+  - The `workflow_dispatch` path, which `release.yml` starts on `main` with `-f tag=v<version>`, builds the docs at that tag and deploys production. The input must be named `tag`, because `release.yml` sends `-f tag=v<version>`; until this workflow exists, `release.yml` skips the dispatch ([CI plan §3f](../../plans/ci.md#3f-releases-through-npm-trusted-publishing-added-2026-11-19)).
 
 **Out of scope** (and which todo covers it)
 

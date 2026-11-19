@@ -1,6 +1,6 @@
 // Decides what release.yml does on a run, and writes the GitHub release notes. It reads only the checkout, the public
-// npm registry and the repository's GitHub releases, and never runs package code, so the plan job needs only the
-// run's read-only GITHUB_TOKEN.
+// npm registry and the repository's GitHub releases. It never runs package code, and the only token it reads is the
+// run's read-only GITHUB_TOKEN, for the release check.
 //
 //   node scripts/ci/release-plan.mjs plan          prints key=value lines for $GITHUB_OUTPUT
 //   node scripts/ci/release-plan.mjs notes <file>  writes the changelog section of the current version to <file>
