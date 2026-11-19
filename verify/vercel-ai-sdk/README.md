@@ -10,6 +10,7 @@ The SDK runs its tool loop in-process and gets models from provider instances (`
 - **Each run** gets a temp working directory with `fixtures/`, an allowlisted environment and a timeout.
 - **Extraction** fills the docs' `__MODEL__` and `__PROVIDER_IMPORT__` placeholders the way ai-sdk.dev renders them by default: the gateway string `"anthropic/claude-sonnet-5.5"` and no provider import.
 - **Our examples** (`examples/`) build their own scripted `MockLanguageModelV4` (`examples/lib/check.ts`) and assert one documented behavior each.
+- **Usage and price** (`10-streaming-usage.ts`, `11-tuned-vs-cached.ts`) script a streamed call whose final usage holds all four token classes (`examples/lib/usage-mock.ts`), then price it in whole nano-dollars from a rate table dated November 2026. The second prices a tuned model against a cached prompt; it creates no tuning job.
 
 ## Region markers feed the book's listings
 
