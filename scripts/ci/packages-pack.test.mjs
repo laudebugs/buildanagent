@@ -1,9 +1,9 @@
-// Builds and packs each package in packages/ the way a publish would, then checks the tarball: what it holds, that
-// its package.json has no `source` condition, and that Node resolves every export entry to dist/ from a temp install,
-// with and without `--conditions=source` (ADR 0050, as corrected by ADR 0051). The pack tests skip unless the installed
-// pnpm is the `packageManager` version. Offline: `pnpm build` and `pnpm pack`
-// read only the workspace. The test leaves the repo as it found it: it removes each package's dist/ and licence copies
-// unless they were there before it ran. Run with `node --test scripts/ci/*.test.mjs`.
+// Packs each package in packages/ the way a publish would, relying on its `prepack` script to build dist/, then checks
+// the tarball: what it holds, that its package.json has no `source` condition, and that Node resolves every export
+// entry to dist/ from a temp install, with and without `--conditions=source` (ADR 0050, as corrected by ADR 0051). The
+// pack tests skip unless the installed pnpm is the `packageManager` version. Offline: `pnpm pack` and the build it
+// runs read only the workspace. The test leaves the repo as it found it: it removes each package's dist/ and licence
+// copies unless they were there before it ran. Run with `node --test scripts/ci/*.test.mjs`.
 import assert from "node:assert/strict";
 import { execFileSync } from "node:child_process";
 import {
@@ -74,7 +74,8 @@ before(() => {
     mkdirSync(path.join(dir, "dist"), { recursive: true });
     writeFileSync(path.join(dir, STALE), "export {};\n");
   }
-  run("pnpm", ["build"], { cwd: root });
+  // No `pnpm build` here: `pnpm pack` must build through `prepack`, or a pack from a clean checkout ships no code and
+  // the stale file above stays in the tarball.
 
   install = path.join(work, "install");
   mkdirSync(install);

@@ -31,7 +31,7 @@ Make `@buildanagent/gateway` and `@buildanagent/sdk` publishable: compiled JavaS
 - `customConditions: ["source"]` in `tsconfig.base.json`
 - `ssr.resolve.conditions: ["source", "module", "node", "development|production"]` in each `vitest.config.ts`. Vitest 5.1.0 runs on Vite 8, which replaces its defaults with the list you give, and Node tests resolve through the SSR environment. The three entries after `source` are Vite 8's `defaultServerConditions`, spelled out because `vitest/config` doesn't re-export them and pnpm won't let a package import `vite` without declaring it
 - A `build` script in each package, and a root `pnpm build` that runs `pnpm -r build`, which builds in dependency order
-- `LICENSE`, `LICENSE-APACHE` and `LICENSE-MIT` copied into each package by a `prepack` script, and listed in `files`
+- `LICENSE`, `LICENSE-APACHE` and `LICENSE-MIT` copied into each package by a `prepack` script that builds first, and listed in `files`
 
 **Out of scope** (and which todo covers it)
 
