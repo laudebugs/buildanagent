@@ -1,4 +1,4 @@
-# T1: Scaffold `apps/book`: workspace wiring, pins, a static build and Pagefind
+# T1: Scaffold `apps/manual`: workspace wiring, pins, a static build and Pagefind
 
 > **History:** the book plan held its todos on 2026-11-19 until the owner approved it, and the owner approved it the same day ("If green merge", then "Then continue work"), so this todo starts once its **Depends on** are done ([book plan §7](../../plans/build-book.md#7-round-t-can-start-the-owner-approved-the-plan-on-2026-11-19)).
 
@@ -26,10 +26,10 @@ Create the book's package so every later Round T todo has a site to build into. 
 
 **In scope**
 
-- `apps/*` in `pnpm-workspace.yaml` if L5 or L7 has not added it, and `apps/book/package.json` as the private `@buildanagent/book`, with Astro 7.4.11, the pin `apps/docs` uses ([DS1](../../plans/publish-and-docs.md#ds1-starlight-docs-with-a-generated-api-reference-accepted))
+- `apps/*` in `pnpm-workspace.yaml` if L5 or L7 has not added it, and `apps/manual/package.json` as the private `@buildanagent/manual`, with Astro 7.4.11, the pin `apps/docs` uses ([DS1](../../plans/publish-and-docs.md#ds1-starlight-docs-with-a-generated-api-reference-accepted))
 - `astro.config.mjs` with static output, `trailingSlash: 'always'`, the `unified()` processor and the render-input hash
 - One placeholder chapter, the build script `astro build && pagefind --site dist`, and a search page
-- `apps/book` in LICENSE under both terms, and the first THIRD-PARTY-NOTICES.md entry for the garment repository
+- `apps/manual` in LICENSE under both terms, and the first THIRD-PARTY-NOTICES.md entry for the garment repository
 
 **Out of scope** (and which todo covers it)
 
@@ -41,24 +41,24 @@ Create the book's package so every later Round T todo has a site to build into. 
 
 - [ ] Re-run `npm view <package> time` for `astro`, `@astrojs/markdown-remark`, `pagefind`, `remark-directive`, `unist-util-visit` and `wrangler`, and pin the newest release at least a week old; update BK3's table if a pin moves.
 - [ ] Confirm that CI's `node-version-file: .nvmrc` and a fresh local install both resolve Node 22 to 22.23.4 or later, which Astro 7.4.11's `engines` requires; if not, pin `.nvmrc` to a full version in its own commit.
-- [ ] Add `apps/*` to `pnpm-workspace.yaml` only if it is not there yet: whichever of [L5](L5-docs-app.md), [L7](L7-website-app.md) or this todo lands first adds it ([DS2](../../plans/publish-and-docs.md#ds2-two-sites-on-cloudflare-accepted)). Then create `apps/book` with `build`, `dev`, `check:book`, `typecheck` and `test` scripts, following `apps/docs` and `apps/site` where they exist (private `@buildanagent/<name>` packages, the same Astro pin), and install with `pnpm install` at the root.
+- [ ] Add `apps/*` to `pnpm-workspace.yaml` only if it is not there yet: whichever of [L5](L5-docs-app.md), [L7](L7-website-app.md) or this todo lands first adds it ([DS2](../../plans/publish-and-docs.md#ds2-two-sites-on-cloudflare-accepted)). Then create `apps/manual` with `build`, `dev`, `check:book`, `typecheck` and `test` scripts, following `apps/docs` and `apps/site` where they exist (private `@buildanagent/<name>` packages, the same Astro pin), and install with `pnpm install` at the root.
 - [ ] Write `astro.config.mjs` with the render-input hash adapted from the garment repository, with a header comment naming its origin, the source commit and its Apache-2.0 licence, and add the THIRD-PARTY-NOTICES.md section.
 - [ ] Add `data-pagefind-body` to the chapter layout only, and a search page that loads Pagefind's UI.
 - [ ] Try `astro check` under the root's TypeScript 7.0.2; if it fails, type-check the book's `.ts` files with `tsc -p` and record the result in the plan's risks.
-- [ ] Add `apps/book` to LICENSE: prose and figures under CC BY 4.0; code and figure generators under Apache-2.0 OR MIT, except files derived from the garment repository, which are Apache-2.0 only (the owner's answer, 2026-11-19: "Apache 2.0"; [ADR 0054](../../decisions/0054-reuse-garment-textbook-code.md)).
+- [ ] Add `apps/manual` to LICENSE: prose and figures under CC BY 4.0; code and figure generators under Apache-2.0 OR MIT, except files derived from the garment repository, which are Apache-2.0 only (the owner's answer, 2026-11-19: "Apache 2.0"; [ADR 0054](../../decisions/0054-reuse-garment-textbook-code.md)).
 
 ## Acceptance criteria
 
-- [ ] `pnpm --filter @buildanagent/book build` writes `apps/book/dist/` with one chapter page and a working `dist/pagefind/` index
-- [ ] Every dependency in `apps/book/package.json` is pinned exactly to a release at least a week old on the day of the pull request
+- [ ] `pnpm --filter @buildanagent/manual build` writes `apps/manual/dist/` with one chapter page and a working `dist/pagefind/` index
+- [ ] Every dependency in `apps/manual/package.json` is pinned exactly to a release at least a week old on the day of the pull request
 - [ ] The root `pnpm typecheck` and `pnpm test` run the book's `typecheck` and `test` scripts
-- [ ] THIRD-PARTY-NOTICES.md names the garment repository, its commit and the copied file; LICENSE names `apps/book`
+- [ ] THIRD-PARTY-NOTICES.md names the garment repository, its commit and the copied file; LICENSE names `apps/manual`
 - [ ] LICENSE records that files derived from the garment repository are Apache-2.0, and each such file opens with a header comment naming its origin and licence
 - [ ] `pnpm check`, `pnpm typecheck` and `pnpm test` pass offline from the repo root
 
 ## Tests
 
-A Vitest smoke test in `apps/book/test/` runs the Markdown processor on a fixture chapter. The build itself is the main check.
+A Vitest smoke test in `apps/manual/test/` runs the Markdown processor on a fixture chapter. The build itself is the main check.
 
 ## Docs to update
 

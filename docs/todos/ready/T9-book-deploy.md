@@ -28,11 +28,11 @@ Publish the book from GitHub Actions. An assets-only Worker serves the built sit
 
 **In scope**
 
-- `apps/book/wrangler.jsonc`: assets-only, `./dist`, the custom-domain route, `not_found_handling: "404-page"`, `workers_dev: false`, `preview_urls: true`; JSONC because Cloudflare recommends it for new projects (BK15)
+- `apps/manual/wrangler.jsonc`: assets-only, `./dist`, the custom-domain route, `not_found_handling: "404-page"`, `workers_dev: false`, `preview_urls: true`; JSONC because Cloudflare recommends it for new projects (BK15)
 - `public/_headers` with a content security policy, `X-Content-Type-Options`, `Referrer-Policy` and long caching for hashed assets
 - `scripts/guard-deploy.mjs` and its tests, and a secrets check that runs first in every job
 - `book-deploy.yml`, the deploy half of DS3's split: on `workflow_run` after `book-build.yml`, run from `main`, deploy production behind `BOOK_DEPLOY_ENABLED` in `book-production`, and preview every other run in `book-preview`, deleting a closed pull request's preview
-- `apps/book/README.md`: the exact list of what the owner must create
+- `apps/manual/README.md`: the exact list of what the owner must create
 
 **Out of scope** (and which todo covers it)
 
@@ -44,7 +44,7 @@ Publish the book from GitHub Actions. An assets-only Worker serves the built sit
 ## Tasks
 
 - [ ] **Owner prerequisite, not a builder task.** The owner said "we'll set this up" (2026-11-19). The owner puts the buildanagent.fyi zone in the deploy account and creates both GitHub environments with their protection rules. The owner also creates two account-owned tokens and stores each, with `CLOUDFLARE_ACCOUNT_ID`, as `CLOUDFLARE_API_TOKEN` in its environment: for `book-production`, Account › Workers › Editor plus Zone › Workers Routes › Write on the buildanagent.fyi zone; for `book-preview`, Account › Workers › Editor scoped to the book's Worker, with no zone permission. Because Editor cannot create a Worker, the owner creates the book's Worker once by hand, or runs the first deploy with a short-lived Admin token, so the stored tokens never hold Admin. After the custom domain is attached, the owner may remove the zone permission until the domain changes. Then the owner sets `BOOK_DEPLOY_ENABLED`. As of 2026-11-19 the `book-production` and `book-preview` environments exist and each holds `CLOUDFLARE_API_TOKEN` and `CLOUDFLARE_ACCOUNT_ID`, and `book-production` allows only protected branches (`main`), so the workflow uses those names and still fails closed if a secret goes missing; before the first deploy, check by name only that each holds `CLOUDFLARE_API_TOKEN` and `CLOUDFLARE_ACCOUNT_ID` and that `book-production` allows only `main`. This todo may merge before the rest of the setup exists.
-- [ ] Write the owner's checklist into `apps/book/README.md` from BK15's table: environment names (`book-production`, `book-preview`), which branches may deploy to each, the secret names (`CLOUDFLARE_API_TOKEN`, `CLOUDFLARE_ACCOUNT_ID`), each token's exact permissions as listed in BK15, the one-time Worker creation with Admin rights, and the variable `BOOK_DEPLOY_ENABLED`.
+- [ ] Write the owner's checklist into `apps/manual/README.md` from BK15's table: environment names (`book-production`, `book-preview`), which branches may deploy to each, the secret names (`CLOUDFLARE_API_TOKEN`, `CLOUDFLARE_ACCOUNT_ID`), each token's exact permissions as listed in BK15, the one-time Worker creation with Admin rights, and the variable `BOOK_DEPLOY_ENABLED`.
 - [ ] Check that manual.buildanagent.fyi has no CNAME record, since Cloudflare refuses a custom domain there.
 - [ ] Write `wrangler.jsonc` and `_headers`, and build locally with `pnpm exec wrangler dev` to check headers and routes.
 - [ ] Port the guard from the garment repository with a header comment naming its origin, commit and Apache-2.0 licence. It parses JSONC and refuses unless the config has exactly the one custom-domain route, no `main`, `assets.directory: "./dist"`, `not_found_handling: "404-page"`, `workers_dev: false`, `preview_urls: true` and a `_headers` file.
@@ -56,7 +56,7 @@ Publish the book from GitHub Actions. An assets-only Worker serves the built sit
 
 ## Acceptance criteria
 
-- [ ] `apps/book/README.md` lists every environment, protection rule, secret, token permission and variable the owner must create, by exact name
+- [ ] `apps/manual/README.md` lists every environment, protection rule, secret, token permission and variable the owner must create, by exact name
 - [ ] With a secret missing, the job fails at its first step with a message naming that secret; with `BOOK_DEPLOY_ENABLED` unset, a push to `main` skips the deploy job
 - [ ] The guard fails on each of its seven rules, in its tests
 - [ ] After the owner's setup, https://manual.buildanagent.fyi/ serves the built book with the `_headers` values present
@@ -72,7 +72,7 @@ Publish the book from GitHub Actions. An assets-only Worker serves the built sit
 ## Docs to update
 
 - [AGENTS.md](../../../AGENTS.md) layout: `book-deploy.yml` in the workflows line
-- `apps/book/README.md`: the owner's checklist, how deploys and previews work, and how to turn deploys off
+- `apps/manual/README.md`: the owner's checklist, how deploys and previews work, and how to turn deploys off
 
 ## Risks and open questions
 

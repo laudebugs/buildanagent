@@ -24,18 +24,18 @@ Write the chapter "Talking to a model: messages, streams, tokens, instructions a
 - [Harness plan HD3](../../plans/build-harness.md#hd3-layers-1-2-3-and-5-on-by-default-and-a-budget-capped-at-200k-tokens-provisional): the thinking prefix check
 - ADRs [0002](../../decisions/0002-first-wire-protocols.md), [0003](../../decisions/0003-token-usage-fields.md) and [0004](../../decisions/0004-cost-catalog-and-basis.md)
 - [Book plan BK21 and BK22](../../plans/build-book.md#bk21-every-section-is-fact-checked-before-the-next-is-drafted-accepted): the per-section workflow and the voice rules
-- `apps/book/README.md` (from T3–T7 and T26): front matter, citations, listings, notes, tabs, replays, checked inline code, figures and the analogy register
+- `apps/manual/README.md` (from T3–T7 and T26): front matter, citations, listings, notes, tabs, replays, checked inline code, figures and the analogy register
 
 ## Scope
 
 **In scope**
 
-- `apps/book/src/content/chapters/talking-to-a-model.md`, with `switchTo: [B4, B5]` and `opening: code` in its front matter
+- `apps/manual/src/content/chapters/talking-to-a-model.md`, with `switchTo: [B4, B5]` and `opening: code` in its front matter
 - Sections: Messages, roles and a stateless call; Streams of deltas that fold into one authoritative message; Usage, the four token classes and cost; The system prompt: short and frozen (agent guide §4); Choosing a model: start with the most capable, then try smaller ones against evals (OpenAI guide); Reasoning and thinking blocks, and why they go back unchanged (SDK guide §2; harness plan HD3)
 - Listings and at least one replay from: `verify/vercel-ai-sdk/examples/01-generate-text.ts`, `verify/vercel-ai-sdk/examples/06-streaming.ts`, `verify/langchain/examples/08-streaming.ts`, `verify/copilot-sdk/examples/05-streaming.ts`, the streaming-and-usage example from [T28](T28-example-streaming-usage.md)
 - Figures: a flat figure of a transcript of messages with roles; a flat figure of a stream of deltas folding into one message, with the four token classes; a flat analogy illustration of the taxi meter
 - Exercise: Price a recorded run from its usage, then rerun it with a smaller model and compare the cost and the checks.
-- `apps/book/fact-checks/talking-to-a-model.md`, the chapter's claims log
+- `apps/manual/fact-checks/talking-to-a-model.md`, the chapter's claims log
 
 **Opening:** code (the previous chapter in the outline opens with scenario).
 
@@ -61,10 +61,10 @@ Write the chapter "Talking to a model: messages, streams, tokens, instructions a
 - [ ] Add `// #region` and `// book:note` markers to the examples the chapter uses, and confirm each harness's `pnpm test` and the results-drift check still pass.
 - [ ] Vet each planned analogy: say what it explains and check it does not imply anything false. The owner approved the analogies (2026-11-19). If one misleads or `analogies.json` already uses it, drop it or propose a replacement to the owner; a new or swapped-in analogy needs the owner's approval.
 - [ ] Outline the chapter's sections, each with a one-line head, and note the planned opening type.
-- [ ] For each section, in order: draft it with `/anthropic-skills:writing`; then fact-check every claim it makes against its primary source into `apps/book/fact-checks/talking-to-a-model.md` as ✅, ✏️ or ⚠️, before drafting the next section; commit the section and its rows together (BK21).
-- [ ] Use an analogy from the table above where it makes a concept clearer: open the concept with it, follow it at once with the precise mechanism, and add its "Where the analogy breaks" note. Where plain explanation works better, drop the planned analogy. Register every analogy the chapter uses in `apps/book/src/content/analogies.json` (BK22).
+- [ ] For each section, in order: draft it with `/anthropic-skills:writing`; then fact-check every claim it makes against its primary source into `apps/manual/fact-checks/talking-to-a-model.md` as ✅, ✏️ or ⚠️, before drafting the next section; commit the section and its rows together (BK21).
+- [ ] Use an analogy from the table above where it makes a concept clearer: open the concept with it, follow it at once with the precise mechanism, and add its "Where the analogy breaks" note. Where plain explanation works better, drop the planned analogy. Register every analogy the chapter uses in `apps/manual/src/content/analogies.json` (BK22).
 - [ ] Run `/anthropic-skills:writing-review` on the whole chapter, with the voice check: a vivid opening of the planned type that differs from the previous chapter's, a concrete example or scenario in every section, varied cadence, second person where it helps, and no stock phrasing repeated from earlier chapters (BK22).
-- [ ] Fix every finding with `/anthropic-skills:writing`, re-check every claim a fix touched, and log the re-checks in `apps/book/fact-checks/talking-to-a-model.md`.
+- [ ] Fix every finding with `/anthropic-skills:writing`, re-check every claim a fix touched, and log the re-checks in `apps/manual/fact-checks/talking-to-a-model.md`.
 - [ ] Draw the figures and analogy illustrations with T6's pipeline, each with alt text and a caption that cites the register.
 - [ ] Tag the chapter's glossary terms and add missing entries.
 
@@ -75,7 +75,7 @@ Write the chapter "Talking to a model: messages, streams, tokens, instructions a
 - [ ] At least one listing uses a tier 1, 2 or 3 interaction, and the page reads in full with JavaScript off
 - [ ] Every figure, analogy illustrations included, is generated, passes the staleness test, and has alt text, a caption and both themes
 - [ ] Every version the prose names says "as of <month year>"
-- [ ] `apps/book/fact-checks/talking-to-a-model.md` has one block of rows per section, each committed with its section before the next section's draft, plus the re-check rows for the review's fixes, with a ✅/✏️/⚠️ tally
+- [ ] `apps/manual/fact-checks/talking-to-a-model.md` has one block of rows per section, each committed with its section before the next section's draft, plus the re-check rows for the review's fixes, with a ✅/✏️/⚠️ tally
 - [ ] Every analogy the chapter uses comes from the table above or has the owner's approval, opens its concept and has a "Where the analogy breaks" note; every one is in `src/content/analogies.json`, and `check:book` passes its duplicate and reuse checks
 - [ ] The front matter's `opening` is `code`, and `check:book` passes its opening-rotation check
 - [ ] The pull request records the writing review's 5C scores and its voice scores, before and after
