@@ -37,7 +37,7 @@ This log checks every factual claim in [publish-and-docs.md](../publish-and-docs
 | 19 | It adds provenance attestations by default | ✅ | npm docs: "npm automatically generates and publishes provenance attestations… by default" |
 | 20 | A trusted publisher is configured on the package's settings page, by user, repository, workflow filename and optional environment | ✅ | npm docs, "Configuring trusted publishing" |
 | 21 | A new trusted publisher must complete its first publish within 2 days, or it expires | ✅ | npm docs: "must complete its first successful publish within 2 days" |
-| 22 | npm may require the package to exist before a trusted publisher can be added | ⚠️ | The docs describe the setup on "your package settings", which implies an existing package, but don't say so; the plan's risk 1 and todo L4 cover both cases |
+| 22 | npm may require the package to exist before a trusted publisher can be added | ⚠️ | The docs describe the setup on "your package settings", which implies an existing package, but don't say so; the plan's risk 1 and todo L4a cover both cases |
 | 23 | Node 22 ships npm 10, so the release job must install npm 11.5.1 or later | ⚠️ | From the Node 22 release line's bundled npm (10.x); not checked on today's runner image. L3 installs npm explicitly either way |
 
 ## Cloudflare
