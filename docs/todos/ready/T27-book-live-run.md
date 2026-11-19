@@ -8,7 +8,7 @@
 | Status | `ready` |
 | Plan | [Book plan §5, BK18](../../plans/build-book.md#bk18-an-occasional-live-run-compares-real-flows-with-the-mock-transcripts-accepted) |
 | Round / milestone | Round T (textbook), MT |
-| Depends on | [T5](T5-book-interactive-listings.md) |
+| Depends on | [T5](../ongoing/T5-book-interactive-listings.md) |
 | Size | M |
 
 ## Goal

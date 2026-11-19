@@ -5,7 +5,7 @@
 | Field | Value |
 | --- | --- |
 | ID | `T5` |
-| Status | `ready` |
+| Status | `ongoing` |
 | Plan | [Book plan §5, BK9](../../plans/build-book.md#bk9-listings-come-from-real-regions-and-become-interactive-in-three-tiers-accepted-the-mechanism-is-proposed) |
 | Round / milestone | Round T (textbook), MT |
 | Depends on | [T4](../done/T4-book-listings.md) |

@@ -6,7 +6,7 @@
 | Status | `ready` |
 | Plan | [Book plan §5, BK20](../../plans/build-book.md#bk20-new-verify-examples-fill-the-gaps-the-coverage-review-found-accepted) |
 | Round / milestone | Round T (textbook), MT |
-| Depends on | [T5](T5-book-interactive-listings.md), [U19](../done/U19-research-a2a.md) |
+| Depends on | [T5](../ongoing/T5-book-interactive-listings.md), [U19](../done/U19-research-a2a.md) |
 | Size | M |
 
 ## Goal

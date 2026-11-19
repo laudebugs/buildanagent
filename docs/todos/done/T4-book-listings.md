@@ -33,7 +33,7 @@ Let a chapter include code only from a file that CI type-checks and runs. The `:
 
 **Out of scope** (and which todo covers it)
 
-- Annotations, tabs and replays ([T5](../ready/T5-book-interactive-listings.md))
+- Annotations, tabs and replays ([T5](../ongoing/T5-book-interactive-listings.md))
 
 ## Tasks
 

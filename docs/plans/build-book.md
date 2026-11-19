@@ -508,7 +508,7 @@ The three research rounds behind the sections each confirmed its placement, and 
 | [T2](../todos/done/T2-book-design.md) | The owner's design as tokens and components: C's layout, C4 pages, theme-following panels and three fonts | T1 | M |
 | [T3](../todos/done/T3-book-content-model.md) | Content model: outline, numbering, source register, glossary, analogy register and chapter checks | T1 | L |
 | [T4](../todos/done/T4-book-listings.md) | Code listings from real file regions, with path, lines and pin | T3 | M |
-| [T5](../todos/ready/T5-book-interactive-listings.md) | Interactive listings: annotations, SDK tabs, recorded-run replay and the transcript recorder | T4 | L |
+| [T5](../todos/ongoing/T5-book-interactive-listings.md) | Interactive listings: annotations, SDK tabs, recorded-run replay and the transcript recorder | T4 | L |
 | [T6](../todos/ready/T6-book-flat-figures.md) | Flat figure pipeline: generated SVGs, analogy illustrations, numbering, themes and the staleness test | T2, T3 | M |
 | [T7](../todos/ready/T7-book-isometric-figures.md) | Isometric and interactive figures: the vendored anatomy skill, its audits and inline fragments | T6, T8 | M |
 | [T8](../todos/ready/T8-book-ci.md) | The book's build workflow: every check, no secrets, `dist/` as an artifact | T4, T6 | S |
