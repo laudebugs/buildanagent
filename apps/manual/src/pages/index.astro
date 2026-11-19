@@ -1,13 +1,27 @@
 ---
-import { getCollection } from "astro:content";
 import BaseLayout from "../layouts/BaseLayout.astro";
+import { book } from "../markdown/options.js";
+import { outline } from "../outline.js";
 
-const chapters = await getCollection("chapters");
+// The contents come from the outline, not from the chapter files, so a planned chapter shows in its place, as plain
+// text until its file exists (BK5).
+const numbered = new Map(book.chapters.map((chapter) => [chapter.slug, chapter.number]));
 ---
 
 <BaseLayout title="Build an agent" description="A textbook on building an AI agent.">
   <h1>Build an agent</h1>
-  <ol>
-    {chapters.map((chapter) => <li><a href={`/${chapter.id}/`}>{chapter.data.title}</a></li>)}
-  </ol>
+  {
+    outline.map((part) => (
+      <section>
+        <h2>{part.title}</h2>
+        <ol>
+          {part.chapters.map((chapter) => (
+            <li value={numbered.get(chapter.slug)}>
+              {book.index.written.has(chapter.slug) ? <a href={`/${chapter.slug}/`}>{chapter.title}</a> : chapter.title}
+            </li>
+          ))}
+        </ol>
+      </section>
+    ))
+  }
 </BaseLayout>

@@ -1,0 +1,59 @@
+// Adapted from src/lib/markdown/split-text.mjs in the owner's garment engineering textbook
+// (tajistudios/garment-engineering-textbook, commit bca44b0), reused with the owner's permission.
+// SPDX-License-Identifier: Apache-2.0
+// As a file derived from that repository, this file is licensed under Apache-2.0 only, not Apache-2.0 OR MIT
+// (LICENSE, THIRD-PARTY-NOTICES.md).
+//
+// Changed from the original: typed for mdast, and `split` may return nodes of any phrasing type.
+//
+// Shared by the remark plugins that turn pieces of plain text into other nodes (citations, glossary terms).
+// CommonMark leaves those pieces inside text nodes, so each plugin splits the text nodes it is allowed to touch.
+
+import type { PhrasingContent, Root, Text } from "mdast";
+import { SKIP, visit } from "unist-util-visit";
+
+/** Text nodes inside any node of the given types (link text, headings, code and so on). */
+export function textInside(tree: Root, types: ReadonlySet<string>): Set<Text> {
+  const inside = new Set<Text>();
+  visit(tree, (node) => {
+    if (!types.has(node.type)) return;
+    visit(node, "text", (text) => {
+      inside.add(text);
+    });
+    return SKIP;
+  });
+  return inside;
+}
+
+/** One piece of a text node to replace: where it starts, how long it is and what replaces it. */
+export interface TextPiece {
+  readonly index: number;
+  readonly length: number;
+  readonly node: PhrasingContent | readonly PhrasingContent[];
+}
+
+/**
+ * Replaces each text node not in `skip` with the pieces `split(value, node)` returns, in order. Text between them stays
+ * text. Returning an empty list leaves the node as it is.
+ */
+export function splitText(
+  tree: Root,
+  skip: ReadonlySet<Text>,
+  split: (value: string, node: Text) => readonly TextPiece[],
+): void {
+  visit(tree, "text", (node, index, parent) => {
+    if (!parent || index === undefined || skip.has(node)) return;
+    const value = node.value;
+    const out: PhrasingContent[] = [];
+    let last = 0;
+    for (const piece of split(value, node)) {
+      if (piece.index > last) out.push({ type: "text", value: value.slice(last, piece.index) });
+      out.push(...[piece.node].flat());
+      last = piece.index + piece.length;
+    }
+    if (out.length === 0) return;
+    if (last < value.length) out.push({ type: "text", value: value.slice(last) });
+    (parent.children as PhrasingContent[]).splice(index, 1, ...out);
+    return [SKIP, index + out.length];
+  });
+}

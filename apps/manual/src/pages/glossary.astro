@@ -1,0 +1,30 @@
+---
+import BaseLayout from "../layouts/BaseLayout.astro";
+import { book } from "../markdown/options.js";
+
+// Every glossary entry, in alphabetical order. Each anchor is the id a chapter's first use of the term links to.
+const entries = [...book.glossary.values()].sort((a, b) => a.term.localeCompare(b.term, "en"));
+---
+
+<BaseLayout title="Glossary" description="The terms the book uses, each with one meaning across every chapter.">
+  <h1>Glossary</h1>
+  <dl>
+    {
+      entries.map((entry) => (
+        <>
+          <dt id={entry.id}>{entry.kind === "abbr" ? <abbr>{entry.term}</abbr> : entry.term}</dt>
+          <dd>
+            {entry.kind === "abbr" && <>{entry.expansion}. </>}
+            {entry.definition}{" "}
+            {entry.sources.map((id, k) => (
+              <>
+                {k > 0 && ", "}
+                <a href={`/sources/#${id}`}>{book.sources.get(id)?.title}</a>
+              </>
+            ))}
+          </dd>
+        </>
+      ))
+    }
+  </dl>
+</BaseLayout>

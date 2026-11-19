@@ -1,16 +1,38 @@
 ---
+import { book } from "../markdown/options.js";
 import BaseLayout from "./BaseLayout.astro";
 import type { PageProps } from "./page-props.js";
 
-type Props = PageProps;
+interface Props extends PageProps {
+  readonly slug: string;
+  readonly sources: readonly string[];
+}
 
-const { title, description } = Astro.props;
+const { slug, title, description, sources } = Astro.props;
+const number = book.bySlug.get(slug)?.number;
 ---
 
 <BaseLayout title={title} description={description}>
   <!-- Only a chapter's body carries data-pagefind-body, so search indexes chapters and skips every other page. -->
   <article data-pagefind-body>
+    <p class="chapter-number">Chapter {number}</p>
     <h1>{title}</h1>
     <slot />
+    <!-- The chapter's sources, numbered in the order its front matter lists them, as its citations are. -->
+    <section class="chapter-sources">
+      <h2>Sources</h2>
+      <ol>
+        {
+          sources.map((id) => {
+            const source = book.sources.get(id);
+            return (
+              <li>
+                <a href={`/sources/#${id}`}>{source?.title}</a>, {source?.publisher}
+              </li>
+            );
+          })
+        }
+      </ol>
+    </section>
   </article>
 </BaseLayout>
