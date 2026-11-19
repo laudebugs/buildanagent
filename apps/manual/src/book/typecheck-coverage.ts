@@ -1,8 +1,9 @@
 import { spawnSync } from "node:child_process";
 import { createHash } from "node:crypto";
-import { existsSync, mkdtempSync, readdirSync, readFileSync, realpathSync, rmSync } from "node:fs";
+import { existsSync, mkdtempSync, readFileSync, realpathSync, rmSync } from "node:fs";
+import { createRequire } from "node:module";
 import { tmpdir } from "node:os";
-import { basename, delimiter, dirname, extname, join, matchesGlob, relative, resolve, sep } from "node:path";
+import { delimiter, dirname, extname, isAbsolute, join, matchesGlob, relative, resolve, sep } from "node:path";
 import { fileURLToPath } from "node:url";
 import { parse as parseYaml } from "yaml";
 
@@ -58,37 +59,84 @@ export function manualTsc(): string | undefined {
   return undefined;
 }
 
-// Programs shared by every load in this process, keyed by the content of a config's tsconfig chain, each as its files'
-// paths from the config's directory, so two loads of one book, or two copies of an unchanged fixture, run tsc once.
-// A changed tsconfig gives a new key. Configs with the same chain in other directories share a key too: `include`
-// and `exclude` match paths relative to the config, so a file one of them holds at a path, any of them holds at that
-// path. The exception is a file that a program reaches only through an import, which such a hit can report covered.
+// Programs shared by every load in this process, each as the real paths of its files, so the two loads of one build
+// (the config's and the pages') and repeated `check:book` loads run tsc once per config. The key is the config's real
+// path and the real path and content of every config in its `extends` chain, so a different config, or any edit to
+// the chain, lists the program again. An edit outside the chain can change a program too, as when an example stops
+// importing a file; a running process then keeps the old answer until the chain changes, and a new build or
+// `check:book` run sees the edit.
 const programs = new Map<string, ReadonlySet<string>>();
 
-/**
- * The key of a config's program: the config's name and every `tsconfig*.json` in its directory and each directory
- * above it up to the repository root, with their contents. A config can extend only one of those, or a package,
- * whose tsconfig the key leaves out; editing a package's tsconfig needs a new process.
- */
-function programKey(config: string, repoRoot: string): string {
-  const hash = createHash("sha256").update(basename(config));
-  for (let dir = dirname(config), up = ""; isInside(dir, repoRoot); dir = dirname(dir), up += "../") {
-    for (const name of readdirSync(dir)
-      .filter((entry) => /^tsconfig.*\.json$/.test(entry))
-      .sort()) {
-      hash.update(`\0${up}${name}\0`).update(readFileSync(join(dir, name)));
+/** A tsconfig's text without comments and trailing commas, enough to read its `extends`. */
+function stripJsonComments(text: string): string {
+  let out = "";
+  for (let i = 0; i < text.length; i++) {
+    const char = text[i];
+    if (char === '"') {
+      let end = i + 1;
+      while (end < text.length && text[end] !== '"') end += text[end] === "\\" ? 2 : 1;
+      out += text.slice(i, end + 1);
+      i = end;
+    } else if (char === "/" && text[i + 1] === "/") {
+      while (i < text.length && text[i] !== "\n") i++;
+      out += "\n";
+    } else if (char === "/" && text[i + 1] === "*") {
+      const end = text.indexOf("*/", i + 2);
+      i = end === -1 ? text.length : end + 1;
+    } else {
+      out += char;
     }
-    if (dir === repoRoot) break;
   }
+  return out.replace(/,(\s*[}\]])/g, "$1");
+}
+
+/**
+ * The config and every config it extends, in the order TypeScript reads them, as real paths. A relative `extends`
+ * resolves from the config's directory, with `.json` added when it has no extension; a package `extends` resolves
+ * through Node's module resolution, to the package's own path or its `tsconfig.json`. A config whose text cannot be
+ * read as JSON still counts, by its content, without the configs it would extend.
+ */
+export function extendsChain(config: string, seen: Set<string> = new Set()): string[] {
+  if (!existsSync(config)) return [];
+  const real = realpathSync(config);
+  if (seen.has(real)) return [];
+  seen.add(real);
+  let bases: string[] = [];
+  try {
+    const parsed = JSON.parse(stripJsonComments(readFileSync(real, "utf8"))) as { extends?: string | string[] };
+    bases = [parsed.extends ?? []].flat();
+  } catch {
+    // tsc reports the broken config; the key still holds its content.
+  }
+  const require = createRequire(real);
+  const resolved = bases.flatMap((base) => {
+    if (base.startsWith(".") || isAbsolute(base)) {
+      return [resolve(dirname(real), extname(base) === ".json" ? base : `${base}.json`)];
+    }
+    for (const candidate of [base, `${base}/tsconfig.json`]) {
+      try {
+        return [require.resolve(candidate)];
+      } catch {
+        // Try the next form; a package that resolves to neither is left out, and tsc reports it.
+      }
+    }
+    return [];
+  });
+  return [real, ...resolved.flatMap((base) => extendsChain(base, seen))];
+}
+
+/** The key of a config's program: the real path and content of each config in its `extends` chain. */
+function programKey(config: string): string {
+  const hash = createHash("sha256");
+  for (const file of extendsChain(config)) hash.update(`\0${file}\0`).update(readFileSync(file));
   return hash.digest("hex");
 }
 
 /**
  * Answers whether a workspace package's `typecheck` checks a file, by asking TypeScript itself: `tsc -p <config>
  * --listFilesOnly` prints every file the program holds, after `extends`, `files`, `include`, `exclude` and the files
- * that included files import. Loads share each program by its tsconfig chain's content. A file missing from a shared
- * program makes this load list its config again, once, so a file added since then, or held by a config in another
- * directory, is found.
+ * that included files import. Loads share each program by the config's real path and its `extends` chain. A file
+ * missing from a shared program makes this load list the config again, once, so a file added since then is found.
  */
 export class TypecheckCoverage {
   readonly #repoRoot: string;
@@ -151,20 +199,18 @@ export class TypecheckCoverage {
     if (!existsSync(config)) return `${shown} does not exist`;
     const known = this.#errors.get(config);
     if (known !== undefined) return known;
-    const relativeTo = realpathSync(dirname(config));
-    const wanted = toPosix(relative(relativeTo, file));
-    const key = programKey(config, this.#repoRoot);
+    const key = programKey(config);
     const cached = programs.get(key);
-    if (cached !== undefined && (cached.has(wanted) || this.#listed.has(relativeTo))) return cached.has(wanted);
-    this.#listed.add(relativeTo);
+    if (cached !== undefined && (cached.has(file) || this.#listed.has(key))) return cached.has(file);
+    this.#listed.add(key);
     const listed = this.#list(config, shown);
     if (typeof listed === "string") {
       this.#errors.set(config, listed);
       return listed;
     }
-    const files = new Set(listed.map((line) => toPosix(relative(relativeTo, realpathSync(line)))));
+    const files = new Set(listed.map((line) => realpathSync(line)));
     programs.set(key, files);
-    return files.has(wanted);
+    return files.has(file);
   }
 
   /** The files `tsc -p config --listFilesOnly` prints outside `node_modules`, or why tsc could not list them. */

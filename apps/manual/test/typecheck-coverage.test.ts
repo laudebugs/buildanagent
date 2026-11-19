@@ -1,10 +1,10 @@
 import assert from "node:assert/strict";
 import { randomUUID } from "node:crypto";
-import { chmodSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
+import { chmodSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join, sep } from "node:path";
 import { afterAll, test } from "vitest";
-import { manualTsc, TypecheckCoverage } from "../src/book/typecheck-coverage.js";
+import { extendsChain, manualTsc, TypecheckCoverage } from "../src/book/typecheck-coverage.js";
 import { edit, mutatedFixture, removeFixture } from "./book-fixture.js";
 
 // The coverage check runs tsc, so these tests use copies of the fixture harness whose tsconfig.json carries a comment
@@ -81,4 +81,47 @@ test("a changed tsconfig runs tsc again, and a file added since the last run is 
   );
   assert.ok(!dir.includes(`${sep}node_modules${sep}`));
   removeFixture(dir);
+});
+
+/** A repository of two harnesses with identical tsconfig files; `files` adds each harness's other files. */
+function twoHarnesses(files: Readonly<Record<string, string>>): string {
+  const dir = mkdtempSync(join(tmpdir(), "two-harnesses-"));
+  dirs.push(dir);
+  const write = (path: string, text: string) => {
+    mkdirSync(join(dir, path, ".."), { recursive: true });
+    writeFileSync(join(dir, path), text);
+  };
+  write("pnpm-workspace.yaml", 'packages:\n  - "verify/*"\n');
+  for (const harness of ["a", "b"]) {
+    write(`verify/${harness}/package.json`, '{ "scripts": { "typecheck": "tsc -p tsconfig.json" } }\n');
+    write(
+      `verify/${harness}/tsconfig.json`,
+      '{ "extends": "../shared/tsconfig.base.json", "include": ["examples/**/*.ts"] }\n',
+    );
+    write(`verify/${harness}/lib/y.ts`, "export const y = 1;\n");
+  }
+  write("verify/shared/tsconfig.base.json", '{ "compilerOptions": { "strict": true } }\n');
+  for (const [path, text] of Object.entries(files)) write(path, text);
+  return dir;
+}
+
+test("a file only one harness imports is covered there, not in a harness with an identical tsconfig", () => {
+  const dir = twoHarnesses({
+    "verify/a/examples/x.ts": 'import { y } from "../lib/y";\nexport const x = y;\n',
+    "verify/b/examples/x.ts": "export const x = 1;\n",
+  });
+  const check = coverage(dir);
+  assert.equal(check.uncovered(join(dir, "verify/a/lib/y.ts")), undefined);
+  assert.match(check.uncovered(join(dir, "verify/b/lib/y.ts")) ?? "", /verify\/b\/tsconfig\.json does not include it$/);
+});
+
+test("the key follows extends to a sibling base config, so editing it lists the program again", () => {
+  const dir = twoHarnesses({ "verify/a/examples/x.ts": "export const x = 1;\n" });
+  const example = join(dir, "verify/a/examples/x.ts");
+  assert.ok(extendsChain(join(dir, "verify/a/tsconfig.json")).some((file) => file.endsWith("tsconfig.base.json")));
+  assert.equal(coverage(dir).uncovered(example), undefined);
+  // The harness's own tsconfig sets include but not exclude, so the base's exclude applies, resolved from the base's
+  // own directory.
+  writeFileSync(join(dir, "verify/shared/tsconfig.base.json"), '{ "exclude": ["../a/examples/x.ts"] }\n');
+  assert.match(coverage(dir).uncovered(example) ?? "", /verify\/a\/tsconfig\.json does not include it$/);
 });

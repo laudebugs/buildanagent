@@ -1,5 +1,6 @@
 import assert from "node:assert/strict";
-import { rmSync, symlinkSync, writeFileSync } from "node:fs";
+import { mkdtempSync, rmSync, symlinkSync, writeFileSync } from "node:fs";
+import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { afterAll, beforeAll, test, vi } from "vitest";
 import { checkBook } from "../src/book/check-book.js";
@@ -12,8 +13,8 @@ import {
   FIXTURE_DIR,
   FIXTURE_OUTLINE,
   fixtureInputs,
-  mutatedFixture,
   removeFixture,
+  resetFixture,
 } from "./book-fixture.js";
 
 // Every rule check:book applies has a failing fixture here: a copy of the fixture book with one thing broken. Each
@@ -546,7 +547,8 @@ const cases: readonly Case[] = [
   },
 ];
 
-const dirs: string[] = [];
+const caseDir = mkdtempSync(join(tmpdir(), "book-cases-"));
+const dirs: string[] = [caseDir];
 beforeAll(() => {
   // Astro's renderer logs each failed render before rethrowing it; the assertions below read the errors instead.
   vi.spyOn(console, "error").mockImplementation(() => undefined);
@@ -567,8 +569,8 @@ test("the real book passes check:book", async () => {
 
 for (const { rule, change, outline, file, message } of cases) {
   test(rule, async () => {
-    const dir = mutatedFixture(change ?? (() => undefined));
-    dirs.push(dir);
+    // The cases run one after another in one directory, reset to the fixture before each.
+    const dir = resetFixture(caseDir, change ?? (() => undefined));
     const inputs = fixtureInputs(dir, outline);
     const problems = (await checkBook(inputs)).map(formatProblem);
     // One rule broken, one problem: the fixture must not trip any other rule.

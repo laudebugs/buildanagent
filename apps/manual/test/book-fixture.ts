@@ -48,6 +48,18 @@ export function mutatedFixture(change: (dir: string) => void): string {
   return dir;
 }
 
+/**
+ * Resets `dir` to a fresh copy of the fixture book and applies `change`. Cases that run one after another can reuse
+ * one directory this way, so the coverage check's programs, keyed by each tsconfig's real path and its extends chain,
+ * are listed once for every case that leaves the harness's tsconfig alone.
+ */
+export function resetFixture(dir: string, change: (dir: string) => void): string {
+  rmSync(dir, { recursive: true, force: true });
+  cpSync(FIXTURE_DIR, dir, { recursive: true });
+  change(dir);
+  return dir;
+}
+
 /** Removes a directory `mutatedFixture` made. */
 export const removeFixture = (dir: string): void => rmSync(dir, { recursive: true, force: true });
 
