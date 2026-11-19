@@ -1,7 +1,7 @@
 // Progressive enhancement for an isometric figure's card (figures/lib/isokit.ts). The card's first paint is complete:
 // its lit part and readout show the figure's first step, and the alt text and caption describe the whole figure. With
 // this script, a card whose parts carry `data-iso-step` walks through those steps: one part at a time takes the
-// accent, the readout follows, and Play, Pause and Next controls appear under the card. It only adds motion and
+// accent, the readout follows, and Play, Pause and Next step controls appear under the card. It only adds motion and
 // controls. It plays only while the card is on screen, and it starts paused when the reader prefers reduced motion.
 
 const STEP_MS = 1800;
@@ -56,7 +56,7 @@ function enhance(root: HTMLElement): void {
   controls.setAttribute("role", "group");
   controls.setAttribute("aria-label", "Figure steps");
   const play = button("Play");
-  const next = button("Next");
+  const next = button("Next step");
   const status = document.createElement("span");
   // The card's corners are hidden from screen readers, so this hidden status reads each step's readout aloud.
   status.className = "visually-hidden";

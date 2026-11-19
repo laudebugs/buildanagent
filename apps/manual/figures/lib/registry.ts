@@ -126,14 +126,18 @@ export async function staleFigures(root: string): Promise<string[]> {
       problems.push(`${fromRepo(path)} is stale: run ${FIGURES_BUILD}, which redraws it from ${figure.source}`);
     }
   }
-  const scripts = new Set(figureScripts(root).map((figure) => figure.script));
+  const drawn = new Map<string, string>();
+  for (const figure of figureScripts(root)) {
+    drawn.set(figure.script, (await loadFigure(figure)).file === "svg" ? "an SVG" : "an HTML fragment");
+  }
   for (const file of await orphanFiles(root)) {
     const script = file.replace(/\.(svg|html)$/, ".ts");
     const name = basename(script);
+    const kind = drawn.get(script);
     problems.push(
-      scripts.has(script)
-        ? `${fromRepo(file)} is left over: ${name} draws the other kind of file; delete it`
-        : `${fromRepo(file)} has no script beside it; delete it or add ${name}`,
+      kind === undefined
+        ? `${fromRepo(file)} has no script beside it; delete it or add ${name}`
+        : `${fromRepo(file)} is left over: ${name} draws ${kind}, not this file; delete it`,
     );
   }
   return problems;

@@ -117,8 +117,8 @@ test("an SVG left beside an isometric figure, or a fragment beside a flat one, i
     .filter((problem) => !problem.includes(" is stale: "))
     .map((problem) => problem.replace(/^.*first\//, ""));
   assert.deepEqual(leftOver, [
-    "loop-bench.svg is left over: loop-bench.ts draws the other kind of file; delete it",
-    "ticket-rail.html is left over: ticket-rail.ts draws the other kind of file; delete it",
+    "loop-bench.svg is left over: loop-bench.ts draws an HTML fragment, not this file; delete it",
+    "ticket-rail.html is left over: ticket-rail.ts draws an SVG, not this file; delete it",
   ]);
 }, 60_000);
 

@@ -836,4 +836,13 @@ The low review of PR #80 found row 448's file count stale after the owner's publ
 | --- | --- | --- | --- | --- |
 | 477 | Row 448, corrected: after `cea8455` removed the six publishing and session files, the vendored folder holds 132 files, 1,933,216 bytes (1.9 MB); the 138 files and about 2 MB were true only at `85a6594` | Row 448 | ✏️ | `find .agents/skills/anatomy -type f` counts 132, and their bytes sum to 1,933,216; row 448 now gives both counts |
 
-**Totals:** 477 claims: 420 ✅, 57 ✏️, 0 ⚠️.
+
+### T7's writing review
+
+The writing review split the README's allowlist paragraph, reworded BK10's note on where the skill lived, renamed the Next control and named the drawn kind in the registry's left-over message. This row re-checks the claims those fixes touched.
+
+| # | Claim | Where | Verdict | Source and reason |
+| --- | --- | --- | --- | --- |
+| 478 | BK10's skill was installed for the owner's agents and absent from `.agents/skills/` when the plan was written (row 13), and T7 vendored it; `figures:audit` took 32.3 s once under heavy load, after the T9 merge; the control is labelled "Next step"; the registry names what a script draws ("an SVG" or "an HTML fragment") when a file of the other kind is left beside it | BK10, Outcome, README, `registry.ts` | ✅ | Row 13; `git show fec8e35:.agents/skills/README.md` lists no anatomy skill; the merge commit `9998c76`'s own `figures:audit` run printed "2 isometric figure(s) in 32.3 s"; `src/scripts/iso-figures.ts`; `test/figures.test.ts`, "an SVG left beside an isometric figure …", passes with the new messages |
+
+**Totals:** 478 claims: 421 ✅, 57 ✏️, 0 ⚠️.
