@@ -283,4 +283,12 @@ On 2026-11-19 the owner approved the plan, which #37 then merged as `138527e`, a
 | 172 | The book's app is `apps/manual` and its package `@buildanagent/manual` | BK2; ADR 0055; plan, todos, tokens file, AGENTS.md, README | ✏️ | The owner renamed it on 2026-11-19: "Let's make it @buildanagent/manual and apps/manual". Every `apps/book` and `@buildanagent/book` outside ADR 0052's accepted text now reads `apps/manual` and `@buildanagent/manual`; BK2 keeps the owner's original quote and adds the rename |
 | 173 | ADR 0050's index row says its corrections are pending in proposed 0051 | `docs/decisions/README.md` | ✏️ | #37's renumbering (row 162) changed this row on `main` to "proposed 0052" by mistake, because the line names main's 0051 without its file name. Main's correction record is `0051-dist-build-corrections-from-l1.md`, so the row reads 0051 again |
 
-**Totals:** 173 claims: 148 ✅, 25 ✏️, 0 ⚠️.
+## Re-checked at the primary source (2026-11-19)
+
+Row 105 took MAP's figure from the U17 report's reading of the paper, a secondary source. This row reads the abstract itself.
+
+| # | Claim | Where | Verdict | Source and reason |
+| --- | --- | --- | --- | --- |
+| 174 | Row 105: MAP found that "70% rely on prompting off-the-shelf models instead of weight tuning" | U21 | ✅ | [arXiv 2512.04123](https://arxiv.org/abs/2512.04123), abstract of v4 (4 June 2026), read with `curl` on 2026-11-19: "70% rely on prompting off-the-shelf models instead of weight tuning". U21 still reads the paper's body for its method |
+
+**Totals:** 174 claims: 149 ✅, 25 ✏️, 0 ⚠️.
