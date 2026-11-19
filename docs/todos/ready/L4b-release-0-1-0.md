@@ -24,7 +24,7 @@ Ship the first public release, 0.1.0, once a model call works, through the trust
 
 - A changeset for 0.1.0 summarising what the release offers: the transcript, `createModel()`, the Anthropic adapter, `ScriptedModel`
 - `pnpm changeset version` run in this pull request, so it carries both packages at 0.1.0 and their first `CHANGELOG.md` entries; merging it makes `release.yml` publish them through trusted publishing
-- Switching on L2's changeset gate and L3's "Version packages" pull request, so every later release goes through them
+- Switching on L2's changeset gate (change `if: false` to `if: true` on `ci.yml`'s `changesets` job) and L3's "Version packages" pull request, so every later release goes through them
 - The owner adds a trusted publisher to each package (user `laudebugs`, repository `buildanagent`, workflow `release.yml`, environment `release`) on the day this pull request merges, before the merge. Merging starts the publish, and a trusted publisher expires unless it publishes within 2 days
 - Both READMEs gain install instructions
 

@@ -22,6 +22,10 @@ pnpm test        # run every harness's examples offline
 
 We squash-merge a pull request once CI passes and its review findings are fixed. Branch names, commit messages and the merge rules are in [AGENTS.md](AGENTS.md#git).
 
+## Add a changeset when you change a package's behaviour
+
+Run `pnpm changeset` when your pull request changes what users of `@buildanagent/gateway` or `@buildanagent/sdk` get, and commit the file it writes. Both packages share one version. Under 0.x, a change that breaks the API is a `minor` bump whose summary starts with "Breaking Changes". While both packages are private, Changesets skips them and CI doesn't ask for a changeset; from the first release on, CI fails a pull request that changes `packages/*/src` without one. The details are in [`.changeset/README.md`](.changeset/README.md).
+
 ## Every pull request gets two rounds of code review
 
 The first round is one `/code-review high --max-findings default` on the pull request. If it confirms more than 6 findings, the second round is two reviews, `/code-review medium` and then `/code-review low`; otherwise it is one `/code-review low`. Each round's findings are fixed in new commits that list each finding and its fix. Copy, meaning any text a person reads, is drafted with `/anthropic-skills:writing` and checked with `/anthropic-skills:writing-review` after the code changes. If you don't use these Claude Code skills, a maintainer runs the reviews on your pull request and pushes the fixes or asks you for them. The details are in [AGENTS.md](AGENTS.md#every-pull-request-gets-two-rounds-of-code-review).

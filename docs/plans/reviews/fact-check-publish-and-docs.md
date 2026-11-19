@@ -150,4 +150,16 @@ Each row checks a claim in [ADR 0051](../../decisions/0051-dist-build-correction
 | 90 | ADR 0050 stays Accepted with a dated note pointing to ADR 0051 | ✅ | ADR 0050's status block and its 2026-11-19 note |
 | 91 | ADR 0050 had "four" details that don't hold and "one question open" | ✏️ | The Context listed five gaps and named no open question; the low code review added a sixth (`pnpm pack` didn't build). Corrected in ADR 0051: "five gaps", numbered, with the pack gap folded into the fifth |
 
-**Totals:** 91 claims: 65 ✅, 21 ✏️, 5 ⚠️.
+## Checked while doing todo L2 (2026-11-19)
+
+| # | Claim | Verdict | Source and reason |
+| --- | --- | --- | --- |
+| 92 | `@changesets/cli` 3.0.3 is still the newest release, published 2026-09-14 | ✅ | `npm view @changesets/cli time --json`, 2026-11-19 |
+| 93 | With `privatePackages.version: false`, `changeset version` leaves both private packages at 0.0.0 | ✅ | Reproduced on the L2 branch with a `minor` changeset for the gateway: both stayed at 0.0.0, no `CHANGELOG.md` was written, and the changeset file stayed |
+| 94 | L2's first criterion, `pnpm changeset` writing a changeset that lists both packages, can pass on `main` | ✏️ | While the packages are private, `pnpm changeset` stops with "No versionable packages found", because `shouldSkipPackage` in `@changesets/should-skip-package` 1.0.0 skips them. The criterion was checked on the throwaway branch with `private` removed, like the version bump (row 64) |
+| 95 | On that throwaway branch, `changeset version` bumps both packages to the same version and writes both changelogs | ✅ | A `minor` changeset for the gateway alone took both to 0.1.0; the SDK's `CHANGELOG.md` lists the gateway update as a patch change |
+| 96 | `changeset status --since` fails when a versioned package changed and no changeset was added since the ref | ✅ | `dist/status.mjs` in `@changesets/cli` 3.0.3, and runs 44497925125 (fail) and 44498147370 (pass) on `test/L2-gate` |
+| 97 | `changedFilePatterns` patterns are matched against paths relative to each package's folder | ✅ | `getChangedPackagesSinceRef` in `@changesets/git` 4.0.1 slices the package folder off each path before matching |
+| 98 | Changesets' `ignore` accepts globs such as `@buildanagent/verify-*` | ✅ | `@changesets/config` 4.0.1 expands `ignore` with picomatch against the workspace's package names |
+
+**Totals:** 98 claims: 71 ✅, 22 ✏️, 5 ⚠️.

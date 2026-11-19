@@ -64,6 +64,16 @@ The owner asked on 2026-11-19 to lock our GitHub Actions the way Lamina PDF does
 - **Updates.** Dependabot now proposes action updates weekly, at least seven days old, grouped for minor and patch releases. An update rewrites the tag and the lockfile entry together. A new workflow, or a new action in one, needs `gh actions-lock` run by hand ([CONTRIBUTING.md](../../CONTRIBUTING.md#changing-a-workflows-actions)).
 - **Owner setup.** Once `main` passes with the lockfile, turn on the **Require lockfile** policy (Settings → Actions → General), so GitHub refuses any workflow run the lockfile doesn't cover.
 
+## 3e. A changeset check, off until the first release (added 2026-11-19)
+
+Todo L2 added a `changesets` job to `ci.yml`, as [publish-and-docs PB2](publish-and-docs.md#pb2-changesets-in-one-fixed-group-published-only-from-ci-accepted) plans. It fails a pull request that changes `packages/*/src` without a changeset, and it stays off until the first release, because the owner said "Changesets wait until we publish".
+
+- **The check.** The job checks out the full history (`fetch-depth: 0`), so Changesets can find where the branch left `main`, then runs `pnpm changeset status --since=origin/main`. That command fails when a package that Changesets versions has changed and no changeset was added since `origin/main`. `changedFilePatterns: ["src/**"]` in `.changeset/config.json` limits "changed" to files under each package's `src/`, so docs, tests and workflow edits need no changeset.
+- **A small install, no shared cache.** The job runs `pnpm install --frozen-lockfile --filter .`, which installs only the root's devDependencies, `@changesets/cli` among them. It doesn't use the pnpm cache: its store is a small part of the full one, and saving it under the shared key would keep the `checks` job's store out of the cache.
+- **The switch.** The job has `if: false`. Todo L4b changes it to `if: true`, a one-line change. Until the packages drop `private`, which L4a does, the check would pass whatever changed, because `privatePackages.version: false` tells Changesets to skip private packages.
+- **No new action.** The job uses the three actions `ci.yml` already locks, so `actions.lock` is unchanged.
+- **Tested on a throwaway branch.** On `test/L2-gate`, with the job switched on, `private` dropped from both packages and the push trigger widened to that branch, three runs gave the expected results. A commit that changed only docs passed ([run 44497669322](https://github.com/laudebugs/buildanagent/actions/runs/44497669322)). An edit to `packages/gateway/src/retry.ts` without a changeset failed with "Some packages have been changed but no changesets were found" ([run 44497925125](https://github.com/laudebugs/buildanagent/actions/runs/44497925125)). Adding a `patch` changeset for the gateway made it pass, listing both packages for a patch bump ([run 44498147370](https://github.com/laudebugs/buildanagent/actions/runs/44498147370)).
+
 ## 4. Todos
 
 | ID | Title | Depends on |
