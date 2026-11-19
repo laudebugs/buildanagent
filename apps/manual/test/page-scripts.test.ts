@@ -99,6 +99,38 @@ test("the replay steps forward and back, marks the listing line of each event an
   assert.deepEqual(requests, []);
 });
 
+test("the replay scrolls its current event into view inside its panel, never the page, instantly under reduced motion", async () => {
+  const scroller = replay()?.querySelector<HTMLElement>("[data-step-scroll]");
+  assert.ok(scroller, "the events sit in a scrolling region");
+  // happy-dom lays nothing out, so the region and its events report a 100 px window over 60 px rows.
+  Object.defineProperty(scroller, "scrollHeight", { configurable: true, value: 420 });
+  Object.defineProperty(scroller, "clientHeight", { configurable: true, value: 100 });
+  scroller.getBoundingClientRect = () => ({ top: 0, bottom: 100, height: 100 }) as DOMRect;
+  for (const item of scroller.querySelectorAll<HTMLElement>("[data-step]")) {
+    const top = Number(item.dataset.step) * 60 - scroller.scrollTop;
+    item.getBoundingClientRect = () => ({ top, bottom: top + 50, height: 50 }) as DOMRect;
+  }
+  const scrolls: ScrollToOptions[] = [];
+  scroller.scrollTo = ((options: ScrollToOptions) => scrolls.push(options)) as typeof scroller.scrollTo;
+  const pageScroll = vi.spyOn(window, "scrollTo");
+  Object.defineProperty(window, "matchMedia", {
+    configurable: true,
+    value: (query: string) => ({ matches: query === "(prefers-reduced-motion: reduce)" }),
+  });
+  await import("../src/scripts/steps.js");
+  assert.deepEqual(scrolls, [], "the first event is already in view");
+  click("#lst-noted-replay [data-step-action='next']");
+  assert.deepEqual(scrolls, [{ top: 10, behavior: "auto" }], "the second event ends 10 px below the window");
+  for (let step = 0; step < 2; step++) click("#lst-noted-replay [data-step-action='next']");
+  assert.deepEqual(
+    scrolls.at(-1),
+    { top: 130, behavior: "auto" },
+    "the fourth event's bottom, 230 px, meets the window's",
+  );
+  assert.equal(pageScroll.mock.calls.length, 0, "the page itself never scrolls");
+  assert.deepEqual(requests, []);
+});
+
 test("the tabs show one listing at a time, switch from the keyboard and make no request", async () => {
   await import("../src/scripts/tabs.js");
   const tabs = [...document.querySelectorAll<HTMLButtonElement>(".tabs [role='tab']")];

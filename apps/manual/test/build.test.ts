@@ -237,7 +237,11 @@ test("a chapter page shows SDK tabs and a replay that read in full without JavaS
     html.indexOf('id="lst-one-call-replay"'),
     html.indexOf("</section>", html.indexOf('id="lst-one-call-replay"')),
   );
-  assert.ok(replay.includes("verify/vercel-ai-sdk/results/transcripts/01-generate-text.json"));
+  assert.ok(replay.includes("verify/<wbr>vercel-ai-sdk/<wbr>results/<wbr>transcripts/<wbr>01-generate-text.json"));
+  assert.match(
+    replay,
+    /<div class="replay__scroll" tabindex="0" role="group" aria-label="Events of Recorded run of Listing 1\.1" data-step-scroll(?:="")?>/,
+  );
   const checks = transcript.events.filter((event: { kind: string }) => event.kind === "check").length;
   assert.equal((replay.match(/data-kind="check"/g) ?? []).length, checks, "every check of the run is listed");
   assert.match(replay, /data-step-controls[^>]* hidden/);

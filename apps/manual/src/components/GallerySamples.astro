@@ -90,10 +90,10 @@ const steps: FigureStep[] = [
 ];
 
 const events: ReplayEvent[] = [
-  { kind: "user", role: "user", body: "What is the weather in Lisbon?" },
-  { kind: "model", role: "model", body: 'tool_call weather({ city: "Lisbon" })' },
-  { kind: "tool", role: "tool", body: 'tool_result { "tempC": 19, "sky": "clear" }' },
-  { kind: "model", role: "model", body: "It is 19 °C and clear in Lisbon." },
+  { kind: "user", role: "user", body: "What is the weather in Lisbon?", line: 15 },
+  { kind: "model", role: "model", body: 'tool_call weather({ city: "Lisbon" })', line: 17 },
+  { kind: "tool", role: "tool", body: 'tool_result { "tempC": 19, "sky": "clear" }', line: 17 },
+  { kind: "model", role: "model", body: "It is 19 °C and clear in Lisbon.", line: 16 },
   { kind: "check", role: "check", body: "check(result.steps.length === 2) ✓" },
 ];
 ---
@@ -225,13 +225,24 @@ const events: ReplayEvent[] = [
 </div>
 
 <div class="gallery__item">
-  <h3>Replay controls</h3>
-  <Replay
-    id={id("replay")}
-    title="Recorded run"
-    source="verify/vercel-ai-sdk/results/transcripts/02-tool-loop.json"
-    events={events}
-  />
+  <h3>Listing with its recorded run: side by side when wide, the run under the listing when narrow</h3>
+  <div class="listing-replay">
+    <ListingBlock
+      id={id("listing-replayed")}
+      number="1.5"
+      path="verify/vercel-ai-sdk/examples/02-tool-loop.ts"
+      pin="ai@7.0.162"
+      lines={lines}
+      notes={notes}
+    />
+    <Replay
+      id={id("replay")}
+      title="Recorded run of Listing 1.5"
+      source="verify/vercel-ai-sdk/results/transcripts/02-tool-loop.json"
+      events={events}
+      listing={id("listing-replayed")}
+    />
+  </div>
 </div>
 
 <div class="gallery__item">

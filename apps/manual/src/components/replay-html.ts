@@ -45,6 +45,11 @@ export function eventWhere(line: number | undefined, listingLines: ReadonlySet<n
   return listingLines.has(line) ? `line ${line}` : `line ${line}, outside this listing`;
 }
 
+/** A path, escaped, that may wrap after each slash instead of inside a name. */
+function breakAtSlashes(path: string): string {
+  return escapeHtml(path).replaceAll("/", "/<wbr>");
+}
+
 /**
  * A recorded run as a panel. Without JavaScript every event shows in order, as a numbered list; src/scripts/steps.ts
  * reveals them one by one with back, next, restart and play, and highlights the listing line an event names.
@@ -74,8 +79,10 @@ export function replayHtml(options: ReplayOptions): string {
     `data-steps="cumulative" data-step-unit="Event"${listingAttribute}>` +
     `<header class="replay__header">` +
     `<span class="label panel__label" id="${escapeHtml(titleId)}">${escapeHtml(title)}</span>` +
-    `<span class="label panel__label">${escapeHtml(source)}</span></header>` +
-    `<ol class="replay__events">${items}</ol>` +
+    `<span class="label panel__label replay__source">${breakAtSlashes(source)}</span></header>` +
+    // The events scroll inside the panel once they outgrow it, so the list takes keyboard focus and has a name.
+    `<div class="replay__scroll" tabindex="0" role="group" aria-label="${escapeHtml(`Events of ${title}`)}" ` +
+    `data-step-scroll><ol class="replay__events">${items}</ol></div>` +
     stepControlsHtml(controlsLabel ?? `Replay of ${title}`, true) +
     "</section>"
   );

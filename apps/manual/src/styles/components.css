@@ -755,9 +755,14 @@
   }
 }
 
-/* Replay controls over a recorded run */
+/* Replay controls over a recorded run. The panel is a column: its header, the events, which scroll inside the panel
+   once they outgrow it, and the controls, which stay in view under them. */
 
 .replay {
+  container: replay / inline-size;
+  display: flex;
+  flex-direction: column;
+  max-block-size: min(32rem, 80svh);
   margin: 1.75rem 0;
 }
 
@@ -769,6 +774,22 @@
   border-bottom: 1px solid var(--panel-border);
 }
 
+/* A path wraps at the <wbr> after each slash, and inside a name only when one name is wider than the panel. */
+.replay__source {
+  overflow-wrap: break-word;
+}
+
+.replay__scroll {
+  flex: 1 1 auto;
+  min-block-size: 0;
+  overflow-y: auto;
+}
+
+/* The focus ring sits inside the scrolling area, where the panel's edge cannot hide it. */
+.replay__scroll:focus-visible {
+  outline-offset: -3px;
+}
+
 .replay__events {
   margin: 0;
   padding: 0.75rem 1rem;
@@ -778,11 +799,18 @@
   line-height: 1.6;
 }
 
+/* In a narrow panel the role sits above its event; from 30rem it takes a column of its own. */
 .replay__event {
   display: grid;
-  grid-template-columns: 6.5rem 1fr;
-  gap: 0.75rem;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 0 0.75rem;
   padding-block: 0.35rem;
+}
+
+@container replay (min-width: 30rem) {
+  .replay__event {
+    grid-template-columns: 6.5rem minmax(0, 1fr);
+  }
 }
 
 .replay__event + .replay__event {
@@ -836,30 +864,42 @@
   color: var(--panel-comment);
 }
 
-/* A listing and its recorded run stay together, side by side once the column is wide enough for both. */
+/* A listing and its recorded run stay together. In a narrow column the run sits under the listing, no taller than
+   the replay's own limit. From 52rem they sit side by side, the code taking three fifths and the run the rest, with
+   their tops aligned. The run's size containment keeps its events from setting the row's height, so the row is as
+   tall as the listing card, notes included, and the run stretches to it and scrolls inside. Its minimum height keeps
+   a few events and the controls in view beside a short listing, which then stretches to match. */
 .listing-replay {
-  container-type: inline-size;
+  container: listing-replay / inline-size;
+  display: grid;
+  grid-template-columns: minmax(0, 3fr) minmax(0, 2fr);
+  gap: 0.75rem;
   margin: 1.75rem 0;
 }
 
 .listing-replay > * {
+  grid-column: 1 / -1;
   margin: 0;
 }
 
-.listing-replay > * + * {
-  margin-top: 0.75rem;
-}
-
-@container (min-width: 56rem) {
-  .listing-replay {
-    display: grid;
-    grid-template-columns: minmax(0, 3fr) minmax(0, 2fr);
-    gap: 0.75rem;
-    align-items: start;
+@container listing-replay (min-width: 52rem) {
+  .listing-replay > * {
+    grid-column: auto;
   }
 
-  .listing-replay > * + * {
-    margin-top: 0;
+  .listing-replay > .replay {
+    contain: size;
+    min-block-size: 18rem;
+    max-block-size: none;
+  }
+}
+
+/* Once the page has a side-note margin, a listing and its run take it too, so the pair spans the article and the
+   margin, everything right of the contents sidebar. It starts below any side note floated there. */
+@container layout (min-width: 69rem) {
+  .article .listing-replay {
+    clear: right;
+    margin-right: calc(-1 * (var(--side-note-width) + 2.5rem));
   }
 }
 
@@ -1007,4 +1047,33 @@
   letter-spacing: 0.06em;
   text-transform: uppercase;
   color: var(--color-text-muted);
+}
+
+/* Print: a replay shows its whole run, every event, under its listing, with no scrolling area and no controls. */
+@media print {
+  .listing-replay > * {
+    grid-column: 1 / -1;
+  }
+
+  .article .listing-replay {
+    margin-right: 0;
+  }
+
+  .replay,
+  .listing-replay > .replay {
+    contain: none;
+    max-block-size: none;
+  }
+
+  .replay__scroll {
+    overflow: visible;
+  }
+
+  .replay[data-enhanced] .replay__event[data-future] {
+    display: grid;
+  }
+
+  .replay .controls {
+    display: none;
+  }
 }
