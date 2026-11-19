@@ -13,7 +13,7 @@
 
 ## Goal
 
-Fail a pull request that breaks the book, and hand the deploy workflow a built site it can trust as files only. `book-build.yml`, the build half of DS3's split, runs on every pull request and push to `main`. It builds the site with no secrets, runs every book check, and uploads only `apps/book/dist/` as an artifact, so an unknown citation, a stale figure, a broken listing or a missing caption never reaches `main`.
+Fail a pull request that breaks the book, and hand the deploy workflow a built site it can trust as files only. `book-build.yml`, the build half of DS3's split, runs on every pull request and push to `main`. It builds the site with no secrets, runs every book check, and uploads only `apps/manual/dist/` as an artifact, so an unknown citation, a stale figure, a broken listing or a missing caption never reaches `main`.
 
 ## Context
 
@@ -25,7 +25,7 @@ Fail a pull request that breaks the book, and hand the deploy workflow a built s
 
 **In scope**
 
-- `book-build.yml` on `pull_request` and pushes to `main`: install, `check:book`, the register and glossary checks, `book:switch-report`, the build, and an upload of `apps/book/dist/` only
+- `book-build.yml` on `pull_request` and pushes to `main`: install, `check:book`, the register and glossary checks, `book:switch-report`, the build, and an upload of `apps/manual/dist/` only
 - Any new action locked in `actions.lock`
 
 **Out of scope** (and which todo covers it)
@@ -36,14 +36,14 @@ Fail a pull request that breaks the book, and hand the deploy workflow a built s
 ## Tasks
 
 - [ ] Write `book-build.yml` on `ubuntu-24.04`, with `permissions: contents: read`, `persist-credentials: false`, no secrets and the same setup steps as `ci.yml`'s `checks` job.
-- [ ] Run `pnpm --filter @buildanagent/book check:book` and the build, then upload `apps/book/dist/` as the workflow's only artifact.
+- [ ] Run `pnpm --filter @buildanagent/manual check:book` and the build, then upload `apps/manual/dist/` as the workflow's only artifact.
 - [ ] Run `gh actions-lock` for the new workflow, and commit the lockfile.
 - [ ] Open a draft pull request with a deliberately broken citation to see the workflow fail, then revert it.
 
 ## Acceptance criteria
 
 - [ ] `book-build.yml` runs on every pull request and push to `main`, references no secret, and passes on `main`
-- [ ] Its only artifact is `apps/book/dist/`
+- [ ] Its only artifact is `apps/manual/dist/`
 - [ ] A pull request with an unknown citation fails the workflow
 - [ ] `gh actions-lock --verify` passes
 - [ ] `pnpm check`, `pnpm typecheck` and `pnpm test` pass offline from the repo root
@@ -59,7 +59,7 @@ The workflow itself, proved by the deliberate failure in the tasks.
 
 ## Risks and open questions
 
-- The book build adds minutes to every pull request; if it grows past five minutes, run it only when `apps/book/`, `verify/`, `docs/` or the workflow change, and let the deploy workflow skip runs that uploaded nothing.
+- The book build adds minutes to every pull request; if it grows past five minutes, run it only when `apps/manual/`, `verify/`, `docs/` or the workflow change, and let the deploy workflow skip runs that uploaded nothing.
 
 ## Definition of done
 

@@ -18,16 +18,16 @@ Add one section to Chapter T11 ("Talking to a model: messages, streams, tokens, 
 ## Context
 
 - [U21](U21-research-fine-tuning-vs-prompting.md)'s report and fact-check
-- Chapter T11's todo, [T11](T11-chapter-talking-to-a-model.md), and its fact-check file `apps/book/fact-checks/talking-to-a-model.md`
+- Chapter T11's todo, [T11](T11-chapter-talking-to-a-model.md), and its fact-check file `apps/manual/fact-checks/talking-to-a-model.md`
 - [Book plan BK21 and BK22](../../plans/build-book.md#bk21-every-section-is-fact-checked-before-the-next-is-drafted-accepted)
 
 ## Scope
 
 **In scope**
 
-- One section in `apps/book/src/content/chapters/talking-to-a-model.md`
+- One section in `apps/manual/src/content/chapters/talking-to-a-model.md`
 - Listings, if the report recommends an example and a later todo writes it
-- Rows for the section in `apps/book/fact-checks/talking-to-a-model.md`
+- Rows for the section in `apps/manual/fact-checks/talking-to-a-model.md`
 
 **Analogy** (BK22): fine-tuning versus prompting, as sending an employee on a year-long course versus handing a skilled contractor a clear brief. Where the analogy breaks: a fine-tuned model also needs the brief; tuning changes defaults, not the need for instructions. Use it only if it makes the concept clearer than plain explanation. No illustration unless the section needs one.
 
@@ -39,13 +39,13 @@ Add one section to Chapter T11 ("Talking to a model: messages, streams, tokens, 
 ## Tasks
 
 - [ ] Draft the section with `/anthropic-skills:writing`. If the analogy makes the concept clearer, open with it, then the mechanism and a "Where the analogy breaks" note, and register it in `analogies.json`; otherwise explain the concept plainly.
-- [ ] Fact-check every claim in the section against its primary source into `apps/book/fact-checks/talking-to-a-model.md` before any further edit, and commit the section together with its fact-check rows (BK21).
+- [ ] Fact-check every claim in the section against its primary source into `apps/manual/fact-checks/talking-to-a-model.md` before any further edit, and commit the section together with its fact-check rows (BK21).
 - [ ] Run `/anthropic-skills:writing-review` on the whole chapter with the voice check, fix every finding with `/anthropic-skills:writing`, and re-check every claim a fix touched.
 
 ## Acceptance criteria
 
 - [ ] The chapter still builds with every check passing, the analogy check included
-- [ ] `apps/book/fact-checks/talking-to-a-model.md` has the section's rows and the re-check rows, with an updated tally
+- [ ] `apps/manual/fact-checks/talking-to-a-model.md` has the section's rows and the re-check rows, with an updated tally
 - [ ] The pull request records the 5C and voice scores, before and after
 - [ ] `pnpm check`, `pnpm typecheck` and `pnpm test` pass offline from the repo root
 

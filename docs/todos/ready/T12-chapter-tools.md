@@ -22,18 +22,18 @@ Write the chapter "Tools: schemas, validation, errors the model can read, and id
 - [Anthropic, Writing effective tools for agents](https://www.anthropic.com/engineering/writing-tools-for-agents)
 - [Agent guide](../../guides/agent.md) opening: six of the eight capstones let the model choose whose record to read
 - [Book plan BK21 and BK22](../../plans/build-book.md#bk21-every-section-is-fact-checked-before-the-next-is-drafted-accepted): the per-section workflow and the voice rules
-- `apps/book/README.md` (from T3–T7 and T26): front matter, citations, listings, notes, tabs, replays, checked inline code, figures and the analogy register
+- `apps/manual/README.md` (from T3–T7 and T26): front matter, citations, listings, notes, tabs, replays, checked inline code, figures and the analogy register
 
 ## Scope
 
 **In scope**
 
-- `apps/book/src/content/chapters/tools.md`, with `switchTo: [B10]` and `opening: incident` in its front matter
+- `apps/manual/src/content/chapters/tools.md`, with `switchTo: [B10]` and `opening: incident` in its front matter
 - Sections: Schemas, validation and errors returned as data; Few, workflow-shaped tools with clear names and token-efficient results (Anthropic, writing tools); Identity from trusted context, not from the model (agent guide §3; moved here from the side-effects chapter)
 - Listings and at least one replay from: `verify/openai-agents-sdk/examples/02-function-tool.ts`, `verify/google-adk/examples/01-function-tool.ts`, `verify/pi/examples/02-custom-tool.ts`, `verify/claude-agent-sdk/examples/02-custom-tool.ts`
 - Figures: a flat figure of one tool call's round trip, from schema to validated input to result; a flat analogy illustration of the vending machine's returned coin and message
 - Exercise: Write a tool whose error tells the model what to try next, and watch the replay retry.
-- `apps/book/fact-checks/tools.md`, the chapter's claims log
+- `apps/manual/fact-checks/tools.md`, the chapter's claims log
 
 **Opening:** incident (the previous chapter in the outline opens with code).
 
@@ -57,10 +57,10 @@ Write the chapter "Tools: schemas, validation, errors the model can read, and id
 - [ ] Add `// #region` and `// book:note` markers to the examples the chapter uses, and confirm each harness's `pnpm test` and the results-drift check still pass.
 - [ ] Vet each planned analogy: say what it explains and check it does not imply anything false. The owner approved the analogies (2026-11-19). If one misleads or `analogies.json` already uses it, drop it or propose a replacement to the owner; a new or swapped-in analogy needs the owner's approval.
 - [ ] Outline the chapter's sections, each with a one-line head, and note the planned opening type.
-- [ ] For each section, in order: draft it with `/anthropic-skills:writing`; then fact-check every claim it makes against its primary source into `apps/book/fact-checks/tools.md` as ✅, ✏️ or ⚠️, before drafting the next section; commit the section and its rows together (BK21).
-- [ ] Use an analogy from the table above where it makes a concept clearer: open the concept with it, follow it at once with the precise mechanism, and add its "Where the analogy breaks" note. Where plain explanation works better, drop the planned analogy. Register every analogy the chapter uses in `apps/book/src/content/analogies.json` (BK22).
+- [ ] For each section, in order: draft it with `/anthropic-skills:writing`; then fact-check every claim it makes against its primary source into `apps/manual/fact-checks/tools.md` as ✅, ✏️ or ⚠️, before drafting the next section; commit the section and its rows together (BK21).
+- [ ] Use an analogy from the table above where it makes a concept clearer: open the concept with it, follow it at once with the precise mechanism, and add its "Where the analogy breaks" note. Where plain explanation works better, drop the planned analogy. Register every analogy the chapter uses in `apps/manual/src/content/analogies.json` (BK22).
 - [ ] Run `/anthropic-skills:writing-review` on the whole chapter, with the voice check: a vivid opening of the planned type that differs from the previous chapter's, a concrete example or scenario in every section, varied cadence, second person where it helps, and no stock phrasing repeated from earlier chapters (BK22).
-- [ ] Fix every finding with `/anthropic-skills:writing`, re-check every claim a fix touched, and log the re-checks in `apps/book/fact-checks/tools.md`.
+- [ ] Fix every finding with `/anthropic-skills:writing`, re-check every claim a fix touched, and log the re-checks in `apps/manual/fact-checks/tools.md`.
 - [ ] Draw the figures and analogy illustrations with T6's pipeline, each with alt text and a caption that cites the register.
 - [ ] Tag the chapter's glossary terms and add missing entries.
 
@@ -71,7 +71,7 @@ Write the chapter "Tools: schemas, validation, errors the model can read, and id
 - [ ] At least one listing uses a tier 1, 2 or 3 interaction, and the page reads in full with JavaScript off
 - [ ] Every figure, analogy illustrations included, is generated, passes the staleness test, and has alt text, a caption and both themes
 - [ ] Every version the prose names says "as of <month year>"
-- [ ] `apps/book/fact-checks/tools.md` has one block of rows per section, each committed with its section before the next section's draft, plus the re-check rows for the review's fixes, with a ✅/✏️/⚠️ tally
+- [ ] `apps/manual/fact-checks/tools.md` has one block of rows per section, each committed with its section before the next section's draft, plus the re-check rows for the review's fixes, with a ✅/✏️/⚠️ tally
 - [ ] Every analogy the chapter uses comes from the table above or has the owner's approval, opens its concept and has a "Where the analogy breaks" note; every one is in `src/content/analogies.json`, and `check:book` passes its duplicate and reuse checks
 - [ ] The front matter's `opening` is `incident`, and `check:book` passes its opening-rotation check
 - [ ] The pull request records the writing review's 5C scores and its voice scores, before and after

@@ -40,9 +40,9 @@ Give the book the look the owner picked. This todo turns the owner's type and co
 
 ## Tasks
 
-- [ ] Generate the CSS custom properties from [`docs/design/book-tokens.json`](../../design/book-tokens.json), the single source of the tokens, with a script that writes `apps/book/src/styles/tokens.css`: light values on `:root`, dark values under `prefers-color-scheme: dark` and under `[data-theme="dark"]`. The panel tokens follow the theme too: `panelLight` values on `:root`, `panelDark` (C1 Ember) values under `prefers-color-scheme: dark` and `[data-theme="dark"]` (owner, 2026-11-19: "approved those colors"). A test fails when the committed CSS differs from what the script generates. A token change starts in the JSON file, never in the CSS.
+- [ ] Generate the CSS custom properties from [`docs/design/book-tokens.json`](../../design/book-tokens.json), the single source of the tokens, with a script that writes `apps/manual/src/styles/tokens.css`: light values on `:root`, dark values under `prefers-color-scheme: dark` and under `[data-theme="dark"]`. The panel tokens follow the theme too: `panelLight` values on `:root`, `panelDark` (C1 Ember) values under `prefers-color-scheme: dark` and `[data-theme="dark"]` (owner, 2026-11-19: "approved those colors"). A test fails when the committed CSS differs from what the script generates. A token change starts in the JSON file, never in the CSS.
 - [ ] Use `#F2C2A4` for dark-mode links (owner, 2026-11-19; 10.05:1 on `#2A1E16`), and underline links in both modes, since neither link colour is 3:1 apart from body text.
-- [ ] Download the three font families from `google/fonts` at a recorded commit into `apps/book/public/fonts/`, each with its `OFL.txt`, and add them to THIRD-PARTY-NOTICES.md.
+- [ ] Download the three font families from `google/fonts` at a recorded commit into `apps/manual/public/fonts/`, each with its `OFL.txt`, and add them to THIRD-PARTY-NOTICES.md.
 - [ ] Read Google Sans Code's `TRADEMARKS.md` before subsetting. A subset is a Modified Version under the OFL, so give subset files neutral names and say "derived from Google Sans Code" in the notices.
 - [ ] Build the layout and each component as an Astro component with no client script, then add the scripts that tabs, replays and the stepper need as progressive enhancement.
 - [ ] Use the rule tokens only for decorative dividers: never for text, focus rings or figure lines that carry meaning.
@@ -67,7 +67,7 @@ A Vitest test computes the contrast of every text and background pair from the b
 
 - The plan's BK12 with the dark link colour
 - THIRD-PARTY-NOTICES.md for the fonts
-- `apps/book/README.md`: the tokens and where each may be used
+- `apps/manual/README.md`: the tokens and where each may be used
 
 ## Risks and open questions
 

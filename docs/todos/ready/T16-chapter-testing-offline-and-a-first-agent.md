@@ -21,18 +21,18 @@ Write the chapter "Testing offline, and a first complete agent" (`testing-offlin
 - [Deep comparison §1](../../comparison/deep-comparison.md): the same agent on eight SDKs
 - The `verify/<sdk>/README.md` files: what each harness mocks
 - [Book plan BK21 and BK22](../../plans/build-book.md#bk21-every-section-is-fact-checked-before-the-next-is-drafted-accepted): the per-section workflow and the voice rules
-- `apps/book/README.md` (from T3–T7 and T26): front matter, citations, listings, notes, tabs, replays, checked inline code, figures and the analogy register
+- `apps/manual/README.md` (from T3–T7 and T26): front matter, citations, listings, notes, tabs, replays, checked inline code, figures and the analogy register
 
 ## Scope
 
 **In scope**
 
-- `apps/book/src/content/chapters/testing-offline-and-a-first-agent.md`, with `switchTo: [B18, B19]` and `opening: scenario` in its front matter
+- `apps/manual/src/content/chapters/testing-offline-and-a-first-agent.md`, with `switchTo: [B18, B19]` and `opening: scenario` in its front matter
 - Sections: Mock models in depth (the box in the first chapter introduced them); `check()` assertions and what they can and cannot show; One capstone in full, with the other seven as SDK tabs
 - Listings and at least one replay from: `verify/vercel-ai-sdk/examples/09-triage-agent.ts` in full, the other seven `verify/*/examples/*triage-agent.ts` capstones as tabs, `verify/vercel-ai-sdk/examples/lib/check.ts`
 - Figures: a flat figure of where each harness's mock sits, from in-process model to mock HTTP API
 - Exercise: Add one assertion to the capstone and make it fail, then pass.
-- `apps/book/fact-checks/testing-offline-and-a-first-agent.md`, the chapter's claims log
+- `apps/manual/fact-checks/testing-offline-and-a-first-agent.md`, the chapter's claims log
 
 **Opening:** scenario (the previous chapter in the outline opens with fact).
 
@@ -54,10 +54,10 @@ Write the chapter "Testing offline, and a first complete agent" (`testing-offlin
 - [ ] Add `// #region` and `// book:note` markers to the examples the chapter uses, and confirm each harness's `pnpm test` and the results-drift check still pass.
 - [ ] Vet each planned analogy: say what it explains and check it does not imply anything false. The owner approved the analogies (2026-11-19). If one misleads or `analogies.json` already uses it, drop it or propose a replacement to the owner; a new or swapped-in analogy needs the owner's approval.
 - [ ] Outline the chapter's sections, each with a one-line head, and note the planned opening type.
-- [ ] For each section, in order: draft it with `/anthropic-skills:writing`; then fact-check every claim it makes against its primary source into `apps/book/fact-checks/testing-offline-and-a-first-agent.md` as ✅, ✏️ or ⚠️, before drafting the next section; commit the section and its rows together (BK21).
-- [ ] Use an analogy from the table above where it makes a concept clearer: open the concept with it, follow it at once with the precise mechanism, and add its "Where the analogy breaks" note. Where plain explanation works better, drop the planned analogy. Register every analogy the chapter uses in `apps/book/src/content/analogies.json` (BK22).
+- [ ] For each section, in order: draft it with `/anthropic-skills:writing`; then fact-check every claim it makes against its primary source into `apps/manual/fact-checks/testing-offline-and-a-first-agent.md` as ✅, ✏️ or ⚠️, before drafting the next section; commit the section and its rows together (BK21).
+- [ ] Use an analogy from the table above where it makes a concept clearer: open the concept with it, follow it at once with the precise mechanism, and add its "Where the analogy breaks" note. Where plain explanation works better, drop the planned analogy. Register every analogy the chapter uses in `apps/manual/src/content/analogies.json` (BK22).
 - [ ] Run `/anthropic-skills:writing-review` on the whole chapter, with the voice check: a vivid opening of the planned type that differs from the previous chapter's, a concrete example or scenario in every section, varied cadence, second person where it helps, and no stock phrasing repeated from earlier chapters (BK22).
-- [ ] Fix every finding with `/anthropic-skills:writing`, re-check every claim a fix touched, and log the re-checks in `apps/book/fact-checks/testing-offline-and-a-first-agent.md`.
+- [ ] Fix every finding with `/anthropic-skills:writing`, re-check every claim a fix touched, and log the re-checks in `apps/manual/fact-checks/testing-offline-and-a-first-agent.md`.
 - [ ] Draw the figures and analogy illustrations with T6's pipeline, each with alt text and a caption that cites the register.
 - [ ] Tag the chapter's glossary terms and add missing entries.
 
@@ -68,7 +68,7 @@ Write the chapter "Testing offline, and a first complete agent" (`testing-offlin
 - [ ] At least one listing uses a tier 1, 2 or 3 interaction, and the page reads in full with JavaScript off
 - [ ] Every figure, analogy illustrations included, is generated, passes the staleness test, and has alt text, a caption and both themes
 - [ ] Every version the prose names says "as of <month year>"
-- [ ] `apps/book/fact-checks/testing-offline-and-a-first-agent.md` has one block of rows per section, each committed with its section before the next section's draft, plus the re-check rows for the review's fixes, with a ✅/✏️/⚠️ tally
+- [ ] `apps/manual/fact-checks/testing-offline-and-a-first-agent.md` has one block of rows per section, each committed with its section before the next section's draft, plus the re-check rows for the review's fixes, with a ✅/✏️/⚠️ tally
 - [ ] Every analogy the chapter uses comes from the table above or has the owner's approval, opens its concept and has a "Where the analogy breaks" note; every one is in `src/content/analogies.json`, and `check:book` passes its duplicate and reuse checks
 - [ ] The front matter's `opening` is `scenario`, and `check:book` passes its opening-rotation check
 - [ ] The pull request records the writing review's 5C scores and its voice scores, before and after

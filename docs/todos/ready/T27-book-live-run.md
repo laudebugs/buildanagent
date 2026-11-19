@@ -40,9 +40,9 @@ Check now and then that the mock transcripts still match how the real APIs behav
 
 ## Tasks
 
-- [ ] **Owner prerequisite, not a builder task.** The owner creates the `live-run` environment with themselves as required reviewer and `main` as the only deployment branch, and adds two keys there as environment secrets, `ANTHROPIC_API_KEY` and `OPENAI_API_KEY` (the owner's answer, 2026-11-19: "I'll add the OPENAI key too - added"). As of 2026-11-19 the three GitHub environments, `book-preview`, `book-production` and `live-run`, exist, and `live-run` holds both secrets, so this todo and T9 rely on those names; as of 2026-11-19 `live-run` has the owner as required reviewer and allows only protected branches (`main`); the pre-run check confirms both through the API before each run and stops if either is gone. No key ever passes through chat, a file or a log. This todo documents the exact names in `apps/book/README.md`.
+- [ ] **Owner prerequisite, not a builder task.** The owner creates the `live-run` environment with themselves as required reviewer and `main` as the only deployment branch, and adds two keys there as environment secrets, `ANTHROPIC_API_KEY` and `OPENAI_API_KEY` (the owner's answer, 2026-11-19: "I'll add the OPENAI key too - added"). As of 2026-11-19 the three GitHub environments, `book-preview`, `book-production` and `live-run`, exist, and `live-run` holds both secrets, so this todo and T9 rely on those names; as of 2026-11-19 `live-run` has the owner as required reviewer and allows only protected branches (`main`); the pre-run check confirms both through the API before each run and stops if either is gone. No key ever passes through chat, a file or a log. This todo documents the exact names in `apps/manual/README.md`.
 - [ ] Run each harness on the provider its pinned packages reach (BK18's table): `claude-agent-sdk` on Anthropic natively; `openai-agents-sdk` on OpenAI natively; `copilot-sdk` through BYOK `provider` on either, with no GitHub sign-in and without its no-network namespace; `vercel-ai-sdk` and `cloudflare-agents` through the pinned `@ai-sdk/anthropic` 4.0.96 or `@ai-sdk/openai` 4.0.108; `langchain` through `@langchain/anthropic` 1.6.0 or `@langchain/openai` 1.8.0; and `pi` through `@earendil-works/pi-ai` 1.5.2. Keep `google-adk` mock-only: TypeScript 2.5.0 reaches Gemini only, and adding a provider package or a Gemini credential is a separate change the owner approves, not part of this todo.
-- [ ] Choose the examples to run live from those harnesses: those Part I chapters replay, whose tools are in-process functions with no host access. List them in `apps/book/src/data/live-examples.json`, with the provider and model each uses.
+- [ ] Choose the examples to run live from those harnesses: those Part I chapters replay, whose tools are in-process functions with no host access. List them in `apps/manual/src/data/live-examples.json`, with the provider and model each uses.
 - [ ] Add the live mode to each covered harness behind an explicit flag. Pass the key in an allowlisted environment, never `...process.env`. Deny built-in host tools by name and type, as the SDK process requires for mocks.
 - [ ] Enforce the owner's cost rule (2026-11-19: "A run may cost at most $1, but should aim to be less than $.50"): before each model call, project its cost from the price catalog and a token estimate, as D9 and E5 do, and abort the run with a report when the next call would take the total past $1.00.
 - [ ] Choose the examples, models and `maxTokens` so a run's projected total stays under the $0.50 target, and record that projection in `live-examples.json`.
@@ -55,7 +55,7 @@ Check now and then that the mock transcripts still match how the real APIs behav
 
 - [ ] No run can spend more than $1.00: a test with a fixture price table shows the run aborting, with a report, before the call that would cross the cap; the selected examples project under $0.50
 - [ ] Every run's report shows the amount spent against the $1.00 cap and the $0.50 target
-- [ ] `apps/book/README.md` names the `live-run` environment and the secrets `ANTHROPIC_API_KEY` and `OPENAI_API_KEY` exactly, and `live-run.yml` references no other provider key
+- [ ] `apps/manual/README.md` names the `live-run` environment and the secrets `ANTHROPIC_API_KEY` and `OPENAI_API_KEY` exactly, and `live-run.yml` references no other provider key
 - [ ] `live-examples.json` names a provider for each listed example that its harness's pinned packages reach, and every listing from `google-adk` or an unlisted example shows "verified against mock models only"
 - [ ] `live-run.yml` has `workflow_dispatch` as its only trigger and references the `live-run` environment; no other workflow references a provider-key secret
 - [ ] `live-diff.mjs` reports a changed tool call, a changed stop reason and a changed `check()` result, and ignores changed text, in its tests
@@ -69,7 +69,7 @@ Check now and then that the mock transcripts still match how the real APIs behav
 
 ## Docs to update
 
-- `apps/book/README.md`: how to start a live run and read its issue
+- `apps/manual/README.md`: how to start a live run and read its issue
 - [AGENTS.md](../../../AGENTS.md) layout: `live-run.yml` in the workflows line, and `results/live/` beside the other results
 - Each covered harness's README: the live mode
 

@@ -54,7 +54,7 @@ Make the build responsible for every number, citation and glossary link, so chap
 ## Acceptance criteria
 
 - [ ] Moving a chapter in `src/outline.ts` renumbers its figures, listings and tables, and every reference to them, with no other edit
-- [ ] A fixture chapter that cites an unknown id, references an unknown figure or tags an unknown term fails `pnpm --filter @buildanagent/book build`, naming the file
+- [ ] A fixture chapter that cites an unknown id, references an unknown figure or tags an unknown term fails `pnpm --filter @buildanagent/manual build`, naming the file
 - [ ] A register entry whose `verifiedIn` file lacks its URL fails `check:book`
 - [ ] The first use of each glossary term in a chapter links to `/glossary/`, with the definition in `aria-describedby` text; later uses stay plain
 - [ ] THIRD-PARTY-NOTICES.md lists every file copied from the garment repository
@@ -63,12 +63,12 @@ Make the build responsible for every number, citation and glossary link, so chap
 
 ## Tests
 
-Vitest tests in `apps/book/test/` run each plugin on fixture Markdown, with one failing fixture per rule. `check:book` runs in `pnpm test` over the fixtures.
+Vitest tests in `apps/manual/test/` run each plugin on fixture Markdown, with one failing fixture per rule. `check:book` runs in `pnpm test` over the fixtures.
 
 ## Docs to update
 
 - The plan's BK5–BK7 if a rule changes
-- A short `apps/book/README.md` on writing a chapter: front matter, citations, references, glossary tags
+- A short `apps/manual/README.md` on writing a chapter: front matter, citations, references, glossary tags
 
 ## Risks and open questions
 

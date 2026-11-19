@@ -61,7 +61,7 @@ The `figures:audit` script in CI; Vitest tests for the `viewer:` source and id p
 ## Docs to update
 
 - [AGENTS.md](../../../AGENTS.md) layout: the vendored skill
-- `apps/book/README.md`: how to add an isometric figure
+- `apps/manual/README.md`: how to add an isometric figure
 
 ## Risks and open questions
 
