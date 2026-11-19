@@ -44,7 +44,7 @@ switchTo: [B11]
 - `opening` must be the type the outline plans for this chapter. To change it, change the outline, which reruns the rotation check.
 - `sources` lists the register ids the chapter relies on, in the order its source list shows them; it needs at least one.
 - `glossary` lists the glossary ids whose first use the chapter links; it may be empty.
-- `switchTo` lists the todos whose code the chapter's `verify/` listings will gain as a first tab, beside the `verify/` listing, which stays (BK8); it may be empty.
+- `switchTo` lists the todos whose code will join the chapter's `verify/` listings as a first tab, while the `verify/` listings stay (BK8); it may be empty.
 
 The chapter's last `##` section is `## Exercises`, and it holds a list. The layout adds the chapter's sources after it, so the chapter has no sources section of its own.
 
@@ -124,7 +124,7 @@ A file counts as covered when `pnpm typecheck` would check it. Its nearest `pack
 
 Five of these rules are our choices, not BK9's: an exact pin, TypeScript files only, paths from the repository root only, a file inside a harness that `harnesses.json` lists, and no attribute but `id`, `file`, `region` and `replay`, which catches a misspelt `region`. Because of the harness rule, a listing from `packages/` fails as "in no harness", so the todo that moves a chapter's listings to our own packages must widen that rule first.
 
-To add a listing, mark the region in the example, run that harness's `pnpm test` to confirm its results do not change, then write the directive and run `check:book`. Renaming or deleting a region breaks every chapter that lists it, and `check:book` names each one. When a chapter's `switchTo` todos are all done, `book:switch-report` says the chapter is ready for tabs on our own packages, which join its listings as first tabs (BK8).
+To add a listing, mark the region in the example, run that harness's `pnpm test` to confirm its results do not change, then write the directive and run `check:book`. Renaming or deleting a region breaks every chapter that lists it, and `check:book` names each one. When a chapter's `switchTo` todos are all done, `book:switch-report` says the chapter is ready for tabs on our own packages (BK8).
 
 ## Notes, SDK tabs and replays make a listing interactive
 
@@ -184,9 +184,11 @@ Every listing in this book runs against a mock model, …
 :::
 ```
 
-The page renders the box as an `<aside>` whose `aria-labelledby` names its title. The title becomes a heading one level below the heading the box follows, as a tab heading does, and the heading carries the box's id, so a link to `#how-these-examples-run-without-a-key` lands on the title. The chapter's "On this page" list shows only level-2 headings, so a box after a section's heading stays out of it. Inside, a box takes any Markdown: paragraphs, citations, glossary terms, analogies, references and file listings, which are numbered and checked like any other. A `:::listing` container with notes fits inside too, once the box's fence has four colons, `::::box`. The box draws a card border in the rule colour on the page background, so a listing inside keeps its own panel in both themes. In print the border takes the muted text colour, and the title stays on the same page as the text after it. The box needs no script and writes no inline style.
+The page renders the box as an `<aside>` whose `aria-labelledby` names its title. The title becomes a heading one level below the heading the box follows, as a tab heading does, and the heading carries the box's id, so a link to `#how-these-examples-run-without-a-key` lands on the title. The chapter's "On this page" list shows only level-2 headings, so a box after a section's heading stays out of it.
 
-A box fails when its id is missing or not kebab-case, when it takes any other attribute, when its title is missing or blank, when it holds nothing, and when it holds a heading or another box. These rules are our choices: the title stays the one heading a box gives the page's outline.
+Inside, a box takes any Markdown: paragraphs, citations, glossary terms, analogies, references and file listings, which are numbered and checked like any other. A `:::listing` container with notes fits inside too, once the box's fence has four colons, `::::box`. Because the box draws its card border in the rule colour on the page background, a listing inside keeps its own panel in both themes. In print the border takes the muted text colour, and the title stays on the same page as the text after it. The box needs no script and writes no inline style.
+
+A box fails when its id is missing or not kebab-case, when it takes any other attribute, when its title is missing or blank, when it holds nothing, and when it holds a heading or another box. These rules are our choices. The heading rule keeps the title as the one heading a box adds to the page's outline.
 
 ## The live run compares the listed examples with real APIs, only when the owner starts it
 
