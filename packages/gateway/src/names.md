@@ -11,6 +11,6 @@ Both rows are as of November 2026. The [fact-check log](../../../docs/plans/revi
 
 ## What is still unchecked
 
-- **The OpenAI minimum length.** The SDK comment states no minimum. The canonical rule requires at least one character anyway.
+- **The OpenAI minimum length.** Neither the API reference nor the SDK comment states a minimum. The canonical rule requires at least one character anyway.
 - **Case.** Neither provider says whether names are case-sensitive. The gateway keeps a name's case, but a `ToolNameMap` never issues two wire names that differ only in case: of two such names, the later one gets a salted hash suffix.
 - **OpenAI-compatible servers.** Other servers that speak Chat Completions may set their own rules. An adapter for such a server passes its own `ToolNameRule` to `createToolNameMap()`.

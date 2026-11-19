@@ -170,7 +170,7 @@ Each decision answers one open decision in [guide §12][g12], in the same order,
 
 **Options.** The 64-character `[A-Za-z0-9_-]` floor from the tools note, or a rule built from a per-provider table ([guide §12, decision 12][g12]).
 
-**Choice.** The canonical rule is `^[A-Za-z0-9_-]{1,64}$`, checked when a tool is defined, with a thrown programmer error on a violation. B7 built the table from each D2 provider's API reference, and it keeps this floor, because the strictest provider sets it. Each adapter maps canonical names to its wire form reversibly and keeps the map for the run, and namespaced names such as `mcp__<server>__<tool>` follow the same rule. If a later provider is stricter than the floor, its adapter's map sanitises names to that provider's rule.
+**Choice.** The canonical rule is `^[A-Za-z0-9_-]{1,64}$`, checked when a tool is defined, with a thrown programmer error on a violation. B7 built the table from each D2 provider's API reference and kept this floor, because the strictest provider, OpenAI Chat Completions, allows exactly it. Each adapter maps canonical names to its wire form reversibly and keeps the map for the run, and namespaced names such as `mcp__<server>__<tool>` follow the same rule. If a later provider is stricter than the floor, its adapter's map sanitises names to that provider's rule.
 
 **Evidence.** The floor is an assumption without a per-provider table, which the research lists among its open limits ([SDK research §7][sr7]; [tools note, implication 9][n-tools-impl]). Names are namespaced by source and sanitised to the strictest provider, and tool order stays stable for prompt caching ([tools note §8][n-tools-8]).
 

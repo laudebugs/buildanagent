@@ -72,18 +72,19 @@ export const TOOL_NAME_RULES: {
  * tool, and `restore()` turns a wire name the model sent back into the tool's name.
  *
  * No two wire names are equal or differ only in case, because neither first provider says whether tool names are
- * case-sensitive. When every name is passed to `createToolNameMap()` up front, a name that meets the rule keeps
- * itself, unless it differs only in case from a name that sorts before it. Those wire names depend only on the set
- * of names, not on its order or on the order of `sanitize()` calls. A name first seen later by `sanitize()` keeps
- * itself if it meets the rule and no issued wire name matches it, ignoring case; otherwise it gets a salted hash
- * suffix. Every name keeps its first wire name for the life of the map, because that name may already have been sent.
+ * case-sensitive. Of the names passed to `createToolNameMap()` up front, one that meets the rule keeps itself
+ * unless it differs only in case from a name that sorts before it. Their wire names depend only on the set of
+ * names, not on its order or on the order of `sanitize()` calls. A name that `sanitize()` first sees later keeps
+ * itself if it meets the rule and no issued wire name matches it, ignoring case. Otherwise it gets a salted hash
+ * suffix: a hash of the name and an attempt counter. Every name keeps its first wire name for the life of the map,
+ * because that wire name may already have been sent.
  */
 export interface ToolNameMap {
   /**
    * The wire name for `name`. A name that meets the rule comes back unchanged unless an issued wire name matches it,
    * ignoring case. Any other name has its disallowed characters replaced by `_`, is cut to fit, and ends in `_` and
-   * an 8-digit hex hash. The hash is of the name alone at first; when that wire name is taken, it is retried as a
-   * hash of the name and an attempt counter until it is free, so two names never share a wire name. One map always
+   * an 8-digit hex hash. The map first hashes the name alone. If that wire name is taken, it salts the hash with an
+   * attempt counter, counting up until the wire name is free, so two names never share a wire name. One map always
    * gives one name the same wire name.
    */
   sanitize(name: string): string;

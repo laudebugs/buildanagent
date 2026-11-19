@@ -10,7 +10,7 @@ Guide decision 12 notes that the 64-character `[A-Za-z0-9_-]` floor is an assump
 
 ## Decision
 
-Todo B7 was to build the per-provider table from each first provider's API reference before any naming code was written. Until it did, `defineTool()` was to reject names outside `^[A-Za-z0-9_-]{1,64}$`, and each adapter was to keep a reversible map from canonical to wire names. B7 built the table and kept the rule.
+Before any naming code was written, todo B7 would build the per-provider table from each first provider's API reference. Until then, `defineTool()` would reject names outside `^[A-Za-z0-9_-]{1,64}$`, and each adapter would keep a reversible map from canonical to wire names. B7 built the table and kept the rule.
 
 ## Consequences
 
@@ -21,4 +21,4 @@ Todo B7 was to build the per-provider table from each first provider's API refer
 
 The per-provider table in [`packages/gateway/src/names.md`](../../packages/gateway/src/names.md) keeps the rule unchanged. As of November 2026, Anthropic Messages accepts `^[a-zA-Z0-9_-]{1,128}$` ([Messages API reference](https://platform.claude.com/docs/en/api/messages/create)), and OpenAI Chat Completions accepts the same characters at up to 64 ([Chat Completions API reference](https://developers.openai.com/api/reference/resources/chat/subresources/completions/methods/create), `FunctionDefinition.name`). Their strictest intersection is `^[A-Za-z0-9_-]{1,64}$`, the floor this record assumed, so no superseding rule is needed. The [fact-check log](../plans/reviews/fact-check-tool-name-rule.md) records each source, and `names.md` lists what neither provider states.
 
-`assertCanonicalName()` checks the rule, and `createToolNameMap()` gives each adapter its reversible map, which keeps a name its provider's rule accepts and adds a hash suffix to any other name, or to a name that differs only in case from one already issued.
+`assertCanonicalName()` checks the rule, and `createToolNameMap()` gives each adapter its reversible map. The map keeps a name its provider's rule accepts. It adds a hash suffix to any other name, and to a name that differs only in case from one already issued.
