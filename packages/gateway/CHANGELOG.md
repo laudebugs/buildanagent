@@ -1,5 +1,11 @@
 # @buildanagent/gateway
 
+## 0.1.0-alpha.14
+
+### Minor Changes
+
+- b7c1318: Export the retry rules the SDK's loop reuses: `retryDelay()`, `retryHintMs()`, `abortableSleep`, `MAX_RETRY_DELAY_MS` and `DEFAULT_INITIAL_RETRY_DELAY_MS`.
+
 ## 0.1.0-alpha.13
 
 No changes in this release.

@@ -86,8 +86,22 @@ export type AgentEventBody =
     }
   /** `transformContext` returned the messages for one model call: `before` messages in, `after` messages out. */
   | { readonly type: "context_transformed"; readonly before: number; readonly after: number }
-  /** The model is retrying a failed request; `attempt` is 1 for the first retry. */
-  | { readonly type: "retry"; readonly attempt: number; readonly delayMs: number; readonly error: string }
+  /**
+   * A failed model call is being retried; `attempt` is 1 for the first retry. `layer` says which retry it is.
+   * `gateway`: the model retries an HTTP request that failed before any output; its events follow `model_call_start`
+   * and nothing was streamed from the failed attempt. `turn`: the loop re-issues a call that ended with a `retryable`
+   * error, which `turnRetries` turns on. It comes right after that call's `model_call_end`, whose message is
+   * superseded: it is not in the transcript, and a UI that rendered the call's streamed deltas should discard them,
+   * because the retry streams its own. Once the wait ends, the failed call's `step_end` follows, then the retry's own
+   * `step_start` and `model_call_start` at the next `stepIndex`.
+   */
+  | {
+      readonly type: "retry";
+      readonly layer: "gateway" | "turn";
+      readonly attempt: number;
+      readonly delayMs: number;
+      readonly error: string;
+    }
   /**
    * A queued steer or follow-up entered the transcript as a user message, at the start of the step named by
    * `receipt.stepIndex`, before its model call. `receipt.kind` tells the two apart.
@@ -117,10 +131,11 @@ export type AgentEventBody =
       readonly cause: ResolutionRejectionCause;
     }
   /**
-   * An interceptor or an observer threw, or a pause could not be signed. `hook` names it (`beforeToolCall`,
-   * `observer`, `signer` and so on) and `error` is the thrown message; for `signer` it is a fixed text with the
-   * safety package's error code, never the signer's own message. The run goes on or fails by the interceptors'
-   * `onFailure` setting; a failed observer never affects it, and a call whose pause could not be signed is blocked.
+   * An interceptor or an observer threw, a pause could not be signed, or a `sleep` passed to `run()` rejected. `hook`
+   * names it (`beforeToolCall`, `observer`, `signer`, `sleep` and so on) and `error` is the thrown message; for
+   * `signer` it is a fixed text with the safety package's error code, never the signer's own message. The run goes on
+   * or fails by the interceptors' `onFailure` setting; a failed observer never affects it, a call whose pause could
+   * not be signed is blocked, and a rejected `sleep` ends the wait before a turn retry early.
    */
   | { readonly type: "hook_error"; readonly hook: string; readonly error: string }
   | { readonly type: "warning"; readonly code: WarningCode; readonly detail: string }
