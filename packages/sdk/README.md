@@ -348,9 +348,18 @@ const request = await createPendingRequest({ kind: "approval", callId, tool: "re
 
 `createPendingRequest()` signs through the same code path as the loop, so for the same fields, id and signer the two requests are identical byte for byte. Its optional third argument takes `generateId` and `now`, which default to `crypto.randomUUID()` and the current time. It rejects with `invalid_run_options` for a `kind` other than `"approval"` or a signer that isn't an `ApprovalSigner`.
 
+Before the call runs, check the person's answer against the stored request with `verifyResolution()`, the check `continueRun()` makes:
+
+```ts
+const check = await verifyResolution(request, resolution, { signer, call: { callId, tool: "refund", input } });
+if (check.ok && "decision" in check.resolution && check.resolution.decision === "allow") await refund(input);
+```
+
+It verifies the signature under the key the request names, so a ring that has rotated past that key still verifies it. It then checks the call id and tool, the input against the signed hash, and that the answer fits the request's kind. A bad answer never makes it throw: it returns `ok: false` with the first `RejectionCause` it found. A signer whose `verify()` throws does make it reject, so a caller that must fail closed wraps the call.
+
 ### The signers and the record belong to the safety package
 
-`ApprovalSigner`, `ephemeralSigner()`, `hmacSigner()`, `canonicalInputHash()`, `SignedPendingRequest`, `Resolution`, `Recheck`, `RejectionCause` and `SignPendingOptions` are `@buildanagent/agent-safety`'s, re-exported unchanged. So are `SafetyError` and `isSafetyError()`, because `hmacSigner()` throws a `SafetyError` with code `invalid_key_ring` for an unusable ring, and `createPendingRequest()` rejects with one, code `invalid_pending` or `invalid_input`, for a blank field or an input with no canonical JSON form.
+`ApprovalSigner`, `ephemeralSigner()`, `hmacSigner()`, `canonicalInputHash()`, `verifyResolution()`, `SignedPendingRequest`, `Resolution`, `Recheck`, `RejectionCause`, `ResolutionCheck`, `VerifyResolutionOptions`, `PendingCall` and `SignPendingOptions` are `@buildanagent/agent-safety`'s, re-exported unchanged. So are `SafetyError` and `isSafetyError()`, because `hmacSigner()` throws a `SafetyError` with code `invalid_key_ring` for an unusable ring, and `createPendingRequest()` rejects with one, code `invalid_pending` or `invalid_input`, for a blank field or an input with no canonical JSON form.
 
 Until the safety package is published, the SDK carries byte-identical copies of its files, and a test fails if they drift. One consequence follows from the copies: in a process that loads both packages, each has its own ephemeral signer, so a pause signed by one's default doesn't verify with the other's.
 
@@ -601,6 +610,23 @@ The tables in the [deep comparison](../../docs/comparison/deep-comparison.md#1-t
 | Copilot SDK | 105 | |
 | Google ADK | 114 | |
 | Cloudflare Agents | 122 | |
+
+## A reference loop shows the real loop's shape in under 400 lines
+
+[`reference-loop/reference-loop.ts`](reference-loop/reference-loop.ts) is a loop you can read in one sitting. It exports `run()` and `continueRun()`, ends a run with every stop reason of the real loop except `clarification_requested`, and imports only the public exports of `@buildanagent/gateway` and `@buildanagent/sdk`. The capstone's conformance suite runs against it on the scripted model and both mock transports, so it cannot drift into a toy: a change to the real loop that the reference no longer matches fails `test/reference-loop.test.ts`. That file counts the loop's non-blank, non-comment lines and fails at 400. It checks that the reference and the real loop end seventeen scripted runs with the same stop reason, step count, message count and failed tool results. It also runs more cases on both loops, among them resumes, approved calls and tool errors.
+
+Each step runs in the real loop's order: `transformContext`, `beforeModelCall`, the streamed model call, `afterModelCall`, the tools, then the stop check with `shouldStop` and the progress rule. The table maps each part to the module it simplifies.
+
+| Part of the reference loop | Real module | What the reference leaves out |
+| --- | --- | --- |
+| `run()`, `continueRun()`, `start()` | `run.ts` | Streaming events (they arrive after the run ends), `steer()`, `followUp()`, `on()`, observers and option checks |
+| `drive()`, `step()`, `callModel()` | `loop.ts` | The raw model events, the `retry` and `warning` events, the withheld stand-in for a failed `afterModelCall`, the aborted closing message and `onFailure: "continue"` |
+| `budgetBlock()` | `budget.ts` | The unknown-price check before the first call |
+| `runCalls()`, `runCall()`, `execute()` | `tools/pipeline.ts` | Parallel calls (it runs them one at a time, so an abort while one call runs also stops the calls after it), coercion, `repair`, raw JSON Schema validation, the shape check on a tool's result, rendering write outcomes, `clarificationTool()` and the "not run" results that the real loop records for the calls of a response that ended in an error or was aborted |
+| `pause()`, `settle()`, `failedCheck()` | `pauses.ts`, `resume.ts`, `hook-runner.ts` | The `recheck` option, replayed and unknown resolutions, `blockingApprovals()` and the shape checks on a stored context. It checks each stored request with `verifyResolution()`, as the real loop does |
+| `stopCheck()`, `decide()`, `stuckReason()` | `loop.ts`, `progress.ts` | The per-`progressKey` rule |
+
+The reference loop reaches `clarification_requested` through no path, because only the SDK's internals can sign a clarification request, and `createPendingRequest()` signs approvals only. Read it first, then read `loop.ts` for what a production loop adds.
 
 ## Build the SDK with its dependencies
 

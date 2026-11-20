@@ -279,6 +279,15 @@
     "verifiedIn": "apps/manual/fact-checks/tools.md"
   },
   {
+    "id": "ghosh-truthgate",
+    "title": "Truthgate: Checking Coding Agents Against a Record They Cannot Edit - Cheating, Deterrence and Disclosure on Impossible Tasks",
+    "publisher": "Bravish Ghosh, Cygnux Labs (arXiv:2611.23335)",
+    "url": "https://arxiv.org/abs/2611.23335",
+    "kind": "paper",
+    "asOf": "November 2026",
+    "verifiedIn": "docs/research/papers/fact-check-agent-research-papers.md"
+  },
+  {
     "id": "ai-sdk-loop-control",
     "title": "Loop Control",
     "publisher": "AI SDK documentation",

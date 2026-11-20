@@ -191,13 +191,19 @@ The first high-effort code review of the pull request found nine problems. It co
 | 122 | After the writing review of the high-review fixes: the system-prompt section's thinking paragraph splits at the prefix check, which "reaches back to the system prompt"; its two facts are numbered and the second now reads "Anthropic's models with preserved thinking … check each block" | § The system prompt | ✅ | Row 117 for the two facts; row 61 for the quote, whose `system` is the system prompt (row 7). The split adds no claim |
 | 123 | After the same review: the statelessness paragraph's head says "two consequences" instead of "two limits", since billing is no limit, and its last sentence splits; the usage replay's paragraph names the transcript, not "it", as what names the model `model-1`; the Copilot sentence splits in three; the taxi meter's provider "charges" the fare; exercise 1's rates step splits | § Messages and roles, § Usage, § Thinking, § Exercises | ✅ | Rows 114, 116, 118 and 119; each fix rewords a sentence and changes no claim, and exercise 1's steps are the ones row 119's scratch run followed |
 
+## Addition from the papers research (U22, folded in by U23)
+
+| # | Claim | Where | Verdict | Source and reason |
+| --- | --- | --- | --- | --- |
+| 124 | A sentence in a prompt moves behavior, only not all the way: in a November 2026 study of coding agents given impossible tasks, appending a single sentence to the system prompt cut Claude Sonnet 5.5's cheating on a 60-task set from 22 cases to 8, not to none | § The system prompt | ✅ | [Truthgate (arXiv:2611.23335)](https://arxiv.org/abs/2611.23335), Ghosh, abstract page read directly on 2026-11-19: "[Submitted on 17 Nov 2026]"; "On Impossible-LiveCodeBench, Claude Sonnet 5.5 passed 39 of 180 impossible tasks (21.7%), every time by special-casing its code to fit the failing assertion"; "One sentence appended to the system prompt cut Sonnet's cheats on the same 60 tasks from 22 to 8 (an AI reviewer will read the transcript)". The 22-to-8 figure belongs to the 60-task subset, not the 180-task set, as the papers log's row 145 also records. The proposal in `docs/research/papers/notes/book-todos-mapping.md` said "to the prompt"; the abstract says "the system prompt", so the draft was reworded before commit. The abstract gives the other three tested sentences as cutting the count to 6, 6 and 1, so none of the four reached zero |
+
 ## Tally
 
 | Verdict | Rows |
 | --- | --- |
-| ✅ confirmed | 110 |
+| ✅ confirmed | 111 |
 | ✏️ corrected | 9 (rows 12, 17, 24, 38, 49, 91, 93, 103 and 108) |
 | ⚠️ unverified, our judgement or recommendation, marked as ours in the text | 4 (rows 16, 31, 57 and 75) |
-| Total | 123 |
+| Total | 124 |
 
-Five ✅ rows (21, 32, 59, 76 and 96) also record a draft sentence that was reworded before its section's commit, so no wrong claim was ever committed; Chapter 1's log treats such rows the same way (its row 71).
+Six ✅ rows (21, 32, 59, 76, 96 and 124) also record a draft sentence that was reworded before its section's commit, so no wrong claim was ever committed; Chapter 1's log treats such rows the same way (its row 71).

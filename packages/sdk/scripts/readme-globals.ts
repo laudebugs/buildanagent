@@ -15,6 +15,7 @@ declare global {
   const hmacSigner: typeof sdk.hmacSigner;
   const nestedRunDepth: typeof sdk.nestedRunDepth;
   const run: typeof sdk.run;
+  const verifyResolution: typeof sdk.verifyResolution;
   const runOrThrow: typeof sdk.runOrThrow;
   const autoResponder: typeof testing.autoResponder;
   const replayPairs: typeof testing.replayPairs;
@@ -28,6 +29,9 @@ declare global {
   type FindOrder = (order: number) => Promise<{ readonly status: string } | undefined>;
   const askInTerminal: (request: sdk.SignedPendingRequest, input: unknown) => Promise<sdk.Resolution>;
   const callId: string;
+  const refund: (input: unknown) => Promise<void>;
+  const request: sdk.SignedPendingRequest;
+  const resolution: sdk.Resolution;
   const findOrder: FindOrder;
   const fixture: string;
   const gate: NonNullable<sdk.Interceptors["beforeToolCall"]>;

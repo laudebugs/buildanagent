@@ -1,5 +1,26 @@
 # @buildanagent/sdk
 
+## 0.1.0-alpha.17
+
+### Minor Changes
+
+- 26aea2d: New: the SDK re-exports the safety package's `verifyResolution()`, with its `ResolutionCheck`, `VerifyResolutionOptions` and `PendingCall` types, so code that signs a request with `createPendingRequest()` can check a person's answer before the call runs, as `continueRun()` does. The check accepts any key the signer's ring holds.
+
+### Patch Changes
+
+- @buildanagent/gateway@0.1.0-alpha.17
+
+## 0.1.0-alpha.16
+
+### Minor Changes
+
+- 7840c5b: `run_start` now carries a real `defaultsHash` and `capabilities` instead of the reserved empty values. The SDK exports both: `DEFAULTS_HASH`, a SHA-256 over every default value, built-in prompt and tool description the SDK uses, and `CAPABILITIES`, the thirteen behaviours this release supports, such as `steering_v1`. A future change to a default changes the hash and is named in the changelog. Both packages now ship an `llms.txt` that indexes the README and lists every public export. The gateway README's `assertStreamContract()` example now passes `model.ref`, as `ModelAdapter.stream()` requires. No default, prompt or tool text changed.
+
+### Patch Changes
+
+- Updated dependencies [7840c5b]
+  - @buildanagent/gateway@0.1.0-alpha.16
+
 ## 0.1.0-alpha.15
 
 ### Minor Changes
