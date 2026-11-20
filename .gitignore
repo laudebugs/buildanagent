@@ -19,3 +19,6 @@ packages/*/dist/
 packages/*/LICENSE
 packages/*/LICENSE-APACHE
 packages/*/LICENSE-MIT
+
+# Scratch folders of the packages' docs checks (scripts/package-docs.mjs)
+packages/*/.tmp/

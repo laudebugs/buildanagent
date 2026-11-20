@@ -57,7 +57,7 @@ function dependencyOrder(dirs) {
   return ordered;
 }
 const LICENCES = ["LICENSE", "LICENSE-APACHE", "LICENSE-MIT"];
-const TOP_LEVEL = new Set(["package.json", "README.md", "CHANGELOG.md", ...LICENCES]);
+const TOP_LEVEL = new Set(["package.json", "README.md", "CHANGELOG.md", "llms.txt", ...LICENCES]);
 // A dist/ file left from an earlier build whose module no longer exists in src/. The build must delete it.
 const STALE = "dist/stale-module-from-an-earlier-build.js";
 // The pack tests run pnpm as installed (see `before`), so a global pnpm other than the `packageManager` version would
@@ -182,12 +182,13 @@ packTest("every package is packed", () => {
   assert.equal(packed.size, packageDirs.length);
 });
 
-packTest("each tarball holds only package.json, README, CHANGELOG, the licences and dist/", () => {
+packTest("each tarball holds only package.json, README, CHANGELOG, llms.txt, the licences and dist/", () => {
   for (const [name, { files }] of packed) {
     const strays = files.filter((file) => !TOP_LEVEL.has(file) && !file.startsWith("dist/"));
     assert.deepEqual(strays, [], `${name} packs files outside dist/`);
     for (const licence of LICENCES) assert.ok(files.includes(licence), `${name} lacks ${licence}`);
     assert.ok(files.includes("README.md"), `${name} lacks README.md`);
+    assert.ok(files.includes("llms.txt"), `${name} lacks llms.txt`);
   }
 });
 

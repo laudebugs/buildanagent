@@ -56,7 +56,7 @@ This check reads a stream and throws a `StreamContractError` at the first broken
 ```ts
 import { assertStreamContract } from "@buildanagent/gateway/testing";
 
-const events = await assertStreamContract(adapter.stream(model, context, {}));
+const events = await assertStreamContract(adapter.stream(model.ref, context, {}));
 ```
 
 `complete()` folds a stream into its terminal message. It returns an error terminal's message instead of throwing, so a failed call still gives you its partial content and usage.
@@ -349,5 +349,9 @@ const adapter = anthropic({ apiKey: "test", baseURL: server.url, transport: serv
 ```
 
 The server needs Node's `http` module, which it imports only when it starts, so the testing export still loads on every target. `stripCredentials()`, `redactHeaders()`, `redactUrl()` and `CREDENTIAL_HEADERS` are the credential helpers the server and the SDK's recorder use. `stripCredentials()` also drops credential `[name, value]` pairs and `Headers` entries, and redacts `Bearer` and `Basic` strings and URL credentials.
+
+## `llms.txt` indexes these docs for a coding agent
+
+The package ships an [`llms.txt`](llms.txt) beside this README. It lists this README's sections and every public export of every entry point, with the first sentence of each export's doc comment, so an agent that writes code against the gateway reads the API of the version you installed. A test rebuilds the file from this README and the declaration files and fails when the committed copy differs. The same test type-checks every TypeScript block in this README against the package, and fails when the README names an export the package lacks.
 
 Next: [@buildanagent/sdk](../sdk/README.md), which tests an agent against a scripted model.

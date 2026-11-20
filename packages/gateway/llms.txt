@@ -1,0 +1,152 @@
+# @buildanagent/gateway
+
+> Model gateway for the buildanagent SDK: provider adapters, streaming, retries and cost accounting.
+
+The sections of README.md and every public export, generated from this package's README and declaration files in the same commit as its code.
+
+## Docs
+
+- [Install the alpha with `pnpm add @buildanagent/gateway@alpha`](README.md#install-the-alpha-with-pnpm-add-buildanagentgatewayalpha)
+- [A conversation is a list of messages you own](README.md#a-conversation-is-a-list-of-messages-you-own)
+- [A transcript recorded on one model replays on another](README.md#a-transcript-recorded-on-one-model-replays-on-another)
+- [Every stream follows one rule](README.md#every-stream-follows-one-rule)
+- [A model is an adapter object plus a model id](README.md#a-model-is-an-adapter-object-plus-a-model-id)
+- [Every message carries its cost, priced from a catalog you can replace](README.md#every-message-carries-its-cost-priced-from-a-catalog-you-can-replace)
+- [You can project a call's cost before you send it](README.md#you-can-project-a-calls-cost-before-you-send-it)
+- [One caching option covers every provider](README.md#one-caching-option-covers-every-provider)
+- [One tool name works with every provider](README.md#one-tool-name-works-with-every-provider)
+- [The Anthropic adapter speaks the Messages API at version 2026-10-21](README.md#the-anthropic-adapter-speaks-the-messages-api-at-version-2026-10-21)
+  - [Usage maps into the four token classes, and the catalog prices it](README.md#usage-maps-into-the-four-token-classes-and-the-catalog-prices-it)
+  - [Stop reasons and errors map onto the gateway's](README.md#stop-reasons-and-errors-map-onto-the-gateways)
+  - [A changed transcript before a thinking block gets one retry](README.md#a-changed-transcript-before-a-thinking-block-gets-one-retry)
+- [The OpenAI-compatible adapter speaks Chat Completions to OpenAI and to servers that copy it](README.md#the-openai-compatible-adapter-speaks-chat-completions-to-openai-and-to-servers-that-copy-it)
+  - [Compat flags describe how a server differs from OpenAI](README.md#compat-flags-describe-how-a-server-differs-from-openai)
+  - [Caching follows the model's flags](README.md#caching-follows-the-models-flags)
+  - [Usage maps into the four token classes, and reasoning is counted inside output](README.md#usage-maps-into-the-four-token-classes-and-reasoning-is-counted-inside-output)
+  - [Stop reasons and errors map onto the gateway's](README.md#stop-reasons-and-errors-map-onto-the-gateways-1)
+- [Your key is the only key the gateway sends](README.md#your-key-is-the-only-key-the-gateway-sends)
+- [Retries happen only before the model streams output](README.md#retries-happen-only-before-the-model-streams-output)
+- [Middleware wraps every call, first one outermost](README.md#middleware-wraps-every-call-first-one-outermost)
+- [You can see the exact request of every attempt](README.md#you-can-see-the-exact-request-of-every-attempt)
+- [Tests run offline](README.md#tests-run-offline)
+- [`llms.txt` indexes these docs for a coding agent](README.md#llmstxt-indexes-these-docs-for-a-coding-agent)
+
+## Exports from `@buildanagent/gateway`
+
+- `addCost()`: Adds two costs, such as the costs of two model calls.
+- `addUsage()`: Adds two usage records; the result keeps the second record's `raw`.
+- `assertCanonicalName()`: Throws a `GatewayError` with code `invalid_tool_name` unless `name` meets the canonical rule, 1 to 64 characters from `A-Z`, `a-z`, `0-9`, `_` and `-`.
+- `assertModelRequestAllowed()`: Throws unless real requests are allowed or the transport is a mock.
+- `assertStreamContract()`: Consumes the stream, throws `StreamContractError` at the first violation, and returns every event it read.
+- `interface AssistantMessage`
+- `CANONICAL_TOOL_NAME`: The canonical tool-name rule: 1 to 64 ASCII letters, digits, underscores or hyphens.
+- `interface CatalogEntry`: One model in the price catalog: its rates, its limits, and the date and pages they were copied from.
+- `interface CatalogSources`: Where each part of a catalog entry was copied from: the provider's own pricing and model pages.
+- `classifyError()`: Returns the error kind for a failed request.
+- `complete()`: Reads the stream to its terminal event and returns that event's message.
+- `type ContentBlock`: One block of message content.
+- `interface Cost`: The price of one response.
+- `createModel()`: Creates a model from an adapter object and a model id.
+- `interface CreateModelOptions`: What `createModel()` takes.
+- `createToolNameMap()`: Creates the map between canonical names and the wire names of the protocol that `rule` describes.
+- `defaultCatalog`: The catalog that ships with the gateway.
+- `type DumpedOptions`: The stream options a request dump records: everything except the abort signal and the payload hook.
+- `emptyUsage()`: A usage record with every count at zero.
+- `type ErrorKind`: How a failed call is handled: retried, compacted, stopped for billing, or stopped.
+- `estimateInputTokens()`: Estimates the input tokens of sending `context`.
+- `interface FailedRequest`: What an adapter knows about one failed request.
+- `findCatalogEntry()`: The entry for one model, or `undefined` when the catalog doesn't list it.
+- `class GatewayError`: Thrown for a mistake in how the gateway is called.
+- `type GatewayErrorCode`: Why a `GatewayError` was thrown.
+- `type GatewayEvent`: The events `Model.stream()` yields: the adapter's events plus one `retry` event before each retry.
+- `isCanonicalName()`: True when `name` meets the canonical tool-name rule.
+- `isGatewayError()`: True for a `GatewayError`, including one from another copy of the package.
+- `isMockTransport()`
+- `type Message`
+- `interface MiddlewareParams`: The request a middleware may rewrite: the context and the stream options.
+- `interface Model`: A model bound to one adapter and id, with the gateway's retries, middleware and request dump around it.
+- `interface ModelAdapter`
+- `type ModelCallOptions`: The options of one call through a `Model`: the adapter's `StreamOptions` without `caps`, which `createModel()` sets itself from the caps it resolved.
+- `interface ModelCaps`: The context window and output limit that context trimming and the budget need; filled from the price catalog.
+- `type ModelContent`: What a tool result may carry.
+- `interface ModelContext`: What one model call sends.
+- `type ModelErrorCode`: A failure an adapter can name in provider-neutral terms.
+- `type ModelEvent`: The events one model call streams.
+- `interface ModelMiddleware`: Shared behaviour around every model call.
+- `interface ModelRef`: Identifies one model behind one wire protocol and one vendor.
+- `modelRequestsAreAllowed()`
+- `class ModelRequestsDisabledError`: Thrown before a request is sent while real model requests are off and the transport is not a mock.
+- `interface OpaqueToken`: A provider-issued token that is valid only for the model that produced it, such as a reasoning signature.
+- `parseCatalog()`: Checks a catalog read from JSON and returns it typed.
+- `interface PriceCatalog`: A list of catalog entries.
+- `priceUsage()`: Prices one response's usage with a catalog entry.
+- `projectCallCost()`: The most the next call can cost, priced as `projectCost()` prices it: over `estimateInputTokens(context)` and the call's `maxOutputTokens`, or the model's own output limit when the options leave it out.
+- `projectCost()`: The most one call can cost: every input token at the highest input rate in the tier the input selects (the uncached rate or either cache-write rate, whichever costs most), plus `maxOutputTokens` at the output rate.
+- `interface ProjectedTokens`: The token counts a projection prices: the input to send and the most output the call may produce.
+- `interface ProviderConfig`: What an adapter factory takes.
+- `interface RateTier`: The USD price per million tokens of each token class, for requests up to `upToInputTokens` input tokens.
+- `interface RequestDump`: The full request of one HTTP request of an attempt, as `onRequest` receives it.
+- `interface ResolvedProviderConfig`: A `ProviderConfig` with every default filled in.
+- `resolveProviderConfig()`: Checks a provider config and fills in its defaults.
+- `type Sleep`: Waits `ms` milliseconds, or less if `signal` aborts first.
+- `staleCatalogEntries()`: The entries whose `asOf` date is more than `maxAgeDays` days before `now`.
+- `class StreamContractError`: Thrown by `assertStreamContract()` at the first event that breaks the stream rule.
+- `interface StreamOptions`
+- `TOOL_NAME_RULES`: The tool-name rules of the two first wire protocols, Anthropic Messages and OpenAI Chat Completions.
+- `interface ToolNameMap`: A run's map between canonical tool names and one protocol's wire names.
+- `interface ToolNameRule`: One wire protocol's rule for tool names, copied from the provider's API reference.
+- `totalInput()`: All input tokens: uncached, cache reads and both cache-write lifetimes.
+- `transformMessages()`: Prepares a transcript for one target model, so a conversation recorded on any provider can be sent to it.
+- `type Transport`: How an adapter sends HTTP.
+- `unreportedUsage()`: A usage record for a response whose provider reported no usage: every count is zero and `unreported` is `true`, so pricing gives an unknown cost instead of a known zero.
+- `interface Usage`: Token counts for one model response.
+- `interface WireTool`: A tool as one model call sends it: a name, a description and a JSON Schema for the input.
+
+## Exports from `@buildanagent/gateway/anthropic`
+
+- `anthropic()`: Creates an adapter for Anthropic's Messages API.
+- `ANTHROPIC_VERSION`: The Messages API version every request pins.
+- `interface AnthropicProviderOptions`: What the adapter reads from `providerOptions.anthropic`.
+- `THINKING_BINDING_BETA`: The beta that adds `thinking.block_binding` and the response's `input_transformations`.
+
+## Exports from `@buildanagent/gateway/openai-chat`
+
+- `interface ChatCompat`: How one OpenAI-compatible server or model differs from OpenAI's own Chat Completions API.
+- `openaiChat()`: Creates an adapter for OpenAI's Chat Completions API or a server compatible with it.
+- `interface OpenAIChatConfig`: The configuration `openaiChat()` takes: a `ProviderConfig` plus the server's name and quirks.
+- `interface OpenAIChatProviderOptions`: What the adapter reads from `providerOptions.openaiChat`.
+
+## Exports from `@buildanagent/gateway/testing`
+
+- `allowModelRequests()`: Turns real model requests on or off for the whole process.
+- `assertNoProviderKeys()`: Throws if any provider key variable is set in `env`.
+- `assertStreamContract()`: Consumes the stream, throws `StreamContractError` at the first violation, and returns every event it read.
+- `chatCompletionEvents()`: Writes Chat Completions chunks as a server-sent event stream: one unnamed `data:` event per chunk, then the `data: [DONE]` event that ends an OpenAI stream.
+- `CREDENTIAL_HEADERS`: The HTTP header names that carry credentials, in lower case: bearer tokens, the providers' API-key headers, a proxy's or Cloudflare AI Gateway's authorization, and cookies.
+- `guardedFetch()`: Wraps `fetch` so that only loopback hosts are reachable.
+- `installTestGuards()`: Installs the guards once per process: checks provider keys and replaces `globalThis.fetch`.
+- `isCredentialName()`: True when `name` names a credential: one of `CREDENTIAL_HEADERS` or `apiKey`, or a name that ends in `apiKey`, `authorization`, `token`, `secret` or `password`, compared without case, hyphens or underscores.
+- `isLoopbackHost()`: True for hosts that resolve to this machine: `localhost`, `*.localhost`, 127.0.0.0/8 and `::1`.
+- `isMockTransport()`
+- `markMockTransport()`: Marks a transport as an in-process mock, which `allowModelRequests(false)` still lets through.
+- `interface MockServer`: A running mock server.
+- `interface MockServerOptions`: What `startMockServer()` takes.
+- `mockTransport()`: Creates a transport that answers the n-th request with the n-th scripted response.
+- `interface MockTransport`: A transport that replays a script, with the requests it has received so far.
+- `class ModelRequestsDisabledError`: Thrown before a request is sent while real model requests are off and the transport is not a mock.
+- `PROVIDER_KEY_VARIABLES`: Environment variables that hold real provider credentials.
+- `interface RecordedRequest`: A request as the mock transport received it.
+- `REDACTED`: What a redacted header's value becomes, so a test can still see that the header was sent.
+- `redactHeaders()`: A copy of `headers` with lower-case names, where every credential header's value is `"[redacted]"`.
+- `redactUrl()`: `url` with its user name and password, and the value of every query parameter that carries a key (`key`, `access_token`, `sig`, `signature` or a credential name such as `api_key`), replaced by `"[redacted]"`.
+- `seededRandom()`: A seeded generator in [0, 1) (mulberry32), for tests that need randomness without `Math.random()`.
+- `serverSentEvents()`: Writes events as a server-sent event stream, naming each event after its `type` field.
+- `startMockServer()`: Starts an HTTP server on a loopback address that answers the n-th request with the n-th scripted response, like `mockTransport()`.
+- `class StreamContractError`: Thrown by `assertStreamContract()` at the first event that breaks the stream rule.
+- `stripCredentials()`: A deep copy of `value` with every credential left out, at any depth: each property whose name is a credential (see `isCredentialName()`), each `[name, value]` pair in an array whose name is one, and each such entry of a `Headers` object, which becomes a plain object.
+- `type WireApi`: The wire protocols a mock transport can stand in for.
+- `interface WireResponse`: One scripted HTTP response.
+- `type WireScript`: The responses a mock transport plays, one per request, in order.
+
+## Exports from `@buildanagent/gateway/testing/setup`
+

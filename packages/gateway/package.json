@@ -19,6 +19,7 @@
   },
   "files": [
     "dist",
+    "llms.txt",
     "LICENSE",
     "LICENSE-APACHE",
     "LICENSE-MIT"
