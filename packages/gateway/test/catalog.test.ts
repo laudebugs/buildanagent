@@ -64,6 +64,15 @@ test("an asOf with a month or day out of range is an invalid_catalog error, not 
   rejects(withEntry({ asOf: "2026-11-32" }), /asOf must be a date/);
 });
 
+test("a retires date parses, a malformed one is rejected and a missing one stays absent", () => {
+  assert.equal(parseCatalog(withEntry({ retires: "2027-03-01" })).models[0]?.retires, "2027-03-01");
+  assert.equal("retires" in (parseCatalog(withEntry({})).models[0] ?? {}), false);
+  rejects(withEntry({ retires: "March 2027" }), /models\[0\]\.retires must be a date/);
+  rejects(withEntry({ retires: "2027-02-30" }), /retires must be a date/);
+  rejects(withEntry({ retires: 20270301 }), /retires must be a non-empty string/);
+  rejects(withEntry({ retires: "" }), /retires must be a non-empty string/);
+});
+
 test("gpt-5.4-mini's contextWindow is its 272,000-token input limit, not its 400,000-token window", () => {
   assert.equal(findCatalogEntry(defaultCatalog, "openai", "gpt-5.4-mini")?.contextWindow, 272_000);
 });

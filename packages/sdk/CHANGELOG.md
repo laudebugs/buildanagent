@@ -1,5 +1,125 @@
 # @buildanagent/sdk
 
+## 0.1.0-alpha.18
+
+### Minor Changes
+
+- c89c076: Breaking Changes: `SafetyErrorCode` gains `invalid_plan`, the code the safety package throws for a plan approval it can't sign or show, such as one whose steps are out of order. The SDK never throws it, but a `switch` over every code now needs a case for it.
+
+### Patch Changes
+
+- @buildanagent/gateway@0.1.0-alpha.18
+
+## 0.1.0-alpha.17
+
+### Minor Changes
+
+- 26aea2d: New: the SDK re-exports the safety package's `verifyResolution()`, with its `ResolutionCheck`, `VerifyResolutionOptions` and `PendingCall` types, so code that signs a request with `createPendingRequest()` can check a person's answer before the call runs, as `continueRun()` does. The check accepts any key the signer's ring holds.
+
+### Patch Changes
+
+- @buildanagent/gateway@0.1.0-alpha.17
+
+## 0.1.0-alpha.16
+
+### Minor Changes
+
+- 7840c5b: `run_start` now carries a real `defaultsHash` and `capabilities` instead of the reserved empty values. The SDK exports both: `DEFAULTS_HASH`, a SHA-256 over every default value, built-in prompt and tool description the SDK uses, and `CAPABILITIES`, the thirteen behaviours this release supports, such as `steering_v1`. A future change to a default changes the hash and is named in the changelog. Both packages now ship an `llms.txt` that indexes the README and lists every public export. The gateway README's `assertStreamContract()` example now passes `model.ref`, as `ModelAdapter.stream()` requires. No default, prompt or tool text changed.
+
+### Patch Changes
+
+- Updated dependencies [7840c5b]
+  - @buildanagent/gateway@0.1.0-alpha.16
+
+## 0.1.0-alpha.15
+
+### Minor Changes
+
+- a1a0e6a: Breaking Changes: `AgentEvent` and `AGENT_EVENT_TYPES` gain `raw`, so an exhaustive `switch` over `event.type` needs a `raw` case. `run()` and `continueRun()` gain `includeRaw` (default `false`): with it set, each model call asks the gateway for the provider's own events, and the run emits each as a `raw` event between `model_call_start` and `model_call_end`. The run's option alone decides, so `CallOptions` leaves `includeRaw` out. Raw events stay out of the transcript, the interceptors, the OpenTelemetry spans and recorded pairs, and a `StreamScript`'s raw events play only when the call sets `includeRaw`.
+
+### Patch Changes
+
+- Updated dependencies [a1a0e6a]
+  - @buildanagent/gateway@0.1.0-alpha.15
+
+## 0.1.0-alpha.14
+
+### Minor Changes
+
+- b7c1318: Breaking Changes: every `retry` event now carries a required `layer`, `"gateway"` for an HTTP request the model re-sends and `"turn"` for a model call the loop re-issues. Code that builds a `retry` event, such as a test fixture, must add it; code that reads one is unaffected. `run()` and `continueRun()` gain `turnRetries` (default 0, so a failure still ends the run `error`), `turnRetryDelayMs` and `sleep`: with `turnRetries` set, the loop calls the model again after a call that ended with a `retryable` error, such as a stream cut off after output began. Every attempt is its own step and counts against `maxSteps`. A failed attempt's usage and cost count in the result and the budget.
+
+### Patch Changes
+
+- Updated dependencies [b7c1318]
+  - @buildanagent/gateway@0.1.0-alpha.14
+
+## 0.1.0-alpha.13
+
+### Minor Changes
+
+- 738a91a: Breaking Changes: `SafetyErrorCode` gains three codes for the safety package's USD cap on AI SDK calls: `invalid_budget` for a cap that isn't a finite number of dollars, 0 or more; `budget_exceeded` for a call refused because it would pass the cap; and `unknown_price` for a call refused because its cost can't be checked. The SDK never throws them, but a `switch` over every code now needs a case for each. `SafetyError`'s `name` is now typed `string`, so a subclass can carry its own name.
+
+### Patch Changes
+
+- @buildanagent/gateway@0.1.0-alpha.13
+
+## 0.1.0-alpha.12
+
+### Minor Changes
+
+- 46f4a9c: Breaking Changes: `SdkErrorCode` gains `invalid_recording`, `recording_expired` and `recording_mismatch`, and `ScriptStep` gains `StreamScript`, so an exhaustive `switch` over either needs a case for each.
+  
+  New in `@buildanagent/sdk/testing`: `autoResponder()` answers like a cooperative model, calling one offered tool with input from `synthesizeInput()` and then answering in text. It never calls a tool on `DEFAULT_DENIED_TOOLS` (the shell, file-editing and screen tools of the agent SDKs we verify, such as `bash`, `exec_command`, `apply_patch`, `write` and `edit`), and `denyTools` adds names or patterns. `recordPairs(model, { providerVersion, expiresAt })` records each call as a normalised request and response with every credential header and API key left out of its options, and `replayPairs(pairs)` plays them back through a `ReplayModel`. A replay refuses an expired recording, one from another SDK release line, one whose stamp differs from `expect`, and a call that sends a request other than the recorded one, each with a `RecordingError`. `scriptedApprovals(answers)` answers approval requests in order through `blockingApprovals()`, `scriptedMcpServer()` lends namespaced third-party tools with scripted results, and `testSigner()` and `TEST_KEY_ID` re-export the safety package's fixed-key test signer. `ScriptedModel` also plays a `StreamScript`, a list of recorded events, exactly as recorded.
+
+### Patch Changes
+
+- Updated dependencies [46f4a9c]
+  - @buildanagent/gateway@0.1.0-alpha.12
+
+## 0.1.0-alpha.11
+
+### Patch Changes
+
+- e58c676: `SafetyErrorCode` gains `invalid_effect`, the code a guarded write's scope, business key or options throw when they break a rule. The SDK never throws it yet, but a `switch` over every code now needs a case for it.
+- Updated dependencies [adddc21]
+  - @buildanagent/gateway@0.1.0-alpha.11
+
+## 0.1.0-alpha.10
+
+### Minor Changes
+
+- 0d5dede: Breaking Changes: `continueRun()` now resumes a paused context instead of refusing it, and refuses a context whose last assistant message has a tool call with no result and no pending request. That context used to reach the model with "No result was recorded for this tool call"; it now throws `SdkError` `invalid_run_options`, because its pause record was lost. A question from `clarificationTool()`, or any tool result with `pause`, now ends the run with the new stop reason `clarification_requested` and a signed `clarification` request in `pending`, instead of `stopped` with `stoppedBy: "clarification"`; the asking call gets no result until it is answered. `AgentEvent` gains `resolution_rejected`, so a `switch` over `RunResult["stopReason"]` or `AgentEvent["type"]` that was exhaustive needs a case for each.
+  
+  New: `continueRun(context, { resolutions, recheck })` verifies each waiting call's signed request with the run's `signer` and the input in `context.pendingInputs`. A verified `allow` runs the call once with the input its request signs and without `beforeToolCall`, after `recheck` allows it. A `deny` or an `answer` reaches the model as the call's result. A request or resolution that fails a check runs nothing, emits `resolution_rejected`, and asks again with a new request. Settling the requests is not a step. `blockingApprovals(handler)` answers approvals inside the run after emitting `approval_request`, and joins through `composeInterceptors()`. New exports: `ContinueOptions`, `ClarificationRequestedResult`, `ApprovalHandler`, `ApprovalDetails`, `ResolutionRejectionCause`, and the safety package's `Recheck` and `RejectionCause` types.
+
+### Patch Changes
+
+- @buildanagent/gateway@0.1.0-alpha.10
+
+## 0.1.0-alpha.9
+
+### Minor Changes
+
+- 645e006: Breaking Changes: a `beforeToolCall` gate that returns `ask` now pauses its call instead of blocking it. The run ends with the new stop reason `awaiting_approval`, whose `AwaitingApprovalResult` carries `pending`, one signed `SignedPendingRequest` per waiting call; `context.pending` holds the same requests, `context.pendingInputs` holds the input each one signs (the input the call would run with, after coercion, `repair` and any gate's replacement), and the new `approval_request` event reports each request with that input. An `ask` may carry an `input`, and `composeInterceptors()` passes an earlier gate's replacement on that way when a later gate asks.
+  
+  `idGenerator` now also makes request ids; one that repeats the run's id or an earlier request's id is replaced by a random UUID. A `switch` over `RunResult["stopReason"]` or `AgentEvent["type"]` that was exhaustive needs a case for each, and code that relied on `ask` blocking the call must now handle the pause. `continueRun()` throws `invalid_run_options` for a context with pending requests until it can resume them.
+  
+  New: the `signer` run option (default `ephemeralSigner()`), `createPendingRequest()`, which signs the same record outside a run, and re-exports of `ApprovalSigner`, `ephemeralSigner()`, `hmacSigner()`, `canonicalInputHash()`, `SignedPendingRequest`, `Resolution`, `SignPendingOptions`, `SafetyError` and `isSafetyError()` from the safety package, unchanged.
+
+### Patch Changes
+
+- @buildanagent/gateway@0.1.0-alpha.9
+
+## 0.1.0-alpha.8
+
+### Minor Changes
+
+- 835ad4c: New: `@buildanagent/sdk/otel` exports `otelObserver()`, an observer that turns a run into OpenTelemetry GenAI spans: one `invoke_agent` span, a `chat` span for each model call and an `execute_tool` span for each tool call. Spans carry no content unless you pass `captureContent: true`, and go only to the tracer you pass. The observer takes the trace context through the `parentContext` option and the required `childContext` option, offers `flush()` for `waitUntil`, and offers `endRun()` to end the spans of a run that threw. The subpath also exports the attribute-name constants, `SEMCONV_GENAI_COMMIT` and the structural types for the tracer and the observer. `@opentelemetry/api` is not a dependency of the SDK.
+
+### Patch Changes
+
+- @buildanagent/gateway@0.1.0-alpha.8
+
 ## 0.1.0-alpha.7
 
 ### Minor Changes

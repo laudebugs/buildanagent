@@ -1,0 +1,207 @@
+# @buildanagent/sdk
+
+> The buildanagent SDK: the agent loop, tools, hooks, signed pauses and budgets over the gateway.
+
+The sections of README.md and every public export, generated from this package's README and declaration files in the same commit as its code.
+
+## Docs
+
+- [Install the alpha with `pnpm add @buildanagent/sdk@alpha`](README.md#install-the-alpha-with-pnpm-add-buildanagentsdkalpha)
+- [Run an agent with `run()`](README.md#run-an-agent-with-run)
+  - [Every run ends with a stop reason](README.md#every-run-ends-with-a-stop-reason)
+  - [Three layers retry a failed model call, and the SDK's is off by default](README.md#three-layers-retry-a-failed-model-call-and-the-sdks-is-off-by-default)
+  - [`runOrThrow()` turns an unfinished run into an exception](README.md#runorthrow-turns-an-unfinished-run-into-an-exception)
+  - [Continue a conversation with `continueRun()`](README.md#continue-a-conversation-with-continuerun)
+  - [Abort a run with `run.abort()` or a signal](README.md#abort-a-run-with-runabort-or-a-signal)
+- [Three guards stop a runaway run](README.md#three-guards-stop-a-runaway-run)
+  - [`budgetUsd` checks the cost before each call](README.md#budgetusd-checks-the-cost-before-each-call)
+  - [The progress policy ends a run that repeats a failing call](README.md#the-progress-policy-ends-a-run-that-repeats-a-failing-call)
+  - [`depth` and `maxDepth` stop a tree of agents](README.md#depth-and-maxdepth-stop-a-tree-of-agents)
+- [Steer a running agent with `run.steer()`, or queue a follow-up with `run.followUp()`](README.md#steer-a-running-agent-with-runsteer-or-queue-a-follow-up-with-runfollowup)
+- [A run streams one closed set of events](README.md#a-run-streams-one-closed-set-of-events)
+  - [`includeRaw` adds the provider's own events](README.md#includeraw-adds-the-providers-own-events)
+- [`run_start` records which release and which defaults ran](README.md#run_start-records-which-release-and-which-defaults-ran)
+  - [`CAPABILITIES` tells a peer what it can rely on](README.md#capabilities-tells-a-peer-what-it-can-rely-on)
+  - [Unstable names start with `experimental_`](README.md#unstable-names-start-with-experimental_)
+  - [`llms.txt` indexes these docs for a coding agent](README.md#llmstxt-indexes-these-docs-for-a-coding-agent)
+- [Hooks change a run at six moments, and observers only watch](README.md#hooks-change-a-run-at-six-moments-and-observers-only-watch)
+  - [A step calls the interceptors in one fixed order](README.md#a-step-calls-the-interceptors-in-one-fixed-order)
+  - [A gate decides each tool call](README.md#a-gate-decides-each-tool-call)
+  - [`shouldStop` ends a run, or keeps it going](README.md#shouldstop-ends-a-run-or-keeps-it-going)
+  - [A throwing interceptor fails closed](README.md#a-throwing-interceptor-fails-closed)
+  - [`composeInterceptors()` joins several objects](README.md#composeinterceptors-joins-several-objects)
+  - [Observers watch without changing anything](README.md#observers-watch-without-changing-anything)
+- [A gate that asks ends the run with a signed pending request](README.md#a-gate-that-asks-ends-the-run-with-a-signed-pending-request)
+  - [Resume a pause with `continueRun()` and a resolution for each request](README.md#resume-a-pause-with-continuerun-and-a-resolution-for-each-request)
+  - [`blockingApprovals()` answers inside the run, where the person waits with the process](README.md#blockingapprovals-answers-inside-the-run-where-the-person-waits-with-the-process)
+  - [Pass `hmacSigner()` wherever a pause may resume in another process](README.md#pass-hmacsigner-wherever-a-pause-may-resume-in-another-process)
+  - [Sign a pause outside a run with `createPendingRequest()`](README.md#sign-a-pause-outside-a-run-with-creatependingrequest)
+  - [The signers and the record belong to the safety package](README.md#the-signers-and-the-record-belong-to-the-safety-package)
+- [Export a run as OpenTelemetry spans with `otelObserver()`](README.md#export-a-run-as-opentelemetry-spans-with-otelobserver)
+- [Define a tool with `defineTool()`](README.md#define-a-tool-with-definetool)
+- [A failed call becomes an error the model can fix](README.md#a-failed-call-becomes-an-error-the-model-can-fix)
+- [Arguments are coerced by three rules](README.md#arguments-are-coerced-by-three-rules)
+- [Report what a write did with an outcome](README.md#report-what-a-write-did-with-an-outcome)
+- [End the run with `outputTool()`, or ask with `clarificationTool()`](README.md#end-the-run-with-outputtool-or-ask-with-clarificationtool)
+- [A step's tool calls run in parallel](README.md#a-steps-tool-calls-run-in-parallel)
+- [`SdkError` marks a mistake in your code](README.md#sdkerror-marks-a-mistake-in-your-code)
+- [Test against a strict scripted model](README.md#test-against-a-strict-scripted-model)
+- [`autoResponder()` drives an agent without a script, and never calls a host tool](README.md#autoresponder-drives-an-agent-without-a-script-and-never-calls-a-host-tool)
+- [Record a real model once, then replay it offline with `replayPairs()`](README.md#record-a-real-model-once-then-replay-it-offline-with-replaypairs)
+- [Scripted doubles stand in for the approver and an MCP server](README.md#scripted-doubles-stand-in-for-the-approver-and-an-mcp-server)
+- [Tests give the same result every run](README.md#tests-give-the-same-result-every-run)
+- [The support-triage capstone shows the whole SDK working in one agent](README.md#the-support-triage-capstone-shows-the-whole-sdk-working-in-one-agent)
+- [A reference loop shows the real loop's shape in under 400 lines](README.md#a-reference-loop-shows-the-real-loops-shape-in-under-400-lines)
+- [Build the SDK with its dependencies](README.md#build-the-sdk-with-its-dependencies)
+
+## Exports from `@buildanagent/sdk`
+
+- `AGENT_EVENT_TYPES`: Every `AgentEvent` type.
+- `type AgentEvent`: One event of a run.
+- `type AgentEventBody`: The body of each event, without the fields of `EventBase`.
+- `interface ApprovalDetails`: What a blocking approval handler receives besides the request: the input it signs, and the run's abort signal.
+- `type ApprovalHandler`: Answers one approval request while the run waits: return `{ requestId: request.id, decision }`.
+- `interface ApprovalSigner`: Signs and verifies the payload of a pending request.
+- `interface AwaitingApprovalResult`: A run that paused because a `beforeToolCall` gate returned `ask`.
+- `blockingApprovals()`: Answers approvals inside the run, for a host where the person answers while the process waits, such as a terminal.
+- `interface BudgetResult`: A run that ended before a model call because that call could have taken the spend past `budgetUsd`.
+- `type CallOptions`: The options of one model call, without the abort signal, which the run supplies, and without `includeRaw`, which the run's own `includeRaw` sets.
+- `canonicalInputHash()`: Hashes a tool input: the SHA-256 of its canonical JSON (RFC 8785), as 64 lowercase hex digits.
+- `CAPABILITIES`: The SDK's capability strings, in the order the README lists them.
+- `interface ClarificationRequestedResult`: A run that paused because a tool, such as one from `clarificationTool()`, asked the user a question and no call waits for an approval.
+- `clarificationTool()`: Defines a tool the model calls to ask the user a question.
+- `interface ClarificationToolOptions`: The options of `clarificationTool()`.
+- `composeInterceptors()`: Joins interceptor objects into one.
+- `interface Context`: A run's conversation as plain JSON: the system prompt, every message so far and, for a run that paused, the signed requests it waits on.
+- `interface ContextEvent`: What `transformContext` receives: the conversation as it stands before the model call.
+- `interface ContinueOptions`: What `continueRun()` takes besides the shared options: the answers to a paused context's requests.
+- `continueRun()`: Goes on with a conversation from a result's `context`, or one you rebuilt from your own store.
+- `createPendingRequest()`: Signs an approval request for a tool call outside a run, such as a call your own code wants to make, with the payload a run writes when a gate returns `ask`: for the same fields, id and signer, the two requests and their signatures are identical.
+- `DEFAULT_PROGRESS`: The defaults, provisional until recorded runs retune them.
+- `DEFAULTS_HASH`: A hash of every default value, built-in prompt and tool description this SDK release uses: 64 lowercase hex digits, the SHA-256 of their canonical JSON.
+- `defineTool()`: Defines a tool.
+- `type DeliveryKind`: Whether a message steers the run now or follows up once it would otherwise end.
+- `interface DeliveryReceipt`: Proof that a queued message entered the transcript.
+- `interface DoneResult`: A run that finished: the model answered without calling a tool, or an output tool accepted its answer.
+- `interface EndedResult`: A run that ended before it finished.
+- `ephemeralSigner()`: A signer whose key is random and lives only in this process: every call in one process returns the same signer, and no other process can verify what it signs.
+- `interface ErrorResult`: A run that ended because a model call failed, or because an interceptor failed while the run fails closed.
+- `interface EventBase`: The fields every event carries.
+- `type GateDecision`: What `beforeToolCall` decides.
+- `hmacSigner()`: A signer over a key ring, for any host where a pause may resume in another process: it signs with the key named `current` and verifies with any key in `keys`.
+- `interface HmacSignerOptions`: The options of `hmacSigner()`: every key the signer may verify with, by id, and the id of the one it signs with.
+- `interface HookEventBase`: The fields every hook event carries.
+- `interface Interceptors`: The six interceptors, in the order a step calls them: `transformContext`, `beforeModelCall`, the model call, `afterModelCall`, then for each tool call `beforeToolCall` and `afterToolCall`, and last `shouldStop`.
+- `isSafetyError()`: True for a `SafetyError`, including one from another copy of the package.
+- `isSdkError()`: True for an `SdkError`, including one from another copy of the package.
+- `type JsonSchema`: A JSON Schema object, draft 2020-12 or draft 7, such as `{ type: "object", properties: { … } }`.
+- `type MaybePromise`: A value or a promise of one: a hook may be a plain function or an `async` one.
+- `interface ModelCallEvent`: What `beforeModelCall` receives: the request about to be sent.
+- `interface ModelCallPatch`: Changes to one model call's request.
+- `interface ModelCallRequest`: One model call's request as the loop sends it: the model, the context and the options.
+- `interface ModelResultEvent`: What `afterModelCall` receives: the model's finished response.
+- `nestedRunDepth()`: The `depth` and `maxDepth` options for a run that a tool starts: one level deeper than the tool's own run, under the same cap.
+- `interface NoProgressResult`: A run that stopped making progress.
+- `type Observer`: Watches a run: called with each event, in order, and never able to change the run.
+- `type OrNothing`: A value, or nothing: what a hook that may change something returns.
+- `outputTool()`: Defines a tool whose input is the run's final answer.
+- `interface OutputToolOptions`: The options of `outputTool()`.
+- `interface PendingCall`: The call a host is about to run, which a pending request must match before it runs.
+- `interface PendingRequestFields`: The fields of an approval request built outside a run: the call that waits, and why.
+- `interface ProgressPolicy`: The thresholds of the default progress policy.
+- `projectCallCost`: re-exported from `@buildanagent/gateway`.
+- `type Recheck`: Runs current policy for an approved call just before it runs, after its pending request has verified.
+- `type RejectionCause`: Why `verifyResolution()` refused.
+- `type Resolution`: A person's answer to a pending request: allow or deny for an approval, an answer for a clarification.
+- `type ResolutionCheck`: What `verifyResolution()` returns: the resolution, once every check passed, or why it refused.
+- `type ResolutionRejectionCause`: Why `continueRun()` refused a resolution or a stored request: one of `verifyResolution()`'s causes, `replayed` when two resolutions name one request, or `error` when the check itself threw, such as a signer whose `verify()` threw.
+- `interface ResultBase`: The fields every run result carries.
+- `run()`: Starts a run: the model answers `input`, runs the tools it asks for, and goes on until it answers without a tool call, an output tool accepts its answer, or a stop reason ends the run early.
+- `interface Run`: A run in progress.
+- `interface RunError`: Why a model call failed, copied from the failed message's `error`.
+- `interface RunInput`: What `run()` takes besides the shared options.
+- `interface RunOptions`: The options `run()` and `continueRun()` share.
+- `runOrThrow()`: Awaits a run and returns its result if it ended `done`.
+- `type RunResult`: What a run returns.
+- `class RunStoppedError`: Thrown by `runOrThrow()` for a run that ended any way other than `done`, such as one that reached `maxSteps`.
+- `class SafetyError`: Thrown for a mistake in how the safety package is called, and, as its subclass `BudgetExceeded`, for a model call refused under a USD cap.
+- `type SafetyErrorCode`: Why a `SafetyError` was thrown.
+- `interface SchemaIssue`: One reason a tool input failed its schema.
+- `SDK_PACKAGE`: The package's name, `@buildanagent/sdk`.
+- `class SdkError`: Thrown for a mistake in how the SDK is called.
+- `type SdkErrorCode`: Why an `SdkError` was thrown.
+- `interface SignedPendingRequest`: A pause waiting for a person: an approval of one tool call, or a question about it.
+- `interface SignPendingOptions`: Where `signPending()` takes its request id and time from.
+- `interface StepEvent`: What `shouldStop` receives, after a step's tool calls have their results.
+- `type StopDecision`: What `shouldStop` decides.
+- `interface StoppedResult`: A run that stopped before it finished, because a `shouldStop` hook ended it.
+- `interface ToolAnnotations`: What a tool says about itself, using the names of the Model Context Protocol's tool annotations.
+- `interface ToolCallEvent`: What `beforeToolCall` receives: a call whose input has passed the tool's schema.
+- `interface ToolContext`: What a tool's `execute` receives besides its input.
+- `interface ToolDefinition`: A tool the model can call.
+- `interface ToolEffect`: Declares that a tool changes the world, such as sending an email.
+- `type ToolExecutionMode`: How a tool's calls are scheduled within one step: `parallel` (the default) or `sequential`.
+- `type ToolExposure`: Whether a tool is sent to the model: `direct`, `deferred` or `hidden`.
+- `type ToolFailure`: A failed tool call, as the error formatter receives it.
+- `interface ToolResult`: What a tool returns.
+- `interface ToolResultEvent`: What `afterToolCall` receives: the result of a call that executed, before the model reads it.
+- `type ToolResultPatch`: Changes to a tool's result.
+- `type ToolSchema`: A tool's input schema: a Standard Schema that can also describe itself as JSON Schema (Zod 4.2 or later, ArkType, or Valibot through `toStandardJsonSchema()` from `@valibot/to-json-schema`), or a raw JSON Schema object.
+- `type UnfinishedResult`: Every run result except `done`, which `runOrThrow()` turns into a `RunStoppedError`.
+- `verifyResolution()`: Checks a resolution against its stored pending request before the call runs, failing closed.
+- `interface VerifyResolutionOptions`: The options of `verifyResolution()`.
+- `type WarningCode`: Why a `warning` event fired.
+- `type WriteOutcome`: What a write reports: one of the five kinds, with its retry rule and what the model should do next.
+
+## Exports from `@buildanagent/sdk/otel`
+
+- `type AttributeValueLike`: An attribute value a span accepts.
+- `GEN_AI_ATTRIBUTES`: The `gen_ai.*` and `error.*` attribute names the observer writes, keyed by what each holds.
+- `GEN_AI_CONTENT_ATTRIBUTES`: The names of the attributes that hold content: what the model and the tools read and wrote.
+- `GEN_AI_OPERATIONS`: The `gen_ai.operation.name` values the observer writes.
+- `otelObserver()`: Creates an observer that projects a run's events onto OpenTelemetry GenAI spans.
+- `type OtelObserver`: The observer `otelObserver()` returns: an `Observer` that can also flush its exporter and end a run that threw.
+- `interface OtelObserverOptions`: Options for `otelObserver()`.
+- `SEMCONV_GENAI_COMMIT`: The commit of `open-telemetry/semantic-conventions-genai` whose attribute and span names this module follows.
+- `interface SpanLike`: The span methods the observer calls.
+- `interface SpanOptionsLike`: What `startSpan` takes: the fields of `@opentelemetry/api`'s `SpanOptions` that the observer sets.
+- `interface TracerLike`: The tracer method the observer calls.
+
+## Exports from `@buildanagent/sdk/testing`
+
+- `interface AssistantScript`: One scripted model response.
+- `autoResponder()`: A responder step that acts like a cooperative model.
+- `interface AutoResponderOptions`: What `autoResponder()` takes.
+- `interface Clock`: An ISO 8601 clock (SDK plan §3.3).
+- `DEFAULT_DENIED_TOOLS`: The tool names `autoResponder()` never calls, whatever options it gets: tools that run commands on the host, change its files or drive its screen, as the agent SDKs we verify name them.
+- `type ExpectedStamp`: The stamp fields a replay can require to match exactly.
+- `fixedClock()`: A clock that starts at `start` and advances `stepMs` on every `now()` call.
+- `interface RecordedPair`: One model call: the normalised request it sent and the normalised events it streamed.
+- `interface RecordedRequest`: A frozen, detached snapshot of one call: the model, the context and the serialisable options.
+- `interface Recorder`: A model that records its calls, and the pairs recorded so far.
+- `class RecordingError`: Thrown by `recordPairs()` and `replayPairs()`.
+- `type RecordingErrorCode`: The codes a `RecordingError` carries.
+- `interface RecordingStamp`: What a recording was made against, and until when it may be replayed.
+- `interface RecordOptions`: What `recordPairs()` takes besides the model.
+- `recordPairs()`: Wraps `model` so that each call it makes is recorded as a `RecordedPair`, and returns the wrapper with the pairs so far.
+- `class ReplayModel`: A `ScriptedModel` that plays back recorded pairs.
+- `interface ReplayOptions`: What `replayPairs()` takes besides the pairs.
+- `replayPairs()`: Replays pairs from `recordPairs()` through a `ScriptedModel`: the n-th call streams the n-th pair's events exactly as they were recorded, after checking that it sent the recorded request.
+- `type ScriptedAnswer`: One scripted answer: allow or deny, with an optional reason and approver.
+- `scriptedApprovals()`: Answers the run's approval requests in order with `answers`, one per request.
+- `interface ScriptedApprovals`: The interceptors to give a run, with what the double saw.
+- `interface ScriptedMcpCall`: One call a scripted tool received.
+- `scriptedMcpServer()`: Builds the tools of a scripted MCP server.
+- `interface ScriptedMcpServer`: The server's tools, to pass to `run()`, and what they saw.
+- `interface ScriptedMcpServerOptions`: What `scriptedMcpServer()` takes.
+- `interface ScriptedMcpTool`: One tool the scripted server offers.
+- `class ScriptedModel`
+- `interface ScriptedModelOptions`
+- `type ScriptedToolStep`: One scripted result: a fixed result, or a function that builds one from the call's input.
+- `type ScriptStep`: A fixed response, or a responder that builds one from the recorded request.
+- `sequentialIds()`: Returns `prefix-1`, `prefix-2`, …
+- `interface StreamScript`: A response played back event for event, such as one `recordPairs()` captured from a real model.
+- `synthesizeInput()`: Builds a value that fits a JSON Schema, the way a cooperative model fills in a tool's arguments: `const`, then the first `enum` value, then `default`, then the first `anyOf` or `oneOf` branch, then a value of the first non-null `type` (`"example"` for a string, the `minimum` or 1 for a number, `false`, a one-item array, or an object with every listed property).
+- `TEST_KEY_ID`: The key id of `testSigner()`.
+- `testSigner()`: A signer with a fixed, published key, for tests and fixtures: every process produces the same signatures, so a signed pause can be checked into a test.
+- `class UnexpectedModelCallError`: Thrown when a `ScriptedModel` is called after its last scripted step.

@@ -11,6 +11,7 @@
 import type { AssistantMessage, ModelContent } from "@buildanagent/gateway";
 import { SdkError } from "../errors.js";
 import type { Clock } from "../testing/determinism.js";
+import type { SignedPendingRequest } from "../vendor/agent-safety/pending.js";
 import { coerceValue } from "./coerce.js";
 import { preparedSchemaOf } from "./define.js";
 import { formatToolError, REDACTED_MESSAGE } from "./format-error.js";
@@ -30,9 +31,10 @@ export interface PipelineContext {
   readonly clock: Clock;
   /**
    * The gate: asked once for each call that passed validation, one call at a time in model order, and before any call
-   * of the step executes. It returns `{ blocked }` to stop the call with that result, `{ input }` to run it with
-   * another input, which must pass the tool's schema, or `undefined` to let it run as it is. Without a gate every call
-   * is allowed.
+   * of the step executes. It returns `{ blocked }` to stop the call with that result, `{ paused, input }` to hold the
+   * call for a person with no result at all, with the signed request and the input it signs, `{ input }` to run it
+   * with another input, which must pass the tool's schema, or `undefined` to let it run as it is. Without a gate every
+   * call is allowed.
    */
   gate?(e: {
     readonly call: ToolCall;
@@ -60,14 +62,35 @@ export interface PipelineContext {
    */
   onResult?(entry: ToolCallResult): void;
   /**
+   * Receives each call the gate paused, with its signed request and the input that request signs, in model order and
+   * only once every call of the message has been gated.
+   */
+  onPause?(entry: PausedCall): void;
+  /**
    * Called as soon as a tool's `execute` returns or throws, before the result is checked, so the run knows a write
    * may have happened even when its result then throws an `SdkError`.
    */
   onExecuted?(call: ToolCall): void;
+  /**
+   * True when every call already holds the input a verified approval signed: each runs with that input exactly, once
+   * it still passes the tool's schema, and no gate is asked. Coercion and `repair` are skipped, because they ran
+   * before the input was signed.
+   */
+  readonly approved?: boolean;
 }
 
 /** What a gate decides besides letting a call run unchanged. */
-export type GateOutcome = { readonly blocked: ToolResult } | { readonly input: unknown };
+export type GateOutcome =
+  | { readonly blocked: ToolResult }
+  | { readonly paused: SignedPendingRequest; readonly input: unknown }
+  | { readonly input: unknown };
+
+/** A tool call a gate paused: its signed request, and the input the request signs. */
+export interface PausedCall {
+  readonly call: ToolCall;
+  readonly request: SignedPendingRequest;
+  readonly input: unknown;
+}
 
 /** One tool call and the result the model will read for it. */
 export interface ToolCallResult {
@@ -75,6 +98,8 @@ export interface ToolCallResult {
   readonly result: ToolResult;
   /** The input the gate put in place of the model's, present only when the gate replaced it. */
   readonly input?: unknown;
+  /** The input the call executed with, present only for a call that executed. */
+  readonly ranWith?: unknown;
 }
 
 function toolsByName(tools: readonly AnyTool[]): ReadonlyMap<string, AnyTool> {
@@ -241,7 +266,17 @@ interface Done {
   readonly result: ToolResult;
 }
 
-type Prepared = Ready | Done;
+/** A call held for a person: it never runs in this step and gets no result, so the transcript leaves it open. */
+interface Paused {
+  readonly kind: "paused";
+  readonly call: ToolCall;
+  readonly tool: AnyTool;
+  readonly request: SignedPendingRequest;
+  /** The input the request signs, which the call would run with once approved. */
+  readonly input: unknown;
+}
+
+type Prepared = Ready | Done | Paused;
 
 function resourceKeyOf(tool: AnyTool, input: unknown): string | undefined {
   if (tool.resourceKey === undefined) return undefined;
@@ -266,10 +301,14 @@ async function gateCall(
   tool: AnyTool,
   input: unknown,
   ctx: PipelineContext,
-): Promise<{ readonly blocked: ToolResult } | { readonly input: unknown; readonly replaced?: true }> {
+): Promise<
+  | { readonly blocked: ToolResult }
+  | { readonly paused: SignedPendingRequest; readonly input: unknown }
+  | { readonly input: unknown; readonly replaced?: true }
+> {
   const outcome = await ctx.gate?.({ call, tool, input });
   if (outcome === undefined) return { input };
-  if ("blocked" in outcome) return outcome;
+  if ("blocked" in outcome || "paused" in outcome) return outcome;
   const checked = await preparedSchemaOf(tool).validate(outcome.input);
   if (!checked.ok) {
     const issues = checked.issues.map((issue) => `${issue.path} ${issue.message}`.trim()).join("; ");
@@ -304,14 +343,33 @@ async function prepareCall(
   }
   // Checked before validation, so a cancelled run starts no `repair`, and again after, because `repair` may await.
   if (ctx.signal.aborted) return { kind: "done", call, result: notRun(call, tool, "run_aborted") };
+  if (ctx.approved === true) return prepareApproved(call, tool);
   const checked = await checkInput(tool, call);
   if (!checked.ok) return { kind: "done", call, result: checked.result };
   if (ctx.signal.aborted) return { kind: "done", call, result: notRun(call, tool, "run_aborted") };
   // Each call's gate settles before the next call's is asked, and every gate before any call executes.
   const gated = await gateCall(call, tool, checked.input, ctx);
   if ("blocked" in gated) return { kind: "done", call, result: gated.blocked };
+  if ("paused" in gated) return { kind: "paused", call, tool, request: gated.paused, input: gated.input };
   const replaced = "replaced" in gated;
   return { kind: "ready", call, tool, input: gated.input, replaced, key: resourceKeyOf(tool, gated.input) };
+}
+
+// A call whose input a verified approval signed runs with that input as it is. It is checked against the schema once
+// more, because the tool may have changed since the pause, but the checked value never replaces it.
+async function prepareApproved(call: ToolCall, tool: AnyTool): Promise<Prepared> {
+  const checked = await preparedSchemaOf(tool).validate(call.input);
+  if (!checked.ok) {
+    const failure: ToolFailure = {
+      kind: "invalid_input",
+      tool: tool.name,
+      callId: call.callId,
+      input: call.input,
+      issues: checked.issues,
+    };
+    return { kind: "done", call, result: failed(failure, tool) };
+  }
+  return { kind: "ready", call, tool, input: call.input, replaced: false, key: resourceKeyOf(tool, call.input) };
 }
 
 // Only a first-party tool's hint counts: an MCP server's annotations are claims by someone we don't control. A tool
@@ -351,7 +409,7 @@ function start(
   sequential: boolean,
   ctx: PipelineContext,
   batch: AbortController,
-): Promise<Settled<ToolResult>>[] {
+): (Promise<Settled<ToolResult>> | undefined)[] {
   const ready = prepared.filter((item): item is Ready => item.kind === "ready");
   const scheduled = schedule(
     ready.map((item) => ({
@@ -361,19 +419,22 @@ function start(
     })),
     sequential,
   );
-  const byItem = new Map(ready.map((item, index) => [item, scheduled[index]]));
-  return prepared.map(
-    (item) =>
-      (item.kind === "done" ? undefined : byItem.get(item)) ??
-      Promise.resolve<Settled<ToolResult>>({ ok: true, value: (item as Done).result }),
+  const byItem = new Map<Prepared, Promise<Settled<ToolResult>> | undefined>(
+    ready.map((item, index) => [item, scheduled[index]]),
   );
+  return prepared.map((item) => {
+    if (item.kind === "paused") return undefined;
+    if (item.kind === "done") return Promise.resolve<Settled<ToolResult>>({ ok: true, value: item.result });
+    return byItem.get(item);
+  });
 }
 
 /**
  * Runs the calls of one step. Each call is checked and gated one at a time, in model order, before any call executes.
  * The calls that passed then start together, except that a call to a sequential tool makes the whole step run one
  * call at a time, even when that call itself fails a check, and calls that share a `resourceKey` queue in model
- * order. Results reach `ctx.onResult` in model order, each as soon as every result before it is in.
+ * order. Results reach `ctx.onResult` in model order, each as soon as every result before it is in. A call the gate
+ * paused gets no result and is left out; each one reaches `ctx.onPause`, in model order, once every call is gated.
  *
  * A programmer error (an `SdkError`) in one call fires the signal the other calls hold, waits for them to stop, and
  * is then thrown, after every other call's result has been passed on: a call after the failing one may have run and
@@ -396,6 +457,7 @@ async function runCalls(
   } catch (error) {
     // None of these calls has executed, and none will. The first error is the one thrown, so a receiver that throws
     // here must not hide it or stop the other calls from getting their results.
+    // A paused call gets a not-run result here too: the run is failing, so its pause is never reported or returned.
     for (const item of prepared) {
       const result = item.kind === "done" ? item.result : notRun(item.call, item.tool, "sibling_failed");
       try {
@@ -405,6 +467,11 @@ async function runCalls(
       }
     }
     throw error;
+  }
+  // Reported only now, once every call has been gated, so a step that fails while its calls are checked never reports
+  // a pause and then gives the same call a result.
+  for (const item of prepared) {
+    if (item.kind === "paused") ctx.onPause?.({ call: item.call, request: item.request, input: item.input });
   }
   const sequential = calls.some((call) => byName.get(call.name)?.executionMode === "sequential");
   const { batch, release } = batchController(ctx.signal);
@@ -421,13 +488,14 @@ async function runCalls(
 // cancels the siblings, and the results after it are still passed on.
 async function deliver(
   prepared: readonly Prepared[],
-  running: readonly Promise<Settled<ToolResult>>[],
+  running: readonly (Promise<Settled<ToolResult>> | undefined)[],
   ctx: PipelineContext,
   batch: AbortController,
 ): Promise<ToolCallResult[]> {
   const results: ToolCallResult[] = [];
   let failure: { readonly error: unknown } | undefined;
   for (const [index, pending] of running.entries()) {
+    if (pending === undefined) continue;
     const settled = await pending;
     if (!settled.ok) {
       failure ??= { error: settled.error };
@@ -435,7 +503,8 @@ async function deliver(
     }
     const item = prepared[index] as Prepared;
     const replaced = item.kind === "ready" && item.replaced ? { input: item.input } : {};
-    const entry: ToolCallResult = { call: item.call, result: settled.value, ...replaced };
+    const ran = item.kind === "ready" ? { ranWith: item.input } : {};
+    const entry: ToolCallResult = { call: item.call, result: settled.value, ...replaced, ...ran };
     results.push(entry);
     try {
       ctx.onResult?.(entry);
@@ -458,9 +527,11 @@ export async function runToolCall(
   tools: readonly AnyTool[],
   ctx: PipelineContext,
 ): Promise<ToolResult> {
-  const { onStart: _start, onResult: _result, ...quiet } = ctx;
+  const { onStart: _start, onResult: _result, onPause: _pause, ...quiet } = ctx;
   const [entry] = await runCalls([call], () => undefined, tools, quiet);
-  return (entry as ToolCallResult).result;
+  if (entry === undefined)
+    throw new SdkError("invalid_hook_result", `runToolCall() can't pause the call "${call.name}"`);
+  return entry.result;
 }
 
 /**

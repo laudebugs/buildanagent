@@ -8,6 +8,7 @@ import type { AssistantMessage, ContentBlock, DumpedOptions, ModelContext, Model
 import type { RunError, RunResult } from "./result.js";
 import type { DeliveryReceipt } from "./steering.js";
 import type { ToolResult } from "./tools/types.js";
+import type { RejectionCause, SignedPendingRequest } from "./vendor/agent-safety/pending.js";
 
 /** The fields every event carries. `seq` counts the run's events from 0; `stepIndex` counts its model calls from 0. */
 export interface EventBase {
@@ -31,15 +32,25 @@ export interface ModelCallRequest {
  */
 export type WarningCode = "max_steps" | "model_warning";
 
+/**
+ * Why `continueRun()` refused a resolution or a stored request: one of `verifyResolution()`'s causes, `replayed` when
+ * two resolutions name one request, or `error` when the check itself threw, such as a signer whose `verify()` threw.
+ * `unknown_request` also covers a resolution that names no request in the context.
+ */
+export type ResolutionRejectionCause = RejectionCause | "replayed" | "error";
+
 /** The body of each event, without the fields of `EventBase`. */
 export type AgentEventBody =
   | {
       readonly type: "run_start";
       readonly sdkVersion: string;
       readonly specVersion: "v1";
-      /** Reserved for a hash of the run's defaults; empty for now. */
+      /**
+       * `DEFAULTS_HASH`: a hash of every default value, built-in prompt and tool description this SDK uses. It
+       * changes whenever one of them does, so a stored run shows whether a change in behaviour came with new defaults.
+       */
       readonly defaultsHash: string;
-      /** Reserved for the SDK's capability names; empty for now. */
+      /** `CAPABILITIES`: the behaviours this SDK release supports, such as `steering_v1`. */
       readonly capabilities: readonly string[];
       readonly model: ModelRef;
     }
@@ -75,17 +86,66 @@ export type AgentEventBody =
     }
   /** `transformContext` returned the messages for one model call: `before` messages in, `after` messages out. */
   | { readonly type: "context_transformed"; readonly before: number; readonly after: number }
-  /** The model is retrying a failed request; `attempt` is 1 for the first retry. */
-  | { readonly type: "retry"; readonly attempt: number; readonly delayMs: number; readonly error: string }
+  /**
+   * A failed model call is being retried; `attempt` is 1 for the first retry. `layer` says which retry it is.
+   * `gateway`: the model retries an HTTP request that failed before any output. Its events follow `model_call_start`,
+   * and the failed attempt streamed no output, only any `raw` events, which this event supersedes. `turn`: the loop
+   * re-issues a call that ended with a `retryable` error, which `turnRetries` turns on. This event comes right after
+   * that call's `model_call_end`, whose message is superseded: it is not in the transcript. A UI that rendered the
+   * call's streamed deltas or kept its `raw` events should discard them, because the retry streams its own. Once the
+   * wait ends, the failed call's `step_end` follows, then the retry's own `step_start` and `model_call_start` at the
+   * next `stepIndex`.
+   */
+  | {
+      readonly type: "retry";
+      readonly layer: "gateway" | "turn";
+      readonly attempt: number;
+      readonly delayMs: number;
+      readonly error: string;
+    }
+  /**
+   * One event of the provider's own stream, emitted only when the run set `includeRaw`. `event` is the gateway's
+   * `raw` payload, unchanged: for the Anthropic and OpenAI Chat adapters, `{ event, data }`, one server-sent event
+   * with its data unparsed. Its shape is the provider's and outside the SDK's versioning. Raw events come between a
+   * call's `model_call_start` and its `model_call_end`, each before the delta events it produced; those of an
+   * attempt the gateway retried come before that `retry` event and are superseded by it. They hold the model's
+   * output and provider metadata, so keep them out of logs you would keep content out of.
+   */
+  | { readonly type: "raw"; readonly event: unknown }
   /**
    * A queued steer or follow-up entered the transcript as a user message, at the start of the step named by
    * `receipt.stepIndex`, before its model call. `receipt.kind` tells the two apart.
    */
   | { readonly type: "steer_applied"; readonly receipt: DeliveryReceipt }
   /**
-   * An interceptor or an observer threw. `hook` names it (`beforeToolCall`, `observer` and so on) and `error` is the
-   * thrown message. The run goes on or fails by the interceptors' `onFailure` setting; a failed observer never
-   * affects it.
+   * The run signed a pending request for a call that waits for a person; `request.kind` tells the two kinds apart.
+   * An `approval`: a gate returned `ask`. `input` is the input the request signs and the call would run with once
+   * approved: the model's input after coercion, `repair` and any gate's replacement, so show the approver this, not
+   * the model's raw arguments. It comes once every call of the step has been gated, after the call's
+   * `tool_call_start` and before any call of the step runs; under `blockingApprovals()` it comes before the run waits
+   * for the answer. A `clarification`: a tool asked the user `request.question`, and `input` is the input it ran
+   * with; it comes once every call of the step has its result. A waiting call gets no `tool_call_end`, and the run
+   * ends `awaiting_approval` or `clarification_requested` after the step.
+   */
+  | { readonly type: "approval_request"; readonly request: SignedPendingRequest; readonly input: unknown }
+  /**
+   * `continueRun()` refused a resolution, or a stored request it had to check: the call did not run, and unless the
+   * resolution named no request in the context, the call asks again with a new request, which an `approval_request`
+   * event follows. `requestId` is the id the resolution or the stored request gave, and `callId` the waiting call's,
+   * when there is one. It holds no signature and no key.
+   */
+  | {
+      readonly type: "resolution_rejected";
+      readonly requestId: string;
+      readonly callId?: string;
+      readonly cause: ResolutionRejectionCause;
+    }
+  /**
+   * An interceptor or an observer threw, a pause could not be signed, or a `sleep` passed to `run()` rejected. `hook`
+   * names it (`beforeToolCall`, `observer`, `signer`, `sleep` and so on) and `error` is the thrown message; for
+   * `signer` it is a fixed text with the safety package's error code, never the signer's own message. The run goes on
+   * or fails by the interceptors' `onFailure` setting; a failed observer never affects it, a call whose pause could
+   * not be signed is blocked, and a rejected `sleep` ends the wait before a turn retry early.
    */
   | { readonly type: "hook_error"; readonly hook: string; readonly error: string }
   | { readonly type: "warning"; readonly code: WarningCode; readonly detail: string }
@@ -101,6 +161,7 @@ export const AGENT_EVENT_TYPES = Object.freeze([
   "step_start",
   "model_call_start",
   "retry",
+  "raw",
   "text_start",
   "text_delta",
   "text_end",
@@ -116,6 +177,8 @@ export const AGENT_EVENT_TYPES = Object.freeze([
   "hook_error",
   "steer_applied",
   "tool_call_start",
+  "approval_request",
+  "resolution_rejected",
   "tool_call_update",
   "tool_call_end",
   "step_end",

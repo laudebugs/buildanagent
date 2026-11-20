@@ -31,7 +31,7 @@ This log checks every factual claim in [build-agent-platform.md](../build-agent-
 | 18 | The verified pins are Cloudflare `agents` 0.33.0 and `ai` 7.0.162 | ✅ | `verify/cloudflare-agents/package.json` and `verify/vercel-ai-sdk/package.json` |
 | 19 | Both harnesses have type-check and mock-model runners (`typecheck-examples.mjs`, `mock-model.mjs`) | ✅ | Their `scripts/` folders |
 | 20 | Cloudflare `agents` gates tools with `needsApproval`; the AI SDK uses `toolApproval` | ✅ | [Cloudflare skill](../../../.agents/skills/cloudflare-agents/SKILL.md) (on four lines) and [Vercel AI SDK skill](../../../.agents/skills/vercel-ai-sdk/SKILL.md) (`toolApproval: { issueRefund: "user-approval" }`) |
-| 21 | Todo B15 provides `hmacSigner()` over a key ring | ✅ | [B15](../../todos/ready/B15-signed-pauses.md), scope list |
+| 21 | Todo B15 provides `hmacSigner()` over a key ring | ✅ | [B15](../../todos/done/B15-signed-pauses.md), scope list |
 | 22 | SDK D9 checks the budget before each model call | ✅ | [ADR 0009](../../decisions/0009-pre-emptive-budget.md) title |
 | 23 | HD11 keeps transcripts until a retention period is set | ✅ | [Harness plan](../build-harness.md), HD11 heading |
 | 24 | A new SDK becomes a target only through the eight-step reference process in AGENTS.md | ✅ | [AGENTS.md](../../../AGENTS.md#process-for-documenting-an-sdk), "Every SDK reference follows the same eight steps" |

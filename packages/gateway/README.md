@@ -56,10 +56,26 @@ This check reads a stream and throws a `StreamContractError` at the first broken
 ```ts
 import { assertStreamContract } from "@buildanagent/gateway/testing";
 
-const events = await assertStreamContract(adapter.stream(model, context, {}));
+const events = await assertStreamContract(adapter.stream(model.ref, context, {}));
 ```
 
 `complete()` folds a stream into its terminal message. It returns an error terminal's message instead of throwing, so a failed call still gives you its partial content and usage.
+
+## Set `includeRaw` to see the provider's own events
+
+Set `includeRaw: true` on a call to see the fields the normalized events drop, such as a response id or a service tier. The stream then also carries one `raw` event for each event of the provider's stream, in the order they arrived on the wire. Each raw event comes before the normalized events it produced, and none follows the terminal:
+
+```ts
+for await (const event of model.stream(context, { includeRaw: true })) {
+  if (event.type === "raw") inspect(event.event); // { event: "message_start", data: "{\"type\":\"message_start\",...}" }
+}
+```
+
+Both adapters read a server-sent event stream, so for both the payload is one server-sent event as `{ event, data }`: the event's name, `"message"` when it named none, and its `data:` lines joined by newlines. The gateway leaves `data` unparsed. That choice keeps every event intact, because two kinds of OpenAI-compatible data are not JSON: the `[DONE]` that ends the stream, which arrives as the string `"[DONE]"`, and an `error` event's bare text. The payload's type is `unknown`, because it is the provider's shape: it follows the provider's API version, not the gateway's, and it can change without a gateway release.
+
+A raw event is not output. It never changes the normalized events, the final message, its usage or its cost, and `complete()` skips it. The gateway still retries a call that has streamed only raw events and warnings. Such a failed attempt's raw events have already reached you, and the `retry` event that follows marks them superseded, so drop the raw events you saw since the last `start` or `retry`. An HTTP error response, such as a 529, has no event stream and so gets no raw event; its status and message are in the `error` terminal. `assertStreamContract()` accepts a raw event anywhere between `start` and the terminal.
+
+The option is off by default, and with it off a stream is exactly what it was before the option existed. A raw event holds the model's output and provider metadata, so keep raw events out of any log you keep content out of. The `raw` member joined `ModelEvent` without a new spec version, so adapters still declare `specificationVersion: "v1"`. A `switch` over a model event's `type` that must stay exhaustive needs a `raw` case, even though no adapter emits one unless you ask.
 
 ## A model is an adapter object plus a model id
 
@@ -93,9 +109,47 @@ const catalog = parseCatalog({ models: [...defaultCatalog.models, myEntry] });
 const model = createModel({ adapter, id: "my-model", catalog });
 ```
 
+A fine-tuned model is a new model id with its own rates, and the shipped catalog lists none, so the gateway prices one as `"unknown"` until you add an entry for it. Give the entry the exact id your provider returned, the tuned rates, today's date as `asOf`, and the provider's pricing page as the rates source. Set its limits and its `images` and `reasoning` flags too. Without an entry, or with the flags left out, the model gets the adapter's defaults, and the OpenAI adapter's defaults send no images. Keep the spread of `defaultCatalog.models`. A catalog that holds only the tuned entry gives every other model you use an unknown price, and the adapter's default limits and flags in place of its own.
+
+This sample prices a tuned GPT-4.1 mini next to the shipped models. Its rates are an example copied from OpenAI's pricing page on 2026-11-19, which lists tuned GPT-4.1 mini at twice the base rates, so check the page before you rely on them. Its limits and flags are the base model's, because OpenAI's model page and fine-tuning guide give none for a tuned model. As of November 2026, OpenAI marks GPT-4.1 mini deprecated and has closed fine-tuning to new users, so the sample shows the shape of an entry rather than a model to start tuning:
+
+```ts
+import { createModel, defaultCatalog, parseCatalog, type CatalogEntry } from "@buildanagent/gateway";
+
+const tuned: CatalogEntry = {
+  provider: "openai",
+  id: "ft:gpt-4.1-mini-2025-04-14:my-org::AbC123xy",
+  rates: [
+    {
+      upToInputTokens: null,
+      uncachedInput: 0.8,
+      cacheRead: 0.2,
+      cacheWrite: { "5m": 0.8, "1h": 0.8 },
+      output: 3.2,
+    },
+  ],
+  contextWindow: 1_047_576,
+  maxOutputTokens: 32_768,
+  images: true,
+  reasoning: false,
+  asOf: "2026-11-19",
+  sources: {
+    rates: "https://developers.openai.com/api/docs/pricing",
+    contextWindow: "https://developers.openai.com/api/docs/models/gpt-4.1-mini",
+    maxOutputTokens: "https://developers.openai.com/api/docs/models/gpt-4.1-mini",
+  },
+  note: "Tuned rates copied on 2026-11-19. A cache write costs the uncached input rate. The limits and flags are the base model's.",
+};
+
+const catalog = parseCatalog({ models: [...defaultCatalog.models, tuned] });
+const model = createModel({ adapter, id: tuned.id, catalog });
+```
+
 Each entry records its rate tiers, `contextWindow`, `maxOutputTokens`, the `asOf` date it was copied, and the provider page each number came from. `contextWindow` is the most input one request can send, so a model whose page caps input below its full window, such as `gpt-5.4-mini`, records the input cap. `parseCatalog()` checks a catalog read from JSON and throws a `GatewayError` with code `invalid_catalog` that names the first bad field. `createModel()` runs the same check on a catalog you pass, so a typed catalog with tiers out of order or a negative rate throws too.
 
 Prices change often, so refresh the shipped catalog before every minor release. Copy each number from the provider's own pricing and model pages, record each page in the entry's `sources`, and set `asOf` to the day you copied them. The repository's CI warns about any shipped entry older than 90 days, and `staleCatalogEntries(catalog, now)` runs the same check on a catalog you maintain.
+
+An entry may also carry `retires`: the `YYYY-MM-DD` date on which the provider says the model stops answering. `parseCatalog()` rejects a malformed date like it does `asOf`. Copy `retires` from the provider's own deprecations page, and name that page in the entry's `note`. Leave it out when the provider has published no date. As of November 2026, the shipped catalog sets none: Anthropic's table gives active models only a "not sooner than" floor, which is not a retirement date, and OpenAI lists no shutdown date for `gpt-5.4-mini`. OpenAI retires a tuned model with its base model, so give such an entry the base model's date. The gateway never refuses a model because of `retires`; instead, the repository's CI warns when a shipped entry's date is 90 days away or less, or past. Because the date is a copy as of `asOf`, like a price, the warning asks you to check the provider's page and refresh the entry; it doesn't say the model has gone.
 
 ## You can project a call's cost before you send it
 
@@ -277,6 +331,8 @@ Three rules keep a retry from doing harm. First, once a content event has reache
 
 A failed attempt still costs tokens, so the final message's `usage` and `cost` add up every attempt, not only the last, and `lastAttemptUsage` keeps the last attempt's usage on its own. If any attempt's cost is unknown, the total is unknown too, and if any attempt's usage is unreported, the summed usage is unreported as well. An attempt whose stream threw reported no usage, so it adds no tokens, but its cost is unknown, because the request may have reached the provider and been billed before the stream failed.
 
+A caller that retries above the model, such as the SDK's loop, can follow the same rules. The gateway exports `retryDelay(initialDelayMs, n, hintMs)`, the wait before retry `n` counted from 1: the backoff or the hint, whichever is longer, capped at `MAX_RETRY_DELAY_MS` (60 seconds). `retryHintMs(message)` reads a failed message's `error.retryAfterMs`, or 0 when there is none, and `abortableSleep` is the default `Sleep`. `DEFAULT_INITIAL_RETRY_DELAY_MS` is 2000. A hint over `MAX_RETRY_DELAY_MS` means the failure should not be retried.
+
 An adapter whose stream throws, for example on a dropped connection, is treated like one that ends with an error. A failed fetch, or a response body cut off mid-stream, is retried, and any other throw ends the call with a `fatal` error event, so an adapter's failure never makes `stream()` throw. A throwing `onRequest` hook runs inside the attempt, so it also ends the call with a `fatal` error. A middleware that throws runs outside the call, so its error makes `stream()` throw.
 
 Adapters sort a failed request into the four kinds, `retryable`, `quota`, `overflow` and `fatal`, with `classifyError()`, from its HTTP status and the provider's error code or message.
@@ -302,5 +358,18 @@ import { mockTransport, serverSentEvents } from "@buildanagent/gateway/testing";
 
 const transport = mockTransport("anthropic-messages", [{ body: serverSentEvents(events), chunkSize: 7 }]);
 ```
+
+To test a client that needs a socket, such as one in another process, start a server with `startMockServer({ api, script, log })`. It plays the script as `mockTransport()` does, on `127.0.0.1` by default, and refuses to bind to any address outside 127.0.0.0/8 or `::1`. A request to another path or past the end of the script gets a 400 error body. With `log`, the server appends one JSON line per request, and every credential header and every key-carrying query parameter, such as `?key=` or `?api_key=`, in the log and in `requests` reads `[redacted]`. The server plays requests one at a time, so each log line belongs to its own request even when clients send at once. Any failure, such as a log file it can't write, reaches the client as a 400 instead of leaving it waiting. Pass the server's `transport` with `baseURL: server.url`, so an in-process adapter reaches the server while real model requests are off:
+
+```ts
+const server = await startMockServer({ api: "anthropic-messages", script, log: "requests.jsonl" });
+const adapter = anthropic({ apiKey: "test", baseURL: server.url, transport: server.transport });
+```
+
+The server needs Node's `http` module, which it imports only when it starts, so the testing export still loads on every target. `stripCredentials()`, `redactHeaders()`, `redactUrl()` and `CREDENTIAL_HEADERS` are the credential helpers the server and the SDK's recorder use. `stripCredentials()` also drops credential `[name, value]` pairs and `Headers` entries, and redacts `Bearer` and `Basic` strings and URL credentials.
+
+## `llms.txt` indexes these docs for a coding agent
+
+The package ships an [`llms.txt`](llms.txt) beside this README. It lists this README's sections and every public export of every entry point, with the first sentence of each export's doc comment, so an agent that writes code against the gateway reads the API of the version you installed. A test rebuilds the file from this README and the declaration files and fails when the committed copy differs. The same test type-checks every TypeScript block in this README against the package, and fails when the README names an export the package lacks.
 
 Next: [@buildanagent/sdk](../sdk/README.md), which tests an agent against a scripted model.

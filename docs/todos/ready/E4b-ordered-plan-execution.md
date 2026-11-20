@@ -8,7 +8,7 @@
 | Status | `ready` |
 | Plan | [Close SDK gaps §4](../../plans/close-sdk-gaps.md#4-round-e-and-its-todos) |
 | Round / milestone | Round E (close the SDK gaps), M5e |
-| Depends on | [E4a](E4a-plan-approval-record.md) |
+| Depends on | [E4a](../done/E4a-plan-approval-record.md) |
 | Size | M |
 
 ## Goal
@@ -19,7 +19,7 @@ Run an approved plan in order, compensate the steps before the pivot if anything
 
 - [Sagas report, the harness owns order, approval and outcome](../../research/reversible-actions/sagas.md#the-harness-not-the-engine-owns-order-approval-and-outcome): the five parts a saga tool needs, including per-step `compensate` functions and a persisted compensation log.
 - [Sagas report, five outcomes](../../research/reversible-actions/sagas.md#the-agent-needs-five-outcomes-and-only-masstransit-tells-compensated-from-compensation-failed): the `SagaOutcome` union and the `pivot_unknown` phase.
-- [E1](../done/E1-safety-core-outcomes.md) and [E2](E2-effect-identity-crash-rule.md): the outcome kinds and the effect keys every forward and compensating call uses.
+- [E1](../done/E1-safety-core-outcomes.md) and [E2](../done/E2-effect-identity-crash-rule.md): the outcome kinds and the effect keys every forward and compensating call uses.
 
 ## Scope
 

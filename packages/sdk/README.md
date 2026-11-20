@@ -2,7 +2,7 @@
 
 The SDK runs your agent's loop over [`@buildanagent/gateway`](../gateway/README.md): it calls the model, runs the tools the model asks for, and stops when the work is done. Its testing export lets you test that agent offline against a scripted model, with no API key.
 
-As of November 2026 the package holds the loop, tool definitions, hooks and the testing export. Approvals come next.
+As of November 2026 the package holds the loop, tool definitions, hooks, signed pauses for approval and their resumption, and the testing export.
 
 ## Install the alpha with `pnpm add @buildanagent/sdk@alpha`
 
@@ -42,15 +42,36 @@ A failed model call or a failing tool never makes a run throw. The run ends with
 
 - **`done`**: the model answered without calling a tool, or an output tool accepted its answer. A text answer cut off at `maxOutputTokens` also ends `done`, so check whether the last message's `stopReason` is `"length"` before you show it as complete.
 - **`max_steps`**: the run made `maxSteps` model calls, 20 by default, and the model still wanted to go on. The run also emits a `warning` event with `code: "max_steps"`, so a cap that cut a run short shows up in your logs.
-- **`error`**: a model call failed. `result.error` copies the failure's `kind`, `message` and HTTP `status`. Its `kind` is `overflow` for a request too large for the model's window, `quota` for an account out of credit, `retryable` for a temporary failure that outlasted the gateway's retries, `hook` for an interceptor that threw while the run fails closed, `unknown_price` for a budgeted run that can't price a call, and `fatal` otherwise.
+- **`error`**: a model call failed. `result.error` copies the failure's `kind`, `message` and HTTP `status`. Its `kind` is `overflow` for a request too large for the model's window, `quota` for an account out of credit, `retryable` for a temporary failure that outlasted the gateway's retries and your `turnRetries`, `hook` for an interceptor that threw while the run fails closed, `unknown_price` for a budgeted run that can't price a call, and `fatal` otherwise.
 - **`aborted`**: you aborted the run.
-- **`stopped`**: a tool from `clarificationTool()` asked the user a question, and `result.stoppedBy` is `"clarification"`; or a `shouldStop` hook ended the run, and `result.stoppedBy` is the reason it gave.
+- **`stopped`**: a `shouldStop` hook ended the run, and `result.stoppedBy` is the reason it gave.
 - **`no_progress`**: the default progress policy found the model repeating a failing call, or a `shouldStop` hook ended the run with `{ stop: "no_progress", reason }`. `result.reason` says why.
 - **`budget`**: the next call could have taken the run past `budgetUsd`, so the run ended without making it. `result.spentUsd`, `result.projectedUsd` and `result.budgetUsd` give the numbers.
+- **`awaiting_approval`**: a `beforeToolCall` gate returned `ask`, so the call waits for a person. `result.pending` holds one signed request for each waiting call, as [the pause section](#a-gate-that-asks-ends-the-run-with-a-signed-pending-request) explains.
+- **`clarification_requested`**: a tool from `clarificationTool()` asked the user a question, and no call waits for an approval. `result.pending` holds a signed request of kind `clarification` for each question, as [the clarification section](#end-the-run-with-outputtool-or-ask-with-clarificationtool) explains.
 
-`maxSteps` counts model calls, so an output call that fails its schema spends one of them. The tool calls of the last allowed response still run, so every call in the transcript has a result.
+`maxSteps` counts model calls, so an output call that fails its schema spends one of them. The tool calls of the last allowed response still run, so every call in the transcript has a result, except a paused call, which waits for a person.
 
 Only the `done` result carries `output`. TypeScript rejects `result.output` until you have checked `result.stopReason === "done"`, so an unfinished run can't pass for a finished one. Every result carries `usage` and `cost`, summed over the run's model calls, and `steps`, the number of calls. `result.messages` holds the messages this run added. `result.context` holds the whole conversation, ready to continue.
+
+### Three layers retry a failed model call, and the SDK's is off by default
+
+Three layers can retry a failed model call: the gateway, the loop and your own code. The gateway re-sends an HTTP request that failed before any output, twice by default. It never replays a call after output has started, because you have already seen that text. The loop's `turnRetries` covers that case: it calls the model again after a call that ended with a `retryable` error, such as a stream cut off after it began to answer. Without `turnRetries` the run ends `error` on the first failure, and `continueRun()` is how your code tries again.
+
+```ts
+const result = await run({ model, system, input, turnRetries: 3 }).result;
+```
+
+`turnRetries: 3` retries as Pi does. A turn retry follows these rules:
+
+- **Only `retryable` failures retry.** `overflow`, `quota` and `fatal` end the run, and so does a `retryable` failure whose `error.retryAfterMs` is over the gateway's 60-second cap, which keeps its hint on the last message so you can wait and call again.
+- **The wait matches the gateway's.** The first retry waits `turnRetryDelayMs` (2000 by default), each later retry of a streak waits twice as long, and a longer `retryAfterMs` hint wins, up to 60 seconds. Pass `sleep` to skip the wait in a test; a `sleep` that rejects ends the wait early and emits a `hook_error` event with `hook: "sleep"`. Aborting the run during the wait ends it `aborted`.
+- **A retry costs a step.** Every attempt counts against `maxSteps`, so `maxSteps` still bounds the worst case. A run that `maxSteps` stops after at least one retry ends `max_steps`, with the last failed message in its transcript; a first failure on the last step ends `error`, as it would without `turnRetries`. The count of retries restarts after each call that succeeds.
+- **A retry costs money.** The result's `usage` and `cost` include every failed attempt, and `budgetUsd` checks before each retry, counting what the failed attempts cost. A retry the budget can't cover is never announced: the run ends `budget` with the failed message in its transcript. When a failed attempt's cost is unknown, such as after a stream cut off before the provider reported usage, a budgeted run can't check its spend. It ends `error` with that failure's own error instead of retrying.
+- **The transcript drops the failed message.** `result.context.messages` holds only the response the run went on with, and the failed call's tool calls never run. `afterModelCall` sees only that response, while `transformContext` and `beforeModelCall` run for every attempt. Their `lastUsage` stays the usage of the last response the run went on with.
+- **The layers multiply.** A call can send up to `(retries + 1) * (turnRetries + 1)` requests, nine with the defaults and `turnRetries: 2`, so lower one of the two when a provider is failing hard.
+
+A failed attempt ends with `model_call_end`, whose message carries its real usage. A `retry` event with `layer: "turn"` follows at once. After the wait, the failed attempt's `step_end` arrives, then the retry's `step_start` and `model_call_start`: every attempt is a step with its own `stepIndex`. A log writer should therefore drop a `model_call_end` that a turn `retry` follows, and keep every other one. A UI that rendered the failed call's text deltas must discard them when the `retry` event arrives, because the retry streams its own text.
 
 ### `runOrThrow()` turns an unfinished run into an exception
 
@@ -62,7 +83,7 @@ const result = await runOrThrow(run({ model, system, input }));
 
 ### Continue a conversation with `continueRun()`
 
-`continueRun(context, options)` goes on from a context: a previous result's `context`, or one you rebuilt from your own store. A context is plain JSON holding the system prompt and the messages. A run that stopped at `max_steps` continues with the model reading its last tool results. A `done` context ends with the model's answer, so add a user message to it before you continue, or pass the messages as `history` to `run()` with the new input.
+`continueRun(context, options)` goes on from a context: a previous result's `context`, or one you rebuilt from your own store. A context is plain JSON holding the system prompt, the messages and, for a paused run, `pending` and `pendingInputs`. A run that stopped at `max_steps` continues with the model reading its last tool results. A context whose last response ended in an error asks the model again, because the gateway leaves that response out of the request. A `done` context ends with the model's answer, so add a user message to it before you continue, or pass the messages as `history` to `run()` with the new input. A paused context resumes with `resolutions`, as [the resume section](#resume-a-pause-with-continuerun-and-a-resolution-for-each-request) explains.
 
 ### Abort a run with `run.abort()` or a signal
 
@@ -105,12 +126,12 @@ Your own `shouldStop` runs first and its stop wins, but neither its `{ continue 
 
 ### `depth` and `maxDepth` stop a tree of agents
 
-Every tool receives `ctx.depth` (0 for a top-level run) and `ctx.maxDepth` (2 by default). A tool that starts its own agent passes the next level down with `nestedRunDepth(ctx)`:
+Every tool receives `ctx.depth` (0 for a top-level run) and `ctx.maxDepth` (2 by default). A tool that starts its own agent passes the next level down with `nestedRunDepth(ctx)`, as this tool's `execute` does:
 
 ```ts
-async execute(input, ctx) {
+async function execute(input: { task: string }, ctx: ToolContext) {
   const child = run({ model, system, input: input.task, signal: ctx.signal, budgetUsd: 0.5, ...nestedRunDepth(ctx) });
-  return { content: [{ type: "text", text: (await child.result).stopReason }] };
+  return { content: [{ type: "text" as const, text: (await child.result).stopReason }] };
 }
 ```
 
@@ -145,18 +166,60 @@ Iterating a run yields its events. Each iteration starts from the run's first ev
 
 The events come in two layers. The delta layer streams each content block by its index, for a user interface: `text_start`, `text_delta` and `text_end`, and the same three for `reasoning` and `tool_input`. The item layer carries the finished pieces for a log:
 
-- **`run_start`** comes first, with the SDK's version, the spec version and the model.
+- **`run_start`** comes first, with the SDK's version, the spec version, the defaults hash, the capabilities and the model, as [the next section](#run_start-records-which-release-and-which-defaults-ran) explains.
 - **`step_start`** and **`step_end`** wrap one model call and its tool calls; `step_end.stopCheck` says whether the run goes on.
 - **`model_call_start`** carries the request, and **`model_call_end`** the final message.
 - **`tool_call_start`**, **`tool_call_update`** and **`tool_call_end`** follow each tool call; `tool_call_end.result` is what the model reads. When a `beforeToolCall` gate replaced the model's input, `tool_call_end.input` holds the input the call got instead.
 - **`context_transformed`** reports the message counts before and after `transformContext` for one model call.
 - **`steer_applied`** reports a queued steer or follow-up that entered the transcript, with its receipt.
-- **`hook_error`** reports an interceptor or an observer that threw, with the hook's name and the message.
-- **`retry`** reports a failed request the gateway is retrying, and **`warning`** reports a reached cap or a model warning.
+- **`approval_request`** reports a call that waits for a person, with its signed `request` and the `input` that request signs: a call a gate paused, or a tool's question. That call gets no `tool_call_end`. In a resumed run, **`resolution_rejected`** reports a request or resolution that failed its check, with the cause.
+- **`hook_error`** reports an interceptor or an observer that threw, with the hook's name and the message. It also reports a pause that could not be signed, with `hook: "signer"`.
+- **`retry`** reports a failed call that is being retried. Its `layer` is `gateway` for an HTTP request the model re-sends, or `turn` for a call the loop re-issues, as [the retry section](#three-layers-retry-a-failed-model-call-and-the-sdks-is-off-by-default) explains. **`warning`** reports a reached cap or a model warning.
+- **`raw`** carries one event of the provider's own stream, and only a run started with `includeRaw: true` emits it, as [the next section](#includeraw-adds-the-providers-own-events) explains.
 - **`error`** and **`abort`** report a failed call and an abort request.
 - **`agent_settled`** fires once nothing is running any more, retries and tools included. **`run_end`** follows it and carries the result.
 
 `AGENT_EVENT_TYPES` lists every type at run time, and a run emits no other. The union is closed, so a `switch` over `event.type` can be exhaustive.
+
+### `includeRaw` adds the provider's own events
+
+Pass `includeRaw: true` to `run()` or `continueRun()` when you need a field the normalized events drop, such as the provider's response id. Each model call then asks the gateway for its raw events, and the run emits each one as a `raw` event between that call's `model_call_start` and `model_call_end`, before the delta events it produced. `event.event` is the gateway's payload unchanged: for the Anthropic and OpenAI Chat adapters, one server-sent event as `{ event, data }` with `data` unparsed ([the gateway's raw events](../gateway/README.md#set-includeraw-to-see-the-providers-own-events)). Its shape is the provider's, outside the SDK's versioning.
+
+The option is off by default, and the run's `includeRaw` alone decides: an `includeRaw` in `modelOptions` or in a `beforeModelCall` patch is ignored. With it off, the run asks for no raw events and emits none. Raw events never enter the transcript, the interceptors, the result or the OpenTelemetry spans. They change no other event either, so a gateway retry still happens after them; the raw events before a `retry` belong to the attempt it supersedes. A raw event holds the model's output and provider metadata, so keep raw events out of your logs.
+
+## `run_start` records which release and which defaults ran
+
+When an agent starts behaving differently, the cause may be the model or the SDK, and a log can tell them apart only if it records what the SDK was. So every run opens with three stamps. `run_start.sdkVersion` names the release, such as `0.1.0-alpha.13`. `run_start.defaultsHash` is `DEFAULTS_HASH`, a SHA-256 over every default value, built-in prompt and tool description the SDK uses: the 20-step cap, the progress thresholds, the error text a failed tool call shows the model, the output and clarification tools' descriptions and the write-outcome sentences. `run_start.capabilities` is `CAPABILITIES`, the list of behaviours this release supports. Store all three with the session, and compare them first when two runs differ.
+
+The hash changes whenever one of those values changes, even in a patch release, and each change is named in the changelog. A release that leaves the hash alone sends the model the same fixed text and applies the same defaults as the one before it. Whatever you pass yourself, such as `maxSteps` or a tool's `formatError`, isn't part of the hash.
+
+### `CAPABILITIES` tells a peer what it can rely on
+
+A program versioned apart from the SDK, such as a harness that talks to the agent over RPC, reads the capability strings instead of parsing a version number. Each string names one behaviour and its contract version. A breaking change to that behaviour gets a new string, such as `steering_v2`, so a peer that checks for `steering_v1` notices. This release lists thirteen:
+
+- **`abort_v1`**: `run.abort()` and the `signal` option stop a run, which ends `aborted`.
+- **`steering_v1`**: `run.steer()` and `run.followUp()` queue messages with delivery receipts, and `steer_applied` reports each one.
+- **`approval_pause_v1`**: a gate's `ask` ends the run `awaiting_approval` with a signed pending request.
+- **`clarification_pause_v1`**: `clarificationTool()` ends the run `clarification_requested` with a signed question.
+- **`continue_run_v1`**: `continueRun()` resumes a context, and checks each resolution against its signed request.
+- **`blocking_approvals_v1`**: `blockingApprovals()` answers approvals inside the run.
+- **`usd_budget_v1`**: `budgetUsd` stops a run before a call that could exceed it.
+- **`progress_policy_v1`**: the progress policy ends a run that repeats a failing call, with `no_progress`.
+- **`depth_cap_v1`**: `nestedRunDepth()` and `maxDepth` cap a tree of agents.
+- **`output_tool_v1`**: `outputTool()` ends a run with a validated answer in `output`.
+- **`write_outcomes_v1`**: a tool's `outcome` tells the model what a write did and whether a retry is safe.
+- **`turn_retries_v1`**: `turnRetries` re-issues a model call that ended with a `retryable` error, and marks each retry with a `retry` event whose `layer` is `turn`.
+- **`raw_events_v1`**: `includeRaw` makes the run emit the provider's own stream events as `raw` events.
+
+A test fails when this list and `CAPABILITIES` disagree.
+
+### Unstable names start with `experimental_`
+
+Any part of the API that may still change in a minor release carries an `experimental_` prefix, and its doc comment carries an `@experimental` tag. A check fails a release whose prefix and tag disagree, so a name without the prefix is stable under the versioning rules. Under 0.x, a minor release may break such a name only with a changelog entry under "Breaking Changes", and a patch release never does. This release has no experimental names.
+
+### `llms.txt` indexes these docs for a coding agent
+
+The package ships an [`llms.txt`](llms.txt) beside this README. It lists this README's sections and every public export with the first sentence of its doc comment, so an agent that writes code against the SDK reads the API of the version you installed, not of a branch. A test rebuilds it from this README and the package's declaration files and fails when the committed file differs, so it always describes the same commit as the code. The same test type-checks every TypeScript block in this README against the package and fails when the README names an export the package lacks.
 
 ## Hooks change a run at six moments, and observers only watch
 
@@ -179,7 +242,7 @@ Every event carries `runId`, `stepIndex`, `signal` and `timestamp`, and the two 
 
 ### A gate decides each tool call
 
-`beforeToolCall` returns `{ decision: "allow" }`, `{ decision: "deny", reason }` or `{ decision: "ask" }`. An `allow` may carry a new `input`, which must pass the tool's schema. A `deny` reaches the model as an error result that states the reason. Until runs can pause for approval, `ask` blocks the call the same way, with a message that says approval isn't available. The model never sees a silent block.
+`beforeToolCall` returns `{ decision: "allow" }`, `{ decision: "deny", reason }` or `{ decision: "ask" }`. An `allow` may carry a new `input`, which must pass the tool's schema. A `deny` reaches the model as an error result that states the reason, so the model never sees a silent block. An `ask` pauses the call: the run ends `awaiting_approval` with a signed pending request, as the next section explains.
 
 The run asks about one call at a time, in the order the model sent them, and no call of the step starts until every gate has answered. Without a `beforeToolCall`, every registered tool is allowed. A gate must return a decision: returning nothing throws `invalid_hook_result`, so a forgotten `return` can't pass for permission.
 
@@ -210,6 +273,95 @@ An observer is `(event) => void | Promise<void>`. Each one sees every event in o
 An observer that throws or rejects becomes a `hook_error` event with `hook: "observer"`, and never changes the run. The one exception is an observer that fails while handling `run_end`: nothing may follow that event, so the failure is dropped. 
 
 The run waits for observers to handle `agent_settled` and `run_end` before it settles, for at most `observerTimeoutMs` each time, a number from 1 to 2147483647 that defaults to 10000. An observer that hasn't caught up by then is removed and reported as a `hook_error`, so an observer whose promise never settles can't hold the run open. Each observer gets a frozen copy of the event, so it can't change the run's own data.
+
+## A gate that asks ends the run with a signed pending request
+
+When a `beforeToolCall` gate returns `{ decision: "ask", reason, policyVersion }`, the run doesn't run that call, and doesn't block on a callback either. It signs a pending request for the call, finishes the step's other calls, and ends with `stopReason: "awaiting_approval"`. Store the request with the context, show it to a person with the input it signs, and pass the answer to `continueRun()`, which checks it against the signature before the call runs:
+
+```ts
+const result = await run({ model, system, input, tools, interceptors: { beforeToolCall: gate }, signer }).result;
+if (result.stopReason === "awaiting_approval") {
+  await store.save(result.context); // result.context.pending holds the same requests as result.pending
+}
+```
+
+Each request is a `SignedPendingRequest`. Its signature covers six fields: the request's `id`, its `kind`, the `callId`, the `tool`, the `inputHash` and the `policyVersion`. The input hash is `canonicalInputHash()` of the input the call would run with once approved, so a stored pause whose call, tool or input changed no longer verifies. That input is the model's after coercion, `repair` and any gate's replacement, so it can differ from the call's arguments in the transcript; the request stores only its hash, and `result.context.pendingInputs` and the `approval_request` event hold the input itself, by request id. Show the approver that input, not the model's arguments.
+
+A gate's `ask` may carry its own `input`, which must pass the tool's schema, and `composeInterceptors()` passes an earlier gate's replacement on that way when a later gate asks, so the pause signs the input the earlier gate chose.
+
+`reason` and `createdAt` are shown to people and are not signed, so never let them decide anything. `keyId` names the key that signed.
+
+A paused call has no result in the transcript, so the context ends with the model's call still open. The step's other calls run or are denied as usual, and every call a gate paused gets its own request, in model order. A pause wins over an output tool that answered in the same step, because its call is still waiting. The run emits `approval_request` with the request and its input once every call of the step has been gated and before any of them runs. The call gets no `tool_call_end`, and the OpenTelemetry observer ends its tool span without an error. The event is advisory. A later call in the step can still fail the run with a programmer error, which ends it `error` with no `pending`, so build an approval queue from `result.pending`, not from the events.
+
+### Resume a pause with `continueRun()` and a resolution for each request
+
+A person answers each request with a `Resolution`: `{ requestId, decision: "allow" | "deny", reason?, by? }` for an approval, or `{ requestId, answer, by? }` for a question. Pass the answers to `continueRun()` with the stored context, in this process or another one that holds the same key ring:
+
+```ts
+const context = await store.load(id); // plain JSON, with pending and pendingInputs
+const next = continueRun(context, { model, tools, signer, resolutions: [{ requestId, decision: "allow", by: "ana" }] });
+```
+
+Before its first model call, the run checks every waiting call's stored request with its `signer`. The check verifies the signature under the request's `keyId`, then the call id and tool against the transcript's call, then the input in `context.pendingInputs` against the signed hash, and last that the resolution fits the request's kind. Each waiting call then goes one of four ways:
+
+- **A verified `allow`** runs the call once, with the input its request signs, never the transcript's arguments. `beforeToolCall` isn't asked again, and `afterToolCall` still runs.
+- **A verified `deny`** gives the model an error result with the reason, and a verified `answer` reaches the model as the call's result.
+- **A request no resolution names** still waits. When any call still waits, the run ends paused again without a model call, so you can answer one call at a time.
+- **A request or resolution that fails a check** runs nothing. The run emits `resolution_rejected` with the cause, such as `signature_invalid`, `input_changed`, `resolution_mismatch` or `replayed`, and the call asks again. Your gate is asked as for a new call, and the call pauses with a new request even when the gate allows it. The new request is always an approval, because a request that failed its check can't be trusted to say it was a question. A question that fails therefore comes back as an approval request for the asking tool, and once allowed, the tool runs and asks again. Only a tool the model is sent by default can ask again; a call to any other tool gets the unknown-tool error result instead. A resolution that names no request in the context is reported as `unknown_request`, and its request still waits.
+
+Settling the requests is not a step, so `steps` and `maxSteps` count only the model calls the resumed run makes. The results are recorded in the order the model made the calls. When no call still waits and an approved call's result sets `terminate`, such as the output tool's, the run ends `done` without a model call. Pass `recheck` to run current policy just before an approved call runs. It gets copies of the request and its input, so editing them changes nothing, and resolves to `"allow"`, or to `{ deny: reason }`, which gives the model an error result instead. A `recheck` that throws or returns anything else denies the call. Without `recheck`, a verified approval runs, so check policy before you resolve.
+
+`continueRun()` refuses a context it can't resume safely. It throws `invalid_run_options` for a context whose last assistant message has a call with no result and no pending request, because that call's pause record was lost, and silently answering it would hide the loss. It also throws for a pending request whose call doesn't wait in the context, and for malformed `pending`, `pendingInputs` or `resolutions`. Store `pending` and `pendingInputs` with the messages.
+
+A request is meant to be answered once, but the SDK can't see your other processes, so single use is your store's job. Mark a request used, atomically, before you call `continueRun()` with its answer, and refuse a second resume of the same stored context there. Within one call, two resolutions for one request are refused as `replayed`.
+
+### `blockingApprovals()` answers inside the run, where the person waits with the process
+
+Where the run and the person share a process, such as a terminal, `blockingApprovals(handler)` answers approvals without ending the run. Join it with your gate:
+
+```ts
+const approvals = blockingApprovals(async (request, { input }) => askInTerminal(request, input));
+const interceptors = composeInterceptors({ beforeToolCall: gate }, approvals);
+```
+
+When a gate asks, the run signs the request and emits `approval_request` before it calls the handler, so a crash while it waits still leaves a signed record to resume from. The handler returns a `Resolution` for that request, which the run checks against the request like a resumed one. An `allow` runs the call, and a `deny` gives the model an error result. An answer that names another request, an answer of the wrong kind, a handler that throws and an abort while the run waits each deny the call, and all but the abort emit a `hook_error` with `hook: "blockingApprovals"`. `composeInterceptors()` joins at most one `blockingApprovals()` object.
+
+### Pass `hmacSigner()` wherever a pause may resume in another process
+
+The run signs with its `signer` option. The default, `ephemeralSigner()`, holds a random key that lives only in this process. On a serverless host an isolate or function can be recycled between the pause and the answer, and another process rejects the signature as one from an unknown key. The default signer is also shared by every run in the process, and the signed fields name no run or tenant, so a host that serves several tenants in one process stores each tenant's requests apart and passes a signer of its own. Pass `hmacSigner({ keys, current })` over a key ring you keep there:
+
+```ts
+const signer = hmacSigner({ keys: { "2026-11": key2611, "2026-12": key2612 }, current: "2026-12" });
+```
+
+`hmacSigner()` signs with the key `current` names and verifies with any key in `keys`, each 32 bytes or more. To rotate, add a new key and make it current, and keep the old key in the ring until no stored pause names it. A request whose `keyId` isn't in the ring fails verification. Keys stay inside non-extractable Web Crypto keys: no error, event, result or span holds a key's bytes.
+
+A pause that can't be signed is never written unsigned. If the signer throws, the call is blocked with an error result, and a `hook_error` with `hook: "signer"` names the cause without the signer's own message. A request id from `idGenerator` that repeats the run's id or an earlier request's is replaced by a random UUID, so a generator that always returns one id still pauses every call.
+
+### Sign a pause outside a run with `createPendingRequest()`
+
+Code that makes a tool call itself, rather than through the model, can build the same record:
+
+```ts
+const request = await createPendingRequest({ kind: "approval", callId, tool: "refund", input, reason }, signer);
+```
+
+`createPendingRequest()` signs through the same code path as the loop, so for the same fields, id and signer the two requests are identical byte for byte. Its optional third argument takes `generateId` and `now`, which default to `crypto.randomUUID()` and the current time. It rejects with `invalid_run_options` for a `kind` other than `"approval"` or a signer that isn't an `ApprovalSigner`.
+
+Before the call runs, check the person's answer against the stored request with `verifyResolution()`, the check `continueRun()` makes:
+
+```ts
+const check = await verifyResolution(request, resolution, { signer, call: { callId, tool: "refund", input } });
+if (check.ok && "decision" in check.resolution && check.resolution.decision === "allow") await refund(input);
+```
+
+It verifies the signature under the key the request names, so a ring that has rotated past that key still verifies it. It then checks the call id and tool, the input against the signed hash, and that the answer fits the request's kind. A bad answer never makes it throw: it returns `ok: false` with the first `RejectionCause` it found. A signer whose `verify()` throws does make it reject, so a caller that must fail closed wraps the call.
+
+### The signers and the record belong to the safety package
+
+`ApprovalSigner`, `ephemeralSigner()`, `hmacSigner()`, `canonicalInputHash()`, `verifyResolution()`, `SignedPendingRequest`, `Resolution`, `Recheck`, `RejectionCause`, `ResolutionCheck`, `VerifyResolutionOptions`, `PendingCall` and `SignPendingOptions` are `@buildanagent/agent-safety`'s, re-exported unchanged. So are `SafetyError` and `isSafetyError()`, because `hmacSigner()` throws a `SafetyError` with code `invalid_key_ring` for an unusable ring, and `createPendingRequest()` rejects with one, code `invalid_pending` or `invalid_input`, for a blank field or an input with no canonical JSON form.
+
+Until the safety package is published, the SDK carries byte-identical copies of its files, and a test fails if they drift. One consequence follows from the copies: in a process that loads both packages, each has its own ephemeral signer, so a pause signed by one's default doesn't verify with the other's.
 
 ## Export a run as OpenTelemetry spans with `otelObserver()`
 
@@ -310,10 +462,10 @@ The rules reach nested values through `properties` and `items`, and only where t
 
 A tool that changes the world, such as a refund, declares `effect: { kind: "write" }`. A tool without it counts as read-only, so it is safe to run again after a crash. The optional `businessKey` names the real-world operation, such as `refund:42`, so a retry is recognised as the same refund.
 
-Such a tool returns an `outcome` beside its content. An outcome says which of five things happened: `applied`, `not_applied`, `compensated`, `partial` or `unknown`. It also says what the model should do next and whether a retry is safe. This refund tool reports a declined refund:
+Such a tool returns an `outcome` beside its content. An outcome says which of five things happened: `applied`, `not_applied`, `compensated`, `partial` or `unknown`. It also says what the model should do next and whether a retry is safe. This refund tool reports a declined refund, with `base` holding the operation's name and its empty effect lists:
 
 ```ts
-return { ...base, kind: "not_applied", retry: "never", applied: [], reason: reply.code, next };
+const declined: WriteOutcome = { ...base, kind: "not_applied", retry: "never", applied: [], reason: reply.code, next };
 ```
 
 The model reads the outcome first, as a sentence and as JSON, and then your content. For the declined refund the sentence begins "The refund_create call did not take effect, and nothing changed." Every kind except `applied` marks the result as an error. An outcome that breaks a rule, such as a retry its kind doesn't allow, throws an `SdkError`.
@@ -322,7 +474,7 @@ The model reads the outcome first, as a sentence and as JSON, and then your cont
 
 `outputTool({ name, schema })` turns the run's final answer into a tool call. Pass it to `run()` as `output`. A call whose input passes the schema ends the run `done`, and the validated answer is `result.output`. A call that fails the schema returns the issues to the model, which can correct its answer and call again. If the model answers in text instead, or another tool returns `terminate: true`, the run still ends `done`, with `result.output` undefined. The output tool must keep the default `exposure`, because the model has to be sent it.
 
-`clarificationTool()` gives the model a tool named `ask_user` that takes one `question`. Pass `{ name }` to call it something else. Once the model calls it, the run ends with `stopReason: "stopped"` and `stoppedBy: "clarification"`, and the question is the call's input in `result.messages`. To go on, add the user's answer to `result.context` as a user message and pass the context to `continueRun()`.
+`clarificationTool()` gives the model a tool named `ask_user` that takes one `question`. Pass `{ name }` to call it something else. Once the model calls it, the run signs a pending request of kind `clarification` with the question in `question`, emits `approval_request`, and ends with `stopReason: "clarification_requested"` once the step's other calls have their results. The asking call has no result yet. Pass the user's answer to `continueRun()` as `{ requestId, answer }`, and the model reads the answer as that call's result. Any tool whose result carries `pause: { kind: "clarification", question }` pauses the same way. When a gate also paused a call in the same step, the run ends `awaiting_approval`, with both requests in `pending` in the model's order.
 
 ## A step's tool calls run in parallel
 
@@ -340,7 +492,7 @@ The SDK throws only for programmer errors, never for a failure the model caused.
 
 - **`invalid_tool_definition`**: a tool's name, description, schema, exposure, `executionMode`, `resourceKey` or `progressKey` is unusable, or two tools share a name.
 - **`invalid_tool_result`**: `execute` returned something other than a tool result, or an invalid outcome. A text block needs a string `text`, and an image block a string `mediaType` and `data`. The run's `result` rejects with this error, and iterating the run throws it after the last event.
-- **`invalid_run_options`**: `run()` or `continueRun()` got a model that isn't from `createModel()`, a `maxSteps` that isn't a positive integer, an output tool whose `exposure` isn't `"direct"`, a `budgetUsd` that isn't a non-negative number, a `progress` threshold that isn't a positive integer, or a `depth` or `maxDepth` that isn't a whole number.
+- **`invalid_run_options`**: `run()` or `continueRun()` got a model that isn't from `createModel()`, a `maxSteps` that isn't a positive integer, an output tool whose `exposure` isn't `"direct"`, a `budgetUsd` that isn't a non-negative number, a `progress` threshold that isn't a positive integer, or a `depth` or `maxDepth` that isn't a whole number. `continueRun()` also throws it for a context it can't resume, such as one whose waiting call lost its pending request.
 - **`max_depth_exceeded`**: a tool started a run nested deeper than `maxDepth` allows.
 - **`undelivered_message`**: `steer()` or `followUp()` rejects with it when the run ended before it could apply the message.
 - **`invalid_model_stream`**: a model's stream ended without a final message, which only a broken adapter does.
@@ -350,6 +502,7 @@ Hooks add two `SdkError` codes:
 - **`hook_failed`**: an interceptor threw while the run fails closed. The run catches it and reports a `hook` error result, so it never reaches your code.
 - **`run_stopped`**: the error is a `RunStoppedError` from `runOrThrow()`.
 - **`unexpected_model_call`**: the error is an `UnexpectedModelCallError` from `ScriptedModel`.
+- **`invalid_recording`, `recording_expired` and `recording_mismatch`**: the error is a `RecordingError` from `recordPairs()` or `replayPairs()`, for a malformed recording, an expired one, or one that differs from the replay.
 
 ## Test against a strict scripted model
 
@@ -376,11 +529,104 @@ const model = new ScriptedModel(
 
 A step is either a fixed response or a function that builds one from the request. A response stops with `"tool_calls"` when it contains a tool call and with `"stop"` otherwise. Setting `error` ends the stream with an error instead. Set `usage` to the token counts the response reports; counts you leave out are zero. A response without `usage` acts like a provider that reported none: its usage is marked `unreported`, so `createModel()` prices it as unknown rather than free. Pass `usage: {}` to report zero tokens.
 
+A step can also be a `StreamScript`, `{ events }`, which plays its gateway events exactly as written, from `start` to the terminal. Its `raw` events play only when the call set `includeRaw`, as a wire adapter's do, so one script tests a run with the option on and off.
+
+## `autoResponder()` drives an agent without a script, and never calls a host tool
+
+`autoResponder()` returns a step that behaves like a cooperative model. On a request whose conversation has no tool call yet, it calls one offered tool: the one the user's text names, or else the first. It fills the tool's input with `synthesizeInput(schema)`, which picks `const`, the first `enum` value, `default`, the first `anyOf` branch, or a plain value of the schema's type, such as `"example"` or the `minimum`. On every later request it answers in text.
+
+The step never calls a tool named in `DEFAULT_DENIED_TOOLS`, which lists the shell, file-editing and screen tools of the agent SDKs we verify, such as `bash`, `exec_command`, `apply_patch`, `write`, `edit`, `multi_edit`, `str_replace_based_edit_tool`, `computer` and `delete`. It matches the whole name, ignoring case, hyphens and underscores, because one of our verification runs let OpenAI's `exec_command` through a filter that checked only the tool's kind. When a denied tool is the only tool offered, the step answers in text instead. `denyTools` adds names or regular expressions to the list, and nothing removes the defaults. One step answers one call, so this model calls a tool and then answers:
+
+```ts
+const model = new ScriptedModel([autoResponder({ denyTools: [/^deploy/] }), autoResponder()]);
+```
+
+## Record a real model once, then replay it offline with `replayPairs()`
+
+`recordPairs(model, { providerVersion, expiresAt })` wraps a model and records each call as a pair: the normalised request (model, context and options) and every event the call streamed. Pass `recorder.model` to `run()`, then write `recorder.pairs()` to a fixture as JSON. Each pair is stamped with the SDK version, the model's API, provider and id, the provider version you name, the recording time and the expiry.
+
+A pair holds the gateway's transcript types, not wire bytes, so it survives changes to an adapter's wire format. It also holds no credential. The adapter's key and headers never reach a call, and from the call's options the recorder leaves out every property named like a credential header (`authorization`, `x-api-key`, `api-key`, `x-goog-api-key`, `proxy-authorization`, `cf-aig-authorization` or a cookie), `apiKey`, or a name ending in `token`, `secret` or `password`, at any depth and in any spelling. The conversation and the model's output are kept exactly, because the replay must reproduce them. `retry` and `raw` events stay out, because a replay can't reproduce them. `includeRaw` is left out of the recorded request too, so a run recorded with it replays with the option on or off. The replay never streams raw events. Its `model_call_start` names `includeRaw: true` in its options only when the replaying run sets it.
+
+`replayPairs(pairs)` returns a `ReplayModel`, a `ScriptedModel` that streams each pair's events exactly as they were recorded. Wrap it with `createModel()` under the recorded id, so the replayed calls are priced from the same catalog entry. Leave out the middleware the recorded model had: the recorder sat outside it, so the pairs already hold its effect.
+
+```ts
+const replay = replayPairs(JSON.parse(fixture), { expect: { providerVersion: "2026-10-21" } });
+const model = createModel({ adapter: replay, id: replay.modelId });
+```
+
+Given the same clock and ids, the replayed run streams the same events as the recorded one. A replay refuses four kinds of fault, each with a `RecordingError`, an `SdkError`:
+
+- **`recording_expired`:** the clock has reached the stamp's `expiresAt`. Record the fixture again.
+- **`recording_mismatch` on the stamp:** the pairs disagree on their stamp, a field differs from `expect`, or the SDK that recorded them is on another release line (another minor version under 0.x).
+- **`recording_mismatch` on a request:** a call sent a request other than the recorded one. The run ends `error`, and `replay.assertComplete()` throws the error, which names the first field that differs.
+- **`invalid_recording`:** the pairs are empty or malformed.
+
+## Scripted doubles stand in for the approver and an MCP server
+
+`scriptedApprovals(answers)` answers the run's approval requests in order, through `blockingApprovals()`, so a test drives the real signing and checking path. Join it with a gate that returns `ask`. Each answer takes the id of the request it answers, so give a `requestId` only to test an answer that names the wrong request. `requests` holds every request the run raised, and `assertComplete()` throws when an answer went unused or a request came after the last answer, which the run denied:
+
+```ts
+const approvals = scriptedApprovals([{ decision: "allow" }, { decision: "deny", reason: "not today" }]);
+run({ model, system, input, tools, interceptors: composeInterceptors({ beforeToolCall: gate }, approvals), signer: testSigner() });
+```
+
+`testSigner()` signs with a fixed, published key whose id is `TEST_KEY_ID`, so a pause signed in one test process verifies in another and can be checked into a fixture. Anyone can forge its signatures, so use it only in tests.
+
+`scriptedMcpServer({ name, tools })` builds the tools an MCP server would lend an agent. Each tool is named `mcp__<server>__<tool>`, has `kind: "dynamic"` and `firstParty: false`, and returns its scripted results one call at a time. `calls` records every call, and `assertComplete()` throws when a result went unused or a call came after the last one.
+
 ## Tests give the same result every run
 
 Nothing in the testing export reads the system clock or `Math.random()`. `fixedClock(start, stepMs)` returns a clock that advances by a fixed step, and `sequentialIds(prefix)` returns `prefix-1`, `prefix-2` and so on. Pass them to `run()` as `clock` and `idGenerator`. For random numbers you can repeat, import `seededRandom(seed)` from `@buildanagent/gateway/testing`. The same script with the same clock and ids streams the same events every time, timestamps and run id included.
 
 Start each test file with `import "@buildanagent/gateway/testing/setup"`, which keeps the test offline.
+
+## The support-triage capstone shows the whole SDK working in one agent
+
+The capstone is the support-triage agent that each of the eight SDKs we verified implements, built on our SDK in [`examples/triage-agent.ts`](examples/triage-agent.ts). It gives the model a read-only `lookup_customer` tool, an `escalate` tool that waits for a person, and a `submit_triage` output tool. An audit observer records every call, the run stops after 8 steps, and a $0.25 budget stops it earlier. `startTriage()` runs the agent, and `resumeTriage()` resumes a paused run from its stored `context`, which can happen in another process that holds the same signing key.
+
+The conformance suite in [`test/triage-suite.ts`](test/triage-suite.ts) takes a loop's `run` and `continueRun` and checks these behaviours on each backend. The backends are the scripted model and the Anthropic and Chat Completions mock transports:
+
+- an approved escalation runs once in a second process and ends with a typed result;
+- a rejected escalation never runs, and the model reads the denial;
+- a result that fails its schema returns to the model as an error;
+- a forged signature runs nothing and calls no model;
+- a stored input that no longer matches its signature runs nothing;
+- the step cap and the budget each end a runaway run;
+- every request offers only `lookup_customer`, `escalate` and `submit_triage`.
+
+The cases assert nothing about observers, so a loop without them can run the suite. `test/capstone.test.ts` checks the audit trail on the SDK's loop.
+
+The tables in the [deep comparison](../../docs/comparison/deep-comparison.md#1-the-same-agent-takes-58-to-115-lines-on-every-sdk-and-differs-in-its-gate) count non-blank, non-comment lines, and include each reference file's scripted model and assertions. Our agent file holds neither, so the second row adds the suite and its backends, which cover more cases on three backends. The figures below are counted from the files as they are now, so two reference rows differ from the comparison's, which predates later edits to those files. A test recounts every row and the hook count, and fails when the table drifts. The Hooks column counts the extra pieces a capstone needs beyond its tools. Ours are the `beforeToolCall` gate and the audit observer, and LangChain's are two as well; a blank cell means the comparison records none.
+
+| Capstone | Code lines | Hooks |
+| --- | --- | --- |
+| Our capstone, the agent alone | 80 | 2 |
+| Our capstone with its cases and backends | 434 | 2 |
+| Vercel AI SDK | 58 | |
+| Claude Agent SDK | 62 | |
+| LangChain.js | 67 | 2 |
+| OpenAI Agents SDK | 76 | |
+| Pi | 87 | |
+| Copilot SDK | 105 | |
+| Google ADK | 114 | |
+| Cloudflare Agents | 122 | |
+
+## A reference loop shows the real loop's shape in under 400 lines
+
+[`reference-loop/reference-loop.ts`](reference-loop/reference-loop.ts) is a loop you can read in one sitting. It exports `run()` and `continueRun()`, ends a run with every stop reason of the real loop except `clarification_requested`, and imports only the public exports of `@buildanagent/gateway` and `@buildanagent/sdk`. The capstone's conformance suite runs against it on the scripted model and both mock transports, so it cannot drift into a toy: a change to the real loop that the reference no longer matches fails `test/reference-loop.test.ts`. That file counts the loop's non-blank, non-comment lines and fails at 400. It checks that the reference and the real loop end seventeen scripted runs with the same stop reason, step count, message count and failed tool results. It also runs more cases on both loops, among them resumes, approved calls and tool errors.
+
+Each step runs in the real loop's order: `transformContext`, `beforeModelCall`, the streamed model call, `afterModelCall`, the tools, then the stop check with `shouldStop` and the progress rule. The table maps each part to the module it simplifies.
+
+| Part of the reference loop | Real module | What the reference leaves out |
+| --- | --- | --- |
+| `run()`, `continueRun()`, `start()` | `run.ts` | Streaming events (they arrive after the run ends), `steer()`, `followUp()`, `on()`, observers and option checks |
+| `drive()`, `step()`, `callModel()` | `loop.ts` | The raw model events, the `retry` and `warning` events, the withheld stand-in for a failed `afterModelCall`, the aborted closing message and `onFailure: "continue"` |
+| `budgetBlock()` | `budget.ts` | The unknown-price check before the first call |
+| `runCalls()`, `runCall()`, `execute()` | `tools/pipeline.ts` | Parallel calls (it runs them one at a time, so an abort while one call runs also stops the calls after it), coercion, `repair`, raw JSON Schema validation, the shape check on a tool's result, rendering write outcomes, `clarificationTool()` and the "not run" results that the real loop records for the calls of a response that ended in an error or was aborted |
+| `pause()`, `settle()`, `failedCheck()` | `pauses.ts`, `resume.ts`, `hook-runner.ts` | The `recheck` option, replayed and unknown resolutions, `blockingApprovals()` and the shape checks on a stored context. It checks each stored request with `verifyResolution()`, as the real loop does |
+| `stopCheck()`, `decide()`, `stuckReason()` | `loop.ts`, `progress.ts` | The per-`progressKey` rule |
+
+The reference loop reaches `clarification_requested` through no path, because only the SDK's internals can sign a clarification request, and `createPendingRequest()` signs approvals only. Read it first, then read `loop.ts` for what a production loop adds.
 
 ## Build the SDK with its dependencies
 

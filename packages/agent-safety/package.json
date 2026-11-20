@@ -2,7 +2,7 @@
   "name": "@buildanagent/agent-safety",
   "version": "0.0.0",
   "private": true,
-  "description": "Safety core for buildanagent agents: typed write outcomes the model can read and a canonical input hash.",
+  "description": "Safety core for buildanagent agents: typed write outcomes the model can read, a canonical input hash, signed approvals, model calls on the user's own key and a USD cap checked before each model call.",
   "license": "Apache-2.0 OR MIT",
   "repository": {
     "type": "git",
@@ -32,10 +32,25 @@
       "types": "./dist/ai/index.d.ts",
       "default": "./dist/ai/index.js"
     },
+    "./byok": {
+      "source": "./src/byok/index.ts",
+      "types": "./dist/byok/index.d.ts",
+      "default": "./dist/byok/index.js"
+    },
+    "./cost": {
+      "source": "./src/cost/index.ts",
+      "types": "./dist/cost/index.d.ts",
+      "default": "./dist/cost/index.js"
+    },
     "./agents": {
       "source": "./src/agents/index.ts",
       "types": "./dist/agents/index.d.ts",
       "default": "./dist/agents/index.js"
+    },
+    "./testing": {
+      "source": "./src/testing.ts",
+      "types": "./dist/testing.d.ts",
+      "default": "./dist/testing.js"
     }
   },
   "publishConfig": {
@@ -48,9 +63,21 @@
         "types": "./dist/ai/index.d.ts",
         "default": "./dist/ai/index.js"
       },
+      "./byok": {
+        "types": "./dist/byok/index.d.ts",
+        "default": "./dist/byok/index.js"
+      },
+      "./cost": {
+        "types": "./dist/cost/index.d.ts",
+        "default": "./dist/cost/index.js"
+      },
       "./agents": {
         "types": "./dist/agents/index.d.ts",
         "default": "./dist/agents/index.js"
+      },
+      "./testing": {
+        "types": "./dist/testing.d.ts",
+        "default": "./dist/testing.js"
       }
     }
   },
@@ -58,14 +85,25 @@
     "build": "node ../../scripts/clean-dist.mjs && tsc -p tsconfig.build.json",
     "prepack": "pnpm run build && node ../../scripts/copy-licenses.mjs",
     "prepublishOnly": "node ../../scripts/refuse-local-publish.mjs",
-    "typecheck": "tsc -p tsconfig.json",
+    "typecheck": "tsc -p tsconfig.json && tsc -p test/workerd/tsconfig.json",
     "test": "vitest run"
   },
+  "dependencies": {
+    "@buildanagent/gateway": "workspace:*"
+  },
   "peerDependencies": {
+    "@ai-sdk/anthropic": "4.0.96",
+    "@ai-sdk/openai": "4.0.108",
     "@ai-sdk/provider-utils": "5.0.74",
     "ai": "7.0.162"
   },
   "peerDependenciesMeta": {
+    "@ai-sdk/anthropic": {
+      "optional": true
+    },
+    "@ai-sdk/openai": {
+      "optional": true
+    },
     "@ai-sdk/provider-utils": {
       "optional": true
     },
@@ -74,10 +112,16 @@
     }
   },
   "devDependencies": {
+    "@ai-sdk/anthropic": "4.0.96",
+    "@ai-sdk/openai": "4.0.108",
     "@ai-sdk/provider": "4.0.35",
     "@ai-sdk/provider-utils": "5.0.74",
-    "@buildanagent/gateway": "workspace:*",
+    "@cloudflare/ai-chat": "0.12.2",
+    "@cloudflare/workers-types": "5.20261103.1",
+    "agents": "0.33.0",
     "ai": "7.0.162",
+    "esbuild": "0.28.2",
+    "miniflare": "5.20261103.0-beta",
     "zod": "4.6.7"
   }
 }

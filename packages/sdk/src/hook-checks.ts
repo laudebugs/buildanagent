@@ -60,6 +60,24 @@ export function checkReplacement(value: unknown): AssistantMessage | undefined {
   return message as unknown as AssistantMessage;
 }
 
+/**
+ * Checks the fields an `ask` adds, so a gate's own mistake is reported as one and not as a signer that failed.
+ * `policyVersion` is signed, so it must be a non-empty, well-formed string; `reason` is display text, which the pause
+ * leaves out when it is blank.
+ */
+function checkAsk(value: Record<string, unknown>): void {
+  const { reason, policyVersion } = value;
+  if (reason !== undefined && typeof reason !== "string") {
+    invalid("beforeToolCall", "returned ask with a reason that is not a string");
+  }
+  if (
+    policyVersion !== undefined &&
+    (typeof policyVersion !== "string" || policyVersion === "" || !policyVersion.isWellFormed())
+  ) {
+    invalid("beforeToolCall", "returned ask with a policyVersion that is not a non-empty, well-formed string");
+  }
+}
+
 /** Checks `beforeToolCall`'s decision. */
 export function checkDecision(value: unknown): GateDecision {
   if (!isObject(value)) invalid("beforeToolCall", "must return a decision: allow, deny or ask");
@@ -68,6 +86,7 @@ export function checkDecision(value: unknown): GateDecision {
     invalid("beforeToolCall", `returned the decision ${JSON.stringify(decision)}; it must be allow, deny or ask`);
   }
   if (decision === "deny" && typeof reason !== "string") invalid("beforeToolCall", "returned deny without a reason");
+  if (decision === "ask") checkAsk(value);
   return value as unknown as GateDecision;
 }
 

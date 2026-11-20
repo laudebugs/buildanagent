@@ -2,6 +2,11 @@
  * The price catalog: per-model rates, limits, the date they were copied and where from (D4). `catalog.json` ships
  * with the package; a caller may pass its own catalog instead. Nothing here fetches prices at run time, so cost never
  * depends on the network.
+ *
+ * A fine-tuned model is a new model id with its own rates, so the shipped catalog lists none and the gateway prices
+ * one as unknown. To price it, pass a catalog with an entry for it. A catalog you pass replaces the shipped one, so it
+ * must also list every other model you use: spread `defaultCatalog.models` into it, or those models lose their prices
+ * and fall back to the adapter's default limits and image and reasoning flags.
  */
 import shipped from "./catalog.json" with { type: "json" };
 import { GatewayError } from "./errors.js";
@@ -30,7 +35,14 @@ export interface CatalogSources {
   readonly maxOutputTokens: string;
 }
 
-/** One model in the price catalog: its rates, its limits, and the date and pages they were copied from. */
+/**
+ * One model in the price catalog: its rates, its limits, and the date and pages they were copied from.
+ *
+ * A fine-tuned model needs its own entry. Its `id` is the exact id the provider gives the tuned model, such as OpenAI's
+ * `ft:<base>:<org>::<suffix>`, and its `rates` are the tuned rates, which usually differ from the base model's. Set
+ * `images` and `reasoning` as well, or the adapter's defaults apply. Record the `asOf` date and the provider's pricing
+ * page in `sources`, as for any entry.
+ */
 export interface CatalogEntry {
   readonly provider: string;
   readonly id: string;
@@ -48,6 +60,15 @@ export interface CatalogEntry {
   readonly reasoning?: boolean;
   /** The date the rates and limits were copied, as `YYYY-MM-DD`. */
   readonly asOf: string;
+  /**
+   * The date the provider says the model stops answering, as `YYYY-MM-DD`. Copy it from the provider's own
+   * deprecations page, and record that page in `note`. Leave it out when the provider has published no date: a
+   * "not sooner than" floor is not a retirement date. OpenAI retires a tuned model with its base model, so give such
+   * an entry the base model's date. Like the rates, the date is a copy as of `asOf`. The gateway never refuses a model because
+   * of it. The gateway's own CI warns when an entry in the shipped catalog retires within 90 days, but nothing
+   * checks the dates in a catalog you pass.
+   */
+  readonly retires?: string;
   readonly sources: CatalogSources;
   /** How a number was derived when the sources don't state it directly. */
   readonly note?: string;
@@ -106,6 +127,10 @@ function optionalFlag(value: unknown, where: string): boolean | undefined {
   return value;
 }
 
+function optionalDate(value: unknown, where: string): string | undefined {
+  return value === undefined ? undefined : date(value, where);
+}
+
 function optionalText(value: unknown, where: string): string | undefined {
   return value === undefined ? undefined : text(value, where);
 }
@@ -153,6 +178,7 @@ function parseEntry(value: unknown, where: string): CatalogEntry {
   const images = optionalFlag(entry.images, `${where}.images`);
   const reasoning = optionalFlag(entry.reasoning, `${where}.reasoning`);
   const note = optionalText(entry.note, `${where}.note`);
+  const retires = optionalDate(entry.retires, `${where}.retires`);
   return {
     provider: text(entry.provider, `${where}.provider`),
     id: text(entry.id, `${where}.id`),
@@ -162,6 +188,7 @@ function parseEntry(value: unknown, where: string): CatalogEntry {
     ...(images === undefined ? {} : { images }),
     ...(reasoning === undefined ? {} : { reasoning }),
     asOf: date(entry.asOf, `${where}.asOf`),
+    ...(retires === undefined ? {} : { retires }),
     sources: parseSources(entry.sources, `${where}.sources`),
     ...(note === undefined ? {} : { note }),
   };
@@ -185,7 +212,10 @@ export function parseCatalog(value: unknown): PriceCatalog {
   return { models };
 }
 
-/** The catalog that ships with the gateway. `createModel()` uses it unless you pass your own. */
+/**
+ * The catalog that ships with the gateway. `createModel()` uses it unless you pass your own, which replaces it. It
+ * lists base models only, so a fine-tuned model has an unknown price until you add an entry for it.
+ */
 export const defaultCatalog: PriceCatalog = parseCatalog(shipped);
 
 /** The entry for one model, or `undefined` when the catalog doesn't list it. */

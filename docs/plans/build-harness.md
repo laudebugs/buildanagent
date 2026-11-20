@@ -1,6 +1,6 @@
 # Plan: build our agent harness as four packages around one session log, in 55 todos that start on the SDK's seams
 
-- **Status:** Draft (P2, 2026-11-18), revised on 2026-11-18 with the fixes from the [P4 review](reviews/plan-review.md), and on 2026-11-18 for three deployment targets ([ADR 0033](../decisions/0033-three-deployment-targets.md), [coding agent plan §4](build-coding-agent.md#4-changes-to-the-sdk-and-harness-plans)): stage 8 (§4.8) adds todos N41–N49. Revised on 2026-11-19 (plan review 2) to apply [ADR 0043](../decisions/0043-standalone-safety-core.md) and the [close-sdk-gaps plan](close-sdk-gaps.md), Anthropic's thinking prefix check (HD3), MCP tool pinning (HD14) and the owner's HD8 amendment. Revised on 2026-11-19 from the [retrieval and memory report][u18] (U18), whose twelve proposed changes the owner approved that day: HD17 and todo N52 add file-based long-term memory, N21 gains read-only `grep` and `glob` built-ins, HD11 is amended so a memory delete reaches the session log ([ADR 0056](../decisions/0056-file-based-memory-and-log-purge.md)), and HD17 records the memory side of the untrusted-source decision that plan review 2 proposes as HD16. Revised on 2026-11-19 from the A2A (U19) and voice (U20) research, whose proposed changes the owner approved that day (owner decision 2026-11-19): §1 records that v1 ships no A2A client or server, §3.3 defaults remote-agent tools to untrusted output, and HD6 records what a voice front end would need from the protocol and the log.
+- **Status:** Draft (P2, 2026-11-18), revised on 2026-11-18 with the fixes from the [P4 review](reviews/plan-review.md), and on 2026-11-18 for three deployment targets ([ADR 0033](../decisions/0033-three-deployment-targets.md), [coding agent plan §4](build-coding-agent.md#4-changes-to-the-sdk-and-harness-plans)): stage 8 (§4.8) adds todos N41–N49. Revised on 2026-11-19 (plan review 2) to apply [ADR 0043](../decisions/0043-standalone-safety-core.md) and the [close-sdk-gaps plan](close-sdk-gaps.md), Anthropic's thinking prefix check (HD3), MCP tool pinning (HD14) and the owner's HD8 amendment. Revised on 2026-11-19 from the [retrieval and memory report][u18] (U18), whose twelve proposed changes the owner approved that day: HD17 and todo N52 add file-based long-term memory, N21 gains read-only `grep` and `glob` built-ins, HD11 is amended so a memory delete reaches the session log ([ADR 0056](../decisions/0056-file-based-memory-and-log-purge.md)), and HD17 records the memory side of the untrusted-source decision that plan review 2 proposes as HD16. Revised on 2026-11-19 from the A2A (U19) and voice (U20) research, whose proposed changes the owner approved that day (owner decision 2026-11-19): §1 records that v1 ships no A2A client or server, §3.3 defaults remote-agent tools to untrusted output, and HD6 records what a voice front end would need from the protocol and the log. Revised on 2026-11-19 from the book's Chapter 5, by the owner's decision that day ("yes, i accept these"): §3.2 and N3 key every session lookup by user and session id.
 - **Date:** 2026-11-18
 - **Asked for by:** the project owner (2026-11-18), through the [implementation plans](implementation-plans.md#2-what-each-plan-contains)
 - **Builds on:** the [harness guide][hg] (G2b), its [reference architecture][hg12] and its [twelve open decisions][hg13], and the [SDK plan][sdk] (P1), whose [seams][sdk34] this plan consumes by name
@@ -116,7 +116,7 @@ N8, N9 and N10 test the first rule, N25 the third, and B8 surfaces the 400 as a 
 
 ### HD5. The harness always passes `hmacSigner()` over a persistent key ring (accepted, with SDK D5)
 
-**Accepted by the owner on 2026-11-18.** **Revision (2026-11-18):** [ADR 0035](../decisions/0035-read-only-key-store.md), also accepted by the owner, supersedes ADR 0015. It makes `KeyStore.rotate()` and `prune()` optional so a read-only cloud secret can back the ring; the rest of this decision stands (N42). **Revision (plan review 2, 2026-11-19):** under [ADR 0043](../decisions/0043-standalone-safety-core.md), `hmacSigner()` is defined in `@buildanagent/agent-safety` ([E3](../todos/ready/E3-signed-approvals-third-party.md)) and reaches the harness through the SDK's re-export, so N13 keeps importing it from `@buildanagent/sdk`.
+**Accepted by the owner on 2026-11-18.** **Revision (2026-11-18):** [ADR 0035](../decisions/0035-read-only-key-store.md), also accepted by the owner, supersedes ADR 0015. It makes `KeyStore.rotate()` and `prune()` optional so a read-only cloud secret can back the ring; the rest of this decision stands (N42). **Revision (plan review 2, 2026-11-19):** under [ADR 0043](../decisions/0043-standalone-safety-core.md), `hmacSigner()` is defined in `@buildanagent/agent-safety` ([E3](../todos/done/E3-signed-approvals-third-party.md)) and reaches the harness through the SDK's re-export, so N13 keeps importing it from `@buildanagent/sdk`.
 
 [SDK D5][sdk-d5] covers the SDK side: key-id signers, an `ephemeralSigner()` default and a fail-closed resume.
 
@@ -355,6 +355,8 @@ interface Session {
 declare function openSession(options: { store: SessionStore; lock: SessionLock; key?: string }): Promise<Session>;
 ```
 
+**Amended by the owner on 2026-11-19 ("yes, i accept these"): every session lookup takes the user.** The book's Chapter 5 found that a session id finds a session but proves nothing about who may open it, and that of our eight SDKs only ADK's `getSession` scopes a lookup by user ([Chapter 5, "A session id finds a session; your server decides whose it is"](../../apps/manual/src/content/chapters/memory-and-sessions.md)). So `SessionStore` keys each session by its user and its id: `append`, `load` and `delete` take both, `list` takes the user, and a session under another user looks exactly like a missing one. No method finds a session by its id alone, so no caller can forget the owner check. [N3](../todos/ready/N3-session-store.md) builds the store that way and updates the sketch above; the `key: string` in it is the pre-amendment form. One point stays open: whether `openSession({ key })` and `SessionLock.acquire(key)` also take `{ userId, sessionId }`. We recommend yes, so that neither an open nor a lock can reach another user's session, and N3 decides.
+
 The session runner turns SDK events into entries. It is an `Observer` that the harness passes in `RunOptions.observers`, and it appends inside the same lock:
 
 ```ts
@@ -373,7 +375,7 @@ declare function runTurn<H>(session: Session, harness: Harness<H>, options: Turn
 // then turn_start with the system prompt, block entries on model_call_end, tool_result on tool_call_end, usage, turn_end.
 ```
 
-**Revision (plan review 2, 2026-11-19): the effect scope's tenant.** [E2](../todos/ready/E2-effect-identity-crash-rule.md)'s `EffectScope` needs a `tenant`, and the key hashes it. The harness reads `tenant` from its config as a plain string, with the default `"local"` for single-user hosts, and the N7 and N40 revisions pass it with the session key, the branch and the tool call id. A multi-user host sets one tenant per user, as SG3 scopes business keys.
+**Revision (plan review 2, 2026-11-19): the effect scope's tenant.** [E2](../todos/done/E2-effect-identity-crash-rule.md)'s `EffectScope` needs a `tenant`, and the key hashes it. The harness reads `tenant` from its config as a plain string, with the default `"local"` for single-user hosts, and the N7 and N40 revisions pass it with the session key, the branch and the tool call id. A multi-user host sets one tenant per user, as SG3 scopes business keys.
 
 **Revision (2026-11-18): `Scheduler`.** Off-host hosts cannot keep a timer alive between requests, so todo N41 adds one seam beside `SessionStore` and `SessionLock` ([storage-and-wake note](../research/deployment/storage-and-wake.md)):
 
@@ -681,7 +683,7 @@ The guide says to start with the log, because context layers, pauses, replay, th
 
 | ID | Title | Depends on | Size |
 | --- | --- | --- | --- |
-| [N1](../todos/ready/N1-harness-workspace-scaffold.md) | Scaffold `protocol`, `harness`, `cli` and `evals` packages | B1 | S |
+| [N1](../todos/done/N1-harness-workspace-scaffold.md) | Scaffold `protocol`, `harness`, `cli` and `evals` packages | B1 | S |
 | [N2](../todos/ready/N2-session-entries-schema.md) | Session entry union in `@buildanagent/protocol`, its JSON Schema and the stable fields | N1, B2 | M |
 | [N3](../todos/ready/N3-session-store.md) | `SessionStore`: memory and JSONL backends, the conformance suite and the write-time bound | N2 | M |
 | [N4](../todos/ready/N4-writer-lock.md) | Writer lock with a lease, and the crash test (HD2) | N3 | M |

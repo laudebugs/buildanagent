@@ -1,7 +1,8 @@
 /**
  * `canonicalInputHash()`: one hash per tool input, whatever order its keys arrive in. Approvals sign it and effect
  * records store it, so both must compute it the same way on every runtime: canonical JSON as RFC 8785 (JCS) defines
- * it, hashed with Web Crypto's SHA-256.
+ * it, hashed with Web Crypto's SHA-256. Web Crypto is read as the bare `crypto` global, the same object as
+ * `globalThis.crypto`, because the Workers types declare it as a `const`, which `typeof globalThis` lacks.
  */
 import { SafetyError } from "./errors.js";
 
@@ -108,6 +109,19 @@ function hex(bytes: ArrayBuffer): string {
  * - an object or array that contains itself.
  */
 export async function canonicalInputHash(input: unknown): Promise<string> {
-  const text = canonical(input, "$", new Set());
-  return hex(await globalThis.crypto.subtle.digest("SHA-256", ENCODER.encode(text)));
+  return canonicalTextHash(canonicalJson(input));
+}
+
+/**
+ * The canonical JSON (RFC 8785) text `canonicalInputHash()` hashes, read from the value once and synchronously, with
+ * the same errors. `planCard()` parses it back, so a card shows the exact value its hash covers. Not exported from
+ * the package.
+ */
+export function canonicalJson(input: unknown): string {
+  return canonical(input, "$", new Set());
+}
+
+/** The SHA-256 of canonical JSON text from `canonicalJson()`, as 64 lowercase hex digits. Not exported from the package. */
+export async function canonicalTextHash(text: string): Promise<string> {
+  return hex(await crypto.subtle.digest("SHA-256", ENCODER.encode(text)));
 }

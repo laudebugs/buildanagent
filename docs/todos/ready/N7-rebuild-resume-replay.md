@@ -6,7 +6,7 @@
 | Status | `ready` |
 | Plan | [Build harness §4, Stage 1](../../plans/build-harness.md#41-stage-1-builds-the-session-log-from-its-entry-union-to-rebuild-and-replay) |
 | Round / milestone | Round N (build harness), M6 |
-| Depends on | [N6](N6-session-runner.md), [B15b](B15b-continue-run.md), [E2](E2-effect-identity-crash-rule.md) |
+| Depends on | [N6](N6-session-runner.md), [B15b](../done/B15b-continue-run.md), [E2](../done/E2-effect-identity-crash-rule.md) |
 | Size | M |
 
 ## Goal
@@ -69,7 +69,7 @@ Gap 2 of the [close-sdk-gaps plan](../../plans/close-sdk-gaps.md#3-each-gap-the-
 - [ ] A resumed run whose model re-proposes the same write reaches the same effect key and sends nothing twice (the fake system counts requests per key).
 - [ ] The `EffectScope` passed to E2 takes `tenant` from the harness config, a plain string whose default is `"local"` for single-user hosts, plus the session key, the branch and the tool call id ([build-harness.md §3.2](../../plans/build-harness.md#32-session-log-api); added in plan review 2, 2026-11-19).
 
-The effect key and store come from the safety package's [E2](E2-effect-identity-crash-rule.md), and a tool declares itself a write through the `effect` field the [B10](../done/B10-tool-runtime.md) revision adds. The owner accepted SG3 on 2026-11-18, so E2 is in **Depends on**.
+The effect key and store come from the safety package's [E2](../done/E2-effect-identity-crash-rule.md), and a tool declares itself a write through the `effect` field the [B10](../done/B10-tool-runtime.md) revision adds. The owner accepted SG3 on 2026-11-18, so E2 is in **Depends on**.
 
 ## Definition of done
 
