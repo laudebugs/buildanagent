@@ -1,8 +1,8 @@
 // The triage capstone's conformance suite: the cases every implementation of the loop must pass on the support-triage
-// agent. `triageSuite()` takes the loop's `run` and `continueRun`, so the reference loop can run the same cases, and a
-// list of backends, so the SDK's loop runs them on the scripted model and on both mock transports. The cases assert only
-// what a loop without observers can show, because the reference loop has none: the audit trail is checked in
-// capstone.test.ts.
+// agent. `triageSuite()` takes the loop's `run` and `continueRun`, so the reference loop can run the same cases. It also
+// takes a list of backends, and the SDK's loop runs the cases on the scripted model and on both mock transports. The
+// cases assert only what a loop without observers can show, because the reference loop has none. capstone.test.ts
+// checks the audit trail.
 import assert from "node:assert/strict";
 import type { Model } from "@buildanagent/gateway";
 import type { AgentEvent, Context, continueRun, Resolution, run } from "@buildanagent/sdk";

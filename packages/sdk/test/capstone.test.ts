@@ -1,6 +1,6 @@
-// The support-triage capstone on our SDK: the conformance suite on the scripted model and on both mock transports,
-// then the parts of the capstone the suite leaves to a single backend: the example's own entry points, the testing
-// doubles, a real socket, and the figures the README reports.
+// The support-triage capstone on our SDK. It runs the conformance suite on the scripted model and on both mock
+// transports, then checks what the suite leaves to a single backend: the example's own entry points, the testing
+// doubles, a real socket and the figures the README reports.
 import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 import { createModel } from "@buildanagent/gateway";

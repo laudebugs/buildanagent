@@ -1,6 +1,6 @@
 // The three model backends the triage capstone runs on: the scripted model and the Anthropic and Chat Completions
-// mock transports. Each plays the same neutral script, a list of turns, so one set of cases covers every backend and
-// each backend records the tool names of every request it received.
+// mock transports. Each plays the same neutral script, a list of turns, so one set of cases covers every backend.
+// Each backend also records the tool names of every request it received.
 import { createModel, type Model } from "@buildanagent/gateway";
 import { anthropic } from "@buildanagent/gateway/anthropic";
 import { openaiChat } from "@buildanagent/gateway/openai-chat";
