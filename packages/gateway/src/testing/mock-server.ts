@@ -90,7 +90,15 @@ async function fetchRequestOf(request: IncomingMessage, origin: string, signal: 
 async function writeResponse(response: Response, out: ServerResponse): Promise<void> {
   out.writeHead(response.status, Object.fromEntries(response.headers.entries()));
   if (response.body) {
-    for await (const chunk of response.body) out.write(chunk);
+    for await (const chunk of response.body) {
+      // Wait for the socket to drain, so a large scripted stream to a slow client isn't buffered whole.
+      if (!out.write(chunk)) {
+        await new Promise<void>((resolve) => {
+          out.once("drain", resolve);
+          out.once("close", resolve);
+        });
+      }
+    }
   }
   out.end();
 }

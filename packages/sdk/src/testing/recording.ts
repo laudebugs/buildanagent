@@ -161,8 +161,9 @@ function stampOf(model: Model, options: RecordOptions): RecordingStamp {
  * Wraps `model` so that each call it makes is recorded as a `RecordedPair`, and returns the wrapper with the pairs so
  * far. Write `pairs()` to a fixture file as JSON, and replay it with `replayPairs()`. Each pair holds the request the
  * call sent (model, context and options) and every event it streamed except `retry` events. The adapter's key and
- * headers are never part of a call, and every property of the options named like a credential header or an API key
- * is left out at any depth, so a fixture holds no key the adapter or the options carried. The conversation and the
+ * headers are never part of a call, and every property of the options named like a credential header or an API key,
+ * or ending in `token`, `secret` or `password`, is left out at any depth (so an option such as `cancellationToken`
+ * is neither recorded nor compared), so a fixture holds no key the adapter or the options carried. The conversation and the
  * model's output are kept exactly as they were, because a replay must reproduce them. A call is recorded once it
  * reaches its terminal event; one whose reader stopped earlier is not recorded.
  *
