@@ -4,13 +4,14 @@
  * a hash of the state the plan was computed from, under a payload of its own whose fixed tag differs from the pending
  * request's, so a plan signature never verifies as a tool approval and a tool approval never verifies as a plan.
  *
- * The rules for which step checks what are our synthesis of the sagas research (U6), not a vendor design: steps up
- * to and including the pivot check the clock and re-read the state, and steps after it check only that they are the
- * signed step, because the pivot itself changes the state and nothing after it may wait on a person or a clock.
+ * The rules for which step checks what are our synthesis of the sagas report in docs/research/reversible-actions, not
+ * a vendor design: steps up to and including the pivot check the clock and re-read the state, and steps after it
+ * check only that they are the signed step, because the pivot itself changes the state and nothing after it may wait
+ * on a person or a clock.
  */
 import { constantTimeEqual } from "./bytes.js";
 import { SafetyError } from "./errors.js";
-import { canonicalInputHash } from "./hash.js";
+import { canonicalInputHash, canonicalJson, canonicalTextHash } from "./hash.js";
 import type { ApprovalSigner } from "./signer.js";
 
 /**
@@ -127,7 +128,10 @@ export interface VerifyPlanStepOptions {
   readonly signer: ApprovalSigner;
   /** Where each step's claim is recorded, so no step passes twice and none passes before the steps ahead of it. */
   readonly ledger: PlanLedger;
-  /** Re-reads the approval's `stateReads` now and returns their values in the same order. */
+  /**
+   * Re-reads the approval's `stateReads` now and returns their values in the same order. Return `null` for an absent
+   * value, as the plan recorded it: `undefined` has no canonical form, so it counts as a changed value.
+   */
   readonly readState: (reads: readonly StateRead[]) => Promise<readonly unknown[]>;
   /** Returns the current time. Defaults to `new Date()`. */
   readonly now?: () => Date;
@@ -169,8 +173,22 @@ function invalidPlan(message: string): SafetyError {
   return new SafetyError("invalid_plan", message);
 }
 
-function orderProblem(id: string, stepClass: string, pivot: string | undefined, hasPivot: boolean): string | undefined {
-  if (!CLASSES.includes(stepClass)) return `step ${id} has the class ${JSON.stringify(stepClass)}`;
+// Names a class without converting it to a string, which throws for an object with no prototype.
+function describeClass(stepClass: unknown): string {
+  if (stepClass === undefined) return "no class";
+  return typeof stepClass === "string"
+    ? `the class ${JSON.stringify(stepClass)}`
+    : `a class that is a ${typeof stepClass}`;
+}
+
+function orderProblem(
+  id: string,
+  stepClass: unknown,
+  pivot: string | undefined,
+  hasPivot: boolean,
+): string | undefined {
+  if (typeof stepClass !== "string" || !CLASSES.includes(stepClass))
+    return `step ${id} has ${describeClass(stepClass)}`;
   if (stepClass === "compensable" && pivot !== undefined) return `step ${id} is compensable but comes after the pivot`;
   if (stepClass === "retryable" && pivot === undefined) {
     return hasPivot
@@ -207,7 +225,7 @@ export function lintPlan(steps: readonly Pick<PlanStep, "id" | "class">[]): Plan
     const name = isText(id) ? JSON.stringify(id) : `${index + 1}`;
     const idProblem = checkId(id, name, seen);
     if (idProblem !== undefined) problems.push(idProblem);
-    const problem = orderProblem(name, String(stepClass), pivot, hasPivot);
+    const problem = orderProblem(name, stepClass, pivot, hasPivot);
     if (problem !== undefined) problems.push(problem);
     if (stepClass === "pivot") {
       if (pivot !== undefined) problems.push(`the plan has two pivots: ${pivot} and ${name}`);
@@ -272,20 +290,25 @@ function copyStepInit(step: unknown, index: number): PlanStepInit {
 }
 
 /**
- * Copies a plan's steps once, checks each field and the order, and hashes each input. `signPlan()` and `planCard()`
- * share it, so a card shows exactly the hashes a signature covers. Not exported from the package.
+ * Copies a plan's steps once, checks each field and the order, and hashes each input. Each input is read once, into
+ * canonical JSON text: the hash covers that text, and `inputs` holds it parsed back, so `planCard()`, which shares this
+ * with `signPlan()`, shows exactly the input each hash covers. Not exported from the package.
  */
-export async function hashSteps(steps: unknown): Promise<{ inits: PlanStepInit[]; signed: PlanStep[] }> {
+export async function hashSteps(steps: unknown): Promise<{ inputs: unknown[]; signed: PlanStep[] }> {
   if (!Array.isArray(steps)) throw invalidPlan("a plan's steps must be an array");
   const inits = Array.from(steps as readonly unknown[], copyStepInit);
   const lint = lintPlan(inits);
-  if (!lint.ok) throw invalidPlan(`the plan's steps are out of order: ${lint.problems.join("; ")}`);
+  if (!lint.ok) throw invalidPlan(`the plan's steps fail lintPlan(): ${lint.problems.join("; ")}`);
+  const texts = inits.map(({ input }) => canonicalJson(input));
   const signed = await Promise.all(
     inits.map(
-      async ({ input, ...step }): Promise<PlanStep> => ({ ...step, inputHash: await canonicalInputHash(input) }),
+      async ({ input: _input, ...step }, index): Promise<PlanStep> => ({
+        ...step,
+        inputHash: await canonicalTextHash(texts[index] as string),
+      }),
     ),
   );
-  return { inits, signed };
+  return { inputs: texts.map((text) => JSON.parse(text) as unknown), signed };
 }
 
 function expiryOf(now: Date, expiresInMs: unknown): string {
@@ -419,6 +442,11 @@ async function checkFreshness(approval: PlanApproval, options: VerifyPlanStepOpt
  * `stateHash()` equals the signed one. Steps after the pivot skip the clock and the state, because the pivot itself
  * changes the state and nothing after it may stop on a person or a clock. Last, the step's claim goes to the ledger,
  * so no step passes twice and none passes before the steps ahead of it. A failed check claims nothing.
+ *
+ * The ledger records that a step passed this check, not that it ran. So `"ok"` for a step after the pivot means the
+ * pivot passed, not that its write succeeded, and a second check of a step up to the pivot can return
+ * `"stale_approval"` or `"expired"` before the ledger can answer `"replayed"`. Track which steps ran yourself, run the
+ * next step only after the last one succeeded, and never compensate once the pivot has run.
  *
  * It returns the first failure it finds and never throws for a bad record or call. It rejects only when `readState`
  * or the ledger rejects, and then the step must not run either.

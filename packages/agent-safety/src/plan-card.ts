@@ -3,7 +3,8 @@
  * input beside the hash that `signPlan()` will sign, marks the pivot, and shows the state the plan was computed from.
  * Drawing the card is each product's job; this file only builds the data.
  */
-import { copyState, hashSteps, type PlanFields, type StateValue, type StepClass, stateHash } from "./plan-approval.js";
+import { canonicalJson } from "./hash.js";
+import { copyState, hashSteps, type PlanFields, type StateValue, type StepClass } from "./plan-approval.js";
 
 /** One step as the approval card shows it. */
 export interface PlanCardStep {
@@ -31,10 +32,11 @@ export interface PlanCard {
   readonly state: readonly StateValue[];
 }
 
-// Inputs and state values have a canonical JSON form by the time they get here, so a JSON round trip copies exactly
-// what the hash covers, with `undefined` properties dropped as the hash drops them.
-function jsonCopy(value: unknown): unknown {
-  return JSON.parse(JSON.stringify(value));
+// Reads a value once, into the canonical text `stateHash()` and `canonicalInputHash()` hash, and parses it back, so
+// the card holds exactly what a hash covers, with `undefined` properties dropped as the hash drops them. It throws
+// `invalid_input` for a value with no canonical form, as `signPlan()` would.
+function canonicalCopy(value: unknown): unknown {
+  return JSON.parse(canonicalJson(value));
 }
 
 /**
@@ -46,10 +48,18 @@ function jsonCopy(value: unknown): unknown {
  * card doesn't use, and code `invalid_input` for an input or state value with no canonical JSON form.
  */
 export async function planCard(fields: Pick<PlanFields, "steps" | "state">): Promise<PlanCard> {
-  const { inits, signed } = await hashSteps(fields?.steps);
-  const state = copyState(fields?.state);
-  // The state hash isn't shown, but computing it rejects a value with no canonical form, as signPlan() would.
-  await stateHash(state);
+  // The steps and the state are both read before the first await, so a change made while the hashes are pending
+  // reaches neither the card nor its hashes. A step's error still wins over a state error, as in signPlan().
+  const hashing = hashSteps(fields?.steps);
+  let state: StateValue[] | undefined;
+  let stateError: unknown;
+  try {
+    state = copyState(fields?.state).map(({ source, key, value }) => ({ source, key, value: canonicalCopy(value) }));
+  } catch (error) {
+    stateError = error;
+  }
+  const { inputs, signed } = await hashing;
+  if (state === undefined) throw stateError;
   const steps = signed.map((step, index): PlanCardStep => {
     const card = {
       position: index + 1,
@@ -58,7 +68,7 @@ export async function planCard(fields: Pick<PlanFields, "steps" | "state">): Pro
       class: step.class,
       isPivot: step.class === "pivot",
       summary: step.summary,
-      input: jsonCopy(inits[index]?.input),
+      input: inputs[index],
       inputHash: step.inputHash,
     };
     return step.businessKey === undefined ? card : { ...card, businessKey: step.businessKey };
@@ -66,6 +76,6 @@ export async function planCard(fields: Pick<PlanFields, "steps" | "state">): Pro
   return {
     steps,
     pivot: signed.find((step) => step.class === "pivot")?.id ?? null,
-    state: state.map(({ source, key, value }) => ({ source, key, value: jsonCopy(value) })),
+    state,
   };
 }

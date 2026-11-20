@@ -191,6 +191,17 @@ test("lintPlan rejects an empty plan, a shared or blank id and an unknown class,
   ]);
 });
 
+test("lintPlan describes a missing or non-string class without converting it to a string", () => {
+  const lint = lintPlan([
+    { id: "a", class: undefined as never },
+    { id: "b", class: Object.create(null) as never },
+  ]);
+  assert.deepEqual(lint, {
+    ok: false,
+    problems: [`step "a" has no class`, `step "b" has a class that is a object`],
+  });
+});
+
 // --- stateHash ---
 
 test("stateHash ignores key order inside a value and changes with any value, read or order", async () => {
@@ -483,6 +494,17 @@ test("a step that already passed returns replayed, and a step ahead of its turn 
   assert.equal(await verifyPlanBeforeStep(approval, CALLS.refund, verify), "replayed", "the pivot never passes twice");
 });
 
+test("a second check of a step before the pivot meets the changed state first, and still never passes", async () => {
+  const approval = await approved();
+  const system = world();
+  const verify = options({ readState: system.readState });
+  assert.equal(await verifyPlanBeforeStep(approval, CALLS.mark, verify), "ok");
+  assert.equal(await verifyPlanBeforeStep(approval, CALLS.refund, verify), "ok");
+  system.set(1, 2500); // the refund ran
+  assert.equal(await verifyPlanBeforeStep(approval, CALLS.mark, verify), "stale_approval", "not replayed: see README");
+  assert.equal(await verifyPlanBeforeStep(approval, CALLS.email, verify), "ok");
+});
+
 test("two checks of one step that arrive together pass once between them", async () => {
   const approval = await approved();
   const verify = options();
@@ -589,6 +611,27 @@ test("planCard copies the inputs, so a later change to the plan's objects doesn'
   input.status = "cancelled";
   assert.deepEqual(card.steps[0]?.input, { orderId: 4417, status: "refund_pending" });
   assert.equal(card.pivot, null);
+});
+
+test("planCard reads each input once, so the card shows exactly the input its hash covers", async () => {
+  let reads = 0;
+  const input = {
+    get amountCents() {
+      reads++;
+      return reads === 1 ? 2500 : 25000;
+    },
+  };
+  const state = { source: "orders", key: "o", value: { status: "open" } };
+  const pending = planCard({
+    steps: [{ id: "refund", tool: "refund_create", class: "pivot", input, summary: "Refund" }],
+    state: [state],
+  });
+  state.value.status = "closed"; // changed while the hashes are pending
+  const card = await pending;
+  assert.equal(reads, 1);
+  assert.deepEqual(card.steps[0]?.input, { amountCents: 2500 });
+  assert.equal(card.steps[0]?.inputHash, await canonicalInputHash({ amountCents: 2500 }));
+  assert.deepEqual(card.state, [{ source: "orders", key: "o", value: { status: "open" } }]);
 });
 
 test("planCard refuses what signPlan refuses", async () => {

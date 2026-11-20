@@ -285,7 +285,7 @@ const ledger = memoryPlanLedger();
 const check = await verifyPlanBeforeStep(approval, { stepId: "refund", tool: "refund_create", input }, {
   signer, ledger, readState: (reads) => readValues(reads),
 });
-if (check !== "ok") return check; // stop, and compensate the steps that ran
+if (check !== "ok") return check; // stop; compensate the steps that ran only if the pivot never ran
 ```
 
 Every step must pass the same first checks. The signature must verify under a key the signer holds, the step id must be in the plan, and the tool and input must match what was signed. Steps up to and including the pivot then check two more things: the approval hasn't passed `expiresAt`, and `readState` returns values that hash to the signed state hash. Steps after the pivot skip the clock and the state, because the pivot itself changes the state, as a refund changes the refunded amount, and nothing after the pivot may wait on a person or a clock. The function returns the first failure it finds:
@@ -299,11 +299,13 @@ Every step must pass the same first checks. The signature must verify under a ke
 | `replayed` | The step already passed once |
 | `out_of_order` | A step ahead of it hasn't passed yet |
 
-A changed, added, removed or reordered step, a changed state read and an extended expiry all fail the signature, so each returns `tampered`. The function never throws for a bad record or call. It rejects only when `readState` or the ledger rejects, and the step must not run then either.
+A changed, added, removed or reordered step, a changed state read and an extended expiry all fail the signature, so each returns `tampered`. `readState` must return `null` for an absent value, as the plan recorded it; `undefined` counts as a changed value. The function never throws for a bad record or call. It rejects only when `readState` or the ledger rejects, and the step must not run then either.
 
 ## The ledger lets each step pass once, in order
 
-The last check claims the step in a `PlanLedger`, after every other check has passed, so a failed check claims nothing. `claim(planId, stepIndex)` records the step only when every earlier step is recorded and this one isn't, so a replayed approval can't run a step twice and no step can skip ahead. A step that passed once returns `replayed` on a second check, so a retry of a step that already passed runs under its effect key, without another check. `claim()` must be atomic, because two checks of one step that arrive together must pass once between them. `memoryPlanLedger()` keeps the claims in memory, for tests and single-process hosts. A host whose plan can resume in another process needs a durable ledger, such as a compare-and-set on a row per plan.
+The last check claims the step in a `PlanLedger`, after every other check has passed, so a failed check claims nothing. `claim(planId, stepIndex)` records the step only when every earlier step is recorded and this one isn't, so a replayed approval can't run a step twice and no step can skip ahead. A step that passed once returns `replayed` on a second check when every earlier check passes again. A step up to the pivot meets the clock and the state first, so once the pivot has changed the state or the approval has lapsed, a second check of that step returns `stale_approval` or `expired` instead. A retry of a step that already passed therefore runs under its effect key, without another check.
+
+The ledger records that a step passed its check, not that the step ran. A step after the pivot returns `ok` once the pivot has passed, even if the refund then failed or the process crashed before it. So the host tracks which steps ran and runs each step only after the one before it succeeded. It compensates the steps that ran only when the pivot never ran, and once the pivot has run, it runs forward, whatever a later check returns. `claim()` must be atomic, because two checks of one step that arrive together must pass once between them. `memoryPlanLedger()` keeps the claims in memory, for tests and single-process hosts. A host whose plan can resume in another process needs a durable ledger, such as a compare-and-set on a row per plan.
 
 ## Every model call carries the user's own key, or it fails
 
