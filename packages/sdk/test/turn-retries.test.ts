@@ -2,7 +2,7 @@
 // output has streamed. Every test scripts the failure with ScriptedModel and a fake sleep, so none waits.
 import assert from "node:assert/strict";
 import { createModel, type Message, type PriceCatalog } from "@buildanagent/gateway";
-import { type AgentEvent, defineTool, isSdkError, type RunOptions, run } from "@buildanagent/sdk";
+import { type AgentEvent, defineTool, isSdkError, type Run, type RunOptions, run } from "@buildanagent/sdk";
 import { type AssistantScript, ScriptedModel, type ScriptStep } from "@buildanagent/sdk/testing";
 import { test } from "vitest";
 import { determinism, drive, lookup, scripted, text, toolCall, typesOf } from "./run-helpers.js";
@@ -411,4 +411,41 @@ test("turnRetries, turnRetryDelayMs and sleep are checked", () => {
     () => run({ model, system: SYSTEM, input: "Go.", sleep: "soon" as never }),
     (error) => isSdkError(error) && error.code === "invalid_run_options",
   );
+});
+
+test("a retry's transformContext sees the last accepted call's usage, not the failed attempt's", async () => {
+  const seen: Array<number | undefined> = [];
+  const interceptors = {
+    transformContext: async (e: { messages: readonly Message[]; lastUsage?: { uncachedInput: number } }) => {
+      seen.push(e.lastUsage?.uncachedInput);
+      return e.messages;
+    },
+  };
+  const { result } = await retried(
+    [{ ...toolCall("lookup", { orderId: "1" }), usage: { uncachedInput: 100, output: 5 } }, cutOff(), text("Done.")],
+    { tools: [lookup], interceptors },
+  );
+  assert.equal(result.stopReason, "done");
+  assert.deepEqual(seen, [undefined, 100, 100]);
+});
+
+test("a steer sent during the wait is applied to the retry's request, with the retry's step index", async () => {
+  let started: Run | undefined;
+  let receipt: Promise<{ stepIndex: number }> | undefined;
+  const { adapter, model } = scripted([cutOff(), text("ok")]);
+  started = run({
+    model,
+    system: SYSTEM,
+    input: "Go.",
+    turnRetries: 2,
+    sleep: async () => {
+      receipt = started?.steer("Be brief.");
+    },
+    ...determinism(),
+  });
+  const { result } = await drive(started);
+  assert.equal(result.stopReason, "done");
+  assert.equal((await receipt)?.stepIndex, 1);
+  const lastRequest = adapter.calls[1]?.context.messages.at(-1);
+  assert.deepEqual(lastRequest?.content, [{ type: "text", text: "Be brief." }]);
 });

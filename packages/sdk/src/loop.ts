@@ -424,6 +424,7 @@ async function callModel(state: LoopState): Promise<AssistantMessage | { readonl
     if (blocked !== undefined) return { blocked };
     state.active = request.active;
     const original = await streamRequest(state, request);
+    const usageBefore = state.lastUsage;
     account(state, original);
     const delayMs = turnRetryDelay(state, original, streak);
     if (delayMs === undefined) return accept(state, original);
@@ -433,6 +434,8 @@ async function callModel(state: LoopState): Promise<AssistantMessage | { readonl
       return unaffordable.stopReason === "budget" ? { blocked: unaffordable } : message;
     }
     state.send({ type: "model_call_end", message: original });
+    // The failed message never joins the transcript, so its usage must not stand for the context's size.
+    state.lastUsage = usageBefore;
     state.send({
       type: "retry",
       layer: "turn",
@@ -446,6 +449,7 @@ async function callModel(state: LoopState): Promise<AssistantMessage | { readonl
     state.send({ type: "step_end", stopCheck: "continue" });
     state.stepIndex = state.steps;
     state.send({ type: "step_start" });
+    applySteering(state);
   }
 }
 
