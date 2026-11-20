@@ -1,8 +1,8 @@
 // A reference loop you can read in one sitting. It is the SDK's `run()` and `continueRun()` with the machinery taken
 // out: tools run in order, there are no observers, steering or OTel, and fewer events are sent. What it keeps is the
-// shape of a step (transform, before, stream, after, tools, stop), the six interceptors, signed pauses and every stop
-// reason of the real loop but `clarification_requested`, which needs a signed question that only the SDK's internals
-// can write.
+// shape of a step (transform, before, stream, after, tools, stop), the six interceptors and signed pauses. It also
+// keeps every stop reason of the real loop but `clarification_requested`, which needs a signed question that only the
+// SDK's internals can write.
 //
 // It imports only the public exports of `@buildanagent/gateway` and `@buildanagent/sdk`. The capstone's conformance
 // suite runs against it as it runs against the real loop (test/reference-loop.test.ts), so a change to the real loop
