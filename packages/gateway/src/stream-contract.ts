@@ -8,6 +8,7 @@
  *    every block it started has ended.
  * 5. A gateway `retry` event comes after `start` and before any block event, because output is never retried.
  * 6. A `warning` may come anywhere between `start` and the terminal event. It is not output, so a retry may follow it.
+ * 7. A `raw` event may come anywhere between `start` and the terminal event, and is not output either.
  */
 import { GatewayError } from "./errors.js";
 import type { GatewayEvent } from "./runtime-types.js";

@@ -175,10 +175,17 @@ The events come in two layers. The delta layer streams each content block by its
 - **`approval_request`** reports a call that waits for a person, with its signed `request` and the `input` that request signs: a call a gate paused, or a tool's question. That call gets no `tool_call_end`. In a resumed run, **`resolution_rejected`** reports a request or resolution that failed its check, with the cause.
 - **`hook_error`** reports an interceptor or an observer that threw, with the hook's name and the message. It also reports a pause that could not be signed, with `hook: "signer"`.
 - **`retry`** reports a failed call that is being retried. Its `layer` is `gateway` for an HTTP request the model re-sends, or `turn` for a call the loop re-issues, as [the retry section](#three-layers-retry-a-failed-model-call-and-the-sdks-is-off-by-default) explains. **`warning`** reports a reached cap or a model warning.
+- **`raw`** carries one event of the provider's own stream, and only a run started with `includeRaw: true` emits it, as [the next section](#includeraw-adds-the-providers-own-events) explains.
 - **`error`** and **`abort`** report a failed call and an abort request.
 - **`agent_settled`** fires once nothing is running any more, retries and tools included. **`run_end`** follows it and carries the result.
 
 `AGENT_EVENT_TYPES` lists every type at run time, and a run emits no other. The union is closed, so a `switch` over `event.type` can be exhaustive.
+
+### `includeRaw` adds the provider's own events
+
+Pass `includeRaw: true` to `run()` or `continueRun()` when you need a field the normalized events drop, such as the provider's response id. Each model call then asks the gateway for its raw events, and the run emits each one as a `raw` event between that call's `model_call_start` and `model_call_end`, before the delta events it produced. `event.event` is the gateway's payload unchanged: for the Anthropic and OpenAI Chat adapters, one server-sent event as `{ event, data }` with `data` unparsed ([the gateway's raw events](../gateway/README.md#set-includeraw-to-see-the-providers-own-events)). Its shape is the provider's, outside the SDK's versioning.
+
+The option is off by default, and the run's `includeRaw` alone decides: an `includeRaw` in `modelOptions` or in a `beforeModelCall` patch is ignored. With it off, the run asks for no raw events and emits none. Raw events never enter the transcript, the interceptors, the result or the OpenTelemetry spans. They change no other event either, so a gateway retry still happens after them; the raw events before a `retry` belong to the attempt it supersedes. A raw event holds the model's output and provider metadata, so keep raw events out of your logs.
 
 ## Hooks change a run at six moments, and observers only watch
 
@@ -478,6 +485,8 @@ const model = new ScriptedModel(
 
 A step is either a fixed response or a function that builds one from the request. A response stops with `"tool_calls"` when it contains a tool call and with `"stop"` otherwise. Setting `error` ends the stream with an error instead. Set `usage` to the token counts the response reports; counts you leave out are zero. A response without `usage` acts like a provider that reported none: its usage is marked `unreported`, so `createModel()` prices it as unknown rather than free. Pass `usage: {}` to report zero tokens.
 
+A step can also be a `StreamScript`, `{ events }`, which plays its gateway events exactly as written, from `start` to the terminal. Its `raw` events play only when the call set `includeRaw`, as a wire adapter's do, so one script tests a run with the option on and off.
+
 ## `autoResponder()` drives an agent without a script, and never calls a host tool
 
 `autoResponder()` returns a step that behaves like a cooperative model. On a request whose conversation has no tool call yet, it calls one offered tool: the one the user's text names, or else the first. It fills the tool's input with `synthesizeInput(schema)`, which picks `const`, the first `enum` value, `default`, the first `anyOf` branch, or a plain value of the schema's type, such as `"example"` or the `minimum`. On every later request it answers in text.
@@ -492,7 +501,7 @@ const model = new ScriptedModel([autoResponder({ denyTools: [/^deploy/] }), auto
 
 `recordPairs(model, { providerVersion, expiresAt })` wraps a model and records each call as a pair: the normalised request (model, context and options) and every event the call streamed. Pass `recorder.model` to `run()`, then write `recorder.pairs()` to a fixture as JSON. Each pair is stamped with the SDK version, the model's API, provider and id, the provider version you name, the recording time and the expiry.
 
-A pair holds the gateway's transcript types, not wire bytes, so it survives changes to an adapter's wire format. It also holds no credential. The adapter's key and headers never reach a call, and from the call's options the recorder leaves out every property named like a credential header (`authorization`, `x-api-key`, `api-key`, `x-goog-api-key`, `proxy-authorization`, `cf-aig-authorization` or a cookie), `apiKey`, or a name ending in `token`, `secret` or `password`, at any depth and in any spelling. The conversation and the model's output are kept exactly, because the replay must reproduce them. `retry` events stay out, because a replay can't reproduce them.
+A pair holds the gateway's transcript types, not wire bytes, so it survives changes to an adapter's wire format. It also holds no credential. The adapter's key and headers never reach a call, and from the call's options the recorder leaves out every property named like a credential header (`authorization`, `x-api-key`, `api-key`, `x-goog-api-key`, `proxy-authorization`, `cf-aig-authorization` or a cookie), `apiKey`, or a name ending in `token`, `secret` or `password`, at any depth and in any spelling. The conversation and the model's output are kept exactly, because the replay must reproduce them. `retry` and `raw` events stay out, because a replay can't reproduce them. `includeRaw` is left out of the recorded request too, so a run recorded with it replays with the option on or off. The replay never streams raw events. Its `model_call_start` names `includeRaw: true` in its options only when the replaying run sets it.
 
 `replayPairs(pairs)` returns a `ReplayModel`, a `ScriptedModel` that streams each pair's events exactly as they were recorded. Wrap it with `createModel()` under the recorded id, so the replayed calls are priced from the same catalog entry. Leave out the middleware the recorded model had: the recorder sat outside it, so the pairs already hold its effect.
 

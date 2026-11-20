@@ -61,7 +61,7 @@ async function* streamCompletion(
     yield failureEvent(model, await failureFromResponse(response));
     return;
   }
-  yield* readEventStream(response, model, new ChunkAssembler(model, plan), options.signal);
+  yield* readEventStream(response, model, new ChunkAssembler(model, plan), options);
 }
 
 /**

@@ -78,6 +78,8 @@ export interface LoopSetup {
   readonly depth: number;
   readonly maxDepth: number;
   readonly modelOptions: CallOptions;
+  /** Whether each model call asks for the provider's raw events, which the run emits as `raw` events. */
+  readonly includeRaw: boolean;
   readonly interceptors: Interceptors;
   /** The default progress policy, run after the caller's `shouldStop`, or `undefined` when it is off (D11). */
   readonly progress?: ProgressCheck;
@@ -203,6 +205,9 @@ function forward(state: LoopState, event: GatewayEvent): AssistantMessage | unde
       return event.message;
     case "start":
       return undefined;
+    case "raw":
+      if (state.setup.includeRaw) state.send({ type: "raw", event: event.event });
+      return undefined;
     case "retry":
       state.send({
         type: "retry",
@@ -287,9 +292,19 @@ async function buildRequest(state: LoopState): Promise<Request> {
   return patch === undefined ? request : patched(state, request, patch);
 }
 
+/**
+ * The options one call sends: the request's, with `includeRaw` set by the run alone. With it off, the key is left
+ * out, so the call's options are what they were before raw events existed.
+ */
+function sentOptions(state: LoopState, options: CallOptions): CallOptions & Pick<StreamOptions, "includeRaw"> {
+  const { includeRaw: _ignored, ...rest } = options as StreamOptions;
+  return state.setup.includeRaw ? { ...rest, includeRaw: true } : rest;
+}
+
 /** Streams one request, re-emitting its events, and returns the model's final message. */
 async function streamRequest(state: LoopState, request: Request): Promise<AssistantMessage> {
-  const { model, context, options } = request;
+  const { model, context } = request;
+  const options = sentOptions(state, request.options);
   state.send({ type: "model_call_start", request: { model: model.ref, context, options: dumpedOptions(options) } });
   let message: AssistantMessage | undefined;
   for await (const event of model.stream(context, { ...options, signal: state.setup.signal })) {

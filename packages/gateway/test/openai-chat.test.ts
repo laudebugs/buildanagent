@@ -1117,3 +1117,19 @@ test("createModel waits for a 429's Retry-After before it retries", async () => 
   assert.equal((await model.complete(hello)).stopReason, "stop");
   assert.deepEqual(delays, [9000]);
 });
+
+test("includeRaw streams each chunk as it arrived, [DONE] included, before the events it produced", async () => {
+  const off = await run([streamed("parallel-tools.sse")]);
+  const on = await run([streamed("parallel-tools.sse")], hello, { includeRaw: true });
+  const raw = on.events.filter((event) => event.type === "raw").map((event) => event.event as { data: string });
+  const data = [...fixture("parallel-tools.sse").matchAll(/^data: (.*)$/gm)].map((match) => match[1]);
+  assert.deepEqual(
+    raw.map((event) => event.data),
+    data,
+  );
+  assert.equal(raw.at(-1)?.data, "[DONE]");
+  assert.deepEqual(
+    on.events.filter((event) => event.type !== "raw"),
+    off.events,
+  );
+});
