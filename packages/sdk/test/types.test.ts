@@ -3,9 +3,11 @@ import assert from "node:assert/strict";
 import {
   AGENT_EVENT_TYPES,
   type AgentEvent,
+  type CallOptions,
   type DoneResult,
   type Interceptors,
   outputTool,
+  type RunOptions,
   type RunResult,
   run,
 } from "@buildanagent/sdk";
@@ -33,6 +35,15 @@ test("AGENT_EVENT_TYPES lists every AgentEvent type and nothing else", () => {
   const complete: [Missing, Extra] extends [never, never] ? true : false = true;
   assert.equal(complete, true);
   assert.equal(new Set(AGENT_EVENT_TYPES).size, AGENT_EVENT_TYPES.length);
+});
+
+test("a raw event's payload is unknown, and includeRaw is a run option, not a model-call option", () => {
+  type Raw = Extract<AgentEvent, { type: "raw" }>;
+  const payload: unknown extends Raw["event"] ? true : false = true;
+  const onRun: RunOptions["includeRaw"] extends boolean | undefined ? true : false = true;
+  const notOnCall: "includeRaw" extends keyof CallOptions ? false : true = true;
+  assert.deepEqual([payload, onRun, notOnCall], [true, true, true]);
+  assert.ok(AGENT_EVENT_TYPES.includes("raw"));
 });
 
 test("only the done variant of RunResult carries output", () => {

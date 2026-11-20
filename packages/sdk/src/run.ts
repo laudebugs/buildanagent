@@ -116,6 +116,13 @@ export interface RunOptions<S = unknown> {
   /** Options for every model call, such as `maxOutputTokens`. The run passes its own abort signal. */
   readonly modelOptions?: CallOptions;
   /**
+   * Also emit the provider's own stream events, each as a `raw` event. Default `false`: the run then asks the model
+   * for none and emits none. The run sets the model call's `includeRaw` from this alone, so one in `modelOptions` or
+   * a `beforeModelCall` patch is ignored. A raw event holds the model's output and provider metadata, so keep raw
+   * events out of logs.
+   */
+  readonly includeRaw?: boolean;
+  /**
    * The interceptors: hooks that can change the run at six moments. A run takes one object; join several with
    * `composeInterceptors()`. See `Interceptors` for the order and for what a failing hook does.
    */
@@ -464,6 +471,15 @@ function turnRetriesOf(options: RunOptions<unknown>): Pick<LoopSetup, "turnRetri
   return { turnRetries, turnRetryDelayMs, sleep };
 }
 
+/** Checks `includeRaw`, which is off unless set. */
+function includeRawOf(options: RunOptions<unknown>): boolean {
+  const includeRaw = options.includeRaw ?? false;
+  if (typeof includeRaw !== "boolean") {
+    throw new SdkError("invalid_run_options", `includeRaw must be a boolean, got ${String(includeRaw)}`);
+  }
+  return includeRaw;
+}
+
 function setupOf(
   options: RunOptions<unknown>,
   context: Context,
@@ -487,6 +503,7 @@ function setupOf(
     );
   }
   const retries = turnRetriesOf(options);
+  const includeRaw = includeRawOf(options);
   const budgetUsd = checkBudgetOption(options.budgetUsd);
   const tools = toolsOf(options);
   const { depth, maxDepth } = depthsOf(options);
@@ -514,6 +531,7 @@ function setupOf(
     depth,
     maxDepth,
     modelOptions: options.modelOptions ?? {},
+    includeRaw,
     interceptors: checkInterceptors(options.interceptors ?? {}),
     ...(progress === undefined ? {} : { progress }),
     clock: options.clock ?? systemClock,

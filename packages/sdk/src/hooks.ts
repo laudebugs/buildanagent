@@ -25,8 +25,11 @@ export type MaybePromise<T> = T | Promise<T>;
 // biome-ignore lint/suspicious/noConfusingVoidType: a hook's return type, where void lets a function return nothing
 export type OrNothing<T> = T | void;
 
-/** The options of one model call, without the abort signal, which the run supplies. */
-export type CallOptions = Omit<ModelCallOptions, "signal">;
+/**
+ * The options of one model call, without the abort signal, which the run supplies, and without `includeRaw`, which
+ * the run's own `includeRaw` sets.
+ */
+export type CallOptions = Omit<ModelCallOptions, "signal" | "includeRaw">;
 
 /** The fields every hook event carries. */
 export interface HookEventBase {

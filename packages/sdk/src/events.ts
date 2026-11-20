@@ -100,6 +100,15 @@ export type AgentEventBody =
       readonly error: string;
     }
   /**
+   * One event of the provider's own stream, emitted only when the run set `includeRaw`. `event` is the gateway's
+   * `raw` payload, unchanged: for the Anthropic and OpenAI Chat adapters, `{ event, data }`, one server-sent event
+   * with its data unparsed. Its shape is the provider's and outside the SDK's versioning. Raw events come between a
+   * call's `model_call_start` and its `model_call_end`, each before the delta events it produced; those of an
+   * attempt the gateway retried come before that `retry` event and are superseded by it. They hold the model's
+   * output and provider metadata, so keep them out of logs you would keep content out of.
+   */
+  | { readonly type: "raw"; readonly event: unknown }
+  /**
    * A queued steer or follow-up entered the transcript as a user message, at the start of the step named by
    * `receipt.stepIndex`, before its model call. `receipt.kind` tells the two apart.
    */
@@ -148,6 +157,7 @@ export const AGENT_EVENT_TYPES = Object.freeze([
   "step_start",
   "model_call_start",
   "retry",
+  "raw",
   "text_start",
   "text_delta",
   "text_end",
