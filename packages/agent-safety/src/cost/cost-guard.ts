@@ -171,7 +171,7 @@ class Ledger {
     return { model, entry, prompt, projectedUsd };
   }
 
-  /** Gives back a call's reservation when it failed before a response, which providers don't bill. */
+  /** Gives back a call's reservation when it threw before a response, which leaves no usage to price. */
   release(call: Admitted): void {
     this.reservedUsd -= call.projectedUsd;
   }

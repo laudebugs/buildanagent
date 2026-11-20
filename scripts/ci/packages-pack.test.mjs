@@ -42,7 +42,9 @@ const packageDirs = dependencyOrder(
  * pack after it.
  */
 function dependencyOrder(dirs) {
-  const byName = new Map(dirs.map((dir) => [JSON.parse(readFileSync(path.join(dir, "package.json"), "utf8")).name, dir]));
+  const byName = new Map(
+    dirs.map((dir) => [JSON.parse(readFileSync(path.join(dir, "package.json"), "utf8")).name, dir]),
+  );
   const ordered = [];
   const visit = (name) => {
     const dir = byName.get(name);
