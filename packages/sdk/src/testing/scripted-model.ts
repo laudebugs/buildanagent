@@ -6,7 +6,7 @@
  * - **Frozen snapshots.** Each request is cloned and deeply frozen when the call is made, so later mutation of the
  *   caller's context never changes `calls`.
  * - **Realistic streams.** Text, reasoning and tool-input JSON arrive in chunks of `chunkSize` characters, and the
- *   abort signal is checked between chunks.
+ *   abort signal is checked between chunks. A `StreamScript` instead plays back recorded events exactly as they came.
  * - **Deterministic.** Chunk sizes and generated ids come only from the options, never `Math.random()` or `Date.now()`.
  *
  * It implements the gateway's `ModelAdapter` and imports nothing from the loop, so gateway tests can use it too.
@@ -50,8 +50,19 @@ export interface RecordedRequest {
   >;
 }
 
+/**
+ * A response played back event for event, such as one `recordPairs()` captured from a real model. `events` must start
+ * with `start` and end with its only terminal, `done` or `error`; the abort signal is checked between events.
+ */
+export interface StreamScript {
+  readonly events: readonly ModelEvent[];
+}
+
 /** A fixed response, or a responder that builds one from the recorded request. */
-export type ScriptStep = AssistantScript | ((request: RecordedRequest) => AssistantScript | Promise<AssistantScript>);
+export type ScriptStep =
+  | AssistantScript
+  | StreamScript
+  | ((request: RecordedRequest) => AssistantScript | StreamScript | Promise<AssistantScript | StreamScript>);
 
 export interface ScriptedModelOptions {
   /** Characters per delta. Default 4. */
@@ -101,7 +112,7 @@ interface RunState {
 }
 
 /** The serialisable stream options, with omitted ones left out rather than set to `undefined`. */
-function recordedOptions(options: StreamOptions): RecordedRequest["options"] {
+export function recordedOptions(options: StreamOptions): RecordedRequest["options"] {
   const recorded: { -readonly [K in keyof RecordedRequest["options"]]: RecordedRequest["options"][K] } = {};
   if (options.maxOutputTokens !== undefined) recorded.maxOutputTokens = options.maxOutputTokens;
   if (options.temperature !== undefined) recorded.temperature = options.temperature;
@@ -131,6 +142,36 @@ function terminal(run: RunState, script: AssistantScript): ModelEvent {
   if (script.error) return { type: "error", message: messageOf(run, "error", script.error) };
   const stopReason = script.stopReason ?? (run.content.some((b) => b.type === "tool_call") ? "tool_calls" : "stop");
   return { type: "done", message: messageOf(run, stopReason) };
+}
+
+function isTerminal(event: ModelEvent): boolean {
+  return event.type === "done" || event.type === "error";
+}
+
+function checkStreamScript(script: StreamScript): void {
+  const { events } = script;
+  const terminals = events.filter(isTerminal).length;
+  if (events[0]?.type !== "start" || terminals !== 1 || !isTerminal(events[events.length - 1] as ModelEvent)) {
+    throw new RangeError("a StreamScript's events must start with start and end with its only done or error event");
+  }
+}
+
+/** Plays a stream script's events as copies; an abort ends it with the blocks that had ended so far. */
+async function* playEvents(script: StreamScript, model: ModelRef, signal: AbortSignal | undefined) {
+  checkStreamScript(script);
+  const ended: ContentBlock[] = [];
+  for (const event of script.events) {
+    if (signal?.aborted && event.type !== "start") {
+      const run: RunState = { model, content: ended, usage: unreportedUsage() };
+      yield { type: "error", message: messageOf(run, "aborted") } satisfies ModelEvent;
+      return;
+    }
+    const copy = structuredClone(event);
+    if (copy.type === "text_end" || copy.type === "reasoning_end" || copy.type === "tool_input_end") {
+      ended.push(copy.block);
+    }
+    yield copy;
+  }
 }
 
 export class ScriptedModel implements ModelAdapter {
@@ -200,6 +241,10 @@ export class ScriptedModel implements ModelAdapter {
 
   async *#run(step: ScriptStep, request: RecordedRequest, signal: AbortSignal | undefined): AsyncGenerator<ModelEvent> {
     const script = typeof step === "function" ? await step(request) : step;
+    if ("events" in script) {
+      yield* playEvents(script, request.model, signal);
+      return;
+    }
     const usage = script.usage === undefined ? unreportedUsage() : { ...emptyUsage(), ...script.usage, raw: null };
     const run: RunState = { model: request.model, content: [], usage };
     yield { type: "start" };

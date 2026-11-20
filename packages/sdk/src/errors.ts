@@ -1,9 +1,9 @@
 /**
  * `SdkError`: the SDK's error for programmer errors, such as a tool definition that breaks the name rule or a tool
  * that returns something other than a tool result. A failure the model caused, such as invalid tool input, is never
- * thrown: the tool pipeline returns it to the model as an error result. Two subclasses keep their own names:
+ * thrown: the tool pipeline returns it to the model as an error result. Three subclasses keep their own names:
  * `RunStoppedError`, which `runOrThrow()` throws for a run that did not finish, and the testing export's
- * `UnexpectedModelCallError`.
+ * `UnexpectedModelCallError` and `RecordingError`.
  */
 import type { Context, UnfinishedResult } from "./result.js";
 
@@ -18,7 +18,10 @@ export type SdkErrorCode =
   | "hook_failed"
   | "run_stopped"
   | "undelivered_message"
-  | "unexpected_model_call";
+  | "unexpected_model_call"
+  | "invalid_recording"
+  | "recording_expired"
+  | "recording_mismatch";
 
 // A registered symbol, so the guard still works when two copies of the package are bundled.
 const SDK_ERROR = Symbol.for("buildanagent.sdk.SdkError");
@@ -39,6 +42,9 @@ const SDK_ERROR = Symbol.for("buildanagent.sdk.SdkError");
  * could apply the message.
  * `unexpected_model_call`: a `ScriptedModel` was called more times than its script allows (an
  * `UnexpectedModelCallError`).
+ * `invalid_recording`, `recording_expired` and `recording_mismatch`: the testing export's `replayPairs()` refused a
+ * recording that is malformed, past its expiry, or stamped or requested differently from the replay (a
+ * `RecordingError`).
  */
 export class SdkError extends Error {
   override readonly name: string = "SdkError";

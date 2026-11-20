@@ -6,7 +6,7 @@
 | Status | `ready` |
 | Plan | [Build SDK §4, Stage 4](../../plans/build-sdk.md#44-stage-4-ships-telemetry-the-testing-exports-the-capstone-and-the-docs-checks) |
 | Round / milestone | Round B (build SDK), M5 |
-| Depends on | [B12](B12-parallel-tools.md), [B14](../done/B14-budget-progress.md), [B15b](../done/B15b-continue-run.md), [B16](B16-steering.md), [B18](B18-testing-export.md) |
+| Depends on | [B12](../done/B12-parallel-tools.md), [B14](../done/B14-budget-progress.md), [B15b](../done/B15b-continue-run.md), [B16](../done/B16-steering.md), [B18](../done/B18-testing-export.md) |
 | Size | M |
 
 ## Goal
