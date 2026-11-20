@@ -579,6 +579,12 @@ declare function replayPairs(pairs: RecordedPair[]): ScriptedModel;   // rejects
 - `blockingApprovals(handler)` returns an `Interceptors` object that carries its handler outside the six hooks, and `composeInterceptors()` passes it on. Its handler also receives the signed input and the run's signal.
 - Single use across processes stays the host's store's job; within one `continueRun()`, two resolutions for one request are refused as `replayed`.
 
+**Revision (B18, 2026-11-19).** B18 finishes both `testing` exports with these departures from the sketch above, each recorded in [its outcome](../todos/done/B18-testing-export.md#outcome):
+- `recordPairs(model, options)` takes `RecordOptions` (`providerVersion`, `expiresAt` and an optional `clock`) rather than a whole `RecordingStamp`, and fills in the SDK version and the model's API, provider, id and caps itself. It returns a `Recorder` with `model` and `pairs()`. A `RecordedPair` holds the stamp, the normalised request and a `StreamScript`: every event the call streamed except `retry` events, which `ScriptedModel` now plays back exactly. The recorder leaves out every property named like a credential header or an API key, at any depth.
+- `replayPairs(pairs, options?)` returns a `ReplayModel`, a `ScriptedModel` subclass with `modelId`. It throws `RecordingError` (codes `invalid_recording`, `recording_expired` and `recording_mismatch`, added to `SdkErrorCode`) for an expired recording, pairs whose stamps differ, a stamp that differs from `options.expect`, or an SDK from another release line. A call whose request differs from the recorded one fails, and `assertComplete()` rethrows it.
+- `autoResponder()` always keeps the default deny list, and `denyTools` adds to it. `synthesizeInput()` is exported beside it. `scriptedApprovals()` takes answers whose `requestId` is optional and returns interceptors with `requests` and `assertComplete()`; `scriptedMcpServer()` is the MCP double. `testSigner()` and `TEST_KEY_ID` come from a vendored copy of the safety package's `test-signer.ts`, which its `testing` subpath re-exports.
+- `startMockServer()` also takes `host` and `port`, accepts only 127.0.0.0/8 and `::1`, and returns `requests` and a mock-marked `transport` that reaches only the server. It is a Node-only file of the gateway's testing export, which imports `node:http` when a server starts. The gateway also exports `CREDENTIAL_HEADERS`, `REDACTED`, `isCredentialName()`, `redactHeaders()`, `redactUrl()` and `stripCredentials()`.
+
 ### 3.4 The seams P2 consumes
 
 The harness plan should use these names as written; P4 checks that it does ([implementation plans §3](implementation-plans.md#3-the-review-p4)). The first six are the seams of [harness guide §1][hg1]; the rest are what its sketches assume from the SDK.
@@ -642,7 +648,7 @@ The guide says to start with the gateway and the test model, because every other
 | ID | Title | Depends on | Size |
 | --- | --- | --- | --- |
 | [B17](../todos/done/B17-otel-observer.md) | OTel `gen_ai.*` observer with content off | B13, B5 | M |
-| [B18](../todos/ready/B18-testing-export.md) | Complete the `testing` exports: `autoResponder`, seam doubles, record and replay, mock server | B8, B9, B15b | M |
+| [B18](../todos/done/B18-testing-export.md) | Complete the `testing` exports: `autoResponder`, seam doubles, record and replay, mock server | B8, B9, B15b | M |
 | [B19](../todos/ready/B19-triage-capstone.md) | Triage capstone and the conformance suite | B12, B14, B15b, B16, B18 | M |
 | [B19b](../todos/ready/B19b-reference-loop.md) | The readable reference loop, passing the capstone | B19 | M |
 | [B20](../todos/ready/B20-versioning-docs.md) | Versioning policy, defaults hash, compiled docs, `llms.txt` and the export diffs | B17, B19 | M |

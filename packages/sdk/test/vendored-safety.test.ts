@@ -2,8 +2,8 @@ import assert from "node:assert/strict";
 import { readdirSync, readFileSync } from "node:fs";
 import { test } from "vitest";
 
-// The SDK carries a copy of the safety package's outcome, hash, signer and pending-record files until that package is
-// published. A copy that drifts would show the model different outcome text, or sign a payload the package's own
+// The SDK carries a copy of the safety package's outcome, hash, signer, pending-record and test-signer files until that
+// package is published. A copy that drifts would show the model different outcome text, or sign a payload the package's own
 // verifier rejects.
 const vendored = new URL("../src/vendor/agent-safety/", import.meta.url);
 // Found through the declared dev dependency: its root entry resolves to src/index.ts under the workspace's `source`
@@ -21,6 +21,7 @@ test("each vendored safety file is identical to its source in the safety package
     "pending.ts",
     "render.ts",
     "signer.ts",
+    "test-signer.ts",
   ]);
   for (const file of files) {
     const copy = readFileSync(new URL(file, vendored), "utf8");
