@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 import type { ModelMiddleware } from "@buildanagent/gateway";
-import { AGENT_EVENT_TYPES, defineTool, run } from "@buildanagent/sdk";
+import { AGENT_EVENT_TYPES, CAPABILITIES, DEFAULTS_HASH, defineTool, run } from "@buildanagent/sdk";
 import { test } from "vitest";
 import { assertDeclaredEvents, recordEventTypes } from "./event-check.js";
 import { determinism, drive, lookup, START, scripted, text, toolCall, typesOf } from "./run-helpers.js";
@@ -14,7 +14,7 @@ function lookupRun() {
   return run({ model, system: SYSTEM, input: "Where is order 42?", tools: [lookup], ...determinism() });
 }
 
-test("run_start comes first, with the SDK's version, spec version and the model", async () => {
+test("run_start comes first, with the SDK's version, spec version, defaults hash, capabilities and the model", async () => {
   const { events } = await drive(lookupRun());
   assert.deepEqual(events[0], {
     runId: "run-1",
@@ -24,8 +24,8 @@ test("run_start comes first, with the SDK's version, spec version and the model"
     type: "run_start",
     sdkVersion: packageVersion,
     specVersion: "v1",
-    defaultsHash: "",
-    capabilities: [],
+    defaultsHash: DEFAULTS_HASH,
+    capabilities: CAPABILITIES,
     model: { api: "scripted", provider: "scripted", id: "scripted-model" },
   });
 });

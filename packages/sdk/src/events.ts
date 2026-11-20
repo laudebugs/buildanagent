@@ -45,9 +45,12 @@ export type AgentEventBody =
       readonly type: "run_start";
       readonly sdkVersion: string;
       readonly specVersion: "v1";
-      /** Reserved for a hash of the run's defaults; empty for now. */
+      /**
+       * `DEFAULTS_HASH`: a hash of every default value, built-in prompt and tool description this SDK uses. It
+       * changes whenever one of them does, so a stored run shows whether a change in behaviour came with new defaults.
+       */
       readonly defaultsHash: string;
-      /** Reserved for the SDK's capability names; empty for now. */
+      /** `CAPABILITIES`: the behaviours this SDK release supports, such as `steering_v1`. */
       readonly capabilities: readonly string[];
       readonly model: ModelRef;
     }

@@ -17,6 +17,11 @@
 // add or edit a top-level `.changeset/*.md` that `changeset version` would consume. `pnpm changeset status` alone
 // isn't enough: it also counts an edit to an already consumed changeset in `.changeset/pre/`, which would let the
 // change merge and never publish. The change then goes to `pnpm changeset status`, which checks the rest.
+//
+// One kind of change needs more than any changeset: a new value of a stamp in RELEASE_STAMPS, such as the SDK's
+// DEFAULTS_HASH. The hash changes when a default, a built-in prompt or a tool description does, and users must read
+// about that in the changelog (agent-SDK guide §10), so a changeset the change adds, not one it edits, must give a
+// package a real bump; an empty one from `pnpm changeset --empty` doesn't count, and neither does a `none` bump.
 import { execFileSync, spawnSync } from "node:child_process";
 import { existsSync, mkdtempSync, readdirSync, readFileSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
@@ -24,6 +29,7 @@ import path from "node:path";
 import { fileURLToPath } from "node:url";
 import {
   changelogSection,
+  changesetPackages,
   compareVersions,
   isPendingChangeset,
   parsePreState,
@@ -124,10 +130,70 @@ export function versionedPackageDirs(root) {
 }
 
 /**
+ * The stamps whose change must reach the changelog: each names a shipped file and a pattern whose first group is the
+ * stamped value.
+ */
+export const RELEASE_STAMPS = Object.freeze([
+  { file: "packages/sdk/src/defaults.ts", pattern: /\bDEFAULTS_HASH = "([0-9a-f]{64})"/ },
+]);
+
+/**
+ * Lists the stamps whose value differs between the "base" and "head" sides of `read(file, side)`, which returns a
+ * file's text or undefined where it doesn't exist. A stamp the head adds counts as changed; one it removes doesn't,
+ * because nothing then carries the old value.
+ */
+export function changedStamps(stamps, read) {
+  const value = (stamp, side) => stamp.pattern.exec(read(stamp.file, side) ?? "")?.[1];
+  return stamps.filter((stamp) => {
+    const head = value(stamp, "head");
+    return head !== undefined && head !== value(stamp, "base");
+  });
+}
+
+/**
+ * Lists the stamps whose pattern finds no value at head, such as a hash that a reformat or a type annotation moved
+ * out of the pattern's reach, or a file that the base has and the head moved or deleted. The gate fails on them, because a stamp it can't read would let
+ * every later change of it through.
+ */
+export function unreadableStamps(stamps, read) {
+  return stamps.filter((stamp) => {
+    const text = read(stamp.file, "head");
+    if (text === undefined) return read(stamp.file, "base") !== undefined;
+    return stamp.pattern.exec(text) === null;
+  });
+}
+
+const RELEASING_BUMP = /^\s*(["']?)([^"':]+)\1\s*:\s*(major|minor|patch)\s*$/;
+
+/**
+ * The changesets among `added` that the change adds, rather than edits, and that give at least one of the `versioned`
+ * packages a `major`, `minor` or `patch` bump, so they reach a changelog. An edit to a changeset already pending on
+ * the base doesn't count, because its entry was written for another change, and neither does a `none` bump.
+ */
+export function releasingChangesets(added, read, versioned) {
+  return added.filter((file) => {
+    if (read(file, "base") !== undefined) return false;
+    const text = read(file, "head") ?? "";
+    if (changesetPackages(text) === undefined) return false;
+    const frontmatter = /^\s*---\r?\n([\s\S]*?)^---\s*$/m.exec(text)?.[1] ?? "";
+    return frontmatter.split(/\r?\n/).some((line) => {
+      const bump = RELEASING_BUMP.exec(line);
+      return bump !== null && versioned.includes(bump[2].trim());
+    });
+  });
+}
+
+/**
  * Runs the gate on the git checkout at `root` against `base`. `runStatus(base)` runs `pnpm changeset status` and
  * returns its exit code; it is called only when the change isn't a version bump. Returns the gate's exit code.
  */
-export function runGate({ root, base = "origin/main", runStatus = defaultRunStatus(root), log = console.log }) {
+export function runGate({
+  root,
+  base = "origin/main",
+  runStatus = defaultRunStatus(root),
+  log = console.log,
+  stamps = RELEASE_STAMPS,
+}) {
   const git = (...args) => execFileSync("git", args, { cwd: root, encoding: "utf8" });
   const mergeBase = git("merge-base", base, "HEAD").trim();
   const changed = git("diff", "--name-only", "--no-renames", mergeBase, "HEAD").split("\n").filter(Boolean);
@@ -159,6 +225,23 @@ export function runGate({ root, base = "origin/main", runStatus = defaultRunStat
       log(
         "changeset-gate: shipped files changed, but no top-level .changeset/*.md that releases them was added or " +
           `edited (${shipped}). Run \`pnpm changeset\`, or \`pnpm changeset --empty\` when users get nothing new.`,
+      );
+      return 1;
+    }
+    const unreadable = unreadableStamps(stamps, read).map((stamp) => stamp.file);
+    if (unreadable.length > 0) {
+      log(
+        `changeset-gate: a release stamp's value can't be found (${unreadable}). Keep it in the form RELEASE_STAMPS ` +
+          "in scripts/ci/changeset-gate.mjs reads, or update its pattern.",
+      );
+      return 1;
+    }
+    const stamped = changedStamps(stamps, read).map((stamp) => stamp.file);
+    if (stamped.length > 0 && releasingChangesets(added, read, versioned).length === 0) {
+      log(
+        `changeset-gate: a stamped hash changed (${stamped}), which means a default, prompt or tool description ` +
+          "changed, but no added changeset releases a package. Run `pnpm changeset` and say what changed; an empty " +
+          "changeset doesn't reach the changelog.",
       );
       return 1;
     }
