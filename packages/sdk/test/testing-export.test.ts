@@ -315,10 +315,10 @@ test("no recorded pair contains an authorization or API-key header, or the key i
   assert.deepEqual(recorder.pairs()[0]?.request.options.providerOptions, { headers: { accept: "text/event-stream" } });
 });
 
-test("a recorded pair holds no provider event outside the model spec, such as a raw event, though the caller sees it", async () => {
+test("a recorded pair holds no raw provider event, though the caller sees it", async () => {
   const { model: base } = scripted([text("ok")]);
-  // The shape B11c's opt-in raw events will take: a provider's own wire event, which may echo request fields.
-  const raw = { type: "raw", api: "anthropic-messages", event: { type: "message_start", key: KEY } };
+  // A provider's own wire event, which may echo request fields.
+  const raw: GatewayEvent = { type: "raw", event: { event: "message_start", data: JSON.stringify({ key: KEY }) } };
   const withRaw: Model = {
     ref: base.ref,
     caps: base.caps,
@@ -326,7 +326,7 @@ test("a recorded pair holds no provider event outside the model spec, such as a 
     complete: (context, options) => base.complete(context, options),
     async *stream(context, options) {
       for await (const event of base.stream(context, options)) {
-        yield raw as unknown as GatewayEvent;
+        yield raw;
         yield event;
       }
     },
@@ -343,7 +343,7 @@ test("a recorded pair holds no provider event outside the model spec, such as a 
   const [pair] = recorder.pairs();
   assert.ok(pair !== undefined);
   assert.ok(pair.response.events.length > 0);
-  assert.ok(pair.response.events.every((event) => (event.type as string) !== "raw"));
+  assert.ok(pair.response.events.every((event) => event.type !== "raw"));
   assert.ok(!JSON.stringify(pair).includes(KEY), "no pair holds what the raw event carried");
 });
 

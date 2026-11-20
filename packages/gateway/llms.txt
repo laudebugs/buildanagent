@@ -10,6 +10,7 @@ The sections of README.md and every public export, generated from this package's
 - [A conversation is a list of messages you own](README.md#a-conversation-is-a-list-of-messages-you-own)
 - [A transcript recorded on one model replays on another](README.md#a-transcript-recorded-on-one-model-replays-on-another)
 - [Every stream follows one rule](README.md#every-stream-follows-one-rule)
+- [Set `includeRaw` to see the provider's own events](README.md#set-includeraw-to-see-the-providers-own-events)
 - [A model is an adapter object plus a model id](README.md#a-model-is-an-adapter-object-plus-a-model-id)
 - [Every message carries its cost, priced from a catalog you can replace](README.md#every-message-carries-its-cost-priced-from-a-catalog-you-can-replace)
 - [You can project a call's cost before you send it](README.md#you-can-project-a-calls-cost-before-you-send-it)

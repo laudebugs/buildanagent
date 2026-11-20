@@ -44,7 +44,7 @@ export interface RecordingStamp {
 export interface RecordedPair {
   readonly stamp: RecordingStamp;
   readonly request: RecordedRequest;
-  /** The call's events, from `start` to its terminal, as the gateway streamed them, minus `retry` events. */
+  /** The call's events, from `start` to its terminal, as the gateway streamed them, minus `retry` and `raw` events. */
   readonly response: StreamScript;
 }
 
@@ -104,8 +104,8 @@ const NORMALISED_EVENTS: ReadonlySet<string> = new Set<ModelEvent["type"]>([
 ]);
 
 /**
- * True for an event a pair stores: the model spec's own events. `retry` events, which the gateway adds, and any
- * provider event outside the spec stay out, because a replay can't reproduce them.
+ * True for an event a pair stores: the model spec's normalized events. `retry` events, which the gateway adds, and
+ * `raw` events, which are the provider's own, stay out, because a replay can't reproduce them.
  */
 function isNormalised(event: GatewayEvent): event is ModelEvent {
   return NORMALISED_EVENTS.has(event.type);
@@ -160,10 +160,10 @@ function stampOf(model: Model, options: RecordOptions): RecordingStamp {
 /**
  * Wraps `model` so that each call it makes is recorded as a `RecordedPair`, and returns the wrapper with the pairs so
  * far. Write `pairs()` to a fixture file as JSON, and replay it with `replayPairs()`. Each pair holds the request the
- * call sent (model, context and options) and every event it streamed except `retry` events. The adapter's key and
- * headers are never part of a call, and every property of the options named like a credential header or an API key,
- * or ending in `token`, `secret` or `password`, is left out at any depth, so a fixture holds no key the adapter or
- * the options carried. An option such as `cancellationToken` is therefore neither recorded nor compared. The
+ * call sent (model, context and options) and every event it streamed except `retry` and `raw` events. The adapter's
+ * key and headers are never part of a call, and every property of the options named like a credential header or an
+ * API key, or ending in `token`, `secret` or `password`, is left out at any depth, so a fixture holds no key the
+ * adapter or the options carried. An option such as `cancellationToken` is therefore neither recorded nor compared. The
  * conversation and the model's output are kept exactly as they were, because a replay must reproduce them. A call is recorded once it
  * reaches its terminal event; one whose reader stopped earlier is not recorded.
  *

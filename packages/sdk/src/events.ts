@@ -88,12 +88,13 @@ export type AgentEventBody =
   | { readonly type: "context_transformed"; readonly before: number; readonly after: number }
   /**
    * A failed model call is being retried; `attempt` is 1 for the first retry. `layer` says which retry it is.
-   * `gateway`: the model retries an HTTP request that failed before any output; its events follow `model_call_start`
-   * and nothing was streamed from the failed attempt. `turn`: the loop re-issues a call that ended with a `retryable`
-   * error, which `turnRetries` turns on. It comes right after that call's `model_call_end`, whose message is
-   * superseded: it is not in the transcript, and a UI that rendered the call's streamed deltas should discard them,
-   * because the retry streams its own. Once the wait ends, the failed call's `step_end` follows, then the retry's own
-   * `step_start` and `model_call_start` at the next `stepIndex`.
+   * `gateway`: the model retries an HTTP request that failed before any output. Its events follow `model_call_start`,
+   * and the failed attempt streamed no output, only any `raw` events, which this event supersedes. `turn`: the loop
+   * re-issues a call that ended with a `retryable` error, which `turnRetries` turns on. This event comes right after
+   * that call's `model_call_end`, whose message is superseded: it is not in the transcript. A UI that rendered the
+   * call's streamed deltas or kept its `raw` events should discard them, because the retry streams its own. Once the
+   * wait ends, the failed call's `step_end` follows, then the retry's own `step_start` and `model_call_start` at the
+   * next `stepIndex`.
    */
   | {
       readonly type: "retry";
@@ -102,6 +103,15 @@ export type AgentEventBody =
       readonly delayMs: number;
       readonly error: string;
     }
+  /**
+   * One event of the provider's own stream, emitted only when the run set `includeRaw`. `event` is the gateway's
+   * `raw` payload, unchanged: for the Anthropic and OpenAI Chat adapters, `{ event, data }`, one server-sent event
+   * with its data unparsed. Its shape is the provider's and outside the SDK's versioning. Raw events come between a
+   * call's `model_call_start` and its `model_call_end`, each before the delta events it produced; those of an
+   * attempt the gateway retried come before that `retry` event and are superseded by it. They hold the model's
+   * output and provider metadata, so keep them out of logs you would keep content out of.
+   */
+  | { readonly type: "raw"; readonly event: unknown }
   /**
    * A queued steer or follow-up entered the transcript as a user message, at the start of the step named by
    * `receipt.stepIndex`, before its model call. `receipt.kind` tells the two apart.
@@ -151,6 +161,7 @@ export const AGENT_EVENT_TYPES = Object.freeze([
   "step_start",
   "model_call_start",
   "retry",
+  "raw",
   "text_start",
   "text_delta",
   "text_end",

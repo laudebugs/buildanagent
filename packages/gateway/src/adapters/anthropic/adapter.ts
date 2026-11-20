@@ -153,7 +153,7 @@ async function* streamMessage(
     if (response === undefined) return;
     if (response.ok) {
       const assembler = new MessageAssembler(model, plan.names, plan.cacheTtl);
-      yield* readEventStream(response, model, assembler, options.signal);
+      yield* readEventStream(response, model, assembler, options);
       return;
     }
     const failure = await failureFromResponse(response);

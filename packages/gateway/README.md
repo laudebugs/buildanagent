@@ -61,6 +61,22 @@ const events = await assertStreamContract(adapter.stream(model.ref, context, {})
 
 `complete()` folds a stream into its terminal message. It returns an error terminal's message instead of throwing, so a failed call still gives you its partial content and usage.
 
+## Set `includeRaw` to see the provider's own events
+
+Set `includeRaw: true` on a call to see the fields the normalized events drop, such as a response id or a service tier. The stream then also carries one `raw` event for each event of the provider's stream, in the order they arrived on the wire. Each raw event comes before the normalized events it produced, and none follows the terminal:
+
+```ts
+for await (const event of model.stream(context, { includeRaw: true })) {
+  if (event.type === "raw") inspect(event.event); // { event: "message_start", data: "{\"type\":\"message_start\",...}" }
+}
+```
+
+Both adapters read a server-sent event stream, so for both the payload is one server-sent event as `{ event, data }`: the event's name, `"message"` when it named none, and its `data:` lines joined by newlines. The gateway leaves `data` unparsed. That choice keeps every event intact, because two kinds of OpenAI-compatible data are not JSON: the `[DONE]` that ends the stream, which arrives as the string `"[DONE]"`, and an `error` event's bare text. The payload's type is `unknown`, because it is the provider's shape: it follows the provider's API version, not the gateway's, and it can change without a gateway release.
+
+A raw event is not output. It never changes the normalized events, the final message, its usage or its cost, and `complete()` skips it. The gateway still retries a call that has streamed only raw events and warnings. Such a failed attempt's raw events have already reached you, and the `retry` event that follows marks them superseded, so drop the raw events you saw since the last `start` or `retry`. An HTTP error response, such as a 529, has no event stream and so gets no raw event; its status and message are in the `error` terminal. `assertStreamContract()` accepts a raw event anywhere between `start` and the terminal.
+
+The option is off by default, and with it off a stream is exactly what it was before the option existed. A raw event holds the model's output and provider metadata, so keep raw events out of any log you keep content out of. The `raw` member joined `ModelEvent` without a new spec version, so adapters still declare `specificationVersion: "v1"`. A `switch` over a model event's `type` that must stay exhaustive needs a `raw` case, even though no adapter emits one unless you ask.
+
 ## A model is an adapter object plus a model id
 
 `createModel()` binds one adapter to one model id. You always pass the adapter as an object that you made with your own API key, so a bare id such as `"claude-x"` is a type error and the gateway never guesses a provider:

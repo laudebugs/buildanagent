@@ -19,6 +19,7 @@ The sections of README.md and every public export, generated from this package's
   - [`depth` and `maxDepth` stop a tree of agents](README.md#depth-and-maxdepth-stop-a-tree-of-agents)
 - [Steer a running agent with `run.steer()`, or queue a follow-up with `run.followUp()`](README.md#steer-a-running-agent-with-runsteer-or-queue-a-follow-up-with-runfollowup)
 - [A run streams one closed set of events](README.md#a-run-streams-one-closed-set-of-events)
+  - [`includeRaw` adds the provider's own events](README.md#includeraw-adds-the-providers-own-events)
 - [`run_start` records which release and which defaults ran](README.md#run_start-records-which-release-and-which-defaults-ran)
   - [`CAPABILITIES` tells a peer what it can rely on](README.md#capabilities-tells-a-peer-what-it-can-rely-on)
   - [Unstable names start with `experimental_`](README.md#unstable-names-start-with-experimental_)
@@ -63,7 +64,7 @@ The sections of README.md and every public export, generated from this package's
 - `interface AwaitingApprovalResult`: A run that paused because a `beforeToolCall` gate returned `ask`.
 - `blockingApprovals()`: Answers approvals inside the run, for a host where the person answers while the process waits, such as a terminal.
 - `interface BudgetResult`: A run that ended before a model call because that call could have taken the spend past `budgetUsd`.
-- `type CallOptions`: The options of one model call, without the abort signal, which the run supplies.
+- `type CallOptions`: The options of one model call, without the abort signal, which the run supplies, and without `includeRaw`, which the run's own `includeRaw` sets.
 - `canonicalInputHash()`: Hashes a tool input: the SHA-256 of its canonical JSON (RFC 8785), as 64 lowercase hex digits.
 - `CAPABILITIES`: The SDK's capability strings, in the order the README lists them.
 - `interface ClarificationRequestedResult`: A run that paused because a tool, such as one from `clarificationTool()`, asked the user a question and no call waits for an approval.
