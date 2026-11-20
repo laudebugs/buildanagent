@@ -1,0 +1,50 @@
+{
+  "name": "@buildanagent/protocol",
+  "version": "0.0.0",
+  "private": true,
+  "description": "The wire types of the buildanagent harness: the session entry union, the client and server messages and their JSONL framing.",
+  "license": "Apache-2.0 OR MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/laudebugs/buildanagent.git",
+    "directory": "packages/protocol"
+  },
+  "homepage": "https://github.com/laudebugs/buildanagent/tree/main/packages/protocol#readme",
+  "type": "module",
+  "sideEffects": false,
+  "engines": {
+    "node": ">=22"
+  },
+  "files": [
+    "dist",
+    "LICENSE",
+    "LICENSE-APACHE",
+    "LICENSE-MIT"
+  ],
+  "exports": {
+    ".": {
+      "source": "./src/index.ts",
+      "types": "./dist/index.d.ts",
+      "default": "./dist/index.js"
+    }
+  },
+  "publishConfig": {
+    "exports": {
+      ".": {
+        "types": "./dist/index.d.ts",
+        "default": "./dist/index.js"
+      }
+    }
+  },
+  "scripts": {
+    "build": "node ../../scripts/clean-dist.mjs && tsc -p tsconfig.build.json",
+    "prepack": "pnpm run build && node ../../scripts/copy-licenses.mjs",
+    "prepublishOnly": "node ../../scripts/refuse-local-publish.mjs",
+    "typecheck": "tsc -p tsconfig.json",
+    "test": "vitest run"
+  },
+  "dependencies": {
+    "@buildanagent/gateway": "workspace:*",
+    "@buildanagent/sdk": "workspace:*"
+  }
+}

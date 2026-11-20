@@ -8,7 +8,7 @@
 | Status | `ready` |
 | Plan | [Build coding agent §5](../../plans/build-coding-agent.md#52-round-w-builds-the-coding-agent) |
 | Round / milestone | Round W (build the coding agent), M7 |
-| Depends on | [N1](N1-harness-workspace-scaffold.md) |
+| Depends on | [N1](../done/N1-harness-workspace-scaffold.md) |
 | Size | S |
 
 ## Goal

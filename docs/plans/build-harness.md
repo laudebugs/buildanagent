@@ -681,7 +681,7 @@ The guide says to start with the log, because context layers, pauses, replay, th
 
 | ID | Title | Depends on | Size |
 | --- | --- | --- | --- |
-| [N1](../todos/ready/N1-harness-workspace-scaffold.md) | Scaffold `protocol`, `harness`, `cli` and `evals` packages | B1 | S |
+| [N1](../todos/done/N1-harness-workspace-scaffold.md) | Scaffold `protocol`, `harness`, `cli` and `evals` packages | B1 | S |
 | [N2](../todos/ready/N2-session-entries-schema.md) | Session entry union in `@buildanagent/protocol`, its JSON Schema and the stable fields | N1, B2 | M |
 | [N3](../todos/ready/N3-session-store.md) | `SessionStore`: memory and JSONL backends, the conformance suite and the write-time bound | N2 | M |
 | [N4](../todos/ready/N4-writer-lock.md) | Writer lock with a lease, and the crash test (HD2) | N3 | M |
