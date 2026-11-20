@@ -3,10 +3,10 @@
 | Field | Value |
 | --- | --- |
 | ID | `B20` |
-| Status | `ready` |
+| Status | `ongoing` |
 | Plan | [Build SDK §4, Stage 4](../../plans/build-sdk.md#44-stage-4-ships-telemetry-the-testing-exports-the-capstone-and-the-docs-checks) |
 | Round / milestone | Round B (build SDK), M5 |
-| Depends on | [B17](B17-otel-observer.md), [B19](../done/B19-triage-capstone.md) |
+| Depends on | [B17](../done/B17-otel-observer.md), [B19](../done/B19-triage-capstone.md) |
 | Size | M |
 
 ## Goal
@@ -71,7 +71,7 @@ The owner decided on 2026-11-19 to publish under `@buildanagent` and to build do
 
 ## Definition of done
 
-- [ ] Claimed: the first commit moved this file `ready/` → `ongoing/` (Status `ongoing`)
+- [x] Claimed: the first commit moved this file `ready/` → `ongoing/` (Status `ongoing`)
 - [ ] Prose drafted with `/anthropic-skills:writing` and reviewed with `/anthropic-skills:writing-review`, with the fixes applied and changed claims re-checked
 - [ ] `pnpm check`, `pnpm typecheck` and `pnpm test` pass locally; pushed after each meaningful step
 - [ ] This file moved `ongoing/` → `done/` (Status `done`), and the plan's todo table updated
