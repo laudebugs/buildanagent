@@ -3,7 +3,7 @@
 | Field | Value |
 | --- | --- |
 | ID | `B11c` |
-| Status | `ready` |
+| Status | `ongoing` |
 | Plan | [Build SDK §4, Stage 3](../../plans/build-sdk.md#43-stage-3-builds-the-loop-its-tools-hooks-budget-and-signed-pauses) |
 | Round / milestone | Round B (build SDK), M5 |
 | Depends on | [B11](../done/B11-loop-core.md), [B4](../done/B4-gateway-runtime.md), [B8](../done/B8-anthropic-adapter.md), [B9](../done/B9-openai-chat-adapter.md) |
@@ -85,7 +85,7 @@ Gateway: `packages/gateway/test/raw-events.test.ts` for the option, `createModel
 
 ## Definition of done
 
-- [ ] Claimed: the first commit moved this file `ready/` → `ongoing/` (Status `ongoing`)
+- [x] Claimed: the first commit moved this file `ready/` → `ongoing/` (Status `ongoing`)
 - [ ] Prose drafted with `/anthropic-skills:writing`, and changed claims re-checked against their sources
 - [ ] `pnpm check`, `pnpm typecheck` and `pnpm test` pass locally; pushed after each meaningful step
 - [ ] This file moved `ongoing/` → `done/` (Status `done`) in the last work commit, and the plan's todo table updated
