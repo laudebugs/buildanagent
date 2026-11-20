@@ -30,11 +30,34 @@ import { fileURLToPath } from "node:url";
 import { promisify } from "node:util";
 
 const root = path.resolve(fileURLToPath(new URL("../..", import.meta.url)));
-const packageDirs = readdirSync(path.join(root, "packages"), { withFileTypes: true })
-  .filter((entry) => entry.isDirectory() && existsSync(path.join(root, "packages", entry.name, "package.json")))
-  .map((entry) => path.join(root, "packages", entry.name));
+const packageDirs = dependencyOrder(
+  readdirSync(path.join(root, "packages"), { withFileTypes: true })
+    .filter((entry) => entry.isDirectory() && existsSync(path.join(root, "packages", entry.name, "package.json")))
+    .map((entry) => path.join(root, "packages", entry.name)),
+);
+
+/**
+ * The package folders with each one after the workspace packages it depends on, as `pnpm -r build` orders them. Each
+ * `prepack` builds against the dist/ of those packages, so the safety package, which depends on the gateway, must
+ * pack after it.
+ */
+function dependencyOrder(dirs) {
+  const byName = new Map(
+    dirs.map((dir) => [JSON.parse(readFileSync(path.join(dir, "package.json"), "utf8")).name, dir]),
+  );
+  const ordered = [];
+  const visit = (name) => {
+    const dir = byName.get(name);
+    if (dir === undefined || ordered.includes(dir)) return;
+    const { dependencies = {} } = JSON.parse(readFileSync(path.join(dir, "package.json"), "utf8"));
+    for (const dependency of Object.keys(dependencies)) visit(dependency);
+    ordered.push(dir);
+  };
+  for (const name of byName.keys()) visit(name);
+  return ordered;
+}
 const LICENCES = ["LICENSE", "LICENSE-APACHE", "LICENSE-MIT"];
-const TOP_LEVEL = new Set(["package.json", "README.md", "CHANGELOG.md", ...LICENCES]);
+const TOP_LEVEL = new Set(["package.json", "README.md", "CHANGELOG.md", "llms.txt", ...LICENCES]);
 // A dist/ file left from an earlier build whose module no longer exists in src/. The build must delete it.
 const STALE = "dist/stale-module-from-an-earlier-build.js";
 // The pack tests run pnpm as installed (see `before`), so a global pnpm other than the `packageManager` version would
@@ -159,12 +182,14 @@ packTest("every package is packed", () => {
   assert.equal(packed.size, packageDirs.length);
 });
 
-packTest("each tarball holds only package.json, README, CHANGELOG, the licences and dist/", () => {
-  for (const [name, { files }] of packed) {
+packTest("each tarball holds only package.json, README, CHANGELOG, llms.txt, the licences and dist/", () => {
+  for (const [name, { files, manifest }] of packed) {
     const strays = files.filter((file) => !TOP_LEVEL.has(file) && !file.startsWith("dist/"));
     assert.deepEqual(strays, [], `${name} packs files outside dist/`);
     for (const licence of LICENCES) assert.ok(files.includes(licence), `${name} lacks ${licence}`);
     assert.ok(files.includes("README.md"), `${name} lacks README.md`);
+    // The published packages ship their docs index; the private safety package has none until it is published.
+    if (manifest.private !== true) assert.ok(files.includes("llms.txt"), `${name} lacks llms.txt`);
   }
 });
 
@@ -258,11 +283,21 @@ packTest("every packed declaration file imports only its own dist/ files or othe
 // fails the test, so the list is cut once pi-schema ships a fix.
 const SOURCE_CONDITION_FAILURES = ["@buildanagent/sdk"];
 
+// The entries that fail to import in this install, which holds no optional peer, because they exist to wrap one: the
+// safety package's `./byok` imports `@ai-sdk/anthropic` and `@ai-sdk/openai` at load, and its `./cost` imports `ai`,
+// as its README says. The failure must be ERR_MODULE_NOT_FOUND naming one of the package's declared optional peers.
+// Every other entry, the root entry included, must import. An entry listed here that imports again fails the test.
+const OPTIONAL_PEER_FAILURES = ["@buildanagent/agent-safety/byok", "@buildanagent/agent-safety/cost"];
+
 for (const conditions of [[], ["--conditions=source"]]) {
   const label = conditions.length ? "with --conditions=source" : "with no extra condition";
   packTest(`Node imports every packed entry from dist/ ${label}`, (t) => {
     const failed = [];
+    const missingPeer = [];
     for (const [name, { manifest, dest }] of packed) {
+      const optionalPeers = Object.entries(manifest.peerDependenciesMeta ?? {})
+        .filter(([, meta]) => meta.optional)
+        .map(([peer]) => peer);
       // A dependency with a broken `source` condition can't load under it. An entry that reaches such a dependency
       // may fail to import only with an error naming that dependency; every other entry must import. The run with no
       // extra condition imports them all.
@@ -272,6 +307,8 @@ for (const conditions of [[], ["--conditions=source"]]) {
         const tolerated = JSON.stringify(broken);
         const script = `const url = import.meta.resolve(${JSON.stringify(specifier)});
 try { await import(url); } catch (error) {
+  const peer = error?.code === "ERR_MODULE_NOT_FOUND" ? ${JSON.stringify(optionalPeers)}.find((dep) => String(error.message).includes(\`'\${dep}'\`)) : undefined;
+  if (peer !== undefined) { console.error(\`missing peer: \${peer}\`); console.log(url); process.exit(0); }
   const named = ${tolerated}.find((dep) => String(error?.stack ?? error).includes(dep));
   if (named === undefined) throw error;
   console.error(\`broken source: \${named}\`);
@@ -283,6 +320,12 @@ console.log(url);`;
           env,
         });
         assert.equal(child.status, 0, `${specifier} failed to import ${label}: ${child.stderr}`);
+        const absent = /^missing peer: (.+)$/m.exec(child.stderr)?.[1];
+        if (absent) {
+          missingPeer.push(specifier);
+          t.diagnostic(`${specifier}: not imported ${label}, because its optional peer ${absent} is not installed`);
+          continue;
+        }
         const skipped = /^broken source: (.+)$/m.exec(child.stderr)?.[1];
         if (skipped) {
           failed.push(specifier);
@@ -294,6 +337,7 @@ console.log(url);`;
       }
     }
     assert.deepEqual(failed, conditions.length ? SOURCE_CONDITION_FAILURES : []);
+    assert.deepEqual(missingPeer, OPTIONAL_PEER_FAILURES);
   });
 }
 

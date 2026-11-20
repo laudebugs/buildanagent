@@ -26,7 +26,7 @@ Our SDK and harness must run on local Node, Cloudflare, AWS and Vercel ([ADR 003
 - **MUST NOT:** import `node:*` modules or use `Buffer`, `process`, `__dirname` or `require` in a package's `src/`. Bytes are `Uint8Array`, text goes through `TextEncoder` and `TextDecoder`, and randomness and crypto go through `globalThis.crypto`.
 - **MUST NOT:** use DOM-only globals (`window`, `document`, `localStorage`) in `src/`.
 - **SHOULD:** take anything environment-specific (a transport, a store, a clock) as an option, so the caller supplies it.
-- Test files may use Node APIs, and so may the offline guards in a package's `src/testing/` (`guards.ts` and `setup.ts`), because they guard our Node test process. The rest of a `testing` export, such as `ScriptedModel`, stays portable, because users run it on every target. `packages/gateway/test/portability.test.ts` enforces the rule for every package.
+- Test files may use Node APIs, and so may the offline guards in a package's `src/testing/` (`guards.ts` and `setup.ts`), because they guard our Node test process. The gateway's `mock-server.ts` may too, because a socket needs Node's `http` module; it imports the module only when a test starts a server. The rest of a `testing` export, such as `ScriptedModel`, stays portable, because users run it on every target. `packages/gateway/test/portability.test.ts` enforces the rule for every package.
 
 ## Biome lints and formats, and caps each function's size
 
@@ -57,4 +57,5 @@ Our SDK and harness must run on local Node, Cloudflare, AWS and Vercel ([ADR 003
 - **SHOULD:** write a package's exported types first, review them in the pull request, then implement them. The exported types are the contract.
 - **MUST:** `src/index.ts` and each subpath entry export their names one by one. No `export *` from internal modules, and no barrel files in subfolders. Larger areas get a subpath export (`@buildanagent/gateway/testing`).
 - **MUST:** every exported symbol has a TSDoc comment. Users read it in their editor, so it follows [docs-writing.md](docs-writing.md): no decision or todo ids. The SDK plan's D8 adds a CI check that fails on an undocumented export ([ADR 0008](../decisions/0008-versioning-and-doc-checks.md)).
+- **MUST:** a public name that may still change in a minor release starts with `experimental_`, and its TSDoc carries an `@experimental` tag. Each package's docs check fails when the prefix and the tag disagree, so every unprefixed name falls under the versioning rules of [ADR 0008](../decisions/0008-versioning-and-doc-checks.md).
 - **SHOULD:** inputs and outputs use `readonly` properties, options arrive as one object, and an optional property means "omitted", which `exactOptionalPropertyTypes` enforces.

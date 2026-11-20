@@ -1,0 +1,186 @@
+{
+  "name": "@buildanagent/harness",
+  "version": "0.0.0",
+  "private": true,
+  "description": "The buildanagent harness: the session log, context policy, tools, permissions, sandbox and credentials around the SDK's loop.",
+  "license": "Apache-2.0 OR MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/laudebugs/buildanagent.git",
+    "directory": "packages/harness"
+  },
+  "homepage": "https://github.com/laudebugs/buildanagent/tree/main/packages/harness#readme",
+  "type": "module",
+  "sideEffects": false,
+  "engines": {
+    "node": ">=22"
+  },
+  "files": [
+    "dist",
+    "LICENSE",
+    "LICENSE-APACHE",
+    "LICENSE-MIT"
+  ],
+  "exports": {
+    ".": {
+      "source": "./src/index.ts",
+      "types": "./dist/index.d.ts",
+      "default": "./dist/index.js"
+    },
+    "./session": {
+      "source": "./src/session/index.ts",
+      "types": "./dist/session/index.d.ts",
+      "default": "./dist/session/index.js"
+    },
+    "./context": {
+      "source": "./src/context/index.ts",
+      "types": "./dist/context/index.d.ts",
+      "default": "./dist/context/index.js"
+    },
+    "./tools": {
+      "source": "./src/tools/index.ts",
+      "types": "./dist/tools/index.d.ts",
+      "default": "./dist/tools/index.js"
+    },
+    "./mcp": {
+      "source": "./src/mcp/index.ts",
+      "types": "./dist/mcp/index.d.ts",
+      "default": "./dist/mcp/index.js"
+    },
+    "./permissions": {
+      "source": "./src/permissions/index.ts",
+      "types": "./dist/permissions/index.d.ts",
+      "default": "./dist/permissions/index.js"
+    },
+    "./sandbox": {
+      "source": "./src/sandbox/index.ts",
+      "types": "./dist/sandbox/index.d.ts",
+      "default": "./dist/sandbox/index.js"
+    },
+    "./sandbox/srt": {
+      "source": "./src/sandbox/srt/index.ts",
+      "types": "./dist/sandbox/srt/index.d.ts",
+      "default": "./dist/sandbox/srt/index.js"
+    },
+    "./sandbox/docker": {
+      "source": "./src/sandbox/docker/index.ts",
+      "types": "./dist/sandbox/docker/index.d.ts",
+      "default": "./dist/sandbox/docker/index.js"
+    },
+    "./credentials": {
+      "source": "./src/credentials/index.ts",
+      "types": "./dist/credentials/index.d.ts",
+      "default": "./dist/credentials/index.js"
+    },
+    "./extensions": {
+      "source": "./src/extensions/index.ts",
+      "types": "./dist/extensions/index.d.ts",
+      "default": "./dist/extensions/index.js"
+    },
+    "./memory": {
+      "source": "./src/memory/index.ts",
+      "types": "./dist/memory/index.d.ts",
+      "default": "./dist/memory/index.js"
+    },
+    "./telemetry": {
+      "source": "./src/telemetry/index.ts",
+      "types": "./dist/telemetry/index.d.ts",
+      "default": "./dist/telemetry/index.js"
+    },
+    "./server": {
+      "source": "./src/server/index.ts",
+      "types": "./dist/server/index.d.ts",
+      "default": "./dist/server/index.js"
+    },
+    "./ablation": {
+      "source": "./src/ablation.ts",
+      "types": "./dist/ablation.d.ts",
+      "default": "./dist/ablation.js"
+    },
+    "./testing": {
+      "source": "./src/testing/index.ts",
+      "types": "./dist/testing/index.d.ts",
+      "default": "./dist/testing/index.js"
+    }
+  },
+  "publishConfig": {
+    "exports": {
+      ".": {
+        "types": "./dist/index.d.ts",
+        "default": "./dist/index.js"
+      },
+      "./session": {
+        "types": "./dist/session/index.d.ts",
+        "default": "./dist/session/index.js"
+      },
+      "./context": {
+        "types": "./dist/context/index.d.ts",
+        "default": "./dist/context/index.js"
+      },
+      "./tools": {
+        "types": "./dist/tools/index.d.ts",
+        "default": "./dist/tools/index.js"
+      },
+      "./mcp": {
+        "types": "./dist/mcp/index.d.ts",
+        "default": "./dist/mcp/index.js"
+      },
+      "./permissions": {
+        "types": "./dist/permissions/index.d.ts",
+        "default": "./dist/permissions/index.js"
+      },
+      "./sandbox": {
+        "types": "./dist/sandbox/index.d.ts",
+        "default": "./dist/sandbox/index.js"
+      },
+      "./sandbox/srt": {
+        "types": "./dist/sandbox/srt/index.d.ts",
+        "default": "./dist/sandbox/srt/index.js"
+      },
+      "./sandbox/docker": {
+        "types": "./dist/sandbox/docker/index.d.ts",
+        "default": "./dist/sandbox/docker/index.js"
+      },
+      "./credentials": {
+        "types": "./dist/credentials/index.d.ts",
+        "default": "./dist/credentials/index.js"
+      },
+      "./extensions": {
+        "types": "./dist/extensions/index.d.ts",
+        "default": "./dist/extensions/index.js"
+      },
+      "./memory": {
+        "types": "./dist/memory/index.d.ts",
+        "default": "./dist/memory/index.js"
+      },
+      "./telemetry": {
+        "types": "./dist/telemetry/index.d.ts",
+        "default": "./dist/telemetry/index.js"
+      },
+      "./server": {
+        "types": "./dist/server/index.d.ts",
+        "default": "./dist/server/index.js"
+      },
+      "./ablation": {
+        "types": "./dist/ablation.d.ts",
+        "default": "./dist/ablation.js"
+      },
+      "./testing": {
+        "types": "./dist/testing/index.d.ts",
+        "default": "./dist/testing/index.js"
+      }
+    }
+  },
+  "scripts": {
+    "build": "node ../../scripts/clean-dist.mjs && tsc -p tsconfig.build.json",
+    "prepack": "pnpm run build && node ../../scripts/copy-licenses.mjs",
+    "prepublishOnly": "node ../../scripts/refuse-local-publish.mjs",
+    "typecheck": "tsc -p tsconfig.json",
+    "test": "vitest run"
+  },
+  "dependencies": {
+    "@buildanagent/gateway": "workspace:*",
+    "@buildanagent/protocol": "workspace:*",
+    "@buildanagent/sdk": "workspace:*"
+  }
+}

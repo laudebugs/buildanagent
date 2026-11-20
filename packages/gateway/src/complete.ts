@@ -5,7 +5,8 @@ import type { AssistantMessage } from "./types.js";
 /**
  * Reads the stream to its terminal event and returns that event's message. An `error` terminal is returned, not
  * thrown: its message carries `stopReason` `"error"` or `"aborted"`, the partial content and the usage so far. A stream
- * that ends without a terminal event breaks the stream rule, so that case throws. `retry` events are skipped.
+ * that ends without a terminal event breaks the stream rule, so that case throws. `retry` and `raw` events are
+ * skipped.
  */
 export async function complete(events: AsyncIterable<GatewayEvent>): Promise<AssistantMessage> {
   for await (const event of events) {

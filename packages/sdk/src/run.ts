@@ -3,30 +3,35 @@
  * its events to anyone who iterates it and settles `result` with the same run's outcome, so the streaming and the
  * non-streaming caller drive one loop.
  */
-import type { ContentBlock, Message, Model } from "@buildanagent/gateway";
+import {
+  abortableSleep,
+  type ContentBlock,
+  MAX_RETRY_DELAY_MS,
+  type Message,
+  type Model,
+  type Sleep,
+} from "@buildanagent/gateway";
 import { checkBudgetOption } from "./budget.js";
+import { CAPABILITIES } from "./capabilities.js";
+import { DEFAULTS_HASH, SDK_DEFAULTS } from "./defaults.js";
 import { RunStoppedError, SdkError } from "./errors.js";
 import type { AgentEvent, AgentEventBody } from "./events.js";
 import type { CallOptions, Interceptors, Observer } from "./hooks.js";
 import { type LoopSetup, runLoop } from "./loop.js";
 import { ObserverBus } from "./observers.js";
+import { blockingHandlerOf, isSigner } from "./pauses.js";
 import { type ProgressCheck, type ProgressPolicy, progressCheck, resolveProgress } from "./progress.js";
 import type { Context, DoneResult, RunResult } from "./result.js";
+import { resumeSetupOf } from "./resume.js";
 import { type DeliveryReceipt, SteeringQueue } from "./steering.js";
 import type { Clock } from "./testing/determinism.js";
 import { preparedSchemaOf } from "./tools/define.js";
 import type { AnyTool } from "./tools/pipeline.js";
 import type { ToolContext, ToolDefinition } from "./tools/types.js";
+import type { Recheck, Resolution } from "./vendor/agent-safety/pending.js";
+import { type ApprovalSigner, ephemeralSigner } from "./vendor/agent-safety/signer.js";
 import { SDK_VERSION } from "./version.js";
 
-/** The step cap's default, counted in model calls. */
-const DEFAULT_MAX_STEPS = 20;
-
-/** The depth cap's default (D11): a top-level run, its subagents and their subagents may run, and no deeper. */
-const DEFAULT_MAX_DEPTH = 2;
-
-/** How long the run waits, by default, for an observer to catch up before it drops it. */
-const DEFAULT_OBSERVER_TIMEOUT_MS = 10_000;
 /** The longest delay `setTimeout` accepts; a larger one fires at once on Node and workerd alike. */
 const MAX_TIMER_MS = 2_147_483_647;
 
@@ -52,6 +57,29 @@ export interface RunOptions<S = unknown> {
    * ends with `stopReason: "max_steps"` and emits a `warning` event with `code: "max_steps"`.
    */
   readonly maxSteps?: number;
+  /**
+   * How many times the loop re-issues a model call that ended with a `retryable` error, such as a stream cut off
+   * after it had started to answer. Default 0: the run ends `error` on the first failure, and `continueRun()` is the
+   * way to try again. `turnRetries: 3` retries as Pi does. This is the third retry layer: the model's own retries
+   * (`createModel({ retries })`) re-send a request that failed before any output, so a call can make up to
+   * `(retries + 1) * (turnRetries + 1)` requests. The count restarts after each call that succeeds. Only
+   * `retryable` failures are retried: `overflow`, `quota` and `fatal` end the run, and so does a `retryable` failure
+   * whose `error.retryAfterMs` is over the gateway's 60-second cap. Every attempt counts against `maxSteps`, and a
+   * failed attempt's usage and cost go into the result; a run that `maxSteps` stops after a retry ends `max_steps`. With `budgetUsd` set, a retry the budget can't cover, or one after an attempt whose cost is
+   * unknown, is not made: the run ends `budget`, or `error` with the failure's own error.
+   * Each retry emits a `retry` event with `layer: "turn"`.
+   */
+  readonly turnRetries?: number;
+  /**
+   * The wait before the first turn retry, in milliseconds. Default 2000; each later retry of a streak waits twice as
+   * long, up to 60 seconds, or as long as the failure's `error.retryAfterMs` asks if that is longer.
+   */
+  readonly turnRetryDelayMs?: number;
+  /**
+   * Waits between turn retries. Defaults to a timer that ends early, without rejecting, when the run is aborted; a
+   * test passes a fake to skip the wait. A `sleep` that rejects ends the wait early and emits a `hook_error` event.
+   */
+  readonly sleep?: Sleep;
   /**
    * The most the run's model calls may cost, in USD. Before each call the run projects its cost with
    * `projectCallCost()` and, if the spend so far plus that projection would pass the cap, ends with
@@ -81,6 +109,13 @@ export interface RunOptions<S = unknown> {
   /** Options for every model call, such as `maxOutputTokens`. The run passes its own abort signal. */
   readonly modelOptions?: CallOptions;
   /**
+   * Also emit the provider's own stream events, each as a `raw` event. Default `false`: the run then asks the model
+   * for none and emits none. The run sets the model call's `includeRaw` from this alone, so one in `modelOptions` or
+   * a `beforeModelCall` patch is ignored. A raw event holds the model's output and provider metadata, so keep raw
+   * events out of logs.
+   */
+  readonly includeRaw?: boolean;
+  /**
    * The interceptors: hooks that can change the run at six moments. A run takes one object; join several with
    * `composeInterceptors()`. See `Interceptors` for the order and for what a failing hook does.
    */
@@ -100,8 +135,38 @@ export interface RunOptions<S = unknown> {
   readonly observerTimeoutMs?: number;
   /** Stamps each event's `timestamp`, and is passed to tools. Defaults to the system clock. */
   readonly clock?: Clock;
-  /** Makes the run's id. Defaults to `crypto.randomUUID()`. */
+  /**
+   * Makes the run's id, then the id of each pending request the run signs. A request id that repeats the run's id or
+   * an earlier request's id is replaced by `crypto.randomUUID()`, so a generator that always returns one id still
+   * pauses every call; return a fresh id on every call to keep request ids deterministic. Defaults to
+   * `crypto.randomUUID()`.
+   */
   readonly idGenerator?: () => string;
+  /**
+   * Signs the pending request a run writes when a `beforeToolCall` gate returns `ask`. The default,
+   * `ephemeralSigner()`, holds a random key that lives only in this process, so only this process can verify its
+   * pauses: on a serverless host, or anywhere a pause may resume in another process, pass `hmacSigner()` over a key
+   * ring you keep. A pause that can't be signed is never written unsigned; its call is blocked instead.
+   */
+  readonly signer?: ApprovalSigner;
+}
+
+/** What `continueRun()` takes besides the shared options: the answers to a paused context's requests. */
+export interface ContinueOptions<S = unknown> extends RunOptions<S> {
+  /**
+   * A person's answer to each pending request of the context: `{ requestId, decision: "allow" | "deny" }` for an
+   * approval, `{ requestId, answer }` for a question. Each is checked against its request and the input
+   * `context.pendingInputs` holds for it, with the run's `signer`, before anything runs. A request no resolution
+   * names still waits, and the run ends paused again without a model call.
+   */
+  readonly resolutions?: readonly Resolution[];
+  /**
+   * Runs current policy for each verified approval just before its call runs. It gets copies of the request and
+   * input. Resolve to `"allow"` to run the call, or to `{ deny: reason }` to give the model an error result with that
+   * reason instead. A `recheck` that throws or returns anything else denies the call. Without it, a verified approval
+   * runs, so check policy before you resolve.
+   */
+  readonly recheck?: Recheck;
 }
 
 /** What `run()` takes besides the shared options. */
@@ -126,8 +191,9 @@ export interface Run<S = unknown> extends AsyncIterable<AgentEvent> {
   readonly result: Promise<RunResult<S>>;
   /**
    * Stops the run. A model call in flight ends, a running tool sees its `signal` fire, and calls that haven't started
-   * get an error result instead. The run then ends with `stopReason: "aborted"`. Does nothing once the run has its
-   * outcome and is ending, which is before `agent_settled`.
+   * get an error result instead. The run then ends with `stopReason: "aborted"`, unless a gate already paused a call
+   * in the step, which ends it `awaiting_approval`, because that call's signed request still waits. Does nothing once
+   * the run has its outcome and is ending, which is before `agent_settled`.
    */
   abort(reason?: string): void;
   /**
@@ -186,6 +252,7 @@ function checkInterceptors(interceptors: Interceptors): Interceptors {
       throw new SdkError("invalid_run_options", `interceptors.${name} must be a function, got ${typeof hook}`);
     }
   }
+  blockingHandlerOf(interceptors);
   const { onFailure } = interceptors;
   if (onFailure !== undefined && onFailure !== "fail_closed" && onFailure !== "continue") {
     throw new SdkError("invalid_run_options", `interceptors.onFailure must be "fail_closed" or "continue"`);
@@ -226,7 +293,12 @@ class RunHandle<S> implements Run<S> {
     for (const observer of observers) this.#bus.add(observer);
     const emit = (body: AgentEventBody, stepIndex: number) => this.#push(body, stepIndex);
     const { model } = setup;
-    const versions = { sdkVersion: SDK_VERSION, specVersion: "v1" as const, defaultsHash: "", capabilities: [] };
+    const versions = {
+      sdkVersion: SDK_VERSION,
+      specVersion: "v1" as const,
+      defaultsHash: DEFAULTS_HASH,
+      capabilities: CAPABILITIES,
+    };
     emit({ type: "run_start", ...versions, model: model.ref }, 0);
     const forwardAbort = () => this.abort(reasonOf(signal?.reason));
     if (signal?.aborted) forwardAbort();
@@ -355,7 +427,7 @@ export function nestedRunDepth(ctx: Pick<ToolContext, "depth" | "maxDepth">): { 
 
 /** Checks `depth` and `maxDepth`, and refuses a run nested deeper than the cap allows (D11). */
 function depthsOf(options: RunOptions<unknown>): { depth: number; maxDepth: number } {
-  const { depth = 0, maxDepth = DEFAULT_MAX_DEPTH } = options;
+  const { depth = 0, maxDepth = SDK_DEFAULTS.run.maxDepth } = options;
   if (!isCount(depth) || !isCount(maxDepth)) {
     throw new SdkError(
       "invalid_run_options",
@@ -377,6 +449,35 @@ function progressOf(options: RunOptions<unknown>, tools: readonly AnyTool[], ski
   return policy === undefined ? undefined : progressCheck(tools, policy, skip);
 }
 
+/** Checks the turn-retry options and fills in their defaults. */
+function turnRetriesOf(options: RunOptions<unknown>): Pick<LoopSetup, "turnRetries" | "turnRetryDelayMs" | "sleep"> {
+  const turnRetries = options.turnRetries ?? SDK_DEFAULTS.run.turnRetries;
+  if (!Number.isInteger(turnRetries) || turnRetries < 0) {
+    throw new SdkError("invalid_run_options", `turnRetries must be a non-negative integer, got ${String(turnRetries)}`);
+  }
+  const turnRetryDelayMs = options.turnRetryDelayMs ?? SDK_DEFAULTS.run.turnRetryDelayMs;
+  if (!Number.isFinite(turnRetryDelayMs) || turnRetryDelayMs < 0 || turnRetryDelayMs > MAX_RETRY_DELAY_MS) {
+    throw new SdkError(
+      "invalid_run_options",
+      `turnRetryDelayMs must be a number from 0 to ${MAX_RETRY_DELAY_MS}, got ${String(turnRetryDelayMs)}`,
+    );
+  }
+  const sleep = options.sleep ?? abortableSleep;
+  if (typeof sleep !== "function") {
+    throw new SdkError("invalid_run_options", "sleep must be a function, such as async (ms, signal) => {}");
+  }
+  return { turnRetries, turnRetryDelayMs, sleep };
+}
+
+/** Checks `includeRaw`, which is off unless set. */
+function includeRawOf(options: RunOptions<unknown>): boolean {
+  const includeRaw = options.includeRaw ?? false;
+  if (typeof includeRaw !== "boolean") {
+    throw new SdkError("invalid_run_options", `includeRaw must be a boolean, got ${String(includeRaw)}`);
+  }
+  return includeRaw;
+}
+
 function setupOf(
   options: RunOptions<unknown>,
   context: Context,
@@ -388,10 +489,19 @@ function setupOf(
       "the model must come from createModel(), such as createModel({ adapter, id })",
     );
   }
-  const maxSteps = options.maxSteps ?? DEFAULT_MAX_STEPS;
+  const maxSteps = options.maxSteps ?? SDK_DEFAULTS.run.maxSteps;
   if (!Number.isInteger(maxSteps) || maxSteps < 1) {
     throw new SdkError("invalid_run_options", `maxSteps must be a positive integer, got ${maxSteps}`);
   }
+  const signer = options.signer ?? ephemeralSigner();
+  if (!isSigner(signer)) {
+    throw new SdkError(
+      "invalid_run_options",
+      "signer must be an ApprovalSigner, such as hmacSigner() or ephemeralSigner()",
+    );
+  }
+  const retries = turnRetriesOf(options);
+  const includeRaw = includeRawOf(options);
   const budgetUsd = checkBudgetOption(options.budgetUsd);
   const tools = toolsOf(options);
   const { depth, maxDepth } = depthsOf(options);
@@ -402,8 +512,11 @@ function setupOf(
       `the output tool "${options.output.name}" must be sent to the model, so its exposure must be "direct"`,
     );
   }
+  const nextId = options.idGenerator ?? randomIds;
   return {
-    runId: (options.idGenerator ?? randomIds)(),
+    runId: nextId(),
+    nextId,
+    signer,
     model: options.model,
     system: context.system,
     history: context.messages,
@@ -411,10 +524,12 @@ function setupOf(
     tools,
     output: options.output as AnyTool | undefined,
     maxSteps,
+    ...retries,
     ...(budgetUsd === undefined ? {} : { budgetUsd }),
     depth,
     maxDepth,
     modelOptions: options.modelOptions ?? {},
+    includeRaw,
     interceptors: checkInterceptors(options.interceptors ?? {}),
     ...(progress === undefined ? {} : { progress }),
     clock: options.clock ?? systemClock,
@@ -430,7 +545,7 @@ interface ObserverSetup {
 function observersOf(options: RunOptions<unknown>): ObserverSetup {
   const observers = options.observers ?? [];
   for (const observer of observers) checkObserver(observer);
-  const timeoutMs = options.observerTimeoutMs ?? DEFAULT_OBSERVER_TIMEOUT_MS;
+  const timeoutMs = options.observerTimeoutMs ?? SDK_DEFAULTS.run.observerTimeoutMs;
   if (typeof timeoutMs !== "number" || !Number.isFinite(timeoutMs) || timeoutMs <= 0 || timeoutMs > MAX_TIMER_MS) {
     throw new SdkError(
       "invalid_run_options",
@@ -457,9 +572,33 @@ export function run<S = unknown>(options: RunOptions<S> & RunInput): Run<S> {
  * Goes on with a conversation from a result's `context`, or one you rebuilt from your own store. It runs like
  * `run()`, from the last message in the context, and `result.messages` holds only the messages it adds. The context
  * is sent as it stands, so add a user message to one that ends with the model's answer, such as a `done` result's.
+ * A context whose last response ended in an error asks the model again.
+ *
+ * A paused context resumes with `resolutions`. Before the first model call, each waiting call's stored request is
+ * verified with the run's `signer` against its call and its input in `context.pendingInputs`, then:
+ *
+ * - a verified `allow` runs the call once, with the input its request signs and without `beforeToolCall`, after
+ *   `recheck` allows it;
+ * - a verified `deny` gives the model an error result with the reason, and a verified `answer` reaches the model as
+ *   the call's result;
+ * - a request no resolution names still waits;
+ * - a request or resolution that fails its check runs nothing, emits `resolution_rejected`, and the call asks again
+ *   with a new approval request: the gate is asked as for a new call, and the call pauses even when the gate allows
+ *   it. A call to a tool the model isn't sent by default gets the unknown-tool error result instead.
+ *
+ * Settling the requests is not a step. When a call still waits, the run ends paused again without a model call, and
+ * when none does and an approved call's result sets `terminate`, the run ends `done` without one.
+ * Each request answers once per context, but the SDK can't see other processes: mark a request used in your store
+ * before you resume it, so a second resume of the same stored context is refused there.
+ *
+ * Throws an `SdkError` with code `invalid_run_options` for a context it can't read, for a context whose last
+ * assistant message has a call with no result and no pending request, for a pending request whose call doesn't wait
+ * in the context, and for malformed `resolutions` or `recheck`, besides the options `run()` refuses.
  */
-export function continueRun<S = unknown>(context: Context, options: RunOptions<S>): Run<S> {
-  return new RunHandle<S>(setupOf(options, context, []), options.signal, observersOf(options));
+export function continueRun<S = unknown>(context: Context, options: ContinueOptions<S>): Run<S> {
+  const resume = resumeSetupOf(context, options?.resolutions, options?.recheck);
+  const setup = setupOf(options, context, []);
+  return new RunHandle<S>(resume === undefined ? setup : { ...setup, resume }, options.signal, observersOf(options));
 }
 
 /**

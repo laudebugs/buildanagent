@@ -1,13 +1,13 @@
-# Plan: build our agent SDK as two workspace packages, a gateway and a loop, in 26 todos tested offline against a scripted model
+# Plan: build our agent SDK as two workspace packages, a gateway and a loop, in 27 todos tested offline against a scripted model
 
-- **Status:** Draft (P1, 2026-11-18), revised on 2026-11-18 with the fixes from the [P4 review](reviews/plan-review.md), and on 2026-11-18 for three deployment targets: notes in D5 and D7, and tasks added to B10 and B17 ([ADR 0033](../decisions/0033-three-deployment-targets.md)). Revised on 2026-11-19 (plan review 2) to apply [ADR 0043](../decisions/0043-standalone-safety-core.md) and the [close-sdk-gaps plan](close-sdk-gaps.md): the signer, the input hash and the pending record now come from `@buildanagent/agent-safety`, the cost projection from the gateway, and Round E feeds B10, B14 and B15. Revised on 2026-11-19 from the voice (U20) and fine-tuning (U21) research, whose proposed changes the owner approved that day (owner decision 2026-11-19): §1 gains two non-goals, audio and realtime sessions and model training, and §4.5 adds B21 and B22 for the price catalog. Revised on 2026-11-19 after B11: §4.3 adds B11b (turn-level retries) and B11c (raw provider events), two follow-ups that B11's outcome left without an owner.
+- **Status:** Draft (P1, 2026-11-18), revised on 2026-11-18 with the fixes from the [P4 review](reviews/plan-review.md), and on 2026-11-18 for three deployment targets: notes in D5 and D7, and tasks added to B10 and B17 ([ADR 0033](../decisions/0033-three-deployment-targets.md)). Revised on 2026-11-19 (plan review 2) to apply [ADR 0043](../decisions/0043-standalone-safety-core.md) and the [close-sdk-gaps plan](close-sdk-gaps.md): the signer, the input hash and the pending record now come from `@buildanagent/agent-safety`, the cost projection from the gateway, and Round E feeds B10, B14 and B15. Revised on 2026-11-19 from the voice (U20) and fine-tuning (U21) research, whose proposed changes the owner approved that day (owner decision 2026-11-19): §1 gains two non-goals, audio and realtime sessions and model training, and §4.5 adds B21 and B22 for the price catalog. Revised on 2026-11-19 after B11: §4.3 adds B11b (turn-level retries) and B11c (raw provider events), two follow-ups that B11's outcome left without an owner. Revised on 2026-11-20 by B11c: §3.2 and §3.3 record the `raw` event and `includeRaw`, which stay under `specificationVersion: "v1"` (owner decision 2026-11-19). Revised on 2026-11-19 from the book's Chapter 3: §4.6 adds B23, an app-data field on `ToolContext` for trusted data such as the signed-in user, which the owner accepted that day ("yes, i accept these").
 - **Date:** 2026-11-18
 - **Asked for by:** the project owner (2026-11-18), through the [implementation plans](implementation-plans.md#2-what-each-plan-contains)
 - **Builds on:** the [agent-SDK guide][g] (G1b), its [reference architecture][g11] and its [twelve open decisions][g12], plus the six seams that the [harness guide §1][hg1] needs from the SDK
 - **Decision records:** [ADRs 0001–0011](../decisions/README.md), and [ADR 0043](../decisions/0043-standalone-safety-core.md) (accepted, owner, 2026-11-18), which the [close-sdk-gaps plan](close-sdk-gaps.md) applies to D5, D9 and §3
 - **Todos:** Round B ("build SDK") on the [todo board](../todos/README.md); §4 lists them.
 
-The [agent-SDK guide][g] already settles the design: one in-process loop as a pure streaming function over a versioned single-method model gateway, every failure and pause returned to the caller as data, and a strict scripted test model shipped from the first release. The guide still left twelve decisions open, ranging from the package split to the tool-name rule ([guide §12][g12]). The harness plan (P2) will also build on this SDK through six seams, so any gap here becomes a workaround there ([harness guide §1][hg1]). This plan makes the twelve decisions and turns the reference architecture into two packages and 26 todos: 22 from P1; B21 and B22, added from the fine-tuning research on 2026-11-19; and B11b and B11c, added as B11 follow-ups the same day. Each todo is one reviewable batch with checkable acceptance criteria. It also gives the test strategy that keeps every todo offline. Nine decisions follow from the evidence, and the owner accepted the other three, D2, D5 and D8, on 2026-11-18. The owner also accepted D12 on 2026-11-19, after todo B7 confirmed its rule (§2). In one sentence: **build the gateway and the scripted test model first, then the loop, tools, hooks and pauses on top of them, and finish with a triage capstone that passes the same contract the eight reference capstones pass, so P2 can start on stable seams.**
+The [agent-SDK guide][g] already settles the design: one in-process loop as a pure streaming function over a versioned single-method model gateway, every failure and pause returned to the caller as data, and a strict scripted test model shipped from the first release. The guide still left twelve decisions open, ranging from the package split to the tool-name rule ([guide §12][g12]). The harness plan (P2) will also build on this SDK through six seams, so any gap here becomes a workaround there ([harness guide §1][hg1]). This plan makes the twelve decisions and turns the reference architecture into two packages and 27 todos: 22 from P1; B21 and B22, added from the fine-tuning research on 2026-11-19; B11b and B11c, added as B11 follow-ups the same day; and B23, added from the book's Chapter 3 the same day. Each todo is one reviewable batch with checkable acceptance criteria. It also gives the test strategy that keeps every todo offline. Nine decisions follow from the evidence, and the owner accepted the other three, D2, D5 and D8, on 2026-11-18. The owner also accepted D12 on 2026-11-19, after todo B7 confirmed its rule (§2). In one sentence: **build the gateway and the scripted test model first, then the loop, tools, hooks and pauses on top of them, and finish with a triage capstone that passes the same contract the eight reference capstones pass, so P2 can start on stable seams.**
 
 ## 1. Goal and non-goals
 
@@ -114,7 +114,7 @@ Each decision answers one open decision in [guide §12][g12], in the same order,
 
 **Note (2026-11-18).** `ephemeralSigner()` cannot resume a pause on any serverless host, because an isolate or function may be recycled between the pause and its resume. The SDK's docs say so; hosts on Cloudflare, AWS or Vercel pass `hmacSigner()` over a persistent `KeyStore` ([ADR 0035](../decisions/0035-read-only-key-store.md); [portable agents report](../research/deployment/portable-agents.md#the-sdk-travels-the-harness-is-bound-to-one-host-in-six-places)).
 
-**Revision (plan review 2, 2026-11-19).** [ADR 0043](../decisions/0043-standalone-safety-core.md) (accepted) moves this decision's code into `@buildanagent/agent-safety` without changing its rules, fields or shapes. The package defines the `ApprovalSigner` interface, the signers `hmacSigner()` and `ephemeralSigner()`, `canonicalInputHash()`, and the `SignedPendingRequest` and `Resolution` types. [E1](../todos/done/E1-safety-core-outcomes.md) builds the hash and [E3](../todos/ready/E3-signed-approvals-third-party.md) the rest. The SDK re-exports all of them, so callers keep the import paths in §3.3, and B15 imports them instead of defining them. The owner has yet to confirm that the package also owns `SignedPendingRequest` and `Resolution`, which ADR 0043 does not list ([plan review 2 §6](reviews/plan-review-2.md#6-eleven-owner-actions-are-still-open-and-only-one-a-test-project-for-n50-touches-waves-15)).
+**Revision (plan review 2, 2026-11-19).** [ADR 0043](../decisions/0043-standalone-safety-core.md) (accepted) moves this decision's code into `@buildanagent/agent-safety` without changing its rules, fields or shapes. The package defines the `ApprovalSigner` interface, the signers `hmacSigner()` and `ephemeralSigner()`, `canonicalInputHash()`, and the `SignedPendingRequest` and `Resolution` types. [E1](../todos/done/E1-safety-core-outcomes.md) builds the hash and [E3](../todos/done/E3-signed-approvals-third-party.md) the rest. The SDK re-exports all of them, so callers keep the import paths in §3.3, and B15 imports them instead of defining them. ADR 0043 does not list `SignedPendingRequest` and `Resolution`; the owner confirmed on 2026-11-19 that the package owns them too ([plan review 2 §6](reviews/plan-review-2.md#6-eleven-owner-actions-are-still-open-and-only-one-a-test-project-for-n50-touches-waves-15), action 2).
 
 ### D6. Our six moment-named interceptors, with run-level hooks as observers
 
@@ -154,7 +154,7 @@ Each decision answers one open decision in [guide §12][g12], in the same order,
 
 **Choice: before each call.** The loop projects the next call's cost: the input estimate times the model's input rate, plus `maxOutputTokens` (the call's option, else `Model.caps.maxOutputTokens`) times the output rate. B14 exports the projection as `projectCallCost()`, so a caller that uses `Model.complete()` outside the loop, such as the harness's summary layer, applies the same formula ([harness plan, HD9][har-hd9]). If the spend plus the projection exceeds the cap, the run ends with `stopReason: "budget"` before the call. The input estimate is the previous call's reported total input plus a character-based estimate of the messages added since. Actual cost is still recorded after each call, so any remaining overshoot shows in the result.
 
-**Revision (plan review 2, 2026-11-19).** Under [ADR 0043](../decisions/0043-standalone-safety-core.md), `projectCallCost()` and the token-level `projectCost()` it calls move to `@buildanagent/gateway`, beside the catalog ([B5](../todos/done/B5-usage-cost-catalog.md)). The loop and the safety package's AI SDK guard ([E5](../todos/ready/E5-pre-call-cost-guard.md)) then share one formula. B14's check imports `projectCallCost()` from the gateway, and the SDK re-exports it for the harness's summary layer.
+**Revision (plan review 2, 2026-11-19).** Under [ADR 0043](../decisions/0043-standalone-safety-core.md), `projectCallCost()` and the token-level `projectCost()` it calls move to `@buildanagent/gateway`, beside the catalog ([B5](../todos/done/B5-usage-cost-catalog.md)). The loop and the safety package's AI SDK guard ([E5](../todos/done/E5-pre-call-cost-guard.md)) then share one formula. B14's check imports `projectCallCost()` from the gateway, and the SDK re-exports it for the harness's summary layer.
 
 **Evidence.** Claude's `maxBudgetUsd` acts only after the response that crosses it, and harness decision 18 asks for a pre-emptive check ([guide §3][g3]). The HN synthesis makes the same change, because loops cause the runaway-cost anecdotes ([HN §4.1][hn41]). Inspect checks cost limits at each `generate()`, which matches the pre-emptive rule ([harness guide §10][hg10]). The guide's settling test measures overshoot on our longest recorded runs. We have none yet, so B14 instead asserts a bound with the scripted model: with the pre-emptive check, the overshoot is at most the error of one call's projection, and a post-response check would overshoot by a full call. N39 reruns the measurement on recorded runs.
 
@@ -285,6 +285,7 @@ type ModelEvent =
   | { type: "text_delta" | "reasoning_delta" | "tool_input_delta"; index: number; delta: string }
   | { type: "text_end" | "reasoning_end" | "tool_input_end"; index: number; block: ContentBlock }
   | { type: "warning"; code: string; message: string } // added in B8: a dropped option or an HD3 rule 5 entry; not output
+  | { type: "raw"; event: unknown }                // added in B11c: one provider event, only with includeRaw; not output
   | { type: "done"; message: AssistantMessage }    // exactly one terminal event
   | { type: "error"; message: AssistantMessage };  // stopReason "error" | "aborted"
 interface StreamOptions {
@@ -293,6 +294,7 @@ interface StreamOptions {
   cacheRetention?: "none" | "short" | "long";      // one portable caching policy
   providerOptions?: Record<string, unknown>;       // escape hatch only
   onPayload?(body: unknown): unknown;              // inspect or replace the request body
+  includeRaw?: boolean;                            // added in B11c: also stream raw events; default off
 }
 
 // Gateway runtime (SDK decisions 4, 13; guide §9): an explicit provider, never a bare id or ambient credentials
@@ -334,6 +336,8 @@ declare function startMockServer(options: { api: string; script: WireScript; log
 declare function assertStreamContract(events: AsyncIterable<ModelEvent>): Promise<ModelEvent[]>;
 declare function seededRandom(seed: number): () => number;   // added in B3; moved here from @buildanagent/sdk/testing in B7, its one entry point
 ```
+
+**Revision (B11c, 2026-11-20): raw provider events.** `ModelEvent` gains `{ type: "raw"; event: unknown }` and `StreamOptions` gains `includeRaw`. The owner decided on 2026-11-19 that the spec stays `specificationVersion: "v1"`: a stream without `includeRaw` is unchanged, and the new member is recorded under the versioning rules ([guide §10][g10]) as a minor release whose changeset starts "Breaking Changes", because it can break an exhaustive `switch` over `type`. One raw event is one `ServerSentEvent`, passed on as `{ event, data }` with `data` unparsed, because OpenAI's `[DONE]` and a bare-text `error` event are not JSON. An HTTP error body, which has no event stream, gets no raw event. A raw event is not output, so the pre-output retries stay on; a failed attempt's raw events reach the caller, and the `retry` event marks them superseded. Recordings hold no raw events (B18).
 
 ### 3.3 SDK API
 
@@ -382,6 +386,7 @@ interface RunOptions<S = unknown> {
   interceptors?: Interceptors;
   observers?: Observer[];
   maxSteps?: number;                   // default 20 model calls; approval resolution is not a step
+  turnRetries?: number; turnRetryDelayMs?: number; sleep?: Sleep;  // Revision (B11b): default off; a retry counts against maxSteps
   budgetUsd?: number;                  // checked before each call (D9)
   progress?: ProgressPolicy | false;   // D11 defaults
   depth?: number; maxDepth?: number;   // default 0 and 2
@@ -389,7 +394,7 @@ interface RunOptions<S = unknown> {
   signal?: AbortSignal;
   modelOptions?: StreamOptions;
   clock?: Clock; idGenerator?: () => string; random?: () => number;  // stable, public
-  includeRaw?: boolean;                // raw provider events, opt-in
+  includeRaw?: boolean;                // raw provider events, opt-in; revision (B11c): the run's alone decides, so CallOptions omits it
 }
 declare function run<S>(options: RunOptions<S> & { system: string; input: string | ContentBlock[]; history?: Message[] }): Run<S>;
 // Revision (R1): Context moved here from the gateway. It is plain JSON, so a caller may build it from its own store.
@@ -489,7 +494,7 @@ type AgentEvent = EventBase & (
   | { type: "approval_request"; request: SignedPendingRequest }          // both pause kinds
   | { type: "steer_applied"; receipt: DeliveryReceipt }                  // fires for steers and follow-ups
   | { type: "context_transformed"; before: number; after: number }      // Revision: "compaction" is the harness's word
-  | { type: "retry"; attempt: number; delayMs: number; error: string }
+  | { type: "retry"; layer: "gateway" | "turn"; attempt: number; delayMs: number; error: string }  // Revision (B11b): layer
   | { type: "hook_error"; hook: string; error: string }
   | { type: "warning"; code: "max_steps"; detail: string }
   | { type: "error"; error: RunError } | { type: "abort"; reason?: string }
@@ -539,7 +544,7 @@ declare function replayPairs(pairs: RecordedPair[]): ScriptedModel;   // rejects
 **Revision (B11, 2026-11-19).** B11 builds the loop with these departures from the sketch above, each recorded in [its outcome](../todos/done/B11-loop-core.md#outcome):
 - `Context` has no `pending` yet, and `RunResult` has no `budget`, `no_progress` or pause variants yet, because `SignedPendingRequest`, the budget and progress detection arrive with B14 and B15. The `error` variant is its own member, whose `error` is required.
 - `ResultBase.messages` holds only the messages a run added; `context.messages` holds the whole conversation.
-- `AgentEvent` declares only the types the loop emits: `hook_error`, `context_transformed`, `approval_request`, `steer_applied` and `raw` join it with the todos that emit them. `warning.code` is `"max_steps" | "model_warning"`, the second carrying a gateway `warning`. `model_call_start.request` is a `ModelCallRequest` (model, context, options), because the loop can't see the gateway's per-attempt `RequestDump`.
+- `AgentEvent` declares only the types the loop emits: `hook_error`, `context_transformed`, `approval_request`, `steer_applied` and `raw` join it with the todos that emit them; B11c added `raw`. `warning.code` is `"max_steps" | "model_warning"`, the second carrying a gateway `warning`. `model_call_start.request` is a `ModelCallRequest` (model, context, options), because the loop can't see the gateway's per-attempt `RequestDump`.
 - `RunOptions` holds `model`, `tools`, `output`, `maxSteps`, `signal`, `modelOptions`, `clock` and `idGenerator`; the other options arrive with their todos. `Run` has `id`, `result`, `abort()` and iteration, and B13 and B16 add `on()`, `steer()` and `followUp()`.
 - `RunStoppedError` and `UnexpectedModelCallError` extend `SdkError`, and the gateway's `StreamContractError` and `ModelRequestsDisabledError` extend `GatewayError`, so each package keeps one error class ([typescript.md](../guidelines/typescript.md#each-package-has-one-error-class-with-a-typed-code)).
 
@@ -565,6 +570,36 @@ declare function replayPairs(pairs: RecordedPair[]): ScriptedModel;   // rejects
 - `endRun(runId, error)` ends the spans of a run whose `result` rejected, because such a run sends no `run_end`.
 - The run, model-call and tool spans follow the in-process conventions of [the fact-check log](reviews/fact-check-otel-observer.md), rows B17-2 to B17-4.
 
+**Revision (B15, 2026-11-19).** B15 adds signed pauses with these choices, each recorded in [its outcome](../todos/done/B15-signed-pauses.md#outcome):
+- `RunResult` gains `AwaitingApprovalResult` (`stopReason: "awaiting_approval"`, `pending`), `Context` gains `pending`, and `AgentEvent` gains `approval_request`, which follows the paused call's `tool_call_start`; the paused call gets no tool result and no `tool_call_end`. The step's other calls run or are denied as usual, and a pause wins over a finished answer in the same step.
+- `RunOptions` gains `signer` (default `ephemeralSigner()`). Request ids come from `idGenerator`; a request whose id repeats, or whose signing throws, blocks its call with a `hook_error` whose `hook` is `signer` and whose text holds only the safety package's error code.
+- `createPendingRequest(fields, signer, options?)` takes an optional third argument, the safety package's `SignPendingOptions`, so a caller can fix the id and time. Its fields add an unsigned `reason`. The SDK also re-exports `SafetyError`, `isSafetyError()`, `HmacSignerOptions` and `SignPendingOptions`, because the re-exported signers throw `SafetyError`.
+- The SDK vendors the safety package's `bytes.ts`, `signer.ts` and `pending.ts` beside B10's copies. Until B15b, `continueRun()` throws `invalid_run_options` for a context with pending requests.
+- The owner decided on 2026-11-19 to keep D5's request kinds, `"approval" | "clarification"`, with no `"plan"` kind ([SG5](close-sdk-gaps.md#sg5-a-plan-approval-keeps-its-own-signature-separate-from-d5s-signed-request-kinds-accepted)).
+
+**Revision (B15b, 2026-11-19).** B15b resumes signed pauses with these choices, each recorded in [its outcome](../todos/done/B15b-continue-run.md#outcome):
+- `continueRun(context, options)` takes `ContinueOptions`, which add `resolutions` and `recheck` (the safety package's `Recheck`) to `RunOptions`. Before the first model call it verifies each waiting call's stored request against the transcript's call and the input in `context.pendingInputs`. A verified `allow` runs the call once with the signed input and without `beforeToolCall`, after `recheck` allows it. A `deny` or an `answer` becomes a tool result, and an unnamed request still waits. A request or resolution that fails a check runs nothing and emits the new `resolution_rejected` event. The call then asks again with a new request, through the gate but never running. Settling requests is not a step.
+- The owner decided on 2026-11-19 that `continueRun()` refuses, with `invalid_run_options`, a context whose last assistant message has a call with no result and no matching pending request, so a lost pause record fails loudly instead of reaching the model as "No result was recorded".
+- The clarification pause is the sketch's `clarification_requested` variant, `ClarificationRequestedResult`; a step that also paused an approval ends `awaiting_approval` with both requests. `approval_request` reports both kinds, as the sketch says.
+- `blockingApprovals(handler)` returns an `Interceptors` object that carries its handler outside the six hooks, and `composeInterceptors()` passes it on. Its handler also receives the signed input and the run's signal.
+- Single use across processes stays the host's store's job; within one `continueRun()`, two resolutions for one request are refused as `replayed`.
+
+**Revision (B18, 2026-11-19).** B18 finishes both `testing` exports with these departures from the sketch above, each recorded in [its outcome](../todos/done/B18-testing-export.md#outcome):
+- `recordPairs(model, options)` takes `RecordOptions` (`providerVersion`, `expiresAt` and an optional `clock`) rather than a whole `RecordingStamp`, and fills in the SDK version and the model's API, provider, id and caps itself. It returns a `Recorder` with `model` and `pairs()`. A `RecordedPair` holds the stamp, the normalised request and a `StreamScript`: every event the call streamed except `retry` events, which `ScriptedModel` now plays back exactly. The recorder leaves out every property named like a credential header or an API key, at any depth.
+- `replayPairs(pairs, options?)` returns a `ReplayModel`, a `ScriptedModel` subclass with `modelId`. It throws `RecordingError` (codes `invalid_recording`, `recording_expired` and `recording_mismatch`, added to `SdkErrorCode`) for an expired recording, pairs whose stamps differ, a stamp that differs from `options.expect`, or an SDK from another release line. A call whose request differs from the recorded one fails, and `assertComplete()` rethrows it.
+- `autoResponder()` always keeps the default deny list, and `denyTools` adds to it. `synthesizeInput()` is exported beside it. `scriptedApprovals()` takes answers whose `requestId` is optional and returns interceptors with `requests` and `assertComplete()`; `scriptedMcpServer()` is the MCP double. `testSigner()` and `TEST_KEY_ID` come from a vendored copy of the safety package's `test-signer.ts`, which its `testing` subpath re-exports.
+- `startMockServer()` also takes `host` and `port`, accepts only 127.0.0.0/8 and `::1`, and returns `requests` and a mock-marked `transport` that reaches only the server. It is a Node-only file of the gateway's testing export, which imports `node:http` when a server starts. The gateway also exports `CREDENTIAL_HEADERS`, `REDACTED`, `isCredentialName()`, `redactHeaders()`, `redactUrl()` and `stripCredentials()`.
+
+**Revision (B19b, 2026-11-20).** The SDK also re-exports the safety package's `verifyResolution()`, with its `ResolutionCheck`, `VerifyResolutionOptions` and `PendingCall` types. A caller of `createPendingRequest()` needs it to check a person's answer before the call runs, and the reference loop checks stored requests with it, as `continueRun()` does ([B19b's outcome](../todos/done/B19b-reference-loop.md#outcome)).
+
+**Revision (B11b, 2026-11-20).** B11b adds turn-level retries with these choices, each recorded in [its outcome](../todos/done/B11b-turn-retries.md#outcome). The owner decided the first two on 2026-11-19.
+- `RunOptions` gains `turnRetries` (default 0, so the run ends `error` on the first failure as before; `3` retries as Pi does), `turnRetryDelayMs` (default 2000, doubling per retry of a streak, capped at 60 s, or the failure's `retryAfterMs` when longer) and `sleep`, shaped like the gateway's `Sleep`. Only `retryable` failures retry, and one whose `retryAfterMs` is over the gateway's 60 s cap is final.
+- A turn retry counts against `maxSteps`, so `maxSteps` still bounds the worst case. A run that `maxSteps` stops mid-streak ends `max_steps`, with the last failed message in its transcript; a first failure on the last step ends `error`.
+- A failed attempt ends with `model_call_end` carrying the failed message, because its usage is real. A `retry` event with `layer: "turn"` then marks that message superseded; after the wait, the failed attempt's `step_end` and the retry's own `step_start` follow. The message never enters `result.context.messages`, `afterModelCall` does not see it, and its usage and cost go into the result and the budget. A UI discards the failed call's streamed deltas when the `retry` event arrives.
+- The `retry` event gains a required `layer: "gateway" | "turn"`. Each model call, retries included, gets its own `stepIndex`.
+- `transformContext` and `beforeModelCall` run for each attempt, and `budgetUsd` is checked before each. The progress check reads the transcript, which holds no failed attempt, so retries never look like a stuck loop. The gateway and a turn retry multiply, up to `(retries + 1) * (turnRetries + 1)` requests, which the README documents instead of capping.
+- The gateway exports `retryDelay()`, `retryHintMs()`, `abortableSleep`, `MAX_RETRY_DELAY_MS` and `DEFAULT_INITIAL_RETRY_DELAY_MS`, so the loop follows the gateway's rules without copying them.
+
 ### 3.4 The seams P2 consumes
 
 The harness plan should use these names as written; P4 checks that it does ([implementation plans §3](implementation-plans.md#3-the-review-p4)). The first six are the seams of [harness guide §1][hg1]; the rest are what its sketches assume from the SDK.
@@ -577,7 +612,7 @@ The harness plan should use these names as written; P4 checks that it does ([imp
 | Resume primitive | `continueRun(context, { resolutions })`; `context` on every result; `Context` as plain JSON | resume from a stored log in any process |
 | Tool exposure | `ToolDefinition.exposure`, `ModelCallPatch.activeTools` | registry, MCP client and tool search ([harness guide §4][hg4]) |
 | Base URL and transport | `ProviderConfig.baseURL`, `ProviderConfig.transport` | the Inspect bridge and offline mocks ([harness guide §10][hg10]) |
-| Pause records | `SignedPendingRequest`, `canonicalInputHash`, `ApprovalSigner`, `createPendingRequest()` | `approval_requested` and `approval_resolved` entries; code-initiated calls (harness N40) |
+| Pause records | `SignedPendingRequest`, `canonicalInputHash`, `ApprovalSigner`, `createPendingRequest()`, `verifyResolution()` | `approval_requested` and `approval_resolved` entries; code-initiated calls (harness N40) |
 | Header stamp | `run_start.sdkVersion`, `defaultsHash`, `capabilities` | the `session_header` entry and protocol `initialize` |
 | Usage and cost | `Usage`, `Cost`, `totalInput()`, `GEN_AI_ATTRIBUTES` | usage entries and the telemetry projection (harness decision 7) |
 | Gateway without the loop | `Model.complete()`, `Model.caps`, `projectCallCost()` | the summarisation layer and its pre-checked cost |
@@ -614,13 +649,13 @@ The guide says to start with the gateway and the test model, because every other
 | --- | --- | --- | --- |
 | [B10](../todos/done/B10-tool-runtime.md) | Tool definitions, the validation pipeline and the validator check (D7) | B3, B7, E1 | M |
 | [B11](../todos/done/B11-loop-core.md) | Loop core: `run`, the closed event union, stop reasons, aborts and `runOrThrow` | B4, B10 | L |
-| [B11b](../todos/ready/B11b-turn-retries.md) | Turn-level retries: the loop retries a retryable error that ends a turn (added 2026-11-19, a B11 follow-up) | B11 | M |
-| [B11c](../todos/ready/B11c-raw-provider-events.md) | Raw provider events: `includeRaw` and the `raw` event, from the adapters up to the loop (added 2026-11-19, a B11 follow-up) | B11, B4, B8, B9 | L |
+| [B11b](../todos/done/B11b-turn-retries.md) | Turn-level retries: the loop retries a retryable error that ends a turn (added 2026-11-19, a B11 follow-up) | B11 | M |
+| [B11c](../todos/done/B11c-raw-provider-events.md) | Raw provider events: `includeRaw` and the `raw` event, from the adapters up to the loop (added 2026-11-19, a B11 follow-up) | B11, B4, B8, B9 | L |
 | [B12](../todos/done/B12-parallel-tools.md) | Parallel tool scheduling, per-resource serialisation and sibling cancellation | B11 | M |
 | [B13](../todos/done/B13-interceptors-observers.md) | The six interceptors and observers | B11 | M |
 | [B14](../todos/done/B14-budget-progress.md) | Pre-emptive USD budget, progress detection and the depth cap | B5, B13, E1 | M |
-| [B15](../todos/ready/B15-signed-pauses.md) | Signed pauses in the loop on the safety package's signers, and `createPendingRequest` | B13, E3 | M |
-| [B15b](../todos/ready/B15b-continue-run.md) | `continueRun`, `blockingApprovals()` and the clarification pause | B15 | M |
+| [B15](../todos/done/B15-signed-pauses.md) | Signed pauses in the loop on the safety package's signers, and `createPendingRequest` | B13, E3 | M |
+| [B15b](../todos/done/B15b-continue-run.md) | `continueRun`, `blockingApprovals()` and the clarification pause | B15 | M |
 | [B16](../todos/done/B16-steering.md) | Steering and follow-up with delivery receipts | B11 | S |
 
 ### 4.4 Stage 4 ships telemetry, the testing exports, the capstone and the docs checks
@@ -628,10 +663,10 @@ The guide says to start with the gateway and the test model, because every other
 | ID | Title | Depends on | Size |
 | --- | --- | --- | --- |
 | [B17](../todos/done/B17-otel-observer.md) | OTel `gen_ai.*` observer with content off | B13, B5 | M |
-| [B18](../todos/ready/B18-testing-export.md) | Complete the `testing` exports: `autoResponder`, seam doubles, record and replay, mock server | B8, B9, B15b | M |
-| [B19](../todos/ready/B19-triage-capstone.md) | Triage capstone and the conformance suite | B12, B14, B15b, B16, B18 | M |
-| [B19b](../todos/ready/B19b-reference-loop.md) | The readable reference loop, passing the capstone | B19 | M |
-| [B20](../todos/ready/B20-versioning-docs.md) | Versioning policy, defaults hash, compiled docs, `llms.txt` and the export diffs | B17, B19 | M |
+| [B18](../todos/done/B18-testing-export.md) | Complete the `testing` exports: `autoResponder`, seam doubles, record and replay, mock server | B8, B9, B15b | M |
+| [B19](../todos/done/B19-triage-capstone.md) | Triage capstone and the conformance suite | B12, B14, B15b, B16, B18 | M |
+| [B19b](../todos/done/B19b-reference-loop.md) | The readable reference loop, passing the capstone | B19 | M |
+| [B20](../todos/done/B20-versioning-docs.md) | Versioning policy, defaults hash, compiled docs, `llms.txt` and the export diffs | B17, B19 | M |
 
 The longest dependency chain runs B1 → B2 → B3 → B4 → B11 → B13 → B15 → B15b → B18 → B19 → B20, eleven todos. B6, B7, B10 and B19b can run beside it. Round E feeds this stage: E1 ─► B10 and B14, and E3 ─► B15 ([close-sdk-gaps plan §4](close-sdk-gaps.md#4-round-e-and-its-todos)). Weighted by size, E1 → B10 (two M todos) is longer than B4 (one M todo), so E1, not B4, sits on the loop's critical path. Four todos are size L: the two adapters (B8, B9), the loop core (B11) and the raw events (B11c).
 
@@ -641,8 +676,16 @@ The fine-tuning research (U21) found that the gateway prices a tuned model corre
 
 | ID | Title | Depends on | Size |
 | --- | --- | --- | --- |
-| [B21](../todos/ready/B21-catalog-tuned-model-docs.md) | Document how a tuned model gets a price: a catalog entry in a catalog that lists every model | B5 | S |
-| [B22](../todos/ready/B22-catalog-retirement-date.md) | An optional retirement date on catalog entries, with a CI warning 90 days before it | B5, B21 | S |
+| [B21](../todos/done/B21-catalog-tuned-model-docs.md) | Document how a tuned model gets a price: a catalog entry in a catalog that lists every model | B5 | S |
+| [B22](../todos/done/B22-catalog-retirement-date.md) | An optional retirement date on catalog entries, with a CI warning 90 days before it | B5, B21 | S |
+
+### 4.6 Trusted app data for tools, from the book's Chapter 3 (added 2026-11-19)
+
+Chapter 3 of the book teaches that a tool reads the signed-in user from trusted context, never from an argument the model fills in, and its table shows what each SDK hands a tool beside its arguments. Writing that chapter showed that our own `ToolContext` carries nothing of the caller's as of B10, so a tool on our SDK can only close over the user ([T12's Outcome](../todos/done/T12-chapter-tools.md#outcome)). The agent guide asks for the missing piece as requirement R2, "a trusted run context that the model cannot write" ([agent guide §3][ag3]). The owner accepted the follow-up on 2026-11-19 ("yes, i accept these"). B23 needs only B10 and B11, which are done, so it can run now, and the book's [T52](../todos/ready/T52-chapter-tools-on-our-sdk.md) reads the field for its identity tab once it lands.
+
+| ID | Title | Depends on | Size |
+| --- | --- | --- | --- |
+| [B23](../todos/ready/B23-tool-context-app-data.md) | Give `ToolContext` typed app data that the caller sets when a run starts and the model never sees | B10, B11 | M |
 
 ## 5. Test strategy
 
@@ -738,6 +781,7 @@ Round B closes when the triage capstone passes on our own SDK with the contract 
 [hg12]: ../guides/agent-harness.md#12-reference-architecture
 [hg13]: ../guides/agent-harness.md#13-open-decisions-for-round-p
 [ag9]: ../guides/agent.md#9-reference-architecture
+[ag3]: ../guides/agent.md#3-tools-deserve-more-design-effort-than-the-prompt-few-workflow-shaped-tools-identity-from-trusted-context-and-errors-that-say-what-to-do-next
 [ag10]: ../guides/agent.md#10-open-decisions-for-round-p
 [sr1]: ../research/agent-sdk/agent-sdk-research.md#1-the-model-boundary-works-best-as-one-versioned-streaming-method-over-a-provider-neutral-transcript
 [sr6]: ../research/agent-sdk/agent-sdk-research.md#6-fourteen-design-decisions-follow-from-the-evidence

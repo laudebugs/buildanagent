@@ -19,16 +19,18 @@ const CUSTOMERS: Record<string, { name: string; plan: string; openTickets: numbe
 const lookups: string[] = [];
 const escalations: string[] = [];
 
+// #region lookup-customer
 const lookupCustomer = new FunctionTool({
   name: "lookup_customer",
   description: "Look up the current customer's plan and open tickets.",
-  parameters: z.object({}),
+  parameters: z.object({}), // book:note no-identity
   execute: (args, ctx?: Context) => {
-    const id = ctx?.state.get<string>("user:customer_id");
+    const id = ctx?.state.get<string>("user:customer_id"); // book:note from-state
     lookups.push(`${id} args=${JSON.stringify(args)}`);
     return id && CUSTOMERS[id] ? { customerId: id, ...CUSTOMERS[id] } : { error: "no customer in session" };
   },
 });
+// #endregion lookup-customer
 const escalateToHuman = new FunctionTool({
   name: "escalate_to_human",
   description: "Escalate the ticket to a human agent.",

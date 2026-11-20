@@ -8,7 +8,7 @@
 | Status | `ready` |
 | Plan | [Build agent §4, Stage 3](../../plans/build-agent.md#43-stage-3-runs-the-three-roles-as-linked-turns-and-proves-the-workflow-in-a-capstone) |
 | Round / milestone | Round A (build agent), M7b |
-| Depends on | [A2](A2-trusted-context-helpdesk.md), [N7](N7-rebuild-resume-replay.md), [B19](B19-triage-capstone.md) |
+| Depends on | [A2](A2-trusted-context-helpdesk.md), [N7](N7-rebuild-resume-replay.md), [B19](../done/B19-triage-capstone.md) |
 | Size | M |
 
 ## Goal

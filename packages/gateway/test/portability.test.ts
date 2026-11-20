@@ -6,8 +6,9 @@ import { test } from "vitest";
 
 const packagesRoot = fileURLToPath(new URL("../..", import.meta.url));
 
-// The offline guards run only in our Node test process, so they may use Node APIs.
-const nodeOnlyFiles = new Set(["testing/guards.ts", "testing/setup.ts"]);
+// The offline guards run only in our Node test process, so they may use Node APIs. The mock server opens a socket,
+// which needs Node's `http` module; it imports it only when a test starts a server, so the export loads everywhere.
+const nodeOnlyFiles = new Set(["testing/guards.ts", "testing/setup.ts", "testing/mock-server.ts"]);
 
 // Each pattern names a Node-only API that would break the package on Cloudflare, AWS or Vercel edge targets.
 const nodeOnlyApis: readonly [string, RegExp][] = [

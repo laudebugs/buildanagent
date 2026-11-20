@@ -8,13 +8,12 @@ import { priceUsage } from "./cost.js";
 import { GatewayError } from "./errors.js";
 import { transformParams, wrapStream } from "./middleware.js";
 import { startAttempt } from "./request-dump.js";
-import { abortableSleep, type RetrySettings, withRetries } from "./retry.js";
+import { abortableSleep, DEFAULT_INITIAL_RETRY_DELAY_MS, type RetrySettings, withRetries } from "./retry.js";
 import type { CreateModelOptions, GatewayEvent, Model, ModelCallOptions } from "./runtime-types.js";
 import type { ModelAdapter } from "./spec.js";
 import type { ModelCaps, ModelContext, Usage } from "./types.js";
 
 const DEFAULT_RETRIES = 2;
-const DEFAULT_INITIAL_DELAY_MS = 2000;
 
 function assertAdapter(adapter: unknown): asserts adapter is ModelAdapter {
   const candidate = adapter as Partial<ModelAdapter> | null;
@@ -69,7 +68,11 @@ export function createModel(options: CreateModelOptions): Model {
   const middleware = [...(options.middleware ?? [])];
   const settings: RetrySettings = {
     retries: nonNegativeInteger("retries", options.retries, DEFAULT_RETRIES),
-    initialDelayMs: nonNegativeInteger("initialRetryDelayMs", options.initialRetryDelayMs, DEFAULT_INITIAL_DELAY_MS),
+    initialDelayMs: nonNegativeInteger(
+      "initialRetryDelayMs",
+      options.initialRetryDelayMs,
+      DEFAULT_INITIAL_RETRY_DELAY_MS,
+    ),
     sleep: options.sleep ?? abortableSleep,
     price,
   };

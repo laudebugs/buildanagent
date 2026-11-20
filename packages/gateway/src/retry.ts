@@ -10,6 +10,8 @@
  * - A stream that throws is treated like one that ends with an `error` event, so the caller always gets a terminal.
  * - A warning an earlier attempt already streamed, with the same code and message, is not streamed again, because a
  *   retry sends the same request and an adapter warns about it each time.
+ * - A `raw` event is not output, so a call that streamed raw events and then failed before any block event is still
+ *   retried. Its raw events have already reached the caller; the `retry` event that follows marks them superseded.
  * - A failure's `error.retryAfterMs`, which an adapter reads from the provider's retry-after header, sets the least
  *   wait: the gateway waits for the longer of the backoff and the hint. Each wait is capped at 60 s.
  * - A hint longer than that cap ends the call with the failure, hint kept, and no `retry` event. OpenAI's rate-limit
@@ -34,7 +36,12 @@ export interface RetrySettings {
 }
 
 const BACKOFF_FACTOR = 2;
-const MAX_RETRY_DELAY_MS = 60_000;
+
+/** The longest wait before one retry, in milliseconds. A provider hint over it ends the call instead of waiting. */
+export const MAX_RETRY_DELAY_MS = 60_000;
+
+/** The wait before the first retry when a caller sets none, in milliseconds; each later retry waits twice as long. */
+export const DEFAULT_INITIAL_RETRY_DELAY_MS = 2000;
 const UNKNOWN_COST: Cost = { total: null, basis: "unknown", currency: "USD" };
 
 /** Adds a carried cost to an attempt's; `undefined` means no attempt is carried yet. */
@@ -42,7 +49,10 @@ function addCarriedCost(a: Cost | undefined, b: Cost): Cost {
   return a === undefined ? b : addCost(a, b);
 }
 
-/** The default `Sleep`: a timer that resolves early, without rejecting, when the signal aborts. */
+/**
+ * The gateway's default `Sleep`: a timer that resolves early, without rejecting, when the signal aborts. A caller that
+ * retries above the model, as the SDK's loop does, uses it to wait the same way.
+ */
 export const abortableSleep: Sleep = (ms, signal) =>
   new Promise((resolve) => {
     if (signal?.aborted) {
@@ -97,8 +107,12 @@ function isRepeatedWarning(event: ModelEvent, call: CallState, output: AttemptPr
   return false;
 }
 
+// Only block events are output. A raw event must not count, or `includeRaw` would turn off the pre-output retries:
+// a provider's first wire event always arrives before any content.
+const NOT_OUTPUT: ReadonlySet<ModelEvent["type"]> = new Set(["start", "warning", "raw", "done", "error"]);
+
 function isBlockEvent(event: ModelEvent): boolean {
-  return event.type !== "start" && event.type !== "warning" && event.type !== "done" && event.type !== "error";
+  return !NOT_OUTPUT.has(event.type);
 }
 
 /** The final message: this attempt's usage and `cost`, with the failed attempts' usage and cost added. */
@@ -208,18 +222,26 @@ function deferredTerminal(failure: AssistantMessage, call: CallState, cost: Cost
   return { type: "error", message: retried ? { ...message, lastAttemptUsage: failure.usage } : message };
 }
 
-/** A NaN hint from a hand-written adapter is no hint. */
-function hintOf(failure: AssistantMessage): number {
+/**
+ * The wait a failed call's provider asked for, in milliseconds: `error.retryAfterMs`, or 0 when there is none. A NaN
+ * hint from a hand-written adapter is no hint. A hint over `MAX_RETRY_DELAY_MS` means the call should not be retried.
+ */
+export function retryHintMs(failure: AssistantMessage): number {
   const hintMs = failure.error?.retryAfterMs;
   return hintMs === undefined || Number.isNaN(hintMs) ? 0 : hintMs;
 }
 
 /**
- * The wait before retry `n`: the exponential backoff, or the provider's hint when it asks for longer. The cap keeps a
- * long retry count from waiting hours, or overflowing setTimeout's 32-bit delay; a hint over the cap never gets here.
+ * The wait before retry `n`, counted from 1, in milliseconds: the exponential backoff from `initialDelayMs`, or the
+ * provider's hint (`retryHintMs()`) when it asks for longer, capped at `MAX_RETRY_DELAY_MS`. The cap keeps a long
+ * retry count from waiting hours, or overflowing setTimeout's 32-bit delay; a hint over the cap never gets here,
+ * because such a failure is not retried.
  */
-function retryDelay(initialDelayMs: number, n: number, hintMs: number): number {
-  return Math.min(Math.max(initialDelayMs * BACKOFF_FACTOR ** (n - 1), hintMs), MAX_RETRY_DELAY_MS);
+export function retryDelay(initialDelayMs: number, n: number, hintMs: number): number {
+  // A power past 2 ** 1023 is Infinity, and 0 times Infinity is NaN, so a long run of retries with no initial delay
+  // would wait NaN; 2 ** 64 already puts any whole-millisecond delay over the cap.
+  const backoff = initialDelayMs * BACKOFF_FACTOR ** Math.min(n - 1, 64);
+  return Math.min(Math.max(backoff, hintMs), MAX_RETRY_DELAY_MS);
 }
 
 /** Runs `attempt(1)`, then retries per `settings`. `attempt(n)` must start a fresh request each time it is called. */
@@ -253,7 +275,7 @@ export async function* withRetries(
       yield abortedTerminal(outcome.failure, call, carriedCost, n > 1);
       return;
     }
-    const hintMs = hintOf(outcome.failure);
+    const hintMs = retryHintMs(outcome.failure);
     // Waiting less than the provider asked would only fail again, so a hint over the cap ends the call.
     if (hintMs > MAX_RETRY_DELAY_MS) {
       yield deferredTerminal(outcome.failure, call, carriedCost, n > 1);

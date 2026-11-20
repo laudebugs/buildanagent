@@ -12,10 +12,10 @@ const model = fakeModel()
   .respond(new AIMessage("I don't know your name."))
   .respond(new AIMessage("Hello."));
 // #region thread
-const agent = createAgent({ model, tools: [], checkpointer: new MemorySaver() });
-const a = { configurable: { thread_id: "a" } };
+const agent = createAgent({ model, tools: [], checkpointer: new MemorySaver() }); // book:note checkpointer
+const a = { configurable: { thread_id: "a" } }; // book:note thread-id
 await agent.invoke({ messages: [{ role: "user", content: "I am Ada." }] }, a);
-const second = await agent.invoke({ messages: [{ role: "user", content: "Who am I?" }] }, a);
+const second = await agent.invoke({ messages: [{ role: "user", content: "Who am I?" }] }, a); // book:note same-thread
 // #endregion
 check(second.messages.length === 4, "the same thread_id carries the earlier turn into the second invocation");
 check(model.calls[1].messages.length === 3, "the model sees the full thread history");

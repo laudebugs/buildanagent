@@ -1,5 +1,59 @@
 # @buildanagent/gateway
 
+## 0.1.0-alpha.18
+
+No changes in this release.
+
+## 0.1.0-alpha.17
+
+No changes in this release.
+
+## 0.1.0-alpha.16
+
+### Minor Changes
+
+- 7840c5b: `run_start` now carries a real `defaultsHash` and `capabilities` instead of the reserved empty values. The SDK exports both: `DEFAULTS_HASH`, a SHA-256 over every default value, built-in prompt and tool description the SDK uses, and `CAPABILITIES`, the thirteen behaviours this release supports, such as `steering_v1`. A future change to a default changes the hash and is named in the changelog. Both packages now ship an `llms.txt` that indexes the README and lists every public export. The gateway README's `assertStreamContract()` example now passes `model.ref`, as `ModelAdapter.stream()` requires. No default, prompt or tool text changed.
+
+## 0.1.0-alpha.15
+
+### Minor Changes
+
+- a1a0e6a: Breaking Changes: `ModelEvent` gains a `raw` member, `{ type: "raw"; event: unknown }`, so a `switch` over a model event's `type` that must stay exhaustive needs a `raw` case. No stream emits one unless you ask: `StreamOptions` gains `includeRaw` (default off), and with it off every stream is unchanged. With it on, the Anthropic and OpenAI Chat adapters stream one raw event per server-sent event, as `{ event, data }` with `data` unparsed, before the normalized events it produced. A raw event is not output, so the gateway still retries a call that failed before any content, and the `retry` event marks the failed attempt's raw events superseded. Adapters still declare `specificationVersion: "v1"`.
+
+## 0.1.0-alpha.14
+
+### Minor Changes
+
+- b7c1318: Export the retry rules the SDK's loop reuses: `retryDelay()`, `retryHintMs()`, `abortableSleep`, `MAX_RETRY_DELAY_MS` and `DEFAULT_INITIAL_RETRY_DELAY_MS`.
+
+## 0.1.0-alpha.13
+
+No changes in this release.
+
+## 0.1.0-alpha.12
+
+### Minor Changes
+
+- 46f4a9c: New in `@buildanagent/gateway/testing`: `startMockServer({ api, script, log })` serves a `mockTransport()` script over HTTP on 127.0.0.1, refuses to bind to a non-loopback address, and appends each request to a JSON Lines log with its credential headers redacted. Its `transport` lets an in-process adapter reach it while real model requests are off. `CREDENTIAL_HEADERS`, `isCredentialName()`, `redactHeaders()`, `redactUrl()` and `stripCredentials()` are the credential strippers every recorder uses; the server also redacts key-carrying query parameters such as `?key=`.
+
+## 0.1.0-alpha.11
+
+### Minor Changes
+
+- adddc21: Add an optional `retires` date to `CatalogEntry`, for the day a provider says a model stops answering. `parseCatalog()` checks it like `asOf`.
+
+## 0.1.0-alpha.10
+
+No changes in this release.
+
+## 0.1.0-alpha.9
+
+No changes in this release.
+
+## 0.1.0-alpha.8
+
+No changes in this release.
+
 ## 0.1.0-alpha.7
 
 No changes in this release.

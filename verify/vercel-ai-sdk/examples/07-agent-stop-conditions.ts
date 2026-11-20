@@ -42,8 +42,8 @@ const warnings: string[] = [];
   // #region stop-when
   const agent = new ToolLoopAgent({
     model,
-    tools: { ping, finalAnswer },
-    stopWhen: [hasToolCall("finalAnswer"), isStepCount(10)],
+    tools: { ping, finalAnswer }, // book:note done-tool
+    stopWhen: [hasToolCall("finalAnswer"), isStepCount(10)], // book:note either
   });
   const result = await agent.generate({ prompt: "Answer." });
   // #endregion

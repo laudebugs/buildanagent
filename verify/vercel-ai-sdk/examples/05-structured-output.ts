@@ -16,10 +16,10 @@ const schema = z.object({ category: z.enum(["billing", "bug", "other"]), urgent:
   // #region output-object
   const result = await generateText({
     model,
-    output: Output.object({ schema, name: "triage", description: "Ticket triage" }),
+    output: Output.object({ schema, name: "triage", description: "Ticket triage" }), // book:note output
     prompt: "I was charged twice!",
   });
-  const out: { category: "billing" | "bug" | "other"; urgent: boolean } = result.output;
+  const out: { category: "billing" | "bug" | "other"; urgent: boolean } = result.output; // book:note typed
   // #endregion
   check(out.category === "billing" && out.urgent, "result.output is the parsed, typed object");
   const fmt = requests[0].responseFormat;

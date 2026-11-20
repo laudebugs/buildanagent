@@ -3,6 +3,8 @@
  * an audit can each be written and tested alone. A run takes one `Interceptors` object, and the joined one is it.
  */
 import type { Message, ModelContext } from "@buildanagent/gateway";
+import { SDK_DEFAULTS } from "./defaults.js";
+import { SdkError } from "./errors.js";
 import {
   checkDecision,
   checkMessages,
@@ -20,6 +22,7 @@ import type {
   StopDecision,
   ToolResultPatch,
 } from "./hooks.js";
+import { blockingHandlerOf, withBlockingHandler } from "./pauses.js";
 
 type Hook<K extends keyof Interceptors> = NonNullable<Interceptors[K]>;
 
@@ -83,7 +86,8 @@ const after =
 
 /**
  * Asks each gate in turn and keeps the strictest answer: the first `deny` wins at once, an `ask` outranks an `allow`,
- * and a replacement input from one gate is what the later gates see. A gate that throws makes the whole check fail.
+ * and a replacement input from one gate is what the later gates see. The answer carries the last replacement, an
+ * `ask`'s included, so a pause signs the input the call would run with. A gate that throws makes the whole check fail.
  */
 const gate =
   (hooks: readonly Hook<"beforeToolCall">[]): Hook<"beforeToolCall"> =>
@@ -94,9 +98,12 @@ const gate =
       const decision = checkDecision(await hook({ ...e, input }));
       if (decision.decision === "deny") return decision;
       if (decision.decision === "ask") asked ??= decision;
-      else if (decision.input !== undefined) input = decision.input;
+      if (decision.input !== undefined) input = decision.input;
     }
-    return asked ?? { decision: "allow", ...(input === e.input ? {} : { input }) };
+    const replaced = input === e.input ? {} : { input };
+    // An ask carries the input the later gates saw, so the pause is signed over the input the call would run with.
+    if (asked !== undefined) return { ...asked, ...replaced };
+    return { decision: "allow", ...replaced };
   };
 
 /** Applies the patches in order: each hook sees the result with the earlier patches applied. */
@@ -139,7 +146,8 @@ const stop =
  *   the system prompt, messages and options the earlier ones set. A field left `undefined` keeps the earlier value.
  * - `afterModelCall`: each hook sees the message the one before returned.
  * - `beforeToolCall`: the strictest decision wins. The first `deny` ends the check, an `ask` beats `allow`, and an
- *   input one gate replaces is the input the next gate sees.
+ *   input one gate replaces is the input the next gate sees. When a gate asks, the `ask` carries the last
+ *   replacement, so the pending request is signed over the input the call would run with.
  * - `afterToolCall`: the patches are applied in order, each hook seeing the result so far.
  * - `shouldStop`: the first `stop` wins; failing that, the first `continue`.
  *
@@ -149,9 +157,12 @@ const stop =
  * `"continue"` only when every object sets it to `"continue"`; an object that leaves it unset counts as
  * `"fail_closed"`. One lenient object therefore never loosens the others, and a join of a gate with a lenient audit
  * hook fails closed. Set `"continue"` on all of them, and the gate then fails open too.
+ *
+ * An object from `blockingApprovals()` passes its handler on to the joined object. Joining two of them throws an
+ * `SdkError` with code `invalid_run_options`, because a request can have only one answer.
  */
 export function composeInterceptors(...sets: readonly Interceptors[]): Interceptors {
-  const lenient = sets.every((set) => (set.onFailure ?? "fail_closed") === "continue");
+  const lenient = sets.every((set) => (set.onFailure ?? SDK_DEFAULTS.run.onFailure) === "continue");
   const hooks = {
     transformContext: hooksOf(sets, "transformContext"),
     beforeModelCall: hooksOf(sets, "beforeModelCall"),
@@ -160,7 +171,14 @@ export function composeInterceptors(...sets: readonly Interceptors[]): Intercept
     afterToolCall: hooksOf(sets, "afterToolCall"),
     shouldStop: hooksOf(sets, "shouldStop"),
   };
-  return {
+  const handlers = sets.flatMap((set) => {
+    const handler = blockingHandlerOf(set);
+    return handler === undefined ? [] : [handler];
+  });
+  if (handlers.length > 1) {
+    throw new SdkError("invalid_run_options", "composeInterceptors() can join only one blockingApprovals() object");
+  }
+  const joined: Interceptors = {
     ...(hooks.transformContext.length === 0 ? {} : { transformContext: transform(hooks.transformContext) }),
     ...(hooks.beforeModelCall.length === 0 ? {} : { beforeModelCall: before(hooks.beforeModelCall) }),
     ...(hooks.afterModelCall.length === 0 ? {} : { afterModelCall: after(hooks.afterModelCall) }),
@@ -169,4 +187,6 @@ export function composeInterceptors(...sets: readonly Interceptors[]): Intercept
     ...(hooks.shouldStop.length === 0 ? {} : { shouldStop: stop(hooks.shouldStop) }),
     onFailure: lenient && sets.length > 0 ? "continue" : "fail_closed",
   };
+  const [handler] = handlers;
+  return handler === undefined ? joined : withBlockingHandler(joined, handler);
 }

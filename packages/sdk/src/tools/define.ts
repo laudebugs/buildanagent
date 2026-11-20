@@ -4,6 +4,7 @@
  */
 import { assertCanonicalName, type WireTool } from "@buildanagent/gateway";
 import type { StandardJSONSchemaV1, StandardSchemaV1 } from "@standard-schema/spec";
+import { SDK_DEFAULTS } from "../defaults.js";
 import { SdkError } from "../errors.js";
 import { type PreparedSchema, prepareSchema } from "./schema.js";
 import type { ToolDefinition, ToolResult } from "./types.js";
@@ -81,8 +82,7 @@ export interface OutputToolOptions<S> {
   readonly description?: string;
 }
 
-const OUTPUT_DESCRIPTION = "Submit your final answer as this tool's input. Call it once, when the task is done.";
-const OUTPUT_ACCEPTED = "The final answer was accepted.";
+const OUTPUT = SDK_DEFAULTS.tools.output;
 
 /**
  * Defines a tool whose input is the run's final answer. A call whose input passes `schema` ends the run, with the
@@ -92,10 +92,10 @@ const OUTPUT_ACCEPTED = "The final answer was accepted.";
 export function outputTool<S>(options: OutputToolOptions<S>): ToolDefinition<S, S> {
   return defineTool<S, S>({
     name: options.name,
-    description: options.description ?? OUTPUT_DESCRIPTION,
+    description: options.description ?? OUTPUT.description,
     inputSchema: options.schema,
     async execute(input): Promise<ToolResult<S>> {
-      return { content: [{ type: "text", text: OUTPUT_ACCEPTED }], structured: input, terminate: true };
+      return { content: [{ type: "text", text: OUTPUT.accepted }], structured: input, terminate: true };
     },
   });
 }
@@ -106,27 +106,24 @@ export interface ClarificationToolOptions {
   readonly name?: string;
 }
 
-const CLARIFICATION_SCHEMA = Object.freeze({
-  type: "object",
-  properties: Object.freeze({
-    question: Object.freeze({ type: "string", minLength: 1, description: "The question to ask the user." }),
-  }),
-  required: Object.freeze(["question"]),
-  additionalProperties: false,
-});
+const CLARIFICATION = SDK_DEFAULTS.tools.clarification;
+
+const CLARIFICATION_SCHEMA = CLARIFICATION.inputSchema;
 
 /**
  * Defines a tool the model calls to ask the user a question. Its result carries the question as a `pause` of kind
- * `clarification`, and a run that gets it ends with `stopReason: "stopped"` and `stoppedBy: "clarification"`.
+ * `clarification`: the run signs a clarification request for the call, which gets no result, and ends
+ * `clarification_requested`. Pass the user's answer to `continueRun()` as `{ requestId, answer }`, and the model reads
+ * the answer as the call's result.
  */
 export function clarificationTool(options: ClarificationToolOptions = {}): ToolDefinition<{ question: string }, never> {
   return defineTool<{ question: string }, never>({
-    name: options.name ?? "ask_user",
-    description: "Ask the user a question when you cannot continue without their answer.",
+    name: options.name ?? CLARIFICATION.name,
+    description: CLARIFICATION.description,
     inputSchema: CLARIFICATION_SCHEMA,
     async execute({ question }) {
       return {
-        content: [{ type: "text", text: "The question was sent to the user." }],
+        content: [{ type: "text", text: CLARIFICATION.sent }],
         pause: { kind: "clarification", question },
       };
     },
