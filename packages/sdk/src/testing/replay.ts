@@ -50,13 +50,19 @@ function releaseLine(version: string): string {
   return major === "0" ? `0.${minor}` : major;
 }
 
+// `typeof null` is "object", so a bare typeof check would let a null stamp through to a TypeError.
+function isObject(value: unknown): value is object {
+  return typeof value === "object" && value !== null && !Array.isArray(value);
+}
+
 function checkShape(pairs: readonly RecordedPair[]): RecordingStamp {
   if (!Array.isArray(pairs) || pairs.length === 0) {
     throw new RecordingError("invalid_recording", "replayPairs() needs a non-empty array of recorded pairs");
   }
   for (const [i, pair] of pairs.entries()) {
-    const events = (pair as Partial<RecordedPair> | null)?.response?.events;
-    if (typeof pair?.stamp !== "object" || typeof pair.request !== "object" || !Array.isArray(events)) {
+    const candidate = pair as Partial<RecordedPair> | null;
+    const events = candidate?.response?.events;
+    if (!isObject(candidate?.stamp) || !isObject(candidate?.request) || !Array.isArray(events)) {
       throw new RecordingError("invalid_recording", `pair ${i + 1} needs a stamp, a request and response events`);
     }
   }
@@ -140,7 +146,8 @@ function matchingStep(pair: RecordedPair, index: number, mismatches: RecordingEr
 /**
  * Replays pairs from `recordPairs()` through a `ScriptedModel`: the n-th call streams the n-th pair's events exactly as
  * they were recorded, after checking that it sent the recorded request. Wrap it with
- * `createModel({ adapter: replay, id: replay.modelId })`.
+ * `createModel({ adapter: replay, id: replay.modelId })`, with no middleware: the recording was taken outside the
+ * recorded model's middleware, so it already holds that middleware's effect.
  *
  * Throws a `RecordingError`: `invalid_recording` for an empty or malformed recording, `recording_expired` once the
  * clock reaches the stamp's `expiresAt`, and `recording_mismatch` when the pairs' stamps differ, the recording comes

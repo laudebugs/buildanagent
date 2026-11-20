@@ -8,23 +8,44 @@ import type { ContentBlock, Message, WireTool } from "@buildanagent/gateway";
 import type { AssistantScript, RecordedRequest, ScriptStep } from "./scripted-model.js";
 
 /**
- * The tool names `autoResponder()` never calls, whatever options it gets: tools that run commands on the host or
- * change its files.
+ * The tool names `autoResponder()` never calls, whatever options it gets: tools that run commands on the host,
+ * change its files or drive its screen, as the agent SDKs we verify name them. A name matches ignoring case, hyphens
+ * and underscores, so `Bash`, `MultiEdit` and `apply-patch` are all denied.
  */
 export const DEFAULT_DENIED_TOOLS = Object.freeze([
   "bash",
+  "bash_output",
+  "kill_shell",
+  "exec",
   "exec_command",
+  "write_stdin",
   "shell",
+  "local_shell",
+  "powershell",
+  "terminal",
+  "run_command",
+  "computer",
   "write",
+  "write_file",
+  "create",
+  "create_file",
   "edit",
+  "edit_file",
+  "multi_edit",
+  "notebook_edit",
+  "apply_patch",
+  "str_replace_editor",
+  "str_replace_based_edit_tool",
+  "text_editor",
   "delete",
+  "delete_file",
 ] as const);
 
 /** What `autoResponder()` takes. */
 export interface AutoResponderOptions {
   /**
    * More tools never to call, added to `DEFAULT_DENIED_TOOLS`: a string matches a tool's whole name, ignoring case,
-   * and a regular expression is tested against the name.
+   * hyphens and underscores, and a regular expression is tested against the name (its `g` and `y` flags are ignored).
    */
   readonly denyTools?: readonly (string | RegExp)[];
   /** The final answer's text. Default `"Auto responder: done."`. */
@@ -85,9 +106,17 @@ export function synthesizeInput(schema: Readonly<Record<string, unknown>>): unkn
   return synthesize(schema, 0);
 }
 
+const squash = (name: string): string => name.toLowerCase().replace(/[-_]/g, "");
+
+// A copy without the `g` and `y` flags: those make `test()` start from the last match's end, so the same rule tested
+// against a second name could let it through.
+function statelessRule(rule: string | RegExp): string | RegExp {
+  return typeof rule === "string" ? squash(rule) : new RegExp(rule.source, rule.flags.replace(/[gy]/g, ""));
+}
+
 function isDenied(name: string, deny: readonly (string | RegExp)[]): boolean {
-  const lower = name.toLowerCase();
-  return deny.some((rule) => (typeof rule === "string" ? rule.toLowerCase() === lower : rule.test(name)));
+  const squashed = squash(name);
+  return deny.some((rule) => (typeof rule === "string" ? rule === squashed : rule.test(name)));
 }
 
 function toolCallsOf(messages: readonly Message[]): ContentBlock[] {
@@ -103,10 +132,18 @@ function userText(messages: readonly Message[]): string {
     .join("\n");
 }
 
-/** The tool to call: one the user's text names, else the first allowed one. */
+const escaped = (text: string): string => text.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+
+/** True when `text` names `name` as a whole word, so `lookup` isn't found inside `lookup_v2`. */
+function names(text: string, name: string): boolean {
+  return new RegExp(`(?<![\\w-])${escaped(name)}(?![\\w-])`).test(text);
+}
+
+/** The tool to call: the one with the longest name the user's text names as a word, else the first allowed one. */
 function pickTool(tools: readonly WireTool[], messages: readonly Message[]): WireTool | undefined {
   const text = userText(messages);
-  return tools.find((tool) => text.includes(tool.name)) ?? tools[0];
+  const named = tools.filter((tool) => names(text, tool.name)).sort((a, b) => b.name.length - a.name.length);
+  return named[0] ?? tools[0];
 }
 
 /**
@@ -120,7 +157,7 @@ function pickTool(tools: readonly WireTool[], messages: readonly Message[]): Wir
  * `new ScriptedModel([autoResponder(), autoResponder()])` for a call and its answer.
  */
 export function autoResponder(options: AutoResponderOptions = {}): ScriptStep {
-  const deny = [...DEFAULT_DENIED_TOOLS, ...(options.denyTools ?? [])];
+  const deny = [...DEFAULT_DENIED_TOOLS, ...(options.denyTools ?? [])].map(statelessRule);
   const answer = options.answer ?? "Auto responder: done.";
   return (request: RecordedRequest): AssistantScript => {
     const { messages, tools } = request.context;

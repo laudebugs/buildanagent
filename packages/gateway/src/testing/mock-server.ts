@@ -10,7 +10,7 @@ import type { IncomingMessage, Server, ServerResponse } from "node:http";
 import { GatewayError } from "../errors.js";
 import { markMockTransport } from "../request-policy.js";
 import type { Transport } from "../runtime-types.js";
-import { redactHeaders } from "./credentials.js";
+import { redactHeaders, redactUrl } from "./credentials.js";
 import { mockTransport, type RecordedRequest, type WireApi, type WireScript } from "./mock-transport.js";
 
 /** What `startMockServer()` takes. */
@@ -68,7 +68,10 @@ async function bodyOf(request: IncomingMessage): Promise<Uint8Array> {
   return out;
 }
 
-/** The node request as a fetch `Request`, with credential headers redacted before anything records it. */
+/**
+ * The node request as a fetch `Request`, with credential headers and credential query parameters, such as `?key=`,
+ * redacted before anything records it.
+ */
 async function fetchRequestOf(request: IncomingMessage, origin: string, signal: AbortSignal): Promise<Request> {
   const headers = new Headers();
   for (const [name, value] of Object.entries(request.headers)) {
@@ -76,7 +79,7 @@ async function fetchRequestOf(request: IncomingMessage, origin: string, signal: 
   }
   const method = request.method ?? "GET";
   const body = method === "GET" || method === "HEAD" ? undefined : await bodyOf(request);
-  return new Request(new URL(request.url ?? "/", origin), {
+  return new Request(redactUrl(new URL(request.url ?? "/", origin).href), {
     method,
     headers: redactHeaders(headers),
     signal,
@@ -99,16 +102,41 @@ function refuse(out: ServerResponse, error: unknown): void {
   out.end(JSON.stringify({ type: "error", error: { type: "unexpected_request", message } }));
 }
 
-/** Appends log lines one at a time, so concurrent requests never interleave within a line. */
+/**
+ * Appends log lines one at a time, so concurrent requests never interleave within a line. A failed append rejects
+ * only its own call: the queue moves on, so one bad write doesn't fail every later one.
+ */
 function logWriter(path: string | undefined): (entry: RecordedRequest) => Promise<void> {
   if (path === undefined) return async () => undefined;
-  let queue = Promise.resolve();
+  let queue: Promise<void> = Promise.resolve();
   return (entry) => {
-    queue = queue.then(async () => {
+    const write = queue.then(async () => {
       const { appendFile } = await import("node:fs/promises");
       await appendFile(path, `${JSON.stringify(entry)}\n`, "utf8");
     });
-    return queue;
+    queue = write.catch(() => undefined);
+    return write;
+  };
+}
+
+/**
+ * Plays requests one at a time, each through to the point where the transport has recorded it and answered or
+ * refused, and pairs each with its own record. The transport records a request only after reading its body, so two
+ * requests played at once could otherwise finish recording in either order.
+ */
+function sequentialPlayer(
+  play: ReturnType<typeof mockTransport>,
+): (request: Request) => Promise<{ readonly response: Promise<Response>; readonly recorded?: RecordedRequest }> {
+  let queue: Promise<unknown> = Promise.resolve();
+  return (request) => {
+    const turn = queue.then(async () => {
+      const response = play(request);
+      await response.catch(() => undefined);
+      const recorded = play.requests.at(-1);
+      return recorded === undefined ? { response } : { response, recorded };
+    });
+    queue = turn.catch(() => undefined);
+    return turn;
   };
 }
 
@@ -132,7 +160,10 @@ function listen(server: Server, port: number, address: string): Promise<number> 
 function serverTransport(origin: string): Transport {
   return markMockTransport(async (request: Request) => {
     if (new URL(request.url).origin !== origin) {
-      throw new GatewayError("unexpected_request", `mock server transport: ${request.url} is not on ${origin}`);
+      throw new GatewayError(
+        "unexpected_request",
+        `mock server transport: ${redactUrl(request.url)} is not on ${origin}`,
+      );
     }
     return globalThis.fetch(request);
   });
@@ -147,18 +178,19 @@ export async function startMockServer(options: MockServerOptions): Promise<MockS
   const address = bindAddress(options.host);
   const { createServer } = await import("node:http");
   const play = mockTransport(options.api, options.script);
+  const playNext = sequentialPlayer(play);
   const log = logWriter(options.log);
   let origin = "";
+  // Every failure, from reading the request to writing the log or the response, ends in a response or a destroyed
+  // socket, never in an unhandled rejection that leaves the client waiting.
   const server = createServer(async (incoming, out) => {
-    const aborted = new AbortController();
-    out.once("close", () => aborted.abort(new Error("the client closed the connection")));
-    const request = await fetchRequestOf(incoming, origin, aborted.signal);
-    const response = play(request);
-    // The transport records the request before it answers or refuses, so the log line comes first either way.
-    await response.catch(() => undefined);
-    const recorded = play.requests.at(-1);
-    if (recorded !== undefined) await log(recorded);
     try {
+      const aborted = new AbortController();
+      out.once("close", () => aborted.abort(new Error("the client closed the connection")));
+      const request = await fetchRequestOf(incoming, origin, aborted.signal);
+      // The transport records the request before it answers or refuses, so the log line comes first either way.
+      const { response, recorded } = await playNext(request);
+      if (recorded !== undefined) await log(recorded);
       await writeResponse(await response, out);
     } catch (error) {
       if (!out.headersSent) refuse(out, error);

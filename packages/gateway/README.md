@@ -341,13 +341,13 @@ import { mockTransport, serverSentEvents } from "@buildanagent/gateway/testing";
 const transport = mockTransport("anthropic-messages", [{ body: serverSentEvents(events), chunkSize: 7 }]);
 ```
 
-To test a client that needs a socket, such as one in another process, start a server with `startMockServer({ api, script, log })`. It plays the script as `mockTransport()` does, on `127.0.0.1` by default, and refuses to bind to any address outside 127.0.0.0/8 or `::1`. A request to another path or past the end of the script gets a 400 error body. With `log`, the server appends one JSON line per request, and every credential header in the log and in `requests` reads `[redacted]`. Pass the server's `transport` with `baseURL: server.url`, so an in-process adapter reaches the server while real model requests are off:
+To test a client that needs a socket, such as one in another process, start a server with `startMockServer({ api, script, log })`. It plays the script as `mockTransport()` does, on `127.0.0.1` by default, and refuses to bind to any address outside 127.0.0.0/8 or `::1`. A request to another path or past the end of the script gets a 400 error body. With `log`, the server appends one JSON line per request, and every credential header and every key-carrying query parameter, such as `?key=` or `?api_key=`, in the log and in `requests` reads `[redacted]`. The server plays requests one at a time, so each log line belongs to its own request even when clients send at once, and any failure, such as a log file it can't write, reaches the client as a 400 instead of leaving it waiting. Pass the server's `transport` with `baseURL: server.url`, so an in-process adapter reaches the server while real model requests are off:
 
 ```ts
 const server = await startMockServer({ api: "anthropic-messages", script, log: "requests.jsonl" });
 const adapter = anthropic({ apiKey: "test", baseURL: server.url, transport: server.transport });
 ```
 
-The server needs Node's `http` module, which it imports only when it starts, so the testing export still loads on every target. `stripCredentials()`, `redactHeaders()` and `CREDENTIAL_HEADERS` are the same strippers the SDK's recorder uses.
+The server needs Node's `http` module, which it imports only when it starts, so the testing export still loads on every target. `stripCredentials()`, `redactHeaders()`, `redactUrl()` and `CREDENTIAL_HEADERS` are the credential helpers the server and the SDK's recorder use. `stripCredentials()` also drops credential `[name, value]` pairs and `Headers` entries, and redacts `Bearer` and `Basic` strings and URL credentials.
 
 Next: [@buildanagent/sdk](../sdk/README.md), which tests an agent against a scripted model.

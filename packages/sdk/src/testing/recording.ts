@@ -2,7 +2,8 @@
  * `recordPairs()`: records each call a model makes as a pair of normalised request and response, stamped with the
  * versions it was recorded against and an expiry (agent-SDK guide §8: record and replay at the normalised boundary).
  * A pair holds the gateway's transcript types, never wire bytes, so it survives changes to an adapter's wire format,
- * and it holds no credential: every property named like a credential header or an API key is left out.
+ * and it holds no credential: the adapter's key never reaches a call, and every property of the call's options named
+ * like a credential header or an API key is left out.
  */
 import {
   complete,
@@ -110,18 +111,22 @@ function isNormalised(event: GatewayEvent): event is ModelEvent {
   return NORMALISED_EVENTS.has(event.type);
 }
 
-/** A JSON-safe copy with credentials left out: exactly what a fixture file written from it would hold. */
+/** A JSON-safe copy: exactly what a fixture file written from it would hold. */
 export function storable<T>(value: T): T {
-  return JSON.parse(JSON.stringify(stripCredentials(value))) as T;
+  return JSON.parse(JSON.stringify(value)) as T;
 }
 
-/** The normalised form of one request, as a pair stores it and a replay compares it. */
+/**
+ * The normalised form of one request, as a pair stores it and a replay compares it. Credentials are stripped from
+ * the options only, where a key or header can live. The context is the conversation, which a replay must reproduce
+ * exactly, so a tool input that happens to hold an `apiKey` property is kept as sent.
+ */
 export function normalisedRequest(
   model: Model["ref"],
   context: ModelContext,
   options: ModelCallOptions,
 ): RecordedRequest {
-  return storable({ model, context, options: recordedOptions(options) });
+  return storable({ model, context, options: stripCredentials(recordedOptions(options)) });
 }
 
 function timeOf(value: unknown, name: string): number {
@@ -155,9 +160,15 @@ function stampOf(model: Model, options: RecordOptions): RecordingStamp {
 /**
  * Wraps `model` so that each call it makes is recorded as a `RecordedPair`, and returns the wrapper with the pairs so
  * far. Write `pairs()` to a fixture file as JSON, and replay it with `replayPairs()`. Each pair holds the request the
- * call sent (model, context and options) and every event it streamed except `retry` events, with every property
- * named like a credential header or an API key left out at any depth, so a fixture never holds a key. A call that
- * never reached its terminal, such as one whose reader stopped early, is not recorded.
+ * call sent (model, context and options) and every event it streamed except `retry` events. The adapter's key and
+ * headers are never part of a call, and every property of the options named like a credential header or an API key
+ * is left out at any depth, so a fixture holds no key the adapter or the options carried. The conversation and the
+ * model's output are kept exactly as they were, because a replay must reproduce them. A call is recorded once it
+ * reaches its terminal event; one whose reader stopped earlier is not recorded.
+ *
+ * The pairs are taken where the caller meets `model`: each request as the caller sent it, before any middleware
+ * `model` was built with, and the events as the caller received them, after it. Replay them through `createModel()`
+ * without that middleware, or the replay compares a request the middleware changed with one it didn't.
  *
  * Throws a `RecordingError` with code `invalid_recording` for a blank `providerVersion`, or an `expiresAt` that isn't
  * an ISO 8601 time later than the recording time.
@@ -169,13 +180,15 @@ export function recordPairs(model: Model, options: RecordOptions): Recorder {
     const slot = slots.push(undefined) - 1;
     const request = normalisedRequest(model.ref, context, callOptions);
     const events: ModelEvent[] = [];
-    let ended = false;
     for await (const event of model.stream(context, callOptions)) {
       if (isNormalised(event)) events.push(event);
-      ended ||= event.type === "done" || event.type === "error";
+      // Stored before the terminal is yielded: a reader such as `complete()` stops at the terminal, which ends this
+      // generator at the `yield`, so code after the loop would never run.
+      if (event.type === "done" || event.type === "error") {
+        slots[slot] = { stamp, request, response: { events: storable(events) } };
+      }
       yield event;
     }
-    if (ended) slots[slot] = { stamp, request, response: { events: storable(events) } };
   }
   const recorded: Model = {
     ref: model.ref,

@@ -123,6 +123,44 @@ test("autoResponder() prefers the tool the user's text names", async () => {
   );
 });
 
+test("autoResponder() picks the longest tool name the text names as a word, not one inside another name", async () => {
+  const v2 = defineTool({ ...lookup, name: "lookup_v2" });
+  const { adapter, model } = auto(2);
+  await drive(run({ model, system: "s", input: "please use lookup_v2", tools: [lookup, v2], ...determinism() }));
+  const second = adapter.calls[1]?.context.messages[1];
+  assert.ok(second?.role === "assistant");
+  assert.deepEqual(
+    second.content.map((block) => (block.type === "tool_call" ? block.name : block.type)),
+    ["lookup_v2"],
+  );
+});
+
+test("autoResponder() denies host tools in any spelling, such as MultiEdit, apply-patch and str_replace_based_edit_tool", async () => {
+  for (const name of ["MultiEdit", "apply-patch", "local_shell", "str_replace_based_edit_tool", "NotebookEdit"]) {
+    const host = hostTool(name);
+    const { model } = auto(1);
+    const { result } = await drive(
+      run({ model, system: "s", input: `use ${name}`, tools: [host.tool], ...determinism() }),
+    );
+    assert.equal(result.stopReason, "done", name);
+    assert.deepEqual(host.ran, [], name);
+  }
+});
+
+test("a denyTools pattern with the g or y flag denies every matching tool, on every call", async () => {
+  const deploy = hostTool("deploy");
+  const prod = hostTool("deploy_prod");
+  const rule = /deploy/gy;
+  for (let attempt = 0; attempt < 2; attempt += 1) {
+    const { model } = auto(1, { denyTools: [rule] });
+    const { result } = await drive(
+      run({ model, system: "s", input: "go", tools: [deploy.tool, prod.tool], ...determinism() }),
+    );
+    assert.equal(result.stopReason, "done");
+  }
+  assert.deepEqual([deploy.ran, prod.ran], [[], []]);
+});
+
 test("synthesizeInput() builds a value from const, enum, default, anyOf and each type", () => {
   const schema = {
     type: "object",
@@ -309,6 +347,52 @@ test("a recorded pair holds no provider event outside the model spec, such as a 
   assert.ok(!JSON.stringify(pair).includes(KEY), "no pair holds what the raw event carried");
 });
 
+test("recordPairs() records a call read through complete(), which stops at the terminal event", async () => {
+  const { model } = scripted([text("ok")]);
+  const recorder = recordPairs(model, { providerVersion: "v1", expiresAt: LATER, clock: fixedClock(START) });
+  const context: ModelContext = {
+    system: "s",
+    messages: [{ role: "user", content: [{ type: "text", text: "i" }] }],
+    tools: [],
+  };
+  const message = await recorder.model.complete(context);
+  assert.equal(message.stopReason, "stop");
+  const pairs = recorder.pairs();
+  assert.equal(pairs.length, 1);
+  assert.equal(pairs[0]?.response.events.at(-1)?.type, "done");
+});
+
+test("a recording keeps a tool input that holds an apiKey property, so the replay calls the tool with it", async () => {
+  const input = { apiKey: "not-a-credential", order: 1 };
+  const { model } = scripted([{ content: [{ type: "tool_call", callId: "", name: "lookup", input }] }, text("ok")]);
+  const recorder = recordPairs(model, { providerVersion: "v1", expiresAt: LATER, clock: fixedClock(START) });
+  const recordedRun = await orderRun(recorder.model);
+  const pairs = JSON.parse(JSON.stringify(recorder.pairs())) as RecordedPair[];
+  const done = pairs[0]?.response.events.at(-1);
+  assert.ok(done?.type === "done");
+  assert.deepEqual(done.message.content, [{ type: "tool_call", callId: "call-1", name: "lookup", input }]);
+  const replay = replayPairs(pairs, { clock: fixedClock(START) });
+  const replayed = await orderRun(createModel({ adapter: replay, id: replay.modelId, retries: 0 }));
+  assert.deepEqual(replayed.events, recordedRun.events);
+  replay.assertComplete();
+});
+
+test("a model built with request-changing middleware replays through createModel() without it", async () => {
+  const prefix = {
+    transformParams: async ({ context, options }: { context: ModelContext; options: object }) => ({
+      context: { ...context, system: `PREFIX ${context.system}` },
+      options,
+    }),
+  };
+  const { model } = scripted([text("ok")], { middleware: [prefix] });
+  const recorder = recordPairs(model, { providerVersion: "v1", expiresAt: LATER, clock: fixedClock(START) });
+  const recordedRun = await orderRun(recorder.model);
+  const replay = replayPairs(recorder.pairs(), { clock: fixedClock(START) });
+  const replayed = await orderRun(createModel({ adapter: replay, id: replay.modelId, retries: 0 }));
+  assert.deepEqual(replayed.events, recordedRun.events);
+  replay.assertComplete();
+});
+
 test("an expired recording throws on replay", async () => {
   const { pairs } = await recorded();
   assert.throws(() => replayPairs(pairs, { clock: fixedClock(LATER) }), isRecordingError("recording_expired"));
@@ -351,6 +435,12 @@ test("a replayed call that sends a different request fails the run and assertCom
 test("replayPairs() refuses an empty or malformed recording, and recordPairs() a bad stamp", async () => {
   assert.throws(() => replayPairs([]), isRecordingError("invalid_recording"));
   assert.throws(() => replayPairs([{} as RecordedPair]), isRecordingError("invalid_recording"));
+  for (const broken of [
+    { stamp: null, request: {}, response: { events: [] } },
+    { stamp: {}, request: null, response: { events: [] } },
+  ]) {
+    assert.throws(() => replayPairs([broken as unknown as RecordedPair]), isRecordingError("invalid_recording"));
+  }
   const { model } = scripted([]);
   assert.throws(
     () => recordPairs(model, { providerVersion: "v1", expiresAt: "soon" }),
@@ -451,6 +541,11 @@ test("scriptedApprovals() denies a request past its script, and assertComplete()
 
 test("scriptedApprovals() assertComplete() throws for an answer that was never used", () => {
   assert.throws(() => scriptedApprovals([{ decision: "allow" }]).assertComplete(), /1 of 1 answers were never used/);
+});
+
+test("the SDK's root entry exports no fixed-key test signer", async () => {
+  const root: Record<string, unknown> = await import("@buildanagent/sdk");
+  assert.ok(!("testSigner" in root) && !("TEST_KEY_ID" in root));
 });
 
 test("testSigner() signs the same payload the same way in every process, and verifies it", async () => {

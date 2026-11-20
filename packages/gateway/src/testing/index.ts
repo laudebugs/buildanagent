@@ -18,6 +18,7 @@ export {
   isCredentialName,
   REDACTED,
   redactHeaders,
+  redactUrl,
   stripCredentials,
 } from "./credentials.js";
 export {
