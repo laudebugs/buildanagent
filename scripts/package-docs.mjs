@@ -10,6 +10,7 @@
 // through their `source` condition (ADR 0050), which points at the same src/ the declarations come from.
 import { execFileSync } from "node:child_process";
 import { existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
+import { tmpdir } from "node:os";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 
@@ -50,9 +51,10 @@ function prose(markdown) {
   });
 }
 
-// An inline code span that names an export: `name()`, a PascalCase name or an UPPER_SNAKE_CASE constant. Spans such
-// as `maxSteps`, `run.steer()` or `done` are fields, members or values, which the export diff doesn't cover.
-const EXPORT_SPAN = /`((?:[a-z_$][\w$]*\(\))|(?:[A-Z][a-z0-9]+[A-Za-z0-9]*)|(?:[A-Z][A-Z0-9]*_[A-Z0-9_]+))`/g;
+// An inline code span that names an export: `name()`, a name that starts with a capital, such as `SdkError`,
+// `SDKFoo` or `CAPABILITIES`, or an UPPER_SNAKE_CASE constant. Spans such as `maxSteps`, `run.steer()` or `done` are
+// fields, members or values, which the export diff doesn't cover.
+const EXPORT_SPAN = /`((?:[a-z_$][\w$]*\(\))|(?:[A-Z][A-Za-z0-9]+)|(?:[A-Z][A-Z0-9]*_[A-Z0-9_]+))`/g;
 const IMPORT = /import\s+(?:type\s+)?\{([^}]*)\}\s*from\s*["'](@buildanagent\/[\w-]+(?:\/[\w/-]+)?)["']/g;
 
 /**
@@ -113,12 +115,27 @@ function scratch(packageDir, prefix) {
   return mkdtempSync(path.join(parent, prefix));
 }
 
-function runTsc(args, cwd) {
+// tsc is third-party code, so it gets an allowlisted environment, never ours with its tokens (AGENTS.md, "Running
+// third-party code"). It reads no variables, and its HOME is a scratch folder.
+function tscEnv(home) {
+  return { PATH: process.env.PATH ?? "", HOME: home, TMPDIR: tmpdir(), LANG: process.env.LANG ?? "C.UTF-8" };
+}
+
+/**
+ * Runs the pinned tsc and returns `{ ok, output }`: `ok` is true only when it exited 0, so a crash, a signal or a
+ * spawn failure that prints no diagnostic still counts as a failure.
+ */
+function runTsc(args, cwd, tsc = TSC) {
+  const home = mkdtempSync(path.join(tmpdir(), "package-docs-home-"));
+  const options = { cwd, encoding: "utf8", stdio: "pipe", maxBuffer: 64e6, env: tscEnv(home) };
   try {
-    execFileSync(process.execPath, [TSC, ...args], { cwd, encoding: "utf8", stdio: "pipe", maxBuffer: 64e6 });
-    return "";
+    execFileSync(process.execPath, [tsc, ...args], options);
+    return { ok: true, output: "" };
   } catch (error) {
-    return `${error.stdout ?? ""}${error.stderr ?? ""}`;
+    const output = `${error.stdout ?? ""}${error.stderr ?? ""}`;
+    return { ok: false, output: output === "" ? String(error.message ?? error) : output };
+  } finally {
+    rmSync(home, { recursive: true, force: true });
   }
 }
 
@@ -134,8 +151,8 @@ export function declarationExports(packageDir) {
     const args = ["-p", "tsconfig.build.json", "--emitDeclarationOnly", "--declarationMap", "false", "--outDir", out];
     // The build settings resolve sibling packages through their dist/ types; `source` reads their src/ instead, so
     // no build has to come first. The root stays the package's src/, so only its own files are emitted.
-    const errors = runTsc([...args, "--customConditions", "source"], packageDir);
-    if (errors !== "") throw new Error(`tsc could not emit ${packageDir}'s declarations:\n${errors}`);
+    const emitted = runTsc([...args, "--customConditions", "source"], packageDir);
+    if (!emitted.ok) throw new Error(`tsc could not emit ${packageDir}'s declarations:\n${emitted.output}`);
     return entryPoints(packageDir).map(({ specifier, source }) => {
       const file = path.join(out, path.relative("src", source).replace(/\.ts$/, ".d.ts"));
       return { specifier, exports: exportsOf(file, new Set()) };
@@ -186,7 +203,7 @@ function followed(file, from, name, seen) {
 }
 
 /** The names a declaration file exports, in source order, each resolved to its declaration. */
-function exportsOf(file, seen) {
+export function exportsOf(file, seen = new Set()) {
   const text = readFileSync(file, "utf8");
   if (/^export\s+\*/m.test(text)) throw new Error(`${file} uses export *, which the docs checks can't list`);
   if (/^export\s+default\b/m.test(text)) throw new Error(`${file} has a default export`);
@@ -203,8 +220,14 @@ function exportsOf(file, seen) {
     const typeOnly = match[1] === "interface" || match[1] === "type";
     found.push({ name: match[2], kind: match[1], typeOnly, doc: docBefore(text, match.index) });
   }
-  // Overloads and a class with a namespace of the same name declare one export more than once.
-  return [...new Map(found.map((item) => [item.name, item])).values()].sort((a, b) => a.name.localeCompare(b.name));
+  // Overloads and a class with a namespace of the same name declare one export more than once. The first declaration
+  // that carries a doc comment stands for the name, because overloads often document only the first signature.
+  const byName = new Map();
+  for (const item of found) {
+    const kept = byName.get(item.name);
+    if (kept === undefined || (kept.doc === undefined && item.doc !== undefined)) byName.set(item.name, item);
+  }
+  return [...byName.values()].sort((a, b) => a.name.localeCompare(b.name));
 }
 
 /**
@@ -248,9 +271,9 @@ export function missingNames({ documented, entries, notExports = {} }) {
  * Type-checks each block against the packages and returns the errors per block, with README line numbers. Each block
  * becomes a module of its own in a scratch folder inside the package, beside `globals`, a declaration file that
  * declares the names the README's blocks use without defining, such as `model` or `run`. A block's own imports and
- * declarations shadow those globals.
+ * declarations shadow those globals. `tsc` stands in for the pinned compiler's entry script in a test.
  */
-export function typecheckBlocks({ packageDir, blocks, globals }) {
+export function typecheckBlocks({ packageDir, blocks, globals, tsc = TSC }) {
   const dir = scratch(packageDir, "readme-");
   try {
     const files = blocks.map((block) => {
@@ -265,7 +288,10 @@ export function typecheckBlocks({ packageDir, blocks, globals }) {
     let remaining = files;
     for (;;) {
       writeFileSync(path.join(dir, "tsconfig.json"), JSON.stringify(blockConfig([...remaining, "globals.ts"])));
-      const pass = runTsc(["-p", "tsconfig.json", "--pretty", "false"], dir);
+      const { ok, output: pass } = runTsc(["-p", "tsconfig.json", "--pretty", "false"], dir, tsc);
+      // tsc exits non-zero on any diagnostic, so a failed run that reports none crashed instead of checking.
+      if (!ok && !/error TS\d+:/.test(pass))
+        throw new Error(`tsc failed without checking the README's blocks:\n${pass}`);
       const unparsed = new Set([...pass.matchAll(/^(block-\d+\.ts)\(\d+,\d+\): error TS1\d{3}:/gm)].map((m) => m[1]));
       const kept = pass.split("\n").filter((line) => unparsed.size === 0 || unparsed.has(line.split("(")[0]));
       output += `${kept.join("\n")}\n`;

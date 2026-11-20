@@ -9,6 +9,7 @@ import {
   declarationExports,
   documentedNames,
   experimentalViolations,
+  exportsOf,
   headingAnchors,
   missingNames,
   typecheckBlocks,
@@ -59,7 +60,7 @@ test("a documented name the declarations lack fails the export diff, from prose 
   const entries: Entry[] = [{ specifier: "@buildanagent/sdk", exports: [{ name: "run" }, { name: "SdkError" }] }];
   const markdown = [
     "Call `run()`, catch `SdkError`, and read `maxSteps`.",
-    "Then call `startAgent()` and check `RunGone`.",
+    "Then call `startAgent()` and check `RunGone`, `SDKGone` and `GONE`.",
     "",
     "```ts",
     'import { run, walk } from "@buildanagent/sdk";',
@@ -70,11 +71,18 @@ test("a documented name the declarations lack fails the export diff, from prose 
     "line 5: walk is imported from @buildanagent/sdk, which doesn't export it",
     "line 2: `startAgent` looks like an export, but no entry point exports it",
     "line 2: `RunGone` looks like an export, but no entry point exports it",
+    "line 2: `SDKGone` looks like an export, but no entry point exports it",
+    "line 2: `GONE` looks like an export, but no entry point exports it",
   ]);
   const allowed: string[] = missingNames({
     documented: documentedNames(markdown.split("\n").slice(0, 2).join("\n")),
     entries,
-    notExports: { startAgent: "an example's function", RunGone: "a made-up name" },
+    notExports: {
+      startAgent: "an example's function",
+      RunGone: "a made-up name",
+      SDKGone: "a made-up name",
+      GONE: "a made-up name",
+    },
   });
   assert.deepEqual(allowed, []);
 });
@@ -134,4 +142,74 @@ test("a public name's experimental_ prefix and @experimental tag must agree", ()
     "@buildanagent/sdk: branch is marked @experimental but lacks the experimental_ prefix",
     "@buildanagent/sdk: experimental_merge has the experimental_ prefix but no @experimental tag",
   ]);
+});
+
+test("a tsc that fails without a diagnostic fails the README check instead of passing every block", () => {
+  mkdirSync(path.join(PACKAGE_DIR, ".tmp"), { recursive: true });
+  const dir = mkdtempSync(path.join(PACKAGE_DIR, ".tmp", "crash-"));
+  try {
+    const tsc = path.join(dir, "tsc.mjs");
+    writeFileSync(tsc, 'console.error("Error: Debug Failure. False expression.");\nprocess.exit(1);\n');
+    const globals = path.join(dir, "globals.ts");
+    writeFileSync(globals, "export {};\n");
+    assert.throws(
+      () => typecheckBlocks({ packageDir: PACKAGE_DIR, blocks: codeBlocks("```ts\nconst a = 1;\n```"), globals, tsc }),
+      /tsc failed without checking the README's blocks:\nError: Debug Failure/,
+    );
+  } finally {
+    rmSync(dir, { recursive: true, force: true });
+  }
+});
+
+test("tsc runs with an allowlisted environment, so no token reaches it", () => {
+  mkdirSync(path.join(PACKAGE_DIR, ".tmp"), { recursive: true });
+  const dir = mkdtempSync(path.join(PACKAGE_DIR, ".tmp", "env-"));
+  const saved = process.env.DOCS_CHECK_SECRET;
+  process.env.DOCS_CHECK_SECRET = "leaked";
+  try {
+    const tsc = path.join(dir, "tsc.mjs");
+    // A stand-in that reports the variable as a block diagnostic, so the check's output shows what tsc saw.
+    writeFileSync(
+      tsc,
+      [
+        "const seen = process.env.DOCS_CHECK_SECRET ?? 'unset';",
+        "console.log('block-1.ts(1,1): error TS9999: ' + seen + ' ' + Object.keys(process.env).sort().join(','));",
+        "process.exit(2);",
+      ].join("\n"),
+    );
+    const globals = path.join(dir, "globals.ts");
+    writeFileSync(globals, "export {};\n");
+    const [block] = typecheckBlocks({ packageDir: PACKAGE_DIR, blocks: codeBlocks("```ts\n1;\n```"), globals, tsc });
+    assert.match(block?.errors[0] ?? "", /TS9999 unset HOME,LANG,PATH,TMPDIR$/);
+  } finally {
+    if (saved === undefined) delete process.env.DOCS_CHECK_SECRET;
+    else process.env.DOCS_CHECK_SECRET = saved;
+    rmSync(dir, { recursive: true, force: true });
+  }
+});
+
+test("an overloaded export keeps the doc of the overload that has one, so its @experimental tag is seen", () => {
+  mkdirSync(path.join(PACKAGE_DIR, ".tmp"), { recursive: true });
+  const dir = mkdtempSync(path.join(PACKAGE_DIR, ".tmp", "overloads-"));
+  try {
+    const file = path.join(dir, "index.d.ts");
+    writeFileSync(
+      file,
+      [
+        "/**",
+        " * Forks a run.",
+        " * @experimental",
+        " */",
+        "export declare function fork(a: string): void;",
+        "export declare function fork(a: number): void;",
+        "",
+      ].join("\n"),
+    );
+    const exports: Entry["exports"] = exportsOf(file);
+    assert.deepEqual(experimentalViolations([{ specifier: "@buildanagent/sdk", exports }]), [
+      "@buildanagent/sdk: fork is marked @experimental but lacks the experimental_ prefix",
+    ]);
+  } finally {
+    rmSync(dir, { recursive: true, force: true });
+  }
 });
