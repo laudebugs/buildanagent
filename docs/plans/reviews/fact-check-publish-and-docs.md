@@ -68,7 +68,7 @@ This log checks every factual claim in [publish-and-docs.md](../publish-and-docs
 | --- | --- | --- | --- |
 | 36 | ADR 0008 keeps both packages private until the owner chooses to publish, and makes a 0.x minor release that breaks the API carry a "Breaking Changes" entry | ✅ | [ADR 0008](../../decisions/0008-versioning-and-doc-checks.md) |
 | 37 | B8 depends on B5, B6 and B7; B4 depends on B3 | ✅ | the todos' Depends on fields |
-| 38 | B20 listed publishing and a docs website as out of scope | ✅ | [B20](../../todos/ongoing/B20-versioning-docs.md), before its revision |
+| 38 | B20 listed publishing and a docs website as out of scope | ✅ | [B20](../../todos/done/B20-versioning-docs.md), before its revision |
 | 39 | The TypeScript guideline says packages export `src/` until B20 decides how we publish | ✅ | [typescript.md](../../guidelines/typescript.md), before this change |
 | 40 | Every new workflow must be in `.github/workflows/actions.lock`, which this session can't regenerate | ✅ | [CI plan §3d](../ci.md#3d-actions-locked-by-a-lockfile-added-2026-11-19) |
 | 41 | Our documentation is licensed CC BY 4.0 | ✅ | `LICENSE` and `LICENSE-DOCS` |
