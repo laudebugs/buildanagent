@@ -14,8 +14,9 @@ const links = [
     <nav class="site-footer__nav" aria-label="Repository and author">
       {
         links.map((link) => (
-          <a href={link.href} rel="noopener">
+          <a href={link.href} target="_blank" rel="noopener noreferrer">
             {link.label}
+            <span class="visually-hidden"> (opens in a new window)</span>
           </a>
         ))
       }
