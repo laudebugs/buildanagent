@@ -82,8 +82,10 @@ export function anthropicBody(turn: Turn, t: number, idBase: string): string {
       { type: "content_block_stop", index: 0 },
     );
   }
+  // The Messages API numbers content blocks densely from 0, so a call's index counts blocks, not events.
+  const firstCall = turn.text === undefined ? 0 : 1;
   (turn.calls ?? []).forEach((call, i) => {
-    const index = blocks.length;
+    const index = firstCall + i;
     const json = JSON.stringify(call.input);
     const half = Math.ceil(json.length / 2);
     blocks.push(

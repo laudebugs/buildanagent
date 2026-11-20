@@ -75,7 +75,7 @@ The capstone is `packages/sdk/examples/triage-agent.ts` (80 code lines, two hook
 Decisions:
 
 - **The suite covers more than the three cases.** Beside the approved, rejected and invalid-result cases it checks a forged signature, a stored input that no longer matches its signature, the step cap and the budget, each on every backend.
-- **The agent file holds no test scaffolding**, as the examples guideline requires, so its 80 lines are not comparable with the reference files, which include their scripted model and assertions. The README therefore reports a second row, 438 lines, for the agent plus the suite and the backends.
+- **The agent file holds no test scaffolding**, as the examples guideline requires, so its 80 lines are not comparable with the reference files, which include their scripted model and assertions. The README therefore reports a second row, 434 lines, for the agent plus the suite and the backends.
 - **Hook count: two.** The gate and the audit observer, the same as LangChain's two pieces, so D6's tie stands.
 - **The step cap and budget are tested through the example's constants**, and the budget case reports 1,000,000 input tokens so the next call's projection passes $0.25 on both priced models.
 - **The guidelines' Known gaps row stays open.** An `examples/` folder already existed, and the README's longer code blocks still come from no example file.

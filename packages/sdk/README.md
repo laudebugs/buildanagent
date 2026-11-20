@@ -522,20 +522,22 @@ The conformance suite in [`test/triage-suite.ts`](test/triage-suite.ts) takes a 
 - the step cap and the budget each end a runaway run;
 - every request offers only `lookup_customer`, `escalate` and `submit_triage`.
 
-The tables in the [deep comparison](../../docs/comparison/deep-comparison.md#1-the-same-agent-takes-58-to-115-lines-on-every-sdk-and-differs-in-its-gate) count non-blank, non-comment lines, and include each reference file's scripted model and assertions. Our agent file holds neither, so the second row adds the suite and its backends, which cover more cases on three backends. A test fails when either figure or the hook count drifts from this table. Our hooks are the `beforeToolCall` gate and the audit observer; LangChain's capstone also needs two pieces.
+The cases assert nothing about observers, so a loop without them can run the suite. `test/capstone.test.ts` checks the audit trail on the SDK's loop.
+
+The tables in the [deep comparison](../../docs/comparison/deep-comparison.md#1-the-same-agent-takes-58-to-115-lines-on-every-sdk-and-differs-in-its-gate) count non-blank, non-comment lines, and include each reference file's scripted model and assertions. Our agent file holds neither, so the second row adds the suite and its backends, which cover more cases on three backends. Every figure below is counted from the files as they are now, so two reference rows differ from the comparison's, which predates later edits to those files. A test recounts every row and the hook count, and fails when the table drifts. Our hooks are the `beforeToolCall` gate and the audit observer; LangChain's capstone also needs two pieces.
 
 | Capstone | Code lines | Hooks |
 | --- | --- | --- |
 | Our capstone, the agent alone | 80 | 2 |
-| Our capstone with its cases and backends | 438 | 2 |
+| Our capstone with its cases and backends | 434 | 2 |
 | Vercel AI SDK | 58 | |
-| Claude Agent SDK | 65 | |
+| Claude Agent SDK | 62 | |
 | LangChain.js | 67 | 2 |
 | OpenAI Agents SDK | 76 | |
 | Pi | 87 | |
 | Copilot SDK | 105 | |
 | Google ADK | 114 | |
-| Cloudflare Agents | 115 | |
+| Cloudflare Agents | 122 | |
 
 ## Build the SDK with its dependencies
 

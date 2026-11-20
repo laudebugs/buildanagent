@@ -17,6 +17,18 @@ import { BUG, ESCALATE, LOOKUP, REASON, submit, TICKET, TRIAGE_TOOLS, triageSuit
 
 triageSuite({ run, continueRun }, [scriptedBackend, anthropicBackend, chatBackend]);
 
+/** The eight reference capstones the README compares ours with, by the name its table gives them. */
+const REFERENCE_CAPSTONES = [
+  ["Vercel AI SDK", "vercel-ai-sdk/examples/09-triage-agent.ts"],
+  ["Claude Agent SDK", "claude-agent-sdk/examples/07-triage-agent.ts"],
+  ["LangChain.js", "langchain/examples/10-triage-agent.ts"],
+  ["OpenAI Agents SDK", "openai-agents-sdk/examples/09-triage-agent.ts"],
+  ["Pi", "pi/examples/08-triage-agent.ts"],
+  ["Copilot SDK", "copilot-sdk/examples/09-triage-agent.ts"],
+  ["Google ADK", "google-adk/examples/08-triage-agent.ts"],
+  ["Cloudflare Agents", "cloudflare-agents/examples/09-triage-agent.ts"],
+] as const;
+
 const read = (path: string) => readFileSync(new URL(path, import.meta.url), "utf8");
 
 /** The lines a reader counts as code: not blank, and not a comment line, as the deep comparison counts them. */
@@ -40,8 +52,20 @@ test("startTriage() and resumeTriage() take a run from a pause to a typed result
   assert.equal(done.result.stopReason, "done");
   assert.deepEqual(done.result.stopReason === "done" ? done.result.output : undefined, BUG);
   assert.deepEqual(two.seen.escalations, [REASON]);
+  assert.deepEqual(one.seen.audit, ["call lookup_customer", "call escalate", "approval requested for escalate"]);
+  assert.deepEqual(two.seen.audit, ["call escalate", "call submit_triage"]);
   first.assertComplete();
   second.assertComplete();
+});
+
+test("the Anthropic script numbers content blocks densely from 0, as the Messages API does", () => {
+  const body = anthropicBody({ text: "Looking.", calls: [LOOKUP, ESCALATE] }, 0, "a");
+  const events = body
+    .split("\n")
+    .filter((line) => line.startsWith("data: "))
+    .map((line) => JSON.parse(line.slice("data: ".length)) as { type: string; index?: number });
+  const starts = events.filter((event) => event.type === "content_block_start").map((event) => event.index);
+  assert.deepEqual(starts, [0, 1, 2]);
 });
 
 test("scriptedApprovals() answers the capstone's gate inside one run, and the escalation then runs", async () => {
@@ -100,11 +124,16 @@ test("the README reports the capstone's line count and hook count, and they are 
   const withCases = [example, ...["triage-suite.ts", "triage-backends.ts"].map((f) => codeLines(read(f)))].reduce(
     (sum, n) => sum + n,
   );
-  assert.ok(example <= 100, "an example file stays within the 100 lines the examples guideline allows");
+  const fileLines = read("../examples/triage-agent.ts").trimEnd().split("\n").length;
+  assert.ok(fileLines <= 100, "an example file stays within the 100 lines the examples guideline allows");
   const readme = read("../README.md");
   assert.ok(readme.includes(`| Our capstone, the agent alone | ${example} | ${hooks} |`), "README row for the agent");
   assert.ok(
     readme.includes(`| Our capstone with its cases and backends | ${withCases} | ${hooks} |`),
     "README row with cases",
   );
+  for (const [name, file] of REFERENCE_CAPSTONES) {
+    const lines = codeLines(read(`../../../verify/${file}`));
+    assert.ok(new RegExp(`^\\| ${name} \\| ${lines} \\|`, "m").test(readme), `README row for ${name}: ${lines}`);
+  }
 });

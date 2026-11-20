@@ -1,6 +1,8 @@
 // The triage capstone's conformance suite: the cases every implementation of the loop must pass on the support-triage
 // agent. `triageSuite()` takes the loop's `run` and `continueRun`, so the reference loop can run the same cases, and a
-// list of backends, so the SDK's loop runs them on the scripted model and on both mock transports.
+// list of backends, so the SDK's loop runs them on the scripted model and on both mock transports. The cases assert only
+// what a loop without observers can show, because the reference loop has none: the audit trail is checked in
+// capstone.test.ts.
 import assert from "node:assert/strict";
 import type { Model } from "@buildanagent/gateway";
 import type { AgentEvent, Context, continueRun, Resolution, run } from "@buildanagent/sdk";
@@ -109,11 +111,6 @@ function approvedEscalation(loop: Loop, backend: Backend) {
     assert.deepEqual(second.process.seen.escalations, [REASON]);
     assert.deepEqual(first.process.seen.escalations, []);
     assert.deepEqual(second.process.seen.lookups, [], "the resume does not look the customer up again");
-    assert.deepEqual(first.process.seen.audit, [
-      "call lookup_customer",
-      "call escalate",
-      "approval requested for escalate",
-    ]);
     assertSurface(first.fixture, second.fixture);
   });
 }
