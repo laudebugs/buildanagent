@@ -83,8 +83,21 @@ export type AgentEventBody =
     }
   /** `transformContext` returned the messages for one model call: `before` messages in, `after` messages out. */
   | { readonly type: "context_transformed"; readonly before: number; readonly after: number }
-  /** The model is retrying a failed request; `attempt` is 1 for the first retry. */
-  | { readonly type: "retry"; readonly attempt: number; readonly delayMs: number; readonly error: string }
+  /**
+   * A failed model call is being retried; `attempt` is 1 for the first retry. `layer` says which retry it is.
+   * `gateway`: the model retries an HTTP request that failed before any output; its events follow `model_call_start`
+   * and nothing was streamed from the failed attempt. `turn`: the loop re-issues a call that ended with a `retryable`
+   * error, which `turnRetries` turns on. It comes right after that call's `model_call_end`, whose message is
+   * superseded: it is not in the transcript, and a UI that rendered the call's streamed deltas should discard them,
+   * because the retry streams its own. A new `model_call_start` follows once the wait ends.
+   */
+  | {
+      readonly type: "retry";
+      readonly layer: "gateway" | "turn";
+      readonly attempt: number;
+      readonly delayMs: number;
+      readonly error: string;
+    }
   /**
    * A queued steer or follow-up entered the transcript as a user message, at the start of the step named by
    * `receipt.stepIndex`, before its model call. `receipt.kind` tells the two apart.
