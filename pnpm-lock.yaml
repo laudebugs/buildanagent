@@ -135,7 +135,44 @@ importers:
         specifier: 4.6.7
         version: 4.6.7
 
+  packages/cli:
+    dependencies:
+      '@buildanagent/harness':
+        specifier: workspace:*
+        version: link:../harness
+    devDependencies:
+      '@buildanagent/gateway':
+        specifier: workspace:*
+        version: link:../gateway
+
+  packages/evals:
+    devDependencies:
+      '@buildanagent/gateway':
+        specifier: workspace:*
+        version: link:../gateway
+
   packages/gateway: {}
+
+  packages/harness:
+    dependencies:
+      '@buildanagent/gateway':
+        specifier: workspace:*
+        version: link:../gateway
+      '@buildanagent/protocol':
+        specifier: workspace:*
+        version: link:../protocol
+      '@buildanagent/sdk':
+        specifier: workspace:*
+        version: link:../sdk
+
+  packages/protocol:
+    dependencies:
+      '@buildanagent/gateway':
+        specifier: workspace:*
+        version: link:../gateway
+      '@buildanagent/sdk':
+        specifier: workspace:*
+        version: link:../sdk
 
   packages/sdk:
     dependencies:
