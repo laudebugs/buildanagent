@@ -183,12 +183,13 @@ packTest("every package is packed", () => {
 });
 
 packTest("each tarball holds only package.json, README, CHANGELOG, llms.txt, the licences and dist/", () => {
-  for (const [name, { files }] of packed) {
+  for (const [name, { files, manifest }] of packed) {
     const strays = files.filter((file) => !TOP_LEVEL.has(file) && !file.startsWith("dist/"));
     assert.deepEqual(strays, [], `${name} packs files outside dist/`);
     for (const licence of LICENCES) assert.ok(files.includes(licence), `${name} lacks ${licence}`);
     assert.ok(files.includes("README.md"), `${name} lacks README.md`);
-    assert.ok(files.includes("llms.txt"), `${name} lacks llms.txt`);
+    // The published packages ship their docs index; the private safety package has none until it is published.
+    if (manifest.private !== true) assert.ok(files.includes("llms.txt"), `${name} lacks llms.txt`);
   }
 });
 

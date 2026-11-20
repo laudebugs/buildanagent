@@ -46,3 +46,13 @@ CI's `changesets` job fails a pull request that changes a package's shipped file
 The job runs `scripts/ci/changeset-gate.mjs`, which lets one kind of change through without a changeset: a version bump that `pnpm changeset version` made. Such a change touches no shipped file except the `package.json` of every versioned package, each differing from `main` only in `version`, with a `CHANGELOG.md` section for the new version. Both packages must move to one version, later than the one on `main`, and in pre mode that version must be an `alpha` prerelease. Every other change to shipped files must add or edit a changeset in this folder, not in `pre/`, that names a package Changesets versions, and then pass `pnpm changeset status --since=origin/main`. A bump that also changes `src/` is no exception. An edit to a changeset in `pre/` doesn't count, because a prerelease already consumed it and the change would never publish.
 
 When a pull request touches those files but users get nothing new, as with an internal rename or a devDependency bump, run `pnpm changeset --empty`. It writes a changeset that names no package, which satisfies the check and adds nothing to the changelog.
+
+## A changed default needs a changeset that releases a package
+
+A change to a default value, a built-in prompt or a tool description changes what the model reads or how a run stops, so users must find it in the changelog even when no type changed ([agent-SDK guide §10](../docs/guides/agent-sdk.md#10-versioning-must-cover-defaults-and-prompts-as-well-as-types-and-docs-must-compile-against-the-release-tag)). The SDK keeps all of them in `packages/sdk/src/defaults.ts`, and every `run_start` event carries their hash, `DEFAULTS_HASH`. Changing one takes three steps:
+
+1. Change the value in `src/defaults.ts`. The SDK's `test/defaults.test.ts` then fails and prints the new hash.
+2. Set `DEFAULTS_HASH` to that hash.
+3. Run `pnpm changeset`, name `@buildanagent/sdk`, and say which default changed, from what and to what.
+
+The gate reads `DEFAULTS_HASH` on both sides of the pull request. When it differs, at least one added changeset must name a versioned package, so `pnpm changeset --empty` doesn't satisfy it.
