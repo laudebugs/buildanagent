@@ -1,10 +1,11 @@
 // Runs a test Worker in workerd, Cloudflare's runtime, through Miniflare, for the tests that need a real `AIChatAgent`
 // Durable Object with SQLite storage. The Worker is bundled with esbuild, and every outbound request is refused and
 // recorded, so nothing leaves the machine.
-import { mkdtempSync, rmSync } from "node:fs";
+import { mkdtempSync, readFileSync, rmSync } from "node:fs";
 import { builtinModules } from "node:module";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
+import { fileURLToPath } from "node:url";
 import { build, type Plugin } from "esbuild";
 import { convertV4MiniflareOptions, Log, LogLevel, Miniflare } from "miniflare";
 
@@ -19,6 +20,23 @@ const nodeBuiltins: Plugin = {
     b.onResolve({ filter: /^[a-z_/]+$/ }, (args) => {
       const name = args.path.replace(/\/$/, "");
       return BUILTINS.has(name) ? { path: `node:${name}`, external: true } : undefined;
+    });
+  },
+};
+
+// Our workspace packages resolve to their `source` entries, as they do in every other test, so a Worker bundles the
+// gateway's src/ and needs no build. Only these packages go through `source`: a third-party package's `source`
+// condition may name files its tarball lacks.
+const workspaceSource: Plugin = {
+  name: "workspace-source",
+  setup(b) {
+    b.onResolve({ filter: /^@buildanagent\/gateway(\/|$)/ }, (args) => {
+      const dir = fileURLToPath(new URL("../../gateway/", import.meta.url));
+      const manifest = JSON.parse(readFileSync(join(dir, "package.json"), "utf8")) as {
+        exports: Record<string, { source?: string }>;
+      };
+      const source = manifest.exports[`.${args.path.slice("@buildanagent/gateway".length)}`]?.source;
+      return source === undefined ? undefined : { path: join(dir, source) };
     });
   },
 };
@@ -66,7 +84,7 @@ async function start(
     conditions: ["workerd", "worker", "browser"],
     mainFields: ["browser", "module", "main"],
     external: ["cloudflare:*", "node:*"],
-    plugins: [nodeBuiltins],
+    plugins: [nodeBuiltins, workspaceSource],
     logLevel: "silent",
   });
   const blocked: string[] = [];

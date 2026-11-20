@@ -1,8 +1,8 @@
 # @buildanagent/agent-safety
 
-When a tool changes the world, such as sending an email or issuing a refund, your agent must know exactly what happened, and a person must approve exactly what runs. This package gives every write one of five typed outcomes and an identity that a crash can't repeat, hashes tool inputs the same way on every runtime, signs approvals so a forged or stale one runs nothing, and keeps every model call on the user's own key.
+When a tool changes the world, such as sending an email or issuing a refund, your agent must know exactly what happened, and a person must approve exactly what runs. This package gives every write one of five typed outcomes and an identity that a crash can't repeat, hashes tool inputs the same way on every runtime, signs approvals so a forged or stale one runs nothing, keeps every model call on the user's own key, and refuses a model call before it is sent when the call could push a run past its USD cap.
 
-As of November 2026 the package is not on npm yet. It holds the write outcomes, `renderOutcome()`, `canonicalInputHash()`, the approval signers, the adapters for the Vercel AI SDK, which also serve Cloudflare's `AIChatAgent`, the guards that keep model calls on the user's key, and `guardedWrite()`, which keeps a crash or a regenerated turn from repeating a write. Plan approvals come next.
+As of November 2026 the package is not on npm yet. It holds the write outcomes, `renderOutcome()`, `canonicalInputHash()`, the approval signers, the adapters for the Vercel AI SDK, which also serve Cloudflare's `AIChatAgent`, the guards that keep model calls on the user's key, `guardedWrite()`, which keeps a crash or a regenerated turn from repeating a write, and `costGuard()`, which caps what AI SDK model calls may spend. Plan approvals come next.
 
 ## A failed write reports one of five outcomes
 
@@ -250,8 +250,54 @@ if (!report.ok) throw new Error(report.problems.map((problem) => problem.message
 
 A route through Cloudflare AI Gateway passes only with `byok_only: true` and its own provider's endpoint, and a route through Vercel AI Gateway never passes. A route whose base URL is a loopback `http` URL fails too, because a deployed agent can't reach the deployer's loopback. The check fails closed: a field it doesn't know fails too, so a renamed gateway setting stops the deploy instead of slipping through. The report's `settingsAsOf` gives the date of the gateway documentation the setting names come from, 2026-11-18.
 
+## A model call that could pass the USD cap is never sent
+
+An agent loop that checks its spend after each response stops only once a response has already crossed the cap, so it overshoots by the whole cost of that call. The AI SDK has `stopWhen` but no spend cap at all. `costGuard()` from the `./cost` subpath checks before each call instead. It is a language-model middleware: before the provider sees a request, the guard projects the most the request can cost and throws `BudgetExceeded` if the spend so far plus that projection would pass `capUsd`. In `ai` 7.0.162 every step of `generateText` and `streamText`, and every retry, calls the model's `doGenerate` or `doStream`, so the guard sees each request. Because it wraps the model, the same guard caps a Cloudflare `AIChatAgent` that calls `streamText` in `onChatMessage`:
+
+```ts
+import { budgetRefusal, costGuard, guardedProvider, memorySpend } from "@buildanagent/agent-safety/cost";
+
+const guard = costGuard({ capUsd: 0.5, spend: memorySpend() });
+const models = guardedProvider(explicitProvider({ provider: "anthropic", apiKey: userKey, baseURL }), guard);
+try {
+  await generateText({ model: models.languageModel(modelId), prompt, tools, stopWhen: isStepCount(20) });
+} catch (error) {
+  const refused = budgetRefusal(error);
+  if (refused === undefined) throw error;
+  // The run stopped at its cap: refused.spentUsd, refused.projectedUsd and refused.capUsd say why.
+}
+```
+
+The projection is the gateway's own formula, the one our SDK's `budgetUsd` uses, so both caps agree on what a call can cost. The guard turns the AI SDK request into the gateway's transcript and calls `estimateInputTokens()`. When the request continues a call the guard has already seen, on the same model with the same tools, that call's reported input and output stand in for everything up to its answer, and only the messages added since are estimated from their characters. Another model counts tokens with another tokenizer, and a new tool adds input the earlier usage doesn't hold, so either one makes the guard estimate the whole request from its characters. An answer in the prompt that is longer than the call returned counts at least its own character estimate.
+
+`projectCost()` then prices every input token at the model's dearest input rate and adds the call's output limit at the output rate. That limit is the call's `maxOutputTokens`, or the catalog's limit for the model when the call sets none; pass `maxOutputTokens` to `costGuard()` to set a lower limit on such calls and price them at it. An image counts at the largest per-image size a provider documents, in a message or in a tool's result. A file sent by URL or by provider reference has no size the guard can read, so it also counts as one image, and a long PDF sent that way can cost more than its projection.
+
+After each call the guard adds what the call cost to the spend: the usage the response reported, priced with the catalog, read from the `finish` part when the call streams. The AI SDK reports cache writes as one count, so the guard prices them at the dearer of the short and long write rates. An attempt that throws before it returns a response reports no usage. If its abort signal stopped it while the request was in flight, by the caller's signal or the AI SDK's `timeout`, the provider may already have generated tokens, so the guard charges its projection, the most it could have cost. Any other error, and a signal that was already aborted when the request was sent, adds nothing, and the guard checks the AI SDK's retry again before it is sent. A stream that is cancelled or breaks before its `finish` part, such as a chat the user stops, is charged its projection the same way, and the guard carries on. A stream that reports an `error` part and never finishes is charged the same. A streamed call holds its projection against the cap until its stream ends or is cancelled, so a stream you drop without reading or cancelling keeps that amount reserved and shrinks the room left for later calls.
+
+The guard refuses a call with one of two codes, both on `BudgetExceeded`, a `SafetyError`:
+
+- `budget_exceeded`: the spend so far plus the projection would pass the cap. A cap of 0 refuses the first call.
+- `unknown_price`: the guard can't tell what the call or the spend costs. The catalog has no price for the model, or no rate for the call's input size, so the call is refused with a `projectedUsd` of `null`. The guard also stops when an earlier response reported no usage, or usage the catalog can't price, and was charged its projection, or when the `Spend` failed to record a call's cost. Every later call through the guard is then refused, because a spend the guard can't read is never counted as zero. A `Spend` whose `get()` returns anything but a finite number of 0 or more refuses the call too, with a `spentUsd` of `NaN`.
+
+The guard finds a model's price by the part of the AI SDK's provider name before the first dot, so `anthropic.messages` reads the catalog's `anthropic` entry for the model id. It reads the gateway's `defaultCatalog` unless you pass `catalog`. The AI SDK retries only a provider error marked retryable, so a refusal ends the call on its first attempt and `generateText` rejects with the `BudgetExceeded` itself. `streamText` hands it to `onError` instead. A refusal on a retry reaches you inside the AI SDK's `RetryError`, and `budgetRefusal()` finds it there too.
+
+## Cap each run with a fresh `Spend`, and the session with a shared one
+
+The guard keeps the spend in a `Spend`, an object with `get()` and `add(usd)`, so where the `Spend` lives decides what the cap covers. A fresh `memorySpend()` for each run caps that run. To cap a whole session, keep one `Spend` that every run of the session reads, such as a row in your database or in a Durable Object's storage. Pass both guards to `guardedProvider()`, and a call goes out only when each of them allows it:
+
+```ts
+const models = guardedProvider(provider, [
+  costGuard({ capUsd: 0.5, spend: memorySpend() }),
+  costGuard({ capUsd: 5, spend: sessionSpend }),
+]);
+```
+
+Calls that run at the same time through one guard share its cap. The guard holds each call's projection against the cap until the call's cost is known, so two parallel calls can't both spend the last of the budget. A store need not show an `add()` to a `get()` that started before it, so the guard also counts what it added while a read was pending; such a read can count a cost twice, which errs towards refusing. A guard sees only the calls that pass through it, though: another process that adds to the same session `Spend` is counted once its `add()` has finished, not while its call is in flight.
+
+Build every model a run uses from the guarded provider, the models `prepareStep` switches to included. A model built any other way never passes through the guard, so its calls are never checked. A string model id escapes it too, because the AI SDK resolves the id through its default provider; `assertNoDefaultProvider()` from `./byok` makes such an id throw. The guard caps language models only: `guardedProvider()` passes embedding, image, transcription, speech and reranking models through unguarded, so their calls are never counted. Wrap a single model with `guardedModel(model, guards)`. On Think, which calls `getModel()` for each turn, return a model from a guarded provider there; the package's own workerd test covers `AIChatAgent` only.
+
 ## The root entry loads without any third-party SDK
 
-`@buildanagent/agent-safety` imports no third-party SDK, so it runs anywhere Web Crypto does: Node 22, Cloudflare Workers and other edge runtimes. Adapters for other SDKs live in subpaths. `./ai` needs `ai` and `@ai-sdk/provider-utils`, and `./byok` needs `@ai-sdk/anthropic` and `@ai-sdk/openai`; all four are optional peer dependencies. `egressGuard()` and `checkModelRoutes()` sit in the root entry, so a host without the AI SDK can use them. `./agents` will hold adapters that need Cloudflare `agents` itself, and it holds none yet, because `AIChatAgent` works through the `./ai` adapters. `./testing` holds `testSigner()` and the `EffectStore` conformance cases, and imports no third-party SDK either.
+The root entry of `@buildanagent/agent-safety` imports no package at all, so it runs anywhere Web Crypto does: Node 22, Cloudflare Workers and other edge runtimes. Adapters for other SDKs live in subpaths. `./ai` needs `ai` and `@ai-sdk/provider-utils`, `./byok` needs `@ai-sdk/anthropic` and `@ai-sdk/openai`, and `./cost` needs `ai`; all four are optional peer dependencies. `./cost` also imports `@buildanagent/gateway` for its price catalog and cost projection, and the gateway is the package's one dependency. `egressGuard()` and `checkModelRoutes()` sit in the root entry, so a host without the AI SDK can use them. `./agents` will hold adapters that need Cloudflare `agents` itself, and it holds none yet, because `AIChatAgent` works through the `./ai` adapters. `./testing` holds `testSigner()` and the `EffectStore` conformance cases, and imports no third-party SDK either.
 
 To see how the model runs these tools, read the [SDK's README](../sdk/README.md).
