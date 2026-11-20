@@ -270,7 +270,7 @@ test("signPlan refuses steps out of order, a bad expiry, a blank field and an in
     signPlan({ ...PLAN, steps: [refund, mark] }, signer, FIXED),
     (error: unknown) => assertSafetyError("invalid_plan")(error) && String(error).includes("compensable"),
   );
-  for (const expiresInMs of [0, -1, Number.NaN, Number.POSITIVE_INFINITY, 1e20]) {
+  for (const expiresInMs of [0, 0.4, -1, Number.NaN, Number.POSITIVE_INFINITY, 1e20]) {
     await assert.rejects(signPlan({ ...PLAN, expiresInMs }, signer, FIXED), assertSafetyError("invalid_plan"));
   }
   await assert.rejects(
@@ -641,4 +641,30 @@ test("planCard refuses what signPlan refuses", async () => {
     planCard({ steps: [mark], state: [{ source: "orders", key: "o", value: undefined }] }),
     assertSafetyError("invalid_input"),
   );
+});
+
+test("signPlan signs the state as it was when the call began, even if the caller changes it while hashing", async () => {
+  const signer = testSigner();
+  const state = STATE.map((read) => ({ ...read }));
+  const pending = signPlan({ ...PLAN, state }, signer, FIXED);
+  (state[0] as { value: unknown }).value = 1;
+  const approval = await pending;
+  assert.equal(await verifyPlanBeforeStep(approval, CALLS.mark, options()), "ok", "the card's state still matches");
+  const edited = world();
+  edited.set(0, 1);
+  assert.equal(
+    await verifyPlanBeforeStep(approval, CALLS.mark, options({ readState: edited.readState })),
+    "stale_approval",
+  );
+});
+
+test("a signer whose verify throws refuses the step as tampered", async () => {
+  const approval = await approved();
+  const signer = {
+    ...testSigner(),
+    verify: async (): Promise<boolean> => {
+      throw new Error("key store down");
+    },
+  };
+  assert.equal(await verifyPlanBeforeStep(approval, CALLS.mark, options({ signer })), "tampered");
 });

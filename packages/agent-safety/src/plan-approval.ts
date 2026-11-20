@@ -99,7 +99,10 @@ export interface PlanFields {
 
 /** Where `signPlan()` takes its plan id and time from. Tests pass fixed ones. */
 export interface SignPlanOptions {
-  /** Returns a fresh plan id. Defaults to `crypto.randomUUID()`. */
+  /**
+   * Returns a fresh plan id. Defaults to `crypto.randomUUID()`. Each approval needs its own id: the ledger tracks
+   * progress by id, so a second approval with a repeated id is refused as `"replayed"` or `"out_of_order"`.
+   */
   readonly generateId?: () => string;
   /** Returns the current time. Defaults to `new Date()`. */
   readonly now?: () => Date;
@@ -312,8 +315,9 @@ export async function hashSteps(steps: unknown): Promise<{ inputs: unknown[]; si
 }
 
 function expiryOf(now: Date, expiresInMs: unknown): string {
-  if (typeof expiresInMs !== "number" || !Number.isFinite(expiresInMs) || expiresInMs <= 0) {
-    throw invalidPlan("expiresInMs must be a finite number of milliseconds above 0");
+  if (typeof expiresInMs !== "number" || !Number.isFinite(expiresInMs) || expiresInMs < 1) {
+    // Dates hold whole milliseconds, so anything under 1 would sign an approval that is expired when issued.
+    throw invalidPlan("expiresInMs must be a finite number of milliseconds, at least 1");
   }
   const at = new Date(now.getTime() + expiresInMs);
   if (Number.isNaN(at.getTime())) throw invalidPlan("now() plus expiresInMs must be a valid time");
@@ -327,7 +331,7 @@ function expiryOf(now: Date, expiresInMs: unknown): string {
  * the signer's current key, and returns the record to store. The inputs and state values themselves aren't stored.
  *
  * Throws a `SafetyError`, code `invalid_plan`, for a blank or malformed field, steps out of order, a read listed
- * twice or an `expiresInMs` that isn't above 0, and code `invalid_input` for an input or state value with no
+ * twice or an `expiresInMs` that isn't a finite number of at least 1, and code `invalid_input` for an input or state value with no
  * canonical JSON form.
  */
 export async function signPlan(
@@ -338,8 +342,11 @@ export async function signPlan(
   const planId = (options.generateId ?? (() => crypto.randomUUID()))();
   if (!isText(planId)) throw invalidPlan("a plan's id must be a non-empty, well-formed string");
   const { steps, state, expiresInMs } = isRecord(fields) ? fields : ({} as Record<string, unknown>);
-  const { signed: signedSteps } = await hashSteps(steps);
+  // Copy the steps and the state before the first await, as `planCard()` does, so a change made while the hashes are
+  // pending can't give the signature a state the person never saw on the card.
+  const hashing = hashSteps(steps);
   const reads = copyState(state);
+  const { signed: signedSteps } = await hashing;
   const signed = {
     planId,
     steps: signedSteps,
@@ -433,6 +440,14 @@ async function checkFreshness(approval: PlanApproval, options: VerifyPlanStepOpt
   return (await stateMatches(approval, values)) ? "ok" : "stale_approval";
 }
 
+async function signatureHolds(signer: ApprovalSigner, record: PlanApproval): Promise<boolean> {
+  try {
+    return (await signer.verify(record.keyId, planPayload(record), record.signature)) === true;
+  } catch {
+    return false;
+  }
+}
+
 /**
  * Checks a plan approval before one of its steps runs, failing closed. Run the step only when it resolves to `"ok"`.
  *
@@ -459,7 +474,8 @@ export async function verifyPlanBeforeStep(
   const record = copyApproval(approval);
   if (record === undefined) return "tampered";
   // The signature comes first: until it verifies, no other field of the stored record is trusted.
-  if (!(await options.signer.verify(record.keyId, planPayload(record), record.signature))) return "tampered";
+  // A signer that throws (a malformed signature, a key-store error) refuses the step instead of rejecting the call.
+  if (!(await signatureHolds(options.signer, record))) return "tampered";
   if (!lintPlan(record.steps).ok) return "tampered";
   const { stepId, tool, input } = isRecord(call) ? call : ({} as Record<string, unknown>);
   const index = record.steps.findIndex((step) => step.id === stepId);
