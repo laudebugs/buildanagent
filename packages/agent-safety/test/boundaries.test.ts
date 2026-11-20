@@ -110,8 +110,26 @@ test("the byok subpath imports only the two provider packages by value, and no C
   assert.deepEqual([...new Set(valueImports)].sort(), ["@ai-sdk/anthropic", "@ai-sdk/openai"]);
 });
 
-test("the third-party SDKs are optional peers, never dependencies", () => {
-  assert.equal(manifest.dependencies, undefined);
+test("the cost subpath imports only ai by value among the third-party SDKs, and no Cloudflare agents code", () => {
+  // It wraps models with `wrapLanguageModel()` and `wrapProvider()`, so it needs `ai` at runtime, and nothing else.
+  const valueImports = [...reachable(join(packageRoot, "src", "cost", "index.ts")).keys()].flatMap((file) =>
+    thirdPartyValueImports(readFileSync(file, "utf8")),
+  );
+  assert.deepEqual([...new Set(valueImports)], ["ai"]);
+});
+
+test("only the cost subpath imports the gateway; the root entry stays free of every package", () => {
+  // The gateway is a dependency for the cost projection alone (ADR 0043). The root entry, which the SDK will import
+  // and vendors parts of, imports no package at all, so it keeps loading wherever Web Crypto runs.
+  assert.deepEqual([...reachable(join(packageRoot, "src", "index.ts")).values()].flat(), []);
+  const importers = sourceFiles(join(packageRoot, "src"))
+    .filter((file) => specifiers(file).some((spec) => /^@buildanagent\/gateway(\/|$)/.test(spec)))
+    .map((file) => relative(join(packageRoot, "src"), file));
+  assert.deepEqual(importers.sort(), ["cost/cost-guard.ts", "cost/estimate.ts"]);
+});
+
+test("the third-party SDKs are optional peers, never dependencies, and the gateway is the only dependency", () => {
+  assert.deepEqual(Object.keys(manifest.dependencies ?? {}), ["@buildanagent/gateway"]);
   assert.deepEqual(Object.keys(manifest.peerDependencies ?? {}).sort(), OPTIONAL_PEERS);
   for (const peer of OPTIONAL_PEERS) assert.equal(manifest.peerDependenciesMeta?.[peer]?.optional, true, peer);
 });
