@@ -50,7 +50,7 @@ export interface ContextEvent extends HookEventBase {
   readonly messages: readonly Message[];
   /** The model the run was started with. */
   readonly model: ModelRef;
-  /** The previous model call's usage. Absent on the first call. */
+  /** The usage of the last response the run went on with, not a failed turn-retry attempt's. Absent on the first call. */
   readonly lastUsage?: Usage;
 }
 

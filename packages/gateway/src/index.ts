@@ -40,6 +40,13 @@ export {
   ModelRequestsDisabledError,
   modelRequestsAreAllowed,
 } from "./request-policy.js";
+export {
+  abortableSleep,
+  DEFAULT_INITIAL_RETRY_DELAY_MS,
+  MAX_RETRY_DELAY_MS,
+  retryDelay,
+  retryHintMs,
+} from "./retry.js";
 export type {
   CreateModelOptions,
   DumpedOptions,
