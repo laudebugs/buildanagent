@@ -15,10 +15,14 @@ import {
   type DumpedOptions,
   emptyUsage,
   type GatewayEvent,
+  MAX_RETRY_DELAY_MS,
   type Message,
   type Model,
   type ModelContext,
   projectCallCost,
+  retryDelay,
+  retryHintMs,
+  type Sleep,
   type StreamOptions,
   type Usage,
   type WireTool,
@@ -62,6 +66,12 @@ export interface LoopSetup {
   readonly tools: readonly AnyTool[];
   readonly output: AnyTool | undefined;
   readonly maxSteps: number;
+  /** How many times the loop re-issues a model call that ended with a `retryable` error; 0 turns turn retries off. */
+  readonly turnRetries: number;
+  /** The wait before the first turn retry, in milliseconds; each later retry in a streak waits twice as long. */
+  readonly turnRetryDelayMs: number;
+  /** Waits between turn retries. */
+  readonly sleep: Sleep;
   /** The most the run's model calls may cost, in USD, or `undefined` for no cap (D9). */
   readonly budgetUsd?: number;
   /** How deeply this run is nested inside other agents' tool calls, and the deepest nesting allowed (D11). */
@@ -131,6 +141,8 @@ class LoopState {
   output: unknown;
   /** Set when the run was kept going to deliver a follow-up, so the next step boundary applies the follow-ups too. */
   releaseFollowUps = false;
+  /** Set when a retryable failure could have been retried but `maxSteps` left no room, so the run ends `max_steps`. */
+  retryBlockedByMaxSteps = false;
   /** The signed requests of the calls that gates paused, in model order. */
   readonly pending: SignedPendingRequest[] = [];
   /**
@@ -192,7 +204,13 @@ function forward(state: LoopState, event: GatewayEvent): AssistantMessage | unde
     case "start":
       return undefined;
     case "retry":
-      state.send({ type: "retry", attempt: event.attempt, delayMs: event.delayMs, error: event.error });
+      state.send({
+        type: "retry",
+        layer: "gateway",
+        attempt: event.attempt,
+        delayMs: event.delayMs,
+        error: event.error,
+      });
       return undefined;
     case "warning":
       state.send({ type: "warning", code: "model_warning", detail: `${event.code}: ${event.message}` });
@@ -334,22 +352,21 @@ function budgetBlock(state: LoopState, request: Request): Outcome | undefined {
   }
 }
 
-/**
- * Makes one model call, streams its events and records the response. The call's usage and cost are the model's own
- * message's, so an `afterModelCall` replacement changes what the run goes on with, never what it is billed. When
- * `afterModelCall` fails and the run fails closed, a withheld stand-in is recorded before the run ends, so the
- * transcript and `model_call_end` still account for the billed call and none of its tool calls run.
- */
-async function callModel(state: LoopState): Promise<AssistantMessage | { readonly blocked: Outcome }> {
-  const request = await buildRequest(state);
-  const blocked = budgetBlock(state, request);
-  if (blocked !== undefined) return { blocked };
-  state.active = request.active;
-  const original = await streamRequest(state, request);
+/** Adds a finished model call's usage and cost to the run's totals, whether or not the loop goes on with its message. */
+function account(state: LoopState, message: AssistantMessage): void {
   state.steps += 1;
-  state.usage = addUsage(state.usage, original.usage);
-  state.lastUsage = original.usage;
-  state.cost = state.cost === undefined ? original.cost : addCost(state.cost, original.cost);
+  state.usage = addUsage(state.usage, message.usage);
+  state.lastUsage = message.usage;
+  state.cost = state.cost === undefined ? message.cost : addCost(state.cost, message.cost);
+}
+
+/**
+ * Runs `afterModelCall` on a response the run goes on with and records it. The call's usage and cost are the model's
+ * own message's, so a replacement changes what the run goes on with, never what it is billed. When `afterModelCall`
+ * fails and the run fails closed, a withheld stand-in is recorded before the run ends, so the transcript and
+ * `model_call_end` still account for the billed call and none of its tool calls run.
+ */
+async function accept(state: LoopState, original: AssistantMessage): Promise<AssistantMessage> {
   let message: AssistantMessage;
   try {
     message = await state.hooks.afterModelCall(original);
@@ -361,6 +378,79 @@ async function callModel(state: LoopState): Promise<AssistantMessage | { readonl
   }
   record(state, message);
   return message;
+}
+
+/**
+ * The wait before a turn retry of `failure`, or `undefined` when the call is not retried: turn retries are off or
+ * used up, the failure is not `retryable`, the provider asked for longer than the gateway's cap, or the run was
+ * aborted. A streak that would go on but for `maxSteps` sets `retryBlockedByMaxSteps`, so the run ends `max_steps`
+ * instead of `error`: every attempt counts as a step, which keeps `maxSteps` the bound on the worst case. A first
+ * failure on the last step has no streak to stop yet, so it ends the run `error` as it would without turn retries.
+ */
+function turnRetryDelay(state: LoopState, failure: AssistantMessage, streak: number): number | undefined {
+  const { turnRetries, turnRetryDelayMs, maxSteps, signal } = state.setup;
+  if (streak > turnRetries || failure.stopReason !== "error" || failure.error?.kind !== "retryable") return undefined;
+  const hintMs = retryHintMs(failure);
+  if (hintMs > MAX_RETRY_DELAY_MS || signal.aborted) return undefined;
+  if (state.steps >= maxSteps) {
+    state.retryBlockedByMaxSteps = streak > 1;
+    return undefined;
+  }
+  return retryDelay(turnRetryDelayMs, streak, hintMs);
+}
+
+/** Waits before a turn retry. A caller's `sleep` that rejects ends the wait early instead of failing the run. */
+async function retryWait(state: LoopState, delayMs: number): Promise<void> {
+  try {
+    await state.setup.sleep(delayMs, state.setup.signal);
+  } catch (error) {
+    state.send({ type: "hook_error", hook: "sleep", error: error instanceof Error ? error.message : String(error) });
+  }
+}
+
+/**
+ * Makes one model call, streams its events and records the response. A call that ends with a `retryable` error is
+ * made again while turn retries last: its `model_call_end` carries the failed message, which is not recorded in the
+ * transcript, and a `retry` event with `layer: "turn"` marks it superseded before the wait. Each attempt builds its
+ * own request, so the interceptors and the budget check see every one, and each counts as a step with its own
+ * `step_start` and `step_end`. The budget is checked before the `retry` event too, with the failed attempt's request,
+ * so a run that can't afford a retry, or whose spend became unknown, ends without announcing one: the failure stays
+ * in the transcript, and the run ends `budget`, or `error` with the failure's own error.
+ */
+async function callModel(state: LoopState): Promise<AssistantMessage | { readonly blocked: Outcome }> {
+  for (let streak = 1; ; streak += 1) {
+    const request = await buildRequest(state);
+    const blocked = budgetBlock(state, request);
+    if (blocked !== undefined) return { blocked };
+    state.active = request.active;
+    const original = await streamRequest(state, request);
+    const usageBefore = state.lastUsage;
+    account(state, original);
+    const delayMs = turnRetryDelay(state, original, streak);
+    if (delayMs === undefined) return accept(state, original);
+    const unaffordable = budgetBlock(state, request);
+    if (unaffordable !== undefined) {
+      const message = await accept(state, original);
+      return unaffordable.stopReason === "budget" ? { blocked: unaffordable } : message;
+    }
+    state.send({ type: "model_call_end", message: original });
+    // The failed message never joins the transcript, so its usage must not stand for the context's size.
+    state.lastUsage = usageBefore;
+    state.send({
+      type: "retry",
+      layer: "turn",
+      attempt: streak,
+      delayMs,
+      error: original.error?.message ?? "retryable error",
+    });
+    await retryWait(state, delayMs);
+    if (state.setup.signal.aborted) return { blocked: { stopReason: "aborted" } };
+    // Each model call is a step with its own index, so the retry's events don't share the failed call's.
+    state.send({ type: "step_end", stopCheck: "continue" });
+    state.stepIndex = state.steps;
+    state.send({ type: "step_start" });
+    applySteering(state);
+  }
 }
 
 /** The tool message the model reads for one call. */
@@ -484,7 +574,11 @@ function stopCheck(
   message: AssistantMessage,
   results: readonly ToolCallResult[],
 ): Outcome | undefined {
-  if (message.stopReason === "error") return { stopReason: "error", error: runErrorOf(message) };
+  if (message.stopReason === "error") {
+    return state.retryBlockedByMaxSteps
+      ? { stopReason: "max_steps" }
+      : { stopReason: "error", error: runErrorOf(message) };
+  }
   if (message.stopReason === "aborted") return { stopReason: "aborted" };
   // A paused call is still waiting, so the run can't count as finished, and the pause is signed and stored with the
   // context, so it outlasts an abort that came while the step's other calls ran.

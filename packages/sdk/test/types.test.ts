@@ -72,3 +72,21 @@ test("a gate that returns no decision is a compile error", () => {
   const hooks: Interceptors = { beforeToolCall: async () => {} };
   assert.equal(typeof hooks.beforeToolCall, "function");
 });
+
+test("a retry event says which layer retried, and the layer is one of two names", () => {
+  type Retry = Extract<AgentEvent, { type: "retry" }>;
+  const layers: Retry["layer"][] = ["gateway", "turn"];
+  // @ts-expect-error: a retry event without a layer no longer type-checks
+  const unlayered: Retry = {
+    type: "retry",
+    attempt: 1,
+    delayMs: 0,
+    error: "x",
+    runId: "",
+    seq: 0,
+    stepIndex: 0,
+    timestamp: "",
+  };
+  assert.deepEqual(layers, ["gateway", "turn"]);
+  assert.equal(unlayered.type, "retry");
+});

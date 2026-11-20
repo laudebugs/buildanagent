@@ -426,6 +426,31 @@ test("a model call that fails marks its span and the agent's span as errors", as
   assert.equal(agent.attributes[GEN_AI_ATTRIBUTES.errorType], "fatal");
 });
 
+test("a turn retry ends the failed call's span as an error and starts a new one, and the run's usage sums both", async () => {
+  const { exporter, observer } = setup();
+  const cutOff = {
+    content: [{ type: "text" as const, text: "The" }],
+    error: { kind: "retryable" as const, message: "stream cut off" },
+    usage: USAGE_ONE,
+  };
+  const { result } = await drivenRun(
+    [cutOff, { ...text("Shipped."), usage: USAGE_TWO }],
+    {},
+    { observers: [observer], turnRetries: 1, sleep: async () => undefined },
+  );
+  assert.equal(result.stopReason, "done");
+  const spans = exporter.getFinishedSpans();
+  const chats = byOperation(spans, "chat");
+  assert.deepEqual(
+    chats.map((span) => span.status.code),
+    [SpanStatusCode.ERROR, SpanStatusCode.UNSET],
+  );
+  const agent = byOperation(spans, "invoke_agent")[0] as ReadableSpan;
+  assert.notEqual(agent.status.code, SpanStatusCode.ERROR);
+  const inputs = chats.map((span) => span.attributes[GEN_AI_ATTRIBUTES.usageInputTokens] as number);
+  assert.equal(agent.attributes[GEN_AI_ATTRIBUTES.usageInputTokens], (inputs[0] ?? 0) + (inputs[1] ?? 0));
+});
+
 test("a usage the provider did not report writes no token attributes", async () => {
   const { exporter, observer } = setup();
   await drivenRun([{ ...text("Hi."), usage: { unreported: true } }], {}, { observers: [observer] });

@@ -147,6 +147,7 @@ test("a gateway retry becomes a retry event", async () => {
   assert.equal(result.steps, 1);
   const retry = events.find((event) => event.type === "retry");
   assert.equal(retry?.type === "retry" ? retry.attempt : undefined, 1);
+  assert.equal(retry?.type === "retry" ? retry.layer : undefined, "gateway");
 });
 
 test("an error stop emits an error event with the run error before agent_settled", async () => {

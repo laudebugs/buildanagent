@@ -3,7 +3,15 @@
  * its events to anyone who iterates it and settles `result` with the same run's outcome, so the streaming and the
  * non-streaming caller drive one loop.
  */
-import type { ContentBlock, Message, Model } from "@buildanagent/gateway";
+import {
+  abortableSleep,
+  type ContentBlock,
+  DEFAULT_INITIAL_RETRY_DELAY_MS,
+  MAX_RETRY_DELAY_MS,
+  type Message,
+  type Model,
+  type Sleep,
+} from "@buildanagent/gateway";
 import { checkBudgetOption } from "./budget.js";
 import { RunStoppedError, SdkError } from "./errors.js";
 import type { AgentEvent, AgentEventBody } from "./events.js";
@@ -56,6 +64,29 @@ export interface RunOptions<S = unknown> {
    * ends with `stopReason: "max_steps"` and emits a `warning` event with `code: "max_steps"`.
    */
   readonly maxSteps?: number;
+  /**
+   * How many times the loop re-issues a model call that ended with a `retryable` error, such as a stream cut off
+   * after it had started to answer. Default 0: the run ends `error` on the first failure, and `continueRun()` is the
+   * way to try again. `turnRetries: 3` retries as Pi does. This is the third retry layer: the model's own retries
+   * (`createModel({ retries })`) re-send a request that failed before any output, so a call can make up to
+   * `(retries + 1) * (turnRetries + 1)` requests. The count restarts after each call that succeeds. Only
+   * `retryable` failures are retried: `overflow`, `quota` and `fatal` end the run, and so does a `retryable` failure
+   * whose `error.retryAfterMs` is over the gateway's 60-second cap. Every attempt counts against `maxSteps`, and a
+   * failed attempt's usage and cost go into the result; a run that `maxSteps` stops after a retry ends `max_steps`. With `budgetUsd` set, a retry the budget can't cover, or one after an attempt whose cost is
+   * unknown, is not made: the run ends `budget`, or `error` with the failure's own error.
+   * Each retry emits a `retry` event with `layer: "turn"`.
+   */
+  readonly turnRetries?: number;
+  /**
+   * The wait before the first turn retry, in milliseconds. Default 2000; each later retry of a streak waits twice as
+   * long, up to 60 seconds, or as long as the failure's `error.retryAfterMs` asks if that is longer.
+   */
+  readonly turnRetryDelayMs?: number;
+  /**
+   * Waits between turn retries. Defaults to a timer that ends early, without rejecting, when the run is aborted; a
+   * test passes a fake to skip the wait. A `sleep` that rejects ends the wait early and emits a `hook_error` event.
+   */
+  readonly sleep?: Sleep;
   /**
    * The most the run's model calls may cost, in USD. Before each call the run projects its cost with
    * `projectCallCost()` and, if the spend so far plus that projection would pass the cap, ends with
@@ -413,6 +444,26 @@ function progressOf(options: RunOptions<unknown>, tools: readonly AnyTool[], ski
   return policy === undefined ? undefined : progressCheck(tools, policy, skip);
 }
 
+/** Checks the turn-retry options and fills in their defaults. */
+function turnRetriesOf(options: RunOptions<unknown>): Pick<LoopSetup, "turnRetries" | "turnRetryDelayMs" | "sleep"> {
+  const turnRetries = options.turnRetries ?? 0;
+  if (!Number.isInteger(turnRetries) || turnRetries < 0) {
+    throw new SdkError("invalid_run_options", `turnRetries must be a non-negative integer, got ${String(turnRetries)}`);
+  }
+  const turnRetryDelayMs = options.turnRetryDelayMs ?? DEFAULT_INITIAL_RETRY_DELAY_MS;
+  if (!Number.isFinite(turnRetryDelayMs) || turnRetryDelayMs < 0 || turnRetryDelayMs > MAX_RETRY_DELAY_MS) {
+    throw new SdkError(
+      "invalid_run_options",
+      `turnRetryDelayMs must be a number from 0 to ${MAX_RETRY_DELAY_MS}, got ${String(turnRetryDelayMs)}`,
+    );
+  }
+  const sleep = options.sleep ?? abortableSleep;
+  if (typeof sleep !== "function") {
+    throw new SdkError("invalid_run_options", "sleep must be a function, such as async (ms, signal) => {}");
+  }
+  return { turnRetries, turnRetryDelayMs, sleep };
+}
+
 function setupOf(
   options: RunOptions<unknown>,
   context: Context,
@@ -435,6 +486,7 @@ function setupOf(
       "signer must be an ApprovalSigner, such as hmacSigner() or ephemeralSigner()",
     );
   }
+  const retries = turnRetriesOf(options);
   const budgetUsd = checkBudgetOption(options.budgetUsd);
   const tools = toolsOf(options);
   const { depth, maxDepth } = depthsOf(options);
@@ -457,6 +509,7 @@ function setupOf(
     tools,
     output: options.output as AnyTool | undefined,
     maxSteps,
+    ...retries,
     ...(budgetUsd === undefined ? {} : { budgetUsd }),
     depth,
     maxDepth,

@@ -42,7 +42,7 @@ A failed model call or a failing tool never makes a run throw. The run ends with
 
 - **`done`**: the model answered without calling a tool, or an output tool accepted its answer. A text answer cut off at `maxOutputTokens` also ends `done`, so check whether the last message's `stopReason` is `"length"` before you show it as complete.
 - **`max_steps`**: the run made `maxSteps` model calls, 20 by default, and the model still wanted to go on. The run also emits a `warning` event with `code: "max_steps"`, so a cap that cut a run short shows up in your logs.
-- **`error`**: a model call failed. `result.error` copies the failure's `kind`, `message` and HTTP `status`. Its `kind` is `overflow` for a request too large for the model's window, `quota` for an account out of credit, `retryable` for a temporary failure that outlasted the gateway's retries, `hook` for an interceptor that threw while the run fails closed, `unknown_price` for a budgeted run that can't price a call, and `fatal` otherwise.
+- **`error`**: a model call failed. `result.error` copies the failure's `kind`, `message` and HTTP `status`. Its `kind` is `overflow` for a request too large for the model's window, `quota` for an account out of credit, `retryable` for a temporary failure that outlasted the gateway's retries and your `turnRetries`, `hook` for an interceptor that threw while the run fails closed, `unknown_price` for a budgeted run that can't price a call, and `fatal` otherwise.
 - **`aborted`**: you aborted the run.
 - **`stopped`**: a `shouldStop` hook ended the run, and `result.stoppedBy` is the reason it gave.
 - **`no_progress`**: the default progress policy found the model repeating a failing call, or a `shouldStop` hook ended the run with `{ stop: "no_progress", reason }`. `result.reason` says why.
@@ -53,6 +53,25 @@ A failed model call or a failing tool never makes a run throw. The run ends with
 `maxSteps` counts model calls, so an output call that fails its schema spends one of them. The tool calls of the last allowed response still run, so every call in the transcript has a result, except a paused call, which waits for a person.
 
 Only the `done` result carries `output`. TypeScript rejects `result.output` until you have checked `result.stopReason === "done"`, so an unfinished run can't pass for a finished one. Every result carries `usage` and `cost`, summed over the run's model calls, and `steps`, the number of calls. `result.messages` holds the messages this run added. `result.context` holds the whole conversation, ready to continue.
+
+### Three layers retry a failed model call, and the SDK's is off by default
+
+Three layers can retry a failed model call: the gateway, the loop and your own code. The gateway re-sends an HTTP request that failed before any output, twice by default. It never replays a call after output has started, because you have already seen that text. The loop's `turnRetries` covers that case: it calls the model again after a call that ended with a `retryable` error, such as a stream cut off after it began to answer. Without `turnRetries` the run ends `error` on the first failure, and `continueRun()` is how your code tries again.
+
+```ts
+const result = await run({ model, system, input, turnRetries: 3 }).result;
+```
+
+`turnRetries: 3` retries as Pi does. A turn retry follows these rules:
+
+- **Only `retryable` failures retry.** `overflow`, `quota` and `fatal` end the run, and so does a `retryable` failure whose `error.retryAfterMs` is over the gateway's 60-second cap, which keeps its hint on the last message so you can wait and call again.
+- **The wait matches the gateway's.** The first retry waits `turnRetryDelayMs` (2000 by default), each later retry of a streak waits twice as long, and a longer `retryAfterMs` hint wins, up to 60 seconds. Pass `sleep` to skip the wait in a test; a `sleep` that rejects ends the wait early and emits a `hook_error` event with `hook: "sleep"`. Aborting the run during the wait ends it `aborted`.
+- **A retry costs a step.** Every attempt counts against `maxSteps`, so `maxSteps` still bounds the worst case. A run that `maxSteps` stops after at least one retry ends `max_steps`, with the last failed message in its transcript; a first failure on the last step ends `error`, as it would without `turnRetries`. The count of retries restarts after each call that succeeds.
+- **A retry costs money.** The result's `usage` and `cost` include every failed attempt, and `budgetUsd` checks before each retry, counting what the failed attempts cost. A retry the budget can't cover is never announced: the run ends `budget` with the failed message in its transcript. When a failed attempt's cost is unknown, such as after a stream cut off before the provider reported usage, a budgeted run can't check its spend. It ends `error` with that failure's own error instead of retrying.
+- **The transcript drops the failed message.** `result.context.messages` holds only the response the run went on with, and the failed call's tool calls never run. `afterModelCall` sees only that response, while `transformContext` and `beforeModelCall` run for every attempt. Their `lastUsage` stays the usage of the last response the run went on with.
+- **The layers multiply.** A call can send up to `(retries + 1) * (turnRetries + 1)` requests, nine with the defaults and `turnRetries: 2`, so lower one of the two when a provider is failing hard.
+
+A failed attempt ends with `model_call_end`, whose message carries its real usage. A `retry` event with `layer: "turn"` follows at once. After the wait, the failed attempt's `step_end` arrives, then the retry's `step_start` and `model_call_start`: every attempt is a step with its own `stepIndex`. A log writer should therefore drop a `model_call_end` that a turn `retry` follows, and keep every other one. A UI that rendered the failed call's text deltas must discard them when the `retry` event arrives, because the retry streams its own text.
 
 ### `runOrThrow()` turns an unfinished run into an exception
 
@@ -155,7 +174,7 @@ The events come in two layers. The delta layer streams each content block by its
 - **`steer_applied`** reports a queued steer or follow-up that entered the transcript, with its receipt.
 - **`approval_request`** reports a call that waits for a person, with its signed `request` and the `input` that request signs: a call a gate paused, or a tool's question. That call gets no `tool_call_end`. In a resumed run, **`resolution_rejected`** reports a request or resolution that failed its check, with the cause.
 - **`hook_error`** reports an interceptor or an observer that threw, with the hook's name and the message. It also reports a pause that could not be signed, with `hook: "signer"`.
-- **`retry`** reports a failed request the gateway is retrying, and **`warning`** reports a reached cap or a model warning.
+- **`retry`** reports a failed call that is being retried. Its `layer` is `gateway` for an HTTP request the model re-sends, or `turn` for a call the loop re-issues, as [the retry section](#three-layers-retry-a-failed-model-call-and-the-sdks-is-off-by-default) explains. **`warning`** reports a reached cap or a model warning.
 - **`error`** and **`abort`** report a failed call and an abort request.
 - **`agent_settled`** fires once nothing is running any more, retries and tools included. **`run_end`** follows it and carries the result.
 
