@@ -51,6 +51,7 @@ The sections of README.md and every public export, generated from this package's
 - [Scripted doubles stand in for the approver and an MCP server](README.md#scripted-doubles-stand-in-for-the-approver-and-an-mcp-server)
 - [Tests give the same result every run](README.md#tests-give-the-same-result-every-run)
 - [The support-triage capstone shows the whole SDK working in one agent](README.md#the-support-triage-capstone-shows-the-whole-sdk-working-in-one-agent)
+- [A reference loop shows the real loop's shape in under 400 lines](README.md#a-reference-loop-shows-the-real-loops-shape-in-under-400-lines)
 - [Build the SDK with its dependencies](README.md#build-the-sdk-with-its-dependencies)
 
 ## Exports from `@buildanagent/sdk`
@@ -105,12 +106,14 @@ The sections of README.md and every public export, generated from this package's
 - `type OrNothing`: A value, or nothing: what a hook that may change something returns.
 - `outputTool()`: Defines a tool whose input is the run's final answer.
 - `interface OutputToolOptions`: The options of `outputTool()`.
+- `interface PendingCall`: The call a host is about to run, which a pending request must match before it runs.
 - `interface PendingRequestFields`: The fields of an approval request built outside a run: the call that waits, and why.
 - `interface ProgressPolicy`: The thresholds of the default progress policy.
 - `projectCallCost`: re-exported from `@buildanagent/gateway`.
 - `type Recheck`: Runs current policy for an approved call just before it runs, after its pending request has verified.
 - `type RejectionCause`: Why `verifyResolution()` refused.
 - `type Resolution`: A person's answer to a pending request: allow or deny for an approval, an answer for a clarification.
+- `type ResolutionCheck`: What `verifyResolution()` returns: the resolution, once every check passed, or why it refused.
 - `type ResolutionRejectionCause`: Why `continueRun()` refused a resolution or a stored request: one of `verifyResolution()`'s causes, `replayed` when two resolutions name one request, or `error` when the check itself threw, such as a signer whose `verify()` threw.
 - `interface ResultBase`: The fields every run result carries.
 - `run()`: Starts a run: the model answers `input`, runs the tools it asks for, and goes on until it answers without a tool call, an output tool accepts its answer, or a stop reason ends the run early.
@@ -145,6 +148,8 @@ The sections of README.md and every public export, generated from this package's
 - `type ToolResultPatch`: Changes to a tool's result.
 - `type ToolSchema`: A tool's input schema: a Standard Schema that can also describe itself as JSON Schema (Zod 4.2 or later, ArkType, or Valibot through `toStandardJsonSchema()` from `@valibot/to-json-schema`), or a raw JSON Schema object.
 - `type UnfinishedResult`: Every run result except `done`, which `runOrThrow()` turns into a `RunStoppedError`.
+- `verifyResolution()`: Checks a resolution against its stored pending request before the call runs, failing closed.
+- `interface VerifyResolutionOptions`: The options of `verifyResolution()`.
 - `type WarningCode`: Why a `warning` event fired.
 - `type WriteOutcome`: What a write reports: one of the five kinds, with its retry rule and what the model should do next.
 
