@@ -71,11 +71,10 @@ export interface RunOptions<S = unknown> {
    * (`createModel({ retries })`) re-send a request that failed before any output, so a call can make up to
    * `(retries + 1) * (turnRetries + 1)` requests. The count restarts after each call that succeeds. Only
    * `retryable` failures are retried: `overflow`, `quota` and `fatal` end the run, and so does a `retryable` failure
-   * whose `error.retryAfterMs` is over the gateway's 60-second cap. A retry counts against `maxSteps`, as does the
-   * failed call, whose usage and cost go into the result; a run that `maxSteps` stops after a retry ends
-   * `max_steps`. With `budgetUsd` set, a retry the budget can't cover, or one after an attempt whose cost is
+   * whose `error.retryAfterMs` is over the gateway's 60-second cap. Every attempt counts against `maxSteps`, and a
+   * failed attempt's usage and cost go into the result; a run that `maxSteps` stops after a retry ends `max_steps`. With `budgetUsd` set, a retry the budget can't cover, or one after an attempt whose cost is
    * unknown, is not made: the run ends `budget`, or `error` with the failure's own error.
-   * Each retry streams a `retry` event with `layer: "turn"`.
+   * Each retry emits a `retry` event with `layer: "turn"`.
    */
   readonly turnRetries?: number;
   /**
