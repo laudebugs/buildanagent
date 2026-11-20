@@ -615,3 +615,269 @@ test("cache reads and writes are priced at their own rates, and a write at the d
   };
   assert.equal(calls[0]?.costUsd, priceUsage(usage, entry("priced")).total);
 });
+
+// --- The guard fails closed on a bad spend, a racing read, a failed write and an interrupted call --------------------
+
+type CallPrompt = LanguageModelV4CallOptions["prompt"];
+const USER_TURN: CallPrompt = [{ role: "user", content: [{ type: "text", text: "Go." }] }];
+
+/** The error a model call rejects with, or `undefined` if it resolves. */
+async function failure(call: PromiseLike<unknown>): Promise<unknown> {
+  try {
+    await call;
+    return undefined;
+  } catch (error) {
+    return error;
+  }
+}
+
+/** A model whose calls answer at once with 10 input and 10 output tokens, recording each request. */
+function answering(id = "priced") {
+  const requests: LanguageModelV4CallOptions[] = [];
+  const model = new MockLanguageModelV4({
+    provider: "mock.chat",
+    modelId: id,
+    doGenerate: async (options) => {
+      requests.push(options);
+      return {
+        content: [{ type: "text", text: "Done." }],
+        finishReason: { unified: "stop", raw: undefined },
+        usage: usageOf({ input: 10, output: 10 }),
+        warnings: [],
+      };
+    },
+  });
+  return { model, requests };
+}
+
+/** The projection of one call with `prompt`, through a fresh guard. */
+async function projectionOf(prompt: CallPrompt): Promise<number> {
+  const calls: GuardedCall[] = [];
+  const guard = costGuard({ capUsd: 100, spend: memorySpend(), catalog: CATALOG, onCallCost: (c) => calls.push(c) });
+  await guardedModel(answering().model, guard).doGenerate({ prompt });
+  return calls[0]?.projectedUsd ?? Number.NaN;
+}
+
+test("a Spend that returns something other than a number of dollars refuses the call", async () => {
+  for (const value of [undefined, "0.12", Number.NaN, -1]) {
+    const { model, requests } = answering();
+    const spend = { get: async () => value, add: async () => {} } as unknown as Spend;
+    const error = await failure(
+      guardedModel(model, costGuard({ capUsd: 1, spend, catalog: CATALOG })).doGenerate({ prompt: USER_TURN }),
+    );
+    assert.equal(refusal(error).code, "unknown_price", `for ${String(value)}`);
+    assert.equal(requests.length, 0);
+  }
+});
+
+test("a call that settles while another call reads a stale spend is still counted", async () => {
+  const gates: (() => void)[] = [];
+  const requests: LanguageModelV4CallOptions[] = [];
+  const model = new MockLanguageModelV4({
+    provider: "mock.chat",
+    modelId: "priced",
+    doGenerate: async (options) => {
+      requests.push(options);
+      // Only the first call waits, so a second call that got through fails the test instead of hanging it.
+      if (requests.length === 1) await new Promise<void>((resolve) => gates.push(resolve));
+      return {
+        content: [{ type: "text", text: "Done." }],
+        finishReason: { unified: "stop", raw: undefined },
+        // The first call costs about its whole projection, so a second one doesn't fit.
+        usage: usageOf({ input: 10, output: OUTPUT_LIMIT }),
+        warnings: [],
+      };
+    },
+  });
+  const projected = await projectionOf(USER_TURN);
+  // A store whose read answers with the value it held when the read started, once `release()` lets it answer.
+  let stored = 0;
+  let release: (() => void) | undefined;
+  const spend: Spend = {
+    get: () => {
+      const snapshot = stored;
+      if (requests.length === 0) return Promise.resolve(snapshot);
+      return new Promise((resolve) => {
+        release = () => resolve(snapshot);
+      });
+    },
+    add: async (usd) => {
+      stored += usd;
+    },
+  };
+  const guarded = guardedModel(model, costGuard({ capUsd: projected * 1.5, spend, catalog: CATALOG }));
+  const first = guarded.doGenerate({ prompt: USER_TURN });
+  await waitFor(() => gates.length === 1);
+  const second = failure(guarded.doGenerate({ prompt: USER_TURN }));
+  await waitFor(() => release !== undefined);
+  // The first call settles, adds its cost and gives back its reservation while the second call's read is pending.
+  gates.shift()?.();
+  await first;
+  release?.();
+  const error = await second;
+  assert.equal(requests.length, 1, "the second call never reached the provider");
+  assert.equal(refusal(error).code, "budget_exceeded");
+});
+
+test("a Spend that fails to record a call's cost stops the guard", async () => {
+  const { model, requests } = answering();
+  let fail = true;
+  const inner = memorySpend();
+  const spend: Spend = {
+    get: () => inner.get(),
+    add: async (usd) => {
+      if (fail) throw new Error("database timed out");
+      await inner.add(usd);
+    },
+  };
+  const guarded = guardedModel(model, costGuard({ capUsd: 1, spend, catalog: CATALOG }));
+  await assert.rejects(Promise.resolve(guarded.doGenerate({ prompt: USER_TURN })), /database timed out/);
+  fail = false;
+  const error = await failure(guarded.doGenerate({ prompt: USER_TURN }));
+  assert.equal(refusal(error).code, "unknown_price");
+  assert.equal(requests.length, 1);
+});
+
+test("a stream cancelled before its finish part is charged its projection, and the guard carries on", async () => {
+  const model = new MockLanguageModelV4({
+    provider: "mock.chat",
+    modelId: "priced",
+    doStream: async () => ({
+      stream: simulateReadableStream<LanguageModelV4StreamPart>({
+        chunks: [
+          { type: "text-start", id: "t" },
+          { type: "text-delta", id: "t", delta: "Partial" },
+        ],
+        chunkDelayInMs: 5,
+      }),
+    }),
+    doGenerate: answering().model.doGenerate,
+  });
+  const calls: GuardedCall[] = [];
+  const spend = memorySpend();
+  const guard = costGuard({ capUsd: 1, spend, catalog: CATALOG, onCallCost: (c) => calls.push(c) });
+  const guarded = guardedModel(model, guard);
+  const { stream } = await guarded.doStream({ prompt: USER_TURN });
+  const reader = stream.getReader();
+  await reader.read();
+  await reader.cancel("the user pressed stop");
+  await waitFor(() => calls.length === 1);
+  assert.equal(calls[0]?.costUsd, null);
+  assert.equal(await spend.get(), calls[0]?.projectedUsd);
+  await guarded.doGenerate({ prompt: USER_TURN });
+  assert.equal(calls.length, 2, "the next call went through");
+});
+
+test("a stream that ends without a finish part stops the guard as unreported", async () => {
+  const model = new MockLanguageModelV4({
+    provider: "mock.chat",
+    modelId: "priced",
+    doStream: async () => ({
+      stream: simulateReadableStream<LanguageModelV4StreamPart>({ chunks: [{ type: "text-start", id: "t" }] }),
+    }),
+  });
+  const guarded = guardedModel(model, costGuard({ capUsd: 1, spend: memorySpend(), catalog: CATALOG }));
+  const { stream } = await guarded.doStream({ prompt: USER_TURN });
+  await stream.pipeTo(new WritableStream());
+  const error = await failure(guarded.doStream({ prompt: USER_TURN }));
+  assert.equal(refusal(error).code, "unknown_price");
+});
+
+test("a generate call its abort signal stopped is charged its projection", async () => {
+  const model = new MockLanguageModelV4({
+    provider: "mock.chat",
+    modelId: "priced",
+    doGenerate: (options) =>
+      new Promise((_resolve, reject) => {
+        options.abortSignal?.addEventListener("abort", () => reject(new DOMException("aborted", "AbortError")));
+      }),
+  });
+  const calls: GuardedCall[] = [];
+  const spend = memorySpend();
+  const guard = costGuard({ capUsd: 1, spend, catalog: CATALOG, onCallCost: (c) => calls.push(c) });
+  const controller = new AbortController();
+  const call = guardedModel(model, guard).doGenerate({ prompt: USER_TURN, abortSignal: controller.signal });
+  await waitFor(() => model.doGenerateCalls.length === 1);
+  controller.abort();
+  await assert.rejects(Promise.resolve(call), /aborted/);
+  assert.equal(calls.length, 1);
+  assert.equal(await spend.get(), calls[0]?.projectedUsd);
+});
+
+test("an image a tool returns counts as an image, not as its base64 characters", async () => {
+  type ToolPart = Extract<CallPrompt[number], { role: "tool" }>["content"][number];
+  const toolTurn = (output: ToolPart): CallPrompt => [
+    ...USER_TURN,
+    { role: "assistant", content: [{ type: "tool-call", toolCallId: "c1", toolName: "screen", input: {} }] },
+    { role: "tool", content: [output] },
+  ];
+  const screenshot = "A".repeat(270_000);
+  const withImage = await projectionOf(
+    toolTurn({
+      type: "tool-result",
+      toolCallId: "c1",
+      toolName: "screen",
+      output: {
+        type: "content",
+        value: [{ type: "file", mediaType: "image/png", data: { type: "data", data: screenshot } }],
+      },
+    }),
+  );
+  const empty = await projectionOf(
+    toolTurn({ type: "tool-result", toolCallId: "c1", toolName: "screen", output: { type: "content", value: [] } }),
+  );
+  // One image is 4,784 tokens at the dearest input rate, $6 a million here, not 108,000 tokens of base64.
+  assert.ok(withImage - empty < (5000 * 6) / 1_000_000, `the image added ${withImage - empty}`);
+  assert.ok(withImage - empty > (4700 * 6) / 1_000_000);
+});
+
+test("a projection the catalog can't price is refused as unknown_price", async () => {
+  const limited = entry("priced");
+  const tier = { ...limited.rates[0], upToInputTokens: 1 };
+  const catalog = { models: [{ ...limited, rates: [tier] }] } as PriceCatalog;
+  const { model, requests } = answering();
+  const error = await failure(
+    guardedModel(model, costGuard({ capUsd: 1, spend: memorySpend(), catalog })).doGenerate({ prompt: USER_TURN }),
+  );
+  const refused = refusal(error);
+  assert.equal(refused.code, "unknown_price");
+  assert.equal(refused.projectedUsd, null);
+  assert.equal(requests.length, 0);
+});
+
+test("a refusal for a model without a price reports what was spent", async () => {
+  const { model } = answering("unpriced");
+  const error = await failure(
+    guardedModel(model, costGuard({ capUsd: 10, spend: memorySpend(4.9), catalog: CATALOG })).doGenerate({
+      prompt: USER_TURN,
+    }),
+  );
+  assert.equal(refusal(error).spentUsd, 4.9);
+});
+
+test("a continued call reuses earlier usage only for the same model, the same tools and the answer it returned", async () => {
+  const calls: GuardedCall[] = [];
+  const guard = costGuard({ capUsd: 100, spend: memorySpend(), catalog: CATALOG, onCallCost: (c) => calls.push(c) });
+  const a = guardedModel(answering("priced").model, guard);
+  const b = guardedModel(answering("priced-b").model, guard);
+  const bigTool = { type: "function", name: "big", description: "x".repeat(25_000), inputSchema: {} } as const;
+  const next = (answer: string): CallPrompt => [
+    ...USER_TURN,
+    { role: "assistant", content: [{ type: "text", text: answer }] },
+    { role: "user", content: [{ type: "text", text: "Again." }] },
+  ];
+  await a.doGenerate({ prompt: USER_TURN });
+  // The answer as returned: its call's 10 input and 10 output tokens stand in for the first two messages.
+  await a.doGenerate({ prompt: next("Done.") });
+  // Another model, a new tool or a longer answer than the call returned each count from characters instead.
+  await b.doGenerate({ prompt: next("Done.") });
+  await a.doGenerate({ prompt: next("Done."), tools: [bigTool] });
+  await a.doGenerate({ prompt: next("y".repeat(25_000)) });
+  // Input beyond the output limit's price, in tokens at the dearest input rate of $6 a million.
+  const outputUsd = (OUTPUT_LIMIT * OUTPUT_RATE) / 1_000_000;
+  const [reused, other, tools, longer] = calls.slice(1).map((c) => ((c.projectedUsd - outputUsd) * 1_000_000) / 6);
+  assert.equal(Math.round(reused ?? 0), 20 + Math.ceil("Again.".length / 2.5));
+  assert.equal(Math.round(other ?? 0), Math.ceil("Go.Done.Again.".length / 2.5), "another model's usage isn't reused");
+  assert.ok((tools ?? 0) > 10_000, "the new tool's 10,000 tokens count");
+  assert.ok((longer ?? 0) > 10_000, "the longer answer's 10,000 tokens count");
+});

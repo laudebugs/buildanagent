@@ -1,13 +1,14 @@
 /**
  * Lowering an AI SDK request to the gateway's transcript, so the guard estimates its input with the gateway's own
- * `estimateInputTokens()`: B14's rule, which counts the previous call's reported tokens and estimates only the
- * messages added since from their characters.
+ * `estimateInputTokens()`, which counts the previous call's reported tokens and estimates only the messages added since
+ * from their characters, the rule the SDK's own loop follows.
  */
 import {
   type CatalogEntry,
   type ContentBlock,
   type Cost,
   emptyUsage,
+  estimateInputTokens,
   type Message,
   type ModelContext,
   priceUsage,
@@ -40,10 +41,37 @@ function serialise(value: unknown): string {
 }
 
 /**
- * The gateway blocks one AI SDK part counts as. An image becomes an image block, which the gateway counts at the
- * largest per-image size a provider documents; other files count their data's characters. A file sent by URL or by
- * provider reference has no size here, so it counts as one image.
+ * The block a file counts as. An image becomes an image block, which the gateway counts at the largest per-image size
+ * a provider documents; other files count their data's characters. A file sent by URL or by provider reference has no
+ * size here, so it counts as one image.
  */
+function fileBlock(data: unknown, mediaType: string): ContentBlock {
+  const chars = fileChars(data);
+  if (mediaType.startsWith("image/") || chars === 0) return { type: "image", mediaType: "", data: "" };
+  return { type: "text", text: " ".repeat(chars) };
+}
+
+type ToolResult = Extract<Part, { type: "tool-result" }>;
+
+/**
+ * The blocks a tool result counts as. A result whose output is content is counted part by part, so an image a tool
+ * returns, such as a screenshot, counts as an image and not as its base64 characters.
+ */
+function toolResultBlocks(part: ToolResult): ContentBlock[] {
+  const { output, ...rest } = part;
+  if (output.type !== "content") return [{ type: "text", text: serialise(part) }];
+  const header: ContentBlock = { type: "text", text: serialise(rest) };
+  return [
+    header,
+    ...output.value.map((item): ContentBlock => {
+      if (item.type === "text") return { type: "text", text: item.text };
+      if (item.type === "file") return fileBlock(item.data, item.mediaType);
+      return { type: "text", text: serialise(item) };
+    }),
+  ];
+}
+
+/** The gateway blocks one AI SDK part counts as. */
 function blocks(part: Part): ContentBlock[] {
   switch (part.type) {
     case "text":
@@ -53,17 +81,46 @@ function blocks(part: Part): ContentBlock[] {
     case "tool-call":
       return [{ type: "tool_call", callId: part.toolCallId, name: part.toolName, input: part.input }];
     case "file":
-    case "reasoning-file": {
-      const chars = fileChars(part.data);
-      if (part.mediaType.startsWith("image/") || chars === 0) return [{ type: "image", mediaType: "", data: "" }];
-      return [{ type: "text", text: " ".repeat(chars) }];
-    }
+    case "reasoning-file":
+      return [fileBlock(part.data, part.mediaType)];
+    case "tool-result":
+      return toolResultBlocks(part);
     default:
       return [{ type: "text", text: serialise(part) }];
   }
 }
 
-function message(prompt: PromptMessage, usage: Usage | undefined): Message | undefined {
+/** The characters of text, reasoning and tool calls in `content`, measured as the gateway's estimate measures them. */
+function contentChars(content: readonly ContentBlock[]): number {
+  return content.reduce((sum, block) => {
+    if (block.type === "text" || block.type === "reasoning") return sum + block.text.length;
+    if (block.type === "tool_call") return sum + block.name.length + JSON.stringify(block.input ?? null).length;
+    return sum;
+  }, 0);
+}
+
+/**
+ * A recorded call whose answer the prompt continues: the prompt index of that answer, the call's usage, and the
+ * characters of text, reasoning and tool calls the call returned.
+ */
+export interface ReportedCall {
+  readonly index: number;
+  readonly usage: Usage;
+  readonly responseChars: number;
+}
+
+/**
+ * The usage that stands in for an assistant message. When the message holds more than the recorded call returned, it
+ * isn't that call's answer as returned, so its output counts at least the message's own character estimate.
+ */
+function standInUsage(content: readonly ContentBlock[], reported: ReportedCall): Usage {
+  const { usage } = reported;
+  if (contentChars(content) <= reported.responseChars) return usage;
+  const own = estimateInputTokens({ system: "", tools: [], messages: [{ role: "user", content: [...content] }] });
+  return { ...usage, output: Math.max(usage.output, own) };
+}
+
+function message(prompt: PromptMessage, reported: ReportedCall | undefined): Message | undefined {
   if (prompt.role === "system") return undefined;
   const content = prompt.content.flatMap((part) => blocks(part as Part));
   switch (prompt.role) {
@@ -82,7 +139,7 @@ function message(prompt: PromptMessage, usage: Usage | undefined): Message | und
         content,
         model: MODEL,
         stopReason: "stop",
-        usage: usage ?? unreportedUsage(),
+        usage: reported === undefined ? unreportedUsage() : standInUsage(content, reported),
         cost: NO_COST,
       };
   }
@@ -107,16 +164,32 @@ function wireTool(tool: CallTool): WireTool {
 export function gatewayContext(
   prompt: Prompt,
   tools: readonly CallTool[] | undefined,
-  reported?: { readonly index: number; readonly usage: Usage },
+  reported?: ReportedCall,
 ): ModelContext {
   const system = prompt.flatMap((m) => (m.role === "system" ? [m.content] : [])).join("\n");
-  const messages = prompt.flatMap((m, i) => message(m, i === reported?.index ? reported.usage : undefined) ?? []);
+  const messages = prompt.flatMap((m, i) => message(m, i === reported?.index ? reported : undefined) ?? []);
   return { system, messages, tools: (tools ?? []).map(wireTool) };
 }
 
 /** One key per message, equal for two messages only when they are the same, to recognise a prompt a call continues. */
 export function messageKeys(prompt: Prompt): string[] {
   return prompt.map(serialise);
+}
+
+/** A key for the tools a request offers, equal for two requests only when they offer the same tools. */
+export function toolsKey(tools: readonly CallTool[] | undefined): string {
+  return serialise(tools ?? []);
+}
+
+/** The characters of text, reasoning and tool calls in a response part, measured as `contentChars()` measures them. */
+export function responsePartChars(part: { readonly type: string }): number {
+  const p = part as { type: string; text?: unknown; delta?: unknown; toolName?: unknown; input?: unknown };
+  if ((p.type === "text" || p.type === "reasoning") && typeof p.text === "string") return p.text.length;
+  if ((p.type === "text-delta" || p.type === "reasoning-delta") && typeof p.delta === "string") return p.delta.length;
+  if (p.type === "tool-call" && typeof p.toolName === "string" && typeof p.input === "string") {
+    return p.toolName.length + p.input.length;
+  }
+  return 0;
 }
 
 /**

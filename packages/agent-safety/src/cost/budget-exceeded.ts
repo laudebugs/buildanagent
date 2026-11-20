@@ -23,8 +23,8 @@ export interface BudgetRefusalInit {
 
 /**
  * Thrown by a cost guard instead of sending a model call. `spentUsd` is what the run or session had spent, together
- * with what calls still in flight may cost, and `projectedUsd` is the most the refused call could have cost, or `null`
- * when its price is unknown.
+ * with what calls still in flight may cost, or `NaN` when the `Spend` returned no number of dollars, and
+ * `projectedUsd` is the most the refused call could have cost, or `null` when its price is unknown.
  */
 export class BudgetExceeded extends SafetyError {
   override readonly name = "BudgetExceeded";
