@@ -55,4 +55,4 @@ A change to a default value, a built-in prompt or a tool description changes wha
 2. Set `DEFAULTS_HASH` to that hash.
 3. Run `pnpm changeset`, name `@buildanagent/sdk`, and say which default changed, from what and to what.
 
-The gate reads `DEFAULTS_HASH` on both sides of the pull request. When it differs, at least one added changeset must name a versioned package, so `pnpm changeset --empty` doesn't satisfy it.
+The gate reads `DEFAULTS_HASH` on both sides of the pull request. When it differs, a changeset the pull request adds must give a versioned package a `major`, `minor` or `patch` bump. Neither `pnpm changeset --empty` nor a `none` bump satisfies it, and nor does an edit to a changeset that is already pending on `main`. The gate also fails when it can't find the hash in `src/defaults.ts`, so keep the line in the form `export const DEFAULTS_HASH = "<hash>";`.

@@ -21,6 +21,7 @@ import {
   runGate,
   shippedChanges,
   statusEnv,
+  unreadableStamps,
   versionedPackageDirs,
 } from "./changeset-gate.mjs";
 
@@ -179,13 +180,26 @@ describe("changeset-gate.mjs", () => {
     assert.match(stamp.pattern.exec(readFileSync(path.join(root, stamp.file), "utf8"))?.[1] ?? "", /^[0-9a-f]{64}$/);
   });
 
-  test("only a changeset that names a versioned package releases a stamped change", () => {
+  test("only an added changeset that bumps a versioned package releases a stamped change", () => {
     const text = {
       ".changeset/brave-cats.md": '---\n"@x/a": patch\n---\n\nFix.\n',
       ".changeset/quiet-dogs.md": "---\n---\n",
+      ".changeset/none-bump.md": '---\n"@x/a": none\n---\n\nNothing.\n',
+      ".changeset/other-app.md": '---\n"@x/app": minor\n---\n\nApp.\n',
+      ".changeset/old-entry.md": '---\n"@x/a": minor\n---\n\nAn earlier change, reworded.\n',
     };
-    const read = (file) => text[file];
+    const read = (file, side) =>
+      side === "base" ? (file === ".changeset/old-entry.md" ? "old" : undefined) : text[file];
     assert.deepEqual(releasingChangesets(Object.keys(text), read, ["@x/a"]), [".changeset/brave-cats.md"]);
+  });
+
+  test("a stamp file whose value the pattern can't find is unreadable", () => {
+    const stamp = { file: "f.ts", pattern: RELEASE_STAMPS[0].pattern };
+    const head = (text) => (_file, side) => (side === "head" ? text : undefined);
+    const hash = "0".repeat(64);
+    assert.equal(unreadableStamps([stamp], head(`export const DEFAULTS_HASH = "${hash}";`)).length, 0);
+    assert.equal(unreadableStamps([stamp], head(`export const DEFAULTS_HASH: string = "${hash}";`)).length, 1);
+    assert.equal(unreadableStamps([stamp], head(undefined)).length, 0);
   });
 
   test("runs changeset status with an allowlisted environment", () => {
@@ -345,6 +359,30 @@ describe("changeset-gate.mjs", () => {
       write(".changeset/brave-cats.md", changeset);
       commit();
       assert.deepEqual(gate(dir, stamps), { code: 1, calls: ["main"] });
+    });
+
+    test("a changed defaults hash isn't covered by an edit to a changeset already pending on main", () => {
+      const hash = (digit) => `export const DEFAULTS_HASH = "${digit.repeat(64)}";\n`;
+      const stamps = [{ file: "packages/a/src/defaults.ts", pattern: RELEASE_STAMPS[0].pattern }];
+      const { dir, write, commit } = repo({
+        "packages/a/src/defaults.ts": hash("0"),
+        ".changeset/brave-cats.md": changeset,
+      });
+      write("packages/a/src/defaults.ts", hash("1"));
+      write(".changeset/brave-cats.md", `${changeset}\nReworded.\n`);
+      commit();
+      assert.deepEqual(gate(dir, stamps), { code: 1, calls: [] });
+    });
+
+    test("a defaults hash the gate can't read fails it", () => {
+      const stamps = [{ file: "packages/a/src/defaults.ts", pattern: RELEASE_STAMPS[0].pattern }];
+      const { dir, write, commit } = repo({
+        "packages/a/src/defaults.ts": `export const DEFAULTS_HASH = "${"0".repeat(64)}";\n`,
+      });
+      write("packages/a/src/defaults.ts", `export const DEFAULTS_HASH: string = "${"1".repeat(64)}";\n`);
+      write(".changeset/quiet-dogs.md", "---\n---\n");
+      commit();
+      assert.deepEqual(gate(dir, stamps), { code: 1, calls: [] });
     });
 
     test("an empty changeset still covers a src/ change that leaves the defaults hash alone", () => {

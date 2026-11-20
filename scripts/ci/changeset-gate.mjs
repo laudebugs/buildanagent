@@ -20,8 +20,8 @@
 //
 // One kind of change needs more than any changeset: a new value of a stamp in RELEASE_STAMPS, such as the SDK's
 // DEFAULTS_HASH. The hash changes when a default, a built-in prompt or a tool description does, and users must read
-// about that in the changelog (agent-SDK guide §10), so one of the added changesets must release a package; an empty
-// one from `pnpm changeset --empty` doesn't.
+// about that in the changelog (agent-SDK guide §10), so a changeset the change adds, not one it edits, must give a
+// package a real bump; an empty one from `pnpm changeset --empty` doesn't count, and neither does a `none` bump.
 import { execFileSync, spawnSync } from "node:child_process";
 import { existsSync, mkdtempSync, readdirSync, readFileSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
@@ -150,11 +150,36 @@ export function changedStamps(stamps, read) {
   });
 }
 
-/** The changesets among `added` that release at least one of the `versioned` packages, so they reach a changelog. */
+/**
+ * Lists the stamps whose file the head has but whose pattern finds no value in it, such as a hash that a reformat or
+ * a type annotation moved out of the pattern's reach. The gate fails on them, because a stamp it can't read would let
+ * every later change of it through.
+ */
+export function unreadableStamps(stamps, read) {
+  return stamps.filter((stamp) => {
+    const text = read(stamp.file, "head");
+    return text !== undefined && stamp.pattern.exec(text) === null;
+  });
+}
+
+const RELEASING_BUMP = /^\s*(["']?)([^"':]+)\1\s*:\s*(major|minor|patch)\s*$/;
+
+/**
+ * The changesets among `added` that the change adds, rather than edits, and that give at least one of the `versioned`
+ * packages a `major`, `minor` or `patch` bump, so they reach a changelog. An edit to a changeset already pending on
+ * the base doesn't count, because its entry was written for another change, and neither does a `none` bump.
+ */
 export function releasingChangesets(added, read, versioned) {
-  return added.filter((file) =>
-    (changesetPackages(read(file, "head") ?? "") ?? []).some((pkg) => versioned.includes(pkg)),
-  );
+  return added.filter((file) => {
+    if (read(file, "base") !== undefined) return false;
+    const text = read(file, "head") ?? "";
+    if (changesetPackages(text) === undefined) return false;
+    const frontmatter = /^\s*---\r?\n([\s\S]*?)^---\s*$/m.exec(text)?.[1] ?? "";
+    return frontmatter.split(/\r?\n/).some((line) => {
+      const bump = RELEASING_BUMP.exec(line);
+      return bump !== null && versioned.includes(bump[2].trim());
+    });
+  });
 }
 
 /**
@@ -199,6 +224,14 @@ export function runGate({
       log(
         "changeset-gate: shipped files changed, but no top-level .changeset/*.md that releases them was added or " +
           `edited (${shipped}). Run \`pnpm changeset\`, or \`pnpm changeset --empty\` when users get nothing new.`,
+      );
+      return 1;
+    }
+    const unreadable = unreadableStamps(stamps, read).map((stamp) => stamp.file);
+    if (unreadable.length > 0) {
+      log(
+        `changeset-gate: a release stamp's value can't be found (${unreadable}). Keep it in the form RELEASE_STAMPS ` +
+          "in scripts/ci/changeset-gate.mjs reads, or update its pattern.",
       );
       return 1;
     }
