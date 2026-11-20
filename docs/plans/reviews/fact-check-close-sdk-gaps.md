@@ -141,6 +141,20 @@ Each row checks a claim about a third-party package or our gateway that E5's cod
 | E5-17 | `guardedProvider()` leaves image models unguarded as well as embedding, transcription, speech and reranking models | README | ✅ | `ai/src/middleware/wrap-provider.ts` lines 37–44: `imageModel` is wrapped only when `imageModelMiddleware` is passed, which `guardedProvider()` never passes; confirms row E5-2 |
 | E5-18 | A stream can report a provider fault as an `error` part and then end with no `finish` part | README, `cost-guard.ts` | ✅ | `@ai-sdk/provider` 4.0.35, `src/language-model/v4/language-model-v4-stream-part.ts` line 117 defines the `error` stream part; changed in the second code-review round: such a stream is charged its projection and the guard carries on, where it had stopped the guard as unreported; test "a stream that reports an error and never finishes is charged its projection, and the guard carries on" |
 
+## E4a build (2026-11-20)
+
+Each row checks a claim that E4a's code, its comments, the package README or the changeset makes about a source outside the new code. E4a makes no claim about a third-party SDK's code; the saga terms and rules come from the sagas report, which its own [fact-check log](../../research/reversible-actions/fact-check-sagas.md) checked against the vendor pages. Rows were read against this branch on 2026-11-20. The plan-approval behaviour itself is confirmed offline by `packages/agent-safety/test/plan-approval.test.ts`.
+
+| # | Claim | Where | Verdict | Source and reason |
+| --- | --- | --- | --- | --- |
+| E4a-1 | The three step classes, compensable, pivot and retryable, are Microsoft's saga terms as the sagas report uses them, and a retryable step is idempotent | README, `plan-approval.ts` TSDoc | ✅ | [Sagas report](../../research/reversible-actions/sagas.md#the-refund-is-the-pivot-so-the-email-must-come-after-it), line 17: "this report uses Microsoft's. **Compensable** transactions can be undone. The **pivot** is 'the point of no return'… **Retryable** transactions follow the pivot and 'are idempotent'" |
+| E4a-2 | No vendor source discusses approval relative to a pivot, so one approval before the first step, and the expiry bound to state, are our synthesis following U6 | README, `plan-approval.ts` header | ✅ | Sagas report line 7 ("Synthesis, not sourced: … the placement of approval before the first compensable step, the third expiry condition bound to state") and line 98 ("This placement is our synthesis, because no vendor source discusses approval relative to a pivot") |
+| E4a-3 | Sending the email before the refund is the order to forbid, because a refund-on-its-way message followed by a failed refund can't be compensated | README | ✅ | Sagas report line 26; the report's status line marks the step order as its own synthesis |
+| E4a-4 | The pending request's signed payload starts with the tag `buildanagent.pending.v1`, so it differs from the plan payload's `buildanagent.plan-approval.v1` in its first element | `plan-approval.ts`, README | ✅ | `packages/agent-safety/src/pending.ts` line 102; test "a plan signature does not verify as a tool approval, and a tool approval does not verify as a plan" |
+| E4a-5 | The SDK exports `SafetyErrorCode` from its vendored `errors.ts`, so the new `invalid_plan` code reaches its users and the change takes a `minor` changeset that starts "Breaking Changes", as E5's did | Changeset | ✅ | `packages/sdk/src/index.ts` line 98; `.changeset/README.md` 0.x rule; E5's changeset `safety-error-budget-codes.md` (commit `738a91a`). Supersedes row E6-13's reading, which predates the SDK's export |
+| E4a-6 | The pivot itself changes the state, as a refund changes the refunded amount, so steps after it skip the state check | README, `plan-approval.ts` | ✅ | The todo's design notes ("the pivot itself changes the state (a refund changes the refunded amount)"); [rewind report](../../research/reversible-actions/rewind-vs-rollback.md#triage-needs-undo-windows-for-t1-approval-for-anything-that-leaves-the-org-and-a-saga-only-once-money-moves) hashes the amount at approval time |
+| E4a-7 | An order update before the pivot bumps the order's version, so a plan that lists the version in its state reads stops itself before the refund | README | ⚠️ | Our reasoning about a typical order store with optimistic versions, not a sourced fact; true for any store whose update changes a listed value, and the test "a state change between step 1 and the pivot returns stale_approval before the pivot" shows the mechanism |
+
 ## Owner decisions recorded (2026-11-18 and 2026-11-19)
 
 Each row checks that a document records the owner's answer as given in this session.
@@ -156,4 +170,4 @@ Each row checks that a document records the owner's answer as given in this sess
 | 68 | The owner accepted SG2's ordering and put Round E on hold until the owner says go | Plan status and SG2, roadmap, every E todo | ✅ | Owner's answer, 2026-11-19: "Approve plan, don't start yet" |
 | 69 | With ADR 0043 accepted, B10 depends on E1, B15 on E3, N7 and N40 on E2, and N45 on E7, and the graph stays acyclic | Todo headers, roadmap | ✅ | E1 needs only B1 and E3 only E1, so no Round B or N todo is upstream of the E todos it now waits for |
 
-**Totals:** 116 claims: 105 ✅, 9 ✏️, 2 ⚠️.
+**Totals:** 123 claims: 111 ✅, 9 ✏️, 3 ⚠️.

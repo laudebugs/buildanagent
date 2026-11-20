@@ -1,8 +1,8 @@
 # @buildanagent/agent-safety
 
-When a tool changes the world, such as sending an email or issuing a refund, your agent must know exactly what happened, and a person must approve exactly what runs. This package gives every write one of five typed outcomes and an identity that a crash can't repeat, hashes tool inputs the same way on every runtime, signs approvals so a forged or stale one runs nothing, keeps every model call on the user's own key, and refuses a model call before it is sent when the call could push a run past its USD cap.
+When a tool changes the world, such as sending an email or issuing a refund, your agent must know exactly what happened, and a person must approve exactly what runs. This package gives every write one of five typed outcomes and an identity that a crash can't repeat, hashes tool inputs the same way on every runtime, signs approvals so a forged or stale one runs nothing, lets a person approve a whole plan once before a step that can't be undone, keeps every model call on the user's own key, and refuses a model call before it is sent when the call could push a run past its USD cap.
 
-As of November 2026 the package is not on npm yet. It holds the write outcomes, `renderOutcome()`, `canonicalInputHash()`, the approval signers, the adapters for the Vercel AI SDK, which also serve Cloudflare's `AIChatAgent`, the guards that keep model calls on the user's key, `guardedWrite()`, which keeps a crash or a regenerated turn from repeating a write, and `costGuard()`, which caps what AI SDK model calls may spend. Plan approvals come next.
+As of November 2026 the package is not on npm yet. It holds the write outcomes, `renderOutcome()`, `canonicalInputHash()`, the approval signers, the adapters for the Vercel AI SDK, which also serve Cloudflare's `AIChatAgent`, the guards that keep model calls on the user's key, `guardedWrite()`, which keeps a crash or a regenerated turn from repeating a write, `costGuard()`, which caps what AI SDK model calls may spend, and the signed plan approval, which expires when the state a plan was computed from changes. Running a plan and compensating its steps come next.
 
 ## A failed write reports one of five outcomes
 
@@ -216,6 +216,94 @@ const messages = settleDeniedApprovals(this.messages, deniedCallIds);
 ## Sign and verify a pause without an SDK
 
 The adapter rests on two functions in the root entry, which any host can call. `signPending()` hashes a call's input and signs the pending request, and `verifyResolution()` checks a person's answer against it before the call runs. `verifyResolution()` never throws for bad input; it returns `ok: false` with the first check that failed.
+
+## One signed approval covers a whole plan whose pivot can't be undone
+
+A per-call approval breaks a plan with an irreversible step. Suppose an agent marks an order, refunds it and then emails the customer. If the person approves the email only after the refund has gone out, a rejected or edited email strands the plan past a step nobody can take back. A plan approval asks once, before the first step, and its signature covers every step's exact input. Before each step runs, `verifyPlanBeforeStep()` checks that the step is the signed one and, until the irreversible step has run, that the state the plan was computed from still holds.
+
+These rules follow our [sagas research](../../docs/research/reversible-actions/sagas.md#approval-belongs-before-the-first-compensable-step-and-covers-the-whole-plan). They are our own synthesis, not a vendor design: no vendor source the sagas report read discusses approval relative to a pivot.
+
+## Classify every step as compensable, the pivot, or retryable
+
+Each step gets one of three classes, after the saga terms the sagas report takes from Microsoft's saga pattern:
+
+- **`compensable`:** a later failure can undo it, such as an order update whose compensation restores the old status.
+- **`pivot`:** the point of no return, such as a card refund. Once it runs, every later step must run.
+- **`retryable`:** runs after the pivot and is idempotent, so a failure is retried, never undone.
+
+`lintPlan()` enforces the order. Every compensable step comes before the pivot, a plan has at most one pivot, and every retryable step comes after it. A plan without a pivot therefore holds compensable steps only. Step ids must be unique and non-empty. `lintPlan()` returns `{ ok: true }`, or `ok: false` with every problem it found, and `signPlan()` and `planCard()` throw a `SafetyError`, code `invalid_plan`, for a plan that fails it.
+
+The refund-then-email plan from the sagas report has four steps. The email must come after the refund, because a "your refund is on its way" message followed by a failed refund leaves a promise no step can take back:
+
+```ts
+const plan: PlanFields = {
+  steps: [
+    { id: "mark", tool: "order_update", class: "compensable", input: { orderId, status: "refund_pending" },
+      summary: `Mark order ${orderId} as refund_pending` },
+    { id: "refund", tool: "refund_create", class: "pivot", input: { orderId, amountCents, currency: "usd" },
+      businessKey: `refund:${orderId}`, summary: `Refund ${amount} to the card on order ${orderId}` },
+    { id: "email", tool: "send_email", class: "retryable", input: { to, subject, body },
+      businessKey: `email:${orderId}:refund`, summary: `Tell ${to} the refund is on its way` },
+    { id: "close", tool: "order_update", class: "retryable", input: { orderId, status: "refunded" },
+      summary: `Mark order ${orderId} as refunded` },
+  ],
+  state: [
+    { source: "orders", key: `order:${orderId}:refundable_cents`, value: refundableCents },
+    { source: "payments", key: `order:${orderId}:refunded_cents`, value: refundedCents },
+  ],
+  expiresInMs: 15 * 60 * 1000,
+};
+```
+
+## List in `state` every value the plan's inputs were computed from
+
+The refund amount above came from the refundable balance and the amount already refunded. If either changes before the refund runs, the approved amount may be wrong, so both belong in `state`. The rule is: **list every value the plan's arguments were computed from**. Which values those are is a judgment about each tool, and no check can find a value you left out. Write an absent value as `null`.
+
+Leave out any value that a step before the pivot changes itself. The order update in step 1 bumps the order's version, so a plan that listed the version would find it changed before the refund and stop. Read the values the refund depends on instead, and let step 1's `refund_pending` status keep other writers away while the plan runs.
+
+`stateHash()` hashes the values with their sources and keys, in order, as canonical JSON. The hash changes when any value, read or order changes, and it never equals a tool input hash of the same values.
+
+## Show the card, then sign the plan the person approved
+
+`planCard(plan)` builds the data an approval card shows: each step's position, tool, class, summary, exact input and input hash, with `isPivot` marking the pivot, plus the state the plan read. It is plain JSON for your UI to draw.
+
+Once the person approves, sign the plan you kept on your server, never fields the client sends back:
+
+```ts
+const card = await planCard(plan);                 // send to the approver
+const approval = await signPlan(plan, signer);     // after they approve; store it as JSON
+```
+
+`signPlan()` stores each input's `canonicalInputHash()` and the state's `stateHash()`, never the inputs or values themselves, and sets `expiresAt` to `expiresInMs` from now. Its signature covers the plan id, the expiry, the state hash, the state reads, and every step's id, tool, class, input hash, business key and summary, in order. The signed bytes start with their own tag, `buildanagent.plan-approval.v1`, so a plan signature never verifies as a tool approval, and a tool approval never verifies as a plan. Sign with the same `hmacSigner()` ring as your pauses.
+
+## Verify the approval before every step
+
+Call `verifyPlanBeforeStep()` before each step, with the step as you are about to run it, and run the step only on `"ok"`:
+
+```ts
+const ledger = memoryPlanLedger();
+const check = await verifyPlanBeforeStep(approval, { stepId: "refund", tool: "refund_create", input }, {
+  signer, ledger, readState: (reads) => readValues(reads),
+});
+if (check !== "ok") return check; // stop, and compensate the steps that ran
+```
+
+Every step must pass the same first checks. The signature must verify under a key the signer holds, the step id must be in the plan, and the tool and input must match what was signed. Steps up to and including the pivot then check two more things: the approval hasn't passed `expiresAt`, and `readState` returns values that hash to the signed state hash. Steps after the pivot skip the clock and the state, because the pivot itself changes the state, as a refund changes the refunded amount, and nothing after the pivot may wait on a person or a clock. The function returns the first failure it finds:
+
+| Result | Meaning |
+| --- | --- |
+| `tampered` | The record is malformed, its signature fails or names an unknown key, or the step's tool or input differs from the signed one |
+| `step_not_in_plan` | No signed step has that id |
+| `expired` | The approval has passed `expiresAt`, checked up to and including the pivot |
+| `stale_approval` | A value the plan was computed from has changed, checked up to and including the pivot |
+| `replayed` | The step already passed once |
+| `out_of_order` | A step ahead of it hasn't passed yet |
+
+A changed, added, removed or reordered step, a changed state read and an extended expiry all fail the signature, so each returns `tampered`. The function never throws for a bad record or call. It rejects only when `readState` or the ledger rejects, and the step must not run then either.
+
+## The ledger lets each step pass once, in order
+
+The last check claims the step in a `PlanLedger`, after every other check has passed, so a failed check claims nothing. `claim(planId, stepIndex)` records the step only when every earlier step is recorded and this one isn't, so a replayed approval can't run a step twice and no step can skip ahead. A step that passed once returns `replayed` on a second check, so a retry of a step that already passed runs under its effect key, without another check. `claim()` must be atomic, because two checks of one step that arrive together must pass once between them. `memoryPlanLedger()` keeps the claims in memory, for tests and single-process hosts. A host whose plan can resume in another process needs a durable ledger, such as a compare-and-set on a row per plan.
 
 ## Every model call carries the user's own key, or it fails
 
