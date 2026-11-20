@@ -72,13 +72,13 @@ The owner decided on 2026-11-19 to publish under `@buildanagent` and to build do
 ## Definition of done
 
 - [x] Claimed: the first commit moved this file `ready/` → `ongoing/` (Status `ongoing`)
-- [x] Prose drafted with `/anthropic-skills:writing` and reviewed with `/anthropic-skills:writing-review`, with the fixes applied and changed claims re-checked
+- [ ] Prose drafted with `/anthropic-skills:writing` and reviewed with `/anthropic-skills:writing-review`, with the fixes applied and changed claims re-checked
 - [x] `pnpm check`, `pnpm typecheck` and `pnpm test` pass locally; pushed after each meaningful step
 - [x] This file moved `ongoing/` → `done/` (Status `done`), and the plan's todo table updated
 
 ## Outcome
 
-Done on 2026-11-20.
+Done on 2026-11-20. The prose was drafted with `/anthropic-skills:writing`; its writing review runs on the pull request after the code reviews.
 
 - **Defaults and their hash.** Every default value, built-in prompt and tool description lives in `packages/sdk/src/defaults.ts`, and the modules that use one read it from there. `DEFAULTS_HASH` is the canonical-JSON SHA-256 of that object plus the write-outcome sentences of every kind and retry rule, which stay in the vendored safety files. It is a literal, so `run_start` carries it without an async digest, and `test/defaults.test.ts` fails while it is stale. The gateway's own defaults, such as its retry policy, are left out: the fixed version group means `sdkVersion` already names the gateway release.
 - **A changed default needs a release.** CI's changeset gate reads `DEFAULTS_HASH` on both sides of a pull request and, when it differs, requires an added changeset that names a versioned package, so `pnpm changeset --empty` no longer covers it (`scripts/ci/changeset-gate.mjs`, `RELEASE_STAMPS`).
