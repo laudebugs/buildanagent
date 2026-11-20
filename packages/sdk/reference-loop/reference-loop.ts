@@ -123,7 +123,8 @@ export function continueRun<S = unknown>(context: Context, options: ContinueOpti
 function start<S>(options: RunOptions<S>, system: string, messages: Message[], added: Message[], resume?: Resume) {
   const controller = new AbortController();
   if (options.signal?.aborted) controller.abort();
-  options.signal?.addEventListener("abort", () => controller.abort(), { once: true });
+  const onAbort = () => controller.abort();
+  options.signal?.addEventListener("abort", onAbort, { once: true });
   const nextId = options.idGenerator ?? (() => crypto.randomUUID());
   const runId = nextId();
   const state: State = {
@@ -147,7 +148,9 @@ function start<S>(options: RunOptions<S>, system: string, messages: Message[], a
     streak: { key: "", count: 0 },
   };
   const result = drive(state, resume) as Promise<RunResult<S>>;
-  result.catch(() => undefined); // a failure reaches the caller through `result` and through iteration
+  // The caller's signal may outlive the run, so the run stops listening to it when it ends.
+  const detach = () => options.signal?.removeEventListener("abort", onAbort);
+  result.then(detach, detach).catch(() => undefined); // a failure reaches the caller through `result` and through iteration
   const events = async function* () {
     await result;
     yield* state.events;
@@ -356,7 +359,9 @@ async function execute(s: State, tool: Tool, call: Call, input: unknown): Promis
   const { depth = 0, maxDepth = 2, clock = SYSTEM_CLOCK } = s.options;
   const ctx: ToolContext = { runId: s.runId, callId: call.callId, signal: s.signal, depth, maxDepth, clock, update };
   const attempt = async () => tool.execute(input, ctx);
-  const result = await attempt().catch((error: unknown) => failure(`Tool "${tool.name}" failed: ${messageOf(error)}`));
+  // A tool that asks for `redactErrors` keeps its error message out of the transcript, because it may hold a secret.
+  const reason = (error: unknown) => (tool.redactErrors === true ? "its error message is hidden." : messageOf(error));
+  const result = await attempt().catch((error: unknown) => failure(`Tool "${tool.name}" failed: ${reason(error)}`));
   const hook = s.options.interceptors?.afterToolCall;
   try {
     const patch = await hook?.({ ...hookBase(s), callId: call.callId, tool: tool.name, input, result });
@@ -485,7 +490,10 @@ async function settleCall(s: State, call: Call, { context, resolutions }: Resume
   if (request === undefined) {
     throw new SdkError("invalid_run_options", `continueRun() found the call "${call.callId}" with no pending request`);
   }
-  const input = context.pendingInputs?.[request.id];
+  // A stored context is plain JSON, so an own-property check keeps an id like `__proto__` from finding an inherited value.
+  const input = Object.hasOwn(context.pendingInputs ?? {}, request.id)
+    ? context.pendingInputs?.[request.id]
+    : undefined;
   const answer = resolutions.find((resolution) => resolution.requestId === request.id);
   const cause = await failedCheck(s, request, call, input, answer);
   if (cause !== undefined) {
@@ -495,7 +503,7 @@ async function settleCall(s: State, call: Call, { context, resolutions }: Resume
   } else if (answer === undefined) {
     hold(s, request, input);
   } else if ("decision" in answer && answer.decision === "allow") {
-    await runCall(s, call, s.tools, { approved: input });
+    await runCall(s, { ...call, input }, s.tools, { approved: input });
   } else {
     const why = "reason" in answer && answer.reason ? `: ${answer.reason}` : "";
     emit(s, { type: "tool_call_start", callId: call.callId, tool: call.name, input: call.input });

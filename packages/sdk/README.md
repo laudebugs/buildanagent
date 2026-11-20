@@ -320,7 +320,7 @@ const check = await verifyResolution(request, resolution, { signer, call: { call
 if (check.ok && "decision" in check.resolution && check.resolution.decision === "allow") await refund(input);
 ```
 
-It verifies the signature under the key the request names, so a ring that has rotated past that key still verifies it. It then checks the call id and tool, the input against the signed hash, and that the answer fits the request's kind. It never throws for bad input: it returns `ok: false` with the first `RejectionCause` it found.
+It verifies the signature under the key the request names, so a ring that has rotated past that key still verifies it. It then checks the call id and tool, the input against the signed hash, and that the answer fits the request's kind. A bad answer never makes it throw: it returns `ok: false` with the first `RejectionCause` it found. A signer whose `verify()` throws does make it reject, so a caller that must fail closed wraps the call.
 
 ### The signers and the record belong to the safety package
 
@@ -578,7 +578,7 @@ The tables in the [deep comparison](../../docs/comparison/deep-comparison.md#1-t
 
 ## A reference loop shows the real loop's shape in under 400 lines
 
-[`reference-loop/reference-loop.ts`](reference-loop/reference-loop.ts) is a loop you can read in one sitting. It exports `run()` and `continueRun()`, ends a run with every stop reason of the real loop except `clarification_requested`, and imports only the public exports of `@buildanagent/gateway` and `@buildanagent/sdk`. The capstone's conformance suite runs against it on the scripted model and both mock transports, so it cannot drift into a toy: a change to the real loop that the reference no longer matches fails `test/reference-loop.test.ts`. That file counts the loop's non-blank, non-comment lines and fails at 400. It checks that the reference and the real loop end seventeen scripted runs with the same stop reason, step count, message count and failed tool results. It also runs five resume cases on both loops.
+[`reference-loop/reference-loop.ts`](reference-loop/reference-loop.ts) is a loop you can read in one sitting. It exports `run()` and `continueRun()`, ends a run with every stop reason of the real loop except `clarification_requested`, and imports only the public exports of `@buildanagent/gateway` and `@buildanagent/sdk`. The capstone's conformance suite runs against it on the scripted model and both mock transports, so it cannot drift into a toy: a change to the real loop that the reference no longer matches fails `test/reference-loop.test.ts`. That file counts the loop's non-blank, non-comment lines and fails at 400. It checks that the reference and the real loop end seventeen scripted runs with the same stop reason, step count, message count and failed tool results. It also runs more cases on both loops, among them resumes, approved calls and tool errors.
 
 Each step runs in the real loop's order: `transformContext`, `beforeModelCall`, the streamed model call, `afterModelCall`, the tools, then the stop check with `shouldStop` and the progress rule. The table maps each part to the module it simplifies.
 
@@ -587,7 +587,7 @@ Each step runs in the real loop's order: `transformContext`, `beforeModelCall`, 
 | `run()`, `continueRun()`, `start()` | `run.ts` | Streaming events (they arrive after the run ends), `steer()`, `followUp()`, `on()`, observers and option checks |
 | `drive()`, `step()`, `callModel()` | `loop.ts` | The raw model events, the `retry` and `warning` events, the withheld stand-in for a failed `afterModelCall`, the aborted closing message and `onFailure: "continue"` |
 | `budgetBlock()` | `budget.ts` | The unknown-price check before the first call |
-| `runCalls()`, `runCall()`, `execute()` | `tools/pipeline.ts` | Parallel calls (it runs them one at a time, so an abort while one call runs also stops the calls after it), coercion, `repair`, raw JSON Schema validation, rendering write outcomes and `clarificationTool()` |
+| `runCalls()`, `runCall()`, `execute()` | `tools/pipeline.ts` | Parallel calls (it runs them one at a time, so an abort while one call runs also stops the calls after it), coercion, `repair`, raw JSON Schema validation, the shape check on a tool's result, rendering write outcomes, `clarificationTool()` and the "not run" results that the real loop records for the calls of a response that ended in an error or was aborted |
 | `pause()`, `settle()`, `failedCheck()` | `pauses.ts`, `resume.ts`, `hook-runner.ts` | The `recheck` option, replayed and unknown resolutions, `blockingApprovals()` and the shape checks on a stored context. It checks each stored request with `verifyResolution()`, as the real loop does |
 | `stopCheck()`, `decide()`, `stuckReason()` | `loop.ts`, `progress.ts` | The per-`progressKey` rule |
 

@@ -2,6 +2,7 @@
 // ends a run with the same stop reason as the real loop on the cases the suite leaves out, stays short and imports
 // nothing but the two packages' public exports.
 import assert from "node:assert/strict";
+import { getEventListeners } from "node:events";
 import { readFileSync } from "node:fs";
 import { createModel } from "@buildanagent/gateway";
 import {
@@ -365,6 +366,47 @@ describe("the reference loop resumes as the real loop does", () => {
       adapter.assertComplete();
       assert.equal(result.stopReason, "done");
       assert.deepEqual(inputs, [{ amount: 1000 }], "the signed input, converted once, runs as it is");
+    });
+
+    test(`${loop.name}: an approved call's start event carries the input that ran`, async () => {
+      const charge = defineTool({
+        name: "charge",
+        description: "Charge an amount.",
+        inputSchema: z.object({ amount: z.number().transform((amount) => amount * 100) }),
+        execute: async () => ({ content: [{ type: "text", text: "charged" }] }),
+      });
+      const gate = { beforeToolCall: () => ({ decision: "ask" as const }) };
+      const steps = [{ content: [call("charge", { amount: 10 }, "c1")], ...tokens }, answer];
+      const { options } = setup(steps, { tools: [charge], interceptors: gate, signer: testSigner() });
+      const first = await drive(loop.run({ ...options, system: SYSTEM_PROMPT, input: "Charge it." }));
+      const { context, pending } = first.result as Extract<RunResult, { stopReason: "awaiting_approval" }>;
+      const resolutions: Resolution[] = [{ requestId: pending[0]?.id ?? "", decision: "allow" }];
+      const { events } = await drive(loop.continueRun(context, { ...options, resolutions }));
+      const start = events.find((event) => event.type === "tool_call_start");
+      assert.deepEqual(start?.type === "tool_call_start" ? start.input : undefined, { amount: 1000 });
+    });
+
+    test(`${loop.name}: a tool that redacts its errors keeps the thrown message out of the transcript`, async () => {
+      const leaky = defineTool({
+        name: "leaky",
+        description: "Always fails.",
+        inputSchema: z.object({}),
+        redactErrors: true,
+        execute: async () => {
+          throw new Error("connect postgres://user:pw@host failed");
+        },
+      });
+      const steps = [{ content: [call("leaky", {}, "c1")], ...tokens }, answer];
+      const { options } = setup(steps, { tools: [leaky] });
+      const { result } = await drive(loop.run({ ...options, system: SYSTEM_PROMPT, input: "Go." }));
+      assert.doesNotMatch(JSON.stringify(result.messages), /postgres|pw@host/);
+    });
+
+    test(`${loop.name}: a run stops listening to the caller's signal when it ends`, async () => {
+      const signal = new AbortController().signal;
+      const { options } = setup([answer], { signal });
+      await drive(loop.run({ ...options, system: SYSTEM_PROMPT, input: "Triage it." }));
+      assert.equal(getEventListeners(signal, "abort").length, 0);
     });
 
     test(`${loop.name}: a request signed under a key the ring has since rotated past still verifies`, async () => {
