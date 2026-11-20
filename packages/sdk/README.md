@@ -215,7 +215,7 @@ A test fails when this list and `CAPABILITIES` disagree.
 
 ### Unstable names start with `experimental_`
 
-Any part of the API that may still change in a minor release carries an `experimental_` prefix, and its doc comment carries an `@experimental` tag. A check fails a release whose prefix and tag disagree, so a name without the prefix is stable under the versioning rules: under 0.x, a minor release may break it only with a changelog entry under "Breaking Changes", and a patch release never does. This release has no experimental names.
+Any part of the API that may still change in a minor release carries an `experimental_` prefix, and its doc comment carries an `@experimental` tag. A check fails a release whose prefix and tag disagree, so a name without the prefix is stable under the versioning rules. Under 0.x, a minor release may break such a name only with a changelog entry under "Breaking Changes", and a patch release never does. This release has no experimental names.
 
 ### `llms.txt` indexes these docs for a coding agent
 
