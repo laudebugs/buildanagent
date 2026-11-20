@@ -382,6 +382,7 @@ interface RunOptions<S = unknown> {
   interceptors?: Interceptors;
   observers?: Observer[];
   maxSteps?: number;                   // default 20 model calls; approval resolution is not a step
+  turnRetries?: number; turnRetryDelayMs?: number; sleep?: Sleep;  // Revision (B11b): default off; a retry counts against maxSteps
   budgetUsd?: number;                  // checked before each call (D9)
   progress?: ProgressPolicy | false;   // D11 defaults
   depth?: number; maxDepth?: number;   // default 0 and 2
@@ -489,7 +490,7 @@ type AgentEvent = EventBase & (
   | { type: "approval_request"; request: SignedPendingRequest }          // both pause kinds
   | { type: "steer_applied"; receipt: DeliveryReceipt }                  // fires for steers and follow-ups
   | { type: "context_transformed"; before: number; after: number }      // Revision: "compaction" is the harness's word
-  | { type: "retry"; attempt: number; delayMs: number; error: string }
+  | { type: "retry"; layer: "gateway" | "turn"; attempt: number; delayMs: number; error: string }  // Revision (B11b): layer
   | { type: "hook_error"; hook: string; error: string }
   | { type: "warning"; code: "max_steps"; detail: string }
   | { type: "error"; error: RunError } | { type: "abort"; reason?: string }
@@ -585,6 +586,14 @@ declare function replayPairs(pairs: RecordedPair[]): ScriptedModel;   // rejects
 - `autoResponder()` always keeps the default deny list, and `denyTools` adds to it. `synthesizeInput()` is exported beside it. `scriptedApprovals()` takes answers whose `requestId` is optional and returns interceptors with `requests` and `assertComplete()`; `scriptedMcpServer()` is the MCP double. `testSigner()` and `TEST_KEY_ID` come from a vendored copy of the safety package's `test-signer.ts`, which its `testing` subpath re-exports.
 - `startMockServer()` also takes `host` and `port`, accepts only 127.0.0.0/8 and `::1`, and returns `requests` and a mock-marked `transport` that reaches only the server. It is a Node-only file of the gateway's testing export, which imports `node:http` when a server starts. The gateway also exports `CREDENTIAL_HEADERS`, `REDACTED`, `isCredentialName()`, `redactHeaders()`, `redactUrl()` and `stripCredentials()`.
 
+**Revision (B11b, 2026-11-20).** B11b adds turn-level retries with these choices, each recorded in [its outcome](../todos/done/B11b-turn-retries.md#outcome). The owner decided the first two on 2026-11-19.
+- `RunOptions` gains `turnRetries` (default 0, so the run ends `error` on the first failure as before; `3` retries as Pi does), `turnRetryDelayMs` (default 2000, doubling per retry of a streak, capped at 60 s, or the failure's `retryAfterMs` when longer) and `sleep`, shaped like the gateway's `Sleep`. Only `retryable` failures retry, and one whose `retryAfterMs` is over the gateway's 60 s cap is final.
+- A turn retry counts against `maxSteps`, so `maxSteps` still bounds the worst case. A run that `maxSteps` stops mid-streak ends `max_steps`, with the last failed message in its transcript.
+- A failed attempt ends with `model_call_end` carrying the failed message, because its usage is real. A `retry` event with `layer: "turn"` then marks that message superseded, and no `step_end` fires until the retried call ends. The message never enters `result.context.messages`, `afterModelCall` does not see it, and its usage and cost go into the result and the budget. A UI discards the failed call's streamed deltas when the `retry` event arrives.
+- The `retry` event gains a required `layer: "gateway" | "turn"`. Each model call, retries included, gets its own `stepIndex`.
+- `transformContext` and `beforeModelCall` run for each attempt, and `budgetUsd` is checked before each. The progress check reads the transcript, which holds no failed attempt, so retries never look like a stuck loop. The gateway and a turn retry multiply, up to `(retries + 1) * (turnRetries + 1)` requests, which the README documents instead of capping.
+- The gateway exports `retryDelay()`, `retryHintMs()`, `abortableSleep`, `MAX_RETRY_DELAY_MS` and `DEFAULT_INITIAL_RETRY_DELAY_MS`, so the loop follows the gateway's rules without copying them.
+
 ### 3.4 The seams P2 consumes
 
 The harness plan should use these names as written; P4 checks that it does ([implementation plans §3](implementation-plans.md#3-the-review-p4)). The first six are the seams of [harness guide §1][hg1]; the rest are what its sketches assume from the SDK.
@@ -634,7 +643,7 @@ The guide says to start with the gateway and the test model, because every other
 | --- | --- | --- | --- |
 | [B10](../todos/done/B10-tool-runtime.md) | Tool definitions, the validation pipeline and the validator check (D7) | B3, B7, E1 | M |
 | [B11](../todos/done/B11-loop-core.md) | Loop core: `run`, the closed event union, stop reasons, aborts and `runOrThrow` | B4, B10 | L |
-| [B11b](../todos/ready/B11b-turn-retries.md) | Turn-level retries: the loop retries a retryable error that ends a turn (added 2026-11-19, a B11 follow-up) | B11 | M |
+| [B11b](../todos/done/B11b-turn-retries.md) | Turn-level retries: the loop retries a retryable error that ends a turn (added 2026-11-19, a B11 follow-up) | B11 | M |
 | [B11c](../todos/ready/B11c-raw-provider-events.md) | Raw provider events: `includeRaw` and the `raw` event, from the adapters up to the loop (added 2026-11-19, a B11 follow-up) | B11, B4, B8, B9 | L |
 | [B12](../todos/done/B12-parallel-tools.md) | Parallel tool scheduling, per-resource serialisation and sibling cancellation | B11 | M |
 | [B13](../todos/done/B13-interceptors-observers.md) | The six interceptors and observers | B11 | M |
