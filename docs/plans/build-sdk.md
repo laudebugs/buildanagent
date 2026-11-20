@@ -585,6 +585,8 @@ declare function replayPairs(pairs: RecordedPair[]): ScriptedModel;   // rejects
 - `autoResponder()` always keeps the default deny list, and `denyTools` adds to it. `synthesizeInput()` is exported beside it. `scriptedApprovals()` takes answers whose `requestId` is optional and returns interceptors with `requests` and `assertComplete()`; `scriptedMcpServer()` is the MCP double. `testSigner()` and `TEST_KEY_ID` come from a vendored copy of the safety package's `test-signer.ts`, which its `testing` subpath re-exports.
 - `startMockServer()` also takes `host` and `port`, accepts only 127.0.0.0/8 and `::1`, and returns `requests` and a mock-marked `transport` that reaches only the server. It is a Node-only file of the gateway's testing export, which imports `node:http` when a server starts. The gateway also exports `CREDENTIAL_HEADERS`, `REDACTED`, `isCredentialName()`, `redactHeaders()`, `redactUrl()` and `stripCredentials()`.
 
+**Revision (B19b, 2026-11-20).** The SDK also re-exports the safety package's `verifyResolution()`, with its `ResolutionCheck`, `VerifyResolutionOptions` and `PendingCall` types. A caller of `createPendingRequest()` needs it to check a person's answer before the call runs, and the reference loop checks stored requests with it, as `continueRun()` does ([B19b's outcome](../todos/done/B19b-reference-loop.md#outcome)).
+
 ### 3.4 The seams P2 consumes
 
 The harness plan should use these names as written; P4 checks that it does ([implementation plans §3](implementation-plans.md#3-the-review-p4)). The first six are the seams of [harness guide §1][hg1]; the rest are what its sketches assume from the SDK.
@@ -597,7 +599,7 @@ The harness plan should use these names as written; P4 checks that it does ([imp
 | Resume primitive | `continueRun(context, { resolutions })`; `context` on every result; `Context` as plain JSON | resume from a stored log in any process |
 | Tool exposure | `ToolDefinition.exposure`, `ModelCallPatch.activeTools` | registry, MCP client and tool search ([harness guide §4][hg4]) |
 | Base URL and transport | `ProviderConfig.baseURL`, `ProviderConfig.transport` | the Inspect bridge and offline mocks ([harness guide §10][hg10]) |
-| Pause records | `SignedPendingRequest`, `canonicalInputHash`, `ApprovalSigner`, `createPendingRequest()` | `approval_requested` and `approval_resolved` entries; code-initiated calls (harness N40) |
+| Pause records | `SignedPendingRequest`, `canonicalInputHash`, `ApprovalSigner`, `createPendingRequest()`, `verifyResolution()` | `approval_requested` and `approval_resolved` entries; code-initiated calls (harness N40) |
 | Header stamp | `run_start.sdkVersion`, `defaultsHash`, `capabilities` | the `session_header` entry and protocol `initialize` |
 | Usage and cost | `Usage`, `Cost`, `totalInput()`, `GEN_AI_ATTRIBUTES` | usage entries and the telemetry projection (harness decision 7) |
 | Gateway without the loop | `Model.complete()`, `Model.caps`, `projectCallCost()` | the summarisation layer and its pre-checked cost |

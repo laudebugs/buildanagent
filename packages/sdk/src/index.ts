@@ -6,7 +6,7 @@
  * steer a running agent or queue a follow-up, both applied at step boundaries. A gate that asks for a person, or a
  * tool that asks the user a question, ends the run with a signed pending request, which `continueRun()` resumes with
  * resolutions, in this process or another; `blockingApprovals()` answers approvals inside the run instead. The
- * signers, the input hash and the pending record are the safety package's, re-exported unchanged.
+ * signers, the input hash, the pending record and its check are the safety package's, re-exported unchanged.
  */
 // Re-exported so a caller that calls `Model.complete()` outside the loop projects a cost with the loop's own formula.
 export { projectCallCost } from "@buildanagent/gateway";
@@ -96,12 +96,16 @@ export type {
 export { isSafetyError, SafetyError, type SafetyErrorCode } from "./vendor/agent-safety/errors.js";
 export { canonicalInputHash } from "./vendor/agent-safety/hash.js";
 export type { WriteOutcome } from "./vendor/agent-safety/outcome.js";
-export type {
-  Recheck,
-  RejectionCause,
-  Resolution,
-  SignedPendingRequest,
-  SignPendingOptions,
+export {
+  type PendingCall,
+  type Recheck,
+  type RejectionCause,
+  type Resolution,
+  type ResolutionCheck,
+  type SignedPendingRequest,
+  type SignPendingOptions,
+  type VerifyResolutionOptions,
+  verifyResolution,
 } from "./vendor/agent-safety/pending.js";
 export {
   type ApprovalSigner,

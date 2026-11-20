@@ -17,7 +17,7 @@ import { otelObserver, type SpanLike, type TracerLike } from "@buildanagent/sdk/
 import { expectTypeOf, test } from "vitest";
 import * as vendoredErrors from "../src/vendor/agent-safety/errors.js";
 import * as vendoredHash from "../src/vendor/agent-safety/hash.js";
-import type * as vendoredPending from "../src/vendor/agent-safety/pending.js";
+import * as vendoredPending from "../src/vendor/agent-safety/pending.js";
 import { pendingPayload } from "../src/vendor/agent-safety/pending.js";
 import * as vendoredSigner from "../src/vendor/agent-safety/signer.js";
 import { determinism, drive, scripted, toolCall } from "./run-helpers.js";
@@ -49,10 +49,11 @@ function verifies(signer: ApprovalSigner, request: SignedPendingRequest): Promis
   return signer.verify(request.keyId, pendingPayload(request), request.signature);
 }
 
-test("the SDK's signer, hash and error exports are the vendored safety files' own functions", () => {
+test("the SDK's signer, hash, check and error exports are the vendored safety files' own functions", () => {
   assert.equal(sdk.ephemeralSigner, vendoredSigner.ephemeralSigner);
   assert.equal(sdk.hmacSigner, vendoredSigner.hmacSigner);
   assert.equal(sdk.canonicalInputHash, vendoredHash.canonicalInputHash);
+  assert.equal(sdk.verifyResolution, vendoredPending.verifyResolution);
   assert.equal(sdk.SafetyError, vendoredErrors.SafetyError);
   assert.equal(sdk.isSafetyError, vendoredErrors.isSafetyError);
 });
@@ -67,6 +68,10 @@ test("the SDK's pause types are the safety package's types, unchanged", () => {
   expectTypeOf(sdk.hmacSigner).toEqualTypeOf(safety.hmacSigner);
   expectTypeOf(sdk.ephemeralSigner).toEqualTypeOf(safety.ephemeralSigner);
   expectTypeOf(sdk.canonicalInputHash).toEqualTypeOf(safety.canonicalInputHash);
+  expectTypeOf(sdk.verifyResolution).toEqualTypeOf(safety.verifyResolution);
+  expectTypeOf<sdk.ResolutionCheck>().toEqualTypeOf<safety.ResolutionCheck>();
+  expectTypeOf<sdk.VerifyResolutionOptions>().toEqualTypeOf<safety.VerifyResolutionOptions>();
+  expectTypeOf<sdk.PendingCall>().toEqualTypeOf<safety.PendingCall>();
 });
 
 test("no SDK source outside the vendored folder defines a signer, an input hash or a pending-record type", () => {
@@ -79,6 +84,21 @@ test("no SDK source outside the vendored folder defines a signer, an input hash 
   for (const file of files) {
     assert.doesNotMatch(readFileSync(new URL(file, src), "utf8"), definitions, `src/${file} defines its own`);
   }
+});
+
+test("verifyResolution() checks a request createPendingRequest() signed, under a ring rotated past its key", async () => {
+  const fields = { kind: "approval" as const, callId: "c1", tool: "refund", input: { order: 1 } };
+  const request = await sdk.createPendingRequest(fields, hmacSigner({ keys: { a: KEY_A }, current: "a" }));
+  const rotated = hmacSigner({ keys: { a: KEY_A, b: KEY_B }, current: "b" });
+  const resolution = { requestId: request.id, decision: "allow" as const };
+  const call = { callId: "c1", tool: "refund", input: { order: 1 } };
+  assert.deepEqual(await sdk.verifyResolution(request, resolution, { signer: rotated, call }), {
+    ok: true,
+    resolution,
+  });
+  const changed = { ...call, input: { order: 2 } };
+  const refused = await sdk.verifyResolution(request, resolution, { signer: rotated, call: changed });
+  assert.deepEqual(refused, { ok: false, cause: "input_changed" });
 });
 
 test("the SDK's hash matches the safety package's hash for the same input", async () => {
