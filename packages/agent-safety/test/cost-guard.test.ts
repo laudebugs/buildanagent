@@ -768,6 +768,57 @@ test("a stream cancelled before its finish part is charged its projection, and t
   assert.equal(calls.length, 2, "the next call went through");
 });
 
+test("a stream that reports an error and never finishes is charged its projection, and the guard carries on", async () => {
+  const model = new MockLanguageModelV4({
+    provider: "mock.chat",
+    modelId: "priced",
+    doStream: async () => ({
+      stream: simulateReadableStream<LanguageModelV4StreamPart>({
+        chunks: [
+          { type: "text-start", id: "t" },
+          { type: "error", error: new Error("overloaded") },
+        ],
+      }),
+    }),
+    doGenerate: answering().model.doGenerate,
+  });
+  const calls: GuardedCall[] = [];
+  const spend = memorySpend();
+  const guard = costGuard({ capUsd: 1, spend, catalog: CATALOG, onCallCost: (c) => calls.push(c) });
+  const guarded = guardedModel(model, guard);
+  const { stream } = await guarded.doStream({ prompt: USER_TURN });
+  await stream.pipeTo(new WritableStream());
+  assert.equal(calls[0]?.costUsd, null);
+  assert.equal(await spend.get(), calls[0]?.projectedUsd);
+  await guarded.doGenerate({ prompt: USER_TURN });
+  assert.equal(calls.length, 2, "the next call went through");
+});
+
+test("a call whose abort signal was already aborted when it was sent is not charged", async () => {
+  const model = new MockLanguageModelV4({
+    provider: "mock.chat",
+    modelId: "priced",
+    doGenerate: async () => {
+      throw new DOMException("aborted", "AbortError");
+    },
+  });
+  const spend = memorySpend();
+  const guard = costGuard({ capUsd: 1, spend, catalog: CATALOG });
+  const controller = new AbortController();
+  controller.abort();
+  await assert.rejects(
+    Promise.resolve(guardedModel(model, guard).doGenerate({ prompt: USER_TURN, abortSignal: controller.signal })),
+    /aborted/,
+  );
+  assert.equal(await spend.get(), 0);
+});
+
+test("a refusal message writes a tiny cap in fixed notation", async () => {
+  const guard = costGuard({ capUsd: 1e-7, spend: memorySpend(), catalog: CATALOG });
+  const error = await failure(guardedModel(answering().model, guard).doGenerate({ prompt: USER_TURN }));
+  assert.match(refusal(error).message, /cap of \$0\.0000001\b/);
+});
+
 test("a stream that ends without a finish part stops the guard as unreported", async () => {
   const model = new MockLanguageModelV4({
     provider: "mock.chat",

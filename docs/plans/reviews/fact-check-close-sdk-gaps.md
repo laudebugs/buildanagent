@@ -139,6 +139,7 @@ Each row checks a claim about a third-party package or our gateway that E5's cod
 | E5-15 | Node 22's `TransformStream` calls the transformer's `cancel` both when its readable side is cancelled and when the stream it is piped from errors, and not `flush` | README | ✅ | Run on Node 22.23.5: an upstream `error()` logged `cancel Error: boom` and no `flush`; test "a stream cancelled before its finish part is charged its projection, and the guard carries on" |
 | E5-16 | A `LanguageModelV4` tool result whose output is `content` holds `text`, `file` (with `data` and `mediaType`) and `custom` items | `estimate.ts`, README | ✅ | `@ai-sdk/provider/src/language-model/v4/language-model-v4-prompt.ts` lines 288 and 345–402; test "an image a tool returns counts as an image, not as its base64 characters" |
 | E5-17 | `guardedProvider()` leaves image models unguarded as well as embedding, transcription, speech and reranking models | README | ✅ | `ai/src/middleware/wrap-provider.ts` lines 37–44: `imageModel` is wrapped only when `imageModelMiddleware` is passed, which `guardedProvider()` never passes; confirms row E5-2 |
+| E5-18 | A stream can report a provider fault as an `error` part and then end with no `finish` part | README, `cost-guard.ts` | ✅ | `@ai-sdk/provider` 4.0.35, `src/language-model/v4/language-model-v4-stream-part.ts` line 117 defines the `error` stream part; changed in the second code-review round: such a stream is charged its projection and the guard carries on, where it had stopped the guard as unreported; test "a stream that reports an error and never finishes is charged its projection, and the guard carries on" |
 
 ## Owner decisions recorded (2026-11-18 and 2026-11-19)
 
@@ -155,4 +156,4 @@ Each row checks that a document records the owner's answer as given in this sess
 | 68 | The owner accepted SG2's ordering and put Round E on hold until the owner says go | Plan status and SG2, roadmap, every E todo | ✅ | Owner's answer, 2026-11-19: "Approve plan, don't start yet" |
 | 69 | With ADR 0043 accepted, B10 depends on E1, B15 on E3, N7 and N40 on E2, and N45 on E7, and the graph stays acyclic | Todo headers, roadmap | ✅ | E1 needs only B1 and E3 only E1, so no Round B or N todo is upstream of the E todos it now waits for |
 
-**Totals:** 115 claims: 104 ✅, 9 ✏️, 2 ⚠️.
+**Totals:** 116 claims: 105 ✅, 9 ✏️, 2 ⚠️.

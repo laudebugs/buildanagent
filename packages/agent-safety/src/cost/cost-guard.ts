@@ -1,6 +1,6 @@
 /**
  * `costGuard()`: an AI SDK language-model middleware that refuses a call before it is sent when the spend so far plus
- * the call's projected cost would pass a USD cap (D9's rule, which our SDK's loop applies too). In `ai` 7.0.162 each
+ * the call's projected cost would pass a USD cap, the rule our SDK's loop applies too. In `ai` 7.0.162 each
  * step and each retry calls the step model's `doGenerate` or `doStream`, so a wrapped model's middleware sees every
  * provider request. The projection is the gateway's `projectCost()` over the gateway's `estimateInputTokens()`, the
  * formula the SDK's loop uses, so both caps agree on what a call can cost.
@@ -107,7 +107,10 @@ function checkOptions(options: CostGuardOptions): void {
 
 /** A dollar amount for a message, to six significant digits, so float noise doesn't reach the text. */
 function dollars(usd: number): string {
-  return `$${Number(usd.toPrecision(6))}`;
+  if (!Number.isFinite(usd)) return `$${String(usd)}`;
+  // Fixed notation, never `1e-7`; the trimmed zeros leave `$0.4` rather than `$0.40000000`.
+  const fixed = usd.toFixed(8);
+  return `$${fixed.includes(".") ? fixed.replace(/0+$/, "").replace(/\.$/, "") : fixed}`;
 }
 
 /** The catalog provider a model's AI SDK provider name stands for: `anthropic.messages` is `anthropic`. */
@@ -262,11 +265,12 @@ class Ledger {
 
   /**
    * Settles a call that threw before it returned a response. One its abort signal stopped may have been billed for
-   * what the provider generated before it stopped, so it is charged its projection; any other error is a request the
-   * provider rejected, which gives the reservation back. The caller sees the call's own error either way.
+   * what the provider generated before it stopped, so it is charged its projection. Any other error, and a signal that
+   * was already aborted when the request was sent, is a request the provider never billed, which gives the
+   * reservation back. The caller sees the call's own error either way.
    */
-  async failed(call: Admitted, params: CallOptions): Promise<void> {
-    if (params.abortSignal?.aborted !== true) {
+  async failed(call: Admitted, params: CallOptions, abortedBeforeSend: boolean): Promise<void> {
+    if (abortedBeforeSend || params.abortSignal?.aborted !== true) {
       this.release(call);
       return;
     }
@@ -290,13 +294,17 @@ function settledStream(
 ): ReadableStream<StreamPart> {
   let usage: ModelUsage | undefined;
   let finished = false;
+  let errored = false;
   let responseChars = 0;
   let settled: Promise<void> | undefined;
   const once = (outcome: Outcome) => {
     settled ??= settle(outcome);
     return settled;
   };
-  const ended = (): Outcome => ({ kind: "finished", usage, responseChars });
+  // A stream that reported an error and never finished is a provider fault, not a response without usage: charge its
+  // projection and carry on, as for a cancelled stream.
+  const ended = (): Outcome =>
+    errored && !finished ? { kind: "interrupted" } : { kind: "finished", usage, responseChars };
   return stream.pipeThrough(
     new TransformStream<StreamPart, StreamPart>({
       transform(part, controller) {
@@ -305,6 +313,7 @@ function settledStream(
           usage = part.usage;
           finished = true;
         }
+        if (part.type === "error") errored = true;
         controller.enqueue(part);
       },
       flush: () => once(ended()),
@@ -318,8 +327,9 @@ function settledStream(
  * tokens from the request, prices them and the call's output limit with the gateway's `projectCost()`, and throws
  * `BudgetExceeded` without calling the provider if the spend so far plus that projection would pass `capUsd`. A model
  * the catalog has no price for is refused before its first call, code `unknown_price`. After each call it adds the
- * cost of the usage the response reported, read from a stream's `finish` part. Wrap a whole provider with
- * `guardedProvider()`, so a model `prepareStep` picks from it is capped too.
+ * cost of the usage the response reported, read from a stream's `finish` part. A streamed call holds its projection
+ * against the cap until its stream ends or is cancelled, so read the stream to its end or cancel it. Wrap a whole
+ * provider with `guardedProvider()`, so a model `prepareStep` picks from it is capped too.
  */
 export function costGuard(options: CostGuardOptions): LanguageModelMiddleware {
   checkOptions(options);
@@ -332,10 +342,11 @@ export function costGuard(options: CostGuardOptions): LanguageModelMiddleware {
     wrapGenerate: async ({ doGenerate, params, model }) => {
       const call = await ledger.admit(model, params);
       let result: Awaited<ReturnType<typeof doGenerate>>;
+      const abortedBeforeSend = params.abortSignal?.aborted === true;
       try {
         result = await doGenerate();
       } catch (error) {
-        await ledger.failed(call, params);
+        await ledger.failed(call, params, abortedBeforeSend);
         throw error;
       }
       await ledger.settle(call, {
@@ -348,10 +359,11 @@ export function costGuard(options: CostGuardOptions): LanguageModelMiddleware {
     wrapStream: async ({ doStream, params, model }) => {
       const call = await ledger.admit(model, params);
       let result: Awaited<ReturnType<typeof doStream>>;
+      const abortedBeforeSend = params.abortSignal?.aborted === true;
       try {
         result = await doStream();
       } catch (error) {
-        await ledger.failed(call, params);
+        await ledger.failed(call, params, abortedBeforeSend);
         throw error;
       }
       return { ...result, stream: settledStream(result.stream, (outcome) => ledger.settle(call, outcome)) };
