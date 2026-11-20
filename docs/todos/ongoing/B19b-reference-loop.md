@@ -3,7 +3,7 @@
 | Field | Value |
 | --- | --- |
 | ID | `B19b` |
-| Status | `ready` |
+| Status | `ongoing` |
 | Plan | [Build SDK §4, Stage 4](../../plans/build-sdk.md#44-stage-4-ships-telemetry-the-testing-exports-the-capstone-and-the-docs-checks) |
 | Round / milestone | Round B (build SDK), M5 |
 | Depends on | [B19](../done/B19-triage-capstone.md) |
