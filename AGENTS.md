@@ -67,7 +67,7 @@ Five rules apply to every claim in every document:
 - Mark claims taken from search summaries or secondary write-ups as such.
 - Write "as of <month year>" for versions, star counts and spec status, because they change fast.
 - Use kebab-case filenames under `docs/`.
-- Check a research paper's claim against the whole paper, not only its abstract (the owner's rule, 2026-11-20). A full read confirms the method and setup, the models, the task set and its size, the number of runs, the metric's definition, the baselines or ablations, and the limitations the authors state. The row cites the section, table or figure that holds the claim, and a claim checked only against an abstract is ⚠️ unverified, not ✅.
+- Check a research paper's claim against the whole paper, not only its abstract (the owner's rule, 2026-11-20). A full read confirms the setup: the method, the models, the task set and its size, and the number of runs. It also confirms the metric's definition, the baselines or ablations, and the limitations the authors state. The claim's fact-check row cites the section, table or figure that holds the claim, and a claim checked only against an abstract is ⚠️ unverified, not ✅.
 
 ## Planned architecture (when code starts)
 
