@@ -508,6 +508,35 @@ Nothing in the testing export reads the system clock or `Math.random()`. `fixedC
 
 Start each test file with `import "@buildanagent/gateway/testing/setup"`, which keeps the test offline.
 
+## The support-triage capstone shows the whole SDK working in one agent
+
+The capstone is the support-triage agent that each of the eight SDKs we verified implements, built on our SDK in [`examples/triage-agent.ts`](examples/triage-agent.ts). It gives the model a read-only `lookup_customer` tool, an `escalate` tool that waits for a person, and a `submit_triage` output tool. An audit observer records every call, the run stops after 8 steps, and a $0.25 budget stops it earlier. `startTriage()` runs the agent, and `resumeTriage()` resumes a paused run from its stored `context`, which can happen in another process that holds the same signing key.
+
+The conformance suite in [`test/triage-suite.ts`](test/triage-suite.ts) takes a loop's `run` and `continueRun` and checks these behaviours on each backend. The backends are the scripted model and the Anthropic and Chat Completions mock transports:
+
+- an approved escalation runs once in a second process and ends with a typed result;
+- a rejected escalation never runs, and the model reads the denial;
+- a result that fails its schema returns to the model as an error;
+- a forged signature runs nothing and calls no model;
+- a stored input that no longer matches its signature runs nothing;
+- the step cap and the budget each end a runaway run;
+- every request offers only `lookup_customer`, `escalate` and `submit_triage`.
+
+The tables in the [deep comparison](../../docs/comparison/deep-comparison.md#1-the-same-agent-takes-58-to-115-lines-on-every-sdk-and-differs-in-its-gate) count non-blank, non-comment lines, and include each reference file's scripted model and assertions. Our agent file holds neither, so the second row adds the suite and its backends, which cover more cases on three backends. A test fails when either figure or the hook count drifts from this table. Our hooks are the `beforeToolCall` gate and the audit observer; LangChain's capstone also needs two pieces.
+
+| Capstone | Code lines | Hooks |
+| --- | --- | --- |
+| Our capstone, the agent alone | 80 | 2 |
+| Our capstone with its cases and backends | 438 | 2 |
+| Vercel AI SDK | 58 | |
+| Claude Agent SDK | 65 | |
+| LangChain.js | 67 | 2 |
+| OpenAI Agents SDK | 76 | |
+| Pi | 87 | |
+| Copilot SDK | 105 | |
+| Google ADK | 114 | |
+| Cloudflare Agents | 115 | |
+
 ## Build the SDK with its dependencies
 
 The SDK compiles against the gateway's built `dist/*.d.ts`, so build both from the repo root with `pnpm --filter "@buildanagent/sdk..." build`, which builds the gateway first. `pnpm build` builds every package in the same order. On a clean checkout, `pnpm build` or `pnpm pack` run inside `packages/sdk` fails, because the gateway has no `dist/` yet. Tests and type-checks need no build.
