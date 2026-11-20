@@ -10,7 +10,9 @@
  */
 // Re-exported so a caller that calls `Model.complete()` outside the loop projects a cost with the loop's own formula.
 export { projectCallCost } from "@buildanagent/gateway";
+export { CAPABILITIES } from "./capabilities.js";
 export { composeInterceptors } from "./compose.js";
+export { DEFAULTS_HASH } from "./defaults.js";
 export { isSdkError, RunStoppedError, SdkError, type SdkErrorCode } from "./errors.js";
 export {
   AGENT_EVENT_TYPES,

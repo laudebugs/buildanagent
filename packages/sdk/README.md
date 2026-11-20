@@ -126,12 +126,12 @@ Your own `shouldStop` runs first and its stop wins, but neither its `{ continue 
 
 ### `depth` and `maxDepth` stop a tree of agents
 
-Every tool receives `ctx.depth` (0 for a top-level run) and `ctx.maxDepth` (2 by default). A tool that starts its own agent passes the next level down with `nestedRunDepth(ctx)`:
+Every tool receives `ctx.depth` (0 for a top-level run) and `ctx.maxDepth` (2 by default). A tool that starts its own agent passes the next level down with `nestedRunDepth(ctx)`, as this tool's `execute` does:
 
 ```ts
-async execute(input, ctx) {
+async function execute(input: { task: string }, ctx: ToolContext) {
   const child = run({ model, system, input: input.task, signal: ctx.signal, budgetUsd: 0.5, ...nestedRunDepth(ctx) });
-  return { content: [{ type: "text", text: (await child.result).stopReason }] };
+  return { content: [{ type: "text" as const, text: (await child.result).stopReason }] };
 }
 ```
 
@@ -166,7 +166,7 @@ Iterating a run yields its events. Each iteration starts from the run's first ev
 
 The events come in two layers. The delta layer streams each content block by its index, for a user interface: `text_start`, `text_delta` and `text_end`, and the same three for `reasoning` and `tool_input`. The item layer carries the finished pieces for a log:
 
-- **`run_start`** comes first, with the SDK's version, the spec version and the model.
+- **`run_start`** comes first, with the SDK's version, the spec version, the defaults hash, the capabilities and the model, as [the next section](#run_start-records-which-release-and-which-defaults-ran) explains.
 - **`step_start`** and **`step_end`** wrap one model call and its tool calls; `step_end.stopCheck` says whether the run goes on.
 - **`model_call_start`** carries the request, and **`model_call_end`** the final message.
 - **`tool_call_start`**, **`tool_call_update`** and **`tool_call_end`** follow each tool call; `tool_call_end.result` is what the model reads. When a `beforeToolCall` gate replaced the model's input, `tool_call_end.input` holds the input the call got instead.
@@ -186,6 +186,40 @@ The events come in two layers. The delta layer streams each content block by its
 Pass `includeRaw: true` to `run()` or `continueRun()` when you need a field the normalized events drop, such as the provider's response id. Each model call then asks the gateway for its raw events, and the run emits each one as a `raw` event between that call's `model_call_start` and `model_call_end`, before the delta events it produced. `event.event` is the gateway's payload unchanged: for the Anthropic and OpenAI Chat adapters, one server-sent event as `{ event, data }` with `data` unparsed ([the gateway's raw events](../gateway/README.md#set-includeraw-to-see-the-providers-own-events)). Its shape is the provider's, outside the SDK's versioning.
 
 The option is off by default, and the run's `includeRaw` alone decides: an `includeRaw` in `modelOptions` or in a `beforeModelCall` patch is ignored. With it off, the run asks for no raw events and emits none. Raw events never enter the transcript, the interceptors, the result or the OpenTelemetry spans. They change no other event either, so a gateway retry still happens after them; the raw events before a `retry` belong to the attempt it supersedes. A raw event holds the model's output and provider metadata, so keep raw events out of your logs.
+
+## `run_start` records which release and which defaults ran
+
+When an agent starts behaving differently, the cause may be the model or the SDK, and a log can tell them apart only if it records what the SDK was. So every run opens with three stamps. `run_start.sdkVersion` names the release, such as `0.1.0-alpha.13`. `run_start.defaultsHash` is `DEFAULTS_HASH`, a SHA-256 over every default value, built-in prompt and tool description the SDK uses: the 20-step cap, the progress thresholds, the error text a failed tool call shows the model, the output and clarification tools' descriptions and the write-outcome sentences. `run_start.capabilities` is `CAPABILITIES`, the list of behaviours this release supports. Store all three with the session, and compare them first when two runs differ.
+
+The hash changes whenever one of those values changes, even in a patch release, and each change is named in the changelog. A release that leaves the hash alone sends the model the same fixed text and applies the same defaults as the one before it. Whatever you pass yourself, such as `maxSteps` or a tool's `formatError`, isn't part of the hash.
+
+### `CAPABILITIES` tells a peer what it can rely on
+
+A program versioned apart from the SDK, such as a harness that talks to the agent over RPC, reads the capability strings instead of parsing a version number. Each string names one behaviour and its contract version. A breaking change to that behaviour gets a new string, such as `steering_v2`, so a peer that checks for `steering_v1` notices. This release lists thirteen:
+
+- **`abort_v1`**: `run.abort()` and the `signal` option stop a run, which ends `aborted`.
+- **`steering_v1`**: `run.steer()` and `run.followUp()` queue messages with delivery receipts, and `steer_applied` reports each one.
+- **`approval_pause_v1`**: a gate's `ask` ends the run `awaiting_approval` with a signed pending request.
+- **`clarification_pause_v1`**: `clarificationTool()` ends the run `clarification_requested` with a signed question.
+- **`continue_run_v1`**: `continueRun()` resumes a context, and checks each resolution against its signed request.
+- **`blocking_approvals_v1`**: `blockingApprovals()` answers approvals inside the run.
+- **`usd_budget_v1`**: `budgetUsd` stops a run before a call that could exceed it.
+- **`progress_policy_v1`**: the progress policy ends a run that repeats a failing call, with `no_progress`.
+- **`depth_cap_v1`**: `nestedRunDepth()` and `maxDepth` cap a tree of agents.
+- **`output_tool_v1`**: `outputTool()` ends a run with a validated answer in `output`.
+- **`write_outcomes_v1`**: a tool's `outcome` tells the model what a write did and whether a retry is safe.
+- **`turn_retries_v1`**: `turnRetries` re-issues a model call that ended with a `retryable` error, and marks each retry with a `retry` event whose `layer` is `turn`.
+- **`raw_events_v1`**: `includeRaw` makes the run emit the provider's own stream events as `raw` events.
+
+A test fails when this list and `CAPABILITIES` disagree.
+
+### Unstable names start with `experimental_`
+
+Any part of the API that may still change in a minor release carries an `experimental_` prefix, and its doc comment carries an `@experimental` tag. A check fails a release whose prefix and tag disagree, so a name without the prefix is stable under the versioning rules. Under 0.x, a minor release may break such a name only with a changelog entry under "Breaking Changes", and a patch release never does. This release has no experimental names.
+
+### `llms.txt` indexes these docs for a coding agent
+
+The package ships an [`llms.txt`](llms.txt) beside this README. It lists this README's sections and every public export with the first sentence of its doc comment, so an agent that writes code against the SDK reads the API of the version you installed, not of a branch. A test rebuilds it from this README and the package's declaration files and fails when the committed file differs, so it always describes the same commit as the code. The same test type-checks every TypeScript block in this README against the package and fails when the README names an export the package lacks.
 
 ## Hooks change a run at six moments, and observers only watch
 
@@ -286,7 +320,8 @@ A request is meant to be answered once, but the SDK can't see your other process
 Where the run and the person share a process, such as a terminal, `blockingApprovals(handler)` answers approvals without ending the run. Join it with your gate:
 
 ```ts
-const interceptors = composeInterceptors(gate, blockingApprovals(async (request, { input }) => askInTerminal(request, input)));
+const approvals = blockingApprovals(async (request, { input }) => askInTerminal(request, input));
+const interceptors = composeInterceptors({ beforeToolCall: gate }, approvals);
 ```
 
 When a gate asks, the run signs the request and emits `approval_request` before it calls the handler, so a crash while it waits still leaves a signed record to resume from. The handler returns a `Resolution` for that request, which the run checks against the request like a resumed one. An `allow` runs the call, and a `deny` gives the model an error result. An answer that names another request, an answer of the wrong kind, a handler that throws and an abort while the run waits each deny the call, and all but the abort emit a `hook_error` with `hook: "blockingApprovals"`. `composeInterceptors()` joins at most one `blockingApprovals()` object.
@@ -427,10 +462,10 @@ The rules reach nested values through `properties` and `items`, and only where t
 
 A tool that changes the world, such as a refund, declares `effect: { kind: "write" }`. A tool without it counts as read-only, so it is safe to run again after a crash. The optional `businessKey` names the real-world operation, such as `refund:42`, so a retry is recognised as the same refund.
 
-Such a tool returns an `outcome` beside its content. An outcome says which of five things happened: `applied`, `not_applied`, `compensated`, `partial` or `unknown`. It also says what the model should do next and whether a retry is safe. This refund tool reports a declined refund:
+Such a tool returns an `outcome` beside its content. An outcome says which of five things happened: `applied`, `not_applied`, `compensated`, `partial` or `unknown`. It also says what the model should do next and whether a retry is safe. This refund tool reports a declined refund, with `base` holding the operation's name and its empty effect lists:
 
 ```ts
-return { ...base, kind: "not_applied", retry: "never", applied: [], reason: reply.code, next };
+const declined: WriteOutcome = { ...base, kind: "not_applied", retry: "never", applied: [], reason: reply.code, next };
 ```
 
 The model reads the outcome first, as a sentence and as JSON, and then your content. For the declined refund the sentence begins "The refund_create call did not take effect, and nothing changed." Every kind except `applied` marks the result as an error. An outcome that breaks a rule, such as a retry its kind doesn't allow, throws an `SdkError`.
@@ -532,7 +567,7 @@ Given the same clock and ids, the replayed run streams the same events as the re
 
 ```ts
 const approvals = scriptedApprovals([{ decision: "allow" }, { decision: "deny", reason: "not today" }]);
-run({ model, system, input, tools, interceptors: composeInterceptors(gate, approvals), signer: testSigner() });
+run({ model, system, input, tools, interceptors: composeInterceptors({ beforeToolCall: gate }, approvals), signer: testSigner() });
 ```
 
 `testSigner()` signs with a fixed, published key whose id is `TEST_KEY_ID`, so a pause signed in one test process verifies in another and can be checked into a fixture. Anyone can forge its signatures, so use it only in tests.

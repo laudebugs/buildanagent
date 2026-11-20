@@ -3,6 +3,7 @@
  * an audit can each be written and tested alone. A run takes one `Interceptors` object, and the joined one is it.
  */
 import type { Message, ModelContext } from "@buildanagent/gateway";
+import { SDK_DEFAULTS } from "./defaults.js";
 import { SdkError } from "./errors.js";
 import {
   checkDecision,
@@ -161,7 +162,7 @@ const stop =
  * `SdkError` with code `invalid_run_options`, because a request can have only one answer.
  */
 export function composeInterceptors(...sets: readonly Interceptors[]): Interceptors {
-  const lenient = sets.every((set) => (set.onFailure ?? "fail_closed") === "continue");
+  const lenient = sets.every((set) => (set.onFailure ?? SDK_DEFAULTS.run.onFailure) === "continue");
   const hooks = {
     transformContext: hooksOf(sets, "transformContext"),
     beforeModelCall: hooksOf(sets, "beforeModelCall"),
