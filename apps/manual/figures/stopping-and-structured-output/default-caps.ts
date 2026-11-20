@@ -1,7 +1,7 @@
 // Chapter 4's figure of the SDKs' default caps on one logarithmic scale of model calls. The values are the defaults
-// in the harness pins of November 2026: generateText's isStepCount(1), which AIChatAgent inherits because it sets no
-// cap and runs the streamText call your onChatMessage makes, OpenAI's maxTurns of 10, Cloudflare Think's
-// maxSteps of 10, LangChain's recursion limit of 25 super-steps (13 model calls in
+// in the harness pins of November 2026: generateText's isStepCount(1), which is also streamText's default and so
+// AIChatAgent's when the streamText call your onChatMessage makes sets no stopWhen, OpenAI's maxTurns of 10,
+// Cloudflare Think's maxSteps of 10, LangChain's recursion limit of 25 super-steps (13 model calls in
 // verify/langchain/examples/06-recursion-limit.ts), ToolLoopAgent's isStepCount(20) and ADK's maxLlmCalls of 500.
 import { Figure } from "../lib/svgkit.js";
 

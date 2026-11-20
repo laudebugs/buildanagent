@@ -46,6 +46,7 @@ Build the store every other component writes through, with an idempotent append,
 - [ ] Assign `seq` in the store, monotonically per session.
 - [ ] Key every method by user and session id, and have the JSONL backend file each user's sessions apart, such as one directory per user, so a lookup under one user cannot open another user's file.
 - [ ] Update the `SessionStore` sketch in [build-harness.md §3.2](../../plans/build-harness.md#32-session-log-api) to the new signatures, and check the todos that call the store, N4, N6 and N7 first, for the key they pass.
+- [ ] Decide whether `openSession` and `SessionLock.acquire` take the same user-and-session key, and record the decision in the [build-harness.md §3.2](../../plans/build-harness.md#32-session-log-api) sketch. We recommend yes: key both by `{ userId, sessionId }`, so neither an open nor a lock can reach another user's session. If the decision is yes, note the new key in [N4](N4-writer-lock.md), which builds the lock.
 - [ ] Run the conformance suite against both backends.
 
 ## Acceptance criteria
@@ -71,7 +72,7 @@ Build the store every other component writes through, with an idempotent append,
 
 `fsync` cost on every append may be visible in N19-style timings; record it, do not drop it.
 
-The personal coding agent has one user, so its sessions all share one user id. The key still carries it, because the platform serves many users from the same store (ADR 0037), and adding the user later would change every caller.
+The personal coding agent has one user, so its sessions all share one user id. The key still carries it, because a store can hold more than one user's sessions, as LangChain's `MemorySaver` and the Claude Agent SDK's config directory do in Chapter 5. A lookup must then name the user even where a deployment also isolates each user, as the platform does by making each user a tenant whose tasks run in Durable Objects named by tenant ([ADR 0037](../../decisions/0037-multi-user-agent-platform.md)). Adding the user later would change every caller.
 
 ## Definition of done
 
