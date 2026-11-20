@@ -107,11 +107,10 @@ for (const wire of WIRES) {
       const body = fixture(wire, name);
       const off = await direct(wire, [{ body, chunkSize: 7 }]);
       const on = await direct(wire, [{ body, chunkSize: 7 }], { includeRaw: true });
-      // Every server-sent event up to the one that produced the terminal; the reader stops there.
+      // Every fixture's terminal comes from its last server-sent event, so the raw events are the whole wire stream.
       const expected = await wireEvents(body);
-      const raw = rawOf(on);
-      assert.deepEqual(raw, expected.slice(0, raw.length));
-      assert.ok(raw.length > 0);
+      assert.ok(expected.length > 0);
+      assert.deepEqual(rawOf(on), expected);
       // Raw events change nothing else: the normalized events and the final message, usage and cost included.
       assert.equal(JSON.stringify(withoutRaw(on)), JSON.stringify(off));
       assert.ok(!isRaw(on.at(-1) as GatewayEvent), "no raw event follows the terminal");
