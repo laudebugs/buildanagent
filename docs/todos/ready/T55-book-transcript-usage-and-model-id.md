@@ -27,7 +27,7 @@ Make each recorded answer in a transcript carry the token usage and the model id
 
 **In scope**
 
-- Two optional fields on a `response` event: the usage the mock reported, in the four token classes of the SDK guide (uncached input, cache reads, cache writes and output, plus reasoning tokens where the SDK reports them), and the model id the mock reported, in a field apart from `model`, which stays the writer's key
+- Two optional fields on a `response` event. The first holds the usage the mock reported, in the SDK guide's four token classes (uncached input, cache reads, cache writes and output), plus reasoning tokens where the SDK reports them. The second holds the model id the mock reported, apart from `model`, which stays the writer's key
 - A format version bump to 2, with the book's schema reading both versions until every committed transcript is rewritten
 - Each of the six recording harnesses' mappers filling the fields from what its mock reports, or leaving them out where the mock reports nothing
 - The replay showing the usage and the model id on each answer, with and without JavaScript
