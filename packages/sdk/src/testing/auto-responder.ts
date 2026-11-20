@@ -1,7 +1,7 @@
 /**
  * `autoResponder()`: a responder step that acts like a cooperative model without a script, so a test can drive any
  * agent offline (agent-SDK guide §8). It calls one tool with arguments built from the tool's JSON Schema, then answers
- * in text. It never calls a host tool: a deny list matched by name keeps shell, file-writing and delete tools out,
+ * in text. It never calls a host tool: a deny list matched by name keeps shell, file-editing and screen tools out,
  * because a verification run once let OpenAI's `exec_command` through a filter that checked only the tool's kind.
  */
 import type { ContentBlock, Message, WireTool } from "@buildanagent/gateway";

@@ -482,7 +482,7 @@ const replay = replayPairs(JSON.parse(fixture), { expect: { providerVersion: "20
 const model = createModel({ adapter: replay, id: replay.modelId });
 ```
 
-Given the same clock and ids, the replayed run streams the same events as the recorded one. A replay refuses four kinds of drift, each with a `RecordingError`, an `SdkError`:
+Given the same clock and ids, the replayed run streams the same events as the recorded one. A replay refuses four kinds of fault, each with a `RecordingError`, an `SdkError`:
 
 - **`recording_expired`:** the clock has reached the stamp's `expiresAt`. Record the fixture again.
 - **`recording_mismatch` on the stamp:** the pairs disagree on their stamp, a field differs from `expect`, or the SDK that recorded them is on another release line (another minor version under 0.x).
