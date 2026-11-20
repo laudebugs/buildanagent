@@ -590,6 +590,8 @@ declare function replayPairs(pairs: RecordedPair[]): ScriptedModel;   // rejects
 - `autoResponder()` always keeps the default deny list, and `denyTools` adds to it. `synthesizeInput()` is exported beside it. `scriptedApprovals()` takes answers whose `requestId` is optional and returns interceptors with `requests` and `assertComplete()`; `scriptedMcpServer()` is the MCP double. `testSigner()` and `TEST_KEY_ID` come from a vendored copy of the safety package's `test-signer.ts`, which its `testing` subpath re-exports.
 - `startMockServer()` also takes `host` and `port`, accepts only 127.0.0.0/8 and `::1`, and returns `requests` and a mock-marked `transport` that reaches only the server. It is a Node-only file of the gateway's testing export, which imports `node:http` when a server starts. The gateway also exports `CREDENTIAL_HEADERS`, `REDACTED`, `isCredentialName()`, `redactHeaders()`, `redactUrl()` and `stripCredentials()`.
 
+**Revision (B19b, 2026-11-20).** The SDK also re-exports the safety package's `verifyResolution()`, with its `ResolutionCheck`, `VerifyResolutionOptions` and `PendingCall` types. A caller of `createPendingRequest()` needs it to check a person's answer before the call runs, and the reference loop checks stored requests with it, as `continueRun()` does ([B19b's outcome](../todos/done/B19b-reference-loop.md#outcome)).
+
 **Revision (B11b, 2026-11-20).** B11b adds turn-level retries with these choices, each recorded in [its outcome](../todos/done/B11b-turn-retries.md#outcome). The owner decided the first two on 2026-11-19.
 - `RunOptions` gains `turnRetries` (default 0, so the run ends `error` on the first failure as before; `3` retries as Pi does), `turnRetryDelayMs` (default 2000, doubling per retry of a streak, capped at 60 s, or the failure's `retryAfterMs` when longer) and `sleep`, shaped like the gateway's `Sleep`. Only `retryable` failures retry, and one whose `retryAfterMs` is over the gateway's 60 s cap is final.
 - A turn retry counts against `maxSteps`, so `maxSteps` still bounds the worst case. A run that `maxSteps` stops mid-streak ends `max_steps`, with the last failed message in its transcript; a first failure on the last step ends `error`.
@@ -610,7 +612,7 @@ The harness plan should use these names as written; P4 checks that it does ([imp
 | Resume primitive | `continueRun(context, { resolutions })`; `context` on every result; `Context` as plain JSON | resume from a stored log in any process |
 | Tool exposure | `ToolDefinition.exposure`, `ModelCallPatch.activeTools` | registry, MCP client and tool search ([harness guide §4][hg4]) |
 | Base URL and transport | `ProviderConfig.baseURL`, `ProviderConfig.transport` | the Inspect bridge and offline mocks ([harness guide §10][hg10]) |
-| Pause records | `SignedPendingRequest`, `canonicalInputHash`, `ApprovalSigner`, `createPendingRequest()` | `approval_requested` and `approval_resolved` entries; code-initiated calls (harness N40) |
+| Pause records | `SignedPendingRequest`, `canonicalInputHash`, `ApprovalSigner`, `createPendingRequest()`, `verifyResolution()` | `approval_requested` and `approval_resolved` entries; code-initiated calls (harness N40) |
 | Header stamp | `run_start.sdkVersion`, `defaultsHash`, `capabilities` | the `session_header` entry and protocol `initialize` |
 | Usage and cost | `Usage`, `Cost`, `totalInput()`, `GEN_AI_ATTRIBUTES` | usage entries and the telemetry projection (harness decision 7) |
 | Gateway without the loop | `Model.complete()`, `Model.caps`, `projectCallCost()` | the summarisation layer and its pre-checked cost |
@@ -663,7 +665,7 @@ The guide says to start with the gateway and the test model, because every other
 | [B17](../todos/done/B17-otel-observer.md) | OTel `gen_ai.*` observer with content off | B13, B5 | M |
 | [B18](../todos/done/B18-testing-export.md) | Complete the `testing` exports: `autoResponder`, seam doubles, record and replay, mock server | B8, B9, B15b | M |
 | [B19](../todos/done/B19-triage-capstone.md) | Triage capstone and the conformance suite | B12, B14, B15b, B16, B18 | M |
-| [B19b](../todos/ready/B19b-reference-loop.md) | The readable reference loop, passing the capstone | B19 | M |
+| [B19b](../todos/done/B19b-reference-loop.md) | The readable reference loop, passing the capstone | B19 | M |
 | [B20](../todos/done/B20-versioning-docs.md) | Versioning policy, defaults hash, compiled docs, `llms.txt` and the export diffs | B17, B19 | M |
 
 The longest dependency chain runs B1 → B2 → B3 → B4 → B11 → B13 → B15 → B15b → B18 → B19 → B20, eleven todos. B6, B7, B10 and B19b can run beside it. Round E feeds this stage: E1 ─► B10 and B14, and E3 ─► B15 ([close-sdk-gaps plan §4](close-sdk-gaps.md#4-round-e-and-its-todos)). Weighted by size, E1 → B10 (two M todos) is longer than B4 (one M todo), so E1, not B4, sits on the loop's critical path. Four todos are size L: the two adapters (B8, B9), the loop core (B11) and the raw events (B11c).

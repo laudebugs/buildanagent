@@ -5,7 +5,7 @@
 // checks the audit trail.
 import assert from "node:assert/strict";
 import type { Model } from "@buildanagent/gateway";
-import type { AgentEvent, Context, continueRun, Resolution, run } from "@buildanagent/sdk";
+import type { AgentEvent, Context, ContinueOptions, Resolution, RunInput, RunOptions } from "@buildanagent/sdk";
 import { testSigner } from "@buildanagent/sdk/testing";
 import { test } from "vitest";
 import {
@@ -17,13 +17,16 @@ import {
   triageOptions,
 } from "../examples/triage-agent.js";
 import { pendingOf, roundTrip } from "./resume-helpers.js";
-import { drive } from "./run-helpers.js";
+import { drive, type Started } from "./run-helpers.js";
 import type { Backend, Fixture, ScriptedCall, Turn } from "./triage-backends.js";
 
-/** The two functions a loop must provide: the SDK's own, or the reference loop's. */
+/**
+ * The two functions a loop must provide: the SDK's own, or the reference loop's. A loop returns what the cases read,
+ * its events and its result, so a loop without steering or observers can run them.
+ */
 export interface Loop {
-  readonly run: typeof run;
-  readonly continueRun: typeof continueRun;
+  readonly run: (options: RunOptions<Triage> & RunInput) => Started<Triage>;
+  readonly continueRun: (context: Context, options: ContinueOptions<Triage>) => Started<Triage>;
 }
 
 /** The only tools a request may offer: the two the agent defines and its output tool. */
