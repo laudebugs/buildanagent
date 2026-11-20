@@ -11,10 +11,13 @@ import { after, describe, test } from "node:test";
 import { fileURLToPath } from "node:url";
 import { parse } from "yaml";
 import {
+  changedStamps,
   classifyChange,
   isVersionOnlyChange,
   newChangesets,
   patternToRegExp,
+  RELEASE_STAMPS,
+  releasingChangesets,
   runGate,
   shippedChanges,
   statusEnv,
@@ -161,6 +164,30 @@ describe("changeset-gate.mjs", () => {
     ]);
   });
 
+  test("a stamp counts as changed when the head adds it or gives it a new value, not when it stays or goes", () => {
+    const stamp = { file: "f.ts", pattern: /HASH = "(\w+)"/ };
+    const sides = (base, head) => (_file, side) => (side === "base" ? base : head);
+    assert.equal(changedStamps([stamp], sides('HASH = "a"', 'HASH = "b"')).length, 1);
+    assert.equal(changedStamps([stamp], sides(undefined, 'HASH = "b"')).length, 1);
+    assert.equal(changedStamps([stamp], sides('HASH = "a"', '// HASH = "a"\nHASH = "a"')).length, 0);
+    assert.equal(changedStamps([stamp], sides('HASH = "a"', undefined)).length, 0);
+  });
+
+  test("the SDK's defaults hash is a release stamp, and its pattern finds the hash in src/defaults.ts", () => {
+    const [stamp] = RELEASE_STAMPS;
+    assert.equal(stamp.file, "packages/sdk/src/defaults.ts");
+    assert.match(stamp.pattern.exec(readFileSync(path.join(root, stamp.file), "utf8"))?.[1] ?? "", /^[0-9a-f]{64}$/);
+  });
+
+  test("only a changeset that names a versioned package releases a stamped change", () => {
+    const text = {
+      ".changeset/brave-cats.md": '---\n"@x/a": patch\n---\n\nFix.\n',
+      ".changeset/quiet-dogs.md": "---\n---\n",
+    };
+    const read = (file) => text[file];
+    assert.deepEqual(releasingChangesets(Object.keys(text), read, ["@x/a"]), [".changeset/brave-cats.md"]);
+  });
+
   test("runs changeset status with an allowlisted environment", () => {
     const parent = { PATH: "/bin", PNPM_HOME: "/pnpm", LANG: "en_US.UTF-8", GH_TOKEN: "t", NPM_TOKEN: "n", HOME: "/h" };
     const env = statusEnv(parent, "/tmp/home");
@@ -220,11 +247,12 @@ describe("changeset-gate.mjs", () => {
       return { dir, write, commit };
     }
 
-    function gate(dir) {
+    function gate(dir, stamps = []) {
       const calls = [];
       const code = runGate({
         root: dir,
         base: "main",
+        stamps,
         log: () => {},
         runStatus: (base) => {
           calls.push(base);
@@ -304,6 +332,30 @@ describe("changeset-gate.mjs", () => {
       write(".changeset/brave-cats.md", changeset);
       commit();
       assert.deepEqual(gate(dir).calls, ["main"]);
+    });
+
+    test("a changed defaults hash fails with only an empty changeset, and passes on to status with a real one", () => {
+      const hash = (digit) => `export const DEFAULTS_HASH = "${digit.repeat(64)}";\n`;
+      const stamps = [{ file: "packages/a/src/defaults.ts", pattern: RELEASE_STAMPS[0].pattern }];
+      const { dir, write, commit } = repo({ "packages/a/src/defaults.ts": hash("0") });
+      write("packages/a/src/defaults.ts", hash("1"));
+      write(".changeset/quiet-dogs.md", "---\n---\n");
+      commit();
+      assert.deepEqual(gate(dir, stamps), { code: 1, calls: [] });
+      write(".changeset/brave-cats.md", changeset);
+      commit();
+      assert.deepEqual(gate(dir, stamps), { code: 1, calls: ["main"] });
+    });
+
+    test("an empty changeset still covers a src/ change that leaves the defaults hash alone", () => {
+      const stamps = [{ file: "packages/a/src/defaults.ts", pattern: RELEASE_STAMPS[0].pattern }];
+      const { dir, write, commit } = repo({
+        "packages/a/src/defaults.ts": `export const DEFAULTS_HASH = "${"0".repeat(64)}";\n`,
+      });
+      write("packages/a/src/index.ts", "export const a = 2;\n");
+      write(".changeset/quiet-dogs.md", "---\n---\n");
+      commit();
+      assert.deepEqual(gate(dir, stamps), { code: 1, calls: ["main"] });
     });
 
     test("an uncommitted bump in the working tree doesn't count", () => {

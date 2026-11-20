@@ -5,6 +5,7 @@
  * call asks again with a new request.
  */
 import type { AssistantMessage, Message } from "@buildanagent/gateway";
+import { fillTemplate, SDK_DEFAULTS } from "./defaults.js";
 import { SdkError } from "./errors.js";
 import type { AgentEventBody, ResolutionRejectionCause } from "./events.js";
 import { denied, textOf } from "./hook-runner.js";
@@ -281,7 +282,7 @@ async function verdictOf(
   }
   const blocked = recheck === undefined ? undefined : await policyBlock(recheck, request, input, ctx);
   if (blocked !== undefined) {
-    const text = `Tool call "${call.name}" was approved, but current policy now denies it: ${blocked}`;
+    const text = fillTemplate(SDK_DEFAULTS.approvals.policyDenied, { tool: call.name, reason: blocked });
     const result: ToolResult = {
       content: [{ type: "text", text }],
       isError: true,

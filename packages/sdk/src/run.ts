@@ -5,6 +5,8 @@
  */
 import type { ContentBlock, Message, Model } from "@buildanagent/gateway";
 import { checkBudgetOption } from "./budget.js";
+import { CAPABILITIES } from "./capabilities.js";
+import { DEFAULTS_HASH, SDK_DEFAULTS } from "./defaults.js";
 import { RunStoppedError, SdkError } from "./errors.js";
 import type { AgentEvent, AgentEventBody } from "./events.js";
 import type { CallOptions, Interceptors, Observer } from "./hooks.js";
@@ -23,14 +25,6 @@ import type { Recheck, Resolution } from "./vendor/agent-safety/pending.js";
 import { type ApprovalSigner, ephemeralSigner } from "./vendor/agent-safety/signer.js";
 import { SDK_VERSION } from "./version.js";
 
-/** The step cap's default, counted in model calls. */
-const DEFAULT_MAX_STEPS = 20;
-
-/** The depth cap's default (D11): a top-level run, its subagents and their subagents may run, and no deeper. */
-const DEFAULT_MAX_DEPTH = 2;
-
-/** How long the run waits, by default, for an observer to catch up before it drops it. */
-const DEFAULT_OBSERVER_TIMEOUT_MS = 10_000;
 /** The longest delay `setTimeout` accepts; a larger one fires at once on Node and workerd alike. */
 const MAX_TIMER_MS = 2_147_483_647;
 
@@ -262,7 +256,12 @@ class RunHandle<S> implements Run<S> {
     for (const observer of observers) this.#bus.add(observer);
     const emit = (body: AgentEventBody, stepIndex: number) => this.#push(body, stepIndex);
     const { model } = setup;
-    const versions = { sdkVersion: SDK_VERSION, specVersion: "v1" as const, defaultsHash: "", capabilities: [] };
+    const versions = {
+      sdkVersion: SDK_VERSION,
+      specVersion: "v1" as const,
+      defaultsHash: DEFAULTS_HASH,
+      capabilities: CAPABILITIES,
+    };
     emit({ type: "run_start", ...versions, model: model.ref }, 0);
     const forwardAbort = () => this.abort(reasonOf(signal?.reason));
     if (signal?.aborted) forwardAbort();
@@ -391,7 +390,7 @@ export function nestedRunDepth(ctx: Pick<ToolContext, "depth" | "maxDepth">): { 
 
 /** Checks `depth` and `maxDepth`, and refuses a run nested deeper than the cap allows (D11). */
 function depthsOf(options: RunOptions<unknown>): { depth: number; maxDepth: number } {
-  const { depth = 0, maxDepth = DEFAULT_MAX_DEPTH } = options;
+  const { depth = 0, maxDepth = SDK_DEFAULTS.run.maxDepth } = options;
   if (!isCount(depth) || !isCount(maxDepth)) {
     throw new SdkError(
       "invalid_run_options",
@@ -424,7 +423,7 @@ function setupOf(
       "the model must come from createModel(), such as createModel({ adapter, id })",
     );
   }
-  const maxSteps = options.maxSteps ?? DEFAULT_MAX_STEPS;
+  const maxSteps = options.maxSteps ?? SDK_DEFAULTS.run.maxSteps;
   if (!Number.isInteger(maxSteps) || maxSteps < 1) {
     throw new SdkError("invalid_run_options", `maxSteps must be a positive integer, got ${maxSteps}`);
   }
@@ -476,7 +475,7 @@ interface ObserverSetup {
 function observersOf(options: RunOptions<unknown>): ObserverSetup {
   const observers = options.observers ?? [];
   for (const observer of observers) checkObserver(observer);
-  const timeoutMs = options.observerTimeoutMs ?? DEFAULT_OBSERVER_TIMEOUT_MS;
+  const timeoutMs = options.observerTimeoutMs ?? SDK_DEFAULTS.run.observerTimeoutMs;
   if (typeof timeoutMs !== "number" || !Number.isFinite(timeoutMs) || timeoutMs <= 0 || timeoutMs > MAX_TIMER_MS) {
     throw new SdkError(
       "invalid_run_options",

@@ -12,6 +12,7 @@
  * caller's hook that throws can't switch it off.
  */
 import type { AssistantMessage, Message } from "@buildanagent/gateway";
+import { SDK_DEFAULTS } from "./defaults.js";
 import { SdkError } from "./errors.js";
 import type { AnyTool } from "./tools/pipeline.js";
 import type { ToolCall } from "./tools/types.js";
@@ -26,10 +27,7 @@ export interface ProgressPolicy {
 }
 
 /** The defaults, provisional until recorded runs retune them. The object is frozen, so no caller can change them. */
-export const DEFAULT_PROGRESS: Readonly<Required<ProgressPolicy>> = Object.freeze({
-  maxIdenticalFailures: 3,
-  maxSameKeyCalls: 5,
-});
+export const DEFAULT_PROGRESS: Readonly<Required<ProgressPolicy>> = SDK_DEFAULTS.progress;
 
 /** Checks a `progress` option and fills in its defaults. */
 export function resolveProgress(progress: ProgressPolicy | false | undefined): Required<ProgressPolicy> | undefined {
