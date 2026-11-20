@@ -8,7 +8,7 @@
   "events": [
     {
       "kind": "request",
-      "line": 90,
+      "line": 92,
       "model": "model-1",
       "repeated": 0,
       "messages": [
@@ -39,7 +39,7 @@
     },
     {
       "kind": "response",
-      "line": 90,
+      "line": 92,
       "model": "model-1",
       "message": {
         "role": "assistant",
@@ -58,7 +58,7 @@
     },
     {
       "kind": "request",
-      "line": 90,
+      "line": 92,
       "model": "model-1",
       "repeated": 3,
       "messages": [
@@ -87,7 +87,7 @@
     },
     {
       "kind": "response",
-      "line": 90,
+      "line": 92,
       "model": "model-1",
       "message": {
         "role": "assistant",
@@ -106,25 +106,25 @@
     },
     {
       "kind": "check",
-      "line": 91,
+      "line": 93,
       "message": "lookup_customer reads the identity from session state and drops the model's customerId",
       "pass": true
     },
     {
       "kind": "check",
-      "line": 95,
+      "line": 97,
       "message": "the other customer's record never reaches the model",
       "pass": true
     },
     {
       "kind": "check",
-      "line": 97,
+      "line": 99,
       "message": "escalate_to_human pauses for approval and has not run",
       "pass": true
     },
     {
       "kind": "request",
-      "line": 98,
+      "line": 100,
       "model": "model-1",
       "repeated": 5,
       "messages": [
@@ -151,7 +151,7 @@
     },
     {
       "kind": "response",
-      "line": 98,
+      "line": 100,
       "model": "model-1",
       "message": {
         "role": "assistant",
@@ -173,19 +173,19 @@
     },
     {
       "kind": "check",
-      "line": 99,
+      "line": 101,
       "message": "after approval the escalation runs once, for the session's customer",
       "pass": true
     },
     {
       "kind": "check",
-      "line": 104,
+      "line": 106,
       "message": "the typed result parses with zod and records the escalation",
       "pass": true
     },
     {
       "kind": "request",
-      "line": 113,
+      "line": 115,
       "model": "model-1",
       "repeated": 2,
       "messages": [],
@@ -197,7 +197,7 @@
     },
     {
       "kind": "response",
-      "line": 113,
+      "line": 115,
       "model": "model-1",
       "message": {
         "role": "assistant",
@@ -216,7 +216,7 @@
     },
     {
       "kind": "request",
-      "line": 113,
+      "line": 115,
       "model": "model-1",
       "repeated": 3,
       "messages": [
@@ -245,7 +245,7 @@
     },
     {
       "kind": "response",
-      "line": 113,
+      "line": 115,
       "model": "model-1",
       "message": {
         "role": "assistant",
@@ -264,7 +264,7 @@
     },
     {
       "kind": "request",
-      "line": 115,
+      "line": 117,
       "model": "model-1",
       "repeated": 5,
       "messages": [
@@ -290,7 +290,7 @@
     },
     {
       "kind": "response",
-      "line": 115,
+      "line": 117,
       "model": "model-1",
       "message": {
         "role": "assistant",
@@ -312,19 +312,19 @@
     },
     {
       "kind": "check",
-      "line": 116,
+      "line": 118,
       "message": "a rejected escalation never runs",
       "pass": true
     },
     {
       "kind": "check",
-      "line": 118,
+      "line": 120,
       "message": "the typed result says the ticket was not escalated",
       "pass": true
     },
     {
       "kind": "request",
-      "line": 124,
+      "line": 126,
       "model": "model-1",
       "repeated": 1,
       "messages": [
@@ -346,7 +346,7 @@
     },
     {
       "kind": "response",
-      "line": 124,
+      "line": 126,
       "model": "model-1",
       "message": {
         "role": "assistant",
@@ -365,7 +365,7 @@
     },
     {
       "kind": "request",
-      "line": 124,
+      "line": 126,
       "model": "model-1",
       "repeated": 3,
       "messages": [
@@ -391,7 +391,7 @@
     },
     {
       "kind": "response",
-      "line": 124,
+      "line": 126,
       "model": "model-1",
       "message": {
         "role": "assistant",
@@ -410,13 +410,13 @@
     },
     {
       "kind": "check",
-      "line": 125,
+      "line": 127,
       "message": "without user:customer_id in state the lookup returns an error, not a guess",
       "pass": true
     },
     {
       "kind": "check",
-      "line": 131,
+      "line": 133,
       "message": "no host tool is ever offered to the model",
       "pass": true
     }

@@ -8,7 +8,7 @@
 | Status | `ready` |
 | Plan | [Book plan §4.2](../../plans/build-book.md#42-part-ii-in-depth-for-experienced-builders) |
 | Round / milestone | Round T (textbook), MT |
-| Depends on | [T5](../done/T5-book-interactive-listings.md), [T6](../done/T6-book-flat-figures.md), [T26](../done/T26-book-checked-inline-code.md), [T29](../done/T29-example-retries-caching-budget.md) |
+| Depends on | [T5](../done/T5-book-interactive-listings.md), [T6](../done/T6-book-flat-figures.md), [T26](../done/T26-book-checked-inline-code.md), [T29](../done/T29-example-retries-caching-budget.md), [T55](T55-book-transcript-usage-and-model-id.md) |
 | Size | M |
 
 ## Goal
@@ -17,6 +17,7 @@ Write the chapter "The model gateway: one streaming method, retries, prompt cach
 
 ## Context
 
+- [T55](T55-book-transcript-usage-and-model-id.md): records token usage and the model id in the transcripts, so this chapter's replays can show what each call cost and which model answered; the owner accepted it on 2026-11-19 to land before this chapter
 - [SDK guide §2](../../guides/agent-sdk.md)
 - [SDK plan](../../plans/build-sdk.md) D2–D4 and D9
 - ADRs [0002](../../decisions/0002-first-wire-protocols.md)–[0004](../../decisions/0004-cost-catalog-and-basis.md) and [0009](../../decisions/0009-pre-emptive-budget.md)
