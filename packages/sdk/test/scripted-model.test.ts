@@ -259,6 +259,20 @@ test("an abort before a tool call draws no call id, so the next call's ids stay 
   });
 });
 
+test("mutating an emitted tool_call's input leaves the script and a later run of the same step unchanged", async () => {
+  const toolStep: AssistantScript = {
+    content: [{ type: "tool_call", callId: "", name: "lookup", input: { order: 1 } }],
+  };
+  const model = new ScriptedModel([toolStep, toolStep], { idGenerator: sequentialIds("c") });
+  const first = await complete(model.stream(ref, context(), {}));
+  const firstCall = first.content[0];
+  assert.ok(firstCall && firstCall.type === "tool_call");
+  (firstCall as { input: Record<string, unknown> }).input.order = 999;
+  assert.deepEqual(toolStep.content[0], { type: "tool_call", callId: "", name: "lookup", input: { order: 1 } });
+  const second = await complete(model.stream(ref, context(), {}));
+  assert.deepEqual(second.content[0], { type: "tool_call", callId: "c-2", name: "lookup", input: { order: 1 } });
+});
+
 test("ScriptedModel runs through createModel with its default caps and its strict script", async () => {
   const adapter = new ScriptedModel([textStep("hi")]);
   const model = createModel({ adapter, id: "scripted-model" });
