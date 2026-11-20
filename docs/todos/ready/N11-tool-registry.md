@@ -6,7 +6,7 @@
 | Status | `ready` |
 | Plan | [Build harness §4, Stage 3](../../plans/build-harness.md#43-stage-3-adds-the-registry-the-permission-pipeline-signed-approvals-and-code-initiated-calls) |
 | Round / milestone | Round N (build harness), M6 |
-| Depends on | [N1](../done/N1-harness-workspace-scaffold.md), [B12](B12-parallel-tools.md) |
+| Depends on | [N1](../done/N1-harness-workspace-scaffold.md), [B12](../done/B12-parallel-tools.md) |
 | Size | M |
 
 ## Goal
