@@ -6,7 +6,7 @@
 | Status | `ready` |
 | Plan | [Build SDK §4, Stage 4](../../plans/build-sdk.md#44-stage-4-ships-telemetry-the-testing-exports-the-capstone-and-the-docs-checks) |
 | Round / milestone | Round B (build SDK), M5 |
-| Depends on | [B19](B19-triage-capstone.md) |
+| Depends on | [B19](../done/B19-triage-capstone.md) |
 | Size | M |
 
 ## Goal
@@ -16,7 +16,7 @@ Give readers a loop they can read in one sitting: a few hundred lines with the s
 ## Context
 
 - [agent-SDK guide §9](../../guides/agent-sdk.md#9-the-public-api-should-be-functions-with-options-objects-an-explicit-provider-and-nothing-that-reaches-outside-the-process-by-default): a readable reference loop beside the full one
-- [B19](B19-triage-capstone.md): the capstone and the conformance suite this loop must pass
+- [B19](../done/B19-triage-capstone.md): the capstone and the conformance suite this loop must pass
 - [P4 review R25](../../plans/reviews/plan-review.md#23-buildability-the-graph-is-sound-and-one-cross-round-task-source-is-unscheduled): why the reference loop left B19
 
 ## Scope
