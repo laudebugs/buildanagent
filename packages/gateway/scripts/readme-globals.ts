@@ -14,6 +14,7 @@ declare global {
   const apiKey: string;
   const catalog: gateway.PriceCatalog;
   const context: gateway.ModelContext;
+  const inspect: (event: unknown) => void;
   const events: readonly { readonly type: string }[];
   const localKey: string;
   const model: gateway.Model;
