@@ -1,6 +1,6 @@
-// The contract between the Cloudflare tests, which run in Node, and their Workers, approval-agent.ts and
-// interrupted-agent.ts, which run in workerd. It holds types only, so the Node side type-checks without the Workers
-// globals.
+// The contract between the Cloudflare tests, which run in Node, and their Workers, approval-agent.ts, cost-agent.ts
+// and interrupted-agent.ts, which run in workerd. It holds types only, so the Node side type-checks without the
+// Workers globals.
 
 /** What a scenario changes between the pause and the approval. */
 export type Change =
@@ -43,4 +43,18 @@ export interface Repaired {
   readonly modelRead: unknown[];
   /** How often `send_email` ran, which must be never. */
   readonly sent: number;
+}
+
+/** What the cost-guard Worker returns: how far the capped turn got and the refusal that stopped it. */
+export interface Capped {
+  /** How the turn ended. */
+  readonly status: string;
+  /** How many requests the model received. */
+  readonly modelCalls: number;
+  /** What the turn had spent when it ended, in USD. */
+  readonly spentUsd: number;
+  /** The refusal `streamText`'s `onError` received, or `null` when nothing was refused. */
+  readonly refusal: { readonly code: string; readonly spentUsd: number; readonly projectedUsd: number | null } | null;
+  /** The projection and cost of each call the guard let through. */
+  readonly calls: { readonly projectedUsd: number; readonly costUsd: number | null }[];
 }

@@ -30,9 +30,30 @@ import { fileURLToPath } from "node:url";
 import { promisify } from "node:util";
 
 const root = path.resolve(fileURLToPath(new URL("../..", import.meta.url)));
-const packageDirs = readdirSync(path.join(root, "packages"), { withFileTypes: true })
-  .filter((entry) => entry.isDirectory() && existsSync(path.join(root, "packages", entry.name, "package.json")))
-  .map((entry) => path.join(root, "packages", entry.name));
+const packageDirs = dependencyOrder(
+  readdirSync(path.join(root, "packages"), { withFileTypes: true })
+    .filter((entry) => entry.isDirectory() && existsSync(path.join(root, "packages", entry.name, "package.json")))
+    .map((entry) => path.join(root, "packages", entry.name)),
+);
+
+/**
+ * The package folders with each one after the workspace packages it depends on, as `pnpm -r build` orders them. Each
+ * `prepack` builds against the dist/ of those packages, so the safety package, which depends on the gateway, must
+ * pack after it.
+ */
+function dependencyOrder(dirs) {
+  const byName = new Map(dirs.map((dir) => [JSON.parse(readFileSync(path.join(dir, "package.json"), "utf8")).name, dir]));
+  const ordered = [];
+  const visit = (name) => {
+    const dir = byName.get(name);
+    if (dir === undefined || ordered.includes(dir)) return;
+    const { dependencies = {} } = JSON.parse(readFileSync(path.join(dir, "package.json"), "utf8"));
+    for (const dependency of Object.keys(dependencies)) visit(dependency);
+    ordered.push(dir);
+  };
+  for (const name of byName.keys()) visit(name);
+  return ordered;
+}
 const LICENCES = ["LICENSE", "LICENSE-APACHE", "LICENSE-MIT"];
 const TOP_LEVEL = new Set(["package.json", "README.md", "CHANGELOG.md", ...LICENCES]);
 // A dist/ file left from an earlier build whose module no longer exists in src/. The build must delete it.
@@ -259,10 +280,10 @@ packTest("every packed declaration file imports only its own dist/ files or othe
 const SOURCE_CONDITION_FAILURES = ["@buildanagent/sdk"];
 
 // The entries that fail to import in this install, which holds no optional peer, because they exist to wrap one: the
-// safety package's `./byok` imports `@ai-sdk/anthropic` and `@ai-sdk/openai` at load and its README says so. The
-// failure must be ERR_MODULE_NOT_FOUND naming one of the package's declared optional peers. Every other entry,
-// the root entry included, must import. An entry listed here that imports again fails the test.
-const OPTIONAL_PEER_FAILURES = ["@buildanagent/agent-safety/byok"];
+// safety package's `./byok` imports `@ai-sdk/anthropic` and `@ai-sdk/openai` at load, and its `./cost` imports `ai`,
+// as its README says. The failure must be ERR_MODULE_NOT_FOUND naming one of the package's declared optional peers.
+// Every other entry, the root entry included, must import. An entry listed here that imports again fails the test.
+const OPTIONAL_PEER_FAILURES = ["@buildanagent/agent-safety/byok", "@buildanagent/agent-safety/cost"];
 
 for (const conditions of [[], ["--conditions=source"]]) {
   const label = conditions.length ? "with --conditions=source" : "with no extra condition";
