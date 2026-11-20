@@ -79,13 +79,13 @@ The package README (setting a cap per run and per session).
 ## Definition of done
 
 - [x] Claimed: the first commit moved this file `ready/` → `ongoing/` (Status `ongoing`)
-- [ ] Prose drafted with `/anthropic-skills:writing` and reviewed with `/anthropic-skills:writing-review`, with the fixes applied and changed claims re-checked
+- [x] Prose drafted with `/anthropic-skills:writing` and reviewed with `/anthropic-skills:writing-review`, with the fixes applied and changed claims re-checked
 - [x] `pnpm check`, `pnpm typecheck` and `pnpm test` pass locally; pushed after each meaningful step
 - [x] This file moved `ongoing/` → `done/` (Status `done`), and the plan's todo table updated
 
 ## Outcome
 
-`@buildanagent/agent-safety` now refuses an AI SDK model call before it is sent when the spend so far plus the call's projected cost would pass a USD cap. The projection is the gateway's: the guard lowers the AI SDK request to the gateway's transcript, so `estimateInputTokens()` applies B14's rule, and `projectCost()` prices it. The third-party claims behind the guard are rows E5-1 to E5-12 of [the plan's fact-check log](../../plans/reviews/fact-check-close-sdk-gaps.md). The code-review rounds and the writing review run on the pull request, so the prose box above stays open until the writing review is done.
+`@buildanagent/agent-safety` now refuses an AI SDK model call before it is sent when the spend so far plus the call's projected cost would pass a USD cap. The projection is the gateway's: the guard lowers the AI SDK request to the gateway's transcript, so `estimateInputTokens()` applies B14's rule, and `projectCost()` prices it. The third-party claims behind the guard are rows E5-1 to E5-18 of [the plan's fact-check log](../../plans/reviews/fact-check-close-sdk-gaps.md). The code-review rounds and the writing review ran on the pull request.
 
 The public API, in a new `./cost` subpath:
 
@@ -111,4 +111,4 @@ Each criterion and the test that covers it:
 - `prepareStep` and streaming: "a prepareStep that switches to another model from the same guardedProvider is still capped", "a prepareStep model built outside the guarded provider escapes the cap…", which shows the plan's §6 risk, and "a streamed run is capped before the crossing call, and its spend matches its finish usage".
 - The AI SDK's hooks: two tests pin that a `wrapLanguageModel` middleware sees every step and every retry of `generateText` and `streamText` in 7.0.162. Further tests cover calls in flight sharing the cap, a per-run and a per-session guard together, a retried attempt, a refusal inside a `RetryError`, `maxOutputTokens`, cache-write pricing and invalid options.
 
-The package README gains two sections, on the cap itself and on capping a run and a session. The SDK's vendored `errors.ts` follows the new codes, with a patch changeset.
+The package README gains two sections, on the cap itself and on capping a run and a session. The SDK's vendored `errors.ts` follows the new codes, with a minor changeset that opens with Breaking Changes, because the code union gains members.
