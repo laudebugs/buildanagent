@@ -1,5 +1,12 @@
 # @buildanagent/sdk
 
+## 0.1.0-alpha.19
+
+### Patch Changes
+
+- 0b0d4a4: Fix ScriptedModel cloning a scripted tool_call's input only when it also generates a callId, so mutating an emitted input no longer corrupts the script or later runs of the same step
+- @buildanagent/gateway@0.1.0-alpha.19
+
 ## 0.1.0-alpha.18
 
 ### Minor Changes
