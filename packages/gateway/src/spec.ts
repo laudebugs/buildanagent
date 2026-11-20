@@ -1,7 +1,10 @@
 /** The single-method model spec every provider adapter implements (SDK plan §3.2; SDK decision 1). */
 import type { AssistantMessage, ContentBlock, ModelCaps, ModelContext, ModelRef } from "./types.js";
 
-/** The events one model call streams. Exactly one terminal event, `done` or `error`, ends every stream. */
+/**
+ * The events one model call streams. Exactly one terminal event, `done` or `error`, ends every stream. A `raw` event
+ * comes only when the caller set `includeRaw`; a `switch` over `type` that must stay exhaustive needs a `raw` case.
+ */
 export type ModelEvent =
   | { type: "start" }
   | { type: "text_start" | "reasoning_start" | "tool_input_start"; index: number }
@@ -13,6 +16,17 @@ export type ModelEvent =
    * call can still be retried after one.
    */
   | { type: "warning"; code: string; message: string }
+  /**
+   * One event of the provider's own stream, sent only when the call set `includeRaw`. `event` is the provider's
+   * shape, outside the gateway's versioning: an adapter passes it on as it read it and never changes it. The two
+   * wire adapters send one per server-sent event, as `{ event, data }`: the SSE event name (`"message"` when the
+   * event named none) and its `data:` lines joined by newlines, unparsed, so OpenAI's `data: [DONE]` arrives as the
+   * string `"[DONE]"`. It comes before the normalized events that server-sent event produced. A raw event is not
+   * output, so a call can still be retried after one; the `retry` event marks the failed attempt's raw events
+   * superseded. It holds the model's output and any provider metadata the normalized events drop, so keep it out
+   * of logs you would keep content out of.
+   */
+  | { type: "raw"; event: unknown }
   | { type: "done"; message: AssistantMessage }
   /** The message's `stopReason` is `"error"` or `"aborted"`; it carries any partial content and usage. */
   | { type: "error"; message: AssistantMessage };
@@ -38,6 +52,12 @@ export interface StreamOptions {
    * request within one attempt calls it twice.
    */
   onPayload?(body: unknown): unknown;
+  /**
+   * Also stream the provider's own events, each as a `raw` event before the normalized events it produced. Default
+   * off, and with it off the stream is exactly as it would be without the option. An HTTP error response, which has
+   * no event stream, gets no raw event: its status and message are in the `error` terminal.
+   */
+  includeRaw?: boolean;
 }
 
 export interface ModelAdapter {

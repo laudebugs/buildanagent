@@ -23,7 +23,8 @@ export interface ProviderConfig {
 
 /**
  * The events `Model.stream()` yields: the adapter's events plus one `retry` event before each retry. Retry events come
- * after `start` and before any content, because the gateway never retries once output has been streamed.
+ * after `start` and before any content, because the gateway never retries once output has been streamed. A `retry`
+ * event supersedes the `raw` events streamed since the previous `start` or `retry`: they belong to the failed attempt.
  */
 export type GatewayEvent =
   | ModelEvent
