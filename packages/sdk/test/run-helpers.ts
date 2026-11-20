@@ -1,7 +1,7 @@
 // Shared fixtures for the loop tests: a scripted model behind createModel(), deterministic run options, tool-call
 // scripts and a driver that collects a run's events for the emitted-against-declared check.
 import { type ContentBlock, createModel, type Model, type ModelMiddleware } from "@buildanagent/gateway";
-import { type AgentEvent, defineTool, type Run, type RunResult } from "@buildanagent/sdk";
+import { type AgentEvent, defineTool, type RunResult } from "@buildanagent/sdk";
 import { fixedClock, ScriptedModel, type ScriptStep, sequentialIds } from "@buildanagent/sdk/testing";
 import { recordEventTypes } from "./event-check.js";
 
@@ -48,8 +48,13 @@ export const lookup = defineTool({
   },
 });
 
+/** What `drive()` needs of a run: its events, and its result. */
+export interface Started<S> extends AsyncIterable<AgentEvent> {
+  readonly result: Promise<RunResult<S>>;
+}
+
 /** Iterates the run to its end, records its event types for the teardown check, and returns events and result. */
-export async function drive<S>(started: Run<S>): Promise<{ events: AgentEvent[]; result: RunResult<S> }> {
+export async function drive<S>(started: Started<S>): Promise<{ events: AgentEvent[]; result: RunResult<S> }> {
   const events: AgentEvent[] = [];
   for await (const event of started) events.push(event);
   recordEventTypes(events);

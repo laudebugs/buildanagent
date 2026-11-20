@@ -650,7 +650,7 @@ The guide says to start with the gateway and the test model, because every other
 | [B17](../todos/done/B17-otel-observer.md) | OTel `gen_ai.*` observer with content off | B13, B5 | M |
 | [B18](../todos/done/B18-testing-export.md) | Complete the `testing` exports: `autoResponder`, seam doubles, record and replay, mock server | B8, B9, B15b | M |
 | [B19](../todos/done/B19-triage-capstone.md) | Triage capstone and the conformance suite | B12, B14, B15b, B16, B18 | M |
-| [B19b](../todos/ready/B19b-reference-loop.md) | The readable reference loop, passing the capstone | B19 | M |
+| [B19b](../todos/done/B19b-reference-loop.md) | The readable reference loop, passing the capstone | B19 | M |
 | [B20](../todos/ready/B20-versioning-docs.md) | Versioning policy, defaults hash, compiled docs, `llms.txt` and the export diffs | B17, B19 | M |
 
 The longest dependency chain runs B1 → B2 → B3 → B4 → B11 → B13 → B15 → B15b → B18 → B19 → B20, eleven todos. B6, B7, B10 and B19b can run beside it. Round E feeds this stage: E1 ─► B10 and B14, and E3 ─► B15 ([close-sdk-gaps plan §4](close-sdk-gaps.md#4-round-e-and-its-todos)). Weighted by size, E1 → B10 (two M todos) is longer than B4 (one M todo), so E1, not B4, sits on the loop's critical path. Four todos are size L: the two adapters (B8, B9), the loop core (B11) and the raw events (B11c).

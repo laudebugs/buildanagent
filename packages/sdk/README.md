@@ -539,6 +539,23 @@ The tables in the [deep comparison](../../docs/comparison/deep-comparison.md#1-t
 | Google ADK | 114 | |
 | Cloudflare Agents | 122 | |
 
+## A reference loop shows the real loop's shape in under 400 lines
+
+[`reference-loop/reference-loop.ts`](reference-loop/reference-loop.ts) is a loop you can read in one sitting. It exports `run()` and `continueRun()`, ends a run with every stop reason of the real loop except `clarification_requested`, and imports only the public exports of `@buildanagent/gateway` and `@buildanagent/sdk`. The capstone's conformance suite runs against it on the scripted model and both mock transports, so it cannot drift into a toy: a change to the real loop that the reference no longer matches fails `test/reference-loop.test.ts`. That file also counts the loop's non-blank, non-comment lines and fails at 400, and it checks that the reference and the real loop end ten scripted runs with the same stop reason, step count and message count.
+
+Each step runs in the real loop's order: `transformContext`, `beforeModelCall`, the streamed model call, `afterModelCall`, the tools, then the stop check with `shouldStop` and the progress rule. The table maps each part to the module it simplifies.
+
+| Part of the reference loop | Real module | What the reference leaves out |
+| --- | --- | --- |
+| `run()`, `continueRun()`, `start()` | `run.ts` | Streaming events (they arrive after the run ends), `steer()`, `followUp()`, `on()`, observers, `idGenerator` de-duplication and option checks |
+| `drive()`, `step()`, `callModel()` | `loop.ts` | The raw model events, the `retry` and `warning` events, the withheld stand-in for a failed `afterModelCall`, the aborted closing message and `onFailure: "continue"` |
+| `budgetBlock()` | `budget.ts` | The unknown-price check before the first call |
+| `runCalls()`, `runCall()`, `execute()` | `tools/pipeline.ts` | Parallel calls, coercion, `repair`, raw JSON Schema validation and `clarificationTool()` |
+| `pause()`, `settle()`, `failedCheck()` | `pauses.ts`, `resume.ts` | The `recheck` option, replayed and unknown resolutions, `blockingApprovals()`, and verification under older signer keys: it signs the request again with the current key and compares |
+| `stopCheck()`, `decide()`, `stuckReason()` | `loop.ts`, `progress.ts` | The per-`progressKey` rule |
+
+The reference loop reaches `clarification_requested` through no path, because only the SDK's internals can sign a clarification request, and `createPendingRequest()` signs approvals only. Read it first, then read `loop.ts` for what a production loop adds.
+
 ## Build the SDK with its dependencies
 
 The SDK compiles against the gateway's built `dist/*.d.ts`, so build both from the repo root with `pnpm --filter "@buildanagent/sdk..." build`, which builds the gateway first. `pnpm build` builds every package in the same order. On a clean checkout, `pnpm build` or `pnpm pack` run inside `packages/sdk` fails, because the gateway has no `dist/` yet. Tests and type-checks need no build.
