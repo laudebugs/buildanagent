@@ -383,8 +383,9 @@ async function accept(state: LoopState, original: AssistantMessage): Promise<Ass
 /**
  * The wait before a turn retry of `failure`, or `undefined` when the call is not retried: turn retries are off or
  * used up, the failure is not `retryable`, the provider asked for longer than the gateway's cap, or the run was
- * aborted. A failure that would be retried but for `maxSteps` sets `retryBlockedByMaxSteps`, so the run ends
- * `max_steps` instead of `error`: every attempt counts as a step, which keeps `maxSteps` the bound on the worst case.
+ * aborted. A streak that would go on but for `maxSteps` sets `retryBlockedByMaxSteps`, so the run ends `max_steps`
+ * instead of `error`: every attempt counts as a step, which keeps `maxSteps` the bound on the worst case. A first
+ * failure on the last step has no streak to stop yet, so it ends the run `error` as it would without turn retries.
  */
 function turnRetryDelay(state: LoopState, failure: AssistantMessage, streak: number): number | undefined {
   const { turnRetries, turnRetryDelayMs, maxSteps, signal } = state.setup;
@@ -392,17 +393,29 @@ function turnRetryDelay(state: LoopState, failure: AssistantMessage, streak: num
   const hintMs = retryHintMs(failure);
   if (hintMs > MAX_RETRY_DELAY_MS || signal.aborted) return undefined;
   if (state.steps >= maxSteps) {
-    state.retryBlockedByMaxSteps = true;
+    state.retryBlockedByMaxSteps = streak > 1;
     return undefined;
   }
   return retryDelay(turnRetryDelayMs, streak, hintMs);
+}
+
+/** Waits before a turn retry. A caller's `sleep` that rejects ends the wait early instead of failing the run. */
+async function retryWait(state: LoopState, delayMs: number): Promise<void> {
+  try {
+    await state.setup.sleep(delayMs, state.setup.signal);
+  } catch (error) {
+    state.send({ type: "hook_error", hook: "sleep", error: error instanceof Error ? error.message : String(error) });
+  }
 }
 
 /**
  * Makes one model call, streams its events and records the response. A call that ends with a `retryable` error is
  * made again while turn retries last: its `model_call_end` carries the failed message, which is not recorded in the
  * transcript, and a `retry` event with `layer: "turn"` marks it superseded before the wait. Each attempt builds its
- * own request, so the interceptors and the budget check see every one, and each counts as a step.
+ * own request, so the interceptors and the budget check see every one, and each counts as a step with its own
+ * `step_start` and `step_end`. The budget is checked before the `retry` event too, with the failed attempt's request,
+ * so a run that can't afford a retry, or whose spend became unknown, ends without announcing one: the failure stays
+ * in the transcript, and the run ends `budget`, or `error` with the failure's own error.
  */
 async function callModel(state: LoopState): Promise<AssistantMessage | { readonly blocked: Outcome }> {
   for (let streak = 1; ; streak += 1) {
@@ -414,6 +427,11 @@ async function callModel(state: LoopState): Promise<AssistantMessage | { readonl
     account(state, original);
     const delayMs = turnRetryDelay(state, original, streak);
     if (delayMs === undefined) return accept(state, original);
+    const unaffordable = budgetBlock(state, request);
+    if (unaffordable !== undefined) {
+      const message = await accept(state, original);
+      return unaffordable.stopReason === "budget" ? { blocked: unaffordable } : message;
+    }
     state.send({ type: "model_call_end", message: original });
     state.send({
       type: "retry",
@@ -422,10 +440,12 @@ async function callModel(state: LoopState): Promise<AssistantMessage | { readonl
       delayMs,
       error: original.error?.message ?? "retryable error",
     });
-    await state.setup.sleep(delayMs, state.setup.signal);
+    await retryWait(state, delayMs);
     if (state.setup.signal.aborted) return { blocked: { stopReason: "aborted" } };
-    // Each model call has its own index, so the retry's events don't share the failed call's.
+    // Each model call is a step with its own index, so the retry's events don't share the failed call's.
+    state.send({ type: "step_end", stopCheck: "continue" });
     state.stepIndex = state.steps;
+    state.send({ type: "step_start" });
   }
 }
 

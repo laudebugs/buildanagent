@@ -55,3 +55,9 @@ test("abortableSleep resolves, without rejecting, once the signal aborts", async
   await waiting;
   await abortableSleep(60_000, controller.signal);
 });
+
+test("a zero initial delay stays 0 however many retries come, never NaN", () => {
+  assert.equal(retryDelay(0, 1025, 0), 0);
+  assert.equal(retryDelay(0, 5000, 300), 300);
+  assert.equal(retryDelay(1, 5000, 0), MAX_RETRY_DELAY_MS);
+});

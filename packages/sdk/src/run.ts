@@ -72,7 +72,9 @@ export interface RunOptions<S = unknown> {
    * `(retries + 1) * (turnRetries + 1)` requests. The count restarts after each call that succeeds. Only
    * `retryable` failures are retried: `overflow`, `quota` and `fatal` end the run, and so does a `retryable` failure
    * whose `error.retryAfterMs` is over the gateway's 60-second cap. A retry counts against `maxSteps`, as does the
-   * failed call, whose usage and cost go into the result; a run that `maxSteps` stops mid-streak ends `max_steps`.
+   * failed call, whose usage and cost go into the result; a run that `maxSteps` stops after a retry ends
+   * `max_steps`. With `budgetUsd` set, a retry the budget can't cover, or one after an attempt whose cost is
+   * unknown, is not made: the run ends `budget`, or `error` with the failure's own error.
    * Each retry streams a `retry` event with `layer: "turn"`.
    */
   readonly turnRetries?: number;
@@ -83,7 +85,7 @@ export interface RunOptions<S = unknown> {
   readonly turnRetryDelayMs?: number;
   /**
    * Waits between turn retries. Defaults to a timer that ends early, without rejecting, when the run is aborted; a
-   * test passes a fake to skip the wait.
+   * test passes a fake to skip the wait. A `sleep` that rejects ends the wait early and emits a `hook_error` event.
    */
   readonly sleep?: Sleep;
   /**
@@ -447,13 +449,13 @@ function progressOf(options: RunOptions<unknown>, tools: readonly AnyTool[], ski
 function turnRetriesOf(options: RunOptions<unknown>): Pick<LoopSetup, "turnRetries" | "turnRetryDelayMs" | "sleep"> {
   const turnRetries = options.turnRetries ?? 0;
   if (!Number.isInteger(turnRetries) || turnRetries < 0) {
-    throw new SdkError("invalid_run_options", `turnRetries must be a non-negative integer, got ${turnRetries}`);
+    throw new SdkError("invalid_run_options", `turnRetries must be a non-negative integer, got ${String(turnRetries)}`);
   }
   const turnRetryDelayMs = options.turnRetryDelayMs ?? DEFAULT_INITIAL_RETRY_DELAY_MS;
   if (!Number.isFinite(turnRetryDelayMs) || turnRetryDelayMs < 0 || turnRetryDelayMs > MAX_RETRY_DELAY_MS) {
     throw new SdkError(
       "invalid_run_options",
-      `turnRetryDelayMs must be a number from 0 to ${MAX_RETRY_DELAY_MS}, got ${turnRetryDelayMs}`,
+      `turnRetryDelayMs must be a number from 0 to ${MAX_RETRY_DELAY_MS}, got ${String(turnRetryDelayMs)}`,
     );
   }
   const sleep = options.sleep ?? abortableSleep;

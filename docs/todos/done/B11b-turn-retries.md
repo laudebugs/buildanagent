@@ -110,8 +110,9 @@ The loop retries a model call that ends with a `retryable` error when `run()` or
 - `@buildanagent/gateway` exports `retryDelay()`, `retryHintMs()`, `abortableSleep`, `MAX_RETRY_DELAY_MS` and `DEFAULT_INITIAL_RETRY_DELAY_MS`.
 
 **Behavior.**
-- A failed attempt ends with `model_call_end`, then a turn `retry` event follows and no `step_end`. The failed message never enters the transcript and `afterModelCall` does not see it. `transformContext`, `beforeModelCall` and the budget check run for every attempt.
-- Every attempt is a step, so a streak that reaches `maxSteps` ends `max_steps`, with the last failed message kept. Each attempt has its own `stepIndex`.
+- A failed attempt ends with `model_call_end`, then a turn `retry` event; after the wait come its `step_end` and the retry's own `step_start`. The failed message never enters the transcript and `afterModelCall` does not see it. `transformContext`, `beforeModelCall` and the budget check run for every attempt.
+- Every attempt is a step with its own `stepIndex`, so a streak that reaches `maxSteps` after a retry ends `max_steps`, with the last failed message kept; a first failure on the last step ends `error`.
+- With `budgetUsd` set, the budget is checked before the `retry` event as well: a retry it can't cover ends the run `budget` without a wait, and a failed attempt whose cost is unknown ends it `error` with that failure's own error. A `sleep` that rejects ends the wait early with a `hook_error`.
 - A failure with `retryAfterMs` over 60 s, and `overflow`, `quota` and `fatal`, are final. An abort during the wait ends the run `aborted`.
 
 **Left out.** `RunError` still omits `retryAfterMs`; the hint stays on the last assistant message in the transcript. The product of gateway and turn retries is documented, not capped.

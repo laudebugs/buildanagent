@@ -89,7 +89,8 @@ export type AgentEventBody =
    * and nothing was streamed from the failed attempt. `turn`: the loop re-issues a call that ended with a `retryable`
    * error, which `turnRetries` turns on. It comes right after that call's `model_call_end`, whose message is
    * superseded: it is not in the transcript, and a UI that rendered the call's streamed deltas should discard them,
-   * because the retry streams its own. A new `model_call_start` follows once the wait ends.
+   * because the retry streams its own. Once the wait ends, the failed call's `step_end` follows, then the retry's own
+   * `step_start` and `model_call_start` at the next `stepIndex`.
    */
   | {
       readonly type: "retry";
@@ -127,10 +128,11 @@ export type AgentEventBody =
       readonly cause: ResolutionRejectionCause;
     }
   /**
-   * An interceptor or an observer threw, or a pause could not be signed. `hook` names it (`beforeToolCall`,
-   * `observer`, `signer` and so on) and `error` is the thrown message; for `signer` it is a fixed text with the
-   * safety package's error code, never the signer's own message. The run goes on or fails by the interceptors'
-   * `onFailure` setting; a failed observer never affects it, and a call whose pause could not be signed is blocked.
+   * An interceptor or an observer threw, a pause could not be signed, or a `sleep` passed to `run()` rejected. `hook`
+   * names it (`beforeToolCall`, `observer`, `signer`, `sleep` and so on) and `error` is the thrown message; for
+   * `signer` it is a fixed text with the safety package's error code, never the signer's own message. The run goes on
+   * or fails by the interceptors' `onFailure` setting; a failed observer never affects it, a call whose pause could
+   * not be signed is blocked, and a rejected `sleep` ends the wait before a turn retry early.
    */
   | { readonly type: "hook_error"; readonly hook: string; readonly error: string }
   | { readonly type: "warning"; readonly code: WarningCode; readonly detail: string }

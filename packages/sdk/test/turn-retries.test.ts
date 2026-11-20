@@ -9,6 +9,26 @@ import { determinism, drive, lookup, scripted, text, toolCall, typesOf } from ".
 
 const SYSTEM = "You look up orders.";
 
+/** A catalog that prices the scripted model `priced`, so a run can set `budgetUsd`. */
+function pricedCatalog(): PriceCatalog {
+  const source = "https://provider.test/pricing";
+  return {
+    models: [
+      {
+        provider: "scripted",
+        id: "priced",
+        rates: [
+          { uncachedInput: 3, cacheRead: 0, cacheWrite: { "5m": 0, "1h": 0 }, output: 15, upToInputTokens: null },
+        ],
+        contextWindow: 200_000,
+        maxOutputTokens: 4000,
+        asOf: "2026-11-01",
+        sources: { rates: source, contextWindow: source, maxOutputTokens: source },
+      },
+    ],
+  };
+}
+
 type Failure = NonNullable<AssistantScript["error"]>;
 
 /** A response that streams `partial` and then ends with a `retryable` error, as a cut-off stream does. */
@@ -61,16 +81,20 @@ test("a call that streams text and then fails retryable is called again, and the
   assert.equal(result.steps, 2);
 });
 
-test("a retried turn's events end the failed call, mark it superseded, and start a new call in the same step", async () => {
+test("a retried turn's events end the failed call, mark it superseded, and start a new step for the retry", async () => {
   const { events } = await retried([cutOff(), text("Shipped.")]);
   const types = typesOf(events);
   assert.deepEqual(
     types.filter((type) => ["step_start", "step_end", "retry"].includes(type)),
-    ["step_start", "retry", "step_end"],
+    ["step_start", "retry", "step_end", "step_start", "step_end"],
   );
   const retry = types.indexOf("retry");
   assert.equal(types[retry - 1], "model_call_end");
-  assert.equal(types[retry + 1], "model_call_start");
+  assert.deepEqual(types.slice(retry + 1, retry + 4), ["step_end", "step_start", "model_call_start"]);
+  // Every step_start has a step_end with the same index.
+  const indexesOf = (type: string) => events.flatMap((event) => (event.type === type ? [event.stepIndex] : []));
+  assert.deepEqual(indexesOf("step_start"), [0, 1]);
+  assert.deepEqual(indexesOf("step_end"), [0, 1]);
   const [first, second] = events.filter((event) => event.type === "model_call_end");
   assert.equal(first?.type === "model_call_end" ? first.message.stopReason : undefined, "error");
   assert.equal(second?.type === "model_call_end" ? second.message.stopReason : undefined, "stop");
@@ -128,6 +152,25 @@ test("a retry streak counts against maxSteps, and a run it stops ends max_steps"
   assert.equal(retryEvents(events).length, 1);
   assert.ok(events.some((event) => event.type === "warning" && event.code === "max_steps"));
   assert.equal(result.context.messages.at(-1)?.role, "assistant");
+});
+
+test("a first failure on the last step ends error, as it would without turn retries", async () => {
+  const { adapter, events, result } = await retried([cutOff()], { maxSteps: 1, turnRetries: 3 });
+  assert.equal(result.stopReason, "error");
+  assert.equal(result.stopReason === "error" ? result.error.kind : undefined, "retryable");
+  assert.equal(adapter.calls.length, 1);
+  assert.equal(retryEvents(events).length, 0);
+});
+
+test("a sleep that rejects ends the wait early with a hook_error, and the retry still goes out", async () => {
+  const { adapter, events, result } = await retried([cutOff(), text("ok")], {
+    sleep: async () => {
+      throw new Error("timer disposed");
+    },
+  });
+  assert.equal(result.stopReason, "done");
+  assert.equal(adapter.calls.length, 2);
+  assert.ok(events.some((event) => event.type === "hook_error" && event.hook === "sleep"));
 });
 
 test("a retryable failure whose retry-after is over the gateway's 60-second cap is not retried and keeps its hint", async () => {
@@ -281,15 +324,32 @@ test("the budget is checked before each retry, and a failed attempt's cost count
   };
   const adapter = new ScriptedModel([{ ...cutOff(), usage: { uncachedInput: 10_000, output: 100 } }]);
   const model = createModel({ adapter, id: "priced", catalog, retries: 0 });
-  const { sleep } = fakeSleep();
+  const { sleep, waits } = fakeSleep();
   const { events, result } = await drive(
     run({ model, system: SYSTEM, input: "Go.", turnRetries: 3, budgetUsd: 0.07, sleep, ...determinism() }),
   );
   assert.equal(result.stopReason, "budget");
   assert.equal(adapter.calls.length, 1);
   assert.equal(result.usage.uncachedInput, 10_000);
-  // The failed call was superseded by a retry event, and the run ended before the retry's call.
-  assert.equal(retryEvents(events).length, 1);
+  // The budget can't cover a retry, so none is announced or waited for, and the failure stays in the transcript.
+  assert.equal(retryEvents(events).length, 0);
+  assert.deepEqual(waits, []);
+  const last = result.context.messages.at(-1);
+  assert.equal(last?.role === "assistant" ? last.stopReason : undefined, "error");
+});
+
+test("a budgeted run whose failed attempt has an unknown cost ends error with that failure, not unknown_price", async () => {
+  const adapter = new ScriptedModel([{ ...cutOff(), usage: { unreported: true } }, text("ok")]);
+  const model = createModel({ adapter, id: "priced", catalog: pricedCatalog(), retries: 0 });
+  const { sleep, waits } = fakeSleep();
+  const { events, result } = await drive(
+    run({ model, system: SYSTEM, input: "Go.", turnRetries: 3, budgetUsd: 1, sleep, ...determinism() }),
+  );
+  assert.equal(result.stopReason, "error");
+  assert.equal(result.stopReason === "error" ? result.error.kind : undefined, "retryable");
+  assert.equal(adapter.calls.length, 1);
+  assert.equal(retryEvents(events).length, 0);
+  assert.deepEqual(waits, []);
 });
 
 test("retries are not a stuck loop: the same failed-then-retried call never trips the progress check", async () => {
@@ -339,6 +399,8 @@ test("turnRetries, turnRetryDelayMs and sleep are checked", () => {
     { turnRetries: 1.5 },
     { turnRetryDelayMs: -1 },
     { turnRetryDelayMs: 60_001 },
+    { turnRetries: Symbol("x") as never },
+    { turnRetryDelayMs: Symbol("x") as never },
   ]) {
     assert.throws(
       () => run({ model, system: SYSTEM, input: "Go.", ...bad }),

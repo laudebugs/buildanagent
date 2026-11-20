@@ -232,7 +232,10 @@ export function retryHintMs(failure: AssistantMessage): number {
  * because such a failure is not retried.
  */
 export function retryDelay(initialDelayMs: number, n: number, hintMs: number): number {
-  return Math.min(Math.max(initialDelayMs * BACKOFF_FACTOR ** (n - 1), hintMs), MAX_RETRY_DELAY_MS);
+  // A power past 2 ** 1023 is Infinity, and 0 times Infinity is NaN, so a long run of retries with no initial delay
+  // would wait NaN; 2 ** 64 already puts any whole-millisecond delay over the cap.
+  const backoff = initialDelayMs * BACKOFF_FACTOR ** Math.min(n - 1, 64);
+  return Math.min(Math.max(backoff, hintMs), MAX_RETRY_DELAY_MS);
 }
 
 /** Runs `attempt(1)`, then retries per `settings`. `attempt(n)` must start a fresh request each time it is called. */
