@@ -103,8 +103,8 @@
 }
 
 /* The article column, right of the sidebar. Prose keeps the measure, so a line holds about 75 characters of body text;
-   a listing, a listing with its run, a figure, a table, tabs and a box take the whole column, wider than the prose. They clear
-   a side note floated beside the prose, so neither covers the other. */
+   a listing, a listing with its run, a figure, a table, tabs and a box take the whole column, wider than the prose.
+   They clear a side note floated beside the prose, so neither covers the other. */
 
 .chapter-body {
   display: grid;
@@ -145,7 +145,7 @@
 /* From 83rem, "On this page" moves to a 15rem rail right of the article and "All chapters" keeps the left column, so
    the prose sits between them and the space right of it holds the page's headings. 83rem is the sidebar, the rail,
    their gaps and a 52rem article, so the rail never narrows the article below the width at which a listing and its run
-   sit side by side. Listings, figures, tables and tabs stop at the article's edge, so the sticky rail, in a grid
+   sit side by side. Listings, figures, tables, tabs and boxes stop at the article's edge, so the sticky rail, in a grid
    column of its own, can never cover one. Spanning under the rail would need a script to move the rail out of the
    way. The wrapper steps aside with display: contents, and each navigation becomes a sticky grid item of its own. */
 @container layout (min-width: 83rem) {

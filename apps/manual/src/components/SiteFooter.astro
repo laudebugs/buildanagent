@@ -16,6 +16,7 @@ const links = [
         links.map((link) => (
           <a href={link.href} target="_blank" rel="noopener noreferrer">
             {link.label}
+            <span class="visually-hidden"> (opens in a new window)</span>
           </a>
         ))
       }

@@ -465,6 +465,11 @@ test("every page ends with a footer whose links to the repository and the author
       assert.ok(footer.includes(`href="${href}"`), `${path}: the footer does not link to ${href}`);
     const anchors = footer.match(/<a\b[^>]*>/g) ?? [];
     assert.equal(anchors.length, links.length, `${path}: the footer holds ${anchors.length} links`);
+    assert.equal(
+      footer.match(/\(opens in a new window\)/g)?.length,
+      links.length,
+      `${path}: a footer link lacks the screen-reader hint`,
+    );
     for (const anchor of anchors) {
       assert.match(anchor, /target="_blank"/, `${path}: ${anchor} does not open a new window`);
       assert.match(anchor, /rel="noopener noreferrer"/, `${path}: ${anchor} lacks rel="noopener noreferrer"`);
