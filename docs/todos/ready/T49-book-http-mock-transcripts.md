@@ -42,12 +42,14 @@ Let the book replay the Claude Agent SDK and Copilot SDK examples that Part I li
 - [ ] Find every id that varies between runs and normalise it, or leave the harness without transcripts and say why in its README.
 - [ ] Run each harness's `pnpm test` twice and diff the transcripts; for Copilot, do it on Linux.
 - [ ] Add each harness to `MOCK_PACKAGES`, commit the transcripts, and check that `results-drift.mjs` and `scripts/ci/transcripts.test.mjs` pass.
+- [ ] Add `replay` to Chapter 4's `#cap-claude` and Chapter 5's `#resume-claude` listings, describe what each replay shows where the chapter's prose needs it, and fact-check each change into `apps/manual/fact-checks/stopping-and-structured-output.md` and `memory-and-sessions.md`.
 - [ ] Add `--live` to both harnesses' runners, pass the key from `LIVE_API_KEY_FILE` to the CLI's child process in its allowlisted environment, deny the CLIs' host tools, and test each against `scripts/ci/live-stub.mjs` as `scripts/ci/live-run.test.mjs` tests the other five.
 
 ## Acceptance criteria
 
 - [ ] Two runs of each harness's `pnpm test` write byte-identical transcripts, and every example still passes
 - [ ] A listing of `verify/claude-agent-sdk/examples/02-custom-tool.ts` with `replay` passes `check:book`
+- [ ] Chapter 4's `#cap-claude` listing (`verify/claude-agent-sdk/examples/04-max-turns.ts`, region `max-turns`) and Chapter 5's `#resume-claude` listing (`verify/claude-agent-sdk/examples/06-resume-session.ts`, region `resume`) gain `replay`, and each chapter's fact-check log gains rows that check what its replay shows and the prose that describes it (the owner's decision, 2026-11-19: "yes, i accept these")
 - [ ] No listed region in either harness holds recorder code (`scripts/ci/transcripts.test.mjs`)
 - [ ] Both harnesses run a listed example live against the stub, with no key in any written file or log
 
@@ -59,6 +61,7 @@ Each harness's `pnpm test` for the recorder; `node --test scripts/ci/*.test.mjs`
 
 - `verify/claude-agent-sdk/README.md` and `verify/copilot-sdk/README.md`: the transcripts section, in place of "no transcript recorder yet"
 - `apps/manual/README.md`: the list of harnesses that record transcripts
+- Chapters 4 and 5 (`stopping-and-structured-output.md`, `memory-and-sessions.md`) and their fact-check logs: the two new replays
 
 ## Risks and open questions
 
