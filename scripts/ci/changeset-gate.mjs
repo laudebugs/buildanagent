@@ -151,14 +151,15 @@ export function changedStamps(stamps, read) {
 }
 
 /**
- * Lists the stamps whose file the head has but whose pattern finds no value in it, such as a hash that a reformat or
- * a type annotation moved out of the pattern's reach. The gate fails on them, because a stamp it can't read would let
+ * Lists the stamps whose pattern finds no value at head, such as a hash that a reformat or a type annotation moved
+ * out of the pattern's reach, or a file that the base has and the head moved or deleted. The gate fails on them, because a stamp it can't read would let
  * every later change of it through.
  */
 export function unreadableStamps(stamps, read) {
   return stamps.filter((stamp) => {
     const text = read(stamp.file, "head");
-    return text !== undefined && stamp.pattern.exec(text) === null;
+    if (text === undefined) return read(stamp.file, "base") !== undefined;
+    return stamp.pattern.exec(text) === null;
   });
 }
 

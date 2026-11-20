@@ -200,6 +200,8 @@ describe("changeset-gate.mjs", () => {
     assert.equal(unreadableStamps([stamp], head(`export const DEFAULTS_HASH = "${hash}";`)).length, 0);
     assert.equal(unreadableStamps([stamp], head(`export const DEFAULTS_HASH: string = "${hash}";`)).length, 1);
     assert.equal(unreadableStamps([stamp], head(undefined)).length, 0);
+    const moved = (_file, side) => (side === "base" ? `export const DEFAULTS_HASH = "${hash}";` : undefined);
+    assert.equal(unreadableStamps([stamp], moved).length, 1, "a stamp file moved or deleted at head is unreadable");
   });
 
   test("runs changeset status with an allowlisted environment", () => {

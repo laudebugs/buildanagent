@@ -213,3 +213,19 @@ test("an overloaded export keeps the doc of the overload that has one, so its @e
     rmSync(dir, { recursive: true, force: true });
   }
 });
+
+test("an exported const enum is listed under its own name, not as an export called enum", () => {
+  mkdirSync(path.join(PACKAGE_DIR, ".tmp"), { recursive: true });
+  const dir = mkdtempSync(path.join(PACKAGE_DIR, ".tmp", "const-enum-"));
+  try {
+    const file = path.join(dir, "index.d.ts");
+    writeFileSync(file, "/** Run modes. */\nexport declare const enum Mode {\n  A = 0,\n}\n");
+    const exports: Entry["exports"] = exportsOf(file);
+    assert.deepEqual(
+      exports.map((item) => item.name),
+      ["Mode"],
+    );
+  } finally {
+    rmSync(dir, { recursive: true, force: true });
+  }
+});

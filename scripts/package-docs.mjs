@@ -177,7 +177,7 @@ function docBefore(text, index) {
 }
 
 const DECLARATION =
-  /^(?:export\s+)?(?:declare\s+)?(?:abstract\s+)?(const|let|var|function|class|enum|namespace|interface|type)\s+([\w$]+)/gm;
+  /^(?:export\s+)?(?:declare\s+)?(?:abstract\s+)?(const\s+enum|const|let|var|function|class|enum|namespace|interface|type)\s+([\w$]+)/gm;
 
 /** Finds where `name` is declared, starting in `file` and following relative imports and re-exports. */
 function declarationOf(file, name, seen) {
