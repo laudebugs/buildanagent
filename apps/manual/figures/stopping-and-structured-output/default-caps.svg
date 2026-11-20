@@ -37,7 +37,8 @@ svg{--font-code:"Manual Code",ui-monospace, "SF Mono", Menlo, Consolas, monospac
 <text x="260" y="216" text-anchor="middle" class="fig-text fig-text--muted">model calls before the default cap fires (log scale)</text>
 </g>
 <g id="default-caps--caps">
-<text x="40" y="146" class="fig-text">generateText: 1</text>
+<text x="40" y="130" class="fig-text">generateText and</text>
+<text x="40" y="146" class="fig-text">AIChatAgent: 1</text>
 <path d="M40 152 L40 165" class="fig-line fig-line--muted fig-line--dashed"/>
 <circle cx="40" cy="170" r="4" class="fig-terracotta"/>
 <text x="203.03" y="40" class="fig-text">OpenAI run() and Think: 10</text>

@@ -1,5 +1,6 @@
 // Chapter 4's figure of the SDKs' default caps on one logarithmic scale of model calls. The values are the defaults
-// in the harness pins of November 2026: generateText's isStepCount(1), OpenAI's maxTurns of 10, Cloudflare Think's
+// in the harness pins of November 2026: generateText's isStepCount(1), which AIChatAgent inherits because it sets no
+// cap and runs the streamText call your onChatMessage makes, OpenAI's maxTurns of 10, Cloudflare Think's
 // maxSteps of 10, LangChain's recursion limit of 25 super-steps (13 model calls in
 // verify/langchain/examples/06-recursion-limit.ts), ToolLoopAgent's isStepCount(20) and ADK's maxLlmCalls of 500.
 import { Figure } from "../lib/svgkit.js";
@@ -42,12 +43,15 @@ export default function draw(): Figure {
     // Each label sits on its own row, left-aligned on its mark and higher for marks further left, so no leader
     // line crosses another mark's label. ADK's label ends on its mark instead, at the scale's right end.
     const caps = [
-      { calls: 1, row: 146, label: "generateText: 1", anchor: "start" },
+      { calls: 1, row: 146, label: "AIChatAgent: 1", anchor: "start" },
       { calls: 10, row: 40, label: "OpenAI run() and Think: 10", anchor: "start" },
       { calls: 13, row: 72, label: "LangChain createAgent: 13", anchor: "start" },
       { calls: 20, row: 104, label: "ToolLoopAgent: 20", anchor: "start" },
       { calls: 500, row: 136, label: "Google ADK: 500", anchor: "end" },
     ] as const;
+    // The mark at 1 serves two entry points, so its label takes two lines to stay clear of the leader lines at 10,
+    // 13 and 20.
+    figure.text({ x: at(1), y: 130 }, "generateText and", { anchor: "start", tone: "text" });
     for (const cap of caps) {
       const x = at(cap.calls);
       figure.text({ x, y: cap.row }, cap.label, { anchor: cap.anchor, tone: "text" });
