@@ -27,7 +27,7 @@ Let a caller opt in to the provider's own stream events beside the normalized on
 
 **In scope**
 
-- A gateway option that asks an adapter for raw events, and a `raw` member of `ModelEvent` that carries the provider's parsed event unchanged
+- A gateway option that asks an adapter for raw events, and a `raw` member of `ModelEvent` that carries the provider's event unchanged
 - Both adapters emitting it: the Anthropic adapter and the OpenAI Chat adapter, each for every wire event it parses
 - `createModel()`, the retry layer and `complete()` passing `raw` through, with `complete()` ignoring it
 - The stream contract and `assertStreamContract()` accepting `raw` anywhere between `start` and the terminal event, and `ScriptedModel` able to emit it
@@ -89,8 +89,8 @@ Gateway: `packages/gateway/test/raw-events.test.ts` for the option, `createModel
 - [x] Prose drafted with `/anthropic-skills:writing`, and changed claims re-checked against their sources
 - [x] `pnpm check`, `pnpm typecheck` and `pnpm test` pass locally; pushed after each meaningful step
 - [x] This file moved `ongoing/` → `done/` (Status `done`) in the last work commit, and the plan's todo table updated
-- [ ] Two code-review rounds run on the pull request (`/code-review high --max-findings default`, then `medium` and `low` after more than 6 confirmed findings, otherwise `low`), with every finding fixed or explained in a commit message
-- [ ] Copy reviewed with `/anthropic-skills:writing-review` after the code changes, with its findings fixed and the rubric scores in the pull request description
+- [x] Two code-review rounds run on the pull request (`/code-review high --max-findings default`, then `medium` and `low` after more than 6 confirmed findings, otherwise `low`), with every finding fixed or explained in a commit message
+- [x] Copy reviewed with `/anthropic-skills:writing-review` after the code changes, with its findings fixed and the rubric scores in the pull request description
 
 ## Outcome
 

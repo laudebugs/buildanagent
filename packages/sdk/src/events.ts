@@ -85,12 +85,13 @@ export type AgentEventBody =
   | { readonly type: "context_transformed"; readonly before: number; readonly after: number }
   /**
    * A failed model call is being retried; `attempt` is 1 for the first retry. `layer` says which retry it is.
-   * `gateway`: the model retries an HTTP request that failed before any output; its events follow `model_call_start`
+   * `gateway`: the model retries an HTTP request that failed before any output. Its events follow `model_call_start`,
    * and the failed attempt streamed no output, only any `raw` events, which this event supersedes. `turn`: the loop
-   * re-issues a call that ended with a `retryable` error, which `turnRetries` turns on. It comes right after that
-   * call's `model_call_end`, whose message is superseded: it is not in the transcript, and a UI that rendered the
-   * call's streamed deltas or kept its `raw` events should discard them, because the retry streams its own. Once the wait ends, the failed call's `step_end` follows, then the retry's own
-   * `step_start` and `model_call_start` at the next `stepIndex`.
+   * re-issues a call that ended with a `retryable` error, which `turnRetries` turns on. This event comes right after
+   * that call's `model_call_end`, whose message is superseded: it is not in the transcript. A UI that rendered the
+   * call's streamed deltas or kept its `raw` events should discard them, because the retry streams its own. Once the
+   * wait ends, the failed call's `step_end` follows, then the retry's own `step_start` and `model_call_start` at the
+   * next `stepIndex`.
    */
   | {
       readonly type: "retry";
