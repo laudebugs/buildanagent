@@ -3,7 +3,7 @@
 | Field | Value |
 | --- | --- |
 | ID | `B11b` |
-| Status | `ongoing` |
+| Status | `done` |
 | Plan | [Build SDK §4, Stage 3](../../plans/build-sdk.md#43-stage-3-builds-the-loop-its-tools-hooks-budget-and-signed-pauses) |
 | Round / milestone | Round B (build SDK), M5 |
 | Depends on | [B11](../done/B11-loop-core.md) |
@@ -47,30 +47,30 @@ Let the loop retry a model call whose `retryable` error ended the turn, so a mid
 
 ## Tasks
 
-- [ ] Decide the open questions in Risks, record each as a note on the plan's §3.3 revision (the new `RunOptions` settings, `sleep` included, and the `retry` event), and add an ADR only if the retry default is a lasting choice.
-- [ ] Export the backoff helper and `abortableSleep` from `@buildanagent/gateway`, with TSDoc, a gateway README note and a gateway changeset.
-- [ ] Add the retry count and `sleep` to `RunOptions`, with TSDoc comments that give the defaults and say what is retried.
-- [ ] In the step loop, when the model call ends `error` with kind `retryable`, wait, drop the failed message and call the model again, until the count runs out.
-- [ ] Add each failed attempt's usage and cost to the result's totals, using `addCost()` and the gateway's usage helpers.
-- [ ] Extend the `retry` event so a caller can tell a turn retry from a gateway retry, and update `AGENT_EVENT_TYPES` and the type test if the union changes.
-- [ ] Make the backoff sleep abortable, and end the run `aborted` when the signal fires during it.
-- [ ] Write the tests below with `ScriptedModel`, using the stable `clock` and a scripted sleep so no test waits.
-- [ ] Update the SDK README and the plan's todo table.
+- [x] Decide the open questions in Risks, record each as a note on the plan's §3.3 revision (the new `RunOptions` settings, `sleep` included, and the `retry` event), and add an ADR only if the retry default is a lasting choice.
+- [x] Export the backoff helper and `abortableSleep` from `@buildanagent/gateway`, with TSDoc, a gateway README note and a gateway changeset.
+- [x] Add the retry count and `sleep` to `RunOptions`, with TSDoc comments that give the defaults and say what is retried.
+- [x] In the step loop, when the model call ends `error` with kind `retryable`, wait, drop the failed message and call the model again, until the count runs out.
+- [x] Add each failed attempt's usage and cost to the result's totals, using `addCost()` and the gateway's usage helpers.
+- [x] Extend the `retry` event so a caller can tell a turn retry from a gateway retry, and update `AGENT_EVENT_TYPES` and the type test if the union changes.
+- [x] Make the backoff sleep abortable, and end the run `aborted` when the signal fires during it.
+- [x] Write the tests below with `ScriptedModel`, using the stable `clock` and a scripted sleep so no test waits.
+- [x] Update the SDK README and the plan's todo table.
 
 ## Acceptance criteria
 
-- [ ] A model call that streams text and then fails `retryable` is called again, and the run ends `done` when the second call succeeds, with the failed message absent from `result.context.messages`
-- [ ] A `retryable` failure that never succeeds, with `maxSteps` large enough, ends the run `error` after exactly the configured number of retries, and `error.kind` is `retryable`
-- [ ] When `maxSteps` runs out during a retry streak, the run ends as the decided `maxSteps` rule says (`max_steps` if retries count against it), and a test covers that case
-- [ ] A `retryable` failure whose `retryAfterMs` is over the gateway's 60 s cap is not retried at the turn level, and the run ends `error` with the hint kept
-- [ ] The events for a retried turn follow the documented sequence, and every assistant message that a `model_call_end` carries without a retry after it is in `result.context.messages`, so the event log and the result agree
-- [ ] `overflow`, `quota` and `fatal` errors are never retried at the turn level
-- [ ] With the setting at its off value, behavior matches B11: the run ends `error` on the first failure
-- [ ] The result's `usage` and `cost` include every failed attempt
-- [ ] An abort during the backoff ends the run `aborted`, with a transcript that satisfies B11's abort rules and `agent_settled` just before `run_end`
-- [ ] A turn retry emits a `retry` event that a caller can tell from a gateway retry, and the teardown check passes
-- [ ] A retried turn does not run any tool twice: a scripted run records zero tool calls from the failed attempt
-- [ ] `pnpm check`, `pnpm typecheck` and `pnpm test` pass offline from the repo root
+- [x] A model call that streams text and then fails `retryable` is called again, and the run ends `done` when the second call succeeds, with the failed message absent from `result.context.messages`
+- [x] A `retryable` failure that never succeeds, with `maxSteps` large enough, ends the run `error` after exactly the configured number of retries, and `error.kind` is `retryable`
+- [x] When `maxSteps` runs out during a retry streak, the run ends as the decided `maxSteps` rule says (`max_steps` if retries count against it), and a test covers that case
+- [x] A `retryable` failure whose `retryAfterMs` is over the gateway's 60 s cap is not retried at the turn level, and the run ends `error` with the hint kept
+- [x] The events for a retried turn follow the documented sequence, and every assistant message that a `model_call_end` carries without a retry after it is in `result.context.messages`, so the event log and the result agree
+- [x] `overflow`, `quota` and `fatal` errors are never retried at the turn level
+- [x] With the setting at its off value, behavior matches B11: the run ends `error` on the first failure
+- [x] The result's `usage` and `cost` include every failed attempt
+- [x] An abort during the backoff ends the run `aborted`, with a transcript that satisfies B11's abort rules and `agent_settled` just before `run_end`
+- [x] A turn retry emits a `retry` event that a caller can tell from a gateway retry, and the teardown check passes
+- [x] A retried turn does not run any tool twice: a scripted run records zero tool calls from the failed attempt
+- [x] `pnpm check`, `pnpm typecheck` and `pnpm test` pass offline from the repo root
 
 ## Tests
 
@@ -94,8 +94,26 @@ Let the loop retry a model call whose `retryable` error ended the turn, so a mid
 ## Definition of done
 
 - [x] Claimed: the first commit moved this file `ready/` → `ongoing/` (Status `ongoing`)
-- [ ] Prose drafted with `/anthropic-skills:writing`, and changed claims re-checked against their sources
-- [ ] `pnpm check`, `pnpm typecheck` and `pnpm test` pass locally; pushed after each meaningful step
-- [ ] This file moved `ongoing/` → `done/` (Status `done`) in the last work commit, and the plan's todo table updated
+- [x] Prose drafted with `/anthropic-skills:writing`, and changed claims re-checked against their sources
+- [x] `pnpm check`, `pnpm typecheck` and `pnpm test` pass locally; pushed after each meaningful step
+- [x] This file moved `ongoing/` → `done/` (Status `done`) in the last work commit, and the plan's todo table updated
 - [ ] Two code-review rounds run on the pull request (`/code-review high --max-findings default`, then `medium` and `low` after more than 6 confirmed findings, otherwise `low`), with every finding fixed or explained in a commit message
 - [ ] Copy reviewed with `/anthropic-skills:writing-review` after the code changes, with its findings fixed and the rubric scores in the pull request description
+
+## Outcome
+
+The loop retries a model call that ends with a `retryable` error when `run()` or `continueRun()` gets `turnRetries`; the default is 0, so behavior matches B11. The owner decided on 2026-11-19 that retries are off by default and count against `maxSteps`, and the other open questions were settled as proposed (see Risks).
+
+**Public API.**
+- `RunOptions.turnRetries` (default 0), `turnRetryDelayMs` (default 2000, doubling, capped at 60 s, or the failure's `retryAfterMs` when longer) and `sleep` (the gateway's `Sleep`).
+- The `retry` event gains a required `layer: "gateway" | "turn"`. No event type is added, so `AGENT_EVENT_TYPES` is unchanged.
+- `@buildanagent/gateway` exports `retryDelay()`, `retryHintMs()`, `abortableSleep`, `MAX_RETRY_DELAY_MS` and `DEFAULT_INITIAL_RETRY_DELAY_MS`.
+
+**Behavior.**
+- A failed attempt ends with `model_call_end`, then a turn `retry` event follows and no `step_end`. The failed message never enters the transcript and `afterModelCall` does not see it. `transformContext`, `beforeModelCall` and the budget check run for every attempt.
+- Every attempt is a step, so a streak that reaches `maxSteps` ends `max_steps`, with the last failed message kept. Each attempt has its own `stepIndex`.
+- A failure with `retryAfterMs` over 60 s, and `overflow`, `quota` and `fatal`, are final. An abort during the wait ends the run `aborted`.
+
+**Left out.** `RunError` still omits `retryAfterMs`; the hint stays on the last assistant message in the transcript. The product of gateway and turn retries is documented, not capped.
+
+Tests: `packages/sdk/test/turn-retries.test.ts` (one case per criterion, plus the OTel, type and gateway-helper tests).
