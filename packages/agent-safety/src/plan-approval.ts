@@ -459,12 +459,12 @@ async function signatureHolds(signer: ApprovalSigner, record: PlanApproval): Pro
  * so no step passes twice and none passes before the steps ahead of it. A failed check claims nothing.
  *
  * The ledger records that a step passed this check, not that it ran. So `"ok"` for a step after the pivot means the
- * pivot passed, not that its write succeeded, and a second check of a step up to the pivot can return
+ * pivot passed, not that its write succeeded. A second check of a step up to the pivot can also return
  * `"stale_approval"` or `"expired"` before the ledger can answer `"replayed"`. Track which steps ran yourself, run the
  * next step only after the last one succeeded, and never compensate once the pivot has run.
  *
- * It returns the first failure it finds and never throws for a bad record or call. It rejects only when `readState`
- * or the ledger rejects, and then the step must not run either.
+ * It returns the first failure it finds. It never throws for a bad record or call, and a signer that throws counts as
+ * `"tampered"`. It rejects only when `readState` or the ledger rejects, and then the step must not run either.
  */
 export async function verifyPlanBeforeStep(
   approval: unknown,
