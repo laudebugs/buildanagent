@@ -1,5 +1,15 @@
 # @buildanagent/sdk
 
+## 0.1.0-alpha.18
+
+### Minor Changes
+
+- c89c076: Breaking Changes: `SafetyErrorCode` gains `invalid_plan`, the code the safety package throws for a plan approval it can't sign or show, such as one whose steps are out of order. The SDK never throws it, but a `switch` over every code now needs a case for it.
+
+### Patch Changes
+
+- @buildanagent/gateway@0.1.0-alpha.18
+
 ## 0.1.0-alpha.17
 
 ### Minor Changes
