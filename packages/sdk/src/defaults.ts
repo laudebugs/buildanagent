@@ -9,6 +9,7 @@
  * values. The write-outcome sentences belong to the vendored safety package, so they stay in its files, and
  * `hashedDefaults()` renders one outcome for every kind and retry rule to cover them too.
  */
+import { DEFAULT_INITIAL_RETRY_DELAY_MS } from "@buildanagent/gateway";
 import {
   ALLOWED_RETRIES,
   OUTCOME_KINDS,
@@ -37,6 +38,10 @@ export const SDK_DEFAULTS = deepFreeze({
     observerTimeoutMs: 10_000,
     /** What a hook that throws does (D6). */
     onFailure: "fail_closed",
+    /** How many times the loop re-issues a call that ended with a `retryable` error: none, so the run ends `error`. */
+    turnRetries: 0,
+    /** The wait before the first turn retry, the same as the gateway's before its first retry. */
+    turnRetryDelayMs: DEFAULT_INITIAL_RETRY_DELAY_MS,
   },
   /** The default progress policy's thresholds (D11), provisional until recorded runs retune them. */
   progress: { maxIdenticalFailures: 3, maxSameKeyCalls: 5 },
@@ -98,7 +103,7 @@ export const SDK_DEFAULTS = deepFreeze({
  * default does, and each such change is named in the changelog, so a stored run shows whether new behaviour came with
  * new defaults or from the model.
  */
-export const DEFAULTS_HASH = "d89cad8c8cdf653f21490ac0cfbfbddd9b6d5143cb8250c21a48cf5e9020d9b9";
+export const DEFAULTS_HASH = "8d3cf9cc886e1ea1a184a24ffe0f7e77fcd72ebc96bb40cc94d4c669ca02edb0";
 
 /**
  * Fills a template's `{name}` slots in one pass, so a value that itself holds `{name}` is copied, not filled again.

@@ -33,6 +33,7 @@ The sections of README.md and every public export, generated from this package's
 
 ## Exports from `@buildanagent/gateway`
 
+- `abortableSleep`: The gateway's default `Sleep`: a timer that resolves early, without rejecting, when the signal aborts.
 - `addCost()`: Adds two costs, such as the costs of two model calls.
 - `addUsage()`: Adds two usage records; the result keeps the second record's `raw`.
 - `assertCanonicalName()`: Throws a `GatewayError` with code `invalid_tool_name` unless `name` meets the canonical rule, 1 to 64 characters from `A-Z`, `a-z`, `0-9`, `_` and `-`.
@@ -49,6 +50,7 @@ The sections of README.md and every public export, generated from this package's
 - `createModel()`: Creates a model from an adapter object and a model id.
 - `interface CreateModelOptions`: What `createModel()` takes.
 - `createToolNameMap()`: Creates the map between canonical names and the wire names of the protocol that `rule` describes.
+- `DEFAULT_INITIAL_RETRY_DELAY_MS`: The wait before the first retry when a caller sets none, in milliseconds; each later retry waits twice as long.
 - `defaultCatalog`: The catalog that ships with the gateway.
 - `type DumpedOptions`: The stream options a request dump records: everything except the abort signal and the payload hook.
 - `emptyUsage()`: A usage record with every count at zero.
@@ -62,6 +64,7 @@ The sections of README.md and every public export, generated from this package's
 - `isCanonicalName()`: True when `name` meets the canonical tool-name rule.
 - `isGatewayError()`: True for a `GatewayError`, including one from another copy of the package.
 - `isMockTransport()`
+- `MAX_RETRY_DELAY_MS`: The longest wait before one retry, in milliseconds.
 - `type Message`
 - `interface MiddlewareParams`: The request a middleware may rewrite: the context and the stream options.
 - `interface Model`: A model bound to one adapter and id, with the gateway's retries, middleware and request dump around it.
@@ -88,6 +91,8 @@ The sections of README.md and every public export, generated from this package's
 - `interface RequestDump`: The full request of one HTTP request of an attempt, as `onRequest` receives it.
 - `interface ResolvedProviderConfig`: A `ProviderConfig` with every default filled in.
 - `resolveProviderConfig()`: Checks a provider config and fills in its defaults.
+- `retryDelay()`: The wait before retry `n`, counted from 1, in milliseconds: the exponential backoff from `initialDelayMs`, or the provider's hint (`retryHintMs()`) when it asks for longer, capped at `MAX_RETRY_DELAY_MS`.
+- `retryHintMs()`: The wait a failed call's provider asked for, in milliseconds: `error.retryAfterMs`, or 0 when there is none.
 - `type Sleep`: Waits `ms` milliseconds, or less if `signal` aborts first.
 - `staleCatalogEntries()`: The entries whose `asOf` date is more than `maxAgeDays` days before `now`.
 - `class StreamContractError`: Thrown by `assertStreamContract()` at the first event that breaks the stream rule.

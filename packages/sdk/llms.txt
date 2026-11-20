@@ -9,6 +9,7 @@ The sections of README.md and every public export, generated from this package's
 - [Install the alpha with `pnpm add @buildanagent/sdk@alpha`](README.md#install-the-alpha-with-pnpm-add-buildanagentsdkalpha)
 - [Run an agent with `run()`](README.md#run-an-agent-with-run)
   - [Every run ends with a stop reason](README.md#every-run-ends-with-a-stop-reason)
+  - [Three layers retry a failed model call, and the SDK's is off by default](README.md#three-layers-retry-a-failed-model-call-and-the-sdks-is-off-by-default)
   - [`runOrThrow()` turns an unfinished run into an exception](README.md#runorthrow-turns-an-unfinished-run-into-an-exception)
   - [Continue a conversation with `continueRun()`](README.md#continue-a-conversation-with-continuerun)
   - [Abort a run with `run.abort()` or a signal](README.md#abort-a-run-with-runabort-or-a-signal)

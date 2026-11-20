@@ -6,7 +6,6 @@
 import {
   abortableSleep,
   type ContentBlock,
-  DEFAULT_INITIAL_RETRY_DELAY_MS,
   MAX_RETRY_DELAY_MS,
   type Message,
   type Model,
@@ -445,11 +444,11 @@ function progressOf(options: RunOptions<unknown>, tools: readonly AnyTool[], ski
 
 /** Checks the turn-retry options and fills in their defaults. */
 function turnRetriesOf(options: RunOptions<unknown>): Pick<LoopSetup, "turnRetries" | "turnRetryDelayMs" | "sleep"> {
-  const turnRetries = options.turnRetries ?? 0;
+  const turnRetries = options.turnRetries ?? SDK_DEFAULTS.run.turnRetries;
   if (!Number.isInteger(turnRetries) || turnRetries < 0) {
     throw new SdkError("invalid_run_options", `turnRetries must be a non-negative integer, got ${String(turnRetries)}`);
   }
-  const turnRetryDelayMs = options.turnRetryDelayMs ?? DEFAULT_INITIAL_RETRY_DELAY_MS;
+  const turnRetryDelayMs = options.turnRetryDelayMs ?? SDK_DEFAULTS.run.turnRetryDelayMs;
   if (!Number.isFinite(turnRetryDelayMs) || turnRetryDelayMs < 0 || turnRetryDelayMs > MAX_RETRY_DELAY_MS) {
     throw new SdkError(
       "invalid_run_options",
