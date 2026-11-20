@@ -58,7 +58,7 @@ Finish the `testing` exports so users of the SDK, and the harness, can test agen
 
 Record and replay must never capture real credentials; the header strip is tested.
 
-Recordings hold no `raw` provider events ([B11c](../ongoing/B11c-raw-provider-events.md)): they sit outside the normalized boundary, so the "same event log" check compares the log without them.
+Recordings hold no `raw` provider events ([B11c](B11c-raw-provider-events.md)): they sit outside the normalized boundary, so the "same event log" check compares the log without them.
 
 ## Definition of done
 
@@ -73,7 +73,7 @@ Both `testing` exports are complete. The SDK's `@buildanagent/sdk/testing` adds 
 
 Decisions:
 
-- **Record and replay work on events, not on an `AssistantScript`.** A pair's response is a `StreamScript`, the call's normalised events from `start` to its terminal. `ScriptedModel` plays a `StreamScript` exactly as recorded, because an adapter's chunking and block order, such as parallel tool calls, can't be rebuilt from final content. `retry` events stay out, because a replay can't reproduce them, and so does any event outside the model spec, which covers [B11c](../ongoing/B11c-raw-provider-events.md)'s `raw` events once they exist. `usage.raw` is the provider's usage object, not an event, so it stays and replays unchanged.
+- **Record and replay work on events, not on an `AssistantScript`.** A pair's response is a `StreamScript`, the call's normalised events from `start` to its terminal. `ScriptedModel` plays a `StreamScript` exactly as recorded, because an adapter's chunking and block order, such as parallel tool calls, can't be rebuilt from final content. `retry` events stay out, because a replay can't reproduce them, and so does any event outside the model spec, which covers [B11c](B11c-raw-provider-events.md)'s `raw` events once they exist. `usage.raw` is the provider's usage object, not an event, so it stays and replays unchanged.
 - **The stamp is filled in by the recorder.** `recordPairs(model, { providerVersion, expiresAt, clock? })` takes only what it can't know, and stamps the SDK version and the model's API, provider, id and caps itself. The caps let the replay report the recorded model's limits when the catalog lacks it.
 - **A replay refuses four kinds of drift.** It throws `RecordingError` for an expired recording, pairs whose stamps differ, a stamp field that differs from `expect`, and an SDK on another release line (the minor version under 0.x, the major from 1.0). A request that differs from the recorded one fails that call, and `ReplayModel.assertComplete()` rethrows the error with the first differing path. Requiring the exact SDK version would break every committed fixture on each alpha release.
 - **Credentials are left out by name, at any depth.** `stripCredentials()` drops every property named `authorization`, `proxy-authorization`, `x-api-key`, `api-key`, `x-goog-api-key`, `cf-aig-authorization`, `cookie`, `set-cookie` or `apiKey`, compared without case, hyphens or underscores, from the request's options. Review widened the names to any ending in `apiKey`, `authorization`, `token`, `secret` or `password`. The conversation and model output stay exact, so a replay reproduces them. The mock server keeps the header names and writes `[redacted]` as their values, so a test can still see that a header was sent. The replay strips the incoming request the same way before it compares.
