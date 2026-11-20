@@ -52,7 +52,9 @@ export interface RecordedRequest {
 
 /**
  * A response played back event for event, such as one `recordPairs()` captured from a real model. `events` must start
- * with `start` and end with its only terminal, `done` or `error`; the abort signal is checked between events.
+ * with `start` and end with its only terminal, `done` or `error`; the abort signal is checked between events. Its
+ * `raw` events play only when the call set `includeRaw`, as a wire adapter streams them, so one script tests a caller
+ * with the option on and off.
  */
 export interface StreamScript {
   readonly events: readonly ModelEvent[];
@@ -156,11 +158,16 @@ function checkStreamScript(script: StreamScript): void {
   }
 }
 
-/** Plays a stream script's events as copies; an abort ends it with the blocks that had ended so far. */
-async function* playEvents(script: StreamScript, model: ModelRef, signal: AbortSignal | undefined) {
+/**
+ * Plays a stream script's events as copies, its `raw` events only with `includeRaw`; an abort ends it with the
+ * blocks that had ended so far.
+ */
+async function* playEvents(script: StreamScript, model: ModelRef, options: StreamOptions) {
   checkStreamScript(script);
+  const { signal } = options;
   const ended: ContentBlock[] = [];
   for (const event of script.events) {
+    if (event.type === "raw" && options.includeRaw !== true) continue;
     if (signal?.aborted && event.type !== "start") {
       const run: RunState = { model, content: ended, usage: unreportedUsage() };
       yield { type: "error", message: messageOf(run, "aborted") } satisfies ModelEvent;
@@ -227,7 +234,7 @@ export class ScriptedModel implements ModelAdapter {
     const request: RecordedRequest = deepFreeze(structuredClone({ model, context, options: recordedOptions(options) }));
     this.#calls.push(request);
     this.#used += 1;
-    return this.#run(step, request, options.signal);
+    return this.#run(step, request, options);
   }
 
   // The error surfaces when the caller reads the stream, like any other stream failure, not when it calls stream().
@@ -239,12 +246,13 @@ export class ScriptedModel implements ModelAdapter {
     return { [Symbol.asyncIterator]: () => ({ next: () => Promise.reject(error) }) };
   }
 
-  async *#run(step: ScriptStep, request: RecordedRequest, signal: AbortSignal | undefined): AsyncGenerator<ModelEvent> {
+  async *#run(step: ScriptStep, request: RecordedRequest, options: StreamOptions): AsyncGenerator<ModelEvent> {
     const script = typeof step === "function" ? await step(request) : step;
     if ("events" in script) {
-      yield* playEvents(script, request.model, signal);
+      yield* playEvents(script, request.model, options);
       return;
     }
+    const { signal } = options;
     const usage = script.usage === undefined ? unreportedUsage() : { ...emptyUsage(), ...script.usage, raw: null };
     const run: RunState = { model: request.model, content: [], usage };
     yield { type: "start" };

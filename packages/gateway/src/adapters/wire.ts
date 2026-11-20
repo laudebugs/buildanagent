@@ -214,9 +214,25 @@ export interface StreamReader {
   ended(): ModelEvent[];
 }
 
-/** Feeds each server-sent event to the reader; returns true once it has yielded the terminal. */
-async function* pump(body: ReadableStream<Uint8Array>, reader: StreamReader): AsyncGenerator<ModelEvent, boolean> {
+/**
+ * The `raw` event for one server-sent event: a fresh `{ event, data }`, so a caller that changes it can't change what
+ * the reader parses.
+ */
+function rawEvent(sse: ServerSentEvent): Extract<ModelEvent, { type: "raw" }> {
+  return { type: "raw", event: { event: sse.event, data: sse.data } };
+}
+
+/**
+ * Feeds each server-sent event to the reader; returns true once it has yielded the terminal. With `includeRaw`, each
+ * server-sent event is yielded as a `raw` event first, so the caller sees it even when the reader then fails on it.
+ */
+async function* pump(
+  body: ReadableStream<Uint8Array>,
+  reader: StreamReader,
+  includeRaw: boolean,
+): AsyncGenerator<ModelEvent, boolean> {
   for await (const sse of readServerSentEvents(body)) {
+    if (includeRaw) yield rawEvent(sse);
     for (const event of reader.handle(sse)) {
       yield event;
       if (event.type === "done" || event.type === "error") return true;
@@ -225,19 +241,23 @@ async function* pump(body: ReadableStream<Uint8Array>, reader: StreamReader): As
   return false;
 }
 
-/** Reads a 200 stream to its terminal. A stream that breaks or ends early ends in an `error` terminal. */
+/**
+ * Reads a 200 stream to its terminal. A stream that breaks or ends early ends in an `error` terminal. `options`
+ * gives the abort signal and `includeRaw`.
+ */
 export async function* readEventStream(
   response: Response,
   model: ModelRef,
   reader: StreamReader,
-  signal: AbortSignal | undefined,
+  options: Pick<StreamOptions, "signal" | "includeRaw">,
 ): AsyncGenerator<ModelEvent> {
+  const { signal } = options;
   if (response.body === null) {
     yield failureTerminal(model, { message: "the response has no body" }, {});
     return;
   }
   try {
-    if (yield* pump(response.body, reader)) return;
+    if (yield* pump(response.body, reader, options.includeRaw === true)) return;
   } catch (thrown) {
     // A broken connection may work on a retry; malformed event data, a SyntaxError, will not parse on one either.
     yield signal?.aborted ? abortedEvent(model, reader.partial()) : thrownTerminal(model, thrown, reader.partial());

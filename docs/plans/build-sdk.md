@@ -1,6 +1,6 @@
 # Plan: build our agent SDK as two workspace packages, a gateway and a loop, in 26 todos tested offline against a scripted model
 
-- **Status:** Draft (P1, 2026-11-18), revised on 2026-11-18 with the fixes from the [P4 review](reviews/plan-review.md), and on 2026-11-18 for three deployment targets: notes in D5 and D7, and tasks added to B10 and B17 ([ADR 0033](../decisions/0033-three-deployment-targets.md)). Revised on 2026-11-19 (plan review 2) to apply [ADR 0043](../decisions/0043-standalone-safety-core.md) and the [close-sdk-gaps plan](close-sdk-gaps.md): the signer, the input hash and the pending record now come from `@buildanagent/agent-safety`, the cost projection from the gateway, and Round E feeds B10, B14 and B15. Revised on 2026-11-19 from the voice (U20) and fine-tuning (U21) research, whose proposed changes the owner approved that day (owner decision 2026-11-19): §1 gains two non-goals, audio and realtime sessions and model training, and §4.5 adds B21 and B22 for the price catalog. Revised on 2026-11-19 after B11: §4.3 adds B11b (turn-level retries) and B11c (raw provider events), two follow-ups that B11's outcome left without an owner.
+- **Status:** Draft (P1, 2026-11-18), revised on 2026-11-18 with the fixes from the [P4 review](reviews/plan-review.md), and on 2026-11-18 for three deployment targets: notes in D5 and D7, and tasks added to B10 and B17 ([ADR 0033](../decisions/0033-three-deployment-targets.md)). Revised on 2026-11-19 (plan review 2) to apply [ADR 0043](../decisions/0043-standalone-safety-core.md) and the [close-sdk-gaps plan](close-sdk-gaps.md): the signer, the input hash and the pending record now come from `@buildanagent/agent-safety`, the cost projection from the gateway, and Round E feeds B10, B14 and B15. Revised on 2026-11-19 from the voice (U20) and fine-tuning (U21) research, whose proposed changes the owner approved that day (owner decision 2026-11-19): §1 gains two non-goals, audio and realtime sessions and model training, and §4.5 adds B21 and B22 for the price catalog. Revised on 2026-11-19 after B11: §4.3 adds B11b (turn-level retries) and B11c (raw provider events), two follow-ups that B11's outcome left without an owner. Revised on 2026-11-20 by B11c: §3.2 and §3.3 record the `raw` event and `includeRaw`, which stay under `specificationVersion: "v1"` (owner decision 2026-11-19).
 - **Date:** 2026-11-18
 - **Asked for by:** the project owner (2026-11-18), through the [implementation plans](implementation-plans.md#2-what-each-plan-contains)
 - **Builds on:** the [agent-SDK guide][g] (G1b), its [reference architecture][g11] and its [twelve open decisions][g12], plus the six seams that the [harness guide §1][hg1] needs from the SDK
@@ -285,6 +285,7 @@ type ModelEvent =
   | { type: "text_delta" | "reasoning_delta" | "tool_input_delta"; index: number; delta: string }
   | { type: "text_end" | "reasoning_end" | "tool_input_end"; index: number; block: ContentBlock }
   | { type: "warning"; code: string; message: string } // added in B8: a dropped option or an HD3 rule 5 entry; not output
+  | { type: "raw"; event: unknown }                // added in B11c: one provider event, only with includeRaw; not output
   | { type: "done"; message: AssistantMessage }    // exactly one terminal event
   | { type: "error"; message: AssistantMessage };  // stopReason "error" | "aborted"
 interface StreamOptions {
@@ -293,6 +294,7 @@ interface StreamOptions {
   cacheRetention?: "none" | "short" | "long";      // one portable caching policy
   providerOptions?: Record<string, unknown>;       // escape hatch only
   onPayload?(body: unknown): unknown;              // inspect or replace the request body
+  includeRaw?: boolean;                            // added in B11c: also stream raw events; default off
 }
 
 // Gateway runtime (SDK decisions 4, 13; guide §9): an explicit provider, never a bare id or ambient credentials
@@ -334,6 +336,8 @@ declare function startMockServer(options: { api: string; script: WireScript; log
 declare function assertStreamContract(events: AsyncIterable<ModelEvent>): Promise<ModelEvent[]>;
 declare function seededRandom(seed: number): () => number;   // added in B3; moved here from @buildanagent/sdk/testing in B7, its one entry point
 ```
+
+**Revision (B11c, 2026-11-20): raw provider events.** `ModelEvent` gains `{ type: "raw"; event: unknown }` and `StreamOptions` gains `includeRaw`. The owner decided on 2026-11-19 that the spec stays `specificationVersion: "v1"`: a stream without `includeRaw` is unchanged, and the new member is recorded under the versioning rules ([guide §10][g10]) as a minor release whose changeset starts "Breaking Changes", because it can break an exhaustive `switch` over `type`. One raw event is one `ServerSentEvent`, passed on as `{ event, data }` with `data` unparsed, because OpenAI's `[DONE]` and a bare-text `error` event are not JSON. An HTTP error body, which has no event stream, gets no raw event. A raw event is not output, so the pre-output retries stay on; a failed attempt's raw events reach the caller, and the `retry` event marks them superseded. Recordings hold no raw events (B18).
 
 ### 3.3 SDK API
 
@@ -390,7 +394,7 @@ interface RunOptions<S = unknown> {
   signal?: AbortSignal;
   modelOptions?: StreamOptions;
   clock?: Clock; idGenerator?: () => string; random?: () => number;  // stable, public
-  includeRaw?: boolean;                // raw provider events, opt-in
+  includeRaw?: boolean;                // raw provider events, opt-in; revision (B11c): the run's alone decides, so CallOptions omits it
 }
 declare function run<S>(options: RunOptions<S> & { system: string; input: string | ContentBlock[]; history?: Message[] }): Run<S>;
 // Revision (R1): Context moved here from the gateway. It is plain JSON, so a caller may build it from its own store.
@@ -540,7 +544,7 @@ declare function replayPairs(pairs: RecordedPair[]): ScriptedModel;   // rejects
 **Revision (B11, 2026-11-19).** B11 builds the loop with these departures from the sketch above, each recorded in [its outcome](../todos/done/B11-loop-core.md#outcome):
 - `Context` has no `pending` yet, and `RunResult` has no `budget`, `no_progress` or pause variants yet, because `SignedPendingRequest`, the budget and progress detection arrive with B14 and B15. The `error` variant is its own member, whose `error` is required.
 - `ResultBase.messages` holds only the messages a run added; `context.messages` holds the whole conversation.
-- `AgentEvent` declares only the types the loop emits: `hook_error`, `context_transformed`, `approval_request`, `steer_applied` and `raw` join it with the todos that emit them. `warning.code` is `"max_steps" | "model_warning"`, the second carrying a gateway `warning`. `model_call_start.request` is a `ModelCallRequest` (model, context, options), because the loop can't see the gateway's per-attempt `RequestDump`.
+- `AgentEvent` declares only the types the loop emits: `hook_error`, `context_transformed`, `approval_request`, `steer_applied` and `raw` join it with the todos that emit them; B11c added `raw`. `warning.code` is `"max_steps" | "model_warning"`, the second carrying a gateway `warning`. `model_call_start.request` is a `ModelCallRequest` (model, context, options), because the loop can't see the gateway's per-attempt `RequestDump`.
 - `RunOptions` holds `model`, `tools`, `output`, `maxSteps`, `signal`, `modelOptions`, `clock` and `idGenerator`; the other options arrive with their todos. `Run` has `id`, `result`, `abort()` and iteration, and B13 and B16 add `on()`, `steer()` and `followUp()`.
 - `RunStoppedError` and `UnexpectedModelCallError` extend `SdkError`, and the gateway's `StreamContractError` and `ModelRequestsDisabledError` extend `GatewayError`, so each package keeps one error class ([typescript.md](../guidelines/typescript.md#each-package-has-one-error-class-with-a-typed-code)).
 
@@ -646,7 +650,7 @@ The guide says to start with the gateway and the test model, because every other
 | [B10](../todos/done/B10-tool-runtime.md) | Tool definitions, the validation pipeline and the validator check (D7) | B3, B7, E1 | M |
 | [B11](../todos/done/B11-loop-core.md) | Loop core: `run`, the closed event union, stop reasons, aborts and `runOrThrow` | B4, B10 | L |
 | [B11b](../todos/done/B11b-turn-retries.md) | Turn-level retries: the loop retries a retryable error that ends a turn (added 2026-11-19, a B11 follow-up) | B11 | M |
-| [B11c](../todos/ready/B11c-raw-provider-events.md) | Raw provider events: `includeRaw` and the `raw` event, from the adapters up to the loop (added 2026-11-19, a B11 follow-up) | B11, B4, B8, B9 | L |
+| [B11c](../todos/done/B11c-raw-provider-events.md) | Raw provider events: `includeRaw` and the `raw` event, from the adapters up to the loop (added 2026-11-19, a B11 follow-up) | B11, B4, B8, B9 | L |
 | [B12](../todos/done/B12-parallel-tools.md) | Parallel tool scheduling, per-resource serialisation and sibling cancellation | B11 | M |
 | [B13](../todos/done/B13-interceptors-observers.md) | The six interceptors and observers | B11 | M |
 | [B14](../todos/done/B14-budget-progress.md) | Pre-emptive USD budget, progress detection and the depth cap | B5, B13, E1 | M |

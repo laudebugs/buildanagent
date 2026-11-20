@@ -954,3 +954,19 @@ test("a 429 without retry-after has no retryAfterMs", async () => {
   const { terminal } = await run([failed(429, "error-rate-limit.json")]);
   assert.equal(terminal.error?.retryAfterMs, undefined);
 });
+
+test("includeRaw streams each wire event as it arrived, before the events it produced", async () => {
+  const off = await run([streamed("parallel-tools.sse")]);
+  const on = await run([streamed("parallel-tools.sse")], hello, { includeRaw: true });
+  const raw = on.events.filter((event) => event.type === "raw");
+  const names = [...fixture("parallel-tools.sse").matchAll(/^event: (\S+)$/gm)].map((match) => match[1]);
+  assert.deepEqual(
+    raw.map((event) => (event.event as { event: string }).event),
+    names,
+  );
+  assert.equal(on.events[1]?.type, "raw", "the first wire event follows start");
+  assert.deepEqual(
+    on.events.filter((event) => event.type !== "raw"),
+    off.events,
+  );
+});

@@ -10,6 +10,8 @@
  * - A stream that throws is treated like one that ends with an `error` event, so the caller always gets a terminal.
  * - A warning an earlier attempt already streamed, with the same code and message, is not streamed again, because a
  *   retry sends the same request and an adapter warns about it each time.
+ * - A `raw` event is not output, so a call that streamed raw events and then failed before any block event is still
+ *   retried. Its raw events have already reached the caller; the `retry` event that follows marks them superseded.
  * - A failure's `error.retryAfterMs`, which an adapter reads from the provider's retry-after header, sets the least
  *   wait: the gateway waits for the longer of the backoff and the hint. Each wait is capped at 60 s.
  * - A hint longer than that cap ends the call with the failure, hint kept, and no `retry` event. OpenAI's rate-limit
@@ -105,8 +107,12 @@ function isRepeatedWarning(event: ModelEvent, call: CallState, output: AttemptPr
   return false;
 }
 
+// Only block events are output. A raw event must not count, or `includeRaw` would turn off the pre-output retries:
+// a provider's first wire event always arrives before any content.
+const NOT_OUTPUT: ReadonlySet<ModelEvent["type"]> = new Set(["start", "warning", "raw", "done", "error"]);
+
 function isBlockEvent(event: ModelEvent): boolean {
-  return event.type !== "start" && event.type !== "warning" && event.type !== "done" && event.type !== "error";
+  return !NOT_OUTPUT.has(event.type);
 }
 
 /** The final message: this attempt's usage and `cost`, with the failed attempts' usage and cost added. */
