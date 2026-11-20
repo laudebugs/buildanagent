@@ -1,4 +1,7 @@
 import assert from "node:assert/strict";
+import { readdirSync, readFileSync } from "node:fs";
+import path from "node:path";
+import { fileURLToPath } from "node:url";
 import { DEFAULTS_HASH } from "@buildanagent/sdk";
 import { test } from "vitest";
 import { fillTemplate, hashedDefaults, SDK_DEFAULTS } from "../src/defaults.js";
@@ -48,4 +51,18 @@ test("fillTemplate fills each slot once and leaves an unknown slot as written", 
     'Tool "a" failed: {tool}',
   );
   assert.equal(fillTemplate("{missing} stays", {}), "{missing} stays");
+});
+
+test("no source file outside defaults.ts writes a sentence the model reads about a tool call", () => {
+  // The model-facing sentences all start with the tool's name in quotes; one written inline would escape the hash.
+  const src = fileURLToPath(new URL("../src/", import.meta.url));
+  const files = readdirSync(src, { recursive: true, encoding: "utf8" }).filter(
+    (file) => file.endsWith(".ts") && file !== "defaults.ts" && !file.startsWith(`vendor${path.sep}`),
+  );
+  const inline = files.filter((file) =>
+    /^(?!\s*(?:\*|\/\/)).*["'`](?:Tool call|Tool|There is no tool) (?:"|named)/m.test(
+      readFileSync(path.join(src, file), "utf8"),
+    ),
+  );
+  assert.deepEqual(inline, []);
 });

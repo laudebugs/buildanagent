@@ -108,14 +108,7 @@ export interface ClarificationToolOptions {
 
 const CLARIFICATION = SDK_DEFAULTS.tools.clarification;
 
-const CLARIFICATION_SCHEMA = Object.freeze({
-  type: "object",
-  properties: Object.freeze({
-    question: Object.freeze({ type: "string", minLength: 1, description: CLARIFICATION.questionDescription }),
-  }),
-  required: Object.freeze(["question"]),
-  additionalProperties: false,
-});
+const CLARIFICATION_SCHEMA = CLARIFICATION.inputSchema;
 
 /**
  * Defines a tool the model calls to ask the user a question. Its result carries the question as a `pause` of kind

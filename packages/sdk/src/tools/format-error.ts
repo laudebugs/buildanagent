@@ -38,7 +38,7 @@ function showArguments(input: unknown): string {
   // Cut before a surrogate pair rather than through it, so the text stays valid UTF-16.
   const high = text.charCodeAt(MAX_ARGUMENTS_LENGTH - 1);
   const end = high >= 0xd800 && high <= 0xdbff ? MAX_ARGUMENTS_LENGTH - 1 : MAX_ARGUMENTS_LENGTH;
-  return `${text.slice(0, end)}… (${text.length - end} more characters)`;
+  return `${text.slice(0, end)}${fillTemplate(TEXT.moreCharacters, { count: String(text.length - end) })}`;
 }
 
 function issueLine(issue: SchemaIssue): string {

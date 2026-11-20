@@ -148,8 +148,6 @@ function unsignedCause(error: unknown): string {
   return isSafetyError(error) && SAFETY_CODES.includes(error.code) ? error.code : "signer_failed";
 }
 
-/** The reason a request carries when `continueRun()` asks again for a call whose earlier request failed its check. */
-
 /** Resolves to `ABORTED` once `signal` fires, or to what `promise` resolves to if that comes first. */
 const ABORTED = Symbol("aborted");
 async function unlessAborted<T>(promise: Promise<T>, signal: AbortSignal): Promise<T | typeof ABORTED> {
@@ -282,7 +280,7 @@ export class HookRunner {
     const { call, tool } = input;
     const event = this.#event({ callId: call.callId, tool: tool.name, input: input.input }, call.callId);
     const failed = (error: unknown): GateOutcome => ({
-      blocked: blocked(`Tool call "${tool.name}" was not run, because its permission check failed.`, {
+      blocked: blocked(fillTemplate(APPROVALS.gateFailed, { tool: tool.name }), {
         hook: "beforeToolCall",
         error: messageOf(error),
       }),
@@ -360,7 +358,7 @@ export class HookRunner {
     const refuse = (why: string, error: string): GateOutcome => {
       this.#setup.send({ type: "hook_error", hook: "blockingApprovals", error });
       return {
-        blocked: blocked(`Tool call "${tool}" was not run, because ${why}.`, {
+        blocked: blocked(fillTemplate(APPROVALS.refused, { tool, why }), {
           decision: "ask",
           requestId: request.id,
         }),
@@ -370,10 +368,10 @@ export class HookRunner {
     try {
       answer = await unlessAborted(Promise.resolve(handler(request, Object.freeze({ input, signal }))), signal);
     } catch (error) {
-      return refuse("its approval handler failed", messageOf(error));
+      return refuse(APPROVALS.handlerFailed, messageOf(error));
     }
     if (answer === ABORTED) {
-      const text = `Tool call "${tool}" was not run, because the run was aborted while it waited for approval.`;
+      const text = fillTemplate(APPROVALS.abortedWhileWaiting, { tool });
       return { blocked: blocked(text, { decision: "ask", requestId: request.id }) };
     }
     let check: Awaited<ReturnType<typeof verifyResolution>>;
@@ -384,9 +382,9 @@ export class HookRunner {
       });
     } catch {
       // A custom signer whose verify() throws fails the check; its message may hold anything, so it isn't passed on.
-      return refuse("its approval could not be verified", "the approval was refused (error)");
+      return refuse(APPROVALS.unverified, "the approval was refused (error)");
     }
-    if (!check.ok) return refuse("its approval could not be verified", `the approval was refused (${check.cause})`);
+    if (!check.ok) return refuse(APPROVALS.unverified, `the approval was refused (${check.cause})`);
     const resolution = check.resolution;
     // An unchanged input is the checked one the gate saw, which the pipeline runs as it is; a replacement is passed on.
     if ("decision" in resolution && resolution.decision === "allow") return unchanged ? undefined : { input };
@@ -425,7 +423,7 @@ export class HookRunner {
       hook: "signer",
       error: `the approval request could not be signed (${cause})`,
     });
-    const text = `Tool call "${tool}" needs approval, but its approval request could not be signed, so it was not run.`;
+    const text = fillTemplate(APPROVALS.unsigned, { tool });
     return { blocked: blocked(text, { decision: "ask", error: cause }) };
   }
 
@@ -437,7 +435,7 @@ export class HookRunner {
     // The tool already ran, so the stand-in says so and keeps the write outcome: a model told only "withheld" would
     // retry a write that was applied.
     const withheld = (error: unknown): ToolResult => ({
-      ...blocked(`Tool call "${tool.name}" ran, but its result was withheld, because its result check failed.`, {
+      ...blocked(fillTemplate(APPROVALS.resultWithheld, { tool: tool.name }), {
         hook: "afterToolCall",
         error: messageOf(error),
       }),

@@ -188,7 +188,7 @@ The hash changes whenever one of those values changes, even in a patch release, 
 
 ### `CAPABILITIES` tells a peer what it can rely on
 
-A program versioned apart from the SDK, such as a harness that talks to the agent over RPC, reads the capability strings instead of parsing a version number. Each string names one behaviour and its contract version. A breaking change to that behaviour gets a new string, such as `steering_v2`, so a peer that checks for `steering_v1` notices. This release lists eleven:
+A program versioned apart from the SDK, such as a harness that talks to the agent over RPC, reads the capability strings instead of parsing a version number. Each string names one behaviour and its contract version. A breaking change to that behaviour gets a new string, such as `steering_v2`, so a peer that checks for `steering_v1` notices. This release lists twelve:
 
 - **`abort_v1`**: `run.abort()` and the `signal` option stop a run, which ends `aborted`.
 - **`steering_v1`**: `run.steer()` and `run.followUp()` queue messages with delivery receipts, and `steer_applied` reports each one.
@@ -201,6 +201,7 @@ A program versioned apart from the SDK, such as a harness that talks to the agen
 - **`depth_cap_v1`**: `nestedRunDepth()` and `maxDepth` cap a tree of agents.
 - **`output_tool_v1`**: `outputTool()` ends a run with a validated answer in `output`.
 - **`write_outcomes_v1`**: a tool's `outcome` tells the model what a write did and whether a retry is safe.
+- **`turn_retries_v1`**: `turnRetries` re-issues a model call that ended with a `retryable` error, and marks each retry with a `retry` event whose `layer` is `turn`.
 
 A test fails when this list and `CAPABILITIES` disagree.
 

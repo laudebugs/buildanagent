@@ -6,6 +6,7 @@
 import { compile, type Validator } from "@earendil-works/pi-schema";
 import { formats } from "@earendil-works/pi-schema/formats";
 import type { StandardJSONSchemaV1, StandardSchemaV1 } from "@standard-schema/spec";
+import { fillTemplate, SDK_DEFAULTS } from "../defaults.js";
 import { SdkError } from "../errors.js";
 import type { JsonSchema, SchemaIssue, ToolSchema } from "./types.js";
 
@@ -93,7 +94,10 @@ function prepareStandardSchema(tool: string, schema: StandardToolSchema): Prepar
         // A validator that throws is the schema library's failure, not the model's, but the model still needs an
         // error result, so the throw becomes one issue at the root.
         const message = error instanceof Error ? error.message : String(error);
-        return { ok: false, issues: [{ path: "", message: `the schema's validator threw: ${message}` }] };
+        return {
+          ok: false,
+          issues: [{ path: "", message: fillTemplate(SDK_DEFAULTS.toolErrors.validatorThrew, { message }) }],
+        };
       }
       if (result.issues === undefined) return { ok: true, value: result.value };
       return {

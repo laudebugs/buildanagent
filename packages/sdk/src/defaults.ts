@@ -53,6 +53,8 @@ export const SDK_DEFAULTS = deepFreeze({
     noTools: "none",
     invalidInput: 'The arguments for tool "{tool}" are invalid:',
     wholeInput: "(the whole input)",
+    /** The one issue the model reads when a schema library's validator throws instead of returning issues. */
+    validatorThrew: "the schema's validator threw: {message}",
     executionError: 'Tool "{tool}" failed: {message}',
     redactedMessage: "its error message is hidden.",
     truncated:
@@ -70,6 +72,8 @@ export const SDK_DEFAULTS = deepFreeze({
         "it is still needed.",
     },
     receivedArguments: "Received arguments: {arguments}",
+    /** Ends received arguments cut at `maxArgumentsLength`. */
+    moreCharacters: "… ({count} more characters)",
     doNotSubstitute:
       "Do not substitute a mock, a placeholder or invented data for this tool's result. Fix the call, try another " +
       "approach, or tell the user what failed.",
@@ -79,7 +83,16 @@ export const SDK_DEFAULTS = deepFreeze({
     deniedByApprover: 'Tool call "{tool}" was denied by the approver.',
     denied: 'Tool call "{tool}" was denied: {reason}',
     policyDenied: 'Tool call "{tool}" was approved, but current policy now denies it: {reason}',
+    /** The reason a request carries when `continueRun()` asks again for a call whose earlier request failed its check. */
     reissuedReason: "The earlier request for this call could not be verified, so it needs a new answer.",
+    gateFailed: 'Tool call "{tool}" was not run, because its permission check failed.',
+    /** A blocking approval that failed: `{why}` is `handlerFailed` or `unverified`. */
+    refused: 'Tool call "{tool}" was not run, because {why}.',
+    handlerFailed: "its approval handler failed",
+    unverified: "its approval could not be verified",
+    abortedWhileWaiting: 'Tool call "{tool}" was not run, because the run was aborted while it waited for approval.',
+    unsigned: 'Tool call "{tool}" needs approval, but its approval request could not be signed, so it was not run.',
+    resultWithheld: 'Tool call "{tool}" ran, but its result was withheld, because its result check failed.',
   },
   /** The built-in tools' descriptions and results. */
   tools: {
@@ -90,7 +103,13 @@ export const SDK_DEFAULTS = deepFreeze({
     clarification: {
       name: "ask_user",
       description: "Ask the user a question when you cannot continue without their answer.",
-      questionDescription: "The question to ask the user.",
+      /** The tool's input schema, which the model reads as well as its description. */
+      inputSchema: {
+        type: "object",
+        properties: { question: { type: "string", minLength: 1, description: "The question to ask the user." } },
+        required: ["question"],
+        additionalProperties: false,
+      },
       sent: "The question was sent to the user.",
     },
   },
@@ -103,7 +122,7 @@ export const SDK_DEFAULTS = deepFreeze({
  * default does, and each such change is named in the changelog, so a stored run shows whether new behaviour came with
  * new defaults or from the model.
  */
-export const DEFAULTS_HASH = "8d3cf9cc886e1ea1a184a24ffe0f7e77fcd72ebc96bb40cc94d4c669ca02edb0";
+export const DEFAULTS_HASH = "1a5120b72e65ecc26d78fc9a23b19f3914a5d9f836e1e663d1524b4497c8a044";
 
 /**
  * Fills a template's `{name}` slots in one pass, so a value that itself holds `{name}` is copied, not filled again.
@@ -118,7 +137,9 @@ type OutcomeProbe = Omit<WriteOutcomeInit, "kind" | "operation" | "next">;
 function rendered(kind: OutcomeKind, probe: OutcomeProbe): string {
   // A probe's retry is one of ALLOWED_RETRIES[kind], which the generic list type can't carry.
   const init = { kind, operation: "{op}", next: "{next}", ...probe } as WriteOutcomeInit;
-  return renderOutcome(writeOutcome(init)).text;
+  const { text, payload } = renderOutcome(writeOutcome(init));
+  // The payload's JSON follows the sentence in the tool result, so its field names reach the model too.
+  return `${text}\n${JSON.stringify({ outcome: payload })}`;
 }
 
 function outcomeTexts(kind: OutcomeKind): string[] {
@@ -130,7 +151,7 @@ function outcomeTexts(kind: OutcomeKind): string[] {
 }
 
 /**
- * What `DEFAULTS_HASH` hashes: `SDK_DEFAULTS`, and the write-outcome sentences for every kind and retry rule, with
+ * What `DEFAULTS_HASH` hashes: `SDK_DEFAULTS`, and the write-outcome sentences and payloads for every kind and retry rule, with
  * `{op}`, `{next}` and `{key}` in place of a call's values. A `partial` outcome may list every effect, a current
  * state and what to avoid, so one more probe covers those sentences.
  */
