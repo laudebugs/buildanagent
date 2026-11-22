@@ -46,7 +46,7 @@ Each SDK stops in a different shape, because each keeps the paused run in a diff
 Our SDK ends the run with `stopReason` set to `awaiting_approval`, and the result holds one signed request for each waiting call. Its saved copy is the result's `context`, plain JSON that holds the messages, those requests and the input each one signs. You pass the context back to `continueRun()` with a list of resolutions, one answer per request. The AI SDK's pause is the message array itself: the first call returns a request for approval, you append the person's answer to the messages and call again. The OpenAI Agents SDK returns a list of `interruptions` and a `RunState` that serialises to a string; you approve or reject each interruption on that state and run again with it. LangChain interrupts the graph, saves its state under the thread's id, and resumes when you invoke the same thread with a `Command` that carries the decisions [@ai-sdk-tool-approvals; @openai-agents-human-in-the-loop; @langchain-human-in-the-loop].
 
 ::::tabs
-:::listing[Our SDK]{#resume-ours file="packages/sdk/examples/11-approval-resume.ts" region="resume"}
+:::listing[Our SDK]{#approval-resume-ours file="packages/sdk/examples/11-approval-resume.ts" region="resume"}
 ::note[`scripted` puts our SDK's test model behind the gateway, as in [[ch:call-workflow-loop]], so the example needs no key. The model plays back one call to `issue_refund`.]{#mock}
 ::note[The run ends `awaiting_approval` with its request in `pending`, and the example's checks confirm that the tool has not run.]{#pause}
 ::note[The context becomes a string, the thing you would store, and a second run reads it back.]{#save}
@@ -93,7 +93,7 @@ A saved run does not behave like that by default. [[lst:tamper-ours]], [[lst:tam
 ::::tabs
 :::listing[Our SDK]{#tamper-ours file="packages/sdk/examples/12-approval-tamper.ts" region="tamper"}
 ::note[Anyone who can write to the stored context can do this: the replacement changes the order id in the saved call and in the saved input that the request signs.]{#edit}
-::note[The resume is the same as in [[lst:resume-ours]], with an allow for the original request. The example turns the events into a list of causes so it can check them.]{#resume}
+::note[The resume is the same as in [[lst:approval-resume-ours]], with an allow for the original request. The example turns the events into a list of causes so it can check them.]{#resume}
 ::note[The edited input no longer matches the signed hash, so the run rejects the answer with the cause `input_changed` before the tool runs.]{#rejected}
 ::note[The run pauses again with a new request, signed over the call as the edited context now reads. A person must decide on Z-9, and the old allow covers nothing.]{#again}
 :::
