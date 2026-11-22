@@ -17,7 +17,7 @@ Write a new type-checked, mock-run example in `verify/vercel-ai-sdk/examples/` s
 
 ## Context
 
-- [Book plan BK20](../../plans/build-book.md#bk20-new-verify-examples-fill-the-gaps-the-coverage-review-found-accepted) and Chapter T25's todo, [T25](T25-chapter-evals-observability-and-release.md)
+- [Book plan BK20](../../plans/build-book.md#bk20-new-verify-examples-fill-the-gaps-the-coverage-review-found-accepted) and Chapter T25's todo, [T25](../ready/T25-chapter-evals-observability-and-release.md)
 - [AGENTS.md, process for documenting an SDK](../../../AGENTS.md#process-for-documenting-an-sdk): behavioural examples, mock models, and no host-touching tools
 - The harness's README and `examples/lib/` helpers
 
@@ -76,6 +76,6 @@ Write a new type-checked, mock-run example in `verify/vercel-ai-sdk/examples/` s
 `verify/vercel-ai-sdk/examples/16-tracing-and-judge.ts` shows a run's OpenTelemetry spans held in memory and a scripted judge whose verdicts the grading code parses.
 
 - **The spans form one tree.** A tool loop gives one agent span, a span for each step, and a span for each model call and tool call under the steps. The example checks the names, every parent link, the token counts on each model call (100 in, 20 out) and the total on the agent span (200 in, 40 out). Rows T34-1 to T34-5 in `docs/plans/reviews/fact-check-vercel-tracing-judge-example.md` check each claim against the pinned types and docs or the run.
-- **The span exporter is a new pinned dependency.** `@opentelemetry/sdk-trace-base` 2.7.1 is the version `@ai-sdk/otel` builds against, and it is more than a week old.
-- **The judge is scripted, and the header says so.** The example tests the grading code. It parses a pass and a fail, and rejects output that is not JSON, a score above 1, a grade that is neither pass nor fail, a missing reason, and a grade that contradicts the score.
+- **The span exporter is a new pinned dependency.** `@opentelemetry/sdk-trace` 2.12.1 replaces `@opentelemetry/sdk-trace-base`, which npm marks deprecated in its favour, and it is more than a week old.
+- **The judge is scripted, and the header says so.** The example tests the grading code. It parses a pass and a fail, and rejects output that is not JSON, a score above 1, a grade that is neither pass nor fail, a missing reason, and a grade that contradicts the score on either side of the 0.7 pass mark.
 - **The transcript holds both models' calls.** Two agent calls and seven judge calls are recorded, and a second run wrote the same file.

@@ -45,7 +45,7 @@ The effect log is a small file in a temp folder that the example makes and remov
 
 ## One example reads a run's spans and grades its answer with a scripted judge
 
-`16-tracing-and-judge.ts` runs a tool loop with the `OpenTelemetry` integration from `@ai-sdk/otel`, which sends its spans to an in-memory exporter from `@opentelemetry/sdk-trace-base`. The example reads the tree back. One agent span is the root, each step is its child, and each model call and tool call is a child of a step. The model calls carry their own token counts, and the agent span carries the total.
+`16-tracing-and-judge.ts` runs a tool loop with the `OpenTelemetry` integration from `@ai-sdk/otel`, which sends its spans to an in-memory exporter from `@opentelemetry/sdk-trace`. The example reads the tree back. One agent span is the root, each step is its child, and each model call and tool call is a child of a step. The model calls carry their own token counts, and the agent span carries the total.
 
 A second scripted model plays the judge. It answers with a score from 0 to 1 and a pass or fail grade, and the grading code parses the text into a verdict. The code rejects text that is not JSON, a score out of range, a grade that is neither pass nor fail, a missing reason, and a grade that contradicts the score against the pass mark of 0.7. The judge is scripted, so the example tests the grading code and says nothing about how well a real model judges. The example carries `// #region` and `// book:note` markers for Chapter T25.
 

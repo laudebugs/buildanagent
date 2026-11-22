@@ -139,8 +139,8 @@
     "file": "/home/user/buildanagent/verify/vercel-ai-sdk/examples/16-tracing-and-judge.ts",
     "outcome": "ran",
     "exit": 0,
-    "ms": 724,
+    "ms": 710,
     "modelCalls": 0,
-    "tail": "ok - the judge receives the rubric as its instructions\nok - and the answer it grades\nok - malformed judge output is rejected (Looks good to me!…)\nok - malformed judge output is rejected ({\"score\":1.4,\"grade\":\"pa…)\nok - malformed judge output is rejected ({\"score\":0.8,\"grade\":\"ma…)\nok - malformed judge output is rejected ({\"score\":0.8,\"grade\":\"pa…)\nok - malformed judge output is rejected ({\"score\":0.4,\"grade\":\"pa…)\nok - every scripted judge answer was used"
+    "tail": "ok - and the answer it grades\nok - the judge's output is rejected for not JSON\nok - the judge's output is rejected for a score above 1\nok - the judge's output is rejected for a grade that is not pass or fail\nok - the judge's output is rejected for a missing reason\nok - the judge's output is rejected for a pass below the mark\nok - the judge's output is rejected for a fail at the mark\nok - every scripted judge answer was used"
   }
 ]

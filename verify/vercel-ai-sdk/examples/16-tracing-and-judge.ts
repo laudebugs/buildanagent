@@ -5,9 +5,9 @@
 // The judge is scripted, so the example tests the grading code, not a model's judgement. A second scripted model
 // answers with a score from 0 to 1 and a pass or fail grade, and the grading code parses the answer, rejects output
 // that is malformed or contradicts itself, and never passes it through as a grade.
-// Docs: ai-sdk-core/60-telemetry.mdx, ai-sdk-core/generating-text.mdx
+// Docs: ai-sdk-core/telemetry.mdx, ai-sdk-core/generating-text.mdx
 import { OpenTelemetry } from "@ai-sdk/otel";
-import { BasicTracerProvider, InMemorySpanExporter, SimpleSpanProcessor } from "@opentelemetry/sdk-trace-base";
+import { InMemorySpanExporter, SimpleSpanProcessor, TracerProvider } from "@opentelemetry/sdk-trace";
 import { generateText, isStepCount, tool } from "ai";
 import { z } from "zod";
 import { check, scripted, systemText } from "./lib/check.ts";
@@ -15,7 +15,7 @@ import { usageOf } from "./lib/rates.ts";
 
 // #region tracing
 const exporter = new InMemorySpanExporter();
-const provider = new BasicTracerProvider({ spanProcessors: [new SimpleSpanProcessor(exporter)] });
+const provider = new TracerProvider({ spanProcessors: [new SimpleSpanProcessor({ exporter })] });
 
 const answer = "Order 42 shipped on 3 November.";
 const { model: agentModel } = scripted([{ tools: [{ name: "lookupOrder", input: { id: 42 } }] }, answer], {
@@ -43,8 +43,8 @@ const agentSpan = byName("invoke_agent agent-model")[0];
 const steps = spans.filter((s) => s.name.startsWith("step "));
 const calls = byName("chat agent-model");
 const toolSpan = byName("execute_tool lookupOrder")[0];
-const tokens = (s: { attributes: Record<string, unknown> }, kind: "input" | "output") =>
-  s.attributes[`gen_ai.usage.${kind}_tokens`];
+const tokens = (s: { attributes: Record<string, unknown> } | undefined, kind: "input" | "output") =>
+  s?.attributes[`gen_ai.usage.${kind}_tokens`];
 
 check(result.text === answer, "the run itself still answers");
 check(
@@ -107,7 +107,10 @@ function parseVerdict(text: string): Verdict {
     throw new JudgeOutputError("the judge did not answer with JSON");
   }
   const parsed = Verdict.safeParse(raw);
-  if (!parsed.success) throw new JudgeOutputError(`the verdict is malformed: ${parsed.error.issues[0]?.message}`);
+  if (!parsed.success) {
+    const issue = parsed.error.issues[0];
+    throw new JudgeOutputError(`the verdict is malformed at ${issue?.path.join(".")}: ${issue?.message}`);
+  }
   if (parsed.data.score >= PASS_MARK !== (parsed.data.grade === "pass")) {
     throw new JudgeOutputError(`the grade ${parsed.data.grade} contradicts the score ${parsed.data.score}`);
   }
@@ -128,15 +131,21 @@ async function grade(judge: Parameters<typeof generateText>[0]["model"], questio
 const verdicts = [
   '{"score":0.9,"grade":"pass","reason":"names the order and the date"}',
   '{"score":0.3,"grade":"fail","reason":"does not say when"}',
+  '{"score":0.7,"grade":"pass","reason":"exactly at the pass mark"}',
 ];
 const malformed = [
-  ["Looks good to me!", "the judge did not answer with JSON"],
-  ['{"score":1.4,"grade":"pass","reason":"great"}', "the verdict is malformed"],
-  ['{"score":0.8,"grade":"maybe","reason":"unsure"}', "the verdict is malformed"],
-  ['{"score":0.8,"grade":"pass"}', "the verdict is malformed"],
-  ['{"score":0.4,"grade":"pass","reason":"fine"}', "the grade pass contradicts the score 0.4"],
+  ["not JSON", "Looks good to me!", "the judge did not answer with JSON"],
+  ["a score above 1", '{"score":1.4,"grade":"pass","reason":"great"}', "the verdict is malformed at score"],
+  [
+    "a grade that is not pass or fail",
+    '{"score":0.8,"grade":"maybe","reason":"unsure"}',
+    "the verdict is malformed at grade",
+  ],
+  ["a missing reason", '{"score":0.8,"grade":"pass"}', "the verdict is malformed at reason"],
+  ["a pass below the mark", '{"score":0.4,"grade":"pass","reason":"fine"}', "the grade pass contradicts the score 0.4"],
+  ["a fail at the mark", '{"score":0.7,"grade":"fail","reason":"harsh"}', "the grade fail contradicts the score 0.7"],
 ] as const;
-const { model: judge, requests } = scripted([...verdicts, ...malformed.map(([text]) => text)], {
+const { model: judge, requests } = scripted([...verdicts, ...malformed.map(([, text]) => text)], {
   modelId: "judge-model",
 });
 
@@ -145,15 +154,17 @@ check(passed.score === 0.9 && passed.grade === "pass", "a well-formed pass is pa
 check(passed.reason.length > 0, "the verdict keeps the judge's reason");
 const failed = await grade(judge, "Where is order 42?", "Probably somewhere.");
 check(failed.score === 0.3 && failed.grade === "fail", "a well-formed fail is parsed too");
+const atMark = await grade(judge, "Where is order 42?", answer);
+check(atMark.score === 0.7 && atMark.grade === "pass", "a score exactly at the pass mark passes");
 
 check(systemText(requests[0]).includes(RUBRIC), "the judge receives the rubric as its instructions");
 check(JSON.stringify(requests[0].prompt).includes(answer), "and the answer it grades");
 
-for (const [text, message] of malformed) {
+for (const [defect, , message] of malformed) {
   const error = await grade(judge, "Where is order 42?", answer).catch((e: unknown) => e);
   check(
     error instanceof JudgeOutputError && error.message.startsWith(message),
-    `malformed judge output is rejected (${text.slice(0, 24)}…)`,
+    `the judge's output is rejected for ${defect}`,
   );
 }
 check(requests.length === verdicts.length + malformed.length, "every scripted judge answer was used");
