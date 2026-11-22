@@ -284,6 +284,19 @@ describe("purge", () => {
     assert.deepEqual(files(dir, "ada"), []);
   });
 
+  test("a fork that fails to purge keeps the session it continues", async () => {
+    const { dir, store, forkKey } = await withFork(() => new Date("2026-01-02T00:00:00.000Z"));
+    // A folder where the fork's archive copy would be makes its removal fail.
+    mkdirSync(join(dir, ARCHIVE, "ada", `${forkKey.sessionId}.jsonl.gz`, "x"), { recursive: true });
+    const result = await pruneSessions({ dir, userId: "ada", retention: { days: 30, action: "purge" }, now: NOW });
+    assert.deepEqual(result.purged, []);
+    assert.deepEqual(result.kept, [
+      { sessionId: forkKey.sessionId, reason: "error" },
+      { sessionId: "old", reason: "continued" },
+    ]);
+    assert.equal((await all(store.load(OLD))).length, 2, "the parent of a fork that is still there stays");
+  });
+
   test("a fork whose last line can't be read keeps the session it continues, and is kept itself", async () => {
     const { dir, store, forkKey } = await withFork(() => new Date("2026-01-02T00:00:00.000Z"));
     await writeFile(join(dir, "ada", `${forkKey.sessionId}.jsonl`), "not json\n", { flag: "a" });
