@@ -88,7 +88,7 @@ export class Concierge extends VoiceAgent<Env> {
   events: string[] = []; // onTurn, tool and TTS calls in the order they happened
   override tts = new FakeTTS(this.events);
   turnSignals: AbortSignal[] = [];
-  modelFinished = 0; // streamText's onFinish runs after the model stream closed, which is when its response is recorded
+  modelFinished = 0; // test only, not part of the voice pattern: the test waits on it (see onFinish below)
   interrupts = 0;
 
   override async onTurn(heard: string, context: VoiceTurnContext) {
@@ -111,6 +111,7 @@ export class Concierge extends VoiceAgent<Env> {
       },
       stopWhen: stepCountIs(3),
       abortSignal: context.signal,
+      // Test only: onFinish runs after the model stream closed, and the transcript records the model's response then.
       onFinish: () => {
         this.modelFinished++;
       },
@@ -231,7 +232,9 @@ export async function test(env: Env, h: Harness) {
   // Turn 2: the reply's second sentence is held, so the agent is speaking when the client interrupts.
   const mark = inbox.length;
   ws.send(new Uint8Array([1, 0, 0, 0]).buffer);
-  // The model stream closes while the first sentence is spoken; waiting for it keeps the transcript's order fixed.
+  // The mixin can speak the first sentence before the model stream has closed, and the transcript records the model's
+  // response when it closes. Waiting for onFinish (which needs the AI SDK to read a few chunks ahead of the mixin)
+  // fixes the order; if an update shrinks that read-ahead, this wait times out instead of silently reordering.
   check(
     await h.until(async () => (await agent.snapshot()).modelFinished === 2, 5000),
     "turn 2's model stream finished before the held sentence is checked",
