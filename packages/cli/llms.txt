@@ -6,6 +6,7 @@ The sections of README.md and every public export, generated from this package's
 
 ## Docs
 
+- [Install the alpha with `pnpm add @buildanagent/cli@alpha`](README.md#install-the-alpha-with-pnpm-add-buildanagentclialpha)
 - [Run one turn and read its events as JSON lines](README.md#run-one-turn-and-read-its-events-as-json-lines)
 - [Chat, and answer approvals at the terminal](README.md#chat-and-answer-approvals-at-the-terminal)
 - [Watch the cost and the context fill](README.md#watch-the-cost-and-the-context-fill)

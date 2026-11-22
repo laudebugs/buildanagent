@@ -240,8 +240,8 @@ export interface McpServerRecord {
   /** The protocol era the server negotiated. */
   era: "2026-07-28" | "legacy";
   /**
-   * `sha256:` and the hex digest of the canonical JSON of the registered tools, sorted by name, each as
-   * `{ name, description, inputSchema }`.
+   * `sha256:` and the hex digest of the canonical JSON of the tool list the server sent, sorted by name, each as
+   * `{ name, description, inputSchema }`, before the harness strips regular-expression keywords from the schemas.
    */
   toolsHash: string;
 }
