@@ -13,7 +13,7 @@
 
 ## Goal
 
-Research voice and realtime agents so the book can teach it from checked sources instead of memory. The owner chose to cover it (2026-11-19), and the repo has little on it. The result feeds a section of Chapter T35, todo [T38](../ready/T38-section-voice-and-realtime.md). **Research question:** How do voice and realtime agents differ from text agents in the loop, latency, interruption and tool calls, and what do our SDKs offer in TypeScript?
+Research voice and realtime agents so the book can teach it from checked sources instead of memory. The owner chose to cover it (2026-11-19), and the repo has little on it. The result feeds a section of Chapter T35, todo [T38](../done/T38-section-voice-and-realtime.md). **Research question:** How do voice and realtime agents differ from text agents in the loop, latency, interruption and tool calls, and what do our SDKs offer in TypeScript?
 
 ## Context
 
