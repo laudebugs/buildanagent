@@ -14,6 +14,7 @@ The sections of README.md and every public export, generated from this package's
 - [Every spawned process gets a cleared environment](README.md#every-spawned-process-gets-a-cleared-environment)
 - [Test a sandbox with the fake and the conformance suite](README.md#test-a-sandbox-with-the-fake-and-the-conformance-suite)
 - [One registry names, defers and wraps every tool](README.md#one-registry-names-defers-and-wraps-every-tool)
+- [The built-in tools reach files, commands and the web only through the sandbox and the egress proxy](README.md#the-built-in-tools-reach-files-commands-and-the-web-only-through-the-sandbox-and-the-egress-proxy)
 - [One pipeline decides every tool call, and a call no rule settles is denied when nobody can answer](README.md#one-pipeline-decides-every-tool-call-and-a-call-no-rule-settles-is-denied-when-nobody-can-answer)
 - [A session belongs to a user, and every store call names both](README.md#a-session-belongs-to-a-user-and-every-store-call-names-both)
 - [One writer holds a session's lock, and a lock outlives a crash only by its lease](README.md#one-writer-holds-a-sessions-lock-and-a-lock-outlives-a-crash-only-by-its-lease)

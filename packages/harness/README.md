@@ -147,7 +147,7 @@ The check goes by name and can't catch a credential under an unremarkable one, s
 
 ## Test a sandbox with the fake and the conformance suite
 
-`./testing` has `fakeSandbox()`, a sandbox in memory that enforces the policy it is given and records every `exec`, but runs no program: it understands `echo`, `env`, `cat`, `write`, `true`, `false`, `sleep` and `net-probe`. It claims tier `os`, because it enforces file roots and the network allowlist, but it confines no real process.
+`./testing` has `fakeSandbox()`, a sandbox in memory that enforces the policy it is given and records every `exec`, but runs no program: it understands `echo`, `env`, `cat`, `write`, `true`, `false`, `sleep` and `net-probe`, plus `find`, `grep` and `bash -c` or `sh -c` with one of those commands as the script, which is what the built-in tools run. It claims tier `os`, because it enforces file roots and the network allowlist, but it confines no real process.
 
 `runSandboxConformance(factory)` pins the interface for every backend. Its cases check that a file reads back as written, that `exec` reports exit codes and output, that the environment holds only the variables given, that an aborted signal rejects and a timeout stops with 124, and that `dispose` ends the sandbox and any command still running. When the caller passes `processTree`, a case also checks that an abort or timeout ends the command's whole process tree. A backend that adds variables of its own, such as proxy settings, lists them in `addedEnvironment`, and the environment case accepts those and no others.
 
@@ -172,6 +172,39 @@ A case that needs enforcement runs only when the backend's `stops` claim it:
 - **Host context.** `definitions(wrap, hostContext)` runs each tool through `wrap`, which can bind a write cap, shadow mode, a sandbox or the turn's host context. The registry sets the result's name and exposure, so a wrapper cannot rename or expose a tool. The host context reaches `execute` by the wrapper's closure, never through a schema, so it is in no request, event or saved context.
 - **Output trust.** A tool's `outputTrust` is `untrusted` for an MCP tool and for a tool registered with `remoteAgent: true`, `trusted` otherwise, and the value a registration declares wins. `approvalReuse` defaults to `both`, and `pattern` records whether the tool runs `in_process` or by a `client_request`.
 - **Preamble size.** `preambleTokens({ system })` estimates the tokens a request carries before any message: the system prompt and every `direct` tool. A `deferred` tool adds nothing, which is why the default for MCP is `deferred`. A `RegisteredTool` that `register()` returns is a snapshot, so call `get()` after `setExposure()` to read the current exposure.
+
+## The built-in tools reach files, commands and the web only through the sandbox and the egress proxy
+
+`builtinTools(sandbox, proxy, { root, policy })` returns seven tools for one provisioned sandbox: `read`, `write`, `edit`, `bash`, `grep`, `glob` and `fetch`. No tool touches the host. Files go through the sandbox's `readFile()` and `writeFile()`, commands through its `exec()`, and the web through the proxy's `fetch()`, so the backend and the allowlist decide what each call can reach. This coding agent binds them to a workspace and lets `read` open the write cap's spill files:
+
+```ts
+  const sandbox = await client.provision({ root: workspace }, policy);
+  const spill = fileSpillStore({ dir: spillDir });
+  const registry = createToolRegistry();
+  const spills = (path: string) => spill.read(key, path);
+  for (const tool of builtinTools(sandbox, proxy, { root: workspace, policy, spills })) registry.register(tool);
+  const harness = createHarness({ registry, model, system: SYSTEM, context: createContextPolicy({ spill }) });
+```
+
+Pass the `root` and `policy` the sandbox was provisioned with, because the sandbox interface reports neither. Leave `proxy` out, as `undefined`, and the set has no `fetch`. `env` is the whole environment of every command the tools run; it defaults to a `PATH` and a `LANG` alone, and on Node you pass `spawnEnv()`.
+
+Each tool's contract:
+
+- **`read`** takes `path` or `file_path`, relative to `root` or absolute, and `offset` (the first line, from 1) and `limit` (a line count). With neither, it returns the whole file up to 2,000 lines, and a longer file or a page ends with a line that names the next `offset`. A path the `spills` reader knows is served from the spill, so the model can read a cut result in full. A binary file is an error result.
+- **`write`** takes a path and `content`, makes the folders and replaces the whole file.
+- **`edit`** takes a path, `old_string` and `new_string`. `old_string` must occur exactly once: no match, or two matches without `replace_all: true`, returns an error result and leaves the file unchanged. `new_string` is inserted as written, so `$&` stays `$&`.
+- **`bash`** runs `command` as `bash -c` inside the sandbox, from `root`, with a timeout of `timeout_ms` (default 120,000, at most 600,000). The model reads the output, standard error and exit code. A timeout or a denial is an error result, and each stream keeps at most 1 MiB.
+- **`grep`** searches files for `pattern`, an extended regular expression, below `path` (default `root`), and prints `path:line:text`. `glob` narrows the files: a glob with no `/`, such as `*.ts`, matches the file name, and any other matches the path below `path`. `ignore_case` ignores case.
+- **`glob`** lists the files below `path` whose path matches `pattern`, sorted. `*` matches inside one name, `**` across folders and `?` one character.
+- **`fetch`** sends a GET for an `https` `url` through `proxy.fetch()` and returns the status, the content type and up to 1 MiB of a text body, with every secret the proxy knows replaced by `[REDACTED]`. A host off the allowlist, or a URL that is not `https`, returns an error result. Plain HTTP is refused, which keeps the model off the proxy's credential routes.
+
+**Paths are checked before the sandbox sees them.** `read`, `grep` and `glob` accept a path inside a read or write root, and `write` and `edit` only inside a write root. The check joins a relative path to `root` and removes `.` and `..`, so `../etc/passwd` and `/etc/passwd` are refused without a sandbox call, and the sandbox gets the checked path. A symlink is invisible to a check on text, so the sandbox's own check of the real path is the second line: its denial reaches the model as an error result. `grep` and `glob` list files with `find`, which never follows a symlink, and skip folders named `.git` and `node_modules`.
+
+**Big results pass the write cap like any other.** The tools cap nothing themselves: the context policy's write cap cuts a long result and spills its full text, and `read` with `spills` opens that spill. Bind `spills` to one session, as `fileSpillStore().read(key, path)` is, so one session cannot read another's spills.
+
+**Scheduling follows what each tool changes.** `read`, `grep`, `glob` and `fetch` are first-party and read-only, so their calls in one step run together. `write` and `edit` declare a write, so they wait for the file calls before them, and `bash` runs its step one call at a time. A crash during a write makes the next turn report its outcome as unknown. `fetch`'s output is `untrusted`, because a web page can carry instructions, and the rest is `trusted`.
+
+**The descriptions are versioned.** Every description, limit and default the tools use is in `BUILTIN_TOOL_DEFAULTS`, and `BUILTIN_TOOLS_HASH` changes whenever any of them does, so two runs with different hashes ran with different tools.
 
 ## One pipeline decides every tool call, and a call no rule settles is denied when nobody can answer
 
