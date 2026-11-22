@@ -1,5 +1,5 @@
 {
-  "format": 1,
+  "format": 2,
   "example": "03-tool-loop",
   "file": "packages/sdk/examples/03-tool-loop.ts",
   "harness": "packages/sdk",

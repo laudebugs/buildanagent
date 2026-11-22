@@ -6,7 +6,7 @@
 | Status | `ready` |
 | Plan | [Build harness §4, Stage 5](../../plans/build-harness.md#45-stage-5-adds-extensions-skills-and-the-mcp-client) |
 | Round / milestone | Round N (build harness), M6 |
-| Depends on | [N11](../done/N11-tool-registry.md), [N12](N12-permission-pipeline.md) |
+| Depends on | [N11](../done/N11-tool-registry.md), [N12](../done/N12-permission-pipeline.md) |
 | Size | M |
 
 ## Goal

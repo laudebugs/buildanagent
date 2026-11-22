@@ -1,5 +1,5 @@
 {
-  "format": 1,
+  "format": 2,
   "example": "05-structured-output",
   "file": "verify/claude-agent-sdk/examples/05-structured-output.ts",
   "harness": "verify/claude-agent-sdk",

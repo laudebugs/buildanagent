@@ -1,5 +1,5 @@
 {
-  "format": 1,
+  "format": 2,
   "example": "07-triage-agent",
   "file": "verify/claude-agent-sdk/examples/07-triage-agent.ts",
   "harness": "verify/claude-agent-sdk",

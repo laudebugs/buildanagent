@@ -1,5 +1,5 @@
 {
-  "format": 1,
+  "format": 2,
   "example": "07-middleware",
   "file": "verify/langchain/examples/07-middleware.ts",
   "harness": "verify/langchain",

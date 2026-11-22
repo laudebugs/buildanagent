@@ -1,5 +1,5 @@
 {
-  "format": 1,
+  "format": 2,
   "example": "06-recursion-limit",
   "file": "verify/langchain/examples/06-recursion-limit.ts",
   "harness": "verify/langchain",

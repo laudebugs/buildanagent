@@ -1,5 +1,5 @@
 {
-  "format": 1,
+  "format": 2,
   "example": "10-refusals-are-recorded",
   "file": "verify/claude-agent-sdk/examples/10-refusals-are-recorded.ts",
   "harness": "verify/claude-agent-sdk",

@@ -27,6 +27,14 @@ const part = z.discriminatedUnion("type", [
 
 const message = z.object({ role: z.enum(["system", "user", "assistant", "tool"]), parts: z.array(part) });
 const line = z.number().int().positive().optional();
+const count = z.number().int().nonnegative().optional();
+/** The token counts the mock reported for an answer, each class only where the example's script set it. */
+const usage = z
+  .object({ uncachedInput: count, cacheRead: count, cacheWrite: count, output: count, reasoning: count })
+  .strict()
+  .refine((counts) => Object.values(counts).some((value) => value !== undefined), {
+    message: "must hold at least one token class",
+  });
 
 const event = z.discriminatedUnion("kind", [
   z.object({
@@ -37,7 +45,15 @@ const event = z.discriminatedUnion("kind", [
     messages: z.array(message),
     tools: z.array(z.string()),
   }),
-  z.object({ kind: z.literal("response"), line, model: z.string(), message, finish: z.string() }),
+  z.object({
+    kind: z.literal("response"),
+    line,
+    model: z.string(),
+    message,
+    finish: z.string(),
+    usage: usage.optional(),
+    modelId: z.string().optional(),
+  }),
   z.object({ kind: z.literal("check"), line, message: z.string(), pass: z.boolean() }),
 ]);
 
@@ -59,6 +75,7 @@ export type Transcript = z.infer<typeof transcriptSchema>;
 /** One message of a transcript: its role and its parts. */
 export type TranscriptMessage = z.infer<typeof message>;
 type TranscriptPart = z.infer<typeof part>;
+type TranscriptUsage = z.infer<typeof usage>;
 
 /** Where a harness keeps the transcript of the example in `path`, from the repository root. */
 export const transcriptPathOf = (harness: string, path: string): string =>
@@ -86,6 +103,14 @@ export function readTranscript(
     data = JSON.parse(readFileSync(file, "utf8"));
   } catch (error) {
     return { message: `${transcriptPath} is not JSON: ${error instanceof Error ? error.message : String(error)}` };
+  }
+  const format = (data as { format?: unknown } | null)?.format;
+  if (typeof format === "number" && format !== TRANSCRIPT_FORMAT) {
+    return {
+      message:
+        `${transcriptPath} is at transcript format ${format}, not ${TRANSCRIPT_FORMAT}; run ${listing.harness}'s ` +
+        "pnpm test to record it again",
+    };
   }
   const parsed = transcriptSchema.safeParse(data);
   if (!parsed.success) {
@@ -158,6 +183,35 @@ function partEvent(item: TranscriptPart, role: TranscriptMessage["role"]): Omit<
   }
 }
 
+const tokens = (n: number): string => n.toLocaleString("en-US");
+
+/**
+ * An answer's usage as the replay says it, such as "1,000 uncached input, 1,500 cache read, 500 cache write, 200
+ * output tokens", naming only the classes the transcript holds. Reasoning is part of the output, so it comes last.
+ */
+export function usageText(usage: TranscriptUsage): string {
+  const classes: string[] = [];
+  if (usage.uncachedInput !== undefined) classes.push(`${tokens(usage.uncachedInput)} uncached input`);
+  if (usage.cacheRead !== undefined) classes.push(`${tokens(usage.cacheRead)} cache read`);
+  if (usage.cacheWrite !== undefined) classes.push(`${tokens(usage.cacheWrite)} cache write`);
+  if (usage.output !== undefined) classes.push(`${tokens(usage.output)} output`);
+  if (usage.reasoning === undefined) return `${classes.join(", ")} tokens`;
+  if (usage.output !== undefined)
+    return `${classes.join(", ")} tokens, ${tokens(usage.reasoning)} of them on reasoning`;
+  return [...classes, `${tokens(usage.reasoning)} reasoning`].join(", ") + " tokens";
+}
+
+/** What an answer reported about itself, for the last event the replay shows of it. */
+function answerFacts(item: {
+  usage?: TranscriptUsage | undefined;
+  modelId?: string | undefined;
+}): Pick<ReplayEvent, "modelId" | "usage"> {
+  return {
+    ...(item.modelId === undefined ? {} : { modelId: item.modelId }),
+    ...(item.usage === undefined ? {} : { usage: usageText(item.usage) }),
+  };
+}
+
 const withLine = (event: Omit<ReplayEvent, "line">, at: number | undefined): ReplayEvent => {
   const body = capped(event.body);
   return at === undefined ? { ...event, body } : { ...event, body, line: at };
@@ -169,7 +223,7 @@ const withLine = (event: Omit<ReplayEvent, "line">, at: number | undefined): Rep
  * history, as when a handoff gives the conversation to another agent: a message the replay showed before, unless it
  * ends the request, folds into one "History" event that says how many messages were sent again. So does the model's
  * own last answer when the SDK resends it changed, such as with a tool input's defaults filled in. An empty text part
- * shows nothing.
+ * shows nothing. An answer's usage and model id, where its transcript records them, go on the answer's last event.
  */
 export function replayEvents(transcript: Transcript): ReplayEvent[] {
   const shown = new Set<string>();
@@ -201,6 +255,15 @@ export function replayEvents(transcript: Transcript): ReplayEvent[] {
     if (resent > 0) {
       const body = resent === 1 ? "1 earlier message sent again" : `${resent} earlier messages sent again`;
       out.push(withLine({ kind: "user", role: "History", body }, item.line));
+    }
+    if (item.kind === "response") {
+      const facts = answerFacts(item);
+      if (Object.keys(facts).length > 0) {
+        // The answer's usage and model id go on its last event, or on an event of their own when it showed none.
+        const last =
+          fresh.pop() ?? withLine({ kind: "model", role: "Model", body: "An answer with no content" }, item.line);
+        fresh.push({ ...last, ...facts });
+      }
     }
     out.push(...fresh);
     if (item.kind === "response") answered.add(item.model);

@@ -1,5 +1,5 @@
 {
-  "format": 1,
+  "format": 2,
   "example": "02-custom-tool",
   "file": "verify/pi/examples/02-custom-tool.ts",
   "harness": "verify/pi",

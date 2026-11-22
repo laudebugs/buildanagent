@@ -1,5 +1,5 @@
 {
-  "format": 1,
+  "format": 2,
   "example": "14-weak-check",
   "file": "verify/vercel-ai-sdk/examples/14-weak-check.ts",
   "harness": "verify/vercel-ai-sdk",

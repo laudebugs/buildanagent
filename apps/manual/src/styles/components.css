@@ -894,7 +894,9 @@
   white-space: pre-wrap;
 }
 
-/* Where an event came from: the listed line it highlights, or why it highlights none. */
+/* What an answer reported about itself, its model id and its token counts, and where an event came from: the listed
+   line it highlights, or why it highlights none. */
+.replay__answer,
 .replay__where {
   display: block;
   color: var(--panel-comment);

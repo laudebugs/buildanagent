@@ -1,5 +1,5 @@
 {
-  "format": 1,
+  "format": 2,
   "example": "01-one-call",
   "file": "packages/sdk/examples/01-one-call.ts",
   "harness": "packages/sdk",

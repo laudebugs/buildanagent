@@ -281,7 +281,7 @@ test("one of our packages' replay needs a transcript recorded at workspace, not 
       writeFileSync(
         join(root, "packages/demo/results/transcripts/01-call.json"),
         JSON.stringify({
-          format: 1,
+          format: 2,
           example: "01-call",
           file: listing.path,
           harness: listing.harness,
@@ -296,6 +296,56 @@ test("one of our packages' replay needs a transcript recorded at workspace, not 
     const stale = readTranscript(root, listing);
     assert.ok("message" in stale);
     assert.match(stale.message, /was recorded with demo@0\.1\.0-alpha\.3 .* but the harness pins demo@workspace/);
+  } finally {
+    rmSync(root, { recursive: true, force: true });
+  }
+});
+
+test("a replay refuses a transcript at an old format, and an answer whose usage holds no token class", () => {
+  const root = mkdtempSync(join(tmpdir(), "transcript-format-"));
+  try {
+    mkdirSync(join(root, "packages/demo/results/transcripts"), { recursive: true });
+    writeFileSync(join(root, "packages/demo/package.json"), JSON.stringify({ name: "demo", version: "0.1.0" }));
+    const listing = {
+      path: "packages/demo/examples/01-call.ts",
+      harness: "packages/demo",
+      recordedPin: "demo@workspace",
+    };
+    const write = (format: number, usage: unknown) =>
+      writeFileSync(
+        join(root, "packages/demo/results/transcripts/01-call.json"),
+        JSON.stringify({
+          format,
+          example: "01-call",
+          file: listing.path,
+          harness: listing.harness,
+          pin: "demo@workspace",
+          mock: "demo@workspace",
+          events: [
+            {
+              kind: "response",
+              model: "model-1",
+              message: { role: "assistant", parts: [] },
+              finish: "stop",
+              ...(usage === undefined ? {} : { usage }),
+            },
+          ],
+        }),
+      );
+    write(1, undefined);
+    const old = readTranscript(root, listing);
+    assert.ok("message" in old);
+    assert.equal(
+      old.message,
+      "packages/demo/results/transcripts/01-call.json is at transcript format 1, not 2; run packages/demo's pnpm test " +
+        "to record it again",
+    );
+    write(2, {});
+    const empty = readTranscript(root, listing);
+    assert.ok("message" in empty);
+    assert.match(empty.message, /is not a transcript: events\.0\.usage: must hold at least one token class/);
+    write(2, { output: 7 });
+    assert.ok(!("message" in readTranscript(root, listing)));
   } finally {
     rmSync(root, { recursive: true, force: true });
   }

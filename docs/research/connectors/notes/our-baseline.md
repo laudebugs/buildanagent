@@ -52,7 +52,7 @@ The harness plan has a thorough design for an MCP client, but only for consuming
   - With no match, the call asks when `interactive` and is denied otherwise. Every `decide()` writes a `permission_decision` entry.
   - There is **no harness-level tier default for MCP tools**; tiers are a product concern ("the tier table … P3 decides them").
 
-  — `docs/plans/build-harness.md#hd12-three-middle-ground-modes-and-no-classifier-allow-outside-the-host-callback`; `docs/plans/build-harness.md#34-permission-approval-and-sandbox-apis`; `docs/todos/ready/N12-permission-pipeline.md#scope`; `docs/plans/build-harness.md#1-goal-and-non-goals`
+  — `docs/plans/build-harness.md#hd12-three-middle-ground-modes-and-no-classifier-allow-outside-the-host-callback`; `docs/plans/build-harness.md#34-permission-approval-and-sandbox-apis`; `docs/todos/done/N12-permission-pipeline.md#scope`; `docs/plans/build-harness.md#1-goal-and-non-goals`
 - **HD15 / N20 (credential proxy).**
   - A tool calls `http://127.0.0.1:<port>/<route>/…`, and the host-side proxy forwards it to the route's HTTPS host, "adding the credential header when the sentinel in the request matches and the method is allowed".
   - `CredentialRoute { route; host; methods; header; secret: () => Promise<string> }`. The `secret` thunk is the only hook a token source could use, and **nothing is planned behind it**: no vault, no refresh, no per-user lookup.

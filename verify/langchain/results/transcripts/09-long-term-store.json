@@ -1,5 +1,5 @@
 {
-  "format": 1,
+  "format": 2,
   "example": "09-long-term-store",
   "file": "verify/langchain/examples/09-long-term-store.ts",
   "harness": "verify/langchain",

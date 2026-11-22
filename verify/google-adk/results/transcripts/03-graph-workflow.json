@@ -1,5 +1,5 @@
 {
-  "format": 1,
+  "format": 2,
   "example": "03-graph-workflow",
   "file": "verify/google-adk/examples/03-graph-workflow.ts",
   "harness": "verify/google-adk",
