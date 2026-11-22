@@ -1,5 +1,5 @@
 {
-  "format": 1,
+  "format": 2,
   "example": "06-compaction",
   "file": "verify/pi/examples/06-compaction.ts",
   "harness": "verify/pi",

@@ -1,5 +1,5 @@
 {
-  "format": 1,
+  "format": 2,
   "example": "07-extension-gate",
   "file": "verify/pi/examples/07-extension-gate.ts",
   "harness": "verify/pi",

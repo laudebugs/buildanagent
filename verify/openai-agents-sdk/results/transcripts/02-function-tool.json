@@ -1,5 +1,5 @@
 {
-  "format": 1,
+  "format": 2,
   "example": "02-function-tool",
   "file": "verify/openai-agents-sdk/examples/02-function-tool.ts",
   "harness": "verify/openai-agents-sdk",

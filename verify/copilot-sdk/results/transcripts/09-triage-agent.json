@@ -1,5 +1,5 @@
 {
-  "format": 1,
+  "format": 2,
   "example": "09-triage-agent",
   "file": "verify/copilot-sdk/examples/09-triage-agent.ts",
   "harness": "verify/copilot-sdk",

@@ -1,5 +1,5 @@
 {
-  "format": 1,
+  "format": 2,
   "example": "07-structured-output",
   "file": "verify/openai-agents-sdk/examples/07-structured-output.ts",
   "harness": "verify/openai-agents-sdk",

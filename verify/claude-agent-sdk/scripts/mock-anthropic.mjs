@@ -139,7 +139,11 @@ export function messagesOf(messages) {
   return out;
 }
 
-/** What the sink hears about one model call: the request, then the answer the mock chose for it. */
+/**
+ * What the sink hears about one model call: the request, then the answer the mock chose for it. The answer carries no
+ * usage or model id (scripts/transcripts/events.ts): the mock sends the same 10 input and 5 output tokens with every
+ * answer and names the model the request asked for, so neither is something an example scripted.
+ */
 function report(sink, body, p) {
   const model = body.model ?? "mock";
   sink({

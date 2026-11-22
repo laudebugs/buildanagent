@@ -1,5 +1,5 @@
 {
-  "format": 1,
+  "format": 2,
   "example": "06-resume-session",
   "file": "verify/copilot-sdk/examples/06-resume-session.ts",
   "harness": "verify/copilot-sdk",

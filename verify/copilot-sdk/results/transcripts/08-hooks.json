@@ -1,5 +1,5 @@
 {
-  "format": 1,
+  "format": 2,
   "example": "08-hooks",
   "file": "verify/copilot-sdk/examples/08-hooks.ts",
   "harness": "verify/copilot-sdk",

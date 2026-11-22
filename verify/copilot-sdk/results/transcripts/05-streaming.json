@@ -1,5 +1,5 @@
 {
-  "format": 1,
+  "format": 2,
   "example": "05-streaming",
   "file": "verify/copilot-sdk/examples/05-streaming.ts",
   "harness": "verify/copilot-sdk",

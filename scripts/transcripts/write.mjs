@@ -7,7 +7,7 @@
 //
 // Two runs on two machines must write the same bytes, so the file holds no absolute path, temporary directory or
 // environment value, and every id, timestamp and duration that the SDK generates is replaced by a placeholder. What an
-// example scripts itself, such as a tool's input or a model's text, is kept as written.
+// example scripts itself, such as a tool's input, a model's text or an answer's usage and model id, is kept as written.
 import { existsSync, mkdirSync, mkdtempSync, readFileSync, realpathSync, rmSync, writeFileSync } from "node:fs";
 import { homedir, tmpdir } from "node:os";
 import { basename, dirname, extname, join, relative, sep } from "node:path";
@@ -308,6 +308,10 @@ const ROLES = new Set(["system", "user", "assistant", "tool"]);
  */
 const NAME = /^[A-Za-z0-9_.-]{1,128}$/;
 const PART_TYPES = new Set(["text", "reasoning", "tool-call", "tool-result", "other"]);
+/** The token classes a response's `usage` may hold (events.ts, `Usage`). */
+const USAGE_CLASSES = new Set(["uncachedInput", "cacheRead", "cacheWrite", "output", "reasoning"]);
+/** The characters a reported model id may use, such as `claude-sonnet-5-5` or `models/gemini-pro@001`. */
+const MODEL_ID = /^[A-Za-z0-9_.:/@-]{1,128}$/;
 
 /** The problems with a transcript's shape, each a sentence naming where; an empty list means it is well formed. */
 export function transcriptProblems(transcript) {
@@ -342,6 +346,16 @@ export function transcriptProblems(transcript) {
       }
     });
   };
+  const usage = (value, where) => {
+    if (!value || typeof value !== "object" || Array.isArray(value) || Object.keys(value).length === 0) {
+      fail(where, "must be an object with at least one token class");
+      return;
+    }
+    for (const [key, count] of Object.entries(value)) {
+      if (!USAGE_CLASSES.has(key)) fail(where, `has a token class ${JSON.stringify(key)}`);
+      else if (!(Number.isInteger(count) && count >= 0)) fail(where, `${key} is not a whole number`);
+    }
+  };
   transcript.events.forEach((event, i) => {
     const where = `events[${i}]`;
     if (event.line !== undefined && !(Number.isInteger(event.line) && event.line > 0)) {
@@ -361,6 +375,12 @@ export function transcriptProblems(transcript) {
     } else if (event.kind === "response") {
       if (typeof event.model !== "string") fail(where, "names no model");
       message(event.message, `${where}.message`);
+      if (event.usage !== undefined) usage(event.usage, `${where}.usage`);
+      if (event.modelId !== undefined && typeof event.modelId !== "string")
+        fail(where, "has a model id that is no string");
+      else if (event.modelId !== undefined && !MODEL_ID.test(event.modelId)) {
+        fail(where, "has a model id outside [A-Za-z0-9_.:/@-]");
+      }
     } else if (event.kind === "check") {
       if (typeof event.message !== "string") fail(where, "has no message");
       if (typeof event.pass !== "boolean") fail(where, "has no pass state");

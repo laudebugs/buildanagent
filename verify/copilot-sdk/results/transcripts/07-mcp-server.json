@@ -1,5 +1,5 @@
 {
-  "format": 1,
+  "format": 2,
   "example": "07-mcp-server",
   "file": "verify/copilot-sdk/examples/07-mcp-server.ts",
   "harness": "verify/copilot-sdk",

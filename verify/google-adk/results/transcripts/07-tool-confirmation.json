@@ -1,5 +1,5 @@
 {
-  "format": 1,
+  "format": 2,
   "example": "07-tool-confirmation",
   "file": "verify/google-adk/examples/07-tool-confirmation.ts",
   "harness": "verify/google-adk",

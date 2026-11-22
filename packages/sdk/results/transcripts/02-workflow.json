@@ -1,5 +1,5 @@
 {
-  "format": 1,
+  "format": 2,
   "example": "02-workflow",
   "file": "packages/sdk/examples/02-workflow.ts",
   "harness": "packages/sdk",

@@ -1,5 +1,5 @@
 {
-  "format": 1,
+  "format": 2,
   "example": "11-tuned-vs-cached",
   "file": "verify/vercel-ai-sdk/examples/11-tuned-vs-cached.ts",
   "harness": "verify/vercel-ai-sdk",
@@ -35,7 +35,14 @@
           }
         ]
       },
-      "finish": "stop"
+      "finish": "stop",
+      "usage": {
+        "uncachedInput": 4200,
+        "cacheRead": 0,
+        "cacheWrite": 0,
+        "output": 300
+      },
+      "modelId": "gpt-4.1-mini"
     },
     {
       "kind": "request",
@@ -66,7 +73,14 @@
           }
         ]
       },
-      "finish": "stop"
+      "finish": "stop",
+      "usage": {
+        "uncachedInput": 200,
+        "cacheRead": 4000,
+        "cacheWrite": 0,
+        "output": 300
+      },
+      "modelId": "gpt-4.1-mini"
     },
     {
       "kind": "request",
@@ -97,7 +111,14 @@
           }
         ]
       },
-      "finish": "stop"
+      "finish": "stop",
+      "usage": {
+        "uncachedInput": 200,
+        "cacheRead": 0,
+        "cacheWrite": 0,
+        "output": 300
+      },
+      "modelId": "ft:gpt-4.1-mini:acme"
     },
     {
       "kind": "check",

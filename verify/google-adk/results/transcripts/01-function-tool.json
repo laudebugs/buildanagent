@@ -1,5 +1,5 @@
 {
-  "format": 1,
+  "format": 2,
   "example": "01-function-tool",
   "file": "verify/google-adk/examples/01-function-tool.ts",
   "harness": "verify/google-adk",

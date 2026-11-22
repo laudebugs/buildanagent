@@ -1,5 +1,5 @@
 {
-  "format": 1,
+  "format": 2,
   "example": "01-hello-agent",
   "file": "verify/claude-agent-sdk/examples/01-hello-agent.ts",
   "harness": "verify/claude-agent-sdk",

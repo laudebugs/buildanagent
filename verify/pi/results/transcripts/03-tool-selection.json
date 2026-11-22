@@ -1,5 +1,5 @@
 {
-  "format": 1,
+  "format": 2,
   "example": "03-tool-selection",
   "file": "verify/pi/examples/03-tool-selection.ts",
   "harness": "verify/pi",

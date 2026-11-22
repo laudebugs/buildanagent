@@ -8,7 +8,7 @@ import "@buildanagent/gateway/testing/setup";
 import { createModel, type Model } from "@buildanagent/gateway";
 import { ScriptedModel, type ScriptStep } from "@buildanagent/sdk/testing";
 // Attaches the transcript recorder to ScriptedModel when the test preloads it (scripts/transcripts/).
-import { lendCallerLine } from "./transcript.js";
+import { lendCallerLine, recordedSteps, SCRIPTED_MODEL_ID } from "./transcript.js";
 
 export function check(cond: unknown, msg: string): asserts cond {
   if (!cond) throw new Error(`ASSERTION FAILED: ${msg}`);
@@ -17,7 +17,9 @@ export function check(cond: unknown, msg: string): asserts cond {
 
 /** A `ScriptedModel` that plays back `steps`, one per model call, behind createModel() as a run receives it. */
 export function scripted(steps: ScriptStep[]): { adapter: ScriptedModel; model: Model } {
-  const adapter = new ScriptedModel(steps);
-  const model = createModel({ adapter, id: "scripted-model" });
+  const script = recordedSteps(steps);
+  const adapter = new ScriptedModel(script.steps);
+  script.belongsTo(adapter);
+  const model = createModel({ adapter, id: SCRIPTED_MODEL_ID });
   return { adapter, model: lendCallerLine(model) };
 }

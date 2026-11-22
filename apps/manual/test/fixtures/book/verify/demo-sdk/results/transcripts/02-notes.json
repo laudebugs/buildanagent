@@ -1,5 +1,5 @@
 {
-  "format": 1,
+  "format": 2,
   "example": "02-notes",
   "file": "verify/demo-sdk/examples/02-notes.ts",
   "harness": "verify/demo-sdk",
@@ -88,7 +88,14 @@
           }
         ]
       },
-      "finish": "stop"
+      "finish": "stop",
+      "usage": {
+        "uncachedInput": 1000,
+        "cacheRead": 1500,
+        "cacheWrite": 500,
+        "output": 200
+      },
+      "modelId": "demo-model-2"
     },
     {
       "kind": "check",

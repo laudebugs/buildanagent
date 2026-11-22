@@ -1,5 +1,5 @@
 {
-  "format": 1,
+  "format": 2,
   "example": "02-workflow-agents",
   "file": "verify/google-adk/examples/02-workflow-agents.ts",
   "harness": "verify/google-adk",

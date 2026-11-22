@@ -1,5 +1,5 @@
 {
-  "format": 1,
+  "format": 2,
   "example": "04-chat-agent",
   "file": "verify/cloudflare-agents/examples/04-chat-agent.ts",
   "harness": "verify/cloudflare-agents",

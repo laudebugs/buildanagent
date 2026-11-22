@@ -1,5 +1,5 @@
 {
-  "format": 1,
+  "format": 2,
   "example": "04-structured-output",
   "file": "verify/langchain/examples/04-structured-output.ts",
   "harness": "verify/langchain",

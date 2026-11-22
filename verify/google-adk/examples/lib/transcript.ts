@@ -5,13 +5,16 @@
 import { type LlmRequest, type LlmResponse, Runner } from "@google/adk";
 import type { Content, Part as GeminiPart } from "@google/genai";
 import {
+  answerFacts,
   atCaller,
   type Message,
   modelNames,
   type Part,
   record,
   recording,
+  reportedUsage,
   toolCallIds,
+  type Usage,
 } from "../../../../scripts/transcripts/events.ts";
 
 function partOf(part: GeminiPart): Part {
@@ -49,6 +52,24 @@ const toolsOf = (request: LlmRequest): string[] =>
     .flatMap((tool) => ("functionDeclarations" in tool ? (tool.functionDeclarations ?? []) : []))
     .map((declaration) => declaration.name ?? "");
 
+/**
+ * A scripted answer's usage in the transcript's classes. Gemini's prompt count includes the cached tokens, and it
+ * reports no cache writes. It counts thinking apart from the answer, so the output class adds the two, as the
+ * transcript's output includes its reasoning.
+ */
+function usageOf(response: LlmResponse): Usage | undefined {
+  const metadata = response.usageMetadata;
+  if (metadata === undefined) return undefined;
+  const { promptTokenCount: prompt, cachedContentTokenCount: cached, candidatesTokenCount: answer } = metadata;
+  const thoughts = metadata.thoughtsTokenCount;
+  return reportedUsage({
+    uncachedInput: prompt === undefined ? undefined : prompt - (cached ?? 0),
+    cacheRead: cached,
+    output: answer === undefined ? undefined : answer + (thoughts ?? 0),
+    reasoning: thoughts,
+  });
+}
+
 const nameOf = modelNames();
 
 type Generate = (request: LlmRequest, stream?: boolean) => AsyncGenerator<LlmResponse, void>;
@@ -65,9 +86,17 @@ export function recordedLlm(llm: { prototype: { generateContentAsync: Generate }
     for await (const response of generate.call(this, request, stream)) {
       const message = response.content ? messageOf(response.content) : { role: "assistant" as const, parts: [] };
       const finish = message.parts.some((part) => part.type === "tool-call") ? "tool-calls" : "stop";
-      // The scripted model answers with exactly what its script returns, function-call ids included.
+      // The scripted model answers with exactly what its script returns, function-call ids, usage and model version
+      // included; the model name ScriptedLlm passes to BaseLlm is the helper's own, so it is not recorded.
       const answer: Message = { ...message, role: "assistant" };
-      record({ kind: "response", model, message: answer, finish, scripted: toolCallIds(answer) });
+      record({
+        kind: "response",
+        model,
+        message: answer,
+        finish,
+        ...answerFacts(usageOf(response), response.modelVersion),
+        scripted: toolCallIds(answer),
+      });
       yield response;
     }
   };

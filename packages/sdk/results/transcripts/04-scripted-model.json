@@ -1,5 +1,5 @@
 {
-  "format": 1,
+  "format": 2,
   "example": "04-scripted-model",
   "file": "packages/sdk/examples/04-scripted-model.ts",
   "harness": "packages/sdk",

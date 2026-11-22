@@ -1,5 +1,5 @@
 {
-  "format": 1,
+  "format": 2,
   "example": "02-tool-loop",
   "file": "verify/vercel-ai-sdk/examples/02-tool-loop.ts",
   "harness": "verify/vercel-ai-sdk",

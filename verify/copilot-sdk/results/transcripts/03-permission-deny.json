@@ -1,5 +1,5 @@
 {
-  "format": 1,
+  "format": 2,
   "example": "03-permission-deny",
   "file": "verify/copilot-sdk/examples/03-permission-deny.ts",
   "harness": "verify/copilot-sdk",

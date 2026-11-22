@@ -1,5 +1,5 @@
 {
-  "format": 1,
+  "format": 2,
   "example": "03-permission-order",
   "file": "verify/claude-agent-sdk/examples/03-permission-order.ts",
   "harness": "verify/claude-agent-sdk",
