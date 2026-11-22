@@ -2,7 +2,7 @@
 
 This log checks every factual claim in `apps/site/src/landing/copy.ts`, the copy of the landing page for buildanagent.fyi, on 2026-11-22. Registry claims were read with `npm view @buildanagent/<package>` that day, and the rest against the package `package.json` and `README.md` files and the docs and manual sources in this repository. Mock wording that was wrong or too strong is corrected in the copy and has its own ✏️ row.
 
-**Totals:** 35 claims: 27 ✅, 8 ✏️, 0 ⚠️.
+**Totals:** 37 claims: 28 ✅, 9 ✏️, 0 ⚠️.
 
 | # | Claim | Verdict | Source and reason |
 | --- | --- | --- | --- |
@@ -41,3 +41,5 @@ This log checks every factual claim in `apps/site/src/landing/copy.ts`, the copy
 | todo/L13-landing-page-33 | Package grid, cli: the mock's "Runs agents from the terminal" overstates a binary that ships no tools | ✏️ | npm description: "runs the harness in a terminal"; `packages/cli/README.md` line 55: the harness ships no built-in tools, so the binary's agent only answers in text. Reworded to "Runs the harness in a terminal" |
 | todo/L13-landing-page-34 | Package grid: only the gateway and the SDK have a package page on this site | ✅ | `apps/site/src/pages/packages/` holds `gateway.md` and `sdk.md`; the other four items link to their READMEs on GitHub |
 | todo/L13-landing-page-35 | The headline, "three layers and a loop", matches the structure | ✅ | Three layers are the gateway, the loop and the harness; the loop is the layer that repeats model call and tool calls (`packages/sdk/README.md` line 3). The headline is the page's own framing and adds no claim beyond the rows above |
+| todo/L13-landing-page-36 | The figure caption reads "Figure 1. The three layers, and one turn of the loop.", with no "on the left" or "on the right", because the narrow figure stacks the layers above the loop | ✏️ | The wide figure (`apps/site/src/landing/layers-wide.svg`) puts the layers left and the loop right; the narrow one (`layers-narrow.svg`, shown below 900 px) stacks them. The mock's caption was true only of the wide drawing, so the text now holds for both |
+| todo/L13-landing-page-37 | The page description reads "Build An Agent is a set of six small TypeScript packages that split an agent into a gateway, a loop and a harness." | ✅ | Six packages: `packages/{gateway,sdk,agent-safety,protocol,harness,cli}` all publish (the package-grid rows above, `npm view` on 2026-11-22), all TypeScript. The three layers are the gateway, the loop and the harness (the headline row above); "small" is the mock's own word and the packages' sizes are modest, so it is a description of intent, not a measured claim |
