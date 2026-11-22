@@ -42,6 +42,7 @@ const MAX_WAITING_ERRORS = 128;
 /** The error answer to a server request that could not be written, handed back so the server stops waiting on it. */
 const UNWRITABLE_REQUEST = { code: ErrorCodes.InternalError, message: "the server could not write this request" };
 
+/** An error's message, or the thrown value as text, for a diagnostic line. */
 export const messageOf = (error: unknown): string => (error instanceof Error ? error.message : String(error));
 
 /** A refused value that answers a request: JSON-RPC never answers a response, even a malformed one. */
