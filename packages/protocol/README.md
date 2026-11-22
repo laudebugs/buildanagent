@@ -39,3 +39,32 @@ Every message is a JSON-RPC 2.0 message and carries `"jsonrpc": "2.0"`. [`src/me
 
 [`schema/protocol.schema.json`](schema/protocol.schema.json) is a JSON Schema, draft 2020-12, of one message in either direction. It is generated from a zod description in `scripts/protocol-schema.ts` by `pnpm --filter @buildanagent/protocol schema`, the same command that writes the entry schema. A test fails while the committed file differs from the generator's output, and `pnpm typecheck` fails when the types and the description accept different values. That check can't see an optional field that only one side has, so a test also requires every property the schema lists to be used by a fixture and every key a fixture uses to be in the schema. The shared shapes under `$defs` are named by a hash of their content, so adding one doesn't rename the others. One part is loose on purpose: an SDK `AgentEvent` in an `event` notification is checked for its `type` and the base fields every event has, because the SDK owns that contract and its 29 event types would be a second copy to keep in step. A test checks the schema's list of types against the SDK's. Every message kind has a fixture that the compiler checks against its type and the test validates against the schema.
 
+## Over stdio, each message is one line, and stdout carries nothing else
+
+`stdioTransport(dispatcher, io)` from `@buildanagent/harness/server` serves the protocol over a pair of byte streams, and the CLI's `buildanagent rpc` command will run it on its own stdin and stdout. The client writes commands and answers to the server's stdin and reads everything the server sends from its stdout. Each message is one line of UTF-8 JSON ending in `\n`: the server writes it with `encode()` and reads with `JsonlFramer` and `decode()`, so the rules above hold on the wire unchanged.
+
+```ts
+import { type Dispatcher, stdioTransport } from "@buildanagent/harness/server";
+
+declare const dispatcher: Dispatcher;
+
+// Resolves once the client closes stdin and every answer has been written.
+await stdioTransport(dispatcher, {
+  input: process.stdin,
+  output: process.stdout,
+  log: (line) => process.stderr.write(`${line}\n`),
+});
+await dispatcher.close();
+```
+
+Five rules govern the stream:
+
+- **stdout holds protocol lines only.** The transport writes its own diagnostics, such as a line it refused, to the `log` function the host passes, and the host points it at stderr. A client can therefore treat any stdout line that is not a JSON-RPC message as a broken server.
+- **A bad line gets an error, and the stream goes on.** A line that isn't JSON gets `ParseError` (-32700). A message without a valid envelope, a batch, or a line over the bound (8 MiB by default) gets `InvalidRequest` (-32600). The error carries the request's id when the transport could read it and `null` otherwise, as JSON-RPC 2.0 requires.
+- **Commands run concurrently.** The server may answer commands out of order, as JSON-RPC allows. A client therefore waits for one command's response before it sends a command that depends on it, such as `turn/start` after `session/create`.
+- **A client that stops reading slows the server down.** The transport waits for stdout to drain before it writes the next message, so the backlog stays near the pipe's own buffer. Live events past the queue bound are dropped and replaced by an `events_dropped` marker, as the [harness README](../harness/README.md#each-connections-queues-are-bounded-at-128-and-only-events-are-dropped) describes, and `session/open` with `fromSeq` returns the dropped entries.
+- **The end of stdin is the client's goodbye.** The server answers every command it has read and writes every line, then closes the connection. A turn still running goes on in the dispatcher, but its events have nowhere to go, so a client that wants `turn/settled` keeps stdin open until it arrives.
+
+### Two outside JSON-RPC libraries read every message the server sends
+
+HD6 asked whether a client we did not write could read our framing. The framing check in `packages/harness/test/server/framing-interop.test.ts` answers it. It runs a turn that asks for approval through a server in a child process, and two libraries read the stream: `json-rpc-2.0` 1.8.1, a generic JSON-RPC 2.0 peer, and the stdio `ReadBuffer` of `@modelcontextprotocol/client` 2.4.0, which checks each message against MCP's strict schema. Both read every response, error, notification and server request without an adapter, and both answer the server's `approval/request`. Only the error for an unreadable line differs. Its `id` is `null`, as JSON-RPC 2.0 requires, and MCP's schema accepts an error with no `id` but refuses a `null` one, so an MCP-based client counts that one response as invalid. The protocol keeps `null`, because the JSON-RPC 2.0 specification asks for it.

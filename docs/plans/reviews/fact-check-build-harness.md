@@ -210,4 +210,24 @@ Checked on 2026-11-22 on branch `docs/n28-open-questions`, off `main` at `243006
 | docs/n28-open-questions-14 | No ready todo in Round N waits on an answer to the seven questions | `docs/todos/ready/N*.md` | ✅ | `grep` of every ready N todo finds no mention of approver identity, `authorization required`, `fromSeq`, `events_dropped`, `cancelRequest`, a first alpha or a changeset; the todos that depend on N28 (N29, N30) list only todos under Depends on, and N40's `sticky` and `group` refusal is on the harness side. The `initialize` and `session/list` lines in N24 and N35 use `initialize` as a call. |
 | docs/n28-open-questions-15 | N19's measurement is still to come, and the seven questions are the only open items for the owner (§2's clause) | `build-harness.md` §2 and §6.2 | ✅ | Same HD statuses as row docs/n28-open-questions-11; the seven questions are rows 1 to 10 of this section. |
 
-**Totals:** 140 claims: 103 ✅, 24 ✏️, 13 ⚠️.
+## N29: the stdio transport and the framing check (branch `todo/N29-stdio-transport`)
+
+Checked on 2026-11-22. Registry claims come from `npm view` and `api.npmjs.org` that day; package claims from the installed tarballs.
+
+| # | Claim | Where | Verdict | Source and reason |
+| --- | --- | --- | --- | --- |
+| N29-1 | `json-rpc-2.0` 1.8.1 was published 2026-09-20, is MIT, has no runtime dependency and no install script, and unpacks to 59 KB | N29 Outcome | ✅ | `npm view json-rpc-2.0 time` (1.8.1: 2026-09-20T11:21:56Z), `license` MIT, no `dependencies`, `dist.unpackedSize` 59109; its `scripts` are `test`, `build`, `clean`, `format` |
+| N29-2 | `vscode-jsonrpc` 10.0.0 was published 2026-10-22 and 10.0.1 on 2026-11-21, and its stream reader frames with `Content-Length` headers | N29 Outcome | ✅ | `npm view vscode-jsonrpc time`; `lib/common/messageReader.js` in the 10.0.0 tarball reads a `Content-Length` header |
+| N29-3 | `jayson` 5.0.0 (2026-09-18, MIT) has nine runtime dependencies including `ws` and `commander`; `@open-rpc/client-js` 2.1.0 (2026-08-14, Apache-2.0) has three including `ws` and is a client | N29 Outcome | ✅ | `npm view <pkg> dependencies license time`; its description reads "A browser-compatible JSON-RPC client with multiple transports" |
+| N29-4 | Weekly downloads: `vscode-jsonrpc` 37.4 M, `json-rpc-2.0` 13.1 M, `jayson` 3.5 M, `@open-rpc/client-js` 0.09 M | N29 Outcome | ✅ | `api.npmjs.org/downloads/point/last-week`, 2026-11-15 to 2026-11-21 |
+| N29-5 | `@modelcontextprotocol/client` 2.4.0 was published 2026-10-23, is Apache-2.0, has no install script and was already in the lockfile | N29 Outcome | ✅ | `npm view` time and scripts; `verify/cloudflare-agents/package.json` pins 2.4.0; the lockfile diff adds only `json-rpc-2.0` |
+| N29-6 | MCP's error-response schema has an optional `id` that is not nullable, and its messages are `.strict()` | Protocol README, N29 Outcome | ✅ | `@modelcontextprotocol/core` 2.4.0 `dist/schemas-*.mjs`: `JSONRPCErrorResponseSchema` has `id: RequestIdSchema.optional()`; the four message schemas end in `.strict()`. A test asserts `deserializeMessage` throws on our `"id": null` error |
+| N29-7 | MCP's `ReadBuffer` skips a line that isn't JSON without reporting it | N29 Outcome | ✅ | `readMessage()` catches `SyntaxError` and continues (`@modelcontextprotocol/client` 2.4.0 `dist/src-*.mjs`) |
+| N29-8 | MCP's `StdioClientTransport` spawns with `HOME`, `LOGNAME`, `PATH`, `SHELL`, `TERM` and `USER` from the parent under the given environment | N29 Outcome, framing-interop.test.ts | ✅ | `dist/stdio.mjs`: `env: { ...getDefaultEnvironment(), ...this._serverParams.env }`, and the POSIX `DEFAULT_INHERITED_ENV_VARS` lists those six |
+| N29-9 | JSON-RPC 2.0 requires a null id when the id of a request could not be read | Protocol README | ✅ | [JSON-RPC 2.0 specification](https://www.jsonrpc.org/specification), section 5: "If there was an error in detecting the id in the Request object (e.g. Parse error/Invalid Request), it MUST be Null." |
+| N29-10 | Over 25,000 events the child's stdout held about 64 KiB at most, and under 256 KiB in the test | Harness README, N29 Outcome | ✅ | A manual run reported `mostWaiting` 65688; `stdio.test.ts` asserts `< 256 * 1024`, and the backpressure mutation fails it |
+| N29-11 | `pnpm audit` finds no advisory through `json-rpc-2.0` or `@modelcontextprotocol/client`; its two advisories reach `zod` through `@anthropic-ai/sandbox-runtime` and `minimatch` through `typedoc` | N29 Outcome | ✅ | `pnpm audit --json` on the branch: GHSA-mrhx-c7xc-m3w5 and GHSA-g3hv-75wg-m249, with those paths only |
+| N29-12 | The changeset gate counts only packages without `"private": true`, and the harness is private | N29 Outcome | ✅ | `scripts/ci/changeset-gate.mjs` `versionedPackageDirs()` filters on `private !== true`; `packages/harness/package.json` has `"private": true` |
+| N29-13 | A command with malformed params gets `InternalError`, because the dispatcher reads params unchecked | Harness README, N29 Outcome | ✅ | `dispatcher.ts` `dispatch()` reads `command.params.*` directly; `connection.ts` `rpcErrorOf()` maps any other error to `InternalError` |
+
+**Totals:** 153 claims: 116 ✅, 24 ✏️, 13 ⚠️.
