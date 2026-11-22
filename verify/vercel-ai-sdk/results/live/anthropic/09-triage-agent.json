@@ -66,8 +66,8 @@
         "uncachedInput": 901,
         "cacheRead": 0,
         "cacheWrite": 0,
-        "output": 140,
-        "reasoning": 85
+        "output": 137,
+        "reasoning": 82
       },
       "modelId": "claude-haiku-5-5"
     },
@@ -114,18 +114,18 @@
             "name": "issueRefund",
             "input": {
               "orderId": "A-1",
-              "reason": "Customer reports being charged twice for order A-1. Order status: delivered, amount 40. Refund requested pending human approval."
+              "reason": "Customer reports being charged twice for order A-1. Order status is delivered, amount 40. Refund requested pending human approval."
             }
           }
         ]
       },
       "finish": "tool-calls",
       "usage": {
-        "uncachedInput": 1060,
+        "uncachedInput": 1057,
         "cacheRead": 0,
         "cacheWrite": 0,
-        "output": 197,
-        "reasoning": 82
+        "output": 190,
+        "reasoning": 75
       },
       "modelId": "claude-haiku-5-5"
     },
@@ -193,16 +193,16 @@
         "parts": [
           {
             "type": "text",
-            "text": "{\"category\":\"billing\",\"action\":\"refunded\",\"summary\":\"Customer reported being charged twice for order A-1. Order lookup shows status delivered, amount 40. A full refund was issued via issueRefund, pending human approval per the triage process.\"}"
+            "text": "{\"category\":\"billing\",\"action\":\"refunded\",\"summary\":\"Customer reported being charged twice for order A-1. I looked up the order (status: delivered, amount: 40) and submitted a full refund for A-1 with the reason noting the duplicate-charge report. The refund call returned success for A-1, but per process it still needs human approval, so it should be confirmed before the customer is told it is final.\"}"
           }
         ]
       },
       "finish": "stop",
       "usage": {
-        "uncachedInput": 1274,
+        "uncachedInput": 1264,
         "cacheRead": 0,
         "cacheWrite": 0,
-        "output": 80,
+        "output": 127,
         "reasoning": 0
       },
       "modelId": "claude-haiku-5-5"
