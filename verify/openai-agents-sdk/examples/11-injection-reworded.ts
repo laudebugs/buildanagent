@@ -22,7 +22,8 @@ async function tripsOn(message: string) {
     await runner.run(agent, message);
     return { tripped: false, modelCalls: model.calls.length };
   } catch (e) {
-    return { tripped: e instanceof InputGuardrailTripwireTriggered, modelCalls: model.calls.length };
+    if (!(e instanceof InputGuardrailTripwireTriggered)) throw e; // any other failure is not a pass
+    return { tripped: true, modelCalls: model.calls.length };
   }
 }
 

@@ -37,9 +37,8 @@ async function approve(secret: string | undefined, edit: boolean) {
   check(ask !== undefined && executed.length === 0, "the run pauses before the refund");
   // Whoever stores the messages can change them before the approval arrives.
   const saved = JSON.stringify([...messages, ...first.responseMessages]);
-  const edited: ModelMessage[] = JSON.parse(
-    edit ? saved.replaceAll('"orderId":"A-1"', '"orderId":"Z-9"') : saved, // book:note edit
-  );
+  const changed = saved.replaceAll('"orderId":"A-1"', '"orderId":"Z-9"'); // book:note edit
+  const edited: ModelMessage[] = JSON.parse(edit ? changed : saved);
   edited.push({
     role: "tool",
     content: [{ type: "tool-approval-response", approvalId: ask.approvalId, approved: true }],

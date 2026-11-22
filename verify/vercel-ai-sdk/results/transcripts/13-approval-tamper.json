@@ -53,7 +53,7 @@
     },
     {
       "kind": "request",
-      "line": 48,
+      "line": 47,
       "model": "model-1",
       "repeated": 1,
       "messages": [
@@ -88,7 +88,7 @@
     },
     {
       "kind": "response",
-      "line": 48,
+      "line": 47,
       "model": "model-1",
       "message": {
         "role": "assistant",
@@ -103,13 +103,13 @@
     },
     {
       "kind": "check",
-      "line": 58,
+      "line": 57,
       "message": "unsigned: the edited call is accepted",
       "pass": true
     },
     {
       "kind": "check",
-      "line": 59,
+      "line": 58,
       "message": "unsigned: the refund runs for the edited order, not the one shown",
       "pass": true
     },
@@ -160,13 +160,13 @@
     },
     {
       "kind": "check",
-      "line": 63,
+      "line": 62,
       "message": "signed: the edited call fails signature verification",
       "pass": true
     },
     {
       "kind": "check",
-      "line": 64,
+      "line": 63,
       "message": "signed: the tool never runs",
       "pass": true
     },
@@ -217,7 +217,7 @@
     },
     {
       "kind": "request",
-      "line": 48,
+      "line": 47,
       "model": "model-3",
       "repeated": 2,
       "messages": [
@@ -239,7 +239,7 @@
     },
     {
       "kind": "response",
-      "line": 48,
+      "line": 47,
       "model": "model-3",
       "message": {
         "role": "assistant",
@@ -254,13 +254,13 @@
     },
     {
       "kind": "check",
-      "line": 69,
+      "line": 68,
       "message": "signed, unedited: the approval is accepted",
       "pass": true
     },
     {
       "kind": "check",
-      "line": 70,
+      "line": 69,
       "message": "signed, unedited: the refund runs for the order the reviewer saw",
       "pass": true
     }

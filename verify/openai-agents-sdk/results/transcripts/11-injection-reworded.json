@@ -41,13 +41,13 @@
     },
     {
       "kind": "check",
-      "line": 33,
+      "line": 34,
       "message": "the phrase the guardrail knows is blocked before any model call",
       "pass": true
     },
     {
       "kind": "check",
-      "line": 34,
+      "line": 35,
       "message": "the same attack in other words passes and reaches the model",
       "pass": true
     }
