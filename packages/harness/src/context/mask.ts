@@ -43,7 +43,7 @@ function maskedResult(
 }
 
 /** An assistant message without its signed reasoning, or `undefined` when nothing remains to send. */
-function withoutSignedReasoning(message: AssistantMessage): AssistantMessage | undefined {
+export function withoutSignedReasoning(message: AssistantMessage): AssistantMessage | undefined {
   const content = message.content.filter((block) => !(block.type === "reasoning" && block.signature !== undefined));
   if (content.length === message.content.length) return message;
   return content.length === 0 ? undefined : { ...message, content };
