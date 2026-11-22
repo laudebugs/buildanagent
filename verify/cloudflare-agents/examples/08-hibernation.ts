@@ -48,21 +48,23 @@ export async function test(env: Env, h: Harness) {
   const inbox: any[] = [];
   ws.addEventListener("message", (e) => inbox.push(JSON.parse(String(e.data))));
 
+  // #region evict
   await room.setTopic("launch");
   const before = await room.snapshot();
   check(before.topic === "launch" && before.memory === 42 && before.starts === 1, "before eviction: one start");
 
-  await h.evict("Room", "lobby");
+  await h.evict("Room", "lobby"); // book:note evict
   const after = await (await getAgentByName(env.Room, "lobby")).snapshot();
-  check(after.starts === 2, "eviction ended the instance: onStart ran again on wake");
-  check(after.memory === 0, "in-memory fields reset on the new instance");
-  check(after.topic === "launch", "this.state was reloaded from storage");
+  check(after.starts === 2, "eviction ended the instance: onStart ran again on wake"); // book:note restarted
+  check(after.memory === 0, "in-memory fields reset on the new instance"); // book:note memory-reset
+  check(after.topic === "launch", "this.state was reloaded from storage"); // book:note state-reloaded
   check(after.connections === 1, "the hibernated WebSocket is still listed by getConnections()");
 
   ws.send("hello after hibernation");
   const echo = await h.until(() => inbox.find((m) => m.type === "echo"), 5000);
-  check(echo, "the hibernated WebSocket still delivers messages; onMessage ran on the new instance");
+  check(echo, "the hibernated WebSocket still delivers messages; onMessage ran on the new instance"); // book:note still-open
   check(echo.user === "ada", "per-connection state set in onConnect survived hibernation");
   check(echo.memory === 0, "the reply came from the new instance (memory reset)");
+  // #endregion
   ws.close();
 }

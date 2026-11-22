@@ -548,6 +548,126 @@
     "verifiedIn": "apps/manual/fact-checks/testing-offline-and-a-first-agent.md"
   },
   {
+    "id": "pi-json-events",
+    "title": "JSON Event Stream",
+    "publisher": "Pi documentation",
+    "url": "https://github.com/earendil-works/pi/blob/v1.5.2/packages/coding-agent/docs/json.md",
+    "kind": "docs",
+    "asOf": "November 2026",
+    "version": "v1.5.2",
+    "verifiedIn": "apps/manual/fact-checks/events-and-hooks.md"
+  },
+  {
+    "id": "buildanagent-sdk-hooks",
+    "title": "@buildanagent/sdk README: events, hooks and observers",
+    "publisher": "buildanagent",
+    "url": "https://github.com/laudebugs/buildanagent/blob/v0.1.0-alpha.26/packages/sdk/README.md",
+    "kind": "docs",
+    "asOf": "November 2026",
+    "version": "@buildanagent/sdk@0.1.0-alpha.26",
+    "verifiedIn": "apps/manual/fact-checks/events-and-hooks.md"
+  },
+  {
+    "id": "buildanagent-copilot-sdk-check",
+    "title": "Copilot SDK reference: fact-check (F6, the untyped model events)",
+    "publisher": "buildanagent",
+    "url": "https://github.com/laudebugs/buildanagent/blob/2174e4c/docs/reference/copilot-sdk/fact-check.md",
+    "kind": "repo",
+    "asOf": "November 2026",
+    "version": "@github/copilot-sdk@1.0.31",
+    "verifiedIn": "apps/manual/fact-checks/events-and-hooks.md"
+  },
+  {
+    "id": "langchain-middleware-custom",
+    "title": "Custom middleware",
+    "publisher": "LangChain documentation",
+    "url": "https://github.com/langchain-ai/docs/blob/9d9747d0cf241e086c616a16d5ce230ad8f8f31d/src/oss/langchain/middleware/custom.mdx",
+    "kind": "docs",
+    "asOf": "November 2026",
+    "version": "langchain@1.6.1",
+    "verifiedIn": "apps/manual/fact-checks/events-and-hooks.md"
+  },
+  {
+    "id": "adk-callback-types",
+    "title": "Types of Callbacks",
+    "publisher": "Agent Development Kit documentation",
+    "url": "https://github.com/google/adk-docs/blob/ff7a5f56469a81f3e43a8fc54668d8dc84300192/docs/callbacks/types-of-callbacks.md",
+    "kind": "docs",
+    "asOf": "November 2026",
+    "version": "ff7a5f5",
+    "verifiedIn": "apps/manual/fact-checks/events-and-hooks.md"
+  },
+  {
+    "id": "adk-callbacks-index",
+    "title": "Callbacks: Observe, Customize, and Control Agent Behavior",
+    "publisher": "Agent Development Kit documentation",
+    "url": "https://github.com/google/adk-docs/blob/ff7a5f56469a81f3e43a8fc54668d8dc84300192/docs/callbacks/index.md",
+    "kind": "docs",
+    "asOf": "November 2026",
+    "version": "ff7a5f5",
+    "verifiedIn": "apps/manual/fact-checks/events-and-hooks.md"
+  },
+  {
+    "id": "copilot-hooks-overview",
+    "title": "Session hooks",
+    "publisher": "GitHub Copilot SDK documentation",
+    "url": "https://github.com/github/copilot-sdk/blob/v1.0.31/docs/hooks/hooks-overview.md",
+    "kind": "docs",
+    "asOf": "November 2026",
+    "version": "v1.0.31",
+    "verifiedIn": "apps/manual/fact-checks/events-and-hooks.md"
+  },
+  {
+    "id": "pi-extensions",
+    "title": "Extensions",
+    "publisher": "Pi documentation",
+    "url": "https://github.com/earendil-works/pi/blob/v1.5.2/packages/coding-agent/docs/extensions.md",
+    "kind": "docs",
+    "asOf": "November 2026",
+    "version": "v1.5.2",
+    "verifiedIn": "apps/manual/fact-checks/events-and-hooks.md"
+  },
+  {
+    "id": "copilot-pre-tool-use-hook",
+    "title": "Pre-tool use hook",
+    "publisher": "GitHub Copilot SDK documentation",
+    "url": "https://github.com/github/copilot-sdk/blob/v1.0.31/docs/hooks/pre-tool-use.md",
+    "kind": "docs",
+    "asOf": "November 2026",
+    "version": "v1.0.31",
+    "verifiedIn": "apps/manual/fact-checks/events-and-hooks.md"
+  },
+  {
+    "id": "copilot-post-tool-use-hook",
+    "title": "Post-tool use hook",
+    "publisher": "GitHub Copilot SDK documentation",
+    "url": "https://github.com/github/copilot-sdk/blob/v1.0.31/docs/hooks/post-tool-use.md",
+    "kind": "docs",
+    "asOf": "November 2026",
+    "version": "v1.0.31",
+    "verifiedIn": "apps/manual/fact-checks/events-and-hooks.md"
+  },
+  {
+    "id": "adk-plugins",
+    "title": "Plugins",
+    "publisher": "Agent Development Kit documentation",
+    "url": "https://github.com/google/adk-docs/blob/ff7a5f56469a81f3e43a8fc54668d8dc84300192/docs/plugins/index.md",
+    "kind": "docs",
+    "asOf": "November 2026",
+    "version": "ff7a5f5",
+    "verifiedIn": "apps/manual/fact-checks/events-and-hooks.md"
+  },
+  {
+    "id": "pi-agent-core-readme",
+    "title": "Agent core README: steering and follow-up",
+    "publisher": "Pi (earendil-works/pi)",
+    "url": "https://github.com/earendil-works/pi/blob/v1.5.2/packages/agent/README.md",
+    "kind": "repo",
+    "asOf": "November 2026",
+    "version": "v1.5.2",
+    "verifiedIn": "apps/manual/fact-checks/events-and-hooks.md"
+  },
+  {
     "id": "claude-agent-sdk-permissions",
     "title": "Configure permissions",
     "publisher": "Anthropic, Claude Agent SDK",
@@ -592,6 +712,25 @@
     "version": "v1",
     "asOf": "November 2026",
     "verifiedIn": "docs/research/papers/fact-check-agent-research-papers.md"
+  },
+  {
+    "id": "pi-sdk",
+    "title": "SDK",
+    "publisher": "Pi (earendil-works/pi), coding agent",
+    "url": "https://github.com/earendil-works/pi/blob/v1.5.2/packages/coding-agent/docs/sdk.md",
+    "kind": "docs",
+    "asOf": "November 2026",
+    "version": "v1.5.2",
+    "verifiedIn": "apps/manual/fact-checks/events-and-hooks.md"
+  },
+  {
+    "id": "adk-events",
+    "title": "Events",
+    "publisher": "Agent Development Kit documentation",
+    "url": "https://github.com/google/adk-docs/blob/ff7a5f56469a81f3e43a8fc54668d8dc84300192/docs/events/index.md",
+    "kind": "docs",
+    "asOf": "November 2026",
+    "verifiedIn": "apps/manual/fact-checks/events-and-hooks.md"
   },
   {
     "id": "anthropic-advanced-tool-use",
@@ -814,5 +953,111 @@
     "kind": "docs",
     "asOf": "November 2026",
     "verifiedIn": "docs/research/reversible-actions/fact-check-sagas.md"
+  },
+  {
+    "id": "pi-session-format",
+    "title": "Session File Format",
+    "publisher": "Pi documentation",
+    "url": "https://github.com/earendil-works/pi/blob/v1.5.2/packages/coding-agent/docs/session-format.md",
+    "kind": "docs",
+    "asOf": "November 2026",
+    "version": "@earendil-works/pi-coding-agent@1.5.2",
+    "verifiedIn": "apps/manual/fact-checks/the-session-log-and-context.md"
+  },
+  {
+    "id": "pi-sessions",
+    "title": "Sessions and Context",
+    "publisher": "Pi documentation",
+    "url": "https://github.com/earendil-works/pi/blob/v1.5.2/packages/coding-agent/docs/sessions.md",
+    "kind": "docs",
+    "asOf": "November 2026",
+    "version": "@earendil-works/pi-coding-agent@1.5.2",
+    "verifiedIn": "apps/manual/fact-checks/the-session-log-and-context.md"
+  },
+  {
+    "id": "pi-session-manager",
+    "title": "session-manager.ts",
+    "publisher": "Pi repository",
+    "url": "https://github.com/earendil-works/pi/blob/v1.5.2/packages/coding-agent/src/core/session-manager.ts",
+    "kind": "repo",
+    "asOf": "November 2026",
+    "version": "@earendil-works/pi-coding-agent@1.5.2",
+    "verifiedIn": "apps/manual/fact-checks/the-session-log-and-context.md"
+  },
+  {
+    "id": "hou-messy-middle",
+    "title": "Tracing the Messy Middle: A Runtime Transaction Schema for AI Coding Agents",
+    "publisher": "Hou, Li, Chen and Chen (arXiv)",
+    "url": "https://arxiv.org/abs/2611.23234",
+    "kind": "paper",
+    "asOf": "November 2026",
+    "verifiedIn": "apps/manual/fact-checks/the-session-log-and-context.md"
+  },
+  {
+    "id": "wong-governed-ml",
+    "title": "Evaluating Governed LLM-Driven ML Experimentation: Lifecycle, Provenance, and Failure Metrics",
+    "publisher": "Wong (arXiv)",
+    "url": "https://arxiv.org/abs/2611.23678",
+    "kind": "paper",
+    "asOf": "November 2026",
+    "verifiedIn": "apps/manual/fact-checks/the-session-log-and-context.md"
+  },
+  {
+    "id": "buildanagent-harness-plan",
+    "title": "Build harness plan",
+    "publisher": "buildanagent",
+    "url": "https://github.com/laudebugs/buildanagent/blob/2174e4c2e80fff77540da496110a5ec36330273c/docs/plans/build-harness.md",
+    "kind": "docs",
+    "asOf": "November 2026",
+    "version": "commit 2174e4c",
+    "verifiedIn": "apps/manual/fact-checks/the-session-log-and-context.md"
+  },
+  {
+    "id": "cloudflare-agents-websockets",
+    "title": "HTTP and WebSockets",
+    "publisher": "Cloudflare Agents documentation",
+    "url": "https://github.com/cloudflare/agents/blob/agents@0.33.0/docs/agents/http-websockets.md",
+    "kind": "docs",
+    "asOf": "November 2026",
+    "version": "agents@0.33.0",
+    "verifiedIn": "apps/manual/fact-checks/the-session-log-and-context.md"
+  },
+  {
+    "id": "pi-compaction",
+    "title": "Compaction Reference",
+    "publisher": "Pi documentation",
+    "url": "https://github.com/earendil-works/pi/blob/v1.5.2/packages/coding-agent/docs/compaction.md",
+    "kind": "docs",
+    "asOf": "November 2026",
+    "version": "@earendil-works/pi-coding-agent@1.5.2",
+    "verifiedIn": "apps/manual/fact-checks/the-session-log-and-context.md"
+  },
+  {
+    "id": "swe-agent-observation-masking",
+    "title": "The Complexity Trap: Simple Observation Masking Is as Efficient as LLM Summarization for Agent Context Management",
+    "publisher": "arXiv",
+    "url": "https://arxiv.org/abs/2508.21433",
+    "kind": "paper",
+    "asOf": "November 2026",
+    "verifiedIn": "apps/manual/fact-checks/the-session-log-and-context.md"
+  },
+  {
+    "id": "buildanagent-protocol-entries",
+    "title": "The session entry union",
+    "publisher": "buildanagent",
+    "url": "https://github.com/laudebugs/buildanagent/blob/2174e4c2e80fff77540da496110a5ec36330273c/packages/protocol/src/entries.ts",
+    "kind": "repo",
+    "asOf": "November 2026",
+    "version": "commit 2174e4c",
+    "verifiedIn": "apps/manual/fact-checks/the-session-log-and-context.md"
+  },
+  {
+    "id": "anthropic-effective-harnesses",
+    "title": "Effective harnesses for long-running agents",
+    "publisher": "Anthropic",
+    "url": "https://www.anthropic.com/engineering/effective-harnesses-for-long-running-agents",
+    "kind": "post",
+    "asOf": "November 2026",
+    "verifiedIn": "apps/manual/fact-checks/the-session-log-and-context.md"
   }
 ]
