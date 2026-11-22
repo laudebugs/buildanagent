@@ -56,9 +56,20 @@ function check(tool: ToolRegistration): void {
   checkOneOf("exposure", tool.exposure, EXPOSURES);
   checkOneOf("outputTrust", tool.outputTrust, TRUSTS);
   checkOneOf("approvalReuse", tool.approvalReuse, REUSES);
+  for (const [field, value] of [
+    ["remoteAgent", tool.remoteAgent],
+    ["override", tool.override],
+  ] as const) {
+    if (value !== undefined && typeof value !== "boolean") invalid(`has a ${field} that is not true or false`);
+  }
   if (tool.alias !== undefined && (typeof tool.alias !== "string" || tool.alias === "")) invalid("has a blank alias");
   if (typeof (tool.definition as Partial<ToolDefinition> | undefined)?.execute !== "function") {
     invalid("needs a definition from defineTool(), whose execute is a function");
+  }
+  try {
+    defineTool(tool.definition);
+  } catch (error) {
+    invalid(`has a definition that defineTool() refuses: ${error instanceof Error ? error.message : String(error)}`);
   }
 }
 
@@ -122,6 +133,7 @@ class Registry implements ToolRegistry {
     this.#checkAlias(registration.alias, canonicalName, replaces);
     const tool: RegisteredTool = {
       canonicalName,
+      name,
       ...(registration.alias === undefined ? {} : { alias: registration.alias }),
       source,
       pattern: (registration.pattern ?? "in_process") as HostPattern,
@@ -182,6 +194,8 @@ class Registry implements ToolRegistry {
    */
   #canonicalFor({ name, source }: ToolRegistration): string {
     if (!isMcp(source)) {
+      if (name.startsWith("mcp__"))
+        invalid(`has the name ${JSON.stringify(name)}, and only an MCP tool takes the mcp__ prefix`);
       if (!isCanonicalName(name)) {
         invalid(`has the name ${JSON.stringify(name)}, which must be 1 to 64 characters from A-Z, a-z, 0-9, _ and -`);
       }

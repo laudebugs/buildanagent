@@ -425,8 +425,8 @@ interface ToolRegistry {
   preambleTokens(options?: { system?: string }): number;                         // printed at session start; revision (N11): no model, the estimate is character-based
 }
 type ToolWrapper<H = unknown> = (tool: RegisteredTool, hostContext: H) => ToolDefinition<any, any>; // write cap, shadow mode, sandbox binding; the turn's host context
-declare function toolSearchTool(registry: ToolRegistry, options?: { activated?: Set<string>; maxResults?: number }): ToolDefinition<{ query: string }, { activated: string[] }>; // revision (N11): the caller owns the activated set
-declare function toolSearchInterceptors(registry: ToolRegistry, activated: ReadonlySet<string>): Interceptors; // sends every direct tool plus the activated ones
+declare function toolSearchTool(registry: ToolRegistry, options: { activated: Set<string>; maxResults?: number }): ToolDefinition<{ query: string }, { activated: string[] }>; // revision (N11): the caller owns the activated set
+declare function toolSearchInterceptors(registry: ToolRegistry, activated: ReadonlySet<string>): Interceptors; // sends the run's own tools plus the activated ones
 declare function builtinTools(sandbox: Sandbox, proxy?: EgressProxy): RegisteredTool[];  // read, write, edit, bash, fetch, grep, glob
 
 // @buildanagent/harness/mcp (guide §4; HD14)

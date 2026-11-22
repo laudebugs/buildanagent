@@ -307,14 +307,28 @@ test("preambleTokens() counts the system prompt and every direct tool, and a def
   registry.register(registration("search", "mcp:github"));
   assert.equal(registry.preambleTokens(), one, "a deferred tool is not in the preamble");
   assert.ok(registry.preambleTokens({ system: "You are a careful agent." }) > one);
-  // A Standard Schema that can't describe itself counts as an empty object schema, and a schema that can is counted.
-  const bare = createToolRegistry();
+  registry.setExposure("mcp:github", "direct");
+  assert.ok(registry.preambleTokens() > one, "a tool made direct is");
+});
+
+test("a registration fails at register() when its definition would fail at turn start, or its flags are not booleans", () => {
+  const registry = createToolRegistry();
   const noJson = {
     ...tool("source_name", "A tool."),
     inputSchema: { "~standard": { version: 1, vendor: "test", validate: () => ({ value: {} }) } },
   };
-  bare.register({ name: "bare", source: "builtin", definition: noJson as never });
-  assert.ok(bare.preambleTokens() > 0);
-  registry.setExposure("mcp:github", "direct");
-  assert.ok(registry.preambleTokens() > one, "a tool made direct is");
+  const refused = (error: unknown) => isHarnessError(error) && error.code === "invalid_tool_registration";
+  assert.throws(() => registry.register({ name: "bare", source: "builtin", definition: noJson as never }), refused);
+  assert.throws(() => registry.register({ ...registration("a", "extension"), remoteAgent: "true" as never }), refused);
+  assert.throws(() => registry.register({ ...registration("b", "extension"), override: 1 as never }), refused);
+});
+
+test("only an MCP tool may take a name that starts with mcp__", () => {
+  const registry = createToolRegistry();
+  assert.throws(
+    () => registry.register(registration("mcp__github__search", "extension")),
+    (error) => isHarnessError(error) && error.code === "invalid_tool_registration",
+  );
+  registry.register(registration("search", "mcp:github"));
+  assert.equal(registry.get("mcp__github__search")?.name, "search", "the registered name stays on the tool");
 });

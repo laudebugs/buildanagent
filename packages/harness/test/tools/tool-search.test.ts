@@ -140,7 +140,7 @@ test("a stop word matches nothing, and a maxResults that is not a positive whole
   const { registry } = setup();
   for (const maxResults of [0, -1, 1.5, Number.NaN]) {
     assert.throws(
-      () => toolSearchTool(registry, { maxResults }),
+      () => toolSearchTool(registry, { activated: new Set(), maxResults }),
       (error) => isHarnessError(error) && error.code === "invalid_tool_registration",
     );
   }
@@ -150,10 +150,42 @@ test("the search tool is sent even when its source is made deferred, so a model 
   const { registry, activated } = setup();
   registry.setExposure("builtin", "deferred");
   const names = await new Promise<string[]>((resolve) => {
-    const patch = toolSearchInterceptors(registry, activated).beforeModelCall?.({} as never);
+    const patch = toolSearchInterceptors(registry, activated).beforeModelCall?.({ context: { tools: [] } } as never);
     Promise.resolve(patch).then((value) =>
       resolve([...((value as { activeTools?: string[] } | undefined)?.activeTools ?? [])]),
     );
   });
   assert.deepEqual(names, ["tool_search"]);
+});
+
+test("a query word that begins a stop word in a description matches nothing", async () => {
+  const { registry, activated } = setup();
+  registry.register({
+    name: "wide",
+    source: "mcp:misc",
+    definition: tool("Use this for anything you can think of, and then the rest."),
+  });
+  const search = toolSearchTool(registry, { activated });
+  for (const query of ["fork a thing", "cancel it", "users", "these"]) {
+    await search.execute({ query }, {} as never);
+  }
+  assert.equal(activated.has("mcp__misc__wide"), false, "fork, cancel, users and these are not for, can, use and the");
+});
+
+test("toolSearchTool() needs the activated set, because a search that records nothing activates nothing", () => {
+  const { registry } = setup();
+  assert.throws(
+    () => toolSearchTool(registry, {} as never),
+    (error) => isHarnessError(error) && error.code === "invalid_tool_registration",
+  );
+});
+
+test("the interceptor keeps a tool the run passes from outside the registry, and adds only names the registry holds", () => {
+  const { registry, activated } = setup();
+  activated.add("mcp__github__create_issue");
+  activated.add("late_tool");
+  const patch = toolSearchInterceptors(registry, activated).beforeModelCall?.({
+    context: { tools: [{ name: "read" }, { name: "answer" }] },
+  } as never) as { activeTools: string[] };
+  assert.deepEqual(patch.activeTools, ["read", "answer", "mcp__github__create_issue", "tool_search"]);
 });
