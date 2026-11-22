@@ -37,6 +37,7 @@ const hasComparedListing = listed.some((path) => book.live.compared.has(path));
   sources={chapter.data.sources}
   hasFileListing={hasFileListing}
   hasComparedListing={hasComparedListing}
+  slug={chapter.id}
 >
   <Content />
 </ChapterLayout>
