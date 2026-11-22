@@ -70,5 +70,14 @@
     "ms": 4799,
     "modelCalls": 0,
     "tail": "ok - the other customer's record never reaches the model\nok - escalate_to_human pauses for approval and has not run\nok - after approval the escalation runs once, for the session's customer\nok - the typed result parses with zod and records the escalation\nok - a rejected escalation never runs\nok - the typed result says the ticket was not escalated\nok - without user:customer_id in state the lookup returns an error, not a guess\nok - no host tool is ever offered to the model"
+  },
+  {
+    "id": "09-a2a-delegation",
+    "file": "/home/user/agent-speak/verify/google-adk/examples/09-a2a-delegation.ts",
+    "outcome": "ran",
+    "exit": 0,
+    "ms": 1270,
+    "modelCalls": 0,
+    "tail": "ok - a wrong token fails the same way\nok - the server logged the rejections\nok - a RemoteA2AAgent with no clientFactory sends no token, and its delegation ends in the 500\nok - neither refused request reached the agent's model\n\u001b[33mWARN\u001b[39m: [ADK] 2026-11-22T10:19:36.832Z Ignoring tool confirmation(s) delivered over A2A: a remote peer cannot answer a human-in-the-loop gate. Set `allowRemoteToolConfirmation` on the run config if the peer relays a real operator decision.\n\u001b[33mWARN\u001b[39m: [ADK] 2026-11-22T10:19:36.835Z Ignoring tool confirmation(s) delivered over A2A: a remote peer cannot answer a human-in-the-loop gate. Set `allowRemoteToolConfirmation` on the run config if the peer relays a real operator decision.\nok - the same request with the token does reach it\nok - toA2a refuses to mount without authentication unless allowUnauthenticated is true"
   }
 ]
