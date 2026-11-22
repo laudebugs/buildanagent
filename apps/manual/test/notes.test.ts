@@ -597,7 +597,11 @@ test("a chapter draws its stored highlights and lists every one, a lost one with
   const open = q<HTMLButtonElement>(win, ".notes-open");
   assert.equal(open?.getAttribute("aria-label"), "Notes, 3 saved");
   assert.ok(open?.closest("[data-pagefind-ignore]"), "the button is outside the search index");
-  assert.equal(q(win, "article [data-notes-ui]"), null, "nothing is added inside the article");
+  assert.equal(
+    q(win, "article [data-notes-ui]:not(.notes-dot)"),
+    null,
+    "only a note\u2019s dot is added inside the article",
+  );
   open?.click();
   const rows = [...(win.document as unknown as Document).querySelectorAll(".notes-dialog__item")];
   assert.deepEqual(
@@ -790,7 +794,9 @@ test("at the cap a passage already highlighted still takes a note, and only a ne
   assert.equal(items.length, MAX_HIGHLIGHTS);
   assert.equal(items.find((found) => found.id === made.id)?.note, "A note at the cap.");
   q<HTMLButtonElement>(win, ".notes-dialog__head button")?.click();
-  select(win, paragraph, 40, paragraph, 51);
+  // The note's dot split the paragraph's text after offset 13, so the later words are in the node after the dot.
+  const rest = q(win, "article p:last-of-type")?.lastChild as Node;
+  select(win, rest, 27, rest, 38);
   shortcut(win);
   assert.equal(toolbarButton(win, "Amber").disabled, true, "a new passage is refused");
   assert.match(visibleMessage(win), /already holds 200 highlights/);
@@ -801,18 +807,20 @@ test("the chapter's text model is built once per page state and again after the 
   const walkers = vi.spyOn(win.document, "createTreeWalker");
   start(win as unknown as globalThis.Window);
   assert.equal(walkers.mock.calls.length, 1, "drawing the stored highlights builds it");
+  // A wide window draws margin markers and changes no node, so the model stays as it was read.
+  const afterStart = walkers.mock.calls.length;
   const paragraph = q(win, "article p:last-of-type")?.firstChild as Node;
   for (const end of [13, 20, 30]) {
     select(win, paragraph, 2, paragraph, end);
     shortcut(win);
     (win.document.activeElement as unknown as HTMLElement | null)?.blur?.();
   }
-  toolbarButton(win, "Amber").click();
-  assert.equal(walkers.mock.calls.length, 1, "selections and a saved highlight reuse it");
+  assert.equal(walkers.mock.calls.length, afterStart, "selections reuse the reading of the article");
+  const beforeEdit = walkers.mock.calls.length;
   q(win, "article p")?.append(win.document.createTextNode(" More words.") as unknown as Node);
   select(win, paragraph, 2, paragraph, 9);
   shortcut(win);
-  assert.equal(walkers.mock.calls.length, 2, "a changed article is read again");
+  assert.equal(walkers.mock.calls.length, beforeEdit + 1, "a changed article is read again");
   assert.equal(q<HTMLElement>(win, ".notes-toolbar")?.hidden, false);
 });
 
@@ -1010,6 +1018,10 @@ function layout(win: Window, rects: Record<string, Rect[]>) {
   } as never);
   const article = q(win, "article");
   vi.spyOn(article as Element, "getBoundingClientRect").mockReturnValue(rect(0, 0, 400, 2000) as unknown as DOMRect);
+  // The text column is the first paragraph, which ends at 400 here, so the page leaves a wide gutter beside it.
+  vi.spyOn(q(win, "article p") as Element, "getBoundingClientRect").mockReturnValue(
+    rect(0, 0, 400, 100) as unknown as DOMRect,
+  );
 }
 
 const popoverWindows: Window[] = [];
@@ -1050,9 +1062,18 @@ const RECTS = {
   "a contract with a model": [rect(10, 100, 200, 120)],
   "A failed call comes back again": [rect(10, 300, 150, 320), rect(10, 320, 250, 340)],
 };
-const stage = (items: Item[], options: { popover?: boolean } = {}) => {
+/** A window with no free gutter beside the article, so a note gets its inline dot and not a margin marker. */
+function narrow(win: Window) {
+  Object.defineProperty(win.document.documentElement, "clientWidth", { configurable: true, value: 420 });
+  vi.spyOn(q(win, "article p") as Element, "getBoundingClientRect").mockReturnValue(
+    rect(0, 0, 400, 100) as unknown as DOMRect,
+  );
+}
+
+const stage = (items: Item[], options: { popover?: boolean; narrow?: boolean } = {}) => {
   const win = page({ items });
   layout(win, RECTS);
+  if (options.narrow) narrow(win);
   if (options.popover === false) {
     for (const name of ["showPopover", "hidePopover"]) Reflect.deleteProperty(win.HTMLElement.prototype, name);
   }
@@ -1218,44 +1239,356 @@ test("where highlights overlap, a click opens the one that paints on top: a note
   assert.equal(q(win, ".notes-pop__quote")?.textContent, "“a contract with a model”");
 });
 
-test("a noted highlight gets a marker outside the article, above its last line, clamped to the article's width", () => {
-  const { win } = stage([CONTRACT, FAILED]);
-  const markers = [
-    ...(win.document as unknown as Document).querySelectorAll<HTMLElement>(".notes-markers .notes-marker"),
-  ];
-  assert.equal(markers.length, 1, "only the highlight with a note has one");
-  const [marker] = markers;
-  assert.equal(marker?.getAttribute("data-id"), "two");
-  assert.equal(marker?.getAttribute("aria-hidden"), "true");
-  assert.equal(marker?.closest("[data-pagefind-ignore]")?.className.includes("notes-markers"), true);
-  assert.equal(q(win, "article .notes-marker"), null, "the markers are outside the article");
-  assert.equal(marker?.style.left, "238px", "the hit area is centred on the end of the last line");
-  assert.equal(marker?.style.top, "300px", "and sits above it");
-  const edge = page({ items: [{ ...FAILED }] });
-  layout(edge, { "A failed call comes back again": [rect(10, 320, 395, 340)] });
-  start(edge as unknown as globalThis.Window);
-  assert.equal(
-    q<HTMLElement>(edge, ".notes-marker")?.style.left,
-    "376px",
-    "a passage that ends at the article's edge keeps the marker inside it",
+const dots = (win: Window) => [
+  ...(win.document as unknown as Document).querySelectorAll<HTMLElement>("article .notes-dot"),
+];
+const articleText = (win: Window) => (q(win, "article") as Element).textContent;
+
+test("a noted highlight gets a numbered dot right after its last word, and a plain highlight gets none", () => {
+  const win = page({ items: [CONTRACT, FAILED] });
+  narrow(win);
+  const before = articleText(win);
+  start(win as unknown as globalThis.Window);
+  const [dot, ...rest] = dots(win);
+  assert.equal(rest.length, 0, "only the highlight with a note has one");
+  assert.equal(dot?.getAttribute("data-id"), "two");
+  assert.equal(dot?.getAttribute("data-n"), "1");
+  assert.equal(dot?.getAttribute("role"), "button");
+  assert.equal(dot?.getAttribute("tabindex"), "0");
+  assert.equal(dot?.getAttribute("aria-label"), "Note 1");
+  assert.equal(dot?.getAttribute("data-color"), "amber");
+  assert.ok(dot?.hasAttribute("data-pagefind-ignore"), "Pagefind skips it");
+  assert.equal(dot?.textContent, "", "the number is generated content, so no text is added");
+  assert.equal(articleText(win), before, "the chapter's text is the same");
+  assert.equal(dot?.previousSibling?.textContent?.endsWith("again"), true, "right after the last word");
+  assert.equal(dot?.nextSibling?.textContent, ".", "and before the characters that follow");
+  assert.equal(q(win, ".notes-marker"), null, "a narrow window has no margin marker");
+});
+
+test("the dot changes no anchor: the text model, the painted passages and the stored value are the same", () => {
+  const win = page({ items: [CONTRACT, FAILED] });
+  narrow(win);
+  const doc = win.document as unknown as Document;
+  const article = doc.querySelector("article") as Element;
+  const before = buildIndex(proseNodes(article).map((node) => node.data)).text;
+  start(win as unknown as globalThis.Window);
+  assert.equal(buildIndex(proseNodes(article).map((node) => node.data)).text, before);
+  assert.deepEqual(painted(win, PLAIN), ["a contract with a model"]);
+  assert.deepEqual(painted(win, NOTED), ["A failed call comes back again"]);
+  assert.equal(storedItems(win).length, 2);
+  assert.deepEqual(
+    storedItems(win).map((found) => found.quote),
+    ["a contract with a model", "A failed call comes back again"],
   );
 });
 
-test("a click on a marker opens the popover for its highlight", () => {
-  const { win, calls } = stage([CONTRACT, FAILED]);
-  click(win, q(win, ".notes-marker"), 250, 295);
+test("dots are numbered in the panel's order, and the panel names each note's number", () => {
+  const first = item({ id: "late", quote: "A failed call comes back again", section: "errors", note: "Later." });
+  const second = item({
+    id: "early",
+    quote: "a contract with a model",
+    section: "schemas",
+    offset: 13,
+    note: "Earlier.",
+  });
+  const win = page({ items: [first, second] });
+  narrow(win);
+  start(win as unknown as globalThis.Window);
+  const byId = Object.fromEntries(dots(win).map((dot) => [dot.getAttribute("data-id"), dot.getAttribute("data-n")]));
+  assert.deepEqual(byId, { early: "1", late: "2" });
+  q<HTMLButtonElement>(win, ".notes-open")?.click();
+  const labels = [...(win.document as unknown as Document).querySelectorAll(".notes-dialog__label")].map(
+    (label) => label.textContent,
+  );
+  assert.deepEqual(labels, ["Note 1", "Note 2"]);
+});
+
+test("a dot takes its highlight's colour and an unknown colour reads as amber", () => {
+  const green = item({
+    id: "g",
+    quote: "A failed call comes back again",
+    section: "errors",
+    note: "x",
+    color: "green",
+  });
+  const odd = item({
+    id: "o",
+    quote: "a contract with a model",
+    section: "schemas",
+    offset: 13,
+    note: "y",
+    color: "teal",
+  });
+  const win = page({ items: [green, odd] });
+  narrow(win);
+  start(win as unknown as globalThis.Window);
+  const colours = Object.fromEntries(
+    dots(win).map((dot) => [dot.getAttribute("data-id"), dot.getAttribute("data-color")]),
+  );
+  assert.deepEqual(colours, { g: "green", o: "amber" });
+});
+
+test("a passage that ends in a link or code gets its dot after the element, never inside it", () => {
+  const ends = item({ id: "l", quote: "that reads the schema", section: "schemas", note: "n" });
+  const win = page({ items: [ends] });
+  narrow(win);
+  start(win as unknown as globalThis.Window);
+  const [dot] = dots(win);
+  assert.equal(dot?.parentElement?.tagName, "P", "not inside the anchor");
+  assert.equal((dot?.previousSibling as Element | null)?.tagName, "A");
+});
+
+test("repainting takes the dots out and joins the text nodes again, so nothing piles up", () => {
+  const win = page({ items: [CONTRACT, FAILED] });
+  narrow(win);
+  start(win as unknown as globalThis.Window);
+  const paragraph = q(win, "article p:last-of-type") as Element;
+  assert.equal(paragraph.childNodes.length, 3, "a text node, the dot and the text after it");
+  q<HTMLButtonElement>(win, ".notes-open")?.click();
+  const edit = [...(win.document as unknown as Document).querySelectorAll(".notes-dialog__item button")].find(
+    (found) => found.textContent === "Delete",
+  ) as HTMLButtonElement;
+  // The panel lists the chapter in order: the plain highlight first, then the noted one.
+  const rows = [...(win.document as unknown as Document).querySelectorAll(".notes-dialog__item")];
+  const noted = rows.find((row) => row.getAttribute("data-id") === "two");
+  assert.ok(edit);
+  [...(noted?.querySelectorAll("button") ?? [])]
+    .find((found) => found.textContent === "Delete")
+    ?.dispatchEvent(new win.MouseEvent("click", { bubbles: true }) as unknown as Event);
+  assert.equal(dots(win).length, 0, "deleting the note's highlight removes its dot");
+  assert.equal(paragraph.childNodes.length, 1, "and the split text is one node again");
+});
+
+test("a click on a dot opens the popover for its highlight", () => {
+  const { win, calls } = stage([CONTRACT, FAILED], { narrow: true });
+  click(win, dots(win)[0] ?? null, 250, 295);
   assert.deepEqual(calls, ["show"]);
   assert.equal(q(win, ".notes-pop__quote")?.textContent, "“A failed call comes back again”");
 });
 
-test("the markers are placed again when the page resizes, and a highlight with no note has none", () => {
-  const { win } = stage([CONTRACT, FAILED]);
-  layout(win, { "A failed call comes back again": [rect(10, 520, 150, 540), rect(10, 540, 100, 560)] });
-  win.dispatchEvent(new win.Event("resize"));
-  assert.equal(q<HTMLElement>(win, ".notes-marker")?.style.top, "520px");
-  assert.equal(q<HTMLElement>(win, ".notes-marker")?.style.left, "88px");
+test("Enter on a focused dot opens the popover on keydown and Space on keyup, and focus returns to the dot when it closes", () => {
+  const { win, calls } = stage([CONTRACT, FAILED], { narrow: true });
+  const dot = dots(win)[0] as HTMLElement;
+  const key = (type: string, name: string) =>
+    new win.KeyboardEvent(type, { key: name, bubbles: true, cancelable: true }) as unknown as Event;
+  const dismiss = () => {
+    const closing = new win.Event("beforetoggle") as unknown as Event & { newState: string };
+    closing.newState = "closed";
+    (q(win, ".notes-pop") as Element).dispatchEvent(closing);
+  };
+  const spaceDown = key("keydown", " ");
+  dot.dispatchEvent(spaceDown);
+  assert.equal(spaceDown.defaultPrevented, true, "Space does not scroll the page");
+  assert.deepEqual(calls, [], "and does not open on keydown");
+  dot.dispatchEvent(key("keyup", " "));
+  assert.deepEqual(calls, ["show"]);
+  dismiss();
+  dot.dispatchEvent(key("keydown", "Enter"));
+  assert.deepEqual(calls, ["show", "show"]);
+  assert.equal(q(win, ".notes-pop__quote")?.textContent, "“A failed call comes back again”");
+  // Closing hands focus to the page, which the dot then takes back.
+  (win.document.activeElement as unknown as HTMLElement | null)?.blur();
+  const closed = new win.Event("toggle") as unknown as Event & { newState: string };
+  closed.newState = "closed";
+  (q(win, ".notes-pop") as Element).dispatchEvent(closed);
+  assert.equal(win.document.activeElement, dots(win)[0]);
+  dot.dispatchEvent(key("keydown", "a"));
+  assert.deepEqual(calls, ["show", "show"], "other keys do nothing");
+});
+
+const markers = (win: Window) => [
+  ...(win.document as unknown as Document).querySelectorAll<HTMLElement>(".notes-markers .notes-marker"),
+];
+const widen = (win: Window) =>
+  Object.defineProperty(win.document.documentElement, "clientWidth", { configurable: true, value: 1024 });
+
+test("a wide window gets a speech-bubble marker in the margin, level with the first line, and adds nothing to the article", () => {
+  const win = page({ items: [CONTRACT, FAILED] });
+  const before = (q(win, "article") as Element).innerHTML;
+  layout(win, RECTS);
+  start(win as unknown as globalThis.Window);
+  assert.equal((q(win, "article") as Element).innerHTML, before, "the article is exactly as it was");
+  const [marker, ...rest] = markers(win);
+  assert.equal(rest.length, 0, "only the highlight with a note has one");
+  assert.equal(marker?.tagName, "BUTTON");
+  assert.equal(marker?.getAttribute("aria-label"), "Note 1");
+  assert.equal(marker?.getAttribute("data-id"), "two");
+  assert.equal(marker?.getAttribute("data-color"), "amber");
+  assert.equal(marker?.querySelector("svg path")?.getAttribute("d"), "M2 3.5h12v7H8.5L5 13.5v-3H2z");
+  assert.equal(marker?.closest("[data-pagefind-ignore]")?.className.includes("notes-markers"), true);
+  assert.equal(q(win, "article .notes-marker"), null);
+  // The article's box ends at 400, so the marker starts 8 pixels to its right, centred on the first line.
+  assert.equal(marker?.style.left, "408px");
+  assert.equal(marker?.style.top, "296px", "the first line's rectangle runs from 300 to 320, centred on 310");
+  assert.equal(dots(win).length, 0, "no dot in a wide window");
+});
+
+test("markers that begin close together are stacked, and a plain highlight has none", () => {
+  const near = item({ id: "near", quote: "a contract with a model", section: "schemas", offset: 13, note: "n" });
+  const win = page({ items: [near, FAILED] });
+  layout(win, { ...RECTS, "a contract with a model": [rect(10, 290, 200, 310)] });
+  start(win as unknown as globalThis.Window);
+  const tops = markers(win).map((marker) => [marker.getAttribute("data-id"), marker.style.top]);
+  // "near" is centred on 300, so its marker's top is 286; "two" would be 296, which would overlap, so it moves to 318.
+  assert.deepEqual(tops, [
+    ["near", "286px"],
+    ["two", "318px"],
+  ]);
   const none = stage([CONTRACT]);
-  assert.equal(q(none.win, ".notes-marker"), null);
+  assert.equal(markers(none.win).length, 0);
+});
+
+test("hovering or focusing a marker brightens its passage with the stronger shade, and leaving puts it back", () => {
+  const { win } = stage([CONTRACT, FAILED]);
+  const marker = markers(win)[0] as HTMLElement;
+  const highlights = (win as unknown as { CSS: { highlights: Map<string, { ranges: Range[] }> } }).CSS.highlights;
+  assert.equal(highlights.has("manual-hover-amber"), false);
+  marker.dispatchEvent(new win.MouseEvent("mouseover", { bubbles: true }) as unknown as Event);
+  assert.deepEqual(painted(win, "manual-hover-amber"), ["A failed call comes back again"]);
+  marker.dispatchEvent(new win.MouseEvent("mouseout", { bubbles: true }) as unknown as Event);
+  assert.equal(highlights.has("manual-hover-amber"), false);
+  marker.dispatchEvent(new win.FocusEvent("focusin", { bubbles: true }) as unknown as Event);
+  assert.deepEqual(painted(win, "manual-hover-amber"), ["A failed call comes back again"]);
+  marker.dispatchEvent(new win.FocusEvent("focusout", { bubbles: true }) as unknown as Event);
+  assert.equal(highlights.has("manual-hover-amber"), false);
+});
+
+test("a click on a margin marker opens the popover for its highlight, and a keyboard click gives focus back", () => {
+  const { win, calls } = stage([CONTRACT, FAILED]);
+  const marker = markers(win)[0] as HTMLElement;
+  marker.dispatchEvent(new win.MouseEvent("click", { bubbles: true, cancelable: true, detail: 0 }) as unknown as Event);
+  assert.deepEqual(calls, ["show"]);
+  assert.equal(q(win, ".notes-pop__quote")?.textContent, "“A failed call comes back again”");
+  (win.document.activeElement as unknown as HTMLElement | null)?.blur();
+  const closed = new win.Event("toggle") as unknown as Event & { newState: string };
+  closed.newState = "closed";
+  (q(win, ".notes-pop") as Element).dispatchEvent(closed);
+  assert.equal(win.document.activeElement, markers(win)[0]);
+});
+
+test("crossing the gutter's width swaps the markers for dots and back, leaving the article as it was", () => {
+  const win = page({ items: [CONTRACT, FAILED] });
+  layout(win, RECTS);
+  start(win as unknown as globalThis.Window);
+  const article = q(win, "article") as Element;
+  const original = article.innerHTML;
+  assert.equal(markers(win).length, 1);
+  narrow(win);
+  win.dispatchEvent(new win.Event("resize"));
+  assert.equal(markers(win).length, 0, "the margin marker goes");
+  assert.equal(dots(win).length, 1, "and a dot takes its place");
+  assert.deepEqual(painted(win, NOTED), ["A failed call comes back again"], "the highlight is the same");
+  widen(win);
+  win.dispatchEvent(new win.Event("resize"));
+  assert.equal(dots(win).length, 0, "the dot goes");
+  assert.equal(markers(win).length, 1, "and the marker is back");
+  assert.equal(article.innerHTML, original, "with the text nodes joined as before, nothing left behind");
+  assert.equal(storedItems(win).length, 2, "and the stored anchors are untouched");
+});
+
+test("two notes that end at one point read 1 then 2 in dots, and a passage ending on a glossary term keeps its dot out of it", () => {
+  const first = item({ id: "a", quote: "A failed call comes back again", section: "errors", note: "x" });
+  const second = item({ id: "b", quote: "comes back again", section: "errors", note: "y" });
+  const win = page({ items: [first, second] });
+  narrow(win);
+  start(win as unknown as globalThis.Window);
+  const [one, two] = dots(win);
+  assert.deepEqual([one?.getAttribute("data-n"), two?.getAttribute("data-n")], ["1", "2"]);
+  const between: string[] = [];
+  for (let node = one?.nextSibling ?? null; node && node !== two; node = node.nextSibling) {
+    if (node.textContent) between.push(node.textContent);
+  }
+  assert.deepEqual(between, [], "no text sits between the two dots");
+  const term = item({ id: "t", quote: "a contract with a model", section: "schemas", offset: 13, note: "z" });
+  const win2 = page({ items: [term] });
+  narrow(win2);
+  start(win2 as unknown as globalThis.Window);
+  const [dot] = dots(win2);
+  assert.equal(dot?.parentElement?.tagName, "P", "not inside the glossary term");
+  assert.equal(dot?.closest(".glossary-term"), null);
+});
+
+test("a note on a heading gets its dot after the heading, not inside it", () => {
+  const heading = item({ id: "h", quote: "Schemas", section: "schemas", note: "n" });
+  const win = page({ items: [heading] });
+  narrow(win);
+  start(win as unknown as globalThis.Window);
+  const [dot] = dots(win);
+  assert.ok(dot, "the heading's note has a dot");
+  assert.equal(dot.closest("h2"), null);
+  assert.equal((dot.previousSibling as Element | null)?.tagName, "H2");
+});
+
+test("hovering and focusing are tracked apart, so the shade stays while either one is on the marker", () => {
+  const { win } = stage([CONTRACT, FAILED]);
+  const marker = markers(win)[0] as HTMLElement;
+  const fire = (type: string) => marker.dispatchEvent(new win.Event(type, { bubbles: true }) as unknown as Event);
+  const highlights = (win as unknown as { CSS: { highlights: Map<string, unknown> } }).CSS.highlights;
+  fire("focusin");
+  fire("mouseover");
+  fire("mouseout");
+  assert.equal(highlights.has("manual-hover-amber"), true, "focus keeps it after the pointer leaves");
+  fire("focusout");
+  assert.equal(highlights.has("manual-hover-amber"), false);
+  fire("mouseover");
+  fire("focusin");
+  fire("focusout");
+  assert.equal(highlights.has("manual-hover-amber"), true, "the pointer keeps it after focus leaves");
+});
+
+test("taking a dot out joins only the text it split and leaves another script's text nodes alone", () => {
+  const win = page({ items: [CONTRACT, FAILED] });
+  narrow(win);
+  const first = q(win, "article p") as Element;
+  (first.firstChild as Text).splitText(7);
+  assert.equal(first.childNodes.length, 2);
+  start(win as unknown as globalThis.Window);
+  win.localStorage.setItem(KEY, stored({ tools: [CONTRACT, FAILED] }));
+  const event = new win.Event("storage");
+  Object.defineProperty(event, "key", { value: KEY });
+  win.dispatchEvent(event);
+  assert.equal(first.childNodes.length, 2, "two nodes another script made stay two");
+  assert.equal(dots(win).length, 1);
+  assert.equal(
+    (q(win, "article p:last-of-type") as Element).childNodes.length,
+    3,
+    "and the dot's own split is one dot",
+  );
+});
+
+test("a noted passage in a block wider than the column gives every note a dot, not a marker on the table", () => {
+  const win = page({ items: [CONTRACT, FAILED] });
+  layout(win, RECTS);
+  vi.spyOn(q(win, "article p:last-of-type") as Element, "getBoundingClientRect").mockReturnValue(
+    rect(0, 0, 990, 100) as unknown as DOMRect,
+  );
+  start(win as unknown as globalThis.Window);
+  assert.equal(markers(win).length, 0, "only 34 pixels are free beside that block");
+  assert.equal(dots(win).length, 1);
+});
+
+test("a hovered marker that goes when the window narrows leaves no brightened passage behind", () => {
+  const win = page({ items: [CONTRACT, FAILED] });
+  layout(win, RECTS);
+  start(win as unknown as globalThis.Window);
+  (markers(win)[0] as HTMLElement).dispatchEvent(new win.Event("mouseover", { bubbles: true }) as unknown as Event);
+  const highlights = (win as unknown as { CSS: { highlights: Map<string, unknown> } }).CSS.highlights;
+  assert.equal(highlights.has("manual-hover-amber"), true);
+  narrow(win);
+  win.dispatchEvent(new win.Event("resize"));
+  assert.equal(markers(win).length, 0);
+  assert.equal(highlights.has("manual-hover-amber"), false, "the dot has no hover, so nothing stays brightened");
+});
+
+test("a focused dot keeps focus through a redraw", () => {
+  const { win } = stage([CONTRACT, FAILED], { narrow: true });
+  (dots(win)[0] as HTMLElement).focus();
+  assert.equal(win.document.activeElement, dots(win)[0]);
+  win.localStorage.setItem(KEY, stored({ tools: [CONTRACT, FAILED] }));
+  const event = new win.Event("storage");
+  Object.defineProperty(event, "key", { value: KEY });
+  win.dispatchEvent(event);
+  assert.equal(win.document.activeElement, dots(win)[0]);
 });
 
 test("Share copies the passage, the title and a text-fragment link, and never the note", async () => {
