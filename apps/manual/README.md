@@ -43,7 +43,7 @@ switchTo: [B11]
 
 - `opening` must be the type the outline plans for this chapter. To change it, change the outline, which reruns the rotation check.
 - `sources` lists the register ids the chapter relies on, in the order its source list shows them; it needs at least one.
-- `glossary` lists the glossary ids whose first use the chapter links; it may be empty.
+- `glossary` lists the glossary ids the chapter links, once in each paragraph that uses them; it may be empty.
 - `switchTo` lists the todos whose code will join the chapter's `verify/` listings as a first tab, while the `verify/` listings stay (BK8); it may be empty.
 
 The chapter's last `##` section is `## Exercises`, and it holds a list and nothing else: `check:book` fails on a paragraph or a box after the list, since either would render inside the exercises. The layout adds the chapter's sources after it, so the chapter has no sources section of its own.
@@ -362,9 +362,13 @@ Ids need a prefix only when a page shows a figure twice. A chapter page shows ea
 
 An isometric analogy illustration is an isometric figure with the analogy mark, checked against the register like a flat one; the fixture book's [`tally-counter.ts`](test/fixtures/book/figures/first/tally-counter.ts) is the sample. The site fixture re-exports both samples, so the build test sees them on a built page, and `figures:audit` proves each drawing once.
 
-## Glossary terms link on their first use
+## Glossary terms link once per paragraph
 
-[`src/data/glossary.json`](src/data/glossary.json) holds each term's definition in plain text, its spellings (`match`, the term itself when omitted) and at least one register source. A chapter tags a term by listing its id in `glossary`. The build links the term's first use to `/glossary/#<id>` and gives screen readers the definition through `aria-describedby`; later uses stay plain. Terms match any case and a plural, while an abbreviation (`"kind": "abbr"`, with its `expansion`) matches its exact case. A tagged id that the glossary lacks fails the check, and so does a tagged term that the chapter's text never uses.
+[`src/data/glossary.json`](src/data/glossary.json) holds each term's definition in plain text, its spellings (`match`, the term itself when omitted) and at least one register source. A chapter tags a term by listing its id in `glossary`. The build links the term to `/glossary/#<id>` once in each paragraph, list item, table cell or caption where it appears, so a reader who starts mid-chapter still finds the link, and a paragraph that repeats the term underlines it once. Headings, box and tab titles, links, code and HTML stay plain. Terms match any case and a plural, while an abbreviation (`"kind": "abbr"`, with its `expansion`) matches its exact case. A tagged id that the glossary lacks fails the check, and so does a tagged term that the chapter's text never uses outside those plain places.
+
+Each link opens its own card on hover and on keyboard focus, with the same markup and styles as the gallery's `GlossaryTerm`. The card is hidden from screen readers, which hear the definition through `aria-describedby` instead. That attribute points into one hidden list at the end of the chapter, with one entry per term, so ids stay unique however often a term links. [`src/scripts/glossary.ts`](src/scripts/glossary.ts) closes an open card on Escape and places it at fixed coordinates inside the viewport, so a card never makes a phone screen scroll sideways and a scrolling table never clips it. The pointer can move from the term onto its card and the card stays open, as WCAG 1.4.13 asks.
+
+Use a common word sparingly as a tag. Even once per paragraph, "session" links 42 times in Chapter 5 and "tool" 43 times in Chapter 3, as of November 2026. A chapter that finds a term too dense can drop its tag.
 
 ## Each analogy explains one concept, across the whole book
 
