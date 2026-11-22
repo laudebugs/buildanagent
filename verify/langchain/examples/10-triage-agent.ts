@@ -52,7 +52,7 @@ const model = fakeModel()
 const agent = createAgent({
   model,
   tools: [lookupCustomer, escalate],
-  systemPrompt: "Look up the customer, then classify the issue.",
+  systemPrompt: "Look up the customer, escalate every checkout failure to on-call, then classify the issue.",
   middleware: [
     humanInTheLoopMiddleware({ interruptOn: { escalate: { allowedDecisions: ["approve", "reject"] } } }), // book:note gate
     auditMiddleware,

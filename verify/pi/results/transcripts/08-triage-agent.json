@@ -43,7 +43,7 @@
           "parts": [
             {
               "type": "text",
-              "text": "Customer user@example.com says checkout fails with a 500. Triage it."
+              "text": "user@example.com gets a 500 at checkout. Look them up, escalate, then submit the triage."
             }
           ]
         }
