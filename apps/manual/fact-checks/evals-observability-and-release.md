@@ -77,7 +77,7 @@ The claims log for [`evals-observability-and-release.md`](../src/content/chapter
 
 | Verdict | Rows |
 | --- | --- |
-| ✅ confirmed | 31 |
+| ✅ confirmed | 30 |
 | ✏️ corrected | 0 |
-| ⚠️ unverified, our design or an abstract-only paper claim, marked as ours in the text | 12 |
+| ⚠️ unverified, our design or an abstract-only paper claim, marked as ours in the text | 13 |
 | Total | 43 |
