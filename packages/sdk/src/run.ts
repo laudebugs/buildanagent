@@ -82,7 +82,7 @@ export interface RunOptions<S = unknown, A = unknown> {
    * reference to it, beside the stored context. Another `app`, or none, ends the resume with an `SdkError` coded
    * `app_mismatch` before any approved call runs. Two values are the same `app` when their RFC 8785 canonical JSON is
    * the same, so key order does not matter, and an `app` with no canonical form cannot sign a pause. The fingerprint
-   * is not secret, so keep a secret out of `app`. A nested run a tool starts gets none unless the tool passes it on.
+   * is not keyed, so a guess at a small value in `app`, such as a customer id, can be tested against it: keep secrets out. A nested run a tool starts gets none unless the tool passes it on.
    *
    * Once a tool declares an app type, `app` is required and must have every declared type, which the compiler checks
    * only while `run()` infers its type arguments. The SDK passes this object to every call without copying it, so pass

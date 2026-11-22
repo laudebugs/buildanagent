@@ -343,9 +343,9 @@ test("a resume with other app data is refused with app_mismatch before the appro
   const events: AgentEvent[] = [];
   const collected = (async () => {
     for await (const event of started) events.push(event);
-  })();
+  })().catch(() => undefined);
   await assert.rejects(started.result, (error) => isSdkError(error) && error.code === "app_mismatch");
-  await collected.catch(() => undefined);
+  await collected;
   assert.deepEqual(seen, [], "the refund never ran");
   const rejected = events.find((event) => event.type === "resolution_rejected");
   assert.equal(rejected?.type === "resolution_rejected" ? rejected.cause : undefined, "app_mismatch");
@@ -417,4 +417,25 @@ test("a pause signed without app data binds none, so a resume of it takes any ap
   );
   assert.equal(resumed.result.stopReason, "done");
   assert.deepEqual(seen, [{ anything: true }]);
+});
+
+test("an app with no canonical JSON form cannot sign a pause, and the hook error names app, not the input or the signer", async () => {
+  const { seen, options } = refundSetup();
+  const app = { customerId: "cust-1", signedInAt: new Date(0) };
+  const first = await drive(
+    run({
+      ...options,
+      model: scripted([toolCall("refund", { reason: "late" }), text("Could not ask.")]).model,
+      input: "Refund me.",
+      app: app as never,
+    }),
+  );
+  assert.equal(first.result.stopReason, "done", "the call was blocked, so the model answered");
+  assert.deepEqual(seen, [], "the refund never ran");
+  const failed = first.events.find((event) => event.type === "hook_error");
+  assert.deepEqual(failed?.type === "hook_error" ? [failed.hook, failed.error] : undefined, [
+    "signer",
+    "the approval request could not be signed (app_unhashable)",
+  ]);
+  assert.ok(!JSON.stringify(first.events).includes("signedInAt"), "the error quotes none of the app's values");
 });

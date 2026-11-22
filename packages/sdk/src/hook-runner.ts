@@ -329,8 +329,14 @@ export class HookRunner {
   async #sign(tool: string, fields: PendingFields, input: unknown): Promise<GateOutcome> {
     const { signer, clock } = this.#setup;
     let request: SignedPendingRequest;
+    let appHash: string | undefined;
     try {
-      const appHash = await this.#setup.appFingerprint();
+      appHash = await this.#setup.appFingerprint();
+    } catch {
+      // The run's app has no canonical JSON form. The error is not passed on, because it can quote the app's values.
+      return this.#unsigned(tool, "app_unhashable");
+    }
+    try {
       request = await signPause(appHash === undefined ? fields : { ...fields, appHash }, signer, {
         generateId: () => this.#requestId(),
         now: () => new Date(clock.now()),
