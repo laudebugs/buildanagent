@@ -5,7 +5,16 @@
   "format": false,
   "changelog": "@changesets/cli/changelog",
   "commit": false,
-  "fixed": [["@buildanagent/gateway", "@buildanagent/sdk"]],
+  "fixed": [
+    [
+      "@buildanagent/gateway",
+      "@buildanagent/sdk",
+      "@buildanagent/agent-safety",
+      "@buildanagent/protocol",
+      "@buildanagent/harness",
+      "@buildanagent/cli"
+    ]
+  ],
   "linked": [],
   "ignore": ["@buildanagent/verify-*"],
   "changedFilePatterns": ["src/**", "package.json", "tsconfig.build.json"],

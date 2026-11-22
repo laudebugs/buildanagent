@@ -3,7 +3,7 @@
 | Field | Value |
 | --- | --- |
 | ID | `L11` |
-| Status | `ready` |
+| Status | `ongoing` |
 | Plan | [Publish and docs §2, PB4](../../plans/publish-and-docs.md#pb4-publish-the-protocol-harness-and-cli-packages-after-the-gateway-and-sdk-accepted) |
 | Round / milestone | Round L (publish and docs, added 2026-11-22) |
 | Depends on | [L9](../done/L9-publish-protocol-harness-cli-decision.md), [L10](L10-make-protocol-harness-cli-publishable.md), [N29](../done/N29-stdio-transport.md), [N30](N30-cli.md) |
@@ -11,7 +11,7 @@
 
 ## Goal
 
-Make the four packages public, switch the release to all six, and publish the first alpha of the protocol, harness, CLI and agent-safety together through `release.yml`, once N30 has given the CLI a working binary ([PB4](../../plans/publish-and-docs.md#pb4-publish-the-protocol-harness-and-cli-packages-after-the-gateway-and-sdk-accepted), [ADR 0058](../../decisions/0058-publish-protocol-harness-and-cli.md)). N29 and N30 don't depend on each other (both depend on N28), but the CLI's `rpc` command uses N29's stdio transport and [ADR 0058](../../decisions/0058-publish-protocol-harness-and-cli.md) decision 1 requires both before the release, so this todo lists N29 itself.
+Make the four packages public, switch the release to all six, and publish their first alpha together through `release.yml` once N30 has given the CLI a working binary. The first alpha also carries N24's MCP client (`@buildanagent/harness/mcp`) ([PB4](../../plans/publish-and-docs.md#pb4-publish-the-protocol-harness-and-cli-packages-after-the-gateway-and-sdk-accepted), [ADR 0058](../../decisions/0058-publish-protocol-harness-and-cli.md)). N29 and N30 don't depend on each other (both depend on N28), but the CLI's `rpc` command uses N29's stdio transport and [ADR 0058](../../decisions/0058-publish-protocol-harness-and-cli.md) decision 1 requires both before the release, so this todo lists N29 itself.
 
 ## Context
 
@@ -49,7 +49,7 @@ Make the four packages public, switch the release to all six, and publish the fi
 - [ ] Remove `private` from the four packages, with one changeset that names all six.
 - [ ] Update `version-pr.mjs`'s body and its test, and add the changeset-gate tests for the four, as the scope above says.
 - [ ] Extend `release-plan.mjs` and `release.test.mjs` to six packages in order, and move the same-version check as the scope above says.
-- [ ] On a throwaway branch, run `pnpm changeset version` with the six-member fixed group and the four at 0.0.0 under pre mode, and record whether all six reach one `0.1.0-alpha.N` (Changesets' handling of members absent from `pre.json` is unverified, row L9-20). **Fallback if they don't:** set the four packages' `version` in their `package.json` to the gateway's current `0.1.0-alpha.N` in this pull request, so the six already share one version when the plan runs and the changeset then bumps them together. Update the plan and the checklist to match, and rerun the plan tests.
+- [x] On a throwaway branch, run `pnpm changeset version` with the six-member fixed group and the four at 0.0.0 under pre mode, and record whether all six reach one `0.1.0-alpha.N`. Result: all six reached one `0.1.0-alpha.28`, so the fallback wasn't needed (row L11-1). **Fallback if they hadn't:** set the four packages' `version` in their `package.json` to the gateway's current `0.1.0-alpha.N` in this pull request, so the six already share one version when the plan runs and the changeset then bumps them together. Update the plan and the checklist to match, and rerun the plan tests.
 - [ ] Write the `release.yml` document, and check it with the existing release tests pointed at the new file.
 - [ ] Write the owner checklist into the pull request description (below).
 

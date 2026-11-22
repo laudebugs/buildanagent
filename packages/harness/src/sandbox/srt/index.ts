@@ -21,14 +21,15 @@ import {
   HostFiles,
   isProtectedPath,
   realOrSelf,
+  spellings,
   workspaceRoot,
 } from "../host-files.js";
 import { type NodeModules, nodeModules, ProcessRunner } from "../process.js";
 import type { ExecOptions, ExecResult, Sandbox, SandboxClient, SandboxPolicy, WorkspaceManifest } from "../types.js";
-import { type SrtSettingsInput, srtSettings } from "./settings.js";
+import { type SrtPolicyNames, type SrtSettingsInput, srtPolicyFromSettings, srtSettings } from "./settings.js";
 
-export type { SrtPathEntry, SrtSettings, SrtSettingsInput } from "./settings.js";
-export { srtSettings } from "./settings.js";
+export type { SrtPathEntry, SrtPolicyNames, SrtSettings, SrtSettingsInput } from "./settings.js";
+export { srtPolicyFromSettings, srtSettings } from "./settings.js";
 
 /** The options of `srtSandbox()`. */
 export interface SrtSandboxOptions {
@@ -161,6 +162,8 @@ interface SrtSandboxState {
   readonly settingsFile: string;
   /** The `PATH` that `srt` itself runs with, which finds `bwrap` and `socat`. */
   readonly hostPath: string;
+  /** How the settings file's real paths map back to the request's spelling, for the read-back. */
+  readonly names: SrtPolicyNames;
 }
 
 class SrtSandbox extends BackendSandbox {
@@ -235,6 +238,13 @@ class SrtSandbox extends BackendSandbox {
     return result;
   }
 
+  /** Reads the settings file `srt` is started with, as it is on disk now, and maps it back to a policy. */
+  async readBack(): Promise<SandboxPolicy> {
+    this.live();
+    const text = await this.state.modules.fs.readFile(this.state.settingsFile, "utf8");
+    return srtPolicyFromSettings(JSON.parse(text) as unknown, this.state.names);
+  }
+
   protected async shutDown(): Promise<void> {
     await this.runner.stopAll();
     await this.state.modules.fs.rm(this.state.folder, { recursive: true, force: true });
@@ -262,15 +272,22 @@ async function planSandbox(
     real(options.denyWrite ?? []),
     real(command.readRoots),
   ]);
+  const systemReadRoots = await existing(modules, await real(SRT_SYSTEM_READ_ROOTS));
+  // Only the run folder: the settings file beside it holds a proxy address that a command must not read.
+  const helperReadRoots = [runFolder, ...helpers, ...extra];
   const input: SrtSettingsInput = {
     policy: { ...policy, readRoots, writeRoots },
-    systemReadRoots: await existing(modules, await real(SRT_SYSTEM_READ_ROOTS)),
-    // Only the run folder: the settings file beside it holds a proxy address that a command must not read.
-    helperReadRoots: [runFolder, ...helpers, ...extra],
+    systemReadRoots,
+    helperReadRoots,
     denyWrite,
     ...(options.parentProxy === undefined ? {} : { parentProxy: options.parentProxy }),
   };
-  return { settings: srtSettings(input), roots: { read: readRoots, write: writeRoots, denyWrite } };
+  const names: SrtPolicyNames = {
+    read: spellings(readRoots, policy.readRoots),
+    write: spellings(writeRoots, policy.writeRoots),
+    implicitReads: [...systemReadRoots, ...helperReadRoots],
+  };
+  return { settings: srtSettings(input), roots: { read: readRoots, write: writeRoots, denyWrite }, names };
 }
 
 /**
@@ -278,9 +295,12 @@ async function planSandbox(
  * command that does nothing, so a host that can't confine a process throws `SandboxUnavailableError` and runs nothing.
  * The policy's roots, `extraReadRoots` and `denyWrite` must be absolute folders other than `/`. Each command runs under
  * its own `srt`, so a command sees the proxy variables `srt` adds to its environment, besides those it was given.
+ * Before it returns, `provision()` reads the settings file back from disk and throws `SandboxPolicyMismatchError` when
+ * the policy it applies differs from the one requested. The backend lists no capability: it can't resume, snapshot or
+ * pause.
  */
 export function srtSandbox(options: SrtSandboxOptions = {}): SandboxClient {
-  return {
+  const client: SandboxClient = {
     tier: "os",
     stops: ["mistakes", "exfiltration"],
     async provision(manifest: WorkspaceManifest, policy: SandboxPolicy): Promise<Sandbox> {
@@ -309,8 +329,10 @@ export function srtSandbox(options: SrtSandboxOptions = {}): SandboxClient {
           runFolder,
           settingsFile,
           hostPath,
+          names: plan.names,
         });
         await probe(modules, sandbox, root);
+        await sandbox.confirm(client, policy);
         const encoder = new TextEncoder();
         for (const [path, data] of Object.entries(manifest.files ?? {})) {
           await sandbox.writeFile(path, typeof data === "string" ? encoder.encode(data) : data);
@@ -322,6 +344,7 @@ export function srtSandbox(options: SrtSandboxOptions = {}): SandboxClient {
       }
     },
   };
+  return client;
 }
 
 /** Starts `srt` once with a command that does nothing, and throws `SandboxUnavailableError` when it can't. */
