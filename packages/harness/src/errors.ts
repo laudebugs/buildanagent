@@ -27,6 +27,7 @@ export type HarnessErrorCode =
   | "invalid_turn_options"
   | "invalid_context_options"
   | "invalid_dispatcher_options"
+  | "invalid_transport_options"
   | "spill_unavailable"
   | "invalid_extension"
   | "extension_hash_mismatch"
@@ -69,6 +70,7 @@ const HARNESS_ERROR = Symbol.for("buildanagent.harness.HarnessError");
  * model inside a turn.
  * `invalid_context_options`: a context policy's setting can't be used, such as a write cap with no spill store or a mask
  * step of zero. `invalid_dispatcher_options`: a dispatcher's setting can't be used, such as a queue size of zero.
+ * `invalid_transport_options`: a transport's setting can't be used, such as a write timeout of zero.
  * `spill_unavailable`: a spill store can't write, such as the file store on a runtime without Node's file
  * system. `invalid_extension`: an extension has no name or version, two share a name, or a project extension's module does not export one. `extension_hash_mismatch`: a project extension's files hash differently from the lock file, or the lock file does not list it. `approval_not_pending`: a resolution names a request that is not waiting.
  * `approval_unavailable`: the harness has no signer, so no approval can be checked. `sticky_refused`: a sticky

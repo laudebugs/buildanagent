@@ -47,6 +47,7 @@ import type { SessionKey, SessionStore } from "../session/store.js";
 import { resolutionOf, toolError, toolResultOf } from "./answers.js";
 import { type ConnectionHost, type Dispatched, Failure, type ServerAnswer, ServerConnection } from "./connection.js";
 import type { Deliver } from "./outbox.js";
+import { paramsProblem } from "./params.js";
 
 /** The methods a client must opt into, by listing each in the `capabilities` of its `initialize`. */
 export const EXPERIMENTAL_METHODS = ["session/checkout", "session/fork"] as const;
@@ -343,7 +344,24 @@ class HarnessDispatcher<H> implements Dispatcher, ConnectionHost {
     }
   }
 
-  async dispatch(connection: ServerConnection, command: ClientCommand & { id: Id }): Promise<Dispatched> {
+  async dispatch(connection: ServerConnection, sent: ClientCommand & { id: Id }): Promise<Dispatched> {
+    // JSON-RPC lets a command leave out its params, so the handlers below, which read them as the protocol types them,
+    // get an empty object instead.
+    const command = (
+      (sent as { params?: unknown }).params === undefined ? { ...sent, params: {} } : sent
+    ) as ClientCommand & { id: Id };
+    // An experimental method answers NotOptedIn before its params are read, as it would for any params.
+    const experimental: readonly string[] = EXPERIMENTAL_METHODS;
+    if (experimental.includes(command.method) && !connection.optedIn(command.method)) {
+      throw failure(
+        ErrorCodes.NotOptedIn,
+        `${command.method} is experimental: list it in the capabilities of initialize`,
+      );
+    }
+    // Every handler below reads its params as the protocol types them, so a command that breaks its schema is refused
+    // here, before any of them runs.
+    const problem = paramsProblem(command);
+    if (problem !== undefined) throw failure(ErrorCodes.InvalidParams, problem);
     switch (command.method) {
       case "initialize":
         return { result: await this.#initialize(connection, command.params.capabilities) };
@@ -431,9 +449,8 @@ class HarnessDispatcher<H> implements Dispatcher, ConnectionHost {
    */
   async #open(connection: ServerConnection, params: Command<"session/open">["params"]): Promise<Dispatched> {
     const id = params.session ?? "";
+    // The schema check has already refused a fromSeq that is not a whole number of at least 0.
     const { fromSeq } = params;
-    if (fromSeq !== undefined && !(Number.isInteger(fromSeq) && fromSeq >= 0))
-      throw failure(ErrorCodes.InvalidParams, "fromSeq must be a whole number of at least 0");
     if (!connection.hold(id)) throw failure(ErrorCodes.InvalidParams, `session ${JSON.stringify(id)} is being opened`);
     try {
       return await this.#openHeld(connection, id, params.cwd, fromSeq);
@@ -924,12 +941,6 @@ class HarnessDispatcher<H> implements Dispatcher, ConnectionHost {
     connection: ServerConnection,
     command: Command<"session/checkout" | "session/fork">,
   ): Promise<ClientResultMap["session/fork"]> {
-    if (!connection.optedIn(command.method)) {
-      throw failure(
-        ErrorCodes.NotOptedIn,
-        `${command.method} is experimental: list it in the capabilities of initialize`,
-      );
-    }
     const { session } = command.params;
     const opened = this.#opened.get(session);
     if (opened === undefined || !connection.watching(session)) {

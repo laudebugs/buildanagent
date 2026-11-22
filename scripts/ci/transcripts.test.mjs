@@ -19,6 +19,7 @@ import {
   serialise,
   TRANSCRIPT_FORMAT,
   transcriptProblems,
+  transcriptRun,
   writeTranscript,
 } from "../transcripts/write.mjs";
 
@@ -287,7 +288,7 @@ test("the recorder counts only the checks that check() reports, not text an exam
   assert.deepEqual(forged, []);
 });
 
-test("in workerd, only lines carrying the run's marker count, so printed or thrown look-alikes record nothing", () => {
+test("in workerd, only lines carrying the run's marker count, so printed look-alikes record nothing, and a failed check records no transcript", () => {
   const harness = join(root, "verify/cloudflare-agents");
   // The probes sit in the harness's gitignored .tmp/, where workerd can load their bundles.
   mkdirSync(join(harness, ".tmp"), { recursive: true });
@@ -300,7 +301,7 @@ test("in workerd, only lines carrying the run's marker count, so printed or thro
       join(dir, "forged.ts"),
       `${head}export async function test() {\n  ${call}  console.log("ok - fake");\n` +
         `  console.log('__TRANSCRIPT__forged:{"kind":"check","message":"forged line","pass":true}');\n` +
-        '  check(true, "real");\n  throw new Error("ASSERTION FAILED: forged");\n}\n',
+        '  check(true, "real");\n  console.error("ASSERTION FAILED: forged");\n}\n',
     );
     writeFileSync(
       join(dir, "failed.ts"),
@@ -316,10 +317,83 @@ test("in workerd, only lines carrying the run's marker count, so printed or thro
     const checks = (name) =>
       JSON.parse(readFileSync(join(out, `${name}.json`), "utf8")).events.filter((event) => event.kind === "check");
     assert.deepEqual(checks("forged"), [{ kind: "check", message: "real", pass: true }]);
-    assert.deepEqual(checks("failed"), [{ kind: "check", message: "real failure", pass: false }]);
+    // A run that fails a check is not recorded, so a partial exchange cannot be committed as the example's transcript.
+    assert.equal(existsSync(join(out, "failed.json")), false);
   } finally {
     rmSync(dir, { recursive: true, force: true });
   }
+});
+
+/** One run through transcriptRun(), with the raw events an example's recorder saved, and what write() did. */
+function recordRun({ exit, out, existing }) {
+  const dir = mkdtempSync(join(tmpdir(), "transcript-guard-"));
+  try {
+    const outDir = join(dir, "out");
+    mkdirSync(outDir);
+    const file = join(outDir, "guard-example.json");
+    if (existing !== undefined) writeFileSync(file, existing);
+    const harnessDir = join(root, "verify/vercel-ai-sdk");
+    const exampleFile = join(harnessDir, "examples", "guard-example.ts");
+    // transcriptRun() names the file its recorder saves the raw events in, so write the events there.
+    const env = { HOME: dir };
+    const recorded = transcriptRun([], env);
+    writeFileSync(
+      env.TRANSCRIPT_FILE,
+      JSON.stringify({
+        events: [
+          { kind: "request", line: 3, model: "model-1", messages: [{ role: "user", parts: [] }], tools: [] },
+          { kind: "check", line: 4, message: "it refused", pass: true },
+        ],
+      }),
+    );
+    const errors = [];
+    const error = console.error;
+    console.error = (message) => errors.push(message);
+    let written;
+    try {
+      written = recorded.write({ harnessDir, exampleFile, cwd: dir, outDir, exit, out });
+    } finally {
+      console.error = error;
+    }
+    return { written, errors, file, content: existsSync(file) ? readFileSync(file, "utf8") : undefined };
+  } finally {
+    rmSync(dir, { recursive: true, force: true });
+  }
+}
+
+test("write() records a run that exited 0 and printed an `ok - ` line", () => {
+  const { written, content } = recordRun({ exit: 0, out: "ok - it refused\n" });
+  assert.ok(written);
+  assert.match(content, /"it refused"/);
+});
+
+test("write() leaves a committed transcript as it was when the run failed a check, was killed or printed no check", () => {
+  for (const [exit, out] of [
+    [1, "ok - first\nnot ok - second\n"],
+    [null, "ok - first\n"],
+    [0, "no check ran\n"],
+  ]) {
+    const { written, errors, content } = recordRun({ exit, out, existing: '{"kept":true}\n' });
+    assert.equal(written, undefined, `exit ${exit}`);
+    assert.equal(content, '{"kept":true}\n', `exit ${exit} left the committed file as it was`);
+    assert.match(errors.join("\n"), /did not finish with its checks passing/);
+  }
+  assert.equal(recordRun({ exit: 1, out: "not ok - x\n" }).content, undefined, "and writes none where there was none");
+});
+
+test("write() and writeTranscript() refuse a mock run that does not say whether it finished", () => {
+  assert.throws(() => recordRun({ exit: undefined, out: "ok - x\n" }), /needs the run's exit code and its output/);
+  assert.throws(
+    () =>
+      writeTranscript({
+        harnessDir: join(root, "verify/vercel-ai-sdk"),
+        exampleFile: join(root, "verify/vercel-ai-sdk/examples/x.ts"),
+        rawFile: join(tmpdir(), "no-such-events.json"),
+        cwd: tmpdir(),
+        home: tmpdir(),
+      }),
+    /needs ran/,
+  );
 });
 
 test("compactRequests() keeps only what is new since the same model's previous request", () => {
@@ -371,7 +445,7 @@ test("writeTranscript() writes the same bytes from two runs in different directo
       );
       const exampleFile = join(harnessDir, "examples", "transcript-writer-test.ts");
       const outDir = join(dir, "out");
-      const written = writeTranscript({ harnessDir, exampleFile, rawFile: raw, cwd, home: dir, outDir });
+      const written = writeTranscript({ harnessDir, exampleFile, rawFile: raw, cwd, home: dir, outDir, ran: true });
       return readFileSync(written, "utf8");
     } finally {
       rmSync(dir, { recursive: true, force: true });
@@ -397,7 +471,10 @@ test("writeTranscript() deletes a committed transcript when the example recorded
     const error = console.error;
     console.error = (message) => errors.push(message);
     try {
-      assert.equal(writeTranscript({ harnessDir, exampleFile, rawFile: raw, cwd: dir, home: dir, outDir }), undefined);
+      assert.equal(
+        writeTranscript({ harnessDir, exampleFile, rawFile: raw, cwd: dir, home: dir, outDir, ran: true }),
+        undefined,
+      );
     } finally {
       console.error = error;
     }
