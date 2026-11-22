@@ -1,0 +1,83 @@
+# @buildanagent/protocol
+
+> The wire types of the buildanagent harness: the session entry union, the client and server messages and their JSONL framing.
+
+The sections of README.md and every public export, generated from this package's README and declaration files in the same commit as its code.
+
+## Docs
+
+- [A session file is a list of entries, one per line](README.md#a-session-file-is-a-list-of-entries-one-per-line)
+  - [`parseEntry()` reads a line and refuses a format it does not know](README.md#parseentry-reads-a-line-and-refuses-a-format-it-does-not-know)
+  - [The JSON Schema describes every entry for other languages](README.md#the-json-schema-describes-every-entry-for-other-languages)
+- [The protocol is JSON-RPC 2.0, one message per line](README.md#the-protocol-is-json-rpc-20-one-message-per-line)
+  - [The framer splits on newlines only](README.md#the-framer-splits-on-newlines-only)
+  - [The protocol schema covers every message](README.md#the-protocol-schema-covers-every-message)
+
+## Exports from `@buildanagent/protocol`
+
+- `interface ApprovalList`: The answer to `approval/list`.
+- `type ApprovalPolicy`: When a sandboxed call may ask a person: on request, by granular rule, or never.
+- `interface BranchResult`: The answer to `session/checkout` and `session/fork`: the session now in use and its HEAD.
+- `interface CheckoutEntry`: HEAD moved to another entry.
+- `CLIENT_METHODS`: The methods a client may call.
+- `type ClientCommand`: What a client sends.
+- `interface ClientInfo`: Who a client says it is, in `initialize`.
+- `type ClientMessage`: Everything a client sends: commands, and answers to the server's requests.
+- `interface ClientResultMap`: The result of each client method, by method name.
+- `interface CompactionEntry`: A summary replaced older entries in the context a rebuilt run sends.
+- `interface CompletionCheckEntry`: The commands that checked a finished task, and whether they passed.
+- `decode()`: Reads one message from a line of JSON text or a parsed value, and checks its envelope.
+- `DEFAULT_MAX_LINE_BYTES`: The default bound on one line, in bytes.
+- `type Disposition`: The answer to a turn command: the server took it, or why it did not.
+- `encode()`: Turns a message into one line of JSON ending in `\n`, after the same envelope check `decode()` makes.
+- `interface EntryBase`: The fields every entry has, with its `type`.
+- `interface EnvStampEntry`: The environment a session ran in.
+- `ErrorCodes`: The JSON-RPC error codes the protocol uses: the standard ones, and three of its own in the server-error range.
+- `EXPERIMENTAL_METHODS`: The client methods that need an opt-in, because they may change before a client other than ours uses them.
+- `interface ExtensionLoadedEntry`: An extension was loaded, with the hash of what ran.
+- `FORMAT_VERSION`: The format version of every entry this package writes and reads.
+- `type FramedMessage`: One line of the stream: its parsed JSON, or why it could not be read.
+- `type HarnessEvent`: What the harness adds to the SDK's events.
+- `type Id`: A request id: a number or a string.
+- `interface InitializeResult`: The server's answer to `initialize`.
+- `interface InterruptResult`: The answer to `turn/interrupt`: whether a turn was running to interrupt.
+- `isProtocolError()`: True for a `ProtocolError`, including one from another copy of the package.
+- `class JsonlFramer`: Feed it chunks as they arrive.
+- `interface JsonlFramerOptions`: The options of `JsonlFramer`.
+- `type JsonRpcMessage`: A JSON-RPC message as `decode()` reads it: the envelope is checked, and `params` and `result` are not.
+- `interface LoadoutEntry`: The tools and model in force changed.
+- `interface MessageBlockEntry`: One content block of a message.
+- `interface MessageEndEntry`: A message is complete: which model wrote it and why it stopped.
+- `type Origin`: Who produced an entry's content.
+- `PACKAGE_NAME`: The package's name.
+- `parseEntry()`: Reads one session entry from a JSON line or an already parsed value, and checks what every reader relies on: it is an object with valid base fields, its `type` is in the union, and a `session_header` has this package's `formatVersion`.
+- `interface PermissionDecisionEntry`: The permission pipeline's decision on one tool call, written for every decision.
+- `type PermissionMode`: How tool calls are decided: `shadow` records what would have happened without doing it.
+- `interface ProductRecordEntry`: A record that the product owns.
+- `class ProtocolError`: The error every `@buildanagent/protocol` function throws.
+- `type ProtocolErrorCode`: Why something was refused.
+- `interface ProtocolErrorOptions`: What a `ProtocolError` carries when it is also a JSON-RPC error a peer can be answered with.
+- `type ProtocolMessage`: Any message of the protocol, in either direction.
+- `type ResponseMessage`: A response: the result of one request, or an error.
+- `interface RpcError`: A JSON-RPC error object.
+- `type SandboxTier`: How strongly a sandbox isolates a run, from none to a micro-VM.
+- `SERVER_NOTIFICATION_METHODS`: The notifications the server sends.
+- `SERVER_REQUEST_METHODS`: The requests the server sends.
+- `type ServerMessage`: Everything a server sends: answers to commands, requests and notifications.
+- `type ServerNotification`: What the server sends without being asked.
+- `type ServerRequest`: What the server asks the client for.
+- `interface ServerResultMap`: What a server request's client answer holds, by method name.
+- `SESSION_ENTRY_TYPES`: The `type` of every entry in the union, in the order the union lists them.
+- `type SessionEntry`: One line of a session file.
+- `interface SessionHeaderEntry`: The first entry of a session file: what ran the session, and which session it came from.
+- `interface SessionList`: The answer to `session/list`.
+- `interface SessionListItem`: One session in `session/list`.
+- `interface SessionOpened`: The answer to `session/create` and `session/open`.
+- `interface ShadowCallEntry`: A call that shadow mode recorded and did not run.
+- `interface SkillLoadedEntry`: A skill's instructions entered the context.
+- `interface SubagentLinkEntry`: A child session exists.
+- `interface ToolResultEntry`: What a tool call returned to the model.
+- `interface TurnEndEntry`: A turn ended, with the stop reason of its run.
+- `interface TurnResultSummary`: How a turn ended, in `turn/settled`.
+- `interface TurnStartEntry`: A turn began.
+- `interface UsageEntry`: The tokens and cost of one model call, a summary or a judge call.

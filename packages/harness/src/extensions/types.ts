@@ -36,6 +36,8 @@ export interface ExtensionLoadedRecord {
 
 /** Which project folders may load their own extensions. Trust gates loading and nothing else: it is not a sandbox. */
 export interface TrustStore {
+  /** Whether the project at `projectRoot` may load its own extensions. */
   isTrusted(projectRoot: string): Promise<boolean>;
+  /** Records the project at `projectRoot` as trusted, so its extensions load from now on. */
   trust(projectRoot: string): Promise<void>;
 }

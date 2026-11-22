@@ -26,6 +26,7 @@ export interface MigrateOptions {
   readonly lock: SessionLock;
   /** The steps this harness knows, from any format to the next. A session is taken through them in order. */
   readonly migrations: readonly Migration[];
+  /** Makes the id in the new file's name. Defaults to a random UUID; a test passes a fixed one. */
   readonly newId?: () => string;
 }
 

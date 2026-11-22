@@ -11,6 +11,7 @@ import { lostClaim } from "./lost-claim.js";
 
 /** The part of a Postgres client these stores use. */
 export interface PgClientLike {
+  /** Runs one SQL statement with its `$1`, `$2` … placeholders bound to `values`, and resolves with its rows. */
   query(text: string, values?: unknown[]): Promise<{ rows: Record<string, unknown>[] }>;
 }
 

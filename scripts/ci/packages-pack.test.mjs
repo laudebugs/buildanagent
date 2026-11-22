@@ -3,15 +3,19 @@
 // entry to dist/ from a temp install, with and without `--conditions=source` (ADR 0050, as corrected by ADR 0051). The
 // pack tests skip unless the installed pnpm is the `packageManager` version. Offline: `pnpm pack` and the build it
 // runs read only the workspace. The test leaves the repo as it found it: it removes each package's dist/ and licence
-// copies unless they were there before it ran. It ends with the release's install check: a fresh project installs
-// both tarballs with pnpm, offline, and makes one model call through the Anthropic adapter against a mock server on
-// the loopback interface. Both installs link each third-party runtime dependency, such as the SDK's validator, from
-// the workspace's own install, since the registry is out of reach. The install check lives here, not in its own
-// file, because `node --test` runs files in parallel and two files packing the same folders would race on dist/. Run
-// with `node --test scripts/ci/*.test.mjs`.
+// copies unless they were there before it ran. It also holds the six packages that will publish (PUBLISHED) to the
+// rules they must meet once they do, though four are still private: each ships an llms.txt, none depends on a
+// workspace package outside the six, and the packed protocol's JavaScript imports neither the gateway nor the SDK.
+// It ends with two install checks: a fresh project installs the gateway's and SDK's tarballs with pnpm, offline, and
+// makes one model call through the Anthropic adapter against a mock server on the loopback interface, and another
+// installs the CLI's tarball and runs its `buildanagent --help`. Every install links each third-party runtime
+// dependency, such as the SDK's validator, from the workspace's own install, since the registry is out of reach. The
+// install checks live here, not in their own file, because `node --test` runs files in parallel and two files packing
+// the same folders would race on dist/. Run with `node --test scripts/ci/*.test.mjs`.
 import assert from "node:assert/strict";
 import { execFile, execFileSync, spawnSync } from "node:child_process";
 import {
+  cpSync,
   existsSync,
   mkdirSync,
   mkdtempSync,
@@ -56,6 +60,22 @@ function dependencyOrder(dirs) {
   for (const name of byName.keys()) visit(name);
   return ordered;
 }
+// The packages that will publish (ADR 0058). The gateway and the SDK already do; the other four are still `private`
+// until todo L11, so the checks that must hold once they publish go by this list, never by the `private` field.
+const PUBLISHED = [
+  "@buildanagent/gateway",
+  "@buildanagent/sdk",
+  "@buildanagent/agent-safety",
+  "@buildanagent/protocol",
+  "@buildanagent/harness",
+  "@buildanagent/cli",
+];
+// Every package in the workspace, by name, so the dependency check below can tell ours from third-party ones.
+const WORKSPACE_PACKAGES = ["apps", "packages", "verify"].flatMap((group) =>
+  readdirSync(path.join(root, group), { withFileTypes: true })
+    .filter((entry) => entry.isDirectory() && existsSync(path.join(root, group, entry.name, "package.json")))
+    .map((entry) => JSON.parse(readFileSync(path.join(root, group, entry.name, "package.json"), "utf8")).name),
+);
 const LICENCES = ["LICENSE", "LICENSE-APACHE", "LICENSE-MIT"];
 const TOP_LEVEL = new Set(["package.json", "README.md", "CHANGELOG.md", "llms.txt", ...LICENCES]);
 // A dist/ file left from an earlier build whose module no longer exists in src/. The build must delete it.
@@ -187,16 +207,17 @@ after(() => {
 
 packTest("every package is packed", () => {
   assert.equal(packed.size, packageDirs.length);
+  for (const name of PUBLISHED) assert.ok(packed.has(name), `${name} was not packed`);
 });
 
 packTest("each tarball holds only package.json, README, CHANGELOG, llms.txt, the licences and dist/", () => {
-  for (const [name, { files, manifest }] of packed) {
+  for (const [name, { files }] of packed) {
     const strays = files.filter((file) => !TOP_LEVEL.has(file) && !file.startsWith("dist/"));
     assert.deepEqual(strays, [], `${name} packs files outside dist/`);
     for (const licence of LICENCES) assert.ok(files.includes(licence), `${name} lacks ${licence}`);
     assert.ok(files.includes("README.md"), `${name} lacks README.md`);
-    // The published packages ship their docs index; the private safety package has none until it is published.
-    if (manifest.private !== true) assert.ok(files.includes("llms.txt"), `${name} lacks llms.txt`);
+    // Every package that will publish ships its docs index, so a missing one fails now rather than at the publish.
+    if (PUBLISHED.includes(name)) assert.ok(files.includes("llms.txt"), `${name} lacks llms.txt`);
   }
 });
 
@@ -286,7 +307,8 @@ packTest("every packed declaration file imports only its own dist/ files or othe
 });
 
 // The entries that fail to import under `--conditions=source`, because they reach pi-schema 1.5.2, whose `source`
-// condition names a file its tarball lacks. The harness's `session`, `tools`, `permissions`, `server` and `extensions` entries reach it through the SDK.
+// condition names a file its tarball lacks. The harness's `session`, `tools`, `permissions`, `extensions` and
+// `server` entries reach it through the SDK; the protocol and the CLI's entries don't. The list is in exports order.
 // Every other entry must import; an entry listed here that imports again fails the test, so the list is cut once
 // pi-schema ships a fix.
 const SOURCE_CONDITION_FAILURES = [
@@ -360,6 +382,47 @@ console.log(url);`;
   });
 }
 
+/** The module specifiers a JavaScript file imports or re-exports, statically or through `import()`. */
+function importedSpecifiers(text) {
+  return [...text.matchAll(/(?:\bfrom\s*|\bimport\s*\(?\s*)["']([^"']+)["']/g)].map((match) => match[1]);
+}
+
+packTest("the packed protocol's JavaScript imports neither the gateway nor the SDK", () => {
+  // The protocol uses both for types only, so a client can depend on the wire types without the loop's code.
+  const { files, dest } = packed.get("@buildanagent/protocol") ?? {};
+  assert.ok(files, "the protocol was not packed");
+  const forbidden = ["@buildanagent/gateway", "@buildanagent/sdk"];
+  const scripts = files.filter((file) => file.endsWith(".js"));
+  assert.ok(scripts.length > 0, "the protocol packs no JavaScript");
+  for (const file of scripts) {
+    const reached = importedSpecifiers(readFileSync(path.join(dest, file), "utf8")).filter((spec) =>
+      forbidden.some((name) => spec === name || spec.startsWith(`${name}/`)),
+    );
+    assert.deepEqual(reached, [], `the packed protocol's ${file} imports them`);
+  }
+  // The scan above reads the specifiers; this loads the entry where neither package is installed, so an import the
+  // scan misses still fails. It copies rather than links, because Node resolves a linked package's imports from the
+  // link's target, which sits beside both.
+  const alone = path.join(work, "protocol-alone");
+  cpSync(dest, path.join(alone, "node_modules", "@buildanagent", "protocol"), { recursive: true });
+  run(process.execPath, ["--input-type=module", "-e", 'await import("@buildanagent/protocol");'], { cwd: alone });
+});
+
+packTest("no package that will publish depends on a workspace package that won't", () => {
+  // The rule reads names, not `private`: four of the six are private until they publish, and the check must hold
+  // from now on, so that none of them ships a dependency npm will never hold, such as the private evals package.
+  for (const name of PUBLISHED) {
+    const { manifest } = packed.get(name) ?? {};
+    assert.ok(manifest, `${name} was not packed`);
+    const unpublished = [
+      ...Object.keys(manifest.dependencies ?? {}),
+      ...Object.keys(manifest.peerDependencies ?? {}),
+      ...Object.keys(manifest.optionalDependencies ?? {}),
+    ].filter((dep) => WORKSPACE_PACKAGES.includes(dep) && !PUBLISHED.includes(dep));
+    assert.deepEqual(unpublished, [], `${name} depends on workspace packages that won't publish`);
+  }
+});
+
 packTest("the safety package's root entry loads and hashes in an install without its optional peers", () => {
   // The SDK will import this entry (ADR 0043), so it must load where `ai` and `@ai-sdk/*` are absent, as they are here.
   const { manifest } = packed.get("@buildanagent/agent-safety") ?? {};
@@ -414,6 +477,32 @@ const STREAM = [
   .map((event) => `event: ${event.type}\ndata: ${JSON.stringify(event)}\n\n`)
   .join("");
 
+/**
+ * Makes a fresh project at `app` that depends on the packed packages `names` and installs it with pnpm, offline, as
+ * `pnpm add <name>@<tag>` would with the registry swapped for the tarballs. The overrides point each packed package's
+ * own dependencies on our packages at their tarballs, and link each third-party dependency to the workspace's install
+ * of it, which stands in for the registry.
+ */
+function installTarballs(app, names) {
+  const tarballs = Object.fromEntries([...packed].map(([name, { tarball }]) => [name, `file:${tarball}`]));
+  writeFileSync(
+    path.join(app, "package.json"),
+    JSON.stringify({
+      name: path.basename(app),
+      private: true,
+      type: "module",
+      dependencies: Object.fromEntries(names.map((name) => [name, tarballs[name]])),
+      pnpm: {
+        overrides: {
+          ...tarballs,
+          ...Object.fromEntries([...thirdPartyDependencies()].map(([name, dir]) => [name, `link:${dir}`])),
+        },
+      },
+    }),
+  );
+  run("pnpm", ["install", "--offline", "--store-dir", path.join(work, "store")], { cwd: app });
+}
+
 packTest(
   "a fresh project installs both tarballs offline and makes one call through the Anthropic adapter",
   async () => {
@@ -421,29 +510,8 @@ packTest(
     const gateway = packed.get("@buildanagent/gateway");
     const app = path.join(work, "fresh-project");
     mkdirSync(app);
-    // As `pnpm add @buildanagent/sdk@<tag> @buildanagent/gateway@<tag>` would, with the registry swapped for the two
-    // tarballs: the override points the SDK's own dependency on the gateway at the gateway's tarball.
-    writeFileSync(
-      path.join(app, "package.json"),
-      JSON.stringify({
-        name: "fresh-project",
-        private: true,
-        type: "module",
-        dependencies: {
-          "@buildanagent/sdk": `file:${sdk.tarball}`,
-          "@buildanagent/gateway": `file:${gateway.tarball}`,
-        },
-        // Third-party dependencies link to the workspace's installs of them, which stand in for the registry.
-        pnpm: {
-          overrides: {
-            "@buildanagent/gateway": `file:${gateway.tarball}`,
-            ...Object.fromEntries([...thirdPartyDependencies()].map(([name, dir]) => [name, `link:${dir}`])),
-          },
-        },
-      }),
-    );
+    installTarballs(app, ["@buildanagent/sdk", "@buildanagent/gateway"]);
     writeFileSync(path.join(app, "call.mjs"), CALL_PROGRAM);
-    run("pnpm", ["install", "--offline", "--store-dir", path.join(work, "store")], { cwd: app });
     const installed = (name) =>
       JSON.parse(readFileSync(path.join(app, "node_modules", name, "package.json"), "utf8")).version;
     assert.equal(installed("@buildanagent/sdk"), sdk.manifest.version);
@@ -483,3 +551,28 @@ packTest(
     assert.equal(requests[0].body.model, "claude-opus-5-5");
   },
 );
+
+packTest("the packed CLI's buildanagent binary starts with a shebang and prints its help offline", () => {
+  const { manifest, files, dest, tarball } = packed.get("@buildanagent/cli") ?? {};
+  assert.ok(manifest, "the CLI was not packed");
+  assert.deepEqual(manifest.bin, { buildanagent: "./dist/bin.js" });
+  assert.ok(files.includes("dist/bin.js"), "the CLI packs no dist/bin.js");
+  // pnpm's .bin link starts a .js file with Node whatever its first line says, but npm's is a plain symlink, which
+  // the shell runs as a shell script unless the file names Node itself.
+  const [first] = readFileSync(path.join(dest, "dist", "bin.js"), "utf8").split("\n");
+  assert.equal(first, "#!/usr/bin/env node");
+  const mode = run("tar", ["-tvzf", tarball, "package/dist/bin.js"]).split(/\s+/)[0];
+  assert.match(mode, /^-rwx/, "the packed dist/bin.js is not executable");
+
+  const app = path.join(work, "cli-project");
+  mkdirSync(app);
+  installTarballs(app, ["@buildanagent/cli"]);
+  // Both ways a user's shell reaches it: pnpm's link in node_modules/.bin, and the installed file itself, as npm's
+  // symlink runs it.
+  for (const binary of [
+    path.join(app, "node_modules", ".bin", "buildanagent"),
+    path.join(app, "node_modules", "@buildanagent", "cli", "dist", "bin.js"),
+  ]) {
+    assert.match(run(binary, ["--help"], { cwd: app }), /^Usage: buildanagent/, binary);
+  }
+});

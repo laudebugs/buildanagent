@@ -21,7 +21,8 @@
     },
     "packages/agent-safety": {
       // The Workers that the Cloudflare tests bundle with esbuild and run in workerd, named by path in those tests.
-      "entry": ["test/workerd/*-agent.ts"]
+      // The README checks load the globals file by the path their config names.
+      "entry": ["test/workerd/*-agent.ts", "scripts/readme-globals.ts"]
     },
     "packages/sdk": {
       // The README checks load this globals file by the path their config names, and the examples are run by path
@@ -34,14 +35,17 @@
     "packages/protocol": {
       // The schema-check file is type-checked by `tsc` and never imported: it fails the build when the hand-written
       // types and the schemas drift apart.
-      "entry": ["schema-check/*.ts"]
+      "entry": ["schema-check/*.ts", "scripts/readme-globals.ts"]
     },
     // Scaffolds that name the packages they will import once their todos land.
-    "packages/cli": { "ignoreDependencies": ["@buildanagent/harness"] },
+    "packages/cli": { "entry": ["scripts/readme-globals.ts"], "ignoreDependencies": ["@buildanagent/harness"] },
     // `mkfifo` makes the pipe an opt-in srt test needs, and `openssl` makes the self-signed certificate the egress proxy test
     // trusts. Node can make neither.
     // The book examples are run by path (`tsx examples/01-session-two-runs.ts`) from the shared runner, so nothing
     // imports them.
-    "packages/harness": { "entry": ["examples/*.ts"], "ignoreBinaries": ["mkfifo", "openssl"] }
+    "packages/harness": {
+      "entry": ["examples/*.ts", "scripts/readme-globals.ts"],
+      "ignoreBinaries": ["mkfifo", "openssl"]
+    }
   }
 }

@@ -1,12 +1,12 @@
 # @buildanagent/harness
 
-The harness wraps the SDK's loop with what a coding agent needs around it: a session log, a context policy, tools, permissions, a sandbox and credentials. No loop runs from it yet.
+The harness wraps the SDK's loop with what a coding agent needs around it: a session log that survives a crash, a context policy, tools, permissions, a sandbox and credentials kept out of it. Use it to run an agent whose every turn is recorded and can be resumed, checked and replayed.
 
-As of November 2026 the package is private and not on npm. Each removable component gets its own subpath, so a caller imports only what it uses and an ablation can drop the rest. Today `session` holds the entry types it re-exports from the protocol package, `sandbox` and `testing` hold the sandbox interface, and `tools` holds the tool registry, so every other subpath is an empty stub that holds the component's place. The [harness plan](https://github.com/laudebugs/buildanagent/blob/main/docs/plans/build-harness.md) says what each package will hold and in which order.
+As of November 2026 the package is private and not on npm. Each removable component has its own subpath, so you import only what you use and an ablation can drop the rest. `session`, `context`, `tools`, `permissions`, `sandbox`, `credentials`, `extensions`, `server` and `testing` are built. `mcp`, `memory`, `telemetry` and `ablation` are empty stubs that hold their place until their components arrive.
 
 ## The session log holds twenty entry types
 
-`@buildanagent/harness/session` re-exports the entry union from `@buildanagent/protocol`, where the [stable fields and the JSON Schema](../protocol/README.md#a-session-file-is-a-list-of-entries-one-per-line) are documented. Every entry carries `id`, `parentId`, `seq`, `timestamp`, `type` and `origin`. The [session format page](docs/session-format.md) lists every field of every type and says which are stable, and a test checks it against the JSON Schema. The types, in the order of the union:
+`@buildanagent/harness/session` re-exports the entry union from `@buildanagent/protocol`, where the [stable fields and the JSON Schema](https://github.com/laudebugs/buildanagent/blob/main/packages/protocol/README.md#a-session-file-is-a-list-of-entries-one-per-line) are documented. Every entry carries `id`, `parentId`, `seq`, `timestamp`, `type` and `origin`. The [session format page](https://github.com/laudebugs/buildanagent/blob/main/packages/harness/docs/session-format.md) lists every field of every type and says which are stable, and a test checks it against the JSON Schema. The types, in the order of the union:
 
 - `session_header`: the first entry of a file, with the format, harness and SDK versions, the defaults hash, the capabilities, the ablation hash and, optionally, the parent session and the product.
 - `turn_start`: a run began, with the frozen system prompt.
@@ -39,13 +39,14 @@ As of November 2026 the package is private and not on npm. Each removable compon
 
 `noneSandbox()` needs `unsafe: true`: leaving it out is a type error, and a JavaScript caller gets a `HarnessError` with the code `unsafe_sandbox_not_acknowledged`. Each sandbox it provisions writes a warning to standard error, or to the `warn` option. It enforces no policy, which is what `stops: []` says.
 
+The example below runs a project's tests in a workspace and prints the exit code, or why the command was refused:
+
 ```ts
 import { noneSandbox, spawnEnv } from "@buildanagent/harness/sandbox";
 
 const sandbox = await noneSandbox({ unsafe: true }).provision({ root: "/work/repo" }, policy);
 const result = await sandbox.exec(["pnpm", "test"], { env: spawnEnv([]), signal: controller.signal, timeoutMs: 120_000 });
-if ("denied" in result) console.log(result.denied.reason);
-else console.log(result.exitCode, result.stdout);
+console.log("denied" in result ? result.denied.reason : result.exitCode);
 ```
 
 `exec` takes an executable and its arguments, with no shell, and resolves with the exit code and output. A failing command is a result, not an error, and a command the policy refuses resolves with `{ denied }`. A command that runs past `timeoutMs` stops with exit code 124, and one the system can't find gives 127. A command that a signal killed gives 128 plus the signal's number, with `signal` naming it. Output past `maxOutputBytes` (8 MiB for each stream by default) is dropped, and the result says `truncated: true`.
@@ -77,7 +78,7 @@ Four limits are worth knowing:
 - **File calls run in the host.** `readFile` and `writeFile` check each path by its real path, so a symlink that leads out is refused. They check the opened file again through `/proc`, though a hostile process could still win that race. They don't run under `srt`, because two `srt` processes in one workspace can disturb each other: each makes and removes empty protected files there. Commands that run at the same time in one workspace share that risk.
 - **Cleanup depends on `srt`.** A stopped command gets a `SIGTERM` and two seconds before the `SIGKILL`, so `srt` removes its protected files. A `SIGKILL` from outside leaves them.
 
-`pnpm --filter @buildanagent/harness test:sandbox` runs the conformance suite and the escape cases against the real `srt`. It is opt-in because it starts bubblewrap, and it fails on a skipped case instead of skipping. Without `srt`, the rest of `pnpm test` checks the settings and the unavailable paths.
+The package's opt-in sandbox tests run the conformance suite and the escape cases against the real `srt`, and they fail on a skipped case instead of skipping. They are opt-in because they start bubblewrap. Without `srt`, the other tests check the settings and the unavailable paths.
 
 ## The Docker backend runs each command in a locked-down container
 
@@ -105,7 +106,7 @@ Five limits are worth knowing:
 - **File calls run in the host.** `readFile` and `writeFile` check each path by its real path and through `/proc`, as under `srt`, and `writeFile` refuses a `denyWrite` folder. A hostile process could still win that race.
 - **The network lock rests on the daemon.** `--network none` is checked by inspecting the running container, because a test host with no bridge can't tell a closed network from a missing one.
 
-`pnpm --filter @buildanagent/harness test:sandbox` runs the conformance suite and the lock-down cases against a real daemon, with a pinned Node image. It is opt-in, and it fails on a skipped case instead of skipping. Without Docker, the rest of `pnpm test` checks the flags and the unavailable paths with a fake client.
+The same opt-in tests run the conformance suite and the lock-down cases against a real daemon, with a pinned Node image, and fail on a skipped case. Without Docker, the other tests check the flags and the unavailable paths with a fake client.
 
 ## The egress proxy keeps every credential outside the sandbox
 
@@ -130,7 +131,7 @@ Four limits are worth knowing:
 - **No TLS inspection.** A tunnel is an opaque stream: the proxy knows the name, not what the tool sends. Only a route can add a credential, and only a route sees the request.
 - **Local processes can reach it.** The proxy listens on loopback, so any process on the host can use its allowed tunnels. Only a process that knows a sentinel can use a route, and sentinels are random for each proxy. A Unix socket narrows access to the socket's file permissions.
 
-`pnpm test` runs the proxy against a real HTTPS server on loopback with a self-signed certificate that only the test trusts, and a table in place of DNS.
+The package's tests run the proxy against a real HTTPS server on loopback, with a self-signed certificate that only the test trusts and a table in place of DNS.
 
 ## Every spawned process gets a cleared environment
 
@@ -142,7 +143,7 @@ A name that isn't a valid variable name, or a value with a NUL character, throws
 - a name that makes a program load code, such as `NODE_OPTIONS` or `LD_PRELOAD`;
 - a name that looks like a credential: one with a `_`-separated part such as `KEY`, `TOKEN`, `SECRET`, `PASSWORD`, `PAT` or `AUTH`, or a connection string or proxy URL such as `DATABASE_URL` or `HTTPS_PROXY`. So `ANTHROPIC_API_KEY` is refused and `GIT_AUTHOR_NAME` isn't.
 
-The check goes by name and can't catch a credential under an unremarkable one, so name only variables you know. A credential can reach a child only as an explicit `extra`, written in code, such as a dummy key for the credential proxy. That keeps credentials out of the sandbox, as ADR 0036 requires.
+The check goes by name and can't catch a credential under an unremarkable one, so name only variables you know. A credential can reach a child only as an explicit `extra`, written in code, such as a dummy key for the credential proxy. That keeps credentials out of the sandbox.
 
 ## Test a sandbox with the fake and the conformance suite
 
@@ -211,7 +212,7 @@ A case that needs enforcement runs only when the backend's `stops` claim it:
 - **Release.** `release()` stops the renewal, waits for one in progress, and removes the lock only if it still holds this handle's token, so a writer that lost its lock never frees the next holder's.
 - **Local disk only.** An exclusive create is not reliable on a network file system, so NFS and similar are unsupported. Another host needs a different `SessionLock`, such as a lease row in a database.
 - **Pid reuse.** If the system reuses a dead writer's pid, the stale lock stays until that process ends. The lease and the token make this a delay and never a corruption.
-- **The crash test.** `test/session/lock-crash.test.ts` spawns a child that takes the lock and appends in a loop, kills it with `SIGKILL`, and requires a new writer to get the lock within one lease and every complete entry to load.
+- **The crash test.** A test spawns a child that takes the lock and appends in a loop, kills it with `SIGKILL`, and requires a new writer to get the lock within one lease and every complete entry to load.
 
 ## HEAD moves by entries, and a fork or a revert writes a new file and never edits an old one
 
@@ -374,18 +375,19 @@ The cap counts the bytes the entry takes in the log: JSON escaping, the result's
 
 Signed thinking limits where the cutoff may stand. A model that checks each signed block against the earlier request rejects a block that follows an edited message, and a model that thinks in a tool loop needs that loop's own blocks back. So while the tool loop in progress holds signed thinking, the cutoff is computed as though the transcript ended where the loop began, and nothing in the loop is masked. The view also drops the signed reasoning of messages before the loop that follow the first masked result, and keeps the signed reasoning before that result and the loop's own.
 
-Turn a layer off with `layers: { write_cap: false }` or `layers: { mask: false }`; `mask` takes `{ keepChars, stepMessages }`. After each view is built, the policy reports how full it estimates the view to be: `TurnOptions.onContextFill` receives `{ tokens, budget, window }`, and the dispatcher sends `tokens` and `budget` as a `context_fill` event. With a previous response, the estimate is that response's input and output tokens plus the view's growth since, counted as characters over four. Before any response, it is characters over four for the whole view. The summary, mid-turn and overflow layers arrive in their own todos.
+Turn a layer off with `layers: { write_cap: false }` or `layers: { mask: false }`; `mask` takes `{ keepChars, stepMessages }`. After each view is built, the policy reports how full it estimates the view to be: `TurnOptions.onContextFill` receives `{ tokens, budget, window }`, and the dispatcher sends `tokens` and `budget` as a `context_fill` event. With a previous response, the estimate is that response's input and output tokens plus the view's growth since, counted as characters over four. Before any response, it is characters over four for the whole view. The other three layers follow.
 
 ## A summary replaces an outgrown span between turns, and the log keeps every original
 
 Layer 3 of the context policy runs at the start of a turn, before the turn's input is written. When the context is over the budget, the policy summarises everything before a verbatim tail and writes a `compaction` entry. The budget is `budgetTokens`, which defaults to the smaller of the model's window less 16,384 tokens and 200,000. The tail is the newest messages that add up to `summarize.tailTokens` (default 20,000), moved back until it starts with an assistant message, so a call is never split from its result and the summary is never followed by a second user message.
+
+The policy below sets four options. It keeps the newest 20,000 tokens verbatim, asks the summary to keep the open bugs, caps the summary call at $5 and logs each written entry:
 
 ```ts
 const context = createContextPolicy({
   spill,
   summarize: { tailTokens: 20_000, focus: "open bugs", capUsd: 5 },
   hooks: { afterCompact: async (entry) => audit(entry) },
-  log: (record) => console.log(record.event, record.detail),
 });
 ```
 
@@ -397,7 +399,7 @@ A failed summary never fails the turn, and `log` reports each failure. A skip be
 
 `hooks.beforeCompact` receives `{ span, tokens, focus? }` and may return `{ summary }`, which replaces the model's. No call is made, the cap is not checked, a zero-cost `usage` entry is written and the entry records `promptVersion: "hook"`. A missing or blank summary leaves the model to write it. `hooks.afterCompact` receives the written entry. `layers: { summarize: false }` turns the layer off.
 
-No entry is edited or removed. `session.toContext()` and `contextOf()` start from the latest compaction: its summary as a user message, then the kept tail, then everything written after it. The tail loses its signed reasoning blocks, because a block that follows the summarised span carries a signature the summary made stale; blocks written after the compaction stay. A re-run from an entry before the compaction rebuilds the original context from the file.
+No entry is edited or removed. `session.toContext()`, and every turn that rebuilds its context from the log, start from the latest compaction: its summary as a user message, then the kept tail, then everything written after it. The tail loses its signed reasoning blocks, because a block that follows the summarised span carries a signature the summary made stale; blocks written after the compaction stay. A re-run from an entry before the compaction rebuilds the original context from the file.
 
 ## Two more triggers compact inside a turn: at 90% of a small window, and after a provider overflow
 
@@ -426,7 +428,7 @@ Four limits and interactions follow from this design:
 
 A model's "done" is a claim, so a turn can check it in code. Pass `completion: { sandbox, env }` to `runTurn()`, where `sandbox` is the session's sandbox and `env` is the checks' whole environment, built with `spawnEnv()`. Before the model runs, the turn resolves the project's checks, reads the check config and takes a snapshot of the workspace. It does this for every turn, because whether a turn ends `done` is known only after the model has run, so expect up to 5,000 file reads before each turn. When the run ends `done`, the harness runs the checks it resolved at the start, takes a second snapshot, and writes one `completion_check` entry after `turn_end`. It also calls `onCompletionCheck` with that entry. The turn's stop reason is unchanged: a failed check or a flag is recorded for the CLI and the eval reports to show, and a turn that ends any other way runs no check. `lastEntryId` on the result is the new entry. A `done` turn from the dispatcher runs a check only when `createDispatcher()` is given `completion`, a function that takes a session's id and returns that session's `{ sandbox, env }` (or `undefined` for none).
 
-**A turn resumed after an approval is never checked.** `resumeTurn()` runs no completion check, because the start state is not kept across the pause. So in an agent that uses approvals, a turn that pauses for one and then ends `done` writes no `completion_check` entry, and its "done" goes unchecked.
+**A turn resumed after an approval is never checked.** A resume through `createApprovals()` runs no completion check, because the start state is not kept across the pause. So in an agent that uses approvals, a turn that pauses for one and then ends `done` writes no `completion_check` entry, and its "done" goes unchecked.
 
 **The checks are fixed before the model runs.** A turn can't change which commands run by editing `.agents/harness.json`, because they were resolved before it began. A package runner reads a script's body when it runs it, though, and `make` reads the `Makefile`, so a turn that rewrites the `test` script to `true` would still change what `npm run test` does. The harness therefore compares the check config at the end with the start and adds one flag for each part the turn changed:
 
@@ -462,16 +464,27 @@ A test file is a code file (such as `.ts`, `.js`, `.py`, `.go`, `.rs`, `.java` o
 
 An `Extension` from `@buildanagent/harness/extensions` is a name, a version, and any of `interceptors`, `observers` and `tools`. It runs in the harness's process with the harness's permissions, so loading one is a trust decision and nothing more: **trust is not a sandbox.** The permission pipeline still decides every call an extension's tool makes, and an extension's own hooks can do anything the process can.
 
+This audit extension asks a person before every shell command and hands every event to a log. The harness runs it before another extension, `other`, and records both:
+
 ```ts
-const audit: Extension = {
-  name: "audit",
-  version: "1.0.0",
-  interceptors: { beforeToolCall: (event) => (event.tool === "bash" ? { decision: "ask" } : { decision: "allow" }) },
-  observers: [(event) => log(event)],
-};
-const { interceptors, observers } = composeExtensions([audit, other]);
-registerExtensionTools(registry, [audit, other]);
-const harness = createHarness({ registry, model, system, interceptors, observers, extensionRecords: await recordsOf([audit, other]) });
+/** A harness that runs the audit extension first, then `other`, with both extensions' tools in `registry`. */
+export async function auditedHarness(
+  registry: ToolRegistry,
+  model: Model,
+  log: (e: AgentEvent) => void,
+  other: Extension,
+) {
+  const audit: Extension = {
+    name: "audit",
+    version: "1.0.0",
+    interceptors: { beforeToolCall: (event) => (event.tool === "bash" ? { decision: "ask" } : { decision: "allow" }) },
+    observers: [(event) => log(event)],
+  };
+  const { interceptors, observers } = composeExtensions([audit, other]);
+  registerExtensionTools(registry, [audit, other]);
+  const extensionRecords = await recordsOf([audit, other]);
+  return createHarness({ registry, model, system: SYSTEM, interceptors, observers, extensionRecords });
+}
 ```
 
 `composeExtensions()` joins the hooks in the order given, by the SDK's rules. `transformContext`, `beforeModelCall` and `afterToolCall` chain in registration order. `beforeToolCall` is a gate: the first deny wins and any ask asks. `afterModelCall` passes the message on, so the last override stands. `shouldStop` lets any stop win. Observers run in order and change nothing. A hook that throws fails the moment it belongs to, so a gate that fails closed fails the whole gate closed. `composeExtensions()` and `registerExtensionTools()` refuse two extensions with one name, or one with no name or version, with `invalid_extension`. `registerExtensionTools()` registers each extension's tools with source `extension`; an `override: true` tool replaces a built-in of the same name and nothing else. A turn writes an `extension_loaded` entry for each of `extensionRecords` whose name and hash the session's log does not hold yet.
@@ -535,7 +548,7 @@ The host fills `Resolution.by` only after it has authenticated the approver. An 
 
 - **Sticky allowances.** `sticky: "run"` or `"session"` makes an `allow` cover the same call again. The `approval_resolved` entry carries the `sticky` scope and an `allowance`: the tool and the call's input hash or, with `commandPrefix`, a command prefix, and the policy version it was given under. When the pipeline would ask about a call that an allowance covers, the call runs, and a `permission_decision` entry with `by: "sticky"` records why. A deny rule still wins, because the allowance only answers an ask. A `run` allowance lasts until the next turn starts, resumes included. A `session` allowance counts from the start of the session's own file, so a fork never inherits it. It is ignored once the permission policy's version changes, because a person approved it under the earlier policy.
 - **Never covered.** A command whose first word, by any path, is a shell, an interpreter, a package runner or a wrapper such as `env`, `sudo` or `xargs` throws `sticky_refused`. That includes the listed prefixes (`bash -c`, `sh -c`, `sh -lc`, `zsh -c`, `node -e`, `python -c`, `bun run`, `npx`, `uvx`), `/bin/sh -c`, `env bash -c` and `python3 -c`. So does a call whose input holds a value that `secrets()` returns, whether the secret appears as plain text or as JSON would escape it, and any sticky answer under a custom quorum policy, because one approver's click would then skip the quorum on every later call.
-- **Prefix rules.** A command prefix must be a non-empty start of the approved command, on a call that has a `command`, and it covers only a simple command: one with no operator, quote, glob, expansion, substitution or line break (the full set is `SHELL_SYNTAX` in `sticky.ts`). A `git status` prefix covers `git status -s` and not `git status && curl x | sh`.
+- **Prefix rules.** A command prefix must be a non-empty start of the approved command, on a call that has a `command`, and it covers only a simple command: one with no operator, quote, glob, expansion, substitution or line break. A `git status` prefix covers `git status -s` and not `git status && curl x | sh`.
 - **Reuse.** `approvalReuse` is `both` (the default), `sticky`, `group` or `none`, and a tool takes only the kinds it names. A refused answer throws `approval_reuse_refused` before anything is written, and the call asks again next time.
 - **Grouped answers.** With `group: true`, an answer reaches every waiting request of the step with the same tool and the same whole input; for a shell command the spaces outside quotes are normalised first, and a field such as `cwd` still tells two commands apart. The entries share a `groupId`, and each counts as that approver's answer on its request, so a quorum above one still needs more approvers. Only a group that joins more than one request needs its tool to allow grouping.
 - **Quorum policy.** A `QuorumPolicy` has one method, `evaluate(request, resolutions)`, that returns `met`, `pending`, `rejected` or `expired`. `oneResolution` is the default and follows the latest answer. `quorumOf(n)` needs `n` distinct approvers named in `Resolution.by`, counts only allows, and refuses an `n` that is not a whole number of at least one. `met` runs the call, `rejected` and `expired` turn it into a denial result, and `pending` leaves it waiting: the turn ends `awaiting_approval` again. Calling `resolve(session, [])` asks the policy about every waiting request, which is how a policy that keeps its own clock expires an old one.
