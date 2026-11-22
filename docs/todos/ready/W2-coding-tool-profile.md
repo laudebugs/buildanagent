@@ -8,7 +8,7 @@
 | Status | `ready` |
 | Plan | [Build coding agent §5](../../plans/build-coding-agent.md#52-round-w-builds-the-coding-agent) |
 | Round / milestone | Round W (build the coding agent), M7 |
-| Depends on | [N21](N21-builtin-tools.md), [N32](N32-completion-check.md) |
+| Depends on | [N21](N21-builtin-tools.md), [N32](../done/N32-completion-check.md) |
 | Size | M |
 
 ## Goal

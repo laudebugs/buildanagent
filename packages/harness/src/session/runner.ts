@@ -26,6 +26,14 @@ import {
   type ToolDefinition,
 } from "@buildanagent/sdk";
 import type { Clock } from "@buildanagent/sdk/testing";
+import {
+  type CompletionOutcome,
+  type CompletionSettings,
+  type CompletionStart,
+  completionFailure,
+  runCompletionCheck,
+  snapshotStart,
+} from "../completion/check.js";
 import type { ContextFill, TurnContext } from "../context/types.js";
 import { HarnessError } from "../errors.js";
 import type { Harness } from "../harness.js";
@@ -61,6 +69,15 @@ export interface TurnOptions<H = unknown> {
   readonly onContextFill?: (fill: ContextFill) => void;
   /** Called when the first run has ended because the request was too large and a retry may follow. */
   readonly onOverflowRetry?: () => void;
+  /**
+   * Checks the turn's completion. Before the model runs, the turn resolves the project's checks in this sandbox and
+   * snapshots the workspace and the check config. A turn that ends `done` then runs those checks, diffs the workspace
+   * and the config against the start, and writes a `completion_check` entry. The stop reason is unchanged: a failed
+   * check, a flag or a check that could not run is recorded, never fatal. The result's `lastEntryId` is that entry.
+   */
+  readonly completion?: CompletionSettings;
+  /** Called with the `completion_check` entry once it is written. */
+  readonly onCompletionCheck?: (entry: SessionEntry) => void;
   /** Observers for this turn alone. Unlike `Run.on()`, they also see `run_start`. They run after the harness's own. */
   readonly observers?: readonly Observer[];
   /**
@@ -563,7 +580,45 @@ export async function runTurn<H = unknown>(
   harness: Harness<H>,
   options: TurnOptions<H>,
 ): Promise<TurnResult> {
-  return retryAfterOverflow(session, harness, options, await runTurnOnce(session, harness, options));
+  const settings = options.completion;
+  // The start state is taken before the turn writes anything, and with the turn's own signal, so an abort stops it.
+  // It is taken for every turn, because whether the turn ends `done` is known only after the model has run.
+  const start =
+    settings === undefined ? undefined : await snapshotStart(settings, options.signal ?? new AbortController().signal);
+  const result = await retryAfterOverflow(session, harness, options, await runTurnOnce(session, harness, options));
+  if (settings === undefined || result.stopReason !== "done") return result;
+  return recordCompletion(session, settings, start, options, result);
+}
+
+/**
+ * Runs the completion check after a `done` turn and writes its entry. The result's stop reason is left as it is, and a
+ * check that throws (a sandbox error, a disposed sandbox) is recorded as a failed entry instead of losing the result.
+ */
+async function recordCompletion<H>(
+  session: Session,
+  settings: CompletionSettings,
+  start: CompletionStart | undefined,
+  options: TurnOptions<H>,
+  result: TurnResult,
+): Promise<TurnResult> {
+  const signal = options.signal ?? new AbortController().signal;
+  let outcome: CompletionOutcome;
+  try {
+    outcome = await runCompletionCheck(settings, start, signal);
+  } catch (error) {
+    outcome = { checks: [], passed: false, flagged: [...(start?.failures ?? []), completionFailure(error)] };
+  }
+  const { writer } = turnPlumbing(session, options);
+  let entry: SessionEntry;
+  try {
+    entry = await writer.write("harness", { type: "completion_check", ...outcome });
+  } catch {
+    // A failed append (a lost lock, a store conflict) must not turn a `done` turn into a rejection: the turn's own
+    // entries are written, and the result stands without the check's entry.
+    return result;
+  }
+  options.onCompletionCheck?.(entry);
+  return { ...result, lastEntryId: entry.id };
 }
 
 async function runTurnOnce<H = unknown>(
