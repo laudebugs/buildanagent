@@ -229,19 +229,26 @@ A case that needs enforcement runs only when the backend's `stops` claim it:
 
 ## Nothing is deleted unless you set a retention period
 
-`jsonlStore({ dir })` never deletes or moves a file. To expire old sessions, give it `retention: { days, action }`, or call `pruneSessions({ dir, userId, retention })` yourself, both from `@buildanagent/harness/session/jsonl`. A session expires when its last entry is more than `days` old.
+`jsonlStore({ dir })` never deletes or moves a file. To expire old sessions, give it `retention: { days, action }`, or call `pruneSessions({ dir, userId, retention })` yourself, both from `@buildanagent/harness/session/jsonl`. A session expires when the newest entry in any of its files is more than `days` old. Its files count wherever they are, live or archived.
 
-- **`archive`** gzips each of the session's files into `<dir>/archive/<user>/` and removes the original once the archive reads back to the same bytes. The pointer stays. `list()` and `load()` still find an archived session, and a write to it restores its file.
-- **`purge`** deletes the session's files and its pointer. An expired session that a surviving fork continues is kept, so no log loses its ancestors.
-- **When it runs.** Only when you call `pruneSessions()`, which a `sessions prune` command calls, and once for each user when a store with `retention` first lists, loads or appends that user's sessions. Never on a timer. An error in that pass goes to `onRetentionError` and does not stop the session.
-- **Locks.** Pass the session `lock` and a session whose writer is running is kept.
+- **`archive`** gzips each of the session's live files into `<dir>/.archive/<user>/` and removes the original once the archive reads back to the same bytes. The pointer stays. `list()` and `load()` still find an archived session, and a write restores the file it writes to.
+- **`purge`** deletes the session's files, live and archived, and then its pointer. A session that was archived before you switched to `purge` is deleted once it expires.
+- **When in doubt, a file stays.** Before it removes anything, a run takes the lock of each session it means to expire and decides which sessions survive: the fresh ones, the locked ones, and the ones it can't read or date. A purge keeps every expired session that a survivor continues, as a fork continues its parent, and removes a fork before its parent. A file the store wrote but the run can't read stops every purge for that user, because it could be a fork of any session; it is listed in `skipped`, and an archive still goes ahead.
+- **A run that stops part-way is finished by the next.** A session's files go newest first, then its first file, then its pointer, and the next run finds the session again from whatever is left.
+- **A failure stops only its own session.** It is kept with reason `error`, its error is in `errors`, and the run goes on with the others.
+- **When it runs.** Only when you call `pruneSessions()`, which a `sessions prune` command calls, and once for each user when a store with `retention` first lists, loads, appends or deletes that user's sessions. Never on a timer. The store passes each error of that pass to `onRetentionError`, ignores an error the callback throws, and runs a failed pass again on the first call at least a minute after it ended. A `delete()` waits for the pass, so it never races it.
+- **Locks.** Pass the session `lock`, and a session whose writer is running is kept.
 
 ```ts
 const store = jsonlStore({ dir, retention: { days: 30, action: "archive" }, lock });
-const { archived, purged, kept } = await pruneSessions({ dir, userId: "ada", retention: { days: 30, action: "purge" } });
+const { archived, purged, kept, skipped, errors } = await pruneSessions({
+  dir,
+  userId: "ada",
+  retention: { days: 30, action: "purge" },
+});
 ```
 
-The package sets no default period, and `days` must be a positive number or the call throws `invalid_retention`. The [session format page](docs/session-format.md#what-a-month-of-sessions-costs-on-disk) has the disk-cost projection.
+The package sets no default period, and `days` must be a positive number or the call throws `invalid_retention`. The [session format page](docs/session-format.md#retention) says where the archive is, and it has the [disk-cost projection](docs/session-format.md#what-a-month-of-sessions-costs-on-disk).
 
 ## `runTurn()` writes one SDK run into the log, and the user entry goes first
 

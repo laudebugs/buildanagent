@@ -8,7 +8,7 @@ A session is a JSONL file of typed entries, one JSON object per line, and your o
 
 - **Derived files.** A revert or a migration writes a new file whose name starts with `~` and moves the session's pointer to it. The old file is never changed. A fork's file continues its parent's, which its header names.
 - **The pointer.** `<session>.pointer.json` holds `{ "file": "<id>" }`, the file that holds the session's log now. A session with no pointer is in the file named by its id. The pointer is the only mutable state.
-- **The archive.** With a retention period set, `<dir>/archive/<user>/<file>.jsonl.gz` holds an expired session's files, each the gzip of the original. See [Retention](#retention).
+- **The archive.** With a retention period set, `<dir>/.archive/<user>/<file>.jsonl.gz` holds an expired session's files, each the gzip of the original. The folder name starts with `.`, which percent-encoding never leaves in a name, so no user's folder can be the archive. See [Retention](#retention).
 
 ## Every entry carries six base fields
 
@@ -261,9 +261,13 @@ A tool of your own should read a line as JSON, check `type` against the names ab
 
 A session is never deleted or moved unless you set a retention period. Without one, `jsonlStore()` and `pruneSessions()` touch no file, however old.
 
-With `retention: { days, action }`, a session expires when its last entry is more than `days` old. `archive` gzips each of the session's files into `<dir>/archive/<user>/`, keeps the pointer, and removes the original once the archive reads back to the same bytes. The store still lists and loads an archived session, so a search over `list()` and `load()` finds it, and a write to it brings its file back. `purge` deletes the session's files and its pointer, except that an expired session a surviving fork continues is kept, so no log loses its ancestors.
+With `retention: { days, action }`, a session expires when the newest entry in any of its files is more than `days` old. A session is its first file, the derived files that continue it and its pointer, and its files count whether they are live or archived. `archive` gzips each of the session's live files into `<dir>/.archive/<user>/`, keeps the pointer, and removes the original once the archive reads back to the same bytes. The store still lists and loads an archived session, so a search over `list()` and `load()` finds it, and a write brings back the file it writes to. `purge` deletes the session's files, live and archived, and then its pointer, so a session archived before a switch to `purge` is deleted once it expires.
 
-Expiry runs in two places and never in the background. `pruneSessions({ dir, userId, retention })` runs it when you call it, which is what a `sessions prune` command calls. A `jsonlStore({ dir, retention })` runs it once for a user, the first time it lists, loads or appends that user's sessions, which for a session is when it opens. A failure there goes to `onRetentionError` and does not stop the session that triggered it. The harness sets no default period: the owner supplies one when a product needs it.
+Every doubt keeps a file. Before a run removes anything, it takes the lock of each session it means to expire and decides which sessions survive: the fresh ones, the locked ones, and the ones whose file or pointer it can't read or date. A purge keeps every expired session that a survivor continues, directly or through another kept session, so no log loses its ancestors. It removes a fork before the session the fork continues, and keeps that session when the fork can't be removed. A file the store wrote whose header can't be read could be a fork of any session, so it stops every purge for that user until it is gone; the run lists it in `skipped`. A file with no complete line holds nothing and is ignored.
+
+A run handles a session's files one at a time, each before the file it continues, so the newest file goes first, the first file last and the pointer after that. A run that stops part-way leaves the rest reachable from the pointer or the first file, and the next run finds the session and finishes. A file that another process deletes during a run is not brought back from the archive. A failure stops only its own session, which the result keeps with reason `error` and the error in `errors`.
+
+Expiry runs in two places and never in the background. `pruneSessions({ dir, userId, retention })` runs it when you call it, which is what a `sessions prune` command calls. A `jsonlStore({ dir, retention })` runs it for a user the first time it lists, loads, appends or deletes that user's sessions, which for a session is when it opens. Each error of that pass goes to `onRetentionError`, which may throw without effect, and a pass that had an error runs again on the first call at least a minute after it ended. The harness sets no default period: the owner supplies one when a product needs it.
 
 ## What a month of sessions costs on disk
 
