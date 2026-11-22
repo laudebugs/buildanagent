@@ -2,7 +2,7 @@
 
 When a tool changes the world, such as sending an email or issuing a refund, your agent must know exactly what happened, and a person must approve exactly what runs. This package gives every write one of five typed outcomes and an identity that a crash can't repeat, hashes tool inputs the same way on every runtime, signs approvals so a forged or stale one runs nothing, lets a person approve a whole plan once before a step that can't be undone, keeps every model call on the user's own key, and refuses a model call before it is sent when the call could push a run past its USD cap.
 
-As of November 2026 the package is private and not on npm. It holds the write outcomes (`renderOutcome()`, `canonicalInputHash()`) and the approval signers. `guardedWrite()` keeps a crash or a regenerated turn from repeating a write, and `runPlan()` runs and compensates an approved plan. For model calls, its guards keep each call on the user's key, and `costGuard()` caps what AI SDK calls may spend. Adapters for the Vercel AI SDK hand all of this to an AI SDK agent, and they also serve Cloudflare's `AIChatAgent`.
+As of November 2026 npm holds only a deprecated placeholder of this package, and its first alpha publishes with the gateway and the SDK. It holds the write outcomes (`renderOutcome()`, `canonicalInputHash()`) and the approval signers. `guardedWrite()` keeps a crash or a regenerated turn from repeating a write, and `runPlan()` runs and compensates an approved plan. For model calls, its guards keep each call on the user's key, and `costGuard()` caps what AI SDK calls may spend. Adapters for the Vercel AI SDK hand all of this to an AI SDK agent, and they also serve Cloudflare's `AIChatAgent`.
 
 ## A failed write reports one of five outcomes
 

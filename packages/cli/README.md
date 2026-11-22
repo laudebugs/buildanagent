@@ -2,7 +2,7 @@
 
 The `buildanagent` command runs the buildanagent harness in your terminal. Use `run --json` to script one turn, `chat` to work with an agent that asks before risky calls, and `sessions` to list, search and replay your stored sessions.
 
-As of November 2026 the package is private and not on npm, so you run it from a checkout of the repository. The package exports `runCli()`, which the binary calls, and the helpers and types around it. [Run the CLI from your own program](#run-the-cli-from-your-own-program) shows how to call it.
+As of November 2026 npm holds only a deprecated placeholder of this package, so you run it from a checkout of the repository until its first alpha publishes with the gateway and the SDK. The package exports `runCli()`, which the binary calls, and the helpers and types around it. [Run the CLI from your own program](#run-the-cli-from-your-own-program) shows how to call it.
 
 ## Run one turn and read its events as JSON lines
 

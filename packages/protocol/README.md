@@ -2,7 +2,7 @@
 
 The protocol package holds the types that cross a boundary in a buildanagent harness: the entries of a session log, the messages a client and a harness exchange, and the JSONL framing that carries them. Use it to read a session file, or to write a client in TypeScript or another language.
 
-As of November 2026 the package is private and not on npm. It depends on the gateway and the SDK for their types only, so its JavaScript loads neither. The harness serves these messages; this package only describes and checks them.
+As of November 2026 npm holds only a deprecated placeholder of this package, and its first alpha publishes with the gateway and the SDK. It depends on the gateway and the SDK for their types only, so its JavaScript loads neither. The harness serves these messages; this package only describes and checks them.
 
 `parseEntry()` reads one line of a session file and returns a typed `SessionEntry`:
 
