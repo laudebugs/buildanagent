@@ -11,8 +11,8 @@
 //
 // The adapter receives the key explicitly, from the file scripts/live/live.ts read and deleted, and sends HTTP only
 // through `ProviderConfig.transport`, the gateway's own seam. Before each request leaves, the transport refuses a host
-// tool, a model other than the run's and an output allowance above the run's maxTokens, and checks the call against the
-// cost guard. It settles the guard from the usage the answer streams once its final event arrives, which is where the
+// tool, a model other than the run's, an output allowance above the run's maxTokens, a body field outside the
+// adapter's known set and more than one answer, and checks the call against the cost guard. It settles the guard from the usage the answer streams once its final event arrives, which is where the
 // gateway stops reading and cancels the body, or at the call's projection when the answer fails, stops before its final
 // event or reports no usage. The answer reaches the adapter with only its status, content type and body, plus a failed
 // answer's numeric retry delays, so the provider's other headers, which name the account and the request, go no
@@ -45,9 +45,58 @@ function baseURLOf(config) {
   return config.provider === "openai" ? `${config.baseURL}/v1` : config.baseURL;
 }
 
+/**
+ * The body fields our two adapters send, their own and the ones an `extraBody` may add that leave one answer within
+ * the request's output allowance. The Anthropic adapter never sends sampling fields, so none is listed.
+ * A field outside the list stops the request, because some fields multiply the output or reach past the model, so the
+ * call could cost more than its projection: Anthropic's `mcp_servers` makes its servers call a URL and `container`
+ * runs code, and OpenAI's `n` asks for several answers. The proxied harnesses' proxy refuses the same way
+ * (scripts/live/proxy.mjs).
+ */
+const FIELDS = {
+  anthropic: new Set([
+    "model",
+    "messages",
+    "system",
+    "tools",
+    "tool_choice",
+    "max_tokens",
+    "thinking",
+    "stream",
+    "stop_sequences",
+    "output_config",
+  ]),
+  openai: new Set([
+    "model",
+    "messages",
+    "tools",
+    "tool_choice",
+    "max_completion_tokens",
+    "max_tokens",
+    "stream",
+    "stream_options",
+    "temperature",
+    "top_p",
+    "stop",
+    "seed",
+    "n",
+    "reasoning_effort",
+    "response_format",
+    "parallel_tool_calls",
+    "prompt_cache_key",
+    "prompt_cache_options",
+    "prompt_cache_retention",
+  ]),
+};
+
 /** The problem with a request body, or undefined when the transport may send it. */
 export function requestProblem(config, body) {
   if (!body || typeof body !== "object" || Array.isArray(body)) return "the request body is not a JSON object";
+  for (const key of Object.keys(body)) {
+    if (!FIELDS[config.provider].has(key)) return `the request carries "${key}", which the live mode doesn't send`;
+  }
+  // One answer a request, as the projection counts: several would each write up to the output allowance.
+  if (body.n !== undefined && body.n !== 1) return `the request asks for ${JSON.stringify(body.n)} answers, not one`;
   if (body.model !== config.model) return `the request names the model ${JSON.stringify(body.model)}`;
   const limit = config.provider === "anthropic" ? body.max_tokens : (body.max_completion_tokens ?? body.max_tokens);
   if (!Number.isInteger(limit) || limit > config.maxTokens) {

@@ -787,7 +787,7 @@ console.log(JSON.stringify({ before, after: modelRequestsAreAllowed(), outside, 
 test("our SDK's live transport refuses before sending, guards each call and passes on no provider header", async () => {
   const { code, out, ledger } =
     await sdkChild(`import { readLedger, writeLedger } from ${fileURL("scripts/live/budget.ts")};
-import { liveTransport, usageReader } from ${fileURL("packages/sdk/examples/lib/live.mjs")};
+import { liveTransport, requestProblem, usageReader } from ${fileURL("packages/sdk/examples/lib/live.mjs")};
 const ledger = process.env.LIVE_LEDGER;
 const config = { provider: "anthropic", model: "claude-haiku-5-5", maxTokens: 1024, apiKey: "k", baseURL: undefined,
   example: "${SDK_TRIAGE}", ledger, catalog: undefined };
@@ -828,6 +828,10 @@ const results = {
   typed: await post({ ...ok, tools: [{ name: "x", type: "computer_20250124" }] }),
   model: await post({ ...ok, model: "claude-opus-5-5" }),
   allowance: await post({ ...ok, max_tokens: 4096 }),
+  // Fields an extraBody could add that reach past the model or multiply the output, and one the adapter never sends.
+  mcp: await post({ ...ok, mcp_servers: [{ type: "url", url: "https://example.com/mcp", name: "x" }] }),
+  container: await post({ ...ok, container: "container_1" }),
+  unknown: await post({ ...ok, metadata: { user_id: "u" } }),
   sentBefore: sent.length,
   ok: await post(ok),
   afterFinal: await readUntil(ok, "message_stop"),
@@ -866,6 +870,13 @@ for (const [name, lines] of [["openaiDone", [text, usageChunk, "[DONE]"]], ["ope
   answer = () => new Response(data(lines), { headers: { "content-type": "text/event-stream" } });
   results[name] = await postOpenAI();
 }
+const chatConfig = { ...config, provider: "openai", model: "gpt-5.4-mini", maxTokens: 2048 };
+results.chatFields = {
+  adapter: requestProblem(chatConfig, { ...chat, stream_options: { include_usage: true }, prompt_cache_options: { mode: "explicit" } }) ?? null,
+  one: requestProblem(chatConfig, { ...chat, n: 1 }) ?? null,
+  several: requestProblem(chatConfig, { ...chat, n: 2 }),
+  audio: requestProblem(chatConfig, { ...chat, modalities: ["text", "audio"] }),
+};
 const now = readLedger(ledger);
 writeLedger(ledger, { ...now, cap: now.spent + 0.0001 });
 results.overCap = await post(ok);
@@ -891,6 +902,13 @@ console.log(JSON.stringify(results));
   assert.match(r.typed, /of type "computer_20250124", not an in-process function/);
   assert.match(r.model, /names the model "claude-opus-5-5"/);
   assert.match(r.allowance, /allows 4096 output tokens, not at most the run's 1024/);
+  assert.match(r.mcp, /carries "mcp_servers", which the live mode doesn't send/);
+  assert.match(r.container, /carries "container"/);
+  assert.match(r.unknown, /carries "metadata"/);
+  assert.deepEqual(r.chatFields.adapter, null, "the fields our OpenAI adapter sends pass");
+  assert.equal(r.chatFields.one, null);
+  assert.match(r.chatFields.several, /asks for 2 answers, not one/);
+  assert.match(r.chatFields.audio, /carries "modalities"/);
   assert.equal(r.sentBefore, 0, "nothing refused reached the provider");
   assert.equal(r.ok.status, 200);
   assert.deepEqual(r.ok.headers, ["content-type"], "the provider's headers stay behind");
