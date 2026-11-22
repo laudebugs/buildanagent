@@ -26,9 +26,15 @@ const root = resolve(".");
 // Resolve tsx from the workspace (pnpm keeps shared dev tools at the repo root).
 const TSX = import.meta.resolve("tsx");
 
+// A realtime source that imports the SDK's in-memory test transport (`@openai/agents-realtime/testing`) makes no
+// connection, so it runs, unless it also names one of the real transports.
+const realtimeNeedsConnection = (code) =>
+  /@openai\/agents\/realtime|RealtimeSession|RealtimeAgent/.test(code) &&
+  !(/@openai\/agents-realtime\/testing/.test(code) && !/OpenAIRealtime(WebRTC|WebSocket|SIP)/.test(code));
+
 // Sources that need things the offline harness cannot provide.
 const needsExternal = (code) =>
-  /@openai\/agents\/realtime|RealtimeSession|RealtimeAgent/.test(code)
+  realtimeNeedsConnection(code)
     ? "realtime session (WebRTC/WebSocket)"
     : /new OpenAI\(|OpenAIProvider\(|OpenAIResponsesModel\(|OpenAIChatCompletionsModel\(/.test(code)
       ? "explicit OpenAI client or model"
