@@ -1,0 +1,50 @@
+# Builds the docs in apps/docs with no secrets and uploads apps/docs/dist/ as the only artifact. It is the build half
+# of DS3's build and deploy split (publish-and-docs DS3, ADR 0049): docs-deploy.yml reads the docs-dist artifact on
+# workflow_run and trusts nothing else from this run. A fork's pull request runs this file as the fork wrote it, so the
+# deploy previews only a branch of this repository and checks the artifact itself (scripts/ci/site-stage-dist.mjs).
+# A release's docs are built by docs-deploy.yml's own build-release job, from the release tag's commit.
+#
+# No path filter: TypeDoc reads every published package's source and TSDoc, so a filter that missed one would skip a
+# pull request that changes the API reference.
+name: docs-build
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+permissions:
+  contents: read
+
+# A pull request's ref is refs/pull/<n>/merge, so this file never lets one cancel main's build. A fork's pull request
+# runs its own copy of this file, though, and a copy that names main's group with cancel-in-progress can cancel a
+# running build of main; that build then deploys nothing, and the next push to main deploys as usual. Nothing in this
+# file can prevent that, because the group is the fork's to write, so the repository's setting that makes outside
+# contributors' workflows wait for a maintainer's approval is the control. book-build.yml has the same exposure.
+concurrency:
+  group: docs-build-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v7.0.1
+        with:
+          persist-credentials: false
+      - uses: pnpm/action-setup@v6.1.1 # pnpm's version comes from packageManager
+      - uses: actions/setup-node@v7.1.0
+        with:
+          node-version-file: .nvmrc
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm --filter @buildanagent/docs build
+        env:
+          ASTRO_TELEMETRY_DISABLED: "1"
+      - uses: actions/upload-artifact@v7.0.2
+        with:
+          name: docs-dist
+          path: apps/docs/dist/
+          if-no-files-found: error
+          retention-days: 7
