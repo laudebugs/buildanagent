@@ -7,7 +7,9 @@ import { isSafetyError } from "@buildanagent/agent-safety";
 import {
   BudgetExceeded,
   budgetRefusal,
+  type CostGuardOptions,
   costGuard,
+  type FileRef,
   type GuardedCall,
   guardedModel,
   guardedProvider,
@@ -651,9 +653,15 @@ function answering(id = "priced") {
 }
 
 /** The projection of one call with `prompt`, through a fresh guard. */
-async function projectionOf(prompt: CallPrompt): Promise<number> {
+async function projectionOf(prompt: CallPrompt, fileSize?: CostGuardOptions["fileSize"]): Promise<number> {
   const calls: GuardedCall[] = [];
-  const guard = costGuard({ capUsd: 100, spend: memorySpend(), catalog: CATALOG, onCallCost: (c) => calls.push(c) });
+  const guard = costGuard({
+    capUsd: 100,
+    spend: memorySpend(),
+    catalog: CATALOG,
+    ...(fileSize === undefined ? {} : { fileSize }),
+    onCallCost: (c) => calls.push(c),
+  });
   await guardedModel(answering().model, guard).doGenerate({ prompt });
   return calls[0]?.projectedUsd ?? Number.NaN;
 }
@@ -880,6 +888,133 @@ test("an image a tool returns counts as an image, not as its base64 characters",
   // One image is 4,784 tokens at the dearest input rate, $6 a million here, not 108,000 tokens of base64.
   assert.ok(withImage - empty < (5000 * 6) / 1_000_000, `the image added ${withImage - empty}`);
   assert.ok(withImage - empty > (4700 * 6) / 1_000_000);
+});
+
+// The projection prices every input token at the model's dearest input rate: its long cache write, $6 a million.
+const DEAREST_INPUT_RATE = 6;
+const PDF_URL = "https://files.test/report.pdf";
+const pdfTurn = (data: unknown): CallPrompt => [
+  { role: "user", content: [{ type: "file", mediaType: "application/pdf", filename: "report.pdf", data } as never] },
+];
+// A PDF of no bytes, the baseline that a sized file's extra cost is measured from.
+const NO_PDF = projectionOf(pdfTurn({ type: "url", url: new URL(PDF_URL) }), () => ({ bytes: 0 }));
+
+test("a PDF sent by URL counts by the bytes fileSize gives, as the base64 characters it would take inline", async () => {
+  const withBytes = await projectionOf(pdfTurn({ type: "url", url: new URL(PDF_URL) }), () => ({ bytes: 300_000 }));
+  // 300,000 bytes are 400,000 base64 characters, at the gateway's 2.5 characters a token.
+  const expected = ((400_000 / 2.5) * DEAREST_INPUT_RATE) / 1_000_000;
+  assert.ok(Math.abs(withBytes - (await NO_PDF) - expected) < 1e-6, `added ${withBytes - (await NO_PDF)}`);
+});
+
+test("a PDF sent by provider reference counts by its pages, each as one image", async () => {
+  const withPages = await projectionOf(pdfTurn({ type: "reference", reference: { openai: "file-abc" } }), () => ({
+    pages: 10,
+  }));
+  assert.ok(
+    Math.abs(withPages - (await NO_PDF) - (10 * 4784 * DEAREST_INPUT_RATE) / 1_000_000) < 1e-6,
+    `added ${withPages - (await NO_PDF)}`,
+  );
+});
+
+test("fileSize is asked once for each file, with the file's URL, kind, media type and name", async () => {
+  const asked: FileRef[] = [];
+  const same = { type: "url", url: new URL(PDF_URL) };
+  const prompt: CallPrompt = [
+    {
+      role: "user",
+      content: [
+        { type: "file", mediaType: "application/pdf", filename: "report.pdf", data: same } as never,
+        { type: "file", mediaType: "application/pdf", filename: "report.pdf", data: same } as never,
+      ],
+    },
+  ];
+  await projectionOf(prompt, (file) => {
+    asked.push(file);
+    return { bytes: 10 };
+  });
+  assert.deepEqual(asked, [{ kind: "url", source: PDF_URL, mediaType: "application/pdf", filename: "report.pdf" }]);
+});
+
+test("a file the guard can't size is refused before the call, whether it is sent by URL or by reference", async () => {
+  const refs = [
+    { type: "url", url: new URL(PDF_URL) },
+    { type: "reference", reference: { openai: "file-abc" } },
+  ];
+  const unusable = [
+    undefined,
+    { bytes: -1 },
+    { bytes: 1.5 },
+    { pages: Number.NaN },
+    { pages: Number.POSITIVE_INFINITY },
+  ];
+  for (const data of refs) {
+    for (const size of [undefined, ...unusable]) {
+      const { model, requests } = answering();
+      const spend = memorySpend();
+      const fileSize = size === undefined ? {} : { fileSize: () => size as never };
+      const guard = costGuard({ capUsd: 100, spend, catalog: CATALOG, ...fileSize });
+      const refused = refusal(await failure(guardedModel(model, guard).doGenerate({ prompt: pdfTurn(data) })));
+      assert.equal(refused.code, "unknown_price", JSON.stringify([data, size]));
+      assert.equal(refused.projectedUsd, null);
+      assert.match(refused.message, /report\.pdf/);
+      assert.match(refused.message, /fileSize/);
+      assert.equal(requests.length, 0, "the model received no request");
+      assert.equal(await spend.get(), 0, "a refused call adds nothing to the spend");
+    }
+  }
+});
+
+test("a file a tool returns by URL is refused when it has no size, and counted when it has one", async () => {
+  const prompt: CallPrompt = [
+    ...USER_TURN,
+    { role: "assistant", content: [{ type: "tool-call", toolCallId: "c1", toolName: "fetch", input: {} }] },
+    {
+      role: "tool",
+      content: [
+        {
+          type: "tool-result",
+          toolCallId: "c1",
+          toolName: "fetch",
+          output: {
+            type: "content",
+            value: [
+              { type: "file", mediaType: "application/pdf", data: { type: "url", url: new URL(PDF_URL) } } as never,
+            ],
+          },
+        },
+      ],
+    },
+  ];
+  const { model, requests } = answering();
+  const guard = costGuard({ capUsd: 100, spend: memorySpend(), catalog: CATALOG });
+  assert.equal(refusal(await failure(guardedModel(model, guard).doGenerate({ prompt }))).code, "unknown_price");
+  assert.equal(requests.length, 0);
+  const none = await projectionOf(prompt, () => ({ pages: 0 }));
+  const two = await projectionOf(prompt, () => ({ pages: 2 }));
+  assert.ok(Math.abs(two - none - (2 * 4784 * DEAREST_INPUT_RATE) / 1_000_000) < 1e-6);
+});
+
+test("an image sent by URL needs no size, and a file sent inline is counted by its data", async () => {
+  const image: CallPrompt = [
+    {
+      role: "user",
+      content: [
+        {
+          type: "file",
+          mediaType: "image/png",
+          data: { type: "url", url: new URL("https://files.test/a.png") },
+        } as never,
+      ],
+    },
+  ];
+  const asked: FileRef[] = [];
+  await projectionOf(image, (file) => {
+    asked.push(file);
+    return undefined;
+  });
+  assert.deepEqual(asked, [], "an image is never sized");
+  const inline = await projectionOf(pdfTurn({ type: "data", data: "A".repeat(40_000) }));
+  assert.ok(inline > (await NO_PDF));
 });
 
 test("a projection the catalog can't price is refused as unknown_price", async () => {

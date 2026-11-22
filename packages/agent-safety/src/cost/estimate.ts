@@ -20,6 +20,22 @@ import type { CallTool, ModelUsage, Prompt, PromptMessage } from "./ai-types.js"
 
 type Part = Exclude<PromptMessage["content"], string>[number];
 
+/** A file a request points at, by URL or by provider reference, so the request holds none of its bytes. */
+export interface FileRef {
+  /** The URL, or the provider reference as JSON, such as `{"openai":"file-abc"}`. */
+  readonly source: string;
+  readonly kind: "url" | "reference";
+  /** The file's media type, such as `application/pdf`. */
+  readonly mediaType: string;
+  readonly filename?: string;
+}
+
+/** What the caller knows of a file's size: its bytes, or its pages. */
+export type FileSize = { readonly bytes: number } | { readonly pages: number };
+
+/** Looks up the size of a file a request points at, or returns `undefined` when it isn't known. */
+export type FileSizer = (file: FileRef) => FileSize | undefined | Promise<FileSize | undefined>;
+
 // Only `MODEL` and the usage of an assistant message reach the estimate; the other fields fill the gateway's type.
 const MODEL = { api: "ai-sdk", provider: "ai-sdk", id: "ai-sdk" };
 const NO_COST: Cost = { total: null, basis: "unknown", currency: "USD" };
@@ -40,15 +56,94 @@ function serialise(value: unknown): string {
   return JSON.stringify(value, (_key, v: unknown) => (v instanceof Uint8Array ? `<${v.byteLength} bytes>` : v)) ?? "";
 }
 
+const IMAGE: ContentBlock = { type: "image", mediaType: "", data: "" };
+
+/** The file a part points at, or `undefined` when the part carries its data or is an image, which counts without a size. */
+function fileRef(data: unknown, mediaType: string, filename: string | undefined): FileRef | undefined {
+  if (typeof data !== "object" || data === null || mediaType.startsWith("image/")) return undefined;
+  const file = data as { type?: string; url?: unknown; reference?: unknown };
+  const named = filename === undefined ? {} : { filename };
+  if (file.type === "url") return { kind: "url", source: String(file.url), mediaType, ...named };
+  if (file.type === "reference")
+    return { kind: "reference", source: JSON.stringify(file.reference), mediaType, ...named };
+  return undefined;
+}
+
+/** The blocks that a known size stands for: the base64 characters of its bytes, or one image for each page. */
+function sizedBlocks(size: FileSize): ContentBlock[] {
+  if ("bytes" in size) return [{ type: "text", text: " ".repeat(Math.ceil(size.bytes / 3) * 4) }];
+  return Array.from({ length: size.pages }, () => IMAGE);
+}
+
+/** Whether a caller's size is a usable one: a whole number of bytes or pages, 0 or more. */
+function validSize(size: FileSize | undefined): size is FileSize {
+  if (size === undefined) return false;
+  const n = "bytes" in size ? size.bytes : size.pages;
+  return Number.isSafeInteger(n) && n >= 0;
+}
+
 /**
- * The block a file counts as. An image becomes an image block, which the gateway counts at the largest per-image size
+ * The blocks a file counts as. An image becomes an image block, which the gateway counts at the largest per-image size
  * a provider documents; other files count their data's characters. A file sent by URL or by provider reference has no
- * size here, so it counts as one image.
+ * data here, so it counts by the size `sizes` holds for it, and as one image when none is known; `unsizedFiles()`
+ * lets a caller refuse such a request first.
  */
-function fileBlock(data: unknown, mediaType: string): ContentBlock {
+function fileBlocks(data: unknown, mediaType: string, filename: string | undefined, sizes: SizeTable): ContentBlock[] {
+  const ref = fileRef(data, mediaType, filename);
+  const known = ref === undefined ? undefined : sizes.get(sizeKey(ref));
+  if (known !== undefined) return sizedBlocks(known);
   const chars = fileChars(data);
-  if (mediaType.startsWith("image/") || chars === 0) return { type: "image", mediaType: "", data: "" };
-  return { type: "text", text: " ".repeat(chars) };
+  if (mediaType.startsWith("image/") || chars === 0) return [IMAGE];
+  return [{ type: "text", text: " ".repeat(chars) }];
+}
+
+/** The sizes found for a request's files, by `sizeKey()`. */
+type SizeTable = ReadonlyMap<string, FileSize>;
+
+const sizeKey = (ref: FileRef): string => `${ref.kind}\u0000${ref.mediaType}\u0000${ref.source}`;
+
+interface FilePart {
+  readonly data: unknown;
+  readonly mediaType: string;
+  readonly filename: string | undefined;
+}
+
+/** The file parts of one message part: itself, or the files in the output a tool returned. */
+function filesIn(part: Part): FilePart[] {
+  if (part.type === "file" || part.type === "reasoning-file") {
+    return [{ data: part.data, mediaType: part.mediaType, filename: "filename" in part ? part.filename : undefined }];
+  }
+  if (part.type !== "tool-result" || part.output.type !== "content") return [];
+  return part.output.value.flatMap((item) =>
+    item.type === "file" ? [{ data: item.data, mediaType: item.mediaType, filename: undefined }] : [],
+  );
+}
+
+/** The file parts of a prompt, wherever they sit: in a message, or in the output a tool returned. */
+function fileParts(prompt: Prompt): FilePart[] {
+  return prompt.flatMap((message) =>
+    typeof message.content === "string" ? [] : (message.content as Part[]).flatMap(filesIn),
+  );
+}
+
+/**
+ * What the guard knows of a prompt's files: the sizes `sizeOf` gave for the files it points at by URL or reference,
+ * and the first such file with no usable size, which the caller refuses to send under a cap.
+ */
+export async function sizeFiles(
+  prompt: Prompt,
+  sizeOf: FileSizer | undefined,
+): Promise<{ readonly sizes: SizeTable; readonly unsized: FileRef | undefined }> {
+  const sizes = new Map<string, FileSize>();
+  let unsized: FileRef | undefined;
+  for (const { data, mediaType, filename } of fileParts(prompt)) {
+    const ref = fileRef(data, mediaType, filename);
+    if (ref === undefined || sizes.has(sizeKey(ref))) continue;
+    const size = await sizeOf?.(ref);
+    if (validSize(size)) sizes.set(sizeKey(ref), size);
+    else unsized ??= ref;
+  }
+  return { sizes, unsized };
 }
 
 type ToolResult = Extract<Part, { type: "tool-result" }>;
@@ -57,22 +152,22 @@ type ToolResult = Extract<Part, { type: "tool-result" }>;
  * The blocks a tool result counts as. A result whose output is content is counted part by part, so an image a tool
  * returns, such as a screenshot, counts as an image and not as its base64 characters.
  */
-function toolResultBlocks(part: ToolResult): ContentBlock[] {
+function toolResultBlocks(part: ToolResult, sizes: SizeTable): ContentBlock[] {
   const { output, ...rest } = part;
   if (output.type !== "content") return [{ type: "text", text: serialise(part) }];
   const header: ContentBlock = { type: "text", text: serialise(rest) };
   return [
     header,
-    ...output.value.map((item): ContentBlock => {
-      if (item.type === "text") return { type: "text", text: item.text };
-      if (item.type === "file") return fileBlock(item.data, item.mediaType);
-      return { type: "text", text: serialise(item) };
+    ...output.value.flatMap((item): ContentBlock[] => {
+      if (item.type === "text") return [{ type: "text", text: item.text }];
+      if (item.type === "file") return fileBlocks(item.data, item.mediaType, undefined, sizes);
+      return [{ type: "text", text: serialise(item) }];
     }),
   ];
 }
 
 /** The gateway blocks one AI SDK part counts as. */
-function blocks(part: Part): ContentBlock[] {
+function blocks(part: Part, sizes: SizeTable): ContentBlock[] {
   switch (part.type) {
     case "text":
       return [{ type: "text", text: part.text }];
@@ -82,9 +177,9 @@ function blocks(part: Part): ContentBlock[] {
       return [{ type: "tool_call", callId: part.toolCallId, name: part.toolName, input: part.input }];
     case "file":
     case "reasoning-file":
-      return [fileBlock(part.data, part.mediaType)];
+      return fileBlocks(part.data, part.mediaType, "filename" in part ? part.filename : undefined, sizes);
     case "tool-result":
-      return toolResultBlocks(part);
+      return toolResultBlocks(part, sizes);
     default:
       return [{ type: "text", text: serialise(part) }];
   }
@@ -120,9 +215,9 @@ function standInUsage(content: readonly ContentBlock[], reported: ReportedCall):
   return { ...usage, output: Math.max(usage.output, own) };
 }
 
-function message(prompt: PromptMessage, reported: ReportedCall | undefined): Message | undefined {
+function message(prompt: PromptMessage, reported: ReportedCall | undefined, sizes: SizeTable): Message | undefined {
   if (prompt.role === "system") return undefined;
-  const content = prompt.content.flatMap((part) => blocks(part as Part));
+  const content = prompt.content.flatMap((part) => blocks(part as Part, sizes));
   switch (prompt.role) {
     case "user":
       return { role: "user", content };
@@ -159,15 +254,16 @@ function wireTool(tool: CallTool): WireTool {
 /**
  * The gateway context that one AI SDK request stands for. `reported` names the prompt index of the assistant message
  * a recorded call produced, with that call's usage, so `estimateInputTokens()` counts everything up to that message
- * from the provider's own numbers.
+ * from the provider's own numbers. `sizes` holds the sizes of the files the prompt points at, from `sizeFiles()`.
  */
 export function gatewayContext(
   prompt: Prompt,
   tools: readonly CallTool[] | undefined,
-  reported?: ReportedCall,
+  reported: ReportedCall | undefined,
+  sizes: SizeTable,
 ): ModelContext {
   const system = prompt.flatMap((m) => (m.role === "system" ? [m.content] : [])).join("\n");
-  const messages = prompt.flatMap((m, i) => message(m, i === reported?.index ? reported : undefined) ?? []);
+  const messages = prompt.flatMap((m, i) => message(m, i === reported?.index ? reported : undefined, sizes) ?? []);
   return { system, messages, tools: (tools ?? []).map(wireTool) };
 }
 

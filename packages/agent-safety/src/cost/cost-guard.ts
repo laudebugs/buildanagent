@@ -19,14 +19,19 @@ import { SafetyError } from "../errors.js";
 import type { CallOptions, InnerModel, ModelUsage, Prompt, StreamPart } from "./ai-types.js";
 import { BudgetExceeded, type BudgetRefusalCode } from "./budget-exceeded.js";
 import {
+  type FileSizer,
   gatewayContext,
   gatewayUsage,
   messageKeys,
   priceResponse,
   type ReportedCall,
   responsePartChars,
+  sizeFiles,
   toolsKey,
 } from "./estimate.js";
+
+export type { FileRef, FileSize, FileSizer } from "./estimate.js";
+
 import type { Spend } from "./spend.js";
 
 /** One call the guard let through, reported once its cost is known. */
@@ -57,6 +62,14 @@ export interface CostGuardOptions {
    * priced at the catalog's output limit for the model and sent unchanged.
    */
   readonly maxOutputTokens?: number;
+  /**
+   * The size of a file a request points at by URL or by provider reference, which holds none of its bytes: `{ bytes }`
+   * or `{ pages }`, or `undefined` when you don't know it. Bytes count as the base64 characters of the file, and
+   * each page as one image; the text a provider reads from a page isn't counted, so give bytes when you have them.
+   * A file that is not an image and has no size is refused with `unknown_price`, because the guard can't tell what it
+   * costs. An image needs no size, because it counts at the largest per-image size a provider documents.
+   */
+  readonly fileSize?: FileSizer;
   /** Called after each call the guard let through, once its cost is known. */
   readonly onCallCost?: (call: GuardedCall) => void;
 }
@@ -193,10 +206,16 @@ class Ledger {
       const message = `the price of ${id} is unknown, so a call under a USD cap can't be checked; add the model to the catalog`;
       this.refuse("unknown_price", model, message, (await this.readSpend(model))(), null);
     }
+    const { sizes, unsized } = await sizeFiles(params.prompt, this.options.fileSize);
+    if (unsized !== undefined) {
+      const name = unsized.filename ?? unsized.source;
+      const message = `${id} was not called: the request points at ${name} (${unsized.mediaType}) by ${unsized.kind} and its size is unknown, so a call under a USD cap can't be checked; set fileSize on costGuard() to size it`;
+      this.refuse("unknown_price", model, message, (await this.readSpend(model))(), null);
+    }
     const prompt = messageKeys(params.prompt);
     const tools = toolsKey(params.tools);
     const continued = this.reported(id, prompt, tools, params.prompt);
-    const context = gatewayContext(params.prompt, params.tools, continued);
+    const context = gatewayContext(params.prompt, params.tools, continued, sizes);
     const tokens = {
       inputTokens: estimateInputTokens(context),
       maxOutputTokens: params.maxOutputTokens ?? entry.maxOutputTokens,

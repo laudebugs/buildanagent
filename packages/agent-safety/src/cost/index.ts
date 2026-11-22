@@ -6,7 +6,14 @@
  * dependency, and `@buildanagent/gateway`.
  */
 export { BudgetExceeded, type BudgetRefusalCode, type BudgetRefusalInit, budgetRefusal } from "./budget-exceeded.js";
-export { type CostGuardOptions, costGuard, type GuardedCall } from "./cost-guard.js";
+export {
+  type CostGuardOptions,
+  costGuard,
+  type FileRef,
+  type FileSize,
+  type FileSizer,
+  type GuardedCall,
+} from "./cost-guard.js";
 export {
   type GuardableModel,
   type GuardableProvider,
