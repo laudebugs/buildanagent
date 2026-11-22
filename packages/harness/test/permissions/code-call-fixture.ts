@@ -1,6 +1,8 @@
 // A harness for code-initiated calls, shared by the code-call tests and the process the second-process test spawns.
-// `lookup` and `export` are allowed, `cancel` is denied, and `refund`, `refund_reverse` and `notify` ask; `notify` takes
-// no sticky or grouped answer. `export` is a write whose result is `EXPORT_BYTES` of text, over the store's entry bound. Every tool appends `<tool>:<orderId>:<callId>` to `runs`, and to `runsFile` when one is given.
+// `lookup`, `export` and `charge` are allowed, `cancel` is denied, and `refund`, `refund_reverse` and `notify` ask;
+// `notify` takes no sticky or grouped answer. `export` is a write whose result is `EXPORT_BYTES` of text, over the
+// store's entry bound, and `charge` is a write that throws after it is called. Every tool appends
+// `<tool>:<orderId>:<callId>` to `runs`, and to `runsFile` when one is given.
 import { appendFileSync } from "node:fs";
 import { writeOutcome } from "@buildanagent/agent-safety";
 import { createModel, type Model } from "@buildanagent/gateway";
@@ -79,6 +81,20 @@ export async function codeCallHarness(options: CodeCallHarnessOptions = {}) {
       },
     }) as never,
   });
+  registry.register({
+    name: "charge",
+    source: "builtin",
+    definition: defineTool({
+      name: "charge",
+      description: "The charge tool.",
+      inputSchema: ORDER_SCHEMA,
+      effect: { kind: "write" as const },
+      async execute(input: Order, ctx) {
+        runs.push(`charge:${input.orderId}:${ctx.callId}`);
+        throw new Error("the card network timed out");
+      },
+    }) as never,
+  });
   const adapter = new ScriptedModel(options.steps ?? []);
   const model = createModel({ adapter, id: "scripted-model", retries: 0 }) as Model;
   const pipeline = createPermissionPipeline(
@@ -88,7 +104,7 @@ export async function codeCallHarness(options: CodeCallHarnessOptions = {}) {
       policyVersion: "p1",
       deny: [...(options.deny ?? []), { tool: "cancel", reason: "cancelling is not allowed" }],
       ask: [{ tool: "refund" }, { tool: "refund_reverse" }, { tool: "notify" }],
-      allow: [{ tool: "lookup" }, { tool: "export" }],
+      allow: [{ tool: "lookup" }, { tool: "export" }, { tool: "charge" }],
     },
     registry,
   );

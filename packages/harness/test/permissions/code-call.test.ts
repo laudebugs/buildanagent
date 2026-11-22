@@ -5,6 +5,7 @@ import { Buffer } from "node:buffer";
 import { readFileSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { effectKey, pendingPayload } from "@buildanagent/agent-safety";
+import { createModel, type Model } from "@buildanagent/gateway";
 import { isHarnessError } from "@buildanagent/harness";
 import type { CodeCallResult, Harness } from "@buildanagent/harness/server";
 import {
@@ -17,6 +18,7 @@ import {
   type SessionStore,
 } from "@buildanagent/harness/session";
 import { createPendingRequest, hmacSigner, type Resolution, verifyResolution } from "@buildanagent/sdk";
+import { ScriptedModel } from "@buildanagent/sdk/testing";
 import { describe, test } from "vitest";
 import { type Backend, fileBackend, KEY, memoryBackend } from "../session/session-helpers.js";
 import { codeCallHarness, FIXTURE_KEYS } from "./code-call-fixture.js";
@@ -205,6 +207,79 @@ describe("a code call", () => {
     assert.deepEqual(runs, [], "the same approver twice is one approver");
     expectStatus(await approvals.resolve(session, [allow(asked.pending.id, "grace")]), "done");
     assert.deepEqual(runs, [`refund:o1:${asked.callId}`]);
+    await session.close();
+  });
+
+  test("a quorum's rejected or expired verdict denies the call, even after an allow, and the tool never runs", async () => {
+    for (const [verdict, reason] of [
+      ["rejected", "the approval was rejected"],
+      ["expired", "the approval expired"],
+    ] as const) {
+      const backend = memoryBackend();
+      const { harness, asked, session, runs } = await paused(backend);
+      const approvals = createApprovals(harness, { quorum: { evaluate: () => verdict } });
+      const denied = expectStatus(await approvals.resolve(session, [allow(asked.pending.id)]), "denied");
+      assert.equal(denied.reason, reason);
+      const resolved = (await entriesOf(backend)).flatMap((entry) =>
+        entry.type === "approval_resolved" ? [entry.resolution] : [],
+      );
+      assert.deepEqual(
+        resolved.map((resolution) => resolution.by),
+        ["ada", "policy"],
+        "the policy's denial is an entry of its own",
+      );
+      assert.deepEqual(runs, []);
+      assert.deepEqual(await approvals.pending(session), [], `a ${verdict} call no longer waits`);
+      await session.close();
+    }
+  });
+
+  test("an empty resolve() leaves a code call waiting, and its expiry is enforced when it is next answered", async () => {
+    const backend = memoryBackend();
+    const { harness, asked, session, runs } = await paused(backend);
+    const approvals = createApprovals(harness, { quorum: { evaluate: () => "expired" } });
+    await approvals.resolve(session, []);
+    assert.deepEqual(
+      (await approvals.pending(session)).map((pending) => pending.request.id),
+      [asked.pending.id],
+    );
+    const late = expectStatus(await approvals.resolve(session, [allow(asked.pending.id)]), "denied");
+    assert.equal(late.reason, "the approval expired");
+    assert.deepEqual(runs, []);
+    await session.close();
+  });
+
+  test("budgetUsd and the model settings don't apply to a code call's resolution: no model is called", async () => {
+    const backend = memoryBackend();
+    const { harness, asked, session, runs, adapter } = await paused(backend);
+    const other = new ScriptedModel([]);
+    const done = expectStatus(
+      await createApprovals(harness).resolve(session, [allow(asked.pending.id)], {
+        budgetUsd: 0,
+        maxSteps: 0,
+        model: createModel({ adapter: other, id: "other-model", retries: 0 }) as Model,
+      }),
+      "done",
+    );
+    assert.equal(done.callId, asked.callId);
+    assert.deepEqual(runs, [`refund:o1:${asked.callId}`]);
+    assert.equal(adapter.calls.length + other.calls.length, 0);
+    assert.ok(!(await entriesOf(backend)).some((entry) => entry.type === "loadout" || entry.type === "usage"));
+    await session.close();
+  });
+
+  test("a write that throws gets an error result whose outcome is unknown, because it may have taken effect", async () => {
+    const backend = memoryBackend();
+    const { harness, runs } = await codeCallHarness();
+    const session = await open(backend);
+    const done = expectStatus(await harness.invokeTool(session, { tool: "charge", input: { orderId: "o1" } }), "done");
+    assert.equal(done.result.isError, true);
+    assert.equal((done.result.details as { outcome: { kind: string } }).outcome.kind, "unknown");
+    const stored = (await entriesOf(backend)).find(
+      (entry) => entry.type === "tool_result" && entry.callId === done.callId,
+    );
+    assert.ok(stored?.type === "tool_result" && stored.isError && stored.origin === "tool");
+    assert.equal(runs.length, 1);
     await session.close();
   });
 
