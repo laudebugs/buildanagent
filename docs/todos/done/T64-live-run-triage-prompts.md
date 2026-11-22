@@ -1,8 +1,8 @@
-# T58: Make the live run's triage capstones ask for the gated step, and record the patch step's fix
+# T64: Make the live run's triage capstones ask for the gated step, and record the patch step's fix
 
 | Field | Value |
 | --- | --- |
-| ID | `T58` |
+| ID | `T64` |
 | Status | `done` |
 | Plan | [Book plan §5, BK18](../../plans/build-book.md#bk18-an-occasional-live-run-compares-real-flows-with-the-mock-transcripts-accepted) |
 | Round / milestone | Round T (textbook), MT |
