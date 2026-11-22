@@ -22,6 +22,7 @@ const NODE_ONLY: Record<string, string> = {
   "cloudflare-interrupted.test.ts": "starts workerd through Miniflare itself",
   "crash.test.ts": "forks child processes and kills them",
   "cross-process.test.ts": "forks child processes",
+  "docs-check.test.ts": "reads the README and runs the TypeScript compiler as a child process",
   "hash-realm.test.ts": "makes a second realm with node:vm, which workerd does not implement",
   "outcomes.test.ts": "reads fixture files from disk",
   "signing.test.ts": "reads files and uses Node's process APIs",
