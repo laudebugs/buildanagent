@@ -1,0 +1,759 @@
+// The completion check: configured or discovered checks run in the sandbox, diff flags are recorded, and the turn still ends done.
+import assert from "node:assert/strict";
+import { createModel, type Model } from "@buildanagent/gateway";
+import { HarnessError, isHarnessError } from "@buildanagent/harness";
+import type { ExecOptions, ExecResult, Sandbox, SandboxPolicy } from "@buildanagent/harness/sandbox";
+import { createHarness } from "@buildanagent/harness/server";
+import {
+  ABORTED_EXIT_CODE,
+  type CompletionSettings,
+  flagChanges,
+  gitSnapshotter,
+  isTestFile,
+  MAX_SNAPSHOT_FILE_BYTES,
+  openSession,
+  resolveChecks,
+  runCompletionCheck,
+  runTurn,
+  type SessionEntry,
+  SNAPSHOT_TIMEOUT_MS,
+  snapshotStart,
+  type WorkspaceSnapshot,
+} from "@buildanagent/harness/session";
+import { fakeSandbox } from "@buildanagent/harness/testing";
+import { createToolRegistry } from "@buildanagent/harness/tools";
+import { defineTool } from "@buildanagent/sdk";
+import { ScriptedModel } from "@buildanagent/sdk/testing";
+import { describe, test } from "vitest";
+import { KEY, memoryBackend } from "../session/session-helpers.js";
+
+const POLICY: SandboxPolicy = { readRoots: ["/work"], writeRoots: ["/work"], network: { allow: [], deny: [] } };
+const ENV = { PATH: "/usr/bin" };
+const signal = new AbortController().signal;
+
+/** A fake sandbox holding `files`, whose commands in `replies` (joined by spaces) answer as scripted. */
+async function sandboxWith(files: Record<string, string>, replies: Record<string, ExecResult> = {}) {
+  const client = fakeSandbox();
+  const inner = await client.provision({ root: "/work", files }, POLICY);
+  const ran: string[] = [];
+  const sandbox: Sandbox = {
+    readFile: (path) => inner.readFile(path),
+    writeFile: (path, data) => inner.writeFile(path, data),
+    dispose: () => inner.dispose(),
+    exec(command: readonly string[], options: ExecOptions) {
+      const key = command.join(" ");
+      ran.push(key);
+      return Promise.resolve(replies[key] ?? undefined).then((reply) => reply ?? inner.exec(command, options));
+    },
+  };
+  return { sandbox, ran, client };
+}
+
+const exit = (exitCode: number): ExecResult => ({ exitCode, stdout: "", stderr: "" });
+const snap = (files: Record<string, string>, skipped: string[] = []): WorkspaceSnapshot => ({
+  files: new Map(Object.entries(files)),
+  skipped: new Set(skipped),
+});
+const settingsOf = (sandbox: Sandbox, extra: Partial<CompletionSettings> = {}): CompletionSettings => ({
+  sandbox,
+  env: ENV,
+  ...extra,
+});
+
+describe("discovery", () => {
+  test("a project with only a test script runs test and records its exit code", async () => {
+    const { sandbox, ran } = await sandboxWith(
+      { "package.json": JSON.stringify({ scripts: { test: "vitest run", build: "tsc" } }) },
+      { "npm run test": exit(3) },
+    );
+    const outcome = await runCompletionCheck(settingsOf(sandbox), undefined, signal);
+    assert.deepEqual(outcome.checks, [{ command: "npm run test", exitCode: 3 }]);
+    assert.equal(outcome.passed, false);
+    assert.deepEqual(outcome.flagged, []);
+    assert.deepEqual(ran, ["npm run test"]);
+  });
+
+  test("typecheck, test and check run in that order with the runner the lockfile names", async () => {
+    const scripts = { check: "x", test: "x", typecheck: "x", lint: "x" };
+    const { sandbox } = await sandboxWith({
+      "package.json": JSON.stringify({ scripts }),
+      "pnpm-lock.yaml": "lockfileVersion: 9",
+    });
+    assert.deepEqual(await resolveChecks(sandbox), {
+      source: "discovered",
+      commands: [
+        ["pnpm", "run", "typecheck"],
+        ["pnpm", "run", "test"],
+        ["pnpm", "run", "check"],
+      ],
+    });
+    const yarn = await sandboxWith({ "package.json": JSON.stringify({ scripts }), "yarn.lock": "" });
+    assert.deepEqual((await resolveChecks(yarn.sandbox)).commands[0], ["yarn", "run", "typecheck"]);
+  });
+
+  test("a Makefile test target is the fallback, and scripts win over it", async () => {
+    const make = await sandboxWith({ Makefile: "build:\n\tcc x\n\ntest: build\n\t./run\n" });
+    assert.deepEqual((await resolveChecks(make.sandbox)).commands, [["make", "test"]]);
+    const both = await sandboxWith({
+      Makefile: "test:\n\ttrue\n",
+      "package.json": JSON.stringify({ scripts: { check: "x" } }),
+    });
+    assert.deepEqual((await resolveChecks(both.sandbox)).commands, [["npm", "run", "check"]]);
+    const listed = await sandboxWith({ Makefile: "all test: build\n\ttrue\n" });
+    assert.deepEqual((await resolveChecks(listed.sandbox)).commands, [["make", "test"]]);
+    const variable = await sandboxWith({ Makefile: "test := foo\ntest ::= bar\nbuild:\n\ttrue\n" });
+    assert.deepEqual((await resolveChecks(variable.sandbox)).commands, []);
+    const none = await sandboxWith({ Makefile: "build:\n\ttrue\n", "package.json": "not json" });
+    assert.deepEqual((await resolveChecks(none.sandbox)).commands, []);
+  });
+});
+
+describe("configured checks", () => {
+  test("completionChecks replace discovery, as a string or a list, and an empty list runs nothing", async () => {
+    const { sandbox, ran } = await sandboxWith({
+      "package.json": JSON.stringify({ scripts: { test: "x" } }),
+      ".agents/harness.json": JSON.stringify({ completionChecks: ["true", ["false"], "echo   two words"] }),
+    });
+    const outcome = await runCompletionCheck(settingsOf(sandbox), undefined, signal);
+    assert.deepEqual(outcome.checks, [
+      { command: "true", exitCode: 0 },
+      { command: "false", exitCode: 1 },
+      { command: "echo two words", exitCode: 0 },
+    ]);
+    assert.equal(outcome.passed, false);
+    assert.ok(!ran.includes("npm run test"), "discovery did not run");
+    const empty = await sandboxWith({
+      "package.json": JSON.stringify({ scripts: { test: "x" } }),
+      ".agents/harness.json": JSON.stringify({ completionChecks: [] }),
+    });
+    const none = await runCompletionCheck(settingsOf(empty.sandbox), undefined, signal);
+    assert.deepEqual(none, { checks: [], passed: true, flagged: [] });
+  });
+
+  test("a config without completionChecks leaves discovery on, and a bad config is refused", async () => {
+    const other = await sandboxWith({
+      ".agents/harness.json": JSON.stringify({ other: 1 }),
+      "package.json": JSON.stringify({ scripts: { test: "x" } }),
+    });
+    assert.equal((await resolveChecks(other.sandbox)).source, "discovered");
+    for (const config of [
+      "{",
+      "[]",
+      '{"completionChecks":"test"}',
+      '{"completionChecks":[""]}',
+      '{"completionChecks":[[]]}',
+      '{"completionChecks":[1]}',
+    ]) {
+      const bad = await sandboxWith({ ".agents/harness.json": config });
+      await assert.rejects(
+        resolveChecks(bad.sandbox),
+        (error) => isHarnessError(error) && error.code === "invalid_completion_config",
+        config,
+      );
+    }
+  });
+
+  test("a check runs with the timeout, and a check that outlasts it exits 124", async () => {
+    const { sandbox, client } = await sandboxWith({
+      ".agents/harness.json": JSON.stringify({ completionChecks: ["sleep 5", "true"] }),
+    });
+    const outcome = await runCompletionCheck(settingsOf(sandbox, { timeoutMs: 20 }), undefined, signal);
+    assert.deepEqual(outcome.checks, [
+      { command: "sleep 5", exitCode: 124 },
+      { command: "true", exitCode: 0 },
+    ]);
+    assert.deepEqual(
+      client.execs.map((exec) => exec.timeoutMs),
+      [20, 20],
+    );
+    assert.equal(outcome.passed, false);
+  });
+
+  test("a check the sandbox refuses is recorded with exit code 126 and a flag", async () => {
+    const { sandbox } = await sandboxWith(
+      { ".agents/harness.json": JSON.stringify({ completionChecks: ["pnpm test"] }) },
+      { "pnpm test": { denied: { kind: "network", target: "registry", reason: "no network" } } },
+    );
+    const outcome = await runCompletionCheck(settingsOf(sandbox), undefined, signal);
+    assert.deepEqual(outcome.checks, [{ command: "pnpm test", exitCode: 126 }]);
+    assert.deepEqual(outcome.flagged, ["check refused by the sandbox: pnpm test: no network"]);
+  });
+});
+
+describe("checks resolved before the turn", () => {
+  const encode = (text: string) => new TextEncoder().encode(text);
+
+  test("a turn that empties completionChecks and rewrites the check scripts runs the start's checks, flagged", async () => {
+    const { sandbox, ran } = await sandboxWith({
+      ".agents/harness.json": JSON.stringify({ completionChecks: ["false"] }),
+      "package.json": JSON.stringify({ scripts: { test: "vitest run", build: "tsc" } }),
+      Makefile: "build:\n\tcc x\n\ntest: build\n\t./run-tests\n",
+    });
+    const settings = settingsOf(sandbox, { snapshotter: scriptedDiff(snap({})) });
+    const start = await snapshotStart(settings, signal);
+    // What the model could do during the turn.
+    await sandbox.writeFile(".agents/harness.json", encode(JSON.stringify({ completionChecks: [] })));
+    await sandbox.writeFile("package.json", encode(JSON.stringify({ scripts: { test: "true", build: "tsc" } })));
+    await sandbox.writeFile("Makefile", encode("build:\n\tcc x\n\ntest: build\n\ttrue\n"));
+    const outcome = await runCompletionCheck(settings, start, signal);
+    assert.deepEqual(ran, ["false"]);
+    assert.deepEqual(outcome.checks, [{ command: "false", exitCode: 1 }]);
+    assert.equal(outcome.passed, false);
+    assert.deepEqual(outcome.flagged, [
+      "check config changed: .agents/harness.json",
+      "check config changed: package.json script test",
+      "check config changed: Makefile test target",
+    ]);
+  });
+
+  test("a configured package-runner check is tracked with its pre and post hooks", async () => {
+    const { sandbox } = await sandboxWith({
+      ".agents/harness.json": JSON.stringify({ completionChecks: [["npm", "run", "e2e"], "pnpm lint"] }),
+      "package.json": JSON.stringify({ scripts: { e2e: "playwright test", lint: "biome check", build: "tsc" } }),
+    });
+    const settings = settingsOf(sandbox, { snapshotter: scriptedDiff(snap({})) });
+    const start = await snapshotStart(settings, signal);
+    await sandbox.writeFile(
+      "package.json",
+      encode(
+        JSON.stringify({
+          scripts: { e2e: "true", lint: "biome check", pretest: "true", build: "esbuild", pree2e: "x" },
+        }),
+      ),
+    );
+    const outcome = await runCompletionCheck(settings, start, signal);
+    assert.deepEqual(outcome.flagged, [
+      "check config changed: package.json script e2e",
+      "check config changed: package.json script pree2e",
+    ]);
+  });
+
+  test("a pretest hook added during the turn is flagged", async () => {
+    const { sandbox } = await sandboxWith({ "package.json": JSON.stringify({ scripts: { test: "vitest run" } }) });
+    const settings = settingsOf(sandbox, { snapshotter: scriptedDiff(snap({})) });
+    const start = await snapshotStart(settings, signal);
+    await sandbox.writeFile(
+      "package.json",
+      encode(JSON.stringify({ scripts: { test: "vitest run", pretest: "exit 0" } })),
+    );
+    const outcome = await runCompletionCheck(settings, start, signal);
+    assert.deepEqual(outcome.flagged, ["check config changed: package.json script pretest"]);
+  });
+
+  test("an unchanged config, a changed script no check runs, or an edit outside the test rule raises no flag", async () => {
+    const { sandbox } = await sandboxWith({
+      "package.json": JSON.stringify({ scripts: { test: "vitest run", build: "tsc" } }),
+      Makefile: "test:\n\t./run-tests\n\nbuild:\n\tcc x\n",
+    });
+    const settings = settingsOf(sandbox, { snapshotter: scriptedDiff(snap({})) });
+    const start = await snapshotStart(settings, signal);
+    await sandbox.writeFile(
+      "package.json",
+      encode(JSON.stringify({ scripts: { test: "vitest run", build: "esbuild" } })),
+    );
+    await sandbox.writeFile("Makefile", encode("test:\n\t./run-tests\n\nbuild:\n\tcc -O2 x\n"));
+    const outcome = await runCompletionCheck(settings, start, signal);
+    assert.deepEqual(
+      outcome.checks.map((check) => check.command),
+      ["npm run test"],
+    );
+    assert.deepEqual(outcome.flagged, []);
+  });
+
+  test("in a turn, an edit to .agents/harness.json made by a tool does not change what runs", async () => {
+    const { sandbox } = await sandboxWith({ ".agents/harness.json": JSON.stringify({ completionChecks: ["false"] }) });
+    const steps = [{ content: [{ type: "tool_call" as const, callId: "c1", name: "lookup", input: {} }] }, ...done];
+    const { result, entries } = await turn(
+      settingsOf(sandbox, { snapshotter: scriptedDiff(snap({})) }),
+      steps,
+      undefined,
+      undefined,
+      () => sandbox.writeFile(".agents/harness.json", encode(JSON.stringify({ completionChecks: ["true"] }))),
+    );
+    assert.equal(result.stopReason, "done");
+    const check = entries.find((entry) => entry.type === "completion_check");
+    assert.ok(check?.type === "completion_check");
+    assert.deepEqual(check.checks, [{ command: "false", exitCode: 1 }]);
+    assert.deepEqual(check.flagged, ["check config changed: .agents/harness.json"]);
+  });
+});
+
+describe("a check that can't do its work", () => {
+  test("a config that is unusable before the turn gives a failed entry, and the turn still ends done", async () => {
+    const { sandbox, ran } = await sandboxWith({ ".agents/harness.json": "{" });
+    const { result, entries } = await turn(settingsOf(sandbox, { snapshotter: scriptedDiff(snap({})) }), done);
+    assert.equal(result.stopReason, "done");
+    const check = entries.find((entry) => entry.type === "completion_check");
+    assert.ok(check?.type === "completion_check");
+    assert.equal(result.lastEntryId, check.id);
+    assert.deepEqual([check.checks, check.passed], [[], false]);
+    assert.deepEqual(check.flagged, ["completion check failed: .agents/harness.json is not valid JSON"]);
+    assert.deepEqual(ran, []);
+  });
+
+  test("a sandbox error from a check gives a failed entry instead of a thrown turn", async () => {
+    const { sandbox } = await sandboxWith({
+      ".agents/harness.json": JSON.stringify({ completionChecks: ["pnpm test"] }),
+    });
+    const broken: Sandbox = {
+      ...sandbox,
+      readFile: (path) => sandbox.readFile(path),
+      writeFile: (path, data) => sandbox.writeFile(path, data),
+      dispose: () => sandbox.dispose(),
+      exec: () => Promise.reject(new HarnessError("sandbox_disposed", "the sandbox was disposed")),
+    };
+    const { result, entries } = await turn(settingsOf(broken, { snapshotter: scriptedDiff(snap({})) }), done);
+    assert.equal(result.stopReason, "done");
+    const check = entries.find((entry) => entry.type === "completion_check");
+    assert.ok(check?.type === "completion_check");
+    assert.deepEqual([check.checks, check.passed], [[], false]);
+    assert.deepEqual(check.flagged, ["completion check failed: the sandbox was disposed"]);
+  });
+
+  test("a snapshot that throws before the turn is recorded, and the turn and its checks still run", async () => {
+    const { sandbox } = await sandboxWith({ ".agents/harness.json": JSON.stringify({ completionChecks: ["true"] }) });
+    let calls = 0;
+    const snapshotter: NonNullable<CompletionSettings["snapshotter"]> = async () => {
+      calls += 1;
+      throw new Error("disk full");
+    };
+    const { result, entries } = await turn(settingsOf(sandbox, { snapshotter }), done);
+    assert.equal(result.stopReason, "done");
+    const check = entries.find((entry) => entry.type === "completion_check");
+    assert.ok(check?.type === "completion_check");
+    assert.deepEqual(check.checks, [{ command: "true", exitCode: 0 }]);
+    assert.deepEqual(check.flagged, ["completion check failed: disk full"]);
+    // No end snapshot is taken without a start one.
+    assert.equal(calls, 1);
+  });
+});
+
+describe("an aborted check", () => {
+  test("the check that was running and each after it are recorded as aborted, with no diff", async () => {
+    const { sandbox, ran } = await sandboxWith({
+      ".agents/harness.json": JSON.stringify({ completionChecks: ["true", "false"] }),
+    });
+    const settings = settingsOf(sandbox, { snapshotter: scriptedDiff(snap({ "a.test.ts": "expect(1)" }), snap({})) });
+    const start = await snapshotStart(settings, signal);
+    const controller = new AbortController();
+    controller.abort();
+    const outcome = await runCompletionCheck(settings, start, controller.signal);
+    // No check is started once the signal has aborted, whatever the sandbox would do with it.
+    assert.deepEqual(ran, []);
+    assert.deepEqual(outcome.checks, [
+      { command: "true", exitCode: ABORTED_EXIT_CODE },
+      { command: "false", exitCode: ABORTED_EXIT_CODE },
+    ]);
+    assert.equal(outcome.passed, false);
+    assert.deepEqual(outcome.flagged, [
+      "check aborted before it finished: true",
+      "check aborted before it finished: false",
+    ]);
+  });
+
+  test("a check the sandbox returns from after the abort is recorded as aborted, whatever its exit code", async () => {
+    const { sandbox } = await sandboxWith({
+      ".agents/harness.json": JSON.stringify({ completionChecks: ["slow"] }),
+    });
+    const controller = new AbortController();
+    const settings = settingsOf(
+      {
+        ...sandbox,
+        exec(command, options) {
+          if (command[0] !== "slow") return sandbox.exec(command, options);
+          controller.abort();
+          return Promise.resolve(exit(143));
+        },
+      },
+      { snapshotter: scriptedDiff(snap({})) },
+    );
+    const start = await snapshotStart(settings, signal);
+    const outcome = await runCompletionCheck(settings, start, controller.signal);
+    assert.deepEqual(outcome.checks, [{ command: "slow", exitCode: ABORTED_EXIT_CODE }]);
+    assert.deepEqual(outcome.flagged, ["check aborted before it finished: slow"]);
+  });
+
+  test("a turn aborted during its check still ends done and writes the entry", async () => {
+    const { sandbox } = await sandboxWith({
+      ".agents/harness.json": JSON.stringify({ completionChecks: ["pnpm test"] }),
+    });
+    const controller = new AbortController();
+    const aborting: Sandbox = {
+      ...sandbox,
+      readFile: (path) => sandbox.readFile(path),
+      writeFile: (path, data) => sandbox.writeFile(path, data),
+      dispose: () => sandbox.dispose(),
+      exec(command, options) {
+        if (command[0] !== "pnpm") return sandbox.exec(command, options);
+        controller.abort();
+        return Promise.reject(new Error("aborted"));
+      },
+    };
+    const snapshotter: NonNullable<CompletionSettings["snapshotter"]> = async (_sandbox, options) => {
+      if (options.signal.aborted) throw new Error("aborted");
+      return snap({});
+    };
+    const { result, entries } = await turn(settingsOf(aborting, { snapshotter }), done, undefined, controller.signal);
+    assert.equal(result.stopReason, "done");
+    const check = entries.find((entry) => entry.type === "completion_check");
+    assert.ok(check?.type === "completion_check");
+    assert.deepEqual(check.checks, [{ command: "pnpm test", exitCode: ABORTED_EXIT_CODE }]);
+    assert.deepEqual(check.flagged, ["check aborted before it finished: pnpm test"]);
+  });
+});
+
+describe("diff flags", () => {
+  test("an added skip marker is flagged, in each of the three forms the plan names", () => {
+    const before = snap({ "a.test.ts": "it('a', () => { expect(1).toBe(1); });\n" });
+    const after = snap({
+      "a.test.ts": [
+        "it.skip('a', () => { expect(1).toBe(1); });",
+        "test.skip('b', () => {});",
+        "describe.skip('c', () => {});",
+        "xit('d', () => {});",
+      ].join("\n"),
+      "t.py": "@pytest.mark.skip(reason='later')\ndef test_x(): pass\n",
+    });
+    const flags = flagChanges(before, after);
+    assert.equal(flags.filter((flag) => flag.startsWith("skip marker added: a.test.ts")).length, 4);
+    assert.ok(flags.includes("skip marker added: t.py: @pytest.mark.skip(reason='later')"));
+  });
+
+  test("a deleted test file is flagged, and a deleted source file is not", () => {
+    const flags = flagChanges(
+      snap({ "src/a.ts": "x", "src/a.test.ts": "expect(a)", "tests/b.py": "assert b", "docs/test.md": "y" }),
+      snap({ "docs/test.md": "y" }),
+    );
+    assert.deepEqual(flags, ["test file deleted: src/a.test.ts", "test file deleted: tests/b.py"]);
+  });
+
+  test("a deleted data file in a test folder is not a deleted test file, and a deleted helper there is", () => {
+    const flags = flagChanges(
+      snap({ "test/fixtures/old-sample.json": "{}", "tests/__snapshots__/a.snap": "x", "test/helpers.ts": "x" }),
+      snap({}),
+    );
+    assert.deepEqual(flags, ["test file deleted: test/helpers.ts"]);
+    assert.equal(isTestFile("test/fixtures/old-sample.json"), false);
+    assert.equal(isTestFile("fixtures/sample.test.json"), true);
+  });
+
+  test("a test file with fewer assertion lines is flagged, and one with as many or more is not", () => {
+    const three = "expect(a).toBe(1);\nexpect(b).toBe(2);\nassert.equal(c, 3);\n";
+    const flags = flagChanges(
+      snap({
+        "a.spec.ts": three,
+        "b.spec.ts": three,
+        "c.spec.ts": three,
+        "lib.ts": three,
+        "test_d.py": "assert x\nassert y\n",
+      }),
+      snap({
+        "a.spec.ts": "expect(a).toBe(1);\n",
+        "b.spec.ts": `${three}expect(d).toBe(4);\n`,
+        "c.spec.ts": three.replace("expect(a)", "expect(a)  "),
+        "lib.ts": "x",
+        "test_d.py": "assert x\n",
+      }),
+    );
+    assert.deepEqual(flags, [
+      "fewer assertion lines in a.spec.ts: 3 before, 1 after",
+      "fewer assertion lines in test_d.py: 2 before, 1 after",
+    ]);
+  });
+
+  test("placeholders and mock, stub or fake file names are flagged, only when added", () => {
+    const flags = flagChanges(
+      snap({ "old.ts": "// TODO: later\n", "keep-mock.ts": "x" }),
+      snap({
+        "old.ts": "// TODO: later\nconst a = 1; // FIXME\nthrow new Error('Not implemented');\n",
+        "keep-mock.ts": "x",
+        "src/fake-db.ts": "x",
+        "src/Stubs.ts": "x",
+        "src/real.ts": "x",
+      }),
+    );
+    assert.deepEqual(flags, [
+      "placeholder added: old.ts: const a = 1; // FIXME",
+      "placeholder added: old.ts: throw new Error('Not implemented');",
+      "mock, stub or fake file added: src/Stubs.ts",
+      "mock, stub or fake file added: src/fake-db.ts",
+    ]);
+  });
+
+  test("TODO and FIXME match in capitals only, and not implemented in any case", () => {
+    const flags = flagChanges(
+      snap({}),
+      snap({ "a.ts": "const todo = 1;\n// fixme later\nThe todo list.\n// TODO\n// NOT IMPLEMENTED\n" }),
+    );
+    assert.deepEqual(flags, ["placeholder added: a.ts: // TODO", "placeholder added: a.ts: // NOT IMPLEMENTED"]);
+  });
+
+  test("a path skipped for size, encoding or the cap is never reported as deleted", () => {
+    const flags = flagChanges(snap({ "a.test.ts": "expect(1)", "b.test.ts": "expect(1)" }), snap({}, ["a.test.ts"]));
+    assert.deepEqual(flags, ["test file deleted: b.test.ts"]);
+  });
+
+  test("a moved line is not an added one, and a long list of flags is cut", () => {
+    assert.deepEqual(flagChanges(snap({ "a.ts": "a\nit.skip('x')\nb" }), snap({ "a.ts": "it.skip('x')\na\nb" })), []);
+    const many = Object.fromEntries(
+      Array.from({ length: 120 }, (_, i) => [`f${String(i).padStart(3, "0")}.ts`, "// TODO"]),
+    );
+    const flags = flagChanges(snap({}), snap(many));
+    assert.equal(flags.length, 101);
+    assert.equal(flags.at(-1), "20 more flags not listed");
+  });
+});
+
+describe("the git snapshot", () => {
+  test("it reads the listed text files and leaves out a deleted, binary or unlisted one", async () => {
+    const { sandbox } = await sandboxWith(
+      { "a.ts": "one", "bin.dat": "x", "unlisted.ts": "u" },
+      {
+        "git ls-files -z --cached --others --exclude-standard": {
+          exitCode: 0,
+          stdout: "a.ts\0gone.ts\0bin.dat\0",
+          stderr: "",
+        },
+      },
+    );
+    await sandbox.writeFile("bin.dat", new Uint8Array([1, 0, 2]));
+    const taken = await gitSnapshotter(sandbox, { env: ENV, signal });
+    assert.deepEqual([...(taken?.files ?? [])], [["a.ts", "one"]]);
+    assert.deepEqual([...(taken?.skipped ?? [])], ["bin.dat"]);
+  });
+
+  test("the end snapshot keeps the start's paths past the cap, and a file that grew too big is skipped, not deleted", async () => {
+    const list = "git ls-files -z --cached --others --exclude-standard";
+    const files = {
+      "a.test.ts": "expect(1)",
+      "b.test.ts": "expect(1)",
+      "z.test.ts": "expect(1)",
+    };
+    const { sandbox } = await sandboxWith(files, {
+      [list]: { exitCode: 0, stdout: "z.test.ts\0new.ts\0", stderr: "" },
+    });
+    await sandbox.writeFile("b.test.ts", new Uint8Array(MAX_SNAPSHOT_FILE_BYTES + 1).fill(97));
+    await sandbox.writeFile("new.ts", new TextEncoder().encode("x"));
+    const start = snap({ "a.test.ts": "expect(1)", "b.test.ts": "expect(1)", "z.test.ts": "expect(1)" });
+    // The listing no longer names a.test.ts (an untracked file dropped from it), but the start held it.
+    const end = await gitSnapshotter(sandbox, {
+      env: ENV,
+      signal,
+      known: new Set(start.files.keys()),
+      skipped: start.skipped,
+    });
+    assert.deepEqual([...(end?.files.keys() ?? [])].sort(), ["a.test.ts", "new.ts", "z.test.ts"]);
+    assert.deepEqual([...(end?.skipped ?? [])], ["b.test.ts"]);
+    assert.deepEqual(flagChanges(start, end as WorkspaceSnapshot), []);
+  });
+
+  test("a read that fails for any reason but a missing file is skipped, so it is never reported as deleted", async () => {
+    const list = "git ls-files -z --cached --others --exclude-standard";
+    const { sandbox } = await sandboxWith(
+      { "a.test.ts": "expect(1)", "b.test.ts": "expect(1)" },
+      { [list]: { exitCode: 0, stdout: "a.test.ts\0b.test.ts\0", stderr: "" } },
+    );
+    const failing: Sandbox = {
+      ...sandbox,
+      exec: (command, options) => sandbox.exec(command, options),
+      writeFile: (path, data) => sandbox.writeFile(path, data),
+      dispose: () => sandbox.dispose(),
+      readFile(path) {
+        if (path === "a.test.ts") return Promise.reject(new HarnessError("sandbox_denied", "outside the read roots"));
+        if (path === "b.test.ts") return Promise.reject(new Error("transient"));
+        return sandbox.readFile(path);
+      },
+    };
+    const start = snap({ "a.test.ts": "expect(1)", "b.test.ts": "expect(1)" });
+    const end = await gitSnapshotter(failing, {
+      env: ENV,
+      signal,
+      known: new Set(start.files.keys()),
+      skipped: start.skipped,
+    });
+    assert.deepEqual([...(end?.files ?? [])], []);
+    assert.deepEqual([...(end?.skipped ?? [])].sort(), ["a.test.ts", "b.test.ts"]);
+    assert.deepEqual(flagChanges(start, end as WorkspaceSnapshot), []);
+  });
+
+  test("the listing runs with a timeout, and a read that outlasts it is skipped", async () => {
+    const bare = await sandboxWith({});
+    await gitSnapshotter(bare.sandbox, { env: ENV, signal });
+    assert.deepEqual(
+      bare.client.execs.map((exec) => [exec.command[0], exec.timeoutMs]),
+      [["git", SNAPSHOT_TIMEOUT_MS]],
+    );
+    const list = "git ls-files -z --cached --others --exclude-standard";
+    const { sandbox } = await sandboxWith(
+      { "a.ts": "one", "hung.ts": "two" },
+      { [list]: { exitCode: 0, stdout: "a.ts\0hung.ts\0", stderr: "" } },
+    );
+    const hanging: Sandbox = {
+      ...sandbox,
+      exec: (command, options) => sandbox.exec(command, options),
+      writeFile: (path, data) => sandbox.writeFile(path, data),
+      dispose: () => sandbox.dispose(),
+      readFile: (path) => (path === "hung.ts" ? new Promise(() => {}) : sandbox.readFile(path)),
+    };
+    const taken = await gitSnapshotter(hanging, { env: ENV, signal, timeoutMs: 20 });
+    assert.deepEqual([...(taken?.files ?? [])], [["a.ts", "one"]]);
+    assert.deepEqual([...(taken?.skipped ?? [])], ["hung.ts"]);
+  });
+
+  test("it returns nothing where the workspace is no repository", async () => {
+    const { sandbox } = await sandboxWith({}, { "git ls-files -z --cached --others --exclude-standard": exit(128) });
+    assert.equal(await gitSnapshotter(sandbox, { env: ENV, signal }), undefined);
+    const bare = await sandboxWith({});
+    assert.equal(await gitSnapshotter(bare.sandbox, { env: ENV, signal }), undefined);
+  });
+});
+
+/** A snapshotter that returns each scripted snapshot in turn: the start state first, then the end state. */
+function scriptedDiff(...snapshots: WorkspaceSnapshot[]): NonNullable<CompletionSettings["snapshotter"]> {
+  let next = 0;
+  return async () => snapshots[Math.min(next++, snapshots.length - 1)];
+}
+
+const done = [{ content: [{ type: "text" as const, text: "Fixed." }] }];
+
+const model = (adapter: ScriptedModel) => createModel({ adapter, id: "scripted-model", retries: 0 }) as Model;
+
+async function turn(
+  settings: CompletionSettings,
+  steps: ConstructorParameters<typeof ScriptedModel>[0],
+  maxSteps?: number,
+  turnSignal?: AbortSignal,
+  onLookup?: () => Promise<void>,
+  failCheckAppend = false,
+) {
+  const registry = createToolRegistry();
+  registry.register({
+    name: "lookup",
+    source: "builtin",
+    definition: defineTool({
+      name: "lookup",
+      description: "Looks up.",
+      inputSchema: { type: "object", properties: {} },
+      async execute() {
+        await onLookup?.();
+        return { content: [{ type: "text", text: "found" }] };
+      },
+    }) as never,
+  });
+  const harness = createHarness({ registry, model: model(new ScriptedModel(steps)), system: "You fix bugs." });
+  const backend = memoryBackend();
+  // A store that refuses the completion entry, as a lost lock or a conflict would.
+  const store: typeof backend.store = failCheckAppend
+    ? {
+        append: (key, entries, options) =>
+          entries.some((entry) => entry.type === "completion_check")
+            ? Promise.reject(new Error("store refused the append"))
+            : backend.store.append(key, entries, options),
+        load: (key, options) => backend.store.load(key, options),
+        list: (userId) => backend.store.list(userId),
+        delete: (key) => backend.store.delete(key),
+      }
+    : backend.store;
+  const session = await openSession({ store, index: backend.index, lock: backend.lock, key: KEY });
+  const events: SessionEntry[] = [];
+  const result = await runTurn(session, harness, {
+    input: "Fix it.",
+    completion: settings,
+    onCompletionCheck: (entry) => events.push(entry),
+    ...(maxSteps === undefined ? {} : { maxSteps }),
+    ...(turnSignal === undefined ? {} : { signal: turnSignal }),
+  });
+  const entries: SessionEntry[] = [];
+  for await (const entry of backend.store.load(KEY)) entries.push(entry);
+  return { result, entries, events };
+}
+
+describe("a turn that checks its completion", () => {
+  test("a completion entry the store refuses leaves the done turn's result, with no callback", async () => {
+    const { sandbox } = await sandboxWith({ ".agents/harness.json": JSON.stringify({ completionChecks: ["true"] }) });
+    const { result, entries, events } = await turn(
+      settingsOf(sandbox, { snapshotter: scriptedDiff(snap({})) }),
+      done,
+      undefined,
+      undefined,
+      undefined,
+      true,
+    );
+    assert.equal(result.stopReason, "done");
+    assert.equal(entries.at(-1)?.type, "turn_end");
+    assert.equal(result.lastEntryId, entries.at(-1)?.id);
+    assert.deepEqual(events, []);
+  });
+
+  test("an added it.skip( is flagged and a failing check recorded, and the run still ends done", async () => {
+    const { sandbox } = await sandboxWith({ ".agents/harness.json": JSON.stringify({ completionChecks: ["false"] }) });
+    const snapshotter = scriptedDiff(
+      snap({ "a.test.ts": "it('a', () => { expect(1).toBe(1); });" }),
+      snap({ "a.test.ts": "it.skip('a', () => { expect(1).toBe(1); });" }),
+    );
+    const { result, entries, events } = await turn(settingsOf(sandbox, { snapshotter }), done);
+    assert.equal(result.stopReason, "done");
+    const check = entries.find((entry) => entry.type === "completion_check");
+    assert.ok(check?.type === "completion_check");
+    assert.deepEqual(check.checks, [{ command: "false", exitCode: 1 }]);
+    assert.equal(check.passed, false);
+    assert.deepEqual(check.flagged, ["skip marker added: a.test.ts: it.skip('a', () => { expect(1).toBe(1); });"]);
+    assert.equal(check.origin, "harness");
+    // The entry follows the turn's end, it is the log's last, and the callback saw the same entry.
+    assert.equal(entries.at(-1)?.id, check.id);
+    assert.equal(entries.at(-2)?.type, "turn_end");
+    assert.equal(result.lastEntryId, check.id);
+    assert.deepEqual(events, [check]);
+  });
+
+  test("a deleted test file and a test file with fewer expect lines are both flagged", async () => {
+    const { sandbox } = await sandboxWith({ ".agents/harness.json": JSON.stringify({ completionChecks: ["true"] }) });
+    const snapshotter = scriptedDiff(
+      snap({ "gone.test.ts": "expect(1)", "kept.test.ts": "expect(1)\nexpect(2)" }),
+      snap({ "kept.test.ts": "expect(1)" }),
+    );
+    const { result, entries } = await turn(settingsOf(sandbox, { snapshotter }), done);
+    const check = entries.find((entry) => entry.type === "completion_check");
+    assert.equal(result.stopReason, "done");
+    assert.ok(check?.type === "completion_check");
+    assert.equal(check.passed, true);
+    assert.deepEqual(check.flagged, [
+      "test file deleted: gone.test.ts",
+      "fewer assertion lines in kept.test.ts: 2 before, 1 after",
+    ]);
+  });
+
+  test("a turn that does not end done writes no completion_check entry", async () => {
+    const { sandbox, ran } = await sandboxWith({
+      ".agents/harness.json": JSON.stringify({ completionChecks: ["true"] }),
+    });
+    const steps = [{ content: [{ type: "tool_call" as const, callId: "c1", name: "lookup", input: {} }] }, ...done];
+    const { result, entries, events } = await turn(
+      settingsOf(sandbox, { snapshotter: scriptedDiff(snap({})) }),
+      steps,
+      1,
+    );
+    assert.equal(result.stopReason, "max_steps");
+    assert.ok(!entries.some((entry) => entry.type === "completion_check"));
+    assert.deepEqual(events, []);
+    assert.deepEqual(ran, []);
+  });
+
+  test("a workspace that can't be diffed still gets its checks, with no flags", async () => {
+    const { sandbox } = await sandboxWith({ ".agents/harness.json": JSON.stringify({ completionChecks: ["true"] }) });
+    const { entries } = await turn(settingsOf(sandbox), done);
+    const check = entries.find((entry) => entry.type === "completion_check");
+    assert.ok(check?.type === "completion_check");
+    assert.deepEqual([check.checks, check.passed, check.flagged], [[{ command: "true", exitCode: 0 }], true, []]);
+  });
+
+  test("a turn without completion settings writes no completion_check entry", async () => {
+    const registry = createToolRegistry();
+    const harness = createHarness({ registry, model: model(new ScriptedModel(done)), system: "s" });
+    const backend = memoryBackend();
+    const session = await openSession({ store: backend.store, index: backend.index, lock: backend.lock, key: KEY });
+    const result = await runTurn(session, harness, { input: "Hi." });
+    assert.equal(result.stopReason, "done");
+    for await (const entry of backend.store.load(KEY)) assert.notEqual(entry.type, "completion_check");
+  });
+});
