@@ -75,14 +75,14 @@ The owner's Cloudflare setup (§3) must exist first; without the secrets the dep
 
 ## Outcome
 
-Done 2026-11-22. The wrangler configs, the stage and guard scripts, their tests and the six workflow files are built, and the docs are written ([CI plan §3g](../../plans/ci.md#3g-both-sites-deploy-to-cloudflare-with-a-preview-per-pull-request-l8-added-2026-11-22)). Nothing is deployed, because a session may not edit `.github/`: the six workflow files sit in `scripts/ci/site-workflows/` until the owner moves them, so every acceptance box that needs a deploy stays unticked. The owner checklist is in [CI plan §3g](../../plans/ci.md#3g-both-sites-deploy-to-cloudflare-with-a-preview-per-pull-request-l8-added-2026-11-22).
+Done 2026-11-22. The wrangler configs, the stage and guard scripts, their tests and the six workflow files are built, and the docs are written ([CI plan §3g](../../plans/ci.md#3g-both-sites-deploy-to-cloudflare-with-a-preview-per-pull-request-l8-added-2026-11-22)). Nothing is deployed yet: a session may not edit `.github/`, so the owner moved the six workflow files into `.github/workflows/` and added their lock entries on this branch, and every acceptance box that needs a real deploy stays unticked until the rest of the checklist is done. The owner checklist is in [CI plan §3g](../../plans/ci.md#3g-both-sites-deploy-to-cloudflare-with-a-preview-per-pull-request-l8-added-2026-11-22).
 
 **What shipped.**
 - `apps/site/wrangler.toml` and `apps/docs/wrangler.toml`: assets-only Workers (`buildanagent-site`, `buildanagent-docs`, and `buildanagent-docs-next` as the docs' `[env.next]`) with a custom domain each.
 - `scripts/ci/site-stage-dist.mjs` and `scripts/ci/site-guard-deploy.mjs`, with `scripts/ci/site-deploy.test.mjs`. A `required` option on `readEntries` in `apps/manual/scripts/stage-dist.mjs` lets each site name its required pages.
-- `scripts/ci/sites-workflows.test.mjs`, which reads the workflows from `.github/workflows/` once `docs-deploy.yml` is there, otherwise from `SITES_WORKFLOWS_DIR`, otherwise from `scripts/ci/site-workflows/`, so CI runs it on the staged files.
+- `scripts/ci/sites-workflows.test.mjs`, which reads the workflows from `.github/workflows/` (or from the directory `SITES_WORKFLOWS_DIR` names, which lets a draft be checked before it is committed).
 - Wrangler 4.160.1, the book's pin, as a devDependency of both apps.
-- Six workflows, staged with `actions.lock-additions.txt`: `docs-build.yml`, `site-build.yml`, `docs-deploy.yml`, `site-deploy.yml`, `docs-pr-closed.yml` and `site-pr-closed.yml`. The jobs and their checks are in §3g.
+- Six workflows, built by a session and moved into `.github/workflows/` by the owner: `docs-build.yml`, `site-build.yml`, `docs-deploy.yml`, `site-deploy.yml`, `docs-pr-closed.yml` and `site-pr-closed.yml`. The jobs and their checks are in §3g.
 - Mutation checks of the workflow tests: the session that fixed the review findings ran 26 deliberate mutations of the drafts and then 11 more, and every one made the tests fail (its own counts, not independently checked).
 
 **Decisions.**

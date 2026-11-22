@@ -1,7 +1,6 @@
 // Offline checks for the two sites' build, deploy and pull-request-closed workflows: docs-build.yml, site-build.yml,
 // docs-deploy.yml, site-deploy.yml, docs-pr-closed.yml and site-pr-closed.yml. It reads them from .github/workflows/
-// once docs-deploy.yml is there, or else from the directory that SITES_WORKFLOWS_DIR names, or else from
-// scripts/ci/site-workflows/, where they wait until the owner commits them; with none of these, every test is skipped. It checks the shape that keeps the Cloudflare
+// once docs-deploy.yml is there, or else from the directory that SITES_WORKFLOWS_DIR names; with neither, every test is skipped. It checks the shape that keeps the Cloudflare
 // secrets away from a pull request's code, compares every deploy job's `if:` with the exact text below, then runs the
 // resolve, stable-tag, record, delete and comment steps under bash against stand-in `gh` and `pnpm` commands that
 // answer from fixtures, so nothing touches the network. Run with `node --test scripts/ci/*.test.mjs`.
@@ -16,12 +15,7 @@ import { parse } from "yaml";
 
 const root = fileURLToPath(new URL("../..", import.meta.url));
 const committed = join(root, ".github", "workflows");
-// The workflows wait in scripts/ci/site-workflows/ until the owner commits them, because a session may not write
-// .github/; the owner moves them with `git mv` and this test then reads the committed copies.
-const staged = join(root, "scripts", "ci", "site-workflows");
-const dir = existsSync(join(committed, "docs-deploy.yml"))
-  ? committed
-  : (process.env.SITES_WORKFLOWS_DIR ?? (existsSync(join(staged, "docs-deploy.yml")) ? staged : undefined));
+const dir = existsSync(join(committed, "docs-deploy.yml")) ? committed : process.env.SITES_WORKFLOWS_DIR;
 const skip =
   dir === undefined ? "the site workflows are not in .github/workflows/ and SITES_WORKFLOWS_DIR is unset" : false;
 const read = (name) => (skip ? {} : parse(readFileSync(join(dir, name), "utf8")));
