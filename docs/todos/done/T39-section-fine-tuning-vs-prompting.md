@@ -55,7 +55,7 @@ U21's report settled the scope, and the owner approved its proposed changes on 2
 ## Acceptance criteria
 
 - [x] The chapter still builds with every check passing, the analogy check included
-- [x] `apps/manual/fact-checks/talking-to-a-model.md` has the section's rows and the re-check rows, with an updated tally
+- [ ] `apps/manual/fact-checks/talking-to-a-model.md` has the section's rows and the re-check rows, with an updated tally
 - [ ] The pull request records the 5C and voice scores, before and after
 - [x] `pnpm check`, `pnpm typecheck` and `pnpm test` pass offline from the repo root
 

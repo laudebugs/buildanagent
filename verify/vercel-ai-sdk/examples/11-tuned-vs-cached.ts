@@ -1,7 +1,8 @@
 // A tuned model removes a long prompt prefix from every request, but it charges twice the base rate for every
-// token, and a cached prefix is already cheap. Two scripted calls make the comparison: a base model that
-// receives a 4,000-token prefix plus a 200-token question, and a tuned model that receives the question alone.
-// Both answer in 300 tokens. The rates are GPT-4.1 mini's, copied on 2026-11-19 from
+// token, and a cached prefix is already cheap. Three scripted calls make the comparison: a base model that
+// reports a 4,000-token prefix, uncached and then cached, plus a 200-token question, and a tuned model that
+// reports the question alone. Each call sends only a short prompt; the token counts are scripted usage. Every call
+// answers in 300 tokens. The rates are GPT-4.1 mini's, copied on 2026-11-19 from
 // https://developers.openai.com/api/docs/pricing. OpenAI stops new tuning jobs on 6 January 2027, so this
 // example prices a tuned model that already exists and creates none.
 // Docs: ai-sdk-core/generating-text.mdx ("streamText"), ai-sdk-core/testing.mdx
