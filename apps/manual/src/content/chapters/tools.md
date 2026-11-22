@@ -92,7 +92,11 @@ A tool call fails in the same two ways a coin can. The model can send arguments 
 :::
 ::::
 
-In our replay, the first call reaches the loop with `{ "orderId": 42 }`, and the Zod check rejects it before `execute` runs. The loop keeps running and sends the failure back as an error result. That result opens with "The arguments for tool "get_order_status" are invalid:", lists each failing field by its JSON Pointer path, here "/orderId: Invalid input: expected string, received number", repeats the arguments it received, and ends with a line that tells the model not to substitute invented data [@buildanagent-sdk-hooks]. In ADK's replay, the first call reaches ADK with `{ "orderId": 42 }`, and the Zod check rejects it before `execute` runs. ADK keeps the loop running: it wraps the failure as "Error in tool 'get_order_status'", followed by Zod's issue list, whose message reads "Invalid input: expected string, received number", and sends it back under an `error`{checked=row-28} key. In both replays, the second call sends `"A-1"`, passes the check and runs the function, whose output comes back as "order A-1 shipped". The model then answers, after three model calls in all. Both examples' checks confirm that the failed call came back as an error, in ADK's words "not as an exception", and that the function body ran only for the valid call.
+In our replay, the first call reaches the loop with `{ "orderId": 42 }`, and the Zod check rejects it before `execute` runs. The loop keeps running and sends the failure back as an error result. That result opens with `The arguments for tool "get_order_status" are invalid:`, lists each failing field by its JSON Pointer path, here `/orderId: Invalid input: expected string, received number`, repeats the arguments it received, and ends with a line that tells the model not to substitute invented data [@buildanagent-sdk-hooks].
+
+In ADK's replay, the same bad call fails the same Zod check, and ADK keeps the loop running too. It wraps the failure as `Error in tool 'get_order_status'`, followed by Zod's issue list, whose message reads `Invalid input: expected string, received number`, and sends it back under an `error`{checked=row-28} key.
+
+In both replays, the second call sends `"A-1"`, passes the check and runs the function, whose output comes back as "order A-1 shipped". The model then answers, after three model calls in all. Both examples' checks confirm that the failed call came back as an error, in ADK's words "not as an exception", and that the function body ran only for the valid call.
 
 What the model reads after a failure depends on the SDK, and the defaults differ more than the tool definitions did. [[tbl:tool-errors]] sets them side by side, as of November 2026.
 
@@ -166,7 +170,7 @@ Our SDK's example and two of our capstones already work this way, and their chec
 ::::tabs
 :::listing[Our SDK]{#adk-identity-ours file="packages/sdk/examples/07-identity-tool.ts" region="lookup-customer" replay}
 ::note[The schema is an empty object, so the model has no field in which to name a customer, and any key it sends anyway is dropped before `execute` runs.]{#no-identity}
-::note[The customer id comes from `ctx.app`, the value the run was started with, and never from the model's arguments. A run started without `app` gives its tools `undefined`, so a resumed run must pass `app` again.]{#from-app}
+::note[The customer id comes from `ctx.app`, the value the run was started with, and never from the model's arguments. A run started without `app` gives its tools `undefined`, so the tool refuses with a clear message, and a resumed run must pass `app` again.]{#from-app}
 ::note[The run's `app` is the session of the request being served. Each request starts its own run, so each gets its own `app`.]{#per-request}
 :::
 :::listing[Google ADK]{#adk-identity file="verify/google-adk/examples/08-triage-agent.ts" region="lookup-customer" replay}

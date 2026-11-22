@@ -23,7 +23,8 @@ const lookupCustomer = defineTool<Record<string, never>, unknown, Session>({
   description: "Look up the signed-in customer's plan and open tickets.",
   inputSchema: z.object({}), // book:note no-identity
   async execute(input, ctx) {
-    const customerId = ctx.app.customerId; // book:note from-app
+    if (ctx.app === undefined) throw new Error("no signed-in customer"); // book:note from-app
+    const { customerId } = ctx.app;
     lookups.push(`${customerId} input=${JSON.stringify(input)}`);
     const record = { customerId, ...customers[customerId] };
     return { content: [{ type: "text", text: JSON.stringify(record) }] };

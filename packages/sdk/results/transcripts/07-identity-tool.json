@@ -8,7 +8,7 @@
   "events": [
     {
       "kind": "request",
-      "line": 35,
+      "line": 36,
       "model": "model-1",
       "repeated": 0,
       "messages": [
@@ -37,7 +37,7 @@
     },
     {
       "kind": "response",
-      "line": 35,
+      "line": 36,
       "model": "model-1",
       "message": {
         "role": "assistant",
@@ -56,7 +56,7 @@
     },
     {
       "kind": "request",
-      "line": 35,
+      "line": 36,
       "model": "model-1",
       "repeated": 3,
       "messages": [
@@ -78,7 +78,7 @@
     },
     {
       "kind": "response",
-      "line": 35,
+      "line": 36,
       "model": "model-1",
       "message": {
         "role": "assistant",
@@ -93,7 +93,7 @@
     },
     {
       "kind": "request",
-      "line": 35,
+      "line": 36,
       "model": "model-2",
       "repeated": 0,
       "messages": [
@@ -122,7 +122,7 @@
     },
     {
       "kind": "response",
-      "line": 35,
+      "line": 36,
       "model": "model-2",
       "message": {
         "role": "assistant",
@@ -141,7 +141,7 @@
     },
     {
       "kind": "request",
-      "line": 35,
+      "line": 36,
       "model": "model-2",
       "repeated": 3,
       "messages": [
@@ -163,7 +163,7 @@
     },
     {
       "kind": "response",
-      "line": 35,
+      "line": 36,
       "model": "model-2",
       "message": {
         "role": "assistant",
@@ -178,55 +178,55 @@
     },
     {
       "kind": "check",
-      "line": 57,
+      "line": 58,
       "message": "the model is offered a tool with no field in which to name a customer",
       "pass": true
     },
     {
       "kind": "check",
-      "line": 61,
+      "line": 62,
       "message": "the run answers after one lookup",
       "pass": true
     },
     {
       "kind": "check",
-      "line": 62,
+      "line": 63,
       "message": "the lookup ran for the signed-in customer, and the id the model sent was dropped from its input",
       "pass": true
     },
     {
       "kind": "check",
-      "line": 68,
+      "line": 69,
       "message": "the result holds the signed-in customer's record",
       "pass": true
     },
     {
       "kind": "check",
-      "line": 69,
+      "line": 70,
       "message": "the other customer's record never reaches the model",
       "pass": true
     },
     {
       "kind": "check",
-      "line": 70,
+      "line": 71,
       "message": "the next request's run read its own session's customer",
       "pass": true
     },
     {
       "kind": "check",
-      "line": 71,
+      "line": 72,
       "message": "the first request's customer never reaches the second request",
       "pass": true
     },
     {
       "kind": "check",
-      "line": 84,
+      "line": 85,
       "message": "the app data reaches none of Ada's requests",
       "pass": true
     },
     {
       "kind": "check",
-      "line": 84,
+      "line": 85,
       "message": "the app data reaches none of Bob's requests",
       "pass": true
     }
