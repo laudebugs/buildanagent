@@ -48,16 +48,16 @@ U20's report settled the scope, and the owner approved its proposed changes on 2
 
 ## Tasks
 
-- [ ] Draft the section with `/anthropic-skills:writing`. If the analogy makes the concept clearer, open with it, then the mechanism and a "Where the analogy breaks" note, and register it in `analogies.json`; otherwise explain the concept plainly.
+- [x] Draft the section with `/anthropic-skills:writing`. If the analogy makes the concept clearer, open with it, then the mechanism and a "Where the analogy breaks" note, and register it in `analogies.json`; otherwise explain the concept plainly.
 - [x] Give every model name, price and benchmark score its date and the version tested, as "the version tested in 2025" or "in 2026", never as a property of a vendor.
 - [x] Fact-check every claim in the section against its primary source into `apps/manual/fact-checks/agents-people-can-watch.md` before any further edit, and commit the section together with its fact-check rows (BK21).
-- [ ] Run `/anthropic-skills:writing-review` on the whole chapter with the voice check, fix every finding with `/anthropic-skills:writing`, and re-check every claim a fix touched.
+- [x] Run `/anthropic-skills:writing-review` on the whole chapter with the voice check, fix every finding with `/anthropic-skills:writing`, and re-check every claim a fix touched.
 
 ## Acceptance criteria
 
 - [x] The chapter still builds with every check passing, the analogy check included
-- [ ] `apps/manual/fact-checks/agents-people-can-watch.md` has the section's rows and the re-check rows, with an updated tally
-- [ ] The pull request records the 5C and voice scores, before and after
+- [x] `apps/manual/fact-checks/agents-people-can-watch.md` has the section's rows and the re-check rows, with an updated tally
+- [x] The pull request records the 5C and voice scores, before and after
 - [x] `pnpm check`, `pnpm typecheck` and `pnpm test` pass offline from the repo root
 
 ## Tests
@@ -77,8 +77,8 @@ The book's build and `check:book` in the CI `book` job.
 ## Definition of done
 
 - [x] Claimed: the first commit moved this file `ready/` → `ongoing/` (Status `ongoing`)
-- [ ] Prose drafted with `/anthropic-skills:writing`, and changed claims re-checked against their sources
+- [x] Prose drafted with `/anthropic-skills:writing`, and changed claims re-checked against their sources
 - [x] `pnpm check`, `pnpm typecheck` and `pnpm test` pass locally; pushed after each meaningful step
 - [x] This file moved `ongoing/` → `done/` (Status `done`) in the last work commit, and the plan's todo table updated
-- [ ] Two code-review rounds run on the pull request (`/code-review high --max-findings default`, then `medium` and `low` after more than 6 confirmed findings, otherwise `low`), with every finding fixed or explained in a commit message
-- [ ] Copy reviewed with `/anthropic-skills:writing-review` after the code changes, with its findings fixed and the rubric scores in the pull request description
+- [x] Two code-review rounds run on the pull request (`/code-review high --max-findings default`, then `medium` and `low` after more than 6 confirmed findings, otherwise `low`), with every finding fixed or explained in a commit message
+- [x] Copy reviewed with `/anthropic-skills:writing-review` after the code changes, with its findings fixed and the rubric scores in the pull request description
