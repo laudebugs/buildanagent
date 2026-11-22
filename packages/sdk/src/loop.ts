@@ -575,7 +575,12 @@ function pausedOutcome(state: LoopState, message: AssistantMessage): Outcome {
 function runErrorOf(message: AssistantMessage): RunError {
   const error = message.error;
   if (error === undefined) return { kind: "fatal", message: "the model call failed without an error description" };
-  return { kind: error.kind, message: error.message, ...(error.status === undefined ? {} : { status: error.status }) };
+  return {
+    kind: error.kind,
+    message: error.message,
+    ...(error.status === undefined ? {} : { status: error.status }),
+    ...(error.retryAfterMs === undefined ? {} : { retryAfterMs: error.retryAfterMs }),
+  };
 }
 
 /**
