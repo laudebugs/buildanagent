@@ -60,3 +60,15 @@ export function asTurn<T extends object>(result: T): Exclude<T, { status: unknow
   if ("status" in result) throw new Error("expected a turn's result, and the resolve returned a code call's");
   return result as Exclude<T, { status: unknown }>;
 }
+
+/**
+ * A signature that differs from the original in its first character, which carries the top six bits of the first
+ * decoded byte, so the decoded signature always changes. Rewriting the last two characters left a signature that
+ * already ended in the replacement unchanged about once in 1,024 runs: a 32-byte MAC encodes to 43 characters, and
+ * the last one holds four data bits and two zero bits, so it takes 16 values and `AA` ends 1/64 x 1/16 of them.
+ */
+export function tamper(signature: string): string {
+  const changed = `${signature[0] === "A" ? "B" : "A"}${signature.slice(1)}`;
+  if (changed === signature) throw new Error("the tamper left the signature unchanged");
+  return changed;
+}

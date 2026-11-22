@@ -18,7 +18,7 @@ import { defineTool, hmacSigner } from "@buildanagent/sdk";
 import { ScriptedModel } from "@buildanagent/sdk/testing";
 import { describe, test } from "vitest";
 import { BACKENDS, type Backend, KEY } from "../session/session-helpers.js";
-import { asTurn } from "./helpers.js";
+import { asTurn, tamper } from "./helpers.js";
 
 const SOURCE = "https://provider.test/pricing";
 const CATALOG: PriceCatalog = {
@@ -83,17 +83,6 @@ const entriesOf = async (backend: Backend) => {
   for await (const entry of backend.store.load(KEY)) found.push(entry);
   return found;
 };
-
-/**
- * A signature that differs from the original in its first character, which carries the top six bits of the first
- * decoded byte, so the decoded signature always changes. Rewriting the last two characters left a signature that
- * already ended in the replacement unchanged, about once in 4,096 runs, and the test then saw an approved call run.
- */
-function tamper(signature: string): string {
-  const changed = `${signature[0] === "A" ? "B" : "A"}${signature.slice(1)}`;
-  assert.notEqual(changed, signature, "the tamper changes the signature");
-  return changed;
-}
 
 describe.each(BACKENDS)("%s", (_name, make) => {
   test("a gate ask ends the turn awaiting approval with one approval_requested entry, and toContext() matches the run's context", async () => {
