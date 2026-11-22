@@ -60,3 +60,32 @@ test("the order agent example reports a run that reached its step cap", async ()
   );
   assert.equal(outcome, "the run stopped early: max_steps");
 });
+
+test("the offline order agent example answers from its scripted model", async () => {
+  const { answerOffline } = await import("../examples/offline-order-agent.js");
+  assert.equal(await answerOffline(), "Order 42 has shipped.");
+});
+
+test("the refund approval example pauses a refund and runs it after the person allows it", async () => {
+  const { startRefund, resumeRefund } = await import("../examples/refund-approval.js");
+  const { processSigner, pendingOf } = await import("./resume-helpers.js");
+  const { drive } = await import("./run-helpers.js");
+  const refunds: number[] = [];
+  const issueRefund = async (order: number) => {
+    refunds.push(order);
+    return { status: "refunded" as const, refundId: "re_1" };
+  };
+  const first = scripted([toolCall("refund_create", { order: 42 }, "call-1")]);
+  const paused = await drive(startRefund({ model: first.model, signer: processSigner(), issueRefund }, "Refund 42"));
+  assert.equal(paused.result.stopReason, "awaiting_approval");
+  assert.deepEqual(refunds, [], "the refund waits for the person");
+  const [request] = pendingOf(paused.result);
+  assert.ok(request);
+
+  const second = scripted([text("Refunded.")]);
+  const deps = { model: second.model, signer: processSigner(), issueRefund };
+  const stored = JSON.parse(JSON.stringify(paused.result.context));
+  const done = await drive(resumeRefund(deps, stored, [{ requestId: request.id, decision: "allow" }]));
+  assert.equal(done.result.stopReason, "done");
+  assert.deepEqual(refunds, [42]);
+});
