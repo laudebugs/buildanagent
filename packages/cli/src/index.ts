@@ -6,7 +6,7 @@
 export { HELP, runCli } from "./cli.js";
 export { CliError, type CliErrorCode, isCliError } from "./errors.js";
 export type { HostRules } from "./host.js";
-export { type CliIo, linesOf } from "./io.js";
+export { type CliIo, type CliStreams, linesOf } from "./io.js";
 export type { CliOptions } from "./options.js";
 
 /** The package's npm name, `@buildanagent/cli`. */

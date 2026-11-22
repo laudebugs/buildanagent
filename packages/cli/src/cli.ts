@@ -33,7 +33,8 @@ Commands:
                               Remove a session's writer lock.
   keys rotate                 Add a new approval key and make it current.
   keys prune                  Remove the approval keys no waiting request names.
-  rpc                         Serve the protocol over standard streams (not yet).
+  rpc                         Serve the protocol as JSON-RPC lines over standard
+                              input and output, until input ends.
 
 Options:
   --model <provider>:<id>     The model to run, such as anthropic:claude-sonnet-5-5

@@ -12,6 +12,7 @@ The sections of README.md and every public export, generated from this package's
 - [List, show, search and replay stored sessions](README.md#list-show-search-and-replay-stored-sessions)
 - [Fix a stuck lock or change the approval keys](README.md#fix-a-stuck-lock-or-change-the-approval-keys)
 - [Nothing leaves your machine unless a flag says where](README.md#nothing-leaves-your-machine-unless-a-flag-says-where)
+- [Serve the protocol to another program with `rpc`](README.md#serve-the-protocol-to-another-program-with-rpc)
 - [Run the CLI from your own program](README.md#run-the-cli-from-your-own-program)
 
 ## Exports from `@buildanagent/cli`
@@ -20,6 +21,7 @@ The sections of README.md and every public export, generated from this package's
 - `type CliErrorCode`: Why a `CliError` was thrown.
 - `interface CliIo`: The terminal a command talks to.
 - `interface CliOptions`: The options of `runCli()`.
+- `interface CliStreams`: The standard streams as bytes, which `rpc` serves the protocol over.
 - `HELP`: The help `--help` prints.
 - `interface HostRules`: The permission rules a host adds to the harness's default ask rules.
 - `isCliError()`: True for a `CliError`, including one from another copy of the package.

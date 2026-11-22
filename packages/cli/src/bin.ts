@@ -17,6 +17,9 @@ const status = await runCli(process.argv.slice(2), {
     },
     env: process.env,
     cwd: process.cwd(),
+    // Only `rpc` reads these, and the line reader above starts reading standard input only when a command asks for
+    // a line, so the two never share it.
+    streams: { input: process.stdin, output: process.stdout },
   },
 });
 process.exitCode = status;

@@ -18,10 +18,14 @@ const ENV = spawnEnv([]);
 afterAll(() => rmSync(ENV.HOME as string, { recursive: true, force: true }));
 
 function buildanagent(...args: string[]) {
+  return spawnWith(args);
+}
+
+function spawnWith(args: readonly string[], input = "", env: NodeJS.ProcessEnv = ENV) {
   return spawnSync(
     process.execPath,
     ["--conditions=source", "--import", SOURCE_CONDITION, "--import", TSX, BIN, ...args],
-    { encoding: "utf8", env: ENV, input: "" },
+    { encoding: "utf8", env, input },
   );
 }
 
@@ -51,8 +55,27 @@ test("the binary lists sessions from its default state folder under HOME, and ex
   assert.equal(child.stderr, "no sessions yet\n");
 });
 
-test("rpc says it is not available yet and exits 2", () => {
-  const child = buildanagent("rpc");
-  assert.equal(child.status, 2);
-  assert.match(child.stderr, /rpc is not available yet/);
+test("rpc answers initialize on stdout, logs nothing else there, and exits 0 when stdin ends", () => {
+  const initialize = {
+    jsonrpc: "2.0",
+    id: 1,
+    method: "initialize",
+    params: { clientInfo: { name: "t", version: "0" }, capabilities: [] },
+  };
+  // A provider key the child would read only on a model call: initialize makes none, so nothing leaves the machine.
+  const child = spawnWith(["rpc", "--model", "anthropic:test-model"], `${JSON.stringify(initialize)}\nnot json\n`, {
+    ...ENV,
+    ANTHROPIC_API_KEY: "not-a-real-key",
+  });
+  assert.equal(child.status, 0, child.stderr);
+  const lines = child.stdout.split("\n").filter((line) => line !== "");
+  assert.equal(lines.length, 2);
+  // The refusal can come first: initialize is answered once the dispatcher has run it.
+  const messages = lines.map((line) => JSON.parse(line) as Record<string, unknown>);
+  const answer = messages.find((message) => message.id === 1);
+  const refusal = messages.find((message) => message.id === null);
+  assert.equal(answer?.id, 1);
+  assert.ok("result" in (answer ?? {}));
+  assert.deepEqual((refusal?.error as { code?: number } | undefined)?.code, -32700);
+  assert.match(child.stderr, /^stdio: refused a line: /);
 });

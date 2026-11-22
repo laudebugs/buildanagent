@@ -82,7 +82,25 @@ Each pause for approval is signed with a key from a key ring beside the sessions
 
 The CLI connects to the provider `--model` names and to the collector `--otlp-endpoint` names, and to nothing else. It runs no update check, sends no usage data and adds no attribution to your commits. `--otlp-endpoint <url>` sends OpenTelemetry spans for each run, model call and tool call to that collector, without prompts, messages or tool arguments.
 
-`buildanagent rpc`, which will serve the harness's protocol over standard input and output, is not available yet. It prints so and exits 2.
+## Serve the protocol to another program with `rpc`
+
+`buildanagent rpc` serves the harness's protocol to one client over standard input and output, one JSON-RPC 2.0 message per line. Use it to drive the harness from another process or language: an editor, a test runner or a script. The command takes the same `--model`, `--state-dir`, `--budget` and `--otlp-endpoint` flags as `run`, and refuses to start without `--model`:
+
+```sh
+buildanagent rpc --model anthropic:claude-sonnet-5-5
+```
+
+The client sends `initialize`, then `session/create` or `session/open`, then `turn/start`, and waits for each response before it sends the next command. The server writes each command's response, the session's `event` notifications and one `turn/settled` per turn to standard output:
+
+```text
+→ {"jsonrpc":"2.0","id":1,"method":"initialize","params":{"clientInfo":{"name":"my-editor","version":"1.0.0"},"capabilities":[]}}
+→ {"jsonrpc":"2.0","id":2,"method":"session/create","params":{"cwd":"/work"}}
+→ {"jsonrpc":"2.0","id":3,"method":"turn/start","params":{"session":"<id from 2>","input":[{"type":"text","text":"Why does the login test fail?"}]}}
+← {"jsonrpc":"2.0","method":"event","params":{"session":"…","seq":4,"event":{…}}}
+← {"jsonrpc":"2.0","method":"turn/settled","params":{"session":"…","turn":"…","result":{"stopReason":"done",…}}}
+```
+
+Standard output carries protocol lines and nothing else. The transport's own diagnostics, such as a line it could not read, go to standard error. A call that needs approval reaches the client as an `approval/request`, which the client answers with its decision. The paused turn settles as `awaiting_approval`, and the run the answer resumes settles again on its own. The command exits 0 when the client closes standard input. It first answers every command it has read, but it doesn't wait for a running turn, so a client that wants a turn's `turn/settled` keeps its input open until that arrives.
 
 ## Run the CLI from your own program
 
@@ -112,6 +130,6 @@ export async function askOnce(model: Model, stateDir: string, question: string) 
 }
 ```
 
-A command the CLI can't run as given resolves with status 2 and a `CliError` message on standard error; `isCliError()` recognises the error class, whose `code` is a `CliErrorCode`. `linesOf()` turns a stream of text or bytes into lines, which is how the binary reads standard input. `HELP` is the text `--help` prints.
+A command the CLI can't run as given resolves with status 2 and a `CliError` message on standard error; `isCliError()` recognises the error class, whose `code` is a `CliErrorCode`. `linesOf()` turns a stream of text or bytes into lines, which is how the binary reads standard input. `HELP` is the text `--help` prints. `rpc` reads the standard streams as bytes from the `CliIo`'s `streams`, a `CliStreams` pair of Node or Web streams. Without them it exits 2 with the code `no_streams`.
 
 The [harness README](https://github.com/laudebugs/buildanagent/blob/main/packages/harness/README.md) explains the sessions, approvals and context layers the CLI drives.

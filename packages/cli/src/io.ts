@@ -2,6 +2,18 @@
  * What a command reads and writes. The binary gives it the process's standard streams, environment and folder; a
  * test or a host program gives it its own, so every command runs without a terminal.
  */
+import type { StdioInput, StdioOutput } from "@buildanagent/harness/server";
+
+/**
+ * The standard streams as bytes, which `rpc` serves the protocol over. They take Node or Web streams, so a test can
+ * pass a pair of its own.
+ */
+export interface CliStreams {
+  /** Standard input: the client's protocol lines. */
+  readonly input: StdioInput;
+  /** Standard output: the server's protocol lines, and nothing else. */
+  readonly output: StdioOutput;
+}
 
 /** The terminal a command talks to. */
 export interface CliIo {
@@ -15,6 +27,11 @@ export interface CliIo {
   readonly env: Readonly<Record<string, string | undefined>>;
   /** The folder a new session records as its working folder. */
   readonly cwd: string;
+  /**
+   * The standard streams as bytes, for `rpc`. Only `rpc` reads them, and it refuses to start without them; every other
+   * command reads through `readLine` and writes through `write`.
+   */
+  readonly streams?: CliStreams;
 }
 
 /** Splits a stream of text or bytes into lines at `\n`, dropping a `\r` before it. */

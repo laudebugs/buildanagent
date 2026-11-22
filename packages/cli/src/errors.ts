@@ -11,7 +11,8 @@ export type CliErrorCode =
   | "no_state_dir"
   | "unknown_session"
   | "session_unavailable"
-  | "otlp_failed";
+  | "otlp_failed"
+  | "no_streams";
 
 // A registered symbol, so the guard still works when two copies of the package are bundled.
 const CLI_ERROR = Symbol.for("buildanagent.cli.CliError");
@@ -22,7 +23,7 @@ const CLI_ERROR = Symbol.for("buildanagent.cli.CliError");
  * unset. `no_state_dir`: neither `--state-dir`, `XDG_STATE_HOME` nor `HOME` names a folder for sessions.
  * `unknown_session`: no stored session has the id given. `session_unavailable`: the session refused a turn, such as one
  * that another process is writing. `otlp_failed`: the `--otlp-endpoint` collector could not be reached or refused
- * the spans.
+ * the spans. `no_streams`: `rpc` was run on a `CliIo` that gives no standard streams.
  */
 export class CliError extends Error {
   override readonly name = "CliError";
