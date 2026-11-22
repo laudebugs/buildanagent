@@ -106,7 +106,7 @@ The sections of README.md and every public export, generated from this package's
 - `interface LoadOptions`: The options of `load()`.
 - `LoadoutEntry`: re-exported from `@buildanagent/protocol`.
 - `interface LockHandle`: What `acquire()` returns to the writer that got the lock.
-- `marksIn()`: The marks whose call has an entry among `entries`.
+- `marksIn()`: The marks whose call has an entry among `entries`, one file read whole.
 - `MAX_FLAGS`: The most flags one check records.
 - `MAX_SNAPSHOT_FILE_BYTES`: The largest file a snapshot keeps, in bytes.
 - `MAX_SNAPSHOT_FILES`: The most files a snapshot keeps.
@@ -136,6 +136,7 @@ The sections of README.md and every public export, generated from this package's
 - `pruneKeys()`: Calls `store.prune(inUse)` and returns the ids it removed.
 - `PURGED_TEXT`: The text that replaces the content of a purged entry.
 - `interface PurgeMark`: One tool call whose entries must leave the log: the `message_block` that holds the call, its `tool_result`, and, for a call the host's code made, its `code_call` and `approval_requested` entries.
+- `interface PurgeResidual`: The entries of a purged session, after its first marked call, that may restate what the call held: a purge clears only the marked calls, so the fact can still be in a summary or in the model's own words.
 - `purgeSession()`: Rewrites the session so that no entry matching `marks` keeps its content.
 - `interface PurgeSessionOptions`: The options of `purgeSession()`.
 - `type PurgeSessionResult`: What `purgeSession()` did.
@@ -436,7 +437,8 @@ The sections of README.md and every public export, generated from this package's
 
 ## Exports from `@buildanagent/harness/memory`
 
-- `clearPurgeMarks()`: Removes `marks`, and only those, from the purge list, once the purges have removed their entries from every session that held them.
+- `clearPurgeMarks()`: Removes `marks`, and only those, from the purge list, once the purges have removed their entries from every session that held them, and drops the `unmatched` marks that have waited 30 days.
+- `interface ClearPurgeMarksOptions`: The options of `clearPurgeMarks()`.
 - `MEMORY_DIR`: The memory folder, relative to the project root.
 - `MEMORY_EXPIRY_DAYS`: How long a record holds after its last validation, by type and trust, in days.
 - `MEMORY_INDEX_MAX_BYTES`: The most bytes of the index as UTF-8, the heading and the left-out note included.

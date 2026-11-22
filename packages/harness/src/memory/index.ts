@@ -16,5 +16,5 @@ export {
   type MemoryType,
   parseRecord,
 } from "./record.js";
-export { clearPurgeMarks, readPurgeMarks } from "./store.js";
+export { type ClearPurgeMarksOptions, clearPurgeMarks, readPurgeMarks } from "./store.js";
 export { MEMORY_TOOL } from "./tool.js";

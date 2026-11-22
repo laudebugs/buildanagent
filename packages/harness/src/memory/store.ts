@@ -20,6 +20,9 @@ const UNREAD_CALLS_FILE = ".calls-unread.json";
 const MAX_CALLS_PER_RECORD = 100;
 /** The most bytes the calls file is written with; past it, each record keeps fewer of its newest calls. */
 const MAX_CALLS_BYTES = 2 * 1024 * 1024;
+/** How long a mark that no session held stays on the purge list, in days, once a full pass reports it unmatched. */
+const STALE_MARK_DAYS = 30;
+const DAY_MS = 86_400_000;
 
 /** A record that parsed, with its name. */
 export interface NamedRecord {
@@ -37,8 +40,17 @@ function addTo(list: PurgeMark[], marks: readonly PurgeMark[]): PurgeMark[] {
 
 const isMark = (value: unknown): value is PurgeMark => {
   const mark = value as PurgeMark;
-  return typeof mark?.runId === "string" && typeof mark.callId === "string" && typeof mark.tool === "string";
+  return (
+    typeof mark?.runId === "string" &&
+    typeof mark.callId === "string" &&
+    typeof mark.tool === "string" &&
+    (mark.at === undefined || typeof mark.at === "string")
+  );
 };
+
+/** The marks as they join the purge list: each dated `at`, unless it already carries a date. */
+const dated = (marks: readonly PurgeMark[], at: Date): PurgeMark[] =>
+  marks.map((mark) => (mark.at === undefined ? { ...mark, at: at.toISOString() } : mark));
 
 /**
  * A bookkeeping file's JSON, or `fallback` when it is missing. A file that is not what the extension wrote throws, so
@@ -135,26 +147,68 @@ function exclusiveOn<T>(files: MemoryFiles, task: () => Promise<T>): Promise<T> 
   return run;
 }
 
+/** The options of `clearPurgeMarks()`. */
+export interface ClearPurgeMarksOptions {
+  /**
+   * Marks that a pass looked for in every session that could hold them, live and archived, and found in none, such as
+   * the mark of a call whose entries never reached the log. Each one leaves the purge list once it has been on it for
+   * 30 days; one with no date is dated now and leaves 30 days later. A mark an archive still holds is not unmatched.
+   */
+  readonly unmatched?: readonly PurgeMark[];
+  /** The clock the 30 days are counted on. Default the system clock; a test passes a fixed one. */
+  readonly clock?: () => Date;
+}
+
 /**
  * Removes `marks`, and only those, from the purge list, once the purges have removed their entries from every session
- * that held them. It waits for the memory calls of any extension in this process over the same `files` object, so a
- * delete that runs meanwhile keeps the marks it adds; `fileMemoryFiles()` gives one object per root. Nothing
- * coordinates two processes, so run it where no session over the same folder is running in another process.
+ * that held them, and drops the `unmatched` marks that have waited 30 days. It waits for the memory calls of any
+ * extension in this process over the same `files` object, so a delete that runs meanwhile keeps the marks it adds;
+ * `fileMemoryFiles()` gives one object per root. Nothing coordinates two processes, so run it where no session over
+ * the same folder is running in another process.
  */
-export function clearPurgeMarks(files: MemoryFiles, marks: readonly PurgeMark[]): Promise<void> {
+export function clearPurgeMarks(
+  files: MemoryFiles,
+  marks: readonly PurgeMark[],
+  options: ClearPurgeMarksOptions = {},
+): Promise<void> {
   return exclusiveOn(files, async () => {
+    const now = (options.clock ?? (() => new Date()))();
+    const unmatched = options.unmatched ?? [];
     const held = await readPurgeMarks(files);
-    const left = held.filter((mark) => !marks.some((done) => sameMark(done, mark)));
-    if (left.length !== held.length) await files.write(PURGE_FILE, JSON.stringify(left));
+    let changed = false;
+    const left = held.flatMap((mark): PurgeMark[] => {
+      if (marks.some((done) => sameMark(done, mark))) {
+        changed = true;
+        return [];
+      }
+      if (!unmatched.some((stale) => sameMark(stale, mark))) return [mark];
+      changed = true;
+      if (mark.at === undefined) return dated([mark], now);
+      // A date that doesn't parse can't be aged, so the mark stays until a purge settles it.
+      const since = Date.parse(mark.at);
+      return Number.isNaN(since) || now.getTime() - since < STALE_MARK_DAYS * DAY_MS ? [mark] : [];
+    });
+    if (changed) await files.write(PURGE_FILE, JSON.stringify(left));
   });
 }
 
 /** The records of one memory folder, with the calls that touched them. */
 export class RecordStore {
   readonly files: MemoryFiles;
+  readonly #now: () => Date;
 
-  constructor(files: MemoryFiles) {
+  /** `now` dates each mark as it joins the purge list. */
+  constructor(files: MemoryFiles, now: () => Date = () => new Date()) {
     this.files = files;
+    this.#now = now;
+  }
+
+  /** Adds `marks` to the purge list, each dated now. */
+  async #toPurgeList(marks: readonly PurgeMark[]): Promise<void> {
+    await this.files.write(
+      PURGE_FILE,
+      JSON.stringify(addTo(await readPurgeMarks(this.files), dated(marks, this.#now()))),
+    );
   }
 
   /** Runs `task` after every task queued on the same file store before it, whether they succeeded or not. */
@@ -198,9 +252,7 @@ export class RecordStore {
    */
   async #saveCalls(calls: Record<string, PurgeMark[]>, keep: readonly string[] = []): Promise<void> {
     const { text, spilled } = bounded(calls, new Set(await this.names()), keep);
-    if (spilled.length > 0) {
-      await this.files.write(PURGE_FILE, JSON.stringify(addTo(await readPurgeMarks(this.files), spilled)));
-    }
+    if (spilled.length > 0) await this.#toPurgeList(spilled);
     await this.files.write(CALLS_FILE, text);
   }
 
@@ -228,8 +280,7 @@ export class RecordStore {
   async forget(name: string, extra: readonly PurgeMark[] = []): Promise<void> {
     const calls = await readCalls(this.files);
     const marks = [...(calls[name] ?? []), ...extra];
-    if (marks.length > 0)
-      await this.files.write(PURGE_FILE, JSON.stringify(addTo(await readPurgeMarks(this.files), marks)));
+    if (marks.length > 0) await this.#toPurgeList(marks);
     if (calls[name] === undefined) return;
     delete calls[name];
     await this.#saveCalls(calls);

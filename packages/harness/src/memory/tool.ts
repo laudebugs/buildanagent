@@ -133,13 +133,15 @@ async function view(deps: MemoryToolDeps, input: MemoryInput, ctx: ToolContext):
 }
 
 /**
- * The record as written now, by this session, with its expiry from its type and its trust. The trust is the session's,
- * or `floor` when that is lower, so a change or a renewal of a low-trust record never makes it trusted.
+ * The record as written now, with its expiry from its type and its trust. The trust is the session's, or `floor` when
+ * that is lower, so a change or a renewal of a low-trust record never makes it trusted. A task record names `owner`,
+ * the session whose end expires it: this session for a new record, and the writer's for a change or a renewal.
  */
 function stamped(
   deps: MemoryToolDeps,
   fields: Omit<MemoryRecord, "validated" | "expires" | "trust" | "session">,
   floor: MemoryTrust = "trusted",
+  owner: string = deps.sessionId,
 ) {
   const validated = deps.now().toISOString();
   const trust: MemoryTrust = floor === "low" ? "low" : deps.trust();
@@ -148,7 +150,7 @@ function stamped(
     validated,
     trust,
     expires: expiryOf(fields.type, trust, validated),
-    ...(fields.type === "task" ? { session: deps.sessionId } : {}),
+    ...(fields.type === "task" ? { session: owner } : {}),
   };
   const size = new TextEncoder().encode(formatRecord(record)).length;
   return size > MEMORY_RECORD_MAX_BYTES
@@ -225,7 +227,10 @@ async function replace(deps: MemoryToolDeps, input: MemoryInput, ctx: ToolContex
   const fact = existing.fact.replace(input.old_str, () => input.new_str as string);
   // The record keeps the trust it was written with when that is lower: a trusted session that renews or changes part
   // of a planted fact has not made the rest of it true.
-  const record = stamped(deps, { ...existing, fact, source: input.source ?? existing.source }, existing.trust);
+  // A live task record keeps the session that wrote it, so a renewal in another session does not take it from that
+  // session's end.
+  const { session: owner, ...fields } = existing;
+  const record = stamped(deps, { ...fields, fact, source: input.source ?? existing.source }, existing.trust, owner);
   if (typeof record === "string") return error(record);
   const refused = refusedText(deps, record);
   if (refused !== undefined) return error(refused);

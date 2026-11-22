@@ -856,7 +856,7 @@ export function memoryHarness(registry: ToolRegistry, model: Model, root: string
 }
 ```
 
-**One file holds one record.** A `MemoryRecord` has a `subject`, the `fact`, a `source` (a `file:line`, a URL or the user's own words), a `type` (`project`, `task` or `preference`), the `created` and `validated` dates, an `expires` date (`null` for a preference that holds until it is changed) and a `trust` of `trusted` or `low`. A task record also names its `session`. The file is Markdown: front matter between two `---` lines, one field per line with its value as a JSON string or `null`, then the fact as the body.
+**One file holds one record.** A `MemoryRecord` has a `subject`, the `fact`, a `source` (a `file:line`, a URL or the user's own words), a `type` (`project`, `task` or `preference`), the `created` and `validated` dates, an `expires` date (`null` for a preference that holds until it is changed) and a `trust` of `trusted` or `low`. A task record also names its `session`, the one whose `endSession()` expires it. A change or a renewal from another session keeps that name, and `endSession()` returns without a change when the folder is refused, as the index does. The file is Markdown: front matter between two `---` lines, one field per line with its value as a JSON string or `null`, then the fact as the body.
 
 ```md
 ---
@@ -889,7 +889,7 @@ A `view` never moves `validated`. A `create` or a `str_replace` sets it to now, 
 
 **The built-in `write` and `edit` tools can't write the memory folder.** The extension's `beforeToolCall` gate denies a `write` or an `edit` whose path, resolved against the root and compared without case, is in `.agents/memory/`, so a record can't skip the memory tool's trust and secret checks, and the bookkeeping files can't be written over. The gate reads only those two tools' paths. `bash`, and any tool whose writes it can't read, can still write the folder, and a link to the folder from elsewhere in the project is not seen. A record carries no mark of the tool that wrote it, so a record planted that way reads like any other, though its expiry is still capped by its type and trust.
 
-**A delete marks the calls that held the record.** The extension remembers each call that wrote or returned a record: every `memory` call on it, and any other tool's call, such as a `read` of the record's file, whose input or result names `.agents/memory/` and whose result holds the fact verbatim. An expired record counts too, because its file stays readable until a `create` or a `delete` replaces it. Tracking never fails the other tool's call: when the folder is refused or the bookkeeping can't be read, the call stays unmarked and its result reaches the model unchanged. A record keeps its newest 100 calls, and the calls file stays under 2 MiB. Older calls, and the calls of a record whose file another tool removed, go to the purge list early rather than being dropped. A calls file the extension can't read is moved to `.calls-unread.json`, and memory keeps working without the calls it held. A `delete` adds those calls to the purge list, and `readPurgeMarks(files)` returns them as `PurgeMark`s, each a run id, a call id and a tool name. `purgeSession()` from `@buildanagent/harness/session` rewrites a session so that no marked entry keeps its content, and `clearPurgeMarks()` removes the marks it is given once every session that held them is purged. The clear waits for the memory calls of any extension in the process over the same `MemoryFiles` object, and `fileMemoryFiles()` returns one object per root, so a delete that runs meanwhile keeps its marks. Nothing coordinates two processes, so clear where no session over the folder runs in another. The pass below purges each session, a fork before the session it continues, and clears only the marks the purges applied:
+**A delete marks the calls that held the record.** The extension remembers each call that wrote or returned a record: every `memory` call on it, and any other tool's call whose result holds the record, whatever its input names: a `read` of the record's file, `cd .agents && cat memory/x.md`, or a copy of the fact elsewhere. A result holds a record when it holds the fact, a line of the fact or the file's `subject` line verbatim, or the fact with its white space collapsed, as a result that wraps the fact's lines shows it. A text under 12 characters is too likely to occur by chance, so a fact that short is marked only on the `memory` tool's own calls, and a cut result that keeps none of a record's lines is not marked. An expired record counts too, because its file stays readable until a `create` or a `delete` replaces it. Tracking never fails the other tool's call: when the folder is refused or the bookkeeping can't be read, the call stays unmarked and its result reaches the model unchanged. A record keeps its newest 100 calls, and the calls file stays under 2 MiB. Older calls, and the calls of a record whose file another tool removed, go to the purge list early rather than being dropped. A calls file the extension can't read is moved to `.calls-unread.json`, and memory keeps working without the calls it held. A `delete` adds those calls to the purge list, and `readPurgeMarks(files)` returns them as `PurgeMark`s, each a run id, a call id, a tool name and the date it joined the list. `purgeSession()` from `@buildanagent/harness/session` rewrites a session so that no marked entry keeps its content, and `clearPurgeMarks()` removes the marks it is given once every session that held them is purged. Its `unmatched` option takes the marks a pass over every session found in none, such as a mark whose call never reached the log, and drops each once it has been on the list for 30 days, so the list can't grow for good and a pending delete is not dropped early. The clear waits for the memory calls of any extension in the process over the same `MemoryFiles` object, and `fileMemoryFiles()` returns one object per root, so a delete that runs meanwhile keeps its marks. Nothing coordinates two processes, so clear where no session over the folder runs in another. The pass below purges each session, a fork before the session it continues, deletes the spill files of the purged results, and clears the marks the purges applied:
 
 ```ts
 /**
@@ -902,13 +902,16 @@ async function purgeRound(
   sessionIds: readonly string[],
   marks: readonly PurgeMark[],
   applied: PurgeMark[],
+  removeSpill: (path: string) => Promise<void>,
 ) {
   const waiting: string[] = [];
   let conflict: unknown;
   for (const sessionId of sessionIds) {
     try {
       const result = await purgeSession({ ...log, key: { userId, sessionId }, marks });
-      if (result.purged) applied.push(...result.marks);
+      if (!result.purged) continue;
+      applied.push(...result.marks);
+      for (const path of result.spills) await removeSpill(path);
     } catch (error) {
       if (!isHarnessError(error) || error.code !== "session_conflict") throw error;
       waiting.push(sessionId);
@@ -919,24 +922,33 @@ async function purgeRound(
 }
 
 /**
- * Purges every deleted record from each of the user's sessions, then clears only the marks those purges applied. A
- * session that a fork continues waits until the fork is purged, so the order of `sessionIds` does not matter.
+ * Purges every deleted record from each of the user's sessions, then clears the marks those purges applied. A session
+ * that a fork continues waits until the fork is purged, so the order of `sessionIds` does not matter. `sessionIds` must
+ * list every session that could hold a mark, because a mark the pass finds in none leaves the list after 30 days.
  */
-export async function purgeDeleted(root: string, log: Log, userId: string, sessionIds: readonly string[]) {
+export async function purgeDeleted(
+  root: string,
+  log: Log,
+  userId: string,
+  sessionIds: readonly string[],
+  removeSpill: (path: string) => Promise<void>,
+) {
   const files = fileMemoryFiles(root);
   const marks = await readPurgeMarks(files);
   const applied: PurgeMark[] = [];
   for (let pending = [...sessionIds]; pending.length > 0; ) {
-    const { waiting, conflict } = await purgeRound(log, userId, pending, marks, applied);
+    const { waiting, conflict } = await purgeRound(log, userId, pending, marks, applied, removeSpill);
     // No session was purged this round, so the forks they wait for are not among `sessionIds`.
     if (waiting.length === pending.length) throw conflict;
     pending = waiting;
   }
-  await clearPurgeMarks(files, applied);
+  // A session purged earlier holds nothing now, so a mark no purge applied this time held nothing in any session.
+  const unmatched = marks.filter((mark) => !applied.includes(mark));
+  await clearPurgeMarks(files, applied, { unmatched });
 }
 ```
 
-The purge writes the session's files again under new names, from the furthest file that holds a marked entry down to the current one. A marked call's input becomes `{}`, and its result's content becomes `PURGED_TEXT`, without its `details` or `spill`. Every entry keeps its base fields, so the session still rebuilds and each call still pairs with its result. Each new file is read back before the pointer moves, and only then are the session's old files deleted. A rewritten first file is written again under the session's id, replacing an earlier purge's copy there, so the session stays in the listing and no file under its id keeps the fact. A fork that continues one of those files must be purged first, or the purge throws `session_conflict` before it writes anything. A fork's purge copies the part it shares with its parent and leaves the parent's file for the parent's own purge. A later purge of the fork deletes only the fork's own copies, never the parent's files, and the retention purge reads the same ownership. The [session format page](docs/session-format.md#a-memory-delete-marks-entries-and-a-targeted-purge-removes-their-content) says what a purge leaves behind. Two copies stay: a summary that compaction wrote before the delete, and the model's own text where it repeated the fact. The retention purge removes both with the whole session.
+The purge writes the session's files again under new names, from the furthest file that holds a marked entry down to the current one. A mark matches by call id and tool, and by run id where the log shows the run, so a provider that reuses `call_1` in every session gets only the marked run's call blanked. A marked call's input becomes `{}`, and its result's content becomes `PURGED_TEXT`, without its `details` or `spill`. The spill file still holds the full text, so the result's `spills` lists each one for the caller to delete with the spill store that wrote it. Every entry keeps its base fields, so the session still rebuilds and each call still pairs with its result. Each new file is read back before the pointer moves, and only then are the session's old files deleted. A rewritten first file is written again under the session's id, replacing an earlier purge's copy there, so the session stays in the listing and no file under its id keeps the fact. A fork that continues one of those files must be purged first, or the purge throws `session_conflict` before it writes anything. A fork's purge copies the part it shares with its parent and leaves the parent's file for the parent's own purge. A later purge of the fork deletes only the fork's own copies, never the parent's files, and the retention purge reads the same ownership. The [session format page](docs/session-format.md#a-memory-delete-marks-entries-and-a-targeted-purge-removes-their-content) says what a purge leaves behind. Two kinds of entry can still hold the fact: a summary that compaction wrote after the marked call, and the model's own text where it repeated the fact. The purge leaves both as they are and lists them in the result's `residual`, by entry id, as `compactions` and `assistantBlocks`. It counts them without reading them, so a listed entry may hold nothing of the fact. The retention purge removes them with the whole session.
 
 ## A call that needs a person is a signed pause that any process with the key file can resume
 

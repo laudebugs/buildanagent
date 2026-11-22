@@ -44,13 +44,16 @@ async function purgeRound(
   sessionIds: readonly string[],
   marks: readonly PurgeMark[],
   applied: PurgeMark[],
+  removeSpill: (path: string) => Promise<void>,
 ) {
   const waiting: string[] = [];
   let conflict: unknown;
   for (const sessionId of sessionIds) {
     try {
       const result = await purgeSession({ ...log, key: { userId, sessionId }, marks });
-      if (result.purged) applied.push(...result.marks);
+      if (!result.purged) continue;
+      applied.push(...result.marks);
+      for (const path of result.spills) await removeSpill(path);
     } catch (error) {
       if (!isHarnessError(error) || error.code !== "session_conflict") throw error;
       waiting.push(sessionId);
@@ -61,18 +64,27 @@ async function purgeRound(
 }
 
 /**
- * Purges every deleted record from each of the user's sessions, then clears only the marks those purges applied. A
- * session that a fork continues waits until the fork is purged, so the order of `sessionIds` does not matter.
+ * Purges every deleted record from each of the user's sessions, then clears the marks those purges applied. A session
+ * that a fork continues waits until the fork is purged, so the order of `sessionIds` does not matter. `sessionIds` must
+ * list every session that could hold a mark, because a mark the pass finds in none leaves the list after 30 days.
  */
-export async function purgeDeleted(root: string, log: Log, userId: string, sessionIds: readonly string[]) {
+export async function purgeDeleted(
+  root: string,
+  log: Log,
+  userId: string,
+  sessionIds: readonly string[],
+  removeSpill: (path: string) => Promise<void>,
+) {
   const files = fileMemoryFiles(root);
   const marks = await readPurgeMarks(files);
   const applied: PurgeMark[] = [];
   for (let pending = [...sessionIds]; pending.length > 0; ) {
-    const { waiting, conflict } = await purgeRound(log, userId, pending, marks, applied);
+    const { waiting, conflict } = await purgeRound(log, userId, pending, marks, applied, removeSpill);
     // No session was purged this round, so the forks they wait for are not among `sessionIds`.
     if (waiting.length === pending.length) throw conflict;
     pending = waiting;
   }
-  await clearPurgeMarks(files, applied);
+  // A session purged earlier holds nothing now, so a mark no purge applied this time held nothing in any session.
+  const unmatched = marks.filter((mark) => !applied.includes(mark));
+  await clearPurgeMarks(files, applied, { unmatched });
 }

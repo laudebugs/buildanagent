@@ -64,7 +64,7 @@ test("a record stored in one session is in the next one's index, and a delete an
   const first = second.calls[0]?.context.messages[0];
   assert.ok(JSON.stringify(first).includes("- Release notes (project, trusted): .agents/memory/releases.md"));
   await run("s3", [{ command: "delete", path: ".agents/memory/releases.md" }]);
-  await purgeDeleted(root, log, "ada", ["s1", "s2", "s3"]);
+  await purgeDeleted(root, log, "ada", ["s1", "s2", "s3"], async () => undefined);
   for (const name of readdirSync(join(root, "sessions/ada"))) {
     assert.ok(!readFileSync(join(root, "sessions/ada", name), "utf8").includes(FACT), name);
   }
@@ -86,7 +86,7 @@ test("the purge pass purges a fork before its parent whatever the order, and cle
   assert.equal(fork.key.sessionId, "f1");
   await run("s9", [{ command: "view", path: CREATE.path }], "b1");
   await run("s3", [{ command: "delete", path: CREATE.path }], "d1");
-  await purgeDeleted(root, log, "ada", ["s1", "f1", "s3"]);
+  await purgeDeleted(root, log, "ada", ["s1", "f1", "s3"], async () => undefined);
   for (const name of readdirSync(join(root, "sessions/ada"))) {
     if (name.startsWith("s9")) continue;
     assert.ok(!readFileSync(join(root, "sessions/ada", name), "utf8").includes(FACT), name);

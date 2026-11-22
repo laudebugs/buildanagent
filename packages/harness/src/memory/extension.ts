@@ -13,7 +13,7 @@ import type { ToolRegistry } from "../tools/types.js";
 import type { MemoryFiles } from "./files.js";
 import { indexText } from "./index-text.js";
 import { MEMORY_DIR } from "./paths.js";
-import { formatRecord } from "./record.js";
+import { formatRecord, type MemoryRecord } from "./record.js";
 import { RecordStore } from "./store.js";
 import { MEMORY_TOOL, memoryTool } from "./tool.js";
 
@@ -76,8 +76,29 @@ function callNames(messages: readonly Message[]): Map<string, string> {
 const resultText = (content: readonly { readonly type: string; readonly text?: string }[]): string =>
   content.map((block) => (block.type === "text" ? (block.text ?? "") : "")).join("\n");
 
-// A fact shorter than this is too likely to occur by chance in an unrelated result to mark that result.
+// A fact, or a line of one, shorter than this is too likely to occur by chance in an unrelated result to mark it.
 const MIN_TRACKED_FACT = 12;
+
+const collapsed = (text: string): string => text.replace(/\s+/g, " ").trim();
+
+/**
+ * The texts of a record that mark a result holding any of them: the fact, each of its lines, and its file's `subject`
+ * line, which a cut result that shows the file's start still holds. A text shorter than `MIN_TRACKED_FACT` is left out.
+ */
+function tracedLines(record: MemoryRecord): string[] {
+  const lines = [record.fact, ...record.fact.split("\n"), `subject: ${JSON.stringify(record.subject)}`];
+  return lines.map((line) => line.trim()).filter((line) => line.length >= MIN_TRACKED_FACT);
+}
+
+/**
+ * Whether `text` holds the record: one of its traced lines verbatim, or its whole fact with the white space collapsed
+ * on both sides, as a result that wraps the fact's lines shows it.
+ */
+function holdsRecord(text: string, flat: string, record: MemoryRecord): boolean {
+  if (tracedLines(record).some((line) => text.includes(line))) return true;
+  const fact = collapsed(record.fact);
+  return fact.length >= MIN_TRACKED_FACT && flat.includes(fact);
+}
 
 /** Why a record's text can't be stored, for a text that holds a secret the host named or a credential's shape. */
 function refuserOf(secrets: readonly string[]): (text: string) => string | undefined {
@@ -122,21 +143,21 @@ function indexCache(store: RecordStore, now: () => Date): (runId: string, stepIn
 }
 
 /**
- * Marks a call of another tool whose result holds a record's fact verbatim, when its input or its result names the
- * memory folder, so a `read`, `grep` or `bash` of a record's file is purged with the record. An expired record counts
- * too, because its file stays readable until a `create` or a `delete` replaces it. Tracking never fails the call: a
- * folder the file store refuses, or bookkeeping it can't read, leaves the call unmarked and its result as it was,
- * because the result belongs to another tool and memory is then unusable anyway.
+ * Marks a call of another tool whose result holds a record, whatever its input names, so a `read`, `grep` or `bash`
+ * of a record's file, `cd .agents && cat memory/x.md` included, is purged with the record. A result holds a record when
+ * it holds the fact, a line of the fact or the file's `subject` line verbatim, or the fact with its white space
+ * collapsed; a fact under 12 characters, and a cut result that keeps no such line, can't be matched. An expired record
+ * counts too, because its file stays readable until a `create` or a `delete` replaces it. Tracking never fails the
+ * call: a folder the file store refuses, or bookkeeping it can't read, leaves the call unmarked and its result as it
+ * was, because the result belongs to another tool and memory is then unusable anyway.
  */
 function tracker(store: RecordStore) {
-  return async (runId: string, callId: string, tool: string, input: unknown, text: string): Promise<void> => {
-    if (tool === MEMORY_TOOL) return;
-    if (!text.includes(MEMORY_DIR) && !JSON.stringify(input ?? null).includes(MEMORY_DIR)) return;
+  return async (runId: string, callId: string, tool: string, text: string): Promise<void> => {
+    if (tool === MEMORY_TOOL || text.length < MIN_TRACKED_FACT) return;
+    const flat = collapsed(text);
     try {
       await store.exclusive(async () => {
-        const held = (await store.present()).filter(
-          ({ record }) => record.fact.length >= MIN_TRACKED_FACT && text.includes(record.fact),
-        );
+        const held = (await store.present()).filter(({ record }) => holdsRecord(text, flat, record));
         await store.touched(
           held.map(({ name }) => name),
           { runId, callId, tool },
@@ -169,15 +190,22 @@ function memoryWriteRefused(root: string, tool: string, input: unknown): string 
     : undefined;
 }
 
-/** Expires every live task record that `sessionId` wrote, as of now. */
-function endTasks(store: RecordStore, now: () => Date, sessionId: string): Promise<void> {
-  return store.exclusive(async () => {
-    const at = now();
-    for (const { name, record } of await store.live(at)) {
-      if (record.type !== "task" || record.session !== sessionId) continue;
-      await store.files.write(name, formatRecord({ ...record, expires: at.toISOString() }));
-    }
-  });
+/**
+ * Expires every live task record that `sessionId` wrote, as of now. A folder the file store refuses, such as a memory
+ * folder that is a link, holds no record this session could have written, so the call returns as `readIndex()` does.
+ */
+async function endTasks(store: RecordStore, now: () => Date, sessionId: string): Promise<void> {
+  try {
+    await store.exclusive(async () => {
+      const at = now();
+      for (const { name, record } of await store.live(at)) {
+        if (record.type !== "task" || record.session !== sessionId) continue;
+        await store.files.write(name, formatRecord({ ...record, expires: at.toISOString() }));
+      }
+    });
+  } catch (error) {
+    if (!isHarnessError(error) || error.code !== "memory_path_refused") throw error;
+  }
 }
 
 /**
@@ -197,8 +225,9 @@ function endTasks(store: RecordStore, now: () => Date, sessionId: string): Promi
  *
  * A `delete` removes the record and adds the calls that wrote or returned it to the purge list, which
  * `readPurgeMarks()` reads for `purgeSession()` and `pruneSessions()`. The calls of other tools whose result holds a
- * record's fact verbatim, such as a `read` of the record's file, are marked too, an expired record's included, and a
- * failure to mark one never fails that call. Throws a `HarnessError` with code
+ * record, such as a `read` of the record's file, are marked too, an expired record's included, and a failure to mark
+ * one never fails that call. A fact under 12 characters can't be told from chance text, so only the memory tool's own
+ * calls are marked for it. `endSession()` returns without a change when the file store refuses the folder. Throws a `HarnessError` with code
  * `invalid_memory_options` for a `root` that is not absolute.
  */
 export function memoryExtension(options: MemoryExtensionOptions): MemoryExtension {
@@ -207,7 +236,7 @@ export function memoryExtension(options: MemoryExtensionOptions): MemoryExtensio
   }
   const now = options.clock ?? (() => new Date());
   const sessionId = options.sessionId ?? globalThis.crypto.randomUUID();
-  const store = new RecordStore(options.files);
+  const store = new RecordStore(options.files, now);
   let tainted = false;
   const untrusted = (tool: string): boolean =>
     tool !== MEMORY_TOOL && (options.registry.get(tool)?.outputTrust ?? "untrusted") === "untrusted";
@@ -252,7 +281,7 @@ export function memoryExtension(options: MemoryExtensionOptions): MemoryExtensio
       },
       async afterToolCall(event) {
         if (untrusted(event.tool)) tainted = true;
-        await track(event.runId, event.callId, event.tool, event.input, resultText(event.result.content));
+        await track(event.runId, event.callId, event.tool, resultText(event.result.content));
         return undefined;
       },
     },

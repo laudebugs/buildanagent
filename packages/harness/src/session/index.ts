@@ -85,6 +85,7 @@ export {
   marksIn,
   PURGED_TEXT,
   type PurgeMark,
+  type PurgeResidual,
   type PurgeSessionOptions,
   type PurgeSessionResult,
   purgeSession,
