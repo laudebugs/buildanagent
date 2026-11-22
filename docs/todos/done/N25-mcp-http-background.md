@@ -129,7 +129,7 @@ History: plan review 2 (2026-11-19) replaced the silent re-register on `tools/li
 - The URL hash is not salted, so a reader of the log can confirm a guessed URL; secrets belong in `headers`.
 - The lock file sits in the project it pins, as N22 says, and a write from another process at the same moment can lose one of two writes.
 
-**Other changes.** No dependency was added; `pnpm-lock.yaml` and every `package.json` are unchanged. The harness, protocol and CLI stay private, so the changeset gate asks for nothing. The protocol's union, zod mirror, JSON Schema, fixtures and the harness's copy of `protocol.schema.json` changed together, and `docs/session-format.md` documents the new member. The gateway's portability scan and Biome's `noRestrictedGlobals` list `mcp/http-node.ts` beside `mcp/stdio.ts`. ADR 0021 records the transports in its consequences, and HD14 has an N25 revision.
+**Other changes.** No dependency was added; `pnpm-lock.yaml` and every `package.json` are unchanged. L11 made the harness, the protocol and the CLI public while this todo was open, so `.changeset/harness-mcp-remote.md` releases the harness and the protocol as a `minor` change, and the fixed group moves the other four. The protocol's union, zod mirror, JSON Schema, fixtures and the harness's copy of `protocol.schema.json` changed together, and `docs/session-format.md` documents the new member. The gateway's portability scan and Biome's `noRestrictedGlobals` list `mcp/http-node.ts` beside `mcp/stdio.ts`. ADR 0021 records the transports in its consequences, and HD14 has an N25 revision.
 
 **Open questions for the owner.**
 
