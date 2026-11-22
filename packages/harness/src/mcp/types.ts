@@ -43,11 +43,17 @@ export interface McpStdioTransport {
  * Its shape is the MCP SDK's transport, so that SDK's own transports fit it. Messages are JSON-RPC objects.
  */
 export interface McpChannel {
+  /** Opens the channel. The client calls it once, after it has set the three handlers. */
   start(): Promise<void>;
+  /** Sends one message to the server. */
   send(message: object): Promise<void>;
+  /** Closes the channel, and calls `onclose`. */
   close(): Promise<void>;
+  /** Set by the client: called with each message the server sends. */
   onmessage?: ((message: object) => void) | undefined;
+  /** Set by the client: called once when the channel closes, whoever closed it. */
   onclose?: (() => void) | undefined;
+  /** Set by the client: called with a problem that does not close the channel. */
   onerror?: ((error: Error) => void) | undefined;
 }
 
