@@ -564,5 +564,23 @@
     "kind": "docs",
     "asOf": "November 2026",
     "verifiedIn": "apps/manual/fact-checks/permissions-sandboxes-and-credentials.md"
+  },
+  {
+    "id": "mcp-elicitation",
+    "title": "Elicitation",
+    "publisher": "Model Context Protocol, specification 2026-07-28",
+    "url": "https://modelcontextprotocol.io/specification/2026-07-28/client/elicitation",
+    "kind": "spec",
+    "asOf": "November 2026",
+    "verifiedIn": "docs/research/connectors/fact-check-agent-connectors.md"
+  },
+  {
+    "id": "claude-managed-agents-vaults",
+    "title": "Vaults",
+    "publisher": "Anthropic, Claude Managed Agents",
+    "url": "https://platform.claude.com/docs/en/managed-agents/vaults.md",
+    "kind": "docs",
+    "asOf": "November 2026",
+    "verifiedIn": "docs/research/connectors/fact-check-agent-connectors.md"
   }
 ]

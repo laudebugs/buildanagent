@@ -158,5 +158,21 @@
     "chapter": "permissions-sandboxes-and-credentials",
     "illustration": "glovebox",
     "breaks": "A glovebox keeps things in and does not filter what leaves; our sandbox also decides which network hosts a command may reach, and a determined process can still break out of one that shares the host's kernel."
+  },
+  {
+    "id": "valet-key",
+    "concept": "credential boundary",
+    "analogy": "a valet key that moves the car but leaves the boot locked",
+    "chapter": "permissions-sandboxes-and-credentials",
+    "illustration": null,
+    "breaks": "A valet key is a real key with fewer powers, held by the attendant; the sandbox never holds the secret at all, and the host adds it at egress."
+  },
+  {
+    "id": "coat-check",
+    "concept": "connector token custody",
+    "analogy": "a coat check",
+    "chapter": "permissions-sandboxes-and-credentials",
+    "illustration": null,
+    "breaks": "A coat stays the same coat; tokens expire and refresh, and the counter must also know whose coat is whose, because one user's token must never answer another user's request."
   }
 ]
