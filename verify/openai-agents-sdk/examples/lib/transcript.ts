@@ -48,6 +48,18 @@ function message(item: Item): Message {
       parts: [{ type: "tool-result", id: String(item.callId), name: String(item.name), output: outputOf(item.output) }],
     };
   }
+  // A computer call carries its actions, one or a batch, and its result is the screenshot that follows them.
+  if (item.type === "computer_call") {
+    const input = Array.isArray(item.actions) && item.actions.length > 0 ? item.actions : item.action;
+    return { role: "assistant", parts: [{ type: "tool-call", id: String(item.callId), name: "computer", input }] };
+  }
+  if (item.type === "computer_call_result") {
+    const { data } = (item.output ?? {}) as { data?: unknown };
+    return {
+      role: "tool",
+      parts: [{ type: "tool-result", id: String(item.callId), name: "computer", output: data }],
+    };
+  }
   if (item.type === "reasoning") {
     return { role: "assistant", parts: [{ type: "reasoning", text: contentParts(item.content).map(textOf).join("") }] };
   }

@@ -106,5 +106,14 @@
     "ms": 1032,
     "modelCalls": 0,
     "tail": "ok - the subagent read both sources in its own context\nok - both models are offered only the research and read_source function tools\norchestrator 800, subagent 2400, run 3200 tokens\nwith these scripted counts, the run's total is 4x the orchestrator's own\nok - each run's rawResponses hold only that run's own model responses, so each reports its own usage\nok - the orchestrator's run usage counts the subagent's tokens too\nok - the subagent's state.usage is the shared running total: the orchestrator's first call plus the subagent's calls\nok - the orchestrator answers from the summary"
+  },
+  {
+    "id": "13-computer-use-approval",
+    "file": "/home/user/buildanagent/verify/openai-agents-sdk/examples/13-computer-use-approval.ts",
+    "outcome": "ran",
+    "exit": 0,
+    "ms": 1172,
+    "modelCalls": 0,
+    "tail": "ok - needsApproval was asked about every action, the batched ones included\nok - after approve() and resume, the Pay click reaches the computer\nok - the approved click runs once, followed by one screenshot\nok - the model's last request carries the receipt screenshot as the result of call c3\nok - the resumed run finishes with the model's answer\nok - after reject(), the computer receives no further action\nok - the model still gets its next turn after the rejection\nok - the model is offered one tool, the computer tool: no shell, file-editing or function tool"
   }
 ]

@@ -1,0 +1,486 @@
+{
+  "format": 2,
+  "example": "13-computer-use-approval",
+  "file": "verify/openai-agents-sdk/examples/13-computer-use-approval.ts",
+  "harness": "verify/openai-agents-sdk",
+  "pin": "@openai/agents@0.21.0",
+  "mock": "@openai/agents@0.21.0",
+  "events": [
+    {
+      "kind": "request",
+      "line": 93,
+      "model": "model-1",
+      "repeated": 0,
+      "messages": [
+        {
+          "role": "user",
+          "parts": [
+            {
+              "type": "text",
+              "text": "Pay invoice ACME-1042"
+            }
+          ]
+        }
+      ],
+      "tools": [
+        "computer_use_preview"
+      ]
+    },
+    {
+      "kind": "response",
+      "line": 93,
+      "model": "model-1",
+      "message": {
+        "role": "assistant",
+        "parts": [
+          {
+            "type": "tool-call",
+            "id": "c1",
+            "name": "computer",
+            "input": [
+              {
+                "type": "click",
+                "x": 120,
+                "y": 80,
+                "button": "left"
+              }
+            ]
+          }
+        ]
+      },
+      "finish": "tool-calls"
+    },
+    {
+      "kind": "request",
+      "line": 93,
+      "model": "model-1",
+      "repeated": 2,
+      "messages": [
+        {
+          "role": "tool",
+          "parts": [
+            {
+              "type": "tool-result",
+              "id": "c1",
+              "name": "computer",
+              "output": "data:image/png;base64,c2NyZWVuOmludm9pY2UtZW1wdHk="
+            }
+          ]
+        }
+      ],
+      "tools": [
+        "computer_use_preview"
+      ]
+    },
+    {
+      "kind": "response",
+      "line": 93,
+      "model": "model-1",
+      "message": {
+        "role": "assistant",
+        "parts": [
+          {
+            "type": "tool-call",
+            "id": "c2",
+            "name": "computer",
+            "input": [
+              {
+                "type": "type",
+                "text": "ACME-1042"
+              },
+              {
+                "type": "keypress",
+                "keys": [
+                  "Tab"
+                ]
+              }
+            ]
+          }
+        ]
+      },
+      "finish": "tool-calls"
+    },
+    {
+      "kind": "request",
+      "line": 93,
+      "model": "model-1",
+      "repeated": 4,
+      "messages": [
+        {
+          "role": "tool",
+          "parts": [
+            {
+              "type": "tool-result",
+              "id": "c2",
+              "name": "computer",
+              "output": "data:image/png;base64,c2NyZWVuOmludm9pY2UtZmlsbGVk"
+            }
+          ]
+        }
+      ],
+      "tools": [
+        "computer_use_preview"
+      ]
+    },
+    {
+      "kind": "response",
+      "line": 93,
+      "model": "model-1",
+      "message": {
+        "role": "assistant",
+        "parts": [
+          {
+            "type": "tool-call",
+            "id": "c3",
+            "name": "computer",
+            "input": [
+              {
+                "type": "click",
+                "x": 410,
+                "y": 305,
+                "button": "left"
+              }
+            ]
+          }
+        ]
+      },
+      "finish": "tool-calls"
+    },
+    {
+      "kind": "check",
+      "line": 95,
+      "message": "the run pauses with one interruption",
+      "pass": true
+    },
+    {
+      "kind": "check",
+      "line": 97,
+      "message": "the interruption is the model's Pay click, call c3",
+      "pass": true
+    },
+    {
+      "kind": "check",
+      "line": 102,
+      "message": "before the pause the computer ran only the first two calls: one screenshot after each call, not after each action",
+      "pass": true
+    },
+    {
+      "kind": "check",
+      "line": 106,
+      "message": "the Pay click has not reached the computer while the run is paused",
+      "pass": true
+    },
+    {
+      "kind": "check",
+      "line": 112,
+      "message": "each call's result is the fixture screenshot of the page after its actions: empty after the click, filled after the typing",
+      "pass": true
+    },
+    {
+      "kind": "check",
+      "line": 117,
+      "message": "needsApproval was asked about every action, the batched ones included",
+      "pass": true
+    },
+    {
+      "kind": "request",
+      "line": 124,
+      "model": "model-1",
+      "repeated": 6,
+      "messages": [
+        {
+          "role": "tool",
+          "parts": [
+            {
+              "type": "tool-result",
+              "id": "c3",
+              "name": "computer",
+              "output": "data:image/png;base64,c2NyZWVuOnJlY2VpcHQ="
+            }
+          ]
+        }
+      ],
+      "tools": [
+        "computer_use_preview"
+      ]
+    },
+    {
+      "kind": "response",
+      "line": 124,
+      "model": "model-1",
+      "message": {
+        "role": "assistant",
+        "parts": [
+          {
+            "type": "text",
+            "text": "Paid invoice ACME-1042."
+          }
+        ]
+      },
+      "finish": "stop"
+    },
+    {
+      "kind": "check",
+      "line": 126,
+      "message": "after approve() and resume, the Pay click reaches the computer",
+      "pass": true
+    },
+    {
+      "kind": "check",
+      "line": 127,
+      "message": "the approved click runs once, followed by one screenshot",
+      "pass": true
+    },
+    {
+      "kind": "check",
+      "line": 132,
+      "message": "the model's last request carries the receipt screenshot as the result of call c3",
+      "pass": true
+    },
+    {
+      "kind": "check",
+      "line": 136,
+      "message": "the resumed run finishes with the model's answer",
+      "pass": true
+    },
+    {
+      "kind": "request",
+      "line": 143,
+      "model": "model-2",
+      "repeated": 0,
+      "messages": [
+        {
+          "role": "user",
+          "parts": [
+            {
+              "type": "text",
+              "text": "Pay invoice ACME-1042"
+            }
+          ]
+        }
+      ],
+      "tools": [
+        "computer_use_preview"
+      ]
+    },
+    {
+      "kind": "response",
+      "line": 143,
+      "model": "model-2",
+      "message": {
+        "role": "assistant",
+        "parts": [
+          {
+            "type": "tool-call",
+            "id": "c1",
+            "name": "computer",
+            "input": [
+              {
+                "type": "click",
+                "x": 120,
+                "y": 80,
+                "button": "left"
+              }
+            ]
+          }
+        ]
+      },
+      "finish": "tool-calls"
+    },
+    {
+      "kind": "request",
+      "line": 143,
+      "model": "model-2",
+      "repeated": 2,
+      "messages": [
+        {
+          "role": "tool",
+          "parts": [
+            {
+              "type": "tool-result",
+              "id": "c1",
+              "name": "computer",
+              "output": "data:image/png;base64,c2NyZWVuOmludm9pY2UtZW1wdHk="
+            }
+          ]
+        }
+      ],
+      "tools": [
+        "computer_use_preview"
+      ]
+    },
+    {
+      "kind": "response",
+      "line": 143,
+      "model": "model-2",
+      "message": {
+        "role": "assistant",
+        "parts": [
+          {
+            "type": "tool-call",
+            "id": "c2",
+            "name": "computer",
+            "input": [
+              {
+                "type": "type",
+                "text": "ACME-1042"
+              },
+              {
+                "type": "keypress",
+                "keys": [
+                  "Tab"
+                ]
+              }
+            ]
+          }
+        ]
+      },
+      "finish": "tool-calls"
+    },
+    {
+      "kind": "request",
+      "line": 143,
+      "model": "model-2",
+      "repeated": 4,
+      "messages": [
+        {
+          "role": "tool",
+          "parts": [
+            {
+              "type": "tool-result",
+              "id": "c2",
+              "name": "computer",
+              "output": "data:image/png;base64,c2NyZWVuOmludm9pY2UtZmlsbGVk"
+            }
+          ]
+        }
+      ],
+      "tools": [
+        "computer_use_preview"
+      ]
+    },
+    {
+      "kind": "response",
+      "line": 143,
+      "model": "model-2",
+      "message": {
+        "role": "assistant",
+        "parts": [
+          {
+            "type": "tool-call",
+            "id": "c3",
+            "name": "computer",
+            "input": [
+              {
+                "type": "click",
+                "x": 410,
+                "y": 305,
+                "button": "left"
+              }
+            ]
+          }
+        ]
+      },
+      "finish": "tool-calls"
+    },
+    {
+      "kind": "request",
+      "line": 146,
+      "model": "model-2",
+      "repeated": 6,
+      "messages": [
+        {
+          "role": "tool",
+          "parts": [
+            {
+              "type": "tool-result",
+              "id": "c3",
+              "name": "computer",
+              "output": "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR4nGP4z8DwHwAFAAH/iZk9HQAAAABJRU5ErkJggg=="
+            }
+          ]
+        },
+        {
+          "role": "assistant",
+          "parts": [
+            {
+              "type": "text",
+              "text": "Tool execution was not approved."
+            }
+          ]
+        }
+      ],
+      "tools": [
+        "computer_use_preview"
+      ]
+    },
+    {
+      "kind": "response",
+      "line": 146,
+      "model": "model-2",
+      "message": {
+        "role": "assistant",
+        "parts": [
+          {
+            "type": "text",
+            "text": "Paid invoice ACME-1042."
+          }
+        ]
+      },
+      "finish": "stop"
+    },
+    {
+      "kind": "check",
+      "line": 147,
+      "message": "after reject(), the computer receives no further action",
+      "pass": true
+    },
+    {
+      "kind": "check",
+      "line": 148,
+      "message": "the model still gets its next turn after the rejection",
+      "pass": true
+    },
+    {
+      "kind": "request",
+      "line": 156,
+      "model": "model-3",
+      "repeated": 0,
+      "messages": [
+        {
+          "role": "user",
+          "parts": [
+            {
+              "type": "text",
+              "text": "hi"
+            }
+          ]
+        }
+      ],
+      "tools": [
+        "computer_use_preview"
+      ]
+    },
+    {
+      "kind": "response",
+      "line": 156,
+      "model": "model-3",
+      "message": {
+        "role": "assistant",
+        "parts": [
+          {
+            "type": "text",
+            "text": "ok"
+          }
+        ]
+      },
+      "finish": "stop"
+    },
+    {
+      "kind": "check",
+      "line": 158,
+      "message": "the model is offered one tool, the computer tool: no shell, file-editing or function tool",
+      "pass": true
+    }
+  ]
+}

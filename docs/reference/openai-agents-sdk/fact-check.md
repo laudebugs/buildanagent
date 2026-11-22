@@ -35,7 +35,7 @@ I ran every example that imports the SDK, runs an agent, and passed Tier 1, 66 i
 
 Two harness faults surfaced on the way, and both are fixed. First, `examples/docs/package.json` lacks `"type": "module"`, so the copied files compiled as CommonJS and top-level `await` failed. Upstream only type-checks these files, and a reader's project would be ESM, so the harness marks the copies as ESM. Second, sandbox agents expose `exec_command`, `write_stdin` and `view_image` as ordinary *function* tools, which my type filter allowed. A replay shows the earlier runs only ever called `view_image`, with a placeholder path, and never `exec_command`. The scripted model now denies those tools by name.
 
-This tier has one deliberate limit. The scripted model calls only function tools you define, never hosted, computer, shell, apply-patch or sandbox tools. A pass therefore shows that a configuration loads and the loop completes, not that those tools behave as described.
+This tier has one deliberate limit. The scripted model calls only function tools you define, never hosted, computer, shell, apply-patch or sandbox tools. A pass therefore shows that a configuration loads and the loop completes, not that those tools behave as described. Our own example, [`13-computer-use-approval.ts`](../../../verify/openai-agents-sdk/examples/13-computer-use-approval.ts), lifts this limit for computer tools only: it scripts raw `computer_call` items through `modelResponse()` and checks the runner's execution and approval of them (T40). Hosted, shell, apply-patch and sandbox tools stay unchecked at this tier.
 
 ## Tier 3: every documented option exists, and a few package items are missing from the tables
 

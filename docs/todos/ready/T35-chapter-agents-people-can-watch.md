@@ -8,7 +8,7 @@
 | Status | `ready` |
 | Plan | [Book plan §4.2](../../plans/build-book.md#42-part-ii-in-depth-for-experienced-builders) |
 | Round / milestone | Round T (textbook), MT |
-| Depends on | [T5](../done/T5-book-interactive-listings.md), [T6](../done/T6-book-flat-figures.md), [T26](../done/T26-book-checked-inline-code.md), [T40](T40-example-computer-use.md) |
+| Depends on | [T5](../done/T5-book-interactive-listings.md), [T6](../done/T6-book-flat-figures.md), [T26](../done/T26-book-checked-inline-code.md), [T40](../done/T40-example-computer-use.md) |
 | Size | M |
 
 ## Goal
@@ -20,6 +20,7 @@ Write the chapter "Agents people can watch: UIs, browsers and taking over" (`age
 - [Agent UI research](../../research/agent-ui/agent-ui-research.md)
 - [Undo agent edits](../../research/agent-ui/undo-agent-edits.md)
 - [Browser use](../../research/browser-use/browser-use.md), including its watch-and-take-over section ([U16](../done/U16-watch-and-take-over-the-browser.md))
+- The computer-use example, `verify/openai-agents-sdk/examples/13-computer-use-approval.ts` ([T40](../done/T40-example-computer-use.md)), has regions `fake-computer`, `computer-tool`, `script`, `pause` and `resume`, with notes `consequential`, `batch`, `pay`, `save` and `pause`, and a transcript for a replay. Two limits carry into the prose. First, the computer is an in-memory fake and the model is scripted, so the example shows the SDK's computer-tool loop and approval flow, not how a real model or browser behaves; the browser reports and the real-browser change stay separate. Second, an action that throws gives the model an empty screenshot instead of an error, so a chapter that teaches failure handling must check the computer's own record ([fact-check](../../plans/reviews/fact-check-openai-computer-use-example.md), rows T40-5 to T40-9 and T40-11).
 - [Book plan BK21 and BK22](../../plans/build-book.md#bk21-every-section-is-fact-checked-before-the-next-is-drafted-accepted): the per-section workflow and the voice rules
 - `apps/manual/README.md` (from T3–T7 and T26): front matter, citations, listings, notes, tabs, replays, checked inline code, figures and the analogy register
 
@@ -29,7 +30,7 @@ Write the chapter "Agents people can watch: UIs, browsers and taking over" (`age
 
 - `apps/manual/src/content/chapters/agents-people-can-watch.md`, with `switchTo: [N44]` and `opening: question` in its front matter
 - Sections: Agent UIs render an event log, not a chat (agent UI research); Undo for agent edits; Browser use: accessibility snapshots, hosted browsers and vendor computer-use tools; Watching and taking over the browser (U16); Why the network and the credential are the browser's boundary
-- Listings and at least one replay from: `verify/vercel-ai-sdk/examples/06-streaming.ts` read as a UI event stream, `verify/cloudflare-agents/examples/04-chat-agent.ts`, the computer-use example from [T40](T40-example-computer-use.md)
+- Listings and at least one replay from: `verify/vercel-ai-sdk/examples/06-streaming.ts` read as a UI event stream, `verify/cloudflare-agents/examples/04-chat-agent.ts`, the computer-use example from [T40](../done/T40-example-computer-use.md)
 - Figures: a flat figure of one event log feeding a chat view, a plan view and a review view; a flat analogy illustration of the dual-control car
 - Exercise: Replay a run's event log into two different views and show they agree.
 - `apps/manual/fact-checks/agents-people-can-watch.md`, the chapter's claims log

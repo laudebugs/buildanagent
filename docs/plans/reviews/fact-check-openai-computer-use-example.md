@@ -1,0 +1,22 @@
+# Fact-check: the OpenAI Agents SDK computer-use example
+
+This log checks the claims that `verify/openai-agents-sdk/examples/13-computer-use-approval.ts`, its header comment, its README section and the note in the reference fact-check make on 2026-11-22 (todo T40), against the pinned `@openai/agents` 0.21.0 (`@openai/agents-core` 0.21.0), the mirrored docs at tag `v0.21.0` and the run itself. Paths under `dist/` are in `@openai/agents-core`.
+
+Legend: ✅ confirmed · ✏️ corrected while drafting · ⚠️ unverified or our own inference.
+
+| # | Claim | Verdict | Source and reason |
+| --- | --- | --- | --- |
+| T40-1 | `computerTool()` takes a `Computer` implementation and, by default, names the tool `computer_use_preview` with `type: "computer"` | ✅ | `dist/tool.mjs` lines 110–126; `guides/tools.mdx` line 75; the transcript records the offered tool as `computer_use_preview` and the last check finds one offered tool of type `computer` |
+| T40-2 | The runner hands a model output item of `type: 'computer_call'` to the agent's `computerTool`, and fails without one | ✅ | `dist/runner/modelOutputs.mjs` lines 506–519 (`errorMessage: 'Model produced computer action without a computer tool.'`); the example's run reaches the computer |
+| T40-3 | `ScriptedModel`'s helpers build only function calls and messages, so the computer calls are raw items inside `modelResponse()` | ✅ | `dist/testing/scriptedModel.d.ts` has item helpers `assistantMessage` and `functionCall` only (none for computer calls), and `modelResponse(response: ScriptedModelResponse)` accepts a bare `output` list (`ScriptedModelResponse = ModelResponse \| ModelResponse['output']`, line 11) |
+| T40-4 | A `computer_call` may carry one `action` or a batched `actions` list, executed in order | ✅ | `dist/types/protocol.mjs` lines 500 and 504 (`action` optional, `actions` min 1 optional); `dist/runner/toolExecution.mjs` lines 68–73 and 1100–1136 loop over the actions in order; `guides/tools.mdx` line 100; the example's recorded log shows type then keypress |
+| T40-5 | The runner takes one screenshot after a call's actions, not one per action; a `screenshot` action is a no-op | ✅ | `dist/runner/toolExecution.mjs` lines 1128–1152 (`case 'screenshot': break;`, then a single `computer.screenshot()`); the example's first check compares the log with `click, screenshot, type, keypress, screenshot` |
+| T40-6 | `needsApproval` is evaluated against each action of a call, and one true result pauses the call | ✅ | `dist/runner/toolExecution.mjs` lines 1594–1608 (`computerActions.map(...)`, `.some(...)`); `guides/human-in-the-loop.mdx` line 46; the example records the four actions asked about |
+| T40-7 | A paused computer call appears as `interruptions[0].rawItem` with `type: 'computer_call'` and its `callId`; `approve()` after `RunState.fromString` resumes it, and `reject()` stops it reaching the computer | ✅ | `guides/human-in-the-loop.mdx` line 46 (read `rawItem`); the example's checks on `callId` `c3`, on `page.paid` and on the log length after each path; `dist/runner/toolExecution.mjs` lines 1613–1627 build the rejection item without running the action |
+| T40-8 | The result item is a `computer_call_result` whose `output.data` is the screenshot as a `data:image/png;base64,` URL | ✅ | `dist/runner/toolExecution.mjs` lines 1737–1743; the example compares the next request's result item with the expected URL |
+| T40-9 | An action that throws is logged, and the model receives an empty screenshot | ✅ | `dist/runner/toolExecution.mjs` lines 1724–1740 (`output = ''`, `imageUrl = output ? … : ''`); read from source only, the example does not exercise it |
+| T40-10 | The offline example proves the SDK's loop and approval flow, not a real model's or browser's behaviour | ⚠️ | Our own inference from the scripted model and the in-memory `Computer`; no real model or browser ran |
+| T40-11 | The transcript recorder now writes `computer_call` as a tool call and `computer_call_result` as a tool result named `computer` | ✅ | `examples/lib/transcript.ts`; `results/transcripts/13-computer-use-approval.json` holds `tool-call` and `tool-result` parts with finish `tool-calls`, and no committed transcript of another example changed |
+| T40-12 | Correction of the header comment's first docs pointer: the guide has no "Computer use" heading; the section is "Computer tool specifics" | ✏️ | `guides/tools.mdx` line 90 (`#### Computer tool specifics`); the header now cites that heading |
+
+**Totals:** 12 claims: 10 ✅, 1 ✏️, 1 ⚠️.
