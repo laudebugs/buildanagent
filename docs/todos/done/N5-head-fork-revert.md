@@ -71,7 +71,7 @@ None beyond the plan's.
 The harness now has `Session`, with a persisted HEAD, fork, revert, child and migration by pointer, in `packages/harness/src/session/`. The plan's §3.2 sketch holds with the differences below.
 
 **Public API.**
-- `@buildanagent/harness/session`: `openSession()`, `Session` (`head()`, `path()`, `checkout()`, `append()`, `fork()`, `revert()`, `child()`, `file()`, `writable()`, `close()`), `SessionIndex` with `memoryIndex()`, `migrateSession()` with `Migration` and `MigrationResult`, and `ChildLink`.
+- `@buildanagent/harness/session`: `openSession()`, `listSessions()`, `Session` (`head()`, `path()`, `checkout()`, `append()`, `fork()`, `revert()`, `child()`, `file()`, `writable()`, `close()`), `SessionIndex` with `memoryIndex()`, `migrateSession()` with `Migration` and `MigrationResult`, `ChildLink`, and `DERIVED` and `isDerivedFile()`.
 - `@buildanagent/harness/session/jsonl`: `fileIndex({ dir })`.
 - `SessionStore` gains an optional `loadRaw(key)`, which both stores implement.
 - Four new `HarnessError` codes: `session_locked`, `session_read_only`, `entry_not_found` and `unsupported_format`.
@@ -91,7 +91,9 @@ The harness now has `Session`, with a persisted HEAD, fork, revert, child and mi
 - **A revert returns this session,** though the plan's signature says it returns a session: the logical session is the same, and only its file changed.
 - **Physical file names are the session id for a first file, and a generated id after.** A revert's file is `r<id>`, a migrated one `m<id>`, and a fork or child takes its new session id as its file name.
 - **A file in another format is `unsupported_format`.** `load()` reported it as `session_corrupt`, which sends a reader to look for damage in a whole file. It now says what it is.
-- **A migrated file's parent isn't migrated.** Only the current file moves, and a fork's header keeps naming its parent file in the format it has.
+- **A file that continues a parent can't be migrated.** Only the current file moves, so a fork's or a revert's parent would stay in the old format and make the session unreadable. `migrateSession()` refuses it, and takes the session's writer lock for the whole migration.
+- **A session's tree is its file plus the path to its fork point.** Entries the parent writes after a fork, and entries a revert went back from, aren't reachable from the new file, though they stay in the old one. Without this a fork could check out what it was never given, and a parent growing would change the fork.
+- **Derived files have names that start with `~`** (`DERIVED`), which `listSessions()` leaves out. The store itself still lists every file. Deleting a session across its files, and what a delete does to forks that name it as a parent, belong to retention (N33).
 
-**Left out.** Rebuilding a `Context` (N7), retention (N33), and migrations themselves, because only format 1 exists.
+**Left out.** Rebuilding a `Context` (N7), deleting a session across its files (N33), and migrations themselves, because only format 1 exists.
 

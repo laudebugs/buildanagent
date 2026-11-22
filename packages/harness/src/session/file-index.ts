@@ -39,7 +39,12 @@ export function fileIndex(options: FileIndexOptions): SessionIndex {
         throw error;
       });
       if (text === undefined) return undefined;
-      const file = (JSON.parse(text) as { file?: unknown }).file;
+      let file: unknown;
+      try {
+        file = (JSON.parse(text) as { file?: unknown }).file;
+      } catch (cause) {
+        throw new HarnessError("session_corrupt", "a session pointer is not valid JSON", { cause });
+      }
       if (typeof file !== "string") throw new HarnessError("session_corrupt", "a session pointer holds no file name");
       return file;
     },

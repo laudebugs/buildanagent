@@ -210,7 +210,12 @@ class JsonlStore implements SessionStore {
 
   async *#raw(key: SessionKey): AsyncGenerator<unknown> {
     const path = this.#pathOf(key);
-    const buffer = await this.#queued(path, () => readFile(path).catch(() => undefined));
+    const buffer = await this.#queued(path, () =>
+      readFile(path).catch((error: NodeJS.ErrnoException) => {
+        if (error.code === "ENOENT") return undefined;
+        throw error;
+      }),
+    );
     if (buffer === undefined) return;
     const complete = buffer
       .subarray(0, buffer.lastIndexOf(0x0a) + 1)

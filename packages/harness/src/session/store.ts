@@ -73,7 +73,7 @@ export interface SessionStore {
   delete(key: SessionKey): Promise<void>;
   /**
    * The entries as they were written, without the protocol's format check, so a migration can read a log from a format
-   * this harness no longer reads. A store that can't leave it out, and a migration then refuses.
+   * this harness no longer reads. A store that can't leave the check out doesn't offer it, and a migration refuses it.
    */
   loadRaw?(key: SessionKey): AsyncIterable<unknown>;
 }

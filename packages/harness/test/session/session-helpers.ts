@@ -31,7 +31,7 @@ afterAll(() => {
 });
 
 /** A lock for the memory backend: it holds a name and never expires. */
-function memoryLock(): SessionLock {
+export function memoryLock(): SessionLock {
   const held = new Set<string>();
   return {
     async acquire(key) {

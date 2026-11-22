@@ -4,7 +4,9 @@
  */
 import { FORMAT_VERSION, parseEntry } from "@buildanagent/protocol";
 import { HarnessError } from "../errors.js";
+import type { SessionLock } from "./lock.js";
 import type { SessionIndex } from "./pointer.js";
+import { DERIVED } from "./session.js";
 import type { EntryInput, SessionKey, SessionStore } from "./store.js";
 
 /** One step of format change: it maps each entry of a file at format `from` to an entry at format `to`. */
@@ -20,6 +22,8 @@ export interface MigrateOptions {
   readonly store: SessionStore;
   readonly index: SessionIndex;
   readonly key: SessionKey;
+  /** The session's writer lock, taken for the whole migration so no writer or second migration interleaves with it. */
+  readonly lock: SessionLock;
   /** The steps this harness knows, from any format to the next. A session is taken through them in order. */
   readonly migrations: readonly Migration[];
   readonly newId?: () => string;
@@ -77,10 +81,31 @@ function stepsFrom(version: number, migrations: readonly Migration[]): Migration
  * only then does the pointer move. A file whose header names a parent file is migrated alone, and its parent is not.
  */
 export async function migrateSession(options: MigrateOptions): Promise<MigrationResult> {
+  const handle = await options.lock.acquire(options.key);
+  if (handle === "would_block") {
+    throw new HarnessError(
+      "session_locked",
+      `another writer holds the session ${JSON.stringify(options.key.sessionId)}`,
+    );
+  }
+  try {
+    return await migrateLocked(options);
+  } finally {
+    await handle.release();
+  }
+}
+
+async function migrateLocked(options: MigrateOptions): Promise<MigrationResult> {
   const { store, index, key } = options;
   const file = (await index.get(key)) ?? key.sessionId;
   const raw = await rawEntries(store, { userId: key.userId, sessionId: file });
   const version = versionOf(raw);
+  if ((raw[0] as { parent?: unknown }).parent !== undefined) {
+    throw new HarnessError(
+      "unsupported_format",
+      "this file continues a parent file, which would stay in the old format and make the session unreadable, so migrate the parent's session first and fork again",
+    );
+  }
   if (version === FORMAT_VERSION) return { migrated: false, version };
   if (version > FORMAT_VERSION) {
     throw new HarnessError(
@@ -91,7 +116,7 @@ export async function migrateSession(options: MigrateOptions): Promise<Migration
   const steps = stepsFrom(version, options.migrations);
   const moved = raw.map((entry) => steps.reduce((value, step) => step.migrate(value), entry));
   const parsed = moved.map((entry) => parseEntry(entry));
-  const newFile = `m${(options.newId ?? (() => globalThis.crypto.randomUUID()))()}`;
+  const newFile = `${DERIVED}m${(options.newId ?? (() => globalThis.crypto.randomUUID()))()}`;
   const target = { userId: key.userId, sessionId: newFile };
   await store.append(
     target,

@@ -3,7 +3,7 @@ import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
 import { isHarnessError } from "@buildanagent/harness";
-import { openSession, type SessionIndex } from "@buildanagent/harness/session";
+import { isDerivedFile, listSessions, openSession, type SessionIndex } from "@buildanagent/harness/session";
 import { describe, test } from "vitest";
 import { BACKENDS, type Backend, counter, KEY, NOW, record, seed } from "./session-helpers.js";
 
@@ -104,10 +104,11 @@ describe.each(BACKENDS)("%s", (_name, make) => {
     assert.deepEqual(ids(await session.path()), ["h1", "r1"]);
     await session.append([record("n1", "r1")]);
     assert.deepEqual(ids(await session.path()), ["h1", "r1", "n1"]);
+    await assert.rejects(() => session.path("r3"), code("entry_not_found"));
     assert.deepEqual(
-      ids(await session.path("r3")),
+      ids(await all(backend.store.load(KEY))),
       ["h1", "r1", "r2", "r3"],
-      "the reverted entries are still reachable through the parent",
+      "the entries it went back from stay in the old file, which is no longer part of this session's tree",
     );
     await session.close();
     const again = await openSession(opts(backend));
@@ -175,7 +176,7 @@ describe.each(BACKENDS)("%s", (_name, make) => {
     assert.equal(byStep.childSession, reader.key.sessionId);
     assert.equal(byCall.childSession, caller.key.sessionId);
     assert.equal(session.head(), byCall.id, "each link moves HEAD, as any entry does");
-    assert.equal(reader.head(), reader.head());
+    assert.equal(reader.head(), (await all(backend.store.load(reader.key)))[0]?.id, "a child starts at its header");
     const [childHeader] = await all(backend.store.load(reader.key));
     assert.ok(
       childHeader?.type === "session_header" && childHeader.parent === undefined,
@@ -203,7 +204,8 @@ describe.each(BACKENDS)("%s", (_name, make) => {
   test("a session with no entries has nothing to branch from, and a reader can't branch", async () => {
     const backend = make();
     const empty = await openSession(opts(backend));
-    await assert.rejects(() => empty.fork("x"), code("entry_not_found"));
+    await assert.rejects(() => empty.fork("x"), /no entries to branch from/);
+    await assert.rejects(() => empty.revert("x"), /no entries to branch from/);
     await empty.close();
     await seed(backend);
     const { lock: _lock, ...readOnly } = opts(backend);
@@ -211,5 +213,72 @@ describe.each(BACKENDS)("%s", (_name, make) => {
     await assert.rejects(() => reader.fork("r1"), code("session_read_only"));
     await assert.rejects(() => reader.revert("r1"), code("session_read_only"));
     await assert.rejects(() => reader.child({ stepId: "s" }), code("session_read_only"));
+  });
+});
+
+describe.each(BACKENDS)("%s", (_name, make) => {
+  test("a fork holds only the prefix: it can't check out what its parent wrote after the fork point, nor does a later parent entry appear", async () => {
+    const backend = make();
+    await seed(backend);
+    const session = await openSession(opts(backend));
+    const fork = await session.fork("r2");
+    await assert.rejects(() => fork.checkout("r3"), code("entry_not_found"));
+    await assert.rejects(() => fork.path("r3"), code("entry_not_found"));
+    await session.append([record("r4", "r3")]);
+    await assert.rejects(
+      () => fork.checkout("r4"),
+      code("entry_not_found"),
+      "the parent growing changes nothing for the fork",
+    );
+    assert.deepEqual(ids(await fork.path()), ["h1", "r1", "r2"]);
+    await fork.checkout("r1");
+    assert.equal(fork.head(), "r1", "an entry in the prefix can be checked out");
+    await fork.close();
+    await session.close();
+  });
+
+  test("the files a revert writes are not listed as sessions, and a fork and a child are", async () => {
+    const backend = make();
+    await seed(backend);
+    const session = await openSession(opts(backend));
+    await session.revert("r2");
+    const fork = await session.fork("r1");
+    const child = await session.child({ stepId: "step:a" });
+    const everything = (await all(backend.store.list("ada"))).map((summary) => summary.sessionId);
+    assert.ok(
+      everything.some((id) => isDerivedFile(id)),
+      "the store itself lists every file",
+    );
+    const listed = (await all(listSessions(backend.store, "ada"))).map((summary) => summary.sessionId).sort();
+    assert.deepEqual(listed, ["s1", fork.key.sessionId, child.key.sessionId].sort());
+    await fork.close();
+    await child.close();
+    await session.close();
+  });
+
+  test("a revert whose new file can't be read leaves the session on the file it was on", async () => {
+    const backend = make();
+    await seed(backend);
+    const flaky = {
+      ...backend.store,
+      async append(
+        key: Parameters<typeof backend.store.append>[0],
+        entries: Parameters<typeof backend.store.append>[1],
+        options?: Parameters<typeof backend.store.append>[2],
+      ) {
+        return backend.store.append(key, entries, options);
+      },
+      load(key: Parameters<typeof backend.store.load>[0], options?: Parameters<typeof backend.store.load>[1]) {
+        if (key.sessionId.startsWith("~")) throw new Error("transient read error");
+        return backend.store.load(key, options);
+      },
+    };
+    const session = await openSession({ ...opts(backend), store: flaky as typeof backend.store });
+    await assert.rejects(() => session.revert("r1"), /transient read error/);
+    assert.equal(session.file(), "s1");
+    assert.equal(session.head(), "r3");
+    assert.equal(await backend.index.get(KEY), undefined, "and the pointer didn't move");
+    await session.append([record("r4", "r3")]);
+    await session.close();
   });
 });

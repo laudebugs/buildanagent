@@ -7,7 +7,7 @@ import type { SessionEntry, SessionHeaderEntry } from "@buildanagent/protocol";
 import { HarnessError } from "../errors.js";
 import type { LockHandle, SessionLock } from "./lock.js";
 import type { SessionIndex } from "./pointer.js";
-import type { EntryInput, SessionKey, SessionStore } from "./store.js";
+import type { EntryInput, SessionKey, SessionStore, SessionSummary } from "./store.js";
 
 /** The options of `openSession()`. */
 export interface OpenSessionOptions {
@@ -27,6 +27,15 @@ export type ChildLink = { readonly spawningCallId: string } | { readonly stepId:
 
 // A walk up the parents that goes on this long is a cycle in a corrupt log.
 const MAX_PATH_ENTRIES = 1_000_000;
+
+/**
+ * Starts the name of a file that holds part of a session and is no session of its own: a revert's or a migration's. A
+ * listing leaves it out, because the session's key is what a person knows it by.
+ */
+export const DERIVED = "~";
+
+/** Whether a file id names a derived file. */
+export const isDerivedFile = (file: string): boolean => file.startsWith(DERIVED);
 
 /** The HEAD a log leaves: each entry moves it to itself, and a `checkout` moves it to the entry it names. */
 function headOf(entries: readonly SessionEntry[]): string | null {
@@ -64,7 +73,8 @@ export class Session {
   readonly #handle: LockHandle | undefined;
   readonly #now: () => Date;
   readonly #newId: () => string;
-  readonly #ancestors = new Map<string, SessionEntry[]>();
+  readonly #prefixes = new Map<string, readonly SessionEntry[]>();
+  #prefix: Map<string, SessionEntry> | undefined;
   #file: string;
   #entries: SessionEntry[];
   #byId: Map<string, SessionEntry>;
@@ -133,12 +143,12 @@ export class Session {
   }
 
   #remember(stored: readonly SessionEntry[]): void {
-    for (const entry of stored) this.#byId.set(entry.id, entry);
-    this.#entries = [
-      ...this.#entries,
-      ...stored.filter((entry) => !this.#entries.some((have) => have.id === entry.id)),
-    ];
-    this.#head = headOf(this.#entries);
+    const fresh = stored.filter((entry) => !this.#byId.has(entry.id));
+    for (const entry of fresh) {
+      this.#byId.set(entry.id, entry);
+      this.#head = entry.type === "checkout" ? entry.headId : entry.id;
+    }
+    this.#entries = [...this.#entries, ...fresh];
   }
 
   /**
@@ -154,27 +164,52 @@ export class Session {
     return stored;
   }
 
-  async #entriesOfFile(file: string): Promise<SessionEntry[]> {
-    if (file === this.#file) return this.#entries;
-    const cached = this.#ancestors.get(file);
+  /**
+   * The entries a file's session was made from: the path to the entry its header names in its parent file, and so on up
+   * through that file's own parent. An entry the parent wrote after the fork point is not in it. A parent file is
+   * immutable, so the result is kept.
+   */
+  async #ancestry(file: string, entryId: string): Promise<readonly SessionEntry[]> {
+    const cacheKey = JSON.stringify([file, entryId]);
+    const cached = this.#prefixes.get(cacheKey);
     if (cached !== undefined) return cached;
-    const loaded = await entriesOf(this.#options.store, this.#physical(file));
-    this.#ancestors.set(file, loaded);
-    return loaded;
+    const entries = await entriesOf(this.#options.store, this.#physical(file));
+    const byId = new Map(entries.map((entry) => [entry.id, entry]));
+    const header = entries[0];
+    const above = header?.type === "session_header" ? header.parent : undefined;
+    const path: SessionEntry[] = [];
+    let at: string | null = entryId;
+    while (at !== null) {
+      const entry = byId.get(at);
+      if (entry === undefined) {
+        if (above === undefined) throw new HarnessError("entry_not_found", `no entry ${at} in the file ${file}`);
+        path.push(...(await this.#ancestry(above.session, above.entryId)).toReversed());
+        break;
+      }
+      path.push(entry);
+      at = entry.parentId;
+    }
+    const result = path.reverse();
+    this.#prefixes.set(cacheKey, result);
+    return result;
   }
 
-  /** Finds an entry in this file, or in the files above it, which a fork's header names. */
-  async #find(id: string): Promise<SessionEntry | undefined> {
-    let file = this.#file;
-    for (let hops = 0; hops < 10_000; hops += 1) {
-      const entries = await this.#entriesOfFile(file);
-      const found = entries.find((entry) => entry.id === id);
-      if (found !== undefined) return found;
-      const header = entries[0];
-      if (header?.type !== "session_header" || header.parent === undefined) return undefined;
-      file = header.parent.session;
+  /** The entries of the parent files that this session's current file continues, by id. Empty for a first file. */
+  async #inherited(): Promise<Map<string, SessionEntry>> {
+    if (this.#prefix !== undefined) return this.#prefix;
+    const header = this.#entries[0];
+    const above = header?.type === "session_header" ? header.parent : undefined;
+    const prefix = new Map<string, SessionEntry>();
+    if (above !== undefined) {
+      for (const entry of await this.#ancestry(above.session, above.entryId)) prefix.set(entry.id, entry);
     }
-    return undefined;
+    this.#prefix = prefix;
+    return prefix;
+  }
+
+  /** An entry of this session: one in its current file, or one in the prefix the file continues. */
+  async #find(id: string): Promise<SessionEntry | undefined> {
+    return this.#byId.get(id) ?? (await this.#inherited()).get(id);
   }
 
   /**
@@ -208,6 +243,12 @@ export class Session {
     if ((await this.#find(entryId)) === undefined) {
       throw new HarnessError("entry_not_found", `no entry ${entryId} in the session ${this.key.sessionId}`);
     }
+  }
+
+  /** A fork or a revert needs a header to copy and an entry of this session to start from. */
+  async #canBranchFrom(entryId: string): Promise<void> {
+    this.#header();
+    await this.#mustHave(entryId);
   }
 
   /** Moves HEAD to `entryId` by appending a `checkout` entry, so a reload finds HEAD where it was left. */
@@ -251,7 +292,7 @@ export class Session {
    */
   async fork(entryId: string): Promise<Session> {
     this.#requireWriter();
-    await this.#mustHave(entryId);
+    await this.#canBranchFrom(entryId);
     const sessionId = this.#newId();
     await this.#writeFile(sessionId, { session: this.#file, entryId });
     return Session.open({ ...this.#options, key: { userId: this.key.userId, sessionId } });
@@ -264,15 +305,17 @@ export class Session {
    */
   async revert(entryId: string): Promise<Session> {
     this.#requireWriter();
-    await this.#mustHave(entryId);
-    const file = `r${this.#newId()}`;
+    await this.#canBranchFrom(entryId);
+    const file = `${DERIVED}r${this.#newId()}`;
     await this.#writeFile(file, { session: this.#file, entryId });
+    // The new file is read before anything changes, so a failure here leaves the session on the file it was on.
+    const entries = await entriesOf(this.#options.store, this.#physical(file));
     await this.#options.index.set(this.key, file);
-    this.#ancestors.set(this.#file, this.#entries);
     this.#file = file;
-    this.#entries = await entriesOf(this.#options.store, this.#physical(file));
-    this.#byId = new Map(this.#entries.map((entry) => [entry.id, entry]));
-    this.#head = headOf(this.#entries);
+    this.#entries = entries;
+    this.#byId = new Map(entries.map((entry) => [entry.id, entry]));
+    this.#head = headOf(entries);
+    this.#prefix = undefined;
     return this;
   }
 
@@ -310,4 +353,11 @@ export class Session {
 /** Opens a session. With a `lock` it is the session's one writer, and without one it can only read. */
 export function openSession(options: OpenSessionOptions): Promise<Session> {
   return Session.open(options);
+}
+
+/** The user's sessions, oldest first, without the files that only hold part of a session (a revert's or a migration's). */
+export async function* listSessions(store: SessionStore, userId: string): AsyncGenerator<SessionSummary> {
+  for await (const summary of store.list(userId)) {
+    if (!isDerivedFile(summary.sessionId)) yield summary;
+  }
 }

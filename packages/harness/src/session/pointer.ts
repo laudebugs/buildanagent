@@ -3,7 +3,7 @@
  * changes, because a revert or a migration writes a new file and moves the pointer, and no file is ever rewritten. The
  * pointer is the only mutable state in the log. A session with no pointer is in the file named like its key.
  */
-import type { SessionKey } from "./store.js";
+import { checkKey, type SessionKey } from "./store.js";
 
 /** Where each session's current file is. Replacing a pointer must be atomic, so a crash leaves the old one or the new. */
 export interface SessionIndex {
@@ -20,9 +20,11 @@ export function memoryIndex(): SessionIndex {
   const pointers = new Map<string, string>();
   return {
     async get(key) {
+      checkKey(key);
       return pointers.get(slot(key));
     },
     async set(key, file) {
+      checkKey(key);
       pointers.set(slot(key), file);
     },
   };
