@@ -91,6 +91,7 @@
   --color-highlight-hover-blue: #77b5dd;
   --color-highlight-edge-pink: #d83f5f;
   --color-highlight-hover-pink: #ea96a7;
+  --color-danger: #a3401c;
   --panel-background: #f3eadb;
   --panel-text: #2a1e16;
   --panel-comment: #6b5b4d;
@@ -123,6 +124,7 @@
     --color-highlight-hover-blue: #385a75;
     --color-highlight-edge-pink: #b17689;
     --color-highlight-hover-pink: #7d4758;
+    --color-danger: #e2704b;
     --panel-background: #17110d;
     --panel-text: #f2e8dc;
     --panel-comment: #a8968a;
@@ -155,6 +157,7 @@
   --color-highlight-hover-blue: #385a75;
   --color-highlight-edge-pink: #b17689;
   --color-highlight-hover-pink: #7d4758;
+  --color-danger: #e2704b;
   --panel-background: #17110d;
   --panel-text: #f2e8dc;
   --panel-comment: #a8968a;
