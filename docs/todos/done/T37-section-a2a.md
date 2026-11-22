@@ -57,7 +57,7 @@ U19's report settled the scope, and the owner approved its proposed changes on 2
 
 - [x] The chapter still builds with every check passing, the analogy check included
 - [x] `apps/manual/fact-checks/tools-at-scale.md` has the section's rows and the re-check rows, with an updated tally
-- [ ] The pull request records the 5C and voice scores, before and after
+- [x] The pull request records the 5C and voice scores, before and after
 - [x] `pnpm check`, `pnpm typecheck` and `pnpm test` pass offline from the repo root
 
 ## Tests
@@ -83,5 +83,5 @@ Chapter 13 gained one section after its MCP section, "A2A hands a task to an age
 - [x] Prose drafted with `/anthropic-skills:writing`, and changed claims re-checked against their sources
 - [x] `pnpm check`, `pnpm typecheck` and `pnpm test` pass locally; pushed after each meaningful step
 - [x] This file moved `ongoing/` → `done/` (Status `done`) in the last work commit, and the plan's todo table updated
-- [ ] Two code-review rounds run on the pull request (`/code-review high --max-findings default`, then `medium` and `low` after more than 6 confirmed findings, otherwise `low`), with every finding fixed or explained in a commit message
-- [ ] Copy reviewed with `/anthropic-skills:writing-review` after the code changes, with its findings fixed and the rubric scores in the pull request description
+- [x] Two code-review rounds run on the pull request (`/code-review high --max-findings default`, then `medium` and `low` after more than 6 confirmed findings, otherwise `low`), with every finding fixed or explained in a commit message
+- [x] Copy reviewed with `/anthropic-skills:writing-review` after the code changes, with its findings fixed and the rubric scores in the pull request description
