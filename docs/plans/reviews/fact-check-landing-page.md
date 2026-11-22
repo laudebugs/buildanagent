@@ -2,7 +2,7 @@
 
 This log checks every factual claim in `apps/site/src/landing/copy.ts`, the copy of the landing page for buildanagent.fyi, on 2026-11-22. Registry claims were read with `npm view @buildanagent/<package>` that day, and the rest against the package `package.json` and `README.md` files and the docs and manual sources in this repository. Mock wording that was wrong or too strong is corrected in the copy and has its own ✏️ row.
 
-**Totals:** 38 claims: 28 ✅, 10 ✏️, 0 ⚠️.
+**Totals:** 39 claims: 28 ✅, 11 ✏️, 0 ⚠️.
 
 | # | Claim | Verdict | Source and reason |
 | --- | --- | --- | --- |
@@ -44,3 +44,4 @@ This log checks every factual claim in `apps/site/src/landing/copy.ts`, the copy
 | L13-36 | The figure caption reads "Figure 1. The three layers, and one turn of the loop.", with no "on the left" or "on the right", because the narrow figure stacks the layers above the loop | ✏️ | The wide figure (`apps/site/src/landing/layers-wide.svg`) puts the layers left and the loop right; the narrow one (`layers-narrow.svg`, shown below 940 px) stacks them. The mock's caption was true only of the wide drawing, so the text now holds for both |
 | L13-37 | The page description reads "Build An Agent is a set of six small TypeScript packages that split an agent into a gateway, a loop and a harness." | ✅ | Six packages: `packages/{gateway,sdk,agent-safety,protocol,harness,cli}` all publish (the package-grid rows above, `npm view` on 2026-11-22), all TypeScript. The three layers are the gateway, the loop and the harness (the headline row above); "small" is the mock's own word and the packages' sizes are modest, so it is a description of intent, not a measured claim |
 | L13-38 | The figure's alt text reads "The three layers, from top to bottom: harness, loop and gateway, with what each does. One turn of the loop: a model call, then tool calls, then results returned to the model." | ✏️ | The mock's alt said "On the right, one turn of the loop", which is true of the wide drawing only: below 940 px the narrow drawing shows (`layers-narrow.svg`) and puts the loop below the layers. Dropping "On the right" makes the text true of both. The layer order and the loop's three steps are rows L13-10 and L13-15 |
+| L13-39 | The headline reads "An agent is three layers. See how each one works.", and the lead names the layers as the gateway, the loop and the harness | ✏️ | Row L13-35 passed "three layers and a loop", but the loop is one of the three layers (rows L13-10 and L13-11), so that headline counted four things against the figure's three. The new headline says three and the lead names them, which matches the structure in `packages/sdk/README.md` line 3 and `packages/harness/README.md` line 3 |

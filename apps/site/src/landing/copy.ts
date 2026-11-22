@@ -13,9 +13,9 @@ export const copy = {
   ],
   hero: {
     eyebrow: "Agent toolkit · alpha",
-    headlineBefore: "An agent is three layers and a loop.",
-    headlineEmphasis: "Read all of them.",
-    lead: "Build An Agent splits an agent into a gateway, a loop and a harness. Each is a small TypeScript package, and the manual explains the ideas behind each one.",
+    headlineBefore: "An agent is three layers.",
+    headlineEmphasis: "See how each one works.",
+    lead: "Build An Agent names them the gateway, the loop and the harness. Each is a small TypeScript package, and the manual explains the ideas behind each one.",
     primary: { label: "Read the docs", href: "https://docs.buildanagent.fyi" },
     secondary: { label: "Open the manual", href: "https://manual.buildanagent.fyi" },
     install: {
