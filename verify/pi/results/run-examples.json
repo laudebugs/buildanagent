@@ -1,73 +1,73 @@
 [
   {
     "id": "01-hello-session",
-    "file": "/home/user/agent-speak/verify/pi/examples/01-hello-session.ts",
+    "file": "/home/user/t36/verify/pi/examples/01-hello-session.ts",
     "outcome": "ran",
     "exit": 0,
-    "ms": 2080,
+    "ms": 7852,
     "fauxReplies": 0,
     "tail": "ok - getLastAssistantText() returns the final answer\nok - one model request for a text-only answer\nok - streams message_update then message_end\nok - agent_settled is the last event of the run\nok - default active tools are read, bash, edit, write"
   },
   {
     "id": "02-custom-tool",
-    "file": "/home/user/agent-speak/verify/pi/examples/02-custom-tool.ts",
+    "file": "/home/user/t36/verify/pi/examples/02-custom-tool.ts",
     "outcome": "ran",
     "exit": 0,
-    "ms": 2303,
+    "ms": 8624,
     "fauxReplies": 0,
     "tail": "ok - custom tool joins the active tool set\nok - execute() received the model's arguments\nok - tool execution events stream\nok - tool result is recorded in the transcript\nok - two model requests: tool call, then the final answer\nok - final answer follows the tool result"
   },
   {
     "id": "03-tool-selection",
-    "file": "/home/user/agent-speak/verify/pi/examples/03-tool-selection.ts",
+    "file": "/home/user/t36/verify/pi/examples/03-tool-selection.ts",
     "outcome": "ran",
     "exit": 0,
-    "ms": 2452,
+    "ms": 8801,
     "fauxReplies": 0,
     "tail": "ok - tools: [...] selects a read-only set\nok - excludeTools removes tools from the defaults\nok - noTools: \"builtin\" leaves no built-in tools\nok - calling an inactive tool yields an error tool result\nok - the error says the tool was not found\nok - the loop continues to another model request"
   },
   {
     "id": "04-steering",
-    "file": "/home/user/agent-speak/verify/pi/examples/04-steering.ts",
+    "file": "/home/user/t36/verify/pi/examples/04-steering.ts",
     "outcome": "ran",
     "exit": 0,
-    "ms": 3117,
+    "ms": 9140,
     "fauxReplies": 0,
     "tail": "ok - prompt() while streaming, without steer/followUp, rejects\nok - steer() returns \"queued\"\nok - followUp() returns \"queued\"\nok - user messages land in order: prompt, steer, follow-up\nok - the steer and the follow-up each trigger one more model request"
   },
   {
     "id": "05-session-tree",
-    "file": "/home/user/agent-speak/verify/pi/examples/05-session-tree.ts",
+    "file": "/home/user/t36/verify/pi/examples/05-session-tree.ts",
     "outcome": "ran",
     "exit": 0,
-    "ms": 2093,
+    "ms": 5790,
     "fauxReplies": 0,
     "tail": "ok - the first answer has an entry id\nok - active branch holds both exchanges\nok - branch() moves the active leaf back\nok - both branches stay in the session\nok - the active branch excludes the abandoned path\nok - every entry points at a parent in the same tree\nok - the branch point has two children"
   },
   {
     "id": "06-compaction",
-    "file": "/home/user/agent-speak/verify/pi/examples/06-compaction.ts",
+    "file": "/home/user/t36/verify/pi/examples/06-compaction.ts",
     "outcome": "ran",
     "exit": 0,
-    "ms": 2094,
+    "ms": 4661,
     "fauxReplies": 0,
     "tail": "ok - compact() returns the model's summary\nok - a split span gets a second summary, merged in\nok - a compaction entry is appended to the session\nok - no original entries are removed\nok - the next request carries the summary\nok - the next request drops the summarised messages"
   },
   {
     "id": "07-extension-gate",
-    "file": "/home/user/agent-speak/verify/pi/examples/07-extension-gate.ts",
+    "file": "/home/user/t36/verify/pi/examples/07-extension-gate.ts",
     "outcome": "ran",
     "exit": 0,
-    "ms": 1815,
+    "ms": 4824,
     "fauxReplies": 0,
     "tail": "ok - extension-registered tool is active\nok - tool_call fires before the tool executes\nok - returning { block: true } stops execution\nok - the block reason reaches the model as an error result"
   },
   {
     "id": "08-triage-agent",
-    "file": "/home/user/agent-speak/verify/pi/examples/08-triage-agent.ts",
+    "file": "/home/user/t36/verify/pi/examples/08-triage-agent.ts",
     "outcome": "ran",
     "exit": 0,
-    "ms": 1749,
+    "ms": 4540,
     "fauxReplies": 0,
     "tail": "ok - noTools: \"builtin\" leaves only our three tools\nok - the extension audited every call in order\nok - escalation was blocked and the reason went back to the model\nok - submit_triage captured the typed result\nok - terminate: true ended the run without an extra model turn\ntriage: {\"category\":\"bug\",\"priority\":\"high\",\"summary\":\"Checkout returns 500.\"}"
   }
