@@ -12,9 +12,12 @@ import {
   CAPABILITIES,
   type CallOptions,
   composeInterceptors,
+  continueRun,
   DEFAULTS_HASH,
   type Interceptors,
   type Observer,
+  type Recheck,
+  type Resolution,
   type Run,
   type RunResult,
   run,
@@ -202,7 +205,16 @@ class EventRecorder {
   readonly #tools = new Map<string, string>();
   #pending: ModelMessage | undefined;
 
-  constructor(writer: EntryWriter, harness: Harness<unknown>, system: string, newId: () => string) {
+  readonly #mode: "run" | "continue";
+
+  constructor(
+    writer: EntryWriter,
+    harness: Harness<unknown>,
+    system: string,
+    newId: () => string,
+    mode: "run" | "continue" = "run",
+  ) {
+    this.#mode = mode;
     this.#writer = writer;
     this.#harness = harness;
     this.#system = system;
@@ -265,9 +277,13 @@ class EventRecorder {
         this.#queue("harness", {
           type: "turn_start",
           runId: event.runId,
-          mode: "run",
+          mode: this.#mode,
           system: this.#system,
         });
+        return;
+      case "approval_request":
+        // The request is in the log before any client hears of it: the harness's own observers wait for the writes.
+        this.#queue("harness", { type: "approval_requested", request: event.request, input: event.input });
         return;
       case "model_call_end":
         this.#pending = event.message;
@@ -360,6 +376,20 @@ function interceptorsOf<H>(
   };
 }
 
+/**
+ * The harness's own observers, each held back until the entries written so far are durable. A client that hears of an
+ * approval request can therefore always find its `approval_requested` entry in the log.
+ */
+function afterWrites(observers: readonly Observer[] | undefined, writer: EntryWriter): Observer[] {
+  return (observers ?? []).map(
+    (observer): Observer =>
+      async (event) => {
+        await writer.settled();
+        await observer(event);
+      },
+  );
+}
+
 /** The run options a turn sets only when it has a value, so a missing one leaves the SDK's default. */
 function optionalRunOptions<H>(options: TurnOptions<H>, harness: Harness<H>, history: readonly Message[]) {
   return {
@@ -393,6 +423,20 @@ async function settleTurn(handle: Run<unknown>, writer: EntryWriter, session: Se
   return { ...result, sessionKey: session.key.sessionId, lastEntryId: session.head() as string };
 }
 
+/** What every turn and every resume needs: a writer whose failure aborts the run, the run's signal and its id source. */
+function turnPlumbing(session: Session, options: { signal?: AbortSignal; clock?: Clock; newId?: () => string }) {
+  const stop = new AbortController();
+  const signal = options.signal === undefined ? stop.signal : AbortSignal.any([options.signal, stop.signal]);
+  const newId = options.newId ?? (() => globalThis.crypto.randomUUID());
+  const writer = new EntryWriter(
+    session,
+    newId,
+    options.clock === undefined ? () => new Date() : () => new Date((options.clock as Clock).now()),
+    () => stop.abort(),
+  );
+  return { signal, newId, writer };
+}
+
 /**
  * Runs one turn on a session and writes it to the log. The session must be open with a lock. The first turn of a new
  * session writes its header and `env_stamp`; a turn whose model or tools differ from the last recorded ones writes a
@@ -407,15 +451,7 @@ export async function runTurn<H = unknown>(
   const model = options.model ?? harness.model;
   const system = options.system ?? harness.system;
   const tools = toolsOf(harness, options);
-  const stop = new AbortController();
-  const signal = options.signal === undefined ? stop.signal : AbortSignal.any([options.signal, stop.signal]);
-  const newId = options.newId ?? (() => globalThis.crypto.randomUUID());
-  const writer = new EntryWriter(
-    session,
-    newId,
-    options.clock === undefined ? () => new Date() : () => new Date((options.clock as Clock).now()),
-    () => stop.abort(),
-  );
+  const { signal, newId, writer } = turnPlumbing(session, options);
   // What a crash left open is settled first, so the log reads as a whole and the context has no call without a result.
   let path = await session.path();
   const wrote = await settleOpenCalls(
@@ -444,7 +480,7 @@ export async function runTurn<H = unknown>(
     tools,
     signal,
     interceptors: interceptorsOf(harness, session, writer, recorder, options.hostContext, model),
-    observers: [observer, ...(harness.observers ?? [])],
+    observers: [observer, ...afterWrites(harness.observers, writer)],
     ...optionalRunOptions(options, harness, history),
   });
   options.onRun?.(handle);
@@ -471,4 +507,73 @@ export async function rerunFrom<H = unknown>(
   }
   await session.checkout(entryId);
   return runTurn(session, harness, options);
+}
+
+/** What resuming a paused turn takes: the answers, and the same per-turn settings a turn has. */
+export interface ResumeOptions<H = unknown> {
+  readonly resolutions: readonly Resolution[];
+  /** The caller's app data, bound into each request when it paused: the resume must pass the same value. */
+  readonly hostContext?: H;
+  readonly budgetUsd?: number;
+  readonly signal?: AbortSignal;
+  readonly clock?: Clock;
+  readonly newId?: () => string;
+  readonly onRun?: (run: Run<unknown>) => void;
+}
+
+/**
+ * Resumes a paused turn from the log alone. The context, with its waiting requests, is rebuilt before anything is
+ * written; each resolution is then written as an `approval_resolved` entry, and `continueRun()` verifies the requests
+ * against the harness's signer. Each approved call goes through the permission pipeline again first, and a deny now
+ * turns the approval into a denial.
+ */
+export async function resumeTurn<H = unknown>(
+  session: Session,
+  harness: Harness<H>,
+  options: ResumeOptions<H>,
+): Promise<TurnResult> {
+  if (harness.signer === undefined) {
+    throw new HarnessError("approval_unavailable", "the harness has no signer, so no approval can be checked");
+  }
+  const { signal, newId, writer } = turnPlumbing(session, options);
+  const context = contextOf(await session.path());
+  const waiting = new Set((context.pending ?? []).map((request) => request.id));
+  for (const resolution of options.resolutions) {
+    if (!waiting.has(resolution.requestId)) {
+      throw new HarnessError("approval_not_pending", `no request ${resolution.requestId} is waiting in this session`);
+    }
+  }
+  for (const resolution of options.resolutions) await writer.write("user", { type: "approval_resolved", resolution });
+  const recorder = new EventRecorder(writer, harness as Harness<unknown>, context.system, newId, "continue");
+  const recheck: Recheck = async (pending, input) => {
+    const decision = await harness.pipeline?.decide(
+      { callId: pending.callId, tool: pending.tool, input, initiator: "model" },
+      {
+        session: { append: (entry) => writer.write("harness", entry) },
+        hostContext: options.hostContext,
+        entries: await session.path(),
+      },
+    );
+    // A person approved the call, so a question the pipeline would ask again doesn't stop it; a deny does.
+    return decision?.decision === "deny" ? { deny: decision.reason } : "allow";
+  };
+  const handle = continueRun(context, {
+    model: harness.model,
+    tools: toolsOf(harness, {
+      input: "",
+      ...(options.hostContext === undefined ? {} : { hostContext: options.hostContext }),
+    }),
+    resolutions: [...options.resolutions],
+    recheck,
+    signer: harness.signer,
+    signal,
+    interceptors: interceptorsOf(harness, session, writer, recorder, options.hostContext, harness.model),
+    observers: [(event: AgentEvent) => recorder.handle(event), ...afterWrites(harness.observers, writer)],
+    ...(options.hostContext === undefined ? {} : { app: options.hostContext }),
+    ...(options.budgetUsd === undefined ? {} : { budgetUsd: options.budgetUsd }),
+    ...(options.clock === undefined ? {} : { clock: options.clock }),
+    ...(options.newId === undefined ? {} : { idGenerator: options.newId }),
+  });
+  options.onRun?.(handle);
+  return settleTurn(handle, writer, session);
 }

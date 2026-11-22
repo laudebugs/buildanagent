@@ -19,6 +19,33 @@ export const ContentBlock = z.discriminatedUnion("type", [
 ]);
 export const ModelContent = z.discriminatedUnion("type", [TextBlock, ImageBlock]);
 
+/** The SDK's signed pending request, which `approval_requested` stores and the protocol's messages carry. */
+export const SignedPendingRequest = z.strictObject({
+  id: z.string(),
+  kind: z.enum(["approval", "clarification"]),
+  callId: z.string(),
+  tool: z.string(),
+  inputHash: z.string(),
+  policyVersion: z.string().optional(),
+  appHash: z.string().optional(),
+  question: z.string().optional(),
+  reason: z.string().optional(),
+  keyId: z.string(),
+  signature: z.string(),
+  createdAt: z.string(),
+});
+
+/** A person's answer to a pending request. */
+export const Resolution = z.union([
+  z.strictObject({
+    requestId: z.string(),
+    decision: z.enum(["allow", "deny"]),
+    reason: z.string().optional(),
+    by: z.string().optional(),
+  }),
+  z.strictObject({ requestId: z.string(), answer: z.string(), by: z.string().optional() }),
+]);
+
 const ModelRef = z.strictObject({ api: z.string(), provider: z.string(), id: z.string() });
 
 const Usage = z.strictObject({
@@ -160,6 +187,8 @@ export const SessionEntry = z.discriminatedUnion("type", [
     spawningCallId: z.string().optional(),
     stepId: z.string().optional(),
   }),
+  entry("approval_requested", { request: SignedPendingRequest, input: z.unknown() }),
+  entry("approval_resolved", { resolution: Resolution }),
   entry("shadow_call", { callId: z.string(), tool: z.string(), inputHash: z.string() }),
   entry("product_record", { name: z.string(), data: z.unknown() }),
 ]);

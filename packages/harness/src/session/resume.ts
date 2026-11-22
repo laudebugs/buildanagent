@@ -80,6 +80,15 @@ export function unansweredCalls(
   includePaused = false,
 ): { callId: string; name: string }[] {
   const answered = new Set(path.flatMap((entry) => (entry.type === "tool_result" ? [entry.callId] : [])));
+  // A paused call whose request has an answer was being resumed when the process died, so it counts as a crash.
+  const requestOf = new Map(
+    path.flatMap((entry) =>
+      entry.type === "approval_requested" ? [[entry.request.callId, entry.request.id] as const] : [],
+    ),
+  );
+  const resolved = new Set(
+    path.flatMap((entry) => (entry.type === "approval_resolved" ? [entry.resolution.requestId] : [])),
+  );
   const calls: { callId: string; name: string; turn: number }[] = [];
   const paused = new Set<number>();
   let turn = -1;
@@ -90,7 +99,9 @@ export function unansweredCalls(
       if (!answered.has(entry.block.callId)) calls.push({ callId: entry.block.callId, name: entry.block.name, turn });
     }
   }
-  return calls.filter((call) => includePaused || !paused.has(call.turn));
+  return calls.filter(
+    (call) => includePaused || !paused.has(call.turn) || resolved.has(requestOf.get(call.callId) ?? ""),
+  );
 }
 
 /**

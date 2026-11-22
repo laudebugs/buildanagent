@@ -315,7 +315,7 @@ type SessionEntry = EntryBase & (
   | { type: "compaction"; layer: "summarize" | "mid_turn" | "overflow_retry"; summary: string;
       firstKeptEntryId: string; tokensBefore: number; tokensAfter: number; model: ModelRef;
       promptVersion: string; usageEntryId: string; focus?: string }
-  | { type: "approval_requested"; request: SignedPendingRequest }          // Revision: the SDK record, unchanged
+  | { type: "approval_requested"; request: SignedPendingRequest; input: unknown } // Revision: the SDK record, unchanged, and the input the resume needs
   | { type: "approval_resolved"; resolution: Resolution; sticky?: "run" | "session"; groupId?: string }
   | { type: "env_stamp"; cwd: string; permissionMode: PermissionMode; approvalPolicy: ApprovalPolicy;
       sandbox: SandboxClient["tier"]; model: ModelRef; effort?: string }
@@ -488,7 +488,7 @@ interface ResolveOptions<H = unknown> {   // Revision (R9): the resume path take
   budgetUsd?: number; signal?: AbortSignal; hostContext?: H;
 }
 interface Approvals {
-  pending(session: Session): Promise<SignedPendingRequest[]>;                 // unresolved approval_requested entries
+  pending(session: Session): Promise<PendingApproval[]>;                       // unresolved approval_requested entries, built in N13 as { request, input }
   resolve(session: Session, resolutions: Resolution[], options?: ResolveOptions): Promise<TurnResult | CodeCallResult>;
   // appends approval_resolved, re-runs the pipeline on each allow (deny wins), then continueRun(context, { resolutions,
   // signer, budgetUsd, signal }); a request that answers a code_call entry runs the tool itself, with no model step (N40)
@@ -717,7 +717,7 @@ The guide says to start with the log, because context layers, pauses, replay, th
 | --- | --- | --- | --- |
 | [N11](../todos/done/N11-tool-registry.md) | Tool registry: canonical names, exposure, tool search and host tools | N1, B12 | M |
 | [N12](../todos/done/N12-permission-pipeline.md) | Permission pipeline: order, rules, modes and the no-match default | N11, B13 | M |
-| [N13](../todos/ready/N13-signed-approvals.md) | Signed approvals in the log: key ring, pause, resume with re-evaluation | N12, N7 | M |
+| [N13](../todos/done/N13-signed-approvals.md) | Signed approvals in the log: key ring, pause, resume with re-evaluation | N12, N7 | M |
 | [N14](../todos/ready/N14-sticky-grouped-quorum.md) | Sticky allowances, grouped approvals and the quorum hook | N13 | M |
 | [N40](../todos/ready/N40-code-initiated-calls.md) | Code-initiated tool calls: `Harness.invokeTool()` and the `code_call` entry | N13, N14, B15, E2 | M |
 

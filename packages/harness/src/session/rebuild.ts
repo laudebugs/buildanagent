@@ -6,7 +6,7 @@
  */
 import type { AssistantMessage, ContentBlock, Message } from "@buildanagent/gateway";
 import type { SessionEntry } from "@buildanagent/protocol";
-import type { Context } from "@buildanagent/sdk";
+import type { Context, SignedPendingRequest } from "@buildanagent/sdk";
 
 type Block = Extract<SessionEntry, { type: "message_block" }>;
 type Pending = { role: "user" | "assistant"; id: string; blocks: Block[] };
@@ -94,6 +94,30 @@ const EMPTY_USAGE: AssistantMessage["usage"] = {
 };
 const EMPTY_COST: AssistantMessage["cost"] = { total: null, basis: "unknown", currency: "USD" };
 
+/** A request that waits for a person, with the input its call would run with once approved. */
+export interface PendingApproval {
+  readonly request: SignedPendingRequest;
+  readonly input: unknown;
+}
+
+/**
+ * The requests on `path` that still wait: a request with no `approval_resolved` entry and whose call has no result.
+ * A request the resume re-issued replaces the earlier one for the same call.
+ */
+export function pendingApprovals(path: readonly SessionEntry[]): PendingApproval[] {
+  const resolved = new Set<string>();
+  const answered = new Set<string>();
+  for (const entry of path) {
+    if (entry.type === "approval_resolved") resolved.add(entry.resolution.requestId);
+    if (entry.type === "tool_result") answered.add(entry.callId);
+  }
+  return path.flatMap((entry) =>
+    entry.type === "approval_requested" && !resolved.has(entry.request.id) && !answered.has(entry.request.callId)
+      ? [{ request: entry.request, input: entry.input }]
+      : [],
+  );
+}
+
 /**
  * The context a path of entries stands for. `path` is a session's `path()`: the root to a HEAD, without `checkout`
  * entries. The system prompt is the latest `turn_start`'s, byte for byte, so a harness whose prompt changed later
@@ -122,5 +146,13 @@ export function contextOf(path: readonly SessionEntry[]): Context {
       default:
     }
   }
-  return { system, messages: builder.finish() };
+  const messages = builder.finish();
+  const waiting = pendingApprovals(path);
+  if (waiting.length === 0) return { system, messages };
+  return {
+    system,
+    messages,
+    pending: waiting.map((entry) => entry.request),
+    pendingInputs: Object.fromEntries(waiting.map((entry) => [entry.request.id, entry.input])),
+  };
 }
