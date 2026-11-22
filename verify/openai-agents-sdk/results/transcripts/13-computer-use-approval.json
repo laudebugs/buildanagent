@@ -3,8 +3,8 @@
   "example": "13-computer-use-approval",
   "file": "verify/openai-agents-sdk/examples/13-computer-use-approval.ts",
   "harness": "verify/openai-agents-sdk",
-  "pin": "@openai/agents@0.21.0",
-  "mock": "@openai/agents@0.21.0",
+  "pin": "@openai/agents@0.22.0",
+  "mock": "@openai/agents@0.22.0",
   "events": [
     {
       "kind": "request",
