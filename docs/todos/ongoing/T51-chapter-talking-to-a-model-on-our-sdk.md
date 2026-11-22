@@ -3,7 +3,7 @@
 | Field | Value |
 | --- | --- |
 | ID | `T51` |
-| Status | `ready` |
+| Status | `ongoing` |
 | Plan | [Book plan BK8](../../plans/build-book.md#bk8-code-from-verify-now-our-own-sdk-as-its-todos-land-accepted) |
 | Round / milestone | Round T (textbook), MT |
 | Depends on | [T11](../done/T11-chapter-talking-to-a-model.md), [T50](T50-chapter-call-workflow-loop-on-our-sdk.md), [B4](../done/B4-gateway-runtime.md), [B5](../done/B5-usage-cost-catalog.md) |
@@ -53,7 +53,7 @@ Wherever our gateway supports what a listing in Chapter 2 shows, give that listi
 
 ## Definition of done
 
-- [ ] Claimed: the first commit moved this file `ready/` → `ongoing/` (Status `ongoing`)
+- [x] Claimed: the first commit moved this file `ready/` → `ongoing/` (Status `ongoing`)
 - [ ] Prose drafted with `/anthropic-skills:writing`, and changed claims re-checked against their sources
 - [ ] This file moved `ongoing/` → `done/` (Status `done`) in the last work commit, and the plan's todo table updated
 - [ ] Two code-review rounds run on the pull request, with every finding fixed or explained in a commit message
