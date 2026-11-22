@@ -2,4 +2,4 @@
 "@buildanagent/sdk": patch
 ---
 
-Add parentRun to RunOptions, set by nestedRunDepth(), so run_start carries parentRunId and parentCallId and otelObserver() parents a nested run's invoke_agent span under the calling execute_tool span
+Add `parentRun` to `RunOptions`, which `nestedRunDepth()` sets. A nested run's `run_start` now carries `parentRunId` and `parentCallId`, and `otelObserver()` places the run's span under the calling tool's span.

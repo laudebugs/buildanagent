@@ -126,7 +126,7 @@ Your own `shouldStop` runs first and its stop wins, but neither its `{ continue 
 
 ### `depth` and `maxDepth` stop a tree of agents
 
-Every tool receives `ctx.depth` (0 for a top-level run) and `ctx.maxDepth` (2 by default). A tool that starts its own agent passes the next level down with `nestedRunDepth(ctx)`, as this tool's `execute` does. It also sets `parentRun`, the calling run's id and call id, which the child's `run_start` event carries as `parentRunId` and `parentCallId`:
+Every tool receives `ctx.depth` (0 for a top-level run) and `ctx.maxDepth` (2 by default). A tool that starts its own agent passes the next level down with `nestedRunDepth(ctx)`, as this tool's `execute` does:
 
 ```ts
 async function execute(input: { task: string }, ctx: ToolContext) {
@@ -135,7 +135,7 @@ async function execute(input: { task: string }, ctx: ToolContext) {
 }
 ```
 
-Pass `signal: ctx.signal` so the child stops when the parent's call is aborted. The parent's `budgetUsd` counts only the parent's own model calls, so give each child a budget of its own. A tool running at `depth === maxDepth` that starts a child run this way makes `run()` throw `max_depth_exceeded`. Since the throw happens inside `execute`, the model reads it as an error result and can answer without the sub-agent.
+`nestedRunDepth(ctx)` also sets `parentRun`, the calling run's id and call id, which the child's `run_start` event carries as `parentRunId` and `parentCallId`. Pass `signal: ctx.signal` so the child stops when the parent's call is aborted. The parent's `budgetUsd` counts only the parent's own model calls, so give each child a budget of its own. A tool running at `depth === maxDepth` that starts a child run this way makes `run()` throw `max_depth_exceeded`. Since the throw happens inside `execute`, the model reads it as an error result and can answer without the sub-agent.
 
 ## Steer a running agent with `run.steer()`, or queue a follow-up with `run.followUp()`
 
