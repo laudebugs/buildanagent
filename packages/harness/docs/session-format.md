@@ -18,12 +18,12 @@ A session is a JSONL file of typed entries, one JSON object per line, and your o
 | `parentId` | string or `null` | The entry this one follows, or `null` for the first entry. |
 | `seq` | integer | The position in the file, from 0 and rising by 1. |
 | `timestamp` | string | When the entry was written, as an ISO 8601 date and time with a zone. |
-| `type` | string | The entry type name, one of the twenty below. |
+| `type` | string | The entry type name, one of the twenty-one below. |
 | `origin` | string | Who produced the content: `user`, `operator`, `model`, `tool` or `harness`. |
 
 The log is an append-only tree: `parentId` links an entry to the entry it follows, and a branch is a second entry with the same parent. The entries a session sees are the path from the root to its HEAD, and a `checkout` entry moves HEAD.
 
-## Twenty entry types
+## Twenty-one entry types
 
 Each section lists the fields the type adds to the base. A field marked optional may be absent, and the others are always present. The types appear in the order of `SESSION_ENTRY_TYPES`.
 
@@ -89,6 +89,18 @@ What a tool call returned to the model.
 | `details` | any, optional | Data for the host, not sent to the model. |
 | `spill` | object, optional | `{ path, bytes }`: where the full output went when it was too large to keep in the entry. |
 | `trust` | `"trusted"` or `"untrusted"` | Whether the output may carry instructions an attacker wrote. |
+
+### `code_call`
+
+A tool call that the host's own code made with `Harness.invokeTool()`, with no model step. It is written before the call is decided, and its `id` is its `callId`. The call's `permission_decision`, `approval_requested` and `tool_result` entries follow it, and the model never reads any of them.
+
+| Field | Type | Meaning |
+| --- | --- | --- |
+| `callId` | string | The call's id, equal to the entry's own `id`. |
+| `tool` | string | The tool's canonical name. |
+| `input` | any | The input the call runs with. |
+| `inputHash` | string | `canonicalInputHash()` of `input`, which a resolution checks before the call runs. |
+| `compensates` | string, optional | The call id of an earlier code call that this one undoes. |
 
 ### `permission_decision`
 

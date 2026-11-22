@@ -1,16 +1,19 @@
 /**
  * `createApprovals()`: the pause and resume of a call that waits for a person. A gate `ask` ends a turn
  * `awaiting_approval` with the signed request in the log, as an `approval_requested` entry written before the harness's
- * own observers hear of it. `pending()` reads the requests that still wait, and `resolve()` answers them from any
- * process that can open the session and load the key ring, because the log holds everything the resume needs. An answer
- * may also cover more than its own call (sticky and grouped answers), and a quorum policy may need several answers
- * before a call runs.
+ * own observers hear of it, and a code call that asks writes the same entry. `pending()` reads the requests that still
+ * wait, and `resolve()` answers them from any process that can open the session and load the key ring, because the log
+ * holds everything the resume needs. A turn's answers resume the turn; a code call's answer runs the call with no model
+ * step. An answer may also cover more than its own call (sticky and grouped answers), and a quorum policy may need
+ * several answers before a call runs.
  */
 import type { SessionEntry } from "@buildanagent/protocol";
 import type { Resolution, SignedPendingRequest } from "@buildanagent/sdk";
 import { HarnessError } from "../errors.js";
-import type { Harness } from "../harness.js";
+import type { CodeCallResult, Harness } from "../harness.js";
 import type { ApprovalReuse } from "../tools/types.js";
+import { checkCodeCallRequest, codeCallEffectKey, finishCodeCall, inCodeCallQueue } from "./code-call.js";
+import { codeCallRequestIds, pendingCodeCalls, type WaitingCodeCall } from "./code-call-log.js";
 import { type PendingApproval, pendingApprovals } from "./rebuild.js";
 import { type ResolutionRecord, type ResumeOptions, resumeTurn, type TurnResult } from "./runner.js";
 import type { Session } from "./session.js";
@@ -65,7 +68,11 @@ export function quorumOf(needed: number): QuorumPolicy {
   };
 }
 
-/** The settings a resume takes besides the answers: a turn's settings, and what the answers cover. */
+/**
+ * The settings a resume takes besides the answers: a turn's settings, and what the answers cover. A code call's
+ * resolution reads `hostContext`, `signal`, `clock`, `newId`, `sticky`, `group` and `requesterId`, and ignores the
+ * rest: it makes no model call, so `budgetUsd` and the model settings have nothing to apply to.
+ */
 export interface ResolveOptions<H = unknown> extends Omit<ResumeOptions<H>, "resolutions" | "records"> {
   /** Make each `allow` cover the same call again, for this run or for this session. */
   readonly sticky?: "run" | "session";
@@ -87,7 +94,10 @@ export interface ApprovalsOptions {
 
 /** The approvals of one harness. */
 export interface Approvals<H = unknown> {
-  /** The requests of the session that still wait, each with the input its call would run with once approved. */
+  /**
+   * The requests of the session that still wait, each with the input its call would run with once approved: a paused
+   * turn's, then the code calls', in the order they asked.
+   */
   pending(session: Session): Promise<PendingApproval[]>;
   /**
    * Answers waiting requests and resumes the turn. Each answer is written as an `approval_resolved` entry first. The
@@ -95,14 +105,28 @@ export interface Approvals<H = unknown> {
    * input, so a tampered request runs nothing and is asked again; `rejected` and `expired` become denials; `pending`
    * leaves the call waiting, and the turn ends `awaiting_approval` again. Each approved call goes through the permission
    * pipeline again, and a deny now turns the approval into a denial. Calling it with no answers evaluates the policy
-   * for every waiting request, which is how an expired request is refused.
+   * for every request of a paused turn, which is how such a request expires. It leaves a code call's request waiting:
+   * the policy decides that call when it is next answered, so a late allow for an expired call comes back `denied`.
+   *
+   * An answer to a code call's request resolves that call alone and returns a `CodeCallResult`. The request is checked
+   * against its signature, the host context it binds and the call's recorded input before anything is written, and a
+   * request that fails throws `approval_refused` and runs nothing. The answer is then written and the quorum policy
+   * decides. `met` decides the call again with the pipeline, so a deny written since the pause wins, and then runs the
+   * tool with `options.hostContext` and `options.signal`, with no model call; `rejected` and `expired` deny it; `pending`
+   * returns `awaiting_approval`. A request whose call already has a result, or started before a crash, no longer waits,
+   * so its tool runs at most once.
    *
    * Throws `approval_not_pending` for a request that does not wait, `approval_unavailable` without a signer,
    * `approver_is_requester` when an approver is the requester, `approval_reuse_refused` when a tool's `approvalReuse`
-   * forbids a sticky or grouped answer, and `sticky_refused` for an interpreter prefix or a secret. The host fills
-   * `Resolution.by` only after it has authenticated the approver; the harness trusts what it is given.
+   * forbids a sticky or grouped answer, `sticky_refused` for an interpreter prefix or a secret, and `invalid_code_call`
+   * for answers that name a code call together with any other request. The host fills `Resolution.by` only after it
+   * has authenticated the approver; the harness trusts what it is given.
    */
-  resolve(session: Session, resolutions: readonly Resolution[], options?: ResolveOptions<H>): Promise<TurnResult>;
+  resolve(
+    session: Session,
+    resolutions: readonly Resolution[],
+    options?: ResolveOptions<H>,
+  ): Promise<TurnResult | CodeCallResult>;
 }
 
 const decisionOf = (resolution: Resolution): "allow" | "deny" | undefined =>
@@ -223,7 +247,8 @@ export function createApprovals<H = unknown>(harness: Harness<H>, settings: Appr
   const policy = settings.quorum ?? oneResolution;
   return {
     async pending(session) {
-      return pendingApprovals(await session.path());
+      const path = await session.path();
+      return [...pendingApprovals(path), ...pendingCodeCalls(path).map(({ request, input }) => ({ request, input }))];
     },
     async resolve(session, resolutions, options = {}) {
       if (options.sticky !== undefined && settings.quorum !== undefined) {
@@ -233,6 +258,17 @@ export function createApprovals<H = unknown>(harness: Harness<H>, settings: Appr
         );
       }
       const path = await session.path();
+      const codeRequests = codeCallRequestIds(path);
+      if (resolutions.some((resolution) => codeRequests.has(resolution.requestId))) {
+        if (resolutions.length !== 1) {
+          throw new HarnessError(
+            "invalid_code_call",
+            "a code call's request is answered on its own, in a resolve() that answers nothing else",
+          );
+        }
+        const only = resolutions[0] as Resolution;
+        return inCodeCallQueue(session, () => resolveCodeCall(harness, session, policy, settings, only, options));
+      }
       const waiting = pendingApprovals(path);
       checkAnswers(
         harness,
@@ -317,5 +353,35 @@ async function recordsFor<H>(
       options,
       secrets,
     ),
+  );
+}
+
+/**
+ * Resolves one code call: the answer is checked against the call's signed request, written with what it covers, and
+ * settled by the quorum policy, and the call then waits, is denied, or runs with no model step.
+ */
+async function resolveCodeCall<H>(
+  harness: Harness<H>,
+  session: Session,
+  policy: QuorumPolicy,
+  settings: ApprovalsOptions,
+  resolution: Resolution,
+  options: ResolveOptions<H>,
+): Promise<CodeCallResult> {
+  const path = await session.path();
+  const waiting = pendingCodeCalls(path);
+  checkAnswers(harness, new Map(waiting.map((entry) => [entry.request.id, entry])), [resolution], options.requesterId);
+  const call = waiting.find((entry) => entry.request.id === resolution.requestId) as WaitingCodeCall;
+  await checkCodeCallRequest(harness, call, resolution, options.hostContext);
+  if (options.group === true) checkReuse(call.request.tool, reuseOf(harness, call.request.tool), "group");
+  const record = recordOf(harness, call, resolution, undefined, options, await (settings.secrets?.() ?? []));
+  const outcome = await settled(policy, [call], answersByRequest(path), [record]);
+  const key = await codeCallEffectKey(session, harness, harness.registry.get(call.call.tool), call.call);
+  return finishCodeCall(
+    harness,
+    session,
+    call,
+    { forRun: outcome.forRun[0], records: outcome.records, effectKey: key },
+    options,
   );
 }

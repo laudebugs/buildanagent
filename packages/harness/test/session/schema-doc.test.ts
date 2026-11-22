@@ -71,7 +71,7 @@ describe("the session format page", () => {
 
   test("names the six base fields, and the format version the protocol writes", () => {
     const base = rows(
-      doc.slice(doc.indexOf("## Every entry carries six base fields"), doc.indexOf("## Twenty entry types")),
+      doc.slice(doc.indexOf("## Every entry carries six base fields"), doc.indexOf("## Twenty-one entry types")),
     );
     assert.deepEqual([...base.keys()].sort(), [...BASE].sort());
     assert.ok(doc.includes(`the current value is ${FORMAT_VERSION}.`));

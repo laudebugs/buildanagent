@@ -5,6 +5,7 @@ import { isHarnessError } from "@buildanagent/harness";
 import { createApprovals, runTurn } from "@buildanagent/harness/session";
 import { describe, test } from "vitest";
 import { BACKENDS, type Backend } from "../session/session-helpers.js";
+import { asTurn } from "./helpers.js";
 import { calls, done, entriesOf, open, reuseSetup } from "./reuse-helpers.js";
 
 const allow = (requestId: string) => ({ requestId, decision: "allow" as const, by: "ada" });
@@ -61,7 +62,7 @@ describe.each(BACKENDS)("%s", (_name, make) => {
     const result = await createApprovals(resumed.harness).resolve(session, [allow(waiting?.request.id as string)], {
       sticky: "run",
     });
-    assert.equal(result.stopReason, "done", "the second call in the resumed run is covered");
+    assert.equal(asTurn(result).stopReason, "done", "the second call in the resumed run is covered");
     assert.deepEqual(resumed.runs, ["refund:o1", "refund:o1"]);
     const next = reuseSetup([calls("refund", [{ orderId: "o1" }], 9), done()]);
     assert.equal((await runTurn(session, next.harness, { input: "next turn" })).stopReason, "awaiting_approval");
