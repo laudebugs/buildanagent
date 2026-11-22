@@ -26,6 +26,7 @@ const REPO_ROOT = fileURLToPath(new URL("../../", import.meta.url));
  */
 export const MOCK_PACKAGES = {
   "packages/gateway": "@buildanagent/gateway",
+  "packages/harness": "@buildanagent/harness",
   "packages/sdk": "@buildanagent/sdk",
   "verify/claude-agent-sdk": "@anthropic-ai/claude-agent-sdk",
   "verify/cloudflare-agents": "ai",

@@ -1,5 +1,6 @@
 {
   "packages/gateway": "@buildanagent/gateway",
+  "packages/harness": "@buildanagent/harness",
   "packages/sdk": "@buildanagent/sdk",
   "verify/claude-agent-sdk": "@anthropic-ai/claude-agent-sdk",
   "verify/cloudflare-agents": "agents",
