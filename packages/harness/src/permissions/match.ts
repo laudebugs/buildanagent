@@ -89,6 +89,8 @@ export function nameMatches(pattern: string, name: string): boolean {
 export interface ParsedCommand {
   readonly parts: string[][];
   readonly opaque: boolean;
+  /** True when a substitution or `-c` script lay deeper than the parser reads, so a rule can't tell what it runs. */
+  readonly unreadable: boolean;
 }
 
 interface Scan {
@@ -113,7 +115,9 @@ function endPart(scan: Scan): void {
 /** The length of the separator that starts at `i`, or 0. A `(` or `)` ends a command, as a subshell's edges do. */
 function separatorAt(text: string, i: number): number {
   const pair = text.slice(i, i + 2);
-  if (pair === "&&" || pair === "||") return 2;
+  if (pair === "&&" || pair === "||" || pair === "|&") return 2;
+  // An & beside a redirection, as in 2>&1 and &>file, is part of it and not a separator.
+  if (text[i] === "&" && (text[i - 1] === ">" || text[i - 1] === "<" || text[i + 1] === ">")) return 0;
   return ";|&\n()".includes(text[i] as string) ? 1 : 0;
 }
 
@@ -131,6 +135,21 @@ function readQuoted(text: string, i: number, scan: Scan): number {
   return at;
 }
 
+/** Adds the plain character at `i` to the current word, and returns where reading goes on. A backslash escapes the next one. */
+function readPlain(text: string, i: number, scan: Scan): number {
+  if (text[i] !== "\\" || i + 1 >= text.length) {
+    scan.word += text[i];
+    scan.inWord = true;
+    return i;
+  }
+  // A backslash-newline joins the lines, so the word goes on without it.
+  if (text[i + 1] !== "\n") {
+    scan.word += text[i + 1];
+    scan.inWord = true;
+  }
+  return i + 1;
+}
+
 function splitWords(text: string): string[][] {
   const scan: Scan = { parts: [], words: [], word: "", inWord: false };
   for (let i = 0; i < text.length; i += 1) {
@@ -141,11 +160,7 @@ function splitWords(text: string): string[][] {
       i += separator - 1;
     } else if (char === "'" || char === '"') i = readQuoted(text, i, scan);
     else if (/\s/.test(char)) endWord(scan);
-    else {
-      if (char === "\\" && i + 1 < text.length) i += 1;
-      scan.word += text[i];
-      scan.inWord = true;
-    }
+    else i = readPlain(text, i, scan);
   }
   endPart(scan);
   return scan.parts;
@@ -188,20 +203,26 @@ function shellScript(words: readonly string[]): string | undefined {
   return flag < 0 ? undefined : rest.slice(flag + 1).find((word) => !word.startsWith("-"));
 }
 
-/** Every simple command in `parts`, and the commands inside the `-c` script of any of them. */
-function withScripts(parts: string[][], depth: number): string[][] {
-  const found = [...parts];
-  for (const words of parts) {
-    const script = depth < MAX_DEPTH ? shellScript(words) : undefined;
-    if (script !== undefined) found.push(...parseCommandAt(script, depth + 1).parts);
-  }
-  return found;
+/**
+ * The commands of `base`, of the substitutions `inner` and of the `-c` scripts of any of them, read to a fixed depth.
+ * A command still unread at the limit is `unreadable`, which a deny or ask rule treats as a match.
+ */
+function assemble(base: string[][], inner: readonly string[], depth: number, opaque: boolean): ParsedCommand {
+  const read = depth < MAX_DEPTH;
+  const nested = read ? inner.map((text) => parseCommandAt(text, depth + 1)) : [];
+  const parts = [...base, ...nested.flatMap((command) => command.parts)];
+  const scripts = parts.map(shellScript).filter((script): script is string => script !== undefined);
+  const scripted = read ? scripts.map((text) => parseCommandAt(text, depth + 1)) : [];
+  const deeper = [...nested, ...scripted];
+  return {
+    parts: [...parts, ...scripted.flatMap((command) => command.parts)],
+    opaque: opaque || inner.length > 0,
+    unreadable: (!read && (inner.length > 0 || scripts.length > 0)) || deeper.some((command) => command.unreadable),
+  };
 }
 
 function parseCommandAt(text: string, depth: number): ParsedCommand {
-  const inner = depth < MAX_DEPTH ? substitutions(text) : [];
-  const parts = [...splitWords(text), ...inner.flatMap((command) => parseCommandAt(command, depth + 1).parts)];
-  return { parts: withScripts(parts, depth), opaque: substitutions(text).length > 0 || /\$'[^']*\\/.test(text) };
+  return assemble(splitWords(text), substitutions(text), depth, /\$'[^']*\\/.test(text));
 }
 
 /** The commands an input carries, or `undefined` when it has no command field. A list is one command's words. */
@@ -212,7 +233,7 @@ export function commandOf(input: unknown): ParsedCommand | undefined {
     const value = record[key];
     if (typeof value === "string") return parseCommandAt(value, 0);
     if (Array.isArray(value) && value.every((word) => typeof word === "string")) {
-      return { parts: withScripts(value.length === 0 ? [] : [value as string[]], 0), opaque: false };
+      return assemble(value.length === 0 ? [] : [value as string[]], [], 0, false);
     }
   }
   return undefined;
@@ -241,7 +262,19 @@ export function strippedWords(words: readonly string[]): string[] {
     else if (LEADERS.has(word) || /^[A-Za-z_][A-Za-z0-9_]*=/.test(word)) at += 1;
     else break;
   }
-  return words.slice(at);
+  return words[at] === "git" ? ["git", ...words.slice(skipGitOptions(words, at + 1))] : words.slice(at);
+}
+
+// Options that go before a git subcommand, and take a value as the next word when written without `=`.
+const GIT_VALUE_OPTIONS = ["-C", "-c", "--git-dir", "--work-tree", "--namespace", "--exec-path"];
+
+/** The index of git's subcommand: after its global options and their values. */
+function skipGitOptions(words: readonly string[], from: number): number {
+  let at = from;
+  while (at < words.length && (words[at] as string).startsWith("-")) {
+    at += GIT_VALUE_OPTIONS.includes(words[at] as string) ? 2 : 1;
+  }
+  return at;
 }
 
 /** Whether `words` begins with `prefix`, word for word. */

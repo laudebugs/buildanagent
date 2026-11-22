@@ -45,7 +45,9 @@ export function restricts(rule: Rule, target: Target): boolean {
   if (rule.paths !== undefined && !target.paths.some((path) => pathHits(rule, path, true))) return false;
   const prefix = rule.commandPrefix;
   if (prefix === undefined) return true;
-  return (target.command?.parts ?? []).some(
+  // A command the parser couldn't read, or that is in no field it knows, may be anything, so a restriction applies.
+  if (target.command === undefined || target.command.unreadable) return true;
+  return target.command.parts.some(
     (words) => startsWithWords(words, prefix) || startsWithWords(strippedWords(words), prefix),
   );
 }

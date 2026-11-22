@@ -238,3 +238,47 @@ test("an ANSI-C quoted word with an escape is opaque, so an allow rule never cov
   assert.equal(await decisionFor({ allow }, "bash", { command: "echo $'a\\x41'" }), "deny");
   assert.equal(await decisionFor({ allow }, "bash", { command: "echo $'plain'" }), "allow");
 });
+
+test("a command nested deeper than the parser reads is unreadable, and a deny rule treats it as a match", async () => {
+  const deny = [{ tool: "bash", commandPrefix: ["rm"] }];
+  const allow = [{ tool: "bash" }];
+  const deep = "echo $(echo $(echo $(echo $(rm -rf /))))";
+  const nest = (command: string) => `bash -c ${JSON.stringify(command)}`;
+  const shells = nest(nest(nest(nest("rm x"))));
+  for (const command of [deep, shells])
+    assert.equal(await decisionFor({ deny, allow }, "bash", { command }), "deny", command);
+  assert.equal(
+    await decisionFor({ deny, allow }, "bash", { command: "echo $(echo $(echo ok))" }),
+    "allow",
+    "three levels are read",
+  );
+});
+
+test("a deny rule with a command prefix applies when the call carries its command where the parser does not look", async () => {
+  const deny = [{ tool: "bash", commandPrefix: ["rm"] }];
+  const allow = [{ tool: "bash" }];
+  for (const input of [{ script: "rm -rf /" }, { command: { argv: ["rm", "-rf", "/"] } }, {}]) {
+    assert.equal(await decisionFor({ deny, allow }, "bash", input), "deny", JSON.stringify(input));
+  }
+});
+
+test("a backslash-newline joins the lines, so it can't split a denied word", async () => {
+  const deny = [{ tool: "bash", commandPrefix: ["rm"] }];
+  assert.equal(await decisionFor({ deny, allow: [{ tool: "bash" }] }, "bash", { command: "r\\\nm -rf /" }), "deny");
+});
+
+test("a redirection is part of its command: an & beside > or < is not a separator", async () => {
+  const allow = [{ tool: "bash", commandPrefix: ["npm", "test"] }];
+  for (const command of ["npm test 2>&1", "npm test &>out.txt", "npm test >&2", "npm test |& cat"]) {
+    const decision = await decisionFor({ allow }, "bash", { command });
+    assert.equal(decision, command.includes("cat") ? "deny" : "allow", command);
+  }
+});
+
+test("a default ask rule for git rm sees it through git's global options", async () => {
+  const pipeline = createPermissionPipeline({ ...base, mode: "bypass", ask: defaultAskRules }, registryOf());
+  for (const command of ["git -C . rm -r tests", "git -c k=v rm x", "git --git-dir=. rm x", "git --no-pager rm x"]) {
+    assert.equal((await pipeline.decide(call("bash", { command }), input())).decision, "ask", command);
+  }
+  assert.equal((await pipeline.decide(call("bash", { command: "git -C . status" }), input())).decision, "allow");
+});
