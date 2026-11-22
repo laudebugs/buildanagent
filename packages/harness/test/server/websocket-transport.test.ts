@@ -269,6 +269,37 @@ describe("a bad frame gets the stdio transport's answer, and the socket stays op
     await run.done;
   });
 
+  for (const frame of ["{msg}\n\n", "\n{msg}", " \n{msg}", "{msg}\r\n\r\n", "{msg}\n \n"]) {
+    test(`a frame with a blank line around one message, ${JSON.stringify(frame)}, gets InvalidRequest`, async () => {
+      const fake = fakeDispatcher();
+      const run = wsRun(fake.dispatcher);
+      const message = JSON.stringify({ jsonrpc: "2.0", id: 1, method: "initialize", params: initParams });
+      run.send(frame.replace("{msg}", message));
+      await until(() => run.messages().length === 1, "the refusal");
+      assert.deepEqual(
+        errorsOf(run.messages()).map((m) => [m.id, m.error.code, m.error.message]),
+        [[null, ErrorCodes.InvalidRequest, "a frame must hold one message, on one line"]],
+      );
+      assert.deepEqual(fake.events, []);
+      assert.equal(run.server.readyState, 1);
+      run.client.close(1000);
+      await run.done;
+    });
+  }
+
+  test("one message with one trailing \\n or \\r\\n reaches the dispatcher", async () => {
+    const fake = fakeDispatcher();
+    const run = wsRun(fake.dispatcher);
+    const message = (id: number) => ({ jsonrpc: "2.0", id, method: "initialize", params: initParams });
+    run.send(`${JSON.stringify(message(1))}\n`);
+    run.send(`${JSON.stringify(message(2))}\r\n`);
+    await until(() => fake.events.length === 2, "two messages");
+    assert.deepEqual(fake.events, [`received ${JSON.stringify(message(1))}`, `received ${JSON.stringify(message(2))}`]);
+    assert.deepEqual(run.messages(), []);
+    run.client.close(1000);
+    await run.done;
+  });
+
   test("a frame within maxMessageBytes is served", async () => {
     const { dispatcher } = approvalSetup([]);
     const run = wsRun(dispatcher, { maxMessageBytes: 200 });
@@ -436,6 +467,29 @@ describe("the peer goes away", () => {
     assert.deepEqual(fake.events, ["closed"]);
     assert.equal(run.server.listenerCount, 0);
   });
+
+  for (const [state, closes] of [
+    [1, [{ code: 1011, reason: "the socket failed" }]],
+    [3, []],
+  ] as const) {
+    test(`an error on a socket whose readyState stays ${state} ${state === 1 ? "closes it with 1011" : "closes nothing"}`, async () => {
+      const fake = fakeDispatcher();
+      const [server, client] = MemorySocket.pair();
+      const onError: ((event: never) => void)[] = [];
+      const add = server.addEventListener.bind(server);
+      server.addEventListener = ((type: "message" | "close" | "error", listener: (event: never) => void) => {
+        if (type === "error") onError.push(listener);
+        add(type, listener);
+      }) as never;
+      const run = wsRunOn(fake.dispatcher, server, client);
+      server.readyState = state;
+      for (const listener of onError) listener({ type: "error" } as never);
+      await run.done;
+      assert.deepEqual(stopped(run), ["websocket: stopped: the socket failed"]);
+      assert.deepEqual(server.closeCalls, closes);
+      assert.deepEqual(fake.events, ["closed"]);
+    });
+  }
 
   test("a close while a message waits for room ends the wait, and the transport resolves", async () => {
     const fake = fakeDispatcher();

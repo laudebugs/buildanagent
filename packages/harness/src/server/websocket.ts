@@ -179,13 +179,13 @@ function withoutNewline(text: string): string {
  * The peer's close, or a socket error, stops the transport, and it logs the close code but never the peer's reason.
  * It closes the socket only when it stops itself: with 1008 when the client breaks a bound (128 error answers or
  * refusals unread, or a send buffer that never drains), 1009 for a frame that is too big, 1011 when the socket's
- * `send()` throws, and 1000 when `signal` aborts. The standard `WebSocket` lets a client close only with 1000 or 3000
- * to 4999, so the global `WebSocket` of Node and browsers throws for 1008, 1009 and 1011; a socket that throws for one
- * of them is closed with 4008, 4009 or 4011 instead, with the same reason. A socket that throws for that code too is
- * left as it is, and the transport logs the error's name, never its message, and still resolves. However it stops, it
- * removes its listeners and closes the connection. A turn the client started goes on in the dispatcher. An option out
- * of range, or a socket that is not open, rejects with a `HarnessError`, code `invalid_transport_options`, before the
- * transport connects.
+ * `send()` throws or the socket is still open after an error, and 1000 when `signal` aborts. The standard `WebSocket`
+ * lets a client close only with 1000 or 3000 to 4999, so the global `WebSocket` of Node and browsers throws for 1008,
+ * 1009 and 1011; a socket that throws for one of them is closed with 4008, 4009 or 4011 instead, with the same reason.
+ * A socket that throws for that code too is left as it is, and the transport logs the error's name, never its message,
+ * and still resolves. However it stops, it removes its listeners and closes the connection. A turn the client started
+ * goes on in the dispatcher. An option out of range, or a socket that is not open, rejects with a `HarnessError`, code
+ * `invalid_transport_options`, before the transport connects.
  */
 export async function webSocketTransport(
   dispatcher: Dispatcher,
@@ -244,7 +244,9 @@ class WebSocketSession {
       const code = Number.isInteger(event.code) ? ` with code ${event.code}` : "";
       this.#stop(`the peer closed the socket${code}`, undefined);
     };
-    const onError = () => this.#stop("the socket failed", undefined);
+    // A standard socket closes after an error, and #closeSocket skips one that is no longer open; an adapter whose
+    // socket stays open after an error is closed as a server failure.
+    const onError = () => this.#stop("the socket failed", INTERNAL_ERROR);
     const onAbort = () => this.#stop("the signal aborted", NORMAL);
     this.#socket.addEventListener("message", onMessage);
     this.#socket.addEventListener("close", onClose);
@@ -315,12 +317,17 @@ class WebSocketSession {
       this.#rpc.refuse(notUtf8(), ErrorCodes.ParseError, "a frame");
       return;
     }
+    // The framer skips blank lines, so a newline left after the trailing one is refused here, before framing.
+    if (text.includes("\n")) {
+      this.#rpc.refuse(refusal("a frame must hold one message, on one line"), ErrorCodes.InvalidRequest, "a frame");
+      return;
+    }
     const framed = this.#framer.push(encoder.encode(text));
     framed.push(...this.#framer.push(NEWLINE));
+    // With no newline inside, the frame is one line: blank, which the framer skips, or one message.
     const [only] = framed;
-    if (framed.length !== 1 || only === undefined) {
-      const why = framed.length === 0 ? "a frame must hold a message" : "a frame must hold one message, on one line";
-      this.#rpc.refuse(refusal(why), ErrorCodes.InvalidRequest, "a frame");
+    if (only === undefined) {
+      this.#rpc.refuse(refusal("a frame must hold a message"), ErrorCodes.InvalidRequest, "a frame");
       return;
     }
     if (only.ok) this.#rpc.handle(only.value);
