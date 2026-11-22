@@ -219,6 +219,21 @@ The sections of README.md and every public export, generated from this package's
 
 ## Exports from `@buildanagent/harness/mcp`
 
+- `connectMcpServer()`: Connects one server and negotiates its era.
+- `createMcpManager()`: Creates the MCP client for a set of servers.
+- `type McpCallFailure`: Why an MCP tool call ended without a result.
+- `interface McpCallResult`: What one tool call returned.
+- `interface McpChannel`: A message channel to a server in this process, such as an `InMemoryTransport` from `@modelcontextprotocol/server`.
+- `interface McpConnection`: One connected server.
+- `type McpEra`: The protocol era a server speaks: the 2026-07-28 revision, or `legacy` for the 2025 revisions and their `initialize`.
+- `class McpError`: Thrown for a server that could not connect (`mcp_connect_failed`), a tool list the harness refuses (`mcp_tool_list_refused`) and a tool call that ended with no result (`mcp_call_failed`, with `failure` saying why).
+- `interface McpInProcessTransport`: A server in this process, reached through a channel the host built.
+- `interface McpManager`: The MCP client as one removable component: it connects the servers and registers their tools.
+- `interface McpManagerOptions`: What `createMcpManager()` takes.
+- `interface McpServerConfig`: One MCP server the harness connects to.
+- `type McpServerStatus`: How one server's connection went.
+- `interface McpStdioTransport`: A server the harness starts as a child process and speaks to over its standard input and output, one JSON message per line.
+- `interface McpTool`: A tool as a server lists it.
 
 ## Exports from `@buildanagent/harness/permissions`
 

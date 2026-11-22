@@ -1,2 +1,21 @@
-/** `@buildanagent/harness/mcp`: a stub that holds the entry's place until its component is built. */
-export {};
+/**
+ * `@buildanagent/harness/mcp`: the MCP client. `createMcpManager()` connects each configured server, negotiates its
+ * protocol era, and registers its tools as `mcp__<server>__<tool>`, deferred by default. `connectMcpServer()` connects
+ * one server without registering anything. The stdio transport is Node-only; an in-process server works on any runtime.
+ */
+export { connectMcpServer } from "./connection.js";
+export { type McpCallFailure, McpError } from "./errors.js";
+export { createMcpManager } from "./manager.js";
+export type {
+  McpCallResult,
+  McpChannel,
+  McpConnection,
+  McpEra,
+  McpInProcessTransport,
+  McpManager,
+  McpManagerOptions,
+  McpServerConfig,
+  McpServerStatus,
+  McpStdioTransport,
+  McpTool,
+} from "./types.js";
