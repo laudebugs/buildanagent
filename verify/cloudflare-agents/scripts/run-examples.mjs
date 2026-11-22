@@ -21,7 +21,7 @@ import { mkdir, mkdtemp, readdir, readFile, rm, writeFile } from "node:fs/promis
 import { tmpdir } from "node:os";
 import { join, resolve } from "node:path";
 import { liveMode } from "../../../scripts/live/harness.mjs";
-import { writeTranscript } from "../../../scripts/transcripts/write.mjs";
+import { finishedRun, writeTranscript } from "../../../scripts/transcripts/write.mjs";
 import { bundle, PKG } from "./workerd.mjs";
 
 const dir = resolve(process.argv[2] && !process.argv[2].startsWith("--") ? process.argv[2] : "extracted");
@@ -42,10 +42,10 @@ const TRANSCRIPT_LINE = "__TRANSCRIPT__";
 
 /**
  * Writes the transcript of one of our examples from workerd's output: the lines that carry this run's marker, in the
- * order workerd printed them, the failed check that ended a run included. workerd keeps no stack that names the
- * example's lines, so these events carry none.
+ * order workerd printed them. A live run's failed check that ended it is included; a mock run that did not finish
+ * (`ran` false) writes nothing. workerd keeps no stack that names the example's lines, so these events carry none.
  */
-async function writeWorkerTranscript(t, out, cwd, nonce) {
+async function writeWorkerTranscript(t, out, cwd, nonce, ran) {
   const events = [];
   const prefix = `${TRANSCRIPT_LINE}${nonce}:`;
   for (const line of out.split("\n")) {
@@ -64,6 +64,7 @@ async function writeWorkerTranscript(t, out, cwd, nonce) {
     home: tmpdir(),
     outDir: liveRun?.transcript.outDir ?? outDir,
     live: liveRun?.transcript.live,
+    ran,
   });
   await rm(dir, { recursive: true, force: true });
 }
@@ -223,7 +224,9 @@ async function runOne(t) {
   const modelCalls = run.out.split(MARKER).length - 1;
   const line = run.out.split("\n").find((l) => l.startsWith("__RESULT__"));
   const r = line ? JSON.parse(line.slice("__RESULT__".length)) : null;
-  if (ownExamples && !run.timedOut) await writeWorkerTranscript(t, run.out, work, nonce);
+  // The example finished when its test function returned (`r.ok`) and a check printed its `ok - ` line.
+  const ran = r?.phase === "run" && r.ok === true && finishedRun({ exit: 0, out: run.out });
+  if (ownExamples && !run.timedOut) await writeWorkerTranscript(t, run.out, work, nonce, ran);
   const tail = (liveRun?.redact ?? String)(
     run.out
       .split("\n")

@@ -292,10 +292,23 @@ describe("session/open with fromSeq", () => {
     await whole.client.request("session/open", { session, cwd: "/work", fromSeq: 0 });
     await until(() => entrySeqs(whole.seen).length === all.length, "the whole file");
     assert.deepEqual(entrySeqs(whole.seen), all);
-    for (const fromSeq of [last + 2, -1, 0.5]) {
+    await assert.rejects(
+      recorded(dispatcher).client.request("session/open", { session, cwd: "/work", fromSeq: last + 2 }),
+      (error: unknown) => error instanceof RpcFailure && error.rpc.code === ErrorCodes.InvalidParams,
+    );
+    // A fromSeq that is not a whole number of at least 0 is refused by the schema check, before the handler runs.
+    for (const [fromSeq, keyword] of [
+      [-1, "minimum"],
+      [0.5, "type"],
+      [1.5, "type"],
+    ] as const) {
       await assert.rejects(
         recorded(dispatcher).client.request("session/open", { session, cwd: "/work", fromSeq }),
-        (error: unknown) => error instanceof RpcFailure && error.rpc.code === ErrorCodes.InvalidParams,
+        (error: unknown) =>
+          error instanceof RpcFailure &&
+          error.rpc.code === ErrorCodes.InvalidParams &&
+          error.rpc.message ===
+            `the params of session/open do not match the protocol schema: /params/fromSeq fails ${keyword}`,
         String(fromSeq),
       );
     }
