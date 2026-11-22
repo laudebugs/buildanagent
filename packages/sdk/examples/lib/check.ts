@@ -23,3 +23,14 @@ export function scripted(steps: ScriptStep[]): { adapter: ScriptedModel; model: 
   const model = createModel({ adapter, id: SCRIPTED_MODEL_ID });
   return { adapter, model: lendCallerLine(model) };
 }
+
+/**
+ * Like `scripted()`, but the model reports itself as Anthropic's `claude-sonnet-5-5`, so `createModel()` prices every
+ * answer from the shipped catalog. A run with a `budgetUsd` needs that price.
+ */
+export function pricedScripted(steps: ScriptStep[]): { adapter: ScriptedModel; model: Model } {
+  const script = recordedSteps(steps);
+  const adapter = new ScriptedModel(script.steps, { ref: { api: "anthropic-messages", provider: "anthropic" } });
+  script.belongsTo(adapter);
+  return { adapter, model: lendCallerLine(createModel({ adapter, id: "claude-sonnet-5-5" })) };
+}

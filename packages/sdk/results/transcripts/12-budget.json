@@ -1,0 +1,106 @@
+{
+  "format": 2,
+  "example": "12-budget",
+  "file": "packages/sdk/examples/12-budget.ts",
+  "harness": "packages/sdk",
+  "pin": "@buildanagent/sdk@workspace",
+  "mock": "@buildanagent/sdk@workspace",
+  "events": [
+    {
+      "kind": "request",
+      "line": 29,
+      "model": "model-1",
+      "repeated": 0,
+      "messages": [
+        {
+          "role": "system",
+          "parts": [
+            {
+              "type": "text",
+              "text": "Refund rule 0: refund within 30 days.\nRefund rule 1: refund within 30 days.\nRefund rule 2: refund within 30 days.\nRefund rule 3: refund within 30 days.\nRefund rule 4: refund within 30 days.\nRefund rule 5: refund within 30 days.\nRefund rule 6: refund within 30 days.\nRefund rule 7: refund within 30 days.\nRefund rule 8: refund within 30 days.\nRefund rule 9: refund within 30 days.\nRefund rule 10: refund within 30 days.\nRefund rule 11: refund within 30 days.\nRefund rule 12: refund within 30 days.\nRefund rule 13: refund within 30 days.\nRefund rule 14: refund within 30 days.\nRefund rule 15: refund within 30 days.\nRefund rule 16: refund within 30 days.\nRefund rule 17: refund within 30 days.\nRefund rule 18: refund within 30 days.\nRefund rule 19: refund within 30 days.\nRefund rule 20: refund within 30 days.\nRefund rule 21: refund within 30 days.\nRefund rule 22: refund within 30 days.\nRefund rule 23: refund within 30 days.\nRefund rule 24: refund within 30 days.\nRefund rule 25: refund within 30 days.\nRefund rule 26: refund within 30 days.\nRefund rule 27: refund within 30 days.\nRefund rule 28: refund within 30 days.\nRefund rule 29: refund within 30 days.\nRefund rule 30: refund within 30 days.\nRefund rule 31: refund within 30 days.\nRefund rule 32: refund within 30 days.\nRefund rule 33: refund within 30 days.\nRefund rule 34: refund within 30 days.\nRefund rule 35: refund within 30 days.\nRefund rule 36: refund within 30 days.\nRefund rule 37: refund within 30 days.\nRefund rule 38: refund within 30 days.\nRefund rule 39: refund within 30 days.\nRefund rule 40: refund within 30 days.\nRefund rule 41: refund within 30 days.\nRefund rule 42: refund within 30 days.\nRefund rule 43: refund within 30 days.\nRefund rule 44: refund within 30 days.\nRefund rule 45: refund within 30 days.\nRefund rule 46: refund within 30 days.\nRefund rule 47: refund within 30 days.\nRefund rule 48: refund within 30 days.\nRefund rule 49: refund within 30 days.\nRefund rule 50: refund within 30 days.\nRefund rule 51: refund within 30 days.\nRefund rule 52: refund within 30 days.\nRefund rule 53: refund within 30 days.\nRefund rule 54: refund within 30 days.\nRefund rule 55: refund within 30 days.\nRefund rule 56: refund within 30 days.\nRefund rule 57: refund within 30 days.\nRefund rule 58: refund within 30 days.\nRefund rule 59: refund within 30 days.\nRefund rule 60: refund within 30 days.\nRefund rule 61: refund within 30 days.\nRefund rule 62: refund within 30 days.\nRefund rule 63: refund within 30 days.\nRefund rule 64: refund within 30 days.\nRefund rule 65: refund within 30 days.\nRefund rule 66: refund within 30 days.\nRefund rule 67: refund within 30 days.\nRefund rule 68: refund within 30 days.\nRefund rule 69: refund within 30 days.\nRefund rule 70: refund within 30 days.\nRefund rule 71: refund within 30 days.\nRefund rule 72: refund within 30 days.\nRefund rule 73: refund within 30 days.\nRefund rule 74: refund within 30 days.\nRefund rule 75: refund within 30 days.\nRefund rule 76: refund within 30 days.\nRefund rule 77: refund within 30 days.\nRefund rule 78: refund within 30 days.\nRefund rule 79: refund within 30 days.\nRefund rule 80: refund within 30 days.\nRefund rule 81: refund within 30 days.\nRefund rule 82: refund within 30 days.\nRefund rule 83: refund within 30 days.\nRefund rule 84: refund within 30 days.\nRefund rule 85: refund within 30 days.\nRefund rule 86: refund within 30 days.\nRefund rule 87: refund within 30 days.\nRefund rule 88: refund within 30 days.\nRefund rule 89: refund within 30 days.\nRefund rule 90: refund within 30 days.\nRefund rule 91: refund within 30 days.\nRefund rule 92: refund within 30 days.\nRefund rule 93: refund within 30 days.\nRefund rule 94: refund within 30 days.\nRefund rule 95: refund within 30 days.\nRefund rule 96: refund within 30 days.\nRefund rule 97: refund within 30 days.\nRefund rule 98: refund within 30 days.\nRefund rule 99: refund within 30 days.\nRefund rule 100: refund within 30 days.\nRefund rule 101: refund within 30 days.\nRefund rule 102: refund within 30 days.\nRefund rule 103: refund within 30 days.\nRefund rule 104: refund within 30 days.\nRefund rule 105: refund within 30 days.\nRefund rule 106: refund within 30 days.\nRefund rule 107: refund within 30 days.\nRefund rule 108: refund within 30 days.\nRefund rule 109: refund within 30 days.\nRefund rule 110: refund within 30 days.\nRefund rule 111: refund within 30 days.\nRefund rule 112: refund within 30 days.\nRefund rule 113: refund within 30 days.\nRefund rule 114: refund within 30 days.\nRefund rule 115: refund within 30 days.\nRefund rule 116: refund within 30 days.\nRefund rule 117: refund within 30 days.\nRefund rule 118: refund within 30 days.\nRefund rule 119: refund within 30 days.\nRefund rule 120: refund within 30 days.\nRefund rule 121: refund within 30 days.\nRefund rule 122: refund within 30 days.\nRefund rule 123: refund within 30 days.\nRefund rule 124: refund within 30 days.\nRefund rule 125: refund within 30 days.\nRefund rule 126: refund within 30 days.\nRefund rule 127: refund within 30 days.\nRefund rule 128: refund within 30 days.\nRefund rule 129: refund within 30 days.\nRefund rule 130: refund within 30 days.\nRefund rule 131: refund within 30 days.\nRefund rule 132: refund within 30 days.\nRefund rule 133: refund within 30 days.\nRefund rule 134: refund within 30 days.\nRefund rule 135: refund within 30 days.\nRefund rule 136: refund within 30 days.\nRefund rule 137: refund within 30 days.\nRefund rule 138: refund within 30 days.\nRefund rule 139: refund within 30 days.\nRefund rule 140: refund within 30 days.\nRefund rule 141: refund within 30 days.\nRefund rule 142: refund within 30 days.\nRefund rule 143: refund within 30 days.\nRefund rule 144: refund within 30 days.\nRefund rule 145: refund within 30 days.\nRefund rule 146: refund within 30 days.\nRefund rule 147: refund within 30 days.\nRefund rule 148: refund within 30 days.\nRefund rule 149: refund within 30 days.\nRefund rule 150: refund within 30 days.\nRefund rule 151: refund within 30 days.\nRefund rule 152: refund within 30 days.\nRefund rule 153: refund within 30 days.\nRefund rule 154: refund within 30 days.\nRefund rule 155: refund within 30 days.\nRefund rule 156: refund within 30 days.\nRefund rule 157: refund within 30 days.\nRefund rule 158: refund within 30 days.\nRefund rule 159: refund within 30 days.\nRefund rule 160: refund within 30 days.\nRefund rule 161: refund within 30 days.\nRefund rule 162: refund within 30 days.\nRefund rule 163: refund within 30 days.\nRefund rule 164: refund within 30 days.\nRefund rule 165: refund within 30 days.\nRefund rule 166: refund within 30 days.\nRefund rule 167: refund within 30 days.\nRefund rule 168: refund within 30 days.\nRefund rule 169: refund within 30 days.\nRefund rule 170: refund within 30 days.\nRefund rule 171: refund within 30 days.\nRefund rule 172: refund within 30 days.\nRefund rule 173: refund within 30 days.\nRefund rule 174: refund within 30 days.\nRefund rule 175: refund within 30 days.\nRefund rule 176: refund within 30 days.\nRefund rule 177: refund within 30 days.\nRefund rule 178: refund within 30 days.\nRefund rule 179: refund within 30 days.\nRefund rule 180: refund within 30 days.\nRefund rule 181: refund within 30 days.\nRefund rule 182: refund within 30 days.\nRefund rule 183: refund within 30 days.\nRefund rule 184: refund within 30 days.\nRefund rule 185: refund within 30 days.\nRefund rule 186: refund within 30 days.\nRefund rule 187: refund within 30 days.\nRefund rule 188: refund within 30 days.\nRefund rule 189: refund within 30 days.\nRefund rule 190: refund within 30 days.\nRefund rule 191: refund within 30 days.\nRefund rule 192: refund within 30 days.\nRefund rule 193: refund within 30 days.\nRefund rule 194: refund within 30 days.\nRefund rule 195: refund within 30 days.\nRefund rule 196: refund within 30 days.\nRefund rule 197: refund within 30 days.\nRefund rule 198: refund within 30 days.\nRefund rule 199: refund within 30 days."
+            }
+          ]
+        },
+        {
+          "role": "user",
+          "parts": [
+            {
+              "type": "text",
+              "text": "How long do refunds take?"
+            }
+          ]
+        }
+      ],
+      "tools": [
+        "lookup"
+      ]
+    },
+    {
+      "kind": "response",
+      "line": 29,
+      "model": "model-1",
+      "message": {
+        "role": "assistant",
+        "parts": [
+          {
+            "type": "tool-call",
+            "id": "call-1",
+            "name": "lookup",
+            "input": {
+              "rule": 7
+            }
+          }
+        ]
+      },
+      "finish": "tool_calls",
+      "usage": {
+        "uncachedInput": 20,
+        "cacheWrite": 3960,
+        "output": 30
+      },
+      "modelId": "claude-sonnet-5-5"
+    },
+    {
+      "kind": "request",
+      "line": 29,
+      "model": "model-1",
+      "repeated": 3,
+      "messages": [
+        {
+          "role": "tool",
+          "parts": [
+            {
+              "type": "tool-result",
+              "id": "call-1",
+              "name": "lookup",
+              "output": "Rule 7: refund within 30 days."
+            }
+          ]
+        }
+      ],
+      "tools": [
+        "lookup"
+      ]
+    },
+    {
+      "kind": "response",
+      "line": 29,
+      "model": "model-1",
+      "message": {
+        "role": "assistant",
+        "parts": [
+          {
+            "type": "text",
+            "text": "Refunds take five days."
+          }
+        ]
+      },
+      "finish": "stop",
+      "usage": {
+        "uncachedInput": 20,
+        "output": 30
+      },
+      "modelId": "claude-sonnet-5-5"
+    }
+  ]
+}
