@@ -1,0 +1,39 @@
+---
+// The frame every page shares: the head (tokens, fonts, favicon, theme colour), the header, the page and the footer.
+import "../styles/tokens.css";
+import "../styles/site.css";
+import SiteFooter from "../components/SiteFooter.astro";
+import SiteHeader from "../components/SiteHeader.astro";
+import themeColors from "../landing/theme-colors.json";
+
+interface Props {
+  title: string;
+  description: string;
+  /** A class on the body, so the landing page's styles apply to it alone. */
+  bodyClass?: string;
+}
+const { title, description, bodyClass } = Astro.props;
+// The two faces above the fold: the headline's display face and the body face. The rest load when used.
+const PRELOAD = ["/fonts/instrument-serif/instrument-serif-regular.woff2", "/fonts/literata/literata-roman.woff2"];
+---
+
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>{title}</title>
+    <meta name="description" content={description} />
+    <meta name="theme-color" content={themeColors.light} media="(prefers-color-scheme: light)" />
+    <meta name="theme-color" content={themeColors.dark} media="(prefers-color-scheme: dark)" />
+    <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
+    {PRELOAD.map((href) => <link rel="preload" href={href} as="font" type="font/woff2" crossorigin />)}
+  </head>
+  <body class={bodyClass}>
+    <div class="wrap">
+      <SiteHeader />
+      <slot />
+      <SiteFooter />
+    </div>
+  </body>
+</html>
