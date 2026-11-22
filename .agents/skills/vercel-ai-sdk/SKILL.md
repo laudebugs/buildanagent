@@ -32,7 +32,8 @@ const issueRefund = tool({
 });
 const agent = new ToolLoopAgent({
   model: anthropic("claude-sonnet-4-5"),
-  instructions: "Triage support tickets. Never refund without approval.",
+  // wording only gets a real model to the approval path; `toolApproval` is what enforces it
+  instructions: "You triage support tickets. Look up the order first. Refund with issueRefund; a person approves it.",
   tools: { lookupOrder, issueRefund },
   toolApproval: { issueRefund: "user-approval" },
   experimental_toolApprovalSecret: process.env.TOOL_APPROVAL_SECRET, // sign approval requests
@@ -40,7 +41,7 @@ const agent = new ToolLoopAgent({
   stopWhen: isStepCount(8),
 });
 
-const messages: ModelMessage[] = [{ role: "user", content: "I was charged twice for A-1." }];
+const messages: ModelMessage[] = [{ role: "user", content: "I was charged twice for order A-1. Please refund it." }];
 const first = await agent.generate({ messages });
 messages.push(...first.responseMessages);
 const ask = first.content.find((p) => p.type === "tool-approval-request");

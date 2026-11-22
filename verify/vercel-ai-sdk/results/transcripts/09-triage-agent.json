@@ -17,7 +17,7 @@
           "parts": [
             {
               "type": "text",
-              "text": "You triage support tickets. Look up the order before acting. Never refund without approval."
+              "text": "You triage support tickets. Look up the order first. Refund with issueRefund; a person approves it."
             }
           ]
         },
@@ -26,7 +26,7 @@
           "parts": [
             {
               "type": "text",
-              "text": "I was charged twice for order A-1."
+              "text": "I was charged twice for order A-1. Please refund it."
             }
           ]
         }

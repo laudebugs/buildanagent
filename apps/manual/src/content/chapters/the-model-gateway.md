@@ -7,14 +7,22 @@ glossary: [model-gateway, wire-protocol, delta, token]
 switchTo: [B4, B5, B8, B9]
 ---
 
-Eight lines of code ask a model a question. The helper in [[lst:ask-helper]] hands a refund policy and a question to whatever model you give it, and returns the answer.
+Under ten lines of code ask a model a question. The helper in [[lst:ask-helper-ours]] and [[lst:ask-helper]] hands a refund policy and a question to whatever model you give it, and returns the answer. In each tabbed listing, the first tab runs on our gateway, `@buildanagent/gateway`, or on our SDK, `@buildanagent/sdk`, when the step belongs to the loop. The second tab runs the same step on the AI SDK.
 
-:::listing[The helper that every example in this chapter calls]{#ask-helper file="verify/vercel-ai-sdk/examples/12-retries-caching-budget.ts" region="ask"}
+::::tabs
+:::listing[Our gateway]{#ask-helper-ours file="packages/gateway/examples/04-retries-caching.ts" region="ask"}
+::note[`cacheRetention` is the gateway's own caching option, so it asks every adapter for caching in that adapter's terms. The Anthropic adapter turns `"short"` into a mark on the request.]{#cache-mark}
+::note[The call's own answer limit. Section five's budget example sets the same limit through `modelOptions`{checked=row-145}.]{#output-cap}
+:::
+:::listing[AI SDK]{#ask-helper file="verify/vercel-ai-sdk/examples/12-retries-caching-budget.ts" region="ask"}
 ::note[The `cacheControl` entry sits under the `anthropic` key, so it is a request to Anthropic's cache and nobody else's.]{#cache-mark}
 ::note[The call's own answer limit. Section five uses it to project what the call can cost.]{#output-cap}
 :::
+::::
 
-The helper names no HTTP status, no wire format and no price, and its only nod to caching is one mark on the policy. Yet the example that holds it makes a provider answer "overloaded" and carries on, reads a long policy back from a cache at a fraction of its price, and refuses a call before it leaves the process. Each of those happens in a layer around the model that `ask` never sees. That layer is the model gateway: the code between your agent loop and the providers' APIs. Retries, caching, reasoning replay and cost accounting each need a view of every call in the provider's own terms, such as status codes, token classes and signatures. Your loop speaks only in messages, so it cannot hold that view, and a provider's API sees only its own terms. The gateway is the one place that sees both. This chapter takes its five jobs in turn: one streaming method over several wire protocols, retries, prompt caching, reasoning replay across providers, and cost with its pre-call budget. By the end you can say which of them belong in your own gateway, which the loop must keep, and what the next call will cost before you send it.
+Our tabs need no key either. The gateway's tabs run its own Anthropic adapter against a stub of the Messages API, and the SDK's tabs run `run()` over a scripted model that the gateway prices as Claude Sonnet 5.5, so no example sends anything over the network. As of November 2026 both packages are `0.1.0` alphas, so their names may still change.
+
+Neither helper names an HTTP status, a wire format or a price, and each makes its only nod to caching in one option. Yet the examples behind them make a provider answer "overloaded" and carry on, read a long policy back from a cache at a fraction of its price, and refuse a call before it leaves the process. Each of those happens in a layer around the model that `ask` never sees. That layer is the model gateway: the code between your agent loop and the providers' APIs. Retries, caching, reasoning replay and cost accounting each need a view of every call in the provider's own terms, such as status codes, token classes and signatures. Your loop speaks only in messages, so it cannot hold that view, and a provider's API sees only its own terms. The gateway is the one place that sees both. This chapter takes its five jobs in turn: one streaming method over several wire protocols, retries, prompt caching, reasoning replay across providers, and cost with its pre-call budget. By the end you can say which of them belong in your own gateway, which the loop must keep, and what the next call will cost before you send it.
 
 ## One streaming method lets the loop call any provider, and each adapter hides one wire protocol
 
@@ -26,12 +34,19 @@ The connection is one method. In our gateway, every provider adapter implements 
 ::svg{alt="Three columns of boxes. On the left, a box labelled agent loop has an arrow to a larger box in the middle labelled gateway, stream(), retries, cost. Two arrows lead from the gateway to the right column: one to a box labelled Anthropic adapter, POST /v1/messages, and one to a box labelled OpenAI adapter, POST /chat/completions. Text under the columns reads one method in and one wire format each."}
 :::
 
-The saving shows in a mock model. The AI SDK's model interface has two methods, one that returns a whole answer and one that streams it, so the scripted model in [[lst:scripted-two-methods]] must implement both. With a single streaming method, an adapter writes one code path and a test script plays it.
+The saving shows in a mock model. The AI SDK's model interface has two methods, one that returns a whole answer and one that streams it, so the scripted model in [[lst:scripted-two-methods]] must implement both. With a single streaming method, an adapter writes one code path and a test script plays it, as the scripted adapter in [[lst:scripted-two-methods-ours]] does: it writes `stream()` only, and the model that `createModel()` builds from it answers `complete()` as well.
 
-:::listing[The AI SDK's scripted model implements two methods for one answer]{#scripted-two-methods file="verify/vercel-ai-sdk/examples/lib/check.ts" region="scripted"}
+::::tabs
+:::listing[Our gateway]{#scripted-two-methods-ours file="packages/gateway/examples/03-scripted-adapter.ts" region="scripted"}
+::note[`stream()` is the adapter's only method. It yields the answer's events, from `start` to the one terminal event, `done`.]{#one-method}
+::note[`createModel()` binds the adapter to a model id. The model adds retries, middleware and the price, and the adapter repeats none of them.]{#derived}
+::note[`complete()` reads that stream to its terminal event and returns its message, so no second method exists to write.]{#folds}
+:::
+:::listing[AI SDK]{#scripted-two-methods file="verify/vercel-ai-sdk/examples/lib/check.ts" region="scripted"}
 ::note[`doGenerate` returns the whole answer at once.]{#do-generate}
 ::note[`doStream` returns the same answer as a stream of parts. Every provider adapter written for this interface pays for both.]{#do-stream}
 :::
+::::
 
 A wire protocol is the request and response format a provider's API speaks, and the same agent step looks different in each. [[tbl:wire-differences]] sets two first protocols side by side, as our gateway's two adapters send them.
 
@@ -47,9 +62,14 @@ A wire protocol is the request and response format a provider's API speaks, and 
 
 Anthropic's `input_tokens`{checked=row-15} leaves out what the cache supplied. Its rate-limit page gives the sum: total input is `cache_read_input_tokens`{checked=row-17}, `cache_creation_input_tokens`{checked=row-17} and `input_tokens`{checked=row-15} added together, and `input_tokens`{checked=row-15} counts only the tokens after the last breakpoint [@anthropic-rate-limits]. OpenAI's reference defines `prompt_tokens`{checked=row-24} as the "number of tokens in the prompt" and describes its cached tokens as "present in the prompt", which our adapter reads as a part of that count [@openai-chat-completions-create]. The two providers also report usage at different moments. Anthropic sends its closing counts on the stream's last `message_delta`{checked=row-18} event and calls them cumulative [@anthropic-streaming]. OpenAI sends a usage chunk only when the request asks for one, and warns that an interrupted stream may skip it [@openai-chat-completions-create]. One word, "input", therefore names two counts, and a call's usage may arrive late or never. A gateway that passes the providers' numbers through leaves every caller to reconcile them. Ours stores four token classes of its own and converts at the adapter [@buildanagent-gateway-readme-current].
 
-The example runs the same `ask` over the second protocol. [[lst:wire-listing]] builds an Anthropic model with `createAnthropic`, whose `fetch` function answers in Messages format, and calls `ask` on it twice. The retry, the cache read and the budget refusal of the later sections then work unchanged, and the example's checks assert each of them over this wire as well as over the scripted model.
+The AI SDK's example runs the same `ask` over a second protocol. [[lst:wire-listing]] builds an Anthropic model with `createAnthropic`, whose `fetch` function answers in Messages format, and calls `ask` on it twice. The retry, the cache read and the budget refusal of the later sections then work unchanged, and the example's checks assert each of them over this wire as well as over the scripted model.
 
-::listing[The same helper over Anthropic's wire format, against a stub that answers like the API]{#wire-listing file="verify/vercel-ai-sdk/examples/12-retries-caching-budget.ts" region="wire"}
+Our gateway's example uses only that second protocol. [[lst:wire-listing-ours]] puts the gateway's own Anthropic adapter on a stub transport that answers in Messages format, so every retry and cache read of the next sections happens on that wire format. The stub answers each request with a status the example queued, or with a Messages stream whose usage follows the request. `anthropicOver()` hands the stub to the gateway's `anthropic({ apiKey, transport })`{checked=row-143} adapter, and `sleep: instantly` replaces the gateway's 2 and 4 second waits, so the retries run at once.
+
+:::tabs
+::listing[Our gateway]{#wire-listing-ours file="packages/gateway/examples/04-retries-caching.ts" region="wire"}
+::listing[AI SDK]{#wire-listing file="verify/vercel-ai-sdk/examples/12-retries-caching-budget.ts" region="wire"}
+:::
 
 Here the operator comparison stops holding: an operator only patches a call through, while a gateway also rewrites it. Anthropic wants a turn's tool results as blocks in one user message, and OpenAI wants a message for each, so the adapter reshapes the transcript on every call. It also keeps the transcript in one format of its own, so the loop never sees either provider's. That rewriting, and not the patching, is why a transcript recorded under one provider can continue under another, as the fourth section shows.
 
@@ -57,12 +77,18 @@ One method in and one wire format out give every later job a single place to run
 
 ## A retry is safe only before the first output, and only for a failure that waiting can fix
 
-You hang up on a busy line, wait, and dial again, waiting longer each time. That is :analogy[redialling a busy line]{#redial-busy-line}, and a gateway does it for a provider that answers "overloaded". By default, as of November 2026, our gateway retries a failed call twice, waiting 2 seconds before the first retry and 4 before the second, and each retry shows up in the stream as a `retry`{checked=row-25} event [@buildanagent-gateway-readme-current]. The wait doubles because a busy server needs room, and because resending at once only digs deeper: OpenAI's rate-limit guide warns that "unsuccessful requests contribute to your per-minute limit, so continuously resending a request won't work" [@openai-rate-limits]. [[lst:retry-once]] shows the happy case. The scripted model fails once with a retryable error, and `ask` returns its answer anyway.
+You hang up on a busy line, wait, and dial again, waiting longer each time. That is :analogy[redialling a busy line]{#redial-busy-line}, and a gateway does it for a provider that answers "overloaded". By default, as of November 2026, our gateway retries a failed call twice, waiting 2 seconds before the first retry and 4 before the second, and each retry shows up in the stream as a `retry`{checked=row-25} event [@buildanagent-gateway-readme-current]. The wait doubles because a busy server needs room, and because resending at once only digs deeper: OpenAI's rate-limit guide warns that "unsuccessful requests contribute to your per-minute limit, so continuously resending a request won't work" [@openai-rate-limits]. [[lst:retry-once-ours]] and [[lst:retry-once]] show the happy case. In ours, the stub answers HTTP 529 once, and the gateway retries and returns the answer. In the AI SDK's, the scripted model throws an error that marks itself retryable. Either way, a retryable failure costs one retry and `ask` returns its answer.
 
-:::listing[A retryable failure costs one retry, and the caller sees only the answer]{#retry-once file="verify/vercel-ai-sdk/examples/12-retries-caching-budget.ts" region="retry"}
+::::tabs
+:::listing[Our gateway]{#retry-once-ours file="packages/gateway/examples/04-retries-caching.ts" region="retry"}
+::note[The stub answers 529 with an `overloaded_error`{checked=row-31} body, and the adapter sorts that failure as retryable. The model's `sleep` from [[lst:wire-listing-ours]] skips the 2-second wait.]{#retry-header}
+::note[Two requests for one call: the failure and the retry that succeeded.]{#retry-count}
+:::
+:::listing[AI SDK]{#retry-once file="verify/vercel-ai-sdk/examples/12-retries-caching-budget.ts" region="retry"}
 ::note[The scripted failure is an overloaded error that marks itself retryable, with a `retry-after-ms`{checked=row-27} header of 0 so the example does not wait.]{#retry-header}
 ::note[Two attempts for one call: the failure and the retry that succeeded.]{#retry-count}
 :::
+::::
 
 Two limits stop the redialling from doing harm. The first concerns output. Once a block of the answer has reached the caller, a second attempt would replay text the caller has already seen, so the gateway retries only a failure that arrives before any content [@buildanagent-gateway-readme-current]. Anthropic's errors page marks the same boundary from its side: an error that comes after a streaming response has returned 200 "doesn't follow these standard mechanisms" [@anthropic-errors]. The second limit concerns the failure itself, because a busy signal clears and some failures never do. Here the redialling picture stops holding: a rejected request fails every time you resend it. [[tbl:error-kinds]] shows the four kinds our gateway sorts a failure into, which it decides from the HTTP status and the provider's error code or message together.
 
@@ -77,12 +103,18 @@ Two limits stop the redialling from doing harm. The first concerns output. Once 
 
 A dropped connection is retried only while no content has reached the caller. After output has started, the gateway does not retry, and the retry is the loop's `turnRetries`{checked=row-37}, described below [@buildanagent-gateway-readme-current; @buildanagent-sdk-readme-current].
 
-The quota row shows why a status code alone cannot decide. Anthropic's tier spend-cap response is a 429, the same status as a rate limit, but it "has no `retry-after`{checked=row-39} header" and "keeps failing until access resumes" [@anthropic-errors]. OpenAI's guide says outright: "Don't retry quota, billing, or other errors that require you to take action" [@openai-rate-limits]. So the gateway reads the code and message first, and treats a 429 as a rate limit only when they name none of the billing causes [@buildanagent-gateway-readme-current]. [[lst:retry-limits]] runs the two refusals: a 401 fails after one attempt, and two 429s against `maxRetries: 1`{checked=row-36} end the call with a retry error.
+The quota row shows why a status code alone cannot decide. Anthropic's tier spend-cap response is a 429, the same status as a rate limit, but it "has no `retry-after`{checked=row-39} header" and "keeps failing until access resumes" [@anthropic-errors]. OpenAI's guide says outright: "Don't retry quota, billing, or other errors that require you to take action" [@openai-rate-limits]. So the gateway reads the code and message first, and treats a 429 as a rate limit only when they name none of the billing causes [@buildanagent-gateway-readme-current]. [[lst:retry-limits-ours]] and [[lst:retry-limits]] run the two refusals: a 401 fails after one attempt, and two 429s against one allowed retry end the call. The AI SDK's tab sets `maxRetries: 1`{checked=row-36} and ends with a retry error. Ours builds a model with `retries: 1`, and the call ends with an error message of kind `retryable`, which the gateway returns instead of throwing.
 
-:::listing[A failure that waiting cannot fix is not retried, and a retry count is a ceiling]{#retry-limits file="verify/vercel-ai-sdk/examples/12-retries-caching-budget.ts" region="retry-limits"}
+::::tabs
+:::listing[Our gateway]{#retry-limits-ours file="packages/gateway/examples/04-retries-caching.ts" region="retry-limits"}
+::note[A 401 is a `fatal` failure, and the example's check counts exactly one request for the call.]{#not-retryable}
+::note[Two 429s are queued and one retry is allowed, so the second failure ends the call. The model's retry count is an option of `createModel()`, so this call uses a second model.]{#retry-cap}
+:::
+:::listing[AI SDK]{#retry-limits file="verify/vercel-ai-sdk/examples/12-retries-caching-budget.ts" region="retry-limits"}
 ::note[A 401 marks itself not retryable, and the example's check counts exactly one attempt for the call.]{#not-retryable}
 ::note[Two 429s are scripted and one retry is allowed, so the second failure ends the call with the reason `maxRetriesExceeded`.]{#retry-cap}
 :::
+::::
 
 Waiting is the other thing a provider can tell you. As of November 2026, Anthropic's 429 responses may carry a `retry-after`{checked=row-39} header, and its docs say to wait that many seconds [@anthropic-rate-limits]. Our gateway waits for the longer of its backoff and the hint, capped at 60 seconds. When a hint asks for more than 60, it stops and returns the failure with the hint attached and no retry event, so your code can wait and call again [@buildanagent-gateway-readme-current]. OpenAI's guide asks for the same: when a valid server delay exceeds your maximum, "stop retrying and defer the request rather than retrying sooner" [@openai-rate-limits]. The AI SDK's default does the opposite. It honors a hint between 0 and 60 seconds and otherwise falls back to its own backoff, so a hint of five minutes gets its ordinary backoff, 2 seconds before the first retry and 4 before the second, as of `ai@7.0.162`{checked=row-34}. No single default suits every case, so read your SDK's rule before you rely on it. Our gateway adds no random jitter to its waits, which OpenAI's guide recommends so that many clients do not retry in step [@openai-rate-limits]. That is a limit of ours, and the right fix is a jitter option in the gateway, not a copy of the retry loop in every agent.
 
@@ -96,22 +128,33 @@ A job printer who keeps :analogy[the letterhead plate set]{#letterhead-plate} be
 ::svg{alt="Three jobs in a row, each with an arrow down to a plate. Job 1, first request, leads to a plate marked plate set, prefix written, priced at write 1.25x. Job 2, same prefix, leads to a plate marked plate reused, prefix read, priced at read 0.05x. Job 3, a tool moved, leads to a dashed plate marked plate reset, prefix rewritten, priced at write 1.25x again. Text under the row reads price of the prefix, against the base input rate."}
 :::
 
-Anthropic's cache covers the prefix in a fixed order: `tools`{checked=row-49}, then `system`{checked=row-49}, then `messages`{checked=row-49}, up to the block you mark. Cache hits "require 100 percent identical prompt segments", and a change at one level invalidates that level and every level after it, while "modifying tool definitions (names, descriptions, parameters) invalidates the entire cache" [@anthropic-prompt-caching]. As of November 2026, an entry lives five minutes by default, and each read refreshes it, so the plate stays set only while jobs keep arriving. Prices follow: on Claude Sonnet 5.5 a five-minute cache write costs 1.25 times the base input price and a read costs 0.05 times, so the write pays for itself after one read [@anthropic-pricing]. As of the same date, the minimum is 512 tokens for Sonnet 5.5, and a prompt shorter than that cannot be cached at all [@anthropic-prompt-caching]. [[lst:cache-hit]] shows both sides on a scripted model that caches the way a provider does.
+Anthropic's cache covers the prefix in a fixed order: `tools`{checked=row-49}, then `system`{checked=row-49}, then `messages`{checked=row-49}, up to the block you mark. Cache hits "require 100 percent identical prompt segments", and a change at one level invalidates that level and every level after it, while "modifying tool definitions (names, descriptions, parameters) invalidates the entire cache" [@anthropic-prompt-caching]. As of November 2026, an entry lives five minutes by default, and each read refreshes it, so the plate stays set only while jobs keep arriving. Prices follow: on Claude Sonnet 5.5 a five-minute cache write costs 1.25 times the base input price and a read costs 0.05 times, so the write pays for itself after one read [@anthropic-pricing]. As of the same date, the minimum is 512 tokens for Sonnet 5.5, and a prompt shorter than that cannot be cached at all [@anthropic-prompt-caching]. [[lst:cache-hit-ours]] and [[lst:cache-hit]] show both sides against a stub or a scripted model that caches the way a provider does.
 
-:::listing[The second call reads back the prefix the first call wrote to the cache]{#cache-hit file="verify/vercel-ai-sdk/examples/12-retries-caching-budget.ts" region="cache" replay}
+::::tabs
+:::listing[Our gateway]{#cache-hit-ours file="packages/gateway/examples/04-retries-caching.ts" region="cache" replay}
 ::note[The second call sends the same 3,973-token policy and reports that many tokens as read from the cache, where the first call reported them as written.]{#cache-read}
 :::
+:::listing[AI SDK]{#cache-hit file="verify/vercel-ai-sdk/examples/12-retries-caching-budget.ts" region="cache" replay}
+::note[The second call sends the same 3,973-token policy and reports that many tokens as read from the cache, where the first call reported them as written.]{#cache-read}
+:::
+::::
 
-At Sonnet 5.5's rates, the first call in the replay, with 3,973 tokens written, 14 uncached and 20 of output, costs $0.01016. The second, with the same prefix read back, 12 tokens uncached and 20 of output, costs $0.00062, where the same call with no cache, all 3,985 input tokens at the plain input rate, would cost $0.00817. The cache costs a quarter more on the first call and saves most of the bill on every call after it. OpenAI's version needs no marking: caching, as of November 2026, is "enabled by default for supported OpenAI models", it reuses a prefix only when "the entire rendered prefix" matches, and the guide's advice is to put stable content first and anything dynamic last [@openai-prompt-caching].
+At Sonnet 5.5's rates, the first call in the AI SDK's replay, with 3,973 tokens written, 14 uncached and 20 of output, costs $0.01016. The second, with the same prefix read back, 12 tokens uncached and 20 of output, costs $0.00062, where the same call with no cache, all 3,985 input tokens at the plain input rate, would cost $0.00817. Our replay counts only the user's own text as question tokens, 7 and then 5, so the gateway prices its two calls at $0.01015 and $0.00061, against $0.00816 with no cache. The gateway's catalog supplies those prices for each class of usage the stub reports. The cache costs a quarter more on the first call and saves most of the bill on every call after it. OpenAI's version needs no marking: caching, as of November 2026, is "enabled by default for supported OpenAI models", it reuses a prefix only when "the entire rendered prefix" matches, and the guide's advice is to put stable content first and anything dynamic last [@openai-prompt-caching].
 
-Both providers ask for the same discipline, and a gateway is the right place to carry it, because the loop should not know where a provider puts its breakpoints. Our gateway takes one option, `cacheRetention`{checked=row-53}, with the values `"none"`, `"short"` and `"long"`, and each adapter maps it to its provider's controls. As of November 2026, the Anthropic adapter places up to three breakpoints, on the system prompt, the last tool and the last block of the last user message, under the API's limit of four. The OpenAI adapter sends no caching field unless the model's flags ask for one [@buildanagent-gateway-readme-current]. The gateway also keeps each tool's wire name the same for a whole run, with a `ToolNameMap`{checked=row-54}, so that a renamed tool never resets the plate.
+Both providers ask for the same discipline, and a gateway is the right place to carry it, because the loop should not know where a provider puts its breakpoints. Our gateway takes one option, `cacheRetention`{checked=row-53}, with the values `"none"`, `"short"` and `"long"`, and each adapter maps it to its provider's controls. As of November 2026, the Anthropic adapter places up to three breakpoints, on the system prompt, the last tool and the last block of the last user message, under the API's limit of four. Our stub reads only the first of them, the mark on the system prompt, and the example checks that `cacheRetention` `"short"` sends it and `"none"` does not. The OpenAI adapter sends no caching field unless the model's flags ask for one [@buildanagent-gateway-readme-current]. The gateway also keeps each tool's wire name the same for a whole run, with a `ToolNameMap`{checked=row-54}, so that a renamed tool never resets the plate.
 
-The prefix is easy to break from the loop's side. In [[lst:prepare-step]], `prepareStep`{checked=row-58} offers one tool on the first step and none on the second, and the replay shows the tool list shrinking between requests. On Anthropic, by the rules above, the second request starts from a different front, so it reads nothing from the first's cache. That is our inference from two documented facts, not a measurement, because the example calls no provider. A loop that narrows tools per step buys focus and pays for it in cache reads. The better move, from [[ch:talking-to-a-model]], is to announce a change in a new message at the end and leave the front alone.
+The prefix is easy to break from the loop's side. In [[lst:prepare-step-ours]] and [[lst:prepare-step]], a hook offers one tool on the first step and none on the second, and the replay shows the tool list shrinking between requests. Ours is our SDK's `beforeModelCall` hook, which returns `activeTools`; the AI SDK's is `prepareStep`{checked=row-58}, which also forces the first tool, a setting our SDK lacks. On Anthropic, by the rules above, the second request starts from a different front, so it reads nothing from the first's cache. That is our inference from two documented facts, not a measurement, because the example calls no provider. A loop that narrows tools per step buys focus and pays for it in cache reads. The better move, from [[ch:talking-to-a-model]], is to announce a change in a new message at the end and leave the front alone.
 
-:::listing[A loop that changes the tool list between steps]{#prepare-step file="verify/vercel-ai-sdk/examples/04-prepare-step.ts" region="prepare-step" replay}
+::::tabs
+:::listing[Our SDK]{#prepare-step-ours file="packages/sdk/examples/11-prepare-step.ts" region="prepare-step" replay}
+::note[Step 0 offers only `search`. The first request carries one tool, though the run holds two.]{#first-step}
+::note[Step 1 offers no tools. The second request's tool list is empty, so its front differs from the first's.]{#second-step}
+:::
+:::listing[AI SDK]{#prepare-step file="verify/vercel-ai-sdk/examples/04-prepare-step.ts" region="prepare-step" replay}
 ::note[Step 0 offers only `search` and forces it. The first request carries one tool.]{#first-step}
 ::note[Step 1 offers no tools. The second request's tool list is empty, so its front differs from the first's.]{#second-step}
 :::
+::::
 
 The tool list can also change without your code touching it, and the MCP specification now speaks to that. Its 2026-07-28 changelog lists, among its minor changes: "Servers **SHOULD** return tools from `tools/list`{checked=row-60} in a deterministic order to enable client-side caching and improve LLM prompt cache hit rates" [@mcp-changelog-2026-07-28]. The advice matters because tools lead the prefix. OpenAI's guide lists changes to tool "names, descriptions, schemas, ordering" among the settings that change the cached prefix, and Anthropic's exact-match rule covers the order too, though its page does not name order as such [@openai-prompt-caching; @anthropic-prompt-caching]. A server that lists the same tools in a shuffled order each call hands your agent a reset plate for free. We recommend that your registry sorts the tool list by name, or pins the first listing for the session, whatever order a server sends.
 
@@ -157,21 +200,34 @@ The projection is a ceiling because, unlike a card terminal, the gateway cannot 
 
 Checking before the call, not after, keeps spend under the cap. The Claude Agent SDK compares spend with its cap after each response, and its docs say "spend can therefore pass the cap by up to the cost of that one response" [@claude-agent-sdk-agent-loop]. As of November 2026, on our SDK's scripted 30-step run, the pre-call check overshot by $0 on every cap, and a check after each response overshot by $0.0105 on average. The price is cap left unspent, $0.054 on average in that run, so lower `maxOutputTokens`{checked=row-90} to tighten the ceiling [@buildanagent-sdk-readme-current].
 
-The example builds the same check in a few lines with a wrapper around the model. [[lst:budget-wrapper]] projects the worst case, refuses the call that would pass the budget, and records what each answer actually cost, so the next projection starts from the true spend.
+The AI SDK's example builds the same check in a few lines with a wrapper around the model. [[lst:budget-wrapper]] projects the worst case, refuses the call that would pass the budget, and records what each answer actually cost, so the next projection starts from the true spend. With our SDK no wrapper is needed, because the loop makes that projection and refusal itself, through the `budgetUsd` option of `run()`, which [[lst:budget-wrapper-ours]] sets.
 
-:::listing[A wrapper that refuses a call whose projected cost would pass the budget]{#budget-wrapper file="verify/vercel-ai-sdk/examples/12-retries-caching-budget.ts" region="budget"}
+::::tabs
+:::listing[Our SDK]{#budget-wrapper-ours file="packages/sdk/examples/12-budget.ts" region="budget"}
+::note[The worst case of every call prices its answer at `maxOutputTokens`, here 500 tokens, because the model's own limit is far higher.]{#project}
+::note[The cap. The loop checks it before each model call, so a call that does not fit never reaches the model.]{#refuse-before}
+::note[The run's cost is the sum of what each answer cost, priced class by class from the catalog, so the next projection starts from the true spend.]{#record-actual}
+:::
+:::listing[AI SDK]{#budget-wrapper file="verify/vercel-ai-sdk/examples/12-retries-caching-budget.ts" region="budget"}
 ::note[The worst case: the prefix priced as a cache write, the rest as uncached input, and an answer that fills `maxOutputTokens`{checked=row-90}. Rates come from [[lst:sonnet-rates]].]{#project}
 ::note[The refusal. The check runs before `doGenerate`, so the model never sees a call that does not fit.]{#refuse-before}
 ::note[After the answer, the real usage is priced class by class and added to the ledger.]{#record-actual}
 :::
+::::
 
-[[lst:budget-refused]] then runs the case the figure draws. The budget is $0.03, and the refused call, alone, projects $0.0249, so it would fit. But $0.0114 is already spent, so spent plus projected passes the cap, and the example's checks confirm that no request reached the model.
+[[lst:budget-refused-ours]] and [[lst:budget-refused]] then run the case the figure draws. In the AI SDK's tab the budget is $0.03, and the refused call, alone, projects $0.0249, so it would fit. But $0.0114 is already spent, so spent plus projected passes the cap, and the example's checks confirm that no request reached the model. Our tab sets a budget of $0.025. Its first call, a tool call, costs $0.01024, and the second call alone projects $0.021088, which fits. The two together come to $0.031328, so the run ends with the stop reason `"budget"` and the second call never goes out. The figure draws the AI SDK's amounts.
 
-:::listing[A call that fits the budget alone is refused on top of what has been spent]{#budget-refused file="verify/vercel-ai-sdk/examples/12-retries-caching-budget.ts" region="refuse"}
+::::tabs
+:::listing[Our SDK]{#budget-refused-ours file="packages/sdk/examples/12-budget.ts" region="refuse"}
+::note[The result of a budget stop carries `spentUsd` and `projectedUsd`, the two numbers the loop compared with the cap.]{#numbers}
+::note[The refused call never reached the model: the scripted model saw one request, not two.]{#refused}
+:::
+:::listing[AI SDK]{#budget-refused file="verify/vercel-ai-sdk/examples/12-retries-caching-budget.ts" region="refuse"}
 ::note[The refused call never reached the model: the count of model calls is unchanged.]{#refused}
 :::
+::::
 
-The ceiling prices the prefix as a cache write, since that is the dearest way to send it. A call with a 3,973-token prefix, an 8-token question and a 20-token answer limit projects $0.0101485 in the example, where pricing the prefix at the plain input rate would give $0.0081620, at Sonnet 5.5's rates. The projection is never lower than what the call can cost. It also needs a price to project from: a budgeted run whose model has no price ends with an `unknown_price`{checked=row-98} error before its first call, because a cap against an unknown price is no cap [@buildanagent-sdk-readme-current].
+The ceiling prices the prefix as a cache write, since that is the dearest way to send it. A call with a 3,973-token prefix, an 8-token question and a 20-token answer limit projects $0.0101485 in the example, where pricing the prefix at the plain input rate would give $0.0081620, at Sonnet 5.5's rates. Our tab's projection goes one step further than the wrapper. It prices every input token at the dearest of the three input rates, which for Sonnet 5.5 is the one-hour cache write at $4 per million. Its 4,022 estimated input tokens therefore project $0.016088, and the 500-token answer limit adds $0.005. The projection is never lower than what the call can cost. It also needs a price to project from: a budgeted run whose model has no price ends with an `unknown_price`{checked=row-98} error before its first call, because a cap against an unknown price is no cap [@buildanagent-sdk-readme-current].
 
 Cost accounting is the fifth job that needs the gateway's view of both sides. The loop knows what the task has spent and what it plans to do next. The provider's terms give the rates, the tiers and the token classes. Only the gateway holds both, which is why the same layer retries, caches, replays reasoning and keeps the ledger.
 
