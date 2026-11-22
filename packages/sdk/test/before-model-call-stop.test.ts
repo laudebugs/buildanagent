@@ -94,7 +94,12 @@ test("a stop on a turn retry ends the run stopped after the retry event, with th
   let calls = 0;
   const { adapter, events, result } = await drivenRun(
     [{ content: [], error: { kind: "retryable", message: "overloaded", status: 529 } }],
-    { beforeModelCall: () => ((calls += 1) === 2 ? { stop: "no second attempt" } : undefined) },
+    {
+      beforeModelCall: () => {
+        calls += 1;
+        return calls === 2 ? { stop: "no second attempt" } : undefined;
+      },
+    },
     { turnRetries: 2, turnRetryDelayMs: 1, sleep: async () => undefined },
   );
   assert.equal(result.stopReason, "stopped");
