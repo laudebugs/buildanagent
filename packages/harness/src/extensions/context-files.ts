@@ -12,6 +12,13 @@ import type { Extension } from "./types.js";
 /** The most bytes of one context, plan or progress file the harness reads. A longer file is cut and says so. This is our own limit. */
 export const CONTEXT_FILE_MAX_BYTES = 64 * 1024;
 
+/**
+ * The most bytes of all the `AGENTS.md` and `CLAUDE.md` files together, as UTF-8. Past it the outermost files are left
+ * out first, so the files nearest the work stay. The block is added after the context policy has counted the request,
+ * so this limit is what keeps it from crowding out the conversation. This is our own limit.
+ */
+export const CONTEXT_FILES_MAX_TOTAL_BYTES = 128 * 1024;
+
 /** The plan file, relative to the project root. Free Markdown: the goal, the steps, and which are done. */
 export const PLAN_FILE = ".agents/plan.md";
 /** The progress file, relative to the project root. A JSON document: where the task stands and what comes next. */
@@ -81,6 +88,28 @@ const planSections = (plan: PlanFiles): string[] => [
   ...(plan.progress === undefined ? [] : [section(PROGRESS_FILE, plan.progress.text, plan.progress.truncated)]),
 ];
 
+/** The files that fit in `CONTEXT_FILES_MAX_TOTAL_BYTES` together, nearest kept first, and the outer ones left out. */
+export function fitContextFiles(files: readonly ContextFile[]): { kept: ContextFile[]; dropped: ContextFile[] } {
+  const encoder = new TextEncoder();
+  let total = 0;
+  let first = files.length;
+  // Files run outermost first, so the walk starts at the nearest and stops at the first file that does not fit.
+  while (first > 0) {
+    const size = encoder.encode((files[first - 1] as ContextFile).text).length;
+    if (total + size > CONTEXT_FILES_MAX_TOTAL_BYTES) break;
+    total += size;
+    first -= 1;
+  }
+  return { kept: files.slice(first), dropped: files.slice(0, first) };
+}
+
+/** The notice for the files `fitContextFiles()` left out, or `undefined` when there are none. */
+export function droppedNotice(dropped: readonly ContextFile[]): string | undefined {
+  if (dropped.length === 0) return undefined;
+  const paths = dropped.map((file) => attribute(file.path)).join(", ");
+  return `left out, because the context files together pass ${CONTEXT_FILES_MAX_TOTAL_BYTES} bytes and the outermost go first: ${paths}`;
+}
+
 /**
  * The text of the leading block: a note saying what it is, then each file in its own labelled section. Files come in
  * the order given, and the plan and progress files last. Returns `""` when there is nothing to show.
@@ -105,13 +134,17 @@ export interface ProjectContextOptions {
   readonly plan?: PlanSource;
 }
 
-/** The most runs whose plan text is held at once, so a harness that serves many sessions keeps no unbounded map. */
+/**
+ * The most runs whose plan text is held at once, so a harness that serves many sessions keeps no unbounded map. The
+ * run used least recently is evicted first, so a live run loses its text only when more than this many runs are newer.
+ */
 const RUNS_KEPT = 128;
 
 /**
  * An extension that puts the context files, and the plan and progress files, at the start of every request. The view
  * is built for each call and the transcript is not changed, so the text is in the first request after a compaction and
- * after a resume, whatever the summary kept. The context files are one text block, the same bytes on every call, and
+ * after a resume, whatever the summary kept. The context files together are held to `CONTEXT_FILES_MAX_TOTAL_BYTES`:
+ * past it the outermost are left out, and the block says which. The context files are one text block, the same bytes on every call, and
  * the plan and progress files are a second block after it, the last thing before the first message's own content.
  *
  * The plan and progress files are read from the source at a run's first model call, which is what a resume or a new
@@ -122,13 +155,17 @@ const RUNS_KEPT = 128;
  */
 export function projectContext(options: ProjectContextOptions = {}): Extension {
   // The files' block never changes, so it is built once.
-  const stable = contextText(options.files ?? []);
+  const { kept, dropped } = fitContextFiles(options.files ?? []);
+  const left = droppedNotice(dropped);
+  const stable = [contextText(kept), ...(left === undefined ? [] : [`[${neutralise(left)}]`])]
+    .filter((part) => part !== "")
+    .join("\n\n");
   const plans = new Map<string, PlanFiles>();
   const planFor = async (runId: string, stepIndex: number): Promise<PlanFiles> => {
     if (options.plan === undefined) return {};
     const held = plans.get(runId);
-    if (held !== undefined && stepIndex > 0) return held;
-    const found = await options.plan();
+    // A map iterates in insertion order, so a run moved to the end on every use is the last to be evicted.
+    const found = held !== undefined && stepIndex > 0 ? held : await options.plan();
     plans.delete(runId);
     plans.set(runId, found);
     for (const key of plans.keys()) {

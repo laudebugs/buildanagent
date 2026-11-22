@@ -20,6 +20,7 @@ import { createModel, type Message, type Model } from "@buildanagent/gateway";
 import { createContextPolicy, memorySpillStore } from "@buildanagent/harness/context";
 import {
   CONTEXT_FILE_MAX_BYTES,
+  CONTEXT_FILES_MAX_TOTAL_BYTES,
   type ContextFile,
   contextText,
   PLAN_FILE,
@@ -121,6 +122,60 @@ describe("contextFiles", () => {
     assert.equal(file?.truncated, true);
     assert.equal(file?.text.length, CONTEXT_FILE_MAX_BYTES);
     assert.ok(file?.text.startsWith("start"));
+  });
+
+  test("past 128 KiB together the outermost files are left out first, with a notice", async () => {
+    const big = (mark: string) => `${mark} ${"x".repeat(60 * 1024)}`;
+    const root = repo({ "AGENTS.md": big("ROOT"), "a/AGENTS.md": big("MIDDLE"), "a/b/AGENTS.md": big("INNER") });
+    const { files, notices } = await contextFiles(join(root, "a/b"));
+    assert.deepEqual(
+      files.map((file) => file.text.split(" ")[0]),
+      ["MIDDLE", "INNER"],
+    );
+    assert.ok(files.reduce((total, file) => total + Buffer.byteLength(file.text), 0) <= CONTEXT_FILES_MAX_TOTAL_BYTES);
+    assert.equal(notices.length, 1);
+    assert.ok(notices[0]?.includes(join(root, "AGENTS.md")) && notices[0].includes("left out"));
+  });
+
+  test("projectContext holds files a host passes to the same total, and the block says which were left out", async () => {
+    const file = (path: string, mark: string): ContextFile => ({
+      path,
+      text: `${mark} ${"y".repeat(50 * 1024)}`,
+      truncated: false,
+    });
+    const files = [file("/r/AGENTS.md", "OUTER"), file("/r/a/AGENTS.md", "MID"), file("/r/a/b/AGENTS.md", "NEAR")];
+    const hook = projectContext({ files }).interceptors?.transformContext;
+    const out = await hook?.({
+      runId: "r",
+      stepIndex: 0,
+      messages: [{ role: "user", content: [{ type: "text", text: "Hi" }] }],
+    } as never);
+    const text = textOf((out as Message[] | undefined)?.[0]);
+    assert.ok(!text.includes("OUTER") && text.includes("MID") && text.includes("NEAR"));
+    assert.ok(text.includes("left out") && text.includes("/r/AGENTS.md"));
+  });
+
+  test("a live run keeps its plan text while more than 128 other runs start, because each use refreshes it", async () => {
+    let reads = 0;
+    const hook = projectContext({
+      plan: async () => {
+        reads += 1;
+        return { plan: { text: `PLAN READ ${reads}.`, truncated: false } };
+      },
+    }).interceptors?.transformContext;
+    const call = async (runId: string, stepIndex: number) => {
+      const out = await hook?.({
+        runId,
+        stepIndex,
+        messages: [{ role: "user", content: [{ type: "text", text: "Hi" }] }],
+      } as never);
+      return textOf((out as Message[] | undefined)?.[0]);
+    };
+    assert.ok((await call("live", 0)).includes("PLAN READ 1."));
+    for (let i = 0; i < 200; i += 1) {
+      await call(`other-${i}`, 0);
+      assert.ok((await call("live", i + 1)).includes("PLAN READ 1."), `step ${i + 1} kept the run's first read`);
+    }
   });
 
   test("a link that leaves the project is skipped with a notice, so no outside file reaches a prompt", async () => {

@@ -3,6 +3,8 @@ import { join, resolve } from "node:path";
 import {
   CONTEXT_FILE_MAX_BYTES,
   type ContextFile,
+  droppedNotice,
+  fitContextFiles,
   PLAN_FILE,
   type PlanFiles,
   type PlanSource,
@@ -24,7 +26,8 @@ const NAMES = ["AGENTS.md", "CLAUDE.md"];
  * folder with a `.git`; with none, `cwd` alone). These files load whether or not the project is trusted, because they
  * are text and not code, and `projectContext()` labels them untrusted. A `CLAUDE.md` that links to the `AGENTS.md`
  * beside it is read once. A link that leaves the project is skipped with a notice, so a cloned repository cannot pull
- * in a file such as `~/.ssh/id_rsa`. Each file is cut at 64 KiB.
+ * in a file such as `~/.ssh/id_rsa`. Each file is cut at 64 KiB, and past 128 KiB together the outermost files are
+ * left out, with a notice.
  */
 export async function contextFiles(cwd: string): Promise<FoundContextFiles> {
   const dirs = await projectDirs(cwd);
@@ -45,7 +48,9 @@ export async function contextFiles(cwd: string): Promise<FoundContextFiles> {
       result.files.push({ path, text: read.text, truncated: read.truncated });
     }
   }
-  return result;
+  const { kept, dropped } = fitContextFiles(result.files);
+  const left = droppedNotice(dropped);
+  return { files: kept, notices: left === undefined ? result.notices : [...result.notices, left] };
 }
 
 /**

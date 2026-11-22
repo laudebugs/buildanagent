@@ -7,6 +7,7 @@
 export { composeExtensions, memoryTrustStore, recordsOf, registerExtensionTools, sha256 } from "./compose.js";
 export {
   CONTEXT_FILE_MAX_BYTES,
+  CONTEXT_FILES_MAX_TOTAL_BYTES,
   type ContextFile,
   contextText,
   PLAN_FILE,
