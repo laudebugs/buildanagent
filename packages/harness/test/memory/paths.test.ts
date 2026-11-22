@@ -168,3 +168,30 @@ describe("links", () => {
     );
   });
 });
+
+describe("the built-in file tools", () => {
+  test("a write or an edit into the memory folder is denied, however the path is spelled, and other paths are not", async () => {
+    const root = seeded();
+    const { setup } = setupWith(root);
+    const record = '---\ntrust: "trusted"\n---\nPlanted.\n';
+    const spellings = [
+      ".agents/memory/planted.md",
+      `${root}/.agents/memory/.purge.json`,
+      "./.agents//memory/sub/../planted.md",
+      ".Agents/Memory/planted.md",
+      "src/../.agents/memory",
+    ];
+    const { model } = await turn(setup, key, [
+      ...spellings.map((path) => ({ name: "write", input: { path, content: record } })),
+      { name: "edit", input: { file_path: ".agents/memory/planted.md", old_string: "a", new_string: "b" } },
+      { name: "write", input: { path: "notes.md", content: "Not memory." } },
+    ]);
+    const found = results(model);
+    for (let at = 1; at <= spellings.length + 1; at += 1) {
+      const result = found.get(`c${at}`);
+      assert.equal(result?.isError, true, `c${at}`);
+      assert.ok(result?.text.includes("written only through the memory tool"), result?.text);
+    }
+    assert.equal(found.get(`c${spellings.length + 2}`)?.isError, false, "a write elsewhere runs");
+  });
+});

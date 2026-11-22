@@ -8,6 +8,7 @@ import type { ContentBlock, Message } from "@buildanagent/gateway";
 import { HarnessError, isHarnessError } from "../errors.js";
 import { contextText } from "../extensions/context-files.js";
 import type { Extension } from "../extensions/types.js";
+import { normalizePath, pathsOf } from "../permissions/match.js";
 import type { ToolRegistry } from "../tools/types.js";
 import type { MemoryFiles } from "./files.js";
 import { indexText } from "./index-text.js";
@@ -147,6 +148,27 @@ function tracker(store: RecordStore) {
   };
 }
 
+/** The built-in tools that write a file the model names, which must never write the memory folder. */
+const FILE_WRITERS: readonly string[] = ["write", "edit"];
+
+/**
+ * Why a call of `tool` with `input` is denied, when it is a file write into the memory folder under `root`, or
+ * `undefined`. A record written so would skip the memory tool's trust, its secret check and its bookkeeping, and a
+ * write over the bookkeeping would clear the purge list. The paths are compared without case, for a file system that
+ * ignores it; a link to the folder from elsewhere in the project is not seen, as no check on a path's text sees one.
+ */
+function memoryWriteRefused(root: string, tool: string, input: unknown): string | undefined {
+  if (!FILE_WRITERS.includes(tool)) return undefined;
+  const folder = normalizePath(`${root}/${MEMORY_DIR}`).toLowerCase();
+  const inside = pathsOf(input).some((path) => {
+    const resolved = normalizePath(path.startsWith("/") ? path : `${root}/${path}`).toLowerCase();
+    return resolved === folder || resolved.startsWith(`${folder}/`);
+  });
+  return inside
+    ? `${MEMORY_DIR}/ is written only through the ${MEMORY_TOOL} tool, so this ${tool} call was refused.`
+    : undefined;
+}
+
 /** Expires every live task record that `sessionId` wrote, as of now. */
 function endTasks(store: RecordStore, now: () => Date, sessionId: string): Promise<void> {
   return store.exclusive(async () => {
@@ -205,6 +227,10 @@ export function memoryExtension(options: MemoryExtensionOptions): MemoryExtensio
     version: "1.0.0",
     tools: [{ name: MEMORY_TOOL, outputTrust: "untrusted", definition: tool }],
     interceptors: {
+      beforeToolCall(event) {
+        const refused = memoryWriteRefused(options.root, event.tool, event.input);
+        return refused === undefined ? { decision: "allow" } : { decision: "deny", reason: refused };
+      },
       async transformContext(event) {
         // The session's earlier results are in the messages, so a resumed session that read untrusted output stays low trust.
         const names = callNames(event.messages);
