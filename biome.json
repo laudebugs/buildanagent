@@ -94,6 +94,7 @@
         "!packages/harness/src/sandbox/process.ts",
         "!packages/harness/src/sandbox/srt/**",
         "!packages/harness/src/sandbox/docker/**",
+        "!packages/harness/src/credentials/egress-proxy.ts",
         "!packages/harness/src/sandbox/host-files.ts",
         "!packages/harness/src/sandbox/spawn-env.ts"
       ],

@@ -35,7 +35,8 @@
     },
     // Scaffolds that name the packages they will import once their todos land.
     "packages/cli": { "ignoreDependencies": ["@buildanagent/harness"] },
-    // `mkfifo` is a system program the opt-in srt test runs to make a pipe, which Node can't make itself.
-    "packages/harness": { "ignoreBinaries": ["mkfifo"] }
+    // `mkfifo` makes the pipe an opt-in srt test needs, and `openssl` makes the self-signed certificate the egress proxy test
+    // trusts. Node can make neither.
+    "packages/harness": { "ignoreBinaries": ["mkfifo", "openssl"] }
   }
 }
