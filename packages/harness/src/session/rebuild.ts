@@ -4,9 +4,11 @@
  * an assistant message is closed by its `message_end` and takes its usage and cost from the `usage` entry right after
  * it. A `usage` entry anywhere else belongs to a call whose message was superseded, and builds no message.
  */
+
 import type { AssistantMessage, ContentBlock, Message } from "@buildanagent/gateway";
 import type { SessionEntry } from "@buildanagent/protocol";
 import type { Context, SignedPendingRequest } from "@buildanagent/sdk";
+import { HarnessError } from "../errors.js";
 
 type Block = Extract<SessionEntry, { type: "message_block" }>;
 type Pending = { role: "user" | "assistant"; id: string; blocks: Block[]; firstId: string };
@@ -20,10 +22,10 @@ class MessageBuilder {
   /** The id of the first entry of each message, in step with `messages`. */
   readonly starts: string[] = [];
   #open: Pending | undefined;
-  readonly #dropEmpty: boolean;
+  readonly #dropEmpty: ReadonlySet<string>;
   #ended: Extract<SessionEntry, { type: "message_end" }> | undefined;
 
-  constructor(dropEmpty = false) {
+  constructor(dropEmpty: ReadonlySet<string> = new Set()) {
     this.#dropEmpty = dropEmpty;
   }
 
@@ -52,7 +54,7 @@ class MessageBuilder {
     this.#ended = undefined;
     this.#open = undefined;
     // A message whose signed reasoning was left out and that has nothing else would be an empty assistant turn.
-    if (open.blocks.length === 0 && this.#dropEmpty) return;
+    if (open.blocks.length === 0 && this.#dropEmpty.has(open.id)) return;
     const message: AssistantMessage = {
       role: "assistant",
       content: ordered(open.blocks),
@@ -181,16 +183,27 @@ export function summaryMessage(summary: string): Message {
 export function entriesAfterCompaction(path: readonly SessionEntry[]): {
   readonly entries: readonly SessionEntry[];
   readonly summary: string | undefined;
+  /** The ids of messages that lost a signed reasoning block. */
+  readonly stripped: ReadonlySet<string>;
 } {
   const at = path.findLastIndex((entry) => entry.type === "compaction");
   const compaction = path[at];
-  if (compaction?.type !== "compaction") return { entries: path, summary: undefined };
-  const kept = Math.max(
-    0,
-    path.findIndex((entry) => entry.id === compaction.firstKeptEntryId),
-  );
-  const entries = path.slice(kept).filter((entry, i) => !(kept + i < at && isSignedReasoning(entry)));
-  return { entries: entries.filter((entry) => entry.type !== "compaction"), summary: compaction.summary };
+  if (compaction?.type !== "compaction") return { entries: path, summary: undefined, stripped: new Set() };
+  const kept = path.findIndex((entry) => entry.id === compaction.firstKeptEntryId);
+  if (kept < 0) {
+    throw new HarnessError(
+      "entry_not_found",
+      `the compaction ${compaction.id} keeps from entry ${compaction.firstKeptEntryId}, which is not on this path`,
+    );
+  }
+  // The messages that lose a block here are the only ones an empty result may drop.
+  const stripped = new Set<string>();
+  const entries = path.slice(kept).filter((entry, i) => {
+    const drop = kept + i < at && isSignedReasoning(entry);
+    if (drop && entry.type === "message_block") stripped.add(entry.messageId);
+    return !drop;
+  });
+  return { entries: entries.filter((entry) => entry.type !== "compaction"), summary: compaction.summary, stripped };
 }
 
 /**
@@ -203,8 +216,8 @@ export function contextWithStarts(path: readonly SessionEntry[]): {
   readonly context: Context;
   readonly starts: readonly (string | null)[];
 } {
-  const { entries, summary } = entriesAfterCompaction(path);
-  const builder = new MessageBuilder(summary !== undefined);
+  const { entries, summary, stripped } = entriesAfterCompaction(path);
+  const builder = new MessageBuilder(stripped);
   let system = "";
   for (const entry of path) if (entry.type === "turn_start") system = entry.system;
   for (const entry of entries) {

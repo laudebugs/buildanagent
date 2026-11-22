@@ -49,7 +49,8 @@ function lastUsageSince(path: readonly SessionEntry[]): LastUsage | undefined {
 
 /**
  * The index of the first message of the tail: the newest messages that together reach `tailTokens`, moved earlier until
- * the tail does not start with a tool result, so a call is never split from its result. 0 means nothing can be dropped.
+ * the tail starts with an assistant message, so a call is never split from its result and the summary is never followed
+ * by another user message. 0 means nothing can be dropped.
  */
 export function tailStart(messages: readonly Message[], tailTokens: number): number {
   let tokens = 0;
@@ -58,7 +59,9 @@ export function tailStart(messages: readonly Message[], tailTokens: number): num
     start--;
     tokens += tokensOfChars(charsOf(messages[start] as Message));
   }
-  while (start > 0 && messages[start]?.role === "tool") start--;
+  // The tail starts with an assistant message: after the summary, which is a user message, a tool result would lose its
+  // call and a second user message would follow a user message.
+  while (start > 0 && messages[start]?.role !== "assistant") start--;
   return start;
 }
 
@@ -156,7 +159,7 @@ async function summarise(
     ...(settings.focus === undefined ? {} : { focus: settings.focus }),
   };
   const replaced = (await hooks.beforeCompact?.(event))?.summary;
-  if (replaced !== undefined) return { summary: replaced, model };
+  if (replaced !== undefined && replaced.trim() !== "") return { summary: replaced, model };
   const prompt = summaryPrompt(p.span, { toolOutputChars: settings.toolOutputChars, focus: settings.focus });
   const request: ModelContext = {
     system: SUMMARY_SYSTEM,
@@ -188,7 +191,15 @@ export async function compact(input: CompactInput): Promise<boolean> {
     skipped(p.skip);
     return false;
   }
-  const made = await summarise(input, p);
+  let made: Awaited<ReturnType<typeof summarise>>;
+  try {
+    made = await summarise(input, p);
+  } catch (error) {
+    // The layer is optional: a provider error or a throwing hook must not stop the turn. An abort still does.
+    if (input.signal?.aborted === true) throw error;
+    skipped(`the summary call failed: ${error instanceof Error ? error.message : String(error)}`);
+    return false;
+  }
   if ("skip" in made) {
     skipped(made.skip);
     return false;
@@ -218,6 +229,9 @@ export async function compact(input: CompactInput): Promise<boolean> {
     event: "compacted",
     detail: `${p.before} tokens before, ${tokensOfChars(keptChars)} kept`,
   });
-  await hooks.afterCompact?.(entry as CompactionEntry);
+  // The entry is written, so a failing hook is reported and the compaction stands.
+  await Promise.resolve(hooks.afterCompact?.(entry as CompactionEntry)).catch((error: unknown) =>
+    skipped(`afterCompact failed: ${error instanceof Error ? error.message : String(error)}`),
+  );
   return true;
 }

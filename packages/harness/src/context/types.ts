@@ -60,7 +60,8 @@ export interface SummarizeSettings {
   readonly focus?: string;
   /**
    * The session's spend cap in US dollars, counted over the entries from the root to HEAD, so a branch left behind by a
-   * re-run is not counted. A summary whose projected cost would pass it is skipped. Default none.
+   * re-run is not counted. A summary whose projected cost would pass it is skipped. It guards the summary call only: it
+   * keeps no room for the turn's own next call, and a summary a hook wrote is not checked. Default none.
    */
   readonly capUsd?: number;
 }

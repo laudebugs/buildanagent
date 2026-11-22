@@ -206,6 +206,30 @@ describe("the summary call's guards", () => {
     assert.ok(records.some((r) => r.event === "skipped" && r.detail.includes("past its cap")));
   });
 
+  test("a summary model that fails does not fail the turn, and the failure is logged", async () => {
+    const failing = new ScriptedModel([]);
+    const { records, harness, session, entries } = await setup({}, { model: model(failing, "summary-model") });
+    await runTurn(session, harness, { input: LONG });
+    const result = await runTurn(session, harness, { input: "Next?" });
+    assert.equal(result.stopReason, "done");
+    assert.equal((await entries()).filter((e) => e.type === "compaction").length, 0);
+    assert.ok(records.some((r) => r.event === "skipped" && r.detail.includes("no usable summary")));
+  });
+
+  test("a beforeCompact hook that throws skips the summary and the turn goes on", async () => {
+    const { records, harness, session } = await setup({
+      hooks: {
+        async beforeCompact() {
+          throw new Error("hook broke");
+        },
+      },
+    });
+    await runTurn(session, harness, { input: LONG });
+    const result = await runTurn(session, harness, { input: "Next?" });
+    assert.equal(result.stopReason, "done");
+    assert.ok(records.some((r) => r.detail.includes("hook broke")));
+  });
+
   test("a summary the model cut off at its output limit is not stored", async () => {
     const cutOff = new ScriptedModel([{ content: [{ type: "text", text: "## Goal\nFix the" }], stopReason: "length" }]);
     const { records, harness, session, entries } = await setup({}, { model: model(cutOff, "summary-model") });
@@ -263,6 +287,19 @@ describe("the verbatim tail", () => {
     // A tail of about 100 tokens would start at the last result; it moves back to take the call with it.
     const start = tailStart(messages, 100);
     assert.equal(messages[start]?.role, "assistant");
+  });
+
+  test("never starts with a user message, so the summary is not followed by a second user message", () => {
+    const messages = [
+      user("a".repeat(400)),
+      call("c1"),
+      result("c1", 40),
+      user("b".repeat(400)),
+      call("c2"),
+      result("c2", 40),
+    ];
+    // About 100 tokens from the end would start at the second user message; the tail moves back to the assistant before it.
+    assert.equal(messages[tailStart(messages, 100)]?.role, "assistant");
   });
 
   test("returns 0 when the tail is the whole context", () => {
