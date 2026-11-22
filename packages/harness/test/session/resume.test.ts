@@ -259,7 +259,12 @@ describe.each(BACKENDS)("%s", (_name, make) => {
     await runTurn(reopened, next.harness, { input: "carry on" });
     const entries = await entriesOf(crashed);
     const end = entries.find((entry) => entry.type === "message_end");
-    assert.ok(end?.type === "message_end" && end.stopReason === "aborted");
+    assert.ok(end?.type === "message_end" && end.stopReason === "tool_calls");
+    assert.match(
+      JSON.stringify(next.adapter.calls[0]?.context.messages),
+      /reconcile_first/,
+      "the model is sent the outcome",
+    );
     const settled = entries.find((entry) => entry.type === "tool_result");
     assert.match(JSON.stringify(settled?.type === "tool_result" && settled.content), /reconcile_first/);
     await reopened.close();

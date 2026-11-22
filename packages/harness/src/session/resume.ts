@@ -1,6 +1,6 @@
 /**
  * Settles what a crash left open, before a turn goes on. A message whose blocks were written without its end is ended
- * as aborted. A tool call whose result never reached the log must not get an ordinary error: for a write, or a tool
+ * as `tool_calls` if it made calls and as `aborted` if not. A tool call whose result never reached the log must not get an ordinary error: for a write, or a tool
  * this harness doesn't know, the call may have taken effect, so its result says the outcome is unknown and tells the
  * model to check before any retry. A read-only call has changed nothing, so it gets an error the model may retry. A
  * turn with no end gets a `turn_end` that says it was aborted. Calls a turn left waiting for an approval or an answer
@@ -40,23 +40,30 @@ function interruptedWrite(tool: string): Pick<ToolResultEntry, "content" | "isEr
   };
 }
 
-/** Ends each assistant message that has blocks and no end, as aborted, so its calls are part of the context. */
+/** Ends each assistant message that has blocks and no end, so its calls are part of the context. */
 async function endDanglingMessages<H>(
   path: readonly SessionEntry[],
   harness: Harness<H>,
   write: WriteEntry,
 ): Promise<number> {
   const ended = new Set(path.flatMap((entry) => (entry.type === "message_end" ? [entry.messageId] : [])));
-  const dangling = new Set<string>();
+  const dangling = new Map<string, boolean>();
   for (const entry of path) {
     if (entry.type === "message_block" && entry.role === "assistant" && !ended.has(entry.messageId)) {
-      dangling.add(entry.messageId);
+      dangling.set(entry.messageId, entry.block.type === "tool_call" || dangling.get(entry.messageId) === true);
     }
   }
   const model = path.findLast((entry) => entry.type === "loadout" && entry.model !== undefined);
   const ref = model?.type === "loadout" && model.model !== undefined ? model.model : harness.model.ref;
-  for (const messageId of dangling) {
-    await write("model", { type: "message_end", messageId, model: ref, stopReason: "aborted" });
+  for (const [messageId, hasCalls] of dangling) {
+    // The gateway drops an aborted message with the results that answer its calls, so a message that made calls ends as
+    // `tool_calls`, and the model reads the unknown outcome of each call.
+    await write("model", {
+      type: "message_end",
+      messageId,
+      model: ref,
+      stopReason: hasCalls ? "tool_calls" : "aborted",
+    });
   }
   return dangling.size;
 }
