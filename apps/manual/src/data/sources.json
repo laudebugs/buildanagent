@@ -768,6 +768,49 @@
     "kind": "spec",
     "version": "2026-07-28",
     "asOf": "November 2026",
-    "verifiedIn": "apps/manual/fact-checks/tools-at-scale.md"
+    "verifiedIn": "apps/manual/fact-checks/tools-at-scale.md",
+    "id": "stripe-idempotent-requests",
+    "title": "Idempotent requests",
+    "publisher": "Stripe API reference",
+    "url": "https://docs.stripe.com/api/idempotent_requests.md",
+    "kind": "docs",
+    "asOf": "November 2026",
+    "verifiedIn": "docs/research/reversible-actions/fact-check-server-rollback.md"
+  },
+  {
+    "id": "stripe-advanced-error-handling",
+    "title": "Advanced error handling",
+    "publisher": "Stripe documentation",
+    "url": "https://docs.stripe.com/error-low-level.md",
+    "kind": "docs",
+    "asOf": "November 2026",
+    "verifiedIn": "docs/research/reversible-actions/fact-check-server-rollback.md"
+  },
+  {
+    "id": "aws-safe-retries",
+    "title": "Making retries safe with idempotent APIs",
+    "publisher": "Amazon Builders' Library",
+    "url": "https://aws.amazon.com/builders-library/making-retries-safe-with-idempotent-APIs/",
+    "kind": "post",
+    "asOf": "November 2026",
+    "verifiedIn": "docs/research/reversible-actions/fact-check-server-rollback.md"
+  },
+  {
+    "id": "azure-saga-pattern",
+    "title": "Saga distributed transactions pattern",
+    "publisher": "Microsoft Azure Architecture Center",
+    "url": "https://learn.microsoft.com/en-us/azure/architecture/patterns/saga",
+    "kind": "docs",
+    "asOf": "November 2026",
+    "verifiedIn": "docs/research/reversible-actions/fact-check-sagas.md"
+  },
+  {
+    "id": "stripe-refunds",
+    "title": "Refunds",
+    "publisher": "Stripe documentation",
+    "url": "https://docs.stripe.com/refunds",
+    "kind": "docs",
+    "asOf": "November 2026",
+    "verifiedIn": "docs/research/reversible-actions/fact-check-sagas.md"
   }
 ]

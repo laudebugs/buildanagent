@@ -197,6 +197,36 @@
     "analogy": "a mechanic's service manuals, opened only when that model of car comes in",
     "chapter": "tools-at-scale",
     "illustration": null,
-    "breaks": "A mechanic closes the manual when the car leaves the lift; a skill read into context stays there and costs its tokens in every later request of the run."
+    "breaks": "A mechanic closes the manual when the car leaves the lift; a skill read into context stays there and costs its tokens in every later request of the run.",
+    "id": "raffle-ticket-stub",
+    "concept": "idempotency key",
+    "analogy": "a raffle ticket stub",
+    "chapter": "side-effects-that-can-fail",
+    "illustration": null,
+    "breaks": "A stub is printed before anyone wins and kept by the holder; an idempotency key must be stored before the call, or a crash loses it and the write can repeat."
+  },
+  {
+    "id": "dropped-phone-order",
+    "concept": "unknown outcome",
+    "analogy": "a dropped phone order",
+    "chapter": "side-effects-that-can-fail",
+    "illustration": null,
+    "breaks": "A restaurant has no order number to look up; an agent's write should carry an idempotency key that the other side can be asked about."
+  },
+  {
+    "id": "ledger-before-courier",
+    "concept": "persist before execute",
+    "analogy": "writing the order in the ledger before the courier leaves",
+    "chapter": "side-effects-that-can-fail",
+    "illustration": "ledger",
+    "breaks": "The ledger entry records intent, not success; the result is a second entry, and a missing second entry is the unknown outcome."
+  },
+  {
+    "id": "booking-a-trip",
+    "concept": "saga",
+    "analogy": "booking a trip",
+    "chapter": "side-effects-that-can-fail",
+    "illustration": null,
+    "breaks": "Some steps cannot be undone, and an email cannot be unsent, so the plan needs one pivot after which nothing is compensated."
   }
 ]

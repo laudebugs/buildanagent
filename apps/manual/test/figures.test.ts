@@ -36,6 +36,8 @@ test("the book's figures hold its chapters' figures, and the fixtures hold their
     "permissions-sandboxes-and-credentials/credential-added",
     "permissions-sandboxes-and-credentials/glovebox",
     "permissions-sandboxes-and-credentials/permission-pipeline",
+    "side-effects-that-can-fail/ledger",
+    "side-effects-that-can-fail/outcomes",
     "stopping-and-structured-output/default-caps",
     "stopping-and-structured-output/jelly-mould",
     "talking-to-a-model/resent-history",
