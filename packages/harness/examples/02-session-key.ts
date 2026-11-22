@@ -18,6 +18,12 @@ const harness = createHarness({ registry: createToolRegistry(), model, system: "
 const store = memoryStore();
 const [index, lock] = [memoryIndex(), memoryLock()];
 
+async function countEntries(key: SessionKey) {
+  let entries = 0;
+  for await (const _entry of store.load(key)) entries += 1;
+  return entries;
+}
+
 async function say(key: SessionKey, input: string) {
   const session = await openSession({ store, index, lock, key });
   await runTurn(session, harness, { input });
@@ -27,13 +33,16 @@ async function say(key: SessionKey, input: string) {
 await say({ userId: "ada", sessionId: "a" }, "I am Ada.");
 await say({ userId: "ada", sessionId: "a" }, "Who am I?"); // book:note same-key
 await say({ userId: "ada", sessionId: "b" }, "What is my name?"); // book:note new-id
+const adaA = { userId: "ada", sessionId: "a" };
+const before = await countEntries(adaA);
 await say({ userId: "bob", sessionId: "a" }, "Do you know me?"); // book:note other-user
 const sent = adapter.calls.map((call) => call.context.messages.length);
 check(sent[1] === 3, "the second call on ada's session a sees the first exchange and the new question");
 check(sent[2] === 1, "ada's new session b starts empty: only the new question");
-check(sent[3] === 1, "bob's session a starts empty: only the new question"); // book:note isolation
+check(sent[3] === 1, "bob's session a starts empty: only the new question");
+check((await countEntries(adaA)) === before, "bob's turn writes nothing to ada's log");
 const bobs = [];
 for await (const entry of store.load({ userId: "bob", sessionId: "a" })) bobs.push(entry);
-check(bobs.length > 0 && !JSON.stringify(bobs).includes("I am Ada."), "bob's log holds his turn and none of ada's");
+check(bobs.length > 0 && !JSON.stringify(bobs).includes("I am Ada."), "bob's log holds his turn and none of ada's"); // book:note isolation
 // #endregion
 adapter.assertComplete();
