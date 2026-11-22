@@ -3,10 +3,10 @@
 | Field | Value |
 | --- | --- |
 | ID | `N21` |
-| Status | `ready` |
+| Status | `ongoing` |
 | Plan | [Build harness §4, Stage 4](../../plans/build-harness.md#44-stage-4-adds-the-sandbox-backends-and-the-credential-proxy) |
 | Round / milestone | Round N (build harness), M6 |
-| Depends on | [N11](../done/N11-tool-registry.md), [N15](../done/N15-sandbox-interface.md), [N20](../done/N20-credential-proxy.md), [N8](N8-write-cap-masking.md) |
+| Depends on | [N11](../done/N11-tool-registry.md), [N15](../done/N15-sandbox-interface.md), [N20](../done/N20-credential-proxy.md), [N8](../done/N8-write-cap-masking.md) |
 | Size | M |
 
 ## Goal
