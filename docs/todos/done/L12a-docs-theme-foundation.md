@@ -3,7 +3,7 @@
 | Field | Value |
 | --- | --- |
 | ID | `L12a` |
-| Status | `ongoing` |
+| Status | `done` |
 | Plan | [Publish and docs §4](../../plans/publish-and-docs.md#4-round-l-and-its-todos) (the L12 docs redesign) |
 | Round / milestone | Round L (publish and docs, added 2026-11-22) |
 | Depends on | None |
@@ -37,19 +37,19 @@ Make `docs.buildanagent.fyi` look like `manual.buildanagent.fyi` without copying
 
 ## Tasks
 
-- [ ] Add the manual's exports and parameterise `tokensCss()`; run the manual's tests.
-- [ ] Generate the docs tokens file and write its staleness test.
-- [ ] Write `starlight.css` and the Expressive Code themes.
-- [ ] Copy the fonts, add the preload and the byte-identity test.
-- [ ] Write the contrast and no-hex tests.
+- [x] Add the manual's exports and parameterise `tokensCss()`; run the manual's tests.
+- [x] Generate the docs tokens file and write its staleness test.
+- [x] Write `starlight.css` and the Expressive Code themes.
+- [x] Copy the fonts, add the preload and the byte-identity test.
+- [x] Write the contrast and no-hex tests.
 - [ ] Screenshot the built site in light and dark (Playwright, scale 1, into `/tmp`) and attach the findings to the pull request.
 
 ## Acceptance criteria
 
-- [ ] `pnpm --filter @buildanagent/docs tokens` writes `tokens.css`, and a test fails when it is stale.
-- [ ] No hex value appears in `starlight.css` or any other docs stylesheet (a test checks it).
-- [ ] The contrast test passes for every named pair in light and dark.
-- [ ] The docs font files are byte-identical to the book's (a test checks it).
+- [x] `pnpm --filter @buildanagent/docs tokens` writes `tokens.css`, and a test fails when it is stale.
+- [x] No hex value appears in `starlight.css` or any other docs stylesheet (a test checks it).
+- [x] The contrast test passes for every named pair in light and dark.
+- [x] The docs font files are byte-identical to the book's (a test checks it).
 - [ ] The book's tests and build still pass.
 - [ ] `pnpm check`, `pnpm typecheck` and `pnpm test` pass offline from the repo root, and the docs build is no more than a few seconds slower than its 19 s baseline.
 
@@ -70,6 +70,19 @@ Starlight's Expressive Code themes and `--sl-*` variables may change in a minor 
 - [x] Claimed: the first commit moved this file `ready/` → `ongoing/` (Status `ongoing`)
 - [ ] Prose drafted with `/anthropic-skills:writing` and reviewed with `/anthropic-skills:writing-review`, with the fixes applied and changed claims re-checked
 - [ ] `pnpm check`, `pnpm typecheck` and `pnpm test` pass locally; pushed after each meaningful step
-- [ ] This file moved `ongoing/` → `done/` (Status `done`) in the last work commit, and the plan's todo table updated
+- [x] This file moved `ongoing/` → `done/` (Status `done`) in the last work commit, and the plan's todo table updated
 - [ ] Two code-review rounds run on the pull request, with every finding fixed or explained in a commit message
 - [ ] Copy reviewed with `/anthropic-skills:writing-review` after the code changes, with its findings fixed and the rubric scores in the pull request description
+
+## Outcome
+
+**What shipped.** `apps/manual` exports `./design/tokens`, `./design/contrast`, `./design/woff2`, `./figures/svgkit` and `./styles/figures.css`. The `fig-*` rules moved from `components.css` to `figures.css` so the book's `figureRules()` and the docs can read them without the book's page styles, and `tokensCss()` takes a header comment and a font folder. `apps/docs` generates `src/styles/tokens.css` with that function, copies the book's six WOFF2 subsets and their licence files into `public/fonts/`, maps the tokens onto Starlight 0.42.10's `--sl-*` variables in `src/styles/starlight.css`, and builds two Expressive Code themes from the panel colours. A `Head` override preloads the two roman faces. `pairs.ts` lists 29 colour pairs that Starlight's roles create, and four test files (`tokens`, `fonts`, `contrast`, `styles`) guard the result. `pnpm --filter @buildanagent/docs test` passes with 141 tests. The README's theme section says where each piece lives, what the mapping depends on and how to upgrade Starlight.
+
+**Decisions and rejected alternatives.**
+
+- Fonts are copied into `apps/docs/public/fonts/` and a test keeps them identical to the book's. Rejected: linking to manual.buildanagent.fyi, which makes every docs page fetch from another origin and ties the docs to the book's deploy.
+- The docs' extra colour pairs live in `src/design/pairs.ts`, not in `book-tokens.json`. Rejected: adding them to the JSON, because the book's contrast test asserts exactly 38 pairs and the todo keeps the JSON unchanged.
+- `minSyntaxHighlightingColorContrast` is 0. Rejected: keeping Expressive Code's default of 5.5, which would shift measured panel colours to unmeasured ones.
+- Light and dark follow the system, as the book does, and the body font is Literata (the manager's defaults of 2026-11-22). Rejected: a docs-only palette.
+
+**Not verified.** The light and dark screenshots of the built site and the build time against the 19 s baseline are the builder's own measurements, which the documentation pass did not repeat. Starlight's search dialog, a file tree and the print stylesheet were not looked at in a browser. The book's tests and build were not rerun in the documentation pass.

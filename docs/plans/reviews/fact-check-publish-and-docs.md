@@ -718,4 +718,31 @@ The claims the L12 todo and [DS5](../publish-and-docs.md#ds5-the-docs-redesign-l
 | L12-47 | The site and the book's shared header can share data but not markup | ⚠️ | A design judgement from the three apps' frameworks (Starlight overrides in the docs, Astro layouts in the book and the site); no test exists yet, and L12p's shape and header tests will check it |
 | L12-48 | The owner answered Q1, Q3 and Q5 on 2026-11-22, and the manager supplies `docs/design/landing/logo-mark.svg` and `favicon.svg` on `claude/happy-albattani-p54jjp` | ⚠️ | Relayed by the manager session on 2026-11-22; no repository file on this branch records the answers or the files |
 
-**Totals:** 529 claims: 388 ✅, 85 ✏️, 56 ⚠️.
+## L12a: the docs theme foundation (branch `todo/L12a-docs-theme-foundation`)
+
+The claims the theme section of `apps/docs/README.md`, the L12a todo's outcome, the `apps/` entry of `AGENTS.md` and the THIRD-PARTY-NOTICES paragraph make, checked on 2026-11-22 against the branch's code and a run of the docs tests.
+
+| # | Claim | Verdict | Source and reason |
+| --- | --- | --- | --- |
+| L12a-1 | The docs app pins Starlight 0.42.10 exactly | ✅ | `apps/docs/package.json`: `"@astrojs/starlight": "0.42.10"`; `starlight.css`'s header names the same version |
+| L12a-2 | `apps/manual/package.json` exports `./design/tokens`, `./design/contrast`, `./design/woff2`, `./figures/svgkit` and `./styles/figures.css` | ✅ | Read `exports` in `apps/manual/package.json` (git diff against `origin/main`) |
+| L12a-3 | The `fig-*` rules moved from `components.css` to `figures.css`, and the manual README's two references named the old file | ✏️ | `git diff origin/main...HEAD --stat` shows 88 lines moved between the two files; `svgkit.ts` reads `src/styles/figures.css`. `apps/manual/README.md` still said `components.css` in two places, now corrected |
+| L12a-4 | `tokensCss()` takes an optional header and font folder | ✅ | `apps/manual/src/design/tokens.ts`: `TokensCssOptions` has `header` and `fontBase`; the docs pass `header` only |
+| L12a-5 | `pnpm --filter @buildanagent/docs tokens` rewrites `tokens.css` and replaces `public/fonts/` with the book's folder | ✅ | `apps/docs/package.json` script `tokens` runs `scripts/generate-tokens.ts`, which calls `docsTokensCss()` and `copyFonts()`; `copyFonts` removes the folder before `cpSync` |
+| L12a-6 | Starlight loads `tokens.css` before `starlight.css` | ✅ | `astro.config.mjs` `customCss`; `test/tokens.test.ts` asserts the order |
+| L12a-7 | `starlight.css` sets the grey scale, accent, text and background, hairline, five colour families, font, line-height and content-width variables, and the aside classes' border and text-accent variables | ✅ | Read `apps/docs/src/styles/starlight.css` line by line |
+| L12a-8 | The mapping uses `var()` only for `--sl-color-*` values | ✅ | `test/styles.test.ts` ("the starlight mapping sets colours with var() only") passed in `pnpm --filter @buildanagent/docs test` |
+| L12a-9 | Expressive Code's default `minSyntaxHighlightingColorContrast` is 5.5, and 0 turns the shift off | ✅ | `@expressive-code/core@0.44.4` `dist/index.d.ts`: "Defaults to `5.5`… or turn the feature off by setting this option to `0`" |
+| L12a-10 | The docs set `minSyntaxHighlightingColorContrast: 0` because the panel colours are already measured at 4.5:1 or more | ✅ | `astro.config.mjs`; `test/contrast.test.ts` asserts every syntax colour reaches 4.5:1 on its panel and that the config keeps the setting |
+| L12a-11 | The docs have 29 colour pairs in `STARLIGHT_PAIRS` | ✏️ | The builder's report said 30. `node --import tsx` printing `STARLIGHT_PAIRS.length` gave 29 (14 single pairs, 12 from four asides, 3 more); the todo and README use 29 or no number |
+| L12a-12 | `pnpm --filter @buildanagent/docs test` runs 141 tests in 8 files, all passing | ✅ | Ran it on 2026-11-22 at the pushed head: 8 files, 141 passed; it left no tracked file changed (`git status`) |
+| L12a-13 | `fonts.test.ts` fails on a file the book lacks, lacks or differs from by a byte, and checks that `Head.astro` preloads only the two roman faces | ✅ | Read `apps/docs/test/fonts.test.ts`: file-list `deepEqual`, per-file `Buffer.equals`, and a regex over `Head.astro` against `preloadedFonts()` |
+| L12a-14 | The six WOFF2 subsets come with an `OFL.txt` per family and a `TRADEMARKS.md` for Manual Code | ✅ | `git diff origin/main...HEAD --stat` lists three `OFL.txt`, one `manual-code/TRADEMARKS.md` and six `.woff2` files under `apps/docs/public/fonts/` |
+| L12a-15 | `styles.test.ts` forbids hex colours, other origins, a non-token `--sl-color-*` value and decorative tokens outside borders and backgrounds, and requires headings at weight 400 in the display face | ✅ | Read `apps/docs/test/styles.test.ts` |
+| L12a-16 | The docs build is no more than a few seconds slower than its 19 s baseline | ⚠️ | The builder's measurement; the documentation pass did not time `astro build` |
+| L12a-17 | The built site looks right in light and dark (Playwright screenshots) | ⚠️ | The builder's screenshots; the documentation pass opened no browser |
+| L12a-18 | The book's tests and build still pass after the `exports` and `figures.css` split | ⚠️ | The builder's run; the documentation pass reran only the docs tests |
+| L12a-19 | THIRD-PARTY-NOTICES.md: the docs' `public/fonts/` is a byte-for-byte copy of the book's three folders, written by the `tokens` script and checked by a docs test | ✅ | `copyFonts()` in `theme.ts` and `fonts.test.ts`; the licence paragraph above it (Reserved Font Names, Literata's notice) is unchanged and applies to the same files |
+
+
+**Totals:** 548 claims: 402 ✅, 87 ✏️, 59 ⚠️.
