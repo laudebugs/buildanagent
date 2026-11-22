@@ -130,17 +130,22 @@ export function pendingApprovals(path: readonly SessionEntry[]): PendingApproval
 
 /**
  * The ids of the requests whose resume started and died: the log ends in a `continue` turn that has no end, after
- * answers were written. The approved call may have run, so it is settled as a crash and not asked again.
+ * allows were written for it. An approved call may have run, so it is settled as a crash and not asked again, even
+ * when the run died before it reached that call.
  */
 export function crashedResumes(path: readonly SessionEntry[]): Set<string> {
   const start = path.findLastIndex((entry) => entry.type === "turn_start");
   const turn = path[start];
   if (turn?.type !== "turn_start" || turn.mode !== "continue") return new Set();
   if (path.slice(start).some((entry) => entry.type === "turn_end")) return new Set();
-  const resolved = path
-    .slice(0, start)
-    .flatMap((entry) => (entry.type === "approval_resolved" ? [entry.resolution.requestId] : []));
-  return new Set(resolved);
+  // Only the allows this run was given: a deny or an answer runs nothing, and an earlier run's answers are its own.
+  const since = path.slice(0, start).findLastIndex((entry) => entry.type === "turn_end");
+  return new Set(
+    path.slice(since + 1, start).flatMap((entry) => {
+      const answer = entry.type === "approval_resolved" ? entry.resolution : undefined;
+      return answer !== undefined && "decision" in answer && answer.decision === "allow" ? [answer.requestId] : [];
+    }),
+  );
 }
 
 /**

@@ -1,7 +1,7 @@
 // The file key store: a 0600 ring outside the log, rotation that keeps old keys verifying, and a prune that keeps any
 // key an unresolved request still names.
 import assert from "node:assert/strict";
-import { chmodSync, mkdtempSync, readFileSync, rmSync, statSync, writeFileSync } from "node:fs";
+import { chmodSync, mkdirSync, mkdtempSync, readFileSync, rmSync, statSync, symlinkSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { isHarnessError } from "@buildanagent/harness";
@@ -89,6 +89,23 @@ test("rotation adds a current key, an old key still verifies a pause, and prune 
   const after = JSON.parse(readFileSync(keysPath, "utf8")) as { current: string; keys: Record<string, string> };
   assert.deepEqual(Object.keys(after.keys), [rotated]);
   await session.close();
+});
+
+test("two rotations that run together keep both keys, and a symbolic link in the key's place is refused", async () => {
+  const path = join(dir, "e", "keys.json");
+  const store = fileKeyStore(path);
+  await store.load();
+  const [first, second] = await Promise.all([store.rotate?.(), fileKeyStore(path).rotate?.()]);
+  const ring = await store.load();
+  assert.ok(first !== undefined && second !== undefined && first !== second);
+  assert.ok(first in ring.keys && second in ring.keys, "neither rotation was lost");
+  const link = join(dir, "f", "keys.json");
+  mkdirSync(join(dir, "f"));
+  symlinkSync(path, link);
+  await assert.rejects(
+    () => fileKeyStore(link).load(),
+    (error) => isHarnessError(error) && error.code === "invalid_key_store",
+  );
 });
 
 test("prune never removes the current key", async () => {

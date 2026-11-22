@@ -361,4 +361,32 @@ describe.each(BACKENDS)("%s", (_name, make) => {
     assert.match(JSON.stringify(settled.content), /interrupted/);
     await reopened.close();
   });
+  test("an observer that hears of a request finds its entry in the log, and a resume takes the model it is given", async () => {
+    const backend = make();
+    const seen: boolean[] = [];
+    const session = await open(backend);
+    const { harness } = setup([call()]);
+    const watching = {
+      ...harness,
+      observers: [
+        async (event: { type: string }) => {
+          if (event.type === "approval_request") {
+            seen.push((await session.path()).some((entry) => entry.type === "approval_requested"));
+          }
+        },
+      ],
+    };
+    await runTurn(session, watching as never, { input: "refund o1" });
+    assert.deepEqual(seen, [true]);
+    const [waiting] = await createApprovals(harness).pending(session);
+    const other = setup([{ content: [{ type: "text", text: "Done." }] }]);
+    const cheaper = createModel({ adapter: other.adapter, id: "cheaper", retries: 0 }) as Model;
+    await createApprovals(harness).resolve(
+      session,
+      [{ requestId: waiting?.request.id as string, decision: "allow", by: "ada" }],
+      { model: cheaper },
+    );
+    assert.equal(other.adapter.calls.length, 1, "the resume called the model it was given");
+    await session.close();
+  });
 });

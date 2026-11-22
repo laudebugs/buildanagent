@@ -7,7 +7,7 @@
 
 import { Buffer } from "node:buffer";
 import { randomBytes, randomUUID } from "node:crypto";
-import { chmod, link, mkdir, open, readFile, rename, rm, stat } from "node:fs/promises";
+import { chmod, link, lstat, mkdir, open, readFile, rename, rm, stat } from "node:fs/promises";
 import { homedir } from "node:os";
 import { dirname, join } from "node:path";
 import process from "node:process";
@@ -67,11 +67,17 @@ async function write(path: string, ring: KeyRing, exclusive: boolean): Promise<v
 }
 
 async function read(path: string): Promise<KeyRing | undefined> {
-  const info = await stat(path).catch((error: NodeJS.ErrnoException) => {
+  const info = await lstat(path).catch((error: NodeJS.ErrnoException) => {
     if (error.code === "ENOENT") return undefined;
     throw error;
   });
   if (info === undefined) return undefined;
+  if (info.isSymbolicLink())
+    throw invalid("the key file is a symbolic link, which could point at a ring someone else wrote");
+  // The file must be ours: in a shared folder another user could put a ring of their own there.
+  if (process.platform !== "win32" && info.uid !== process.getuid?.()) {
+    throw invalid("the key file belongs to another user");
+  }
   // Windows reports a file mode that has no group or other bits to read, so only POSIX systems check it.
   if (process.platform !== "win32" && (info.mode & 0o077) !== 0) {
     throw invalid("the key file can be read by others; run chmod 600 on it, or rotate keys that may have leaked");
@@ -83,11 +89,44 @@ async function read(path: string): Promise<KeyRing | undefined> {
   }
 }
 
+const LOCK_TRIES = 100;
+const LOCK_WAIT_MS = 50;
+const LOCK_STALE_MS = 60_000;
+
+/** Runs `change` while this process holds the ring's lock file, so two rotations or prunes can't lose each other's work. */
+async function locked<T>(path: string, change: () => Promise<T>): Promise<T> {
+  await mkdir(dirname(path), { recursive: true, mode: 0o700 });
+  const lock = `${path}.lock`;
+  for (let attempt = 0; ; attempt += 1) {
+    try {
+      await (await open(lock, "wx", 0o600)).close();
+      break;
+    } catch (error) {
+      if ((error as NodeJS.ErrnoException).code !== "EEXIST") throw error;
+      // A lock left by a process that died is older than any change takes.
+      const age =
+        Date.now() -
+        (await stat(lock).then(
+          (info) => info.mtimeMs,
+          () => Date.now(),
+        ));
+      if (age > LOCK_STALE_MS) await rm(lock, { force: true });
+      else if (attempt >= LOCK_TRIES) throw invalid("another process is changing the key ring; try again");
+      else await new Promise((resolve) => setTimeout(resolve, LOCK_WAIT_MS));
+    }
+  }
+  try {
+    return await change();
+  } finally {
+    await rm(lock, { force: true });
+  }
+}
+
 /**
  * A key ring in the file at `path` (default `defaultKeyPath()`). `load()` creates a ring with one random 256-bit key
  * when the file does not exist yet. `rotate()` adds a new key and makes it current. `prune(inUse)` removes every key
- * not in `inUse` except the current one, and returns the removed ids. `rotate()` and `prune()` are for one process at a
- * time, such as a host's key command; two that run together may lose one of the changes.
+ * not in `inUse` except the current one, and returns the removed ids. `rotate()` and `prune()` take a lock file beside
+ * the ring, so two processes that change it together each keep the other's work.
  */
 export function fileKeyStore(path: string = defaultKeyPath()): KeyStore {
   // Plain functions, not methods, so a store passed around as `setInterval(store.rotate, ...)` still works.
@@ -106,19 +145,21 @@ export function fileKeyStore(path: string = defaultKeyPath()): KeyStore {
   };
   return {
     load,
-    async rotate() {
-      const ring = await load();
-      const id = newKeyId(new Date());
-      await write(path, { keys: { ...ring.keys, [id]: new Uint8Array(randomBytes(KEY_BYTES)) }, current: id }, false);
-      return id;
-    },
-    async prune(inUse) {
-      const ring = await load();
-      const removed = Object.keys(ring.keys).filter((id) => id !== ring.current && !inUse.has(id));
-      if (removed.length === 0) return [];
-      const kept = Object.fromEntries(Object.entries(ring.keys).filter(([id]) => !removed.includes(id)));
-      await write(path, { keys: kept, current: ring.current }, false);
-      return removed;
-    },
+    rotate: () =>
+      locked(path, async () => {
+        const ring = await load();
+        const id = newKeyId(new Date());
+        await write(path, { keys: { ...ring.keys, [id]: new Uint8Array(randomBytes(KEY_BYTES)) }, current: id }, false);
+        return id;
+      }),
+    prune: (inUse) =>
+      locked(path, async () => {
+        const ring = await load();
+        const removed = Object.keys(ring.keys).filter((id) => id !== ring.current && !inUse.has(id));
+        if (removed.length === 0) return [];
+        const kept = Object.fromEntries(Object.entries(ring.keys).filter(([id]) => !removed.includes(id)));
+        await write(path, { keys: kept, current: ring.current }, false);
+        return removed;
+      }),
   };
 }

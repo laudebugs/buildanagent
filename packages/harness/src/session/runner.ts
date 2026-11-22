@@ -377,14 +377,15 @@ function interceptorsOf<H>(
 }
 
 /**
- * The harness's own observers, each held back until the entries written so far are durable. A client that hears of an
- * approval request can therefore always find its `approval_requested` entry in the log.
+ * The harness's own observers, each held back on an approval request until the entries written so far are durable. An
+ * observer that hears of a request can therefore always find its `approval_requested` entry in the log.
  */
 function afterWrites(observers: readonly Observer[] | undefined, writer: EntryWriter): Observer[] {
   return (observers ?? []).map(
     (observer): Observer =>
       async (event) => {
-        await writer.settled();
+        // Only a request needs its entry first, and `settled()` never rejects: a failed write is the writer's to report.
+        if (event.type === "approval_request") await writer.settled();
         await observer(event);
       },
   );
@@ -519,10 +520,12 @@ export interface ResumeOptions<H = unknown> extends RunSettings<H> {
   readonly resolutions: readonly Resolution[];
   /**
    * The caller's app data. A request bound to app data when it paused runs only when the resume passes the same value,
-   * so this is the caller's identity. The tools and the model are the paused turn's; pass the turn's `maxSteps`,
+   * so this is the caller's identity. The tools are the paused turn's, from the log. The model is the harness's, or
+   * `model`, and one that differs from the paused turn's is recorded as a `loadout`. Pass the turn's `maxSteps`,
    * `output`, `turnRetries` and `modelOptions` again, because the log does not hold them.
    */
   readonly hostContext?: H;
+  readonly model?: Model;
   readonly signal?: AbortSignal;
   readonly onRun?: (run: Run<unknown>) => void;
 }
@@ -579,16 +582,17 @@ export async function resumeTurn<H = unknown>(
     ...(options.hostContext === undefined ? {} : { hostContext: options.hostContext }),
   });
   for (const resolution of options.resolutions) await writer.write("user", { type: "approval_resolved", resolution });
-  await recordLoadout(harness, writer, harness.model, tools, path);
+  const model = options.model ?? harness.model;
+  await recordLoadout(harness, writer, model, tools, path);
   const recorder = new EventRecorder(writer, harness as Harness<unknown>, context.system, newId, "continue");
   const handle = continueRun(context, {
-    model: harness.model,
+    model,
     tools,
     resolutions: [...options.resolutions],
     recheck: recheckThrough(session, harness, writer, recorder, options.hostContext),
     signer: harness.signer,
     signal,
-    interceptors: interceptorsOf(harness, session, writer, recorder, options.hostContext, harness.model),
+    interceptors: interceptorsOf(harness, session, writer, recorder, options.hostContext, model),
     observers: [(event: AgentEvent) => recorder.handle(event), ...afterWrites(harness.observers, writer)],
     ...optionalRunOptions(options, harness, []),
   });
