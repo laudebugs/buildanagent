@@ -486,6 +486,7 @@ class EgressGate {
         body.off("data", onData);
         body.off("end", onEnd);
         body.off("error", onError);
+        body.off("close", onError);
         resolve(outcome);
       };
       const judge = (ended: boolean) => {
@@ -511,6 +512,8 @@ class EgressGate {
       body.on("data", onData);
       body.once("end", onEnd);
       body.once("error", onError);
+      // A client that goes away before its command list ends would otherwise hold the check until the idle timeout.
+      body.once("close", onError);
     });
   }
 
