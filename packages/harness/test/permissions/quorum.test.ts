@@ -4,6 +4,7 @@ import { isHarnessError } from "@buildanagent/harness";
 import { createApprovals, oneResolution, type QuorumPolicy, quorumOf, runTurn } from "@buildanagent/harness/session";
 import { describe, test } from "vitest";
 import { BACKENDS } from "../session/session-helpers.js";
+import { asTurn } from "./helpers.js";
 import { calls, done, entriesOf, open, reuseSetup } from "./reuse-helpers.js";
 
 describe.each(BACKENDS)("%s", (_name, make) => {
@@ -21,13 +22,13 @@ describe.each(BACKENDS)("%s", (_name, make) => {
     const second = reuseSetup([done()]);
     const approvals = createApprovals(second.harness, { quorum: quorumOf(2) });
     const one = await approvals.resolve(session, [{ requestId: id, decision: "allow", by: "ada" }]);
-    assert.equal(one.stopReason, "awaiting_approval");
+    assert.equal(asTurn(one).stopReason, "awaiting_approval");
     assert.deepEqual(second.runs, [], "one answer is not enough");
     assert.equal((await approvals.pending(session)).length, 1);
     const same = await approvals.resolve(session, [{ requestId: id, decision: "allow", by: "ada" }]);
-    assert.equal(same.stopReason, "awaiting_approval", "the same approver twice is still one");
+    assert.equal(asTurn(same).stopReason, "awaiting_approval", "the same approver twice is still one");
     const two = await approvals.resolve(session, [{ requestId: id, decision: "allow", by: "grace" }]);
-    assert.equal(two.stopReason, "done");
+    assert.equal(asTurn(two).stopReason, "done");
     assert.deepEqual(second.runs, ["refund:o1"], "the call ran once");
     await session.close();
   });
@@ -52,7 +53,7 @@ describe.each(BACKENDS)("%s", (_name, make) => {
     const result = await createApprovals(second.harness).resolve(session, [
       { requestId: id, decision: "deny", by: "ada" },
     ]);
-    assert.equal(result.stopReason, "done");
+    assert.equal(asTurn(result).stopReason, "done");
     assert.deepEqual(second.runs, []);
     const refused = (await entriesOf(backend)).find((entry) => entry.type === "tool_result");
     assert.ok(refused?.type === "tool_result" && refused.isError);
@@ -66,7 +67,7 @@ describe.each(BACKENDS)("%s", (_name, make) => {
     const second = reuseSetup([done()]);
     // No answer is needed: asking the policy about every waiting request is how an old request is refused.
     const result = await createApprovals(second.harness, { quorum: expiring }).resolve(session, []);
-    assert.equal(result.stopReason, "done");
+    assert.equal(asTurn(result).stopReason, "done");
     assert.deepEqual(second.runs, []);
     const refused = (await entriesOf(backend)).find((entry) => entry.type === "tool_result");
     assert.ok(refused?.type === "tool_result" && refused.isError);

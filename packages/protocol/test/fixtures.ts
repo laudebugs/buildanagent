@@ -88,6 +88,23 @@ export const FIXTURES = [
   },
   {
     ...at("harness"),
+    type: "code_call",
+    callId: "cc1",
+    tool: "refund",
+    input: { orderId: "o1" },
+    inputHash: "9f86d081884c7d659a2feaa0c55ad015a3bf4f1b2b0b822cd15d6c15b0f00a08",
+  },
+  {
+    ...at("harness"),
+    type: "code_call",
+    callId: "cc2",
+    tool: "refund_reverse",
+    input: { orderId: "o1" },
+    inputHash: "9f86d081884c7d659a2feaa0c55ad015a3bf4f1b2b0b822cd15d6c15b0f00a08",
+    compensates: "cc1",
+  },
+  {
+    ...at("harness"),
     type: "permission_decision",
     callId: "c2",
     tool: "escalate",
@@ -147,6 +164,14 @@ export const FIXTURES = [
   },
   { ...at("harness"), type: "skill_loaded", name: "triage", path: ".agents/skills/triage/SKILL.md" },
   { ...at("harness"), type: "extension_loaded", name: "audit", tier: "in_process", contentHash: "sha256:def" },
+  {
+    ...at("harness"),
+    type: "extension_loaded",
+    name: "docs",
+    tier: "mcp",
+    contentHash: "sha256:abc",
+    mcp: { transport: "stdio", commandHash: "sha256:123", era: "2026-07-28", toolsHash: "sha256:456" },
+  },
   { ...at("harness"), type: "subagent_link", childSession: "s-child", spawningCallId: "c1", stepId: "step-2" },
   {
     ...at("harness"),

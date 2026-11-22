@@ -27,6 +27,7 @@ The sections of README.md and every public export, generated from this package's
 - `interface ClientInfo`: Who a client says it is, in `initialize`.
 - `type ClientMessage`: Everything a client sends: commands, and answers to the server's requests.
 - `interface ClientResultMap`: The result of each client method, by method name.
+- `interface CodeCallEntry`: A tool call that the host's own code chose to make, with no model step.
 - `interface CompactionEntry`: A summary replaced older entries in the context a rebuilt run sends.
 - `interface CompletionCheckEntry`: The commands that checked a finished task, and whether they passed.
 - `decode()`: Reads one message from a line of JSON text or a parsed value, and checks its envelope.
@@ -49,6 +50,7 @@ The sections of README.md and every public export, generated from this package's
 - `interface JsonlFramerOptions`: The options of `JsonlFramer`.
 - `type JsonRpcMessage`: A JSON-RPC message as `decode()` reads it: the envelope is checked, and `params` and `result` are not.
 - `interface LoadoutEntry`: The tools and model in force changed.
+- `interface McpServerRecord`: What an `extension_loaded` entry of tier `mcp` records about the server that connected.
 - `interface MessageBlockEntry`: One content block of a message.
 - `interface MessageEndEntry`: A message is complete: which model wrote it and why it stopped.
 - `type Origin`: Who produced an entry's content.

@@ -150,7 +150,7 @@ async function runOne(t, state = {}) {
     return runOne(t, { ...state, [missing]: "example" });
   }
   const blocked = /network disabled \(blocked ([^)]+)\)/.exec(result.out)?.[1];
-  transcript?.write({ harnessDir: root, exampleFile: resolve(t.file), cwd });
+  transcript?.write({ harnessDir: root, exampleFile: resolve(t.file), cwd, exit: result.exit, out: result.out });
   // Our own examples assert their behaviour, so exit 0 is a pass.
   const outcome = result.timedOut
     ? "timeout"

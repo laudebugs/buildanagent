@@ -1,3 +1,4 @@
+import type { McpServerRecord } from "@buildanagent/protocol";
 import type { Interceptors, Observer } from "@buildanagent/sdk";
 import type { ToolRegistration } from "../tools/types.js";
 
@@ -29,9 +30,11 @@ export interface ExtensionLoadedRecord {
   /**
    * `sha256:` and the hex digest of the extension's files as they were pinned and imported, or of its name and version
    * for one built in code. It is the hash that was checked, not proof of what ran: a file changed between the hash and
-   * the import is not caught.
+   * the import is not caught. For an MCP server, the digest of the canonical JSON of `mcp`.
    */
   readonly contentHash: string;
+  /** For tier `mcp`: how the server was reached, a hash of its command, its era and a hash of its tools. */
+  readonly mcp?: McpServerRecord;
 }
 
 /** Which project folders may load their own extensions. Trust gates loading and nothing else: it is not a sandbox. */

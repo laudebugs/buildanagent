@@ -108,6 +108,26 @@ export interface ToolResultEntry {
   trust: "trusted" | "untrusted";
 }
 
+/**
+ * A tool call that the host's own code chose to make, with no model step. It is written before the permission pipeline
+ * decides the call, and its id is the call's id, so the call's effect key can be derived from it before the tool runs.
+ * The model never reads a code call or its result.
+ */
+export interface CodeCallEntry {
+  /** The entry type name. @stable */
+  type: "code_call";
+  /** The call's id, which the call's `permission_decision`, `approval_requested` and `tool_result` entries name. */
+  callId: string;
+  /** The tool's canonical name. */
+  tool: string;
+  /** The input the call runs with. */
+  input: unknown;
+  /** `canonicalInputHash()` of `input`, which a resume checks before the call runs. */
+  inputHash: string;
+  /** The id of the earlier code call this one compensates, when it undoes one. */
+  compensates?: string;
+}
+
 /** The permission pipeline's decision on one tool call, written for every decision. */
 export interface PermissionDecisionEntry {
   /** The entry type name. @stable */
@@ -205,13 +225,38 @@ export interface SkillLoadedEntry {
   path: string;
 }
 
+/**
+ * What an `extension_loaded` entry of tier `mcp` records about the server that connected. It holds hashes, never the
+ * command's arguments or any environment value, because either can carry a secret.
+ */
+export interface McpServerRecord {
+  /** How the harness reached the server. */
+  transport: "stdio" | "in_process";
+  /**
+   * For a stdio server: `sha256:` and the hex digest of the canonical JSON (RFC 8785) of `[command, ...args]`. It is not
+   * salted, so a reader of the log can confirm a guessed argument by hashing it; a secret never belongs in the args.
+   */
+  commandHash?: string;
+  /** The protocol era the server negotiated. */
+  era: "2026-07-28" | "legacy";
+  /**
+   * `sha256:` and the hex digest of the canonical JSON of the registered tools, sorted by name, each as
+   * `{ name, description, inputSchema }`.
+   */
+  toolsHash: string;
+}
+
 /** An extension was loaded, with the hash of what ran. */
 export interface ExtensionLoadedEntry {
   /** The entry type name. @stable */
   type: "extension_loaded";
+  /** The extension's name, or the MCP server's name for tier `mcp`. */
   name: string;
   tier: "in_process" | "mcp" | "skill";
+  /** `sha256:` and a hex digest. For tier `mcp`, the digest of the canonical JSON of `mcp`. */
   contentHash: string;
+  /** Set for tier `mcp` only. */
+  mcp?: McpServerRecord;
 }
 
 /** A child session exists. It names the tool call or workflow step that started it, one of the two. */
@@ -275,6 +320,7 @@ export type SessionEntry = EntryBase &
     | MessageBlockEntry
     | MessageEndEntry
     | ToolResultEntry
+    | CodeCallEntry
     | PermissionDecisionEntry
     | UsageEntry
     | TurnEndEntry
@@ -299,6 +345,7 @@ export const SESSION_ENTRY_TYPES = [
   "message_block",
   "message_end",
   "tool_result",
+  "code_call",
   "permission_decision",
   "usage",
   "turn_end",

@@ -2,7 +2,8 @@
  * Rebuilds the SDK's `Context` from a session's entries, so the log is the only state: any process can read the log
  * and go on with `continueRun()`. A message is the `message_block` entries that share a `messageId`, in `index` order;
  * an assistant message is closed by its `message_end` and takes its usage and cost from the `usage` entry right after
- * it. A `usage` entry anywhere else belongs to a call whose message was superseded, and builds no message.
+ * it. A `usage` entry anywhere else belongs to a call whose message was superseded, and builds no message. A code
+ * call is the host's, not the model's, so its entries build no message either.
  */
 
 import type { AssistantMessage, ContentBlock, Message } from "@buildanagent/gateway";
@@ -220,7 +221,10 @@ export function contextWithStarts(path: readonly SessionEntry[]): {
   const builder = new MessageBuilder(stripped);
   let system = "";
   for (const entry of path) if (entry.type === "turn_start") system = entry.system;
+  // A code call's result answers no call the model made, so the model never reads it.
+  const codeCalls = new Set(path.flatMap((entry) => (entry.type === "code_call" ? [entry.callId] : [])));
   for (const entry of entries) {
+    if (entry.type === "tool_result" && codeCalls.has(entry.callId)) continue;
     switch (entry.type) {
       case "message_block":
         builder.block(entry);

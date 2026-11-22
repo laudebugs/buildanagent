@@ -255,8 +255,14 @@ importers:
       '@buildanagent/sdk':
         specifier: workspace:*
         version: link:../sdk
-    devDependencies:
+      '@earendil-works/pi-schema':
+        specifier: 1.5.2
+        version: 1.5.2
       '@modelcontextprotocol/client':
+        specifier: 2.4.0
+        version: 2.4.0
+    devDependencies:
+      '@modelcontextprotocol/server':
         specifier: 2.4.0
         version: 2.4.0
       json-rpc-2.0:

@@ -5,6 +5,7 @@
  * wait. Releasing a reader or a writer removes the transport's listeners and locks and leaves the stream itself
  * open: the host owns it.
  */
+import { messageOf } from "./rpc-session.js";
 
 /** A Node `Readable` as the transport reads it, such as `process.stdin`. A string chunk is read as UTF-8. */
 export interface NodeInput {
@@ -110,16 +111,17 @@ export interface ChunkReader {
   release(): void;
 }
 
-const messageOf = (error: unknown): string => (error instanceof Error ? error.message : String(error));
-
 const isWebOutput = (output: StdioOutput): output is WritableStream<Uint8Array> => "getWriter" in output;
 
-/** A writer for either kind of output. A failed or closed output stops `stopper`. */
-export function lineWriter(output: StdioOutput, stopper: Stopper): LineWriter {
-  return isWebOutput(output) ? webWriter(output, stopper) : nodeWriter(output, stopper);
+/**
+ * A writer for either kind of output. A failed or closed output stops `stopper`. `onTaken` is called each time the
+ * output takes a line: a Node stream calls its write callback without an error, or a Web stream's write resolves.
+ */
+export function lineWriter(output: StdioOutput, stopper: Stopper, onTaken: () => void = () => undefined): LineWriter {
+  return isWebOutput(output) ? webWriter(output, stopper, onTaken) : nodeWriter(output, stopper, onTaken);
 }
 
-function nodeWriter(output: NodeOutput, stopper: Stopper): LineWriter {
+function nodeWriter(output: NodeOutput, stopper: Stopper, onTaken: () => void): LineWriter {
   let last: Promise<void> = Promise.resolve();
   // The one wait for room while the output is full, shared by every write made meanwhile.
   let full: Promise<void> | undefined;
@@ -147,6 +149,7 @@ function nodeWriter(output: NodeOutput, stopper: Stopper): LineWriter {
       last = new Promise<void>((resolve) => {
         ready = output.write(bytes, (error) => {
           if (error) onError(error);
+          else onTaken();
           resolve();
         });
       });
@@ -160,7 +163,7 @@ function nodeWriter(output: NodeOutput, stopper: Stopper): LineWriter {
   };
 }
 
-function webWriter(output: WritableStream<Uint8Array>, stopper: Stopper): LineWriter {
+function webWriter(output: WritableStream<Uint8Array>, stopper: Stopper, onTaken: () => void): LineWriter {
   const writer = output.getWriter();
   let last: Promise<void> = Promise.resolve();
   let full: Promise<void> | undefined;
@@ -176,7 +179,7 @@ function webWriter(output: WritableStream<Uint8Array>, stopper: Stopper): LineWr
   return {
     write(bytes) {
       if (stopper.stopped) return undefined;
-      last = writer.write(bytes).catch(() => undefined);
+      last = writer.write(bytes).then(onTaken, () => undefined);
       // A Web stream counts what waits in its own queue; `ready` settles once there is room again.
       if (writer.desiredSize !== null && writer.desiredSize > 0) return undefined;
       full ??= stopper.until(writer.ready.catch(() => undefined)).then(() => {

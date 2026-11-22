@@ -156,6 +156,18 @@ class Registry implements ToolRegistry {
     return tool;
   }
 
+  registerAll(registrations: readonly ToolRegistration[]): RegisteredTool[] {
+    if (!Array.isArray(registrations)) invalid("list needs to be an array");
+    // `register()` changes only the entry list, so a copy of it is the whole state to put back.
+    const before = [...this.#entries];
+    try {
+      return registrations.map((registration) => this.register(registration));
+    } catch (error) {
+      this.#entries.splice(0, this.#entries.length, ...before);
+      throw error;
+    }
+  }
+
   get(name: string): RegisteredTool | undefined {
     const byName = this.#entries.find((entry) => entry.tool.canonicalName === name);
     return (byName ?? this.#entries.find((entry) => entry.tool.alias === name))?.tool;
