@@ -130,12 +130,14 @@ The planned opening type is `analogy` (the outline's previous chapter, events an
 | 71 | The SWE-agent paragraph now ends with the plan testing each of its five layers against a baseline; masking is tried first | § Context policy | ✅ | Same claim as rows 38 and 42 to 44 (the ablation run in the plan's provisional defaults, row 38); wording only. |
 | 72 | To reverse a compaction, you pick a path that skips it | § Compaction | ✅ | Restates row 49: Pi builds context from the current leaf to the root with the latest compaction on that path, so a branch that leaves the path before the compaction sees the original messages. |
 | 73 | The Pi replay's third request carries neither "Refine it." nor "Refined plan A."; both remain in the session's entries (example lines 28 to 31) and the model's own path leaves them out (line 32) | § One append-only tree | ✅ | Split of one sentence into three with the same line citations as before; rechecked against `verify/pi/examples/05-session-tree.ts`, whose checks sit at lines 28 to 31 and 32, as row 7 records. |
+| 74 | In Pi, going back to an earlier entry writes nothing, and the next entry written there starts a second path beside the first; our harness's `checkout` instead appends a `checkout` entry (the intro had said it of every harness) | Chapter intro; section 2 table | ✏️ | Pi: row 73 and the example's `branch()` checks (`verify/pi/examples/05-session-tree.ts` lines 28 to 32). Ours: `packages/harness/README.md`, "HEAD is in the log" bullet (`checkout(id)` appends a `checkout` entry). The sentence is now scoped to Pi, and the table row already says what our harness writes. |
+| 75 | Compaction shortens one window, and a task too big for one window cannot fit into one summary; the source's number is 200 features, not 200 windows | Section 4 | ✏️ | The Anthropic long-running-harness post gives over 200 features as the example job (row 69); it says nothing about 200 context windows, so that figure was ours and is cut |
 
 ## Tally
 
 | Verdict | Rows |
 | --- | --- |
 | ✅ confirmed | 70 |
-| ✏️ corrected | 1 |
+| ✏️ corrected | 3 (rows 46, 74 and 75) |
 | ⚠️ unverified, our recommendation or reading, marked as ours in the text | 2 (rows 17 and 59) |
-| Total | 73 |
+| Total | 75 |
