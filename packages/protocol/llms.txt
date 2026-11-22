@@ -12,6 +12,8 @@ The sections of README.md and every public export, generated from this package's
 - [The protocol is JSON-RPC 2.0, one message per line](README.md#the-protocol-is-json-rpc-20-one-message-per-line)
   - [The framer splits on newlines only](README.md#the-framer-splits-on-newlines-only)
   - [The protocol schema covers every message](README.md#the-protocol-schema-covers-every-message)
+- [Over stdio, each message is one line, and stdout carries nothing else](README.md#over-stdio-each-message-is-one-line-and-stdout-carries-nothing-else)
+  - [Two outside JSON-RPC libraries read every message the server sends](README.md#two-outside-json-rpc-libraries-read-every-message-the-server-sends)
 
 ## Exports from `@buildanagent/protocol`
 

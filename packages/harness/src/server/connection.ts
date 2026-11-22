@@ -96,11 +96,13 @@ export class ServerConnection {
   #inFlight = 0;
   #refusals = 0;
   #open = true;
+  readonly #onClose: (() => void) | undefined;
 
-  constructor(host: ConnectionHost, deliver: Deliver, limit: number) {
+  constructor(host: ConnectionHost, deliver: Deliver, limit: number, onClose?: () => void) {
     this.#host = host;
     this.#outbox = new Outbox(deliver, limit);
     this.#limit = limit;
+    this.#onClose = onClose;
   }
 
   /** Whether the client is still connected. */
@@ -256,6 +258,12 @@ export class ServerConnection {
     this.#held.clear();
     this.#host.detach(this);
     for (const request of asked) request.lost();
+    // The transport learns of a close it did not ask for, such as one for refusals left unread.
+    try {
+      this.#onClose?.();
+    } catch {
+      // A transport's own failure must not stop the close.
+    }
   }
 
   /** Handles one message from the client, and resolves once its response, if it has one, is queued. */

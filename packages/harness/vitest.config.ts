@@ -16,5 +16,9 @@ export default defineConfig({
   test: {
     include: ["test/**/*.test.ts"],
     setupFiles: ["./test/setup.ts"],
+    // `@modelcontextprotocol/client`, which the framing check reads with, reaches eventsource and eventsource-parser,
+    // which ship a `source` condition too. Loaded natively, they would resolve to their src/*.ts, which Node won't strip
+    // under node_modules, so Vite transforms the chain that imports them, as agent-safety's config does for `ai`.
+    server: { deps: { inline: [/\/node_modules\/(@modelcontextprotocol\/[^/]+|eventsource|eventsource-parser)\//] } },
   },
 });

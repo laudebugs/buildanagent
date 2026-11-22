@@ -17,8 +17,12 @@ export const CONFIG = {
   blocksFromExamples: true,
   // Prose names that look like exports but are not this package's: members, fields, variables and other packages' names.
   notExports: {
+    InternalError: "an error code the protocol package exports",
     InvalidParams: "an error code the protocol package exports",
     QueueFull: "an error code the protocol package exports",
+    Readable: "a Node stream class",
+    Writable: "a Node stream class",
+    connect: "a Dispatcher method",
     delete: "a SessionStore method",
     read: "the secret reader callback `secretKeyStore()` takes",
     request: "an InProcessClient method",
