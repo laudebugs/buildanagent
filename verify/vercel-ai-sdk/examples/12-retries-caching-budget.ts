@@ -53,16 +53,16 @@ function withBudget(inner: LanguageModelV4) {
           noCache: tokensIn(restOf(params)),
           cacheRead: 0,
           cacheWrite: tokensIn(prefixOf(params)),
-          output: params.maxOutputTokens ?? MAX_OUTPUT_TOKENS,
+          output: params.maxOutputTokens ?? MAX_OUTPUT_TOKENS, // book:note project
         });
-        if (ledger.spent + ledger.projected > BUDGET_NANOS) throw new BudgetExceededError(ledger.projected);
+        if (ledger.spent + ledger.projected > BUDGET_NANOS) throw new BudgetExceededError(ledger.projected); // book:note refuse-before
         const result = await doGenerate();
         const u = result.usage;
         ledger.spent += costNanos(SONNET_5_5, {
           noCache: u.inputTokens.noCache ?? 0,
           cacheRead: u.inputTokens.cacheRead ?? 0,
           cacheWrite: u.inputTokens.cacheWrite ?? 0,
-          output: u.outputTokens.total ?? 0,
+          output: u.outputTokens.total ?? 0, // book:note record-actual
         });
         return result;
       },
@@ -86,14 +86,16 @@ const policy = Array.from({ length: 400 }, (_, i) => `Refund rule ${i}: refund w
 const longPolicy = policy.repeat(2);
 const cacheControl = { anthropic: { cacheControl: { type: "ephemeral" } } };
 type Extra = { maxRetries?: number; maxOutputTokens?: number };
+// #region ask
 const ask = (model: LanguageModelV4, question: string, system = policy, extra: Extra = {}) =>
   generateText({
     model,
-    instructions: { role: "system", content: system, providerOptions: cacheControl },
+    instructions: { role: "system", content: system, providerOptions: cacheControl }, // book:note cache-mark
     prompt: question,
-    maxOutputTokens: MAX_OUTPUT_TOKENS,
+    maxOutputTokens: MAX_OUTPUT_TOKENS, // book:note output-cap
     ...extra,
   });
+// #endregion
 
 // ---- First protocol: a scripted model that fails on demand and caches a prefix the way a provider does. ----
 const failures: APICallError[] = [];
@@ -135,7 +137,8 @@ const retries = attempts - 1; // book:note retry-count
 // #endregion
 check(first.text === "Refunds take five days." && retries === 1, `a retryable error costs one retry (${retries})`);
 
-failures.push(apiError(401, false));
+// #region retry-limits
+failures.push(apiError(401, false)); // book:note not-retryable
 const before = attempts;
 const rejected = await ask(model, "Again?").catch((e) => e);
 check(
@@ -144,11 +147,12 @@ check(
 );
 
 failures.push(apiError(429, true), apiError(429, true));
-const exhausted = await ask(model, "Once more?", policy, { maxRetries: 1 }).catch((e) => e);
+const exhausted = await ask(model, "Once more?", policy, { maxRetries: 1 }).catch((e) => e); // book:note retry-cap
 check(
   RetryError.isInstance(exhausted) && exhausted.reason === "maxRetriesExceeded",
   "maxRetries 1 gives up after two errors",
 );
+// #endregion
 
 // #region cache
 const spentBefore = ledger.spent;

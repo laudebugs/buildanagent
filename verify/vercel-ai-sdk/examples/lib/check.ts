@@ -61,11 +61,11 @@ export function scripted(
   const model = new MockLanguageModelV4({
     ...(options.modelId === undefined ? {} : { modelId: options.modelId }),
     doGenerate: async (options) => {
-      const turn = next(options);
+      const turn = next(options); // book:note do-generate
       return { content: content(turn), finishReason: finish(turn), usage, warnings: [] };
     },
     doStream: async (options) => {
-      const turn = next(options);
+      const turn = next(options); // book:note do-stream
       const parts: any[] =
         typeof turn === "string"
           ? [
