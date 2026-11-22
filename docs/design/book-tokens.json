@@ -4,7 +4,7 @@
   "decided": "2026-11-19",
   "color": {
     "light": {
-      "$comment": "C4 Clay and Cream, light page. highlight is the amber background of a reader's highlight (BK24), and highlightGreen, highlightBlue and highlightPink are the three other colours a reader can choose, drawn under the text colour, so text is the one pair measured on it.",
+      "$comment": "C4 Clay and Cream, light page. highlight is the amber background of a reader's highlight (BK24), and highlightGreen, highlightBlue and highlightPink are the three other colours a reader can choose, drawn under the text colour, so text is the one pair measured on it. `highlightHover*` is the stronger shade a note's passage takes while its margin marker is hovered or focused; text keeps 4.5:1 on it. `highlightEdge*` is the marker's outline, a non-text colour measured in nonText.",
       "values": {
         "background": "#FAF3E8",
         "text": "#2A1E16",
@@ -16,7 +16,15 @@
         "highlight": "#F5DF9E",
         "highlightGreen": "#CFE3B4",
         "highlightBlue": "#BFDCEF",
-        "highlightPink": "#F4C9D2"
+        "highlightPink": "#F4C9D2",
+        "highlightEdge": "#96740F",
+        "highlightHover": "#D7A716",
+        "highlightEdgeGreen": "#608331",
+        "highlightHoverGreen": "#8BBC4B",
+        "highlightEdgeBlue": "#2D7FB4",
+        "highlightHoverBlue": "#77B5DD",
+        "highlightEdgePink": "#D83F5F",
+        "highlightHoverPink": "#EA96A7"
       },
       "contrast": [
         {
@@ -63,6 +71,26 @@
           "text": "text",
           "on": "highlightPink",
           "ratio": 10.91
+        },
+        {
+          "text": "text",
+          "on": "highlightHover",
+          "ratio": 7.28
+        },
+        {
+          "text": "text",
+          "on": "highlightHoverGreen",
+          "ratio": 7.25
+        },
+        {
+          "text": "text",
+          "on": "highlightHoverBlue",
+          "ratio": 7.28
+        },
+        {
+          "text": "text",
+          "on": "highlightHoverPink",
+          "ratio": 7.27
         }
       ]
     },
@@ -79,7 +107,15 @@
         "highlight": "#4F3B1C",
         "highlightGreen": "#34472B",
         "highlightBlue": "#2B4559",
-        "highlightPink": "#5C3441"
+        "highlightPink": "#5C3441",
+        "highlightEdge": "#AA7F3C",
+        "highlightHover": "#6E5227",
+        "highlightEdgeGreen": "#6A9158",
+        "highlightHoverGreen": "#455E39",
+        "highlightEdgeBlue": "#5C8BB0",
+        "highlightHoverBlue": "#385A75",
+        "highlightEdgePink": "#B17689",
+        "highlightHoverPink": "#7D4758"
       },
       "contrast": [
         {
@@ -126,6 +162,26 @@
           "text": "text",
           "on": "highlightPink",
           "ratio": 8.73
+        },
+        {
+          "text": "text",
+          "on": "highlightHover",
+          "ratio": 6.09
+        },
+        {
+          "text": "text",
+          "on": "highlightHoverGreen",
+          "ratio": 6.06
+        },
+        {
+          "text": "text",
+          "on": "highlightHoverBlue",
+          "ratio": 6.11
+        },
+        {
+          "text": "text",
+          "on": "highlightHoverPink",
+          "ratio": 6.06
         }
       ]
     },
@@ -210,7 +266,7 @@
       ]
     },
     "nonText": {
-      "$comment": "Focus rings, control borders and figure lines that carry meaning need 3:1 against what they sit on (WCAG 1.4.11). The focus ring is the accent, so it is measured on the page and on the panel of each mode (proposed by T2 and accepted by the owner on 2026-11-19). A box's left rule, its boundary, is the muted text colour, measured on the page of each mode. A table's header rule is the same pair. A reader's highlight is marked by an underline in the accent, so the accent is also measured on the highlight of each mode (BK24).",
+      "$comment": "Focus rings, control borders and figure lines that carry meaning need 3:1 against what they sit on (WCAG 1.4.11). The focus ring is the accent, so it is measured on the page and on the panel of each mode (proposed by T2 and accepted by the owner on 2026-11-19). A box's left rule, its boundary, is the muted text colour, measured on the page of each mode. A table's header rule is the same pair. A reader's highlight is marked by an underline in the accent, so the accent is also measured on the highlight of each mode (BK24). A note's marker outline and its dot's border are the highlight's own colour in a darker shade, `highlightEdge*`, measured on the page (J3).",
       "contrast": [
         {
           "color": "light.accent",
@@ -281,11 +337,51 @@
           "color": "dark.accent",
           "on": "dark.highlightPink",
           "ratio": 4.89
+        },
+        {
+          "color": "light.highlightEdge",
+          "on": "light.background",
+          "ratio": 3.97
+        },
+        {
+          "color": "light.highlightEdgeGreen",
+          "on": "light.background",
+          "ratio": 3.98
+        },
+        {
+          "color": "light.highlightEdgeBlue",
+          "on": "light.background",
+          "ratio": 3.96
+        },
+        {
+          "color": "light.highlightEdgePink",
+          "on": "light.background",
+          "ratio": 3.97
+        },
+        {
+          "color": "dark.highlightEdge",
+          "on": "dark.background",
+          "ratio": 4.48
+        },
+        {
+          "color": "dark.highlightEdgeGreen",
+          "on": "dark.background",
+          "ratio": 4.48
+        },
+        {
+          "color": "dark.highlightEdgeBlue",
+          "on": "dark.background",
+          "ratio": 4.46
+        },
+        {
+          "color": "dark.highlightEdgePink",
+          "on": "dark.background",
+          "ratio": 4.49
         }
       ]
     },
     "decorativeOnly": {
-      "$comment": "These colours fail both 4.5:1 and 3:1, so use them only for dividers, panel borders and grid lines, never for text, focus rings or figure lines that carry meaning. Each colour is named as <set>.<key> and measured on the background it sits on. The highlight background is listed here too: it stays pale so text on it keeps its contrast, and the accent underline drawn with it carries the meaning (BK24).",
+      "$comment": "These colours fail both 4.5:1 and 3:1, so use them only for dividers, panel borders and grid lines, never for text, focus rings or figure lines that carry meaning. Each colour is named as <set>.<key> and measured on the background it sits on. The highlight background is listed here too: it stays pale so text on it keeps its contrast, and the accent underline drawn with it carries the meaning (BK24). The hover shades, `highlightHover*`, are listed too: a passage takes one while its margin marker is hovered or focused, so it is a background under text (J3).",
       "contrast": [
         {
           "color": "light.rule",
@@ -366,6 +462,46 @@
           "color": "dark.highlightPink",
           "on": "dark.background",
           "ratio": 1.56
+        },
+        {
+          "color": "light.highlightHover",
+          "on": "light.background",
+          "ratio": 2.02
+        },
+        {
+          "color": "light.highlightHoverGreen",
+          "on": "light.background",
+          "ratio": 2.03
+        },
+        {
+          "color": "light.highlightHoverBlue",
+          "on": "light.background",
+          "ratio": 2.02
+        },
+        {
+          "color": "light.highlightHoverPink",
+          "on": "light.background",
+          "ratio": 2.02
+        },
+        {
+          "color": "dark.highlightHover",
+          "on": "dark.background",
+          "ratio": 2.24
+        },
+        {
+          "color": "dark.highlightHoverGreen",
+          "on": "dark.background",
+          "ratio": 2.25
+        },
+        {
+          "color": "dark.highlightHoverBlue",
+          "on": "dark.background",
+          "ratio": 2.23
+        },
+        {
+          "color": "dark.highlightHoverPink",
+          "on": "dark.background",
+          "ratio": 2.25
         }
       ]
     }
