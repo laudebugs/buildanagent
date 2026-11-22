@@ -1,4 +1,4 @@
-// Our gateway's side of the transcript recorder (scripts/transcripts/). When test/book-examples.test.ts preloads the
+// Our gateway's side of the transcript recorder (scripts/transcripts/). When scripts/transcripts/book-examples.ts preloads the
 // recorder, `recordedAdapter()` wraps the scripted model's adapter, so each request and answer joins the example's
 // transcript; otherwise the adapter comes back unchanged. The recorder only reads the context and the stream's events,
 // so the model answers as it would without it. packages/sdk/examples/lib/transcript.ts maps the same transcript types

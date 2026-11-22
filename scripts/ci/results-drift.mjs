@@ -57,7 +57,7 @@ const git = (...args) =>
     .split("\n")
     .filter(Boolean);
 // A git pathspec's "*" also matches "/", so this covers results/transcripts/ too.
-// Our own packages keep only transcripts under results/, which each package's test/book-examples.test.ts writes.
+// Our own packages keep only transcripts under results/, which the shared runner in scripts/transcripts/book-examples.ts writes for each package.
 const PACKAGE_TRANSCRIPTS = "packages/*/results/transcripts/*.json";
 const changed = git("diff", "--name-only", "--", "verify/*/results/*.json", PACKAGE_TRANSCRIPTS);
 const TRANSCRIPT = /^(?:verify|packages)\/[^/]+\/results\/transcripts\/[^/]+\.json$/;
