@@ -3,7 +3,7 @@ import { REDACTED, scrubSecrets } from "@buildanagent/harness/credentials";
 import type { SessionEntry } from "@buildanagent/protocol";
 import { test } from "vitest";
 
-const SECRET = "sk-live-9f8e7d6c5b4a39281706";
+const SECRET = "live-credential-9f8e7d6c5b4a39281706";
 
 const entry = (rest: Record<string, unknown>): SessionEntry =>
   ({

@@ -13,7 +13,7 @@ import { afterAll, beforeAll, test } from "vitest";
 
 // A real HTTPS server on loopback with a self-signed certificate that only this file trusts, standing in for the
 // internet. The proxy resolves names through a table, so no test needs DNS.
-const SECRET = "ghp_REALSECRET_0123456789abcdefABCDEF";
+const SECRET = "realsecret-0123456789-abcdefABCDEF";
 const folders: string[] = [];
 let certificate = "";
 let key = "";
