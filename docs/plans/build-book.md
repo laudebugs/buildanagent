@@ -586,7 +586,7 @@ The three research rounds behind the sections each confirmed its placement, and 
 | [T43](../todos/done/T43-example-store-recall-expire.md) | Example: store, recall and expire a fact across runs on LangChain's store | T5, U18 | M |
 | [T44](../todos/done/T44-example-context-memory.md) | Example: context-block memory that survives eviction and stays inside one agent | T5, U18 | M |
 | [T45](../todos/done/T45-example-a2a-delegation.md) | Example: delegation to a remote agent over A2A on ADK, both ends offline | T5, U19 | M |
-| [T46](../todos/ready/T46-example-realtime-session.md) | Example: an OpenAI realtime session on the SDK's scripted transport | T5, U20 | M |
+| [T46](../todos/ongoing/T46-example-realtime-session.md) | Example: an OpenAI realtime session on the SDK's scripted transport | T5, U20 | M |
 | [T47](../todos/ready/T47-example-voice-pipeline.md) | Example: a chained voice pipeline with a tool and barge-in on Cloudflare | T5, U20 | M |
 | [T48](../todos/ready/T48-example-a2a-1-0.md) | Example: A2A 1.0 delegation, once a pinned SDK ships 1.0 support (on hold) | T45 | M |
 | [T49](../todos/done/T49-book-http-mock-transcripts.md) | Transcripts for the Claude Agent SDK and Copilot SDK, whose mocks answer over HTTP | T5 | M |
