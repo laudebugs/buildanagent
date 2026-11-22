@@ -15,16 +15,19 @@ const activated = new Set<string>();
 registry.register({ name: "tool_search", source: "builtin", definition: toolSearchTool(registry, { activated }) });
 
 // #region deferred-server
-const manager = createMcpManager({
+// A manager connects its servers all at once, so each copy gets its own manager and the registry order is fixed.
+const weather = createMcpManager({
   registry,
-  servers: [
-    // Deferred by default: a request names none of these tools until tool search finds one.
-    { name: "weather", transport: { kind: "in_process", channel: weatherServer() } }, // book:note deferred-default
-    // exposure: "direct" puts every definition of this copy into every request.
-    { name: "weather-eager", transport: { kind: "in_process", channel: weatherServer() }, exposure: "direct" }, // book:note always-load
-  ],
+  // Deferred by default: a request names none of these tools until tool search finds one.
+  servers: [{ name: "weather", transport: { kind: "in_process", channel: weatherServer() } }], // book:note deferred-default
 });
-await manager.connect();
+await weather.connect();
+const eager = createMcpManager({
+  registry,
+  // exposure: "direct" puts every definition of this copy into every request.
+  servers: [{ name: "weather-eager", transport: { kind: "in_process", channel: weatherServer() }, exposure: "direct" }], // book:note always-load
+});
+await eager.connect();
 // #endregion
 
 const call = (callId: string, name: string, input: object) => ({
@@ -65,5 +68,6 @@ check(deferred(second).join() === "mcp__weather__get_forecast", "after the searc
 const everSent = new Set(adapter.calls.flatMap((entry) => deferred(entry.context)));
 check(everSent.size === 1, "the other two definitions never reach the model");
 await session.close();
-await manager.close();
+await weather.close();
+await eager.close();
 adapter.assertComplete();

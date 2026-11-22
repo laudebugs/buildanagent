@@ -8,7 +8,7 @@
   "events": [
     {
       "kind": "request",
-      "line": 54,
+      "line": 57,
       "model": "model-1",
       "repeated": 0,
       "messages": [
@@ -40,7 +40,7 @@
     },
     {
       "kind": "response",
-      "line": 54,
+      "line": 57,
       "model": "model-1",
       "message": {
         "role": "assistant",
@@ -59,7 +59,7 @@
     },
     {
       "kind": "request",
-      "line": 54,
+      "line": 57,
       "model": "model-1",
       "repeated": 3,
       "messages": [
@@ -85,7 +85,7 @@
     },
     {
       "kind": "response",
-      "line": 54,
+      "line": 57,
       "model": "model-1",
       "message": {
         "role": "assistant",
@@ -104,7 +104,7 @@
     },
     {
       "kind": "request",
-      "line": 54,
+      "line": 57,
       "model": "model-1",
       "repeated": 5,
       "messages": [
@@ -130,7 +130,7 @@
     },
     {
       "kind": "response",
-      "line": 54,
+      "line": 57,
       "model": "model-1",
       "message": {
         "role": "assistant",
@@ -145,37 +145,37 @@
     },
     {
       "kind": "check",
-      "line": 56,
+      "line": 59,
       "message": "the first request holds no deferred definition",
       "pass": true
     },
     {
       "kind": "check",
-      "line": 57,
+      "line": 60,
       "message": "and does not name one either",
       "pass": true
     },
     {
       "kind": "check",
-      "line": 58,
+      "line": 61,
       "message": "the eager copy sent all three",
       "pass": true
     },
     {
       "kind": "check",
-      "line": 62,
+      "line": 65,
       "message": "tool search matched one tool by its words",
       "pass": true
     },
     {
       "kind": "check",
-      "line": 63,
+      "line": 66,
       "message": "after the search, exactly one of the three is sent",
       "pass": true
     },
     {
       "kind": "check",
-      "line": 66,
+      "line": 69,
       "message": "the other two definitions never reach the model",
       "pass": true
     }
