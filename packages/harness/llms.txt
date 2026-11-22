@@ -27,6 +27,7 @@ The sections of README.md and every public export, generated from this package's
   - [Each connection's queues are bounded at 128, and only events are dropped](README.md#each-connections-queues-are-bounded-at-128-and-only-events-are-dropped)
   - [`session/open` with `fromSeq` replays the entries a client missed](README.md#sessionopen-with-fromseq-replays-the-entries-a-client-missed)
   - [A client that reconnects finds its pending requests in `initialize` and is asked again on open](README.md#a-client-that-reconnects-finds-its-pending-requests-in-initialize-and-is-asked-again-on-open)
+  - [`stdioTransport()` serves one client over a pair of byte streams](README.md#stdiotransport-serves-one-client-over-a-pair-of-byte-streams)
 - [The log is the only state, so a turn rebuilds its context from it](README.md#the-log-is-the-only-state-so-a-turn-rebuilds-its-context-from-it)
   - [A crash leaves open calls, and the next turn settles them by what they could have done](README.md#a-crash-leaves-open-calls-and-the-next-turn-settles-them-by-what-they-could-have-done)
 - [Two cheap layers keep a long run small: a write cap that spills, and masking in steps](README.md#two-cheap-layers-keep-a-long-run-small-a-write-cap-that-spills-and-masking-in-steps)
@@ -345,6 +346,7 @@ The sections of README.md and every public export, generated from this package's
 ## Exports from `@buildanagent/harness/server`
 
 - `interface Connection`: One client's end of the dispatcher: send it messages, and it calls back with what the server sends.
+- `interface ConnectOptions`: What `Dispatcher.connect()` takes besides `send`.
 - `createDispatcher()`: Creates the dispatcher that serves `options.harness` over the protocol's commands.
 - `createHarness()`: Creates a harness.
 - `type Deliver`: Takes one message.
@@ -356,8 +358,15 @@ The sections of README.md and every public export, generated from this package's
 - `interface HarnessOptions`: The options of `createHarness()`.
 - `interface InProcessClient`: What a client sees: calls that resolve with a result, the server's messages, and a way to answer its requests.
 - `inProcessTransport()`: Connects a new client to `dispatcher`.
+- `interface NodeInput`: A Node `Readable` as the transport reads it, such as `process.stdin`.
+- `interface NodeOutput`: A Node `Writable` as the transport writes to it, such as `process.stdout`.
 - `interface RequestOptions`: What `InProcessClient.request()` takes besides the method and its params.
 - `class RpcFailure`: A command the server answered with an error.
+- `type StdioInput`: The bytes the transport reads: a Node `Readable` such as `process.stdin`, or a Web `ReadableStream`.
+- `interface StdioIo`: The streams `stdioTransport()` serves a client over.
+- `interface StdioOptions`: What `stdioTransport()` takes besides the dispatcher and the streams.
+- `type StdioOutput`: Where the transport writes: a Node `Writable` such as `process.stdout`, or a Web `WritableStream`.
+- `stdioTransport()`: Serves one client over a pair of byte streams, one JSON-RPC 2.0 message per line, and resolves once the client is done.
 
 ## Exports from `@buildanagent/harness/ablation`
 

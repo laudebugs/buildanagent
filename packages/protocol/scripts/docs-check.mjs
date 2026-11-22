@@ -17,8 +17,11 @@ export const CONFIG = {
   blocksFromExamples: true,
   // Prose names that look like exports but are not this package's: members, fields, variables and other packages' names.
   notExports: {
+    InvalidRequest: "an ErrorCodes code",
     NotOptedIn: "an ErrorCodes code",
+    ParseError: "an ErrorCodes code",
     QueueFull: "an ErrorCodes code",
+    ReadBuffer: "a class of @modelcontextprotocol/client",
     SessionLocked: "an ErrorCodes code",
     end: "a JsonlFramer method",
   },

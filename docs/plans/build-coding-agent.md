@@ -1,6 +1,6 @@
 # Plan: build a personal cloud coding agent on our SDK and harness, deployed first on Cloudflare and portable to AWS and Vercel
 
-- **Status:** Draft (2026-11-18), from the owner's decisions of 2026-11-18. It replaces the [triage agent plan](build-agent.md) as the first agent on our stack.
+- **Status:** Draft (2026-11-18), from the owner's decisions of 2026-11-18. It replaces the [triage agent plan](build-agent.md) as the first agent on our stack. Revised on 2026-11-22 by N29: the stdio transport already takes Web streams, so U11 change 7 lands in N29 for Web streams and in N44 for the WebSocket transport.
 - **Date:** 2026-11-18
 - **Asked for by:** the project owner (2026-11-18): "just personal with our own api key", and "we want to deploy it to at least two cloud platforms or three".
 - **Builds on:** the [SDK plan][sdk] (P1), the [harness plan][hp] (P2), the [portable agents report][pa] (U11), the [storage-and-wake note][sw], the [agent-building platforms report][abp] (U12) and the [Copilot diff review report][cdr] (U8)
@@ -145,7 +145,7 @@ The owner's three-target decision adopts U11's plan changes 2–11 and 15. Chang
 | 4. optional `KeyStore.rotate()` and `prune()` | harness HD5, ADR 0035 | N42 |
 | 5. `SessionLock` implementations for Durable Objects, DynamoDB and Postgres; dead-pid rule on the same host only | harness HD2, ADR 0033 | N46a, N47a, N48a |
 | 6. `Scheduler.wake` | harness §3.2 | N41 |
-| 7. stdio over Web streams; WebSocket transport | harness §1, §3.5 | N44 |
+| 7. stdio over Web streams; WebSocket transport | harness §1, §3.5 | N29 (Web streams), N44 (WebSocket) |
 | 8. `SandboxClient.resume(id)`, capability flags, `stops` from the applied policy, policy read-back | harness §3.4 | N43 |
 | 9. `EgressPolicy { allow, routes }` compiled per backend; `subnets.allow` banned | harness HD15 | N43, N48b |
 | 10. hosted sandbox backends: Cloudflare, E2B, Vercel | harness §1 | N46b, N47b, N48b |
@@ -163,7 +163,7 @@ Two harness non-goals change. "A WebSocket or HTTP-with-SSE transport" leaves th
 | [N41](../todos/done/N41-scheduler-wake.md) | `Scheduler.wake` seam and its in-process implementation | N4 | S |
 | [N42](../todos/done/N42-read-only-key-store.md) | Optional `rotate()` and `prune()`, and a secret-backed `KeyStore` | N13 | S |
 | [N43](../todos/ready/N43-remote-sandbox-egress-policy.md) | Remote `SandboxClient` extensions and `EgressPolicy` compiled per backend | N15, N20 | M |
-| [N44](../todos/ready/N44-web-stream-websocket-transport.md) | stdio over Web streams and a WebSocket transport | N29 | M |
+| [N44](../todos/ready/N44-web-stream-websocket-transport.md) | A WebSocket transport, and Web-stream cases for the stdio transport | N29 | M |
 | [N45](../todos/ready/N45-portability-conformance-suite.md) | One conformance suite over the eight seams (`EffectStore` added by ADR 0043); local implementations pass | N41, N42, N43, N44, E7 | M |
 | [N46a](../todos/ready/N46a-cloudflare-state-adapters.md) | Cloudflare store, lock, scheduler, key store and workerd smoke test | N45 | M |
 | [N46b](../todos/ready/N46b-cloudflare-sandbox-backend.md) | Cloudflare Sandbox backend and per-host outbound interception egress, blocked on the owner's decision after N50 | N45, N50 | M |
