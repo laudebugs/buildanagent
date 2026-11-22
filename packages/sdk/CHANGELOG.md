@@ -1,5 +1,12 @@
 # @buildanagent/sdk
 
+## 0.1.0-alpha.21
+
+### Patch Changes
+
+- b450b28: Add `parentRun` to `RunOptions`, which `nestedRunDepth()` sets. A nested run's `run_start` now carries `parentRunId` and `parentCallId`, and `otelObserver()` places the run's span under the calling tool's span.
+- @buildanagent/gateway@0.1.0-alpha.21
+
 ## 0.1.0-alpha.20
 
 ### Patch Changes
