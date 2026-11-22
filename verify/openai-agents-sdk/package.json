@@ -10,7 +10,7 @@
     "run:docs": "node scripts/run-examples.mjs",
     "factcheck": "node scripts/factcheck-api.mjs",
     "typecheck": "tsc -p tsconfig.json",
-    "test": "tsc -p tsconfig.json && node scripts/run-examples.mjs examples",
+    "test": "tsc -p tsconfig.json && node --test scripts/realtime-classifier.test.mjs && node scripts/run-examples.mjs examples",
     "verify": "pnpm run extract && pnpm run typecheck:docs && pnpm run run:docs && pnpm run factcheck && pnpm test"
   },
   "dependencies": {
