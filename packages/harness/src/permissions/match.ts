@@ -17,7 +17,15 @@ const WRAPPERS: ReadonlyMap<string, readonly string[]> = new Map([
   ["exec", ["-a"]],
   ["command", []],
   ["nohup", []],
+  ["doas", ["-u", "-C"]],
+  ["xargs", ["-I", "-n", "-P", "-L", "-s", "-d", "-E"]],
+  ["timeout", ["-s", "-k"]],
 ]);
+// Wrappers whose options are followed by positional words that are not the program, such as timeout's duration.
+const WRAPPER_POSITIONALS: ReadonlyMap<string, number> = new Map([["timeout", 1]]);
+
+/** A program's name without its directory, so `/usr/bin/git` is `git`. */
+const programName = (word: string): string => word.split("/").at(-1) || word;
 // Shell syntax that starts a command without being its program: a group, a negation or a keyword.
 const LEADERS = new Set(["{", "}", "!", "if", "then", "else", "elif", "do", "while", "until"]);
 const SHELLS = new Set(["bash", "sh", "zsh", "dash"]);
@@ -198,7 +206,8 @@ function substitutions(text: string): string[] {
 /** The script a `bash -c` style part runs, when it is one: a shell whose options include `-c`. */
 function shellScript(words: readonly string[]): string | undefined {
   const [program, ...rest] = strippedWords(words);
-  if (program === undefined || !SHELLS.has(program.split("/").at(-1) as string)) return undefined;
+  if (program === "eval") return rest.join(" ");
+  if (program === undefined || !SHELLS.has(program)) return undefined;
   const flag = rest.findIndex((word) => /^-[a-z]*c[a-z]*$/.test(word));
   return flag < 0 ? undefined : rest.slice(flag + 1).find((word) => !word.startsWith("-"));
 }
@@ -256,13 +265,15 @@ function skipOptions(words: readonly string[], from: number, withValue: readonly
 export function strippedWords(words: readonly string[]): string[] {
   let at = 0;
   while (at < words.length) {
-    const word = words[at] as string;
+    const word = programName(words[at] as string);
     const options = WRAPPERS.get(word);
-    if (options !== undefined) at = skipOptions(words, at + 1, options);
+    if (options !== undefined) at = skipOptions(words, at + 1, options) + (WRAPPER_POSITIONALS.get(word) ?? 0);
     else if (LEADERS.has(word) || /^[A-Za-z_][A-Za-z0-9_]*=/.test(word)) at += 1;
     else break;
   }
-  return words[at] === "git" ? ["git", ...words.slice(skipGitOptions(words, at + 1))] : words.slice(at);
+  if (at >= words.length) return [];
+  const program = programName(words[at] as string);
+  return program === "git" ? ["git", ...words.slice(skipGitOptions(words, at + 1))] : [program, ...words.slice(at + 1)];
 }
 
 // Options that go before a git subcommand, and take a value as the next word when written without `=`.

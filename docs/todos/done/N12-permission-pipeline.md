@@ -92,7 +92,7 @@ The harness now decides every tool call in one ordered pipeline, in `packages/ha
 - `permission_decision` is written on every `decide()`, with `rule` such as `deny[0]`, `mode:bypass`, `hook[1]` or `no_match`.
 - It fails closed: a hook or callback that throws or returns nonsense, an input with no canonical form and an entry that can't be written each deny the call.
 - Rules read `path`-like fields and the `command` field. A command is split on chain operators, subshells and groups, and its substitutions and `-c` scripts are read to a depth of three. A command with a substitution or an escaped `$'...'` word is never allowed by a rule.
-- A command nested deeper than three levels, or carried in a field the parser doesn't read, matches every deny and ask rule with a `commandPrefix` for its tool, because a restriction must fail closed. Git's global options are skipped before a subcommand.
+- A command nested deeper than three levels, or carried in a field the parser doesn't read, matches every deny and ask rule with a `commandPrefix` for its tool, because a restriction must fail closed. Git's global options, a program's directory and wrappers such as `timeout`, `xargs` and `eval` are skipped before a subcommand. An allow rule with a `commandPrefix` never covers a redirection to or from a file.
 - A deny or ask rule's relative path glob matches below any directory, and an allow rule's matches from the workspace root only.
 - `read_only` denies before any ask, so an approval can't widen it.
 - A failure inside the pipeline, `PermissionConfigError` included, becomes a logged deny, so every `decide()` writes its entry.

@@ -52,6 +52,20 @@ export function restricts(rule: Rule, target: Target): boolean {
   );
 }
 
+const SAFE_REDIRECT = /^(?:\d*>&\d+|(?:\d*|&)>>?\/dev\/null)$/;
+const REDIRECT_OPERATOR = /^(?:\d*|&)>>?$/;
+
+/**
+ * Whether a command part redirects input or output to a file. A rule for a command prefix covers the command and not
+ * the file it writes or reads, so only a copy of one stream to another and a redirect to /dev/null are let through.
+ */
+function writesOrReadsFiles(words: readonly string[]): boolean {
+  return words.some((word, index) => {
+    if (!/[<>]/.test(word) || SAFE_REDIRECT.test(word)) return false;
+    return !(REDIRECT_OPERATOR.test(word) && words[index + 1] === "/dev/null");
+  });
+}
+
 /** Whether `rule` could allow this part of a call: its tool, its paths (all of the call's) and its command prefix. */
 function permitsPart(rule: Rule, target: Target, words: readonly string[] | undefined): boolean {
   if (!toolMatches(rule.tool, target.names)) return false;
@@ -62,7 +76,7 @@ function permitsPart(rule: Rule, target: Target, words: readonly string[] | unde
     return false;
   }
   if (rule.commandPrefix === undefined) return true;
-  return words !== undefined && startsWithWords(words, rule.commandPrefix);
+  return words !== undefined && startsWithWords(words, rule.commandPrefix) && !writesOrReadsFiles(words);
 }
 
 /**

@@ -269,9 +269,42 @@ test("a backslash-newline joins the lines, so it can't split a denied word", asy
 
 test("a redirection is part of its command: an & beside > or < is not a separator", async () => {
   const allow = [{ tool: "bash", commandPrefix: ["npm", "test"] }];
-  for (const command of ["npm test 2>&1", "npm test &>out.txt", "npm test >&2", "npm test |& cat"]) {
-    const decision = await decisionFor({ allow }, "bash", { command });
-    assert.equal(decision, command.includes("cat") ? "deny" : "allow", command);
+  for (const command of ["npm test 2>&1", "npm test &>/dev/null", "npm test >&2", "npm test > /dev/null 2>&1"]) {
+    assert.equal(await decisionFor({ allow }, "bash", { command }), "allow", command);
+  }
+  assert.equal(
+    await decisionFor({ allow }, "bash", { command: "npm test |& cat" }),
+    "deny",
+    "|& starts another command",
+  );
+});
+
+test("an allow rule for a command prefix does not cover a redirection to or from a file", async () => {
+  const allow = [{ tool: "bash", commandPrefix: ["git", "status"] }];
+  for (const command of [
+    "git status > .github/workflows/ci.yml",
+    "git status >> ~/.bashrc",
+    "git status &> out.txt",
+    "git status 2> err.txt",
+    "git status < input.txt",
+  ]) {
+    assert.equal(await decisionFor({ allow }, "bash", { command }), "deny", command);
+  }
+});
+
+test("a deny or ask rule sees a program by its path, and through timeout, doas, xargs and eval", async () => {
+  const deny = [{ tool: "bash", commandPrefix: ["git", "rm"] }];
+  const allow = [{ tool: "bash" }];
+  for (const command of [
+    "/usr/bin/git rm -r tests",
+    "timeout 5 git rm a",
+    "timeout -s KILL 5 git rm a",
+    "doas -u root git rm a",
+    "xargs -n 1 git rm",
+    "eval 'git rm a'",
+    "/usr/bin/sudo /usr/bin/git rm a",
+  ]) {
+    assert.equal(await decisionFor({ deny, allow }, "bash", { command }), "deny", command);
   }
 });
 
