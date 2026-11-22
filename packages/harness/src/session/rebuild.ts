@@ -4,12 +4,14 @@
  * an assistant message is closed by its `message_end` and takes its usage and cost from the `usage` entry right after
  * it. A `usage` entry anywhere else belongs to a call whose message was superseded, and builds no message.
  */
+
 import type { AssistantMessage, ContentBlock, Message } from "@buildanagent/gateway";
 import type { SessionEntry } from "@buildanagent/protocol";
 import type { Context, SignedPendingRequest } from "@buildanagent/sdk";
+import { HarnessError } from "../errors.js";
 
 type Block = Extract<SessionEntry, { type: "message_block" }>;
-type Pending = { role: "user" | "assistant"; id: string; blocks: Block[] };
+type Pending = { role: "user" | "assistant"; id: string; blocks: Block[]; firstId: string };
 
 const ordered = (blocks: readonly Block[]): ContentBlock[] =>
   [...blocks].sort((a, b) => a.index - b.index).map((entry) => entry.block);
@@ -17,13 +19,21 @@ const ordered = (blocks: readonly Block[]): ContentBlock[] =>
 /** Builds messages from entries one at a time, keeping a message open until the entry that ends it arrives. */
 class MessageBuilder {
   readonly messages: Message[] = [];
+  /** The id of the first entry of each message, in step with `messages`. */
+  readonly starts: string[] = [];
   #open: Pending | undefined;
+  readonly #dropEmpty: ReadonlySet<string>;
   #ended: Extract<SessionEntry, { type: "message_end" }> | undefined;
+
+  constructor(dropEmpty: ReadonlySet<string> = new Set()) {
+    this.#dropEmpty = dropEmpty;
+  }
 
   /** Closes the user message being built, if there is one. */
   #closeUser(): void {
     if (this.#open?.role !== "user") return;
     this.messages.push({ role: "user", content: ordered(this.#open.blocks) });
+    this.starts.push(this.#open.firstId);
     this.#open = undefined;
   }
 
@@ -31,7 +41,7 @@ class MessageBuilder {
     this.#settleEnded(undefined);
     if (this.#open === undefined || this.#open.id !== entry.messageId || this.#open.role !== entry.role) {
       this.#closeUser();
-      this.#open = { role: entry.role, id: entry.messageId, blocks: [] };
+      this.#open = { role: entry.role, id: entry.messageId, blocks: [], firstId: entry.id };
     }
     this.#open.blocks.push(entry);
   }
@@ -43,6 +53,8 @@ class MessageBuilder {
     if (end === undefined || open === undefined) return;
     this.#ended = undefined;
     this.#open = undefined;
+    // A message whose signed reasoning was left out and that has nothing else would be an empty assistant turn.
+    if (open.blocks.length === 0 && this.#dropEmpty.has(open.id)) return;
     const message: AssistantMessage = {
       role: "assistant",
       content: ordered(open.blocks),
@@ -54,6 +66,7 @@ class MessageBuilder {
       cost: usage?.cost ?? EMPTY_COST,
     };
     this.messages.push(message);
+    this.starts.push(open.firstId);
   }
 
   end(entry: Extract<SessionEntry, { type: "message_end" }>): void {
@@ -61,7 +74,7 @@ class MessageBuilder {
     if (this.#open?.role !== "assistant" || this.#open.id !== entry.messageId) {
       // A message with no blocks has no open message to close.
       this.#closeUser();
-      this.#open = { role: "assistant", id: entry.messageId, blocks: [] };
+      this.#open = { role: "assistant", id: entry.messageId, blocks: [], firstId: entry.id };
     }
     this.#ended = entry;
   }
@@ -74,6 +87,7 @@ class MessageBuilder {
     this.#settleEnded(undefined);
     this.#closeUser();
     this.messages.push({ role: "tool", callId: entry.callId, content: entry.content, isError: entry.isError });
+    this.starts.push(entry.id);
   }
 
   finish(): Message[] {
@@ -148,19 +162,66 @@ export function crashedResumes(path: readonly SessionEntry[]): Set<string> {
   );
 }
 
+const isSignedReasoning = (entry: SessionEntry): boolean =>
+  entry.type === "message_block" && entry.block.type === "reasoning" && entry.block.signature !== undefined;
+
+/** The user message that stands for the summarised span, so the model reads the summary where the span was. */
+export function summaryMessage(summary: string): Message {
+  return {
+    role: "user",
+    content: [
+      { type: "text", text: `The earlier part of this conversation was summarized to save space:\n\n${summary}` },
+    ],
+  };
+}
+
 /**
- * The context a path of entries stands for. `path` is a session's `path()`: the root to a HEAD, without `checkout`
- * entries. The system prompt is the latest `turn_start`'s, byte for byte, so a harness whose prompt changed later
- * still rebuilds the conversation the model saw.
+ * The entries a context is built from, and whether a compaction applies. The latest `compaction` on the path replaces
+ * everything before its `firstKeptEntryId`. The kept tail loses its signed reasoning, because a block that follows the
+ * edited span would carry a signature the summary made stale; blocks written after the compaction are untouched.
  */
-export function contextOf(path: readonly SessionEntry[]): Context {
-  const builder = new MessageBuilder();
+export function entriesAfterCompaction(path: readonly SessionEntry[]): {
+  readonly entries: readonly SessionEntry[];
+  readonly summary: string | undefined;
+  /** The ids of messages that lost a signed reasoning block. */
+  readonly stripped: ReadonlySet<string>;
+} {
+  const at = path.findLastIndex((entry) => entry.type === "compaction");
+  const compaction = path[at];
+  if (compaction?.type !== "compaction") return { entries: path, summary: undefined, stripped: new Set() };
+  const kept = path.findIndex((entry) => entry.id === compaction.firstKeptEntryId);
+  if (kept < 0) {
+    throw new HarnessError(
+      "entry_not_found",
+      `the compaction ${compaction.id} keeps from entry ${compaction.firstKeptEntryId}, which is not on this path`,
+    );
+  }
+  // The messages that lose a block here are the only ones an empty result may drop.
+  const stripped = new Set<string>();
+  const entries = path.slice(kept).filter((entry, i) => {
+    const drop = kept + i < at && isSignedReasoning(entry);
+    if (drop && entry.type === "message_block") stripped.add(entry.messageId);
+    return !drop;
+  });
+  return { entries: entries.filter((entry) => entry.type !== "compaction"), summary: compaction.summary, stripped };
+}
+
+/**
+ * The context a path of entries stands for, with the id of the entry each message starts at (`null` for a summary).
+ * `path` is a session's `path()`: the root to a HEAD, without `checkout` entries. The system prompt is the latest
+ * `turn_start`'s, byte for byte, so a harness whose prompt changed later still rebuilds the conversation the model
+ * saw. The latest compaction applies: its summary stands first, then the kept tail and what followed it.
+ */
+export function contextWithStarts(path: readonly SessionEntry[]): {
+  readonly context: Context;
+  readonly starts: readonly (string | null)[];
+} {
+  const { entries, summary, stripped } = entriesAfterCompaction(path);
+  const builder = new MessageBuilder(stripped);
   let system = "";
-  for (const entry of path) {
+  for (const entry of path) if (entry.type === "turn_start") system = entry.system;
+  for (const entry of entries) {
     switch (entry.type) {
-      case "turn_start":
-        system = entry.system;
-        break;
       case "message_block":
         builder.block(entry);
         break;
@@ -176,13 +237,23 @@ export function contextOf(path: readonly SessionEntry[]): Context {
       default:
     }
   }
-  const messages = builder.finish();
+  const built = builder.finish();
+  const messages = summary === undefined ? built : [summaryMessage(summary), ...built];
+  const starts = summary === undefined ? builder.starts : [null, ...builder.starts];
   const waiting = pendingApprovals(path);
-  if (waiting.length === 0) return { system, messages };
+  if (waiting.length === 0) return { context: { system, messages }, starts };
   return {
-    system,
-    messages,
-    pending: waiting.map((entry) => entry.request),
-    pendingInputs: Object.fromEntries(waiting.map((entry) => [entry.request.id, entry.input])),
+    context: {
+      system,
+      messages,
+      pending: waiting.map((entry) => entry.request),
+      pendingInputs: Object.fromEntries(waiting.map((entry) => [entry.request.id, entry.input])),
+    },
+    starts,
   };
+}
+
+/** The context a path of entries stands for. See `contextWithStarts()`. */
+export function contextOf(path: readonly SessionEntry[]): Context {
+  return contextWithStarts(path).context;
 }
