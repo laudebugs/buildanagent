@@ -134,7 +134,11 @@ export async function test(env: Env, h: Harness) {
   );
   check(done, "approval moved the escalation to output-available, and the continued turn answered");
   r = await agent.report();
-  check(r.escalations.join() === "C-9:outage", "the escalate tool ran exactly once, after approval");
+  // The reason is the model's own words, so the check reads only the customer.
+  check(
+    r.escalations.length === 1 && /^C-9:.+/.test(r.escalations[0]),
+    "the escalate tool ran exactly once, after approval",
+  );
   ws.close();
 
   const result = await agent.result();

@@ -29,7 +29,7 @@ const escalate = tool({
   execute: async () => "escalated",
 });
 const Triage = z.object({ category: z.enum(["bug", "billing", "question"]), summary: z.string() });
-const agent = new Agent({ name: "Triage", instructions: "Classify the ticket.", tools: [escalate], outputType: Triage });
+const agent = new Agent({ name: "Triage", instructions: "Escalate a checkout failure to on-call once, then classify it either way.", tools: [escalate], outputType: Triage });
 const runner = new Runner({ tracingDisabled: true });
 
 const first = await runner.run(agent, "Checkout fails for user@example.com");

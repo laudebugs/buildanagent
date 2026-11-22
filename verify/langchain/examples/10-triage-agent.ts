@@ -52,7 +52,7 @@ const model = fakeModel()
 const agent = createAgent({
   model,
   tools: [lookupCustomer, escalate],
-  systemPrompt: "Look up the customer, then classify the issue.",
+  systemPrompt: "Look up the customer, escalate a checkout failure to on-call once, then classify it either way.",
   middleware: [
     humanInTheLoopMiddleware({ interruptOn: { escalate: { allowedDecisions: ["approve", "reject"] } } }), // book:note gate
     auditMiddleware,
@@ -73,7 +73,7 @@ check(JSON.stringify(executed) === '["lookup_customer"]', "the lookup ran; escal
 const done = await agent.invoke(new Command({ resume: { decisions: [{ type: "reject" }] } }), config);
 check(JSON.stringify(executed) === '["lookup_customer"]', "the rejected escalation never runs");
 check(
-  done.structuredResponse.category === "bug" && done.structuredResponse.priority === "high",
+  done.structuredResponse?.category === "bug" && done.structuredResponse?.priority === "high",
   "the agent returns a typed triage record",
 );
 check(audit.includes("lookup_customer"), "the audit middleware saw the lookup");
