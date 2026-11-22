@@ -181,7 +181,9 @@ async function drive(s: State, resume: Resume | undefined): Promise<RunResult> {
     outcome = s.signal.aborted ? { stopReason: "aborted" } : failed;
   }
   const paused =
-    outcome.stopReason === "awaiting_approval" ? { pending: s.pending, pendingInputs: s.pendingInputs } : {};
+    s.pending.length > 0 && (outcome.stopReason === "awaiting_approval" || outcome.stopReason === "error")
+      ? { pending: s.pending, pendingInputs: s.pendingInputs }
+      : {};
   const context = { system: s.system, messages: s.messages, ...paused };
   const result = { messages: s.added, context, usage: s.usage, cost: s.cost ?? NO_COST, steps: s.steps, ...outcome };
   emit(s, { type: "run_end", result: result as RunResult });
@@ -379,10 +381,10 @@ function freshId(s: State): string {
 
 /** Signs a request for a person and holds it. The call has no result until `continueRun()` settles it. */
 async function pause(s: State, call: Call, input: unknown, reason?: string, policyVersion?: string): Promise<void> {
-  // A blank reason is display text only, so it is left out rather than failing the signature.
-  const optional = defined({ reason: reason || undefined, policyVersion });
-  const fields = { kind: "approval" as const, callId: call.callId, tool: call.name, input, ...optional };
   try {
+    // A blank reason is display text only, so it is left out rather than failing the signature.
+    const optional = defined({ reason: reason || undefined, policyVersion, app: s.options.app });
+    const fields = { kind: "approval" as const, callId: call.callId, tool: call.name, input, ...optional };
     const request = await createPendingRequest(fields, s.signer, { generateId: () => freshId(s) });
     hold(s, request, input);
     emit(s, { type: "approval_request", request, input });
@@ -477,27 +479,64 @@ function openCalls(messages: readonly Message[]): Call[] {
  * request or answer fails a check asks again through the gate, with a new request. No model call is made here.
  */
 async function settle(s: State, resume: Resume): Promise<Outcome | undefined> {
-  for (const request of resume.context.pending ?? []) s.usedIds.add(request.id);
-  for (const call of openCalls(s.messages)) await settleCall(s, call, resume);
+  const { context, resolutions } = resume;
+  for (const request of context.pending ?? []) s.usedIds.add(request.id);
+  const found = openCalls(s.messages).map((call) => {
+    const request = context.pending?.find((candidate) => candidate.callId === call.callId);
+    if (request === undefined) {
+      throw new SdkError(
+        "invalid_run_options",
+        `continueRun() found the call "${call.callId}" with no pending request`,
+      );
+    }
+    // A stored context is plain JSON, so an own-property check keeps an id like `__proto__` from finding an inherited value.
+    const input = Object.hasOwn(context.pendingInputs ?? {}, request.id)
+      ? context.pendingInputs?.[request.id]
+      : undefined;
+    return { call, request, input, answer: resolutions.find((resolution) => resolution.requestId === request.id) };
+  });
+  // Every call is checked before any runs. Asking again would sign a new request for whoever resumed, so a request bound
+  // to other app data, or one that can't be trusted in a run with app data, ends the run instead.
+  const causes = await Promise.all(found.map((f) => failedCheck(s, f.request, f.call, f.input, f.answer)));
+  const bad = causes.findIndex(
+    (c) =>
+      c === "app_mismatch" ||
+      (s.options.app !== undefined && ["malformed", "signature_invalid", "error"].includes(c ?? "")),
+  );
+  if (bad >= 0) {
+    const { call, request } = found[bad] as (typeof found)[number];
+    emit(s, {
+      type: "resolution_rejected",
+      requestId: request.id,
+      callId: call.callId,
+      cause: causes[bad] as "app_mismatch",
+    });
+    // The refused calls still wait, so the result's context keeps their requests and the right caller can resume it.
+    for (const f of found) hold(s, f.request, f.input);
+    const unhashable =
+      s.options.app !== undefined &&
+      (await canonicalInputHash(s.options.app).then(
+        () => false,
+        () => true,
+      ));
+    const kind = causes[bad] !== "app_mismatch" ? "request_unverified" : unhashable ? "app_unhashable" : "app_mismatch";
+    return {
+      stopReason: "error",
+      error: { kind, message: `call "${call.callId}" is bound to other app data or can't be verified` },
+    };
+  }
+  for (const [i, f] of found.entries()) await settleCall(s, f, causes[i]);
   // These results answer calls from before this run, which the progress rule doesn't count.
   s.streak = { key: "", count: 0 };
   if (s.pending.length > 0) return { stopReason: "awaiting_approval", pending: [...s.pending] };
   return s.ended ? { stopReason: "done", output: s.output } : undefined;
 }
 
-async function settleCall(s: State, call: Call, { context, resolutions }: Resume): Promise<void> {
-  const request = context.pending?.find((candidate) => candidate.callId === call.callId);
-  if (request === undefined) {
-    throw new SdkError("invalid_run_options", `continueRun() found the call "${call.callId}" with no pending request`);
-  }
-  // A stored context is plain JSON, so an own-property check keeps an id like `__proto__` from finding an inherited value.
-  const input = Object.hasOwn(context.pendingInputs ?? {}, request.id)
-    ? context.pendingInputs?.[request.id]
-    : undefined;
-  const answer = resolutions.find((resolution) => resolution.requestId === request.id);
-  const cause = await failedCheck(s, request, call, input, answer);
+type Found = { call: Call; request: SignedPendingRequest; input: unknown; answer: Resolution | undefined };
+
+async function settleCall(s: State, { call, request, input, answer }: Found, cause: string | undefined): Promise<void> {
   if (cause !== undefined) {
-    emit(s, { type: "resolution_rejected", requestId: request.id, callId: call.callId, cause });
+    emit(s, { type: "resolution_rejected", requestId: request.id, callId: call.callId, cause: cause as "error" });
     // Nothing verified this call, so only a tool the model is sent may ask again, and the gate decides as for a new call.
     await runCall(s, call, sentTools(s), "reissue");
   } else if (answer === undefined) {
@@ -520,12 +559,16 @@ function hold(s: State, request: SignedPendingRequest, input: unknown): void {
 
 /**
  * Why a request or its answer fails, or `undefined` when both pass. `verifyResolution()` checks the signature under
- * the key the request names, then the call, the input's hash and the answer's kind. A request no one answered is
- * checked with a denial, which fits an approval.
+ * the key the request names, then the app data a bound request carries, then the call, the input's hash and the
+ * answer's kind. A request no one answered is checked with a denial, which fits an approval.
  */
 async function failedCheck(s: State, request: SignedPendingRequest, call: Call, input: unknown, answer?: Resolution) {
   const probe = answer ?? { requestId: request.id, decision: "deny" };
-  const options = { signer: s.signer, call: { callId: call.callId, tool: call.name, input } };
+  const options = {
+    signer: s.signer,
+    call: { callId: call.callId, tool: call.name, input },
+    ...defined({ app: s.options.app }),
+  };
   // A custom signer whose verify() throws fails the check.
   const check = await verifyResolution(request, probe, options).catch(() => undefined);
   return check === undefined ? "error" : check.ok ? undefined : check.cause;

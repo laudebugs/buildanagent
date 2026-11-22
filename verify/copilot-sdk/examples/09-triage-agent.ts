@@ -41,6 +41,7 @@ const Triage = z.object({
 });
 
 const client = new CopilotClient({ useLoggedInUser: false });
+// #region gate
 const session = await client.createSession({
   model: MODEL,
   provider: mockProvider(),
@@ -50,9 +51,10 @@ const session = await client.createSession({
   // Escalation waits for a human; anything else that asks is refused.
   onPermissionRequest: (request) =>
     request.kind === "custom-tool" && request.toolName === "escalate_to_human"
-      ? { kind: "no-result" }
+      ? { kind: "no-result" } // book:note gate
       : { kind: "reject", feedback: "Not allowed in triage." },
 });
+// #endregion
 
 // The human approval queue: a reviewer decides each pending escalation out of band.
 let decide: "approve" | "reject" = "reject";

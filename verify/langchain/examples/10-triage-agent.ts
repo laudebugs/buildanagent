@@ -48,17 +48,19 @@ const model = fakeModel()
   .respondWithTools([
     { name: "Triage", args: { category: "bug", priority: "high", summary: "Checkout returns 500." }, id: "c3" },
   ]);
+// #region gate
 const agent = createAgent({
   model,
   tools: [lookupCustomer, escalate],
   systemPrompt: "Look up the customer, then classify the issue.",
   middleware: [
-    humanInTheLoopMiddleware({ interruptOn: { escalate: { allowedDecisions: ["approve", "reject"] } } }),
+    humanInTheLoopMiddleware({ interruptOn: { escalate: { allowedDecisions: ["approve", "reject"] } } }), // book:note gate
     auditMiddleware,
   ],
   responseFormat: Triage,
   checkpointer: new MemorySaver(),
 });
+// #endregion
 const config = { configurable: { thread_id: "ticket-42" }, recursionLimit: 12 };
 
 const first: any = await agent.invoke(

@@ -2,7 +2,16 @@
 
 On 2026-11-19, this log checked every factual claim about third-party code and standards that E3's code, tests and `packages/agent-safety/README.md` rely on. Registry dates come from `https://registry.npmjs.org/<package>`, read with curl that day. Behaviour claims come from the pinned packages' built files in this workspace, cited by file and line as installed, and from the package's tests, which run offline in Node 22 and in workerd. The standards were read from the RFC Editor's text. A claim backed by a passing test in `packages/agent-safety/test/` says **[verified]**.
 
-**Totals:** 29 claims: 29 ✅, 0 ✏️, 0 ⚠️.
+## B23 follow-up: binding a pause to the run's app data (2026-11-22)
+
+| # | Claim | Where | Verdict | Source and reason |
+| --- | --- | --- | --- | --- |
+| B23-1 | Two JSON values with the same RFC 8785 canonical form are the same app, so key order does not change the MAC | `packages/sdk/README.md`, `packages/sdk/src/run.ts` | ✅ | [RFC 8785 §3.2.3](https://www.rfc-editor.org/rfc/rfc8785#section-3.2.3) sorts an object's properties by their UTF-16 code units, so reordering keys gives the same text. `canonicalJson()` in `packages/agent-safety/src/hash.ts` implements it, and `test/signing.test.ts` checks a reordered app gives the same MAC. |
+| B23-2 | An unkeyed SHA-256 of a small value, such as a customer id, can be tested against guesses, and an HMAC under a secret key cannot | `packages/sdk/README.md`, `packages/agent-safety/README.md` | ✅ | SHA-256 is deterministic and keyless, so anyone can hash a candidate and compare; an HMAC-SHA-256 depends on the key ([RFC 2104](https://www.rfc-editor.org/rfc/rfc2104)). `test/signing.test.ts` shows the MAC differs from `canonicalInputHash()` of the same app and equals a plain HMAC under the signing key. |
+| B23-3 | The capstone's line count with its cases and backends is 552 | `packages/sdk/README.md` | ✅ | Counted from `examples/triage-agent.ts`, `test/triage-suite.ts` and `test/triage-backends.ts` with the non-blank, non-comment rule the README states; `test/capstone.test.ts` recounts it and fails when the row drifts. |
+| B23-4 | A pause saved before this change still resumes, because a request without `appHash` signs the first payload layout | `.changeset/quiet-keys-bind.md`, `packages/sdk/README.md` | ✅ | `pendingPayload()` writes `buildanagent.pending.v1` for a request without `appHash`, unchanged; `test/signing.test.ts` pins both layouts and an unbound request accepts any app. |
+
+**Totals:** 33 claims: 33 ✅, 0 ✏️, 0 ⚠️.
 
 ## Pins
 

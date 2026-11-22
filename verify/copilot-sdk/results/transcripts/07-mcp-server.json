@@ -1,0 +1,137 @@
+{
+  "format": 1,
+  "example": "07-mcp-server",
+  "file": "verify/copilot-sdk/examples/07-mcp-server.ts",
+  "harness": "verify/copilot-sdk",
+  "pin": "@github/copilot-sdk@1.0.31",
+  "mock": "@github/copilot-sdk@1.0.31",
+  "events": [
+    {
+      "kind": "request",
+      "model": "claude-sonnet-4.5",
+      "repeated": 0,
+      "messages": [
+        {
+          "role": "user",
+          "parts": [
+            {
+              "type": "text",
+              "text": "Check orders-order_status for A-100.\nmock-args orders-order_status {\"orderId\":\"A-100\"}\nmock-reply: Checked."
+            }
+          ]
+        }
+      ],
+      "tools": [
+        "orders-order_status"
+      ]
+    },
+    {
+      "kind": "response",
+      "model": "claude-sonnet-4.5",
+      "message": {
+        "role": "assistant",
+        "parts": [
+          {
+            "type": "tool-call",
+            "id": "toolu_mock_1",
+            "name": "orders-order_status",
+            "input": {
+              "orderId": "A-100"
+            }
+          }
+        ]
+      },
+      "finish": "tool_use"
+    },
+    {
+      "kind": "request",
+      "model": "claude-sonnet-4.5",
+      "repeated": 2,
+      "messages": [
+        {
+          "role": "tool",
+          "parts": [
+            {
+              "type": "tool-result",
+              "id": "toolu_mock_1",
+              "name": "orders-order_status",
+              "output": "Order A-100 is shipped (from mcp-orders)"
+            }
+          ]
+        }
+      ],
+      "tools": [
+        "orders-order_status"
+      ]
+    },
+    {
+      "kind": "response",
+      "model": "claude-sonnet-4.5",
+      "message": {
+        "role": "assistant",
+        "parts": [
+          {
+            "type": "text",
+            "text": "Checked.\nTool results: Order A-100 is shipped (from mcp-orders)"
+          }
+        ]
+      },
+      "finish": "end_turn"
+    },
+    {
+      "kind": "check",
+      "line": 26,
+      "message": "the MCP tool is offered as orders-order_status (orders-order_status)",
+      "pass": true
+    },
+    {
+      "kind": "check",
+      "line": 30,
+      "message": "onPermissionRequest was asked with kind mcp (got mcp)",
+      "pass": true
+    },
+    {
+      "kind": "check",
+      "line": 34,
+      "message": "the MCP server's result reached the model",
+      "pass": true
+    },
+    {
+      "kind": "request",
+      "model": "claude-sonnet-4.5",
+      "repeated": 0,
+      "messages": [
+        {
+          "role": "user",
+          "parts": [
+            {
+              "type": "text",
+              "text": "Anything?\nmock-reply: Nothing to call."
+            }
+          ]
+        }
+      ],
+      "tools": []
+    },
+    {
+      "kind": "response",
+      "model": "claude-sonnet-4.5",
+      "message": {
+        "role": "assistant",
+        "parts": [
+          {
+            "type": "text",
+            "text": "Nothing to call."
+          }
+        ]
+      },
+      "finish": "end_turn"
+    },
+    {
+      "kind": "check",
+      "line": 47,
+      "message": "tools: [] offers none of the server's tools",
+      "pass": true
+    }
+  ]
+}

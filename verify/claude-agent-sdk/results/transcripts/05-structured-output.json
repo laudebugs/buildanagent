@@ -1,0 +1,67 @@
+{
+  "format": 1,
+  "example": "05-structured-output",
+  "file": "verify/claude-agent-sdk/examples/05-structured-output.ts",
+  "harness": "verify/claude-agent-sdk",
+  "pin": "@anthropic-ai/claude-agent-sdk@0.3.327",
+  "mock": "@anthropic-ai/claude-agent-sdk@0.3.327",
+  "events": [
+    {
+      "kind": "request",
+      "model": "claude-opus-5-5",
+      "repeated": 0,
+      "messages": [
+        {
+          "role": "user",
+          "parts": [
+            {
+              "type": "text",
+              "text": "Turn this into a ticket: the login page crashes on Safari."
+            }
+          ]
+        }
+      ],
+      "tools": []
+    },
+    {
+      "kind": "response",
+      "model": "claude-opus-5-5",
+      "message": {
+        "role": "assistant",
+        "parts": [
+          {
+            "type": "tool-call",
+            "id": "toolu_mock_1",
+            "name": "StructuredOutput",
+            "input": {
+              "title": "example",
+              "priority": "low",
+              "labels": [
+                "example"
+              ]
+            }
+          }
+        ]
+      },
+      "finish": "tool_use"
+    },
+    {
+      "kind": "check",
+      "line": 28,
+      "message": "model answers through the StructuredOutput tool",
+      "pass": true
+    },
+    {
+      "kind": "check",
+      "line": 29,
+      "message": "result is success",
+      "pass": true
+    },
+    {
+      "kind": "check",
+      "line": 31,
+      "message": "structured_output validates against the Zod schema",
+      "pass": true
+    }
+  ]
+}

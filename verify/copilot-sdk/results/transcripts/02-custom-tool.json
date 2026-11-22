@@ -1,0 +1,118 @@
+{
+  "format": 1,
+  "example": "02-custom-tool",
+  "file": "verify/copilot-sdk/examples/02-custom-tool.ts",
+  "harness": "verify/copilot-sdk",
+  "pin": "@github/copilot-sdk@1.0.31",
+  "mock": "@github/copilot-sdk@1.0.31",
+  "events": [
+    {
+      "kind": "request",
+      "model": "claude-sonnet-4.5",
+      "repeated": 0,
+      "messages": [
+        {
+          "role": "user",
+          "parts": [
+            {
+              "type": "text",
+              "text": "Use get_weather for Lisbon.\nmock-args get_weather {\"city\":\"Lisbon\"}\nmock-reply: Done."
+            }
+          ]
+        }
+      ],
+      "tools": [
+        "get_weather"
+      ]
+    },
+    {
+      "kind": "response",
+      "model": "claude-sonnet-4.5",
+      "message": {
+        "role": "assistant",
+        "parts": [
+          {
+            "type": "tool-call",
+            "id": "toolu_mock_1",
+            "name": "get_weather",
+            "input": {
+              "city": "Lisbon"
+            }
+          }
+        ]
+      },
+      "finish": "tool_use"
+    },
+    {
+      "kind": "request",
+      "model": "claude-sonnet-4.5",
+      "repeated": 2,
+      "messages": [
+        {
+          "role": "tool",
+          "parts": [
+            {
+              "type": "tool-result",
+              "id": "toolu_mock_1",
+              "name": "get_weather",
+              "output": "Sunny and 21C in Lisbon"
+            }
+          ]
+        }
+      ],
+      "tools": [
+        "get_weather"
+      ]
+    },
+    {
+      "kind": "response",
+      "model": "claude-sonnet-4.5",
+      "message": {
+        "role": "assistant",
+        "parts": [
+          {
+            "type": "text",
+            "text": "Done.\nTool results: Sunny and 21C in Lisbon"
+          }
+        ]
+      },
+      "finish": "end_turn"
+    },
+    {
+      "kind": "check",
+      "line": 37,
+      "message": "the handler ran once",
+      "pass": true
+    },
+    {
+      "kind": "check",
+      "line": 38,
+      "message": "with parsed args",
+      "pass": true
+    },
+    {
+      "kind": "check",
+      "line": 41,
+      "message": "the Zod schema reached the model as JSON Schema",
+      "pass": true
+    },
+    {
+      "kind": "check",
+      "line": 42,
+      "message": "onPermissionRequest was asked once, kind custom-tool",
+      "pass": true
+    },
+    {
+      "kind": "check",
+      "line": 43,
+      "message": "tool.execution_start and tool.execution_complete events were emitted",
+      "pass": true
+    },
+    {
+      "kind": "check",
+      "line": 47,
+      "message": "the tool result reached the model",
+      "pass": true
+    }
+  ]
+}

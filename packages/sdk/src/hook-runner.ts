@@ -15,6 +15,7 @@
  * whatever `onFailure` says.
  */
 import type { AssistantMessage, Message, ModelContext, ModelRef, Usage } from "@buildanagent/gateway";
+import { isHashable } from "./app-data.js";
 import { fillTemplate, SDK_DEFAULTS } from "./defaults.js";
 import { isSdkError, SdkError } from "./errors.js";
 import type { AgentEventBody } from "./events.js";
@@ -90,6 +91,8 @@ export interface HookRunnerSetup {
   send(body: AgentEventBody): void;
   /** Signs the pending request a gate's `ask` writes. */
   readonly signer: ApprovalSigner;
+  /** The run's app data, which each pending request binds with a MAC; `undefined` without app data. */
+  readonly app?: unknown;
   /** Makes each pending request's id. */
   readonly nextId: () => string;
 }
@@ -327,8 +330,11 @@ export class HookRunner {
   async #sign(tool: string, fields: PendingFields, input: unknown): Promise<GateOutcome> {
     const { signer, clock } = this.#setup;
     let request: SignedPendingRequest;
+    const { app } = this.#setup;
+    // An app with no canonical JSON form can't be bound. The error is not passed on, because it can quote the app.
+    if (app !== undefined && !isHashable(app)) return this.#unsigned(tool, "app_unhashable");
     try {
-      request = await signPause(fields, signer, {
+      request = await signPause(app === undefined ? fields : { ...fields, app }, signer, {
         generateId: () => this.#requestId(),
         now: () => new Date(clock.now()),
       });
@@ -376,9 +382,11 @@ export class HookRunner {
     }
     let check: Awaited<ReturnType<typeof verifyResolution>>;
     try {
+      const { app } = this.#setup;
       check = await verifyResolution(request, answer as Resolution, {
         signer,
         call: { callId: call.callId, tool, input },
+        ...(app === undefined ? {} : { app }),
       });
     } catch {
       // A custom signer whose verify() throws fails the check; its message may hold anything, so it isn't passed on.

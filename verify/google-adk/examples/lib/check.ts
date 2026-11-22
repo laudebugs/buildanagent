@@ -13,6 +13,7 @@ export function check(cond: unknown, msg: string): asserts cond {
 
 export type Script = (req: LlmRequest, call: number) => LlmResponse | Promise<LlmResponse>;
 
+// #region scripted-llm
 export class ScriptedLlm extends BaseLlm {
   readonly requests: LlmRequest[] = [];
   constructor(private readonly script: Script) {
@@ -20,15 +21,15 @@ export class ScriptedLlm extends BaseLlm {
   }
   override async *generateContentAsync(req: LlmRequest): AsyncGenerator<LlmResponse, void> {
     // Keep a copy: ADK reuses and mutates request objects between steps.
-    this.requests.push(
-      structuredClone({ contents: req.contents, config: { ...req.config, abortSignal: undefined } }) as LlmRequest,
-    );
-    yield await this.script(req, this.requests.length);
+    const copy = structuredClone({ contents: req.contents, config: { ...req.config, abortSignal: undefined } });
+    this.requests.push(copy as LlmRequest); // book:note record
+    yield await this.script(req, this.requests.length); // book:note play
   }
   override async connect(): Promise<BaseLlmConnection> {
     throw new Error("live connections are not scripted");
   }
 }
+// #endregion
 
 // Attaches the transcript recorder to ScriptedLlm when the runner preloads it (scripts/transcripts/).
 recordedLlm(ScriptedLlm);

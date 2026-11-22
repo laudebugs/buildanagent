@@ -52,6 +52,7 @@ const submitTriage = defineTool({
 // 3. The gate: an inline extension sees every tool call before it runs.
 const audit: string[] = [];
 const cwd = mkdtempSync(join(tmpdir(), "pi-triage-"));
+// #region gate
 const resourceLoader = new DefaultResourceLoader({
   cwd,
   agentDir: join(cwd, ".pi-agent"),
@@ -59,18 +60,20 @@ const resourceLoader = new DefaultResourceLoader({
     (pi) => {
       pi.on("tool_call", async (event) => {
         audit.push(event.toolName);
-        if (event.toolName === "escalate") return { block: true, reason: "Escalation needs a human." };
+        if (event.toolName === "escalate") return { block: true, reason: "Escalation needs a human." }; // book:note gate
         return undefined;
       });
     },
   ],
 });
+// #endregion
 await resourceLoader.reload();
 
 // The faux model plays a model that looks up, tries to escalate, then submits.
+// #region faux-script
 const { session, faux } = await fauxSession(
   [
-    fauxAssistantMessage([fauxToolCall("lookup_customer", { email: "user@example.com" })], { stopReason: "toolUse" }),
+    fauxAssistantMessage([fauxToolCall("lookup_customer", { email: "user@example.com" })], { stopReason: "toolUse" }), // book:note first-turn
     fauxAssistantMessage([fauxToolCall("escalate", { reason: "checkout 500" })], { stopReason: "toolUse" }),
     fauxAssistantMessage(
       [fauxToolCall("submit_triage", { category: "bug", priority: "high", summary: "Checkout returns 500." })],
@@ -79,6 +82,7 @@ const { session, faux } = await fauxSession(
   ],
   { cwd, resourceLoader, noTools: "builtin", customTools: [lookupCustomer, escalate, submitTriage] },
 );
+// #endregion
 
 try {
   check(

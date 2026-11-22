@@ -11,6 +11,7 @@ import { fileURLToPath } from "node:url";
 import {
   compactRequests,
   MOCK_PACKAGES,
+  mergeEvents,
   mockOf,
   normalise,
   pinOf,
@@ -205,11 +206,64 @@ function recordedEvents(source) {
         encoding: "utf8",
       },
     );
-    return JSON.parse(readFileSync(raw, "utf8")).events;
+    // Each raw event carries the millisecond it happened at, which the writer drops after merging a mock's events.
+    return JSON.parse(readFileSync(raw, "utf8")).events.map(({ at, ...event }) => {
+      assert.equal(typeof at, "number");
+      return event;
+    });
   } finally {
     rmSync(dir, { recursive: true, force: true });
   }
 }
+
+test("the Claude Agent SDK and Copilot SDK transcripts name only the tools an example gave the model, not the CLI's or runtime's built-ins", async () => {
+  const { BUILTIN_DENY } = await import(
+    new URL("../../verify/copilot-sdk/scripts/mock-model.mjs", import.meta.url).href
+  );
+  for (const file of committed.filter((f) => /^verify\/(claude-agent-sdk|copilot-sdk)\//.test(f))) {
+    const { events } = JSON.parse(readFileSync(join(root, file), "utf8"));
+    for (const event of events.filter((e) => e.kind === "request")) {
+      for (const tool of event.tools ?? []) {
+        if (file.includes("claude-agent-sdk"))
+          assert.match(tool, /^mcp__/, `${file} lists ${tool}, a built-in of the CLI`);
+        else assert.ok(!BUILTIN_DENY.test(tool), `${file} lists ${tool}, a built-in of the runtime`);
+      }
+    }
+  }
+});
+
+test("a mock's events and an example's events merge in the order they happened, the mock first at the same millisecond", () => {
+  const mock = [
+    { kind: "request", at: 10 },
+    { kind: "response", at: 20 },
+    { kind: "request", at: 40 },
+  ];
+  const example = [
+    { kind: "check", at: 20 },
+    { kind: "check", at: 30 },
+    { kind: "check", at: 50 },
+  ];
+  assert.deepEqual(
+    mergeEvents(mock, example).map((event) => `${event.kind}@${event.at}`),
+    ["request@10", "response@20", "check@20", "check@30", "request@40", "check@50"],
+  );
+  // Without a mock's events, an example's own are already in order and are not sorted by time.
+  assert.deepEqual(
+    mergeEvents(
+      [],
+      [
+        { kind: "check", at: 9 },
+        { kind: "check", at: 5 },
+      ],
+    ).map((event) => event.at),
+    [9, 5],
+  );
+  // Times keep their fraction, so events less than a millisecond apart sort in the order they happened.
+  assert.deepEqual(
+    mergeEvents([{ kind: "request", at: 10.7 }], [{ kind: "check", at: 10.2 }]).map((event) => event.kind),
+    ["check", "request"],
+  );
+});
 
 test("the recorder counts only the checks that check() reports, not text an example prints or throws", () => {
   const check = JSON.stringify(join(root, "verify/vercel-ai-sdk/examples/lib/check.ts"));

@@ -29,8 +29,9 @@ export const PROVIDERS = {
 };
 
 /**
- * The harnesses whose scripts/run-examples.mjs has a --live mode. The Claude Agent SDK and Copilot SDK record no mock
- * transcript yet (T49), so a live run of theirs would have nothing to compare with.
+ * The harnesses whose scripts/run-examples.mjs has a --live mode. The Claude Agent SDK and Copilot SDK make their model
+ * calls from a child process, so their live mode sends them through proxy.mjs; the other five wrap each call in the
+ * example's process (live.ts). google-adk reaches no provider the run holds a key for.
  */
 export const LIVE_HARNESSES = [
   "verify/vercel-ai-sdk",
@@ -38,6 +39,8 @@ export const LIVE_HARNESSES = [
   "verify/langchain",
   "verify/pi",
   "verify/cloudflare-agents",
+  "verify/claude-agent-sdk",
+  "verify/copilot-sdk",
 ];
 
 /** An example's harness directory and name, from its path: `verify/pi/examples/08-triage-agent.ts`. */
