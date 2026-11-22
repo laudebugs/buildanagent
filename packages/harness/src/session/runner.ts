@@ -266,6 +266,10 @@ class EventRecorder {
         return;
       case "model_call_end":
         this.#pending = event.message;
+        // A call the SDK refuses to start (unknown tool, bad input) gets no tool_call_start, so its name comes from here.
+        for (const block of event.message.content) {
+          if (block.type === "tool_call") this.#tools.set(block.callId, block.name);
+        }
         return;
       case "tool_call_start":
         this.#tools.set(event.callId, event.tool);
@@ -394,7 +398,7 @@ export async function runTurn<H = unknown>(
     ...(options.modelOptions === undefined ? {} : { modelOptions: options.modelOptions }),
     ...(options.budgetUsd === undefined ? {} : { budgetUsd: options.budgetUsd }),
     ...(harness.signer === undefined ? {} : { signer: harness.signer }),
-  } as never);
+  });
   options.onRun?.(handle);
   let result: RunResult<unknown> | undefined;
   let runError: unknown;

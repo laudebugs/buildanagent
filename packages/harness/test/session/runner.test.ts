@@ -395,4 +395,17 @@ describe.each(BACKENDS)("%s", (_name, make) => {
     await child.close();
     await parent.close();
   });
+  test("a call the SDK refuses to start still records the tool's name in its result", async () => {
+    const backend = make();
+    const { model } = scripted([
+      { content: [{ type: "tool_call", callId: "c1", name: "ghost", input: {} }] },
+      { content: [{ type: "text", text: "ok" }] },
+    ]);
+    const { harness } = harnessOf(model);
+    const session = await open(backend);
+    await runTurn(session, harness, { input: "go" });
+    const result = (await entriesOf(backend.store)).find((entry) => entry.type === "tool_result");
+    assert.ok(result?.type === "tool_result" && result.tool === "ghost" && result.isError);
+    await session.close();
+  });
 });

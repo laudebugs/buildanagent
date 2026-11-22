@@ -4,5 +4,5 @@
  */
 import packageJson from "../package.json" with { type: "json" };
 
-/** The version of `@buildanagent/sdk` in use, such as `0.1.0-alpha.1`. */
+/** The version of `@buildanagent/sdk` in use, such as `0.1.0-alpha.13`. */
 export const SDK_VERSION: string = packageJson.version;

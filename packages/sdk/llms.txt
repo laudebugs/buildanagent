@@ -132,7 +132,7 @@ The sections of README.md and every public export, generated from this package's
 - `type SafetyErrorCode`: Why a `SafetyError` was thrown.
 - `interface SchemaIssue`: One reason a tool input failed its schema.
 - `SDK_PACKAGE`: The package's name, `@buildanagent/sdk`.
-- `SDK_VERSION`: The version of `@buildanagent/sdk` in use, such as `0.1.0-alpha.1`.
+- `SDK_VERSION`: The version of `@buildanagent/sdk` in use, such as `0.1.0-alpha.13`.
 - `class SdkError`: Thrown for a mistake in how the SDK is called.
 - `type SdkErrorCode`: Why an `SdkError` was thrown.
 - `interface SignedPendingRequest`: A pause waiting for a person: an approval of one tool call, or a question about it.
