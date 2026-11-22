@@ -14,6 +14,7 @@ import { z } from "zod";
 import { check, kind, text } from "./lib/check.ts";
 
 const MEMORY_TTL_MS = 30 * 24 * 60 * 60 * 1000;
+const SEARCH_LIMIT = 100; // one subject has few records; past this many, expired ones would wait for a later recall
 const NAMESPACE = ["memories", "ada"];
 let nowMs = Date.parse("2026-11-22T09:00:00Z"); // the injected clock; the tools never call Date.now()
 const clock = () => nowMs;
@@ -31,7 +32,7 @@ const remember = tool(
       subject,
       fact,
       source,
-      created: new Date(created).toISOString(),
+      created,
       expires: created + MEMORY_TTL_MS,
     }; // book:note record
     await (runtime.store as unknown as InMemoryStore).put(NAMESPACE, subject, record);
@@ -50,7 +51,7 @@ const recall = tool(
     executed.push("recall");
     const memory = runtime.store as unknown as InMemoryStore;
     const live: unknown[] = [];
-    for (const item of await memory.search(NAMESPACE, { filter: { subject } })) {
+    for (const item of await memory.search(NAMESPACE, { filter: { subject }, limit: SEARCH_LIMIT })) {
       if (item.value.expires <= clock())
         await memory.delete(item.namespace, item.key); // book:note expire
       else live.push(item.value);
@@ -92,10 +93,7 @@ await writer.invoke(userTurn("Remember that deploys freeze on Fridays."), config
 const written = await store.get(NAMESPACE, "deploys");
 check(written?.value.fact === "Deploys freeze on Fridays.", "the write run put the fact in the store");
 check(written?.value.source === "runbook.md#freeze", "the record carries its source");
-check(
-  written?.value.expires - Date.parse(written?.value.created) === MEMORY_TTL_MS,
-  "the expiry is 30 days after created",
-);
+check(written?.value.expires === written?.value.created + MEMORY_TTL_MS, "the expiry is 30 days after created");
 
 // #region recall-run
 await reader.invoke(userTurn("What do you know about deploys?"), config("read-1"));
