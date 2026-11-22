@@ -2,8 +2,7 @@
  * The canonical layout of the three registers (`src/data/sources.json`, `src/data/glossary.json` and
  * `src/content/analogies.json`): a JSON array with one entry per line, sorted by id. Git merges by line, so two
  * branches that each add an entry merge cleanly unless they add at the same place in the order, and a conflict shows
- * whole entries and not halves of two. An entry that sorts last also edits the old last line's comma, so two branches that
- * add near the end can still conflict. `format-registers.ts` writes the layout and `registers.test.ts` checks it.
+ * whole entries and not halves of two. An entry that sorts last also edits the old last line's comma, so near-end adds can conflict. `format-registers.ts` writes the layout and `registers.test.ts` checks it.
  */
 import { readFileSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
