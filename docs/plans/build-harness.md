@@ -357,7 +357,7 @@ interface Session {
   rerunFrom(entryId: string, options: TurnOptions): Promise<TurnResult>; // branches, then calls the model again
 }
 declare function openSession(options: { store: SessionStore; index: SessionIndex; key: SessionKey; lock?: SessionLock }): Promise<Session>; // revision (N3, N5): the key names the user; with a lock the session writes, without one it only reads
-interface SessionIndex { get(key: SessionKey): Promise<string | undefined>; set(key: SessionKey, file: string): Promise<void> } // revision (N5): the one mutable pointer, to the session's current file; memoryIndex(), fileIndex({ dir }) replaces it by rename
+interface SessionIndex { get(key: SessionKey): Promise<string | undefined>; set(key: SessionKey, file: string): Promise<void> } // revision (N5): the one mutable pointer, to the session's current file; memoryIndex() keeps it in memory, and fileIndex({ dir }) replaces its file by rename
 declare function migrateSession(options: { store: SessionStore; index: SessionIndex; key: SessionKey; lock: SessionLock; migrations: Migration[] }): Promise<MigrationResult>; // revision (N5): takes the writer lock, then writes, verifies and publishes a new file
 ```
 

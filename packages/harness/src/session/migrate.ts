@@ -75,10 +75,11 @@ function stepsFrom(version: number, migrations: readonly Migration[]): Migration
 }
 
 /**
- * Migrates the session's current file to the current format. A session already there is left alone. A session from a
+ * Migrates the session's current file to the current format. A session already in the current format is left alone. A session from a
  * newer format is refused, because only a newer harness can read it. Otherwise the entries go through each step, the
  * new file is written in one append (which checks every entry against the current format), read back and compared, and
- * only then does the pointer move. A file whose header names a parent file is refused, because its parent would stay in the old format, and so is, without being noticed, a file that forks name as their parent.
+ * only then does the pointer move. A file whose header names a parent file is refused, because its parent would stay in the old format. Forks that name
+ * this file as their parent can't be found, because a store has no index of dependents, so they are not checked.
  */
 export async function migrateSession(options: MigrateOptions): Promise<MigrationResult> {
   const handle = await options.lock.acquire(options.key);

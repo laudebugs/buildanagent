@@ -1,7 +1,7 @@
 /**
  * The session pointer: which file holds a session's log now. A session's key stays the same while the file under it
  * changes, because a revert or a migration writes a new file and moves the pointer, and no file is ever rewritten. The
- * pointer is the only mutable state in the log. A session with no pointer is in the file named like its key.
+ * pointer is the only mutable state in the log. A session with no pointer is in the file named by its session id.
  */
 import { checkKey, type SessionKey } from "./store.js";
 

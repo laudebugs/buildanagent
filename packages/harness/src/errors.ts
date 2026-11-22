@@ -42,7 +42,8 @@ const HARNESS_ERROR = Symbol.for("buildanagent.harness.HarnessError");
  * callback unreachable (`PermissionConfigError`). `invalid_lock_options`: a file lock was given a lease, renewal interval or host
  * name it can't use. `session_locked`: another writer holds the session. `session_read_only`: a session opened
  * without a lock was asked to write. `entry_not_found`: an entry id is in no file of the session.
- * `unsupported_format`: a session file is from a format this harness can't read or migrate. `session_conflict`: an append found the log in a state it did not
+ * `unsupported_format`: a session file's format can't be read or migrated, its header names none, or the store
+ * can't read it as written. `session_conflict`: an append found the log in a state it did not
  * expect (`ConflictError`). `entry_too_large`: an entry is over the store's size bound (`EntryTooLargeError`).
  * `invalid_session_entry`: an entry is not valid or is out of place, such as a first entry that is not a header.
  * `invalid_session_key`: a user or session id the store can't use. `session_corrupt`: a log file has a bad line before

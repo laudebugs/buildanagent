@@ -29,8 +29,8 @@ export type ChildLink = { readonly spawningCallId: string } | { readonly stepId:
 const MAX_PATH_ENTRIES = 1_000_000;
 
 /**
- * Starts the name of a file that holds part of a session and is no session of its own: a revert's or a migration's. A
- * listing leaves it out, because the session's key is what a person knows it by.
+ * The prefix of the name of a file that holds part of a session, such as a revert's or a migration's file. A listing
+ * leaves such files out, because a person knows a session by its key.
  */
 export const DERIVED = "~";
 
@@ -166,8 +166,8 @@ export class Session {
 
   /**
    * The entries a file's session was made from: the path to the entry its header names in its parent file, and so on up
-   * through that file's own parent. An entry the parent wrote after the fork point is not in it. A parent file is
-   * immutable, so the result is kept.
+   * through that file's own parent. An entry the parent wrote after the fork point is not in it. The path to a fork point
+   * never changes, because a log is append-only, so the result is kept.
    */
   async #ancestry(file: string, entryId: string): Promise<readonly SessionEntry[]> {
     const cacheKey = JSON.stringify([file, entryId]);
@@ -188,8 +188,8 @@ export class Session {
       if (entry === undefined) {
         if (above === undefined) throw new HarnessError("entry_not_found", `no entry ${at} in the file ${file}`);
         // A loop and not a spread, because a long prefix would be too many arguments for a call.
-        // The entry not found here is in an earlier file, and the walk goes on up from it, which for the usual fork point
-        // is the entry the header names, and for an entry before it is that entry.
+        // An entry missing from this file is in an ancestor file. The walk continues there from `at`, which is the entry this
+        // file's header names when the missing entry is the fork point.
         const prefix = await this.#ancestry(above.session, at);
         for (let i = prefix.length - 1; i >= 0; i -= 1) path.push(prefix[i] as SessionEntry);
         break;
