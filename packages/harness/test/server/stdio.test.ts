@@ -192,10 +192,11 @@ describe("a client that stops reading", () => {
     async () => {
       const child = spawnServer("flood");
       await call(child, initialize(1));
+      // The child created the session before it read stdin, so it watches the turn from its first event.
       await call(child, {
         jsonrpc: "2.0",
         id: 2,
-        method: "session/create",
+        method: "session/open",
         params: { session: FLOOD_SESSION, cwd: "/w" },
       });
       // From here the client reads nothing until the turn has settled inside the child.
