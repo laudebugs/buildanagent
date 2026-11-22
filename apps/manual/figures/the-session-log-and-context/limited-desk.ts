@@ -7,7 +7,10 @@ export default function draw(): Figure {
   const figure = new Figure({ id: "limited-desk", width: 520, height: 262 });
 
   figure.group("drawer", () => {
-    figure.box({ x: 8, y: 30, width: 150, height: 150 }, { tone: "muted", label: ["session log", "the drawer", "every entry"] });
+    figure.box(
+      { x: 8, y: 30, width: 150, height: 150 },
+      { tone: "muted", label: ["session log", "the drawer", "every entry"] },
+    );
     figure.text({ x: 83, y: 205 }, "the model cannot", { tone: "muted" });
     figure.text({ x: 83, y: 222 }, "open the drawer", { tone: "muted" });
   });

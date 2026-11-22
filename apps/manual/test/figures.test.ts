@@ -39,6 +39,9 @@ test("the book's figures hold its chapters' figures, and the fixtures hold their
     "talking-to-a-model/stream-fold",
     "talking-to-a-model/taxi-meter",
     "testing-offline-and-a-first-agent/mock-seams",
+    "the-session-log-and-context/context-layers",
+    "the-session-log-and-context/limited-desk",
+    "the-session-log-and-context/session-log-tree",
     "tools/tool-round-trip",
     "tools/vending-machine",
   ]);

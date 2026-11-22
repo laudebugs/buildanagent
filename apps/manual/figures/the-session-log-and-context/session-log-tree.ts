@@ -87,16 +87,28 @@ export default function draw(): IsoFigure {
   }
 
   // The fork: a link from the third entry down to a second row of two entries that the active path no longer follows.
-  parts.slab("fork.link", { x: x(2) + ENTRY_W / 2 - 2, y: ROW_A + ENTRY_D, w: 4, d: ROW_B - ROW_A - ENTRY_D, r: 0.5 }, 0, LINK_H, {
-    tone: "lo",
-  });
+  parts.slab(
+    "fork.link",
+    { x: x(2) + ENTRY_W / 2 - 2, y: ROW_A + ENTRY_D, w: 4, d: ROW_B - ROW_A - ENTRY_D, r: 0.5 },
+    0,
+    LINK_H,
+    {
+      tone: "lo",
+    },
+  );
   for (let index = 0; index < 2; index += 1) {
     const plan: Plan = { x: x(2 + index), y: ROW_B, w: ENTRY_W, d: ENTRY_D, r: 1 };
     parts.slab(`fork.entry#${index + 1}`, plan, 0, ENTRY_H, { tone: "lo", bevel: 0.5 });
     if (index === 0) {
-      parts.slab("fork.link2", { x: x(2) + ENTRY_W, y: ROW_B + ENTRY_D / 2 - 2, w: PITCH - ENTRY_W, d: 4, r: 0.5 }, 0, LINK_H, {
-        tone: "lo",
-      });
+      parts.slab(
+        "fork.link2",
+        { x: x(2) + ENTRY_W, y: ROW_B + ENTRY_D / 2 - 2, w: PITCH - ENTRY_W, d: 4, r: 0.5 },
+        0,
+        LINK_H,
+        {
+          tone: "lo",
+        },
+      );
     }
   }
 

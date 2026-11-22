@@ -4,11 +4,31 @@
 import { Figure } from "../lib/svgkit.js";
 
 const LAYERS = [
-  { name: ["1 write cap"], does: ["cap a tool result at 64 KiB,", "spill the rest to a file"], log: ["capped result", "and a file path"] },
-  { name: ["2 mask"], does: ["show older tool results as", "500 characters, in steps"], log: ["nothing:", "a read-time view"] },
-  { name: ["3 summarize"], does: ["between turns: replace old", "messages with a summary"], log: ["one compaction", "entry"] },
-  { name: ["4 mid-turn"], does: ["the same, when one step", "reaches 90% of the window"], log: ["one compaction", "entry"] },
-  { name: ["5 overflow", "retry"], does: ["on a provider overflow error:", "compact once, then retry"], log: ["one compaction", "entry"] },
+  {
+    name: ["1 write cap"],
+    does: ["cap a tool result at 64 KiB,", "spill the rest to a file"],
+    log: ["capped result", "and a file path"],
+  },
+  {
+    name: ["2 mask"],
+    does: ["show older tool results as", "500 characters, in steps"],
+    log: ["nothing:", "a read-time view"],
+  },
+  {
+    name: ["3 summarize"],
+    does: ["between turns: replace old", "messages with a summary"],
+    log: ["one compaction", "entry"],
+  },
+  {
+    name: ["4 mid-turn"],
+    does: ["the same, when one step", "reaches 90% of the window"],
+    log: ["one compaction", "entry"],
+  },
+  {
+    name: ["5 overflow", "retry"],
+    does: ["on a provider overflow error:", "compact once, then retry"],
+    log: ["one compaction", "entry"],
+  },
 ] as const;
 
 export default function draw(): Figure {
