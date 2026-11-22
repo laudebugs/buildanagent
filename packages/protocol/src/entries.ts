@@ -227,16 +227,21 @@ export interface SkillLoadedEntry {
 
 /**
  * What an `extension_loaded` entry of tier `mcp` records about the server that connected. It holds hashes, never the
- * command's arguments or any environment value, because either can carry a secret.
+ * command's arguments, an environment value, a URL or a header, because any of them can carry a secret.
  */
 export interface McpServerRecord {
-  /** How the harness reached the server. */
-  transport: "stdio" | "in_process";
+  /** How the harness reached the server: `http` for streamable HTTP and `sse` for the legacy HTTP+SSE transport. */
+  transport: "stdio" | "in_process" | "http" | "sse";
   /**
    * For a stdio server: `sha256:` and the hex digest of the canonical JSON (RFC 8785) of `[command, ...args]`. It is not
    * salted, so a reader of the log can confirm a guessed argument by hashing it; a secret never belongs in the args.
    */
   commandHash?: string;
+  /**
+   * For an `http` or `sse` server: `sha256:` and the hex digest of the canonical JSON of the URL, as the WHATWG URL
+   * parser normalises it. A URL can carry a token, so the record holds its hash and never the URL itself.
+   */
+  urlHash?: string;
   /** The protocol era the server negotiated. */
   era: "2026-07-28" | "legacy";
   /**

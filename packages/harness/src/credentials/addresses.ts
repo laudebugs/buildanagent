@@ -137,3 +137,52 @@ export function isAddressLiteral(text: string): boolean {
   const bare = text.startsWith("[") && text.endsWith("]") ? text.slice(1, -1) : text;
   return parseIpv4(bare) !== undefined || parseIpv6(bare) !== undefined;
 }
+
+/**
+ * The address as eight 16-bit groups, with an IPv4 address in its mapped form `::ffff:a.b.c.d`, or `undefined` when
+ * `text` is not an address.
+ */
+function groupsOf(text: string): number[] | undefined {
+  const bare = text.startsWith("[") && text.endsWith("]") ? text.slice(1, -1) : text;
+  const v4 = parseIpv4(bare);
+  if (v4 !== undefined) return [0, 0, 0, 0, 0, 0xffff, Math.floor(v4 / 65536), v4 % 65536];
+  return parseIpv6(bare);
+}
+
+/** The prefix length of a range in mapped form: an IPv4 prefix counts from bit 96. */
+function rangeOf(range: string): { readonly groups: number[]; readonly bits: number } | undefined {
+  const [address = "", prefix, extra] = range.split("/");
+  if (extra !== undefined) return undefined;
+  const groups = groupsOf(address);
+  if (groups === undefined) return undefined;
+  const v4 = parseIpv4(address) !== undefined;
+  const max = v4 ? 32 : 128;
+  if (prefix !== undefined && !/^(0|[1-9][0-9]{0,2})$/.test(prefix)) return undefined;
+  const length = prefix === undefined ? max : Number(prefix);
+  if (length > max) return undefined;
+  return { groups, bits: v4 ? length + 96 : length };
+}
+
+/** Whether `range` is an address or a CIDR range such as `10.0.0.0/8` or `fd00::/8`. */
+export function isAddressRange(range: string): boolean {
+  return rangeOf(range) !== undefined;
+}
+
+/**
+ * Whether `address` lies in `range`, an address or a CIDR range. An IPv4 address and its mapped IPv6 form are the same
+ * address here. Text that is not an address, or a range that can't be read, matches nothing.
+ */
+export function inAddressRange(address: string, range: string): boolean {
+  const groups = groupsOf(address);
+  const parsed = rangeOf(range);
+  return groups !== undefined && parsed !== undefined && inPrefix(groups, parsed.groups, parsed.bits);
+}
+
+/** Whether `address` is a loopback address: `127.0.0.0/8`, `::1`, or an IPv6 form that wraps a `127` address. */
+export function isLoopbackAddress(address: string): boolean {
+  const groups = groupsOf(address);
+  if (groups === undefined) return false;
+  if (inPrefix(groups, [0, 0, 0, 0, 0, 0, 0, 1], 128)) return true;
+  const wrapped = wrappedIpv4(groups);
+  return wrapped !== undefined && Math.floor(wrapped / 2 ** 24) === 127;
+}

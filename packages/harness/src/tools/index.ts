@@ -16,4 +16,5 @@ export type {
   ToolRegistry,
   ToolSource,
   ToolWrapper,
+  TurnBoundary,
 } from "./types.js";

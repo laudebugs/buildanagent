@@ -14,7 +14,7 @@ import type { Skill } from "./extensions/skills.js";
 import type { ExtensionLoadedRecord } from "./extensions/types.js";
 import type { PermissionPipeline } from "./permissions/types.js";
 import type { Session } from "./session/session.js";
-import type { ToolRegistry, ToolWrapper } from "./tools/types.js";
+import type { ToolRegistry, ToolWrapper, TurnBoundary } from "./tools/types.js";
 
 /** What the session's `env_stamp` records about where the turns run. */
 export interface HarnessEnv {
@@ -62,6 +62,12 @@ export interface HarnessOptions<H = unknown> {
    * resolve against `env.cwd`.
    */
   readonly skills?: readonly Skill[];
+  /**
+   * Components that change tools between turns, such as an MCP manager. Each turn calls their `beginTurn()` in order
+   * before it builds its tools, and writes the notices they return in front of its input, so the model reads what
+   * changed and the tools a request sends stay as they are. A resumed turn and a code call run no boundary.
+   */
+  readonly turnBoundaries?: readonly TurnBoundary[];
   /** Observers that see every event of every turn, after the runner's own. A code call emits no events. */
   readonly observers?: readonly Observer[];
   /** Binds a tool to the turn's host context, such as a write cap. A tool can also read it as `ctx.app`. */
