@@ -28,6 +28,7 @@ The sections of README.md and every public export, generated from this package's
   - [`session/open` with `fromSeq` replays the entries a client missed](README.md#sessionopen-with-fromseq-replays-the-entries-a-client-missed)
   - [A client that reconnects finds its pending requests in `initialize` and is asked again on open](README.md#a-client-that-reconnects-finds-its-pending-requests-in-initialize-and-is-asked-again-on-open)
   - [`stdioTransport()` serves one client over a pair of byte streams](README.md#stdiotransport-serves-one-client-over-a-pair-of-byte-streams)
+  - [`webSocketTransport()` serves one client on one WebSocket](README.md#websockettransport-serves-one-client-on-one-websocket)
 - [The log is the only state, so a turn rebuilds its context from it](README.md#the-log-is-the-only-state-so-a-turn-rebuilds-its-context-from-it)
   - [A crash leaves open calls, and the next turn settles them by what they could have done](README.md#a-crash-leaves-open-calls-and-the-next-turn-settles-them-by-what-they-could-have-done)
 - [Two cheap layers keep a long run small: a write cap that spills, and masking in steps](README.md#two-cheap-layers-keep-a-long-run-small-a-write-cap-that-spills-and-masking-in-steps)
