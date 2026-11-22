@@ -275,14 +275,15 @@ The section was drafted after the model-choice section. Every provider page was 
 | 180 | After the first code review: the Anthropic no-tuning conclusion, the opening scenario and the closing rule are worded as our inference, an illustration and our rule | § Tuning | ✅ | Re-check of rows 170, 175 and 176: wording only; the three rows stay ⚠️ |
 | 181 | After the medium review: the text says "Of these three providers, only Google still tunes models" and the tally counts rows 177 to 180 | § Tuning | ✅ | Re-check of row 174: wording only; Bedrock tuning of other vendors' models is outside the three providers compared |
 | 182 | After the low review: a sentence introduces the price-table listing | § Tuning | ✅ | Re-check of row 145: the sentence adds no claim |
+| 183 | After the writing review: the MAP 70% sentence, the lifetimes sentence, the Google sentence, the closing rule and the retirement paragraph are reworded; the OpenAI-accepts-no-new-organisations aside is cut from the listing paragraph | § Tuning | ✅ | Re-check of rows 152, 174, 176 and the MAP rows: wording only; 14 of 20, 16 to 30 months, 21 months and the four conditions unchanged. Row 176 stays ⚠️ |
 
 ## Tally
 
 | Verdict | Rows |
 | --- | --- |
-| ✅ confirmed | 158 |
+| ✅ confirmed | 159 |
 | ✏️ corrected | 10 (rows 12, 17, 24, 38, 49, 91, 93, 103, 108 and 116) |
 | ⚠️ unverified, our judgement or recommendation, marked as ours in the text | 14 (rows 16, 31, 57, 75, 143, 147, 150, 153, 156, 157, 167, 170, 175 and 176) |
-| Total | 182 |
+| Total | 183 |
 
 Six ✅ rows (21, 32, 59, 76, 96 and 124) also record a draft sentence that was reworded before its section's commit, so no wrong claim was ever committed; Chapter 1's log treats such rows the same way (its row 71).

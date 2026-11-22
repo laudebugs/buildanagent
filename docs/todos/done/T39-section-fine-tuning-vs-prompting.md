@@ -50,13 +50,13 @@ U21's report settled the scope, and the owner approved its proposed changes on 2
 
 - [x] Draft the section with `/anthropic-skills:writing`. If the analogy makes the concept clearer, open with it, then the mechanism and a "Where the analogy breaks" note, and register it in `analogies.json`; otherwise explain the concept plainly.
 - [x] Fact-check every claim in the section against its primary source into `apps/manual/fact-checks/talking-to-a-model.md` before any further edit, and commit the section together with its fact-check rows (BK21).
-- [ ] Run `/anthropic-skills:writing-review` on the whole chapter with the voice check, fix every finding with `/anthropic-skills:writing`, and re-check every claim a fix touched.
+- [x] Run `/anthropic-skills:writing-review` on the whole chapter with the voice check, fix every finding with `/anthropic-skills:writing`, and re-check every claim a fix touched.
 
 ## Acceptance criteria
 
 - [x] The chapter still builds with every check passing, the analogy check included
 - [x] `apps/manual/fact-checks/talking-to-a-model.md` has the section's rows and the re-check rows, with an updated tally
-- [ ] The pull request records the 5C and voice scores, before and after
+- [x] The pull request records the 5C and voice scores, before and after
 - [x] `pnpm check`, `pnpm typecheck` and `pnpm test` pass offline from the repo root
 
 ## Tests
@@ -74,7 +74,7 @@ The book's build and `check:book` in the CI `book` job.
 
 ## Outcome
 
-Chapter T11 gained one section after its model-choice section, "Tune a model only for a behaviour gap that prompting could not close, and treat the tuned model as a new model", with four subsections in the todo's order: tuning changes behaviour more than knowledge, prompt and measure first, a tuned model is a new model with a short life, and deployed agents mostly prompt. It opens with the course-versus-brief analogy (registered in `analogies.json`, both break notes in the text), shows T28's tuned-versus-cached listing with its replay, and keeps the provider status of November 2026 in one dated box, `tuning-offers-november-2026`. It adds 21 sources and one glossary term, `fine-tuning`. Rows 130 to 182 of the chapter's fact-check log hold the section's claims and the first code review's re-checks: 43 confirmed, 10 ours, none corrected. Every paper was read in full, and every provider claim has its own row with its URL and the date read. The writing review and the code reviews are left to the pull request.
+Chapter T11 gained one section after its model-choice section, "Tune a model only for a behaviour gap that prompting could not close, and treat the tuned model as a new model", with four subsections in the todo's order: tuning changes behaviour more than knowledge, prompt and measure first, a tuned model is a new model with a short life, and deployed agents mostly prompt. It opens with the course-versus-brief analogy (registered in `analogies.json`, both break notes in the text), shows T28's tuned-versus-cached listing with its replay, and keeps the provider status of November 2026 in one dated box, `tuning-offers-november-2026`. It adds 21 sources and one glossary term, `fine-tuning`. Rows 130 to 183 of the chapter's fact-check log hold the section's claims and the first code review's re-checks: 44 confirmed, 10 ours, none corrected. Every paper was read in full, and every provider claim has its own row with its URL and the date read. The writing review and the code reviews are left to the pull request.
 
 ## Definition of done
 
@@ -82,5 +82,5 @@ Chapter T11 gained one section after its model-choice section, "Tune a model onl
 - [x] Prose drafted with `/anthropic-skills:writing`, and changed claims re-checked against their sources
 - [x] `pnpm check`, `pnpm typecheck` and `pnpm test` pass locally; pushed after each meaningful step
 - [x] This file moved `ongoing/` → `done/` (Status `done`) in the last work commit, and the plan's todo table updated
-- [ ] Two code-review rounds run on the pull request (`/code-review high --max-findings default`, then `medium` and `low` after more than 6 confirmed findings, otherwise `low`), with every finding fixed or explained in a commit message
-- [ ] Copy reviewed with `/anthropic-skills:writing-review` after the code changes, with its findings fixed and the rubric scores in the pull request description
+- [x] Two code-review rounds run on the pull request (`/code-review high --max-findings default`, then `medium` and `low` after more than 6 confirmed findings, otherwise `low`), with every finding fixed or explained in a commit message
+- [x] Copy reviewed with `/anthropic-skills:writing-review` after the code changes, with its findings fixed and the rubric scores in the pull request description
