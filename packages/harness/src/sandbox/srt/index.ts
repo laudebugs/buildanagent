@@ -150,6 +150,15 @@ async function existing(modules: NodeModules, paths: readonly string[]): Promise
   return [...new Set(present.filter((path): path is string => path !== undefined))];
 }
 
+/**
+ * The absolute folders of `path`, or a default when there are none. A relative folder would be searched from the
+ * workspace, where the agent can write, so `srt` could start a program the agent planted.
+ */
+function absolutePath(modules: NodeModules, path: string | undefined): string {
+  const folders = (path ?? "").split(modules.path.delimiter).filter((folder) => modules.path.isAbsolute(folder));
+  return folders.length === 0 ? DEFAULT_PATH : folders.join(modules.path.delimiter);
+}
+
 /** The first folder of `hostPath` that holds an executable called `name`, or `undefined`. */
 async function findOnPath(modules: NodeModules, hostPath: string, name: string): Promise<string | undefined> {
   const folders = hostPath.split(modules.path.delimiter).filter((folder) => folder !== "");
@@ -168,12 +177,14 @@ async function findOnPath(modules: NodeModules, hostPath: string, name: string):
 /** How to start `srt`, or a `SandboxUnavailableError` when there is nothing to start. */
 async function srtCommand(modules: NodeModules, binary: string | undefined): Promise<SrtCommand> {
   if (binary !== undefined) {
+    // Resolved once against this process's folder, because it is started from the workspace.
+    const program = modules.path.resolve(binary);
     try {
-      await modules.fs.access(binary, modules.fs.constants.X_OK);
+      await modules.fs.access(program, modules.fs.constants.X_OK);
     } catch (error) {
       throw new SandboxUnavailableError("srt", `${binary} is not an executable file`, { cause: error });
     }
-    return { program: binary, args: [], readRoots: [] };
+    return { program, args: [], readRoots: [] };
   }
   let cli: string;
   try {
@@ -203,7 +214,7 @@ async function checkHost(modules: NodeModules, hostPath: string): Promise<void> 
   }
 }
 
-/** Throws unless every path is absolute, and not `/` where `allowRoot` is false. */
+/** Throws unless every path is absolute and is not `/`. */
 function checkPaths(modules: NodeModules, paths: readonly string[], what: string): void {
   for (const path of paths) {
     if (!modules.path.isAbsolute(path) || modules.path.resolve(path) === "/") {
@@ -246,6 +257,7 @@ interface SrtSandboxState {
 
 class SrtSandbox implements Sandbox {
   private disposed = false;
+  private disposing: Promise<void> | undefined;
   private readonly runner: ProcessRunner;
   private readonly state: SrtSandboxState;
 
@@ -406,16 +418,23 @@ class SrtSandbox implements Sandbox {
     const { modules, roots } = this.state;
     const readable = [...roots.read, ...roots.write];
     const target = await this.contain(path, readable, "filesystem_read", "the path is outside the read roots");
-    const { O_RDONLY, O_NOFOLLOW } = modules.fs.constants;
+    const { O_RDONLY, O_NOFOLLOW, O_NONBLOCK } = modules.fs.constants;
     try {
-      const handle = await modules.fs.open(target, O_RDONLY | O_NOFOLLOW);
+      // Opened without blocking, so a pipe the agent made can't hold the call: only a regular file is read.
+      const handle = await modules.fs.open(target, O_RDONLY | O_NOFOLLOW | O_NONBLOCK);
       try {
         await this.checkOpened(handle, readable, "filesystem_read", path);
-        const size = (await handle.stat()).size;
+        const stats = await handle.stat();
+        const { size } = stats;
+        if (!stats.isFile()) {
+          throw new HarnessError("sandbox_io_failed", `the path ${target} is not a regular file`);
+        }
         if (size > MAX_FILE_BYTES) {
           throw new HarnessError("sandbox_io_failed", `the file ${target} is larger than ${MAX_FILE_BYTES} bytes`);
         }
-        return new Uint8Array(await handle.readFile());
+        const bytes = new Uint8Array(size);
+        const { bytesRead } = await handle.read(bytes, 0, size, 0);
+        return bytes.subarray(0, bytesRead);
       } finally {
         await handle.close();
       }
@@ -433,13 +452,16 @@ class SrtSandbox implements Sandbox {
     const rule = "the path is outside the write roots";
     const target = await this.contain(path, roots.write, "filesystem_write", rule);
     this.refuseProtected(target, path);
-    const { O_WRONLY, O_CREAT, O_NOFOLLOW } = modules.fs.constants;
+    const { O_WRONLY, O_CREAT, O_NOFOLLOW, O_NONBLOCK } = modules.fs.constants;
     try {
       await modules.fs.mkdir(modules.path.dirname(target), { recursive: true });
       // Opened without O_TRUNC, so a file that turns out to be outside the roots is not emptied before the check.
-      const handle = await modules.fs.open(target, O_WRONLY | O_CREAT | O_NOFOLLOW, 0o666);
+      const handle = await modules.fs.open(target, O_WRONLY | O_CREAT | O_NOFOLLOW | O_NONBLOCK, 0o666);
       try {
         this.refuseProtected(await this.checkOpened(handle, roots.write, "filesystem_write", path), path);
+        if (!(await handle.stat()).isFile()) {
+          throw new HarnessError("sandbox_io_failed", `the path ${target} is not a regular file`);
+        }
         await handle.truncate(0);
         await handle.writeFile(data);
       } finally {
@@ -450,8 +472,13 @@ class SrtSandbox implements Sandbox {
     }
   }
 
-  async dispose(): Promise<void> {
-    if (this.disposed) return;
+  dispose(): Promise<void> {
+    // Every call gets the first call's promise, so a second caller waits for the cleanup too.
+    this.disposing ??= this.shutDown();
+    return this.disposing;
+  }
+
+  private async shutDown(): Promise<void> {
     this.disposed = true;
     await this.runner.stopAll();
     await this.state.modules.fs.rm(this.state.folder, { recursive: true, force: true });
@@ -514,7 +541,7 @@ export function srtSandbox(options: SrtSandboxOptions = {}): SandboxClient {
     stops: ["mistakes", "exfiltration"],
     async provision(manifest: WorkspaceManifest, policy: SandboxPolicy): Promise<Sandbox> {
       const modules = nodeModules("srt");
-      const hostPath = process.env.PATH ?? DEFAULT_PATH;
+      const hostPath = absolutePath(modules, process.env.PATH);
       await checkHost(modules, hostPath);
       const root = await workspaceRoot(modules, manifest);
       checkPaths(modules, [...policy.readRoots, ...policy.writeRoots], "a sandbox root");

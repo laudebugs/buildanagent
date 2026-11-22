@@ -1,4 +1,5 @@
 import assert from "node:assert/strict";
+import { execFileSync } from "node:child_process";
 import { randomInt } from "node:crypto";
 import {
   existsSync,
@@ -233,6 +234,21 @@ suite("srt: what a command can't do", () => {
         .catch((caught: unknown) => caught);
       assert.equal((folder as { code?: string }).code, "sandbox_io_failed");
       assert.equal((beneath as { code?: string }).code, "sandbox_io_failed");
+    } finally {
+      await sandbox.dispose();
+    }
+  }, 60_000);
+
+  test("a pipe the agent made is refused at once, and not read", async () => {
+    const { sandbox, root } = await provisioned();
+    try {
+      execFileSync("mkfifo", [join(root, "pipe")]);
+      const started = Date.now();
+      const error = await sandbox.readFile("pipe").catch((caught: unknown) => caught);
+      assert.equal((error as { code?: string }).code, "sandbox_io_failed");
+      assert.ok(Date.now() - started < 5000, "the call must not wait for a writer");
+      const written = await sandbox.writeFile("pipe", new Uint8Array([1])).catch((caught: unknown) => caught);
+      assert.equal((written as { code?: string }).code, "sandbox_io_failed");
     } finally {
       await sandbox.dispose();
     }

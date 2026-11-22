@@ -82,6 +82,7 @@ test("srt is started with a fixed environment, and the command's variables go th
   if (!linux) context.skip("this backend runs on Linux only");
   vi.stubEnv("PATH", `${fakePrograms}${delimiter}${process.env.PATH ?? ""}`);
   vi.stubEnv("HARNESS_TEST_HOST_SECRET", "must-not-reach-srt");
+  vi.stubEnv("PATH", `planted/bin${delimiter}${fakePrograms}${delimiter}${process.env.PATH ?? ""}`);
   const root = folder();
   const log = join(folder(), "env.log");
   const binary = join(folder(), "srt");
@@ -102,6 +103,11 @@ test("srt is started with a fixed environment, and the command's variables go th
       .map((line) => line.slice(0, line.indexOf("=")));
     assert.ok(!names.includes("HARNESS_TEST_HOST_SECRET"), "the host's own variables must not reach srt");
     assert.ok(!names.includes("NODE_OPTIONS") && !names.includes("LD_PRELOAD"), "no loader variable reaches srt");
+    const launchPath = last.split("\n").find((line) => line.startsWith("PATH=")) ?? "";
+    assert.ok(
+      !launchPath.includes("planted/bin"),
+      "a relative PATH folder is left out, so srt can't start a planted program",
+    );
     const allowed = new Set(["PATH", "TMPDIR", "PWD", "SHLVL", "_", "OLDPWD"]);
     assert.deepEqual(
       names.filter((name) => !allowed.has(name)),
@@ -156,7 +162,7 @@ test("dispose removes the sandbox's private folder", async (context) => {
   const before = privateFolders();
   const sandbox = await srtSandbox({ binary }).provision({ root }, policy(root));
   assert.equal(privateFolders().length, before.length + 1, "provisioning made one private folder");
-  await sandbox.dispose();
+  await Promise.all([sandbox.dispose(), sandbox.dispose()]);
   assert.deepEqual(privateFolders(), before);
   mkdirSync(join(root, "x"), { recursive: true });
 });

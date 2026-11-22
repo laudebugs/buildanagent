@@ -29,8 +29,8 @@ const HARNESS_ERROR = Symbol.for("buildanagent.harness.HarnessError");
 /**
  * Thrown for a mistake in how the harness is called, and for a sandbox that is unavailable or refuses a file
  * operation. `sandbox_unavailable`: a backend can't start (`SandboxUnavailableError`). `sandbox_denied`: the policy
- * refused a file read or write (`SandboxDeniedError`). `sandbox_disposed`: the sandbox was disposed before the call. `sandbox_not_found`: a file to read doesn't exist.
- * `sandbox_io_failed`: a file call failed for a reason that is neither a missing file nor a denial.
+ * refused a file read or write (`SandboxDeniedError`). `sandbox_disposed`: the sandbox was disposed before the call.
+ * `sandbox_not_found`: a file to read doesn't exist. `sandbox_io_failed`: a file call failed for a reason that is neither a missing file nor a denial.
  * `unsafe_sandbox_not_acknowledged`: `noneSandbox()` was called without `unsafe: true`. `invalid_sandbox_options`: a
  * sandbox option, manifest or command is unusable. `invalid_spawn_env`: `spawnEnv()` was given a name or value that
  * can't be part of a clean environment. `duplicate_tool`: a tool registry already holds a tool or alias by that name
