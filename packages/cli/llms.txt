@@ -6,8 +6,23 @@ The sections of README.md and every public export, generated from this package's
 
 ## Docs
 
-- [The `buildanagent` command comes next](README.md#the-buildanagent-command-comes-next)
+- [Run one turn and read its events as JSON lines](README.md#run-one-turn-and-read-its-events-as-json-lines)
+- [Chat, and answer approvals at the terminal](README.md#chat-and-answer-approvals-at-the-terminal)
+- [Watch the cost and the context fill](README.md#watch-the-cost-and-the-context-fill)
+- [List, show, search and replay stored sessions](README.md#list-show-search-and-replay-stored-sessions)
+- [Fix a stuck lock or change the approval keys](README.md#fix-a-stuck-lock-or-change-the-approval-keys)
+- [Nothing leaves your machine unless a flag says where](README.md#nothing-leaves-your-machine-unless-a-flag-says-where)
+- [Run the CLI from your own program](README.md#run-the-cli-from-your-own-program)
 
 ## Exports from `@buildanagent/cli`
 
-- `PACKAGE_NAME`: `@buildanagent/cli`, the buildanagent command line, which runs the harness in a terminal.
+- `class CliError`: Thrown for a command the CLI can't run as given.
+- `type CliErrorCode`: Why a `CliError` was thrown.
+- `interface CliIo`: The terminal a command talks to.
+- `interface CliOptions`: The options of `runCli()`.
+- `HELP`: The help `--help` prints.
+- `interface HostRules`: The permission rules a host adds to the harness's default ask rules.
+- `isCliError()`: True for a `CliError`, including one from another copy of the package.
+- `linesOf()`: Splits a stream of text or bytes into lines at `\n`, dropping a `\r` before it.
+- `PACKAGE_NAME`: The package's npm name, `@buildanagent/cli`.
+- `runCli()`: Runs the `buildanagent` command line `argv`, the arguments after the program's name, and resolves with the exit status.

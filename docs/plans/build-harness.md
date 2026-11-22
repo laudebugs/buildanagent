@@ -781,7 +781,7 @@ The guide says to start with the log, because context layers, pauses, replay, th
 | [N27](../todos/done/N27-dispatcher-core.md) | Dispatcher and in-process transport: `initialize`, turns, events, `turn/settled` | N26, N7, B16 | M |
 | [N28](../todos/done/N28-server-requests-backpressure.md) | Server requests, cancellation, bounded queues and reconnect | N27, N13 | M |
 | [N29](../todos/ready/N29-stdio-transport.md) | stdio transport and the framing check (HD6) | N28 | S |
-| [N30](../todos/ready/N30-cli.md) | CLI: one-shot JSON mode, line-mode chat, and `sessions` list, show, search and replay | N28 | M |
+| [N30](../todos/ongoing/N30-cli.md) | CLI: one-shot JSON mode, line-mode chat, and `sessions` list, show, search and replay; `rpc` waits for N29 | N28 | M |
 
 ### 4.7 Stage 7 adds telemetry, completion checks, evals and ablation
 
