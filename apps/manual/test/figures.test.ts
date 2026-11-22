@@ -38,6 +38,7 @@ test("the book's figures hold its chapters' figures, and the fixtures hold their
     "talking-to-a-model/resent-history",
     "talking-to-a-model/stream-fold",
     "talking-to-a-model/taxi-meter",
+    "testing-offline-and-a-first-agent/mock-seams",
     "tools/tool-round-trip",
     "tools/vending-machine",
   ]);
