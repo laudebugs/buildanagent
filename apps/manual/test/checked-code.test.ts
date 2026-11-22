@@ -198,6 +198,7 @@ function realListing(harness: string, path: string, region: string): WrittenChap
   const lines = cutRegion(readFileSync(join(REPO_ROOT, path), "utf8"), region);
   assert.ok(Array.isArray(lines), `${path} should have the region ${region}`);
   const pkg = JSON.parse(readFileSync(join(REPO_ROOT, harness, "package.json"), "utf8"));
+  const pin = `ai@${pkg.dependencies.ai}`;
   const chapter = { slug: "real", title: "Real", opening: "code", number: 1, part: 0 } as const;
   return {
     chapter: chapter as unknown as WrittenChapter["chapter"],
@@ -210,7 +211,7 @@ function realListing(harness: string, path: string, region: string): WrittenChap
         chapter: chapter as unknown as WrittenChapter["chapter"],
         number: "1.1",
         line: 1,
-        source: { path, region, lines, harness, pin: `ai@${pkg.dependencies.ai}`, lang: "typescript" },
+        source: { path, region, lines, harness, pin, recordedPin: pin, lang: "typescript" },
       },
     ],
   };

@@ -33,6 +33,16 @@ function compilerOptions(): ts.CompilerOptions {
   };
 }
 
+/**
+ * The scope of our own workspace packages. Their `package.json` points `types` at a `dist/` that exists only after a
+ * build, so the check reads them through their `source` condition, as their tests and type-checks do (ADR 0050). Only
+ * our scope gets the condition: a third-party package may declare `source` for files its tarball leaves out.
+ */
+const WORKSPACE_SCOPE = "@buildanagent/";
+
+/** The compiler options for a specifier or an entry: the shared ones, plus `source` for our own packages. */
+const withSource = (options: ts.CompilerOptions): ts.CompilerOptions => ({ ...options, customConditions: ["source"] });
+
 /** The extensions a resolved import may have for its exports to be read: declarations, or TypeScript source. */
 const TYPED = new Set([".d.ts", ".d.mts", ".d.cts", ".ts", ".mts", ".cts", ".tsx"]);
 
@@ -298,7 +308,8 @@ export class CodeNames {
     if (found === undefined) {
       const listed = join(this.#repoRoot, source.path);
       const ts = typescript();
-      const resolved = ts.resolveModuleName(specifier, listed, this.#compilerOptions, ts.sys).resolvedModule;
+      const options = specifier.startsWith(WORKSPACE_SCOPE) ? withSource(this.#compilerOptions) : this.#compilerOptions;
+      const resolved = ts.resolveModuleName(specifier, listed, options, ts.sys).resolvedModule;
       if (resolved === undefined || !TYPED.has(resolved.extension)) {
         found =
           `${source.path} imports ${specifier}, whose .d.ts cannot be found from ${source.harness}; ` +
@@ -314,12 +325,16 @@ export class CodeNames {
     return found;
   }
 
-  /** The names a module's entry exports, or undefined when the entry is no module, such as an ambient declaration. */
+  /**
+   * The names a module's entry exports, or undefined when the entry is no module, such as an ambient declaration. An
+   * entry in our own packages' source reads its re-exports of our other packages through `source` too.
+   */
   #exportsOf(entry: string): ReadonlySet<string> | undefined {
     if (!this.#exports.has(entry)) {
+      const ours = !entry.includes("/node_modules/") && entry.startsWith(join(this.#repoRoot, "packages/"));
       const program = typescript().createProgram({
         rootNames: [entry],
-        options: this.#compilerOptions,
+        options: ours ? withSource(this.#compilerOptions) : this.#compilerOptions,
         host: this.#compilerHost,
       });
       const checker = program.getTypeChecker();

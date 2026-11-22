@@ -1,9 +1,9 @@
 // Compares each committed verify/*/results/*.json with the working copy after a run, ignoring what
 // legitimately varies between runs: timings ("ms", "checkedAt"), raw stdout ("tail"), the checkout path
 // and temp dirs. For our own examples (run-examples.json) it compares only each example's verdict.
-// Transcripts (results/transcripts/*.json) are written normalised, so they are compared byte for byte; a
-// transcript a run wrote that is not committed, a committed one the run deleted, and a committed one whose
-// example no longer exists also count as drift.
+// Transcripts (results/transcripts/*.json, in verify/* and in our own packages/*) are written normalised, so they
+// are compared byte for byte; a transcript a run wrote that is not committed, a committed one the run deleted, and a
+// committed one whose example no longer exists also count as drift.
 // Exits 1 and lists the files whose normalized content changed, so a scheduled verify flags drift.
 import { execFileSync } from "node:child_process";
 import { existsSync, readFileSync } from "node:fs";
@@ -57,8 +57,10 @@ const git = (...args) =>
     .split("\n")
     .filter(Boolean);
 // A git pathspec's "*" also matches "/", so this covers results/transcripts/ too.
-const changed = git("diff", "--name-only", "--", "verify/*/results/*.json");
-const TRANSCRIPT = /^verify\/[^/]+\/results\/transcripts\/[^/]+\.json$/;
+// Our own packages keep only transcripts under results/, which packages/sdk/test/book-examples.test.ts writes.
+const PACKAGE_TRANSCRIPTS = "packages/*/results/transcripts/*.json";
+const changed = git("diff", "--name-only", "--", "verify/*/results/*.json", PACKAGE_TRANSCRIPTS);
+const TRANSCRIPT = /^(?:verify|packages)\/[^/]+\/results\/transcripts\/[^/]+\.json$/;
 
 const drifted = [];
 for (const file of changed) {
@@ -102,16 +104,16 @@ for (const file of changed) {
   }
 }
 
-const untracked = git("ls-files", "--others", "--exclude-standard", "--", "verify/*/results/*");
+const untracked = git("ls-files", "--others", "--exclude-standard", "--", "verify/*/results/*", PACKAGE_TRANSCRIPTS);
 drifted.push(...untracked.map((f) => `${f} (untracked)`));
 
 // A transcript stays committed after its example is renamed or deleted unless someone removes it.
-for (const file of git("ls-files", "--", "verify/*/results/transcripts/*.json")) {
-  const [, sdk, name] = /^verify\/([^/]+)\/results\/transcripts\/(.+)\.json$/.exec(file) ?? [];
-  if (sdk === undefined) continue;
-  const examples = path.join(root, "verify", sdk, "examples");
+for (const file of git("ls-files", "--", "verify/*/results/transcripts/*.json", PACKAGE_TRANSCRIPTS)) {
+  const [, harness, name] = /^((?:verify|packages)\/[^/]+)\/results\/transcripts\/(.+)\.json$/.exec(file) ?? [];
+  if (harness === undefined) continue;
+  const examples = path.join(root, harness, "examples");
   const found = [".ts", ".mts", ".tsx"].some((ext) => existsSync(path.join(examples, `${name}${ext}`)));
-  if (!found) drifted.push(`${file} (no example verify/${sdk}/examples/${name}.ts)`);
+  if (!found) drifted.push(`${file} (no example ${harness}/examples/${name}.ts)`);
 }
 
 if (drifted.length) {
