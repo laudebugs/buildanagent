@@ -1,6 +1,6 @@
 # Fact-check: Agents people can watch: UIs, browsers and taking over
 
-The claims log for [`agents-people-can-watch.md`](../src/content/chapters/agents-people-can-watch.md), checked section by section as each was drafted (BK21). Each row names the claim, the section it sits in, the verdict and the primary source. Pages were read on 2026-11-22 where a row says so, and otherwise rely on the cited report's own log. Where a row says "the report's", the chapter attributes the claim to the report and this chapter did not re-read its source. Package claims are checked against the harness pins of that date: `@openai/agents@0.21.0` and `ai@7.0.162`.
+The claims log for [`agents-people-can-watch.md`](../src/content/chapters/agents-people-can-watch.md), checked section by section as each was drafted (BK21). Each row names the claim, the section it sits in, the verdict and the primary source. Pages were read on 2026-11-22 where a row says so, and otherwise rely on the cited report's own log. Where a row says "the report's", the chapter attributes the claim to the report and this chapter did not re-read its source. Package claims are checked against the harness pins of that date: `@openai/agents@0.21.0` and `ai@7.0.162`. On 2026-11-22 its OpenAI rows were re-read against `@openai/agents@0.22.0` and the `v0.22.0` docs; rows cite those versions, and a row that records a past run says so.
 
 ## The research question, answered before drafting
 

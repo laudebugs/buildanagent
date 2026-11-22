@@ -20,7 +20,7 @@ const triage = new Agent({ name: "Triage agent", instructions: "Route the user."
 const result = await runner.run(triage, "Where is my refund?"); // book:note run
 // #endregion
 
-// handoffs.mdx says "Refund Agent" becomes `transfer_to_refund_agent`; 0.21.0 keeps the case and
+// handoffs.mdx says "Refund Agent" becomes `transfer_to_refund_agent`; 0.22.0 keeps the case and
 // only replaces spaces (`transfer_to_Refund_Agent`). See docs/reference/openai-agents-sdk/fact-check.md.
 check(
   offered.length === 1 && offered[0] === "transfer_to_Billing_agent",
