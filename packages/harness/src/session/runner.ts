@@ -569,7 +569,12 @@ export async function resumeTurn<H = unknown>(
   const path = await session.path();
   const context = contextOf(path);
   const waiting = new Set((context.pending ?? []).map((request) => request.id));
+  const answered = new Set<string>();
   for (const resolution of options.resolutions) {
+    if (answered.has(resolution.requestId)) {
+      throw new HarnessError("approval_not_pending", `request ${resolution.requestId} is answered twice in one resume`);
+    }
+    answered.add(resolution.requestId);
     if (!waiting.has(resolution.requestId)) {
       throw new HarnessError("approval_not_pending", `no request ${resolution.requestId} is waiting in this session`);
     }

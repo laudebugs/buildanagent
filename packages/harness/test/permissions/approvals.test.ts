@@ -389,4 +389,23 @@ describe.each(BACKENDS)("%s", (_name, make) => {
     assert.equal(other.adapter.calls.length, 1, "the resume called the model it was given");
     await session.close();
   });
+  test("answering one request twice in one resume is refused before anything is written", async () => {
+    const backend = make();
+    const { harness } = setup([call()]);
+    const session = await open(backend);
+    await runTurn(session, harness, { input: "refund o1" });
+    const [waiting] = await createApprovals(harness).pending(session);
+    const id = waiting?.request.id as string;
+    const before = (await entriesOf(backend)).length;
+    await assert.rejects(
+      () =>
+        createApprovals(harness).resolve(session, [
+          { requestId: id, decision: "allow" },
+          { requestId: id, decision: "deny" },
+        ]),
+      (error) => isHarnessError(error) && error.code === "approval_not_pending",
+    );
+    assert.equal((await entriesOf(backend)).length, before);
+    await session.close();
+  });
 });

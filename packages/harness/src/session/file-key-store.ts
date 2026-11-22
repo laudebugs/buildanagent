@@ -7,7 +7,8 @@
 
 import { Buffer } from "node:buffer";
 import { randomBytes, randomUUID } from "node:crypto";
-import { chmod, link, lstat, mkdir, open, readFile, rename, rm, stat } from "node:fs/promises";
+import { constants } from "node:fs";
+import { chmod, link, mkdir, open, rename, rm, stat } from "node:fs/promises";
 import { homedir } from "node:os";
 import { dirname, join } from "node:path";
 import process from "node:process";
@@ -67,25 +68,34 @@ async function write(path: string, ring: KeyRing, exclusive: boolean): Promise<v
 }
 
 async function read(path: string): Promise<KeyRing | undefined> {
-  const info = await lstat(path).catch((error: NodeJS.ErrnoException) => {
-    if (error.code === "ENOENT") return undefined;
-    throw error;
-  });
-  if (info === undefined) return undefined;
-  if (info.isSymbolicLink())
-    throw invalid("the key file is a symbolic link, which could point at a ring someone else wrote");
-  // The file must be ours: in a shared folder another user could put a ring of their own there.
-  if (process.platform !== "win32" && info.uid !== process.getuid?.()) {
-    throw invalid("the key file belongs to another user");
-  }
-  // Windows reports a file mode that has no group or other bits to read, so only POSIX systems check it.
-  if (process.platform !== "win32" && (info.mode & 0o077) !== 0) {
-    throw invalid("the key file can be read by others; run chmod 600 on it, or rotate keys that may have leaked");
-  }
+  // One open decides everything: the checks run on the opened file, so the path can't be swapped between check and read.
+  const handle = await open(path, constants.O_RDONLY | (constants.O_NOFOLLOW ?? 0)).catch(
+    (error: NodeJS.ErrnoException) => {
+      if (error.code === "ENOENT") return undefined;
+      if (error.code === "ELOOP") {
+        throw invalid("the key file is a symbolic link, which could point at a ring someone else wrote");
+      }
+      throw error;
+    },
+  );
+  if (handle === undefined) return undefined;
   try {
-    return parseKeyRing(await readFile(path, "utf8"));
-  } catch (cause) {
-    throw invalid("the key file is not a key ring", cause);
+    const info = await handle.stat();
+    // The file must be ours: in a shared folder another user could put a ring of their own there.
+    if (process.platform !== "win32" && info.uid !== process.getuid?.()) {
+      throw invalid("the key file belongs to another user");
+    }
+    // Windows reports a file mode that has no group or other bits to read, so only POSIX systems check it.
+    if (process.platform !== "win32" && (info.mode & 0o077) !== 0) {
+      throw invalid("the key file can be read by others; run chmod 600 on it, or rotate keys that may have leaked");
+    }
+    try {
+      return parseKeyRing(await handle.readFile("utf8"));
+    } catch (cause) {
+      throw invalid("the key file is not a key ring", cause);
+    }
+  } finally {
+    await handle.close();
   }
 }
 

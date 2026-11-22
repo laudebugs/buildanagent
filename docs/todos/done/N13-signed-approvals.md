@@ -63,14 +63,13 @@ Make every approval a signed pause in the log that survives restarts and resumes
 
 ## Outcome
 
-All the criteria hold.
-
-- `approval_requested` also holds the input the call would run with. The request stores only the input's hash, and the SDK's resume needs the input, so a second process finds it in the entry. The twenty entry types are now in the union, the schemas and the READMEs.
-- `toContext()` rebuilds a paused run's `pending` and `pendingInputs` from those entries, so the N7 limit is gone: a rebuilt context deep-equals the run's, a paused one included.
+- `approval_requested` also holds the input the call would run with. The request stores only the input's hash, and the SDK's resume needs the input, so a second process finds it in the entry.
+- The union, both schemas, the fixtures and the READMEs now count twenty entry types.
+- `toContext()` rebuilds a paused run's `pending` and `pendingInputs` from those entries, so the earlier limit, that a rebuilt context could not resume a paused run, is gone: a rebuilt context deep-equals the run's, a paused one included.
 - The recorder writes `approval_requested` from the SDK's `approval_request` event, and the harness's own observers wait for the writes, so a client never hears of a request the log lacks.
 - `createApprovals(harness)` is in `@buildanagent/harness/session`. `pending()` returns each request with its input, and the protocol's `approval/list` (N27) takes the requests from it. `resolve()` writes the answers first, rechecks each allow through the pipeline (a deny wins, a repeated question does not stop an approved call), and passes `hostContext` as the SDK's `app`, so a request bound to a caller resumes only for the same caller.
 - `fileKeyStore()` is in the Node-only `session/jsonl` entry. It refuses a ring that others can read, and `prune()` never removes the current key.
-- The second-process test runs the resolver with `--conditions=source` and a resolve hook that drops that condition for pi-schema, whose 1.5.2 `source` condition names a missing file.
+- The second-process test needs a resolve hook because pi-schema 1.5.2's `source` condition names a file that does not exist.
 - Out of scope, with its owner: sticky and grouped resolutions (N14) and the protocol's server requests (N28).
 
 ## Risks and open questions
