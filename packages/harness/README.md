@@ -510,6 +510,57 @@ The loader hashes and checks every folder before it imports any, so a refusal ru
 
 Two limits remain. The pin covers the files inside each folder and nothing an extension imports from outside it, such as a relative path that leaves the folder or a package from the project's `node_modules`. And the lock file sits inside the project it pins, so anyone who can edit the project can pin their own changes: the pin catches a change nobody meant, not an attacker who holds the project. Pin a project only after you have read its extensions.
 
+## MCP servers connect one at a time, each in its own era, and their tools wait behind tool search
+
+`@buildanagent/harness/mcp` is the MCP client, built on `@modelcontextprotocol/client` 2.4.0 and kept behind its own `McpConnection` interface, so the registry never sees the library. `createMcpManager({ servers, registry })` checks every server's config at once and starts nothing until `connect()`. That call connects each server on its own, so one slow or broken server never holds back the rest, and it resolves with one status per server: `connected` with the server's era and its tools' canonical names, or `failed` with the error. This example connects one server over stdio:
+
+```ts
+export async function connectDocs(registry: ToolRegistry, command: string, args: string[], token: string) {
+  const manager = createMcpManager({
+    registry,
+    servers: [
+      {
+        name: "docs",
+        transport: { kind: "stdio", command, args, env: ["DOCS_REGION"], setEnv: { DOCS_TOKEN: token } },
+        requestTimeoutMs: 30_000,
+      },
+    ],
+  });
+  const [status] = await manager.connect();
+  if (status?.status === "failed") throw status.error;
+  return { manager, era: status?.era, tools: status?.tools ?? [] };
+}
+```
+
+A stdio server gets `spawnEnv()`'s environment and nothing else from the parent: `PATH`, a fresh temp `HOME`, `TMPDIR` and `LANG`, plus the parent variables that `env` names and the values that `setEnv` sets. The harness spawns the child itself, because the library's own stdio transport adds the parent's `HOME`, `LOGNAME`, `PATH`, `SHELL`, `TERM` and `USER` to the environment it is given. `env` follows `spawnEnv()`'s rules, so a name such as `GITHUB_TOKEN` is refused there, and the token goes in `setEnv` with a value the host read from its own secret store. A server named in `transport: { kind: "in_process", channel }` runs in the harness's process instead, over a channel such as the `InMemoryTransport` of `@modelcontextprotocol/server`, and needs no Node.
+
+**Each server negotiates its own era.** The client sends `server/discover` first, and a server that answers it connects in the 2026-07-28 era. A server that refuses the probe, or stays silent past `probeTimeoutMs` (default 5,000 ms), gets `initialize` and connects as `legacy`. A stdio server that exits on the probe, as servers on some older SDKs do, is started once more and spoken to as legacy from the start. `connection.era` and `connection.protocolVersion` record the outcome, so a 2026-07-28 server and a legacy one sit side by side in one harness.
+
+**The tools are registered all or none.** A server's tools take the source `mcp:<name>`, so the registry names them `mcp__<name>__<tool>` and defers them until tool search names them; `exposure` in the config changes that. A server name is 1 to 32 characters from `A-Z`, `a-z`, `0-9` and `-`, and two servers can't share one in any letter case, so no server can take another's prefix or a built-in's name. The manager refuses a whole list, registers none of it and closes the server, with an `McpError` of code `mcp_tool_list_refused`, when the list breaks a rule:
+
+- it holds more than `maxTools` tools (default 256);
+- a name is over 128 characters or holds a control character;
+- an input schema is not an object schema, or is over 64 KiB;
+- two names match once normalised to NFKC and lower case, such as `Search` and `search`.
+
+A description over 4,096 characters is cut, and the registry hashes a name that needs cleaning.
+
+**The server's hints change nothing.** Every MCP tool is registered as not first-party and as a write, whatever its `readOnlyHint` says, so the loop never runs its calls together or runs one again after a crash because of a server's claim. `listTools()` keeps the hints for display only. The tools run through the turn's own tool pipeline, so the permission pipeline decides every call before it is sent, and a denied call never reaches the server. The write cap applies to every result, as to any tool, and the results are stored as `untrusted`.
+
+**Every failure is bounded.** A call fails with an `McpError` of code `mcp_call_failed`, whose `failure` says why:
+
+- `closed`: the server exited or crashed, or the connection closed.
+- `timeout`: no answer came within `requestTimeoutMs` (default 60,000 ms).
+- `aborted`: the turn's signal fired.
+- `input_required`: the server asked for input from the user, which this harness does not supply yet.
+- `server_error`: the server answered with an error, and its message is cut to 500 characters.
+
+A server that fails to start, or to finish its handshake within `connectTimeoutMs` (default 30,000 ms), fails to connect with `mcp_connect_failed`. A stdio server's line over `maxLineBytes` (default 8 MiB) closes the connection, and a line that is not a JSON object is dropped and logged. Only the newest `maxStderrBytes` (default 64 KiB) of its standard error are kept, for `connection.stderr()`, and they never reach the model.
+
+**Closing ends the whole process group.** `manager.close()` ends each server's input, waits `closeGraceMs` (default 2,000 ms), sends `SIGTERM`, waits again and then kills the group, so a server that ignores the close, and anything it started, still ends. The temp `HOME` is removed, and a tool of a closed server fails when called. If the harness's process exits without closing, an exit handler kills every group still running. `createMcpManager({ ..., mcp: false })` switches the component off: `connect()` resolves with an empty list, starts no server and registers nothing.
+
+Two limits remain. A server's notice that its tool list changed is logged through `log`, and its tools stay as registered at connect. And a server's request for user input fails the call, because whether such a request may pause a turn for a person is still the owner's decision.
+
 ## A call that needs a person is a signed pause that any process with the key file can resume
 
 When the permission pipeline's gate returns `ask`, the turn ends `awaiting_approval`, and the signed request is the log's `approval_requested` entry, written before any observer of the harness sees the event. A client that listens on the run's own handle, not on the harness's observers, can hear of a request a moment before the log has it. The harness never blocks on an approval, so a restart loses nothing. The entry holds the SDK's request unchanged, with the input the call would run with. It names its key by id and holds no key bytes.
