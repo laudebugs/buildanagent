@@ -3,7 +3,7 @@
 | Field | Value |
 | --- | --- |
 | ID | `T45` |
-| Status | `ready` |
+| Status | `done` |
 | Plan | [Book plan §5, BK20](../../plans/build-book.md#bk20-new-verify-examples-fill-the-gaps-the-coverage-review-found-accepted) |
 | Round / milestone | Round T (textbook), MT |
 | Depends on | [T5](../done/T5-book-interactive-listings.md), [U19](../done/U19-research-a2a.md) |
@@ -18,7 +18,7 @@ Write a new type-checked, mock-run example in `verify/google-adk/examples/` so S
 - [U19 report, Examples](../../research/a2a/agent-to-agent-protocols.md#one-new-example-on-adk-would-give-t37-its-listing-and-a-10-example-should-wait-for-a-release): the five checks, and why checks 2 and 5 are still unrun
 - [U19 report, SDKs](../../research/a2a/agent-to-agent-protocols.md#one-of-our-eight-sdks-ships-a2a-in-typescript-and-it-speaks-03-not-10): ADK 2.5.0 speaks protocol 0.3, and its `basePath` typings drift from its code
 - [U19 SDK notes, Google ADK](../../research/a2a/notes/sdk-support.md#google-adk-googleadk-250): the loopback route, `allowCrossOriginRpc` and the card host rule
-- [Book plan BK20](../../plans/build-book.md#bk20-new-verify-examples-fill-the-gaps-the-coverage-review-found-accepted) and the section's todo, [T37](T37-section-a2a.md)
+- [Book plan BK20](../../plans/build-book.md#bk20-new-verify-examples-fill-the-gaps-the-coverage-review-found-accepted) and the section's todo, [T37](../ready/T37-section-a2a.md)
 - [AGENTS.md, process for documenting an SDK](../../../AGENTS.md#process-for-documenting-an-sdk) and [coding standards](../../../AGENTS.md#coding-standards): mock models, exact pins, the one-week age rule
 - `verify/google-adk/examples/lib/check.ts`: the `ScriptedLlm` and `check()` helpers this example reuses
 
@@ -33,33 +33,33 @@ Write a new type-checked, mock-run example in `verify/google-adk/examples/` so S
 
 **Out of scope** (and which todo covers it)
 
-- An A2A 1.0 example: [T48](T48-example-a2a-1-0.md), held until a pinned SDK ships 1.0 support
-- Section T37's prose: [T37](T37-section-a2a.md)
+- An A2A 1.0 example: [T48](../ready/T48-example-a2a-1-0.md), held until a pinned SDK ships 1.0 support
+- Section T37's prose: [T37](../ready/T37-section-a2a.md)
 - An A2A client or server in our own harness: the [harness plan's non-goals](../../plans/build-harness.md#1-goal-and-non-goals) exclude it from v1
 
 ## Tasks
 
-- [ ] Add `"@a2a-js/sdk": "0.3.14"` to `verify/google-adk/package.json` with `pnpm add --filter @buildanagent/verify-google-adk @a2a-js/sdk@0.3.14`, and confirm that the lockfile still resolves one copy.
-- [ ] Drive a "billing" agent with `ScriptedLlm`, and expose it through `toA2a` on `127.0.0.1` with `bearerTokenUserBuilder`. Set `basePath` explicitly, because the typings document a default of `"a2a"` while the code mounts at the root.
-- [ ] Delegate to it from a parent agent through a `RemoteA2AAgent` that reads the loopback card, under an `InMemoryRunner`.
-- [ ] Assert U19's five checks with `check()`:
+- [x] Add `"@a2a-js/sdk": "0.3.14"` to `verify/google-adk/package.json` with `pnpm add --filter @buildanagent/verify-google-adk @a2a-js/sdk@0.3.14`, and confirm that the lockfile still resolves one copy.
+- [x] Drive a "billing" agent with `ScriptedLlm`, and expose it through `toA2a` on `127.0.0.1` with `bearerTokenUserBuilder`. Set `basePath` explicitly, because the typings document a default of `"a2a"` while the code mounts at the root.
+- [x] Delegate to it from a parent agent through a `RemoteA2AAgent` that reads the loopback card, under an `InMemoryRunner`.
+- [x] Assert U19's five checks with `check()`:
   1. the card is served at `/.well-known/agent-card.json` with `protocolVersion: "0.3.0"` and two interfaces, JSON-RPC and HTTP+JSON;
   2. the parent's run yields the remote agent's reply as an event, through the same interface as an in-process subagent;
   3. a request without the bearer token never reaches the agent, which ADK documents as surfacing "as an HTTP 500 rather than a 401";
   4. `toA2a` with neither authentication nor `allowUnauthenticated: true` refuses to mount the server;
   5. a remote tool marked long-running ends the turn with an `input-required` status.
-- [ ] Close the server in a `finally` block, and bind only to loopback.
-- [ ] Record in the example's header that ADK speaks protocol 0.3 as of November 2026, and whether checks 2 and 5 behaved as U19 read them in the compiled code.
-- [ ] Run the harness's `pnpm test` twice, and commit its updated `results/` and transcript.
+- [x] Close the server in a `finally` block, and bind only to loopback.
+- [x] Record in the example's header that ADK speaks protocol 0.3 as of November 2026, and whether checks 2 and 5 behaved as U19 read them in the compiled code.
+- [x] Run the harness's `pnpm test` twice, and commit its updated `results/` and transcript.
 - [ ] Draft the example's header comment and README line with `/anthropic-skills:writing`, fact-check each claim about the SDK against its pinned `.d.ts` or compiled code, then review the copy with `/anthropic-skills:writing-review` and fix every finding.
 
 ## Acceptance criteria
 
-- [ ] `verify/google-adk/package.json` pins `@a2a-js/sdk` at exactly `0.3.14`
-- [ ] The new example type-checks and passes in the harness's `pnpm test`, offline, with all five checks passing, or the header and T37 record which check failed and why
-- [ ] No socket listens on any address but loopback, and no mock model calls a tool that touches the host
-- [ ] The results-drift check passes after the committed results update
-- [ ] `pnpm check`, `pnpm typecheck` and `pnpm test` pass offline from the repo root
+- [x] `verify/google-adk/package.json` pins `@a2a-js/sdk` at exactly `0.3.14`
+- [x] The new example type-checks and passes in the harness's `pnpm test`, offline, with all five checks passing, or the header and T37 record which check failed and why
+- [x] No socket listens on any address but loopback, and no mock model calls a tool that touches the host
+- [x] The results-drift check passes after the committed results update
+- [x] `pnpm check`, `pnpm typecheck` and `pnpm test` pass offline from the repo root
 
 ## Tests
 
@@ -77,11 +77,15 @@ Write a new type-checked, mock-run example in `verify/google-adk/examples/` so S
 - ADK's open pull request #1365 would move it to `@a2a-js/sdk` `^1.3.0`. If our weekly SDK-update job brings that release before this todo starts, re-plan the example for protocol 1.0 and fold T48 into it.
 - An HTTP server inside a test may leave the process open. Close it and give the run a timeout.
 
+## Outcome
+
+`verify/google-adk/examples/09-a2a-delegation.ts` runs both ends of A2A on `127.0.0.1`: a billing agent on a scripted model served by `toA2a` behind `bearerTokenUserBuilder`, and a parent that transfers to it through a `RemoteA2AAgent`. All five checks pass offline, and two mutants of the example (an open server, a plain tool in place of the long-running one) fail them. Checks 2 and 5, which U19 had read in compiled code but not run, both held: the remote reply is an event of the parent's run, authored by the remote agent, and a long-running remote tool ends the task in `input-required` with the pending call marked long-running on the parent's events. Three details the section should teach came out of running it. The card string given to `RemoteA2AAgent` is a base URL that the SDK resolves `.well-known/agent-card.json` against like a relative URL, so a full card URL gets a 404 and a base under `/a2a` needs its trailing slash (a new finding, A3, in [the ADK reference log](../../reference/google-adk/fact-check.md)). ADK's default client sends no bearer token, so a token-protected server needs a `clientFactory` with a `fetch` that adds the header. A refused request is an HTTP 500, as ADK documents. `@a2a-js/sdk` 0.3.14 is a direct dependency, and the lockfile still holds one copy. The example's verdict joins `results/run-examples.json`, and its transcript, `results/transcripts/09-a2a-delegation.json`, was byte for byte the same across two runs. The claims are logged in [the example's fact-check log](../../plans/reviews/fact-check-google-adk-a2a-example.md), rows T45-1 to T45-15, and [T37](../ready/T37-section-a2a.md) now records what it may cite. The writing review is left for the pull request, after the code reviews.
+
 ## Definition of done
 
-- [ ] Claimed: the first commit moved this file `ready/` → `ongoing/` (Status `ongoing`)
-- [ ] Prose drafted with `/anthropic-skills:writing`, and changed claims re-checked against their sources
-- [ ] `pnpm check`, `pnpm typecheck` and `pnpm test` pass locally; pushed after each meaningful step
-- [ ] This file moved `ongoing/` → `done/` (Status `done`) in the last work commit, and the plan's todo table updated
+- [x] Claimed: the first commit moved this file `ready/` → `ongoing/` (Status `ongoing`)
+- [x] Prose drafted with `/anthropic-skills:writing`, and changed claims re-checked against their sources
+- [x] `pnpm check`, `pnpm typecheck` and `pnpm test` pass locally; pushed after each meaningful step
+- [x] This file moved `ongoing/` → `done/` (Status `done`) in the last work commit, and the plan's todo table updated
 - [ ] Two code-review rounds run on the pull request (`/code-review high --max-findings default`, then `medium` and `low` after more than 6 confirmed findings, otherwise `low`), with every finding fixed or explained in a commit message
 - [ ] Copy reviewed with `/anthropic-skills:writing-review` after the code changes, with its findings fixed and the rubric scores in the pull request description
