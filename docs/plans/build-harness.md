@@ -645,6 +645,7 @@ declare function createDispatcher(harness: Harness, options?: { queueSize?: numb
 declare function inProcessTransport(dispatcher: Dispatcher): ClientConnection;
 declare function stdioTransport(dispatcher: Dispatcher, io: { input: StdioInput; output: StdioOutput; log?: (line: string) => void }, options?: { maxLineBytes?: number; signal?: AbortSignal }): Promise<void>; // Node or Web streams (N29)
 // Revision (plan review 2): N44 retypes io over Web ReadableStream and WritableStream, with a Node adapter, so the transport runs off Node
+// Revision (N29, 2026-11-22): stdioTransport already takes Node and Web streams by their shape, so N44 adds the WebSocket transport and the Web-stream cases
 
 // @buildanagent/harness/telemetry (guide §9; HD7). SEMCONV_GENAI_COMMIT and GEN_AI_ATTRIBUTES come from @buildanagent/sdk/otel.
 declare function projectSpans(entries: AsyncIterable<SessionEntry>, options: {
@@ -809,7 +810,7 @@ No todo is size L. The longest dependency chain runs N1 → N2 → N3 → N4 →
 | [N41](../todos/done/N41-scheduler-wake.md) | `Scheduler.wake` seam and its in-process implementation | N4 | S |
 | [N42](../todos/done/N42-read-only-key-store.md) | Optional `rotate()` and `prune()`, and a secret-backed `KeyStore` | N13 | S |
 | [N43](../todos/ready/N43-remote-sandbox-egress-policy.md) | Remote `SandboxClient` extensions and `EgressPolicy` compiled per backend | N15, N20 | M |
-| [N44](../todos/ready/N44-web-stream-websocket-transport.md) | stdio over Web streams and a WebSocket transport | N29 | M |
+| [N44](../todos/ready/N44-web-stream-websocket-transport.md) | A WebSocket transport, and Web-stream cases for the stdio transport | N29 | M |
 | [N45](../todos/ready/N45-portability-conformance-suite.md) | One conformance suite over the eight portable seams (`EffectStore` is the eighth, ADR 0043) | N41, N42, N43, N44, E7 | M |
 | [N46a](../todos/ready/N46a-cloudflare-state-adapters.md) | Cloudflare store, lock, scheduler, key store and workerd smoke test | N45 | M |
 | [N46b](../todos/ready/N46b-cloudflare-sandbox-backend.md) | Cloudflare Sandbox backend and per-host outbound interception egress, blocked on the owner's decision after N50 | N45, N50 | M |
@@ -905,7 +906,7 @@ Round N interleaves with Round B in the build phase, starting from B1 and B2, an
 - **After B19 and B20:** the harness capstone (N35), whose `initialize` capabilities need B20's list, and the eval stage.
 - **After A17 and A19:** the 10 shared triage tasks (N38b), the one harness todo that waits for Round A.
 - **After Round E (M5e):** E2 gates rebuild and resume (N7) and code-initiated calls (N40), and E7 gates the portability suite (N45). The owner lifted Round E's hold on 2026-11-19, so these gates wait only on E's own order ([close-sdk-gaps plan §4](close-sdk-gaps.md#4-round-e-and-its-todos)).
-- **Stage 8, after N4, N13, N15, N20 and N29:** the scheduler (N41), the read-only key store (N42), the remote sandbox extensions (N43) and the Web-stream transport (N44), then N45 and the per-target adapters (N46a to N48b) and N49's measurement. N46b also waits for N50 and the owner's decision on Cloudflare egress.
+- **Stage 8, after N4, N13, N15, N20 and N29:** the scheduler (N41), the read-only key store (N42), the remote sandbox extensions (N43) and the WebSocket transport (N44), then N45 and the per-target adapters (N46a to N48b) and N49's measurement. N46b also waits for N50 and the owner's decision on Cloudflare egress.
 
 The roadmap graph gains one line, `B1 ─► N1 … N40 ─► N41–N49 ─► M6`. N50 depends on nothing, so it starts at once and feeds N46b. Branches run from B2 to N2, from B13 to N6, from B15b and E2 to N7, from E7 to N45 and from W12 and A19 to N38b. The deferred triage round (M7b) would start after N1 and need N35 for its capstone.
 

@@ -309,3 +309,83 @@ describe("waits that end leave nothing behind", () => {
     reader.release();
   });
 });
+
+/** A dispatcher whose one connection records what it is told, for the tests that drive `send` by hand. */
+function fakeDispatcher(answerMs = 0): {
+  dispatcher: Dispatcher;
+  send: () => (message: ServerMessage) => unknown;
+  events: string[];
+} {
+  let deliver: ((message: ServerMessage) => unknown) | undefined;
+  const events: string[] = [];
+  const dispatcher: Dispatcher = {
+    connect(send) {
+      deliver = send;
+      return {
+        async receive(message) {
+          await new Promise((resolve) => setTimeout(resolve, answerMs));
+          events.push(`received ${JSON.stringify(message)}`);
+        },
+        close() {
+          events.push("closed");
+        },
+      };
+    },
+    async close() {},
+  };
+  return { dispatcher, send: () => deliver as (message: ServerMessage) => unknown, events };
+}
+
+describe("a transport that can't start", () => {
+  test("on a closed dispatcher leaves no listener on either Node stream and the input not flowing", async () => {
+    const { dispatcher } = approvalSetup([]);
+    await dispatcher.close();
+    const input = new PassThrough();
+    const output = new PassThrough();
+    await assert.rejects(stdioTransport(dispatcher, { input, output }), /the dispatcher is closed/);
+    for (const event of ["data", "end", "close", "error"]) assert.equal(input.listenerCount(event), 0, event);
+    for (const event of ["drain", "close", "error"]) assert.equal(output.listenerCount(event), 0, event);
+    assert.notEqual(input.readableFlowing, true);
+  });
+
+  test("on a locked Web input releases the output and closes the connection", async () => {
+    const { dispatcher, events } = fakeDispatcher();
+    const input = new ReadableStream<Uint8Array>();
+    input.getReader();
+    const output = new WritableStream<Uint8Array>();
+    await assert.rejects(stdioTransport(dispatcher, { input, output }));
+    assert.equal(output.locked, false);
+    assert.deepEqual(events, ["closed"]);
+  });
+});
+
+describe("a message JSON can't carry, at the end of the input", () => {
+  test("a refused server request is failed back into the connection before it closes", async () => {
+    // The connection takes 50 ms to handle the answer, so a transport that does not wait closes first.
+    const { dispatcher, send, events } = fakeDispatcher(50);
+    const input = new PassThrough();
+    const done = stdioTransport(dispatcher, { input, output: reading().output });
+    send()({
+      jsonrpc: "2.0",
+      id: "sr-1",
+      method: "tool/call",
+      params: { session: "s", callId: "c1", tool: "t", input: { big: 1n } },
+    });
+    input.end();
+    await within(done, 2000, "the transport");
+    assert.equal(events.length, 2);
+    assert.ok(events[0]?.startsWith('received {"jsonrpc":"2.0","id":"sr-1","error"'), String(events[0]));
+    assert.equal(events[1], "closed");
+  });
+
+  test("a refused response's InternalError waits for room like any line", async () => {
+    const { dispatcher, send } = fakeDispatcher();
+    const input = new PassThrough();
+    const controller = new AbortController();
+    const done = stdioTransport(dispatcher, { input, output: stalled() }, { signal: controller.signal });
+    const waited = send()({ jsonrpc: "2.0", id: 1, result: { big: 1n } } as unknown as ServerMessage);
+    assert.equal(typeof (waited as PromiseLike<void> | undefined)?.then, "function");
+    controller.abort();
+    await within(done, 2000, "the transport");
+  });
+});

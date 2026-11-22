@@ -128,6 +128,13 @@ If a library needs a framing quirk, record it; do not change the protocol for it
 - A server request `encode()` refused left the server waiting forever; it is now failed back into the connection.
 - The versions in both READMEs and this Outcome now say "as of November 2026".
 
+**Review fixes (second round).** The medium review found four more problems; the code fixes have tests in `stdio-transport.test.ts` that fail without them.
+
+- A transport that could not start, on a closed dispatcher or a locked Web input, left listeners or a lock on the streams. It now connects first and releases what it took when a stream can't be taken.
+- The answer to a server request `encode()` refused was not waited for at the end of the input, and the fallback `InternalError` for a refused response ignored a full output. The answer now counts as a command read, and the fallback returns its wait for room.
+- The module comment said the transport waits for the output before it reads on; the connection's queue waits, and the input goes on being read, bounded by the 128-command limit.
+- N44 still planned to retype the transport over Web streams with a Node adapter, which N29 already did. N44 now holds the WebSocket transport and the Web-stream cases for N45's collection.
+
 **Does N30 need N29 merged first?** Only for its `rpc` subcommand. N30's `buildanagent rpc` imports `stdioTransport`, and the `StdioIo` type if it names one, from `@buildanagent/harness/server`, and calls `stdioTransport(dispatcher, { input: process.stdin, output: process.stdout, log })` with a `log` that writes to stderr. The one-shot JSON mode, line-mode chat and `sessions` commands use the in-process transport and need nothing from N29. N30 can start now and add `rpc` after this merges, or list N29 in its Depends on.
 
 **Open questions for the owner.**

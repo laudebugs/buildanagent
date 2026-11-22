@@ -1,9 +1,11 @@
 /**
  * The stdio transport: one client on a byte stream in each direction, one JSON-RPC message per line. It reads with the
  * protocol's `JsonlFramer`, which splits on `\n` only, checks each message's envelope with `decode()`, and hands it to
- * a dispatcher connection. What the server sends goes out through `encode()`, and the transport waits for the output
- * to drain before it takes the next message, so a client that stops reading slows the server down instead of growing
- * its memory: the connection's queue bounds what waits, as `outbox.ts` says.
+ * a dispatcher connection. What the server sends goes out through `encode()`. When the output is full, the connection's
+ * queue waits for it to drain before it hands over the next message, so a client that stops reading slows the server
+ * down instead of growing its memory: the queue bounds what waits, as `outbox.ts` says. The input goes on being read
+ * meanwhile, and the connection's limit of 128 unanswered commands bounds what a client that sends without reading
+ * costs.
  *
  * The output carries protocol lines and nothing else. The transport's own diagnostics go to `log`, which a host points
  * at stderr. The file is portable: it takes Node or Web streams by their shape and imports no Node module, so a Worker
@@ -118,16 +120,36 @@ class StdioSession {
   /** True once the transport closes the connection itself, so its own close is not taken for the server's. */
   #closing = false;
 
+  /**
+   * Connects first, because a closed dispatcher throws, and only then takes the streams, so a failure leaves neither a
+   * listener nor a lock on them. A stream that can't be taken, such as a locked Web stream, closes the connection and
+   * releases what was taken before it.
+   */
   constructor(dispatcher: Dispatcher, io: StdioIo, options: StdioOptions) {
     this.#log = io.log ?? (() => undefined);
-    this.#writer = lineWriter(io.output, this.#stopper);
-    this.#reader = chunkReader(io.input);
     this.#framer = new JsonlFramer(options.maxLineBytes === undefined ? {} : { maxLineBytes: options.maxLineBytes });
     this.#connection = dispatcher.connect((message) => this.#deliver(message), {
       onClose: () => {
         if (!this.#closing) this.#stopper.stop("the connection closed");
       },
     });
+    const abandon = () => {
+      this.#closing = true;
+      this.#connection.close();
+    };
+    try {
+      this.#writer = lineWriter(io.output, this.#stopper);
+    } catch (error) {
+      abandon();
+      throw error;
+    }
+    try {
+      this.#reader = chunkReader(io.input);
+    } catch (error) {
+      this.#writer.release();
+      abandon();
+      throw error;
+    }
   }
 
   async run(signal: AbortSignal | undefined): Promise<void> {
@@ -198,7 +220,12 @@ class StdioSession {
       this.#answerError(error, ErrorCodes.InvalidRequest);
       return;
     }
-    const received = this.#connection.receive(message).catch((error: unknown) => {
+    this.#track(this.#connection.receive(message));
+  }
+
+  /** Keeps a message the connection is handling until its response is queued, so the end of the input waits for it. */
+  #track(receiving: Promise<void>): void {
+    const received = receiving.catch((error: unknown) => {
       this.#log(`stdio: a message failed: ${messageOf(error)}`);
     });
     this.#commands.add(received);
@@ -243,8 +270,7 @@ class StdioSession {
       line = encode(message);
     } catch (error) {
       this.#log(`stdio: a server message could not be written: ${messageOf(error)}`);
-      this.#unwritable(message);
-      return undefined;
+      return this.#unwritable(message);
     }
     return this.#writer.write(encoder.encode(line));
   }
@@ -254,15 +280,17 @@ class StdioSession {
    * client gets an answer. A server request is answered back into the connection with an error, as if the client had
    * failed it, so a tool call ends with an error result. A notification is dropped.
    */
-  #unwritable(message: ServerMessage): void {
-    if (!("id" in message) || message.id === null) return;
+  #unwritable(message: ServerMessage): PromiseLike<void> | undefined {
+    if (!("id" in message) || message.id === null) return undefined;
     if ("method" in message) {
       const answer = { jsonrpc: "2.0" as const, id: message.id, error: UNWRITABLE_REQUEST };
-      // After this delivery returns, so the connection sees the answer once it has recorded the request.
-      queueMicrotask(() => void this.#connection.receive(answer));
-      return;
+      // After this delivery returns, so the connection sees the answer once it has recorded the request. The answer
+      // counts as a command read, so the end of the input waits for it before the connection closes.
+      this.#track(Promise.resolve().then(() => this.#connection.receive(answer)));
+      return undefined;
     }
-    this.#writer.write(
+    // The fallback waits for room like any line, so the connection's queue holds the next message meanwhile.
+    return this.#writer.write(
       encoder.encode(
         encode({
           jsonrpc: "2.0",
