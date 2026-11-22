@@ -78,7 +78,10 @@ export async function recordsOf(extensions: readonly Extension[]): Promise<Exten
   );
 }
 
-/** A trust store in memory, for tests and for a host that decides trust itself. It compares paths as given: the loader passes the real path of the project. */
+/**
+ * A trust store in memory, for tests and for a host that decides trust itself. It compares paths as strings; the loaders
+ * ask about a project's root both as the caller wrote it, made absolute, and as its real path, so either spelling trusts it.
+ */
 export function memoryTrustStore(trusted: readonly string[] = []): TrustStore {
   const roots = new Set(trusted);
   return {

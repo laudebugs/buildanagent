@@ -5,7 +5,7 @@
 import { readdir } from "node:fs/promises";
 import { join } from "node:path";
 import { sha256 } from "./compose.js";
-import { canonicalPath } from "./load.js";
+import { projectTrusted } from "./load.js";
 import { projectDirs, readProjectFile } from "./project-dirs.js";
 import { parseSkill, type Skill } from "./skills.js";
 import type { ExtensionLoadedRecord, TrustStore } from "./types.js";
@@ -13,10 +13,11 @@ import type { ExtensionLoadedRecord, TrustStore } from "./types.js";
 /** The settings of `discoverSkills()`. */
 export interface DiscoverSkillsOptions {
   /**
-   * The project-trust gate. With it, a project's skills load only when the project is trusted and the run is not
-   * headless, as for its extensions. Without it every skill found is listed, so a host that has a trust store passes it.
+   * The project-trust gate, required as it is for extensions: a project's skills are listed only when the store trusts
+   * the project and the run is not headless. A skill's name and description go into the system prompt, so an untrusted
+   * checkout must not reach it. A host that trusts every project it opens says so with a store that trusts them.
    */
-  readonly trust?: TrustStore;
+  readonly trust: TrustStore;
   /** True for a run nobody can answer: project skills are skipped unless `loadInHeadless` is set. Default false. */
   readonly headless?: boolean;
   /** Lets a headless run list a trusted project's skills. Default false. */
@@ -58,11 +59,10 @@ async function skillFiles(dir: string, depth = 0): Promise<string[]> {
 
 /** Why the project's skills are not listed, or `undefined` when they may be. */
 async function skipReason(root: string, options: DiscoverSkillsOptions): Promise<string | undefined> {
-  if (options.trust === undefined) return undefined;
   if (options.headless === true && options.loadInHeadless !== true) {
     return `the project skills of ${root} are skipped: this run is headless`;
   }
-  if (!(await options.trust.isTrusted(await canonicalPath(root)))) {
+  if (!(await projectTrusted(options.trust, root))) {
     return `the project skills of ${root} are skipped: the project is not trusted`;
   }
   return undefined;
@@ -93,9 +93,11 @@ async function loadSkill(
  * Finds the skills of the project `cwd` is in: each folder under `.agents/skills` holding a `SKILL.md`, in `cwd` and
  * every folder above it up to the repository root (the first folder with a `.git`). A `cwd` in no repository searches
  * only itself. A file that is not a skill, a `SKILL.md` that is a link leaving the project, and a name already taken by
- * a nearer skill are skipped with a notice, and the rest still load. The skills' paths are absolute.
+ * a nearer skill are skipped with a notice, and the rest still load. The skills' paths are absolute. No skill file is read
+ * until the trust store and `headless` allow it: an untrusted project, or a headless run without `loadInHeadless`,
+ * lists no skills and returns one notice saying why.
  */
-export async function discoverSkills(cwd: string, options: DiscoverSkillsOptions = {}): Promise<DiscoveredSkills> {
+export async function discoverSkills(cwd: string, options: DiscoverSkillsOptions): Promise<DiscoveredSkills> {
   const dirs = await projectDirs(cwd);
   const root = dirs.at(-1) as string;
   const result: DiscoveredSkills = { skills: [], records: [], notices: [] };

@@ -1,6 +1,15 @@
 // Skills: discovery from .agents/skills up to the repository root, the prompt section, and the skill_loaded entry.
 import assert from "node:assert/strict";
-import { mkdirSync, mkdtempSync, readdirSync, readFileSync, rmSync, symlinkSync, writeFileSync } from "node:fs";
+import {
+  mkdirSync,
+  mkdtempSync,
+  readdirSync,
+  readFileSync,
+  realpathSync,
+  rmSync,
+  symlinkSync,
+  writeFileSync,
+} from "node:fs";
 import { tmpdir } from "node:os";
 import { dirname, join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
@@ -13,7 +22,11 @@ import {
   skillsPrompt,
   withSkills,
 } from "@buildanagent/harness/extensions";
-import { discoverSkills } from "@buildanagent/harness/extensions/node";
+import {
+  type DiscoverSkillsOptions,
+  discoverSkills,
+  loadProjectExtensions,
+} from "@buildanagent/harness/extensions/node";
 import { createHarness } from "@buildanagent/harness/server";
 import { openSession, runTurn, type SessionEntry } from "@buildanagent/harness/session";
 import { createToolRegistry } from "@buildanagent/harness/tools";
@@ -42,6 +55,9 @@ function repo(files: Record<string, string>): string {
   return root;
 }
 
+/** Trusts every project, for the tests that are not about the trust gate. */
+const OPEN = { trust: { isTrusted: async () => true, trust: async () => {} } } satisfies DiscoverSkillsOptions;
+
 const skillFile = (name: string, description: string, body = "Body text."): string =>
   `---\nname: ${name}\ndescription: ${description}\n---\n\n${body}\n`;
 
@@ -51,7 +67,7 @@ describe("discoverSkills", () => {
       .filter((entry) => entry.isDirectory())
       .map((entry) => entry.name)
       .sort();
-    const { skills, records, notices } = await discoverSkills(join(REPO, "packages/harness"));
+    const { skills, records, notices } = await discoverSkills(join(REPO, "packages/harness"), OPEN);
     assert.deepEqual(skills.map((skill) => skill.name).sort(), expected);
     for (const skill of skills) {
       assert.ok(skill.description.length > 0 && skill.description.length <= SKILL_DESCRIPTION_MAX);
@@ -63,7 +79,7 @@ describe("discoverSkills", () => {
   });
 
   test("the system prompt lists each skill's three fields and none of its body", async () => {
-    const { skills } = await discoverSkills(REPO);
+    const { skills } = await discoverSkills(REPO, OPEN);
     const prompt = withSkills("You help.", skills);
     assert.ok(prompt.startsWith("You help.\n\n## Skills"));
     for (const skill of skills) {
@@ -93,7 +109,7 @@ describe("discoverSkills", () => {
       "pkg/app/.agents/skills/inner/SKILL.md": skillFile("inner", "Inner."),
       "pkg/app/.agents/skills/shared/SKILL.md": skillFile("shared", "From the app."),
     });
-    const { skills, notices } = await discoverSkills(join(root, "pkg/app/src"));
+    const { skills, notices } = await discoverSkills(join(root, "pkg/app/src"), OPEN);
     assert.deepEqual(
       skills.map((skill) => skill.name),
       ["inner", "shared", "outer"],
@@ -111,13 +127,13 @@ describe("discoverSkills", () => {
     mkdirSync(join(outer, "work/.agents/skills/here"), { recursive: true });
     writeFileSync(join(outer, "work/.agents/skills/here/SKILL.md"), skillFile("here", "In the repository."));
     assert.deepEqual(
-      (await discoverSkills(join(outer, "work"))).skills.map((skill) => skill.name),
+      (await discoverSkills(join(outer, "work"), OPEN)).skills.map((skill) => skill.name),
       ["here"],
     );
     // No `.git` anywhere up to the filesystem root, so only the folder itself counts.
     mkdirSync(join(outer, "loose/.agents/skills/own"), { recursive: true });
     writeFileSync(join(outer, "loose/.agents/skills/own/SKILL.md"), skillFile("own", "Own."));
-    const found = await discoverSkills(join(outer, "loose"));
+    const found = await discoverSkills(join(outer, "loose"), OPEN);
     assert.ok(!found.skills.some((skill) => skill.name === "above"));
   });
 
@@ -127,7 +143,7 @@ describe("discoverSkills", () => {
       ".agents/skills/nofront/SKILL.md": "No frontmatter here.\n",
       ".agents/skills/Bad_Name/SKILL.md": skillFile("Bad_Name", "Bad name."),
     });
-    const { skills, notices } = await discoverSkills(root);
+    const { skills, notices } = await discoverSkills(root, OPEN);
     assert.deepEqual(
       skills.map((skill) => skill.name),
       ["good"],
@@ -142,7 +158,7 @@ describe("discoverSkills", () => {
     writeFileSync(join(outside, "SKILL.md"), skillFile("stolen", "Outside the project."));
     mkdirSync(join(root, ".agents/skills/stolen"));
     symlinkSync(join(outside, "SKILL.md"), join(root, ".agents/skills/stolen/SKILL.md"));
-    const { skills, notices } = await discoverSkills(root);
+    const { skills, notices } = await discoverSkills(root, OPEN);
     assert.deepEqual(
       skills.map((skill) => skill.name),
       ["real"],
@@ -156,13 +172,47 @@ describe("discoverSkills", () => {
     const untrusted = await discoverSkills(root, { trust, headless: false });
     assert.deepEqual(untrusted.skills, []);
     assert.ok(untrusted.notices[0]?.includes("not trusted"));
-    const { canonicalPath } = await import("../../src/extensions/load.js");
-    await trust.trust(await canonicalPath(root));
+    await trust.trust(root);
     assert.equal((await discoverSkills(root, { trust, headless: false })).skills.length, 1);
     const headless = await discoverSkills(root, { trust, headless: true });
     assert.deepEqual(headless.skills, []);
     assert.ok(headless.notices[0]?.includes("headless"));
     assert.equal((await discoverSkills(root, { trust, headless: true, loadInHeadless: true })).skills.length, 1);
+  });
+
+  test("a trust store is required: without one the call does not type-check", async () => {
+    const root = repo({ ".agents/skills/a/SKILL.md": skillFile("a", "A.") });
+    // @ts-expect-error `trust` is required, so an untrusted checkout cannot list its skills by omission.
+    const call = () => discoverSkills(root);
+    // @ts-expect-error the same with an options object that leaves it out.
+    const withoutTrust = () => discoverSkills(root, { headless: false });
+    assert.equal(typeof call, "function");
+    assert.equal(typeof withoutTrust, "function");
+  });
+
+  test("a project reached through a link is trusted under the path as the host wrote it, for skills and extensions alike", async () => {
+    const real = repo({
+      ".agents/skills/a/SKILL.md": skillFile("a", "A."),
+      ".agents/extensions/demo/index.mjs": 'export default { name: "demo", version: "1.0.0" };\n',
+    });
+    const holder = mkdtempSync(join(tmpdir(), "harness-link-"));
+    dirs.push(holder);
+    const linked = join(holder, "proj");
+    symlinkSync(real, linked);
+    const trust = memoryTrustStore([linked]);
+    const skills = await discoverSkills(linked, { trust });
+    assert.deepEqual(
+      skills.skills.map((skill) => skill.name),
+      ["a"],
+    );
+    const extensions = await loadProjectExtensions(linked, { trust, headless: false });
+    assert.deepEqual(
+      extensions.extensions.map((extension) => extension.name),
+      ["demo"],
+    );
+    // The real path still counts, as the file trust store has always compared.
+    assert.equal((await discoverSkills(linked, { trust: memoryTrustStore([realpathSync(real)]) })).skills.length, 1);
+    assert.deepEqual((await discoverSkills(linked, { trust: memoryTrustStore([holder]) })).skills, []);
   });
 });
 
@@ -213,7 +263,7 @@ describe("skillOfRead", () => {
 describe("the skill_loaded entry", () => {
   async function run(readInputs: unknown[], files: Record<string, string>, failRead = false) {
     const root = repo(files);
-    const { skills } = await discoverSkills(root);
+    const { skills } = await discoverSkills(root, OPEN);
     const registry = createToolRegistry();
     registry.register({
       source: "builtin",
