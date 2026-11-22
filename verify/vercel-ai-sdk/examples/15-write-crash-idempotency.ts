@@ -1,8 +1,8 @@
-// A write tool that can fail halfway: it persists an idempotency key before it calls the server, reports an outcome,
-// and after a crash between the server's write and the result it finds the key, reports `unknown`, asks the server
-// instead of writing again, and the server sees one write. The effect log is a small file in a temp folder that the
-// example makes and removes, the only file the tool writes; a package replaces it. It survives a killed process, not a
-// power cut: nothing is synced to disk before the call.
+// A write tool that can fail halfway. It persists an idempotency key before it calls the server and reports an
+// outcome. After a crash between the server's write and the result, it finds the key, reports `unknown`, asks the
+// server instead of writing again, and the server sees one write. The effect log is a small file in a temp folder
+// that the example makes and removes, the only file the tool writes; a package replaces it. It survives a killed
+// process, not a power cut: nothing is synced to disk before the call.
 // Docs: ai-sdk-core/tools-and-tool-calling.mdx
 import { type ChildProcess, spawn } from "node:child_process";
 import { appendFileSync, mkdtempSync, readFileSync, rmSync } from "node:fs";
