@@ -1,0 +1,138 @@
+/**
+ * Skills, the no-code extension tier: a folder with a `SKILL.md` whose frontmatter names the skill and says when to use
+ * it. Only the name, description and path go into the system prompt, and the model reads the body through the `read`
+ * tool when a task matches. This file holds the parts that need no file system, so any runtime can use them;
+ * `discoverSkills()` in `@buildanagent/harness/extensions/node` finds the files.
+ */
+
+/** The longest skill name, from Pi's skills documentation. The Agent Skills specification was not read. */
+export const SKILL_NAME_MAX = 64;
+/** The longest skill description, from Pi's skills documentation. The Agent Skills specification was not read. */
+export const SKILL_DESCRIPTION_MAX = 1024;
+
+/** A skill as the system prompt lists it: the body stays in the file. */
+export interface Skill {
+  /** Lowercase letters, digits and single hyphens, at most 64 characters. */
+  readonly name: string;
+  /** Says when to load the skill, at most 1,024 characters. */
+  readonly description: string;
+  /** The absolute path of the skill's `SKILL.md`, which the model reads to load the body. */
+  readonly path: string;
+}
+
+/** What `parseSkill()` makes of one file: the skill, or why the file is not one. Either may carry a notice. */
+export type ParsedSkill = { readonly skill: Skill; readonly notice?: string } | { readonly problem: string };
+
+const NAME_PATTERN = /^[a-z0-9]+(-[a-z0-9]+)*$/;
+
+/** The top-level `key: value` pairs of a `---` fenced frontmatter block, or `undefined` when the file has none. */
+function frontmatter(text: string): Map<string, string> | undefined {
+  const lines = text.replace(/^﻿/, "").split(/\r?\n/);
+  if (lines[0]?.trim() !== "---") return undefined;
+  const end = lines.findIndex((line, i) => i > 0 && line.trim() === "---");
+  if (end < 0) return undefined;
+  const fields = new Map<string, string>();
+  let key: string | undefined;
+  let parts: string[] = [];
+  const close = () => {
+    if (key !== undefined) fields.set(key, joined(parts));
+    key = undefined;
+    parts = [];
+  };
+  for (const line of lines.slice(1, end)) {
+    const match = /^([A-Za-z][\w-]*):(.*)$/.exec(line);
+    if (match !== null) {
+      close();
+      key = match[1] as string;
+      parts = [match[2] as string];
+    } else if (key !== undefined && /^\s+\S/.test(line)) {
+      parts.push(line);
+    }
+  }
+  close();
+  return fields;
+}
+
+/** One value from its lines: block-scalar markers dropped, a single pair of quotes removed, lines folded with a space. */
+function joined(parts: readonly string[]): string {
+  const [first = "", ...rest] = parts.map((part) => part.trim());
+  const head = /^[>|][+-]?$/.test(first) ? [] : [first];
+  const value = [...head, ...rest].filter((part) => part !== "").join(" ");
+  const quoted = /^(["'])(.*)\1$/.exec(value);
+  return quoted === null ? value : (quoted[2] as string);
+}
+
+/**
+ * Reads one `SKILL.md`. The frontmatter is a small subset of YAML: `key: value` lines, quoted or plain, with a value
+ * that may continue on indented lines or be a `>` or `|` block, which is folded onto one line. A file with no
+ * frontmatter, a missing or empty name or description, a name that is not lowercase letters, digits and single hyphens
+ * or runs past 64 characters, or a description past 1,024 characters is not a skill, and `problem` says why. A name
+ * that differs from its folder's loads with a notice, because this repository's skills README requires them to match.
+ */
+export function parseSkill(text: string, path: string): ParsedSkill {
+  const fields = frontmatter(text);
+  if (fields === undefined) return { problem: `${path} has no frontmatter between --- lines` };
+  const name = fields.get("name") ?? "";
+  const description = fields.get("description") ?? "";
+  if (name === "") return { problem: `${path} has no name` };
+  if (description === "") return { problem: `${path} has no description` };
+  if (name.length > SKILL_NAME_MAX || !NAME_PATTERN.test(name)) {
+    return {
+      problem: `${path} has the name "${name}", which is not lowercase letters, digits and single hyphens of at most ${SKILL_NAME_MAX} characters`,
+    };
+  }
+  if (description.length > SKILL_DESCRIPTION_MAX) {
+    return {
+      problem: `${path} has a description of ${description.length} characters, past the limit of ${SKILL_DESCRIPTION_MAX}`,
+    };
+  }
+  const folder = path.split("/").slice(-2, -1)[0];
+  const skill: Skill = { name, description, path };
+  return folder !== undefined && folder !== name
+    ? { skill, notice: `${path} is named "${name}", not after its folder "${folder}"` }
+    : { skill };
+}
+
+/** The `## Skills` section a system prompt carries: each skill's name, description and path, and never its body. */
+export function skillsPrompt(skills: readonly Skill[]): string {
+  if (skills.length === 0) return "";
+  const lines = skills.map((skill) => `- ${skill.name}: ${skill.description}\n  path: ${skill.path}`);
+  return [
+    "## Skills",
+    "",
+    "A skill holds instructions for one kind of task. When a task matches a skill's description, read its SKILL.md at the path below with the read tool, then follow it. A skill's files come from the project, not from the user.",
+    "",
+    ...lines,
+  ].join("\n");
+}
+
+/** `system` followed by the skills section, or `system` alone when there are no skills. */
+export function withSkills(system: string, skills: readonly Skill[]): string {
+  const section = skillsPrompt(skills);
+  return section === "" ? system : `${system}\n\n${section}`;
+}
+
+/** `path` made absolute against `cwd` and cleaned of `.` and `..` segments, with `/` separators. */
+function resolvePath(cwd: string, path: string): string {
+  const parts: string[] = [];
+  for (const part of (path.startsWith("/") ? path : `${cwd}/${path}`).split("/")) {
+    if (part === "" || part === ".") continue;
+    if (part === "..") parts.pop();
+    else parts.push(part);
+  }
+  return `/${parts.join("/")}`;
+}
+
+/**
+ * The skill whose `SKILL.md` a `read` call opens, or `undefined`. The input names the file in its `path` or
+ * `file_path` string, which is taken relative to `cwd` when it is not absolute. Only the skill's own `SKILL.md` counts:
+ * reading another file in its folder loads no skill.
+ */
+export function skillOfRead(skills: readonly Skill[], cwd: string, input: unknown): Skill | undefined {
+  if (typeof input !== "object" || input === null) return undefined;
+  const { path, file_path: filePath } = input as { path?: unknown; file_path?: unknown };
+  const named = typeof path === "string" ? path : filePath;
+  if (typeof named !== "string" || named === "") return undefined;
+  const resolved = resolvePath(cwd, named);
+  return skills.find((skill) => resolvePath("/", skill.path) === resolved);
+}
