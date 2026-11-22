@@ -70,6 +70,12 @@ test("a listing written in the chapter goes through the file listings' highlight
     assert.match(figure, /<pre class="listing__code" tabindex="0" aria-label="Code of listing 2\.\d+"><code>/);
     assert.match(figure, /<span class="line" data-line="2"><span class="line__number" aria-hidden="true">2<\/span>/);
     assert.match(figure, /<span class="tok-keyword">"role"<\/span>: <span class="tok-string">"user"<\/span>/);
+    assert.match(figure, /<figure id="lst-body" class="numbered listing panel"/);
+    assert.match(
+      figure,
+      /<figcaption class="listing__caption" id="lst-body-caption"><span class="listing__number number">/,
+    );
+    assert.match(figure, /<span class="listing__title">A request body<\/span><\/figcaption>/);
     assert.doesNotMatch(figure, /listing__path|listing__pin|listing__lines/);
   } finally {
     removeFixture(dir);

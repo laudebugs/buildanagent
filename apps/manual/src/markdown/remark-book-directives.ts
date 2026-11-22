@@ -164,6 +164,24 @@ function inlineListing(
   const html: Html = { type: "html", value: "" };
   figure.children[index] = html;
   const domId = `${NUMBERED_KINDS.listing.prefix}-${id}`;
+  // The classes a file listing's figure and caption carry, which the panel's CSS selects.
+  const caption = figure.children[0] as Paragraph;
+  const [numberSpan, , ...title] = caption.children;
+  caption.data = { hName: "figcaption", hProperties: { className: ["listing__caption"], id: `${domId}-caption` } };
+  caption.children = [
+    { ...numberSpan, data: { hName: "span", hProperties: { className: ["listing__number", "number"] } } },
+    { type: "emphasis", data: { hName: "span", hProperties: { className: ["listing__title"] } }, children: title },
+  ] as PhrasingContent[];
+  figure.data = {
+    hName: "figure",
+    hProperties: {
+      id: domId,
+      className: ["numbered", "listing", "panel"],
+      dataNumbered: "listing",
+      dataNumberedId: id,
+      ariaLabelledBy: [`${domId}-caption`],
+    },
+  };
   const code = highlightInline(fenced.value, fenced.lang).then((lines) => {
     html.value = listingCodeHtml(domId, block.number, lines, new Map());
   });
