@@ -311,29 +311,36 @@ test("a git route's host is refused when another route, of either kind, reaches 
 
 test("an ordinary name that merely contains a credential's prefix is accepted", () => {
   const git = policy.routes[1] as Extract<EgressPolicy["routes"][number], { kind: "git" }>;
+  const header = policy.routes[0] as Extract<EgressPolicy["routes"][number], { kind: "header" }>;
   const ordinary: EgressPolicy = {
-    allow: ["api.sk-telecom.com"],
+    allow: ["api.sk-telecom.com", "sk-api.example.com"],
     routes: [
       {
         ...git,
-        repositories: ["acme/sk-api"],
+        repositories: ["acme/sk-api", "sk-labs/app"],
         pushRefs: ["refs/heads/agent/sk-1"],
         credential: "ASIAPACIFICREGION_TOKEN",
       },
+      { ...header, route: "sk-proxy", host: "api.sk-telecom.com" },
     ],
   };
   assert.ok(compileEgressPolicy(ordinary, { secret }));
   const shaped = [
     "ghp_abcdefghijklmnopqrstuvwxyz0123456789",
-    "github_pat_11ABCDEFG0123456789",
-    "sk-ant-api03-abcdef",
+    "ghs_ABCDEFabcdef0123456789ABCDEFabcdef",
+    "github_pat_11ABCDEFG0123456789_abcdefghijklmnop",
+    "sk-ant-api03-abcdefghijklmnopqrstuvwxyz0123456789",
+    // Built at run time, so the repository holds no string a secret scanner reads as a live Stripe key.
+    ["sk", "live", "abcdefghijklmnopqrstuvwx"].join("_"),
     "xoxb-1234-5678-abcdef",
+    "glpat-abcdefghij0123456789",
+    "AIzaSyAbcdefghijklmnopqrstuvwxyz0123456",
     "AKIAIOSFODNN7EXAMPLE",
     "ASIAIOSFODNN7EXAMPLE",
     "Bearer abcdef",
     "basic dXNlcjpwYXNz",
-    "token=ghp_abcdef",
-    "user:sk-abcdef",
+    "token=ghp_abcdefghijklmnopqrstuvwxyz0123456789",
+    "user:sk-ant-api03-abcdefghijklmnopqrstuvwxyz",
   ];
   for (const value of shaped) {
     const attempts: unknown[] = [

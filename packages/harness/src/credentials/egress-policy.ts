@@ -68,11 +68,22 @@ export interface CompiledEgressPolicy {
 }
 
 const CREDENTIAL_NAME = /^[A-Z][A-Z0-9_]{0,63}$/;
-// Well-known credential formats, matched at the start of a value or of a token in it, so a token pasted where its name
-// belongs is refused while an ordinary name that merely contains such letters, such as acme/sk-api, is not. An AWS key
-// id is matched only as a whole token, because its prefix starts ordinary upper-case names too.
-const CREDENTIAL_SHAPED =
-  /^(gh[pousr]_|github_pat_|xox[abposr]-|sk-|sk_live_|sk_test_|glpat-|AIza)|^(AKIA|ASIA)[0-9A-Z]{16}$/;
+// Well-known credential formats, matched at the start of a value or of a token in it. Each prefix must be followed by a
+// body as long as a real token's, so a token pasted where its name belongs is refused while an ordinary name that
+// merely starts with such letters, such as sk-labs/app, sk-api.example.com or a route named sk-proxy, is not. An AWS
+// key id is matched only as a whole token, because its prefix starts ordinary upper-case names too.
+const CREDENTIAL_SHAPED = new RegExp(
+  [
+    "^gh[pousr]_[A-Za-z0-9]{30,}",
+    "^github_pat_[A-Za-z0-9_]{20,}",
+    "^xox[abposr]-[A-Za-z0-9-]{10,}",
+    "^sk-[A-Za-z0-9_-]{20,}",
+    "^sk_(live|test)_[A-Za-z0-9]{20,}",
+    "^glpat-[A-Za-z0-9_-]{20,}",
+    "^AIza[A-Za-z0-9_-]{30,}",
+    "^(AKIA|ASIA)[0-9A-Z]{16}$",
+  ].join("|"),
+);
 const AUTH_SCHEME = /^(Bearer|Basic) /i;
 // What separates a pasted token from the text around it: white space, and the punctuation of `key=value`, `user:pass`,
 // `user@host`, lists and quotes. A repository's `/` and a host's `.` are not separators.
