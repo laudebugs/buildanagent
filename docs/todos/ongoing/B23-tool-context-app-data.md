@@ -3,7 +3,7 @@
 | Field | Value |
 | --- | --- |
 | ID | `B23` |
-| Status | `ready` |
+| Status | `ongoing` |
 | Plan | [Build SDK §4.6](../../plans/build-sdk.md#46-trusted-app-data-for-tools-from-the-books-chapter-3-added-2026-11-19) |
 | Round / milestone | Round B (build SDK), M5 |
 | Depends on | [B10](../done/B10-tool-runtime.md), [B11](../done/B11-loop-core.md) |

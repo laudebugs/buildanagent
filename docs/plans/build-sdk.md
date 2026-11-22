@@ -685,7 +685,7 @@ Chapter 3 of the book teaches that a tool reads the signed-in user from trusted 
 
 | ID | Title | Depends on | Size |
 | --- | --- | --- | --- |
-| [B23](../todos/ready/B23-tool-context-app-data.md) | Give `ToolContext` typed app data that the caller sets when a run starts and the model never sees | B10, B11 | M |
+| [B23](../todos/ongoing/B23-tool-context-app-data.md) | Give `ToolContext` typed app data that the caller sets when a run starts and the model never sees | B10, B11 | M |
 
 ## 5. Test strategy
 
