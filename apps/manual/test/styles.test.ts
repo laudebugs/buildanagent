@@ -9,7 +9,7 @@ const files = readdirSync(src, { recursive: true, encoding: "utf8" })
   .filter((path) => /\.(css|astro)$/.test(path) && path !== "styles/tokens.css")
   .map((path) => ({ path, text: readFileSync(new URL(path, src), "utf8").replace(/\/\*[\s\S]*?\*\//g, "") }));
 
-const DECORATIVE = /var\(--(color-rule|panel-grid|panel-border)\)/;
+const DECORATIVE = /var\(--(color-rule|color-highlight|panel-grid|panel-border)\)/;
 // Borders, backgrounds and column rules are the dividers, panel edges and grid lines the tokens may draw.
 const DECORATIVE_PROPERTIES = /^(border(-[a-z]+)*|background(-[a-z]+)*|column-rule(-color)?)$/;
 
@@ -20,7 +20,7 @@ function declarations(text: string): { property: string; value: string }[] {
   }));
 }
 
-test("the rule, grid and border tokens appear only on borders and backgrounds", () => {
+test("the rule, highlight, grid and border tokens appear only on borders and backgrounds", () => {
   assert.ok(files.length > 0);
   for (const { path, text } of files) {
     for (const { property, value } of declarations(text)) {
