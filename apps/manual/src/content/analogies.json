@@ -134,5 +134,13 @@
     "chapter": "approvals-guardrails-and-injection",
     "illustration": null,
     "breaks": "An assistant can phone the director to check a memo, but a model has no way to check who wrote any text in its context, so every input can act as an instruction."
+  },
+  {
+    "id": "referee-whistle",
+    "concept": "check() assertions",
+    "analogy": "a referee's whistle at each broken rule",
+    "chapter": "testing-offline-and-a-first-agent",
+    "illustration": null,
+    "breaks": "A check knows only the rules you wrote; a game can go wrong in ways no rule names, and a check that holds for the right behaviour may hold for no behaviour at all."
   }
 ]

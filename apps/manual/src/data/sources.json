@@ -517,5 +517,15 @@
     "asOf": "November 2026",
     "version": "v1.5.2",
     "verifiedIn": "apps/manual/fact-checks/testing-offline-and-a-first-agent.md"
+  },
+  {
+    "id": "abc-agentic-benchmark-checklist",
+    "title": "Establishing Best Practices for Building Rigorous Agentic Benchmarks",
+    "publisher": "Zhu et al., arXiv 2507.02825v5",
+    "url": "https://arxiv.org/abs/2507.02825",
+    "kind": "paper",
+    "asOf": "November 2026",
+    "version": "v5",
+    "verifiedIn": "apps/manual/fact-checks/testing-offline-and-a-first-agent.md"
   }
 ]

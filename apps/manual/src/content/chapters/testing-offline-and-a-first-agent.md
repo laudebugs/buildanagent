@@ -2,7 +2,7 @@
 title: "Testing offline, and a first complete agent"
 summary: A mock model replaces the provider so a test needs no key and gives the same answer every run. This chapter shows where each of eight SDKs lets a mock in, what a check() on a mocked run can and cannot prove, and one small support-triage agent written eight ways.
 opening: scenario
-sources: [ai-sdk-testing, openai-agents-testing, langchain-unit-testing, pi-ai-readme]
+sources: [ai-sdk-testing, openai-agents-testing, langchain-unit-testing, pi-ai-readme, abc-agentic-benchmark-checklist]
 glossary: [mock-model]
 switchTo: [B18, B19]
 ---
@@ -42,6 +42,26 @@ The four listings that follow show how the in-process mocks are scripted. Each p
 ::::
 
 The seam decides what a passing test covers. OpenAI's testing guide is explicit: use `ScriptedModel` "when the test should exercise the SDK run loop, tools, handoffs, guardrails, sessions, retries, or streaming without depending on a model provider", and do not use it to test "provider request conversion, HTTP or WebSocket payloads, authentication headers" [@openai-agents-testing]. A mock inside the process leaves the real provider adapter unexercised, and the HTTP seam brings more of the stack under test, up to the CLI's own loop. A test at either seam still proves only that your code handles the answers you scripted. Three of these mocks are strict in the same direction: the AI SDK helper, OpenAI's `ScriptedModel` and LangChain's `fakeModel` each fail a run that asks for more turns than the script holds, so a loop that wanders shows up as a failing test and not a quiet pass [@openai-agents-testing; @langchain-unit-testing].
+
+## A check proves the rule you wrote, so write rules an empty answer cannot pass
+
+A football referee blows :analogy[a whistle]{#referee-whistle} at each broken rule and stays silent through everything else. A `check()` in this book behaves the same way. It states one rule, throws when the rule breaks, and says nothing about the rest of the game. [[lst:check-helper]] is the whole helper from the AI SDK harness, and the other harnesses carry the same few lines.
+
+:::listing[`check()` throws when its condition is false and prints a line when it holds]{#check-helper file="verify/vercel-ai-sdk/examples/lib/check.ts" region="check"}
+::note[A false condition throws, so the first failed check stops the example and the checks after it never run.]{#fail}
+::note[A true condition prints `ok`{checked=row-17} with its message, which is how a passing run reads.]{#ok}
+:::
+
+What a check can show is how your code behaves when the model answers as scripted: which tools it offered, which calls it ran and in what order, whether a gated call waited, and how many model calls the loop made. It cannot show that a real model would give those answers. It also cannot show what its author forgot to ask, and that gap hides the worst bugs, because a check that holds for the right behaviour may hold for no behaviour as well. The Agentic Benchmark Checklist paper found this in a published benchmark. τ-bench grades an agent by whether the database ends in the right state and, optionally, whether the reply holds required text. Some of its tasks are intentionally unsolvable, so the right end state is no change, and an agent that does nothing passes them. The authors report that these tasks make up 38% of the airline subset and 6% of the retail subset, and that a do-nothing agent therefore passes that share of each, a result that holds as of the paper's August 2025 version [@abc-agentic-benchmark-checklist].
+
+[[lst:weak-check]] reproduces the mistake at small scale. The scripted agent answers with an empty string. One check asks whether the agent answered, and it passes. The other asks whether the answer names the city, and it fails.
+
+:::listing[A weak check passes on an empty answer, and a strong check does not]{#weak-check file="verify/vercel-ai-sdk/examples/14-weak-check.ts" region="weak-and-strong"}
+::note[This check holds for any string, so it holds for an agent that did nothing.]{#weak}
+::note[This check holds only when the answer carries the content the task needed.]{#strong}
+:::
+
+Before you trust a check, ask what a do-nothing agent would do to it. If the check still passes, the check is the problem, and it needs a condition on the answer's content, on a side effect, or on a count of calls. The capstone in the next section checks all three kinds, and each of its checks says what has to be true. A referee knows only the rules that someone wrote down, and a match can go wrong in ways no rule names.
 
 ## Exercises
 
