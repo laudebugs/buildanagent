@@ -3,6 +3,7 @@
  * user. It needs Node's file system, so it has its own entry, `@buildanagent/harness/session/jsonl`, and the portable
  * `./session` entry stays free of it.
  */
+import { Buffer } from "node:buffer";
 import { mkdir, open, readdir, readFile, rm, stat, truncate } from "node:fs/promises";
 import { join } from "node:path";
 import { parseEntry, type SessionEntry } from "@buildanagent/protocol";
@@ -14,6 +15,7 @@ import {
   DEFAULT_MAX_ENTRY_BYTES,
   type EntryInput,
   encodeName,
+  extendState,
   type LoadOptions,
   type LogState,
   planAppend,
@@ -42,11 +44,11 @@ interface ReadLog {
   readonly tornBytes: number;
 }
 
-/** Reads a log: a line counts when it ends in a newline, and a last line that doesn't is torn. */
-function parseLog(text: string, path: string): ReadLog {
-  const end = text.lastIndexOf("\n") + 1;
+/** Reads a log: a line counts when it ends in a newline, and a last line that doesn't is torn. Sizes are bytes of the file. */
+function parseLog(buffer: Buffer, path: string): ReadLog {
+  const end = buffer.lastIndexOf(0x0a) + 1;
   const entries: SessionEntry[] = [];
-  const lines = text.slice(0, end).split("\n");
+  const lines = buffer.subarray(0, end).toString("utf8").split("\n");
   lines.pop();
   for (const [index, line] of lines.entries()) {
     try {
@@ -55,17 +57,12 @@ function parseLog(text: string, path: string): ReadLog {
       throw new HarnessError("session_corrupt", `${path} has a bad entry on line ${index + 1}`, { cause });
     }
   }
-  const encoder = new TextEncoder();
-  return {
-    entries,
-    goodBytes: encoder.encode(text.slice(0, end)).length,
-    tornBytes: encoder.encode(text.slice(end)).length,
-  };
+  return { entries, goodBytes: end, tornBytes: buffer.length - end };
 }
 
 async function readLog(path: string): Promise<ReadLog | undefined> {
   try {
-    return parseLog(await readFile(path, "utf8"), path);
+    return parseLog(await readFile(path), path);
   } catch (error) {
     if ((error as NodeJS.ErrnoException).code === "ENOENT") return undefined;
     throw error;
@@ -175,11 +172,7 @@ class JsonlStore implements SessionStore {
     if (torn) await truncate(path, size);
     const data = `${plan.fresh.map((entry) => JSON.stringify(entry)).join("\n")}\n`;
     await appendDurably(path, data, !exists);
-    this.#remember(
-      path,
-      size + new TextEncoder().encode(data).length,
-      stateOf([...state.byId.values(), ...plan.fresh]),
-    );
+    this.#remember(path, size + Buffer.byteLength(data), extendState(state, plan.fresh));
     return structuredClone(plan.result);
   }
 
@@ -189,8 +182,12 @@ class JsonlStore implements SessionStore {
     return this.#queued(path, () => this.#appendNow(key, inputs, options));
   }
 
-  async *load(key: SessionKey, options?: LoadOptions): AsyncGenerator<SessionEntry> {
+  load(key: SessionKey, options?: LoadOptions): AsyncGenerator<SessionEntry> {
     checkKey(key);
+    return this.#entries(key, options);
+  }
+
+  async *#entries(key: SessionKey, options: LoadOptions | undefined): AsyncGenerator<SessionEntry> {
     const path = this.#pathOf(key);
     // A load waits for the appends already queued, so it never sees a line that is still being written.
     const log = await this.#queued(path, () => readLog(path));
@@ -200,8 +197,12 @@ class JsonlStore implements SessionStore {
     for (const entry of log.entries) if (entry.seq >= from) yield entry;
   }
 
-  async *list(userId: string): AsyncGenerator<SessionSummary> {
+  list(userId: string): AsyncGenerator<SessionSummary> {
     checkKey({ userId, sessionId: "-" });
+    return this.#summaries(userId);
+  }
+
+  async *#summaries(userId: string): AsyncGenerator<SessionSummary> {
     const dir = this.#userDir(userId);
     const files = await readdir(dir, { withFileTypes: true }).catch(() => []);
     const found: SessionSummary[] = [];

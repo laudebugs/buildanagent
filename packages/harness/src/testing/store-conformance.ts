@@ -7,7 +7,7 @@ import type { SessionEntry } from "@buildanagent/protocol";
 import { isHarnessError } from "../errors.js";
 import { ConflictError, EntryTooLargeError } from "../session/errors.js";
 import type { EntryInput, SessionKey, SessionStore } from "../session/store.js";
-import { runCases } from "./run-cases.js";
+import { type CaseReport, type RunnableCase, runCases } from "./run-cases.js";
 
 /** What a factory returns: a fresh, empty store, and optionally a way to tear a log's last line. */
 export interface StoreUnderTest {
@@ -22,18 +22,9 @@ export interface StoreUnderTest {
 /** Makes a fresh store for each case. */
 export type StoreFactory = () => StoreUnderTest | Promise<StoreUnderTest>;
 
-/** One conformance case. It resolves with `{ skipped }` and a reason when the case doesn't apply to this store. */
-export interface StoreCase {
-  readonly name: string;
-  run(): Promise<{ readonly skipped: string } | undefined>;
-}
+export type StoreCase = RunnableCase;
 
-/** The outcome of `runStoreConformance()`. */
-export interface StoreConformanceReport {
-  readonly passed: readonly string[];
-  readonly skipped: readonly { readonly name: string; readonly reason: string }[];
-  readonly failed: readonly { readonly name: string; readonly error: string }[];
-}
+export type StoreConformanceReport = CaseReport;
 
 const ADA: SessionKey = { userId: "ada", sessionId: "s1" };
 const BOB = { userId: "bob", sessionId: "s1" };
@@ -294,6 +285,11 @@ function keyCases(open: (body: Body) => Promise<{ skipped: string } | undefined>
           () => store.append({ userId: "u", sessionId: "é".repeat(64) }, [header()]),
           invalid,
           "a name that encodes to over 200 bytes is refused by every store",
+        );
+        await rejects(
+          () => store.append({ userId: "\ud800", sessionId: "s" }, [header()]),
+          invalid,
+          "a lone surrogate would encode like another id, so it is refused",
         );
         await store.append({ userId: "u", sessionId: "e".repeat(64) }, [header()]);
       },

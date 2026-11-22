@@ -89,7 +89,7 @@ The harness now has a `SessionStore` with a memory and a JSONL backend and a con
 - `@buildanagent/harness/session`: `SessionStore`, `SessionKey`, `EntryInput`, `SessionSummary`, `AppendOptions`, `LoadOptions`, `memoryStore()`, `ConflictError`, `EntryTooLargeError` and `DEFAULT_MAX_ENTRY_BYTES`.
 - `@buildanagent/harness/session/jsonl`: `jsonlStore({ dir, maxEntryBytes })`. It has its own entry because it needs Node's file system, and the portable `./session` entry must load in workerd.
 - `@buildanagent/harness/testing`: `runStoreConformance()`, `storeConformanceCases()` and the factory types.
-- Four new `HarnessError` codes: `session_conflict`, `entry_too_large`, `invalid_session_entry`, `invalid_session_key` and `session_corrupt`.
+- Five new `HarnessError` codes: `session_conflict`, `entry_too_large`, `invalid_session_entry`, `invalid_session_key` and `session_corrupt`.
 
 **Behavior.**
 - Every method takes the user. A session under another user looks like a missing one on `load`, `delete` and `list`, and a type test shows a call with the session id alone fails to compile.

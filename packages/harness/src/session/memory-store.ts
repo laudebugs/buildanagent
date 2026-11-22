@@ -3,12 +3,22 @@ import {
   byAge,
   checkKey,
   DEFAULT_MAX_ENTRY_BYTES,
+  extendState,
+  type LoadOptions,
+  type LogState,
   planAppend,
+  type SessionKey,
   type SessionStore,
   type SessionSummary,
   stateOf,
   summaryOf,
 } from "./store.js";
+
+/** One session's entries and the index over them. */
+interface Stored {
+  readonly entries: SessionEntry[];
+  state: LogState;
+}
 
 /** The options of `memoryStore()`. */
 export interface MemoryStoreOptions {
@@ -23,35 +33,44 @@ export interface MemoryStoreOptions {
  */
 export function memoryStore(options: MemoryStoreOptions = {}): SessionStore {
   const maxBytes = options.maxEntryBytes ?? DEFAULT_MAX_ENTRY_BYTES;
-  const users = new Map<string, Map<string, SessionEntry[]>>();
+  const users = new Map<string, Map<string, Stored>>();
   const sessionsOf = (userId: string) => users.get(userId);
+  async function* entriesOf(key: SessionKey, loadOptions: LoadOptions | undefined) {
+    const from = loadOptions?.fromSeq ?? 0;
+    for (const entry of sessionsOf(key.userId)?.get(key.sessionId)?.entries ?? []) {
+      if (entry.seq >= from) yield structuredClone(entry);
+    }
+  }
+  async function* summaries(userId: string) {
+    const found: SessionSummary[] = [];
+    for (const [sessionId, log] of sessionsOf(userId) ?? []) {
+      const summary = summaryOf(sessionId, log.entries);
+      if (summary !== undefined) found.push(summary);
+    }
+    yield* found.sort(byAge);
+  }
   return {
     async append(key, inputs, appendOptions) {
       checkKey(key);
-      const log = sessionsOf(key.userId)?.get(key.sessionId) ?? [];
-      const plan = planAppend(stateOf(log), inputs, appendOptions, maxBytes);
+      const log = sessionsOf(key.userId)?.get(key.sessionId) ?? { entries: [], state: stateOf([]) };
+      const plan = planAppend(log.state, inputs, appendOptions, maxBytes);
       if (plan.fresh.length > 0) {
-        const sessions = sessionsOf(key.userId) ?? new Map<string, SessionEntry[]>();
+        const stored = structuredClone(plan.fresh);
+        log.entries.push(...stored);
+        log.state = extendState(log.state, stored);
+        const sessions = sessionsOf(key.userId) ?? new Map<string, Stored>();
         users.set(key.userId, sessions);
-        sessions.set(key.sessionId, [...log, ...structuredClone(plan.fresh)]);
+        sessions.set(key.sessionId, log);
       }
       return structuredClone(plan.result);
     },
-    async *load(key, loadOptions) {
+    load(key, loadOptions) {
       checkKey(key);
-      const from = loadOptions?.fromSeq ?? 0;
-      for (const entry of sessionsOf(key.userId)?.get(key.sessionId) ?? []) {
-        if (entry.seq >= from) yield structuredClone(entry);
-      }
+      return entriesOf(key, loadOptions);
     },
-    async *list(userId) {
+    list(userId) {
       checkKey({ userId, sessionId: "-" });
-      const found: SessionSummary[] = [];
-      for (const [sessionId, log] of sessionsOf(userId) ?? []) {
-        const summary = summaryOf(sessionId, log);
-        if (summary !== undefined) found.push(summary);
-      }
-      yield* found.sort(byAge);
+      return summaries(userId);
     },
     async delete(key) {
       checkKey(key);

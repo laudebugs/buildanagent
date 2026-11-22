@@ -7,7 +7,7 @@
 
 import { isHarnessError } from "../errors.js";
 import type { ExecResult, Sandbox, SandboxClient, SandboxDenial, SandboxPolicy } from "../sandbox/types.js";
-import { runCases } from "./run-cases.js";
+import { type CaseReport, type RunnableCase, runCases } from "./run-cases.js";
 
 /** What a factory returns: the backend, and the absolute folder to use as the workspace root. */
 export interface SandboxUnderTest {
@@ -48,19 +48,9 @@ export interface SandboxConformanceOptions {
   };
 }
 
-/** One conformance case: a name a test runner can show, and a check that rejects if the backend breaks the rule. */
-export interface SandboxCase {
-  readonly name: string;
-  /** Runs the check. It resolves with `{ skipped }` and a reason when the case doesn't apply to this backend. */
-  run(): Promise<{ readonly skipped: string } | undefined>;
-}
+export type SandboxCase = RunnableCase;
 
-/** The outcome of `runSandboxConformance()`. */
-export interface SandboxConformanceReport {
-  readonly passed: readonly string[];
-  readonly skipped: readonly { readonly name: string; readonly reason: string }[];
-  readonly failed: readonly { readonly name: string; readonly error: string }[];
-}
+export type SandboxConformanceReport = CaseReport;
 
 const STOPS = ["mistakes", "exfiltration", "hostile_process"];
 const ALLOWED_HOST = "allowed.test";

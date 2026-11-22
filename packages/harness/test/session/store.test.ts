@@ -1,6 +1,7 @@
 // What the conformance suite doesn't cover: the types, the files the JSONL store writes, and how it behaves with more
 // than one store or writer on one folder.
 import assert from "node:assert/strict";
+import { Buffer } from "node:buffer";
 import { appendFileSync, mkdirSync, mkdtempSync, readdirSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
@@ -56,16 +57,20 @@ async function all<T>(source: AsyncIterable<T>): Promise<T[]> {
 
 test("every method needs the user as well as the session id, which a type test shows", async () => {
   const store: SessionStore = memoryStore();
-  // @ts-expect-error a session id alone is not a key
-  await store.append("s1", [header()]).catch(() => undefined);
-  // @ts-expect-error a session id alone is not a key
-  await all(store.load("s1")).catch(() => undefined);
-  // @ts-expect-error a session id alone is not a key
-  await store.delete("s1").catch(() => undefined);
-  // @ts-expect-error list takes the user, not a key or nothing
-  await all(store.list()).catch(() => undefined);
-  // @ts-expect-error a caller doesn't supply seq: the store assigns it
-  await store.append(KEY, [{ ...header(), seq: 0 }]).catch(() => undefined);
+  // Each call is a function that is never run, so a compile error is all that can happen.
+  const calls = [
+    // @ts-expect-error a session id alone is not a key
+    () => store.append("s1", [header()]),
+    // @ts-expect-error a session id alone is not a key
+    () => store.load("s1"),
+    // @ts-expect-error a session id alone is not a key
+    () => store.delete("s1"),
+    // @ts-expect-error list takes the user, not a key or nothing
+    () => store.list(),
+    // @ts-expect-error a caller doesn't supply seq: the store assigns it
+    () => store.append(KEY, [{ ...header(), seq: 0 }]),
+  ];
+  assert.equal(calls.length, 5);
 });
 
 test("the memory store hands out copies, so a caller can't change a stored entry", async () => {
@@ -220,4 +225,31 @@ test("a rejected key rejects the promise and does not throw at the call", async 
     assert.ok(pending instanceof Promise);
     await assert.rejects(pending, (error) => isHarnessError(error) && error.code === "invalid_session_key");
   }
+});
+
+test("a bad key throws at load() and list(), before the first read", () => {
+  for (const store of [memoryStore(), jsonlStore({ dir: tempDir() })]) {
+    assert.throws(
+      () => store.load({ userId: "", sessionId: "s" }),
+      (error) => isHarnessError(error) && error.code === "invalid_session_key",
+    );
+    assert.throws(
+      () => store.list(""),
+      (error) => isHarnessError(error) && error.code === "invalid_session_key",
+    );
+  }
+});
+
+test("a torn tail that cuts a multi-byte character is reported in bytes, and the next append cuts it at the right place", async () => {
+  const dir = tempDir();
+  const store = jsonlStore({ dir });
+  await store.append(KEY, [header(), record("r1", "h1", { text: "é" })]);
+  const path = join(dir, "ada", "s1.jsonl");
+  appendFileSync(path, Buffer.from([0x7b, 0x22, 0xc3]));
+  const reports: number[] = [];
+  const loaded = await all(store.load(KEY, { onTornLine: (line) => reports.push(line.bytes) }));
+  assert.equal(loaded.length, 2);
+  assert.deepEqual(reports, [3], "the unterminated tail is three bytes, one of them half a character");
+  await jsonlStore({ dir }).append(KEY, [record("r2", "r1")]);
+  assert.equal((await all(jsonlStore({ dir }).load(KEY))).length, 3);
 });

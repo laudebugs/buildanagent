@@ -97,12 +97,13 @@ export function checkKey(key: SessionKey): void {
       typeof value !== "string" ||
       value === "" ||
       [...value].length > MAX_KEY_PART ||
+      !value.isWellFormed() ||
       [...value].some((char) => char.charCodeAt(0) < 32) ||
       encodeName(value).length > MAX_NAME_BYTES
     ) {
       throw new HarnessError(
         "invalid_session_key",
-        `a session ${label} must be 1 to ${MAX_KEY_PART} characters with no control characters, and fit in a file name once encoded`,
+        `a session ${label} must be 1 to ${MAX_KEY_PART} characters with no control characters or lone surrogates, and fit in a file name once encoded`,
       );
     }
   }
@@ -110,7 +111,7 @@ export function checkKey(key: SessionKey): void {
 
 /** The log as a backend holds it: its entries by id, and where it ends. */
 export interface LogState {
-  readonly byId: ReadonlyMap<string, SessionEntry>;
+  readonly byId: Map<string, SessionEntry>;
   readonly lastId: string | null;
   readonly lastSeq: number;
 }
@@ -134,7 +135,7 @@ const sameContent = (a: SessionEntry, b: SessionEntry): boolean => {
 };
 
 /** The bytes of an entry's JSON, which is what the size bound counts. */
-export function entryBytes(entry: SessionEntry): number {
+function entryBytes(entry: SessionEntry): number {
   return new TextEncoder().encode(JSON.stringify(entry)).length;
 }
 
@@ -162,7 +163,8 @@ function storedPrefix(log: LogState, inputs: readonly EntryInput[]): SessionEntr
       }
       break;
     }
-    if (!sameContent(existing, { ...input, seq: existing.seq } as SessionEntry)) {
+    // The stored entry went through the protocol parser, so the retry does too, or a normalised field would differ.
+    if (!sameContent(existing, validated(input, existing.seq))) {
       throw new ConflictError(`entry "${input.id}" is already stored with different content`);
     }
     stored.push(existing);
@@ -210,6 +212,13 @@ export function planAppend(
     if (bytes > maxBytes) throw new EntryTooLargeError(entry.id, bytes, maxBytes);
   }
   return { result: [...stored, ...fresh], fresh };
+}
+
+/** The state after `fresh` was written, which extends the map in place, so an append costs the batch and not the log. */
+export function extendState(state: LogState, fresh: readonly SessionEntry[]): LogState {
+  for (const entry of fresh) state.byId.set(entry.id, entry);
+  const last = fresh.at(-1);
+  return last === undefined ? state : { byId: state.byId, lastId: last.id, lastSeq: last.seq };
 }
 
 /** The log's state after `entries`, a copy that a backend can keep. */
