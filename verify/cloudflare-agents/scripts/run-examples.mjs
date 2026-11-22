@@ -16,7 +16,7 @@
 // Usage: node scripts/run-examples.mjs [dir=extracted] [--only id1,id2]
 import { spawn } from "node:child_process";
 import { randomUUID } from "node:crypto";
-import { existsSync } from "node:fs";
+import { existsSync, rmSync } from "node:fs";
 import { mkdir, mkdtemp, readdir, readFile, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join, resolve } from "node:path";
@@ -67,8 +67,17 @@ async function writeWorkerTranscript(t, out, cwd, nonce) {
   });
   await rm(dir, { recursive: true, force: true });
 }
-// Bundles must live inside the package: workerd fails to load modules from some outside paths.
-const WORK = join(PKG, ".tmp", ownExamples ? "examples" : "docs");
+// Bundles must live inside the package: workerd fails to load modules from some outside paths. The folder is
+// per process for our own examples, because two runs at once would
+// otherwise delete each other's bundles. The docs run keeps a fixed name, which its committed results mention,
+// so two docs runs at once are not supported.
+const WORK = join(PKG, ".tmp", ownExamples ? `examples-${process.pid}` : "docs");
+// Our own run removes its folder however it ends, including a crash or a kill, because no later run reuses
+// a per-process name, so none would clean it up. KEEP_TMP=1 keeps it, to inspect a failing bundle.
+if (ownExamples && !process.env.KEEP_TMP) {
+  process.on("exit", () => rmSync(WORK, { recursive: true, force: true }));
+  for (const signal of ["SIGINT", "SIGTERM"]) process.on(signal, () => process.exit(1));
+}
 
 // Sources that need things the offline harness cannot provide. First match wins.
 const EXTERNAL = [
