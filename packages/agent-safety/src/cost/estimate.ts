@@ -71,7 +71,7 @@ function fileRef(data: unknown, mediaType: string, filename: string | undefined)
 
 // A size past these is no file a provider takes, and counting it would build blocks without end, so it counts as
 // unknown and the call is refused.
-const MAX_BYTES = 2 ** 40;
+const MAX_BYTES = 2 ** 32;
 const MAX_PAGES = 100_000;
 // Text counts by characters, so a large size becomes blocks that share one string, never one huge string.
 const CHUNK = " ".repeat(2 ** 20);
@@ -142,6 +142,15 @@ function fileParts(prompt: Prompt): FilePart[] {
   );
 }
 
+/** What `sizeOf` says of a file. A `sizeOf` that throws or rejects gives no size, so the call is refused, not failed. */
+async function askSize(sizeOf: FileSizer | undefined, ref: FileRef): Promise<unknown> {
+  try {
+    return await sizeOf?.(ref);
+  } catch {
+    return undefined;
+  }
+}
+
 // The sizes a guard remembers, so a tool loop doesn't ask for a file's size on every step.
 const REMEMBERED_SIZES = 256;
 
@@ -157,12 +166,14 @@ export async function sizeFiles(
   remembered: Map<string, FileSize>,
 ): Promise<{ readonly sizes: SizeTable; readonly unsized: FileRef | undefined }> {
   const sizes = new Map<string, FileSize>();
+  const asked = new Set<string>();
   let unsized: FileRef | undefined;
   for (const { data, mediaType, filename } of fileParts(prompt)) {
     const ref = fileRef(data, mediaType, filename);
-    if (ref === undefined || sizes.has(sizeKey(ref))) continue;
+    if (ref === undefined || asked.has(sizeKey(ref))) continue;
     const key = sizeKey(ref);
-    const size = remembered.get(key) ?? usableSize(await sizeOf?.(ref));
+    asked.add(key);
+    const size = remembered.get(key) ?? usableSize(await askSize(sizeOf, ref));
     if (size === undefined) {
       unsized ??= ref;
       continue;

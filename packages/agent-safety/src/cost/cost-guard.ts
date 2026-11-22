@@ -67,7 +67,7 @@ export interface CostGuardOptions {
    * or `{ pages }`, or `undefined` when you don't know it. Bytes count as the base64 characters of the file, and
    * each page as one image; the text a provider reads from a page isn't counted, so give bytes when you have them.
    * A file that is not an image and has no usable size is refused with `unknown_price`, because the guard can't tell
-   * what it costs. A usable size is a whole number, up to 2 ** 40 bytes or 100,000 pages. The guard remembers the
+   * what it costs. A usable size is a whole number, up to 2 ** 32 bytes or 100,000 pages. A `fileSize` that throws gives no size. The guard remembers the
    * sizes it was given, so a tool loop asks once for each file, not on every step. An image needs no size, because it
    * counts at the largest per-image size a provider documents.
    */
@@ -209,14 +209,19 @@ class Ledger {
       const message = `the price of ${id} is unknown, so a call under a USD cap can't be checked; add the model to the catalog`;
       this.refuse("unknown_price", model, message, (await this.readSpend(model))(), null);
     }
-    const { sizes, unsized } = await sizeFiles(params.prompt, this.options.fileSize, this.fileSizes);
+    const prompt = messageKeys(params.prompt);
+    const tools = toolsKey(params.tools);
+    const continued = this.reported(id, prompt, tools, params.prompt);
+    // A call that continues a recorded one is priced from its usage up to that answer, so only the files after it need a size.
+    const { sizes, unsized } = await sizeFiles(
+      params.prompt.slice(continued?.index ?? 0),
+      this.options.fileSize,
+      this.fileSizes,
+    );
     if (unsized !== undefined) {
       const message = `${id} was not called: the request points at ${describeFile(unsized)} (${unsized.mediaType}) by ${unsized.kind} and its size is unknown or out of range, so a call under a USD cap can't be checked; set fileSize on costGuard() to size it`;
       this.refuse("unknown_price", model, message, (await this.readSpend(model))(), null);
     }
-    const prompt = messageKeys(params.prompt);
-    const tools = toolsKey(params.tools);
-    const continued = this.reported(id, prompt, tools, params.prompt);
     const context = gatewayContext(params.prompt, params.tools, continued, sizes);
     const tokens = {
       inputTokens: estimateInputTokens(context),

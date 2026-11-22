@@ -943,7 +943,7 @@ test("a file the guard can't size is refused before the call, whether it is sent
   // What a `fileSize` can return that the guard can't use, and no `fileSize` at all.
   const unusable: [string, Partial<CostGuardOptions>][] = [
     ["no fileSize", {}],
-    ...[undefined, null, "10", 5, { bytes: -1 }, { bytes: 1.5 }, { bytes: 2 ** 40 + 3 }].map(
+    ...[undefined, null, "10", 5, { bytes: -1 }, { bytes: 1.5 }, { bytes: 2 ** 32 + 3 }].map(
       (size): [string, Partial<CostGuardOptions>] => [
         JSON.stringify(size) ?? "undefined",
         { fileSize: () => size as never },
@@ -971,7 +971,7 @@ test("a file the guard can't size is refused before the call, whether it is sent
 
 test("a size far beyond a cap is counted without building the file, and refuses as budget_exceeded", async () => {
   const { model, requests } = answering();
-  const guard = costGuard({ capUsd: 100, spend: memorySpend(), catalog: CATALOG, fileSize: () => ({ bytes: 5e9 }) });
+  const guard = costGuard({ capUsd: 100, spend: memorySpend(), catalog: CATALOG, fileSize: () => ({ bytes: 4e9 }) });
   const refused = refusal(
     await failure(guardedModel(model, guard).doGenerate({ prompt: pdfTurn({ type: "url", url: new URL(PDF_URL) }) })),
   );
@@ -991,6 +991,58 @@ test("a refusal names a file without its URL's query, which may hold a signature
   const refused = refusal(await failure(guardedModel(answering().model, guard).doGenerate({ prompt })));
   assert.match(refused.message, /https:\/\/bucket\.test\/reports\/q3\.pdf /);
   assert.doesNotMatch(refused.message, /secret123|X-Amz|frag/);
+});
+
+test("a fileSize that throws or rejects gives no size, so the call is refused, not failed", async () => {
+  for (const fileSize of [
+    () => {
+      throw new Error("lookup failed");
+    },
+    async () => {
+      throw new Error("lookup failed");
+    },
+  ]) {
+    const { model, requests } = answering();
+    const guard = costGuard({ capUsd: 100, spend: memorySpend(), catalog: CATALOG, fileSize });
+    const prompt = pdfTurn({ type: "url", url: new URL(PDF_URL) });
+    assert.equal(refusal(await failure(guardedModel(model, guard).doGenerate({ prompt }))).code, "unknown_price");
+    assert.equal(requests.length, 0);
+  }
+});
+
+test("the same unsized file twice in a prompt is asked for once", async () => {
+  const asked: string[] = [];
+  const same = { type: "url", url: new URL(PDF_URL) };
+  const part = { type: "file", mediaType: "application/pdf", data: same } as never;
+  const guard = costGuard({
+    capUsd: 100,
+    spend: memorySpend(),
+    catalog: CATALOG,
+    fileSize: (file) => {
+      asked.push(file.source);
+      return undefined;
+    },
+  });
+  const prompt: CallPrompt = [{ role: "user", content: [part, part] }];
+  await failure(guardedModel(answering().model, guard).doGenerate({ prompt }));
+  assert.deepEqual(asked, [PDF_URL]);
+});
+
+test("a later step is not refused when the size source stops answering for a file it already sized", async () => {
+  let known = true;
+  const guard = costGuard({
+    capUsd: 100,
+    spend: memorySpend(),
+    catalog: CATALOG,
+    fileSize: () => (known ? { bytes: 10 } : undefined),
+  });
+  const model = guardedModel(answering().model, guard);
+  const first = pdfTurn({ type: "url", url: new URL(PDF_URL) });
+  await model.doGenerate({ prompt: first });
+  known = false;
+  const next: CallPrompt = [...first, { role: "assistant", content: [{ type: "text", text: "Done." }] }, ...USER_TURN];
+  // The file was sized on the first call, and is remembered, so the size source is not asked again.
+  await model.doGenerate({ prompt: next });
 });
 
 test("a size is asked for once for each file across calls, and a file with no size is asked for again", async () => {
