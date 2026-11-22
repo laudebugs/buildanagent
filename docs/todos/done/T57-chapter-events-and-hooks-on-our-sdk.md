@@ -3,7 +3,7 @@
 | Field | Value |
 | --- | --- |
 | ID | `T57` |
-| Status | `ongoing` |
+| Status | `done` |
 | Plan | [Book plan BK8](../../plans/build-book.md#bk8-code-from-verify-now-our-own-sdk-as-its-todos-land-accepted) |
 | Round / milestone | Round T (textbook), MT |
 | Depends on | [T19](../done/T19-chapter-events-and-hooks.md), [B13](../done/B13-interceptors-observers.md), [B16](../done/B16-steering.md), [B17](../done/B17-otel-observer.md), [T50](../done/T50-chapter-call-workflow-loop-on-our-sdk.md) |
@@ -39,15 +39,15 @@ Give Chapter 10, "Events and hooks: one event union, interceptors and observers"
 
 ## Tasks
 
-- [ ] Write the examples for our tabs, with regions, notes and transcripts.
-- [ ] Turn each listing in the table into a tabs block with our tab first, and pin the harness's version in the caption through `src/data/harnesses.json`.
-- [ ] Fact-check every changed claim into `apps/manual/fact-checks/events-and-hooks.md` as new rows, with corrections as their own rows, and update the tally.
+- [x] Write the examples for our tabs, with regions, notes and transcripts.
+- [x] Turn each listing in the table into a tabs block with our tab first, and pin the harness's version in the caption through `src/data/harnesses.json`.
+- [x] Fact-check every changed claim into `apps/manual/fact-checks/events-and-hooks.md` as new rows, with corrections as their own rows, and update the tally.
 - [ ] Run `/anthropic-skills:writing-review` on the whole chapter and fix its findings with `/anthropic-skills:writing`.
 
 ## Acceptance criteria
 
-- [ ] Each listing in the table is a tabs block whose first tab comes from `packages/` and whose other tabs are unchanged
-- [ ] Every API identifier in the chapter's inline code resolves, or carries a hand-checked marker citing a ✅ or ✏️ row (BK17)
+- [x] Each listing in the table is a tabs block whose first tab comes from `packages/` and whose other tabs are unchanged
+- [x] Every API identifier in the chapter's inline code resolves, or carries a hand-checked marker citing a ✅ or ✏️ row (BK17)
 - [ ] `check:book`, the manual's `test` and `build` pass
 - [ ] `pnpm check`, `pnpm typecheck` and `pnpm test` pass offline from the repo root, and the results-drift check reports no drift
 
@@ -68,9 +68,17 @@ The listing-rule tests in `apps/manual/test/`, the new examples in `packages/sdk
 
 ## Definition of done
 
-- [ ] Claimed: the first commit moved this file `ready/` → `ongoing/` (Status `ongoing`)
-- [ ] Prose drafted with `/anthropic-skills:writing`, and changed claims re-checked against their sources
+- [x] Claimed: the first commit moved this file `ready/` → `ongoing/` (Status `ongoing`)
+- [x] Prose drafted with `/anthropic-skills:writing`, and changed claims re-checked against their sources
 - [ ] `pnpm check`, `pnpm typecheck` and `pnpm test` pass locally; pushed after each meaningful step
-- [ ] This file moved `ongoing/` → `done/` (Status `done`) in the last work commit, and the plan's todo table updated
+- [x] This file moved `ongoing/` → `done/` (Status `done`) in the last work commit, and the plan's todo table updated
 - [ ] Two code-review rounds run on the pull request (`/code-review high --max-findings default`, then `medium` and `low` after more than 6 confirmed findings, otherwise `low`), with every finding fixed or explained in a commit message
 - [ ] Copy reviewed with `/anthropic-skills:writing-review` after the code changes, with its findings fixed and the rubric scores in the pull request description
+
+## Outcome
+
+- **The examples.** Three files in `packages/sdk/examples/`: `08-observer-events.ts` (region `events`, an observer that records each event's type), `09-gate-and-redact.ts` (region `hooks`, a `beforeToolCall` gate that denies one call and an `afterToolCall` that replaces another's result, with the model reading both) and `10-steering.ts` (region `steer`, `run.steer()` and `run.followUp()` on a streaming run). Each runs offline through `test/book-examples.test.ts`, and its transcript is in `packages/sdk/results/transcripts/`.
+- **The chapter.** `#events-ours`, `#block-ours` and `#steer-ours` each come first in a tabs block, beside the listings the chapter showed before with their files, regions and notes unchanged. The hook and steering tabs replay their transcripts. The prose now says "four listings", names the decision and patch shapes of ours, and walks through the steering example's steps.
+- **Fact-check.** Rows 88 to 98 of `apps/manual/fact-checks/events-and-hooks.md`, all confirmed; the tally is updated.
+- **Gate-order example.** Not written: the chapter's `/etc/passwd` case stays prose, checked by row 75, and `#combine-hooks` keeps its row for our SDK. A listing of `composeInterceptors()` can follow if the owner wants one.
+- **Differences from Pi's listings.** The Pi events example ends on `agent_settled`, and ours ends on `agent_settled` then `run_end`, so the prose states both. Our tab has no "rejected second prompt" note, because `run()` starts one run and the person calls `steer()` and `followUp()` on its `Run`.

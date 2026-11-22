@@ -68,13 +68,13 @@
     },
     {
       "kind": "check",
-      "line": 31,
+      "line": 32,
       "message": "agent_settled comes second to last and run_end, which carries the result, comes last",
       "pass": true
     },
     {
       "kind": "check",
-      "line": 35,
+      "line": 36,
       "message": "an observer passed in the options hears run_start too",
       "pass": true
     }

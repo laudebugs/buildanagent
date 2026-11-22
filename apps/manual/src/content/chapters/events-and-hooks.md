@@ -19,11 +19,17 @@ The first choice separates partial from finished. A progress screen wants each p
 
 Our SDK, `@buildanagent/sdk` 0.1.0-alpha.26 as of November 2026, builds the split into two layers [@buildanagent-sdk-hooks]. The delta layer streams each content block by its index, as `text_delta`{checked=row-9} does. The item layer's end events, `model_call_end`{checked=row-9}, `tool_call_end`{checked=row-9} and `run_end`{checked=row-9}, each carry the finished item, so your log stores only those and a replay never meets a half-built message. In the 2 a.m. case, the engineer's step list is a run of those end events: a `tool_call_end`{checked=row-9} for each tool call, the ticket close included, and a `run_end`{checked=row-9} after the last. A live screen at that hour would have shown the deltas, and the log never needed them.
 
-:::listing[A Pi subscriber hears the deltas, then the finished message, then the settled marker]{#pi-events file="verify/pi/examples/01-hello-session.ts" region="events"}
+::::tabs
+:::listing[Our SDK]{#events-ours file="packages/sdk/examples/08-observer-events.ts" region="events"}
+::note[One prompt produces the whole run's events. An observer passed in the `observers` option also hears `run_start`{checked=row-89}, which `run()` emits before it returns.]{#prompt}
+::note[The observer returns nothing, because the run never reads what an observer returns. It only appends each event's type to a list.]{#record}
+:::
+:::listing[Pi]{#pi-events file="verify/pi/examples/01-hello-session.ts" region="events"}
 ::note[One prompt produces the whole run's events: the deltas as `message_update`, the finished message as `message_end`, and a last event that closes the run.]{#prompt}
 :::
+::::
 
-[[lst:pi-events]] shows the stream from a subscriber's side. The subscriber only appends each event's type to a list, and the example's checks then confirm that the deltas arrived as `message_update`, the finished message as `message_end`, and that `agent_settled` came last. A stream needs its own marker for the end of the whole run, and Pi's docs say why: `agent_end`{checked=row-11} closes one low-level run, and a retry or a queued message can still continue it, while `agent_settled` means Pi has no automatic work left [@pi-json-events]. The SDK's own stream ends the same way: `agent_settled` fires once nothing is running any more, and `run_end`{checked=row-13} follows it with the result [@buildanagent-sdk-hooks].
+[[lst:events-ours]] and [[lst:pi-events]] show the stream from a subscriber's side. Each subscriber only appends an event's type to a list, and the example's checks then confirm the order. In Pi, the deltas arrive as `message_update`, the finished message as `message_end`, and `agent_settled` comes last. In ours, the deltas arrive as `text_delta`{checked=row-9}, the finished text as `text_end`{checked=row-88}, and the finished call as `model_call_end`{checked=row-9}, with `agent_settled` and then `run_end`{checked=row-13} at the end. A stream needs its own marker for the end of the whole run, and Pi's docs say why: `agent_end`{checked=row-11} closes one low-level run, and a retry or a queued message can still continue it, while `agent_settled` means Pi has no automatic work left [@pi-json-events]. Our stream ends the same way: `agent_settled` fires once nothing is running any more, and `run_end`{checked=row-13} follows it with the result [@buildanagent-sdk-hooks].
 
 The second choice is to close the list. Your UI or log switches on each event's `type`{checked=row-17}, and TypeScript can check that every case is handled only if the union names every event the runtime can emit. The Copilot SDK's docs say its `SessionEvent`{checked=row-14} union lists "every event the runtime can emit" [@copilot-streaming-events]. In our check of version 1.0.31 as of November 2026, a plain turn also emitted ten `model.*` event types that none of the union's 154 members declares, seen with a bring-your-own-key provider and our mock model. A `switch` that TypeScript counted as exhaustive therefore met values you had written no case for [@buildanagent-copilot-sdk-check].
 
@@ -45,9 +51,14 @@ As of November 2026, our SDK has six interceptors named by moment, and a step ca
 ::svg{alt="Two columns. On the left, eight boxes joined by downward arrows in the order transformContext, beforeModelCall, the model call, afterModelCall, beforeToolCall, the tool runs, afterToolCall and shouldStop; the six interceptors are outlined in the accent colour and the model call and the tool run are dashed. On the right, a dashed lane headed observers: only watch. Dashed arrows lead from five boxes into the lane, to the events context_transformed, model_call_start, model_call_end, tool_call_end and step_end. A note in the lane says no arrow points back, because an observer returns nothing the run reads."}
 :::
 
-The other SDKs agree on the moments and differ in how many they offer. LangChain's middleware has six hooks, four that run at fixed points and two that wrap a model call or a tool call [@langchain-middleware-custom]. ADK's callbacks come in before and after pairs for the agent, the model and the tool [@adk-callback-types]. Copilot's hook table lists twelve, from `onPreToolUse` to `onSubagentStop`{checked=row-23} [@copilot-hooks-overview]. Pi names the two tool moments `tool_call`{checked=row-24}, which can block a call or change its input, and `tool_result`{checked=row-24}, which can modify the result [@pi-extensions]. The counts differ, but every SDK lets code in right before and right after a tool call, and the three listings below all sit at that tool moment.
+The other SDKs agree on the moments and differ in how many they offer. LangChain's middleware has six hooks, four that run at fixed points and two that wrap a model call or a tool call [@langchain-middleware-custom]. ADK's callbacks come in before and after pairs for the agent, the model and the tool [@adk-callback-types]. Copilot's hook table lists twelve, from `onPreToolUse` to `onSubagentStop`{checked=row-23} [@copilot-hooks-overview]. Pi names the two tool moments `tool_call`{checked=row-24}, which can block a call or change its input, and `tool_result`{checked=row-24}, which can modify the result [@pi-extensions]. The counts differ, but every SDK lets code in right before and right after a tool call, and the four listings below all sit at that tool moment.
 
 ::::tabs
+:::listing[Our SDK]{#block-ours file="packages/sdk/examples/09-gate-and-redact.ts" region="hooks" replay}
+::note[Returning a `deny` decision blocks the call, and the model reads the `reason`. The example's checks confirm that the denied tool's function never ran.]{#deny}
+::note[A gate must return a decision, so a call that passes returns an explicit `allow`. Returning nothing would throw.]{#allow}
+::note[Returning a patch whose `content` replaces what the model reads, so the raw ticket body never reaches it. Returning nothing keeps the result.]{#replace}
+:::
 :::listing[Copilot SDK]{#block-copilot file="verify/copilot-sdk/examples/08-hooks.ts" region="hooks" replay}
 ::note[Returning a decision of `deny` blocks the call, and the example's checks confirm that the model reads the reason.]{#deny}
 ::note[Returning `null` lets the call through unchanged. The docs return `null` here, and the types say `void`.]{#pass}
@@ -64,13 +75,13 @@ The other SDKs agree on the moments and differ in how many they offer. LangChain
 :::
 ::::
 
-All three hooks decide what happens to one call, and each returns a different shape. Copilot's returns a decision object whose `deny` carries the reason; LangChain's wrap hook receives `handler` and blocks by not calling it; ADK's returns an object that stands in for the result [@copilot-pre-tool-use-hook; @langchain-middleware-custom; @adk-callback-types]. The after moment works the same way, since Copilot's `modifiedResult` and ADK's returned object each replace the tool's result before the model reads it [@copilot-post-tool-use-hook; @adk-callback-types]. Copilot's hook also runs ahead of its permission callback, and the example's checks confirm that the callback never hears about the denied call.
+All four hooks decide what happens to one call, and each returns a different shape. Ours and Copilot's return a decision object whose `deny` carries the reason, and ours returns a patch after the call whose `content` replaces the result [@buildanagent-sdk-hooks]; LangChain's wrap hook receives `handler` and blocks by not calling it; ADK's returns an object that stands in for the result [@copilot-pre-tool-use-hook; @langchain-middleware-custom; @adk-callback-types]. The after moment works the same way, since Copilot's `modifiedResult` and ADK's returned object each replace the tool's result before the model reads it [@copilot-post-tool-use-hook; @adk-callback-types]. Copilot's hook also runs ahead of its permission callback, and the example's checks confirm that the callback never hears about the denied call.
 
 What a hook returns means something different in each SDK. In Copilot, a hook that returns nothing lets the call go on, and a returned decision can deny the call or edit its arguments, while an `allow`{checked=row-74} changes nothing. In ADK, returning nothing also lets the call go on, and a returned object replaces the step. LangChain's wrap hook has no such default, because the tool runs only if the hook calls `handler`.
 
 That convention has a cost: a `return` you forget is permission. Copilot's docs tell you to return a decision every time, even though `null` allows the tool [@copilot-pre-tool-use-hook], and ADK's Python docs warn that only `None`{checked=row-32} lets the tool run, so an empty `dict`{checked=row-32} skips it [@adk-callback-types]. We closed that gap for gates.
 
-A `beforeToolCall`{checked=row-19} that returns nothing throws an error with the code `invalid_hook_result`{checked=row-33}. A missing `return` therefore cannot pass for permission. The SDK also freezes each event's data, so a hook that tries to change its input throws, and you return a replacement instead [@buildanagent-sdk-hooks].
+A `beforeToolCall`{checked=row-19} that returns nothing throws an error with the code `invalid_hook_result`{checked=row-33}. A missing `return` therefore cannot pass for permission, and the gate in [[lst:block-ours]] returns an explicit `allow` for the calls it lets through. The SDK also freezes each event's data, so a hook that tries to change its input throws, and you return a replacement instead [@buildanagent-sdk-hooks].
 
 Where a change lands decides whether it is a view or the record. What `transformContext`{checked=row-19} and `beforeModelCall`{checked=row-19} return reaches that one request, and the transcript keeps its own messages. What `afterModelCall`{checked=row-19} and `afterToolCall`{checked=row-19} return becomes the record: the transcript, `model_call_end`{checked=row-36} and `tool_call_end`{checked=row-36} hold the replacement, and the model reads it [@buildanagent-sdk-hooks]. A request's events also show what was really sent, because `model_call_start`{checked=row-37} carries the request after both hooks have run. A redaction therefore leaves no copy of the original in the record. The audit sees the redacted result that the model saw.
 
@@ -92,16 +103,23 @@ A hook is also code that can throw, and a throw at a gate must not mean yes. Pi'
 
 Do not use a pair of hooks for bookkeeping. Copilot's docs say that a pre-hook does not guarantee a matching post-hook, because the post hooks fire only after a success or a failure result [@copilot-hooks-overview]. `afterToolCall`{checked=row-19} likewise skips a call that never ran, such as a denied call, an unknown tool or invalid input. The `tool_call_end`{checked=row-36} event still reports a denied call, with an error result that names the reason, and Pi's `tool_execution_end`{checked=row-48} does the same for every finalized call, a blocked one included [@pi-extensions].
 
-Interceptors are written before a run starts, but sometimes a person must change a run that is already underway. [[lst:pi-steer]] shows Pi's answer: a second `prompt()` while the run streams is rejected, so the person queues a steer for the current run or a follow-up for after it.
+Interceptors are written before a run starts, but sometimes a person must change a run that is already underway. [[lst:pi-steer]] shows Pi's answer: a second `prompt()` while the run streams is rejected, so the person queues a steer for the current run or a follow-up for after it. [[lst:steer-ours]] shows the same two calls on our SDK, where the person holds the `Run` that `run()` returns and calls them on it.
 
-:::listing[Pi accepts a steer and a follow-up while a run streams, and rejects a plain second prompt]{#pi-steer file="verify/pi/examples/04-steering.ts" region="steer"}
+::::tabs
+:::listing[Our SDK]{#steer-ours file="packages/sdk/examples/10-steering.ts" region="steer" replay}
+::note[`steer()` queues a message for the run in progress, and the first model call is still streaming when it arrives. The example does not wait for the promise it returns, which settles with a receipt once the message is in the transcript.]{#steer}
+::note[`followUp()` queues a message for after the run would otherwise end.]{#follow-up}
+::note[Each queued message comes back as a `steer_applied` event, whose receipt names the kind and the step at which the run added it.]{#applied}
+:::
+:::listing[Pi]{#pi-steer file="verify/pi/examples/04-steering.ts" region="steer"}
 ::note[The first prompt is still streaming when the next calls arrive.]{#start}
 ::note[A plain `prompt()` is rejected during a run, so a second message cannot slip in by accident.]{#reject}
 ::note[`steer()` queues a message for the run in progress and answers `"queued"`.]{#steer}
 ::note[`followUp()` queues a message for after the run would otherwise end.]{#follow-up}
 :::
+::::
 
-Pi's docs say a steer waits until the current assistant message's tool calls have finished and is then read on the next turn, and a follow-up waits until there are no tool calls and no steers left [@pi-agent-core-readme]. `run.steer()`{checked=row-51} obeys the same boundary rule in our SDK: it is applied before the run's next model call, and `run.followUp()`{checked=row-51} waits until the run would otherwise end. Each returns a receipt, and the run emits a `steer_applied`{checked=row-51} event for it, so the outside change is itself in the record [@buildanagent-sdk-hooks].
+Pi's docs say a steer waits until the current assistant message's tool calls have finished and is then read on the next turn, and a follow-up waits until there are no tool calls and no steers left [@pi-agent-core-readme]. `run.steer()`{checked=row-51} obeys the same boundary rule in our SDK: it is applied before the run's next model call, and `run.followUp()`{checked=row-51} waits until the run would otherwise end. Each returns a receipt, and the run emits a `steer_applied`{checked=row-51} event for it, so the outside change is itself in the record [@buildanagent-sdk-hooks]. In [[lst:steer-ours]], both calls arrive during the first model call, which also calls a tool. The steer is applied at step 1, after the tool batch and before the second model call. The follow-up waits until the model has answered and takes a step of its own at step 2, so the run makes three model calls.
 
 What should code do when it only needs to watch?
 
