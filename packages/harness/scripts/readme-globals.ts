@@ -5,6 +5,7 @@ import type * as context from "@buildanagent/harness/context";
 import type * as file from "@buildanagent/harness/context/file";
 import type * as extensions from "@buildanagent/harness/extensions";
 import type * as extensionsNode from "@buildanagent/harness/extensions/node";
+import type * as mcp from "@buildanagent/harness/mcp";
 import type * as sandbox from "@buildanagent/harness/sandbox";
 import type * as server from "@buildanagent/harness/server";
 import type * as sessions from "@buildanagent/harness/session";
@@ -28,6 +29,7 @@ declare global {
   const withPlanConvention: typeof extensions.withPlanConvention;
   const withSkills: typeof extensions.withSkills;
   const createContextPolicy: typeof context.createContextPolicy;
+  const createMcpManager: typeof mcp.createMcpManager;
   const createDispatcher: typeof server.createDispatcher;
   const createHarness: typeof server.createHarness;
   const fileSpillStore: typeof file.fileSpillStore;

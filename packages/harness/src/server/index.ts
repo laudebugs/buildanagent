@@ -1,7 +1,8 @@
 /**
  * `@buildanagent/harness/server`: the harness itself. `createHarness()` holds the settings every turn shares,
  * `createDispatcher()` serves the protocol's commands over a harness, and `inProcessTransport()` connects a client in
- * the same process. `stdioTransport()` serves one client over a pair of byte streams, one JSON-RPC message per line.
+ * the same process. `stdioTransport()` serves one client over a pair of byte streams, one JSON-RPC message per line,
+ * and `webSocketTransport()` serves one client over a WebSocket, one message per text frame.
  */
 export { createHarness } from "../create-harness.js";
 export type { CodeCall, CodeCallResult, Harness, HarnessEnv, HarnessOptions } from "../harness.js";
@@ -24,3 +25,10 @@ export {
   type StdioOutput,
   stdioTransport,
 } from "./stdio.js";
+export {
+  type WebSocketCloseEvent,
+  type WebSocketLike,
+  type WebSocketMessageEvent,
+  type WebSocketOptions,
+  webSocketTransport,
+} from "./websocket.js";

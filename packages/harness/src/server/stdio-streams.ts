@@ -5,6 +5,7 @@
  * wait. Releasing a reader or a writer removes the transport's listeners and locks and leaves the stream itself
  * open: the host owns it.
  */
+import { messageOf } from "./rpc-session.js";
 
 /** A Node `Readable` as the transport reads it, such as `process.stdin`. A string chunk is read as UTF-8. */
 export interface NodeInput {
@@ -109,8 +110,6 @@ export interface ChunkReader {
   next(): Promise<IteratorResult<Uint8Array | string, undefined>>;
   release(): void;
 }
-
-const messageOf = (error: unknown): string => (error instanceof Error ? error.message : String(error));
 
 const isWebOutput = (output: StdioOutput): output is WritableStream<Uint8Array> => "getWriter" in output;
 

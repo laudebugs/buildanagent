@@ -47,7 +47,11 @@ export type HarnessErrorCode =
   | "invalid_session_key"
   | "invalid_retention"
   | "session_corrupt"
-  | "invalid_completion_config";
+  | "invalid_completion_config"
+  | "invalid_mcp_config"
+  | "mcp_connect_failed"
+  | "mcp_tool_list_refused"
+  | "mcp_call_failed";
 
 // A registered symbol, so the guard still works when two copies of the package are bundled.
 const HARNESS_ERROR = Symbol.for("buildanagent.harness.HarnessError");
@@ -90,7 +94,12 @@ const HARNESS_ERROR = Symbol.for("buildanagent.harness.HarnessError");
  * `invalid_session_key`: a user or session id the store can't use. `invalid_retention`: a retention period that is not a
  * positive number, or an action other than `archive` and `purge`. `session_corrupt`: a log file has a bad line before
  * its last line. `invalid_completion_config`: `.agents/harness.json` is not JSON, or its `completionChecks` is not a list
- * of commands.
+ * of commands. `invalid_mcp_config`: an MCP server's configuration can't be used, such as a name outside the allowed
+ * characters or two servers with one name. `mcp_connect_failed`: an MCP server did not start, did not finish the
+ * handshake in time, or closed before it did (`McpError`). `mcp_tool_list_refused`: an MCP server listed tools the
+ * harness refuses, such as two with one name, so none of its tools was registered (`McpError`). `mcp_call_failed`: an
+ * MCP tool call ended without a result, because the server closed, timed out, asked for input or answered with an
+ * error (`McpError`).
  */
 export class HarnessError extends Error {
   override readonly name: string = "HarnessError";
