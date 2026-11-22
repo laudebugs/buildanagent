@@ -137,7 +137,8 @@ const retries = attempts - 1; // book:note retry-count
 // #endregion
 check(first.text === "Refunds take five days." && retries === 1, `a retryable error costs one retry (${retries})`);
 
-failures.push(apiError(401, false));
+// #region retry-limits
+failures.push(apiError(401, false)); // book:note not-retryable
 const before = attempts;
 const rejected = await ask(model, "Again?").catch((e) => e);
 check(
@@ -146,11 +147,12 @@ check(
 );
 
 failures.push(apiError(429, true), apiError(429, true));
-const exhausted = await ask(model, "Once more?", policy, { maxRetries: 1 }).catch((e) => e);
+const exhausted = await ask(model, "Once more?", policy, { maxRetries: 1 }).catch((e) => e); // book:note retry-cap
 check(
   RetryError.isInstance(exhausted) && exhausted.reason === "maxRetriesExceeded",
   "maxRetries 1 gives up after two errors",
 );
+// #endregion
 
 // #region cache
 const spentBefore = ledger.spent;

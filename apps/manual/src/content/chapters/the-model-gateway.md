@@ -2,7 +2,7 @@
 title: "The model gateway: one streaming method, retries, prompt caching, reasoning replay and cost"
 summary: A model gateway sits between your agent loop and every provider, so it is the one place that sees each call in the provider's terms. This chapter shows why one streaming method, retries, prompt caching, reasoning replay and cost accounting all live there, and what each of them must not do.
 opening: code
-sources: [buildanagent-gateway-readme, buildanagent-agent-sdk-guide, anthropic-rate-limits, anthropic-streaming, openai-chat-completions-create]
+sources: [buildanagent-gateway-readme, buildanagent-agent-sdk-guide, anthropic-rate-limits, anthropic-streaming, openai-chat-completions-create, anthropic-errors, openai-rate-limits]
 glossary: [model-gateway, wire-protocol, delta, token]
 switchTo: [B4, B5, B8, B9]
 ---
@@ -54,6 +54,37 @@ The example runs the same `ask` over the second protocol. [[lst:wire-listing]] b
 The operator analogy breaks at one point: an operator only patches a call through, while a gateway also rewrites it. Anthropic wants a turn's tool results as blocks in one user message, and OpenAI wants a message for each, so the adapter reshapes the transcript on every call. It also keeps the transcript in one format of its own, so the loop never sees either provider's. That rewriting, and not the patching, is why a transcript recorded under one provider can continue under another, as the fourth section shows.
 
 One method in and one wire format out give every later job a single place to run. A retry wraps one method, a price attaches to one terminal message, and a cache policy passes through one options object. The next section starts with the job that needs the most care: what to do when the provider says no.
+
+## A retry is safe only before the first output, and only for a failure that waiting can fix
+
+Dial a busy line and you hang up, wait, and dial again, waiting longer each time. That is :analogy[redialling a busy line]{#redial-busy-line}, and a gateway does it for a provider that answers "overloaded". By default our gateway retries a failed call twice, waiting 2 seconds before the first retry and 4 before the second, and each retry shows up in the stream as a `retry`{checked=row-25} event [@buildanagent-gateway-readme]. The wait doubles because a busy server needs room, and because resending at once only digs deeper: OpenAI's rate-limit guide warns that "unsuccessful requests contribute to your per-minute limit, so continuously resending a request won't work" [@openai-rate-limits]. [[lst:retry-once]] shows the happy case. The scripted model fails once with a retryable error, and `ask` returns its answer anyway.
+
+:::listing[A retryable failure costs one retry, and the caller sees only the answer]{#retry-once file="verify/vercel-ai-sdk/examples/12-retries-caching-budget.ts" region="retry"}
+::note[The scripted failure is an overloaded error that marks itself retryable, with a `retry-after-ms`{checked=row-27} header of 0 so the example does not wait.]{#retry-header}
+::note[Two attempts for one call: the failure and the retry that succeeded.]{#retry-count}
+:::
+
+Two limits stop the redialling from doing harm. The first concerns output. Once a block of the answer has reached the caller, a second attempt would replay text the caller has already seen, so the gateway retries only a failure that arrives before any content [@buildanagent-gateway-readme]. Anthropic's errors page marks the same boundary from its side: an error that comes after a streaming response has returned 200 "doesn't follow these standard mechanisms" [@anthropic-errors]. The second limit concerns the failure itself, because a busy signal clears and some failures never do. The analogy breaks there: a rejected request fails every time you resend it. [[tbl:error-kinds]] shows the four kinds our gateway sorts a failure into, which it decides from the HTTP status and the provider's error code or message together.
+
+:::table[The four kinds of failure, and what the gateway does with each, as of November 2026]{#error-kinds}
+| Kind | Example from a provider | Retried? | Why |
+| --- | --- | --- | --- |
+| Retryable | HTTP 529 `overloaded_error`{checked=row-31}, a 429 rate limit, a dropped connection | Yes, up to twice | Waiting changes the outcome |
+| Quota | HTTP 402 `billing_error`{checked=row-31}, or a 429 with `enforced_spend_limit_reached`{checked=row-31} | No | Waiting does not refill a budget |
+| Overflow | HTTP 413 `request_too_large`{checked=row-31}, or "prompt is too long" | No | The same request overflows again; the loop must shrink it |
+| Fatal | HTTP 401 `authentication_error`{checked=row-31}, any status the gateway does not know | No | A rejected request fails every time |
+:::
+
+The quota row shows why a status code alone cannot decide. Anthropic's spend-cap response is a 429, the same status as a rate limit, but it "has no `retry-after`{checked=row-39} header" and "keeps failing until access resumes" [@anthropic-errors]. OpenAI's guide says outright: "Don't retry quota, billing, or other errors that require you to take action" [@openai-rate-limits]. So the gateway reads the code and message first, and treats a 429 as a rate limit only when they name none of the billing causes [@buildanagent-gateway-readme]. [[lst:retry-limits]] runs the two refusals: a 401 fails after one attempt, and two 429s against `maxRetries: 1`{checked=row-36} end the call with a retry error.
+
+:::listing[A failure that waiting cannot fix is not retried, and a retry count is a ceiling]{#retry-limits file="verify/vercel-ai-sdk/examples/12-retries-caching-budget.ts" region="retry-limits"}
+::note[A 401 marks itself not retryable, and the example's check counts exactly one attempt for the call.]{#not-retryable}
+::note[Two 429s are scripted and one retry is allowed, so the second failure ends the call with the reason `maxRetriesExceeded`.]{#retry-cap}
+:::
+
+Waiting is the other thing a provider can tell you. Anthropic's 429 responses may carry a `retry-after`{checked=row-39} header, and its docs say to wait that many seconds [@anthropic-rate-limits]. Our gateway waits for the longer of its backoff and the hint, capped at 60 seconds, and when a hint asks for more than 60 it stops and returns the failure with the hint attached, with no retry event, so your code can wait and call again [@buildanagent-gateway-readme]. OpenAI's guide asks for the same: when a valid server delay exceeds your maximum, "stop retrying and defer the request rather than retrying sooner" [@openai-rate-limits]. The AI SDK's default does the opposite. It honors a hint between 0 and 60 seconds and otherwise falls back to its own backoff, so a hint of five minutes gets the next retry after 4 seconds, as of `ai@7.0.162`{checked=row-34}. No default is wrong everywhere, so read your SDK's rule before you rely on it.
+
+Retries also stack. The SDK's loop can retry a whole turn above the gateway, with `turnRetries`{checked=row-37} off by default. With the gateway's two retries and `turnRetries`{checked=row-37} set to 2, one call may send up to nine requests, and each failed one may be billed [@buildanagent-gateway-readme]. We counted retries in the gateway's cost for that reason: the final message sums every attempt's usage and cost, so a budget sees what the retries spent. Our gateway adds no random jitter to its waits, which OpenAI's guide recommends so that many clients do not retry in step [@openai-rate-limits]. That is a limit of ours, and the right fix is a jitter option in the gateway, not a copy of the retry loop in every agent.
 
 ## Exercises
 
