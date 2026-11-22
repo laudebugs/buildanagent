@@ -3,7 +3,7 @@
 | Field | Value |
 | --- | --- |
 | ID | `N8` |
-| Status | `ready` |
+| Status | `ongoing` |
 | Plan | [Build harness §4, Stage 2](../../plans/build-harness.md#42-stage-2-adds-the-five-context-layers-cheapest-first) |
 | Round / milestone | Round N (build harness), M6 |
 | Depends on | [N6](../done/N6-session-runner.md) |
