@@ -16,7 +16,7 @@ The claims log for [`side-effects-that-can-fail.md`](../src/content/chapters/sid
 | --- | --- | --- | --- | --- |
 | 1 | In the example, a child process that charges order 42 is killed after the server's reply and before the outcome is logged; the server has written once and the log holds the key with no outcome, so the state is `unknown` | Opening | ✅ | `verify/vercel-ai-sdk/examples/15-write-crash-idempotency.ts`, the `crash` region's checks "the child process was killed mid-write", "the server had already written once for order 42" and "the log has the key and no outcome, so the state is unknown" |
 | 2 | The date is November 2026 | Opening | ✅ | The example's results and the repository's history, both of this month |
-| 3 | A model told "it failed" would invite a second charge, and "it worked" is a guess the log cannot back | Opening | ✅ | Our reasoning from rows 1 and 7, not a sourced claim; the example's tool answers `unknown` for exactly this state |
+| 3 | A model told "it failed" would invite a second charge, and "it worked" is a guess the log cannot back | Opening | ⚠️ | Our reasoning from rows 1 and 7, not a sourced claim; the example's tool answers `unknown` for exactly this state |
 | 4 | Anthropic's `tool_result` and MCP carry an error flag, OpenAI's function output format "is up to you", and several SDKs pass the raw exception message to the model | § A write reports | ✅ | [Server rollback log, rows 50 and 54](../../../docs/research/reversible-actions/fact-check-server-rollback.md): Handle tool calls, the MCP schema, the function calling guide and the SDK sources at their pins |
 | 5 | The harness's plan names five outcomes, `applied`, `not_applied`, `compensated`, `partial` and `unknown`, and the kinds are our proposal from distributed-API practice, not a vendor vocabulary | § A write reports | ✅ | [Close-sdk-gaps plan, SG3](../../../docs/plans/close-sdk-gaps.md#sg3-a-write-reports-one-of-five-outcomes-and-unknown-is-never-retried-with-a-fresh-key-accepted): "The kinds are our proposal from distributed-API practice, not a vendor vocabulary" |
 | 6 | The five meanings (and, after the review, that a retry after a fix is a new operation with a new key): `not_applied` rejected before any effect; `compensated` applied then undone; `partial` some steps applied and the undo failed or skipped; `unknown` a timeout or lost response | § A write reports | ✅ | [Server rollback report](../../../docs/research/reversible-actions/server-rollback.md), the outcome table, with `applied` added by SG3 |
@@ -37,7 +37,7 @@ The claims log for [`side-effects-that-can-fail.md`](../src/content/chapters/sid
 | 16 | The OpenAI Agents SDK says a tool with side effects should be made "idempotent by call ID so an interrupted continuation cannot repeat the effect"; Cloudflare tells developers to "Persist idempotency keys or completion records before external side effects" | § The tool saves its key | ✅ | [Server rollback log, row 25](../../../docs/research/reversible-actions/fact-check-server-rollback.md): both quotes verbatim from the repo mirrors |
 | 17 | Neither page says how long a call id is unique or what it is unique within | § The tool saves its key | ⚠️ | [Server rollback log, row 27](../../../docs/research/reversible-actions/fact-check-server-rollback.md): an absence in the pages fetched, not a proof that no page says so |
 | 18 | A key built from the business fact survives a resume that regenerates the model's call and so issues a fresh call id; scope keys by tenant and session | § The tool saves its key | ⚠️ | Our reasoning from the server rollback report's three cases ("this part is our reasoning, not a vendor claim") and the SG3 tenant-wide business key |
-| 19 | A raffle stub is printed before anyone wins and the holder keeps it, so the key must exist before the call | § The tool saves its key | ✅ | The analogy's own claim; its "where it breaks" entry states the part that does not carry over |
+| 19 | A raffle stub is printed before anyone wins and the holder keeps it, so the key must exist before the call | § The tool saves its key | ⚠️ | The analogy's own claim; its "where it breaks" entry states the part that does not carry over |
 
 ## "A crash between the write and the result leaves unknown, and only the other side can settle it"
 
@@ -49,7 +49,7 @@ The claims log for [`side-effects-that-can-fail.md`](../src/content/chapters/sid
 | 23 | A 404 from the lookup proves the write never reached the server and only then may the tool send it, under the same key; any other answer leaves the outcome `unknown` | § A crash between | ✅ | The `write-tool` region's `reconcile` branch and its comment: "Only a 404 proves the write never reached the server" |
 | 24 | The log is a file that survives a killed process and not a power cut, because nothing is synced to disk before the call | § A crash between | ✅ | The example's header comment (lines 4–5) |
 | 25 | The lookup works because the example's server answers "have you seen this key?"; a server with neither a lookup nor a replay for a reused key leaves `unknown` for a person | § A crash between | ✅ | The example's `fakeServer` GET handler; the second half is our reasoning from rows 7 and 8 (Stripe replays a reused key, AWS echoes the caller's token) |
-| 26 | A restaurant has no order number to look up | § A crash between | ✅ | The analogy's "where it breaks" entry, our claim about the analogy |
+| 26 | A restaurant has no order number to look up | § A crash between | ⚠️ | The analogy's "where it breaks" entry, our claim about the analogy |
 
 ## "A plan of several writes needs one approval before its first step, and the refund is the pivot"
 
@@ -68,12 +68,14 @@ The claims log for [`side-effects-that-can-fail.md`](../src/content/chapters/sid
 | 37 | Example 15's `chargeTool` calls `appendEntry` before and after its `fetch` call and kills its process with `process.kill` after the reply, so the exercises' edits name real lines | Exercises | ✅ | `verify/vercel-ai-sdk/examples/15-write-crash-idempotency.ts`, the `write-tool` region |
 | 38 | After the review: a retry after a `not_applied` write is a new operation with a new key, because the example answers a repeat of a declined write from its log and Stripe replays the first response for a reused key | § A write reports | ✏️ | Corrects row 6's source, the server rollback report's table ("Safe after fixing the cause, same key"), against `verify/vercel-ai-sdk/examples/15-write-crash-idempotency.ts` (check "a declined write is not sent again") and [Stripe](https://docs.stripe.com/api/idempotent_requests.md) (row 13). The figure, its alt text and the chapter now say so |
 | 39 | `needsApproval` is deprecated in ai 7 in favour of a call-level `toolApproval`, and the Cloudflare chat agent's documentation still uses it | § A plan of several writes | ✅ | The header comment of `verify/cloudflare-agents/examples/06-tool-approval.ts` ("needsApproval is deprecated in ai 7 (call-level toolApproval), but AIChatAgent's docs still use it") |
+| 40 | After `compensated` only a new operation may repeat the work, and only if the user still wants it; after `partial` the rule is an idempotent resume or a person's decision; both are our proposal | § A write reports | ✅ | [Server rollback report](../../../docs/research/reversible-actions/server-rollback.md), the outcome table's retry rules ("New operation only, if the user still wants it"; "Idempotent resume or human escalation"); the report calls the taxonomy ours, and the chapter says "our proposal" |
+| 41 | `needsApproval` is deprecated in AI SDK 7, as of November 2026 | § A plan of several writes | ✅ | Row 39, with the date of the example's header comment |
 
 ## Tally
 
 | Verdict | Rows |
 | --- | --- |
-| ✅ confirmed | 28 |
+| ✅ confirmed | 27 |
 | ✏️ corrected | 2 (rows 8 and 38, correcting rows 6 and the Amazon claim as first drafted) |
-| ⚠️ unverified, our reasoning or an absence, marked as ours in the text | 9 |
-| Total | 39 |
+| ⚠️ unverified, our reasoning or an absence, marked as ours in the text | 12 |
+| Total | 41 |
