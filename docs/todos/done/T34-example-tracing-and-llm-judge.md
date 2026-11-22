@@ -5,7 +5,7 @@
 | Field | Value |
 | --- | --- |
 | ID | `T34` |
-| Status | `ongoing` |
+| Status | `done` |
 | Plan | [Book plan §5, BK20](../../plans/build-book.md#bk20-new-verify-examples-fill-the-gaps-the-coverage-review-found-accepted) |
 | Round / milestone | Round T (textbook), MT |
 | Depends on | [T5](../done/T5-book-interactive-listings.md) |
@@ -36,18 +36,18 @@ Write a new type-checked, mock-run example in `verify/vercel-ai-sdk/examples/` s
 
 ## Tasks
 
-- [ ] Use the harness's pinned `@ai-sdk/otel` with an in-memory span exporter, pinned exactly under the version rule, and assert span names and token attributes.
-- [ ] Script a second mock model as the judge; assert that the grading code parses its score and grade and rejects malformed output.
-- [ ] Say in the example's header that the judge is scripted, so the example tests the grading code, not a model's judgement.
-- [ ] Run the harness's `pnpm test` twice, and commit its updated `results/` and transcript.
-- [ ] Draft the example's header comment and README line with `/anthropic-skills:writing`, fact-check each claim about the SDK against its pinned `.d.ts` or reference, then review the copy with `/anthropic-skills:writing-review` and fix every finding.
+- [x] Use the harness's pinned `@ai-sdk/otel` with an in-memory span exporter, pinned exactly under the version rule, and assert span names and token attributes.
+- [x] Script a second mock model as the judge; assert that the grading code parses its score and grade and rejects malformed output.
+- [x] Say in the example's header that the judge is scripted, so the example tests the grading code, not a model's judgement.
+- [x] Run the harness's `pnpm test` twice, and commit its updated `results/` and transcript.
+- [x] Draft the example's header comment and README line with `/anthropic-skills:writing`, fact-check each claim about the SDK against its pinned `.d.ts` or reference, then review the copy with `/anthropic-skills:writing-review` and fix every finding.
 
 ## Acceptance criteria
 
-- [ ] The new example type-checks and passes in the harness's `pnpm test`, offline, with every `check()` passing
-- [ ] No mock model in the example calls a tool that touches the host
-- [ ] The results-drift check passes after the committed results update
-- [ ] `pnpm check`, `pnpm typecheck` and `pnpm test` pass offline from the repo root
+- [x] The new example type-checks and passes in the harness's `pnpm test`, offline, with every `check()` passing
+- [x] No mock model in the example calls a tool that touches the host
+- [x] The results-drift check passes after the committed results update
+- [x] `pnpm check`, `pnpm typecheck` and `pnpm test` pass offline from the repo root
 
 ## Tests
 
@@ -64,9 +64,18 @@ Write a new type-checked, mock-run example in `verify/vercel-ai-sdk/examples/` s
 
 ## Definition of done
 
-- [ ] Claimed: the first commit moved this file `ready/` → `ongoing/` (Status `ongoing`)
-- [ ] Prose drafted with `/anthropic-skills:writing`, and changed claims re-checked against their sources
-- [ ] `pnpm check`, `pnpm typecheck` and `pnpm test` pass locally; pushed after each meaningful step
-- [ ] This file moved `ongoing/` → `done/` (Status `done`) in the last work commit, and the plan's todo table updated
+- [x] Claimed: the first commit moved this file `ready/` → `ongoing/` (Status `ongoing`)
+- [x] Prose drafted with `/anthropic-skills:writing`, and changed claims re-checked against their sources
+- [x] `pnpm check`, `pnpm typecheck` and `pnpm test` pass locally; pushed after each meaningful step
+- [x] This file moved `ongoing/` → `done/` (Status `done`) in the last work commit, and the plan's todo table updated
 - [ ] Two code-review rounds run on the pull request (`/code-review high --max-findings default`, then `medium` and `low` after more than 6 confirmed findings, otherwise `low`), with every finding fixed or explained in a commit message
 - [ ] Copy reviewed with `/anthropic-skills:writing-review` after the code changes, with its findings fixed and the rubric scores in the pull request description
+
+## Outcome
+
+`verify/vercel-ai-sdk/examples/16-tracing-and-judge.ts` shows a run's OpenTelemetry spans held in memory and a scripted judge whose verdicts the grading code parses.
+
+- **The spans form one tree.** A tool loop gives one agent span, a span for each step, and a span for each model call and tool call under the steps. The example checks the names, every parent link, the token counts on each model call (100 in, 20 out) and the total on the agent span (200 in, 40 out). Rows T34-1 to T34-5 in `docs/plans/reviews/fact-check-vercel-tracing-judge-example.md` check each claim against the pinned types and docs or the run.
+- **The span exporter is a new pinned dependency.** `@opentelemetry/sdk-trace-base` 2.7.1 is the version `@ai-sdk/otel` builds against, and it is more than a week old.
+- **The judge is scripted, and the header says so.** The example tests the grading code. It parses a pass and a fail, and rejects output that is not JSON, a score above 1, a grade that is neither pass nor fail, a missing reason, and a grade that contradicts the score.
+- **The transcript holds both models' calls.** Two agent calls and seven judge calls are recorded, and a second run wrote the same file.
