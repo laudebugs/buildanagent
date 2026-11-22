@@ -289,6 +289,16 @@
     "verifiedIn": "apps/manual/fact-checks/tools.md"
   },
   {
+    "id": "ruan-skillcfi",
+    "title": "Guarding the Kingdom of Skill-Based Agents in the AI Dynasty of Computation: Control-Flow Integrity for Agent Skills",
+    "publisher": "Bonan Ruan et al., National University of Singapore and Beihang University (arXiv:2611.24185)",
+    "url": "https://arxiv.org/abs/2611.24185",
+    "kind": "paper",
+    "version": "v1",
+    "asOf": "November 2026",
+    "verifiedIn": "apps/manual/fact-checks/tools.md"
+  },
+  {
     "id": "ghosh-truthgate",
     "title": "Truthgate: Checking Coding Agents Against a Record They Cannot Edit - Cheating, Deterrence and Disclosure on Impossible Tasks",
     "publisher": "Bravish Ghosh, Cygnux Labs (arXiv:2611.23335)",
@@ -497,5 +507,44 @@
     "kind": "spec",
     "asOf": "November 2026",
     "verifiedIn": "apps/manual/fact-checks/approvals-guardrails-and-injection.md"
+  },
+  {
+    "id": "openai-agents-testing",
+    "title": "Testing",
+    "publisher": "OpenAI Agents SDK documentation",
+    "url": "https://github.com/openai/openai-agents-js/blob/v0.21.0/docs/src/content/docs/guides/testing.mdx",
+    "kind": "docs",
+    "asOf": "November 2026",
+    "version": "v0.21.0",
+    "verifiedIn": "apps/manual/fact-checks/testing-offline-and-a-first-agent.md"
+  },
+  {
+    "id": "langchain-unit-testing",
+    "title": "Unit testing",
+    "publisher": "LangChain documentation",
+    "url": "https://github.com/langchain-ai/docs/blob/9d9747d0cf241e086c616a16d5ce230ad8f8f31d/src/oss/langchain/test/unit-testing.mdx",
+    "kind": "docs",
+    "asOf": "November 2026",
+    "verifiedIn": "apps/manual/fact-checks/testing-offline-and-a-first-agent.md"
+  },
+  {
+    "id": "pi-ai-readme",
+    "title": "pi-ai README: Faux Provider for Tests",
+    "publisher": "Pi (earendil-works/pi)",
+    "url": "https://github.com/earendil-works/pi/blob/v1.5.2/packages/ai/README.md",
+    "kind": "repo",
+    "asOf": "November 2026",
+    "version": "v1.5.2",
+    "verifiedIn": "apps/manual/fact-checks/testing-offline-and-a-first-agent.md"
+  },
+  {
+    "id": "abc-agentic-benchmark-checklist",
+    "title": "Establishing Best Practices for Building Rigorous Agentic Benchmarks",
+    "publisher": "Zhu et al., arXiv 2507.02825v5",
+    "url": "https://arxiv.org/abs/2507.02825",
+    "kind": "paper",
+    "asOf": "November 2026",
+    "version": "v5",
+    "verifiedIn": "apps/manual/fact-checks/testing-offline-and-a-first-agent.md"
   }
 ]
