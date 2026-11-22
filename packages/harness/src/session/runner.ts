@@ -26,7 +26,7 @@ import { HarnessError } from "../errors.js";
 import type { Harness } from "../harness.js";
 import type { PolicySession } from "../permissions/types.js";
 import { contextOf } from "./rebuild.js";
-import { settleOpenCalls } from "./resume.js";
+import { settleOpenCalls, unansweredCalls } from "./resume.js";
 import type { Session } from "./session.js";
 import type { EntryInput } from "./store.js";
 
@@ -426,6 +426,13 @@ export async function runTurn<H = unknown>(
   );
   if (wrote) path = await session.path();
   await recordLoadout(harness, writer, model, tools, path);
+  const waiting = options.history === undefined ? unansweredCalls(path, true) : [];
+  if (waiting.length > 0) {
+    throw new HarnessError(
+      "invalid_turn_options",
+      `the session waits on tool calls with no result (${waiting.map((call) => call.callId).join(", ")}); resolve them before another turn, or pass history`,
+    );
+  }
   const history = options.history ?? contextOf(path).messages;
   await writeInput(writer, options, newId);
   const recorder = new EventRecorder(writer, harness as Harness<unknown>, system, newId);
@@ -455,15 +462,7 @@ export async function rerunFrom<H = unknown>(
   entryId: string,
   options: TurnOptions<H>,
 ): Promise<TurnResult> {
-  const context = await session.toContext(entryId);
-  const answered = new Set(context.messages.flatMap((message) => (message.role === "tool" ? [message.callId] : [])));
-  const waiting = context.messages.flatMap((message) =>
-    message.role === "assistant"
-      ? message.content.flatMap((block) =>
-          block.type === "tool_call" && !answered.has(block.callId) ? [block.callId] : [],
-        )
-      : [],
-  );
+  const waiting = unansweredCalls(await session.path(entryId), true).map((call) => call.callId);
   if (waiting.length > 0) {
     throw new HarnessError(
       "invalid_turn_options",

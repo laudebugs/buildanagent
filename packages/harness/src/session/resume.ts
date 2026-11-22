@@ -40,20 +40,12 @@ function interruptedWrite(tool: string): Pick<ToolResultEntry, "content" | "isEr
   };
 }
 
-/** Whether the last turn ended waiting for an approval or an answer, which leaves its calls open on purpose. */
-function endedPaused(path: readonly SessionEntry[]): boolean {
-  const end = path.findLast((entry) => entry.type === "turn_end");
-  return (
-    end?.type === "turn_end" && (end.stopReason === "awaiting_approval" || end.stopReason === "clarification_requested")
-  );
-}
-
 /** Ends each assistant message that has blocks and no end, as aborted, so its calls are part of the context. */
 async function endDanglingMessages<H>(
   path: readonly SessionEntry[],
   harness: Harness<H>,
   write: WriteEntry,
-): Promise<boolean> {
+): Promise<number> {
   const ended = new Set(path.flatMap((entry) => (entry.type === "message_end" ? [entry.messageId] : [])));
   const dangling = new Set<string>();
   for (const entry of path) {
@@ -66,20 +58,32 @@ async function endDanglingMessages<H>(
   for (const messageId of dangling) {
     await write("model", { type: "message_end", messageId, model: ref, stopReason: "aborted" });
   }
-  return dangling.size > 0;
+  return dangling.size;
 }
 
-/** The calls the path's assistant blocks make that no `tool_result` answers, in the order the model made them. */
-function openCalls(path: readonly SessionEntry[]): { callId: string; name: string }[] {
+const PAUSES = new Set(["awaiting_approval", "clarification_requested"]);
+
+/**
+ * The calls the path's assistant blocks make that no `tool_result` answers, in the order the model made them. A turn
+ * that ended waiting for an approval or an answer leaves its calls open on purpose, so they are left out unless
+ * `includePaused` is set.
+ */
+export function unansweredCalls(
+  path: readonly SessionEntry[],
+  includePaused = false,
+): { callId: string; name: string }[] {
   const answered = new Set(path.flatMap((entry) => (entry.type === "tool_result" ? [entry.callId] : [])));
-  return path.flatMap((entry) =>
-    entry.type === "message_block" &&
-    entry.role === "assistant" &&
-    entry.block.type === "tool_call" &&
-    !answered.has(entry.block.callId)
-      ? [{ callId: entry.block.callId, name: entry.block.name }]
-      : [],
-  );
+  const calls: { callId: string; name: string; turn: number }[] = [];
+  const paused = new Set<number>();
+  let turn = -1;
+  for (const entry of path) {
+    if (entry.type === "turn_start") turn += 1;
+    else if (entry.type === "turn_end" && PAUSES.has(entry.stopReason)) paused.add(turn);
+    else if (entry.type === "message_block" && entry.role === "assistant" && entry.block.type === "tool_call") {
+      if (!answered.has(entry.block.callId)) calls.push({ callId: entry.block.callId, name: entry.block.name, turn });
+    }
+  }
+  return calls.filter((call) => includePaused || !paused.has(call.turn));
 }
 
 /**
@@ -92,8 +96,8 @@ export async function settleOpenCalls<H>(
   write: WriteEntry,
   closeTurns: boolean,
 ): Promise<boolean> {
-  if (path.length === 0 || endedPaused(path)) return false;
-  const calls = openCalls(path);
+  if (path.length === 0) return false;
+  const calls = unansweredCalls(path);
   const dangling = await endDanglingMessages(path, harness, write);
   for (const call of calls) {
     const tool = harness.registry.get(call.name);
@@ -109,11 +113,11 @@ export async function settleOpenCalls<H>(
       trust: tool?.outputTrust ?? "untrusted",
     } as Body);
   }
-  const closed = closeTurns ? await closeTurn(path, write) : false;
-  return dangling || calls.length > 0 || closed;
+  const closed = closeTurns ? await closeTurn(path, write, dangling) : false;
+  return dangling > 0 || calls.length > 0 || closed;
 }
 
-async function closeTurn(path: readonly SessionEntry[], write: WriteEntry): Promise<boolean> {
+async function closeTurn(path: readonly SessionEntry[], write: WriteEntry, justEnded: number): Promise<boolean> {
   const start = path.findLast((entry) => entry.type === "turn_start");
   if (start?.type !== "turn_start") return false;
   const after = path.slice(path.indexOf(start));
@@ -122,7 +126,7 @@ async function closeTurn(path: readonly SessionEntry[], write: WriteEntry): Prom
     type: "turn_end",
     runId: start.runId,
     stopReason: "aborted",
-    steps: after.filter((entry) => entry.type === "message_end").length,
+    steps: after.filter((entry) => entry.type === "message_end").length + justEnded,
   });
   return true;
 }

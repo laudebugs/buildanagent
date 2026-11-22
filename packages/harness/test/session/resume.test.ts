@@ -3,6 +3,7 @@
 import assert from "node:assert/strict";
 import { guardedWrite, memoryEffectStore, renderOutcome, writeOutcome } from "@buildanagent/agent-safety";
 import { createModel, type Model } from "@buildanagent/gateway";
+import { isHarnessError } from "@buildanagent/harness";
 import { createHarness } from "@buildanagent/harness/server";
 import {
   type EntryInput,
@@ -295,7 +296,20 @@ describe.each(BACKENDS)("%s", (_name, make) => {
     );
     const reopened = await openSession({ store: paused.store, index: paused.index, lock: paused.lock, key: KEY });
     // The harness leaves the paused call for the approval that resolves it, and doesn't answer it as a crash.
-    await runTurn(reopened, next.harness, { input: "carry on" }).catch(() => undefined);
+    await assert.rejects(
+      () => runTurn(reopened, next.harness, { input: "carry on" }),
+      (error) => isHarnessError(error) && error.code === "invalid_turn_options",
+    );
+    // A later turn that carries its own history ends, and the first turn's call is still waiting, not settled.
+    const second = setup(
+      write(() => undefined),
+      [{ content: [{ type: "text", text: "Fine." }] }],
+    );
+    await runTurn(reopened, second.harness, { input: "unrelated", history: [] });
+    await assert.rejects(
+      () => runTurn(reopened, next.harness, { input: "and now?" }),
+      (error) => isHarnessError(error) && error.code === "invalid_turn_options",
+    );
     assert.ok(!(await entriesOf(paused)).some((entry) => entry.type === "tool_result"));
     await reopened.close();
   });
