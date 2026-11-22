@@ -3,7 +3,7 @@
 | Field | Value |
 | --- | --- |
 | ID | `T58` |
-| Status | `ongoing` |
+| Status | `done` |
 | Plan | [Book plan §5, BK18](../../plans/build-book.md#bk18-an-occasional-live-run-compares-real-flows-with-the-mock-transcripts-accepted) |
 | Round / milestone | Round T (textbook), MT |
 | Depends on | [T27](../done/T27-book-live-run.md) |
@@ -36,17 +36,17 @@ The owner's first live run (workflow run 45026707288, 2026-11-22) failed in both
 
 ## Tasks
 
-- [ ] Read the failed run's logs and reproduce each example offline
-- [ ] Show that the pathspec never matches a file under `results/live/`, whether or not one exists
-- [ ] Change the prompts and the Cloudflare check, keeping every line number the book's regions use
-- [ ] Rerun the harnesses and commit the rewritten mock transcripts
-- [ ] Write the workflow diff
+- [x] Read the failed run's logs and reproduce each example offline
+- [x] Show that the pathspec never matches a file under `results/live/`, whether or not one exists
+- [x] Change the prompts and the Cloudflare check, keeping every line number the book's regions use
+- [x] Rerun the harnesses and commit the rewritten mock transcripts
+- [x] Write the workflow diff
 
 ## Acceptance criteria
 
-- [ ] `pnpm check`, `pnpm typecheck`, `pnpm test` and the four maintainability checks pass
-- [ ] `pnpm --filter @buildanagent/manual check:book` passes
-- [ ] Every changed example passes offline against its mock
+- [x] `pnpm check`, `pnpm typecheck`, `pnpm test` and the four maintainability checks pass
+- [x] `pnpm --filter @buildanagent/manual check:book` passes
+- [x] Every changed example passes offline against its mock
 
 ## Tests
 
@@ -60,11 +60,17 @@ The book plan's todo table and status line.
 
 A real model may still choose a different path, such as asking the customer before it refunds. The live run records that as a difference in its issue, which is what the run is for. Only the owner's next run shows which examples now keep the mock's flow.
 
+## Outcome
+
+**The patch step never matched a file.** A wildcard pathspec must match a whole path, so `'verify/*/results/live'` matches no file under that directory, and `git add` exits 128 even when the run wrote transcripts. The run did write them: the job's report counted each example's checks, and `run.mjs` reads those counts from the live transcript. No change to `run.mjs` can fix that, because git tracks no empty directory and the pathspec misses the files inside one. The report job's `git checkout HEAD -- 'verify/*/results/live' …` has the same fault. The fix for both steps went to the owner as a diff of `live-run.yml`: stage `verify/`, diff `':(glob)verify/*/results/live/**'`, and check the transcripts out only when the commit changed one.
+
+**Each capstone's prompt now asks for the path its checks test.** A failed check already reaches the comparison: the recorder writes it to the live transcript with `pass: false`, `live-diff.mjs` reports it as a difference, and `run.mjs` exits 0. The examples failed because nothing in their prompts asked for the gated tool, so each real model made two calls, a lookup and an answer, where the mock made three. The Cloudflare capstone failed on a check that compared the escalation's reason, which a real model words itself.
+
 ## Definition of done
 
 - [x] Claimed: the first commit moved this file `ready/` → `ongoing/` (Status `ongoing`)
 - [ ] Prose drafted with `/anthropic-skills:writing`, and changed claims re-checked against their sources
-- [ ] `pnpm check`, `pnpm typecheck` and `pnpm test` pass locally; pushed after each meaningful step
-- [ ] This file moved `ongoing/` → `done/` (Status `done`) in the last work commit, and the plan's todo table updated
+- [x] `pnpm check`, `pnpm typecheck` and `pnpm test` pass locally; pushed after each meaningful step
+- [x] This file moved `ongoing/` → `done/` (Status `done`) in the last work commit, and the plan's todo table updated
 - [ ] Two code-review rounds run on the pull request (`/code-review high --max-findings default`, then `medium` and `low` after more than 6 confirmed findings, otherwise `low`), with every finding fixed or explained in a commit message
 - [ ] Copy reviewed with `/anthropic-skills:writing-review` after the code changes, with its findings fixed and the rubric scores in the pull request description
