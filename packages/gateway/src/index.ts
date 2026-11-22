@@ -1,6 +1,8 @@
 /**
  * `@buildanagent/gateway`: the model gateway's transcript, model spec, stream rule, runtime, price catalog and
  * helpers.
+ *
+ * @module @buildanagent/gateway
  */
 export {
   type CatalogEntry,
