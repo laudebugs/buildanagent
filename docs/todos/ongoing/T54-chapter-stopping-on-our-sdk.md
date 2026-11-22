@@ -3,7 +3,7 @@
 | Field | Value |
 | --- | --- |
 | ID | `T54` |
-| Status | `ready` |
+| Status | `ongoing` |
 | Plan | [Book plan BK8](../../plans/build-book.md#bk8-code-from-verify-now-our-own-sdk-as-its-todos-land-accepted) |
 | Round / milestone | Round T (textbook), MT |
 | Depends on | [T13](../done/T13-chapter-stopping-and-structured-output.md), [B11](../done/B11-loop-core.md), [B14](../done/B14-budget-progress.md), [T50](T50-chapter-call-workflow-loop-on-our-sdk.md) |
@@ -72,7 +72,7 @@ The listing-rule tests in `apps/manual/test/`, the new examples in `packages/sdk
 
 ## Definition of done
 
-- [ ] Claimed: the first commit moved this file `ready/` → `ongoing/` (Status `ongoing`)
+- [x] Claimed: the first commit moved this file `ready/` → `ongoing/` (Status `ongoing`)
 - [ ] Prose drafted with `/anthropic-skills:writing`, and changed claims re-checked against their sources
 - [ ] `pnpm check`, `pnpm typecheck` and `pnpm test` pass locally; pushed after each meaningful step
 - [ ] This file moved `ongoing/` → `done/` (Status `done`) in the last work commit, and the plan's todo table updated
