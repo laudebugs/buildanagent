@@ -209,9 +209,10 @@ An extension was loaded.
 
 | Field | Type | Meaning |
 | --- | --- | --- |
-| `name` | string | The extension's name. |
+| `name` | string | The extension's name, or the MCP server's name for tier `mcp`. |
 | `tier` | string | `in_process`, `mcp` or `skill`. |
-| `contentHash` | string | The hash of what ran. |
+| `contentHash` | string | The hash of what ran. For tier `mcp`, the hash of `mcp`. |
+| `mcp` | object, optional | For tier `mcp` only: `transport` (`stdio` or `in_process`), `commandHash` (a hash of the command and its args, for stdio), `era` (`2026-07-28` or `legacy`) and `toolsHash` (a hash of the registered tools). It never holds an argument or an environment value. |
 
 ### `subagent_link`
 

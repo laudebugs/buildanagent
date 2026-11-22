@@ -33,7 +33,7 @@ The harness plan has a thorough design for an MCP client, but only for consuming
   - `readOnlyHint` and other annotations ignored for scheduling;
   - an `mcp: false` switch.
 
-  Acceptance criteria: "A denied MCP call never reaches the server", a 200 KiB MCP result is capped, and "No parent environment variable reaches the server process unless declared". — `docs/todos/ready/N24-mcp-stdio.md#scope`, `#acceptance-criteria`
+  Acceptance criteria: "A denied MCP call never reaches the server", a 200 KiB MCP result is capped, and "No parent environment variable reaches the server process unless declared". — `docs/todos/done/N24-mcp-stdio.md#scope`, `#acceptance-criteria`
 - **N25 (HTTP, SSE, background connect).**
   - In scope: streamable HTTP and legacy SSE, "HTTP servers reached through the egress proxy's allowlist (N20)", and a background connect where the first prompt waits up to 10 s only for `direct` servers. `tools/list_changed` re-registers tools at the next turn boundary.
   - **Out of scope: "OAuth flows beyond what the client library provides".**

@@ -39,6 +39,7 @@ The sections of README.md and every public export, generated from this package's
 - [Two more triggers compact inside a turn: at 90% of a small window, and after a provider overflow](README.md#two-more-triggers-compact-inside-a-turn-at-90-of-a-small-window-and-after-a-provider-overflow)
 - [A turn that ends `done` runs the project's checks, and the diff flags are recorded, never fatal](README.md#a-turn-that-ends-done-runs-the-projects-checks-and-the-diff-flags-are-recorded-never-fatal)
 - [An extension adds hooks and tools in the harness's own process, and project trust only gates loading](README.md#an-extension-adds-hooks-and-tools-in-the-harnesss-own-process-and-project-trust-only-gates-loading)
+- [MCP servers connect side by side, each in its own era, and their tools wait behind tool search](README.md#mcp-servers-connect-side-by-side-each-in-its-own-era-and-their-tools-wait-behind-tool-search)
 - [A skill is a file the model reads, and only its name, description and path are in the prompt](README.md#a-skill-is-a-file-the-model-reads-and-only-its-name-description-and-path-are-in-the-prompt)
 - [`AGENTS.md`, `CLAUDE.md` and the plan files lead every request, labelled untrusted](README.md#agentsmd-claudemd-and-the-plan-files-lead-every-request-labelled-untrusted)
 - [A call that needs a person is a signed pause that any process with the key file can resume](README.md#a-call-that-needs-a-person-is-a-signed-pause-that-any-process-with-the-key-file-can-resume)
@@ -221,12 +222,28 @@ The sections of README.md and every public export, generated from this package's
 - `interface ToolRegistry`: One registry for the tools of every source.
 - `toolSearchInterceptors()`: The interceptor that sends what tool search activated.
 - `interface ToolSearchOptions`: The options of `toolSearchTool()`.
-- `toolSearchTool()`: The `tool_search` tool: it searches the registry's `deferred` tools by the words of a query, records the best matches in `options.activated` and tells the model their names and descriptions.
+- `toolSearchTool()`: The `tool_search` tool: it searches the registry's `deferred` tools by the words of a query, records the best matches in `options.activated` and tells the model their names, plus the descriptions of trusted tools.
 - `type ToolSource`: Where a tool comes from: the harness, an in-process extension, one MCP server (`mcp:<server>`) or the client.
 - `type ToolWrapper`: Wraps one registered tool's definition for a turn: a write cap, shadow mode or a sandbox binding, with the turn's host context.
 
 ## Exports from `@buildanagent/harness/mcp`
 
+- `connectMcpServer()`: Connects one server and negotiates its era.
+- `createMcpManager()`: Creates the MCP client for a set of servers.
+- `killMcpServersOnSignal()`: Opts this process in to ending every MCP server on `SIGINT`, `SIGTERM` or `SIGHUP`, for a host whose process those signals end, such as a one-shot command.
+- `type McpCallFailure`: Why an MCP tool call ended without a result.
+- `interface McpCallResult`: What one tool call returned.
+- `interface McpChannel`: A message channel to a server in this process, such as an `InMemoryTransport` from `@modelcontextprotocol/server`.
+- `interface McpConnection`: One connected server.
+- `type McpEra`: The protocol era a server speaks: the 2026-07-28 revision, or `legacy` for the 2025 revisions and their `initialize`.
+- `class McpError`: Thrown for a server that could not connect (`mcp_connect_failed`), a tool list the harness refuses (`mcp_tool_list_refused`) and a tool call that ended with no result (`mcp_call_failed`, with `failure` saying why).
+- `interface McpInProcessTransport`: A server in this process, reached through a channel the host built.
+- `interface McpManager`: The MCP client as one removable component: it connects the servers and registers their tools.
+- `interface McpManagerOptions`: What `createMcpManager()` takes.
+- `interface McpServerConfig`: One MCP server the harness connects to.
+- `type McpServerStatus`: How one server's connection went.
+- `interface McpStdioTransport`: A server the harness starts as a child process and speaks to over its standard input and output, one JSON message per line.
+- `interface McpTool`: A tool as a server lists it.
 
 ## Exports from `@buildanagent/harness/permissions`
 
