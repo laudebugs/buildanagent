@@ -107,7 +107,7 @@ const resultText = (content) =>
  * OS version), so the transcript leaves those out and keeps what the example's own calls and the mock's answers made:
  * the prompts, the model's answers, and each tool call with its result.
  */
-function messagesOf(messages) {
+export function messagesOf(messages) {
   const names = toolNamesById(messages);
   const out = [];
   for (const message of messages) {

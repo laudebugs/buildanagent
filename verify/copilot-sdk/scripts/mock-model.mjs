@@ -137,7 +137,7 @@ function toolNames(msgs) {
 const CLOCK = /^<current_datetime>[^<]*<\/current_datetime>\n\n/;
 
 /** The request's conversation as transcript messages: prompts, answers, and each tool call with its result. */
-function messagesOf(msgs) {
+export function messagesOf(msgs) {
   const names = toolNames(msgs);
   const out = [];
   for (const m of msgs) {

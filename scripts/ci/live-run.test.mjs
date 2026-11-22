@@ -1,5 +1,6 @@
 // Offline tests for the live run: the cost guard (scripts/live/budget.ts), the example list (config.mjs), redaction,
-// the live transcript writer, the runner (run.mjs) against a stub server on the loopback interface, the flow
+// the live transcript writer, the runner (run.mjs) against a stub server on the loopback interface, the proxy that
+// the Claude Agent SDK's and Copilot SDK's live mode sends their CLI's calls through (proxy.mjs), the flow
 // comparison (live-diff.mjs), the workflow's helper steps (live-run.mjs) and the workflow itself. Run with
 // `node --test scripts/ci/*.test.mjs`. No test reaches a provider: every request goes to live-stub.mjs.
 import assert from "node:assert/strict";
@@ -10,6 +11,9 @@ import { join } from "node:path";
 import { test } from "node:test";
 import { fileURLToPath } from "node:url";
 import { parse } from "yaml";
+import { liveTool as claudeLiveTool } from "../../verify/claude-agent-sdk/scripts/live-tools.mjs";
+import { liveTool as copilotLiveTool } from "../../verify/copilot-sdk/scripts/live-tools.mjs";
+import { BUILTIN_DENY } from "../../verify/copilot-sdk/scripts/mock-model.mjs";
 import {
   LiveBudgetError,
   newLedger,
@@ -23,7 +27,8 @@ import {
 } from "../live/budget.ts";
 import { exampleOf, LIVE_HARNESSES, liveConfigProblems, projection, readLiveConfig } from "../live/config.mjs";
 import { liveMode } from "../live/harness.mjs";
-import { guardStream } from "../live/live.ts";
+import { guardStream, HOST_TOOL_NAMES } from "../live/live.ts";
+import { exampleEnv, loopbackNamespace, PLACEHOLDER_KEY, prepareBody, requestProblem } from "../live/proxy.mjs";
 import { findSecret, redact } from "../live/redact.ts";
 import { childSpend } from "../live/run.mjs";
 import { transcriptProblems, writeTranscript } from "../transcripts/write.mjs";
@@ -481,6 +486,260 @@ test("a streamed answer settles its guard once: at the finish part, or on an err
   const stopped = guardStream(afterFinish, once(), usageOf, isFinish).getReader();
   assert.equal((await stopped.read()).value.type, "finish");
   assert.deepEqual(settled, [finishUsage, "projection", "projection", finishUsage]);
+});
+
+// --- The proxied live mode of the Claude Agent SDK and Copilot SDK ----------------------------------------------
+
+/** The examples the book lists from the two harnesses whose CLI or runtime makes the model calls. */
+const PROXIED = [
+  { file: "verify/claude-agent-sdk/examples/02-custom-tool.ts", provider: "anthropic" },
+  { file: "verify/copilot-sdk/examples/05-streaming.ts", provider: "openai" },
+].map((e) => ({
+  ...e,
+  model: e.provider === "anthropic" ? "claude-haiku-5-5" : "gpt-5.4-mini",
+  maxTokens: 1024,
+  calls: 4,
+}));
+
+/** Every model request a proxied example's mock or live run logged, to look for a key in it. */
+const harnessLog = (file) => join(root, exampleOf(file).harness, ".tmp/logs", `${exampleOf(file).id}.jsonl`);
+
+test("the Claude Agent SDK and Copilot SDK run a listed example live through the proxy, keeping the mock's flow", async () => {
+  const dir = mkdtempSync(join(tmpdir(), "live-run-"));
+  // One example on each provider: Claude's on Anthropic, Copilot's on OpenAI through BYOK.
+  const turns = Object.fromEntries(
+    PROXIED.map((e) => [
+      e.provider,
+      turnsFromTranscript(JSON.parse(readFileSync(join(root, exampleOf(e.file).mock), "utf8"))),
+    ]),
+  );
+  // Copilot's example runs two sessions with one prompt, so its one scripted answer serves both.
+  const stub = await startStub((provider, _body, n) => turns[provider][n] ?? turns[provider].at(-1));
+  const out = join(dir, "out");
+  const report = join(dir, "report");
+  const {
+    code,
+    out: log,
+    deleted,
+  } = await runLive([
+    ...["--config", writeConfig(dir, PROXIED), "--out", out, "--report", report],
+    ...["--base-url", `anthropic=${stub.url}`, "--base-url", `openai=${stub.url}`],
+  ]);
+  await stub.close();
+  assert.equal(code, 0, log);
+  assert.ok(deleted, "run.mjs deletes each key file once it has read it");
+  const results = JSON.parse(readFileSync(join(report, "live-report.json"), "utf8"));
+  assert.ok(results.complete, log);
+  for (const example of results.examples) {
+    assert.equal(example.outcome, "ran", `${example.file}\n${log}`);
+    assert.ok(example.checks.total > 0 && example.checks.passed === example.checks.total, example.file);
+  }
+  const flows = compareAll({ ...config, examples: PROXIED }, { liveDir: out });
+  for (const result of flows) assert.deepEqual(result.differences, [], result.file);
+
+  // The proxy, not the CLI or runtime, chose the model and the output cap and sent the key, each to its own provider.
+  assert.ok(
+    stub.requests.some((r) => r.provider === "anthropic") && stub.requests.some((r) => r.provider === "openai"),
+  );
+  for (const request of stub.requests) {
+    const example = PROXIED.find((e) => e.provider === request.provider);
+    assert.equal(request.body.model, example.model);
+    if (request.provider === "anthropic") {
+      assert.equal(request.headers["x-api-key"], FAKE_KEYS.ANTHROPIC_API_KEY);
+      assert.equal(request.headers.authorization, undefined);
+      assert.ok(request.body.max_tokens <= example.maxTokens);
+    } else {
+      assert.equal(request.headers.authorization, `Bearer ${FAKE_KEYS.OPENAI_API_KEY}`);
+      assert.equal(request.headers["x-api-key"], undefined);
+      assert.ok(request.body.max_output_tokens <= example.maxTokens);
+    }
+    assert.equal(request.body.metadata, undefined, "the machine's ids stay behind");
+    assert.ok(!JSON.stringify(request).includes(PLACEHOLDER_KEY), "the placeholder key stops at the proxy");
+    const names = (request.body.tools ?? []).map((tool) => tool.name ?? tool.type);
+    for (const name of names) {
+      assert.ok(!HOST_TOOL_NAMES.has(name.toLowerCase()) && !BUILTIN_DENY.test(name), `${name} reached the provider`);
+      assert.ok(claudeLiveTool(name) || copilotLiveTool(name), name);
+    }
+  }
+  // No key, account id or request id reached a written file, the harnesses' request logs or the log.
+  for (const file of [...filesUnder(dir), ...PROXIED.map((e) => harnessLog(e.file))]) {
+    const text = readFileSync(file, "utf8");
+    for (const secret of SECRETS) assert.ok(!text.includes(secret), `${file} holds a secret`);
+  }
+  for (const secret of SECRETS) assert.ok(!log.includes(secret), "the log holds a secret");
+  rmSync(dir, { recursive: true, force: true });
+});
+
+test("a proxied example gets the proxy's socket and the run's provider and model, never the key file", () => {
+  const env = exampleEnv("/s", {
+    provider: "anthropic",
+    model: "claude-haiku-5-5",
+    apiKey: FAKE_KEYS.ANTHROPIC_API_KEY,
+  });
+  assert.deepEqual(Object.keys(env).sort(), ["LIVE", "LIVE_MODEL", "LIVE_PROVIDER", "LIVE_PROXY_SOCKET"]);
+  assert.ok(!JSON.stringify(env).includes(FAKE_KEYS.ANTHROPIC_API_KEY));
+});
+
+test("the proxy refuses a host tool by name or type, a tool its harness doesn't allow, and a field it doesn't know", () => {
+  const ok = (tools, extra = {}) => ({ model: "m", messages: [], max_tokens: 10, tools, ...extra });
+  const claude = (tools, extra) => requestProblem("anthropic", ok(tools, extra), claudeLiveTool);
+  const copilot = (tools, extra) => requestProblem("anthropic", ok(tools, extra), copilotLiveTool);
+  assert.equal(claude([{ name: "mcp__weather__get_temperature" }, { name: "ToolSearch" }]), undefined);
+  assert.match(claude([{ name: "Bash" }]), /host tool "Bash"/);
+  assert.match(claude([{ name: "WebFetch" }]), /"WebFetch", which this live mode doesn't allow/);
+  assert.match(claude([{ name: "Agent" }]), /"Agent", which this live mode doesn't allow/);
+  assert.match(claude([{ name: "mcp__x__y", type: "web_search_20250305" }]), /of type "web_search_20250305"/);
+  assert.match(claude([{ type: "code_execution_20250825" }]), /code_execution/);
+  assert.match(claude([], { mcp_servers: [{ url: "https://example.com" }] }), /carries "mcp_servers"/);
+  assert.match(claude([], { container: "c" }), /carries "container"/);
+  assert.equal(copilot([{ name: "lookup_order" }]), undefined);
+  for (const name of ["bash", "view", "create", "edit", "web_fetch", "skill", "task", "read_bash", "sql"]) {
+    assert.ok(copilot([{ name }]) !== undefined, name);
+  }
+  const responses = (tools) => requestProblem("openai", { model: "m", input: "hi", tools }, copilotLiveTool);
+  assert.equal(responses([{ type: "function", name: "lookup_order" }]), undefined);
+  // A server tool has no name, so the proxy names it by its type, which the shared list also refuses.
+  assert.match(responses([{ type: "web_search" }]), /host tool "web_search"/);
+  assert.match(responses([{ type: "mcp", server_url: "https://example.com" }]), /of type "mcp"/);
+  assert.match(responses([{ type: "function", name: "shell" }]), /host tool "shell"/);
+});
+
+test("the proxy sets the run's model and output cap and drops the machine's ids", () => {
+  const settings = { model: "claude-haiku-5-5", maxTokens: 1024 };
+  const body = {
+    model: "claude-opus-5-5",
+    max_tokens: 128000,
+    metadata: { user_id: "device" },
+    thinking: { type: "enabled", budget_tokens: 4096 },
+  };
+  const sent = prepareBody("anthropic", body, settings);
+  assert.deepEqual(sent, { model: "claude-haiku-5-5", max_tokens: 1024 });
+  assert.equal(prepareBody("anthropic", { max_tokens: 100 }, settings).max_tokens, 100);
+  assert.equal(prepareBody("openai", { user: "u" }, settings).max_output_tokens, 1024);
+  assert.equal(prepareBody("openai", { user: "u" }, settings).user, undefined);
+});
+
+/** Runs `script` in a child whose environment is a live run's, with a dummy key file; resolves with its stdout. */
+function proxyChild(script, env) {
+  const dir = mkdtempSync(join(tmpdir(), "live-proxy-test-"));
+  const keyFile = join(dir, "key");
+  writeFileSync(keyFile, FAKE_KEYS.ANTHROPIC_API_KEY, { mode: 0o600 });
+  const ledger = join(dir, "ledger.json");
+  writeLedger(ledger, newLedger());
+  const file = join(dir, "child.mjs");
+  writeFileSync(file, script);
+  return new Promise((resolve) => {
+    const child = spawn(process.execPath, [file], {
+      env: {
+        PATH: process.env.PATH,
+        LIVE: "1",
+        LIVE_PROVIDER: "anthropic",
+        LIVE_MODEL: "claude-haiku-5-5",
+        LIVE_MAX_TOKENS: "1024",
+        LIVE_LEDGER: ledger,
+        LIVE_EXAMPLE: "verify/claude-agent-sdk/examples/02-custom-tool.ts",
+        LIVE_API_KEY_FILE: keyFile,
+        ...env,
+      },
+      stdio: ["ignore", "pipe", "pipe"],
+    });
+    let out = "";
+    let err = "";
+    child.stdout.on("data", (chunk) => (out += chunk));
+    child.stderr.on("data", (chunk) => (err += chunk));
+    child.on("close", (code) => {
+      const keyLeft = existsSync(keyFile);
+      rmSync(dir, { recursive: true, force: true });
+      resolve({ code, out, err, keyLeft });
+    });
+  });
+}
+
+test("the proxy forwards only what it allows, answers with no provider header, and keeps the key out of every answer", async () => {
+  // The stub answers the first call; then it fails as a broken provider might, quoting the key and a request id.
+  let calls = 0;
+  const stub = await startStub(() => "Hello.", {
+    fail: (_provider, _body, headers) =>
+      calls++ === 0
+        ? undefined
+        : { type: "error", error: { message: `bad key ${headers["x-api-key"]} ${STUB_IDS.requestId}` } },
+  });
+  const url = (path) => JSON.stringify(new URL(path, import.meta.url).href);
+  const { code, out, err, keyLeft } = await proxyChild(
+    `import { request } from "node:http";
+import { readLedger, writeLedger } from ${url("../live/budget.ts")};
+import { startLiveProxy } from ${url("../live/proxy.mjs")};
+import { liveTool } from ${url("../../verify/claude-agent-sdk/scripts/live-tools.mjs")};
+import { messagesOf } from ${url("../../verify/claude-agent-sdk/scripts/mock-anthropic.mjs")};
+const secrets = [];
+const proxy = await startLiveProxy({ allowTool: liveTool, messagesOf, secrets });
+const post = (path, body) => new Promise((done) => {
+  const req = request({ socketPath: proxy.socket, path, method: "POST", headers: { "x-api-key": "placeholder" } }, (res) => {
+    let text = "";
+    res.on("data", (c) => (text += c));
+    res.on("end", () => done({ status: res.statusCode, headers: res.headers, text }));
+  });
+  req.end(JSON.stringify(body));
+});
+const message = { model: "claude-opus-5-5", max_tokens: 64000, messages: [{ role: "user", content: "Hi" }] };
+const results = {
+  bash: await post("/v1/messages", { ...message, tools: [{ name: "Bash", input_schema: {} }] }),
+  mcp: await post("/v1/messages", { ...message, mcp_servers: [{ url: "https://example.com" }] }),
+  count: await post("/v1/messages/count_tokens", message),
+  ok: await post("/v1/messages", { ...message, stream: true }),
+  failed: await post("/v1/messages", message),
+};
+const ledger = readLedger(process.env.LIVE_LEDGER);
+writeLedger(process.env.LIVE_LEDGER, { ...ledger, spent: ledger.cap });
+results.overCap = await post("/v1/messages", message);
+await proxy.close();
+console.log(JSON.stringify({ results, refused: proxy.refused, events: proxy.events, secrets: secrets.length }));
+`,
+    { LIVE_BASE_URL: stub.url },
+  );
+  await stub.close();
+  assert.equal(code, 0, err);
+  assert.equal(keyLeft, false, "the proxy's live.ts deletes the key file once read");
+  const { results, refused, events, secrets } = JSON.parse(out);
+  assert.equal(secrets, 1, "the key joins the runner's redaction list");
+  assert.equal(results.bash.status, 400);
+  assert.equal(results.mcp.status, 400);
+  assert.equal(results.count.status, 404);
+  assert.equal(results.overCap.status, 400);
+  assert.match(refused.join("\n"), /host tool "Bash"[\s\S]*carries "mcp_servers"[\s\S]*cap/);
+  // Only the two allowed calls reached the stub, with the run's model, its cap and the real key.
+  assert.equal(stub.requests.length, 2);
+  for (const r of stub.requests) {
+    assert.equal(r.body.model, "claude-haiku-5-5");
+    assert.equal(r.body.max_tokens, 1024);
+    assert.equal(r.headers["x-api-key"], FAKE_KEYS.ANTHROPIC_API_KEY);
+  }
+  assert.equal(results.ok.status, 200);
+  assert.match(results.ok.text, /text_delta/);
+  assert.equal(results.failed.status, 401);
+  for (const result of Object.values(results)) {
+    for (const header of Object.keys(result.headers)) assert.ok(!/request-id|organization|workspace/.test(header));
+    for (const secret of SECRETS) assert.ok(!result.text.includes(secret), "an answer holds a secret");
+  }
+  assert.deepEqual(
+    events.map((e) => e.kind),
+    ["request", "response", "request"],
+  );
+  assert.deepEqual(events[1].message.parts, [{ type: "text", text: "Hello." }]);
+});
+
+test("a proxied example's namespace reaches only its own loopback interface", async () => {
+  const stub = await startStub(() => "unreachable");
+  const [command, args] = loopbackNamespace()(process.execPath, [
+    "-e",
+    `fetch(${JSON.stringify(stub.url)}).then(() => process.exit(0), () => process.exit(3))`,
+  ]);
+  const code = await new Promise((resolve) => {
+    spawn(command, args, { env: { PATH: process.env.PATH }, stdio: "ignore" }).on("close", resolve);
+  });
+  await stub.close();
+  assert.equal(code, 3, "a fetch to the host's loopback interface fails inside the namespace");
+  assert.equal(stub.requests.length, 0);
 });
 
 // --- The flow comparison ----------------------------------------------------------------------------------------
