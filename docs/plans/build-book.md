@@ -621,7 +621,7 @@ The three research rounds behind the sections each confirmed its placement, and 
 | [T25](../todos/done/T25-chapter-evals-observability-and-release.md) | Chapter: Evals, observability and release | T5, T6, T26, T34 | M |
 | [T37](../todos/done/T37-section-a2a.md) | Section: agent-to-agent protocols (A2A) in Chapter T21 | U19, T21, T45 | S |
 | [T38](../todos/ready/T38-section-voice-and-realtime.md) | Section: voice and realtime agents in Chapter T35 | U20, T35, T46, T47 | S |
-| [T39](../todos/ongoing/T39-section-fine-tuning-vs-prompting.md) | Section: fine-tuning versus prompting in Chapter T11 | U21, T11, T28 | S |
+| [T39](../todos/done/T39-section-fine-tuning-vs-prompting.md) | Section: fine-tuning versus prompting in Chapter T11 | U21, T11, T28 | S |
 
 Chapters are listed in reading order. The longest chain runs T1 → T3 → T4 → T5 → T26 and then to any chapter; T6 → T8 → T7 runs beside it. Each chapter whose subject lacked code waits for its example todo (T28–T34, T40–T47), which needs T5, and T41, T43 and T44 also need U18. T45 also needs U19, and T46 and T47 need U20. T48 needs T45 and stays on hold until a pinned SDK ships A2A 1.0. The research todos U18–U21 need nothing from Round T and can run first; T36 waits for U18, and each research-fed section waits for its research, its chapter and its example: T37 for T45, T38 for T46 and T47, and T39 for T28. T27 can run any time after T5, and the owner starts each live run by hand. T9 can ship the site at any point after T8, with whatever chapters exist.
 
