@@ -592,6 +592,8 @@ type ClientCommand =
   | { jsonrpc: "2.0"; id: Id; method: "approval/list"; params: { session: string } }
   | { jsonrpc: "2.0"; id: Id; method: "session/checkout" | "session/fork"; params: { session: string; entryId: string } } // experimental
   | { jsonrpc: "2.0"; method: "$/cancelRequest"; params: { id: Id } };
+// Revision (N28): session/open also takes fromSeq?: number, the first entry to replay; the server sends $/cancelRequest
+// to withdraw its own requests; HarnessEvent adds { type: "events_dropped"; count: number }
 interface InitializeResult {
   serverInfo: { name: string; version: string; sdkVersion: string; specVersion: "v1" };
   capabilities: string[];                         // from run_start.capabilities plus harness capabilities
@@ -760,7 +762,7 @@ The guide says to start with the log, because context layers, pauses, replay, th
 | --- | --- | --- | --- |
 | [N26](../todos/done/N26-protocol-package.md) | Protocol package: the typed union, framing and the generated JSON Schema | N2, B11, B15 | M |
 | [N27](../todos/done/N27-dispatcher-core.md) | Dispatcher and in-process transport: `initialize`, turns, events, `turn/settled` | N26, N7, B16 | M |
-| [N28](../todos/ongoing/N28-server-requests-backpressure.md) | Server requests, cancellation, bounded queues and reconnect | N27, N13 | M |
+| [N28](../todos/done/N28-server-requests-backpressure.md) | Server requests, cancellation, bounded queues and reconnect | N27, N13 | M |
 | [N29](../todos/ready/N29-stdio-transport.md) | stdio transport and the framing check (HD6) | N28 | S |
 | [N30](../todos/ready/N30-cli.md) | CLI: one-shot JSON mode, line-mode chat, and `sessions` list, show, search and replay | N28 | M |
 
