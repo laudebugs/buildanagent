@@ -67,8 +67,10 @@ async function writeWorkerTranscript(t, out, cwd, nonce) {
   });
   await rm(dir, { recursive: true, force: true });
 }
-// Bundles must live inside the package: workerd fails to load modules from some outside paths.
-const WORK = join(PKG, ".tmp", ownExamples ? "examples" : "docs");
+// Bundles must live inside the package: workerd fails to load modules from some outside paths. The folder is
+// per process for our own examples, because two runs at once (the CI scripts' tests start several) would
+// otherwise delete each other's bundles. The docs run keeps a fixed name, which its committed results mention.
+const WORK = join(PKG, ".tmp", ownExamples ? `examples-${process.pid}` : "docs");
 
 // Sources that need things the offline harness cannot provide. First match wins.
 const EXTERNAL = [
@@ -285,4 +287,5 @@ if (!only || process.env.WRITE_PARTIAL) {
 const tally = {};
 for (const r of results) tally[r.outcome] = (tally[r.outcome] ?? 0) + 1;
 console.log(`\n${results.length} examples:`, tally);
+await rm(WORK, { recursive: true, force: true });
 process.exitCode = ownExamples && results.some((r) => r.outcome !== "ran") ? 1 : 0;
