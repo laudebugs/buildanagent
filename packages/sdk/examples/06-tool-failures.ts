@@ -1,7 +1,7 @@
 // What the model reads when a tool's own function throws, on our SDK. The run does not end: the loop turns the throw
 // into an error result, and by default the model reads the thrown message. A tool that sets redactErrors shows it a
-// fixed line instead, and keeps the thrown message for your logs. The book's Chapter 3 compares these defaults with
-// the other SDKs' in a table.
+// fixed line instead, and keeps the thrown message in the result's details. The book's Chapter 3 compares these
+// defaults with the other SDKs' in a table.
 import { defineTool, run } from "@buildanagent/sdk";
 import { z } from "zod";
 import { check, scripted } from "./lib/check.js";
