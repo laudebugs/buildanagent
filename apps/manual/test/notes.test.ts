@@ -1508,6 +1508,65 @@ test("two notes that end at one point read 1 then 2 in dots, and a passage endin
   assert.equal(dot?.closest(".glossary-term"), null);
 });
 
+test("a note on a heading gets its dot after the heading, not inside it", () => {
+  const heading = item({ id: "h", quote: "Schemas", section: "schemas", note: "n" });
+  const win = page({ items: [heading] });
+  narrow(win);
+  start(win as unknown as globalThis.Window);
+  const [dot] = dots(win);
+  assert.ok(dot, "the heading's note has a dot");
+  assert.equal(dot.closest("h2"), null);
+  assert.equal((dot.previousSibling as Element | null)?.tagName, "H2");
+});
+
+test("hovering and focusing are tracked apart, so the shade stays while either one is on the marker", () => {
+  const { win } = stage([CONTRACT, FAILED]);
+  const marker = markers(win)[0] as HTMLElement;
+  const fire = (type: string) => marker.dispatchEvent(new win.Event(type, { bubbles: true }) as unknown as Event);
+  const highlights = (win as unknown as { CSS: { highlights: Map<string, unknown> } }).CSS.highlights;
+  fire("focusin");
+  fire("mouseover");
+  fire("mouseout");
+  assert.equal(highlights.has("manual-hover-amber"), true, "focus keeps it after the pointer leaves");
+  fire("focusout");
+  assert.equal(highlights.has("manual-hover-amber"), false);
+  fire("mouseover");
+  fire("focusin");
+  fire("focusout");
+  assert.equal(highlights.has("manual-hover-amber"), true, "the pointer keeps it after focus leaves");
+});
+
+test("taking a dot out joins only the text it split and leaves another script's text nodes alone", () => {
+  const win = page({ items: [CONTRACT, FAILED] });
+  narrow(win);
+  const first = q(win, "article p") as Element;
+  (first.firstChild as Text).splitText(7);
+  assert.equal(first.childNodes.length, 2);
+  start(win as unknown as globalThis.Window);
+  win.localStorage.setItem(KEY, stored({ tools: [CONTRACT, FAILED] }));
+  const event = new win.Event("storage");
+  Object.defineProperty(event, "key", { value: KEY });
+  win.dispatchEvent(event);
+  assert.equal(first.childNodes.length, 2, "two nodes another script made stay two");
+  assert.equal(dots(win).length, 1);
+  assert.equal(
+    (q(win, "article p:last-of-type") as Element).childNodes.length,
+    3,
+    "and the dot's own split is one dot",
+  );
+});
+
+test("a noted passage in a block wider than the column gives every note a dot, not a marker on the table", () => {
+  const win = page({ items: [CONTRACT, FAILED] });
+  layout(win, RECTS);
+  vi.spyOn(q(win, "article p:last-of-type") as Element, "getBoundingClientRect").mockReturnValue(
+    rect(0, 0, 990, 100) as unknown as DOMRect,
+  );
+  start(win as unknown as globalThis.Window);
+  assert.equal(markers(win).length, 0, "only 34 pixels are free beside that block");
+  assert.equal(dots(win).length, 1);
+});
+
 test("a focused dot keeps focus through a redraw", () => {
   const { win } = stage([CONTRACT, FAILED], { narrow: true });
   (dots(win)[0] as HTMLElement).focus();

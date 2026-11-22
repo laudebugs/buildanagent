@@ -757,6 +757,7 @@ class Notes {
     this.placed = new Map();
     this.build();
     this.margin = false;
+    this.hoverSources = { pointer: undefined, focus: undefined };
     this.paint();
     this.listen();
     // A margin marker follows its passage when the article reflows, so it is placed again when the article's size
@@ -1014,17 +1015,18 @@ class Notes {
     this.article.addEventListener("keyup", (event) => this.onDotKey(event));
     this.markers.addEventListener("click", (event) => this.onClick(event));
     // A marker brightens its passage while it is hovered or has focus.
-    for (const [type, on] of [
-      ["mouseover", true],
-      ["focusin", true],
-      ["mouseout", false],
-      ["focusout", false],
+    // The pointer and the keyboard focus are tracked apart, so the shade stays while either one is on a marker.
+    for (const [type, source, on] of [
+      ["mouseover", "pointer", true],
+      ["focusin", "focus", true],
+      ["mouseout", "pointer", false],
+      ["focusout", "focus", false],
     ]) {
       this.markers.addEventListener(type, (event) => {
         const marker = event.target?.closest?.(".notes-marker");
-        if (marker && !(type === "mouseout" && marker.contains(event.relatedTarget))) {
-          this.hover(on ? marker.getAttribute("data-id") : undefined);
-        }
+        if (!marker || (type === "mouseout" && marker.contains(event.relatedTarget))) return;
+        this.hoverSources[source] = on ? marker.getAttribute("data-id") : undefined;
+        this.hover(this.hoverSources.pointer ?? this.hoverSources.focus);
       });
     }
     // A click outside or Escape closes the popover without calling this script.
@@ -1330,10 +1332,20 @@ class Notes {
     return (this.article.querySelector("p") ?? this.article).getBoundingClientRect().right;
   }
 
-  /** Whether the window leaves room for a margin marker beside the text column, or only a dot fits. */
+  /**
+   * Whether the window leaves room for a margin marker beside the text column, and beside every noted passage's own
+   * block, which runs past the column in a table or a quote. When any block is too wide, every note gets a dot.
+   */
   hasGutter() {
     const { win, doc } = this;
-    return (doc.documentElement.clientWidth || win.innerWidth) - this.columnRight() >= GUTTER_MIN;
+    let edge = this.columnRight();
+    for (const { item, range } of this.drawn) {
+      if (!item.note) continue;
+      const node = range.startContainer;
+      const block = (node.nodeType === 1 ? node : node.parentElement)?.closest(BLOCK);
+      if (block) edge = Math.max(edge, block.getBoundingClientRect().right);
+    }
+    return (doc.documentElement.clientWidth || win.innerWidth) - edge >= GUTTER_MIN;
   }
 
   /** Places the margin markers again, or switches between markers and dots when the window crossed the gutter's width. */
@@ -1386,15 +1398,22 @@ class Notes {
    * dropped, because the change is this script's, and the chapter's text model is read again.
    */
   clearDots() {
-    const parents = new Set();
+    let removed = false;
     for (const dot of this.article.querySelectorAll(".notes-dot")) {
-      if (dot.parentNode) parents.add(dot.parentNode);
+      const before = dot.previousSibling;
+      const after = dot.nextSibling;
       dot.remove();
+      removed = true;
+      // Only the two text nodes the dot split are joined again, never any other text node in the parent.
+      if (before?.nodeType === 3 && after?.nodeType === 3) {
+        before.appendData(after.data);
+        after.remove();
+      }
     }
-    for (const parent of parents) parent.normalize();
-    // Records that another script's change left are dropped here too, so the model is read again for them as well.
-    const others = this.observer.takeRecords().length > 0;
-    if (parents.size > 0 || others) this.model = undefined;
+    // A paint reads the DOM as it is now, so records a script left before it are covered by this paint, and records
+    // from the changes above are this script's own.
+    const pending = this.observer.takeRecords().length > 0;
+    if (removed || pending) this.model = undefined;
   }
 
   /**
@@ -1503,12 +1522,20 @@ class Notes {
     if (point.endOffset < length) return;
     while (node !== this.article) {
       const parent = node.parentElement;
-      if (!parent || parent === this.article || parent.matches(BLOCK) || !parent.matches(INLINE)) return;
-      for (let next = node.nextSibling; next; next = next.nextSibling) {
-        if (next.nodeType === 3 ? next.data.trim() !== "" : next.nodeType === 1 && !next.matches(NOT_TEXT)) return;
+      if (!parent || parent === this.article || parent.matches(BLOCK) || !parent.matches(INLINE)) break;
+      let more = false;
+      for (let next = node.nextSibling; next && !more; next = next.nextSibling) {
+        more = next.nodeType === 3 ? next.data.trim() !== "" : next.nodeType === 1 && !next.matches(NOT_TEXT);
       }
+      if (more) return;
       node = parent;
       point.setStartAfter(node);
+      point.collapse(true);
+    }
+    // A button inside a heading would become part of its accessible name, so a dot goes after the heading.
+    const heading = (node.nodeType === 1 ? node : node.parentElement)?.closest("h2, h3, h4");
+    if (heading && this.article.contains(heading)) {
+      point.setStartAfter(heading);
       point.collapse(true);
     }
   }
@@ -2126,7 +2153,8 @@ export function pageTextOutsideNotes(doc) {
 const BLOCK = "p, li, blockquote, td, th, dd, dt, h2, h3, h4, figcaption, aside";
 
 // The inline elements a note dot is kept out of, so it never lands inside a link or a run of code.
-const INLINE = "a, em, strong, code, b, i, mark, abbr, cite, kbd, sub, sup, span";
+const INLINE =
+  "a, em, strong, code, b, i, u, s, mark, abbr, cite, kbd, sub, sup, span, small, del, ins, q, time, var, samp, dfn, bdi, bdo, ruby";
 
 // A margin marker is 28 pixels across and sits 8 pixels from the text column, so it needs this much free room beside the
 // column; a narrower window gets the inline dot instead.
