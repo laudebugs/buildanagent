@@ -19,6 +19,10 @@ async function viteDefaultServerConditions(): Promise<readonly string[]> {
 
 // A package or app is a directory with a package.json; only those with a Vitest config are checked, so a stray folder
 // under packages/ or apps/ (an editor's, or one left by a removed package) doesn't fail the test.
+// The one package that leaves a default out, and which: agent-safety drops `module`, because the AWS SDK's `module`
+// builds can't be loaded natively by Node (packages/agent-safety/vitest.config.ts says why).
+const DROPPED = new Map([["agent-safety", "module"]]);
+
 const configs = workspaceDirs
   .filter((dir) => existsSync(dir))
   .flatMap((dir) =>
@@ -37,6 +41,8 @@ test("every package's and app's Vitest config lists source, then Vite's default 
     const config = (await import(pathToFileURL(file).href)) as {
       default: { ssr?: { resolve?: { conditions?: string[] } } };
     };
-    assert.deepEqual(config.default.ssr?.resolve?.conditions, ["source", ...defaults], file);
+    const dropped = DROPPED.get(file.split("/").at(-2) ?? "");
+    const expected = defaults.filter((condition) => condition !== dropped);
+    assert.deepEqual(config.default.ssr?.resolve?.conditions, ["source", ...expected], file);
   }
 });
