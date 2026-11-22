@@ -176,9 +176,10 @@ function providerAdapter(config) {
 }
 
 /**
- * The live run's adapter: our gateway's real adapter for the run's provider, with each call's output allowance held
- * to the run's maxTokens. Turns real model requests on, which the offline setup turned off, so it throws outside a
- * live run. `record` wraps the adapter for the transcript recorder.
+ * The live run's model: our gateway's real adapter for the run's provider behind createModel(), with each call's
+ * output allowance held to the run's maxTokens, and the calls it received. It turns on real model requests, which the
+ * offline setup turned off, so it throws outside a live run rather than turn them on there. `record` wraps the adapter
+ * for the transcript recorder.
  */
 export function liveModel(record) {
   if (live === undefined) throw new Error("live mode: liveModel() runs only under scripts/live/run.mjs");
