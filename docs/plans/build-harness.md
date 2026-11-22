@@ -609,7 +609,7 @@ type ClientCommand =
   | { jsonrpc: "2.0"; id: Id; method: "approval/list"; params: { session: string } }
   | { jsonrpc: "2.0"; id: Id; method: "session/checkout" | "session/fork"; params: { session: string; entryId: string } } // experimental
   | { jsonrpc: "2.0"; method: "$/cancelRequest"; params: { id: Id } };
-// Revision (N28): session/open also takes fromSeq?: number, the first entry to replay; the server sends $/cancelRequest
+// Revision (N28): session/open also takes fromSeq?: number, the first sequence number to replay; the server sends $/cancelRequest
 // to withdraw its own requests; HarnessEvent adds { type: "events_dropped"; count: number }
 interface InitializeResult {
   serverInfo: { name: string; version: string; sdkVersion: string; specVersion: "v1" };

@@ -3,8 +3,9 @@
  * connection receives only the events of the sessions it created or opened. It holds at most `limit` commands at a
  * time, counting each until its response has gone out, so a client that sends faster than it reads is refused with
  * `QueueFull` instead of growing the queue. At most `limit` refusals wait to go out, and past that the connection is
- * closed, because a client that neither reads nor waits would otherwise grow the queue with refusals. The server requests it holds are bounded by what waits: one per pending
- * approval or clarification of a session it watches, and one per `client_request` tool call a turn it started makes.
+ * closed, because a client that neither reads nor waits would otherwise grow the queue with refusals. What waits also
+ * bounds the server requests the connection holds: one per pending approval or clarification of a session it watches,
+ * and one per `client_request` tool call that a turn it started makes.
  */
 import {
   type ClientCommand,

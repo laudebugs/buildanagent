@@ -66,13 +66,13 @@ None beyond the plan's.
 ## Definition of done
 
 - [x] Claimed: the first commit moved this file `ready/` → `ongoing/` (Status `ongoing`)
-- [ ] Prose drafted with `/anthropic-skills:writing` and reviewed with `/anthropic-skills:writing-review`, with the fixes applied and changed claims re-checked
+- [x] Prose drafted with `/anthropic-skills:writing` and reviewed with `/anthropic-skills:writing-review`, with the fixes applied and changed claims re-checked
 - [x] `pnpm check`, `pnpm typecheck` and `pnpm test` pass locally; pushed after each meaningful step
 - [x] This file moved `ongoing/` → `done/` (Status `done`), and the plan's todo table updated
 
 ## Outcome
 
-The dispatcher in `@buildanagent/harness/server` now asks clients for approvals, clarifications and client tool calls, cancels in both directions, bounds each connection's queues and replays a session from a sequence number. The tests are in `packages/harness/test/server/requests.test.ts` (13), `backpressure.test.ts` (7) and `reconnect.test.ts` (9), with one more in `dispatcher.test.ts`. Each acceptance criterion's test was checked by breaking the code it covers and watching the test fail.
+The dispatcher in `@buildanagent/harness/server` now asks clients for approvals, clarifications and client tool calls, cancels in both directions, bounds each connection's queues and replays a session from a sequence number. The tests are in `packages/harness/test/server/requests.test.ts` (20), `backpressure.test.ts` (9) and `reconnect.test.ts` (13), with one more in `dispatcher.test.ts`. Each acceptance criterion's test was checked by breaking the code it covers and watching the test fail.
 
 **Wire additions** (in `@buildanagent/protocol`, with the zod mirror, the JSON Schema and fixtures in step):
 
@@ -86,7 +86,7 @@ The dispatcher in `@buildanagent/harness/server` now asks clients for approvals,
 - **A request is sent once its entry is durable, from the store wrapper.** The dispatcher asks every watching connection as soon as the `approval_requested` append resolves, not after `turn/settled`, so a client can show the question while the paused step finishes. An answer that arrives before the turn settles waits for it.
 - **The first answer wins, and the others are withdrawn.** The dispatcher keeps the first well-formed answer to each signed request, sends `$/cancelRequest` for the same question on every other connection, and ignores any later answer. An answer must hold exactly one resolution naming the request it was asked about. A malformed one is asked again on the same connection, and an error response leaves the request waiting in the log.
 - **An answer resumes the session as a turn of its own.** It goes through `Approvals.resolve()` (the new `approvals` option, default `createApprovals(harness)`) once the session is free, with its own turn id and `turn/settled`. Under the lock, the dispatcher first drops an answer whose request no longer waits, so two processes can't both resolve one request. `resumeTurn()` gained per-resume `observers` and a `clientTool` runner, so a resume streams events and reaches client tools like a turn.
-- **`initialize` lists the pending requests, and `session/open` sends them again.** The brief said `initialize` re-arms a request. Sending it from `initialize` would give a client a request from a session it never opened, against N27's rule that a connection reaches only the sessions it created or opened. So `initialize` lists the requests in `pending`, and the server asks again, under new ids, once the client opens the session.
+- **`initialize` lists the pending requests, and `session/open` sends them again.** The todo said `initialize` re-arms a request. Sending it from `initialize` would give a client a request from a session it never opened, against N27's rule that a connection reaches only the sessions it created or opened. So `initialize` lists the requests in `pending`, and the server asks again, under new ids, once the client opens the session.
 - **A client tool's call goes to the turn's owner.** That is the connection that started the turn, or for a resume the one whose answer started it. The alternative, any watching connection, could send the call to a client that lacks the tool. A call never hangs: with no owner, on close, or for a bad answer the model gets an error result. A `client_request` tool's call goes to the client only through the dispatcher; `runTurn()` without `clientTool` still runs the tool's own `execute`, so existing callers see no change.
 - **The log is the replay window.** The plan asked for a replay window per session. An in-memory window would be stale as soon as a second process wrote the session, and empty after a restart. The log holds every entry, so `fromSeq` replays from the session's current file, and no `fromSeq` is too old. One past the last entry replays nothing, and anything further is refused with `InvalidParams`. Only entries are replayed: streamed events such as text deltas are transient, and the entries after them hold the same content.
 - **An open holds the session's live events until its replay has gone out.** Events and `turn/settled` that arrive while the log is read wait, and an entry the replay already carried is left out, so nothing is lost, sent twice or sent before the response.
@@ -125,7 +125,7 @@ The dispatcher in `@buildanagent/harness/server` now asks clients for approvals,
 - Asking again on open could send a request another client had resolved during the read; the read is repeated when an answer is taken or applied meanwhile.
 - The recovery advice for `events_dropped` named the wrong `fromSeq`: live events go on after the marker, so the client reopens one past the last `seq` it received before the marker and drops repeated entries by `seq`.
 
-**Review fixes (second round).** The medium review found four more problems, and each fix has a test that fails without it:
+**Review fixes (second round).** The medium review found four more problems, and each fix has a test that fails without it. The low review found nothing.
 
 - A resume that found the lock held, or was interrupted before it wrote, dropped its answers and asked nobody again, and its `turn/settled` looked like any other failure. It now settles with `answer_not_applied` and asks again, bounded as above.
 - A hold's marker counted dropped entries the replay already carried, and its `seq` could fall below the replay's last entry. It now counts only what the replay lacks, and its `seq` is at least the replay's last.

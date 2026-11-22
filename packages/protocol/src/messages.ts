@@ -199,7 +199,7 @@ export type HarnessEvent =
 
 /**
  * What the server sends without being asked. `event` carries a sequence number, and every turn ends with `turn/settled`.
- * `$/cancelRequest` withdraws a server request the client has not answered: the server ignores any answer to it after.
+ * `$/cancelRequest` withdraws a server request the client has not answered: the server ignores any answer that arrives after the withdrawal.
  */
 export type ServerNotification =
   | { jsonrpc: "2.0"; method: "event"; params: { session: string; seq: number; event: AgentEvent | HarnessEvent } }
