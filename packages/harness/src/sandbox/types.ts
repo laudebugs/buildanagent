@@ -25,7 +25,8 @@ export type SandboxTier = "none" | "os" | "container" | "gvisor" | "microvm";
 /**
  * What a backend claims to stop. `mistakes`: the agent's own errors, such as a write outside the workspace.
  * `exfiltration`: sending data to a host that is not allowed. `hostile_process`: a process that is trying to escape.
- * A backend lists a stop only when its tier and its setup deliver it, and no tier here claims `hostile_process` yet.
+ * A backend lists a stop only when its tier and its applied policy deliver it, which `stopsFor()` computes: only a
+ * `microvm` stops a `hostile_process`, and none of the backends in this package is one.
  */
 export type SandboxStop = "mistakes" | "exfiltration" | "hostile_process";
 
@@ -68,6 +69,13 @@ export interface ExecOptions {
   readonly maxOutputBytes?: number;
 }
 
+/**
+ * What a backend can do besides provisioning. `resume`: reattach to a sandbox by its id, such as after `pause` or a lost
+ * connection, or start one from a snapshot's id. `snapshot`: save a sandbox's state under an id that `resume` takes.
+ * `pause`: suspend a sandbox, keeping its state, until `resume`. A local backend has none of them.
+ */
+export type SandboxCapability = "resume" | "snapshot" | "pause";
+
 /** A provisioned sandbox. */
 export interface Sandbox {
   /** Runs `command`, an executable and its arguments with no shell, and resolves with what it did. */
@@ -78,12 +86,40 @@ export interface Sandbox {
   writeFile(path: string, data: Uint8Array): Promise<void>;
   /** Stops what is still running, and releases the sandbox. Calling it again does nothing, and any other call afterwards rejects. */
   dispose(): Promise<void>;
+  /** The id `SandboxClient.resume()` takes. Only a sandbox from a backend with the `resume` capability has one. */
+  readonly id?: string;
+  /**
+   * The stops the applied policy delivers, as `stopsFor()` computes them from the read-back. A backend that reads its
+   * policy back sets it when it provisions, and one that enforces nothing leaves it out.
+   */
+  readonly stops?: readonly SandboxStop[];
+  /**
+   * Reads back the policy the backend applied, from the backend's own record of it, such as the settings file it wrote
+   * or the policy a hosted provider reports. A backend that claims any stop has it, and `provision()` compares its
+   * answer with the request and throws `SandboxPolicyMismatchError` when they differ.
+   */
+  readBack?(): Promise<SandboxPolicy>;
+  /** Saves the sandbox's state and resolves with an id that `resume()` starts a sandbox from. Needs `snapshot`. */
+  snapshot?(): Promise<string>;
+  /** Suspends the sandbox until `resume()` with its `id`. Needs `pause`. */
+  pause?(): Promise<void>;
 }
 
 /** A sandbox backend. */
 export interface SandboxClient {
   readonly tier: SandboxTier;
+  /** The stops the backend claims for every policy it accepts. `provision()` checks them against the applied policy. */
   readonly stops: readonly SandboxStop[];
-  /** Provisions a sandbox, or throws `SandboxUnavailableError` when the backend can't start. It never falls back. */
+  /** What the backend can do besides provisioning. Leaving it out means none; call each one through its helper. */
+  readonly capabilities?: readonly SandboxCapability[];
+  /**
+   * Provisions a sandbox, or throws `SandboxUnavailableError` when the backend can't start. It never falls back. A
+   * backend that claims a stop reads its policy back first, and throws `SandboxPolicyMismatchError` on a difference.
+   */
   provision(manifest: WorkspaceManifest, policy: SandboxPolicy): Promise<Sandbox>;
+  /**
+   * Reattaches to the sandbox with this id, or starts one from the snapshot with this id. `policy` is the policy it must
+   * still apply. Needs `resume`; call it through `resumeSandbox()`, which checks the read-back.
+   */
+  resume?(id: string, policy: SandboxPolicy): Promise<Sandbox>;
 }

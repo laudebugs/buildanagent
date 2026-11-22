@@ -22,6 +22,7 @@ import {
   isProtectedPath,
   PROTECTED_TOP_LEVEL,
   realOrSelf,
+  spellings,
   workspaceRoot,
 } from "../host-files.js";
 import { type NodeModules, nodeModules, type ProcessResult, ProcessRunner } from "../process.js";
@@ -95,6 +96,21 @@ interface DockerState {
   readonly folder: string;
   /** Marks this sandbox's containers, so `dispose()` can find any that a stopped client left behind. */
   readonly label: string;
+  /** What the read-back needs to map the mounts back to the request's spelling. */
+  readonly names: DockerPolicyNames;
+}
+
+/** How the mounts map back to the request, for the read-back. */
+interface DockerPolicyNames {
+  readonly requested: SandboxPolicy;
+  /** The real path of each requested read root, in the request's order. */
+  readonly readReal: readonly string[];
+  /** For each real write root, the request's spellings that resolved to it. */
+  readonly write: ReadonlyMap<string, readonly string[]>;
+  /** Requested read roots that don't exist, which have nothing to mount and nothing to read. */
+  readonly missing: ReadonlySet<string>;
+  /** Read-only mounts the backend adds itself: the extra read roots, the denyWrite folders and the protected files. */
+  readonly implicit: ReadonlySet<string>;
 }
 
 const mountFlags = (mount: Mount): string[] => [
@@ -296,6 +312,41 @@ class DockerSandbox extends BackendSandbox {
     }
   }
 
+  /**
+   * The policy the mounts and flags apply, which are what every command's container is created with. The network is
+   * closed unless the caller mounted a proxy socket, and then the proxy on it enforces the requested allowlist. A
+   * read-only mount the request doesn't explain reads back as a read root it didn't ask for.
+   */
+  async readBack(): Promise<SandboxPolicy> {
+    this.live();
+    const { mounts, names, flags } = this.state;
+    const own = mounts.filter((mount) => mount.to !== DOCKER_PROXY_SOCKET_PATH);
+    // A write root that the caller's own denyWrite made read-only is still the root the request asked for.
+    const granted = (mount: Mount) =>
+      !mount.readOnly || (names.implicit.has(mount.from) && names.write.has(mount.from));
+    const writable = own.filter(granted).map((mount) => mount.from);
+    const inWritable = (path: string) => writable.some((root) => inside(this.state.modules, root, path));
+    const readable = (real: string) => names.missing.has(real) || inWritable(real) || own.some((m) => m.from === real);
+    const unexplained = own
+      .filter((mount) => mount.readOnly && !names.readReal.includes(mount.from))
+      .map((mount) => mount.from)
+      .filter((from) => !names.implicit.has(from) && !inWritable(from));
+    const closed = flags.join(" ").includes("--network none");
+    const proxied = mounts.length !== own.length;
+    return {
+      readRoots: [
+        ...names.requested.readRoots.filter((_, index) => readable(names.readReal[index] ?? "")),
+        ...unexplained,
+      ],
+      writeRoots: writable.flatMap((path) => names.write.get(path) ?? [path]),
+      network: !closed
+        ? { allow: ["*"], deny: [] }
+        : proxied
+          ? names.requested.network
+          : { allow: [], deny: names.requested.network.deny },
+    };
+  }
+
   protected async shutDown(): Promise<void> {
     await this.runner.stopAll();
     await Promise.allSettled([...this.pending]);
@@ -381,15 +432,21 @@ async function planMounts(modules: NodeModules, policy: SandboxPolicy, options: 
     ...writeRoots.map((from) => ({ from, to: from, readOnly: false })),
     ...(await existing(modules, readOnlyRoots)).map((from) => ({ from, to: from, readOnly: true })),
   ];
-  const guarded = [...denied, ...(await existing(modules, protectedPaths))].map((from) => ({
-    from,
-    to: from,
-    readOnly: true,
-  }));
+  const present = await existing(modules, readOnlyRoots);
+  const protectedPresent = await existing(modules, protectedPaths);
+  const guarded = [...denied, ...protectedPresent].map((from) => ({ from, to: from, readOnly: true }));
+  const names: DockerPolicyNames = {
+    requested: policy,
+    readReal: readRoots,
+    write: spellings(writeRoots, policy.writeRoots),
+    missing: new Set(readOnlyRoots.filter((path) => !present.includes(path))),
+    implicit: new Set([...extra, ...denied, ...protectedPresent]),
+  };
   return {
     base: onePerDestination(base),
     mounts: onePerDestination([...base, ...guarded]),
     roots: { read: readRoots, write: writeRoots, denyWrite: denied },
+    names,
   };
 }
 
@@ -451,7 +508,7 @@ const firstLine = (text: string): string => text.trim().split("\n")[0] ?? "no ou
  */
 export function dockerSandbox(options: DockerSandboxOptions): SandboxClient {
   checkOptionValues(options);
-  return {
+  const client: SandboxClient = {
     tier: "container",
     stops: ["mistakes", "exfiltration"],
     async provision(manifest: WorkspaceManifest, policy: SandboxPolicy): Promise<Sandbox> {
@@ -470,14 +527,14 @@ export function dockerSandbox(options: DockerSandboxOptions): SandboxClient {
       checkPaths(modules, options.denyWrite ?? [], "a denyWrite folder");
       const folder = await modules.fs.mkdtemp(modules.path.join(modules.os.tmpdir(), "harness-docker-"));
       try {
-        const sandbox = await startSandbox({ modules, docker, hostPath, root, folder, manifest, policy, options });
-        return sandbox;
+        return await startSandbox({ modules, docker, hostPath, root, folder, manifest, policy, options, client });
       } catch (error) {
         await modules.fs.rm(folder, { recursive: true, force: true });
         throw error;
       }
     },
   };
+  return client;
 }
 
 interface StartInput {
@@ -489,6 +546,7 @@ interface StartInput {
   readonly manifest: WorkspaceManifest;
   readonly policy: SandboxPolicy;
   readonly options: DockerSandboxOptions;
+  readonly client: SandboxClient;
 }
 
 async function startSandbox(input: StartInput): Promise<DockerSandbox> {
@@ -532,8 +590,10 @@ async function startSandbox(input: StartInput): Promise<DockerSandbox> {
     clientEnv,
     folder: input.folder,
     label: `harness.sandbox=harness-${modules.path.basename(input.folder).slice("harness-docker-".length)}`,
+    names: plan.names,
   });
   await probe(sandbox, options.image);
+  await sandbox.confirm(input.client, input.policy);
   for (const folder of plan.roots.denyWrite) await modules.fs.mkdir(folder, { recursive: true });
   const encoder = new TextEncoder();
   for (const [path, data] of Object.entries(input.manifest.files ?? {})) {
