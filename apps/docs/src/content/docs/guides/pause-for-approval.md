@@ -14,7 +14,9 @@ The gate is an interceptor. It asks a person before any `refund_create` call and
 
 ## Store the pause
 
-Start the run with a signer, which signs each request. The default signer holds a random key that lives only in its own process, so another process rejects its signatures. Pass `hmacSigner()` over a key ring you store, so any process that holds the key can verify the request. When the result's stop reason is `awaiting_approval`, save `result.context` with your own store. It holds the pending requests and the input each one signs. Show the person that input, not the model's arguments, because the gate or a repair step may have changed them.
+Start the run with a signer, which signs each request. The default signer holds a random key that lives only in its own process, so another process rejects its signatures. Pass `hmacSigner()` over a key ring you store, so any process that holds the key can verify the request.
+
+When the result's stop reason is `awaiting_approval`, save `result.context` with your own store. It holds the pending requests and the input each one signs. Show the person that input, not the model's arguments, because the gate or a repair step may have changed them.
 
 ## Resume with the person's answer
 

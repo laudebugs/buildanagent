@@ -3,7 +3,7 @@ title: Packages and entry points
 description: The two packages, their entry points and what each one exports.
 ---
 
-Two packages hold everything these docs describe. Read this page to find which entry point to import from.
+Two packages hold everything these docs describe. You need this to find which entry point to import from.
 
 ## The gateway
 

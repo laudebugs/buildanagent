@@ -3,7 +3,7 @@ title: Keep tests offline
 description: Block real requests and provider keys at the start of every test file.
 ---
 
-A test should never reach a real provider by accident. Read this page to turn real requests off for your whole test suite, so a mistake fails the test instead of spending money.
+A test should never reach a real provider by accident. You need this to turn real requests off for your whole test suite, so a mistake fails the test instead of spending money.
 
 ## Import the setup first
 

@@ -1,19 +1,19 @@
 ---
 title: The transcript and the stream
-description: A conversation is a list of messages you own, and every model answer arrives as a stream with four rules.
+description: A transcript is a list of messages you own, and every model answer arrives as a stream with four rules.
 ---
 
-A conversation is a list of messages that you own, and every model answer arrives as a stream that follows four rules. Read this page to know what your code can rely on when you store a conversation or render a stream.
+A transcript is a list of messages that you own, and every model answer arrives as a stream that follows four rules. You need this to know what your code can rely on when you store a transcript or render a stream.
 
 ## A transcript is a list of messages you own
 
-A conversation is a list of messages: user messages, assistant messages and tool results. Their content is a short list of blocks: `text`, `reasoning`, `image` and `tool_call`. Your code never handles a provider's wire format.
+A transcript is the list of messages in a conversation: user messages, assistant messages and tool results. Their content is a short list of blocks: `text`, `reasoning`, `image` and `tool_call`. Your code never handles a provider's wire format.
 
 Every assistant message records its model, why it stopped, any typed error, its usage and its cost. The cost is `null` when the price is unknown, never a guessed zero.
 
 ## A transcript replays on another model
 
-You can start a conversation on one model and continue it on another, even from another provider. Before each request, the gateway turns your transcript into one that the target model accepts. It leaves your own transcript as it was, so you keep the full record.
+You can start a transcript on one model and continue it on another, even from another provider. Before each request, the gateway turns your transcript into one that the target model accepts. It leaves your own transcript as it was, so you keep the full record.
 
 ## Every stream follows four rules
 
@@ -24,7 +24,7 @@ A provider adapter streams one model answer as a sequence of events. The sequenc
 3. Exactly one terminal event, `done` or `error`, ends the stream.
 4. An error terminal has the stop reason `error` or `aborted` and carries the content and usage so far.
 
-An error terminal is how a failed model call ends: as an event with its partial content, never as a thrown exception. A `warning` event can come anywhere between `start` and the terminal. It reports something the call survived.
+An error terminal is how a failed model call ends: as an event with its partial content, never as a thrown exception. A `warning` event can come anywhere between `start` and the terminal, and reports something the call survived.
 
 ## A run streams one closed set of events
 

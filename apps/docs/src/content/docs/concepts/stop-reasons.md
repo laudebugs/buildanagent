@@ -3,7 +3,7 @@ title: Stop reasons
 description: Every run ends with a stop reason that says why, and a failed model call never makes a run throw.
 ---
 
-A run never throws because a model call failed or a tool broke. It ends with a result whose stop reason says why. Read this page to know which reasons your code must handle.
+A run never throws because a model call failed or a tool broke. It ends with a result whose stop reason says why. You need this to know which reasons your code must handle.
 
 ## Nine reasons end a run
 

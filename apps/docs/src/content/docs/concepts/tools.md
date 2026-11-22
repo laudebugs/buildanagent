@@ -3,13 +3,13 @@ title: Tools
 description: A tool is how an agent acts on your systems, and a failing call becomes an error the model can fix.
 ---
 
-A tool is how an agent acts on your systems. Read this page to understand what a tool is made of, how the loop checks the model's arguments and how a failure reaches the model.
+A tool is how an agent acts on your systems. You need this to understand what a tool is made of, how the loop checks the model's arguments and how a failure reaches the model.
 
 ## A tool has four parts
 
-A tool is a name, a description the model reads, an input schema and an `execute` function. The schema is either a Standard Schema, from a library such as Zod 4.2 or later, ArkType or Valibot, or a raw JSON Schema object.
+A tool is a name, a description the model reads, an input schema and an `execute` function. The schema is either a Standard Schema, from a library such as Zod 4.2 or later, ArkType or Valibot, or a raw JSON Schema object. A name must use 1 to 64 characters from `A-Z`, `a-z`, `0-9`, `_` and `-`.
 
-The function receives the validated input and returns a result with three channels. `content` is what the model reads, `details` is for your logs and `structured` is typed data for your code. A name must use 1 to 64 characters from `A-Z`, `a-z`, `0-9`, `_` and `-`.
+The function receives the validated input and returns a result with three channels. `content` is what the model reads, `details` is for your logs and `structured` is typed data for your code.
 
 ## A failed call becomes an error the model can fix
 

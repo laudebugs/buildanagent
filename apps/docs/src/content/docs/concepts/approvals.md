@@ -3,7 +3,7 @@ title: Approvals
 description: A gate can pause a tool call for a person, and a signed request lets any process resume it.
 ---
 
-An approval stops a tool call until a person answers. Read this page to learn how a pause works and why it can resume in another process.
+An approval stops a tool call until a person answers. You need this to learn how a pause works and why it can resume in another process.
 
 ## A gate decides each tool call
 
