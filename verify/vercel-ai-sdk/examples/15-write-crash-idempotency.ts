@@ -14,6 +14,8 @@ import { generateText, isStepCount, tool } from "ai";
 import { z } from "zod";
 import { check, scripted } from "./lib/check.ts";
 
+const CHILD_TIMEOUT_MS = 20_000;
+
 /** What a write can have done: it took effect, it didn't, it was undone, part of it took effect, or nobody can tell. */
 type Outcome = "applied" | "not_applied" | "compensated" | "partial" | "unknown";
 type Entry = { key: string; state: "started" | "done"; outcome?: Outcome };
@@ -74,15 +76,17 @@ function chargeTool(base: string, logFile: string, crashAfterWrite = false) {
     execute: async ({ order }) => {
       const key = `charge:${order}`; // book:note key
       const state = stateOf(logFile, key);
-      // A write that was applied is never sent again: the log answers.
-      if (state === "applied") return { outcome: state, replayed: true };
+      // A write the log already settled is never sent again: the log answers, whether it applied or was declined.
+      if (state !== "none" && state !== "unknown") return { outcome: state, replayed: true };
       if (state === "unknown") {
         // A previous attempt started and never finished: ask the server before writing again.
         const found = await fetch(`${base}/${key}`); // book:note reconcile
-        if (found.status !== 200 && found.status !== 404) return { outcome: "unknown" as Outcome };
-        const outcome: Outcome = found.ok ? "applied" : "not_applied";
-        record(logFile, { key, state: "done", outcome });
-        return { outcome, reconciled: true };
+        if (found.status === 200) {
+          record(logFile, { key, state: "done", outcome: "applied" });
+          return { outcome: "applied" as Outcome, reconciled: true };
+        }
+        // Only a 404 proves the write never reached the server, so only then may it be sent, under the same key.
+        if (found.status !== 404) return { outcome: "unknown" as Outcome };
       }
       record(logFile, { key, state: "started" }); // book:note persist
       const response = await fetch(base, { method: "POST", headers: { "idempotency-key": key } });
@@ -141,7 +145,7 @@ try {
       "a repeated write is answered from the log and sends no request",
     );
   }
-  // The write the server declines: nothing was written, and the outcome says so.
+  // The write the server declines: nothing was written, the outcome says so, and a repeat is answered from the log.
   {
     const result = await run(base, logFile, 13);
     check(
@@ -149,6 +153,8 @@ try {
       "a declined write reports not_applied",
     );
     check(written() === 1, "a declined write is not a write");
+    await run(base, logFile, 13);
+    check(postsFor("charge:13") === 1, "a declined write is not sent again");
   }
 
   // #region crash
@@ -166,6 +172,8 @@ try {
     env,
     stdio: ["ignore", "ignore", "pipe"],
   });
+  // A child that hangs would hold the whole run, so it is killed after a time that a healthy one never needs.
+  const timer = setTimeout(() => child.kill("SIGTERM"), CHILD_TIMEOUT_MS);
   let childErrors = "";
   child.stderr?.on("data", (chunk) => {
     childErrors += chunk;
@@ -174,6 +182,7 @@ try {
     child.on("error", fail);
     child.on("exit", (_code, killedBy) => done(killedBy));
   });
+  clearTimeout(timer);
   check(signal === "SIGKILL", `the child process was killed mid-write ${childErrors.trim()}`);
   check(written() === 2 && postsFor("charge:42") === 1, "the server had already written once for order 42");
   check(stateOf(logFile, "charge:42") === "unknown", "the log has the key and no outcome, so the state is unknown"); // book:note unknown
