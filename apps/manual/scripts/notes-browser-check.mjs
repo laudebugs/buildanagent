@@ -116,6 +116,8 @@ async function checkMarker(page, name, shots) {
   );
   check(info.dots === 0, `${name}: nothing is inserted into the article`);
   await page.evaluate(() => document.querySelector(".notes-markers .notes-marker").scrollIntoView({ block: "center" }));
+  // Focus from an earlier step would keep the shade, so each source is tried alone.
+  await page.evaluate(() => document.activeElement?.blur());
   await page.locator(".notes-markers .notes-marker").hover();
   check(await hovered(), `${name}: hovering the marker brightens its passage`);
   if (shots) await page.screenshot({ path: join(shots, `${name}-marker.png`) });
