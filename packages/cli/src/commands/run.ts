@@ -3,7 +3,7 @@
  * be at the terminal: the turn ends waiting, the exit status is 3, and `resume` answers it later.
  */
 import { CliError } from "../errors.js";
-import { exitStatus, reportSettled, startLive } from "../live.js";
+import { exitStatus, reportSettled, startLive, withLive } from "../live.js";
 import type { CommandContext } from "../options.js";
 import { runTurn } from "../watch.js";
 
@@ -12,12 +12,9 @@ export async function runCommand(context: CommandContext, words: readonly string
   const prompt = words.join(" ");
   if (prompt.trim() === "") throw new CliError("usage", "run needs a prompt: buildanagent run <prompt>");
   const live = await startLive(context, false);
-  try {
+  return withLive(live, async () => {
     const result = await runTurn(live.host.client, live.watch, prompt);
     reportSettled(live, result);
     return exitStatus(result);
-  } finally {
-    live.watch.stop();
-    await live.host.close();
-  }
+  });
 }

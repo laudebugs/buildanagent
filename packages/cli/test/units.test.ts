@@ -4,6 +4,7 @@ import { linesOf } from "@buildanagent/cli";
 import type { SessionEntry } from "@buildanagent/protocol";
 import { describe, test } from "vitest";
 import { parseArgs } from "../src/args.js";
+import { groupRequests } from "../src/ask.js";
 import { chainedCommands } from "../src/command-lines.js";
 import { Meter, readingText, warningText } from "../src/meter.js";
 import { modelFromSpec } from "../src/model.js";
@@ -21,6 +22,13 @@ describe("parseArgs", () => {
     assert.throws(() => parseArgs(["--nope"]), /unknown flag "--nope"/);
     assert.throws(() => parseArgs(["--model"]), /--model needs a value/);
     assert.throws(() => parseArgs(["--budget", "0"]), /--budget takes a positive number/);
+  });
+
+  test("an empty value is a usage error, not a silent fall back to the default", () => {
+    assert.throws(() => parseArgs(["--state-dir="]), /--state-dir needs a value/);
+    assert.throws(() => parseArgs(["--state-dir", ""]), /--state-dir needs a value/);
+    assert.throws(() => parseArgs(["--model="]), /--model needs a value/);
+    assert.throws(() => parseArgs(["--otlp-endpoint="]), /--otlp-endpoint needs a value/);
   });
 });
 
@@ -42,6 +50,50 @@ describe("chainedCommands", () => {
       { operator: "", command: `echo "a && b" 'c | d' e\\;f $(g; h) \`i && j\`` },
     ]);
   });
+
+  test("keeps a backslash and the character after it, so commands that differ never read as one", () => {
+    assert.deepEqual(chainedCommands("rm foo\\  bar"), [{ operator: "", command: "rm foo\\  bar" }]);
+    assert.deepEqual(chainedCommands("rm foo\\ bar"), [{ operator: "", command: "rm foo\\ bar" }]);
+    assert.deepEqual(chainedCommands(`echo "a\\"   b"`), [{ operator: "", command: `echo "a\\"   b"` }]);
+    assert.deepEqual(chainedCommands("rm foo\\ "), [{ operator: "", command: "rm foo\\ " }]);
+  });
+
+  test("reads the & and | of a redirection as part of the command, not as an operator", () => {
+    assert.deepEqual(chainedCommands("make test 2>&1 | tee log"), [
+      { operator: "", command: "make test 2>&1" },
+      { operator: "|", command: "tee log" },
+    ]);
+    assert.deepEqual(chainedCommands("cmd &>log; next &>>log2 <&3 >|f"), [
+      { operator: "", command: "cmd &>log" },
+      { operator: ";", command: "next &>>log2 <&3 >|f" },
+    ]);
+    // An escaped `>` is a plain character, so the `&` after it still sends the first command to the background.
+    assert.deepEqual(chainedCommands("echo x\\>& rm -rf /tmp/a"), [
+      { operator: "", command: "echo x\\>" },
+      { operator: "&", command: "rm -rf /tmp/a" },
+    ]);
+  });
+});
+
+describe("groupRequests", () => {
+  const bash = (id: string) =>
+    ({
+      method: "approval/request",
+      params: { request: { id, kind: "approval", tool: "bash", inputHash: `hash-${id}` } },
+    }) as never;
+
+  test("commands that differ only in an escaped space are two groups, each with its own answer", () => {
+    const inputs = new Map<string, unknown>([
+      ["r1", { command: "rm foo\\  bar" }],
+      ["r2", { command: "rm foo\\ bar" }],
+      ["r3", { command: "rm  foo\\ bar" }],
+    ]);
+    const groups = groupRequests([bash("r1"), bash("r2"), bash("r3")], inputs);
+    assert.deepEqual(
+      groups.map((group) => group.requests.map((request) => request.params.request.id)),
+      [["r1"], ["r2", "r3"]],
+    );
+  });
 });
 
 const usage = (total: number | null): SessionEntry =>
@@ -61,9 +113,23 @@ describe("Meter", () => {
     assert.deepEqual(meter.observe({ type: "entry_appended", entry: usage(0.5) }), []);
     assert.deepEqual(meter.observe({ type: "entry_appended", entry: usage(null) }), []);
     const [note] = meter.observe({ type: "entry_appended", entry: usage(0.3) });
-    assert.equal(warningText(note as never), "warning: this session has spent $0.8000, 80% of its $1.0000 budget");
+    assert.equal(warningText(note as never), "warning: this turn has spent $0.8000, 80% of its $1.0000 budget");
     assert.deepEqual(meter.observe({ type: "entry_appended", entry: usage(0.1) }), []);
     assert.equal(readingText(meter.reading()), "cost $0.9000 (+1 unpriced)");
+  });
+
+  test("the budget is per run: a new run warns again, and replayed spend neither warns nor uses up the warning", () => {
+    const runStart = { type: "run_start" } as never;
+    const meter = new Meter(1);
+    assert.deepEqual(meter.observe({ type: "entry_appended", entry: usage(0.9) }, true), []);
+    assert.deepEqual(meter.observe(runStart), []);
+    assert.deepEqual(meter.observe({ type: "entry_appended", entry: usage(0.5) }), []);
+    const [first] = meter.observe({ type: "entry_appended", entry: usage(0.35) });
+    assert.equal(warningText(first as never), "warning: this turn has spent $0.8500, 85% of its $1.0000 budget");
+    meter.observe(runStart);
+    const [second] = meter.observe({ type: "entry_appended", entry: usage(0.8) });
+    assert.equal(second?.kind, "budget_warning");
+    assert.equal(readingText(meter.reading()), "cost $2.5500");
   });
 });
 

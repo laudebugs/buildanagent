@@ -56,13 +56,17 @@ function readFlag(flags: MutableFlags, word: string, next: string | undefined): 
   const valued = VALUE_FLAGS[name as string];
   if (valued === undefined) throw new CliError("usage", `unknown flag ${JSON.stringify(word)}`);
   const value = inline ?? next;
-  if (value === undefined) throw new CliError("usage", `${name} needs a value`);
+  // An empty value, as in `--state-dir=`, would otherwise fall back to a default the caller never asked for.
+  if (value === undefined || value === "") throw new CliError("usage", `${name} needs a value`);
   if (valued === "budgetUsd") flags.budgetUsd = budgetOf(value);
   else flags[valued] = value;
   return inline === undefined ? 2 : 1;
 }
 
-/** Reads `argv`, the arguments after the program name. Throws a `CliError` with code `usage` for an unknown flag. */
+/**
+ * Reads `argv`, the arguments after the program name. Throws a `CliError` with code `usage` for an unknown flag or a
+ * missing or empty value.
+ */
 export function parseArgs(argv: readonly string[]): ParsedArgs {
   const positionals: string[] = [];
   const flags: MutableFlags = { json: false, force: false, help: false };

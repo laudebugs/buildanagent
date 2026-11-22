@@ -74,3 +74,18 @@ test("a collector that refuses the spans makes the command exit 2 with the statu
   assert.equal(status, 2);
   assert.match(term.stderr.join(""), /the OTLP endpoint answered 503/);
 });
+
+test("a collector that can't be reached makes the command exit 2 and says why, instead of rejecting", async () => {
+  const term = terminal();
+  const status = await cli(term, dir, ["run", "--otlp-endpoint", "http://127.0.0.1:4318", "Hi"], {
+    model: scripted([reply("Hi.")]).model,
+    fetch: async () => {
+      throw new TypeError("fetch failed: connection refused");
+    },
+  });
+  assert.equal(status, 2);
+  assert.match(
+    term.stderr.join(""),
+    /could not send the spans to the OTLP endpoint http:\/\/127\.0\.0\.1:4318\/v1\/traces: fetch failed: connection refused/,
+  );
+});

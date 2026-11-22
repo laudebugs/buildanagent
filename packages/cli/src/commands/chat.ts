@@ -6,23 +6,23 @@
 import type { TurnResultSummary } from "@buildanagent/protocol";
 import { askPerson } from "../ask.js";
 import { CliError } from "../errors.js";
-import { type Live, reportSettled, startLive } from "../live.js";
+import type { CliIo } from "../io.js";
+import { type Live, reportSettled, startLive, withLive } from "../live.js";
 import type { CommandContext } from "../options.js";
-import { runTurn, WAITING_REASONS } from "../watch.js";
+import { runTurn, type SessionWatch, WAITING_REASONS } from "../watch.js";
 
 const QUIT = new Set(["/exit", "/quit"]);
 
 /**
  * Asks about each request the turn waits on and follows the resumes until the turn no longer waits, or until input
- * ends or no answer of ours is left to apply.
+ * ends or no answer of ours is left for a turn to settle, such as one another process settled first.
  */
-async function settle(context: CommandContext, live: Live, first: TurnResultSummary): Promise<TurnResultSummary> {
+export async function settle(io: CliIo, watch: SessionWatch, first: TurnResultSummary): Promise<TurnResultSummary> {
   let result = first;
   while (WAITING_REASONS.has(result.stopReason)) {
-    if (live.watch.asked.size > 0) {
-      if (!(await askPerson(context.io, live.watch))) return result;
-    } else if (!(await live.watch.answerPending())) return result;
-    result = (await live.watch.nextSettled()).result;
+    if (watch.asked.size > 0 && !(await askPerson(io, watch))) return result;
+    if (!(await watch.settlePending())) return result;
+    result = (await watch.nextSettled()).result;
   }
   return result;
 }
@@ -30,7 +30,10 @@ async function settle(context: CommandContext, live: Live, first: TurnResultSumm
 async function converse(context: CommandContext, live: Live): Promise<void> {
   if (live.pending.length > 0) {
     await live.watch.whenAsked(live.pending);
-    reportSettled(live, await settle(context, live, { stopReason: "awaiting_approval", steps: 0, costUsd: null }));
+    reportSettled(
+      live,
+      await settle(context.io, live.watch, { stopReason: "awaiting_approval", steps: 0, costUsd: null }),
+    );
   }
   for (;;) {
     context.io.error("> ");
@@ -38,20 +41,17 @@ async function converse(context: CommandContext, live: Live): Promise<void> {
     if (line === undefined || QUIT.has(line.trim())) return;
     if (line.trim() === "") continue;
     const result = await runTurn(live.host.client, live.watch, line);
-    reportSettled(live, await settle(context, live, result));
+    reportSettled(live, await settle(context.io, live.watch, result));
   }
 }
 
 /** Chats in a new session, or in the stored session `id`, until input ends or a line says `/exit`. */
 export async function chatCommand(context: CommandContext, id?: string): Promise<number> {
   const live = await startLive(context, true, id);
-  try {
+  return withLive(live, async () => {
     await converse(context, live);
     return 0;
-  } finally {
-    live.watch.stop();
-    await live.host.close();
-  }
+  });
 }
 
 /** `resume <session>`: chats in a stored session. */

@@ -28,7 +28,7 @@ export interface Live {
 function listenerFor(context: CommandContext, meter: Meter, out: Output, session: () => string): EventListener {
   const render = liveRenderer(context.io);
   return (event, seq, replayed) => {
-    const notes = meter.observe(event);
+    const notes = meter.observe(event, replayed);
     if (replayed) return;
     if (out.json) out.line({ type: "event", session: session(), seq, event });
     else render(event);
@@ -74,9 +74,28 @@ export async function startLive(context: CommandContext, interactive: boolean, i
     });
     return { host, meter, out, ...attached };
   } catch (error) {
-    await host.close();
+    // A close that fails too, such as a collector that can't be reached, must not hide why the session didn't start.
+    await host.close().catch(() => undefined);
     throw error;
   }
+}
+
+/**
+ * Runs `body`, then stops the watch and closes the host, which sends any spans. When `body` throws, a close that
+ * fails as well is dropped, so the error that ended the command is the one reported.
+ */
+export async function withLive<T>(live: Live, body: () => Promise<T>): Promise<T> {
+  let result: T;
+  try {
+    result = await body();
+  } catch (error) {
+    live.watch.stop();
+    await live.host.close().catch(() => undefined);
+    throw error;
+  }
+  live.watch.stop();
+  await live.host.close();
+  return result;
 }
 
 /** Reports how a turn settled, with the meter's totals. */

@@ -5,12 +5,14 @@
  */
 import type { InProcessClient } from "@buildanagent/harness/server";
 import { RpcFailure } from "@buildanagent/harness/server";
-import type {
-  HarnessEvent,
-  ResponseMessage,
-  ServerMessage,
-  ServerRequest,
-  TurnResultSummary,
+import {
+  ErrorCodes,
+  type HarnessEvent,
+  type ResponseMessage,
+  type ServerMessage,
+  type ServerRequest,
+  type SessionEntry,
+  type TurnResultSummary,
 } from "@buildanagent/protocol";
 import type { AgentEvent, Resolution } from "@buildanagent/sdk";
 import { CliError } from "./errors.js";
@@ -30,6 +32,15 @@ export interface Settled {
 /** The stop reasons that mean a turn waits for a person. */
 export const WAITING_REASONS: ReadonlySet<string> = new Set(["awaiting_approval", "clarification_requested"]);
 
+/** How long `whenAsked()` waits for the server to ask about a request before it checks the log. */
+export const ASK_WAIT_MS = 5_000;
+
+/**
+ * The `error.kind` of a resume's `turn/settled` when the server wrote none of its answers. The server forgets those
+ * answers and asks about each request again.
+ */
+const NOT_APPLIED = "answer_not_applied";
+
 /** Watches one session on `client`. Call `stop()` when done with it. */
 export class SessionWatch {
   readonly session: string;
@@ -39,6 +50,10 @@ export class SessionWatch {
   readonly inputs = new Map<string, unknown>();
   readonly #client: InProcessClient;
   readonly #answered = new Set<string>();
+  /** The answers this client gave that no resume has written yet. */
+  readonly #unwritten = new Set<string>();
+  /** The answers a resume has written whose turn has not settled yet. */
+  readonly #written = new Set<string>();
   readonly #settled: Settled[] = [];
   readonly #waiters: ((settled: Settled) => void)[] = [];
   readonly #changes: (() => void)[] = [];
@@ -59,18 +74,34 @@ export class SessionWatch {
   #take(message: Exclude<ServerMessage, ResponseMessage<unknown>>, listener: EventListener): void {
     if (message.method === "event") {
       const { event, seq } = message.params;
-      if (event.type === "entry_appended" && event.entry.type === "approval_requested") {
-        this.inputs.set(event.entry.request.id, event.entry.input);
-      }
+      if (event.type === "entry_appended") this.#entry(event.entry);
       listener(event, seq, this.#replaying);
     } else if (message.method === "turn/settled") {
+      this.#written.clear();
+      // The server forgot the answers it could not write and asks about their requests again.
+      if (message.params.result.error?.kind === NOT_APPLIED) this.#unwritten.clear();
       const settled = { turn: message.params.turn, result: message.params.result };
       const waiter = this.#waiters.shift();
       if (waiter === undefined) this.#settled.push(settled);
       else waiter(settled);
     } else if (message.method === "approval/request" || message.method === "clarification/request") {
       this.asked.set(message.params.request.id, message);
+      this.#unwritten.delete(message.params.request.id);
       this.#changed();
+    } else if (message.method === "tool/call") {
+      // The terminal has no client side for a tool to run on, so the call fails at once instead of waiting forever.
+      this.#client.fail(message, {
+        code: ErrorCodes.MethodNotFound,
+        message: `the buildanagent CLI runs no client tools, so register ${message.params.tool} to run in process`,
+      });
+    }
+  }
+
+  /** Notes what an entry says about the requests: the input an approval would run with, or an answer written. */
+  #entry(entry: SessionEntry): void {
+    if (entry.type === "approval_requested") this.inputs.set(entry.request.id, entry.input);
+    else if (entry.type === "approval_resolved" && this.#unwritten.delete(entry.resolution.requestId)) {
+      this.#written.add(entry.resolution.requestId);
     }
   }
 
@@ -81,6 +112,22 @@ export class SessionWatch {
 
   #changed(): void {
     for (const notify of this.#changes.splice(0)) notify();
+  }
+
+  /** Resolves `true` at the next change to `asked`, or `false` once `ms` pass without one. */
+  #changeWithin(ms: number): Promise<boolean> {
+    return new Promise((resolve) => {
+      const notify = () => {
+        clearTimeout(timer);
+        resolve(true);
+      };
+      const timer = setTimeout(() => {
+        const at = this.#changes.indexOf(notify);
+        if (at >= 0) this.#changes.splice(at, 1);
+        resolve(false);
+      }, ms);
+      this.#changes.push(notify);
+    });
   }
 
   /** Marks the events that follow as replayed until `replayed` is called with false. */
@@ -95,24 +142,57 @@ export class SessionWatch {
     return new Promise((resolve) => this.#waiters.push(resolve));
   }
 
-  /** Resolves once every request in `ids` has been asked on this client, answered or withdrawn. */
-  async whenAsked(ids: readonly string[]): Promise<void> {
-    while (ids.some((id) => !this.asked.has(id) && !this.#answered.has(id))) {
-      await new Promise<void>((resolve) => this.#changes.push(resolve));
+  /**
+   * Resolves once every request in `ids` has been asked on this client, answered, withdrawn or settled elsewhere. The
+   * server asks about a stored session's requests when it opens, but it skips them when it can't read the log in
+   * time, so after `waitMs` without a change the log decides. Throws a `CliError`, code `session_unavailable`, when a
+   * request still waits there that the server never asked about.
+   */
+  async whenAsked(ids: readonly string[], waitMs = ASK_WAIT_MS): Promise<void> {
+    const unasked = (id: string) => !this.asked.has(id) && !this.#answered.has(id);
+    let left = ids.filter(unasked);
+    while (left.length > 0) {
+      const changed = await this.#changeWithin(waitMs);
+      left = left.filter(unasked);
+      if (changed || left.length === 0) continue;
+      const waiting = await this.#waitingIds();
+      left = left.filter((id) => waiting.has(id) && unasked(id));
+      if (left.length > 0) {
+        throw new CliError(
+          "session_unavailable",
+          `session ${this.session} still waits on ${left.join(", ")}, which the server never asked about: ` +
+            "run resume again",
+        );
+      }
     }
   }
 
   /** Answers one request for a person. */
   answer(request: PersonRequest, resolution: Resolution): void {
-    this.asked.delete(request.params.request.id);
-    this.#answered.add(request.params.request.id);
+    const id = request.params.request.id;
+    this.asked.delete(id);
+    this.#answered.add(id);
+    this.#unwritten.add(id);
     this.#client.respond(request, { resolutions: [resolution] });
   }
 
-  /** Whether an answer this client gave still waits for its call to run, so another turn will settle. */
-  async answerPending(): Promise<boolean> {
+  /**
+   * Whether another turn will settle for an answer this client gave: a settled turn is ready to take, a resume has
+   * written one of the answers and still runs, or the log still shows an answered request waiting, so a resume will
+   * take it. An answered request the log no longer shows, and that no resume of ours wrote, was settled by another
+   * process, and no turn settles for it here.
+   */
+  async settlePending(): Promise<boolean> {
+    if (this.#settled.length > 0 || this.#written.size > 0) return true;
+    if (this.#unwritten.size === 0) return false;
+    const waiting = await this.#waitingIds();
+    for (const id of this.#unwritten) if (!waiting.has(id)) this.#unwritten.delete(id);
+    return this.#settled.length > 0 || this.#written.size > 0 || this.#unwritten.size > 0;
+  }
+
+  async #waitingIds(): Promise<Set<string>> {
     const { pending } = await this.#client.request("approval/list", { session: this.session });
-    return pending.some((request) => this.#answered.has(request.id));
+    return new Set(pending.map((request) => request.id));
   }
 
   /** Stops listening. */

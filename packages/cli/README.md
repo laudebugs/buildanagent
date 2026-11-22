@@ -57,7 +57,7 @@ Each session starts by reporting its preamble size. After every turn, the status
 [done] context 12% (22014 of 183616 tokens) · cost $0.0312
 ```
 
-A call with no known price is counted apart, as `(+1 unpriced)`. The CLI warns once when the context passes 80% of its budget, and once when the cost passes 80% of `--budget <usd>`. The budget also stops a turn before a model call that could pass it.
+A call with no known price is counted apart, as `(+1 unpriced)`. The CLI warns once when the context passes 80% of its budget. `--budget <usd>` caps each turn, not the session: a turn, and each resume after you answer a request, may spend up to that amount. The CLI warns once a turn when its spend passes 80% of the budget, and the harness stops the turn before a model call that could pass it.
 
 ## List, show, search and replay stored sessions
 
@@ -86,7 +86,7 @@ The CLI connects to the provider `--model` names and to the collector `--otlp-en
 
 ## Run the CLI from your own program
 
-`runCli()` runs one command line and resolves with its exit status. A `CliIo` gives it the terminal: standard output and error, a line reader, the environment and the working folder. `CliOptions` can also pass a model you built, extra tools, and `HostRules` that add deny, ask and allow rules. This program runs one turn and reads its JSON lines:
+`runCli()` runs one command line and resolves with its exit status. A `CliIo` gives it the terminal: standard output and error, a line reader, the environment and the working folder. `CliOptions` can also pass a model you built, extra tools, and `HostRules` that add deny, ask and allow rules. The tools run in process: the CLI has no client side for a `client_request` tool, so a call to one fails with an error the model reads. This program runs one turn and reads its JSON lines:
 
 ```ts
 // Runs one turn with `buildanagent run --json` from a program and reads its events, one JSON object per line.

@@ -40,7 +40,9 @@ Options:
                               (key from ANTHROPIC_API_KEY) or openai:<id>
                               (key from OPENAI_API_KEY).
   --json                      Print one JSON object per line on standard output.
-  --budget <usd>              Stop a turn before it spends more; warn at 80%.
+  --budget <usd>              Stop each turn, and each resume after an answer,
+                              before it spends more; warn at 80%. It caps each
+                              turn, not the session.
   --state-dir <folder>        Where sessions, locks and keys live. Default
                               $XDG_STATE_HOME/buildanagent or
                               ~/.local/state/buildanagent.

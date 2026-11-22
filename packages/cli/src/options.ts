@@ -14,7 +14,7 @@ export interface CliOptions {
   readonly io: CliIo;
   /** The model turns use. It replaces `--model`, so a program can pass a model it built itself. */
   readonly model?: Model;
-  /** Tools to register besides the harness's own. */
+  /** Tools to register besides the harness's own. They run in process: a `client_request` tool's call fails. */
   readonly tools?: readonly ToolRegistration[];
   /** Permission rules added to the harness's default ask rules. */
   readonly rules?: HostRules;

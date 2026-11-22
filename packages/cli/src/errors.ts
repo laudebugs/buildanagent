@@ -21,7 +21,8 @@ const CLI_ERROR = Symbol.for("buildanagent.cli.CliError");
  * `no_model`: a command that calls a model was given no `--model`. `missing_api_key`: the provider's key variable is
  * unset. `no_state_dir`: neither `--state-dir`, `XDG_STATE_HOME` nor `HOME` names a folder for sessions.
  * `unknown_session`: no stored session has the id given. `session_unavailable`: the session refused a turn, such as one
- * that another process is writing. `otlp_failed`: the `--otlp-endpoint` collector refused the spans.
+ * that another process is writing. `otlp_failed`: the `--otlp-endpoint` collector could not be reached or refused
+ * the spans.
  */
 export class CliError extends Error {
   override readonly name = "CliError";

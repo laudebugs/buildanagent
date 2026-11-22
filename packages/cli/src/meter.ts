@@ -1,7 +1,8 @@
 /**
  * The meter: what a session has cost so far and how full its context is, read from the events a turn streams. It
- * warns once when either passes 80% of its limit, so you see the warning before the budget stops a turn or the
- * context has to be summarised.
+ * warns once a session when the context passes 80% of its budget, and once a run when the run's spend passes 80% of
+ * `--budget`, so you see the warning before the budget stops the run or the context has to be summarised. The budget
+ * is per run, as the harness applies it: a turn is one run, and each resume after an answer is another.
  */
 import type { HarnessEvent } from "@buildanagent/protocol";
 import type { AgentEvent } from "@buildanagent/sdk";
@@ -28,41 +29,61 @@ export interface MeterReading {
 export class Meter {
   readonly #budgetUsd: number | undefined;
   #costUsd = 0;
+  #runCostUsd = 0;
   #unpriced = 0;
   #fill: { tokens: number; budget: number } | undefined;
   #contextWarned = false;
   #budgetWarned = false;
 
-  /** `budgetUsd` is the session's spend cap, when it has one. */
+  /** `budgetUsd` is the spend cap of each run, when it has one. */
   constructor(budgetUsd?: number) {
     this.#budgetUsd = budgetUsd;
   }
 
-  /** Takes one event and returns the warnings it causes: each kind at most once a session. */
-  observe(event: AgentEvent | HarnessEvent): MeterNote[] {
-    if (event.type === "context_fill") {
-      this.#fill = { tokens: event.tokens, budget: event.budget };
-      if (this.#contextWarned || event.budget <= 0 || event.tokens < event.budget * WARN_AT) return [];
-      this.#contextWarned = true;
-      return [{ kind: "context_warning", tokens: event.tokens, budget: event.budget }];
+  /**
+   * Takes one event and returns the warnings it causes: the context warning at most once a session, and the budget
+   * warning at most once a run. A `replayed` event, read back from the log, counts toward the session's totals but
+   * never warns, so it leaves both warnings for the live runs that follow.
+   */
+  observe(event: AgentEvent | HarnessEvent, replayed = false): MeterNote[] {
+    if (event.type === "run_start") {
+      // A nested run streams into its parent's run, which keeps one budget.
+      if (event.parentRunId === undefined) this.#startRun();
+      return [];
     }
+    if (event.type === "context_fill") return this.#contextFill(event.tokens, event.budget, replayed);
     if (event.type === "budget_warning") {
-      if (this.#budgetWarned) return [];
+      if (replayed || this.#budgetWarned) return [];
       this.#budgetWarned = true;
       return [{ kind: "budget_warning", spentUsd: event.spentUsd, capUsd: event.capUsd }];
     }
     if (event.type !== "entry_appended" || event.entry.type !== "usage") return [];
     const total = event.entry.cost.total;
     if (total === null) this.#unpriced += 1;
-    else this.#costUsd += total;
-    return this.#checkBudget();
+    else {
+      this.#costUsd += total;
+      this.#runCostUsd += total;
+    }
+    return replayed ? [] : this.#checkBudget();
+  }
+
+  #contextFill(tokens: number, budget: number, replayed: boolean): MeterNote[] {
+    this.#fill = { tokens, budget };
+    if (replayed || this.#contextWarned || budget <= 0 || tokens < budget * WARN_AT) return [];
+    this.#contextWarned = true;
+    return [{ kind: "context_warning", tokens, budget }];
+  }
+
+  #startRun(): void {
+    this.#runCostUsd = 0;
+    this.#budgetWarned = false;
   }
 
   #checkBudget(): MeterNote[] {
     const cap = this.#budgetUsd;
-    if (cap === undefined || this.#budgetWarned || this.#costUsd < cap * WARN_AT) return [];
+    if (cap === undefined || this.#budgetWarned || this.#runCostUsd < cap * WARN_AT) return [];
     this.#budgetWarned = true;
-    return [{ kind: "budget_warning", spentUsd: this.#costUsd, capUsd: cap }];
+    return [{ kind: "budget_warning", spentUsd: this.#runCostUsd, capUsd: cap }];
   }
 
   /** The totals so far. */
@@ -82,7 +103,7 @@ const usd = (value: number): string => `$${value.toFixed(4)}`;
 export function warningText(note: MeterNote): string {
   return note.kind === "context_warning"
     ? `warning: the context is ${percent(note.tokens, note.budget)} full (${note.tokens} of ${note.budget} tokens)`
-    : `warning: this session has spent ${usd(note.spentUsd)}, ${percent(note.spentUsd, note.capUsd)} of its ${usd(note.capUsd)} budget`;
+    : `warning: this turn has spent ${usd(note.spentUsd)}, ${percent(note.spentUsd, note.capUsd)} of its ${usd(note.capUsd)} budget`;
 }
 
 /** One status line: the cost so far, and the context fill when the harness reported one. */

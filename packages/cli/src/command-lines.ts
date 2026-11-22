@@ -12,28 +12,50 @@ export interface ChainedCommand {
   readonly command: string;
 }
 
-/** The words of `text` outside quotes joined by single spaces; quoted text is kept as written. */
+/**
+ * The words of `text` outside quotes joined by single spaces; quoted text is kept as written. A backslash outside
+ * single quotes is kept with the character after it, so `foo\ bar` keeps its escaped space and `"a\"b"` stays one
+ * quoted word: commands the shell would run differently never read, or group, as one.
+ */
 function normalised(text: string): string {
   let out = "";
   let quote: string | undefined;
   let space = false;
-  for (const char of text.trim()) {
-    if (quote === undefined && /\s/.test(char)) {
+  // No trim: leading and trailing spaces are dropped by the loop, and an escaped trailing space is kept.
+  for (let at = 0; at < text.length; ) {
+    const token = tokenAt(text, at, quote);
+    at += token.length;
+    if (quote === undefined && /^\s$/.test(token)) {
       space = true;
       continue;
     }
     if (space && out !== "") out += " ";
     space = false;
-    out += char;
-    if (quote === undefined && (char === '"' || char === "'")) quote = char;
-    else if (char === quote) quote = undefined;
+    out += token;
+    if (quote === undefined && (token === '"' || token === "'")) quote = token;
+    else if (token === quote) quote = undefined;
   }
   return out;
 }
 
-/** The operator that starts at `at` outside quotes, or `undefined`. */
-const operatorAt = (text: string, at: number): string | undefined =>
-  OPERATORS.find((operator) => text.startsWith(operator, at));
+/**
+ * The text at `at` that stays together: a backslash outside single quotes with the character it escapes,
+ * or one character.
+ */
+const tokenAt = (text: string, at: number, quote: string | undefined): string =>
+  text[at] === "\\" && quote !== "'" ? text.slice(at, at + 2) : (text[at] as string);
+
+/**
+ * The operator that starts at `at` outside quotes, or `undefined`. `afterRedirect` says the character before is an
+ * unescaped `<` or `>`, so the `&` of `2>&1` or `<&3` and the `|` of `>|` belong to a redirection, as does the `&` of
+ * `&>` and `&>>`; none of them ends a command.
+ */
+function operatorAt(text: string, at: number, afterRedirect: boolean): string | undefined {
+  const found = OPERATORS.find((operator) => text.startsWith(operator, at));
+  if (found === "&" && (afterRedirect || text[at + 1] === ">")) return undefined;
+  if (found === "|" && afterRedirect) return undefined;
+  return found;
+}
 
 /** Where the scan of a command stands: inside which quote, and how deep in parentheses. */
 interface Scan {
@@ -65,13 +87,17 @@ export function chainedCommands(command: string): ChainedCommand[] {
     if (text !== "") parts.push({ operator, command: text });
     operator = next;
   };
+  // The index of the last character a backslash escaped, which is a plain character and never a redirection.
+  let escaped = -1;
   for (let at = 0; at < command.length; at++) {
     const char = command[at] as string;
     if (char === "\\" && scan.quote !== "'") {
       at += 1;
+      escaped = at;
       continue;
     }
-    const found = step(scan, char) ? operatorAt(command, at) : undefined;
+    const afterRedirect = at > 0 && escaped !== at - 1 && (command[at - 1] === ">" || command[at - 1] === "<");
+    const found = step(scan, char) ? operatorAt(command, at, afterRedirect) : undefined;
     if (found === undefined) continue;
     close(at, found === "\n" ? ";" : found);
     at += found.length - 1;

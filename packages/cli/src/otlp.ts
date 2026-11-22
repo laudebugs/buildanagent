@@ -36,7 +36,10 @@ export interface OtlpTracerOptions {
 export interface OtlpTracer extends TracerLike {
   /** The context a child span starts in, for the observer's `childContext`. */
   childContext(parent: SpanLike): unknown;
-  /** Sends every ended span in one request and forgets them. Rejects when the collector answers with an error. */
+  /**
+   * Sends every ended span in one request and forgets them. Rejects with a `CliError` when the collector can't be
+   * reached or answers with an error.
+   */
   flush(): Promise<void>;
 }
 
@@ -125,11 +128,21 @@ export function otlpTracer(options: OtlpTracerOptions): OtlpTracer {
         ],
       };
       const send = options.fetch ?? globalThis.fetch;
-      const response = await send(tracesUrl(options.endpoint), {
-        method: "POST",
-        headers: { "content-type": "application/json" },
-        body: JSON.stringify(body),
-      });
+      const url = tracesUrl(options.endpoint);
+      let response: Response;
+      try {
+        response = await send(url, {
+          method: "POST",
+          headers: { "content-type": "application/json" },
+          body: JSON.stringify(body),
+        });
+      } catch (error) {
+        // A refused connection or an unknown host is the caller's to fix, like an error status, so it exits 2 too.
+        const why = error instanceof Error ? error.message : String(error);
+        throw new CliError("otlp_failed", `could not send the spans to the OTLP endpoint ${url}: ${why}`, {
+          cause: error,
+        });
+      }
       if (!response.ok) throw new CliError("otlp_failed", `the OTLP endpoint answered ${response.status}`);
     },
   };
