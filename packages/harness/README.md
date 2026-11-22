@@ -351,7 +351,7 @@ Four limits and interactions follow from this design:
 
 ## A turn that ends `done` runs the project's checks, and the diff flags are recorded, never fatal
 
-A model's "done" is a claim, so a turn can check it in code. Pass `completion: { sandbox, env }` to `runTurn()`, where `sandbox` is the session's sandbox and `env` is the checks' whole environment, built with `spawnEnv()`. The turn then takes a snapshot of the workspace before the model runs. When the run ends `done`, the harness runs the project's checks in the sandbox, takes a second snapshot, and writes one `completion_check` entry after `turn_end`. It also calls `onCompletionCheck` with that entry, and the dispatcher sends it to clients as a `completion_check` event. The turn's stop reason is unchanged: a failed check or a flag is recorded for the CLI and the eval reports to show, and a turn that ends any other way runs no check. `lastEntryId` on the result is the new entry.
+A model's "done" is a claim, so a turn can check it in code. Pass `completion: { sandbox, env }` to `runTurn()`, where `sandbox` is the session's sandbox and `env` is the checks' whole environment, built with `spawnEnv()`. The turn then takes a snapshot of the workspace before the model runs. When the run ends `done`, the harness runs the project's checks in the sandbox, takes a second snapshot, and writes one `completion_check` entry after `turn_end`. It also calls `onCompletionCheck` with that entry, and the dispatcher, once it has `completion`, sends it to clients as a `completion_check` event. The turn's stop reason is unchanged: a failed check or a flag is recorded for the CLI and the eval reports to show, and a turn that ends any other way runs no check. `lastEntryId` on the result is the new entry. A turn resumed with `resumeTurn()` runs no completion check, and a `done` turn from the dispatcher runs one only when `createDispatcher()` is given `completion`, a function that takes a session's id and returns that session's `{ sandbox, env }` (or `undefined` for none).
 
 **Configure the checks in `.agents/harness.json`.** `completionChecks` is a list, and each item is a command string, split on spaces, or a list of an executable and its arguments. Neither goes through a shell, so write `["sh", "-c", "make lint && make test"]` for one that needs it. A configured list replaces discovery, and an empty list runs nothing:
 
@@ -359,19 +359,19 @@ A model's "done" is a claim, so a turn can check it in code. Pass `completion: {
 { "completionChecks": ["pnpm run typecheck", "pnpm run test", ["make", "e2e"]] }
 ```
 
-Without the key, the harness runs the `package.json` scripts `typecheck`, `test` and `check`, in that order, when they exist, with `pnpm` or `yarn` when the project has that lockfile and `npm` otherwise. When no script matches, it runs `make test` if the `Makefile` has a `test` target. `resolveChecks()` shows what a sandbox would run. A file that is not JSON, or a `completionChecks` that is not a list of commands, throws `HarnessError` with code `invalid_completion_config`.
+Without the key, the harness runs the `package.json` scripts `typecheck`, `test` and `check`, in that order, when they exist, with `pnpm` or `yarn` when the project has that lockfile and `npm` otherwise. When no script matches, it runs `make test` if the `Makefile` has a `test` target, alone or in a list such as `all test:`; a variable named `test` does not count. `resolveChecks()` shows what a sandbox would run. A file that is not JSON, or a `completionChecks` that is not a list of commands, throws `HarnessError` with code `invalid_completion_config`.
 
-**What the entry holds.** Every check runs, even after one fails, with `timeoutMs` (default 10 minutes) each. `checks` lists each command with its exit code: 124 for a timeout, and 126 when the sandbox's policy refused it. `passed` is true when every exit code is 0, so it is also true for a project with no checks, where `checks` is empty. `flagged` holds one sentence for each diff pattern:
+**What the entry holds.** Every check runs, even after one fails, with `timeoutMs` (default 10 minutes) each. `checks` lists each command with its exit code: 124 for a timeout, 126 when the sandbox's policy refused it, and 130 when the turn's signal aborted it (the check running then and each one after it, each with a flag). An abort never makes `runTurn()` throw for a `done` turn. `passed` is true when every exit code is 0, so it is also true for a project with no checks, where `checks` is empty. `flagged` holds one sentence for each diff pattern:
 
 - an added skip marker: `.skip(`, `xit(` or `@pytest.mark.skip`
-- an added placeholder: `TODO`, `FIXME` or "not implemented", in any case for the last
+- an added placeholder: `TODO` or `FIXME` in capitals (`todo` is not flagged), or "not implemented" in any case
 - a new file whose name has `mock`, `stub` or `fake` in it
 - a deleted test file
 - a test file with fewer assertion lines (`expect(`, `assert(`, `assert.x(`, `assertEqual(` and Python `assert` statements) than before
 
 A test file is one in a `test`, `tests` or `__tests__` folder, or named `*.test.*`, `*.spec.*`, `*_test.*` or `test_*.py`. A line counts as added when the file has more copies of it than before, so moving a line flags nothing. These patterns have honest causes, which is why they never stop a run: expect false positives, and read a flag as a prompt to look.
 
-**The diff needs a way to snapshot the workspace.** The default, `gitSnapshotter`, lists `git ls-files --cached --others --exclude-standard` in the sandbox and reads each file up to 256 KiB as UTF-8 text, at most 5,000 files. In a workspace that is no repository it returns nothing, and the entry then has checks and no flags. Pass `snapshotter` in `completion` to diff another way.
+**The diff needs a way to snapshot the workspace.** The default, `gitSnapshotter`, lists `git ls-files --cached --others --exclude-standard` in the sandbox and reads each file up to 256 KiB as UTF-8 text, at most 5,000 files. The second snapshot reads the first one's paths again and adds the new ones, and a file left out for its size, its encoding or the cap is ignored by the diff, so none is reported as deleted. In a workspace that is no repository it returns nothing, and the entry then has checks and no flags. Pass `snapshotter` in `completion` to diff another way.
 
 ## A call that needs a person is a signed pause that any process with the key file can resume
 

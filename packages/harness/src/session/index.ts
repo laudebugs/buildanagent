@@ -40,6 +40,7 @@ export {
   SESSION_ENTRY_TYPES,
 } from "@buildanagent/protocol";
 export {
+  ABORTED_EXIT_CODE,
   type CompletionOutcome,
   type CompletionSettings,
   DEFAULT_CHECK_TIMEOUT_MS,

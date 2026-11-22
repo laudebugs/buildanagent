@@ -5,9 +5,11 @@ import { isHarnessError } from "@buildanagent/harness";
 import type { ExecOptions, ExecResult, Sandbox, SandboxPolicy } from "@buildanagent/harness/sandbox";
 import { createHarness } from "@buildanagent/harness/server";
 import {
+  ABORTED_EXIT_CODE,
   type CompletionSettings,
   flagChanges,
   gitSnapshotter,
+  MAX_SNAPSHOT_FILE_BYTES,
   openSession,
   resolveChecks,
   runCompletionCheck,
@@ -45,7 +47,10 @@ async function sandboxWith(files: Record<string, string>, replies: Record<string
 }
 
 const exit = (exitCode: number): ExecResult => ({ exitCode, stdout: "", stderr: "" });
-const snap = (files: Record<string, string>): WorkspaceSnapshot => new Map(Object.entries(files));
+const snap = (files: Record<string, string>, skipped: string[] = []): WorkspaceSnapshot => ({
+  files: new Map(Object.entries(files)),
+  skipped: new Set(skipped),
+});
 const settingsOf = (sandbox: Sandbox, extra: Partial<CompletionSettings> = {}): CompletionSettings => ({
   sandbox,
   env: ENV,
@@ -91,6 +96,10 @@ describe("discovery", () => {
       "package.json": JSON.stringify({ scripts: { check: "x" } }),
     });
     assert.deepEqual((await resolveChecks(both.sandbox)).commands, [["npm", "run", "check"]]);
+    const listed = await sandboxWith({ Makefile: "all test: build\n\ttrue\n" });
+    assert.deepEqual((await resolveChecks(listed.sandbox)).commands, [["make", "test"]]);
+    const variable = await sandboxWith({ Makefile: "test := foo\ntest ::= bar\nbuild:\n\ttrue\n" });
+    assert.deepEqual((await resolveChecks(variable.sandbox)).commands, []);
     const none = await sandboxWith({ Makefile: "build:\n\ttrue\n", "package.json": "not json" });
     assert.deepEqual((await resolveChecks(none.sandbox)).commands, []);
   });
@@ -168,6 +177,58 @@ describe("configured checks", () => {
   });
 });
 
+describe("an aborted check", () => {
+  test("the check that was running and each after it are recorded as aborted, with no diff", async () => {
+    const { sandbox } = await sandboxWith({
+      ".agents/harness.json": JSON.stringify({ completionChecks: ["true", "false"] }),
+    });
+    const controller = new AbortController();
+    controller.abort();
+    const outcome = await runCompletionCheck(
+      settingsOf(sandbox, { snapshotter: scriptedDiff(snap({ "a.test.ts": "expect(1)" }), snap({})) }),
+      snap({ "a.test.ts": "expect(1)" }),
+      controller.signal,
+    );
+    assert.deepEqual(outcome.checks, [
+      { command: "true", exitCode: ABORTED_EXIT_CODE },
+      { command: "false", exitCode: ABORTED_EXIT_CODE },
+    ]);
+    assert.equal(outcome.passed, false);
+    assert.deepEqual(outcome.flagged, [
+      "check aborted before it finished: true",
+      "check aborted before it finished: false",
+    ]);
+  });
+
+  test("a turn aborted during its check still ends done and writes the entry", async () => {
+    const { sandbox } = await sandboxWith({
+      ".agents/harness.json": JSON.stringify({ completionChecks: ["pnpm test"] }),
+    });
+    const controller = new AbortController();
+    const aborting: Sandbox = {
+      ...sandbox,
+      readFile: (path) => sandbox.readFile(path),
+      writeFile: (path, data) => sandbox.writeFile(path, data),
+      dispose: () => sandbox.dispose(),
+      exec(command, options) {
+        if (command[0] !== "pnpm") return sandbox.exec(command, options);
+        controller.abort();
+        return Promise.reject(new Error("aborted"));
+      },
+    };
+    const snapshotter: NonNullable<CompletionSettings["snapshotter"]> = async (_sandbox, options) => {
+      if (options.signal.aborted) throw new Error("aborted");
+      return snap({});
+    };
+    const { result, entries } = await turn(settingsOf(aborting, { snapshotter }), done, undefined, controller.signal);
+    assert.equal(result.stopReason, "done");
+    const check = entries.find((entry) => entry.type === "completion_check");
+    assert.ok(check?.type === "completion_check");
+    assert.deepEqual(check.checks, [{ command: "pnpm test", exitCode: ABORTED_EXIT_CODE }]);
+    assert.deepEqual(check.flagged, ["check aborted before it finished: pnpm test"]);
+  });
+});
+
 describe("diff flags", () => {
   test("an added skip marker is flagged, in each of the three forms the plan names", () => {
     const before = snap({ "a.test.ts": "it('a', () => { expect(1).toBe(1); });\n" });
@@ -236,6 +297,19 @@ describe("diff flags", () => {
     ]);
   });
 
+  test("TODO and FIXME match in capitals only, and not implemented in any case", () => {
+    const flags = flagChanges(
+      snap({}),
+      snap({ "a.ts": "const todo = 1;\n// fixme later\nThe todo list.\n// TODO\n// NOT IMPLEMENTED\n" }),
+    );
+    assert.deepEqual(flags, ["placeholder added: a.ts: // TODO", "placeholder added: a.ts: // NOT IMPLEMENTED"]);
+  });
+
+  test("a path skipped for size, encoding or the cap is never reported as deleted", () => {
+    const flags = flagChanges(snap({ "a.test.ts": "expect(1)", "b.test.ts": "expect(1)" }), snap({}, ["a.test.ts"]));
+    assert.deepEqual(flags, ["test file deleted: b.test.ts"]);
+  });
+
   test("a moved line is not an added one, and a long list of flags is cut", () => {
     assert.deepEqual(flagChanges(snap({ "a.ts": "a\nit.skip('x')\nb" }), snap({ "a.ts": "it.skip('x')\na\nb" })), []);
     const many = Object.fromEntries(
@@ -261,7 +335,33 @@ describe("the git snapshot", () => {
     );
     await sandbox.writeFile("bin.dat", new Uint8Array([1, 0, 2]));
     const taken = await gitSnapshotter(sandbox, { env: ENV, signal });
-    assert.deepEqual([...(taken ?? [])], [["a.ts", "one"]]);
+    assert.deepEqual([...(taken?.files ?? [])], [["a.ts", "one"]]);
+    assert.deepEqual([...(taken?.skipped ?? [])], ["bin.dat"]);
+  });
+
+  test("the end snapshot keeps the start's paths past the cap, and a file that grew too big is skipped, not deleted", async () => {
+    const list = "git ls-files -z --cached --others --exclude-standard";
+    const files = {
+      "a.test.ts": "expect(1)",
+      "b.test.ts": "expect(1)",
+      "z.test.ts": "expect(1)",
+    };
+    const { sandbox } = await sandboxWith(files, {
+      [list]: { exitCode: 0, stdout: "z.test.ts\0new.ts\0", stderr: "" },
+    });
+    await sandbox.writeFile("b.test.ts", new Uint8Array(MAX_SNAPSHOT_FILE_BYTES + 1).fill(97));
+    await sandbox.writeFile("new.ts", new TextEncoder().encode("x"));
+    const start = snap({ "a.test.ts": "expect(1)", "b.test.ts": "expect(1)", "z.test.ts": "expect(1)" });
+    // The listing no longer names a.test.ts (an untracked file dropped from it), but the start held it.
+    const end = await gitSnapshotter(sandbox, {
+      env: ENV,
+      signal,
+      known: new Set(start.files.keys()),
+      skipped: start.skipped,
+    });
+    assert.deepEqual([...(end?.files.keys() ?? [])].sort(), ["a.test.ts", "new.ts", "z.test.ts"]);
+    assert.deepEqual([...(end?.skipped ?? [])], ["b.test.ts"]);
+    assert.deepEqual(flagChanges(start, end as WorkspaceSnapshot), []);
   });
 
   test("it returns nothing where the workspace is no repository", async () => {
@@ -278,12 +378,15 @@ function scriptedDiff(...snapshots: WorkspaceSnapshot[]): NonNullable<Completion
   return async () => snapshots[Math.min(next++, snapshots.length - 1)];
 }
 
+const done = [{ content: [{ type: "text" as const, text: "Fixed." }] }];
+
 const model = (adapter: ScriptedModel) => createModel({ adapter, id: "scripted-model", retries: 0 }) as Model;
 
 async function turn(
   settings: CompletionSettings,
   steps: ConstructorParameters<typeof ScriptedModel>[0],
   maxSteps?: number,
+  turnSignal?: AbortSignal,
 ) {
   const registry = createToolRegistry();
   registry.register({
@@ -307,6 +410,7 @@ async function turn(
     completion: settings,
     onCompletionCheck: (entry) => events.push(entry),
     ...(maxSteps === undefined ? {} : { maxSteps }),
+    ...(turnSignal === undefined ? {} : { signal: turnSignal }),
   });
   const entries: SessionEntry[] = [];
   for await (const entry of backend.store.load(KEY)) entries.push(entry);
@@ -314,8 +418,6 @@ async function turn(
 }
 
 describe("a turn that checks its completion", () => {
-  const done = [{ content: [{ type: "text" as const, text: "Fixed." }] }];
-
   test("an added it.skip( is flagged and a failing check recorded, and the run still ends done", async () => {
     const { sandbox } = await sandboxWith({ ".agents/harness.json": JSON.stringify({ completionChecks: ["false"] }) });
     const snapshotter = scriptedDiff(

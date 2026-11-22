@@ -18,6 +18,9 @@ export interface ResolvedChecks {
   readonly commands: readonly (readonly string[])[];
 }
 
+// `test:` or `all test:`, but not a variable assignment such as `test := x` or `test ::= x`.
+const MAKE_TEST_TARGET = /^(?:[\w.-]+[ \t]+)*test[ \t]*:(?!=|:=)/m;
+
 const DECODER = new TextDecoder();
 
 /** Reads a file as text, or returns `undefined` when it does not exist. Any other failure is thrown. */
@@ -100,7 +103,7 @@ export async function resolveChecks(sandbox: Sandbox): Promise<ResolvedChecks> {
     return { source: "discovered", commands: scripts.map((name) => [runner, "run", name]) };
   }
   const makefile = await readText(sandbox, "Makefile");
-  if (makefile !== undefined && /^test\s*:/m.test(makefile)) {
+  if (makefile !== undefined && MAKE_TEST_TARGET.test(makefile)) {
     return { source: "discovered", commands: [["make", "test"]] };
   }
   return { source: "discovered", commands: [] };

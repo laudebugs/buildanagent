@@ -20,6 +20,7 @@ import {
   type TurnResultSummary,
 } from "@buildanagent/protocol";
 import { type AgentEvent, CAPABILITIES, type Observer, type Run, SDK_VERSION } from "@buildanagent/sdk";
+import type { CompletionSettings } from "../completion/check.js";
 import { isHarnessError } from "../errors.js";
 import type { Harness } from "../harness.js";
 import { createApprovals } from "../session/approvals.js";
@@ -50,6 +51,12 @@ export interface DispatcherOptions<H = unknown> {
   readonly serverName?: string;
   /** Settings every turn takes besides its input. */
   readonly turn?: Pick<TurnOptions<H>, "maxSteps" | "turnRetries" | "budgetUsd" | "modelOptions">;
+  /**
+   * The completion check for a session's turns, given the session's id. It returns the session's sandbox and
+   * environment, because one sandbox never serves every session, or `undefined` for a session with no check. Each
+   * `turn/start` calls it once. Default: no turn checks its completion.
+   */
+  readonly completion?: (session: string) => CompletionSettings | undefined;
   /** Makes session and turn ids. Default `crypto.randomUUID()`. */
   readonly newId?: () => string;
 }
@@ -112,6 +119,9 @@ const failure = (code: number, message: string): Failure => new Failure(code, me
 function errorResponse(id: number | string, error: RpcError): ResponseMessage<never> {
   return { jsonrpc: "2.0", id, error };
 }
+
+const completionOf = (completion: CompletionSettings | undefined): { completion?: CompletionSettings } =>
+  completion === undefined ? {} : { completion };
 
 /** What `turn/settled` says about a finished turn, or about a turn that failed before it could finish. */
 function summaryOf(result: TurnResult | undefined, error?: unknown): TurnResultSummary {
@@ -409,6 +419,7 @@ class HarnessDispatcher<H> implements Dispatcher {
       await this.#seed(handle, session);
       const result = await runTurn(handle, this.#options.harness, {
         ...this.#options.turn,
+        ...completionOf(this.#options.completion?.(session)),
         input,
         observers: [observer],
         signal: running.controller.signal,

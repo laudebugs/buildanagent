@@ -3,6 +3,7 @@
  * flag diff patterns that game them, and record both as a `completion_check` entry. It never changes the stop reason.
  */
 export {
+  ABORTED_EXIT_CODE,
   type CompletionOutcome,
   type CompletionSettings,
   DEFAULT_CHECK_TIMEOUT_MS,

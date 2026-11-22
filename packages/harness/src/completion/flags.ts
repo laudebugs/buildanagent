@@ -3,14 +3,20 @@
  * sentence for a person to read, never a verdict, because every pattern has honest causes.
  */
 
-/** The text of each file the workspace held at one moment, by path relative to the workspace root. */
-export type WorkspaceSnapshot = ReadonlyMap<string, string>;
+/** What the workspace held at one moment. */
+export interface WorkspaceSnapshot {
+  /** The text of each file, by path relative to the workspace root. */
+  readonly files: ReadonlyMap<string, string>;
+  /** Paths left out for their size, their encoding or the file cap. The diff ignores them, so none counts as deleted. */
+  readonly skipped: ReadonlySet<string>;
+}
 
 /** The most flags one check records. The last entry says how many more there were. */
 export const MAX_FLAGS = 100;
 
 const SKIP_MARKER = /\.skip\(|\bxit\(|@pytest\.mark\.skip/;
-const PLACEHOLDER = /\b(?:TODO|FIXME)\b|not implemented/i;
+const PLACEHOLDER_MARKER = /\b(?:TODO|FIXME)\b/;
+const NOT_IMPLEMENTED = /not implemented/i;
 const FAKE_NAME = /mock|stub|fake/i;
 const TEST_DIRECTORY = /(?:^|\/)(?:tests?|__tests__)\//;
 const TEST_NAME = /(?:\.(?:test|spec)\.[a-z]+|_test\.[a-z]+)$|^test_.*\.py$/;
@@ -50,7 +56,8 @@ function lineFlags(path: string, before: string | undefined, after: string): str
   const flags: string[] = [];
   for (const line of addedLines(before ?? "", after)) {
     if (SKIP_MARKER.test(line)) flags.push(`skip marker added: ${path}: ${clip(line)}`);
-    if (PLACEHOLDER.test(line)) flags.push(`placeholder added: ${path}: ${clip(line)}`);
+    if (PLACEHOLDER_MARKER.test(line) || NOT_IMPLEMENTED.test(line))
+      flags.push(`placeholder added: ${path}: ${clip(line)}`);
   }
   return flags;
 }
@@ -73,13 +80,14 @@ function flagsForFile(path: string, before: string | undefined, after: string | 
 
 /**
  * Compares the workspace at the start of a turn with the end, and returns one sentence for each pattern the plan names:
- * an added skip marker (`.skip(`, `xit(` or `@pytest.mark.skip`), an added placeholder (`TODO`, `FIXME` or "not
- * implemented"), a new file whose name has `mock`, `stub` or `fake` in it, a deleted test file, and a test file with
+ * an added skip marker (`.skip(`, `xit(` or `@pytest.mark.skip`), an added placeholder (`TODO` or `FIXME` in capitals, or
+ * "not implemented" in any case), a new file whose name has `mock`, `stub` or `fake` in it, a deleted test file, and a test file with
  * fewer assertion lines than before. Paths come out in sorted order, so the same change gives the same flags.
  */
 export function flagChanges(before: WorkspaceSnapshot, after: WorkspaceSnapshot): string[] {
-  const paths = [...new Set([...before.keys(), ...after.keys()])].sort();
-  const flags = paths.flatMap((path) => flagsForFile(path, before.get(path), after.get(path)));
+  const ignored = (path: string): boolean => before.skipped.has(path) || after.skipped.has(path);
+  const paths = [...new Set([...before.files.keys(), ...after.files.keys()])].sort().filter((path) => !ignored(path));
+  const flags = paths.flatMap((path) => flagsForFile(path, before.files.get(path), after.files.get(path)));
   if (flags.length <= MAX_FLAGS) return flags;
   return [...flags.slice(0, MAX_FLAGS), `${flags.length - MAX_FLAGS} more flags not listed`];
 }
