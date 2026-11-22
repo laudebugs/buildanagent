@@ -80,25 +80,25 @@
     },
     {
       "kind": "check",
-      "line": 33,
+      "line": 38,
       "message": "the handler never ran",
       "pass": true
     },
     {
       "kind": "check",
-      "line": 35,
+      "line": 40,
       "message": "the tool call completed as unsuccessful",
       "pass": true
     },
     {
       "kind": "check",
-      "line": 40,
+      "line": 45,
       "message": "the model saw the feedback string",
       "pass": true
     },
     {
       "kind": "check",
-      "line": 41,
+      "line": 46,
       "message": "the turn still finished with a reply",
       "pass": true
     },
@@ -176,25 +176,25 @@
     },
     {
       "kind": "check",
-      "line": 56,
+      "line": 63,
       "message": "with no handler the turn still finishes",
       "pass": true
     },
     {
       "kind": "check",
-      "line": 57,
+      "line": 64,
       "message": "no permission.requested event was emitted and the handler never ran",
       "pass": true
     },
     {
       "kind": "check",
-      "line": 59,
+      "line": 66,
       "message": "the model was told no one could approve the call",
       "pass": true
     },
     {
       "kind": "check",
-      "line": 61,
+      "line": 69,
       "message": "nothing is left pending",
       "pass": true
     }

@@ -55,7 +55,7 @@ test("every text pair on both pages and both panels meets WCAG AA and matches it
       pairs += 1;
     }
   }
-  assert.equal(pairs, 20);
+  assert.equal(pairs, 22);
 });
 
 // The keys the decorative list names (rule, grid, border) and the backgrounds are the only colours that carry no text.
@@ -146,5 +146,31 @@ test("a table's header rule uses a colour recorded at 3:1 or more, and its row l
     assert.equal(pair.on, `${mode}.background`);
     assert.ok(contrastRatio(qualified(pair.color), qualified(pair.on)) >= NON_TEXT_MINIMUM);
     assert.ok(tokens.color.decorativeOnly.contrast.some((found) => found.color === `${mode}.rule`));
+  }
+});
+
+// A reader's highlight (public/scripts/notes.js) is drawn over the page, so its text takes the text colour, recorded at
+// 4.5:1 on the highlight, and its underline takes the accent, recorded at 3:1 or more on the highlight in both modes.
+// The highlight's own background is decorative, below 3:1 on the page, so the underline is what marks it.
+test("a highlight draws text in the text colour and an accent underline, both recorded on the highlight", () => {
+  const components = readFileSync(new URL("../src/styles/components.css", import.meta.url), "utf8");
+  const rule = /::highlight\(manual-highlight\),\s*::highlight\(manual-note\)\s*\{([^}]*)\}/.exec(components)?.[1];
+  assert.ok(rule, "components.css styles both highlight names together");
+  assert.match(rule, /background-color:\s*var\(--color-highlight\);/);
+  assert.match(rule, /(?<![-\w])color:\s*var\(--color-text\);/);
+  assert.match(rule, /text-decoration-line:\s*underline;/);
+  assert.match(rule, /text-decoration-color:\s*var\(--color-accent\);/);
+  for (const mode of ["light", "dark"] as const) {
+    const text = tokens.color[mode].contrast.find((pair) => pair.text === "text" && pair.on === "highlight");
+    assert.ok(text && text.ratio >= TEXT_MINIMUM, `${mode}: text on the highlight reaches 4.5:1`);
+    const line = tokens.color.nonText.contrast.find(
+      (pair) => pair.color === `${mode}.accent` && pair.on === `${mode}.highlight`,
+    );
+    assert.ok(line, `nonText records ${mode}.accent on ${mode}.highlight`);
+    assert.ok(contrastRatio(qualified(line.color), qualified(line.on)) >= NON_TEXT_MINIMUM);
+    assert.ok(
+      tokens.color.decorativeOnly.contrast.some((pair) => pair.color === `${mode}.highlight`),
+      `${mode}.highlight is recorded as decorative on the page`,
+    );
   }
 });

@@ -45,6 +45,7 @@ function setup() {
   check(state.handler === 1, "b) tool ran");
   check(warnings.includes("CLAUDE_SDK_CAN_USE_TOOL_SHADOWED"), "b) SDK emitted CLAUDE_SDK_CAN_USE_TOOL_SHADOWED");
 }
+// #region deny-wins
 // c) Deny rule wins even in bypassPermissions, and canUseTool is not called (step 2).
 {
   const { state, options } = setup();
@@ -53,15 +54,16 @@ function setup() {
       prompt: "restart the api",
       options: {
         ...options,
-        disallowedTools: [NAME],
-        permissionMode: "bypassPermissions",
+        disallowedTools: [NAME], // book:note deny
+        permissionMode: "bypassPermissions", // book:note bypass
         allowDangerouslySkipPermissions: true,
       },
     }),
   );
-  check(state.handler === 0, "c) disallowedTools blocks the tool even in bypassPermissions");
-  check(state.canUseTool.length === 0, "c) denied call never reaches canUseTool");
+  check(state.handler === 0, "c) disallowedTools blocks the tool even in bypassPermissions"); // book:note blocked
+  check(state.canUseTool.length === 0, "c) denied call never reaches canUseTool"); // book:note not-asked
 }
+// #endregion
 // d) A PreToolUse hook can deny before any rule is checked (step 1).
 {
   const { state, options } = setup();
@@ -92,6 +94,7 @@ function setup() {
   );
   check(state.handler === 0, "d) PreToolUse hook 'deny' blocks a tool that allowedTools would approve");
 }
+// #region hook-allow
 // e) A hook 'allow' does not override a deny rule.
 {
   const { state, options } = setup();
@@ -100,14 +103,14 @@ function setup() {
       prompt: "restart the api",
       options: {
         ...options,
-        disallowedTools: [NAME],
+        disallowedTools: [NAME], // book:note rule
         hooks: {
           PreToolUse: [
             {
               matcher: NAME,
               hooks: [
                 async () => ({
-                  hookSpecificOutput: { hookEventName: "PreToolUse", permissionDecision: "allow" },
+                  hookSpecificOutput: { hookEventName: "PreToolUse", permissionDecision: "allow" }, // book:note allow
                 }),
               ],
             },
@@ -116,8 +119,9 @@ function setup() {
       },
     }),
   );
-  check(state.handler === 0, "e) hook 'allow' does not skip deny rules");
+  check(state.handler === 0, "e) hook 'allow' does not skip deny rules"); // book:note still-denied
 }
+// #endregion
 // f) dontAsk mode skips canUseTool and denies (step 6).
 {
   const { state, options } = setup();

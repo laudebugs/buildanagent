@@ -164,5 +164,11 @@
     "term": "observer",
     "definition": "A function an SDK calls with each event of a run so that it can record or display what happened. It receives the event and returns nothing the run reads, so it cannot change the run.",
     "sources": ["buildanagent-sdk-hooks"]
+  },
+  {
+    "id": "permission-pipeline",
+    "term": "permission pipeline",
+    "definition": "The fixed sequence of checks, such as hooks, deny rules, ask rules, a mode and allow rules, that decides whether each tool call a model asks for runs, is refused or goes to a person. The first step that decides ends the check, and a deny at any step ends it.",
+    "sources": ["claude-agent-sdk-permissions"]
   }
 ]

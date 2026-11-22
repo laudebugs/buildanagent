@@ -666,5 +666,51 @@
     "asOf": "November 2026",
     "version": "v1.5.2",
     "verifiedIn": "apps/manual/fact-checks/events-and-hooks.md"
+  },
+  {
+    "id": "claude-agent-sdk-permissions",
+    "title": "Configure permissions",
+    "publisher": "Anthropic, Claude Agent SDK",
+    "url": "https://code.claude.com/docs/en/agent-sdk/permissions.md",
+    "kind": "docs",
+    "asOf": "November 2026",
+    "verifiedIn": "apps/manual/fact-checks/permissions-sandboxes-and-credentials.md"
+  },
+  {
+    "id": "pi-run-pi-safely",
+    "title": "Run Pi safely",
+    "publisher": "Earendil Works, Pi",
+    "url": "https://github.com/earendil-works/pi/blob/v1.5.2/packages/coding-agent/docs/security.md",
+    "kind": "docs",
+    "asOf": "November 2026",
+    "verifiedIn": "apps/manual/fact-checks/permissions-sandboxes-and-credentials.md"
+  },
+  {
+    "id": "mcp-elicitation",
+    "title": "Elicitation",
+    "publisher": "Model Context Protocol, specification 2026-07-28",
+    "url": "https://modelcontextprotocol.io/specification/2026-07-28/client/elicitation",
+    "kind": "spec",
+    "asOf": "November 2026",
+    "verifiedIn": "docs/research/connectors/fact-check-agent-connectors.md"
+  },
+  {
+    "id": "claude-managed-agents-vaults",
+    "title": "Vaults",
+    "publisher": "Anthropic, Claude Managed Agents",
+    "url": "https://platform.claude.com/docs/en/managed-agents/vaults.md",
+    "kind": "docs",
+    "asOf": "November 2026",
+    "verifiedIn": "docs/research/connectors/fact-check-agent-connectors.md"
+  },
+  {
+    "id": "santra-acam",
+    "title": "ACaM: Automated Capability Modeling for Agentic AI Security",
+    "publisher": "Santra et al. (arXiv:2611.23507)",
+    "url": "https://arxiv.org/abs/2611.23507",
+    "kind": "paper",
+    "version": "v1",
+    "asOf": "November 2026",
+    "verifiedIn": "docs/research/papers/fact-check-agent-research-papers.md"
   }
 ]
