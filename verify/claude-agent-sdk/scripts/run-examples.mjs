@@ -1,12 +1,14 @@
 // Run complete, type-clean examples against the mock Anthropic API.
 // Each example gets its own mock server (so its request log is isolated), a temp cwd and a timeout.
 // Usage: node scripts/run-examples.mjs [dir=extracted] [--only id1,id2]
-// For a directory other than extracted/, every *.ts file is run (our own examples).
+// For a directory other than extracted/, every *.ts file is run (our own examples), and each one's model exchange and
+// checks are written to results/transcripts/.
 import { spawn } from "node:child_process";
 import { existsSync } from "node:fs";
 import { cp, mkdir, mkdtemp, readdir, readFile, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join, resolve } from "node:path";
+import { transcriptRun } from "../../../scripts/transcripts/write.mjs";
 import { startMock } from "./mock-anthropic.mjs";
 
 const dir = resolve(process.argv[2] && !process.argv[2].startsWith("--") ? process.argv[2] : "extracted");
@@ -68,7 +70,16 @@ async function runOne(t) {
   await cp(join(root, "fixtures"), cwd, { recursive: true });
   const log = resolve(`.tmp/logs/${t.id}.jsonl`);
   await writeFile(log, "");
-  const server = await startMock(0, log);
+  // Our own examples also record their model exchange and checks as a transcript (results/transcripts/). The mock
+  // runs in this process and the example in a child, so the mock reports its events here and the writer merges them
+  // with the example's checks.
+  const ownExamples = !dir.endsWith("extracted");
+  const mockEvents = [];
+  const server = await startMock(
+    0,
+    log,
+    ownExamples ? (event) => mockEvents.push({ ...event, at: Date.now() }) : undefined,
+  );
   // Allowlisted environment: no inherited credentials or host config reach the spawned CLI.
   const env = {
     PATH: process.env.PATH,
@@ -84,9 +95,12 @@ async function runOne(t) {
     TASK_PROMPT: "Summarize the files in this directory",
     MOCK_LOG: log,
   };
+  const args = ["--import", TSX];
+  const transcript = ownExamples ? transcriptRun(args, env) : undefined;
+  args.push(runFile);
   const started = Date.now();
   const result = await new Promise((done) => {
-    const child = spawn(process.execPath, ["--import", TSX, runFile], { cwd, env, stdio: ["ignore", "pipe", "pipe"] });
+    const child = spawn(process.execPath, args, { cwd, env, stdio: ["ignore", "pipe", "pipe"] });
     let out = "";
     child.stdout.on("data", (d) => (out += d));
     child.stderr.on("data", (d) => (out += d));
@@ -100,6 +114,7 @@ async function runOne(t) {
     });
   });
   server.close();
+  transcript?.write({ harnessDir: root, exampleFile: resolve(t.file), cwd, mockEvents });
   const requests = (await readFile(log, "utf8"))
     .split("\n")
     .filter(Boolean)

@@ -1,0 +1,286 @@
+{
+  "format": 1,
+  "example": "08-deferred-tools",
+  "file": "verify/claude-agent-sdk/examples/08-deferred-tools.ts",
+  "harness": "verify/claude-agent-sdk",
+  "pin": "@anthropic-ai/claude-agent-sdk@0.3.327",
+  "mock": "@anthropic-ai/claude-agent-sdk@0.3.327",
+  "events": [
+    {
+      "kind": "request",
+      "model": "claude-opus-5-5",
+      "repeated": 0,
+      "messages": [
+        {
+          "role": "user",
+          "parts": [
+            {
+              "type": "text",
+              "text": "Use get_forecast for Lisbon."
+            }
+          ]
+        }
+      ],
+      "tools": [
+        "DeferredToolPlaceholder",
+        "ToolSearch"
+      ]
+    },
+    {
+      "kind": "response",
+      "model": "claude-opus-5-5",
+      "message": {
+        "role": "assistant",
+        "parts": [
+          {
+            "type": "tool-call",
+            "id": "toolu_mock_1",
+            "name": "ToolSearch",
+            "input": {
+              "query": "select:mcp__weather__get_forecast",
+              "max_results": 5
+            }
+          }
+        ]
+      },
+      "finish": "tool_use"
+    },
+    {
+      "kind": "request",
+      "model": "claude-opus-5-5",
+      "repeated": 2,
+      "messages": [
+        {
+          "role": "tool",
+          "parts": [
+            {
+              "type": "tool-result",
+              "id": "toolu_mock_1",
+              "name": "ToolSearch",
+              "output": "{\"type\":\"tool_reference\",\"tool_name\":\"mcp__weather__get_forecast\"}"
+            }
+          ]
+        },
+        {
+          "role": "user",
+          "parts": [
+            {
+              "type": "text",
+              "text": "Tool loaded."
+            }
+          ]
+        }
+      ],
+      "tools": [
+        "ToolSearch",
+        "DeferredToolPlaceholder",
+        "mcp__weather__get_forecast"
+      ]
+    },
+    {
+      "kind": "response",
+      "model": "claude-opus-5-5",
+      "message": {
+        "role": "assistant",
+        "parts": [
+          {
+            "type": "tool-call",
+            "id": "toolu_mock_2",
+            "name": "mcp__weather__get_forecast",
+            "input": {
+              "city": "example"
+            }
+          }
+        ]
+      },
+      "finish": "tool_use"
+    },
+    {
+      "kind": "request",
+      "model": "claude-opus-5-5",
+      "repeated": 5,
+      "messages": [
+        {
+          "role": "tool",
+          "parts": [
+            {
+              "type": "tool-result",
+              "id": "toolu_mock_2",
+              "name": "mcp__weather__get_forecast",
+              "output": "get_forecast: ok"
+            }
+          ]
+        }
+      ],
+      "tools": [
+        "ToolSearch",
+        "DeferredToolPlaceholder",
+        "mcp__weather__get_forecast"
+      ]
+    },
+    {
+      "kind": "response",
+      "model": "claude-opus-5-5",
+      "message": {
+        "role": "assistant",
+        "parts": [
+          {
+            "type": "text",
+            "text": "Mock model: received the tool result, task complete."
+          }
+        ]
+      },
+      "finish": "end_turn"
+    },
+    {
+      "kind": "check",
+      "line": 46,
+      "message": "deferred run finished with success",
+      "pass": true
+    },
+    {
+      "kind": "check",
+      "line": 48,
+      "message": "the first request offers ToolSearch",
+      "pass": true
+    },
+    {
+      "kind": "check",
+      "line": 54,
+      "message": "the first request holds no weather tool definition",
+      "pass": true
+    },
+    {
+      "kind": "check",
+      "line": 55,
+      "message": "the model still sees the tool's name",
+      "pass": true
+    },
+    {
+      "kind": "check",
+      "line": 56,
+      "message": "but not its description or schema",
+      "pass": true
+    },
+    {
+      "kind": "check",
+      "line": 58,
+      "message": "the model asked ToolSearch for one tool by name",
+      "pass": true
+    },
+    {
+      "kind": "check",
+      "line": 60,
+      "message": "after ToolSearch, exactly one of the three definitions reached the model",
+      "pass": true
+    },
+    {
+      "kind": "check",
+      "line": 64,
+      "message": "the other two definitions never reached the model in any request",
+      "pass": true
+    },
+    {
+      "kind": "check",
+      "line": 68,
+      "message": "only the loaded tool's handler ran",
+      "pass": true
+    },
+    {
+      "kind": "check",
+      "line": 69,
+      "message": "the tool result went back to the model",
+      "pass": true
+    },
+    {
+      "kind": "request",
+      "model": "claude-opus-5-5",
+      "repeated": 1,
+      "messages": [],
+      "tools": [
+        "mcp__weather__get_forecast",
+        "mcp__weather__lookup_station",
+        "mcp__weather__set_units"
+      ]
+    },
+    {
+      "kind": "response",
+      "model": "claude-opus-5-5",
+      "message": {
+        "role": "assistant",
+        "parts": [
+          {
+            "type": "tool-call",
+            "id": "toolu_mock_4",
+            "name": "mcp__weather__get_forecast",
+            "input": {
+              "city": "example"
+            }
+          }
+        ]
+      },
+      "finish": "tool_use"
+    },
+    {
+      "kind": "request",
+      "model": "claude-opus-5-5",
+      "repeated": 2,
+      "messages": [
+        {
+          "role": "tool",
+          "parts": [
+            {
+              "type": "tool-result",
+              "id": "toolu_mock_4",
+              "name": "mcp__weather__get_forecast",
+              "output": "get_forecast: ok"
+            }
+          ]
+        }
+      ],
+      "tools": [
+        "mcp__weather__get_forecast",
+        "mcp__weather__lookup_station",
+        "mcp__weather__set_units"
+      ]
+    },
+    {
+      "kind": "response",
+      "model": "claude-opus-5-5",
+      "message": {
+        "role": "assistant",
+        "parts": [
+          {
+            "type": "text",
+            "text": "Mock model: received the tool result, task complete."
+          }
+        ]
+      },
+      "finish": "end_turn"
+    },
+    {
+      "kind": "check",
+      "line": 80,
+      "message": "alwaysLoad run finished with success",
+      "pass": true
+    },
+    {
+      "kind": "check",
+      "line": 81,
+      "message": "alwaysLoad: all three definitions are in the first request",
+      "pass": true
+    },
+    {
+      "kind": "check",
+      "line": 85,
+      "message": "alwaysLoad: with nothing left to defer, ToolSearch is not offered and the model never calls it",
+      "pass": true
+    },
+    {
+      "kind": "check",
+      "line": 90,
+      "message": "one loaded definition is smaller than the three definitions alwaysLoad sends up front",
+      "pass": true
+    }
+  ]
+}

@@ -4,16 +4,17 @@
 // body into the conversation when the model calls it. The `skills` option is a context filter, not a sandbox: it hides the other skills
 // from the model but leaves their files on disk. The mock model reads the skill its prompt marks
 // with [use-skill:<name>], the way a model reads a skill it recognises. Skill files are written into
-// a temp directory, and `tools: ["Skill"]` leaves the model no Bash, Edit or Read to call.
+// a folder in the run's temp directory, and `tools: ["Skill"]` leaves the model no Bash, Edit or Read to call.
 // Docs: skills.md; sdk.d.ts, Options.skills and Options.settingSources
-import { mkdirSync, mkdtempSync, writeFileSync } from "node:fs";
-import { tmpdir } from "node:os";
+import { mkdirSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { query } from "@anthropic-ai/claude-agent-sdk";
 import { check, collect } from "./lib/collect.ts";
 import { assertOnlyTools, modelRequests } from "./lib/mock-log.ts";
 
-const project = mkdtempSync(join(tmpdir(), "skills-project-"));
+// The runner starts each example in its own temporary directory, so the project folder goes inside it, under a fixed
+// name that the transcript records as <cwd>/skills-project.
+const project = join(process.cwd(), "skills-project");
 
 // #region skill-files
 function writeSkill(name: string, description: string, body: string) {

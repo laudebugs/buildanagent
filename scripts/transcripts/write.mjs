@@ -25,6 +25,7 @@ const REPO_ROOT = fileURLToPath(new URL("../../", import.meta.url));
  */
 export const MOCK_PACKAGES = {
   "packages/sdk": "@buildanagent/sdk",
+  "verify/claude-agent-sdk": "@anthropic-ai/claude-agent-sdk",
   "verify/cloudflare-agents": "ai",
   "verify/google-adk": "@google/adk",
   "verify/langchain": "@langchain/core",
@@ -202,6 +203,15 @@ export function compactRequests(events) {
   });
 }
 
+/**
+ * The events of a mock that runs in another process, merged with the example process's events in the order they
+ * happened. Each event carries the `at` time in milliseconds that recorded it; when two share a millisecond the mock's
+ * comes first, because an example checks what a call answered after the answer arrived.
+ */
+export function mergeEvents(mockEvents, exampleEvents) {
+  return [...mockEvents, ...exampleEvents].sort((a, b) => (a.at ?? 0) - (b.at ?? 0));
+}
+
 /** A transcript as the file holds it: two-space JSON with a final newline. */
 export const serialise = (transcript) => `${JSON.stringify(transcript, null, 2)}\n`;
 
@@ -216,11 +226,12 @@ export const serialise = (transcript) => `${JSON.stringify(transcript, null, 2)}
  * written. A live transcript that holds one of `secrets` or the shape of a key, an account id or a request id
  * (scripts/live/redact.ts) is not written at all, and the problem names only the shape it matched.
  */
-export function writeTranscript({ harnessDir, exampleFile, rawFile, cwd, home, outDir, live }) {
+export function writeTranscript({ harnessDir, exampleFile, rawFile, cwd, home, outDir, live, mockEvents }) {
   const example = basename(exampleFile, extname(exampleFile));
   const defaultPath = live === undefined ? transcriptPath : liveTranscriptPath;
   const file = outDir === undefined ? defaultPath(harnessDir, example) : join(outDir, `${example}.json`);
-  const recorded = existsSync(rawFile) ? (JSON.parse(readFileSync(rawFile, "utf8")).events ?? []) : [];
+  const raw = existsSync(rawFile) ? (JSON.parse(readFileSync(rawFile, "utf8")).events ?? []) : [];
+  const recorded = mergeEvents(mockEvents ?? [], raw).map(({ at: _at, ...event }) => event);
   const events = live === undefined ? recorded : recorded.map(({ scripted: _scripted, ...event }) => event);
   if (!events.some((event) => event.kind === "request")) {
     if (existsSync(file)) {
@@ -262,8 +273,17 @@ export function transcriptRun(args, env) {
   args.push("--import", fileURLToPath(new URL("./record.mjs", import.meta.url)));
   env.TRANSCRIPT_FILE = raw;
   return {
-    write: ({ harnessDir, exampleFile, cwd, outDir, live }) => {
-      const written = writeTranscript({ harnessDir, exampleFile, rawFile: raw, cwd, home: env.HOME, outDir, live });
+    write: ({ harnessDir, exampleFile, cwd, outDir, live, mockEvents }) => {
+      const written = writeTranscript({
+        harnessDir,
+        exampleFile,
+        rawFile: raw,
+        cwd,
+        home: env.HOME,
+        outDir,
+        live,
+        mockEvents,
+      });
       rmSync(dirname(raw), { recursive: true, force: true });
       return written;
     },

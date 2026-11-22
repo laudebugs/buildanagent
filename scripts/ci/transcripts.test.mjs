@@ -11,6 +11,7 @@ import { fileURLToPath } from "node:url";
 import {
   compactRequests,
   MOCK_PACKAGES,
+  mergeEvents,
   mockOf,
   normalise,
   pinOf,
@@ -205,11 +206,32 @@ function recordedEvents(source) {
         encoding: "utf8",
       },
     );
-    return JSON.parse(readFileSync(raw, "utf8")).events;
+    // Each raw event carries the millisecond it happened at, which the writer drops after merging a mock's events.
+    return JSON.parse(readFileSync(raw, "utf8")).events.map(({ at, ...event }) => {
+      assert.equal(typeof at, "number");
+      return event;
+    });
   } finally {
     rmSync(dir, { recursive: true, force: true });
   }
 }
+
+test("a mock's events and an example's events merge in the order they happened, the mock first at the same millisecond", () => {
+  const mock = [
+    { kind: "request", at: 10 },
+    { kind: "response", at: 20 },
+    { kind: "request", at: 40 },
+  ];
+  const example = [
+    { kind: "check", at: 20 },
+    { kind: "check", at: 30 },
+    { kind: "check", at: 50 },
+  ];
+  assert.deepEqual(
+    mergeEvents(mock, example).map((event) => `${event.kind}@${event.at}`),
+    ["request@10", "response@20", "check@20", "check@30", "request@40", "check@50"],
+  );
+});
 
 test("the recorder counts only the checks that check() reports, not text an example prints or throws", () => {
   const check = JSON.stringify(join(root, "verify/vercel-ai-sdk/examples/lib/check.ts"));

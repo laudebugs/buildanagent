@@ -1,0 +1,118 @@
+{
+  "format": 1,
+  "example": "07-triage-agent",
+  "file": "verify/claude-agent-sdk/examples/07-triage-agent.ts",
+  "harness": "verify/claude-agent-sdk",
+  "pin": "@anthropic-ai/claude-agent-sdk@0.3.327",
+  "mock": "@anthropic-ai/claude-agent-sdk@0.3.327",
+  "events": [
+    {
+      "kind": "request",
+      "model": "claude-opus-5-5",
+      "repeated": 0,
+      "messages": [
+        {
+          "role": "user",
+          "parts": [
+            {
+              "type": "text",
+              "text": "Customer user@example.com says checkout fails with a 500. Triage it."
+            }
+          ]
+        }
+      ],
+      "tools": [
+        "StructuredOutput",
+        "mcp__support__escalate",
+        "DeferredToolPlaceholder",
+        "mcp__support__lookup_customer"
+      ]
+    },
+    {
+      "kind": "response",
+      "model": "claude-opus-5-5",
+      "message": {
+        "role": "assistant",
+        "parts": [
+          {
+            "type": "tool-call",
+            "id": "toolu_mock_1",
+            "name": "mcp__support__lookup_customer",
+            "input": {
+              "email": "user@example.com"
+            }
+          }
+        ]
+      },
+      "finish": "tool_use"
+    },
+    {
+      "kind": "request",
+      "model": "claude-opus-5-5",
+      "repeated": 2,
+      "messages": [
+        {
+          "role": "tool",
+          "parts": [
+            {
+              "type": "tool-result",
+              "id": "toolu_mock_1",
+              "name": "mcp__support__lookup_customer",
+              "output": "{\"email\":\"user@example.com\",\"plan\":\"pro\",\"openTickets\":2}"
+            }
+          ]
+        }
+      ],
+      "tools": [
+        "StructuredOutput",
+        "mcp__support__escalate",
+        "DeferredToolPlaceholder",
+        "mcp__support__lookup_customer"
+      ]
+    },
+    {
+      "kind": "response",
+      "model": "claude-opus-5-5",
+      "message": {
+        "role": "assistant",
+        "parts": [
+          {
+            "type": "tool-call",
+            "id": "toolu_mock_2",
+            "name": "StructuredOutput",
+            "input": {
+              "category": "bug",
+              "priority": "low",
+              "summary": "example"
+            }
+          }
+        ]
+      },
+      "finish": "tool_use"
+    },
+    {
+      "kind": "check",
+      "line": 72,
+      "message": "PreToolUse hook saw the lookup tool call",
+      "pass": true
+    },
+    {
+      "kind": "check",
+      "line": 74,
+      "message": "auto-approved lookup never reached canUseTool",
+      "pass": true
+    },
+    {
+      "kind": "check",
+      "line": 75,
+      "message": "agent finished successfully",
+      "pass": true
+    },
+    {
+      "kind": "check",
+      "line": 77,
+      "message": "structured_output matches the Triage schema",
+      "pass": true
+    }
+  ]
+}
