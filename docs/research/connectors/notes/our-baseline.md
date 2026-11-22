@@ -67,7 +67,7 @@ The harness plan has a thorough design for an MCP client, but only for consuming
   - N22 builds `extensions.lock.json` with a SHA-256 per extension. Its scope is in-process only, and MCP servers are explicitly "Out of scope … (N24)". N24 itself has **no pin or lock** for a server's command, package version or tool list.
   - The `extension_loaded` entry has `tier: "in_process" | "mcp" | "skill"; contentHash`, so the log shape anticipates MCP hashes.
 
-  — `docs/guides/agent-harness.md#7-extensions-come-in-three-trust-tiers-and-project-trust-gates-loading-not-execution`; `docs/todos/ready/N22-in-process-extensions.md#scope`; `docs/plans/build-harness.md#32-session-log-api`
+  — `docs/guides/agent-harness.md#7-extensions-come-in-three-trust-tiers-and-project-trust-gates-loading-not-execution`; `docs/todos/ongoing/N22-in-process-extensions.md#scope`; `docs/plans/build-harness.md#32-session-log-api`
 - **Non-goal: "An MCP-server facade"** ("a thin `run_task` facade can follow a consumer"). — `docs/plans/build-harness.md#1-goal-and-non-goals`; `docs/guides/agent-harness.md#8-one-typed-protocol-should-sit-under-the-sdk-cli-and-rpc-interfaces-with-stdio-jsonl-as-the-first-remote-transport`
 - **Portability.** N46a includes "A workerd smoke test that loads pi-schema and the MCP client". — `docs/todos/ready/N46a-cloudflare-state-adapters.md`; `docs/plans/build-coding-agent.md#4-changes-to-the-sdk-and-harness-plans`
 - **Ablation.** `AblationConfig` has `mcp: boolean` and `extensions.mcp`, and N39 measures the run with MCP switched off. — `docs/plans/build-harness.md#35-extension-protocol-telemetry-eval-and-ablation-apis`
