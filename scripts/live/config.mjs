@@ -52,7 +52,8 @@ export const LIVE_HARNESSES = [
 /**
  * An example's harness directory and name, from its path, such as `verify/pi/examples/08-triage-agent.ts` or
  * `packages/sdk/examples/13-triage-agent.ts`, and where its transcripts go. Its live transcript on `provider` goes to
- * that provider's own folder, so one example can run on both.
+ * that provider's own folder, so one example can run on both; without a provider there is no live transcript, so
+ * `live` is left out rather than name a folder no run writes.
  */
 export function exampleOf(file, provider) {
   const harness = dirname(dirname(file));
@@ -61,7 +62,7 @@ export function exampleOf(file, provider) {
     harness,
     id,
     mock: `${harness}/results/transcripts/${id}.json`,
-    live: `${harness}/results/live/${provider}/${id}.json`,
+    ...(provider === undefined ? {} : { live: `${harness}/results/live/${provider}/${id}.json` }),
   };
 }
 

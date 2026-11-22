@@ -538,6 +538,8 @@ test("the list runs our SDK's triage agent on both providers, each with its own 
   assert.notEqual(exampleOf(first.file, first.provider).live, exampleOf(second.file, second.provider).live);
   assert.equal(exampleOf(SDK_TRIAGE, "openai").live, "packages/sdk/results/live/openai/13-triage-agent.json");
   assert.equal(exampleOf(SDK_TRIAGE).mock, "packages/sdk/results/transcripts/13-triage-agent.json");
+  // Without a provider no run writes a live transcript, so none is named, not one in an "undefined" folder.
+  assert.equal("live" in exampleOf(SDK_TRIAGE), false);
   const twice = { ...config, examples: [first, { ...first }] };
   assert.ok(liveConfigProblems(twice).some((p) => p.includes(`${SDK_TRIAGE} is listed twice on ${first.provider}`)));
   const stray = { ...config, projection: { ...config.projection, examples: { ...config.projection.examples, x: 1 } } };
