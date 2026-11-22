@@ -8,16 +8,21 @@ import type {
   LanguageModelV4Content,
   LanguageModelV4Prompt,
   LanguageModelV4StreamPart,
+  LanguageModelV4Usage,
 } from "@ai-sdk/provider";
 import { MockLanguageModelV4 } from "ai/test";
 import {
+  answerFacts,
+  isPlaceholder,
   type Message,
   modelNames,
   type Part,
   parsed,
   record,
   recording,
+  reportedUsage,
   toolCallIds,
+  type Usage,
 } from "../../../../scripts/transcripts/events.ts";
 
 /** A tool result's value: the AI SDK wraps it as `{ type: "json" | "text" | …, value }`. */
@@ -81,10 +86,46 @@ function recordRequest(model: object, options: LanguageModelV4CallOptions): void
   });
 }
 
-function recordResponse(model: object, content: LanguageModelV4Content[], finish: string): void {
+/**
+ * The usage a mock's answer reports, in the transcript's classes, or nothing when it is a helper's default
+ * (`placeholder()` in events.ts). The AI SDK's output total already includes its reasoning tokens.
+ */
+function usageOf(usage: LanguageModelV4Usage | undefined): Usage | undefined {
+  if (usage === undefined || isPlaceholder(usage)) return undefined;
+  return reportedUsage({
+    uncachedInput: usage.inputTokens.noCache,
+    cacheRead: usage.inputTokens.cacheRead,
+    cacheWrite: usage.inputTokens.cacheWrite,
+    output: usage.outputTokens.total,
+    reasoning: usage.outputTokens.reasoning,
+  });
+}
+
+/** The id ai/test gives a mock whose script sets none, which names no real model; attach() reads it. */
+let generatedModelId: string | undefined;
+
+/** The model id a mock reports, unless it is the one ai/test generated. */
+function modelIdOf(model: object): string | undefined {
+  const { modelId } = model as { modelId?: unknown };
+  return typeof modelId === "string" && modelId !== generatedModelId ? modelId : undefined;
+}
+
+function recordResponse(
+  model: object,
+  content: LanguageModelV4Content[],
+  finish: string,
+  usage: LanguageModelV4Usage | undefined,
+): void {
   const message: Message = { role: "assistant", parts: content.map(contentPart) };
-  // The scripted model answers with exactly what its script holds, ids included.
-  record({ kind: "response", model: nameOf(model), message, finish, scripted: toolCallIds(message) });
+  // The scripted model answers with exactly what its script holds, ids, usage and model id included.
+  record({
+    kind: "response",
+    model: nameOf(model),
+    message,
+    finish,
+    ...answerFacts(usageOf(usage), modelIdOf(model)),
+    scripted: toolCallIds(message),
+  });
 }
 
 /** Wraps a mock's generate function so it records each request and its answer. */
@@ -92,7 +133,7 @@ function recordedGenerate(model: object, generate: Generate): Generate {
   return async (options) => {
     recordRequest(model, options);
     const result = await generate(options);
-    recordResponse(model, result.content, result.finishReason.unified);
+    recordResponse(model, result.content, result.finishReason.unified, result.usage);
     return result;
   };
 }
@@ -105,15 +146,19 @@ function recordedStream(model: object, stream: Stream): Stream {
     const content: LanguageModelV4Content[] = [];
     let text = "";
     let finish = "unknown";
+    let usage: LanguageModelV4Usage | undefined;
     const gather = new TransformStream<LanguageModelV4StreamPart, LanguageModelV4StreamPart>({
       transform(chunk, controller) {
         if (chunk.type === "text-delta") text += chunk.delta;
         else if (chunk.type === "tool-call") content.push(chunk);
-        else if (chunk.type === "finish") finish = chunk.finishReason.unified;
+        else if (chunk.type === "finish") {
+          finish = chunk.finishReason.unified;
+          usage = chunk.usage;
+        }
         controller.enqueue(chunk);
       },
       flush() {
-        recordResponse(model, text === "" ? content : [{ type: "text", text }, ...content], finish);
+        recordResponse(model, text === "" ? content : [{ type: "text", text }, ...content], finish, usage);
       },
     });
     return { ...result, stream: result.stream.pipeThrough(gather) };
@@ -147,6 +192,7 @@ function attach(): void {
   if (!wrappers.has(probe.doGenerate) || !wrappers.has(probe.doStream)) {
     throw new Error("transcript recorder: MockLanguageModelV4 no longer assigns doGenerate and doStream");
   }
+  generatedModelId = probe.modelId;
 }
 
 if (recording) attach();

@@ -2,16 +2,26 @@
 // recorder, this file attaches it to `ScriptedModel`, so each request and answer of every scripted model joins the
 // example's transcript; otherwise it does nothing. The recorder only reads the request and the stream's events, so the
 // model answers as it would without it.
-import type { ContentBlock, Message as GatewayMessage, Model, ModelContext, ModelEvent } from "@buildanagent/gateway";
+import type {
+  AssistantMessage,
+  ContentBlock,
+  Message as GatewayMessage,
+  Model,
+  ModelContext,
+  ModelEvent,
+} from "@buildanagent/gateway";
 import { ScriptedModel } from "@buildanagent/sdk/testing";
 import {
+  answerFacts,
   enterCaller,
   type Message,
   modelNames,
   type Part,
   record,
   recording,
+  reportedUsage,
   toolCallIds,
+  type Usage,
 } from "../../../../scripts/transcripts/events.js";
 
 function blockPart(block: ContentBlock): Part {
@@ -62,6 +72,25 @@ function messagesOf(context: ModelContext): Message[] {
   return messages;
 }
 
+/** The model id the examples' scripted() helper gives every model, which names no real model. */
+export const SCRIPTED_MODEL_ID = "scripted-model";
+
+/**
+ * A scripted answer's usage in the transcript's classes, or nothing when the script set none, which ScriptedModel
+ * marks as unreported. The gateway splits cache writes by lifetime; the transcript adds the two.
+ */
+function usageOf(message: AssistantMessage): Usage | undefined {
+  const { usage } = message;
+  if (usage.unreported) return undefined;
+  return reportedUsage({
+    uncachedInput: usage.uncachedInput,
+    cacheRead: usage.cacheRead,
+    cacheWrite: usage.cacheWrite["5m"] + usage.cacheWrite["1h"],
+    output: usage.output,
+    reasoning: usage.reasoning,
+  });
+}
+
 const nameOf = modelNames();
 
 /** Records each answer once its stream ends, from the terminal event's message. */
@@ -69,12 +98,14 @@ async function* recorded(model: object, events: AsyncIterable<ModelEvent>): Asyn
   for await (const event of events) {
     if (event.type === "done" || event.type === "error") {
       const message: Message = { role: "assistant", parts: event.message.content.map(blockPart) };
-      // The scripted model answers with exactly what its script holds, ids included.
+      const { id } = event.message.model;
+      // The scripted model answers with exactly what its script holds, ids and usage included.
       record({
         kind: "response",
         model: nameOf(model),
         message,
         finish: event.message.stopReason,
+        ...answerFacts(usageOf(event.message), id === SCRIPTED_MODEL_ID ? undefined : id),
         scripted: toolCallIds(message),
       });
     }

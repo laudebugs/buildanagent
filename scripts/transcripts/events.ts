@@ -5,8 +5,11 @@
 //
 // The file holds only syntax that Node.js can strip, so `write.mjs` imports it without a build step.
 
-/** The version of the transcript format. */
-export const TRANSCRIPT_FORMAT = 1;
+/**
+ * The version of the transcript format. Version 2 added a response's `usage` and `modelId`; a version 1 transcript has
+ * neither, and the book's replay still reads it.
+ */
+export const TRANSCRIPT_FORMAT = 2;
 
 /** One part of a message. `other` keeps a part the format has no shape for, under the SDK's own name. */
 export type Part =
@@ -22,6 +25,20 @@ export interface Message {
 }
 
 /**
+ * The token counts a mock reported for one answer, in the four classes a provider bills (uncached input, cache reads,
+ * cache writes and output), plus the part of the output spent on reasoning where the SDK reports it. `output`
+ * includes `reasoning`. A class the mock did not report is left out, never written as a zero, because a zero would
+ * read as a measurement.
+ */
+export interface Usage {
+  uncachedInput?: number;
+  cacheRead?: number;
+  cacheWrite?: number;
+  output?: number;
+  reasoning?: number;
+}
+
+/**
  * What the mock layer reports. The recorder adds the example line that led to each event, and the writer shortens
  * each request to what is new since the same model's previous request and answer. Checks are recorded by the recorder
  * itself, from the `ok - ` line a check prints and the error a failed one throws.
@@ -33,6 +50,13 @@ export type TranscriptEvent =
       model: string;
       message: Message;
       finish: string;
+      /** The token counts of this answer, recorded only where the example's script set them (see `placeholder()`). */
+      usage?: Usage;
+      /**
+       * The model id the mock reported for this answer, by the same rule. It is kept apart from `model`, which keys
+       * the writer's shortening of requests and in most harnesses names the model in the order of its first request.
+       */
+      modelId?: string;
       /**
        * The tool-call ids in this answer that the example's script chose, which the writer keeps as written; any other
        * id, one the SDK generated, becomes a placeholder. The writer does not write this list.
@@ -90,6 +114,51 @@ export function recordCallers(proto: object, methods: readonly string[]): void {
       return atCaller(() => method.apply(this, args));
     };
   }
+}
+
+/*
+ * Usage and the model id are recorded only where the example's script set them. A value that a mock or a harness's
+ * helper fills in when the script sets none says nothing about a real call, and a replay would show it as if it were
+ * measured. Such values include the AI SDK helper's default of 10 input and 5 output tokens, ai/test's generated id
+ * `mock-model-id`, the usage pi-ai's faux provider estimates from an answer's length and its model id `faux-1`, the
+ * zero usage of an OpenAI ScriptedModel answer scripted as a bare list of items, our own helper's `scripted-model`, and
+ * the fixed 10 input and 5 output tokens that the Claude Agent SDK's and Copilot SDK's HTTP mocks send with every
+ * answer. A mapper leaves such a value out. A helper marks a default object it hands the SDK with `placeholder()`, so
+ * the mapper can tell it apart from one a script passed.
+ */
+
+const placeholders = new WeakSet<object>();
+
+/** Marks an object a harness's helper fills in when the script sets none, such as a default usage, and returns it. */
+export function placeholder<T extends object>(value: T): T {
+  placeholders.add(value);
+  return value;
+}
+
+/** Whether `value` is an object `placeholder()` marked. */
+export function isPlaceholder(value: unknown): boolean {
+  return typeof value === "object" && value !== null && placeholders.has(value);
+}
+
+/**
+ * The usage to record from the classes a mapper read off the mock's answer: each class that is a count, or undefined
+ * when none is, so a response without counts carries no `usage` at all.
+ */
+export function reportedUsage(counts: { [K in keyof Usage]: unknown }): Usage | undefined {
+  const usage: Usage = {};
+  for (const key of ["uncachedInput", "cacheRead", "cacheWrite", "output", "reasoning"] as const) {
+    const count = counts[key];
+    if (typeof count === "number" && Number.isInteger(count) && count >= 0) usage[key] = count;
+  }
+  return Object.keys(usage).length === 0 ? undefined : usage;
+}
+
+/** A response's `usage` and `modelId`, each only when there is one, to spread into the response event. */
+export function answerFacts(
+  usage: Usage | undefined,
+  modelId: string | undefined,
+): { usage?: Usage; modelId?: string } {
+  return { ...(usage === undefined ? {} : { usage }), ...(modelId === undefined || modelId === "" ? {} : { modelId }) };
 }
 
 /** The ids of the tool calls in a scripted answer, for a response's `scripted` list. */

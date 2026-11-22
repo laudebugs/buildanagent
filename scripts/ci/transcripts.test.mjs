@@ -8,6 +8,7 @@ import { homedir, hostname, tmpdir, userInfo } from "node:os";
 import { join } from "node:path";
 import { test } from "node:test";
 import { fileURLToPath } from "node:url";
+import { answerFacts, isPlaceholder, placeholder, reportedUsage } from "../transcripts/events.ts";
 import {
   compactRequests,
   MOCK_PACKAGES,
@@ -16,6 +17,7 @@ import {
   normalise,
   pinOf,
   serialise,
+  TRANSCRIPT_FORMAT,
   transcriptProblems,
   writeTranscript,
 } from "../transcripts/write.mjs";
@@ -127,6 +129,8 @@ test("normalise() replaces machine paths and the SDK's generated ids, times and 
           ],
         },
         finish: "stop",
+        usage: { uncachedInput: 1000, cacheRead: 1500, cacheWrite: 500, output: 200 },
+        modelId: "claude-sonnet-5-5",
         scripted: ["call_handoff", "call_weather_1"],
       },
       {
@@ -158,6 +162,8 @@ test("normalise() replaces machine paths and the SDK's generated ids, times and 
     },
   ]);
   assert.equal("scripted" in out[0], false, "the scripted list is not written");
+  assert.deepEqual(out[0].usage, { uncachedInput: 1000, cacheRead: 1500, cacheWrite: 500, output: 200 });
+  assert.equal(out[0].modelId, "claude-sonnet-5-5", "a scripted model id is kept as written");
   assert.deepEqual(
     out[1].messages.map((m) => m.parts[0].id),
     ["<id-1>", "<id-2>"],
@@ -441,10 +447,80 @@ test("no region the book can list holds transcript-recorder code", () => {
   assert.deepEqual(found, []);
 });
 
+test("the format is version 2, the first with a response's usage and model id", () => {
+  assert.equal(TRANSCRIPT_FORMAT, 2);
+  const versions = new Set(committed.map((file) => JSON.parse(readFileSync(join(root, file), "utf8")).format));
+  assert.deepEqual([...versions], [TRANSCRIPT_FORMAT], "every committed transcript is written at the current version");
+});
+
+test("the AI SDK's streaming-usage transcript records the scripted usage and model id on its answer", () => {
+  const file = join(root, "verify/vercel-ai-sdk/results/transcripts/10-streaming-usage.json");
+  const [answer] = JSON.parse(readFileSync(file, "utf8")).events.filter((event) => event.kind === "response");
+  assert.equal(answer.modelId, "claude-sonnet-5-5");
+  assert.deepEqual(answer.usage, { uncachedInput: 1000, cacheRead: 1500, cacheWrite: 500, output: 200 });
+});
+
+test("a helper's default usage is recorded nowhere: the AI SDK's 10 and 5 tokens and ai/test's mock-model-id", () => {
+  const file = join(root, "verify/vercel-ai-sdk/results/transcripts/01-generate-text.json");
+  const events = JSON.parse(readFileSync(file, "utf8")).events.filter((event) => event.kind === "response");
+  assert.ok(events.length > 0);
+  for (const event of events) {
+    assert.equal("usage" in event, false, "a placeholder usage is left out");
+    assert.equal("modelId" in event, false, "a generated model id is left out");
+  }
+});
+
+test("reportedUsage() keeps each class the mock counted and leaves out the rest, never writing a zero it lacks", () => {
+  assert.deepEqual(
+    reportedUsage({ uncachedInput: 1000, cacheRead: 0, cacheWrite: undefined, output: 200, reasoning: Number.NaN }),
+    { uncachedInput: 1000, cacheRead: 0, output: 200 },
+  );
+  assert.equal(reportedUsage({ uncachedInput: undefined, output: undefined }), undefined);
+  assert.equal(reportedUsage({ output: -1 }), undefined, "a negative count is no count");
+  const usage = { uncachedInput: 1 };
+  assert.deepEqual(answerFacts(usage, "m"), { usage, modelId: "m" });
+  assert.deepEqual(answerFacts(undefined, ""), {});
+  const marked = placeholder({ total: 10 });
+  assert.equal(isPlaceholder(marked), true);
+  assert.equal(isPlaceholder({ total: 10 }), false, "an equal object a script passed is not the placeholder");
+});
+
+test("transcriptProblems() checks a response's usage and model id", () => {
+  const transcript = (response) => ({
+    format: TRANSCRIPT_FORMAT,
+    example: "x",
+    file: "x.ts",
+    harness: "verify/x",
+    pin: "x@1.0.0",
+    mock: "x@1.0.0",
+    events: [
+      {
+        kind: "response",
+        model: "model-1",
+        message: { role: "assistant", parts: [] },
+        finish: "stop",
+        ...response,
+      },
+    ],
+  });
+  assert.deepEqual(
+    transcriptProblems(transcript({ usage: { uncachedInput: 1000, cacheRead: 0, output: 200 }, modelId: "a/b@1" })),
+    [],
+  );
+  assert.deepEqual(transcriptProblems(transcript({ usage: { input: 3, output: 1.5 }, modelId: "**bold**" })), [
+    'events[0].usage: has a token class "input"',
+    "events[0].usage: output is not a whole number",
+    "events[0]: has a model id outside [A-Za-z0-9_.:/@-]",
+  ]);
+  assert.deepEqual(transcriptProblems(transcript({ usage: {} })), [
+    "events[0].usage: must be an object with at least one token class",
+  ]);
+});
+
 test("transcriptProblems() names what is wrong with a malformed transcript", () => {
   assert.deepEqual(
     transcriptProblems({
-      format: 2,
+      format: 1,
       example: "x",
       file: "",
       harness: "verify/x",
@@ -457,7 +533,7 @@ test("transcriptProblems() names what is wrong with a malformed transcript", () 
       ],
     }),
     [
-      "format: is 2, not 1",
+      "format: is 1, not 2",
       "file: must be a non-empty string",
       "events[0]: has no count of repeated messages",
       'events[0].messages[0]: has role "robot"',

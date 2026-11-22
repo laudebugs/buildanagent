@@ -3,6 +3,7 @@
 import type { LanguageModelV4CallOptions, LanguageModelV4Content } from "@ai-sdk/provider";
 import { simulateReadableStream } from "ai";
 import { MockLanguageModelV4 } from "ai/test";
+import { placeholder } from "../../../../scripts/transcripts/events.ts";
 // Attaches the transcript recorder to ai/test's mock model (scripts/transcripts/).
 import "./transcript.ts";
 
@@ -23,10 +24,11 @@ export interface Harness {
 /** One scripted model turn: plain text, or tool calls (input given as an object). */
 export type Turn = string | { tools: { name: string; input: unknown; id?: string }[] };
 
-const usage = {
+// A placeholder, which the transcript leaves out: a replay must not show counts that no script chose.
+const usage = placeholder({
   inputTokens: { total: 10, noCache: 10, cacheRead: undefined, cacheWrite: undefined },
   outputTokens: { total: 5, text: 5, reasoning: undefined },
-};
+});
 
 let ids = 0;
 const content = (turn: Turn): LanguageModelV4Content[] =>

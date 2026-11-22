@@ -7,6 +7,7 @@ import type { BaseMessage } from "@langchain/core/messages";
 import type { ChatResult } from "@langchain/core/outputs";
 import { createAgent, fakeModel } from "langchain";
 import {
+  answerFacts,
   type Message,
   modelNames,
   type Part,
@@ -14,7 +15,9 @@ import {
   record,
   recordCallers,
   recording,
+  reportedUsage,
   toolCallIds,
+  type Usage,
 } from "../../../../scripts/transcripts/events.ts";
 
 type Block = Record<string, unknown> & { type?: string };
@@ -60,6 +63,44 @@ function messageOf(message: BaseMessage): Message {
       ),
     ],
   };
+}
+
+/** The usage metadata a LangChain AI message may carry; fakeModel() adds none, so only a scripted message has it. */
+interface UsageMetadata {
+  input_tokens?: number;
+  output_tokens?: number;
+  input_token_details?: { cache_read?: number; cache_creation?: number };
+  output_token_details?: { reasoning?: number };
+}
+
+/**
+ * A scripted answer's usage in the transcript's classes. LangChain's `input_tokens` counts every input token, cached
+ * or not, so the uncached part is what is left once both cache classes are known; with either missing it is left out.
+ * Its `output_tokens` already includes the reasoning tokens.
+ */
+function usageOf(message: BaseMessage): Usage | undefined {
+  const metadata = (message as BaseMessage & { usage_metadata?: UsageMetadata }).usage_metadata;
+  if (metadata === undefined) return undefined;
+  const cacheRead = metadata.input_token_details?.cache_read;
+  const cacheWrite = metadata.input_token_details?.cache_creation;
+  const uncachedInput =
+    metadata.input_tokens !== undefined && cacheRead !== undefined && cacheWrite !== undefined
+      ? metadata.input_tokens - cacheRead - cacheWrite
+      : undefined;
+  return reportedUsage({
+    uncachedInput,
+    cacheRead,
+    cacheWrite,
+    output: metadata.output_tokens,
+    reasoning: metadata.output_token_details?.reasoning,
+  });
+}
+
+/** The model id a scripted answer names in its response metadata; fakeModel() names none. */
+function modelIdOf(message: BaseMessage): string | undefined {
+  const metadata = (message.response_metadata ?? {}) as { model_name?: unknown; model?: unknown };
+  const id = metadata.model_name ?? metadata.model;
+  return typeof id === "string" ? id : undefined;
 }
 
 /** The private fields of fakeModel()'s class that the recorder reads; attach() checks they still exist. */
@@ -113,8 +154,16 @@ function attach(): void {
       if (derived && typeof answer.content === "string") derivedTexts.add(answer.content);
       const message = messageOf(answer);
       const finish = message.parts.some((part) => part.type === "tool-call") ? "tool-calls" : "stop";
-      // The answer is the queued one: its tool-call ids are the script's, or the fake model's own counter.
-      record({ kind: "response", model, message, finish, scripted: toolCallIds(message) });
+      // The answer is the queued one: its tool-call ids are the script's, or the fake model's own counter, and any usage
+      // or model id it carries is the script's.
+      record({
+        kind: "response",
+        model,
+        message,
+        finish,
+        ...answerFacts(usageOf(answer), modelIdOf(answer)),
+        scripted: toolCallIds(message),
+      });
     }
     return result;
   };

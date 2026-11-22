@@ -96,6 +96,8 @@ export function recordedSteps(steps: FauxResponseStep[]): FauxResponseStep[] {
     // A scripted step's ids are the script's, except those pi-ai's fauxToolCall() made up when the step gave none: its
     // randomId() writes them as "<prefix>:<Date.now()>:<random>", so they differ on every run.
     const scripted = toolCallIds(message).filter((id) => !/^[a-z]+:\d+:[a-z0-9]+$/.test(id));
+    // The answer carries no usage or model id (events.ts): the faux provider replaces a step's usage with an estimate
+    // from the text's length, and its model with the faux model's id, `faux-1` by default, so neither is the script's.
     record({ kind: "response", model, message, finish: answer.stopReason, scripted });
     return answer;
   });
