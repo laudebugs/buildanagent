@@ -1,5 +1,6 @@
-// Compares the flow of each live transcript (verify/<sdk>/results/live/<example>.json) with its mock transcript
-// (results/transcripts/<example>.json), for the examples in apps/manual/src/data/live-examples.json. A flow is three
+// Compares the flow of each live transcript (<harness>/results/live/<provider>/<example>.json) with its mock transcript
+// (results/transcripts/<example>.json), for the examples in apps/manual/src/data/live-examples.json. A harness is a
+// verify/<sdk> directory or one of our packages, such as packages/sdk. A flow is three
 // things: the sequence of tool calls, each by name and argument keys; the stop reason, the finish of the last answer;
 // and the result of each check(). Text, argument values, ids and timing are ignored, because a real model words its
 // answers differently on every run.
@@ -12,7 +13,7 @@ import { existsSync, readFileSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { parseArgs } from "node:util";
-import { exampleOf, LIVE_EXAMPLES_FILE, REPO_ROOT, readLiveConfig } from "../live/config.mjs";
+import { entryName, exampleOf, LIVE_EXAMPLES_FILE, REPO_ROOT, readLiveConfig } from "../live/config.mjs";
 
 /** One tool call as the flow sees it: its name and its argument keys, sorted. */
 const callOf = (part) => {
@@ -71,24 +72,40 @@ export function compareFlows(mock, live) {
   return differences;
 }
 
-/** Compares every listed example; an example without a live transcript counts as one difference. */
-export function compareAll(config, { root = REPO_ROOT, liveDir } = {}) {
+/**
+ * Compares every listed example; an example without a live transcript counts as one difference. When the run's
+ * `report` gives the example an outcome, the difference says the run reached it but its transcript is not here, as
+ * when the workflow's commit stages none of its harness's live transcripts, rather than that it never ran.
+ */
+export function compareAll(config, { root = REPO_ROOT, liveDir, report } = {}) {
+  const outcomes = new Map((report?.examples ?? []).map((e) => [entryName(e), e.outcome]));
   return config.examples.map((example) => {
-    const { harness, id, mock, live } = exampleOf(example.file);
-    const liveFile = liveDir === undefined ? join(root, live) : join(liveDir, harness, `${id}.json`);
+    const { harness, id, mock, live } = exampleOf(example.file, example.provider);
+    const liveFile = liveDir === undefined ? join(root, live) : join(liveDir, harness, example.provider, `${id}.json`);
     const mockFile = join(root, mock);
     const base = { file: example.file, provider: example.provider, model: example.model };
     if (!existsSync(mockFile)) return { ...base, differences: [`No mock transcript at \`${mock}\`.`] };
-    if (!existsSync(liveFile))
-      return { ...base, differences: ["No live transcript: the example recorded no live run."] };
+    if (!existsSync(liveFile)) {
+      const outcome = outcomes.get(entryName(example));
+      const missing =
+        outcome === undefined
+          ? "No live transcript: the example recorded no live run."
+          : `No live transcript is committed: the run reports this example's outcome as ${outcome}, but no ` +
+            `transcript of it is at \`${live}\`, so the book still shows its listing as verified against mock ` +
+            "models only.";
+      return { ...base, differences: [missing] };
+    }
     const read = (file) => flowOf(JSON.parse(readFileSync(file, "utf8")));
     return { ...base, differences: compareFlows(read(mockFile), read(liveFile)) };
   });
 }
 
-/** The comparison as Markdown, with the run's outcome per example when the run's report is given. */
+/**
+ * The comparison as Markdown, with the run's outcome per example when the run's report is given. One file may be
+ * listed on both providers, so an outcome is matched by its file and provider.
+ */
 export function diffMarkdown(results, report) {
-  const outcomes = new Map((report?.examples ?? []).map((e) => [e.file, e.outcome]));
+  const outcomes = new Map((report?.examples ?? []).map((e) => [entryName(e), e.outcome]));
   const differing = results.filter((r) => r.differences.length > 0);
   const lines = [
     differing.length === 0
@@ -97,7 +114,7 @@ export function diffMarkdown(results, report) {
         "real model varies between runs, so a difference is a prompt to look, not proof that the mock is wrong.",
   ];
   for (const result of differing) {
-    const outcome = outcomes.get(result.file);
+    const outcome = outcomes.get(entryName(result));
     lines.push(
       "",
       `### \`${result.file}\``,
@@ -119,9 +136,9 @@ function main() {
       json: { type: "string" },
     },
   });
-  const results = compareAll(readLiveConfig(values.config), { liveDir: values["live-dir"] });
   const report =
     values.report && existsSync(values.report) ? JSON.parse(readFileSync(values.report, "utf8")) : undefined;
+  const results = compareAll(readLiveConfig(values.config), { liveDir: values["live-dir"], report });
   if (values.json) {
     const differences = results.reduce((sum, r) => sum + r.differences.length, 0);
     writeFileSync(values.json, `${JSON.stringify({ differences, examples: results }, null, 2)}\n`);

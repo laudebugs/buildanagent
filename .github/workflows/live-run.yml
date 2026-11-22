@@ -15,8 +15,9 @@
 # ceiling on spend is the provider's own monthly limit on the workspace or project the key belongs to
 # (apps/manual/README.md).
 #
-# The report job runs no package code and holds no provider key. It applies both jobs' patches, checks that they
-# change only listed examples' live transcripts, records the date it computes itself when both jobs completed, and
+# The report job runs no package code and holds no provider key. It checks that each job's patch touches only its own
+# provider's listed live transcripts, applies both, checks that together they change only listed examples' live
+# transcripts, records the date it computes itself when both jobs completed, and
 # compares the flows with scripts/ci/live-diff.mjs. A flow difference opens an issue and never fails the run. Text
 # the live jobs wrote goes into the issue and the pull request only inside code blocks it can't close. The job makes
 # the commit again through GitHub's API with scripts/ci/version-commit.mjs, as sdk-updates.yml does, so GitHub signs
@@ -92,10 +93,11 @@ jobs:
           set -euo pipefail
           cat "$RUNNER_TEMP/live/live-report.md" >> "$GITHUB_STEP_SUMMARY"
           # A wildcard pathspec must match a whole path, so 'verify/*/results/live' never matches the files inside the
-          # directory, and git add fails on a pathspec that matches nothing. Staging verify/ always matches; the diff
-          # keeps only the live transcripts, and is empty when the run wrote none.
-          git add -A -- verify
-          git diff --cached --binary -- ':(glob)verify/*/results/live/**' > "$RUNNER_TEMP/live/live.patch"
+          # directory, and git add fails on a pathspec that matches nothing. Staging verify/ and packages/ always
+          # matches; the diff keeps only the live transcripts, and is empty when the run wrote none.
+          git add -A -- verify packages
+          git diff --cached --binary -- ':(glob)verify/*/results/live/**' ':(glob)packages/*/results/live/**' \
+            > "$RUNNER_TEMP/live/live.patch"
       - uses: actions/upload-artifact@v7.0.2
         with:
           name: live-anthropic
@@ -160,10 +162,11 @@ jobs:
           set -euo pipefail
           cat "$RUNNER_TEMP/live/live-report.md" >> "$GITHUB_STEP_SUMMARY"
           # A wildcard pathspec must match a whole path, so 'verify/*/results/live' never matches the files inside the
-          # directory, and git add fails on a pathspec that matches nothing. Staging verify/ always matches; the diff
-          # keeps only the live transcripts, and is empty when the run wrote none.
-          git add -A -- verify
-          git diff --cached --binary -- ':(glob)verify/*/results/live/**' > "$RUNNER_TEMP/live/live.patch"
+          # directory, and git add fails on a pathspec that matches nothing. Staging verify/ and packages/ always
+          # matches; the diff keeps only the live transcripts, and is empty when the run wrote none.
+          git add -A -- verify packages
+          git diff --cached --binary -- ':(glob)verify/*/results/live/**' ':(glob)packages/*/results/live/**' \
+            > "$RUNNER_TEMP/live/live.patch"
       - uses: actions/upload-artifact@v7.0.2
         with:
           name: live-openai
@@ -209,9 +212,14 @@ jobs:
           for dir in "$RUNNER_TEMP"/live/live-*/; do [ -f "$dir/live-report.json" ] && dirs+=("${dir%/}"); done
           node scripts/ci/live-run.mjs merge "$RUNNER_TEMP/report.json" "${dirs[@]}"
           base=$(git rev-parse HEAD)
-          # --cached leaves the working tree at main's commit, so the checks run as main holds them.
-          for patch in "$RUNNER_TEMP"/live/live-*/live.patch; do
-            if [ -s "$patch" ]; then git apply --cached --binary "$patch"; fi
+          # --cached leaves the working tree at main's commit, so the checks run as main holds them. Each patch first
+          # passes the check by job: it may touch only the listed live transcripts of the provider its artifact names.
+          for dir in "$RUNNER_TEMP"/live/live-*/; do
+            patch="${dir}live.patch"
+            if [ -s "$patch" ]; then
+              node scripts/ci/live-run.mjs patch "${dir%/}"
+              git apply --cached --binary "$patch"
+            fi
           done
           # The date is this job's own, and moves only when both provider jobs completed every example.
           node scripts/ci/live-run.mjs date "$RUNNER_TEMP/report.json" "$date"
@@ -231,9 +239,9 @@ jobs:
           # Checked, so the data files may now join the working tree for the comparison below.
           # A commit that moved only the date has no live transcript to check out, and checkout fails on a pathspec
           # that matches nothing.
-          if ! git diff --quiet "$base" HEAD -- ':(glob)verify/*/results/live/**'; then
-            git checkout HEAD -- ':(glob)verify/*/results/live/**'
-          fi
+          for live in ':(glob)verify/*/results/live/**' ':(glob)packages/*/results/live/**'; do
+            if ! git diff --quiet "$base" HEAD -- "$live"; then git checkout HEAD -- "$live"; fi
+          done
           git checkout HEAD -- apps/manual/src/data/live-comparison.json
           { echo "changed=true"; echo "base=$base"; echo "date=$date"; } >> "$GITHUB_OUTPUT"
       - name: Compare the live flows with the mock transcripts
@@ -285,7 +293,7 @@ jobs:
             exit 1
           fi
           {
-            echo "Records the [live run]($RUN_URL) of $DATE: the live transcripts in \`verify/*/results/live/\` and, when every listed example ran, the comparison date the book's listing pages show."
+            echo "Records the [live run]($RUN_URL) of $DATE: the live transcripts in \`verify/*/results/live/\` and \`packages/sdk/results/live/\` and, when every listed example ran, the comparison date the book's listing pages show."
             echo
             echo "## Flow differences"
             echo

@@ -1,5 +1,6 @@
 // Runs the live list (apps/manual/src/data/live-examples.json) against the real APIs, one example at a time, and writes
-// each example's live transcript to verify/<sdk>/results/live/<example>.json. Only .github/workflows/live-run.yml runs
+// each example's live transcript to <harness>/results/live/<provider>/<example>.json, where a harness is a
+// verify/<sdk> directory or one of our packages, such as packages/sdk. Only .github/workflows/live-run.yml runs
 // it, once in each provider's job; the tests run it against a stub server on the loopback interface.
 //
 //   node scripts/live/run.mjs --key-file <provider>=<file> [--key-file …] [--config <file>] [--report <dir>]
@@ -188,8 +189,9 @@ async function main() {
   const examples = [];
   const written = [];
   for (const example of listed) {
-    const { harness, id, live } = exampleOf(example.file);
-    const transcript = values.out === undefined ? join(REPO_ROOT, live) : join(values.out, harness, `${id}.json`);
+    const { harness, id, live } = exampleOf(example.file, example.provider);
+    const outDir = values.out === undefined ? undefined : join(values.out, harness, example.provider);
+    const transcript = outDir === undefined ? join(REPO_ROOT, live) : join(outDir, `${id}.json`);
     const base = { file: example.file, provider: example.provider, model: example.model };
     if (aborted) {
       examples.push({ ...base, outcome: "not run", calls: 0, spent: 0, checks: { passed: 0, total: 0 }, log: "" });
@@ -217,7 +219,7 @@ async function main() {
       LIVE_EXAMPLE: example.file,
       LIVE_CATALOG: values.catalog,
       LIVE_API_KEY_FILE: keyFile,
-      ...(values.out === undefined ? {} : { LIVE_OUT_DIR: join(values.out, harness) }),
+      ...(outDir === undefined ? {} : { LIVE_OUT_DIR: outDir }),
       ...(baseURLs[example.provider] === undefined ? {} : { LIVE_BASE_URL: baseURLs[example.provider] }),
     };
     const result = await runExample({ example, harnessDir: join(REPO_ROOT, harness), env, secrets });
