@@ -150,5 +150,13 @@
     "chapter": "tools-at-scale",
     "illustration": "back-room",
     "breaks": "A clerk fetches a tool in a minute for the price of waiting; a deferred tool costs a round trip and the tokens of its definition, and it keeps costing those tokens each turn it stays loaded, so the shelf must hold the tools used most."
+  },
+  {
+    "id": "usb-port",
+    "concept": "MCP",
+    "analogy": "a USB port: one plug shape for many devices",
+    "chapter": "tools-at-scale",
+    "illustration": null,
+    "breaks": "Plugging in an MCP server is closer to installing software than to plugging in a mouse: the server chooses its tools' names, descriptions and results, and the specification tells clients to treat a tool's annotations as untrusted unless the server is trusted."
   }
 ]

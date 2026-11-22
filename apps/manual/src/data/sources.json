@@ -595,5 +595,95 @@
     "version": "v1",
     "asOf": "November 2026",
     "verifiedIn": "apps/manual/fact-checks/tools-at-scale.md"
+  },
+  {
+    "id": "mcp-changelog-2026-07-28",
+    "title": "Key Changes: MCP specification 2026-07-28",
+    "publisher": "Model Context Protocol",
+    "url": "https://modelcontextprotocol.io/specification/2026-07-28/changelog",
+    "kind": "spec",
+    "version": "2026-07-28",
+    "asOf": "November 2026",
+    "verifiedIn": "apps/manual/fact-checks/tools-at-scale.md"
+  },
+  {
+    "id": "mcp-deprecated-features",
+    "title": "Deprecated Features: MCP specification 2026-07-28",
+    "publisher": "Model Context Protocol",
+    "url": "https://modelcontextprotocol.io/specification/2026-07-28/deprecated",
+    "kind": "spec",
+    "version": "2026-07-28",
+    "asOf": "November 2026",
+    "verifiedIn": "apps/manual/fact-checks/tools-at-scale.md"
+  },
+  {
+    "id": "mcp-multi-round-trip-requests",
+    "title": "Multi Round-Trip Requests: MCP specification 2026-07-28",
+    "publisher": "Model Context Protocol",
+    "url": "https://modelcontextprotocol.io/specification/2026-07-28/basic/patterns/mrtr",
+    "kind": "spec",
+    "version": "2026-07-28",
+    "asOf": "November 2026",
+    "verifiedIn": "apps/manual/fact-checks/tools-at-scale.md"
+  },
+  {
+    "id": "mcp-versioning",
+    "title": "Versioning and Compatibility: MCP specification 2026-07-28",
+    "publisher": "Model Context Protocol",
+    "url": "https://modelcontextprotocol.io/specification/2026-07-28/basic/versioning",
+    "kind": "spec",
+    "version": "2026-07-28",
+    "asOf": "November 2026",
+    "verifiedIn": "apps/manual/fact-checks/tools-at-scale.md"
+  },
+  {
+    "id": "mcp-server-discover",
+    "title": "Discovery: MCP specification 2026-07-28",
+    "publisher": "Model Context Protocol",
+    "url": "https://modelcontextprotocol.io/specification/2026-07-28/server/discover",
+    "kind": "spec",
+    "version": "2026-07-28",
+    "asOf": "November 2026",
+    "verifiedIn": "apps/manual/fact-checks/tools-at-scale.md"
+  },
+  {
+    "id": "mcp-tools-spec",
+    "title": "Tools: MCP specification 2026-07-28",
+    "publisher": "Model Context Protocol",
+    "url": "https://modelcontextprotocol.io/specification/2026-07-28/server/tools",
+    "kind": "spec",
+    "version": "2026-07-28",
+    "asOf": "November 2026",
+    "verifiedIn": "apps/manual/fact-checks/tools-at-scale.md"
+  },
+  {
+    "id": "ai-sdk-mcp-tools",
+    "title": "Model Context Protocol (MCP)",
+    "publisher": "AI SDK documentation",
+    "url": "https://github.com/vercel/ai/blob/ai%407.0.162/content/docs/03-ai-sdk-core/16-mcp-tools.mdx",
+    "kind": "docs",
+    "version": "ai@7.0.162",
+    "asOf": "November 2026",
+    "verifiedIn": "apps/manual/fact-checks/tools-at-scale.md"
+  },
+  {
+    "id": "cloudflare-agents-mcp-client",
+    "title": "MCP client",
+    "publisher": "Cloudflare Agents documentation",
+    "url": "https://github.com/cloudflare/agents/blob/agents@0.33.0/docs/agents/mcp-client.md",
+    "kind": "docs",
+    "version": "agents@0.33.0",
+    "asOf": "November 2026",
+    "verifiedIn": "apps/manual/fact-checks/tools-at-scale.md"
+  },
+  {
+    "id": "copilot-sdk-nodejs-readme",
+    "title": "Copilot SDK for Node.js and TypeScript",
+    "publisher": "GitHub Copilot SDK",
+    "url": "https://github.com/github/copilot-sdk/blob/v1.0.31/nodejs/README.md",
+    "kind": "docs",
+    "version": "v1.0.31",
+    "asOf": "November 2026",
+    "verifiedIn": "apps/manual/fact-checks/tools-at-scale.md"
   }
 ]

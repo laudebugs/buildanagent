@@ -2,7 +2,7 @@
 title: "Tools at scale: the registry, deferred tools, MCP and skills"
 summary: An agent with dozens of tools stays usable when one registry names and gates every tool and most definitions stay out of the request until the model asks. This chapter shows tool selection and deferral in checked listings, what MCP's 2026-07-28 revision changes for a client, and how skills load on demand, and it marks which parts of our harness are built.
 opening: fact
-sources: [anthropic-advanced-tool-use, claude-agent-sdk-tool-search, pi-mcp-servers, pi-sdk-docs, buildanagent-harness-readme, santra-acam]
+sources: [anthropic-advanced-tool-use, claude-agent-sdk-tool-search, pi-mcp-servers, pi-sdk-docs, buildanagent-harness-readme, santra-acam, anthropic-model-context-protocol, mcp-tools-spec, mcp-changelog-2026-07-28, mcp-deprecated-features, mcp-versioning, mcp-server-discover, mcp-multi-round-trip-requests, ai-sdk-mcp-tools, cloudflare-agents-mcp-client, copilot-sdk-nodejs-readme]
 glossary: [tool, mcp, tool-registry, deferred-tool]
 switchTo: [N11, N21, N22, N23, N24, N25]
 ---
@@ -72,6 +72,56 @@ The saving is large once the shelf holds dozens of tools. Anthropic measured 50 
 The store's customers pay for the back room in minutes, and a model pays in two ways. Each search adds one round trip, and the Claude Agent SDK's documentation says that with fewer than about ten tools whose definitions fit comfortably, loading everything upfront is typically faster [@claude-agent-sdk-tool-search]. A loaded definition also stays in the context for later turns, until the SDK compacts the messages where the model found it. So the shelf should hold the tools your agent uses on most runs, and `alwaysLoad` is the setting that puts them there. Finding the rest depends on words: the search matches a query against tool names and descriptions, and the SDK's documentation notes that `search_slack_messages`{checked=row-28} surfaces for a wider range of requests than `query_slack`{checked=row-28} [@claude-agent-sdk-tool-search]. Pi sends the same signal at the server level, because it lists a server's `description`{checked=row-34} in the system prompt and ranks the server's tools by it when `tool_search`{checked=row-33} runs [@pi-mcp-servers].
 
 Our harness builds the same mechanism into its registry, as of November 2026 and in code that no listing shows. MCP tools default to `deferred`{checked=row-13}, and `tool_search`{checked=row-35} is a registered tool that matches the words of a query against the names, aliases and descriptions of deferred tools, ignores common words and words under three letters, and records up to five matches in an `activated`{checked=row-35} set [@buildanagent-harness-readme]. An interceptor then sets each request's `activeTools`{checked=row-37} to the run's tools, the activated names and `tool_search`{checked=row-35}, so a deferred tool is absent from one request and present in the next. A `hidden`{checked=row-13} tool never appears in a search, because hiding a tool means the model should not learn it exists. The registry also estimates the tokens that `direct`{checked=row-13} tools add before any message, which makes the saving visible at session start. Pi's four exposure levels, `codemode`{checked=row-33}, `deferred`{checked=row-13}, `direct`{checked=row-13} and `hidden`{checked=row-13}, rest on the same split: sending a tool, finding a tool and denying a tool are different decisions, and a registry that keeps them apart lets you change one without touching the others.
+
+## MCP's 2026-07-28 revision makes every request stand alone and turns a server's questions into results
+
+MCP is :analogy[a USB port: one plug shape for many devices]{#usb-port}. Anthropic announced it in November 2024 as an open standard that replaces fragmented integrations with a single protocol [@anthropic-model-context-protocol], so any client that speaks it can use any server's tools. A mouse only moves a cursor, though, and an MCP server is closer to installed software. It chooses its tools' names, descriptions and results, and the specification tells clients to treat a tool's annotations as untrusted unless the server is trusted, and to keep a human able to deny tool calls [@mcp-tools-spec]. That is why the registry from the first section marks MCP output untrusted.
+
+Connecting takes little code, and each of the three SDKs below puts it in a different place. The AI SDK converts a server's tools into its own and hands them to `generateText`. Cloudflare's `Agent` class connects and holds the connection for you. The Copilot SDK starts the server inside its runtime and renames each tool `<server-key>-<tool-name>`{checked=row-66}, here `orders-order_status` [@ai-sdk-mcp-tools; @cloudflare-agents-mcp-client; @copilot-sdk-nodejs-readme].
+
+::::tabs
+:::listing[AI SDK]{#mcp-ai file="verify/vercel-ai-sdk/examples/08-mcp-tools.ts" region="mcp-client"}
+::note[The transport here is an in-process server. A real one is HTTP or stdio.]{#connect}
+::note[`client.tools()` turns the server's tools into AI SDK tools, keyed by name.]{#convert}
+::note[The tools go straight into the normal loop.]{#loop}
+::note[This server answers an `initialize`{checked=row-61} handshake, so the example shows the legacy path, not the stateless one.]{#handshake}
+:::
+:::listing[Cloudflare Agents]{#mcp-cloudflare file="verify/cloudflare-agents/examples/07-mcp.ts" region="mcp-client"}
+::note[`addMcpServer` connects and returns the connection's state and id.]{#add}
+::note[Each listed tool records the id of the server it came from.]{#list}
+::note[`getAITools` hands the tools to an AI SDK model call.]{#ai-tools}
+:::
+:::listing[Copilot SDK]{#mcp-copilot file="verify/copilot-sdk/examples/07-mcp-server.ts" region="mcp-config"}
+::note[The runtime starts this server as a subprocess; `tools: ["*"]` offers all its tools, and `[]` would offer none.]{#server}
+::note[Every MCP call asks the permission callback, as any other tool does.]{#permission}
+::note[The model sees the tool as `orders-order_status`.]{#name}
+::note[The request kind is `mcp`, so your callback can tell an MCP call from a file edit.]{#kind}
+:::
+::::
+
+These listings show connecting, not the revision. The AI SDK example speaks the legacy handshake, and the Cloudflare example does not show which era its client chose. What the 2026-07-28 revision changes is the conversation behind these calls, and [[tbl:mcp-changes]] sets the old and new designs side by side [@mcp-changelog-2026-07-28; @mcp-deprecated-features].
+
+:::table[What the 2026-07-28 revision changes for an MCP client]{#mcp-changes}
+| Concern | Before 2026-07-28 | In 2026-07-28 |
+| --- | --- | --- |
+| Opening a connection | An `initialize`{checked=row-41} handshake, then a session id header | No handshake and no session: every request carries its version and capabilities in `_meta`{checked=row-41} |
+| Learning what a server offers | The handshake's reply | An optional `server/discover` call, which every server must answer |
+| A server needing the user | The server sends its own request mid-call | The call returns an `input_required`{checked=row-49} result, and the client retries with the answers |
+| Roots, Sampling, Logging | Active features | Deprecated, still working, removable from the first revision on or after 2027-07-28 |
+| Registering a client with an authorization server | Dynamic client registration | Deprecated in favour of Client ID Metadata Documents |
+:::
+
+The first change makes a request self-contained. There is no handshake and no session id, and every request names the protocol version and the client's capabilities in `_meta`{checked=row-41}. A server that supports a different version answers with `UnsupportedProtocolVersionError`{checked=row-41}, which lists the versions it does support, and the client retries with one of them [@mcp-changelog-2026-07-28; @mcp-versioning]. A server that needs state across calls hands out an explicit handle, and the handle travels as an ordinary tool argument. No instance needs the memory of an earlier request, and the specification says the retry flow described below needs no shared storage layer across server instances and no stateful load balancing [@mcp-multi-round-trip-requests].
+
+The second change gives clients a way to ask first. Every server must implement `server/discover`, which reports its supported versions, capabilities and identity, and a client may call it before anything else, though it need not [@mcp-server-discover]. It matters most on stdio, where there is no HTTP status to react to. A client that wants to work with old and new servers probes with `server/discover` and falls back to `initialize`{checked=row-41} on any error that is not a recognised modern one. On HTTP it sends a modern request and inspects the body of a 400 reply before falling back, and in both cases it remembers the answer for the server process or origin [@mcp-versioning]. A client built only for the new revision fails against an old server, so the dual-era client is the safe default for as long as you connect to servers you do not control. The AI SDK documents exactly this behaviour for its stdio transport, and Cloudflare Agents negotiates for every connection [@ai-sdk-mcp-tools; @cloudflare-agents-mcp-client].
+
+The third change moves the server's questions into its answers. Suppose a tool needs your GitHub username before it can run. In the old design the server sent a request of its own in the middle of the call. In the new one the call returns an `input_required`{checked=row-49} result, with `inputRequests`{checked=row-49} that name what it needs, and the client gathers the answers and retries the same request with `inputResponses`{checked=row-49} [@mcp-multi-round-trip-requests]. The server keeps nothing between the two requests. It folds what it needs into an opaque `requestState`{checked=row-50} string, and the client echoes it back unchanged. Every result now carries a `resultType`{checked=row-53} of `complete`{checked=row-53} or `input_required`{checked=row-49}, and a client treats a missing one as `complete`{checked=row-53}.
+
+For an agent, this means a tool call can come back asking for a person. Your loop must be able to pause there and resume, which is the job of [[ch:approvals-guardrails-and-injection]]. Cloudflare Agents handles it for you: the SDK invokes your elicitation handler, sends the answer and continues the original call, which stays pending in memory while the person answers. A hibernation or isolate restart loses that call, and the caller retries [@cloudflare-agents-mcp-client]. Where a call must survive such a restart, [[ch:durable-and-portable-agents]] returns to the problem. The specification also repeats a warning from the approvals chapter. A server must treat `requestState`{checked=row-50} as attacker-controlled input, because the client holds it between the two requests, and when it influences authorization or business logic the server must protect its integrity with an HMAC or authenticated encryption and reject state that fails verification [@mcp-multi-round-trip-requests]. A saved pause that nobody signed is as editable here as it was there.
+
+The fourth change is a set of deprecations. The revision deprecates Roots, Sampling and Logging, and the dynamic client registration protocol. They keep working through a deprecation window of at least twelve months, and the earliest revision that may remove them is the first one released on or after 2027-07-28, so the dates are a floor and not a schedule [@mcp-deprecated-features; @mcp-changelog-2026-07-28]. The migrations point away from the protocol. Pass directories and files as tool parameters instead of Roots, call model providers directly instead of using Sampling, and log to stderr or send OpenTelemetry instead of using Logging. The revision also removes `ping`{checked=row-56}, `logging/setLevel` and the roots change notification, and a client sets the log level on each request in `_meta`{checked=row-41}. In short, build nothing new on the deprecated features.
+
+Our own MCP client is a design as of November 2026. Todo N24 plans to negotiate the era per server and to register each server's tools as deferred tools, so every call goes through the permission pipeline, but the client is not built and the plan does not yet handle `input_required`{checked=row-49}. A proposal in our source-update report would turn each input request into a pause that a person answers through a signed approval. Neither is adopted, so read both as intent and not as behaviour.
 
 ## Exercises
 
