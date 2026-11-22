@@ -92,7 +92,7 @@ export interface McpRemoteSettings {
   /**
    * The egress proxy to send every request through, so its allowlist, address checks and log apply. The URL
    * must then be `https:` and its host on the proxy's allowlist. Left out, the harness connects itself, with the
-   * address checks below.
+   * address checks that `allowAddresses` describes.
    */
   readonly proxy?: McpEgressFetch;
   /**
@@ -320,9 +320,9 @@ export type McpServerStatus =
 export interface McpManager extends TurnBoundary {
   /**
    * Connects every server at once, registers each one's tools as soon as it connects, and resolves with a status per
-   * server, in config order, once all have connected or failed. Call it before a session's first turn and not while a
-   * turn runs, or use `start()` to connect in the background. A server that fails is reported and closed, and the others still connect. Calling it again returns the
-   * same result. With `mcp: false` it resolves with an empty list.
+   * server, in config order, once all have connected or failed. Call it before a session's first turn, never while a
+   * turn runs; to connect in the background instead, use `start()`. A server that fails is reported and closed, and the
+   * others still connect. Calling it again returns the same result. With `mcp: false` it resolves with an empty list.
    */
   connect(): Promise<readonly McpServerStatus[]>;
   /**
