@@ -34,6 +34,7 @@ export type {
   MaybePromise,
   ModelCallEvent,
   ModelCallPatch,
+  ModelCallStop,
   ModelResultEvent,
   Observer,
   OrNothing,

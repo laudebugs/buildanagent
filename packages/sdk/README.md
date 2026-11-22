@@ -44,7 +44,7 @@ A failed model call or a failing tool never makes a run throw. The run ends with
 - **`max_steps`**: the run made `maxSteps` model calls, 20 by default, and the model still wanted to go on. The run also emits a `warning` event with `code: "max_steps"`, so a cap that cut a run short shows up in your logs.
 - **`error`**: a model call failed. `result.error` copies the failure's `kind` and `message`, plus its HTTP `status` and `retryAfterMs` (the wait in milliseconds the provider asked for) when it has them. Its `kind` is `overflow` for a request too large for the model's window, `quota` for an account out of credit, `retryable` for a temporary failure that outlasted the gateway's retries and your `turnRetries`, `hook` for an interceptor that threw while the run fails closed, `unknown_price` for a budgeted run that can't price a call, and `fatal` otherwise.
 - **`aborted`**: you aborted the run.
-- **`stopped`**: a `shouldStop` hook ended the run, and `result.stoppedBy` is the reason it gave.
+- **`stopped`**: a `shouldStop` hook ended the run after a step, or a `beforeModelCall` hook ended it before a call with `{ stop }`. `result.stoppedBy` is the reason the hook gave. It does not say which hook stopped the run, so give each hook a reason of its own.
 - **`no_progress`**: the default progress policy found the model repeating a failing call, or a `shouldStop` hook ended the run with `{ stop: "no_progress", reason }`. `result.reason` says why.
 - **`budget`**: the next call could have taken the run past `budgetUsd`, so the run ended without making it. `result.spentUsd`, `result.projectedUsd` and `result.budgetUsd` give the numbers.
 - **`awaiting_approval`**: a `beforeToolCall` gate returned `ask`, so the call waits for a person. `result.pending` holds one signed request for each waiting call, as [the pause section](#a-gate-that-asks-ends-the-run-with-a-signed-pending-request) explains.
@@ -211,6 +211,7 @@ A program versioned apart from the SDK, such as a harness that talks to the agen
 - **`write_outcomes_v1`**: a tool's `outcome` tells the model what a write did and whether a retry is safe.
 - **`turn_retries_v1`**: `turnRetries` re-issues a model call that ended with a `retryable` error, and marks each retry with a `retry` event whose `layer` is `turn`.
 - **`raw_events_v1`**: `includeRaw` makes the run emit the provider's own stream events as `raw` events.
+- **`before_model_call_stop_v1`**: `beforeModelCall` may return `{ stop }`, which ends the run `stopped` before that call.
 
 A test fails when this list and `CAPABILITIES` disagree.
 
@@ -231,7 +232,7 @@ A hook is a function that takes one event object. Interceptors can change, block
 Each model call goes through the same moments, and each interceptor owns one of them:
 
 1. **`transformContext`** returns the messages to send for this call. Use it to mask old tool output or summarise a long conversation. The view reaches that one request. The next call's event, `result.messages` and `result.context` all keep the full history, and each call emits a `context_transformed` event.
-2. **`beforeModelCall`** returns a patch for the request: a `system` prompt, `messages`, `options`, another `model`, or `activeTools`. A patch lasts for that call only.
+2. **`beforeModelCall`** returns a patch for the request: a `system` prompt, `messages`, `options`, another `model`, or `activeTools`. A patch lasts for that call only. It can instead return `{ stop: "reason" }` alone. The run then ends before the call, the first one included. Nothing is sent to any model, no `model_call_start` is emitted, and the run ends `stopped` with the reason as `stoppedBy`. Use it to refuse a conversation you do not trust, such as a user message that matches a screening pattern. A screen for prompt injection is one layer of defence, and only as good as the hook's checks. If `turnRetries` re-issues a failed call and the hook stops that retry, the run ends `stopped` after the `retry` event, and the failed response stays out of the transcript.
 3. The model call runs.
 4. **`afterModelCall`** returns `{ message }` to replace the response. The transcript, `model_call_end` and the tool calls that run all use the replacement, while usage and cost stay the model's own.
 5. For each tool call, **`beforeToolCall`** decides whether it runs, and **`afterToolCall`** edits the result.
@@ -265,7 +266,7 @@ Set `onFailure: "continue"` to skip a failed hook and go on as if it had returne
 
 ### `composeInterceptors()` joins several objects
 
-A run takes one `Interceptors` object, so `composeInterceptors(a, b)` joins a context policy, a permission check and an audit. For a moment that several define, the hooks run in the order given. `transformContext` passes the messages through each hook in turn. `beforeModelCall` merges the patches, a later field replacing an earlier one. `afterModelCall` and `afterToolCall` chain, each hook seeing the result so far. For gates the strictest answer wins: the first `deny` ends the check, an `ask` beats an `allow`, and an input one gate replaces is the input the next gate sees. For `shouldStop` the first stop wins, then the first continue. Each hook's return value is checked as if it ran alone, so a gate that returns nothing throws `invalid_hook_result` even when another gate allows the call. The joined `onFailure` is `"continue"` only when every object sets it to `"continue"`; an object that leaves it unset counts as `"fail_closed"`.
+A run takes one `Interceptors` object, so `composeInterceptors(a, b)` joins a context policy, a permission check and an audit. For a moment that several define, the hooks run in the order given. `transformContext` passes the messages through each hook in turn. `beforeModelCall` merges the patches, a later field replacing an earlier one, and the first `{ stop }` ends the check, so the hooks after it are never called. `afterModelCall` and `afterToolCall` chain, each hook seeing the result so far. For gates the strictest answer wins: the first `deny` ends the check, an `ask` beats an `allow`, and an input one gate replaces is the input the next gate sees. For `shouldStop` the first stop wins, then the first continue. Each hook's return value is checked as if it ran alone, so a gate that returns nothing throws `invalid_hook_result` even when another gate allows the call. The joined `onFailure` is `"continue"` only when every object sets it to `"continue"`; an object that leaves it unset counts as `"fail_closed"`.
 
 ### Observers watch without changing anything
 
@@ -636,6 +637,7 @@ The conformance suite in [`test/triage-suite.ts`](test/triage-suite.ts) takes a 
 - every request offers only `lookup_customer`, `escalate` and `submit_triage`;
 - the lookup answers for the signed-in customer, whatever email the model sends;
 - a call to a host tool the agent never offered, such as `bash` or `write_file`, runs nothing and comes back to the model as an error;
+- a `beforeModelCall` stop ends a run on an injected ticket before any model call, and the same hook lets a clean ticket through;
 - the system prompt reaches the model on every request, on a resumed run too.
 
 The cases assert nothing about observers, so a loop without them can run the suite. `test/capstone.test.ts` checks the audit trail on the SDK's loop.
@@ -645,7 +647,7 @@ The tables in the [deep comparison](../../docs/comparison/deep-comparison.md#1-t
 | Capstone | Code lines | Hooks |
 | --- | --- | --- |
 | Our capstone, the agent alone | 83 | 2 |
-| Our capstone with its cases and backends | 552 | 2 |
+| Our capstone with its cases and backends | 596 | 2 |
 | Vercel AI SDK | 58 | |
 | Claude Agent SDK | 62 | |
 | LangChain.js | 67 | 2 |
@@ -655,9 +657,9 @@ The tables in the [deep comparison](../../docs/comparison/deep-comparison.md#1-t
 | Google ADK | 114 | |
 | Cloudflare Agents | 122 | |
 
-## A reference loop shows the real loop's shape in about 440 lines
+## A reference loop shows the real loop's shape in about 450 lines
 
-[`reference-loop/reference-loop.ts`](reference-loop/reference-loop.ts) is a loop you can read in one sitting. It exports `run()` and `continueRun()`, ends a run with every stop reason of the real loop except `clarification_requested`, and imports only the public exports of `@buildanagent/gateway` and `@buildanagent/sdk`. The capstone's conformance suite runs against it on the scripted model and both mock transports, so it cannot drift into a toy: a change to the real loop that the reference no longer matches fails `test/reference-loop.test.ts`. That file counts the loop's non-blank, non-comment lines and fails at 440. It checks that the reference and the real loop end seventeen scripted runs with the same stop reason, step count, message count and failed tool results. It also runs more cases on both loops, among them resumes, approved calls and tool errors.
+[`reference-loop/reference-loop.ts`](reference-loop/reference-loop.ts) is a loop you can read in one sitting. It exports `run()` and `continueRun()`, ends a run with every stop reason of the real loop except `clarification_requested`, and imports only the public exports of `@buildanagent/gateway` and `@buildanagent/sdk`. The capstone's conformance suite runs against it on the scripted model and both mock transports, so it cannot drift into a toy: a change to the real loop that the reference no longer matches fails `test/reference-loop.test.ts`. That file counts the loop's non-blank, non-comment lines and fails at 450. It checks that the reference and the real loop end seventeen scripted runs with the same stop reason, step count, message count and failed tool results. It also runs more cases on both loops, among them resumes, approved calls and tool errors.
 
 Each step runs in the real loop's order: `transformContext`, `beforeModelCall`, the streamed model call, `afterModelCall`, the tools, then the stop check with `shouldStop` and the progress rule. The table maps each part to the module it simplifies.
 

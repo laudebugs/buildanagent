@@ -1,5 +1,22 @@
 # @buildanagent/sdk
 
+## 0.1.0-alpha.24
+
+### Minor Changes
+
+- 0785fba: Breaking Changes: `beforeModelCall` now returns `ModelCallPatch | ModelCallStop`, and `ModelCallPatch` gains `stop?: never`. Code that calls a hook itself and reads `patch?.system` or `patch?.activeTools` must narrow the result first. A patch that carried a stray `stop` key now ends the run when the key is valid text and throws `invalid_hook_result` when it is not. Remove the key.
+  
+  `beforeModelCall` can now return `{ stop: "reason" }`, which ends the run before that call, the first one included. Nothing is sent to the model, no `model_call_start` event is emitted, and the run ends `stopped` with the reason as `stoppedBy`. `composeInterceptors()` ends the check at the first stop. A program versioned apart from the SDK can check for the new `before_model_call_stop_v1` capability before it relies on a stop.
+- 39d30d2: Breaking Changes: a pause now binds the run's `app` into its signed request as `appHash`, a MAC that the run's signer makes over the tagged canonical JSON of `app`. `continueRun()` checks it right after the signature, before the call and input checks. An `app` that is missing or different ends the run with an `error` result of kind `app_mismatch`, and in a run that has `app`, a request that fails its signature or shape check ends it with kind `request_unverified`, instead of being asked again for whoever resumed. A resume whose `app` has no canonical form ends with `app_unhashable`. Each ends with `run_end` and runs no approved call. Pass the original caller's `app` back, not the approver's.
+  
+  A run with a `beforeToolCall` gate now throws `invalid_run_options` at once for an `app` with no canonical JSON form, such as one holding a `Date`, because a pause could not bind it. `RejectionCause` and `RunError.kind` gain members, and `createPendingRequest()` accepts an `app`.
+  
+  A pause saved before this release has no `appHash`, binds nothing and still resumes with any `app`. A request signed with an `appHash` uses a second signature layout, so an older SDK refuses it.
+
+### Patch Changes
+
+- @buildanagent/gateway@0.1.0-alpha.24
+
 ## 0.1.0-alpha.23
 
 ### Minor Changes

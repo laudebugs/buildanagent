@@ -11,7 +11,7 @@ A run never throws because a model call failed or a tool broke. It ends with a r
 - **`max_steps`**: the run made its step limit of model calls, 20 by default, and the model still wanted to go on.
 - **`error`**: a model call failed. The result's `error` says what kind of failure it was.
 - **`aborted`**: you aborted the run.
-- **`stopped`**: a `shouldStop` hook ended the run.
+- **`stopped`**: a `shouldStop` hook ended the run, or `beforeModelCall` returned `{ stop }` before a call. In the second case the call the hook stopped never ran, so a run stopped at its first call has `steps` of 0. `stoppedBy` is the reason the hook gave, as in the first.
 - **`no_progress`**: the progress policy found the model repeating a failing call.
 - **`budget`**: the next call could have taken the run past its dollar budget, so the run ended without making it.
 - **`awaiting_approval`**: a gate asked a person to approve a tool call, and the call waits.
