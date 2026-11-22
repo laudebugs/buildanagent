@@ -1,7 +1,7 @@
 // A model call that survives a failure and reuses a cached prefix, on the gateway. The gateway's Anthropic adapter
-// talks to a stub of Messages API (examples/lib/stub.ts), so a retried failure, a cache write and a cache read all
+// talks to a stub of the Messages API (examples/lib/stub.ts), so a retried failure, a cache write and a cache read all
 // happen on the real wire format: the stub answers an HTTP status the example queues, and reports cache tokens when it
-// sees a marked prefix a second time. The book's Chapter 9 lists the code beside the AI SDK's, which retries through
+// sees a marked prefix a second time. The model-gateway chapter lists the code beside the AI SDK's, which retries via
 // generateText and reads cache tokens from its mock model. Prices are Claude Sonnet 5.5's, from the shipped catalog.
 import { createModel, type Model, type ModelCallOptions } from "@buildanagent/gateway";
 import { check } from "./lib/check.js";

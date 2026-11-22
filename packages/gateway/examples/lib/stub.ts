@@ -2,7 +2,7 @@
 // transport under the gateway's real Anthropic adapter: it answers each HTTP request with a status the example
 // queued, or with a stream in Messages format whose usage follows the request. A prefix marked with `cache_control`
 // is written to the stub's cache on its first request and read from it on the next, the way a provider reports it.
-// The stub models only the system prompt's breakpoint; the gateway's adapter marks up to three.
+// Only the system prompt's mark is modelled and the examples send no tools, so a request with tools throws.
 import type { ModelAdapter, Sleep } from "@buildanagent/gateway";
 import { anthropic } from "@buildanagent/gateway/anthropic";
 import { markMockTransport, serverSentEvents } from "@buildanagent/gateway/testing";
@@ -42,7 +42,7 @@ export function anthropicStub(): AnthropicStub {
   const cached = new Set<string>();
   const transport = markMockTransport(async (request: Request) => {
     const body = (await request.json()) as WireRequest;
-    requests.push(body);
+    requests.push(onlySystemMark(body));
     const status = failures.shift();
     if (status !== undefined) {
       const error = { type: "error", error: { type: ERROR_TYPES[status] ?? "api_error", message: "scripted failure" } };
@@ -63,6 +63,14 @@ export function anthropicStub(): AnthropicStub {
     return new Response(serverSentEvents(events), { headers: { "content-type": "text/event-stream" } });
   });
   return { transport, failures, requests };
+}
+
+/** Refuses a request the stub cannot price: the adapter also marks the last tool, which the stub does not model. */
+function onlySystemMark(body: WireRequest & { tools?: unknown[] }): WireRequest {
+  if (body.tools !== undefined && body.tools.length > 0) {
+    throw new Error("the Messages stub models only the system prompt's cache mark, so it takes no tools");
+  }
+  return body;
 }
 
 /** A sleep that returns at once, so the gateway's 2 and 4 second backoffs cost the example nothing. */

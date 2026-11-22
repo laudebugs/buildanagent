@@ -12,7 +12,7 @@ Under ten lines of code ask a model a question. The helper in [[lst:ask-helper-o
 ::::tabs
 :::listing[Our gateway]{#ask-helper-ours file="packages/gateway/examples/04-retries-caching.ts" region="ask"}
 ::note[`cacheRetention` is the gateway's own caching option, so it asks every adapter for caching in that adapter's terms. The Anthropic adapter turns `"short"` into a mark on the request.]{#cache-mark}
-::note[The call's own answer limit. Section five uses it to project what the call can cost.]{#output-cap}
+::note[The call's own answer limit. Section five's budget example sets the same limit through `modelOptions`{checked=row-145}.]{#output-cap}
 :::
 :::listing[AI SDK]{#ask-helper file="verify/vercel-ai-sdk/examples/12-retries-caching-budget.ts" region="ask"}
 ::note[The `cacheControl` entry sits under the `anthropic` key, so it is a request to Anthropic's cache and nobody else's.]{#cache-mark}
