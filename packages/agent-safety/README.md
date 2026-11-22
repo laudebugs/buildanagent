@@ -307,6 +307,46 @@ The last check claims the step in a `PlanLedger`, after every other check has pa
 
 The ledger records that a step passed its check, not that the step ran. A step after the pivot returns `ok` once the pivot has passed, even if the refund then failed or the process crashed before it. So the host tracks which steps ran and runs each step only after the one before it succeeded. It compensates the steps that ran only when the pivot never ran, and once the pivot has run, it runs forward, whatever a later check returns. `claim()` must be atomic, because two checks of one step that arrive together must pass once between them. `memoryPlanLedger()` keeps the claims in memory, for tests and single-process hosts. A host whose plan can resume in another process needs a durable ledger, such as a compare-and-set on a row per plan.
 
+## `runPlan()` runs the approved plan and says what is true afterwards
+
+`verifyPlanBeforeStep()` checks one step. `runPlan()` runs the whole plan: it verifies each step, runs it as a `guardedWrite()`, undoes the steps that ran if the plan fails before the pivot, and returns an outcome the harness computed, never one the model guessed. You give it the signed approval and one `PlanStepImpl` for each signed step, in order. A step holds its signed `step`, its exact `input`, a `dedupe` rule, a `run(key)` that returns a `WriteOutcome`, and, for a compensable step, a `compensate(key)` that returns an `applied` outcome once the step is undone. Each key comes from `effectKey()`, so no step and no compensation is ever sent under a fresh key. A step without a business key is keyed by the plan id and the step id. A step with one is keyed by the business key alone, which names one operation for good across plans. A step that another plan already applied therefore returns that plan's stored outcome without a call.
+
+```ts
+const outcome = await runPlan({ approval, steps, store, scope, signer, ledger, readState });
+return planWriteOutcome(outcome); // the WriteOutcome the model reads, or renderPlanOutcome(outcome) for its text
+```
+
+The rules, in the order the steps meet them:
+
+- **Before the pivot, a failure undoes the steps that ran.** The compensations run last first, each as a guarded write under a key of its own, and the pivot never runs. The outcome is `failed_compensated`, with the undone steps in `undone`.
+- **A compensation that fails stops the unwind.** The step that could not be undone and every step before it go in `held` and `outstanding`, and the outcome is `failed_needs_human`. A step before it may depend on this one being undone, so nothing further is undone. A compensation that another process is still running returns `pending` instead.
+- **A pivot whose result is not known returns `pending` with `phase: "pivot_unknown"`.** Nothing is undone, because the pivot may have taken effect, and nothing is sent under a new key. Call `runPlan()` again: the pivot's `reconcile` hook checks the earlier attempt, and a pivot that took effect lets the plan run forward.
+- **A pivot that was rejected is undone like any failed step. A pivot that left effects is not.** A pivot that only partly took effect returns `failed_needs_human` without undoing the steps before it, because undoing them could leave the plan worse.
+- **After the pivot nothing is undone.** A step that fails or times out and may still succeed returns `pending` with `phase: "running"`, and the next call retries or reconciles it. A step that cannot finish returns `failed_needs_human`: the steps that ran are in `held`, and that step and every later one are in `outstanding`.
+- **A cancel before the pivot undoes the steps that ran, and a cancel after it is ignored.** Pass an `AbortSignal` as `signal`. It is checked before each step up to and including the pivot starts. Once the pivot has started, the plan runs forward.
+- **A stale or lapsed approval is a failure of the step that meets it.** Found before any step ran, it returns `stale_approval` or `expired` and nothing ran. Found after a step ran, it undoes the steps that ran and returns `failed_compensated` with the reason `STALE_APPROVAL` or `EXPIRED`.
+- **A forged approval, or a step whose input differs from the signed one, is refused the same way.** Found before any step ran, it returns `rejected`. Found later, it is a failure of that step: before the pivot the steps that ran are undone with the reason `NOT_VERIFIED`, and after it the plan goes to a person.
+- **A plan undoes only the steps it ran.** A step that another plan applied under the same business key is left alone.
+
+The mapping onto the five write outcomes is fixed, and `renderPlanOutcome()` renders it with `renderOutcome()`:
+
+| Plan outcome | Write outcome | Retry |
+| --- | --- | --- |
+| `completed` | `applied` | `never` |
+| `failed_compensated` | `compensated` | `new_operation_only` |
+| `failed_needs_human` | `partial`, with `held`, the steps that still hold, as its applied effects | `never` |
+| `pending`, `pivot_unknown` | `unknown` | `reconcile_first` |
+| `pending`, `running` | `unknown` | `never` |
+| `stale_approval`, `expired`, `rejected` | `not_applied` | `new_operation_only` |
+
+**The step records are the compensation log.** Each step's record carries the plan id and step id of the call that wrote it, so reading the records in plan order shows which steps this plan ran. A plan that crashed and is called again with the same approval skips every step that already ran, compensates exactly those if it was unwinding, and never repeats a call. The one extra record is the plan's decision to unwind, which a resume reads first, so a step that failed is not retried while its plan is half undone.
+
+A resume needs a durable `EffectStore` and a durable `PlanLedger`: with in-memory ones, a new process forgets the plan. A compensation that crashed before it settled is checked with `reconcileCompensation`, and without that hook it comes back `unknown` and goes to a person.
+
+`runPlan()` throws a `SafetyError` with the code `invalid_plan` when the steps are not the signed ones, a compensable step has no `compensate`, or a step that can't be undone has one.
+
+It can't catch a value you left out of `state`: if a step's arguments came from a value the plan never listed, the approval does not cover that value, and no check can find the gap. That is a known miss, and the rule in the `state` section above is the only guard against it. Keep a plan inside one process: one that outlives it needs plan state beyond what the effect store holds, which is out of scope here.
+
 ## Every model call carries the user's own key, or it fails
 
 An agent that bills the wrong account fails silently: the call succeeds, and someone else pays for it. In `ai` 7.0.162 three paths let that happen without a line of your code choosing it. A provider built without `apiKey` reads `ANTHROPIC_API_KEY` or `OPENAI_API_KEY` from the environment. A provider built without `baseURL` reads `ANTHROPIC_BASE_URL` or `OPENAI_BASE_URL`. A string model id such as `"anthropic/<model>"` goes to Vercel AI Gateway, which signs in with `AI_GATEWAY_API_KEY` or a Vercel OIDC token and, by default, falls back to Vercel's own billed keys. The `./byok` subpath closes all three for the models it builds and for string ids. A call on a model built with `explicitProvider()` throws before it is sent if it would carry anything but the key you passed, and a string id throws once `assertNoDefaultProvider()` has run. A model object you build any other way, such as one from `createAnthropic()` or the `gateway` that `ai` exports, isn't checked, so build every model with `explicitProvider()`:
