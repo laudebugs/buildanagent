@@ -19,9 +19,23 @@ The Agent Client Protocol shows the shape. At stable version 1, its `session/upd
 ::svg{alt="A box on the left labelled one event log, ordered and appended, in the accent. Three arrows lead to three boxes on the right: chat view, plan view and review view. Under them, small notes say messages and tool cards, steps and their status, and what changed, to keep or undo. A line below says three views, one record: an approval goes back in as an entry."}
 :::
 
-Your own SDK already emits such a stream. [[lst:stream-parts]] reads the typed parts of an AI SDK run: lifecycle parts that mark a start and a finish, and a text delta for each piece of text. A UI that draws these parts as they arrive is a view of the stream, and a UI that stored them could draw the same run again later.
+Your own SDK already emits such a stream. [[lst:ui-stream-parts]] reads the typed parts of an AI SDK run: lifecycle parts that mark a start and a finish, and a text delta for each piece of text. A UI that draws these parts as they arrive is a view of the stream, and a UI that stored them could draw the same run again later.
 
-:::listing[A run as a stream of typed parts that a view can draw]{#stream-parts file="verify/vercel-ai-sdk/examples/06-streaming.ts" region="stream-parts"}
+:::listing[A run as a stream of typed parts that a view can draw]{#ui-stream-parts file="verify/vercel-ai-sdk/examples/06-streaming.ts" region="stream-parts"}
 :::
 
 The harness plan applies the same idea one level down. Its session log is the contract: the transcript, the tool cards, the plan and the approval inbox are all projections of one ordered, append-only record. That is our recommendation and a plan, and the part that is hard is under the views. The server has to own the run apart from any connection, chunks need sequence numbers so a client can rejoin, and a pending approval has to be a stored record and not an in-memory promise.
+
+## Undo covers the edits an agent made, and never the actions it sent
+
+A person who watches an agent edit a document wants one more control: take that back. The research behind this chapter found that agent undo is harder than it looks, and the design that fits the evidence has five parts, which are our recommendation and not a shipped feature.
+
+Tag every write with its actor and a turn id, so that "undo the agent's last turn" is one query. Make the draft real, so that the agent's edits reach persistence only when the person presses Keep. List what changed and not what was asked for, because a request can report success while a cancel hid the change. Revert by inverse operations that keep later human edits, and report every key that could not be restored. And split actions by reversibility before they run. Saves, sends, deletes and deployments sit outside every undo layer the report surveyed, so they need a confirmation before they run, or a deferred commit with a visible countdown, as a mail client does with a delayed send.
+
+The last part is the one that matters for the rest of the chapter. A review surface can show you what changed, and an undo button can restore it. Neither helps once a payment has gone out, so the click on Pay has to wait for a person before it happens.
+
+## A browser agent sees a page as labelled elements, and a screenshot is the fallback
+
+Describing a page to a model is like :analogy[describing a room by its labelled objects instead of sending a photo]{#labelled-room}. "A door on the left, a lamp on the table, a button labelled Save" carries what the agent can act on in a few words, where a photo makes it find the objects itself. That list is the accessibility snapshot, and by November 2026 it is the default page representation. Playwright MCP returns lines such as `- textbox "What needs to be done?" [ref=e5]`, and a ref stays valid "until the page changes" [@playwright-mcp-snapshots]. Chrome DevTools MCP tags nodes with a `uid` and tells the model to "Prefer taking a snapshot over taking a screenshot". Labels can be missing or wrong, so a canvas, a video or a cross-origin frame still needs a screenshot, and Anthropic's browser tool tells the model to fall back to coordinates for what the tree does not describe.
+
+A model also needs somewhere to run the browser. Every hosted browser the research covered hands out a Chrome DevTools Protocol URL, so the loop that decides what to do can stay outside the browser it drives. And the vendors' computer-use tools, which send screenshots and receive clicks and keystrokes, need one adapter in each SDK. The next section uses one of them.
