@@ -1,6 +1,6 @@
 {
   "name": "@buildanagent/gateway",
-  "version": "0.1.0-alpha.24",
+  "version": "0.1.0-alpha.25",
   "description": "Model gateway for the buildanagent SDK: provider adapters, streaming, retries and cost accounting.",
   "license": "Apache-2.0 OR MIT",
   "repository": {
