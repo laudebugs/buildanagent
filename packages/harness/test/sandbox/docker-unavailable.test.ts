@@ -1,5 +1,14 @@
 import assert from "node:assert/strict";
-import { chmodSync, mkdirSync, mkdtempSync, readdirSync, readFileSync, rmSync, writeFileSync } from "node:fs";
+import {
+  chmodSync,
+  existsSync,
+  mkdirSync,
+  mkdtempSync,
+  readdirSync,
+  readFileSync,
+  rmSync,
+  writeFileSync,
+} from "node:fs";
 import { createServer } from "node:net";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
@@ -241,5 +250,111 @@ test("a bad option or root is refused before anything starts", async (context) =
   for (const [label, attempt] of Object.entries(bad)) {
     const error = await attempt().catch((caught: unknown) => caught);
     assert.equal((error as { code?: string }).code, "invalid_sandbox_options", `${label} must be refused`);
+  }
+});
+
+test("denyWrite and protected paths are mounted read-only on top of the write root, once each", async (context) => {
+  if (!linux) context.skip("this backend runs on Linux only");
+  const root = folder();
+  const elsewhere = folder("elsewhere");
+  mkdirSync(join(root, ".git", "hooks"), { recursive: true });
+  writeFileSync(join(root, ".git", "config"), "[core]");
+  writeFileSync(join(root, ".bashrc"), "");
+  const docker = fakeDocker();
+  const later = join(root, "log-made-at-provision");
+  const sandbox = await dockerSandbox({
+    image: IMAGE,
+    binary: docker.binary,
+    denyWrite: [later, root, elsewhere],
+  }).provision({ root }, policy(root));
+  try {
+    await sandbox.exec(["true"], { env: {}, signal: abortSignal() });
+    const first = (docker.calls().find((call) => call.startsWith("create")) ?? "").split("\n")[0] ?? "";
+    assert.ok(existsSync(later), "a denyWrite folder that is missing is made, so it can be mounted read-only");
+    assert.ok(!first.includes(`src=${elsewhere}`), "a denyWrite path outside every write root is not mounted");
+    const mounts = first.match(/type=bind,src=[^ ]+/g) ?? [];
+    assert.equal(
+      new Set(mounts.map((mount) => mount.match(/dst=([^,]+)/)?.[1])).size,
+      mounts.length,
+      "one mount per destination",
+    );
+    assert.ok(first.includes(`src=${root},dst=${root},readonly`), "a denyWrite equal to the root makes it read-only");
+    for (const guarded of [join(root, ".git", "hooks"), join(root, ".git", "config"), join(root, ".bashrc")]) {
+      assert.ok(first.includes(`src=${guarded},dst=${guarded},readonly`), `${guarded} is read-only`);
+    }
+    const refused = await sandbox
+      .writeFile(".git/hooks/pre-commit", new Uint8Array([1]))
+      .catch((caught: unknown) => caught);
+    assert.equal((refused as { code?: string }).code, "sandbox_denied", "the file calls refuse the same paths");
+  } finally {
+    await sandbox.dispose();
+  }
+});
+
+test("a mounted folder that holds a Docker socket, or resolves to /, or has a comma, is refused", async (context) => {
+  if (!linux) context.skip("this backend runs on Linux only");
+  const docker = fakeDocker();
+  const socketFolder = folder("daemon");
+  const socket = join(socketFolder, "docker.sock");
+  const server = createServer();
+  await new Promise<void>((resolve) => server.listen(socket, resolve));
+  try {
+    const attempts: [string, () => Promise<unknown>][] = [
+      [
+        "a root that holds the daemon's socket",
+        () =>
+          dockerSandbox({ image: IMAGE, binary: docker.binary, dockerHost: `unix://${socket}` }).provision(
+            { root: socketFolder },
+            policy(socketFolder),
+          ),
+      ],
+      [
+        "a read root above the socket",
+        () => {
+          const root = folder();
+          return dockerSandbox({
+            image: IMAGE,
+            binary: docker.binary,
+            dockerHost: `unix://${socket}`,
+            extraReadRoots: [tmpdir()],
+          }).provision({ root }, policy(root));
+        },
+      ],
+      [
+        "a write root that is missing",
+        () => {
+          const root = folder();
+          return dockerSandbox({ image: IMAGE, binary: docker.binary }).provision(
+            { root },
+            { ...policy(root), writeRoots: [join(root, "nope")] },
+          );
+        },
+      ],
+      [
+        "a proxy socket whose path has a comma",
+        async () => {
+          const root = folder();
+          const odd = join(folder(), "a,b");
+          mkdirSync(odd);
+          const commaSocket = join(odd, "p.sock");
+          const commaServer = createServer();
+          await new Promise<void>((resolve) => commaServer.listen(commaSocket, resolve));
+          try {
+            return await dockerSandbox({ image: IMAGE, binary: docker.binary, proxySocket: commaSocket }).provision(
+              { root },
+              policy(root),
+            );
+          } finally {
+            commaServer.close();
+          }
+        },
+      ],
+    ];
+    for (const [label, attempt] of attempts) {
+      const error = await attempt().catch((caught: unknown) => caught);
+      assert.equal((error as { code?: string }).code, "invalid_sandbox_options", `${label} must be refused`);
+    }
+  } finally {
+    server.close();
   }
 });

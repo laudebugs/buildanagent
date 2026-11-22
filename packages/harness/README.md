@@ -82,7 +82,9 @@ Four limits are worth knowing:
 
 `dockerSandbox({ image })` from `./sandbox/docker` runs each command in its own container, made from an image that is already on the Docker host: `provision()` never pulls, and you should pin the image by digest. The container has all capabilities dropped, a read-only root file system, no network, no new privileges and no shared IPC. It also has a limit on processes (`pidsLimit`, 256 by default), CPUs (`cpus`, 1) and memory with no swap (`memoryMb`, 1024). It runs as your user and group, so the files it writes stay yours, and its only other writable place is a 64 MiB `/tmp` in memory.
 
-The policy decides what is mounted, at the same path inside as outside. A write root is mounted writable. A read root, an `extraReadRoots` folder and a `denyWrite` folder are mounted read-only, so the folder that holds the session log stays out of the agent's reach even inside a write root. Nothing else is mounted, so a path outside the roots does not exist in the container. The workspace must lie inside a root. The Docker socket is never mounted.
+The policy decides what is mounted, at the same path inside as outside. A write root is mounted writable, and it must exist. A read root and an `extraReadRoots` folder are mounted read-only. A `denyWrite` folder inside a write root is made if it is missing and mounted read-only on top, so the session log stays out of the agent's reach. A `denyWrite` path outside every write root is not mounted at all. The protected files that `srt` also guards, such as `.bashrc`, `.claude`, `.git/hooks` and `.git/config` at the top of a write root, are mounted read-only when they exist, and `writeFile` refuses them. Nothing else is mounted, so a path outside the roots does not exist in the container.
+
+The workspace must lie inside a root. The backend never mounts the Docker socket: a root that resolves to `/`, or that holds the daemon's socket (`/var/run/docker.sock`, `/run/docker.sock` or the one `dockerHost` names), is refused.
 
 The container has no network, so a command reaches a host only through `proxySocket`: a Unix socket on the host, mounted at `DOCKER_PROXY_SOCKET_PATH` (`/run/harness/proxy.sock`), that the credential proxy listens on. The program in the image has to speak to that socket itself. Without `proxySocket`, no host is reachable, including the ones the policy allows.
 
@@ -93,6 +95,7 @@ A command's environment is exactly the one it was given. `env -i` clears the ima
 Four limits are worth knowing:
 
 - **Shared kernel.** A container shares the host's kernel, so a process that is trying to escape is out of scope, and no `hostile_process` stop is claimed.
+- **Protected files made later.** A protected file that is missing when `provision()` runs, or one in a subfolder, is not protected inside the container, because a mount needs a file to cover. An agent could write `.git/hooks/pre-commit` there, and the host's next `git commit` would run it. Keep `.git/hooks` and `.git/config` in place, or list them in `denyWrite`.
 - **Linux and a rootful daemon.** Only Linux was tested, against a rootful daemon. Rootless Docker mounts differently and was not tested.
 - **File calls run in the host.** `readFile` and `writeFile` check each path by its real path and through `/proc`, as under `srt`, and `writeFile` refuses a `denyWrite` folder. A hostile process could still win that race.
 - **The network lock rests on the daemon.** `--network none` is checked by inspecting the running container, because a test host with no bridge can't tell a closed network from a missing one.

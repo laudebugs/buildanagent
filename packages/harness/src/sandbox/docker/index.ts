@@ -19,10 +19,12 @@ import {
   findOnPath,
   HostFiles,
   inside,
+  isProtectedPath,
+  PROTECTED_TOP_LEVEL,
   realOrSelf,
   workspaceRoot,
 } from "../host-files.js";
-import { type NodeModules, nodeModules, ProcessRunner } from "../process.js";
+import { type NodeModules, nodeModules, type ProcessResult, ProcessRunner } from "../process.js";
 import type { ExecOptions, ExecResult, Sandbox, SandboxClient, SandboxPolicy, WorkspaceManifest } from "../types.js";
 
 /** The options of `dockerSandbox()`. */
@@ -54,6 +56,8 @@ export const DOCKER_PROXY_SOCKET_PATH = "/run/harness/proxy.sock";
 
 const DEFAULTS = { cpus: 1, memoryMb: 1024, pidsLimit: 256 } as const;
 const DAEMON_TIMEOUT_MS = 20_000;
+// The longest one call that kills or removes a container may take.
+const CALL_TIMEOUT_MS = 5000;
 // Creating a container copies the image on some storage drivers, which can take a while.
 const CREATE_TIMEOUT_MS = 120_000;
 // How long a stopped `docker run` client has to leave on its own, which lets it cancel a container that isn't started yet.
@@ -160,14 +164,19 @@ class DockerSandbox extends BackendSandbox {
     ];
   }
 
+  /** Removes the container if it exists, which is all a container that never started needs. */
+  private async removeContainer(name: string): Promise<void> {
+    await this.client(["rm", "--force", name], CALL_TIMEOUT_MS).catch(() => undefined);
+  }
+
   /** Kills the container, trying again while the daemon is still creating it, and removes what is left. */
   private async killContainer(name: string): Promise<void> {
     for (let attempt = 0; attempt < KILL_ATTEMPTS; attempt += 1) {
-      const result = await this.client(["kill", name], DAEMON_TIMEOUT_MS).catch(() => undefined);
+      const result = await this.client(["kill", name], CALL_TIMEOUT_MS).catch(() => undefined);
       if (result?.exitCode === 0) break;
       await new Promise((resolve) => setTimeout(resolve, KILL_RETRY_MS));
     }
-    await this.client(["rm", "--force", name], DAEMON_TIMEOUT_MS).catch(() => undefined);
+    await this.removeContainer(name);
   }
 
   async exec(command: readonly string[], options: ExecOptions): Promise<ExecResult> {
@@ -179,10 +188,12 @@ class DockerSandbox extends BackendSandbox {
     const name = `${this.state.label.split("=")[1]}-${this.started}`;
     const started = Date.now();
     // The container is created first and started after, so a stop never leaves a client half way through creating one.
-    const created = this.create(name, this.runArguments(name, located.cwd, command, options.env));
-    this.pending.add(created);
-    const made = await created.finally(() => this.pending.delete(created));
+    const created = this.client(this.runArguments(name, located.cwd, command, options.env), CREATE_TIMEOUT_MS);
+    this.track(created);
+    const made = await this.untilStopped(name, created, options);
+    if ("timedOut" in made) return made.timedOut;
     if (made.exitCode !== 0) {
+      await this.removeContainer(name);
       return { exitCode: made.exitCode, stdout: "", stderr: made.stderr };
     }
     try {
@@ -209,11 +220,50 @@ class DockerSandbox extends BackendSandbox {
     return result;
   }
 
-  /** Creates a stopped container with `args`, and waits for the daemon to finish, whatever else happens meanwhile. */
-  private create(name: string, args: readonly string[]) {
-    return this.client(args, CREATE_TIMEOUT_MS).catch(async (error: unknown) => {
-      await this.killContainer(name);
-      throw error;
+  /** Keeps `work` in the set that `dispose()` waits for, until it settles. */
+  private track(work: Promise<unknown>): void {
+    const tracked = work.then(
+      () => undefined,
+      () => undefined,
+    );
+    this.pending.add(tracked);
+    void tracked.then(() => this.pending.delete(tracked));
+  }
+
+  /**
+   * Waits for a container to be created, but settles the call when the caller's signal aborts or its timeout passes. The
+   * creation can't be cut short without leaving a container behind, so it carries on in the background, and the container
+   * is removed when it ends.
+   */
+  private untilStopped(
+    name: string,
+    created: Promise<ProcessResult>,
+    options: ExecOptions,
+  ): Promise<ProcessResult | { readonly timedOut: ExecResult }> {
+    return new Promise((resolve, reject) => {
+      let settled = false;
+      let timer: ReturnType<typeof setTimeout> | undefined;
+      const finish = (settle: () => void, discard: boolean) => {
+        if (settled) return;
+        settled = true;
+        clearTimeout(timer);
+        options.signal.removeEventListener("abort", onAbort);
+        if (discard) this.track(created.then(() => this.killContainer(name)));
+        settle();
+      };
+      const onAbort = () => finish(() => reject(options.signal.reason), true);
+      options.signal.addEventListener("abort", onAbort, { once: true });
+      if (options.timeoutMs !== undefined) {
+        const note = `timed out after ${options.timeoutMs} ms\n`;
+        timer = setTimeout(
+          () => finish(() => resolve({ timedOut: { exitCode: 124, stdout: "", stderr: note } }), true),
+          options.timeoutMs,
+        );
+      }
+      created.then(
+        (result) => finish(() => resolve(result), false),
+        (error: unknown) => finish(() => reject(error), false),
+      );
     });
   }
 
@@ -251,7 +301,46 @@ function checkOptionValues(options: DockerSandboxOptions): void {
   if (user !== undefined && !/^[0-9]+(:[0-9]+)?$/.test(user)) throw bad("user");
 }
 
-/** The real mounts for a policy: write roots writable, read roots and extras read-only, `denyWrite` folders read-only. */
+/** The sockets a Docker client may use: the default ones, and the one `dockerHost` names when it is a Unix socket. */
+function daemonSockets(dockerHost: string | undefined): string[] {
+  const named = dockerHost?.startsWith("unix://") ? [dockerHost.slice("unix://".length)] : [];
+  return ["/var/run/docker.sock", "/run/docker.sock", ...named];
+}
+
+/** Throws unless every source is mountable, and none is `/` or holds a Docker daemon socket, which would hand over the host. */
+async function checkSources(modules: NodeModules, sources: readonly string[], dockerHost: string | undefined) {
+  for (const from of sources) {
+    if (!MOUNTABLE.test(from)) {
+      throw new HarnessError("invalid_sandbox_options", `a mounted folder can't have a comma or quote: ${from}`);
+    }
+    if (from === "/") throw new HarnessError("invalid_sandbox_options", "a mounted folder can't resolve to /");
+  }
+  for (const socket of daemonSockets(dockerHost)) {
+    const real = await modules.fs.realpath(socket).catch(() => undefined);
+    if (real !== undefined && sources.some((from) => inside(modules, from, real))) {
+      throw new HarnessError("invalid_sandbox_options", `a mounted folder would hold the Docker socket ${socket}`);
+    }
+  }
+}
+
+/** One mount for each destination, read-only when any of the mounts for it is. */
+function onePerDestination(mounts: readonly Mount[]): Mount[] {
+  const byDestination = new Map<string, Mount>();
+  for (const mount of mounts) {
+    const earlier = byDestination.get(mount.to);
+    byDestination.set(
+      mount.to,
+      earlier === undefined ? mount : { ...mount, readOnly: earlier.readOnly || mount.readOnly },
+    );
+  }
+  return [...byDestination.values()];
+}
+
+/**
+ * The real mounts for a policy: write roots writable, read roots and extras read-only, and read-only again on top the
+ * `denyWrite` folders inside a write root (made when missing, so a later write can't find them writable) and the
+ * protected files that exist. A `denyWrite` path outside every write root is not mounted: nothing there is writable.
+ */
 async function planMounts(modules: NodeModules, policy: SandboxPolicy, options: DockerSandboxOptions) {
   const real = (paths: readonly string[]) => Promise.all(paths.map((path) => realOrSelf(modules, path)));
   const [readRoots, writeRoots, extra, denyWrite] = await Promise.all([
@@ -260,19 +349,30 @@ async function planMounts(modules: NodeModules, policy: SandboxPolicy, options: 
     real(options.extraReadRoots ?? []),
     real(options.denyWrite ?? []),
   ]);
-  const underWrite = (path: string) => writeRoots.some((root) => inside(modules, root, path));
-  const readOnly = [...readRoots, ...extra].filter((path) => !underWrite(path));
-  const mounts: Mount[] = [
-    ...(await existing(modules, writeRoots)).map((from) => ({ from, to: from, readOnly: false })),
-    ...(await existing(modules, readOnly)).map((from) => ({ from, to: from, readOnly: true })),
-    ...(await existing(modules, denyWrite)).map((from) => ({ from, to: from, readOnly: true })),
-  ];
-  for (const mount of mounts) {
-    if (!MOUNTABLE.test(mount.from)) {
-      throw new HarnessError("invalid_sandbox_options", `a mounted folder can't have a comma or quote: ${mount.from}`);
+  for (const root of writeRoots) {
+    if (!(await modules.fs.stat(root).catch(() => undefined))?.isDirectory()) {
+      throw new HarnessError("invalid_sandbox_options", `a write root must be an existing folder: ${root}`);
     }
   }
-  return { mounts, roots: { read: readRoots, write: writeRoots, denyWrite } };
+  const underWrite = (path: string) => writeRoots.some((root) => inside(modules, root, path));
+  const denied = denyWrite.filter(underWrite);
+  for (const folder of denied) await modules.fs.mkdir(folder, { recursive: true });
+  const protectedPaths = writeRoots.flatMap((root) => PROTECTED_TOP_LEVEL.map((name) => modules.path.join(root, name)));
+  const readOnlyRoots = [...readRoots, ...extra].filter((path) => !underWrite(path));
+  const base: Mount[] = [
+    ...writeRoots.map((from) => ({ from, to: from, readOnly: false })),
+    ...(await existing(modules, readOnlyRoots)).map((from) => ({ from, to: from, readOnly: true })),
+  ];
+  const guarded = [...denied, ...(await existing(modules, protectedPaths))].map((from) => ({
+    from,
+    to: from,
+    readOnly: true,
+  }));
+  return {
+    base: onePerDestination(base),
+    mounts: onePerDestination([...base, ...guarded]),
+    roots: { read: readRoots, write: writeRoots, denyWrite: denied },
+  };
 }
 
 /** The `docker run` flags that lock a container down, and limit what it may use. */
@@ -385,7 +485,12 @@ async function startSandbox(input: StartInput): Promise<DockerSandbox> {
     ...(dockerHost === undefined ? {} : { DOCKER_HOST: dockerHost }),
   };
   const plan = await planMounts(modules, input.policy, options);
-  if (!plan.mounts.some((mount) => inside(modules, mount.from, input.root))) {
+  await checkSources(
+    modules,
+    plan.mounts.map((mount) => mount.from),
+    dockerHost,
+  );
+  if (!plan.base.some((mount) => inside(modules, mount.from, input.root))) {
     throw new HarnessError("invalid_sandbox_options", "the workspace root must lie inside a read or write root");
   }
   const mounts = [...plan.mounts];
@@ -393,11 +498,9 @@ async function startSandbox(input: StartInput): Promise<DockerSandbox> {
     checkPaths(modules, [options.proxySocket], "the proxy socket");
     const stats = await modules.fs.stat(options.proxySocket).catch(() => undefined);
     if (!stats?.isSocket()) throw new HarnessError("invalid_sandbox_options", "proxySocket must be a Unix socket");
-    mounts.push({
-      from: await modules.fs.realpath(options.proxySocket),
-      to: DOCKER_PROXY_SOCKET_PATH,
-      readOnly: false,
-    });
+    const from = await modules.fs.realpath(options.proxySocket);
+    await checkSources(modules, [from], dockerHost);
+    mounts.push({ from, to: DOCKER_PROXY_SOCKET_PATH, readOnly: false });
   }
   const user = options.user ?? `${process.getuid?.() ?? 0}:${process.getgid?.() ?? 0}`;
   const sandbox = new DockerSandbox({
@@ -405,7 +508,7 @@ async function startSandbox(input: StartInput): Promise<DockerSandbox> {
     docker: input.docker,
     image: options.image,
     root: input.root,
-    files: new HostFiles(modules, input.root, plan.roots),
+    files: new HostFiles(modules, input.root, plan.roots, isProtectedPath),
     mounts,
     flags: lockdownFlags(options, user),
     clientEnv,

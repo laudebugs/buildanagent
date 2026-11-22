@@ -263,6 +263,38 @@ suite("docker: what a command can't do", () => {
     }
   }, 120_000);
 
+  test("a timeout that arrives while the container is still being created settles the call, and nothing is left", async () => {
+    const { sandbox } = await provisioned();
+    const started = Date.now();
+    const result = outcome(await sandbox.exec(["sleep", "30"], { env: {}, signal: never(), timeoutMs: 1 }));
+    assert.equal(result?.exitCode, 124);
+    assert.ok(Date.now() - started < 10_000, "the call did not wait for the creation");
+    const controller = new AbortController();
+    const aborted = sandbox
+      .exec(["sleep", "30"], { env: {}, signal: controller.signal })
+      .catch((error: unknown) => error);
+    controller.abort(new Error("stop"));
+    assert.equal(((await aborted) as Error).message, "stop");
+    await sandbox.dispose();
+    const left = execFileSync("docker", ["ps", "--all", "--quiet", "--filter", "label=harness.sandbox"], {
+      encoding: "utf8",
+    });
+    assert.equal(left.trim(), "", "the containers still being created are removed once they exist");
+  }, 120_000);
+
+  test("a denyWrite folder that did not exist is made, mounted read-only and refused by writeFile", async () => {
+    const root = tempFolder("ws");
+    const log = join(root, "later-log");
+    const sandbox = await client({ denyWrite: [log] }).provision({ root }, policyFor(root));
+    try {
+      assert.ok(existsSync(log), "the folder was made at provision");
+      const blocked = outcome(await run(sandbox, "echo x > later-log/session.jsonl"));
+      assert.notEqual(blocked?.exitCode, 0);
+    } finally {
+      await sandbox.dispose();
+    }
+  }, 120_000);
+
   test("a command can't start more processes than the limit", async () => {
     const { sandbox } = await provisioned({ pidsLimit: 20 });
     try {

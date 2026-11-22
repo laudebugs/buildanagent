@@ -135,6 +135,32 @@ export async function workingDirectory(
   return { cwd };
 }
 
+// What a backend that bind-mounts the workspace keeps read-only inside it, which the file calls keep read-only too: the
+// shell start-up files, the editor and agent settings, and a repository's hooks and config.
+const PROTECTED_PATHS =
+  /^(\.bash_profile|\.bashrc|\.zshrc|\.zprofile|\.profile|\.gitconfig|\.gitmodules|\.ripgreprc|\.mcp\.json|\.vscode|\.idea|\.claude)(\/|$)|(^|\/)\.git\/(hooks|config)(\/|$)/;
+
+/** The paths at the top of a write root that a backend can mount read-only when they exist. */
+export const PROTECTED_TOP_LEVEL: readonly string[] = [
+  ".bash_profile",
+  ".bashrc",
+  ".zshrc",
+  ".zprofile",
+  ".profile",
+  ".gitconfig",
+  ".gitmodules",
+  ".ripgreprc",
+  ".mcp.json",
+  ".vscode",
+  ".idea",
+  ".claude",
+  ".git/hooks",
+  ".git/config",
+];
+
+/** Whether `relative`, a path under a write root with `/` between the parts, is one the file calls keep read-only. */
+export const isProtectedPath = (relative: string): boolean => PROTECTED_PATHS.test(relative);
+
 /** Reads and writes workspace files from the host, inside the roots. */
 export class HostFiles {
   private readonly modules: NodeModules;

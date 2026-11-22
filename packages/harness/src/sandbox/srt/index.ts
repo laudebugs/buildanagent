@@ -13,7 +13,16 @@
 import { HarnessError } from "../../errors.js";
 import { BackendSandbox } from "../base.js";
 import { SandboxUnavailableError } from "../errors.js";
-import { absolutePath, checkPaths, existing, findOnPath, HostFiles, realOrSelf, workspaceRoot } from "../host-files.js";
+import {
+  absolutePath,
+  checkPaths,
+  existing,
+  findOnPath,
+  HostFiles,
+  isProtectedPath,
+  realOrSelf,
+  workspaceRoot,
+} from "../host-files.js";
 import { type NodeModules, nodeModules, ProcessRunner } from "../process.js";
 import type { ExecOptions, ExecResult, Sandbox, SandboxClient, SandboxPolicy, WorkspaceManifest } from "../types.js";
 import { type SrtSettingsInput, srtSettings } from "./settings.js";
@@ -136,10 +145,6 @@ async function checkHost(modules: NodeModules, hostPath: string): Promise<void> 
   }
 }
 
-// What `srt` keeps read-only inside the workspace, which the file calls keep read-only too: the shell start-up files,
-// the editor and agent settings, and a repository's hooks and config.
-const PROTECTED_PATHS =
-  /^(\.bash_profile|\.bashrc|\.zshrc|\.zprofile|\.profile|\.gitconfig|\.gitmodules|\.ripgreprc|\.mcp\.json|\.vscode|\.idea|\.claude)(\/|$)|(^|\/)\.git\/(hooks|config)(\/|$)/;
 // A variable name that `env` can set, which is every name a process can be given.
 const VARIABLE_NAME = /^[A-Za-z_][A-Za-z0-9_]*$/;
 
@@ -299,7 +304,7 @@ export function srtSandbox(options: SrtSandboxOptions = {}): SandboxClient {
           modules,
           command,
           root,
-          files: new HostFiles(modules, root, plan.roots, (relative) => PROTECTED_PATHS.test(relative)),
+          files: new HostFiles(modules, root, plan.roots, isProtectedPath),
           folder,
           runFolder,
           settingsFile,

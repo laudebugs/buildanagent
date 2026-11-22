@@ -16,6 +16,8 @@ const SIGNAL_EXIT_BASE = 128;
 const DEFAULT_MAX_OUTPUT_BYTES = 8 * 1024 * 1024;
 // The longest delay a timer takes: a larger one fires at once.
 const MAX_TIMER_MS = 2 ** 31 - 1;
+// The longest a stop waits for a backend's `onStop` hook.
+const STOP_HOOK_MAX_MS = 15_000;
 
 /** The Node modules the backends use. */
 export type NodeModules = {
@@ -198,7 +200,8 @@ export class ProcessRunner {
     graceMs: number,
     onStop?: () => Promise<void>,
   ): Promise<void> {
-    await onStop?.().catch(() => {});
+    // Runs beside the kill, and is waited for only so long, so a hook that hangs can't hold the call.
+    const hook = onStop?.().catch(() => {});
     const running = child.exitCode === null && child.signalCode === null;
     if (graceMs > 0 && process.platform !== "win32" && child.pid !== undefined && running) {
       const exited = new Promise<void>((resolve) => child.once("exit", () => resolve()));
@@ -215,6 +218,8 @@ export class ProcessRunner {
       clearTimeout(timer);
     }
     this.kill(child);
+    if (hook !== undefined)
+      await Promise.race([hook, new Promise<void>((resolve) => setTimeout(resolve, STOP_HOOK_MAX_MS).unref())]);
   }
 
   /**
