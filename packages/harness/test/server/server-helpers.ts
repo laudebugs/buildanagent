@@ -169,13 +169,15 @@ export function gate(): { promise: Promise<void>; open: () => void } {
 
 /**
  * A store whose chosen loads take their entries at once and then wait for `held`, as a slow disk would, so entries
- * written meanwhile are missing from what the load yields. `blocks` picks the loads, given each one's options and how
+ * written meanwhile are missing from what the load yields, or, with `snapshot` false, wait first and then read. `blocks` picks the loads, given each one's options and how
  * many loads came before it; `taken` resolves when the first chosen load has taken its entries.
  */
 export function snapshotLoads(
   store: SessionStore,
   blocks: (options: LoadOptions | undefined, count: number) => boolean,
   held: Promise<void>,
+  /** `false` waits first and reads after, so the load sees what was written meanwhile. */
+  snapshot = true,
 ): { store: SessionStore; taken: Promise<void> } {
   let count = 0;
   let markTaken!: () => void;
@@ -189,6 +191,10 @@ export function snapshotLoads(
       load(key, options) {
         if (!blocks(options, count++)) return store.load(key, options);
         return (async function* () {
+          if (!snapshot) {
+            markTaken();
+            await held;
+          }
           const entries: SessionEntry[] = [];
           for await (const entry of store.load(key, options)) entries.push(entry);
           markTaken();

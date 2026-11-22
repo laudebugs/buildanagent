@@ -3,7 +3,14 @@
  * sends them as protocol messages and hands back the results, so a CLI or a test drives the harness with no framing,
  * and the stdio transport later carries the same messages.
  */
-import type { ClientCommand, ClientResultMap, RpcError, ServerMessage, ServerResultMap } from "@buildanagent/protocol";
+import type {
+  ClientCommand,
+  ClientResultMap,
+  RpcError,
+  ServerMessage,
+  ServerRequest,
+  ServerResultMap,
+} from "@buildanagent/protocol";
 import type { Connection, Dispatcher } from "./dispatcher.js";
 
 type Methods = ClientCommand["method"] & keyof ClientResultMap;
@@ -40,10 +47,13 @@ export interface InProcessClient {
   request<M extends Methods>(method: M, params: ParamsOf<M>, options?: RequestOptions): Promise<ClientResultMap[M]>;
   /** Calls `listener` with every notification and request the server sends, after any response already sent. */
   onMessage(listener: (message: ServerMessage) => void): () => void;
-  /** Answers the server request with this id. An answer to a request the server withdrew is ignored there. */
-  respond<M extends keyof ServerResultMap>(id: string, result: ServerResultMap[M]): void;
-  /** Answers the server request with this id with an error, for a request the client can't or won't answer. */
-  fail(id: string, error: RpcError): void;
+  /**
+   * Answers a server request with the result its method takes, so an approval can't be answered with a tool result.
+   * An answer to a request the server withdrew is ignored there.
+   */
+  respond<R extends ServerRequest>(request: R, result: ServerResultMap[R["method"]]): void;
+  /** Answers a server request with an error, for a request the client can't or won't answer. */
+  fail(request: ServerRequest, error: RpcError): void;
   /** Ends this client's connection. */
   close(): void;
 }
@@ -115,11 +125,11 @@ export function inProcessTransport(dispatcher: Dispatcher): InProcessClient {
       listeners.add(listener);
       return () => listeners.delete(listener);
     },
-    respond(id, result) {
-      answer(id, { result });
+    respond(request, result) {
+      answer(request.id, { result });
     },
-    fail(id, error) {
-      answer(id, { error });
+    fail(request, error) {
+      answer(request.id, { error });
     },
     close() {
       closed = true;

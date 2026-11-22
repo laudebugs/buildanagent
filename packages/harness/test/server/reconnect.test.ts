@@ -58,13 +58,13 @@ describe("a pending approval across a reconnect", () => {
     assert.equal(pendingIdOf(again), pendingIdOf(asked));
     assert.notEqual(again.id, asked.id);
     // The id the closed client held is stale: an answer to it does nothing.
-    second.client.respond<"approval/request">(asked.id, {
+    second.client.respond(asked, {
       resolutions: [{ requestId: pendingIdOf(asked), decision: "deny" }],
     });
-    second.client.respond<"approval/request">(again.id, {
+    second.client.respond(again, {
       resolutions: [{ requestId: pendingIdOf(again), decision: "allow" }],
     });
-    second.client.respond<"approval/request">(again.id, {
+    second.client.respond(again, {
       resolutions: [{ requestId: pendingIdOf(again), decision: "allow" }],
     });
     await until(() => settledCount(second.seen) === 1, "the resume");
@@ -89,11 +89,11 @@ describe("a pending approval across a reconnect", () => {
     await until(() => requestsOf(fresh.seen).length === 1, "the request");
     const [current] = requestsOf(fresh.seen);
     assert.ok(old !== undefined && current !== undefined);
-    fresh.client.respond<"approval/request">(current.id, {
+    fresh.client.respond(current, {
       resolutions: [{ requestId: pendingIdOf(current), decision: "allow" }],
     });
     assert.deepEqual(cancelsOf(stale.seen), [old.id]);
-    stale.client.respond<"approval/request">(old.id, {
+    stale.client.respond(old, {
       resolutions: [{ requestId: pendingIdOf(old), decision: "deny" }],
     });
     await until(() => settledCount(fresh.seen) === 1, "the resume");
@@ -117,11 +117,11 @@ describe("a pending approval across a reconnect", () => {
     await until(() => requestsOf(b.seen).length === 1, "the request in the second process");
     const [askedByTwo] = requestsOf(b.seen);
     assert.ok(askedByOne !== undefined && askedByTwo !== undefined);
-    b.client.respond<"approval/request">(askedByTwo.id, {
+    b.client.respond(askedByTwo, {
       resolutions: [{ requestId: pendingIdOf(askedByTwo), decision: "allow" }],
     });
     await until(() => settledCount(b.seen) === 1, "the second process's resume");
-    a.client.respond<"approval/request">(askedByOne.id, {
+    a.client.respond(askedByOne, {
       resolutions: [{ requestId: pendingIdOf(askedByOne), decision: "allow" }],
     });
     // The first process takes the lock, finds the request no longer waiting, and runs nothing.
@@ -462,5 +462,52 @@ describe("what an open holds", () => {
     assert.equal(dropped.length, 1);
     toolHeld.open();
     await until(() => settledCount(wire) === 1, "the second turn");
+  });
+
+  test("a hold's marker counts only what the replay lacks, and its seq is never below the replay's last entry", async () => {
+    const base = memoryBackend();
+    const held = gate();
+    // This read waits first, so the replay carries every entry the hold dropped.
+    const slow = snapshotLoads(base.store, (options) => options?.fromSeq === 1, held.promise, false);
+    const harness = createHarness({
+      registry: createToolRegistry(),
+      model: scripted([reply("One."), reply("z".repeat(200))]),
+      system: "s",
+    });
+    const dispatcher = createDispatcher({ harness, ...base, store: slow.store, userId: "ada", queueSize: 4 });
+    const writer = recorded(dispatcher);
+    await init(writer.client);
+    const { session } = await writer.client.request("session/create", { cwd: "/work" });
+    await writer.client.request("turn/start", { session, input: text("a") });
+    await until(() => settledCount(writer.seen) === 1, "the first turn");
+    const before = writer.seen.length;
+    const wire: ServerMessage[] = [];
+    const joiner = dispatcher.connect((message) => {
+      wire.push(message);
+    });
+    const opened = joiner.receive({
+      jsonrpc: "2.0",
+      id: 1,
+      method: "session/open",
+      params: { session, cwd: "/work", fromSeq: 2 },
+    });
+    await slow.taken;
+    await writer.client.request("turn/start", { session, input: text("b") });
+    await until(() => settledCount(writer.seen) === 2, "the second turn");
+    held.open();
+    await opened;
+    for (let i = 0; i < 20; i++) await new Promise((resolve) => setImmediate(resolve));
+    const isEntry = (m: ServerMessage) =>
+      "method" in m && m.method === "event" && m.params.event.type === "entry_appended";
+    const turnEvents = writer.seen.slice(before).filter((m) => "method" in m && m.method === "event");
+    const notEntries = (list: ServerMessage[]) => list.filter((m) => !isEntry(m)).length;
+    const markers = wire.flatMap((m) =>
+      "method" in m && m.method === "event" && m.params.event.type === "events_dropped"
+        ? [{ seq: m.params.seq, count: m.params.event.count }]
+        : [],
+    );
+    assert.equal(markers.length, 1);
+    assert.equal(markers[0]?.count, notEntries(turnEvents) - notEntries(turnEvents.slice(0, 4)));
+    assert.ok((markers[0]?.seq ?? -1) >= Math.max(...entrySeqs(wire)), "the marker is not behind the replay");
   });
 });

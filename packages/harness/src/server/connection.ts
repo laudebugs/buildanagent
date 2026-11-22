@@ -59,13 +59,22 @@ export class Failure extends Error {
 type EventMessage = Extract<ServerNotification, { method: "event" }>;
 type SettledMessage = Extract<ServerNotification, { method: "turn/settled" }>;
 
-/** What a session sent while a `session/open` was reading its log, waiting to go out after the replay. */
+/**
+ * What a session sent while a `session/open` was reading its log, waiting to go out after the replay. Events count
+ * against the bound. A `turn/settled` is always kept, and needs no bound of its own: the session runs one turn at a
+ * time, so one read of the log sees few of them.
+ */
 interface Held {
   readonly messages: (EventMessage | SettledMessage)[];
-  /** How many of `messages` are events, which count against the bound; a `turn/settled` is always kept. */
   events: number;
+  /** Dropped events that are not entries, and the latest `seq` among them. */
   dropped: number;
   lastDroppedSeq: number;
+  /**
+   * The first and last `seq` of the dropped entries. Once the hold is full every later entry is dropped, so the range
+   * has no hole, and the replay may already carry its start.
+   */
+  droppedEntries: { first: number; last: number } | undefined;
   /** How many of `messages` came before the first drop, so the marker goes out where the drops were. */
   gapAt: number | undefined;
 }
@@ -123,8 +132,13 @@ export class ServerConnection {
       held.events += 1;
     } else {
       held.gapAt ??= held.messages.length;
-      held.dropped += 1;
-      held.lastDroppedSeq = Math.max(held.lastDroppedSeq, message.params.seq);
+      const { seq } = message.params;
+      if (message.params.event.type === "entry_appended") {
+        held.droppedEntries = { first: held.droppedEntries?.first ?? seq, last: seq };
+      } else {
+        held.dropped += 1;
+        held.lastDroppedSeq = Math.max(held.lastDroppedSeq, seq);
+      }
     }
   }
 
@@ -140,7 +154,14 @@ export class ServerConnection {
   /** Starts holding a session's live events, so none is lost or sent early while its log is read. False if one is already held. */
   hold(session: string): boolean {
     if (this.#held.has(session)) return false;
-    this.#held.set(session, { messages: [], events: 0, dropped: 0, lastDroppedSeq: -1, gapAt: undefined });
+    this.#held.set(session, {
+      messages: [],
+      events: 0,
+      dropped: 0,
+      lastDroppedSeq: -1,
+      droppedEntries: undefined,
+      gapAt: undefined,
+    });
     return true;
   }
 
@@ -163,17 +184,19 @@ export class ServerConnection {
     this.#held.delete(session);
     this.#watching.add(session);
     for (const message of replay) this.#outbox.push(message, { keep: true });
+    const marker = () => {
+      const gap = held === undefined ? undefined : gapOf(held, replayedTo);
+      if (gap !== undefined) this.#outbox.pushGap(session, gap.count, gap.seq);
+    };
     for (const [index, message] of (held?.messages ?? []).entries()) {
       // The drops began once the hold was full, so their marker goes out before what was held after them.
-      if (index === held?.gapAt) this.#outbox.pushGap(session, held.dropped, held.lastDroppedSeq);
+      if (index === held?.gapAt) marker();
       if (message.method === "event" && message.params.event.type === "entry_appended") {
         if (message.params.seq <= replayedTo) continue;
       }
       this.#outbox.push(message);
     }
-    if (held?.gapAt !== undefined && held.gapAt >= held.messages.length) {
-      this.#outbox.pushGap(session, held.dropped, held.lastDroppedSeq);
-    }
+    if (held?.gapAt !== undefined && held.gapAt >= held.messages.length) marker();
   }
 
   optIn(methods: readonly string[]): void {
@@ -309,6 +332,19 @@ export class ServerConnection {
       after?.();
     }
   }
+}
+
+/**
+ * What a hold really lost: its dropped events, less the entries the replay carried up to `replayedTo`. The marker's
+ * `seq` is never below `replayedTo`, because the client has everything up to there. `undefined` when nothing was lost.
+ */
+function gapOf(held: Held, replayedTo: number): { count: number; seq: number } | undefined {
+  const entries = held.droppedEntries;
+  const lostEntries =
+    entries === undefined ? 0 : Math.max(0, entries.last - Math.max(entries.first, replayedTo + 1) + 1);
+  const count = held.dropped + lostEntries;
+  if (count === 0) return undefined;
+  return { count, seq: Math.max(held.lastDroppedSeq, entries?.last ?? -1, replayedTo) };
 }
 
 /** The error a failed command answers with. */

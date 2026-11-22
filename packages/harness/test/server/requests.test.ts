@@ -1,7 +1,7 @@
 // The server's requests: approvals and clarifications sent once their entry is durable and answered through
 // Approvals.resolve() exactly once, tool/call for client tools, and $/cancelRequest in both directions.
 import assert from "node:assert/strict";
-import { createDispatcher, createHarness } from "@buildanagent/harness/server";
+import { createDispatcher, createHarness, type InProcessClient } from "@buildanagent/harness/server";
 import { createToolRegistry } from "@buildanagent/harness/tools";
 import type { ServerMessage, ServerRequest, SessionEntry } from "@buildanagent/protocol";
 import { clarificationTool, defineTool, type ToolDefinition } from "@buildanagent/sdk";
@@ -72,7 +72,7 @@ describe("approval and clarification requests", () => {
     // The client answers inside its listener, while the paused turn is still finishing, so the answer must wait.
     client.onMessage((message) => {
       if ("id" in message && "method" in message && message.method === "approval/request") {
-        client.respond<"approval/request">(message.id, allow(message));
+        client.respond(message, allow(message));
       }
     });
     await init(client);
@@ -115,7 +115,7 @@ describe("approval and clarification requests", () => {
     assert.equal(asked?.method, "clarification/request");
     assert.ok(asked?.method === "clarification/request");
     assert.equal(asked.params.request.kind, "clarification");
-    client.respond<"clarification/request">(asked.id, {
+    client.respond(asked, {
       resolutions: [{ requestId: asked.params.request.id, answer: "Order o7." }],
     });
     await until(() => settledCount(seen) === 2, "the resume");
@@ -135,9 +135,9 @@ describe("approval and clarification requests", () => {
     await until(() => requestsOf(seen).length === 1, "the request");
     const [asked] = requestsOf(seen);
     assert.ok(asked !== undefined);
-    client.respond<"approval/request">("sr-999", allow(asked));
-    client.respond<"approval/request">(asked.id, allow(asked));
-    client.respond<"approval/request">(asked.id, allow(asked));
+    client.respond({ ...asked, id: "sr-999" }, allow(asked));
+    client.respond(asked, allow(asked));
+    client.respond(asked, allow(asked));
     await until(() => settledCount(seen) === 2, "the resume");
     // Give a wrongly accepted duplicate the time to start a second resume.
     await new Promise((resolve) => setImmediate(resolve));
@@ -160,9 +160,9 @@ describe("approval and clarification requests", () => {
     const [second] = requestsOf(two.seen);
     assert.ok(first !== undefined && second !== undefined);
     assert.notEqual(first.id, second.id);
-    two.client.respond<"approval/request">(second.id, allow(second));
+    two.client.respond(second, allow(second));
     assert.deepEqual(cancelsOf(one.seen), [first.id]);
-    one.client.respond<"approval/request">(first.id, {
+    one.client.respond(first, {
       resolutions: [{ requestId: (first.params as { request: { id: string } }).request.id, decision: "deny" }],
     });
     await until(() => settledCount(one.seen) === 2, "the resume");
@@ -181,13 +181,13 @@ describe("approval and clarification requests", () => {
     const [asked] = requestsOf(seen);
     assert.ok(asked?.method === "approval/request");
     // An answer for another request id, and one with two resolutions, are both malformed.
-    client.respond<"approval/request">(asked.id, { resolutions: [{ requestId: "other", decision: "allow" }] });
+    client.respond(asked, { resolutions: [{ requestId: "other", decision: "allow" }] });
     await until(() => requestsOf(seen).length === 2, "the second ask");
     const again = requestsOf(seen)[1];
     assert.ok(again?.method === "approval/request");
     assert.notEqual(again.id, asked.id);
     assert.equal(again.params.request.id, asked.params.request.id);
-    client.fail(again.id, { code: -32000, message: "the person closed the dialog" });
+    client.fail(again, { code: -32000, message: "the person closed the dialog" });
     await new Promise((resolve) => setImmediate(resolve));
     assert.equal(setup.resolved.length, 0);
     assert.equal(requestsOf(seen).length, 2);
@@ -207,7 +207,7 @@ describe("approval and clarification requests", () => {
     assert.ok(asked !== undefined);
     assert.deepEqual(stranger.seen, []);
     // The stranger guesses the id; the request is the owner's, so nothing resolves.
-    stranger.client.respond<"approval/request">(asked.id, allow(asked));
+    stranger.client.respond(asked, allow(asked));
     await new Promise((resolve) => setImmediate(resolve));
     assert.equal(setup.resolved.length, 0);
   });
@@ -251,7 +251,7 @@ describe("tool/call for client tools", () => {
     const [call] = requestsOf(seen, "tool/call");
     assert.ok(call?.method === "tool/call");
     assert.deepEqual(call.params, { session, callId: "c9", tool: "lookup", input: { id: "o1" } });
-    client.respond<"tool/call">(call.id, { content: [{ type: "text", text: "order o1: shipped" }], isError: false });
+    client.respond(call, { content: [{ type: "text", text: "order o1: shipped" }], isError: false });
     await until(() => settledCount(seen) === 1, "the turn");
     assert.equal(settledMessages(seen)[0]?.result.stopReason, "done");
     const result = toolResultEntry(seen, "c9");
@@ -271,8 +271,8 @@ describe("tool/call for client tools", () => {
       await until(() => requestsOf(seen, "tool/call").length === 1, "the tool call");
       const [call] = requestsOf(seen, "tool/call");
       assert.ok(call !== undefined);
-      if (how === "error") client.fail(call.id, { code: -32000, message: "no such order" });
-      if (how === "malformed") client.respond<"tool/call">(call.id, { content: "oops" } as never);
+      if (how === "error") client.fail(call, { code: -32000, message: "no such order" });
+      if (how === "malformed") client.respond(call, { content: "oops" } as never);
       if (how === "close") client.close();
       await until(() => settledCount(watcher.seen) === 1, `the turn after ${how}`);
       const result = toolResultEntry(watcher.seen, "c9");
@@ -294,7 +294,7 @@ describe("tool/call for client tools", () => {
     await until(() => settledCount(seen) === 1, "the turn");
     assert.deepEqual(cancelsOf(seen), [call.id]);
     assert.equal(settledMessages(seen)[0]?.result.stopReason, "aborted");
-    client.respond<"tool/call">(call.id, { content: [{ type: "text", text: "late" }], isError: false });
+    client.respond(call, { content: [{ type: "text", text: "late" }], isError: false });
     await new Promise((resolve) => setImmediate(resolve));
     assert.equal(settledCount(seen), 1);
     assert.equal(JSON.stringify(seen).includes('"late"'), false);
@@ -309,7 +309,7 @@ describe("tool/call for client tools", () => {
     await until(() => requestsOf(seen, "tool/call").length === 1, "the tool call");
     const [call] = requestsOf(seen, "tool/call");
     assert.ok(call !== undefined);
-    client.respond<"tool/call">(call.id, { content: [{ type: "text", text: "shipped" }], isError: false });
+    client.respond(call, { content: [{ type: "text", text: "shipped" }], isError: false });
     await client.request("turn/interrupt", { session });
     await until(() => settledCount(seen) === 1, "the turn");
     assert.deepEqual(cancelsOf(seen), []);
@@ -400,7 +400,7 @@ describe("answers that race other work in the session", () => {
     refuseNext = true;
     const second = client.request("turn/start", { session, input: text("Anything else?") });
     // The answer arrives while the second turn holds the session and waits for the lock.
-    client.respond<"approval/request">(asked.id, allow(asked));
+    client.respond(asked, allow(asked));
     lockHeld.open();
     assert.deepEqual(await second, { accepted: false, reason: "locked" });
     await until(() => settledCount(seen) === 2, "the resume");
@@ -417,7 +417,7 @@ describe("answers that race other work in the session", () => {
     await until(() => settledCount(seen) === 1, "the pause");
     const [asked] = requestsOf(seen);
     assert.ok(asked !== undefined);
-    client.respond<"approval/request">(asked.id, allow(asked));
+    client.respond(asked, allow(asked));
     await setup.dispatcher.close();
     assert.equal(setup.resolved.length, 0);
     assert.deepEqual(setup.refunds, []);
@@ -446,7 +446,7 @@ describe("answers that race other work in the session", () => {
     const second = recorded(setup.dispatcher);
     await second.client.request("session/open", { session, cwd: "/work" });
     await slow.taken;
-    first.client.respond<"approval/request">(asked.id, allow(asked));
+    first.client.respond(asked, allow(asked));
     await until(() => settledCount(first.seen) === 2, "the resume");
     held.open();
     for (let i = 0; i < 50; i++) await new Promise((resolve) => setImmediate(resolve));
@@ -517,3 +517,120 @@ describe("turn ids a client reuses", () => {
     );
   });
 });
+
+describe("answers a resume could not apply", () => {
+  test("an answer given while another process holds the lock is reported unapplied, asked again, and applied once", async () => {
+    const setup = approvalSetup(REFUND);
+    const { client, seen } = recorded(setup.dispatcher);
+    await init(client);
+    const { session } = await client.request("session/create", { cwd: "/work" });
+    await client.request("turn/start", { session, input: text("Refund o1") });
+    await until(() => settledCount(seen) === 1, "the pause");
+    const [asked] = requestsOf(seen);
+    assert.ok(asked !== undefined);
+    const other = await setup.backend.lock.acquire({ userId: "ada", sessionId: session });
+    assert.notEqual(other, "would_block");
+    client.respond(asked, allow(asked));
+    await until(() => settledCount(seen) === 2 && requestsOf(seen).length === 2, "the failed resume and the new ask");
+    const failed = settledMessages(seen)[1];
+    assert.equal(failed?.result.stopReason, "error");
+    assert.equal(failed?.result.error?.kind, "answer_not_applied");
+    if (other !== "would_block") await other.release();
+    const again = requestsOf(seen)[1];
+    assert.ok(again !== undefined && again.id !== asked.id);
+    client.respond(again, allow(again));
+    await until(() => settledCount(seen) === 3, "the resume");
+    assert.equal(settledMessages(seen)[2]?.result.stopReason, "done");
+    assert.equal(setup.resolved.length, 1);
+    assert.deepEqual(setup.refunds, [{ id: "o1" }]);
+  });
+
+  test("a client that answers at once while the lock stays held is asked again at most three times", async () => {
+    const base = memoryBackend();
+    // Each lock taken yields to the event loop first, so a loop of asks would show up as a count, not a hang.
+    const lock = {
+      async acquire(key: Parameters<typeof base.lock.acquire>[0]) {
+        await new Promise((resolve) => setImmediate(resolve));
+        return base.lock.acquire(key);
+      },
+    };
+    const setup = approvalSetup(REFUND, [], {}, { ...base, lock });
+    const { client, seen } = recorded(setup.dispatcher);
+    await init(client);
+    const { session } = await client.request("session/create", { cwd: "/work" });
+    await client.request("turn/start", { session, input: text("Refund o1") });
+    await until(() => settledCount(seen) === 1, "the pause");
+    const other = await setup.backend.lock.acquire({ userId: "ada", sessionId: session });
+    // From now on the client answers every ask at once, and every resume finds the lock held.
+    client.onMessage((message) => {
+      if ("id" in message && "method" in message && message.method === "approval/request") {
+        client.respond(message, allow(message));
+      }
+    });
+    const [asked] = requestsOf(seen);
+    assert.ok(asked !== undefined);
+    client.respond(asked, allow(asked));
+    await until(() => settledCount(seen) === 5, "four resumes that could not apply the answer");
+    for (let i = 0; i < 50; i++) await new Promise((resolve) => setImmediate(resolve));
+    assert.equal(requestsOf(seen).length, 4, "the first ask and three more");
+    assert.equal(settledCount(seen), 5);
+    assert.equal(setup.resolved.length, 0);
+    if (other !== "would_block") await other.release();
+  });
+
+  test("an answer whose resume is interrupted while it waits for the lock is reported unapplied and asked again", async () => {
+    const base = memoryBackend();
+    const lockHeld = gate();
+    let slowNext = false;
+    const lock = {
+      async acquire(key: Parameters<typeof base.lock.acquire>[0]) {
+        if (slowNext) {
+          slowNext = false;
+          await lockHeld.promise;
+        }
+        return base.lock.acquire(key);
+      },
+    };
+    const setup = approvalSetup(REFUND, [], {}, { ...base, lock });
+    const { client, seen } = recorded(setup.dispatcher);
+    await init(client);
+    const { session } = await client.request("session/create", { cwd: "/work" });
+    await client.request("turn/start", { session, input: text("Refund o1") });
+    await until(() => settledCount(seen) === 1, "the pause");
+    const [asked] = requestsOf(seen);
+    assert.ok(asked !== undefined);
+    slowNext = true;
+    client.respond(asked, allow(asked));
+    assert.deepEqual(await client.request("turn/interrupt", { session }), { interrupted: true });
+    lockHeld.open();
+    await until(() => settledCount(seen) === 2 && requestsOf(seen).length === 2, "the stopped resume and the new ask");
+    const stopped = settledMessages(seen)[1];
+    assert.equal(stopped?.result.stopReason, "aborted");
+    assert.equal(stopped?.result.error?.kind, "answer_not_applied");
+    assert.equal(setup.resolved.length, 0);
+    const again = requestsOf(seen)[1];
+    assert.ok(again !== undefined);
+    client.respond(again, allow(again));
+    await until(() => settledCount(seen) === 3, "the resume");
+    assert.equal(setup.resolved.length, 1);
+    assert.deepEqual(setup.refunds, [{ id: "o1" }]);
+  });
+});
+
+/**
+ * Compiled, never run: an answer's type follows the request's method, so answering an approval with a tool result, or
+ * a tool call with resolutions, fails to compile.
+ */
+function answersFitTheirRequest(
+  client: InProcessClient,
+  approval: Extract<ServerRequest, { method: "approval/request" }>,
+  call: Extract<ServerRequest, { method: "tool/call" }>,
+): void {
+  client.respond(approval, { resolutions: [{ requestId: "r", decision: "allow" }] });
+  client.respond(call, { content: [{ type: "text", text: "ok" }], isError: false });
+  // @ts-expect-error an approval is answered with resolutions, not a tool result
+  client.respond(approval, { content: [{ type: "text", text: "ok" }], isError: false });
+  // @ts-expect-error a tool call is answered with a tool result, not resolutions
+  client.respond(call, { resolutions: [{ requestId: "r", decision: "allow" }] });
+}
+void answersFitTheirRequest;

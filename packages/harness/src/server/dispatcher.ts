@@ -138,6 +138,8 @@ interface Opened {
   readonly answers: Map<string, Answer>;
   /** Counts each answer taken and each resume ended, so a read of the waiting requests can tell it went stale. */
   generation: number;
+  /** How many times each request was asked again after a resume that could not apply its answer. */
+  readonly reasks: Map<string, number>;
 }
 
 /** The command whose method union holds `M`, for the methods that share one command shape. */
@@ -153,13 +155,29 @@ type EventMessage = Extract<ServerNotification, { method: "event" }>;
 
 const failure = (code: number, message: string): Failure => new Failure(code, message);
 
-const newOpened = (cwd: string): Opened => ({ cwd, answers: new Map(), generation: 0 });
+const newOpened = (cwd: string): Opened => ({ cwd, answers: new Map(), generation: 0, reasks: new Map() });
 
 /** How many times `#armFor` reads the log before it gives up on a read that answers keep making stale. */
 const ARM_READS = 3;
 
-/** What `turn/settled` says about a resume stopped before it wrote anything. */
-const ABORTED: TurnResultSummary = { stopReason: "aborted", steps: 0, costUsd: null };
+/**
+ * The `error.kind` of a resume's `turn/settled` when its answers were never written, because the lock could not be
+ * taken or the resume was stopped first. The requests still wait in the log.
+ */
+const NOT_APPLIED = "answer_not_applied";
+
+/** How many times one request is asked again after resumes that could not apply its answer. */
+const MAX_REASKS = 3;
+
+/** What `turn/settled` says about a resume that wrote none of its answers. */
+function notApplied(stopReason: "aborted" | "error", why: string): TurnResultSummary {
+  return {
+    stopReason,
+    steps: 0,
+    costUsd: null,
+    error: { kind: NOT_APPLIED, message: `${why}, so no answer was applied and each request still waits` },
+  };
+}
 
 const completionOf = (completion: CompletionSettings | undefined): { completion?: CompletionSettings } =>
   completion === undefined ? {} : { completion };
@@ -702,7 +720,7 @@ class HarnessDispatcher<H> implements Dispatcher, ConnectionHost {
    * Asks one connection about every request of the session that still waits, as the log says now. An answer taken or
    * applied while the log was being read makes that read stale, so the log is read again before anyone is asked.
    */
-  async #armFor(connection: ServerConnection, session: string): Promise<void> {
+  async #armFor(connection: ServerConnection, session: string, only?: ReadonlySet<string>): Promise<void> {
     const opened = this.#opened.get(session);
     if (opened === undefined) return;
     let waiting: SignedPendingRequest[] = [];
@@ -718,7 +736,8 @@ class HarnessDispatcher<H> implements Dispatcher, ConnectionHost {
       // Answers kept changing for every read: ask nothing now, since the next resume asks again.
       if (read === ARM_READS - 1) return;
     }
-    for (const request of waiting) this.#ask(connection, session, request);
+    for (const request of waiting)
+      if (only === undefined || only.has(request.id)) this.#ask(connection, session, request);
   }
 
   async #waiting(session: string): Promise<SignedPendingRequest[]> {
@@ -768,6 +787,7 @@ class HarnessDispatcher<H> implements Dispatcher, ConnectionHost {
    */
   async #resume(session: string, opened: Opened, running: Running, answers: [string, Answer][]): Promise<void> {
     let summary: TurnResultSummary | undefined;
+    let written = false;
     try {
       const handle = await this.#lockedHandle(session);
       try {
@@ -777,16 +797,20 @@ class HarnessDispatcher<H> implements Dispatcher, ConnectionHost {
           await this.#seed(handle, session);
           // A close or an interrupt while the lock was being taken leaves the answers unwritten, so the log never shows
           // an answer that no run applied.
-          summary =
-            running.controller.signal.aborted || this.#closed
-              ? ABORTED
-              : summaryOf(await this.#approvals.resolve(handle, resolutions, this.#turnHooks(session, running)));
+          if (running.controller.signal.aborted || this.#closed) {
+            summary = notApplied("aborted", "the resume was stopped before it wrote its answers");
+          } else {
+            written = true;
+            summary = summaryOf(await this.#approvals.resolve(handle, resolutions, this.#turnHooks(session, running)));
+          }
         }
       } finally {
         await handle.close().catch(() => undefined);
       }
     } catch (error) {
-      summary = summaryOf(undefined, error);
+      summary = written
+        ? summaryOf(undefined, error)
+        : notApplied("error", `the resume could not start (${error instanceof Error ? error.message : String(error)})`);
     } finally {
       for (const [id] of answers) opened.answers.delete(id);
       opened.generation += 1;
@@ -794,12 +818,37 @@ class HarnessDispatcher<H> implements Dispatcher, ConnectionHost {
     }
     if (summary !== undefined) this.settled(session, running.turn, summary);
     running.finish();
-    // A request the resume left waiting, such as one a quorum still needs, is asked again; a failed resume asks nothing,
-    // so a client is not asked in a loop while another process holds the session.
-    if (summary !== undefined && summary.error === undefined && summary !== ABORTED) {
-      for (const connection of this.#watchers(session)) void this.#armFor(connection, session);
-    }
+    this.#askAfterResume(session, opened, summary, answers);
     this.#pump(session);
+  }
+
+  /**
+   * Asks again after a resume. A request the resume left waiting, such as one a quorum still needs, is asked again.
+   * One whose answer was never written, because the lock was held or the resume was stopped, is asked again too, at
+   * most `MAX_REASKS` times, so a lock another process holds can't make a loop. A resume that failed after it wrote
+   * its answers asks nothing, and a closed dispatcher asks nobody.
+   */
+  #askAfterResume(
+    session: string,
+    opened: Opened,
+    summary: TurnResultSummary | undefined,
+    answers: readonly [string, Answer][],
+  ): void {
+    if (summary === undefined || this.#closed) return;
+    if (summary.error === undefined) {
+      for (const connection of this.#watchers(session)) void this.#armFor(connection, session);
+      return;
+    }
+    if (summary.error.kind !== NOT_APPLIED) return;
+    const again = new Set<string>();
+    for (const [id] of answers) {
+      const count = opened.reasks.get(id) ?? 0;
+      if (count >= MAX_REASKS) continue;
+      opened.reasks.set(id, count + 1);
+      again.add(id);
+    }
+    if (again.size === 0) return;
+    for (const connection of this.#watchers(session)) void this.#armFor(connection, session, again);
   }
 
   /**
