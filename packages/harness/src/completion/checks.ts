@@ -116,7 +116,7 @@ export async function resolveChecks(sandbox: Sandbox): Promise<ResolvedChecks> {
 
 /**
  * The parts of the workspace that decide what a check does, as text: the config file, the bodies of the `package.json`
- * scripts discovery names, and the `Makefile` `test` rule. Each is `undefined` when absent.
+ * scripts discovery names and the resolved checks run (with their `pre` and `post` hooks), and the `Makefile` `test` rule. Each is `undefined` when absent.
  */
 export interface CheckConfig {
   readonly harnessConfig: string | undefined;
@@ -133,8 +133,29 @@ function makeTestRule(makefile: string): string | undefined {
   return lines.slice(0, end === -1 ? lines.length : end).join("\n");
 }
 
-/** Reads the check config. Throws what the sandbox throws for a file it can't read, except a missing one. */
-export async function readCheckConfig(sandbox: Sandbox): Promise<CheckConfig> {
+const PACKAGE_RUNNERS: ReadonlySet<string> = new Set(["npm", "pnpm", "yarn", "bun"]);
+
+/**
+ * The `package.json` scripts a set of commands runs through a package runner (`npm run e2e`, `pnpm lint`), each with its
+ * `pre` and `post` hooks, because npm and yarn run those hooks too. Flags are skipped, and a command that is not a
+ * package runner names none.
+ */
+export function scriptNamesOf(commands: readonly (readonly string[])[]): string[] {
+  const names = new Set<string>();
+  for (const [runner, ...rest] of commands) {
+    if (runner === undefined || !PACKAGE_RUNNERS.has(runner)) continue;
+    const words = rest.filter((word) => !word.startsWith("-"));
+    const name = words[0] === "run" || words[0] === "run-script" ? words[1] : words[0];
+    if (name !== undefined) for (const each of [name, `pre${name}`, `post${name}`]) names.add(each);
+  }
+  return [...names];
+}
+
+/**
+ * Reads the check config. The scripts it tracks are the discovered ones plus `extra`, the scripts the resolved checks
+ * run. Throws what the sandbox throws for a file it can't read, except a missing one.
+ */
+export async function readCheckConfig(sandbox: Sandbox, extra: readonly string[] = []): Promise<CheckConfig> {
   const harnessConfig = await readText(sandbox, HARNESS_CONFIG_PATH);
   const packageJson = await readText(sandbox, "package.json");
   const makefile = await readText(sandbox, "Makefile");
@@ -142,7 +163,7 @@ export async function readCheckConfig(sandbox: Sandbox): Promise<CheckConfig> {
   return {
     harnessConfig,
     scripts: new Map(
-      DISCOVERED_SCRIPTS.map((name) => {
+      [...new Set([...DISCOVERED_SCRIPTS, ...extra])].map((name) => {
         const body = scripts?.[name];
         return [name, typeof body === "string" ? body : undefined];
       }),
@@ -159,7 +180,7 @@ export async function readCheckConfig(sandbox: Sandbox): Promise<CheckConfig> {
 export function configChanges(before: CheckConfig, after: CheckConfig): string[] {
   const flags: string[] = [];
   if (before.harnessConfig !== after.harnessConfig) flags.push(`check config changed: ${HARNESS_CONFIG_PATH}`);
-  for (const name of DISCOVERED_SCRIPTS) {
+  for (const name of before.scripts.keys()) {
     if (before.scripts.get(name) !== after.scripts.get(name)) {
       flags.push(`check config changed: package.json script ${name}`);
     }

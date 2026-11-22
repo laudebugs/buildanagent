@@ -5,7 +5,14 @@
  */
 import type { CompletionCheckEntry } from "@buildanagent/protocol";
 import type { Sandbox } from "../sandbox/types.js";
-import { type CheckConfig, configChanges, type ResolvedChecks, readCheckConfig, resolveChecks } from "./checks.js";
+import {
+  type CheckConfig,
+  configChanges,
+  type ResolvedChecks,
+  readCheckConfig,
+  resolveChecks,
+  scriptNamesOf,
+} from "./checks.js";
 import { flagChanges, type WorkspaceSnapshot } from "./flags.js";
 import { gitSnapshotter, type Snapshotter } from "./snapshot.js";
 
@@ -90,7 +97,7 @@ export async function snapshotStart(settings: CompletionSettings, signal: AbortS
     failures.push(completionFailure(error));
   }
   try {
-    config = await readCheckConfig(settings.sandbox);
+    config = await readCheckConfig(settings.sandbox, scriptNamesOf(checks?.commands ?? []));
   } catch (error) {
     failures.push(completionFailure(error));
   }
@@ -107,6 +114,23 @@ function abortedCheck(text: string, checks: CompletionOutcome["checks"], denials
   denials.push(`check aborted before it finished: ${text}`);
 }
 
+/** Records one check's result. A check the signal aborted counts as aborted, whatever the sandbox returned for it. */
+function recordResult(
+  text: string,
+  result: Awaited<ReturnType<Sandbox["exec"]>>,
+  signal: AbortSignal,
+  checks: CompletionOutcome["checks"],
+  denials: string[],
+): void {
+  if (signal.aborted) abortedCheck(text, checks, denials);
+  else if ("denied" in result) {
+    checks.push({ command: text, exitCode: DENIED_EXIT_CODE });
+    denials.push(`check refused by the sandbox: ${text}: ${result.denied.reason}`);
+  } else {
+    checks.push({ command: text, exitCode: result.exitCode });
+  }
+}
+
 async function runChecks(
   settings: CompletionSettings,
   commands: readonly (readonly string[])[],
@@ -121,23 +145,16 @@ async function runChecks(
       abortedCheck(text, checks, denials);
       continue;
     }
-    let result: Awaited<ReturnType<Sandbox["exec"]>>;
     try {
-      result = await settings.sandbox.exec(command, {
+      const result = await settings.sandbox.exec(command, {
         env: settings.env,
         signal,
         timeoutMs: settings.timeoutMs ?? DEFAULT_CHECK_TIMEOUT_MS,
       });
+      recordResult(text, result, signal, checks, denials);
     } catch (error) {
       if (!signal.aborted) throw error;
       abortedCheck(text, checks, denials);
-      continue;
-    }
-    if ("denied" in result) {
-      checks.push({ command: text, exitCode: DENIED_EXIT_CODE });
-      denials.push(`check refused by the sandbox: ${text}: ${result.denied.reason}`);
-    } else {
-      checks.push({ command: text, exitCode: result.exitCode });
     }
   }
   return { checks, denials };
@@ -147,7 +164,7 @@ async function runChecks(
 async function configFlags(sandbox: Sandbox, before: CheckConfig | undefined): Promise<string[]> {
   if (before === undefined) return [];
   try {
-    return configChanges(before, await readCheckConfig(sandbox));
+    return configChanges(before, await readCheckConfig(sandbox, [...before.scripts.keys()]));
   } catch (error) {
     return [completionFailure(error)];
   }

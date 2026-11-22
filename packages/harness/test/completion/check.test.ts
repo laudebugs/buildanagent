@@ -206,6 +206,40 @@ describe("checks resolved before the turn", () => {
     ]);
   });
 
+  test("a configured package-runner check is tracked with its pre and post hooks", async () => {
+    const { sandbox } = await sandboxWith({
+      ".agents/harness.json": JSON.stringify({ completionChecks: [["npm", "run", "e2e"], "pnpm lint"] }),
+      "package.json": JSON.stringify({ scripts: { e2e: "playwright test", lint: "biome check", build: "tsc" } }),
+    });
+    const settings = settingsOf(sandbox, { snapshotter: scriptedDiff(snap({})) });
+    const start = await snapshotStart(settings, signal);
+    await sandbox.writeFile(
+      "package.json",
+      encode(
+        JSON.stringify({
+          scripts: { e2e: "true", lint: "biome check", pretest: "true", build: "esbuild", pree2e: "x" },
+        }),
+      ),
+    );
+    const outcome = await runCompletionCheck(settings, start, signal);
+    assert.deepEqual(outcome.flagged, [
+      "check config changed: package.json script e2e",
+      "check config changed: package.json script pree2e",
+    ]);
+  });
+
+  test("a pretest hook added during the turn is flagged", async () => {
+    const { sandbox } = await sandboxWith({ "package.json": JSON.stringify({ scripts: { test: "vitest run" } }) });
+    const settings = settingsOf(sandbox, { snapshotter: scriptedDiff(snap({})) });
+    const start = await snapshotStart(settings, signal);
+    await sandbox.writeFile(
+      "package.json",
+      encode(JSON.stringify({ scripts: { test: "vitest run", pretest: "exit 0" } })),
+    );
+    const outcome = await runCompletionCheck(settings, start, signal);
+    assert.deepEqual(outcome.flagged, ["check config changed: package.json script pretest"]);
+  });
+
   test("an unchanged config, a changed script no check runs, or an edit outside the test rule raises no flag", async () => {
     const { sandbox } = await sandboxWith({
       "package.json": JSON.stringify({ scripts: { test: "vitest run", build: "tsc" } }),
@@ -315,6 +349,28 @@ describe("an aborted check", () => {
       "check aborted before it finished: true",
       "check aborted before it finished: false",
     ]);
+  });
+
+  test("a check the sandbox returns from after the abort is recorded as aborted, whatever its exit code", async () => {
+    const { sandbox } = await sandboxWith({
+      ".agents/harness.json": JSON.stringify({ completionChecks: ["slow"] }),
+    });
+    const controller = new AbortController();
+    const settings = settingsOf(
+      {
+        ...sandbox,
+        exec(command, options) {
+          if (command[0] !== "slow") return sandbox.exec(command, options);
+          controller.abort();
+          return Promise.resolve(exit(143));
+        },
+      },
+      { snapshotter: scriptedDiff(snap({})) },
+    );
+    const start = await snapshotStart(settings, signal);
+    const outcome = await runCompletionCheck(settings, start, controller.signal);
+    assert.deepEqual(outcome.checks, [{ command: "slow", exitCode: ABORTED_EXIT_CODE }]);
+    assert.deepEqual(outcome.flagged, ["check aborted before it finished: slow"]);
   });
 
   test("a turn aborted during its check still ends done and writes the entry", async () => {
@@ -568,6 +624,7 @@ async function turn(
   maxSteps?: number,
   turnSignal?: AbortSignal,
   onLookup?: () => Promise<void>,
+  failCheckAppend = false,
 ) {
   const registry = createToolRegistry();
   registry.register({
@@ -585,7 +642,19 @@ async function turn(
   });
   const harness = createHarness({ registry, model: model(new ScriptedModel(steps)), system: "You fix bugs." });
   const backend = memoryBackend();
-  const session = await openSession({ store: backend.store, index: backend.index, lock: backend.lock, key: KEY });
+  // A store that refuses the completion entry, as a lost lock or a conflict would.
+  const store: typeof backend.store = failCheckAppend
+    ? {
+        append: (key, entries, options) =>
+          entries.some((entry) => entry.type === "completion_check")
+            ? Promise.reject(new Error("store refused the append"))
+            : backend.store.append(key, entries, options),
+        load: (key, options) => backend.store.load(key, options),
+        list: (userId) => backend.store.list(userId),
+        delete: (key) => backend.store.delete(key),
+      }
+    : backend.store;
+  const session = await openSession({ store, index: backend.index, lock: backend.lock, key: KEY });
   const events: SessionEntry[] = [];
   const result = await runTurn(session, harness, {
     input: "Fix it.",
@@ -600,6 +669,22 @@ async function turn(
 }
 
 describe("a turn that checks its completion", () => {
+  test("a completion entry the store refuses leaves the done turn's result, with no callback", async () => {
+    const { sandbox } = await sandboxWith({ ".agents/harness.json": JSON.stringify({ completionChecks: ["true"] }) });
+    const { result, entries, events } = await turn(
+      settingsOf(sandbox, { snapshotter: scriptedDiff(snap({})) }),
+      done,
+      undefined,
+      undefined,
+      undefined,
+      true,
+    );
+    assert.equal(result.stopReason, "done");
+    assert.equal(entries.at(-1)?.type, "turn_end");
+    assert.equal(result.lastEntryId, entries.at(-1)?.id);
+    assert.deepEqual(events, []);
+  });
+
   test("an added it.skip( is flagged and a failing check recorded, and the run still ends done", async () => {
     const { sandbox } = await sandboxWith({ ".agents/harness.json": JSON.stringify({ completionChecks: ["false"] }) });
     const snapshotter = scriptedDiff(

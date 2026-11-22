@@ -596,7 +596,14 @@ async function recordCompletion<H>(
     outcome = { checks: [], passed: false, flagged: [...(start?.failures ?? []), completionFailure(error)] };
   }
   const { writer } = turnPlumbing(session, options);
-  const entry = await writer.write("harness", { type: "completion_check", ...outcome });
+  let entry: SessionEntry;
+  try {
+    entry = await writer.write("harness", { type: "completion_check", ...outcome });
+  } catch {
+    // A failed append (a lost lock, a store conflict) must not turn a `done` turn into a rejection: the turn's own
+    // entries are written, and the result stands without the check's entry.
+    return result;
+  }
   options.onCompletionCheck?.(entry);
   return { ...result, lastEntryId: entry.id };
 }
