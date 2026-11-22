@@ -26,6 +26,7 @@ import {
   type ToolDefinition,
 } from "@buildanagent/sdk";
 import type { Clock } from "@buildanagent/sdk/testing";
+import type { ContextFill, TurnContext } from "../context/types.js";
 import { HarnessError } from "../errors.js";
 import type { Harness } from "../harness.js";
 import type { PolicySession } from "../permissions/types.js";
@@ -56,6 +57,8 @@ export interface TurnOptions<H = unknown> {
   readonly modelOptions?: CallOptions;
   /** Called with the run as soon as it starts, so a caller can `steer()`, `followUp()` or abort it. */
   readonly onRun?: (run: Run<unknown>) => void;
+  /** Called with how full the request view is after each model call's view is built, when the harness has a context policy. */
+  readonly onContextFill?: (fill: ContextFill) => void;
   /** Observers for this turn alone. Unlike `Run.on()`, they also see `run_start`. They run after the harness's own. */
   readonly observers?: readonly Observer[];
   /**
@@ -210,6 +213,7 @@ class EventRecorder {
   #pending: ModelMessage | undefined;
 
   readonly #mode: "run" | "continue";
+  readonly #spillOf: TurnContext["spillOf"] | undefined;
 
   constructor(
     writer: EntryWriter,
@@ -217,7 +221,9 @@ class EventRecorder {
     system: string,
     newId: () => string,
     mode: "run" | "continue" = "run",
+    spillOf?: TurnContext["spillOf"],
   ) {
+    this.#spillOf = spillOf;
     this.#mode = mode;
     this.#writer = writer;
     this.#harness = harness;
@@ -330,6 +336,7 @@ class EventRecorder {
     const tool = this.#tools.get(event.callId) ?? "";
     const trust = this.#harness.registry.get(tool)?.outputTrust ?? "untrusted";
     const { result } = event;
+    const spill = this.#spillOf?.(event.callId);
     this.#queue("tool", {
       type: "tool_result",
       callId: event.callId,
@@ -337,9 +344,24 @@ class EventRecorder {
       content: [...result.content],
       isError: result.isError === true,
       ...(result.details === undefined ? {} : { details: result.details }),
+      ...(spill === undefined ? {} : { spill }),
       trust,
     });
   }
+}
+
+/** The turn's context layers, when the harness has a policy. */
+function contextFor<H>(
+  harness: Harness<H>,
+  session: Session,
+  model: Model,
+  options: { readonly onContextFill?: (fill: ContextFill) => void },
+): TurnContext | undefined {
+  return harness.context?.forTurn({
+    session,
+    model,
+    ...(options.onContextFill === undefined ? {} : { onFill: options.onContextFill }),
+  });
 }
 
 /** The interceptors of a turn: the harness's, the pipeline's gate, and a guard that refuses a model change inside a turn. */
@@ -350,6 +372,7 @@ function interceptorsOf<H>(
   recorder: EventRecorder,
   hostContext: H | undefined,
   turnModel: Model,
+  turnContext: TurnContext | undefined,
 ): Interceptors {
   const policySession: PolicySession = { append: (entry) => writer.write("harness", entry) };
   const pipelineGate = harness.pipeline?.gate(async () => {
@@ -360,7 +383,7 @@ function interceptorsOf<H>(
   });
   const gate =
     pipelineGate === undefined ? undefined : withStickyAllowances(pipelineGate, harness, session, writer, recorder);
-  const composed = composeInterceptors(harness.interceptors ?? {}, gate ?? {});
+  const composed = composeInterceptors(harness.interceptors ?? {}, turnContext?.interceptors ?? {}, gate ?? {});
   const inner = composed.beforeModelCall;
   return {
     ...composed,
@@ -440,7 +463,15 @@ function afterWrites(observers: readonly Observer[] | undefined, writer: EntryWr
 /** The run options a turn sets only when it has a value, so a missing one leaves the SDK's default. */
 type RunSettings<H> = Pick<
   TurnOptions<H>,
-  "clock" | "newId" | "hostContext" | "output" | "maxSteps" | "turnRetries" | "modelOptions" | "budgetUsd"
+  | "clock"
+  | "newId"
+  | "hostContext"
+  | "output"
+  | "maxSteps"
+  | "turnRetries"
+  | "modelOptions"
+  | "budgetUsd"
+  | "onContextFill"
 >;
 
 function optionalRunOptions<H>(options: RunSettings<H>, harness: Harness<H>, history: readonly Message[]) {
@@ -523,7 +554,8 @@ export async function runTurn<H = unknown>(
   }
   const history = options.history ?? contextOf(path).messages;
   await writeInput(writer, options, newId);
-  const recorder = new EventRecorder(writer, harness as Harness<unknown>, system, newId);
+  const turnContext = contextFor(harness, session, model, options);
+  const recorder = new EventRecorder(writer, harness as Harness<unknown>, system, newId, "run", turnContext?.spillOf);
   const observer: Observer = (event) => recorder.handle(event);
   const handle = run({
     model,
@@ -531,7 +563,7 @@ export async function runTurn<H = unknown>(
     input: options.input,
     tools,
     signal,
-    interceptors: interceptorsOf(harness, session, writer, recorder, options.hostContext, model),
+    interceptors: interceptorsOf(harness, session, writer, recorder, options.hostContext, model, turnContext),
     observers: [observer, ...afterWrites(harness.observers, writer), ...afterWrites(options.observers, writer)],
     ...optionalRunOptions(options, harness, history),
   });
@@ -651,7 +683,15 @@ export async function resumeTurn<H = unknown>(
   for (const record of records) await writer.write("user", { type: "approval_resolved", ...record });
   const model = options.model ?? harness.model;
   await recordLoadout(harness, writer, model, tools, path);
-  const recorder = new EventRecorder(writer, harness as Harness<unknown>, context.system, newId, "continue");
+  const turnContext = contextFor(harness, session, model, options);
+  const recorder = new EventRecorder(
+    writer,
+    harness as Harness<unknown>,
+    context.system,
+    newId,
+    "continue",
+    turnContext?.spillOf,
+  );
   const handle = continueRun(context, {
     model,
     tools,
@@ -659,7 +699,7 @@ export async function resumeTurn<H = unknown>(
     recheck: recheckThrough(session, harness, writer, recorder, options.hostContext),
     signer: harness.signer,
     signal,
-    interceptors: interceptorsOf(harness, session, writer, recorder, options.hostContext, model),
+    interceptors: interceptorsOf(harness, session, writer, recorder, options.hostContext, model, turnContext),
     observers: [(event: AgentEvent) => recorder.handle(event), ...afterWrites(harness.observers, writer)],
     ...optionalRunOptions(options, harness, []),
   });

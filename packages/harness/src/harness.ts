@@ -6,6 +6,7 @@
 import type { Model } from "@buildanagent/gateway";
 import type { ApprovalPolicy, PermissionMode, SandboxTier } from "@buildanagent/protocol";
 import type { ApprovalSigner, Interceptors, Observer } from "@buildanagent/sdk";
+import type { ContextPolicy } from "./context/types.js";
 import type { PermissionPipeline } from "./permissions/types.js";
 import type { ToolRegistry, ToolWrapper } from "./tools/types.js";
 
@@ -39,6 +40,8 @@ export interface HarnessOptions<H = unknown> {
   readonly pipeline?: PermissionPipeline;
   /** Hooks that run with the pipeline's gate, before it for a gate, as `composeInterceptors()` orders them. */
   readonly interceptors?: Interceptors;
+  /** The context layers every turn runs through, from `createContextPolicy()`. Without one a turn sends its whole transcript. */
+  readonly context?: ContextPolicy;
   /** Observers that see every event of every turn, after the runner's own. */
   readonly observers?: readonly Observer[];
   /** Binds a tool to the turn's host context, such as a write cap. A tool can also read it as `ctx.app`. */
