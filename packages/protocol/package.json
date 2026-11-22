@@ -17,6 +17,7 @@
   },
   "files": [
     "dist",
+    "schema",
     "LICENSE",
     "LICENSE-APACHE",
     "LICENSE-MIT"
