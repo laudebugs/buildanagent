@@ -159,7 +159,7 @@ Writing findings are counted apart from code findings, and the pull request desc
 
 ## Subagents run on the model their work needs
 
-When you delegate work to a subagent, choose its model by the kind of work (the owner's rule, 2026-11-19; amended by the owner's decision, 2026-11-22: "writing and reviewing will be the work of Sonnet", which covers prose and leaves code review as the bullets below set it):
+When you delegate work to a subagent, choose its model by the kind of work (the owner's rule, 2026-11-19). The owner amended the rule on 2026-11-22: "writing and reviewing will be the work of Sonnet." That covers prose; code review stays as the bullets below set it.
 
 - **Opus 5.5:** security-sensitive work (secrets, deploys, untrusted input, live API runs); every first-round `/code-review high`; and tooling builds that need real design work.
 - **Sonnet 5.5:** all writing and reviewing of prose: book chapters, with their research, fact-checks, `/anthropic-skills:writing-review` passes and `/anthropic-skills:writing` fixes, and the same work on every other document; builds that follow an established pattern, such as a new example in an existing harness; and the `/code-review medium` and `low` reviews.
