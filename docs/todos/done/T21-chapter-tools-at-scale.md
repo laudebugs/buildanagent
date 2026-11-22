@@ -72,7 +72,7 @@ Write the chapter "Tools at scale: the registry, deferred tools, MCP and skills"
 - [x] At least one listing uses a tier 1, 2 or 3 interaction, and the page reads in full with JavaScript off
 - [x] Every figure, analogy illustrations included, is generated, passes the staleness test, and has alt text, a caption and both themes
 - [x] Every version the prose names says "as of <month year>"
-- [ ] `apps/manual/fact-checks/tools-at-scale.md` has one block of rows per section, each committed with its section before the next section's draft, plus the re-check rows for the review's fixes, with a ✅/✏️/⚠️ tally
+- [x] `apps/manual/fact-checks/tools-at-scale.md` has one block of rows per section, each committed with its section before the next section's draft, plus the re-check rows for the review's fixes, with a ✅/✏️/⚠️ tally
 - [x] Every analogy the chapter uses comes from the table above or has the owner's approval, opens its concept and has a "Where the analogy breaks" note; every one is in `src/content/analogies.json`, and `check:book` passes its duplicate and reuse checks
 - [x] The front matter's `opening` is `fact`, and `check:book` passes its opening-rotation check
 - [ ] The pull request records the writing review's 5C scores and its voice scores, before and after
@@ -103,7 +103,7 @@ The book's build and `check:book` in the CI `book` job; the harness tests for an
 
 ## Outcome
 
-The chapter is `apps/manual/src/content/chapters/tools-at-scale.md` (Chapter 13), with its claims log in `apps/manual/fact-checks/tools-at-scale.md` (96 rows, each section committed with its rows). It has five sections: the registry, deferred tools, MCP after 2026-07-28, skills, and a short pointer that leaves connector OAuth and token custody to the permissions chapter. Two flat figures (`one-registry` and the hardware store's `back-room` illustration) and three exercises complete it. Three analogies are registered (`hardware-store-back-room` with its illustration, `usb-port` and `service-manuals`, each with its break note), plus the sources, the glossary terms `tool-registry`, `deferred-tool` and `skill`, and region and note markers in the Vercel AI SDK, Cloudflare Agents, Copilot SDK, Pi and Claude Agent SDK examples (three transcripts regenerated because lines moved).
+The chapter is `apps/manual/src/content/chapters/tools-at-scale.md` (Chapter 13), with its claims log in `apps/manual/fact-checks/tools-at-scale.md` (102 rows: 93 ✅, 4 ✏️ and 5 ⚠️, each section committed with its rows; the ✏️ rows 22, 91, 97 and 98 correct earlier claims after the first review). It has five sections: the registry, deferred tools, MCP after 2026-07-28, skills, and a short pointer that leaves connector OAuth and token custody to the permissions chapter. Two flat figures (`one-registry` and the hardware store's `back-room` illustration) and three exercises complete it. Three analogies are registered (`hardware-store-back-room` with its illustration, `usb-port` and `service-manuals`, each with its break note), plus the sources, the glossary terms `tool-registry`, `deferred-tool` and `skill`, and region and note markers in the Vercel AI SDK, Cloudflare Agents, Copilot SDK, Pi and Claude Agent SDK examples (three transcripts regenerated because lines moved).
 
 Three things differ from the plan:
 
