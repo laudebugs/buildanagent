@@ -669,6 +669,13 @@ class Notes {
       this.restoreFocus();
     });
     this.openButton.addEventListener("pointerdown", () => this.onSelection());
+    doc.addEventListener(
+      "pointerdown",
+      (event) => {
+        if (!event.target?.closest?.("[data-notes-ui]")) this.pending = undefined;
+      },
+      { capture: true },
+    );
     this.openButton.addEventListener("click", () => this.open(this.openButton));
     this.selectionHighlight.addEventListener("click", () => this.addPending(false));
     this.selectionNote.addEventListener("click", () => this.addPending(true));
@@ -718,7 +725,9 @@ class Notes {
     const selection = win.getSelection();
     const range = selection && selection.rangeCount > 0 && !selection.isCollapsed ? selection.getRangeAt(0) : undefined;
     if (!range || !article.contains(range.commonAncestorContainer)) {
-      this.pending = undefined;
+      // A selection that collapses as focus moves, such as on the way to the Notes button, stays pending; a pointer
+      // press elsewhere or a selection outside the article replaces it.
+      if (range) this.pending = undefined;
       this.hideToolbar();
       return;
     }
@@ -904,6 +913,15 @@ class Notes {
     this.revokeDownload();
     const opener = this.opener;
     this.opener = undefined;
+    if (this.jumping && opener) {
+      this.jumping = false;
+      this.reveal(opener);
+      return;
+    }
+    // The browser has already returned focus to the element focused before the panel opened. Only when that element
+    // is gone or hidden, as the toolbar is, does focus need a new place.
+    const active = this.doc.activeElement;
+    if (active && active !== this.doc.body && !this.dialog.contains(active)) return;
     if (opener?.isConnected && typeof opener.focus === "function") opener.focus();
     else this.openButton.focus();
   }
@@ -962,6 +980,7 @@ class Notes {
     this.formQuote.textContent = shorten(quote, 300);
     this.noteField.value = note;
     this.updateNoteCount();
+    this.empty.hidden = true;
     this.form.hidden = false;
     this.noteField.focus();
   }
@@ -1025,17 +1044,22 @@ class Notes {
   }
 
   jump(item) {
-    const { win, doc, article } = this;
-    const chapter = readChapter(article);
+    const chapter = readChapter(this.article);
     const located = locate(chapter.index.text, item, chapter.sections);
     if (located.status === "lost") return;
     const from = rawPoint(chapter.index, located.start, "start");
     const node = from && chapter.nodes[from.seg];
     const block = node?.parentElement?.closest("p, li, blockquote, td, th, dd, dt, h2, h3, h4, figcaption, aside");
-    this.opener = undefined;
+    // The dialog's close event runs after the browser has returned focus to the opener, so the move happens there.
+    this.opener = block ?? undefined;
+    this.jumping = Boolean(block);
     this.dialog.close();
-    if (!block) return;
-    // The passage's block takes focus, so the keyboard continues from the passage, then gives up its tabindex.
+  }
+
+  /** Scrolls a passage's block into view and gives it focus, so the keyboard continues from the passage. */
+  reveal(block) {
+    const { win } = this;
+    // The block then gives up the tabindex it took for this.
     if (!block.hasAttribute("tabindex")) {
       block.setAttribute("tabindex", "-1");
       block.addEventListener("blur", () => block.removeAttribute("tabindex"), { once: true });
@@ -1043,7 +1067,6 @@ class Notes {
     const still = win.matchMedia?.("(prefers-reduced-motion: reduce)").matches ?? true;
     block.scrollIntoView({ block: "center", behavior: still ? "auto" : "smooth" });
     block.focus({ preventScroll: true });
-    doc.defaultView?.getSelection()?.removeAllRanges();
   }
 
   exportMarkdown() {
