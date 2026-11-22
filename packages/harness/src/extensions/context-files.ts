@@ -50,11 +50,19 @@ export function withPlanConvention(system: string): string {
   return `${system}\n\n${planPrompt()}`;
 }
 
-/** Stops a file's own text from closing the label that marks it untrusted. */
-const neutralise = (text: string): string =>
-  text.replaceAll("</untrusted-project-context", "<\\/untrusted-project-context");
+/**
+ * Anything a reader could take for the label's opening or closing tag: `<`, or `&lt;` or a numeric entity for it, then
+ * optional spaces, an optional `/` and the label's name, in any case.
+ */
+const LABEL_TAG = /(?:<|&lt;|&#0*60;|&#x0*3c;)(\s*\/?\s*)untrusted-project-context/giu;
 
-const attribute = (value: string): string => value.replaceAll('"', "%22").replaceAll("\n", " ");
+/** Stops a file's own text from closing the label that marks it untrusted, or from opening a label of its own. */
+const neutralise = (text: string): string =>
+  text.replace(LABEL_TAG, (_tag, gap: string) => `<\\${gap}untrusted-project-context`);
+
+/** The `source` value with every character that could end the attribute or the tag, or start a line, percent-encoded. */
+const attribute = (value: string): string =>
+  value.replace(/[%"'<>&\p{Cc}]/gu, (char) => `%${char.charCodeAt(0).toString(16).padStart(2, "0").toUpperCase()}`);
 
 function section(source: string, text: string, truncated: boolean): string {
   const cut = truncated ? `\n[cut: the file is longer than ${CONTEXT_FILE_MAX_BYTES} bytes and this is its start]` : "";
@@ -127,7 +135,7 @@ export function projectContext(options: ProjectContextOptions = {}): Extension {
     interceptors: {
       async transformContext(event) {
         const plan = await planFor(event.runId, event.stepIndex);
-        const notices = (plan.notices ?? []).map((notice) => `[${notice}]`);
+        const notices = (plan.notices ?? []).map((notice) => `[${neutralise(notice)}]`);
         const text = [contextText(files, plan), ...notices].filter((part) => part !== "").join("\n\n");
         return text === "" ? event.messages : lead(event.messages, text);
       },
