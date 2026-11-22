@@ -27,11 +27,6 @@ export async function projectDirs(cwd: string): Promise<string[]> {
   }
 }
 
-/** The repository root of `cwd`, or `cwd` itself when it is in no repository. */
-export async function projectRoot(cwd: string): Promise<string> {
-  return (await projectDirs(cwd)).at(-1) as string;
-}
-
 /** Whether `path` is `root` or inside it, once both are real paths. */
 export function isInside(root: string, path: string): boolean {
   return path === root || path.startsWith(root.endsWith(sep) ? root : `${root}${sep}`);

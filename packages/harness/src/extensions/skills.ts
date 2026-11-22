@@ -114,13 +114,13 @@ export function withSkills(system: string, skills: readonly Skill[]): string {
 
 /** `path` made absolute against `cwd` and cleaned of `.` and `..` segments, with `/` separators. */
 function resolvePath(cwd: string, path: string): string {
-  const parts: string[] = [];
-  for (const part of (path.startsWith("/") ? path : `${cwd}/${path}`).split("/")) {
-    if (part === "" || part === ".") continue;
-    if (part === "..") parts.pop();
-    else parts.push(part);
+  const segments = (path.startsWith("/") ? path : `${cwd}/${path}`).split("/").filter((s) => s !== "" && s !== ".");
+  const kept: string[] = [];
+  for (const segment of segments) {
+    if (segment === "..") kept.pop();
+    else kept.push(segment);
   }
-  return `/${parts.join("/")}`;
+  return `/${kept.join("/")}`;
 }
 
 /**

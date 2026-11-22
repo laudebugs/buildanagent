@@ -48,6 +48,11 @@ const nodeOnlyFiles = new Set([
   "extensions/load.ts",
   "extensions/lock.ts",
   "extensions/trust-file.ts",
+  // Finding skills, context files and the plan files reads the project's files, so these are Node-only too. They are
+  // exported from the same `@buildanagent/harness/extensions/node` entry.
+  "extensions/project-dirs.ts",
+  "extensions/skills-node.ts",
+  "extensions/context-files-node.ts",
 ]);
 
 // Each pattern names a Node-only API that would break the package on Cloudflare, AWS or Vercel edge targets.
