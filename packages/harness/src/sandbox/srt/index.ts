@@ -295,6 +295,9 @@ async function planSandbox(
  * command that does nothing, so a host that can't confine a process throws `SandboxUnavailableError` and runs nothing.
  * The policy's roots, `extraReadRoots` and `denyWrite` must be absolute folders other than `/`. Each command runs under
  * its own `srt`, so a command sees the proxy variables `srt` adds to its environment, besides those it was given.
+ * Before it returns, `provision()` reads the settings file back from disk and throws `SandboxPolicyMismatchError` when
+ * the policy it applies differs from the one requested. The backend lists no capability: it can't resume, snapshot or
+ * pause.
  */
 export function srtSandbox(options: SrtSandboxOptions = {}): SandboxClient {
   const client: SandboxClient = {

@@ -162,6 +162,8 @@ test("a push to a listed branch is allowed, and a deletion, a tag or any other r
     ["git_ref_refused", [`${OLD} ${NEW} refs/heads/main`]],
     ["git_ref_refused", [`${OLD} ${NEW} refs/tags/v1`]],
     ["git_ref_refused", [`${OLD} ${NEW} refs/heads/agent/`]],
+    ["git_ref_refused", [`${OLD} ${NEW} refs/heads/agent-evil`]],
+    ["git_ref_refused", [`${OLD} ${NEW} refs/heads/agent`]],
     ["git_ref_refused", [`${OLD} ${NEW} refs/heads/agent/../main`]],
     ["git_ref_refused", [`${OLD} ${NEW} refs/heads/exact2`]],
     ["git_ref_refused", [`${OLD} ${NEW} refs/heads/agent/ok`, `${OLD} ${NEW} refs/heads/main`]],

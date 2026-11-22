@@ -48,7 +48,11 @@ export interface DockerSandboxOptions {
   readonly extraReadRoots?: readonly string[];
   /** Folders that stay read-only inside a write root, such as the session's own log folder. */
   readonly denyWrite?: readonly string[];
-  /** A Unix socket on the host that a command may use to reach the hosts its policy allows, mounted at `DOCKER_PROXY_SOCKET_PATH`. */
+  /**
+   * A Unix socket on the host that a command may use to reach the hosts its policy allows, mounted at
+   * `DOCKER_PROXY_SOCKET_PATH`. The proxy on it enforces the allowlist, so start `startEgressProxy()` there with the
+   * policy's hosts, such as from `compileEgressPolicy()`; the read-back trusts it to.
+   */
   readonly proxySocket?: string;
 }
 
@@ -504,7 +508,9 @@ const firstLine = (text: string): string => text.trim().split("\n")[0] ?? "no ou
  * client runs with a clean environment: a `PATH`, a private empty `HOME` and `DOCKER_HOST` when one is set, and never
  * the parent's environment. The policy's roots, `extraReadRoots`, `denyWrite` and `proxySocket` must be absolute, and
  * the workspace must lie inside a root. A command whose first word contains `=` resolves with exit code 127, as under
- * `none`.
+ * `none`. Before it returns, `provision()` reads back the policy its mounts and flags apply and throws
+ * `SandboxPolicyMismatchError` on a difference. Without `proxySocket` the container reaches no host, so a policy whose
+ * `network.allow` names one is refused. The backend lists no capability: it can't resume, snapshot or pause.
  */
 export function dockerSandbox(options: DockerSandboxOptions): SandboxClient {
   checkOptionValues(options);

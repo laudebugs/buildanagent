@@ -3,6 +3,7 @@ import { mkdtempSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import {
+  confirmPolicy,
   noneSandbox,
   pauseSandbox,
   policyDifference,
@@ -212,4 +213,44 @@ test("a snapshot resumes as a new sandbox with the files it had, under the provi
   await copy.dispose();
   await sandbox.dispose();
   assert.deepEqual(client.held(), []);
+});
+
+test("a client that claims a stop but whose sandbox has no read-back, or a failing one, is refused and disposed", async () => {
+  for (const readBack of [undefined, () => Promise.reject(new Error("the provider did not answer"))]) {
+    const inner = await fakeSandbox().provision({ root: ROOT }, policy);
+    const sandbox = {
+      exec: inner.exec.bind(inner),
+      readFile: inner.readFile.bind(inner),
+      writeFile: inner.writeFile.bind(inner),
+      dispose: inner.dispose.bind(inner),
+      ...(readBack === undefined ? {} : { readBack }),
+    };
+    const error = await reject(() => confirmPolicy(fakeRemoteSandbox(), sandbox, policy));
+    assert.equal((error as SandboxPolicyMismatchError).field, "readBack");
+    assert.equal(codeOf(await reject(() => inner.readFile("a.txt"))), "sandbox_disposed");
+  }
+  const none = noneSandbox({ unsafe: true, warn: () => {} });
+  const inner = await fakeSandbox().provision({ root: ROOT }, policy);
+  assert.deepEqual(await confirmPolicy(none, { ...inner, readBack: undefined } as never, policy), []);
+  await inner.dispose();
+});
+
+test("resumeSandbox checks the read-back itself, even when the backend's resume doesn't", async () => {
+  const inner = fakeSandbox({ applied: (requested) => requested });
+  const careless = {
+    tier: "microvm" as const,
+    stops: ["mistakes" as const],
+    capabilities: ["resume" as const],
+    provision: inner.provision.bind(inner),
+    // Reattaches without checking, to a sandbox whose provider has since opened every host.
+    resume: async () => {
+      const sandbox = await inner.provision({ root: ROOT }, policy);
+      return Object.assign(Object.create(sandbox), {
+        readBack: async () => ({ ...policy, network: { allow: ["*"], deny: [] } }),
+        dispose: () => sandbox.dispose(),
+      });
+    },
+  };
+  const error = await reject(() => resumeSandbox(careless, "sbx-1", policy));
+  assert.equal((error as SandboxPolicyMismatchError).field, "network.allow");
 });
