@@ -3,10 +3,10 @@
 | Field | Value |
 | --- | --- |
 | ID | `N52` |
-| Status | `ready` |
+| Status | `ongoing` |
 | Plan | [Build harness §4, Stage 5](../../plans/build-harness.md#45-stage-5-adds-extensions-skills-and-the-mcp-client) |
 | Round / milestone | Round N (build harness), M6 |
-| Depends on | [N21](N21-builtin-tools.md), [N23](../done/N23-skills-context-files.md), [N33](N33-retention-schema-docs.md) |
+| Depends on | [N21](../done/N21-builtin-tools.md), [N23](../done/N23-skills-context-files.md), [N33](../done/N33-retention-schema-docs.md) |
 | Size | M |
 
 ## Goal
@@ -19,7 +19,7 @@ Build long-term memory for our agents as a removable extension, `@buildanagent/h
 - [Retrieval and memory report](../../research/memory/retrieval-and-memory.md#long-term-memory-works-best-as-sourced-records-in-files-written-through-a-tool-recalled-through-an-index-and-forgotten-by-expiry): the rules for writing, recall and forgetting, with their sources
 - [Claude, memory tool](https://platform.claude.com/docs/en/agents-and-tools/tool-use/memory-tool): the command set this tool copies, and its path-traversal warning
 - [N23](../done/N23-skills-context-files.md): how context files reach the model: as the start of the first user message of every request, built by a `transformContext` hook (not in the system prompt), which the index follows
-- [N33](N33-retention-schema-docs.md): the retention purge that must honour the purge marks
+- [N33](../done/N33-retention-schema-docs.md): the retention purge that must honour the purge marks
 - [Plan review 2, owner action 5](../../plans/reviews/plan-review-2.md#6-eleven-owner-actions-are-still-open-and-only-one-a-test-project-for-n50-touches-waves-15): the proposed HD16, whose memory side HD17 carries
 
 ## Scope
