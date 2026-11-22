@@ -2,7 +2,8 @@
 // in the harness pins of November 2026: generateText's isStepCount(1), which is also streamText's default and so
 // AIChatAgent's when the streamText call your onChatMessage makes sets no stopWhen, OpenAI's maxTurns of 10,
 // Cloudflare Think's maxSteps of 10, LangChain's recursion limit of 25 super-steps (13 model calls in
-// verify/langchain/examples/06-recursion-limit.ts), ToolLoopAgent's isStepCount(20) and ADK's maxLlmCalls of 500.
+// verify/langchain/examples/06-recursion-limit.ts), ToolLoopAgent's isStepCount(20), which is also our run()'s
+// default maxSteps of 20 model calls (packages/sdk/examples/07-stop-step-cap.ts), and ADK's maxLlmCalls of 500.
 import { Figure } from "../lib/svgkit.js";
 
 const LEFT = 40;
@@ -46,7 +47,7 @@ export default function draw(): Figure {
       { calls: 1, row: 146, label: "AIChatAgent: 1", anchor: "start" },
       { calls: 10, row: 40, label: "OpenAI run() and Think: 10", anchor: "start" },
       { calls: 13, row: 72, label: "LangChain createAgent: 13", anchor: "start" },
-      { calls: 20, row: 104, label: "ToolLoopAgent: 20", anchor: "start" },
+      { calls: 20, row: 104, label: "ToolLoopAgent and our run(): 20", anchor: "start" },
       { calls: 500, row: 136, label: "Google ADK: 500", anchor: "end" },
     ] as const;
     // The mark at 1 serves two entry points, so its label takes two lines to stay clear of the leader lines at 10,
