@@ -431,6 +431,27 @@
   outline-offset: -2px;
 }
 
+/* The table's own lines: a heavy rule under the header in the muted text colour, which reaches 3:1 on the page in both
+   themes where a divider colour does not, and a light rule under each body row in the divider colour, which is
+   decorative only. The header's weight and the rules tell the two apart without colour. */
+.table__scroll table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.table__scroll th,
+.table__scroll td {
+  padding: 0.5rem 0.75rem;
+  text-align: left;
+  vertical-align: top;
+  border-bottom: 1px solid var(--color-rule);
+}
+
+.table__scroll th {
+  font-weight: 600;
+  border-bottom: 2px solid var(--color-text-muted);
+}
+
 .figure__stage {
   display: grid;
   place-items: center;
