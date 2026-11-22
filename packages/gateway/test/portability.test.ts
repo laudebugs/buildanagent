@@ -35,6 +35,8 @@ const nodeOnlyFiles = new Set([
   "session/jsonl-store.ts",
   "session/file-lock.ts",
   "session/file-index.ts",
+  // Retention archives and deletes the store's files, so it is Node-only too, and is exported from the same entry.
+  "session/retention.ts",
   // The approval key ring is a file with a mode, so it is Node-only too, and has the same entry.
   "session/file-key-store.ts",
   // The file spill store writes each capped tool result to a file, so it is Node-only too. It has its own entry,

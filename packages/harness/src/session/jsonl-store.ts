@@ -5,7 +5,7 @@
  */
 import { Buffer } from "node:buffer";
 import { mkdir, open, readdir, readFile, rm, stat, truncate } from "node:fs/promises";
-import { join } from "node:path";
+import { basename, join } from "node:path";
 import { isProtocolError, parseEntry, type SessionEntry } from "@buildanagent/protocol";
 import { HarnessError } from "../errors.js";
 import type { SessionLock } from "./lock.js";
@@ -241,9 +241,12 @@ class JsonlStore implements SessionStore {
 
   async append(key: SessionKey, inputs: readonly EntryInput[], options?: AppendOptions): Promise<SessionEntry[]> {
     checkKey(key);
-    await this.#expire(key.userId);
     const path = this.#pathOf(key);
-    return this.#queued(path, () => this.#appendNow(key, inputs, options));
+    // Expiry waits inside the queue, so adding it never changes the order in which calls to one session run.
+    return this.#queued(path, async () => {
+      await this.#expire(key.userId);
+      return this.#appendNow(key, inputs, options);
+    });
   }
 
   load(key: SessionKey, options?: LoadOptions): AsyncGenerator<SessionEntry> {
@@ -252,10 +255,12 @@ class JsonlStore implements SessionStore {
   }
 
   async *#entries(key: SessionKey, options: LoadOptions | undefined): AsyncGenerator<SessionEntry> {
-    await this.#expire(key.userId);
     const path = this.#pathOf(key);
     // A load waits for the appends already queued, so it never sees a line that is still being written.
-    const log = await this.#queued(path, () => this.#readAny(key, path));
+    const log = await this.#queued(path, async () => {
+      await this.#expire(key.userId);
+      return this.#readAny(key, path);
+    });
     if (log === undefined) return;
     if (log.tornBytes > 0) options?.onTornLine?.({ bytes: log.tornBytes });
     const from = options?.fromSeq ?? 0;
@@ -268,14 +273,14 @@ class JsonlStore implements SessionStore {
   }
 
   async *#raw(key: SessionKey): AsyncGenerator<unknown> {
-    await this.#expire(key.userId);
     const path = this.#pathOf(key);
-    const buffer = await this.#queued(path, () =>
-      readFile(path).catch((error: NodeJS.ErrnoException) => {
+    const buffer = await this.#queued(path, async () => {
+      await this.#expire(key.userId);
+      return readFile(path).catch((error: NodeJS.ErrnoException) => {
         if (error.code !== "ENOENT") throw error;
         return readArchive(archivePath(this.#dir, key.userId, key.sessionId));
-      }),
-    );
+      });
+    });
     if (buffer === undefined) return;
     const complete = buffer
       .subarray(0, buffer.lastIndexOf(0x0a) + 1)
@@ -309,21 +314,24 @@ class JsonlStore implements SessionStore {
       [archiveDir, archived, ARCHIVE_EXTENSION],
     ] as const) {
       for (const file of files.filter((entry) => entry.isFile() && entry.name.endsWith(extension))) {
-        const sessionId = decodeURIComponent(file.name.slice(0, -extension.length));
-        // A file that is both live and archived is mid-move, and the live one is whole.
-        if (seen.has(sessionId)) continue;
-        seen.add(sessionId);
-        const summary = await this.#summary(join(folder, file.name), sessionId, extension === EXTENSION);
+        const summary = await this.#summary(join(folder, file.name), extension, seen);
         if (summary !== undefined) found.push(summary);
       }
     }
     yield* found.sort(byAge);
   }
 
-  /** One file's summary, or `undefined` for a file the store didn't write or can't read, so one bad file hides no other. */
-  async #summary(path: string, sessionId: string, isLive: boolean): Promise<SessionSummary | undefined> {
+  /**
+   * One file's summary, or `undefined` for a file the store didn't write or can't read, so one bad file hides no other.
+   * A session that is both live and archived is mid-move, and the live file, which is read first, is whole.
+   */
+  async #summary(path: string, extension: string, seen: Set<string>): Promise<SessionSummary | undefined> {
     try {
-      const log = isLive ? await readLog(path) : parseLog((await readArchive(path)) ?? Buffer.alloc(0), path);
+      const sessionId = decodeURIComponent(basename(path).slice(0, -extension.length));
+      if (seen.has(sessionId)) return undefined;
+      seen.add(sessionId);
+      const log =
+        extension === EXTENSION ? await readLog(path) : parseLog((await readArchive(path)) ?? Buffer.alloc(0), path);
       return summaryOf(sessionId, log?.entries ?? []);
     } catch {
       return undefined;
