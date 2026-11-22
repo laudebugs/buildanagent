@@ -1,0 +1,76 @@
+{
+  "format": 2,
+  "example": "12-weak-check",
+  "file": "packages/sdk/examples/12-weak-check.ts",
+  "harness": "packages/sdk",
+  "pin": "@buildanagent/sdk@workspace",
+  "mock": "@buildanagent/sdk@workspace",
+  "events": [
+    {
+      "kind": "request",
+      "line": 9,
+      "model": "model-1",
+      "repeated": 0,
+      "messages": [
+        {
+          "role": "system",
+          "parts": [
+            {
+              "type": "text",
+              "text": "You report the weather."
+            }
+          ]
+        },
+        {
+          "role": "user",
+          "parts": [
+            {
+              "type": "text",
+              "text": "What is the weather in Lisbon?"
+            }
+          ]
+        }
+      ],
+      "tools": []
+    },
+    {
+      "kind": "response",
+      "line": 9,
+      "model": "model-1",
+      "message": {
+        "role": "assistant",
+        "parts": [
+          {
+            "type": "text",
+            "text": ""
+          }
+        ]
+      },
+      "finish": "stop"
+    },
+    {
+      "kind": "check",
+      "line": 29,
+      "message": "the scripted agent answered with nothing",
+      "pass": true
+    },
+    {
+      "kind": "check",
+      "line": 15,
+      "message": "the agent answered",
+      "pass": true
+    },
+    {
+      "kind": "check",
+      "line": 30,
+      "message": "the weak check passes on an empty answer",
+      "pass": true
+    },
+    {
+      "kind": "check",
+      "line": 31,
+      "message": "the strong check fails on an empty answer",
+      "pass": true
+    }
+  ]
+}

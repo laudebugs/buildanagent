@@ -35,7 +35,7 @@ const Triage = z
 const agent = createAgent({
   model: "anthropic:claude-sonnet-4-5",               // always "provider:model"
   tools: [lookupCustomer, escalate],
-  systemPrompt: "Look up the customer, then classify the issue.",
+  systemPrompt: "Look up the customer, escalate a checkout failure to on-call once, then classify it either way.",
   middleware: [humanInTheLoopMiddleware({ interruptOn: { escalate: { allowedDecisions: ["approve", "reject"] } } })],
   responseFormat: Triage,
   checkpointer: new MemorySaver(),                    // interrupts need a checkpointer…

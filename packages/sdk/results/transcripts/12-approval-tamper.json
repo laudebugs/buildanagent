@@ -1,0 +1,314 @@
+{
+  "format": 2,
+  "example": "12-approval-tamper",
+  "file": "packages/sdk/examples/12-approval-tamper.ts",
+  "harness": "packages/sdk",
+  "pin": "@buildanagent/sdk@workspace",
+  "mock": "@buildanagent/sdk@workspace",
+  "events": [
+    {
+      "kind": "request",
+      "line": 28,
+      "model": "model-1",
+      "repeated": 0,
+      "messages": [
+        {
+          "role": "system",
+          "parts": [
+            {
+              "type": "text",
+              "text": "You handle refunds."
+            }
+          ]
+        },
+        {
+          "role": "user",
+          "parts": [
+            {
+              "type": "text",
+              "text": "Refund order A-1"
+            }
+          ]
+        }
+      ],
+      "tools": [
+        "issue_refund"
+      ]
+    },
+    {
+      "kind": "response",
+      "line": 28,
+      "model": "model-1",
+      "message": {
+        "role": "assistant",
+        "parts": [
+          {
+            "type": "tool-call",
+            "id": "call-1",
+            "name": "issue_refund",
+            "input": {
+              "orderId": "A-1"
+            }
+          }
+        ]
+      },
+      "finish": "tool_calls"
+    },
+    {
+      "kind": "check",
+      "line": 36,
+      "message": "the run pauses before the refund",
+      "pass": true
+    },
+    {
+      "kind": "check",
+      "line": 61,
+      "message": "the pause has a request",
+      "pass": true
+    },
+    {
+      "kind": "check",
+      "line": 66,
+      "message": "the edited input fails the signed hash",
+      "pass": true
+    },
+    {
+      "kind": "check",
+      "line": 67,
+      "message": "the refund never runs, for A-1 or for Z-9",
+      "pass": true
+    },
+    {
+      "kind": "check",
+      "line": 68,
+      "message": "the call asks again, so a person must decide on Z-9",
+      "pass": true
+    },
+    {
+      "kind": "check",
+      "line": 70,
+      "message": "the new request has a new id, so the old answer does not carry over",
+      "pass": true
+    },
+    {
+      "kind": "check",
+      "line": 74,
+      "message": "the new request signs the call as the edited context now reads, so the person sees Z-9",
+      "pass": true
+    },
+    {
+      "kind": "check",
+      "line": 83,
+      "message": "a record rewritten to Z-9, hash included, fails the signature",
+      "pass": true
+    },
+    {
+      "kind": "check",
+      "line": 89,
+      "message": "the edit reached the transcript's call and nothing else",
+      "pass": true
+    },
+    {
+      "kind": "request",
+      "line": 44,
+      "model": "model-2",
+      "repeated": 0,
+      "messages": [
+        {
+          "role": "system",
+          "parts": [
+            {
+              "type": "text",
+              "text": "You handle refunds."
+            }
+          ]
+        },
+        {
+          "role": "user",
+          "parts": [
+            {
+              "type": "text",
+              "text": "Refund order A-1"
+            }
+          ]
+        },
+        {
+          "role": "assistant",
+          "parts": [
+            {
+              "type": "tool-call",
+              "id": "call-1",
+              "name": "issue_refund",
+              "input": {
+                "orderId": "Z-9"
+              }
+            }
+          ]
+        },
+        {
+          "role": "tool",
+          "parts": [
+            {
+              "type": "tool-result",
+              "id": "call-1",
+              "name": "issue_refund",
+              "output": "refunded A-1"
+            }
+          ]
+        }
+      ],
+      "tools": [
+        "issue_refund"
+      ]
+    },
+    {
+      "kind": "response",
+      "line": 44,
+      "model": "model-2",
+      "message": {
+        "role": "assistant",
+        "parts": [
+          {
+            "type": "text",
+            "text": "Done."
+          }
+        ]
+      },
+      "finish": "stop"
+    },
+    {
+      "kind": "check",
+      "line": 92,
+      "message": "an edit to the visible call alone runs the signed order, A-1",
+      "pass": true
+    },
+    {
+      "kind": "request",
+      "line": 28,
+      "model": "model-3",
+      "repeated": 0,
+      "messages": [
+        {
+          "role": "system",
+          "parts": [
+            {
+              "type": "text",
+              "text": "You handle refunds."
+            }
+          ]
+        },
+        {
+          "role": "user",
+          "parts": [
+            {
+              "type": "text",
+              "text": "Refund order A-1"
+            }
+          ]
+        }
+      ],
+      "tools": [
+        "issue_refund"
+      ]
+    },
+    {
+      "kind": "response",
+      "line": 28,
+      "model": "model-3",
+      "message": {
+        "role": "assistant",
+        "parts": [
+          {
+            "type": "tool-call",
+            "id": "call-1",
+            "name": "issue_refund",
+            "input": {
+              "orderId": "A-1"
+            }
+          }
+        ]
+      },
+      "finish": "tool_calls"
+    },
+    {
+      "kind": "check",
+      "line": 36,
+      "message": "the run pauses before the refund",
+      "pass": true
+    },
+    {
+      "kind": "request",
+      "line": 44,
+      "model": "model-4",
+      "repeated": 0,
+      "messages": [
+        {
+          "role": "system",
+          "parts": [
+            {
+              "type": "text",
+              "text": "You handle refunds."
+            }
+          ]
+        },
+        {
+          "role": "user",
+          "parts": [
+            {
+              "type": "text",
+              "text": "Refund order A-1"
+            }
+          ]
+        },
+        {
+          "role": "assistant",
+          "parts": [
+            {
+              "type": "tool-call",
+              "id": "call-1",
+              "name": "issue_refund",
+              "input": {
+                "orderId": "A-1"
+              }
+            }
+          ]
+        },
+        {
+          "role": "tool",
+          "parts": [
+            {
+              "type": "tool-result",
+              "id": "call-1",
+              "name": "issue_refund",
+              "output": "refunded A-1"
+            }
+          ]
+        }
+      ],
+      "tools": [
+        "issue_refund"
+      ]
+    },
+    {
+      "kind": "response",
+      "line": 44,
+      "model": "model-4",
+      "message": {
+        "role": "assistant",
+        "parts": [
+          {
+            "type": "text",
+            "text": "Done."
+          }
+        ]
+      },
+      "finish": "stop"
+    },
+    {
+      "kind": "check",
+      "line": 98,
+      "message": "unedited: the approval runs A-1",
+      "pass": true
+    }
+  ]
+}

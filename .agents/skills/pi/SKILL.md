@@ -49,7 +49,7 @@ const { session } = await createAgentSession({
   sessionManager: SessionManager.inMemory(), settingsManager: SettingsManager.inMemory(),
 });
 try {
-  await session.prompt("Triage this ticket.");
+  await session.prompt("Checkout 500 for user@example.com. Escalate once, then answer even if blocked.");
   console.log(session.getLastAssistantText());
 } finally {
   session.dispose();

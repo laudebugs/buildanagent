@@ -37,7 +37,7 @@ const { model, requests } = scripted([
 
 const agent = new ToolLoopAgent({
   model,
-  instructions: "You triage support tickets. Look up the order before acting. Never refund without approval.",
+  instructions: "You triage support tickets. Look up the order first. Refund with issueRefund; a person approves it.",
   tools: { lookupOrder, issueRefund },
   toolApproval: { issueRefund: "user-approval" }, // book:note gate
   output: Output.object({ schema: Triage, name: "triage" }), // book:note typed
@@ -45,7 +45,7 @@ const agent = new ToolLoopAgent({
 });
 
 // Turn 1: the agent looks up the order, then asks to refund it.
-const messages: ModelMessage[] = [{ role: "user", content: "I was charged twice for order A-1." }];
+const messages: ModelMessage[] = [{ role: "user", content: "I was charged twice for order A-1. Please refund it." }];
 const first = await agent.generate({ messages });
 check(systemText(requests[0]).startsWith("You triage support tickets."), "instructions are the system message");
 check(JSON.stringify(toolNames(requests[0])) === '["issueRefund","lookupOrder"]', "both tools are offered");

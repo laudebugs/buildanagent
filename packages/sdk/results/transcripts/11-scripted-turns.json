@@ -1,0 +1,103 @@
+{
+  "format": 2,
+  "example": "11-scripted-turns",
+  "file": "packages/sdk/examples/11-scripted-turns.ts",
+  "harness": "packages/sdk",
+  "pin": "@buildanagent/sdk@workspace",
+  "mock": "@buildanagent/sdk@workspace",
+  "events": [
+    {
+      "kind": "request",
+      "model": "model-1",
+      "repeated": 0,
+      "messages": [
+        {
+          "role": "system",
+          "parts": [
+            {
+              "type": "text",
+              "text": "You answer order questions."
+            }
+          ]
+        },
+        {
+          "role": "user",
+          "parts": [
+            {
+              "type": "text",
+              "text": "Where is A-1?"
+            }
+          ]
+        }
+      ],
+      "tools": [
+        "lookup_order"
+      ]
+    },
+    {
+      "kind": "response",
+      "model": "model-1",
+      "message": {
+        "role": "assistant",
+        "parts": [
+          {
+            "type": "tool-call",
+            "id": "call-1",
+            "name": "lookup_order",
+            "input": {
+              "orderId": "A-1"
+            }
+          }
+        ]
+      },
+      "finish": "tool_calls"
+    },
+    {
+      "kind": "request",
+      "model": "model-1",
+      "repeated": 3,
+      "messages": [
+        {
+          "role": "tool",
+          "parts": [
+            {
+              "type": "tool-result",
+              "id": "call-1",
+              "name": "lookup_order",
+              "output": "A-1: shipped"
+            }
+          ]
+        }
+      ],
+      "tools": [
+        "lookup_order"
+      ]
+    },
+    {
+      "kind": "response",
+      "model": "model-1",
+      "message": {
+        "role": "assistant",
+        "parts": [
+          {
+            "type": "text",
+            "text": "Order A-1 has shipped."
+          }
+        ]
+      },
+      "finish": "stop"
+    },
+    {
+      "kind": "check",
+      "line": 27,
+      "message": "the run made one call per scripted turn",
+      "pass": true
+    },
+    {
+      "kind": "check",
+      "line": 29,
+      "message": "the second request carries the tool result",
+      "pass": true
+    }
+  ]
+}
