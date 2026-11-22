@@ -20,7 +20,7 @@ The rows below come from each mirror's `_manifest.json` (repository, tag, commit
 
 ## The summary template copies Pi's compaction prompt, under its MIT licence
 
-[`packages/harness/src/context/summary-template.ts`](packages/harness/src/context/summary-template.ts) holds the system prompt and the section template that [earendil-works/pi](https://github.com/earendil-works/pi) `v1.5.2` sends in its compaction call, copied from the text a recorded run of that release sent ([`verify/pi/results/transcripts/06-compaction.json`](verify/pi/results/transcripts/06-compaction.json)). Pi's licence is MIT, copyright 2025 Mario Zechner, and its notice is kept in the file's header comment, beside Pi's unchanged [LICENSE](docs/reference/pi/source/LICENSE). The file adds the conversation wrapper, the focus line and our own message rendering.
+[`packages/harness/src/context/summary-template.ts`](packages/harness/src/context/summary-template.ts) holds the system prompt and the section template that [earendil-works/pi](https://github.com/earendil-works/pi) `v1.5.2` sends in its compaction call, copied from the text a recorded run of that release sent ([`verify/pi/results/transcripts/06-compaction.json`](verify/pi/results/transcripts/06-compaction.json)). Pi's licence is MIT, copyright 2025 Mario Zechner. The file's header comment keeps that notice, and Pi's unchanged [LICENSE](docs/reference/pi/source/LICENSE) is mirrored under `docs/reference/pi/`. The file adds the conversation wrapper, the focus line and our own message rendering.
 
 ## The anatomy skill is vendored at one upstream commit, under its MIT licence
 
