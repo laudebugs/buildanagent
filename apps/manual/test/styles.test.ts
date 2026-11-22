@@ -169,3 +169,11 @@ test("the chapter title stretches to where the article ends, breaks its lines in
     /@container layout \(min-width: 83rem\)\s*\{\s*\.chapter-body\s*\{\s*grid-template-columns:\s*11rem minmax\(0, 1fr\) 15rem;/,
   );
 });
+
+test("inline code breaks inside a long call, so a chapter never widens the page on a phone", () => {
+  const base = files.find(({ path }) => path === "styles/base.css")?.text ?? "";
+  const rule = base.match(/:not\(pre\) > code\s*\{([^}]*)\}/)?.[1] ?? "";
+  assert.match(rule, /overflow-wrap:\s*anywhere/, "inline code needs overflow-wrap: anywhere");
+  const body = base.match(/\nbody\s*\{([^}]*)\}/)?.[1] ?? "";
+  assert.match(body, /overflow-wrap:\s*break-word/, "body text needs overflow-wrap: break-word");
+});
