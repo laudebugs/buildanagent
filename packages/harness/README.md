@@ -216,3 +216,29 @@ A case that needs enforcement runs only when the backend's `stops` claim it:
 | `run_end` | `turn_end` |
 
 Call `runTurn()` once at a time per `Session`: its writes stay in order within one call, but two concurrent calls on one `Session` can interleave their entries. A turn may set `system`, `output`, `model`, `maxSteps`, `turnRetries`, `modelOptions`, `budgetUsd`, `signal`, `tools` and `hostContext`. `tools` is an allowlist of registered names, and an unknown name throws `invalid_turn_options`. `hostContext` reaches a tool as `ctx.app` and reaches no entry. `onRun` hands the caller the run, so it can `steer()` or `followUp()` it.
+
+## The log is the only state, so a turn rebuilds its context from it
+
+`session.toContext(headId?)` rebuilds the SDK's `Context` from the entries between the root and `headId` (default HEAD): the messages in order and the system prompt of the latest `turn_start`, byte for byte. It groups `message_block` entries by `messageId`, closes a message at its `message_end`, and takes its usage from the `usage` entry that follows. A `usage` entry anywhere else belongs to a call whose message a turn-layer retry superseded, and builds no message. The result deep-equals the `context` of a run that ended without pausing, and `continueRun()` finishes a run from it after a JSON round trip. A turn that leaves out `history` takes it from `toContext()`, so a new process goes on from the log alone.
+
+A paused run keeps its signed requests in `context.pending`, which no entry holds yet. A context rebuilt from a paused run therefore cannot resolve its approval until the log stores signed approvals.
+
+There are two ways to look at a stored session again, and neither calls a model:
+
+- **Playback** is `session.playback(headId?)`, which yields the entries on the path in order and reads the log and nothing else.
+- **Re-run** is `rerunFrom(session, harness, entryId, options)`: it appends a `checkout` to `entryId` and starts a new turn there, on a new branch of the same log. The entries of the branch it left don't change. It refuses an entry that follows an open call, because that call never ran on the new branch.
+
+To get byte-identical logs, set `TurnOptions.clock` and `newId` to a fixed clock and sequential ids. Two identical scripted sessions then write identical JSONL files.
+
+### A crash leaves open calls, and the next turn settles them by what they could have done
+
+An open call is a tool call whose result is not in the log. Before a turn writes anything, it settles the open calls a crash left:
+
+- A message with blocks and no end is ended first, as `tool_calls` if it made calls and as `aborted` if not, so its calls count and the model is sent their results.
+- A call to a tool that declares `effect: { kind: "write" }`, or to a tool the registry no longer has, gets an `unknown` write outcome with `retry: "reconcile_first"`, because the write may have taken effect. The model reads that it must check before it retries.
+- A call to any other tool gets an error that says it was interrupted, which the model may retry.
+- A turn with no `turn_end` gets one with stop reason `aborted`, unless a checkout moved HEAD there, since a turn left behind by a re-run was not interrupted.
+
+A turn that ended `awaiting_approval` or `clarification_requested` leaves its calls open on purpose, for the approval that resolves them. A later turn that passes no `history` refuses to start with `invalid_turn_options` while any call is open, because the gateway would answer it with a made-up "missing result" error and the approval would then have nothing to resume.
+
+When a tool has a business key, a model that proposes the same write again reaches the same effect key, so the write goes out once. `effectScope(session, harness, toolCallId)` builds the scope that key takes: the harness's `tenant` (default `local`), the session id, the branch and the call id. The branch is the log's file plus its latest checkout.

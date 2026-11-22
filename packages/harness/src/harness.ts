@@ -26,6 +26,11 @@ export interface HarnessOptions<H = unknown> {
   readonly system: string;
   /** What `env_stamp` records. A field left out takes `/`, `default`, `on-request` or `none`. */
   readonly env?: Partial<HarnessEnv>;
+  /**
+   * The tenant a write acts for: one tenant is one user, so a business key never spans two users. Default `local`,
+   * for a host that has one user. `effectScope()` puts it in the scope a guarded write takes.
+   */
+  readonly tenant?: string;
   /** The harness's version, stamped into each session header. */
   readonly harnessVersion?: string;
   /** A hash of the ablation switches, stamped into each session header. Default `none`. */
@@ -45,6 +50,7 @@ export interface HarnessOptions<H = unknown> {
 /** A harness: its options with the defaults filled in. */
 export interface Harness<H = unknown> extends HarnessOptions<H> {
   readonly env: HarnessEnv;
+  readonly tenant: string;
   readonly harnessVersion: string;
   readonly ablationHash: string;
 }
@@ -53,6 +59,7 @@ export interface Harness<H = unknown> extends HarnessOptions<H> {
 export function createHarness<H = unknown>(options: HarnessOptions<H>): Harness<H> {
   return {
     ...options,
+    tenant: options.tenant ?? "local",
     env: {
       cwd: options.env?.cwd ?? "/",
       permissionMode: options.env?.permissionMode ?? "default",

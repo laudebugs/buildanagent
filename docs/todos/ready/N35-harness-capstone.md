@@ -72,7 +72,7 @@ The rewind report found that the capstone has no crash test, so "exactly once" i
 
 - [ ] Kill the harness process after a fake external system accepts a write and before its `tool_result` is appended; the resumed session reconciles to `applied` and sends nothing twice.
 
-The rule under test comes from the [N7](N7-rebuild-resume-replay.md) revision, which N35 already follows through its dependencies.
+The rule under test comes from the [N7](../done/N7-rebuild-resume-replay.md) revision, which N35 already follows through its dependencies.
 
 ## Definition of done
 

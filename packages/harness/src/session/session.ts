@@ -4,9 +4,11 @@
  * never rewrite one, so the only mutable state is the pointer to the session's current file (`SessionIndex`).
  */
 import type { SessionEntry, SessionHeaderEntry } from "@buildanagent/protocol";
+import type { Context } from "@buildanagent/sdk";
 import { HarnessError } from "../errors.js";
 import type { LockHandle, SessionLock } from "./lock.js";
 import type { SessionIndex } from "./pointer.js";
+import { contextOf } from "./rebuild.js";
 import type { EntryInput, SessionKey, SessionStore, SessionSummary } from "./store.js";
 
 /** The options of `openSession()`. */
@@ -241,6 +243,37 @@ export class Session {
       at = entry.parentId;
     }
     return path.reverse();
+  }
+
+  /** Whether the log's last entry is a `checkout`, so HEAD was moved and the path's end is not where the log ends. */
+  headMoved(): boolean {
+    return this.#entries.at(-1)?.type === "checkout";
+  }
+
+  /**
+   * The name of the branch HEAD is on: the file the log is in, and, after a checkout, that checkout's id, so a re-run
+   * that replays a call id gets a branch of its own.
+   */
+  branch(): string {
+    const moved = this.#entries.findLast((entry) => entry.type === "checkout");
+    return moved === undefined ? this.#file : `${this.#file}@${moved.id}`;
+  }
+
+  /**
+   * The SDK context the entries from the root to `headId` (default HEAD) stand for: the messages in order, and the
+   * system prompt of the latest turn, which is the one the model saw. Pass it to `continueRun()`, in any process,
+   * after a JSON round trip. A call the log shows without a result is left open, so `runTurn()` settles it first.
+   */
+  async toContext(headId: string | null = this.#head): Promise<Context> {
+    return contextOf(await this.path(headId));
+  }
+
+  /**
+   * The entries from the root to `headId` (default HEAD), in order, as a stored session shows them. It reads the log
+   * and nothing else: no model, tool or hook runs, so a playback is the same on every machine.
+   */
+  async *playback(headId: string | null = this.#head): AsyncGenerator<SessionEntry> {
+    for (const entry of await this.path(headId)) yield entry;
   }
 
   #base(): { id: string; timestamp: string; origin: "harness" } {

@@ -130,6 +130,8 @@ export interface UsageEntry {
   type: "usage";
   source: "model_call" | "summary" | "judge";
   usage: Usage;
+  /** The usage of the last attempt alone, when a retry made `usage` a sum. A rebuilt message carries it back. */
+  lastAttemptUsage?: Usage;
   cost: Cost;
 }
 
