@@ -49,20 +49,35 @@ No controlled benchmark that we found compares these patterns under identical mo
 
 A support desk gets two kinds of message, "Where is my refund?" and "Why was I charged twice?", and each kind needs a specialist with its own prompt. [[ch:call-workflow-loop]] sorted the shapes by who decides the next step, and splitting the work among specialists asks that question again. There are three answers. In a workflow, your code fixes the order. In a router, your code or a classifier picks the branch. In a handoff, the model chooses to transfer the conversation.
 
-A workflow fixes the order. Anthropic's simplest form is prompt chaining: each model call processes the output of the previous one, and programmatic checks in between keep the run on track [@anthropic-building-effective-agents]. [[lst:sequential-order]] chains a writer and a reviewer in ADK. The sequential agent runs its sub-agents in the order listed, and no model decides that order [@adk-sequential-agents]. As of November 2026, ADK 2.5.0 deprecates this class in favour of graph-based workflows and says so when you construct one. Read the listing for the idea, which a graph keeps. The cost is countable before the run: two model calls.
+A workflow fixes the order. Anthropic's simplest form is prompt chaining: each model call processes the output of the previous one, and programmatic checks in between keep the run on track [@anthropic-building-effective-agents]. [[lst:sequential-order-ours]] chains a writer and a reviewer in our SDK, where two `complete()` calls in order are the whole workflow and the code carries the draft from one to the other. [[lst:sequential-order]] chains them in ADK. The sequential agent runs its sub-agents in the order listed, and no model decides that order [@adk-sequential-agents]. As of November 2026, ADK 2.5.0 deprecates this class in favour of graph-based workflows and says so when you construct one. Read the ADK tab for the idea, which a graph keeps. The cost is countable before the run: two model calls.
 
-:::listing[A writer then a reviewer: code fixes the order, and a state key carries the draft]{#sequential-order file="verify/google-adk/examples/02-workflow-agents.ts" region="sequential"}
+::::tabs
+:::listing[Our SDK]{#sequential-order-ours file="packages/sdk/examples/02-workflow.ts" region="sequential"}
+::note[The writer's answer becomes `draft`, a plain variable in your code.]{#writer}
+::note[The code pastes `draft` into the reviewer's instruction, and this call runs second because its line comes second.]{#reviewer}
+:::
+:::listing[Google ADK]{#sequential-order file="verify/google-adk/examples/02-workflow-agents.ts" region="sequential"}
 ::note[The writer's reply is saved in session state under the key draft.]{#writer}
 ::note[The reviewer's instruction holds a placeholder that ADK fills from that state key before the call.]{#reviewer}
 ::note[The list's order is the run's order, and no model chooses it.]{#order}
 :::
+::::
 
-A router adds a branch. Routing classifies an input and sends it to a specialised follow-up task, and it works when the categories are distinct and a classifier, whether a model or a plain algorithm, can tell them apart accurately [@anthropic-building-effective-agents]. In ADK's graph, a node emits a route value, and an edge map sends each value to a target node [@adk-graph-routes]. In [[lst:route-by-code]] a regular expression is the classifier: input with a digit takes one branch and any other input takes the other. Only the winning branch runs. The digit branch is a plain function and makes no model call, while the other makes one.
+In both tabs, code fixes the order and a value carries the draft: a variable in ours, a state key in ADK.
 
-:::listing[A route chosen by code: a digit sends the input down one branch and everything else down the other]{#route-by-code file="verify/google-adk/examples/03-graph-workflow.ts" region="routing"}
+A router adds a branch. Routing classifies an input and sends it to a specialised follow-up task, and it works when the categories are distinct and a classifier, whether a model or a plain algorithm, can tell them apart accurately [@anthropic-building-effective-agents]. In ADK's graph, a node emits a route value, and an edge map sends each value to a target node [@adk-graph-routes]. In [[lst:route-by-code]] a regular expression is the classifier: input with a digit takes one branch and any other input takes the other. Only the winning branch runs. The digit branch is a plain function and makes no model call, while the other makes one. Our SDK has no router class, so its tab uses an ordinary conditional that calls one function or the other, with no edge map to configure.
+
+::::tabs
+:::listing[Our SDK]{#route-by-code-ours file="packages/sdk/examples/11-route-by-code.ts" region="routing"}
+::note[A regular expression picks the branch, so no model is asked, and a router that misreads an input misreads it the same way every time.]{#route}
+:::
+:::listing[Google ADK]{#route-by-code file="verify/google-adk/examples/03-graph-workflow.ts" region="routing"}
 ::note[A regular expression picks the route, so no model is asked, and a router that misreads an input misreads it the same way every time.]{#route}
 ::note[The edge map sends one route to a function node and the other to an agent node, because a graph treats an agent as one more node.]{#edges}
 :::
+::::
+
+Both tabs send a digit to a branch that makes no model call, and any other input to a branch that makes one.
 
 A handoff lets the model decide. In the OpenAI Agents SDK, handoffs are represented to the model as tools. Listing a specialist under `handoffs` makes the SDK offer a tool for it, and when the model calls that tool, the specialist becomes the active agent for the rest of the turn [@openai-agents-handoffs; @openai-agents-orchestration]. By default the specialist receives the whole conversation so far [@openai-agents-handoffs]. [[lst:handoff-tool]] runs one, and its replay shows two model calls. The first is the triage agent's, which ends in the transfer. The second is the billing agent's, whose request holds the question, the transfer and its result, and which gives the answer.
 
@@ -79,7 +94,7 @@ A handoff lets the model decide. In the OpenAI Agents SDK, handoffs are represen
 | Handoff | The conversation's model | One: the call that asks for the transfer | The whole conversation so far, unless you filter it |
 :::
 
-Who picks decides what can go wrong. Code never sends input to a branch it was not given, but it cannot read a message it has no rule for. A classifier reads the message and can misread it, at the price of one call. The model in a handoff reads the whole conversation, and the `handoffs` list fixes which agents it can reach, while its prompt and the specialists' descriptions decide which one it picks. OpenAI separates the handoff from a neighbouring pattern. Use a handoff when routing is part of the workflow and the specialist should own the next part of the conversation. Use an agent as a tool when the specialist should help with a subtask without taking over [@openai-agents-orchestration]. Using an agent as a tool makes it a subagent.
+Who picks decides what can go wrong. Code never sends input to a branch it was not given, but it cannot read a message it has no rule for. A classifier reads the message and can misread it, at the price of one call. The model in a handoff reads the whole conversation, and the `handoffs` list fixes which agents it can reach, while its prompt and the specialists' descriptions decide which one it picks. OpenAI separates the handoff from a neighbouring pattern. Use a handoff when routing is part of the workflow and the specialist should own the next part of the conversation. Use an agent as a tool when the specialist should help with a subtask without taking over [@openai-agents-orchestration]. Using an agent as a tool makes it a subagent. Our SDK has no handoff, so [[lst:handoff-tool]] has no tab of ours: the SDK offers no `handoffs` option and no transfer tool. You could build one by ending a run on a transfer tool's call and starting a second run in your own glue code, but the SDK has no feature of its own to show for it.
 
 ## A subagent keeps its reading out of its parent's context, and the tokens of every room still land on the bill
 
@@ -89,26 +104,43 @@ Your support agent is asked whether tool-call logging became more common between
 ::svg{alt="A lead agent box on the left and two dashed reading rooms on the right. Each room holds a researcher, drawn in the accent, and two source boxes: A and B in room 1, C and D in room 2. A solid arrow carries the question from the lead into each room, and a dashed accent arrow carries a summary back out. Under the lead: reads summaries, never the sources. A line at the bottom, in the accent: each researcher is paid by the word read."}
 :::
 
-The OpenAI Agents SDK builds this with an agent that is also a tool. Calling `asTool()` on an agent makes a function tool with a single input parameter. When the model calls it, the SDK runs the subagent with that input in a nested run, then returns the subagent's last message or whatever an output extractor chooses [@openai-agents-tools]. [[lst:subagent]] reads two sources inside that nested run and hands back one sentence.
+The OpenAI Agents SDK builds this with an agent that is also a tool. Calling `asTool()` on an agent makes a function tool with a single input parameter. When the model calls it, the SDK runs the subagent with that input in a nested run, then returns the subagent's last message or whatever an output extractor chooses [@openai-agents-tools]. [[lst:subagent]] reads two sources inside that nested run and hands back one sentence. Our SDK has no `asTool()`. [[lst:subagent-ours]] builds the same arrangement from the SDK's parts. A tool's `execute` starts a nested `run()` of its own and returns what the subagent said, and `nestedRunDepth(ctx)` counts the child as one level down [@buildanagent-sdk-readme].
 
-:::listing[A researcher agent exposed as a tool: it reads in a run of its own and returns one sentence]{#subagent file="verify/openai-agents-sdk/examples/12-subagent-as-tool.ts" region="subagent"}
+::::tabs
+:::listing[Our SDK]{#subagent-ours file="packages/sdk/examples/12-subagent-as-tool.ts" region="subagent"}
+::note[The child's `result.usage` counts only its own model calls, so its tokens are read here, where the child's result is in hand.]{#own-usage}
+::note[Only this string leaves the nested run, as the tool call's output.]{#summary}
+:::
+:::listing[OpenAI Agents SDK]{#subagent file="verify/openai-agents-sdk/examples/12-subagent-as-tool.ts" region="subagent"}
 ::note[The subagent's own tokens are the sum over its model responses, which this run keeps apart from its parent's.]{#own-usage}
 ::note[Read inside the nested run, the usage object holds the shared running total, not the subagent's own count.]{#shared-usage}
 ::note[Only this string leaves the nested run, as the tool call's output.]{#summary}
 :::
+::::
 
 The orchestrator never sees the reading. [[lst:orchestrator]] gives it the research tool and asks its question, and the example's checks confirm what crosses the door: the orchestrator's second request holds the summary as the tool's output, and nothing from the subagent's tool calls or the sources it read.
 
-:::listing[The orchestrator calls the research tool and answers from the summary]{#orchestrator file="verify/openai-agents-sdk/examples/12-subagent-as-tool.ts" region="orchestrator" replay}
+::::tabs
+:::listing[Our SDK]{#orchestrator-ours file="packages/sdk/examples/12-subagent-as-tool.ts" region="orchestrator" replay}
 :::
+:::listing[OpenAI Agents SDK]{#orchestrator file="verify/openai-agents-sdk/examples/12-subagent-as-tool.ts" region="orchestrator" replay}
+:::
+::::
 
 The tokens do cross, though. In the script the subagent's calls grow more expensive as it reads, because each call carries everything read before it, as every call in a loop does. [[lst:usage]] adds them up.
 
-:::listing[Each run's own tokens, and the run's total, which counts both]{#usage file="verify/openai-agents-sdk/examples/12-subagent-as-tool.ts" region="usage"}
+::::tabs
+:::listing[Our SDK]{#usage-ours file="packages/sdk/examples/12-subagent-as-tool.ts" region="usage"}
+::note[The orchestrator's `result.usage` counts only its own calls, so the code adds the subagent's tokens itself to get the total.]{#run-usage}
+:::
+:::listing[OpenAI Agents SDK]{#usage file="verify/openai-agents-sdk/examples/12-subagent-as-tool.ts" region="usage"}
 ::note[The run's usage adds the subagent's tokens to the orchestrator's own, because the nested run shares the orchestrator's run context.]{#run-usage}
 :::
+::::
 
-The example prints `orchestrator 800, subagent 2400, run 3200 tokens`, so the run's total is four times the orchestrator's own. We wrote those counts into the script, and no model measured them, so the 4× shows how a subagent's tokens add up and says nothing about real cost. The measured figures are Anthropic's. In its data, agents typically use about four times the tokens of a chat, and multi-agent systems about fifteen times [@anthropic-multi-agent-research-system]. Those are two separate figures, each measured against a chat, and neither is this run's ratio. To read a subagent's own tokens from the nested run, sum its `rawResponses`, as the listing does. The nested run's `state.usage` is the shared running total instead. It held 2,740 tokens when the extractor ran in this example, because the orchestrator's first call had already been added [@openai-agents-context; @openai-agents-results].
+Both examples print `orchestrator 800, subagent 2400, run 3200 tokens`, so the run's total is four times the orchestrator's own. We wrote those counts into the script, and no model measured them, so the 4× shows how a subagent's tokens add up and says nothing about real cost. The measured figures are Anthropic's. In its data, agents typically use about four times the tokens of a chat, and multi-agent systems about fifteen times [@anthropic-multi-agent-research-system]. Those are two separate figures, each measured against a chat, and neither is this run's ratio. To read a subagent's own tokens from the nested run, sum its `rawResponses`, as the OpenAI Agents SDK tab does. The nested run's `state.usage` is the shared running total instead. It held 2,740 tokens when the extractor ran in this example, because the orchestrator's first call had already been added [@openai-agents-context; @openai-agents-results]. Our SDK keeps each run's count separate: `result.usage` covers only that run's own model calls, as does a parent's `budgetUsd`{checked=row-101}, so your code adds the two runs.
+
+The README advises giving each child a budget of its own, which this unpriced scripted example leaves out [@buildanagent-sdk-readme].
 
 Subagents pay when the work is wide, and they lose when it is narrow. Anthropic found that a lead Claude Opus 4 with Claude Sonnet 4 subagents beat a single Claude Opus 4 by 90.2% on its internal research eval. Token use alone explained 80% of the variance on a browsing benchmark, so much of the gain is more tokens spent. It sees the fit in "heavy parallelization, information that exceeds single context windows, and interfacing with numerous complex tools". It names the misfits too: tasks in which all agents must share one context or depend heavily on one another, and it adds that most coding tasks have fewer parallelizable parts than research. For the cost to make sense, the value of the task must be "high enough to pay for the increased performance" [@anthropic-multi-agent-research-system]. Our rule follows. Add a subagent when one context cannot hold the reading or the reading can run in parallel, and when the answer is worth several times the tokens of a chat.
 
