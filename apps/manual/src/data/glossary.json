@@ -164,5 +164,11 @@
     "term": "deferred tool",
     "definition": "A tool whose name the model can see but whose description and schema stay out of the request until the model searches for it and the harness loads the match.",
     "sources": ["claude-agent-sdk-tool-search"]
+  },
+  {
+    "id": "skill",
+    "term": "skill",
+    "definition": "A folder with a SKILL.md file of instructions. Its name and description sit in the model's prompt, and the model reads the body only when the task matches, so a skill costs a few tokens until it is opened.",
+    "sources": ["anthropic-agent-skills-overview"]
   }
 ]

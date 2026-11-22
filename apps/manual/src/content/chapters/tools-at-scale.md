@@ -2,8 +2,8 @@
 title: "Tools at scale: the registry, deferred tools, MCP and skills"
 summary: An agent with dozens of tools stays usable when one registry names and gates every tool and most definitions stay out of the request until the model asks. This chapter shows tool selection and deferral in checked listings, what MCP's 2026-07-28 revision changes for a client, and how skills load on demand, and it marks which parts of our harness are built.
 opening: fact
-sources: [anthropic-advanced-tool-use, claude-agent-sdk-tool-search, pi-mcp-servers, pi-sdk-docs, buildanagent-harness-readme, santra-acam, anthropic-model-context-protocol, mcp-tools-spec, mcp-changelog-2026-07-28, mcp-deprecated-features, mcp-versioning, mcp-server-discover, mcp-multi-round-trip-requests, ai-sdk-mcp-tools, cloudflare-agents-mcp-client, copilot-sdk-nodejs-readme]
-glossary: [tool, mcp, tool-registry, deferred-tool]
+sources: [anthropic-advanced-tool-use, claude-agent-sdk-tool-search, pi-mcp-servers, pi-sdk-docs, buildanagent-harness-readme, santra-acam, anthropic-model-context-protocol, mcp-tools-spec, mcp-changelog-2026-07-28, mcp-deprecated-features, mcp-versioning, mcp-server-discover, mcp-multi-round-trip-requests, ai-sdk-mcp-tools, cloudflare-agents-mcp-client, copilot-sdk-nodejs-readme, anthropic-agent-skills-overview, claude-agent-sdk-skills, pi-skills, wang-voyager, ruan-skillcfi]
+glossary: [tool, mcp, tool-registry, deferred-tool, skill]
 switchTo: [N11, N21, N22, N23, N24, N25]
 ---
 
@@ -122,6 +122,28 @@ For an agent, this means a tool call can come back asking for a person. Your loo
 The fourth change is a set of deprecations. The revision deprecates Roots, Sampling and Logging, and the dynamic client registration protocol. They keep working through a deprecation window of at least twelve months, and the earliest revision that may remove them is the first one released on or after 2027-07-28, so the dates are a floor and not a schedule [@mcp-deprecated-features; @mcp-changelog-2026-07-28]. The migrations point away from the protocol. Pass directories and files as tool parameters instead of Roots, call model providers directly instead of using Sampling, and log to stderr or send OpenTelemetry instead of using Logging. The revision also removes `ping`{checked=row-56}, `logging/setLevel` and the roots change notification, and a client sets the log level on each request in `_meta`{checked=row-41}. In short, build nothing new on the deprecated features.
 
 Our own MCP client is a design as of November 2026. Todo N24 plans to negotiate the era per server and to register each server's tools as deferred tools, so every call goes through the permission pipeline, but the client is not built and the plan does not yet handle `input_required`{checked=row-49}. A proposal in our source-update report would turn each input request into a pause that a person answers through a signed approval. Neither is adopted, so read both as intent and not as behaviour.
+
+## Skills cost a name and a description until the model opens one
+
+Think of :analogy[a mechanic's service manuals, opened only when that model of car comes in]{#service-manuals}. The shelf lists every manual by make and year, and the mechanic pulls the one for the car on the lift. A skill is a folder with a `SKILL.md` file, and it works the same way: the file's name and description go into the prompt at startup, at about 100 tokens per skill, and its body, under 5,000 tokens by Anthropic's guidance, enters the context only when the model decides the task matches [@anthropic-agent-skills-overview; @claude-agent-sdk-skills]. Bundled reference files load when the model reads them, and a bundled script runs through a shell, so only its output enters the context.
+
+A skill adds instructions, not an interface. Pi's documentation draws the line: use a skill when a workflow needs more context than a prompt template but no new executable integration point [@pi-skills]. A tool lets the model do something new. A skill tells it how your team does something it can already do, such as report the weather in one city's format. [[lst:skills-run]] sets up that case in the Claude Agent SDK, with two skills on disk and one of them enabled.
+
+::listing[Two skills on disk, one enabled for the run]{#skills-run file="verify/claude-agent-sdk/examples/09-skills.ts" region="skills-run"}
+
+[[lst:skills-checks]] shows what the model receives. Its first request lists the enabled skill's name and description and carries no body. The skill left out of the `skills` option never reaches the model, though it stays on disk, because the option is "a context filter, not a sandbox" [@claude-agent-sdk-skills]. The mock model then calls the `Skill` tool, and from that request on, the body sits in every request of the run.
+
+:::listing[The listing is cheap, the body arrives on demand and then stays]{#skills-checks file="verify/claude-agent-sdk/examples/09-skills.ts" region="skills-checks" replay}
+::note[The first request holds the name and the description.]{#listed}
+::note[It does not hold the body.]{#body-withheld}
+::note[After the call, every request carries the body.]{#body-stays}
+:::
+
+The manual leaves the bay when the car does, and a skill's body does not. It stays in the context and costs its tokens in every later request of the run. The listing has a cost of its own: Anthropic's figure of about 100 tokens per skill comes to about 1,000 tokens for ten skills and about 20,000 for two hundred. Finding the right skill depends on the description, which Anthropic says must name what the skill does and when to use it [@anthropic-agent-skills-overview]. Even a good description can miss. Pi's documentation says "A model might fail to load a relevant skill", and gives a command, `/skill:name`, that forces one [@pi-skills]. No source measures how often a model misses, so treat loading as likely and not as guaranteed.
+
+Our harness plans the same layout, and none of it is built yet (todo N23 is open as of November 2026). It would advertise each skill's name, description and path, load the body through the ordinary `read`{checked=row-81} tool, record a `skill_loaded`{checked=row-81} entry in the session log, and discover skills in `.agents/skills` from the working directory up to the repository root, as Pi does [@pi-skills]. The layout is a file-based cousin of Voyager, an agent that played Minecraft with GPT-4 and kept each skill as executable code in a vector database, keyed by an embedding of the skill's description and retrieved five at a time [@wang-voyager]. Voyager added a skill only after the program had run and passed the environment's feedback. A skill folder you download has run nowhere.
+
+That gap matters, because the permission pipeline checks one call at a time and a skill steers a sequence of calls. SkillCFI, a November 2026 paper, tested 53 public skill packages and accepted none as written: 28 stopped at inventory before any model call, the compiler rejected the other 25 as unsupported, and the authors adapted seven of those 25 into enforceable contracts [@ruan-skillcfi]. Its runtime check blocked all 80 violating requests on the authors' abnormal tasks under each of three refusal messages, where a permission-style allowlist let every one of them through, because each request used only the skill's own vocabulary. The check assumes a trusted skill, though; screening a malicious one is a separate problem [@ruan-skillcfi]. ACaM's finding from the first section applies as well, because a description can omit what the code does [@santra-acam]. No current todo of ours checks a skill's steps or a tool's code at run time, so the pipeline and the sandbox remain the only limits on what a loaded skill can make the agent do. A skill you did not write deserves the review you would give a script you did not write.
 
 ## Exercises
 

@@ -158,5 +158,13 @@
     "chapter": "tools-at-scale",
     "illustration": null,
     "breaks": "Plugging in an MCP server is closer to installing software than to plugging in a mouse: the server chooses its tools' names, descriptions and results, and the specification tells clients to treat a tool's annotations as untrusted unless the server is trusted."
+  },
+  {
+    "id": "service-manuals",
+    "concept": "skills",
+    "analogy": "a mechanic's service manuals, opened only when that model of car comes in",
+    "chapter": "tools-at-scale",
+    "illustration": null,
+    "breaks": "A mechanic closes the manual when the car leaves the lift; a skill read into context stays there and costs its tokens in every later request of the run."
   }
 ]

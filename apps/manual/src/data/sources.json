@@ -685,5 +685,43 @@
     "version": "v1.0.31",
     "asOf": "November 2026",
     "verifiedIn": "apps/manual/fact-checks/tools-at-scale.md"
+  },
+  {
+    "id": "anthropic-agent-skills-overview",
+    "title": "Agent Skills overview",
+    "publisher": "Claude API documentation",
+    "url": "https://platform.claude.com/docs/en/agents-and-tools/agent-skills/overview",
+    "kind": "docs",
+    "asOf": "November 2026",
+    "verifiedIn": "apps/manual/fact-checks/tools-at-scale.md"
+  },
+  {
+    "id": "claude-agent-sdk-skills",
+    "title": "Extend agents with skills",
+    "publisher": "Claude Agent SDK documentation",
+    "url": "https://code.claude.com/docs/en/agent-sdk/skills",
+    "kind": "docs",
+    "asOf": "November 2026",
+    "verifiedIn": "apps/manual/fact-checks/tools-at-scale.md"
+  },
+  {
+    "id": "pi-skills",
+    "title": "Skills",
+    "publisher": "Pi documentation",
+    "url": "https://github.com/earendil-works/pi/blob/v1.5.2/packages/coding-agent/docs/skills.md",
+    "kind": "docs",
+    "asOf": "November 2026",
+    "version": "v1.5.2",
+    "verifiedIn": "apps/manual/fact-checks/tools-at-scale.md"
+  },
+  {
+    "id": "wang-voyager",
+    "title": "Voyager: An Open-Ended Embodied Agent with Large Language Models",
+    "publisher": "Guanzhi Wang et al. (arXiv:2305.16291)",
+    "url": "https://arxiv.org/abs/2305.16291",
+    "kind": "paper",
+    "version": "v2",
+    "asOf": "November 2026",
+    "verifiedIn": "apps/manual/fact-checks/tools-at-scale.md"
   }
 ]
