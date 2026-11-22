@@ -1,7 +1,10 @@
 /**
- * `JsonlFramer`: splits a byte stream into JSON messages, one per line, on `\n` only. It never uses Node's `readline`,
- * which also ends a line at a lone `\r`, and some line readers end one at U+2028 and U+2029 too, characters that may sit
- * inside a JSON string.
+ * Splits a byte stream into JSON messages, one per line, on `
+` only. It never uses Node's `readline`, which also ends
+ * a line at a lone `
+`. Some line readers also end one at U+2028 or U+2029, characters that may sit inside a JSON
+ * string, so only `
+` is safe.
  */
 import { ProtocolError } from "./errors.js";
 import { ErrorCodes } from "./jsonrpc.js";

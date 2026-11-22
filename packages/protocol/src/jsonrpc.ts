@@ -72,7 +72,7 @@ function checkError(error: unknown, id: Id | null): void {
   }
 }
 
-/** A request or notification has a method and no result or error; a response has exactly one of the last two. */
+/** A request or notification has a method and no result or error; a response has exactly one of `result` and `error`. */
 function checkShape(value: Record<string, unknown>, id: Id | null): void {
   // A member counts only when it has a value, because JSON.stringify drops one that is undefined.
   const has = (name: string) => value[name] !== undefined;

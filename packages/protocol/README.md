@@ -2,7 +2,7 @@
 
 The protocol package holds the types that cross a boundary: the entries of a session log, the messages a client and a harness exchange, and the JSONL framing that carries them. The session entry union, the messages and the framer are built; the dispatcher that serves them is the harness's.
 
-As of November 2026 the package is private and not on npm. It depends on the gateway and the SDK and imports them for types only, so its built JavaScript loads neither, and a test scans the build for any import from outside the package. It declares no dependency on the harness, so the workspace has no cycle. The [harness plan](https://github.com/laudebugs/buildanagent/blob/main/docs/plans/build-harness.md) says what each package will hold and in which order.
+As of November 2026 the package is private and not on npm. It depends on the gateway and the SDK and imports them for types only, so its built JavaScript loads neither. A test scans the build for any import from outside the package. It declares no dependency on the harness, so the workspace has no cycle. The [harness plan](https://github.com/laudebugs/buildanagent/blob/main/docs/plans/build-harness.md) says what each package will hold and in which order.
 
 ## A session file is a list of entries, one per line
 
@@ -33,7 +33,7 @@ Every message is a JSON-RPC 2.0 message and carries `"jsonrpc": "2.0"`. [`src/me
 
 ### The framer splits on newlines only
 
-`JsonlFramer` turns a byte stream into messages. `push(chunk)` returns one result for each line the chunk finished, either `{ ok: true, value }` or `{ ok: false, error }`, so one bad line never stops the lines after it. It splits on `\n` and nothing else, and never uses Node's `readline`, which also ends a line at a lone `\r`. Pi's RPC documentation warns that a line reader may split at U+2028 and U+2029 too, characters that may sit inside a JSON string. Node 22's `readline` did not when checked, but a reader in another language may, so the rule is to split on the newline byte alone. A line is decoded only when it is whole, so a character cut across two chunks is read correctly. It drops a trailing `\r`, skips blank lines, and skips a line over `maxLineBytes` (default 8 MiB) after reporting it once. `end()` reports a last line that was never finished.
+`JsonlFramer` turns a byte stream into messages. `push(chunk)` returns one result for each line the chunk finished, either `{ ok: true, value }` or `{ ok: false, error }`, so one bad line never stops the lines after it. It splits on `\n` and nothing else, and never uses Node's `readline`, which also ends a line at a lone `\r`. Pi's RPC documentation warns that a line reader may split at U+2028 and U+2029 too, characters that may sit inside a JSON string. When checked, Node 22's `readline` did not split at U+2028 or U+2029, but a reader in another language might, so the rule is to split on the newline byte alone. A line is decoded only when it is whole, so a character cut across two chunks is read correctly. It drops a trailing `\r`, skips blank lines, and skips a line over `maxLineBytes` (default 8 MiB) after reporting it once. `end()` reports a last line that was never finished.
 
 ### The protocol schema covers every message
 
