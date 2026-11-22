@@ -449,7 +449,10 @@ describe("the skill_loaded entry", () => {
   test("a five-line peek at a SKILL.md writes no skill_loaded entry", async () => {
     const { entries } = await run([{ path: ".agents/skills/demo/SKILL.md", offset: 1, limit: 5 }], files);
     assert.equal(entries.filter((entry) => entry.type === "skill_loaded").length, 0);
-    assert.ok(entries.some((entry) => entry.type === "tool_result" && entry.tool === "read"), "the read itself ran");
+    assert.ok(
+      entries.some((entry) => entry.type === "tool_result" && entry.tool === "read"),
+      "the read itself ran",
+    );
   });
 
   test("each read is a load: two reads write two entries", async () => {
