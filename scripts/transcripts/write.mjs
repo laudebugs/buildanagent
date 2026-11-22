@@ -2,7 +2,8 @@
 // <harness>/results/transcripts/<example>.json, and checks a transcript's shape. A harness is a verify/<sdk> directory
 // or one of our own packages, such as packages/sdk. Each verify harness's scripts/run-examples.mjs, and the shared
 // book-examples.ts that our packages' tests call, call transcriptRun() before an example runs and its write() after
-// the process exits. The book's replay reads the file, and scripts/ci/results-drift.mjs fails when a committed
+// the process exits, with the exit code and the output, because a transcript is written only for a run that exited 0
+// and printed an `ok - ` line. The book's replay reads the file, and scripts/ci/results-drift.mjs fails when a committed
 // transcript differs from the one a run writes. The shapes themselves live in events.ts.
 //
 // Two runs on two machines must write the same bytes, so the file holds no absolute path, temporary directory or
@@ -243,19 +244,40 @@ function transcriptFile({ harnessDir, exampleFile, outDir, live }) {
 }
 
 /**
+ * Whether a run finished: its process exited 0 and its checks printed at least one `ok - ` line. A run that failed a
+ * check, threw or was killed leaves a partial exchange, such as a refused call that reached the model, so its
+ * transcript would show the opposite of what the example demonstrates.
+ */
+export const finishedRun = ({ exit, out }) => exit === 0 && /^ok - /m.test(out ?? "");
+
+/**
  * Writes the transcript of one example from the raw events record.mjs saved in `rawFile`. `cwd` and `home` are the
  * temporary working and home directories the example ran in, and `outDir` overrides where the file goes. An example
  * whose model calls never reached the recorded mock layer gets no transcript. When it had one committed, the stale
  * file is deleted and the problem printed, so the results-drift check reports it instead of passing on an old run.
+ *
+ * `ran` says whether the run finished (`finishedRun()`), and a mock run must pass it. A run that did not finish writes
+ * nothing and leaves an earlier transcript as it was, because the results-drift check compares only with the committed
+ * file and would pass on a partial transcript that was committed. A live run is compared with its mock transcript
+ * after it ends, so it is exempt.
  *
  * `live`, `{ provider, model, secrets }`, marks the transcript of a live run (scripts/live/run.mjs), which goes to
  * `results/live/<provider>/` and names the provider and model. A real model chose every tool-call id in it, so none is kept as
  * written. A live transcript that holds one of `secrets` or the shape of a key, an account id or a request id
  * (scripts/live/redact.ts) is not written at all, and the problem names only the shape it matched.
  */
-export function writeTranscript({ harnessDir, exampleFile, rawFile, cwd, home, outDir, live, mockEvents }) {
+export function writeTranscript({ harnessDir, exampleFile, rawFile, cwd, home, outDir, live, mockEvents, ran }) {
   const example = basename(exampleFile, extname(exampleFile));
   const file = transcriptFile({ harnessDir, exampleFile, outDir, live });
+  if (live === undefined && typeof ran !== "boolean") {
+    throw new TypeError(`writeTranscript() needs ran, whether ${example}'s run finished (finishedRun())`);
+  }
+  if (live === undefined && !ran) {
+    console.error(
+      `transcript: ${example} did not finish with its checks passing, so ${toPosix(relative(REPO_ROOT, file))} is left as it was`,
+    );
+    return undefined;
+  }
   const raw = existsSync(rawFile) ? (JSON.parse(readFileSync(rawFile, "utf8")).events ?? []) : [];
   const recorded = mergeEvents(mockEvents ?? [], raw).map(({ at: _at, ...event }) => event);
   const events = live === undefined ? recorded : recorded.map(({ scripted: _scripted, ...event }) => event);
@@ -292,17 +314,19 @@ export function writeTranscript({ harnessDir, exampleFile, rawFile, cwd, home, o
 
 /**
  * Prepares one run of an example for recording: adds the recorder to the node arguments, after tsx's `--import`, and
- * the raw file to the environment. Returns `write`, which the runner calls once the process has exited, and `discard`,
- * which a runner that records no transcript for the run calls instead: it deletes the raw events and the example's
- * earlier transcript, so no file from an older run stands in for this one.
+ * the raw file to the environment. Returns `write`, which the runner calls once the process has exited, with its
+ * `exit` code and `out`put, and `discard`, which a runner that records no transcript for the run calls instead: it
+ * deletes the raw events and the example's earlier transcript, so no file from an older run stands in for this one.
  */
 export function transcriptRun(args, env) {
   const raw = join(mkdtempSync(join(tmpdir(), "transcript-")), "events.json");
   args.push("--import", fileURLToPath(new URL("./record.mjs", import.meta.url)));
   env.TRANSCRIPT_FILE = raw;
   return {
-    write: ({ harnessDir, exampleFile, cwd, outDir, live, mockEvents }) => {
+    write: ({ harnessDir, exampleFile, cwd, outDir, live, mockEvents, exit, out }) => {
+      if (live === undefined && exit === undefined) throw new TypeError("write() needs the run's exit and out");
       const written = writeTranscript({
+        ran: finishedRun({ exit, out }),
         harnessDir,
         exampleFile,
         rawFile: raw,

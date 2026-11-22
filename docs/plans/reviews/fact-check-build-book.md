@@ -1228,4 +1228,17 @@ Checked on 2026-11-22 against `scripts/live/config.mjs` and the committed folder
 | --- | --- | --- | --- | --- |
 | docs/agents-live-provider-folder-1 | A harness's live transcript is `results/live/<provider>/<example>.json`, in a folder for each provider. | AGENTS.md, layout entry for `verify/<sdk>/` | ✅ | `scripts/live/config.mjs` line 65 builds `${harness}/results/live/${provider}/${id}.json`, and `verify/langchain/results/live/anthropic/` and `verify/openai-agents-sdk/results/live/openai/` exist on `main`. |
 
-**Totals:** 735 claims: 636 ✅, 93 ✏️, 6 ⚠️.
+## docs/transcript-recorder-nonzero-exit: the recorder writes a transcript only for a finished run
+
+Checked on 2026-11-22 against the branch and `node --test scripts/ci/transcripts.test.mjs`, which ran 139 tests, all passing; breaking `finishedRun()` to always return true fails the new guard test.
+
+| # | Claim | Where | Verdict | Source and reason |
+| --- | --- | --- | --- | --- |
+| docs/transcript-recorder-nonzero-exit-1 | `packages/sdk/results/transcripts/12-budget.json` was once committed from a mutation run, and `results-drift` compares only with the committed file, so it passes on such a file. | Issue #305 | ⚠️ | Taken from the issue's own account; I did not re-create the mutation run. `scripts/ci/results-drift.mjs` compares a run's output with the committed transcripts, which supports the second half. |
+| docs/transcript-recorder-nonzero-exit-2 | A mock run's transcript is written only when its process exited 0 and its output holds a line that starts `ok - `; otherwise the writer prints why and leaves an earlier transcript as it was. | `scripts/transcripts/write.mjs`, `finishedRun()` and `writeTranscript()` | ✅ | The new tests in `scripts/ci/transcripts.test.mjs` run exit 1, exit null and exit 0 with no check, and each leaves the committed file byte for byte. |
+| docs/transcript-recorder-nonzero-exit-3 | Every runner that records a mock transcript passes the run's exit code and output: the SDK's book-examples test and script, and the Claude, Copilot, Google ADK, LangChain, OpenAI, Pi and Vercel runners; the Cloudflare runner passes `ran` from the worker's result. | Nine runner files | ✅ | `grep -rn "transcript.*write(" verify packages scripts` shows each caller; a caller that omits them throws, as the test for `write()` and `writeTranscript()` shows. |
+| docs/transcript-recorder-nonzero-exit-4 | A Copilot block that left its client open counts as a finished run, so its exit is passed as 0. | `verify/copilot-sdk/scripts/run-examples.mjs` | ✅ | The runner's own outcome line counts `result.exit === 0 \|\| result.leftOpen` as `ran`. |
+| docs/transcript-recorder-nonzero-exit-5 | A live run is exempt from the guard. | `writeTranscript()` doc comment | ✅ | The guard tests only `live === undefined`, and `scripts/ci/live-run.test.mjs` still passes `live` without `ran`. |
+| docs/transcript-recorder-nonzero-exit-6 | After the change, running the SDK's book examples and each verify harness's own examples changes no committed transcript. | Todo of this branch | ✅ | `pnpm --filter @buildanagent/sdk test` and each `verify/<harness>` `pnpm test` ran with every example `ran`; `git status` showed no change under `results/transcripts/` (only the worktree-path rewrite of `run-examples.json`, which I restored). The Cloudflare harness was not run in full; its probe test covers the recorder. |
+
+**Totals:** 741 claims: 641 ✅, 93 ✏️, 7 ⚠️.
