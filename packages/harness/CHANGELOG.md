@@ -1,5 +1,19 @@
 # @buildanagent/harness
 
+## 0.1.0-alpha.32
+
+### Minor Changes
+
+- ec8a6e0: Add @buildanagent/harness/telemetry: projectSpans() rebuilds OpenTelemetry spans from a session log, with content off by default, and createBudgetMeter() warns once at 80% of a session cap
+
+### Patch Changes
+
+- Updated dependencies [ec8a6e0]
+  - @buildanagent/sdk@0.1.0-alpha.32
+  - @buildanagent/protocol@0.1.0-alpha.32
+  - @buildanagent/agent-safety@0.1.0-alpha.32
+  - @buildanagent/gateway@0.1.0-alpha.32
+
 ## 0.1.0-alpha.31
 
 ### Minor Changes

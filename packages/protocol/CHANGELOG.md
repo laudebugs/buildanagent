@@ -1,5 +1,13 @@
 # @buildanagent/protocol
 
+## 0.1.0-alpha.32
+
+### Patch Changes
+
+- Updated dependencies [ec8a6e0]
+  - @buildanagent/sdk@0.1.0-alpha.32
+  - @buildanagent/gateway@0.1.0-alpha.32
+
 ## 0.1.0-alpha.31
 
 ### Minor Changes

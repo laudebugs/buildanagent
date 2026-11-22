@@ -1,6 +1,6 @@
 {
   "name": "@buildanagent/agent-safety",
-  "version": "0.1.0-alpha.31",
+  "version": "0.1.0-alpha.32",
   "description": "Safety core for buildanagent agents: typed write outcomes the model can read, a canonical input hash, signed approvals, model calls on the user's own key and a USD cap checked before each model call.",
   "license": "Apache-2.0 OR MIT",
   "repository": {
