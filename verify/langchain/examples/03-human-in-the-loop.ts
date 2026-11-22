@@ -25,18 +25,18 @@ async function run(decision: "approve" | "reject", thread: string) {
     model,
     tools: [executeSql],
     middleware: [
-      humanInTheLoopMiddleware({ interruptOn: { execute_sql: { allowedDecisions: ["approve", "reject"] } } }),
+      humanInTheLoopMiddleware({ interruptOn: { execute_sql: { allowedDecisions: ["approve", "reject"] } } }), // book:note rule
     ],
-    checkpointer: new MemorySaver(),
+    checkpointer: new MemorySaver(), // book:note checkpointer
   });
   // #endregion
   const config = { configurable: { thread_id: thread } };
   // #region resume
-  const first: any = await agent.invoke({ messages: [{ role: "user", content: "Delete old records" }] }, config);
+  const first: any = await agent.invoke({ messages: [{ role: "user", content: "Delete old records" }] }, config); // book:note pause
   const request = first.__interrupt__?.[0]?.value?.actionRequests?.[0];
   check(request?.name === "execute_sql", `${decision}: the run interrupts with the execute_sql action request`);
   check(executed.length === 0, `${decision}: the tool has not run before the decision`);
-  const second = await agent.invoke(new Command({ resume: { decisions: [{ type: decision }] } }), config);
+  const second = await agent.invoke(new Command({ resume: { decisions: [{ type: decision }] } }), config); // book:note resume
   // #endregion
   return { executed, second, model };
 }

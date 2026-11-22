@@ -20,7 +20,7 @@ import type { ModelEvent, StreamOptions } from "../../spec.js";
 import { transformMessages } from "../../transform-messages.js";
 import type { ContentBlock, Message, ModelCaps, ModelContent, ModelContext, ModelRef, WireTool } from "../../types.js";
 import { lowerToStrict, type StrictDialect } from "../strict-schema.js";
-import { isObject, type Json } from "../wire.js";
+import { isObject, type Json, toolNames } from "../wire.js";
 
 type Warning = Extract<ModelEvent, { type: "warning" }>;
 
@@ -188,13 +188,6 @@ function encodeTools(tools: readonly WireTool[], names: ToolNameMap, cacheContro
 }
 
 // The body -----------------------------------------------------------------------------------------------------------
-
-function toolNames(context: ModelContext, messages: readonly Message[]): string[] {
-  const called = messages.flatMap((message) =>
-    message.role === "assistant" ? message.content.flatMap((b) => (b.type === "tool_call" ? [b.name] : [])) : [],
-  );
-  return [...context.tools.map((tool) => tool.name), ...called];
-}
 
 /** Splits the sampling fields off `extra`, and returns the rest with the names of the fields it dropped. */
 function withoutSampling(extra: Readonly<Json>): { rest: Json; dropped: string[] } {
