@@ -39,7 +39,7 @@ function stateOf(logFile: string, key: string): "none" | Outcome {
   if (last === undefined) return "none";
   return last.state === "done" ? (last.outcome ?? "applied") : "unknown";
 }
-const record = (logFile: string, entry: Entry) => appendFileSync(logFile, `${JSON.stringify(entry)}\n`);
+const appendEntry = (logFile: string, entry: Entry) => appendFileSync(logFile, `${JSON.stringify(entry)}\n`);
 // #endregion
 
 /**
@@ -82,18 +82,18 @@ function chargeTool(base: string, logFile: string, crashAfterWrite = false) {
         // A previous attempt started and never finished: ask the server before writing again.
         const found = await fetch(`${base}/${key}`); // book:note reconcile
         if (found.status === 200) {
-          record(logFile, { key, state: "done", outcome: "applied" });
+          appendEntry(logFile, { key, state: "done", outcome: "applied" });
           return { outcome: "applied" as Outcome, reconciled: true };
         }
         // Only a 404 proves the write never reached the server, so only then may it be sent, under the same key.
         if (found.status !== 404) return { outcome: "unknown" as Outcome };
       }
-      record(logFile, { key, state: "started" }); // book:note persist
+      appendEntry(logFile, { key, state: "started" }); // book:note persist
       const response = await fetch(base, { method: "POST", headers: { "idempotency-key": key } });
       if (crashAfterWrite) process.kill(process.pid, "SIGKILL"); // book:note crash
       // Only a definite decline is `not_applied`. Any other failure leaves the write `unknown`.
       const outcome: Outcome = response.ok ? "applied" : response.status === 402 ? "not_applied" : "unknown";
-      record(logFile, { key, state: "done", outcome });
+      appendEntry(logFile, { key, state: "done", outcome });
       return { outcome };
     },
   });
