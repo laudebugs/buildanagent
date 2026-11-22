@@ -3,7 +3,7 @@
 | Field | Value |
 | --- | --- |
 | ID | `L11` |
-| Status | `ongoing` |
+| Status | `done` |
 | Plan | [Publish and docs §2, PB4](../../plans/publish-and-docs.md#pb4-publish-the-protocol-harness-and-cli-packages-after-the-gateway-and-sdk-accepted) |
 | Round / milestone | Round L (publish and docs, added 2026-11-22) |
 | Depends on | [L9](../done/L9-publish-protocol-harness-cli-decision.md), [L10](L10-make-protocol-harness-cli-publishable.md), [N29](../done/N29-stdio-transport.md), [N30](N30-cli.md) |
@@ -44,14 +44,14 @@ Make the four packages public, switch the release to all six, and publish their 
 
 ## Tasks
 
-- [ ] Check that N29 and N30 are merged and L10 is done (the owner's `agent-safety` choice is made: ADR 0058, decision 9).
-- [ ] Verify the placeholders with `npm view @buildanagent/<name> name versions dist-tags deprecated` for all six packages, and record the output.
-- [ ] Remove `private` from the four packages, with one changeset that names all six.
-- [ ] Update `version-pr.mjs`'s body and its test, and add the changeset-gate tests for the four, as the scope above says.
-- [ ] Extend `release-plan.mjs` and `release.test.mjs` to six packages in order, and move the same-version check as the scope above says.
+- [x] Check that N29 and N30 are merged and L10 is done (the owner's `agent-safety` choice is made: ADR 0058, decision 9).
+- [x] Verify the placeholders with `npm view @buildanagent/<name> name versions dist-tags deprecated` for all six packages, and record the output.
+- [x] Remove `private` from the four packages, with one changeset that names all six.
+- [x] Update `version-pr.mjs`'s body and its test, and add the changeset-gate tests for the four, as the scope above says.
+- [x] Extend `release-plan.mjs` and `release.test.mjs` to six packages in order, and move the same-version check as the scope above says.
 - [x] On a throwaway branch, run `pnpm changeset version` with the six-member fixed group and the four at 0.0.0 under pre mode, and record whether all six reach one `0.1.0-alpha.N`. Result: all six reached one `0.1.0-alpha.28`, so the fallback wasn't needed (row L11-1). **Fallback if they hadn't:** set the four packages' `version` in their `package.json` to the gateway's current `0.1.0-alpha.N` in this pull request, so the six already share one version when the plan runs and the changeset then bumps them together. Update the plan and the checklist to match, and rerun the plan tests.
-- [ ] Write the `release.yml` document, and check it with the existing release tests pointed at the new file.
-- [ ] Write the owner checklist into the pull request description (below).
+- [x] Write the `release.yml` document, and check it with the existing release tests pointed at the new file.
+- [x] Write the owner checklist into the pull request description (below).
 
 ## Owner checklist
 
@@ -66,14 +66,14 @@ The manager hands these steps to the owner, who does them in order. The merge in
 
 ## Acceptance criteria
 
-- [ ] The four `package.json` files have no `private` field, and on the L11 merge commit `release-plan.mjs plan` exits 0 and prints `publish=false` with the pending-changesets reason, instead of throwing on mixed versions
-- [ ] `npm view` for each of the six packages shows the placeholders as PB4 expects, recorded in the pull request description
-- [ ] The Version packages pull request body names all six packages, derived from `RELEASE_ORDER`, and the changeset gate counts the four
-- [ ] `release-plan.mjs` and its tests handle six packages in dependency order, and cover the mixed-version cases above
-- [ ] `docs/plans/reviews/release-yml-for-six-packages.md` holds the whole file, and the release tests pass against it
-- [ ] No commit of ours changes a file under `.github/`; the owner adds `release.yml`
-- [ ] No session or developer machine publishes the four; the first alpha is the owner's to confirm after the merge (checklist step 6), and the Outcome is updated afterwards with the `release.yml` run's link
-- [ ] `pnpm check`, `pnpm typecheck` and `pnpm test` pass offline from the repo root
+- [x] The four `package.json` files have no `private` field, and on the L11 merge commit `release-plan.mjs plan` exits 0 and prints `publish=false` with the pending-changesets reason, instead of throwing on mixed versions
+- [x] `npm view` for each of the six packages shows the placeholders as PB4 expects, recorded in the pull request description
+- [x] The Version packages pull request body names all six packages, derived from `RELEASE_ORDER`, and the changeset gate counts the four
+- [x] `release-plan.mjs` and its tests handle six packages in dependency order, and cover the mixed-version cases above
+- [x] `docs/plans/reviews/release-yml-for-six-packages.md` holds the whole file, and the release tests pass against it
+- [x] No commit of ours changes a file under `.github/`; the owner adds `release.yml`
+- [x] No session or developer machine publishes the four; the first alpha is the owner's to confirm after the merge (checklist step 6), and the Outcome is updated afterwards with the `release.yml` run's link
+- [x] `pnpm check`, `pnpm typecheck` and `pnpm test` pass offline from the repo root
 
 ## Tests
 
@@ -91,9 +91,16 @@ CI plan §3f, the publish plan's todo table and PB4, `scripts/ci/version-pr.mjs`
 
 ## Definition of done
 
-- [ ] Claimed: the first commit moved this file `ready/` → `ongoing/` (Status `ongoing`)
-- [ ] Prose drafted with `/anthropic-skills:writing`, and changed claims re-checked against their sources
-- [ ] `pnpm check`, `pnpm typecheck` and `pnpm test` pass locally; pushed after each meaningful step
-- [ ] This file moved `ongoing/` → `done/` (Status `done`) in the last work commit, and the plan's todo table updated
-- [ ] Two code-review rounds run on the pull request (`/code-review high --max-findings default`, then `medium` and `low` after more than 6 confirmed findings, otherwise `low`), with every finding fixed or explained in a commit message
-- [ ] Copy reviewed with `/anthropic-skills:writing-review` after the code changes, with its findings fixed and the rubric scores in the pull request description
+- [x] Claimed: the first commit moved this file `ready/` → `ongoing/` (Status `ongoing`)
+- [x] Prose drafted with `/anthropic-skills:writing`, and changed claims re-checked against their sources
+- [x] `pnpm check`, `pnpm typecheck` and `pnpm test` pass locally; pushed after each meaningful step
+- [x] This file moved `ongoing/` → `done/` (Status `done`) in the last work commit, and the plan's todo table updated
+- [x] Two code-review rounds run on the pull request (`/code-review high --max-findings default`, then `medium` and `low` after more than 6 confirmed findings, otherwise `low`), with every finding fixed or explained in a commit message
+- [x] Copy reviewed with `/anthropic-skills:writing-review` after the code changes, with its findings fixed and the rubric scores in the pull request description
+
+## Outcome
+
+- All six packages published together as `0.1.0-alpha.28` under npm's `alpha` dist-tag at about 20:40 UTC on 2026-11-22, each with SLSA provenance. They share one version, as the fixed group intends. The merged Version packages pull request #335 started [`release.yml` run 45067729944](https://github.com/laudebugs/buildanagent/actions/runs/45067729944), and its `plan`, `pack` and `publish` jobs succeeded. `npm view @buildanagent/<name>@0.1.0-alpha.28 dist.attestations` shows a provenance attestation for each of the six (rows L11-30 and L11-31).
+- `latest` stays on `0.0.0-bootstrap.0`, the deprecated placeholder, for all six, so an install needs the `alpha` tag, as the READMEs say.
+- A second run, 45067734004, for N43's merge to `main`, started two seconds later and failed its `publish` job with an E409 on the harness. It raced the first run, so nothing on npm was affected. The investigation into how to keep two pushes from racing is in progress on a separate branch (row L11-32).
+- Checklist step 6 is done by this outcome: the first alpha of each package carries provenance, and no trusted publisher had expired.
