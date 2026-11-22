@@ -8,7 +8,7 @@ These guidelines hold the coding and documentation rules for `packages/` in one 
 | [maintainability.md](maintainability.md) | add a helper, a type or a file: one home per concept, size limits, public surface, comments |
 | [testing.md](testing.md) | write a test: what runs offline, which seam to use, what a test must prove |
 | [docs-writing.md](docs-writing.md) | write a page a user of our packages reads, such as a package README: a story, plain English, no internal ids |
-| [examples.md](examples.md) | write an example a reader will copy: public imports only, no test scaffolding unless its subject is testing or a book chapter relies on it, always tested |
+| [examples.md](examples.md) | write an example a reader will copy: public imports only, no test scaffolding unless its subject is testing or it is a numbered book example, always tested |
 
 **MUST** and **SHOULD** mark rules. Text without either is advice.
 
