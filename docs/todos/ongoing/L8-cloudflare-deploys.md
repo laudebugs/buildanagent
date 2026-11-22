@@ -3,7 +3,7 @@
 | Field | Value |
 | --- | --- |
 | ID | `L8` |
-| Status | `ready` |
+| Status | `ongoing` |
 | Plan | [Publish and docs §4](../../plans/publish-and-docs.md#4-round-l-and-its-todos) |
 | Round / milestone | Round L (publish and docs, added 2026-11-19) |
 | Depends on | [L5](../done/L5-docs-app.md), [L7](L7-website-app.md) |
@@ -64,7 +64,7 @@ The owner's Cloudflare setup (§3) must exist first; without the secrets the dep
 
 ## Definition of done
 
-- [ ] Claimed: the first commit moved this file `ready/` → `ongoing/` (Status `ongoing`)
+- [x] Claimed: the first commit moved this file `ready/` → `ongoing/` (Status `ongoing`)
 - [ ] Prose drafted with `/anthropic-skills:writing`, and changed claims re-checked against their sources
 - [ ] `pnpm check`, `pnpm typecheck` and `pnpm test` pass locally; pushed after each meaningful step
 - [ ] This file moved `ongoing/` → `done/` (Status `done`) in the last work commit, and the plan's todo table updated

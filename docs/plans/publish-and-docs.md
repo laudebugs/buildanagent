@@ -149,7 +149,7 @@ Round L runs beside Round B. L9 to L11 (added 2026-11-22) extend it to the proto
 | [L5](../todos/done/L5-docs-app.md) | `apps/docs` on Starlight, with the docs structure and the first pages | B3 | M |
 | [L6](../todos/done/L6-api-reference.md) | The API reference from TSDoc, and TypeDoc's undocumented-export check | L1, L5 | M |
 | [L7](../todos/done/L7-website-app.md) | `apps/site`, the website for `buildanagent.fyi` | None | S |
-| [L8](../todos/ready/L8-cloudflare-deploys.md) | Deploy workflows for both sites, with per-PR Previews | L5, L7 | M |
+| [L8](../todos/ongoing/L8-cloudflare-deploys.md) | Deploy workflows for both sites, with per-PR Previews | L5, L7 | M |
 | [L9](../todos/done/L9-publish-protocol-harness-cli-decision.md) | The decision to publish the protocol, harness, CLI and agent-safety: ADR 0058, PB4, and todos L10 and L11 | None | S |
 | [L10](../todos/done/L10-make-protocol-harness-cli-publishable.md) | Make the four packages publishable while they stay private: built `dist/`, docs checks, pack tests, the fixed group | L9 | L |
 | [L11](../todos/ready/L11-bootstrap-and-release-protocol-harness-cli.md) | Drop `private`, hand the owner the new `release.yml`, and publish the four together through trusted publishing | L9, L10, N29, N30 | M |
