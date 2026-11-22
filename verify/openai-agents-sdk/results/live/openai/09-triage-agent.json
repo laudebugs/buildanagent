@@ -3,8 +3,8 @@
   "example": "09-triage-agent",
   "file": "verify/openai-agents-sdk/examples/09-triage-agent.ts",
   "harness": "verify/openai-agents-sdk",
-  "pin": "@openai/agents@0.21.0",
-  "mock": "@openai/agents@0.21.0",
+  "pin": "@openai/agents@0.22.0",
+  "mock": "@openai/agents@0.22.0",
   "live": {
     "provider": "openai",
     "model": "gpt-5.4-mini"
@@ -100,7 +100,7 @@
             "id": "<id-2>",
             "name": "escalate",
             "input": {
-              "reason": "Checkout failure with HTTP 500 reported by pro customer user@example.com; needs urgent on-call investigation."
+              "reason": "Checkout failure with HTTP 500 for pro customer user@example.com; immediate on-call investigation needed."
             }
           }
         ]
@@ -109,7 +109,7 @@
       "usage": {
         "uncachedInput": 209,
         "cacheRead": 0,
-        "output": 38,
+        "output": 37,
         "reasoning": 0
       }
     },
@@ -151,15 +151,15 @@
         "parts": [
           {
             "type": "text",
-            "text": "{\"category\":\"bug\",\"priority\":\"high\",\"summary\":\"Pro customer user@example.com reports checkout failing with HTTP 500; this is a high-priority bug and should be escalated to on-call for investigation.\"}"
+            "text": "{\"category\":\"bug\",\"priority\":\"high\",\"summary\":\"Pro customer user@example.com reports checkout failing with HTTP 500. This appears to be a high-priority bug and should be investigated by on-call.\"}"
           }
         ]
       },
       "finish": "stop",
       "usage": {
-        "uncachedInput": 265,
+        "uncachedInput": 264,
         "cacheRead": 0,
-        "output": 50,
+        "output": 49,
         "reasoning": 0
       }
     },

@@ -59,14 +59,14 @@ Each SDK gets a reference folder under `docs/reference/<sdk>/` (guide, fact-chec
 | Pi (agent harness) | `@earendil-works/pi-coding-agent@1.5.2` | [docs/reference/pi/](docs/reference/pi/) | Done: 334 sources type-checked, 20 run, 8 verified examples |
 | OpenAI Agents SDK | `@openai/agents@0.21.0` | [docs/reference/openai-agents-sdk/](docs/reference/openai-agents-sdk/) | Done: 182 sources type-checked, 66 run, 9 verified examples |
 | Vercel AI SDK | `ai@7.0.162` | [docs/reference/vercel-ai-sdk/](docs/reference/vercel-ai-sdk/) | Done: 741 doc blocks type-checked, 116 run, 9 verified examples (agent-relevant core) |
-| LangChain.js | `langchain@1.6.1` | [docs/reference/langchain/](docs/reference/langchain/) | Done: 713 doc blocks type-checked, 33 run (+12 with a provider prefix), 10 verified examples |
+| LangChain.js | `langchain@1.6.6` | [docs/reference/langchain/](docs/reference/langchain/) | Done: 713 doc blocks type-checked, 34 run (+12 with a provider prefix), 11 verified examples |
 | Cloudflare Agents | `agents@0.33.0` | [docs/reference/cloudflare-agents/](docs/reference/cloudflare-agents/) | Done: 1,927 doc blocks type-checked, 171 run in workerd, 9 verified examples |
 | Google ADK | `@google/adk@2.5.0` | [docs/reference/google-adk/](docs/reference/google-adk/) | Done: [guide](docs/reference/google-adk/guide.md) and [fact-check](docs/reference/google-adk/fact-check.md); 304 sources type-checked, 109 run offline, 19 of 22 documented behaviors held |
 | GitHub Copilot SDK | `@github/copilot-sdk@1.0.31` | [docs/reference/copilot-sdk/](docs/reference/copilot-sdk/) | Done: [guide](docs/reference/copilot-sdk/guide.md) and [fact-check](docs/reference/copilot-sdk/fact-check.md); 455 sources type-checked, 50 run against the real runtime with a mock model, 22 of 23 documented behaviors held |
 
 ## Development
 
-The repo is a pnpm workspace (Node 22, pnpm 10.34.9). Our own packages live in `packages/`. As of November 2026, `@buildanagent/gateway` and `@buildanagent/sdk` publish to npm as alphas. Five more are private: `@buildanagent/agent-safety`, and the harness plan's `protocol`, `harness`, `cli` and `evals`, which are empty scaffolds. Each SDK harness under `verify/` is also a workspace package. The textbook, `@buildanagent/manual` in `apps/manual`, is a private workspace package that builds a static Astro site with Pagefind search. `pnpm --filter @buildanagent/manual build` writes the site to `apps/manual/dist/`. The book needs Node 22.23.4 or later.
+The repo is a pnpm workspace (Node 22, pnpm 10.34.9). Our own packages live in `packages/`. Six of them publish to npm as alphas (`0.1.0-alpha.28` on 2026-11-22): `@buildanagent/gateway`, `sdk`, `agent-safety`, `protocol`, `harness` and `cli`. `@buildanagent/evals` stays private, an empty scaffold. Each SDK harness under `verify/` is also a workspace package. The textbook, `@buildanagent/manual` in `apps/manual`, is a private workspace package that builds a static Astro site with Pagefind search. `pnpm --filter @buildanagent/manual build` writes the site to `apps/manual/dist/`. The book needs Node 22.23.4 or later.
 
 ```bash
 pnpm install        # install every package and harness

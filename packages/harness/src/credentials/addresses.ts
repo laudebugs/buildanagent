@@ -69,12 +69,15 @@ function parseIpv6(text: string): number[] | undefined {
   return missing >= 1 ? [...head, ...new Array<number>(missing).fill(0), ...tail] : undefined;
 }
 
-function ipv4Refused(value: number): boolean {
-  return IPV4_REFUSED.some(([base, bits]) => {
+/** Whether `value` falls in one of `ranges`, each an `[address, prefix length]` pair. */
+function inIpv4Ranges(value: number, ranges: readonly (readonly [number, number])[]): boolean {
+  return ranges.some(([base, bits]) => {
     const size = 2 ** (32 - bits);
     return Math.floor(value / size) === Math.floor(base / size);
   });
 }
+
+const ipv4Refused = (value: number): boolean => inIpv4Ranges(value, IPV4_REFUSED);
 
 /** The IPv6 prefixes a proxy refuses, as the leading groups and the prefix length in bits. */
 const IPV6_REFUSED: readonly (readonly [readonly number[], number])[] = [
@@ -136,4 +139,94 @@ export function isPublicAddress(address: string): boolean {
 export function isAddressLiteral(text: string): boolean {
   const bare = text.startsWith("[") && text.endsWith("]") ? text.slice(1, -1) : text;
   return parseIpv4(bare) !== undefined || parseIpv6(bare) !== undefined;
+}
+
+/**
+ * The address as eight 16-bit groups, with an IPv4 address in its mapped form `::ffff:a.b.c.d`, or `undefined` when
+ * `text` is not an address.
+ */
+function groupsOf(text: string): number[] | undefined {
+  const bare = text.startsWith("[") && text.endsWith("]") ? text.slice(1, -1) : text;
+  const v4 = parseIpv4(bare);
+  if (v4 !== undefined) return [0, 0, 0, 0, 0, 0xffff, Math.floor(v4 / 65536), v4 % 65536];
+  return parseIpv6(bare);
+}
+
+/** The prefix length of a range in mapped form: an IPv4 prefix counts from bit 96. */
+function rangeOf(range: string): { readonly groups: number[]; readonly bits: number } | undefined {
+  const [address = "", prefix, extra] = range.split("/");
+  // Brackets belong to a URL's host, not to a range: read as written, `[10.0.0.0]/8` would pass as IPv6 `::/8`.
+  if (extra !== undefined || address.includes("[") || address.includes("]")) return undefined;
+  const groups = groupsOf(address);
+  if (groups === undefined) return undefined;
+  const v4 = parseIpv4(address) !== undefined;
+  const max = v4 ? 32 : 128;
+  if (prefix !== undefined && !/^(0|[1-9][0-9]{0,2})$/.test(prefix)) return undefined;
+  const length = prefix === undefined ? max : Number(prefix);
+  if (length > max) return undefined;
+  return { groups, bits: v4 ? length + 96 : length };
+}
+
+/** Whether `range` is an address or a CIDR range such as `10.0.0.0/8` or `fd00::/8`. */
+export function isAddressRange(range: string): boolean {
+  return rangeOf(range) !== undefined;
+}
+
+/**
+ * Whether `address` lies in `range`, an address or a CIDR range. An IPv4 address and its mapped IPv6 form are the same
+ * address here. Text that is not an address, or a range that can't be read, matches nothing.
+ */
+export function inAddressRange(address: string, range: string): boolean {
+  const groups = groupsOf(address);
+  const parsed = rangeOf(range);
+  return groups !== undefined && parsed !== undefined && inPrefix(groups, parsed.groups, parsed.bits);
+}
+
+/** Whether `address` is a loopback address: `127.0.0.0/8`, `::1`, or an IPv6 form that wraps a `127` address. */
+export function isLoopbackAddress(address: string): boolean {
+  const groups = groupsOf(address);
+  if (groups === undefined) return false;
+  if (inPrefix(groups, [0, 0, 0, 0, 0, 0, 0, 1], 128)) return true;
+  const wrapped = wrappedIpv4(groups);
+  return wrapped !== undefined && Math.floor(wrapped / 2 ** 24) === 127;
+}
+
+const bareOf = (text: string): string => (text.startsWith("[") && text.endsWith("]") ? text.slice(1, -1) : text);
+
+/**
+ * The IPv4 address `address` names, as a number: a dotted quad in its canonical form, or an IPv6 address that wraps
+ * one (the mapped, compatible, translated, NAT64 and 6to4 forms). `undefined` for anything else.
+ */
+export function ipv4Of(address: string): number | undefined {
+  const bare = bareOf(address);
+  const v4 = parseIpv4(bare);
+  if (v4 !== undefined) return v4;
+  const v6 = parseIpv6(bare);
+  return v6 === undefined ? undefined : wrappedIpv4(v6);
+}
+
+/** The IPv4 ranges that reach the host itself or its link: this network, loopback and link-local. */
+const IPV4_LOCAL: readonly (readonly [number, number])[] = [
+  [0x00000000, 8],
+  [0x7f000000, 8],
+  [0xa9fe0000, 16],
+];
+
+/** The IPv6 prefixes that reach the host itself or its link: unspecified, loopback and link-local. */
+const IPV6_LOCAL: readonly (readonly [readonly number[], number])[] = [
+  [[0, 0, 0, 0, 0, 0, 0, 0], 128],
+  [[0, 0, 0, 0, 0, 0, 0, 1], 128],
+  [[0xfe80], 10],
+];
+
+/**
+ * Whether `address` reaches the host itself or its link: unspecified, loopback or link-local (which holds the cloud
+ * metadata address 169.254.169.254), for IPv4 and IPv6, and an IPv6 address that wraps one of those IPv4 ones. Text
+ * that isn't an address literal is not one.
+ */
+export function isLocalAddress(address: string): boolean {
+  const v4 = ipv4Of(address);
+  if (v4 !== undefined && inIpv4Ranges(v4, IPV4_LOCAL)) return true;
+  const v6 = parseIpv6(bareOf(address));
+  return v6 !== undefined && IPV6_LOCAL.some(([prefix, bits]) => inPrefix(v6, prefix, bits));
 }

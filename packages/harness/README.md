@@ -2,7 +2,17 @@
 
 The harness wraps the SDK's loop with what a coding agent needs around it: a session log that survives a crash, a context policy, tools, permissions, a sandbox and credentials kept out of it. Use it to run an agent whose every turn is recorded and can be resumed, checked and replayed.
 
-As of November 2026 the package is private and not on npm. Each removable component has its own subpath, so you import only what you use and an ablation can drop the rest. `session`, `context`, `tools`, `permissions`, `sandbox`, `credentials`, `extensions`, `server`, `telemetry` and `testing` are built. `mcp`, `memory` and `ablation` are empty stubs that hold their place until their components arrive.
+Each removable component has its own subpath, so you import only what you use and an ablation can drop the rest. `session`, `context`, `tools`, `permissions`, `sandbox`, `credentials`, `extensions`, `mcp`, `server`, `telemetry` and `testing` are built. `memory` and `ablation` are empty stubs that hold their place until their components arrive.
+
+## Install the alpha with `pnpm add @buildanagent/harness@alpha`
+
+The package needs Node 22.19 or later. npm serves every release under the `alpha` dist-tag until the first stable one:
+
+```sh
+pnpm add @buildanagent/harness@alpha
+```
+
+All six buildanagent packages share one version, and the harness depends on that exact version of the gateway, the SDK, the protocol and `@buildanagent/agent-safety`. Name the tag: a plain `pnpm add @buildanagent/harness` installs `0.0.0-bootstrap.0`, a deprecated placeholder, because `latest` stays on it until the first stable release.
 
 ## The session log holds twenty-one entry types
 
@@ -50,11 +60,52 @@ const result = await sandbox.exec(["pnpm", "test"], { env: spawnEnv([]), signal:
 console.log("denied" in result ? result.denied.reason : result.exitCode);
 ```
 
-`exec` takes an executable and its arguments, with no shell, and resolves with the exit code and output. A failing command is a result, not an error, and a command the policy refuses resolves with `{ denied }`. A command that runs past `timeoutMs` stops with exit code 124, and one the system can't find gives 127. A command that a signal killed gives 128 plus the signal's number, with `signal` naming it. Output past `maxOutputBytes` (8 MiB for each stream by default) is dropped, and the result says `truncated: true`.
+`exec` takes an executable and its arguments, with no shell, and resolves with the exit code and output. A failing command is a result, not an error, and a command the policy refuses resolves with `{ denied }`. A command that runs past `timeoutMs` stops with exit code 124 and `timedOut: true`, so a command that exits with 124 itself is told apart, and one the system can't find gives 127. A command that a signal killed gives 128 plus the signal's number, with `signal` naming it. Output past `maxOutputBytes` (8 MiB for each stream by default) is dropped, and the result says `truncated: true`.
 
 The `none` backend starts each command in its own process group. A timeout, an abort or `dispose()` therefore kills the command and everything it started, and `exec` settles even when a background process still holds the output pipes.
 
 Bad input is an error, not a result. A working directory that isn't an existing folder, a bad `timeoutMs` or a bad `maxOutputBytes` throws a `HarnessError`. An already aborted signal rejects before the command runs, and reading a missing file rejects with the code `sandbox_not_found`.
+
+## A denied command becomes a signed request, and an approved one reruns once
+
+`escalation({ approvalPolicy, approvals })` from `./sandbox` decides what happens when the sandbox denies a command. The host owns that decision, and no tool or model can widen the sandbox. A wider policy is built on the host from two things only, the denial the backend reported and a verified answer, and it lasts for one rerun.
+
+```ts
+import { escalation, spawnEnv } from "@buildanagent/harness/sandbox";
+
+const machine = escalation({ approvalPolicy: "on-request", approvals: createApprovals(harness) });
+const where = { client, manifest: { root: "/work/repo" }, env: spawnEnv([]), signal: controller.signal };
+const outcome = await machine.run(session, { ...where, tool: "fetch", input: { url: "https://example.com" }, command: ["curl", "https://example.com"], policy });
+```
+
+`machine.run(session, run)` runs the command once under `run.policy` and ends one of three ways. Each result carries `result`, a tool result a tool can return to the model. The model reads it only when nothing was written, as under `never`; once a request exists, the rebuilt context leaves it out and the host reads it.
+
+- **`ran`.** The backend did not deny the command, and nothing is written.
+- **`denied`.** The backend denied it, and nobody is asked, so nothing is written. That is every denial under `never`, every denial that no `granular` rule lets the host ask about, and every denial that can't be widened: a path that is `/`, relative or holds `..`, a host with a wildcard, a scheme or a path, and a host that an entry of the policy's own `network.deny` closes. An entry closes a host as `srt` matches a denied domain: `*` closes every host, `*.name` every name under `name` but not `name` itself, and any other entry that host alone, with case ignored. An entry's port is ignored, so a host closed on one port is never widened on any, and an IPv6 address is never widened while `deny` names any IPv6 address. An address must be in its canonical form: an IPv4 address as four decimal octets with no leading zero, and an IPv6 address that does not wrap an IPv4 one. A host whose last label is a number counts as an IPv4 address, so `127.1`, `2130706433` and `0x7f.1` can't be widened, and a deny entry closes an IPv4 address it names in any spelling, such as `10.1` for `10.0.0.1`. A host that reaches the machine itself or its link is never widened, whatever `deny` says: `localhost` and the names under it, and the unspecified, loopback and link-local addresses, which hold the cloud metadata address 169.254.169.254. A name that DNS resolves to a closed address can't be seen here, so the backend's own deny list still covers it.
+- **`awaiting_approval`.** Under `on-request`, or `granular` where a rule allows it, `run()` writes an `approval_requested` entry before it returns. The harness's signer signs the request as `createPendingRequest()` does, and the request's tool is `ESCALATION_TOOL` (`sandbox.escalation`), a name no registered tool can have. Its input is the record the approver sees: the tool and its input, the command, the workspace root, the policy and the denial. `widened` is the policy the rerun would get.
+
+`run()` writes only when it asks. A tool's `execute` may call it under `never`, and under the other two policies host code calls it between turns, as it calls `invokeTool()`, because a write inside a turn's tool step can race the turn's own writes.
+
+`machine.resolve(session, resolution, options)` answers one request. The log holds no backend, workspace, environment or signal, so `options` passes them again:
+
+```ts
+import { spawnEnv } from "@buildanagent/harness/sandbox";
+
+const rerun = await machine.resolve(session, { requestId, decision: "allow", by: "grace" }, { client, manifest: { root: "/work/repo" }, env: spawnEnv([]), signal: controller.signal });
+```
+
+- **The check comes first.** Before anything is written, the answer is checked against the request: the signature under a key in the ring, the bound host context, the call, and the record, which must hash to the signed hash. A forged, re-signed or edited request throws `approval_refused`, writes nothing and runs nothing.
+- **Only a named person or hook approves a rerun.** An allow with no `by`, or whose `by` starts with `classifier:` in any case, throws `approval_refused`, writes nothing and leaves the request waiting. A person's or a hook's allow approves it. `by` is not covered by the request's signature, so set it only after you have authenticated the approver.
+- **The quorum policy decides.** The answer is written, and the approvals' quorum policy decides the answer. A quorum that still waits returns `awaiting_approval`, and a deny, a rejection or an expiry ends `denied` with no rerun.
+- **An abort before the answer is written writes no answer.** `options.signal` is checked when `resolve()` is called and again just before the answer is written, so an abort by then runs nothing and the request still waits. Once the answer is written the approval is spent, and an abort only reaches the rerun, as `Sandbox.exec()` takes a signal.
+- **A deny rule added since the pause wins.** An allow goes through the permission pipeline again, as the tool call the command ran for.
+- **The rerun runs once, no wider than the denial.** It runs in a fresh sandbox under the recorded policy plus exactly the path or host that was denied, and that sandbox is disposed after it. A second denial is the rerun's result: it ends `denied`, and nobody is asked again.
+
+Every move follows `ESCALATION_TRANSITIONS`, a table of the states `sandboxed`, `denied`, `requested`, `approved`, `rerun` and `done` and the events between them. A result's `status` and the state `denied` are different things: `status` is how the call ended, and `states` is the path it took. `nextEscalationState()` throws `invalid_escalation` for an edge the table does not list. Only a verified allow leads from `requested` to `approved`, and `rerun` leads only to `done`. Each result's `states` lists the states its call passed through.
+
+A rerun runs at most once, even across a crash. It *starts* once the log holds the pipeline's fresh decision after a final allow, the last entry before the rerun runs. To *settle* an escalation is to write the result it lacks. The next `resolve()`, or `run()` that asks, settles each escalation a crash left open: a rerun that started may have run, so it is settled as such and never run again, and an answer whose rerun never started is settled as never run. The result is a `tool_result` with the tool `sandbox.escalation`. The rerun's output, and any sentence that quotes a backend's denial, an error's message or an approver's reason, is marked `untrusted`; only the harness's own fixed sentences, such as a crash's settlement, are marked `trusted`. The model never reads the result, because the rebuilt context leaves out each result whose call id is an escalation's; a result the model's own call got stays, even for a call to a tool it named `sandbox.escalation`. The host gets the command's output from `resolve()`. The log keeps at most 4,096 characters of each of the rerun's output streams, and `resolve()` returns all of it.
+
+`approvals.pending()` and `approvals.resolve()` don't see an escalation: `machine.pending(session)` lists the ones that wait. It asks the quorum policy about each with the answers written so far and leaves out one the policy says has expired. Listing writes nothing, so an expired escalation stays in the log until it is answered, and `resolve()` then writes the policy's denial and runs nothing. A `granular` policy takes `granular`, a list of rules of the form `{ kind?, tool?, escalate }`. The first rule that matches the denial's kind and the tool decides, and a denial no rule matches goes back with no request. `escalation()` throws `invalid_escalation` for rules given with another policy, for a `granular` policy with none, and for approvals that `createApprovals()` did not make. A policy that can ask also needs a harness with a signer and a permission pipeline: without the signer it throws `approval_unavailable`, and without the pipeline `invalid_escalation`.
 
 ## The srt backend confines each command with Anthropic's OS sandbox
 
@@ -91,7 +142,7 @@ The policy decides what is mounted, at the same path inside as outside. A write 
 
 The workspace must lie inside a root. The backend never mounts the Docker socket: a root that resolves to `/`, or that holds the daemon's socket (`/var/run/docker.sock`, `/run/docker.sock` or the one `dockerHost` names), is refused.
 
-The container has no network, so a command reaches a host only through `proxySocket`: a Unix socket on the host, mounted at `DOCKER_PROXY_SOCKET_PATH` (`/run/harness/proxy.sock`), that the credential proxy listens on. The program in the image has to speak to that socket itself. Without `proxySocket`, no host is reachable, including the ones the policy allows.
+The container has no network, so a command reaches a host only through `proxySocket`: a Unix socket on the host, mounted at `DOCKER_PROXY_SOCKET_PATH` (`/run/harness/proxy.sock`), that the credential proxy listens on. The program in the image has to speak to that socket itself. Without `proxySocket`, no host is reachable, including the ones the policy allows, so `provision()` refuses a policy whose `network.allow` names one.
 
 `provision()` starts the `docker` client with a clean environment: a `PATH`, a private empty `HOME`, and `DOCKER_HOST` when the option or the host sets one. It never copies the host's environment. A missing client, a daemon that doesn't answer or an image that isn't on the host throws `SandboxUnavailableError` and runs nothing.
 
@@ -109,6 +160,30 @@ Five limits are worth knowing:
 
 The same opt-in tests run the conformance suite and the lock-down cases against a real daemon, with a pinned Node image, and fail on a skipped case. Without Docker, the other tests check the flags and the unavailable paths with a fake client.
 
+## A backend that claims a stop reads its policy back, and one that can't resume says so
+
+A backend that claims a stop reads back the policy it applied, and `provision()` compares it with the request before it returns. `srtSandbox()` rereads its settings file from disk, and `dockerSandbox()` reports the mounts and flags it creates each container with. If any field differs, `provision()` disposes the sandbox and throws `SandboxPolicyMismatchError`, so nothing runs under a policy you didn't ask for. The check treats `readRoots`, `writeRoots`, `network.allow` and `network.deny` as sets, and a narrower policy throws too.
+
+One gap remains: a `denyWrite` that names a write root exactly. Docker mounts such a root read-only, but the read-back counts the caller's `denyWrite` as part of the request, so it still reads back as a write root and `provision()` accepts it. Nothing in that root is writable inside the container.
+
+The error's code is `sandbox_policy_mismatch`, and its `field` names the first field that differs, such as `network.allow`. The message never holds a path or a host. The code below catches the error and prints that field:
+
+```ts
+import { SandboxPolicyMismatchError } from "@buildanagent/harness/sandbox";
+import { srtSandbox } from "@buildanagent/harness/sandbox/srt";
+
+const attempt = srtSandbox().provision({ root: "/work/repo" }, policy);
+await attempt.catch((error) => console.log(error instanceof SandboxPolicyMismatchError ? error.field : error));
+```
+
+A client that claims a stop but gives its sandbox no read-back, or one whose read-back fails, makes `provision()` throw the same error, with the field `readBack`. `noneSandbox()` claims no stop, so it needs none.
+
+`stopsFor(tier, policy)` computes the stops that an applied policy delivers. Only a `microvm` stops a `hostile_process`. A policy that allows `*`, `0.0.0.0/0` or `::/0` loses `exfiltration`, and a root of `/` loses `mistakes`. A client that claims a stop its applied policy doesn't deliver is refused with the field `stops`, and the message names the cause, such as that the policy allows all hosts, so the sandbox cannot stop exfiltration. `srtSandbox()` and `dockerSandbox()` both claim `mistakes` and `exfiltration`, so `provision()` refuses a policy that allows every host on either.
+
+A hosted backend can also list `capabilities`: `resume`, `snapshot` and `pause`. Call them through `resumeSandbox(client, id, policy)`, `snapshotSandbox(client, sandbox)` and `pauseSandbox(client, sandbox)`. A resume reads the policy back as `provision()` does and sets the handle's `stops` from it. Unlike `provision()`, a resume that finds a mismatch throws and leaves the sandbox alone, because disposing it would destroy a paused sandbox and its work: the caller decides whether to dispose. A capability the client doesn't list rejects with `SandboxUnsupportedError`, code `sandbox_unsupported`. The `none`, `srt` and Docker backends list none, so a resume, a snapshot or a pause on them is always refused.
+
+None of this authenticates a caller. The read-back shows that the sandbox applies the policy you asked for, and the host still decides who may ask.
+
 ## The egress proxy keeps every credential outside the sandbox
 
 `startEgressProxy({ allow, routes, log })` from `./credentials` starts a proxy on `127.0.0.1`, or on a Unix socket you give it (`socketPath`, which is what `dockerSandbox`'s `proxySocket` mounts). Nothing leaves the sandbox except through it. It refuses everything that isn't on its allowlist with a 403, and it writes one log record for each request: the host, the method, the status and the bytes, never a header or a body. Give the sandbox `proxy.url` as `HTTPS_PROXY`. On a Unix socket, `proxy.url` is `unix:<path>`, which is not a proxy URL, and the program inside the container connects to the socket itself.
@@ -121,7 +196,7 @@ A tool that needs a credential uses a route. `routes` lists, for each one, a nam
 
 The secret is read for each request, so a rotated key is used at once, and it never enters the sandbox's environment, a log record or a response from the proxy.
 
-`proxy.fetch(input, init)` is for tools that run in the harness's own process, which a network sandbox doesn't confine. It applies the same allowlist, address check and pinned connection, and it rejects with `egress_denied` for a host that isn't allowed. It uses HTTPS only and doesn't follow redirects, so each hop is a new call that the allowlist checks. A URL under `proxy.url`, or under `http://egress.proxy`, which also works on a Unix socket, is a route request with the same injection. An aborted signal rejects with its reason.
+`proxy.fetch(input, init)` is for tools that run in the harness's own process, which a network sandbox doesn't confine. It applies the same allowlist, address check and pinned connection, and it rejects with `egress_denied` for a host that isn't allowed. It uses HTTPS only and doesn't follow redirects, so each hop is a new call that the allowlist checks. An upstream status outside 200 to 599, which Node parses and a Web `Response` refuses, rejects with `egress_denied`, closes the upstream connection and is logged with the reason `bad_status`. An answer that breaks after it has begun is logged once, when it closes. A URL under `proxy.url`, or under `http://egress.proxy`, which also works on a Unix socket, is a route request with the same injection. An aborted signal rejects with its reason.
 
 `scrubSecrets(entry, secrets)` returns a copy of a session entry with each secret replaced by `[REDACTED]`, in every string and key at any depth, and also when the secret was percent-encoded, JSON-escaped or turned into base64, alone or inside a longer value such as a Basic authorization header. An entry's `type`, `id`, `parentId`, `seq`, `timestamp`, `origin` and `formatVersion` are never rewritten. Apply it before every append, with `await proxy.knownSecrets()` and the tokens and session URLs of any hosted-browser, CDP or OAuth connector tool, because the scrubber can only remove a secret it is told about.
 
@@ -133,6 +208,48 @@ Four limits are worth knowing:
 - **Local processes can reach it.** The proxy listens on loopback, so any process on the host can use its allowed tunnels. Only a process that knows a sentinel can use a route, and sentinels are random for each proxy. A Unix socket narrows access to the socket's file permissions.
 
 The package's tests run the proxy against a real HTTPS server on loopback, with a self-signed certificate that only the test trusts and a table in place of DNS.
+
+## An egress policy names a credential and never holds one
+
+`EgressPolicy` is plain data: an `allow` list of exact host names, and `routes` that each name the credential they inject. `compileEgressPolicy(policy, { secret })` checks it and returns the `allow` and `routes` that `startEgressProxy()` takes. The compiled routes call `secret(name)` for each request, on the host, so a rotated credential is used at once. The code below compiles one git route and starts a proxy with it:
+
+```ts
+import { compileEgressPolicy, startEgressProxy } from "@buildanagent/harness/credentials";
+
+const route = { kind: "git", route: "git", host: "github.com", repositories: ["acme/app"], pushRefs: ["refs/heads/agent/*"], credential: "GITHUB_TOKEN" } as const;
+const compiled = compileEgressPolicy({ allow: [], routes: [route] }, { secret: async (name) => process.env[name] ?? "" });
+const proxy = await startEgressProxy({ ...compiled, log: audit });
+```
+
+The compiler refuses anything that isn't plainly allowed, with the code `invalid_egress_options`, and its message names the place of the entry and never its value:
+
+- a field that a route kind doesn't have, such as `secret` or `token`;
+- a string that looks like a credential: a value, or a whitespace-separated token, that starts with `ghp_` or `sk-` and has a long enough body, or a whole 20-character AWS key id. A name that merely contains a prefix, like the repository `sk-labs/app`, is allowed;
+- a credential name that isn't upper case;
+- a wildcard or an address literal in `allow` or in a route's `host`;
+- a git route whose `host` is also in `allow`, or is the host of any other route, because a tunnel or a header route to that host would go around the ref filter. `startEgressProxy()` enforces the same rule on routes it is given directly.
+
+The scan for credential-shaped strings is defence in depth. The field allowlist and the upper-case credential name are the real guards, and a token that starts mid-word, like `acme/ghp_…`, or is base64-encoded passes the scan.
+
+The policy holds names, the proxy reads each value on the host, and the sandbox sees only a random placeholder, so no credential value enters a sandbox. The policy does not authenticate a caller: any process that knows the placeholder can use the route. `EgressPolicy` is not yet part of `SandboxPolicy`, and `srtSandbox()` keeps its own proxy.
+
+## A git route lets a push reach listed branches and nothing else
+
+A route of kind `git` carries git over HTTPS for the repositories it lists, and nothing else. The sandbox's remote is `http://x-access-token:<placeholder>@127.0.0.1:<port>/git/acme/app.git`, where `git` is the route's name and the placeholder is `proxy.sentinels.git`. The proxy swaps the placeholder for the credential and sends it to the host in HTTP Basic, with the route's `username`, which is `x-access-token` unless you set one. A request with no credential gets a 401 challenge, so git asks for one.
+
+A push is checked before anything is forwarded. The proxy reads the command list at the start of the body and refuses the whole push when one command breaks a rule:
+
+- a deletion, a tag, or a ref that no `pushRefs` pattern matches;
+- a push certificate, a body with a `content-encoding` other than `identity`, or a pkt-line that is malformed or not UTF-8;
+- a command list over 64 KiB (`GIT_MAX_COMMAND_BYTES`) or over 64 commands (`GIT_MAX_COMMANDS`).
+
+When a push is bigger than git's `http.postBuffer` (1 MiB by default), git first sends a probe whose body is a single flush packet. The proxy treats that body as an empty command list and forwards it, and it refuses any byte after the flush.
+
+The command list has two timeouts. `idleTimeoutMs` restarts on each chunk, so a stalled client is cut off and a slow one is not. It takes a whole number from 0 to 2,147,483,647, and 0 turns the idle timeout off, as for a socket's timeout; any other value makes `startEgressProxy()` throw `invalid_egress_options`. `pushCheckTimeoutMs` never restarts, and it covers the command list only, not the pack, so a client that sends one byte at a time is cut off too. Its default is 60,000 ms, and it takes a whole number from 1 to 2,147,483,647. The 64 KiB limit applies however the list is split across chunks. A refused push gets a 403 with `Connection: close`, and the proxy stops reading the rest of the body: it discards what is already in flight, up to 1 MiB or for 1 second, then ends the response, so a large pack cannot keep the connection open.
+
+A pattern is a branch such as `refs/heads/main`, or a prefix such as `refs/heads/agent/*`, which matches the branches under `agent/` and not `agent` itself. A route with no `pushRefs` refuses every push, and one with `fetch` left out refuses every fetch.
+
+A route has two limits. With `fetch` on, the sandbox can read every ref of a listed repository, because a fetch is allowed or refused for the whole route. And a route filters git's HTTP requests only, so it says nothing about what a pushed commit contains. The package's tests run a real `git push` over loopback to a fake GitHub on HTTPS: a push to an agent branch arrives with the token, and a push to `main`, a tag and a deletion never reach it.
 
 ## Every spawned process gets a cleared environment
 
@@ -148,9 +265,9 @@ The check goes by name and can't catch a credential under an unremarkable one, s
 
 ## Test a sandbox with the fake and the conformance suite
 
-`./testing` has `fakeSandbox()`, a sandbox in memory that enforces the policy it is given and records every `exec`, but runs no program: it understands `echo`, `env`, `cat`, `write`, `true`, `false`, `sleep` and `net-probe`. It claims tier `os`, because it enforces file roots and the network allowlist, but it confines no real process.
+`./testing` has `fakeSandbox()`, a sandbox in memory that enforces the policy it is given and records every `exec`, but runs no program: it understands `echo`, `env`, `cat`, `write`, `true`, `false`, `sleep` and `net-probe`, plus `find`, `grep` and `bash -c` or `sh -c` with one of those commands as the script, which is what the built-in tools run. It claims tier `os`, because it enforces file roots and the network allowlist, but it confines no real process.
 
-`runSandboxConformance(factory)` pins the interface for every backend. Its cases check that a file reads back as written, that `exec` reports exit codes and output, that the environment holds only the variables given, that an aborted signal rejects and a timeout stops with 124, and that `dispose` ends the sandbox and any command still running. When the caller passes `processTree`, a case also checks that an abort or timeout ends the command's whole process tree. A backend that adds variables of its own, such as proxy settings, lists them in `addedEnvironment`, and the environment case accepts those and no others.
+`runSandboxConformance(factory)` pins the interface for every backend. Its cases check that a file reads back as written, that `exec` reports exit codes and output, that the environment holds only the variables given, that an aborted signal rejects and a timeout stops with 124 and `timedOut: true`, and that `dispose` ends the sandbox and any command still running. When the caller passes `processTree`, a case also checks that an abort or timeout ends the command's whole process tree. A backend that adds variables of its own, such as proxy settings, lists them in `addedEnvironment`, and the environment case accepts those and no others.
 
 A case that needs enforcement runs only when the backend's `stops` claim it:
 
@@ -158,6 +275,8 @@ A case that needs enforcement runs only when the backend's `stops` claim it:
 - a symlink that points outside, where the factory passes a `symlink` function;
 - a working directory outside the workspace;
 - the network, where the caller passes two hosts it controls, such as two loopback listeners: the allowed one must be reached and the blocked one must not.
+
+Three more cases check the read-back and the capabilities: a backend that claims a stop reads its policy back equal to the request, a read-back that differs throws `sandbox_policy_mismatch` and disposes the sandbox, and a capability the backend doesn't list is refused with `sandbox_unsupported`. `fakeSandbox({ applied })` applies a policy in place of the request, as a provider that widens it would.
 
 `none` passes the rest and skips those with a reason, and a backend that can't start skips every case with its reason and fails none. The suite tells errors apart by `isHarnessError()` and the error's `code`, so a backend bundled separately from the suite still passes. `sandboxConformanceCases(factory)` returns the same cases one by one, for a runner that wants a test for each.
 
@@ -168,11 +287,50 @@ A case that needs enforcement runs only when the backend's `stops` claim it:
 - **Names.** A tool's canonical name is checked once, at registration, against the SDK's rule of 1 to 64 characters from `A-Z`, `a-z`, `0-9`, `_` and `-`. An MCP tool is namespaced as `mcp__<server>__<tool>`. A second tool with a name already taken throws a `DuplicateToolError`, and an extension replaces a built-in only with `override: true`.
 - **Hashes.** An MCP tool whose server or tool name needs cleaning, holds a double underscore, starts or ends with an underscore, or makes the name run past 64 characters gets `_` and an eight-digit hash of its source and name. A name therefore depends on its tool alone and never on what was registered before it.
 - **Aliases.** A native or display alias stays apart from the canonical name. No alias may equal another tool's name or alias, in either order of registration, so a rule that matches either matches one tool.
+- **All or none.** `registerAll(tools)` registers a list, or none of it: when one tool is refused, it removes the ones the list registered before it and throws the error.
 - **Exposure.** Every source has an exposure that the registry writes to each tool's `exposure`: `deferred` for MCP tools and `direct` for the rest. `setExposure(source, exposure)` changes it for a source, now and for tools registered later. A run keeps the exposure `definitions()` gave its tools, so call `definitions()` again for the next run. `definitions()` returns the tools in registration order and keeps it, so the cached prefix does not move when a tool activates.
-- **Tool search.** `toolSearchTool(registry, { activated })` is a `tool_search` tool, and `activated` is required. It matches a query against the `deferred` tools' names and descriptions, records the best matches in `activated` and names them to the model. `toolSearchInterceptors(registry, activated)` sends the run's tools, including any from outside the registry, plus the activated ones. A deferred tool is therefore absent from each request until the model asks for it, and present in the next. The search ignores common words such as `the` and `for`, counts a repeated word once, and takes a `maxResults` of 1 or more. A `hidden` tool is never found, and `tool_search` itself is always sent, so a source set to `deferred` cannot leave the model with no way to find a tool. Register `tool_search` in the registry, because the interceptor sends it by that name and throws when the registry lacks it. Pass the same set to the tool and the interceptor, and a new one to each run.
+- **Tool search.** `toolSearchTool(registry, { activated })` is a `tool_search` tool, and `activated` is required. It matches a query against the `deferred` tools' names and descriptions, records the best matches in `activated` and names them to the model, with the description of a trusted tool. An untrusted tool's description, such as an MCP server's, counts as one matched word at most and is never quoted, and one untrusted source takes at most half the results. `toolSearchInterceptors(registry, activated)` sends the run's tools, including any from outside the registry, plus the activated ones. A deferred tool is therefore absent from each request until the model asks for it, and present in the next. The search ignores common words such as `the` and `for`, counts a repeated word once, and takes a `maxResults` of 1 or more. A `hidden` tool is never found, and `tool_search` itself is always sent, so a source set to `deferred` cannot leave the model with no way to find a tool. Register `tool_search` in the registry, because the interceptor sends it by that name and throws when the registry lacks it. Pass the same set to the tool and the interceptor, and a new one to each run.
 - **Host context.** `definitions(wrap, hostContext)` runs each tool through `wrap`, which can bind a write cap, shadow mode, a sandbox or the turn's host context. The registry sets the result's name and exposure, so a wrapper cannot rename or expose a tool. The host context reaches `execute` by the wrapper's closure, never through a schema, so it is in no request, event or saved context.
 - **Output trust.** A tool's `outputTrust` is `untrusted` for an MCP tool and for a tool registered with `remoteAgent: true`, `trusted` otherwise, and the value a registration declares wins. `approvalReuse` defaults to `both`, and `pattern` records whether the tool runs `in_process` or by a `client_request`.
 - **Preamble size.** `preambleTokens({ system })` estimates the tokens a request carries before any message: the system prompt and every `direct` tool. A `deferred` tool adds nothing, which is why the default for MCP is `deferred`. A `RegisteredTool` that `register()` returns is a snapshot, so call `get()` after `setExposure()` to read the current exposure.
+
+## The built-in tools reach files, commands and the web only through the sandbox and the egress proxy
+
+`builtinTools(sandbox, proxy, { root, policy })` returns up to seven tools for one provisioned sandbox: `read`, `write`, `edit`, `bash`, `grep`, `glob` and `fetch`, which needs a proxy, so six without one. No tool touches the host. Files go through the sandbox's `readFile()` and `writeFile()`, commands through its `exec()`, and the web through the proxy's `fetch()`, so the backend and the allowlist decide what each call can reach. This coding agent binds them to a workspace and lets `read` open the write cap's spill files:
+
+```ts
+  const sandbox = await client.provision({ root: workspace }, policy);
+  const spill = fileSpillStore({ dir: spillDir });
+  const registry = createToolRegistry();
+  const spills = (path: string) => spill.read(key, path);
+  for (const tool of builtinTools(sandbox, proxy, { root: workspace, policy, spills })) registry.register(tool);
+  const harness = createHarness({ registry, model, system: SYSTEM, context: createContextPolicy({ spill }) });
+```
+
+Pass the `root` and `policy` the sandbox was provisioned with, because the sandbox interface reports neither. Leave `proxy` out, as `undefined`, and the set has no `fetch`. `env` is the whole environment of every command the tools run; it defaults to a `PATH` and a `LANG` alone, and on Node you pass `spawnEnv()`.
+
+Each tool's contract:
+
+- **`read`** takes `path` or `file_path`, relative to `root` or absolute, `offset` (the first line, from 1), `limit` (a line count) and `column` (where to start in the first line, from 1, to read on in a line too long for a page). With none of the three, it returns the whole file up to 2,000 lines and 32 KiB, and a longer file or a page ends with a line that names the next `offset`. The write cap counts bytes after JSON escaping, so `read` counts 32 KiB the same way (a quote, a backslash or a newline costs two bytes). A page therefore always passes the default 64 KiB cap whole. A line longer than a page is shown in parts, and each part's last line names the `offset` and `column` where the next starts, so a cut result that is one long line can still be read in full. Only an absolute path is offered to the `spills` reader, and a path it knows is served from the spill; a relative path always reads the workspace. A binary file is an error result.
+- **`write`** takes a path and `content`, makes the folders and replaces the whole file.
+- **`edit`** takes a path, `old_string` and `new_string`. `old_string` must occur exactly once: no match, or two matches without `replace_all: true`, returns an error result and leaves the file unchanged. `new_string` is inserted as written, so `$&` stays `$&`. A byte order mark is kept, and a binary file or one that is not UTF-8 is an error result, left unchanged, because writing it back as text would corrupt it.
+- **`bash`** runs `command` as `bash -c` inside the sandbox, from `root`, with a timeout of `timeout_ms` (default 120,000, at most 600,000). The model reads the output, standard error and exit code. A timeout or a denial is an error result, and each stream keeps at most 1 MiB. Only the sandbox's `timedOut` flag marks a timeout, so a command that exits with 124 itself reads as that exit code.
+- **`grep`** searches files for `pattern`, an extended regular expression, below `path` (default `root`), and prints `path:line:text`. `glob` narrows the files: a glob with no `/`, such as `*.ts`, matches the file name, and any other matches the path below `path`. `ignore_case` ignores case. Binary files are skipped (`grep -I`).
+
+  The matching lines stop at 1 MiB, across every `grep` command the call runs, and a result cut there says so, so the model can narrow the search. If the first matching line alone passes 1 MiB, the result still says that lines match, names the file and line, and suggests a narrower search or `read`; it never reports "no match". A file `grep` can't read, or a folder `find` can't list, keeps the matches found elsewhere and adds a line quoting the error; the call fails only when nothing matched.
+- **`glob`** lists the files below `path` whose path matches `pattern`, sorted. `*` matches inside one name, `**` across folders and `?` one character.
+- **`fetch`** sends a GET for an `https` `url` through `proxy.fetch()`. It returns the status line, the final URL, any `location`, the content type and, for a text body, up to 1 MiB of it. A body of another type is left out and reported by its size. Every secret the proxy knows is replaced by `[REDACTED]`, and a body cut at 1 MiB also loses any start of a secret left at its end.
+  - A text body is read in the charset its content type names, when `TextDecoder` knows that label, and as UTF-8 otherwise.
+  - A body with no content type, or with a charset label `TextDecoder` does not know, is shown only when it reads as UTF-8 text with no NUL byte.
+  - A request that takes over 30 seconds returns an error, as do a host off the allowlist and a URL that is not `https`. Plain HTTP is refused, which keeps the model off the proxy's credential routes.
+
+**Paths are checked before the sandbox sees them.** `read`, `grep` and `glob` accept a path inside a read or write root, and `write` and `edit` only inside a write root. A path with a backslash is refused, because the workspace is POSIX, where `\` is part of a name, while the permission rules read it as a separator. The check joins a relative path to `root` and removes `.` and `..`, so `../etc/passwd` and `/etc/passwd` are refused without a sandbox call, and the sandbox gets the checked path. A symlink is invisible to a check on text, so the sandbox's own check of the real path is the second line: its denial reaches the model as an error result. `grep` and `glob` list files with `find`, which never follows a symlink, and skip folders named `.git` and `node_modules` below the folder searched, so a search of `node_modules` itself still works.
+
+**Big results pass the write cap like any other.** The tools cap nothing themselves: the context policy's write cap cuts a long result and spills its full text, and `read` with `spills` opens that spill. Bind `spills` to one session, as `fileSpillStore().read(key, path)` already does, so one session cannot read another's spills.
+
+**Scheduling follows what each tool changes.** `read`, `grep`, `glob` and `fetch` are first-party and read-only, so their calls in one step run together. `write` and `edit` declare a write, so they wait for the file calls before them, and `bash` runs its step one call at a time. A crash during a write makes the next turn report its outcome as unknown. Only `fetch`'s output is `untrusted`, because a web page can carry instructions; the rest is `trusted`, though a workspace file or a command's output can carry instructions too.
+
+**The descriptions are versioned.** Every description, limit and default the tools use is in `BUILTIN_TOOL_DEFAULTS`, and `BUILTIN_TOOLS_HASH` changes whenever any of them does, so two runs with different hashes ran with different tools.
 
 ## One pipeline decides every tool call, and a call no rule settles is denied when nobody can answer
 
@@ -395,7 +553,7 @@ const context = createContextPolicy({ spill: fileSpillStore({ dir: ".sessions/sp
 
 **Layer 1, the write cap.** A tool result whose text is over the cap is cut before the model reads it, and the full text goes to the `spill` store. The model reads the first part and a line that names the file, and the `tool_result` entry stores the same cut text with `spill: { path, bytes }`. If the store cannot write, the text is still cut, and the notice says the rest was not kept.
 
-The cap counts the bytes the entry takes in the log: JSON escaping, the result's details and other blocks, and 1 KiB for the entry's own fields. A capped entry therefore always fits the stores' 64 KiB entry bound. The default `writeCapBytes` of 65,536 leaves the model a little under 64 KiB of plain text, and less of a text full of newlines or quotes. `fileSpillStore({ dir })` from `@buildanagent/harness/context/file` writes one file per capped result, and `memorySpillStore()` serves tests. A file is named by the run id, a count within the run and the call id, because a provider may reuse a call id. A policy with the layer on and no `spill` throws `invalid_context_options`.
+The cap counts the bytes the entry takes in the log: JSON escaping, the result's details and other blocks, and 1 KiB for the entry's own fields. A capped entry therefore always fits the stores' 64 KiB entry bound. The default `writeCapBytes` of 65,536 leaves the model a little under 64 KiB of plain text, and less of a text full of newlines or quotes. `fileSpillStore({ dir })` from `@buildanagent/harness/context/file` writes one file per capped result, and `memorySpillStore()` serves tests, with absolute paths under `/spill/`. `fileSpillStore().read()` reads only an absolute path inside the session's folder. A file is named by the run id, a count within the run and the call id, because a provider may reuse a call id. A policy with the layer on and no `spill` throws `invalid_context_options`.
 
 **Layer 2, stepped masking.** Before each model call, every tool result before a cutoff shrinks to its first 500 characters and a pointer line. The line names the spill file, or the log entry when the result was never spilled. A cut never leaves half of a surrogate pair. The cutoff is `floor((messages − 8) / 8) × 8`, so it moves once every eight messages. Between moves the view's prefix stays byte-identical, which keeps a provider's prompt cache hitting.
 
@@ -554,6 +712,135 @@ Pins keep a trusted project from changing under you. `pinProjectExtensions(root)
 The loader hashes and checks every folder before it imports any, so a refusal runs none of the project's code. Node caches modules for the life of a process, so a folder that changed after the process imported it is refused until the process restarts. An extension folder may not hold a symlink.
 
 Two limits remain. The pin covers the files inside each folder and nothing an extension imports from outside it, such as a relative path that leaves the folder or a package from the project's `node_modules`. And the lock file sits inside the project it pins, so anyone who can edit the project can pin their own changes: the pin catches a change nobody meant, not an attacker who holds the project. Pin a project only after you have read its extensions.
+
+## MCP servers connect side by side, each in its own era, and their tools wait behind tool search
+
+`@buildanagent/harness/mcp` is the MCP client, built on `@modelcontextprotocol/client` 2.4.0 and kept behind its own `McpConnection` interface, so the registry never sees the library. `createMcpManager({ servers, registry })` checks every server's config, and that the registry has `register()`, `registerAll()` and `list()`, when you create it, and starts nothing until `connect()`. That call connects each server on its own, so one slow or broken server never holds back the rest, and it resolves with one status per server: `connected` with the server's era and its tools' canonical names, or `failed` with the error. This example connects one server over stdio:
+
+```ts
+export async function connectDocs(registry: ToolRegistry, command: string, args: string[], token: string) {
+  const manager = createMcpManager({
+    registry,
+    servers: [
+      {
+        name: "docs",
+        transport: { kind: "stdio", command, args, env: ["DOCS_REGION"], setEnv: { DOCS_TOKEN: token } },
+        requestTimeoutMs: 30_000,
+      },
+    ],
+  });
+  const [status] = await manager.connect();
+  if (status?.status === "failed") throw status.error;
+  return { manager, era: status?.era, tools: status?.tools ?? [] };
+}
+```
+
+A stdio server gets `spawnEnv()`'s environment and nothing else from the parent: `PATH`, a fresh temp `HOME`, `TMPDIR` and `LANG`, plus the parent variables that `env` names and the values that `setEnv` sets. The harness spawns the child itself, because the library's own stdio transport adds the parent's `HOME`, `LOGNAME`, `PATH`, `SHELL`, `TERM` and `USER` to the environment it is given. `env` follows `spawnEnv()`'s rules, so a name such as `GITHUB_TOKEN` is refused there, and the token goes in `setEnv` with a value the host read from its own secret store. A clean environment is not a sandbox: a stdio server runs on the host as the harness's own user, outside any sandbox, so it can read whatever that user can, `~/.ssh` included. Connect only servers you would run yourself. A server named in `transport: { kind: "in_process", channel }` runs in the harness's process instead, over a channel such as the `InMemoryTransport` of `@modelcontextprotocol/server`, and needs no Node.
+
+**Each server negotiates its own era.** The client sends `server/discover` first, and a server that answers it connects in the 2026-07-28 era. A server that refuses the probe, or stays silent past `probeTimeoutMs`, gets `initialize` and connects as `legacy`. The probe waits 5,000 ms by default, or half of `connectTimeoutMs` when that is shorter, and a `probeTimeoutMs` as long as `connectTimeoutMs` is refused, so a silent server always has time to fall back. A stdio server that exits cleanly after the probe, as servers on some older SDKs do, is started once more and spoken to as legacy from the start. A server that crashes starts once, and the whole connect, a restart included, takes at most `connectTimeoutMs`. `connection.era` and `connection.protocolVersion` record the outcome, so a 2026-07-28 server and a legacy one sit side by side in one harness.
+
+**The tools are registered all or none.** A server's tools take the source `mcp:<name>`, so the registry names them `mcp__<name>__<tool>` and defers them until tool search names them; `exposure` in the config changes that. A server name is 1 to 32 characters from `A-Z`, `a-z`, `0-9` and `-`, and two servers can't share one in any letter case, so no server can take another's prefix or a built-in's name. The manager registers the list through the registry's `registerAll()`, which removes what it added when any tool is refused, so a clash with a tool already registered, even one another manager added a moment before, leaves none of the server's tools behind. It refuses a whole list, registers none of it and closes the server, with an `McpError` of code `mcp_tool_list_refused`, when the list breaks a rule:
+
+- it holds more than `maxTools` tools (default 256), or its pages run past eight;
+- a name is over 128 characters or holds a control character;
+- an input schema is not an object schema, or is over 64 KiB;
+- two names match once normalised to NFKC and lower case, such as `Search` and `search`.
+
+The harness reads the list one page at a time and stops at the page that passes `maxTools`, so a server can make it hold at most one page beyond the limit. A description over 4,096 characters is cut, never inside a character, and the registry hashes a name that needs cleaning.
+
+**A server's schema runs no regular expression.** The SDK checks a call's input against the tool's schema before the permission gate decides the call, and it runs a schema's patterns on a backtracking engine, so a pattern such as `^(a+)+$` could freeze the harness with one crafted input. The harness therefore removes `pattern`, `patternProperties` and `format` from every server's input schema, at any depth, before the tool is defined, and refuses a schema nested deeper than 64 levels. The model reads the schema without them, and the server still checks its own input. The registry builds each tool's definition again for every turn, so a schema is compiled once per turn.
+
+**The server's hints change nothing.** Every MCP tool is registered as not first-party and as a write, whatever its `readOnlyHint` says, so the loop never runs its calls together or runs one again after a crash because of a server's claim. `listTools()` keeps the hints for display only. The tools run through the turn's own tool pipeline, so the permission pipeline decides every call before it is sent, and a denied call never reaches the server. The write cap applies to every result, as to any tool.
+
+**A server's output and descriptions are untrusted.** Each result's entry is stored with `trust: "untrusted"`. That mark is a record only: nothing in a request tells the model which results are untrusted yet, which waits on HD16. Tool search never quotes an MCP tool's description in its own result, which the log stores as trusted; it names the tool, and the description reaches the model with the tool's definition. It scores an MCP tool on its name, counts its description as one word at most, and gives one server at most half the slots, so a description stuffed with keywords can't crowd out the other tools.
+
+**The client gives a server nothing to ask for and nothing to run.** The harness reads a result's content and never its structured content, so it gives the client a validator that compiles no output schema. The client declares no capabilities: a legacy server's sampling, roots and elicitation requests get error -32601, and a 2026-07-28 client drops a server's requests unanswered. No resource link or embedded resource URI is ever fetched.
+
+**Every failure is bounded.** A call fails with an `McpError` of code `mcp_call_failed`, whose `failure` says why:
+
+- `closed`: the server exited or crashed, or the connection closed.
+- `timeout`: no answer came within `requestTimeoutMs` (default 60,000 ms).
+- `aborted`: the turn's signal fired.
+- `input_required`: the server asked for input from the user, which this harness does not supply yet.
+- `server_error`: the server answered with an error, and its message is cut to 500 characters.
+- `disabled`: the tool is new, changed or removed since it was pinned, and the call never reached the server.
+
+A server that fails to start, or to finish its handshake within `connectTimeoutMs` (default 30,000 ms), fails to connect with `mcp_connect_failed`. A stdio server's line over `maxLineBytes` (default 8 MiB) closes the connection, and a line that is not a JSON object is dropped and logged. Only the newest `maxStderrBytes` (default 64 KiB) of its standard error are kept, for `connection.stderr()`, and they never reach the model.
+
+**Closing ends the server's process group.** `manager.close()` first aborts every handshake still running, so a server that hangs can't hold up the others. It then ends each server's input, waits `closeGraceMs` (default 2,000 ms), sends `SIGTERM`, waits again and then kills the group, so a server that ignores the close, and whatever it started inside its group, still ends. A descendant that leaves the group, by `setsid` or a detached spawn, survives, and on Windows, which has no process groups here, only the server itself is killed. The temp `HOME` is removed, and a tool of a closed server fails when called.
+
+**A signal ends the servers only if the host opts in.** If the harness's process exits without closing, an exit handler kills every group still running. A signal whose default action ends the process emits no exit event, though, and a server's group never gets the terminal's `SIGINT`. The harness adds no signal listener by default, because a listener changes what a signal does to the host. A server that exits when its input ends, as most do, still goes with the host; one that ignores its closed input outlives a signalled host. A host whose process those signals end calls `killMcpServersOnSignal()` once: on the first `SIGINT`, `SIGTERM` or `SIGHUP`, the harness kills every group, removes its listeners and raises the signal again, so the process ends as it would have, and a library such as `signal-exit`, which re-raises only when it is alone, still sees itself alone. A host that handles `SIGINT` to cancel a turn should not opt in, since the first `SIGINT` would end its servers; such a host calls `manager.close()` when it stops. A `SIGKILL` gives the harness no chance to clean up.
+
+**One switch turns MCP off.** With `createMcpManager({ ..., mcp: false })`, `connect()` resolves with an empty list, starts no server and registers nothing.
+
+**A session records which servers ran.** `manager.records()` gives one `extension_loaded` record of tier `mcp` per connected server, in config order; pass them in `extensionRecords` to `createHarness()`, and a turn writes an entry for each record its session's log does not hold yet. A record holds the server's name, the transport kind, the era, and two hashes: one of the command and its args, for a stdio server, or of the URL, for a remote one, and one of the tools as registered, each tool's name, description and input schema, sorted by name. It never holds an argument or an environment value, because either can carry a token, and a server that failed to connect has no record. The command hash is not salted, so anyone who reads the log can check a guess at an argument, such as a short PIN or a token of a known format, by hashing it; put every secret in `setEnv`, never in `args`. Every hash is `sha256:` and the SHA-256 of canonical JSON, so an unchanged server records the same hashes on every connect.
+
+Two limits remain. A server's request for user input fails the call: a server-supplied prompt is untrusted text a person would read as the harness's own, and the owner chose on 2026-11-22 to fail such calls until the connectors work gives a pause a safe form. And the manager takes configs only from host code; a project's own MCP config, which needs project trust, is todo N54.
+
+## A remote server is reached over HTTPS to a public address, and every byte it sends is bounded
+
+A server with `transport: { kind: "http", url }` speaks MCP's streamable HTTP transport, and the era is negotiated as for any other server. `kind: "sse"` is the HTTP+SSE transport of the 2024-11-05 revision, which MCP has deprecated since 2025-03-26; it is for legacy servers only, so the harness connects in the legacy era with no probe. A remote server is untrusted code on another machine, and the harness reaches it with its own network identity, so the URL, every address the URL's name resolves to and every byte that comes back are checked. The client library supplies both transports, and the harness's own guarded fetch sends every request they make. This example, `examples/mcp-remote.ts`, reaches a server through the egress proxy with a token the host read from its secret store, and puts the manager at the turn boundary:
+
+```ts
+export function trackerHarness(registry: ToolRegistry, model: Model, proxy: McpEgressFetch, token: string) {
+  const manager = createMcpManager({
+    registry,
+    servers: [
+      {
+        name: "tracker",
+        transport: {
+          kind: "http",
+          url: "https://mcp.tracker.example/mcp",
+          headers: { Authorization: `Bearer ${token}` },
+          proxy,
+        },
+        exposure: "direct",
+      },
+    ],
+    pins: memoryMcpPinStore(),
+  });
+  manager.start();
+  const pipeline = createPermissionPipeline(
+    { mode: "default", hooks: [manager.permissionHook()], interactive: true, policyVersion: "v1" },
+    registry,
+  );
+  const harness = createHarness({ registry, model, system: "You track issues.", pipeline, turnBoundaries: [manager] });
+  return { manager, harness };
+}
+```
+
+**The URL and the headers come from host code alone.** The URL must be `https:`, and the harness refuses one with a user name or password, a fragment, a control character, or a query parameter whose name looks like a credential, such as `token` or `api_key`. A credential goes in `headers`, which nothing reads from the environment. A header the transport sets itself, such as Host, Content-Type, Accept-Encoding or Mcp-Session-Id, is refused, and so is a value with a line break. A refusal names the rule and never quotes the value. No log line, error message or `extension_loaded` record holds a header value or the URL: errors and log lines have both replaced with `[redacted]`, and the record holds a hash of the URL. A `401` fails the connect or the call with an `McpError` that says so; the harness runs no OAuth flow and fetches no metadata the server points at.
+
+**Every address is checked, and the request connects to the one that was checked.** Without a proxy, on Node, each request resolves the URL's name once, refuses it when any answer is loopback, private, carrier-grade NAT, link-local (with the cloud metadata address `169.254.169.254`), unspecified, multicast or reserved, or an IPv6 form that wraps one, and connects to the first answer. Once the socket connects, the harness checks the address it reached once more, so a name whose answer changes between two lookups can't steer a request to the host's own network. `allowAddresses` names the ranges one server may reach anyway, such as `10.20.0.0/16`; it never allows loopback. A `/0` range is refused, and so is any IPv6 range that holds the base of a form that wraps IPv4: mapped, compatible, translated, NAT64 or 6to4. `::ffff:0:0/96` is all of IPv4, and `::ffff:10.0.0.0/8` is really `::/8`, so both are refused; write the IPv4 range itself. A range in brackets, such as `[10.0.0.0]/8`, is refused too, since brackets belong to a URL. `unsafeAllowLoopback` lets a test reach a server on `127.0.0.1`, over plain `http:` when every answer is loopback, and nothing else does. `resolve` replaces the system resolver, and every address it returns is checked the same way. With `proxy`, every request goes through the egress proxy's `fetch()`, so its allowlist, its own address checks and its log apply, and the URL must be `https:`. On any other runtime, Cloudflare's workerd included, the platform's `fetch` carries the request. workerd has `node:https` under `nodejs_compat` but refuses the custom lookup the pinned connection needs, so the harness tells it apart by its user agent. There the harness checks a literal address, counts `localhost` and names under `.localhost`, with or without a trailing dot, as loopback, and can't resolve any other name, so the platform decides where it goes.
+
+**TLS is never weakened.** Certificates are always verified, against the system's authorities or the server's own `ca`, over TLS 1.2 or later, and an `https:` URL never falls back to plain HTTP. The harness asks for no compression and refuses a compressed answer on Node, so a decompression bomb is never decoded; through a platform `fetch`, which decodes on its own, the byte caps count decoded bytes.
+
+**No redirect is followed.** The client library would follow a redirect within the server's origin. The harness answers every `3xx` with an error instead, and answers a `304`, which no MCP request asks for, with an error that says so. It never sends a request that leaves the configured origin, such as one to an SSE `endpoint` event on another host.
+
+**Every response is bounded.** A JSON body, one server-sent event and one line may each hold at most `maxMessageBytes` (default 8 MiB), and one stream at most `maxStreamBytes` (default 64 MiB). A response must start within `headersTimeoutMs` (default 30,000 ms), and a stream is cut when it sends nothing for `streamIdleMs` (default 120,000 ms) or stays open past `maxStreamMs` (default an hour). At most `maxStreams` responses (default 8) may be open on one connection; a request past that fails at once. A body, event or line past its size, or any bound on the answer to one request, closes the connection and fails what was waiting on it, with the bound in the error. A streamable HTTP GET stream or a `subscriptions/listen` stream that goes quiet, stays open an hour or passes `maxStreamBytes` is cut and opened again at once, and such a cut never counts against the reopen limits below. A legacy SSE server's event stream is the one channel its answers come on and can't be opened again, so it has only the event and line bounds: a quiet SSE server needs no keepalives. A body on that GET that is not an event stream, such as an error page, is bounded like any answer. The server's session id must be 1 to 256 visible ASCII characters, and the harness sends it back and trusts nothing else about it.
+
+**The server can't set the reconnect delay.** The harness removes every `retry:` field from an event stream, and every `id:` field the client could not send back as `Last-Event-ID`, before the library reads the stream. A streamable HTTP stream that drops, or whose reopen fails, is opened again after one second, doubling to thirty, and after ten such reopens within ten minutes the connection closes, so a legacy server never keeps a connection with no stream for its change notices. A legacy SSE stream is opened once: when it ends, the connection closes, and nothing reconnects it.
+
+## Servers connect in the background, and the first turn waits only for `direct` servers
+
+`manager.start()` connects every server in the background and returns at once. Pass the manager to `createHarness({ turnBoundaries: [manager] })`. Each turn then calls `manager.beginTurn()` before it builds the turn's tools. The first turn waits up to `directWaitMs` (default 10,000 ms) for the servers whose `exposure` is `direct`, and for no other. A deferred server that takes thirty seconds to answer never delays the first model call, and a `direct` server that answers within the wait is in the first request's tools. A server that connects later is registered at the next turn's start, never inside a turn, and a `direct` one is registered as `deferred`, so the tools a request sends never change because a server was slow. A server that fails is tried once and reported once, in its status and through `log`. `manager.statuses()` reports each server, `connecting` until its tools are registered. `manager.close()` aborts the connects still running and every open stream, and clears its timers. `connect()` still connects everything and waits, for a host that wants every server before its first turn.
+
+## A tool runs only while its definition matches its pin, and a change waits for the next turn
+
+The manager pins each tool's definition: `sha256:` and the SHA-256 of the canonical JSON of its `name`, `description` and `inputSchema`. The annotations are left out, because they change nothing the harness does. With `pins`, a store of approved definitions, a tool that has no pin, or whose definition hashes differently, starts disabled, and a server the store holds nothing for has every tool disabled. Without a store, each server's tools as listed at connect are its pins for the life of the manager. `fileMcpPinStore(".agents/extensions.lock.json")` from `@buildanagent/harness/extensions/node` keeps the pins in the project's lock file, under `mcp.<server>.tools`, beside the extension pins, and each writer keeps the other's entries. `readMcpPins(file, server)` and `writeMcpPins(file, server, pins)` from the same entry read and write one server's pins directly, for a host that builds its own store; `writeMcpPins()` refuses a lock file it can't read. Every write to one path in this process, through any store or `writeLock()`, runs after the one before it. A lock file with MCP pins alone pins no extension, so writing it never makes a project's extensions refused, and the loader's notice says the file holds no extension pins. A lock file that is a link, not a regular file, or over 1 MiB is refused. The harness checks and reads it through one open handle, so a file swapped in between the check and the read is never read. The lock file sits in the project, so anyone who can commit to the project can approve definitions for any server the host configures: give a project's `fileMcpPinStore()` to the manager only for a project the person trusts, as project extensions load only then. `pinProjectExtensions()` replaces a lock file it can't read, such as one with merge-conflict markers, and its MCP pins go with it; an MCP pin write refuses such a file, since dropping the extension pins would let unpinned extensions load.
+
+**A disabled tool is refused before its server.** `manager.permissionHook()` denies a call to a disabled tool before anything else decides, so a sticky allowance, an allow rule or `bypass` mode can't run it; put it first in the pipeline's `hooks`. A disabled tool's own `execute` refuses the call too, with `failure: "disabled"`, so the server is never reached without the hook either. `manager.pending()` lists the tools waiting for a person, with each one's definition for the person to read and its hash. `manager.approve(server, tool, hash)` writes the pin and then records the approval, so a failed write approves nothing, and the tool may run from the next turn. A hash that is no longer the server's current one is refused, so an approval never covers a definition the person did not see, and a tool that changes after its approval is disabled again. A tool runs only when both its server's current definition and the definition it was registered with match its pin, because the model reads the registered one all session. The registered definition's hash is the one taken from the same list the tool was registered from, so a server that lists another definition between its connect and the turn that registers it can't make the registered one pass. A tool registered with an unapproved definition therefore stays disabled for the session even if the server later lists the approved one, and a new session registers that one.
+
+**A changed list is read again and announced at the next turn.** A legacy server's `notifications/tools/list_changed`, and the same notice on the `subscriptions/listen` stream that the harness opens on a 2026-07-28 server that advertises `tools.listChanged`, make the manager read the list again, at most once per `relistIntervalMs` (default 2,000 ms), however many notices come. A dropped listen stream is opened again after one second, doubling to a minute; after eight short-lived streams in a row, it stays closed. At the next turn's start, a changed, new or removed tool is disabled, an approved one is enabled, and the turn writes one notice, a text block of origin `harness` in front of the user's input. The gateway's transcript has no system role, so this block is how an append-only log tells the model that tools changed. The notice names each tool by its canonical name, which keeps only `A-Z`, `a-z`, `0-9`, `_` and `-` of the server's name for it, and says what changed. It never quotes a description, it counts the tools a server added mid-session instead of naming them, it lists at most 20 changes, and a change that is undone before the turn announces nothing. A notice counts as told only once the turn has written it, through `manager.commitNotices()`, so a turn that fails before its input is written tells it again next time.
+
+**The tools a request sends never change mid-session.** A changed tool keeps the definition it was registered with, so the model reads the old description until a new session. A tool a server adds mid-session is not registered: it waits in `manager.pending()`, and once approved it joins the next session's tools.
+
+Four limits come with the remote transports and the pins:
+
+- the post-connect address check and the reconnect delay clamp are second guards, behind the pinned lookup and the removed `retry:` field;
+- the manager's tool state is per manager, so two sessions that share one manager see each other's turn boundaries;
+- a response stream that breaks loses its request, and the harness never sends a tool call again, since every MCP tool is a write;
+- on any runtime but Node, Cloudflare's workerd included, a name is resolved by the platform, which the harness can't check; `localhost` and names under `.localhost` count as loopback there.
 
 ## A skill is a file the model reads, and only its name, description and path are in the prompt
 

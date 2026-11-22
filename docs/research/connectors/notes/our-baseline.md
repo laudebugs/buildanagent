@@ -33,13 +33,13 @@ The harness plan has a thorough design for an MCP client, but only for consuming
   - `readOnlyHint` and other annotations ignored for scheduling;
   - an `mcp: false` switch.
 
-  Acceptance criteria: "A denied MCP call never reaches the server", a 200 KiB MCP result is capped, and "No parent environment variable reaches the server process unless declared". — `docs/todos/ready/N24-mcp-stdio.md#scope`, `#acceptance-criteria`
+  Acceptance criteria: "A denied MCP call never reaches the server", a 200 KiB MCP result is capped, and "No parent environment variable reaches the server process unless declared". — `docs/todos/done/N24-mcp-stdio.md#scope`, `#acceptance-criteria`
 - **N25 (HTTP, SSE, background connect).**
   - In scope: streamable HTTP and legacy SSE, "HTTP servers reached through the egress proxy's allowlist (N20)", and a background connect where the first prompt waits up to 10 s only for `direct` servers. `tools/list_changed` re-registers tools at the next turn boundary.
   - **Out of scope: "OAuth flows beyond what the client library provides".**
   - Risk: "Remote servers hold their own credentials; the harness passes none unless a credential route names the host."
 
-  — `docs/todos/ready/N25-mcp-http-background.md#scope`, `#risks-and-open-questions`
+  — `docs/todos/done/N25-mcp-http-background.md#scope`, `#risks-and-open-questions`
 - **Harness guide §4 rationale.**
   - Collisions are "the main MCP failure".
   - Deferred loading cut tool definitions from about 77K to 8.7K tokens, and one practitioner counted "Linear: 23 tools (~12,935 tokens)".
@@ -59,7 +59,7 @@ The harness plan has a thorough design for an MCP client, but only for consuming
   - `scrubSecrets()` runs before every append.
 
   — `docs/plans/build-harness.md#hd15-the-credential-proxy-injects-on-reverse-proxy-routes-not-by-intercepting-tls`; `docs/todos/done/N20-credential-proxy.md#scope`
-- **N43: `EgressPolicy { allow, routes }` compiled per backend.** It adds "a `routes` entry kind for git over HTTPS with a ref filter". — `docs/todos/ready/N43-remote-sandbox-egress-policy.md#tasks`
+- **N43: `EgressPolicy { allow, routes }` compiled per backend.** It adds "a `routes` entry kind for git over HTTPS with a ref filter". — `docs/todos/done/N43-remote-sandbox-egress-policy.md#tasks`
 - **Guide §6 rule:** "the harness takes API keys or proxy-injected credentials, never consumer-subscription OAuth". — `docs/guides/agent-harness.md#6-the-sandbox-and-the-credential-boundary-are-separate-components-and-the-host-not-the-model-owns-both`
 - **Extensions and trust (guide §7, N22).**
   - There are three tiers (in-process, MCP and skills) "behind one project-trust gate". Headless runs skip project extensions by default, and "trust is not a sandbox".

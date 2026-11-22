@@ -1,0 +1,754 @@
+# Deploys the docs (publish-and-docs DS3 and DS4, ADR 0049), following book-deploy.yml's design:
+#
+# - On workflow_run after docs-build.yml, a push to main deploys docs.buildanagent.fyi while no stable release tag
+#   (v<x.y.z>) exists, and next.docs.buildanagent.fyi, marked noindex, once one does. A pull request from a branch of
+#   this repository gets a Cloudflare Preview on workers.dev, and its URLs go into one comment on the pull request.
+#   A fork's pull request still builds and gets its checks, but no preview: its build runs the fork's own workflow
+#   file, so its artifact could hold any HTML or script, and a preview would serve that publicly from the owner's
+#   account. A maintainer can push a fork's change to a branch here to preview it.
+# - On workflow_run after docs-pr-closed.yml, the closed pull request's preview is deleted and its comment says so.
+# - On workflow_dispatch with a `tag` input, which release.yml's docs job sends after a stable release
+#   (`gh workflow run docs-deploy.yml --ref main -f tag=v<version>`), the build-release job builds the docs from that
+#   tag's commit and production deploys them to docs.buildanagent.fyi.
+#
+# GitHub runs a workflow_run workflow from the file on the default branch, so a pull request that edits this file
+# changes nothing until it merges. A workflow_dispatch runs the file on the ref it names, so every job checks that the
+# ref is main, and the `cloudflare` environment, whose deployment branches are limited to main, holds the secrets back
+# from any other ref. No job checks out or runs a pull request's code. From a triggering build it takes only the
+# docs-dist artifact, which scripts/ci/site-stage-dist.mjs checks before anything uses it, and the head commit's SHA,
+# which the resolve job looks up through GitHub's API. wrangler.toml, the scripts and Wrangler itself all come from
+# main's checkout. The tag input is checked against a strict pattern, then through the API, before anything uses it,
+# and it reaches the shell only through env.
+#
+# The resolve and comment jobs call GitHub's API and hold no Cloudflare secret. The production, next and preview jobs
+# call it too, read-only and only in steps that see no Cloudflare secret, to re-check main's newest commit, the tags,
+# the release deploys or the pull request around their deploys. The comment jobs alone may write, and only to pull
+# requests.
+name: docs-deploy
+
+on:
+  workflow_run:
+    workflows: [docs-build, docs-pr-closed]
+    types: [completed]
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: A stable release tag on main, such as v0.1.0, whose docs go to docs.buildanagent.fyi
+        required: true
+        type: string
+
+permissions: {}
+
+jobs:
+  # Decides what this run deploys, as `target`: production, next, release, previews, deletions or none.
+  #
+  # - A push to main deploys only if it is still main's newest commit, so a build that finished late never replaces a
+  #   newer one. Its target is production while no stable tag exists, and next once one does.
+  # - A pull request's preview needs its number, which comes from the API, never from the artifact: an open pull
+  #   request into this repository, from a branch of it, whose head is this commit. The build itself must have run for
+  #   this repository too, because a fork's run of the same commit carries the fork's artifact.
+  # - A closed pull request's number also comes from the API, from the recently closed pull requests whose head is
+  #   this commit and lives in this repository.
+  # - A dispatch's tag must match v<x.y.z> exactly, exist, point at a commit, and be reachable from main. Its commit's
+  #   SHA, not the tag's name, is what build-release checks out, so moving the tag afterwards changes nothing.
+  #
+  # The head repository's name is checked against a strict pattern before anything compares it, and every value
+  # reaches jq through --arg, never inside the filter's text.
+  resolve:
+    if: >-
+      (github.event_name == 'workflow_run' && github.event.workflow_run.conclusion == 'success') ||
+      (github.event_name == 'workflow_dispatch' && github.ref == 'refs/heads/main')
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    permissions:
+      contents: read # GET commits/main, git/matching-refs, git/ref, git/tags and compare
+      pull-requests: read # GET /repos/{repo}/commits/{sha}/pulls and /repos/{repo}/pulls
+    # previews and deletions are JSON arrays of pull request numbers, such as [81], for the jobs' matrices.
+    outputs:
+      target: ${{ steps.resolve.outputs.target }}
+      previews: ${{ steps.resolve.outputs.previews }}
+      deletions: ${{ steps.resolve.outputs.deletions }}
+      sha: ${{ steps.resolve.outputs.sha }}
+    steps:
+      - name: Find what to deploy
+        id: resolve
+        env:
+          GH_TOKEN: ${{ github.token }}
+          REPO: ${{ github.repository }}
+          EVENT_NAME: ${{ github.event_name }}
+          TAG: ${{ inputs.tag }}
+          WORKFLOW: ${{ github.event.workflow_run.name }}
+          EVENT: ${{ github.event.workflow_run.event }}
+          HEAD_SHA: ${{ github.event.workflow_run.head_sha }}
+          HEAD_REPO: ${{ github.event.workflow_run.head_repository.full_name }}
+          HEAD_BRANCH: ${{ github.event.workflow_run.head_branch }}
+        run: |
+          set -o pipefail
+          stable='^v(0|[1-9][0-9]{0,5})\.(0|[1-9][0-9]{0,5})\.(0|[1-9][0-9]{0,5})$'
+          target=none previews="[]" deletions="[]" sha=""
+          if [ "$EVENT_NAME" = workflow_dispatch ]; then
+            [[ "$TAG" =~ $stable ]] || { echo "::error::The tag input must be a stable release tag such as v0.1.0."; exit 1; }
+            ref=$(gh api "repos/$REPO/git/ref/tags/$TAG" --jq '.object.type + " " + .object.sha') || { echo "::error::The tag $TAG does not exist."; exit 1; }
+            # An annotated tag points at a tag object; follow it once to its commit.
+            if [[ "$ref" =~ ^tag\ ([0-9a-f]{40})$ ]]; then
+              ref=$(gh api "repos/$REPO/git/tags/${BASH_REMATCH[1]}" --jq '.object.type + " " + .object.sha')
+            fi
+            [[ "$ref" =~ ^commit\ ([0-9a-f]{40})$ ]] || { echo "::error::The tag $TAG does not point at a commit."; exit 1; }
+            sha=${BASH_REMATCH[1]}
+            # "identical" or "ahead" means main contains the commit.
+            status=$(gh api "repos/$REPO/compare/$sha...main" --jq .status)
+            [ "$status" = identical ] || [ "$status" = ahead ] || { echo "::error::The tag $TAG is not reachable from main."; exit 1; }
+            target=release
+          else
+            [[ "$HEAD_SHA" =~ ^[0-9a-f]{40}$ ]] || { echo "::error::The triggering run's head SHA is not a commit SHA."; exit 1; }
+            # Empty when the fork that ran the build has since been deleted; that run deploys nothing.
+            [ -z "$HEAD_REPO" ] || [[ "$HEAD_REPO" =~ ^[A-Za-z0-9_.-]+/[A-Za-z0-9_.-]+$ ]] || { echo "::error::The triggering run's head repository is not an owner/name pair."; exit 1; }
+            if [ "$WORKFLOW" = docs-build ] && [ "$EVENT" = push ] && [ "$HEAD_REPO" = "$REPO" ] && [ "$HEAD_BRANCH" = main ]; then
+              # If an API call fails, the step fails and nothing deploys.
+              tip=$(gh api "repos/$REPO/commits/main" --jq .sha)
+              if [ "$tip" != "$HEAD_SHA" ]; then
+                echo "::notice::$HEAD_SHA is no longer main's newest commit; the run for main's newest commit deploys that instead."
+              else
+                tags=$(gh api --paginate "repos/$REPO/git/matching-refs/tags/v" --jq '.[].ref')
+                if grep -Eq "^refs/tags/${stable#^}" <<< "$tags"; then target=next; else target=production; fi
+                sha=$HEAD_SHA
+              fi
+            elif [ "$WORKFLOW" = docs-build ] && [ "$EVENT" = pull_request ] && [ "$HEAD_REPO" = "$REPO" ]; then
+              previews=$(gh api "repos/$REPO/commits/$HEAD_SHA/pulls" |
+                jq -c --arg sha "$HEAD_SHA" --arg repo "$REPO" '[.[] | select(.state == "open" and .head.sha == $sha and .base.repo.full_name == $repo and .head.repo.full_name == $repo) | .number]')
+              if [ "$previews" = "[]" ]; then
+                echo "::notice::No open pull request from a branch of $REPO has $HEAD_SHA as its head, so no preview."
+              else
+                target=previews
+              fi
+            elif [ "$WORKFLOW" = docs-pr-closed ] && [ "$EVENT" = pull_request ] && [ "$HEAD_REPO" = "$REPO" ]; then
+              # The commits endpoint omits closed, unmerged pull requests, so search the recently closed ones instead.
+              deletions=$(gh api "repos/$REPO/pulls?state=closed&sort=updated&direction=desc&per_page=100" |
+                jq -c --arg sha "$HEAD_SHA" --arg repo "$REPO" '[.[] | select(.state == "closed" and .head.sha == $sha and .base.repo.full_name == $repo and .head.repo.full_name == $repo) | .number]')
+              if [ "$deletions" = "[]" ]; then
+                echo "::notice::No recently closed pull request from a branch of $REPO has $HEAD_SHA as its head."
+              else
+                target=deletions
+              fi
+            elif [ "$EVENT" = pull_request ]; then
+              echo "::notice::The triggering run is for a fork's pull request, so nothing is previewed or deleted."
+            else
+              echo "::notice::A $EVENT run of $WORKFLOW deploys nothing."
+            fi
+          fi
+          for list in "$previews" "$deletions"; do
+            [[ "$list" =~ ^\[([0-9]+(,[0-9]+)*)?\]$ ]] || { echo "::error::The API returned something other than pull request numbers."; exit 1; }
+          done
+          { echo "target=$target"; echo "previews=$previews"; echo "deletions=$deletions"; echo "sha=$sha"; } >> "$GITHUB_OUTPUT"
+
+  # Reads whether the environment holds both secrets. A job-level `if` cannot read secrets, so this job answers for
+  # the deploy jobs, which skip when it says no. With a secret missing it leaves a notice, not a failure, so the
+  # workflow can land before the owner's Cloudflare setup is done.
+  secrets:
+    needs: resolve
+    if: needs.resolve.outputs.target != 'none' && github.ref == 'refs/heads/main'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 2
+    environment: cloudflare
+    permissions: {}
+    outputs:
+      present: ${{ steps.check.outputs.present }}
+    steps:
+      - name: Check the environment's secrets
+        id: check
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+        run: |
+          present=true
+          for name in CLOUDFLARE_API_TOKEN CLOUDFLARE_ACCOUNT_ID; do
+            if [ -z "${!name}" ]; then
+              echo "::notice title=Missing secret $name::The cloudflare environment has no $name secret, so nothing is deployed."
+              present=false
+            fi
+          done
+          echo "present=$present" >> "$GITHUB_OUTPUT"
+
+  # Builds a release's docs from its tag's commit, with no secrets, as docs-build.yml builds main's. The commit is on
+  # main, so its code is main's own. No dependency cache, as in release.yml: the build's output goes to production.
+  build-release:
+    name: Build the docs at ${{ inputs.tag }}
+    needs: resolve
+    if: github.event_name == 'workflow_dispatch' && needs.resolve.outputs.target == 'release'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@v7.0.1
+        with:
+          ref: ${{ needs.resolve.outputs.sha }}
+          persist-credentials: false
+      - uses: pnpm/action-setup@v6.1.1 # pnpm's version comes from packageManager
+      - uses: actions/setup-node@v7.1.0
+        with:
+          node-version-file: .nvmrc
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm --filter @buildanagent/docs build
+        env:
+          ASTRO_TELEMETRY_DISABLED: "1"
+      - uses: actions/upload-artifact@v7.0.2
+        with:
+          name: docs-dist-release
+          path: apps/docs/dist/
+          if-no-files-found: error
+          retention-days: 7
+
+  # docs.buildanagent.fyi: main's docs while no stable release exists, or a release's docs from build-release.
+  production:
+    name: Deploy docs.buildanagent.fyi
+    needs: [resolve, secrets, build-release]
+    # A push to main from this repository, not a fork's branch that is also named main, or a dispatch on main whose
+    # build passed; either way only while the owner's switch is on. With DOCS_DEPLOY_ENABLED unset or anything but
+    # "true", this job is skipped. !cancelled() lets it run when build-release was skipped, on the push path.
+    if: >-
+      !cancelled() &&
+      github.ref == 'refs/heads/main' &&
+      vars.DOCS_DEPLOY_ENABLED == 'true' &&
+      needs.secrets.outputs.present == 'true' &&
+      ((github.event_name == 'workflow_run' &&
+        github.event.workflow_run.name == 'docs-build' &&
+        github.event.workflow_run.event == 'push' &&
+        github.event.workflow_run.head_repository.full_name == github.repository &&
+        github.event.workflow_run.head_branch == 'main' &&
+        needs.resolve.outputs.target == 'production') ||
+       (github.event_name == 'workflow_dispatch' &&
+        needs.resolve.outputs.target == 'release' &&
+        needs.build-release.result == 'success'))
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    environment:
+      name: cloudflare
+      url: https://docs.buildanagent.fyi/
+    permissions:
+      actions: read # download the artifact; on the push path, GET the release deploys' runs and jobs
+      contents: read # check out main; on the push path, GET commits/main and git/matching-refs
+    # Never cancel a deploy mid-way. GitHub keeps at most one waiting run per group and cancels it when a newer one
+    # arrives, whatever cancel-in-progress says, so pushes and releases wait in separate groups: a newer push may
+    # replace a waiting push, which is right, but never a waiting release. A newer release replaces a waiting older
+    # one, which is also right.
+    #
+    # Separate groups could let a push and a release deploy at once. A push that resolved to production checks for a
+    # stable tag again just before it deploys, and skips if one now exists, so a push deploys only if the tag did not
+    # exist yet. The release's deploy starts only after its dispatch, resolve and a full build-release, minutes after
+    # the tag, so it nearly always lands last and wins. After its deploy, a push fails only if a release's deploy
+    # succeeded during its own, because then main's docs may have replaced the release's.
+    concurrency:
+      group: docs-production-${{ github.event_name }}
+      cancel-in-progress: false
+    # The steps that every deploy job shares are written once here, as YAML anchors, and repeated below as aliases.
+    steps:
+      - &checkout-main
+        uses: actions/checkout@v7.0.1
+        with:
+          ref: main
+          persist-credentials: false
+      # Saved unextracted: site-stage-dist.mjs reads the zip itself, so no entry name can point a write outside dist/.
+      # A release's docs come from this run's build-release job, main's from the triggering docs-build run.
+      - &download-dist
+        uses: actions/download-artifact@v8.0.2
+        with:
+          name: ${{ github.event_name == 'workflow_dispatch' && 'docs-dist-release' || 'docs-dist' }}
+          path: ${{ runner.temp }}/docs-dist
+          run-id: ${{ github.event_name == 'workflow_dispatch' && github.run_id || github.event.workflow_run.id }}
+          github-token: ${{ github.token }}
+          skip-decompress: true
+      - &setup-pnpm
+        uses: pnpm/action-setup@v6.1.1 # pnpm's version comes from packageManager
+      # No cache: the deploy installs from scratch, so it never runs files another run saved.
+      - &setup-node
+        uses: actions/setup-node@v7.1.0
+        with:
+          node-version-file: .nvmrc
+      # Wrangler is a devDependency of apps/docs, pinned in main's lockfile.
+      - &install
+        run: pnpm install --frozen-lockfile --filter @buildanagent/docs
+      - name: Check the artifact and stage it
+        run: node scripts/ci/site-stage-dist.mjs docs "$RUNNER_TEMP/docs-dist"
+      - name: Guard the config
+        run: node scripts/ci/site-guard-deploy.mjs docs
+      # The push path only: a release may have been tagged since resolve ran. If one now exists, the release's own
+      # deploy owns docs.buildanagent.fyi, and the next push to main deploys next.docs.buildanagent.fyi. The step also
+      # records when the push's deploy window opens, a minute early to allow for clock skew, for the check after it.
+      - name: Check that no stable release exists yet
+        id: unreleased
+        if: github.event_name == 'workflow_run'
+        env:
+          GH_TOKEN: ${{ github.token }}
+          REPO: ${{ github.repository }}
+        run: |
+          set -o pipefail
+          stable='^refs/tags/v(0|[1-9][0-9]{0,5})\.(0|[1-9][0-9]{0,5})\.(0|[1-9][0-9]{0,5})$'
+          started=$(date -u -d '-60 seconds' +%Y-%m-%dT%H:%M:%SZ)
+          # If the API call fails, the step fails and nothing deploys.
+          tags=$(gh api --paginate "repos/$REPO/git/matching-refs/tags/v" --jq '.[].ref')
+          if grep -Eq "$stable" <<< "$tags"; then
+            echo "::notice::A stable release was tagged after this push resolved, so the release's deploy sets docs.buildanagent.fyi; the next push to main deploys next.docs.buildanagent.fyi."
+            echo "deploy=false" >> "$GITHUB_OUTPUT"
+          else
+            { echo "deploy=true"; echo "started=$started"; } >> "$GITHUB_OUTPUT"
+          fi
+      # A delayed job, such as one whose approval came after a newer push's, must not replace main's newest commit.
+      - &newest
+        name: Check that this commit is still main's newest
+        id: newest
+        if: github.event_name == 'workflow_run'
+        env:
+          GH_TOKEN: ${{ github.token }}
+          REPO: ${{ github.repository }}
+          HEAD_SHA: ${{ github.event.workflow_run.head_sha }}
+        run: |
+          [[ "$HEAD_SHA" =~ ^[0-9a-f]{40}$ ]] || { echo "::error::The triggering run's head SHA is not a commit SHA."; exit 1; }
+          # If the API call fails, the step fails and nothing deploys.
+          tip=$(gh api "repos/$REPO/commits/main" --jq .sha)
+          [[ "$tip" =~ ^[0-9a-f]{40}$ ]] || { echo "::error::main's newest commit is not a commit SHA."; exit 1; }
+          if [ "$tip" = "$HEAD_SHA" ]; then
+            echo "deploy=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "::notice::$HEAD_SHA is no longer main's newest commit, so this run deploys nothing; the run for $tip deploys that instead."
+            echo "deploy=false" >> "$GITHUB_OUTPUT"
+          fi
+      # --config skips Wrangler's search up the directory tree, so it reads the file the guard checked. --env ""
+      # names the top level, which Wrangler otherwise warns about when the file also has [env.next].
+      - name: Deploy
+        id: deploy
+        if: >-
+          github.event_name == 'workflow_dispatch' ||
+          (steps.unreleased.outputs.deploy == 'true' && steps.newest.outputs.deploy == 'true')
+        working-directory: apps/docs
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          WRANGLER_SEND_METRICS: "false"
+        run: pnpm exec wrangler deploy --config wrangler.toml --env ""
+      # The push's deploy window closes when its Deploy step ends, recorded a minute late to allow for clock skew. A
+      # release deploy that ends inside the window may have been replaced by this one; one that ends after it is live.
+      - name: Record when the deploy ended
+        id: ended
+        if: github.event_name == 'workflow_run' && steps.deploy.outcome == 'success'
+        run: echo "ended=$(date -u -d '+60 seconds' +%Y-%m-%dT%H:%M:%SZ)" >> "$GITHUB_OUTPUT"
+      # A release tagged during the push's deploy is normal: its deploy starts only after its dispatch, resolve and
+      # build-release, so it nearly always lands after the push's and replaces it, as it should. Production is wrong
+      # only if a release's Deploy step succeeded inside this push's window, from just before its tag check to just
+      # after its own Deploy ended. The API does not show a dispatch's inputs, so any dispatched release deploy in the
+      # window counts, which errs on the side of a false alarm. A run still in progress is always read, because its
+      # updated_at can predate a step that finishes later; a completed run last updated before the window cannot hold
+      # a step that finished inside it. JOB_NAME and STEP_NAME are this job's and its Deploy step's names, which a test
+      # keeps equal, so a rename cannot quietly turn the check off. Every value from the API is checked before use and
+      # reaches jq through --arg.
+      - name: Check that no release deployed during this deploy
+        if: github.event_name == 'workflow_run' && steps.deploy.outcome == 'success'
+        env:
+          GH_TOKEN: ${{ github.token }}
+          REPO: ${{ github.repository }}
+          STARTED: ${{ steps.unreleased.outputs.started }}
+          ENDED: ${{ steps.ended.outputs.ended }}
+          JOB_NAME: Deploy docs.buildanagent.fyi
+          STEP_NAME: Deploy
+        run: |
+          set -o pipefail
+          stable='^refs/tags/v(0|[1-9][0-9]{0,5})\.(0|[1-9][0-9]{0,5})\.(0|[1-9][0-9]{0,5})$'
+          stamp='^[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}Z$'
+          [[ "$STARTED" =~ $stamp ]] || { echo "::error::The deploy window's start is not a UTC timestamp."; exit 1; }
+          [[ "$ENDED" =~ $stamp ]] || { echo "::error::The deploy window's end is not a UTC timestamp."; exit 1; }
+          [ -n "$JOB_NAME" ] && [ -n "$STEP_NAME" ] || { echo "::error::The deploy job's or step's name is empty."; exit 1; }
+          tags=$(gh api --paginate "repos/$REPO/git/matching-refs/tags/v" --jq '.[].ref')
+          grep -Eq "$stable" <<< "$tags" || exit 0
+          runs=$(gh api "repos/$REPO/actions/workflows/docs-deploy.yml/runs?event=workflow_dispatch&per_page=30" |
+            jq -r --arg since "$STARTED" '.workflow_runs[] | select(.status != "completed" or .updated_at >= $since) | .id')
+          later=""
+          while IFS= read -r id; do
+            [ -n "$id" ] || continue
+            [[ "$id" =~ ^[1-9][0-9]{0,19}$ ]] || { echo "::error::The API returned a run id that is not a number."; exit 1; }
+            # Two counts: release Deploy steps that succeeded inside the window, and ones that succeeded after it.
+            counts=$(gh api "repos/$REPO/actions/runs/$id/jobs?per_page=100" |
+              jq -r --arg since "$STARTED" --arg until "$ENDED" --arg job "$JOB_NAME" --arg step "$STEP_NAME" \
+                '[.jobs[] | select(.name == $job) | .steps[] | select(.name == $step and .conclusion == "success") | .completed_at | strings] | "\(map(select(. >= $since and . <= $until)) | length) \(map(select(. > $until)) | length)"')
+            [[ "$counts" =~ ^([0-9]+)\ ([0-9]+)$ ]] || { echo "::error::The API returned an unreadable job list for run $id."; exit 1; }
+            if [ "${BASH_REMATCH[1]}" -gt 0 ]; then
+              echo "::error::Release deploy run $id finished during this push's deploy, so docs.buildanagent.fyi may now show main instead of the release. Run the release's deploy again: gh workflow run docs-deploy.yml --ref main -f tag=<the release's tag>"
+              exit 1
+            fi
+            [ "${BASH_REMATCH[2]}" -eq 0 ] || later=$id
+          done <<< "$runs"
+          if [ -n "$later" ]; then
+            echo "::notice::Release deploy run $later finished after this push's deploy, so docs.buildanagent.fyi shows the release."
+          else
+            echo "::notice::A stable release was tagged during this push's deploy, and no release deploy finished meanwhile, so the release's own deploy sets docs.buildanagent.fyi after this one."
+          fi
+
+  # next.docs.buildanagent.fyi: main's docs once a stable release exists, marked noindex by the staged _headers,
+  # because Cloudflare adds no such header to a custom domain.
+  next:
+    name: Deploy next.docs.buildanagent.fyi
+    needs: [resolve, secrets]
+    if: >-
+      github.ref == 'refs/heads/main' &&
+      github.event_name == 'workflow_run' &&
+      github.event.workflow_run.name == 'docs-build' &&
+      github.event.workflow_run.event == 'push' &&
+      github.event.workflow_run.head_repository.full_name == github.repository &&
+      github.event.workflow_run.head_branch == 'main' &&
+      vars.DOCS_DEPLOY_ENABLED == 'true' &&
+      needs.resolve.outputs.target == 'next' &&
+      needs.secrets.outputs.present == 'true'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    environment:
+      name: cloudflare
+      url: https://next.docs.buildanagent.fyi/
+    permissions:
+      actions: read # download the artifact from the build run
+      contents: read # check out main; GET commits/main
+    concurrency:
+      group: docs-next
+      cancel-in-progress: false
+    steps:
+      - *checkout-main
+      - *download-dist
+      - *setup-pnpm
+      - *setup-node
+      - *install
+      - name: Check the artifact and stage it, marked noindex
+        run: node scripts/ci/site-stage-dist.mjs docs "$RUNNER_TEMP/docs-dist" --noindex
+      - name: Guard the config
+        run: node scripts/ci/site-guard-deploy.mjs docs --noindex
+      - *newest
+      - name: Deploy
+        if: steps.newest.outputs.deploy == 'true'
+        working-directory: apps/docs
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          WRANGLER_SEND_METRICS: "false"
+        run: pnpm exec wrangler deploy --config wrangler.toml --env next
+
+  preview:
+    name: Preview pull request ${{ matrix.number }}
+    needs: [resolve, secrets]
+    # Only a build that ran for this repository; resolve already refuses a fork's, and this repeats it.
+    if: >-
+      github.ref == 'refs/heads/main' &&
+      github.event_name == 'workflow_run' &&
+      github.event.workflow_run.name == 'docs-build' &&
+      github.event.workflow_run.event == 'pull_request' &&
+      github.event.workflow_run.head_repository.full_name == github.repository &&
+      needs.resolve.outputs.target == 'previews' &&
+      needs.secrets.outputs.present == 'true'
+    # One job per pull request whose head is this commit; nearly always exactly one. It needs no GitHub permission to
+    # hand its URLs on: an artifact upload uses the run's own artifact token, not the job's GITHUB_TOKEN.
+    strategy:
+      fail-fast: false
+      matrix:
+        number: ${{ fromJSON(needs.resolve.outputs.previews) }}
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    environment: cloudflare
+    permissions:
+      actions: read # download the artifact from the build run
+      contents: read # check out main
+      pull-requests: read # GET /repos/{repo}/pulls/{number} just before the preview deploys
+    # One queue per pull request, shared with its deletion, so a preview and its deletion never overlap.
+    concurrency:
+      group: docs-preview-pr-${{ matrix.number }}
+      cancel-in-progress: false
+    steps:
+      - *checkout-main
+      - *download-dist
+      - *setup-pnpm
+      - *setup-node
+      - *install
+      # Cloudflare adds X-Robots-Tag: noindex to workers.dev preview URLs itself; the staged _headers sets it too, so a
+      # preview stays out of search indexes whichever host serves it.
+      - name: Check the artifact and stage it, marked noindex
+        run: node scripts/ci/site-stage-dist.mjs docs "$RUNNER_TEMP/docs-dist" --noindex
+      - name: Guard the config
+        run: node scripts/ci/site-guard-deploy.mjs docs --noindex
+      # The pull request may have closed, or moved on to a newer commit, since resolve ran, and the preview then skips.
+      # A newer commit's run deploys that commit. A closed pull request's deletion may have been waiting in this queue,
+      # and GitHub cancels a waiting job when a newer one joins its group, so this job may have replaced the deletion:
+      # the next step then deletes the preview itself. The step holds no Cloudflare secret.
+      - name: Check that the pull request is still open at this commit
+        id: open
+        env:
+          GH_TOKEN: ${{ github.token }}
+          REPO: ${{ github.repository }}
+          NUMBER: ${{ matrix.number }}
+          HEAD_SHA: ${{ github.event.workflow_run.head_sha }}
+        run: |
+          [[ "$NUMBER" =~ ^[1-9][0-9]{0,9}$ ]] || { echo "::error::The pull request number is not a number."; exit 1; }
+          [[ "$HEAD_SHA" =~ ^[0-9a-f]{40}$ ]] || { echo "::error::The triggering run's head SHA is not a commit SHA."; exit 1; }
+          # If the API call fails, the step fails and nothing deploys.
+          state=$(gh api "repos/$REPO/pulls/$NUMBER" --jq '.state + " " + .head.sha + " " + .head.repo.full_name')
+          if [ "$state" = "open $HEAD_SHA $REPO" ]; then
+            echo "deploy=true" >> "$GITHUB_OUTPUT"
+          elif [[ "$state" =~ ^closed\ [0-9a-f]{40}\ (.*)$ ]] && [ "${BASH_REMATCH[1]}" = "$REPO" ]; then
+            echo "::notice::Pull request #$NUMBER closed after this run resolved, so its preview is deleted instead of deployed."
+            { echo "deploy=false"; echo "delete=true"; } >> "$GITHUB_OUTPUT"
+          else
+            echo "::notice::Pull request #$NUMBER has a newer commit than $HEAD_SHA or is from a fork, so it gets no preview from this run."
+            echo "deploy=false" >> "$GITHUB_OUTPUT"
+          fi
+      # The same deletion as the delete-preview job's, run here because this job may have replaced it in the queue.
+      - name: Delete the preview of a pull request that closed meanwhile
+        if: steps.open.outputs.delete == 'true'
+        working-directory: apps/docs
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          WRANGLER_SEND_METRICS: "false"
+          NUMBER: ${{ matrix.number }}
+          DELETED_DIR: ${{ runner.temp }}/preview-deleted
+        run: &delete-preview |
+          [[ "$NUMBER" =~ ^[1-9][0-9]{0,9}$ ]] || { echo "::error::The pull request number is not a number."; exit 1; }
+          mkdir -p dist
+          if pnpm exec wrangler preview delete --config wrangler.toml --env "" --name "pr-$NUMBER" --skip-confirmation; then
+            mkdir -p "$DELETED_DIR" && echo deleted > "$DELETED_DIR/deleted.txt"
+            echo "deleted=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "::warning::Could not delete the preview pr-$NUMBER; it may never have been deployed."
+          fi
+      # Previews belong to the top-level Worker, buildanagent-docs, whose preview_urls is on. --ignore-base-config
+      # keeps main's wrangler.toml the whole configuration, whatever the dashboard holds. WRANGLER_OUTPUT_FILE_PATH
+      # makes Wrangler append what it did, as JSON lines, to a file the next step reads.
+      - name: Deploy the preview
+        if: steps.open.outputs.deploy == 'true'
+        working-directory: apps/docs
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          WRANGLER_SEND_METRICS: "false"
+          WRANGLER_OUTPUT_FILE_PATH: ${{ runner.temp }}/wrangler-output.jsonl
+          NUMBER: ${{ matrix.number }}
+          HEAD_SHA: ${{ github.event.workflow_run.head_sha }}
+        run: |
+          pnpm exec wrangler preview --config wrangler.toml --env "" --name "pr-$NUMBER" \
+            --message "Pull request #$NUMBER at $HEAD_SHA" --ignore-base-config
+      # Keeps only URLs of the exact forms below; jq first drops any string with a character a URL of ours cannot
+      # hold, a newline included. The preview URL is required; the commit's own URL is kept only when it is on the same
+      # workers.dev subdomain. A miss warns and leaves the job green.
+      - name: Record the preview's URLs
+        id: record
+        if: steps.open.outputs.deploy == 'true'
+        env:
+          NUMBER: ${{ matrix.number }}
+          WORKER: buildanagent-docs
+          OUTPUT_FILE: ${{ runner.temp }}/wrangler-output.jsonl
+          URLS_DIR: ${{ runner.temp }}/preview-urls
+        run: |
+          [[ "$NUMBER" =~ ^[1-9][0-9]{0,9}$ ]] || { echo "::error::The pull request number is not a number."; exit 1; }
+          label='[a-z0-9]([a-z0-9-]{0,61}[a-z0-9])?'
+          alias="" subdomain="" version=""
+          if [ -f "$OUTPUT_FILE" ]; then
+            while IFS= read -r url; do
+              if [[ "${url%/}" =~ ^https://pr-$NUMBER-$WORKER\.($label)\.workers\.dev$ ]]; then alias=${url%/} subdomain=${BASH_REMATCH[1]}; fi
+            done < <(jq -r 'select(.type == "preview") | (.preview_urls // [])[] | strings | select(test("\\A[a-z0-9:/.-]{1,200}\\z"))' "$OUTPUT_FILE")
+            while IFS= read -r url; do
+              if [ -n "$subdomain" ] && [[ "${url%/}" =~ ^https://[0-9a-f]{8}-$WORKER\.$subdomain\.workers\.dev$ ]]; then version=${url%/}; fi
+            done < <(jq -r 'select(.type == "preview") | (.deployment_urls // [])[] | strings | select(test("\\A[a-z0-9:/.-]{1,200}\\z"))' "$OUTPUT_FILE")
+          fi
+          if [ -z "$alias" ]; then
+            echo "::warning::Wrangler reported no workers.dev preview URL for pr-$NUMBER, so the pull request gets no comment."
+            echo "found=false" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+          [ -n "$version" ] || echo "::notice::Wrangler reported no commit URL of the form https://<8 hex>-$WORKER.<subdomain>.workers.dev; the comment names the preview URL only."
+          mkdir -p "$URLS_DIR"
+          printf '%s\n%s\n' "$alias" "$version" > "$URLS_DIR/urls.txt"
+          echo "found=true" >> "$GITHUB_OUTPUT"
+      # One artifact per pull request, because a matrix job's outputs would overwrite each other's.
+      - name: Hand the URLs to the comment job
+        if: steps.record.outputs.found == 'true'
+        continue-on-error: true
+        uses: actions/upload-artifact@v7.0.2
+        with:
+          name: docs-preview-urls-${{ matrix.number }}
+          path: ${{ runner.temp }}/preview-urls/urls.txt
+          if-no-files-found: error
+          retention-days: 1
+          overwrite: true
+
+  # Deletes a closed pull request's preview, after docs-pr-closed.yml marks it closed. The run is main's file, the
+  # number comes from resolve's API lookup, and Wrangler reads main's wrangler.toml, whose Worker name the guard fixes.
+  delete-preview:
+    name: Delete pull request ${{ matrix.number }}'s preview
+    needs: [resolve, secrets]
+    if: >-
+      github.ref == 'refs/heads/main' &&
+      github.event_name == 'workflow_run' &&
+      github.event.workflow_run.name == 'docs-pr-closed' &&
+      github.event.workflow_run.event == 'pull_request' &&
+      github.event.workflow_run.head_repository.full_name == github.repository &&
+      needs.resolve.outputs.target == 'deletions' &&
+      needs.secrets.outputs.present == 'true'
+    strategy:
+      # One pull request's failure must not cancel another's job.
+      fail-fast: false
+      matrix:
+        number: ${{ fromJSON(needs.resolve.outputs.deletions) }}
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    environment: cloudflare
+    permissions:
+      contents: read # check out main
+    concurrency:
+      group: docs-preview-pr-${{ matrix.number }}
+      cancel-in-progress: false
+    steps:
+      - *checkout-main
+      - *setup-pnpm
+      - *setup-node
+      - *install
+      # A pull request whose build failed never got a preview, so a failed deletion warns instead of failing the run.
+      # Only a deletion that worked leaves the marker file the comment job looks for.
+      - name: Delete the preview
+        id: delete
+        working-directory: apps/docs
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          WRANGLER_SEND_METRICS: "false"
+          NUMBER: ${{ matrix.number }}
+          DELETED_DIR: ${{ runner.temp }}/preview-deleted
+        # Wrangler reads wrangler.toml, which names ./dist as the assets directory; an empty one is enough here.
+        run: *delete-preview
+      - name: Tell the comment job the preview is gone
+        if: steps.delete.outputs.deleted == 'true'
+        continue-on-error: true
+        uses: actions/upload-artifact@v7.0.2
+        with:
+          name: docs-preview-deleted-${{ matrix.number }}
+          path: ${{ runner.temp }}/preview-deleted/deleted.txt
+          if-no-files-found: error
+          retention-days: 1
+          overwrite: true
+
+  # Keeps one comment per pull request with the preview's URLs and the commit they show, and says when the preview is
+  # deleted. It holds no Cloudflare secret, names no environment, checks nothing out and runs no action but the
+  # artifact download. Its only write permission is to pull requests. The text is fixed here, and carries the URLs and
+  # short SHA only after checking each one's exact form, never anything the pull request wrote. It writes only while
+  # the pull request is from a branch of this repository with this commit as its head, and is open for a preview or
+  # closed for a deletion.
+  comment:
+    name: Comment pull request ${{ matrix.number }}'s preview
+    needs: [resolve, preview]
+    if: >-
+      !cancelled() &&
+      github.event_name == 'workflow_run' &&
+      github.event.workflow_run.name == 'docs-build' &&
+      github.event.workflow_run.event == 'pull_request' &&
+      needs.resolve.result == 'success' &&
+      needs.resolve.outputs.target == 'previews'
+    strategy:
+      fail-fast: false
+      matrix:
+        number: ${{ fromJSON(needs.resolve.outputs.previews) }}
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    permissions:
+      pull-requests: write # read the pull request, then find, create or edit its comment
+    steps:
+      # Missing when the preview failed or found no URL; the next step then posts nothing.
+      - name: Download what the preview job handed on
+        continue-on-error: true
+        uses: actions/download-artifact@v8.0.2
+        with:
+          name: docs-preview-urls-${{ matrix.number }}
+          path: ${{ runner.temp }}/preview
+      - name: Create or update the preview comment
+        env:
+          GH_TOKEN: ${{ github.token }}
+          REPO: ${{ github.repository }}
+          NUMBER: ${{ matrix.number }}
+          HEAD_SHA: ${{ github.event.workflow_run.head_sha }}
+          WORKER: buildanagent-docs
+          MARKER: "<!-- docs-preview -->"
+          TITLE: Docs preview
+          MODE: preview
+          SIGNAL: ${{ runner.temp }}/preview/urls.txt
+        run: &comment-script |
+          # Every failure warns and stops: a comment never fails the deploy.
+          set -o pipefail
+          stop() { echo "::warning::No preview comment on pull request #$NUMBER: $1"; exit 0; }
+          [[ "$NUMBER" =~ ^[1-9][0-9]{0,9}$ ]] || stop "the pull request number is not a number."
+          [[ "$HEAD_SHA" =~ ^[0-9a-f]{40}$ ]] || stop "the head SHA is not a commit SHA."
+          if [ "$MODE" = preview ]; then
+            [ -f "$SIGNAL" ] || { echo "::notice::Pull request #$NUMBER has no new preview, so its comment is unchanged."; exit 0; }
+            # The file came from another job, so check it again: two short lines, a preview URL and an optional commit URL.
+            [ "$(wc -c < "$SIGNAL")" -le 300 ] && [ "$(wc -l < "$SIGNAL")" -eq 2 ] || stop "the URL file is not two short lines."
+            { IFS= read -r alias; IFS= read -r version; } < "$SIGNAL"
+            label='[a-z0-9]([a-z0-9-]{0,61}[a-z0-9])?'
+            [[ "$alias" =~ ^https://pr-$NUMBER-$WORKER\.($label)\.workers\.dev$ ]] || stop "the preview URL is not of the expected form."
+            subdomain=${BASH_REMATCH[1]}
+            [ -z "$version" ] || [[ "$version" =~ ^https://[0-9a-f]{8}-$WORKER\.$subdomain\.workers\.dev$ ]] || stop "the commit's URL is not of the expected form."
+            want="open $HEAD_SHA $REPO"
+            lines=("$MARKER" "**$TITLE** of ${HEAD_SHA:0:7}" "" "- Pull request preview, which follows its newest commit: $alias")
+            [ -z "$version" ] || lines+=("- This commit only: $version")
+          else
+            [ -f "$SIGNAL" ] || { echo "::notice::Pull request #$NUMBER's preview was not deleted, so its comment is unchanged."; exit 0; }
+            [ "$(cat "$SIGNAL")" = deleted ] || stop "the deletion marker is not the expected file."
+            want="closed $HEAD_SHA $REPO"
+            lines=("$MARKER" "**$TITLE deleted.** The pull request closed, so its preview, pr-$NUMBER, no longer serves it.")
+          fi
+          # Only a pull request from a branch of this repository, with this commit as its head, may set the comment:
+          # an open one for a preview, a closed one for a deletion.
+          state=$(gh api "repos/$REPO/pulls/$NUMBER" --jq '.state + " " + .head.sha + " " + .head.repo.full_name') || stop "the pull request could not be read."
+          [ "$state" = "$want" ] || { echo "::notice::Pull request #$NUMBER has changed state or commit, or is from a fork, so its comment is unchanged."; exit 0; }
+          body=$(printf '%s\n' "${lines[@]}")
+          # The comment is ours only if github-actions[bot] wrote it and it starts with the marker.
+          id=$(gh api --paginate "repos/$REPO/issues/$NUMBER/comments?per_page=100" \
+            --jq ".[] | select(.user.login == \"github-actions[bot]\" and .user.type == \"Bot\" and (.body | startswith(\"$MARKER\"))) | .id" |
+            sed -n 1p) || stop "the comments could not be read."
+          if [ -n "$id" ]; then
+            [[ "$id" =~ ^[1-9][0-9]*$ ]] || stop "the comment id is not a number."
+            gh api --method PATCH "repos/$REPO/issues/comments/$id" -f body="$body" --silent || stop "the comment could not be edited."
+          elif [ "$MODE" = preview ]; then
+            gh api --method POST "repos/$REPO/issues/$NUMBER/comments" -f body="$body" --silent || stop "the comment could not be created."
+          else
+            echo "::notice::Pull request #$NUMBER has no preview comment to mark as deleted."
+          fi
+
+  # The same comment, edited to say the preview is gone, once delete-preview has deleted it.
+  comment-deleted:
+    name: Mark pull request ${{ matrix.number }}'s preview comment deleted
+    needs: [resolve, delete-preview]
+    if: >-
+      !cancelled() &&
+      github.event_name == 'workflow_run' &&
+      github.event.workflow_run.name == 'docs-pr-closed' &&
+      github.event.workflow_run.event == 'pull_request' &&
+      needs.resolve.result == 'success' &&
+      needs.resolve.outputs.target == 'deletions'
+    strategy:
+      fail-fast: false
+      matrix:
+        number: ${{ fromJSON(needs.resolve.outputs.deletions) }}
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    permissions:
+      pull-requests: write # read the pull request, then find and edit its comment
+    steps:
+      # Missing when the deletion failed or was skipped; the next step then leaves the comment as it is.
+      - name: Download what the deletion job handed on
+        continue-on-error: true
+        uses: actions/download-artifact@v8.0.2
+        with:
+          name: docs-preview-deleted-${{ matrix.number }}
+          path: ${{ runner.temp }}/preview
+      - name: Mark the preview comment deleted
+        env:
+          GH_TOKEN: ${{ github.token }}
+          REPO: ${{ github.repository }}
+          NUMBER: ${{ matrix.number }}
+          HEAD_SHA: ${{ github.event.workflow_run.head_sha }}
+          WORKER: buildanagent-docs
+          MARKER: "<!-- docs-preview -->"
+          TITLE: Docs preview
+          MODE: deleted
+          SIGNAL: ${{ runner.temp }}/preview/deleted.txt
+        run: *comment-script

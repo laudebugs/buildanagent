@@ -5,6 +5,8 @@ import type * as context from "@buildanagent/harness/context";
 import type * as file from "@buildanagent/harness/context/file";
 import type * as extensions from "@buildanagent/harness/extensions";
 import type * as extensionsNode from "@buildanagent/harness/extensions/node";
+import type * as mcp from "@buildanagent/harness/mcp";
+import type * as permissions from "@buildanagent/harness/permissions";
 import type * as sandbox from "@buildanagent/harness/sandbox";
 import type * as server from "@buildanagent/harness/server";
 import type * as sessions from "@buildanagent/harness/session";
@@ -16,6 +18,7 @@ import type * as sdk from "@buildanagent/sdk";
 
 declare global {
   type AgentEvent = sdk.AgentEvent;
+  type McpEgressFetch = mcp.McpEgressFetch;
   type Extension = extensions.Extension;
   type Model = gateway.Model;
   type ToolRegistry = tools.ToolRegistry;
@@ -29,9 +32,14 @@ declare global {
   const projectContext: typeof extensions.projectContext;
   const withPlanConvention: typeof extensions.withPlanConvention;
   const withSkills: typeof extensions.withSkills;
+  const builtinTools: typeof tools.builtinTools;
   const createContextPolicy: typeof context.createContextPolicy;
+  const createMcpManager: typeof mcp.createMcpManager;
+  const memoryMcpPinStore: typeof mcp.memoryMcpPinStore;
+  const createPermissionPipeline: typeof permissions.createPermissionPipeline;
   const createDispatcher: typeof server.createDispatcher;
   const createHarness: typeof server.createHarness;
+  const createToolRegistry: typeof tools.createToolRegistry;
   const fileSpillStore: typeof file.fileSpillStore;
   const inProcessTransport: typeof server.inProcessTransport;
   const jsonlStore: typeof jsonl.jsonlStore;
@@ -45,18 +53,25 @@ declare global {
 
   const SYSTEM: string;
   const audit: (entry: unknown) => void;
+  const client: sandbox.SandboxClient;
   const controller: AbortController;
   const cwd: string;
   const dir: string;
   const harness: server.Harness;
   const index: sessions.SessionIndex;
+  const key: sessions.SessionKey;
   const lock: sessions.SessionLock;
+  const machine: sandbox.EscalationMachine;
   const model: Model;
   const policy: sandbox.SandboxPolicy;
+  const proxy: tools.FetchProxy;
   const registry: ToolRegistry;
+  const requestId: string;
   const session: sessions.Session;
   const spill: context.SpillStore;
+  const spillDir: string;
   const store: sessions.SessionStore;
   const system: string;
   const trustFile: string;
+  const workspace: string;
 }

@@ -1493,7 +1493,7 @@
     "id": "docs__foundations__prompts__11",
     "file": "docs__foundations__prompts__11.ts",
     "page": "docs/02-foundations/03-prompts.mdx",
-    "line": 265,
+    "line": 269,
     "ext": "ts",
     "title": null,
     "lines": 16,
@@ -1514,7 +1514,7 @@
     "id": "docs__foundations__prompts__12",
     "file": "docs__foundations__prompts__12.ts",
     "page": "docs/02-foundations/03-prompts.mdx",
-    "line": 312,
+    "line": 319,
     "ext": "ts",
     "title": null,
     "lines": 20,
@@ -1541,7 +1541,7 @@
     "id": "docs__foundations__prompts__13",
     "file": "docs__foundations__prompts__13.ts",
     "page": "docs/02-foundations/03-prompts.mdx",
-    "line": 337,
+    "line": 344,
     "ext": "ts",
     "title": null,
     "lines": 19,
@@ -1562,13 +1562,13 @@
     "id": "docs__foundations__prompts__14",
     "file": "docs__foundations__prompts__14.ts",
     "page": "docs/02-foundations/03-prompts.mdx",
-    "line": 367,
+    "line": 382,
     "ext": "ts",
     "title": null,
-    "lines": 28,
+    "lines": 30,
     "importsSdk": false,
     "complete": false,
-    "elided": true,
+    "elided": false,
     "errors": [
       {
         "line": 2,
@@ -1577,13 +1577,13 @@
         "message": "Cannot find name 'generateText'."
       },
       {
-        "line": 9,
+        "line": 10,
         "code": 1064,
         "kind": "syntax",
         "message": "The return type of an async function or method must be the global Promise<T> type. Did you mean to write 'Promise<({ data: Uint8Array<ArrayBufferLike>; mediaType: string | undefined; } | null)[]>'?"
       },
       {
-        "line": 9,
+        "line": 10,
         "code": 2355,
         "kind": "other",
         "message": "A function whose declared type is neither 'undefined', 'void', nor 'any' must return a value."
@@ -1595,7 +1595,7 @@
     "id": "docs__foundations__prompts__15",
     "file": "docs__foundations__prompts__15.ts",
     "page": "docs/02-foundations/03-prompts.mdx",
-    "line": 411,
+    "line": 428,
     "ext": "ts",
     "title": null,
     "lines": 7,
@@ -1616,7 +1616,7 @@
     "id": "docs__foundations__prompts__16",
     "file": "docs__foundations__prompts__16.ts",
     "page": "docs/02-foundations/03-prompts.mdx",
-    "line": 423,
+    "line": 440,
     "ext": "ts",
     "title": null,
     "lines": 10,
@@ -1637,7 +1637,7 @@
     "id": "docs__foundations__prompts__17",
     "file": "docs__foundations__prompts__17.ts",
     "page": "docs/02-foundations/03-prompts.mdx",
-    "line": 438,
+    "line": 455,
     "ext": "ts",
     "title": null,
     "lines": 17,
@@ -1658,7 +1658,7 @@
     "id": "docs__foundations__prompts__18",
     "file": "docs__foundations__prompts__18.ts",
     "page": "docs/02-foundations/03-prompts.mdx",
-    "line": 465,
+    "line": 482,
     "ext": "ts",
     "title": null,
     "lines": 16,
@@ -1685,7 +1685,7 @@
     "id": "docs__foundations__prompts__19",
     "file": "docs__foundations__prompts__19.ts",
     "page": "docs/02-foundations/03-prompts.mdx",
-    "line": 496,
+    "line": 513,
     "ext": "ts",
     "title": null,
     "lines": 51,
@@ -1712,7 +1712,7 @@
     "id": "docs__foundations__prompts__20",
     "file": "docs__foundations__prompts__20.ts",
     "page": "docs/02-foundations/03-prompts.mdx",
-    "line": 555,
+    "line": 572,
     "ext": "ts",
     "title": null,
     "lines": 50,
@@ -1739,7 +1739,7 @@
     "id": "docs__foundations__prompts__21",
     "file": "docs__foundations__prompts__21.ts",
     "page": "docs/02-foundations/03-prompts.mdx",
-    "line": 614,
+    "line": 631,
     "ext": "ts",
     "title": null,
     "lines": 12,
@@ -1960,7 +1960,7 @@
         "line": 19,
         "code": 2367,
         "kind": "api",
-        "message": "This comparison appears to be unintentional because the types '\"abort\" | \"custom\" | \"error\" | \"file\" | \"finish\" | \"finish-step\" | \"raw\" | \"reasoning-delta\" | \"reasoning-end\" | \"reasoning-file\" | \"reasoning-start\" | \"source\" | \"start\" | \"start-step\" | ... 11 more ... | \"tool-result\"' and '\"reasoning\"' have no overlap."
+        "message": "This comparison appears to be unintentional because the types '\"abort\" | \"custom\" | \"error\" | \"file\" | \"finish\" | \"finish-step\" | \"ping\" | \"raw\" | \"reasoning-delta\" | \"reasoning-end\" | \"reasoning-file\" | \"reasoning-start\" | \"source\" | \"start\" | ... 13 more ... | \"tool-result\"' and '\"reasoning\"' have no overlap."
       },
       {
         "line": 20,
@@ -3342,6 +3342,84 @@
     "line": 554,
     "ext": "ts",
     "title": null,
+    "lines": 5,
+    "importsSdk": false,
+    "complete": false,
+    "elided": false,
+    "errors": [
+      {
+        "line": 2,
+        "code": 2304,
+        "kind": "context",
+        "message": "Cannot find name 'result'."
+      }
+    ],
+    "status": "fragment"
+  },
+  {
+    "id": "docs__agents__loop-control__20",
+    "file": "docs__agents__loop-control__20.tsx",
+    "page": "docs/03-agents/04-loop-control.mdx",
+    "line": 564,
+    "ext": "tsx",
+    "title": null,
+    "lines": 15,
+    "importsSdk": false,
+    "complete": false,
+    "elided": true,
+    "errors": [
+      {
+        "line": 3,
+        "code": 2552,
+        "kind": "context",
+        "message": "Cannot find name 'message'. Did you mean 'onmessage'?"
+      },
+      {
+        "line": 3,
+        "code": 7006,
+        "kind": "context",
+        "message": "Parameter 'part' implicitly has an 'any' type."
+      },
+      {
+        "line": 3,
+        "code": 7006,
+        "kind": "context",
+        "message": "Parameter 'index' implicitly has an 'any' type."
+      },
+      {
+        "line": 7,
+        "code": 7026,
+        "kind": "context",
+        "message": "JSX element implicitly has type 'any' because no interface 'JSX.IntrinsicElements' exists."
+      },
+      {
+        "line": 7,
+        "code": 2875,
+        "kind": "context",
+        "message": "This JSX tag requires the module path 'react/jsx-runtime' to exist, but none could be found. Make sure you have types for the appropriate package installed."
+      },
+      {
+        "line": 8,
+        "code": 7006,
+        "kind": "context",
+        "message": "Parameter 'content' implicitly has an 'any' type."
+      },
+      {
+        "line": 11,
+        "code": 7026,
+        "kind": "context",
+        "message": "JSX element implicitly has type 'any' because no interface 'JSX.IntrinsicElements' exists."
+      }
+    ],
+    "status": "fragment"
+  },
+  {
+    "id": "docs__agents__loop-control__21",
+    "file": "docs__agents__loop-control__21.ts",
+    "page": "docs/03-agents/04-loop-control.mdx",
+    "line": 588,
+    "ext": "ts",
+    "title": null,
     "lines": 19,
     "importsSdk": false,
     "complete": false,
@@ -3357,10 +3435,10 @@
     "status": "syntax"
   },
   {
-    "id": "docs__agents__loop-control__20",
-    "file": "docs__agents__loop-control__20.ts",
+    "id": "docs__agents__loop-control__22",
+    "file": "docs__agents__loop-control__22.ts",
     "page": "docs/03-agents/04-loop-control.mdx",
-    "line": 580,
+    "line": 614,
     "ext": "ts",
     "title": null,
     "lines": 29,
@@ -3384,10 +3462,10 @@
     "status": "fragment"
   },
   {
-    "id": "docs__agents__loop-control__21",
-    "file": "docs__agents__loop-control__21.ts",
+    "id": "docs__agents__loop-control__23",
+    "file": "docs__agents__loop-control__23.ts",
     "page": "docs/03-agents/04-loop-control.mdx",
-    "line": 628,
+    "line": 662,
     "ext": "ts",
     "title": null,
     "lines": 25,
@@ -3703,6 +3781,27 @@
         "code": 2307,
         "kind": "context",
         "message": "Cannot find module '@mongodb-developer/vercel-ai-memory' or its corresponding type declarations."
+      }
+    ],
+    "status": "fragment"
+  },
+  {
+    "id": "docs__agents__memory__09",
+    "file": "docs__agents__memory__09.ts",
+    "page": "docs/03-agents/06-memory.mdx",
+    "line": 269,
+    "ext": "ts",
+    "title": null,
+    "lines": 23,
+    "importsSdk": true,
+    "complete": true,
+    "elided": false,
+    "errors": [
+      {
+        "line": 3,
+        "code": 2307,
+        "kind": "context",
+        "message": "Cannot find module '@redis/vercel-ai-sdk' or its corresponding type declarations."
       }
     ],
     "status": "fragment"
@@ -4812,7 +4911,7 @@
     "id": "docs__agents__workflow-agent__01",
     "file": "docs__agents__workflow-agent__01.ts",
     "page": "docs/03-agents/07-workflow-agent.mdx",
-    "line": 48,
+    "line": 50,
     "ext": "ts",
     "title": null,
     "lines": 20,
@@ -4833,7 +4932,7 @@
     "id": "docs__agents__workflow-agent__02",
     "file": "docs__agents__workflow-agent__02.ts",
     "page": "docs/03-agents/07-workflow-agent.mdx",
-    "line": 75,
+    "line": 77,
     "ext": "ts",
     "title": null,
     "lines": 6,
@@ -4860,7 +4959,7 @@
     "id": "docs__agents__workflow-agent__03",
     "file": "docs__agents__workflow-agent__03.ts",
     "page": "docs/03-agents/07-workflow-agent.mdx",
-    "line": 94,
+    "line": 96,
     "ext": "ts",
     "title": "workflow/agent-chat.ts",
     "lines": 41,
@@ -4899,7 +4998,7 @@
     "id": "docs__agents__workflow-agent__04",
     "file": "docs__agents__workflow-agent__04.ts",
     "page": "docs/03-agents/07-workflow-agent.mdx",
-    "line": 138,
+    "line": 140,
     "ext": "ts",
     "title": "app/api/chat/route.ts",
     "lines": 14,
@@ -4932,7 +5031,7 @@
     "id": "docs__agents__workflow-agent__05",
     "file": "docs__agents__workflow-agent__05.ts",
     "page": "docs/03-agents/07-workflow-agent.mdx",
-    "line": 159,
+    "line": 161,
     "ext": "ts",
     "title": null,
     "lines": 12,
@@ -4953,7 +5052,7 @@
     "id": "docs__agents__workflow-agent__06",
     "file": "docs__agents__workflow-agent__06.ts",
     "page": "docs/03-agents/07-workflow-agent.mdx",
-    "line": 178,
+    "line": 180,
     "ext": "ts",
     "title": null,
     "lines": 7,
@@ -4980,7 +5079,7 @@
     "id": "docs__agents__workflow-agent__07",
     "file": "docs__agents__workflow-agent__07.tsx",
     "page": "docs/03-agents/07-workflow-agent.mdx",
-    "line": 197,
+    "line": 199,
     "ext": "tsx",
     "title": "app/page.tsx",
     "lines": 20,
@@ -5013,7 +5112,7 @@
     "id": "docs__agents__workflow-agent__08",
     "file": "docs__agents__workflow-agent__08.ts",
     "page": "docs/03-agents/07-workflow-agent.mdx",
-    "line": 222,
+    "line": 224,
     "ext": "ts",
     "title": "app/api/chat/route.ts",
     "lines": 16,
@@ -5046,7 +5145,7 @@
     "id": "docs__agents__workflow-agent__09",
     "file": "docs__agents__workflow-agent__09.ts",
     "page": "docs/03-agents/07-workflow-agent.mdx",
-    "line": 241,
+    "line": 243,
     "ext": "ts",
     "title": "app/api/chat/[runId]/stream/route.ts",
     "lines": 34,
@@ -5079,7 +5178,7 @@
     "id": "docs__agents__workflow-agent__10",
     "file": "docs__agents__workflow-agent__10.ts",
     "page": "docs/03-agents/07-workflow-agent.mdx",
-    "line": 295,
+    "line": 297,
     "ext": "ts",
     "title": null,
     "lines": 21,
@@ -5093,7 +5192,7 @@
     "id": "docs__agents__workflow-agent__11",
     "file": "docs__agents__workflow-agent__11.ts",
     "page": "docs/03-agents/07-workflow-agent.mdx",
-    "line": 329,
+    "line": 331,
     "ext": "ts",
     "title": null,
     "lines": 23,
@@ -5177,6 +5276,51 @@
     "line": 363,
     "ext": "ts",
     "title": null,
+    "lines": 13,
+    "importsSdk": false,
+    "complete": false,
+    "elided": false,
+    "errors": [
+      {
+        "line": 2,
+        "code": 2304,
+        "kind": "context",
+        "message": "Cannot find name 'WorkflowAgent'."
+      },
+      {
+        "line": 5,
+        "code": 2304,
+        "kind": "context",
+        "message": "Cannot find name 'tool'."
+      },
+      {
+        "line": 7,
+        "code": 2304,
+        "kind": "context",
+        "message": "Cannot find name 'z'."
+      },
+      {
+        "line": 7,
+        "code": 2304,
+        "kind": "context",
+        "message": "Cannot find name 'z'."
+      },
+      {
+        "line": 8,
+        "code": 2304,
+        "kind": "context",
+        "message": "Cannot find name 'bookFlightStep'."
+      }
+    ],
+    "status": "fragment"
+  },
+  {
+    "id": "docs__agents__workflow-agent__13",
+    "file": "docs__agents__workflow-agent__13.ts",
+    "page": "docs/03-agents/07-workflow-agent.mdx",
+    "line": 395,
+    "ext": "ts",
+    "title": null,
     "lines": 14,
     "importsSdk": false,
     "complete": false,
@@ -5216,37 +5360,10 @@
     "status": "fragment"
   },
   {
-    "id": "docs__agents__workflow-agent__13",
-    "file": "docs__agents__workflow-agent__13.ts",
-    "page": "docs/03-agents/07-workflow-agent.mdx",
-    "line": 414,
-    "ext": "ts",
-    "title": null,
-    "lines": 6,
-    "importsSdk": true,
-    "complete": true,
-    "elided": false,
-    "errors": [
-      {
-        "line": 4,
-        "code": 2304,
-        "kind": "context",
-        "message": "Cannot find name 'agent'."
-      },
-      {
-        "line": 5,
-        "code": 2552,
-        "kind": "context",
-        "message": "Cannot find name 'messages'. Did you mean 'onmessage'?"
-      }
-    ],
-    "status": "fragment"
-  },
-  {
     "id": "docs__agents__workflow-agent__14",
     "file": "docs__agents__workflow-agent__14.ts",
     "page": "docs/03-agents/07-workflow-agent.mdx",
-    "line": 426,
+    "line": 447,
     "ext": "ts",
     "title": null,
     "lines": 6,
@@ -5273,7 +5390,34 @@
     "id": "docs__agents__workflow-agent__15",
     "file": "docs__agents__workflow-agent__15.ts",
     "page": "docs/03-agents/07-workflow-agent.mdx",
-    "line": 444,
+    "line": 460,
+    "ext": "ts",
+    "title": null,
+    "lines": 6,
+    "importsSdk": true,
+    "complete": true,
+    "elided": false,
+    "errors": [
+      {
+        "line": 4,
+        "code": 2304,
+        "kind": "context",
+        "message": "Cannot find name 'agent'."
+      },
+      {
+        "line": 5,
+        "code": 2552,
+        "kind": "context",
+        "message": "Cannot find name 'messages'. Did you mean 'onmessage'?"
+      }
+    ],
+    "status": "fragment"
+  },
+  {
+    "id": "docs__agents__workflow-agent__16",
+    "file": "docs__agents__workflow-agent__16.ts",
+    "page": "docs/03-agents/07-workflow-agent.mdx",
+    "line": 478,
     "ext": "ts",
     "title": null,
     "lines": 14,
@@ -5303,10 +5447,10 @@
     "status": "fragment"
   },
   {
-    "id": "docs__agents__workflow-agent__16",
-    "file": "docs__agents__workflow-agent__16.ts",
+    "id": "docs__agents__workflow-agent__17",
+    "file": "docs__agents__workflow-agent__17.ts",
     "page": "docs/03-agents/07-workflow-agent.mdx",
-    "line": 472,
+    "line": 506,
     "ext": "ts",
     "title": "workflow/agent-chat.ts",
     "lines": 39,
@@ -5330,10 +5474,10 @@
     "status": "fragment"
   },
   {
-    "id": "docs__agents__workflow-agent__17",
-    "file": "docs__agents__workflow-agent__17.ts",
+    "id": "docs__agents__workflow-agent__18",
+    "file": "docs__agents__workflow-agent__18.ts",
     "page": "docs/03-agents/07-workflow-agent.mdx",
-    "line": 527,
+    "line": 561,
     "ext": "ts",
     "title": null,
     "lines": 23,
@@ -5405,10 +5549,10 @@
     "status": "fragment"
   },
   {
-    "id": "docs__agents__workflow-agent__18",
-    "file": "docs__agents__workflow-agent__18.ts",
+    "id": "docs__agents__workflow-agent__19",
+    "file": "docs__agents__workflow-agent__19.ts",
     "page": "docs/03-agents/07-workflow-agent.mdx",
-    "line": 562,
+    "line": 596,
     "ext": "ts",
     "title": null,
     "lines": 8,
@@ -5444,10 +5588,10 @@
     "status": "fragment"
   },
   {
-    "id": "docs__agents__workflow-agent__19",
-    "file": "docs__agents__workflow-agent__19.ts",
+    "id": "docs__agents__workflow-agent__20",
+    "file": "docs__agents__workflow-agent__20.ts",
     "page": "docs/03-agents/07-workflow-agent.mdx",
-    "line": 577,
+    "line": 611,
     "ext": "ts",
     "title": null,
     "lines": 12,
@@ -5477,10 +5621,10 @@
     "status": "fragment"
   },
   {
-    "id": "docs__agents__workflow-agent__20",
-    "file": "docs__agents__workflow-agent__20.ts",
+    "id": "docs__agents__workflow-agent__21",
+    "file": "docs__agents__workflow-agent__21.ts",
     "page": "docs/03-agents/07-workflow-agent.mdx",
-    "line": 598,
+    "line": 639,
     "ext": "ts",
     "title": null,
     "lines": 30,
@@ -5558,10 +5702,10 @@
     "status": "fragment"
   },
   {
-    "id": "docs__agents__workflow-agent__21",
-    "file": "docs__agents__workflow-agent__21.ts",
+    "id": "docs__agents__workflow-agent__22",
+    "file": "docs__agents__workflow-agent__22.ts",
     "page": "docs/03-agents/07-workflow-agent.mdx",
-    "line": 661,
+    "line": 702,
     "ext": "ts",
     "title": null,
     "lines": 7,
@@ -5579,10 +5723,10 @@
     "status": "fragment"
   },
   {
-    "id": "docs__agents__workflow-agent__22",
-    "file": "docs__agents__workflow-agent__22.ts",
+    "id": "docs__agents__workflow-agent__23",
+    "file": "docs__agents__workflow-agent__23.ts",
     "page": "docs/03-agents/07-workflow-agent.mdx",
-    "line": 792,
+    "line": 939,
     "ext": "ts",
     "title": null,
     "lines": 10,
@@ -5600,10 +5744,10 @@
     "status": "fragment"
   },
   {
-    "id": "docs__agents__workflow-agent__23",
-    "file": "docs__agents__workflow-agent__23.ts",
+    "id": "docs__agents__workflow-agent__24",
+    "file": "docs__agents__workflow-agent__24.ts",
     "page": "docs/03-agents/07-workflow-agent.mdx",
-    "line": 815,
+    "line": 962,
     "ext": "ts",
     "title": null,
     "lines": 14,
@@ -5651,10 +5795,37 @@
     "status": "fragment"
   },
   {
-    "id": "docs__agents__workflow-agent__24",
-    "file": "docs__agents__workflow-agent__24.ts",
+    "id": "docs__agents__workflow-agent__25",
+    "file": "docs__agents__workflow-agent__25.ts",
     "page": "docs/03-agents/07-workflow-agent.mdx",
-    "line": 846,
+    "line": 987,
+    "ext": "ts",
+    "title": null,
+    "lines": 9,
+    "importsSdk": false,
+    "complete": false,
+    "elided": false,
+    "errors": [
+      {
+        "line": 2,
+        "code": 2304,
+        "kind": "context",
+        "message": "Cannot find name 'agent'."
+      },
+      {
+        "line": 3,
+        "code": 2552,
+        "kind": "context",
+        "message": "Cannot find name 'messages'. Did you mean 'onmessage'?"
+      }
+    ],
+    "status": "fragment"
+  },
+  {
+    "id": "docs__agents__workflow-agent__26",
+    "file": "docs__agents__workflow-agent__26.ts",
+    "page": "docs/03-agents/07-workflow-agent.mdx",
+    "line": 1019,
     "ext": "ts",
     "title": null,
     "lines": 9,
@@ -5672,10 +5843,10 @@
     "status": "syntax"
   },
   {
-    "id": "docs__agents__workflow-agent__25",
-    "file": "docs__agents__workflow-agent__25.ts",
+    "id": "docs__agents__workflow-agent__27",
+    "file": "docs__agents__workflow-agent__27.ts",
     "page": "docs/03-agents/07-workflow-agent.mdx",
-    "line": 890,
+    "line": 1063,
     "ext": "ts",
     "title": null,
     "lines": 5,
@@ -6098,7 +6269,7 @@
     "id": "docs__ai-sdk-core__generating-text__01",
     "file": "docs__ai-sdk-core__generating-text__01.tsx",
     "page": "docs/03-ai-sdk-core/05-generating-text.mdx",
-    "line": 22,
+    "line": 27,
     "ext": "tsx",
     "title": null,
     "lines": 7,
@@ -6112,7 +6283,7 @@
     "id": "docs__ai-sdk-core__generating-text__02",
     "file": "docs__ai-sdk-core__generating-text__02.tsx",
     "page": "docs/03-ai-sdk-core/05-generating-text.mdx",
-    "line": 34,
+    "line": 39,
     "ext": "tsx",
     "title": null,
     "lines": 10,
@@ -6133,7 +6304,7 @@
     "id": "docs__ai-sdk-core__generating-text__03",
     "file": "docs__ai-sdk-core__generating-text__03.ts",
     "page": "docs/03-ai-sdk-core/05-generating-text.mdx",
-    "line": 82,
+    "line": 87,
     "ext": "ts",
     "title": null,
     "lines": 8,
@@ -6154,7 +6325,7 @@
     "id": "docs__ai-sdk-core__generating-text__04",
     "file": "docs__ai-sdk-core__generating-text__04.tsx",
     "page": "docs/03-ai-sdk-core/05-generating-text.mdx",
-    "line": 100,
+    "line": 105,
     "ext": "tsx",
     "title": null,
     "lines": 12,
@@ -6168,7 +6339,7 @@
     "id": "docs__ai-sdk-core__generating-text__05",
     "file": "docs__ai-sdk-core__generating-text__05.tsx",
     "page": "docs/03-ai-sdk-core/05-generating-text.mdx",
-    "line": 126,
+    "line": 131,
     "ext": "tsx",
     "title": null,
     "lines": 56,
@@ -6182,7 +6353,7 @@
     "id": "docs__ai-sdk-core__generating-text__06",
     "file": "docs__ai-sdk-core__generating-text__06.ts",
     "page": "docs/03-ai-sdk-core/05-generating-text.mdx",
-    "line": 201,
+    "line": 206,
     "ext": "ts",
     "title": null,
     "lines": 12,
@@ -6196,7 +6367,7 @@
     "id": "docs__ai-sdk-core__generating-text__07",
     "file": "docs__ai-sdk-core__generating-text__07.tsx",
     "page": "docs/03-ai-sdk-core/05-generating-text.mdx",
-    "line": 265,
+    "line": 270,
     "ext": "tsx",
     "title": null,
     "lines": 10,
@@ -6210,7 +6381,7 @@
     "id": "docs__ai-sdk-core__generating-text__08",
     "file": "docs__ai-sdk-core__generating-text__08.tsx",
     "page": "docs/03-ai-sdk-core/05-generating-text.mdx",
-    "line": 311,
+    "line": 317,
     "ext": "tsx",
     "title": null,
     "lines": 13,
@@ -6224,7 +6395,7 @@
     "id": "docs__ai-sdk-core__generating-text__09",
     "file": "docs__ai-sdk-core__generating-text__09.tsx",
     "page": "docs/03-ai-sdk-core/05-generating-text.mdx",
-    "line": 334,
+    "line": 340,
     "ext": "tsx",
     "title": null,
     "lines": 12,
@@ -6238,7 +6409,7 @@
     "id": "docs__ai-sdk-core__generating-text__10",
     "file": "docs__ai-sdk-core__generating-text__10.tsx",
     "page": "docs/03-ai-sdk-core/05-generating-text.mdx",
-    "line": 360,
+    "line": 366,
     "ext": "tsx",
     "title": null,
     "lines": 52,
@@ -6252,7 +6423,7 @@
     "id": "docs__ai-sdk-core__generating-text__11",
     "file": "docs__ai-sdk-core__generating-text__11.tsx",
     "page": "docs/03-ai-sdk-core/05-generating-text.mdx",
-    "line": 431,
+    "line": 437,
     "ext": "tsx",
     "title": null,
     "lines": 111,
@@ -6266,7 +6437,7 @@
     "id": "docs__ai-sdk-core__generating-text__12",
     "file": "docs__ai-sdk-core__generating-text__12.tsx",
     "page": "docs/03-ai-sdk-core/05-generating-text.mdx",
-    "line": 558,
+    "line": 564,
     "ext": "tsx",
     "title": null,
     "lines": 7,
@@ -6293,7 +6464,7 @@
     "id": "docs__ai-sdk-core__generating-text__13",
     "file": "docs__ai-sdk-core__generating-text__13.ts",
     "page": "docs/03-ai-sdk-core/05-generating-text.mdx",
-    "line": 578,
+    "line": 584,
     "ext": "ts",
     "title": null,
     "lines": 15,
@@ -6307,7 +6478,7 @@
     "id": "docs__ai-sdk-core__generating-text__14",
     "file": "docs__ai-sdk-core__generating-text__14.ts",
     "page": "docs/03-ai-sdk-core/05-generating-text.mdx",
-    "line": 602,
+    "line": 608,
     "ext": "ts",
     "title": null,
     "lines": 84,
@@ -6321,7 +6492,7 @@
     "id": "docs__ai-sdk-core__generating-text__15",
     "file": "docs__ai-sdk-core__generating-text__15.tsx",
     "page": "docs/03-ai-sdk-core/05-generating-text.mdx",
-    "line": 693,
+    "line": 699,
     "ext": "tsx",
     "title": null,
     "lines": 5,
@@ -6360,7 +6531,7 @@
     "id": "docs__ai-sdk-core__generating-text__16",
     "file": "docs__ai-sdk-core__generating-text__16.ts",
     "page": "docs/03-ai-sdk-core/05-generating-text.mdx",
-    "line": 722,
+    "line": 728,
     "ext": "ts",
     "title": null,
     "lines": 17,
@@ -6387,7 +6558,7 @@
     "id": "docs__ai-sdk-core__generating-text__17",
     "file": "docs__ai-sdk-core__generating-text__17.tsx",
     "page": "docs/03-ai-sdk-core/05-generating-text.mdx",
-    "line": 744,
+    "line": 750,
     "ext": "tsx",
     "title": null,
     "lines": 17,
@@ -6414,7 +6585,7 @@
     "id": "docs__ai-sdk-core__generating-text__18",
     "file": "docs__ai-sdk-core__generating-text__18.ts",
     "page": "docs/03-ai-sdk-core/05-generating-text.mdx",
-    "line": 802,
+    "line": 808,
     "ext": "ts",
     "title": null,
     "lines": 7,
@@ -6435,7 +6606,7 @@
     "id": "docs__ai-sdk-core__generating-text__19",
     "file": "docs__ai-sdk-core__generating-text__19.ts",
     "page": "docs/03-ai-sdk-core/05-generating-text.mdx",
-    "line": 818,
+    "line": 824,
     "ext": "ts",
     "title": null,
     "lines": 5,
@@ -6456,7 +6627,7 @@
     "id": "docs__ai-sdk-core__generating-structured-data__01",
     "file": "docs__ai-sdk-core__generating-structured-data__01.ts",
     "page": "docs/03-ai-sdk-core/10-generating-structured-data.mdx",
-    "line": 30,
+    "line": 34,
     "ext": "ts",
     "title": null,
     "lines": 19,
@@ -6470,7 +6641,7 @@
     "id": "docs__ai-sdk-core__generating-structured-data__02",
     "file": "docs__ai-sdk-core__generating-structured-data__02.ts",
     "page": "docs/03-ai-sdk-core/10-generating-structured-data.mdx",
-    "line": 65,
+    "line": 69,
     "ext": "ts",
     "title": null,
     "lines": 9,
@@ -6482,7 +6653,7 @@
         "line": 4,
         "code": 2345,
         "kind": "context",
-        "message": "Argument of type '{ output: Output.Output<unknown, unknown, never>; }' is not assignable to parameter of type '((LanguageModelCallOptions & (RequestOptions<ToolSet> & Prompt)) & { tools?: ToolSet | undefined; }) & { ...; } & { ...; }'."
+        "message": "Argument of type '{ output: Output.Output<any, any, never>; }' is not assignable to parameter of type '((LanguageModelCallOptions & (RequestOptions<ToolSet> & Prompt)) & { tools?: ToolSet | undefined; }) & { ...; } & { ...; }'."
       },
       {
         "line": 6,
@@ -6497,7 +6668,7 @@
     "id": "docs__ai-sdk-core__generating-structured-data__03",
     "file": "docs__ai-sdk-core__generating-structured-data__03.ts",
     "page": "docs/03-ai-sdk-core/10-generating-structured-data.mdx",
-    "line": 82,
+    "line": 86,
     "ext": "ts",
     "title": null,
     "lines": 24,
@@ -6511,7 +6682,7 @@
     "id": "docs__ai-sdk-core__generating-structured-data__04",
     "file": "docs__ai-sdk-core__generating-structured-data__04.tsx",
     "page": "docs/03-ai-sdk-core/10-generating-structured-data.mdx",
-    "line": 117,
+    "line": 121,
     "ext": "tsx",
     "title": null,
     "lines": 9,
@@ -6523,7 +6694,7 @@
         "line": 4,
         "code": 2345,
         "kind": "context",
-        "message": "Argument of type '{ output: Output<unknown, unknown, never>; onError({ error }: { error: unknown; }): void; }' is not assignable to parameter of type '((LanguageModelCallOptions & (RequestOptions<ToolSet> & Prompt)) & { tools?: ToolSet | undefined; }) & { ...; } & { ...; }'."
+        "message": "Argument of type '{ output: Output<any, any, never>; onError({ error }: { error: unknown; }): void; }' is not assignable to parameter of type '((LanguageModelCallOptions & (RequestOptions<ToolSet> & Prompt)) & { tools?: ToolSet | undefined; }) & { ...; } & { ...; }'."
       },
       {
         "line": 6,
@@ -6538,7 +6709,7 @@
     "id": "docs__ai-sdk-core__generating-structured-data__05",
     "file": "docs__ai-sdk-core__generating-structured-data__05.ts",
     "page": "docs/03-ai-sdk-core/10-generating-structured-data.mdx",
-    "line": 139,
+    "line": 143,
     "ext": "ts",
     "title": null,
     "lines": 8,
@@ -6559,7 +6730,7 @@
     "id": "docs__ai-sdk-core__generating-structured-data__06",
     "file": "docs__ai-sdk-core__generating-structured-data__06.ts",
     "page": "docs/03-ai-sdk-core/10-generating-structured-data.mdx",
-    "line": 154,
+    "line": 158,
     "ext": "ts",
     "title": null,
     "lines": 15,
@@ -6580,7 +6751,7 @@
     "id": "docs__ai-sdk-core__generating-structured-data__07",
     "file": "docs__ai-sdk-core__generating-structured-data__07.ts",
     "page": "docs/03-ai-sdk-core/10-generating-structured-data.mdx",
-    "line": 184,
+    "line": 188,
     "ext": "ts",
     "title": null,
     "lines": 21,
@@ -6601,7 +6772,7 @@
     "id": "docs__ai-sdk-core__generating-structured-data__08",
     "file": "docs__ai-sdk-core__generating-structured-data__08.ts",
     "page": "docs/03-ai-sdk-core/10-generating-structured-data.mdx",
-    "line": 215,
+    "line": 219,
     "ext": "ts",
     "title": null,
     "lines": 18,
@@ -6622,7 +6793,7 @@
     "id": "docs__ai-sdk-core__generating-structured-data__09",
     "file": "docs__ai-sdk-core__generating-structured-data__09.ts",
     "page": "docs/03-ai-sdk-core/10-generating-structured-data.mdx",
-    "line": 249,
+    "line": 253,
     "ext": "ts",
     "title": null,
     "lines": 10,
@@ -6643,7 +6814,7 @@
     "id": "docs__ai-sdk-core__generating-structured-data__10",
     "file": "docs__ai-sdk-core__generating-structured-data__10.ts",
     "page": "docs/03-ai-sdk-core/10-generating-structured-data.mdx",
-    "line": 270,
+    "line": 274,
     "ext": "ts",
     "title": null,
     "lines": 14,
@@ -6664,7 +6835,7 @@
     "id": "docs__ai-sdk-core__generating-structured-data__11",
     "file": "docs__ai-sdk-core__generating-structured-data__11.ts",
     "page": "docs/03-ai-sdk-core/10-generating-structured-data.mdx",
-    "line": 295,
+    "line": 299,
     "ext": "ts",
     "title": null,
     "lines": 25,
@@ -6678,7 +6849,7 @@
     "id": "docs__ai-sdk-core__generating-structured-data__12",
     "file": "docs__ai-sdk-core__generating-structured-data__12.ts",
     "page": "docs/03-ai-sdk-core/10-generating-structured-data.mdx",
-    "line": 333,
+    "line": 337,
     "ext": "ts",
     "title": null,
     "lines": 24,
@@ -6692,7 +6863,7 @@
     "id": "docs__ai-sdk-core__generating-structured-data__13",
     "file": "docs__ai-sdk-core__generating-structured-data__13.ts",
     "page": "docs/03-ai-sdk-core/10-generating-structured-data.mdx",
-    "line": 370,
+    "line": 374,
     "ext": "ts",
     "title": null,
     "lines": 17,
@@ -6706,7 +6877,7 @@
     "id": "docs__ai-sdk-core__generating-structured-data__14",
     "file": "docs__ai-sdk-core__generating-structured-data__14.ts",
     "page": "docs/03-ai-sdk-core/10-generating-structured-data.mdx",
-    "line": 401,
+    "line": 405,
     "ext": "ts",
     "title": null,
     "lines": 24,
@@ -6720,7 +6891,7 @@
     "id": "docs__ai-sdk-core__generating-structured-data__15",
     "file": "docs__ai-sdk-core__generating-structured-data__15.ts",
     "page": "docs/03-ai-sdk-core/10-generating-structured-data.mdx",
-    "line": 452,
+    "line": 456,
     "ext": "ts",
     "title": null,
     "lines": 26,
@@ -7237,7 +7408,7 @@
     "id": "docs__ai-sdk-core__tools-and-tool-calling__17",
     "file": "docs__ai-sdk-core__tools-and-tool-calling__17.tsx",
     "page": "docs/03-ai-sdk-core/15-tools-and-tool-calling.mdx",
-    "line": 635,
+    "line": 644,
     "ext": "tsx",
     "title": null,
     "lines": 23,
@@ -7258,7 +7429,7 @@
     "id": "docs__ai-sdk-core__tools-and-tool-calling__18",
     "file": "docs__ai-sdk-core__tools-and-tool-calling__18.tsx",
     "page": "docs/03-ai-sdk-core/15-tools-and-tool-calling.mdx",
-    "line": 665,
+    "line": 674,
     "ext": "tsx",
     "title": null,
     "lines": 7,
@@ -7279,7 +7450,7 @@
     "id": "docs__ai-sdk-core__tools-and-tool-calling__19",
     "file": "docs__ai-sdk-core__tools-and-tool-calling__19.tsx",
     "page": "docs/03-ai-sdk-core/15-tools-and-tool-calling.mdx",
-    "line": 679,
+    "line": 688,
     "ext": "tsx",
     "title": null,
     "lines": 4,
@@ -7300,7 +7471,7 @@
     "id": "docs__ai-sdk-core__tools-and-tool-calling__20",
     "file": "docs__ai-sdk-core__tools-and-tool-calling__20.ts",
     "page": "docs/03-ai-sdk-core/15-tools-and-tool-calling.mdx",
-    "line": 697,
+    "line": 706,
     "ext": "ts",
     "title": null,
     "lines": 13,
@@ -7321,7 +7492,7 @@
     "id": "docs__ai-sdk-core__tools-and-tool-calling__21",
     "file": "docs__ai-sdk-core__tools-and-tool-calling__21.ts",
     "page": "docs/03-ai-sdk-core/15-tools-and-tool-calling.mdx",
-    "line": 725,
+    "line": 734,
     "ext": "ts",
     "title": null,
     "lines": 15,
@@ -7335,7 +7506,7 @@
     "id": "docs__ai-sdk-core__tools-and-tool-calling__22",
     "file": "docs__ai-sdk-core__tools-and-tool-calling__22.ts",
     "page": "docs/03-ai-sdk-core/15-tools-and-tool-calling.mdx",
-    "line": 747,
+    "line": 756,
     "ext": "ts",
     "title": null,
     "lines": 28,
@@ -7380,7 +7551,7 @@
     "id": "docs__ai-sdk-core__tools-and-tool-calling__23",
     "file": "docs__ai-sdk-core__tools-and-tool-calling__23.ts",
     "page": "docs/03-ai-sdk-core/15-tools-and-tool-calling.mdx",
-    "line": 786,
+    "line": 795,
     "ext": "ts",
     "title": null,
     "lines": 23,
@@ -7419,7 +7590,7 @@
     "id": "docs__ai-sdk-core__tools-and-tool-calling__24",
     "file": "docs__ai-sdk-core__tools-and-tool-calling__24.ts",
     "page": "docs/03-ai-sdk-core/15-tools-and-tool-calling.mdx",
-    "line": 829,
+    "line": 838,
     "ext": "ts",
     "title": null,
     "lines": 21,
@@ -7433,7 +7604,7 @@
     "id": "docs__ai-sdk-core__tools-and-tool-calling__25",
     "file": "docs__ai-sdk-core__tools-and-tool-calling__25.ts",
     "page": "docs/03-ai-sdk-core/15-tools-and-tool-calling.mdx",
-    "line": 862,
+    "line": 871,
     "ext": "ts",
     "title": null,
     "lines": 41,
@@ -7472,7 +7643,7 @@
     "id": "docs__ai-sdk-core__tools-and-tool-calling__26",
     "file": "docs__ai-sdk-core__tools-and-tool-calling__26.ts",
     "page": "docs/03-ai-sdk-core/15-tools-and-tool-calling.mdx",
-    "line": 912,
+    "line": 921,
     "ext": "ts",
     "title": null,
     "lines": 14,
@@ -7493,7 +7664,7 @@
     "id": "docs__ai-sdk-core__tools-and-tool-calling__27",
     "file": "docs__ai-sdk-core__tools-and-tool-calling__27.ts",
     "page": "docs/03-ai-sdk-core/15-tools-and-tool-calling.mdx",
-    "line": 934,
+    "line": 943,
     "ext": "ts",
     "title": null,
     "lines": 21,
@@ -7514,7 +7685,7 @@
     "id": "docs__ai-sdk-core__tools-and-tool-calling__28",
     "file": "docs__ai-sdk-core__tools-and-tool-calling__28.ts",
     "page": "docs/03-ai-sdk-core/15-tools-and-tool-calling.mdx",
-    "line": 972,
+    "line": 981,
     "ext": "ts",
     "title": null,
     "lines": 30,
@@ -7535,7 +7706,7 @@
     "id": "docs__ai-sdk-core__tools-and-tool-calling__29",
     "file": "docs__ai-sdk-core__tools-and-tool-calling__29.ts",
     "page": "docs/03-ai-sdk-core/15-tools-and-tool-calling.mdx",
-    "line": 1042,
+    "line": 1051,
     "ext": "ts",
     "title": null,
     "lines": 36,
@@ -7610,7 +7781,7 @@
     "id": "docs__ai-sdk-core__tools-and-tool-calling__30",
     "file": "docs__ai-sdk-core__tools-and-tool-calling__30.ts",
     "page": "docs/03-ai-sdk-core/15-tools-and-tool-calling.mdx",
-    "line": 1104,
+    "line": 1113,
     "ext": "ts",
     "title": null,
     "lines": 28,
@@ -7624,7 +7795,7 @@
     "id": "docs__ai-sdk-core__tools-and-tool-calling__31",
     "file": "docs__ai-sdk-core__tools-and-tool-calling__31.ts",
     "page": "docs/03-ai-sdk-core/15-tools-and-tool-calling.mdx",
-    "line": 1152,
+    "line": 1161,
     "ext": "ts",
     "title": null,
     "lines": 31,
@@ -7638,7 +7809,7 @@
     "id": "docs__ai-sdk-core__tools-and-tool-calling__32",
     "file": "docs__ai-sdk-core__tools-and-tool-calling__32.ts",
     "page": "docs/03-ai-sdk-core/15-tools-and-tool-calling.mdx",
-    "line": 1201,
+    "line": 1210,
     "ext": "ts",
     "title": null,
     "lines": 13,
@@ -7671,7 +7842,7 @@
     "id": "docs__ai-sdk-core__tools-and-tool-calling__33",
     "file": "docs__ai-sdk-core__tools-and-tool-calling__33.ts",
     "page": "docs/03-ai-sdk-core/15-tools-and-tool-calling.mdx",
-    "line": 1219,
+    "line": 1228,
     "ext": "ts",
     "title": null,
     "lines": 14,
@@ -7710,7 +7881,7 @@
     "id": "docs__ai-sdk-core__tools-and-tool-calling__34",
     "file": "docs__ai-sdk-core__tools-and-tool-calling__34.ts",
     "page": "docs/03-ai-sdk-core/15-tools-and-tool-calling.mdx",
-    "line": 1242,
+    "line": 1251,
     "ext": "ts",
     "title": null,
     "lines": 18,
@@ -7737,7 +7908,7 @@
     "id": "docs__ai-sdk-core__tools-and-tool-calling__35",
     "file": "docs__ai-sdk-core__tools-and-tool-calling__35.ts",
     "page": "docs/03-ai-sdk-core/15-tools-and-tool-calling.mdx",
-    "line": 1284,
+    "line": 1293,
     "ext": "ts",
     "title": null,
     "lines": 31,
@@ -7764,7 +7935,7 @@
     "id": "docs__ai-sdk-core__tools-and-tool-calling__36",
     "file": "docs__ai-sdk-core__tools-and-tool-calling__36.ts",
     "page": "docs/03-ai-sdk-core/15-tools-and-tool-calling.mdx",
-    "line": 1320,
+    "line": 1329,
     "ext": "ts",
     "title": null,
     "lines": 60,
@@ -7797,7 +7968,7 @@
     "id": "docs__ai-sdk-core__tools-and-tool-calling__37",
     "file": "docs__ai-sdk-core__tools-and-tool-calling__37.ts",
     "page": "docs/03-ai-sdk-core/15-tools-and-tool-calling.mdx",
-    "line": 1392,
+    "line": 1401,
     "ext": "ts",
     "title": null,
     "lines": 9,
@@ -7818,7 +7989,7 @@
     "id": "docs__ai-sdk-core__tools-and-tool-calling__38",
     "file": "docs__ai-sdk-core__tools-and-tool-calling__38.ts",
     "page": "docs/03-ai-sdk-core/15-tools-and-tool-calling.mdx",
-    "line": 1415,
+    "line": 1424,
     "ext": "ts",
     "title": null,
     "lines": 9,
@@ -7839,7 +8010,7 @@
     "id": "docs__ai-sdk-core__tools-and-tool-calling__39",
     "file": "docs__ai-sdk-core__tools-and-tool-calling__39.ts",
     "page": "docs/03-ai-sdk-core/15-tools-and-tool-calling.mdx",
-    "line": 1460,
+    "line": 1476,
     "ext": "ts",
     "title": null,
     "lines": 42,
@@ -7896,7 +8067,7 @@
     "id": "docs__ai-sdk-core__tools-and-tool-calling__40",
     "file": "docs__ai-sdk-core__tools-and-tool-calling__40.ts",
     "page": "docs/03-ai-sdk-core/15-tools-and-tool-calling.mdx",
-    "line": 1512,
+    "line": 1528,
     "ext": "ts",
     "title": "tools/weather-tool.ts",
     "lines": 14,
@@ -7910,7 +8081,28 @@
     "id": "docs__ai-sdk-core__mcp-tools__01",
     "file": "docs__ai-sdk-core__mcp-tools__01.ts",
     "page": "docs/03-ai-sdk-core/16-mcp-tools.mdx",
-    "line": 45,
+    "line": 59,
+    "ext": "ts",
+    "title": null,
+    "lines": 15,
+    "importsSdk": true,
+    "complete": false,
+    "elided": false,
+    "errors": [
+      {
+        "line": 2,
+        "code": 2307,
+        "kind": "context",
+        "message": "Cannot find module 'guarded-fetch' or its corresponding type declarations."
+      }
+    ],
+    "status": "fragment"
+  },
+  {
+    "id": "docs__ai-sdk-core__mcp-tools__02",
+    "file": "docs__ai-sdk-core__mcp-tools__02.ts",
+    "page": "docs/03-ai-sdk-core/16-mcp-tools.mdx",
+    "line": 89,
     "ext": "ts",
     "title": null,
     "lines": 17,
@@ -7928,10 +8120,10 @@
     "status": "fragment"
   },
   {
-    "id": "docs__ai-sdk-core__mcp-tools__02",
-    "file": "docs__ai-sdk-core__mcp-tools__02.ts",
+    "id": "docs__ai-sdk-core__mcp-tools__03",
+    "file": "docs__ai-sdk-core__mcp-tools__03.ts",
     "page": "docs/03-ai-sdk-core/16-mcp-tools.mdx",
-    "line": 69,
+    "line": 113,
     "ext": "ts",
     "title": null,
     "lines": 33,
@@ -7961,10 +8153,10 @@
     "status": "fragment"
   },
   {
-    "id": "docs__ai-sdk-core__mcp-tools__03",
-    "file": "docs__ai-sdk-core__mcp-tools__03.ts",
+    "id": "docs__ai-sdk-core__mcp-tools__04",
+    "file": "docs__ai-sdk-core__mcp-tools__04.ts",
     "page": "docs/03-ai-sdk-core/16-mcp-tools.mdx",
-    "line": 115,
+    "line": 159,
     "ext": "ts",
     "title": null,
     "lines": 9,
@@ -7982,10 +8174,10 @@
     "status": "fragment"
   },
   {
-    "id": "docs__ai-sdk-core__mcp-tools__04",
-    "file": "docs__ai-sdk-core__mcp-tools__04.ts",
+    "id": "docs__ai-sdk-core__mcp-tools__05",
+    "file": "docs__ai-sdk-core__mcp-tools__05.ts",
     "page": "docs/03-ai-sdk-core/16-mcp-tools.mdx",
-    "line": 131,
+    "line": 175,
     "ext": "ts",
     "title": null,
     "lines": 17,
@@ -8003,10 +8195,10 @@
     "status": "fragment"
   },
   {
-    "id": "docs__ai-sdk-core__mcp-tools__05",
-    "file": "docs__ai-sdk-core__mcp-tools__05.ts",
+    "id": "docs__ai-sdk-core__mcp-tools__06",
+    "file": "docs__ai-sdk-core__mcp-tools__06.ts",
     "page": "docs/03-ai-sdk-core/16-mcp-tools.mdx",
-    "line": 159,
+    "line": 203,
     "ext": "ts",
     "title": null,
     "lines": 11,
@@ -8024,10 +8216,10 @@
     "status": "fragment"
   },
   {
-    "id": "docs__ai-sdk-core__mcp-tools__06",
-    "file": "docs__ai-sdk-core__mcp-tools__06.ts",
+    "id": "docs__ai-sdk-core__mcp-tools__07",
+    "file": "docs__ai-sdk-core__mcp-tools__07.ts",
     "page": "docs/03-ai-sdk-core/16-mcp-tools.mdx",
-    "line": 197,
+    "line": 256,
     "ext": "ts",
     "title": null,
     "lines": 4,
@@ -8063,10 +8255,10 @@
     "status": "syntax"
   },
   {
-    "id": "docs__ai-sdk-core__mcp-tools__07",
-    "file": "docs__ai-sdk-core__mcp-tools__07.ts",
+    "id": "docs__ai-sdk-core__mcp-tools__08",
+    "file": "docs__ai-sdk-core__mcp-tools__08.ts",
     "page": "docs/03-ai-sdk-core/16-mcp-tools.mdx",
-    "line": 224,
+    "line": 287,
     "ext": "ts",
     "title": null,
     "lines": 7,
@@ -8084,10 +8276,10 @@
     "status": "syntax"
   },
   {
-    "id": "docs__ai-sdk-core__mcp-tools__08",
-    "file": "docs__ai-sdk-core__mcp-tools__08.ts",
+    "id": "docs__ai-sdk-core__mcp-tools__09",
+    "file": "docs__ai-sdk-core__mcp-tools__09.ts",
     "page": "docs/03-ai-sdk-core/16-mcp-tools.mdx",
-    "line": 252,
+    "line": 315,
     "ext": "ts",
     "title": null,
     "lines": 18,
@@ -8111,10 +8303,10 @@
     "status": "fragment"
   },
   {
-    "id": "docs__ai-sdk-core__mcp-tools__09",
-    "file": "docs__ai-sdk-core__mcp-tools__09.ts",
+    "id": "docs__ai-sdk-core__mcp-tools__10",
+    "file": "docs__ai-sdk-core__mcp-tools__10.ts",
     "page": "docs/03-ai-sdk-core/16-mcp-tools.mdx",
-    "line": 282,
+    "line": 361,
     "ext": "ts",
     "title": null,
     "lines": 10,
@@ -8138,10 +8330,10 @@
     "status": "fragment"
   },
   {
-    "id": "docs__ai-sdk-core__mcp-tools__10",
-    "file": "docs__ai-sdk-core__mcp-tools__10.ts",
+    "id": "docs__ai-sdk-core__mcp-tools__11",
+    "file": "docs__ai-sdk-core__mcp-tools__11.ts",
     "page": "docs/03-ai-sdk-core/16-mcp-tools.mdx",
-    "line": 311,
+    "line": 390,
     "ext": "ts",
     "title": null,
     "lines": 14,
@@ -8171,10 +8363,10 @@
     "status": "fragment"
   },
   {
-    "id": "docs__ai-sdk-core__mcp-tools__11",
-    "file": "docs__ai-sdk-core__mcp-tools__11.ts",
+    "id": "docs__ai-sdk-core__mcp-tools__12",
+    "file": "docs__ai-sdk-core__mcp-tools__12.ts",
     "page": "docs/03-ai-sdk-core/16-mcp-tools.mdx",
-    "line": 340,
+    "line": 419,
     "ext": "ts",
     "title": null,
     "lines": 7,
@@ -8192,10 +8384,10 @@
     "status": "fragment"
   },
   {
-    "id": "docs__ai-sdk-core__mcp-tools__12",
-    "file": "docs__ai-sdk-core__mcp-tools__12.ts",
+    "id": "docs__ai-sdk-core__mcp-tools__13",
+    "file": "docs__ai-sdk-core__mcp-tools__13.ts",
     "page": "docs/03-ai-sdk-core/16-mcp-tools.mdx",
-    "line": 360,
+    "line": 439,
     "ext": "ts",
     "title": null,
     "lines": 26,
@@ -8206,10 +8398,10 @@
     "status": "pass"
   },
   {
-    "id": "docs__ai-sdk-core__mcp-tools__13",
-    "file": "docs__ai-sdk-core__mcp-tools__13.ts",
+    "id": "docs__ai-sdk-core__mcp-tools__14",
+    "file": "docs__ai-sdk-core__mcp-tools__14.ts",
     "page": "docs/03-ai-sdk-core/16-mcp-tools.mdx",
-    "line": 410,
+    "line": 489,
     "ext": "ts",
     "title": null,
     "lines": 14,
@@ -8233,10 +8425,10 @@
     "status": "fragment"
   },
   {
-    "id": "docs__ai-sdk-core__mcp-tools__14",
-    "file": "docs__ai-sdk-core__mcp-tools__14.ts",
+    "id": "docs__ai-sdk-core__mcp-tools__15",
+    "file": "docs__ai-sdk-core__mcp-tools__15.ts",
     "page": "docs/03-ai-sdk-core/16-mcp-tools.mdx",
-    "line": 429,
+    "line": 508,
     "ext": "ts",
     "title": null,
     "lines": 11,
@@ -8254,10 +8446,10 @@
     "status": "fragment"
   },
   {
-    "id": "docs__ai-sdk-core__mcp-tools__15",
-    "file": "docs__ai-sdk-core__mcp-tools__15.ts",
+    "id": "docs__ai-sdk-core__mcp-tools__16",
+    "file": "docs__ai-sdk-core__mcp-tools__16.ts",
     "page": "docs/03-ai-sdk-core/16-mcp-tools.mdx",
-    "line": 451,
+    "line": 530,
     "ext": "ts",
     "title": null,
     "lines": 1,
@@ -8275,10 +8467,10 @@
     "status": "fragment"
   },
   {
-    "id": "docs__ai-sdk-core__mcp-tools__16",
-    "file": "docs__ai-sdk-core__mcp-tools__16.ts",
+    "id": "docs__ai-sdk-core__mcp-tools__17",
+    "file": "docs__ai-sdk-core__mcp-tools__17.ts",
     "page": "docs/03-ai-sdk-core/16-mcp-tools.mdx",
-    "line": 473,
+    "line": 552,
     "ext": "ts",
     "title": null,
     "lines": 22,
@@ -8308,10 +8500,10 @@
     "status": "fragment"
   },
   {
-    "id": "docs__ai-sdk-core__mcp-tools__17",
-    "file": "docs__ai-sdk-core__mcp-tools__17.ts",
+    "id": "docs__ai-sdk-core__mcp-tools__18",
+    "file": "docs__ai-sdk-core__mcp-tools__18.ts",
     "page": "docs/03-ai-sdk-core/16-mcp-tools.mdx",
-    "line": 522,
+    "line": 601,
     "ext": "ts",
     "title": null,
     "lines": 16,
@@ -8329,10 +8521,10 @@
     "status": "fragment"
   },
   {
-    "id": "docs__ai-sdk-core__mcp-tools__18",
-    "file": "docs__ai-sdk-core__mcp-tools__18.ts",
+    "id": "docs__ai-sdk-core__mcp-tools__19",
+    "file": "docs__ai-sdk-core__mcp-tools__19.ts",
     "page": "docs/03-ai-sdk-core/16-mcp-tools.mdx",
-    "line": 547,
+    "line": 626,
     "ext": "ts",
     "title": null,
     "lines": 24,
@@ -8350,34 +8542,13 @@
     "status": "fragment"
   },
   {
-    "id": "docs__ai-sdk-core__mcp-tools__19",
-    "file": "docs__ai-sdk-core__mcp-tools__19.ts",
-    "page": "docs/03-ai-sdk-core/16-mcp-tools.mdx",
-    "line": 599,
-    "ext": "ts",
-    "title": null,
-    "lines": 1,
-    "importsSdk": false,
-    "complete": false,
-    "elided": false,
-    "errors": [
-      {
-        "line": 2,
-        "code": 2304,
-        "kind": "context",
-        "message": "Cannot find name 'mcpClient'."
-      }
-    ],
-    "status": "fragment"
-  },
-  {
     "id": "docs__ai-sdk-core__mcp-tools__20",
     "file": "docs__ai-sdk-core__mcp-tools__20.ts",
     "page": "docs/03-ai-sdk-core/16-mcp-tools.mdx",
-    "line": 607,
+    "line": 678,
     "ext": "ts",
     "title": null,
-    "lines": 3,
+    "lines": 1,
     "importsSdk": false,
     "complete": false,
     "elided": false,
@@ -8395,10 +8566,10 @@
     "id": "docs__ai-sdk-core__mcp-tools__21",
     "file": "docs__ai-sdk-core__mcp-tools__21.ts",
     "page": "docs/03-ai-sdk-core/16-mcp-tools.mdx",
-    "line": 617,
+    "line": 686,
     "ext": "ts",
     "title": null,
-    "lines": 1,
+    "lines": 3,
     "importsSdk": false,
     "complete": false,
     "elided": false,
@@ -8416,49 +8587,7 @@
     "id": "docs__ai-sdk-core__mcp-tools__22",
     "file": "docs__ai-sdk-core__mcp-tools__22.ts",
     "page": "docs/03-ai-sdk-core/16-mcp-tools.mdx",
-    "line": 628,
-    "ext": "ts",
-    "title": null,
-    "lines": 12,
-    "importsSdk": false,
-    "complete": false,
-    "elided": false,
-    "errors": [
-      {
-        "line": 2,
-        "code": 2304,
-        "kind": "context",
-        "message": "Cannot find name 'mcpClient'."
-      }
-    ],
-    "status": "fragment"
-  },
-  {
-    "id": "docs__ai-sdk-core__mcp-tools__23",
-    "file": "docs__ai-sdk-core__mcp-tools__23.ts",
-    "page": "docs/03-ai-sdk-core/16-mcp-tools.mdx",
-    "line": 646,
-    "ext": "ts",
-    "title": null,
-    "lines": 15,
-    "importsSdk": false,
-    "complete": false,
-    "elided": false,
-    "errors": [
-      {
-        "line": 2,
-        "code": 2304,
-        "kind": "context",
-        "message": "Cannot find name 'mcpClient'."
-      }
-    ],
-    "status": "fragment"
-  },
-  {
-    "id": "docs__ai-sdk-core__mcp-tools__24",
-    "file": "docs__ai-sdk-core__mcp-tools__24.ts",
-    "page": "docs/03-ai-sdk-core/16-mcp-tools.mdx",
-    "line": 673,
+    "line": 696,
     "ext": "ts",
     "title": null,
     "lines": 1,
@@ -8476,13 +8605,55 @@
     "status": "fragment"
   },
   {
+    "id": "docs__ai-sdk-core__mcp-tools__23",
+    "file": "docs__ai-sdk-core__mcp-tools__23.ts",
+    "page": "docs/03-ai-sdk-core/16-mcp-tools.mdx",
+    "line": 707,
+    "ext": "ts",
+    "title": null,
+    "lines": 12,
+    "importsSdk": false,
+    "complete": false,
+    "elided": false,
+    "errors": [
+      {
+        "line": 2,
+        "code": 2304,
+        "kind": "context",
+        "message": "Cannot find name 'mcpClient'."
+      }
+    ],
+    "status": "fragment"
+  },
+  {
+    "id": "docs__ai-sdk-core__mcp-tools__24",
+    "file": "docs__ai-sdk-core__mcp-tools__24.ts",
+    "page": "docs/03-ai-sdk-core/16-mcp-tools.mdx",
+    "line": 725,
+    "ext": "ts",
+    "title": null,
+    "lines": 15,
+    "importsSdk": false,
+    "complete": false,
+    "elided": false,
+    "errors": [
+      {
+        "line": 2,
+        "code": 2304,
+        "kind": "context",
+        "message": "Cannot find name 'mcpClient'."
+      }
+    ],
+    "status": "fragment"
+  },
+  {
     "id": "docs__ai-sdk-core__mcp-tools__25",
     "file": "docs__ai-sdk-core__mcp-tools__25.ts",
     "page": "docs/03-ai-sdk-core/16-mcp-tools.mdx",
-    "line": 681,
+    "line": 752,
     "ext": "ts",
     "title": null,
-    "lines": 4,
+    "lines": 1,
     "importsSdk": false,
     "complete": false,
     "elided": false,
@@ -8500,7 +8671,28 @@
     "id": "docs__ai-sdk-core__mcp-tools__26",
     "file": "docs__ai-sdk-core__mcp-tools__26.ts",
     "page": "docs/03-ai-sdk-core/16-mcp-tools.mdx",
-    "line": 702,
+    "line": 760,
+    "ext": "ts",
+    "title": null,
+    "lines": 4,
+    "importsSdk": false,
+    "complete": false,
+    "elided": false,
+    "errors": [
+      {
+        "line": 2,
+        "code": 2304,
+        "kind": "context",
+        "message": "Cannot find name 'mcpClient'."
+      }
+    ],
+    "status": "fragment"
+  },
+  {
+    "id": "docs__ai-sdk-core__mcp-tools__27",
+    "file": "docs__ai-sdk-core__mcp-tools__27.ts",
+    "page": "docs/03-ai-sdk-core/16-mcp-tools.mdx",
+    "line": 781,
     "ext": "ts",
     "title": null,
     "lines": 9,
@@ -8518,10 +8710,10 @@
     "status": "fragment"
   },
   {
-    "id": "docs__ai-sdk-core__mcp-tools__27",
-    "file": "docs__ai-sdk-core__mcp-tools__27.ts",
+    "id": "docs__ai-sdk-core__mcp-tools__28",
+    "file": "docs__ai-sdk-core__mcp-tools__28.ts",
     "page": "docs/03-ai-sdk-core/16-mcp-tools.mdx",
-    "line": 718,
+    "line": 797,
     "ext": "ts",
     "title": null,
     "lines": 18,
@@ -8551,10 +8743,10 @@
     "status": "fragment"
   },
   {
-    "id": "docs__ai-sdk-core__mcp-tools__28",
-    "file": "docs__ai-sdk-core__mcp-tools__28.ts",
+    "id": "docs__ai-sdk-core__mcp-tools__29",
+    "file": "docs__ai-sdk-core__mcp-tools__29.ts",
     "page": "docs/03-ai-sdk-core/16-mcp-tools.mdx",
-    "line": 776,
+    "line": 855,
     "ext": "ts",
     "title": null,
     "lines": 13,
@@ -9098,6 +9290,33 @@
         "code": 2304,
         "kind": "context",
         "message": "Cannot find name 'createWebFetchTool'."
+      }
+    ],
+    "status": "fragment"
+  },
+  {
+    "id": "docs__ai-sdk-core__tools__06",
+    "file": "docs__ai-sdk-core__tools__06.ts",
+    "page": "docs/03-ai-sdk-core/18-tools.mdx",
+    "line": 321,
+    "ext": "ts",
+    "title": null,
+    "lines": 6,
+    "importsSdk": true,
+    "complete": false,
+    "elided": false,
+    "errors": [
+      {
+        "line": 2,
+        "code": 2307,
+        "kind": "context",
+        "message": "Cannot find module 'guarded-fetch' or its corresponding type declarations."
+      },
+      {
+        "line": 3,
+        "code": 2307,
+        "kind": "context",
+        "message": "Cannot find module '@ai-sdk/tool-web-fetch' or its corresponding type declarations."
       }
     ],
     "status": "fragment"
@@ -9739,7 +9958,7 @@
         "line": 11,
         "code": 2367,
         "kind": "api",
-        "message": "This comparison appears to be unintentional because the types '\"abort\" | \"custom\" | \"error\" | \"file\" | \"finish\" | \"finish-step\" | \"raw\" | \"reasoning-delta\" | \"reasoning-end\" | \"reasoning-file\" | \"reasoning-start\" | \"source\" | \"start\" | \"start-step\" | ... 11 more ... | \"tool-result\"' and '\"reasoning\"' have no overlap."
+        "message": "This comparison appears to be unintentional because the types '\"abort\" | \"custom\" | \"error\" | \"file\" | \"finish\" | \"finish-step\" | \"ping\" | \"raw\" | \"reasoning-delta\" | \"reasoning-end\" | \"reasoning-file\" | \"reasoning-start\" | \"source\" | \"start\" | ... 13 more ... | \"tool-result\"' and '\"reasoning\"' have no overlap."
       },
       {
         "line": 12,
@@ -10355,10 +10574,10 @@
     "id": "docs__ai-sdk-core__middleware__15",
     "file": "docs__ai-sdk-core__middleware__15.ts",
     "page": "docs/03-ai-sdk-core/40-middleware.mdx",
-    "line": 409,
+    "line": 410,
     "ext": "ts",
     "title": null,
-    "lines": 23,
+    "lines": 27,
     "importsSdk": true,
     "complete": false,
     "elided": false,
@@ -10369,7 +10588,7 @@
     "id": "docs__ai-sdk-core__middleware__16",
     "file": "docs__ai-sdk-core__middleware__16.ts",
     "page": "docs/03-ai-sdk-core/40-middleware.mdx",
-    "line": 445,
+    "line": 450,
     "ext": "ts",
     "title": null,
     "lines": 23,
@@ -10408,7 +10627,7 @@
     "id": "docs__ai-sdk-core__middleware__17",
     "file": "docs__ai-sdk-core__middleware__17.ts",
     "page": "docs/03-ai-sdk-core/40-middleware.mdx",
-    "line": 476,
+    "line": 481,
     "ext": "ts",
     "title": null,
     "lines": 85,
@@ -10422,7 +10641,7 @@
     "id": "docs__ai-sdk-core__middleware__18",
     "file": "docs__ai-sdk-core__middleware__18.ts",
     "page": "docs/03-ai-sdk-core/40-middleware.mdx",
-    "line": 577,
+    "line": 582,
     "ext": "ts",
     "title": null,
     "lines": 28,
@@ -10629,15 +10848,8 @@
     "importsSdk": true,
     "complete": true,
     "elided": false,
-    "errors": [
-      {
-        "line": 4,
-        "code": 2307,
-        "kind": "context",
-        "message": "Cannot find module 'vitest' or its corresponding type declarations."
-      }
-    ],
-    "status": "fragment"
+    "errors": [],
+    "status": "pass"
   },
   {
     "id": "docs__ai-sdk-core__testing__06",
@@ -10713,7 +10925,7 @@
     "id": "docs__ai-sdk-core__telemetry__04",
     "file": "docs__ai-sdk-core__telemetry__04.ts",
     "page": "docs/03-ai-sdk-core/60-telemetry.mdx",
-    "line": 109,
+    "line": 142,
     "ext": "ts",
     "title": null,
     "lines": 5,
@@ -10734,7 +10946,7 @@
     "id": "docs__ai-sdk-core__telemetry__05",
     "file": "docs__ai-sdk-core__telemetry__05.ts",
     "page": "docs/03-ai-sdk-core/60-telemetry.mdx",
-    "line": 126,
+    "line": 159,
     "ext": "ts",
     "title": null,
     "lines": 11,
@@ -10755,7 +10967,7 @@
     "id": "docs__ai-sdk-core__telemetry__06",
     "file": "docs__ai-sdk-core__telemetry__06.ts",
     "page": "docs/03-ai-sdk-core/60-telemetry.mdx",
-    "line": 144,
+    "line": 177,
     "ext": "ts",
     "title": null,
     "lines": 13,
@@ -10776,7 +10988,7 @@
     "id": "docs__ai-sdk-core__telemetry__07",
     "file": "docs__ai-sdk-core__telemetry__07.ts",
     "page": "docs/03-ai-sdk-core/60-telemetry.mdx",
-    "line": 173,
+    "line": 206,
     "ext": "ts",
     "title": null,
     "lines": 30,
@@ -10851,7 +11063,7 @@
     "id": "docs__ai-sdk-core__telemetry__08",
     "file": "docs__ai-sdk-core__telemetry__08.ts",
     "page": "docs/03-ai-sdk-core/60-telemetry.mdx",
-    "line": 223,
+    "line": 256,
     "ext": "ts",
     "title": null,
     "lines": 3,
@@ -10878,7 +11090,7 @@
     "id": "docs__ai-sdk-core__telemetry__09",
     "file": "docs__ai-sdk-core__telemetry__09.ts",
     "page": "docs/03-ai-sdk-core/60-telemetry.mdx",
-    "line": 231,
+    "line": 264,
     "ext": "ts",
     "title": null,
     "lines": 1,
@@ -10905,7 +11117,7 @@
     "id": "docs__ai-sdk-core__telemetry__10",
     "file": "docs__ai-sdk-core__telemetry__10.ts",
     "page": "docs/03-ai-sdk-core/60-telemetry.mdx",
-    "line": 244,
+    "line": 277,
     "ext": "ts",
     "title": null,
     "lines": 9,
@@ -10926,7 +11138,7 @@
     "id": "docs__ai-sdk-core__telemetry__11",
     "file": "docs__ai-sdk-core__telemetry__11.ts",
     "page": "docs/03-ai-sdk-core/60-telemetry.mdx",
-    "line": 263,
+    "line": 296,
     "ext": "ts",
     "title": null,
     "lines": 7,
@@ -10947,7 +11159,7 @@
     "id": "docs__ai-sdk-core__telemetry__12",
     "file": "docs__ai-sdk-core__telemetry__12.ts",
     "page": "docs/03-ai-sdk-core/60-telemetry.mdx",
-    "line": 302,
+    "line": 335,
     "ext": "ts",
     "title": null,
     "lines": 4,
@@ -10961,7 +11173,7 @@
     "id": "docs__ai-sdk-core__telemetry__13",
     "file": "docs__ai-sdk-core__telemetry__13.ts",
     "page": "docs/03-ai-sdk-core/60-telemetry.mdx",
-    "line": 311,
+    "line": 344,
     "ext": "ts",
     "title": null,
     "lines": 5,
@@ -10982,7 +11194,7 @@
     "id": "docs__ai-sdk-core__telemetry__14",
     "file": "docs__ai-sdk-core__telemetry__14.ts",
     "page": "docs/03-ai-sdk-core/60-telemetry.mdx",
-    "line": 323,
+    "line": 356,
     "ext": "ts",
     "title": null,
     "lines": 10,
@@ -11009,7 +11221,7 @@
     "id": "docs__ai-sdk-core__telemetry__15",
     "file": "docs__ai-sdk-core__telemetry__15.ts",
     "page": "docs/03-ai-sdk-core/60-telemetry.mdx",
-    "line": 338,
+    "line": 371,
     "ext": "ts",
     "title": null,
     "lines": 3,
@@ -11036,7 +11248,7 @@
     "id": "docs__ai-sdk-core__telemetry__16",
     "file": "docs__ai-sdk-core__telemetry__16.ts",
     "page": "docs/03-ai-sdk-core/60-telemetry.mdx",
-    "line": 354,
+    "line": 387,
     "ext": "ts",
     "title": null,
     "lines": 22,
@@ -11050,7 +11262,7 @@
     "id": "docs__ai-sdk-core__telemetry__17",
     "file": "docs__ai-sdk-core__telemetry__17.ts",
     "page": "docs/03-ai-sdk-core/60-telemetry.mdx",
-    "line": 387,
+    "line": 420,
     "ext": "ts",
     "title": null,
     "lines": 44,
@@ -11101,7 +11313,7 @@
     "id": "docs__ai-sdk-core__telemetry__18",
     "file": "docs__ai-sdk-core__telemetry__18.ts",
     "page": "docs/03-ai-sdk-core/60-telemetry.mdx",
-    "line": 786,
+    "line": 828,
     "ext": "ts",
     "title": null,
     "lines": 14,
@@ -11122,7 +11334,7 @@
     "id": "docs__ai-sdk-core__telemetry__19",
     "file": "docs__ai-sdk-core__telemetry__19.ts",
     "page": "docs/03-ai-sdk-core/60-telemetry.mdx",
-    "line": 821,
+    "line": 863,
     "ext": "ts",
     "title": null,
     "lines": 11,
@@ -11143,7 +11355,7 @@
     "id": "docs__ai-sdk-core__telemetry__20",
     "file": "docs__ai-sdk-core__telemetry__20.ts",
     "page": "docs/03-ai-sdk-core/60-telemetry.mdx",
-    "line": 844,
+    "line": 886,
     "ext": "ts",
     "title": null,
     "lines": 10,
@@ -11157,7 +11369,7 @@
     "id": "docs__ai-sdk-core__telemetry__21",
     "file": "docs__ai-sdk-core__telemetry__21.ts",
     "page": "docs/03-ai-sdk-core/60-telemetry.mdx",
-    "line": 861,
+    "line": 903,
     "ext": "ts",
     "title": null,
     "lines": 13,
@@ -11787,9 +11999,9 @@
       },
       {
         "line": 3,
-        "code": 2304,
+        "code": 2552,
         "kind": "context",
-        "message": "Cannot find name 'chatId'."
+        "message": "Cannot find name 'chatId'. Did you mean 'Chai'?"
       },
       {
         "line": 4,
@@ -11817,9 +12029,9 @@
       },
       {
         "line": 17,
-        "code": 18004,
+        "code": 2552,
         "kind": "context",
-        "message": "No value exists in scope for the shorthand property 'chatId'. Either declare one or provide an initializer."
+        "message": "Cannot find name 'chatId'. Did you mean 'Chai'?"
       }
     ],
     "status": "fragment"
@@ -11844,15 +12056,15 @@
       },
       {
         "line": 2,
-        "code": 18004,
+        "code": 2552,
         "kind": "context",
-        "message": "No value exists in scope for the shorthand property 'chatId'. Either declare one or provide an initializer."
+        "message": "Cannot find name 'chatId'. Did you mean 'Chai'?"
       },
       {
         "line": 3,
-        "code": 2304,
+        "code": 2552,
         "kind": "context",
-        "message": "Cannot find name 'chatId'."
+        "message": "Cannot find name 'chatId'. Did you mean 'Chai'?"
       },
       {
         "line": 6,
@@ -11880,15 +12092,15 @@
       },
       {
         "line": 15,
-        "code": 2304,
+        "code": 2552,
         "kind": "context",
-        "message": "Cannot find name 'chatId'."
+        "message": "Cannot find name 'chatId'. Did you mean 'Chai'?"
       },
       {
         "line": 16,
-        "code": 2304,
+        "code": 2552,
         "kind": "context",
-        "message": "Cannot find name 'chatId'."
+        "message": "Cannot find name 'chatId'. Did you mean 'Chai'?"
       }
     ],
     "status": "fragment"
@@ -11897,7 +12109,7 @@
     "id": "docs__ai-sdk-harnesses__harness-agent__13",
     "file": "docs__ai-sdk-harnesses__harness-agent__13.ts",
     "page": "docs/03-ai-sdk-harnesses/02-harness-agent.mdx",
-    "line": 466,
+    "line": 470,
     "ext": "ts",
     "title": null,
     "lines": 4,
@@ -11925,9 +12137,9 @@
       },
       {
         "line": 4,
-        "code": 18004,
+        "code": 2552,
         "kind": "context",
-        "message": "No value exists in scope for the shorthand property 'chatId'. Either declare one or provide an initializer."
+        "message": "Cannot find name 'chatId'. Did you mean 'Chai'?"
       }
     ],
     "status": "fragment"
@@ -11936,7 +12148,7 @@
     "id": "docs__ai-sdk-harnesses__harness-agent__14",
     "file": "docs__ai-sdk-harnesses__harness-agent__14.ts",
     "page": "docs/03-ai-sdk-harnesses/02-harness-agent.mdx",
-    "line": 476,
+    "line": 480,
     "ext": "ts",
     "title": null,
     "lines": 10,
@@ -11952,9 +12164,9 @@
       },
       {
         "line": 3,
-        "code": 2304,
+        "code": 2552,
         "kind": "context",
-        "message": "Cannot find name 'chatId'."
+        "message": "Cannot find name 'chatId'. Did you mean 'Chai'?"
       },
       {
         "line": 4,
@@ -11993,7 +12205,7 @@
     "id": "docs__ai-sdk-harnesses__harness-agent__15",
     "file": "docs__ai-sdk-harnesses__harness-agent__15.ts",
     "page": "docs/03-ai-sdk-harnesses/02-harness-agent.mdx",
-    "line": 508,
+    "line": 512,
     "ext": "ts",
     "title": null,
     "lines": 17,
@@ -12027,9 +12239,9 @@
       },
       {
         "line": 17,
-        "code": 18004,
+        "code": 2552,
         "kind": "context",
-        "message": "No value exists in scope for the shorthand property 'chatId'. Either declare one or provide an initializer."
+        "message": "Cannot find name 'chatId'. Did you mean 'Chai'?"
       }
     ],
     "status": "fragment"
@@ -12038,7 +12250,7 @@
     "id": "docs__ai-sdk-harnesses__harness-agent__16",
     "file": "docs__ai-sdk-harnesses__harness-agent__16.ts",
     "page": "docs/03-ai-sdk-harnesses/02-harness-agent.mdx",
-    "line": 549,
+    "line": 553,
     "ext": "ts",
     "title": null,
     "lines": 24,
@@ -12095,7 +12307,7 @@
     "id": "docs__ai-sdk-harnesses__harness-agent__17",
     "file": "docs__ai-sdk-harnesses__harness-agent__17.ts",
     "page": "docs/03-ai-sdk-harnesses/02-harness-agent.mdx",
-    "line": 606,
+    "line": 610,
     "ext": "ts",
     "title": null,
     "lines": 21,
@@ -12123,9 +12335,9 @@
       },
       {
         "line": 10,
-        "code": 2304,
+        "code": 2552,
         "kind": "context",
-        "message": "Cannot find name 'chatId'."
+        "message": "Cannot find name 'chatId'. Did you mean 'Chai'?"
       },
       {
         "line": 11,
@@ -12135,9 +12347,9 @@
       },
       {
         "line": 17,
-        "code": 2304,
+        "code": 2552,
         "kind": "context",
-        "message": "Cannot find name 'chatId'."
+        "message": "Cannot find name 'chatId'. Did you mean 'Chai'?"
       }
     ],
     "status": "fragment"
@@ -12146,7 +12358,7 @@
     "id": "docs__ai-sdk-harnesses__harness-agent__18",
     "file": "docs__ai-sdk-harnesses__harness-agent__18.ts",
     "page": "docs/03-ai-sdk-harnesses/02-harness-agent.mdx",
-    "line": 644,
+    "line": 648,
     "ext": "ts",
     "title": null,
     "lines": 13,
@@ -12185,7 +12397,7 @@
     "id": "docs__ai-sdk-harnesses__harness-agent__19",
     "file": "docs__ai-sdk-harnesses__harness-agent__19.ts",
     "page": "docs/03-ai-sdk-harnesses/02-harness-agent.mdx",
-    "line": 665,
+    "line": 669,
     "ext": "ts",
     "title": null,
     "lines": 13,
@@ -12230,7 +12442,7 @@
     "id": "docs__ai-sdk-harnesses__harness-agent__20",
     "file": "docs__ai-sdk-harnesses__harness-agent__20.ts",
     "page": "docs/03-ai-sdk-harnesses/02-harness-agent.mdx",
-    "line": 735,
+    "line": 739,
     "ext": "ts",
     "title": null,
     "lines": 30,
@@ -12263,7 +12475,7 @@
     "id": "docs__ai-sdk-harnesses__harness-agent__21",
     "file": "docs__ai-sdk-harnesses__harness-agent__21.ts",
     "page": "docs/03-ai-sdk-harnesses/02-harness-agent.mdx",
-    "line": 780,
+    "line": 784,
     "ext": "ts",
     "title": null,
     "lines": 42,
@@ -12452,7 +12664,7 @@
     "id": "docs__ai-sdk-harnesses__tools__05",
     "file": "docs__ai-sdk-harnesses__tools__05.ts",
     "page": "docs/03-ai-sdk-harnesses/03-tools.mdx",
-    "line": 139,
+    "line": 142,
     "ext": "ts",
     "title": null,
     "lines": 4,
@@ -12485,7 +12697,7 @@
     "id": "docs__ai-sdk-harnesses__tools__06",
     "file": "docs__ai-sdk-harnesses__tools__06.ts",
     "page": "docs/03-ai-sdk-harnesses/03-tools.mdx",
-    "line": 158,
+    "line": 161,
     "ext": "ts",
     "title": null,
     "lines": 9,
@@ -12518,7 +12730,7 @@
     "id": "docs__ai-sdk-harnesses__tools__07",
     "file": "docs__ai-sdk-harnesses__tools__07.ts",
     "page": "docs/03-ai-sdk-harnesses/03-tools.mdx",
-    "line": 183,
+    "line": 186,
     "ext": "ts",
     "title": null,
     "lines": 5,
@@ -12551,7 +12763,7 @@
     "id": "docs__ai-sdk-harnesses__tools__08",
     "file": "docs__ai-sdk-harnesses__tools__08.ts",
     "page": "docs/03-ai-sdk-harnesses/03-tools.mdx",
-    "line": 193,
+    "line": 196,
     "ext": "ts",
     "title": null,
     "lines": 5,
@@ -12584,7 +12796,7 @@
     "id": "docs__ai-sdk-harnesses__tools__09",
     "file": "docs__ai-sdk-harnesses__tools__09.ts",
     "page": "docs/03-ai-sdk-harnesses/03-tools.mdx",
-    "line": 223,
+    "line": 226,
     "ext": "ts",
     "title": null,
     "lines": 11,
@@ -12629,7 +12841,7 @@
     "id": "docs__ai-sdk-harnesses__tools__10",
     "file": "docs__ai-sdk-harnesses__tools__10.ts",
     "page": "docs/03-ai-sdk-harnesses/03-tools.mdx",
-    "line": 244,
+    "line": 247,
     "ext": "ts",
     "title": null,
     "lines": 4,
@@ -12656,7 +12868,7 @@
     "id": "docs__ai-sdk-harnesses__tools__11",
     "file": "docs__ai-sdk-harnesses__tools__11.ts",
     "page": "docs/03-ai-sdk-harnesses/03-tools.mdx",
-    "line": 262,
+    "line": 265,
     "ext": "ts",
     "title": null,
     "lines": 7,
@@ -12689,7 +12901,7 @@
     "id": "docs__ai-sdk-harnesses__tools__12",
     "file": "docs__ai-sdk-harnesses__tools__12.ts",
     "page": "docs/03-ai-sdk-harnesses/03-tools.mdx",
-    "line": 298,
+    "line": 301,
     "ext": "ts",
     "title": null,
     "lines": 7,
@@ -12932,7 +13144,7 @@
     "id": "docs__ai-sdk-harnesses__workflow-utilities__08",
     "file": "docs__ai-sdk-harnesses__workflow-utilities__08.ts",
     "page": "docs/03-ai-sdk-harnesses/06-workflow-utilities.mdx",
-    "line": 347,
+    "line": 352,
     "ext": "ts",
     "title": null,
     "lines": 52,
@@ -12946,7 +13158,7 @@
     "id": "docs__ai-sdk-harnesses__workflow-utilities__09",
     "file": "docs__ai-sdk-harnesses__workflow-utilities__09.ts",
     "page": "docs/03-ai-sdk-harnesses/06-workflow-utilities.mdx",
-    "line": 408,
+    "line": 413,
     "ext": "ts",
     "title": null,
     "lines": 28,
@@ -12979,7 +13191,7 @@
     "id": "docs__ai-sdk-harnesses__workflow-utilities__10",
     "file": "docs__ai-sdk-harnesses__workflow-utilities__10.ts",
     "page": "docs/03-ai-sdk-harnesses/06-workflow-utilities.mdx",
-    "line": 441,
+    "line": 446,
     "ext": "ts",
     "title": null,
     "lines": 28,
@@ -13240,7 +13452,7 @@
     "id": "docs__ai-sdk-harnesses__ui__05",
     "file": "docs__ai-sdk-harnesses__ui__05.ts",
     "page": "docs/03-ai-sdk-harnesses/07-ui.mdx",
-    "line": 242,
+    "line": 247,
     "ext": "ts",
     "title": null,
     "lines": 8,
@@ -13320,7 +13532,7 @@
     "id": "docs__reference__ai-sdk-core__generate-text__02",
     "file": "docs__reference__ai-sdk-core__generate-text__02.ts",
     "page": "docs/07-reference/01-ai-sdk-core/01-generate-text.mdx",
-    "line": 3291,
+    "line": 3296,
     "ext": "ts",
     "title": null,
     "lines": 3,
@@ -13355,7 +13567,7 @@
     "id": "docs__reference__ai-sdk-core__stream-text__02",
     "file": "docs__reference__ai-sdk-core__stream-text__02.ts",
     "page": "docs/07-reference/01-ai-sdk-core/02-stream-text.mdx",
-    "line": 4370,
+    "line": 4434,
     "ext": "ts",
     "title": null,
     "lines": 3,
@@ -15857,7 +16069,7 @@
     "id": "providers__ai-sdk-providers__openai__09",
     "file": "providers__ai-sdk-providers__openai__09.ts",
     "page": "providers/01-ai-sdk-providers/03-openai.mdx",
-    "line": 350,
+    "line": 360,
     "ext": "ts",
     "title": null,
     "lines": 16,
@@ -15878,10 +16090,10 @@
     "id": "providers__ai-sdk-providers__openai__10",
     "file": "providers__ai-sdk-providers__openai__10.ts",
     "page": "providers/01-ai-sdk-providers/03-openai.mdx",
-    "line": 402,
+    "line": 436,
     "ext": "ts",
     "title": null,
-    "lines": 38,
+    "lines": 49,
     "importsSdk": true,
     "complete": true,
     "elided": false,
@@ -15892,7 +16104,60 @@
     "id": "providers__ai-sdk-providers__openai__11",
     "file": "providers__ai-sdk-providers__openai__11.ts",
     "page": "providers/01-ai-sdk-providers/03-openai.mdx",
-    "line": 498,
+    "line": 511,
+    "ext": "ts",
+    "title": null,
+    "lines": 10,
+    "importsSdk": false,
+    "complete": false,
+    "elided": false,
+    "errors": [
+      {
+        "line": 2,
+        "code": 2304,
+        "kind": "context",
+        "message": "Cannot find name 'generateText'."
+      },
+      {
+        "line": 3,
+        "code": 2552,
+        "kind": "context",
+        "message": "Cannot find name 'openai'. Did you mean 'open'?"
+      },
+      {
+        "line": 4,
+        "code": 2552,
+        "kind": "context",
+        "message": "Cannot find name 'messages'. Did you mean 'onmessage'?"
+      },
+      {
+        "line": 7,
+        "code": 2304,
+        "kind": "context",
+        "message": "Cannot find name 'previousResponse'."
+      }
+    ],
+    "status": "fragment"
+  },
+  {
+    "id": "providers__ai-sdk-providers__openai__12",
+    "file": "providers__ai-sdk-providers__openai__12.ts",
+    "page": "providers/01-ai-sdk-providers/03-openai.mdx",
+    "line": 555,
+    "ext": "ts",
+    "title": null,
+    "lines": 38,
+    "importsSdk": true,
+    "complete": true,
+    "elided": false,
+    "errors": [],
+    "status": "pass"
+  },
+  {
+    "id": "providers__ai-sdk-providers__openai__13",
+    "file": "providers__ai-sdk-providers__openai__13.ts",
+    "page": "providers/01-ai-sdk-providers/03-openai.mdx",
+    "line": 651,
     "ext": "ts",
     "title": null,
     "lines": 23,
@@ -15904,7 +16169,7 @@
         "line": 19,
         "code": 2367,
         "kind": "api",
-        "message": "This comparison appears to be unintentional because the types '\"abort\" | \"custom\" | \"error\" | \"file\" | \"finish\" | \"finish-step\" | \"raw\" | \"reasoning-delta\" | \"reasoning-end\" | \"reasoning-file\" | \"reasoning-start\" | \"source\" | \"start\" | \"start-step\" | ... 11 more ... | \"tool-result\"' and '\"reasoning\"' have no overlap."
+        "message": "This comparison appears to be unintentional because the types '\"abort\" | \"custom\" | \"error\" | \"file\" | \"finish\" | \"finish-step\" | \"ping\" | \"raw\" | \"reasoning-delta\" | \"reasoning-end\" | \"reasoning-file\" | \"reasoning-start\" | \"source\" | \"start\" | ... 13 more ... | \"tool-result\"' and '\"reasoning\"' have no overlap."
       },
       {
         "line": 20,
@@ -15922,10 +16187,10 @@
     "status": "api-mismatch"
   },
   {
-    "id": "providers__ai-sdk-providers__openai__12",
-    "file": "providers__ai-sdk-providers__openai__12.ts",
+    "id": "providers__ai-sdk-providers__openai__14",
+    "file": "providers__ai-sdk-providers__openai__14.ts",
     "page": "providers/01-ai-sdk-providers/03-openai.mdx",
-    "line": 526,
+    "line": 679,
     "ext": "ts",
     "title": null,
     "lines": 16,
@@ -15936,10 +16201,10 @@
     "status": "pass"
   },
   {
-    "id": "providers__ai-sdk-providers__openai__13",
-    "file": "providers__ai-sdk-providers__openai__13.ts",
+    "id": "providers__ai-sdk-providers__openai__15",
+    "file": "providers__ai-sdk-providers__openai__15.ts",
     "page": "providers/01-ai-sdk-providers/03-openai.mdx",
-    "line": 561,
+    "line": 714,
     "ext": "ts",
     "title": null,
     "lines": 16,
@@ -15957,10 +16222,10 @@
     "status": "fragment"
   },
   {
-    "id": "providers__ai-sdk-providers__openai__14",
-    "file": "providers__ai-sdk-providers__openai__14.ts",
+    "id": "providers__ai-sdk-providers__openai__16",
+    "file": "providers__ai-sdk-providers__openai__16.ts",
     "page": "providers/01-ai-sdk-providers/03-openai.mdx",
-    "line": 599,
+    "line": 752,
     "ext": "ts",
     "title": null,
     "lines": 15,
@@ -15971,52 +16236,52 @@
     "status": "pass"
   },
   {
-    "id": "providers__ai-sdk-providers__openai__15",
-    "file": "providers__ai-sdk-providers__openai__15.ts",
-    "page": "providers/01-ai-sdk-providers/03-openai.mdx",
-    "line": 631,
-    "ext": "ts",
-    "title": null,
-    "lines": 5,
-    "importsSdk": false,
-    "complete": false,
-    "elided": false,
-    "errors": [
-      {
-        "line": 2,
-        "code": 2304,
-        "kind": "context",
-        "message": "Cannot find name 'result'."
-      }
-    ],
-    "status": "fragment"
-  },
-  {
-    "id": "providers__ai-sdk-providers__openai__16",
-    "file": "providers__ai-sdk-providers__openai__16.ts",
-    "page": "providers/01-ai-sdk-providers/03-openai.mdx",
-    "line": 642,
-    "ext": "ts",
-    "title": null,
-    "lines": 5,
-    "importsSdk": false,
-    "complete": false,
-    "elided": false,
-    "errors": [
-      {
-        "line": 2,
-        "code": 2304,
-        "kind": "context",
-        "message": "Cannot find name 'result'."
-      }
-    ],
-    "status": "fragment"
-  },
-  {
     "id": "providers__ai-sdk-providers__openai__17",
     "file": "providers__ai-sdk-providers__openai__17.ts",
     "page": "providers/01-ai-sdk-providers/03-openai.mdx",
-    "line": 665,
+    "line": 784,
+    "ext": "ts",
+    "title": null,
+    "lines": 5,
+    "importsSdk": false,
+    "complete": false,
+    "elided": false,
+    "errors": [
+      {
+        "line": 2,
+        "code": 2304,
+        "kind": "context",
+        "message": "Cannot find name 'result'."
+      }
+    ],
+    "status": "fragment"
+  },
+  {
+    "id": "providers__ai-sdk-providers__openai__18",
+    "file": "providers__ai-sdk-providers__openai__18.ts",
+    "page": "providers/01-ai-sdk-providers/03-openai.mdx",
+    "line": 795,
+    "ext": "ts",
+    "title": null,
+    "lines": 5,
+    "importsSdk": false,
+    "complete": false,
+    "elided": false,
+    "errors": [
+      {
+        "line": 2,
+        "code": 2304,
+        "kind": "context",
+        "message": "Cannot find name 'result'."
+      }
+    ],
+    "status": "fragment"
+  },
+  {
+    "id": "providers__ai-sdk-providers__openai__19",
+    "file": "providers__ai-sdk-providers__openai__19.ts",
+    "page": "providers/01-ai-sdk-providers/03-openai.mdx",
+    "line": 818,
     "ext": "ts",
     "title": null,
     "lines": 22,
@@ -16027,10 +16292,10 @@
     "status": "pass"
   },
   {
-    "id": "providers__ai-sdk-providers__openai__18",
-    "file": "providers__ai-sdk-providers__openai__18.ts",
+    "id": "providers__ai-sdk-providers__openai__20",
+    "file": "providers__ai-sdk-providers__openai__20.ts",
     "page": "providers/01-ai-sdk-providers/03-openai.mdx",
-    "line": 711,
+    "line": 864,
     "ext": "ts",
     "title": null,
     "lines": 31,
@@ -16041,10 +16306,10 @@
     "status": "pass"
   },
   {
-    "id": "providers__ai-sdk-providers__openai__19",
-    "file": "providers__ai-sdk-providers__openai__19.ts",
+    "id": "providers__ai-sdk-providers__openai__21",
+    "file": "providers__ai-sdk-providers__openai__21.ts",
     "page": "providers/01-ai-sdk-providers/03-openai.mdx",
-    "line": 776,
+    "line": 929,
     "ext": "ts",
     "title": null,
     "lines": 34,
@@ -16074,10 +16339,10 @@
     "status": "fragment"
   },
   {
-    "id": "providers__ai-sdk-providers__openai__20",
-    "file": "providers__ai-sdk-providers__openai__20.ts",
+    "id": "providers__ai-sdk-providers__openai__22",
+    "file": "providers__ai-sdk-providers__openai__22.ts",
     "page": "providers/01-ai-sdk-providers/03-openai.mdx",
-    "line": 839,
+    "line": 992,
     "ext": "ts",
     "title": null,
     "lines": 26,
@@ -16113,10 +16378,10 @@
     "status": "fragment"
   },
   {
-    "id": "providers__ai-sdk-providers__openai__21",
-    "file": "providers__ai-sdk-providers__openai__21.ts",
+    "id": "providers__ai-sdk-providers__openai__23",
+    "file": "providers__ai-sdk-providers__openai__23.ts",
     "page": "providers/01-ai-sdk-providers/03-openai.mdx",
-    "line": 881,
+    "line": 1034,
     "ext": "ts",
     "title": null,
     "lines": 5,
@@ -16152,10 +16417,10 @@
     "status": "syntax"
   },
   {
-    "id": "providers__ai-sdk-providers__openai__22",
-    "file": "providers__ai-sdk-providers__openai__22.ts",
+    "id": "providers__ai-sdk-providers__openai__24",
+    "file": "providers__ai-sdk-providers__openai__24.ts",
     "page": "providers/01-ai-sdk-providers/03-openai.mdx",
-    "line": 891,
+    "line": 1044,
     "ext": "ts",
     "title": null,
     "lines": 17,
@@ -16191,10 +16456,10 @@
     "status": "syntax"
   },
   {
-    "id": "providers__ai-sdk-providers__openai__23",
-    "file": "providers__ai-sdk-providers__openai__23.ts",
+    "id": "providers__ai-sdk-providers__openai__25",
+    "file": "providers__ai-sdk-providers__openai__25.ts",
     "page": "providers/01-ai-sdk-providers/03-openai.mdx",
-    "line": 918,
+    "line": 1071,
     "ext": "ts",
     "title": null,
     "lines": 17,
@@ -16205,10 +16470,10 @@
     "status": "pass"
   },
   {
-    "id": "providers__ai-sdk-providers__openai__24",
-    "file": "providers__ai-sdk-providers__openai__24.ts",
+    "id": "providers__ai-sdk-providers__openai__26",
+    "file": "providers__ai-sdk-providers__openai__26.ts",
     "page": "providers/01-ai-sdk-providers/03-openai.mdx",
-    "line": 938,
+    "line": 1091,
     "ext": "ts",
     "title": null,
     "lines": 20,
@@ -16219,10 +16484,10 @@
     "status": "pass"
   },
   {
-    "id": "providers__ai-sdk-providers__openai__25",
-    "file": "providers__ai-sdk-providers__openai__25.ts",
+    "id": "providers__ai-sdk-providers__openai__27",
+    "file": "providers__ai-sdk-providers__openai__27.ts",
     "page": "providers/01-ai-sdk-providers/03-openai.mdx",
-    "line": 970,
+    "line": 1123,
     "ext": "ts",
     "title": null,
     "lines": 4,
@@ -16240,10 +16505,10 @@
     "status": "fragment"
   },
   {
-    "id": "providers__ai-sdk-providers__openai__26",
-    "file": "providers__ai-sdk-providers__openai__26.ts",
+    "id": "providers__ai-sdk-providers__openai__28",
+    "file": "providers__ai-sdk-providers__openai__28.ts",
     "page": "providers/01-ai-sdk-providers/03-openai.mdx",
-    "line": 988,
+    "line": 1141,
     "ext": "ts",
     "title": null,
     "lines": 15,
@@ -16254,10 +16519,10 @@
     "status": "pass"
   },
   {
-    "id": "providers__ai-sdk-providers__openai__27",
-    "file": "providers__ai-sdk-providers__openai__27.ts",
+    "id": "providers__ai-sdk-providers__openai__29",
+    "file": "providers__ai-sdk-providers__openai__29.ts",
     "page": "providers/01-ai-sdk-providers/03-openai.mdx",
-    "line": 1021,
+    "line": 1187,
     "ext": "ts",
     "title": null,
     "lines": 14,
@@ -16268,10 +16533,43 @@
     "status": "pass"
   },
   {
-    "id": "providers__ai-sdk-providers__openai__28",
-    "file": "providers__ai-sdk-providers__openai__28.ts",
+    "id": "providers__ai-sdk-providers__openai__30",
+    "file": "providers__ai-sdk-providers__openai__30.ts",
     "page": "providers/01-ai-sdk-providers/03-openai.mdx",
-    "line": 1061,
+    "line": 1209,
+    "ext": "ts",
+    "title": null,
+    "lines": 13,
+    "importsSdk": false,
+    "complete": false,
+    "elided": false,
+    "errors": [
+      {
+        "line": 2,
+        "code": 2304,
+        "kind": "context",
+        "message": "Cannot find name 'generateText'."
+      },
+      {
+        "line": 3,
+        "code": 2552,
+        "kind": "context",
+        "message": "Cannot find name 'openai'. Did you mean 'open'?"
+      },
+      {
+        "line": 6,
+        "code": 2552,
+        "kind": "context",
+        "message": "Cannot find name 'openai'. Did you mean 'open'?"
+      }
+    ],
+    "status": "fragment"
+  },
+  {
+    "id": "providers__ai-sdk-providers__openai__31",
+    "file": "providers__ai-sdk-providers__openai__31.ts",
+    "page": "providers/01-ai-sdk-providers/03-openai.mdx",
+    "line": 1255,
     "ext": "ts",
     "title": null,
     "lines": 4,
@@ -16289,10 +16587,10 @@
     "status": "syntax"
   },
   {
-    "id": "providers__ai-sdk-providers__openai__29",
-    "file": "providers__ai-sdk-providers__openai__29.ts",
+    "id": "providers__ai-sdk-providers__openai__32",
+    "file": "providers__ai-sdk-providers__openai__32.ts",
     "page": "providers/01-ai-sdk-providers/03-openai.mdx",
-    "line": 1082,
+    "line": 1276,
     "ext": "ts",
     "title": null,
     "lines": 5,
@@ -16303,10 +16601,10 @@
     "status": "pass"
   },
   {
-    "id": "providers__ai-sdk-providers__openai__30",
-    "file": "providers__ai-sdk-providers__openai__30.ts",
+    "id": "providers__ai-sdk-providers__openai__33",
+    "file": "providers__ai-sdk-providers__openai__33.ts",
     "page": "providers/01-ai-sdk-providers/03-openai.mdx",
-    "line": 1112,
+    "line": 1306,
     "ext": "ts",
     "title": null,
     "lines": 30,
@@ -16324,10 +16622,10 @@
     "status": "fragment"
   },
   {
-    "id": "providers__ai-sdk-providers__openai__31",
-    "file": "providers__ai-sdk-providers__openai__31.ts",
+    "id": "providers__ai-sdk-providers__openai__34",
+    "file": "providers__ai-sdk-providers__openai__34.ts",
     "page": "providers/01-ai-sdk-providers/03-openai.mdx",
-    "line": 1199,
+    "line": 1393,
     "ext": "ts",
     "title": null,
     "lines": 16,
@@ -16351,10 +16649,10 @@
     "status": "fragment"
   },
   {
-    "id": "providers__ai-sdk-providers__openai__32",
-    "file": "providers__ai-sdk-providers__openai__32.ts",
+    "id": "providers__ai-sdk-providers__openai__35",
+    "file": "providers__ai-sdk-providers__openai__35.ts",
     "page": "providers/01-ai-sdk-providers/03-openai.mdx",
-    "line": 1235,
+    "line": 1429,
     "ext": "ts",
     "title": null,
     "lines": 15,
@@ -16372,10 +16670,10 @@
     "status": "fragment"
   },
   {
-    "id": "providers__ai-sdk-providers__openai__33",
-    "file": "providers__ai-sdk-providers__openai__33.ts",
+    "id": "providers__ai-sdk-providers__openai__36",
+    "file": "providers__ai-sdk-providers__openai__36.ts",
     "page": "providers/01-ai-sdk-providers/03-openai.mdx",
-    "line": 1257,
+    "line": 1451,
     "ext": "ts",
     "title": null,
     "lines": 18,
@@ -16405,10 +16703,10 @@
     "status": "fragment"
   },
   {
-    "id": "providers__ai-sdk-providers__openai__34",
-    "file": "providers__ai-sdk-providers__openai__34.ts",
+    "id": "providers__ai-sdk-providers__openai__37",
+    "file": "providers__ai-sdk-providers__openai__37.ts",
     "page": "providers/01-ai-sdk-providers/03-openai.mdx",
-    "line": 1290,
+    "line": 1484,
     "ext": "ts",
     "title": null,
     "lines": 12,
@@ -16438,10 +16736,10 @@
     "status": "fragment"
   },
   {
-    "id": "providers__ai-sdk-providers__openai__35",
-    "file": "providers__ai-sdk-providers__openai__35.ts",
+    "id": "providers__ai-sdk-providers__openai__38",
+    "file": "providers__ai-sdk-providers__openai__38.ts",
     "page": "providers/01-ai-sdk-providers/03-openai.mdx",
-    "line": 1319,
+    "line": 1513,
     "ext": "ts",
     "title": null,
     "lines": 26,
@@ -16477,10 +16775,10 @@
     "status": "fragment"
   },
   {
-    "id": "providers__ai-sdk-providers__openai__36",
-    "file": "providers__ai-sdk-providers__openai__36.ts",
+    "id": "providers__ai-sdk-providers__openai__39",
+    "file": "providers__ai-sdk-providers__openai__39.ts",
     "page": "providers/01-ai-sdk-providers/03-openai.mdx",
-    "line": 1350,
+    "line": 1544,
     "ext": "ts",
     "title": null,
     "lines": 23,
@@ -16534,10 +16832,10 @@
     "status": "fragment"
   },
   {
-    "id": "providers__ai-sdk-providers__openai__37",
-    "file": "providers__ai-sdk-providers__openai__37.ts",
+    "id": "providers__ai-sdk-providers__openai__40",
+    "file": "providers__ai-sdk-providers__openai__40.ts",
     "page": "providers/01-ai-sdk-providers/03-openai.mdx",
-    "line": 1385,
+    "line": 1579,
     "ext": "ts",
     "title": null,
     "lines": 16,
@@ -16548,10 +16846,10 @@
     "status": "pass"
   },
   {
-    "id": "providers__ai-sdk-providers__openai__38",
-    "file": "providers__ai-sdk-providers__openai__38.ts",
+    "id": "providers__ai-sdk-providers__openai__41",
+    "file": "providers__ai-sdk-providers__openai__41.ts",
     "page": "providers/01-ai-sdk-providers/03-openai.mdx",
-    "line": 1426,
+    "line": 1620,
     "ext": "ts",
     "title": null,
     "lines": 38,
@@ -16562,10 +16860,10 @@
     "status": "pass"
   },
   {
-    "id": "providers__ai-sdk-providers__openai__39",
-    "file": "providers__ai-sdk-providers__openai__39.ts",
+    "id": "providers__ai-sdk-providers__openai__42",
+    "file": "providers__ai-sdk-providers__openai__42.ts",
     "page": "providers/01-ai-sdk-providers/03-openai.mdx",
-    "line": 1477,
+    "line": 1671,
     "ext": "ts",
     "title": null,
     "lines": 33,
@@ -16643,10 +16941,10 @@
     "status": "fragment"
   },
   {
-    "id": "providers__ai-sdk-providers__openai__40",
-    "file": "providers__ai-sdk-providers__openai__40.ts",
+    "id": "providers__ai-sdk-providers__openai__43",
+    "file": "providers__ai-sdk-providers__openai__43.ts",
     "page": "providers/01-ai-sdk-providers/03-openai.mdx",
-    "line": 1523,
+    "line": 1717,
     "ext": "ts",
     "title": null,
     "lines": 61,
@@ -16657,10 +16955,10 @@
     "status": "pass"
   },
   {
-    "id": "providers__ai-sdk-providers__openai__41",
-    "file": "providers__ai-sdk-providers__openai__41.ts",
+    "id": "providers__ai-sdk-providers__openai__44",
+    "file": "providers__ai-sdk-providers__openai__44.ts",
     "page": "providers/01-ai-sdk-providers/03-openai.mdx",
-    "line": 1601,
+    "line": 1795,
     "ext": "ts",
     "title": null,
     "lines": 80,
@@ -16671,10 +16969,49 @@
     "status": "pass"
   },
   {
-    "id": "providers__ai-sdk-providers__openai__42",
-    "file": "providers__ai-sdk-providers__openai__42.ts",
+    "id": "providers__ai-sdk-providers__openai__45",
+    "file": "providers__ai-sdk-providers__openai__45.ts",
     "page": "providers/01-ai-sdk-providers/03-openai.mdx",
-    "line": 1708,
+    "line": 1896,
+    "ext": "ts",
+    "title": null,
+    "lines": 36,
+    "importsSdk": true,
+    "complete": true,
+    "elided": false,
+    "errors": [
+      {
+        "line": 7,
+        "code": 2552,
+        "kind": "context",
+        "message": "Cannot find name 'messages'. Did you mean 'onmessage'?"
+      },
+      {
+        "line": 32,
+        "code": 2304,
+        "kind": "context",
+        "message": "Cannot find name 'generateText'."
+      },
+      {
+        "line": 34,
+        "code": 18004,
+        "kind": "context",
+        "message": "No value exists in scope for the shorthand property 'tools'. Either declare one or provide an initializer."
+      },
+      {
+        "line": 35,
+        "code": 2552,
+        "kind": "context",
+        "message": "Cannot find name 'messages'. Did you mean 'onmessage'?"
+      }
+    ],
+    "status": "fragment"
+  },
+  {
+    "id": "providers__ai-sdk-providers__openai__46",
+    "file": "providers__ai-sdk-providers__openai__46.ts",
+    "page": "providers/01-ai-sdk-providers/03-openai.mdx",
+    "line": 1958,
     "ext": "ts",
     "title": null,
     "lines": 24,
@@ -16692,10 +17029,10 @@
     "status": "fragment"
   },
   {
-    "id": "providers__ai-sdk-providers__openai__43",
-    "file": "providers__ai-sdk-providers__openai__43.ts",
+    "id": "providers__ai-sdk-providers__openai__47",
+    "file": "providers__ai-sdk-providers__openai__47.ts",
     "page": "providers/01-ai-sdk-providers/03-openai.mdx",
-    "line": 1737,
+    "line": 1987,
     "ext": "ts",
     "title": null,
     "lines": 25,
@@ -16706,10 +17043,10 @@
     "status": "pass"
   },
   {
-    "id": "providers__ai-sdk-providers__openai__44",
-    "file": "providers__ai-sdk-providers__openai__44.ts",
+    "id": "providers__ai-sdk-providers__openai__48",
+    "file": "providers__ai-sdk-providers__openai__48.ts",
     "page": "providers/01-ai-sdk-providers/03-openai.mdx",
-    "line": 1783,
+    "line": 2033,
     "ext": "ts",
     "title": null,
     "lines": 17,
@@ -16733,10 +17070,10 @@
     "status": "fragment"
   },
   {
-    "id": "providers__ai-sdk-providers__openai__45",
-    "file": "providers__ai-sdk-providers__openai__45.ts",
+    "id": "providers__ai-sdk-providers__openai__49",
+    "file": "providers__ai-sdk-providers__openai__49.ts",
     "page": "providers/01-ai-sdk-providers/03-openai.mdx",
-    "line": 1837,
+    "line": 2087,
     "ext": "ts",
     "title": null,
     "lines": 19,
@@ -16766,10 +17103,10 @@
     "status": "fragment"
   },
   {
-    "id": "providers__ai-sdk-providers__openai__46",
-    "file": "providers__ai-sdk-providers__openai__46.ts",
+    "id": "providers__ai-sdk-providers__openai__50",
+    "file": "providers__ai-sdk-providers__openai__50.ts",
     "page": "providers/01-ai-sdk-providers/03-openai.mdx",
-    "line": 1864,
+    "line": 2114,
     "ext": "ts",
     "title": null,
     "lines": 5,
@@ -16793,10 +17130,10 @@
     "status": "syntax"
   },
   {
-    "id": "providers__ai-sdk-providers__openai__47",
-    "file": "providers__ai-sdk-providers__openai__47.ts",
+    "id": "providers__ai-sdk-providers__openai__51",
+    "file": "providers__ai-sdk-providers__openai__51.ts",
     "page": "providers/01-ai-sdk-providers/03-openai.mdx",
-    "line": 1874,
+    "line": 2124,
     "ext": "ts",
     "title": null,
     "lines": 5,
@@ -16826,10 +17163,10 @@
     "status": "syntax"
   },
   {
-    "id": "providers__ai-sdk-providers__openai__48",
-    "file": "providers__ai-sdk-providers__openai__48.ts",
+    "id": "providers__ai-sdk-providers__openai__52",
+    "file": "providers__ai-sdk-providers__openai__52.ts",
     "page": "providers/01-ai-sdk-providers/03-openai.mdx",
-    "line": 1887,
+    "line": 2137,
     "ext": "ts",
     "title": null,
     "lines": 20,
@@ -16859,10 +17196,10 @@
     "status": "fragment"
   },
   {
-    "id": "providers__ai-sdk-providers__openai__49",
-    "file": "providers__ai-sdk-providers__openai__49.ts",
+    "id": "providers__ai-sdk-providers__openai__53",
+    "file": "providers__ai-sdk-providers__openai__53.ts",
     "page": "providers/01-ai-sdk-providers/03-openai.mdx",
-    "line": 1912,
+    "line": 2162,
     "ext": "ts",
     "title": null,
     "lines": 5,
@@ -16892,10 +17229,10 @@
     "status": "syntax"
   },
   {
-    "id": "providers__ai-sdk-providers__openai__50",
-    "file": "providers__ai-sdk-providers__openai__50.ts",
+    "id": "providers__ai-sdk-providers__openai__54",
+    "file": "providers__ai-sdk-providers__openai__54.ts",
     "page": "providers/01-ai-sdk-providers/03-openai.mdx",
-    "line": 1922,
+    "line": 2172,
     "ext": "ts",
     "title": null,
     "lines": 6,
@@ -16931,10 +17268,10 @@
     "status": "syntax"
   },
   {
-    "id": "providers__ai-sdk-providers__openai__51",
-    "file": "providers__ai-sdk-providers__openai__51.ts",
+    "id": "providers__ai-sdk-providers__openai__55",
+    "file": "providers__ai-sdk-providers__openai__55.ts",
     "page": "providers/01-ai-sdk-providers/03-openai.mdx",
-    "line": 1940,
+    "line": 2190,
     "ext": "ts",
     "title": null,
     "lines": 18,
@@ -17018,10 +17355,24 @@
     "status": "fragment"
   },
   {
-    "id": "providers__ai-sdk-providers__openai__52",
-    "file": "providers__ai-sdk-providers__openai__52.ts",
+    "id": "providers__ai-sdk-providers__openai__56",
+    "file": "providers__ai-sdk-providers__openai__56.ts",
     "page": "providers/01-ai-sdk-providers/03-openai.mdx",
-    "line": 1994,
+    "line": 2231,
+    "ext": "ts",
+    "title": null,
+    "lines": 20,
+    "importsSdk": true,
+    "complete": true,
+    "elided": false,
+    "errors": [],
+    "status": "pass"
+  },
+  {
+    "id": "providers__ai-sdk-providers__openai__57",
+    "file": "providers__ai-sdk-providers__openai__57.ts",
+    "page": "providers/01-ai-sdk-providers/03-openai.mdx",
+    "line": 2285,
     "ext": "ts",
     "title": null,
     "lines": 58,
@@ -17039,10 +17390,10 @@
     "status": "other"
   },
   {
-    "id": "providers__ai-sdk-providers__openai__53",
-    "file": "providers__ai-sdk-providers__openai__53.ts",
+    "id": "providers__ai-sdk-providers__openai__58",
+    "file": "providers__ai-sdk-providers__openai__58.ts",
     "page": "providers/01-ai-sdk-providers/03-openai.mdx",
-    "line": 2077,
+    "line": 2368,
     "ext": "ts",
     "title": null,
     "lines": 29,
@@ -17053,10 +17404,10 @@
     "status": "pass"
   },
   {
-    "id": "providers__ai-sdk-providers__openai__54",
-    "file": "providers__ai-sdk-providers__openai__54.ts",
+    "id": "providers__ai-sdk-providers__openai__59",
+    "file": "providers__ai-sdk-providers__openai__59.ts",
     "page": "providers/01-ai-sdk-providers/03-openai.mdx",
-    "line": 2129,
+    "line": 2420,
     "ext": "ts",
     "title": null,
     "lines": 50,
@@ -17074,10 +17425,10 @@
     "status": "api-mismatch"
   },
   {
-    "id": "providers__ai-sdk-providers__openai__55",
-    "file": "providers__ai-sdk-providers__openai__55.ts",
+    "id": "providers__ai-sdk-providers__openai__60",
+    "file": "providers__ai-sdk-providers__openai__60.ts",
     "page": "providers/01-ai-sdk-providers/03-openai.mdx",
-    "line": 2197,
+    "line": 2488,
     "ext": "ts",
     "title": null,
     "lines": 16,
@@ -17095,10 +17446,10 @@
     "status": "fragment"
   },
   {
-    "id": "providers__ai-sdk-providers__openai__56",
-    "file": "providers__ai-sdk-providers__openai__56.ts",
+    "id": "providers__ai-sdk-providers__openai__61",
+    "file": "providers__ai-sdk-providers__openai__61.ts",
     "page": "providers/01-ai-sdk-providers/03-openai.mdx",
-    "line": 2233,
+    "line": 2524,
     "ext": "ts",
     "title": null,
     "lines": 16,
@@ -17116,10 +17467,10 @@
     "status": "fragment"
   },
   {
-    "id": "providers__ai-sdk-providers__openai__57",
-    "file": "providers__ai-sdk-providers__openai__57.ts",
+    "id": "providers__ai-sdk-providers__openai__62",
+    "file": "providers__ai-sdk-providers__openai__62.ts",
     "page": "providers/01-ai-sdk-providers/03-openai.mdx",
-    "line": 2262,
+    "line": 2553,
     "ext": "ts",
     "title": null,
     "lines": 39,
@@ -17137,10 +17488,10 @@
     "status": "fragment"
   },
   {
-    "id": "providers__ai-sdk-providers__openai__58",
-    "file": "providers__ai-sdk-providers__openai__58.tsx",
+    "id": "providers__ai-sdk-providers__openai__63",
+    "file": "providers__ai-sdk-providers__openai__63.tsx",
     "page": "providers/01-ai-sdk-providers/03-openai.mdx",
-    "line": 2308,
+    "line": 2599,
     "ext": "tsx",
     "title": null,
     "lines": 25,
@@ -17224,10 +17575,10 @@
     "status": "fragment"
   },
   {
-    "id": "providers__ai-sdk-providers__openai__59",
-    "file": "providers__ai-sdk-providers__openai__59.ts",
+    "id": "providers__ai-sdk-providers__openai__64",
+    "file": "providers__ai-sdk-providers__openai__64.ts",
     "page": "providers/01-ai-sdk-providers/03-openai.mdx",
-    "line": 2373,
+    "line": 2664,
     "ext": "ts",
     "title": null,
     "lines": 1,
@@ -17245,10 +17596,10 @@
     "status": "fragment"
   },
   {
-    "id": "providers__ai-sdk-providers__openai__60",
-    "file": "providers__ai-sdk-providers__openai__60.ts",
+    "id": "providers__ai-sdk-providers__openai__65",
+    "file": "providers__ai-sdk-providers__openai__65.ts",
     "page": "providers/01-ai-sdk-providers/03-openai.mdx",
-    "line": 2380,
+    "line": 2671,
     "ext": "ts",
     "title": null,
     "lines": 16,
@@ -17266,10 +17617,24 @@
     "status": "fragment"
   },
   {
-    "id": "providers__ai-sdk-providers__openai__61",
-    "file": "providers__ai-sdk-providers__openai__61.ts",
+    "id": "providers__ai-sdk-providers__openai__66",
+    "file": "providers__ai-sdk-providers__openai__66.ts",
     "page": "providers/01-ai-sdk-providers/03-openai.mdx",
-    "line": 2519,
+    "line": 2803,
+    "ext": "ts",
+    "title": null,
+    "lines": 22,
+    "importsSdk": true,
+    "complete": true,
+    "elided": false,
+    "errors": [],
+    "status": "pass"
+  },
+  {
+    "id": "providers__ai-sdk-providers__openai__67",
+    "file": "providers__ai-sdk-providers__openai__67.ts",
+    "page": "providers/01-ai-sdk-providers/03-openai.mdx",
+    "line": 2853,
     "ext": "ts",
     "title": null,
     "lines": 15,
@@ -17280,10 +17645,10 @@
     "status": "pass"
   },
   {
-    "id": "providers__ai-sdk-providers__openai__62",
-    "file": "providers__ai-sdk-providers__openai__62.ts",
+    "id": "providers__ai-sdk-providers__openai__68",
+    "file": "providers__ai-sdk-providers__openai__68.ts",
     "page": "providers/01-ai-sdk-providers/03-openai.mdx",
-    "line": 2547,
+    "line": 2881,
     "ext": "ts",
     "title": null,
     "lines": 15,
@@ -17294,10 +17659,10 @@
     "status": "pass"
   },
   {
-    "id": "providers__ai-sdk-providers__openai__63",
-    "file": "providers__ai-sdk-providers__openai__63.ts",
+    "id": "providers__ai-sdk-providers__openai__69",
+    "file": "providers__ai-sdk-providers__openai__69.ts",
     "page": "providers/01-ai-sdk-providers/03-openai.mdx",
-    "line": 2581,
+    "line": 2915,
     "ext": "ts",
     "title": null,
     "lines": 29,
@@ -17307,18 +17672,45 @@
     "errors": [
       {
         "line": 24,
-        "code": 2353,
+        "code": 2769,
         "kind": "api",
-        "message": "Object literal may only specify known properties, and 'schemaName' does not exist in type '{ schema: FlexibleSchema<{ name: string; ingredients: { name: string; amount: string; }[]; steps: string[]; }>; name?: string | undefined; description?: string | undefined; }'."
+        "message": "No overload matches this call."
       }
     ],
     "status": "api-mismatch"
   },
   {
-    "id": "providers__ai-sdk-providers__openai__64",
-    "file": "providers__ai-sdk-providers__openai__64.ts",
+    "id": "providers__ai-sdk-providers__openai__70",
+    "file": "providers__ai-sdk-providers__openai__70.ts",
     "page": "providers/01-ai-sdk-providers/03-openai.mdx",
-    "line": 2629,
+    "line": 2964,
+    "ext": "ts",
+    "title": null,
+    "lines": 8,
+    "importsSdk": false,
+    "complete": false,
+    "elided": false,
+    "errors": [
+      {
+        "line": 2,
+        "code": 2304,
+        "kind": "context",
+        "message": "Cannot find name 'generateText'."
+      },
+      {
+        "line": 3,
+        "code": 2552,
+        "kind": "context",
+        "message": "Cannot find name 'openai'. Did you mean 'open'?"
+      }
+    ],
+    "status": "fragment"
+  },
+  {
+    "id": "providers__ai-sdk-providers__openai__71",
+    "file": "providers__ai-sdk-providers__openai__71.ts",
+    "page": "providers/01-ai-sdk-providers/03-openai.mdx",
+    "line": 2990,
     "ext": "ts",
     "title": null,
     "lines": 18,
@@ -17329,10 +17721,10 @@
     "status": "pass"
   },
   {
-    "id": "providers__ai-sdk-providers__openai__65",
-    "file": "providers__ai-sdk-providers__openai__65.ts",
+    "id": "providers__ai-sdk-providers__openai__72",
+    "file": "providers__ai-sdk-providers__openai__72.ts",
     "page": "providers/01-ai-sdk-providers/03-openai.mdx",
-    "line": 2655,
+    "line": 3016,
     "ext": "ts",
     "title": null,
     "lines": 19,
@@ -17362,10 +17754,10 @@
     "status": "fragment"
   },
   {
-    "id": "providers__ai-sdk-providers__openai__66",
-    "file": "providers__ai-sdk-providers__openai__66.ts",
+    "id": "providers__ai-sdk-providers__openai__73",
+    "file": "providers__ai-sdk-providers__openai__73.ts",
     "page": "providers/01-ai-sdk-providers/03-openai.mdx",
-    "line": 2682,
+    "line": 3043,
     "ext": "ts",
     "title": null,
     "lines": 5,
@@ -17395,10 +17787,10 @@
     "status": "syntax"
   },
   {
-    "id": "providers__ai-sdk-providers__openai__67",
-    "file": "providers__ai-sdk-providers__openai__67.ts",
+    "id": "providers__ai-sdk-providers__openai__74",
+    "file": "providers__ai-sdk-providers__openai__74.ts",
     "page": "providers/01-ai-sdk-providers/03-openai.mdx",
-    "line": 2695,
+    "line": 3056,
     "ext": "ts",
     "title": null,
     "lines": 20,
@@ -17428,10 +17820,10 @@
     "status": "fragment"
   },
   {
-    "id": "providers__ai-sdk-providers__openai__68",
-    "file": "providers__ai-sdk-providers__openai__68.ts",
+    "id": "providers__ai-sdk-providers__openai__75",
+    "file": "providers__ai-sdk-providers__openai__75.ts",
     "page": "providers/01-ai-sdk-providers/03-openai.mdx",
-    "line": 2725,
+    "line": 3086,
     "ext": "ts",
     "title": null,
     "lines": 5,
@@ -17461,10 +17853,10 @@
     "status": "syntax"
   },
   {
-    "id": "providers__ai-sdk-providers__openai__69",
-    "file": "providers__ai-sdk-providers__openai__69.ts",
+    "id": "providers__ai-sdk-providers__openai__76",
+    "file": "providers__ai-sdk-providers__openai__76.ts",
     "page": "providers/01-ai-sdk-providers/03-openai.mdx",
-    "line": 2735,
+    "line": 3096,
     "ext": "ts",
     "title": null,
     "lines": 6,
@@ -17500,10 +17892,10 @@
     "status": "syntax"
   },
   {
-    "id": "providers__ai-sdk-providers__openai__70",
-    "file": "providers__ai-sdk-providers__openai__70.ts",
+    "id": "providers__ai-sdk-providers__openai__77",
+    "file": "providers__ai-sdk-providers__openai__77.ts",
     "page": "providers/01-ai-sdk-providers/03-openai.mdx",
-    "line": 2750,
+    "line": 3111,
     "ext": "ts",
     "title": null,
     "lines": 21,
@@ -17545,10 +17937,10 @@
     "status": "fragment"
   },
   {
-    "id": "providers__ai-sdk-providers__openai__71",
-    "file": "providers__ai-sdk-providers__openai__71.ts",
+    "id": "providers__ai-sdk-providers__openai__78",
+    "file": "providers__ai-sdk-providers__openai__78.ts",
     "page": "providers/01-ai-sdk-providers/03-openai.mdx",
-    "line": 2777,
+    "line": 3138,
     "ext": "ts",
     "title": null,
     "lines": 4,
@@ -17566,10 +17958,10 @@
     "status": "fragment"
   },
   {
-    "id": "providers__ai-sdk-providers__openai__72",
-    "file": "providers__ai-sdk-providers__openai__72.ts",
+    "id": "providers__ai-sdk-providers__openai__79",
+    "file": "providers__ai-sdk-providers__openai__79.ts",
     "page": "providers/01-ai-sdk-providers/03-openai.mdx",
-    "line": 2794,
+    "line": 3155,
     "ext": "ts",
     "title": null,
     "lines": 21,
@@ -17593,10 +17985,10 @@
     "status": "fragment"
   },
   {
-    "id": "providers__ai-sdk-providers__openai__73",
-    "file": "providers__ai-sdk-providers__openai__73.ts",
+    "id": "providers__ai-sdk-providers__openai__80",
+    "file": "providers__ai-sdk-providers__openai__80.ts",
     "page": "providers/01-ai-sdk-providers/03-openai.mdx",
-    "line": 2834,
+    "line": 3195,
     "ext": "ts",
     "title": null,
     "lines": 24,
@@ -17614,10 +18006,10 @@
     "status": "fragment"
   },
   {
-    "id": "providers__ai-sdk-providers__openai__74",
-    "file": "providers__ai-sdk-providers__openai__74.ts",
+    "id": "providers__ai-sdk-providers__openai__81",
+    "file": "providers__ai-sdk-providers__openai__81.ts",
     "page": "providers/01-ai-sdk-providers/03-openai.mdx",
-    "line": 2872,
+    "line": 3233,
     "ext": "ts",
     "title": null,
     "lines": 9,
@@ -17628,10 +18020,10 @@
     "status": "pass"
   },
   {
-    "id": "providers__ai-sdk-providers__openai__75",
-    "file": "providers__ai-sdk-providers__openai__75.ts",
+    "id": "providers__ai-sdk-providers__openai__82",
+    "file": "providers__ai-sdk-providers__openai__82.ts",
     "page": "providers/01-ai-sdk-providers/03-openai.mdx",
-    "line": 2886,
+    "line": 3247,
     "ext": "ts",
     "title": null,
     "lines": 14,
@@ -17642,10 +18034,10 @@
     "status": "pass"
   },
   {
-    "id": "providers__ai-sdk-providers__openai__76",
-    "file": "providers__ai-sdk-providers__openai__76.ts",
+    "id": "providers__ai-sdk-providers__openai__83",
+    "file": "providers__ai-sdk-providers__openai__83.ts",
     "page": "providers/01-ai-sdk-providers/03-openai.mdx",
-    "line": 2905,
+    "line": 3266,
     "ext": "ts",
     "title": null,
     "lines": 35,
@@ -17656,10 +18048,10 @@
     "status": "pass"
   },
   {
-    "id": "providers__ai-sdk-providers__openai__77",
-    "file": "providers__ai-sdk-providers__openai__77.ts",
+    "id": "providers__ai-sdk-providers__openai__84",
+    "file": "providers__ai-sdk-providers__openai__84.ts",
     "page": "providers/01-ai-sdk-providers/03-openai.mdx",
-    "line": 2947,
+    "line": 3308,
     "ext": "ts",
     "title": null,
     "lines": 15,
@@ -17670,10 +18062,10 @@
     "status": "pass"
   },
   {
-    "id": "providers__ai-sdk-providers__openai__78",
-    "file": "providers__ai-sdk-providers__openai__78.ts",
+    "id": "providers__ai-sdk-providers__openai__85",
+    "file": "providers__ai-sdk-providers__openai__85.ts",
     "page": "providers/01-ai-sdk-providers/03-openai.mdx",
-    "line": 2974,
+    "line": 3335,
     "ext": "ts",
     "title": null,
     "lines": 19,
@@ -17691,10 +18083,10 @@
     "status": "fragment"
   },
   {
-    "id": "providers__ai-sdk-providers__openai__79",
-    "file": "providers__ai-sdk-providers__openai__79.ts",
+    "id": "providers__ai-sdk-providers__openai__86",
+    "file": "providers__ai-sdk-providers__openai__86.ts",
     "page": "providers/01-ai-sdk-providers/03-openai.mdx",
-    "line": 3002,
+    "line": 3363,
     "ext": "ts",
     "title": null,
     "lines": 1,
@@ -17712,10 +18104,10 @@
     "status": "fragment"
   },
   {
-    "id": "providers__ai-sdk-providers__openai__80",
-    "file": "providers__ai-sdk-providers__openai__80.ts",
+    "id": "providers__ai-sdk-providers__openai__87",
+    "file": "providers__ai-sdk-providers__openai__87.ts",
     "page": "providers/01-ai-sdk-providers/03-openai.mdx",
-    "line": 3009,
+    "line": 3370,
     "ext": "ts",
     "title": null,
     "lines": 15,
@@ -17739,10 +18131,10 @@
     "status": "fragment"
   },
   {
-    "id": "providers__ai-sdk-providers__openai__81",
-    "file": "providers__ai-sdk-providers__openai__81.ts",
+    "id": "providers__ai-sdk-providers__openai__88",
+    "file": "providers__ai-sdk-providers__openai__88.ts",
     "page": "providers/01-ai-sdk-providers/03-openai.mdx",
-    "line": 3172,
+    "line": 3535,
     "ext": "ts",
     "title": null,
     "lines": 9,
@@ -17753,10 +18145,10 @@
     "status": "pass"
   },
   {
-    "id": "providers__ai-sdk-providers__openai__82",
-    "file": "providers__ai-sdk-providers__openai__82.ts",
+    "id": "providers__ai-sdk-providers__openai__89",
+    "file": "providers__ai-sdk-providers__openai__89.ts",
     "page": "providers/01-ai-sdk-providers/03-openai.mdx",
-    "line": 3203,
+    "line": 3566,
     "ext": "ts",
     "title": null,
     "lines": 3,
@@ -17774,10 +18166,10 @@
     "status": "fragment"
   },
   {
-    "id": "providers__ai-sdk-providers__openai__83",
-    "file": "providers__ai-sdk-providers__openai__83.ts",
+    "id": "providers__ai-sdk-providers__openai__90",
+    "file": "providers__ai-sdk-providers__openai__90.ts",
     "page": "providers/01-ai-sdk-providers/03-openai.mdx",
-    "line": 3234,
+    "line": 3597,
     "ext": "ts",
     "title": null,
     "lines": 10,
@@ -17788,10 +18180,10 @@
     "status": "pass"
   },
   {
-    "id": "providers__ai-sdk-providers__openai__84",
-    "file": "providers__ai-sdk-providers__openai__84.ts",
+    "id": "providers__ai-sdk-providers__openai__91",
+    "file": "providers__ai-sdk-providers__openai__91.ts",
     "page": "providers/01-ai-sdk-providers/03-openai.mdx",
-    "line": 3301,
+    "line": 3664,
     "ext": "ts",
     "title": null,
     "lines": 1,
@@ -17809,10 +18201,10 @@
     "status": "fragment"
   },
   {
-    "id": "providers__ai-sdk-providers__openai__85",
-    "file": "providers__ai-sdk-providers__openai__85.ts",
+    "id": "providers__ai-sdk-providers__openai__92",
+    "file": "providers__ai-sdk-providers__openai__92.ts",
     "page": "providers/01-ai-sdk-providers/03-openai.mdx",
-    "line": 3308,
+    "line": 3671,
     "ext": "ts",
     "title": null,
     "lines": 13,
@@ -17823,10 +18215,10 @@
     "status": "pass"
   },
   {
-    "id": "providers__ai-sdk-providers__openai__86",
-    "file": "providers__ai-sdk-providers__openai__86.ts",
+    "id": "providers__ai-sdk-providers__openai__93",
+    "file": "providers__ai-sdk-providers__openai__93.ts",
     "page": "providers/01-ai-sdk-providers/03-openai.mdx",
-    "line": 3353,
+    "line": 3716,
     "ext": "ts",
     "title": null,
     "lines": 1,
@@ -17844,10 +18236,10 @@
     "status": "fragment"
   },
   {
-    "id": "providers__ai-sdk-providers__openai__87",
-    "file": "providers__ai-sdk-providers__openai__87.ts",
+    "id": "providers__ai-sdk-providers__openai__94",
+    "file": "providers__ai-sdk-providers__openai__94.ts",
     "page": "providers/01-ai-sdk-providers/03-openai.mdx",
-    "line": 3370,
+    "line": 3740,
     "ext": "ts",
     "title": null,
     "lines": 9,
@@ -17877,10 +18269,10 @@
     "status": "fragment"
   },
   {
-    "id": "providers__ai-sdk-providers__openai__88",
-    "file": "providers__ai-sdk-providers__openai__88.ts",
+    "id": "providers__ai-sdk-providers__openai__95",
+    "file": "providers__ai-sdk-providers__openai__95.ts",
     "page": "providers/01-ai-sdk-providers/03-openai.mdx",
-    "line": 3386,
+    "line": 3756,
     "ext": "ts",
     "title": null,
     "lines": 11,
@@ -17916,10 +18308,10 @@
     "status": "fragment"
   },
   {
-    "id": "providers__ai-sdk-providers__openai__89",
-    "file": "providers__ai-sdk-providers__openai__89.ts",
+    "id": "providers__ai-sdk-providers__openai__96",
+    "file": "providers__ai-sdk-providers__openai__96.ts",
     "page": "providers/01-ai-sdk-providers/03-openai.mdx",
-    "line": 3404,
+    "line": 3774,
     "ext": "ts",
     "title": null,
     "lines": 18,
@@ -17937,10 +18329,24 @@
     "status": "fragment"
   },
   {
-    "id": "providers__ai-sdk-providers__openai__90",
-    "file": "providers__ai-sdk-providers__openai__90.ts",
+    "id": "providers__ai-sdk-providers__openai__97",
+    "file": "providers__ai-sdk-providers__openai__97.ts",
     "page": "providers/01-ai-sdk-providers/03-openai.mdx",
-    "line": 3429,
+    "line": 3799,
+    "ext": "ts",
+    "title": null,
+    "lines": 18,
+    "importsSdk": true,
+    "complete": false,
+    "elided": false,
+    "errors": [],
+    "status": "pass"
+  },
+  {
+    "id": "providers__ai-sdk-providers__openai__98",
+    "file": "providers__ai-sdk-providers__openai__98.ts",
+    "page": "providers/01-ai-sdk-providers/03-openai.mdx",
+    "line": 3824,
     "ext": "ts",
     "title": null,
     "lines": 12,
@@ -17988,10 +18394,10 @@
     "status": "fragment"
   },
   {
-    "id": "providers__ai-sdk-providers__openai__91",
-    "file": "providers__ai-sdk-providers__openai__91.ts",
+    "id": "providers__ai-sdk-providers__openai__99",
+    "file": "providers__ai-sdk-providers__openai__99.ts",
     "page": "providers/01-ai-sdk-providers/03-openai.mdx",
-    "line": 3476,
+    "line": 3873,
     "ext": "ts",
     "title": null,
     "lines": 10,
@@ -18002,10 +18408,10 @@
     "status": "pass"
   },
   {
-    "id": "providers__ai-sdk-providers__openai__92",
-    "file": "providers__ai-sdk-providers__openai__92.ts",
+    "id": "providers__ai-sdk-providers__openai__100",
+    "file": "providers__ai-sdk-providers__openai__100.ts",
     "page": "providers/01-ai-sdk-providers/03-openai.mdx",
-    "line": 3492,
+    "line": 3889,
     "ext": "ts",
     "title": null,
     "lines": 7,
@@ -18035,10 +18441,43 @@
     "status": "fragment"
   },
   {
-    "id": "providers__ai-sdk-providers__openai__93",
-    "file": "providers__ai-sdk-providers__openai__93.ts",
+    "id": "providers__ai-sdk-providers__openai__101",
+    "file": "providers__ai-sdk-providers__openai__101.ts",
     "page": "providers/01-ai-sdk-providers/03-openai.mdx",
-    "line": 3527,
+    "line": 3905,
+    "ext": "ts",
+    "title": null,
+    "lines": 11,
+    "importsSdk": false,
+    "complete": false,
+    "elided": false,
+    "errors": [
+      {
+        "line": 2,
+        "code": 2304,
+        "kind": "context",
+        "message": "Cannot find name 'generateImage'."
+      },
+      {
+        "line": 3,
+        "code": 2552,
+        "kind": "context",
+        "message": "Cannot find name 'openai'. Did you mean 'open'?"
+      },
+      {
+        "line": 10,
+        "code": 2304,
+        "kind": "context",
+        "message": "Cannot find name 'OpenAIImageModelGenerationOptions'."
+      }
+    ],
+    "status": "fragment"
+  },
+  {
+    "id": "providers__ai-sdk-providers__openai__102",
+    "file": "providers__ai-sdk-providers__openai__102.ts",
+    "page": "providers/01-ai-sdk-providers/03-openai.mdx",
+    "line": 3946,
     "ext": "ts",
     "title": null,
     "lines": 1,
@@ -18056,10 +18495,10 @@
     "status": "fragment"
   },
   {
-    "id": "providers__ai-sdk-providers__openai__94",
-    "file": "providers__ai-sdk-providers__openai__94.ts",
+    "id": "providers__ai-sdk-providers__openai__103",
+    "file": "providers__ai-sdk-providers__openai__103.ts",
     "page": "providers/01-ai-sdk-providers/03-openai.mdx",
-    "line": 3533,
+    "line": 3952,
     "ext": "ts",
     "title": null,
     "lines": 10,
@@ -18070,10 +18509,10 @@
     "status": "pass"
   },
   {
-    "id": "providers__ai-sdk-providers__openai__95",
-    "file": "providers__ai-sdk-providers__openai__95.ts",
+    "id": "providers__ai-sdk-providers__openai__104",
+    "file": "providers__ai-sdk-providers__openai__104.ts",
     "page": "providers/01-ai-sdk-providers/03-openai.mdx",
-    "line": 3550,
+    "line": 3969,
     "ext": "ts",
     "title": null,
     "lines": 14,
@@ -18084,13 +18523,13 @@
     "status": "pass"
   },
   {
-    "id": "providers__ai-sdk-providers__openai__96",
-    "file": "providers__ai-sdk-providers__openai__96.ts",
+    "id": "providers__ai-sdk-providers__openai__105",
+    "file": "providers__ai-sdk-providers__openai__105.ts",
     "page": "providers/01-ai-sdk-providers/03-openai.mdx",
-    "line": 3574,
+    "line": 3994,
     "ext": "ts",
     "title": null,
-    "lines": 16,
+    "lines": 11,
     "importsSdk": true,
     "complete": false,
     "elided": false,
@@ -18098,10 +18537,10 @@
     "status": "pass"
   },
   {
-    "id": "providers__ai-sdk-providers__openai__97",
-    "file": "providers__ai-sdk-providers__openai__97.ts",
+    "id": "providers__ai-sdk-providers__openai__106",
+    "file": "providers__ai-sdk-providers__openai__106.ts",
     "page": "providers/01-ai-sdk-providers/03-openai.mdx",
-    "line": 3596,
+    "line": 4018,
     "ext": "ts",
     "title": null,
     "lines": 9,
@@ -18112,10 +18551,10 @@
     "status": "pass"
   },
   {
-    "id": "providers__ai-sdk-providers__openai__98",
-    "file": "providers__ai-sdk-providers__openai__98.ts",
+    "id": "providers__ai-sdk-providers__openai__107",
+    "file": "providers__ai-sdk-providers__openai__107.ts",
     "page": "providers/01-ai-sdk-providers/03-openai.mdx",
-    "line": 3685,
+    "line": 4107,
     "ext": "ts",
     "title": null,
     "lines": 1,
@@ -18133,10 +18572,10 @@
     "status": "fragment"
   },
   {
-    "id": "providers__ai-sdk-providers__openai__99",
-    "file": "providers__ai-sdk-providers__openai__99.ts",
+    "id": "providers__ai-sdk-providers__openai__108",
+    "file": "providers__ai-sdk-providers__openai__108.ts",
     "page": "providers/01-ai-sdk-providers/03-openai.mdx",
-    "line": 3689,
+    "line": 4111,
     "ext": "ts",
     "title": null,
     "lines": 15,
@@ -18154,10 +18593,10 @@
     "status": "fragment"
   },
   {
-    "id": "providers__ai-sdk-providers__openai__100",
-    "file": "providers__ai-sdk-providers__openai__100.ts",
+    "id": "providers__ai-sdk-providers__openai__109",
+    "file": "providers__ai-sdk-providers__openai__109.ts",
     "page": "providers/01-ai-sdk-providers/03-openai.mdx",
-    "line": 3729,
+    "line": 4151,
     "ext": "ts",
     "title": null,
     "lines": 1,
@@ -18175,10 +18614,10 @@
     "status": "fragment"
   },
   {
-    "id": "providers__ai-sdk-providers__openai__101",
-    "file": "providers__ai-sdk-providers__openai__101.ts",
+    "id": "providers__ai-sdk-providers__openai__110",
+    "file": "providers__ai-sdk-providers__openai__110.ts",
     "page": "providers/01-ai-sdk-providers/03-openai.mdx",
-    "line": 3735,
+    "line": 4157,
     "ext": "ts",
     "title": null,
     "lines": 8,
@@ -18189,10 +18628,10 @@
     "status": "pass"
   },
   {
-    "id": "providers__ai-sdk-providers__openai__102",
-    "file": "providers__ai-sdk-providers__openai__102.ts",
+    "id": "providers__ai-sdk-providers__openai__111",
+    "file": "providers__ai-sdk-providers__openai__111.ts",
     "page": "providers/01-ai-sdk-providers/03-openai.mdx",
-    "line": 3748,
+    "line": 4170,
     "ext": "ts",
     "title": null,
     "lines": 13,
@@ -18203,10 +18642,10 @@
     "status": "pass"
   },
   {
-    "id": "providers__ai-sdk-providers__openai__103",
-    "file": "providers__ai-sdk-providers__openai__103.ts",
+    "id": "providers__ai-sdk-providers__openai__112",
+    "file": "providers__ai-sdk-providers__openai__112.ts",
     "page": "providers/01-ai-sdk-providers/03-openai.mdx",
-    "line": 3793,
+    "line": 4215,
     "ext": "ts",
     "title": null,
     "lines": 18,
@@ -18217,10 +18656,10 @@
     "status": "pass"
   },
   {
-    "id": "providers__ai-sdk-providers__openai__104",
-    "file": "providers__ai-sdk-providers__openai__104.ts",
+    "id": "providers__ai-sdk-providers__openai__113",
+    "file": "providers__ai-sdk-providers__openai__113.ts",
     "page": "providers/01-ai-sdk-providers/03-openai.mdx",
-    "line": 3831,
+    "line": 4253,
     "ext": "ts",
     "title": null,
     "lines": 9,
@@ -18238,10 +18677,10 @@
     "status": "syntax"
   },
   {
-    "id": "providers__ai-sdk-providers__openai__105",
-    "file": "providers__ai-sdk-providers__openai__105.ts",
+    "id": "providers__ai-sdk-providers__openai__114",
+    "file": "providers__ai-sdk-providers__openai__114.ts",
     "page": "providers/01-ai-sdk-providers/03-openai.mdx",
-    "line": 3848,
+    "line": 4270,
     "ext": "ts",
     "title": null,
     "lines": 6,
@@ -18277,10 +18716,24 @@
     "status": "syntax"
   },
   {
+    "id": "providers__ai-sdk-providers__openai__115",
+    "file": "providers__ai-sdk-providers__openai__115.ts",
+    "page": "providers/01-ai-sdk-providers/03-openai.mdx",
+    "line": 4302,
+    "ext": "ts",
+    "title": null,
+    "lines": 13,
+    "importsSdk": true,
+    "complete": false,
+    "elided": false,
+    "errors": [],
+    "status": "pass"
+  },
+  {
     "id": "providers__ai-sdk-providers__anthropic__01",
     "file": "providers__ai-sdk-providers__anthropic__01.ts",
     "page": "providers/01-ai-sdk-providers/05-anthropic.mdx",
-    "line": 11,
+    "line": 16,
     "ext": "ts",
     "title": null,
     "lines": 9,
@@ -18294,7 +18747,7 @@
     "id": "providers__ai-sdk-providers__anthropic__02",
     "file": "providers__ai-sdk-providers__anthropic__02.ts",
     "page": "providers/01-ai-sdk-providers/05-anthropic.mdx",
-    "line": 64,
+    "line": 69,
     "ext": "ts",
     "title": null,
     "lines": 1,
@@ -18308,7 +18761,7 @@
     "id": "providers__ai-sdk-providers__anthropic__03",
     "file": "providers__ai-sdk-providers__anthropic__03.ts",
     "page": "providers/01-ai-sdk-providers/05-anthropic.mdx",
-    "line": 70,
+    "line": 75,
     "ext": "ts",
     "title": null,
     "lines": 5,
@@ -18322,7 +18775,7 @@
     "id": "providers__ai-sdk-providers__anthropic__04",
     "file": "providers__ai-sdk-providers__anthropic__04.ts",
     "page": "providers/01-ai-sdk-providers/05-anthropic.mdx",
-    "line": 129,
+    "line": 134,
     "ext": "ts",
     "title": null,
     "lines": 31,
@@ -18355,7 +18808,7 @@
     "id": "providers__ai-sdk-providers__anthropic__05",
     "file": "providers__ai-sdk-providers__anthropic__05.ts",
     "page": "providers/01-ai-sdk-providers/05-anthropic.mdx",
-    "line": 195,
+    "line": 200,
     "ext": "ts",
     "title": null,
     "lines": 1,
@@ -18376,7 +18829,7 @@
     "id": "providers__ai-sdk-providers__anthropic__06",
     "file": "providers__ai-sdk-providers__anthropic__06.ts",
     "page": "providers/01-ai-sdk-providers/05-anthropic.mdx",
-    "line": 207,
+    "line": 212,
     "ext": "ts",
     "title": null,
     "lines": 7,
@@ -18390,7 +18843,7 @@
     "id": "providers__ai-sdk-providers__anthropic__07",
     "file": "providers__ai-sdk-providers__anthropic__07.ts",
     "page": "providers/01-ai-sdk-providers/05-anthropic.mdx",
-    "line": 227,
+    "line": 232,
     "ext": "ts",
     "title": null,
     "lines": 13,
@@ -18404,10 +18857,10 @@
     "id": "providers__ai-sdk-providers__anthropic__08",
     "file": "providers__ai-sdk-providers__anthropic__08.ts",
     "page": "providers/01-ai-sdk-providers/05-anthropic.mdx",
-    "line": 329,
+    "line": 259,
     "ext": "ts",
     "title": null,
-    "lines": 21,
+    "lines": 22,
     "importsSdk": true,
     "complete": true,
     "elided": false,
@@ -18418,38 +18871,64 @@
     "id": "providers__ai-sdk-providers__anthropic__09",
     "file": "providers__ai-sdk-providers__anthropic__09.ts",
     "page": "providers/01-ai-sdk-providers/05-anthropic.mdx",
-    "line": 411,
+    "line": 304,
     "ext": "ts",
     "title": null,
-    "lines": 15,
+    "lines": 21,
     "importsSdk": true,
-    "complete": true,
+    "complete": false,
     "elided": false,
-    "errors": [],
-    "status": "pass"
+    "errors": [
+      {
+        "line": 5,
+        "code": 18004,
+        "kind": "context",
+        "message": "No value exists in scope for the shorthand property 'model'. Either declare one or provide an initializer."
+      },
+      {
+        "line": 6,
+        "code": 18004,
+        "kind": "context",
+        "message": "No value exists in scope for the shorthand property 'weather'. Either declare one or provide an initializer."
+      }
+    ],
+    "status": "fragment"
   },
   {
     "id": "providers__ai-sdk-providers__anthropic__10",
     "file": "providers__ai-sdk-providers__anthropic__10.ts",
     "page": "providers/01-ai-sdk-providers/05-anthropic.mdx",
-    "line": 433,
+    "line": 402,
     "ext": "ts",
     "title": null,
-    "lines": 12,
-    "importsSdk": true,
-    "complete": true,
+    "lines": 9,
+    "importsSdk": false,
+    "complete": false,
     "elided": false,
-    "errors": [],
-    "status": "pass"
+    "errors": [
+      {
+        "line": 2,
+        "code": 2304,
+        "kind": "context",
+        "message": "Cannot find name 'streamText'."
+      },
+      {
+        "line": 3,
+        "code": 2304,
+        "kind": "context",
+        "message": "Cannot find name 'anthropic'."
+      }
+    ],
+    "status": "fragment"
   },
   {
     "id": "providers__ai-sdk-providers__anthropic__11",
     "file": "providers__ai-sdk-providers__anthropic__11.ts",
     "page": "providers/01-ai-sdk-providers/05-anthropic.mdx",
-    "line": 456,
+    "line": 532,
     "ext": "ts",
     "title": null,
-    "lines": 15,
+    "lines": 21,
     "importsSdk": true,
     "complete": true,
     "elided": false,
@@ -18460,7 +18939,49 @@
     "id": "providers__ai-sdk-providers__anthropic__12",
     "file": "providers__ai-sdk-providers__anthropic__12.ts",
     "page": "providers/01-ai-sdk-providers/05-anthropic.mdx",
-    "line": 476,
+    "line": 629,
+    "ext": "ts",
+    "title": null,
+    "lines": 15,
+    "importsSdk": true,
+    "complete": true,
+    "elided": false,
+    "errors": [],
+    "status": "pass"
+  },
+  {
+    "id": "providers__ai-sdk-providers__anthropic__13",
+    "file": "providers__ai-sdk-providers__anthropic__13.ts",
+    "page": "providers/01-ai-sdk-providers/05-anthropic.mdx",
+    "line": 651,
+    "ext": "ts",
+    "title": null,
+    "lines": 12,
+    "importsSdk": true,
+    "complete": true,
+    "elided": false,
+    "errors": [],
+    "status": "pass"
+  },
+  {
+    "id": "providers__ai-sdk-providers__anthropic__14",
+    "file": "providers__ai-sdk-providers__anthropic__14.ts",
+    "page": "providers/01-ai-sdk-providers/05-anthropic.mdx",
+    "line": 674,
+    "ext": "ts",
+    "title": null,
+    "lines": 15,
+    "importsSdk": true,
+    "complete": true,
+    "elided": false,
+    "errors": [],
+    "status": "pass"
+  },
+  {
+    "id": "providers__ai-sdk-providers__anthropic__15",
+    "file": "providers__ai-sdk-providers__anthropic__15.ts",
+    "page": "providers/01-ai-sdk-providers/05-anthropic.mdx",
+    "line": 694,
     "ext": "ts",
     "title": null,
     "lines": 5,
@@ -18490,52 +19011,52 @@
     "status": "syntax"
   },
   {
-    "id": "providers__ai-sdk-providers__anthropic__13",
-    "file": "providers__ai-sdk-providers__anthropic__13.ts",
-    "page": "providers/01-ai-sdk-providers/05-anthropic.mdx",
-    "line": 494,
-    "ext": "ts",
-    "title": null,
-    "lines": 12,
-    "importsSdk": true,
-    "complete": true,
-    "elided": false,
-    "errors": [],
-    "status": "pass"
-  },
-  {
-    "id": "providers__ai-sdk-providers__anthropic__14",
-    "file": "providers__ai-sdk-providers__anthropic__14.ts",
-    "page": "providers/01-ai-sdk-providers/05-anthropic.mdx",
-    "line": 543,
-    "ext": "ts",
-    "title": null,
-    "lines": 12,
-    "importsSdk": true,
-    "complete": true,
-    "elided": false,
-    "errors": [],
-    "status": "pass"
-  },
-  {
-    "id": "providers__ai-sdk-providers__anthropic__15",
-    "file": "providers__ai-sdk-providers__anthropic__15.ts",
-    "page": "providers/01-ai-sdk-providers/05-anthropic.mdx",
-    "line": 560,
-    "ext": "ts",
-    "title": null,
-    "lines": 12,
-    "importsSdk": true,
-    "complete": true,
-    "elided": false,
-    "errors": [],
-    "status": "pass"
-  },
-  {
     "id": "providers__ai-sdk-providers__anthropic__16",
     "file": "providers__ai-sdk-providers__anthropic__16.ts",
     "page": "providers/01-ai-sdk-providers/05-anthropic.mdx",
-    "line": 579,
+    "line": 712,
+    "ext": "ts",
+    "title": null,
+    "lines": 12,
+    "importsSdk": true,
+    "complete": true,
+    "elided": false,
+    "errors": [],
+    "status": "pass"
+  },
+  {
+    "id": "providers__ai-sdk-providers__anthropic__17",
+    "file": "providers__ai-sdk-providers__anthropic__17.ts",
+    "page": "providers/01-ai-sdk-providers/05-anthropic.mdx",
+    "line": 761,
+    "ext": "ts",
+    "title": null,
+    "lines": 12,
+    "importsSdk": true,
+    "complete": true,
+    "elided": false,
+    "errors": [],
+    "status": "pass"
+  },
+  {
+    "id": "providers__ai-sdk-providers__anthropic__18",
+    "file": "providers__ai-sdk-providers__anthropic__18.ts",
+    "page": "providers/01-ai-sdk-providers/05-anthropic.mdx",
+    "line": 778,
+    "ext": "ts",
+    "title": null,
+    "lines": 12,
+    "importsSdk": true,
+    "complete": true,
+    "elided": false,
+    "errors": [],
+    "status": "pass"
+  },
+  {
+    "id": "providers__ai-sdk-providers__anthropic__19",
+    "file": "providers__ai-sdk-providers__anthropic__19.ts",
+    "page": "providers/01-ai-sdk-providers/05-anthropic.mdx",
+    "line": 797,
     "ext": "ts",
     "title": null,
     "lines": 10,
@@ -18559,10 +19080,10 @@
     "status": "fragment"
   },
   {
-    "id": "providers__ai-sdk-providers__anthropic__17",
-    "file": "providers__ai-sdk-providers__anthropic__17.ts",
+    "id": "providers__ai-sdk-providers__anthropic__20",
+    "file": "providers__ai-sdk-providers__anthropic__20.ts",
     "page": "providers/01-ai-sdk-providers/05-anthropic.mdx",
-    "line": 596,
+    "line": 814,
     "ext": "ts",
     "title": null,
     "lines": 21,
@@ -18573,10 +19094,10 @@
     "status": "pass"
   },
   {
-    "id": "providers__ai-sdk-providers__anthropic__18",
-    "file": "providers__ai-sdk-providers__anthropic__18.ts",
+    "id": "providers__ai-sdk-providers__anthropic__21",
+    "file": "providers__ai-sdk-providers__anthropic__21.ts",
     "page": "providers/01-ai-sdk-providers/05-anthropic.mdx",
-    "line": 652,
+    "line": 870,
     "ext": "ts",
     "title": null,
     "lines": 16,
@@ -18587,10 +19108,10 @@
     "status": "pass"
   },
   {
-    "id": "providers__ai-sdk-providers__anthropic__19",
-    "file": "providers__ai-sdk-providers__anthropic__19.ts",
+    "id": "providers__ai-sdk-providers__anthropic__22",
+    "file": "providers__ai-sdk-providers__anthropic__22.ts",
     "page": "providers/01-ai-sdk-providers/05-anthropic.mdx",
-    "line": 673,
+    "line": 891,
     "ext": "ts",
     "title": null,
     "lines": 10,
@@ -18620,10 +19141,10 @@
     "status": "fragment"
   },
   {
-    "id": "providers__ai-sdk-providers__anthropic__20",
-    "file": "providers__ai-sdk-providers__anthropic__20.ts",
+    "id": "providers__ai-sdk-providers__anthropic__23",
+    "file": "providers__ai-sdk-providers__anthropic__23.ts",
     "page": "providers/01-ai-sdk-providers/05-anthropic.mdx",
-    "line": 707,
+    "line": 925,
     "ext": "ts",
     "title": null,
     "lines": 10,
@@ -18653,10 +19174,10 @@
     "status": "fragment"
   },
   {
-    "id": "providers__ai-sdk-providers__anthropic__21",
-    "file": "providers__ai-sdk-providers__anthropic__21.ts",
+    "id": "providers__ai-sdk-providers__anthropic__24",
+    "file": "providers__ai-sdk-providers__anthropic__24.ts",
     "page": "providers/01-ai-sdk-providers/05-anthropic.mdx",
-    "line": 739,
+    "line": 957,
     "ext": "ts",
     "title": null,
     "lines": 21,
@@ -18667,10 +19188,10 @@
     "status": "pass"
   },
   {
-    "id": "providers__ai-sdk-providers__anthropic__22",
-    "file": "providers__ai-sdk-providers__anthropic__22.ts",
+    "id": "providers__ai-sdk-providers__anthropic__25",
+    "file": "providers__ai-sdk-providers__anthropic__25.ts",
     "page": "providers/01-ai-sdk-providers/05-anthropic.mdx",
-    "line": 767,
+    "line": 985,
     "ext": "ts",
     "title": null,
     "lines": 12,
@@ -18700,10 +19221,10 @@
     "status": "fragment"
   },
   {
-    "id": "providers__ai-sdk-providers__anthropic__23",
-    "file": "providers__ai-sdk-providers__anthropic__23.ts",
+    "id": "providers__ai-sdk-providers__anthropic__26",
+    "file": "providers__ai-sdk-providers__anthropic__26.ts",
     "page": "providers/01-ai-sdk-providers/05-anthropic.mdx",
-    "line": 796,
+    "line": 1014,
     "ext": "ts",
     "title": null,
     "lines": 18,
@@ -18714,10 +19235,10 @@
     "status": "pass"
   },
   {
-    "id": "providers__ai-sdk-providers__anthropic__24",
-    "file": "providers__ai-sdk-providers__anthropic__24.ts",
+    "id": "providers__ai-sdk-providers__anthropic__27",
+    "file": "providers__ai-sdk-providers__anthropic__27.ts",
     "page": "providers/01-ai-sdk-providers/05-anthropic.mdx",
-    "line": 827,
+    "line": 1076,
     "ext": "ts",
     "title": null,
     "lines": 15,
@@ -18747,10 +19268,10 @@
     "status": "fragment"
   },
   {
-    "id": "providers__ai-sdk-providers__anthropic__25",
-    "file": "providers__ai-sdk-providers__anthropic__25.ts",
+    "id": "providers__ai-sdk-providers__anthropic__28",
+    "file": "providers__ai-sdk-providers__anthropic__28.ts",
     "page": "providers/01-ai-sdk-providers/05-anthropic.mdx",
-    "line": 854,
+    "line": 1103,
     "ext": "ts",
     "title": null,
     "lines": 16,
@@ -18761,10 +19282,10 @@
     "status": "pass"
   },
   {
-    "id": "providers__ai-sdk-providers__anthropic__26",
-    "file": "providers__ai-sdk-providers__anthropic__26.ts",
+    "id": "providers__ai-sdk-providers__anthropic__29",
+    "file": "providers__ai-sdk-providers__anthropic__29.ts",
     "page": "providers/01-ai-sdk-providers/05-anthropic.mdx",
-    "line": 894,
+    "line": 1146,
     "ext": "ts",
     "title": null,
     "lines": 26,
@@ -18775,10 +19296,10 @@
     "status": "pass"
   },
   {
-    "id": "providers__ai-sdk-providers__anthropic__27",
-    "file": "providers__ai-sdk-providers__anthropic__27.ts",
+    "id": "providers__ai-sdk-providers__anthropic__30",
+    "file": "providers__ai-sdk-providers__anthropic__30.ts",
     "page": "providers/01-ai-sdk-providers/05-anthropic.mdx",
-    "line": 943,
+    "line": 1195,
     "ext": "ts",
     "title": null,
     "lines": 17,
@@ -18808,10 +19329,10 @@
     "status": "fragment"
   },
   {
-    "id": "providers__ai-sdk-providers__anthropic__28",
-    "file": "providers__ai-sdk-providers__anthropic__28.ts",
+    "id": "providers__ai-sdk-providers__anthropic__31",
+    "file": "providers__ai-sdk-providers__anthropic__31.ts",
     "page": "providers/01-ai-sdk-providers/05-anthropic.mdx",
-    "line": 969,
+    "line": 1221,
     "ext": "ts",
     "title": null,
     "lines": 36,
@@ -18822,10 +19343,10 @@
     "status": "pass"
   },
   {
-    "id": "providers__ai-sdk-providers__anthropic__29",
-    "file": "providers__ai-sdk-providers__anthropic__29.ts",
+    "id": "providers__ai-sdk-providers__anthropic__32",
+    "file": "providers__ai-sdk-providers__anthropic__32.ts",
     "page": "providers/01-ai-sdk-providers/05-anthropic.mdx",
-    "line": 1049,
+    "line": 1301,
     "ext": "ts",
     "title": null,
     "lines": 25,
@@ -18843,10 +19364,10 @@
     "status": "fragment"
   },
   {
-    "id": "providers__ai-sdk-providers__anthropic__30",
-    "file": "providers__ai-sdk-providers__anthropic__30.ts",
+    "id": "providers__ai-sdk-providers__anthropic__33",
+    "file": "providers__ai-sdk-providers__anthropic__33.ts",
     "page": "providers/01-ai-sdk-providers/05-anthropic.mdx",
-    "line": 1089,
+    "line": 1341,
     "ext": "ts",
     "title": null,
     "lines": 16,
@@ -18864,10 +19385,10 @@
     "status": "fragment"
   },
   {
-    "id": "providers__ai-sdk-providers__anthropic__31",
-    "file": "providers__ai-sdk-providers__anthropic__31.tsx",
+    "id": "providers__ai-sdk-providers__anthropic__34",
+    "file": "providers__ai-sdk-providers__anthropic__34.tsx",
     "page": "providers/01-ai-sdk-providers/05-anthropic.mdx",
-    "line": 1112,
+    "line": 1364,
     "ext": "tsx",
     "title": null,
     "lines": 22,
@@ -18951,10 +19472,10 @@
     "status": "fragment"
   },
   {
-    "id": "providers__ai-sdk-providers__anthropic__32",
-    "file": "providers__ai-sdk-providers__anthropic__32.ts",
+    "id": "providers__ai-sdk-providers__anthropic__35",
+    "file": "providers__ai-sdk-providers__anthropic__35.ts",
     "page": "providers/01-ai-sdk-providers/05-anthropic.mdx",
-    "line": 1141,
+    "line": 1393,
     "ext": "ts",
     "title": null,
     "lines": 15,
@@ -18978,10 +19499,10 @@
     "status": "fragment"
   },
   {
-    "id": "providers__ai-sdk-providers__anthropic__33",
-    "file": "providers__ai-sdk-providers__anthropic__33.ts",
+    "id": "providers__ai-sdk-providers__anthropic__36",
+    "file": "providers__ai-sdk-providers__anthropic__36.ts",
     "page": "providers/01-ai-sdk-providers/05-anthropic.mdx",
-    "line": 1171,
+    "line": 1423,
     "ext": "ts",
     "title": null,
     "lines": 34,
@@ -18992,10 +19513,10 @@
     "status": "pass"
   },
   {
-    "id": "providers__ai-sdk-providers__anthropic__34",
-    "file": "providers__ai-sdk-providers__anthropic__34.ts",
+    "id": "providers__ai-sdk-providers__anthropic__37",
+    "file": "providers__ai-sdk-providers__anthropic__37.ts",
     "page": "providers/01-ai-sdk-providers/05-anthropic.mdx",
-    "line": 1210,
+    "line": 1462,
     "ext": "ts",
     "title": null,
     "lines": 20,
@@ -19019,10 +19540,10 @@
     "status": "fragment"
   },
   {
-    "id": "providers__ai-sdk-providers__anthropic__35",
-    "file": "providers__ai-sdk-providers__anthropic__35.ts",
+    "id": "providers__ai-sdk-providers__anthropic__38",
+    "file": "providers__ai-sdk-providers__anthropic__38.ts",
     "page": "providers/01-ai-sdk-providers/05-anthropic.mdx",
-    "line": 1235,
+    "line": 1487,
     "ext": "ts",
     "title": null,
     "lines": 19,
@@ -19064,10 +19585,10 @@
     "status": "fragment"
   },
   {
-    "id": "providers__ai-sdk-providers__anthropic__36",
-    "file": "providers__ai-sdk-providers__anthropic__36.ts",
+    "id": "providers__ai-sdk-providers__anthropic__39",
+    "file": "providers__ai-sdk-providers__anthropic__39.ts",
     "page": "providers/01-ai-sdk-providers/05-anthropic.mdx",
-    "line": 1263,
+    "line": 1515,
     "ext": "ts",
     "title": null,
     "lines": 19,
@@ -19091,10 +19612,10 @@
     "status": "fragment"
   },
   {
-    "id": "providers__ai-sdk-providers__anthropic__37",
-    "file": "providers__ai-sdk-providers__anthropic__37.ts",
+    "id": "providers__ai-sdk-providers__anthropic__40",
+    "file": "providers__ai-sdk-providers__anthropic__40.ts",
     "page": "providers/01-ai-sdk-providers/05-anthropic.mdx",
-    "line": 1311,
+    "line": 1563,
     "ext": "ts",
     "title": null,
     "lines": 22,
@@ -19112,10 +19633,10 @@
     "status": "api-mismatch"
   },
   {
-    "id": "providers__ai-sdk-providers__anthropic__38",
-    "file": "providers__ai-sdk-providers__anthropic__38.ts",
+    "id": "providers__ai-sdk-providers__anthropic__41",
+    "file": "providers__ai-sdk-providers__anthropic__41.ts",
     "page": "providers/01-ai-sdk-providers/05-anthropic.mdx",
-    "line": 1354,
+    "line": 1606,
     "ext": "ts",
     "title": null,
     "lines": 6,
@@ -19139,10 +19660,10 @@
     "status": "fragment"
   },
   {
-    "id": "providers__ai-sdk-providers__anthropic__39",
-    "file": "providers__ai-sdk-providers__anthropic__39.ts",
+    "id": "providers__ai-sdk-providers__anthropic__42",
+    "file": "providers__ai-sdk-providers__anthropic__42.ts",
     "page": "providers/01-ai-sdk-providers/05-anthropic.mdx",
-    "line": 1369,
+    "line": 1621,
     "ext": "ts",
     "title": null,
     "lines": 8,
@@ -19196,10 +19717,10 @@
     "status": "fragment"
   },
   {
-    "id": "providers__ai-sdk-providers__anthropic__40",
-    "file": "providers__ai-sdk-providers__anthropic__40.ts",
+    "id": "providers__ai-sdk-providers__anthropic__43",
+    "file": "providers__ai-sdk-providers__anthropic__43.ts",
     "page": "providers/01-ai-sdk-providers/05-anthropic.mdx",
-    "line": 1406,
+    "line": 1658,
     "ext": "ts",
     "title": null,
     "lines": 44,
@@ -19259,10 +19780,10 @@
     "status": "fragment"
   },
   {
-    "id": "providers__ai-sdk-providers__anthropic__41",
-    "file": "providers__ai-sdk-providers__anthropic__41.ts",
+    "id": "providers__ai-sdk-providers__anthropic__44",
+    "file": "providers__ai-sdk-providers__anthropic__44.ts",
     "page": "providers/01-ai-sdk-providers/05-anthropic.mdx",
-    "line": 1475,
+    "line": 1733,
     "ext": "ts",
     "title": null,
     "lines": 27,
@@ -19316,10 +19837,10 @@
     "status": "fragment"
   },
   {
-    "id": "providers__ai-sdk-providers__anthropic__42",
-    "file": "providers__ai-sdk-providers__anthropic__42.ts",
+    "id": "providers__ai-sdk-providers__anthropic__45",
+    "file": "providers__ai-sdk-providers__anthropic__45.ts",
     "page": "providers/01-ai-sdk-providers/05-anthropic.mdx",
-    "line": 1540,
+    "line": 1798,
     "ext": "ts",
     "title": null,
     "lines": 15,
@@ -19330,10 +19851,10 @@
     "status": "pass"
   },
   {
-    "id": "providers__ai-sdk-providers__anthropic__43",
-    "file": "providers__ai-sdk-providers__anthropic__43.ts",
+    "id": "providers__ai-sdk-providers__anthropic__46",
+    "file": "providers__ai-sdk-providers__anthropic__46.ts",
     "page": "providers/01-ai-sdk-providers/05-anthropic.mdx",
-    "line": 1581,
+    "line": 1839,
     "ext": "ts",
     "title": null,
     "lines": 13,
@@ -19351,10 +19872,10 @@
     "status": "fragment"
   },
   {
-    "id": "providers__ai-sdk-providers__anthropic__44",
-    "file": "providers__ai-sdk-providers__anthropic__44.ts",
+    "id": "providers__ai-sdk-providers__anthropic__47",
+    "file": "providers__ai-sdk-providers__anthropic__47.ts",
     "page": "providers/01-ai-sdk-providers/05-anthropic.mdx",
-    "line": 1628,
+    "line": 1886,
     "ext": "ts",
     "title": null,
     "lines": 20,
@@ -19384,10 +19905,10 @@
     "status": "fragment"
   },
   {
-    "id": "providers__ai-sdk-providers__anthropic__45",
-    "file": "providers__ai-sdk-providers__anthropic__45.ts",
+    "id": "providers__ai-sdk-providers__anthropic__48",
+    "file": "providers__ai-sdk-providers__anthropic__48.ts",
     "page": "providers/01-ai-sdk-providers/05-anthropic.mdx",
-    "line": 1664,
+    "line": 1922,
     "ext": "ts",
     "title": null,
     "lines": 14,
@@ -19398,10 +19919,10 @@
     "status": "pass"
   },
   {
-    "id": "providers__ai-sdk-providers__anthropic__46",
-    "file": "providers__ai-sdk-providers__anthropic__46.ts",
+    "id": "providers__ai-sdk-providers__anthropic__49",
+    "file": "providers__ai-sdk-providers__anthropic__49.ts",
     "page": "providers/01-ai-sdk-providers/05-anthropic.mdx",
-    "line": 1687,
+    "line": 1945,
     "ext": "ts",
     "title": null,
     "lines": 17,
@@ -19412,10 +19933,10 @@
     "status": "pass"
   },
   {
-    "id": "providers__ai-sdk-providers__anthropic__47",
-    "file": "providers__ai-sdk-providers__anthropic__47.ts",
+    "id": "providers__ai-sdk-providers__anthropic__50",
+    "file": "providers__ai-sdk-providers__anthropic__50.ts",
     "page": "providers/01-ai-sdk-providers/05-anthropic.mdx",
-    "line": 1755,
+    "line": 2013,
     "ext": "ts",
     "title": null,
     "lines": 27,
@@ -19426,10 +19947,10 @@
     "status": "pass"
   },
   {
-    "id": "providers__ai-sdk-providers__anthropic__48",
-    "file": "providers__ai-sdk-providers__anthropic__48.ts",
+    "id": "providers__ai-sdk-providers__anthropic__51",
+    "file": "providers__ai-sdk-providers__anthropic__51.ts",
     "page": "providers/01-ai-sdk-providers/05-anthropic.mdx",
-    "line": 1789,
+    "line": 2047,
     "ext": "ts",
     "title": null,
     "lines": 8,
@@ -19459,10 +19980,10 @@
     "status": "fragment"
   },
   {
-    "id": "providers__ai-sdk-providers__anthropic__49",
-    "file": "providers__ai-sdk-providers__anthropic__49.ts",
+    "id": "providers__ai-sdk-providers__anthropic__52",
+    "file": "providers__ai-sdk-providers__anthropic__52.ts",
     "page": "providers/01-ai-sdk-providers/05-anthropic.mdx",
-    "line": 1806,
+    "line": 2064,
     "ext": "ts",
     "title": null,
     "lines": 42,
@@ -19473,10 +19994,10 @@
     "status": "pass"
   },
   {
-    "id": "providers__ai-sdk-providers__anthropic__50",
-    "file": "providers__ai-sdk-providers__anthropic__50.ts",
+    "id": "providers__ai-sdk-providers__anthropic__53",
+    "file": "providers__ai-sdk-providers__anthropic__53.ts",
     "page": "providers/01-ai-sdk-providers/05-anthropic.mdx",
-    "line": 1864,
+    "line": 2122,
     "ext": "ts",
     "title": null,
     "lines": 39,
@@ -19487,10 +20008,10 @@
     "status": "pass"
   },
   {
-    "id": "providers__ai-sdk-providers__anthropic__51",
-    "file": "providers__ai-sdk-providers__anthropic__51.ts",
+    "id": "providers__ai-sdk-providers__anthropic__54",
+    "file": "providers__ai-sdk-providers__anthropic__54.ts",
     "page": "providers/01-ai-sdk-providers/05-anthropic.mdx",
-    "line": 1934,
+    "line": 2192,
     "ext": "ts",
     "title": null,
     "lines": 38,
@@ -19501,10 +20022,24 @@
     "status": "pass"
   },
   {
-    "id": "providers__ai-sdk-providers__anthropic__52",
-    "file": "providers__ai-sdk-providers__anthropic__52.ts",
+    "id": "providers__ai-sdk-providers__anthropic__55",
+    "file": "providers__ai-sdk-providers__anthropic__55.ts",
     "page": "providers/01-ai-sdk-providers/05-anthropic.mdx",
-    "line": 1989,
+    "line": 2237,
+    "ext": "ts",
+    "title": null,
+    "lines": 34,
+    "importsSdk": true,
+    "complete": true,
+    "elided": false,
+    "errors": [],
+    "status": "pass"
+  },
+  {
+    "id": "providers__ai-sdk-providers__anthropic__56",
+    "file": "providers__ai-sdk-providers__anthropic__56.ts",
+    "page": "providers/01-ai-sdk-providers/05-anthropic.mdx",
+    "line": 2301,
     "ext": "ts",
     "title": null,
     "lines": 25,
@@ -19522,10 +20057,10 @@
     "status": "fragment"
   },
   {
-    "id": "providers__ai-sdk-providers__anthropic__53",
-    "file": "providers__ai-sdk-providers__anthropic__53.ts",
+    "id": "providers__ai-sdk-providers__anthropic__57",
+    "file": "providers__ai-sdk-providers__anthropic__57.ts",
     "page": "providers/01-ai-sdk-providers/05-anthropic.mdx",
-    "line": 2063,
+    "line": 2375,
     "ext": "ts",
     "title": null,
     "lines": 14,
@@ -19567,10 +20102,10 @@
     "status": "fragment"
   },
   {
-    "id": "providers__ai-sdk-providers__anthropic__54",
-    "file": "providers__ai-sdk-providers__anthropic__54.ts",
+    "id": "providers__ai-sdk-providers__anthropic__58",
+    "file": "providers__ai-sdk-providers__anthropic__58.ts",
     "page": "providers/01-ai-sdk-providers/05-anthropic.mdx",
-    "line": 2083,
+    "line": 2395,
     "ext": "ts",
     "title": null,
     "lines": 14,
@@ -19600,10 +20135,10 @@
     "status": "fragment"
   },
   {
-    "id": "providers__ai-sdk-providers__anthropic__55",
-    "file": "providers__ai-sdk-providers__anthropic__55.ts",
+    "id": "providers__ai-sdk-providers__anthropic__59",
+    "file": "providers__ai-sdk-providers__anthropic__59.ts",
     "page": "providers/01-ai-sdk-providers/05-anthropic.mdx",
-    "line": 2106,
+    "line": 2418,
     "ext": "ts",
     "title": null,
     "lines": 13,
@@ -19614,10 +20149,10 @@
     "status": "pass"
   },
   {
-    "id": "providers__ai-sdk-providers__anthropic__56",
-    "file": "providers__ai-sdk-providers__anthropic__56.ts",
+    "id": "providers__ai-sdk-providers__anthropic__60",
+    "file": "providers__ai-sdk-providers__anthropic__60.ts",
     "page": "providers/01-ai-sdk-providers/05-anthropic.mdx",
-    "line": 2133,
+    "line": 2445,
     "ext": "ts",
     "title": null,
     "lines": 33,
@@ -19628,10 +20163,51 @@
     "status": "pass"
   },
   {
-    "id": "providers__ai-sdk-providers__anthropic__57",
-    "file": "providers__ai-sdk-providers__anthropic__57.ts",
+    "id": "providers__ai-sdk-providers__anthropic__61",
+    "file": "providers__ai-sdk-providers__anthropic__61.ts",
     "page": "providers/01-ai-sdk-providers/05-anthropic.mdx",
-    "line": 2178,
+    "line": 2487,
+    "ext": "ts",
+    "title": null,
+    "lines": 17,
+    "importsSdk": true,
+    "complete": false,
+    "elided": false,
+    "errors": [],
+    "status": "pass"
+  },
+  {
+    "id": "providers__ai-sdk-providers__anthropic__62",
+    "file": "providers__ai-sdk-providers__anthropic__62.ts",
+    "page": "providers/01-ai-sdk-providers/05-anthropic.mdx",
+    "line": 2509,
+    "ext": "ts",
+    "title": null,
+    "lines": 6,
+    "importsSdk": false,
+    "complete": false,
+    "elided": false,
+    "errors": [
+      {
+        "line": 3,
+        "code": 2552,
+        "kind": "context",
+        "message": "Cannot find name 'files'. Did you mean 'File'?"
+      },
+      {
+        "line": 5,
+        "code": 2552,
+        "kind": "context",
+        "message": "Cannot find name 'files'. Did you mean 'File'?"
+      }
+    ],
+    "status": "fragment"
+  },
+  {
+    "id": "providers__ai-sdk-providers__anthropic__63",
+    "file": "providers__ai-sdk-providers__anthropic__63.ts",
+    "page": "providers/01-ai-sdk-providers/05-anthropic.mdx",
+    "line": 2529,
     "ext": "ts",
     "title": null,
     "lines": 19,
@@ -19673,10 +20249,10 @@
     "status": "fragment"
   },
   {
-    "id": "providers__ai-sdk-providers__anthropic__58",
-    "file": "providers__ai-sdk-providers__anthropic__58.ts",
+    "id": "providers__ai-sdk-providers__anthropic__64",
+    "file": "providers__ai-sdk-providers__anthropic__64.ts",
     "page": "providers/01-ai-sdk-providers/05-anthropic.mdx",
-    "line": 2203,
+    "line": 2554,
     "ext": "ts",
     "title": null,
     "lines": 13,
@@ -19706,10 +20282,10 @@
     "status": "fragment"
   },
   {
-    "id": "providers__ai-sdk-providers__anthropic__59",
-    "file": "providers__ai-sdk-providers__anthropic__59.ts",
+    "id": "providers__ai-sdk-providers__anthropic__65",
+    "file": "providers__ai-sdk-providers__anthropic__65.ts",
     "page": "providers/01-ai-sdk-providers/05-anthropic.mdx",
-    "line": 2225,
+    "line": 2576,
     "ext": "ts",
     "title": null,
     "lines": 36,
@@ -19720,10 +20296,10 @@
     "status": "pass"
   },
   {
-    "id": "providers__ai-sdk-providers__anthropic__60",
-    "file": "providers__ai-sdk-providers__anthropic__60.ts",
+    "id": "providers__ai-sdk-providers__anthropic__66",
+    "file": "providers__ai-sdk-providers__anthropic__66.ts",
     "page": "providers/01-ai-sdk-providers/05-anthropic.mdx",
-    "line": 2310,
+    "line": 2661,
     "ext": "ts",
     "title": null,
     "lines": 23,
@@ -19734,10 +20310,10 @@
     "status": "pass"
   },
   {
-    "id": "providers__ai-sdk-providers__anthropic__61",
-    "file": "providers__ai-sdk-providers__anthropic__61.ts",
+    "id": "providers__ai-sdk-providers__anthropic__67",
+    "file": "providers__ai-sdk-providers__anthropic__67.ts",
     "page": "providers/01-ai-sdk-providers/05-anthropic.mdx",
-    "line": 2340,
+    "line": 2691,
     "ext": "ts",
     "title": null,
     "lines": 20,
@@ -19773,10 +20349,10 @@
     "status": "fragment"
   },
   {
-    "id": "providers__ai-sdk-providers__anthropic__62",
-    "file": "providers__ai-sdk-providers__anthropic__62.ts",
+    "id": "providers__ai-sdk-providers__anthropic__68",
+    "file": "providers__ai-sdk-providers__anthropic__68.ts",
     "page": "providers/01-ai-sdk-providers/05-anthropic.mdx",
-    "line": 2375,
+    "line": 2726,
     "ext": "ts",
     "title": null,
     "lines": 21,
@@ -19800,10 +20376,10 @@
     "status": "fragment"
   },
   {
-    "id": "providers__ai-sdk-providers__anthropic__63",
-    "file": "providers__ai-sdk-providers__anthropic__63.ts",
+    "id": "providers__ai-sdk-providers__anthropic__69",
+    "file": "providers__ai-sdk-providers__anthropic__69.ts",
     "page": "providers/01-ai-sdk-providers/05-anthropic.mdx",
-    "line": 2401,
+    "line": 2752,
     "ext": "ts",
     "title": null,
     "lines": 19,
@@ -19833,13 +20409,27 @@
     "status": "fragment"
   },
   {
-    "id": "providers__ai-sdk-providers__anthropic__64",
-    "file": "providers__ai-sdk-providers__anthropic__64.ts",
+    "id": "providers__ai-sdk-providers__anthropic__70",
+    "file": "providers__ai-sdk-providers__anthropic__70.ts",
     "page": "providers/01-ai-sdk-providers/05-anthropic.mdx",
-    "line": 2467,
+    "line": 2819,
     "ext": "ts",
     "title": null,
     "lines": 18,
+    "importsSdk": true,
+    "complete": false,
+    "elided": false,
+    "errors": [],
+    "status": "pass"
+  },
+  {
+    "id": "providers__ai-sdk-providers__anthropic__71",
+    "file": "providers__ai-sdk-providers__anthropic__71.ts",
+    "page": "providers/01-ai-sdk-providers/05-anthropic.mdx",
+    "line": 2868,
+    "ext": "ts",
+    "title": null,
+    "lines": 13,
     "importsSdk": true,
     "complete": false,
     "elided": false,

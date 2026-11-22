@@ -1,6 +1,6 @@
 # verify/langchain
 
-Offline verification harness for the LangChain.js v1 agent docs and our examples, pinned to `langchain@1.6.1` with `@langchain/core@1.3.4`, `@langchain/langgraph@1.6.0`, `@langchain/anthropic@1.6.0` and `@langchain/openai@1.8.0`. No API key is needed.
+Offline verification harness for the LangChain.js v1 agent docs and our examples, pinned to `langchain@1.6.6` with `@langchain/core@1.4.1`, `@langchain/langgraph@1.7.4`, `@langchain/anthropic@1.6.5` and `@langchain/openai@1.8.4`. No API key is needed.
 
 ## How it works
 

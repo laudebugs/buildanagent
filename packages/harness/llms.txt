@@ -6,14 +6,20 @@ The sections of README.md and every public export, generated from this package's
 
 ## Docs
 
+- [Install the alpha with `pnpm add @buildanagent/harness@alpha`](README.md#install-the-alpha-with-pnpm-add-buildanagentharnessalpha)
 - [The session log holds twenty-one entry types](README.md#the-session-log-holds-twenty-one-entry-types)
 - [A sandbox says what it stops, and the host decides what it may touch](README.md#a-sandbox-says-what-it-stops-and-the-host-decides-what-it-may-touch)
+- [A denied command becomes a signed request, and an approved one reruns once](README.md#a-denied-command-becomes-a-signed-request-and-an-approved-one-reruns-once)
 - [The srt backend confines each command with Anthropic's OS sandbox](README.md#the-srt-backend-confines-each-command-with-anthropics-os-sandbox)
 - [The Docker backend runs each command in a locked-down container](README.md#the-docker-backend-runs-each-command-in-a-locked-down-container)
+- [A backend that claims a stop reads its policy back, and one that can't resume says so](README.md#a-backend-that-claims-a-stop-reads-its-policy-back-and-one-that-cant-resume-says-so)
 - [The egress proxy keeps every credential outside the sandbox](README.md#the-egress-proxy-keeps-every-credential-outside-the-sandbox)
+- [An egress policy names a credential and never holds one](README.md#an-egress-policy-names-a-credential-and-never-holds-one)
+- [A git route lets a push reach listed branches and nothing else](README.md#a-git-route-lets-a-push-reach-listed-branches-and-nothing-else)
 - [Every spawned process gets a cleared environment](README.md#every-spawned-process-gets-a-cleared-environment)
 - [Test a sandbox with the fake and the conformance suite](README.md#test-a-sandbox-with-the-fake-and-the-conformance-suite)
 - [One registry names, defers and wraps every tool](README.md#one-registry-names-defers-and-wraps-every-tool)
+- [The built-in tools reach files, commands and the web only through the sandbox and the egress proxy](README.md#the-built-in-tools-reach-files-commands-and-the-web-only-through-the-sandbox-and-the-egress-proxy)
 - [One pipeline decides every tool call, and a call no rule settles is denied when nobody can answer](README.md#one-pipeline-decides-every-tool-call-and-a-call-no-rule-settles-is-denied-when-nobody-can-answer)
 - [A session belongs to a user, and every store call names both](README.md#a-session-belongs-to-a-user-and-every-store-call-names-both)
 - [One writer holds a session's lock, and a lock outlives a crash only by its lease](README.md#one-writer-holds-a-sessions-lock-and-a-lock-outlives-a-crash-only-by-its-lease)
@@ -37,6 +43,10 @@ The sections of README.md and every public export, generated from this package's
 - [A turn that ends `done` runs the project's checks, and the diff flags are recorded, never fatal](README.md#a-turn-that-ends-done-runs-the-projects-checks-and-the-diff-flags-are-recorded-never-fatal)
 - [The log projects to OpenTelemetry spans with content off, and a meter warns at 80% of the session cap](README.md#the-log-projects-to-opentelemetry-spans-with-content-off-and-a-meter-warns-at-80-of-the-session-cap)
 - [An extension adds hooks and tools in the harness's own process, and project trust only gates loading](README.md#an-extension-adds-hooks-and-tools-in-the-harnesss-own-process-and-project-trust-only-gates-loading)
+- [MCP servers connect side by side, each in its own era, and their tools wait behind tool search](README.md#mcp-servers-connect-side-by-side-each-in-its-own-era-and-their-tools-wait-behind-tool-search)
+- [A remote server is reached over HTTPS to a public address, and every byte it sends is bounded](README.md#a-remote-server-is-reached-over-https-to-a-public-address-and-every-byte-it-sends-is-bounded)
+- [Servers connect in the background, and the first turn waits only for `direct` servers](README.md#servers-connect-in-the-background-and-the-first-turn-waits-only-for-direct-servers)
+- [A tool runs only while its definition matches its pin, and a change waits for the next turn](README.md#a-tool-runs-only-while-its-definition-matches-its-pin-and-a-change-waits-for-the-next-turn)
 - [A skill is a file the model reads, and only its name, description and path are in the prompt](README.md#a-skill-is-a-file-the-model-reads-and-only-its-name-description-and-path-are-in-the-prompt)
 - [`AGENTS.md`, `CLAUDE.md` and the plan files lead every request, labelled untrusted](README.md#agentsmd-claudemd-and-the-plan-files-lead-every-request-labelled-untrusted)
 - [A call that needs a person is a signed pause that any process with the key file can resume](README.md#a-call-that-needs-a-person-is-a-signed-pause-that-any-process-with-the-key-file-can-resume)
@@ -204,12 +214,18 @@ The sections of README.md and every public export, generated from this package's
 ## Exports from `@buildanagent/harness/context/file`
 
 - `fileSpillStore()`: A spill store that writes `<dir>/<user>/<session>/<callId>.txt` and returns that path.
+- `interface FileSpillStore`: A spill store in files, which can also read back the spills of one session.
 
 ## Exports from `@buildanagent/harness/tools`
 
 - `type ApprovalReuse`: Which approvals may cover later calls: a sticky one, a grouped one, both, or none, so each call asks.
+- `BUILTIN_TOOL_DEFAULTS`: The built-in tools' descriptions, limits and defaults, frozen.
+- `BUILTIN_TOOLS_HASH`: The SHA-256 of the canonical JSON of `BUILTIN_TOOL_DEFAULTS`.
+- `builtinTools()`: The built-in tools for one sandbox: `read`, `write`, `edit`, `bash`, `grep`, `glob` and, when `proxy` is given, `fetch`.
+- `interface BuiltinToolsOptions`: The options of `builtinTools()`.
 - `createToolRegistry()`: Creates an empty registry.
 - `class DuplicateToolError`: Thrown by `register()` when a registry already holds a tool, or an alias, by that name.
+- `type FetchProxy`: What the `fetch` tool needs of an egress proxy.
 - `type HostPattern`: How a tool's code is reached: in this process, or by asking the client through a `tool/call` server request.
 - `type OutputTrust`: Whether a tool's output may carry instructions an attacker wrote.
 - `interface PreambleOptions`: The options of `preambleTokens()`.
@@ -219,12 +235,38 @@ The sections of README.md and every public export, generated from this package's
 - `interface ToolRegistry`: One registry for the tools of every source.
 - `toolSearchInterceptors()`: The interceptor that sends what tool search activated.
 - `interface ToolSearchOptions`: The options of `toolSearchTool()`.
-- `toolSearchTool()`: The `tool_search` tool: it searches the registry's `deferred` tools by the words of a query, records the best matches in `options.activated` and tells the model their names and descriptions.
+- `toolSearchTool()`: The `tool_search` tool: it searches the registry's `deferred` tools by the words of a query, records the best matches in `options.activated` and tells the model their names, plus the descriptions of trusted tools.
 - `type ToolSource`: Where a tool comes from: the harness, an in-process extension, one MCP server (`mcp:<server>`) or the client.
 - `type ToolWrapper`: Wraps one registered tool's definition for a turn: a write cap, shadow mode or a sandbox binding, with the turn's host context.
+- `interface TurnBoundary`: A component that changes a session's tools only between turns, such as the MCP client.
 
 ## Exports from `@buildanagent/harness/mcp`
 
+- `connectMcpServer()`: Connects one server and negotiates its era.
+- `createMcpManager()`: Creates the MCP client for a set of servers.
+- `killMcpServersOnSignal()`: Opts this process in to ending every MCP server on `SIGINT`, `SIGTERM` or `SIGHUP`, for a host whose process those signals end, such as a one-shot command.
+- `type McpCallFailure`: Why an MCP tool call ended without a result.
+- `interface McpCallResult`: What one tool call returned.
+- `interface McpChannel`: A message channel to a server in this process, such as an `InMemoryTransport` from `@modelcontextprotocol/server`.
+- `interface McpConnection`: One connected server.
+- `interface McpEgressFetch`: The part of an egress proxy a remote server's requests go through: `startEgressProxy()` returns one.
+- `type McpEra`: The protocol era a server speaks: the 2026-07-28 revision, or `legacy` for the 2025 revisions and their `initialize`.
+- `class McpError`: Thrown for a server that could not connect (`mcp_connect_failed`), a tool list the harness refuses (`mcp_tool_list_refused`) and a tool call that ended with no result (`mcp_call_failed`, with `failure` saying why).
+- `interface McpHttpTransport`: A server reached over MCP's streamable HTTP transport: each message is a `POST`, and the answer is JSON or a server-sent event stream.
+- `interface McpInProcessTransport`: A server in this process, reached through a channel the host built.
+- `interface McpManager`: The MCP client as one removable component: it connects the servers and registers their tools.
+- `interface McpManagerOptions`: What `createMcpManager()` takes.
+- `interface McpPendingTool`: A tool whose current definition has no matching pin, so it waits for a person's approval.
+- `interface McpPinStore`: Where the approved definitions of each server's tools are kept: for each server, its tool names and the hash of each one's definition.
+- `interface McpRemoteSettings`: The settings a remote server shares, over streamable HTTP or legacy SSE.
+- `interface McpServerConfig`: One MCP server the harness connects to.
+- `type McpServerStatus`: How one server's connection went.
+- `interface McpSseTransport`: A server reached over the HTTP+SSE transport of the 2024-11-05 revision, which MCP has deprecated since 2025-03-26.
+- `interface McpStdioTransport`: A server the harness starts as a child process and speaks to over its standard input and output, one JSON message per line.
+- `interface McpTimers`: The timers the MCP client waits with, so a test can run its waits on a clock of its own.
+- `interface McpTool`: A tool as a server lists it.
+- `type McpToolState`: How a server's current definition of a tool compares with its pin.
+- `memoryMcpPinStore()`: A pin store in memory, for a host that keeps approvals for the life of the process, and for tests.
 
 ## Exports from `@buildanagent/harness/permissions`
 
@@ -247,20 +289,47 @@ The sections of README.md and every public export, generated from this package's
 ## Exports from `@buildanagent/harness/sandbox`
 
 - `type ApprovalPolicy`: When a denied action may be asked for again, which is the host's decision and never the sandbox's.
+- `confirmPolicy()`: Reads back the policy `sandbox` applied and compares it with `requested`.
+- `escalation()`: Creates the escalation machine for a harness's approvals.
+- `ESCALATION_EVENTS`: Every event.
+- `ESCALATION_STATES`: Every state, in the order a command that escalates passes through them.
+- `ESCALATION_TOOL`: The tool name an escalation's signed request carries.
+- `ESCALATION_TRANSITIONS`: The legal edges.
+- `type EscalationEvent`: What moves a command between states.
+- `interface EscalationMachine`: The machine `escalation()` returns.
+- `interface EscalationOptions`: The options of `escalation()`.
+- `interface EscalationRecord`: What an escalation's request signs, as the input of its `approval_requested` entry: the call the command ran for, the command, the workspace root, the policy it ran under and the denial.
+- `interface EscalationResolveOptions`: The options of `EscalationMachine.resolve()`: where the rerun runs, which the log does not hold.
+- `type EscalationResult`: How an escalation call ended.
+- `interface EscalationRule`: One rule of a `granular` policy: a denial of `kind` for `tool` may be asked about (`on-request`) or goes back to the caller (`never`).
+- `interface EscalationRun`: One command to run in a sandbox, for one tool call, and what the host provisions the sandbox with.
+- `type EscalationState`: Where a sandboxed command stands.
+- `interface EscalationTransition`: One legal edge: from a state, on an event, to a state, and when the machine takes it.
 - `interface ExecOptions`: The options of `Sandbox.exec()`.
 - `type ExecResult`: What a command did: its exit status and output, or the denial that stopped it.
+- `hasCapability()`: Whether `client` lists `capability`.
+- `nextEscalationState()`: The state `event` moves `from` to.
 - `NONE_SANDBOX_WARNING`: The warning written when a sandbox starts.
 - `noneSandbox()`: Builds the `none` backend.
 - `interface NoneSandboxOptions`: The options of `noneSandbox()`.
+- `pauseSandbox()`: Pauses `sandbox` until `resumeSandbox()` with its `id`, or throws `SandboxUnsupportedError`.
+- `interface PendingEscalation`: An escalation that waits for an answer: its id, its signed request and the record the request signs.
+- `policyDifference()`: The first field in which `applied` differs from `requested`, or `undefined` when they hold the same entries.
+- `resumeSandbox()`: Reattaches to a sandbox by its id, or starts one from a snapshot's id, then confirms its policy as `provision()` does and sets the sandbox's `stops` to what the confirmed policy delivers.
 - `interface Sandbox`: A provisioned sandbox.
+- `type SandboxCapability`: What a backend can do besides provisioning.
 - `interface SandboxClient`: A sandbox backend.
 - `interface SandboxDenial`: What the policy refused.
 - `class SandboxDeniedError`: Thrown when the policy refuses a file read or write.
 - `interface SandboxPolicy`: What a sandbox may touch.
+- `class SandboxPolicyMismatchError`: Thrown when the policy a backend read back from what it applied differs from the policy it was asked for, after `provision()` or a resume.
 - `type SandboxStop`: What a backend claims to stop.
 - `type SandboxTier`: How strongly a backend confines a process.
 - `class SandboxUnavailableError`: Thrown by `provision()` when a backend can't start, such as a missing binary.
+- `class SandboxUnsupportedError`: Thrown by `resumeSandbox()`, `snapshotSandbox()` and `pauseSandbox()` for a capability the backend doesn't list.
+- `snapshotSandbox()`: Snapshots `sandbox` and resolves with the id `resumeSandbox()` takes, or throws `SandboxUnsupportedError`.
 - `spawnEnv()`: The environment for a spawned process: `PATH`, a fresh temp `HOME`, `TMPDIR` and `LANG`, plus the parent variables named in `allow` that are set, plus every `extra`.
+- `stopsFor()`: The stops a backend of `tier` delivers under `policy`.
 - `interface WorkspaceManifest`: The workspace a sandbox is provisioned for: its root directory and the files to put there first.
 
 ## Exports from `@buildanagent/harness/sandbox/srt`
@@ -268,6 +337,8 @@ The sections of README.md and every public export, generated from this package's
 - `SRT_ADDED_ENVIRONMENT`: The variables `srt` 0.0.83 adds to a command's environment, which are its proxy settings and the few that go with them.
 - `SRT_SYSTEM_READ_ROOTS`: The system folders a program needs to start.
 - `interface SrtPathEntry`: A path that `srt` must read as written.
+- `srtPolicyFromSettings()`: The policy a settings file applies, in the spelling of the request.
+- `interface SrtPolicyNames`: How a settings file's real paths map back to the spelling of the request, for `srtPolicyFromSettings()`.
 - `srtSandbox()`: Builds the `srt` backend.
 - `interface SrtSandboxOptions`: The options of `srtSandbox()`.
 - `srtSettings()`: Denies every read and then allows the policy's read and write roots, the system folders and the helper folders back.
@@ -282,12 +353,24 @@ The sections of README.md and every public export, generated from this package's
 
 ## Exports from `@buildanagent/harness/credentials`
 
+- `interface CompiledEgressPolicy`: A compiled policy: the `allow` and `routes` options of `startEgressProxy()`.
+- `interface CompileEgressOptions`: The options of `compileEgressPolicy()`.
+- `compileEgressPolicy()`: Checks `policy` and compiles it for `startEgressProxy()`: pass the result's `allow` and `routes` with a `log`.
 - `interface CredentialRoute`: One credential route: where a request for `/<route>/…` goes, and how the proxy adds the credential.
+- `interface EgressPolicy`: What a sandbox may reach: the hosts it may tunnel to, and the routes that add a credential on its behalf.
 - `interface EgressProxy`: A running egress proxy.
 - `interface EgressProxyOptions`: The options of `startEgressProxy()`.
 - `interface EgressRecord`: One line of the egress log.
+- `type EgressRoute`: One credential route of an `EgressPolicy`.
+- `GIT_MAX_COMMAND_BYTES`: The most bytes of a push's command list, before its flush, that the route reads.
+- `GIT_MAX_COMMANDS`: The most ref updates in one push.
+- `interface GitEgressRoute`: A route for git over HTTPS: git's smart HTTP requests for the listed repositories only, and a push only to the listed branches.
+- `interface GitRouteFilter`: What a git route lets through.
+- `interface HeaderEgressRoute`: A route that swaps the sentinel in one request header for a credential, as `startEgressProxy()`'s routes do.
 - `isAddressLiteral()`: Whether `text` is an IPv4 or IPv6 address, as a host name that must not be looked up.
 - `isPublicAddress()`: Whether `address` is a public one a proxy may connect to.
+- `isValidRefName()`: Whether `name` is a ref name git itself would accept, by `git check-ref-format`'s rules, under `refs/`.
+- `pushVerdict()`: The route's verdict on the start of a push body: `incomplete` while the command list hasn't reached its flush, `allowed` once every command creates or updates a ref the patterns allow, or the reason it is refused.
 - `REDACTED`: What replaces a secret.
 - `scrubSecrets()`: Returns a copy of `entry` with every secret replaced by `[REDACTED]`, in every string value and every key, at any depth.
 - `startEgressProxy()`: Starts the egress proxy on `127.0.0.1` with a port the system picks, or on `socketPath`.
@@ -330,6 +413,7 @@ The sections of README.md and every public export, generated from this package's
 - `interface DiscoveredSkills`: The skills found, what to record about them, and why any were left out.
 - `discoverSkills()`: Finds the skills of the project `cwd` is in: each folder under `.agents/skills` holding a `SKILL.md`, in `cwd` and every folder above it up to the repository root (the first folder with a `.git`).
 - `interface DiscoverSkillsOptions`: The settings of `discoverSkills()`.
+- `fileMcpPinStore()`: A pin store over the lock file at `lockFile`, such as `.agents/extensions.lock.json`.
 - `fileTrustStore()`: A trust store in the file at `file`, created on the first `trust()`.
 - `interface FoundContextFiles`: The context files found, and why any were skipped.
 - `hashExtensionDir()`: The hash of an extension folder: `sha256:` and the digest over each file's path and content digest, in sorted order.
@@ -338,9 +422,11 @@ The sections of README.md and every public export, generated from this package's
 - `pinProjectExtensions()`: Writes the lock file for every extension folder as it is now.
 - `planFileSource()`: A plan source that reads `.agents/plan.md` and `.agents/progress.json` under `root` each time it is called.
 - `interface ProjectExtensions`: The extensions a project supplied, what to record about them, and why any were skipped.
-- `readLock()`: The pins in a lock file, by extension folder name, or `undefined` when there is no lock file.
+- `readLock()`: The pins in a lock file, by extension folder name, or `undefined` when there is no lock file or it pins no extension, because it holds MCP pins alone.
+- `readMcpPins()`: The MCP pins of one server in a lock file, by tool name, or `undefined` when it holds none for the server.
 - `realPathTrustStore()`: A trust store in memory, for tests and for a host that decides trust itself, that resolves each folder to its real path when the store is built and when `trust()` adds it.
-- `writeLock()`: Writes the lock file for these pins, replacing the old one in one step.
+- `writeLock()`: Writes the lock file for these extension pins, keeping its MCP pins, and replaces the old file in one step.
+- `writeMcpPins()`: Replaces the MCP pins of one server in a lock file, keeping every other member.
 
 ## Exports from `@buildanagent/harness/memory`
 

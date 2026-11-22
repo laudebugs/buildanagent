@@ -3,9 +3,9 @@
 // entry to dist/ from a temp install, with and without `--conditions=source` (ADR 0050, as corrected by ADR 0051). The
 // pack tests skip unless the installed pnpm is the `packageManager` version. Offline: `pnpm pack` and the build it
 // runs read only the workspace. The test leaves the repo as it found it: it removes each package's dist/ and licence
-// copies unless they were there before it ran. It also holds the six packages that will publish (PUBLISHED) to the
-// rules they must meet once they do, though four are still private: each ships an llms.txt, none depends on a
-// workspace package outside the six, and the packed protocol's JavaScript imports neither the gateway nor the SDK.
+// copies unless they were there before it ran. It also holds the six packages that publish (PUBLISHED) to the rules
+// they must meet: each ships an llms.txt, none depends on a workspace package outside the six, and the packed
+// protocol's JavaScript imports neither the gateway nor the SDK.
 // It ends with two install checks: a fresh project installs the gateway's and SDK's tarballs with pnpm, offline, and
 // makes one model call through the Anthropic adapter against a mock server on the loopback interface, and another
 // installs the CLI's tarball and runs its `buildanagent --help`. Every install links each third-party runtime
@@ -60,8 +60,8 @@ function dependencyOrder(dirs) {
   for (const name of byName.keys()) visit(name);
   return ordered;
 }
-// The packages that will publish (ADR 0058). The gateway and the SDK already do; the other four are still `private`
-// until todo L11, so the checks that must hold once they publish go by this list, never by the `private` field.
+// The packages that publish (ADR 0058), in RELEASE_ORDER, which release.test.mjs checks against this list. The checks
+// go by this list, never by the `private` field, so a package can't leave them by setting it.
 const PUBLISHED = [
   "@buildanagent/gateway",
   "@buildanagent/sdk",
@@ -178,21 +178,39 @@ function sourceTargets(exports) {
   );
 }
 
+/** True when a third-party package ships a `source` target Node cannot load: a file its tarball lacks, or TypeScript. */
+function hasUnloadableSource(dir) {
+  const { exports } = JSON.parse(readFileSync(path.join(dir, "package.json"), "utf8"));
+  return sourceTargets(exports).some((target) => !existsSync(path.join(dir, target)) || /\.[cm]?ts$/.test(target));
+}
+
 /**
- * The third-party runtime dependencies of a packed package, and of the packed packages it depends on, that ship a
- * `source` condition pointing at a file their tarball lacks. Node fails to load such a dependency under
- * `--conditions=source`, whatever our own manifests say, and a package that imports our SDK at run time reaches the
- * SDK's dependencies too.
+ * The third-party packages a packed package reaches at run time, through its dependencies and theirs, that ship a
+ * `source` condition Node cannot load under `--conditions=source`: a target their tarball lacks, or a `.ts` file, which
+ * Node refuses to strip types from under `node_modules` (`ERR_UNSUPPORTED_NODE_MODULES_TYPE_STRIPPING`). Our own
+ * manifests make no difference, and a package that imports our SDK at run time reaches the SDK's dependencies too.
  */
 function brokenSourceDependencies(manifest) {
   const names = Object.keys(manifest.dependencies ?? {});
-  const own = names
-    .filter((name) => !packed.has(name))
-    .filter((name) => {
-      const dir = path.join(install, "node_modules", name);
-      const { exports } = JSON.parse(readFileSync(path.join(dir, "package.json"), "utf8"));
-      return sourceTargets(exports).some((target) => !existsSync(path.join(dir, target)));
-    });
+  // Third-party dependencies resolve the way Node resolves them: from the real directory of the package that names
+  // them, up through each `node_modules`, which in a pnpm install reaches the sibling links of its virtual store.
+  const find = (from, name) => {
+    for (let dir = from; dir !== path.dirname(dir); dir = path.dirname(dir)) {
+      const candidate = path.join(dir, "node_modules", name);
+      if (existsSync(path.join(candidate, "package.json"))) return realpathSync(candidate);
+    }
+    return undefined;
+  };
+  const seen = new Map();
+  const reach = (from, name) => {
+    const dir = find(from, name);
+    if (dir === undefined || seen.has(dir)) return;
+    seen.set(dir, name);
+    const deps = JSON.parse(readFileSync(path.join(dir, "package.json"), "utf8")).dependencies ?? {};
+    for (const dep of Object.keys(deps)) reach(dir, dep);
+  };
+  for (const name of names.filter((n) => !packed.has(n))) reach(install, name);
+  const own = [...seen].filter(([dir]) => hasUnloadableSource(dir)).map(([, name]) => name);
   const inherited = names
     .filter((name) => packed.has(name))
     .flatMap((name) => brokenSourceDependencies(packed.get(name).manifest));
@@ -307,16 +325,20 @@ packTest("every packed declaration file imports only its own dist/ files or othe
 });
 
 // The entries that fail to import under `--conditions=source`, because they reach pi-schema 1.5.2, whose `source`
-// condition names a file its tarball lacks. The harness's `session`, `tools`, `permissions`, `extensions`,
-// `extensions/node` and `server` entries reach it through the SDK, and so does the CLI's, which runs the harness; the protocol's entries
-// don't. The list is in exports order.
+// condition names a file its tarball lacks. The harness's `session`, `tools`, `permissions`, `sandbox`, `extensions`,
+// `extensions/node` and `server` entries reach it through the SDK, and so does the CLI's, which runs the harness; the
+// protocol's entries don't. (The `sandbox` entry imports the SDK in its escalation machine.) The harness's `mcp` entry fails for a second reason as well: `@modelcontextprotocol/client` reaches
+// `eventsource` 3.0.7, whose `source` condition names a `.ts` file, and Node refuses to strip types under `node_modules`
+// (`ERR_UNSUPPORTED_NODE_MODULES_TYPE_STRIPPING`). The list is in exports order.
 // Every other entry must import; an entry listed here that imports again fails the test, so the list is cut once
 // pi-schema ships a fix.
 const SOURCE_CONDITION_FAILURES = [
   "@buildanagent/sdk",
   "@buildanagent/harness/session",
   "@buildanagent/harness/tools",
+  "@buildanagent/harness/mcp",
   "@buildanagent/harness/permissions",
+  "@buildanagent/harness/sandbox",
   "@buildanagent/harness/extensions",
   "@buildanagent/harness/extensions/node",
   "@buildanagent/harness/server",
@@ -411,9 +433,9 @@ packTest("the packed protocol's JavaScript imports neither the gateway nor the S
   run(process.execPath, ["--input-type=module", "-e", 'await import("@buildanagent/protocol");'], { cwd: alone });
 });
 
-packTest("no package that will publish depends on a workspace package that won't", () => {
-  // The rule reads names, not `private`: four of the six are private until they publish, and the check must hold
-  // from now on, so that none of them ships a dependency npm will never hold, such as the private evals package.
+packTest("no package that publishes depends on a workspace package that doesn't", () => {
+  // The rule reads names, not `private`, so that none of the six ships a dependency npm will never hold, such as the
+  // private evals package.
   for (const name of PUBLISHED) {
     const { manifest } = packed.get(name) ?? {};
     assert.ok(manifest, `${name} was not packed`);

@@ -358,3 +358,54 @@ test("a mounted folder that holds a Docker socket, or resolves to /, or has a co
     server.close();
   }
 });
+
+test("the read-back is the mounts and flags every container gets, and a host with no proxy socket is a mismatch", async (context) => {
+  if (!linux) context.skip("this backend runs on Linux only");
+  const root = folder();
+  const socketFolder = folder("sock");
+  const socket = join(socketFolder, "proxy.sock");
+  const server = createServer();
+  await new Promise<void>((resolve) => server.listen(socket, resolve));
+  const docker = fakeDocker();
+  const allowing = { ...policy(root), network: { allow: ["allowed.test"], deny: [] } };
+  try {
+    const plain = await dockerSandbox({ image: IMAGE, binary: docker.binary }).provision({ root }, policy(root));
+    assert.deepEqual(await plain.readBack?.(), policy(root));
+    assert.deepEqual(plain.stops, ["mistakes", "exfiltration"]);
+    await plain.dispose();
+    const before = privateFolders();
+    const error = await dockerSandbox({ image: IMAGE, binary: docker.binary })
+      .provision({ root }, allowing)
+      .catch((caught: unknown) => caught);
+    assert.equal((error as { code?: string }).code, "sandbox_policy_mismatch");
+    assert.equal((error as { field?: string }).field, "network.allow", "no socket, so no host is reachable");
+    assert.doesNotMatch((error as Error).message, /allowed\.test/);
+    assert.deepEqual(privateFolders(), before, "no private folder was left behind");
+    const proxied = await dockerSandbox({ image: IMAGE, binary: docker.binary, proxySocket: socket }).provision(
+      { root },
+      allowing,
+    );
+    assert.deepEqual(await proxied.readBack?.(), allowing, "the proxy on the socket enforces the allowlist");
+    await proxied.dispose();
+  } finally {
+    server.close();
+  }
+});
+
+test("an extra read root shows in no read-back, and a denyWrite root still reads back as a write root", async (context) => {
+  if (!linux) context.skip("this backend runs on Linux only");
+  const root = folder();
+  const extra = folder("extra");
+  const docker = fakeDocker();
+  const sandbox = await dockerSandbox({
+    image: IMAGE,
+    binary: docker.binary,
+    extraReadRoots: [extra],
+    denyWrite: [root],
+  }).provision({ root }, { ...policy(root), readRoots: [root, join(root, "missing")] });
+  try {
+    assert.deepEqual(await sandbox.readBack?.(), { ...policy(root), readRoots: [root, join(root, "missing")] });
+  } finally {
+    await sandbox.dispose();
+  }
+});

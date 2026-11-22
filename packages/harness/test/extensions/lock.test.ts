@@ -199,3 +199,16 @@ describe("the lock file", () => {
     }
   });
 });
+
+describe("a lock file with MCP pins alone", () => {
+  test("leaves the extensions unpinned, and the notice says the file pins none, not that it is missing", async () => {
+    const root = project();
+    const lock = join(root, ".agents", "extensions.lock.json");
+    writeFileSync(lock, JSON.stringify({ version: 1, mcp: { srv: { tools: {} } } }));
+    const loaded = await load(root);
+    assert.equal(loaded.extensions.length, 1);
+    assert.equal(loaded.notices.length, 1);
+    assert.match(loaded.notices[0] ?? "", /holds no extension pins/);
+    assert.doesNotMatch(loaded.notices[0] ?? "", /there is no/);
+  });
+});

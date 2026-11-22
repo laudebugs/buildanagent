@@ -16,6 +16,7 @@ import {
   parseAllow,
   parseRoutes,
 } from "./allowlist.js";
+import { basicCarries, basicHeader, type GitRouteFilter, gitEndpoint, PushReader, pushVerdict } from "./git-route.js";
 
 export type { CredentialRoute } from "./allowlist.js";
 
@@ -58,8 +59,20 @@ export interface EgressProxyOptions {
    * for a real run: the check is what keeps a name that points at the host's own network from being reached.
    */
   readonly unsafeAllowAddresses?: readonly string[];
-  /** Ends a tunnel or a forwarded request that is idle this long. Defaults to 120000. */
+  /**
+   * Ends a tunnel, a forwarded request or a push check that is idle this long. A whole number of milliseconds from 0 to
+   * 2,147,483,647, where 0 turns the idle timeout off, as it does for a socket; anything else throws
+   * `invalid_egress_options` when the proxy starts. Defaults to 120000.
+   */
   readonly idleTimeoutMs?: number;
+  /**
+   * The longest a push's command list may take to arrive, from the start of its body, however often bytes come. The
+   * clock starts once and is never reset, so a client that sends a byte just inside the idle timeout is still cut off;
+   * a push that takes longer is refused with `git_timeout`. Only the command list is timed, not the pack after it. A
+   * whole number of milliseconds from 1 to 2,147,483,647; anything else throws `invalid_egress_options` when the proxy
+   * starts. Defaults to 60000.
+   */
+  readonly pushCheckTimeoutMs?: number;
 }
 
 /** A running egress proxy. */
@@ -124,6 +137,12 @@ const HOP_BY_HOP = new Set([
   "host",
 ]);
 const DEFAULT_IDLE_MS = 120_000;
+const DEFAULT_PUSH_CHECK_MS = 60_000;
+// How much of a refused request's unread body is discarded, and for how long, before its connection is closed.
+const LINGER_BYTES = 1024 * 1024;
+const LINGER_MS = 1000;
+// The longest delay a timer takes; past it, `setTimeout` fires at once.
+const MAX_TIMER_MS = 2_147_483_647;
 // What Node refuses in a header value: anything but tab, printable ASCII and the Latin-1 range. A secret with a line break
 // or another control character would split or break the request, so it is refused before it is sent.
 const INVALID_HEADER_VALUE = /[^\t\x20-\x7e\x80-\xff]/;
@@ -145,6 +164,30 @@ const refusal = (status: number, reason: string): RouteReply => ({
   reason,
 });
 
+/**
+ * The answer to a git request whose credential is missing or wrong, or `undefined` when its HTTP Basic password is the
+ * route's sentinel. A missing one gets 401 with a Basic challenge, so git asks its credential helper.
+ */
+function gitCredentialRefusal(presented: string | string[] | undefined, sentinel: string): RouteReply | undefined {
+  if (presented === undefined) {
+    return { ...refusal(401, "git_credential_missing"), headers: { "www-authenticate": 'Basic realm="egress"' } };
+  }
+  return typeof presented === "string" && basicCarries(presented, sentinel) ? undefined : refusal(403, "bad_sentinel");
+}
+
+/**
+ * Checks a timeout option and returns the value to use: `fallback` when it is unset, or a whole number of milliseconds
+ * from `min` to the longest delay a timer takes. The message names the option and never quotes the value.
+ */
+function timeoutOption(name: string, ms: unknown, min: number, fallback: number): number {
+  if (ms === undefined) return fallback;
+  if (typeof ms === "number" && Number.isInteger(ms) && ms >= min && ms <= MAX_TIMER_MS) return ms;
+  throw new HarnessError(
+    "invalid_egress_options",
+    `${name} must be a whole number of milliseconds from ${min} to ${MAX_TIMER_MS}`,
+  );
+}
+
 class EgressGate {
   private readonly modules: Modules;
   private readonly allow: readonly AllowEntry[];
@@ -154,13 +197,18 @@ class EgressGate {
   private readonly unsafe: ReadonlySet<string>;
   private readonly sockets = new Set<import("node:net").Socket>();
   private readonly requests = new Set<import("node:http").ClientRequest>();
+  private readonly pushCheckMs: number;
+  // 0 means no idle timeout, as it does for `socket.setTimeout`.
+  private readonly idleMs: number;
   private origin = "";
 
   constructor(modules: Modules, options: EgressProxyOptions) {
     this.modules = modules;
     this.options = options;
+    this.idleMs = timeoutOption("idleTimeoutMs", options.idleTimeoutMs, 0, DEFAULT_IDLE_MS);
+    this.pushCheckMs = timeoutOption("pushCheckTimeoutMs", options.pushCheckTimeoutMs, 1, DEFAULT_PUSH_CHECK_MS);
     this.allow = parseAllow(options.allow);
-    this.routes = new Map(parseRoutes(options.routes ?? []).map((route) => [route.route, route]));
+    this.routes = new Map(parseRoutes(options.routes ?? [], this.allow).map((route) => [route.route, route]));
     this.unsafe = new Set(options.unsafeAllowAddresses ?? []);
     for (const route of this.routes.keys()) {
       this.sentinels[route] = `sentinel_${modules.crypto.randomBytes(18).toString("base64url")}`;
@@ -260,9 +308,7 @@ class EgressGate {
     this.track(upstream);
     // A client that leaves before the tunnel is up takes the connection attempt with it.
     client.once("close", () => upstream.destroy());
-    upstream.setTimeout(this.options.idleTimeoutMs ?? DEFAULT_IDLE_MS, () =>
-      upstream.destroy(Object.assign(new Error("idle"), { code: "ETIMEDOUT" })),
-    );
+    upstream.setTimeout(this.idleMs, () => upstream.destroy(Object.assign(new Error("idle"), { code: "ETIMEDOUT" })));
     upstream.once("error", (error) => {
       if (established) client.destroy();
       else deny(this.reasonOf(error), 502);
@@ -326,8 +372,8 @@ class EgressGate {
       route: undefined,
     };
     this.routeRequest(request.method ?? "GET", url, request.headers, request, gone.signal).then(
-      (reply) => this.finish(response, reply.reply, reply.base),
-      () => this.finish(response, refusal(502, "request_failed"), base),
+      (reply) => this.finish(response, reply.reply, reply.base, request),
+      () => this.finish(response, refusal(502, "request_failed"), base, request),
     );
   }
 
@@ -335,8 +381,8 @@ class EgressGate {
     response: import("node:http").ServerResponse,
     reply: RouteReply,
     base: Pick<EgressRecord, "kind" | "host" | "port" | "method" | "route">,
+    request?: import("node:http").IncomingMessage,
   ): void {
-    response.writeHead(reply.status, reply.headers);
     let bytes = 0;
     const report = () =>
       this.record({
@@ -345,6 +391,12 @@ class EgressGate {
         bytes,
         ...(reply.reason === undefined ? {} : { reason: reply.reason }),
       });
+    if (reply.body === undefined && reply.status >= 400 && request !== undefined && !request.complete) {
+      this.refuseAndClose(request, response, reply);
+      report();
+      return;
+    }
+    response.writeHead(reply.status, reply.headers);
     if (reply.body === undefined) {
       response.end(reply.status === 403 || reply.status >= 400 ? `${reply.reason ?? "refused"}\n` : undefined);
       report();
@@ -357,6 +409,41 @@ class EgressGate {
     reply.body.once("error", () => response.destroy());
     response.once("close", () => reply.body?.destroy());
     reply.body.pipe(response);
+  }
+
+  /**
+   * Refuses a request whose body has not been read to its end, and closes its connection. Node would otherwise read and
+   * discard the rest of the body, a whole pack perhaps, to keep the connection alive. The answer is written whole, with
+   * its length and `Connection: close`, and the response is ended, which closes the socket, only after the bytes already
+   * on their way are discarded, up to `LINGER_BYTES` or for `LINGER_MS`. Closing a socket with unread bytes resets the
+   * connection, and a client that has not yet read the answer would lose it.
+   */
+  private refuseAndClose(
+    request: import("node:http").IncomingMessage,
+    response: import("node:http").ServerResponse,
+    reply: RouteReply,
+  ): void {
+    const text = `${reply.reason ?? "refused"}\n`;
+    response.writeHead(reply.status, { ...reply.headers, connection: "close", "content-length": String(text.length) });
+    response.write(text);
+    let discarded = 0;
+    const done = () => {
+      clearTimeout(timer);
+      request.off("data", onData);
+      request.off("end", done);
+      request.off("close", done);
+      request.pause();
+      response.end();
+    };
+    const onData = (chunk: Uint8Array) => {
+      discarded += chunk.length;
+      if (discarded >= LINGER_BYTES) done();
+    };
+    const timer = setTimeout(done, LINGER_MS);
+    request.on("data", onData);
+    request.once("end", done);
+    request.once("close", done);
+    request.resume();
   }
 
   /**
@@ -381,20 +468,130 @@ class EgressGate {
     };
     if (route === undefined || match === null) return { reply: refusal(403, "unknown_route"), base };
     if (!route.methods.has(method.toUpperCase())) return { reply: refusal(405, "method_not_allowed"), base };
+    const target = { path: match[2] ?? "/", query: match[3] ?? "" };
+    const reply =
+      route.git === undefined
+        ? await this.headerRequest(route, method, target, headers, body, signal)
+        : await this.gitRequest(route, route.git, method, target, headers, body, signal);
+    return { reply, base };
+  }
+
+  /** Resolves a request on a header route: it swaps the sentinel in the route's header for the secret. */
+  private async headerRequest(
+    route: ParsedRoute,
+    method: string,
+    target: { readonly path: string; readonly query: string },
+    headers: Record<string, string | string[] | undefined>,
+    body: import("node:stream").Readable | Uint8Array | undefined,
+    signal?: AbortSignal,
+  ): Promise<RouteReply> {
     const presented = headers[route.header];
     const sentinel = this.sentinels[route.route] ?? "";
     if (typeof presented !== "string" || sentinel === "" || !presented.includes(sentinel)) {
-      return { reply: refusal(403, "bad_sentinel"), base };
+      return refusal(403, "bad_sentinel");
     }
     const secret = await route.secret().catch(() => "");
-    if (secret === "" || INVALID_HEADER_VALUE.test(secret)) return { reply: refusal(502, "secret_unavailable"), base };
+    if (secret === "" || INVALID_HEADER_VALUE.test(secret)) return refusal(502, "secret_unavailable");
     const outgoing = this.outgoingHeaders(
       headers,
       route,
       presented.replaceAll(sentinel, () => secret),
     );
-    const reply = await this.forward(route, method, `${match[2] ?? "/"}${match[3] ?? ""}`, outgoing, body, signal);
-    return { reply, base };
+    return this.forward(route, method, `${target.path}${target.query}`, outgoing, body, signal);
+  }
+
+  /**
+   * Resolves a request on a git route. The endpoint and repository are checked first, then the sentinel in HTTP Basic,
+   * then a push's command list, and only then is the secret read and the request forwarded with it. A missing
+   * credential gets 401 with a Basic challenge, so git asks its credential helper for the sentinel.
+   */
+  private async gitRequest(
+    route: ParsedRoute,
+    filter: GitRouteFilter,
+    method: string,
+    target: { readonly path: string; readonly query: string },
+    headers: Record<string, string | string[] | undefined>,
+    body: import("node:stream").Readable | Uint8Array | undefined,
+    signal?: AbortSignal,
+  ): Promise<RouteReply> {
+    const endpoint = gitEndpoint(filter, method, target.path, target.query);
+    if ("refused" in endpoint) return refusal(403, endpoint.refused);
+    const unauthorized = gitCredentialRefusal(headers.authorization, this.sentinels[route.route] ?? "");
+    if (unauthorized !== undefined) return unauthorized;
+    let forwarded = body;
+    if (endpoint.service === "git-receive-pack" && endpoint.phase === "rpc") {
+      const encoding = headers["content-encoding"];
+      if (encoding !== undefined && encoding !== "identity") return refusal(403, "git_encoded_push");
+      const checked = await this.checkPush(body, filter);
+      if ("refused" in checked) return refusal(403, checked.refused);
+      forwarded = checked.body;
+    }
+    const secret = await route.secret().catch(() => "");
+    if (secret === "" || INVALID_HEADER_VALUE.test(secret)) return refusal(502, "secret_unavailable");
+    const outgoing = this.outgoingHeaders(headers, route, basicHeader(filter.username, secret));
+    return this.forward(route, method, `${target.path}${target.query}`, outgoing, forwarded, signal);
+  }
+
+  /**
+   * Reads a push's command list and checks it, then hands back a body that starts with what was read. `PushReader`
+   * reads each chunk once, so the check is linear in the bytes however small the chunks. The check gives up once the
+   * body is idle for the idle timeout, which each chunk resets, or once `pushCheckTimeoutMs` has passed since it
+   * started, which nothing resets.
+   */
+  private checkPush(
+    body: import("node:stream").Readable | Uint8Array | undefined,
+    filter: GitRouteFilter,
+  ): Promise<{ readonly refused: string } | { readonly body: import("node:stream").Readable | Uint8Array }> {
+    if (body === undefined) return Promise.resolve({ refused: "git_bad_pkt_line" });
+    if (body instanceof Uint8Array) {
+      const verdict = pushVerdict(body, filter, true);
+      return Promise.resolve(verdict === "allowed" ? { body } : { refused: (verdict as { refused: string }).refused });
+    }
+    return new Promise((resolve) => {
+      const reader = new PushReader(filter);
+      const chunks: Uint8Array[] = [];
+      const timedOut = () => settle({ refused: "git_timeout" });
+      // An idle timeout of 0 is off, so only the deadline ends a quiet body.
+      const startIdle = () => (this.idleMs === 0 ? undefined : setTimeout(timedOut, this.idleMs));
+      let idle = startIdle();
+      const deadline = setTimeout(timedOut, this.pushCheckMs);
+      const settle = (outcome: { refused: string } | { body: import("node:stream").Readable }) => {
+        clearTimeout(idle);
+        clearTimeout(deadline);
+        body.off("data", onData);
+        body.off("end", onEnd);
+        body.off("error", onError);
+        body.off("close", onError);
+        // A refused body is not read further; the answer closes its connection.
+        if ("refused" in outcome) body.pause();
+        resolve(outcome);
+      };
+      const judge = (verdict: ReturnType<PushReader["add"]>, ended: boolean) => {
+        if (verdict === "incomplete") return;
+        if (verdict !== "allowed") {
+          settle(verdict);
+          return;
+        }
+        const rest = new this.modules.stream.PassThrough();
+        for (const chunk of chunks) rest.write(chunk);
+        settle({ body: rest });
+        if (ended) rest.end();
+        else body.pipe(rest);
+      };
+      const onData = (chunk: Uint8Array) => {
+        clearTimeout(idle);
+        idle = startIdle();
+        chunks.push(chunk);
+        judge(reader.add(chunk), false);
+      };
+      const onEnd = () => judge(reader.end(), true);
+      const onError = () => settle({ refused: "request_failed" });
+      body.on("data", onData);
+      body.once("end", onEnd);
+      body.once("error", onError);
+      // A client that goes away before its command list ends would otherwise hold the check until a timeout.
+      body.once("close", onError);
+    });
   }
 
   private outgoingHeaders(
@@ -432,7 +629,7 @@ class EgressGate {
       else signal?.addEventListener("abort", stop, { once: true });
       upstream.once("close", () => signal?.removeEventListener("abort", stop));
       this.requests.add(upstream);
-      upstream.setTimeout(this.options.idleTimeoutMs ?? DEFAULT_IDLE_MS, () => upstream.destroy(new Error("idle")));
+      upstream.setTimeout(this.idleMs, () => upstream.destroy(new Error("idle")));
       upstream.once("close", () => this.requests.delete(upstream));
       upstream.once("response", (reply) => {
         const passed: Record<string, string | string[]> = {};
@@ -502,12 +699,14 @@ class EgressGate {
     stream?.on("data", (chunk: Buffer) => {
       bytes += chunk.length;
     });
+    // A status `Response` refuses is recorded with its reason, as the fetch records one.
+    const reason = reply.status < 200 || reply.status > 599 ? "bad_status" : reply.reason;
     const finished = () =>
       this.record({
         ...base,
         status: reply.status,
         bytes,
-        ...(reply.reason === undefined ? {} : { reason: reply.reason }),
+        ...(reason === undefined ? {} : { reason }),
       });
     if (stream === undefined) finished();
     else stream.once("close", finished);
@@ -544,19 +743,39 @@ class EgressGate {
         this.requests.delete(upstream);
         request.signal.removeEventListener("abort", abort);
       });
-      upstream.setTimeout(this.options.idleTimeoutMs ?? DEFAULT_IDLE_MS, () => upstream.destroy(new Error("idle")));
+      upstream.setTimeout(this.idleMs, () => upstream.destroy(new Error("idle")));
+      // Once an answer has begun, its record is written when the answer closes, so a socket error after it, such as a
+      // 204 with bytes after it, writes no second record.
+      let answered = false;
       upstream.once("response", (reply) => {
+        answered = true;
         let bytes = 0;
+        let reason: string | undefined;
         reply.on("data", (chunk: Buffer) => {
           bytes += chunk.length;
         });
         // The record is written when the response is done with, which also covers one that is never read to its end.
         reply.once("close", () =>
-          this.record({ kind: "fetch", host, port, method: request.method, status: reply.statusCode ?? 0, bytes }),
+          this.record({
+            kind: "fetch",
+            host,
+            port,
+            method: request.method,
+            status: reply.statusCode ?? 0,
+            bytes,
+            ...(reason === undefined ? {} : { reason }),
+          }),
         );
-        resolve(this.toResponse(reply.statusCode ?? 502, reply.headers as Record<string, string | string[]>, reply));
+        // A throw here would escape the event handler and end the process, so a status `Response` refuses rejects.
+        try {
+          resolve(this.toResponse(reply.statusCode ?? 0, reply.headers as Record<string, string | string[]>, reply));
+        } catch (error) {
+          reason = "bad_status";
+          reject(error);
+        }
       });
       upstream.once("error", (error) => {
+        if (answered) return;
         if (request.signal.aborted) {
           reject(request.signal.reason);
           return;
@@ -578,11 +797,20 @@ class EgressGate {
     headers: Record<string, string | string[]>,
     stream: import("node:stream").Readable | undefined,
   ): Response {
+    // Node parses any three-digit status, and `Response` takes only 200 to 599, so any other is refused here and its
+    // upstream reply is destroyed, so its socket closes.
+    if (status < 200 || status > 599) {
+      stream?.destroy();
+      throw new HarnessError(
+        "egress_denied",
+        `the upstream answered with status ${status}, which HTTP does not define`,
+      );
+    }
     const out = new Headers();
     for (const [name, value] of Object.entries(headers)) {
       for (const one of Array.isArray(value) ? value : [value]) out.append(name, one);
     }
-    const bodiless = stream === undefined || [101, 204, 205, 304].includes(status);
+    const bodiless = stream === undefined || [204, 205, 304].includes(status);
     // A response with no body is drained, so its socket and its log record don't wait for a reader that never comes.
     if (bodiless) stream?.resume();
     const web = bodiless ? null : (this.modules.stream.Readable.toWeb(stream) as ReadableStream);

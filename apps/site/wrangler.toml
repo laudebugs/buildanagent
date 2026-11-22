@@ -1,0 +1,29 @@
+# The website's Worker: static assets only, with no Worker code (publish-and-docs DS3, ADR 0049). site-deploy.yml
+# reads this file from main, and scripts/ci/site-guard-deploy.mjs refuses a deploy unless its settings are exactly
+# the ones below, so change the guard's copy in the same commit.
+#
+# The owner creates this Worker once by hand: the stored token's Workers Scripts permission is Workers Editor, which
+# cannot create a Worker.
+name = "buildanagent-site"
+# The newest date the pinned Wrangler's local runtime accepts, as in apps/manual/wrangler.jsonc. An assets-only Worker
+# runs no code, so the date changes nothing it serves.
+compatibility_date = "2026-11-17"
+# One production address, the custom domain, and not <name>.<subdomain>.workers.dev.
+workers_dev = false
+# Previews are served on workers.dev, and a Worker with no setting starts from workers_dev's value, so this is set
+# explicitly. It also turns on Version URLs on workers.dev.
+preview_urls = true
+
+# No `main`: nothing runs but Cloudflare's asset server. A path the build did not write gets the nearest 404.html with
+# status 404.
+[assets]
+directory = "./dist"
+not_found_handling = "404-page"
+
+# Cloudflare creates the DNS record and the certificate for a custom domain.
+[[routes]]
+pattern = "buildanagent.fyi"
+custom_domain = true
+
+# `wrangler preview` needs this block. An assets-only Worker has no bindings, so it stays empty.
+[previews]

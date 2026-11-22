@@ -4,16 +4,37 @@
 // `node --test scripts/ci/*.test.mjs`.
 import assert from "node:assert/strict";
 import { execFileSync, spawnSync } from "node:child_process";
-import { chmodSync, existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
+import {
+  chmodSync,
+  existsSync,
+  mkdirSync,
+  mkdtempSync,
+  readdirSync,
+  readFileSync,
+  rmSync,
+  writeFileSync,
+} from "node:fs";
 import { tmpdir } from "node:os";
 import path from "node:path";
 import { after, describe, test } from "node:test";
 import { fileURLToPath } from "node:url";
 import { parse } from "yaml";
 import { FAKE_GH } from "./fake-gh.mjs";
-import { lockfileProblems, manifestProblems, newestEligible, parseBumps, updateProblems } from "./sdk-updates.mjs";
+import {
+  commandLine,
+  lockfileProblems,
+  manifestProblems,
+  newestEligible,
+  parseBumps,
+  parseRange,
+  planBumps,
+  planMatrix,
+  satisfies,
+  updateProblems,
+} from "./sdk-updates.mjs";
 
 const NOW = Date.parse("2026-11-19T00:00:00Z");
+const OLD_TIME = "2026-10-01T00:00:00Z";
 const times = {
   "1.0.0": "2026-10-01T00:00:00Z",
   "1.1.0": "2026-11-01T00:00:00Z",
@@ -48,6 +69,283 @@ test("an unparseable pin is left alone", () => {
 
 test("skips a deprecated release", () => {
   assert.equal(newestEligible("1.0.0", versions, times, NOW, new Set(["1.1.0"])), undefined);
+});
+
+describe("parseRange and satisfies", () => {
+  const ok = (version, range) => satisfies(version, parseRange(range));
+
+  test("reads the caret, tilde, exact, comparator, x-range and || shapes npm writes", () => {
+    assert.ok(ok("2.32.0", "^2.29.1") && !ok("3.0.0", "^2.29.1") && !ok("2.29.0", "^2.29.1"));
+    assert.ok(ok("0.3.14", "^0.3.10") && !ok("0.4.0", "^0.3.10") && !ok("1.3.0", "^0.3.10"));
+    assert.ok(ok("0.0.3", "^0.0.3") && !ok("0.0.4", "^0.0.3"));
+    assert.ok(ok("4.9.0", "^4") && !ok("5.0.0", "^4") && ok("0.9.0", "^0.x") && !ok("1.0.0", "^0.x"));
+    assert.ok(ok("1.4.9", "~1.4.7") && !ok("1.5.0", "~1.4.7") && ok("1.9.0", "~1") && !ok("2.0.0", "~1"));
+    assert.ok(ok("1.3.27", "1.3.27") && !ok("1.3.28", "1.3.27") && ok("1.3.27", "=1.3.27"));
+    assert.ok(ok("0.11.0", ">=0.11.0 <1.0.0") && !ok("1.0.0", ">=0.11.0 <1.0.0") && ok("9.0.0", ">= 0.5.0"));
+    assert.ok(ok("2.9.0", "2.x") && !ok("3.0.0", "2.x") && ok("2.1.5", "2.1.*") && !ok("2.2.0", "2.1"));
+    assert.ok(ok("3.0.0", ">2") && !ok("2.9.0", ">2") && ok("2.9.0", "<=2") && !ok("3.0.0", "<=2"));
+    assert.ok(ok("3.25.76", "^3.25.76 || ^4") && ok("4.6.7", "^3.25.76 || ^4") && !ok("5.0.0", "^3.25.76 || ^4"));
+    assert.ok(ok("9.9.9", "*") && ok("9.9.9", ""));
+  });
+
+  test("a prerelease satisfies a range only through a comparator on its own version, as in npm", () => {
+    assert.ok(!ok("3.0.0-beta.1", "*") && !ok("2.30.0-rc.1", "^2.29.1"));
+    assert.ok(ok("2.30.0-rc.2", "^2.30.0-rc.1") && !ok("2.30.0-rc.0", "^2.30.0-rc.1"));
+  });
+
+  test("reads hyphen ranges, `~>` as `~`, and ignores build metadata, as npm does", () => {
+    assert.ok(ok("2.0.0", "1.2.3 - 2.0.0") && !ok("2.0.1", "1.2.3 - 2.0.0") && !ok("1.2.2", "1.2.3 - 2.0.0"));
+    assert.ok(ok("2.9.9", "1.2 - 2") && !ok("3.0.0", "1.2 - 2") && ok("1.2.0", "1.2 - 2"));
+    assert.ok(ok("1.2.9", "~>1.2") && !ok("1.3.0", "~> 1.2"));
+    assert.ok(ok("1.9.0", "^1.2.3+build.5") && !ok("2.0.0", "^1.2.3+build.5") && ok("1.2.3", "1.2.3+sha.1"));
+  });
+
+  test("a prerelease pin's range admits prereleases, as npm's includePrerelease does", () => {
+    const range = parseRange("^5.20260101.0");
+    assert.ok(!satisfies("5.20261113.0-beta", range));
+    assert.ok(satisfies("5.20261113.0-beta", range, { includePrerelease: true }));
+    assert.ok(!satisfies("6.0.0-beta", range, { includePrerelease: true }));
+  });
+
+  test("ranks a numeric prerelease identifier below an alphanumeric one, as semver does", () => {
+    const at = { "1.0.0-9": "2026-10-01T00:00:00Z", "1.0.0-10a": "2026-10-01T00:00:00Z" };
+    assert.equal(newestEligible("1.0.0-1", Object.keys(at), at, NOW)?.version, "1.0.0-10a");
+  });
+
+  test("refuses anything that isn't a semver range rather than guess", () => {
+    const refused = ["latest", "npm:other@^1.0.0", "workspace:*", "file:../x", "link:../x", "github:user/repo"];
+    refused.push("git+https://github.com/user/repo.git", "https://example.com/p.tgz", "1.x.3", "^1.2-beta");
+    refused.push("^1.2.3 - 2.0.0", "1.2.3 - ", "1.2.3 - 2.0.0 - 3.0.0");
+    for (const range of refused) assert.equal(parseRange(range), undefined, range);
+    assert.equal(parseRange(undefined), undefined);
+  });
+});
+
+describe("planBumps", () => {
+  const OLD = "2026-10-01T00:00:00Z";
+  const NEW = "2026-11-18T00:00:00Z";
+  // A registry document: each version with its publish date and the manifest fields planBumps reads.
+  const doc = (releases) => ({
+    versions: Object.fromEntries(Object.entries(releases).map(([v, r]) => [v, r.meta ?? {}])),
+    time: Object.fromEntries(Object.entries(releases).map(([v, r]) => [v, r.at ?? OLD])),
+  });
+  const adk = (genai) => ({ meta: { dependencies: { "@google/genai": genai } } });
+  const genai = doc({ "2.32.0": {}, "2.33.0": {}, "2.34.0": { at: NEW }, "3.1.0": {}, "3.3.0": {} });
+  const zod = doc({ "4.6.7": {}, "4.7.0": {} });
+  // Plans `pins` against a fake registry in which @google/adk's releases are `adkReleases`; `extra` adds or replaces
+  // other packages' documents.
+  const plan = async (pins, adkReleases, extra = {}) => {
+    const docs = { "@google/adk": doc(adkReleases), "@google/genai": genai, zod, ...extra };
+    const registry = async (name) => docs[name] ?? assert.fail(`no fake document for ${name}`);
+    const { bumps, notes } = await planBumps({ dependencies: pins }, "@google/adk", registry, NOW);
+    return { bumps: bumps.map((b) => `${b.name}@${b.to}`).join(" "), notes };
+  };
+  const pins = { "@google/adk": "2.5.0", "@google/genai": "2.32.0", zod: "4.6.7" };
+
+  test("blocks a major main's range excludes and picks the newest in-range release old enough", async () => {
+    const result = await plan(pins, { "2.5.0": adk("^2.29.1"), "3.0.0": { ...adk("^3.1.0"), at: NEW } });
+    assert.equal(result.bumps, "@google/genai@2.33.0 zod@4.7.0");
+    assert.deepEqual(result.notes, [
+      "caps @google/genai at 2.33.0 rather than 3.3.0: @google/adk@2.5.0 declares ^2.29.1",
+    ]);
+  });
+
+  test("leaves the pin when no release inside the range is newer", async () => {
+    const result = await plan(pins, { "2.5.0": adk("~2.32.0") });
+    assert.equal(result.bumps, "zod@4.7.0");
+    assert.deepEqual(result.notes, [
+      "caps @google/genai at 2.32.0 rather than 3.3.0: @google/adk@2.5.0 declares ~2.32.0",
+    ]);
+  });
+
+  test("a bump of main moves the cap to the range its new release declares", async () => {
+    const releases = { "2.5.0": adk("^2.29.1"), "3.0.0": adk("^3.1.0"), "3.1.0": { ...adk("^3.2"), at: NEW } };
+    const result = await plan(pins, releases);
+    assert.equal(result.bumps, "@google/adk@3.0.0 @google/genai@3.3.0 zod@4.7.0");
+    assert.deepEqual(result.notes, []);
+  });
+
+  test("holds a package whose range it can't evaluate, and says why", async () => {
+    const result = await plan(pins, { "2.5.0": adk("latest") });
+    assert.equal(result.bumps, "zod@4.7.0");
+    assert.deepEqual(result.notes, [
+      "::warning::holds @google/genai at 2.32.0: @google/adk@2.5.0 declares latest, which this script can't evaluate",
+    ]);
+  });
+
+  test("never moves main alone when a pin can't follow its new range, and falls back to an older main", async () => {
+    const young = { "@google/genai": doc({ "2.32.0": {}, "2.33.0": {}, "3.1.0": { at: NEW } }) };
+    const held = await plan(pins, { "2.5.0": adk("^2.29.1"), "3.0.0": adk("^3.1.0") }, young);
+    assert.equal(held.bumps, "@google/genai@2.33.0 zod@4.7.0");
+    assert.deepEqual(held.notes, [
+      "::warning::holds @google/adk at 2.5.0 rather than 3.0.0: @google/adk@3.0.0 declares @google/genai ^3.1.0, which @google/genai@2.32.0 doesn't satisfy",
+    ]);
+    const releases = { "2.5.0": adk("^2.29.1"), "2.9.0": adk("^2.29.1"), "3.0.0": adk("^3.1.0") };
+    const older = await plan(pins, releases, young);
+    assert.equal(older.bumps, "@google/adk@2.9.0 @google/genai@2.33.0 zod@4.7.0");
+    assert.match(older.notes[0], /^::warning::caps @google\/adk at 2\.9\.0 rather than 3\.0\.0: /);
+  });
+
+  test("holds main when another pin's peer range excludes main's new release", async () => {
+    const peer = { "@google/genai": doc({ "2.32.0": { meta: { peerDependencies: { "@google/adk": "^2" } } } }) };
+    const result = await plan(pins, { "2.5.0": {}, "3.0.0": {} }, peer);
+    assert.equal(result.bumps, "zod@4.7.0");
+    assert.deepEqual(result.notes, [
+      "::warning::holds @google/adk at 2.5.0 rather than 3.0.0: @google/genai@2.32.0 declares @google/adk ^2, which @google/adk@3.0.0 doesn't satisfy",
+    ]);
+  });
+
+  test("holds a bump whose own peer range another pin's chosen version breaks", async () => {
+    const peer = {
+      "@google/genai": doc({ "2.32.0": {}, "2.33.0": { meta: { peerDependencies: { zod: "<4.7.0" } } } }),
+    };
+    const result = await plan(pins, { "2.5.0": {} }, peer);
+    assert.equal(result.bumps, "zod@4.7.0");
+    assert.deepEqual(result.notes, [
+      "::warning::holds @google/genai at 2.32.0 rather than 2.33.0: @google/genai@2.33.0 declares zod <4.7.0, which zod@4.7.0 doesn't satisfy",
+    ]);
+  });
+
+  test("drops the range note of a capped pin the peer check moves back", async () => {
+    const peer = {
+      "@google/genai": doc({ "2.32.0": {}, "2.33.0": { meta: { peerDependencies: { zod: "<4.7.0" } } }, "3.3.0": {} }),
+    };
+    const result = await plan(pins, { "2.5.0": adk("^2") }, peer);
+    assert.equal(result.bumps, "zod@4.7.0");
+    assert.deepEqual(result.notes, [
+      "::warning::holds @google/genai at 2.32.0 rather than 2.33.0: @google/genai@2.33.0 declares zod <4.7.0, which zod@4.7.0 doesn't satisfy",
+    ]);
+  });
+
+  test("holds a bump that breaks the peer range a pin that stays declares", async () => {
+    const peer = { "@google/genai": doc({ "2.32.0": { meta: { peerDependencies: { zod: "~4.6.0" } } } }) };
+    const result = await plan(pins, { "2.5.0": {} }, peer);
+    assert.equal(result.bumps, "");
+    assert.deepEqual(result.notes, [
+      "::warning::holds zod at 4.6.7 rather than 4.7.0: @google/genai@2.32.0 declares zod ~4.6.0, which zod@4.7.0 doesn't satisfy",
+    ]);
+  });
+
+  test("reads optionalDependencies as a cap too", async () => {
+    const meta = { optionalDependencies: { zod: "~4.6.0" } };
+    const result = await plan({ "@google/adk": "2.5.0", zod: "4.6.7" }, { "2.5.0": { meta } });
+    assert.equal(result.bumps, "");
+    assert.deepEqual(result.notes, ["caps zod at 4.6.7 rather than 4.7.0: @google/adk@2.5.0 declares ~4.6.0"]);
+  });
+
+  test("moves a prerelease pin to a newer prerelease inside a range written for stable releases", async () => {
+    const miniflare = doc({
+      "5.20261103.0-beta": {},
+      "5.20261113.0-beta": {},
+      "5.20261120.0-beta": { at: NEW },
+      "6.0.0": {},
+    });
+    const meta = { peerDependencies: { miniflare: "^5.20260101.0" } };
+    const result = await plan(
+      { "@google/adk": "2.5.0", miniflare: "5.20261103.0-beta" },
+      { "2.5.0": { meta } },
+      { miniflare },
+    );
+    assert.equal(result.bumps, "miniflare@5.20261113.0-beta");
+    assert.deepEqual(result.notes, [
+      "caps miniflare at 5.20261113.0-beta rather than 6.0.0: @google/adk@2.5.0 declares ^5.20260101.0",
+    ]);
+  });
+
+  test("a package main declares as a dependency and a peer must satisfy both ranges", async () => {
+    const meta = { dependencies: { zod: "^4" }, peerDependencies: { zod: "<4.7.0" } };
+    const result = await plan({ "@google/adk": "2.5.0", zod: "4.6.7" }, { "2.5.0": { meta } });
+    assert.equal(result.bumps, "");
+    assert.deepEqual(result.notes, ["caps zod at 4.6.7 rather than 4.7.0: @google/adk@2.5.0 declares ^4 and <4.7.0"]);
+  });
+
+  test("a package main doesn't declare, and main itself, still move to their newest release, in pin order", async () => {
+    const result = await plan(
+      { zod: "4.6.7", "@google/adk": "2.5.0", "@google/genai": "2.32.0" },
+      {
+        "2.5.0": {},
+        "2.6.0": {},
+      },
+    );
+    assert.equal(result.bumps, "zod@4.7.0 @google/adk@2.6.0 @google/genai@3.3.0");
+    assert.deepEqual(result.notes, []);
+  });
+
+  test("refuses a main package the harness doesn't pin, or a main release the registry lacks", async () => {
+    await assert.rejects(plan({ zod: "4.6.7" }, {}), /@google\/adk, the package the harness tests, isn't a dependency/);
+    await assert.rejects(plan(pins, { "2.4.0": {} }), /@google\/adk@2\.5\.0 isn't published/);
+  });
+});
+
+describe("planMatrix", () => {
+  const releases = { versions: { "1.0.0": {}, "1.1.0": {} }, time: { "1.0.0": OLD_TIME, "1.1.0": OLD_TIME } };
+  const registry = async (name) => {
+    if (name === "down") throw new Error("npm registry: down: HTTP 503");
+    return releases;
+  };
+  const pinning = (...names) => ({
+    manifest: { dependencies: Object.fromEntries(names.map((name) => [name, "1.0.0"])) },
+    main: "main",
+  });
+  const load = (harness) => {
+    if (harness === "unmapped") throw new Error("names no package for unmapped");
+    return harness === "broken" ? pinning("main", "down") : pinning("main");
+  };
+
+  test("leaves a harness that fails out of the matrix with an error, and plans the others", async () => {
+    const { matrix, log, allFailed } = await planMatrix(["ok", "broken", "unmapped"], load, registry, NOW);
+    assert.deepEqual(matrix, { include: [{ harness: "ok", bumps: "main@1.1.0" }] });
+    assert.deepEqual(log, [
+      "::error::verify/broken: npm registry: down: HTTP 503",
+      "::error::verify/unmapped: names no package for unmapped",
+    ]);
+    assert.equal(allFailed, false);
+  });
+
+  test("registry text and error messages can't start a workflow command of their own", async () => {
+    const hostile = `^1\n::add-mask::secret\r::error::forged 100%\u001b[2J${String.fromCharCode(0x2028)}x`;
+    const docs = {
+      main: { versions: { "1.0.0": { dependencies: { dep: hostile } } }, time: { "1.0.0": OLD_TIME } },
+      dep: releases,
+    };
+    const reg = async (name) => {
+      if (name === "boom") throw new Error("HTTP 500\n::add-mask::token\n::warning::forged");
+      return docs[name];
+    };
+    const harnessLoad = (harness) => (harness === "bad" ? pinning("main", "boom") : pinning("main", "dep"));
+    const { log } = await planMatrix(["good", "bad"], harnessLoad, reg, NOW);
+    assert.deepEqual(log, [
+      "::warning::verify/good: holds dep at 1.0.0: main@1.0.0 declares ^1%0A::add-mask::secret%0D::error::forged 100%25\\x1b[2J\\x2028x, which this script can't evaluate",
+      "::error::verify/bad: HTTP 500%0A::add-mask::token%0A::warning::forged",
+    ]);
+    for (const line of log)
+      assert.ok(![...line].some((c) => c.codePointAt(0) < 0x20 || c.codePointAt(0) === 0x2028), line);
+    assert.equal(commandLine(undefined, "a\nb"), "a%0Ab");
+  });
+
+  test("the plan fails when every harness does", async () => {
+    const { matrix, log, allFailed } = await planMatrix(["a", "b"], () => pinning("main", "down"), registry, NOW);
+    assert.deepEqual(matrix, { include: [] });
+    assert.deepEqual(log, [
+      "::error::verify/a: npm registry: down: HTTP 503",
+      "::error::verify/b: npm registry: down: HTTP 503",
+    ]);
+    assert.equal(allFailed, true);
+  });
+});
+
+test("every harness has a main package in the book's map", () => {
+  const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "../..");
+  const map = JSON.parse(readFileSync(path.join(root, "apps/manual/src/data/harnesses.json"), "utf8"));
+  for (const harness of readdirSync(path.join(root, "verify"), { withFileTypes: true })) {
+    if (!harness.isDirectory()) continue;
+    const main = map[`verify/${harness.name}`];
+    const pins = JSON.parse(readFileSync(path.join(root, "verify", harness.name, "package.json"), "utf8")).dependencies;
+    assert.ok(
+      typeof main === "string" && Object.hasOwn(pins, main),
+      `verify/${harness.name} has no main package it pins`,
+    );
+  }
 });
 
 describe("updateProblems", () => {

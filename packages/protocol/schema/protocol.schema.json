@@ -1554,7 +1554,7 @@
           "$ref": "#/$defs/shape-edc9ba2d47"
         },
         {
-          "$ref": "#/$defs/shape-c9a3564bb4"
+          "$ref": "#/$defs/shape-e3591bd29a"
         },
         {
           "$ref": "#/$defs/shape-16c3a65781"
@@ -2665,7 +2665,7 @@
       ],
       "additionalProperties": false
     },
-    "shape-c9a3564bb4": {
+    "shape-e3591bd29a": {
       "type": "object",
       "properties": {
         "id": {
@@ -2700,6 +2700,42 @@
         },
         "contentHash": {
           "type": "string"
+        },
+        "mcp": {
+          "type": "object",
+          "properties": {
+            "transport": {
+              "type": "string",
+              "enum": [
+                "stdio",
+                "in_process",
+                "http",
+                "sse"
+              ]
+            },
+            "commandHash": {
+              "type": "string"
+            },
+            "urlHash": {
+              "type": "string"
+            },
+            "era": {
+              "type": "string",
+              "enum": [
+                "2026-07-28",
+                "legacy"
+              ]
+            },
+            "toolsHash": {
+              "type": "string"
+            }
+          },
+          "required": [
+            "transport",
+            "era",
+            "toolsHash"
+          ],
+          "additionalProperties": false
         }
       },
       "required": [

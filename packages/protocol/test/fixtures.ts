@@ -164,6 +164,22 @@ export const FIXTURES = [
   },
   { ...at("harness"), type: "skill_loaded", name: "triage", path: ".agents/skills/triage/SKILL.md" },
   { ...at("harness"), type: "extension_loaded", name: "audit", tier: "in_process", contentHash: "sha256:def" },
+  {
+    ...at("harness"),
+    type: "extension_loaded",
+    name: "docs",
+    tier: "mcp",
+    contentHash: "sha256:abc",
+    mcp: { transport: "stdio", commandHash: "sha256:123", era: "2026-07-28", toolsHash: "sha256:456" },
+  },
+  {
+    ...at("harness"),
+    type: "extension_loaded",
+    name: "tracker",
+    tier: "mcp",
+    contentHash: "sha256:fed",
+    mcp: { transport: "http", urlHash: "sha256:789", era: "legacy", toolsHash: "sha256:654" },
+  },
   { ...at("harness"), type: "subagent_link", childSession: "s-child", spawningCallId: "c1", stepId: "step-2" },
   {
     ...at("harness"),

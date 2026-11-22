@@ -1,6 +1,6 @@
 # 0021. Build the MCP client on `@modelcontextprotocol/client` 2.4.0, behind our own `McpConnection` interface
 
-- **Status:** Proposed (provisional until todo N24)
+- **Status:** Accepted (todo N24 confirmed the base on 2026-11-22)
 - **Date:** 2026-11-18
 - **Plan:** [build-harness.md, HD14](../plans/build-harness.md#hd14-build-the-mcp-client-on-modelcontextprotocolclient-240-provisional)
 
@@ -16,3 +16,6 @@ The harness's MCP module wraps `@modelcontextprotocol/client` 2.4.0 in `McpConne
 
 - Todo N24 checks the per-server probe and fallback; if the client lacks it, N24 adds the probe on our side and records the gap.
 - Changing the base later touches only `src/mcp/`.
+- N24 found the probe in the client, so the harness adds none. The 2.4.0 client probes with `server/discover` and falls back to `initialize` once `versionNegotiation` is `{ mode: "auto" }`; its default, `legacy`, sends no probe at all. It reports the era per connection through `getProtocolEra()`, so `McpConnection.era` needs no guess from the version string ([N24](../todos/done/N24-mcp-stdio.md#outcome); [fact-check, rows N24-4 and N24-5](../plans/reviews/fact-check-build-harness.md#n24-the-mcp-client-over-stdio-branch-todon24-mcp-stdio)).
+- N24 found two gaps, and the harness closes both in `src/mcp/`. First, the client's stdio transport copies six parent variables into the server's environment, so the harness spawns each server itself and hands the client a transport over the child's pipes. Second, the client probes on a throwaway process only through its own stdio transport, so a server that exits on the probe fails the connect. When such a server exits cleanly, the harness starts it once more as a legacy server, within the same connect timeout ([fact-check, rows N24-7 and N24-8](../plans/reviews/fact-check-build-harness.md#n24-the-mcp-client-over-stdio-branch-todon24-mcp-stdio)).
+- N25 adds streamable HTTP and legacy SSE through the client's own transports, and the harness supplies the fetch under both. Alone, the 2.4.0 transports bound no response body, follow redirects within the origin, take the reconnect delay from the server's `retry:` field and reset their retry count after any stream that ends, so the harness's fetch bounds every body, refuses every redirect, removes `retry:`, and pins each connection to an address it checked. The client's `listen()` does no re-listen of its own, so the harness opens `subscriptions/listen` again when it drops ([N25](../todos/done/N25-mcp-http-background.md#outcome); [fact-check, rows N25-1 to N25-6](../plans/reviews/fact-check-build-harness.md#n25-mcp-over-http-and-sse-background-connect-and-tool-pins-branch-todon25-mcp-http-background)).

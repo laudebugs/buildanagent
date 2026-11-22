@@ -84,6 +84,11 @@ export interface ToolRegistry {
    * and name in its canonical name, so the name depends on the tool alone. Only a final name that is still taken throws.
    */
   register(tool: ToolRegistration): RegisteredTool;
+  /**
+   * Registers every tool in the list, or none of them: when one registration throws, the tools registered before it in
+   * the list are removed again and the error is thrown. Returns the tools as registered, in the list's order.
+   */
+  registerAll(tools: readonly ToolRegistration[]): RegisteredTool[];
   /** The tool with this canonical name or alias, or `undefined`. */
   get(name: string): RegisteredTool | undefined;
   /** Every tool, in registration order. A replaced built-in keeps its place. */
@@ -111,4 +116,21 @@ export interface ToolRegistry {
    * tool whose schema can't describe itself counts as an empty object schema.
    */
   preambleTokens(options?: PreambleOptions): number;
+}
+
+/**
+ * A component that changes a session's tools only between turns, such as the MCP client. The runner calls
+ * `beginTurn()` once at the start of each turn, before it builds the turn's tools, so a change never lands inside a
+ * turn and the tools a request sends never change because of it.
+ */
+export interface TurnBoundary {
+  /**
+   * Applies what changed since the last turn and returns the notices the turn writes in front of its input, as text
+   * blocks of origin `harness`. Each is text the component wrote itself and holds no outside party's prose, though it
+   * may name something an outside party named, such as an MCP tool's canonical name, which keeps only `A-Z`, `a-z`,
+   * `0-9`, `_` and `-` of the server's name for it. An empty list writes nothing.
+   */
+  beginTurn(signal: AbortSignal): Promise<readonly string[]>;
+  /** Called once the turn has written the notices, so a component can hold back what it told until then. */
+  commitNotices?(): void;
 }

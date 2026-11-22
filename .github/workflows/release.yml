@@ -1,6 +1,8 @@
-# Publishes @buildanagent/gateway and @buildanagent/sdk to npm through trusted publishing, with provenance. Changes
-# reach npm through a "Version packages" pull request that GitHub auto-merges (publish-and-docs PB2, ADR 0047,
-# docs/plans/ci.md §3f).
+# Publishes the six @buildanagent packages, gateway, sdk, agent-safety, protocol, harness and cli, to npm through
+# trusted publishing, with provenance. Changes reach npm through a "Version packages" pull request that GitHub
+# auto-merges (publish-and-docs PB2 and PB4, ADR 0047, ADR 0058, docs/plans/ci.md §3f). The package lists in the pack
+# and publish loops follow RELEASE_ORDER in scripts/ci/release-plan.mjs, dependencies first, and
+# scripts/ci/release.test.mjs fails when they differ.
 #
 # - `plan` reads the checkout, the npm registry and the GitHub releases (scripts/ci/release-plan.mjs).
 # - When changesets are pending, `version` runs `pnpm changeset version` with a read-only token and hands the result
@@ -8,7 +10,7 @@
 #   with the RELEASE_PR_TOKEN secret, makes it again through GitHub's API so that GitHub signs it
 #   (scripts/ci/version-commit.mjs), force-updates `changeset-release/main` to it, opens or updates the pull request
 #   and turns on auto-merge. Every changeset merged before the pull request merges joins it.
-# - When the pull request merges, its squash commit reaches main with nothing pending and a version npm lacks, so
+# - When the pull request merges, its squash commit reaches main with nothing pending and a version with no GitHub release, so
 #   `pack` builds the tarballs from that commit, and `publish` uploads them under the pre-mode dist-tag (`alpha`) or
 #   `latest`, tags the release, marking a prerelease as one, and `docs` starts the docs deploy for a stable release.
 # - A workflow_dispatch is a dry run: `plan` and `pack` run, and nothing else, because `version`, `version-pr` and
@@ -26,7 +28,7 @@ on:
 # Nothing by default; each job asks for what it needs.
 permissions: {}
 
-# One release at a time, and never cancelled: a cancelled publish could leave the gateway out without the SDK. GitHub
+# One release at a time, and never cancelled: a cancelled publish could upload some packages and not the rest. GitHub
 # keeps one run waiting and cancels an older waiting one, which loses nothing: the run that waited last versions or
 # plans a commit that holds every change merged before it. A workflow_dispatch dry run waits in its own group, so it
 # can never cancel a waiting push run.
@@ -208,9 +210,9 @@ jobs:
           fi
           echo "Pull request #$number: $title, with auto-merge on." >> "$GITHUB_STEP_SUMMARY"
 
-  # Builds and packs both packages with a read-only token. Each package's `prepack` builds dist/, so this job runs our
-  # build scripts; the publish job then uploads these tarballs without installing or running anything. The release is
-  # the run's own commit, which on a push is the squash commit of a merged Version packages pull request.
+  # Builds and packs the six packages with a read-only token. Each package's `prepack` builds dist/, so this job runs
+  # our build scripts; the publish job then uploads these tarballs without installing or running anything. The release
+  # is the run's own commit, which on a push is the squash commit of a merged Version packages pull request.
   pack:
     needs: plan
     if: >-
@@ -240,23 +242,60 @@ jobs:
           node-version-file: .nvmrc
       - run: pnpm install --frozen-lockfile --filter . --filter "./packages/*"
       - run: pnpm --filter "./packages/*" test
-      - name: Pack both packages
+      # Dependencies first, as RELEASE_ORDER lists them: a package's build reads the types of the workspace packages it
+      # imports from their dist/, which their own prepack has written by then. Each tarball must then exist under the
+      # name the publish job uploads, read from the package's own version, because a dry run may pack while the
+      # versions still differ.
+      - name: Pack the six packages, gateway first
         run: |
+          set -euo pipefail
           mkdir -p "$RUNNER_TEMP/release"
-          for pkg in gateway sdk; do
+          for pkg in gateway sdk agent-safety protocol harness cli; do
             pnpm --dir "packages/$pkg" pack --pack-destination "$RUNNER_TEMP/release"
+            version=$(node -p "require('./packages/$pkg/package.json').version")
+            if [ ! -f "$RUNNER_TEMP/release/buildanagent-$pkg-$version.tgz" ]; then
+              echo "::error::pnpm pack didn't write buildanagent-$pkg-$version.tgz."
+              exit 1
+            fi
           done
+      # The CLI is the one package with a binary. Its tarball must name dist/bin.js as `buildanagent` and ship it with
+      # the shebang that makes it run, and the built file must start and print its help.
+      - name: Check the CLI's binary
+        run: |
+          set -euo pipefail
+          version=$(node -p "require('./packages/cli/package.json').version")
+          cli="$RUNNER_TEMP/release/buildanagent-cli-$version.tgz"
+          mkdir -p "$RUNNER_TEMP/cli-check"
+          tar -xzf "$cli" -C "$RUNNER_TEMP/cli-check" package/package.json package/dist/bin.js
+          node -e '
+            const manifest = JSON.parse(require("fs").readFileSync(process.argv[1], "utf8"));
+            if (manifest.bin?.buildanagent !== "./dist/bin.js") throw new Error(`the CLI tarball has bin ${JSON.stringify(manifest.bin)}`);
+          ' "$RUNNER_TEMP/cli-check/package/package.json"
+          if [ "$(head -n 1 "$RUNNER_TEMP/cli-check/package/dist/bin.js")" != "#!/usr/bin/env node" ]; then
+            echo "::error::The CLI tarball's dist/bin.js doesn't start with #!/usr/bin/env node."
+            exit 1
+          fi
+          node packages/cli/dist/bin.js --help > /dev/null
       - name: Write the release notes
         if: needs.plan.outputs.publish == 'true'
         run: node scripts/ci/release-plan.mjs notes "$RUNNER_TEMP/release/release-notes.md"
+      # The summary names each tarball with its own package's version, because a dry run may pack mixed versions.
       - name: Summarise the run
         env:
-          VERSION: ${{ needs.plan.outputs.version }}
           PUBLISH: ${{ needs.plan.outputs.publish }}
           EVENT: ${{ github.event_name }}
         run: |
+          set -euo pipefail
           {
-            if [ "$EVENT" = "workflow_dispatch" ]; then echo "Dry run: built and packed $VERSION; nothing was published."; fi
+            if [ "$EVENT" = "workflow_dispatch" ]; then
+              echo "Dry run: built and packed these tarballs; nothing was published."
+              echo
+              for pkg in gateway sdk agent-safety protocol harness cli; do
+                version=$(node -p "require('./packages/$pkg/package.json').version")
+                echo "- \`buildanagent-$pkg-$version.tgz\`: @buildanagent/$pkg $version"
+              done
+              echo
+            fi
             echo "Plan says publish: **$PUBLISH**"
             for file in "$RUNNER_TEMP"/release/*.tgz; do
               echo
@@ -357,11 +396,12 @@ jobs:
           fi
       # A rerun after a partial failure skips what npm already holds. npm adds provenance on its own only from a public
       # repository; `--provenance` makes the publish fail instead of shipping a release without it. `--tag` names the
-      # dist-tag, which npm requires for a prerelease, so an alpha never moves `latest`.
+      # dist-tag, which npm requires for a prerelease, so an alpha never moves `latest`. The order is RELEASE_ORDER's,
+      # dependencies first, so npm never holds a package whose workspace dependency at that version is missing.
       - name: Publish each tarball, gateway first
         run: |
           set -euo pipefail
-          for pkg in gateway sdk; do
+          for pkg in gateway sdk agent-safety protocol harness cli; do
             status=$(curl -sS --retry 3 -o /dev/null -w '%{http_code}' "https://registry.npmjs.org/@buildanagent%2f$pkg/$VERSION")
             case "$status" in
               200) echo "@buildanagent/$pkg@$VERSION is already on npm; skipping it."; continue ;;

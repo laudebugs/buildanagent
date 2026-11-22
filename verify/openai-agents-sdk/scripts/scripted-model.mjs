@@ -34,7 +34,7 @@ export function synth(schema = {}, depth = 0) {
   }
 }
 
-// Sandbox capability tools from @openai/agents-core/dist/sandbox (0.21.0).
+// Sandbox capability tools from @openai/agents-core/dist/sandbox (0.22.0).
 const NEVER = new Set(["exec_command", "write_stdin", "apply_patch", "view_image", "load_skill"]);
 
 const answer = (request) =>

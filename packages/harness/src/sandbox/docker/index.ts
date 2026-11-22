@@ -22,6 +22,7 @@ import {
   isProtectedPath,
   PROTECTED_TOP_LEVEL,
   realOrSelf,
+  spellings,
   workspaceRoot,
 } from "../host-files.js";
 import { type NodeModules, nodeModules, type ProcessResult, ProcessRunner } from "../process.js";
@@ -47,7 +48,11 @@ export interface DockerSandboxOptions {
   readonly extraReadRoots?: readonly string[];
   /** Folders that stay read-only inside a write root, such as the session's own log folder. */
   readonly denyWrite?: readonly string[];
-  /** A Unix socket on the host that a command may use to reach the hosts its policy allows, mounted at `DOCKER_PROXY_SOCKET_PATH`. */
+  /**
+   * A Unix socket on the host that a command may use to reach the hosts its policy allows, mounted at
+   * `DOCKER_PROXY_SOCKET_PATH`. The proxy on it enforces the allowlist, so start `startEgressProxy()` there with the
+   * policy's hosts, such as from `compileEgressPolicy()`; the read-back trusts it to.
+   */
   readonly proxySocket?: string;
 }
 
@@ -95,6 +100,21 @@ interface DockerState {
   readonly folder: string;
   /** Marks this sandbox's containers, so `dispose()` can find any that a stopped client left behind. */
   readonly label: string;
+  /** What the read-back needs to map the mounts back to the request's spelling. */
+  readonly names: DockerPolicyNames;
+}
+
+/** How the mounts map back to the request, for the read-back. */
+interface DockerPolicyNames {
+  readonly requested: SandboxPolicy;
+  /** The real path of each requested read root, in the request's order. */
+  readonly readReal: readonly string[];
+  /** For each real write root, the request's spellings that resolved to it. */
+  readonly write: ReadonlyMap<string, readonly string[]>;
+  /** Requested read roots that don't exist, which have nothing to mount and nothing to read. */
+  readonly missing: ReadonlySet<string>;
+  /** Read-only mounts the backend adds itself: the extra read roots, the denyWrite folders and the protected files. */
+  readonly implicit: ReadonlySet<string>;
 }
 
 const mountFlags = (mount: Mount): string[] => [
@@ -195,7 +215,7 @@ class DockerSandbox extends BackendSandbox {
     const created = this.client(this.runArguments(name, located.cwd, command, options.env), CREATE_TIMEOUT_MS);
     this.track(created);
     const made = await this.untilStopped(name, created, options);
-    if ("timedOut" in made) return made.timedOut;
+    if ("expired" in made) return made.expired;
     if (made.exitCode !== 0) {
       await this.removeContainer(name);
       return { exitCode: made.exitCode, stdout: "", stderr: made.stderr };
@@ -243,7 +263,7 @@ class DockerSandbox extends BackendSandbox {
     name: string,
     created: Promise<ProcessResult>,
     options: ExecOptions,
-  ): Promise<ProcessResult | { readonly timedOut: ExecResult }> {
+  ): Promise<ProcessResult | { readonly expired: ExecResult }> {
     return new Promise((resolve, reject) => {
       let settled = false;
       let timer: ReturnType<typeof setTimeout> | undefined;
@@ -263,7 +283,7 @@ class DockerSandbox extends BackendSandbox {
       if (options.timeoutMs !== undefined) {
         const note = `timed out after ${options.timeoutMs} ms\n`;
         timer = setTimeout(
-          () => finish(() => resolve({ timedOut: { exitCode: 124, stdout: "", stderr: note } }), true),
+          () => finish(() => resolve({ expired: { exitCode: 124, stdout: "", stderr: note, timedOut: true } }), true),
           options.timeoutMs,
         );
       }
@@ -294,6 +314,45 @@ class DockerSandbox extends BackendSandbox {
       if ((left.length === 0 && (!this.abandoned || quiet >= SWEEP_QUIET_PASSES)) || Date.now() > deadline) return;
       await new Promise((resolve) => setTimeout(resolve, SWEEP_PAUSE_MS));
     }
+  }
+
+  /**
+   * The policy the mounts and flags apply, which are what every command's container is created with. The network is
+   * closed unless the caller mounted a proxy socket, and then the proxy on it enforces the requested allowlist. A
+   * read-only mount the request doesn't explain reads back as a read root it didn't ask for.
+   *
+   * One narrowing is not caught: a write root that the caller's `denyWrite` names exactly is mounted read-only but still
+   * reads back as a write root, because the read-back takes the caller's own `denyWrite` as part of the request. So
+   * `provision()` accepts it, and nothing in that root is writable inside the container.
+   */
+  async readBack(): Promise<SandboxPolicy> {
+    this.live();
+    const { mounts, names, flags } = this.state;
+    const own = mounts.filter((mount) => mount.to !== DOCKER_PROXY_SOCKET_PATH);
+    // A write root that the caller's own denyWrite made read-only is still the root the request asked for.
+    const granted = (mount: Mount) =>
+      !mount.readOnly || (names.implicit.has(mount.from) && names.write.has(mount.from));
+    const writable = own.filter(granted).map((mount) => mount.from);
+    const inWritable = (path: string) => writable.some((root) => inside(this.state.modules, root, path));
+    const readable = (real: string) => names.missing.has(real) || inWritable(real) || own.some((m) => m.from === real);
+    const unexplained = own
+      .filter((mount) => mount.readOnly && !names.readReal.includes(mount.from))
+      .map((mount) => mount.from)
+      .filter((from) => !names.implicit.has(from) && !inWritable(from));
+    const closed = flags.join(" ").includes("--network none");
+    const proxied = mounts.length !== own.length;
+    return {
+      readRoots: [
+        ...names.requested.readRoots.filter((_, index) => readable(names.readReal[index] ?? "")),
+        ...unexplained,
+      ],
+      writeRoots: writable.flatMap((path) => names.write.get(path) ?? [path]),
+      network: !closed
+        ? { allow: ["*"], deny: [] }
+        : proxied
+          ? names.requested.network
+          : { allow: [], deny: names.requested.network.deny },
+    };
   }
 
   protected async shutDown(): Promise<void> {
@@ -377,19 +436,27 @@ async function planMounts(modules: NodeModules, policy: SandboxPolicy, options: 
   const denied = denyWrite.filter(underWrite);
   const protectedPaths = writeRoots.flatMap((root) => PROTECTED_TOP_LEVEL.map((name) => modules.path.join(root, name)));
   const readOnlyRoots = [...readRoots, ...extra].filter((path) => !underWrite(path));
+  // One look at which read roots exist feeds both the mounts and the names, so a folder made in between can't make them
+  // disagree.
+  const present = await existing(modules, readOnlyRoots);
   const base: Mount[] = [
     ...writeRoots.map((from) => ({ from, to: from, readOnly: false })),
-    ...(await existing(modules, readOnlyRoots)).map((from) => ({ from, to: from, readOnly: true })),
+    ...present.map((from) => ({ from, to: from, readOnly: true })),
   ];
-  const guarded = [...denied, ...(await existing(modules, protectedPaths))].map((from) => ({
-    from,
-    to: from,
-    readOnly: true,
-  }));
+  const protectedPresent = await existing(modules, protectedPaths);
+  const guarded = [...denied, ...protectedPresent].map((from) => ({ from, to: from, readOnly: true }));
+  const names: DockerPolicyNames = {
+    requested: policy,
+    readReal: readRoots,
+    write: spellings(writeRoots, policy.writeRoots),
+    missing: new Set(readOnlyRoots.filter((path) => !present.includes(path))),
+    implicit: new Set([...extra, ...denied, ...protectedPresent]),
+  };
   return {
     base: onePerDestination(base),
     mounts: onePerDestination([...base, ...guarded]),
     roots: { read: readRoots, write: writeRoots, denyWrite: denied },
+    names,
   };
 }
 
@@ -447,11 +514,13 @@ const firstLine = (text: string): string => text.trim().split("\n")[0] ?? "no ou
  * client runs with a clean environment: a `PATH`, a private empty `HOME` and `DOCKER_HOST` when one is set, and never
  * the parent's environment. The policy's roots, `extraReadRoots`, `denyWrite` and `proxySocket` must be absolute, and
  * the workspace must lie inside a root. A command whose first word contains `=` resolves with exit code 127, as under
- * `none`.
+ * `none`. Before it returns, `provision()` reads back the policy its mounts and flags apply and throws
+ * `SandboxPolicyMismatchError` on a difference. Without `proxySocket` the container reaches no host, so a policy whose
+ * `network.allow` names one is refused. The backend lists no capability: it can't resume, snapshot or pause.
  */
 export function dockerSandbox(options: DockerSandboxOptions): SandboxClient {
   checkOptionValues(options);
-  return {
+  const client: SandboxClient = {
     tier: "container",
     stops: ["mistakes", "exfiltration"],
     async provision(manifest: WorkspaceManifest, policy: SandboxPolicy): Promise<Sandbox> {
@@ -470,14 +539,14 @@ export function dockerSandbox(options: DockerSandboxOptions): SandboxClient {
       checkPaths(modules, options.denyWrite ?? [], "a denyWrite folder");
       const folder = await modules.fs.mkdtemp(modules.path.join(modules.os.tmpdir(), "harness-docker-"));
       try {
-        const sandbox = await startSandbox({ modules, docker, hostPath, root, folder, manifest, policy, options });
-        return sandbox;
+        return await startSandbox({ modules, docker, hostPath, root, folder, manifest, policy, options, client });
       } catch (error) {
         await modules.fs.rm(folder, { recursive: true, force: true });
         throw error;
       }
     },
   };
+  return client;
 }
 
 interface StartInput {
@@ -489,6 +558,7 @@ interface StartInput {
   readonly manifest: WorkspaceManifest;
   readonly policy: SandboxPolicy;
   readonly options: DockerSandboxOptions;
+  readonly client: SandboxClient;
 }
 
 async function startSandbox(input: StartInput): Promise<DockerSandbox> {
@@ -532,8 +602,10 @@ async function startSandbox(input: StartInput): Promise<DockerSandbox> {
     clientEnv,
     folder: input.folder,
     label: `harness.sandbox=harness-${modules.path.basename(input.folder).slice("harness-docker-".length)}`,
+    names: plan.names,
   });
   await probe(sandbox, options.image);
+  await sandbox.confirm(input.client, input.policy);
   for (const folder of plan.roots.denyWrite) await modules.fs.mkdir(folder, { recursive: true });
   const encoder = new TextEncoder();
   for (const [path, data] of Object.entries(input.manifest.files ?? {})) {

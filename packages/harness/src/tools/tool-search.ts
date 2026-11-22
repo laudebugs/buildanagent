@@ -4,7 +4,7 @@
  */
 import type { Interceptors, ToolDefinition } from "@buildanagent/sdk";
 import { HarnessError } from "../errors.js";
-import type { ToolRegistry } from "./types.js";
+import type { RegisteredTool, ToolRegistry } from "./types.js";
 
 const DEFAULT_MAX_RESULTS = 5;
 // Words that match nearly every description, so they would make every deferred tool a candidate.
@@ -41,9 +41,44 @@ function scoreOf(query: readonly string[], haystack: readonly string[]): number 
 }
 
 /**
+ * A tool's score for a query. A tool with untrusted output, such as an MCP tool, is scored on its name and alias, and its
+ * description adds at most one match, so a server that stuffs a description with keywords can't outrank every tool.
+ */
+function scoreFor(wanted: readonly string[], tool: RegisteredTool): number {
+  const named = words(`${tool.name} ${tool.alias ?? ""}`);
+  const described = words(tool.definition.description);
+  if (tool.outputTrust === "trusted") return scoreOf(wanted, [...named, ...described]);
+  return scoreOf(wanted, named) + Math.min(1, scoreOf(wanted, described));
+}
+
+/** The best matches, at most `max`, and at most half of them, rounded down but at least one, from one untrusted source. */
+function best(matches: readonly { tool: RegisteredTool; score: number }[], max: number) {
+  const perSource = Math.max(1, Math.floor(max / 2));
+  const taken = new Map<string, number>();
+  const kept: { tool: RegisteredTool; score: number }[] = [];
+  for (const match of matches) {
+    if (kept.length === max) break;
+    const source = match.tool.source;
+    if (match.tool.outputTrust === "untrusted") {
+      const count = taken.get(source) ?? 0;
+      if (count >= perSource) continue;
+      taken.set(source, count + 1);
+    }
+    kept.push(match);
+  }
+  return kept;
+}
+
+/** One line of the search's result. An untrusted tool's description is the server's text, so only its name is given. */
+function lineOf(tool: RegisteredTool): string {
+  if (tool.outputTrust === "trusted") return `- ${tool.canonicalName}: ${tool.definition.description}`;
+  return `- ${tool.canonicalName} (from ${tool.source}; its own description comes with its definition)`;
+}
+
+/**
  * The `tool_search` tool: it searches the registry's `deferred` tools by the words of a query, records the best
- * matches in `options.activated` and tells the model their names and descriptions. `hidden` tools are never found,
- * because hiding one means the model should not learn it exists. Results are in registration order among equal scores.
+ * matches in `options.activated` and tells the model their names, plus the descriptions of trusted tools. `hidden`
+ * tools are never found, because hiding one means the model should not learn it exists. Results are in registration order among equal scores.
  */
 export function toolSearchTool(
   registry: ToolRegistry,
@@ -70,25 +105,20 @@ export function toolSearchTool(
     },
     async execute({ query }) {
       const wanted = words(query);
-      const matches = registry
+      const ranked = registry
         .list()
         .filter((tool) => tool.exposure === "deferred")
-        .map((tool) => ({
-          tool,
-          // The name it was registered under, not the canonical one, so `mcp` and the server's name match nothing by themselves.
-          score: scoreOf(wanted, words(`${tool.name} ${tool.alias ?? ""} ${tool.definition.description}`)),
-        }))
+        // The name it was registered under, not the canonical one, so `mcp` and the server's name match nothing by themselves.
+        .map((tool) => ({ tool, score: scoreFor(wanted, tool) }))
         .filter((match) => match.score > 0)
-        .sort((a, b) => b.score - a.score)
-        .slice(0, max);
+        .sort((a, b) => b.score - a.score);
+      const matches = best(ranked, max);
       const activated = matches.map(({ tool }) => tool.canonicalName);
       for (const name of activated) options.activated.add(name);
       const text =
         activated.length === 0
           ? `No tool matches "${query}". Try other words.`
-          : `These tools are available on your next step:\n${matches
-              .map(({ tool }) => `- ${tool.canonicalName}: ${tool.definition.description}`)
-              .join("\n")}`;
+          : `These tools are available on your next step:\n${matches.map(({ tool }) => lineOf(tool)).join("\n")}`;
       return { content: [{ type: "text", text }], structured: { activated } };
     },
   };
