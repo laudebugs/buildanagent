@@ -138,6 +138,27 @@ function resumeAsAnotherCustomer(loop: Loop, backend: Backend) {
     assert.ok(!events.some((event) => event.type === "approval_request"), "no new request was signed for the lead");
     assert.deepEqual(process.seen.escalations, []);
     assert.deepEqual(fixture.toolNames(), [], "no model call was made");
+    assert.deepEqual(
+      result.context.pending?.map((r) => r.id),
+      [first.request.id],
+      "the context keeps the request",
+    );
+  });
+
+  test(`${backend.name}: a resume whose app has no canonical form ends in an app_unhashable error`, async () => {
+    const first = await pauseForEscalation(loop, backend);
+    const fixture = backend.fixture([], "b");
+    const options = {
+      ...triageOptions(world().deps(fixture.model)),
+      app: { customerEmail: "user@example.com", at: new Date(0) },
+    };
+    const allow: Resolution = { requestId: first.request.id, decision: "allow" };
+    // The agent's gate would refuse the app at once, so the resume runs without it, as a run that only resumes can.
+    const { interceptors: _gate, ...noGate } = options;
+    const { result } = await drive(
+      loop.continueRun(roundTrip(first.result.context), { ...noGate, resolutions: [allow] } as never),
+    );
+    assert.equal(result.stopReason === "error" ? result.error.kind : undefined, "app_unhashable");
   });
 }
 

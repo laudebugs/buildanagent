@@ -181,7 +181,9 @@ async function drive(s: State, resume: Resume | undefined): Promise<RunResult> {
     outcome = s.signal.aborted ? { stopReason: "aborted" } : failed;
   }
   const paused =
-    outcome.stopReason === "awaiting_approval" ? { pending: s.pending, pendingInputs: s.pendingInputs } : {};
+    s.pending.length > 0 && (outcome.stopReason === "awaiting_approval" || outcome.stopReason === "error")
+      ? { pending: s.pending, pendingInputs: s.pendingInputs }
+      : {};
   const context = { system: s.system, messages: s.messages, ...paused };
   const result = { messages: s.added, context, usage: s.usage, cost: s.cost ?? NO_COST, steps: s.steps, ...outcome };
   emit(s, { type: "run_end", result: result as RunResult });
@@ -509,7 +511,15 @@ async function settle(s: State, resume: Resume): Promise<Outcome | undefined> {
       callId: call.callId,
       cause: causes[bad] as "app_mismatch",
     });
-    const kind = causes[bad] === "app_mismatch" ? "app_mismatch" : "request_unverified";
+    // The refused calls still wait, so the result's context keeps their requests and the right caller can resume it.
+    for (const f of found) hold(s, f.request, f.input);
+    const unhashable =
+      s.options.app !== undefined &&
+      (await canonicalInputHash(s.options.app).then(
+        () => false,
+        () => true,
+      ));
+    const kind = causes[bad] !== "app_mismatch" ? "request_unverified" : unhashable ? "app_unhashable" : "app_mismatch";
     return {
       stopReason: "error",
       error: { kind, message: `call "${call.callId}" is bound to other app data or can't be verified` },

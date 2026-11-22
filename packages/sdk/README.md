@@ -462,7 +462,7 @@ Six rules keep the value trusted:
 - **A pause binds a keyed MAC of it.** The signed request carries `appHash`, the signer's signature over a tagged canonical JSON of `app`, under the key `keyId` names. An approved call therefore runs only for the caller who made the request. Store the original caller's `app`, or a reference to it, beside the stored `Context`, and pass that to `continueRun()`. Another `app`, or none, ends the run with `error.kind` `app_mismatch`, so the approver's session cannot run the call as the approver; name the approver in the resolution's `by`.
   - Two values are the same `app` when their RFC 8785 canonical JSON is the same, so key order does not matter.
   - The MAC is keyed, so reading a stored request or an `approval_request` event does not let anyone test a guess of a small value such as a customer id. Verifying uses the request's own key, so a rotated ring still resumes it while the old key stays in the ring, and a key outside the ring is refused.
-  - An `app` with no canonical form, such as one holding a `Date`, cannot be bound. A run with a `beforeToolCall` gate refuses it at once with `invalid_run_options`, naming `app`; a run without one blocks a clarification pause with a `hook_error` that names `app_unhashable`.
+  - An `app` with no canonical form, such as one holding a `Date`, cannot be bound. A run with a `beforeToolCall` gate refuses it at once with `invalid_run_options`, naming `app`; a run without one blocks each pause it signs later, a clarification or a call a resume asks again, with a `hook_error` that names `app_unhashable`.
   - A request signed without app data binds none and accepts any `app`, which is how a pause from before this field still resumes.
 - **The SDK does not copy it.** Every call of a run, and a nested run you pass it to, gets the same object, so pass an immutable value, such as a frozen object, that no tool can change for the others.
 - **A nested run starts with none.** `nestedRunDepth(ctx)` does not carry it. A tool that starts another agent passes `app: ctx.app` itself, only when the child should act for the same user.
@@ -645,7 +645,7 @@ The tables in the [deep comparison](../../docs/comparison/deep-comparison.md#1-t
 | Capstone | Code lines | Hooks |
 | --- | --- | --- |
 | Our capstone, the agent alone | 83 | 2 |
-| Our capstone with its cases and backends | 533 | 2 |
+| Our capstone with its cases and backends | 552 | 2 |
 | Vercel AI SDK | 58 | |
 | Claude Agent SDK | 62 | |
 | LangChain.js | 67 | 2 |
@@ -655,9 +655,9 @@ The tables in the [deep comparison](../../docs/comparison/deep-comparison.md#1-t
 | Google ADK | 114 | |
 | Cloudflare Agents | 122 | |
 
-## A reference loop shows the real loop's shape in about 430 lines
+## A reference loop shows the real loop's shape in about 440 lines
 
-[`reference-loop/reference-loop.ts`](reference-loop/reference-loop.ts) is a loop you can read in one sitting. It exports `run()` and `continueRun()`, ends a run with every stop reason of the real loop except `clarification_requested`, and imports only the public exports of `@buildanagent/gateway` and `@buildanagent/sdk`. The capstone's conformance suite runs against it on the scripted model and both mock transports, so it cannot drift into a toy: a change to the real loop that the reference no longer matches fails `test/reference-loop.test.ts`. That file counts the loop's non-blank, non-comment lines and fails at 430. It checks that the reference and the real loop end seventeen scripted runs with the same stop reason, step count, message count and failed tool results. It also runs more cases on both loops, among them resumes, approved calls and tool errors.
+[`reference-loop/reference-loop.ts`](reference-loop/reference-loop.ts) is a loop you can read in one sitting. It exports `run()` and `continueRun()`, ends a run with every stop reason of the real loop except `clarification_requested`, and imports only the public exports of `@buildanagent/gateway` and `@buildanagent/sdk`. The capstone's conformance suite runs against it on the scripted model and both mock transports, so it cannot drift into a toy: a change to the real loop that the reference no longer matches fails `test/reference-loop.test.ts`. That file counts the loop's non-blank, non-comment lines and fails at 440. It checks that the reference and the real loop end seventeen scripted runs with the same stop reason, step count, message count and failed tool results. It also runs more cases on both loops, among them resumes, approved calls and tool errors.
 
 Each step runs in the real loop's order: `transformContext`, `beforeModelCall`, the streamed model call, `afterModelCall`, the tools, then the stop check with `shouldStop` and the progress rule. The table maps each part to the module it simplifies.
 
@@ -667,7 +667,7 @@ Each step runs in the real loop's order: `transformContext`, `beforeModelCall`, 
 | `drive()`, `step()`, `callModel()` | `loop.ts` | The raw model events, the `retry` and `warning` events, the withheld stand-in for a failed `afterModelCall`, the aborted closing message and `onFailure: "continue"` |
 | `budgetBlock()` | `budget.ts` | The unknown-price check before the first call |
 | `runCalls()`, `runCall()`, `execute()` | `tools/pipeline.ts` | Parallel calls (it runs them one at a time, so an abort while one call runs also stops the calls after it), coercion, `repair`, raw JSON Schema validation, the shape check on a tool's result, rendering write outcomes, `clarificationTool()` and the "not run" results that the real loop records for the calls of a response that ended in an error or was aborted |
-| `pause()`, `settle()`, `failedCheck()` | `pauses.ts`, `resume.ts`, `hook-runner.ts` | The `recheck` option, replayed and unknown resolutions, `blockingApprovals()` and the shape checks on a stored context. It checks each stored request with `verifyResolution()`, as the real loop does |
+| `pause()`, `settle()`, `failedCheck()` | `pauses.ts`, `resume.ts`, `hook-runner.ts` | The `recheck` option, replayed and unknown resolutions (two resolutions for one request run the first), `blockingApprovals()` and the shape checks on a stored context. It checks each stored request with `verifyResolution()`, as the real loop does |
 | `stopCheck()`, `decide()`, `stuckReason()` | `loop.ts`, `progress.ts` | The per-`progressKey` rule |
 
 The reference loop reaches `clarification_requested` through no path, because only the SDK's internals can sign a clarification request, and `createPendingRequest()` signs approvals only. Read it first, then read `loop.ts` for what a production loop adds.

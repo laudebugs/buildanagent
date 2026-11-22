@@ -743,7 +743,9 @@ function resultOf(state: LoopState, outcome: Outcome): RunResult {
   const pending =
     outcome.stopReason === "awaiting_approval" || outcome.stopReason === "clarification_requested"
       ? { pending: [...outcome.pending], pendingInputs: { ...outcome.pendingInputs } }
-      : {};
+      : state.pending.length > 0 && outcome.stopReason === "error"
+        ? { pending: [...state.pending], pendingInputs: { ...state.pendingInputs } }
+        : {};
   const base = {
     messages: state.added,
     context: { system: state.setup.system, messages: state.messages, ...pending },
@@ -823,7 +825,15 @@ async function settle(state: LoopState, setup: ResumeSetup): Promise<Outcome | u
   state.hooks.reserveRequestIds(setup.open.map((entry) => entry.request.id));
   const judged = await judgeOpenCalls(setup, { signer, app, send: (body) => state.send(body) });
   // A refusal ends the run as an error result, so observers still see run_end, before any approved call runs.
-  if ("refused" in judged) return { stopReason: "error", error: judged.refused };
+  if ("refused" in judged) {
+    // The refused calls still wait, so the result's context keeps their requests and inputs, and the right caller can
+    // resume it. Nothing was signed or answered.
+    for (const { request } of setup.open) {
+      state.pending.push(request);
+      state.pendingInputs[request.id] = setup.inputs[request.id];
+    }
+    return { stopReason: "error", error: judged.refused };
+  }
   const verdicts = judged;
   const of = <K extends Verdict["kind"]>(kind: K) =>
     verdicts.filter((verdict): verdict is Extract<Verdict, { kind: K }> => verdict.kind === kind);

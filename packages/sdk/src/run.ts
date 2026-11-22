@@ -492,7 +492,8 @@ export function nestedRunDepth(
 /**
  * The `app` setup field. A run that can pause needs an `app` with a canonical JSON form, because a pause binds a MAC of
  * it, so one with a gate refuses an `app` it could not bind, at once and naming `app`. Without a gate an unusable
- * `app` is left alone until a clarification pause, which blocks that call with a `hook_error`.
+ * `app` is left alone until a pause is signed, such as a clarification or a call a resume asks again, which blocks
+ * that call with a `hook_error`.
  */
 function appOf(options: RunOptions<unknown>): { app?: unknown } {
   const { app } = options;

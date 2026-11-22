@@ -371,6 +371,28 @@ test("a resume with other app data ends in an error result with app_mismatch bef
   });
 });
 
+test("a refused resume keeps the waiting requests in its context, so the right caller can still approve them", async () => {
+  const { seen, options } = refundSetup();
+  const { context, request } = await pausedRefund(options, { customerId: "cust-1" });
+  const refused = await resumeWith(options, context, {
+    resolutions: [asApprover(request)],
+    app: { customerId: "support-lead-9" },
+  });
+  assert.equal(refusal(refused).kind, "app_mismatch");
+  const saved = refused.result.context;
+  assert.deepEqual(
+    saved.pending?.map((r) => r.id),
+    [request.id],
+    "the request is still in the saved context",
+  );
+  const resumed = await resumeWith(options, saved, {
+    resolutions: [asApprover(request)],
+    app: { customerId: "cust-1" },
+  });
+  assert.equal(resumed.result.stopReason, "done");
+  assert.deepEqual(seen, ["cust-1"]);
+});
+
 test("a resume with no app data is refused too, even when the types say it must pass some", async () => {
   const { seen, options } = refundSetup();
   const { context, request } = await pausedRefund(options, { customerId: "cust-1" });
