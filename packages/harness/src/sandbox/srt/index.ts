@@ -10,18 +10,21 @@
  * leads out is refused too, and the opened file is checked again through `/proc`, so a path swapped for a link in
  * between is caught. A hostile process could still win that race, which is why no `hostile_process` stop is claimed.
  */
-import { HarnessError, isHarnessError } from "../../errors.js";
-import { SandboxDeniedError, SandboxUnavailableError } from "../errors.js";
-import { checkCommand, checkOptions, type NodeModules, nodeModules, ProcessRunner } from "../process.js";
-import type {
-  ExecOptions,
-  ExecResult,
-  Sandbox,
-  SandboxClient,
-  SandboxDenial,
-  SandboxPolicy,
-  WorkspaceManifest,
-} from "../types.js";
+import { HarnessError } from "../../errors.js";
+import { BackendSandbox } from "../base.js";
+import { SandboxUnavailableError } from "../errors.js";
+import {
+  absolutePath,
+  checkPaths,
+  existing,
+  findOnPath,
+  HostFiles,
+  isProtectedPath,
+  realOrSelf,
+  workspaceRoot,
+} from "../host-files.js";
+import { type NodeModules, nodeModules, ProcessRunner } from "../process.js";
+import type { ExecOptions, ExecResult, Sandbox, SandboxClient, SandboxPolicy, WorkspaceManifest } from "../types.js";
 import { type SrtSettingsInput, srtSettings } from "./settings.js";
 
 export type { SrtPathEntry, SrtSettings, SrtSettingsInput } from "./settings.js";
@@ -90,13 +93,9 @@ export const SRT_ADDED_ENVIRONMENT: readonly string[] = [
 
 /** The programs `srt` runs on Linux, which it finds on the `PATH`. */
 const REQUIRED_PROGRAMS = ["bwrap", "socat"] as const;
-// The most bytes a file call reads or writes, because the whole file is held in memory.
-const MAX_FILE_BYTES = 64 * 1024 * 1024;
 const PROBE_TIMEOUT_MS = 20_000;
 // How long `srt` has to clean up after a `SIGTERM` before the command's whole group is killed.
 const GRACE_MS = 2000;
-// The `PATH` `srt` runs with when the host has none.
-const DEFAULT_PATH = "/usr/local/bin:/usr/bin:/bin";
 
 /** The program and leading arguments that start `srt`. */
 interface SrtCommand {
@@ -104,74 +103,6 @@ interface SrtCommand {
   readonly args: readonly string[];
   /** The folders `srt` reads inside the sandbox, as absolute paths. */
   readonly readRoots: readonly string[];
-}
-
-/** Whether `path` is inside `root`, or is `root`. Both are absolute, with symlinks resolved. */
-function inside(modules: NodeModules, root: string, path: string): boolean {
-  const relative = modules.path.relative(root, path);
-  const climbs = relative === ".." || relative.startsWith(`..${modules.path.sep}`);
-  return relative === "" || (!climbs && !modules.path.isAbsolute(relative));
-}
-
-/** The real path of `path`, or `path` itself when it doesn't exist. */
-async function realOrSelf(modules: NodeModules, path: string): Promise<string> {
-  return modules.fs.realpath(path).catch(() => path);
-}
-
-/**
- * The real path of `path`, which may not exist: the real path of its deepest folder that does, then the rest as written.
- * A symlink on the way is followed, so a link that points out of a root shows as outside it.
- */
-async function realPathOfMissing(modules: NodeModules, path: string): Promise<string> {
-  const rest: string[] = [];
-  let at = path;
-  for (;;) {
-    try {
-      return modules.path.join(await modules.fs.realpath(at), ...rest);
-    } catch {
-      const parent = modules.path.dirname(at);
-      if (parent === at) return path;
-      rest.unshift(modules.path.basename(at));
-      at = parent;
-    }
-  }
-}
-
-/** The paths that exist, without repeats. */
-async function existing(modules: NodeModules, paths: readonly string[]): Promise<string[]> {
-  const present = await Promise.all(
-    paths.map((path) =>
-      modules.fs.access(path).then(
-        () => path,
-        () => undefined,
-      ),
-    ),
-  );
-  return [...new Set(present.filter((path): path is string => path !== undefined))];
-}
-
-/**
- * The absolute folders of `path`, or a default when there are none. A relative folder would be searched from the
- * workspace, where the agent can write, so `srt` could start a program the agent planted.
- */
-function absolutePath(modules: NodeModules, path: string | undefined): string {
-  const folders = (path ?? "").split(modules.path.delimiter).filter((folder) => modules.path.isAbsolute(folder));
-  return folders.length === 0 ? DEFAULT_PATH : folders.join(modules.path.delimiter);
-}
-
-/** The first folder of `hostPath` that holds an executable called `name`, or `undefined`. */
-async function findOnPath(modules: NodeModules, hostPath: string, name: string): Promise<string | undefined> {
-  const folders = hostPath.split(modules.path.delimiter).filter((folder) => folder !== "");
-  for (const folder of folders) {
-    const candidate = modules.path.join(folder, name);
-    try {
-      await modules.fs.access(candidate, modules.fs.constants.X_OK);
-      return candidate;
-    } catch {
-      // Not in this folder.
-    }
-  }
-  return undefined;
 }
 
 /** How to start `srt`, or a `SandboxUnavailableError` when there is nothing to start. */
@@ -214,38 +145,15 @@ async function checkHost(modules: NodeModules, hostPath: string): Promise<void> 
   }
 }
 
-/** Throws unless every path is absolute and is not `/`. */
-function checkPaths(modules: NodeModules, paths: readonly string[], what: string): void {
-  for (const path of paths) {
-    if (!modules.path.isAbsolute(path) || modules.path.resolve(path) === "/") {
-      throw new HarnessError(
-        "invalid_sandbox_options",
-        `${what} must be an absolute path other than /, not ${JSON.stringify(path)}`,
-      );
-    }
-  }
-}
-
-// What `srt` keeps read-only inside the workspace, which the file calls keep read-only too: the shell start-up files,
-// the editor and agent settings, and a repository's hooks and config.
-const PROTECTED_PATHS =
-  /^(\.bash_profile|\.bashrc|\.zshrc|\.zprofile|\.profile|\.gitconfig|\.gitmodules|\.ripgreprc|\.mcp\.json|\.vscode|\.idea|\.claude)(\/|$)|(^|\/)\.git\/(hooks|config)(\/|$)/;
 // A variable name that `env` can set, which is every name a process can be given.
 const VARIABLE_NAME = /^[A-Za-z_][A-Za-z0-9_]*$/;
-
-/** The real roots a sandbox enforces on file calls. */
-interface RealRoots {
-  readonly read: readonly string[];
-  readonly write: readonly string[];
-  readonly denyWrite: readonly string[];
-}
 
 /** Everything a provisioned sandbox holds. */
 interface SrtSandboxState {
   readonly modules: NodeModules;
   readonly command: SrtCommand;
   readonly root: string;
-  readonly roots: RealRoots;
+  readonly files: HostFiles;
   /** A private folder that holds the settings file and the run folder, and is removed on dispose. */
   readonly folder: string;
   /** The folder `srt` makes its proxy sockets in, and the only part of `folder` a command may read. */
@@ -255,19 +163,14 @@ interface SrtSandboxState {
   readonly hostPath: string;
 }
 
-class SrtSandbox implements Sandbox {
-  private disposed = false;
-  private disposing: Promise<void> | undefined;
+class SrtSandbox extends BackendSandbox {
   private readonly runner: ProcessRunner;
   private readonly state: SrtSandboxState;
 
   constructor(state: SrtSandboxState) {
+    super(state);
     this.state = state;
     this.runner = new ProcessRunner(state.modules);
-  }
-
-  private live(): void {
-    if (this.disposed) throw new HarnessError("sandbox_disposed", "the sandbox was disposed");
   }
 
   /** The program that starts `srt`. */
@@ -325,161 +228,14 @@ class SrtSandbox implements Sandbox {
     );
   }
 
-  /** The real path of `path` against the workspace, or a denial when it is outside every one of `roots`. */
-  private async contain(
-    path: string,
-    roots: readonly string[],
-    kind: SandboxDenial["kind"],
-    rule: string,
-  ): Promise<string> {
-    const { modules } = this.state;
-    const real = await realPathOfMissing(modules, modules.path.resolve(this.state.root, path));
-    if (roots.some((root) => inside(modules, root, real))) return real;
-    throw new SandboxDeniedError({ kind, target: path, reason: rule });
-  }
-
-  /** Throws a denial when `real` is a path that stays read-only: a `denyWrite` folder or one `srt` protects. */
-  private refuseProtected(real: string, path: string): void {
-    const { modules, roots } = this.state;
-    const inDenied = roots.denyWrite.some((folder) => inside(modules, folder, real));
-    const owner = roots.write.find((root) => inside(modules, root, real));
-    const relative = owner === undefined ? "" : modules.path.relative(owner, real);
-    if (inDenied || PROTECTED_PATHS.test(relative.split(modules.path.sep).join("/"))) {
-      throw new SandboxDeniedError({
-        kind: "filesystem_write",
-        target: path,
-        reason: "the path is one the sandbox keeps read-only",
-      });
-    }
-  }
-
   async exec(command: readonly string[], options: ExecOptions): Promise<ExecResult> {
-    this.live();
-    checkCommand(command);
-    checkOptions(options);
-    options.signal.throwIfAborted();
-    const { modules, root } = this.state;
-    const wanted = modules.path.resolve(root, options.cwd ?? ".");
-    const cwd = await realPathOfMissing(modules, wanted);
-    if (!inside(modules, root, cwd)) {
-      return {
-        denied: {
-          kind: "filesystem_read",
-          target: wanted,
-          reason: "the working directory is outside the workspace",
-        },
-      };
-    }
-    const stats = await modules.fs.stat(cwd).catch(() => undefined);
-    if (!stats?.isDirectory()) {
-      throw new HarnessError("invalid_sandbox_options", `the working directory ${cwd} is not an existing folder`);
-    }
-    // The sandbox or the signal may have changed while the folder was checked.
-    this.live();
-    options.signal.throwIfAborted();
-    // `env` would read a first word with `=` as an assignment, so it is answered as `none` answers a program it can't find.
-    if (command[0]?.includes("=")) {
-      return { exitCode: 127, stdout: "", stderr: `command not found: ${command[0]}\n` };
-    }
-    const { stdoutBytes: _bytes, ...result } = await this.runUnderSrt(command, cwd, options.env, options);
+    const prepared = await this.prepare(command, options);
+    if (!("cwd" in prepared)) return prepared;
+    const { stdoutBytes: _bytes, ...result } = await this.runUnderSrt(command, prepared.cwd, options.env, options);
     return result;
   }
 
-  /** Throws a denial unless the file that `handle` opened is inside one of `roots`, by its real path in `/proc`. */
-  private async checkOpened(
-    handle: import("node:fs/promises").FileHandle,
-    roots: readonly string[],
-    kind: SandboxDenial["kind"],
-    path: string,
-  ): Promise<string> {
-    const { modules } = this.state;
-    const opened = await modules.fs.realpath(`/proc/self/fd/${handle.fd}`).catch(() => undefined);
-    if (opened === undefined || !roots.some((root) => inside(modules, root, opened))) {
-      throw new SandboxDeniedError({ kind, target: path, reason: "the file opened is outside the roots" });
-    }
-    return opened;
-  }
-
-  /** The error for a file call that the OS failed: a denial when it refused, a missing file, or an I/O error. */
-  private fileFailure(error: unknown, kind: SandboxDenial["kind"], path: string): unknown {
-    if (isHarnessError(error)) return error;
-    const code = (error as NodeJS.ErrnoException).code;
-    if (code === "ENOENT") return new HarnessError("sandbox_not_found", `no such file: ${path}`, { cause: error });
-    if (code === "EACCES" || code === "EPERM" || code === "EROFS" || code === "ELOOP") {
-      return new SandboxDeniedError({ kind, target: path, reason: "the OS refused it" });
-    }
-    return new HarnessError("sandbox_io_failed", `the file call on ${path} failed: ${code ?? String(error)}`, {
-      cause: error,
-    });
-  }
-
-  async readFile(path: string): Promise<Uint8Array> {
-    this.live();
-    const { modules, roots } = this.state;
-    const readable = [...roots.read, ...roots.write];
-    const target = await this.contain(path, readable, "filesystem_read", "the path is outside the read roots");
-    const { O_RDONLY, O_NOFOLLOW, O_NONBLOCK } = modules.fs.constants;
-    try {
-      // Opened without blocking, so a pipe the agent made can't hold the call: only a regular file is read.
-      const handle = await modules.fs.open(target, O_RDONLY | O_NOFOLLOW | O_NONBLOCK);
-      try {
-        await this.checkOpened(handle, readable, "filesystem_read", path);
-        const stats = await handle.stat();
-        const { size } = stats;
-        if (!stats.isFile()) {
-          throw new HarnessError("sandbox_io_failed", `the path ${target} is not a regular file`);
-        }
-        if (size > MAX_FILE_BYTES) {
-          throw new HarnessError("sandbox_io_failed", `the file ${target} is larger than ${MAX_FILE_BYTES} bytes`);
-        }
-        const bytes = new Uint8Array(size);
-        const { bytesRead } = await handle.read(bytes, 0, size, 0);
-        return bytes.subarray(0, bytesRead);
-      } finally {
-        await handle.close();
-      }
-    } catch (error) {
-      throw this.fileFailure(error, "filesystem_read", path);
-    }
-  }
-
-  async writeFile(path: string, data: Uint8Array): Promise<void> {
-    this.live();
-    if (data.length > MAX_FILE_BYTES) {
-      throw new HarnessError("sandbox_io_failed", `a file larger than ${MAX_FILE_BYTES} bytes can't be written`);
-    }
-    const { modules, roots } = this.state;
-    const rule = "the path is outside the write roots";
-    const target = await this.contain(path, roots.write, "filesystem_write", rule);
-    this.refuseProtected(target, path);
-    const { O_WRONLY, O_CREAT, O_NOFOLLOW, O_NONBLOCK } = modules.fs.constants;
-    try {
-      await modules.fs.mkdir(modules.path.dirname(target), { recursive: true });
-      // Opened without O_TRUNC, so a file that turns out to be outside the roots is not emptied before the check.
-      const handle = await modules.fs.open(target, O_WRONLY | O_CREAT | O_NOFOLLOW | O_NONBLOCK, 0o666);
-      try {
-        this.refuseProtected(await this.checkOpened(handle, roots.write, "filesystem_write", path), path);
-        if (!(await handle.stat()).isFile()) {
-          throw new HarnessError("sandbox_io_failed", `the path ${target} is not a regular file`);
-        }
-        await handle.truncate(0);
-        await handle.writeFile(data);
-      } finally {
-        await handle.close();
-      }
-    } catch (error) {
-      throw this.fileFailure(error, "filesystem_write", path);
-    }
-  }
-
-  dispose(): Promise<void> {
-    // Every call gets the first call's promise, so a second caller waits for the cleanup too.
-    this.disposing ??= this.shutDown();
-    return this.disposing;
-  }
-
-  private async shutDown(): Promise<void> {
-    this.disposed = true;
+  protected async shutDown(): Promise<void> {
     await this.runner.stopAll();
     await this.state.modules.fs.rm(this.state.folder, { recursive: true, force: true });
   }
@@ -488,18 +244,6 @@ class SrtSandbox implements Sandbox {
 /** The first line of what `srt` printed, for the message of a failed start. */
 function firstLine(text: string): string {
   return text.trim().split("\n")[0] ?? "no output";
-}
-
-/** The workspace manifest's root as a real path, or an error when it isn't an existing absolute folder. */
-async function workspaceRoot(modules: NodeModules, manifest: WorkspaceManifest): Promise<string> {
-  if (!modules.path.isAbsolute(manifest.root)) {
-    throw new HarnessError("invalid_sandbox_options", "a workspace manifest's root must be an absolute path");
-  }
-  const stats = await modules.fs.stat(manifest.root).catch(() => undefined);
-  if (!stats?.isDirectory()) {
-    throw new HarnessError("invalid_sandbox_options", "a workspace manifest's root must be an existing folder");
-  }
-  return modules.fs.realpath(manifest.root);
 }
 
 /** The settings and the real roots for one sandbox, with every path's symlinks resolved. */
@@ -543,7 +287,7 @@ export function srtSandbox(options: SrtSandboxOptions = {}): SandboxClient {
       const modules = nodeModules("srt");
       const hostPath = absolutePath(modules, process.env.PATH);
       await checkHost(modules, hostPath);
-      const root = await workspaceRoot(modules, manifest);
+      const root = await workspaceRoot(modules, manifest.root);
       checkPaths(modules, [...policy.readRoots, ...policy.writeRoots], "a sandbox root");
       checkPaths(modules, options.extraReadRoots ?? [], "an extra read root");
       checkPaths(modules, options.denyWrite ?? [], "a denyWrite folder");
@@ -560,7 +304,7 @@ export function srtSandbox(options: SrtSandboxOptions = {}): SandboxClient {
           modules,
           command,
           root,
-          roots: plan.roots,
+          files: new HostFiles(modules, root, plan.roots, isProtectedPath),
           folder,
           runFolder,
           settingsFile,

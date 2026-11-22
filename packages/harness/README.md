@@ -32,7 +32,7 @@ As of November 2026 the package is private and not on npm. Each removable compon
 | --- | --- | --- | --- |
 | `none` | `noneSandbox({ unsafe: true })` | nothing | A command runs as the user, with the machine's files and network. For a machine that is already disposable, and for tests of the rest of the harness |
 | `os` | `srtSandbox()` | mistakes and exfiltration | An operating-system sandbox that shares the host's kernel, on Linux only |
-| `container` | Docker, coming | mistakes and exfiltration, as far as its setup allows | A container with its capabilities dropped and no network by default |
+| `container` | `dockerSandbox()` | mistakes and exfiltration, as far as its setup allows | A container with its capabilities dropped and no network, on Linux only |
 
 `mistakes` are the agent's own errors, such as a write outside the workspace. `exfiltration` is sending data to a host that is not allowed. No backend claims to stop a `hostile_process`, because a sandbox that shares the host's kernel can't promise it. A backend that can't start throws `SandboxUnavailableError`, and the host must not run unconfined, so no backend falls back to `none`.
 
@@ -77,6 +77,34 @@ Four limits are worth knowing:
 - **Cleanup depends on `srt`.** A stopped command gets a `SIGTERM` and two seconds before the `SIGKILL`, so `srt` removes its protected files. A `SIGKILL` from outside leaves them.
 
 `pnpm --filter @buildanagent/harness test:sandbox` runs the conformance suite and the escape cases against the real `srt`. It is opt-in because it starts bubblewrap, and it fails on a skipped case instead of skipping. Without `srt`, the rest of `pnpm test` checks the settings and the unavailable paths.
+
+## The Docker backend runs each command in a locked-down container
+
+`dockerSandbox({ image })` from `./sandbox/docker` runs each command in its own container, made from an image that is already on the Docker host: `provision()` never pulls, and you should pin the image by digest. The container has all capabilities dropped, a read-only root file system, no network, no new privileges and no shared IPC.
+
+The container also has a limit on processes (`pidsLimit`, 256 by default), CPUs (`cpus`, 1) and memory with no swap (`memoryMb`, 1024). It runs as your user and group, so the files it writes stay yours, and its only other writable place is a 64 MiB `/tmp` in memory.
+
+The policy decides what is mounted, at the same path inside as outside. A write root is mounted writable, and it must exist. A read root and an `extraReadRoots` folder are mounted read-only. A `denyWrite` folder inside a write root is made if it is missing and mounted read-only on top, so the session log stays out of the agent's reach. A `denyWrite` path outside every write root is not mounted at all. The protected files that `srt` also guards, such as `.bashrc`, `.claude`, `.git/hooks` and `.git/config` at the top of a write root, are mounted read-only when they exist, and `writeFile` refuses them. Nothing else is mounted, so a path outside the roots does not exist in the container.
+
+The workspace must lie inside a root. The backend never mounts the Docker socket: a root that resolves to `/`, or that holds the daemon's socket (`/var/run/docker.sock`, `/run/docker.sock` or the one `dockerHost` names), is refused.
+
+The container has no network, so a command reaches a host only through `proxySocket`: a Unix socket on the host, mounted at `DOCKER_PROXY_SOCKET_PATH` (`/run/harness/proxy.sock`), that the credential proxy listens on. The program in the image has to speak to that socket itself. Without `proxySocket`, no host is reachable, including the ones the policy allows.
+
+`provision()` starts the `docker` client with a clean environment: a `PATH`, a private empty `HOME`, and `DOCKER_HOST` when the option or the host sets one. It never copies the host's environment. A missing client, a daemon that doesn't answer or an image that isn't on the host throws `SandboxUnavailableError` and runs nothing.
+
+A command's environment is exactly the one it was given. `env -i` clears the image's own variables, so the image needs an `env` that takes `-i` and `--`, as BusyBox and GNU coreutils do. It also clears `PATH`, and a program name is then looked up on the C library's default path, which differs between images. Pass a `PATH`, as `spawnEnv()` does, for a program that lives elsewhere, such as `/usr/local/bin/node` in a Debian image. A command whose first word contains `=` resolves with exit code 127, as under `none`.
+
+Each command is created and then started. A timeout, an abort or `dispose()` kills the container by name, so nothing outlives the call, and `dispose()` also removes any container of this sandbox that a stopped client left behind.
+
+Five limits are worth knowing:
+
+- **Shared kernel.** A container shares the host's kernel, so a process that is trying to escape is out of scope, and no `hostile_process` stop is claimed.
+- **Protected files made later.** A protected file that is missing when `provision()` runs, or one in a subfolder, is not protected inside the container, because a mount needs a file to cover. An agent could write `.git/hooks/pre-commit` there, and the host's next `git commit` would run it. Keep `.git/hooks` and `.git/config` in place, or list them in `denyWrite`.
+- **Linux and a rootful daemon.** Only Linux was tested, against a rootful daemon. Rootless Docker mounts differently and was not tested.
+- **File calls run in the host.** `readFile` and `writeFile` check each path by its real path and through `/proc`, as under `srt`, and `writeFile` refuses a `denyWrite` folder. A hostile process could still win that race.
+- **The network lock rests on the daemon.** `--network none` is checked by inspecting the running container, because a test host with no bridge can't tell a closed network from a missing one.
+
+`pnpm --filter @buildanagent/harness test:sandbox` runs the conformance suite and the lock-down cases against a real daemon, with a pinned Node image. It is opt-in, and it fails on a skipped case instead of skipping. Without Docker, the rest of `pnpm test` checks the flags and the unavailable paths with a fake client.
 
 ## Every spawned process gets a cleared environment
 
