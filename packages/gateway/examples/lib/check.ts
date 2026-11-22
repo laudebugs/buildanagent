@@ -29,10 +29,10 @@ export function pieces(text: string): string[] {
 }
 
 /** One event of an Anthropic Messages stream: its type, and the fields that type carries. */
-type WireEvent = { type: string; [field: string]: unknown };
+export type WireEvent = { type: string; [field: string]: unknown };
 
 /** The events of one Anthropic Messages stream that answers with `text`, one delta per piece. */
-function wireEvents(text: string, usage: ScriptedUsage | undefined, modelId: string): WireEvent[] {
+export function wireEvents(text: string, usage: ScriptedUsage | undefined, modelId: string): WireEvent[] {
   const start = usage && {
     input_tokens: usage.uncachedInput ?? 0,
     cache_read_input_tokens: usage.cacheRead ?? 0,
