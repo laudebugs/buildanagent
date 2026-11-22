@@ -15,7 +15,7 @@ Chapter 5 ("Memory within a task") shows third-party listings only. This todo ad
 
 ## Scope
 
-Chapter 5 has three replayed listings that our packages can show, and two state listings they cannot. Our session store and session runner live in the private `@buildanagent/harness` (`./session` and `./session/jsonl`, built by [N3](../done/N3-session-store.md) and [N6](../done/N6-session-runner.md)) and run over the SDK's loop and the gateway's model, so the harness becomes a third book harness beside `packages/sdk` and `packages/gateway` ([ADR 0057](../../decisions/0057-book-keeps-third-party-listings-and-adds-ours-as-tabs.md)).
+Chapter 5 has three replayed listings that our packages can show, and two state listings they cannot. Our session store and session runner live in the private `@buildanagent/harness` (`./session` and `./session/jsonl`, built by [N3](../done/N3-session-store.md) and [N6](../done/N6-session-runner.md)). They run over the SDK's loop and the gateway's model. The harness therefore becomes a third book harness beside `packages/sdk` and `packages/gateway` ([ADR 0057](../../decisions/0057-book-keeps-third-party-listings-and-adds-ours-as-tabs.md)).
 
 **In scope**
 
@@ -52,7 +52,7 @@ Chapter 5 has three replayed listings that our packages can show, and two state 
 
 - [x] Claimed: the first commit moved this file `ready/` → `ongoing/` (Status `ongoing`)
 - [x] Prose drafted with `/anthropic-skills:writing`
-- [ ] Reviewed with `/anthropic-skills:writing-review`, with the fixes applied and changed claims re-checked
+- [x] Reviewed with `/anthropic-skills:writing-review`, with the fixes applied and changed claims re-checked
 - [x] `pnpm check`, `pnpm typecheck` and `pnpm test` pass locally; pushed after each meaningful step
 - [x] This file moved `ongoing/` → `done/` (Status `done`), and the plan's todo table updated
 
@@ -63,5 +63,5 @@ Chapter 5 has three replayed listings that our packages can show, and two state 
 - **The chapter.** `#session-openai`, `#thread-langchain` and `#resume-claude` are tabs blocks with `#session-ours`, `#thread-ours` and `#resume-ours` first and the earlier listing, notes and replay unchanged. `#state-adk` and `#state-cloudflare` stay as they were: our harness keeps no named state beside the messages. The chapter's tables and figures are unchanged.
 - **Limits the chapter says plainly.** The resume tab stays in one process, because a book example writes no file ([examples guideline](../../guidelines/examples.md#a-book-example-may-carry-the-plumbing-that-keeps-its-listing-true)), so it shows `memoryStore()` and says `jsonlStore()` would hold the same entries in a file.
 - **Found.** The harness exports no in-memory `SessionLock` (only `fileLock`), so a writable session in a file-free example needs a lock of its own, which lives in `examples/lib/check.ts`. A public `memoryLock()` in `@buildanagent/harness/session` would be a package change and is a proposal for the owner, as is letting a book example write inside its own temporary directory.
-- **Fact-check.** Rows 107–137 in `apps/manual/fact-checks/memory-and-sessions.md`; rows 112, 118, 119 and 122 are ✏️ corrections from the first code review (rows 129–132), and the tally reads 137 rows.
-- **Reviews.** Code review high is done: 9 findings, all fixed (rows 129–135, a log-parent check in place of one that could not fail, inline `runTurn()` calls, a token-safe `memoryLock()`). Code review medium is done: 4 nits, all fixed (row punctuation, this Outcome, a test that keeps the harness's recorder file equal to the SDK's, and a check that each listing carries the lock note). Code review low and the writing review are pending, and the writing-review box above stays unticked until it is done.
+- **Fact-check.** Rows 107–141 in `apps/manual/fact-checks/memory-and-sessions.md`. Rows 112, 118, 119 and 122 are ✏️ corrections from the first code review (rows 129–132), and rows 138–141 re-check the writing review's fixes. The tally reads 141 rows (122 ✅, 15 ✏️, 4 ⚠️).
+- **Reviews.** Code review high found 9 findings (1 important, 8 nits), all fixed: rows 129–135, a log-parent check in place of one that could not fail, inline `runTurn()` calls and a token-safe `memoryLock()`. Code review medium found 4 nits, all fixed: row punctuation, this Outcome, a test that keeps the harness's recorder file equal to the SDK's, and a check that each listing carries the lock note. Code review low found 0. The writing review found 10 findings, all fixed, with the scores in the pull request description.

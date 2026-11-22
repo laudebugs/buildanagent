@@ -1,8 +1,8 @@
-// Resuming a session from its log, on our harness: a second turn runs with a new harness, a new model and a new
-// session object, so nothing but the store, its index and its lock carries the first turn over, and its request still
-// holds the first exchange. The store is in memory because a book example writes no file; jsonlStore() and fileIndex()
-// write the same entries to disk, and their folder is what a second process would open. The book's Chapter 5 lists it
-// beside the Claude Agent SDK's resume. The models are scripted ones, so the example runs offline.
+// Resuming a session from its log, on our harness. The second turn runs with a new harness, a new model and a new
+// session object, so only the store, its index and its lock carry the first turn over. Its request still holds the
+// first exchange. The store is in memory because a book example writes no file; jsonlStore() and fileIndex() write the
+// same entries to disk for a second process to open. The book's Chapter 5 lists it beside the Claude Agent SDK's
+// resume. The models are scripted ones, so the example runs offline.
 import { createHarness } from "@buildanagent/harness/server";
 import { memoryIndex, memoryStore, openSession, runTurn } from "@buildanagent/harness/session";
 import { createToolRegistry } from "@buildanagent/harness/tools";

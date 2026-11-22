@@ -1,7 +1,7 @@
-// A session is named by its user and its id, on our harness: the same key continues a conversation, a new id starts an
-// empty one, and another user's turn under the same id starts an empty one too, because the store never finds a
-// session by its id alone. The book's Chapter 5 lists it beside LangChain's thread_id. The model is a scripted one,
-// so the example runs offline.
+// On our harness, a session is named by its user and its id together, and the store never finds one by its id alone.
+// So the same key continues a conversation, while a new id, or another user's turn under the same id, starts an empty
+// one. The book's Chapter 5 lists it beside LangChain's thread_id. The model is a scripted one, so the example runs
+// offline.
 import { createHarness } from "@buildanagent/harness/server";
 import { memoryIndex, memoryStore, openSession, runTurn, type SessionKey } from "@buildanagent/harness/session";
 import { createToolRegistry } from "@buildanagent/harness/tools";

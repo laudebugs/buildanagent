@@ -1,6 +1,6 @@
-// Two turns on one session, on our harness: runTurn() writes each turn into the session's log, and the second turn
-// rebuilds its conversation from that log, so its request carries the first turn. The book's Chapter 5 lists it
-// beside the OpenAI Agents SDK's MemorySession. The model is a scripted one, so the example runs offline.
+// Two turns on one session, on our harness. runTurn() writes each turn into the session's log, and the second turn
+// rebuilds its conversation from that log, so its request carries the first turn. The book's Chapter 5 lists it beside
+// the OpenAI Agents SDK's MemorySession. The model is a scripted one, so the example runs offline.
 import { createHarness } from "@buildanagent/harness/server";
 import { memoryIndex, memoryStore, openSession, runTurn } from "@buildanagent/harness/session";
 import { createToolRegistry } from "@buildanagent/harness/tools";
