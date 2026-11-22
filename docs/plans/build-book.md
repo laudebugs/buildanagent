@@ -612,10 +612,10 @@ The three research rounds behind the sections each confirmed its placement, and 
 | [T61](../todos/done/T61-chapter-testing-offline-and-a-first-agent-on-our-packages.md) | Add our own packages to Chapter 7's listings as tabs (BK8) | T16, B18, B19, T50 | M |
 | [T64](../todos/done/T64-live-run-triage-prompts.md) | Make the live list's triage capstones ask for the gated step their checks test, and hand the owner the workflow fix (BK18) | T27 | S |
 | [T65](../todos/done/T65-live-run-our-packages.md) | Put our own SDK's triage agent in the live run, on both providers (BK18) | T27, T49, T61, T64 | M |
-| [T66](../todos/done/T66-chapter-tools-at-scale-on-our-packages.md) | Add our own packages to Chapter 13's listings as tabs (BK8) | T21, N11, N21, N22, N23, N24 | M |
 | [T58](../todos/done/T58-chapter-the-model-gateway-on-our-packages.md) | Add our own gateway and SDK to Chapter 9's listings as tabs (BK8) | T18, B4, B5, B8, B9, T50, T51 | M |
 | [T62](../todos/done/T62-chapter-choosing-the-shape-on-our-packages.md) | Add our own packages to Chapter 8's listings as tabs (BK8) | T17, B19b, T50 | M |
 | [T63](../todos/done/T63-chapter-side-effects-that-can-fail-on-our-packages.md) | Add our own packages to Chapter 16's listings as tabs (BK8) | T23, E1, E2, E3, E4a, E4b, T50 | M |
+| [T66](../todos/done/T66-chapter-tools-at-scale-on-our-packages.md) | Add our own packages to Chapter 13's listings as tabs (BK8) | T21, N11, N21, N22, N23, N24 | M |
 | [U18](../todos/done/U18-research-retrieval-and-long-term-memory.md) | Research: retrieval and long-term memory, for the book | None | L |
 | [U19](../todos/done/U19-research-a2a.md) | Research: agent-to-agent protocols (a2a), for the book | None | L |
 | [U20](../todos/done/U20-research-voice-and-realtime.md) | Research: voice and realtime agents, for the book | None | L |
