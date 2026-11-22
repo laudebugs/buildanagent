@@ -136,7 +136,7 @@ export async function test(env: Env, h: Harness) {
   r = await agent.report();
   // The reason is the model's own words, so the check reads only the customer.
   check(
-    r.escalations.length === 1 && r.escalations[0].startsWith("C-9:"),
+    r.escalations.length === 1 && /^C-9:.+/.test(r.escalations[0]),
     "the escalate tool ran exactly once, after approval",
   );
   ws.close();

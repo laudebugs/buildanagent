@@ -32,7 +32,7 @@ const issueRefund = tool({
 });
 const agent = new ToolLoopAgent({
   model: anthropic("claude-sonnet-4-5"),
-  instructions: "You triage support tickets. Look up the order first. Refund with issueRefund; a person approves it.",
+  instructions: "You triage support tickets. Look up the order first. Refund with issueRefund; a person approves it.", // the wording only makes a real model reach the approval path; toolApproval below is the protection
   tools: { lookupOrder, issueRefund },
   toolApproval: { issueRefund: "user-approval" },
   experimental_toolApprovalSecret: process.env.TOOL_APPROVAL_SECRET, // sign approval requests
