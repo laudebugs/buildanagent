@@ -26,6 +26,8 @@ export interface FakeSandboxOptions {
    * override would. `provision()` then throws `SandboxPolicyMismatchError` when the two differ.
    */
   readonly applied?: (requested: SandboxPolicy) => SandboxPolicy;
+  /** The stops the fake claims. Defaults to `mistakes` and `exfiltration`, which its in-memory checks deliver. */
+  readonly stops?: readonly SandboxStop[];
 }
 
 /** One command the fake received, with what the caller passed. */
@@ -262,7 +264,7 @@ export function fakeSandbox(options: FakeSandboxOptions = {}): FakeSandboxClient
   let latest: FakeSandbox | undefined;
   const client: FakeSandboxClient = {
     tier: "os",
-    stops: ["mistakes", "exfiltration"],
+    stops: options.stops ?? ["mistakes", "exfiltration"],
     execs,
     files: () => latest?.store ?? new Map(),
     symlink(link: string, target: string) {

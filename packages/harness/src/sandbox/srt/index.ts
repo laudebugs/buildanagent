@@ -28,8 +28,8 @@ import { type NodeModules, nodeModules, ProcessRunner } from "../process.js";
 import type { ExecOptions, ExecResult, Sandbox, SandboxClient, SandboxPolicy, WorkspaceManifest } from "../types.js";
 import { type SrtPolicyNames, type SrtSettingsInput, srtPolicyFromSettings, srtSettings } from "./settings.js";
 
-export type { SrtPathEntry, SrtSettings, SrtSettingsInput } from "./settings.js";
-export { srtSettings } from "./settings.js";
+export type { SrtPathEntry, SrtPolicyNames, SrtSettings, SrtSettingsInput } from "./settings.js";
+export { srtPolicyFromSettings, srtSettings } from "./settings.js";
 
 /** The options of `srtSandbox()`. */
 export interface SrtSandboxOptions {

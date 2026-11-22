@@ -499,7 +499,8 @@ async function checkCapability(sandbox: Sandbox, context: Context, capability: S
     const kept = text(await resumed.readFile(`kept-${capability}.txt`));
     check(kept === capability, `a sandbox resumed after ${capability} must keep its files`);
   } finally {
-    if (resumed !== sandbox) await resumed.dispose();
+    // A resume by the sandbox's own id reattaches to it, which the case's own dispose ends.
+    if (resumed.id !== sandbox.id) await resumed.dispose();
   }
 }
 

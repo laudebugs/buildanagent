@@ -14,7 +14,7 @@ import {
 import { createServer, type Server } from "node:http";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import type { Sandbox, SandboxPolicy } from "@buildanagent/harness/sandbox";
+import { confirmPolicy, type Sandbox, type SandboxPolicy } from "@buildanagent/harness/sandbox";
 import { SRT_ADDED_ENVIRONMENT, srtSandbox } from "@buildanagent/harness/sandbox/srt";
 import { runSandboxConformance, type SandboxFactory, sandboxConformanceCases } from "@buildanagent/harness/testing";
 import { afterAll, beforeAll, describe, test } from "vitest";
@@ -177,6 +177,28 @@ suite("srt: what a command can't do", () => {
     try {
       const result = outcome(await run(sandbox, "ls /root /home 2>&1; cat /proc/1/environ 2>&1"));
       assert.ok(!/\.ssh|\.aws|\.npmrc/.test(result?.stdout ?? ""), "no credential folder is visible");
+    } finally {
+      await sandbox.dispose();
+    }
+  }, 60_000);
+
+  test("the read-back reads the settings file on disk, so a file widened after provision is caught", async () => {
+    const before = new Set(readdirSync(tmpdir()));
+    const { sandbox, root } = await provisioned();
+    const made = readdirSync(tmpdir()).filter((name) => !before.has(name) && /^harness-srt-[A-Za-z0-9]{6}$/.test(name));
+    assert.equal(made.length, 1, "provisioning made one private folder");
+    const file = join(tmpdir(), made[0] ?? "", "settings.json");
+    try {
+      assert.deepEqual(await sandbox.readBack?.(), policyFor(root), "the file as written reads back as the request");
+      assert.deepEqual(sandbox.stops, ["mistakes", "exfiltration"]);
+      const settings = JSON.parse(readFileSync(file, "utf8"));
+      settings.network.allowedDomains.push("evil.test");
+      writeFileSync(file, JSON.stringify(settings));
+      assert.deepEqual((await sandbox.readBack?.())?.network.allow, ["allowed.test", "evil.test"]);
+      const error = await confirmPolicy(client(), sandbox, policyFor(root)).catch((caught: unknown) => caught);
+      assert.equal((error as { field?: string }).field, "network.allow");
+      assert.doesNotMatch((error as Error).message, /evil\.test/);
+      assert.equal(existsSync(file), false, "the mismatch disposed the sandbox and removed its folder");
     } finally {
       await sandbox.dispose();
     }
