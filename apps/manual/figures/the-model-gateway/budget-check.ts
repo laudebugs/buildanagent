@@ -25,7 +25,7 @@ export default function draw(): Figure {
       ],
       { tone: "text", dashed: true },
     );
-    figure.text({ x: at(0.03) + 8, y: 40 }, "budget $0.0300", { tone: "text" });
+    figure.text({ x: at(0.03) + 8, y: 40 }, "budget $0.0300", { anchor: "start", tone: "text" });
   });
 
   figure.group("verdict", () => {

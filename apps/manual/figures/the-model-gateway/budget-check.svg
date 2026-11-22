@@ -32,7 +32,7 @@ svg{--font-code:"Manual Code",ui-monospace, "SF Mono", Menlo, Consolas, monospac
 <text x="282" y="120.3" text-anchor="middle" class="fig-text">$0.0249</text>
 <g id="budget-check--budget-line">
 <path d="M350 50 L350 160" class="fig-line fig-line--dashed"/>
-<text x="358" y="40" text-anchor="middle" class="fig-text">budget $0.0300</text>
+<text x="358" y="40" class="fig-text">budget $0.0300</text>
 </g>
 <g id="budget-check--verdict">
 <text x="260" y="188" text-anchor="middle" class="fig-text fig-text--accent">spent + projected = $0.0363, over the budget</text>
