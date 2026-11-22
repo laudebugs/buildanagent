@@ -39,7 +39,7 @@ const HELD_SENTENCE = "Rain is due on Friday.";
 // #region voice-agent
 const VoiceAgent = withVoice(Agent);
 
-/** Turns one audio frame into an interim and a final transcript, and never calls a speech model. */
+/** Turns one audio frame into interim and final text, and never calls a speech model. */
 class FakeTranscriber implements Transcriber {
   frames = 0;
   closed = 0;
@@ -90,14 +90,14 @@ export class Concierge extends VoiceAgent<Env> {
   turnSignals: AbortSignal[] = [];
   interrupts = 0;
 
-  override async onTurn(transcript: string, context: VoiceTurnContext) {
-    this.events.push(`onTurn:${transcript}`);
+  override async onTurn(heard: string, context: VoiceTurnContext) {
+    this.events.push(`onTurn:${heard}`);
     this.turnSignals.push(context.signal); // book:note signal
     const result = streamText({
       model: this.mock.model,
       system: "You are a voice assistant. Keep answers to one or two sentences.",
       // The history holds `{ role, content }` text only, so turn 1's tool call and result are not in it.
-      messages: [...context.messages, { role: "user", content: transcript }],
+      messages: [...context.messages, { role: "user", content: heard }],
       tools: {
         get_forecast: tool({
           description: "Look up today's forecast for a city",
