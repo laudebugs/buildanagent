@@ -1,314 +1,41 @@
 [
-  {
-    "id": "kitchen-ticket-rail",
-    "concept": "agent loop",
-    "analogy": "a kitchen ticket rail",
-    "chapter": "call-workflow-loop",
-    "illustration": "ticket-rail",
-    "breaks": "A cook remembers yesterday's orders; a model sees only what its context carries, so the loop resends the context on every call."
-  },
-  {
-    "id": "assembly-line",
-    "concept": "fixed workflow",
-    "analogy": "an assembly line with fixed stations",
-    "chapter": "call-workflow-loop",
-    "illustration": null,
-    "breaks": "Each station here is a model call that can still return something unexpected."
-  },
-  {
-    "id": "flight-simulator",
-    "concept": "mock model",
-    "analogy": "a flight simulator",
-    "chapter": "call-workflow-loop",
-    "illustration": null,
-    "breaks": "A simulator answers the pilot's controls; a scripted mock replays only what was scripted, so it cannot surprise you the way a real model can."
-  },
-  {
-    "id": "news-ticker",
-    "concept": "streaming",
-    "analogy": "a news ticker",
-    "chapter": "talking-to-a-model",
-    "illustration": null,
-    "breaks": "The deltas are provisional; the message at the end is the one that counts."
-  },
-  {
-    "id": "taxi-meter",
-    "concept": "tokens and cost",
-    "analogy": "a taxi meter that runs on both legs of the trip",
-    "chapter": "talking-to-a-model",
-    "illustration": "taxi-meter",
-    "breaks": "Cached input is billed at a discount; a taxi has no such fare."
-  },
-  {
-    "id": "tour-guide-card",
-    "concept": "system prompt",
-    "analogy": "the briefing card a tour guide carries on every tour",
-    "chapter": "talking-to-a-model",
-    "illustration": null,
-    "breaks": "The model cannot ask what the card means, and a changed card breaks the cache."
-  },
-  {
-    "id": "casting-understudies",
-    "concept": "model choice",
-    "analogy": "casting the lead with the most experienced actor, then trying understudies in the same scenes",
-    "chapter": "talking-to-a-model",
-    "illustration": null,
-    "breaks": "A model does not improve with rehearsal; only the prompt and the evals do."
-  },
-  {
-    "id": "counter-form",
-    "concept": "tool schema",
-    "analogy": "a form at a counter with labelled boxes",
-    "chapter": "tools",
-    "illustration": null,
-    "breaks": "A clerk reads what you wrote and asks what you meant when an answer makes no sense; the SDK checks only that each box holds the right type, so a well-formed but invented value passes and your function must check that it is real."
-  },
-  {
-    "id": "vending-machine",
-    "concept": "error returned as data",
-    "analogy": "a vending machine that hands back your coin with a note",
-    "chapter": "tools",
-    "illustration": "vending-machine",
-    "breaks": "You read the note and act on it; a model may ignore an error, so the error must say exactly what to try next, and the loop still needs a cap."
-  },
-  {
-    "id": "passport-control",
-    "concept": "identity from trusted context",
-    "analogy": "passport control, where the officer reads your passport, not what you claim at the desk",
-    "chapter": "tools",
-    "illustration": null,
-    "breaks": "A traveller carries the passport and hands it over; in an agent, your code reads the identity from the signed-in session and hands it to the tool, so the model never carries it and sees it only if your code shows it."
-  },
-  {
-    "id": "bus-ticket",
-    "concept": "step cap",
-    "analogy": "a bus ticket good for a fixed number of stops",
-    "chapter": "stopping-and-structured-output",
-    "illustration": null,
-    "breaks": "Every bus company counts a stop the same way. SDKs count steps, turns, graph super-steps and model calls, so the same cap allows a different number of model calls in each."
-  },
-  {
-    "id": "jelly-mould",
-    "concept": "structured output",
-    "analogy": "a jelly mould",
-    "chapter": "stopping-and-structured-output",
-    "illustration": "jelly-mould",
-    "breaks": "A mould forces its shape on whatever is poured in. Most SDKs only check the answer's shape after the model has written it, so an answer that does not fit is rejected or retried, and even constrained decoding lets a refusal or a cut-off answer through. Neither a mould nor a schema can vouch for what is inside: a schema fixes the shape of an answer, never its truth."
-  },
-  {
-    "id": "patients-chart",
-    "concept": "session",
-    "analogy": "a patient's chart that travels with them between shifts",
-    "chapter": "memory-and-sessions",
-    "illustration": "patients-chart",
-    "breaks": "A nurse skims the chart for what matters tonight; your code sends the model the whole session on every call, and the provider bills you for every token of it."
-  },
-  {
-    "id": "bookmark",
-    "concept": "resume",
-    "analogy": "a bookmark",
-    "chapter": "memory-and-sessions",
-    "illustration": null,
-    "breaks": "A bookmark restores only your place; a resumed run must also restore pending approvals and tool state, and some SDKs bring back the conversation alone."
-  },
-  {
-    "id": "second-signature",
-    "concept": "approval",
-    "analogy": "a bank's second signature on a large payment",
-    "chapter": "approvals-guardrails-and-injection",
-    "illustration": "second-signature",
-    "breaks": "A teller checks the signature against the paper order in front of them. A saved run is text that your storage can change, so the SDK has to compute the signature over the tool name, call id and input, and of the three SDKs here, only the AI SDK documents such a signature, and only when you set a secret."
-  },
-  {
-    "id": "smoke-detectors",
-    "concept": "guardrails",
-    "analogy": "smoke detectors in several rooms",
-    "chapter": "approvals-guardrails-and-injection",
-    "illustration": null,
-    "breaks": "A detector only sounds an alarm and leaves the response to a person, while a tripped guardrail can halt the run itself; and no number of detectors makes a building fireproof, as no set of guardrails makes an agent safe."
-  },
-  {
-    "id": "forged-memo",
-    "concept": "prompt injection",
-    "analogy": "a forged memo slipped into the in-tray",
-    "chapter": "approvals-guardrails-and-injection",
-    "illustration": null,
-    "breaks": "An assistant can phone the director to check a memo, but a model has no way to check who wrote any text in its context, so every input can act as an instruction."
-  },
-  {
-    "id": "referee-whistle",
-    "concept": "check() assertions",
-    "analogy": "a referee's whistle at each broken rule",
-    "chapter": "testing-offline-and-a-first-agent",
-    "illustration": null,
-    "breaks": "A check knows only the rules you wrote; a game can go wrong in ways no rule names, and a check that holds for the right behaviour may hold for no behaviour at all."
-  },
-  {
-    "id": "court-stenographer",
-    "concept": "event stream",
-    "analogy": "a court stenographer's record",
-    "chapter": "events-and-hooks",
-    "illustration": null,
-    "breaks": "A stenographer's record is final as typed. A run's stream also carries partial deltas that the end event supersedes, so a log that kept every delta would hold text the finished message replaces."
-  },
-  {
-    "id": "toll-booths",
-    "concept": "interceptors",
-    "analogy": "toll booths that can stop, charge or turn back a car",
-    "chapter": "events-and-hooks",
-    "illustration": "toll-booths",
-    "breaks": "A toll booth leaves the car as it is. An interceptor can rewrite the request itself, as if the attendant swapped the driver's destination, so the run records which replacement it used."
-  },
-  {
-    "id": "traffic-cameras",
-    "concept": "observers",
-    "analogy": "traffic cameras that only watch",
-    "chapter": "events-and-hooks",
-    "illustration": null,
-    "breaks": "A camera that jams cannot close the road, but an observer that throws or never returns can still break a run unless the SDK isolates it and bounds the wait."
-  },
-  {
-    "id": "club-door-list",
-    "concept": "permission pipeline",
-    "analogy": "a club's door list read top to bottom",
-    "chapter": "permissions-sandboxes-and-credentials",
-    "illustration": null,
-    "breaks": "A doorman reads names; a pipeline's rules are code that runs in a fixed order and also read what a call asks to do, and the manager at the door is a callback or a person that the pipeline asks."
-  },
-  {
-    "id": "lab-glovebox",
-    "concept": "sandbox",
-    "analogy": "a lab glovebox",
-    "chapter": "permissions-sandboxes-and-credentials",
-    "illustration": "glovebox",
-    "breaks": "A glovebox keeps things in and does not filter what leaves; our sandbox also decides which network hosts a command may reach, and a determined process can still break out of one that shares the host's kernel."
-  },
-  {
-    "id": "valet-key",
-    "concept": "credential boundary",
-    "analogy": "a valet key that moves the car but leaves the boot locked",
-    "chapter": "permissions-sandboxes-and-credentials",
-    "illustration": null,
-    "breaks": "A valet key is a real key with fewer powers, held by the attendant; the sandbox never holds the secret at all, and the host adds it at egress."
-  },
-  {
-    "id": "coat-check",
-    "concept": "connector token custody",
-    "analogy": "a coat check",
-    "chapter": "permissions-sandboxes-and-credentials",
-    "illustration": null,
-    "breaks": "A coat stays the same coat; tokens expire and refresh, and the counter must also know whose coat is whose, because one user's token must never answer another user's request."
-  },
-  {
-    "id": "hardware-store-back-room",
-    "concept": "deferred tools",
-    "analogy": "a hardware store that shelves the common tools and fetches the rest from the back room",
-    "chapter": "tools-at-scale",
-    "illustration": "back-room",
-    "breaks": "A clerk fetches a tool in a minute for the price of waiting; a deferred tool costs a round trip and the tokens of its definition, and it keeps costing those tokens each turn it stays loaded, so the shelf must hold the tools used most."
-  },
-  {
-    "id": "usb-port",
-    "concept": "MCP",
-    "analogy": "a USB port: one plug shape for many devices",
-    "chapter": "tools-at-scale",
-    "illustration": null,
-    "breaks": "Plugging in an MCP server is closer to installing software than to plugging in a mouse: the server chooses its tools' names, descriptions and results, and the specification tells clients to treat a tool's annotations as untrusted unless the server is trusted."
-  },
-  {
-    "id": "service-manuals",
-    "concept": "skills",
-    "analogy": "a mechanic's service manuals, opened only when that model of car comes in",
-    "chapter": "tools-at-scale",
-    "illustration": null,
-    "breaks": "A mechanic closes the manual when the car leaves the lift; a skill read into context stays there and costs its tokens in every later request of the run."
-  },
-  {
-    "id": "raffle-ticket-stub",
-    "concept": "idempotency key",
-    "analogy": "a raffle ticket stub",
-    "chapter": "side-effects-that-can-fail",
-    "illustration": null,
-    "breaks": "A stub is printed before anyone wins and kept by the holder; an idempotency key must be stored before the call, or a crash loses it and the write can repeat."
-  },
-  {
-    "id": "dropped-phone-order",
-    "concept": "unknown outcome",
-    "analogy": "a dropped phone order",
-    "chapter": "side-effects-that-can-fail",
-    "illustration": null,
-    "breaks": "A restaurant has no order number to look up; an agent's write should carry an idempotency key that the other side can be asked about."
-  },
-  {
-    "id": "ledger-before-courier",
-    "concept": "persist before execute",
-    "analogy": "writing the order in the ledger before the courier leaves",
-    "chapter": "side-effects-that-can-fail",
-    "illustration": "ledger",
-    "breaks": "The ledger entry records intent, not success; the result is a second entry, and a missing second entry is the unknown outcome."
-  },
-  {
-    "id": "booking-a-trip",
-    "concept": "saga",
-    "analogy": "booking a trip",
-    "chapter": "side-effects-that-can-fail",
-    "illustration": null,
-    "breaks": "Some steps cannot be undone, and an email cannot be unsent, so the plan needs one pivot after which nothing is compensated."
-  },
-  {
-    "id": "alarm-clock-note",
-    "concept": "durable wake",
-    "analogy": "an alarm clock with a note on the bedside table",
-    "chapter": "durable-and-portable-agents",
-    "illustration": null,
-    "breaks": "An alarm can ring twice, so the note must make a second waking harmless; and the note says where you left off, not what you were thinking."
-  },
-  {
-    "id": "shipping-containers",
-    "concept": "portable seams",
-    "analogy": "standard shipping containers",
-    "chapter": "durable-and-portable-agents",
-    "illustration": "containers",
-    "breaks": "Every port still needs its own crane: each target needs its own adapter behind the same seam, and a seam that fits is proved by a conformance suite, not assumed."
-  },
-  {
-    "id": "mailroom-stamp",
-    "concept": "ingress deduplication",
-    "analogy": "a mailroom that stamps each letter's number and bins duplicates",
-    "chapter": "durable-and-portable-agents",
-    "illustration": null,
-    "breaks": "The mailroom invents no numbers: the id must come from the sender, such as a webhook's delivery id, or a repeat would get a fresh stamp and slip through."
-  },
-  {
-    "id": "adventure-book",
-    "concept": "session log tree",
-    "analogy": "a choose-your-own-adventure book that keeps every path taken",
-    "chapter": "the-session-log-and-context",
-    "illustration": null,
-    "breaks": "A reader chooses each path in the book, but in a session log the harness and the user make the forks, every path stays readable to them, and the model sees only the path being followed."
-  },
-  {
-    "id": "limited-desk",
-    "concept": "context window",
-    "analogy": "a desk with limited space",
-    "chapter": "the-session-log-and-context",
-    "illustration": "limited-desk",
-    "breaks": "A person can open the drawer and fetch a folder; the model cannot, so only the harness decides what goes on the desk."
-  },
-  {
-    "id": "previously-on-recap",
-    "concept": "compaction",
-    "analogy": "a TV show's \"previously on\" recap",
-    "chapter": "the-session-log-and-context",
-    "illustration": null,
-    "breaks": "A model writes the recap and can drop facts, so the original entries stay in the log and the harness can put any of them back in front of the model."
-  },
-  {
-    "id": "purchase-order",
-    "concept": "agent-to-agent protocol",
-    "analogy": "firms that contract through a standard purchase order",
-    "chapter": "tools-at-scale",
-    "illustration": null,
-    "breaks": "A purchase order is filed and forgotten, while an A2A task can stream updates and ask for more input; and a firm vets a supplier before it signs, whereas an Agent Card is unvetted self-description that the calling model reads as prose."
-  }
+  {"id":"adventure-book","concept":"session log tree","analogy":"a choose-your-own-adventure book that keeps every path taken","chapter":"the-session-log-and-context","illustration":null,"breaks":"A reader chooses each path in the book, but in a session log the harness and the user make the forks, every path stays readable to them, and the model sees only the path being followed."},
+  {"id":"alarm-clock-note","concept":"durable wake","analogy":"an alarm clock with a note on the bedside table","chapter":"durable-and-portable-agents","illustration":null,"breaks":"An alarm can ring twice, so the note must make a second waking harmless; and the note says where you left off, not what you were thinking."},
+  {"id":"assembly-line","concept":"fixed workflow","analogy":"an assembly line with fixed stations","chapter":"call-workflow-loop","illustration":null,"breaks":"Each station here is a model call that can still return something unexpected."},
+  {"id":"booking-a-trip","concept":"saga","analogy":"booking a trip","chapter":"side-effects-that-can-fail","illustration":null,"breaks":"Some steps cannot be undone, and an email cannot be unsent, so the plan needs one pivot after which nothing is compensated."},
+  {"id":"bookmark","concept":"resume","analogy":"a bookmark","chapter":"memory-and-sessions","illustration":null,"breaks":"A bookmark restores only your place; a resumed run must also restore pending approvals and tool state, and some SDKs bring back the conversation alone."},
+  {"id":"bus-ticket","concept":"step cap","analogy":"a bus ticket good for a fixed number of stops","chapter":"stopping-and-structured-output","illustration":null,"breaks":"Every bus company counts a stop the same way. SDKs count steps, turns, graph super-steps and model calls, so the same cap allows a different number of model calls in each."},
+  {"id":"casting-understudies","concept":"model choice","analogy":"casting the lead with the most experienced actor, then trying understudies in the same scenes","chapter":"talking-to-a-model","illustration":null,"breaks":"A model does not improve with rehearsal; only the prompt and the evals do."},
+  {"id":"club-door-list","concept":"permission pipeline","analogy":"a club's door list read top to bottom","chapter":"permissions-sandboxes-and-credentials","illustration":null,"breaks":"A doorman reads names; a pipeline's rules are code that runs in a fixed order and also read what a call asks to do, and the manager at the door is a callback or a person that the pipeline asks."},
+  {"id":"coat-check","concept":"connector token custody","analogy":"a coat check","chapter":"permissions-sandboxes-and-credentials","illustration":null,"breaks":"A coat stays the same coat; tokens expire and refresh, and the counter must also know whose coat is whose, because one user's token must never answer another user's request."},
+  {"id":"counter-form","concept":"tool schema","analogy":"a form at a counter with labelled boxes","chapter":"tools","illustration":null,"breaks":"A clerk reads what you wrote and asks what you meant when an answer makes no sense; the SDK checks only that each box holds the right type, so a well-formed but invented value passes and your function must check that it is real."},
+  {"id":"court-stenographer","concept":"event stream","analogy":"a court stenographer's record","chapter":"events-and-hooks","illustration":null,"breaks":"A stenographer's record is final as typed. A run's stream also carries partial deltas that the end event supersedes, so a log that kept every delta would hold text the finished message replaces."},
+  {"id":"dropped-phone-order","concept":"unknown outcome","analogy":"a dropped phone order","chapter":"side-effects-that-can-fail","illustration":null,"breaks":"A restaurant has no order number to look up; an agent's write should carry an idempotency key that the other side can be asked about."},
+  {"id":"flight-simulator","concept":"mock model","analogy":"a flight simulator","chapter":"call-workflow-loop","illustration":null,"breaks":"A simulator answers the pilot's controls; a scripted mock replays only what was scripted, so it cannot surprise you the way a real model can."},
+  {"id":"forged-memo","concept":"prompt injection","analogy":"a forged memo slipped into the in-tray","chapter":"approvals-guardrails-and-injection","illustration":null,"breaks":"An assistant can phone the director to check a memo, but a model has no way to check who wrote any text in its context, so every input can act as an instruction."},
+  {"id":"hardware-store-back-room","concept":"deferred tools","analogy":"a hardware store that shelves the common tools and fetches the rest from the back room","chapter":"tools-at-scale","illustration":"back-room","breaks":"A clerk fetches a tool in a minute for the price of waiting; a deferred tool costs a round trip and the tokens of its definition, and it keeps costing those tokens each turn it stays loaded, so the shelf must hold the tools used most."},
+  {"id":"jelly-mould","concept":"structured output","analogy":"a jelly mould","chapter":"stopping-and-structured-output","illustration":"jelly-mould","breaks":"A mould forces its shape on whatever is poured in. Most SDKs only check the answer's shape after the model has written it, so an answer that does not fit is rejected or retried, and even constrained decoding lets a refusal or a cut-off answer through. Neither a mould nor a schema can vouch for what is inside: a schema fixes the shape of an answer, never its truth."},
+  {"id":"kitchen-ticket-rail","concept":"agent loop","analogy":"a kitchen ticket rail","chapter":"call-workflow-loop","illustration":"ticket-rail","breaks":"A cook remembers yesterday's orders; a model sees only what its context carries, so the loop resends the context on every call."},
+  {"id":"lab-glovebox","concept":"sandbox","analogy":"a lab glovebox","chapter":"permissions-sandboxes-and-credentials","illustration":"glovebox","breaks":"A glovebox keeps things in and does not filter what leaves; our sandbox also decides which network hosts a command may reach, and a determined process can still break out of one that shares the host's kernel."},
+  {"id":"ledger-before-courier","concept":"persist before execute","analogy":"writing the order in the ledger before the courier leaves","chapter":"side-effects-that-can-fail","illustration":"ledger","breaks":"The ledger entry records intent, not success; the result is a second entry, and a missing second entry is the unknown outcome."},
+  {"id":"limited-desk","concept":"context window","analogy":"a desk with limited space","chapter":"the-session-log-and-context","illustration":"limited-desk","breaks":"A person can open the drawer and fetch a folder; the model cannot, so only the harness decides what goes on the desk."},
+  {"id":"mailroom-stamp","concept":"ingress deduplication","analogy":"a mailroom that stamps each letter's number and bins duplicates","chapter":"durable-and-portable-agents","illustration":null,"breaks":"The mailroom invents no numbers: the id must come from the sender, such as a webhook's delivery id, or a repeat would get a fresh stamp and slip through."},
+  {"id":"news-ticker","concept":"streaming","analogy":"a news ticker","chapter":"talking-to-a-model","illustration":null,"breaks":"The deltas are provisional; the message at the end is the one that counts."},
+  {"id":"passport-control","concept":"identity from trusted context","analogy":"passport control, where the officer reads your passport, not what you claim at the desk","chapter":"tools","illustration":null,"breaks":"A traveller carries the passport and hands it over; in an agent, your code reads the identity from the signed-in session and hands it to the tool, so the model never carries it and sees it only if your code shows it."},
+  {"id":"patients-chart","concept":"session","analogy":"a patient's chart that travels with them between shifts","chapter":"memory-and-sessions","illustration":"patients-chart","breaks":"A nurse skims the chart for what matters tonight; your code sends the model the whole session on every call, and the provider bills you for every token of it."},
+  {"id":"previously-on-recap","concept":"compaction","analogy":"a TV show's \"previously on\" recap","chapter":"the-session-log-and-context","illustration":null,"breaks":"A model writes the recap and can drop facts, so the original entries stay in the log and the harness can put any of them back in front of the model."},
+  {"id":"purchase-order","concept":"agent-to-agent protocol","analogy":"firms that contract through a standard purchase order","chapter":"tools-at-scale","illustration":null,"breaks":"A purchase order is filed and forgotten, while an A2A task can stream updates and ask for more input; and a firm vets a supplier before it signs, whereas an Agent Card is unvetted self-description that the calling model reads as prose."},
+  {"id":"raffle-ticket-stub","concept":"idempotency key","analogy":"a raffle ticket stub","chapter":"side-effects-that-can-fail","illustration":null,"breaks":"A stub is printed before anyone wins and kept by the holder; an idempotency key must be stored before the call, or a crash loses it and the write can repeat."},
+  {"id":"referee-whistle","concept":"check() assertions","analogy":"a referee's whistle at each broken rule","chapter":"testing-offline-and-a-first-agent","illustration":null,"breaks":"A check knows only the rules you wrote; a game can go wrong in ways no rule names, and a check that holds for the right behaviour may hold for no behaviour at all."},
+  {"id":"second-signature","concept":"approval","analogy":"a bank's second signature on a large payment","chapter":"approvals-guardrails-and-injection","illustration":"second-signature","breaks":"A teller checks the signature against the paper order in front of them. A saved run is text that your storage can change, so the SDK has to compute the signature over the tool name, call id and input, and of the three SDKs here, only the AI SDK documents such a signature, and only when you set a secret."},
+  {"id":"service-manuals","concept":"skills","analogy":"a mechanic's service manuals, opened only when that model of car comes in","chapter":"tools-at-scale","illustration":null,"breaks":"A mechanic closes the manual when the car leaves the lift; a skill read into context stays there and costs its tokens in every later request of the run."},
+  {"id":"shipping-containers","concept":"portable seams","analogy":"standard shipping containers","chapter":"durable-and-portable-agents","illustration":"containers","breaks":"Every port still needs its own crane: each target needs its own adapter behind the same seam, and a seam that fits is proved by a conformance suite, not assumed."},
+  {"id":"smoke-detectors","concept":"guardrails","analogy":"smoke detectors in several rooms","chapter":"approvals-guardrails-and-injection","illustration":null,"breaks":"A detector only sounds an alarm and leaves the response to a person, while a tripped guardrail can halt the run itself; and no number of detectors makes a building fireproof, as no set of guardrails makes an agent safe."},
+  {"id":"taxi-meter","concept":"tokens and cost","analogy":"a taxi meter that runs on both legs of the trip","chapter":"talking-to-a-model","illustration":"taxi-meter","breaks":"Cached input is billed at a discount; a taxi has no such fare."},
+  {"id":"toll-booths","concept":"interceptors","analogy":"toll booths that can stop, charge or turn back a car","chapter":"events-and-hooks","illustration":"toll-booths","breaks":"A toll booth leaves the car as it is. An interceptor can rewrite the request itself, as if the attendant swapped the driver's destination, so the run records which replacement it used."},
+  {"id":"tour-guide-card","concept":"system prompt","analogy":"the briefing card a tour guide carries on every tour","chapter":"talking-to-a-model","illustration":null,"breaks":"The model cannot ask what the card means, and a changed card breaks the cache."},
+  {"id":"traffic-cameras","concept":"observers","analogy":"traffic cameras that only watch","chapter":"events-and-hooks","illustration":null,"breaks":"A camera that jams cannot close the road, but an observer that throws or never returns can still break a run unless the SDK isolates it and bounds the wait."},
+  {"id":"usb-port","concept":"MCP","analogy":"a USB port: one plug shape for many devices","chapter":"tools-at-scale","illustration":null,"breaks":"Plugging in an MCP server is closer to installing software than to plugging in a mouse: the server chooses its tools' names, descriptions and results, and the specification tells clients to treat a tool's annotations as untrusted unless the server is trusted."},
+  {"id":"valet-key","concept":"credential boundary","analogy":"a valet key that moves the car but leaves the boot locked","chapter":"permissions-sandboxes-and-credentials","illustration":null,"breaks":"A valet key is a real key with fewer powers, held by the attendant; the sandbox never holds the secret at all, and the host adds it at egress."},
+  {"id":"vending-machine","concept":"error returned as data","analogy":"a vending machine that hands back your coin with a note","chapter":"tools","illustration":"vending-machine","breaks":"You read the note and act on it; a model may ignore an error, so the error must say exactly what to try next, and the loop still needs a cap."}
 ]

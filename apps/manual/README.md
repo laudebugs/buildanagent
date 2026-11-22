@@ -13,6 +13,7 @@ Run each from the repo root.
 | `pnpm --filter @buildanagent/manual test` | Runs the offline tests, including a full build into a temporary folder |
 | `pnpm --filter @buildanagent/manual typecheck` | Type-checks the app's TypeScript with the root `tsc` setup |
 | `pnpm --filter @buildanagent/manual check:book` | Checks the outline, the three registers and every chapter against the build's own rules, without building |
+| `pnpm --filter @buildanagent/manual registers:format` | Rewrites the three registers in their canonical layout: one entry per line, sorted by id |
 | `pnpm --filter @buildanagent/manual book:switch-report` | Lists each written chapter's `switchTo` todos and which are done; `test` runs it too, and it never fails |
 | `pnpm --filter @buildanagent/manual tokens` | Regenerates `src/styles/tokens.css` from `book-tokens.json` |
 | `pnpm --filter @buildanagent/manual anatomy:css` | Regenerates `src/styles/anatomy.css` from the vendored anatomy kit's `iso.css` |
@@ -47,6 +48,12 @@ switchTo: [B11]
 - `switchTo` lists the todos whose code will join the chapter's `verify/` listings as a first tab, while the `verify/` listings stay (BK8); it may be empty.
 
 The chapter's last `##` section is `## Exercises`, and it holds a list and nothing else: `check:book` fails on a paragraph or a box after the list, since either would render inside the exercises. The layout adds the chapter's sources after it, so the chapter has no sources section of its own.
+
+## The registers keep one entry per line, so branches that add entries merge cleanly
+
+`src/data/sources.json`, `src/data/glossary.json` and `src/content/analogies.json` are JSON arrays with one entry per line, sorted by id (by code point, so the order never depends on a machine's locale). Git merges by line, so two branches that each add an entry merge without a conflict unless both add at the same place in the order, and a conflict that does arise shows whole entries. Biome skips these three files, because it would put each entry back on many lines.
+
+To add an entry, write it as one line anywhere in the array, then run `pnpm --filter @buildanagent/manual registers:format`, which moves it to its place in the order and rewrites the rest unchanged. [`test/registers.test.ts`](test/registers.test.ts) fails on a repeated id and on a register that differs from the canonical layout, and its message names the command. The sources page lists sources in this order, so it is alphabetical by id. A conflict is still possible when two branches add entries that sort next to each other: keep both lines, then run the command.
 
 ## Citations point at the source register
 
