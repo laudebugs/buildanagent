@@ -45,6 +45,8 @@ const EXTERNAL = [
     "provider outside the pinned set",
   ],
   [/process\.env\.[A-Z_]*(KEY|TOKEN|SECRET)/, "third-party credential"],
+  // A test file calls it() outside the runner and throws, so it counts as unrunnable, not as a docs error.
+  [/from ['"]vitest['"]/, "test file (needs the vitest runner)"],
 ];
 const needsExternal = (code) => EXTERNAL.find(([re]) => re.test(code))?.[1] ?? null;
 

@@ -3,8 +3,8 @@
   "example": "06-streaming",
   "file": "verify/vercel-ai-sdk/examples/06-streaming.ts",
   "harness": "verify/vercel-ai-sdk",
-  "pin": "ai@7.0.162",
-  "mock": "ai@7.0.162",
+  "pin": "ai@7.0.173",
+  "mock": "ai@7.0.173",
   "events": [
     {
       "kind": "request",

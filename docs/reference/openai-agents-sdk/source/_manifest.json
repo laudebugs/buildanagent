@@ -1,8 +1,8 @@
 {
   "repo": "https://github.com/openai/openai-agents-js",
-  "tag": "v0.21.0",
-  "commit": "304e436185ad5d7e54d240896efa728533147cf3",
-  "fetchedAt": "2026-11-18T05:09:12.351Z",
+  "tag": "v0.22.0",
+  "commit": "8aeac0eb255dbdff9adcdc65a0eae638cbcea74f",
+  "fetchedAt": "2026-11-22T21:18:53.684Z",
   "paths": [
     "/LICENSE",
     "/packages/agents/README.md",
