@@ -92,7 +92,7 @@
     "term": "A2A",
     "kind": "abbr",
     "expansion": "Agent2Agent protocol",
-    "definition": "An open protocol for handing a task to an agent that someone else owns: the caller reads the agent's card, sends a message and follows a task that may stream, run for days or pause for input.",
+    "definition": "An open protocol for handing a task to an agent that someone else owns: the caller reads the agent's card, sends a message and follows a task that may stream or pause for input.",
     "sources": ["a2a-spec"]
   },
   {

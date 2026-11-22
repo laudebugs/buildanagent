@@ -1066,7 +1066,7 @@
     "publisher": "A2A Project, Linux Foundation",
     "url": "https://a2a-protocol.org/latest/specification/",
     "kind": "spec",
-    "version": "1.0.1",
+    "version": "1.0.0",
     "asOf": "November 2026",
     "verifiedIn": "apps/manual/fact-checks/tools-at-scale.md"
   },
