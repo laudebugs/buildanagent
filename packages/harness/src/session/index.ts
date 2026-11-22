@@ -58,6 +58,13 @@ export { memoryIndex, type SessionIndex } from "./pointer.js";
 export type { PendingApproval } from "./rebuild.js";
 export { rerunFrom, runTurn, type TurnOptions, type TurnResult } from "./runner.js";
 export {
+  type ProcessScheduler,
+  type ProcessSchedulerOptions,
+  processScheduler,
+  type Scheduler,
+  type WakeHandler,
+} from "./scheduler.js";
+export {
   type ChildLink,
   DERIVED,
   isDerivedFile,
