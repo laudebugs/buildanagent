@@ -139,8 +139,10 @@ describe("a bad frame gets the stdio transport's answer, and the socket stays op
   test("a frame over maxMessageBytes, counted in UTF-8 bytes, is answered and the socket closed with 1009", async () => {
     const { dispatcher } = approvalSetup([]);
     const run = wsRun(dispatcher, { maxMessageBytes: 64 });
-    // 30 characters but 90 bytes, so a bound read as characters would let it in.
-    run.send(JSON.stringify({ jsonrpc: "2.0", id: 1, method: "€".repeat(30) }));
+    // 46 characters but 66 bytes, so a bound read as characters would let it in.
+    const frame = JSON.stringify({ jsonrpc: "2.0", id: 1, method: "€".repeat(10) });
+    assert.equal(frame.length, 46);
+    run.send(frame);
     await run.done;
     await until(() => run.closes.length === 1, "the close");
     assert.deepEqual(
