@@ -211,6 +211,36 @@ describe("the transport stops itself, says why and closes the socket", () => {
     assert.deepEqual(run.closes, [1000]);
   });
 
+  test("with 1011 when send() throws on an open socket, logging the error's name but never its message", async () => {
+    const fake = fakeDispatcher();
+    const run = wsRun(fake.dispatcher);
+    run.server.send = () => {
+      throw Object.assign(new Error("SECRET"), { name: "RefusedError" });
+    };
+    assert.equal(fake.send()(notification(1)), undefined);
+    await run.done;
+    const reason = "the socket refused a frame: RefusedError";
+    assert.deepEqual(stopped(run), [`websocket: stopped: ${reason}`]);
+    assert.deepEqual(run.server.closeCalls, [{ code: 1011, reason }]);
+    assert.deepEqual(fake.events, ["closed"]);
+    for (const line of run.logs) assert.ok(!line.includes("SECRET"), line);
+  });
+
+  test("cuts a close reason to 123 UTF-8 bytes on a whole character", async () => {
+    const fake = fakeDispatcher();
+    const run = wsRun(fake.dispatcher);
+    // 28 ASCII bytes, then three bytes a character: a cut by UTF-16 units would send 123 characters, 313 bytes.
+    const name = "€".repeat(60);
+    run.server.send = () => {
+      throw Object.assign(new Error("x"), { name });
+    };
+    fake.send()(notification(1));
+    await run.done;
+    const sent = run.server.closeCalls[0]?.reason ?? "";
+    assert.equal(sent, `the socket refused a frame: ${"€".repeat(31)}`);
+    assert.equal(new TextEncoder().encode(sent).length, 121);
+  });
+
   test("an already aborted signal stops it at once", async () => {
     const fake = fakeDispatcher();
     const run = wsRun(fake.dispatcher, { signal: AbortSignal.abort() });

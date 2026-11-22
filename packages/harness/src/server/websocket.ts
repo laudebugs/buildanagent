@@ -91,11 +91,18 @@ const POLL_MS = 25;
 const NORMAL = 1000;
 const POLICY_VIOLATION = 1008;
 const MESSAGE_TOO_BIG = 1009;
-/** A close frame's reason holds at most 123 bytes. */
-const MAX_CLOSE_REASON = 123;
+const INTERNAL_ERROR = 1011;
+/** A close frame's reason holds at most 123 bytes of UTF-8 (RFC 6455 §5.5.1). */
+const MAX_CLOSE_REASON_BYTES = 123;
 
 const encoder = new TextEncoder();
 const NEWLINE = encoder.encode("\n");
+
+/** `reason` cut to the bytes a close frame holds, on a whole character: `encodeInto()` writes only whole ones. */
+function closeReason(reason: string): string {
+  const { read } = encoder.encodeInto(reason, new Uint8Array(MAX_CLOSE_REASON_BYTES));
+  return reason.slice(0, read);
+}
 
 function checkBytes(name: string, value: number | undefined, fallback: number): number {
   if (value === undefined) return fallback;
@@ -130,8 +137,8 @@ const refusal = (message: string) =>
  *
  * The peer's close, or a socket error, stops the transport, and it logs the close code but never the peer's reason.
  * It closes the socket only when it stops itself: with 1008 when the client breaks a bound (128 error answers or
- * refusals unread, or a send buffer that never drains), 1009 for a frame that is too big, and 1000 when `signal`
- * aborts. Either way it removes its listeners and closes the connection. A turn the client started goes on in the
+ * refusals unread, or a send buffer that never drains), 1009 for a frame that is too big, 1011 when the socket's
+ * `send()` throws, and 1000 when `signal` aborts. Either way it removes its listeners and closes the connection. A turn the client started goes on in the
  * dispatcher. An option out of range, or a socket that is not open, rejects with a `HarnessError`, code
  * `invalid_transport_options`, before the transport connects.
  */
@@ -223,7 +230,7 @@ class WebSocketSession {
   #closeSocket(reason: string): void {
     if (this.#closeCode === undefined || this.#socket.readyState !== OPEN) return;
     try {
-      this.#socket.close(this.#closeCode, reason.slice(0, MAX_CLOSE_REASON));
+      this.#socket.close(this.#closeCode, closeReason(reason));
     } catch (error) {
       this.#log(`websocket: the socket could not be closed: ${error instanceof Error ? error.name : "unknown error"}`);
     }
@@ -270,7 +277,8 @@ class WebSocketSession {
       // `encode()` ends the line with `\n`; a frame is already one message, so it goes without.
       this.#socket.send(line.slice(0, -1));
     } catch (error) {
-      this.#stop(`the socket refused a frame: ${error instanceof Error ? error.name : "unknown error"}`, undefined);
+      // The socket may still be open, so it is closed as a server failure; the error's message is not logged.
+      this.#stop(`the socket refused a frame: ${error instanceof Error ? error.name : "unknown error"}`, INTERNAL_ERROR);
       return undefined;
     }
     if (this.#buffered() <= this.#limits.maxBufferedBytes) return undefined;
