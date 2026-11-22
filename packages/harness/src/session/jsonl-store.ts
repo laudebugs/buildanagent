@@ -14,7 +14,7 @@ import {
   ARCHIVE_EXTENSION,
   archivePath,
   checkRetention,
-  pruneSessions,
+  expireSessions,
   type Retention,
   readArchive,
   restoreArchive,
@@ -145,9 +145,13 @@ const RETRY_AFTER_MS = 60_000;
 
 interface Expiry {
   readonly done: Promise<void>;
+  /** Whether the pass has ended. */
+  settled: boolean;
   /** When a failed pass may run again, set once the pass has ended with an error. */
   retryAt?: number;
 }
+
+const busyName = (key: SessionKey): string => JSON.stringify([key.userId, key.sessionId]);
 
 class JsonlStore implements SessionStore {
   readonly #dir: string;
@@ -157,6 +161,8 @@ class JsonlStore implements SessionStore {
   readonly #archived = new Map<string, { size: number; mtimeMs: number; summary: SessionSummary | undefined }>();
   readonly #cache = new Map<string, { size: number; state: LogState }>();
   readonly #queues = new Map<string, Promise<unknown>>();
+  /** How many calls past expiry are using each file, by user and file id; a pass keeps their sessions. */
+  readonly #busy = new Map<string, number>();
 
   constructor(options: JsonlStoreOptions) {
     this.#dir = options.dir;
@@ -179,8 +185,10 @@ class JsonlStore implements SessionStore {
     const known = this.#expiry.get(userId);
     if (known !== undefined && (known.retryAt === undefined || this.#now() < known.retryAt)) return known.done;
     const expiry: Expiry = {
+      settled: false,
       done: this.#prune(userId, retention).then((failed) => {
         if (failed) expiry.retryAt = this.#now() + RETRY_AFTER_MS;
+        expiry.settled = true;
       }),
     };
     this.#expiry.set(userId, expiry);
@@ -190,19 +198,44 @@ class JsonlStore implements SessionStore {
   /** One expiry pass. Resolves to whether it had an error, and never rejects. */
   async #prune(userId: string, retention: Retention): Promise<boolean> {
     try {
-      const result = await pruneSessions({
+      const options = {
         dir: this.#dir,
         userId,
         retention,
         now: () => new Date(this.#now()),
         ...(this.#options.lock === undefined ? {} : { lock: this.#options.lock }),
-      });
+      };
+      const result = await expireSessions(options, (fileId) => this.#busy.has(busyName({ userId, sessionId: fileId })));
       for (const { error } of result.errors) this.#report(error);
       return result.errors.length > 0;
     } catch (error) {
       this.#report(error);
       return true;
     }
+  }
+
+  /**
+   * Runs `task` once expiry for the key's user is over. A pass that another call started meanwhile runs first; once no
+   * pass runs, the file is marked busy in the same turn, so a pass that starts later keeps its session until `task` ends.
+   */
+  async #afterExpiry<T>(key: SessionKey, task: () => Promise<T>): Promise<T> {
+    await this.#expire(key.userId);
+    for (let pass = this.#running(key.userId); pass !== undefined; pass = this.#running(key.userId)) await pass;
+    const name = busyName(key);
+    this.#busy.set(name, (this.#busy.get(name) ?? 0) + 1);
+    try {
+      return await task();
+    } finally {
+      const left = (this.#busy.get(name) ?? 1) - 1;
+      if (left === 0) this.#busy.delete(name);
+      else this.#busy.set(name, left);
+    }
+  }
+
+  /** The pass running for the user, if one is. */
+  #running(userId: string): Promise<void> | undefined {
+    const expiry = this.#expiry.get(userId);
+    return expiry === undefined || expiry.settled ? undefined : expiry.done;
   }
 
   #report(error: unknown): void {
@@ -292,10 +325,7 @@ class JsonlStore implements SessionStore {
     checkKey(key);
     const path = this.#pathOf(key);
     // Expiry waits inside the queue, so adding it never changes the order in which calls to one session run.
-    return this.#queued(path, async () => {
-      await this.#expire(key.userId);
-      return this.#appendNow(key, inputs, options);
-    });
+    return this.#queued(path, () => this.#afterExpiry(key, () => this.#appendNow(key, inputs, options)));
   }
 
   load(key: SessionKey, options?: LoadOptions): AsyncGenerator<SessionEntry> {
@@ -306,10 +336,7 @@ class JsonlStore implements SessionStore {
   async *#entries(key: SessionKey, options: LoadOptions | undefined): AsyncGenerator<SessionEntry> {
     const path = this.#pathOf(key);
     // A load waits for the appends already queued, so it never sees a line that is still being written.
-    const log = await this.#queued(path, async () => {
-      await this.#expire(key.userId);
-      return this.#readAny(key, path);
-    });
+    const log = await this.#queued(path, () => this.#afterExpiry(key, () => this.#readAny(key, path)));
     if (log === undefined) return;
     if (log.tornBytes > 0) options?.onTornLine?.({ bytes: log.tornBytes });
     const from = options?.fromSeq ?? 0;
@@ -323,15 +350,16 @@ class JsonlStore implements SessionStore {
 
   async *#raw(key: SessionKey): AsyncGenerator<unknown> {
     const path = this.#pathOf(key);
-    const buffer = await this.#queued(path, async () => {
-      await this.#expire(key.userId);
-      const live = await readFile(path).catch((error: NodeJS.ErrnoException) => {
-        if (error.code !== "ENOENT") throw error;
-        return undefined;
-      });
-      if (live?.includes(0x0a)) return live;
-      return (await readArchive(archivePath(this.#dir, key.userId, key.sessionId))) ?? live;
-    });
+    const buffer = await this.#queued(path, () =>
+      this.#afterExpiry(key, async () => {
+        const live = await readFile(path).catch((error: NodeJS.ErrnoException) => {
+          if (error.code !== "ENOENT") throw error;
+          return undefined;
+        });
+        if (live?.includes(0x0a)) return live;
+        return (await readArchive(archivePath(this.#dir, key.userId, key.sessionId))) ?? live;
+      }),
+    );
     if (buffer === undefined) return;
     const complete = buffer
       .subarray(0, buffer.lastIndexOf(0x0a) + 1)
@@ -413,13 +441,14 @@ class JsonlStore implements SessionStore {
   async delete(key: SessionKey): Promise<void> {
     checkKey(key);
     const path = this.#pathOf(key);
-    await this.#queued(path, async () => {
-      // A delete waits for expiry like every other call, so a pass that is moving this file can't bring it back.
-      await this.#expire(key.userId);
-      this.#cache.delete(path);
-      await rm(path, { force: true });
-      await rm(archivePath(this.#dir, key.userId, key.sessionId), { force: true });
-    });
+    // A delete waits for expiry like every other call, so a pass that is moving this file can't bring it back.
+    await this.#queued(path, () =>
+      this.#afterExpiry(key, async () => {
+        this.#cache.delete(path);
+        await rm(path, { force: true });
+        await rm(archivePath(this.#dir, key.userId, key.sessionId), { force: true });
+      }),
+    );
   }
 }
 

@@ -366,11 +366,11 @@ describe("purge", () => {
   test("a log whose lines are longer than one read is dated by its last complete line", async () => {
     const dir = tempDir();
     const big = "x".repeat(150_000);
-    const line = (entry: EntryInput) => `${JSON.stringify(entry)}\n`;
+    const line = (entry: object) => `${JSON.stringify(entry)}\n`;
     const write = (name: string, last: EntryInput) =>
       writeFile(
         join(dir, "ada", `${name}.jsonl`),
-        line({ ...header(), product: { pad: big } } as EntryInput) +
+        line({ ...header(), product: { pad: big } }) +
           line({ ...record("r1", "h1"), data: { big } }) +
           line({ ...last, data: { big } }) +
           '{"torn": "',
@@ -379,7 +379,7 @@ describe("purge", () => {
     await write("stale", record("r2", "r1"));
     await write("recent", { ...record("r2", "r1"), timestamp: TODAY });
     // A log of one line is dated by that line.
-    await writeFile(join(dir, "ada", "single.jsonl"), line({ ...header(), product: { pad: big } } as EntryInput));
+    await writeFile(join(dir, "ada", "single.jsonl"), line({ ...header(), product: { pad: big } }));
     const result = await pruneSessions({ dir, userId: "ada", retention: { days: 30, action: "purge" }, now: later(1) });
     assert.deepEqual([...result.purged].sort(), ["single", "stale"]);
     assert.deepEqual(files(dir, "ada"), ["recent.jsonl"]);
@@ -433,7 +433,25 @@ describe("purge", () => {
     assert.deepEqual(files(dir, "ada"), ["fresh.jsonl", "stray.jsonl"]);
   });
 
-  test("a live file with no complete line that gets one during the purge keeps the session", async () => {
+  test("a session written while the run takes its lock is judged on what it holds then", async () => {
+    const { dir, store } = await setup();
+    const held = gate();
+    const running = pruneSessions({
+      dir,
+      userId: "ada",
+      retention: { days: 30, action: "purge" },
+      now: NOW,
+      lock: heldLock([], held),
+    });
+    await held.arrived;
+    // A writer that held the lock until now appends a fresh entry after the run's first read.
+    await store.append(OLD, [{ ...record("r3", "r2"), timestamp: TODAY }], { expectedLastId: "r2" });
+    held.open();
+    assert.deepEqual(await running, EMPTY);
+    assert.equal((await all(store.load(OLD))).length, 4, "the fresh entry is still there");
+  });
+
+  test("a live file with no complete line that gets one while the run takes its lock keeps the session", async () => {
     const { dir } = await setup();
     await pruneSessions({ dir, userId: "ada", retention: { days: 30, action: "archive" }, now: NOW });
     const live = join(dir, "ada", "old.jsonl");
@@ -449,9 +467,7 @@ describe("purge", () => {
     await held.arrived;
     await writeFile(live, `${JSON.stringify({ ...header(), timestamp: TODAY })}\n`);
     held.open();
-    const result = await running;
-    assert.deepEqual(result.purged, []);
-    assert.deepEqual(result.kept, [{ sessionId: "old", reason: "error" }]);
+    assert.deepEqual(await running, EMPTY);
     assert.ok(existsSync(live));
     assert.deepEqual(files(dir, ARCHIVE, "ada"), ["old.jsonl.gz"]);
   });

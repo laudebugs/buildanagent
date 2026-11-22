@@ -531,8 +531,12 @@ interface Run {
   readonly options: PruneOptions;
   readonly action: Retention["action"];
   readonly userDir: string;
-  readonly sessions: Map<string, Session>;
-  readonly owner: Map<string, string>;
+  readonly archiveDir: string;
+  /** Whether a store call on this file id is running in this process, which makes its session count as locked. */
+  readonly busy: (fileId: string) => boolean;
+  /** The sessions as the latest scan found them. */
+  sessions: Map<string, Session>;
+  owner: Map<string, string>;
   readonly result: PruneResult;
   /** The sessions the run means to expire, with the lock it holds for each until that session's own work ends. */
   readonly acting: Map<string, LockHandle | undefined>;
@@ -550,12 +554,25 @@ async function release(run: Run, sessionId: string): Promise<void> {
   await handle?.release().catch(() => undefined);
 }
 
+/** Whether a session is to be left alone, can't be judged, or is to be expired. */
+function verdictOf(run: Run, session: Session, cutoff: number, opaque: boolean): "fresh" | "unreadable" | "expired" {
+  if ((session.lastAt !== undefined && session.lastAt >= cutoff) || !hasWork(session, run.action)) return "fresh";
+  return session.lastAt === undefined || (run.action === "purge" && opaque) ? "unreadable" : "expired";
+}
+
+const isBusy = (run: Run, session: Session): boolean =>
+  run.busy(session.id) || session.files.some((file) => run.busy(file.id));
+
 /** Picks the expired sessions to act on and takes each one's lock, keeping those it can't date, read or lock. */
 async function choose(run: Run, cutoff: number, opaque: boolean): Promise<void> {
   for (const session of run.sessions.values()) {
-    if ((session.lastAt !== undefined && session.lastAt >= cutoff) || !hasWork(session, run.action)) continue;
-    if (session.lastAt === undefined || (run.action === "purge" && opaque)) {
-      keep(run, session.id, "unreadable");
+    const verdict = verdictOf(run, session, cutoff, opaque);
+    if (verdict !== "expired") {
+      if (verdict === "unreadable") keep(run, session.id, "unreadable");
+      continue;
+    }
+    if (isBusy(run, session)) {
+      keep(run, session.id, "locked");
       continue;
     }
     try {
@@ -569,35 +586,66 @@ async function choose(run: Run, cutoff: number, opaque: boolean): Promise<void> 
 }
 
 /**
+ * Reads the folder again once the locks are taken, so a session written between the first read and its lock is judged
+ * on what it holds now: one that is fresh or unreadable now is let go, and every later decision uses this read.
+ */
+async function recheck(run: Run, cutoff: number): Promise<void> {
+  const found = await scan(run.userDir, run.archiveDir);
+  ({ sessions: run.sessions, owner: run.owner } = sessionsOf(found));
+  for (const path of found.skipped) if (!run.result.skipped.includes(path)) run.result.skipped.push(path);
+  for (const id of [...run.acting.keys()]) {
+    const session = run.sessions.get(id);
+    const verdict = session === undefined ? "fresh" : verdictOf(run, session, cutoff, found.opaque);
+    if (verdict === "expired") continue;
+    if (verdict === "unreadable") keep(run, id, "unreadable");
+    await release(run, id);
+  }
+}
+
+/**
  * Expires the user's sessions: each one whose last entry is more than `retention.days` old is archived or purged, and
  * with no `retention` nothing happens. A session is a first file, the derived files that continue it and its pointer,
  * and its files count wherever they are, live or archived, so an archived session expires again under a purge.
  *
- * Before anything is removed, the run takes the lock of every session it means to expire and decides which sessions
- * survive: the fresh ones, the locked ones, and the ones it can't read or date. A purge then keeps every expired session
- * that a survivor continues, directly or through another kept session, and it keeps every session when any file in the
- * user's folder can't be read, because that file could continue any of them. A purge removes a fork before the session
- * it continues, and keeps that session when the fork's removal fails.
+ * Before anything is removed, the run takes the lock of every session it means to expire, reads the folder again, and
+ * decides from that second read which sessions survive: the fresh ones, the locked ones, and the ones it can't read or
+ * date. A writer that appended between the first read and the lock is so judged on what it wrote. A purge then keeps
+ * every expired session that a survivor continues, directly or through another kept session, and it keeps every
+ * session when any file in the user's folder can't be read, because that file could continue any of them. A purge
+ * removes a fork before the session it continues, and keeps that session when the fork's removal fails. Each lock is
+ * given up as soon as its session is archived, purged or kept. Without `lock`, nothing stops a writer elsewhere from
+ * appending to a session while the run moves it, so pass the lock that writers hold.
  *
  * Each archived file is written and read back before its original goes, and a file deleted while the run goes on is
  * not brought back. A session's files go one at a time, newest first, then its first file and then its pointer, so a
  * run that stops part-way leaves a session the next run still finds and finishes. A failure stops only its own session:
  * it is recorded in `errors` and the run goes on.
  */
-export async function pruneSessions(options: PruneOptions): Promise<PruneResult> {
+export function pruneSessions(options: PruneOptions): Promise<PruneResult> {
+  return expireSessions(options, () => false);
+}
+
+/**
+ * `pruneSessions()` for the store, which passes `busy`: a session with a file that one of the store's own calls is
+ * reading or writing is kept as `locked`, so a pass never moves a file under a call that is already past expiry.
+ */
+export async function expireSessions(options: PruneOptions, busy: (fileId: string) => boolean): Promise<PruneResult> {
   const result: PruneResult = { archived: [], purged: [], kept: [], skipped: [], errors: [] };
   const { retention } = options;
   if (retention === undefined) return result;
   checkRetention(retention);
   checkKey({ userId: options.userId, sessionId: "-" });
   const userDir = join(options.dir, encodeName(options.userId));
-  const found = await scan(userDir, join(options.dir, ARCHIVE_DIR, encodeName(options.userId)));
+  const archiveDir = join(options.dir, ARCHIVE_DIR, encodeName(options.userId));
+  const found = await scan(userDir, archiveDir);
   const { sessions, owner } = sessionsOf(found);
   result.skipped.push(...found.skipped);
-  const run: Run = { options, action: retention.action, userDir, sessions, owner, result, acting: new Map() };
+  const action = retention.action;
+  const run: Run = { options, action, userDir, archiveDir, busy, sessions, owner, result, acting: new Map() };
   const cutoff = (options.now?.() ?? new Date()).getTime() - retention.days * DAY_MS;
   try {
     await choose(run, cutoff, found.opaque);
+    if (run.acting.size > 0) await recheck(run, cutoff);
     if (retention.action === "archive") {
       for (const id of [...run.acting.keys()]) {
         await attempt(run, id, () => archiveSession(run, id));
