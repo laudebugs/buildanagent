@@ -159,7 +159,7 @@ Per-argument tracking, as CaMeL does, is rejected for v1 because the split alrea
 
 **Choice.** One support lead writes the priority policy before any ticket is labelled. Two support leads label each of the 30 tickets independently against it, and a ticket they disagree on is rewritten or dropped. The judge and the simulator are dated model ids on the D2 provider the agent does not use, with fixed settings, and both ids enter the bundle hash ([SDK plan, D2][sp-d2]). The 10 classification-slice tasks are the 10 triage tasks HD8 shares with the harness seed suite, which harness N38b adds after A19 ([harness plan, HD8][hp-hd8]).
 
-**Evidence.** A good task is one where "two domain experts would independently reach the same pass/fail verdict", so the policy is a precondition of the label ([agent guide §6][ag6]). The judge must differ from the agent's model, because LLM judges show self-enhancement bias ([agent guide §6][ag6]). The classification slice is graded by exact match in code, the only slice whose grader the harness seed suite can run without the agent's judge.
+**Evidence.** A good task is one where "two domain experts would independently reach the same pass/fail verdict", so the policy is a precondition of the label ([agent guide §6][ag6]). The judge should differ from the agent's model, because an LLM judge may favour its own outputs, a self-enhancement bias the MT-Bench study could not confirm either way ([agent guide §6][ag6]). The classification slice is graded by exact match in code, the only slice whose grader the harness seed suite can run without the agent's judge.
 
 **What the owner still supplies.** The people, the time they give and the accounts that pay for the judge, each listed in A19.
 
