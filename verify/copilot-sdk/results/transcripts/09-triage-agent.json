@@ -122,37 +122,37 @@
     },
     {
       "kind": "check",
-      "line": 85,
+      "line": 87,
       "message": "lookup used the trusted customer id, not the model's argument",
       "pass": true
     },
     {
       "kind": "check",
-      "line": 90,
+      "line": 92,
       "message": "the lookup tool exposes no identity parameter",
       "pass": true
     },
     {
       "kind": "check",
-      "line": 94,
+      "line": 96,
       "message": "a declined escalation never ran",
       "pass": true
     },
     {
       "kind": "check",
-      "line": 95,
+      "line": 97,
       "message": "only the escalation reached the reviewer",
       "pass": true
     },
     {
       "kind": "check",
-      "line": 96,
+      "line": 98,
       "message": "the typed result parsed (run 1)",
       "pass": true
     },
     {
       "kind": "check",
-      "line": 98,
+      "line": 100,
       "message": "no built-in tools offered (lookup_orders,escalate_to_human)",
       "pass": true
     },
@@ -272,13 +272,13 @@
     },
     {
       "kind": "check",
-      "line": 110,
+      "line": 112,
       "message": "an approved escalation ran once",
       "pass": true
     },
     {
       "kind": "check",
-      "line": 111,
+      "line": 113,
       "message": "the typed result parsed (run 2)",
       "pass": true
     },
@@ -318,13 +318,13 @@
     },
     {
       "kind": "check",
-      "line": 123,
+      "line": 125,
       "message": "a result that fails the schema throws (ZodError)",
       "pass": true
     },
     {
       "kind": "check",
-      "line": 124,
+      "line": 126,
       "message": "no further escalation ran",
       "pass": true
     }
