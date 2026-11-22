@@ -786,6 +786,7 @@ The guide says to start with the log, because context layers, pauses, replay, th
 | [N28](../todos/done/N28-server-requests-backpressure.md) | Server requests, cancellation, bounded queues and reconnect | N27, N13 | M |
 | [N29](../todos/done/N29-stdio-transport.md) | stdio transport and the framing check (HD6) | N28 | S |
 | [N30](../todos/done/N30-cli.md) | CLI: one-shot JSON mode, line-mode chat, `sessions` list, show, search and replay, and `rpc` over stdio | N28 | M |
+| [N29b](../todos/ongoing/N29b-stdio-validation-timeout.md) | Check command params with `InvalidParams`, bound the stdio write and settle §6.4's five questions | N29, N30 | M |
 
 ### 4.7 Stage 7 adds telemetry, completion checks, evals and ablation
 
