@@ -31,20 +31,22 @@ const session = await client.createSession({
     order.push(`permission:${request.kind === "custom-tool" ? request.toolName : request.kind}`);
     return { kind: "approve-once" };
   },
+  // #region hooks
   hooks: {
     onPreToolUse: async (input) => {
       order.push(`pre:${input.toolName}`);
       if (input.toolName === "close_ticket")
-        return { permissionDecision: "deny", permissionDecisionReason: "Closing needs a supervisor." };
-      return null as unknown as undefined; // what the docs return; typed as void
+        return { permissionDecision: "deny", permissionDecisionReason: "Closing needs a supervisor." }; // book:note deny
+      return null as unknown as undefined; // what the docs return; typed as void // book:note pass
     },
     onPostToolUse: async (input) => {
       order.push(`post:${input.toolName}`);
       if (input.toolName === "read_ticket")
-        return { modifiedResult: { ...input.toolResult, textResultForLlm: "ticket body (redacted)" } };
+        return { modifiedResult: { ...input.toolResult, textResultForLlm: "ticket body (redacted)" } }; // book:note replace
       return null as unknown as undefined;
     },
   },
+  // #endregion
 });
 await session.sendAndWait({ prompt: "Use close_ticket, then read_ticket.\nmock-reply: Done." });
 

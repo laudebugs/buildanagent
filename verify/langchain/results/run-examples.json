@@ -88,5 +88,14 @@
     "ms": 919,
     "modelCalls": 0,
     "tail": "ok - the run pauses at escalate\nok - the lookup ran; escalate has not\nok - the rejected escalation never runs\nok - the agent returns a typed triage record\nok - the audit middleware saw the lookup\nok - three model calls: lookup, escalate request, triage\ntriage: {\"category\":\"bug\",\"priority\":\"high\",\"summary\":\"Checkout returns 500.\"}"
+  },
+  {
+    "id": "11-store-recall-expire",
+    "file": "/home/user/buildanagent/verify/langchain/examples/11-store-recall-expire.ts",
+    "outcome": "ran",
+    "exit": 0,
+    "ms": 1630,
+    "modelCalls": 0,
+    "tail": "ok - recalling an unexpired record leaves it in the store\nok - after the expiry the recall tool returns nothing\nok - the model never sees the expired fact\nok - the recall tool deleted the expired record from the store\nok - the store holds no record under that namespace\nok - the first thread's checkpoint is still there\nok - the first thread's log still holds the fact\nok - only the in-memory tools ran, and the host was never touched"
   }
 ]

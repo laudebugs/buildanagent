@@ -22,10 +22,11 @@ const { session } = await fauxSession(
 );
 const sm = session.sessionManager;
 try {
+  // #region compact
   await session.prompt("Capital of France?");
   await session.prompt("Capital of Japan?");
   const before = sm.getEntries().length;
-  const result = await session.compact();
+  const result = await session.compact(); // book:note compact
   check(
     typeof result.summary === "string" && result.summary.includes("SUMMARY"),
     "compact() returns the model's summary",
@@ -34,12 +35,13 @@ try {
     result.summary.includes("PREFIX") && result.summary.includes("split turn"),
     "a split span gets a second summary, merged in",
   );
-  const compaction = sm.getEntries().find((e) => e.type === "compaction");
+  const compaction = sm.getEntries().find((e) => e.type === "compaction"); // book:note entry
   check(compaction, "a compaction entry is appended to the session");
-  check(sm.getEntries().length === before + 1, "no original entries are removed");
+  check(sm.getEntries().length === before + 1, "no original entries are removed"); // book:note originals
   await session.prompt("Thanks.");
   check(nextRequest.includes("SUMMARY: user asked about capitals"), "the next request carries the summary");
   check(!nextRequest.includes("The capital of France is Paris."), "the next request drops the summarised messages");
+  // #endregion
 } finally {
   session.dispose();
 }

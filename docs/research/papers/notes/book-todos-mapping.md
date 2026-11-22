@@ -91,7 +91,7 @@ T20's research question is "Why should a harness keep one append-only tree of en
 
 Both papers' rows (96–97, 99–101) are ⚠️ (secondary summary). Row 101 also flags that Hou et al. was submitted on 11 August 2026, not in November, despite its "2611" id. So the addition tells the drafter to re-read both abstracts first.
 
-**Proposed addition to `docs/todos/ready/T20-chapter-the-session-log-and-context.md`, `## Context`:**
+**Proposed addition to `docs/todos/done/T20-chapter-the-session-log-and-context.md`, `## Context`:**
 
 > - [Agent research papers, provenance section](../../research/papers/agent-research-papers.md#trustworthy-agent-provenance-needs-a-replayable-transaction-log-per-criterion-verifiers-the-generator-cannot-see-and-a-staged-gate-before-any-demo-based-score-counts) (U22): Hou et al. (arXiv 2611.23234) found that agent-output datasets keep patches and commits but drop the failed retries, fallbacks and abandoned sessions that drive cost and reliability, and Wong (arXiv 2611.23678) computes governance metrics from an append-only trial ledger; both bear on why the log keeps every entry. U22's rows for both papers are ⚠️ (secondary summary, rows 96–101), so re-read each abstract and log a ✅ row before citing it; Hou et al. was submitted on 11 August 2026, not in November.
 

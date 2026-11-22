@@ -8,7 +8,7 @@
   "events": [
     {
       "kind": "request",
-      "line": 25,
+      "line": 26,
       "model": "model-1",
       "repeated": 0,
       "messages": [
@@ -47,7 +47,7 @@
     },
     {
       "kind": "response",
-      "line": 25,
+      "line": 26,
       "model": "model-1",
       "message": {
         "role": "assistant",
@@ -62,7 +62,7 @@
     },
     {
       "kind": "request",
-      "line": 26,
+      "line": 27,
       "model": "model-1",
       "repeated": 3,
       "messages": [
@@ -80,7 +80,7 @@
     },
     {
       "kind": "response",
-      "line": 26,
+      "line": 27,
       "model": "model-1",
       "message": {
         "role": "assistant",
@@ -95,7 +95,7 @@
     },
     {
       "kind": "request",
-      "line": 28,
+      "line": 29,
       "model": "model-1",
       "repeated": 0,
       "messages": [
@@ -122,7 +122,7 @@
     },
     {
       "kind": "response",
-      "line": 28,
+      "line": 29,
       "model": "model-1",
       "message": {
         "role": "assistant",
@@ -137,7 +137,7 @@
     },
     {
       "kind": "request",
-      "line": 28,
+      "line": 29,
       "model": "model-1",
       "repeated": 1,
       "messages": [
@@ -155,7 +155,7 @@
     },
     {
       "kind": "response",
-      "line": 28,
+      "line": 29,
       "model": "model-1",
       "message": {
         "role": "assistant",
@@ -170,31 +170,31 @@
     },
     {
       "kind": "check",
-      "line": 29,
+      "line": 30,
       "message": "compact() returns the model's summary",
       "pass": true
     },
     {
       "kind": "check",
-      "line": 33,
+      "line": 34,
       "message": "a split span gets a second summary, merged in",
       "pass": true
     },
     {
       "kind": "check",
-      "line": 38,
+      "line": 39,
       "message": "a compaction entry is appended to the session",
       "pass": true
     },
     {
       "kind": "check",
-      "line": 39,
+      "line": 40,
       "message": "no original entries are removed",
       "pass": true
     },
     {
       "kind": "request",
-      "line": 40,
+      "line": 41,
       "model": "model-1",
       "repeated": 0,
       "messages": [
@@ -251,7 +251,7 @@
     },
     {
       "kind": "response",
-      "line": 40,
+      "line": 41,
       "model": "model-1",
       "message": {
         "role": "assistant",
@@ -266,13 +266,13 @@
     },
     {
       "kind": "check",
-      "line": 41,
+      "line": 42,
       "message": "the next request carries the summary",
       "pass": true
     },
     {
       "kind": "check",
-      "line": 42,
+      "line": 43,
       "message": "the next request drops the summarised messages",
       "pass": true
     }

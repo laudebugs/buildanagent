@@ -101,5 +101,15 @@
     "modelCalls": 0,
     "outcome": "ran",
     "tail": "ok - the state was reloaded from storage on the new instance\nok - the in-memory field did not survive eviction\nok - the schedule's callback ran with its payload after the eviction\nok - the callback ran on a new instance (the agent had started again)\nok - it ran at or after the schedule's due time\nok - it ran before any request reached the agent, so the alarm woke it\nok - the callback ran once\nok - the one-shot schedule was removed after it ran"
+  },
+  {
+    "id": "11-context-memory",
+    "durableObjects": {
+      "Notebook": "Notebook"
+    },
+    "ms": 3827,
+    "modelCalls": 0,
+    "outcome": "ran",
+    "tail": "ok - the note is a row of an FTS5 table, which workerd ran\nok - after eviction the new instance renders the written fact into its system prompt\nok - and renders the search block's count of entries\nok - the model searched through search_context\nok - the search found the note, though the query used other word forms\nok - a second agent name sees neither block\nok - and the same query finds nothing there\nok - its database holds no block row and no note"
   }
 ]

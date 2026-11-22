@@ -15,24 +15,26 @@ const restart = tool(
   },
   { name: "restart_service", description: "Restart a service", schema: z.object({ service: z.string() }) },
 );
+// #region middleware
 const freeze = createMiddleware({
   name: "ChangeFreeze",
   beforeModel: () => {
     order.push("beforeModel");
-    return undefined;
+    return undefined; // book:note observe
   },
   wrapToolCall: async (request, handler) => {
     order.push(`wrapToolCall:${request.toolCall.name}`);
     if (request.toolCall.name === "restart_service") {
-      return new ToolMessage({ content: "Blocked: change freeze", tool_call_id: request.toolCall.id ?? "" });
+      return new ToolMessage({ content: "Blocked: change freeze", tool_call_id: request.toolCall.id ?? "" }); // book:note block
     }
-    return handler(request);
+    return handler(request); // book:note through
   },
   afterAgent: () => {
     order.push("afterAgent");
     return undefined;
   },
 });
+// #endregion
 const model = fakeModel()
   .respondWithTools([{ name: "restart_service", args: { service: "api" }, id: "call_r" }])
   .respond(new AIMessage("I could not restart it."));

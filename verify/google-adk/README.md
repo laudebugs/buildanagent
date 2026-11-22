@@ -9,6 +9,7 @@ This is the offline verification harness for Google's Agent Development Kit in T
 | `@google/adk` | 2.5.0 | Published 2026-11-12 and still the latest release as of November 2026. The project owner chose this pin on 2026-11-18, when it was six days old, overriding the one-week rule in `AGENTS.md`. |
 | `@google/genai` | 2.32.0 | The newest release in 2.5.0's `^2.29.1` range, published 2026-10-29. The 3.x line is outside that range. |
 | `zod` | 4.6.7 | The workspace pin, which satisfies 2.5.0's `^4.6.7`. |
+| `@a2a-js/sdk` | 0.3.14 | The version ADK 2.5.0 resolves within its `^0.3.10` range, published 2026-07-09. `09-a2a-delegation.ts` imports its client types, and pnpm does not hoist ADK's own copy, so it is a direct dependency. The lockfile still holds one copy. |
 
 `@google/adk-integrations@2.5.0` holds the Claude/Anthropic model, BigQuery, LangChain and CrewAI integrations. The pin decision covered `@google/adk` only, so this package is not installed, and the 7 doc sources that import it are type-checked as fragments and skipped at run time.
 
@@ -31,7 +32,7 @@ This is the offline verification harness for Google's Agent Development Kit in T
 | Type-check | 221 pass, 62 fragment, 12 syntax (method or pseudocode fragments), 9 api-mismatch, 0 ahead-of-release |
 | Run | 163 complete, type-clean sources: 64 ran with the scripted model, 45 ran without a model call (samples with their own deterministic model, and function-only graphs), 54 skipped, 0 errors |
 | API diff | `results/factcheck-api.json` |
-| Behavioral | 8 examples pass |
+| Behavioral | 9 examples pass |
 
 All 9 api-mismatches are doc errors (`results/mismatch-causes.json`):
 
@@ -66,6 +67,7 @@ The skipped sources need an external MCP server (42), host code execution (3), a
 | `06-structured-output.ts` | `outputSchema` becomes `responseSchema`, and `outputKey` stores the parsed object; invalid output is only logged; `set_model_response` takes over when the agent has tools |
 | `07-tool-confirmation.ts` | `requireConfirmation` pauses the call, then approve, reject, the predicate form, and a forged call id |
 | `08-triage-agent.ts` | Capstone: a lookup tool that reads identity from session state, an escalation that never runs without approval, and a zod-checked typed result |
+| `09-a2a-delegation.ts` | Both ends of A2A on loopback: `toA2a` serves a billing agent behind a bearer token, and a parent transfers to it through a `RemoteA2AAgent`. The card says protocol 0.3.0 with JSON-RPC and HTTP+JSON, the remote reply is an event of the parent's run, a long-running remote tool ends the task in `input-required`, a request without the token fails as HTTP 500 and never reaches the model, and `toA2a` refuses to mount with no authentication |
 
 ## Region markers feed the book's listings
 
@@ -112,6 +114,7 @@ The one main-only name the prose mentions, `AuthenticatedFunctionTool`, appears 
 - **Transfers looped until the stack overflowed.** ADK hands another agent's tool calls to the next agent as "For context:" user text, so the scripted model could not see an earlier `transfer_to_agent` as a function call. Two agents bounced the transfer back and forth until the run failed with "Maximum call stack size exceeded", before reaching the 500-call `maxLlmCalls` limit. The model now transfers at most once per history.
 - **Re-registering models was noisy.** `LLMRegistry.register` logs the full source of each class it replaces at INFO, so the preload lowers the log level while it registers.
 - **Mutated counters failed the type-check.** TypeScript narrows a counter after a `=== 0` check, even when a closure changed it later, so the examples compare `Number(x)`.
+- **A2A's agent card is a base URL, and the default client sends no token.** `RemoteA2AAgent`'s `agentCard` string goes to the SDK's card resolver, which calls `new URL(".well-known/agent-card.json", base)`. A full card URL therefore fetches a doubled path and fails with a 404, and a base without a trailing slash loses its last segment, so a server under `basePath: "/a2a"` needs `http://host/a2a/` (an origin needs no slash). `RemoteA2AAgent` also builds its client without credentials, so a server behind `bearerTokenUserBuilder` needs a `clientFactory` whose JSON-RPC and HTTP+JSON transports both use a `fetch` that adds the header; a custom factory also drops ADK's trace-propagating `fetch`. `09-a2a-delegation.ts` runs both ends on `127.0.0.1` and binds nothing else; a rejected request makes the A2A SDK print a stack trace, which the example captures.
 
 ## Security alerts (2026-11-18)
 
