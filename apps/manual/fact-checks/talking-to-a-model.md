@@ -242,15 +242,16 @@ T51 turned two of the chapter's listings into tabs blocks, with a listing on our
 | 147 | The gateway's example recorder maps a tool result as the SDK's does, with the call's tool name, its output and an error flag, instead of throwing, so an example behaves the same with and without the recorder | Listings | ✅ | `packages/gateway/examples/lib/transcript.ts`, `messagesOf()` and `outputOf()`, which copy `packages/sdk/examples/lib/transcript.ts`; no listed example sends a tool message, so both transcripts are byte-identical across two runs of `pnpm --filter @buildanagent/gateway test` on 2026-11-22 |
 | 148 | The usage example names its numbers (`INPUT_TOKENS`, `EXPECTED_NANOS`, `NANOS_PER_RATE_UNIT`, `TOKENS_PER_RATE_UNIT`) and checks the classes against `TOKENS`; the region and every claim in rows 139–145 are unchanged | § Usage | ✅ | `packages/gateway/examples/02-stream-usage.ts` lines 14–21; the listed region only moved from lines 18–33 to 24–39 and the checks to the lines in row 146. Mutations on 2026-11-22: changing the catalog's `cacheRead` rate, dropping the 5m write term in `src/cost.ts` and swapping the adapter's `uncachedInput` mapping each fail a check ("each class times its own catalog rate…", "the message's cost is the same $0.0054", "total input…"), as before the renaming |
 | 149 | The two new tabs are labelled "Our gateway", because their code is `@buildanagent/gateway` alone; the chapter calls neither tab "Our SDK" | § Streams, § Usage | ✅ | The chapter's `::listing[Our gateway]` captions for `#text-stream-ours` and `#stream-usage-ours`; both listings come from `packages/gateway/examples/` and import only the gateway (`grep -rn '@buildanagent/sdk' packages/gateway/examples` finds nothing). `grep -n 'Our SDK'` finds no other use in the chapter. Chapter 1's tabs keep "Our SDK" because they run on the SDK and the gateway |
+| 150 | The writing review's one wording fix changes no claim: the gateway's `Usage` sentence is split in two, and `cacheWrite` still holds one count for each cache lifetime | § Tokens | ✅ | Compared the sentence before and after the split with row 144's source (the gateway README's `Usage` section); the three classes, `output` and the per-lifetime `cacheWrite` are unchanged |
 
 ## Tally
 
 | Verdict | Rows |
 | --- | --- |
-| ✅ confirmed | 133 |
+| ✅ confirmed | 134 |
 | ✏️ corrected | 12 (rows 12, 17, 24, 38, 49, 91, 93, 103, 108, 116, 140 and 146) |
 | ⚠️ unverified, our judgement or recommendation, marked as ours in the text | 4 (rows 16, 31, 57 and 75) |
-| Total | 149 |
+| Total | 150 |
 
 A row corrected in place (140) is ✏️, and so is the correction row that records the change (146), as in Chapter 1's rows 134 and 135, so each correction counts as two ✏️ rows.
 
