@@ -31,10 +31,17 @@ export const Triage = z.object({
 });
 export type Triage = z.infer<typeof Triage>;
 
+/** What the caller knows about the ticket's sender, from the signed-in session. The model never sees or chooses it. */
+export interface TriageApp {
+  customerEmail: string;
+}
+
 /** What the agent needs from your systems, and where it sends its audit trail. */
 export interface TriageDeps {
   model: Model;
   signer: ApprovalSigner;
+  /** The signed-in customer's email, from the request's session. Build `deps` for each request, not once. */
+  customerEmail: string;
   findCustomer(email: string): Promise<{ plan: string; openTickets: number }>;
   escalate(reason: string): Promise<void>;
   audit(line: string): void;
@@ -55,13 +62,14 @@ const gate: Interceptors = {
 };
 
 /** The agent's options, shared by its first run and every resume. */
-export function triageOptions(deps: TriageDeps): RunOptions<Triage> {
-  const lookupCustomer = defineTool({
+export function triageOptions(deps: TriageDeps): RunOptions<Triage, TriageApp> & { app: TriageApp } {
+  // The tool takes no identity argument: it looks up the customer the caller set in `app`, whatever the model sends.
+  const lookupCustomer = defineTool<object, unknown, TriageApp>({
     name: "lookup_customer",
-    description: "Look up a customer's plan and open tickets by email.",
-    inputSchema: z.object({ email: z.string() }),
-    execute: async ({ email }) => ({
-      content: [{ type: "text", text: JSON.stringify(await deps.findCustomer(email)) }],
+    description: "Look up the signed-in customer's plan and open tickets.",
+    inputSchema: z.object({}),
+    execute: async (_input, ctx) => ({
+      content: [{ type: "text", text: JSON.stringify(await deps.findCustomer(ctx.app.customerEmail)) }],
     }),
   });
   const escalate = defineTool({
@@ -84,6 +92,7 @@ export function triageOptions(deps: TriageDeps): RunOptions<Triage> {
     interceptors: gate,
     observers: [auditTo(deps.audit)],
     signer: deps.signer,
+    app: { customerEmail: deps.customerEmail },
   };
 }
 

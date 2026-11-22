@@ -356,8 +356,17 @@ async function runCall(s: State, call: Call, tools: readonly Tool[], mode: Mode)
 async function execute(s: State, tool: Tool, call: Call, input: unknown): Promise<ToolResult> {
   if (s.signal.aborted) return failure(CANCELLED(tool.name));
   const update = (details: unknown) => emit(s, { type: "tool_call_update", callId: call.callId, details });
-  const { depth = 0, maxDepth = 2, clock = SYSTEM_CLOCK } = s.options;
-  const ctx: ToolContext = { runId: s.runId, callId: call.callId, signal: s.signal, depth, maxDepth, clock, update };
+  const { depth = 0, maxDepth = 2, clock = SYSTEM_CLOCK, app } = s.options;
+  const ctx: ToolContext = {
+    runId: s.runId,
+    callId: call.callId,
+    signal: s.signal,
+    depth,
+    maxDepth,
+    clock,
+    app,
+    update,
+  };
   const attempt = async () => tool.execute(input, ctx);
   // A tool that asks for `redactErrors` keeps its error message out of the transcript, because it may hold a secret.
   const reason = (error: unknown) => (tool.redactErrors === true ? "its error message is hidden." : messageOf(error));

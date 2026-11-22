@@ -79,6 +79,8 @@ export interface LoopSetup {
   readonly maxDepth: number;
   /** The run and tool call that started this run, when a tool did; `run_start` carries them. */
   readonly parentRun?: { readonly runId: string; readonly callId: string };
+  /** The caller's app data for the tools. It goes to no request, event or saved context. */
+  readonly app?: unknown;
   readonly modelOptions: CallOptions;
   /** Whether each model call asks for the provider's raw events, which the run emits as `raw` events. */
   readonly includeRaw: boolean;
@@ -505,13 +507,14 @@ function asksUser(result: ToolResult): boolean {
 
 /** The pipeline callbacks every tool batch of the run shares. `onResult` holds back a question for `askUser()`. */
 function pipelineOf(state: LoopState, asks: ToolCallResult[]): PipelineContext {
-  const { runId, signal, clock, depth, maxDepth } = state.setup;
+  const { runId, signal, clock, depth, maxDepth, app } = state.setup;
   return {
     runId,
     signal,
     clock,
     depth,
     maxDepth,
+    app,
     onStart: (call: ToolCall) =>
       state.send({ type: "tool_call_start", callId: call.callId, tool: call.name, input: call.input }),
     onUpdate: (callId, details) => state.send({ type: "tool_call_update", callId, details }),

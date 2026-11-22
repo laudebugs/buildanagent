@@ -82,7 +82,7 @@ export type ToolExecutionMode = "parallel" | "sequential";
 export type ToolExposure = "direct" | "deferred" | "hidden";
 
 /** What a tool's `execute` receives besides its input. */
-export interface ToolContext {
+export interface ToolContext<A = unknown> {
   readonly runId: string;
   readonly callId: string;
   /**
@@ -95,6 +95,12 @@ export interface ToolContext {
   /** The deepest nesting allowed; a tool that starts another agent refuses at this depth. */
   readonly maxDepth: number;
   readonly clock: Clock;
+  /**
+   * What the caller set with the run's `app` option, such as the signed-in customer. The model never sees it: it
+   * reaches no request, event or saved `Context`, and a nested run gets none unless the tool passes it on. `undefined`
+   * when the caller passed none, which includes every `continueRun()` call that leaves `app` out.
+   */
+  readonly app: A;
   /** Reports progress for a user interface, such as rows processed so far. The model never sees it. */
   update(details: unknown): void;
 }
@@ -124,7 +130,7 @@ export interface ToolResult<S = unknown> {
  * a throwing `execute`, returns an error result to the model. A result that isn't a list of text and image blocks,
  * or that carries an invalid write outcome, throws an `SdkError` with code `invalid_tool_result`.
  */
-export interface ToolDefinition<I = unknown, S = unknown> {
+export interface ToolDefinition<I = unknown, S = unknown, A = unknown> {
   /** 1 to 64 characters from `A-Z`, `a-z`, `0-9`, `_` and `-`. */
   readonly name: string;
   readonly description: string;
@@ -186,7 +192,7 @@ export interface ToolDefinition<I = unknown, S = unknown> {
    * result's `details`. Default false.
    */
   readonly redactErrors?: boolean;
-  execute(input: I, ctx: ToolContext): Promise<ToolResult<S>>;
+  execute(input: I, ctx: ToolContext<A>): Promise<ToolResult<S>>;
 }
 
 /** A tool call block from an assistant message. */

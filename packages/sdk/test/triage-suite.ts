@@ -34,7 +34,7 @@ export const TRIAGE_TOOLS = ["escalate", "lookup_customer", "submit_triage"];
 
 export const TICKET = "user@example.com says checkout fails with a 500. Triage it.";
 export const REASON = "Checkout returns 500 for every pro customer.";
-export const LOOKUP: ScriptedCall = { name: "lookup_customer", input: { email: "user@example.com" } };
+export const LOOKUP: ScriptedCall = { name: "lookup_customer", input: {} };
 export const ESCALATE: ScriptedCall = { name: "escalate", input: { reason: REASON } };
 export const BUG: Triage = { category: "bug", priority: "high", summary: "Checkout returns 500 for a pro customer." };
 const QUESTION: Triage = { category: "question", priority: "low", summary: "A pro customer asked about checkout." };
@@ -46,6 +46,7 @@ export function world() {
   const deps = (model: Model): TriageDeps => ({
     model,
     signer: testSigner(),
+    customerEmail: "user@example.com",
     findCustomer: async (email) => {
       seen.lookups.push(email);
       return { plan: "pro", openTickets: 2 };

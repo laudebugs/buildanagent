@@ -38,15 +38,25 @@ const MAX_TIMER_MS = 2_147_483_647;
 const systemClock: Clock = { now: () => new Date().toISOString() };
 const randomIds = (): string => globalThis.crypto.randomUUID();
 
+/** Makes `app` required once the run's tools declare a type for it, which `A` then is. */
+export type AppRequired<A> = unknown extends A ? unknown : { readonly app: A };
+
 /** The options `run()` and `continueRun()` share. */
-export interface RunOptions<S = unknown> {
+export interface RunOptions<S = unknown, A = unknown> {
   /** The model, from `createModel()`. */
   readonly model: Model;
   /**
    * The tools the model may call. Tools whose `exposure` is `deferred` or `hidden` are not sent unless a
    * `beforeModelCall` interceptor names them in `activeTools`.
    */
-  readonly tools?: readonly ToolDefinition<unknown, unknown>[];
+  readonly tools?: readonly ToolDefinition<unknown, unknown, A>[];
+  /**
+   * App data for the tools, which each reads as `ctx.app`: facts the caller knows and the model must not choose, such as
+   * the signed-in customer. Build it for each request from the authenticated session, never once at module level. It
+   * reaches no model request, event or saved `Context`, so pass it again to every `continueRun()`, and to a nested run
+   * a tool starts. The tools' declared type and this value must agree, and once a tool declares one, `app` is required.
+   */
+  readonly app?: A;
   /**
    * A tool from `outputTool()` whose input is the final answer. It is sent with the other tools; once the model calls
    * it with input that passes its schema, the run ends `done`, and `result.output` holds the validated answer.
@@ -160,7 +170,7 @@ export interface RunOptions<S = unknown> {
 }
 
 /** What `continueRun()` takes besides the shared options: the answers to a paused context's requests. */
-export interface ContinueOptions<S = unknown> extends RunOptions<S> {
+export interface ContinueOptions<S = unknown, A = unknown> extends RunOptions<S, A> {
   /**
    * A person's answer to each pending request of the context: `{ requestId, decision: "allow" | "deny" }` for an
    * approval, `{ requestId, answer }` for a question. Each is checked against its request and the input
@@ -561,6 +571,7 @@ function setupOf(
     depth,
     maxDepth,
     ...parentRunOf(options),
+    ...(options.app === undefined ? {} : { app: options.app }),
     modelOptions: options.modelOptions ?? {},
     includeRaw,
     interceptors: checkInterceptors(options.interceptors ?? {}),
@@ -594,7 +605,7 @@ function observersOf(options: RunOptions<unknown>): ObserverSetup {
  * unusable option: a model that isn't from `createModel()`, a `maxSteps` that isn't a positive integer, an output tool
  * that isn't sent to the model, or two tools with one name.
  */
-export function run<S = unknown>(options: RunOptions<S> & RunInput): Run<S> {
+export function run<S = unknown, A = unknown>(options: RunOptions<S, A> & RunInput & AppRequired<NoInfer<A>>): Run<S> {
   const content = typeof options.input === "string" ? [{ type: "text" as const, text: options.input }] : options.input;
   const input: Message = { role: "user", content: [...content] };
   const setup = setupOf(options, { system: options.system, messages: options.history ?? [] }, [input]);
@@ -628,7 +639,10 @@ export function run<S = unknown>(options: RunOptions<S> & RunInput): Run<S> {
  * assistant message has a call with no result and no pending request, for a pending request whose call doesn't wait
  * in the context, and for malformed `resolutions` or `recheck`, besides the options `run()` refuses.
  */
-export function continueRun<S = unknown>(context: Context, options: ContinueOptions<S>): Run<S> {
+export function continueRun<S = unknown, A = unknown>(
+  context: Context,
+  options: ContinueOptions<S, A> & AppRequired<NoInfer<A>>,
+): Run<S> {
   const resume = resumeSetupOf(context, options?.resolutions, options?.recheck);
   const setup = setupOf(options, context, []);
   return new RunHandle<S>(resume === undefined ? setup : { ...setup, resume }, options.signal, observersOf(options));
