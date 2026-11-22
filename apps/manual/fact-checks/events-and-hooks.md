@@ -114,11 +114,26 @@ Sources, all at the pins named above: Copilot [hooks overview](https://github.co
 | 76 | ADK lists "Observe & Debug" as the first use of its callbacks, beside "Customize & Control", on the callbacks index page | § observers | ✏️ | Corrects row 55's citation. The text is on `docs/callbacks/index.md`, "Why use them?", at `ff7a5f5`, not on `types-of-callbacks.md`, which the chapter cited. The chapter now cites the new register entry `adk-callbacks-index` for the index page |
 | 77 | Version 1.0.31 of the Copilot SDK is the one our check ran against, as of November 2026 | § closed stream | ✅ | The source register entry `buildanagent-copilot-sdk-check` records `@github/copilot-sdk@1.0.31` as of November 2026, and row 15 counted the union in that version; the sentence now carries "as of November 2026". Every other version in the chapter, `0.1.0-alpha.26`, already carries it |
 
+## Re-checks after the writing review
+
+| # | Claim | Section | Verdict | Source and reason |
+| --- | --- | --- | --- | --- |
+| 78 | Pi has `session.subscribe` for watching a session's events | § observers | ✅ | Pi `docs/sdk.md` (https://github.com/earendil-works/pi/blob/v1.5.2/packages/coding-agent/docs/sdk.md) at tag `v1.5.2`, "Subscribing to events": `const unsubscribe = session.subscribe((event) => { … })`. The chapter now cites the new register entry `pi-sdk` for it, where it cited nothing |
+| 79 | ADK's runner returns the events of a run to the calling code | § observers | ✅ | ADK `docs/events/index.md` (https://github.com/google/adk-docs/blob/ff7a5f56469a81f3e43a8fc54668d8dc84300192/docs/events/index.md) at `ff7a5f5`, "How Events Flow: Generation and Processing", step 4: "External Yield: The `Runner` yields (Python) or returns/emits (Java) the processed event outwards to the calling application (e.g., the code that invoked `runner.run_async`)". New register entry `adk-events` |
+| 80 | LangChain streams updates while an agent runs | § observers | ✅ | LangChain `langchain/streaming.mdx`: "LangChain implements a streaming system to surface real-time updates", with `updates` (agent progress), `messages` and `custom` stream modes. Register entry `langchain-streaming`, already verified in the Chapter 2 log |
+| 81 | Copilot has `session.on` for watching a session's events | § observers | ✅ | Copilot `docs/features/streaming-events.md` at `v1.0.31`, "Subscribing to events": `session.on((event) => { … })` and `session.on("assistant.message_delta", …)`. Restates row 57 with its citation |
+| 82 | In the 2 a.m. case, the engineer's step list is a run of end events: one `tool_call_end` for each tool call, the ticket close included, then a `run_end`; a log needs no deltas | § stream | ✅ | `packages/sdk/src/events.ts` lines 1–5: the item layer's end events carry the finished item (rows 9 and 19), so a log of them holds every tool call. The ticket is the invented scenario of row 1 |
+| 83 | A redaction leaves no copy of the original in the record: the transcript, `model_call_end` and `tool_call_end` hold the replacement | § view and record | ✅ | Row 36, and `packages/sdk/README.md` line 262: "a failed `afterToolCall` withholds the result, so a redaction that crashed can't leak the original". Replaces the earlier "leaves one trace" and "nobody finds the original in the log", which named no trace |
+| 84 | An observer costs the run no decision about order or failure, while an interceptor costs both | § observers, closing advice | ✏️ | Corrects the chapter's "An observer that watches costs the run nothing". Row 63: the run waits for observers at `agent_settled` and `run_end`, for up to 10,000 ms, so an observer can cost time. What it never costs is a decision, because its return value is unread (row 59) and a throw becomes a `hook_error` (row 62) |
+| 85 | Exercise 4: an observer alone can count tokens (`model_call_end` carries the message with its `usage`) and post when a run ends (`run_end`); denying `delete_account` needs `beforeToolCall`, masking card numbers needs `afterToolCall`, and stopping after five refunds needs `shouldStop` | § Exercises | ✅ | `packages/gateway/src/types.ts` line 97 (`usage: Usage` on `AssistantMessage`) and `events.ts` line 69 (`model_call_end` carries the `AssistantMessage`); rows 13, 19 and 59 for `run_end`, the six interceptors and an observer's unread return. Replaces a question that named no single answer. The jobs are invented, as in row 73 |
+| 86 | In Copilot, returning nothing lets a call go on, a returned decision can deny it or edit its arguments, and `allow` changes nothing; in ADK, returning nothing lets it go on and a returned object replaces the step; LangChain's wrap hook runs the tool only if it calls `handler` | § listings | ✅ | Row 74, with the same sources. The paragraph is split into one sentence per SDK, which changes no claim |
+| 87 | The rewrites for voice (a question opening, analogy openings, second person, varied subjects, shorter paragraphs, cut recap sentences) changed no other claim | § all | ✅ | Compared every `{checked=row-N}` marker and citation before and after: each still sits on the claim its row checks, and every version still carries "as of November 2026" once in its section |
+
 ## Tally
 
 | Verdict | Rows |
 | --- | --- |
-| ✅ confirmed | 68 |
-| ✏️ corrected | 5 (rows 30, 42, 74, 75 and 76) |
+| ✅ confirmed | 77 |
+| ✏️ corrected | 6 (rows 30, 42, 74, 75, 76 and 84) |
 | ⚠️ unverified, an illustration marked as ours in the text | 4 (rows 1, 3, 52 and 69) |
-| Total | 77 |
+| Total | 87 |

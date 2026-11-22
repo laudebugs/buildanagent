@@ -712,5 +712,24 @@
     "version": "v1",
     "asOf": "November 2026",
     "verifiedIn": "docs/research/papers/fact-check-agent-research-papers.md"
+  },
+  {
+    "id": "pi-sdk",
+    "title": "SDK",
+    "publisher": "Pi (earendil-works/pi), coding agent",
+    "url": "https://github.com/earendil-works/pi/blob/v1.5.2/packages/coding-agent/docs/sdk.md",
+    "kind": "docs",
+    "asOf": "November 2026",
+    "version": "v1.5.2",
+    "verifiedIn": "apps/manual/fact-checks/events-and-hooks.md"
+  },
+  {
+    "id": "adk-events",
+    "title": "Events",
+    "publisher": "Agent Development Kit documentation",
+    "url": "https://github.com/google/adk-docs/blob/ff7a5f56469a81f3e43a8fc54668d8dc84300192/docs/events/index.md",
+    "kind": "docs",
+    "asOf": "November 2026",
+    "verifiedIn": "apps/manual/fact-checks/events-and-hooks.md"
   }
 ]
