@@ -52,7 +52,7 @@ export default function draw(): Figure {
       { tone: "muted", dashed: true },
     );
     figure.text({ x: centre(0), y: 342 }, "the vendor runs it", { tone: "muted" });
-    figure.text({ x: centre(1), y: 342 }, "your process runs it", { tone: "muted" });
+    figure.text({ x: centre(1), y: 342 }, "your code runs it", { tone: "muted" });
     figure.text({ x: centre(2), y: 342 }, "you change it", { tone: "accent" });
   });
 

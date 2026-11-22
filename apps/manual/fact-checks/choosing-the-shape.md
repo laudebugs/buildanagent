@@ -125,12 +125,15 @@ The claims log for [`choosing-the-shape.md`](../src/content/chapters/choosing-th
 | 89 | Run directly, a router that sends the question to the billing agent needs one scripted answer, where the handoff needs two | Exercise 1 | ✅ | Solution run on 2026-11-22 in a scratch file in the harness, then deleted: one answer, one entry in `rawResponses`, and the script's completeness check passed. The handoff's two answers are row 62 |
 | 90 | With the billing agent as a tool of the triage agent, the run makes three model calls in all: the triage agent's call to the tool, the billing agent's answer and the triage agent's final answer; the triage agent writes the final answer | Exercise 2 | ✅ | Same scratch run: three scripted answers consumed, the orchestrator's `rawResponses` held two, and the final output was the triage agent's; the scripted totals (100+20, 100+20 and 150+10) summed to 400 tokens in the run's usage, which is why exercise 3 asks the reader to compare totals they chose. Mechanism: row 70 |
 | 91 | A passing exercise 3 cannot support either of Anthropic's figures, because its token counts are chosen by the reader | Exercise 3 | ✅ | Rows 75 and 76: scripted counts measure nothing, and Anthropic's figures are measured against a chat |
+| 92 | After the first code review: in a handoff, the `handoffs` list fixes which agents the model can reach, and its prompt and the specialists' descriptions decide which one it picks | § Closing paragraph | ✅ | Re-check of row 66: the Handoffs page and the Agents guide, `handoffs` and `handoffDescription`; wording only, and `isEnabled` can hide one, which the text does not need to say |
+| 93 | After the first code review: the first table row reads "Buy the Claude Agent SDK, if Claude-only models are acceptable", and the harness study's benchmark is named as SWE-bench Verified | § Who owns the loop | ✅ | Re-check of rows 15 and 20: the main report's condition, and row 20's §3 Tasks quote |
+| 94 | After the first code review: the intro names three exercises, and the main report says the harness study covers seven models | § Who owns the loop | ✅ | Re-check of row 22: the paper's v2 lists seven models; the report line `docs/research/agent-sdks-and-harness-design.md` is corrected in place |
 
 ## Tally
 
 | Verdict | Rows |
 | --- | --- |
-| ✅ confirmed | 74 |
+| ✅ confirmed | 77 |
 | ✏️ corrected | 1 (rows 22) |
 | ⚠️ unverified, our reasoning or an absence, marked as ours in the text | 16 |
-| Total | 91 |
+| Total | 94 |

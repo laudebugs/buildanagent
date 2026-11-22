@@ -57,7 +57,7 @@ svg{--font-code:"Manual Code",ui-monospace, "SF Mono", Menlo, Consolas, monospac
 <g id="three-tiers--owners">
 <path d="M10 322 L510 322" class="fig-line fig-line--muted fig-line--dashed"/>
 <text x="90" y="342" text-anchor="middle" class="fig-text fig-text--muted">the vendor runs it</text>
-<text x="260" y="342" text-anchor="middle" class="fig-text fig-text--muted">your process runs it</text>
+<text x="260" y="342" text-anchor="middle" class="fig-text fig-text--muted">your code runs it</text>
 <text x="430" y="342" text-anchor="middle" class="fig-text fig-text--accent">you change it</text>
 </g>
 </svg>
