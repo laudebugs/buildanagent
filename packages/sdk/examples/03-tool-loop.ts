@@ -53,13 +53,14 @@ const script = (): ScriptStep[] => [
 
 // With maxSteps: 1 the tool still runs, but the run stops before the model can read its result.
 {
+  const ONE_STEP = 1;
   calls.length = 0;
   const { model } = scripted(script().slice(0, 1));
   const result = await run({
     model,
     system: "You report the weather.",
     tools: [weather],
-    maxSteps: 1,
+    maxSteps: ONE_STEP,
     input: "Weather in Lisbon?",
   }).result;
   check(result.stopReason === "max_steps" && result.steps === 1, "maxSteps: 1 stops the run after one model call");
