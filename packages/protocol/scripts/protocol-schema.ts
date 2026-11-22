@@ -8,7 +8,13 @@
 // its 29 event types would be a second copy to keep in step. A test compares the schema's type list with the SDK's.
 import { createHash } from "node:crypto";
 import { z } from "zod";
-import { ContentBlock as Content, SessionEntry as Entry, ModelContent as ModelPart } from "./session-entry-schema.js";
+import {
+  ContentBlock as Content,
+  SessionEntry as Entry,
+  ModelContent as ModelPart,
+  Resolution as ResolutionShape,
+  SignedPendingRequest as SignedPendingRequestShape,
+} from "./session-entry-schema.js";
 
 /** The SDK's event types, as `AGENT_EVENT_TYPES` lists them. A test checks this list against the SDK's own. */
 export const AGENT_EVENT_TYPE_NAMES = [
@@ -52,34 +58,8 @@ const SessionEntry = Entry.meta({ id: "SessionEntry" });
 const Id = z.union([z.number(), z.string()]).meta({ id: "Id" });
 const rpc = z.literal("2.0");
 
-const SignedPendingRequest = z
-  .strictObject({
-    id: z.string(),
-    kind: z.enum(["approval", "clarification"]),
-    callId: z.string(),
-    tool: z.string(),
-    inputHash: z.string(),
-    policyVersion: z.string().optional(),
-    appHash: z.string().optional(),
-    question: z.string().optional(),
-    reason: z.string().optional(),
-    keyId: z.string(),
-    signature: z.string(),
-    createdAt: z.string(),
-  })
-  .meta({ id: "SignedPendingRequest" });
-
-const Resolution = z
-  .union([
-    z.strictObject({
-      requestId: z.string(),
-      decision: z.enum(["allow", "deny"]),
-      reason: z.string().optional(),
-      by: z.string().optional(),
-    }),
-    z.strictObject({ requestId: z.string(), answer: z.string(), by: z.string().optional() }),
-  ])
-  .meta({ id: "Resolution" });
+const SignedPendingRequest = SignedPendingRequestShape.meta({ id: "SignedPendingRequest" });
+const Resolution = ResolutionShape.meta({ id: "Resolution" });
 
 const command = <M extends string, P extends z.ZodRawShape>(method: M | M[], params: P, extra: z.ZodRawShape = {}) =>
   z.strictObject({

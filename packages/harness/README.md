@@ -4,7 +4,7 @@ The harness wraps the SDK's loop with what a coding agent needs around it: a ses
 
 As of November 2026 the package is private and not on npm. Each removable component gets its own subpath, so a caller imports only what it uses and an ablation can drop the rest. Today `session` holds the entry types it re-exports from the protocol package, `sandbox` and `testing` hold the sandbox interface, and `tools` holds the tool registry, so every other subpath is an empty stub that holds the component's place. The [harness plan](https://github.com/laudebugs/buildanagent/blob/main/docs/plans/build-harness.md) says what each package will hold and in which order.
 
-## The session log holds eighteen entry types
+## The session log holds twenty entry types
 
 `@buildanagent/harness/session` re-exports the entry union from `@buildanagent/protocol`, where the [stable fields and the JSON Schema](../protocol/README.md#a-session-file-is-a-list-of-entries-one-per-line) are documented. Every entry carries `id`, `parentId`, `seq`, `timestamp`, `type` and `origin`. The types, in the order of the union:
 
@@ -21,6 +21,7 @@ As of November 2026 the package is private and not on npm. Each removable compon
 - `completion_check`: the commands that checked a finished task, and whether they passed.
 - `skill_loaded` and `extension_loaded`: a skill or an extension entered the session.
 - `subagent_link`: a child session exists, and which call or step started it.
+- `approval_requested` and `approval_resolved`: a call waits for a person (with its signed request and the input it would run with), and the person's answer.
 - `shadow_call`: a call that shadow mode recorded and did not run.
 - `product_record`: a record the product owns, under a namespaced name.
 
@@ -244,9 +245,9 @@ Call `runTurn()` once at a time per `Session`: its writes stay in order within o
 
 ## The log is the only state, so a turn rebuilds its context from it
 
-`session.toContext(headId?)` rebuilds the SDK's `Context` from the entries between the root and `headId` (default HEAD): the messages in order and the system prompt of the latest `turn_start`, byte for byte. It groups `message_block` entries by `messageId`, closes a message at its `message_end`, and takes its usage from the `usage` entry that follows. A `usage` entry anywhere else belongs to a call whose message a turn-layer retry superseded, and builds no message. The result deep-equals the `context` of a run that ended without pausing, and `continueRun()` finishes a run from it after a JSON round trip. A turn that leaves out `history` takes it from `toContext()`, so a new process goes on from the log alone.
+`session.toContext(headId?)` rebuilds the SDK's `Context` from the entries between the root and `headId` (default HEAD): the messages in order and the system prompt of the latest `turn_start`, byte for byte. It groups `message_block` entries by `messageId`, closes a message at its `message_end`, and takes its usage from the `usage` entry that follows. A `usage` entry anywhere else belongs to a call whose message a turn-layer retry superseded, and builds no message. The result deep-equals the `context` of the run that wrote the log, a paused run included, and `continueRun()` finishes a run from it after a JSON round trip. A turn that leaves out `history` takes it from `toContext()`, so a new process goes on from the log alone.
 
-A paused run keeps its signed requests in `context.pending`, which no entry holds yet. A context rebuilt from a paused run therefore cannot resolve its approval until the log stores signed approvals.
+A request that still waits for a person is in `context.pending`, and the input its call would run with is in `context.pendingInputs`, both read from the `approval_requested` entries.
 
 There are two ways to look at a stored session again, and neither calls a model:
 
@@ -264,6 +265,26 @@ An open call is a tool call whose result is not in the log. Before a turn writes
 - A call to any other tool gets an error that says it was interrupted, which the model may retry.
 - A turn with no `turn_end` gets one with stop reason `aborted`, unless a checkout moved HEAD there, since a turn left behind by a re-run was not interrupted.
 
-A turn that ended `awaiting_approval` or `clarification_requested` leaves its calls open on purpose, for the approval that resolves them. A later turn that passes no `history` refuses to start with `invalid_turn_options` while any call is open, because the gateway would answer it with a made-up "missing result" error and the approval would then have nothing to resume.
+A turn that ended `awaiting_approval` or `clarification_requested` leaves its calls open on purpose, for the approval that resolves them (below). A later turn that passes no `history` refuses to start with `invalid_turn_options` while any call is open, because the gateway would answer it with a made-up "missing result" error and the approval would then have nothing to resume.
 
 When a tool has a business key, a model that proposes the same write again reaches the same effect key, so the write goes out once. `effectScope(session, harness, toolCallId)` builds the scope that key takes: the harness's `tenant` (default `local`), the session id, the branch and the call id. The branch is the log's file plus its latest checkout.
+
+## A call that needs a person is a signed pause that any process with the key file can resume
+
+When the permission pipeline's gate returns `ask`, the turn ends `awaiting_approval`, and the signed request is the log's `approval_requested` entry, written before any observer of the harness sees the event. A client that listens on the run's own handle, not on the harness's observers, can hear of a request a moment before the log has it. The harness never blocks on an approval, so a restart loses nothing. The entry holds the SDK's request unchanged, with the input the call would run with. It names its key by id and holds no key bytes.
+
+`createApprovals(harness)` from `@buildanagent/harness/session` reads and answers the pauses:
+
+- `pending(session)` lists the requests whose call has no result yet, each with its input. A request stays listed after an answer until its call runs.
+- `resolve(session, resolutions, options?)` throws `approval_not_pending` for a request that doesn't wait, and `approval_unavailable` when the harness has no `signer`. It writes each answer as an `approval_resolved` entry, then calls `continueRun()` with the harness's signer. The SDK verifies each request's signature, call and input, so a tampered request runs nothing, writes a new `approval_requested` entry and asks again.
+- Each approved call goes through the permission pipeline once more before it runs. A deny rule added after the pause turns the approval into a denial result, and a question the pipeline would ask again does not stop a call a person approved.
+- `options` takes the same settings as a turn: `budgetUsd`, `signal`, `hostContext`, `clock`, `newId`, `maxSteps`, `output`, `turnRetries` and `modelOptions`, plus `model`. The log holds none of the settings except the tools, so the host passes them again.
+- The tools are the paused turn's, read from the log. A `model` that differs from the paused turn's is recorded as a `loadout`.
+- A request bound to a `hostContext` when it paused runs only when the resume passes the same value, so that value is the caller's identity. The resumed turn starts with a `turn_start` of mode `continue`.
+
+The host fills `Resolution.by` only after it has authenticated the approver. An answer never ends a wait by itself: a request waits until its call has a result, so a resume the SDK refuses leaves the pause as it was. A second answer for the same request is appended after the first, and the later resume uses it. If a resume dies after it was given an allow, the call may have run. The next turn settles that call as a crash and does not ask again, even when the run died before it reached the call.
+
+### The key ring is a 0600 file outside the log and the sandbox
+
+`fileKeyStore(path?)` from `@buildanagent/harness/session/jsonl` is a `KeyStore` over one file, by default `$XDG_STATE_HOME/buildanagent/keys.json` (or `~/.local/state/buildanagent/keys.json`). `load()` creates a ring with one random 256-bit key when the file is missing, in a folder of mode `0700`, and refuses a file that group or others can read, that belongs to another user, or that is a symbolic link. Pass the loaded ring to `hmacSigner()` and give the signer to `createHarness({ signer })`; the SDK reads the key by the id a request names, so a request signed with an older key still verifies. `rotate()` adds a new current key, and `prune(inUse)` removes every key not in `inUse` except the current one, so pass the `keyId` of every request that still waits. `rotate()` and `prune()` take a lock file beside the ring, so two processes that change it together keep both changes. A tool or sandbox sees none of this: the ring is in the host's files, and a spawned process gets [a cleared environment](#every-spawned-process-gets-a-cleared-environment).
+

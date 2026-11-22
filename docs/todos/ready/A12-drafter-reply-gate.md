@@ -8,7 +8,7 @@
 | Status | `ready` |
 | Plan | [Build agent §4, Stage 3](../../plans/build-agent.md#43-stage-3-runs-the-three-roles-as-linked-turns-and-proves-the-workflow-in-a-capstone) |
 | Round / milestone | Round A (build agent), M7b |
-| Depends on | [A11](A11-planner-context.md), [A5](A5-outbound-money-tools.md), [A8](A8-role-based-quorum.md), [N13](N13-signed-approvals.md), [N40](N40-code-initiated-calls.md) |
+| Depends on | [A11](A11-planner-context.md), [A5](A5-outbound-money-tools.md), [A8](A8-role-based-quorum.md), [N13](../done/N13-signed-approvals.md), [N40](N40-code-initiated-calls.md) |
 | Size | M |
 
 ## Goal

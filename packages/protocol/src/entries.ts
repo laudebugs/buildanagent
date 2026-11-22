@@ -5,7 +5,7 @@
  * with a migration that writes a new file. The JSON Schema of the union is `schema/session-entry.schema.json`.
  */
 import type { AssistantMessage, ContentBlock, Cost, ModelContent, ModelRef, Usage } from "@buildanagent/gateway";
-import type { RunResult } from "@buildanagent/sdk";
+import type { Resolution, RunResult, SignedPendingRequest } from "@buildanagent/sdk";
 import { ProtocolError } from "./errors.js";
 
 /** The format version of every entry this package writes and reads. A session file's header carries it. */
@@ -223,6 +223,25 @@ export interface SubagentLinkEntry {
   stepId?: string;
 }
 
+/**
+ * A tool call waits for a person. `request` is the SDK's signed record, unchanged, and `input` is the input the call
+ * would run with once approved, which the approver is shown and the resume passes back with the signature. The harness
+ * writes this entry before its own observers see the request. It holds no key bytes: the signature names the key by id.
+ */
+export interface ApprovalRequestedEntry {
+  /** The entry type name. @stable */
+  type: "approval_requested";
+  request: SignedPendingRequest;
+  input: unknown;
+}
+
+/** A person's answer to a pending request, written before the run that applies it starts. */
+export interface ApprovalResolvedEntry {
+  /** The entry type name. @stable */
+  type: "approval_resolved";
+  resolution: Resolution;
+}
+
 /** A call that shadow mode recorded and did not run. */
 export interface ShadowCallEntry {
   /** The entry type name. @stable */
@@ -259,6 +278,8 @@ export type SessionEntry = EntryBase &
     | SkillLoadedEntry
     | ExtensionLoadedEntry
     | SubagentLinkEntry
+    | ApprovalRequestedEntry
+    | ApprovalResolvedEntry
     | ShadowCallEntry
     | ProductRecordEntry
   );
@@ -281,6 +302,8 @@ export const SESSION_ENTRY_TYPES = [
   "skill_loaded",
   "extension_loaded",
   "subagent_link",
+  "approval_requested",
+  "approval_resolved",
   "shadow_call",
   "product_record",
 ] as const satisfies readonly SessionEntry["type"][];

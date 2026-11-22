@@ -6,7 +6,7 @@
 | Status | `ready` |
 | Plan | [Build harness §4, Stage 7](../../plans/build-harness.md#47-stage-7-adds-telemetry-completion-checks-evals-and-ablation) |
 | Round / milestone | Round N (build harness), M6 |
-| Depends on | [N7](../done/N7-rebuild-resume-replay.md), [N13](N13-signed-approvals.md), [B17](B17-otel-observer.md) |
+| Depends on | [N7](../done/N7-rebuild-resume-replay.md), [N13](../done/N13-signed-approvals.md), [B17](B17-otel-observer.md) |
 | Size | M |
 
 ## Goal

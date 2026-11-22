@@ -25,6 +25,9 @@ export type HarnessErrorCode =
   | "entry_not_found"
   | "unsupported_format"
   | "invalid_turn_options"
+  | "approval_not_pending"
+  | "approval_unavailable"
+  | "invalid_key_store"
   | "session_conflict"
   | "entry_too_large"
   | "invalid_session_entry"
@@ -50,10 +53,13 @@ const HARNESS_ERROR = Symbol.for("buildanagent.harness.HarnessError");
  * `entry_not_found`: an entry id is in no file of the session. `unsupported_format`: a session file's format can't be
  * read or migrated, its header names none, or the store can't read it as written. `invalid_turn_options`: a turn's
  * options can't be used, such as a tool allowlist that names a tool the registry lacks, or a hook that changed the
- * model inside a turn. `session_conflict`: an append found the log in a state it did not expect (`ConflictError`).
- * `entry_too_large`: an entry is over the store's size bound (`EntryTooLargeError`). `invalid_session_entry`: an entry
- * is not valid or is out of place, such as a first entry that is not a header. `invalid_session_key`: a user or session
- * id the store can't use. `session_corrupt`: a log file has a bad line before its last line.
+ * model inside a turn. `approval_not_pending`: a resolution names a request that is not waiting.
+ * `approval_unavailable`: the harness has no signer, so no approval can be checked. `invalid_key_store`: a key file is
+ * unreadable, malformed or readable by others. `session_conflict`: an append found the log in a state it did not expect
+ * (`ConflictError`). `entry_too_large`: an entry is over the store's size bound (`EntryTooLargeError`).
+ * `invalid_session_entry`: an entry is not valid or is out of place, such as a first entry that is not a header.
+ * `invalid_session_key`: a user or session id the store can't use. `session_corrupt`: a log file has a bad line before
+ * its last line.
  */
 export class HarnessError extends Error {
   override readonly name: string = "HarnessError";
