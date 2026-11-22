@@ -180,7 +180,7 @@ test("a push the route can't parse, or one past its size limit, is refused and n
   const whole = push(`${OLD} ${NEW} refs/heads/agent/task-1`);
   assert.equal(pushVerdict(whole.subarray(0, 20), filter, false), "incomplete");
   assert.deepEqual(pushVerdict(whole.subarray(0, 20), filter, true), { refused: "git_bad_pkt_line" });
-  for (const body of ["zzzz", "0003", "0004", "0000", "ffff", `${pkt("x")}0000`]) {
+  for (const body of ["zzzz", "0003", "0004", "00", "ffff", `${pkt("x")}0000`]) {
     assert.deepEqual(pushVerdict(encoder.encode(body), filter, true), { refused: "git_bad_pkt_line" }, body);
   }
   const invalidUtf8 = new Uint8Array([...encoder.encode("0009"), 0xff, 0xfe, 0xfd, 0xfc, 0x0a]);
@@ -220,4 +220,17 @@ test("ref names follow git's own rules", () => {
   ]) {
     assert.equal(isValidRefName(bad), false, bad);
   }
+});
+
+test("a body of exactly one flush, git's probe before a large push, is allowed, and a byte after it is refused", () => {
+  const flush = encoder.encode("0000");
+  assert.equal(pushVerdict(flush, filter, true), "allowed", "the probe updates no ref");
+  assert.equal(pushVerdict(flush, filter, false), "incomplete", "more may follow, so it waits for the end");
+  for (const body of ["0000x", "00000000", "0000PACK", `0000${pkt(`${OLD} ${NEW} refs/heads/main\0caps\n`)}0000`]) {
+    for (const ended of [true, false]) {
+      assert.deepEqual(pushVerdict(encoder.encode(body), filter, ended), { refused: "git_bad_pkt_line" }, body);
+    }
+  }
+  const shallowOnly = encoder.encode(`${pkt(`shallow ${NEW}\n`)}0000`);
+  assert.deepEqual(pushVerdict(shallowOnly, filter, true), { refused: "git_bad_pkt_line" }, "a flush after a line");
 });

@@ -1,5 +1,6 @@
 import assert from "node:assert/strict";
 import { execFile, execFileSync } from "node:child_process";
+import { randomBytes } from "node:crypto";
 import { mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import http, { type IncomingHttpHeaders } from "node:http";
 import https from "node:https";
@@ -221,6 +222,38 @@ test("a real git push through the route reaches an agent branch with the token, 
   assert.equal(JSON.stringify(logs).includes(TOKEN), false, "the token is in no log record");
 }, 60_000);
 
+test("a real git push larger than http.postBuffer passes its flush-only probe, then lands", async () => {
+  fresh();
+  const repo = mkdtempSync(join(tmpdir(), "harness-git-big-"));
+  folders.push(repo);
+  await git(repo, "init", "-q", "-b", "work");
+  // Random bytes don't compress, so the pack is larger than the 1 MiB buffer and git probes before it streams.
+  writeFileSync(join(repo, "big.bin"), randomBytes(2 * 1024 * 1024));
+  await git(repo, "add", "big.bin");
+  await git(repo, "commit", "-q", "-m", "big");
+  const { port: proxyPort } = new URL(proxy.url);
+  const remote = `http://x-access-token:${sentinel()}@127.0.0.1:${proxyPort}/git/owner/repo.git`;
+
+  const pushed = await git(repo, "-c", "http.postBuffer=1048576", "push", remote, "HEAD:refs/heads/agent/big");
+  assert.equal(pushed.code, 0, pushed.output);
+  const posts = seen.filter((request) => request.method === "POST");
+  assert.equal(posts[0]?.body.toString("latin1"), "0000", "git's probe reached the fake GitHub as one flush");
+  assert.equal(posts.length, 2, "the probe and then the push");
+  assert.match(posts[1]?.body.toString("latin1") ?? "", /refs\/heads\/agent\/big/);
+  assert.ok((posts[1]?.body.length ?? 0) > 2 * 1024 * 1024, "the whole pack was forwarded");
+  assert.ok(posts.every((request) => request.headers.authorization === expected));
+
+  fresh();
+  const refused = await git(repo, "-c", "http.postBuffer=1048576", "push", remote, "HEAD:refs/heads/main");
+  assert.notEqual(refused.code, 0, "a large push to another branch is still refused after its probe");
+  assert.equal(
+    seen.filter((request) => request.method === "POST" && request.body.length > 4).length,
+    0,
+    "only the probe reached the fake GitHub",
+  );
+  assert.equal(logs.at(-1)?.reason, "git_ref_refused");
+}, 60_000);
+
 test("a request for another repository, another service or another path never leaves the proxy", async () => {
   fresh();
   const refusals: [string, string, string][] = [
@@ -309,3 +342,84 @@ test("an in-process fetch takes the same route, with the same push check", async
   assert.equal((await allowed.text()).includes(TOKEN), false);
   assert.equal(seen[0]?.headers.authorization, expected);
 });
+
+test("a push body sent a few bytes at a time is read whole and quickly, and one that stalls times out", async () => {
+  fresh();
+  const slow = await startEgressProxy({
+    ...compileEgressPolicy(
+      {
+        allow: [],
+        routes: [
+          {
+            kind: "git",
+            route: "git",
+            host: `github.test:${port}`,
+            repositories: ["owner/repo"],
+            pushRefs: ["refs/heads/agent/*"],
+            credential: "GITHUB_TOKEN",
+          },
+        ],
+      },
+      { secret: async () => TOKEN },
+    ),
+    log: (record) => logs.push(record),
+    resolve: async (host) => (host === "github.test" ? ["127.0.0.1"] : []),
+    ca: readFileSync(join(folders[0] ?? "", "cert.pem"), "utf8"),
+    unsafeAllowAddresses: ["127.0.0.1"],
+    idleTimeoutMs: 400,
+  });
+  try {
+    const { port: slowPort } = new URL(slow.url);
+    const headers = { authorization: basic(slow.sentinels.git ?? "") };
+    const post = (chunks: string[], pauseMs: number) =>
+      new Promise<number>((done, fail) => {
+        const request = http.request(
+          {
+            host: "127.0.0.1",
+            port: Number(slowPort),
+            path: "/git/owner/repo.git/git-receive-pack",
+            method: "POST",
+            headers,
+          },
+          (response) => {
+            response.resume();
+            response.on("end", () => done(response.statusCode ?? 0));
+          },
+        );
+        request.on("error", fail);
+        void (async () => {
+          for (const chunk of chunks) {
+            if (request.destroyed) return;
+            request.write(chunk);
+            await new Promise((resume) => setTimeout(resume, pauseMs));
+          }
+          request.end();
+        })();
+      });
+    const body = `${command(`refs/heads/agent/${"x".repeat(900)}`)}0000PACK`;
+    const pieces = body.match(/[\s\S]{1,3}/g) ?? [];
+    const started = Date.now();
+    assert.equal(await post(pieces, 0), 200, "a body in three-byte pieces is allowed");
+    assert.ok(Date.now() - started < 10_000, "and checked without stalling");
+    assert.equal(seen.at(-1)?.body.toString("latin1"), body, "every byte was forwarded in order");
+    assert.equal(
+      await post([body.slice(0, 40), body.slice(40, 80), body.slice(80)], 250),
+      200,
+      "each piece resets the idle timer",
+    );
+    fresh();
+    assert.equal(
+      await post([body.slice(0, 40), body.slice(40)], 1200),
+      403,
+      "a body that stalls past the idle timeout",
+    );
+    assert.equal(logs.at(-1)?.reason, "git_timeout");
+    assert.equal(seen.length, 0, "nothing reached the fake GitHub");
+    const long = pkt(`${OLD} ${NEW} refs/heads/agent/${"x".repeat(59_000)}\n`);
+    const oversize = [`${long}ffef${"y".repeat(8000)}`, "y"];
+    assert.equal(await post(oversize, 1200), 403, "a list past the limit that then stalls");
+    assert.equal(logs.at(-1)?.reason, "git_too_large", "is refused for its size before the idle timeout");
+  } finally {
+    await slow.close();
+  }
+}, 30_000);

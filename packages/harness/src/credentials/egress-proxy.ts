@@ -16,7 +16,7 @@ import {
   parseAllow,
   parseRoutes,
 } from "./allowlist.js";
-import { basicCarries, basicHeader, type GitRouteFilter, gitEndpoint, pushVerdict } from "./git-route.js";
+import { basicCarries, basicHeader, type GitRouteFilter, gitEndpoint, pushProgress } from "./git-route.js";
 
 export type { CredentialRoute } from "./allowlist.js";
 
@@ -59,7 +59,7 @@ export interface EgressProxyOptions {
    * for a real run: the check is what keeps a name that points at the host's own network from being reached.
    */
   readonly unsafeAllowAddresses?: readonly string[];
-  /** Ends a tunnel or a forwarded request that is idle this long. Defaults to 120000. */
+  /** Ends a tunnel, a forwarded request or a push check that is idle this long. Defaults to 120000. */
   readonly idleTimeoutMs?: number;
 }
 
@@ -468,19 +468,26 @@ class EgressGate {
     return this.forward(route, method, `${target.path}${target.query}`, outgoing, forwarded, signal);
   }
 
-  /** Reads a push's command list and checks it, then hands back a body that starts with what was read. */
+  /**
+   * Reads a push's command list and checks it, then hands back a body that starts with what was read. The chunks are
+   * kept in a list and joined only when they reach the length the check next needs, so a body sent in tiny pieces is
+   * not copied once per piece. The check gives up once the body is idle for the idle timeout, which each chunk resets.
+   */
   private checkPush(
     body: import("node:stream").Readable | Uint8Array | undefined,
     filter: GitRouteFilter,
   ): Promise<{ readonly refused: string } | { readonly body: import("node:stream").Readable | Uint8Array }> {
     if (body === undefined) return Promise.resolve({ refused: "git_bad_pkt_line" });
     if (body instanceof Uint8Array) {
-      const verdict = pushVerdict(body, filter, true);
+      const { verdict } = pushProgress(body, filter, true);
       return Promise.resolve(verdict === "allowed" ? { body } : { refused: (verdict as { refused: string }).refused });
     }
     return new Promise((resolve) => {
       const chunks: Uint8Array[] = [];
-      const timer = setTimeout(() => settle({ refused: "git_timeout" }), this.options.idleTimeoutMs ?? DEFAULT_IDLE_MS);
+      let received = 0;
+      let needed = 1;
+      const idleMs = this.options.idleTimeoutMs ?? DEFAULT_IDLE_MS;
+      let timer = setTimeout(() => settle({ refused: "git_timeout" }), idleMs);
       const settle = (outcome: { refused: string } | { body: import("node:stream").Readable }) => {
         clearTimeout(timer);
         body.off("data", onData);
@@ -490,11 +497,15 @@ class EgressGate {
         resolve(outcome);
       };
       const judge = (ended: boolean) => {
-        const read = concat(chunks);
-        const verdict = pushVerdict(read, filter, ended);
-        if (verdict === "incomplete") return;
-        if (verdict !== "allowed") {
-          settle(verdict);
+        const read = chunks.length === 1 ? (chunks[0] as Uint8Array) : concat(chunks);
+        chunks.splice(0, chunks.length, read);
+        const progress = pushProgress(read, filter, ended);
+        if (progress.verdict === "incomplete") {
+          needed = progress.needed;
+          return;
+        }
+        if (progress.verdict !== "allowed") {
+          settle(progress.verdict);
           return;
         }
         const rest = new this.modules.stream.PassThrough();
@@ -504,8 +515,11 @@ class EgressGate {
         else body.pipe(rest);
       };
       const onData = (chunk: Uint8Array) => {
+        clearTimeout(timer);
+        timer = setTimeout(() => settle({ refused: "git_timeout" }), idleMs);
         chunks.push(chunk);
-        judge(false);
+        received += chunk.length;
+        if (received >= needed) judge(false);
       };
       const onEnd = () => judge(true);
       const onError = () => settle({ refused: "request_failed" });

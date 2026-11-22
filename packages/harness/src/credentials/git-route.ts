@@ -127,7 +127,7 @@ interface PushCommand {
 }
 
 type Parsed =
-  | { readonly status: "incomplete" }
+  | { readonly status: "incomplete"; readonly needed: number }
   | { readonly status: "refused"; readonly reason: string }
   | { readonly status: "done"; readonly commands: readonly PushCommand[] };
 
@@ -155,18 +155,18 @@ function readCommand(text: string, commands: PushCommand[]): string | undefined 
   return commands.length > GIT_MAX_COMMANDS ? "git_too_many_commands" : undefined;
 }
 
-/** One pkt-line at `at`: a flush, a payload's text, or why it can't be read yet or at all. */
+/** One pkt-line at `at`: a flush, a payload's text, the body length it needs before it can be read, or `bad`. */
 function readPacket(
   bytes: Uint8Array,
   at: number,
-): "incomplete" | "bad" | "flush" | { readonly text: string; readonly length: number } {
-  if (bytes.length - at < 4) return "incomplete";
+): { readonly needed: number } | "bad" | "flush" | { readonly text: string; readonly length: number } {
+  if (bytes.length - at < 4) return { needed: at + 4 };
   const header = String.fromCharCode(...bytes.subarray(at, at + 4));
   if (!LENGTH.test(header)) return "bad";
   const length = Number.parseInt(header, 16);
   if (length === 0) return "flush";
   if (length < 5 || length > PKT_MAX) return "bad";
-  if (bytes.length - at < length) return "incomplete";
+  if (bytes.length - at < length) return { needed: at + length };
   const text = payloadText(bytes.subarray(at + 4, at + length));
   return text === undefined ? "bad" : { text, length };
 }
@@ -177,7 +177,7 @@ function parseCommands(bytes: Uint8Array): Parsed {
   let at = 0;
   for (;;) {
     const packet = readPacket(bytes, at);
-    if (packet === "incomplete") return { status: "incomplete" };
+    if (typeof packet === "object" && "needed" in packet) return { status: "incomplete", needed: packet.needed };
     if (packet === "bad" || (packet === "flush" && commands.length === 0)) {
       return { status: "refused", reason: "git_bad_pkt_line" };
     }
@@ -188,6 +188,13 @@ function parseCommands(bytes: Uint8Array): Parsed {
   }
 }
 
+const FLUSH = "0000";
+
+/** Whether `bytes` starts with a whole flush packet. Fewer bytes are left to the parser, which waits for more. */
+function startsWithFlush(bytes: Uint8Array): boolean {
+  return bytes.length >= FLUSH.length && String.fromCharCode(...bytes.subarray(0, FLUSH.length)) === FLUSH;
+}
+
 /** Whether `ref` is matched by one of the patterns: exactly, or under a prefix that ends in `/*`. */
 function refAllowed(ref: string, patterns: readonly string[]): boolean {
   return patterns.some((pattern) =>
@@ -195,29 +202,58 @@ function refAllowed(ref: string, patterns: readonly string[]): boolean {
   );
 }
 
+/** A push check's progress: its verdict, or how many bytes of the body it needs before a new verdict is possible. */
+export type PushProgress =
+  | { readonly verdict: "allowed" | { readonly refused: string } }
+  | { readonly verdict: "incomplete"; readonly needed: number };
+
+/**
+ * `pushVerdict()` with, while the list is incomplete, the body length at which it next could change, so a reader that
+ * gets a body in small pieces checks it again only then.
+ */
+export function pushProgress(bytes: Uint8Array, filter: GitRouteFilter, ended: boolean): PushProgress {
+  if (startsWithFlush(bytes)) {
+    // git's probe before a push larger than http.postBuffer: a body of one flush, an empty command list that updates
+    // no ref. Only that exact body passes; anything after the flush is refused.
+    if (bytes.length > FLUSH.length) return { verdict: { refused: "git_bad_pkt_line" } };
+    return ended ? { verdict: "allowed" } : { verdict: "incomplete", needed: FLUSH.length + 1 };
+  }
+  const parsed = parseCommands(bytes);
+  if (parsed.status === "refused") return { verdict: { refused: parsed.reason } };
+  if (parsed.status === "incomplete") {
+    if (bytes.length > GIT_MAX_COMMAND_BYTES) return { verdict: { refused: "git_too_large" } };
+    if (ended) return { verdict: { refused: "git_bad_pkt_line" } };
+    return { verdict: "incomplete", needed: Math.min(parsed.needed, GIT_MAX_COMMAND_BYTES + 1) };
+  }
+  return { verdict: commandsVerdict(parsed.commands, filter) };
+}
+
+/** Whether every command creates or updates a ref the patterns allow, or why not. */
+function commandsVerdict(
+  commands: readonly PushCommand[],
+  filter: GitRouteFilter,
+): "allowed" | { readonly refused: string } {
+  for (const command of commands) {
+    if (ZERO.test(command.new)) return { refused: "git_delete_refused" };
+    if (!isValidRefName(command.ref) || !refAllowed(command.ref, filter.pushRefs))
+      return { refused: "git_ref_refused" };
+  }
+  return "allowed";
+}
+
 /**
  * The route's verdict on the start of a push body: `incomplete` while the command list hasn't reached its flush,
- * `allowed` once every command creates or updates a ref the patterns allow, or the reason it is refused. `ended` says
- * the body has no more bytes, so a list still incomplete is refused. A list past `GIT_MAX_COMMAND_BYTES` is refused
- * without waiting for the rest.
+ * `allowed` once every command creates or updates a ref the patterns allow, or the reason it is refused. A body that is
+ * exactly one flush packet, the probe git sends before a large push, is `allowed` once it has ended, because it updates
+ * no ref; a byte after that flush is refused. `ended` says the body has no more bytes, so a list still incomplete is
+ * refused. A list past `GIT_MAX_COMMAND_BYTES` is refused without waiting for the rest.
  */
 export function pushVerdict(
   bytes: Uint8Array,
   filter: GitRouteFilter,
   ended: boolean,
 ): "incomplete" | "allowed" | { readonly refused: string } {
-  const parsed = parseCommands(bytes);
-  if (parsed.status === "refused") return { refused: parsed.reason };
-  if (parsed.status === "incomplete") {
-    if (bytes.length > GIT_MAX_COMMAND_BYTES) return { refused: "git_too_large" };
-    return ended ? { refused: "git_bad_pkt_line" } : "incomplete";
-  }
-  for (const command of parsed.commands) {
-    if (ZERO.test(command.new)) return { refused: "git_delete_refused" };
-    if (!isValidRefName(command.ref) || !refAllowed(command.ref, filter.pushRefs))
-      return { refused: "git_ref_refused" };
-  }
-  return "allowed";
+  return pushProgress(bytes, filter, ended).verdict;
 }
 
 /** Whether an `Authorization` header is HTTP Basic whose password is exactly `sentinel`. */
