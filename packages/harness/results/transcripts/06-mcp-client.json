@@ -1,0 +1,125 @@
+{
+  "format": 2,
+  "example": "06-mcp-client",
+  "file": "packages/harness/examples/06-mcp-client.ts",
+  "harness": "packages/harness",
+  "pin": "@buildanagent/harness@workspace",
+  "mock": "@buildanagent/harness@workspace",
+  "events": [
+    {
+      "kind": "check",
+      "line": 19,
+      "message": "the server answered server/discover, so it connects in the new era",
+      "pass": true
+    },
+    {
+      "kind": "check",
+      "line": 20,
+      "message": "the tool is registered under a namespaced name",
+      "pass": true
+    },
+    {
+      "kind": "check",
+      "line": 21,
+      "message": "an MCP tool is deferred by default",
+      "pass": true
+    },
+    {
+      "kind": "request",
+      "line": 27,
+      "model": "model-1",
+      "repeated": 0,
+      "messages": [
+        {
+          "role": "system",
+          "parts": [
+            {
+              "type": "text",
+              "text": "You help."
+            }
+          ]
+        },
+        {
+          "role": "user",
+          "parts": [
+            {
+              "type": "text",
+              "text": "Where is order A-1?"
+            }
+          ]
+        }
+      ],
+      "tools": [
+        "mcp__orders__order_status"
+      ]
+    },
+    {
+      "kind": "response",
+      "line": 27,
+      "model": "model-1",
+      "message": {
+        "role": "assistant",
+        "parts": [
+          {
+            "type": "tool-call",
+            "id": "c1",
+            "name": "mcp__orders__order_status",
+            "input": {
+              "orderId": "A-1"
+            }
+          }
+        ]
+      },
+      "finish": "tool_calls"
+    },
+    {
+      "kind": "request",
+      "line": 27,
+      "model": "model-1",
+      "repeated": 3,
+      "messages": [
+        {
+          "role": "tool",
+          "parts": [
+            {
+              "type": "tool-result",
+              "id": "c1",
+              "name": "mcp__orders__order_status",
+              "output": "order A-1: shipped"
+            }
+          ]
+        }
+      ],
+      "tools": [
+        "mcp__orders__order_status"
+      ]
+    },
+    {
+      "kind": "response",
+      "line": 27,
+      "model": "model-1",
+      "message": {
+        "role": "assistant",
+        "parts": [
+          {
+            "type": "text",
+            "text": "Your order shipped."
+          }
+        ]
+      },
+      "finish": "stop"
+    },
+    {
+      "kind": "check",
+      "line": 30,
+      "message": "the server's result goes back to the model",
+      "pass": true
+    },
+    {
+      "kind": "check",
+      "line": 31,
+      "message": "and the registry marks it untrusted",
+      "pass": true
+    }
+  ]
+}

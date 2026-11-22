@@ -1,10 +1,10 @@
 ---
 title: "Tools at scale: the registry, deferred tools, MCP and skills"
-summary: An agent with dozens of tools stays usable when one registry names and gates every tool and most definitions stay out of the request until the model asks. This chapter shows tool selection and deferral in checked listings, what MCP's 2026-07-28 revision changes for a client, and how skills load on demand and when to delegate to another agent over A2A, and it marks which parts of our harness are built.
+summary: An agent with dozens of tools stays usable when one registry names and gates every tool and most definitions stay out of the request until the model asks. This chapter shows tool selection and deferral in checked listings, what MCP's 2026-07-28 revision changes for a client, and how skills load on demand and when to delegate to another agent over A2A, and it runs our harness beside the others and marks which parts of it are built.
 opening: fact
-sources: [anthropic-advanced-tool-use, claude-agent-sdk-tool-search, pi-mcp-servers, pi-sdk-docs, buildanagent-harness-readme, santra-acam, anthropic-model-context-protocol, mcp-tools-spec, mcp-changelog-2026-07-28, mcp-deprecated-features, mcp-versioning, mcp-server-discover, mcp-multi-round-trip-requests, ai-sdk-mcp-tools, cloudflare-agents-mcp-client, copilot-sdk-nodejs-readme, mcp-authorization, a2a-spec, a2a-releases, adk-a2a-intro, claude-multi-agent-guidance, a2a-js-sdk, guirao-agent-cards, kumar-name-collision, ms-agent-framework-a2a, anthropic-agent-skills-overview, claude-agent-sdk-skills, pi-skills, wang-voyager, ruan-skillcfi]
+sources: [anthropic-advanced-tool-use, claude-agent-sdk-tool-search, pi-mcp-servers, pi-sdk-docs, buildanagent-harness-readme, buildanagent-harness-alpha, santra-acam, anthropic-model-context-protocol, mcp-tools-spec, mcp-changelog-2026-07-28, mcp-deprecated-features, mcp-versioning, mcp-server-discover, mcp-multi-round-trip-requests, ai-sdk-mcp-tools, cloudflare-agents-mcp-client, copilot-sdk-nodejs-readme, mcp-authorization, a2a-spec, a2a-releases, adk-a2a-intro, claude-multi-agent-guidance, a2a-js-sdk, guirao-agent-cards, kumar-name-collision, ms-agent-framework-a2a, anthropic-agent-skills-overview, claude-agent-sdk-skills, pi-skills, wang-voyager, ruan-skillcfi]
 glossary: [tool, mcp, a2a, agent-card, tool-registry, deferred-tool, skill]
-switchTo: [N11, N21, N22, N23, N24, N25]
+switchTo: [N11, N21, N22, N23, N24]
 ---
 
 Five MCP servers, 58 tools and about 55,000 tokens: that is what Anthropic estimated in November 2025 for a setup with GitHub, Slack, Sentry, Grafana and Splunk, before the conversation had started [@anthropic-advanced-tool-use]. The post gives no method for the figure, but the arithmetic holds for any agent. Every tool you register puts its name, description and schema into every request, and the Claude Agent SDK's documentation says selection accuracy "degrades with more than 30-50 tools loaded at once" [@claude-agent-sdk-tool-search].
@@ -15,23 +15,39 @@ This chapter answers one question: how does an agent with dozens of tools stay u
 
 Suppose your agent ships with six built-in tools and you connect a GitHub server and a Slack server. By evening it holds dozens of tools from three origins, and three questions each need one answer. What is each tool called, so that a rule or a log line can point at it? Does the model receive the tool's whole definition, or only a hint that it exists? And may this call run?
 
-The SDKs answer these separately, each in its own corner. Naming is the first corner. Pi calls an MCP tool `mcp__github__create_issue`{checked=row-4}, replaces every character other than letters, digits and underscores, and adds a hash suffix to the tools of a server whose cleaned names collide [@pi-mcp-servers]. [[ch:tools]] showed the Claude Agent SDK's version of the same prefix. Selection is the second corner. Pi lets you choose the tools the model may use, and [[lst:pi-active-tools]] shows the three ways to do it [@pi-sdk-docs].
+The SDKs answer these separately, each in its own corner. Naming is the first corner. Pi calls an MCP tool `mcp__github__create_issue`{checked=row-4}, replaces every character other than letters, digits and underscores, and adds a hash suffix to the tools of a server whose cleaned names collide [@pi-mcp-servers]. [[ch:tools]] showed the Claude Agent SDK's version of the same prefix. Selection is the second corner. Our harness, `@buildanagent/harness`, and Pi each let you choose the tools the model may use, and [[lst:select-ours]] and [[lst:pi-active-tools]] show how each one chooses [@pi-sdk-docs]. Wherever a listing in this chapter has a tab for our harness, that tab comes first.
 
-:::listing[Pi chooses the tools a session offers: an allowlist, an exclusion, or none]{#pi-active-tools file="verify/pi/examples/03-tool-selection.ts" region="active-tools"}
+::::tabs
+:::listing[Our harness]{#select-ours file="packages/harness/examples/04-tool-selection.ts" region="active-tools"}
+::note[`scripted` puts our SDK's test model behind the gateway's `createModel()`, so the turns need no key and send nothing over the network. A real run passes a model from `createModel()` and nothing else changes.]{#scripted}
+::note[A turn's `tools` list names the registered tools its requests may send, by name or alias, and the requests send them in registration order. This turn can only read and search.]{#allowlist}
+::note[There is no exclusion option. This turn's list is every registered tool except `bash` and `write`, which leaves `read`, `edit`, `grep` and `glob`.]{#exclude}
+::note[An empty list sends no tool at all. Leaving `tools` out offers every registered tool, and deferred tools still wait for a search.]{#none}
+:::
+:::listing[Pi]{#pi-active-tools file="verify/pi/examples/03-tool-selection.ts" region="active-tools"}
 ::note[An allowlist replaces the default set, so this session can only read.]{#allowlist}
 ::note[An exclusion starts from the defaults and removes two tools, which leaves `read` and `edit`.]{#exclude}
 ::note[`noTools: "builtin"` leaves the model with none of the built-in tools.]{#none}
 :::
+::::
 
-An unlisted tool is not on the menu, so the model never sees its definition. A model can still ask for a tool by name, though, and what happens next is part of the gate. [[lst:pi-inactive-call]] scripts that request, and the answer is an error result the model can read, not a crash.
+An unlisted tool is not on the menu, so the model never sees its definition. A model can still ask for a tool by name, though, and what happens next is part of the gate. [[lst:inactive-ours]] and [[lst:pi-inactive-call]] script that request, and in both the answer is an error result the model can read, not a crash.
 
-:::listing[A call to a tool outside the active set comes back as an error, and the loop continues]{#pi-inactive-call file="verify/pi/examples/03-tool-selection.ts" region="inactive-call"}
+::::tabs
+:::listing[Our harness]{#inactive-ours file="packages/harness/examples/04-tool-selection.ts" region="inactive-call"}
+::note[The scripted model asks for `glob`, which the registry holds but this turn does not offer.]{#scripted-glob}
+::note[Only `read` is offered.]{#only-read}
+::note[The call yields an error tool result. The text the model reads says that no tool has that name and lists the tools on offer.]{#error-result}
+::note[The loop sends a second request instead of ending the run.]{#continues}
+:::
+:::listing[Pi]{#pi-inactive-call file="verify/pi/examples/03-tool-selection.ts" region="inactive-call"}
 ::note[Only `read` is active, but the scripted model asks for `ls`.]{#only-read}
 ::note[The call yields an error tool result, which the model reads on its next request.]{#error-result}
 ::note[The loop sends a second request instead of ending the run.]{#continues}
 :::
+::::
 
-The third corner, whether a call may run, lives in other code again, as [[ch:approvals-guardrails-and-injection]] showed. Three answers in three places drift apart, and a rule that names a tool one way while a log records it another way protects nothing. A harness that owns the loop can ask for one place, which our harness calls the tool registry. The registry, `createToolRegistry`{checked=row-8}, exists today in the private `@buildanagent/harness` package, as of November 2026 [@buildanagent-harness-readme]. It takes tools from four origins (built-in, extension, client and MCP server) and settles the three questions at registration, once.
+The third corner, whether a call may run, lives in other code again, as [[ch:approvals-guardrails-and-injection]] showed. Three answers in three places drift apart, and a rule that names a tool one way while a log records it another way protects nothing. A harness that owns the loop can ask for one place, which our harness calls the tool registry. The registry, `createToolRegistry`{checked=row-8}, exists today in `@buildanagent/harness`, which npm serves as an alpha under the `alpha`{checked=row-160} tag as of November 2026 [@buildanagent-harness-alpha]. It takes tools from four origins (built-in, extension, client and MCP server) and settles the three questions at registration, once.
 
 :::figure[One registry names every tool once, sets what each request carries and feeds the permission pipeline]{#one-registry}
 ::svg{alt="Four boxes on the left, built-in tools, MCP server tools, extension tools and client tools, each with an arrow into one tall box labelled one registry. Inside it are three boxes: names it once, with the example mcp__github__x; sets exposure to direct, deferred or hidden; and marks trust, with MCP output untrusted. Two arrows leave the registry. One goes to a box saying each request carries direct tools plus tool_search. The other goes to a box saying the permission pipeline decides every call."}
@@ -41,7 +57,7 @@ The registry answers the questions in this order. It gives each tool a canonical
 
 The permission pipeline reads the same description. It decides every call in one order, hooks first, then deny rules, ask rules, the mode, allow rules, the host callback and a default for what no rule settled. A deny at any step ends the decision, and a hook or callback that throws counts as a deny. Each verdict, allows included, becomes a `permission_decision`{checked=row-17} entry in the session log [@buildanagent-harness-readme]. Because the registry named the tool and marked its trust before the call reached the pipeline, a rule written for `mcp__github__create_issue`{checked=row-10} matches the tool that actually runs and a log reader finds it under the same name.
 
-Two limits keep this honest. First, two pieces are not built as of November 2026: the built-in tools (todo `N21`{checked=row-159}) and the HTTP and legacy SSE transports for MCP (todo `N25`{checked=row-159}). Until they land, you register built-in-style tools by hand, and our MCP client reaches a server only over stdio or in this process. Second, a registry records where a tool came from and how far to trust its output, but it never reads the tool's code. ACaM, a November 2026 paper, calls the resulting gap Description-Code Inconsistency: "nothing enforces that the description and its implementation agree" [@santra-acam]. Across 43 unmodified real-world agents, its tool surfaced 123 code-execution and credential-exposure paths that the authors checked by hand [@santra-acam].
+The built-in tools are built as of November 2026 (todo `N21`{checked=row-161}): `builtinTools()`{checked=row-161} returns `read`, `write`, `edit`, `bash`, `grep` and `glob`, and `fetch` once you give it an egress proxy, and each reaches files, commands and the web only through the sandbox or the proxy. Two limits keep this honest. First, our MCP client lacks the HTTP and legacy SSE transports (todo `N25`{checked=row-165}), so it reaches a server only over stdio or in this process. Second, a registry records where a tool came from and how far to trust its output, but it never reads the tool's code. ACaM, a November 2026 paper, calls the resulting gap Description-Code Inconsistency: "nothing enforces that the description and its implementation agree" [@santra-acam]. Across 43 unmodified real-world agents, its tool surfaced 123 code-execution and credential-exposure paths that the authors checked by hand [@santra-acam].
 
 ## Deferring a tool keeps its definition out of the request until the model asks for it
 
@@ -53,25 +69,41 @@ Ask a hardware-store clerk for a hole saw, and the clerk walks to the back room,
 
 The saving is large once the shelf holds dozens of tools. Anthropic estimates 50 or more MCP tools at about 72,000 tokens of definitions, about 77,000 tokens in all before any work, against about 8,700 tokens with its tool search tool, which loads about 500 tokens up front and three to five discovered tools at about 3,000 [@anthropic-advanced-tool-use]. In the same post, Anthropic reports that Opus 4 improved from 49% to 74% on its MCP evaluations with tool search, and Opus 4.5 from 79.5% to 88.1%. Both are Anthropic's own internal tests, published in November 2025, and the post gives no eval size, so treat them as a direction and not a rate.
 
-[[lst:deferred-server]] shows how little code the choice takes in the Claude Agent SDK. Three tools sit in one server, the server is deferred by default, and a second copy of it opts out.
+[[lst:deferred-server-ours]] and [[lst:deferred-server]] show how little code the choice takes in our harness and in the Claude Agent SDK. In each, three tools sit in one server, the server is deferred by default, and a second copy of it opts out.
 
-:::listing[A deferred server and an eager one hold the same three tools]{#deferred-server file="verify/claude-agent-sdk/examples/08-deferred-tools.ts" region="deferred-server"}
+:::::tabs
+:::listing[Our harness]{#deferred-server-ours file="packages/harness/examples/05-deferred-tools.ts" region="deferred-server"}
+::note[A deferred server, the default for an MCP server: a request carries none of its tools until tool search finds one, and not their names either.]{#deferred-default}
+::note[`exposure: "direct"` puts every definition of this copy into every request, so no search is needed.]{#always-load}
+:::
+:::listing[Claude Agent SDK]{#deferred-server file="verify/claude-agent-sdk/examples/08-deferred-tools.ts" region="deferred-server"}
 ::note[A deferred server: the model sees these tools' names, not their schemas, until it searches.]{#deferred-default}
 ::note[`alwaysLoad: true` puts every definition into the first request, so no search is needed.]{#always-load}
 :::
+:::::
 
-[[lst:deferred-checks]] holds what the example asserts about the first request and the one after it, and its replay steps through the run with the mock model standing in for the choice. The first request offers a search tool, `ToolSearch`, and no weather definition. The model still knows each tool's name, because the CLI behind the SDK lists the names in a message, but it has no description or schema to read. It calls `ToolSearch` for one tool by name, and the next request carries that single definition. The other two never reach the model in any request, and the eager server from [[lst:deferred-server]] sends all three at once and never offers `ToolSearch` at all.
+[[lst:deferred-checks-ours]] and [[lst:deferred-checks]] hold what each example asserts about the first request and the one after it, and each replay steps through the run with a mock model standing in for the choice. In the Claude Agent SDK, the first request offers a search tool, `ToolSearch`, and no weather definition. The model still knows each tool's name, because the CLI behind the SDK lists the names in a message, but it has no description or schema to read. It calls `ToolSearch` for one tool by name, and the next request carries that single definition. The other two never reach the model in any request, and the eager server from [[lst:deferred-server]] sends all three at once and never offers `ToolSearch` at all. Our harness differs on one point. Its first request names no deferred tool, because the registry sends a name only with its definition, so the model finds a tool by describing what it needs.
 
-:::listing[The first request holds no definition, and one search loads exactly one]{#deferred-checks file="verify/claude-agent-sdk/examples/08-deferred-tools.ts" region="deferred-checks" replay}
+:::::tabs
+:::listing[Our harness]{#deferred-checks-ours file="packages/harness/examples/05-deferred-tools.ts" region="deferred-checks" replay}
+::note[The scripted model asks `tool_search` for "forecast", then calls the tool the search found.]{#scripted}
+::note[The first request holds no definition of the deferred server's tools.]{#no-definition}
+::note[It does not name them either, so the model must describe what it needs. The Claude Agent SDK's request lists the names.]{#names-hidden}
+::note[The eager copy's three tools are in the first request, beside `tool_search`.]{#eager-sent}
+::note[The search matched the words of one tool's name and description, and it recorded that tool in the `activated` set.]{#select-one}
+::note[One of the three definitions reached the model after the search.]{#one-loaded}
+:::
+:::listing[Claude Agent SDK]{#deferred-checks file="verify/claude-agent-sdk/examples/08-deferred-tools.ts" region="deferred-checks" replay}
 ::note[The model is offered the search tool and no weather definition.]{#no-definition}
 ::note[Names stay visible, so the model knows what to search for.]{#names-only}
 ::note[The mock model asks `ToolSearch` for one tool by name.]{#select}
 ::note[One of the three definitions reached the model after the search.]{#one-loaded}
 :::
+:::::
 
 The analogy stops at the customer. A shopper who never asks for the pipe die set never learns the store has one, and a model finds a deferred tool only when its search words match the tool's name or description. The back room also costs a model more than minutes. Each search adds one round trip, and the Claude Agent SDK's documentation says that with fewer than about ten tools whose definitions fit comfortably, loading everything upfront is typically faster [@claude-agent-sdk-tool-search]. A loaded definition also stays in the context for later turns, until the SDK compacts the messages where the model found it. So the shelf should hold the tools your agent uses on most runs, and `alwaysLoad` is the setting that puts them there. Finding the rest depends on words: the search matches a query against tool names and descriptions, and the SDK's documentation notes that `search_slack_messages`{checked=row-28} surfaces for a wider range of requests than `query_slack`{checked=row-28} [@claude-agent-sdk-tool-search]. Pi sends the same signal at the server level, because it lists a server's `description`{checked=row-34} in the system prompt and ranks the server's tools by it when `tool_search`{checked=row-33} runs [@pi-mcp-servers].
 
-Our harness builds the same mechanism into its registry, as of November 2026 and in code that no listing shows. MCP tools default to `deferred`{checked=row-13}, and `tool_search`{checked=row-35} is a registered tool that matches the words of a query against the names, aliases and descriptions of deferred tools, ignores common words and words under three letters, and records up to five matches in an `activated`{checked=row-35} set [@buildanagent-harness-readme]. An interceptor then sets each request's `activeTools`{checked=row-37} to the run's tools, the activated names and `tool_search`{checked=row-35}, so a deferred tool is absent from one request and present in the next.
+Our harness builds the same mechanism into its registry, as of November 2026, and [[lst:deferred-checks-ours]] runs it. MCP tools default to `deferred`{checked=row-13}, and `tool_search`{checked=row-35} is a registered tool that matches the words of a query against the names, aliases and descriptions of deferred tools, ignores common words and words under three letters, and records up to five matches in an `activated`{checked=row-35} set [@buildanagent-harness-readme]. An interceptor then sets each request's `activeTools`{checked=row-37} to the run's tools, the activated names and `tool_search`{checked=row-35}, so a deferred tool is absent from one request and present in the next.
 
 A `hidden`{checked=row-13} tool never appears in a search, because hiding a tool means the model should not learn it exists. The registry also estimates the tokens that `direct`{checked=row-13} tools add before any message, which makes the saving visible at session start. Pi's four exposure levels, `codemode`{checked=row-33}, `deferred`{checked=row-33}, `direct`{checked=row-33} and `hidden`{checked=row-33}, rest on the same split: sending a tool, finding a tool and denying a tool are different decisions, and a registry that keeps them apart lets you change one without touching the others.
 
@@ -79,9 +111,19 @@ A `hidden`{checked=row-13} tool never appears in a search, because hiding a tool
 
 Anthropic announced MCP in November 2024 as an open standard that replaces fragmented integrations with a single protocol [@anthropic-model-context-protocol], so any client that speaks it can use any server's tools, much like :analogy[a USB port: one plug shape for many devices]{#usb-port}. The comparison stops at trust. A mouse only moves a cursor, while an MCP server is closer to installed software. It chooses its tools' names, descriptions and results, and the specification tells clients to treat a tool's annotations as untrusted unless the server is trusted, and to keep a human able to deny tool calls [@mcp-tools-spec]. That is why the registry from the first section marks MCP output untrusted.
 
-Connecting takes little code, and each of the three SDKs below puts it in a different place. The AI SDK converts a server's tools into its own and hands them to `generateText`. Cloudflare's `Agent` class connects and holds the connection for you. The Copilot SDK starts the server inside its runtime and renames each tool `<server-key>-<tool-name>`{checked=row-66}, here `orders-order_status` [@ai-sdk-mcp-tools; @cloudflare-agents-mcp-client; @copilot-sdk-nodejs-readme].
+Connecting takes little code, and each of the four clients below puts it in a different place. Our harness's `createMcpManager()` connects each server in a list and registers its tools in the tool registry. The AI SDK converts a server's tools into its own and hands them to `generateText`. Cloudflare's `Agent` class connects and holds the connection for you. The Copilot SDK starts the server inside its runtime and renames each tool `<server-key>-<tool-name>`{checked=row-66}, here `orders-order_status`. Ours names it `mcp__orders__order_status` [@ai-sdk-mcp-tools; @cloudflare-agents-mcp-client; @copilot-sdk-nodejs-readme].
 
 ::::tabs
+:::listing[Our harness]{#mcp-ours file="packages/harness/examples/06-mcp-client.ts" region="mcp-client"}
+::note[The server runs in this process, over a channel from the server library's in-memory transport. A stdio server takes `{ kind: "stdio", command, args }` here instead, and the harness starts it with a cleared environment. No HTTP transport is built.]{#connect}
+::note[The client sent `server/discover` first, and this server answered, so it connects in the 2026-07-28 era. A server that refuses the probe connects as `legacy`{checked=row-169} after an `initialize`{checked=row-61}.]{#era}
+::note[The registry names the tool `mcp__orders__order_status`.]{#name}
+::note[An MCP tool is deferred by default, so a model finds it only through tool search.]{#exposure}
+::note[`setExposure()` sends this server's tools in every request, so the loop below needs no search.]{#direct}
+::note[`scripted` puts our SDK's test model behind the gateway's `createModel()`, so the run needs no key. A real run passes a model from `createModel()`.]{#scripted}
+::note[`registry.definitions()` hands the registered tools, MCP tools included, to the normal loop.]{#loop}
+::note[The server wrote this result, not you, so the registry marks its output untrusted.]{#untrusted}
+:::
 :::listing[AI SDK]{#mcp-ai file="verify/vercel-ai-sdk/examples/08-mcp-tools.ts" region="mcp-client"}
 ::note[The transport here is an in-process server. A real one is HTTP or stdio.]{#connect}
 ::note[`client.tools()` turns the server's tools into AI SDK tools, keyed by name.]{#convert}
@@ -101,7 +143,7 @@ Connecting takes little code, and each of the three SDKs below puts it in a diff
 :::
 ::::
 
-These listings show connecting, not the revision. The AI SDK example speaks the legacy handshake, and the Cloudflare example does not show which era its client chose. What the 2026-07-28 revision changes is the conversation behind these calls, and [[tbl:mcp-changes]] sets the old and new designs side by side [@mcp-changelog-2026-07-28; @mcp-deprecated-features].
+These listings show connecting, not the revision. The AI SDK example speaks the legacy handshake, the Cloudflare example does not show which era its client chose, and ours reports the era its probe found without showing what that era changes. What the 2026-07-28 revision changes is the conversation behind these calls, and [[tbl:mcp-changes]] sets the old and new designs side by side [@mcp-changelog-2026-07-28; @mcp-deprecated-features].
 
 :::table[What the 2026-07-28 revision changes for an MCP client]{#mcp-changes}
 | Concern | Before 2026-07-28 | In 2026-07-28 |
@@ -123,7 +165,7 @@ For an agent, this means a tool call can come back asking for a person. Your loo
 
 The fourth change is a set of deprecations. The revision deprecates Roots, Sampling and Logging, and the dynamic client registration protocol. They keep working through a deprecation window of at least twelve months, and the earliest revision that may remove them is the first one released on or after 2027-07-28, so the dates are a floor and not a schedule [@mcp-deprecated-features; @mcp-changelog-2026-07-28]. The migrations point away from the protocol. Pass directories and files as tool parameters instead of Roots, call model providers directly instead of using Sampling, and log to stderr or send OpenTelemetry instead of using Logging. The revision also removes `ping`{checked=row-56}, `logging/setLevel` and the roots change notification, and a client sets the log level on each request in `_meta`{checked=row-41}. In short, build nothing new on the deprecated features.
 
-Our own MCP client connects to servers over stdio and in this process as of November 2026. It probes each server with `server/discover` and falls back to `initialize`{checked=row-157}, registers each server's tools as deferred tools by default, and sends every call through the permission pipeline. It refuses `input_required`{checked=row-158}: a server's request for input fails the call, because the owner chose to keep it failing until a pause has a safe form. A proposal in our source-update report would instead turn each input request into a pause that a person answers through a signed approval, but it is not adopted. Todo N25 adds the HTTP transports, so treat them as intent, not behavior.
+Our own MCP client connects to servers over stdio and in this process as of November 2026, and [[lst:mcp-ours]] connects one in this process. It probes each server with `server/discover` and falls back to `initialize`{checked=row-157}, registers each server's tools as deferred tools by default, and sends every call through the permission pipeline. It refuses `input_required`{checked=row-158}: a server's request for input fails the call, because the owner chose to keep it failing until a pause has a safe form. A proposal in our source-update report would instead turn each input request into a pause that a person answers through a signed approval, but it is not adopted. Todo N25 adds the HTTP transports, so treat them as intent, not behavior.
 
 ## A2A hands a task to an agent whose plan someone else owns
 
@@ -175,21 +217,37 @@ Distrust three things. First, the card's prose: your model reads a card's names 
 
 A mechanic does not read every service manual before each job, because :analogy[service manuals open only when that model of car comes in]{#service-manuals}. The shelf lists each manual by make and year, and the mechanic pulls the one for the car on the lift. A skill is a folder with a `SKILL.md` file, and it works the same way: the file's name and description go into the prompt at startup, at about 100 tokens per skill, and its body, under 5,000 tokens by Anthropic's guidance, enters the context only when the model decides the task matches [@anthropic-agent-skills-overview; @claude-agent-sdk-skills]. Bundled reference files load when the model reads them, and a bundled script runs through a shell, so only its output enters the context.
 
-A skill adds instructions, not an interface. Pi's documentation draws the line: use a skill when a workflow needs more context than a prompt template but no new executable integration point [@pi-skills]. A tool lets the model do something new. A skill tells it how your team does something it can already do, such as report the weather in one city's format. [[lst:skills-run]] sets up that case in the Claude Agent SDK, with two skills on disk and one of them enabled.
+A skill adds instructions, not an interface. Pi's documentation draws the line: use a skill when a workflow needs more context than a prompt template but no new executable integration point [@pi-skills]. A tool lets the model do something new. A skill tells it how your team does something it can already do, such as report the weather in one city's format. [[lst:skills-run-ours]] and [[lst:skills-run]] set up that case in our harness and in the Claude Agent SDK, each with two skills and one of them listed for the run.
 
-::listing[Two skills on disk, one enabled for the run]{#skills-run file="verify/claude-agent-sdk/examples/09-skills.ts" region="skills-run"}
+:::::tabs
+:::listing[Our harness]{#skills-run-ours file="packages/harness/examples/07-skills.ts" region="skills-run"}
+::note[Our harness has no option that enables a skill: the list you pass is the list the prompt shows, so this run passes one of its two. Here `skillOf()` parses a file held in memory. On a real project, `discoverSkills()`{checked=row-173} returns the list from the trusted project's `.agents/skills` folders.]{#enabled}
+::note[`withSkills()` adds a section to the system prompt that lists each skill's name, description and path, and never its body.]{#listing}
+::note[Passing `skills` to the harness also lets each turn record a load, and `env.cwd` is where a relative path in a `read` call starts when the turn matches it to a skill.]{#record}
+:::
+::listing[Claude Agent SDK]{#skills-run file="verify/claude-agent-sdk/examples/09-skills.ts" region="skills-run"}
+:::::
 
-[[lst:skills-checks]] shows what the model receives. Its first request lists the enabled skill's name and description and carries no body. The skill left out of the `skills` option never reaches the model, though it stays on disk, because the option is "a context filter, not a sandbox" [@claude-agent-sdk-skills]. The mock model then calls the `Skill` tool, and from that request on, the body sits in every request of the run.
+[[lst:skills-checks-ours]] and [[lst:skills-checks]] show what the model receives. In each, the first request lists the enabled skill's name and description and carries no body. In the Claude Agent SDK, the skill left out of the `skills` option never reaches the model, though it stays on disk, because the option is "a context filter, not a sandbox" [@claude-agent-sdk-skills]. In the Claude Agent SDK, the mock model then calls the `Skill` tool, and from that request on, the body sits in every request of the run. In ours, the scripted model reads the skill's file with the ordinary `read` tool.
 
-:::listing[The listing is cheap, the body arrives on demand and then stays]{#skills-checks file="verify/claude-agent-sdk/examples/09-skills.ts" region="skills-checks" replay}
+:::::tabs
+:::listing[Our harness]{#skills-checks-ours file="packages/harness/examples/07-skills.ts" region="skills-checks" replay}
+::note[The first request holds the name and the description, in the system prompt.]{#listed}
+::note[It does not hold the body.]{#body-withheld}
+::note[The scripted model reads the skill's `SKILL.md` with the `read` tool, so the next request carries the body in the tool's result.]{#body-arrives}
+::note[The skill left out of the list reaches neither request, though its file is in the workspace.]{#unlisted}
+::note[The turn also wrote a `skill_loaded` entry, which names the skill and its path.]{#logged}
+:::
+:::listing[Claude Agent SDK]{#skills-checks file="verify/claude-agent-sdk/examples/09-skills.ts" region="skills-checks" replay}
 ::note[The first request holds the name and the description.]{#listed}
 ::note[It does not hold the body.]{#body-withheld}
 ::note[After the call, every request carries the body.]{#body-stays}
 :::
+:::::
 
 The manual leaves the bay when the car does, and a skill's body does not. It stays in the context and costs its tokens in every later request of the run. The listing has a cost of its own: Anthropic's figure of about 100 tokens per skill comes to about 1,000 tokens for ten skills and about 20,000 for two hundred. Finding the right skill depends on the description, which Anthropic says must name what the skill does and when to use it [@anthropic-agent-skills-overview]. Even a good description can miss. Pi's documentation says "A model might fail to load a relevant skill", and gives a command, `/skill:name`, that forces one [@pi-skills]. No source measures how often a model misses, so treat loading as likely and not as guaranteed.
 
-Our harness uses the same layout, built in todo N23 as of November 2026. It lists each skill's name, description and path in the system prompt, loads the body through the ordinary `read`{checked=row-81} tool, records a `skill_loaded`{checked=row-81} entry in the session log, and discovers skills in `.agents/skills` from the working directory up to the repository root, as Pi does [@pi-skills]. It lists a project's skills only when the host trusts the project. Two parts are still missing: the `read`{checked=row-81} tool itself is not built yet (todo N21), so the harness spots a skill load by the tool's name and the path the call opens, and nothing helps you write a skill. The layout is a file-based cousin of Voyager, an agent that played Minecraft with GPT-4 and kept each skill as executable code in a vector database, keyed by an embedding of the skill's description and retrieved five at a time [@wang-voyager]. Voyager added a skill only after the program had run and passed the environment's feedback. A skill folder you download has run nowhere.
+Our harness uses the same layout, built in todo N23 as of November 2026, and [[lst:skills-checks-ours]] runs it. It lists each skill's name, description and path in the system prompt, loads the body through the ordinary `read`{checked=row-81} tool, which todo N21 built, records a `skill_loaded`{checked=row-81} entry in the session log when a successful `read` opens a listed skill's whole `SKILL.md`, and discovers skills in `.agents/skills` from the working directory up to the repository root, as Pi does [@pi-skills]. It lists a project's skills only when the host trusts the project. One part is still missing: nothing helps you write a skill. The layout is a file-based cousin of Voyager, an agent that played Minecraft with GPT-4 and kept each skill as executable code in a vector database, keyed by an embedding of the skill's description and retrieved five at a time [@wang-voyager]. Voyager added a skill only after the program had run and passed the environment's feedback. A skill folder you download has run nowhere.
 
 That gap matters, because the permission pipeline checks one call at a time and a skill steers a sequence of calls. SkillCFI, a November 2026 paper, tested 53 public skill packages and accepted none as written [@ruan-skillcfi]. On the authors' abnormal tasks its runtime check blocked every violating request that used only the skill's own vocabulary, while a permission-style allowlist let all 80 of them take effect [@ruan-skillcfi]. ACaM's finding from the first section applies as well, because a description can omit what the code does [@santra-acam]. No current todo of ours checks a skill's steps or a tool's code at run time, so the pipeline and the sandbox remain the only limits on what a loaded skill can make the agent do. A skill you did not write deserves the review you would give a script you did not write.
 

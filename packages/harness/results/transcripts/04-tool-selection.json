@@ -1,0 +1,243 @@
+{
+  "format": 2,
+  "example": "04-tool-selection",
+  "file": "packages/harness/examples/04-tool-selection.ts",
+  "harness": "packages/harness",
+  "pin": "@buildanagent/harness@workspace",
+  "mock": "@buildanagent/harness@workspace",
+  "events": [
+    {
+      "kind": "request",
+      "line": 19,
+      "model": "model-1",
+      "repeated": 0,
+      "messages": [
+        {
+          "role": "system",
+          "parts": [
+            {
+              "type": "text",
+              "text": "You help with code."
+            }
+          ]
+        },
+        {
+          "role": "user",
+          "parts": [
+            {
+              "type": "text",
+              "text": "Look around."
+            }
+          ]
+        }
+      ],
+      "tools": [
+        "read",
+        "grep",
+        "glob"
+      ]
+    },
+    {
+      "kind": "response",
+      "line": 19,
+      "model": "model-1",
+      "message": {
+        "role": "assistant",
+        "parts": [
+          {
+            "type": "text",
+            "text": "Looked."
+          }
+        ]
+      },
+      "finish": "stop"
+    },
+    {
+      "kind": "request",
+      "line": 21,
+      "model": "model-1",
+      "repeated": 3,
+      "messages": [
+        {
+          "role": "user",
+          "parts": [
+            {
+              "type": "text",
+              "text": "Fix it."
+            }
+          ]
+        }
+      ],
+      "tools": [
+        "read",
+        "edit",
+        "grep",
+        "glob"
+      ]
+    },
+    {
+      "kind": "response",
+      "line": 21,
+      "model": "model-1",
+      "message": {
+        "role": "assistant",
+        "parts": [
+          {
+            "type": "text",
+            "text": "Fixed."
+          }
+        ]
+      },
+      "finish": "stop"
+    },
+    {
+      "kind": "request",
+      "line": 22,
+      "model": "model-1",
+      "repeated": 5,
+      "messages": [
+        {
+          "role": "user",
+          "parts": [
+            {
+              "type": "text",
+              "text": "Just talk."
+            }
+          ]
+        }
+      ],
+      "tools": []
+    },
+    {
+      "kind": "response",
+      "line": 22,
+      "model": "model-1",
+      "message": {
+        "role": "assistant",
+        "parts": [
+          {
+            "type": "text",
+            "text": "Hello."
+          }
+        ]
+      },
+      "finish": "stop"
+    },
+    {
+      "kind": "check",
+      "line": 24,
+      "message": "tools: [...] sends a read-only set, in registration order",
+      "pass": true
+    },
+    {
+      "kind": "check",
+      "line": 25,
+      "message": "a list built from the registry leaves out two tools",
+      "pass": true
+    },
+    {
+      "kind": "check",
+      "line": 26,
+      "message": "tools: [] sends no tool",
+      "pass": true
+    },
+    {
+      "kind": "request",
+      "line": 38,
+      "model": "model-2",
+      "repeated": 0,
+      "messages": [
+        {
+          "role": "system",
+          "parts": [
+            {
+              "type": "text",
+              "text": "You help with code."
+            }
+          ]
+        },
+        {
+          "role": "user",
+          "parts": [
+            {
+              "type": "text",
+              "text": "List the files."
+            }
+          ]
+        }
+      ],
+      "tools": [
+        "read"
+      ]
+    },
+    {
+      "kind": "response",
+      "line": 38,
+      "model": "model-2",
+      "message": {
+        "role": "assistant",
+        "parts": [
+          {
+            "type": "tool-call",
+            "id": "c1",
+            "name": "glob",
+            "input": {
+              "pattern": "*.ts"
+            }
+          }
+        ]
+      },
+      "finish": "tool_calls"
+    },
+    {
+      "kind": "request",
+      "line": 38,
+      "model": "model-2",
+      "repeated": 3,
+      "messages": [
+        {
+          "role": "tool",
+          "parts": [
+            {
+              "type": "tool-result",
+              "id": "c1",
+              "name": "glob",
+              "output": "There is no tool named \"glob\". The available tools are: read.\nReceived arguments: {\"pattern\":\"*.ts\"}\nDo not substitute a mock, a placeholder or invented data for this tool's result. Fix the call, try another approach, or tell the user what failed.",
+              "error": true
+            }
+          ]
+        }
+      ],
+      "tools": [
+        "read"
+      ]
+    },
+    {
+      "kind": "response",
+      "line": 38,
+      "model": "model-2",
+      "message": {
+        "role": "assistant",
+        "parts": [
+          {
+            "type": "text",
+            "text": "glob is unavailable; stopping."
+          }
+        ]
+      },
+      "finish": "stop"
+    },
+    {
+      "kind": "check",
+      "line": 40,
+      "message": "the call to glob yields an error tool result that says no tool has that name",
+      "pass": true
+    },
+    {
+      "kind": "check",
+      "line": 44,
+      "message": "the loop sends a second request",
+      "pass": true
+    }
+  ]
+}
