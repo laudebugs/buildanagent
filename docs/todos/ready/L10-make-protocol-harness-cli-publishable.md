@@ -32,7 +32,7 @@ Bring `@buildanagent/protocol`, `@buildanagent/harness`, `@buildanagent/cli` and
 - **The protocol's tarball imports neither the gateway nor the SDK.** A test reads the packed protocol's JavaScript and fails if any file imports `@buildanagent/gateway` or `@buildanagent/sdk`, including through a re-export. The protocol depends on both for types only; N26 checks the sources, and this checks what ships.
 - **No package that will publish depends on one that won't.** The check doesn't read the `private` field, because all six are still private until L11. It holds a list of the six names that will publish (gateway, SDK, agent-safety, protocol, harness, CLI; L11 adds a test that the list equals `RELEASE_ORDER`) and fails if a packed manifest among them names, in `dependencies` or `peerDependencies`, any other workspace package, such as the private `@buildanagent/evals`. It therefore fires from the day L10 lands, and today it passes: the harness's `@buildanagent/agent-safety` is one of the six.
 - **The CLI's `bin` and shebang.** `bin` names `buildanagent`, points at a built file in `dist/`, and the file starts with `#!/usr/bin/env node`; a test packs the CLI, installs it into a temp project and runs the binary's `--help` with no network.
-- **Changesets and the fixed group.** `.changeset/config.json` lists gateway, SDK, agent-safety, protocol, harness and CLI in one `fixed` group, and each package's `src/`, `package.json` or `tsconfig.build.json` change then needs a changeset under the CI gate. Changesets' handling of a private member of a fixed group is unverified (rows L9-10 and L9-20; the packages are still private, and `privatePackages` sets `version: false`). **The check is a hard gate:** before the `.changeset/config.json` change, run the test on a throwaway branch (put the six in the group, add a changeset naming the gateway, run `pnpm changeset version` under pre mode) and record in the pull request description whether Changesets rejects, skips or bumps the private members. If it rejects or skips them, don't touch the config in L10: move the config change to L11, in the same commit that drops `private`, and say so in the pull request.
+- **Changesets and the fixed group.** `.changeset/config.json` lists gateway, SDK, agent-safety, protocol, harness and CLI in one `fixed` group. The CI gate does not count the four yet: `versionedPackageDirs` in `scripts/ci/changeset-gate.mjs` skips every package with `private: true`, so a change to their `src/`, `package.json` or `tsconfig.build.json` needs no changeset until L11 drops `private`. Changesets' handling of a private member of a fixed group is unverified (rows L9-10 and L9-20; the packages are still private, and `privatePackages` sets `version: false`). **The check is a hard gate:** before the `.changeset/config.json` change, run the test on a throwaway branch (put the six in the group, add a changeset naming the gateway, run `pnpm changeset version` under pre mode) and record in the pull request description whether Changesets rejects, skips or bumps the private members. If it rejects or skips them, don't touch the config in L10: move the config change to L11, in the same commit that drops `private`, and say so in the pull request.
 - `private: true` stays on all four.
 
 **Out of scope** (and which todo covers it)
@@ -49,7 +49,7 @@ Bring `@buildanagent/protocol`, `@buildanagent/harness`, `@buildanagent/cli` and
 - [ ] Extend `packages-pack.test.mjs` for the four packages, and add the protocol-imports test, the dependency-outside-the-six test and the CLI binary test.
 - [ ] Run the throwaway-branch fixed-group test, and record its result.
 - [ ] Add the four packages to the fixed group, only if that test passed; otherwise record why the change moved to L11.
-- [ ] Add a changeset for each package that users will see. Use `pnpm changeset --empty` for changes they won't.
+- [ ] Check that `changeset-gate.test.mjs` and the release plan still pass with the new group. The gate needs no changeset for the four while they are private, so the changeset for their changes moves to L11 (`release-plan.mjs` `isPendingChangeset` only counts names in `RELEASE_ORDER`, so a changeset naming only private members is not pending until L11).
 
 ## Acceptance criteria
 
@@ -64,7 +64,7 @@ Bring `@buildanagent/protocol`, `@buildanagent/harness`, `@buildanagent/cli` and
 
 ## Tests
 
-`scripts/ci/packages-pack.test.mjs`, each package's docs checks in its `test`, and `scripts/ci/changeset-gate.test.mjs` for the new group.
+`scripts/ci/packages-pack.test.mjs` and each package's docs checks in its `test`. For the fixed group, L10 tests only that the config parses with the six names and that `scripts/ci/changeset-gate.test.mjs` still passes. Whether a change to the four needs a changeset is tested in L11, once `private` is gone.
 
 ## Docs to update
 

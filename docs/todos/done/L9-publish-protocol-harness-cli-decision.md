@@ -1,4 +1,4 @@
-# L9: Decide to publish the protocol, harness and CLI packages
+# L9: Decide to publish the protocol, harness and CLI packages (three, then four with agent-safety)
 
 | Field | Value |
 | --- | --- |
@@ -11,7 +11,7 @@
 
 ## Goal
 
-Record the owner's decision to publish `@buildanagent/protocol`, `@buildanagent/harness` and `@buildanagent/cli` to npm, together, in one release after N30 has given the CLI a working binary, and plan the two todos that carry it out.
+Record the owner's decision to publish `@buildanagent/protocol`, `@buildanagent/harness` and `@buildanagent/cli` to npm (three, then four with `@buildanagent/agent-safety`; the Outcome addendum covers the change), together, in one release after N30 has given the CLI a working binary, and plan the two todos that carry it out.
 
 ## Context
 
@@ -61,4 +61,4 @@ None.
 - [ADR 0058](../../decisions/0058-publish-protocol-harness-and-cli.md) records the decision, [PB4](../../plans/publish-and-docs.md#pb4-publish-the-protocol-harness-and-cli-packages-after-the-gateway-and-sdk-accepted) argues it, and [L10](../ready/L10-make-protocol-harness-cli-publishable.md) and [L11](../ready/L11-bootstrap-and-release-protocol-harness-cli.md) carry it out. The protocol, harness and CLI publish together, after N30, in one fixed group with the gateway and SDK (five members at the time; the addendum below makes it six).
 - The harness depends on `@buildanagent/agent-safety`, which was private; the owner decided the same day to publish it too (see the addendum), and L10's pack test enforces that no package that will publish depends on one outside the six.
 - Unverified: how Changesets treats a private member of a fixed group (fact-check row L9-10).
-- Addendum (2026-11-22, after the pull request opened): the owner decided to publish `@buildanagent/agent-safety` too ("yes, we're publishing agent-safety too"), as a sixth member of the fixed group, so the harness's dependency is answered and [ADR 0058](../../decisions/0058-publish-protocol-harness-and-cli.md) decision 9 records it. The owner reported publishing placeholders of the protocol, harness, CLI and agent-safety by hand; a session's `npm view` at 14:46 UTC listed them without a deprecation message, and L11 verifies the expected state. The pull request's medium review also changed the release plan: the new `release.yml` lands in the same merge as L11, L11's `release-plan.mjs` change has a defined version source, and the unverified fixed-group behaviour is a hard gate in L10 with a fallback in L11.
+- Addendum (2026-11-22, after the pull request opened): the owner decided to publish `@buildanagent/agent-safety` too ("yes, we're publishing agent-safety too"), as a sixth member of the fixed group, so the harness's dependency is answered and [ADR 0058](../../decisions/0058-publish-protocol-harness-and-cli.md) decision 9 records it. The owner published placeholders of the protocol, harness, CLI and agent-safety by hand; `npm view` at about 15:00 UTC listed them with neither version deprecated, deprecation is pending owner action, and L11 verifies the expected state. The pull request's medium review also changed the release plan: the new `release.yml` lands in the same merge as L11, L11's `release-plan.mjs` change has a defined version source, and the unverified fixed-group behaviour is a hard gate in L10 with a fallback in L11.
