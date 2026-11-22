@@ -91,7 +91,7 @@ A caller can now pass trusted facts, such as the signed-in customer, to a run, a
 **Public API.**
 - `RunOptions<S, A>` gains `app?: A`, and `ContinueOptions<S, A>` inherits it. `run()` and `continueRun()` take a second type parameter `A`, which defaults to `unknown`.
 - `ToolContext<A>` gains `app: A`, and `ToolDefinition<I, S, A>` and `defineTool<I, S, A>()` take `A` as a third parameter, so `defineTool<Input, unknown, Session>()` declares the type a tool reads. Existing code compiles unchanged, except a hand-built `ToolContext`, which now needs `app`; the changeset says so.
-- `AppRequired<A>` is exported. It makes `app` required once the tools declare a type: `run()` and `continueRun()` take `AppRequired<NoInfer<A>>`, so a run without `app`, or with another type, fails to compile. Type tests pin it with `@ts-expect-error`.
+- `AppFor<T>` is exported. `run()` and `continueRun()` take it over the type of the `tools` list the call infers: it asks for an `app` that has every app type the tools declare, and nothing when none declares one. A typed tool beside an untyped one still needs `app`, and `null` or another type fails to compile. Type tests with `@ts-expect-error` pin each. (The first version took `AppRequired<NoInfer<A>>`; its review found that a typed tool beside an untyped one, and `app: null`, compiled. It is replaced.)
 
 **Behavior.**
 - The value goes from `setupOf()` through the loop's setup and the pipeline context to each `execute`. It is never copied into a request, an event, a span or a saved `Context`; tests check each.
@@ -102,7 +102,7 @@ A caller can now pass trusted facts, such as the signed-in customer, to a run, a
 **Decisions.**
 - **Field name: `app`.** Rejected: `context`, because `Context` already means the conversation, and `state`, because it suggests the run changes it.
 - **One `A` per run, not per tool.** Tools whose declared types are unrelated fail to compile in one run, and a tool that declares none (`A` is `unknown`) mixes with any. Related types, one assignable to the other, are accepted, because `execute` is a method and TypeScript checks its parameter both ways. The risk note's fallback, typing the field per run only, was not needed.
-- **The compile-time check needs inference.** With explicit type arguments, such as `run<Triage>()`, `A` stays `unknown` and `app` is optional. The README and the TSDoc say so, and a type test pins it. The suite's `Loop` type is explicit, so the shared suite runs without the check.
+- **The compile-time check reads the `tools` list.** With explicit type arguments, such as `run<Triage>()`, the list's type is not inferred and `app` is optional. The README and the TSDoc say so, and a type test pins it. The suite's `Loop` type is explicit, so the shared suite runs without the check.
 - **The capstone keeps no email argument.** The scripted `LOOKUP` call now sends `{}`, and a new suite case has the model send `victim@example.com` and checks the lookup used `user@example.com`. The reference loop passes `app` to its tools too, and its cap of 400 lines still holds.
 - **The harness follow-up** is recorded in the [harness plan](../../plans/build-harness.md): N6 and N11 pass `hostContext` as `RunOptions.app` instead of binding it in a wrapper.
 

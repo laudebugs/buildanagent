@@ -38,8 +38,24 @@ const MAX_TIMER_MS = 2_147_483_647;
 const systemClock: Clock = { now: () => new Date().toISOString() };
 const randomIds = (): string => globalThis.crypto.randomUUID();
 
-/** Makes `app` required once the run's tools declare a type for it, which `A` then is. */
-export type AppRequired<A> = unknown extends A ? unknown : { readonly app: A };
+type AnyTools = readonly ToolDefinition<unknown, unknown, unknown>[];
+
+/** The app type a tool declares, or `never` for a tool that declares none (its type is `unknown`). */
+type DeclaredApp<T> = T extends ToolDefinition<unknown, unknown, infer A> ? (unknown extends A ? never : A) : never;
+
+type UnionToIntersection<U> = (U extends unknown ? (value: U) => void : never) extends (value: infer I) => void
+  ? I
+  : never;
+
+/**
+ * What `run()` and `continueRun()` require of `app`, from the tools' declared types alone: nothing when no tool
+ * declares one, and otherwise an `app` that has every declared type at once, so a typed tool beside an untyped one
+ * still needs it, and `null` or another type is refused. The requirement depends on the type of the `tools` list the
+ * call infers, so it does not apply when you give `run()` explicit type arguments.
+ */
+export type AppFor<T extends AnyTools> = [DeclaredApp<T[number]>] extends [never]
+  ? unknown
+  : { readonly app: UnionToIntersection<DeclaredApp<T[number]>> };
 
 /** The options `run()` and `continueRun()` share. */
 export interface RunOptions<S = unknown, A = unknown> {
@@ -53,8 +69,14 @@ export interface RunOptions<S = unknown, A = unknown> {
   /**
    * App data for the tools, which each reads as `ctx.app`: facts the caller knows and the model must not choose, such as
    * the signed-in customer. Build it for each request from the authenticated session, never once at module level. It
-   * reaches no model request, event or saved `Context`, so pass it again to every `continueRun()`, and to a nested run
-   * a tool starts. The tools' declared type and this value must agree, and once a tool declares one, `app` is required, which the compiler checks only while `run()` infers its type arguments. The SDK passes this object to every call without copying it, so pass an immutable value.
+   * reaches no model request, event or saved `Context`, and a signed pending request does not bind it. Pass it again
+   * to every `continueRun()`, and take it from the original caller: store it, or a reference to it, beside the stored
+   * context, because an approved call runs with whatever `app` the resuming process passes, and the approver's own
+   * session would run it as the approver. A nested run a tool starts gets none unless the tool passes it on.
+   *
+   * Once a tool declares an app type, `app` is required and must have every declared type, which the compiler checks
+   * only while `run()` infers its type arguments. The SDK passes this object to every call without copying it, so pass
+   * an immutable value.
    */
   readonly app?: A;
   /**
@@ -605,7 +627,9 @@ function observersOf(options: RunOptions<unknown>): ObserverSetup {
  * unusable option: a model that isn't from `createModel()`, a `maxSteps` that isn't a positive integer, an output tool
  * that isn't sent to the model, or two tools with one name.
  */
-export function run<S = unknown, A = unknown>(options: RunOptions<S, A> & RunInput & AppRequired<NoInfer<A>>): Run<S> {
+export function run<S = unknown, const T extends AnyTools = AnyTools>(
+  options: RunOptions<S> & { readonly tools?: T } & RunInput & AppFor<T>,
+): Run<S> {
   const content = typeof options.input === "string" ? [{ type: "text" as const, text: options.input }] : options.input;
   const input: Message = { role: "user", content: [...content] };
   const setup = setupOf(options, { system: options.system, messages: options.history ?? [] }, [input]);
@@ -639,9 +663,9 @@ export function run<S = unknown, A = unknown>(options: RunOptions<S, A> & RunInp
  * assistant message has a call with no result and no pending request, for a pending request whose call doesn't wait
  * in the context, and for malformed `resolutions` or `recheck`, besides the options `run()` refuses.
  */
-export function continueRun<S = unknown, A = unknown>(
+export function continueRun<S = unknown, const T extends AnyTools = AnyTools>(
   context: Context,
-  options: ContinueOptions<S, A> & AppRequired<NoInfer<A>>,
+  options: ContinueOptions<S> & { readonly tools?: T } & AppFor<T>,
 ): Run<S> {
   const resume = resumeSetupOf(context, options?.resolutions, options?.recheck);
   const setup = setupOf(options, context, []);

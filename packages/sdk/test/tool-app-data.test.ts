@@ -11,7 +11,7 @@ import {
   type ToolContext,
 } from "@buildanagent/sdk";
 import { test } from "vitest";
-import { pendingOf, processSigner, roundTrip } from "./resume-helpers.js";
+import { pendingOf, processSigner } from "./resume-helpers.js";
 import { determinism, drive, scripted, text, toolCall } from "./run-helpers.js";
 
 const SYSTEM = "You look customers up.";
@@ -71,6 +71,30 @@ test("a run whose tools declare app data must pass it, with the declared type", 
   never(() => run({ ...base, app: { customerId: 7 } }));
   // @ts-expect-error: `app` lacks the declared field.
   never(() => run({ ...base, app: { other: "x" } }));
+  // A typed tool beside an untyped one still needs `app`, with the declared type, and `null` is no value of it.
+  const plain = defineTool({
+    name: "plain",
+    description: "Declares no app type.",
+    inputSchema: { type: "object", properties: {} },
+    async execute() {
+      return { content: [] };
+    },
+  });
+  const mixed = { model, system: SYSTEM, input: "Plan?", ...determinism() };
+  never(() => run({ ...mixed, tools: [lookupTool(), plain], app: { customerId: "cust-1" } }));
+  never(() => run({ ...mixed, tools: [plain, lookupTool()], app: { customerId: "cust-1" } }));
+  // @ts-expect-error: the typed tool needs `app` even beside an untyped one.
+  never(() => run({ ...mixed, tools: [lookupTool(), plain] }));
+  // @ts-expect-error: the untyped tool listed first does not hide the typed one.
+  never(() => run({ ...mixed, tools: [plain, lookupTool()] }));
+  // @ts-expect-error: `app` has the wrong type, beside an untyped tool.
+  never(() => run({ ...mixed, tools: [lookupTool(), plain], app: { customerId: 7 } }));
+  // @ts-expect-error: `null` is not a `Session`, so a visitor who isn't signed in cannot reach the tool.
+  never(() => run({ ...mixed, tools: [lookupTool()], app: null }));
+  // @ts-expect-error: the same for `undefined`.
+  never(() => run({ ...mixed, tools: [lookupTool()], app: undefined }));
+  // @ts-expect-error: a resume with a typed and an untyped tool must pass `app`.
+  never(() => continueRun({ system: SYSTEM, messages: [] }, { model, tools: [lookupTool(), plain] }));
   // Tools that declare unrelated app types cannot share a run.
   const other = defineTool<object, unknown, { tenant: number }>({
     name: "other",
@@ -212,7 +236,7 @@ test("a nested run sees no app data unless the tool passes it on", async () => {
   assert.deepEqual(childSaw, [undefined, { customerId: "cust-1" }]);
 });
 
-test("a call approved after a pause runs with the app data the resuming process passes", async () => {
+test("a call approved after a pause runs as the caller whose app data the resuming process passes back", async () => {
   const seen: unknown[] = [];
   const refund = defineTool<{ reason: string }, unknown, Session>({
     name: "refund",
@@ -220,7 +244,7 @@ test("a call approved after a pause runs with the app data the resuming process 
     inputSchema: { type: "object", properties: { reason: { type: "string" } }, required: ["reason"] },
     effect: { kind: "write" },
     async execute(_input, ctx) {
-      seen.push(ctx.app);
+      seen.push(ctx.app.customerId);
       return { content: [{ type: "text", text: "refunded" }] };
     },
   });
@@ -243,15 +267,21 @@ test("a call approved after a pause runs with the app data the resuming process 
   assert.deepEqual(seen, [], "nothing runs before a person answers");
   const [request] = pendingOf(first.result);
   assert.ok(request);
-  const allow = { requestId: request.id, decision: "allow" as const, by: "lead" };
-  const second = await drive(
-    continueRun(roundTrip(first.result.context), {
-      ...options,
-      model: scripted([text("Refunded.")]).model,
-      resolutions: [allow],
-      app: { customerId: "cust-1" },
-    }),
-  );
-  assert.equal(second.result.stopReason, "done");
-  assert.deepEqual(seen, [{ customerId: "cust-1" }]);
+  // The caller stores the original caller's app beside the context, as JSON like the context itself.
+  const stored = JSON.stringify({ context: first.result.context, app: { customerId: "cust-1" } });
+  const approverSession: Session = { customerId: "support-lead-9" };
+  const resolve = (app: Session) => {
+    const { context } = JSON.parse(stored) as { context: typeof first.result.context };
+    const allow = { requestId: request.id, decision: "allow" as const, by: approverSession.customerId };
+    return drive(
+      continueRun(context, { ...options, model: scripted([text("Refunded.")]).model, resolutions: [allow], app }),
+    );
+  };
+  const asOriginal = await resolve((JSON.parse(stored) as { app: Session }).app);
+  assert.equal(asOriginal.result.stopReason, "done");
+  assert.deepEqual(seen, ["cust-1"], "the refund ran for the customer who asked");
+  // The SDK does not bind `app` to the request, so a resume that passes the approver's own session runs as the approver.
+  // This is why the README tells callers to store the original `app` and pass it back.
+  await resolve(approverSession);
+  assert.deepEqual(seen, ["cust-1", "support-lead-9"]);
 });
