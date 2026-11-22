@@ -1,6 +1,6 @@
 // Chapter 25's flat figure of a run's spans projected from its session log: each span is computed from log entries,
 // so the log stays the only record and telemetry is a view of it. The mapping is the harness plan's, and the
-// projection is not built yet; the SDK's observer builds the same spans from a run's events.
+// projection is not built yet; the SDK's observer builds the same kinds of span from a run's events.
 import { Figure } from "../lib/svgkit.js";
 
 const ROWS = [

@@ -35,7 +35,7 @@ Give Chapter 10, "Events and hooks: one event union, interceptors and observers"
 
 **Out of scope** (and which todo covers it)
 
-- Our packages' OpenTelemetry observer, `otelObserver()`: the chapter names it in prose only, and a listing of it belongs to the observability chapter's follow-up, [T25](T25-chapter-evals-observability-and-release.md).
+- Our packages' OpenTelemetry observer, `otelObserver()`: the chapter names it in prose only, and a listing of it belongs to the observability chapter's follow-up, [T25](../done/T25-chapter-evals-observability-and-release.md).
 
 ## Tasks
 
