@@ -1166,7 +1166,7 @@ test("a click on a highlight opens the popover with its passage and colours, and
   const { win, calls } = stage([CONTRACT, FAILED]);
   click(win, q(win, "article p:nth-of-type(2)"), 50, 110);
   assert.deepEqual(calls, ["show"]);
-  assert.equal(q(win, ".notes-pop__quote")?.textContent, "“a contract with a model”");
+  assert.equal(q(win, ".notes-pop__quote")?.textContent, "a contract with a model");
   const pressed = [...(win.document as unknown as Document).querySelectorAll(".notes-pop [aria-pressed='true']")];
   assert.deepEqual(
     pressed.map((button) => button.textContent),
@@ -1185,6 +1185,151 @@ test("a click on a highlight opens the popover with its passage and colours, and
   assert.equal(win.document.activeElement?.textContent, "Pink", "focus stays on the colour that was chosen");
   assert.match(q(win, "[role='status'].visually-hidden")?.textContent ?? "", /colour changed to pink/);
   assert.deepEqual(requests, []);
+});
+
+const popChildren = (win: Window) =>
+  [...(q(win, ".notes-pop") as Element).children]
+    .filter((node) => !(node as HTMLElement).hidden)
+    .map((node) => node.className);
+const popAction = (win: Window, name: string) =>
+  q<HTMLButtonElement>(win, `.notes-pop__act[data-action="${name}"]`) as HTMLButtonElement;
+
+test("the popover shows the colours, the passage as a quotation, the note as the main text, then the actions", () => {
+  const { win } = stage([CONTRACT, FAILED]);
+  click(win, q(win, "article p:last-of-type"), 50, 310);
+  assert.deepEqual(popChildren(win), [
+    "notes-pop__grab",
+    "notes-colors",
+    "notes-pop__quote",
+    "notes-pop__note",
+    "notes-pop__actions",
+    "notes-pop__message",
+  ]);
+  assert.equal(q(win, ".notes-pop__quote")?.textContent, "A failed call comes back again", "no quotation marks");
+  assert.equal(q(win, ".notes-pop__quote")?.getAttribute("title"), "A failed call comes back again", "the tooltip");
+  assert.equal(q(win, ".notes-pop__quote")?.getAttribute("data-color"), "amber");
+  assert.equal(q(win, ".notes-pop__note")?.textContent, "Remember the retry.");
+  const labels = [...(win.document as unknown as Document).querySelectorAll(".notes-pop__act")]
+    .filter((button) => !(button as HTMLElement).hidden)
+    .map((button) => button.textContent);
+  assert.deepEqual(labels, ["Edit", "Share", "Remove"]);
+  assert.equal(popAction(win, "delete").className.includes("notes-pop__act--remove"), true);
+  assert.equal(
+    [...(win.document as unknown as Document).querySelectorAll(".notes-pop .notes-colors button")].length,
+    4,
+    "four colours, each named for assistive technology",
+  );
+});
+
+test("a note and the passage are text, never markup, and a long passage keeps its full text for the tooltip", () => {
+  const long = "A failed call comes back again";
+  const hostile = item({ id: "h", quote: long, section: "errors", note: '<img src=x onerror="alert(1)"><b>bold</b>' });
+  const { win } = stage([hostile]);
+  click(win, q(win, "article p:last-of-type"), 50, 310);
+  assert.equal(q(win, ".notes-pop img"), null);
+  assert.equal(q(win, ".notes-pop b"), null);
+  assert.equal(q(win, ".notes-pop__note")?.textContent, '<img src=x onerror="alert(1)"><b>bold</b>');
+});
+
+test("a plain highlight shows the quotation and an Add-a-note field, and Save writes the note", () => {
+  const { win } = stage([CONTRACT]);
+  click(win, q(win, "article p:nth-of-type(2)"), 50, 110);
+  assert.deepEqual(popChildren(win), [
+    "notes-pop__grab",
+    "notes-colors",
+    "notes-pop__quote",
+    "notes-pop__field",
+    "notes-pop__actions",
+    "notes-pop__message",
+  ]);
+  const field = q<HTMLTextAreaElement>(win, ".notes-pop__field") as HTMLTextAreaElement;
+  assert.equal(field.getAttribute("placeholder"), "Add a note…");
+  const labels = [...(win.document as unknown as Document).querySelectorAll(".notes-pop__act")]
+    .filter((button) => !(button as HTMLElement).hidden)
+    .map((button) => button.textContent);
+  assert.deepEqual(labels, ["Save", "Share", "Remove"]);
+  field.value = "  Mine, <i>not</i> markup.  ";
+  popAction(win, "save").click();
+  assert.equal(storedItems(win).find((found) => found.id === "one")?.note, "Mine, <i>not</i> markup.");
+  assert.equal(q(win, ".notes-pop__note")?.textContent, "Mine, <i>not</i> markup.");
+  assert.equal(q(win, ".notes-pop i"), null);
+  assert.equal(popAction(win, "edit").hidden, false, "now it has an Edit");
+  assert.equal(win.document.activeElement, popAction(win, "edit"));
+});
+
+test("Edit turns the note into a field, Cancel drops the change, and Save keeps the typed text", () => {
+  const { win } = stage([CONTRACT, FAILED]);
+  click(win, q(win, "article p:last-of-type"), 50, 310);
+  popAction(win, "edit").click();
+  const field = q<HTMLTextAreaElement>(win, ".notes-pop__field") as HTMLTextAreaElement;
+  assert.equal(field.hidden, false);
+  assert.equal(field.value, "Remember the retry.");
+  assert.equal(win.document.activeElement, field);
+  field.value = "Changed my mind";
+  popAction(win, "cancel").click();
+  assert.equal(q(win, ".notes-pop__note")?.textContent, "Remember the retry.", "Cancel keeps the stored note");
+  assert.equal(storedItems(win).find((found) => found.id === "two")?.note, "Remember the retry.");
+  popAction(win, "edit").click();
+  (q(win, ".notes-pop__field") as HTMLTextAreaElement).value = "Changed my mind";
+  popAction(win, "save").click();
+  assert.equal(storedItems(win).find((found) => found.id === "two")?.note, "Changed my mind");
+  assert.equal(q(win, ".notes-pop__note")?.textContent, "Changed my mind");
+});
+
+test("Save works from the stored list, so another tab's change is kept, and says when the highlight is gone", () => {
+  const { win } = stage([CONTRACT, FAILED]);
+  click(win, q(win, "article p:last-of-type"), 50, 310);
+  popAction(win, "edit").click();
+  const other = item({ id: "three", quote: "from another tab", section: "errors" });
+  win.localStorage.setItem(KEY, stored({ tools: [CONTRACT, FAILED, other] }));
+  (q(win, ".notes-pop__field") as HTMLTextAreaElement).value = "Edited here";
+  popAction(win, "save").click();
+  assert.deepEqual(
+    storedItems(win)
+      .map((found) => found.id)
+      .sort(),
+    ["one", "three", "two"],
+  );
+  popAction(win, "edit").click();
+  win.localStorage.setItem(KEY, stored({ tools: [CONTRACT, other] }));
+  popAction(win, "save").click();
+  assert.match(q(win, ".notes-pop__message")?.textContent ?? "", /deleted in another tab/);
+});
+
+test("on a narrow window the popover is a bottom sheet that a swipe down on its handle closes", () => {
+  const win = page({ items: [CONTRACT, FAILED] });
+  layout(win, RECTS);
+  const calls = withPopover(win);
+  Object.defineProperty(win, "matchMedia", {
+    configurable: true,
+    value: (query: string) => ({ matches: query.includes("max-width: 40rem"), media: query }),
+  });
+  start(win as unknown as globalThis.Window);
+  click(win, q(win, "article p:last-of-type"), 50, 310);
+  const pop = q<HTMLElement>(win, ".notes-pop") as HTMLElement;
+  assert.equal(pop.hasAttribute("data-sheet"), true);
+  assert.equal(pop.style.top, "", "a sheet is placed by its stylesheet, not by the click");
+  const move = (type: string, y: number) => win.dispatchEvent(new win.MouseEvent(type, { clientY: y }) as never);
+  const grab = q(win, ".notes-pop__grab") as Element;
+  grab.dispatchEvent(new win.MouseEvent("pointerdown", { clientY: 100, bubbles: true }) as unknown as Event);
+  move("pointermove", 130);
+  assert.equal(pop.style.transform, "translateY(30px)", "the sheet follows the finger");
+  move("pointerup", 130);
+  assert.equal(pop.style.transform, "", "a short swipe springs back");
+  assert.equal(calls.includes("hide"), false);
+  grab.dispatchEvent(new win.MouseEvent("pointerdown", { clientY: 100, bubbles: true }) as unknown as Event);
+  move("pointermove", 220);
+  move("pointerup", 220);
+  assert.equal(calls.includes("hide"), true, "a long swipe closes the sheet");
+  assert.equal(pop.style.transform, "");
+});
+
+test("a wide window places the popover beside the passage, with no sheet attribute", () => {
+  const { win } = stage([CONTRACT, FAILED]);
+  click(win, q(win, "article p:last-of-type"), 50, 310);
+  const pop = q<HTMLElement>(win, ".notes-pop") as HTMLElement;
+  assert.equal(pop.hasAttribute("data-sheet"), false);
+  assert.notEqual(pop.style.top, "");
 });
 
 test("Remove in the popover deletes the highlight and closes the popover", () => {
@@ -1232,11 +1377,11 @@ test("where highlights overlap, a click opens the one that paints on top: a note
   start(win as unknown as globalThis.Window);
   const target = q(win, "article p:nth-of-type(2)");
   click(win, target, 90, 110);
-  assert.equal(q(win, ".notes-pop__quote")?.textContent, "“with a”", "the noted highlight paints above the plain ones");
+  assert.equal(q(win, ".notes-pop__quote")?.textContent, "with a", "the noted highlight paints above the plain ones");
   click(win, target, 50, 110);
-  assert.equal(q(win, ".notes-pop__quote")?.textContent, "“contract with”", "pink registers after amber");
+  assert.equal(q(win, ".notes-pop__quote")?.textContent, "contract with", "pink registers after amber");
   click(win, target, 20, 110);
-  assert.equal(q(win, ".notes-pop__quote")?.textContent, "“a contract with a model”");
+  assert.equal(q(win, ".notes-pop__quote")?.textContent, "a contract with a model");
 });
 
 const dots = (win: Window) => [
@@ -1363,7 +1508,7 @@ test("a click on a dot opens the popover for its highlight", () => {
   const { win, calls } = stage([CONTRACT, FAILED], { narrow: true });
   click(win, dots(win)[0] ?? null, 250, 295);
   assert.deepEqual(calls, ["show"]);
-  assert.equal(q(win, ".notes-pop__quote")?.textContent, "“A failed call comes back again”");
+  assert.equal(q(win, ".notes-pop__quote")?.textContent, "A failed call comes back again");
 });
 
 test("Enter on a focused dot opens the popover on keydown and Space on keyup, and focus returns to the dot when it closes", () => {
@@ -1385,7 +1530,7 @@ test("Enter on a focused dot opens the popover on keydown and Space on keyup, an
   dismiss();
   dot.dispatchEvent(key("keydown", "Enter"));
   assert.deepEqual(calls, ["show", "show"]);
-  assert.equal(q(win, ".notes-pop__quote")?.textContent, "“A failed call comes back again”");
+  assert.equal(q(win, ".notes-pop__quote")?.textContent, "A failed call comes back again");
   // Closing hands focus to the page, which the dot then takes back.
   (win.document.activeElement as unknown as HTMLElement | null)?.blur();
   const closed = new win.Event("toggle") as unknown as Event & { newState: string };
@@ -1458,7 +1603,7 @@ test("a click on a margin marker opens the popover for its highlight, and a keyb
   const marker = markers(win)[0] as HTMLElement;
   marker.dispatchEvent(new win.MouseEvent("click", { bubbles: true, cancelable: true, detail: 0 }) as unknown as Event);
   assert.deepEqual(calls, ["show"]);
-  assert.equal(q(win, ".notes-pop__quote")?.textContent, "“A failed call comes back again”");
+  assert.equal(q(win, ".notes-pop__quote")?.textContent, "A failed call comes back again");
   (win.document.activeElement as unknown as HTMLElement | null)?.blur();
   const closed = new win.Event("toggle") as unknown as Event & { newState: string };
   closed.newState = "closed";
@@ -1709,7 +1854,7 @@ test("a click on a second highlight opens its popover after a light dismiss clos
   pop.dispatchEvent(closing);
   click(win, q(win, "article p:last-of-type"), 50, 310);
   assert.deepEqual(calls, ["show", "show"]);
-  assert.equal(q(win, ".notes-pop__quote")?.textContent, "“A failed call comes back again”");
+  assert.equal(q(win, ".notes-pop__quote")?.textContent, "A failed call comes back again");
 });
 
 test("Share shows the text in a field to copy by hand when the clipboard is missing or refuses", async () => {
@@ -1719,7 +1864,7 @@ test("Share shows the text in a field to copy by hand when the clipboard is miss
     click(win, q(win, "article p:nth-of-type(2)"), 50, 110);
     popButton(win, "Share").click();
     await new Promise((resolve) => setTimeout(resolve, 0));
-    const field = q<HTMLTextAreaElement>(win, ".notes-pop textarea");
+    const field = q<HTMLTextAreaElement>(win, ".notes-pop .notes-dialog__field");
     assert.equal(field?.hidden, false);
     assert.match(
       field?.value ?? "",

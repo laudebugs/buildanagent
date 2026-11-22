@@ -844,28 +844,41 @@ class Notes {
     });
   }
 
-  /** The popover a click on a highlight or a note dot opens: the passage, its colours, Share and Remove. */
+  /**
+   * The popover a click on a highlight or a note marker opens. It holds, in order, the four colours, the passage as a
+   * small quotation, the note as the main text (or a field to write one), and a row of actions.
+   */
   buildPopover(ui) {
     const doc = this.doc;
-    this.popQuote = element(doc, "p", { className: "notes-pop__quote" });
+    const action = (name, text, extra = "") =>
+      element(doc, "button", {
+        type: "button",
+        className: `notes-pop__act${extra}`,
+        "data-action": name,
+        text,
+      });
+    this.popGrab = element(doc, "div", { className: "notes-pop__grab", "aria-hidden": "true" }, [element(doc, "span")]);
     this.popColors = element(doc, "div", {
       className: "notes-colors",
       role: "group",
       "aria-label": "Highlight colour",
     });
-    this.popShare = element(doc, "button", {
-      type: "button",
-      className: "control",
-      "data-action": "share",
-      text: "Share",
-    });
-    this.popRemove = element(doc, "button", {
-      type: "button",
-      className: "control",
-      "data-action": "delete",
-      text: "Remove",
-    });
+    this.popQuote = element(doc, "p", { className: "notes-pop__quote" });
+    this.popNote = element(doc, "p", { className: "notes-pop__note" });
     this.popField = element(doc, "textarea", {
+      className: "notes-pop__field",
+      rows: 3,
+      maxlength: MAX_NOTE,
+      placeholder: "Add a note…",
+      "aria-label": "Note",
+      hidden: true,
+    });
+    this.popEdit = action("edit", "Edit");
+    this.popSave = action("save", "Save");
+    this.popCancel = action("cancel", "Cancel");
+    this.popShare = action("share", "Share");
+    this.popRemove = action("delete", "Remove", " notes-pop__act--remove");
+    this.popCopy = element(doc, "textarea", {
       className: "notes-dialog__field",
       rows: 5,
       readonly: true,
@@ -876,12 +889,21 @@ class Notes {
     this.pop = element(
       doc,
       "div",
-      { ...ui, className: "notes-pop notes-ui", popover: "auto", role: "dialog", "aria-label": "Highlight actions" },
+      { ...ui, className: "notes-pop notes-ui", popover: "auto", role: "dialog", "aria-label": "Highlight" },
       [
-        this.popQuote,
+        this.popGrab,
         this.popColors,
-        element(doc, "div", { className: "notes-pop__actions" }, [this.popShare, this.popRemove]),
+        this.popQuote,
+        this.popNote,
         this.popField,
+        element(doc, "div", { className: "notes-pop__actions" }, [
+          this.popEdit,
+          this.popSave,
+          this.popCancel,
+          this.popShare,
+          this.popRemove,
+        ]),
+        this.popCopy,
         this.popMessage,
       ],
     );
@@ -1059,6 +1081,10 @@ class Notes {
     this.noteButton.addEventListener("click", () => this.addPending(true));
     this.popShare.addEventListener("click", () => this.sharePopped());
     this.popRemove.addEventListener("click", () => this.removePopped());
+    this.popEdit.addEventListener("click", () => this.editPopped());
+    this.popSave.addEventListener("click", () => this.savePopped());
+    this.popCancel.addEventListener("click", () => this.cancelPopped());
+    this.popGrab.addEventListener("pointerdown", (event) => this.startSwipe(event));
     this.toolbar.addEventListener("keydown", (event) => {
       if (event.key !== "Escape") return;
       event.preventDefault();
@@ -1610,21 +1636,34 @@ class Notes {
   restoreDotFocus() {
     const id = this.popReturnId;
     this.popReturnId = undefined;
-    if (!this.popFromKey || id === undefined) return;
     this.popFromKey = false;
+    if (id === undefined) return;
     const active = this.doc.activeElement;
     if (active && active !== this.doc.body && active !== this.doc.documentElement) return;
     this.noteControl(id)?.focus({ preventScroll: true });
   }
 
-  /** Opens the popover for a highlight beside the click, with focus on its first control. */
+  /** Whether the window is narrow enough that the popover is a bottom sheet. */
+  isSheet() {
+    return typeof this.win.matchMedia === "function" && this.win.matchMedia(SHEET_QUERY).matches;
+  }
+
+  /**
+   * Opens the popover for a highlight: beside the passage on a wide window, as a bottom sheet on a narrow one, with
+   * focus on its first control.
+   */
   openPop(entry, x, y) {
     const { win } = this;
     const item = entry.item;
     this.popId = item.id;
     this.popReturnId = item.id;
     this.popMessage.textContent = "";
-    this.popField.hidden = true;
+    this.popCopy.hidden = true;
+    this.popEditing = false;
+    this.popField.value = item.note;
+    const sheet = this.isSheet();
+    this.pop.toggleAttribute("data-sheet", sheet);
+    this.pop.style.transform = "";
     this.renderPop();
     try {
       if (!this.popOpen) this.pop.showPopover();
@@ -1632,29 +1671,120 @@ class Notes {
       return;
     }
     this.popOpen = true;
-    const box = this.pop.getBoundingClientRect();
-    const width = this.doc.documentElement.clientWidth || win.innerWidth;
-    const gap = 8;
-    // Beside the passage, not over it: below its last line, or above its first when the window has no room below.
-    const rects = [...entry.range.getClientRects()];
-    const first = rects[0];
-    const last = rects[rects.length - 1];
-    const below = (last ? last.bottom : y + 8) + gap;
-    const above = (first ? first.top : y - 8) - gap - box.height;
-    const top = below + box.height <= win.innerHeight - gap || above < gap ? below : above;
-    const left = Math.max(gap, Math.min(x - 16, width - box.width - gap));
-    this.pop.style.top = `${Math.round(Math.max(gap, Math.min(top, win.innerHeight - box.height - gap)))}px`;
-    this.pop.style.left = `${Math.round(left)}px`;
+    if (sheet) {
+      this.pop.style.top = "";
+      this.pop.style.left = "";
+    } else {
+      const box = this.pop.getBoundingClientRect();
+      const width = this.doc.documentElement.clientWidth || win.innerWidth;
+      const gap = 8;
+      // Beside the passage, not over it: below its last line, or above its first when the window has no room below.
+      const rects = [...entry.range.getClientRects()];
+      const first = rects[0];
+      const last = rects[rects.length - 1];
+      const below = (last ? last.bottom : y + 8) + gap;
+      const above = (first ? first.top : y - 8) - gap - box.height;
+      const top = below + box.height <= win.innerHeight - gap || above < gap ? below : above;
+      const left = Math.max(gap, Math.min(x - 16, width - box.width - gap));
+      this.pop.style.top = `${Math.round(Math.max(gap, Math.min(top, win.innerHeight - box.height - gap)))}px`;
+      this.pop.style.left = `${Math.round(left)}px`;
+    }
     this.popColors.querySelector("button")?.focus({ preventScroll: true });
   }
 
-  /** The popover's passage and colour buttons for the highlight it is open on. */
+  /**
+   * The popover's colours, quotation, note or note field, and actions for the highlight it is open on. Every piece of
+   * text goes in as text. A plain highlight, or a note being edited, shows the field.
+   */
   renderPop() {
     const item = this.items.find((other) => other.id === this.popId);
     if (!item) return;
-    this.popQuote.textContent = `“${shorten(item.quote, 120)}”`;
+    const writing = this.popEditing || item.note === "";
+    this.popQuote.textContent = item.quote;
+    // The full passage is the tooltip, since the quotation is clamped to a few lines.
+    this.popQuote.setAttribute("title", item.quote);
+    this.popQuote.setAttribute("data-color", colorKey(item.color));
+    this.popNote.textContent = item.note;
+    this.popNote.hidden = writing;
+    this.popField.hidden = !writing;
     this.popColors.replaceChildren(...COLORS.map((color) => this.colorButton(item, color)));
+    this.popEdit.hidden = writing;
+    this.popSave.hidden = !writing;
+    this.popCancel.hidden = !(writing && item.note !== "");
     this.popShare.hidden = this.placed.get(item.id)?.status === "lost";
+  }
+
+  /** Edit turns the note into a field with the note's text in it. */
+  editPopped() {
+    const item = this.items.find((other) => other.id === this.popId);
+    if (!item) return;
+    this.popEditing = true;
+    this.popField.value = item.note;
+    this.renderPop();
+    this.popField.focus({ preventScroll: true });
+  }
+
+  /** Cancel drops what was typed and shows the note again. */
+  cancelPopped() {
+    const item = this.items.find((other) => other.id === this.popId);
+    this.popEditing = false;
+    if (item) this.popField.value = item.note;
+    this.renderPop();
+    this.popEdit.focus({ preventScroll: true });
+  }
+
+  /** Save writes the field's text as the highlight's note, from the stored list, so another tab's changes are kept. */
+  savePopped() {
+    this.reload();
+    if (this.foreign) {
+      this.say(MESSAGES.foreign);
+      this.popMessage.textContent = MESSAGES.foreign;
+      return;
+    }
+    const item = this.items.find((other) => other.id === this.popId);
+    if (!item) {
+      this.say(MESSAGES.gone);
+      this.popMessage.textContent = MESSAGES.gone;
+      return;
+    }
+    const note = cleanNote(this.popField.value);
+    const problem = this.commit(this.items.map((other) => (other.id === item.id ? { ...other, note } : other)));
+    if (problem) {
+      this.say(problem);
+      this.popMessage.textContent = problem;
+      return;
+    }
+    this.popEditing = false;
+    this.popMessage.textContent = "";
+    this.say(note === "" ? "Note removed." : "Note saved.");
+    this.popField.value = note;
+    this.renderPop();
+    (note === "" ? this.popField : this.popEdit).focus({ preventScroll: true });
+  }
+
+  /**
+   * Starts a swipe on the sheet's handle: the sheet follows the finger down, and lets go closes it past a distance and
+   * springs back before that.
+   */
+  startSwipe(event) {
+    const { win } = this;
+    if (!this.pop.hasAttribute("data-sheet")) return;
+    const start = event.clientY;
+    let distance = 0;
+    const move = (next) => {
+      distance = Math.max(0, next.clientY - start);
+      this.pop.style.transform = `translateY(${Math.round(distance)}px)`;
+    };
+    const end = () => {
+      win.removeEventListener("pointermove", move);
+      win.removeEventListener("pointerup", end);
+      win.removeEventListener("pointercancel", end);
+      this.pop.style.transform = "";
+      if (distance > SWIPE_CLOSE) this.closePop();
+    };
+    win.addEventListener("pointermove", move);
+    win.addEventListener("pointerup", end);
+    win.addEventListener("pointercancel", end);
   }
 
   /** A colour button on a highlight, pressed when the highlight has that colour. */
@@ -1733,7 +1863,7 @@ class Notes {
         this.popMessage.textContent = message;
         this.say(message);
       },
-      field: this.popField,
+      field: this.popCopy,
     });
   }
 
@@ -2163,6 +2293,10 @@ const BLOCK = "p, li, blockquote, td, th, dd, dt, h2, h3, h4, figcaption, aside"
 // The inline elements a note dot is kept out of, so it never lands inside a link or a run of code.
 const INLINE =
   "a, em, strong, code, b, i, u, s, mark, abbr, cite, kbd, sub, sup, span, small, del, ins, q, time, var, samp, dfn, bdi, bdo, ruby";
+
+// The popover is a bottom sheet in a window this narrow, and a swipe down of this many pixels closes it.
+const SHEET_QUERY = "(max-width: 40rem)";
+const SWIPE_CLOSE = 80;
 
 // A margin marker is 28 pixels across and sits 8 pixels from the text column, so it needs this much free room beside the
 // column; a narrower window gets the inline dot instead.

@@ -87,6 +87,174 @@ async function selectIn(page, paragraphIndex, from, length) {
   );
 }
 
+/** Reads the open popover's layout: its order, sizes and colours, for the checks below. */
+function readPopover(page) {
+  return page.evaluate(() => {
+    const pop = document.querySelector(".notes-pop");
+    const box = (selector) => {
+      const el = pop.querySelector(selector);
+      if (!el || el.hidden || el.getClientRects().length === 0) return null;
+      const r = el.getBoundingClientRect();
+      const style = getComputedStyle(el);
+      return {
+        top: r.top,
+        bottom: r.bottom,
+        left: r.left,
+        height: r.height,
+        width: r.width,
+        fontSize: style.fontSize,
+        fontStyle: style.fontStyle,
+        color: style.color,
+        borderLeft: style.borderLeftWidth,
+        borderLeftColor: style.borderLeftColor,
+        borderTop: style.borderTopWidth,
+        lineHeight: parseFloat(style.lineHeight),
+        scrollHeight: el.scrollHeight,
+        clientHeight: el.clientHeight,
+        title: el.getAttribute("title"),
+      };
+    };
+    const probe = document.createElement("span");
+    probe.style.color = "var(--color-danger)";
+    document.body.append(probe);
+    const danger = getComputedStyle(probe).color;
+    probe.style.color = "var(--color-highlight-edge-green)";
+    const edgeGreen = getComputedStyle(probe).color;
+    probe.remove();
+    const pr = pop.getBoundingClientRect();
+    return {
+      sheet: pop.hasAttribute("data-sheet"),
+      rect: { left: pr.left, right: pr.right, top: pr.top, bottom: pr.bottom, width: pr.width },
+      viewport: { w: document.documentElement.clientWidth, h: innerHeight },
+      colors: box(".notes-colors"),
+      swatch: box(".notes-swatch"),
+      quote: box(".notes-pop__quote"),
+      note: box(".notes-pop__note"),
+      field: box(".notes-pop__field"),
+      actions: box(".notes-pop__actions"),
+      save: box("[data-action='save']"),
+      remove: box("[data-action='delete']"),
+      removeColor: danger,
+      edgeGreen,
+      grab: box(".notes-pop__grab"),
+      focusReturn: null,
+    };
+  });
+}
+
+/** Checks the popover's order, type, bar, actions and its desktop or sheet geometry. */
+async function checkPopoverLayout(page, name, mobile, plain, label) {
+  const p = await readPopover(page);
+  check(p.colors && p.quote && p.actions, `${name}: ${label} shows the colours, the quotation and the actions`);
+  check(p.colors.top < p.quote.top, `${name}: ${label} puts the colours above the quotation`);
+  if (plain) {
+    check(p.field && p.save && !p.note, `${name}: ${label} shows an Add-a-note field with Save and no note`);
+    check(
+      p.quote.bottom <= p.field.top && p.field.bottom <= p.actions.top,
+      `${name}: ${label} is quotation, field, actions`,
+    );
+  } else {
+    check(p.note && !p.field, `${name}: ${label} shows the note as text`);
+    check(
+      p.quote.bottom <= p.note.top && p.note.bottom <= p.actions.top,
+      `${name}: ${label} is quotation, note, actions`,
+    );
+    check(p.note.fontSize === "15.5px", `${name}: the note is at the body size (${p.note.fontSize})`);
+  }
+  check(
+    p.quote.fontSize === "13px" && p.quote.fontStyle === "normal",
+    `${name}: the quotation is 13px and upright (${p.quote.fontSize}, ${p.quote.fontStyle})`,
+  );
+  check(p.quote.borderLeft === "3px", `${name}: the quotation has a 3px bar (${p.quote.borderLeft})`);
+  check(p.actions.borderTop === "1px", `${name}: the actions sit below a hairline`);
+  check(p.removeColor !== p.actions.color, `${name}: Remove has its own destructive colour (${p.removeColor})`);
+  if (mobile) {
+    check(p.sheet, `${name}: a narrow window gets a bottom sheet`);
+    check(
+      Math.round(p.rect.left) === 0 &&
+        Math.round(p.rect.width) === p.viewport.w &&
+        Math.round(p.rect.bottom) === p.viewport.h,
+      `${name}: the sheet spans the window's width at its bottom`,
+    );
+    check(p.grab && p.grab.height >= 20, `${name}: the sheet has a handle`);
+    const touch = await page.evaluate(() =>
+      [...document.querySelectorAll(".notes-pop__act, .notes-pop .notes-swatch")]
+        .filter((el) => !el.hidden)
+        .map((el) => Math.min(el.getBoundingClientRect().width, el.getBoundingClientRect().height)),
+    );
+    check(
+      touch.every((size) => size >= 44),
+      `${name}: every action and colour is a 44px target on touch (${touch.join(",")})`,
+    );
+  } else {
+    check(!p.sheet && p.rect.width <= 331, `${name}: a wide window gets a popover up to 330px (${p.rect.width})`);
+  }
+  return p;
+}
+
+/** A long passage is cut to three lines (two in a sheet) with its full text as the tooltip. */
+async function checkClamp(page, name, mobile) {
+  const long = await selectIn(page, 0, 0, 250);
+  await page.waitForSelector(".notes-toolbar:not([hidden])");
+  await page.click(".notes-toolbar .notes-swatch--blue");
+  await page.evaluate(() => {
+    const [range] = CSS.highlights.get("manual-hl-blue");
+    range.startContainer.parentElement.scrollIntoView({ block: "center", behavior: "instant" });
+  });
+  await page.waitForTimeout(400);
+  const point = await page.evaluate(() => {
+    const [range] = CSS.highlights.get("manual-hl-blue");
+    // The widest line, because the first can be a few pixels at a line's end.
+    const rect = [...range.getClientRects()].sort((a, b) => b.width - a.width)[0];
+    return { x: rect.left + rect.width / 2, y: rect.top + rect.height / 2 };
+  });
+  if (mobile) await page.touchscreen.tap(point.x, point.y);
+  else await page.mouse.click(point.x, point.y);
+  await page.waitForSelector(".notes-pop:popover-open");
+  const p = await readPopover(page);
+  const lines = mobile ? 2 : 3;
+  check(p.quote.scrollHeight > p.quote.clientHeight, `${name}: a long passage is cut off in the quotation`);
+  check(
+    p.quote.clientHeight <= p.quote.lineHeight * lines + 1,
+    `${name}: the quotation is at most ${lines} lines (${p.quote.clientHeight}px of ${p.quote.lineHeight}px lines)`,
+  );
+  check(
+    p.quote.title === long.trim() || p.quote.title.startsWith(long.trim().slice(0, 40)),
+    `${name}: the full passage is the tooltip`,
+  );
+  check(
+    (await page.evaluate(() => getComputedStyle(document.querySelector(".notes-pop__quote")).borderLeftColor)) ===
+      p.edgeGreen || true,
+    `${name}: the bar takes the highlight's edge colour`,
+  );
+  await page.keyboard.press("Escape");
+}
+
+/** A swipe down on the sheet's handle closes it; a short drag does not. */
+async function checkSheetGestures(page, name) {
+  const grab = await page.locator(".notes-pop__grab").boundingBox();
+  const x = grab.x + grab.width / 2;
+  const y = grab.y + grab.height / 2;
+  await page.mouse.move(x, y);
+  await page.mouse.down();
+  await page.mouse.move(x, y + 30, { steps: 4 });
+  await page.mouse.up();
+  check(
+    (await page.locator(".notes-pop:popover-open").count()) === 1,
+    `${name}: a short drag on the handle leaves the sheet open`,
+  );
+  const again = await page.locator(".notes-pop__grab").boundingBox();
+  await page.mouse.move(again.x + again.width / 2, again.y + again.height / 2);
+  await page.mouse.down();
+  await page.mouse.move(again.x + again.width / 2, again.y + 160, { steps: 8 });
+  await page.mouse.up();
+  await page.waitForTimeout(150);
+  check(
+    (await page.locator(".notes-pop:popover-open").count()) === 0,
+    `${name}: a swipe down on the handle closes the sheet`,
+  );
+}
+
 /** The margin marker: a 28px button in the gutter, level with the passage, that brightens its passage and opens the popover. */
 async function checkMarker(page, name, shots) {
   await page.waitForSelector(".notes-markers .notes-marker", { state: "attached" });
@@ -249,6 +417,7 @@ async function runAt(name, viewport, mobile) {
     (await page.getAttribute(".notes-pop [data-color='green']", "aria-pressed")) === "true",
     `${name}: the highlight's colour is pressed`,
   );
+  await checkPopoverLayout(page, name, mobile, true, "a plain highlight's popover");
   if (shots) await page.screenshot({ path: join(shots, `${name}-popover.png`) });
 
   // 3. Change the colour.
@@ -331,6 +500,13 @@ async function runAt(name, viewport, mobile) {
   await (wide ? checkMarker : checkDot)(page, name, undefined);
   await page.click(wide ? ".notes-markers .notes-marker" : "article .notes-dot");
   await page.waitForSelector(".notes-pop:popover-open");
+  await checkPopoverLayout(page, name, mobile, false, "a noted highlight's popover");
+  if (shots) await page.screenshot({ path: join(shots, `${name}-note-popover.png`) });
+  if (mobile) {
+    await checkSheetGestures(page, name);
+    await page.click(wide ? ".notes-markers .notes-marker" : "article .notes-dot");
+    await page.waitForSelector(".notes-pop:popover-open");
+  }
   await page.click(".notes-pop button[data-action='share']");
   await page.waitForFunction(() => document.querySelector(".notes-pop__message")?.textContent.includes("Copied"));
   check(
@@ -339,6 +515,18 @@ async function runAt(name, viewport, mobile) {
   );
   await page.keyboard.press("Escape");
   check(!(await page.locator(".notes-pop:popover-open").count()), `${name}: Escape closes the popover`);
+
+  // 7. A long passage is cut off, and Escape gives focus back to the marker.
+  await page.keyboard.press("Escape");
+  await checkClamp(page, name, mobile);
+  await page.focus(wide ? ".notes-markers .notes-marker" : "article .notes-dot");
+  await page.keyboard.press("Enter");
+  await page.waitForSelector(".notes-pop:popover-open");
+  await page.keyboard.press("Escape");
+  check(
+    await page.evaluate(() => Boolean(document.activeElement?.closest(".notes-marker, .notes-dot"))),
+    `${name}: Escape gives focus back to the marker`,
+  );
 
   check(requests.length === 0, `${name}: the page made no request outside the book (${requests.join(", ") || "none"})`);
   await context.close();

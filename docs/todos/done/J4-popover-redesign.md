@@ -5,7 +5,7 @@
 | Field | Value |
 | --- | --- |
 | ID | `J4` |
-| Status | `ongoing` |
+| Status | `done` |
 | Plan | [Book plan BK24](../../plans/build-book.md#bk24-a-readers-notes-stay-in-their-browser-proposed) |
 | Round / milestone | Round T (textbook), notes follow-up |
 | Depends on | [J3](../done/J3-note-dot-marker.md) |
@@ -41,25 +41,25 @@ Make the note the main text of the popover. The popover shows, in order, the fou
 
 ## Tasks
 
-- [ ] Rebuild the popover's content in the order above, with the note as the main text.
-- [ ] Add the quotation: upright, muted, a left bar in the edge colour, clamped to 3 lines (2 on phones), with the full text in a tooltip and the panel.
-- [ ] Add the Add-a-note field and Save for a plain highlight, and Edit for a noted one.
-- [ ] Add the action row with 44 px touch targets and a destructive Remove.
-- [ ] Build the bottom sheet for phone widths with a grab handle, swipe down and tap outside to close.
-- [ ] Keep focus order, Escape and the focus return working in both layouts.
-- [ ] Measure the new colour pairs in the tokens file and extend `contrast.test.ts`.
-- [ ] Write the tests, the screenshots and the README text.
+- [x] Rebuild the popover's content in the order above, with the note as the main text.
+- [x] Add the quotation: upright, muted, a left bar in the edge colour, clamped to 3 lines (2 on phones), with the full text in a tooltip and the panel.
+- [x] Add the Add-a-note field and Save for a plain highlight, and Edit for a noted one.
+- [x] Add the action row with 44 px touch targets and a destructive Remove.
+- [x] Build the bottom sheet for phone widths with a grab handle, swipe down and tap outside to close.
+- [x] Keep focus order, Escape and the focus return working in both layouts.
+- [x] Measure the new colour pairs in the tokens file and extend `contrast.test.ts`.
+- [x] Write the tests, the screenshots and the README text.
 
 ## Acceptance criteria
 
-- [ ] The popover's order is swatches, quotation, note, action row, in both layouts
-- [ ] The quotation is upright, muted, barred in the edge colour and clamped to 3 lines (2 on phones)
-- [ ] The note is the largest text in the popover, rendered as text, and a plain highlight shows an Add-a-note field with Save
-- [ ] Edit, Share and Remove work, and Remove has the destructive colour and a 44 px touch target
-- [ ] On a 393 px window the popover is a bottom sheet that closes on a swipe down and on a tap outside
-- [ ] Escape closes it and focus returns to the marker in both layouts
-- [ ] Every new colour pair is in the tokens file and passes `contrast.test.ts`
-- [ ] `pnpm check`, `pnpm typecheck` and `pnpm test` pass offline, and the Playwright check passes at 1280 and 393 px
+- [x] The popover's order is swatches, quotation, note, action row, in both layouts
+- [x] The quotation is upright, muted, barred in the edge colour and clamped to 3 lines (2 on phones)
+- [x] The note is the largest text in the popover, rendered as text, and a plain highlight shows an Add-a-note field with Save
+- [x] Edit, Share and Remove work, and Remove has the destructive colour and a 44 px touch target
+- [x] On a 393 px window the popover is a bottom sheet that closes on a swipe down and on a tap outside
+- [x] Escape closes it and focus returns to the marker in both layouts
+- [x] Every new colour pair is in the tokens file and passes `contrast.test.ts`
+- [x] `pnpm check`, `pnpm typecheck` and `pnpm test` pass offline, and the Playwright check passes at 1280 and 393 px
 
 ## Tests
 
@@ -76,8 +76,20 @@ The manual's README section "A reader's notes stay in their own browser", and BK
 
 ## Definition of done
 
-- [ ] Claimed: the first commit moved this file `ready/` → `ongoing/` (Status `ongoing`)
-- [ ] Code written to the guidelines, with tests, and `pnpm check`, `pnpm typecheck` and `pnpm test` passing locally
-- [ ] This file moved `ongoing/` → `done/` (Status `done`) in the last work commit
+- [x] Claimed: the first commit moved this file `ready/` → `ongoing/` (Status `ongoing`)
+- [x] Code written to the guidelines, with tests, and `pnpm check`, `pnpm typecheck` and `pnpm test` passing locally
+- [x] This file moved `ongoing/` → `done/` (Status `done`) in the last work commit
 - [ ] Two code-review rounds run on the pull request, with every finding fixed or explained
 - [ ] Copy reviewed with `/anthropic-skills:writing-review`, with its findings fixed and the rubric scores in the pull request description
+
+## Outcome
+
+`buildPopover()`, `renderPop()` and `openPop()` in `apps/manual/public/scripts/notes.js` build the popover in the owner's order: the four colours, the passage as a small quotation, the note as the main text, then the actions. Design D's own order puts the colours after the note; the owner's written spec puts them first in both layouts, so both follow it.
+
+- **Quotation.** 13 px, upright, muted, a 3 px bar in the highlight's edge shade, cut to three lines (two in a sheet), the full passage in its `title`. The passage shows without quotation marks, because the bar makes it a quotation.
+- **Note.** 15.5 px, set with `textContent`. A plain highlight shows a field with Save; Edit turns a note into the field with Save and Cancel. Save reads the stored list first, so another tab's change is kept.
+- **Actions.** Edit, Share and Remove below a hairline, in monospace capitals, Remove in the new `danger` token (5.76:1 light, 5.13:1 dark on the page, recorded in `book-tokens.json`). Targets are 44 px on touch and 24 px otherwise.
+- **Bottom sheet.** In a window 40rem wide or narrower the popover takes `data-sheet`: full width at the bottom, 16 px top radius, a 36 by 4 px handle, a dimmed backdrop, the quotation cut to two lines. A tap outside closes it through the native light dismiss; a swipe down on the handle follows the finger and closes past 80 px.
+- **Focus.** Escape closes, and focus returns to the marker the popover came from whenever it closes with focus left on the page.
+- **Swatch names.** The popover's colours are circles with their names kept as text for assistive technology (the earlier text labels are hidden by `font-size: 0`).
+- **Checks.** The Playwright run passes 138 checks at 1280 and 393 px, including the order, the quotation's size, style and bar, the hairline, the destructive colour, a long passage cut to three lines (two on the phone), the sheet's geometry and 44 px targets, and the two swipe gestures.
