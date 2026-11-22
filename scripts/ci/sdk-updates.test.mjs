@@ -4,14 +4,32 @@
 // `node --test scripts/ci/*.test.mjs`.
 import assert from "node:assert/strict";
 import { execFileSync, spawnSync } from "node:child_process";
-import { chmodSync, existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
+import {
+  chmodSync,
+  existsSync,
+  mkdirSync,
+  mkdtempSync,
+  readdirSync,
+  readFileSync,
+  rmSync,
+  writeFileSync,
+} from "node:fs";
 import { tmpdir } from "node:os";
 import path from "node:path";
 import { after, describe, test } from "node:test";
 import { fileURLToPath } from "node:url";
 import { parse } from "yaml";
 import { FAKE_GH } from "./fake-gh.mjs";
-import { lockfileProblems, manifestProblems, newestEligible, parseBumps, updateProblems } from "./sdk-updates.mjs";
+import {
+  lockfileProblems,
+  manifestProblems,
+  newestEligible,
+  parseBumps,
+  parseRange,
+  planBumps,
+  satisfies,
+  updateProblems,
+} from "./sdk-updates.mjs";
 
 const NOW = Date.parse("2026-11-19T00:00:00Z");
 const times = {
@@ -48,6 +66,127 @@ test("an unparseable pin is left alone", () => {
 
 test("skips a deprecated release", () => {
   assert.equal(newestEligible("1.0.0", versions, times, NOW, new Set(["1.1.0"])), undefined);
+});
+
+describe("parseRange and satisfies", () => {
+  const ok = (version, range) => satisfies(version, parseRange(range));
+
+  test("reads the caret, tilde, exact, comparator, x-range and || shapes npm writes", () => {
+    assert.ok(ok("2.32.0", "^2.29.1") && !ok("3.0.0", "^2.29.1") && !ok("2.29.0", "^2.29.1"));
+    assert.ok(ok("0.3.14", "^0.3.10") && !ok("0.4.0", "^0.3.10") && !ok("1.3.0", "^0.3.10"));
+    assert.ok(ok("0.0.3", "^0.0.3") && !ok("0.0.4", "^0.0.3"));
+    assert.ok(ok("4.9.0", "^4") && !ok("5.0.0", "^4") && ok("0.9.0", "^0.x") && !ok("1.0.0", "^0.x"));
+    assert.ok(ok("1.4.9", "~1.4.7") && !ok("1.5.0", "~1.4.7") && ok("1.9.0", "~1") && !ok("2.0.0", "~1"));
+    assert.ok(ok("1.3.27", "1.3.27") && !ok("1.3.28", "1.3.27") && ok("1.3.27", "=1.3.27"));
+    assert.ok(ok("0.11.0", ">=0.11.0 <1.0.0") && !ok("1.0.0", ">=0.11.0 <1.0.0") && ok("9.0.0", ">= 0.5.0"));
+    assert.ok(ok("2.9.0", "2.x") && !ok("3.0.0", "2.x") && ok("2.1.5", "2.1.*") && !ok("2.2.0", "2.1"));
+    assert.ok(ok("3.0.0", ">2") && !ok("2.9.0", ">2") && ok("2.9.0", "<=2") && !ok("3.0.0", "<=2"));
+    assert.ok(ok("3.25.76", "^3.25.76 || ^4") && ok("4.6.7", "^3.25.76 || ^4") && !ok("5.0.0", "^3.25.76 || ^4"));
+    assert.ok(ok("9.9.9", "*") && ok("9.9.9", ""));
+  });
+
+  test("a prerelease satisfies a range only through a comparator on its own version, as in npm", () => {
+    assert.ok(!ok("3.0.0-beta.1", "*") && !ok("2.30.0-rc.1", "^2.29.1"));
+    assert.ok(ok("2.30.0-rc.2", "^2.30.0-rc.1") && !ok("2.30.0-rc.0", "^2.30.0-rc.1"));
+  });
+
+  test("refuses a shape it can't evaluate rather than guess", () => {
+    for (const range of ["1.2.3 - 2.0.0", "latest", "npm:other@^1.0.0", "workspace:*", "~>1.2", "1.x.3", "^1.2-beta"]) {
+      assert.equal(parseRange(range), undefined, range);
+    }
+    assert.equal(parseRange("https://example.com/p.tgz"), undefined);
+    assert.equal(parseRange(undefined), undefined);
+  });
+});
+
+describe("planBumps", () => {
+  const OLD = "2026-10-01T00:00:00Z";
+  const NEW = "2026-11-18T00:00:00Z";
+  // A registry document: each version with its publish date and the manifest fields planBumps reads.
+  const doc = (releases) => ({
+    versions: Object.fromEntries(Object.entries(releases).map(([v, r]) => [v, r.meta ?? {}])),
+    time: Object.fromEntries(Object.entries(releases).map(([v, r]) => [v, r.at ?? OLD])),
+  });
+  const adk = (genai) => ({ meta: { dependencies: { "@google/genai": genai } } });
+  const genai = doc({ "2.32.0": {}, "2.33.0": {}, "2.34.0": { at: NEW }, "3.1.0": {}, "3.3.0": {} });
+  const zod = doc({ "4.6.7": {}, "4.7.0": {} });
+  // Plans `pins` against a fake registry in which @google/adk's releases are `adkReleases`.
+  const plan = async (pins, adkReleases) => {
+    const docs = { "@google/adk": doc(adkReleases), "@google/genai": genai, zod };
+    const registry = async (name) => docs[name] ?? assert.fail(`no fake document for ${name}`);
+    const { bumps, notes } = await planBumps({ dependencies: pins }, "@google/adk", registry, NOW);
+    return { bumps: bumps.map((b) => `${b.name}@${b.to}`).join(" "), notes };
+  };
+  const pins = { "@google/adk": "2.5.0", "@google/genai": "2.32.0", zod: "4.6.7" };
+
+  test("blocks a major main's range excludes and picks the newest in-range release old enough", async () => {
+    const result = await plan(pins, { "2.5.0": adk("^2.29.1"), "3.0.0": { ...adk("^3.1.0"), at: NEW } });
+    assert.equal(result.bumps, "@google/genai@2.33.0 zod@4.7.0");
+    assert.deepEqual(result.notes, [
+      "caps @google/genai at 2.33.0 rather than 3.3.0: @google/adk@2.5.0 declares ^2.29.1",
+    ]);
+  });
+
+  test("leaves the pin when no release inside the range is newer", async () => {
+    const result = await plan(pins, { "2.5.0": adk("~2.32.0") });
+    assert.equal(result.bumps, "zod@4.7.0");
+    assert.deepEqual(result.notes, [
+      "caps @google/genai at 2.32.0 rather than 3.3.0: @google/adk@2.5.0 declares ~2.32.0",
+    ]);
+  });
+
+  test("a bump of main moves the cap to the range its new release declares", async () => {
+    const releases = { "2.5.0": adk("^2.29.1"), "3.0.0": adk("^3.1.0"), "3.1.0": { ...adk("^3.2"), at: NEW } };
+    const result = await plan(pins, releases);
+    assert.equal(result.bumps, "@google/adk@3.0.0 @google/genai@3.3.0 zod@4.7.0");
+    assert.deepEqual(result.notes, []);
+  });
+
+  test("holds a package whose range it can't evaluate, and says why", async () => {
+    const result = await plan(pins, { "2.5.0": adk("2.29.1 - 3.0.0") });
+    assert.equal(result.bumps, "zod@4.7.0");
+    assert.deepEqual(result.notes, [
+      "::warning::holds @google/genai at 2.32.0: @google/adk@2.5.0 declares 2.29.1 - 3.0.0, which this script can't evaluate",
+    ]);
+  });
+
+  test("a package main declares as a dependency and a peer must satisfy both ranges", async () => {
+    const meta = { dependencies: { zod: "^4" }, peerDependencies: { zod: "<4.7.0" } };
+    const result = await plan({ "@google/adk": "2.5.0", zod: "4.6.7" }, { "2.5.0": { meta } });
+    assert.equal(result.bumps, "");
+    assert.deepEqual(result.notes, ["caps zod at 4.6.7 rather than 4.7.0: @google/adk@2.5.0 declares ^4 and <4.7.0"]);
+  });
+
+  test("a package main doesn't declare, and main itself, still move to their newest release, in pin order", async () => {
+    const result = await plan(
+      { zod: "4.6.7", "@google/adk": "2.5.0", "@google/genai": "2.32.0" },
+      {
+        "2.5.0": {},
+        "2.6.0": {},
+      },
+    );
+    assert.equal(result.bumps, "zod@4.7.0 @google/adk@2.6.0 @google/genai@3.3.0");
+    assert.deepEqual(result.notes, []);
+  });
+
+  test("refuses a main package the harness doesn't pin, or a main release the registry lacks", async () => {
+    await assert.rejects(plan({ zod: "4.6.7" }, {}), /@google\/adk, the package the harness tests, isn't a dependency/);
+    await assert.rejects(plan(pins, { "2.4.0": {} }), /@google\/adk@2\.5\.0 isn't published/);
+  });
+});
+
+test("every harness has a main package in the book's map", () => {
+  const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "../..");
+  const map = JSON.parse(readFileSync(path.join(root, "apps/manual/src/data/harnesses.json"), "utf8"));
+  for (const harness of readdirSync(path.join(root, "verify"), { withFileTypes: true })) {
+    if (!harness.isDirectory()) continue;
+    const main = map[`verify/${harness.name}`];
+    const pins = JSON.parse(readFileSync(path.join(root, "verify", harness.name, "package.json"), "utf8")).dependencies;
+    assert.ok(
+      typeof main === "string" && Object.hasOwn(pins, main),
+      `verify/${harness.name} has no main package it pins`,
+    );
+  }
 });
 
 describe("updateProblems", () => {

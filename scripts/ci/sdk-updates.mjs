@@ -1,6 +1,9 @@
 // Finds newer releases of the SDKs our verify/* harnesses pin, under AGENTS.md's age rule: a release must be at
 // least MIN_AGE_DAYS old. A stable pin moves only to a newer stable release. A prerelease pin (such as
-// miniflare's dated -beta builds) may also move to a newer prerelease of the same major version.
+// miniflare's dated -beta builds) may also move to a newer prerelease of the same major version. A harness exists to
+// test its main package (apps/manual/src/data/harnesses.json) as it installs, so a pin of a package that main's chosen
+// release declares in its dependencies or peerDependencies moves only within that range, and stays put when the range
+// is a shape this script can't evaluate.
 //
 //   node scripts/ci/sdk-updates.mjs plan            JSON matrix of harnesses with updates, for GitHub Actions
 //   node scripts/ci/sdk-updates.mjs apply <harness> <bumps>
@@ -71,6 +74,152 @@ export function newestEligible(pinned, versions, times, now = Date.now(), deprec
     if (!best || compare(v, best.parsed) > 0) best = { version, parsed: v, published: times[version] };
   }
   return best && { version: best.version, published: best.published };
+}
+
+// A version in a range term, which may leave out its minor and patch or write them as x or *.
+const PARTIAL = /^v?(\d+|[xX*])(?:\.(\d+|[xX*]))?(?:\.(\d+|[xX*]))?(?:-([0-9A-Za-z.-]+))?$/;
+
+/**
+ * Turns one range term, such as `^2.29.1`, `~1.4`, `2.x`, `>=0.5.0` or `1.3.27`, into comparators, the way npm's
+ * semver desugars it. Returns undefined for a term it can't read.
+ */
+function termComparators(term) {
+  const op = /^(\^|~|>=|<=|>|<|=)?/.exec(term)[1] ?? "";
+  const m = PARTIAL.exec(term.slice(op.length));
+  if (!m) return undefined;
+  const wild = (part) => part === undefined || /^[xX*]$/.test(part);
+  // A wildcard part ends the version: `1.x.3` isn't a version npm reads either.
+  const parts = [m[1], m[2], m[3]];
+  const given = parts.findIndex(wild);
+  const known = given === -1 ? 3 : given;
+  if (parts.slice(known).some((part) => !wild(part))) return undefined;
+  if (m[4] !== undefined && known < 3) return undefined;
+  const nums = parts.slice(0, known).map(Number);
+  const at = (a, b = 0, c = 0, pre = undefined) => ({ nums: [a, b, c], pre });
+  const lower = at(nums[0] ?? 0, nums[1] ?? 0, nums[2] ?? 0, m[4]);
+  // The first release past a partial version: `1.2` ends before 1.3.0, `1` before 2.0.0.
+  const past = (n) => (n === 1 ? at(nums[0] + 1) : n === 2 ? at(nums[0], nums[1] + 1) : undefined);
+  if (known === 0) return op === "<" || op === ">" ? [{ op: "<", v: at(0) }] : [];
+  if (op === "^") {
+    const bump = nums[0] > 0 || known === 1 ? 1 : nums[1] > 0 || known === 2 ? 2 : 3;
+    const upper = bump === 3 ? at(0, 0, nums[2] + 1) : past(bump);
+    return [
+      { op: ">=", v: lower },
+      { op: "<", v: upper },
+    ];
+  }
+  if (op === "~")
+    return [
+      { op: ">=", v: lower },
+      { op: "<", v: past(known === 1 ? 1 : 2) },
+    ];
+  if (known === 3) return [{ op: op || "=", v: lower }];
+  // A partial version after an operator stands for its whole span: `>=2` is >=2.0.0, `<=2` is <3.0.0.
+  if (op === "" || op === "=")
+    return [
+      { op: ">=", v: lower },
+      { op: "<", v: past(known) },
+    ];
+  if (op === ">=" || op === "<") return [{ op, v: lower }];
+  return [{ op: op === ">" ? ">=" : "<", v: past(known) }];
+}
+
+/**
+ * Reads an npm range, such as `^2.29.1`, `>=1.2.0 <2.0.0` or `^3.25.76 || ^4`, into a list of comparator sets, one per
+ * `||` alternative. Returns undefined for any shape it can't evaluate, such as a hyphen range, a tag, an alias or a URL,
+ * so the caller can refuse to guess.
+ */
+export function parseRange(range) {
+  if (typeof range !== "string") return undefined;
+  const sets = [];
+  for (const alternative of range.split("||")) {
+    // npm accepts a space between an operator and its version.
+    const terms = alternative
+      .trim()
+      .replace(/(\^|~|>=|<=|>|<|=)\s+/g, "$1")
+      .split(/\s+/)
+      .filter(Boolean);
+    if (terms.includes("-")) return undefined;
+    const set = [];
+    for (const term of terms) {
+      const comparators = termComparators(term);
+      if (!comparators) return undefined;
+      set.push(...comparators);
+    }
+    sets.push(set);
+  }
+  return sets;
+}
+
+/**
+ * Says whether `version` satisfies a range parseRange read. As in npm, a prerelease satisfies a set only when one of
+ * its comparators names a prerelease of the same major, minor and patch.
+ */
+export function satisfies(version, sets) {
+  const v = parse(version);
+  if (!v) return false;
+  return sets.some((set) => {
+    const holds = set.every(({ op, v: bound }) => {
+      const c = compare(v, bound);
+      return op === ">=" ? c >= 0 : op === "<=" ? c <= 0 : op === ">" ? c > 0 : op === "<" ? c < 0 : c === 0;
+    });
+    const samePre = ({ v: bound }) => bound.pre !== undefined && bound.nums.every((n, i) => n === v.nums[i]);
+    return holds && (v.pre === undefined || set.some(samePre));
+  });
+}
+
+/**
+ * Chooses the bumps for one harness. `main` is the package the harness exists to test. A pin of a package that main's
+ * chosen release (its proposed bump, or else its pin) declares in its dependencies or peerDependencies moves only
+ * within that range, because the harness tests main as it installs. When the range can't be evaluated, that pin
+ * stays. `registry(name)` returns the package's registry document. Returns the bumps and a note for each pin held.
+ */
+export async function planBumps(manifest, main, registry, now = Date.now()) {
+  const pins = manifest.dependencies ?? {};
+  const bumps = [];
+  const notes = [];
+  const choose = (name, entry, allowed = () => true) => {
+    const versions = entry.versions ?? {};
+    const deprecated = new Set(Object.keys(versions).filter((v) => versions[v]?.deprecated));
+    const candidates = Object.keys(versions).filter(allowed);
+    return newestEligible(pins[name], candidates, entry.time ?? {}, now, deprecated);
+  };
+  const add = (name, next) =>
+    next && bumps.push({ name, from: pins[name], to: next.version, published: next.published });
+  if (!Object.hasOwn(pins, main)) throw new Error(`${main}, the package the harness tests, isn't a dependency`);
+  const mainEntry = await registry(main);
+  const mainNext = choose(main, mainEntry);
+  const release = `${main}@${mainNext?.version ?? pins[main]}`;
+  const meta = mainEntry.versions?.[mainNext?.version ?? pins[main]];
+  if (!meta) throw new Error(`npm registry: ${release} isn't published`);
+  for (const name of Object.keys(pins)) {
+    if (name === main) {
+      add(main, mainNext);
+      continue;
+    }
+    const entry = await registry(name);
+    const ranges = [meta.dependencies?.[name], meta.peerDependencies?.[name]].filter((r) => r !== undefined);
+    if (ranges.length === 0) {
+      add(name, choose(name, entry));
+      continue;
+    }
+    const sets = ranges.map(parseRange);
+    const shown = ranges.join(" and ");
+    if (sets.includes(undefined)) {
+      notes.push(
+        `::warning::holds ${name} at ${pins[name]}: ${release} declares ${shown}, which this script can't evaluate`,
+      );
+      continue;
+    }
+    const next = choose(name, entry, (v) => sets.every((s) => satisfies(v, s)));
+    add(name, next);
+    const unbounded = choose(name, entry);
+    if (unbounded && unbounded.version !== next?.version) {
+      const held = next?.version ?? pins[name];
+      notes.push(`caps ${name} at ${held} rather than ${unbounded.version}: ${release} declares ${shown}`);
+    }
+  }
+  return { bumps, notes };
 }
 
 const REGULAR_FILE = "100644";
@@ -375,24 +524,23 @@ function manifestPath(harness) {
   return path.join(verifyDir, harness, "package.json");
 }
 
-/** Every runtime dependency of `harness` with a newer eligible release. */
-async function bumpsFor(harness) {
-  const manifest = JSON.parse(readFileSync(manifestPath(harness), "utf8"));
-  const bumps = [];
-  for (const [name, pinned] of Object.entries(manifest.dependencies ?? {})) {
-    const entry = await registryEntry(name);
-    const versions = entry.versions ?? {};
-    const deprecated = new Set(Object.keys(versions).filter((v) => versions[v]?.deprecated));
-    const next = newestEligible(pinned, Object.keys(versions), entry.time ?? {}, Date.now(), deprecated);
-    if (next) bumps.push({ name, from: pinned, to: next.version, published: next.published });
-  }
-  return bumps;
+// The package each harness exists to test: the map the book uses to caption its listings with that package's pin.
+const mainPackages = path.join(root, "apps/manual/src/data/harnesses.json");
+
+/** The package `harness` exists to test. Throws when the map lacks it, so a new harness can't skip the cap. */
+function mainPackage(harness) {
+  const main = JSON.parse(readFileSync(mainPackages, "utf8"))[`verify/${harness}`];
+  if (typeof main !== "string") throw new Error(`${path.relative(root, mainPackages)} names no package for ${harness}`);
+  return main;
 }
 
 async function plan() {
   const include = [];
   for (const harness of harnesses()) {
-    const bumps = await bumpsFor(harness);
+    const manifest = JSON.parse(readFileSync(manifestPath(harness), "utf8"));
+    const { bumps, notes } = await planBumps(manifest, mainPackage(harness), registryEntry);
+    // stdout carries only the matrix the workflow reads, so the notes go to the job's log.
+    for (const note of notes) process.stderr.write(`${note.replace(/^(::warning::)?/, `$1verify/${harness}: `)}\n`);
     if (bumps.length > 0) include.push({ harness, bumps: bumps.map((b) => `${b.name}@${b.to}`).join(" ") });
   }
   process.stdout.write(`${JSON.stringify({ include })}\n`);
