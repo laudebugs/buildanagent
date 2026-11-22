@@ -3,7 +3,7 @@
 | Field | Value |
 | --- | --- |
 | ID | `T55` |
-| Status | `ongoing` |
+| Status | `done` |
 | Plan | [Book plan §5, BK9](../../plans/build-book.md#bk9-listings-come-from-real-regions-and-become-interactive-in-three-tiers-accepted-the-mechanism-is-proposed) |
 | Round / milestone | Round T (textbook), MT |
 | Depends on | [T5](../done/T5-book-interactive-listings.md) |
@@ -41,21 +41,21 @@ Make each recorded answer in a transcript carry the token usage and the model id
 
 ## Tasks
 
-- [ ] Decide what counts as usage worth recording. The AI SDK's scripted model reports 10 input and 5 output tokens when a script sets none, and a replay that shows those placeholder counts would teach a reader nothing. Record usage only where the example's script set it, or mark the default as such; write the rule into `events.ts`.
-- [ ] Add the fields to `TranscriptEvent`, bump `TRANSCRIPT_FORMAT`, and teach `write.mjs` to keep them unchanged.
-- [ ] Fill them in each harness's `examples/lib/transcript.ts` from what its mock reports, and in workerd through the Cloudflare harness's marked console lines.
-- [ ] Run each harness's `pnpm test` twice and diff the transcripts, then commit them.
-- [ ] Extend the book's transcript schema and the replay renderer; add a test in `apps/manual/test/` for an answer with usage and a model id and for one without.
+- [x] Decide what counts as usage worth recording. The AI SDK's scripted model reports 10 input and 5 output tokens when a script sets none, and a replay that shows those placeholder counts would teach a reader nothing. Record usage only where the example's script set it, or mark the default as such; write the rule into `events.ts`.
+- [x] Add the fields to `TranscriptEvent`, bump `TRANSCRIPT_FORMAT`, and teach `write.mjs` to keep them unchanged.
+- [x] Fill them in each harness's `examples/lib/transcript.ts` from what its mock reports, and in workerd through the Cloudflare harness's marked console lines.
+- [x] Run each harness's `pnpm test` twice and diff the transcripts, then commit them.
+- [x] Extend the book's transcript schema and the replay renderer; add a test in `apps/manual/test/` for an answer with usage and a model id and for one without.
 - [ ] Rewrite Chapter 2's paragraph, fact-check it, and run `/anthropic-skills:writing-review` on the section.
 
 ## Acceptance criteria
 
-- [ ] `verify/vercel-ai-sdk/results/transcripts/10-streaming-usage.json` records the answer's model id as `claude-sonnet-5-5` and its usage as 1,000 uncached input, 1,500 cache-read, 500 cache-write and 200 output tokens
-- [ ] Two runs of each recording harness's `pnpm test` write byte-identical transcripts, and every example still passes
-- [ ] The replay beside `#stream-usage` shows the counts and the model id on the answer, and Chapter 2 no longer says that the transcripts record no usage
-- [ ] `scripts/ci/transcripts.test.mjs` covers the new fields and the version bump, and `results-drift.mjs` reports no drift
-- [ ] `check:book`, the manual's `test` and `build`, and `pnpm fact-check-logs` pass
-- [ ] `pnpm check`, `pnpm typecheck` and `pnpm test` pass offline from the repo root
+- [x] `verify/vercel-ai-sdk/results/transcripts/10-streaming-usage.json` records the answer's model id as `claude-sonnet-5-5` and its usage as 1,000 uncached input, 1,500 cache-read, 500 cache-write and 200 output tokens
+- [x] Two runs of each recording harness's `pnpm test` write byte-identical transcripts, and every example still passes
+- [x] The replay beside `#stream-usage` shows the counts and the model id on the answer, and Chapter 2 no longer says that the transcripts record no usage
+- [x] `scripts/ci/transcripts.test.mjs` covers the new fields and the version bump, and `results-drift.mjs` reports no drift
+- [x] `check:book`, the manual's `test` and `build`, and `pnpm fact-check-logs` pass
+- [x] `pnpm check`, `pnpm typecheck` and `pnpm test` pass offline from the repo root
 
 ## Tests
 
@@ -77,8 +77,19 @@ Make each recorded answer in a transcript carry the token usage and the model id
 ## Definition of done
 
 - [x] Claimed: the first commit moved this file `ready/` → `ongoing/` (Status `ongoing`)
-- [ ] Prose drafted with `/anthropic-skills:writing`, and changed claims re-checked against their sources
-- [ ] `pnpm check`, `pnpm typecheck` and `pnpm test` pass locally; pushed after each meaningful step
-- [ ] This file moved `ongoing/` → `done/` (Status `done`) in the last work commit, and the plan's todo table updated
+- [x] Prose drafted with `/anthropic-skills:writing`, and changed claims re-checked against their sources
+- [x] `pnpm check`, `pnpm typecheck` and `pnpm test` pass locally; pushed after each meaningful step
+- [x] This file moved `ongoing/` → `done/` (Status `done`) in the last work commit, and the plan's todo table updated
 - [ ] Two code-review rounds run on the pull request (`/code-review high --max-findings default`, then `medium` and `low` after more than 6 confirmed findings, otherwise `low`), with every finding fixed or explained in a commit message
 - [ ] Copy reviewed with `/anthropic-skills:writing-review` after the code changes, with its findings fixed and the rubric scores in the pull request description
+
+## Outcome
+
+Each recorded answer now carries the token usage and the model id its mock reported, wherever the example's script set them, and the book's replays show both.
+
+- **Format 2.** `scripts/transcripts/events.ts` gives a `response` event an optional `usage` (`uncachedInput`, `cacheRead`, `cacheWrite`, `output` and `reasoning`) and an optional `modelId`, kept apart from `model`, and states the rule: a value no script chose stays out, and so does a class the mock did not report. A helper marks a default object with `placeholder()`, as the AI SDK's and Cloudflare's `scripted()` do with their 10 and 5 tokens. The writer keeps both fields as written and checks their shape.
+- **Recorders.** The AI SDK, Cloudflare (through its marked console lines), LangChain, OpenAI Agents SDK, Google ADK and our own SDK's recorders map their mock's usage to the four classes. Pi's faux provider replaces a step's usage with an estimate and its model with `faux-1`, and the Claude Agent SDK's and Copilot SDK's HTTP mocks send the same 10 and 5 tokens with every answer, so those three record neither field, and each says why in code.
+- **Transcripts.** One commit rewrote all 77 committed transcripts: the format line everywhere, plus the new fields on the answers of `10-streaming-usage`, `11-tuned-vs-cached` and `12-retries-caching-budget`, the only examples whose scripts set them. A second run of every harness, the Claude Agent SDK's as a non-root user, wrote identical bytes.
+- **Book.** The schema reads formats 1 and 2, and the replay shows "Model id" and "Usage" under the answer's text with or without JavaScript. Chapter 2's usage paragraph reads the counts from the answer, with fact-check rows 126–129, and row 116 is corrected by row 126.
+
+The writing review and the code reviews run on the pull request.
