@@ -22,8 +22,10 @@ export interface StoreUnderTest {
 /** Makes a fresh store for each case. */
 export type StoreFactory = () => StoreUnderTest | Promise<StoreUnderTest>;
 
+/** One case of the store conformance suite, which a runner can register as a test of its own. */
 export type StoreCase = RunnableCase;
 
+/** The report the store conformance suite returns: which cases passed, which skipped with a reason and which failed. */
 export type StoreConformanceReport = CaseReport;
 
 const ADA: SessionKey = { userId: "ada", sessionId: "s1" };
