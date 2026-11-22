@@ -322,6 +322,27 @@ describe("project context in the request", () => {
     assert.ok(textOf(main.calls[2]?.context.messages[0]).includes("THE PLAN, REWRITTEN"));
   });
 
+  test("a plan edit leaves the context files' block as it was: the plan is its own block after it", async () => {
+    const root = repo({ "AGENTS.md": "Always run pnpm check.", [PLAN_FILE]: "THE PLAN" });
+    const main = new ScriptedModel([
+      { usage: {}, content: [{ type: "tool_call" as const, callId: "c1", name: "edit_plan", input: {} }] },
+      reply("Edited."),
+      reply("Next."),
+    ]);
+    const harness = await harnessFor(root, main, { tools: true });
+    const { session } = await open();
+    await runTurn(session, harness, { input: "Go" });
+    await runTurn(session, harness, { input: "Again" });
+    const before = main.calls[0]?.context.messages[0]?.content ?? [];
+    const after = main.calls[2]?.context.messages[0]?.content ?? [];
+    const filesBlock = contextText((await contextFiles(root)).files);
+    assert.deepEqual(before[0], { type: "text", text: filesBlock });
+    assert.deepEqual(after[0], before[0], "the files' block is byte for byte the same after the plan changed");
+    assert.ok(before[1]?.type === "text" && before[1].text.includes("THE PLAN") && !before[1].text.includes("pnpm"));
+    assert.ok(after[1]?.type === "text" && after[1].text.includes("THE PLAN, REWRITTEN"));
+    assert.deepEqual(after[2], { type: "text", text: "Go" }, "the user's own text comes after both blocks");
+  });
+
   test("a missing plan adds nothing, and a progress file that is not JSON is shown with a notice", async () => {
     const none = repo({ "AGENTS.md": "Rules." });
     const main = new ScriptedModel([reply("One.")]);
