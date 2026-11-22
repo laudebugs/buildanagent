@@ -9,7 +9,7 @@ const script = fileURLToPath(new URL("./stdio-server.ts", import.meta.url));
 const sourceCondition = fileURLToPath(new URL("../permissions/source-condition.mjs", import.meta.url));
 const packageDir = fileURLToPath(new URL("../..", import.meta.url));
 
-/** The session the child's `flood` mode watches (stdio-server.ts). */
+/** The session the child's `flood` mode creates and watches before it serves stdin (stdio-server.ts). */
 export const FLOOD_SESSION = "flood";
 
 export interface StdioChild {
