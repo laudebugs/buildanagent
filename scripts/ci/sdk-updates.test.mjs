@@ -644,6 +644,99 @@ describe("lockfileProblems", () => {
   }
 });
 
+describe("lockfileProblems on the workspace's own importers", () => {
+  // The cloudflare-agents update of 2026-11-22: bumping the harness's @cloudflare/workers-types moved the optional peer
+  // pnpm resolves for wrangler in the apps' importers, which share one resolution with the harness.
+  const WORKERS = "@cloudflare/workers-types@5.20261115.1";
+  const bumps = parseBumps(`${WORKERS} ai@7.0.173`);
+  const importer = (version) =>
+    `  apps/docs:\n    devDependencies:\n      wrangler:\n        specifier: 4.160.1\n        version: ${version}\n\n  verify/other:`;
+  // wrangler's snapshot, as pnpm writes it: the resolved peer of workers-types becomes an optional dependency.
+  const snapshot = (version, extra = "") => {
+    const workers = /@cloudflare\/workers-types@([^()]+)/.exec(version)?.[1];
+    const optional = workers ? `      '@cloudflare/workers-types': ${workers}\n` : "";
+    return `  wrangler@${version}:\n    dependencies:\n      esbuild: 0.28.2${extra}\n    optionalDependencies:\n${optional}      fsevents: 2.3.3\n\n`;
+  };
+  // A version that can't be a snapshot key keeps no snapshot of its own; the importer check refuses it first.
+  const lock = (version, extra = "") =>
+    LOCK.replace("  verify/other:", importer(version)).replace(
+      "  typescript@7.0.2: {}",
+      `${/[\s:]/.test(version) ? "" : snapshot(version, extra)}  typescript@7.0.2: {}`,
+    );
+  const before = lock("4.160.1(@types/node@26.6.6)");
+  const problems = (version, from = before, planned = bumps, extra = "") =>
+    lockfileProblems(from, lock(version, extra), "pi", planned).join("\n");
+
+  test("accepts a peer group that names one of the plan's bumps", () => {
+    assert.equal(problems(`4.160.1(${WORKERS})(@types/node@26.6.6)`), "");
+  });
+
+  test("accepts a bumped peer replacing, or dropping, an older version of itself", () => {
+    const older = lock("4.160.1(@cloudflare/workers-types@5.20261103.1)(@types/node@26.6.6)");
+    assert.equal(problems(`4.160.1(${WORKERS})(@types/node@26.6.6)`, older), "");
+    assert.equal(problems("4.160.1(@types/node@26.6.6)", older), "");
+  });
+
+  for (const [name, version, message] of [
+    ["adds a peer the plan didn't bump", "4.160.1(evil@1.0.0)(@types/node@26.6.6)", /peer evil@1\.0\.0 isn't one of/],
+    [
+      "gives a bumped peer another version",
+      "4.160.1(@cloudflare/workers-types@5.20261116.0)(@types/node@26.6.6)",
+      /peer @cloudflare\/workers-types@5\.20261116\.0 isn't one of the planned bumps/,
+    ],
+    [
+      "changes the resolved version itself",
+      `4.160.2(${WORKERS})(@types/node@26.6.6)`,
+      /changes the apps\/docs importer$/,
+    ],
+    ["points the dependency at a path", "link:../../evil", /changes the apps\/docs importer$/],
+    ["points a peer at a path", "4.160.1(@cloudflare/workers-types@link:../x)(@types/node@26.6.6)", /isn't a registry/],
+    ["drops a peer no bump replaces", `4.160.1(${WORKERS})`, /drops peer @types\/node@26\.6\.6/],
+    [
+      "nests an unbumped peer in a bumped one",
+      `4.160.1(ai@7.0.173(zod@4.6.7))(@types/node@26.6.6)`,
+      /zod@4\.6\.7 isn't/,
+    ],
+    ["writes text outside the peer groups", `4.160.1(${WORKERS}) (@types/node@26.6.6)`, /aren't a list pnpm writes/],
+    ["lists a peer twice", `4.160.1(${WORKERS})(${WORKERS})(@types/node@26.6.6)`, /lists a peer twice/],
+  ]) {
+    test(`refuses a workspace importer that ${name}`, () => {
+      assert.match(problems(version), message);
+      assert.match(problems(version), /^pnpm-lock\.yaml: changes the apps\/docs importer/);
+    });
+  }
+
+  test("refuses a moved snapshot that changes more than the bumped peer", () => {
+    const moved = `4.160.1(${WORKERS})(@types/node@26.6.6)`;
+    const more =
+      /the snapshot wrangler@4\.160\.1\(@cloudflare\/workers-types@5\.20261115\.1\)\(@types\/node@26\.6\.6\) changes more than wrangler@4\.160\.1\(@types\/node@26\.6\.6\)/;
+    assert.match(problems(moved, before, bumps, "\n      evil: 1.0.0"), more);
+    const otherEsbuild = lock(moved).replace(
+      `${moved}:\n    dependencies:\n      esbuild: 0.28.2`,
+      `${moved}:\n    dependencies:\n      esbuild: 0.99.0`,
+    );
+    assert.match(lockfileProblems(before, otherEsbuild, "pi", bumps).join("\n"), more);
+    const missing = lock(moved).replace(snapshot(moved), "");
+    assert.match(
+      lockfileProblems(before, missing, "pi", bumps).join("\n"),
+      /moves to the snapshot .* which has no counterpart/,
+    );
+  });
+
+  test("refuses a reordered peer list, a changed specifier, a new dependency, and any change with no bumps", () => {
+    const two = lock("4.160.1(@types/node@26.6.6)(typescript@7.0.2)");
+    assert.match(problems(`4.160.1(typescript@7.0.2)(@types/node@26.6.6)`, two), /reorders its peers/);
+    const specifier = lockfileProblems(before, before.replace("specifier: 4.160.1", "specifier: 4.160.2"), "pi", bumps);
+    assert.match(specifier.join("\n"), /changes the apps\/docs importer$/);
+    const added = before.replace(
+      "      wrangler:\n",
+      "      evil:\n        specifier: 1.0.0\n        version: 1.0.0\n      wrangler:\n",
+    );
+    assert.match(lockfileProblems(before, added, "pi", bumps).join("\n"), /changes the apps\/docs importer$/);
+    assert.match(problems(`4.160.1(${WORKERS})(@types/node@26.6.6)`, before, []), /isn't one of the planned bumps/);
+  });
+});
+
 const root = path.resolve(fileURLToPath(new URL("../..", import.meta.url)));
 const workflowText = readFileSync(path.join(root, ".github/workflows/sdk-updates.yml"), "utf8");
 const workflow = parse(workflowText);

@@ -524,14 +524,139 @@ function importerProblem(name, prior, entry, pattern) {
     : `the ${name} importer points a dependency at something other than a registry version`;
 }
 
+// A workspace importer's resolved version, split into the version itself and the peers pnpm resolved it against.
+const WORKSPACE_VERSION = /^( {8}version: [^(\s]+)(.*)$/;
+// One peer as pnpm writes it in a resolved version: a registry name and an exact version. No `link:`, `file:` or URL.
+const PEER_HEAD = /^((?:@[a-z0-9-~][a-z0-9-._~]*\/)?[a-z0-9-~][a-z0-9-._~]*)@(\d+\.\d+\.\d+(?:-[0-9A-Za-z.-]+)?)$/;
+
 /**
- * Says what is wrong with an update's pnpm-lock.yaml, given main's text and the update's. Every importer but the
- * harness's must stay byte for byte, and in the harness's only its dependencies' specifiers and versions may change.
+ * Splits a peer suffix, such as `(a@1.0.0(b@2.0.0))(c@3.0.0)`, into its top-level groups, each as its head (`a@1.0.0`),
+ * the peers nested in it and its whole text. Returns undefined for text that isn't balanced groups.
+ */
+function peerGroups(text) {
+  const groups = [];
+  let depth = 0;
+  let start = 0;
+  for (let i = 0; i < text.length; i++) {
+    if (text[i] === "(") {
+      if (depth++ === 0) start = i + 1;
+    } else if (text[i] === ")") {
+      if (--depth < 0) return undefined;
+      if (depth === 0) {
+        const inner = text.slice(start, i);
+        const at = inner.indexOf("(");
+        const head = at < 0 ? inner : inner.slice(0, at);
+        groups.push({ head, name: PEER_HEAD.exec(head)?.[1], nested: at < 0 ? "" : inner.slice(at), text: inner });
+      }
+    } else if (depth === 0) return undefined;
+  }
+  return depth === 0 ? groups : undefined;
+}
+
+/**
+ * Says what is wrong with a change of a workspace importer's peer suffix from `before` to `after`, or returns "".
+ * Each group that is new or whose head changed must name exactly one of the planned bumps; a group that is gone must
+ * have named an older version of a bumped package; the groups that stay keep their order; and the peers nested in a
+ * group follow the same rules.
+ */
+function peerSuffixProblem(before, after, bumps) {
+  const old = peerGroups(before);
+  const now = peerGroups(after);
+  if (!old) return `main's peers ${before} don't parse`;
+  if (!now) return `peers ${after} aren't a list pnpm writes`;
+  const key = (group) => group.name ?? group.head;
+  const byName = new Map(old.map((group) => [key(group), group]));
+  if (byName.size !== old.length || new Set(now.map(key)).size !== now.length) return "lists a peer twice";
+  const bumped = (head) => bumps.some((b) => `${b.name}@${b.version}` === head);
+  for (const group of now) {
+    const prior = byName.get(key(group));
+    if (prior?.text === group.text) continue;
+    if (prior?.head !== group.head) {
+      if (!group.name) return `peer ${group.head} isn't a registry version`;
+      if (!bumped(group.head)) return `peer ${group.head} isn't one of the planned bumps`;
+    }
+    const nested = peerSuffixProblem(prior?.nested ?? "", group.nested, bumps);
+    if (nested) return nested;
+  }
+  const kept = new Set(now.map(key));
+  for (const group of old) {
+    if (kept.has(key(group))) continue;
+    const bump = bumps.find((b) => b.name === group.name);
+    if (!bump || group.head === `${bump.name}@${bump.version}`)
+      return `drops peer ${group.head}, which no bump replaces`;
+  }
+  const order = (groups, other) => groups.map(key).filter((name) => other.has(name));
+  if (JSON.stringify(order(old, kept)) !== JSON.stringify(order(now, new Set(old.map(key)))))
+    return "reorders its peers";
+  return "";
+}
+
+/**
+ * Says what is wrong with one workspace importer's new entry (the root's, a package's or an app's), or returns "". These
+ * importers hold the tools CI and the release run, so only the peers in a resolved version's parentheses may change, as
+ * pnpm shares one resolution of a peer across the workspace, and only to the plan's `bumps`.
+ */
+function workspaceImporterProblem(name, prior, entry, bumps, moved) {
+  const mask = (lines) => trimBlank(lines.map((line) => line.replace(WORKSPACE_VERSION, "$1…")));
+  if (entry.key !== prior.key || mask(entry.lines) !== mask(prior.lines)) return `changes the ${name} importer`;
+  const old = trimBlank(prior.lines).split("\n");
+  const lines = trimBlank(entry.lines).split("\n");
+  for (const [i, line] of lines.entries()) {
+    if (line === old[i]) continue;
+    const was = WORKSPACE_VERSION.exec(old[i]);
+    const now = WORKSPACE_VERSION.exec(line);
+    // The dependency is the nearest key above the line, such as `      wrangler:` or `      '@types/node':`.
+    const dependency = /^ {6}(?:'([^']+)'|([^\s:'"]+)):$/.exec(
+      lines.slice(0, i).findLast((l) => /^ {6}\S/.test(l)) ?? "",
+    );
+    if (!was || !now || !dependency) return `changes the ${name} importer`;
+    const dep = dependency[1] ?? dependency[2];
+    const problem = peerSuffixProblem(was[2], now[2], bumps);
+    if (problem) return `changes the ${name} importer's ${dep}: ${problem}`;
+    const version = (match) => match[1].replace(/^ {8}version: /, "") + match[2];
+    moved.push({ importer: name, from: `${dep}@${version(was)}`, to: `${dep}@${version(now)}` });
+  }
+  return "";
+}
+
+/**
+ * Says what is wrong with the snapshot a workspace importer's dependency moved to, or returns "". The move only
+ * resolves a peer to one of the plan's bumps, so the new snapshot must be main's old one with nothing added but lines
+ * that name a bump, such as `      '@cloudflare/workers-types': 5.20261115.1`. Without this, a new snapshot could give a
+ * workspace tool any other registry version of its dependencies.
+ */
+function movedSnapshotProblem({ importer, from, to }, oldSnapshots, newSnapshots, bumps) {
+  const prior = oldSnapshots.get(from);
+  const entry = newSnapshots.get(to);
+  if (!prior || !entry) return `the ${importer} importer moves to the snapshot ${to}, which has no counterpart`;
+  const old = prior.body.split("\n");
+  const now = entry.body.split("\n");
+  // A dependency line naming a bumped package: at the bump's version, or (`stale`) at any other.
+  const bumpLine = (line, stale) => {
+    const m = /^ {6}(?:'([^']+)'|([^\s:'"]+)): (\S+)$/.exec(line);
+    return Boolean(m) && bumps.some((b) => b.name === (m[1] ?? m[2]) && (b.version === m[3]) !== stale);
+  };
+  let i = 0;
+  let j = 0;
+  while (i < old.length || j < now.length) {
+    if (i < old.length && j < now.length && old[i] === now[j]) [i, j] = [i + 1, j + 1];
+    else if (j < now.length && bumpLine(now[j], false)) j++;
+    else if (i < old.length && bumpLine(old[i], true)) i++;
+    else return `the snapshot ${to} changes more than ${from} with the planned bumps`;
+  }
+  return "";
+}
+
+/**
+ * Says what is wrong with an update's pnpm-lock.yaml, given main's text and the update's. In the harness's importer
+ * only its dependencies' specifiers and versions may change; in another harness's, only the peers in a resolved
+ * version; and in the workspace's own importers, only those peers, only to one of the plan's `bumps`, and only to a
+ * snapshot that is main's old one plus lines naming those bumps.
  * In `packages` and `snapshots` an entry may be added or removed but never changed, because an existing entry may be
  * one that main's other importers install. Every other section, such as `settings` and `overrides`, stays as it was.
  * New entries must be plain lines, so no YAML construct can make them read differently to pnpm than to this check.
  */
-export function lockfileProblems(before, after, harness) {
+export function lockfileProblems(before, after, harness, bumps = []) {
   const file = "pnpm-lock.yaml";
   if (/[\t\r]/.test(after)) return [`${file}: holds a tab or a carriage return`];
   const top = (text) => splitAt(text.split("\n"), (line) => /^\S/.test(line));
@@ -543,6 +668,9 @@ export function lockfileProblems(before, after, harness) {
     return [`${file}: its sections changed from ${keys(was)} to ${keys(now)}`];
   }
   const problems = [];
+  // Each workspace dependency whose peers moved, and the snapshots its new resolution is checked against.
+  const moved = [];
+  let snapshots;
   for (const [i, { key, body }] of now.blocks.entries()) {
     const section = key.replace(/:.*$/, "");
     const old = was.blocks[i].body;
@@ -563,13 +691,15 @@ export function lockfileProblems(before, after, harness) {
         continue;
       }
       for (const [name, entry] of newEntries) {
-        // The workspace's own importers (the root, packages/*, apps/*) hold the tools CI and the release run.
-        const pattern = name === own ? OWN_VALUE : name.startsWith("verify/") ? PEER_SUFFIX : undefined;
-        const problem = importerProblem(name, oldEntries.get(name), entry, pattern);
+        const prior = oldEntries.get(name);
+        const problem = !name.startsWith("verify/")
+          ? workspaceImporterProblem(name, prior, entry, bumps, moved)
+          : importerProblem(name, prior, entry, name === own ? OWN_VALUE : PEER_SUFFIX);
         if (problem) problems.push(`${file}: ${problem}`);
       }
       continue;
     }
+    if (section === "snapshots") snapshots = { oldEntries, newEntries };
     for (const [name, entry] of newEntries) {
       const prior = oldEntries.get(name);
       if (prior) {
@@ -582,6 +712,12 @@ export function lockfileProblems(before, after, harness) {
         problems.push(`${file}: the new package ${name} doesn't resolve from the npm registry by its integrity alone`);
       }
     }
+  }
+  for (const move of moved) {
+    const problem = snapshots
+      ? movedSnapshotProblem(move, snapshots.oldEntries, snapshots.newEntries, bumps)
+      : `the ${move.importer} importer moves to the snapshot ${move.to}, which has no counterpart`;
+    if (problem) problems.push(`${file}: ${problem}`);
   }
   return problems;
 }
@@ -604,7 +740,7 @@ function checkUpdate(root, harness, base, head, bumpsText) {
   const show = (rev, file) => git("show", `${rev}:${file}`);
   problems.push(...manifestProblems(show(base, manifest), show(head, manifest), bumps).map((p) => `${manifest}: ${p}`));
   if (changed.has("pnpm-lock.yaml")) {
-    problems.push(...lockfileProblems(show(base, "pnpm-lock.yaml"), show(head, "pnpm-lock.yaml"), harness));
+    problems.push(...lockfileProblems(show(base, "pnpm-lock.yaml"), show(head, "pnpm-lock.yaml"), harness, bumps));
   }
   return problems;
 }
