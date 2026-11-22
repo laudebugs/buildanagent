@@ -91,8 +91,11 @@ jobs:
         run: |
           set -euo pipefail
           cat "$RUNNER_TEMP/live/live-report.md" >> "$GITHUB_STEP_SUMMARY"
-          git add -A -- 'verify/*/results/live'
-          git diff --cached --binary -- 'verify/*/results/live' > "$RUNNER_TEMP/live/live.patch"
+          # A wildcard pathspec must match a whole path, so 'verify/*/results/live' never matches the files inside the
+          # directory, and git add fails on a pathspec that matches nothing. Staging verify/ always matches; the diff
+          # keeps only the live transcripts, and is empty when the run wrote none.
+          git add -A -- verify
+          git diff --cached --binary -- ':(glob)verify/*/results/live/**' > "$RUNNER_TEMP/live/live.patch"
       - uses: actions/upload-artifact@v7.0.2
         with:
           name: live-anthropic
@@ -156,8 +159,11 @@ jobs:
         run: |
           set -euo pipefail
           cat "$RUNNER_TEMP/live/live-report.md" >> "$GITHUB_STEP_SUMMARY"
-          git add -A -- 'verify/*/results/live'
-          git diff --cached --binary -- 'verify/*/results/live' > "$RUNNER_TEMP/live/live.patch"
+          # A wildcard pathspec must match a whole path, so 'verify/*/results/live' never matches the files inside the
+          # directory, and git add fails on a pathspec that matches nothing. Staging verify/ always matches; the diff
+          # keeps only the live transcripts, and is empty when the run wrote none.
+          git add -A -- verify
+          git diff --cached --binary -- ':(glob)verify/*/results/live/**' > "$RUNNER_TEMP/live/live.patch"
       - uses: actions/upload-artifact@v7.0.2
         with:
           name: live-openai
@@ -223,7 +229,12 @@ jobs:
           git commit --quiet --no-verify -F "$RUNNER_TEMP/message"
           node scripts/ci/live-run.mjs check "$base" HEAD "$date"
           # Checked, so the data files may now join the working tree for the comparison below.
-          git checkout HEAD -- 'verify/*/results/live' apps/manual/src/data/live-comparison.json
+          # A commit that moved only the date has no live transcript to check out, and checkout fails on a pathspec
+          # that matches nothing.
+          if ! git diff --quiet "$base" HEAD -- ':(glob)verify/*/results/live/**'; then
+            git checkout HEAD -- ':(glob)verify/*/results/live/**'
+          fi
+          git checkout HEAD -- apps/manual/src/data/live-comparison.json
           { echo "changed=true"; echo "base=$base"; echo "date=$date"; } >> "$GITHUB_OUTPUT"
       - name: Compare the live flows with the mock transcripts
         id: diff
